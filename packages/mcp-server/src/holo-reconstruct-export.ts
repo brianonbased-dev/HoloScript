@@ -6,9 +6,8 @@
 import {
   getExportManager,
   parseHolo,
-  type ExportTarget,
-  type HolomapPointCloudPayload,
 } from '@holoscript/core';
+import type { ExportTarget, HolomapPointCloudPayload } from '@holoscript/core/compiler';
 import type { ReconstructionManifest } from '@holoscript/core/reconstruction';
 import { Buffer } from 'node:buffer';
 

@@ -3,7 +3,8 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { getExportManager, type ExportTarget } from '@holoscript/core';
+import { getExportManager } from '@holoscript/core';
+import type { ExportTarget } from '@holoscript/core/compiler';
 import {
   getActiveAnomaliesSnapshot,
   getReplicaCountForOps,

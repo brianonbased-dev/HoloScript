@@ -66,13 +66,11 @@ export const traitTools: Tool[] = [
   }
 ];
 
-import { TraitCompositionCompiler, type TraitCompositionDecl } from '@holoscript/core';
-import { TraitBinder } from '@holoscript/core/runtime';
+import { TraitCompositionCompiler, vrTraitRegistry, type TraitCompositionDecl } from '@holoscript/core';
 
 export async function handleTraitTool(name: string, args: Record<string, any>) {
   if (name === 'compile_trait_composition') {
     const compiler = new TraitCompositionCompiler();
-    const binder = TraitBinder.getInstance();
 
     const decl: TraitCompositionDecl & { provenance?: any } = {
       name: args.name,
@@ -85,7 +83,13 @@ export async function handleTraitTool(name: string, args: Record<string, any>) {
 
     try {
       // Binder lookup helper
-      const getHandler = (n: string) => binder.getHandler(n);
+      const getHandler = (n: string) => {
+        const normalized = n.startsWith('@') ? n.slice(1) : n;
+        return (
+          vrTraitRegistry.getHandler(normalized as never) ??
+          vrTraitRegistry.getHandler(n as never)
+        );
+      };
       
       const [result] = compiler.compile([decl], getHandler);
       return {

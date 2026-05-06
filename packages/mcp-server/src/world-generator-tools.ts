@@ -10,6 +10,7 @@ import type {
   CallToolRequest,
   CallToolResult,
 } from '@modelcontextprotocol/sdk/types.js';
+import type { WorldEventEmitter } from '@holoscript/core/world';
 
 // =============================================================================
 // TOOL DEFINITION
@@ -125,13 +126,14 @@ export async function handleWorldGeneratorTool(
     });
 
     // Bind service and trigger generation
-    const unbind = service.bindEventEmitter({
-      on: (ev, fn) => emitter.on(ev, fn),
-      off: (ev, fn) => emitter.off(ev, fn),
-      emit: (ev, data) => {
+    const eventEmitter: WorldEventEmitter = {
+      on: (ev: string, fn: (data: unknown) => void) => emitter.on(ev, fn),
+      off: (ev: string, fn: (data: unknown) => void) => emitter.off(ev, fn),
+      emit: (ev: string, data: unknown) => {
         emitter.emit(ev, data);
       },
-    });
+    };
+    const unbind = service.bindEventEmitter(eventEmitter);
 
     const event = {
       nodeId: `mcp-${Date.now()}`,
@@ -147,11 +149,7 @@ export async function handleWorldGeneratorTool(
     };
 
     void service.handleGenerateEvent(
-      {
-        on: (ev, fn) => emitter.on(ev, fn),
-        off: (ev, fn) => emitter.off(ev, fn),
-        emit: (ev, data) => { emitter.emit(ev, data); },
-      },
+      eventEmitter,
       event
     );
 

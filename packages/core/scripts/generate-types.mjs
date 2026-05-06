@@ -1080,6 +1080,8 @@ export class ProceduralSkill {
 export type VRTraitName = string;
 
 export class VRTraitRegistry {
+  register(handler: TraitHandler): void;
+  getHandler(name: VRTraitName): TraitHandler | undefined;
   attachTrait(node: HSPlusNode, traitName: VRTraitName, config: unknown, context: TraitContext): void;
   detachTrait(node: HSPlusNode, traitName: VRTraitName, context: TraitContext): void;
   updateAllTraits(node: HSPlusNode, context: TraitContext, delta: number): void;
@@ -3636,6 +3638,7 @@ export class VRTraitRegistry {
   register(handler: TraitHandler): void;
   unregister(name: string): void;
   get(name: string): TraitHandler | undefined;
+  getHandler(name: string): TraitHandler | undefined;
   getAll(): TraitHandler[];
   handleEventForAllTraits(node: any, ctx: TraitContext, event: TraitEvent): void;
 }
@@ -3776,6 +3779,45 @@ export interface R3FNode {
   [key: string]: any;
 }
 
+export type ExportTarget =
+  | 'urdf'
+  | 'sdf'
+  | 'unity'
+  | 'unreal'
+  | 'godot'
+  | 'vrchat'
+  | 'openxr'
+  | 'android'
+  | 'android-xr'
+  | 'ios'
+  | 'visionos'
+  | 'ar'
+  | 'babylon'
+  | 'webgpu'
+  | 'r3f'
+  | 'wasm'
+  | 'playcanvas'
+  | 'usd'
+  | 'usdz'
+  | 'dtdl'
+  | 'vrr'
+  | 'multi-layer'
+  | 'incremental'
+  | 'state'
+  | 'trait-composition'
+  | 'tsl'
+  | 'a2a-agent-card'
+  | 'nir'
+  | 'openxr-spatial-entities'
+  | 'phone-sleeve-vr'
+  | 'native-2d';
+
+export interface HolomapPointCloudPayload {
+  positionsB64: string;
+  colorsB64: string;
+  pointCount: number;
+}
+
 export class R3FCompiler extends CompilerBase {
   compile(ast: any, token: CompilerToken): R3FNode[];
 }
@@ -3827,6 +3869,17 @@ export class NodeToyMapping { [key: string]: any; }
 export class RemotionBridge { [key: string]: any; }
 export class ReproducibilityMode { [key: string]: any; }
 export class SemanticSceneGraph { [key: string]: any; }
+export type MCPConfigTarget = 'claude' | 'vscode' | 'cursor' | 'antigravity' | 'generic';
+export interface MCPConfigCompilerOptions {
+  target?: MCPConfigTarget;
+  envFile?: string;
+  envValues?: Record<string, string>;
+  cwd?: string;
+}
+export class MCPConfigCompiler extends CompilerBase {
+  constructor(options?: MCPConfigCompilerOptions);
+  compile(composition: any, agentToken: string, outputPath?: string): string;
+}
 export class AgentInferenceExportTarget extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
 
 export interface GeometryData { vertices: Float32Array; indices?: Uint32Array; normals?: Float32Array; uvs?: Float32Array; }
@@ -4398,8 +4451,26 @@ export interface ReconstructionStep {
   frame: ReconstructionFrame;
   pose: CameraPose;
   points: PointCloudChunk;
-  trajectory: Record<string, unknown>;
-  anchor: Record<string, unknown>;
+  trajectory: TrajectoryMemoryState;
+  anchor: AnchorContextState;
+}
+export interface TrajectoryKeyframe {
+  frameIndex: number;
+  timestampMs: number;
+  pose: CameraPose;
+  embedding: Float32Array;
+}
+export interface TrajectoryMemoryState {
+  keyframes: TrajectoryKeyframe[];
+  estimatedDriftMeters: number;
+  lastLoopClosureFrame: number;
+  revision: number;
+}
+export interface AnchorContextState {
+  anchorFrameIndex: number;
+  anchorPose: CameraPose;
+  anchorDescriptor: Float32Array;
+  revision: number;
 }
 export interface HoloMapConfig {
   inputResolution: { width: number; height: number };
@@ -4408,9 +4479,14 @@ export interface HoloMapConfig {
   seed: number;
   modelHash: string;
   videoHash?: string;
+  weightCid?: string;
+  weightUrl?: string;
+  weightUrls?: string[];
   cpuOffload: boolean;
   weightStrategy?: 'distill' | 'fine-tune' | 'from-scratch';
+  verticalProfile?: 'generalist' | 'indoor' | 'outdoor' | 'object';
   allowCpuFallback?: boolean;
+  localResolver?: (weightCid: string) => Promise<ArrayBuffer | undefined>;
 }
 export declare const HOLOMAP_DEFAULTS: HoloMapConfig;
 export interface ReconstructionManifest {
@@ -4451,6 +4527,109 @@ export declare function computeHoloMapReplayFingerprint(parts: {
 }): string;
 export declare function fnv1a32Hex(input: string): string;
 export declare function assertHoloMapManifestContract(m: ReconstructionManifest): void;
+`;
+
+const worldDTS = `/** @holoscript/core/world — Native world generation adapters/service */
+export interface WorldGenerationRequest {
+  prompt: string;
+  input_image?: string;
+  input_images?: string[];
+  format: 'mesh' | '3dgs' | 'both' | 'neural_field';
+  quality: 'low' | 'medium' | 'high' | 'ultra';
+  seed?: number;
+  navEnabled?: boolean;
+  interactiveMode?: boolean;
+}
+export interface WorldMetadata {
+  format: 'mesh' | '3dgs' | 'both' | 'neural_field';
+  bounds: [number, number, number, number, number, number];
+  agentStart?: [number, number, number];
+  waypoints?: [number, number, number][];
+  splatCount?: number;
+  triangleCount?: number;
+  generationMs?: number;
+}
+export interface WorldGenerationResult {
+  generationId: string;
+  assetUrl: string;
+  navmeshUrl?: string;
+  pointCloudUrl?: string;
+  metadata: WorldMetadata;
+}
+export interface WorldGeneratorAdapter {
+  readonly id: string;
+  generate(req: WorldGenerationRequest): Promise<WorldGenerationResult>;
+  getProgress?(generationId: string): Promise<number>;
+  cancel?(generationId: string): Promise<void>;
+}
+export declare class WorldAdapterRegistry {
+  register(adapter: WorldGeneratorAdapter): void;
+  get(engineId: string): WorldGeneratorAdapter;
+  has(engineId: string): boolean;
+  list(): string[];
+}
+export declare const worldAdapterRegistry: WorldAdapterRegistry;
+export interface SovereignWorldAdapterOptions {
+  endpoint?: string;
+  apiKey?: string;
+}
+export declare class SovereignWorldAdapter implements WorldGeneratorAdapter {
+  readonly id: string;
+  constructor(options?: SovereignWorldAdapterOptions);
+  generate(req: WorldGenerationRequest): Promise<WorldGenerationResult>;
+}
+export interface Sovereign3DAdapterOptions {
+  baseUrl?: string;
+  apiKey?: string;
+  timeoutMs?: number;
+  pollIntervalMs?: number;
+  mockMode?: boolean;
+  mockLatencyMs?: number;
+}
+export declare class Sovereign3DAdapter implements WorldGeneratorAdapter {
+  readonly id: string;
+  constructor(options?: Sovereign3DAdapterOptions);
+  generate(req: WorldGenerationRequest): Promise<WorldGenerationResult>;
+  getProgress(generationId: string): Promise<number>;
+}
+export interface WorldGenerateEvent extends WorldGenerationRequest {
+  nodeId: string;
+  engine: string;
+}
+export interface WorldGenerationStartedEvent {
+  nodeId: string;
+  engine: string;
+  generationId: string;
+}
+export interface WorldGenerationProgressEvent {
+  nodeId: string;
+  progress: number;
+}
+export interface WorldGenerationCompleteEvent {
+  nodeId: string;
+  assetUrl: string;
+  navmeshUrl?: string;
+  pointCloudUrl?: string;
+  generationId: string;
+  metadata: Record<string, unknown>;
+}
+export interface WorldGenerationErrorEvent {
+  nodeId: string;
+  error: string;
+}
+export interface WorldEventEmitter {
+  on(event: string, listener: (data: unknown) => void): void;
+  off?(event: string, listener: (data: unknown) => void): void;
+  emit(event: string, data: unknown): void;
+}
+export declare class WorldGeneratorService {
+  readonly registry: WorldAdapterRegistry;
+  constructor(registry?: WorldAdapterRegistry);
+  registerDefaultAdapters(): void;
+  bindEventEmitter(emitter: WorldEventEmitter): () => void;
+  handleGenerateEvent(emitter: WorldEventEmitter, event: WorldGenerateEvent): Promise<void>;
+}
+export declare const worldGeneratorService: WorldGeneratorService;
 `;
 
 const paper0cSpikeDTS = `/** @holoscript/core/paper-0c-spike — CAEL paper-0c primitives (subgrid attestation) */
@@ -4714,6 +4893,7 @@ const subdirDeclarations = [
   { dir: 'compiler', content: compilerDTS },
   { dir: 'self-improvement', content: selfImprovementDTS },
   { dir: 'codebase', content: codebaseDTS },
+  { dir: 'world', content: worldDTS },
   { dir: 'storage', content: storageDTS },
   { dir: 'tools', content: toolsDTS },
   { dir: 'reconstruction', content: reconstructionDTS },

@@ -147,10 +147,11 @@ export async function executeSingleTool(name: string, args: Record<string, unkno
 
       const words = intent.split(/\W+/).filter((w) => w.length > 2);
       const scoredTools = ALL_AVAILABLE_TOOLS.map((t) => {
-        const textToSearch = `${t.name} ${t.description}`.toLowerCase();
+        const description = t.description ?? '';
+        const textToSearch = `${t.name} ${description}`.toLowerCase();
         let score = 0;
         if (t.name.toLowerCase().includes(intent)) score += 10;
-        if (t.description.toLowerCase().includes(intent)) score += 5;
+        if (description.toLowerCase().includes(intent)) score += 5;
         for (const word of words) {
           if (textToSearch.includes(word)) score += 1;
         }

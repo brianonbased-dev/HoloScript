@@ -17,6 +17,7 @@ import {
 import {
   suggestUniversalTraits,
   suggest2DTraits,
+  suggestTraits,
   generateSemanticUIForMCP,
   generateWorldNative,
   generateObjectForMCP,

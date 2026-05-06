@@ -192,7 +192,7 @@ deployRouter.get('/targets', (_req: Request, res: Response) => {
  * Get detailed documentation for a specific target.
  */
 deployRouter.get('/targets/:name', (req: Request, res: Response) => {
-  const { name } = req.params;
+  const name = String(req.params.name);
   const targetDocs = getTargetDocumentation(name);
 
   if (!targetDocs) {

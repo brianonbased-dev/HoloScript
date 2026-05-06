@@ -61,6 +61,9 @@ export default defineConfig({
     // Codebase Absorption Engine (re-exports from @holoscript/absorb-service)
     'codebase/index': 'src/codebase/index.ts',
 
+    // Native world generation adapters/service
+    'world/index': 'src/world/index.ts',
+
     // Self improvement module
     'self-improvement/index': 'src/self-improvement/index.ts',
 

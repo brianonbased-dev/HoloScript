@@ -122,8 +122,8 @@ export function deserializeExportSession(raw: unknown): ExportSession | null {
   return {
     sessionId: candidate.sessionId,
     userId: candidate.userId,
-    createdAt: candidate.createdAt,
-    expiresAt: candidate.expiresAt,
+    createdAt: Number(candidate.createdAt),
+    expiresAt: Number(candidate.expiresAt),
     status: candidate.status,
     serverNonce: candidate.serverNonce,
     idempotencyKeys: new Set(idempotencyKeys),

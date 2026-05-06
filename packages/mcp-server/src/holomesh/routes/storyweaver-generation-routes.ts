@@ -7,9 +7,17 @@
 
 import type http from 'http';
 import { z } from 'zod';
-import { getNarrativeQuestService, type GeneratedQuest, type QuestParams } from '@holoscript/llm-provider';
+import { getNarrativeQuestService, type QuestParams } from '@holoscript/llm-provider';
 import { json, parseJsonBody } from '../utils';
 import { requireAuth } from '../auth-utils';
+
+type GeneratedQuest = {
+  title: string;
+  loreDescription: string;
+  objectives: { id: string; instruction: string }[];
+  npcDialogue: { trigger: string; text: string }[];
+  rewardMetadata: { assetId: string; dropRate: number };
+};
 
 // ── Zod — request schemas ─────────────────────────────────────────────────
 

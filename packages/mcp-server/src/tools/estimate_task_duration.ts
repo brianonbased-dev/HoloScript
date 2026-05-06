@@ -352,7 +352,7 @@ function loadArtifact(path: string): AgentTimeArtifact {
   if (!isRecord(parsed) || !isRecord(parsed.taskTypeStats)) {
     throw new Error(`Invalid agent-time artifact: ${path}`);
   }
-  return parsed as AgentTimeArtifact;
+  return parsed as unknown as AgentTimeArtifact;
 }
 
 function artifactWindow(requested: WindowKey, artifact: AgentTimeArtifact): EstimateTaskDurationResult['window'] {

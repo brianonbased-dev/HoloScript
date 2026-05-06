@@ -39,6 +39,7 @@ import {
   addTasksToBoard,
   type TeamTask,
   type TeamSuggestion,
+  type SkippedTaskEntry,
   type SlotRole,
   type SuggestionCategory
 } from '@holoscript/framework';
@@ -393,7 +394,7 @@ export async function handleBoardRoutes(
     if (!team.taskBoard) team.taskBoard = [];
 
     let addedTasks: any[] = [];
-    let skippedTasks: { title: string; reason: 'duplicate' | 'empty_title' }[] = [];
+    let skippedTasks: SkippedTaskEntry[] = [];
     let warnings: {
       title: string;
       reason: 'description_truncated';

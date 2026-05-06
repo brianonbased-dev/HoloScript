@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { parseHolo } from '@holoscript/core';
-import { registerAgentProfile, TeamAgentProfile, AgentRole, AIProvider } from '@holoscript/framework';
+import { TEAM_AGENT_PROFILES, type TeamAgentProfile, type AgentRole, type AIProvider } from '@holoscript/framework';
 
 export function loadNativeAgentCompositions() {
   const rootDir = path.join(__dirname, '..', 'src', 'holomesh');
@@ -29,7 +29,7 @@ export function loadNativeAgentCompositions() {
         if (obj.type === 'team_agent') {
           const profile = extractAgentProfile(obj);
           if (profile) {
-            registerAgentProfile(profile);
+            TEAM_AGENT_PROFILES.set(profile.id, profile);
             console.log(`[HoloMesh] Registered native agent composition: ${profile.name} (from ${path.basename(filePath)})`);
           }
         }

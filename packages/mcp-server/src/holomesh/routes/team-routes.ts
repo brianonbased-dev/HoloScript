@@ -29,6 +29,7 @@ import { appendTeamKnowledgeMirror, mergeTeamKnowledgeWithOrchestrator } from '.
 import { checkRateLimit } from '../social';
 import type { Team, RegisteredAgent, TeamRole, MeshKnowledgeEntry } from '../types';
 import { recordTeamModeChange } from '../mode-provenance';
+import type { TeamTask } from '@holoscript/framework';
 
 const QUICKSTART_DOMAIN_DESCRIPTIONS: Record<string, string> = {
   agents: 'Agent design, orchestration, and collaborative autonomy patterns.',
@@ -1201,7 +1202,7 @@ export async function handleTeamRoutes(
     if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
     const body = await parseJsonBody(req);
     const todoContent = body.todo_content as string | undefined;
-    const tasks: Array<{ id: string; title: string; description: string; source: string; status: string; createdAt: string }> = [];
+    const tasks: TeamTask[] = [];
 
     if (todoContent) {
       // Parse "file:line: // TODO: text" or "file:line: // FIXME: text"
@@ -1234,6 +1235,7 @@ export async function handleTeamRoutes(
         source: 'scout:hint',
         status: 'open',
         createdAt: new Date().toISOString(),
+        priority: 5,
       });
     }
 
