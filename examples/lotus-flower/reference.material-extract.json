@@ -1,0 +1,53 @@
+{
+  "schema": "holoscript.lotus.reference.material-extract.v0",
+  "status": "visual-seed-only",
+  "captured_at": "2026-05-06",
+  "source": {
+    "kind": "conversation_reference_images",
+    "count": 3,
+    "content_hash_status": "pending_media_ingest",
+    "wallet_signature_status": "pending_cael_anchor",
+    "note": "Derived from the three pink lotus reference images provided in-thread. This is not a signed CAEL node yet."
+  },
+  "botanical_trait_target": "@botanical_lotus",
+  "material": {
+    "subsurface_scattering": 0.74,
+    "subsurface_radius_rgb": [0.9, 0.32, 0.72],
+    "petal_translucency_base": 0.68,
+    "petal_translucency_edge": 0.36,
+    "roughness": 0.72,
+    "ior": 1.36,
+    "vein_normal_intensity": 0.045,
+    "edge_curl_intensity": 0.58,
+    "gravity_sag_outer": 0.3
+  },
+  "colors": {
+    "petal_base": "#fff1f6",
+    "petal_mid": "#f47ab7",
+    "petal_inner": "#ff9ecf",
+    "petal_rim": "#c42a86",
+    "petal_shadow": "#84205f",
+    "seed_pod": "#f4d74a",
+    "seed_pod_rim": "#b7c66b",
+    "stamen": "#f59e0b",
+    "stamen_tip": "#fff4bd",
+    "leaf": "#235f4f",
+    "leaf_dark": "#102f28",
+    "water": "#07140f"
+  },
+  "geometry": {
+    "petal_rings": [
+      { "name": "inner", "count": 8, "cup": 0.86, "gravity_sag": 0.02 },
+      { "name": "mid", "count": 13, "cup": 0.5, "gravity_sag": 0.12 },
+      { "name": "outer", "count": 21, "cup": 0.24, "gravity_sag": 0.3 }
+    ],
+    "petal_shape": "broad_elliptic_pointed_tip_with_center_ridge",
+    "stamen_filament_count": 58,
+    "seed_pod_dot_pattern": "1_center_7_12_18_radial"
+  },
+  "renderer_mapping": {
+    "current_surface": "services/holoscript-net/src/components/LotusProgram.tsx",
+    "petal_material": "MeshPhysicalMaterial with vertex colors, transmission, thickness, and double-sided petals",
+    "photorealism_status": "approximation_until_photo_to_material_extractor_lands"
+  }
+}

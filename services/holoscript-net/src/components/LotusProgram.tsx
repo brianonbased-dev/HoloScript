@@ -2,8 +2,8 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import type { MutableRefObject, ReactNode } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { KeyRound, Pause, Play, RefreshCw } from 'lucide-react';
-import type { Group, Mesh, MeshStandardMaterial } from 'three';
-import { Color, Vector3 } from 'three';
+import type { Group, Mesh, MeshPhysicalMaterial } from 'three';
+import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Vector3 } from 'three';
 
 type LotusBloomState = 'sealed' | 'budding' | 'blooming' | 'full' | 'wilted';
 type LotusCluster = 'roots' | 'p1' | 'p2' | 'p3' | 'center';
@@ -91,6 +91,21 @@ const GROWTH_SECONDS = 12.5;
 const LOTUS_SEED = 0x0000dead;
 const GrowthProgressContext = createContext<MutableRefObject<number> | null>(null);
 
+const REFERENCE_LOTUS_COLORS = {
+  petalBase: '#fff1f6',
+  petalMid: '#f47ab7',
+  petalInner: '#ff9ecf',
+  petalRim: '#c42a86',
+  petalShadow: '#84205f',
+  stamen: '#f59e0b',
+  stamenTip: '#fff4bd',
+  seedPod: '#f4d74a',
+  seedPodRim: '#b7c66b',
+  leaf: '#235f4f',
+  leafDark: '#102f28',
+  water: '#07140f',
+} as const;
+
 function isTeamPetal(petal: LotusPetal): petal is LotusTeamPetal {
   return 'paper_id' in petal;
 }
@@ -152,9 +167,9 @@ function seededRandom(seed: number) {
 
 function buildSeedablePetals(): ScenePetal[] {
   const rings = [
-    { ring: 1 as const, count: 8, radius: 0.44, length: 0.72, width: 0.24, cup: 0.74, gravitySag: 0.03, height: 1.18 },
-    { ring: 2 as const, count: 13, radius: 0.82, length: 1.02, width: 0.25, cup: 0.44, gravitySag: 0.16, height: 1.02 },
-    { ring: 3 as const, count: 21, radius: 1.28, length: 1.06, width: 0.2, cup: 0.18, gravitySag: 0.34, height: 0.82 },
+    { ring: 1 as const, count: 8, radius: 0.36, length: 0.8, width: 0.56, cup: 0.86, gravitySag: 0.02, height: 1.12 },
+    { ring: 2 as const, count: 13, radius: 0.74, length: 1.08, width: 0.68, cup: 0.5, gravitySag: 0.1, height: 0.98 },
+    { ring: 3 as const, count: 21, radius: 1.16, length: 1.24, width: 0.78, cup: 0.28, gravitySag: 0.22, height: 0.78 },
   ];
   let index = 0;
   const petals: ScenePetal[] = [];
@@ -175,7 +190,13 @@ function buildSeedablePetals(): ScenePetal[] {
         cup: ring.cup,
         gravitySag: ring.gravitySag,
         height: ring.height,
-        color: isRootPaper ? '#fff7ed' : ring.ring === 1 ? '#ffe4f1' : ring.ring === 2 ? '#f8b8d7' : '#d9a7cf',
+        color: isRootPaper
+          ? REFERENCE_LOTUS_COLORS.petalBase
+          : ring.ring === 1
+            ? REFERENCE_LOTUS_COLORS.petalInner
+            : ring.ring === 2
+              ? REFERENCE_LOTUS_COLORS.petalMid
+              : '#d94b9a',
         bloom,
         label: `P${ring.ring}.${ringIndex}`,
       });
@@ -185,16 +206,131 @@ function buildSeedablePetals(): ScenePetal[] {
   return petals;
 }
 
+function createReferencePetalGeometry(petal: ScenePetal): BufferGeometry {
+  const lengthSegments = 34;
+  const widthSegments = 12;
+  const positions: number[] = [];
+  const colors: number[] = [];
+  const indices: number[] = [];
+  const base = new Color(REFERENCE_LOTUS_COLORS.petalBase);
+  const mid = new Color(petal.color);
+  const rim = new Color(REFERENCE_LOTUS_COLORS.petalRim);
+  const shadow = new Color(REFERENCE_LOTUS_COLORS.petalShadow);
+
+  for (let i = 0; i <= lengthSegments; i += 1) {
+    const v = i / lengthSegments;
+    const lengthTaper = Math.max(0.14, Math.sin(Math.PI * v) ** 0.45 * (0.86 + v * 0.14));
+    const baseLift = Math.sin(Math.PI * v);
+    const pointedTip = Math.max(0, v - 0.72) ** 2 * 0.62;
+
+    for (let j = 0; j <= widthSegments; j += 1) {
+      const u = -1 + (j / widthSegments) * 2;
+      const edge = Math.abs(u);
+      const edgeCurl = edge ** 2 * petal.cup * 0.08 * baseLift;
+      const centerRidge = Math.max(0, 1 - edge * 1.35) * baseLift * 0.045;
+      const sag = petal.gravitySag * v ** 1.7 * 0.28;
+      const x = v - 0.5;
+      const y = centerRidge + edgeCurl + pointedTip - sag;
+      const z = u * lengthTaper * 0.5;
+      const color = base
+        .clone()
+        .lerp(mid, smoothstep(v * 1.15))
+        .lerp(rim, edge ** 2 * 0.28 + Math.max(0, v - 0.82) * 0.34)
+        .lerp(shadow, petal.ring === 3 ? edge ** 3 * 0.12 : 0);
+
+      positions.push(x, y, z);
+      colors.push(color.r, color.g, color.b);
+    }
+  }
+
+  const row = widthSegments + 1;
+  for (let i = 0; i < lengthSegments; i += 1) {
+    for (let j = 0; j < widthSegments; j += 1) {
+      const a = i * row + j;
+      const b = a + 1;
+      const c = a + row;
+      const d = c + 1;
+      indices.push(a, c, b, b, c, d);
+    }
+  }
+
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new Float32BufferAttribute(colors, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
 function buildPollen(): PollenParticle[] {
   const rand = seededRandom(LOTUS_SEED);
-  return Array.from({ length: 180 }, (_, index) => ({
+  return Array.from({ length: 92 }, (_, index) => ({
     angle: rand() * Math.PI * 2,
     radius: 0.4 + Math.sqrt(rand()) * 3.4,
     height: 0.75 + rand() * 2.7,
     speed: 0.12 + rand() * 0.34,
-    size: 0.012 + rand() * 0.024,
+    size: 0.008 + rand() * 0.018,
     color: index % 7 === 0 ? '#fde68a' : '#f59e0b',
   }));
+}
+
+interface StamenSpec {
+  angle: number;
+  radius: number;
+  length: number;
+  height: number;
+  tilt: number;
+  headScale: number;
+}
+
+interface SeedDotSpec {
+  angle: number;
+  radius: number;
+  size: number;
+}
+
+interface PadSpec {
+  angle: number;
+  radius: number;
+  scale: [number, number, number];
+  rotation: number;
+  color: string;
+}
+
+function buildStamens(): StamenSpec[] {
+  const rand = seededRandom(LOTUS_SEED ^ 0xfbbf24);
+  return Array.from({ length: 58 }, (_, index) => ({
+    angle: (index / 58) * Math.PI * 2 + (rand() - 0.5) * 0.08,
+    radius: 0.18 + rand() * 0.05,
+    length: 0.24 + rand() * 0.16,
+    height: -0.05 + rand() * 0.1,
+    tilt: 0.16 + rand() * 0.22,
+    headScale: 0.018 + rand() * 0.012,
+  }));
+}
+
+function buildSeedDots(): SeedDotSpec[] {
+  const dots: SeedDotSpec[] = [{ angle: 0, radius: 0, size: 0.022 }];
+  for (let ring = 1; ring <= 3; ring += 1) {
+    const count = ring === 1 ? 7 : ring === 2 ? 12 : 18;
+    for (let i = 0; i < count; i += 1) {
+      dots.push({
+        angle: (i / count) * Math.PI * 2 + ring * 0.19,
+        radius: ring * 0.075,
+        size: 0.013 + ring * 0.002,
+      });
+    }
+  }
+  return dots;
+}
+
+function buildLotusPads(): PadSpec[] {
+  return [
+    { angle: -0.74, radius: 2.8, scale: [1.7, 1, 1.12], rotation: 0.42, color: REFERENCE_LOTUS_COLORS.leaf },
+    { angle: 0.68, radius: 3.2, scale: [1.95, 1, 1.24], rotation: -0.36, color: '#2c705d' },
+    { angle: 2.28, radius: 2.5, scale: [1.45, 1, 0.95], rotation: 0.12, color: REFERENCE_LOTUS_COLORS.leafDark },
+    { angle: 3.66, radius: 3.25, scale: [2.15, 1, 1.34], rotation: -0.18, color: '#2a6655' },
+  ];
 }
 
 function usePrefersReducedMotion() {
@@ -214,8 +350,9 @@ function usePrefersReducedMotion() {
 function GrowthPetal({ petal, paused, reducedMotion }: { petal: ScenePetal; paused: boolean; reducedMotion: boolean }) {
   const progressRef = useGrowthProgressRef();
   const meshRef = useRef<Mesh>(null);
-  const materialRef = useRef<MeshStandardMaterial>(null);
-  const baseColor = useMemo(() => new Color(petal.color), [petal.color]);
+  const materialRef = useRef<MeshPhysicalMaterial>(null);
+  const geometry = useMemo(() => createReferencePetalGeometry(petal), [petal]);
+  const glowColor = useMemo(() => new Color(REFERENCE_LOTUS_COLORS.petalMid), []);
   const delay = 0.42 + petal.index * 0.006 + petal.ring * 0.035;
 
   useFrame(({ clock }) => {
@@ -238,25 +375,115 @@ function GrowthPetal({ petal, paused, reducedMotion }: { petal: ScenePetal; paus
     );
     meshRef.current.scale.set(
       (petal.length + breathe) * grow,
-      0.045 + grow * 0.035,
+      grow,
       (petal.width + breathe * 0.25) * grow
     );
     materialRef.current.opacity = 1;
-    materialRef.current.emissiveIntensity = (petal.bloom === 'full' ? 0.14 : petal.bloom === 'sealed' ? 0.015 : 0.06) * grow;
+    materialRef.current.emissiveIntensity = (petal.bloom === 'full' ? 0.22 : petal.bloom === 'sealed' ? 0.04 : 0.12) * grow;
   });
 
   return (
     <mesh ref={meshRef} castShadow receiveShadow>
-      <sphereGeometry args={[1, 44, 18]} />
-      <meshStandardMaterial
+      <primitive object={geometry} attach="geometry" />
+      <meshPhysicalMaterial
         ref={materialRef}
-        color={baseColor}
-        emissive={baseColor}
-        roughness={0.68}
-        metalness={0.04}
+        color="#ffffff"
+        emissive={glowColor}
+        roughness={0.72}
+        metalness={0}
+        clearcoat={0.08}
+        clearcoatRoughness={0.7}
+        transmission={0}
+        thickness={0.08}
+        ior={1.36}
         opacity={1}
+        side={DoubleSide}
+        vertexColors
       />
     </mesh>
+  );
+}
+
+function SeedPodDots() {
+  const dots = useMemo(buildSeedDots, []);
+
+  return (
+    <>
+      {dots.map((dot, index) => (
+        <mesh
+          key={index}
+          position={[
+            Math.cos(dot.angle) * dot.radius,
+            0.246,
+            Math.sin(dot.angle) * dot.radius,
+          ]}
+          scale={dot.size}
+          castShadow
+        >
+          <sphereGeometry args={[1, 10, 8]} />
+          <meshStandardMaterial color="#d79f1c" emissive="#facc15" emissiveIntensity={0.18} roughness={0.58} />
+        </mesh>
+      ))}
+    </>
+  );
+}
+
+function StamenFilaments() {
+  const stamens = useMemo(buildStamens, []);
+
+  return (
+    <>
+      {stamens.map((stamen, index) => (
+        <group key={index} rotation={[0, stamen.angle, 0]}>
+          <mesh
+            position={[stamen.radius + stamen.length * 0.46, stamen.height, 0]}
+            rotation={[0, 0, Math.PI / 2 - stamen.tilt]}
+            castShadow
+          >
+            <cylinderGeometry args={[0.006, 0.009, stamen.length, 8]} />
+            <meshStandardMaterial
+              color={REFERENCE_LOTUS_COLORS.stamen}
+              emissive="#f97316"
+              emissiveIntensity={0.24}
+              roughness={0.48}
+            />
+          </mesh>
+          <mesh
+            position={[
+              stamen.radius + stamen.length * 0.92,
+              stamen.height + Math.sin(stamen.tilt) * stamen.length * 0.42,
+              0,
+            ]}
+            scale={stamen.headScale}
+            castShadow
+          >
+            <sphereGeometry args={[1, 8, 6]} />
+            <meshStandardMaterial color={REFERENCE_LOTUS_COLORS.stamenTip} emissive="#fef3c7" emissiveIntensity={0.22} roughness={0.5} />
+          </mesh>
+        </group>
+      ))}
+    </>
+  );
+}
+
+function LotusPadField() {
+  const pads = useMemo(buildLotusPads, []);
+
+  return (
+    <>
+      {pads.map((pad, index) => (
+        <mesh
+          key={index}
+          position={[Math.cos(pad.angle) * pad.radius, -1.27 - index * 0.006, Math.sin(pad.angle) * pad.radius]}
+          rotation={[-Math.PI / 2, 0, pad.rotation]}
+          scale={pad.scale}
+          receiveShadow
+        >
+          <circleGeometry args={[1, 88]} />
+          <meshStandardMaterial color={pad.color} emissive={pad.color} emissiveIntensity={0.08} roughness={0.86} side={DoubleSide} />
+        </mesh>
+      ))}
+    </>
   );
 }
 
@@ -266,7 +493,7 @@ function SeedAndStalk({ paused, reducedMotion }: { paused: boolean; reducedMotio
   const seedLeftRef = useRef<Mesh>(null);
   const seedRightRef = useRef<Mesh>(null);
   const stalkRef = useRef<Mesh>(null);
-  const centerRef = useRef<Mesh>(null);
+  const centerRef = useRef<Group>(null);
   const leafLeftRef = useRef<Mesh>(null);
   const leafRightRef = useRef<Mesh>(null);
   const lightColumnRef = useRef<Mesh>(null);
@@ -277,11 +504,11 @@ function SeedAndStalk({ paused, reducedMotion }: { paused: boolean; reducedMotio
     const stalk = phase(cycle, 0.18, 0.42);
     const center = phase(cycle, 0.34, 0.54);
     const seedOpen = phase(cycle, 0.04, 0.2);
-    const genesis = phase(cycle, 0.78, 1) * 0.06;
+    const genesis = phase(cycle, 0.78, 1) * 0.004;
 
     if (seedRef.current) {
       seedRef.current.position.y = -1.08 + seedOpen * 0.08;
-      seedRef.current.scale.setScalar(1 - seedOpen * 0.22);
+      seedRef.current.scale.setScalar(Math.max(0.02, 1 - seedOpen * 0.95));
       seedRef.current.rotation.y = Math.sin(clock.elapsedTime * 0.5) * 0.05;
     }
     if (seedLeftRef.current) {
@@ -297,8 +524,8 @@ function SeedAndStalk({ paused, reducedMotion }: { paused: boolean; reducedMotio
       stalkRef.current.scale.set(1, 0.08 + stalk * 2.14, 1);
     }
     if (centerRef.current) {
-      centerRef.current.position.y = -0.66 + center * 1.78;
-      centerRef.current.scale.setScalar(0.04 + center * 0.34);
+      centerRef.current.position.y = -0.45 + center * 1.94;
+      centerRef.current.scale.setScalar(0.04 + center * 0.58);
       centerRef.current.rotation.y = clock.elapsedTime * 0.3;
     }
     if (leafLeftRef.current) {
@@ -334,22 +561,37 @@ function SeedAndStalk({ paused, reducedMotion }: { paused: boolean; reducedMotio
 
       <mesh ref={stalkRef} castShadow>
         <cylinderGeometry args={[0.045, 0.085, 1, 24]} />
-        <meshStandardMaterial color="#2f9b5f" emissive="#0c3b22" emissiveIntensity={0.2} roughness={0.52} />
+        <meshStandardMaterial color="#3f7f36" emissive="#0c3b22" emissiveIntensity={0.14} roughness={0.62} />
       </mesh>
 
       <mesh ref={leafLeftRef} castShadow>
         <sphereGeometry args={[1, 24, 12]} />
-        <meshStandardMaterial color="#2dd46f" emissive="#14532d" emissiveIntensity={0.18} roughness={0.58} />
+        <meshStandardMaterial color={REFERENCE_LOTUS_COLORS.leaf} emissive="#14532d" emissiveIntensity={0.1} roughness={0.72} />
       </mesh>
       <mesh ref={leafRightRef} castShadow>
         <sphereGeometry args={[1, 24, 12]} />
-        <meshStandardMaterial color="#20b965" emissive="#14532d" emissiveIntensity={0.14} roughness={0.58} />
+        <meshStandardMaterial color="#2d745e" emissive="#14532d" emissiveIntensity={0.1} roughness={0.72} />
       </mesh>
 
-      <mesh ref={centerRef} castShadow>
-        <sphereGeometry args={[1, 40, 20]} />
-        <meshStandardMaterial color="#fde68a" emissive="#f59e0b" emissiveIntensity={0.24} roughness={0.44} />
-      </mesh>
+      <group ref={centerRef}>
+        <StamenFilaments />
+        <mesh position={[0, 0.06, 0]} castShadow receiveShadow>
+          <cylinderGeometry args={[0.33, 0.26, 0.28, 48]} />
+          <meshPhysicalMaterial
+            color={REFERENCE_LOTUS_COLORS.seedPod}
+            emissive="#f59e0b"
+            emissiveIntensity={0.22}
+            roughness={0.5}
+            clearcoat={0.14}
+            clearcoatRoughness={0.58}
+          />
+        </mesh>
+        <mesh position={[0, 0.205, 0]} castShadow>
+          <cylinderGeometry args={[0.335, 0.335, 0.028, 48]} />
+          <meshStandardMaterial color={REFERENCE_LOTUS_COLORS.seedPodRim} emissive="#bef264" emissiveIntensity={0.16} roughness={0.56} />
+        </mesh>
+        <SeedPodDots />
+      </group>
 
       <mesh ref={lightColumnRef}>
         <cylinderGeometry args={[1, 1, 1, 48, 1, true]} />
@@ -385,7 +627,7 @@ function PollenField({ paused, reducedMotion }: { paused: boolean; reducedMotion
           scale={particle.size}
         >
           <sphereGeometry args={[1, 8, 6]} />
-          <meshBasicMaterial color={particle.color} transparent opacity={0.5} />
+          <meshBasicMaterial color={particle.color} transparent opacity={0.28} />
         </mesh>
       ))}
     </group>
@@ -411,19 +653,31 @@ function LotusWorld({
 
   return (
     <>
-      <color attach="background" args={['#05030a']} />
-      <fog attach="fog" args={['#05030a', 6.5, 13]} />
-      <ambientLight intensity={0.28} />
-      <directionalLight position={[3.4, 5.8, 4.2]} intensity={1.8} castShadow />
-      <pointLight position={[0, 1.2, 2.2]} color="#d946ef" intensity={1.8} distance={7} />
-      <pointLight position={[-2.8, 0.8, -3]} color="#f59e0b" intensity={0.62} distance={7} />
+      <color attach="background" args={['#06110d']} />
+      <fog attach="fog" args={['#06110d', 6.5, 13]} />
+      <ambientLight intensity={0.34} />
+      <directionalLight position={[3.4, 5.8, 4.2]} intensity={2.05} castShadow />
+      <pointLight position={[0.1, 1.05, 2.2]} color="#ff8bc4" intensity={1.55} distance={7} />
+      <pointLight position={[0, 0.68, 0.2]} color="#fbbf24" intensity={0.9} distance={3.2} />
+      <pointLight position={[-2.8, 0.8, -3]} color="#6ee7b7" intensity={0.42} distance={7} />
 
       <GrowthClock paused={paused} reducedMotion={reducedMotion} restartKey={restartKey}>
         <group ref={rootRef} position={[0, 0, 0]} rotation={[0.12, 0, 0]}>
           <mesh position={[0, -1.34, 0]} receiveShadow>
             <cylinderGeometry args={[3.8, 4.4, 0.12, 96]} />
-            <meshStandardMaterial color="#120717" emissive="#21062e" emissiveIntensity={0.22} roughness={0.92} />
+            <meshPhysicalMaterial
+              color={REFERENCE_LOTUS_COLORS.water}
+              emissive="#08241a"
+              emissiveIntensity={0.14}
+              roughness={0.24}
+              metalness={0}
+              transmission={0.16}
+              thickness={0.12}
+              transparent
+              opacity={0.92}
+            />
           </mesh>
+          <LotusPadField />
           <SeedAndStalk paused={paused} reducedMotion={reducedMotion} />
           {petals.map((petal) => (
             <GrowthPetal key={petal.index} petal={petal} paused={paused} reducedMotion={reducedMotion} />
@@ -440,8 +694,8 @@ function ResponsiveLotusCamera() {
 
   useEffect(() => {
     const compact = size.width < 520;
-    camera.position.set(0, compact ? 2.18 : 2.25, compact ? 11.2 : 8.7);
-    camera.lookAt(new Vector3(0, compact ? 0.18 : 0.32, 0));
+    camera.position.set(0, compact ? 2.55 : 3.02, compact ? 8.1 : 6.65);
+    camera.lookAt(new Vector3(0, compact ? 0.36 : 0.52, 0));
     camera.updateProjectionMatrix();
   }, [camera, size.width]);
 
@@ -459,11 +713,11 @@ function LotusGrowthScene({
 }) {
   return (
     <Canvas
-      camera={{ position: [0, 2.25, 8.7], fov: 45 }}
+      camera={{ position: [0, 3.02, 6.65], fov: 42 }}
       dpr={[1, 1.75]}
       shadows
       gl={{ antialias: true, alpha: false }}
-      onCreated={({ camera }) => camera.lookAt(new Vector3(0, 0.32, 0))}
+      onCreated={({ camera }) => camera.lookAt(new Vector3(0, 0.52, 0))}
     >
       <ResponsiveLotusCamera />
       <LotusWorld paused={paused} reducedMotion={reducedMotion} restartKey={restartKey} />
