@@ -442,7 +442,47 @@ jobs:
             --message "GitHub Actions $GITHUB_SHA"
 
       - name: Wait for deployment
-        run: sleep 60
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          node <<'NODE'
+          import { execFileSync } from 'node:child_process';
+
+          const deadline = Date.now() + 20 * 60 * 1000;
+          const terminalFailures = new Set(['CRASHED', 'FAILED', 'REMOVED']);
+
+          while (Date.now() < deadline) {
+            const raw = execFileSync('railway', [
+              'service',
+              'status',
+              '--service',
+              'absorb-service',
+              '--environment',
+              'production',
+              '--json',
+            ], { encoding: 'utf8' });
+            const status = JSON.parse(raw);
+            console.log(JSON.stringify({
+              deploymentId: status.deploymentId,
+              status: status.status,
+              stopped: status.stopped,
+            }));
+
+            if (status.status === 'SUCCESS' && status.stopped !== true) {
+              process.exit(0);
+            }
+
+            if (terminalFailures.has(status.status)) {
+              console.error(`Railway deployment stopped in terminal state: ${status.status}`);
+              process.exit(1);
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, 15000));
+          }
+
+          console.error('Timed out waiting for Railway absorb-service deployment to become SUCCESS.');
+          process.exit(1);
+          NODE
 
       - name: Health check
         run: |
