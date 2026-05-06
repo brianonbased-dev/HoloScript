@@ -6,16 +6,42 @@ export async function loadBrain(
   scopeTier: 'cold' | 'warm' | 'hot' = 'warm'
 ): Promise<RuntimeBrainConfig> {
   const systemPrompt = await readFile(brainPath, 'utf8');
-  const { domain, capabilityTags } = extractIdentity(systemPrompt);
-  return { brainPath, systemPrompt, capabilityTags, domain, scopeTier };
+  const { domain, capabilityTags, requires, prefers, avoids } = extractIdentity(systemPrompt);
+  return {
+    brainPath,
+    systemPrompt,
+    capabilityTags,
+    domain,
+    scopeTier,
+    requires,
+    prefers,
+    avoids,
+  };
 }
 
-function extractIdentity(brain: string): { domain: string; capabilityTags: string[] } {
+function extractIdentity(brain: string): {
+  domain: string;
+  capabilityTags: string[];
+  requires: string[];
+  prefers: string[];
+  avoids: string[];
+} {
   const identityBlock = sliceNamedBlock(brain, 'identity');
-  if (!identityBlock) return { domain: 'unknown', capabilityTags: [] };
+  if (!identityBlock) {
+    // No identity block — open routing (backward-compatible default).
+    // Brains without explicit requires/prefers/avoids match any provider.
+    return { domain: 'unknown', capabilityTags: [], requires: [], prefers: [], avoids: [] };
+  }
   const domain = scalarField(identityBlock, 'domain') ?? 'unknown';
   const capabilityTags = listField(identityBlock, 'capability_tags') ?? [];
-  return { domain, capabilityTags };
+  // Universal+segregated routing fields (founder ruling 2026-05-06): brains
+  // declare capability requirements as data; router matches against the
+  // provider's `capabilities` manifest at session start. Empty (omitted) =
+  // open routing — preserves today's behavior for unmigrated brains.
+  const requires = listField(identityBlock, 'requires') ?? [];
+  const prefers = listField(identityBlock, 'prefers') ?? [];
+  const avoids = listField(identityBlock, 'avoids') ?? [];
+  return { domain, capabilityTags, requires, prefers, avoids };
 }
 
 function sliceNamedBlock(src: string, name: string): string | undefined {
