@@ -41,6 +41,9 @@ export type {
 // Math Utilities (NEW - Centralized vector math to avoid duplication)
 export * from './math/vec3';
 
+// Tropical (min-plus) sparse matrix–vector multiply and graph generators
+export * from './math/tropicalSpmv';
+
 // Version & Build Metadata
 export {
   HOLOSCRIPT_VERSION,
