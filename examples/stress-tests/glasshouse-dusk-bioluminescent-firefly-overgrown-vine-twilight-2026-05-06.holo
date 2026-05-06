@@ -1,0 +1,357 @@
+// ============================================================================
+// A-009 Stress Test — 2026-05-06
+// "The Glasshouse at Dusk"
+//
+// NEW TRAITS EXERCISED (zero prior coverage across ALL examples today):
+//   @bioluminescent  — night-blooming plants + floor fungi pulsing blue-green;
+//                      each cluster runs an independent pulse cycle so the
+//                      floor breathes at its own tempo
+//   @firefly_emitter — 340-count swarm drifting through the cracked glass dome,
+//                      weakly attracted to the residual warmth of the iron stove
+//   @overgrown       — environmental biome state: vegetation has fully reclaimed
+//                      the structure; drives procedural moss/creep density
+//   @vine_covered    — age/condition modifier on iron pillars and the old stove;
+//                      tendrils procedurally animated via the @animated clip
+//   @twilight        — atmospheric light state: violet-indigo zenith, amber-rust
+//                      horizon band, sun already below the treeline
+//
+// Supporting traits (well-exercised, anchoring the new ones):
+//   @glowing, @animated, @collidable, @spatial_audio, @particle_system
+//
+// SCENE STORY:
+//   An abandoned Victorian botanical conservatory at the forest edge. It has
+//   not been tended in decades. Iron pillars draped in vine, every stone path
+//   blurred under moss. At 20:14 the sky still holds a rust-amber bruise at
+//   the horizon; above it, violet-indigo climbs fast.
+//
+//   The fungi wake first. Clusters of blue-green caps along the floor begin to
+//   pulse — each on its own rhythm, independent cardiac signals. The tallest
+//   caps near the old stove pulse slowly; the flat mats along the west path are
+//   quick and urgent. Night-blooming trumpet flowers along the central walk
+//   pour out a warm cream light, barely brighter than a candle.
+//
+//   Then the fireflies emerge. They drift upward through the cracked glass
+//   panels of the dome in loose spirals, vaguely orbiting the cold iron stove
+//   in the centre (its residual warmth the only directional cue they have).
+//   Their cold yellow-green light mingles with the fungal glow on the stone.
+//
+//   A slow wind moves the vine leaves on the pillars. Spores drift. A tree
+//   frog calls from somewhere outside. The conservatory is thoroughly alive —
+//   just not in the way its builders intended.
+// ============================================================================
+
+composition "The Glasshouse at Dusk" {
+
+  environment {
+    skybox: "twilight_forest_edge"
+    background_color: "#0d0820"
+    ambient_light: 0.10
+    fog_density: 0.018
+    fog_color: "#060e18"
+  }
+
+  // @twilight and @overgrown must live on objects — parser does not allow
+  // @trait annotations inside the environment block.
+
+  object "sky_system" {
+    type: "sky"
+    visible: false
+
+    @twilight {
+      horizon_color: "#b84018"
+      zenith_color: "#180c34"
+      transition_band_degrees: 18.0
+      sun_below_horizon: true
+      star_brightness: 0.15
+    }
+  }
+
+  object "biome_root" {
+    type: "biome"
+    visible: false
+
+    @overgrown {
+      density: 0.85
+      species: ["ficus_creeping", "ivy_common", "nightshade_climbing"]
+      health: "thriving"
+      moss_coverage: 0.72
+    }
+  }
+
+  // ==========================================================================
+  // CONSERVATORY STRUCTURE — four iron pillars, each @vine_covered
+  // The pillars are the skeleton of an eight-metre-wide octagonal dome.
+  // ==========================================================================
+
+  object "pillar_nw" {
+    geometry: "cylinder"
+    position: { x: -3.5, y: 2.5, z: -4.0 }
+    scale: { x: 0.25, y: 5.0, z: 0.25 }
+    material: { baseColor: "#1a2a10", roughness: 0.95, metallic: 0.06 }
+
+    @vine_covered {
+      density: 0.92
+      leaf_color: "#2a4a18"
+      stem_color: "#1a2a0a"
+      tendrils: true
+      tendril_count: 14
+    }
+    @collidable { shape: "capsule", static: true }
+    @animated { clip: "sway_vine_slow", speed: 0.30, loop: true }
+  }
+
+  object "pillar_ne" {
+    geometry: "cylinder"
+    position: { x: 3.5, y: 2.5, z: -4.0 }
+    scale: { x: 0.25, y: 5.0, z: 0.25 }
+    material: { baseColor: "#1a2a10", roughness: 0.95, metallic: 0.06 }
+
+    @vine_covered {
+      density: 0.78
+      leaf_color: "#2e5020"
+      stem_color: "#182208"
+      tendrils: true
+      tendril_count: 9
+    }
+    @collidable { shape: "capsule", static: true }
+    @animated { clip: "sway_vine_slow", speed: 0.25, loop: true }
+  }
+
+  object "pillar_sw" {
+    geometry: "cylinder"
+    position: { x: -3.5, y: 2.5, z: 4.0 }
+    scale: { x: 0.25, y: 5.0, z: 0.25 }
+    material: { baseColor: "#1a2a10", roughness: 0.95, metallic: 0.06 }
+
+    @vine_covered {
+      density: 0.88
+      leaf_color: "#243a14"
+      stem_color: "#1c2808"
+      tendrils: true
+      tendril_count: 11
+    }
+    @collidable { shape: "capsule", static: true }
+    @animated { clip: "sway_vine_slow", speed: 0.35, loop: true }
+  }
+
+  object "pillar_se" {
+    geometry: "cylinder"
+    position: { x: 3.5, y: 2.5, z: 4.0 }
+    scale: { x: 0.25, y: 5.0, z: 0.25 }
+    material: { baseColor: "#1a2a10", roughness: 0.95, metallic: 0.06 }
+
+    @vine_covered {
+      density: 0.70
+      leaf_color: "#304a1e"
+      stem_color: "#1e2c0c"
+      tendrils: false
+    }
+    @collidable { shape: "capsule", static: true }
+    @animated { clip: "sway_vine_slow", speed: 0.28, loop: true }
+  }
+
+  // ==========================================================================
+  // OLD IRON STOVE — cold, vine-wrapped centrepiece; fireflies orbit it
+  // ==========================================================================
+
+  object "iron_stove" {
+    geometry: "custom_mesh"
+    mesh: "victorian_stove_cold"
+    position: { x: 0, y: 0.6, z: 0 }
+    scale: 0.9
+    material: { baseColor: "#181818", roughness: 0.65, metallic: 0.88 }
+
+    @vine_covered {
+      density: 0.45
+      leaf_color: "#283818"
+      stem_color: "#1a2408"
+      tendrils: true
+      tendril_count: 5
+    }
+    @collidable { shape: "box", static: true }
+  }
+
+  // ==========================================================================
+  // BIOLUMINESCENT FUNGI — three independent pulse clusters
+  // Each cluster runs a different pulse_rate so the floor breathes in
+  // an uncoupled polyrhythm: 0.55 / 0.82 / 0.38 Hz
+  // ==========================================================================
+
+  object "fungi_floor_centre" {
+    geometry: "custom_mesh"
+    mesh: "fungal_mat_broad"
+    position: { x: 0.4, y: 0.05, z: 0.8 }
+    scale: { x: 3.2, y: 0.28, z: 3.2 }
+    material: { baseColor: "#0a3020", roughness: 0.90, metallic: 0.0 }
+    emissive: "#00c870"
+    emissiveIntensity: 1.6
+
+    @bioluminescent {
+      emission_color: "#00c870"
+      pulse: true
+      pulse_rate: 0.55
+      pulse_min: 0.6
+      pulse_max: 1.6
+      responsive_to_touch: true
+    }
+    @glowing { color: "#00c870", radius: 1.8, intensity: 1.4 }
+    @animated { clip: "pulse_organic", speed: 0.55, loop: true }
+  }
+
+  object "fungi_west_path" {
+    geometry: "custom_mesh"
+    mesh: "fungal_caps_small"
+    position: { x: -1.8, y: 0.05, z: 1.5 }
+    scale: { x: 1.2, y: 0.38, z: 1.2 }
+    material: { baseColor: "#082a18", roughness: 0.88, metallic: 0.0 }
+    emissive: "#10e090"
+    emissiveIntensity: 1.2
+
+    @bioluminescent {
+      emission_color: "#10e090"
+      pulse: true
+      pulse_rate: 0.82
+      pulse_min: 0.5
+      pulse_max: 1.2
+      responsive_to_touch: false
+    }
+    @glowing { color: "#10e090", radius: 0.9, intensity: 1.0 }
+  }
+
+  object "fungi_far_corner" {
+    geometry: "custom_mesh"
+    mesh: "fungal_caps_small"
+    position: { x: 2.8, y: 0.05, z: -2.5 }
+    scale: { x: 0.85, y: 0.32, z: 0.85 }
+    material: { baseColor: "#0a2e20", roughness: 0.90, metallic: 0.0 }
+    emissive: "#08d890"
+    emissiveIntensity: 1.0
+
+    @bioluminescent {
+      emission_color: "#08d890"
+      pulse: true
+      pulse_rate: 0.38
+      pulse_min: 0.4
+      pulse_max: 1.0
+      responsive_to_touch: false
+    }
+    @glowing { color: "#08d890", radius: 0.7, intensity: 0.8 }
+  }
+
+  // ==========================================================================
+  // NIGHT-BLOOMING TRUMPETS — bioluminescent flowers along the central path
+  // A slower, warmer pulse — cream light, barely brighter than a candle
+  // ==========================================================================
+
+  object "night_bloom_north" {
+    geometry: "custom_mesh"
+    mesh: "trumpet_flower_cluster"
+    position: { x: -0.8, y: 0.6, z: -2.5 }
+    scale: 0.65
+    material: { baseColor: "#f0e8d0", roughness: 0.70, metallic: 0.0 }
+    emissive: "#e8d8a0"
+    emissiveIntensity: 0.9
+
+    @bioluminescent {
+      emission_color: "#e8d8a0"
+      pulse: true
+      pulse_rate: 0.25
+      pulse_min: 0.70
+      pulse_max: 0.90
+      responsive_to_touch: false
+    }
+    @glowing { color: "#e8d8a0", radius: 0.6, intensity: 0.7 }
+    @animated { clip: "sway_gentle", speed: 0.20, loop: true }
+  }
+
+  object "night_bloom_south" {
+    geometry: "custom_mesh"
+    mesh: "trumpet_flower_cluster"
+    position: { x: 1.2, y: 0.6, z: 2.2 }
+    scale: 0.55
+    material: { baseColor: "#e8e0c8", roughness: 0.70, metallic: 0.0 }
+    emissive: "#d8c890"
+    emissiveIntensity: 0.8
+
+    @bioluminescent {
+      emission_color: "#d8c890"
+      pulse: true
+      pulse_rate: 0.32
+      pulse_min: 0.60
+      pulse_max: 0.80
+    }
+    @glowing { color: "#d8c890", radius: 0.5, intensity: 0.6 }
+    @animated { clip: "sway_gentle", speed: 0.18, loop: true }
+  }
+
+  // ==========================================================================
+  // FIREFLY EMITTER — 340 cold-light insects drifting toward the stove
+  // The attractor is weak (0.12) so the swarm is diffuse, not a vortex.
+  // ==========================================================================
+
+  object "firefly_cloud" {
+    type: "emitter"
+    position: { x: 0, y: 1.5, z: 0 }
+    scale: { x: 7.0, y: 5.0, z: 7.0 }
+
+    @firefly_emitter {
+      count: 340
+      color: "#d8ff60"
+      blink_rate: { min: 0.4, max: 1.8 }
+      blink_duration: 0.12
+      drift_speed: 0.25
+      drift_radius: 3.2
+      attractor: "iron_stove"
+      attractor_strength: 0.12
+      glow_radius: 0.08
+      additive_blend: true
+    }
+  }
+
+  // ==========================================================================
+  // SPORE CLOUD — slow ambient particle layer (no light emitted)
+  // Spores released by the fungal mat drift on convection currents near the
+  // cracked glass panels, catching the last daylight from outside.
+  // ==========================================================================
+
+  object "spore_drift" {
+    type: "particles"
+    count: 180
+    position: { x: 0, y: 2.8, z: 0 }
+    spread: 7.5
+    size: 0.022
+    speed: 0.055
+    color: "#c0e8c0"
+
+    @particle_system {
+      rate: 4
+      lifetime: 16.0
+      blend_mode: "additive"
+      opacity_curve: "fade_in_out"
+    }
+  }
+
+  // ==========================================================================
+  // TWILIGHT SOUNDSCAPE — layered: tree frogs, crickets, distant owl
+  // ==========================================================================
+
+  object "soundscape" {
+    geometry: "sphere"
+    visible: false
+    position: { x: 0, y: 1.5, z: 0 }
+    scale: 0.01
+
+    @spatial_audio {
+      src: "ambient/glasshouse-dusk-atmos.ogg"
+      loop: true
+      volume: 0.60
+      rolloff: "none"
+      layers: [
+        { src: "ambient/tree-frogs-dusk.ogg",  volume: 0.50, start_delay: 0.0 },
+        { src: "ambient/crickets-soft.ogg",     volume: 0.35, start_delay: 2.5 },
+        { src: "ambient/distant-owl.ogg",       volume: 0.20, start_delay: 18.0, loop: false },
+        { src: "ambient/wind-leaves-glass.ogg", volume: 0.15, start_delay: 5.0, loop: true }
+      ]
+    }
+  }
+}
