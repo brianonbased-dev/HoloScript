@@ -76,6 +76,7 @@ import {
   hashGeometry,
   type CAELTrace,
 } from '../index';
+import { CRDTCAELBridge } from '../CRDTCAELBridge';
 import type { FieldData, SimSolver } from '../SimSolver';
 
 // ── Constants ───────────────────────────────────────────────────────────────
@@ -187,9 +188,10 @@ function createBridgeSolver(): BridgeSolver {
     -5, 0.75, -1.5, 5, 0.75, -1.5, 5, 0.75, 1.5, -5, 0.75, 1.5,
     -5, 1.25, -1.5, 5, 1.25, -1.5, 5, 1.25, 1.5, -5, 1.25, 1.5,
   ]);
-  // 5-tet decomposition of the hex
+  // 5-tet decomposition of the hex, wound for positive Jacobians under
+  // SimulationContract's tet4 determinant convention.
   const tetrahedra = new Uint32Array([
-    0, 1, 2, 5, 0, 2, 3, 7, 0, 4, 5, 7, 2, 5, 6, 7, 0, 2, 5, 7,
+    0, 2, 1, 5, 0, 3, 2, 7, 0, 5, 4, 7, 2, 6, 5, 7, 0, 2, 5, 7,
   ]);
 
   // Initial stress field: peak under the load (x=5, z=1.5), decaying with distance
@@ -419,6 +421,12 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
 
       // Sanity: deterministic stepping actually ran.
       if (prov.totalSteps < 1) throw new Error(`no steps taken (totalSteps=${prov.totalSteps})`);
+      if (!prov.verified) {
+        const reasons = (prov.contractViolations ?? [])
+          .map((v) => v.code ?? v.rule)
+          .join(', ');
+        throw new Error(`SimulationContract provenance is not verified (${reasons || 'unknown'})`);
+      }
 
       return {
         hash: fnv1a(geomHash + '|' + prov.totalSteps + '|' + prov.totalSimTime.toFixed(6)),
@@ -488,43 +496,110 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
     });
 
     // ── Phase 5: collaboration (CRDT edit conflict → replay resolves) ───
-    // We skip the live Loro import to keep the demo self-contained. The
-    // point for Section 7 is the shape: two agents emit disjoint deltas
-    // against the same scene, CAEL replay orders them by hash-chain time
-    // to produce a deterministic merged state.
-    await runPhase(state, 5, 'collaboration (CRDT conflict → replay)', async () => {
+    // Real Loro CRDT path — two WorldState peers each apply a conflicting
+    // edit to the SAME object id. Local peer merges the remote snapshot
+    // through CRDTCAELBridge so the merge becomes a hash-chained
+    // `cael.crdt_merge/world_state` event in the trace. The convergent
+    // post-merge state is what subsequent phases observe. Falls back to
+    // the descriptive interaction-log path only if loro-crdt fails to
+    // load (offline / dependency-strip CI lanes).
+    await runPhase(state, 5, 'collaboration (CRDT conflict → merge)', async () => {
       if (!state.recorder) throw new Error('no recorder');
 
-      // Second agent simulates a conflicting edit. Record both proposed
-      // deltas as interactions so they enter the hash chain and can be
-      // ordered by it.
-      state.recorder.logInteraction('crdt_proposal', {
-        agentId: 'agent.bridge-inspector',
-        op: 'scale_beam',
-        delta: 1.2,
-        ts: state.recorder.getContractedSimulation().getProvenance().totalSimTime,
-      });
-      state.recorder.logInteraction('crdt_proposal', {
-        agentId: 'agent.structural-reviewer',
-        op: 'add_cross_brace',
-        delta: { position: [5, 1.25, 0], length: 3 },
-        ts: state.recorder.getContractedSimulation().getProvenance().totalSimTime,
-      });
+      // Try real Loro WorldState + CRDTCAELBridge first.
+      try {
+        const { WorldState } = await import('@holoscript/crdt-spatial');
+        const localWorld = new WorldState('agent.bridge-inspector');
+        const remoteWorld = new WorldState('agent.structural-reviewer');
 
-      // Resolution: hash-chain order wins. First proposal into the chain
-      // is the base; second proposal rebases onto it. The trace itself
-      // IS the total order.
-      state.crdtResolution = {
-        winner: 'agent.bridge-inspector/scale_beam',
-        cause: 'earlier hash-chain position (deterministic order)',
-      };
-      state.recorder.logInteraction('crdt_resolved', state.crdtResolution);
+        // Both peers describe the same object id with conflicting state.
+        // LWW (last-writer-wins on the LoroMap) resolves on merge — the
+        // crucial property here is that BOTH writes survive in the
+        // hash-chained provenance, not just the winner.
+        const objectsBefore = localWorld.getObjectCount();
+        localWorld.setObject('bridge-beam-A', {
+          position: [0, 1, 0],
+          rotation: [0, 0, 0, 1],
+          scale: [1.2, 1, 1],                    // local: scale beam to 1.2
+          mesh: 'bridge.beam',
+          traits: ['@physics', '@collidable'],
+          owner: 'did:agent:bridge-inspector',
+          properties: { proposedBy: 'agent.bridge-inspector', op: 'scale_beam' },
+        });
+        remoteWorld.setObject('bridge-beam-A', {
+          position: [0, 1, 0],
+          rotation: [0, 0, 0, 1],
+          scale: [1, 1, 1],
+          mesh: 'bridge.beam',
+          traits: ['@physics', '@collidable', '@brace'],
+          owner: 'did:agent:structural-reviewer',
+          properties: {
+            proposedBy: 'agent.structural-reviewer',
+            op: 'add_cross_brace',
+            brace: { position: [5, 1.25, 0], length: 3 },
+          },
+        });
 
-      return {
-        hash: fnv1a(JSON.stringify(state.crdtResolution)),
-        value: state.crdtResolution,
-        note: `winner=${state.crdtResolution.winner}`,
-      };
+        const caelCRDT = new CRDTCAELBridge({
+          world: localWorld,
+          recorder: state.recorder,
+          localPeerId: 'agent.bridge-inspector',
+        });
+
+        // Real Loro snapshot bytes — the merge is a real CRDT op, not a
+        // narrative log entry. The CRDTCAELBridge logs cael.crdt_merge
+        // with objectCountBefore/After and mergeBytes into the chain.
+        const remoteSnapshot = remoteWorld.export();
+        caelCRDT.mergeWorld(remoteSnapshot, 'agent.structural-reviewer', {
+          conflictKey: 'bridge-beam-A',
+          op: 'merge_proposals',
+        });
+
+        const objectsAfter = localWorld.getObjectCount();
+        const merged = localWorld.getObject('bridge-beam-A');
+        // LWW winner is whichever .setObject() committed with a later
+        // Lamport timestamp (peer-deterministic). We name the field that
+        // actually survived in the merged map for the paper text.
+        const mergedProps = (merged?.properties ?? {}) as Record<string, unknown>;
+        const winner = (mergedProps.proposedBy as string | undefined) ?? 'unknown';
+        const winnerOp = (mergedProps.op as string | undefined) ?? 'unknown';
+        state.crdtResolution = {
+          winner: `${winner}/${winnerOp}`,
+          cause: 'Loro LWW on shared map key + hash-chained merge event',
+        };
+
+        return {
+          hash: fnv1a(JSON.stringify(state.crdtResolution) + '|' + remoteSnapshot.length),
+          value: state.crdtResolution,
+          note:
+            `winner=${state.crdtResolution.winner} ` +
+            `bytes=${remoteSnapshot.length} objCount=${objectsBefore}->${objectsAfter}`,
+        };
+      } catch (e) {
+        // Offline fallback — preserves Section 7 narrative even if Loro
+        // can't load (e.g. WASM build missing on a stripped CI image).
+        const reason = (e as Error).message ?? String(e);
+        state.recorder.logInteraction('crdt_proposal', {
+          agentId: 'agent.bridge-inspector',
+          op: 'scale_beam',
+          delta: 1.2,
+        });
+        state.recorder.logInteraction('crdt_proposal', {
+          agentId: 'agent.structural-reviewer',
+          op: 'add_cross_brace',
+          delta: { position: [5, 1.25, 0], length: 3 },
+        });
+        state.crdtResolution = {
+          winner: 'agent.bridge-inspector/scale_beam',
+          cause: 'earlier hash-chain position (Loro unavailable, narrative fallback)',
+        };
+        state.recorder.logInteraction('crdt_resolved', state.crdtResolution);
+        return {
+          hash: fnv1a(JSON.stringify(state.crdtResolution)),
+          value: state.crdtResolution,
+          note: `Layer 5 mocked: loro-crdt unavailable (${reason})`,
+        };
+      }
     });
 
     // ── Phase 6: knowledge (index CAEL pattern into knowledge store) ────
@@ -606,9 +681,13 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
     });
 
     // ── Phase 7: provenance-backed query ────────────────────────────────
-    // Next agent asks "how was this bridge reinforced?" Answer is
-    // synthesized from the CAEL trace — citations are trace entry hashes,
-    // so the answer is LITERALLY provenance-backed.
+    // Next agent asks "how was this bridge reinforced?" The provenance-
+    // backed answer is synthesized from the local CAEL trace (citations
+    // are trace entry hashes), and — when the orchestrator answered in
+    // Phase 6 — augmented with a real `/knowledge/query` round-trip that
+    // retrieves the just-synced entry. The retrieved entry's id is added
+    // as an external citation, making this a true cross-service round
+    // trip rather than a single-process narrative.
     await runPhase(state, 7, 'provenance query (agent answers from trace)', async () => {
       if (!state.recorder) throw new Error('no recorder');
       const trace = parseCAELJSONL(state.recorder.toJSONL());
@@ -621,25 +700,81 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
 
       const citations = reinforceEvents.map((e) => String(e.hash ?? '').slice(0, 12));
 
+      // External-store citation: only attempted when Phase 6 actually went
+      // live (i.e. the entry exists in the orchestrator). On miss / network
+      // failure we keep the local-only answer — no "Layer 7 mocked" note,
+      // because the local-trace synthesis is itself a real provenance op.
+      let externalCitation: string | null = null;
+      let externalNote = '';
+      const wentLive = state.absorbed && !state.absorbed.mocked;
+      const apiKey = process.env.HOLOSCRIPT_API_KEY ?? process.env.MCP_API_KEY;
+      if (wentLive && apiKey && typeof fetch === 'function') {
+        // Widen the result window — orchestrator's hybrid retrieval mixes
+        // results across many workspaces; with limit=3 the just-synced
+        // capstone-bridge-* entry is often outranked by older general
+        // knowledge. limit=20 ranks it high enough to surface in
+        // every observed run while still bounded for CI determinism.
+        // Vector retrieval is slower than the sync path — bump timeout to
+        // 6s (observed 3.0s p50, with a long tail near 3.5s on Railway).
+        const queryRes = await fetchWithTimeout(
+          `${ORCHESTRATOR_URL}/knowledge/query`,
+          {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              'x-mcp-api-key': apiKey,
+            },
+            body: JSON.stringify({
+              search: 'capstone bridge reinforcement episode',
+              limit: 20,
+            }),
+          },
+          6000,
+        );
+        if (queryRes && queryRes.ok) {
+          try {
+            const data = (await queryRes.json()) as {
+              results?: Array<{ id?: string; content?: string }>;
+            };
+            const hit = (data.results ?? []).find(
+              (r) => typeof r.id === 'string' && r.id.startsWith('capstone-bridge-'),
+            );
+            if (hit?.id) {
+              externalCitation = hit.id;
+              externalNote = ` external=${hit.id.slice(0, 36)}`;
+            } else {
+              externalNote = ` external=<no capstone-bridge-* match in ${(data.results ?? []).length} results>`;
+            }
+          } catch {
+            // Fall through — external augmentation is optional.
+          }
+        }
+      }
+
       const answer =
         reinforceEvents.length > 0
           ? `The bridge was reinforced by ${(state.reinforceAction ?? 'unknown')} — ` +
             `peak von Mises stress dropped from ` +
             `${((state.preReinforcePeak ?? 0) / 1e6).toFixed(1)} MPa to ` +
             `${((state.postReinforcePeak ?? 0) / 1e6).toFixed(1)} MPa. ` +
-            `Decision provenance: ${citations.length} trace entries.`
+            `Decision provenance: ${citations.length} trace entries` +
+            (externalCitation ? `; cross-stored as ${externalCitation}.` : '.')
           : 'No reinforcement action found in trace.';
+
+      const allCitations = externalCitation
+        ? [...citations, externalCitation]
+        : citations;
 
       state.query = {
         question: 'How was this bridge reinforced?',
         answer,
-        citations,
+        citations: allCitations,
       };
 
       return {
-        hash: fnv1a(answer + '|' + citations.join(',')),
+        hash: fnv1a(answer + '|' + allCitations.join(',')),
         value: state.query,
-        note: `citations=${citations.length}`,
+        note: `citations=${allCitations.length}${externalNote}`,
       };
     });
 
@@ -718,9 +853,12 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
     // Skipped layers are reported inline; list them so the paper can be
     // honest about what was exercised live vs mocked.
     const mockedPhases = state.phases.filter((p) => !p.success || (p.note ?? '').startsWith('Layer'));
+    const livePhases = state.phases.filter((p) => p.success && !(p.note ?? '').startsWith('Layer'));
+    // eslint-disable-next-line no-console
+    console.log(`\n-- Live vs mocked: ${livePhases.length}/${state.phases.length} live, ${mockedPhases.length} mocked --`);
     if (mockedPhases.length > 0) {
       // eslint-disable-next-line no-console
-      console.log('\n-- Mocked / skipped layers --');
+      console.log('-- Mocked / skipped layers --');
       for (const p of mockedPhases) {
         // eslint-disable-next-line no-console
         console.log(`  Phase ${p.phase} (${p.name}): ${p.note ?? 'unknown reason'}`);
@@ -748,9 +886,23 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
       expect(state.postReinforcePeak).toBeLessThan(state.preReinforcePeak);
     }
 
-    // At least 5 of 8 phases should run without mocking. Below this the
-    // demo has decayed into storytelling and the paper should not use it.
-    const liveCount = state.phases.filter((p) => p.success && !(p.note ?? '').startsWith('Layer')).length;
-    expect(liveCount).toBeGreaterThanOrEqual(5);
+    // ≥7/8 phases must run without mocking. Phase 6 (knowledge sync) is
+    // the only structurally network-dependent phase — when the orchestrator
+    // is reachable the bar is 8/8; offline lanes still pass at 7/8 because
+    // the WorldState CRDT path (Phase 5) does not require network and the
+    // orchestrator-augmented Phase 7 falls back to local-trace synthesis
+    // (which is itself a real provenance op, not narrative).
+    const liveCount = livePhases.length;
+    expect(liveCount).toBeGreaterThanOrEqual(7);
+
+    // Bookkeeping for paper-capstone Section 7 timing table: surface the
+    // measured live count on the test object so a future reporter hook
+    // can consume it without reparsing the table.
+    (
+      state as LoopState & { _liveCount?: number; _mockedCount?: number }
+    )._liveCount = liveCount;
+    (
+      state as LoopState & { _liveCount?: number; _mockedCount?: number }
+    )._mockedCount = mockedPhases.length;
   }, 30_000);
 });
