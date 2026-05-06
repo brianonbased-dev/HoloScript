@@ -128,6 +128,23 @@ function summaryFromIndexLike(doc, input, options) {
   const totals = doc.totals || {};
   const passed = numeric(totals.passed) ?? numeric(gate.passed);
   const failed = numeric(totals.failed) ?? numeric(gate.failed);
+  const totalRecordsFromIndex =
+    numeric(gate.pairs_collected) ??
+    numeric(gate.total_records) ??
+    numeric(gate.totalRecords) ??
+    numeric(totals.totalRecords);
+  const caelVerifiedPairs =
+    numeric(gate.cael_verified_pairs) ??
+    numeric(gate.caelVerifiedPairs) ??
+    numeric(totals.cael_verified_pairs) ??
+    numeric(totals.caelVerifiedPairs) ??
+    0;
+  const staticSeedPairs =
+    numeric(gate.static_seed_pairs) ??
+    numeric(gate.staticSeedPairs) ??
+    numeric(totals.static_seed_pairs) ??
+    numeric(totals.staticSeedPairs) ??
+    Math.max(0, (totalRecordsFromIndex ?? 0) - caelVerifiedPairs);
   const labeled =
     numeric(gate.pairs_labeled) ??
     numeric(gate.measured_pairs) ??
@@ -144,6 +161,7 @@ function summaryFromIndexLike(doc, input, options) {
     (measuredPairs > 0 && passed !== null ? round(passed / measuredPairs, 6) : null);
   const passRateOk = passRateComputed !== null && passRateComputed >= options.targetPassRate;
   const volumeOk = measuredPairs >= options.targetPairs;
+  const caelVolumeOk = caelVerifiedPairs >= options.targetPairs;
 
   return {
     schemaVersion: '0.1.0',
@@ -155,11 +173,13 @@ function summaryFromIndexLike(doc, input, options) {
       targetPassRate: options.targetPassRate,
     },
     counts: {
-      totalRecords: numeric(gate.pairs_collected) ?? measuredPairs,
+      totalRecords: totalRecordsFromIndex ?? measuredPairs,
       measuredPairs,
+      caelVerifiedPairs,
+      staticSeedPairs,
       passed: passed ?? (passRateComputed !== null ? Math.round(passRateComputed * measuredPairs) : 0),
       failed: failed ?? (passRateComputed !== null ? measuredPairs - Math.round(passRateComputed * measuredPairs) : 0),
-      unmeasuredPairs: Math.max(0, (numeric(gate.pairs_collected) ?? measuredPairs) - measuredPairs),
+      unmeasuredPairs: Math.max(0, (totalRecordsFromIndex ?? measuredPairs) - measuredPairs),
       malformedRecords: numeric(totals.malformed) ?? 0,
     },
     passRate: passRateComputed,
@@ -167,6 +187,8 @@ function summaryFromIndexLike(doc, input, options) {
       passRateOk,
       volumeOk,
       gateCleared: passRateOk && volumeOk,
+      caelVolumeOk,
+      paper17GateCleared: passRateOk && caelVolumeOk,
     },
     ceiling:
       measuredPairs === 0
@@ -179,6 +201,7 @@ function summaryFromIndexLike(doc, input, options) {
     bySource: {},
     byOutcome: {},
     missingReasons: {},
+    caelMissingReasons: {},
   };
 }
 
@@ -186,6 +209,8 @@ function summarizeRecords(records, input, options) {
   const counts = {
     totalRecords: records.length,
     measuredPairs: 0,
+    caelVerifiedPairs: 0,
+    staticSeedPairs: 0,
     passed: 0,
     failed: 0,
     unmeasuredPairs: 0,
@@ -194,10 +219,19 @@ function summarizeRecords(records, input, options) {
   const bySource = {};
   const byOutcome = {};
   const missingReasons = {};
+  const caelMissingReasons = {};
 
   for (const record of records) {
     increment(bySource, String(record.source || record.phase || 'unknown'));
     increment(byOutcome, String(record.outcome || 'unknown'));
+
+    const cael = extractCaelVerification(record);
+    if (cael.verified) {
+      counts.caelVerifiedPairs += 1;
+    } else {
+      counts.staticSeedPairs += 1;
+      increment(caelMissingReasons, cael.reason || 'no_cael_trace');
+    }
 
     const measurement = extractSimContractMeasurement(record);
     if (measurement.measured) {
@@ -214,6 +248,7 @@ function summarizeRecords(records, input, options) {
     counts.measuredPairs > 0 ? round(counts.passed / counts.measuredPairs, 6) : null;
   const passRateOk = passRate !== null && passRate >= options.targetPassRate;
   const volumeOk = counts.measuredPairs >= options.targetPairs;
+  const caelVolumeOk = counts.caelVerifiedPairs >= options.targetPairs;
 
   return {
     schemaVersion: '0.1.0',
@@ -230,6 +265,8 @@ function summarizeRecords(records, input, options) {
       passRateOk,
       volumeOk,
       gateCleared: passRateOk && volumeOk,
+      caelVolumeOk,
+      paper17GateCleared: passRateOk && caelVolumeOk,
     },
     ceiling:
       counts.measuredPairs === 0
@@ -242,7 +279,30 @@ function summarizeRecords(records, input, options) {
     bySource,
     byOutcome,
     missingReasons,
+    caelMissingReasons,
   };
+}
+
+function extractCaelVerification(record) {
+  const direct = firstBoolean([
+    record.cael_hash_chain_valid,
+    record.caelHashChainValid,
+    record.cael_trace?.hash_chain_valid,
+    record.cael_trace?.hashChain?.valid,
+    record.cael_trace?.verification?.valid,
+    record.caelTrace?.hash_chain_valid,
+    record.caelTrace?.hashChain?.valid,
+    record.caelTrace?.verification?.valid,
+  ]);
+  const hasTrace = Boolean(
+    record.cael_trace ||
+    record.caelTrace ||
+    record.cael_trace_hash ||
+    record.caelTraceHash,
+  );
+  if (direct === true && hasTrace) return { verified: true, reason: 'hash_chain_valid' };
+  if (hasTrace) return { verified: false, reason: 'cael_trace_unverified' };
+  return { verified: false, reason: 'no_cael_trace' };
 }
 
 function extractSimContractMeasurement(record) {
@@ -339,11 +399,14 @@ function toMarkdown(summary) {
     `- Source kind: \`${summary.sourceKind}\``,
     `- Total records: ${summary.counts.totalRecords}`,
     `- Measured pairs: ${summary.counts.measuredPairs}`,
+    `- CAEL-verified pairs: ${summary.counts.caelVerifiedPairs}`,
+    `- Static/unverified seed pairs: ${summary.counts.staticSeedPairs}`,
     `- Passed: ${summary.counts.passed}`,
     `- Failed: ${summary.counts.failed}`,
     `- Pass rate: ${pct}`,
     `- Target: ${summary.targets.targetPairs} pairs at ${summary.targets.targetPassRate}`,
     `- Gate cleared: ${summary.gate.gateCleared}`,
+    `- Paper 17 CAEL gate cleared: ${summary.gate.paper17GateCleared}`,
   ];
   if (summary.ceiling) {
     lines.push('', `Ceiling: ${summary.ceiling.message}`);

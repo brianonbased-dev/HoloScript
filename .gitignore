@@ -517,6 +517,8 @@ samples/
 
 # Per-paper dataset exemptions — load-bearing corpora shipped with the paper
 # must be version-controlled. Add a line per paper as it ships its dataset.
+!research/paper-17-sesl-pairs/*.jsonl
+!research/paper-17-sesl-pairs/fixtures/*.jsonl
 !research/paper-19/datasets/
 !research/paper-19/datasets/**
 
