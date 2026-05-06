@@ -71,7 +71,7 @@ export {
 // Simulation Contract — Enforced guarantees for scientific reliability
 export {
   ContractedSimulation, DeterministicStepper,
-  hashGeometry, validateUnits, validateMeshSanity,
+  hashGeometry, validateUnits, validateMeshSanity, validatePhysicsSanity,
   acceptsCrossScale, coarsestCommonScale,
   SCALE_ALIASES, SCALE_FROM_ALIAS, SCALE_ORDER, DEFAULT_SCALE_ENVELOPES,
   type SimulationProvenance, type InteractionEvent, type ContractViolation, type ContractConfig,

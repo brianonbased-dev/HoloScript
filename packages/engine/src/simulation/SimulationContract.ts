@@ -385,6 +385,10 @@ export interface SimulationProvenance {
   interactions: InteractionEvent[];
   /** Final solver stats */
   finalStats: Record<string, unknown>;
+  /** Contract violations found at construction time, including CAEL reason codes when available. */
+  contractViolations?: ContractViolation[];
+  /** True when no error-severity contract violations were found. */
+  verified?: boolean;
   /** Whether the simulation is deterministically reproducible */
   deterministic: boolean;
   /** Platform version */
@@ -397,6 +401,8 @@ export interface ContractViolation {
   rule: string;
   message: string;
   severity: 'error' | 'warning';
+  /** CAEL reason code for traceability (e.g. CAEL-PHYS-001) */
+  code?: string;
 }
 
 export interface ContractConfig {
@@ -408,6 +414,13 @@ export interface ContractConfig {
   enforceUnits?: boolean;
   /** Whether to reject meshes with out-of-range element indices (default: true). Paper #4 semantic sanity. */
   enforceMeshSanity?: boolean;
+  /**
+   * Whether to run semantic physics sanity checks beyond geometry hash
+   * (Jacobian/sign, stiffness PD, element quality). Default: true for
+   * continuum-scale structural/thermal solvers; false otherwise.
+   * Paper #4 — closes the hash-consistent-but-physically-wrong gap.
+   */
+  enforcePhysicsSanity?: boolean;
   /** Whether to log all interactions (default: true) */
   logInteractions?: boolean;
   /** Solver type label */
@@ -714,6 +727,342 @@ export function validateMeshSanity(
       severity: 'warning',
     });
   }
+
+  return out;
+}
+
+// ── Physics Sanity (Paper #4 — hash-consistent but physically wrong) ───────
+
+/**
+ * Infer element type from config heuristics.
+ *
+ * Explicit `elementType` wins. Otherwise we fall back to field names
+ * (`tetrahedra` → tet4, `triangles` → tri3) and finally to a stride
+ * heuristic based on node/element count ratios typical for clean meshes.
+ */
+function inferElementType(
+  config: Record<string, unknown>,
+  vertices: Float64Array | Float32Array,
+  elements: Uint32Array,
+): 'tet4' | 'tri3' | 'unknown' {
+  const explicit = config.elementType;
+  if (typeof explicit === 'string') {
+    const s = explicit.toLowerCase();
+    if (s === 'tet4' || s === 'tetrahedron' || s === 'tet') return 'tet4';
+    if (s === 'tri3' || s === 'triangle' || s === 'tri') return 'tri3';
+  }
+  if (config.tetrahedra !== undefined) return 'tet4';
+  if (config.triangles !== undefined) return 'tri3';
+
+  const numNodes = Math.floor(vertices.length / 3);
+  const len = elements.length;
+
+  if (len % 4 === 0) {
+    const numElements = len / 4;
+    // Typical tet mesh: numElements is roughly 5-6x numNodes
+    if (numElements > 0 && numNodes > 0 && numElements >= numNodes && numElements <= numNodes * 8) {
+      return 'tet4';
+    }
+  }
+  if (len % 3 === 0) {
+    const numElements = len / 3;
+    // Typical tri mesh: numElements is roughly 2x numNodes
+    if (numElements > 0 && numNodes > 0 && numElements >= numNodes && numElements <= numNodes * 4) {
+      return 'tri3';
+    }
+  }
+
+  return 'unknown';
+}
+
+/** Deep-search a nested config object for a numeric key. */
+function findConfigNumber(obj: Record<string, unknown>, key: string): number | undefined {
+  if (typeof obj[key] === 'number') return obj[key] as number;
+  for (const [, v] of Object.entries(obj)) {
+    if (typeof v === 'object' && v !== null && !ArrayBuffer.isView(v)) {
+      const nested = findConfigNumber(v as Record<string, unknown>, key);
+      if (nested !== undefined) return nested;
+    }
+  }
+  return undefined;
+}
+
+function checkTet4Jacobian(
+  vertices: Float64Array | Float32Array,
+  elements: Uint32Array,
+): ContractViolation[] {
+  const out: ContractViolation[] = [];
+  const numNodes = Math.floor(vertices.length / 3);
+  const numElements = Math.floor(elements.length / 4);
+
+  for (let e = 0; e < numElements; e++) {
+    const i0 = elements[e * 4];
+    const i1 = elements[e * 4 + 1];
+    const i2 = elements[e * 4 + 2];
+    const i3 = elements[e * 4 + 3];
+    if (i0 >= numNodes || i1 >= numNodes || i2 >= numNodes || i3 >= numNodes) continue;
+
+    const x0 = vertices[i0 * 3], y0 = vertices[i0 * 3 + 1], z0 = vertices[i0 * 3 + 2];
+    const x1 = vertices[i1 * 3], y1 = vertices[i1 * 3 + 1], z1 = vertices[i1 * 3 + 2];
+    const x2 = vertices[i2 * 3], y2 = vertices[i2 * 3 + 1], z2 = vertices[i2 * 3 + 2];
+    const x3 = vertices[i3 * 3], y3 = vertices[i3 * 3 + 1], z3 = vertices[i3 * 3 + 2];
+
+    const dx1 = x1 - x0, dy1 = y1 - y0, dz1 = z1 - z0;
+    const dx2 = x2 - x0, dy2 = y2 - y0, dz2 = z2 - z0;
+    const dx3 = x3 - x0, dy3 = y3 - y0, dz3 = z3 - z0;
+
+    const cx = dy2 * dz3 - dz2 * dy3;
+    const cy = dz2 * dx3 - dx2 * dz3;
+    const cz = dx2 * dy3 - dy2 * dx3;
+    const det = dx1 * cx + dy1 * cy + dz1 * cz;
+
+    if (det <= 0) {
+      out.push({
+        rule: 'physics-sanity',
+        code: 'CAEL-PHYS-001',
+        message:
+          `Tet4 element ${e} has non-positive Jacobian determinant ` +
+          `(${det.toExponential(3)}). Element is inverted or degenerate.`,
+        severity: 'error',
+      });
+    }
+  }
+
+  return out;
+}
+
+function checkTet4Quality(
+  vertices: Float64Array | Float32Array,
+  elements: Uint32Array,
+): ContractViolation[] {
+  const out: ContractViolation[] = [];
+  const numNodes = Math.floor(vertices.length / 3);
+  const numElements = Math.floor(elements.length / 4);
+  const EDGE_RATIO_THRESHOLD = 100;
+
+  for (let e = 0; e < numElements; e++) {
+    const idx = [
+      elements[e * 4],
+      elements[e * 4 + 1],
+      elements[e * 4 + 2],
+      elements[e * 4 + 3],
+    ];
+    if (idx.some((i) => i >= numNodes)) continue;
+
+    // Gather corner coordinates
+    const c = idx.map((i) => ({
+      x: vertices[i * 3],
+      y: vertices[i * 3 + 1],
+      z: vertices[i * 3 + 2],
+    }));
+
+    const edgePairs = [
+      [0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3],
+    ];
+    let minEdge = Infinity;
+    let maxEdge = 0;
+    let hasZero = false;
+
+    for (const [a, b] of edgePairs) {
+      const dx = c[a].x - c[b].x;
+      const dy = c[a].y - c[b].y;
+      const dz = c[a].z - c[b].z;
+      const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (len === 0) {
+        hasZero = true;
+        break;
+      }
+      if (len < minEdge) minEdge = len;
+      if (len > maxEdge) maxEdge = len;
+    }
+
+    if (hasZero) {
+      out.push({
+        rule: 'physics-sanity',
+        code: 'CAEL-PHYS-002',
+        message: `Tet4 element ${e} has a zero-length edge. Element is degenerate.`,
+        severity: 'error',
+      });
+      continue;
+    }
+
+    if (maxEdge / minEdge > EDGE_RATIO_THRESHOLD) {
+      out.push({
+        rule: 'physics-sanity',
+        code: 'CAEL-PHYS-002',
+        message:
+          `Tet4 element ${e} has extreme edge-length ratio ` +
+          `${(maxEdge / minEdge).toFixed(1)}. Quality may compromise solver convergence.`,
+        severity: 'warning',
+      });
+    }
+  }
+
+  return out;
+}
+
+function checkTri3Jacobian(
+  vertices: Float64Array | Float32Array,
+  elements: Uint32Array,
+): ContractViolation[] {
+  const out: ContractViolation[] = [];
+  const numNodes = Math.floor(vertices.length / 3);
+  const numElements = Math.floor(elements.length / 3);
+
+  for (let e = 0; e < numElements; e++) {
+    const i0 = elements[e * 3];
+    const i1 = elements[e * 3 + 1];
+    const i2 = elements[e * 3 + 2];
+    if (i0 >= numNodes || i1 >= numNodes || i2 >= numNodes) continue;
+
+    const x0 = vertices[i0 * 3], y0 = vertices[i0 * 3 + 1], z0 = vertices[i0 * 3 + 2];
+    const x1 = vertices[i1 * 3], y1 = vertices[i1 * 3 + 1], z1 = vertices[i1 * 3 + 2];
+    const x2 = vertices[i2 * 3], y2 = vertices[i2 * 3 + 1], z2 = vertices[i2 * 3 + 2];
+
+    const dx1 = x1 - x0, dy1 = y1 - y0, dz1 = z1 - z0;
+    const dx2 = x2 - x0, dy2 = y2 - y0, dz2 = z2 - z0;
+
+    const cx = dy1 * dz2 - dz1 * dy2;
+    const cy = dz1 * dx2 - dx1 * dz2;
+    const cz = dx1 * dy2 - dy1 * dx2;
+    const area2 = Math.sqrt(cx * cx + cy * cy + cz * cz); // 2 * |area|
+
+    if (area2 === 0) {
+      out.push({
+        rule: 'physics-sanity',
+        code: 'CAEL-PHYS-001',
+        message: `Tri3 element ${e} has zero area. Element is degenerate.`,
+        severity: 'error',
+      });
+    }
+  }
+
+  return out;
+}
+
+function checkTri3Quality(
+  vertices: Float64Array | Float32Array,
+  elements: Uint32Array,
+): ContractViolation[] {
+  const out: ContractViolation[] = [];
+  const numNodes = Math.floor(vertices.length / 3);
+  const numElements = Math.floor(elements.length / 3);
+  const EDGE_RATIO_THRESHOLD = 100;
+
+  for (let e = 0; e < numElements; e++) {
+    const i0 = elements[e * 3];
+    const i1 = elements[e * 3 + 1];
+    const i2 = elements[e * 3 + 2];
+    if (i0 >= numNodes || i1 >= numNodes || i2 >= numNodes) continue;
+
+    const c0 = { x: vertices[i0 * 3], y: vertices[i0 * 3 + 1], z: vertices[i0 * 3 + 2] };
+    const c1 = { x: vertices[i1 * 3], y: vertices[i1 * 3 + 1], z: vertices[i1 * 3 + 2] };
+    const c2 = { x: vertices[i2 * 3], y: vertices[i2 * 3 + 1], z: vertices[i2 * 3 + 2] };
+
+    const d01 = Math.hypot(c0.x - c1.x, c0.y - c1.y, c0.z - c1.z);
+    const d12 = Math.hypot(c1.x - c2.x, c1.y - c2.y, c1.z - c2.z);
+    const d20 = Math.hypot(c2.x - c0.x, c2.y - c0.y, c2.z - c0.z);
+
+    if (d01 === 0 || d12 === 0 || d20 === 0) {
+      out.push({
+        rule: 'physics-sanity',
+        code: 'CAEL-PHYS-002',
+        message: `Tri3 element ${e} has a zero-length edge. Element is degenerate.`,
+        severity: 'error',
+      });
+      continue;
+    }
+
+    const minEdge = Math.min(d01, d12, d20);
+    const maxEdge = Math.max(d01, d12, d20);
+    if (maxEdge / minEdge > EDGE_RATIO_THRESHOLD) {
+      out.push({
+        rule: 'physics-sanity',
+        code: 'CAEL-PHYS-002',
+        message:
+          `Tri3 element ${e} has extreme edge-length ratio ` +
+          `${(maxEdge / minEdge).toFixed(1)}. Quality may compromise solver convergence.`,
+        severity: 'warning',
+      });
+    }
+  }
+
+  return out;
+}
+
+function checkConstitutivePD(config: Record<string, unknown>): ContractViolation[] {
+  const out: ContractViolation[] = [];
+
+  const E = findConfigNumber(config, 'youngs_modulus');
+  const nu = findConfigNumber(config, 'poisson_ratio');
+
+  if (E !== undefined && nu !== undefined) {
+    if (E <= 0) {
+      out.push({
+        rule: 'physics-sanity',
+        code: 'CAEL-PHYS-003',
+        message:
+          `Young's modulus ${E} is not positive. ` +
+          `Structural stiffness matrix cannot be positive-definite.`,
+        severity: 'error',
+      });
+    }
+    if (nu <= -1 || nu >= 0.5) {
+      out.push({
+        rule: 'physics-sanity',
+        code: 'CAEL-PHYS-003',
+        message:
+          `Poisson's ratio ${nu} is outside the positive-definite range (-1, 0.5).`,
+        severity: 'error',
+      });
+    }
+  }
+
+  const k = findConfigNumber(config, 'conductivity') ?? findConfigNumber(config, 'thermal_conductivity');
+  if (k !== undefined && k <= 0) {
+    out.push({
+      rule: 'physics-sanity',
+      code: 'CAEL-PHYS-004',
+      message:
+        `Thermal conductivity ${k} is not positive. ` +
+        `Heat equation loses ellipticity.`,
+      severity: 'error',
+    });
+  }
+
+  return out;
+}
+
+/**
+ * Semantic physics sanity pass beyond geometry hash (Paper #4 gap closure).
+ *
+ * Catches meshes that are hash-consistent and connectivity-valid but
+ * physically meaningless: inverted elements, degenerate geometry,
+ * or material properties that produce non-positive-definite stiffness.
+ *
+ * Scoped to structural/thermal continuum solvers first (tet4 / tri3).
+ * Emits CAEL-PHYS-* reason codes for traceability.
+ */
+export function validatePhysicsSanity(
+  vertices: Float64Array | Float32Array | undefined,
+  elements: Uint32Array | undefined,
+  config: Record<string, unknown>,
+): ContractViolation[] {
+  const out: ContractViolation[] = [];
+
+  if (vertices && elements) {
+    const elementType = inferElementType(config, vertices, elements);
+
+    if (elementType === 'tet4') {
+      out.push(...checkTet4Jacobian(vertices, elements));
+      out.push(...checkTet4Quality(vertices, elements));
+    } else if (elementType === 'tri3') {
+      out.push(...checkTri3Jacobian(vertices, elements));
+      out.push(...checkTri3Quality(vertices, elements));
+    }
+  }
+
+  out.push(...checkConstitutivePD(config));
 
   return out;
 }
@@ -1051,11 +1400,22 @@ export class ContractedSimulation {
       this.violations.push(...validateUnits(config));
     }
 
+    // Paper #4 — semantic physics sanity: Jacobian, stiffness PD, element quality.
+    // Default ON for continuum structural/thermal solvers; OFF otherwise unless
+    // explicitly requested.
+    const enforcePhysics =
+      contractConfig.enforcePhysicsSanity ??
+      (this.scale === 'continuum' && /^(structural|thermal)/i.test(this.solverType));
+    if (enforcePhysics) {
+      this.violations.push(...validatePhysicsSanity(meshVertices, meshElements, config));
+    }
+
     for (const v of this.violations) {
+      const reason = v.code ?? v.rule;
       if (v.severity === 'error') {
-        console.error(`[SimulationContract] ${v.message}`);
+        console.error(`[SimulationContract][${reason}] ${v.message}`);
       } else {
-        console.warn(`[SimulationContract] ${v.message}`);
+        console.warn(`[SimulationContract][${reason}] ${v.message}`);
       }
     }
 
@@ -1282,6 +1642,8 @@ export class ContractedSimulation {
       wallTimeMs: performance.now() - this.startTime,
       interactions: this.interactions,
       finalStats: this.solver.getStats(),
+      contractViolations: this.violations.slice(),
+      verified: !this.hasErrors(),
       deterministic: true,
       platformVersion: '6.1.0',
       createdAt: new Date().toISOString(),

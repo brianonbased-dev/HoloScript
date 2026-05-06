@@ -29,6 +29,8 @@ import {
   ContractedSimulation,
   hashGeometry,
   validateUnits,
+  validateMeshSanity,
+  validatePhysicsSanity,
   CAELRecorder,
   parseCAELJSONL,
   verifyCAELHashChain,
@@ -55,6 +57,7 @@ type DetectionGuarantee =
   | 'sandbox-timeout'
   | 'geometry-integrity'
   | 'unit-validation'
+  | 'physics-sanity'
   | 'deterministic-stepping'
   | 'interaction-provenance'
   | 'auto-provenance'
@@ -670,6 +673,38 @@ describe('Adversarial: Incorrect Physics', () => {
       description: 'Solver/renderer geometry hash mismatch after mesh tamper',
       detected,
       guarantee: 'geometry-integrity',
+    });
+  });
+
+  it('P6. Hash-consistent mesh with inverted tetrahedron — physics sanity catches it', () => {
+    // Mesh passes hashGeometry and validateMeshSanity, but the tet is inverted.
+    const vertices = new Float64Array([
+      0, 0, 0,
+      1, 0, 0,
+      0, 1, 0,
+      0, 0, 1,
+    ]);
+    const elements = new Uint32Array([0, 2, 1, 3]); // swapped 1 and 2 → inverted
+
+    // Hash is consistent with the vertices/elements
+    const hash = hashGeometry(vertices, elements);
+    expect(hash).toBeTruthy();
+
+    // validateMeshSanity passes (indices in range, no orphans)
+    const meshVio = validateMeshSanity(vertices, elements);
+    expect(meshVio.filter((v) => v.severity === 'error')).toHaveLength(0);
+
+    // Physics sanity catches the inverted element
+    const physicsVio = validatePhysicsSanity(vertices, elements, { elementType: 'tet4' });
+    const caught = physicsVio.some((v) => v.code === 'CAEL-PHYS-001');
+    expect(caught).toBe(true);
+
+    recordAttack({
+      id: 'P6',
+      category: 'Incorrect Physics',
+      description: 'Hash-consistent mesh with inverted tetrahedron (negative Jacobian)',
+      detected: caught,
+      guarantee: 'physics-sanity',
     });
   });
 });

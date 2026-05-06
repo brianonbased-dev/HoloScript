@@ -36,6 +36,7 @@ export class CAELRecorder {
 
     const replay = this.contracted.createReplay();
     const subgridAttestation = this.contracted.getSubgridAttestation();
+    const contractViolations = this.contracted.getViolations();
     this.append('init', 0, {
       solverType: replay.solverType,
       geometryHash: replay.geometryHash,
@@ -62,6 +63,11 @@ export class CAELRecorder {
       // replayer can verify every event's hash shape matches the
       // declared mode, catching mid-trace mode tampering.
       hashMode: this.hashMode,
+      // Paper #4 semantic physics sanity: expose CAEL-PHYS-* reason
+      // codes at init so failed contracts are traceable before any
+      // solver step or final provenance record exists.
+      verified: !this.contracted.hasErrors(),
+      contractViolations: encodeCAELValue(contractViolations),
     });
   }
 

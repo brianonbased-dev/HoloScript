@@ -7,6 +7,7 @@ import {
   hashGeometry,
   validateUnits,
   validateMeshSanity,
+  validatePhysicsSanity,
   DeterministicStepper,
   ContractedSimulation,
   computeAdapterFingerprint,
@@ -86,6 +87,84 @@ describe('Geometry Hashing', () => {
     const elements = new Uint32Array([0, 1, 2]); // references 0,1,2. Node 3 is orphaned.
     const vio = validateMeshSanity(v, elements);
     expect(vio.some((x) => x.rule === 'mesh-connectivity' && x.message.includes('orphaned'))).toBe(true);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// Physics Sanity (Paper #4 — hash-consistent but physically wrong)
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('Physics Sanity', () => {
+  it('catches inverted tetrahedron (negative Jacobian)', () => {
+    const v = new Float64Array([
+      0, 0, 0,
+      1, 0, 0,
+      0, 1, 0,
+      0, 0, 1,
+    ]);
+    const e = new Uint32Array([0, 2, 1, 3]); // swapped 1 and 2 → inverted
+    const vio = validatePhysicsSanity(v, e, { elementType: 'tet4' });
+    expect(vio.some((x) => x.code === 'CAEL-PHYS-001')).toBe(true);
+  });
+
+  it('catches degenerate triangle (zero area)', () => {
+    const v = new Float64Array([
+      0, 0, 0,
+      1, 0, 0,
+      2, 0, 0, // collinear
+    ]);
+    const e = new Uint32Array([0, 1, 2]);
+    const vio = validatePhysicsSanity(v, e, { elementType: 'tri3' });
+    expect(vio.some((x) => x.code === 'CAEL-PHYS-001')).toBe(true);
+  });
+
+  it('catches non-PD stiffness (nu >= 0.5)', () => {
+    const vio = validatePhysicsSanity(undefined, undefined, {
+      material: { youngs_modulus: 200e9, poisson_ratio: 0.5 },
+    });
+    expect(vio.some((x) => x.code === 'CAEL-PHYS-003')).toBe(true);
+  });
+
+  it('catches non-PD stiffness (E <= 0)', () => {
+    const vio = validatePhysicsSanity(undefined, undefined, {
+      material: { youngs_modulus: -200e9, poisson_ratio: 0.3 },
+    });
+    expect(vio.some((x) => x.code === 'CAEL-PHYS-003')).toBe(true);
+  });
+
+  it('catches poor element quality (high edge ratio)', () => {
+    const v = new Float64Array([
+      0, 0, 0,
+      1e-6, 0, 0,
+      0, 1e-6, 0,
+      0, 0, 1e3, // huge edge
+    ]);
+    const e = new Uint32Array([0, 1, 2, 3]);
+    const vio = validatePhysicsSanity(v, e, { elementType: 'tet4' });
+    expect(vio.some((x) => x.code === 'CAEL-PHYS-002')).toBe(true);
+  });
+
+  it('passes valid structural mesh and material', () => {
+    const v = new Float64Array([
+      0, 0, 0,
+      1, 0, 0,
+      0, 1, 0,
+      0, 0, 1,
+    ]);
+    const e = new Uint32Array([0, 1, 2, 3]);
+    const vio = validatePhysicsSanity(v, e, {
+      elementType: 'tet4',
+      material: { youngs_modulus: 200e9, poisson_ratio: 0.3, density: 7850 },
+    });
+    expect(vio.length).toBe(0);
+  });
+
+  it('is skipped when vertices/elements are absent', () => {
+    const vio = validatePhysicsSanity(undefined, undefined, {
+      material: { youngs_modulus: 200e9, poisson_ratio: 0.3 },
+    });
+    // constitutive PD still runs even without mesh
+    expect(vio.length).toBe(0);
   });
 });
 
@@ -279,6 +358,77 @@ describe('ContractedSimulation', () => {
     }, { enforceUnits: true });
 
     expect(contracted.hasErrors()).toBe(false);
+  });
+
+  it('runs physics sanity by default for structural solver (inverted tet)', () => {
+    const v = new Float64Array([
+      0, 0, 0,
+      1, 0, 0,
+      0, 1, 0,
+      0, 0, 1,
+    ]);
+    const e = new Uint32Array([0, 2, 1, 3]); // inverted
+    const contracted = new ContractedSimulation(mockSolver(), {
+      vertices: v,
+      tetrahedra: e,
+      material: { youngs_modulus: 200e9, poisson_ratio: 0.3 },
+    }, { solverType: 'structural-tet4', fixedDt: 0.01 });
+
+    expect(contracted.hasErrors()).toBe(true);
+    expect(contracted.getViolations().some((v) => v.code === 'CAEL-PHYS-001')).toBe(true);
+    expect(contracted.getProvenance().verified).toBe(false);
+    expect(
+      contracted.getProvenance().contractViolations?.some((v) => v.code === 'CAEL-PHYS-001'),
+    ).toBe(true);
+  });
+
+  it('runs physics sanity by default for thermal solver material ellipticity', () => {
+    const contracted = new ContractedSimulation(mockSolver(), {
+      material: { conductivity: 0 },
+    }, { solverType: 'thermal', fixedDt: 0.01 });
+
+    expect(contracted.hasErrors()).toBe(true);
+    expect(contracted.getViolations().some((v) => v.code === 'CAEL-PHYS-004')).toBe(true);
+  });
+
+  it('skips physics sanity by default for non-structural solver', () => {
+    const v = new Float64Array([
+      0, 0, 0,
+      1, 0, 0,
+      0, 1, 0,
+      0, 0, 1,
+    ]);
+    const e = new Uint32Array([0, 2, 1, 3]); // inverted
+    const contracted = new ContractedSimulation(mockSolver(), {
+      vertices: v,
+      tetrahedra: e,
+      material: { youngs_modulus: 200e9, poisson_ratio: 0.3 },
+    }, { solverType: 'cfd', fixedDt: 0.01 });
+
+    // CFD is not structural/thermal, so physics sanity defaults to off
+    expect(contracted.hasErrors()).toBe(false);
+  });
+
+  it('emits semantic physics reason codes in CAEL init payload', async () => {
+    const { CAELRecorder } = await import('../CAELRecorder');
+    const v = new Float64Array([
+      0, 0, 0,
+      1, 0, 0,
+      0, 1, 0,
+      0, 0, 1,
+    ]);
+    const e = new Uint32Array([0, 2, 1, 3]); // inverted
+    const recorder = new CAELRecorder(mockSolver(), {
+      vertices: v,
+      tetrahedra: e,
+      material: { youngs_modulus: 200e9, poisson_ratio: 0.3 },
+    }, { solverType: 'structural-tet4', fixedDt: 0.01 });
+
+    const init = recorder.getTrace()[0];
+    expect(init.event).toBe('init');
+    expect(init.payload.verified).toBe(false);
+    const violations = init.payload.contractViolations as Array<{ code?: string }>;
+    expect(violations.some((v) => v.code === 'CAEL-PHYS-001')).toBe(true);
   });
 
   it('enforces geometry integrity on step() — Guarantee 1', () => {
