@@ -7,3 +7,4 @@
 
 export * from './SelfImproveHarvester';
 export * from './OutcomeLoop';
+export * from './ExternalAgentAdapter';
