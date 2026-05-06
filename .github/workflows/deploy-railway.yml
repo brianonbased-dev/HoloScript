@@ -420,12 +420,16 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: Ensure HOLOSCRIPT_API_KEY on absorb-service
+      - name: Ensure absorb-service runtime variables
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          railway variables --set "HOLOSCRIPT_API_KEY=${{ secrets.HOLOSCRIPT_API_KEY }}" --service absorb-service || \
-          railway variables set HOLOSCRIPT_API_KEY="${{ secrets.HOLOSCRIPT_API_KEY }}" --service absorb-service
+          railway variable set \
+            --service absorb-service \
+            --environment production \
+            --skip-deploys \
+            "HOLOSCRIPT_API_KEY=${{ secrets.HOLOSCRIPT_API_KEY }}" \
+            "ABSORB_REQUIRE_DB_SCHEMA=1"
 
       - name: Deploy Absorb Service
         env:
@@ -438,7 +442,43 @@ jobs:
 
       - name: Health check
         run: |
-          curl -f https://absorb.holoscript.net/health || exit 1
+          node <<'NODE'
+          const url = 'https://absorb.holoscript.net/health';
+          const deadline = Date.now() + 5 * 60 * 1000;
+          let last;
+
+          while (Date.now() < deadline) {
+            const response = await fetch(url);
+            if (!response.ok) {
+              throw new Error(`${url} returned HTTP ${response.status}`);
+            }
+
+            const health = await response.json();
+            last = health;
+            console.log(JSON.stringify({
+              timestamp: health.timestamp,
+              uptime: health.uptime,
+              database: health.database,
+              moltbookAgentCountProbe: health.moltbookAgentCountProbe,
+              moltbookActiveAgents: health.moltbookActiveAgents,
+              moltbookProbeLastError: health.moltbookProbeLastError,
+            }));
+
+            if (
+              health.database === 'connected' &&
+              health.moltbookAgentCountProbe === 'ok' &&
+              Number.isInteger(health.moltbookActiveAgents)
+            ) {
+              process.exit(0);
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, 15000));
+          }
+
+          console.error('Absorb schema health gate failed.');
+          console.error(JSON.stringify(last, null, 2));
+          process.exit(1);
+          NODE
 
   deploy-mcp-server:
     # Pre-flight is informational for service-targeted deploys (failures
