@@ -432,6 +432,16 @@ import { circuitAutoResetHandler } from './CircuitAutoResetTrait';
 import { wisdomHandler } from './WisdomTrait';
 import { gotchaHandler } from './GotchaTrait';
 
+// Lotus program traits
+import { botanicalLotusHandler } from './BotanicalLotusTrait';
+import { phyllotaxisHandler } from './PhyllotaxisTrait';
+import { bloomReactiveHandler } from './BloomReactiveTrait';
+import { lotusRootHandler } from './LotusRootTrait';
+import { lotusStalkHandler } from './LotusStalkTrait';
+import { lotusPetalHandler } from './LotusPetalTrait';
+import { lotusCenterHandler } from './LotusCenterTrait';
+import { lotusGardenerHandler } from './LotusGardenerTrait';
+
 // =============================================================================
 // TRAIT STATE
 // =============================================================================
@@ -1641,6 +1651,16 @@ export class VRTraitRegistry {
     this.register(gpuPhysicsHandler as TraitHandler);
     this.register(gpuBufferHandler as TraitHandler);
 
+    // Lotus program: provenance-grounded botanical rendering + seedable layout
+    this.register(botanicalLotusHandler as TraitHandler);
+    this.register(phyllotaxisHandler as TraitHandler);
+    this.register(bloomReactiveHandler as TraitHandler);
+    this.register(lotusRootHandler as TraitHandler);
+    this.register(lotusStalkHandler as TraitHandler);
+    this.register(lotusPetalHandler as TraitHandler);
+    this.register(lotusCenterHandler as TraitHandler);
+    this.register(lotusGardenerHandler as TraitHandler);
+
     // Phase 6: Digital Twin & IoT
     this.register(sensorHandler as TraitHandler);
     this.register(digitalTwinHandler as TraitHandler);
@@ -2290,6 +2310,15 @@ export {
   emotionalVoiceHandler,
   flowFieldHandler,
   layerAwareHandler,
+  // Lotus program
+  botanicalLotusHandler,
+  phyllotaxisHandler,
+  bloomReactiveHandler,
+  lotusRootHandler,
+  lotusStalkHandler,
+  lotusPetalHandler,
+  lotusCenterHandler,
+  lotusGardenerHandler,
   // V43 Tier 2: AI Upscaling
   aiUpscalingHandler,
   neuralUpscalingHandler,

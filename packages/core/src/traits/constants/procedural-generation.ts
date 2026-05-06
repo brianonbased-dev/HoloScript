@@ -19,6 +19,7 @@ export const PROCEDURAL_GENERATION_TRAITS = [
   'noise_generator',
   'wave_function_collapse',
   'l_system',
+  'phyllotaxis',
   'voronoi',
   'fractal',
   'cellular_automata',

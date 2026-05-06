@@ -239,6 +239,48 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "bloom_reactive": {
+        "id": "bloom_reactive",
+        "namespace": "@holoscript/core",
+        "category": "visual",
+        "properties": [],
+        "compileHints": [
+            {
+                "target": "runtime",
+                "supported": true,
+                "notes": "Maps Lotus bloom state to scale, opacity, emissive, and pulse output."
+            }
+        ],
+        "composable": [
+            "lotus_petal",
+            "botanical_lotus",
+            "glowing",
+            "animated"
+        ],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "botanical_lotus": {
+        "id": "botanical_lotus",
+        "namespace": "@holoscript/core",
+        "category": "visual",
+        "properties": [],
+        "compileHints": [
+            {
+                "target": "webgpu",
+                "supported": true,
+                "notes": "Carries provenance-anchored lotus material parameters for SSS, translucency, veins, petals, stamens, and gravity sag."
+            }
+        ],
+        "composable": [
+            "phyllotaxis",
+            "bloom_reactive",
+            "gpu_particle",
+            "glowing"
+        ],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "body_tracking": {
         "id": "body_tracking",
         "namespace": "@holoscript/core",
@@ -1050,6 +1092,103 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "lotus_center": {
+        "id": "lotus_center",
+        "namespace": "@holoscript/core",
+        "category": "visual",
+        "properties": [],
+        "compileHints": [
+            {
+                "target": "runtime",
+                "supported": true,
+                "notes": "Marks the Lotus center node and exposes phase/SDF activation state to renderers."
+            }
+        ],
+        "composable": [
+            "botanical_lotus",
+            "bloom_reactive",
+            "glowing"
+        ],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "lotus_gardener": {
+        "id": "lotus_gardener",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [
+            {
+                "target": "runtime",
+                "supported": true,
+                "notes": "Publishes staged Lotus garden gate, seed, and bloom-state summaries."
+            }
+        ],
+        "composable": [
+            "botanical_lotus",
+            "phyllotaxis",
+            "bloom_reactive"
+        ],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "lotus_petal": {
+        "id": "lotus_petal",
+        "namespace": "@holoscript/core",
+        "category": "visual",
+        "properties": [],
+        "compileHints": [
+            {
+                "target": "runtime",
+                "supported": true,
+                "notes": "Binds one petal to its paper/program metadata and derived bloom state."
+            }
+        ],
+        "composable": [
+            "phyllotaxis",
+            "bloom_reactive",
+            "botanical_lotus"
+        ],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "lotus_root": {
+        "id": "lotus_root",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [
+            {
+                "target": "runtime",
+                "supported": true,
+                "notes": "Marks provenance substrate roots inherited by the staged Lotus program."
+            }
+        ],
+        "composable": [
+            "lotus_gardener"
+        ],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "lotus_stalk": {
+        "id": "lotus_stalk",
+        "namespace": "@holoscript/core",
+        "category": "visual",
+        "properties": [],
+        "compileHints": [
+            {
+                "target": "runtime",
+                "supported": true,
+                "notes": "Marks format-tier stalks that connect Lotus roots to paper petals."
+            }
+        ],
+        "composable": [
+            "lotus_root",
+            "lotus_petal"
+        ],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "magnifiable": {
         "id": "magnifiable",
         "namespace": "@holoscript/core",
@@ -1367,6 +1506,25 @@
         "properties": [],
         "compileHints": [],
         "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "phyllotaxis": {
+        "id": "phyllotaxis",
+        "namespace": "@holoscript/core",
+        "category": "visual",
+        "properties": [],
+        "compileHints": [
+            {
+                "target": "runtime",
+                "supported": true,
+                "notes": "Computes deterministic golden-angle placement for seedable botanical layouts."
+            }
+        ],
+        "composable": [
+            "lotus_petal",
+            "botanical_lotus"
+        ],
         "conflicts": [],
         "source": "holoscript"
     },

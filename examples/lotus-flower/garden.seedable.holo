@@ -45,20 +45,21 @@
  *     the future capacity slots, named but not paper-bound.
  *
  * FRAME-DRIFT NOTE (W.137):
- *   Pattern-B traits below are marked TODO[trait-binding]. The composition
- *   parses and validates today, but @lotus_root / @lotus_stalk / @lotus_petal
- *   / @lotus_center / @lotus_genesis_trigger / @phyllotaxis / @bloom_reactive
- *   have NO BACKING TRAIT FILES in packages/core/src/traits/. This is the
- *   trait-binding layer of W.137 and the reason this artifact is STAGED.
- *   render_preview will fail until those traits land. validate_holoscript
- *   passes because the parser accepts unbound trait names.
+ *   Trait-binding TODOs below are migration markers, not proof that the
+ *   substrate is absent. @botanical_lotus / @lotus_root / @lotus_stalk /
+ *   @lotus_petal / @lotus_center / @lotus_gardener / @phyllotaxis /
+ *   @bloom_reactive now have backed runtime handlers. @lotus_genesis_trigger
+ *   stays Pattern-B until the founder-gated 16-paper benchmark trigger fires.
+ *   This artifact remains STAGED because the live trait blocks, genesis seed,
+ *   and final photoreal material pipeline are still gated.
  *
  * @version 1.0.0-staged
  * @format .holo
  * @staged true
  * @cites I.007, W.137, F.014, idea-run-11
- * @traits @lotus_root, @lotus_stalk, @lotus_petal, @lotus_center,
- *         @lotus_genesis_trigger, @phyllotaxis, @bloom_reactive,  (Pattern-B)
+ * @traits @botanical_lotus, @lotus_root, @lotus_stalk, @lotus_petal,
+ *         @lotus_center, @lotus_gardener, @phyllotaxis, @bloom_reactive,
+ *         @lotus_genesis_trigger,                              (Pattern-B)
  *         @gpu_particle, @glowing, @animated, @spatial_audio       (backed)
  */
 

@@ -4,9 +4,9 @@
 > Composed by `/artist` on 2026-05-06 per `/idea` run-11 form recommendation
 > (`research/2026-05-06_idea-run-11-lotus-seedable-artifact.md`).
 
-This document explains what's in `garden.seedable.holo`, what's blocked on
-trait-substrate work before it can render, and how to fire it when the
-16-paper genesis trigger lands and the missing traits ship.
+This document explains what's in `garden.seedable.holo`, what's still gated
+before it can render, and how to fire it when the 16-paper genesis trigger
+lands.
 
 ## Relationship to the existing files
 
@@ -84,32 +84,37 @@ These have real handler files in `packages/core/src/traits/`:
 | `@animated` | `AnimationTrait.ts` | Stalk sway, petal unfurl, gardener idle, center rotation |
 | `@glowing` | `GlowingTrait` (already exercised in baseline) | Bloom-state-driven emission readability |
 
-## What's blocked on trait-substrate
+## What's still gated on trait/render substrate
 
-**This file will NOT render today.** It parses locally with the current
-`parseHolo` path, but rendering remains blocked by missing Pattern-B trait
-handlers and placeholder assets. Brace balance and structural counts are
-correct. See "How I verified" below.
+The composition remains **staged, not fired**. The earlier hard blocker
+was missing Pattern-B trait files; that substrate has now landed for every
+Lotus visual/program trait except the sacred `@lotus_genesis_trigger`.
+Rendering is still gated by the genesis trigger, live migration of the
+commented trait-binding sites into active `@trait` blocks, and the final
+CAEL photoreal material pipeline.
 
-### Pattern-B traits (declared, no backing files)
+The 55 `TODO[trait-binding]` markers remain intentionally as migration
+markers. They no longer mean the backed files are absent; they mark where
+`garden.seedable.holo` should switch from explicit placeholder geometry
+to active trait blocks when the founder gate allows the flower to fire.
 
-55 TODO[trait-binding] markers in the composition. Seven distinct trait
-shapes are blocking:
+### Trait-substrate status
 
 | Trait | Status | What it should do |
 |-------|--------|--------------------|
-| `@phyllotaxis` | NEW (proposed) | Pure function `(layer, index, golden_angle, seed) -> Vector3`. Single source of petal placement. Subsumes any future procedural-growth composition. |
-| `@bloom_reactive` | NEW (A-009 wishlist) | Drives mesh scale + emissive intensity + opacity from a `bloom_state` enum without a per-frame `onUpdate` hook. |
-| `@lotus_root` | Pattern-B (referenced in baseline) | Substrate-tier marker. Reads from compiler/parser/provenance source-of-truth at runtime. |
-| `@lotus_stalk` | Pattern-B (referenced in baseline) | Format-tier marker (.hs / .hsplus / .holo / .hs.md). |
-| `@lotus_petal` | Pattern-B (referenced in baseline) | Paper-tier marker. Each petal binds to a paper by id + venue + program + bloom_state. |
-| `@lotus_center` | Pattern-B (referenced in baseline) | Center-tier marker. Phase-2 SDF body activates through this trait. |
+| `@botanical_lotus` | Backed + registered | Provenance-grounded lotus material contract for SSS, translucency, veins, stamen detail, and gravity sag. |
+| `@phyllotaxis` | Backed + registered | Pure deterministic placement `(layer, index, golden_angle, seed) -> Vector3`. Single source of petal placement. |
+| `@bloom_reactive` | Backed + registered | Drives mesh scale + emissive intensity + opacity from a `bloom_state` enum without ad hoc per-object update code. |
+| `@lotus_root` | Backed + registered | Substrate-tier marker. Reads from compiler/parser/provenance source-of-truth at runtime. |
+| `@lotus_stalk` | Backed + registered | Format-tier marker (.hs / .hsplus / .holo / .hs.md). |
+| `@lotus_petal` | Backed + registered | Paper-tier marker. Each petal binds to a paper by id + venue + program + bloom_state. |
+| `@lotus_center` | Backed + registered | Center-tier marker. Phase-2 SDF body activates through this trait. |
+| `@lotus_gardener` | Backed + registered | Garden coordinator for staged state, seed metadata, and bloom summaries. |
 | `@lotus_genesis_trigger` | Pattern-B (referenced in baseline) | Genesis hash anchor + light-column activation. |
 
-`/stub-audit Lotus*` confirmed in the `/idea` memo that none of these have
-backing files in `packages/core/src/traits/`. This is the trait-binding
-layer of W.137 (Frame Drift) — the .holo file is a stable-looking pointer
-to a thing that doesn't exist.
+`@lotus_genesis_trigger` stays unbacked by design until the 16-paper
+benchmark trigger is allowed to plant the seed. That is now the remaining
+Pattern-B trait blocker, not the whole Lotus trait family.
 
 ### Known parser limitations
 
@@ -153,8 +158,8 @@ pollen/audio/genesis light silently vanish.
 ## How I verified (without render_preview)
 
 Per founder gate in the directive, **no `render_preview` was run**
-(would fail on Pattern-B traits and produce a misleading red bar). What
-was checked instead:
+(still misleading while the genesis trigger and final material pipeline are
+gated). What was checked instead:
 
 1. **Brace balance:** 135 open / 135 close — confirmed balanced.
 2. **Petal counts by program:** `re.findall` confirms P1=8, P2=13,
@@ -167,19 +172,19 @@ was checked instead:
    `z = r*sin`. Same harness called with the same seed will reproduce
    the same coordinates byte-for-byte.
 5. **TODO marker hygiene:** 55 `TODO[trait-binding]` markers, exactly
-   one per Pattern-B trait reference site, each naming the specific
-   trait file that needs to land.
+   one per staged trait migration site, each naming the trait block that
+   should replace placeholder geometry when genesis is allowed to fire.
 6. **Parser parity:** local `parseHolo` returns success with 0 errors for
    both `garden.refreshed.holo` and `garden.seedable.holo`.
 
-## How to fire when genesis triggers and traits land
+## How to fire when genesis triggers
 
-### Step 1 — Implement the Pattern-B traits
+### Step 1 — Migrate the staged trait-binding sites
 
-Five `Lotus*Trait` files plus `PhyllotaxisTrait` and `BloomReactiveTrait`.
-Each is a thin handler that wires `bloom_state` → visual-state mapping.
-The `/idea` memo lists these as the BUILD blockers — file them as board
-tasks via `/room`.
+The backed traits now exist and are registered. Replace the commented
+`TODO[trait-binding]` sites with active trait blocks after
+`@lotus_genesis_trigger` lands and the founder gate permits firing. Keep
+`@lotus_genesis_trigger` dormant until the benchmark trigger is satisfied.
 
 ### Step 2 — Wire the seed env path
 
@@ -195,8 +200,8 @@ export LOTUS_GENESIS_SEED=$(jq -r '.events[0].hash[0:34]' D:/GOLD/anchors/lotus-
 
 ### Step 3 — Activate the dormant assets
 
-Two things SHIP dormant in this file. They flip on automatically when
-the trait substrate lands AND the genesis condition fires (NOT before):
+Two things SHIP dormant in this file. They flip on automatically when the
+remaining genesis trigger lands AND the genesis condition fires (NOT before):
 
 - `GenesisChime` audio: `volume: 0.0` → fades to `0.6` over 4s.
 - `GenesisLightColumn`: `enabled: false` + `emission_rate: 0` → flips
@@ -234,8 +239,8 @@ matches the paper's thesis. Activates only post-genesis.
 
 - **I.007:** STAGED, not fired. Genesis chime and light column ship
   dormant. Outer ring (Program 3) starts fully sealed.
-- **W.137 (Frame Drift):** every Pattern-B trait reference flagged with
-  TODO[trait-binding] naming the exact file that needs to land.
+- **W.137 (Frame Drift):** every staged trait migration site flagged with
+  TODO[trait-binding] naming the exact trait block to activate.
 - **F.014:** zero regex `.hs` parsing — the composition uses only the
   `.holo` declarative form via `@trait { ... }` blocks.
 - **F.040 (peer-recent-git-log):** Verified at composition time — no

@@ -1108,6 +1108,181 @@ export const TRAIT_DOCS: Record<string, TraitDoc> = {
     relatedTraits: ['@hand_tracking', '@grabbable'],
   },
 
+  '@botanical_lotus': {
+    name: '@botanical_lotus',
+    category: 'visual',
+    description:
+      'Provenance-grounded lotus material contract for photoreal petals, including SSS, translucency, vein normals, stamen detail, reference anchors, and gravity sag.',
+    parameters: [
+      {
+        name: 'reference_anchors',
+        type: 'array',
+        description: 'CAEL/provenance image anchors used to derive lotus material truth',
+      },
+      {
+        name: 'material',
+        type: 'object',
+        description: 'PBR/SSS material parameters extracted from reference media',
+      },
+      {
+        name: 'petal_rings',
+        type: 'array',
+        default: '[8, 13, 21]',
+        description: 'Deterministic lotus ring layout and gravity-sag metadata',
+      },
+    ],
+    events: ['botanical_lotus_attached', 'botanical_lotus_response'],
+    example: `object "Garden Lotus" @botanical_lotus {
+  reference_anchor: "cael://lotus-purple-2026.jpg"
+  bloom_state: "full"
+}`,
+    relatedTraits: ['@phyllotaxis', '@bloom_reactive', '@gpu_particle', '@glowing'],
+  },
+
+  '@phyllotaxis': {
+    name: '@phyllotaxis',
+    category: 'visual',
+    description:
+      'Deterministic golden-angle placement primitive for petals, seeds, pollen, and other botanical spiral layouts.',
+    parameters: [
+      { name: 'petal_index', type: 'number', default: '0', description: 'Zero-based item index' },
+      {
+        name: 'layer_radii',
+        type: 'array',
+        default: '[2.0, 3.4, 4.8]',
+        description: 'Ring radii for Fibonacci layer placement',
+      },
+      {
+        name: 'layer_counts',
+        type: 'array',
+        default: '[8, 13, 21]',
+        description: 'Ring counts used to select the item layer',
+      },
+      { name: 'seed', type: 'string', default: '0x0000DEAD', description: 'Determinism seed' },
+    ],
+    events: ['phyllotaxis_placed'],
+    example: `object "Petal P1.0" @phyllotaxis(petal_index: 0, seed: LOTUS_GENESIS_SEED) {
+  geometry: "petal"
+}`,
+    relatedTraits: ['@lotus_petal', '@botanical_lotus', '@bloom_reactive'],
+  },
+
+  '@bloom_reactive': {
+    name: '@bloom_reactive',
+    category: 'visual',
+    description:
+      'Maps a Lotus bloom-state source to visual output such as scale, opacity, emissive intensity, and pulse cadence.',
+    parameters: [
+      {
+        name: 'state',
+        type: 'string',
+        default: 'lotus.api.bloom_state',
+        description: 'Reactive state path to observe',
+      },
+      {
+        name: 'initial_state',
+        type: 'string',
+        default: 'sealed',
+        description: 'Initial bloom stage before external state arrives',
+      },
+      { name: 'sealed', type: 'object', description: 'Visual output while sealed' },
+      { name: 'full', type: 'object', description: 'Visual output at full bloom' },
+    ],
+    events: ['bloom_reactive_attached', 'bloom_reactive_changed'],
+    example: `object "Lotus Petal" @bloom_reactive(state: "lotus.api.bloom_state", initial_state: "sealed") {
+  geometry: "petal"
+}`,
+    relatedTraits: ['@lotus_petal', '@botanical_lotus', '@animated', '@glowing'],
+  },
+
+  '@lotus_root': {
+    name: '@lotus_root',
+    category: 'advanced',
+    description:
+      'Lotus program root marker for provenance substrate nodes that feed the staged 16-paper flower.',
+    parameters: [
+      { name: 'root_id', type: 'string', description: 'Root/program identifier' },
+      { name: 'evidence_ids', type: 'array', description: 'W/P/G/I anchors inherited by the root' },
+    ],
+    events: ['lotus_root_attached'],
+    example: `object "Root: Trust" @lotus_root(root_id: "trust-by-construction") {
+  position: [0, -0.3, 0]
+}`,
+    relatedTraits: ['@lotus_stalk', '@lotus_gardener'],
+  },
+
+  '@lotus_stalk': {
+    name: '@lotus_stalk',
+    category: 'advanced',
+    description:
+      'Lotus program stalk marker for language/format tiers that connect root substrate to paper petals.',
+    parameters: [
+      { name: 'format', type: 'string', description: 'Format tier such as .hs, .hsplus, or .holo' },
+      { name: 'root_id', type: 'string', description: 'Associated Lotus root identifier' },
+    ],
+    events: ['lotus_stalk_attached'],
+    example: `object "Stalk: Holo" @lotus_stalk(format: ".holo", root_id: "trust-by-construction") {
+  geometry: "stem"
+}`,
+    relatedTraits: ['@lotus_root', '@lotus_petal'],
+  },
+
+  '@lotus_petal': {
+    name: '@lotus_petal',
+    category: 'visual',
+    description:
+      'Lotus paper-petal marker that binds deterministic placement, program metadata, venue, and bloom state.',
+    parameters: [
+      { name: 'paper_id', type: 'string', description: 'Canonical paper/program id' },
+      { name: 'program', type: 'number', description: 'Lotus program ring number' },
+      { name: 'venue', type: 'string', description: 'Target or accepted venue' },
+      { name: 'bloom_state', type: 'string', default: 'sealed', description: 'Current paper state' },
+    ],
+    events: ['lotus_petal_attached', 'lotus_petal_bloom_changed'],
+    example: `object "Petal P1.0" @lotus_petal(paper_id: "trust-by-construction", program: 1, bloom_state: "sealed") {
+  geometry: "petal"
+}`,
+    relatedTraits: ['@phyllotaxis', '@bloom_reactive', '@botanical_lotus'],
+  },
+
+  '@lotus_center': {
+    name: '@lotus_center',
+    category: 'visual',
+    description:
+      'Lotus center marker for the Dumb Glass synthesis center and its dormant/post-genesis activation state.',
+    parameters: [
+      { name: 'paper_id', type: 'string', description: 'Center paper identifier' },
+      { name: 'phase', type: 'string', default: 'dormant', description: 'Center activation phase' },
+    ],
+    events: ['lotus_center_attached', 'lotus_center_phase_changed'],
+    example: `object "Center: Dumb Glass" @lotus_center(paper_id: "dumb-glass", phase: "dormant") {
+  geometry: "seedpod"
+}`,
+    relatedTraits: ['@botanical_lotus', '@bloom_reactive', '@glowing'],
+  },
+
+  '@lotus_gardener': {
+    name: '@lotus_gardener',
+    category: 'advanced',
+    description:
+      'Lotus garden coordinator trait that publishes staged gate state, seed metadata, and bloom-state summaries.',
+    parameters: [
+      { name: 'staged', type: 'boolean', default: 'true', description: 'Keep genesis assets dormant' },
+      {
+        name: 'genesis_seed',
+        type: 'string',
+        default: '0x0000DEAD',
+        description: 'Pre-genesis or planted seed source',
+      },
+      { name: 'program_count', type: 'number', default: '16', description: 'Expected paper count' },
+    ],
+    events: ['lotus_gardener_attached', 'lotus_garden_summary'],
+    example: `object "Lotus Gardener" @lotus_gardener(staged: true, genesis_seed: LOTUS_GENESIS_SEED) {
+  visible: false
+}`,
+    relatedTraits: ['@lotus_root', '@lotus_petal', '@phyllotaxis'],
+  },
+
   '@portal': {
     name: '@portal',
     category: 'advanced',
