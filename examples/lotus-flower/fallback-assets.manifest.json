@@ -1,0 +1,57 @@
+{
+  "schema": "holoscript.lotus.fallback-assets.v1",
+  "status": "deterministic_fallback_assets",
+  "generated_by": "examples/lotus-flower/build-fallback-assets.mjs",
+  "generated_on": "2026-05-06",
+  "purpose": "Fail-loud deterministic media for staged Lotus pollen/audio/light paths until CAEL-signed final assets land.",
+  "assets": [
+    {
+      "path": "sprites/pollen_disc.png",
+      "role": "pollen_particle_sprite",
+      "mime_type": "image/png",
+      "byte_length": 17764,
+      "content_hash": "sha256:b6aa0eac320ea189b727ed9377691538ba342ca053bf5f68bfa8c754e7f65409",
+      "provenance": {
+        "source": "deterministic_fallback_generator",
+        "seed": "LOTUS_FALLBACK_ASSET_SEED:v1:0x0000DEAD",
+        "final_art_status": "replaceable_by_cael_signed_media"
+      }
+    },
+    {
+      "path": "sprites/light_quanta.png",
+      "role": "genesis_light_column_sprite",
+      "mime_type": "image/png",
+      "byte_length": 2666,
+      "content_hash": "sha256:3e27970f538dc7d46b4bba62aa52892a0e69d835dc0541304d13302b83c7ff6c",
+      "provenance": {
+        "source": "deterministic_fallback_generator",
+        "seed": "LOTUS_FALLBACK_ASSET_SEED:v1:0x0000DEAD",
+        "final_art_status": "replaceable_by_cael_signed_media"
+      }
+    },
+    {
+      "path": "audio/garden_pond_loop.ogg",
+      "role": "ambient_pond_loop",
+      "mime_type": "audio/ogg",
+      "byte_length": 40065,
+      "content_hash": "sha256:628e87b9b6b6ac92fda30e319ed0e718b64bcf9f772bb3d8c92516e04e227a74",
+      "provenance": {
+        "source": "deterministic_fallback_generator",
+        "seed": "LOTUS_FALLBACK_ASSET_SEED:v1:0x0000DEAD",
+        "final_art_status": "replaceable_by_cael_signed_media"
+      }
+    },
+    {
+      "path": "audio/genesis_chime_loop.ogg",
+      "role": "dormant_genesis_chime_loop",
+      "mime_type": "audio/ogg",
+      "byte_length": 14680,
+      "content_hash": "sha256:d0444a6527e8e044ee18daf41c0da0192d46c166e497f128c933a78fed714a85",
+      "provenance": {
+        "source": "deterministic_fallback_generator",
+        "seed": "LOTUS_FALLBACK_ASSET_SEED:v1:0x0000DEAD",
+        "final_art_status": "replaceable_by_cael_signed_media"
+      }
+    }
+  ]
+}
