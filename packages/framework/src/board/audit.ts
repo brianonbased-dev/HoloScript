@@ -21,6 +21,7 @@ export interface AuditResult {
   verified: number;
   unverified: number;
   duplicates: number;
+  artifactReceipts: number;
   unverifiedTasks: Array<{
     taskId: string;
     title: string;
@@ -74,6 +75,7 @@ export interface CompletionBucket {
 /** Full statistics from DoneLogAuditor.stats(). */
 export interface DoneLogStats {
   total: number;
+  artifactReceipts: number;
   byAgent: AgentStats[];
   bySource: SourceStats[];
   completionOverTime: CompletionBucket[];
@@ -120,6 +122,7 @@ export function auditDoneLog(doneLog: DoneLogEntry[]): AuditResult {
 
   const verified = proofRequired.filter((e) => isCommitProof(e.commitHash));
   const unverified = proofRequired.filter((e) => !isCommitProof(e.commitHash));
+  const artifactReceipts = doneLog.reduce((sum, e) => sum + (e.artifacts?.length ?? 0), 0);
 
   const duplicateMap = new Map<string, number>();
   for (const e of doneLog) {
@@ -140,6 +143,7 @@ export function auditDoneLog(doneLog: DoneLogEntry[]): AuditResult {
     verified: verified.length,
     unverified: unverified.length,
     duplicates: duped.length,
+    artifactReceipts,
     unverifiedTasks: unverified.map((e) => ({
       taskId: e.taskId,
       title: e.title,
@@ -272,6 +276,7 @@ export class DoneLogAuditor {
 
     return {
       total: this.entries.length,
+      artifactReceipts: this.entries.reduce((sum, entry) => sum + (entry.artifacts?.length ?? 0), 0),
       byAgent: Array.from(agentMap.entries())
         .map(([agent, s]) => ({ agent, ...s }))
         .sort((a, b) => b.completed - a.completed),

@@ -13,8 +13,15 @@ import type {
   TeamSuggestion,
   SuggestionCategory,
   SlotRole,
+  ArtifactReceipt,
 } from './board-types';
-import { normalizeTitle, generateTaskId, generateSuggestionId } from './board-types';
+import {
+  normalizeTitle,
+  generateTaskId,
+  generateSuggestionId,
+  cloneArtifactReceipt,
+  validateArtifactReceipt,
+} from './board-types';
 
 // ── Task Operations ──
 
@@ -93,7 +100,12 @@ export function completeTask(
   board: TeamTask[],
   taskId: string,
   completedBy: string,
-  opts: { commit?: string; summary?: string; completedByTag?: string } = {}
+  opts: {
+    commit?: string;
+    summary?: string;
+    completedByTag?: string;
+    artifacts?: ArtifactReceipt[];
+  } = {}
 ): {
   result: TaskActionResult & { onComplete?: TaskAction[]; unblocked?: string[] };
   updatedBoard: TeamTask[];
@@ -101,11 +113,21 @@ export function completeTask(
   const task = board.find((t) => t.id === taskId);
   if (!task) return { result: { success: false, error: 'Task not found' }, updatedBoard: board };
 
+  const artifacts = [...(task.artifacts ?? []), ...(opts.artifacts ?? [])];
+  const artifactErrors = artifacts.flatMap((artifact) => validateArtifactReceipt(artifact));
+  if (artifactErrors.length) {
+    return {
+      result: { success: false, error: `Invalid artifact receipt: ${artifactErrors.join(' ')}` },
+      updatedBoard: board,
+    };
+  }
+
   task.status = 'done';
   task.completedBy = completedBy;
   if (opts.completedByTag) task.completedByTag = opts.completedByTag;
   task.commitHash = opts.commit;
   task.completedAt = new Date().toISOString();
+  if (artifacts.length) task.artifacts = artifacts.map(cloneArtifactReceipt);
 
   const doneEntry: DoneLogEntry = {
     taskId: task.id,
@@ -115,6 +137,7 @@ export function completeTask(
     commitHash: task.commitHash,
     timestamp: task.completedAt,
     summary: opts.summary || task.title,
+    ...(artifacts.length ? { artifacts: artifacts.map(cloneArtifactReceipt) } : {}),
   };
 
   // Unblock dependent tasks — move from 'blocked' to 'open' if all their deps are done
@@ -147,6 +170,23 @@ export function completeTask(
     },
     updatedBoard,
   };
+}
+
+export function attachTaskArtifacts(
+  board: TeamTask[],
+  taskId: string,
+  artifacts: ArtifactReceipt[]
+): TaskActionResult {
+  const task = board.find((t) => t.id === taskId);
+  if (!task) return { success: false, error: 'Task not found' };
+
+  const artifactErrors = artifacts.flatMap((artifact) => validateArtifactReceipt(artifact));
+  if (artifactErrors.length) {
+    return { success: false, error: `Invalid artifact receipt: ${artifactErrors.join(' ')}` };
+  }
+
+  task.artifacts = [...(task.artifacts ?? []), ...artifacts.map(cloneArtifactReceipt)];
+  return { success: true, task };
 }
 
 /** Block a task. */
@@ -251,7 +291,7 @@ export function delegateTask(
 }
 
 /** Why an input row was not materialized as a new board task (batch POST transparency). */
-export type SkippedTaskReason = 'duplicate' | 'empty_title';
+export type SkippedTaskReason = 'duplicate' | 'empty_title' | 'invalid_artifact';
 
 export interface SkippedTaskEntry {
   title: string;
@@ -340,6 +380,14 @@ export function addTasksToBoard(
       continue;
     }
 
+    const artifactErrors = (t.artifacts ?? []).flatMap((artifact) =>
+      validateArtifactReceipt(artifact)
+    );
+    if (artifactErrors.length) {
+      skipped.push({ title, reason: 'invalid_artifact' });
+      continue;
+    }
+
     const rawDescription = String(t.description || '');
     // Cap unified with the suggestion-description cap at line 367 (2000).
     // W.085 post-mortem: agents repeatedly hit the old 1000 cap while filing
@@ -370,6 +418,7 @@ export function addTasksToBoard(
     if (t.dependsOn?.length) task.dependsOn = [...t.dependsOn];
     if (t.unblocks?.length) task.unblocks = [...t.unblocks];
     if (t.tags?.length) task.tags = [...t.tags];
+    if (t.artifacts?.length) task.artifacts = t.artifacts.map(cloneArtifactReceipt);
     if (t.metadata && Object.keys(t.metadata).length) task.metadata = { ...t.metadata };
     if (t.onComplete?.length) task.onComplete = [...t.onComplete];
     board.push(task);

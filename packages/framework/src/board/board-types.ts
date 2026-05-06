@@ -19,6 +19,66 @@ export interface TaskAction {
   label?: string;
 }
 
+export const ARTIFACT_RECEIPT_TYPES = [
+  'docs',
+  'pptx',
+  'screenshot',
+  'cael-trace',
+  'benchmark-jsonl',
+  'code-patch',
+  'test-output',
+  'render-output',
+  'other',
+] as const;
+
+export type ArtifactReceiptType = (typeof ARTIFACT_RECEIPT_TYPES)[number];
+export type ArtifactHashAlgorithm = 'sha256' | 'git-blob' | 'cid' | 'custom';
+export type ArtifactVerificationStatus = 'pending' | 'passed' | 'failed' | 'skipped';
+
+export interface ArtifactVerificationCommand {
+  id?: string;
+  command: string;
+  status?: ArtifactVerificationStatus;
+  artifactIds?: string[];
+  exitCode?: number;
+  stdoutHash?: string;
+  stderrHash?: string;
+  runAt?: string;
+}
+
+export interface ArtifactOutputReceipt {
+  label?: string;
+  path?: string;
+  uri?: string;
+  hash?: string;
+  commandId?: string;
+  status?: ArtifactVerificationStatus;
+}
+
+export interface ArtifactProvenanceLink {
+  taskId?: string;
+  commitHash?: string;
+  source?: string;
+  parentArtifactIds?: string[];
+  url?: string;
+}
+
+export interface ArtifactReceipt {
+  id: string;
+  type: ArtifactReceiptType;
+  path?: string;
+  uri?: string;
+  hash: string;
+  hashAlgorithm: ArtifactHashAlgorithm;
+  producer: string;
+  validator?: string;
+  renderOutput?: ArtifactOutputReceipt;
+  testOutput?: ArtifactOutputReceipt;
+  provenance?: ArtifactProvenanceLink;
+  verificationCommands?: ArtifactVerificationCommand[];
+  metadata?: Record<string, unknown>;
+}
+
 export interface TeamTask {
   id: string;
   title: string;
@@ -57,6 +117,8 @@ export interface TeamTask {
   onComplete?: TaskAction[];
   /** Tags for filtering and categorization */
   tags?: string[];
+  /** Files, traces, screenshots, benchmark logs, patches, or render/test outputs produced for this task. */
+  artifacts?: ArtifactReceipt[];
   /** Arbitrary metadata (estimatedHours, repo, branch, etc.) */
   metadata?: Record<string, unknown>;
 }
@@ -70,6 +132,8 @@ export interface DoneLogEntry {
   commitHash?: string;
   timestamp: string;
   summary: string;
+  /** Artifact receipts preserved when the task is moved off the live board. */
+  artifacts?: ArtifactReceipt[];
 }
 
 // ── Suggestions ──
@@ -371,6 +435,57 @@ export function getProfilesByDomain(domain: string): TeamAgentProfile[] {
 }
 
 // ── Board Utilities ──
+
+export function isSupportedArtifactReceiptType(type: string): type is ArtifactReceiptType {
+  return (ARTIFACT_RECEIPT_TYPES as readonly string[]).includes(type);
+}
+
+export function validateArtifactReceipt(receipt: ArtifactReceipt): string[] {
+  const errors: string[] = [];
+  if (!receipt.id) errors.push('ArtifactReceipt.id is required.');
+  if (!isSupportedArtifactReceiptType(receipt.type)) {
+    errors.push(`ArtifactReceipt.type is unsupported: ${String(receipt.type)}.`);
+  }
+  if (!receipt.path && !receipt.uri) {
+    errors.push('ArtifactReceipt.path or ArtifactReceipt.uri is required.');
+  }
+  if (!receipt.hash) errors.push('ArtifactReceipt.hash is required.');
+  if (!receipt.hashAlgorithm) errors.push('ArtifactReceipt.hashAlgorithm is required.');
+  if (!receipt.producer) errors.push('ArtifactReceipt.producer is required.');
+  for (const command of receipt.verificationCommands ?? []) {
+    if (!command.command) {
+      errors.push(`ArtifactReceipt ${receipt.id} has a verification command without command text.`);
+    }
+  }
+  return errors;
+}
+
+export function cloneArtifactReceipt(receipt: ArtifactReceipt): ArtifactReceipt {
+  return {
+    ...receipt,
+    ...(receipt.renderOutput ? { renderOutput: { ...receipt.renderOutput } } : {}),
+    ...(receipt.testOutput ? { testOutput: { ...receipt.testOutput } } : {}),
+    ...(receipt.provenance
+      ? {
+          provenance: {
+            ...receipt.provenance,
+            ...(receipt.provenance.parentArtifactIds
+              ? { parentArtifactIds: [...receipt.provenance.parentArtifactIds] }
+              : {}),
+          },
+        }
+      : {}),
+    ...(receipt.verificationCommands
+      ? {
+          verificationCommands: receipt.verificationCommands.map((command) => ({
+            ...command,
+            ...(command.artifactIds ? { artifactIds: [...command.artifactIds] } : {}),
+          })),
+        }
+      : {}),
+    ...(receipt.metadata ? { metadata: { ...receipt.metadata } } : {}),
+  };
+}
 
 /** Normalize a title for dedup comparison. */
 export function normalizeTitle(s: string): string {

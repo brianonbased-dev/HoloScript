@@ -37,7 +37,7 @@ import type {
 import { KnowledgeStore } from './knowledge/knowledge-store';
 import { DoneLogAuditor } from './board/audit';
 import type { FullAuditResult } from './board/audit';
-import type { DoneLogEntry } from './board/board-types';
+import type { ArtifactReceipt, DoneLogEntry } from './board/board-types';
 import { callLLM } from './llm/llm-adapter';
 import type { LLMMessage } from './llm/llm-adapter';
 import { runProtocolCycle } from './protocol-agent';
@@ -695,6 +695,7 @@ export class Team {
         commitHash: (d.commitHash as string | undefined) ?? (d.commit_hash as string | undefined),
         timestamp: String(d.timestamp ?? d.completedAt ?? ''),
         summary: String(d.summary ?? ''),
+        artifacts: Array.isArray(d.artifacts) ? (d.artifacts as ArtifactReceipt[]) : undefined,
       }));
     } else {
       entries = this.doneLog.map((d) => ({
