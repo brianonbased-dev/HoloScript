@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { SERVICE_VERSION } from './version.js';
+import { ensureMoltbookSchema } from './db/ensureMoltbookSchema.js';
 import { getDb, closeDb } from './db/client.js';
 import { authMiddleware } from './middleware/auth.js';
 import { touchedByMiddleware } from './middleware/touched-by.js';
@@ -179,10 +180,12 @@ async function backgroundHealthProbe() {
   }
 }
 
-// Probe every 15 seconds, don't keep process alive just for this
-setInterval(backgroundHealthProbe, 15000).unref();
-// Initial probe
-setTimeout(backgroundHealthProbe, 0).unref();
+function startBackgroundHealthProbes() {
+  // Probe every 15 seconds, don't keep process alive just for this
+  setInterval(backgroundHealthProbe, 15000).unref();
+  // Initial async refresh after the listener starts
+  setTimeout(backgroundHealthProbe, 0).unref();
+}
 
 // --- Public endpoints (no auth) ---
 app.get('/health', (_req, res) => {
@@ -273,6 +276,9 @@ import { requireConfig, REQUIRED_VARS } from '@holoscript/config';
 
 async function start(): Promise<void> {
   requireConfig([...REQUIRED_VARS.ABSORB_SERVICE], 'absorb-service');
+  await ensureMoltbookSchema();
+  await backgroundHealthProbe();
+  startBackgroundHealthProbes();
   await initializeCreditSystem();
 
   const server = app.listen(PORT, () => {
