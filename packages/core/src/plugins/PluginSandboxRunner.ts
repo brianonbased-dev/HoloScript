@@ -55,6 +55,19 @@ export interface CapabilityBudget {
 }
 
 /**
+ * Test-only ablation switches for Paper 4 harnesses.
+ *
+ * These flags are intentionally nested under __TEST_ABLATION so production
+ * callers do not accidentally weaken the sandbox. They let the publication
+ * harness measure which enforcement layer catches each attack class.
+ */
+export interface SandboxAblationFlags {
+  disableCapabilityChecks?: boolean;
+  disableResourceLimits?: boolean;
+  disableSyscallFilters?: boolean;
+}
+
+/**
  * Configuration for a plugin sandbox runner instance.
  */
 export interface PluginSandboxRunnerConfig {
@@ -66,6 +79,8 @@ export interface PluginSandboxRunnerConfig {
   budget: CapabilityBudget;
   /** Optional telemetry collector for event emission */
   telemetry?: TelemetryCollector;
+  /** Test-only Paper 4 ablation switches; never set in production code. */
+  __TEST_ABLATION?: SandboxAblationFlags;
 }
 
 /**
@@ -173,6 +188,7 @@ export class PluginSandboxRunner {
   private permissions: Set<SandboxPermission>;
   private budget: CapabilityBudget;
   private telemetry?: TelemetryCollector;
+  private readonly testAblation: SandboxAblationFlags;
   private state: SandboxRunnerState = 'idle';
   private vmContext?: import('vm').Context;
   private scriptCache: Map<string, import('vm').Script> = new Map();
@@ -193,6 +209,7 @@ export class PluginSandboxRunner {
     this.permissions = new Set(config.permissions);
     this.budget = { ...config.budget };
     this.telemetry = config.telemetry;
+    this.testAblation = { ...(config.__TEST_ABLATION ?? {}) };
   }
 
   // ===========================================================================
@@ -232,6 +249,9 @@ export class PluginSandboxRunner {
   }
 
   private requirePermission(permission: SandboxPermission): void {
+    if (this.testAblation.disableCapabilityChecks) {
+      return;
+    }
     if (!this.permissions.has(permission)) {
       throw new Error(`Plugin "${this.pluginId}" lacks permission: ${permission}`);
     }
@@ -242,6 +262,9 @@ export class PluginSandboxRunner {
   // ===========================================================================
 
   private checkRateLimit(): void {
+    if (this.testAblation.disableResourceLimits) {
+      return;
+    }
     const now = Date.now();
     if (now - this.apiCallWindowStart > 60_000) {
       this.apiCallCount = 0;
@@ -263,7 +286,7 @@ export class PluginSandboxRunner {
     this.requirePermission('tool:register');
     this.checkRateLimit();
 
-    if (this.tools.size >= this.budget.maxTools) {
+    if (!this.testAblation.disableResourceLimits && this.tools.size >= this.budget.maxTools) {
       throw new Error(`Plugin "${this.pluginId}" exceeded max tools (${this.budget.maxTools})`);
     }
 
@@ -300,7 +323,7 @@ export class PluginSandboxRunner {
     this.checkRateLimit();
 
     const totalHandlers = Array.from(this.handlers.values()).reduce((s, arr) => s + arr.length, 0);
-    if (totalHandlers >= this.budget.maxHandlers) {
+    if (!this.testAblation.disableResourceLimits && totalHandlers >= this.budget.maxHandlers) {
       throw new Error(
         `Plugin "${this.pluginId}" exceeded max handlers (${this.budget.maxHandlers})`
       );
@@ -363,7 +386,7 @@ export class PluginSandboxRunner {
 
     // Estimate memory
     const estimatedMB = (code.length * 8) / (1024 * 1024);
-    if (estimatedMB > this.budget.maxMemoryMB) {
+    if (!this.testAblation.disableResourceLimits && estimatedMB > this.budget.maxMemoryMB) {
       return {
         success: false,
         error: `Estimated memory (${estimatedMB.toFixed(1)}MB) exceeds budget (${this.budget.maxMemoryMB}MB)`,
@@ -388,9 +411,14 @@ export class PluginSandboxRunner {
 
       const script = this.getOrCreateCompiledScript(vm, code);
 
-      const result = script.runInContext(context, {
-        timeout: this.budget.maxCpuTimeMs,
-      });
+      const result = script.runInContext(
+        context,
+        this.testAblation.disableResourceLimits
+          ? {}
+          : {
+              timeout: this.budget.maxCpuTimeMs,
+            }
+      );
 
       const cpuTimeMs = Date.now() - startTime;
       this.state = 'idle';
@@ -435,35 +463,24 @@ export class PluginSandboxRunner {
       return this.vmContext;
     }
 
+    const syscallSurface = this.createSyscallSurface();
+
     this.vmContext = vm.createContext({
       ...SAFE_GLOBALS,
       console: this.createSafeConsole(),
       // Plugin API surface
-      registerTool: this.hasPermission('tool:register')
+      registerTool: this.testAblation.disableCapabilityChecks || this.hasPermission('tool:register')
         ? (name: string, desc: string, handler: (...args: unknown[]) => unknown) =>
             this.registerTool(name, desc, handler)
         : undefined,
-      registerHandler: this.hasPermission('handler:register')
+      registerHandler: this.testAblation.disableCapabilityChecks || this.hasPermission('handler:register')
         ? (event: string, handler: (...args: unknown[]) => void) =>
             this.registerHandler(event, handler)
         : undefined,
-      emitEvent: this.hasPermission('event:emit')
+      emitEvent: this.testAblation.disableCapabilityChecks || this.hasPermission('event:emit')
         ? (event: string, payload?: unknown) => this.emitEvent(event, payload)
         : undefined,
-      setTimeout: undefined,
-      setInterval: undefined,
-      setImmediate: undefined,
-      clearTimeout: undefined,
-      clearInterval: undefined,
-      clearImmediate: undefined,
-      process: undefined,
-      require: undefined,
-      module: undefined,
-      exports: undefined,
-      __dirname: undefined,
-      __filename: undefined,
-      globalThis: undefined,
-      global: undefined,
+      ...syscallSurface,
     });
 
     return this.vmContext;
@@ -497,6 +514,70 @@ export class PluginSandboxRunner {
     }
 
     return script;
+  }
+
+  private createSyscallSurface(): Record<string, unknown> {
+    if (this.testAblation.disableSyscallFilters) {
+      return {
+        setTimeout: (fn: () => unknown) => {
+          if (typeof fn === 'function') fn();
+          return 1;
+        },
+        setInterval: () => 1,
+        setImmediate: (fn: () => unknown) => {
+          if (typeof fn === 'function') fn();
+          return 1;
+        },
+        clearTimeout: () => undefined,
+        clearInterval: () => undefined,
+        clearImmediate: () => undefined,
+        process: {
+          env: { HOLOSCRIPT_TEST_SECRET: 'test-secret' },
+          exit: () => 'exit-blocked-in-test',
+          cwd: () => '/test',
+        },
+        require: (name: string) => {
+          if (name === 'fs') {
+            return {
+              readFileSync: () => 'test-file-contents',
+              writeFileSync: () => undefined,
+            };
+          }
+          return {};
+        },
+        module: {},
+        exports: {},
+        __dirname: '/test',
+        __filename: '/test/plugin.js',
+        globalThis: { process: { env: { HOLOSCRIPT_TEST_SECRET: 'test-secret' } } },
+        global: { process: { env: { HOLOSCRIPT_TEST_SECRET: 'test-secret' } } },
+        fetch: () => ({ ok: true, status: 200 }),
+        WebAssembly: {
+          compile: () => 'compiled-wasm',
+          instantiate: () => ({ instance: {} }),
+          validate: () => true,
+        },
+      };
+    }
+
+    return {
+      setTimeout: undefined,
+      setInterval: undefined,
+      setImmediate: undefined,
+      clearTimeout: undefined,
+      clearInterval: undefined,
+      clearImmediate: undefined,
+      process: undefined,
+      require: undefined,
+      module: undefined,
+      exports: undefined,
+      __dirname: undefined,
+      __filename: undefined,
+      globalThis: undefined,
+      global: undefined,
+      fetch: undefined,
+      WebAssembly: undefined,
+    };
   }
 
   // ===========================================================================

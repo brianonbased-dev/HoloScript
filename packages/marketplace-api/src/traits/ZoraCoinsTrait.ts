@@ -800,7 +800,7 @@ async function executeMinting(
   } else {
     // Collection deployment spends gas, so keep it as an explicit operator step.
     throw new Error(
-      'collection_id is required. Deploy a Zora collection with ' +
+      'collection_id is required before minting. Deploy a Zora collection with ' +
         'pnpm --filter @holoscript/marketplace-api tsx scripts/deploy-protocol-collection.ts --testnet ' +
         'or create one at https://zora.co/create, then pass its address as collection_id.'
     );

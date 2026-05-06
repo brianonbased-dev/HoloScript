@@ -1,0 +1,689 @@
+{
+  "schema": "paper-sandbox-overhead.v1",
+  "runId": "paper4-ablation-2026-05-06T02-06-06-226Z",
+  "generatedAt": "2026-05-06T02:06:06.227Z",
+  "benchmark": {
+    "warmupIterations": 50,
+    "measuredIterations": 500
+  },
+  "suite": {
+    "scenarioCount": 22,
+    "layers": {
+      "capability": 6,
+      "resource": 6,
+      "syscall": 10
+    }
+  },
+  "variants": [
+    {
+      "id": "full-sandbox",
+      "label": "Full Sandbox (all layers)",
+      "flags": {},
+      "blocked": 22,
+      "total": 22,
+      "blockedByLayer": {
+        "capability": 6,
+        "resource": 6,
+        "syscall": 10
+      },
+      "totalsByLayer": {
+        "capability": 6,
+        "resource": 6,
+        "syscall": 10
+      },
+      "throughputOpsPerSecond": 5197.505197504643,
+      "detections": [
+        {
+          "id": "C1",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C2",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C3",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C4",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C5",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C6",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "R1",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R2",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R3",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R4",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R5",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R6",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "S1",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S2",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S3",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S4",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S5",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S6",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S7",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S8",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S9",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S10",
+          "layer": "syscall",
+          "detected": true
+        }
+      ],
+      "escapeBlockedFraction": 1,
+      "overheadVsBaseline": 96.2000000022851
+    },
+    {
+      "id": "minus-capability",
+      "label": "-Capability Check",
+      "flags": {
+        "disableCapabilityChecks": true
+      },
+      "blocked": 16,
+      "total": 22,
+      "blockedByLayer": {
+        "capability": 0,
+        "resource": 6,
+        "syscall": 10
+      },
+      "totalsByLayer": {
+        "capability": 6,
+        "resource": 6,
+        "syscall": 10
+      },
+      "throughputOpsPerSecond": 4980.079681275934,
+      "detections": [
+        {
+          "id": "C1",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C2",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C3",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C4",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C5",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C6",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "R1",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R2",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R3",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R4",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R5",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R6",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "S1",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S2",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S3",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S4",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S5",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S6",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S7",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S8",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S9",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S10",
+          "layer": "syscall",
+          "detected": true
+        }
+      ],
+      "escapeBlockedFraction": 0.7272727272727273,
+      "overheadVsBaseline": 100.40000000235331
+    },
+    {
+      "id": "minus-resource",
+      "label": "-Resource Limit",
+      "flags": {
+        "disableResourceLimits": true
+      },
+      "blocked": 16,
+      "total": 22,
+      "blockedByLayer": {
+        "capability": 6,
+        "resource": 0,
+        "syscall": 10
+      },
+      "totalsByLayer": {
+        "capability": 6,
+        "resource": 6,
+        "syscall": 10
+      },
+      "throughputOpsPerSecond": 499999.99998340174,
+      "detections": [
+        {
+          "id": "C1",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C2",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C3",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C4",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C5",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C6",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "R1",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R2",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R3",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R4",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R5",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R6",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "S1",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S2",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S3",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S4",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S5",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S6",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S7",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S8",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S9",
+          "layer": "syscall",
+          "detected": true
+        },
+        {
+          "id": "S10",
+          "layer": "syscall",
+          "detected": true
+        }
+      ],
+      "escapeBlockedFraction": 0.7272727272727273,
+      "overheadVsBaseline": 1.0000000000568434
+    },
+    {
+      "id": "minus-syscall",
+      "label": "-Syscall Filter",
+      "flags": {
+        "disableSyscallFilters": true
+      },
+      "blocked": 12,
+      "total": 22,
+      "blockedByLayer": {
+        "capability": 6,
+        "resource": 6,
+        "syscall": 0
+      },
+      "totalsByLayer": {
+        "capability": 6,
+        "resource": 6,
+        "syscall": 10
+      },
+      "throughputOpsPerSecond": 4863.81322957189,
+      "detections": [
+        {
+          "id": "C1",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C2",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C3",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C4",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C5",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "C6",
+          "layer": "capability",
+          "detected": true
+        },
+        {
+          "id": "R1",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R2",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R3",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R4",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R5",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "R6",
+          "layer": "resource",
+          "detected": true
+        },
+        {
+          "id": "S1",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S2",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S3",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S4",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S5",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S6",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S7",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S8",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S9",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S10",
+          "layer": "syscall",
+          "detected": false
+        }
+      ],
+      "escapeBlockedFraction": 0.5454545454545454,
+      "overheadVsBaseline": 102.8000000024329
+    },
+    {
+      "id": "unsandboxed",
+      "label": "Unsandboxed (no enforcement)",
+      "flags": {
+        "disableCapabilityChecks": true,
+        "disableResourceLimits": true,
+        "disableSyscallFilters": true
+      },
+      "blocked": 0,
+      "total": 22,
+      "blockedByLayer": {
+        "capability": 0,
+        "resource": 0,
+        "syscall": 0
+      },
+      "totalsByLayer": {
+        "capability": 6,
+        "resource": 6,
+        "syscall": 10
+      },
+      "throughputOpsPerSecond": 500000.00001182343,
+      "detections": [
+        {
+          "id": "C1",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C2",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C3",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C4",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C5",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "C6",
+          "layer": "capability",
+          "detected": false
+        },
+        {
+          "id": "R1",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R2",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R3",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R4",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R5",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "R6",
+          "layer": "resource",
+          "detected": false
+        },
+        {
+          "id": "S1",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S2",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S3",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S4",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S5",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S6",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S7",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S8",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S9",
+          "layer": "syscall",
+          "detected": false
+        },
+        {
+          "id": "S10",
+          "layer": "syscall",
+          "detected": false
+        }
+      ],
+      "escapeBlockedFraction": 0,
+      "overheadVsBaseline": 1
+    }
+  ]
+}
