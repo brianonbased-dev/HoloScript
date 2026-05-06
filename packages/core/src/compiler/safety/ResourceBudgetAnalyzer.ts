@@ -141,6 +141,7 @@ export const TRAIT_RESOURCE_COSTS: Record<string, Partial<Record<ResourceCategor
   // ── Audio ──
   '@audio': { audioSources: 1 },
   '@spatial_audio': { audioSources: 1 },
+  '@gem_resonance': { audioSources: 1 },
   '@environmental_audio': { audioSources: 4, memoryMB: 2 },
   '@voice_mesh': { audioSources: 1, networkMsgs: 10 },
   '@voice_input': { audioSources: 1, memoryMB: 1 },

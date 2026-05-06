@@ -119,6 +119,32 @@ describe('R3FCompiler — Production', () => {
       ]);
     });
 
+    it('adapts gem_resonance to spatial audio props', () => {
+      const result = compiler.compileComposition(
+        makeComp({
+          objects: [
+            makeObj('fireGem', 'sphere', [
+              { name: 'crystal_gem', config: { cut: 'emerald' } },
+              { name: 'enchantable', config: { element: 'fire' } },
+              {
+                name: 'gem_resonance',
+                config: { max_distance: 0.5, blend_mode: 'harmonic' },
+              },
+            ]),
+          ],
+        })
+      );
+
+      const objNode = result.children!.find((c) => c.id === 'fireGem');
+      expect(objNode?.props.spatial).toBe(true);
+      expect(objNode?.props.gemResonance).toMatchObject({
+        max_distance: 0.5,
+        base_frequencies: 'auto',
+        blend_mode: 'harmonic',
+        output: 'spatial_audio',
+      });
+    });
+
     it('compiled object preserves name as id', () => {
       const result = compiler.compileComposition(makeComp({ objects: [makeObj('myBox')] }));
       const objNode = result.children!.find((c) => c.id === 'myBox');

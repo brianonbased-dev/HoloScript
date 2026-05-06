@@ -609,6 +609,37 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "gem_resonance": {
+        "id": "gem_resonance",
+        "namespace": "@holoscript/core",
+        "category": "audio",
+        "properties": [
+            "max_distance",
+            "base_frequencies",
+            "blend_mode",
+            "output"
+        ],
+        "compileHints": [
+            {
+                "target": "r3f",
+                "supported": true,
+                "notes": "Emits gemResonance props for spatial audio adapters."
+            },
+            {
+                "target": "runtime",
+                "supported": true,
+                "notes": "Produces deterministic harmonic spatial audio events for nearby enchanted crystal gems."
+            }
+        ],
+        "composable": [
+            "crystal_gem",
+            "enchantable",
+            "spatial_audio",
+            "harmony"
+        ],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "geospatial_anchor": {
         "id": "geospatial_anchor",
         "namespace": "@holoscript/core",

@@ -84,6 +84,7 @@ import { spatialAccessoryHandler } from './SpatialAccessoryTrait';
 import { accessibleHandler } from './AccessibleTrait';
 import { altTextHandler } from './AltTextTrait';
 import { spatialAudioCueHandler } from './SpatialAudioCueTrait';
+import { gemResonanceHandler } from './GemResonanceTrait';
 import { sonificationHandler } from './SonificationTrait';
 import { hapticCueHandler } from './HapticCueTrait';
 import { magnifiableHandler } from './MagnifiableTrait';
@@ -1662,6 +1663,7 @@ export class VRTraitRegistry {
     this.register(patrolHandler as TraitHandler);
 
     // Phase 8: Advanced Spatial Audio
+    this.register(gemResonanceHandler as TraitHandler);
     this.register(ambisonicsHandler as TraitHandler);
     this.register(hrtfHandler as TraitHandler);
     this.register(reverbZoneHandler as TraitHandler);
@@ -2240,6 +2242,7 @@ export {
   factionHandler,
   patrolHandler,
   // Phase 8: Advanced Spatial Audio
+  gemResonanceHandler,
   ambisonicsHandler,
   hrtfHandler,
   reverbZoneHandler,

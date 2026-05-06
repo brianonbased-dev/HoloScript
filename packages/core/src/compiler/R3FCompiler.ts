@@ -56,6 +56,16 @@ function vfxParticleEffect(name: string): string {
   return name.replace('vfx_particle_', '');
 }
 
+function gemResonanceConfig(config: Record<string, unknown> | undefined): Record<string, unknown> {
+  return {
+    max_distance: 0.5,
+    base_frequencies: 'auto',
+    blend_mode: 'harmonic',
+    output: 'spatial_audio',
+    ...(config || {}),
+  };
+}
+
 export interface R3FNode {
   type: string;
   id?: string;
@@ -3040,6 +3050,9 @@ export class R3FCompiler {
           props.animated = trait.config || true;
         } else if (name === 'positional' || name === 'spatial_audio') {
           props.spatial = true;
+        } else if (name === 'gem_resonance') {
+          props.gemResonance = gemResonanceConfig(trait.config);
+          props.spatial = true;
         } else if (name === 'shadow') {
           props.castShadow = true;
           if (trait.config?.mapSize)
@@ -3978,6 +3991,9 @@ export class R3FCompiler {
           } else if ((d.name as string) === 'animated') {
             props.animated = d.config || true;
           } else if ((d.name as string) === 'spatial_audio' || (d.name as string) === 'voice') {
+            props.spatial = true;
+          } else if ((d.name as string) === 'gem_resonance') {
+            props.gemResonance = gemResonanceConfig(d.config as Record<string, unknown> | undefined);
             props.spatial = true;
           } else if (d.name === 'networked') {
             props.networked = d.config || true;

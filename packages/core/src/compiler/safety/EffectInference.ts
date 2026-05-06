@@ -43,6 +43,7 @@ export const TRAIT_EFFECTS: Record<string, VREffect[]> = {
   // Audio traits
   '@audio': ['audio:play'],
   '@spatial_audio': ['audio:spatial'],
+  '@gem_resonance': ['audio:spatial', 'state:read'],
   '@reverb': ['audio:reverb'],
   '@music': ['audio:play', 'audio:global'],
 

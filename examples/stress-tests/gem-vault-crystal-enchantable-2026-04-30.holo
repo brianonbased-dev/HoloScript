@@ -93,7 +93,7 @@ composition "Vault of Elemental Crystals" {
   }
 
   // ── Crystal Base Template ────────────────────────────────────────────────
-  //   @crystal_gem and @enchantable are the never-exercised traits.
+  //   @crystal_gem, @enchantable, and @gem_resonance exercise gem storytelling.
   //   Combined with @glowing @grabbable @physics @animated (all well-exercised).
 
   template "ElementalCrystal" {
@@ -107,6 +107,12 @@ composition "Vault of Elemental Crystals" {
       enchant_level: 5
       aura_visible: true
       aura_radius: 0.3
+    }
+    @gem_resonance {
+      max_distance: 0.5
+      base_frequencies: "auto"
+      blend_mode: "harmonic"
+      output: "spatial_audio"
     }
     @glowing {
       color: "#ffffff"
@@ -217,6 +223,12 @@ composition "Vault of Elemental Crystals" {
       aura_visible: true
       aura_radius: 0.55
       aura_color: "#ffffff"
+    }
+    @gem_resonance {
+      max_distance: 0.5
+      base_frequencies: "auto"
+      blend_mode: "harmonic"
+      output: "spatial_audio"
     }
     @glowing {
       color: "#ffffff"

@@ -74,6 +74,7 @@ export * from './GaussianSplatTrait';
 export * from './GeospatialAnchorTrait';
 export * from './GeospatialEnvTrait';
 export * from './GestureTrait';
+export * from './GemResonanceTrait';
 export { GlobalIlluminationTrait } from './GlobalIlluminationTrait';
 export * from './GLTFTrait';
 export * from './GoalOrientedTrait';

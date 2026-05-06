@@ -15,6 +15,7 @@ export const GEMS_MINERALS_TRAITS = [
   'amber',
   'quartz',
   'crystal_gem',
+  'gem_resonance',
   'gold_material',
   'silver_material',
   'bronze_material',

@@ -1,7 +1,7 @@
 import type { TraitVisualConfig } from '../types';
 
 /**
- * Visual configs for gems & minerals traits (30 traits).
+ * Visual configs for gems & minerals traits (31 traits).
  * Precious stones, metals, and fantasy materials.
  */
 export const GEMS_MINERALS_VISUALS: Record<string, TraitVisualConfig> = {
@@ -95,6 +95,12 @@ export const GEMS_MINERALS_VISUALS: Record<string, TraitVisualConfig> = {
     },
     tags: ['mineral', 'transparent', 'reflective'],
     layer: 'base_material',
+  },
+  gem_resonance: {
+    emissive: { color: '#88ffcc', intensity: 0.25 },
+    opacity: 0.72,
+    tags: ['gem', 'audio', 'harmonic'],
+    layer: 'visual_effect',
   },
   gold_material: {
     material: { roughness: 0.3, metalness: 1.0, color: '#FFD700', envMapIntensity: 1.5 },

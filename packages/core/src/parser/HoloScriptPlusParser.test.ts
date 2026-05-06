@@ -45,6 +45,17 @@ describe('HoloScriptPlusParser - Extended Features', () => {
     expect(node.traits.has('vfx_particle_smoke')).toBe(true);
     expect(node.traits.get('vfx_particle_smoke')?.density).toBe(0.7);
   });
+
+  it('Parses @gem_resonance as a first-class VR trait', () => {
+    const source = `object#fire_gem @crystal_gem @enchantable(element: "fire") @gem_resonance(max_distance: 0.5, base_frequencies: "auto", blend_mode: "harmonic", output: "spatial_audio") { position: [0, 1, 0] }`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+
+    const node = result.ast.root;
+    expect(node.traits.has('gem_resonance')).toBe(true);
+    expect(node.traits.get('gem_resonance')?.max_distance).toBe(0.5);
+    expect(node.traits.get('gem_resonance')?.blend_mode).toBe('harmonic');
+  });
 });
 
 describe('HoloScriptPlusParser - Control Flow', () => {
