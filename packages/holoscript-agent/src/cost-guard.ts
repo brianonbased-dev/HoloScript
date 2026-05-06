@@ -45,7 +45,7 @@ export function defaultXAIPricer(model: string, usage: TokenUsage): number {
   if (!price) {
     throw new Error(
       `No xAI pricing configured for model "${model}" — populate XAI_PRICING_USD_PER_MTOK ` +
-      `(see /research task_1778109552044_qed8 in docs/LLM_CAPABILITIES.md) or pass a custom pricer`
+        `(see /research task_1778109552044_qed8 in docs/LLM_CAPABILITIES.md) or pass a custom pricer`
     );
   }
   return (usage.promptTokens * price.input + usage.completionTokens * price.output) / 1_000_000;
@@ -53,14 +53,15 @@ export function defaultXAIPricer(model: string, usage: TokenUsage): number {
 
 // OpenRouter pricing is per-model and varies by upstream — populated lazily.
 // Empty until verified pricing lands.
-export const OPENROUTER_PRICING_USD_PER_MTOK: Record<string, { input: number; output: number }> = {};
+export const OPENROUTER_PRICING_USD_PER_MTOK: Record<string, { input: number; output: number }> =
+  {};
 
 export function defaultOpenRouterPricer(model: string, usage: TokenUsage): number {
   const price = OPENROUTER_PRICING_USD_PER_MTOK[model];
   if (!price) {
     throw new Error(
       `No OpenRouter pricing configured for model "${model}" — populate OPENROUTER_PRICING_USD_PER_MTOK ` +
-      `or pass a custom pricer`
+        `or pass a custom pricer`
     );
   }
   return (usage.promptTokens * price.input + usage.completionTokens * price.output) / 1_000_000;
@@ -104,7 +105,10 @@ export class CostGuard {
     this.state = this.loadOrInit();
   }
 
-  recordUsage(model: string, usage: TokenUsage): { costUsd: number; spentUsd: number; remainingUsd: number } {
+  recordUsage(
+    model: string,
+    usage: TokenUsage
+  ): { costUsd: number; spentUsd: number; remainingUsd: number } {
     this.rolloverIfNewDay();
     const costUsd = this.pricer(model, usage);
     this.state.spentUsd += costUsd;

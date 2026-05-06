@@ -6,7 +6,9 @@ import {
   CostGuard,
   defaultAnthropicPricer,
   defaultLocalLlmPricer,
+  defaultOpenRouterPricer,
   defaultPricerForProvider,
+  defaultXAIPricer,
   ANTHROPIC_PRICING_USD_PER_MTOK,
 } from '../cost-guard.js';
 import type { CostState } from '../types.js';
@@ -80,6 +82,25 @@ describe('defaultPricerForProvider', () => {
 
   it('returns local-llm zero-pricer for "mock" provider (no real LLM, no token cost)', () => {
     expect(defaultPricerForProvider('mock')).toBe(defaultLocalLlmPricer);
+  });
+
+  it('returns fail-loud xAI and OpenRouter pricers for those providers', () => {
+    expect(defaultPricerForProvider('xai')).toBe(defaultXAIPricer);
+    expect(defaultPricerForProvider('openrouter')).toBe(defaultOpenRouterPricer);
+    expect(() =>
+      defaultPricerForProvider('xai')('grok-imaginary', {
+        promptTokens: 1,
+        completionTokens: 1,
+        totalTokens: 2,
+      })
+    ).toThrowError(/No xAI pricing configured/);
+    expect(() =>
+      defaultPricerForProvider('openrouter')('vendor/model', {
+        promptTokens: 1,
+        completionTokens: 1,
+        totalTokens: 2,
+      })
+    ).toThrowError(/No OpenRouter pricing configured/);
   });
 
   it('falls back to Anthropic pricer for unrecognized providers (safe default — fail loud on unknown model)', () => {
@@ -183,9 +204,17 @@ describe('CostGuard', () => {
       dailyBudgetUsd: 5,
       pricer: (model, usage) => (model === 'free-local' ? 0 : usage.totalTokens / 1000),
     });
-    const r = guard.recordUsage('free-local', { promptTokens: 1000, completionTokens: 1000, totalTokens: 2000 });
+    const r = guard.recordUsage('free-local', {
+      promptTokens: 1000,
+      completionTokens: 1000,
+      totalTokens: 2000,
+    });
     expect(r.costUsd).toBe(0);
-    const r2 = guard.recordUsage('paid-cloud', { promptTokens: 500, completionTokens: 500, totalTokens: 1000 });
+    const r2 = guard.recordUsage('paid-cloud', {
+      promptTokens: 500,
+      completionTokens: 500,
+      totalTokens: 1000,
+    });
     expect(r2.costUsd).toBe(1);
     rmSync(dir, { recursive: true, force: true });
   });

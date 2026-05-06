@@ -48,10 +48,13 @@ export function parseSupervisorConfig(raw: string): SupervisorConfig {
   const data = JSON.parse(raw) as unknown;
   if (!isObject(data)) throw new Error('Supervisor config must be a JSON object');
   if (!Array.isArray(data.agents)) throw new Error('Supervisor config.agents must be an array');
-  if (data.agents.length === 0) throw new Error('Supervisor config.agents must have at least one entry');
+  if (data.agents.length === 0)
+    throw new Error('Supervisor config.agents must have at least one entry');
 
   const seenHandles = new Set<string>();
-  const agents: AgentSpec[] = data.agents.map((entry, idx) => validateAgent(entry, idx, seenHandles));
+  const agents: AgentSpec[] = data.agents.map((entry, idx) =>
+    validateAgent(entry, idx, seenHandles)
+  );
 
   const globalBudgetUsdPerDay = optionalNumber(data, 'globalBudgetUsdPerDay');
   const defaultTickIntervalMs = optionalNumber(data, 'defaultTickIntervalMs');
@@ -59,7 +62,9 @@ export function parseSupervisorConfig(raw: string): SupervisorConfig {
     throw new Error(`globalBudgetUsdPerDay must be positive, got ${globalBudgetUsdPerDay}`);
   }
   if (defaultTickIntervalMs != null && defaultTickIntervalMs < 5000) {
-    throw new Error(`defaultTickIntervalMs must be >= 5000ms (mesh-friendly), got ${defaultTickIntervalMs}`);
+    throw new Error(
+      `defaultTickIntervalMs must be >= 5000ms (mesh-friendly), got ${defaultTickIntervalMs}`
+    );
   }
 
   return { agents, globalBudgetUsdPerDay, defaultTickIntervalMs };

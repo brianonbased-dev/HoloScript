@@ -28,15 +28,24 @@ describe('loadIdentity', () => {
   });
 
   it('rejects unknown providers (Phase 2 lock — extending the set is a code change)', () => {
-    expect(() => loadIdentity({ ...VALID_ENV, HOLOSCRIPT_AGENT_PROVIDER: 'qwen-cloud' })).toThrowError(
-      /HOLOSCRIPT_AGENT_PROVIDER/
+    expect(() =>
+      loadIdentity({ ...VALID_ENV, HOLOSCRIPT_AGENT_PROVIDER: 'qwen-cloud' })
+    ).toThrowError(/HOLOSCRIPT_AGENT_PROVIDER/);
+  });
+
+  it('accepts xAI and OpenRouter providers once they are explicitly wired', () => {
+    expect(loadIdentity({ ...VALID_ENV, HOLOSCRIPT_AGENT_PROVIDER: 'xai' }).llmProvider).toBe(
+      'xai'
     );
+    expect(
+      loadIdentity({ ...VALID_ENV, HOLOSCRIPT_AGENT_PROVIDER: 'openrouter' }).llmProvider
+    ).toBe('openrouter');
   });
 
   it('rejects malformed wallets (W.087 vertex B identity discipline)', () => {
-    expect(() => loadIdentity({ ...VALID_ENV, HOLOSCRIPT_AGENT_WALLET: 'not-a-wallet' })).toThrowError(
-      /HOLOSCRIPT_AGENT_WALLET/
-    );
+    expect(() =>
+      loadIdentity({ ...VALID_ENV, HOLOSCRIPT_AGENT_WALLET: 'not-a-wallet' })
+    ).toThrowError(/HOLOSCRIPT_AGENT_WALLET/);
     expect(() => loadIdentity({ ...VALID_ENV, HOLOSCRIPT_AGENT_WALLET: '0xshort' })).toThrowError();
   });
 
@@ -46,8 +55,12 @@ describe('loadIdentity', () => {
   });
 
   it('rejects negative or non-numeric daily budgets', () => {
-    expect(() => loadIdentity({ ...VALID_ENV, HOLOSCRIPT_AGENT_BUDGET_USD_DAY: '-5' })).toThrowError();
-    expect(() => loadIdentity({ ...VALID_ENV, HOLOSCRIPT_AGENT_BUDGET_USD_DAY: 'abc' })).toThrowError();
+    expect(() =>
+      loadIdentity({ ...VALID_ENV, HOLOSCRIPT_AGENT_BUDGET_USD_DAY: '-5' })
+    ).toThrowError();
+    expect(() =>
+      loadIdentity({ ...VALID_ENV, HOLOSCRIPT_AGENT_BUDGET_USD_DAY: 'abc' })
+    ).toThrowError();
   });
 
   it('redacts secrets in identityForLog', () => {

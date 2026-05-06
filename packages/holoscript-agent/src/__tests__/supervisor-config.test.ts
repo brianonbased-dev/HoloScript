@@ -46,9 +46,9 @@ describe('parseSupervisorConfig', () => {
   });
 
   it('rejects empty agents array (supervisor with zero agents is meaningless)', () => {
-    expect(() =>
-      parseSupervisorConfig(JSON.stringify({ ...VALID, agents: [] }))
-    ).toThrowError(/at least one entry/);
+    expect(() => parseSupervisorConfig(JSON.stringify({ ...VALID, agents: [] }))).toThrowError(
+      /at least one entry/
+    );
   });
 
   it('rejects duplicate handles (each agent must have a distinct identity)', () => {
@@ -68,6 +68,19 @@ describe('parseSupervisorConfig', () => {
     expect(() => parseSupervisorConfig(JSON.stringify(bad))).toThrowError(/provider/);
   });
 
+  it('accepts explicitly wired xAI and OpenRouter providers', () => {
+    const cfg = parseSupervisorConfig(
+      JSON.stringify({
+        agents: [
+          { ...VALID.agents[0], provider: 'xai' },
+          { ...VALID.agents[1], handle: 'router-agent', provider: 'openrouter' },
+        ],
+      })
+    );
+
+    expect(cfg.agents.map((agent) => agent.provider)).toEqual(['xai', 'openrouter']);
+  });
+
   it('rejects sub-5s tick intervals (mesh-friendly floor)', () => {
     const fast = { ...VALID, defaultTickIntervalMs: 1000 };
     expect(() => parseSupervisorConfig(JSON.stringify(fast))).toThrowError(/>= 5000/);
@@ -80,17 +93,25 @@ describe('parseSupervisorConfig', () => {
       parseSupervisorConfig(JSON.stringify({ ...VALID, globalBudgetUsdPerDay: 0 }))
     ).toThrowError(/positive/);
     expect(() =>
-      parseSupervisorConfig(JSON.stringify({ agents: [{ ...VALID.agents[0], budgetUsdPerDay: -1 }] }))
+      parseSupervisorConfig(
+        JSON.stringify({ agents: [{ ...VALID.agents[0], budgetUsdPerDay: -1 }] })
+      )
     ).toThrowError(/positive/);
   });
 
   it('requires brainPath / walletEnvKey / bearerEnvKey on every agent', () => {
     const { brainPath: _brain, ...noBrain } = VALID.agents[0];
-    expect(() => parseSupervisorConfig(JSON.stringify({ agents: [noBrain] }))).toThrowError(/brainPath/);
+    expect(() => parseSupervisorConfig(JSON.stringify({ agents: [noBrain] }))).toThrowError(
+      /brainPath/
+    );
     const { walletEnvKey: _w, ...noWallet } = VALID.agents[0];
-    expect(() => parseSupervisorConfig(JSON.stringify({ agents: [noWallet] }))).toThrowError(/walletEnvKey/);
+    expect(() => parseSupervisorConfig(JSON.stringify({ agents: [noWallet] }))).toThrowError(
+      /walletEnvKey/
+    );
     const { bearerEnvKey: _b, ...noBearer } = VALID.agents[0];
-    expect(() => parseSupervisorConfig(JSON.stringify({ agents: [noBearer] }))).toThrowError(/bearerEnvKey/);
+    expect(() => parseSupervisorConfig(JSON.stringify({ agents: [noBearer] }))).toThrowError(
+      /bearerEnvKey/
+    );
   });
 
   it('loadSupervisorConfig reads and parses a file path', () => {
