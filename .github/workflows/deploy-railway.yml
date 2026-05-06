@@ -435,7 +435,11 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          railway up --service absorb-service --environment production --detach
+          railway up \
+            --service absorb-service \
+            --environment production \
+            --ci \
+            --message "GitHub Actions $GITHUB_SHA"
 
       - name: Wait for deployment
         run: sleep 60
@@ -479,6 +483,27 @@ jobs:
           console.error(JSON.stringify(last, null, 2));
           process.exit(1);
           NODE
+
+      - name: Railway diagnostics on absorb-service failure
+        if: failure()
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          echo "::group::Deployment list"
+          railway deployment list --service absorb-service --environment production --limit 5 --json || true
+          echo "::endgroup::"
+
+          echo "::group::Service status"
+          railway service status --service absorb-service --environment production --json || true
+          echo "::endgroup::"
+
+          echo "::group::Latest build logs"
+          railway logs --service absorb-service --environment production --latest --build --lines 200 || true
+          echo "::endgroup::"
+
+          echo "::group::Latest deploy logs"
+          railway logs --service absorb-service --environment production --latest --deployment --lines 200 || true
+          echo "::endgroup::"
 
   deploy-mcp-server:
     # Pre-flight is informational for service-targeted deploys (failures
