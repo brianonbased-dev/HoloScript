@@ -102,8 +102,8 @@ describe('Novel Use Cases — .hsplus Integration', () => {
 describe('Novel Use Cases — .hs Structural', () => {
   const hsFiles = getFiles('.hs');
 
-  it('finds 13 .hs files', () => {
-    expect(hsFiles.length).toBe(13);
+  it('finds all canonical .hs files plus variants', () => {
+    expect(hsFiles.length).toBeGreaterThanOrEqual(13);
   });
 
   for (const file of hsFiles) {

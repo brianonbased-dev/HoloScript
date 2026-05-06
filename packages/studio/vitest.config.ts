@@ -71,8 +71,12 @@ export default defineConfig({
       { find: 'idb', replacement: path.resolve(__dirname, 'src/__mocks__/idb.ts') },
       // Route @aztec/bb.js → stub (WASM bindings fail in Node/jsdom test env)
       { find: '@aztec/bb.js', replacement: path.resolve(__dirname, 'src/__mocks__/aztec-bb.ts') },
+      // Optional browser ML dependency used by core traits; unavailable in Studio tests.
+      { find: '@xenova/transformers', replacement: path.resolve(__dirname, 'src/lib/empty-module.js') },
       // Cross-package resolution (A.011 extraction)
       { find: '@holoscript/core/coordinators', replacement: path.resolve(__dirname, '../core/src/coordinators/index.ts') },
+      { find: '@holoscript/core/reconstruction', replacement: path.resolve(__dirname, '../core/src/reconstruction/index.ts') },
+      { find: '@holoscript/core/traits', replacement: path.resolve(__dirname, '../core/src/traits/index.ts') },
       { find: /^@holoscript\/core$/, replacement: path.resolve(__dirname, '../core/src/index.ts') },
       {
         find: '@holoscript/engine/runtime/TraitRuntimeIntegration',

@@ -34,6 +34,7 @@ describe('PipelineFactory', () => {
         'decode',
         'tropical',
         'tropicalGraph',
+        'largescale',
       ];
 
       for (const category of categories) {
@@ -103,10 +104,14 @@ describe('PipelineFactory', () => {
       // Tropical graph algebra
       expect(eps).toContain('tropical_min_plus_gemm');
       expect(eps).toContain('tropical_spmv');
+
+      // Hierarchical large-scale
+      expect(eps).toContain('lif_step_partitioned');
+      expect(eps).toContain('synaptic_current_shared_tiled');
     });
 
-    it('should have 15 entry points total', () => {
-      expect(factory.getAvailableEntryPoints()).toHaveLength(15);
+    it('should have 17 entry points total', () => {
+      expect(factory.getAvailableEntryPoints()).toHaveLength(17);
     });
   });
 

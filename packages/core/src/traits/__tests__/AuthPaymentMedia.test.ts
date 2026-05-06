@@ -27,6 +27,20 @@ import {
   getEventCount,
 } from './traitTestHelpers';
 
+async function waitForEvent(
+  ctx: ReturnType<typeof createMockContext>,
+  eventType: string,
+  timeoutMs = 1000
+) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const event = getLastEvent(ctx, eventType);
+    if (event) return event;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error(`Timed out waiting for ${eventType}`);
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // Auth / Identity
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -39,10 +53,9 @@ describe('JwtTrait', () => {
     sendEvent(jwtHandler, node, {}, ctx, { type: 'jwt:issue', sub: 'user1' });
 
     // Wait for async sign
-    await new Promise((r) => setTimeout(r, 50));
 
+    const r = (await waitForEvent(ctx, 'jwt:issued')) as any;
     expect(getEventCount(ctx, 'jwt:issued')).toBe(1);
-    const r = getLastEvent(ctx, 'jwt:issued') as any;
     expect(r.sub).toBe('user1');
     expect(typeof r.token).toBe('string');
   });
@@ -53,13 +66,11 @@ describe('JwtTrait', () => {
     attachTrait(jwtHandler, node, {}, ctx);
     sendEvent(jwtHandler, node, {}, ctx, { type: 'jwt:issue', sub: 'user1' });
 
-    await new Promise((r) => setTimeout(r, 50));
-    const token = (getLastEvent(ctx, 'jwt:issued') as any).token;
+    const token = ((await waitForEvent(ctx, 'jwt:issued')) as any).token;
 
     sendEvent(jwtHandler, node, {}, ctx, { type: 'jwt:verify', token });
 
-    await new Promise((r) => setTimeout(r, 50));
-    const r = getLastEvent(ctx, 'jwt:verified') as any;
+    const r = (await waitForEvent(ctx, 'jwt:verified')) as any;
     expect(r.valid).toBe(true);
     expect(r.sub).toBe('user1');
   });

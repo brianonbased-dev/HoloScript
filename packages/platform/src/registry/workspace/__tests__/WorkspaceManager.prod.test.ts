@@ -21,8 +21,13 @@ describe('ROLE_PERMISSIONS', () => {
   });
   it('developer cannot manage members', () =>
     expect(ROLE_PERMISSIONS.developer).not.toContain('members:manage'));
-  it('viewer can only read packages', () =>
-    expect(ROLE_PERMISSIONS.viewer).toEqual(['packages:read']));
+  it('viewer has read-only package/workspace permissions', () => {
+    expect(ROLE_PERMISSIONS.viewer).toEqual(['packages:read', 'workspace.read', 'package.read']);
+    expect(ROLE_PERMISSIONS.viewer).not.toContain('packages:publish');
+    expect(ROLE_PERMISSIONS.viewer).not.toContain('workspace:settings');
+    expect(ROLE_PERMISSIONS.viewer).not.toContain('billing:manage');
+    expect(ROLE_PERMISSIONS.viewer).not.toContain('members:manage');
+  });
 });
 
 // ─── createWorkspace ──────────────────────────────────────────────────────────

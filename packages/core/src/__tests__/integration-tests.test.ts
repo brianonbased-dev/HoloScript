@@ -45,7 +45,7 @@ function createTestManifest(id: string): AgentManifest {
 // INTEGRATION TESTS
 // =============================================================================
 
-describe('Integration Tests, () => {
+describe('Integration Tests', () => {
   describe('Consensus Manager', () => {
     let consensus: ConsensusManager;
 
@@ -96,8 +96,8 @@ describe('Integration Tests, () => {
 
   describe('Spatial Utilities', () => {
     it('should calculate 3D distance correctly', () => {
-      const a = { x: 0, y: 0, z: 0 };
-      const b = { x: 3, y: 4, z: 0 };
+      const a: [number, number, number] = [0, 0, 0];
+      const b: [number, number, number] = [3, 4, 0];
 
       const dist = distance(a, b);
 
@@ -105,8 +105,8 @@ describe('Integration Tests, () => {
     });
 
     it('should handle 3D distances', () => {
-      const a = { x: 0, y: 0, z: 0 };
-      const b = { x: 1, y: 2, z: 2 }; // sqrt(1+4+4) = 3
+      const a: [number, number, number] = [0, 0, 0];
+      const b: [number, number, number] = [1, 2, 2]; // sqrt(1+4+4) = 3
 
       const dist = distance(a, b);
 
@@ -114,8 +114,8 @@ describe('Integration Tests, () => {
     });
 
     it('should handle negative coordinates', () => {
-      const a = { x: -1, y: -1, z: -1 };
-      const b = { x: 1, y: 1, z: 1 };
+      const a: [number, number, number] = [-1, -1, -1];
+      const b: [number, number, number] = [1, 1, 1];
 
       const dist = distance(a, b);
 
@@ -361,4 +361,3 @@ describe('Integration Tests, () => {
     });
   });
 });
-

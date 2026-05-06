@@ -119,6 +119,7 @@ export default defineConfig({
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
+      'tests/**/*.spec.ts',
       ...QUARANTINED_TESTS,
       // Coverage-only bench skip: see BENCH_TESTS comment above.
       ...(IS_COVERAGE_RUN ? BENCH_TESTS : []),

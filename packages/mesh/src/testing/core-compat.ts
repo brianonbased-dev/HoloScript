@@ -6,6 +6,8 @@
 // through the old core import path.
 
 export * from '../index';
+export { DeltaCompressor, type StateDelta } from '../network/DeltaCompressor';
+export { InterestManager } from '../network/SyncProtocol';
 
 // Minimal runtime symbols mesh source imports from @holoscript/core.
 export const logger = {

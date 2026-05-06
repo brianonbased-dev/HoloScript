@@ -206,8 +206,8 @@ describe('Scenario: Animation Suite — Viral Pose Library', () => {
     expect(blended.length).toBeGreaterThan(0);
     // Each blended bone should have rotation values
     for (const bp of blended) {
-      expect(typeof bp.rotation[0]).toBe('number');
-      expect(typeof bp.rotation[3]).toBe('number');
+      expect(typeof bp.rotation.x).toBe('number');
+      expect(typeof bp.rotation.w).toBe('number');
     }
   });
 });

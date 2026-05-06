@@ -44,7 +44,7 @@ import {
   toPosix,
   toWindows,
   sep,
-} from '../../../fs/src/path.js';
+} from '../../../std/src/fs/path.js';
 
 import {
   readText,
@@ -65,7 +65,7 @@ import {
   ensureFile,
   move,
   copy,
-} from '../../../fs/src/fs.js';
+} from '../../../std/src/fs/fs.js';
 
 // ============================================================================
 // Feature 4 & 5: Runtime

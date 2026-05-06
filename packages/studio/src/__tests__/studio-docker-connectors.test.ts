@@ -32,7 +32,7 @@ describe('Studio Docker connector parity', () => {
     for (const packageName of connectorPackages) {
       const folder = packageName.replace('@holoscript/', '');
       expect(dockerfile).toContain(
-        `RUN cd packages/${folder} && npx tsup --no-dts && npx tsup --dts-only || true`,
+        `RUN cd packages/${folder} && npx tsup --no-dts && (npx tsup --dts-only || true)`,
       );
     }
   });

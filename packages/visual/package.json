@@ -14,7 +14,7 @@
   "scripts": {
     "build": "tsc && vite build",
     "dev": "vite",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run --config vite.config.ts --passWithNoTests",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },

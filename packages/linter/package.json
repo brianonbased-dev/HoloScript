@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsup && tsc --emitDeclarationOnly --declarationDir dist --skipLibCheck",
     "dev": "tsc --watch",
-    "test": "vitest run --pool=forks --poolOptions.forks.singleFork",
+    "test": "vitest run --pool=forks",
     "lint": "eslint src/",
     "clean": "rimraf dist"
   },

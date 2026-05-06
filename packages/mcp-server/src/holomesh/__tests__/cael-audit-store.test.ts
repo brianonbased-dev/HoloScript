@@ -10,7 +10,7 @@
  * which carry the load-bearing semantics: append + filter + ring-buffer drop.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   appendCaelAuditRecord,
   queryCaelAuditRecords,
@@ -37,7 +37,12 @@ function makeRecord(overrides: Partial<CaelAuditRecord> = {}): CaelAuditRecord {
 
 describe('CAEL audit store helpers (gap-build task_..._d2jx)', () => {
   beforeEach(() => {
+    process.env.HOLOMESH_TEST_DISABLE_CAEL_AUDIT_PERSISTENCE = '1';
     agentAuditStore.clear();
+  });
+
+  afterEach(() => {
+    delete process.env.HOLOMESH_TEST_DISABLE_CAEL_AUDIT_PERSISTENCE;
   });
 
   describe('appendCaelAuditRecord', () => {
@@ -65,11 +70,10 @@ describe('CAEL audit store helpers (gap-build task_..._d2jx)', () => {
     });
 
     it('caps the per-agent ring buffer at 10,000 records (drops oldest)', () => {
-      // Append 10,005 records — first 5 should drop. Use distinct
-      // tick_iso so we can verify which records survived.
+      // Append 10,005 records — first 5 should drop. Persistence is covered
+      // in state-persistence.test.ts; this unit test is only the in-memory cap.
       for (let i = 0; i < 10_005; i++) {
-        const ts = new Date(2_000_000_000_000 + i * 1000).toISOString();
-        appendCaelAuditRecord(HANDLE, makeRecord({ tick_iso: ts, operation: `op-${i}` }));
+        appendCaelAuditRecord(HANDLE, makeRecord({ operation: `op-${i}` }));
       }
       const all = queryCaelAuditRecords(HANDLE, { limit: 20_000 });
       expect(all).toHaveLength(10_000);

@@ -199,7 +199,7 @@ describe('DataViz Domain', () => {
     expect(ir.name).toBe('SalesChart');
     expect(ir.chartType).toBe('bar');
     expect(ir.dataSource).toBe('/api/sales');
-    expect(ir.axes).toEqual(['month', 'revenue', undefined]);
+    expect(ir.axes).toEqual(['month', 'revenue', '']);
     expect(ir.aggregation).toBe('sum');
     expect(ir.refreshInterval).toBe(30000);
     expect(ir.dimensions).toEqual({ width: 800, height: 600 });

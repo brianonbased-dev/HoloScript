@@ -220,12 +220,12 @@ export const A2ATaskSchema = z.object({
   status: A2ATaskStatusSchema,
   artifacts: z.array(A2ATaskArtifactSchema),
   history: z.array(A2ATaskMessageSchema),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const HSNAPTraitSchema = z.object({
   name: z.string(),
-  config: z.record(z.unknown()),
+  config: z.record(z.string(), z.unknown()),
 });
 
 export const HSNAPStateBindingSchema = z.object({
@@ -242,7 +242,7 @@ export const HSNAPTaskMetadataSchema = z.object({
   priority: z.number().optional(),
   timeout: z.number().optional(),
   skillId: z.string().optional(),
-  input: z.record(z.unknown()).optional(),
+  input: z.record(z.string(), z.unknown()).optional(),
   idempotency_key: z.string().optional(),
 });
 

@@ -70,6 +70,6 @@ export const HoloSmartAssetSchema = z.object({
   script: z.string(),
   physics: HoloPhysicsPropertiesSchema.optional(),
   ai: HoloAIBehaviorSchema.optional(),
-  assets: z.record(z.union([z.string(), z.instanceof(Uint8Array)])).optional(),
-  dependencies: z.record(z.string()).optional(),
+  assets: z.record(z.string(), z.union([z.string(), z.instanceof(Uint8Array)])).optional(),
+  dependencies: z.record(z.string(), z.string()).optional(),
 });

@@ -9,26 +9,151 @@ import {
   TogetherAdapter,
 } from '../adapters';
 
+vi.mock('@holoscript/llm-provider', () => {
+  type MockConfig = { apiKey?: string; baseURL?: string; defaultModel?: string; model?: string };
+  type MockRequest = {
+    messages?: Array<{ role: string; content: string }>;
+    maxTokens?: number;
+    temperature?: number;
+  };
+
+  async function postJSON(url: string, body: Record<string, unknown>) {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      if (response.status === 429) throw new Error('rate limited');
+      if (response.status === 401 || response.status === 403) throw new Error('auth failed');
+      throw new Error(response.statusText || 'provider error');
+    }
+
+    return response.json();
+  }
+
+  class MockOpenAIAdapter {
+    private config: MockConfig;
+
+    constructor(config: MockConfig) {
+      this.config = config;
+    }
+
+    async complete(request: MockRequest) {
+      const model = this.config.defaultModel ?? this.config.model ?? 'mock-model';
+      const baseURL = this.config.baseURL ?? 'https://api.openai.com/v1';
+      const data = await postJSON(baseURL + '/chat/completions', {
+        model,
+        messages: request.messages ?? [],
+        max_tokens: request.maxTokens,
+        temperature: request.temperature,
+      });
+      const content = data.choices?.[0]?.message?.content ?? data.response ?? '';
+
+      return {
+        content,
+        model: data.model ?? model,
+        provider: 'openai',
+        usage: { completionTokens: data.usage?.completion_tokens ?? 0 },
+      };
+    }
+  }
+
+  class MockAnthropicAdapter {
+    private config: MockConfig;
+
+    constructor(config: MockConfig) {
+      this.config = config;
+    }
+
+    async complete(request: MockRequest) {
+      const model = this.config.defaultModel ?? this.config.model ?? 'mock-model';
+      const baseURL = this.config.baseURL ?? 'https://api.anthropic.com/v1';
+      const data = await postJSON(baseURL + '/messages', {
+        model,
+        messages: request.messages ?? [],
+        max_tokens: request.maxTokens,
+        temperature: request.temperature,
+      });
+      const content = data.content?.[0]?.text ?? '';
+
+      return {
+        content,
+        model: data.model ?? model,
+        provider: 'anthropic',
+        usage: { completionTokens: data.usage?.output_tokens ?? 0 },
+      };
+    }
+  }
+
+  class MockLocalLLMAdapter extends MockOpenAIAdapter {
+    constructor(config: MockConfig = {}) {
+      const baseURL = (config.baseURL ?? 'http://localhost:8080')
+        .replace(/\/$/, '')
+        .replace(/\/v1$/, '');
+      super({ ...config, baseURL: baseURL + '/v1' });
+    }
+  }
+
+  class MockGeminiAdapter {
+    private config: MockConfig;
+
+    constructor(config: MockConfig) {
+      this.config = config;
+    }
+
+    async complete(request: MockRequest) {
+      const model = this.config.defaultModel ?? this.config.model ?? 'gemini-pro';
+      const data = await postJSON(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        { contents: request.messages ?? [] }
+      );
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+
+      return {
+        content,
+        model,
+        provider: 'gemini',
+        usage: { completionTokens: 0 },
+      };
+    }
+  }
+
+  class MockXAIAdapter extends MockOpenAIAdapter {
+    constructor(config: MockConfig) {
+      super({ ...config, baseURL: config.baseURL ?? 'https://api.x.ai/v1' });
+    }
+  }
+
+  return {
+    OpenAIAdapter: MockOpenAIAdapter,
+    AnthropicAdapter: MockAnthropicAdapter,
+    OpenRouterAdapter: MockOpenAIAdapter,
+    XAIAdapter: MockXAIAdapter,
+    GeminiAdapter: MockGeminiAdapter,
+    LocalLLMAdapter: MockLocalLLMAdapter,
+  };
+});
+
 // Mock fetch globally
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
 function mockOKResponse(body: any) {
-  return {
-    ok: true,
+  return new Response(JSON.stringify(body), {
     status: 200,
     statusText: 'OK',
-    json: async () => body,
-  };
+    headers: { 'content-type': 'application/json' },
+  });
 }
 
 function mockErrorResponse(status: number, statusText: string = 'Error') {
-  return {
-    ok: false,
+  return new Response(JSON.stringify({ error: { message: statusText } }), {
     status,
     statusText,
-    json: async () => ({}),
-  };
+    headers: { 'content-type': 'application/json' },
+  });
 }
 
 describe('AI Adapters', () => {

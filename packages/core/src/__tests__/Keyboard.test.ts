@@ -20,6 +20,14 @@ vi.mock('@holoscript/engine/physics/PhysicsWorldImpl', () => {
   };
 });
 vi.mock('@holoscript/engine/rendering/webgpu/WebGPURenderer', () => {
+  return {
+    WebGPURenderer: class {
+      initialize = vi.fn();
+      render = vi.fn();
+      dispose = vi.fn();
+    },
+  };
+});
 
 describe('Virtual Keyboard System', () => {
   let runtime: HoloScriptPlusRuntimeImpl;

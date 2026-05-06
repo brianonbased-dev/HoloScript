@@ -211,10 +211,10 @@ describe('Scenario: Film Storyboard — Production', () => {
     const path = previsCamera(keyframes, 10); // 10 samples/sec over 4 sec
     expect(path.length).toBeGreaterThan(10);
     // First sample should match first keyframe
-    expect(path[0].position[0]).toBeCloseTo(0, 1);
+    expect(path[0].position.x).toBeCloseTo(0, 1);
     expect(path[0].fov).toBeCloseTo(50, 1);
     // Last sample should match last keyframe
-    expect(path[path.length - 1].position[2]).toBeCloseTo(5, 1);
+    expect(path[path.length - 1].position.z).toBeCloseTo(5, 1);
     // Midpoint should be interpolated
     const mid = path[Math.floor(path.length / 2)];
     expect(mid.time).toBeGreaterThan(1);

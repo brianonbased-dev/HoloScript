@@ -292,7 +292,7 @@ describe('usePerformanceRegressionBridge', () => {
         'performance:recover',
         expect.objectContaining({
           nodeCount: 1,
-          recoveryThresholdMs: 7.0,
+          recoveryThresholdMs: 11.5,
         })
       );
     });

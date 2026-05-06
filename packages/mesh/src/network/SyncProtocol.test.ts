@@ -54,10 +54,10 @@ class MockBroadcastChannel {
   }
 }
 
-// Setup global mocks
-if (typeof globalThis.BroadcastChannel === 'undefined') {
-  (globalThis as any).BroadcastChannel = MockBroadcastChannel;
-}
+// Use the in-memory mock even on Node versions that provide native
+// BroadcastChannel; the native implementation schedules delivery
+// asynchronously enough to flake under recursive workspace load.
+(globalThis as any).BroadcastChannel = MockBroadcastChannel;
 
 describe('DeltaEncoder', () => {
   let encoder: DeltaEncoder;

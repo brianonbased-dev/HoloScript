@@ -347,9 +347,62 @@ function parseInlineObjectLiteral(value: string): Record<string, unknown> | unde
   return out;
 }
 
+function splitPropertyLines(content: string): string[] {
+  const lines: string[] = [];
+  let current = '';
+  let depth = 0;
+  let inQuote: '"' | "'" | '`' | null = null;
+
+  const flush = () => {
+    const trimmed = current.trim();
+    if (trimmed) lines.push(trimmed);
+    current = '';
+  };
+
+  for (let i = 0; i < content.length; i++) {
+    const ch = content[i];
+    const prev = i > 0 ? content[i - 1] : '';
+
+    if (inQuote) {
+      current += ch;
+      if (ch === inQuote && prev !== '\\') inQuote = null;
+      continue;
+    }
+
+    if (ch === '"' || ch === "'" || ch === '`') {
+      inQuote = ch;
+      current += ch;
+      continue;
+    }
+
+    if (ch === '{' || ch === '[' || ch === '(') depth++;
+    if (ch === '}' || ch === ']' || ch === ')') depth = Math.max(0, depth - 1);
+
+    if (ch === '\n' || ch === '\r') {
+      flush();
+      continue;
+    }
+
+    if (
+      depth === 0 &&
+      /\s/.test(ch) &&
+      current.trim() &&
+      /^\w+\s*:/.test(content.slice(i + 1))
+    ) {
+      flush();
+      continue;
+    }
+
+    current += ch;
+  }
+
+  flush();
+  return lines;
+}
+
 function parseProperties(content: string): Record<string, unknown> {
   const props: Record<string, unknown> = {};
-  const lines = content.split('\n');
+  const lines = splitPropertyLines(content);
 
   let currentKey: string | null = null;
   let multilineVal: string[] = [];

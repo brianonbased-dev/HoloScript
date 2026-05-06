@@ -205,9 +205,12 @@ describe('Scenario-Driven Todo Generation', () => {
 
   it('Scenario 8: Reviewer agent generates task based on heuristic fallback', async () => {
     const synthesizer = new GoalSynthesizer();
-    const reviewerTodos = await synthesizer.synthesizeMultiple({ domain: 'reviewer' }, 4);
+    const reviewerTodos = await synthesizer.synthesizeMultiple(
+      { domain: 'reviewer' },
+      GENERIC_GOALS.length + 1
+    );
 
-    expect(reviewerTodos.length).toBe(4);
+    expect(reviewerTodos.length).toBe(GENERIC_GOALS.length + 1);
     const allExpectedDomains = DOMAIN_GOALS['reviewer'];
     const hasReviewerHeuristic = reviewerTodos.some((t) =>
       allExpectedDomains.includes(t.description)

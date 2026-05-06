@@ -100,14 +100,20 @@ describe('x402 boundary schemas', () => {
       const emptyAccepts = { ...validPR, accepts: [] };
       const r = safeParseX402PaymentRequired(emptyAccepts);
       expect(r.success).toBe(false);
-      if (!r.success) expect(r.error).toContain('accepts: Array must contain at least 1 element(s)');
+      if (!r.success) {
+        expect(r.error).toContain('accepts:');
+        expect(r.error).toMatch(/1|>=1/);
+      }
     });
 
     it('rejects oversized accepts array (>16)', () => {
       const oversizedAccepts = { ...validPR, accepts: Array(17).fill(validPR.accepts[0]) };
       const r = safeParseX402PaymentRequired(oversizedAccepts);
       expect(r.success).toBe(false);
-      if (!r.success) expect(r.error).toContain('accepts: Array must contain at most 16 element(s)');
+      if (!r.success) {
+        expect(r.error).toContain('accepts:');
+        expect(r.error).toContain('16');
+      }
     });
 
     it('rejects invalid network in accepts', () => {
@@ -132,7 +138,7 @@ describe('x402 boundary schemas', () => {
       const injected = { ...validPR, maliciousFlag: true };
       const r = safeParseX402PaymentRequired(injected);
       expect(r.success).toBe(false);
-      if (!r.success) expect(r.error).toContain('Unrecognized key(s)');
+      if (!r.success) expect(r.error).toContain('Unrecognized key');
     });
 
     it('rejects extra injected keys inside accepts options', () => {
@@ -145,4 +151,3 @@ describe('x402 boundary schemas', () => {
     });
   });
 });
-

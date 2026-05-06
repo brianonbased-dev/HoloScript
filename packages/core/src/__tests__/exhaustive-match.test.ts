@@ -25,7 +25,7 @@ import { TreemapGenerator } from '../../../cli/src/analyze/TreemapGenerator';
 
 // â”€â”€â”€ 1. Exhaustive match â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe('Exhaustive Match, () => {
+describe('Exhaustive Match', () => {
   let checker: HoloScriptTypeChecker;
   beforeEach(() => {
     checker = new HoloScriptTypeChecker();
@@ -64,7 +64,7 @@ describe('Exhaustive Match, () => {
 });
 
 // â”€â”€â”€ 2. Parallel parsing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-describe('Parallel Parsing, () => {
+describe('Parallel Parsing', () => {
   let parser: ParallelParser;
   beforeEach(() => {
     parser = makeSeqParser();
@@ -107,7 +107,7 @@ describe('Parallel Parsing, () => {
 });
 
 // â”€â”€â”€ 3. Build caching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-describe('HashCalculator, () => {
+describe('HashCalculator', () => {
   const h = new HashCalculator();
   test('64-char hex', () => {
     expect(h.hashContent('hello')).toMatch(/^[0-9a-f]{64}$/);
@@ -126,7 +126,7 @@ describe('HashCalculator, () => {
   });
 });
 
-describe('DependencyTracker, () => {
+describe('DependencyTracker', () => {
   let t: DependencyTracker;
   beforeEach(() => {
     t = new DependencyTracker();
@@ -163,7 +163,7 @@ describe('DependencyTracker, () => {
   });
 });
 
-describe('CacheManager, () => {
+describe('CacheManager', () => {
   test('isStale true for unknown', async () => {
     const cm = new CacheManager('.s4cache', '3.13.0');
     await cm.load();
@@ -195,7 +195,7 @@ describe('CacheManager, () => {
 });
 
 // â”€â”€â”€ 4. Source maps v2 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-describe('SourceMapV2, () => {
+describe('SourceMapV2', () => {
   test('construct', () => {
     expect(new SourceMapV2()).toBeDefined();
   });
@@ -234,7 +234,7 @@ describe('SourceMapV2, () => {
 });
 
 // â”€â”€â”€ 5. Bundle analyzer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-describe('DuplicateFinder, () => {
+describe('DuplicateFinder', () => {
   const f = new DuplicateFinder();
   test('no dups when content differs', () => {
     expect(
@@ -282,7 +282,7 @@ describe('DuplicateFinder, () => {
   });
 });
 
-describe('TreemapGenerator, () => {
+describe('TreemapGenerator', () => {
   const g = new TreemapGenerator();
   test('generates valid HTML', () => {
     expect(g.generate([{ name: 'a.ts', size: 1000 }])).toContain('<!DOCTYPE html>');
@@ -298,7 +298,7 @@ describe('TreemapGenerator, () => {
   });
 });
 
-describe('BundleAnalyzer, () => {
+describe('BundleAnalyzer', () => {
   const a = new BundleAnalyzer();
   const mk = (e: Array<[string, number]>) => new Map(e.map(([p, s]) => [p, 'x'.repeat(s)]));
 
@@ -363,4 +363,3 @@ describe('BundleAnalyzer, () => {
     expect(Object.keys(r.byCategory).length).toBeGreaterThan(0);
   });
 });
-

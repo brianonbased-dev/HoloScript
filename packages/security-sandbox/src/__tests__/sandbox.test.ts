@@ -172,17 +172,28 @@ describe('HoloScriptSandbox', () => {
       expect(logs.length).toBeGreaterThan(0);
     });
 
-    it('should limit audit log size to 1000 entries', async () => {
+    it('should limit audit log size to 1000 entries', () => {
       const largeSandbox = new HoloScriptSandbox({ enableLogging: true });
+      const log = (largeSandbox as unknown as {
+        log(entry: {
+          source: 'user';
+          action: 'execute';
+          success: boolean;
+          codeHash: string;
+        }): void;
+      }).log.bind(largeSandbox);
 
-      // Generate > 1000 logs
+      // Exercise the audit ring directly; VM execution behavior is covered
+      // above, and 1100 VM spins makes this cap test load-sensitive.
       for (let i = 0; i < 1100; i++) {
-        await largeSandbox.executeHoloScript('1 + 1', { source: 'user' });
+        log({ source: 'user', action: 'execute', success: true, codeHash: `hash-${i}` });
       }
 
       const logs = largeSandbox.getAuditLogs();
-      expect(logs.length).toBeLessThanOrEqual(1000);
-    }, 15_000); // 1100 VM executions; 15 s budget
+      expect(logs).toHaveLength(1000);
+      expect(logs[0].codeHash).toBe('hash-100');
+      expect(logs[logs.length - 1].codeHash).toBe('hash-1099');
+    });
 
     it('should clear audit logs', async () => {
       await sandbox.executeHoloScript('1 + 1', { source: 'user' });
@@ -240,15 +251,13 @@ describe('HoloScriptSandbox', () => {
   describe('Custom Sandbox Configuration', () => {
     it('should respect custom timeout settings', async () => {
       const quickSandbox = new HoloScriptSandbox({ timeout: 50 });
-      const slowCode = `
-        let sum = 0;
-        for(let i = 0; i < 1000000; i++) {
-          sum += i;
-        }
-      `;
+      const slowCode = 'while (true) {}';
 
       const result = await quickSandbox.executeHoloScript(slowCode);
-      expect(result.metadata.executionTime).toBeLessThan(100);
+      expect(result.success).toBe(false);
+      expect(result.error?.type).toBe('timeout');
+      expect(result.metadata.executionTime).toBeGreaterThanOrEqual(50);
+      expect(result.metadata.executionTime).toBeLessThan(1000);
     });
 
     it('should allow custom sandbox globals', async () => {

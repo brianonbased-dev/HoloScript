@@ -3,23 +3,121 @@ import { ProtocolAgent, runProtocolCycle } from '../protocol-agent';
 import { ProtocolPhase } from '../protocol/implementations';
 import type { AgentConfig } from '../types';
 
+vi.mock('@holoscript/llm-provider', () => {
+  type MockConfig = { apiKey?: string; baseURL?: string; defaultModel?: string; model?: string };
+  type MockRequest = {
+    messages?: Array<{ role: string; content: string }>;
+    maxTokens?: number;
+    temperature?: number;
+  };
+
+  async function postJSON(url: string, body: Record<string, unknown>) {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      throw new Error(response.statusText || 'provider error');
+    }
+
+    return response.json();
+  }
+
+  class MockOpenAIAdapter {
+    private config: MockConfig;
+
+    constructor(config: MockConfig) {
+      this.config = config;
+    }
+
+    async complete(request: MockRequest) {
+      const model = this.config.defaultModel ?? this.config.model ?? 'mock-model';
+      const baseURL = this.config.baseURL ?? 'https://api.openai.com/v1';
+      const data = await postJSON(baseURL + '/chat/completions', {
+        model,
+        messages: request.messages ?? [],
+        max_tokens: request.maxTokens,
+        temperature: request.temperature,
+      });
+
+      return {
+        content: data.choices?.[0]?.message?.content ?? '',
+        model: data.model ?? model,
+        provider: 'openai',
+        usage: { completionTokens: data.usage?.completion_tokens ?? 0 },
+      };
+    }
+  }
+
+  class MockAnthropicAdapter {
+    private config: MockConfig;
+
+    constructor(config: MockConfig) {
+      this.config = config;
+    }
+
+    async complete(request: MockRequest) {
+      const model = this.config.defaultModel ?? this.config.model ?? 'mock-model';
+      const baseURL = this.config.baseURL ?? 'https://api.anthropic.com/v1';
+      const data = await postJSON(baseURL + '/messages', {
+        model,
+        messages: request.messages ?? [],
+        max_tokens: request.maxTokens,
+        temperature: request.temperature,
+      });
+
+      return {
+        content: data.content?.[0]?.text ?? '',
+        model: data.model ?? model,
+        provider: 'anthropic',
+        usage: { completionTokens: data.usage?.output_tokens ?? 0 },
+      };
+    }
+  }
+
+  class MockXAIAdapter extends MockOpenAIAdapter {
+    constructor(config: MockConfig) {
+      super({ ...config, baseURL: config.baseURL ?? 'https://api.x.ai/v1' });
+    }
+  }
+
+  return {
+    AnthropicAdapter: MockAnthropicAdapter,
+    OpenAIAdapter: MockOpenAIAdapter,
+    OpenRouterAdapter: MockOpenAIAdapter,
+    XAIAdapter: MockXAIAdapter,
+  };
+});
+
 // ── Mock fetch globally ──
 
-const mockFetchResponse = (content: string) => ({
-  ok: true,
-  json: async () => ({
-    content: [{ text: content }],
-    usage: { output_tokens: 10 },
-  }),
-});
+const mockFetchResponse = (content: string) =>
+  new Response(
+    JSON.stringify({
+      content: [{ text: content }],
+      usage: { output_tokens: 10 },
+    }),
+    {
+      status: 200,
+      statusText: 'OK',
+      headers: { 'content-type': 'application/json' },
+    }
+  );
 
-const mockOpenAIResponse = (content: string) => ({
-  ok: true,
-  json: async () => ({
-    choices: [{ message: { content } }],
-    usage: { completion_tokens: 10 },
-  }),
-});
+const mockOpenAIResponse = (content: string) =>
+  new Response(
+    JSON.stringify({
+      choices: [{ message: { content } }],
+      usage: { completion_tokens: 10 },
+    }),
+    {
+      status: 200,
+      statusText: 'OK',
+      headers: { 'content-type': 'application/json' },
+    }
+  );
 
 const testAgent: AgentConfig = {
   name: 'TestAgent',

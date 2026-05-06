@@ -5,17 +5,27 @@ import { PhysicsWorld, PhysicsOptions } from './PhysicsWorld';
 
 // Mock Three.js Object3D
 function createMockMesh(
-  position: [number, number, number] = { x: 0, y: 0, z: 0 },
+  position: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 },
   scale: { x: number; y: number; z: number } = { x: 1, y: 1, z: 1 },
   quaternion: { x: number; y: number; z: number; w: number } = { x: 0, y: 0, z: 0, w: 1 }
 ): THREE.Object3D {
   const mesh = {
-    position: [position.x, position.y, position.z,
+    position: {
+      x: position.x,
+      y: position.y,
+      z: position.z,
+      set: vi.fn(function (this: any, x: number, y: number, z: number) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        return this;
+      }),
       copy: vi.fn(function (this: any, source: any) {
         this.x = source.x;
         this.y = source.y;
         this.z = source.z;
-        return this;]),
+        return this;
+      }),
     },
     scale: {
       x: scale.x,
@@ -27,6 +37,13 @@ function createMockMesh(
       y: quaternion.y,
       z: quaternion.z,
       w: quaternion.w,
+      set: vi.fn(function (this: any, x: number, y: number, z: number, w: number) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.w = w;
+        return this;
+      }),
       copy: vi.fn(function (this: any, source: any) {
         this.x = source.x;
         this.y = source.y;
@@ -253,8 +270,8 @@ describe('PhysicsWorld', () => {
         physics.step(1 / 60);
       }
 
-      // Mesh position copy should have been called
-      expect(mesh.position.copy).toHaveBeenCalled();
+      // Mesh position set should have been called
+      expect(mesh.position.set).toHaveBeenCalled();
     });
 
     it('should sync mesh quaternion with physics body', () => {
@@ -263,7 +280,7 @@ describe('PhysicsWorld', () => {
 
       physics.step(1 / 60);
 
-      expect(mesh.quaternion.copy).toHaveBeenCalled();
+      expect(mesh.quaternion.set).toHaveBeenCalled();
     });
 
     it('should handle step with zero time delta', () => {
@@ -289,9 +306,9 @@ describe('PhysicsWorld', () => {
 
       physics.step(1 / 60);
 
-      expect(mesh1.position.copy).toHaveBeenCalled();
-      expect(mesh2.position.copy).toHaveBeenCalled();
-      expect(mesh3.position.copy).toHaveBeenCalled();
+      expect(mesh1.position.set).toHaveBeenCalled();
+      expect(mesh2.position.set).toHaveBeenCalled();
+      expect(mesh3.position.set).toHaveBeenCalled();
     });
   });
 

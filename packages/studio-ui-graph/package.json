@@ -34,7 +34,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run --config vitest.config.ts --passWithNoTests",
     "start": "node ./dist/cli.js"
   },
   "dependencies": {

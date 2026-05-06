@@ -157,6 +157,13 @@ function caelAuditPath(handle: string): string {
 }
 
 function persistCaelAuditRecord(handle: string, record: CaelAuditRecord): void {
+  if (
+    process.env.NODE_ENV === 'test' &&
+    process.env.HOLOMESH_TEST_DISABLE_CAEL_AUDIT_PERSISTENCE === '1'
+  ) {
+    return;
+  }
+
   try {
     if (!fs.existsSync(CAEL_AUDIT_DIR)) {
       fs.mkdirSync(CAEL_AUDIT_DIR, { recursive: true });
