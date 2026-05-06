@@ -249,7 +249,15 @@ export async function meshSurface(
   options?: SurfaceMeshOptions,
 ): Promise<TetMesh> {
   if (registeredMesher) {
-    return registeredMesher.tetrahedralize(surface, options);
+    try {
+      return await registeredMesher.tetrahedralize(surface, options);
+    } catch (err) {
+      // WASM mesher failed (e.g. binary not yet deployed); fall through to
+      // bounding-box meshing so the pipeline stays alive for MVP demos.
+      const reason = err instanceof Error ? err.message : String(err);
+      // eslint-disable-next-line no-console
+      console.warn(`[AutoMesher] WASM mesher failed: ${reason}. Falling back to bounding-box meshing.`);
+    }
   }
 
   // Fallback: mesh the bounding box of the surface

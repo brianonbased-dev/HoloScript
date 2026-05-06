@@ -65,7 +65,13 @@ export {
   importStructuredPoints, importUnstructuredGrid,
   parseGmsh,
   MeshImportError,
+  importMesh,
+  importMeshSync,
+  detectFormat,
   type VTKStructuredResult, type VTKUnstructuredResult,
+  type MeshFormat,
+  type ImportOptions,
+  type ImportedMesh,
 } from './import/index';
 
 // Simulation Contract — Enforced guarantees for scientific reliability

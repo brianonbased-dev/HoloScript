@@ -3,3 +3,11 @@ export { parseOBJ } from './OBJParser';
 export { importScalarFieldCSV, importTableCSV } from './CSVImporter';
 export { importStructuredPoints, importUnstructuredGrid, type VTKStructuredResult, type VTKUnstructuredResult } from './VTKImporter';
 export { parseGmsh, MeshImportError } from './GmshParser';
+export {
+  importMesh,
+  importMeshSync,
+  detectFormat,
+  type MeshFormat,
+  type ImportOptions,
+  type ImportedMesh,
+} from './MeshImporter';
