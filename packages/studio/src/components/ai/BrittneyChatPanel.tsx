@@ -13,19 +13,19 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react';
-import { streamBrittney, buildRichContext, executeTool, SimulationToolExecutor } from '@/lib/brittney';
-import type { BrittneyMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
+import { streamAssistant, buildRichContext, executeTool, SimulationToolExecutor } from '@/lib/brittney';
+import type { AssistantMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
 import { useEditorStore, useSceneGraphStore, useSceneStore } from '@/lib/stores';
 import { useHistoryStore, setNextHistoryLabel } from '@/lib/historyStore';
 import { StudioEvents } from '@/lib/analytics';
-import { useBrittneyVoice } from '@/hooks/useBrittneyVoice';
-import { useBrittneyHistory } from '@/hooks/useBrittneyHistory';
+import { useAssistantVoice } from '@/hooks/useBrittneyVoice';
+import { useAssistantHistory } from '@/hooks/useBrittneyHistory';
 
 // ─── Message model ────────────────────────────────────────────────────────────
 
 interface ChatMessage {
   id: string;
-  role: 'user' | 'brittney';
+  role: 'user' | 'assistant';
   text: string;
   toolResults?: ToolResult[];
   isStreaming?: boolean;
@@ -78,19 +78,19 @@ export function BrittneyChatPanel() {
     history: savedHistory,
     addMessage: persistMessage,
     clearHistory: clearPersistedHistory,
-  } = useBrittneyHistory('default');
+  } = useAssistantHistory('default');
 
   const GREETING: ChatMessage = {
     id: '0',
-    role: 'brittney',
-    text: "Hi! I'm Brittney. Tell me what you want to build — I'll add traits, compose behaviors, and shape the scene for you.",
+    role: 'assistant',
+    text: "Hi! I'm your assistant. Tell me what you want to build and I'll add traits, compose behaviors, and shape the scene for you.",
   };
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([GREETING]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
-  const [llmHistory, setLlmHistory] = useState<BrittneyMessage[]>([]);
+  const [llmHistory, setLlmHistory] = useState<AssistantMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [ttsEnabled, setTtsEnabled] = useState(false);
 
@@ -108,7 +108,7 @@ export function BrittneyChatPanel() {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 1.05;
       utterance.pitch = 1.1;
-      // Prefer a female voice for Brittney's persona
+      // Prefer a voice with a conversational tone for the assistant persona
       const voices = window.speechSynthesis.getVoices();
       const femaleVoice = voices.find(
         (v) => v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Zira')
@@ -128,7 +128,7 @@ export function BrittneyChatPanel() {
         GREETING,
         ...savedHistory.map((m, i) => ({
           id: `h-${i}`,
-          role: m.role === 'user' ? 'user' : ('brittney' as ChatMessage['role']),
+          role: m.role === 'user' ? 'user' : ('assistant' as ChatMessage['role']),
           text: m.content,
         })),
       ]);
@@ -138,7 +138,7 @@ export function BrittneyChatPanel() {
             ({
               role: m.role === 'user' ? 'user' : 'assistant',
               content: m.content,
-            }) as BrittneyMessage
+            }) as AssistantMessage
         )
       );
     }
@@ -154,7 +154,7 @@ export function BrittneyChatPanel() {
     startListening,
     stopListening,
     clearTranscript,
-  } = useBrittneyVoice();
+  } = useAssistantVoice();
   // Append confirmed voice transcript to input
   useEffect(() => {
     if (transcript) {
@@ -174,8 +174,12 @@ export function BrittneyChatPanel() {
       const prompt = (e as CustomEvent<string>).detail;
       if (prompt) setInput(prompt);
     };
+    window.addEventListener('assistant-prompt', handler);
     window.addEventListener('brittney-prompt', handler);
-    return () => window.removeEventListener('brittney-prompt', handler);
+    return () => {
+      window.removeEventListener('assistant-prompt', handler);
+      window.removeEventListener('brittney-prompt', handler);
+    };
   }, []);
 
   const handleSend = useCallback(async () => {
@@ -191,18 +195,18 @@ export function BrittneyChatPanel() {
     persistMessage({ role: 'user', content: text });
 
     // Build updated LLM history
-    const updatedHistory: BrittneyMessage[] = [...llmHistory, { role: 'user', content: text }];
+    const updatedHistory: AssistantMessage[] = [...llmHistory, { role: 'user', content: text }];
     setLlmHistory(updatedHistory);
     setIsThinking(true);
 
     // Build rich scene context (code + node graph + selection)
     const sceneContext = buildRichContext(code, nodes, selectedId, selectedName);
 
-    // Create streaming Brittney message placeholder
-    const brittMsgId = (Date.now() + 1).toString();
+    // Create streaming assistant message placeholder
+    const assistantMsgId = (Date.now() + 1).toString();
     setChatMessages((m) => [
       ...m,
-      { id: brittMsgId, role: 'brittney', text: '', isStreaming: true, toolResults: [] },
+      { id: assistantMsgId, role: 'assistant', text: '', isStreaming: true, toolResults: [] },
     ]);
 
     let accumulatedText = '';
@@ -223,11 +227,11 @@ export function BrittneyChatPanel() {
         setCode: setCodeFn,
       };
 
-      for await (const event of streamBrittney(updatedHistory, sceneContext)) {
+      for await (const event of streamAssistant(updatedHistory, sceneContext)) {
         if (event.type === 'text') {
           accumulatedText += event.payload as string;
           setChatMessages((m) =>
-            m.map((msg) => (msg.id === brittMsgId ? { ...msg, text: accumulatedText } : msg))
+            m.map((msg) => (msg.id === assistantMsgId ? { ...msg, text: accumulatedText } : msg))
           );
         } else if (event.type === 'tool_call') {
           const tc = event.payload as ToolCallPayload;
@@ -248,14 +252,16 @@ export function BrittneyChatPanel() {
           toolResults.push(result);
           setChatMessages((m) =>
             m.map((msg) =>
-              msg.id === brittMsgId ? { ...msg, toolResults: [...toolResults] } : msg
+              msg.id === assistantMsgId ? { ...msg, toolResults: [...toolResults] } : msg
             )
           );
         } else if (event.type === 'error') {
           accumulatedText = `Sorry, I hit an error: ${event.payload}`;
           setChatMessages((m) =>
             m.map((msg) =>
-              msg.id === brittMsgId ? { ...msg, text: accumulatedText, isStreaming: false } : msg
+              msg.id === assistantMsgId
+                ? { ...msg, text: accumulatedText, isStreaming: false }
+                : msg
             )
           );
         } else if (event.type === 'done') {
@@ -278,13 +284,13 @@ export function BrittneyChatPanel() {
     // Finalize message
     setChatMessages((m) =>
       m.map((msg) =>
-        msg.id === brittMsgId
+        msg.id === assistantMsgId
           ? { ...msg, text: accumulatedText, isStreaming: false, toolResults }
           : msg
       )
     );
 
-    // Update LLM history with Brittney's response
+    // Update LLM history with the assistant response
     setLlmHistory((h) => [...h, { role: 'assistant', content: accumulatedText }]);
     persistMessage({ role: 'assistant', content: accumulatedText });
 
@@ -434,10 +440,10 @@ export function BrittneyChatPanel() {
             onKeyDown={handleKey}
             placeholder={
               nodes.length === 0
-                ? 'Create an object first, then ask Brittney to modify it…'
+                ? 'Create an object first, then ask the assistant to modify it…'
                 : selectedId
-                  ? 'Tell Brittney what to do with the selected object…'
-                  : 'Ask Brittney to build or modify your scene…'
+                  ? 'Tell the assistant what to do with the selected object…'
+                  : 'Ask the assistant to build or modify your scene…'
             }
             disabled={isThinking}
             rows={2}
@@ -446,7 +452,7 @@ export function BrittneyChatPanel() {
                 ? 'border-red-400/70 focus:border-red-400 focus:ring-red-400/20'
                 : 'border-studio-border focus:border-studio-accent/60 focus:ring-studio-accent/20'
             }`}
-            aria-label="Message Brittney"
+            aria-label="Message assistant"
           />
           <div className="absolute bottom-2.5 right-2 flex items-center gap-1">
             {voiceSupported && (
@@ -468,7 +474,7 @@ export function BrittneyChatPanel() {
               onClick={handleSend}
               disabled={isThinking || !input.trim()}
               className="rounded-lg bg-studio-accent p-1.5 text-white shadow transition hover:bg-studio-accent/80 disabled:opacity-30"
-              aria-label="Send message to Brittney"
+              aria-label="Send message to assistant"
             >
               {isThinking ? (
                 <Loader2 className="h-3 w-3 animate-spin" />

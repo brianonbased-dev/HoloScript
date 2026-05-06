@@ -438,7 +438,7 @@ describe('useBrittneyVoice', () => {
       });
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[BrittneyVoice] SpeechRecognition error:',
+        '[AssistantVoice] SpeechRecognition error:',
         'network'
       );
       expect(result.current.isListening).toBe(false);

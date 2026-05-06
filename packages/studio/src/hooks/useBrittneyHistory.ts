@@ -1,8 +1,8 @@
 /**
- * useBrittneyHistory — persist Brittney conversation history to localStorage
+ * Assistant chat history persistence.
  *
- * Key: `brittney-history-${projectId}` → JSON array of ChatMessage.
- * Falls back gracefully if localStorage is unavailable (SSR, private browsing).
+ * Key: `assistant-history-${projectId}` with legacy fallback to
+ * `brittney-history-${projectId}` during migration.
  */
 
 'use client';
@@ -15,16 +15,22 @@ export interface ChatMessage {
   timestamp?: number;
 }
 
-const PREFIX = 'brittney-history-';
+const PREFIX = 'assistant-history-';
+const LEGACY_PREFIX = 'brittney-history-';
 const MAX_MESSAGES = 200; // cap to avoid hitting quota
 
 function storageKey(projectId: string): string {
   return `${PREFIX}${projectId || 'default'}`;
 }
 
+function legacyStorageKey(projectId: string): string {
+  return `${LEGACY_PREFIX}${projectId || 'default'}`;
+}
+
 function readFromStorage(projectId: string): ChatMessage[] {
   try {
-    const raw = localStorage.getItem(storageKey(projectId));
+    const raw =
+      localStorage.getItem(storageKey(projectId)) ?? localStorage.getItem(legacyStorageKey(projectId));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -37,12 +43,23 @@ function writeToStorage(projectId: string, messages: ChatMessage[]): void {
   try {
     const capped = messages.slice(-MAX_MESSAGES);
     localStorage.setItem(storageKey(projectId), JSON.stringify(capped));
+    localStorage.removeItem(legacyStorageKey(projectId));
   } catch {
     // Storage quota — silently ignore
   }
 }
 
-export function useBrittneyHistory(projectId: string) {
+function removeFromStorage(projectId: string): void {
+  for (const key of [storageKey(projectId), legacyStorageKey(projectId)]) {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Storage unavailable — state still clears in memory
+    }
+  }
+}
+
+export function useAssistantHistory(projectId: string) {
   const [history, setHistory] = useState<ChatMessage[]>(() => {
     // Avoid SSR hydration mismatch — populate on mount via effect
     return [];
@@ -65,13 +82,11 @@ export function useBrittneyHistory(projectId: string) {
   );
 
   const clearHistory = useCallback(() => {
-    try {
-      localStorage.removeItem(storageKey(projectId));
-    } catch {
-      /**/
-    }
+    removeFromStorage(projectId);
     setHistory([]);
   }, [projectId]);
 
   return { history, addMessage, clearHistory };
 }
+
+export const useBrittneyHistory = useAssistantHistory;

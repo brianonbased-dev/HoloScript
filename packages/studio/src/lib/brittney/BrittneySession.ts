@@ -1,5 +1,5 @@
 /**
- * Brittney Session
+ * Assistant Session
  *
  * Manages conversation history and builds the scene context payload
  * sent to the LLM with each message.
@@ -9,12 +9,12 @@ import type { SceneNode } from '@/lib/stores';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface BrittneyMessage {
+export interface AssistantMessage {
   role: 'user' | 'assistant';
   content: string;
 }
 
-export interface BrittneyStreamEvent {
+export interface AssistantStreamEvent {
   type: 'text' | 'tool_call' | 'error' | 'done';
   payload: unknown;
 }
@@ -57,7 +57,7 @@ export function buildSceneContext(nodes: SceneNode[], selectedId: string | null)
 }
 
 /**
- * Rich context builder — includes the raw .holo code so Brittney can
+ * Rich context builder — includes the raw .holo code so the assistant can
  * directly read and modify the scene source. Prioritises code over the
  * node graph summary when both are available.
  */
@@ -97,10 +97,10 @@ export function buildRichContext(
 /**
  * Calls POST /api/brittney and yields parsed SSE events.
  */
-export async function* streamBrittney(
-  messages: BrittneyMessage[],
+export async function* streamAssistant(
+  messages: AssistantMessage[],
   sceneContext: string
-): AsyncGenerator<BrittneyStreamEvent> {
+): AsyncGenerator<AssistantStreamEvent> {
   const response = await fetch('/api/brittney', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -129,7 +129,7 @@ export async function* streamBrittney(
       const trimmed = line.replace(/^data: /, '').trim();
       if (!trimmed) continue;
       try {
-        const event = JSON.parse(trimmed) as BrittneyStreamEvent;
+        const event = JSON.parse(trimmed) as AssistantStreamEvent;
         yield event;
         if (event.type === 'done') return;
       } catch {
@@ -138,3 +138,8 @@ export async function* streamBrittney(
     }
   }
 }
+
+// Backward-compatible aliases while Studio migrates off persona-specific names.
+export type BrittneyMessage = AssistantMessage;
+export type BrittneyStreamEvent = AssistantStreamEvent;
+export const streamBrittney = streamAssistant;

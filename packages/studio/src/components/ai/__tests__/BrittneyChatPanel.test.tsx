@@ -1,9 +1,9 @@
 // @vitest-environment node
 /**
- * brittney-chat.scenario.ts — P2 Sprint 11
+ * assistant-chat.scenario.ts — P2 Sprint 11
  *
- * Store + streaming contract tests for the BrittneyChatPanel.
- * Tests the aiStore shape + streamBrittney event pattern.
+ * Store + streaming contract tests for the assistant chat panel.
+ * Tests the aiStore shape + assistant stream event pattern.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -13,7 +13,7 @@ function reset() {
   useAIStore.setState({ status: 'idle', ollamaStatus: 'unknown', model: '', promptHistory: [] });
 }
 
-describe('Scenario: BrittneyChatPanel — aiStore + streaming contract', () => {
+describe('Scenario: assistant chat panel — aiStore + streaming contract', () => {
   beforeEach(reset);
 
   it('aiStore initialises with idle status and empty prompt history', () => {
@@ -40,10 +40,10 @@ describe('Scenario: BrittneyChatPanel — aiStore + streaming contract', () => {
     expect(useAIStore.getState().promptHistory).toHaveLength(0);
   });
 
-  it('mock streamBrittney generator yields text then done events', async () => {
+  it('mock assistant stream generator yields text then done events', async () => {
     const events: string[] = [];
     const mockStream = vi.fn(async function* () {
-      yield { type: 'text', payload: 'Hello from Brittney!' };
+      yield { type: 'text', payload: 'Hello from the assistant!' };
       yield { type: 'done' };
     });
 

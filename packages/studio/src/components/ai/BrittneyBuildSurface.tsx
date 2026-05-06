@@ -1,10 +1,10 @@
 'use client';
 
 /**
- * BrittneyBuildSurface — chat-with-Brittney + live preview window.
+ * BrittneyBuildSurface — assistant chat + live preview window.
  *
  * The unified entry product:
- *   left pane:  chat with Brittney (streamBrittney + tool execution)
+ *   left pane:  assistant chat (streamAssistant + tool execution)
  *   right pane: live SceneViewer rendering whatever the chat builds
  *   below:      feature chips (compile-target preview, common traits) so
  *               the user can poke the surface without typing
@@ -13,15 +13,15 @@
  *               itself is 2 clicks deep at most.
  *
  * The pieces composed here all already existed; the contribution is
- * arranging them so the user *sees* what Brittney is building.
+ * arranging them so the user *sees* what the assistant is building.
  *
- *   - streamBrittney / buildRichContext / executeTool — `@/lib/brittney`
+ *   - streamAssistant / buildRichContext / executeTool — `@/lib/brittney`
  *   - useSceneStore.code — `@/lib/stores`
  *   - SceneViewer — `@/embed/SceneViewer`
  *   - SuggestionCards — `@/components/ai/SuggestionCards`
  *
  * Mounted at `/build` (see `src/app/build/page.tsx`). Existing `/start`
- * BrittneyFullScreen surface is left untouched on purpose so this is an
+ * full-screen assistant surface is left untouched on purpose so this is an
  * additive A/B candidate, not a destructive replacement.
  */
 
@@ -40,12 +40,12 @@ import {
   Sparkles,
 } from 'lucide-react';
 import {
-  streamBrittney,
+  streamAssistant,
   buildRichContext,
   executeTool,
 } from '@/lib/brittney';
-import type { BrittneyMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
-import { useBrittneyVoice } from '@/hooks/useBrittneyVoice';
+import type { AssistantMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
+import { useAssistantVoice } from '@/hooks/useBrittneyVoice';
 import { useSceneGraphStore, useSceneStore } from '@/lib/stores';
 import { SuggestionCards } from './SuggestionCards';
 
@@ -62,7 +62,7 @@ const SceneViewer = dynamic(
 
 interface ChatMessage {
   id: string;
-  role: 'user' | 'brittney';
+  role: 'user' | 'assistant';
   text: string;
   toolResults?: ToolResult[];
   isStreaming?: boolean;
@@ -71,7 +71,7 @@ interface ChatMessage {
 // ---------------------------------------------------------------------------
 // Feature chips — inline picker that works mid-conversation.
 // Each chip is a one-shot prompt that nudges the scene in a direction
-// without requiring the user to type. Brittney's tool execution turns
+// without requiring the user to type. The assistant's tool execution turns
 // these into real scene edits.
 // ---------------------------------------------------------------------------
 
@@ -97,10 +97,10 @@ const FEATURE_CHIPS: readonly FeatureChip[] = [
 // ---------------------------------------------------------------------------
 // Initial scene — a single welcoming object so the preview pane has
 // something to render before the first message. The chat then mutates
-// `useSceneStore.code` as Brittney's tool calls land.
+// `useSceneStore.code` as assistant tool calls land.
 // ---------------------------------------------------------------------------
 
-const INITIAL_CODE = `composition "Brittney's Canvas" {
+const INITIAL_CODE = `composition "Assistant Canvas" {
   object "Welcome" {
     @label(text: "describe what you want to build →")
     geometry: "sphere"
@@ -170,11 +170,11 @@ function FeatureChipRow({ onChip }: { onChip: (prompt: string) => void }) {
 // HoloMesh template chips — Path 5 from the wizard-redundancy audit.
 //
 // OnboardingWizard explicitly offers four Studio-builder paths (GitHub-
-// starter / Absorb-driven / domain-templated / Brittney-driven) but
+// starter / Absorb-driven / domain-templated / assistant-driven) but
 // HoloMesh, one of the four roots, has no entry into the build surface.
 // This row closes that gap by surfacing room templates from the live
 // `/api/holomesh/team/templates` endpoint. Click → seed the chat with a
-// "Set up a <name> session" prompt; Brittney's existing tools take it
+// "Set up a <name> session" prompt; the assistant's existing tools take it
 // from there. Future iteration can offer inline team-creation; v0 is
 // "make HoloMesh visible in the entry."
 // ---------------------------------------------------------------------------
@@ -187,7 +187,7 @@ interface HolomeshTemplate {
   objective: string;
 }
 
-// Sanitize HoloMesh-served template strings before splicing into Brittney's
+// Sanitize HoloMesh-served template strings before splicing into the assistant's
 // prompt. Strips control characters / newlines that could break out of the
 // inline context, and length-caps so a compromised /api/holomesh/team/templates
 // response can't blow out or instruction-inject the prompt the LLM receives.
@@ -265,7 +265,7 @@ export function BrittneyBuildSurface() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [llmHistory, setLlmHistory] = useState<BrittneyMessage[]>([]);
+  const [llmHistory, setLlmHistory] = useState<AssistantMessage[]>([]);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [progressLabel, setProgressLabel] = useState<string | null>(null);
@@ -293,7 +293,7 @@ export function BrittneyBuildSurface() {
     startListening,
     stopListening,
     clearTranscript,
-  } = useBrittneyVoice();
+  } = useAssistantVoice();
 
   // Seed scene with the welcome composition on first mount, but only if
   // the user hasn't already typed something. The store persists across
@@ -328,11 +328,11 @@ export function BrittneyBuildSurface() {
       const userMsgId = Date.now().toString();
       setMessages((m) => [...m, { id: userMsgId, role: 'user', text }]);
 
-      const updated: BrittneyMessage[] = [...llmHistory, { role: 'user', content: text }];
+      const updated: AssistantMessage[] = [...llmHistory, { role: 'user', content: text }];
       setLlmHistory(updated);
       setIsThinking(true);
 
-      // Rich context now uses the live scene — Brittney can see what's
+      // Rich context now uses the live scene — the assistant can see what's
       // already there and reason about it instead of starting from blank.
       const sceneContext = buildRichContext(
         code,
@@ -341,10 +341,10 @@ export function BrittneyBuildSurface() {
         null,
       );
 
-      const brittId = (Date.now() + 1).toString();
+      const assistantId = (Date.now() + 1).toString();
       setMessages((m) => [
         ...m,
-        { id: brittId, role: 'brittney', text: '', isStreaming: true, toolResults: [] },
+        { id: assistantId, role: 'assistant', text: '', isStreaming: true, toolResults: [] },
       ]);
 
       let acc = '';
@@ -363,11 +363,11 @@ export function BrittneyBuildSurface() {
       };
 
       try {
-        for await (const event of streamBrittney(updated, sceneContext)) {
+        for await (const event of streamAssistant(updated, sceneContext)) {
           if (event.type === 'text') {
             acc += event.payload as string;
             setMessages((m) =>
-              m.map((msg) => (msg.id === brittId ? { ...msg, text: acc } : msg)),
+              m.map((msg) => (msg.id === assistantId ? { ...msg, text: acc } : msg)),
             );
           } else if (event.type === 'tool_call') {
             const tc = event.payload as ToolCallPayload;
@@ -377,14 +377,14 @@ export function BrittneyBuildSurface() {
             toolResults.push(result);
             setMessages((m) =>
               m.map((msg) =>
-                msg.id === brittId ? { ...msg, toolResults: [...toolResults] } : msg,
+                msg.id === assistantId ? { ...msg, toolResults: [...toolResults] } : msg,
               ),
             );
           } else if (event.type === 'error') {
             acc = `Sorry, I hit an error: ${event.payload}`;
             setMessages((m) =>
               m.map((msg) =>
-                msg.id === brittId ? { ...msg, text: acc, isStreaming: false } : msg,
+                msg.id === assistantId ? { ...msg, text: acc, isStreaming: false } : msg,
               ),
             );
           } else if (event.type === 'done') {
@@ -397,7 +397,7 @@ export function BrittneyBuildSurface() {
 
       setMessages((m) =>
         m.map((msg) =>
-          msg.id === brittId ? { ...msg, text: acc, isStreaming: false, toolResults } : msg,
+          msg.id === assistantId ? { ...msg, text: acc, isStreaming: false, toolResults } : msg,
         ),
       );
       setLlmHistory((h) => [...h, { role: 'assistant', content: acc }]);
@@ -460,7 +460,7 @@ export function BrittneyBuildSurface() {
             HS
           </div>
           <span className="text-white/40 text-sm font-medium hidden sm:block">
-            Build with Brittney
+            Build with Assistant
           </span>
         </Link>
         <button
@@ -502,7 +502,7 @@ export function BrittneyBuildSurface() {
                     className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div className="flex max-w-[90%] items-start gap-2">
-                      {msg.role === 'brittney' && (
+                      {msg.role === 'assistant' && (
                         <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-studio-accent to-purple-500 text-white text-xs font-bold shadow">
                           B
                         </div>
@@ -573,7 +573,7 @@ export function BrittneyBuildSurface() {
                 disabled={isThinking}
                 rows={1}
                 className="w-full resize-none bg-transparent px-3.5 py-3 pr-20 text-sm text-white placeholder-white/25 outline-none disabled:opacity-50"
-                aria-label="Message Brittney"
+                aria-label="Message assistant"
               />
               <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
                 {voiceSupported && (
@@ -594,7 +594,7 @@ export function BrittneyBuildSurface() {
                   onClick={handleSend}
                   disabled={isThinking || !input.trim()}
                   className="rounded-lg bg-studio-accent p-1.5 text-white shadow transition-all hover:bg-studio-accent/80 disabled:opacity-20 disabled:hover:bg-studio-accent"
-                  aria-label="Send message to Brittney"
+                  aria-label="Send message to assistant"
                 >
                   {isThinking ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />

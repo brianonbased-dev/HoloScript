@@ -1,5 +1,16 @@
-export { streamBrittney, buildSceneContext, buildRichContext } from './BrittneySession';
-export type { BrittneyMessage, BrittneyStreamEvent, ToolCallPayload } from './BrittneySession';
+export {
+  streamAssistant,
+  streamBrittney,
+  buildSceneContext,
+  buildRichContext,
+} from './BrittneySession';
+export type {
+  AssistantMessage,
+  AssistantStreamEvent,
+  BrittneyMessage,
+  BrittneyStreamEvent,
+  ToolCallPayload,
+} from './BrittneySession';
 export { BRITTNEY_TOOLS, executeTool } from './BrittneyTools';
 export type { ToolResult } from './BrittneyTools';
 export { STUDIO_API_TOOLS, STUDIO_API_TOOL_NAMES } from './StudioAPITools';

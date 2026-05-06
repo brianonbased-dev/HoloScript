@@ -1,7 +1,7 @@
 /**
- * useBrittneyVoice — Web Speech API push-to-talk hook
+ * Assistant voice input hook.
  *
- * Provides voice input for Brittney via the browser's SpeechRecognition API.
+ * Provides voice input via the browser's SpeechRecognition API.
  * Returns:
  *   - isListening: boolean
  *   - isSupported: boolean
@@ -9,8 +9,8 @@
  *   - transcript: last recognised text chunk (continuous)
  *   - interimTranscript: live unconfirmed text
  *
- * Usage in BrittneyChatPanel:
- *   const { isListening, isSupported, startListening, stopListening, transcript } = useBrittneyVoice();
+ * Usage in chat panels:
+ *   const { isListening, isSupported, startListening, stopListening, transcript } = useAssistantVoice();
  *   useEffect(() => { if (transcript) setInput(transcript); }, [transcript]);
  */
 
@@ -39,7 +39,7 @@ interface IWebSpeechRecognition extends EventTarget {
   onend: ((event: any) => void) | null;
 }
 
-export interface UseBrittneyVoiceReturn {
+export interface UseAssistantVoiceReturn {
   isListening: boolean;
   isSupported: boolean;
   transcript: string;
@@ -49,7 +49,7 @@ export interface UseBrittneyVoiceReturn {
   clearTranscript: () => void;
 }
 
-export function useBrittneyVoice(): UseBrittneyVoiceReturn {
+export function useAssistantVoice(): UseAssistantVoiceReturn {
   const SpeechRecognition = typeof window !== 'undefined'
       ? ((window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition)
       : undefined;
@@ -95,7 +95,7 @@ export function useBrittneyVoice(): UseBrittneyVoiceReturn {
     };
 
     recognition.onerror = (event: IWebSpeechRecognitionErrorEvent) => {
-      logger.warn('[BrittneyVoice] SpeechRecognition error:', event.error);
+      logger.warn('[AssistantVoice] SpeechRecognition error:', event.error);
       setIsListening(false);
     };
 
@@ -132,3 +132,6 @@ export function useBrittneyVoice(): UseBrittneyVoiceReturn {
     clearTranscript,
   };
 }
+
+export type UseBrittneyVoiceReturn = UseAssistantVoiceReturn;
+export const useBrittneyVoice = useAssistantVoice;

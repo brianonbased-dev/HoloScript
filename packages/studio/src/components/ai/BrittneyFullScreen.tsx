@@ -6,11 +6,11 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
 import { Send, Loader2, CheckCircle2, XCircle, Mic, MicOff, ArrowRight } from 'lucide-react';
-import { streamBrittney, buildRichContext } from '@/lib/brittney';
-import type { BrittneyMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
+import { streamAssistant, buildRichContext } from '@/lib/brittney';
+import type { AssistantMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
 import { executeTool } from '@/lib/brittney';
-import { useBrittneyVoice } from '@/hooks/useBrittneyVoice';
-import { useBrittneyHistory } from '@/hooks/useBrittneyHistory';
+import { useAssistantVoice } from '@/hooks/useBrittneyVoice';
+import { useAssistantHistory } from '@/hooks/useBrittneyHistory';
 import { useSceneGraphStore, useSceneStore } from '@/lib/stores';
 import { SuggestionCards } from './SuggestionCards';
 
@@ -30,7 +30,7 @@ const TUTORIAL_COMPLETE_KEY = 'holoscript-studio-tutorial-complete';
 
 interface ChatMessage {
   id: string;
-  role: 'user' | 'brittney';
+  role: 'user' | 'assistant';
   text: string;
   toolResults?: ToolResult[];
   isStreaming?: boolean;
@@ -97,9 +97,9 @@ export function BrittneyFullScreen() {
   const router = useRouter();
   const { status: sessionStatus } = useSession();
 
-  // Real scene store wiring — Brittney tool calls on /start add to the shared
+  // Real scene store wiring — assistant tool calls on /start add to the shared
   // scene store so "Open Editor" lands on a populated workspace instead of an
-  // empty one. (Previously these were no-ops and Brittney returned phantom
+  // empty one. (Previously these were no-ops and the assistant returned phantom
   // "Created" confirmations with no viewer output.)
   const nodes = useSceneGraphStore((s) => s.nodes);
   const addNode = useSceneGraphStore((s) => s.addNode);
@@ -134,14 +134,14 @@ export function BrittneyFullScreen() {
 
   const GREETING: ChatMessage = {
     id: '0',
-    role: 'brittney',
-    text: "Hi, I'm Brittney. What are you building?",
+    role: 'assistant',
+    text: "Hi, I'm your assistant. What are you building?",
   };
 
   const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
-  const [llmHistory, setLlmHistory] = useState<BrittneyMessage[]>([]);
+  const [llmHistory, setLlmHistory] = useState<AssistantMessage[]>([]);
   const [showCards, setShowCards] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [progressLabel, setProgressLabel] = useState<string | null>(null);
@@ -153,7 +153,7 @@ export function BrittneyFullScreen() {
     history: savedHistory,
     addMessage: persistMessage,
     clearHistory: _clearHistory,
-  } = useBrittneyHistory('start');
+  } = useAssistantHistory('start');
 
   const [historyLoaded, setHistoryLoaded] = useState(false);
 
@@ -167,7 +167,7 @@ export function BrittneyFullScreen() {
         GREETING,
         ...savedHistory.map((m, i) => ({
           id: `h-${i}`,
-          role: m.role === 'user' ? ('user' as const) : ('brittney' as const),
+          role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
           text: m.content,
         })),
       ]);
@@ -190,7 +190,7 @@ export function BrittneyFullScreen() {
     startListening,
     stopListening,
     clearTranscript,
-  } = useBrittneyVoice();
+  } = useAssistantVoice();
 
   useEffect(() => {
     if (transcript) {
@@ -222,24 +222,24 @@ export function BrittneyFullScreen() {
       setMessages((m) => [...m, { id: userMsgId, role: 'user', text }]);
       persistMessage({ role: 'user', content: text });
 
-      const updatedHistory: BrittneyMessage[] = [...llmHistory, { role: 'user', content: text }];
+      const updatedHistory: AssistantMessage[] = [...llmHistory, { role: 'user', content: text }];
       setLlmHistory(updatedHistory);
       setIsThinking(true);
 
       // Minimal context for start flow (no scene yet)
       const sceneContext = buildRichContext('', [], null, null);
 
-      const brittMsgId = (Date.now() + 1).toString();
+      const assistantMsgId = (Date.now() + 1).toString();
       setMessages((m) => [
         ...m,
-        { id: brittMsgId, role: 'brittney', text: '', isStreaming: true, toolResults: [] },
+        { id: assistantMsgId, role: 'assistant', text: '', isStreaming: true, toolResults: [] },
       ]);
 
       let accumulatedText = '';
       const toolResults: ToolResult[] = [];
 
       try {
-        // Real store actions so Brittney's create_object/add_trait tool calls
+        // Real store actions so assistant create_object/add_trait tool calls
         // actually populate the shared scene (visible in editor after "Open Editor").
         const setCodeFn = useSceneStore.getState().setCode;
         const getCodeFn = () => useSceneStore.getState().code ?? '';
@@ -255,11 +255,13 @@ export function BrittneyFullScreen() {
           setCode: setCodeFn,
         };
 
-        for await (const event of streamBrittney(updatedHistory, sceneContext)) {
+        for await (const event of streamAssistant(updatedHistory, sceneContext)) {
           if (event.type === 'text') {
             accumulatedText += event.payload as string;
             setMessages((m) =>
-              m.map((msg) => (msg.id === brittMsgId ? { ...msg, text: accumulatedText } : msg))
+              m.map((msg) =>
+                msg.id === assistantMsgId ? { ...msg, text: accumulatedText } : msg
+              )
             );
           } else if (event.type === 'tool_call') {
             const tc = event.payload as ToolCallPayload;
@@ -269,14 +271,16 @@ export function BrittneyFullScreen() {
             toolResults.push(result);
             setMessages((m) =>
               m.map((msg) =>
-                msg.id === brittMsgId ? { ...msg, toolResults: [...toolResults] } : msg
+                msg.id === assistantMsgId ? { ...msg, toolResults: [...toolResults] } : msg
               )
             );
           } else if (event.type === 'error') {
             accumulatedText = `Sorry, I hit an error: ${event.payload}`;
             setMessages((m) =>
               m.map((msg) =>
-                msg.id === brittMsgId ? { ...msg, text: accumulatedText, isStreaming: false } : msg
+                msg.id === assistantMsgId
+                  ? { ...msg, text: accumulatedText, isStreaming: false }
+                  : msg
               )
             );
           } else if (event.type === 'done') {
@@ -289,7 +293,7 @@ export function BrittneyFullScreen() {
 
       setMessages((m) =>
         m.map((msg) =>
-          msg.id === brittMsgId
+          msg.id === assistantMsgId
             ? { ...msg, text: accumulatedText, isStreaming: false, toolResults }
             : msg
         )
@@ -400,7 +404,7 @@ export function BrittneyFullScreen() {
           {/* Centered greeting when no conversation yet */}
           {!hasConversation && (
             <div className="flex flex-col items-center justify-center pt-[6vh]">
-              {/* Brittney avatar */}
+              {/* Assistant avatar */}
               <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-studio-accent to-purple-500 shadow-lg shadow-studio-accent/20">
                 <span className="text-xl font-bold text-white">B</span>
               </div>
@@ -422,7 +426,7 @@ export function BrittneyFullScreen() {
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div className="flex items-start gap-3 max-w-[85%]">
-                  {msg.role === 'brittney' && (
+                  {msg.role === 'assistant' && (
                     <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-studio-accent to-purple-500 text-white text-xs font-bold shadow">
                       B
                     </div>
@@ -489,7 +493,7 @@ export function BrittneyFullScreen() {
               disabled={isThinking}
               rows={1}
               className="w-full resize-none bg-transparent px-4 py-3.5 pr-24 text-sm text-white placeholder-white/25 outline-none disabled:opacity-50"
-              aria-label="Message Brittney"
+              aria-label="Message assistant"
             />
             <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1.5">
               {voiceSupported && (
@@ -511,7 +515,7 @@ export function BrittneyFullScreen() {
                 onClick={handleSend}
                 disabled={isThinking || !input.trim()}
                 className="rounded-lg bg-studio-accent p-2 text-white shadow transition-all hover:bg-studio-accent/80 disabled:opacity-20 disabled:hover:bg-studio-accent"
-                aria-label="Send message to Brittney"
+                aria-label="Send message to assistant"
               >
                 {isThinking ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -522,7 +526,7 @@ export function BrittneyFullScreen() {
             </div>
           </div>
           <p className="mt-2 text-center text-[11px] text-white/15">
-            Brittney uses AI to scaffold projects. Results are editable in the Studio editor.
+            The assistant uses AI to scaffold projects. Results are editable in the Studio editor.
           </p>
         </div>
       </div>

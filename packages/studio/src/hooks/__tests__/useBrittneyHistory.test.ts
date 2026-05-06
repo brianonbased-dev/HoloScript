@@ -47,11 +47,25 @@ describe('useBrittneyHistory', () => {
         { role: 'user', content: 'Hello', timestamp: 123 },
         { role: 'assistant', content: 'Hi there', timestamp: 456 },
       ];
-      mockLocalStorage['brittney-history-test-project'] = JSON.stringify(storedMessages);
+      mockLocalStorage['assistant-history-test-project'] = JSON.stringify(storedMessages);
 
       const { result } = renderHook(() => useBrittneyHistory('test-project'));
 
       // Wait for useEffect to run
+      await vi.waitFor(() => {
+        expect(result.current.history).toEqual(storedMessages);
+      });
+    });
+
+    it('should fall back to legacy Brittney history during migration', async () => {
+      const storedMessages: ChatMessage[] = [
+        { role: 'user', content: 'Legacy hello', timestamp: 123 },
+        { role: 'assistant', content: 'Legacy reply', timestamp: 456 },
+      ];
+      mockLocalStorage['brittney-history-test-project'] = JSON.stringify(storedMessages);
+
+      const { result } = renderHook(() => useBrittneyHistory('test-project'));
+
       await vi.waitFor(() => {
         expect(result.current.history).toEqual(storedMessages);
       });
@@ -66,7 +80,7 @@ describe('useBrittneyHistory', () => {
     });
 
     it('should use default projectId if empty string provided', async () => {
-      mockLocalStorage['brittney-history-default'] = JSON.stringify([
+      mockLocalStorage['assistant-history-default'] = JSON.stringify([
         { role: 'user', content: 'Test', timestamp: 789 },
       ]);
 
@@ -74,7 +88,7 @@ describe('useBrittneyHistory', () => {
 
       await vi.waitFor(() => {
         expect(result.current.history).toHaveLength(1);
-        expect(localStorage.getItem).toHaveBeenCalledWith('brittney-history-default');
+        expect(localStorage.getItem).toHaveBeenCalledWith('assistant-history-default');
       });
     });
   });
@@ -153,7 +167,7 @@ describe('useBrittneyHistory', () => {
       });
 
       expect(localStorage.setItem).toHaveBeenCalledWith(
-        'brittney-history-test-project',
+        'assistant-history-test-project',
         JSON.stringify([{ role: 'user', content: 'Save me', timestamp: 1000000 }])
       );
     });
@@ -161,7 +175,7 @@ describe('useBrittneyHistory', () => {
 
   describe('Clear History', () => {
     it('should clear history state', async () => {
-      mockLocalStorage['brittney-history-test-project'] = JSON.stringify([
+      mockLocalStorage['assistant-history-test-project'] = JSON.stringify([
         { role: 'user', content: 'Test', timestamp: 123 },
       ]);
 
@@ -185,6 +199,30 @@ describe('useBrittneyHistory', () => {
         result.current.clearHistory();
       });
 
+      expect(localStorage.removeItem).toHaveBeenCalledWith('assistant-history-test-project');
+    });
+
+    it('should remove legacy localStorage data so cleared history does not return', async () => {
+      mockLocalStorage['brittney-history-test-project'] = JSON.stringify([
+        { role: 'user', content: 'Legacy', timestamp: 123 },
+      ]);
+
+      const { result, unmount } = renderHook(() => useBrittneyHistory('test-project'));
+
+      await vi.waitFor(() => {
+        expect(result.current.history).toHaveLength(1);
+      });
+
+      act(() => {
+        result.current.clearHistory();
+      });
+      unmount();
+
+      const remount = renderHook(() => useBrittneyHistory('test-project'));
+
+      await vi.waitFor(() => {
+        expect(remount.result.current.history).toEqual([]);
+      });
       expect(localStorage.removeItem).toHaveBeenCalledWith('brittney-history-test-project');
     });
 
@@ -238,7 +276,7 @@ describe('useBrittneyHistory', () => {
         content: `Message ${i}`,
         timestamp: i,
       }));
-      mockLocalStorage['brittney-history-test-project'] = JSON.stringify(messages);
+      mockLocalStorage['assistant-history-test-project'] = JSON.stringify(messages);
 
       const { result } = renderHook(() => useBrittneyHistory('test-project'));
 
@@ -250,10 +288,10 @@ describe('useBrittneyHistory', () => {
 
   describe('Project ID Changes', () => {
     it('should reload history when projectId changes', async () => {
-      mockLocalStorage['brittney-history-project-a'] = JSON.stringify([
+      mockLocalStorage['assistant-history-project-a'] = JSON.stringify([
         { role: 'user', content: 'Project A', timestamp: 1 },
       ]);
-      mockLocalStorage['brittney-history-project-b'] = JSON.stringify([
+      mockLocalStorage['assistant-history-project-b'] = JSON.stringify([
         { role: 'user', content: 'Project B', timestamp: 2 },
       ]);
 
@@ -288,11 +326,11 @@ describe('useBrittneyHistory', () => {
       });
 
       expect(localStorage.setItem).toHaveBeenCalledWith(
-        'brittney-history-project-new',
+        'assistant-history-project-new',
         expect.any(String)
       );
       expect(localStorage.setItem).not.toHaveBeenCalledWith(
-        'brittney-history-project-old',
+        'assistant-history-project-old',
         expect.any(String)
       );
     });
@@ -328,7 +366,7 @@ describe('useBrittneyHistory', () => {
     });
 
     it('should handle invalid JSON in localStorage', async () => {
-      mockLocalStorage['brittney-history-test-project'] = 'invalid json {';
+      mockLocalStorage['assistant-history-test-project'] = 'invalid json {';
 
       const { result } = renderHook(() => useBrittneyHistory('test-project'));
 
@@ -338,7 +376,7 @@ describe('useBrittneyHistory', () => {
     });
 
     it('should handle non-array data in localStorage', async () => {
-      mockLocalStorage['brittney-history-test-project'] = JSON.stringify({
+      mockLocalStorage['assistant-history-test-project'] = JSON.stringify({
         notAnArray: 'value',
       });
 
@@ -350,7 +388,7 @@ describe('useBrittneyHistory', () => {
     });
 
     it('should handle null in localStorage', async () => {
-      mockLocalStorage['brittney-history-test-project'] = 'null';
+      mockLocalStorage['assistant-history-test-project'] = 'null';
 
       const { result } = renderHook(() => useBrittneyHistory('test-project'));
 
@@ -429,7 +467,7 @@ describe('useBrittneyHistory', () => {
 
     it('should handle special characters in projectId', async () => {
       const specialId = 'project-with-special!@#$%';
-      mockLocalStorage[`brittney-history-${specialId}`] = JSON.stringify([
+      mockLocalStorage[`assistant-history-${specialId}`] = JSON.stringify([
         { role: 'user', content: 'Test', timestamp: 1 },
       ]);
 
@@ -439,7 +477,7 @@ describe('useBrittneyHistory', () => {
         expect(result.current.history).toHaveLength(1);
       });
 
-      expect(localStorage.getItem).toHaveBeenCalledWith(`brittney-history-${specialId}`);
+      expect(localStorage.getItem).toHaveBeenCalledWith(`assistant-history-${specialId}`);
     });
 
     it('should handle timestamp edge values', () => {
