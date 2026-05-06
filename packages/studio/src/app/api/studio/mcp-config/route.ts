@@ -4,8 +4,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { corsHeaders } from '../../_lib/cors';
 // ─── GET /api/studio/mcp-config ─────────────────────────────────────────────
-// Returns copy-paste MCP configuration for IDE agents (Claude, Cursor, etc.)
-// Mirrors HoloMesh V8 pattern: GET /api/holomesh/mcp-config?format=claude|cursor|generic
+// Returns capability-based MCP configuration with branded aliases for
+// existing surfaces. New agent forms should consume `format=capabilities`
+// or `format=generic` rather than relying on client-brand presets.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const STUDIO_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.holoscript.net';
@@ -13,7 +14,7 @@ const MCP_URL = process.env.MCP_HOLOSCRIPT_URL || 'https://mcp.holoscript.net';
 const ABSORB_URL = process.env.ABSORB_URL || 'https://absorb.holoscript.net';
 
 export async function GET(request: NextRequest) {
-  const format = request.nextUrl.searchParams.get('format') || 'claude';
+  const format = request.nextUrl.searchParams.get('format') || 'capabilities';
 
   const mcpServers: Record<
     string,
@@ -28,6 +29,33 @@ export async function GET(request: NextRequest) {
     'holoscript-absorb': {
       url: `${ABSORB_URL}/mcp`,
     },
+  };
+
+  const capabilityConfig = {
+    format: 'capabilities',
+    servers: Object.entries(mcpServers).map(([name, config]) => ({
+      name,
+      url: config.url,
+      protocol: 'mcp',
+      transport: 'streamable-http',
+      capabilities: ['tools', 'remote'],
+    })),
+    profiles: {
+      streamable_http: {
+        transport: 'streamable-http',
+        protocol: 'mcp',
+      },
+      sse_legacy: {
+        transport: 'sse',
+        protocol: 'mcp',
+      },
+    },
+    aliases: {
+      claude: 'streamable_http',
+      cursor: 'sse_legacy',
+      generic: 'streamable_http',
+    },
+    documentation: `${STUDIO_URL}/docs/mcp`,
   };
 
   if (format === 'claude') {
@@ -52,16 +80,14 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  if (format === 'capabilities') {
+    return NextResponse.json(capabilityConfig);
+  }
+
   // Generic format
   return NextResponse.json({
+    ...capabilityConfig,
     format: 'generic',
-    servers: Object.entries(mcpServers).map(([name, config]) => ({
-      name,
-      url: config.url,
-      protocol: 'mcp',
-      transport: 'streamable-http',
-    })),
-    documentation: `${STUDIO_URL}/docs/mcp`,
   });
 }
 

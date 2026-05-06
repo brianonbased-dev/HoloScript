@@ -233,7 +233,11 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
   }
 
   if (anthropicKey) {
-    const model = process.env.BRITTNEY_MODEL || process.env.ANTHROPIC_MODEL || 'claude-opus-4-7';
+    const model =
+      process.env.STUDIO_GENERATE_MODEL ||
+      process.env.BRITTNEY_MODEL ||
+      process.env.ANTHROPIC_MODEL ||
+      'claude-opus-4-7';
     const adapter = new AnthropicAdapter({ apiKey: anthropicKey, defaultModel: model });
     providers.push({
       name: 'anthropic',
@@ -289,7 +293,7 @@ async function tryOllamaFallback(fullPrompt: string): Promise<string | null> {
   try {
     const adapter = new LocalLLMAdapter({
       baseURL: ollamaUrl,
-      defaultModel: process.env.OLLAMA_MODEL || 'brittney-qwen-v23:latest',
+      defaultModel: process.env.LOCAL_LLM_MODEL || process.env.OLLAMA_MODEL || 'qwen2.5-coder:7b',
       timeoutMs: 30_000,
     });
     const result = await adapter.complete({

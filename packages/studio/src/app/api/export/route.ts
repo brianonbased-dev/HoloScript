@@ -10,12 +10,20 @@ import { corsHeaders } from '../_lib/cors';
  * Mapped from legacy { code, format } to { source, target }
  */
 
-const EXPORT_API_URL = process.env.EXPORT_API_URL || 'http://localhost:8080';
-const EXPORT_API_KEY =
-  process.env.EXPORT_API_KEY ||
-  'hsk_00000000000000000000000000000000000000000000000000000000000000000000'; // 68 chars mock key
+const EXPORT_API_URL = process.env.EXPORT_API_URL || '';
+const EXPORT_API_KEY = process.env.EXPORT_API_KEY || '';
 
 export async function POST(request: NextRequest) {
+  if (!EXPORT_API_URL || !EXPORT_API_KEY) {
+    return NextResponse.json(
+      {
+        error: 'Export service is not configured',
+        details: 'Set EXPORT_API_URL and EXPORT_API_KEY before using /api/export.',
+      },
+      { status: 503 }
+    );
+  }
+
   try {
     let body;
     try {
