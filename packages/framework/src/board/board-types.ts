@@ -79,6 +79,140 @@ export interface ArtifactReceipt {
   metadata?: Record<string, unknown>;
 }
 
+export const TASK_ENVIRONMENT_PROFILE_KINDS = [
+  'local',
+  'worktree',
+  'container',
+  'hardware-native',
+  'browser',
+  'simulation',
+] as const;
+
+export const TASK_ENVIRONMENT_NETWORK_ACCESS = [
+  'none',
+  'loopback',
+  'allowlist',
+  'internet',
+] as const;
+
+export const TASK_ENVIRONMENT_PACKAGE_MANAGERS = [
+  'pnpm',
+  'npm',
+  'yarn',
+  'bun',
+  'pip',
+  'uv',
+  'cargo',
+  'none',
+  'custom',
+] as const;
+
+export type TaskEnvironmentProfileKind = (typeof TASK_ENVIRONMENT_PROFILE_KINDS)[number];
+export type TaskEnvironmentNetworkAccess = (typeof TASK_ENVIRONMENT_NETWORK_ACCESS)[number];
+export type TaskEnvironmentPackageManager = (typeof TASK_ENVIRONMENT_PACKAGE_MANAGERS)[number];
+export type TaskEnvironmentGpuBackend =
+  | 'webgpu'
+  | 'cuda'
+  | 'd3d12'
+  | 'vulkan'
+  | 'metal'
+  | 'opencl'
+  | 'none'
+  | 'custom';
+
+export interface TaskEnvironmentStep {
+  id?: string;
+  command?: string;
+  description?: string;
+  workingDirectory?: string;
+  required?: boolean;
+}
+
+export interface TaskEnvironmentNetworkPolicy {
+  access: TaskEnvironmentNetworkAccess;
+  allowlist?: string[];
+  deniedHosts?: string[];
+  notes?: string;
+}
+
+export interface TaskEnvironmentGpuRequirement {
+  required?: boolean;
+  backend?: TaskEnvironmentGpuBackend;
+  adapter?: string;
+  vendor?: string;
+  architecture?: string;
+  minMemoryMB?: number;
+  notes?: string;
+}
+
+export interface TaskEnvironmentWasmRequirement {
+  required?: boolean;
+  simd?: boolean;
+  threads?: boolean;
+  wasi?: boolean;
+  modules?: string[];
+  notes?: string;
+}
+
+export interface TaskEnvironmentProfile {
+  id?: string;
+  kind: TaskEnvironmentProfileKind;
+  setup?: TaskEnvironmentStep[];
+  allowedPaths?: string[];
+  network?: TaskEnvironmentNetworkPolicy;
+  packageManager?: TaskEnvironmentPackageManager;
+  packages?: string[];
+  gpu?: TaskEnvironmentGpuRequirement;
+  wasm?: TaskEnvironmentWasmRequirement;
+  teardown?: TaskEnvironmentStep[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface TaskEnvironmentFingerprint {
+  id?: string;
+  profileKind: TaskEnvironmentProfileKind;
+  capturedAt: string;
+  capturedBy: string;
+  os?: string;
+  arch?: string;
+  nodeVersion?: string;
+  packageManagerVersion?: string;
+  browser?: string;
+  containerImageDigest?: string;
+  gitWorktree?: string;
+  gpu?: TaskEnvironmentGpuRequirement & { supported?: boolean };
+  wasm?: TaskEnvironmentWasmRequirement & { supported?: boolean };
+  hashes?: Record<string, string>;
+  metadata?: Record<string, unknown>;
+}
+
+export interface CodexHardwareAuditReceipt {
+  capturedAt: string;
+  capturedBy?: string;
+  nodeVersion?: string;
+  pnpmVersion?: string;
+  wasmSimd?: boolean;
+  webgpu?: {
+    supported?: boolean;
+    adapter?: string;
+    backend?: TaskEnvironmentGpuBackend;
+    flags?: string[];
+    notes?: string;
+  };
+  source?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface TaskEnvironmentReceipt {
+  id: string;
+  profile?: TaskEnvironmentProfile;
+  fingerprint: TaskEnvironmentFingerprint;
+  artifactOutputs?: ArtifactReceipt[];
+  hardwareAudit?: CodexHardwareAuditReceipt;
+  verificationCommands?: ArtifactVerificationCommand[];
+  metadata?: Record<string, unknown>;
+}
+
 export interface TeamTask {
   id: string;
   title: string;
@@ -119,6 +253,10 @@ export interface TeamTask {
   tags?: string[];
   /** Files, traces, screenshots, benchmark logs, patches, or render/test outputs produced for this task. */
   artifacts?: ArtifactReceipt[];
+  /** Declarative runtime expectations for this task. */
+  environment?: TaskEnvironmentProfile;
+  /** Captured runner/runtime evidence for this task. */
+  environmentReceipt?: TaskEnvironmentReceipt;
   /** Arbitrary metadata (estimatedHours, repo, branch, etc.) */
   metadata?: Record<string, unknown>;
 }
@@ -134,6 +272,10 @@ export interface DoneLogEntry {
   summary: string;
   /** Artifact receipts preserved when the task is moved off the live board. */
   artifacts?: ArtifactReceipt[];
+  /** Environment profile preserved when the task is moved off the live board. */
+  environment?: TaskEnvironmentProfile;
+  /** Runner environment receipt preserved when the task is moved off the live board. */
+  environmentReceipt?: TaskEnvironmentReceipt;
 }
 
 // ── Suggestions ──
@@ -471,6 +613,166 @@ export function cloneArtifactReceipt(receipt: ArtifactReceipt): ArtifactReceipt 
             ...receipt.provenance,
             ...(receipt.provenance.parentArtifactIds
               ? { parentArtifactIds: [...receipt.provenance.parentArtifactIds] }
+              : {}),
+          },
+        }
+      : {}),
+    ...(receipt.verificationCommands
+      ? {
+          verificationCommands: receipt.verificationCommands.map((command) => ({
+            ...command,
+            ...(command.artifactIds ? { artifactIds: [...command.artifactIds] } : {}),
+          })),
+        }
+      : {}),
+    ...(receipt.metadata ? { metadata: { ...receipt.metadata } } : {}),
+  };
+}
+
+export function isSupportedTaskEnvironmentProfileKind(
+  kind: string
+): kind is TaskEnvironmentProfileKind {
+  return (TASK_ENVIRONMENT_PROFILE_KINDS as readonly string[]).includes(kind);
+}
+
+export function validateTaskEnvironmentProfile(profile: TaskEnvironmentProfile): string[] {
+  const errors: string[] = [];
+  if (!isSupportedTaskEnvironmentProfileKind(profile.kind)) {
+    errors.push(`TaskEnvironmentProfile.kind is unsupported: ${String(profile.kind)}.`);
+  }
+  if (
+    profile.network &&
+    !(TASK_ENVIRONMENT_NETWORK_ACCESS as readonly string[]).includes(profile.network.access)
+  ) {
+    errors.push(
+      `TaskEnvironmentProfile.network.access is unsupported: ${String(profile.network.access)}.`
+    );
+  }
+  if (profile.network?.access === 'allowlist' && !profile.network.allowlist?.length) {
+    errors.push('TaskEnvironmentProfile.network.allowlist is required for allowlist access.');
+  }
+  if (
+    profile.packageManager &&
+    !(TASK_ENVIRONMENT_PACKAGE_MANAGERS as readonly string[]).includes(profile.packageManager)
+  ) {
+    errors.push(`TaskEnvironmentProfile.packageManager is unsupported: ${profile.packageManager}.`);
+  }
+  for (const path of profile.allowedPaths ?? []) {
+    if (!path) errors.push('TaskEnvironmentProfile.allowedPaths cannot contain empty paths.');
+  }
+  for (const step of [...(profile.setup ?? []), ...(profile.teardown ?? [])]) {
+    if (!step.command && !step.description) {
+      errors.push('TaskEnvironmentProfile steps require command or description.');
+    }
+  }
+  return errors;
+}
+
+export function validateTaskEnvironmentReceipt(receipt: TaskEnvironmentReceipt): string[] {
+  const errors: string[] = [];
+  if (!receipt.id) errors.push('TaskEnvironmentReceipt.id is required.');
+  if (!receipt.fingerprint) {
+    errors.push('TaskEnvironmentReceipt.fingerprint is required.');
+  } else {
+    if (!isSupportedTaskEnvironmentProfileKind(receipt.fingerprint.profileKind)) {
+      errors.push(
+        `TaskEnvironmentReceipt.fingerprint.profileKind is unsupported: ${String(
+          receipt.fingerprint.profileKind
+        )}.`
+      );
+    }
+    if (!receipt.fingerprint.capturedAt) {
+      errors.push('TaskEnvironmentReceipt.fingerprint.capturedAt is required.');
+    }
+    if (!receipt.fingerprint.capturedBy) {
+      errors.push('TaskEnvironmentReceipt.fingerprint.capturedBy is required.');
+    }
+  }
+  if (receipt.profile) errors.push(...validateTaskEnvironmentProfile(receipt.profile));
+  for (const artifact of receipt.artifactOutputs ?? []) {
+    errors.push(...validateArtifactReceipt(artifact));
+  }
+  for (const command of receipt.verificationCommands ?? []) {
+    if (!command.command) {
+      errors.push(`TaskEnvironmentReceipt ${receipt.id} has a verification command without command text.`);
+    }
+  }
+  if (receipt.hardwareAudit && !receipt.hardwareAudit.capturedAt) {
+    errors.push('TaskEnvironmentReceipt.hardwareAudit.capturedAt is required.');
+  }
+  return errors;
+}
+
+export function cloneTaskEnvironmentProfile(profile: TaskEnvironmentProfile): TaskEnvironmentProfile {
+  return {
+    ...profile,
+    ...(profile.setup ? { setup: profile.setup.map((step) => ({ ...step })) } : {}),
+    ...(profile.allowedPaths ? { allowedPaths: [...profile.allowedPaths] } : {}),
+    ...(profile.network
+      ? {
+          network: {
+            ...profile.network,
+            ...(profile.network.allowlist ? { allowlist: [...profile.network.allowlist] } : {}),
+            ...(profile.network.deniedHosts ? { deniedHosts: [...profile.network.deniedHosts] } : {}),
+          },
+        }
+      : {}),
+    ...(profile.packages ? { packages: [...profile.packages] } : {}),
+    ...(profile.gpu ? { gpu: { ...profile.gpu } } : {}),
+    ...(profile.wasm
+      ? {
+          wasm: {
+            ...profile.wasm,
+            ...(profile.wasm.modules ? { modules: [...profile.wasm.modules] } : {}),
+          },
+        }
+      : {}),
+    ...(profile.teardown ? { teardown: profile.teardown.map((step) => ({ ...step })) } : {}),
+    ...(profile.metadata ? { metadata: { ...profile.metadata } } : {}),
+  };
+}
+
+export function cloneTaskEnvironmentReceipt(
+  receipt: TaskEnvironmentReceipt
+): TaskEnvironmentReceipt {
+  return {
+    ...receipt,
+    ...(receipt.profile ? { profile: cloneTaskEnvironmentProfile(receipt.profile) } : {}),
+    fingerprint: {
+      ...receipt.fingerprint,
+      ...(receipt.fingerprint.gpu ? { gpu: { ...receipt.fingerprint.gpu } } : {}),
+      ...(receipt.fingerprint.wasm
+        ? {
+            wasm: {
+              ...receipt.fingerprint.wasm,
+              ...(receipt.fingerprint.wasm.modules
+                ? { modules: [...receipt.fingerprint.wasm.modules] }
+                : {}),
+            },
+          }
+        : {}),
+      ...(receipt.fingerprint.hashes ? { hashes: { ...receipt.fingerprint.hashes } } : {}),
+      ...(receipt.fingerprint.metadata ? { metadata: { ...receipt.fingerprint.metadata } } : {}),
+    },
+    ...(receipt.artifactOutputs
+      ? { artifactOutputs: receipt.artifactOutputs.map(cloneArtifactReceipt) }
+      : {}),
+    ...(receipt.hardwareAudit
+      ? {
+          hardwareAudit: {
+            ...receipt.hardwareAudit,
+            ...(receipt.hardwareAudit.webgpu
+              ? {
+                  webgpu: {
+                    ...receipt.hardwareAudit.webgpu,
+                    ...(receipt.hardwareAudit.webgpu.flags
+                      ? { flags: [...receipt.hardwareAudit.webgpu.flags] }
+                      : {}),
+                  },
+                }
+              : {}),
+            ...(receipt.hardwareAudit.metadata
+              ? { metadata: { ...receipt.hardwareAudit.metadata } }
               : {}),
           },
         }

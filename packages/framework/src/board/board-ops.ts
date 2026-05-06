@@ -14,6 +14,7 @@ import type {
   SuggestionCategory,
   SlotRole,
   ArtifactReceipt,
+  TaskEnvironmentReceipt,
 } from './board-types';
 import {
   normalizeTitle,
@@ -21,6 +22,10 @@ import {
   generateSuggestionId,
   cloneArtifactReceipt,
   validateArtifactReceipt,
+  cloneTaskEnvironmentProfile,
+  cloneTaskEnvironmentReceipt,
+  validateTaskEnvironmentProfile,
+  validateTaskEnvironmentReceipt,
 } from './board-types';
 
 // ── Task Operations ──
@@ -105,6 +110,7 @@ export function completeTask(
     summary?: string;
     completedByTag?: string;
     artifacts?: ArtifactReceipt[];
+    environmentReceipt?: TaskEnvironmentReceipt;
   } = {}
 ): {
   result: TaskActionResult & { onComplete?: TaskAction[]; unblocked?: string[] };
@@ -113,7 +119,23 @@ export function completeTask(
   const task = board.find((t) => t.id === taskId);
   if (!task) return { result: { success: false, error: 'Task not found' }, updatedBoard: board };
 
-  const artifacts = [...(task.artifacts ?? []), ...(opts.artifacts ?? [])];
+  const environmentReceipt = opts.environmentReceipt ?? task.environmentReceipt;
+  const environmentErrors = [
+    ...(task.environment ? validateTaskEnvironmentProfile(task.environment) : []),
+    ...(environmentReceipt ? validateTaskEnvironmentReceipt(environmentReceipt) : []),
+  ];
+  if (environmentErrors.length) {
+    return {
+      result: { success: false, error: `Invalid task environment: ${environmentErrors.join(' ')}` },
+      updatedBoard: board,
+    };
+  }
+
+  const artifacts = [
+    ...(task.artifacts ?? []),
+    ...(opts.artifacts ?? []),
+    ...(environmentReceipt?.artifactOutputs ?? []),
+  ];
   const artifactErrors = artifacts.flatMap((artifact) => validateArtifactReceipt(artifact));
   if (artifactErrors.length) {
     return {
@@ -128,6 +150,7 @@ export function completeTask(
   task.commitHash = opts.commit;
   task.completedAt = new Date().toISOString();
   if (artifacts.length) task.artifacts = artifacts.map(cloneArtifactReceipt);
+  if (environmentReceipt) task.environmentReceipt = cloneTaskEnvironmentReceipt(environmentReceipt);
 
   const doneEntry: DoneLogEntry = {
     taskId: task.id,
@@ -138,6 +161,8 @@ export function completeTask(
     timestamp: task.completedAt,
     summary: opts.summary || task.title,
     ...(artifacts.length ? { artifacts: artifacts.map(cloneArtifactReceipt) } : {}),
+    ...(task.environment ? { environment: cloneTaskEnvironmentProfile(task.environment) } : {}),
+    ...(environmentReceipt ? { environmentReceipt: cloneTaskEnvironmentReceipt(environmentReceipt) } : {}),
   };
 
   // Unblock dependent tasks — move from 'blocked' to 'open' if all their deps are done
@@ -186,6 +211,23 @@ export function attachTaskArtifacts(
   }
 
   task.artifacts = [...(task.artifacts ?? []), ...artifacts.map(cloneArtifactReceipt)];
+  return { success: true, task };
+}
+
+export function attachTaskEnvironmentReceipt(
+  board: TeamTask[],
+  taskId: string,
+  receipt: TaskEnvironmentReceipt
+): TaskActionResult {
+  const task = board.find((t) => t.id === taskId);
+  if (!task) return { success: false, error: 'Task not found' };
+
+  const environmentErrors = validateTaskEnvironmentReceipt(receipt);
+  if (environmentErrors.length) {
+    return { success: false, error: `Invalid task environment: ${environmentErrors.join(' ')}` };
+  }
+
+  task.environmentReceipt = cloneTaskEnvironmentReceipt(receipt);
   return { success: true, task };
 }
 
@@ -291,7 +333,11 @@ export function delegateTask(
 }
 
 /** Why an input row was not materialized as a new board task (batch POST transparency). */
-export type SkippedTaskReason = 'duplicate' | 'empty_title' | 'invalid_artifact';
+export type SkippedTaskReason =
+  | 'duplicate'
+  | 'empty_title'
+  | 'invalid_artifact'
+  | 'invalid_environment';
 
 export interface SkippedTaskEntry {
   title: string;
@@ -388,6 +434,15 @@ export function addTasksToBoard(
       continue;
     }
 
+    const environmentErrors = [
+      ...(t.environment ? validateTaskEnvironmentProfile(t.environment) : []),
+      ...(t.environmentReceipt ? validateTaskEnvironmentReceipt(t.environmentReceipt) : []),
+    ];
+    if (environmentErrors.length) {
+      skipped.push({ title, reason: 'invalid_environment' });
+      continue;
+    }
+
     const rawDescription = String(t.description || '');
     // Cap unified with the suggestion-description cap at line 367 (2000).
     // W.085 post-mortem: agents repeatedly hit the old 1000 cap while filing
@@ -419,6 +474,10 @@ export function addTasksToBoard(
     if (t.unblocks?.length) task.unblocks = [...t.unblocks];
     if (t.tags?.length) task.tags = [...t.tags];
     if (t.artifacts?.length) task.artifacts = t.artifacts.map(cloneArtifactReceipt);
+    if (t.environment) task.environment = cloneTaskEnvironmentProfile(t.environment);
+    if (t.environmentReceipt) {
+      task.environmentReceipt = cloneTaskEnvironmentReceipt(t.environmentReceipt);
+    }
     if (t.metadata && Object.keys(t.metadata).length) task.metadata = { ...t.metadata };
     if (t.onComplete?.length) task.onComplete = [...t.onComplete];
     board.push(task);

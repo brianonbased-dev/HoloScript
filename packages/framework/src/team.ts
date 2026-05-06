@@ -37,7 +37,12 @@ import type {
 import { KnowledgeStore } from './knowledge/knowledge-store';
 import { DoneLogAuditor } from './board/audit';
 import type { FullAuditResult } from './board/audit';
-import type { ArtifactReceipt, DoneLogEntry } from './board/board-types';
+import type {
+  ArtifactReceipt,
+  DoneLogEntry,
+  TaskEnvironmentProfile,
+  TaskEnvironmentReceipt,
+} from './board/board-types';
 import { callLLM } from './llm/llm-adapter';
 import type { LLMMessage } from './llm/llm-adapter';
 import { runProtocolCycle } from './protocol-agent';
@@ -124,12 +129,7 @@ export class Team {
   private agentConfigs: AgentConfig[];
   private runtimes: Map<string, AgentRuntime> = new Map();
   private board: TaskDef[] = [];
-  private doneLog: Array<{
-    taskId: string;
-    title: string;
-    completedBy: string;
-    timestamp: string;
-  }> = [];
+  private doneLog: DoneLogEntry[] = [];
   private cycle = 0;
   private consensusMode: ConsensusMode;
   private proposals: Map<string, InternalProposal> = new Map();
@@ -370,6 +370,7 @@ export class Team {
           title: task.title,
           completedBy: runtime.name,
           timestamp: task.completedAt,
+          summary,
         });
 
         // Publish knowledge
@@ -696,15 +697,17 @@ export class Team {
         timestamp: String(d.timestamp ?? d.completedAt ?? ''),
         summary: String(d.summary ?? ''),
         artifacts: Array.isArray(d.artifacts) ? (d.artifacts as ArtifactReceipt[]) : undefined,
+        environment:
+          d.environment && typeof d.environment === 'object'
+            ? (d.environment as TaskEnvironmentProfile)
+            : undefined,
+        environmentReceipt:
+          d.environmentReceipt && typeof d.environmentReceipt === 'object'
+            ? (d.environmentReceipt as TaskEnvironmentReceipt)
+            : undefined,
       }));
     } else {
-      entries = this.doneLog.map((d) => ({
-        taskId: d.taskId,
-        title: d.title,
-        completedBy: d.completedBy,
-        timestamp: d.timestamp,
-        summary: '',
-      }));
+      entries = this.doneLog.map((d) => ({ ...d }));
     }
 
     const auditor = new DoneLogAuditor(entries);
