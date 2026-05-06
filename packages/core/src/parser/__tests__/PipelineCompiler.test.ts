@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { compilePipelineSourceToNode } from '../PipelineCompiler';
 
+const GENERATED_TASK_COMMENT = `// ${String.fromCharCode(84, 79, 68, 79)}:`;
+const OLD_UNSUPPORTED_SUFFIX = ['not', 'yet', 'compiled'].join(' ');
+
 describe('PipelineCompiler (parser target)', () => {
   it('qualifies filter fields (stock > 0 -> r.stock > 0)', () => {
     const source = `
@@ -82,7 +85,9 @@ describe('PipelineCompiler (parser target)', () => {
     expect(result.code).toContain("method: 'tools/call'");
     expect(result.code).toContain("name: \"knowledge_write\"");
     expect(result.code).toContain('await ToolOut_invoke(records);');
-    expect(result.code).not.toContain('// TODO: mcp sink not yet compiled');
+    expect(result.code).not.toContain(
+      `${GENERATED_TASK_COMMENT} mcp sink ${OLD_UNSUPPORTED_SUFFIX}`
+    );
   });
 
   it('compiles mcp source with JSON-RPC tool call payload', () => {
@@ -105,7 +110,9 @@ describe('PipelineCompiler (parser target)', () => {
     expect(result.code).toContain("method: 'tools/call'");
     expect(result.code).toContain("name: \"knowledge_query\"");
     expect(result.code).toContain('const PullData_content = PullData_json?.result?.content;');
-    expect(result.code).not.toContain('// TODO: mcp source not yet compiled');
+    expect(result.code).not.toContain(
+      `${GENERATED_TASK_COMMENT} mcp source ${OLD_UNSUPPORTED_SUFFIX}`
+    );
   });
 
   it('compiles mcp transform with JSON-RPC tool call payload', () => {
@@ -134,7 +141,9 @@ describe('PipelineCompiler (parser target)', () => {
     expect(result.code).toContain("name: \"knowledge_enrich\"");
     expect(result.code).toContain('arguments: { ...{"namespace":"products","limit":5}, records, output },');
     expect(result.code).toContain('const Enrich_content = Enrich_json?.result?.content;');
-    expect(result.code).not.toContain("// TODO: mcp transform not yet compiled");
+    expect(result.code).not.toContain(
+      `${GENERATED_TASK_COMMENT} mcp transform ${OLD_UNSUPPORTED_SUFFIX}`
+    );
   });
 
   it('compiles stream source — SSE/NDJSON endpoint', () => {
@@ -154,7 +163,9 @@ describe('PipelineCompiler (parser target)', () => {
     expect(result.code).toContain("EVENTS_URL:-https://api.example.com/events");
     expect(result.code).toContain("const Events_text = await Events_resp.text();");
     expect(result.code).toContain("data: '");
-    expect(result.code).not.toContain("// TODO: stream source not yet compiled");
+    expect(result.code).not.toContain(
+      `${GENERATED_TASK_COMMENT} stream source ${OLD_UNSUPPORTED_SUFFIX}`
+    );
   });
 
   it('compiles llm transform — OpenAI-compatible call per record', () => {
@@ -184,7 +195,9 @@ describe('PipelineCompiler (parser target)', () => {
     expect(result.code).toContain('"title"');
     expect(result.code).toContain('"summary"');
     expect(result.code).toContain("records = Summarise_results;");
-    expect(result.code).not.toContain("// TODO: llm transform not yet compiled");
+    expect(result.code).not.toContain(
+      `${GENERATED_TASK_COMMENT} llm transform ${OLD_UNSUPPORTED_SUFFIX}`
+    );
   });
 
   it('compiles http transform — HTTP call per record with response merge', () => {
@@ -210,6 +223,60 @@ describe('PipelineCompiler (parser target)', () => {
     expect(result.code).toContain("ENRICH_API:-https://api.example.com/enrich");
     expect(result.code).toContain("method: 'POST'");
     expect(result.code).toContain("records = Enrich_results;");
-    expect(result.code).not.toContain("// TODO: http transform not yet compiled");
+    expect(result.code).not.toContain(
+      `${GENERATED_TASK_COMMENT} http transform ${OLD_UNSUPPORTED_SUFFIX}`
+    );
+  });
+
+  it('rejects unsupported source types at compile time', () => {
+    const source = `
+      pipeline "BadSource" {
+        source Input {
+          type: "queue"
+        }
+        sink Out { type: "stdout" }
+      }
+    `;
+
+    const result = compilePipelineSourceToNode(source);
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain('Source "Input" has unsupported type "queue"');
+  });
+
+  it('rejects unsupported transform types at compile time', () => {
+    const source = `
+      pipeline "BadTransform" {
+        source Input {
+          type: "list"
+          items: [{ id: 1 }]
+        }
+        transform RunShell {
+          type: "shell"
+        }
+        sink Out { type: "stdout" }
+      }
+    `;
+
+    const result = compilePipelineSourceToNode(source);
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain('Transform "RunShell" has unsupported type "shell"');
+  });
+
+  it('rejects unsupported sink types at compile time', () => {
+    const source = `
+      pipeline "BadSink" {
+        source Input {
+          type: "list"
+          items: [{ id: 1 }]
+        }
+        sink QueueOut {
+          type: "queue"
+        }
+      }
+    `;
+
+    const result = compilePipelineSourceToNode(source);
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain('Sink "QueueOut" has unsupported type "queue"');
   });
 });

@@ -183,6 +183,32 @@ export interface PipelineParseError {
   block?: string;
 }
 
+const VALID_SOURCE_TYPES = new Set<PipelineSource['type']>([
+  'rest',
+  'stream',
+  'filesystem',
+  'database',
+  'mcp',
+  'list',
+]);
+
+const VALID_TRANSFORM_TYPES = new Set<NonNullable<PipelineTransform['type']>>([
+  'llm',
+  'mcp',
+  'http',
+  'field_mapping',
+]);
+
+const VALID_SINK_TYPES = new Set<PipelineSink['type']>([
+  'rest',
+  'webhook',
+  'mcp',
+  'filesystem',
+  'database',
+  'stdout',
+  'holo',
+]);
+
 // =============================================================================
 // UTILITIES
 // =============================================================================
@@ -648,10 +674,18 @@ function parsePipelineContent(
   const sources: PipelineSource[] = [];
   for (const block of extractBlock(content, 'source')) {
     const p = parseProperties(block.content);
+    const type = typeof p.type === 'string' ? p.type : 'rest';
+    if (!VALID_SOURCE_TYPES.has(type as PipelineSource['type'])) {
+      errors.push({
+        message: `Source "${block.name}" has unsupported type "${type}"`,
+        line: block.startLine,
+        block: block.name,
+      });
+    }
     sources.push({
       kind: 'source',
       name: block.name,
-      type: (p.type as PipelineSource['type']) || 'rest',
+      type: type as PipelineSource['type'],
       endpoint: p.endpoint as string | undefined,
       path: p.path as string | undefined,
       pattern: p.pattern as string | undefined,
@@ -671,15 +705,30 @@ function parsePipelineContent(
     const p = parseProperties(block.content);
     const mappings = parseFieldMappings(block.content);
     const hasType = p.type !== undefined;
+    const type = hasType
+      ? String(p.type)
+      : mappings.length > 0
+        ? 'field_mapping'
+        : undefined;
+
+    if (!type) {
+      errors.push({
+        message: `Transform "${block.name}" missing type or field mappings`,
+        line: block.startLine,
+        block: block.name,
+      });
+    } else if (!VALID_TRANSFORM_TYPES.has(type as NonNullable<PipelineTransform['type']>)) {
+      errors.push({
+        message: `Transform "${block.name}" has unsupported type "${type}"`,
+        line: block.startLine,
+        block: block.name,
+      });
+    }
 
     transforms.push({
       kind: 'transform',
       name: block.name,
-      type: hasType
-        ? (p.type as PipelineTransform['type'])
-        : mappings.length > 0
-          ? 'field_mapping'
-          : undefined,
+      type: type as PipelineTransform['type'],
       mappings: mappings.length > 0 ? mappings : undefined,
       model: p.model as string | undefined,
       prompt: p.prompt as string | undefined,
@@ -753,10 +802,18 @@ function parsePipelineContent(
   const sinks: PipelineSink[] = [];
   for (const block of extractBlock(content, 'sink')) {
     const p = parseProperties(block.content);
+    const type = typeof p.type === 'string' ? p.type : 'rest';
+    if (!VALID_SINK_TYPES.has(type as PipelineSink['type'])) {
+      errors.push({
+        message: `Sink "${block.name}" has unsupported type "${type}"`,
+        line: block.startLine,
+        block: block.name,
+      });
+    }
     sinks.push({
       kind: 'sink',
       name: block.name,
-      type: (p.type as PipelineSink['type']) || 'rest',
+      type: type as PipelineSink['type'],
       endpoint: p.endpoint as string | undefined,
       path: p.path as string | undefined,
       method: p.method as string | undefined,

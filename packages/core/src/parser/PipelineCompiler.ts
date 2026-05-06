@@ -241,7 +241,9 @@ function genSource(source: PipelineSource): string {
     lines.push(`  }`);
     lines.push(`}`);
   } else {
-    lines.push(`// TODO: ${source.type} source not yet compiled`);
+    lines.push(
+      `throw new Error(${JSON.stringify(`Unsupported pipeline source type "${String(source.type)}" in source "${source.name}"`)});`
+    );
   }
 
   return lines.join('\n');
@@ -359,7 +361,9 @@ function genTransform(transform: PipelineTransform): string {
     lines.push(`}`);
     lines.push(`records = ${transform.name}_results;`);
   } else {
-    lines.push(`// TODO: ${transform.type || 'unknown'} transform not yet compiled`);
+    lines.push(
+      `throw new Error(${JSON.stringify(`Unsupported pipeline transform type "${String(transform.type || 'unknown')}" in transform "${transform.name}"`)});`
+    );
   }
 
   return lines.join('\n');
@@ -588,7 +592,9 @@ function genSink(sink: PipelineSink): string {
     );
     lines.push(`}`);
   } else {
-    lines.push(`// TODO: ${sink.type} sink not yet compiled`);
+    lines.push(
+      `throw new Error(${JSON.stringify(`Unsupported pipeline sink type "${String(sink.type)}" in sink "${sink.name}"`)});`
+    );
   }
 
   return lines.join('\n');
