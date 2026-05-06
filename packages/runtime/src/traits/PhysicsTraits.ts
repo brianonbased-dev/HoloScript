@@ -133,6 +133,51 @@ export const ClothTrait: TraitHandler = {
 // SOFT BODY TRAIT - Spring-mass vertex deformation
 // =============================================================================
 
+type SoftBodySpring = [number, number, number];
+
+interface SoftBodyState {
+  restPositions: Float32Array;
+  velocities: Float32Array;
+  springs: SoftBodySpring[];
+}
+
+function buildSoftBodyState(
+  geometry: THREE.BufferGeometry,
+  posAttr: THREE.BufferAttribute
+): SoftBodyState {
+  const count = posAttr.count;
+  const restPositions = new Float32Array(posAttr.array);
+  const velocities = new Float32Array(count * 3);
+
+  const springs: SoftBodySpring[] = [];
+  const edgeSet = new Set<string>();
+  const index = geometry.getIndex();
+
+  if (index) {
+    for (let i = 0; i < index.count; i += 3) {
+      const a = index.getX(i),
+        b = index.getX(i + 1),
+        c = index.getX(i + 2);
+      for (const [v1, v2] of [
+        [a, b],
+        [b, c],
+        [a, c],
+      ]) {
+        const key = Math.min(v1, v2) + '_' + Math.max(v1, v2);
+        if (!edgeSet.has(key)) {
+          edgeSet.add(key);
+          const dx = restPositions[v1 * 3] - restPositions[v2 * 3];
+          const dy = restPositions[v1 * 3 + 1] - restPositions[v2 * 3 + 1];
+          const dz = restPositions[v1 * 3 + 2] - restPositions[v2 * 3 + 2];
+          springs.push([v1, v2, Math.sqrt(dx * dx + dy * dy + dz * dz)]);
+        }
+      }
+    }
+  }
+
+  return { restPositions, velocities, springs };
+}
+
 export const SoftBodyTrait: TraitHandler = {
   name: 'soft_body',
 
@@ -150,41 +195,11 @@ export const SoftBodyTrait: TraitHandler = {
     const posAttr = geometry.getAttribute('position') as THREE.BufferAttribute;
     if (!posAttr) return;
 
-    // Store rest positions and velocities
-    const count = posAttr.count;
-    const restPositions = new Float32Array(posAttr.array);
-    const velocities = new Float32Array(count * 3);
+    const state = buildSoftBodyState(geometry, posAttr);
 
-    // Build springs from face adjacency
-    const springs: Array<[number, number, number]> = [];
-    const edgeSet = new Set<string>();
-    const index = geometry.getIndex();
-
-    if (index) {
-      for (let i = 0; i < index.count; i += 3) {
-        const a = index.getX(i),
-          b = index.getX(i + 1),
-          c = index.getX(i + 2);
-        for (const [v1, v2] of [
-          [a, b],
-          [b, c],
-          [a, c],
-        ]) {
-          const key = Math.min(v1, v2) + '_' + Math.max(v1, v2);
-          if (!edgeSet.has(key)) {
-            edgeSet.add(key);
-            const dx = restPositions[v1 * 3] - restPositions[v2 * 3];
-            const dy = restPositions[v1 * 3 + 1] - restPositions[v2 * 3 + 1];
-            const dz = restPositions[v1 * 3 + 2] - restPositions[v2 * 3 + 2];
-            springs.push([v1, v2, Math.sqrt(dx * dx + dy * dy + dz * dz)]);
-          }
-        }
-      }
-    }
-
-    context.data.restPositions = restPositions;
-    context.data.velocities = velocities;
-    context.data.springs = springs;
+    context.data.restPositions = state.restPositions;
+    context.data.velocities = state.velocities;
+    context.data.springs = state.springs;
     context.data.stiffness = stiffness;
     context.data.damping = damping;
     context.data.pressure = pressure;
@@ -196,13 +211,29 @@ export const SoftBodyTrait: TraitHandler = {
     const posAttr = geometry.getAttribute('position') as THREE.BufferAttribute;
     if (!posAttr) return;
 
-    const rest = context.data.restPositions as Float32Array;
-    const vel = context.data.velocities as Float32Array;
-    const springs = context.data.springs as Array<[number, number, number]>;
+    let rest = context.data.restPositions as Float32Array | undefined;
+    let vel = context.data.velocities as Float32Array | undefined;
+    let springs = context.data.springs as SoftBodySpring[] | undefined;
     const stiffness = context.data.stiffness as number;
     const damping = context.data.damping as number;
     const pressure = context.data.pressure as number;
     const count = posAttr.count;
+
+    if (
+      !rest ||
+      !vel ||
+      !springs ||
+      rest.length !== posAttr.array.length ||
+      vel.length !== count * 3
+    ) {
+      const state = buildSoftBodyState(geometry, posAttr);
+      context.data.restPositions = state.restPositions;
+      context.data.velocities = state.velocities;
+      context.data.springs = state.springs;
+      rest = state.restPositions;
+      vel = state.velocities;
+      springs = state.springs;
+    }
 
     const dt = Math.min(delta, 0.02); // Clamp timestep
 
