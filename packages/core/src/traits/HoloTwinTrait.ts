@@ -50,7 +50,7 @@ const LOOKING_GLASS_PRESETS: Record<LookingGlassDevice, LookingGlassPreset> = {
     rows: 6,
     resolution: [3360, 3360],
     baseline: 0.06,
-    focusDistance: 0.20,
+    focusDistance: 0.2,
   },
   '27inch': {
     views: 60,
@@ -66,7 +66,7 @@ const LOOKING_GLASS_PRESETS: Record<LookingGlassDevice, LookingGlassPreset> = {
     rows: 8,
     resolution: [7680, 4320],
     baseline: 0.08,
-    focusDistance: 0.50,
+    focusDistance: 0.5,
   },
 };
 
@@ -264,8 +264,8 @@ function connectToSensor(
   if (config.protocol === 'mqtt' && gateway) {
     // MQTT: subscribe to telemetry topic
     gateway.on('telemetry', (data: unknown) => {
-      // @ts-expect-error - dynamic property access
-      if (data.deviceId === config.physical_id) {
+      const telemetry = data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
+      if (telemetry.deviceId === config.physical_id) {
         context.emit?.('holo_twin_sensor_data', {
           node,
           data: (data as { readings?: Record<string, number> }).readings || data,
@@ -274,9 +274,9 @@ function connectToSensor(
     });
 
     gateway.on('connected', (data: unknown) => {
-      // @ts-expect-error - dynamic property access
-      if (data.deviceId === config.physical_id) {
-        context.emit?.('holo_twin_connected', { handle: gateway, ...data });
+      const connection = data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
+      if (connection.deviceId === config.physical_id) {
+        context.emit?.('holo_twin_connected', { handle: gateway, ...connection });
       }
     });
 
@@ -372,10 +372,7 @@ function processSensorData(
   });
 }
 
-function transformSensorValue(
-  value: number,
-  mapping: SensorMapping
-): number | string | unknown {
+function transformSensorValue(value: number, mapping: SensorMapping): number | string | unknown {
   const { transform, min = 0, max = 100, invert = false } = mapping;
 
   // Normalize value to 0-1 range
@@ -461,7 +458,7 @@ function startSimulation(
     const data: Record<string, number> = {};
     for (const mapping of config.sensor_mappings) {
       // Random walk simulation
-      const prev = state.sensorData[mapping.sensor_key] || (mapping.min || 0);
+      const prev = state.sensorData[mapping.sensor_key] || mapping.min || 0;
       const delta = (Math.random() - 0.5) * ((mapping.max || 100) - (mapping.min || 0)) * 0.1;
       data[mapping.sensor_key] = Math.max(
         mapping.min || 0,
@@ -480,7 +477,7 @@ function startSimulation(
   }, config.poll_interval_ms);
 
   // Store interval handle for cleanup
-  (state as Record<string, unknown>).simulationInterval = simulationInterval;
+  (state as unknown as Record<string, unknown>).simulationInterval = simulationInterval;
 }
 
 // =============================================================================

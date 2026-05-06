@@ -1,5 +1,6 @@
 import type { Vector3 } from '../types';
-﻿/**
+
+/**
  * VPS Trait
  *
  * Visual Positioning System integration for high-accuracy localization.
@@ -7,7 +8,6 @@ import type { Vector3 } from '../types';
  *
  * @version 2.0.0
  */
-
 import type { TraitHandler } from './TraitTypes';
 
 // =============================================================================
@@ -84,7 +84,7 @@ export const vpsHandler: TraitHandler<VPSConfig> = {
       locationId: null,
       pose: {
         position: [0, 0, 0],
-        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        rotation: [0, 0, 0, 1],
       },
       localizationAttempts: 0,
     };
@@ -129,11 +129,11 @@ export const vpsHandler: TraitHandler<VPSConfig> = {
         node.position[2] = state.pose.position[2];
       }
       if (node.rotation) {
-        node.rotation[0] = state.pose.rotation.x;
-        node.rotation[1] = state.pose.rotation.y;
-        node.rotation[2] = state.pose.rotation.z;
+        node.rotation[0] = state.pose.rotation[0];
+        node.rotation[1] = state.pose.rotation[1];
+        node.rotation[2] = state.pose.rotation[2];
         if (node.rotation[3] !== undefined) {
-          node.rotation[3] = state.pose.rotation.w;
+          node.rotation[3] = state.pose.rotation[3];
         }
       }
     }

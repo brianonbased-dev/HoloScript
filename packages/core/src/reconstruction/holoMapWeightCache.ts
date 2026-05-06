@@ -61,7 +61,7 @@ async function idbPut(db: IDBDatabase, key: string, value: ArrayBuffer): Promise
 interface NodeCacheDeps {
   readFile(path: string): Promise<Buffer>;
   writeFile(path: string, data: Uint8Array): Promise<void>;
-  mkdir(path: string, opts: { recursive: boolean }): Promise<void>;
+  mkdir(path: string, opts: { recursive: boolean }): Promise<string | undefined>;
   stat(path: string): Promise<{ isFile(): boolean }>;
   tmpdir(): string;
   homedir(): string;
@@ -91,8 +91,9 @@ async function getNodeCacheDeps(): Promise<NodeCacheDeps | null> {
 
 async function nodeCachePath(deps: NodeCacheDeps, cid: string): Promise<string> {
   const path = await import('node:path');
-  const base = process.env.HOLOMAP_WEIGHT_CACHE_DIR
-    ?? path.join(deps.homedir(), '.cache', 'holoscript', 'holomap-weights');
+  const base =
+    process.env.HOLOMAP_WEIGHT_CACHE_DIR ??
+    path.join(deps.homedir(), '.cache', 'holoscript', 'holomap-weights');
   return path.join(base, `${cid}.bin`);
 }
 
@@ -100,8 +101,9 @@ async function nodeCacheGet(deps: NodeCacheDeps, cid: string): Promise<ArrayBuff
   const p = await nodeCachePath(deps, cid);
   try {
     const buf = await deps.readFile(p);
-    if (buf.buffer) return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-    return undefined;
+    const copy = new ArrayBuffer(buf.byteLength);
+    new Uint8Array(copy).set(buf);
+    return copy;
   } catch {
     return undefined;
   }

@@ -10,10 +10,23 @@
 // (2026-04-29). CompilerBase is now a sibling in the same compiler dir;
 // @holoscript/core-types stays external (still a separate sibling package).
 import { CompilerBase, type BaseCompilerOptions } from './CompilerBase';
+import type { JsonLdSceneGraph } from './SemanticSceneGraph';
 import type { HoloComposition, HoloObjectDecl } from '@holoscript/core-types/composition';
 
 export interface FlatSemanticCompilerOptions extends BaseCompilerOptions {
   format?: 'react';
+}
+
+function isFlatSemanticCompilerOptions(
+  value: JsonLdSceneGraph | FlatSemanticCompilerOptions | undefined
+): value is FlatSemanticCompilerOptions {
+  if (!value || typeof value !== 'object') return false;
+  return (
+    'format' in value ||
+    'generateDocs' in value ||
+    'docsOptions' in value ||
+    'provenanceHash' in value
+  );
 }
 
 export class FlatSemanticCompiler extends CompilerBase {
@@ -23,9 +36,13 @@ export class FlatSemanticCompiler extends CompilerBase {
     composition: HoloComposition,
     agentToken: string,
     outputPath?: string,
+    sceneGraphOrOptions?: JsonLdSceneGraph | FlatSemanticCompilerOptions,
     options?: FlatSemanticCompilerOptions
   ): string | any {
     this.validateCompilerAccess(agentToken, outputPath);
+    const compileOptions =
+      options ??
+      (isFlatSemanticCompilerOptions(sceneGraphOrOptions) ? sceneGraphOrOptions : undefined);
 
     const elements = composition.ui?.elements || composition.objects || [];
 
@@ -35,10 +52,10 @@ export class FlatSemanticCompiler extends CompilerBase {
 
     const code = this.generateReactComponent(composition.name, elements, canvasConfig);
 
-    if (options?.generateDocs) {
+    if (compileOptions?.generateDocs) {
       return {
         output: code,
-        documentation: this.generateDocumentation(composition, code, options.docsOptions),
+        documentation: this.generateDocumentation(composition, code, compileOptions.docsOptions),
       };
     }
     return code;

@@ -26,11 +26,7 @@ import type {
 } from './CompilerTypes';
 import { CapabilityRBAC, getCapabilityRBAC } from './identity/CapabilityRBAC';
 import type { CapabilityToken } from './identity/CapabilityToken';
-import {
-  type CompilerName,
-  COMPILER_ANS_MAP,
-  isValidCompilerName,
-} from './identity/ANSNamespace';
+import { type CompilerName, COMPILER_ANS_MAP, isValidCompilerName } from './identity/ANSNamespace';
 import {
   type SpatialZoneEnforcer,
   type SpatialAccessDecision,
@@ -425,7 +421,7 @@ export abstract class CompilerBase implements ICompiler {
    * @param target The compilation target language
    * @returns The escaped/sanitized string safe for interpolation
    */
-  protected escapeStringValue(value: string, target: EscapeTarget): string {
+  public escapeStringValue(value: string, target: EscapeTarget): string {
     return escapeStringValue(value, target);
   }
 

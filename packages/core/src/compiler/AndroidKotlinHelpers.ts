@@ -1,4 +1,5 @@
 import type { HoloValue } from '../parser/HoloCompositionTypes';
+import type { EscapeTarget } from './CompilerBase';
 
 /**
  * Shared Kotlin/Android Code Generation Helpers
@@ -37,7 +38,7 @@ export function toKotlinType(value: HoloValue): string {
  */
 export function toKotlinValue(
   value: HoloValue,
-  escapeFn: (s: string, target: string) => string
+  escapeFn: (s: string, target: EscapeTarget) => string
 ): string {
   if (value === null) return 'null';
   if (typeof value === 'boolean') return value ? 'true' : 'false';
@@ -199,9 +200,7 @@ export function compositionHasTrait(composition: HoloComposition, traitName: str
  */
 export function compositionUsesArCoreDepthTraits(composition: HoloComposition): boolean {
   const depthTraits = new Set(['occlusion_mesh', 'environment_probe', 'spatial_awareness']);
-  return (
-    composition.objects?.some((o) => o.traits?.some((t) => depthTraits.has(t.name))) ?? false
-  );
+  return composition.objects?.some((o) => o.traits?.some((t) => depthTraits.has(t.name))) ?? false;
 }
 
 /**

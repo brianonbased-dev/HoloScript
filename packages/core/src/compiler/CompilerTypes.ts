@@ -61,6 +61,17 @@ export interface AndroidXRCompileResult {
   [key: string]: string | undefined;
 }
 
+// ─── Android AR Compiler ──────────────────────────────────────────────
+
+export interface AndroidCompileResult {
+  activityFile: string;
+  stateFile: string;
+  nodeFactoryFile: string;
+  manifestFile: string;
+  buildGradle: string;
+  [key: string]: string | undefined;
+}
+
 // ─── VRR Compiler ─────────────────────────────────────────────────────
 
 export interface VRRCompilationResult {

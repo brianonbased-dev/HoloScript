@@ -25,8 +25,8 @@ export function createHoloMapRunId(): string {
 
 export function logHoloMapEvent(
   runId: string,
-  event: 'init' | 'step' | 'finalize' | 'dispose' | 'error',
-  detail?: Record<string, unknown>,
+  event: 'init' | 'step' | 'step_throttled' | 'step_evict' | 'finalize' | 'dispose' | 'error',
+  detail?: Record<string, unknown>
 ): void {
   if (loggingDisabled()) {
     return;
