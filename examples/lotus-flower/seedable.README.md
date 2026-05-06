@@ -5,8 +5,7 @@
 > (`research/2026-05-06_idea-run-11-lotus-seedable-artifact.md`).
 
 This document explains what's in `garden.seedable.holo`, what's still gated
-before it can render, and how to fire it when the 16-paper genesis trigger
-lands.
+before it can fire, and how to fire it when the 16-paper genesis trigger lands.
 
 ## Relationship to the existing files
 
@@ -24,9 +23,11 @@ lands.
 `garden.seedable.holo` is **additive**. It does not replace either earlier
 file. It composes a new form on top of A-009's visual vocabulary.
 
-**2026-05-06 update:** `@botanical_lotus` now has a backed core handler in
-`packages/core/src/traits/BotanicalLotusTrait.ts`, and holoscript-net consumes
-its render profile for the live 3D proof surface. The raw reference images still
+**2026-05-06 update:** the Lotus visual/program trait family now has backed
+core handlers and runtime registration for `@botanical_lotus`, `@phyllotaxis`,
+`@bloom_reactive`, `@lotus_root`, `@lotus_stalk`, `@lotus_petal`,
+`@lotus_center`, and `@lotus_gardener`. holoscript-net consumes the botanical
+render profile for the live 3D proof surface. The raw reference images still
 need media ingest + wallet signing before these anchors can be promoted from
 pending to CAEL-signed.
 
@@ -158,8 +159,8 @@ pollen/audio/genesis light silently vanish.
 ## How I verified (without render_preview)
 
 Per founder gate in the directive, **no `render_preview` was run**
-(still misleading while the genesis trigger and final material pipeline are
-gated). What was checked instead:
+(still misleading while the genesis trigger, active trait-block migration,
+and final material pipeline are gated). What was checked instead:
 
 1. **Brace balance:** 135 open / 135 close — confirmed balanced.
 2. **Petal counts by program:** `re.findall` confirms P1=8, P2=13,
@@ -171,9 +172,9 @@ gated). What was checked instead:
    Python harness using `angle = (i * 137.50776) mod 360`, `x = r*cos`,
    `z = r*sin`. Same harness called with the same seed will reproduce
    the same coordinates byte-for-byte.
-5. **TODO marker hygiene:** 55 `TODO[trait-binding]` markers, exactly
-   one per staged trait migration site, each naming the trait block that
-   should replace placeholder geometry when genesis is allowed to fire.
+5. **TODO marker hygiene:** 55 `TODO[trait-binding]` migration markers.
+   All referenced trait files are now backed except the founder-gated
+   `@lotus_genesis_trigger`.
 6. **Parser parity:** local `parseHolo` returns success with 0 errors for
    both `garden.refreshed.holo` and `garden.seedable.holo`.
 

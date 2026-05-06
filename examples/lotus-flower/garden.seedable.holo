@@ -88,14 +88,14 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   // ── PHYLLOTAXIS ANCHOR (deterministic petal-placement source) ─────────────
   // Pure function: (layer_index, petal_index, golden_angle, seed) -> Vector3
   // The 42 explicit petal positions below are the canonical evaluation of
-  // this anchor at seed=0x0000DEAD. When the trait lands and renders live,
+  // this anchor at seed=0x0000DEAD. When the staged trait block activates and renders live,
   // the explicit positions become redundant and can be replaced with
   // `instanced_object` driven by the anchor.
 
   object "PhyllotaxisAnchor" {
     type: "node"
     position: [0, 5, 0]
-    // TODO[trait-binding]: replace with @phyllotaxis once PhyllotaxisTrait lands.
+    // TODO[trait-binding]: replace with @phyllotaxis when the staged trait block activates.
     // Expected shape:
     //   @phyllotaxis {
     //     golden_angle_deg: 137.50776
@@ -116,7 +116,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Root: Parser" {
     type: "mesh"
     position: [-1.5, -2.0, 0]
-    // TODO[trait-binding]: replace with @lotus_root once LotusRootTrait lands.
+    // TODO[trait-binding]: replace with @lotus_root when the staged trait block activates.
     @glowing {
       color: "#1a6b3a"
       intensity: 0.6
@@ -127,7 +127,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Root: Multi-target Compiler" {
     type: "mesh"
     position: [0, -2.0, 0]
-    // TODO[trait-binding]: replace with @lotus_root once LotusRootTrait lands.
+    // TODO[trait-binding]: replace with @lotus_root when the staged trait block activates.
     @glowing {
       color: "#1a6b3a"
       intensity: 0.6
@@ -138,7 +138,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Root: Provenance Semiring" {
     type: "mesh"
     position: [1.5, -2.0, 0]
-    // TODO[trait-binding]: replace with @lotus_root once LotusRootTrait lands.
+    // TODO[trait-binding]: replace with @lotus_root when the staged trait block activates.
     @glowing {
       color: "#1a6b3a"
       intensity: 0.8
@@ -152,7 +152,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Stalk: .hs (Core IR)" {
     type: "mesh"
     position: [0, 0, 0]
-    // TODO[trait-binding]: replace with @lotus_stalk once LotusStalkTrait lands.
+    // TODO[trait-binding]: replace with @lotus_stalk when the staged trait block activates.
     @animated {
       clip: "sway_gentle"
       speed: 0.4
@@ -163,7 +163,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Stalk: .hsplus (Reactive Traits)" {
     type: "mesh"
     position: [0, 1, 0]
-    // TODO[trait-binding]: replace with @lotus_stalk once LotusStalkTrait lands.
+    // TODO[trait-binding]: replace with @lotus_stalk when the staged trait block activates.
     @animated {
       clip: "sway_gentle"
       speed: 0.4
@@ -174,7 +174,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Stalk: .holo (Scene Composition)" {
     type: "mesh"
     position: [0, 2, 0]
-    // TODO[trait-binding]: replace with @lotus_stalk once LotusStalkTrait lands.
+    // TODO[trait-binding]: replace with @lotus_stalk when the staged trait block activates.
     @animated {
       clip: "sway_gentle"
       speed: 0.4
@@ -185,7 +185,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Stalk: .hs.md (Documentation)" {
     type: "mesh"
     position: [0, 3, 0]
-    // TODO[trait-binding]: replace with @lotus_stalk once LotusStalkTrait lands.
+    // TODO[trait-binding]: replace with @lotus_stalk when the staged trait block activates.
     @animated {
       clip: "sway_gentle"
       speed: 0.4
@@ -201,7 +201,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Center: Dumb Glass (placeholder)" {
     type: "mesh"
     position: [0, 5, 0]
-    // TODO[trait-binding]: replace with @lotus_center once LotusCenterTrait lands.
+    // TODO[trait-binding]: replace with @lotus_center when the staged trait block activates.
     // TODO[phase-2]: SDF body via @sdf_scene + ShaderTrait once genesis fires.
     @glowing {
       color: "#ffffff"
@@ -224,8 +224,8 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P1.0: Trust by Construction (TVCG)" {
     type: "mesh"
     position: [2.000, 5.0, 0.000]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once
-    // LotusPetalTrait and BloomReactiveTrait land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive
+    // when the staged trait blocks activate.
     // Expected shape:
     //   @lotus_petal { paper_id: "trust-by-construction"; venue: "IEEE TVCG 2026"; program: 1; layer: 1; spiral_index: 0 }
     //   @bloom_reactive { state_source: "lotus.api.bloom_state"; opacity_curve: "default" }
@@ -246,7 +246,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P1.1: CAEL (AAMAS)" {
     type: "mesh"
     position: [-1.475, 5.0, 1.351]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#6633aa"
       intensity: 0.4
@@ -257,7 +257,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P1.2: Trust by Replay (USENIX Sec)" {
     type: "mesh"
     position: [0.175, 5.0, -1.992]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#6633aa"
       intensity: 0.4
@@ -268,7 +268,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P1.3: Browser-Native SNN (NeurIPS)" {
     type: "mesh"
     position: [1.217, 5.0, 1.587]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#6633aa"
       intensity: 0.4
@@ -279,7 +279,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P1.4: Conflict-Free Spatial CRDT (ECOOP)" {
     type: "mesh"
     position: [-1.969, 5.0, -0.348]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#6633aa"
       intensity: 0.4
@@ -290,7 +290,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P1.5: Sandboxed Embodied Sim (USENIX Sec)" {
     type: "mesh"
     position: [1.688, 5.0, -1.073]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#6633aa"
       intensity: 0.4
@@ -301,7 +301,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P1.6: GraphRAG Codebase Intel (ICSE)" {
     type: "mesh"
     position: [-0.519, 5.0, 1.931]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#6633aa"
       intensity: 0.4
@@ -312,7 +312,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P1.7: From Notation to Cognition (UIST capstone)" {
     type: "mesh"
     position: [-0.922, 5.0, -1.775]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#6633aa"
       intensity: 0.4
@@ -328,7 +328,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P2.0: Contracted Animation (SCA)" {
     type: "mesh"
     position: [3.194, 5.0, 1.166]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#220033"
       intensity: 0.1
@@ -339,7 +339,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P2.1: IK Under Contract (SIGGRAPH short)" {
     type: "mesh"
     position: [-3.143, 5.0, 1.297]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#220033"
       intensity: 0.1
@@ -350,7 +350,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P2.2: Unified Sim+Anim (SIGGRAPH thesis)" {
     type: "mesh"
     position: [1.441, 5.0, -3.079]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#6633aa"
       intensity: 0.4
@@ -361,7 +361,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P2.3: Verifiable Motion (SIGGRAPH Asia)" {
     type: "mesh"
     position: [1.018, 5.0, 3.244]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#220033"
       intensity: 0.1
@@ -372,7 +372,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P2.4: [reserved capacity]" {
     type: "mesh"
     position: [-2.942, 5.0, -1.705]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     // TODO[paper-binding]: capacity slot — bind paper_id when Program-2 expands.
     @glowing {
       color: "#220033"
@@ -384,7 +384,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P2.5: [reserved capacity]" {
     type: "mesh"
     position: [3.321, 5.0, -0.730]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     // TODO[paper-binding]: capacity slot — bind paper_id when Program-2 expands.
     @glowing {
       color: "#220033"
@@ -396,7 +396,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P2.6: [reserved capacity]" {
     type: "mesh"
     position: [-1.955, 5.0, 2.781]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     // TODO[paper-binding]: capacity slot — bind paper_id when Program-2 expands.
     @glowing {
       color: "#220033"
@@ -408,7 +408,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P2.7: [reserved capacity]" {
     type: "mesh"
     position: [-0.437, 5.0, -3.372]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     // TODO[paper-binding]: capacity slot — bind paper_id when Program-2 expands.
     @glowing {
       color: "#220033"
@@ -420,7 +420,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P2.8: [reserved capacity]" {
     type: "mesh"
     position: [2.600, 5.0, 2.191]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     // TODO[paper-binding]: capacity slot — bind paper_id when Program-2 expands.
     @glowing {
       color: "#220033"
@@ -432,7 +432,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P2.9: [reserved capacity]" {
     type: "mesh"
     position: [-3.397, 5.0, 0.140]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     // TODO[paper-binding]: capacity slot — bind paper_id when Program-2 expands.
     @glowing {
       color: "#220033"
@@ -444,7 +444,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P2.10: [reserved capacity]" {
     type: "mesh"
     position: [2.410, 5.0, -2.398]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     // TODO[paper-binding]: capacity slot — bind paper_id when Program-2 expands.
     @glowing {
       color: "#220033"
@@ -456,7 +456,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P2.11: [reserved capacity]" {
     type: "mesh"
     position: [-0.157, 5.0, 3.396]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     // TODO[paper-binding]: capacity slot — bind paper_id when Program-2 expands.
     @glowing {
       color: "#220033"
@@ -468,7 +468,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P2.12: [reserved capacity]" {
     type: "mesh"
     position: [-2.178, 5.0, -2.610]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     // TODO[paper-binding]: capacity slot — bind paper_id when Program-2 expands.
     @glowing {
       color: "#220033"
@@ -487,7 +487,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.0: .hs Core IR (PLDI)" {
     type: "mesh"
     position: [4.757, 5.0, 0.640]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#220033"
       intensity: 0.1
@@ -498,7 +498,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.1: .hsplus Traits (ECOOP)" {
     type: "mesh"
     position: [-3.940, 5.0, 2.741]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#220033"
       intensity: 0.1
@@ -509,7 +509,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.2: .holo Composition (I3D)" {
     type: "mesh"
     position: [1.054, 5.0, -4.683]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#220033"
       intensity: 0.1
@@ -520,7 +520,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.3: [reserved — Paper 17]" {
     type: "mesh"
     position: [2.386, 5.0, 4.165]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#220033"
       intensity: 0.1
@@ -531,7 +531,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.4: [reserved — Paper 18]" {
     type: "mesh"
     position: [-4.573, 5.0, -1.459]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#220033"
       intensity: 0.1
@@ -542,7 +542,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.5: [reserved — Paper 19]" {
     type: "mesh"
     position: [4.357, 5.0, -2.013]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#220033"
       intensity: 0.1
@@ -553,7 +553,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.6: [reserved — Paper 20]" {
     type: "mesh"
     position: [-1.853, 5.0, 4.428]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#220033"
       intensity: 0.1
@@ -564,7 +564,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.7: [reserved — Paper 21 (Adversarial Trust)]" {
     type: "mesh"
     position: [-1.625, 5.0, -4.517]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#220033"
       intensity: 0.1
@@ -575,7 +575,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.8: [reserved — Paper 22 (Mechanized SimContract)]" {
     type: "mesh"
     position: [4.249, 5.0, 2.233]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#220033"
       intensity: 0.1
@@ -586,7 +586,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.9: [reserved — Paper 23 (Formal Semantics HS Core)]" {
     type: "mesh"
     position: [-4.641, 5.0, 1.223]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#220033"
       intensity: 0.1
@@ -597,7 +597,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.10: [reserved — Paper 24]" {
     type: "mesh"
     position: [2.596, 5.0, -4.037]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#220033"
       intensity: 0.1
@@ -608,7 +608,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.11: [reserved — Paper 25]" {
     type: "mesh"
     position: [0.813, 5.0, 4.731]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#220033"
       intensity: 0.1
@@ -619,7 +619,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.12: [reserved — Longitudinal-RE-INTAKE]" {
     type: "mesh"
     position: [-3.795, 5.0, -2.939]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     @glowing {
       color: "#220033"
       intensity: 0.1
@@ -630,7 +630,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.13: [reserved capacity]" {
     type: "mesh"
     position: [4.784, 5.0, -0.396]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     // TODO[paper-binding]: capacity slot — bind paper_id when Program-3 expands.
     @glowing {
       color: "#220033"
@@ -642,7 +642,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.14: [reserved capacity]" {
     type: "mesh"
     position: [-3.260, 5.0, 3.524]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     // TODO[paper-binding]: capacity slot — bind paper_id when Program-3 expands.
     @glowing {
       color: "#220033"
@@ -654,7 +654,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.15: [reserved capacity]" {
     type: "mesh"
     position: [0.023, 5.0, -4.800]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     // TODO[paper-binding]: capacity slot — bind paper_id when Program-3 expands.
     @glowing {
       color: "#220033"
@@ -666,7 +666,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.16: [reserved capacity]" {
     type: "mesh"
     position: [3.225, 5.0, 3.555]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     // TODO[paper-binding]: capacity slot — bind paper_id when Program-3 expands.
     @glowing {
       color: "#220033"
@@ -678,7 +678,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.17: [reserved capacity]" {
     type: "mesh"
     position: [-4.780, 5.0, -0.443]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     // TODO[paper-binding]: capacity slot — bind paper_id when Program-3 expands.
     @glowing {
       color: "#220033"
@@ -690,7 +690,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.18: [reserved capacity]" {
     type: "mesh"
     position: [3.823, 5.0, -2.902]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     // TODO[paper-binding]: capacity slot — bind paper_id when Program-3 expands.
     @glowing {
       color: "#220033"
@@ -702,7 +702,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.19: [reserved capacity]" {
     type: "mesh"
     position: [-0.859, 5.0, 4.722]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     // TODO[paper-binding]: capacity slot — bind paper_id when Program-3 expands.
     @glowing {
       color: "#220033"
@@ -714,7 +714,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Petal P3.20: [reserved capacity]" {
     type: "mesh"
     position: [-2.557, 5.0, -4.063]
-    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive once traits land.
+    // TODO[trait-binding]: replace with @lotus_petal + @bloom_reactive when staged trait blocks activate.
     // TODO[paper-binding]: capacity slot — bind paper_id when Program-3 expands.
     @glowing {
       color: "#220033"
@@ -767,7 +767,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
   object "Brittney" {
     type: "mesh"
     position: [4, 5, 0]
-    // TODO[trait-binding]: replace with @lotus_gardener once trait lands.
+    // TODO[trait-binding]: replace with @lotus_gardener when staged trait block activates.
     @animated {
       clip: "idle_gardener"
       speed: 1.0
@@ -831,7 +831,7 @@ composition "Lotus — Seedable Artifact (Pre-Genesis)" {
     }
     position: [0, 7, 0]
     enabled: false
-    // TODO[trait-binding]: replace with @lotus_genesis_trigger once trait lands.
+    // TODO[trait-binding]: replace with @lotus_genesis_trigger when staged trait block activates.
     // Trigger contract (post-genesis):
     //   condition: "all 16 petals === full"
     //   wallet: "0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3"
