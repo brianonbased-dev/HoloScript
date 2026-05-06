@@ -16,8 +16,11 @@
  */
 
 import * as nodeVm from 'node:vm';
+import { createRequire } from 'node:module';
 import { parseHoloStrict, HoloScriptPlusParser } from '@holoscript/core';
 import { HoloBytecodeBuilder, HoloVM } from '@holoscript/holo-vm';
+
+const testOnlyHostRequire = createRequire(import.meta.url);
 
 /** SEC-01 / Paper #4: guest code must not compile or instantiate Wasm inside the isolate. */
 function createBlockedWebAssemblySurface(): Record<string, unknown> {
@@ -76,6 +79,28 @@ export interface SandboxOptions {
   enableLogging?: boolean;
   /** Maximum memory limit in MB (default: 128) */
   memoryLimit?: number;
+  /**
+   * Paper #4 ablation harness escape hatch (test-only).
+   *
+   * Disables individual enforcement layers so the ablation benchmark can measure
+   * each layer's contribution to throughput and escape-block coverage. NEVER
+   * enable in production: ALL three layers are required for the published
+   * security guarantee. The constructor refuses any non-empty value unless
+   * `process.env.HOLOSCRIPT_TEST_ABLATION === '1'`, so a misconfigured prod
+   * deployment fails closed.
+   *
+   * Layer mapping (matches Table~\ref{tab:ablation-sandbox} in
+   * `research/paper-4-sandbox-usenix.tex`):
+   *   - capabilityCheck: GLOBALS_BLOCKLIST text-scan + protoEscape regex pass.
+   *   - resourceLimit:   per-execution timeout (5s default).
+   *   - syscallFilter:   VM-level shadowed globals (WebAssembly / process /
+   *                      require / Buffer / Atomics / Reflect / fetch proxies).
+   */
+  __TEST_ABLATION?: {
+    disableCapabilityCheck?: boolean;
+    disableResourceLimit?: boolean;
+    disableSyscallFilter?: boolean;
+  };
 }
 
 /**
@@ -170,8 +195,19 @@ export interface SecurityAuditLog {
  * }
  * ```
  */
+/**
+ * Resolved ablation flags. After constructor gating they always represent the
+ * actually-applied state — guaranteed all-false in production.
+ */
+interface ResolvedAblation {
+  disableCapabilityCheck: boolean;
+  disableResourceLimit: boolean;
+  disableSyscallFilter: boolean;
+}
+
 export class HoloScriptSandbox {
-  private options: Required<SandboxOptions>;
+  private options: Omit<Required<SandboxOptions>, '__TEST_ABLATION'>;
+  private ablation: ResolvedAblation;
   private auditLog: SecurityAuditLog[] = [];
   private parser: HoloScriptPlusParser;
 
@@ -208,7 +244,39 @@ export class HoloScriptSandbox {
       enableLogging: options.enableLogging ?? true,
       memoryLimit: options.memoryLimit ?? 128,
     };
+    // Paper #4 ablation: refuse to honor any disable flag unless the
+    // HOLOSCRIPT_TEST_ABLATION=1 environment guard is present. Production
+    // deployments leak no enforcement even if a caller passes the option.
+    const requested = options.__TEST_ABLATION;
+    const ablationGuard =
+      typeof process !== 'undefined' &&
+      process.env?.HOLOSCRIPT_TEST_ABLATION === '1';
+    if (requested && !ablationGuard) {
+      // Audit-trail signal: prod caller passed a test-only flag. Refuse silently
+      // (fail-closed); the audit log captures the attempt for forensics.
+      this.auditLog.push({
+        timestamp: Date.now(),
+        source: 'sandbox-init',
+        action: 'reject',
+        success: false,
+        reason: '__TEST_ABLATION ignored: HOLOSCRIPT_TEST_ABLATION env not set',
+        codeHash: '0',
+      });
+    }
+    this.ablation = {
+      disableCapabilityCheck: Boolean(ablationGuard && requested?.disableCapabilityCheck),
+      disableResourceLimit: Boolean(ablationGuard && requested?.disableResourceLimit),
+      disableSyscallFilter: Boolean(ablationGuard && requested?.disableSyscallFilter),
+    };
     this.parser = new HoloScriptPlusParser();
+  }
+
+  /**
+   * Test-only: returns the resolved ablation state. Used by the paper-#4
+   * harness to confirm the gate fired correctly. Never used in prod paths.
+   */
+  public __getAblationState(): ResolvedAblation {
+    return { ...this.ablation };
   }
 
   /**
@@ -219,15 +287,20 @@ export class HoloScriptSandbox {
       return { valid: false, error: 'Code cannot be empty' };
     }
 
-    const structuralError = this.preValidateStructure(code);
-    if (structuralError) {
-      return { valid: false, error: structuralError };
-    }
+    // Paper #4 ablation: -Capability Check disables the static blocklist /
+    // proto-escape regex pass. Empty-string check above and parser pass below
+    // remain (they are not capability checks; they are validity checks).
+    if (!this.ablation.disableCapabilityCheck) {
+      const structuralError = this.preValidateStructure(code);
+      if (structuralError) {
+        return { valid: false, error: structuralError };
+      }
 
-    for (const blocked of HoloScriptSandbox.GLOBALS_BLOCKLIST) {
-      const regex = new RegExp(`\\b${blocked}\\b`);
-      if (regex.test(code)) {
-        return { valid: false, error: `${blocked} is blocked in the HoloScript security sandbox (SEC-01)` };
+      for (const blocked of HoloScriptSandbox.GLOBALS_BLOCKLIST) {
+        const regex = new RegExp(`\\b${blocked}\\b`);
+        if (regex.test(code)) {
+          return { valid: false, error: `${blocked} is blocked in the HoloScript security sandbox (SEC-01)` };
+        }
       }
     }
 
@@ -414,37 +487,69 @@ export class HoloScriptSandbox {
     // vm.createContext() creates an entirely separate V8 context — globals
     // set here are the *only* globals available to guest code, so prototype
     // chain bleed from the host heap is not possible.
-    const sandboxContext: Record<string, unknown> = {
+    //
+    // Paper #4 ablation: -Syscall Filter disables the VM-level shadows so
+    // guest code sees the host's real globals (those that node:vm exposes by
+    // default; node:vm does NOT expose process/require/Buffer regardless).
+    // The shadows are the syscall-filter analog: they are the runtime gate
+    // that catches anything the static capability check let through.
+    const baseContext: Record<string, unknown> = {
       ...this.options.sandbox,
       console: {
         log: (...args: unknown[]) => console.log('[SANDBOX]', ...args),
         error: (...args: unknown[]) => console.error('[SANDBOX]', ...args),
         warn: (...args: unknown[]) => console.warn('[SANDBOX]', ...args),
       },
-      // SEC-01: Shadow host WebAssembly; no guest wasm compile/instantiate.
-      WebAssembly: createBlockedWebAssemblySurface(),
-      // SEC-02: Shadow process — prevents env var exfiltration.
-      process: blockedGlobal('process'),
-      // SEC-02: Shadow globalThis — prevents re-resolving blocked globals.
-      globalThis: blockedGlobal('globalThis'),
-      // SEC-03: Shadow require/Buffer.
-      require: blockedGlobal('require'),
-      Buffer: blockedGlobal('Buffer'),
-      // SEC-04: Shadow Atomics.
-      Atomics: blockedGlobal('Atomics'),
-      // SEC-04: Ensure SharedArrayBuffer is not constructible.
-      SharedArrayBuffer: blockedGlobal('SharedArrayBuffer'),
-      // SEC-T15: Shadow Reflect — prevents Reflect.getPrototypeOf,
-      // Reflect.construct(Function,…), Reflect.ownKeys, etc.
-      Reflect: blockedGlobal('Reflect'),
     };
+    const testOnlyHostGlobals: Record<string, unknown> = {
+      WebAssembly,
+      process,
+      require: testOnlyHostRequire,
+      Buffer,
+      Atomics,
+      SharedArrayBuffer,
+      Reflect,
+      fetch: globalThis.fetch,
+      globalThis,
+    };
+    const sandboxContext: Record<string, unknown> = this.ablation.disableSyscallFilter
+      ? { ...baseContext, ...testOnlyHostGlobals }
+      : {
+          ...baseContext,
+          // SEC-01: Shadow host WebAssembly; no guest wasm compile/instantiate.
+          WebAssembly: createBlockedWebAssemblySurface(),
+          // SEC-02: Shadow process — prevents env var exfiltration.
+          process: blockedGlobal('process'),
+          // SEC-02: Shadow globalThis — prevents re-resolving blocked globals.
+          globalThis: blockedGlobal('globalThis'),
+          // SEC-03: Shadow require/Buffer.
+          require: blockedGlobal('require'),
+          Buffer: blockedGlobal('Buffer'),
+          // SEC-04: Shadow Atomics.
+          Atomics: blockedGlobal('Atomics'),
+          // SEC-04: Ensure SharedArrayBuffer is not constructible.
+          SharedArrayBuffer: blockedGlobal('SharedArrayBuffer'),
+          // SEC-T15: Shadow Reflect — prevents Reflect.getPrototypeOf,
+          // Reflect.construct(Function,…), Reflect.ownKeys, etc.
+          Reflect: blockedGlobal('Reflect'),
+          // Network exfiltration surface.
+          fetch: blockedGlobal('fetch'),
+        };
     const context = nodeVm.createContext(sandboxContext);
 
     // Step 3: Execute in isolated context — compilation and run both inside
     // the try block so SyntaxError from invalid guest code is caught here.
+    //
+    // Paper #4 ablation: -Resource Limit drops the per-execution timeout. The
+    // 22-scenario suite contains DoS vectors (D5 infinite loop) that hang
+    // forever without it; the harness wraps an external watchdog around the
+    // whole call so the bench process can still terminate.
+    const runOpts = this.ablation.disableResourceLimit
+      ? {}
+      : { timeout: this.options.timeout };
     try {
       const script = new nodeVm.Script(code);
-      const result = script.runInContext(context, { timeout: this.options.timeout }) as T;
+      const result = script.runInContext(context, runOpts) as T;
 
       this.log({
         source: meta.source,
