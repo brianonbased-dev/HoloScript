@@ -107,6 +107,29 @@ function getApiKey(): string {
   return process.env.HOLOMESH_API_KEY || process.env.HOLOSCRIPT_API_KEY || '';
 }
 
+function getCanonicalAgentId(agentId: string): string | undefined {
+  return TEAM_AGENT_PROFILES.get(agentId)?.id;
+}
+
+function agentIdsReferToSameProfile(leftAgentId: string, rightAgentId: string): boolean {
+  if (leftAgentId === rightAgentId) return true;
+  const leftCanonicalId = getCanonicalAgentId(leftAgentId);
+  const rightCanonicalId = getCanonicalAgentId(rightAgentId);
+  return Boolean(leftCanonicalId && rightCanonicalId && leftCanonicalId === rightCanonicalId);
+}
+
+function findLoadedAgentKey(
+  slots: Map<string, RoomAgentSlot>,
+  agentId: string
+): string | undefined {
+  for (const [slotKey, slot] of slots) {
+    if (agentIdsReferToSameProfile(slot.agentId, agentId)) {
+      return slotKey;
+    }
+  }
+  return undefined;
+}
+
 // ── Core Functions ──
 
 /**
@@ -131,15 +154,15 @@ export function assignAgentsToRoom(roomId: string, agentProfileIds: string[]): L
       continue;
     }
 
-    if (slots.has(profile.id)) {
-      skipped.push(profile.id);
+    if (findLoadedAgentKey(slots, profileId)) {
+      skipped.push(profileId);
       continue;
     }
 
     const roleAsSlot = mapAgentRoleToSlot(profile.role);
     const now = new Date().toISOString();
     const slot: RoomAgentSlot = {
-      agentId: profile.id,
+      agentId: profileId,
       agentName: profile.name,
       role: roleAsSlot,
       joinedAt: now,
@@ -148,7 +171,7 @@ export function assignAgentsToRoom(roomId: string, agentProfileIds: string[]): L
       knowledgePublished: 0,
     };
 
-    slots.set(profile.id, slot);
+    slots.set(profileId, slot);
     loaded.push(slot);
   }
 
@@ -351,7 +374,8 @@ export function getRoomCycleHistory(roomId: string): CycleResult[] {
 export function removeAgentFromRoom(roomId: string, agentId: string): boolean {
   const slots = roomAgents.get(roomId);
   if (!slots) return false;
-  return slots.delete(agentId);
+  const loadedAgentKey = findLoadedAgentKey(slots, agentId);
+  return loadedAgentKey ? slots.delete(loadedAgentKey) : false;
 }
 
 /** Clear all agents and history for a room @deprecated FW-0.3 */

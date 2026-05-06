@@ -249,9 +249,9 @@ export interface TeamAgentProfile {
   knowledgeDomains: string[];
 }
 
-export const BRITTNEY_AGENT: TeamAgentProfile = {
-  id: 'agent_brittney',
-  name: 'Brittney',
+export const PRIMARY_ASSISTANT_AGENT: TeamAgentProfile = {
+  id: 'agent_primary_assistant',
+  name: 'Primary Assistant',
   role: 'architect',
   capabilities: [
     'scene-design',
@@ -264,7 +264,7 @@ export const BRITTNEY_AGENT: TeamAgentProfile = {
   provider: 'anthropic',
   claimFilter: { roles: ['coder', 'reviewer'], maxPriority: 5 },
   systemPrompt:
-    'You are Brittney, the orchestrating AI for HoloScript team rooms. HoloScript is a knowledge compiler — users describe any system and it compiles to 37 targets. You scaffold projects, dispatch agents, compose traits, and select compilation targets. Simulation-first: digital twin before physical twin.',
+    'You are the primary orchestrating assistant for HoloScript team rooms. HoloScript is a knowledge compiler — users describe any system and it compiles to 37 targets. You scaffold projects, dispatch agents, compose traits, and select compilation targets. Simulation-first: digital twin before physical twin.',
   knowledgeDomains: [
     'rendering',
     'compilation',
@@ -274,6 +274,9 @@ export const BRITTNEY_AGENT: TeamAgentProfile = {
     'orchestration',
   ],
 };
+
+// Backward-compatible alias while callers migrate off the legacy persona name.
+export const BRITTNEY_AGENT: TeamAgentProfile = PRIMARY_ASSISTANT_AGENT;
 
 export const DAEMON_AGENT: TeamAgentProfile = {
   id: 'agent_daemon',
@@ -333,7 +336,8 @@ export const ORACLE_AGENT: TeamAgentProfile = {
 };
 
 export const TEAM_AGENT_PROFILES: Map<string, TeamAgentProfile> = new Map([
-  [BRITTNEY_AGENT.id, BRITTNEY_AGENT],
+  [PRIMARY_ASSISTANT_AGENT.id, PRIMARY_ASSISTANT_AGENT],
+  ['agent_brittney', PRIMARY_ASSISTANT_AGENT],
   [DAEMON_AGENT.id, DAEMON_AGENT],
   [ABSORB_AGENT.id, ABSORB_AGENT],
   [ORACLE_AGENT.id, ORACLE_AGENT],
@@ -344,7 +348,14 @@ export function registerAgentProfile(profile: TeamAgentProfile) {
 }
 
 export function getAllProfiles(): TeamAgentProfile[] {
-  return Array.from(TEAM_AGENT_PROFILES.values());
+  const seen = new Set<string>();
+  const profiles: TeamAgentProfile[] = [];
+  for (const profile of TEAM_AGENT_PROFILES.values()) {
+    if (seen.has(profile.id)) continue;
+    seen.add(profile.id);
+    profiles.push(profile);
+  }
+  return profiles;
 }
 
 export function getProfileById(id: string): TeamAgentProfile | undefined {

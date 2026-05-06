@@ -33,7 +33,7 @@ export const teamAgentTools: Tool[] = [
         agent_ids: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Agent profile IDs to load. Available: agent_brittney, agent_daemon, agent_absorb, agent_oracle. Omit to load all.',
+          description: 'Agent profile IDs to load. Available: agent_primary_assistant (legacy alias: agent_brittney), agent_daemon, agent_absorb, agent_oracle. Omit to load all.',
         },
       },
       required: ['team_id'],

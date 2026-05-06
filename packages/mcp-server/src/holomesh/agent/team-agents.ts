@@ -14,6 +14,7 @@ export type {
 } from '@holoscript/framework';
 
 export {
+  PRIMARY_ASSISTANT_AGENT,
   BRITTNEY_AGENT,
   DAEMON_AGENT,
   ABSORB_AGENT,

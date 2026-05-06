@@ -9,6 +9,7 @@ export { sendMessage, getInbox, getThread, markRead, getUnreadCount } from './me
 export { boardTools, handleBoardTool } from './board-tools';
 export { teamAgentTools, handleTeamAgentTool } from './team-agent-tools';
 export {
+  PRIMARY_ASSISTANT_AGENT,
   BRITTNEY_AGENT,
   DAEMON_AGENT,
   ABSORB_AGENT,

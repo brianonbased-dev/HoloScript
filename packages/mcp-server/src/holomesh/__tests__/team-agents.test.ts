@@ -26,8 +26,9 @@ import { teamAgentTools, handleTeamAgentTool } from '../team-agent-tools';
 // ── Agent Profile Tests ──
 
 describe('TeamAgentProfiles', () => {
-  it('has 4 built-in agent profiles', () => {
-    expect(TEAM_AGENT_PROFILES.size).toBe(4);
+  it('has 4 unique built-in agent profiles plus compatibility aliases', () => {
+    expect(getAllProfiles()).toHaveLength(4);
+    expect(TEAM_AGENT_PROFILES.size).toBeGreaterThanOrEqual(4);
   });
 
   it('all profiles have required fields', () => {
@@ -45,7 +46,7 @@ describe('TeamAgentProfiles', () => {
     }
   });
 
-  it('Brittney is an architect with reviewer/coder claim roles', () => {
+  it('legacy Brittney alias is an architect with reviewer/coder claim roles', () => {
     expect(BRITTNEY_AGENT.role).toBe('architect');
     expect(BRITTNEY_AGENT.claimFilter.roles).toContain('coder');
     expect(BRITTNEY_AGENT.claimFilter.roles).toContain('reviewer');
@@ -70,6 +71,9 @@ describe('TeamAgentProfiles', () => {
   });
 
   it('getProfileById returns correct profile', () => {
+    expect(getProfileById('agent_primary_assistant') ?? getProfileById('agent_brittney')).toBe(
+      BRITTNEY_AGENT
+    );
     expect(getProfileById('agent_brittney')).toBe(BRITTNEY_AGENT);
     expect(getProfileById('agent_daemon')).toBe(DAEMON_AGENT);
     expect(getProfileById('nonexistent')).toBeUndefined();
@@ -77,8 +81,10 @@ describe('TeamAgentProfiles', () => {
 
   it('getProfilesByClaimRole finds agents for coder role', () => {
     const coders = getProfilesByClaimRole('coder');
-    expect(coders.length).toBeGreaterThanOrEqual(2); // Brittney + Daemon
-    expect(coders.some((p) => p.id === 'agent_brittney')).toBe(true);
+    expect(coders.length).toBeGreaterThanOrEqual(2); // Primary assistant + Daemon
+    expect(coders.some((p) => ['agent_primary_assistant', 'agent_brittney'].includes(p.id))).toBe(
+      true
+    );
     expect(coders.some((p) => p.id === 'agent_daemon')).toBe(true);
   });
 
@@ -121,7 +127,8 @@ describe('TeamCoordinator', () => {
     expect(result.roomId).toBe('room-1');
     expect(result.loaded).toHaveLength(2);
     expect(result.skipped).toHaveLength(0);
-    expect(result.loaded[0].agentName).toBe('Brittney');
+    expect(result.loaded[0].agentName).toBe('Primary Assistant');
+    expect(result.loaded[0].agentId).toBe('agent_brittney');
     expect(result.loaded[1].agentName).toBe('Daemon');
   });
 
@@ -136,6 +143,14 @@ describe('TeamCoordinator', () => {
     const result = assignAgentsToRoom('room-1', ['agent_brittney', 'agent_daemon']);
     expect(result.loaded).toHaveLength(1); // only Daemon is new
     expect(result.skipped).toContain('agent_brittney');
+  });
+
+  it('assignAgentsToRoom skips canonical primary assistant when legacy alias is loaded', () => {
+    assignAgentsToRoom('room-1', ['agent_brittney']);
+    const result = assignAgentsToRoom('room-1', ['agent_primary_assistant']);
+    expect(result.loaded).toHaveLength(0);
+    expect(result.skipped).toContain('agent_primary_assistant');
+    expect(getRoomAgents('room-1')).toHaveLength(1);
   });
 
   it('getRoomAgents returns all agents in a room', () => {
@@ -153,6 +168,13 @@ describe('TeamCoordinator', () => {
     const removed = removeAgentFromRoom('room-1', 'agent_brittney');
     expect(removed).toBe(true);
     expect(getRoomAgents('room-1')).toHaveLength(1);
+  });
+
+  it('removeAgentFromRoom removes primary assistant by legacy alias', () => {
+    assignAgentsToRoom('room-1', ['agent_primary_assistant']);
+    const removed = removeAgentFromRoom('room-1', 'agent_brittney');
+    expect(removed).toBe(true);
+    expect(getRoomAgents('room-1')).toHaveLength(0);
   });
 
   it('removeAgentFromRoom returns false for nonexistent agent', () => {
