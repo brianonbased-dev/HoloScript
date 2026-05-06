@@ -4,6 +4,7 @@ dockerfilePath = "infrastructure/Dockerfile.absorb-service"
 watchPatterns = ["services/absorb-service/**", "packages/core/**", "packages/absorb-service/**", "packages/absorb-service/dist/**"]
 
 [deploy]
+startCommand = "sh /app/services/absorb-service/scripts/docker-entrypoint.sh"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
