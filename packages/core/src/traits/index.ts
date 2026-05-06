@@ -154,6 +154,7 @@ export * from './PatrolTrait';
 export * from './PerceptionTrait';
 export * from './PersistentAnchorTrait';
 export * from './PhotogrammetryTrait';
+export * from './PhyllotaxisTrait';
 export { PIDControllerTrait } from './PIDControllerTrait';
 export * from './PlaneDetectionTrait';
 export * from './PointCloudTrait';
