@@ -19,10 +19,16 @@ export type { StoredEntry, EmbedResult, SemanticSearchOptions } from './knowledg
 export {
   KNOWLEDGE_DOMAINS,
   type KnowledgeDomain,
+  type MemoryRetentionState,
+  type MemoryHashAlgorithm,
   type DomainConsolidationConfig,
   DOMAIN_CONSOLIDATION,
   DOMAIN_HALF_LIVES,
   type HotBufferEntry,
+  type MemorySourceHash,
+  type MemoryModelIdentity,
+  type MemoryToolIdentity,
+  type MemoryReceipt,
   type ExcitabilityMetadata,
   computeExcitability,
   applyHalfLifeDecay,
@@ -30,11 +36,17 @@ export {
   type ReconsolidationEvent,
   RECONSOLIDATION_WINDOW_MS,
   triggerReconsolidation,
+  hashString,
 } from './knowledge/brain';
 
 // Consolidation engine (absorbed from mcp-server/holomesh/crdt-sync — pure state machine)
-export { ConsolidationEngine } from './knowledge/consolidation';
-export type { ColdStoreEntry, CrossDomainMatch } from './knowledge/consolidation';
+export { ConsolidationEngine, validateMemoryReceipt } from './knowledge/consolidation';
+export type {
+  ColdStoreEntry,
+  QuarantinedMemoryEntry,
+  RetainedMemoryEvidence,
+  CrossDomainMatch,
+} from './knowledge/consolidation';
 
 // Knowledge consolidator (FW-0.5 — tiered sleep/wake, cross-domain, contradictions, provenance)
 export { KnowledgeConsolidator } from './knowledge/knowledge-consolidator';

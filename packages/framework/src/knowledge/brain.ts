@@ -16,6 +16,8 @@ export const KNOWLEDGE_DOMAINS = [
 ] as const;
 
 export type KnowledgeDomain = (typeof KNOWLEDGE_DOMAINS)[number];
+export type MemoryRetentionState = 'candidate' | 'retained' | 'quarantined' | 'rejected';
+export type MemoryHashAlgorithm = 'sha256' | 'git-blob' | 'cid' | 'custom';
 
 // ── Consolidation Config ──
 
@@ -93,6 +95,53 @@ export interface HotBufferEntry {
   ingestedAt: number;
   corroborations: string[];
   sourcePeerDid: string;
+  retentionState: MemoryRetentionState;
+  memoryReceipt?: MemoryReceipt;
+}
+
+export interface MemorySourceHash {
+  sourceId: string;
+  hash: string;
+  algorithm: MemoryHashAlgorithm;
+  path?: string;
+  uri?: string;
+}
+
+export interface MemoryModelIdentity {
+  provider?: string;
+  model?: string;
+  agentId?: string;
+  agentName?: string;
+  surface?: string;
+}
+
+export interface MemoryToolIdentity {
+  toolName: string;
+  toolVersion?: string;
+  runtime?: string;
+}
+
+/**
+ * Provenance lineage required before a candidate memory can be retained.
+ *
+ * Dreaming-like automation needs source hashes, extractor versions, and
+ * corroboration thresholds before promotion. Every entry that survives
+ * consolidation and reaches cold store MUST carry a receipt.
+ */
+export interface MemoryReceipt {
+  id: string;
+  rawSourceIds: string[];
+  sourceHashes: MemorySourceHash[];
+  extractorVersion: string;
+  modelIdentity: MemoryModelIdentity;
+  toolIdentity: MemoryToolIdentity;
+  timestamp: number;
+  corroborators: string[];
+  confidence: number;
+  sessionId?: string;
+  taskId?: string;
+  commitHash?: string;
+  metadata?: Record<string, unknown>;
 }
 
 // ── Excitability ──
@@ -131,6 +180,8 @@ export interface ConsolidationResult {
   merged: number;
   evicted: number;
   dropped: number;
+  quarantined: number;
+  rejected: number;
   downscaleFactor: number;
   consolidatedAt: number;
 }
@@ -164,4 +215,18 @@ export function triggerReconsolidation(
     windowOpen: true,
     windowClosesAt: now + RECONSOLIDATION_WINDOW_MS,
   };
+}
+
+/** Fast deterministic string hash (cyrb53 variant) for sourceHash computation. */
+export function hashString(str: string): string {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
 }

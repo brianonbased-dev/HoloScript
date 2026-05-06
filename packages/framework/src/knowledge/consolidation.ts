@@ -20,6 +20,8 @@ import {
   DOMAIN_CONSOLIDATION,
   type KnowledgeDomain,
   type HotBufferEntry,
+  type MemoryReceipt,
+  type MemorySourceHash,
   type ExcitabilityMetadata,
   type ConsolidationResult,
   type DomainConsolidationConfig,
@@ -44,6 +46,25 @@ export interface ColdStoreEntry {
   _deprecated?: boolean;
   _deprecatedAt?: number;
   _deprecationReason?: string;
+  retentionState?: 'retained';
+  memoryReceipt?: MemoryReceipt;
+}
+
+export interface QuarantinedMemoryEntry {
+  entry: HotBufferEntry;
+  state: 'quarantined' | 'rejected';
+  reasons: string[];
+  quarantinedAt: number;
+  rejectedAt?: number;
+  rejectedReason?: string;
+}
+
+export interface RetainedMemoryEvidence {
+  entryId: string;
+  domain: KnowledgeDomain;
+  receipt: MemoryReceipt;
+  rawSourceIds: string[];
+  sourceHashes: MemorySourceHash[];
 }
 
 // ── Helpers ──
@@ -84,6 +105,56 @@ function containsInjectionPattern(content: string): boolean {
   return false;
 }
 
+export function validateMemoryReceipt(receipt: MemoryReceipt | undefined): string[] {
+  const errors: string[] = [];
+  if (!receipt) return ['MemoryReceipt is required before retention.'];
+  if (!receipt.id) errors.push('MemoryReceipt.id is required.');
+  if (!receipt.rawSourceIds.length) errors.push('MemoryReceipt.rawSourceIds is required.');
+  for (const sourceId of receipt.rawSourceIds) {
+    if (!sourceId) errors.push('MemoryReceipt.rawSourceIds cannot contain empty ids.');
+  }
+  if (!receipt.sourceHashes.length) errors.push('MemoryReceipt.sourceHashes is required.');
+  for (const sourceHash of receipt.sourceHashes) {
+    if (!sourceHash.sourceId) errors.push('MemoryReceipt.sourceHashes.sourceId is required.');
+    if (!sourceHash.hash) errors.push('MemoryReceipt.sourceHashes.hash is required.');
+    if (!['sha256', 'git-blob', 'cid', 'custom'].includes(sourceHash.algorithm)) {
+      errors.push(`MemoryReceipt.sourceHashes.algorithm is unsupported: ${String(sourceHash.algorithm)}.`);
+    }
+  }
+  if (!receipt.extractorVersion) errors.push('MemoryReceipt.extractorVersion is required.');
+  if (
+    !receipt.modelIdentity?.model &&
+    !receipt.modelIdentity?.agentId &&
+    !receipt.modelIdentity?.agentName
+  ) {
+    errors.push('MemoryReceipt.modelIdentity needs model, agentId, or agentName.');
+  }
+  if (!receipt.toolIdentity?.toolName) errors.push('MemoryReceipt.toolIdentity.toolName is required.');
+  if (!Number.isFinite(receipt.timestamp) || receipt.timestamp <= 0) {
+    errors.push('MemoryReceipt.timestamp must be a positive epoch milliseconds value.');
+  }
+  if (!receipt.corroborators.length) errors.push('MemoryReceipt.corroborators is required.');
+  for (const corroborator of receipt.corroborators) {
+    if (!corroborator) errors.push('MemoryReceipt.corroborators cannot contain empty ids.');
+  }
+  if (receipt.confidence < 0 || receipt.confidence > 1) {
+    errors.push('MemoryReceipt.confidence must be between 0 and 1.');
+  }
+  return errors;
+}
+
+function cloneMemoryReceipt(receipt: MemoryReceipt): MemoryReceipt {
+  return {
+    ...receipt,
+    rawSourceIds: [...receipt.rawSourceIds],
+    sourceHashes: receipt.sourceHashes.map((sourceHash) => ({ ...sourceHash })),
+    modelIdentity: { ...receipt.modelIdentity },
+    toolIdentity: { ...receipt.toolIdentity },
+    corroborators: [...receipt.corroborators],
+    ...(receipt.metadata ? { metadata: { ...receipt.metadata } } : {}),
+  };
+}
+
 /**
  * Get excitability score for an entry based on the domain's competition metric.
  */
@@ -116,6 +187,7 @@ function getEntryExcitability(
 export class ConsolidationEngine {
   private hotBuffers: Map<KnowledgeDomain, HotBufferEntry[]> = new Map();
   private coldStores: Map<KnowledgeDomain, Map<string, ColdStoreEntry>> = new Map();
+  private quarantines: Map<KnowledgeDomain, QuarantinedMemoryEntry[]> = new Map();
   private lastConsolidation: Map<KnowledgeDomain, number> = new Map();
   private reconsolidationWindows: Map<string, ReconsolidationEvent> = new Map();
 
@@ -123,6 +195,7 @@ export class ConsolidationEngine {
     for (const domain of KNOWLEDGE_DOMAINS) {
       this.hotBuffers.set(domain, []);
       this.coldStores.set(domain, new Map());
+      this.quarantines.set(domain, []);
       this.lastConsolidation.set(domain, Date.now());
     }
   }
@@ -135,7 +208,13 @@ export class ConsolidationEngine {
    */
   ingest(
     domain: KnowledgeDomain,
-    entry: { content: string; type: string; authorDid: string; tags: string[] },
+    entry: {
+      content: string;
+      type: string;
+      authorDid: string;
+      tags: string[];
+      memoryReceipt?: MemoryReceipt;
+    },
     sourcePeerDid: string
   ): HotBufferEntry {
     const buffer = this.hotBuffers.get(domain) || [];
@@ -149,6 +228,8 @@ export class ConsolidationEngine {
       ingestedAt: Date.now(),
       corroborations: [sourcePeerDid],
       sourcePeerDid,
+      retentionState: 'candidate',
+      ...(entry.memoryReceipt ? { memoryReceipt: cloneMemoryReceipt(entry.memoryReceipt) } : {}),
     };
     buffer.push(hotEntry);
     this.hotBuffers.set(domain, buffer);
@@ -166,6 +247,9 @@ export class ConsolidationEngine {
     if (!entry.corroborations.includes(peerDid)) {
       entry.corroborations.push(peerDid);
     }
+    if (entry.memoryReceipt && !entry.memoryReceipt.corroborators.includes(peerDid)) {
+      entry.memoryReceipt.corroborators.push(peerDid);
+    }
     return true;
   }
 
@@ -180,6 +264,28 @@ export class ConsolidationEngine {
       store.set(entry.id, entry);
     }
     this.coldStores.set(domain, store);
+  }
+
+  private quarantineEntry(
+    domain: KnowledgeDomain,
+    entry: HotBufferEntry,
+    reasons: string[],
+    state: QuarantinedMemoryEntry['state'] = 'quarantined'
+  ): void {
+    const quarantines = this.quarantines.get(domain) || [];
+    entry.retentionState = state;
+    quarantines.push({
+      entry: {
+        ...entry,
+        corroborations: [...entry.corroborations],
+        tags: [...entry.tags],
+        ...(entry.memoryReceipt ? { memoryReceipt: cloneMemoryReceipt(entry.memoryReceipt) } : {}),
+      },
+      state,
+      reasons,
+      quarantinedAt: Date.now(),
+    });
+    this.quarantines.set(domain, quarantines);
   }
 
   // ── Consolidation Cycle ──
@@ -206,6 +312,8 @@ export class ConsolidationEngine {
     let merged = 0;
     let evicted = 0;
     let dropped = 0;
+    let quarantined = 0;
+    let rejected = 0;
 
     // Phase 1: REPLAY — filter hot buffer by TTL and corroboration threshold
     const eligible: HotBufferEntry[] = [];
@@ -223,11 +331,16 @@ export class ConsolidationEngine {
       }
     }
 
-    // Phase 1.5: SANITIZE — check content for injection patterns before promotion
+    // Phase 1.5: VERIFY LINEAGE + SANITIZE before promotion
     const sanitized: HotBufferEntry[] = [];
     for (const entry of eligible) {
-      if (containsInjectionPattern(entry.content)) {
-        dropped++; // Injection pattern detected — drop silently
+      const receiptErrors = validateMemoryReceipt(entry.memoryReceipt);
+      if (receiptErrors.length) {
+        this.quarantineEntry(domain, entry, receiptErrors);
+        quarantined++;
+      } else if (containsInjectionPattern(entry.content)) {
+        this.quarantineEntry(domain, entry, ['Content failed injection-pattern sanitization.'], 'rejected');
+        rejected++;
       } else {
         sanitized.push(entry);
       }
@@ -276,6 +389,8 @@ export class ConsolidationEngine {
         accessCount: 0,
         lastAccessed: 0,
         _excitability: excitability,
+        retentionState: 'retained',
+        memoryReceipt: cloneMemoryReceipt(entry.memoryReceipt!),
       };
       coldStore.set(entryId, coldEntry);
       promoted++;
@@ -308,6 +423,8 @@ export class ConsolidationEngine {
       merged,
       evicted,
       dropped,
+      quarantined,
+      rejected,
       downscaleFactor: config.downscaleFactor,
       consolidatedAt: now,
     };
@@ -476,6 +593,35 @@ export class ConsolidationEngine {
     return [...(this.hotBuffers.get(domain) || [])];
   }
 
+  /** Get quarantined or rejected candidate memories for review. */
+  getQuarantine(domain: KnowledgeDomain): QuarantinedMemoryEntry[] {
+    return (this.quarantines.get(domain) || []).map((item) => ({
+      ...item,
+      reasons: [...item.reasons],
+      entry: {
+        ...item.entry,
+        tags: [...item.entry.tags],
+        corroborations: [...item.entry.corroborations],
+        ...(item.entry.memoryReceipt
+          ? { memoryReceipt: cloneMemoryReceipt(item.entry.memoryReceipt) }
+          : {}),
+      },
+    }));
+  }
+
+  /** Mark a quarantined candidate as rejected after review. */
+  rejectQuarantinedMemory(domain: KnowledgeDomain, hotEntryId: string, reason: string): boolean {
+    const quarantines = this.quarantines.get(domain) || [];
+    const item = quarantines.find((candidate) => candidate.entry.id === hotEntryId);
+    if (!item) return false;
+    item.state = 'rejected';
+    item.entry.retentionState = 'rejected';
+    item.rejectedAt = Date.now();
+    item.rejectedReason = reason;
+    if (!item.reasons.includes(reason)) item.reasons.push(reason);
+    return true;
+  }
+
   /** Get cold store entries for a domain (copy). */
   getColdStore(domain: KnowledgeDomain): ColdStoreEntry[] {
     const store = this.coldStores.get(domain);
@@ -486,6 +632,23 @@ export class ConsolidationEngine {
   /** Get cold store entry by ID. */
   getColdStoreEntry(domain: KnowledgeDomain, entryId: string): ColdStoreEntry | undefined {
     return this.coldStores.get(domain)?.get(entryId);
+  }
+
+  /** Resolve a retained memory entry back to its raw receipt evidence. */
+  getRetainedMemoryEvidence(
+    domain: KnowledgeDomain,
+    entryId: string
+  ): RetainedMemoryEvidence | null {
+    const entry = this.getColdStoreEntry(domain, entryId);
+    if (!entry?.memoryReceipt) return null;
+    const receipt = cloneMemoryReceipt(entry.memoryReceipt);
+    return {
+      entryId,
+      domain,
+      receipt,
+      rawSourceIds: [...receipt.rawSourceIds],
+      sourceHashes: receipt.sourceHashes.map((sourceHash) => ({ ...sourceHash })),
+    };
   }
 
   /** Get hot buffer size across all domains. */
