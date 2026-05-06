@@ -12,6 +12,7 @@
  *                                (min-plus, max-plus, authority-weighted,
  *                                 domain-override, strict-error) and
  *                                a 1 000-op commutativity/idempotence check plus
+ *                                CRDT-01 equal-score tie coverage and
  *                                PAPER-GAP-05 (100 independent RNG seeds)
  *
  * Output: console tables + LaTeX fragments (Section 7) ready to paste into
@@ -720,6 +721,60 @@ describe('Paper #3 — Experiment 4: Strategy comparison', () => {
     );
   });
 
+  it('verifies CRDT-01 equal-score provenance ties on 1 000 merge orders', () => {
+    const semiring = new ProvenanceSemiring([
+      { property: 'mass', strategy: 'authority-weighted' },
+    ]);
+
+    const N = 1000;
+    let failures = 0;
+
+    for (let i = 0; i < N; i++) {
+      const caseType = i % 3;
+      const highAuthority: TraitApplication = {
+        name: caseType === 2 ? 'source-z' : `source-high-${i}`,
+        config: { mass: 5 },
+        context: {
+          authorityLevel: AuthorityTier.FOUNDER,
+          agentId: caseType === 0 ? 'agent-b' : 'agent-a',
+          opId: caseType === 1 ? 'op-2' : 'op-1',
+        },
+      };
+      const lowerAuthority: TraitApplication = {
+        name: caseType === 2 ? 'source-a' : `source-low-${i}`,
+        config: { mass: 8 },
+        context: {
+          authorityLevel: AuthorityTier.MEMBER,
+          agentId: 'agent-a',
+          opId: 'op-1',
+        },
+      };
+      const expectedSource = lowerAuthority.name;
+
+      const leftFirst = i % 2 === 0
+        ? semiring.add([highAuthority, lowerAuthority])
+        : semiring.add([lowerAuthority, highAuthority]);
+      const rightFirst = i % 2 === 0
+        ? semiring.add([lowerAuthority, highAuthority])
+        : semiring.add([highAuthority, lowerAuthority]);
+
+      if (
+        leftFirst.errors.length > 0 ||
+        rightFirst.errors.length > 0 ||
+        leftFirst.config.mass !== 8 ||
+        rightFirst.config.mass !== 8 ||
+        leftFirst.provenance.mass.source !== expectedSource ||
+        rightFirst.provenance.mass.source !== expectedSource ||
+        JSON.stringify(leftFirst.provenance.mass) !== JSON.stringify(rightFirst.provenance.mass)
+      ) {
+        failures++;
+      }
+    }
+
+    expect(failures).toBe(0);
+    console.log(`[exp4] CRDT-01 equal-score provenance ties verified: ${N - failures}/${N}`);
+  });
+
   /**
    * PAPER-GAP-05 — same semiring as the 1 000-op block, but 100 independent RNG
    * seeds × 100 merges each (10 000 pairs) so commutativity is not tied to a
@@ -798,7 +853,7 @@ describe('Paper #3 — Experiment 4: Strategy comparison', () => {
     console.log('\\begin{table}[h]');
     console.log('  \\centering');
     console.log(
-      '  \\caption{Five semiring strategies resolving the same conflict. Commutativity and idempotence verified on 1 000 random merges.}'
+      '  \\caption{Five semiring strategies resolving the same conflict. Commutativity and idempotence verified on 1 000 random merges, with CRDT-01 equal-score ties checked across 1 000 merge orders.}'
     );
     console.log('  \\label{tab:paper3-strategies}');
     console.log('  \\begin{tabular}{@{}lllrl@{}}');

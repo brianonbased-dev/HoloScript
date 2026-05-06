@@ -12,6 +12,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SpatialCRDTBridge, WorldState } from '@holoscript/crdt-spatial';
+import { AuthorityTier, ProvenanceSemiring, type TraitApplication } from '@holoscript/core';
 import { CRDTCAELBridge } from '../CRDTCAELBridge';
 import { CAELRecorder } from '../CAELRecorder';
 import { parseCAELJSONL, verifyCAELHashChain } from '../CAELTrace';
@@ -177,6 +178,62 @@ describe('CRDTCAELBridge', () => {
       expect(() => bareBridge.mergeSpatial(new Uint8Array([1, 2, 3]), 'x')).toThrow(
         'no SpatialCRDTBridge configured',
       );
+    });
+  });
+
+  describe('CRDT-01 provenance metadata', () => {
+    it('keeps equal-score authority tie metadata stable before CAEL logging', () => {
+      const semiring = new ProvenanceSemiring([
+        { property: 'mass', strategy: 'authority-weighted' },
+      ]);
+      const highAuthority: TraitApplication = {
+        name: 'source-high',
+        config: { mass: 5 },
+        context: {
+          authorityLevel: AuthorityTier.FOUNDER,
+          agentId: 'agent-b',
+          opId: 'op-1',
+        },
+      };
+      const lowerAuthority: TraitApplication = {
+        name: 'source-low',
+        config: { mass: 8 },
+        context: {
+          authorityLevel: AuthorityTier.MEMBER,
+          agentId: 'agent-a',
+          opId: 'op-9',
+        },
+      };
+
+      const logMerge = (traits: TraitApplication[]): Record<string, unknown> => {
+        const local = new SpatialCRDTBridge({ peerId: 'local-node' });
+        const remote = new SpatialCRDTBridge({ peerId: 'remote-node' });
+        local.registerNode('cube-1');
+        remote.registerNode('cube-1');
+        remote.setPosition('cube-1', { x: 5, y: 0, z: 3 });
+
+        const recorder = makeRecorder();
+        const bridge = new CRDTCAELBridge({ spatial: local, recorder, localPeerId: 'local-node' });
+        const result = semiring.add(traits);
+        bridge.mergeSpatial(remote.exportUpdate(), 'remote-node', {
+          winnerAgent: result.provenance.mass.context?.agentId,
+          winnerOp: result.provenance.mass.context?.opId,
+          winnerSource: result.provenance.mass.source,
+        });
+
+        const [entry] = extractInteractions(recorder.toJSONL(), 'cael.crdt_merge');
+        return (entry.payload as Record<string, unknown>).data as Record<string, unknown>;
+      };
+
+      const ab = logMerge([highAuthority, lowerAuthority]);
+      const ba = logMerge([lowerAuthority, highAuthority]);
+
+      expect(ab.winnerAgent).toBe('agent-a');
+      expect(ba.winnerAgent).toBe('agent-a');
+      expect(ab.winnerOp).toBe('op-9');
+      expect(ba.winnerOp).toBe('op-9');
+      expect(ab.winnerSource).toBe('source-low');
+      expect(ba.winnerSource).toBe('source-low');
     });
   });
 

@@ -123,26 +123,75 @@ export function authorityWeight(level: number, reputationScore?: number): number
 
 /**
  * CRDT-01: deterministic winner when authority-weighted scaled scores tie.
- * Lexicographic: agentId → trait source → JSON(value). Ensures ⊗ does not
- * depend on argument order when weights and scaled products coincide.
+ * Lexicographic: agentId → opId → trait source → canonical value. Ensures ⊗
+ * does not depend on argument order when weights and scaled products coincide.
  */
 function tieBreakProvenance(a: ProvenanceValue, b: ProvenanceValue): ProvenanceValue {
   const aid = String(a.context?.agentId ?? '');
   const bid = String(b.context?.agentId ?? '');
   if (aid !== bid) return aid < bid ? a : b;
+  const opA = String(a.context?.opId ?? '');
+  const opB = String(b.context?.opId ?? '');
+  if (opA !== opB) return opA < opB ? a : b;
   const srcA = String(a.source ?? '');
   const srcB = String(b.source ?? '');
   if (srcA !== srcB) return srcA < srcB ? a : b;
-  const ja = JSON.stringify(a.value);
-  const jb = JSON.stringify(b.value);
+  const ja = canonicalTieValue(a.value);
+  const jb = canonicalTieValue(b.value);
   if (ja !== jb) return ja <= jb ? a : b;
   return a;
+}
+
+function canonicalTieValue(value: unknown, seen = new WeakSet<object>()): string {
+  if (value === null) return 'null';
+
+  switch (typeof value) {
+    case 'string':
+      return `string:${JSON.stringify(value)}`;
+    case 'number':
+      return Number.isFinite(value) ? `number:${value}` : `number:${String(value)}`;
+    case 'bigint':
+      return `bigint:${value.toString()}`;
+    case 'boolean':
+      return `boolean:${value}`;
+    case 'undefined':
+      return 'undefined';
+    case 'symbol':
+      return `symbol:${String(value)}`;
+    case 'function':
+      return `function:${value.name}`;
+    case 'object':
+      break;
+  }
+
+  if (seen.has(value)) return '[Circular]';
+  seen.add(value);
+
+  let canonical: string;
+  if (value instanceof Date) {
+    const millis = value.getTime();
+    canonical = Number.isNaN(millis) ? 'date:Invalid' : `date:${value.toISOString()}`;
+  } else if (Array.isArray(value)) {
+    canonical = `array:[${value.map((item) => canonicalTieValue(item, seen)).join(',')}]`;
+  } else {
+    const entries = Object.entries(value as Record<string, unknown>).sort(([left], [right]) =>
+      left.localeCompare(right)
+    );
+    canonical = `object:{${entries
+      .map(([key, item]) => `${JSON.stringify(key)}:${canonicalTieValue(item, seen)}`)
+      .join(',')}}`;
+  }
+
+  seen.delete(value);
+  return canonical;
 }
 
 export interface ProvenanceContext {
   /** Authority weight (e.g., Founder=100, Agent=50, Guest=0) */
   authorityLevel: number;
   agentId?: string;
+  /** Stable operation identifier for deterministic CRDT tie-breaking. */
+  opId?: string;
   sourceType?: 'user' | 'agent' | 'system';
   /** Optional reputation score from HoloMesh (0-100) — threads reputation into algebra */
   reputationScore?: number;
@@ -385,7 +434,7 @@ export class ProvenanceSemiring {
   private multiply(a: ProvenanceValue, b: ProvenanceValue, property: string): ProvenanceValue {
     if (a.value === TRAIT_ZERO) return a; // A ⊗ 0 = 0 (Annihilator)
     if (b.value === TRAIT_ZERO) return b; // A ⊗ 0 = 0
-    if (a.value === b.value) return a; // Idempotence
+    if (a.value === b.value) return tieBreakProvenance(a, b); // Idempotent value, deterministic provenance
 
     const rule = this.rules.get(property);
 

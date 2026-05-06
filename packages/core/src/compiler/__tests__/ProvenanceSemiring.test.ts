@@ -118,6 +118,109 @@ describe('ProvenanceSemiring v2 (L3 Batch 1)', () => {
       expect(result.config.mass).toBe(20);
     });
 
+    it('CRDT-01 resolves equal scaled scores by agentId regardless of merge order', () => {
+      const semiring = new ProvenanceSemiring([
+        { property: 'mass', strategy: 'authority-weighted' },
+      ]);
+
+      const founder: TraitApplication = {
+        name: 'source-b',
+        config: { mass: 5 },
+        context: {
+          authorityLevel: AuthorityTier.FOUNDER,
+          agentId: 'agent-b',
+          opId: 'op-1',
+        },
+      };
+      const member: TraitApplication = {
+        name: 'source-a',
+        config: { mass: 8 },
+        context: {
+          authorityLevel: AuthorityTier.MEMBER,
+          agentId: 'agent-a',
+          opId: 'op-9',
+        },
+      };
+
+      const ab = semiring.add([founder, member]);
+      const ba = semiring.add([member, founder]);
+
+      expect(ab.errors).toHaveLength(0);
+      expect(ba.errors).toHaveLength(0);
+      expect(ab.config.mass).toBe(8);
+      expect(ba.config.mass).toBe(8);
+      expect(ab.provenance.mass.source).toBe('source-a');
+      expect(ba.provenance.mass.source).toBe('source-a');
+      expect(ab.provenance.mass).toEqual(ba.provenance.mass);
+    });
+
+    it('CRDT-01 uses opId before source when tied agents have equal scaled scores', () => {
+      const semiring = new ProvenanceSemiring([
+        { property: 'mass', strategy: 'authority-weighted' },
+      ]);
+
+      const laterOp: TraitApplication = {
+        name: 'source-a',
+        config: { mass: 5 },
+        context: {
+          authorityLevel: AuthorityTier.FOUNDER,
+          agentId: 'agent-a',
+          opId: 'op-2',
+        },
+      };
+      const earlierOp: TraitApplication = {
+        name: 'source-z',
+        config: { mass: 8 },
+        context: {
+          authorityLevel: AuthorityTier.MEMBER,
+          agentId: 'agent-a',
+          opId: 'op-1',
+        },
+      };
+
+      const ab = semiring.add([laterOp, earlierOp]);
+      const ba = semiring.add([earlierOp, laterOp]);
+
+      expect(ab.config.mass).toBe(8);
+      expect(ba.config.mass).toBe(8);
+      expect(ab.provenance.mass.source).toBe('source-z');
+      expect(ba.provenance.mass.source).toBe('source-z');
+    });
+
+    it('CRDT-01 keeps equal-value provenance deterministic', () => {
+      const semiring = new ProvenanceSemiring([
+        { property: 'mass', strategy: 'authority-weighted' },
+      ]);
+
+      const laterAgent: TraitApplication = {
+        name: 'source-z',
+        config: { mass: 10 },
+        context: {
+          authorityLevel: AuthorityTier.MEMBER,
+          agentId: 'agent-z',
+          opId: 'op-2',
+        },
+      };
+      const earlierAgent: TraitApplication = {
+        name: 'source-a',
+        config: { mass: 10 },
+        context: {
+          authorityLevel: AuthorityTier.MEMBER,
+          agentId: 'agent-a',
+          opId: 'op-9',
+        },
+      };
+
+      const ab = semiring.add([laterAgent, earlierAgent]);
+      const ba = semiring.add([earlierAgent, laterAgent]);
+
+      expect(ab.config.mass).toBe(10);
+      expect(ba.config.mass).toBe(10);
+      expect(ab.provenance.mass.source).toBe('source-a');
+      expect(ba.provenance.mass.source).toBe('source-a');
+      expect(ab.provenance.mass).toEqual(ba.provenance.mass);
+    });
+
     it('authority does NOT bypass domain-override precedence', () => {
       const semiring = new ProvenanceSemiring([
         { property: 'type', strategy: 'domain-override', precedence: ['kinematic', 'physics'] },
