@@ -146,6 +146,10 @@ export const coreTools: Tool[] = [
           type: 'string',
           description: 'The HoloScript code to validate (any format: .hs, .hsplus, .holo)',
         },
+        content: {
+          type: 'string',
+          description: 'Compatibility alias for code. Prefer code for new callers.',
+        },
         format: {
           type: 'string',
           enum: ['hs', 'hsplus', 'holo', 'auto'],

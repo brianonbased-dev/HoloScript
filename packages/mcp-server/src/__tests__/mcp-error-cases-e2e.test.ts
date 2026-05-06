@@ -35,6 +35,25 @@ describe('MCP Tool Error Cases', () => {
     expect((result.errors as unknown[]).length).toBeGreaterThan(0);
   });
 
+  it('validate_holoscript accepts content as a compatibility alias', async () => {
+    const result = (await handleTool('validate_holoscript', {
+      content: 'composition "Alias" { object "Cube" { geometry: "cube" } }',
+      format: 'holo',
+    })) as Record<string, unknown>;
+    expect(result.valid).toBe(true);
+    expect(result.error).toBeUndefined();
+  });
+
+  it('validate_holoscript reports a clear error when source is missing', async () => {
+    const result = (await handleTool('validate_holoscript', {
+      format: 'holo',
+    })) as Record<string, unknown>;
+    expect(result.valid).toBe(false);
+    expect(result.error).toBeUndefined();
+    expect((result.errors as Array<Record<string, unknown>>)[0].code).toBe('missing-code');
+    expect((result.errors as Array<Record<string, unknown>>)[0].message).toContain('requires a string `code` argument');
+  });
+
   it('parse_hs handles invalid syntax with error array', async () => {
     const result = (await handleTool('parse_hs', {
       code: 'not valid holoscript {',

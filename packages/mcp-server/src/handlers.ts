@@ -576,10 +576,30 @@ async function handleCompilePipeline(args: Record<string, unknown>) {
 // === VALIDATION HANDLER ===
 
 async function handleValidate(args: Record<string, unknown>) {
-  const code = args.code as string;
+  const codeInput = args.code ?? args.content;
   const format = (args.format as string) || 'auto';
   const includeWarnings = args.includeWarnings !== false;
   const includeSuggestions = args.includeSuggestions !== false;
+
+  if (typeof codeInput !== 'string') {
+    return {
+      valid: false,
+      format,
+      errors: [
+        {
+          code: 'missing-code',
+          line: 1,
+          message:
+            'validate_holoscript requires a string `code` argument. `content` is also accepted as a compatibility alias.',
+          suggestion:
+            'Call validate_holoscript with { "code": "<HoloScript source>" } or { "content": "<HoloScript source>" }.',
+        },
+      ],
+      summary: 'Missing HoloScript source',
+    };
+  }
+
+  const code = codeInput;
 
   try {
     // Detect format if auto
