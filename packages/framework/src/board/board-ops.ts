@@ -15,6 +15,7 @@ import type {
   SlotRole,
   ArtifactReceipt,
   TaskEnvironmentReceipt,
+  TaskPolicyEvent,
 } from './board-types';
 import {
   normalizeTitle,
@@ -26,6 +27,9 @@ import {
   cloneTaskEnvironmentReceipt,
   validateTaskEnvironmentProfile,
   validateTaskEnvironmentReceipt,
+  cloneTaskPolicyEvent,
+  cloneTaskPolicyProfile,
+  validateTaskPolicyProfile,
 } from './board-types';
 
 // ── Task Operations ──
@@ -131,6 +135,14 @@ export function completeTask(
     };
   }
 
+  const policyErrors = task.policy ? validateTaskPolicyProfile(task.policy) : [];
+  if (policyErrors.length) {
+    return {
+      result: { success: false, error: `Invalid task policy: ${policyErrors.join(' ')}` },
+      updatedBoard: board,
+    };
+  }
+
   const artifacts = [
     ...(task.artifacts ?? []),
     ...(opts.artifacts ?? []),
@@ -163,6 +175,10 @@ export function completeTask(
     ...(artifacts.length ? { artifacts: artifacts.map(cloneArtifactReceipt) } : {}),
     ...(task.environment ? { environment: cloneTaskEnvironmentProfile(task.environment) } : {}),
     ...(environmentReceipt ? { environmentReceipt: cloneTaskEnvironmentReceipt(environmentReceipt) } : {}),
+    ...(task.policy ? { policy: cloneTaskPolicyProfile(task.policy) } : {}),
+    ...(task.policyEvents?.length
+      ? { policyEvents: task.policyEvents.map(cloneTaskPolicyEvent) }
+      : {}),
   };
 
   // Unblock dependent tasks — move from 'blocked' to 'open' if all their deps are done
@@ -228,6 +244,18 @@ export function attachTaskEnvironmentReceipt(
   }
 
   task.environmentReceipt = cloneTaskEnvironmentReceipt(receipt);
+  return { success: true, task };
+}
+
+export function recordTaskPolicyEvent(
+  board: TeamTask[],
+  taskId: string,
+  event: TaskPolicyEvent
+): TaskActionResult {
+  const task = board.find((t) => t.id === taskId);
+  if (!task) return { success: false, error: 'Task not found' };
+
+  task.policyEvents = [...(task.policyEvents ?? []), cloneTaskPolicyEvent(event)];
   return { success: true, task };
 }
 
@@ -337,7 +365,8 @@ export type SkippedTaskReason =
   | 'duplicate'
   | 'empty_title'
   | 'invalid_artifact'
-  | 'invalid_environment';
+  | 'invalid_environment'
+  | 'invalid_policy';
 
 export interface SkippedTaskEntry {
   title: string;
@@ -443,6 +472,12 @@ export function addTasksToBoard(
       continue;
     }
 
+    const policyErrors = t.policy ? validateTaskPolicyProfile(t.policy) : [];
+    if (policyErrors.length) {
+      skipped.push({ title, reason: 'invalid_policy' });
+      continue;
+    }
+
     const rawDescription = String(t.description || '');
     // Cap unified with the suggestion-description cap at line 367 (2000).
     // W.085 post-mortem: agents repeatedly hit the old 1000 cap while filing
@@ -478,6 +513,8 @@ export function addTasksToBoard(
     if (t.environmentReceipt) {
       task.environmentReceipt = cloneTaskEnvironmentReceipt(t.environmentReceipt);
     }
+    if (t.policy) task.policy = cloneTaskPolicyProfile(t.policy);
+    if (t.policyEvents?.length) task.policyEvents = t.policyEvents.map(cloneTaskPolicyEvent);
     if (t.metadata && Object.keys(t.metadata).length) task.metadata = { ...t.metadata };
     if (t.onComplete?.length) task.onComplete = [...t.onComplete];
     board.push(task);

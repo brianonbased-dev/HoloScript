@@ -42,6 +42,8 @@ import type {
   DoneLogEntry,
   TaskEnvironmentProfile,
   TaskEnvironmentReceipt,
+  TaskPolicyEvent,
+  TaskPolicyProfile,
 } from './board/board-types';
 import { callLLM } from './llm/llm-adapter';
 import type { LLMMessage } from './llm/llm-adapter';
@@ -705,6 +707,9 @@ export class Team {
           d.environmentReceipt && typeof d.environmentReceipt === 'object'
             ? (d.environmentReceipt as TaskEnvironmentReceipt)
             : undefined,
+        policy:
+          d.policy && typeof d.policy === 'object' ? (d.policy as TaskPolicyProfile) : undefined,
+        policyEvents: Array.isArray(d.policyEvents) ? (d.policyEvents as TaskPolicyEvent[]) : undefined,
       }));
     } else {
       entries = this.doneLog.map((d) => ({ ...d }));

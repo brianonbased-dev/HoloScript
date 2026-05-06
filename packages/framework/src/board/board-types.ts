@@ -213,6 +213,109 @@ export interface TaskEnvironmentReceipt {
   metadata?: Record<string, unknown>;
 }
 
+export const TASK_POLICY_ACTION_KINDS = [
+  'tool',
+  'network',
+  'filesystem',
+  'secret',
+  'spend',
+] as const;
+
+export const TASK_POLICY_DECISIONS = ['allow', 'deny', 'escalate'] as const;
+
+export type TaskPolicyActionKind = (typeof TASK_POLICY_ACTION_KINDS)[number];
+export type TaskPolicyDecisionType = (typeof TASK_POLICY_DECISIONS)[number];
+export type TaskPolicyEnforcementMode = 'advisory' | 'block' | 'escalate';
+export type TaskFilesystemAccessMode = 'none' | 'read' | 'write' | 'read-write';
+export type TaskEscalationTrigger =
+  | 'tool_denied'
+  | 'network_denied'
+  | 'filesystem_denied'
+  | 'secret_denied'
+  | 'spend_exceeded'
+  | 'outside_policy'
+  | 'always';
+export type TaskEscalationTarget = 'founder' | 'human' | 'lead' | 'agent' | 'custom';
+
+export interface TaskFilesystemPolicy {
+  mode: TaskFilesystemAccessMode;
+  allowedPaths?: string[];
+  deniedPaths?: string[];
+}
+
+export interface TaskSecretPolicy {
+  allowedSecretRefs?: string[];
+  deniedSecretRefs?: string[];
+  allowEnvironment?: boolean;
+}
+
+export interface TaskSpendCap {
+  amount: number;
+  currency: string;
+  window?: string;
+  hard?: boolean;
+}
+
+export interface TaskEscalationRule {
+  id?: string;
+  when: TaskEscalationTrigger;
+  target: TaskEscalationTarget;
+  targetId?: string;
+  instructions?: string;
+}
+
+export interface TaskPolicyProfile {
+  id?: string;
+  enforcement?: TaskPolicyEnforcementMode;
+  allowedTools?: string[];
+  deniedTools?: string[];
+  network?: TaskEnvironmentNetworkPolicy;
+  filesystem?: TaskFilesystemPolicy;
+  secrets?: TaskSecretPolicy;
+  spendCap?: TaskSpendCap;
+  escalation?: TaskEscalationRule[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface TaskPolicyAction {
+  kind: TaskPolicyActionKind;
+  subject: string;
+  operation?: string;
+  amount?: number;
+  currency?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface TaskPolicyEvent {
+  id?: string;
+  taskId?: string;
+  policyId?: string;
+  actionKind: TaskPolicyActionKind;
+  subject: string;
+  operation?: string;
+  decision: TaskPolicyDecisionType;
+  reasons: string[];
+  agent?: string;
+  timestamp: string;
+  escalationTarget?: TaskEscalationTarget;
+  escalationTargetId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface TaskPolicyEvaluationContext {
+  taskId?: string;
+  agent?: string;
+  timestamp?: string;
+}
+
+export interface TaskPolicyDecision {
+  allowed: boolean;
+  decision: TaskPolicyDecisionType;
+  reasons: string[];
+  escalation?: TaskEscalationRule;
+  event: TaskPolicyEvent;
+}
+
 export interface TeamTask {
   id: string;
   title: string;
@@ -257,6 +360,10 @@ export interface TeamTask {
   environment?: TaskEnvironmentProfile;
   /** Captured runner/runtime evidence for this task. */
   environmentReceipt?: TaskEnvironmentReceipt;
+  /** Task-scoped policy contract for tools, network, files, secrets, spend, and escalation. */
+  policy?: TaskPolicyProfile;
+  /** Policy decisions or violations recorded by runners/hooks. */
+  policyEvents?: TaskPolicyEvent[];
   /** Arbitrary metadata (estimatedHours, repo, branch, etc.) */
   metadata?: Record<string, unknown>;
 }
@@ -276,6 +383,10 @@ export interface DoneLogEntry {
   environment?: TaskEnvironmentProfile;
   /** Runner environment receipt preserved when the task is moved off the live board. */
   environmentReceipt?: TaskEnvironmentReceipt;
+  /** Policy profile preserved when the task is moved off the live board. */
+  policy?: TaskPolicyProfile;
+  /** Policy decisions or violations preserved when the task is moved off the live board. */
+  policyEvents?: TaskPolicyEvent[];
 }
 
 // ── Suggestions ──
@@ -787,6 +898,307 @@ export function cloneTaskEnvironmentReceipt(
       : {}),
     ...(receipt.metadata ? { metadata: { ...receipt.metadata } } : {}),
   };
+}
+
+function matchesPolicyPattern(subject: string, pattern: string): boolean {
+  if (pattern === '*') return true;
+  if (!pattern.includes('*')) return subject === pattern;
+  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+  return new RegExp(`^${escaped}$`).test(subject);
+}
+
+function matchesAnyPolicyPattern(subject: string, patterns: string[] | undefined): boolean {
+  return (patterns ?? []).some((pattern) => matchesPolicyPattern(subject, pattern));
+}
+
+function normalizePolicyPath(path: string): string {
+  return path.replace(/\\/g, '/').toLowerCase();
+}
+
+function pathIsWithin(path: string, root: string): boolean {
+  const normalizedPath = normalizePolicyPath(path);
+  const normalizedRoot = normalizePolicyPath(root).replace(/\/+$/, '');
+  return normalizedPath === normalizedRoot || normalizedPath.startsWith(`${normalizedRoot}/`);
+}
+
+function hostFromSubject(subject: string): string {
+  try {
+    return new URL(subject).hostname.toLowerCase();
+  } catch {
+    return subject.toLowerCase().split('/')[0].split(':')[0];
+  }
+}
+
+function isLoopbackHost(host: string): boolean {
+  return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+}
+
+function triggerForAction(kind: TaskPolicyActionKind, outsidePolicy = false): TaskEscalationTrigger {
+  if (outsidePolicy) return 'outside_policy';
+  if (kind === 'tool') return 'tool_denied';
+  if (kind === 'network') return 'network_denied';
+  if (kind === 'filesystem') return 'filesystem_denied';
+  if (kind === 'secret') return 'secret_denied';
+  return 'spend_exceeded';
+}
+
+function findEscalationRule(
+  policy: TaskPolicyProfile,
+  trigger: TaskEscalationTrigger | undefined
+): TaskEscalationRule | undefined {
+  return policy.escalation?.find((rule) => rule.when === trigger || rule.when === 'always');
+}
+
+export function validateTaskPolicyProfile(policy: TaskPolicyProfile): string[] {
+  const errors: string[] = [];
+  const enforcement = policy.enforcement;
+  if (enforcement && !['advisory', 'block', 'escalate'].includes(enforcement)) {
+    errors.push(`TaskPolicyProfile.enforcement is unsupported: ${String(enforcement)}.`);
+  }
+  for (const tool of [...(policy.allowedTools ?? []), ...(policy.deniedTools ?? [])]) {
+    if (!tool) errors.push('TaskPolicyProfile tool patterns cannot be empty.');
+  }
+  for (const tool of policy.allowedTools ?? []) {
+    if ((policy.deniedTools ?? []).includes(tool)) {
+      errors.push(`TaskPolicyProfile tool pattern cannot be both allowed and denied: ${tool}.`);
+    }
+  }
+  if (policy.network) {
+    errors.push(...validateTaskEnvironmentProfile({ kind: 'local', network: policy.network }));
+  }
+  if (policy.filesystem) {
+    if (!['none', 'read', 'write', 'read-write'].includes(policy.filesystem.mode)) {
+      errors.push(`TaskPolicyProfile.filesystem.mode is unsupported: ${policy.filesystem.mode}.`);
+    }
+    for (const path of [
+      ...(policy.filesystem.allowedPaths ?? []),
+      ...(policy.filesystem.deniedPaths ?? []),
+    ]) {
+      if (!path) errors.push('TaskPolicyProfile filesystem paths cannot be empty.');
+    }
+  }
+  if (policy.secrets) {
+    for (const ref of [
+      ...(policy.secrets.allowedSecretRefs ?? []),
+      ...(policy.secrets.deniedSecretRefs ?? []),
+    ]) {
+      if (!ref) errors.push('TaskPolicyProfile secret references cannot be empty.');
+    }
+  }
+  if (policy.spendCap) {
+    if (policy.spendCap.amount < 0) errors.push('TaskPolicyProfile.spendCap.amount cannot be negative.');
+    if (!policy.spendCap.currency) errors.push('TaskPolicyProfile.spendCap.currency is required.');
+  }
+  for (const rule of policy.escalation ?? []) {
+    if (
+      ![
+        'tool_denied',
+        'network_denied',
+        'filesystem_denied',
+        'secret_denied',
+        'spend_exceeded',
+        'outside_policy',
+        'always',
+      ].includes(rule.when)
+    ) {
+      errors.push(`TaskPolicyProfile.escalation.when is unsupported: ${String(rule.when)}.`);
+    }
+    if (!['founder', 'human', 'lead', 'agent', 'custom'].includes(rule.target)) {
+      errors.push(`TaskPolicyProfile.escalation.target is unsupported: ${String(rule.target)}.`);
+    }
+  }
+  return errors;
+}
+
+export function cloneTaskPolicyProfile(policy: TaskPolicyProfile): TaskPolicyProfile {
+  return {
+    ...policy,
+    ...(policy.allowedTools ? { allowedTools: [...policy.allowedTools] } : {}),
+    ...(policy.deniedTools ? { deniedTools: [...policy.deniedTools] } : {}),
+    ...(policy.network
+      ? {
+          network: {
+            ...policy.network,
+            ...(policy.network.allowlist ? { allowlist: [...policy.network.allowlist] } : {}),
+            ...(policy.network.deniedHosts ? { deniedHosts: [...policy.network.deniedHosts] } : {}),
+          },
+        }
+      : {}),
+    ...(policy.filesystem
+      ? {
+          filesystem: {
+            ...policy.filesystem,
+            ...(policy.filesystem.allowedPaths
+              ? { allowedPaths: [...policy.filesystem.allowedPaths] }
+              : {}),
+            ...(policy.filesystem.deniedPaths
+              ? { deniedPaths: [...policy.filesystem.deniedPaths] }
+              : {}),
+          },
+        }
+      : {}),
+    ...(policy.secrets
+      ? {
+          secrets: {
+            ...policy.secrets,
+            ...(policy.secrets.allowedSecretRefs
+              ? { allowedSecretRefs: [...policy.secrets.allowedSecretRefs] }
+              : {}),
+            ...(policy.secrets.deniedSecretRefs
+              ? { deniedSecretRefs: [...policy.secrets.deniedSecretRefs] }
+              : {}),
+          },
+        }
+      : {}),
+    ...(policy.spendCap ? { spendCap: { ...policy.spendCap } } : {}),
+    ...(policy.escalation ? { escalation: policy.escalation.map((rule) => ({ ...rule })) } : {}),
+    ...(policy.metadata ? { metadata: { ...policy.metadata } } : {}),
+  };
+}
+
+export function cloneTaskPolicyEvent(event: TaskPolicyEvent): TaskPolicyEvent {
+  return {
+    ...event,
+    reasons: [...event.reasons],
+    ...(event.metadata ? { metadata: { ...event.metadata } } : {}),
+  };
+}
+
+export function evaluateTaskPolicyAction(
+  policy: TaskPolicyProfile | undefined,
+  action: TaskPolicyAction,
+  context: TaskPolicyEvaluationContext = {}
+): TaskPolicyDecision {
+  const reasons: string[] = [];
+  let trigger: TaskEscalationTrigger | undefined;
+
+  if (!policy) {
+    const event: TaskPolicyEvent = {
+      taskId: context.taskId,
+      actionKind: action.kind,
+      subject: action.subject,
+      operation: action.operation,
+      decision: 'allow',
+      reasons,
+      agent: context.agent,
+      timestamp: context.timestamp ?? new Date().toISOString(),
+      metadata: action.metadata,
+    };
+    return { allowed: true, decision: 'allow', reasons, event };
+  }
+
+  if (action.kind === 'tool') {
+    if (matchesAnyPolicyPattern(action.subject, policy.deniedTools)) {
+      reasons.push(`Tool "${action.subject}" is denied by task policy.`);
+      trigger = triggerForAction(action.kind);
+    } else if (policy.allowedTools?.length && !matchesAnyPolicyPattern(action.subject, policy.allowedTools)) {
+      reasons.push(`Tool "${action.subject}" is outside the task policy allowlist.`);
+      trigger = triggerForAction(action.kind, true);
+    }
+  }
+
+  if (action.kind === 'network' && policy.network) {
+    const host = hostFromSubject(action.subject);
+    if (policy.network.deniedHosts?.some((pattern) => matchesPolicyPattern(host, pattern))) {
+      reasons.push(`Network host "${host}" is denied by task policy.`);
+      trigger = triggerForAction(action.kind);
+    } else if (policy.network.access === 'none') {
+      reasons.push('Network access is denied by task policy.');
+      trigger = triggerForAction(action.kind);
+    } else if (policy.network.access === 'loopback' && !isLoopbackHost(host)) {
+      reasons.push(`Network host "${host}" is outside loopback task policy.`);
+      trigger = triggerForAction(action.kind, true);
+    } else if (
+      policy.network.access === 'allowlist' &&
+      !policy.network.allowlist?.some((pattern) => matchesPolicyPattern(host, pattern))
+    ) {
+      reasons.push(`Network host "${host}" is outside the task policy allowlist.`);
+      trigger = triggerForAction(action.kind, true);
+    }
+  }
+
+  if (action.kind === 'filesystem' && policy.filesystem) {
+    const mode = policy.filesystem.mode;
+    if (policy.filesystem.deniedPaths?.some((path) => pathIsWithin(action.subject, path))) {
+      reasons.push(`Filesystem path "${action.subject}" is denied by task policy.`);
+      trigger = triggerForAction(action.kind);
+    } else if (mode === 'none') {
+      reasons.push('Filesystem access is denied by task policy.');
+      trigger = triggerForAction(action.kind);
+    } else if (policy.filesystem.allowedPaths?.length) {
+      const allowed = policy.filesystem.allowedPaths.some((path) => pathIsWithin(action.subject, path));
+      if (!allowed) {
+        reasons.push(`Filesystem path "${action.subject}" is outside the task policy scope.`);
+        trigger = triggerForAction(action.kind, true);
+      }
+    }
+    if (!trigger && action.operation === 'write' && mode === 'read') {
+      reasons.push('Filesystem write is denied by read-only task policy.');
+      trigger = triggerForAction(action.kind);
+    }
+    if (!trigger && action.operation === 'read' && mode === 'write') {
+      reasons.push('Filesystem read is denied by write-only task policy.');
+      trigger = triggerForAction(action.kind);
+    }
+  }
+
+  if (action.kind === 'secret' && policy.secrets) {
+    if (matchesAnyPolicyPattern(action.subject, policy.secrets.deniedSecretRefs)) {
+      reasons.push(`Secret "${action.subject}" is denied by task policy.`);
+      trigger = triggerForAction(action.kind);
+    } else if (
+      action.subject.startsWith('env:') &&
+      policy.secrets.allowEnvironment === false
+    ) {
+      reasons.push('Environment secret access is denied by task policy.');
+      trigger = triggerForAction(action.kind);
+    } else if (
+      policy.secrets.allowedSecretRefs?.length &&
+      !matchesAnyPolicyPattern(action.subject, policy.secrets.allowedSecretRefs)
+    ) {
+      reasons.push(`Secret "${action.subject}" is outside the task policy allowlist.`);
+      trigger = triggerForAction(action.kind, true);
+    }
+  }
+
+  if (action.kind === 'spend' && policy.spendCap) {
+    if (action.currency && action.currency !== policy.spendCap.currency) {
+      reasons.push(`Spend currency "${action.currency}" does not match task policy currency.`);
+      trigger = triggerForAction(action.kind);
+    }
+    if ((action.amount ?? 0) > policy.spendCap.amount) {
+      reasons.push(`Spend ${action.amount} exceeds task policy cap ${policy.spendCap.amount}.`);
+      trigger = triggerForAction(action.kind);
+    }
+  }
+
+  const escalation = findEscalationRule(policy, trigger);
+  const enforcement = policy.enforcement ?? 'block';
+  const decision: TaskPolicyDecisionType =
+    reasons.length === 0
+      ? 'allow'
+      : enforcement === 'advisory'
+        ? 'allow'
+        : escalation || enforcement === 'escalate'
+          ? 'escalate'
+          : 'deny';
+
+  const event: TaskPolicyEvent = {
+    taskId: context.taskId,
+    policyId: policy.id,
+    actionKind: action.kind,
+    subject: action.subject,
+    operation: action.operation,
+    decision,
+    reasons,
+    agent: context.agent,
+    timestamp: context.timestamp ?? new Date().toISOString(),
+    escalationTarget: decision === 'escalate' ? escalation?.target : undefined,
+    escalationTargetId: decision === 'escalate' ? escalation?.targetId : undefined,
+    metadata: action.metadata,
+  };
+
+  return { allowed: decision === 'allow', decision, reasons, escalation, event };
 }
 
 /** Normalize a title for dedup comparison. */
