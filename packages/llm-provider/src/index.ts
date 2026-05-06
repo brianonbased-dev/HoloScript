@@ -35,6 +35,8 @@ export type {
   HoloScriptGenerationResponse,
   LLMProviderName,
   LLMProviderConfig,
+  OpenAIApiSurface,
+  OpenAIReasoningEffort,
   OpenAIProviderConfig,
   AnthropicProviderConfig,
   GeminiProviderConfig,
@@ -69,7 +71,13 @@ export {
 export { BaseLLMAdapter } from './base-adapter';
 
 // Provider adapters
-export { OpenAIAdapter, OPENAI_MODELS } from './adapters/openai';
+export {
+  OpenAIAdapter,
+  OPENAI_MODELS,
+  messagesToOpenAIResponsesInput,
+  parseOpenAIResponsesResult,
+  toolSpecsToOpenAIResponseTools,
+} from './adapters/openai';
 export type { OpenAIModel } from './adapters/openai';
 
 export { AnthropicAdapter, ANTHROPIC_MODELS, buildThinkingAndOutputForAnthropic } from './adapters/anthropic';

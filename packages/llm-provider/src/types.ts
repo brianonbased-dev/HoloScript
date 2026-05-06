@@ -224,11 +224,12 @@ export type LLMStreamChunk =
     };
 
 /**
- * Coerce LLMMessage content to a plain string for adapters that don't
- * support tool-use (openai, gemini, local-llm, bitnet, mock). Non-text
- * blocks are flattened to a JSON-ish summary so the message still carries
- * SOME signal about what the model said. Adapters that DO support tool-use
- * (currently only anthropic) should pass content through unchanged.
+ * Coerce LLMMessage content to a plain string for adapters/surfaces that
+ * intentionally flatten tool-use (chat-completion compatibility, gemini,
+ * local-llm, bitnet, mock). Non-text blocks are flattened to a JSON-ish
+ * summary so the message still carries SOME signal about what the model said.
+ * Native tool-capable surfaces (Anthropic, OpenAI Responses) should pass
+ * structured blocks through unchanged.
  */
 export function messageContentAsString(content: LLMMessage['content']): string {
   if (typeof content === 'string') return content;
@@ -400,9 +401,38 @@ export interface LLMProviderConfig {
   defaultModel?: string;
 }
 
+export type OpenAIApiSurface = 'responses' | 'chat-completions';
+export type OpenAIReasoningEffort = 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
+
 export interface OpenAIProviderConfig extends LLMProviderConfig {
   /** OpenAI organization ID */
   organization?: string;
+
+  /**
+   * OpenAI API surface. Defaults to `responses` so current models, hosted
+   * tools, and function-call output items all use the modern wire contract.
+   * Use `chat-completions` only for older OpenAI-compatible proxies.
+   */
+  apiSurface?: OpenAIApiSurface;
+
+  /**
+   * Responses API reasoning effort. Leave unset for provider/model default.
+   * Useful for GPT-5.x calls where HoloScript wants explicit cost/latency
+   * control at adapter construction time.
+   */
+  reasoningEffort?: OpenAIReasoningEffort;
+
+  /**
+   * Responses API persistence flag. Leave undefined to inherit OpenAI's
+   * default for the account/project; set false for stateless private calls.
+   */
+  store?: boolean;
+
+  /**
+   * Whether OpenAI Responses may emit multiple tool calls in one turn.
+   * Defaults true to match agentic HoloScript workflows.
+   */
+  parallelToolCalls?: boolean;
 }
 
 export interface AnthropicProviderConfig extends LLMProviderConfig {

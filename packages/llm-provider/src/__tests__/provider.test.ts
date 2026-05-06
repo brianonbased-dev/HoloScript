@@ -187,6 +187,9 @@ describe('OpenAIAdapter (metadata)', () => {
 
   it('has expected available models', () => {
     const adapter = new OpenAIAdapter({ apiKey: 'test-key' });
+    expect(adapter.models).toContain('gpt-5.5');
+    expect(adapter.models).toContain('gpt-5.4-mini');
+    expect(adapter.models).toContain('gpt-5.3-codex');
     expect(adapter.models).toContain('gpt-4o');
     expect(adapter.models).toContain('gpt-4o-mini');
     expect(adapter.models).toContain('gpt-3.5-turbo');
@@ -194,17 +197,18 @@ describe('OpenAIAdapter (metadata)', () => {
 
   it('OPENAI_MODELS constant is populated', () => {
     expect(OPENAI_MODELS.length).toBeGreaterThan(0);
+    expect(OPENAI_MODELS).toContain('gpt-5.5');
     expect(OPENAI_MODELS).toContain('gpt-4o');
   });
 
-  it('uses gpt-4o-mini as default HoloScript model', () => {
+  it('uses gpt-5.5 as default HoloScript model', () => {
     const adapter = new OpenAIAdapter({ apiKey: 'test-key' });
-    expect(adapter.defaultHoloScriptModel).toBe('gpt-4o-mini');
+    expect(adapter.defaultHoloScriptModel).toBe('gpt-5.5');
   });
 
   it('respects custom defaultModel in config', () => {
-    const adapter = new OpenAIAdapter({ apiKey: 'test-key', defaultModel: 'gpt-4o' });
-    expect(adapter.defaultHoloScriptModel).toBe('gpt-4o');
+    const adapter = new OpenAIAdapter({ apiKey: 'test-key', defaultModel: 'gpt-5.4-mini' });
+    expect(adapter.defaultHoloScriptModel).toBe('gpt-5.4-mini');
   });
 });
 
