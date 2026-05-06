@@ -24,19 +24,19 @@ import type {
   VRRCompilationResult,
   IOSCompileResult,
 } from './CompilerTypes';
-import { CapabilityRBAC, getCapabilityRBAC } from './identity';
-import type { CapabilityToken } from './identity';
+import { CapabilityRBAC, getCapabilityRBAC } from './identity/CapabilityRBAC';
+import type { CapabilityToken } from './identity/CapabilityToken';
 import {
   type CompilerName,
   COMPILER_ANS_MAP,
   isValidCompilerName,
-} from './identity';
+} from './identity/ANSNamespace';
 import {
   type SpatialZoneEnforcer,
   type SpatialAccessDecision,
   SpatialPermission,
   getSpatialZoneEnforcer,
-} from './identity';
+} from './identity/SpatialMemoryZones';
 import {
   CompilerDocumentationGenerator,
   type TripleOutputResult,

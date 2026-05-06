@@ -90,13 +90,19 @@ async function compileFile(holoPath: string): Promise<{ outputPath: string; code
 
   // Compile to Next.js
   const compiler = new NextJSCompiler({ slots: SLOT_IMPORTS });
-  const result = await compiler.compile(parseResult.ast, 'holo-pages-build-token');
+  // Local page generation uses CompilerBase's dev-mode bypass; production callers must pass credentials.
+  const result = await compiler.compile(parseResult.ast, '');
 
   // Determine output path: holo-pages/pipeline/page.holo → src/app/pipeline/page.tsx
   const dirPart = dirname(relPath);
   const outputPath = join(APP_DIR, dirPart, 'page.tsx');
 
-  return { outputPath, code: GENERATED_HEADER + result.code };
+  const generatedCode = result.code.startsWith('// @generated')
+    ? result.code
+    : GENERATED_HEADER + result.code;
+  const normalizedCode = generatedCode.replace(/[ \t]+$/gm, '');
+
+  return { outputPath, code: normalizedCode.endsWith('\n') ? normalizedCode : `${normalizedCode}\n` };
 }
 
 async function build(): Promise<void> {
@@ -150,6 +156,9 @@ async function build(): Promise<void> {
 
   const elapsed = Date.now() - startTime;
   console.log(`\nDone: ${successCount} compiled, ${errorCount} errors (${elapsed}ms)`);
+  if (errorCount > 0) {
+    throw new Error(`holo:build failed: ${errorCount} .holo page(s) did not compile`);
+  }
 }
 
 // =============================================================================
@@ -192,7 +201,13 @@ async function watch(): Promise<void> {
 const isWatch = process.argv.includes('--watch');
 
 if (isWatch) {
-  watch().catch(console.error);
+  watch().catch((error: unknown) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
 } else {
-  build().catch(console.error);
+  build().catch((error: unknown) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
 }
