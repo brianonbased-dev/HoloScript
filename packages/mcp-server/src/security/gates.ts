@@ -68,7 +68,14 @@ const INJECTION_PATTERNS = [
   /;\s*(rm|del|format|mkfs|dd)\s/i,
   /\|\|\s*(rm|del|format)\s/i,
   /&&\s*(rm|del|format)\s/i,
-  /`[^`]*\b(rm|del|format)\b[^`]*`/i,
+  // Backtick command-substitution: tightened from `\`[^\`]*\b(rm|del|format)\b[^\`]*\``
+  // (W.GOLD.039 Sapir-Whorf — overly broad lexical firewall crippled JSDoc/CSS/GLSL
+  // mentions of `format`). Now requires the dangerous command to START the span and
+  // be followed by at least one command-line-shaped arg (flag, path, redirect, pipe,
+  // glob, $(...), drive letter, if=/of=). Allows benign descriptive uses like
+  // `format: rgba`, `format(value)`, `format the matrix`, `del` (HTML element).
+  // See task_1778093521547_vx4i + W.GOLD.035/039/193.
+  /`\s*(rm|del|format|mkfs|dd)(?:\.\w+)?\s+(?:-{1,2}\w|[a-z]:|[/\\]|\.{1,2}[/\\]|\$\(|\$\{|>{1,2}|<{1,2}|\||;|&&?|\*|if=|of=|\?[*]|\S*[/\\])[^`]*`/i,
   /\$\([^)]*\b(rm|del|format)\b[^)]*\)/i,
 
   // Path traversal (../../ etc or deeper)
