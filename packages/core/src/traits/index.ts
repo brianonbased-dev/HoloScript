@@ -162,6 +162,7 @@ export * from './LotusCenterTrait';
 export * from './LotusGardenerTrait';
 export * from './BeatmapTrait';
 export * from './BloomReactiveTrait';
+export * from './RoomModeResonanceTrait';
 export { PIDControllerTrait } from './PIDControllerTrait';
 export * from './PlaneDetectionTrait';
 export * from './PointCloudTrait';
