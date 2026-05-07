@@ -53,10 +53,7 @@ let overallExitCode = 0;
 // sharding for coverage runs; pre-create .tmp so the v8 provider doesn't race.
 const isCoverage = extraArgs.includes('--coverage');
 if (hasExplicitShard(extraArgs) || hasPositionalTestTargets(extraArgs) || isCoverage) {
-  const coverageArgs = isCoverage
-    ? ['--pool=forks', '--maxWorkers=1', '--fileParallelism=false']
-    : [];
-  const proc = runVitest([...coverageArgs, ...extraArgs]);
+  const proc = runVitest(extraArgs);
   overallExitCode = proc.status ?? 1;
 } else {
   for (const shard of ['1/2', '2/2']) {

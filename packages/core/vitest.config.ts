@@ -47,7 +47,9 @@ export default defineConfig({
             'src/__tests__/RuntimeOptimization.test.ts',
             'src/__tests__/trait-commutativity.test.ts',
             'src/__tests__/mockadapter-static-properties.test.ts',
+            'src/__tests__/SynthEngine.test.ts',
             'src/reconstruction/__tests__/HoloMapPerformanceBenchmark.test.ts',
+            'src/plugins/__tests__/paper-4-sandbox-bench.test.ts',
           ]
         : []),
     ],
