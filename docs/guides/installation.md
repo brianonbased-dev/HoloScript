@@ -179,7 +179,8 @@ cd my-vr-game
 
 ### Project Structure
 
-```
+```text
+
 my-vr-game/
 ├── src/
 │   ├── scenes/
@@ -192,6 +193,7 @@ my-vr-game/
 ├── dist/
 ├── holoscript.config.json
 └── package.json
+
 ```
 
 ### Configuration

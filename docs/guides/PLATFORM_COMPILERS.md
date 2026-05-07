@@ -42,14 +42,14 @@ Compiles HoloScript to VRChat SDK3 worlds with UdonSharp scripts.
 holoscript compile my-world.holo --target vrchat --output ./vrchat-output/
 ```
 
-### Output Files
+### VRChat Output Files
 
 - `WorldSetup.cs` - Main world setup script
 - `*_Udon.cs` - Individual Udon scripts for interactive objects
 - `PrefabHierarchy.txt` - Unity prefab structure
 - `WorldDescriptor.json` - VRChat world configuration
 
-### Example
+### VRChat Example
 
 ```holo
 composition "VRChat Demo" {
@@ -96,7 +96,7 @@ Compiles HoloScript to Unreal Engine 5 C++ code with Blueprint compatibility.
 holoscript compile my-scene.holo --target unreal --output ./Source/Generated/
 ```
 
-### Output Files
+### Unreal Output Files
 
 - `GeneratedScene.h` - Header file with class declaration
 - `GeneratedScene.cpp` - Implementation with component setup
@@ -112,7 +112,7 @@ holoscript compile scene.holo --target unreal --blueprints
 holoscript compile scene.holo --target unreal --engine-version 5.4
 ```
 
-### Example
+### Unreal Example
 
 ```holo
 composition "Unreal Demo" {
@@ -163,19 +163,19 @@ Compiles HoloScript to Swift code for iOS augmented reality apps.
 holoscript compile ar-scene.holo --target ios --output ./HoloApp/
 ```
 
-### Output Files
+### iOS Output Files
 
 - `GeneratedARSceneView.swift` - SwiftUI view with AR session
 - `GeneratedARScene.swift` - SceneKit scene setup
 - `GeneratedARSceneState.swift` - ObservableObject state management
 - `Info.plist` - Required permissions (camera, etc.)
 
-### Requirements
+### iOS Requirements
 
 - iOS 15.0+ (ARKit 5)
 - iOS 17.0+ recommended for latest features
 
-### Example
+### iOS Example
 
 ```holo
 composition "iOS AR Demo" {
@@ -223,7 +223,7 @@ Compiles HoloScript to Kotlin code for Android augmented reality apps.
 holoscript compile ar-scene.holo --target android --output ./app/src/main/java/
 ```
 
-### Output Files
+### Android Output Files
 
 - `GeneratedARSceneActivity.kt` - Main Activity with AR session
 - `GeneratedARSceneState.kt` - ViewModel state management
@@ -231,12 +231,12 @@ holoscript compile ar-scene.holo --target android --output ./app/src/main/java/
 - `AndroidManifest.xml` - Permissions and ARCore metadata
 - `build.gradle.kts` - Dependencies
 
-### Requirements
+### Android Requirements
 
 - Android SDK 26+ (ARCore 1.0)
 - Android SDK 34 recommended
 
-### Example
+### Android Example
 
 ```holo
 composition "Android AR Demo" {

@@ -31,7 +31,7 @@ head:
       content: holoscript studio, ide reference, brittney ai, vr editor, shader editor, camera paths, code editor, animation editor, webxr, three.js, studio documentation
 ---
 
-# HoloScript Studio - Complete Reference
+## HoloScript Studio - Complete Reference
 
 **Version:** 0.1.0-beta
 **Tech Stack:** React 19 + Next.js 15 + Three.js + WebXR
@@ -57,7 +57,7 @@ HoloScript Studio is a **web-based IDE** for building VR/AR/XR scenes without wr
 
 ## Interface Layout
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │  [Logo] [Creator][Artist][Filmmaker][Expert][Character]    │ Top Bar
 │  [New][Open][Save][Publish][VR Mode][Benchmark]           │
@@ -170,7 +170,7 @@ Toggle visibility: `Ctrl+G` (grid), `Ctrl+H` (axes)
 
 **Example Prompts:**
 
-```
+```text
 Create a medieval castle with towers and a moat
 
 Add a flying dragon that circles the castle
@@ -217,7 +217,7 @@ Export this to Unity with C# scripts
 
 Displays all scene objects in parent-child hierarchy:
 
-```
+```text
 📦 Scene
 ├─ 🌍 Environment
 │  ├─ ☀️ DirectionalLight
@@ -273,7 +273,7 @@ Displays all scene objects in parent-child hierarchy:
 
 List of applied traits with configuration:
 
-```
+```holoscript
 @physics
   ├─ mass: 1.0
   ├─ bounciness: 0.5
@@ -383,7 +383,8 @@ state:
 
 ### Timeline Editor
 
-```
+```text
+
 ┌───────────────────────────────────────────────────┐
 │  [Play] [Pause] [Stop]  ⏱️ 00:05.23 / 00:30.00  │
 ├───────────────────────────────────────────────────┤
@@ -391,6 +392,7 @@ state:
 │  Light    ▬▬▬▬▬▬▬▬▬●▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬     │
 │  Dragon   ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬●▬▬▬▬▬▬▬▬▬▬     │
 └───────────────────────────────────────────────────┘
+
 ```
 
 **Features:**
@@ -564,8 +566,10 @@ Save clips to reuse:
 
 **Auto-Optimize** (via Brittney):
 
-```
+```text
+
 Optimize this scene for Quest 2
+
 ```
 
 Brittney will:

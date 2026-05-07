@@ -6,7 +6,7 @@ The HoloScript VS Code extension provides the best development experience for `.
 
 Install from the VS Code Marketplace:
 
-```
+```text
 ext install holoscript.holoscript-vscode
 ```
 

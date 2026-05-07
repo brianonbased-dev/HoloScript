@@ -30,7 +30,7 @@ Brittney is available through:
 
 Good prompts are specific:
 
-```
+```text
 ❌ "Make a game"
 ✅ "Create a VR escape room with 3 puzzle stations, a locked door
     that opens when all puzzles are solved, and ambient torch lighting"
@@ -207,53 +207,67 @@ AI agents access HoloScript through MCP tools:
 
 ### Scene Generation
 
-```
+```typescript
+
 Create a [genre] environment with:
+
 - [key feature 1]
 - [key feature 2]
 - [interaction type]
 - [atmosphere/mood]
+
 ```
 
 **Example:**
 
-```
+```text
+
 Create a cyberpunk rooftop environment with:
+
 - Neon signs that can be shot
 - A hovering drone that follows the player
 - Hackable terminals
 - Rain and fog atmosphere
+
 ```
 
 ### Object Generation
 
-```
+```typescript
+
 Create a [object type] that:
+
 - [visual property]
 - [interaction behavior]
 - [physics behavior]
 - [special effect]
+
 ```
 
 **Example:**
 
-```
+```text
+
 Create a magic sword that:
+
 - Glows blue when held
 - Can be thrown and returns
 - Leaves a trail effect
 - Makes impact sounds on collision
+
 ```
 
 ### Fix Generation
 
-```
+```text
+
 This HoloScript has an error:
 [paste code]
 
 The error is: [error message]
 
 Please fix it and explain what was wrong.
+
 ```
 
 ---
@@ -264,19 +278,25 @@ Please fix it and explain what was wrong.
 
 AI can analyze validation errors:
 
-```
+```holoscript
+
 AI: I see two issues:
+
 1. Line 15: '@grabbble' is misspelled, should be '@grabbable'
 2. Line 23: Missing closing brace for the spatial_group
+
 ```
 
 ### Performance Suggestions
 
-```
+```holoscript
+
 AI: Your scene has 500 physics objects. Consider:
+
 1. Using @trigger instead of @collidable for non-essential collisions
 2. Disabling physics on distant objects
 3. Using LOD (level of detail) for models
+
 ```
 
 ---

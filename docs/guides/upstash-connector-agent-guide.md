@@ -494,7 +494,7 @@ Remove message from DLQ.
 
 High-level operations combining multiple subsystems.
 
-#### 23. `upstash_schedule_nightly_compilation`
+### 23. `upstash_schedule_nightly_compilation`
 
 Shortcut for scheduling nightly builds.
 
@@ -512,7 +512,7 @@ Shortcut for scheduling nightly builds.
 
 **Equivalent to**: `upstash_qstash_schedule` with cron `0 {hour} * * *` + retry config
 
-#### 24. `upstash_schedule_health_ping`
+### 24. `upstash_schedule_health_ping`
 
 Schedule periodic health checks.
 
@@ -528,7 +528,7 @@ Schedule periodic health checks.
 
 **Equivalent to**: `upstash_qstash_schedule` with cron `*/{intervalMinutes} * * * *`
 
-#### 25. `upstash_trigger_deployment`
+### 25. `upstash_trigger_deployment`
 
 Trigger deployment after delay (CI/CD integration).
 
@@ -701,10 +701,10 @@ const result = await connector.executeTool('upstash_redis_cache_get', {
 - **Tests**: `packages/connector-upstash/__tests__/` ([see NUMBERS.md] , 86 pass)
 - **MCP Orchestrator**: `https://mcp-orchestrator-production-45f9.up.railway.app`
 - **Upstash Docs**:
-  - Redis: https://upstash.com/docs/redis
-  - Vector: https://upstash.com/docs/vector
-  - QStash: https://upstash.com/docs/qstash
+  - Redis: <https://upstash.com/docs/redis>
+  - Vector: <https://upstash.com/docs/vector>
+  - QStash: <https://upstash.com/docs/qstash>
 
 ---
 
-**Ready to use! 🚀**
+## Ready To Use

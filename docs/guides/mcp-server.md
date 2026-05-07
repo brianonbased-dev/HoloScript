@@ -79,7 +79,7 @@ If you prefer running the server locally:
 npm install -g @holoscript/mcp-server
 ```
 
-2. Add to Claude config:
+1. Add to Claude config:
 
 ```json
 {
@@ -92,7 +92,7 @@ npm install -g @holoscript/mcp-server
 }
 ```
 
-3. Restart Claude Desktop
+1. Restart Claude Desktop
 
 ### For VS Code + Copilot
 
@@ -261,7 +261,8 @@ Get a plain English explanation of HoloScript code.
 
 **Output:**
 
-```
+```holoscript
+
 This code creates a glowing portal object:
 
 1. The portal uses @trigger to detect when objects enter it
@@ -269,6 +270,7 @@ This code creates a glowing portal object:
 3. When a player enters the trigger zone, they are teleported to a destination
 
 This is commonly used for level transitions or fast travel points.
+
 ```
 
 ---
@@ -505,7 +507,8 @@ Ask a natural language question about the codebase. Requires Ollama running loca
 
 ## Recommended Agent Workflow for TypeScript Refactoring
 
-```
+```text
+
 1. holo_graph_status({})
    → If fresh: skip to step 3
 
@@ -520,35 +523,42 @@ Ask a natural language question about the codebase. Requires Ollama running loca
 
 5. holo_detect_changes({ before: "HEAD~1", after: "HEAD" })
    → Verify only intended changes occurred
+
 ```
 
 ---
 
 ### Generate a Complete VR Game Level
 
-```
+```yaml
+
 User: Create a VR escape room with puzzles
 
 AI uses: generate_scene
 Output: Complete .holo file with rooms, puzzles, triggers, and logic
+
 ```
 
 ### Debug Code Issues
 
-```
+```yaml
+
 User: Why doesn't this work? [code]
 
 AI uses: validate_holoscript
 Output: Specific error messages with suggestions
+
 ```
 
 ### Learn Best Practices
 
-```
+```holoscript
+
 User: What traits should I use for a basketball?
 
 AI uses: suggest_traits
 Output: @grabbable, @throwable, @physics with reasoning
+
 ```
 
 ---

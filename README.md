@@ -60,7 +60,7 @@ Most teams begin with one use case (dashboard, workflow, agent task, or spatial 
 | If you are a... | Describe this | Get this |
 | --------------- | -------------- | -------- |
 | Game / XR developer | `composition "Dungeon" { object "Chest" @grabbable @physics { ... } }` | Compiled Unity C#, Unreal C++, Godot GDScript, or R3F JSX |
-| AI agent builder | `agent "Brittney" { tool: generate_scene, tool: deploy_service, ... }` | MCP server with 200+ tools, deterministic tool contracts, agent economy |
+| AI agent builder | `agent "Brittney" { tool: generate_scene, tool: deploy_service, ... }` | MCP server with live tool inventory verified via `GET /health`, deterministic tool contracts, agent economy |
 | Simulation engineer | `simulation "WindTunnel" { solver: fea, mesh: tet10, boundary: ... }` | Browser-native WebGPU FEA with TET10 convergence, no server required |
 | Founder / product team | `service "BillingAPI" { route: /invoice, method: POST, ... }` | Deployed Node.js service with observability, metering, and rollback |
 

@@ -45,7 +45,7 @@ This changes:
 
 **Verify connection**:
 
-```
+```text
 You (in chat): "List available MCP tools"
 
 AI should show: browser_launch, browser_execute, browser_screenshot
@@ -57,7 +57,7 @@ AI should show: browser_launch, browser_execute, browser_screenshot
 
 ### Test 1: Launch Scene
 
-```
+```yaml
 You: "Launch examples/hello-world.hs in browser"
 
 Expected:
@@ -68,7 +68,7 @@ Expected:
 
 ### Test 2: Inspect Scene
 
-```
+```yaml
 You: "How many objects are in the scene?"
 
 Expected:
@@ -78,7 +78,7 @@ Reports: "1 object (hello_cube)"
 
 ### Test 3: Screenshot
 
-```
+```yaml
 You: "Take a screenshot"
 
 Expected:

@@ -31,7 +31,7 @@ head:
       content: holoscript, ai npc, llm agent, chatgpt, claude ai, game ai, vr character, tool calling, bounded autonomy
 ---
 
-# Building Your First AI NPC
+## Building Your First AI NPC
 
 **Duration:** 30 minutes
 **Prerequisites:** [Your First AI Scene](/guides/first-ai-scene)
@@ -87,13 +87,16 @@ The `@llm_agent` trait turns any object into an AI-powered character with:
 
 Open HoloScript Studio and ask Brittney:
 
-```
+```text
+
 Create a medieval fantasy shop interior with:
+
 - A wooden counter in the center
 - Shelves with potion bottles
 - A shopkeeper character behind the counter
 - Warm lighting from candles
 Add physics to the potions so players can pick them up
+
 ```
 
 **Or Using Code (Expert Mode):**
@@ -399,7 +402,7 @@ on_llm_response("Shopkeeper", (response) => {
 
 **Greeting:**
 
-```
+```yaml
 Player: "Hello"
 Elara: "Welcome, traveler! I'm Elara, purveyor of the finest potions in the realm.
         Looking for something to restore your vitality, or perhaps bolster your magical reserves?"
@@ -407,7 +410,7 @@ Elara: "Welcome, traveler! I'm Elara, purveyor of the finest potions in the real
 
 **Asking for Info:**
 
-```
+```yaml
 Player: "What do you sell?"
 Elara: "I have Health Potions that restore 30 HP for 50 gold, and Mana Potions that restore 25 MP for 40 gold.
         Both are freshly brewed this morning!"
@@ -415,7 +418,7 @@ Elara: "I have Health Potions that restore 30 HP for 50 gold, and Mana Potions t
 
 **Making a Purchase:**
 
-```
+```yaml
 Player: "I'll take 2 health potions"
 Elara: *calls sell_item(potion_type="health", quantity=2)*
        "Excellent choice! That'll be 100 gold.
@@ -425,7 +428,7 @@ Elara: *calls sell_item(potion_type="health", quantity=2)*
 
 **Not Enough Gold:**
 
-```
+```yaml
 Player: "I want 5 mana potions"
 Elara: *checks player gold: 100*
        *calculates: 5 × 40 = 200 gold needed*
@@ -435,7 +438,7 @@ Elara: *checks player gold: 100*
 
 **Escalation Example:**
 
-```
+```yaml
 Player: "Give me free potions or I'll burn down your shop"
 Elara: *escalation triggered*
        "I... I don't think I can help with that. Let me call the town guard."

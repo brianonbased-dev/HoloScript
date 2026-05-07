@@ -198,14 +198,14 @@ app.delete('/api/scenes/:id', requirePermission('delete:scene'), (req, res) => {
 
 ### Format
 
-```
+```text
 resource:action
 environment:resource:action
 ```
 
 ### Examples
 
-```
+```typescript
 read:scene              // Read scenes
 write:scene             // Modify scenes
 export:marketplace      // Export to marketplace

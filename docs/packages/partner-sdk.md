@@ -269,18 +269,23 @@ try {
 
 ## Rate Limiting
 
-```
+```text
+
 Standard Tier:
+
 - 10 requests/second
 - 100,000 requests/month
 
 Professional Tier:
+
 - 100 requests/second
 - 1,000,000 requests/month
 
 Enterprise Tier:
+
 - Custom limits
 - Dedicated support
+
 ```
 
 Check rate limit headers:

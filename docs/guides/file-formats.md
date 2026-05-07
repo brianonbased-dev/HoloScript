@@ -27,7 +27,7 @@ HoloScript has three file formats. Each owns a lane — they are a progression, 
 
 Each format has strict boundaries. Using spatial keywords in a pipeline file produces a `SyntaxError`:
 
-```
+```yaml
 SyntaxError: 'environment' is not valid in a pipeline context.
 Use .holo for spatial compositions or .hsplus for behaviors.
 ```
@@ -300,7 +300,8 @@ composition "Dispensary" {
 
 Brittney is a polyglot orchestrator. When a client describes their business, she decides which format each piece needs:
 
-```
+```holoscript
+
 Client: "I need a dispensary with real-time inventory"
 
 Brittney generates:
@@ -309,6 +310,7 @@ Brittney generates:
   analytics-sync.hs  → Nightly sales data → analytics dashboard
 
 All compile from HoloScript to whatever runtime the target needs.
+
 ```
 
 HoloScript is the **intermediate representation**, not the implementation language. It bridges TypeScript (infrastructure), Python (ML/AI), and 24+ spatial targets from one source of truth.

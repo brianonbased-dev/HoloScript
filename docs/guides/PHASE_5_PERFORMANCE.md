@@ -331,66 +331,81 @@ The optimizer monitors frame metrics and automatically adjusts:
 
 ### Quality Degradation
 
-```
+```yaml
+
 Trigger: FPS < target - threshold (e.g., 60 - 5 = 55 FPS)
 Action:
+
   1. Reduce texture resolution (4K → 2K → 1K)
   2. Enable compression if not already
   3. Reduce max lights (8 → 4 → 2)
   4. Enable LOD if not already
   5. Disable advanced shadows
   6. Lower quality preset (Ultra → High → Medium → Low)
+
 ```
 
 ### Quality Improvement
 
-```
+```yaml
+
 Trigger: FPS > target + threshold (e.g., 60 + 10 = 70 FPS)
   AND GPU memory utilization < 50%
   AND sustained for 5+ frames
 Action:
+
   1. Increase texture resolution up to device max
   2. Disable compression if feasible
   3. Increase max lights
   4. Disable aggressive LOD
   5. Enable advanced shadows
   6. Raise quality preset (Low → Medium → High → Ultra)
+
 ```
 
 ## Performance Recommendations
 
 ### FPS Issues
 
-```
+```yaml
+
 Issue: FPS < target
 Recommendations:
-  - Reduce texture quality
-  - Enable compression
-  - Reduce lights
-  - Disable advanced effects
+
+- Reduce texture quality
+- Enable compression
+- Reduce lights
+- Disable advanced effects
 Severity: HIGH
+
 ```
 
 ### Memory Issues
 
-```
+```yaml
+
 Issue: GPU memory > 85% budget
 Recommendations:
-  - Prune texture cache
-  - Reduce texture resolution
-  - Enable compression
+
+- Prune texture cache
+- Reduce texture resolution
+- Enable compression
 Severity: MEDIUM
+
 ```
 
 ### Power Efficiency
 
-```
+```yaml
+
 Issue: Mobile device battery drain
 Recommendations:
-  - Enable LOD
-  - Reduce max lights
-  - Decrease refresh rate to 30 FPS
+
+- Enable LOD
+- Reduce max lights
+- Decrease refresh rate to 30 FPS
 Severity: MEDIUM
+
 ```
 
 ## Integration with Phase 3-4

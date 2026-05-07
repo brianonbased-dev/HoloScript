@@ -282,7 +282,7 @@ Enable GPU instancing in compiled materials
 
 Use the HoloScript Inspector:
 
-```
+```text
 Window → HoloScript → Scene Inspector
 Shows all objects, state, and network info
 ```

@@ -336,7 +336,7 @@ pbr_material "PCVRTerrain" {
 - **Avoid**: Height maps (parallax too expensive on mobile)
 - **Compression**: Use ASTC (Android) or PVRTC (iOS) — handled by compiler
 
-### AAA-Quality Examples
+### PBR AAA-Quality Examples
 
 #### Example 1: Photorealistic Wood Floor
 
@@ -581,7 +581,7 @@ subsurface_material "MobileSkin" @sss {
 - ⚠️ **No native SSS support** — Falls back to standard PBR
 - Alternative: Fake SSS with `emissive_map` + `opacity < 1.0`
 
-### AAA-Quality Examples
+### Subsurface Scattering AAA-Quality Examples
 
 #### Example 1: Photorealistic Skin (AAA Character)
 
@@ -1081,7 +1081,7 @@ particles "MobileEmbers" @looping {
 - **Avoid:** Mesh rendering mode (billboards only)
 - **Compression:** Use WebP for sprite sheets
 
-### AAA-Quality Examples
+### Particle AAA-Quality Examples
 
 #### Example 1: Photorealistic Smoke
 
@@ -1614,7 +1614,7 @@ post_processing "DesktopVR" {
 - **Max effects:** Bloom, color grading, FXAA
 - **Avoid:** SSR, volumetric fog (no compute shader support in WebGPU 1.0)
 
-### AAA-Quality Examples
+### Post-Processing AAA-Quality Examples
 
 #### Example 1: AAA Cinematic Cutscene
 
@@ -1865,7 +1865,7 @@ audio_source "MobileWaterfall" @spatial {
 - **HRTF:** Use Steam Audio or Oculus Spatializer
 - **Rolloff:** Use `"logarithmic"` for realism
 
-### AAA-Quality Examples
+### Audio Source AAA-Quality Examples
 
 #### Example 1: Realistic River Flow
 
@@ -2739,7 +2739,7 @@ composition "Blacksmith Forge Workshop" {
 
 ---
 
-**END OF GUIDE**
+## End Of Guide
 
 _HoloScript v4.2 — Production-Quality Perception & Simulation Stack_
 _© 2026 HoloScript Contributors — MIT License_

@@ -4,7 +4,7 @@ HoloScript Studio runs as a native desktop application via [Tauri 2.0](https://v
 
 ## Architecture
 
-```
+```text
 ┌──────────────────────────────┐
 │   HoloScript Studio (React)  │
 ├──────────────────────────────┤

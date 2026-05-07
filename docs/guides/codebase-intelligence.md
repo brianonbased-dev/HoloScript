@@ -193,7 +193,7 @@ console.log(answer.citations);
 
 ### absorb pipeline
 
-```
+```text
 Source files
     │
     ▼
@@ -213,7 +213,7 @@ Community detection (Louvain)
 
 ### query pipeline
 
-```
+```yaml
 Question string
     │
     ▼

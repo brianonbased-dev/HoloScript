@@ -8,7 +8,7 @@
 
 ## Architecture
 
-```
+```holoscript
 Studio (React/Next.js)
   ├── tauri-bridge.ts         ← Feature detection & IPC invoke
   ├── platform-detect.ts      ← Runtime capability probing
@@ -44,7 +44,7 @@ pnpm tauri dev
 ## Key Capabilities
 
 | Feature | IPC Command | Description |
-|---------|-------------|-------------|
+| ------- | ----------- | ----------- |
 | GPU Info | `get_gpu_info` | Native wgpu adapter detection |
 | App Version | `get_app_version` | Version from Cargo.toml |
 | Shader Preview | `shader_preview_init/frame/update/resize/destroy/benchmark` | Headless wgpu render pipeline |

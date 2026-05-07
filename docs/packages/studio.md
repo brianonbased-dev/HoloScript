@@ -36,7 +36,7 @@ https://studio.holoscript.dev/  # No installation needed
 
 ### The Workspace
 
-```
+```text
 ┌─────────────────────────────────────────┐
 │ Menu Bar       File  Edit  View  Help    │
 ├──────────────────────────────────────────┤
@@ -59,7 +59,7 @@ https://studio.holoscript.dev/  # No installation needed
 2. Drag into viewport
 3. Position with mouse or properties panel
 
-```
+```text
 Shapes Available:
 - Primitives: Cube, Sphere, Cylinder, Cone, Plane
 - 3D Models: Humanoid, Robot, Vehicle, Building
@@ -71,7 +71,7 @@ Shapes Available:
 
 Select object → Click **Traits** panel → Add:
 
-```
+```holoscript
 Common Traits:
 ✓ @grabbable    (Make interactive)
 ✓ @physics      (Add physics simulation)
@@ -82,13 +82,13 @@ Common Traits:
 
 ### Setting Properties
 
-**Transform**
+#### Transform
 
 - Position (X, Y, Z)
 - Rotation (Yaw, Pitch, Roll)
 - Scale (X, Y, Z)
 
-**Appearance**
+#### Appearance
 
 - Geometry: cube, sphere, etc.
 - Material: Color, Emission, Metallic, Roughness
@@ -100,7 +100,7 @@ Common Traits:
 - Restitution: 0-1 (bounciness)
 - Friction: 0-1 (grip)
 
-**Behavior**
+#### Behavior
 
 - Actions: Define triggers and responses
 - Animation: Add keyframe animations
@@ -115,7 +115,7 @@ Common Traits:
 3. **Add action** → Choose trigger (OnGrab, OnCollide, etc.)
 4. **Add steps** → Drag visual nodes to create flow
 
-```
+```json
 [OnGrab] → [Play Sound] → [Emit Particles] → [Change Color]
 ```
 
@@ -175,7 +175,8 @@ Easing options: Linear, Ease-in, Ease-out, Ease-in-out, Custom curve
 
 Start **Test Server** to simulate networking:
 
-```
+```yaml
+
 Players:
 ☐ Player 1 (you)
 ☐ Player 2 (simulated)
@@ -183,6 +184,7 @@ Players:
 
 Sync Rate: 20 Hz
 Network Latency: Normal
+
 ```
 
 ## Asset Management
@@ -252,8 +254,10 @@ Multiple users can edit simultaneously:
 
 ### Getting Started Templates
 
-```
+```yaml
+
 Templates:
+
 - Empty Scene
 - First-Person Shooter
 - Multiplayer Arena
@@ -262,6 +266,7 @@ Templates:
 - Mobile AR Experience
 - Godot Game
 - Web Experience
+
 ```
 
 Choose template → Start with structured project
@@ -272,11 +277,13 @@ Choose template → Start with structured project
 
 **Tools** → **Performance Monitor**
 
-```
+```yaml
+
 FPS: 60
 Memory: 128 MB / 256 MB (50%)
 Draw Calls: 45
 Triangles: 125,000
+
 ```
 
 ### Optimization Tips
@@ -289,7 +296,8 @@ Triangles: 125,000
 
 ## Keyboard Shortcuts
 
-```
+```text
+
 R       Rotate tool
 W       Move tool
 S       Scale tool
@@ -300,6 +308,7 @@ Ctrl+S  Save project
 Ctrl+Z  Undo
 Ctrl+Y  Redo
 Delete  Remove selected
+
 ```
 
 ## Troubleshooting

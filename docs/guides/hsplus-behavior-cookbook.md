@@ -228,7 +228,7 @@ Key pattern: **event routing table** maps webhook event types to handler methods
 
 When a user asks Brittney for agent behaviors, she generates `.hsplus`:
 
-```
+```holoscript
 User: "I need an agent that monitors my GitHub repos and summarizes PRs"
 
 Brittney generates:

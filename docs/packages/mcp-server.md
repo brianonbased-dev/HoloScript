@@ -53,7 +53,7 @@ Add to `.vscode/settings.json`:
 
 Add to `.cursor_rules`:
 
-```
+```yaml
 # Enable HoloScript MCP Server
 MCP_SERVERS: ["holoscript"]
 ```
@@ -123,7 +123,7 @@ curl https://mcp.holoscript.net/health
 
 **Agent workflow:**
 
-```
+```typescript
 1. LLM uses suggest_traits("VR shooter with projectiles")
    → Returns: @grabbable, @throwable, @physics, @collidable, @damaging
 
@@ -171,71 +171,93 @@ The server implements the official [Model Context Protocol](https://modelcontext
 
 ### parse_holo
 
-```
+```yaml
+
 Input:
-  - code: string (HoloScript code)
+
+- code: string (HoloScript code)
 
 Output:
-  - ast: AST object
-  - diagnostics: Diagnostic[]
-  - metadata: { linesOfCode, complexity, traits }
+
+- ast: AST object
+- diagnostics: Diagnostic[]
+- metadata: { linesOfCode, complexity, traits }
+
 ```
 
 ### suggest_traits
 
-```
+```holoscript
+
 Input:
-  - description: string (plain English description)
+
+- description: string (plain English description)
 
 Output:
-  - traits: string[] (recommended @trait names)
-  - explanations: { [trait]: why }
+
+- traits: string[] (recommended @trait names)
+- explanations: { [trait]: why }
+
 ```
 
 ### generate_object
 
-```
+```yaml
+
 Input:
-  - description: string
-  - traits: string[] (optional)
+
+- description: string
+- traits: string[] (optional)
 
 Output:
-  - code: string (HoloScript object code)
-  - template: string (suggested template)
-  - confidence: number
+
+- code: string (HoloScript object code)
+- template: string (suggested template)
+- confidence: number
+
 ```
 
 ### compile_holo
 
-```
+```yaml
+
 Input:
-  - code: string
-  - target: string ("unity" | "godot" | "webgpu" | ...)
+
+- code: string
+- target: string ("unity" | "godot" | "webgpu" | ...)
 
 Output:
-  - code: string (compiled output)
-  - language: string
-  - files: { [path]: content } (if multi-file)
+
+- code: string (compiled output)
+- language: string
+- files: { [path]: content } (if multi-file)
+
 ```
 
 ## Best Practices
 
 1. **Always validate** before compiling:
 
-   ```
+   ```text
+
    validate_holoscript() → compile_holo()
+
    ```
 
 2. **Suggest traits first** when generating from descriptions:
 
-   ```
+   ```text
+
    suggest_traits() → generate_object()
+
    ```
 
 3. **Use analysis** before large changes:
 
-   ```
+   ```text
+
    impact_analysis() → make changes → run tests
+
    ```
 
 4. **Cache parsed results** — Don't re-parse same file
@@ -270,10 +292,12 @@ if (validated.errors.length > 0) {
 
 For large codebases, use `absorb_repo` with caching:
 
-```
+```text
+
 1. absorb_repo(code, { cache: true })   // Scans + caches
 2. query_codebase(question)             // Uses cache
 3. find_usages(symbol)                  // Uses cache
+
 ```
 
 ## See Also

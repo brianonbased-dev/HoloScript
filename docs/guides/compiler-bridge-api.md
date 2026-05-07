@@ -4,7 +4,7 @@ The `CompilerBridge` is the main thread API for interacting with the HoloScript 
 
 ## Architecture
 
-```
+```holoscript
 Main Thread (React UI)
     |
     v
@@ -167,8 +167,9 @@ async compile(source: string, target: CompileTarget): Promise<CompileResult>
 ```
 
 **Engine-Core Targets:**
+
 | Target | Output |
-|--------|--------|
+| ------ | ------ |
 | `'threejs'` | Three.js scene JSON |
 | `'babylonjs'` | Babylon.js scene JSON |
 | `'aframe-html'` | A-Frame HTML markup |

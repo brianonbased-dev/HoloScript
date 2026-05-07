@@ -72,7 +72,7 @@ object "Hero" using "Player"
 
 See everywhere a symbol is used:
 
-```
+```text
 Ctrl+Shift+F on "Player"
 → Shows all objects using Player template
 → All files where Player is referenced
@@ -92,17 +92,21 @@ object "Cube" {
 
 **Quick Fix** (Ctrl+.):
 
-```
+```sql
+
 @unknonw_trait    ← Click lightbulb or Ctrl+.
                      Select "Did you mean @grabbable?"
+
 ```
 
 ### Formatting
 
 **Format on save** or manually:
 
-```
+```text
+
 Shift+Alt+F   ← Auto-format entire file
+
 ```
 
 **Before:**
@@ -141,7 +145,7 @@ Hover over traits to see documentation:
 
 All errors and warnings in one place:
 
-```
+```text
 Terminal menu → Problems
 Shows all issues across the entire workspace
 Click to navigate to location
@@ -228,7 +232,8 @@ Syntax highlighting and IntelliSense work on all three.
 
 1. Check VS Code version (1.75+)
 2. Try reinstalling:
-   ```
+
+   ```text
    Extensions → Uninstall → Reload
    Then install again
    ```
@@ -237,15 +242,18 @@ Syntax highlighting and IntelliSense work on all three.
 
 1. Check Language Server is running (bottom right status bar)
 2. Check for errors in output panel:
-   ```
+
+   ```text
    View → Output → HoloScript LSP
    ```
+
 3. Try restarting VS Code
 
 ### Slow IntelliSense
 
 1. Large files might be slow to parse
 2. Disable trace if verbose:
+
    ```json
    {
      "holoscript.lsp.trace": "off"
@@ -254,7 +262,7 @@ Syntax highlighting and IntelliSense work on all three.
 
 ### Formatting not working
 
-```
+```text
 Ctrl+Shift+P → "Format Document"
 Or check if default formatter is set:
 ```

@@ -26,7 +26,7 @@ This guide documents the complete Phase 6 UI component system for the HoloScript
 
 ### Component Hierarchy
 
-```
+```text
 Phase6CompleteDemo (Top-level app)
 ├── TraitEditor (Left/Full panel)
 │   ├── PropertiesPanel
@@ -53,7 +53,7 @@ Phase6CompleteDemo (Top-level app)
 
 ### Data Flow
 
-```
+```sql
 TraitAnnotationEditor (Backend)
         ↓
     on 'change' event
@@ -410,7 +410,7 @@ The engine analyzes metrics against targets and generates recommendations:
 
 **Example Recommendations:**
 
-```
+```text
 "Reduce draw calls for Quest 3 (currently 450, target 300)"
   → Reduce geometry or batch rendering
 
@@ -610,7 +610,7 @@ export default function CreatorApp() {
 
 ## 📚 Files & Locations
 
-```
+```typescript
 packages/creator-tools/src/
 ├── components/
 │   ├── TraitEditor.tsx           # Main trait editor component (600 LOC)

@@ -31,7 +31,7 @@ head:
       content: holoscript, vr tutorial, ai scene generation, brittney ai, no code vr, studio ide, webxr, 3d scene builder
 ---
 
-# Your First AI Scene with Studio
+## Your First AI Scene with Studio
 
 **Duration:** 15 minutes
 **Prerequisites:** None
@@ -108,10 +108,12 @@ Look for the **chat icon** (💬) on the right side. Click it to open Brittney A
 
 In the chat panel, type:
 
-```
+```text
+
 Create a peaceful forest clearing with a campfire in the center.
 Add 3-4 trees around the edges, some rocks near the fire, and a log to sit on.
 Make the fire glow orange and emit light. Add physics to the rocks so I can throw them.
+
 ```
 
 Press **Enter** or click **Send**.
@@ -161,16 +163,22 @@ Click and drag the colored arrows/circles to transform.
 
 Don't like something? Ask Brittney to fix it:
 
-```
+```text
+
 Make the trees taller and add more rocks around the campfire
-```
 
 ```
+
+```text
+
 Change the sky to sunset colors - orange and purple
-```
 
 ```
+
+```text
+
 Add a wooden sign that says "Welcome Traveler"
+
 ```
 
 Brittney will **incrementally update** the scene, preserving what you liked.
@@ -179,8 +187,10 @@ Brittney will **incrementally update** the scene, preserving what you liked.
 
 Ask Brittney for feedback:
 
-```
+```text
+
 Analyze this scene and suggest improvements
+
 ```
 
 She'll provide:
@@ -215,10 +225,12 @@ Walk around the campfire - notice how the light affects nearby objects dynamical
 
 Want to add an AI character? Ask Brittney:
 
-```
+```holoscript
+
 Add a friendly forest ranger NPC near the campfire.
 They should greet visitors and tell them about the forest.
 Use the @llm_agent trait for natural conversation.
+
 ```
 
 Brittney will:

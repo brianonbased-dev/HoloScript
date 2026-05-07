@@ -259,7 +259,7 @@ Traits: {', '.join(scene.traits)}
     else:
         errors = '\n'.join(e.message for e in result.errors)
         return f"Generated code has issues:\n{errors}"
-````
+```
 
 ## Type Stubs
 

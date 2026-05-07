@@ -14,12 +14,12 @@ HoloScript’s VRChat target emits **UdonSharp / SDK3-shaped** output. You still
 
 | Document | URL |
 | -------- | --- |
-| Legal hub (Terms of Service, links to SDK license, etc.) | https://hello.vrchat.com/legal |
-| VRChat SDK license | https://hello.vrchat.com/legal/sdk |
-| Community Guidelines | https://hello.vrchat.com/community-guidelines |
-| Creator Guidelines | https://hello.vrchat.com/creator-guidelines |
-| Copyright | https://hello.vrchat.com/copyright |
-| Privacy Policy | https://hello.vrchat.com/privacy |
+| Legal hub (Terms of Service, links to SDK license, etc.) | <https://hello.vrchat.com/legal> |
+| VRChat SDK license | <https://hello.vrchat.com/legal/sdk> |
+| Community Guidelines | <https://hello.vrchat.com/community-guidelines> |
+| Creator Guidelines | <https://hello.vrchat.com/creator-guidelines> |
+| Copyright | <https://hello.vrchat.com/copyright> |
+| Privacy Policy | <https://hello.vrchat.com/privacy> |
 
 **Compiler docs:** [VRChat compiler](/compilers/vrchat) · [VRChat Unity workflow](/compilers/vrchat-unity-workflow)
 
@@ -31,8 +31,8 @@ Unity Editor, runtime, packages, and services are governed by Unity’s legal do
 
 | Document | URL |
 | -------- | --- |
-| Legal center | https://unity.com/legal |
-| Terms of Service | https://unity.com/legal/terms-of-service |
+| Legal center | <https://unity.com/legal> |
+| Terms of Service | <https://unity.com/legal/terms-of-service> |
 
 **Compiler docs:** [Unity compiler](/compilers/unity)
 
@@ -42,7 +42,7 @@ Unity Editor, runtime, packages, and services are governed by Unity’s legal do
 
 | Document | URL |
 | -------- | --- |
-| Unreal Engine EULA | https://www.unrealengine.com/eula |
+| Unreal Engine EULA | <https://www.unrealengine.com/eula> |
 
 **Compiler docs:** [Unreal compiler](/compilers/unreal)
 
@@ -52,7 +52,7 @@ Unity Editor, runtime, packages, and services are governed by Unity’s legal do
 
 | Document | URL |
 | -------- | --- |
-| Godot license (engine) | https://godotengine.org/license/ |
+| Godot license (engine) | <https://godotengine.org/license/> |
 
 Your **game** may bundle assets under other licenses; Godot’s license covers the engine, not your full shipping bundle.
 
@@ -66,8 +66,8 @@ Browser apps are subject to **your hosting provider**, **user privacy regulation
 
 | Resource | URL |
 | -------- | --- |
-| MDN Web docs (WebGPU standards context) | https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API |
-| Three.js license (reference) | https://github.com/mrdoob/three.js/blob/dev/LICENSE |
+| MDN Web docs (WebGPU standards context) | <https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API> |
+| Three.js license (reference) | <https://github.com/mrdoob/three.js/blob/dev/LICENSE> |
 
 **Compiler docs:** [WebGPU](/compilers/webgpu) · [Babylon](/compilers/babylon) · [Three.js](/compilers/three-js)
 
@@ -79,7 +79,7 @@ Apple Developer Program agreements and App Store / visionOS distribution rules a
 
 | Document | URL |
 | -------- | --- |
-| Apple Developer agreements (overview) | https://developer.apple.com/support/terms/ |
+| Apple Developer agreements (overview) | <https://developer.apple.com/support/terms/> |
 
 **Compiler docs:** [iOS](/compilers/ios) · [visionOS](/compilers/vision-os)
 
@@ -91,7 +91,7 @@ Store and device policies vary by **distribution channel** (Play Store, Quest St
 
 | Resource | URL |
 | -------- | --- |
-| Google Play Developer Program Policies (overview) | https://play.google.com/about/developer-content-policy/ |
+| Google Play Developer Program Policies (overview) | <https://play.google.com/about/developer-content-policy/> |
 
 **Compiler docs:** [Android](/compilers/android) · [Android XR](/compilers/android-xr)
 
