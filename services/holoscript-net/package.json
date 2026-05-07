@@ -7,7 +7,7 @@
     "dev": "vite",
     "build:client": "node build-client.mjs",
     "build:server": "tsup server.ts --out-dir dist/server --external @holoscript/mcp-server --external @holoscript/core",
-    "build": "npm run build:client && npm run build:server",
+    "build": "pnpm run build:client && pnpm run build:server",
     "start": "node dist/server/server.js",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage --passWithNoTests"

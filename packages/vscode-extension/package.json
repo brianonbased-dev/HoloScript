@@ -651,11 +651,11 @@
   },
   "scripts": {
     "esbuild-base": "node esbuild.js",
-    "esbuild": "npm run esbuild-base -- --sourcemap",
-    "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
+    "esbuild": "pnpm run esbuild-base -- --sourcemap",
+    "esbuild-watch": "pnpm run esbuild-base -- --sourcemap --watch",
     "compile": "tsc -p ./",
-    "build": "npm run esbuild",
-    "watch": "npm run esbuild-watch",
+    "build": "pnpm run esbuild",
+    "watch": "pnpm run esbuild-watch",
     "package": "vsce package --no-dependencies",
     "publish": "vsce publish",
     "test": "vitest run"
