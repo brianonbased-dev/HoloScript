@@ -142,6 +142,29 @@ export type {
   ContextVisionPillar,
 } from './ContextCompiler';
 
+// LLM provider capability matrix compiler
+export {
+  LLMProviderCapabilitiesCompiler,
+  LLMCapabilityCompileError,
+  createLLMProviderCapabilitiesCompiler,
+} from './LLMProviderCapabilitiesCompiler';
+export type {
+  LLMCapability,
+  LLMCapabilityCompileResult,
+  LLMCapabilityCompilerOptions,
+  LLMCapabilityEmitFormat,
+  LLMCapabilityMatrixAST,
+  LLMCapabilityMatrixMeta,
+  LLMCapabilityValidationDiagnostic,
+  LLMHardDont,
+  LLMModel,
+  LLMModelStatus,
+  LLMProvider,
+  LLMProviderStatus,
+  LLMRoutingRecommendation,
+  LLMSuperpower,
+} from './LLMProviderCapabilitiesCompiler';
+
 // Procedural geometry (shared between GLTF pipeline and R3F renderer)
 export {
   generateSplineGeometry,

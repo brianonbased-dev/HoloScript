@@ -101,6 +101,8 @@ export default defineConfig({
 
     // Agent context compiler (CLAUDE.md / AGENTS.md-style context emitters)
     'compiler/context': 'src/compiler/ContextCompiler.ts',
+    'compiler/llm-provider-capabilities':
+      'src/compiler/LLMProviderCapabilitiesCompiler.ts',
 
     // HoloMap native reconstruction (WebGPU feed-forward, SimulationContract binding)
     'reconstruction/index': 'src/reconstruction/index.ts',

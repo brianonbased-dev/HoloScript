@@ -4084,6 +4084,37 @@ export class ContextCompiler extends CompilerBase {
   compile(composition: any, agentToken: string, outputPath?: string): ContextCompileResult;
 }
 export function createContextCompiler(options?: ContextCompilerOptions): ContextCompiler;
+export type LLMProviderStatus = 'live' | 'partial' | 'teammate' | 'runtime' | 'planned';
+export type LLMModelStatus = 'active' | 'active-recommended' | 'active-legacy' | 'deprecated';
+export type LLMCapabilityEmitFormat =
+  | 'markdown_ssot'
+  | 'ts_adapter_capabilities'
+  | 'cost_guard_pricing'
+  | 'json_capability_matrix';
+export interface LLMCapabilityValidationDiagnostic {
+  severity: 'error' | 'warning';
+  rule: string;
+  message: string;
+  location?: string;
+}
+export interface LLMCapabilityMatrixAST { [key: string]: any; warnings: LLMCapabilityValidationDiagnostic[]; }
+export interface LLMCapabilityCompileResult {
+  files: Record<string, string>;
+  ast: LLMCapabilityMatrixAST;
+  diagnostics: LLMCapabilityValidationDiagnostic[];
+}
+export interface LLMCapabilityCompilerOptions {
+  formats?: LLMCapabilityEmitFormat[];
+  nowIso?: string;
+}
+export class LLMCapabilityCompileError extends Error { constructor(message: string); }
+export class LLMProviderCapabilitiesCompiler extends CompilerBase {
+  constructor(options?: LLMCapabilityCompilerOptions);
+  compile(composition: any, agentToken: string, outputPath?: string): LLMCapabilityCompileResult;
+}
+export function createLLMProviderCapabilitiesCompiler(
+  options?: LLMCapabilityCompilerOptions
+): LLMProviderCapabilitiesCompiler;
 
 export interface GeometryData { vertices: Float32Array; indices?: Uint32Array; normals?: Float32Array; uvs?: Float32Array; }
 export interface BlobDef { center: [number, number, number]; radius: number; }
@@ -4228,6 +4259,51 @@ export declare class ContextCompiler {
   compile(composition: any, agentToken: string, outputPath?: string): ContextCompileResult;
 }
 export declare function createContextCompiler(options?: ContextCompilerOptions): ContextCompiler;
+`;
+
+const llmProviderCapabilitiesDTS = `export type LLMProviderStatus =
+  | 'live'
+  | 'partial'
+  | 'teammate'
+  | 'runtime'
+  | 'planned';
+export type LLMModelStatus =
+  | 'active'
+  | 'active-recommended'
+  | 'active-legacy'
+  | 'deprecated';
+export type LLMCapabilityEmitFormat =
+  | 'markdown_ssot'
+  | 'ts_adapter_capabilities'
+  | 'cost_guard_pricing'
+  | 'json_capability_matrix';
+export interface LLMCapabilityValidationDiagnostic {
+  severity: 'error' | 'warning';
+  rule: string;
+  message: string;
+  location?: string;
+}
+export interface LLMCapabilityMatrixAST {
+  [key: string]: any;
+  warnings: LLMCapabilityValidationDiagnostic[];
+}
+export interface LLMCapabilityCompileResult {
+  files: Record<string, string>;
+  ast: LLMCapabilityMatrixAST;
+  diagnostics: LLMCapabilityValidationDiagnostic[];
+}
+export interface LLMCapabilityCompilerOptions {
+  formats?: LLMCapabilityEmitFormat[];
+  nowIso?: string;
+}
+export declare class LLMCapabilityCompileError extends Error { constructor(message: string); }
+export declare class LLMProviderCapabilitiesCompiler {
+  constructor(options?: LLMCapabilityCompilerOptions);
+  compile(composition: any, agentToken: string, outputPath?: string): LLMCapabilityCompileResult;
+}
+export declare function createLLMProviderCapabilitiesCompiler(
+  options?: LLMCapabilityCompilerOptions
+): LLMProviderCapabilitiesCompiler;
 `;
 
 const selfImprovementDTS = `/**
@@ -5154,8 +5230,14 @@ try {
   }
   fs.writeFileSync(path.join(compilerDir, 'r3f.d.ts'), r3fDTS, 'utf8');
   fs.writeFileSync(path.join(compilerDir, 'context.d.ts'), contextDTS, 'utf8');
+  fs.writeFileSync(
+    path.join(compilerDir, 'llm-provider-capabilities.d.ts'),
+    llmProviderCapabilitiesDTS,
+    'utf8'
+  );
   console.log('✓ Created compiler/r3f.d.ts');
   console.log('✓ Created compiler/context.d.ts');
+  console.log('✓ Created compiler/llm-provider-capabilities.d.ts');
 } catch (err) {
   console.error('✗ Failed to create compiler subpath declarations:', err.message);
 }

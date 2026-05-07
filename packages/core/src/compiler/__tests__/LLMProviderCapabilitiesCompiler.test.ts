@@ -576,6 +576,50 @@ describe('compile() - BLOCK rules', () => {
     expect(() => compiler.compile(comp, '')).toThrow(/F.014 \/ W.GOLD.341/);
   });
 
+  it('BLOCKS @llm_model with [VERIFY] placeholder in numeric fields', () => {
+    const compiler = new LLMProviderCapabilitiesCompiler();
+    const comp = makeComposition({
+      objects: [
+        {
+          type: 'Object',
+          name: 'M',
+          properties: [],
+          traits: [
+            {
+              type: 'ObjectTrait',
+              name: 'llm_provider',
+              config: {
+                name: 'openai',
+                vendor_url: '',
+                auth_env: 'OPENAI_API_KEY',
+                status: 'live',
+                unique_superpower: 'Responses API',
+                last_verified: '2026-05-06',
+              },
+            },
+            {
+              type: 'ObjectTrait',
+              name: 'llm_model',
+              config: {
+                provider: 'openai',
+                friendly_name: 'Placeholder Model',
+                model_id: 'placeholder-model',
+                context_window: '[VERIFY: docs]',
+                max_output: 4000,
+                input_per_mtok: 1,
+                output_per_mtok: 2,
+                status: 'active',
+                last_verified: '2026-05-06',
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(() => compiler.compile(comp, '')).toThrow(/llm_model\.context_window/);
+    expect(() => compiler.compile(comp, '')).toThrow(/F.014 \/ W.GOLD.341/);
+  });
+
   it('ALLOWS valid provider+model with FK matched (no throw, no orphan-FK warning)', () => {
     const compiler = new LLMProviderCapabilitiesCompiler();
     const comp = withProvider('anthropic');
