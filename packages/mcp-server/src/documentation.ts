@@ -1236,7 +1236,12 @@ export const TRAIT_DOCS: Record<string, TraitDoc> = {
       { name: 'paper_id', type: 'string', description: 'Canonical paper/program id' },
       { name: 'program', type: 'number', description: 'Lotus program ring number' },
       { name: 'venue', type: 'string', description: 'Target or accepted venue' },
-      { name: 'bloom_state', type: 'string', default: 'sealed', description: 'Current paper state' },
+      {
+        name: 'bloom_state',
+        type: 'string',
+        default: 'sealed',
+        description: 'Current paper state',
+      },
     ],
     events: ['lotus_petal_attached', 'lotus_petal_bloom_changed'],
     example: `object "Petal P1.0" @lotus_petal(paper_id: "trust-by-construction", program: 1, bloom_state: "sealed") {
@@ -1267,7 +1272,12 @@ export const TRAIT_DOCS: Record<string, TraitDoc> = {
     description:
       'Lotus garden coordinator trait that publishes staged gate state, seed metadata, and bloom-state summaries.',
     parameters: [
-      { name: 'staged', type: 'boolean', default: 'true', description: 'Keep genesis assets dormant' },
+      {
+        name: 'staged',
+        type: 'boolean',
+        default: 'true',
+        description: 'Keep genesis assets dormant',
+      },
       {
         name: 'genesis_seed',
         type: 'string',
@@ -1281,6 +1291,37 @@ export const TRAIT_DOCS: Record<string, TraitDoc> = {
   visible: false
 }`,
     relatedTraits: ['@lotus_root', '@lotus_petal', '@phyllotaxis'],
+  },
+
+  '@lotus_genesis_trigger': {
+    name: '@lotus_genesis_trigger',
+    category: 'advanced',
+    description:
+      'Founder-gated Lotus trigger that validates a signed genesis anchor, derives the post-genesis seed, and refuses to fire while the placeholder seed or incomplete petal state remains.',
+    parameters: [
+      {
+        name: 'required_anchor_path',
+        type: 'string',
+        default: 'D:/GOLD/anchors/lotus-genesis.json',
+        description: 'Documentary source path for the founder-gated genesis anchor',
+      },
+      {
+        name: 'placeholder_seed',
+        type: 'string',
+        default: '0x0000DEAD',
+        description: 'Pre-genesis placeholder seed that blocks firing',
+      },
+      {
+        name: 'required_wallet',
+        type: 'string',
+        description: 'Founder wallet expected on the signed anchor',
+      },
+    ],
+    events: ['lotus_genesis_trigger_attached', 'lotus_genesis_blocked', 'lotus_genesis_fired'],
+    example: `object "Lotus Genesis Trigger" @lotus_genesis_trigger(required_anchor_path: "D:/GOLD/anchors/lotus-genesis.json") {
+  enabled: false
+}`,
+    relatedTraits: ['@lotus_center', '@lotus_gardener', '@gpu_particle', '@spatial_audio'],
   },
 
   '@portal': {

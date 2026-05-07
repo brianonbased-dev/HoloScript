@@ -441,6 +441,7 @@ import { lotusStalkHandler } from './LotusStalkTrait';
 import { lotusPetalHandler } from './LotusPetalTrait';
 import { lotusCenterHandler } from './LotusCenterTrait';
 import { lotusGardenerHandler } from './LotusGardenerTrait';
+import { lotusGenesisTriggerHandler } from './LotusGenesisTriggerTrait';
 
 // =============================================================================
 // TRAIT STATE
@@ -1660,6 +1661,7 @@ export class VRTraitRegistry {
     this.register(lotusPetalHandler as TraitHandler);
     this.register(lotusCenterHandler as TraitHandler);
     this.register(lotusGardenerHandler as TraitHandler);
+    this.register(lotusGenesisTriggerHandler as TraitHandler);
 
     // Phase 6: Digital Twin & IoT
     this.register(sensorHandler as TraitHandler);
@@ -2319,6 +2321,7 @@ export {
   lotusPetalHandler,
   lotusCenterHandler,
   lotusGardenerHandler,
+  lotusGenesisTriggerHandler,
   // V43 Tier 2: AI Upscaling
   aiUpscalingHandler,
   neuralUpscalingHandler,

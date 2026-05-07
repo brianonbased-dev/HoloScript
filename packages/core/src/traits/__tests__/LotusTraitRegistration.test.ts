@@ -17,9 +17,8 @@ const LOTUS_RUNTIME_TRAITS = [
   'lotus_petal',
   'lotus_center',
   'lotus_gardener',
+  'lotus_genesis_trigger',
 ] as const;
-
-const GENESIS_TRIGGER = 'lotus_genesis_trigger';
 
 describe('Lotus trait registration', () => {
   const registryPath = path.join(__dirname, '..', 'trait-registry.json');
@@ -51,10 +50,14 @@ describe('Lotus trait registration', () => {
     }
   });
 
-  it('keeps the founder-gated genesis trigger intentionally unbacked', () => {
-    const traitName = GENESIS_TRIGGER as Parameters<typeof vrTraitRegistry.getHandler>[0];
-    expect(vrTraitRegistry.getHandler(traitName)).toBeUndefined();
-    expect(registry).not.toHaveProperty(GENESIS_TRIGGER);
-    expect(VR_TRAITS).not.toContain(GENESIS_TRIGGER);
+  it('keeps the founder-gated genesis trigger backed but locked by runtime policy', () => {
+    const entry = registry.lotus_genesis_trigger;
+    expect(entry).toMatchObject({
+      id: 'lotus_genesis_trigger',
+      namespace: '@holoscript/core',
+      source: 'holoscript',
+    });
+    expect(vrTraitRegistry.getHandler('lotus_genesis_trigger')?.name).toBe('lotus_genesis_trigger');
+    expect(VR_TRAITS).toContain('lotus_genesis_trigger');
   });
 });

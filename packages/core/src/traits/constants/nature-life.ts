@@ -14,6 +14,7 @@ export const NATURE_LIFE_TRAITS = [
   'lotus_petal',
   'lotus_center',
   'lotus_gardener',
+  'lotus_genesis_trigger',
   'bioluminescent',
   'venomous',
   'symbiotic',

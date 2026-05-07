@@ -162,6 +162,7 @@ export * from './LotusStalkTrait';
 export * from './LotusPetalTrait';
 export * from './LotusCenterTrait';
 export * from './LotusGardenerTrait';
+export * from './LotusGenesisTriggerTrait';
 export * from './BeatmapTrait';
 export * from './BloomReactiveTrait';
 export * from './RoomModeResonanceTrait';

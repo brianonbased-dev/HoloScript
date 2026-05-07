@@ -9,16 +9,16 @@ before it can fire, and how to fire it when the 16-paper genesis trigger lands.
 
 ## Relationship to the existing files
 
-| File | Role | Status |
-|------|------|--------|
-| `garden.holo` | First-pass declarative composition | LEGACY (kept for diff history) |
-| `garden.refreshed.holo` | A-009's bloom-state visual-readability baseline (glow / pulse / pollen) | BASELINE (do not modify; reference for visual vocabulary) |
-| `garden.seedable.holo` | This artifact — phyllotaxis spine + Fibonacci-layered petals + GPU pollen + bloom-reactive opacity | STAGED (this file) |
-| `reference.anchors.json` | Pending CAEL media anchors for the three in-thread lotus reference images | STAGED (awaiting raw media ingest) |
-| `reference.material-extract.json` | Photo-derived material seed for `@botanical_lotus` | STAGED (visual seed) |
-| `build-reference-manifest.mjs` | Local hashing helper for replacing pending anchors with `sha256:` anchors | TOOLING |
-| `build-fallback-assets.mjs` | Deterministic local fallback generator/checker for staged pollen/audio/light media | TOOLING |
-| `fallback-assets.manifest.json` | Hash manifest for deterministic fallback media referenced by the staged composition | FALLBACK |
+| File                              | Role                                                                                               | Status                                                    |
+| --------------------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `garden.holo`                     | First-pass declarative composition                                                                 | LEGACY (kept for diff history)                            |
+| `garden.refreshed.holo`           | A-009's bloom-state visual-readability baseline (glow / pulse / pollen)                            | BASELINE (do not modify; reference for visual vocabulary) |
+| `garden.seedable.holo`            | This artifact — phyllotaxis spine + Fibonacci-layered petals + GPU pollen + bloom-reactive opacity | STAGED (this file)                                        |
+| `reference.anchors.json`          | Pending CAEL media anchors for the three in-thread lotus reference images                          | STAGED (awaiting raw media ingest)                        |
+| `reference.material-extract.json` | Photo-derived material seed for `@botanical_lotus`                                                 | STAGED (visual seed)                                      |
+| `build-reference-manifest.mjs`    | Local hashing helper for replacing pending anchors with `sha256:` anchors                          | TOOLING                                                   |
+| `build-fallback-assets.mjs`       | Deterministic local fallback generator/checker for staged pollen/audio/light media                 | TOOLING                                                   |
+| `fallback-assets.manifest.json`   | Hash manifest for deterministic fallback media referenced by the staged composition                | FALLBACK                                                  |
 
 `garden.seedable.holo` is **additive**. It does not replace either earlier
 file. It composes a new form on top of A-009's visual vocabulary.
@@ -46,7 +46,7 @@ A hybrid mathematical-sculpture composition:
    - Middle ring (radius 3.4, 13 petals) — Program 2 (4 known animation
      papers + 9 reserved capacity slots).
    - Outer ring (radius 4.8, 21 petals) — Program 3 (3 known core-IR papers
-     + 18 reserved slots, including Papers 17–25 + Longitudinal-RE-INTAKE).
+     - 18 reserved slots, including Papers 17–25 + Longitudinal-RE-INTAKE).
 3. **GPU pollen field** — single canopy-origin emitter using the real
    `GPUParticleTrait`. Stages a turbulence-driven amber pollen drift.
    When per-instance gating lands, this expands to 42 per-petal emitters.
@@ -59,12 +59,12 @@ A hybrid mathematical-sculpture composition:
 
 Every rendering choice is a pure function of `LOTUS_GENESIS_SEED`:
 
-| Choice | Function of seed | Staged value |
-|--------|------------------|--------------|
-| Petal `(x, z)` positions | `golden-angle-spiral(petal_index, layer_radius, seed_offset)` | seed offset = 0 |
-| Petal jitter angle | `HKDF(seed, petal_index)` | jitter amplitude = 0.0 |
-| Particle PRNG | `HKDF(seed, "pollen")` | placeholder seed → muted palette |
-| Pollen drift turbulence | `HKDF(seed, "drift")` | deterministic |
+| Choice                   | Function of seed                                              | Staged value                     |
+| ------------------------ | ------------------------------------------------------------- | -------------------------------- |
+| Petal `(x, z)` positions | `golden-angle-spiral(petal_index, layer_radius, seed_offset)` | seed offset = 0                  |
+| Petal jitter angle       | `HKDF(seed, petal_index)`                                     | jitter amplitude = 0.0           |
+| Particle PRNG            | `HKDF(seed, "pollen")`                                        | placeholder seed → muted palette |
+| Pollen drift turbulence  | `HKDF(seed, "drift")`                                         | deterministic                    |
 
 **Pre-genesis seed:** `0x0000DEAD` (placeholder).
 **Post-genesis seed:** `first_16_bytes(events.jsonl[0].hash)` from the
@@ -78,19 +78,21 @@ zero-code-change staged-vs-live transition `/idea` argued for.
 
 These have real handler files in `packages/core/src/traits/`:
 
-| Trait | File | Used for |
-|-------|------|----------|
-| `@gpu_particle` | `GPUParticleTrait.ts` | Pollen field + dormant genesis light column |
-| `@spatial_audio` | `SpatialAudioCueTrait.ts` (and family) | Pond ambience + dormant genesis chime |
-| `@animated` | `AnimationTrait.ts` | Stalk sway, petal unfurl, gardener idle, center rotation |
-| `@glowing` | `GlowingTrait` (already exercised in baseline) | Bloom-state-driven emission readability |
+| Trait            | File                                           | Used for                                                 |
+| ---------------- | ---------------------------------------------- | -------------------------------------------------------- |
+| `@gpu_particle`  | `GPUParticleTrait.ts`                          | Pollen field + dormant genesis light column              |
+| `@spatial_audio` | `SpatialAudioCueTrait.ts` (and family)         | Pond ambience + dormant genesis chime                    |
+| `@animated`      | `AnimationTrait.ts`                            | Stalk sway, petal unfurl, gardener idle, center rotation |
+| `@glowing`       | `GlowingTrait` (already exercised in baseline) | Bloom-state-driven emission readability                  |
 
 ## What's still gated on trait/render substrate
 
 The composition remains **staged, not fired**. The earlier hard blocker
 was missing Pattern-B trait files; that substrate has now landed for every
-Lotus visual/program trait except the sacred `@lotus_genesis_trigger`.
-Rendering is still gated by the genesis trigger, live migration of the
+Lotus visual/program trait. `@lotus_genesis_trigger` is now backed too,
+but its runtime policy remains founder-gated: it refuses to fire without
+the signed genesis anchor, non-placeholder seed, and all-petals-full state.
+Rendering is still gated by that trigger policy, live migration of the
 commented trait-binding sites into active `@trait` blocks, and the final
 CAEL photoreal material pipeline.
 
@@ -101,21 +103,21 @@ to active trait blocks when the founder gate allows the flower to fire.
 
 ### Trait-substrate status
 
-| Trait | Status | What it should do |
-|-------|--------|--------------------|
-| `@botanical_lotus` | Backed + registered | Provenance-grounded lotus material contract for SSS, translucency, veins, stamen detail, and gravity sag. |
-| `@phyllotaxis` | Backed + registered | Pure deterministic placement `(layer, index, golden_angle, seed) -> Vector3`. Single source of petal placement. |
-| `@bloom_reactive` | Backed + registered | Drives mesh scale + emissive intensity + opacity from a `bloom_state` enum without ad hoc per-object update code. |
-| `@lotus_root` | Backed + registered | Substrate-tier marker. Reads from compiler/parser/provenance source-of-truth at runtime. |
-| `@lotus_stalk` | Backed + registered | Format-tier marker (.hs / .hsplus / .holo / .hs.md). |
-| `@lotus_petal` | Backed + registered | Paper-tier marker. Each petal binds to a paper by id + venue + program + bloom_state. |
-| `@lotus_center` | Backed + registered | Center-tier marker. Phase-2 SDF body activates through this trait. |
-| `@lotus_gardener` | Backed + registered | Garden coordinator for staged state, seed metadata, and bloom summaries. |
-| `@lotus_genesis_trigger` | Pattern-B (referenced in baseline) | Genesis hash anchor + light-column activation. |
+| Trait                    | Status                      | What it should do                                                                                                 |
+| ------------------------ | --------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `@botanical_lotus`       | Backed + registered         | Provenance-grounded lotus material contract for SSS, translucency, veins, stamen detail, and gravity sag.         |
+| `@phyllotaxis`           | Backed + registered         | Pure deterministic placement `(layer, index, golden_angle, seed) -> Vector3`. Single source of petal placement.   |
+| `@bloom_reactive`        | Backed + registered         | Drives mesh scale + emissive intensity + opacity from a `bloom_state` enum without ad hoc per-object update code. |
+| `@lotus_root`            | Backed + registered         | Substrate-tier marker. Reads from compiler/parser/provenance source-of-truth at runtime.                          |
+| `@lotus_stalk`           | Backed + registered         | Format-tier marker (.hs / .hsplus / .holo / .hs.md).                                                              |
+| `@lotus_petal`           | Backed + registered         | Paper-tier marker. Each petal binds to a paper by id + venue + program + bloom_state.                             |
+| `@lotus_center`          | Backed + registered         | Center-tier marker. Phase-2 SDF body activates through this trait.                                                |
+| `@lotus_gardener`        | Backed + registered         | Garden coordinator for staged state, seed metadata, and bloom summaries.                                          |
+| `@lotus_genesis_trigger` | Backed + registered, locked | Signed genesis anchor validation, seed derivation, and light-column activation event.                             |
 
-`@lotus_genesis_trigger` stays unbacked by design until the 16-paper
-benchmark trigger is allowed to plant the seed. That is now the remaining
-Pattern-B trait blocker, not the whole Lotus trait family.
+`@lotus_genesis_trigger` stays dormant by design until the 16-paper benchmark
+trigger is allowed to plant the seed. The remaining blocker is the founder-gated
+anchor and final render activation, not an absent trait handler.
 
 ### Known parser limitations
 
@@ -173,8 +175,8 @@ and final material pipeline are gated). What was checked instead:
    `z = r*sin`. Same harness called with the same seed will reproduce
    the same coordinates byte-for-byte.
 5. **TODO marker hygiene:** 55 `TODO[trait-binding]` migration markers.
-   All referenced trait files are now backed except the founder-gated
-   `@lotus_genesis_trigger`.
+   All referenced trait files are now backed; `@lotus_genesis_trigger`
+   is backed but locked behind the founder-gated signed anchor.
 6. **Parser parity:** local `parseHolo` returns success with 0 errors for
    both `garden.refreshed.holo` and `garden.seedable.holo`.
 
@@ -183,9 +185,9 @@ and final material pipeline are gated). What was checked instead:
 ### Step 1 — Migrate the staged trait-binding sites
 
 The backed traits now exist and are registered. Replace the commented
-`TODO[trait-binding]` sites with active trait blocks after
-`@lotus_genesis_trigger` lands and the founder gate permits firing. Keep
-`@lotus_genesis_trigger` dormant until the benchmark trigger is satisfied.
+`TODO[trait-binding]` sites with active trait blocks after the founder gate
+permits firing. Keep `@lotus_genesis_trigger` dormant until the benchmark
+trigger is satisfied.
 
 ### Step 2 — Wire the seed env path
 

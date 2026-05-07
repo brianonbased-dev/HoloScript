@@ -48,8 +48,9 @@
  *   Trait-binding TODOs below are migration markers, not proof that the
  *   substrate is absent. @botanical_lotus / @lotus_root / @lotus_stalk /
  *   @lotus_petal / @lotus_center / @lotus_gardener / @phyllotaxis /
- *   @bloom_reactive now have backed runtime handlers. @lotus_genesis_trigger
- *   stays Pattern-B until the founder-gated 16-paper benchmark trigger fires.
+ *   @bloom_reactive / @lotus_genesis_trigger now have backed runtime handlers.
+ *   @lotus_genesis_trigger is still founder-gated and cannot fire without a
+ *   signed genesis anchor plus all-petals-full state.
  *   This artifact remains STAGED because the live trait blocks, genesis seed,
  *   and final photoreal material pipeline are still gated.
  *
@@ -59,7 +60,7 @@
  * @cites I.007, W.137, F.014, idea-run-11
  * @traits @botanical_lotus, @lotus_root, @lotus_stalk, @lotus_petal,
  *         @lotus_center, @lotus_gardener, @phyllotaxis, @bloom_reactive,
- *         @lotus_genesis_trigger,                              (Pattern-B)
+ *         @lotus_genesis_trigger,                              (backed, locked)
  *         @gpu_particle, @glowing, @animated, @spatial_audio       (backed)
  */
 

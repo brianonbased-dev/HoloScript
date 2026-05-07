@@ -1132,6 +1132,27 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "lotus_genesis_trigger": {
+        "id": "lotus_genesis_trigger",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [
+            {
+                "target": "runtime",
+                "supported": true,
+                "notes": "Founder-gated Lotus trigger that only fires with a signed genesis anchor, non-placeholder seed, and full petal state."
+            }
+        ],
+        "composable": [
+            "lotus_center",
+            "lotus_gardener",
+            "gpu_particle",
+            "spatial_audio"
+        ],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "lotus_petal": {
         "id": "lotus_petal",
         "namespace": "@holoscript/core",
