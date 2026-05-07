@@ -58,11 +58,23 @@ import {
 import {
   createNegotiation,
   advanceNegotiation,
-  settleNegotiation,
+  settleNegotiationWithAnchor,
   getNegotiation,
   _resetNegotiations,
   type NegotiationQuote,
 } from '../../src/holomesh/agent-negotiation';
+
+// [3.5] Chain-anchor — Phase 3 (task_1778144945320_979p). MockSigner anchors
+// the SettlementReceipt's EIP-712 hash on a mocked chain so the demo proves
+// not just that the negotiation state machine settles but that the
+// settlementTxHash + signerAddress + chainId fields populate end-to-end.
+// Per W.GOLD.514 + F.041: chain-anchor pattern (eth_sendTransaction with the
+// EIP-712 hash as calldata) is what bypasses canonicalization rot. The
+// founder Trezor swap (task_1778132312944_bcup, commit 1ed8b10b4) proved
+// this works on Base mainnet — the qe2i demo proves the SAME interface is
+// what lives behind the negotiation pipeline.
+import { MockSigner, DEFAULT_CHAIN_ID } from '../../src/holomesh/signing/signer';
+import type { Signer, SignerTxRequest, SignerTxResult } from '../../src/holomesh/signing/signer';
 
 // [4] Vault leases - task-scoped credential leases.
 import {
@@ -444,9 +456,29 @@ describe('agentic-internet composition demo (task_1778125252148_qe2i)', () => {
     expect(executed.ok).toBe(true);
     expect(executed.negotiation?.state).toBe('executed');
 
-    // ── [3c/5] NEGOTIATION: executed -> settled (co-signed) ───────
-    // Both parties sign. The receipt is the durable artifact.
-    const settled = settleNegotiation({
+    // ── [3c/5] NEGOTIATION: executed -> settled (co-signed + chain-anchored)
+    // Both parties sign + the SettlementReceipt is anchored on a mocked
+    // chain via MockSigner (deterministic CI seed). Phase 3
+    // (task_1778144945320_979p): replaces the basic settleNegotiation call
+    // with settleNegotiationWithAnchor so the receipt's settlementTxHash is
+    // populated from a real (mocked) tx hash — proves the full stack
+    // including chain-anchor settlement composes end-to-end.
+    //
+    // Per W.GOLD.514 + F.041: the chain-anchor pattern (eth_sendTransaction
+    // with EIP-712 hash as calldata) is what survives canonicalization rot.
+    // MockSigner with a fixed tx hash keeps CI deterministic + offline; the
+    // founder Trezor swap (commit 1ed8b10b4) proved the SAME interface
+    // works on Base mainnet (tx 0x2abe2621... block 45636414).
+    // Deterministic 0x + 64 hex chars — recognisable pattern in test logs
+    // ('a3' x 32 = 64 chars) so a regression that leaks a real tx hash into
+    // the demo path stands out visually.
+    const FIXED_DEMO_TX_HASH = '0x' + 'a3'.repeat(32);
+    const demoSigner = new MockSigner({
+      address: BRITTNEY_ADDR, // responder anchors — same agent that executed
+      chainId: DEFAULT_CHAIN_ID, // Base mainnet (8453)
+      fixedTxHash: FIXED_DEMO_TX_HASH,
+    });
+    const settled = await settleNegotiationWithAnchor({
       negotiationId: negotiation.id,
       authorAgentId: VR_USER_ID,
       signerAddress: VR_USER_ADDR,
@@ -454,6 +486,7 @@ describe('agentic-internet composition demo (task_1778125252148_qe2i)', () => {
       initiatorAddress: VR_USER_ADDR,
       responderSignature: '0xrespondersig_demo',
       responderAddress: BRITTNEY_ADDR,
+      signer: demoSigner,
     });
     expect(settled.ok).toBe(true);
     const finalNeg = getNegotiation(negotiation.id);
@@ -463,6 +496,18 @@ describe('agentic-internet composition demo (task_1778125252148_qe2i)', () => {
     expect(finalNeg?.receipt?.responderAddress).toBe(BRITTNEY_ADDR);
     expect(finalNeg?.receipt?.resultHash).toMatch(/^0x[0-9a-f]{64}$/);
     expect(finalNeg?.receipt?.finalQuote.price).toBe(0.05);
+
+    // Phase 3 chain-anchor pin: settlementTxHash on the receipt + signer
+    // metadata on the anchor result. The receipt itself records only the
+    // tx hash (the anchor is the durable provenance); signerAddress +
+    // chainId live on the AnchorResult returned alongside the receipt.
+    expect(finalNeg?.receipt?.settlementTxHash).toBe(FIXED_DEMO_TX_HASH);
+    expect(settled.anchor).toBeDefined();
+    expect(settled.anchor!.txHash).toBe(FIXED_DEMO_TX_HASH);
+    expect(settled.anchor!.eip712Hash).toMatch(/^0x[0-9a-fA-F]{64}$/);
+    expect(settled.anchor!.signerAddress.toLowerCase()).toBe(BRITTNEY_ADDR.toLowerCase());
+    expect(settled.anchor!.chainId).toBe(DEFAULT_CHAIN_ID);
+    expect(settled.anchor!.status).toBe(1); // mocked tx mined successfully
 
     // ── [5/5] HOLOGRAM RESPONSE returned to Studio Brittney chat ──
     // Brittney builds the HologramMcpResponse and the MCP server wraps
@@ -688,6 +733,95 @@ describe('agentic-internet composition demo (task_1778125252148_qe2i)', () => {
       'https://alphafold.ebi.ac.uk/api/prediction/Q99999',
       expect.objectContaining({ headers: { Accept: 'application/json' } }),
     );
+  });
+
+  // ── G.GOLD.013 false-case for the Phase 3 chain-anchor pin ────────────
+  // Paired counterpart to the happy-path settleNegotiationWithAnchor call
+  // above. If the signer fails to broadcast (network drop, RPC reject,
+  // Trezor cancel), the negotiation MUST NOT flip to 'settled' — there is
+  // no durable receipt without a tx hash, so the state machine stays in
+  // 'executed' and a retry can pick up where we left off. A regression
+  // that quietly swallows the signer failure + finalizes anyway flips
+  // this red.
+  it('false-case (Phase 3 anchor): signer failure does not finalize settlement', async () => {
+    // Build a negotiation in EXECUTED state — the only state from which
+    // settle is legal. Mirrors the happy-path setup so the only difference
+    // is the signer's behaviour.
+    const n = createNegotiation({
+      teamId: TEAM_ID,
+      initiatorAgentId: VR_USER_ID,
+      initiatorAgentName: VR_USER_NAME,
+      responderAgentId: BRITTNEY_ID,
+      responderAgentName: BRITTNEY_NAME,
+      request: { toolName: 'demo', capabilityQuery: 'demo' },
+      signerAddress: VR_USER_ADDR,
+    });
+    const fixedQuote: NegotiationQuote = {
+      toolName: 'demo',
+      description: 'demo',
+      price: 0.05,
+      currency: 'USDC',
+      slaSeconds: 30,
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    };
+    advanceNegotiation({
+      negotiationId: n.id,
+      action: 'quote',
+      authorAgentId: BRITTNEY_ID,
+      signerAddress: BRITTNEY_ADDR,
+      payload: { quote: fixedQuote },
+    });
+    advanceNegotiation({
+      negotiationId: n.id,
+      action: 'accept',
+      authorAgentId: VR_USER_ID,
+      signerAddress: VR_USER_ADDR,
+    });
+    advanceNegotiation({
+      negotiationId: n.id,
+      action: 'execute',
+      authorAgentId: BRITTNEY_ID,
+      signerAddress: BRITTNEY_ADDR,
+      payload: { result: { unity_package_url: 'ipfs://demo' } },
+    });
+    expect(getNegotiation(n.id)?.state).toBe('executed');
+
+    // FailingSigner — getAddress works but sendTransaction throws (e.g.
+    // RPC rejected the tx, Trezor user cancelled, network dropped). The
+    // throw must propagate up through settleNegotiationWithAnchor and the
+    // negotiation must STAY in 'executed'. The happy-path version flipped
+    // to 'settled' with a chain-anchored receipt; this path must not.
+    class FailingSigner implements Signer {
+      public readonly chainId = DEFAULT_CHAIN_ID;
+      async getAddress(): Promise<string> {
+        return BRITTNEY_ADDR;
+      }
+      async sendTransaction(_tx: SignerTxRequest): Promise<SignerTxResult> {
+        throw new Error('rpc-rejected: simulated chain-anchor broadcast failure');
+      }
+    }
+    const failingSigner = new FailingSigner();
+
+    await expect(
+      settleNegotiationWithAnchor({
+        negotiationId: n.id,
+        authorAgentId: VR_USER_ID,
+        signerAddress: VR_USER_ADDR,
+        initiatorSignature: '0xinitiatorsig_demo',
+        initiatorAddress: VR_USER_ADDR,
+        responderSignature: '0xrespondersig_demo',
+        responderAddress: BRITTNEY_ADDR,
+        signer: failingSigner,
+      }),
+    ).rejects.toThrow(/rpc-rejected/);
+
+    // Failure invariant: state is still 'executed', no receipt, no tx hash.
+    // Retry semantics depend on this — a partial-anchor that flipped state
+    // to 'settled' without a tx hash would strand the negotiation.
+    const after = getNegotiation(n.id);
+    expect(after?.state).toBe('executed');
+    expect(after?.receipt).toBeUndefined();
+    expect(after?.receipt?.settlementTxHash).toBeUndefined();
   });
 
   it('false-case: tampered invocation hop breaks chain verification', () => {

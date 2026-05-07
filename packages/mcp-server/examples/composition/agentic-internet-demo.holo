@@ -22,9 +22,15 @@
 
 @world {
   name: "Agentic Internet Composition Demo"
-  version: "0.1.0"
-  task: "task_1778125252148_qe2i"
+  version: "0.3.0" // Phase 3 — chain-anchor wired into settle step
+  task: "task_1778144945320_979p"
   shipped: "2026-05-07"
+  prior_phases: [
+    "task_1778125252148_qe2i (57a50b7ee) — Phase 1 composition demo",
+    "task_1778132217125_nme4 (7ab91ed72) — Phase 2 real AlphaFold fetch",
+    "task_1778132483482_otep (98b94e0e4) — chain-anchor scaffolding",
+    "task_1778132312944_bcup (1ed8b10b4) — Trezor anchor proof on Base"
+  ]
 }
 
 // ============================================================
@@ -141,12 +147,32 @@ skill "agentic_internet_cycle" @cycle @demo {
   // (https://alphafold.ebi.ac.uk/api/prediction/{uniprot}). CI determinism
   // is provided by the .test.ts mocking `globalThis.fetch`, NOT by mocking
   // the helper. Production-only rule: stubs are bandaids+demote.
+  //
+  // PHASE 3 (task_1778144945320_979p, founder ruling 2026-05-07): the
+  // settle step REPLACES the basic settleNegotiation call with
+  // settleNegotiationWithAnchor (commit 98b94e0e4 scaffolding). The
+  // SettlementReceipt's settlementTxHash is now populated from a real
+  // (or mocked) chain-anchor tx. Per W.GOLD.514 + F.041: the chain-anchor
+  // pattern (eth_sendTransaction with EIP-712 hash as calldata) is what
+  // bypasses signTypedData_v4 canonicalization rot. The founder Trezor
+  // swap (commit 1ed8b10b4, tx 0x2abe2621... block 45636414) proved this
+  // works on Base mainnet; the .test.ts proves the SAME interface works
+  // headlessly with MockSigner (deterministic CI seed). After Phase 3
+  // lands, the demo proves not just that the five primitives compose,
+  // but that the WHOLE STACK including chain-anchor settlement does.
   step "execute_and_return_hologram" {
     agent: "BrittneyChat"
     primitive: "HologramMcpResponse"
     inputs:  { negotiationId: "string", apiKeyResolved: "boolean", uniprot: "string" }
-    output:  { hologramEnvelope: "HologramMcpEnvelope", resultHash: "string", pdbUrl: "string" }
-    notes: "advanceNegotiation(execute) [-> real fetch alphafold.ebi.ac.uk -> PDB] -> settleNegotiation co-signs -> envelope sent to chat"
+    output:  {
+      hologramEnvelope: "HologramMcpEnvelope",
+      resultHash: "string",
+      pdbUrl: "string",
+      settlementTxHash: "string",  // chain-anchor (Phase 3)
+      signerAddress: "string",     // recovered from anchor tx (Phase 3)
+      chainId: "number"            // Base mainnet 8453 (Phase 3)
+    }
+    notes: "advanceNegotiation(execute) [-> real fetch alphafold.ebi.ac.uk -> PDB] -> settleNegotiationWithAnchor (chain-anchor pattern: eth_sendTransaction with EIP-712 hash as calldata, MockSigner deterministic in CI / Trezor on Base mainnet in prod) -> envelope sent to chat. Chain-anchor invariant: settlementTxHash + signerAddress + chainId populate end-to-end; signer failure leaves negotiation in 'executed' (paired G.GOLD.013 false-case)."
   }
 }
 
@@ -162,9 +188,18 @@ skill "agentic_internet_cycle" @cycle @demo {
 //   - real-fetch path hits BOTH alphafold.ebi.ac.uk endpoints
 //     (api/prediction/{uniprot} + the returned pdbUrl) and SHAPE-matches
 //     the documented EBI AlphaFold response schema (Phase 2)
+//   - SettlementReceipt.settlementTxHash populated from a chain-anchor
+//     broadcast; AnchorResult.signerAddress + chainId recoverable; status
+//     equals 1 on a successful mocked broadcast (Phase 3)
+//   - paired false-case: a signer that throws leaves negotiation in
+//     'executed' with no receipt — partial-anchor stranding does not
+//     occur (G.GOLD.013 paired with the chain-anchor pin) (Phase 3)
 //
 // What this file is NOT: a playable scene yet. The renderer sits
 // on top of the chain (HoloScript Studio /hologram route). What
 // this file IS: the named composition that proves the substrate
-// is whole. P.GOLD.004 - interaction as computation attestation.
+// is whole, end-to-end, including the chain-anchored settlement
+// receipt that makes the agentic-internet handshake durable.
+// P.GOLD.004 - interaction as computation attestation; the
+// chain anchor is the on-chain shadow of that attestation.
 // ============================================================
