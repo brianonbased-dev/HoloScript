@@ -3,8 +3,8 @@ import type { MutableRefObject, ReactNode } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { createBotanicalLotusRenderProfile } from '@holoscript/core/traits';
 import { KeyRound, Pause, Play, RefreshCw } from 'lucide-react';
-import type { Group, Mesh, MeshPhysicalMaterial } from 'three';
-import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Vector3 } from 'three';
+import type { Group, InstancedMesh, Mesh, MeshPhysicalMaterial } from 'three';
+import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Object3D, Vector3 } from 'three';
 
 type LotusBloomState = 'sealed' | 'budding' | 'blooming' | 'full' | 'wilted';
 type LotusCluster = 'roots' | 'p1' | 'p2' | 'p3' | 'center';
@@ -95,9 +95,12 @@ const BOTANICAL_LOTUS_PROFILE = createBotanicalLotusRenderProfile();
 const BOTANICAL_PBR = BOTANICAL_LOTUS_PROFILE.pbr_uniforms;
 const PETAL_RENDER_MATERIAL = {
   roughness: BOTANICAL_PBR.roughness,
-  transmission: BOTANICAL_PBR.transmission * 0.18,
-  thickness: Math.max(0.06, BOTANICAL_PBR.thickness * 0.22),
+  transmission: BOTANICAL_PBR.transmission,
+  thickness: Math.max(0.1, BOTANICAL_PBR.thickness),
   ior: BOTANICAL_PBR.ior,
+  subsurfaceScattering: BOTANICAL_PBR.subsurface_scattering,
+  subsurfaceRadiusRgb: BOTANICAL_PBR.subsurface_radius_rgb,
+  veinNormalIntensity: BOTANICAL_PBR.vein_normal_intensity,
 } as const;
 
 const REFERENCE_LOTUS_COLORS = {
@@ -131,6 +134,130 @@ const LOTUS_RING_LAYOUT = BOTANICAL_LOTUS_PROFILE.petal_rings.map((ring, index) 
     height,
   };
 });
+
+interface LotusPetalShaderUniforms {
+  uLotusBaseColor: { value: Color };
+  uLotusMidColor: { value: Color };
+  uLotusRimColor: { value: Color };
+  uLotusShadowColor: { value: Color };
+  uLotusSubsurfaceColor: { value: Color };
+  uLotusSSS: { value: number };
+  uLotusTransmissionBase: { value: number };
+  uLotusTransmissionEdge: { value: number };
+  uLotusVeinIntensity: { value: number };
+  uLotusGrowth: { value: number };
+  uLotusBloom: { value: number };
+  uLotusTime: { value: number };
+}
+
+interface LotusShader {
+  uniforms: Record<string, unknown>;
+  vertexShader: string;
+  fragmentShader: string;
+}
+
+const LOTUS_PETAL_VERTEX_HEADER = `
+attribute vec2 petalUv;
+attribute float veinPhase;
+varying vec2 vLotusPetalUv;
+varying float vLotusVeinPhase;
+varying vec3 vLotusWorldNormal;
+varying vec3 vLotusViewDir;
+`;
+
+const LOTUS_PETAL_VERTEX_WORLD = `
+vLotusPetalUv = petalUv;
+vLotusVeinPhase = veinPhase;
+vLotusWorldNormal = normalize(mat3(modelMatrix) * objectNormal);
+vLotusViewDir = normalize(cameraPosition - worldPosition.xyz);
+`;
+
+const LOTUS_PETAL_FRAGMENT_HEADER = `
+uniform vec3 uLotusBaseColor;
+uniform vec3 uLotusMidColor;
+uniform vec3 uLotusRimColor;
+uniform vec3 uLotusShadowColor;
+uniform vec3 uLotusSubsurfaceColor;
+uniform float uLotusSSS;
+uniform float uLotusTransmissionBase;
+uniform float uLotusTransmissionEdge;
+uniform float uLotusVeinIntensity;
+uniform float uLotusGrowth;
+uniform float uLotusBloom;
+uniform float uLotusTime;
+varying vec2 vLotusPetalUv;
+varying float vLotusVeinPhase;
+varying vec3 vLotusWorldNormal;
+varying vec3 vLotusViewDir;
+
+float lotusVeinField(vec2 uv, float phase) {
+  float signedX = uv.x * 2.0 - 1.0;
+  float major = pow(1.0 - abs(sin((signedX * 18.0 + uv.y * 6.0 + phase) * 3.14159265)), 20.0);
+  float secondary = pow(1.0 - abs(sin((signedX * 34.0 - uv.y * 4.0 - phase * 0.7) * 3.14159265)), 32.0);
+  float taper = (1.0 - smoothstep(0.82, 1.0, uv.y)) * (1.0 - abs(signedX) * 0.34);
+  return clamp((major * 0.62 + secondary * 0.38) * taper, 0.0, 1.0);
+}
+`;
+
+function makeLotusPetalShaderUniforms(petal: ScenePetal): LotusPetalShaderUniforms {
+  const sss = PETAL_RENDER_MATERIAL.subsurfaceRadiusRgb;
+  return {
+    uLotusBaseColor: { value: new Color(REFERENCE_LOTUS_COLORS.petalBase) },
+    uLotusMidColor: { value: new Color(petal.color) },
+    uLotusRimColor: { value: new Color(REFERENCE_LOTUS_COLORS.petalRim) },
+    uLotusShadowColor: { value: new Color(REFERENCE_LOTUS_COLORS.petalShadow) },
+    uLotusSubsurfaceColor: { value: new Color(sss[0], sss[1], sss[2]) },
+    uLotusSSS: { value: PETAL_RENDER_MATERIAL.subsurfaceScattering },
+    uLotusTransmissionBase: { value: PETAL_RENDER_MATERIAL.transmission },
+    uLotusTransmissionEdge: { value: PETAL_RENDER_MATERIAL.thickness },
+    uLotusVeinIntensity: { value: PETAL_RENDER_MATERIAL.veinNormalIntensity },
+    uLotusGrowth: { value: 0 },
+    uLotusBloom: { value: 0 },
+    uLotusTime: { value: 0 },
+  };
+}
+
+function configureLotusPetalShader(shader: LotusShader, uniforms: LotusPetalShaderUniforms) {
+  Object.assign(shader.uniforms, uniforms);
+  shader.vertexShader = shader.vertexShader
+    .replace('#include <common>', `#include <common>\n${LOTUS_PETAL_VERTEX_HEADER}`)
+    .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>\n${LOTUS_PETAL_VERTEX_WORLD}`);
+  shader.fragmentShader = shader.fragmentShader
+    .replace('#include <common>', `#include <common>\n${LOTUS_PETAL_FRAGMENT_HEADER}`)
+    .replace(
+      '#include <normal_fragment_maps>',
+      `#include <normal_fragment_maps>
+float lotusNormalVein = lotusVeinField(vLotusPetalUv, vLotusVeinPhase);
+float lotusVeinSide = sign(vLotusPetalUv.x - 0.5);
+normal = normalize(normal + vec3(
+  lotusNormalVein * lotusVeinSide * uLotusVeinIntensity * 1.7,
+  lotusNormalVein * uLotusVeinIntensity * 0.6,
+  0.0
+));`
+    )
+    .replace(
+      '#include <color_fragment>',
+      `#include <color_fragment>
+float lotusEdge = abs(vLotusPetalUv.x * 2.0 - 1.0);
+float lotusTip = smoothstep(0.78, 1.0, vLotusPetalUv.y);
+vec3 lotusProfileColor = mix(uLotusBaseColor, uLotusMidColor, smoothstep(0.08, 0.72, vLotusPetalUv.y));
+lotusProfileColor = mix(lotusProfileColor, uLotusRimColor, clamp(lotusEdge * lotusEdge * 0.42 + lotusTip * 0.35, 0.0, 0.82));
+float lotusVeinColorField = lotusVeinField(vLotusPetalUv, vLotusVeinPhase);
+vec3 lotusVeinColor = mix(uLotusShadowColor, uLotusRimColor, 0.58);
+diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * lotusProfileColor, 0.62);
+diffuseColor.rgb += lotusVeinColor * lotusVeinColorField * uLotusVeinIntensity * uLotusGrowth * 7.5;
+diffuseColor.a *= mix(0.7, 1.0, uLotusGrowth);`
+    )
+    .replace(
+      '#include <emissivemap_fragment>',
+      `#include <emissivemap_fragment>
+float lotusBacklight = pow(1.0 - abs(dot(normalize(vLotusWorldNormal), normalize(vLotusViewDir))), 2.15);
+float lotusTranslucency = mix(uLotusTransmissionBase, uLotusTransmissionEdge, lotusEdge);
+float lotusPulse = 0.92 + sin(uLotusTime * 0.65 + vLotusVeinPhase * 6.28318) * 0.08;
+vec3 lotusScatter = uLotusSubsurfaceColor * lotusBacklight * lotusTranslucency * uLotusSSS * uLotusGrowth * lotusPulse;
+totalEmissiveRadiance += lotusScatter * (0.28 + uLotusBloom * 0.72);`
+    );
+}
 
 function isTeamPetal(petal: LotusPetal): petal is LotusTeamPetal {
   return 'paper_id' in petal;
@@ -232,11 +359,14 @@ function createReferencePetalGeometry(petal: ScenePetal): BufferGeometry {
   const widthSegments = 12;
   const positions: number[] = [];
   const colors: number[] = [];
+  const petalUvs: number[] = [];
+  const veinPhases: number[] = [];
   const indices: number[] = [];
   const base = new Color(REFERENCE_LOTUS_COLORS.petalBase);
   const mid = new Color(petal.color);
   const rim = new Color(REFERENCE_LOTUS_COLORS.petalRim);
   const shadow = new Color(REFERENCE_LOTUS_COLORS.petalShadow);
+  const veinPhase = ((petal.index % 13) / 13) + petal.ringIndex * 0.017;
 
   for (let i = 0; i <= lengthSegments; i += 1) {
     const v = i / lengthSegments;
@@ -261,6 +391,8 @@ function createReferencePetalGeometry(petal: ScenePetal): BufferGeometry {
 
       positions.push(x, y, z);
       colors.push(color.r, color.g, color.b);
+      petalUvs.push(j / widthSegments, v);
+      veinPhases.push(veinPhase);
     }
   }
 
@@ -278,6 +410,8 @@ function createReferencePetalGeometry(petal: ScenePetal): BufferGeometry {
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
   geometry.setAttribute('color', new Float32BufferAttribute(colors, 3));
+  geometry.setAttribute('petalUv', new Float32BufferAttribute(petalUvs, 2));
+  geometry.setAttribute('veinPhase', new Float32BufferAttribute(veinPhases, 1));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
   return geometry;
@@ -374,6 +508,11 @@ function GrowthPetal({ petal, paused, reducedMotion }: { petal: ScenePetal; paus
   const meshRef = useRef<Mesh>(null);
   const materialRef = useRef<MeshPhysicalMaterial>(null);
   const geometry = useMemo(() => createReferencePetalGeometry(petal), [petal]);
+  const shaderUniforms = useMemo(() => makeLotusPetalShaderUniforms(petal), [petal]);
+  const patchPetalShader = useMemo(
+    () => (shader: LotusShader) => configureLotusPetalShader(shader, shaderUniforms),
+    [shaderUniforms]
+  );
   const glowColor = useMemo(() => new Color(REFERENCE_LOTUS_COLORS.petalMid), []);
   const delay = 0.42 + petal.index * 0.006 + petal.ring * 0.035;
 
@@ -402,6 +541,9 @@ function GrowthPetal({ petal, paused, reducedMotion }: { petal: ScenePetal; paus
     );
     materialRef.current.opacity = 1;
     materialRef.current.emissiveIntensity = (petal.bloom === 'full' ? 0.22 : petal.bloom === 'sealed' ? 0.04 : 0.12) * grow;
+    shaderUniforms.uLotusGrowth.value = grow;
+    shaderUniforms.uLotusBloom.value = petal.bloom === 'full' ? 1 : petal.bloom === 'sealed' ? 0.28 : 0.62;
+    shaderUniforms.uLotusTime.value = clock.elapsedTime;
   });
 
   return (
@@ -418,9 +560,11 @@ function GrowthPetal({ petal, paused, reducedMotion }: { petal: ScenePetal; paus
         transmission={PETAL_RENDER_MATERIAL.transmission}
         thickness={PETAL_RENDER_MATERIAL.thickness}
         ior={PETAL_RENDER_MATERIAL.ior}
+        transparent
         opacity={1}
         side={DoubleSide}
         vertexColors
+        onBeforeCompile={patchPetalShader}
       />
     </mesh>
   );
@@ -452,38 +596,54 @@ function SeedPodDots() {
 
 function StamenFilaments() {
   const stamens = useMemo(buildStamens, []);
+  const filamentRef = useRef<InstancedMesh>(null);
+  const headRef = useRef<InstancedMesh>(null);
+  const matrixObject = useMemo(() => new Object3D(), []);
+
+  useEffect(() => {
+    if (!filamentRef.current || !headRef.current) return;
+    stamens.forEach((stamen, index) => {
+      const filamentCenter = stamen.radius + stamen.length * 0.46;
+      matrixObject.position.set(
+        Math.cos(stamen.angle) * filamentCenter,
+        stamen.height,
+        Math.sin(stamen.angle) * filamentCenter
+      );
+      matrixObject.rotation.set(0, -stamen.angle, Math.PI / 2 - stamen.tilt);
+      matrixObject.scale.set(1, stamen.length, 1);
+      matrixObject.updateMatrix();
+      filamentRef.current?.setMatrixAt(index, matrixObject.matrix);
+
+      const headRadius = stamen.radius + stamen.length * 0.92;
+      matrixObject.position.set(
+        Math.cos(stamen.angle) * headRadius,
+        stamen.height + Math.sin(stamen.tilt) * stamen.length * 0.42,
+        Math.sin(stamen.angle) * headRadius
+      );
+      matrixObject.rotation.set(0, -stamen.angle, 0);
+      matrixObject.scale.setScalar(stamen.headScale);
+      matrixObject.updateMatrix();
+      headRef.current?.setMatrixAt(index, matrixObject.matrix);
+    });
+    filamentRef.current.instanceMatrix.needsUpdate = true;
+    headRef.current.instanceMatrix.needsUpdate = true;
+  }, [matrixObject, stamens]);
 
   return (
     <>
-      {stamens.map((stamen, index) => (
-        <group key={index} rotation={[0, stamen.angle, 0]}>
-          <mesh
-            position={[stamen.radius + stamen.length * 0.46, stamen.height, 0]}
-            rotation={[0, 0, Math.PI / 2 - stamen.tilt]}
-            castShadow
-          >
-            <cylinderGeometry args={[0.006, 0.009, stamen.length, 8]} />
-            <meshStandardMaterial
-              color={REFERENCE_LOTUS_COLORS.stamen}
-              emissive="#f97316"
-              emissiveIntensity={0.24}
-              roughness={0.48}
-            />
-          </mesh>
-          <mesh
-            position={[
-              stamen.radius + stamen.length * 0.92,
-              stamen.height + Math.sin(stamen.tilt) * stamen.length * 0.42,
-              0,
-            ]}
-            scale={stamen.headScale}
-            castShadow
-          >
-            <sphereGeometry args={[1, 8, 6]} />
-            <meshStandardMaterial color={REFERENCE_LOTUS_COLORS.stamenTip} emissive="#fef3c7" emissiveIntensity={0.22} roughness={0.5} />
-          </mesh>
-        </group>
-      ))}
+      <instancedMesh ref={filamentRef} args={[undefined, undefined, stamens.length]} castShadow>
+        <cylinderGeometry args={[0.006, 0.009, 1, 8]} />
+        <meshStandardMaterial
+          color={REFERENCE_LOTUS_COLORS.stamen}
+          emissive="#f97316"
+          emissiveIntensity={0.24}
+          roughness={0.48}
+        />
+      </instancedMesh>
+      <instancedMesh ref={headRef} args={[undefined, undefined, stamens.length]} castShadow>
+        <sphereGeometry args={[1, 8, 6]} />
+        <meshStandardMaterial color={REFERENCE_LOTUS_COLORS.stamenTip} emissive="#fef3c7" emissiveIntensity={0.22} roughness={0.5} />
+      </instancedMesh>
     </>
   );
 }

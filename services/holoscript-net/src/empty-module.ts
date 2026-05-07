@@ -68,9 +68,35 @@ export const createHash = () => ({
   update() { return this; },
   digest() { return ''; },
 });
+export const createCipheriv = () => unavailable('crypto.createCipheriv');
+export const createDecipheriv = () => unavailable('crypto.createDecipheriv');
+export const createHmac = () => ({
+  update() { return this; },
+  digest() { return ''; },
+});
 export const createPublicKey = (value) => ({
   export() { return value; },
 });
+export const timingSafeEqual = (left, right) => left?.length === right?.length && String(left) === String(right);
+export const sign = () => unavailable('crypto.sign');
+export const verify = () => unavailable('crypto.verify');
+export const generateKeyPairSync = () => unavailable('crypto.generateKeyPairSync');
+export const createECDH = () => unavailable('crypto.createECDH');
+export const randomBytes = (length = 0) => {
+  const bytes = new Uint8Array(length);
+  globalThis.crypto?.getRandomValues?.(bytes);
+  bytes.toString = (encoding) =>
+    encoding === 'hex'
+      ? Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('')
+      : Array.from(bytes).join(',');
+  return bytes;
+};
+export const randomFillSync = (target) => {
+  if (target && typeof target.length === 'number') {
+    globalThis.crypto?.getRandomValues?.(target);
+  }
+  return target;
+};
 export const randomUUID = () =>
   globalThis.crypto?.randomUUID?.() ?? '00000000-0000-4000-8000-000000000000';
 
@@ -111,7 +137,17 @@ export default {
   extname,
   promisify,
   createHash,
+  createCipheriv,
+  createDecipheriv,
+  createHmac,
   createPublicKey,
+  timingSafeEqual,
+  sign,
+  verify,
+  generateKeyPairSync,
+  createECDH,
+  randomBytes,
+  randomFillSync,
   randomUUID,
   spawn,
   inflateSync,
