@@ -38,10 +38,15 @@ import {
   generateTaskId,
   addTasksToBoard,
   type TeamTask,
+  type DoneLogEntry,
   type TeamSuggestion,
   type SkippedTaskEntry,
   type SlotRole,
-  type SuggestionCategory
+  type SuggestionCategory,
+  type SubagentEvent,
+  type ArtifactReceipt,
+  type TaskOrchestrationAgentRef,
+  type TaskPolicyEvent,
 } from '@holoscript/framework';
 import type { Team, TeamPresenceEntry, TeamMessage, TeamHologramFeedItem, RegisteredAgent } from '../types';
 import { getBoardModeFields } from '../mode-provenance';
@@ -948,6 +953,282 @@ export async function handleBoardRoutes(
     });
 
     json(res, 201, { success: true, item });
+    return true;
+  }
+
+  // GET /api/holomesh/team/:id/trace — unified multiagent trace timeline
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/trace$/) && method === 'GET') {
+    const access = await requireTeamAccessFresh(req, res, url);
+    if (!access) return true;
+    const { teamId } = access;
+    const team = teamStore.get(teamId)!;
+
+    interface TraceTimelineEntry {
+      id: string;
+      timestamp: string;
+      kind:
+        | 'task_created'
+        | 'task_claimed'
+        | 'task_done'
+        | 'task_blocked'
+        | 'message'
+        | 'mode_change'
+        | 'feed'
+        | 'subagent'
+        | 'policy'
+        | 'artifact'
+        | 'presence'
+        | 'suggestion';
+      agentId?: string;
+      agentName?: string;
+      surfaceTag?: string;
+      taskId?: string;
+      taskTitle?: string;
+      taskStatus?: 'open' | 'claimed' | 'done' | 'blocked';
+      taskPriority?: number;
+      parentTaskId?: string;
+      childTaskIds?: string[];
+      commitHash?: string;
+      messageType?: string;
+      content?: string;
+      fromMode?: string;
+      toMode?: string;
+      source?: string;
+      feedKind?: string;
+      hash?: string;
+      shareUrl?: string;
+      eventType?: string;
+      actor?: TaskOrchestrationAgentRef;
+      target?: TaskOrchestrationAgentRef;
+      wave?: number;
+      childTaskId?: string;
+      policyDecision?: string;
+      policyActionKind?: string;
+      artifact?: ArtifactReceipt;
+      model?: string;
+      provider?: string;
+      ideType?: string;
+      status?: string;
+      title?: string;
+      category?: string;
+      score?: number;
+      modeChange?: { previousMode: string; newMode: string; source: string; reason?: string };
+    }
+
+    const entries: TraceTimelineEntry[] = [];
+
+    function pushTaskTrace(task: TeamTask) {
+      const base: TraceTimelineEntry = {
+        id: `${task.id}_task`,
+        timestamp: task.createdAt,
+        kind: 'task_created',
+        taskId: task.id,
+        taskTitle: task.title,
+        taskStatus: task.status,
+        taskPriority: task.priority,
+        parentTaskId: task.parentTaskId,
+        childTaskIds: task.childTaskIds,
+      };
+      entries.push(base);
+      if (task.status === 'claimed' && task.claimedBy) {
+        entries.push({
+          ...base,
+          id: `${task.id}_claimed`,
+          kind: 'task_claimed',
+          timestamp: task.createdAt,
+          agentId: task.claimedBy,
+          agentName: task.claimedByName,
+          surfaceTag: task.claimedByTag,
+        });
+      }
+      if (task.status === 'done' && task.completedAt) {
+        entries.push({
+          ...base,
+          id: `${task.id}_done`,
+          kind: 'task_done',
+          timestamp: task.completedAt,
+          agentId: task.completedBy,
+          agentName: task.claimedByName,
+          surfaceTag: task.completedByTag,
+          commitHash: task.commitHash,
+        });
+      }
+      if (task.status === 'blocked') {
+        entries.push({
+          ...base,
+          id: `${task.id}_blocked`,
+          kind: 'task_blocked',
+          timestamp: task.createdAt,
+        });
+      }
+    }
+
+    function pushSubagentTrace(ev: SubagentEvent) {
+      entries.push({
+        id: ev.id,
+        timestamp: ev.timestamp,
+        kind: 'subagent',
+        eventType: ev.type,
+        taskId: ev.taskId,
+        parentTaskId: ev.parentTaskId,
+        childTaskId: ev.childTaskId,
+        wave: ev.wave,
+        actor: ev.actor,
+        target: ev.target,
+        agentId: ev.actor?.agentId,
+        agentName: ev.actor?.agentName,
+        surfaceTag: ev.actor?.handle,
+        model: ev.actor?.model,
+        provider: ev.actor?.provider,
+        status: ev.status,
+        content: ev.summary,
+      });
+    }
+
+    function pushPolicyTrace(ev: TaskPolicyEvent) {
+      entries.push({
+        id: ev.id || `policy_${ev.timestamp}_${ev.taskId || 'unknown'}`,
+        timestamp: ev.timestamp,
+        kind: 'policy',
+        taskId: ev.taskId,
+        policyDecision: ev.decision,
+        policyActionKind: ev.actionKind,
+        agentId: ev.agent,
+        content: ev.reasons?.join('; '),
+      });
+    }
+
+    function pushArtifactTrace(art: ArtifactReceipt, taskId: string, timestamp: string) {
+      entries.push({
+        id: `artifact_${art.id}_${taskId}`,
+        timestamp,
+        kind: 'artifact',
+        taskId,
+        artifact: art,
+        agentName: art.producer,
+        content: `${art.type}: ${art.path || art.uri || art.id}`,
+      });
+    }
+
+    function pushDoneTrace(entry: DoneLogEntry) {
+      entries.push({
+        id: `${entry.taskId}_done`,
+        timestamp: entry.timestamp,
+        kind: 'task_done',
+        taskId: entry.taskId,
+        taskTitle: entry.title,
+        taskStatus: 'done',
+        agentId: entry.completedBy,
+        surfaceTag: entry.completedByTag,
+        commitHash: entry.commitHash,
+        parentTaskId: entry.parentTaskId,
+        childTaskIds: entry.childTaskIds,
+        content: entry.summary,
+      });
+    }
+
+    // 1. Live board tasks
+    for (const task of team.taskBoard || []) {
+      pushTaskTrace(task);
+      for (const ev of task.subagentEvents || []) pushSubagentTrace(ev);
+      for (const ev of task.policyEvents || []) pushPolicyTrace(ev);
+      for (const art of task.artifacts || []) {
+        pushArtifactTrace(art, task.id, task.completedAt ?? task.createdAt);
+      }
+    }
+
+    // 2. Done log
+    for (const entry of (team.doneLog || []) as unknown as DoneLogEntry[]) {
+      pushDoneTrace(entry);
+      for (const ev of entry.subagentEvents || []) pushSubagentTrace(ev);
+      for (const ev of entry.policyEvents || []) pushPolicyTrace(ev);
+      for (const art of entry.artifacts || []) pushArtifactTrace(art, entry.taskId, entry.timestamp);
+    }
+
+    // 3. Messages
+    for (const msg of teamMessageStore.get(teamId) || []) {
+      entries.push({
+        id: msg.id,
+        timestamp: msg.createdAt,
+        kind: 'message',
+        agentId: msg.fromAgentId,
+        agentName: msg.fromAgentName,
+        messageType: msg.messageType,
+        content: msg.content,
+        modeChange: msg.modeChange,
+      });
+    }
+
+    // 4. Feed
+    for (const item of teamFeedStore.get(teamId) || []) {
+      if (item.kind === 'mode_change') {
+        entries.push({
+          id: item.id,
+          timestamp: item.createdAt,
+          kind: 'mode_change',
+          agentId: item.actorAgentId,
+          agentName: item.actorAgentName,
+          fromMode: item.fromMode,
+          toMode: item.toMode,
+          source: item.source,
+        });
+      } else if (item.kind === 'hologram') {
+        entries.push({
+          id: item.id,
+          timestamp: item.createdAt,
+          kind: 'feed',
+          feedKind: 'hologram',
+          agentId: item.posterAgentId,
+          agentName: item.posterAgentName,
+          hash: item.hash,
+          shareUrl: item.shareUrl,
+        });
+      }
+    }
+
+    // 5. Presence (latest per agent only)
+    const presenceMap = teamPresenceStore.get(teamId);
+    const presence = presenceMap ? Array.from(presenceMap.values()) : [];
+    const latestPresence = new Map<string, TeamPresenceEntry>();
+    for (const p of presence) {
+      const existing = latestPresence.get(p.agentId);
+      if (!existing || p.lastHeartbeat > existing.lastHeartbeat) {
+        latestPresence.set(p.agentId, p);
+      }
+    }
+    for (const p of latestPresence.values()) {
+      entries.push({
+        id: `presence_${p.agentId}`,
+        timestamp: p.lastHeartbeat,
+        kind: 'presence',
+        agentId: p.agentId,
+        agentName: p.agentName,
+        surfaceTag: p.surfaceTag,
+        ideType: p.ideType,
+        status: p.status,
+      });
+    }
+
+    // 6. Suggestions
+    const suggestions = (team as Team & { suggestions?: TeamSuggestion[] }).suggestions || [];
+    for (const sug of suggestions) {
+      entries.push({
+        id: sug.id,
+        timestamp: sug.createdAt,
+        kind: 'suggestion',
+        agentId: sug.proposedBy,
+        agentName: sug.proposedByName,
+        title: sug.title,
+        category: sug.category,
+        score: sug.score,
+        status: sug.status,
+      });
+    }
+
+    // Sort newest first
+    entries.sort((a, b) => b.timestamp.localeCompare(a.timestamp) || a.id.localeCompare(b.id));
+
+    json(res, 200, { success: true, teamId, entries });
     return true;
   }
 
