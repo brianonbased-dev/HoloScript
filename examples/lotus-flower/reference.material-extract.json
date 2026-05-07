@@ -54,6 +54,11 @@
   "renderer_mapping": {
     "current_surface": "services/holoscript-net/src/components/LotusProgram.tsx",
     "petal_material": "MeshPhysicalMaterial with vertex colors, transmission, thickness, and double-sided petals",
-    "photorealism_status": "approximation_until_photo_to_material_extractor_lands"
+    "photo_to_material_extractor": {
+      "package": "@holoscript/snn-webgpu",
+      "entrypoint": "extractBotanicalMaterialFromPhotoFixtures",
+      "status": "available_pending_signed_photo_fixtures"
+    },
+    "photorealism_status": "extractor_available_pending_signed_photo_anchors"
   }
 }

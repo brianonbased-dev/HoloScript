@@ -50,6 +50,23 @@ export { LIFSimulator } from './lif-simulator.js';
 // Spike encoding/decoding
 export { SpikeEncoder, SpikeDecoder } from './spike-codec.js';
 
+// Botanical photo fixture material extraction
+export { extractBotanicalMaterialFromPhotoFixtures } from './botanical-material-extractor.js';
+export type {
+  BotanicalColorInput,
+  BotanicalExtractedColors,
+  BotanicalMaterialConfidence,
+  BotanicalMaterialExtractionResult,
+  BotanicalMaterialExtractorInput,
+  BotanicalMaterialProvenanceReceipt,
+  BotanicalMaterialUniforms,
+  BotanicalPhotoAnchor,
+  BotanicalPhotoFixture,
+  BotanicalRegionName,
+  BotanicalRegionSample,
+  RGBTuple,
+} from './botanical-material-extractor.js';
+
 // Tropical / ReLU bridge
 export { TropicalActivationTrait } from './traits/TropicalActivationTrait.js';
 export type { TropicalActivationConfig } from './traits/TropicalActivationTrait.js';
@@ -101,3 +118,18 @@ export type {
   HoloMeshProphecyTransportOptions,
   SpikeRateProvider,
 } from './prophetic-gi/index.js';
+
+// Botanical photo-to-material extraction for provenance-grounded organic assets.
+export { extractBotanicalLotusMaterial, toBotanicalLotusTrait } from './material-extraction/botanical-lotus.js';
+export type {
+  BotanicalColorParams,
+  BotanicalGeometryParams,
+  BotanicalImageSample,
+  BotanicalMaterialDiagnostics,
+  BotanicalMaterialExtraction,
+  BotanicalMaterialExtractionOptions,
+  BotanicalMaterialParams,
+  BotanicalPetalRing,
+  BotanicalReferenceProvenance,
+  BotanicalReferenceRole,
+} from './material-extraction/botanical-lotus.js';
