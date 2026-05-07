@@ -98,7 +98,6 @@ export class Supervisor {
   }
 
   private async bootAgent(spec: AgentSpec): Promise<ManagedAgent> {
-    const identity = this.identityFromSpec(spec);
     const brain = await loadBrain(spec.brainPath, spec.scopeTier ?? 'warm');
 
     // Capability-aware routing (Lane 3 Phase 4 — founder ruling 2026-05-06):
@@ -113,6 +112,7 @@ export class Supervisor {
     });
     const effectiveSpec: AgentSpec =
       decision.picked === spec.provider ? spec : { ...spec, provider: decision.picked };
+    const identity = this.identityFromSpec(effectiveSpec);
     if (decision.reason === 'env-override-mismatch' && this.opts.logger) {
       this.opts.logger({
         ts: new Date().toISOString(),
@@ -126,9 +126,12 @@ export class Supervisor {
 
     const provider = await this.opts.providerFactory(effectiveSpec, identity);
     const stateDir = this.opts.stateDir ?? join(homedir(), '.holoscript-agent', 'cost-state');
-    const isFree = spec.provider === 'mock' || spec.provider === 'local-llm' || spec.provider === 'bitnet';
+    const isFree =
+      effectiveSpec.provider === 'mock' ||
+      effectiveSpec.provider === 'local-llm' ||
+      effectiveSpec.provider === 'bitnet';
     const costGuard = new CostGuard({
-      statePath: join(stateDir, `${spec.handle}.json`),
+      statePath: join(stateDir, `${effectiveSpec.handle}.json`),
       dailyBudgetUsd: identity.budgetUsdPerDay,
       pricer: isFree ? () => 0 : undefined,
     });
@@ -138,7 +141,9 @@ export class Supervisor {
       teamId: identity.teamId,
       fetchImpl: this.opts.fetchImpl,
     });
-    const onTaskExecuted = spec.enableCommitHook ? this.buildCommitHook(spec, identity, mesh) : undefined;
+    const onTaskExecuted = effectiveSpec.enableCommitHook
+      ? this.buildCommitHook(effectiveSpec, identity, mesh)
+      : undefined;
     const runner = new AgentRunner({
       identity,
       brain,
@@ -147,16 +152,16 @@ export class Supervisor {
       mesh,
       onTaskExecuted,
       auditLog: this.auditLog,
-      logger: (ev) => this.log({ agent: spec.handle, ...ev }),
+      logger: (ev) => this.log({ agent: effectiveSpec.handle, ...ev }),
     });
     const status: SupervisorAgentStatus = {
-      handle: spec.handle,
+      handle: effectiveSpec.handle,
       state: 'starting',
       spentUsd: 0,
       remainingUsd: identity.budgetUsdPerDay,
       restarts: 0,
     };
-    return { spec, identity, brain, runner, costGuard, status };
+    return { spec: effectiveSpec, identity, brain, runner, costGuard, status };
   }
 
   private buildCommitHook(

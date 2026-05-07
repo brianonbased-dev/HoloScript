@@ -144,6 +144,46 @@ describe('Supervisor', () => {
     await sup.stop();
   });
 
+  it('uses routed provider identity and free pricer when provider is selected by capabilities', async () => {
+    writeFileSync(
+      brainPath,
+      `
+composition "LocalOnly" {
+  identity {
+    name: "local-only"
+    domain: "test"
+    capability_tags: ["security"]
+    requires: ["zeroMarginalInference"]
+  }
+}
+`,
+      'utf8'
+    );
+    const captured: Array<{ specProvider: unknown; identityProvider: unknown }> = [];
+    const routedSpec = {
+      ...specForBrain(brainPath),
+      provider: undefined as unknown as AgentSpec['provider'],
+      model: 'local-model',
+    };
+    const sup = new Supervisor({
+      config: { agents: [routedSpec] },
+      providerFactory: (spec, identity) => {
+        captured.push({ specProvider: spec.provider, identityProvider: identity.llmProvider });
+        return provider();
+      },
+      teamId: 't',
+      stateDir: dir,
+      fetchImpl: buildFetch([{ id: 't-local', title: 'security memo', tags: ['security'] }]),
+    });
+
+    await sup.start();
+    const status = await sup.tickOnce('security-auditor');
+
+    expect(captured[0]).toEqual({ specProvider: 'local-llm', identityProvider: 'local-llm' });
+    expect(status.spentUsd).toBe(0);
+    await sup.stop();
+  });
+
   it('flips agent state to over-budget when global ceiling trips (founder ruling Q1)', async () => {
     const tasks = [{ id: 't1', title: 'security memo', tags: ['security'] }];
     const sup = new Supervisor({
