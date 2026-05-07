@@ -321,6 +321,55 @@ function makeFullV1Composition(): HoloComposition {
               cross_references: ['F.030 paper-audit-matrix-always-stale', 'W.099 deploy-date-without-blocker'],
             },
           },
+          // Vocabulary v2 (Iteration 2 G-3 fourth slice)
+          {
+            type: 'ObjectTrait',
+            name: 'editorial_defaults',
+            config: {
+              name: 'paper-byline',
+              paper_id: 'program',
+              paper_phase: 'all',
+              when: 'Can I change a paper byline?',
+              do: 'No. Josep Valls-Vargas is the byline.',
+              reason: 'F.026',
+            },
+          },
+          {
+            type: 'ObjectTrait',
+            name: 'editorial_defaults',
+            config: {
+              name: 'editor-contact',
+              paper_id: 'tvcg-revision-1',
+              paper_phase: 'held',
+              when: 'Can I push a revised bundle to the editor?',
+              do: 'No unless founder-explicit; land amendments locally.',
+              reason: 'I.009',
+            },
+          },
+          {
+            type: 'ObjectTrait',
+            name: 'research_defaults',
+            config: {
+              name: 'result-validation-sessions',
+              paper_id: 'program',
+              paper_phase: 'validation',
+              when: 'New result needs validation across how many sessions?',
+              do: 'Three independent sessions before graduating to Silver.',
+              reason: 'F.023',
+            },
+          },
+          {
+            type: 'ObjectTrait',
+            name: 'research_defaults',
+            config: {
+              name: 'missing-solver-benchmark-dataset',
+              paper_id: 'program',
+              paper_phase: 'evidence',
+              when: 'A paper needs a solver / benchmark / dataset we do not have',
+              do: 'Gap-build. Do not demote the paper.',
+              reason: 'Gap = build',
+            },
+          },
         ],
       },
     ],
@@ -2126,5 +2175,125 @@ describe('compile() - vocabulary v2 -> @domain_preference', () => {
     expect(md).toContain('documentarian voice');
     // False case: must NOT prefix a "Ceiling:" label when ceiling absent
     expect(md).not.toContain('Ceiling: documentarian');
+  });
+});
+
+// --- Vocabulary v2 (Iteration 2 G-3 fourth slice) -- papers defaults ---
+
+describe('compile() - vocabulary v2 -> @editorial_defaults + @research_defaults', () => {
+  it('extracts scoped editorial and research defaults from the full V1 fixture', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const result = compiler.compile(makeFullV1Composition(), '');
+    expect(result.ast.editorialDefaults).toHaveLength(2);
+    expect(result.ast.researchDefaults).toHaveLength(2);
+
+    const byline = result.ast.editorialDefaults.find((d) => d.name === 'paper-byline');
+    expect(byline?.paperId).toBe('program');
+    expect(byline?.paperPhase).toBe('all');
+    expect(byline?.do).toContain('Josep Valls-Vargas');
+
+    const validation = result.ast.researchDefaults.find(
+      (d) => d.name === 'result-validation-sessions'
+    );
+    expect(validation?.paperPhase).toBe('validation');
+    expect(validation?.reason).toBe('F.023');
+    // False case: paper_id and paper_phase must stay separate fields, not a single scope string
+    expect((validation as unknown as { scope?: string }).scope).toBeUndefined();
+  });
+
+  it('emits a Papers program defaults section with editorial and research tables', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeFullV1Composition(), '').files['CLAUDE.md'];
+    expect(md).toContain('## Papers program defaults');
+    expect(md).toContain('### Editorial defaults');
+    expect(md).toContain('### Research-decision defaults');
+    expect(md).toContain('| Scope | Question | Answer | Reason |');
+    expect(md).toContain('| program / all | Can I change a paper byline? |');
+    expect(md).toContain('**No. Josep Valls-Vargas is the byline.**');
+    expect(md).toContain('| tvcg-revision-1 / held | Can I push a revised bundle to the editor? |');
+    expect(md).toContain('| program / validation | New result needs validation across how many sessions? |');
+    // False case: section must not collapse editorial + research into Known defaults
+    const knownDefaults = md.slice(
+      md.indexOf('## Known defaults'),
+      md.indexOf('## Domain preferences')
+    );
+    expect(knownDefaults).not.toContain('Can I change a paper byline?');
+  });
+
+  it('emits Papers program defaults in agents_md (cross-tool surface)', () => {
+    const compiler = new ContextCompiler({ formats: ['agents_md'] });
+    const md = compiler.compile(makeFullV1Composition(), '').files['AGENTS.md'];
+    expect(md).toContain('## Papers program defaults');
+    expect(md).toContain('### Editorial defaults');
+    expect(md).toContain('### Research-decision defaults');
+  });
+
+  it('emits Papers program defaults in skill_md (Phase 2(a) self-host target)', () => {
+    const compiler = new ContextCompiler({ formats: ['skill_md'] });
+    const fixture = makeFullV1Composition();
+    const identity = fixture.objects[0]!.traits!.find((t) => t.name === 'identity')!;
+    identity.config.description = 'Test skill description for papers defaults emit verification.';
+    const md = compiler.compile(fixture, '').files['SKILL.md'];
+    expect(md).toContain('## Papers program defaults');
+    expect(md).toContain('Can I change a paper byline?');
+  });
+
+  it('emits Papers program defaults in cursor_rules index file', () => {
+    const compiler = new ContextCompiler({ formats: ['cursor_rules'] });
+    const result = compiler.compile(makeFullV1Composition(), '');
+    const indexContent = result.files['.cursor/rules/_ecosystem-context.mdc'];
+    expect(indexContent).toContain('## Papers program defaults');
+    expect(indexContent).toContain('| program / evidence | A paper needs a solver');
+  });
+
+  it('places Papers program defaults AFTER Domain preferences and BEFORE Output shape', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeFullV1Composition(), '').files['CLAUDE.md'];
+    const domainIdx = md.indexOf('## Domain preferences');
+    const papersIdx = md.indexOf('## Papers program defaults');
+    const outputShapeIdx = md.indexOf('## Output shape');
+    expect(domainIdx).toBeGreaterThan(0);
+    expect(papersIdx).toBeGreaterThan(domainIdx);
+    expect(outputShapeIdx).toBeGreaterThan(papersIdx);
+  });
+
+  it('omits Papers program defaults when no papers defaults traits are declared', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeComposition(), '').files['CLAUDE.md'];
+    // False case: section header must NOT appear in an empty composition
+    expect(md).not.toContain('## Papers program defaults');
+    expect(md).not.toContain('### Editorial defaults');
+    expect(md).not.toContain('### Research-decision defaults');
+  });
+
+  it('renders program-wide scope and missing reason cleanly', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'A',
+            properties: [],
+            traits: [
+              {
+                type: 'ObjectTrait',
+                name: 'editorial_defaults',
+                config: {
+                  name: 'program-default',
+                  when: 'Can I ship locally?',
+                  do: 'Yes, if validation passes.',
+                  // paper_id, paper_phase, and reason intentionally omitted
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      ''
+    ).files['CLAUDE.md'];
+    expect(md).toContain('| program-wide | Can I ship locally? | **Yes, if validation passes.** | *(no citation)* |');
+    // False case: no empty slash from missing paper_id / paper_phase
+    expect(md).not.toContain('|  /  |');
   });
 });

@@ -31,13 +31,13 @@
  * declarations). WARN soft-guideline (stale citations, fluent prose
  * without citation, schedule conflicts, unresolved verify-tokens).
  *
- * @version 1.4.3 (Phase 2(a) Iteration 2 G-3 vocabulary v2 slices:
- *   @invocation_mode, @date_discipline, @domain_preference, and
- *   @embodied_projection. Phase 1 emitters: claude_md + agents_md +
- *   cursor_rules + skill_md (all 4 render the new sections). Remaining
- *   Phase 1+ follow-ups: anthropic_system_prompt / brain_includes /
- *   mcp_context_loader. Remaining Iteration 2 G-3 vocabulary: Track-B
- *   authority and papers program.)
+ * @version 1.5.0 (Phase 2(a) Iteration 2 G-3 vocabulary v2 now covers
+ *   @invocation_mode, @date_discipline, @domain_preference,
+ *   @embodied_projection, @editorial_defaults, and @research_defaults.
+ *   Phase 1 emitters: claude_md + agents_md + cursor_rules + skill_md.
+ *   Remaining Phase 1+ follow-ups: anthropic_system_prompt /
+ *   brain_includes / mcp_context_loader. Remaining Iteration 2 G-3
+ *   vocabulary: Track-B authority.)
  * @module @holoscript/core/compiler/ContextCompiler
  */
 
@@ -259,6 +259,40 @@ export interface ContextDateDiscipline {
 }
 
 /**
+ * Per-rule: founder paper-program editorial default. Vocabulary v2
+ * (Phase 2(a) Iteration 2 G-3 fourth slice). Captures stable defaults
+ * from `~/.claude/skills/founder/SKILL.md` § Papers program that govern
+ * editor contact, byline changes, revision bundle release, GOLD citation
+ * verification, provenance drift fixes, and plugin-stub consumption.
+ * `paper_id` + `paper_phase` optionally narrow a default to one paper or
+ * phase; omitted values mean program-wide / all phases.
+ */
+export interface ContextEditorialDefault {
+  name: string;
+  paperId?: string;
+  paperPhase?: string;
+  when: string;
+  do: string;
+  reason?: string;
+}
+
+/**
+ * Per-rule: founder paper-program research default. Vocabulary v2
+ * (Phase 2(a) Iteration 2 G-3 fourth slice). Captures stable defaults
+ * for experiment design, ablation requirements, benchmark-claim
+ * verification, framing conflicts, validation sessions, and gap-build
+ * decisions across the 17-paper program.
+ */
+export interface ContextResearchDefault {
+  name: string;
+  paperId?: string;
+  paperPhase?: string;
+  when: string;
+  do: string;
+  reason?: string;
+}
+
+/**
  * Per-rule: how this skill can be invoked. Vocabulary v2 (Phase 2(a)
  * Iteration 2 G-3 first slice). The founder skill exposes 3 modes
  * documented in `~/.claude/skills/founder/SKILL.md` § Invocation modes:
@@ -348,6 +382,8 @@ export interface ContextAST {
   dateDisciplines: ContextDateDiscipline[];   // vocabulary v2 (Iteration 2 G-3 second slice)
   domainPreferences: ContextDomainPreference[]; // vocabulary v2 (Iteration 2 G-3 third slice)
   embodiedProjections: ContextEmbodiedProjection[]; // vocabulary v2 (Iteration 2 G-3 embodied slice)
+  editorialDefaults: ContextEditorialDefault[]; // vocabulary v2 (Iteration 2 G-3 fourth slice)
+  researchDefaults: ContextResearchDefault[]; // vocabulary v2 (Iteration 2 G-3 fourth slice)
 
   // Diagnostics surfaced from validation
   warnings: ContextValidationDiagnostic[];
@@ -550,6 +586,8 @@ export class ContextCompiler extends CompilerBase {
       dateDisciplines: [],
       domainPreferences: [],
       embodiedProjections: [],
+      editorialDefaults: [],
+      researchDefaults: [],
       warnings: [],
     };
 
@@ -754,6 +792,26 @@ export class ContextCompiler extends CompilerBase {
           notes: stringFieldOrUndef(cfg, 'notes'),
         });
         break;
+      case 'editorial_defaults':
+        ast.editorialDefaults.push({
+          name: stringField(cfg, 'name', ''),
+          paperId: stringFieldOrUndef(cfg, 'paper_id'),
+          paperPhase: stringFieldOrUndef(cfg, 'paper_phase'),
+          when: stringField(cfg, 'when', ''),
+          do: stringField(cfg, 'do', ''),
+          reason: stringFieldOrUndef(cfg, 'reason'),
+        });
+        break;
+      case 'research_defaults':
+        ast.researchDefaults.push({
+          name: stringField(cfg, 'name', ''),
+          paperId: stringFieldOrUndef(cfg, 'paper_id'),
+          paperPhase: stringFieldOrUndef(cfg, 'paper_phase'),
+          when: stringField(cfg, 'when', ''),
+          do: stringField(cfg, 'do', ''),
+          reason: stringFieldOrUndef(cfg, 'reason'),
+        });
+        break;
       default:
         // Unknown trait - record as warning, don't block (vocabulary
         // may grow; unknown traits in source today might be valid in v2).
@@ -956,6 +1014,9 @@ export class ContextCompiler extends CompilerBase {
       }
       lines.push('');
     }
+
+    // Papers program defaults (vocabulary v2 - Iteration 2 G-3 fourth slice)
+    this.appendPapersProgramDefaults(lines, ast);
 
     // Output shape
     if (ast.outputShape) {
@@ -1296,6 +1357,9 @@ export class ContextCompiler extends CompilerBase {
       }
       lines.push('');
     }
+
+    // Papers program defaults (vocabulary v2 - Iteration 2 G-3 fourth slice)
+    this.appendPapersProgramDefaults(lines, ast);
 
     // Output shape (universal)
     if (ast.outputShape) {
@@ -1662,6 +1726,9 @@ export class ContextCompiler extends CompilerBase {
       }
       idx.push('');
     }
+
+    // Papers program defaults (vocabulary v2 - Iteration 2 G-3 fourth slice)
+    this.appendPapersProgramDefaults(idx, ast);
 
     // Output shape
     if (ast.outputShape) {
@@ -2034,6 +2101,9 @@ export class ContextCompiler extends CompilerBase {
       lines.push('');
     }
 
+    // Papers program defaults (vocabulary v2 - Iteration 2 G-3 fourth slice)
+    this.appendPapersProgramDefaults(lines, ast);
+
     // Output shape
     if (ast.outputShape) {
       lines.push('## Output shape');
@@ -2235,6 +2305,52 @@ export class ContextCompiler extends CompilerBase {
     lines.push('');
 
     return lines.join('\n');
+  }
+
+  private appendPapersProgramDefaults(lines: string[], ast: ContextAST): void {
+    if (ast.editorialDefaults.length === 0 && ast.researchDefaults.length === 0) {
+      return;
+    }
+
+    lines.push('## Papers program defaults');
+    lines.push('');
+
+    if (ast.editorialDefaults.length > 0) {
+      lines.push('### Editorial defaults');
+      lines.push('');
+      lines.push('| Scope | Question | Answer | Reason |');
+      lines.push('|---|---|---|---|');
+      for (const def of ast.editorialDefaults) {
+        lines.push(
+          `| ${this.formatPaperDefaultScope(def)} | ${def.when} | **${def.do}** | ${def.reason ?? '*(no citation)*'} |`
+        );
+      }
+      lines.push('');
+    }
+
+    if (ast.researchDefaults.length > 0) {
+      lines.push('### Research-decision defaults');
+      lines.push('');
+      lines.push('| Scope | Question | Answer | Reason |');
+      lines.push('|---|---|---|---|');
+      for (const def of ast.researchDefaults) {
+        lines.push(
+          `| ${this.formatPaperDefaultScope(def)} | ${def.when} | **${def.do}** | ${def.reason ?? '*(no citation)*'} |`
+        );
+      }
+      lines.push('');
+    }
+  }
+
+  private formatPaperDefaultScope(
+    def: ContextEditorialDefault | ContextResearchDefault
+  ): string {
+    const paperId = def.paperId?.trim();
+    const paperPhase = def.paperPhase?.trim();
+    if (paperId && paperPhase) return `${paperId} / ${paperPhase}`;
+    if (paperId) return paperId;
+    if (paperPhase) return paperPhase;
+    return 'program-wide';
   }
 }
 

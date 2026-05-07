@@ -9,8 +9,9 @@
 //   COVERED — identity, authority_order, vision_pillar, refusal,
 //             default, output_shape, escalation, citation_rule,
 //             graduated_wisdom, feedback, domain_preference,
-//             date_discipline, invocation_mode, embodied_projection
-//   DEFERRED — Track-B authority block and per-paper editorial defaults.
+//             date_discipline, invocation_mode, embodied_projection,
+//             editorial_defaults, research_defaults
+//   DEFERRED — Track-B authority block.
 //
 // Trait syntax note: uses the compact @trait(field: value, ...) form.
 // The @trait: { field: value } form is also supported since G-2 closed.
@@ -219,6 +220,133 @@ object "DomainPreferences" {
     domain: "public-representation",
     skills: ["/marketer"],
     notes: "Interviews, podcasts, posting; drafts via /marketer + escape-hatch ratification before public commit"
+  )
+}
+
+// =============================================================================
+// Papers program defaults (vocabulary v2 - Iteration 2 G-3 fourth slice)
+//
+// Mirrors the "## Papers program (research + editorial decisions)" section in
+// ~/.claude/skills/founder/SKILL.md. The 17-paper suite is under founder
+// authority, but stable editorial + research defaults are agent-shippable.
+// =============================================================================
+
+object "PapersProgramDefaults" {
+  @editorial_defaults(
+    name: "paper-byline",
+    paper_id: "program",
+    paper_phase: "all",
+    when: "Can I change a paper byline?",
+    do: "No. Josep Valls-Vargas is the byline. Do not re-flag at audits.",
+    reason: "F.026"
+  )
+
+  @editorial_defaults(
+    name: "editor-contact",
+    paper_id: "tvcg-revision-1",
+    paper_phase: "held",
+    when: "Can I push a revised bundle to the editor?",
+    do: "No unless founder-explicit. I.009 TVCG Revision-1 is HELD from editor contact; land amendments locally.",
+    reason: "I.009"
+  )
+
+  @editorial_defaults(
+    name: "gold-citation-verify",
+    paper_id: "program",
+    paper_phase: "citation",
+    when: "Can I cite a GOLD entry by ID?",
+    do: "Verify first against D:/GOLD/INDEX.md or graduate.py list before anchoring a framing on W.GOLD.XXX.",
+    reason: "F.023"
+  )
+
+  @editorial_defaults(
+    name: "technical-claim-citation",
+    paper_id: "program",
+    paper_phase: "writing",
+    when: "Can I fluently prose over a technical claim without a citation?",
+    do: "No. Every technical claim needs file:line or URL, or it must be marked as own judgment.",
+    reason: "F.017"
+  )
+
+  @editorial_defaults(
+    name: "provenance-anchor-drift",
+    paper_id: "program",
+    paper_phase: "anchoring",
+    when: "Provenance anchor test drift in pipeline?",
+    do: "Fix the canonical-hash triple: anchor_ots.py, anchor_base.py, and verify_provenance.py must share identical TEXT_EXTS.",
+    reason: "W.090"
+  )
+
+  @editorial_defaults(
+    name: "paper-runner-timeout",
+    paper_id: "program",
+    paper_phase: "runner",
+    when: "CI timeout under a paper runner?",
+    do: "Ship a dedicated paper-publication-runner with env overrides, structured JSON, markdown table, and dual CLI/import entry.",
+    reason: "W.080"
+  )
+
+  @editorial_defaults(
+    name: "plugin-stub-unconsumed",
+    paper_id: "program",
+    paper_phase: "implementation",
+    when: "A plugin-stub is unconsumed",
+    do: "Wire through one real consumer and keep legacy reference for A/B.",
+    reason: "W.081"
+  )
+
+  @research_defaults(
+    name: "framing-conflict",
+    paper_id: "program",
+    paper_phase: "framing",
+    when: "Framing conflicts between papers",
+    do: "Prefer the framing encoded in GOLD Diamond over local per-paper framing.",
+    reason: "W.GOLD.188 + W.GOLD.189"
+  )
+
+  @research_defaults(
+    name: "result-validation-sessions",
+    paper_id: "program",
+    paper_phase: "validation",
+    when: "New result needs validation across how many sessions?",
+    do: "Three independent sessions before graduating to Silver; GOLD needs founder signoff.",
+    reason: "F.023"
+  )
+
+  @research_defaults(
+    name: "audit-confident-peer-claim",
+    paper_id: "program",
+    paper_phase: "audit",
+    when: "Audit flags a confident peer claim",
+    do: "Apply audit-as-calibration: calibrate native-vs-deployed bench gaps before accepting the claim.",
+    reason: "W.GOLD.191"
+  )
+
+  @research_defaults(
+    name: "cross-adapter-replay-tolerance",
+    paper_id: "program",
+    paper_phase: "replay",
+    when: "Cross-adapter numerical replay fails tolerance",
+    do: "Use Route 2b epsilon-tolerance lift pattern. Do not loosen tolerance globally.",
+    reason: "W.GOLD.192"
+  )
+
+  @research_defaults(
+    name: "secure-by-default",
+    paper_id: "program",
+    paper_phase: "design",
+    when: "Secure-by-default proposal",
+    do: "Apply threat-model-driven defaults; secure-by-default is wrong when it contradicts the actual threat model.",
+    reason: "W.GOLD.193"
+  )
+
+  @research_defaults(
+    name: "missing-solver-benchmark-dataset",
+    paper_id: "program",
+    paper_phase: "evidence",
+    when: "A paper needs a solver / benchmark / dataset we do not have",
+    do: "Gap-build. Do not demote the paper.",
+    reason: "Gap = build"
   )
 }
 
