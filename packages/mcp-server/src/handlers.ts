@@ -50,6 +50,7 @@ import {
 } from './tooling-discovery-tools';
 import { handleOracleConsult } from './oracle-handler';
 import { isHoloMapToolName, handleHoloMapTool } from './holomap-mcp-tools';
+import { isSpatialMcpToolName, handleSpatialMcpTool } from './spatial-mcp-tools';
 import { isHologramToolName, handleHologramTool } from './hologram-mcp-tools';
 import { isHoloTwinToolName, handleHoloTwinTool } from './holotwin-mcp-tools';
 import { handleEstimateTaskDurationTool } from './tools/estimate_task_duration';
@@ -479,6 +480,11 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
   // HoloMap reconstruction tools
   if (isHoloMapToolName(name)) {
     return handleHoloMapTool(name, args);
+  }
+
+  // Spatial MCP - compile_to_spatial (v0.1, research/2026-05-07_spatial-mcp-spec.md)
+  if (isSpatialMcpToolName(name)) {
+    return handleSpatialMcpTool(name, args);
   }
 
   throw new Error(`Unknown tool: ${name}`);

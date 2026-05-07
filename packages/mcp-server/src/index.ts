@@ -53,6 +53,7 @@ import { traitTools, handleTraitTool } from './trait-tools';
 import { alphafoldTools, handleFetchStructure } from './alphafold-tools';
 import { hologramToolDefinitions, handleHologramTool } from './hologram-mcp-tools';
 import { holotwinToolDefinitions, handleHoloTwinTool } from './holotwin-mcp-tools';
+import { spatialMcpToolDefinitions } from './spatial-mcp-tools';
 import { handleBatchToolCall } from './tooling-discovery-tools';
 
 declare const __SERVICE_VERSION__: string;
@@ -78,6 +79,7 @@ const ALL_AVAILABLE_TOOLS: Tool[] = [
   ...alphafoldTools,
   ...hologramToolDefinitions,
   ...holotwinToolDefinitions,
+  ...spatialMcpToolDefinitions,
   {
     name: 'holoscript_discover_tools',
     description: 'Search for available MCP tools by intent or keyword. Returns tool names, descriptions, and schemas. Use this when you are unsure which tool to use.',
