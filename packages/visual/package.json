@@ -16,7 +16,8 @@
     "dev": "vite",
     "test": "vitest run --config vite.config.ts --passWithNoTests",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:coverage": "vitest run --coverage --config vite.config.ts --passWithNoTests"
   },
   "dependencies": {
     "@holoscript/core": "workspace:*",

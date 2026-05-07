@@ -52,7 +52,8 @@
     "build": "tsup && tsc --emitDeclarationOnly --declarationDir dist --skipLibCheck",
     "watch": "tsc -w",
     "clean": "rm -rf dist",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "keywords": [
     "holoscript",

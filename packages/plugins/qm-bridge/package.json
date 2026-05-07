@@ -8,7 +8,8 @@
     "build": "tsc",
     "test": "pnpm -w exec vitest run --root packages/plugins/qm-bridge --config vitest.config.ts",
     "lint": "eslint src --ext .ts",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
     "holoscript",

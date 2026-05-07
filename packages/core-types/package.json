@@ -53,7 +53,9 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "sync": "echo 'TODO: auto-sync from core/src/types/ â€” see src/index.ts for the sync protocol'"
+    "sync": "echo 'TODO: auto-sync from core/src/types/ â€” see src/index.ts for the sync protocol'",
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "keywords": [
     "holoscript",

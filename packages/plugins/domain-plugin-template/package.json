@@ -8,7 +8,8 @@
     "build": "tsup src/index.ts --format esm,cjs --dts",
     "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
     "test": "vitest run",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
     "holoscript",

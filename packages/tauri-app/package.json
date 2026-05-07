@@ -9,7 +9,9 @@
     "build:debug": "tauri build --debug",
     "tauri": "tauri",
     "lint": "eslint src/",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",

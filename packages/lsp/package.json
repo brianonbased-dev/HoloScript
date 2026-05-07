@@ -12,7 +12,8 @@
     "watch": "tsc -w",
     "clean": "rm -rf dist",
     "test": "vitest run --passWithNoTests",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "keywords": [
     "holoscript",

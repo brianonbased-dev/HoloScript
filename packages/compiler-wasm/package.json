@@ -12,7 +12,8 @@
     "build:nodejs": "wasm-pack build --target nodejs --out-dir pkg-node",
     "build:bundler": "wasm-pack build --target bundler --out-dir pkg-bundler",
     "test": "cargo test || echo 'cargo not installed, skipping WASM tests'",
-    "clean": "rm -rf pkg pkg-node pkg-bundler target"
+    "clean": "rm -rf pkg pkg-node pkg-bundler target",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
     "holoscript",

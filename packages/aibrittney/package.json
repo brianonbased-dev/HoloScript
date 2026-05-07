@@ -32,7 +32,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run --config vitest.config.ts --passWithNoTests",
-    "start": "node ./dist/cli.js"
+    "start": "node ./dist/cli.js",
+    "test:coverage": "vitest run --coverage --config vitest.config.ts --passWithNoTests"
   },
   "dependencies": {
     "@holoscript/llm-provider": "workspace:*"

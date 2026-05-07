@@ -658,7 +658,8 @@
     "watch": "pnpm run esbuild-watch",
     "package": "vsce package --no-dependencies",
     "publish": "vsce publish",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

@@ -19,7 +19,8 @@
     "bench:ci": "node --experimental-vm-modules dist/index.js --ci",
     "build": "tsup && tsc --emitDeclarationOnly --declarationDir dist --skipLibCheck",
     "clean": "rm -rf dist",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "dependencies": {
     "@holoscript/core": "workspace:*",

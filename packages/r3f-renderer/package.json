@@ -18,7 +18,8 @@
   "scripts": {
     "build": "tsup && node scripts/generate-types.mjs",
     "dev": "tsup --watch",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@holoscript/core": "workspace:*",

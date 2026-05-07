@@ -16,7 +16,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "start": "node ./dist/cli.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
     "holoscript",

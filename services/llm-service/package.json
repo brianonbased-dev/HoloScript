@@ -10,7 +10,9 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist .holoscript-llm"
+    "clean": "rm -rf dist .holoscript-llm",
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "dependencies": {
     "next": ">=15.5.15",

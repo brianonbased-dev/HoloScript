@@ -24,7 +24,8 @@
     "bench:all": "node dist/cli.js --target=all",
     "bench:paper12": "node dist/paper12-cli.js",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@holoscript/core": "workspace:*",

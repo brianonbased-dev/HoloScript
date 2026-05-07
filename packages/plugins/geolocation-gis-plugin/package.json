@@ -5,5 +5,9 @@
   "peerDependencies": {
     "@holoscript/core": "workspace:*"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
+  }
 }

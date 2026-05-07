@@ -10,7 +10,8 @@
     "dev": "tsc --watch",
     "test": "vitest run --passWithNoTests",
     "start": "node dist/server.js",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "keywords": [
     "holoscript",

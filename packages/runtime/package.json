@@ -56,7 +56,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run --passWithNoTests",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "dependencies": {
     "@holoscript/core": "workspace:*",

@@ -70,7 +70,8 @@
     "test": "tree-sitter test || exit 0",
     "parse": "tree-sitter parse",
     "highlight": "tree-sitter highlight",
-    "prebuildify": "prebuildify --napi --strip"
+    "prebuildify": "prebuildify --napi --strip",
+    "test:coverage": "vitest run --coverage"
   },
   "tree-sitter": [
     {

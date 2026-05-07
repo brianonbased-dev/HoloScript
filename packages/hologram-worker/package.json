@@ -15,7 +15,8 @@
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "test": "vitest run --passWithNoTests",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",

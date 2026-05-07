@@ -63,7 +63,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
     "holoscript",

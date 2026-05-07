@@ -28,7 +28,8 @@
   ],
   "scripts": {
     "build": "tsup",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "devDependencies": {
     "tsup": "^8.5.1",

@@ -12,7 +12,8 @@
     "dev": "tsc --watch",
     "test": "vitest run --pool=forks",
     "lint": "eslint src/",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
     "holoscript",

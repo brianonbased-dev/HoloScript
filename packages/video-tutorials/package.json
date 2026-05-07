@@ -13,7 +13,9 @@
     "render:babylon": "tsx scripts/render-all.ts --filter babylon",
     "render:all": "tsx scripts/render-all.ts",
     "narration": "tsx scripts/generate-narration.ts",
-    "record:cli": "python scripts/record-cli-demo.py"
+    "record:cli": "python scripts/record-cli-demo.py",
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "dependencies": {
     "@holoscript/core": "workspace:*",

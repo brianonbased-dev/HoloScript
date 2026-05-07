@@ -15,7 +15,8 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
-    "dev": "tsup --watch"
+    "dev": "tsup --watch",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
     "holoscript",

@@ -18,5 +18,9 @@
     "loro-crdt": "^1.0.0",
     "typescript": "~5.9.3"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
+  }
 }

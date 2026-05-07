@@ -8,7 +8,8 @@
   "scripts": {
     "build": "tsup && tsc --emitDeclarationOnly --declarationDir dist --skipLibCheck",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
     "holoscript",

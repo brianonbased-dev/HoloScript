@@ -65,7 +65,8 @@
   "scripts": {
     "build": "node scripts/build-framework.mjs",
     "test": "vitest run --passWithNoTests",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "keywords": [
     "holoscript",
