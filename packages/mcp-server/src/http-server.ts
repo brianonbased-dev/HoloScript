@@ -1904,17 +1904,19 @@ const httpServer = http.createServer(async (req, res) => {
     if (handled) return;
   }
 
-  // /api/identity/* family (task_1777863437716_edgm fix). Three sub-trees share
-  // this root per the v3 escape-hatch spec + seat-wallets ADR §"Attestation flow":
+  // /api/identity/* family (task_1777863437716_edgm fix). Four sub-trees share
+  // this root per the v3 escape-hatch spec + seat-wallets ADR §"Attestation flow"
+  // and the 2026-05-06 vault-lease addition (task_1778102013331_u8q2):
   //   - identity-export-routes:   /api/identity/export/*    (Tier-2 self-custody)
   //   - attestation-routes:       /api/identity/attestation/{pending,approve,revoke}
   //   - custodial-wallet-routes:  /api/identity/custodial/{provision,sign,wallet,...}
+  //   - vault-lease-routes:       /api/identity/vault/{lease,leases,sweep,...}
   //
   // Each handler returns true if the route matched (regardless of outcome) and
   // false if the caller should keep searching. We try them in order; first
-  // match wins. Without all three wired here, attestation/* and custodial/*
-  // returned 404 even though their handler files existed and were imported in
-  // http-routes.ts (which only handles /api/holomesh/*, the wrong tree).
+  // match wins. Without all four wired here, attestation/*, custodial/*, and
+  // vault/* would return 404 even though their handler files exist (the W.131
+  // dispatch-tree gotcha — http-routes.ts only handles /api/holomesh/*).
   if (url?.startsWith('/api/identity/')) {
     const pathname = new URL(url, 'http://localhost').pathname;
     const method = req.method || 'GET';
@@ -1928,6 +1930,10 @@ const httpServer = http.createServer(async (req, res) => {
     const { handleCustodialWalletRoutes } =
       await import('./holomesh/routes/custodial-wallet-routes');
     if (await handleCustodialWalletRoutes(req, res, pathname, method, url)) return;
+
+    const { handleVaultLeaseRoutes } =
+      await import('./holomesh/routes/vault-lease-routes');
+    if (await handleVaultLeaseRoutes(req, res, pathname, method, url)) return;
   }
 
   if (url?.startsWith('/api/absorb/')) {
