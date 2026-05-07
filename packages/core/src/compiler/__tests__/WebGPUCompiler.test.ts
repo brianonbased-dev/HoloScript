@@ -92,6 +92,24 @@ describe('WebGPUCompiler', () => {
     expect(code).toContain('ball');
   });
 
+  it('ignores malformed traits without names when checking GPU particle traits', () => {
+    const comp = makeComposition({
+      objects: [
+        {
+          name: 'odd_traits',
+          properties: [{ key: 'geometry', value: 'box' }],
+          traits: [{ config: { count: 10 } }],
+        },
+      ] as any,
+    });
+
+    let code = '';
+    expect(() => {
+      code = compiler.compile(comp, 'test-token');
+    }).not.toThrow();
+    expect(code).toContain('odd_traits');
+  });
+
   // =========== Camera ===========
 
   it('compiles camera', () => {

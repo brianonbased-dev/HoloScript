@@ -32,8 +32,8 @@ import {
   materialToWebGPU,
 } from './DomainBlockCompilerMixin';
 
-function isGpuParticleTraitName(name: string): boolean {
-  return name === 'gpu_particle' || name.startsWith('vfx_particle_');
+function isGpuParticleTraitName(name: unknown): name is string {
+  return typeof name === 'string' && (name === 'gpu_particle' || name.startsWith('vfx_particle_'));
 }
 
 function findGpuParticleTrait(traits: HoloObjectTrait[] | undefined): HoloObjectTrait | undefined {
