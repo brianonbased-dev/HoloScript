@@ -52,6 +52,7 @@ jobs:
         run: |
           pnpm --filter @holoscript/core build
           pnpm --filter @holoscript/engine build
+          pnpm --filter @holoscript/llm-provider build
           pnpm --filter @holoscript/framework build
           pnpm --filter @holoscript/mesh build
           pnpm --filter @holoscript/r3f-renderer build
