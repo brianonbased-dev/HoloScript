@@ -1,0 +1,99 @@
+// ============================================================================
+// Stress-Test: Procedural Fashion Holographic Mesh
+// A-009 - 2026-04-27
+//
+// Acceptance:
+//   @holographic_mesh owns the refractive garment material. The mannequin
+//   and runway author ordinary geometry; the fashion surfaces request
+//   density: 0.8 and refraction: true through the trait, with no embedded
+//   custom material program.
+// ============================================================================
+
+composition "Procedural Fashion Holographic Mesh" {
+  environment {
+    skybox: { type: "solid", color: "#030714" }
+    ambient_light: 0.22
+    shadows: true
+    fog: { enabled: true, density: 0.012, color: "#071327" }
+  }
+
+  light "RunwayKey" {
+    type: "spot"
+    position: [0, 5, 3]
+    target: [0, 1.4, 0]
+    intensity: 220
+    angle: 0.45
+    color: "#e8f7ff"
+  }
+
+  light "CyanRim" {
+    type: "point"
+    position: [-2.2, 2.6, -1.5]
+    intensity: 80
+    radius: 5
+    color: "#00d6ff"
+  }
+
+  object "Runway" {
+    geometry: "cube"
+    position: [0, -0.05, 0]
+    scale: [6, 0.1, 9]
+    material: { baseColor: "#10182a", roughness: 0.72, metallic: 0.1 }
+  }
+
+  object "Mannequin" {
+    geometry: "capsule"
+    position: [0, 1.1, 0]
+    scale: [0.48, 1.9, 0.32]
+    material: { baseColor: "#d8dce8", roughness: 0.38, metallic: 0.0 }
+  }
+
+  object "HolographicDressBodice" {
+    @holographic_mesh {
+      density: 0.8
+      refraction: true
+    }
+    geometry: "procedural_fashion_bodice"
+    position: [0, 1.35, 0]
+    scale: [0.62, 0.9, 0.38]
+  }
+
+  object "HolographicDressTrain" {
+    @holographic_mesh {
+      density: 0.8
+      refraction: true
+    }
+    geometry: "procedural_fashion_train"
+    position: [0, 0.65, -0.42]
+    scale: [1.15, 0.24, 1.55]
+  }
+
+  object "HolographicSleeveLeft" {
+    @holographic_mesh {
+      density: 0.8
+      refraction: true
+    }
+    geometry: "procedural_fashion_sleeve"
+    position: [-0.55, 1.55, 0]
+    rotation: [0, 0, -18]
+    scale: [0.18, 0.9, 0.18]
+  }
+
+  object "HolographicSleeveRight" {
+    @holographic_mesh {
+      density: 0.8
+      refraction: true
+    }
+    geometry: "procedural_fashion_sleeve"
+    position: [0.55, 1.55, 0]
+    rotation: [0, 0, 18]
+    scale: [0.18, 0.9, 0.18]
+  }
+
+  camera "Main" {
+    type: "perspective"
+    position: [0, 2.5, 5.2]
+    look_at: [0, 1.15, 0]
+    fov: 48
+  }
+}
