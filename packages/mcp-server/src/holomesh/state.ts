@@ -653,6 +653,8 @@ function _seedFounderKeysFromEnv(): void {
       agentName: 'Founder',
       scopes: ['*'],
       createdAt: new Date().toISOString(),
+      rotationCount: 0,
+      lastRotatedAt: null,
       isFounder: true,
     };
     keyRegistry.set(key, record);

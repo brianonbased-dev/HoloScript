@@ -128,6 +128,8 @@ function seedTestKeys(): void {
     agentName: 'IntegrationAgent',
     scopes: ['*'],
     createdAt: new Date().toISOString(),
+    rotationCount: 0,
+    lastRotatedAt: null,
     isFounder: false,
   };
   keyRegistry.set(TEST_API_KEY, primary);
@@ -139,6 +141,8 @@ function seedTestKeys(): void {
     agentName: 'OtherIntegrationAgent',
     scopes: ['*'],
     createdAt: new Date().toISOString(),
+    rotationCount: 0,
+    lastRotatedAt: null,
     isFounder: false,
   };
   keyRegistry.set(OTHER_API_KEY, other);

@@ -28,6 +28,8 @@ function seedKey(key: string, agentId: string, isFounder = false): void {
     agentName: isFounder ? 'Founder' : 'VaultAgent',
     scopes: ['*'],
     createdAt: new Date().toISOString(),
+    rotationCount: 0,
+    lastRotatedAt: null,
     isFounder,
   };
   keyRegistry.set(key, record);

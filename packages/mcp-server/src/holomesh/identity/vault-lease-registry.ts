@@ -486,6 +486,20 @@ export function revokeLeasesForTask(taskId: string, reason: RevokeReason, by: st
   return revoked;
 }
 
+/** Bulk-revoke all active leases for an agent. Used when an agent's API key
+ *  is rotated (security response) or when the agent is off-boarded.
+ *  Returns the list of revoked leases. */
+export function revokeLeasesForAgent(agentId: string, reason: RevokeReason, by: string): VaultLease[] {
+  const revoked: VaultLease[] = [];
+  for (const lease of leasesById.values()) {
+    if (lease.agentId === agentId && lease.status === 'active') {
+      const result = revokeLease({ leaseId: lease.leaseId, reason, by });
+      if ('leaseId' in result) revoked.push(result);
+    }
+  }
+  return revoked;
+}
+
 /** Scan the registry and flip expired leases to `expired` status. Idempotent.
  *  Intended to be called by a periodic sweeper (e.g. once per minute). Each
  *  expired lease emits one audit event so compliance can correlate "lease

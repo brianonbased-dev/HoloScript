@@ -674,6 +674,10 @@ export interface KeyRecord {
   createdAt: string;
   /** Previous key value (audit trail on rotation) */
   rotatedFrom?: string;
+  /** Number of times this agent's key has been rotated */
+  rotationCount: number;
+  /** ISO timestamp of the most recent rotation, or null if never rotated */
+  lastRotatedAt: string | null;
   /** Founder keys can provision agents, create teams, and access /admin routes */
   isFounder: boolean;
 }

@@ -58,6 +58,8 @@ function seedTestKey(): void {
     agentName: 'TestExportAgent',
     scopes: ['*'],
     createdAt: new Date().toISOString(),
+    rotationCount: 0,
+    lastRotatedAt: null,
     isFounder: false,
   };
   keyRegistry.set(TEST_API_KEY, record);

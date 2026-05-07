@@ -26,6 +26,7 @@ import {
 import { json, parseJsonBody } from '../utils';
 import { resolveRequestingAgent } from '../auth-utils';
 import { recordAdminOperation } from '../admin-operations-audit';
+import { revokeLeasesForAgent } from '../identity/vault-lease-registry';
 import type { KeyRecord, RegisteredAgent } from '../types';
 
 export async function handleAdminRoutes(
@@ -80,6 +81,8 @@ export async function handleAdminRoutes(
       agentName: name,
       scopes,
       createdAt: new Date().toISOString(),
+      rotationCount: 0,
+      lastRotatedAt: null,
       isFounder,
     };
     keyRegistry.set(apiKey, record);
@@ -150,11 +153,14 @@ export async function handleAdminRoutes(
     }
 
     const newKey = `hs_sk_${crypto.randomUUID().replace(/-/g, '')}`;
+    const now = new Date().toISOString();
     const newRecord: KeyRecord = {
       ...existingRecord,
       key: newKey,
       rotatedFrom: existingRecord.key,
-      createdAt: new Date().toISOString(),
+      createdAt: now,
+      rotationCount: (existingRecord.rotationCount ?? 0) + 1,
+      lastRotatedAt: now,
     };
 
     // Invalidate old key in memory, insert new key
@@ -175,6 +181,11 @@ export async function handleAdminRoutes(
     persistKeyRegistry();
     persistAgentStore();
 
+    // Revoke any active vault leases held by the rotated agent.
+    // If an API key is rotated (e.g., compromise response), the agent should
+    // lose access to leased credentials until it re-authenticates with the new key.
+    const revokedLeases = revokeLeasesForAgent(existingRecord.agentId, 'rotation', caller.id);
+
     recordAdminOperation({
       actor: {
         agentId: caller.id,
@@ -187,11 +198,15 @@ export async function handleAdminRoutes(
         agent_id: existingRecord.agentId,
         wallet_address: existingRecord.walletAddress,
         key_prefix: `${existingRecord.key.slice(0, 12)}...`,
+        rotation_count: existingRecord.rotationCount ?? 0,
       },
       after: {
         agent_id: newRecord.agentId,
         wallet_address: newRecord.walletAddress,
         key_prefix: `${newKey.slice(0, 12)}...`,
+        rotation_count: newRecord.rotationCount,
+        last_rotated_at: newRecord.lastRotatedAt,
+        revoked_leases: revokedLeases.length,
       },
     });
 
@@ -200,6 +215,9 @@ export async function handleAdminRoutes(
       new_key: newKey,
       wallet_address: newRecord.walletAddress,
       agent_id: newRecord.agentId,
+      rotation_count: newRecord.rotationCount,
+      last_rotated_at: newRecord.lastRotatedAt,
+      revoked_leases: revokedLeases.length,
       // Never expose the full old key — just a hint for reference
       rotated_from_prefix: `${existingRecord.key.slice(0, 12)}...`,
     });
