@@ -403,8 +403,12 @@ export async function handleAdminRoutes(
       return true;
     }
     const replicas =
-      typeof replicasRaw === 'number' ? Math.floor(replicasRaw) : parseInt(replicasRaw as string, 10);
-    if (!Number.isFinite(replicas) || replicas < 0 || replicas > 1000) {
+      typeof replicasRaw === 'number'
+        ? replicasRaw
+        : typeof replicasRaw === 'string' && replicasRaw.trim() !== ''
+          ? Number(replicasRaw)
+          : NaN;
+    if (!Number.isInteger(replicas) || replicas < 0 || replicas > 1000) {
       json(res, 400, { error: 'replicas must be an integer between 0 and 1000' });
       return true;
     }
