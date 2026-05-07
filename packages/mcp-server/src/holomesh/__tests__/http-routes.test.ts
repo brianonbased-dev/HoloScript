@@ -3162,6 +3162,108 @@ describe('HoloMesh HTTP Routes', () => {
       expect(logRes._body.entries[0].commitHash).toBe('abc1234');
     });
 
+    it('GET /api/holomesh/team/:id/trace merges board, done, artifacts, and presence', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `trace-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+      const team = teamStore.get(tid)!;
+      const liveTimestamp = '2026-05-06T10:00:00.000Z';
+      const doneTimestamp = '2026-05-06T11:00:00.000Z';
+      const heartbeatTimestamp = '2026-05-06T12:00:00.000Z';
+
+      team.taskBoard = [
+        {
+          id: 'task-trace-live',
+          title: 'trace live task',
+          description: 'trace',
+          status: 'claimed',
+          claimedBy: 'agent-trace',
+          claimedByName: 'trace-agent',
+          claimedByTag: 'codex-hardware',
+          createdAt: liveTimestamp,
+          priority: 1,
+          artifacts: [
+            {
+              id: 'artifact-live',
+              type: 'test-output',
+              path: 'reports/live.json',
+              hash: 'sha256:live',
+              hashAlgorithm: 'sha256',
+              producer: 'trace-agent',
+              provenance: { commitHash: 'abc1111' },
+            },
+          ],
+        } as any,
+      ];
+      team.doneLog = [
+        {
+          taskId: 'task-trace-done',
+          title: 'trace done task',
+          completedBy: 'agent-trace',
+          completedByTag: 'codex-hardware',
+          commitHash: 'abc2222',
+          timestamp: doneTimestamp,
+          summary: 'done trace',
+          artifacts: [
+            {
+              id: 'artifact-done',
+              type: 'code-patch',
+              path: 'patches/done.diff',
+              hash: 'sha256:done',
+              hashAlgorithm: 'sha256',
+              producer: 'trace-agent',
+            },
+          ],
+        } as any,
+      ];
+      teamPresenceStore.set(
+        tid,
+        new Map([
+          [
+            'agent-trace',
+            {
+              agentId: 'agent-trace',
+              agentName: 'trace-agent',
+              ideType: 'hardware',
+              status: 'active',
+              lastHeartbeat: heartbeatTimestamp,
+              surfaceTag: 'codex-hardware',
+            } as any,
+          ],
+        ])
+      );
+
+      const req = mockReq('GET', `/api/holomesh/team/${tid}/trace`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/trace`);
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      const entries = res._body.entries;
+      expect(entries.some((entry: any) => entry.kind === 'task_created')).toBe(true);
+      expect(entries.some((entry: any) => entry.kind === 'task_claimed')).toBe(true);
+      expect(entries.some((entry: any) => entry.kind === 'task_done')).toBe(true);
+
+      const liveArtifact = entries.find((entry: any) => entry.id === 'artifact_artifact-live_task-trace-live');
+      expect(liveArtifact.timestamp).toBe(liveTimestamp);
+      expect(liveArtifact.timestamp).not.toBe('task-trace-live');
+
+      const doneArtifact = entries.find((entry: any) => entry.id === 'artifact_artifact-done_task-trace-done');
+      expect(doneArtifact.timestamp).toBe(doneTimestamp);
+
+      const presence = entries.find((entry: any) => entry.id === 'presence_agent-trace');
+      expect(presence.agentId).toBe('agent-trace');
+      expect(presence.timestamp).toBe(heartbeatTimestamp);
+    });
+
     it('PATCH /board/:taskId honors claimedByTag and completedByTag for shared-key surface disambiguation', async () => {
       // Identity-on-claim fix: when multiple surfaces (cursor-claude,
       // claudecode-claude, copilot-vscode) share one HoloMesh API key
