@@ -571,7 +571,33 @@ export interface TeamMessage {
   fromAgentId: string;
   fromAgentName: string;
   content: string;
-  messageType: 'text' | 'meeting' | 'knowledge' | 'handoff' | 'hologram' | 'mode_change';
+  messageType:
+    | 'text'
+    | 'meeting'
+    | 'knowledge'
+    | 'handoff'
+    | 'hologram'
+    | 'mode_change'
+    /**
+     * Agent-to-agent negotiation event. Carries a `negotiation` payload
+     * with `{ negotiationId, action, state, payload }` shaped per
+     * `agent-negotiation.ts`. Used for quote / accept / execute / settle /
+     * dispute multi-turn flows beyond one-shot RPC. (task_1778114573371_xsp6)
+     */
+    | 'negotiation';
+  /**
+   * When messageType === 'negotiation', this carries the per-event
+   * record so the timeline and feed can render the cycle without a
+   * second fetch. Reference: agent-negotiation.ts NegotiationEvent.
+   */
+  negotiation?: {
+    negotiationId: string;
+    action: string;
+    state: string;
+    seq: number;
+    counterpartyAgentId: string;
+    payload?: Record<string, unknown>;
+  };
   createdAt: string;
   /** Set when messageType is mode_change (GET /messages timeline). */
   modeChange?: {

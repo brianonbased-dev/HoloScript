@@ -24,6 +24,14 @@ import {
 import { requireAuth, resolveRequestingAgent } from '../auth-utils';
 import { broadcastToRoom } from '../team-room';
 import { extractAndVerifySigning } from '../identity/signing-middleware';
+import {
+  advanceNegotiation,
+  createNegotiation,
+  getNegotiation,
+  listNegotiationsForTeam,
+  settleNegotiation,
+  type NegotiationAction,
+} from '../agent-negotiation';
 import { getClient } from '../orchestrator-client';
 import { appendTeamKnowledgeMirror, mergeTeamKnowledgeWithOrchestrator } from '../entry-lookup';
 import { checkRateLimit } from '../social';
@@ -955,23 +963,196 @@ export async function handleTeamRoutes(
       return true;
     }
     const body: any = messageBody;
-    if (!body.content) { json(res, 400, { error: 'content is required' }); return true; }
-    const message = {
+    const messageType = (body.messageType as string) || 'text';
+
+    // ── Negotiation dispatch (task_1778114573371_xsp6) ──
+    // When messageType === 'negotiation', the body must carry a
+    // `negotiation` payload with { action, negotiationId?, counterpartyAgentId?, payload? }.
+    // The signing-middleware already verified the envelope, so the
+    // recovered signer address is recorded on the negotiation event.
+    let negotiationOut: any = undefined;
+    if (messageType === 'negotiation') {
+      const negPayload = body.negotiation;
+      if (!negPayload || typeof negPayload !== 'object') {
+        json(res, 400, { error: 'negotiation messageType requires a negotiation payload' });
+        return true;
+      }
+      const action = negPayload.action as NegotiationAction;
+      if (typeof action !== 'string') {
+        json(res, 400, { error: 'negotiation.action is required' });
+        return true;
+      }
+      const signerAddress = messageSigningCtx.signer ?? undefined;
+      // request_quote opens a new negotiation; everything else advances one.
+      if (action === 'request_quote') {
+        const counterparty = negPayload.counterpartyAgentId as string | undefined;
+        if (!counterparty) {
+          json(res, 400, { error: 'request_quote requires counterpartyAgentId' });
+          return true;
+        }
+        if (!getTeamMember(team, counterparty)) {
+          json(res, 400, { error: 'counterpartyAgentId is not a team member' });
+          return true;
+        }
+        const counterMember = getTeamMember(team, counterparty)!;
+        const request = (negPayload.payload as any)?.request;
+        if (!request || typeof request !== 'object' || !request.toolName || !request.capabilityQuery) {
+          json(res, 400, { error: 'request_quote payload.request must include toolName and capabilityQuery' });
+          return true;
+        }
+        const negotiation = createNegotiation({
+          teamId,
+          initiatorAgentId: caller.id,
+          initiatorAgentName: caller.name,
+          responderAgentId: counterparty,
+          responderAgentName: counterMember.agentName ?? counterparty,
+          request,
+          id: negPayload.negotiationId as string | undefined,
+          signerAddress,
+        });
+        negotiationOut = {
+          negotiationId: negotiation.id,
+          action: 'request_quote',
+          state: negotiation.state,
+          seq: 0,
+          counterpartyAgentId: counterparty,
+          payload: { request },
+        };
+      } else if (action === 'settle') {
+        // Co-signed receipt path — both legs in one body.
+        const negotiationId = negPayload.negotiationId as string;
+        const partial = (negPayload.payload as any)?.partialReceipt ?? {};
+        const result = settleNegotiation({
+          negotiationId,
+          authorAgentId: caller.id,
+          signerAddress,
+          initiatorSignature: partial.initiatorSignature,
+          initiatorAddress: partial.initiatorAddress,
+          responderSignature: partial.responderSignature,
+          responderAddress: partial.responderAddress,
+          resultHash: partial.resultHash,
+          settlementTxHash: partial.settlementTxHash,
+        });
+        if (!result.ok) {
+          json(res, result.reason === 'not-found' ? 404 : 400, {
+            error: result.error,
+            reason: result.reason,
+          });
+          return true;
+        }
+        const n = result.negotiation!;
+        const ev = result.event!;
+        const counterparty =
+          caller.id === n.initiatorAgentId ? n.responderAgentId : n.initiatorAgentId;
+        negotiationOut = {
+          negotiationId: n.id,
+          action: ev.action,
+          state: n.state,
+          seq: ev.seq,
+          counterpartyAgentId: counterparty,
+          payload: { receipt: n.receipt },
+        };
+      } else {
+        const negotiationId = negPayload.negotiationId as string;
+        if (!negotiationId) {
+          json(res, 400, { error: `${action} requires negotiationId` });
+          return true;
+        }
+        const result = advanceNegotiation({
+          negotiationId,
+          action,
+          authorAgentId: caller.id,
+          signerAddress,
+          payload: negPayload.payload as Record<string, unknown> | undefined,
+        });
+        if (!result.ok) {
+          json(res, result.reason === 'not-found' ? 404 : 400, {
+            error: result.error,
+            reason: result.reason,
+          });
+          return true;
+        }
+        const n = result.negotiation!;
+        const ev = result.event!;
+        const counterparty =
+          caller.id === n.initiatorAgentId ? n.responderAgentId : n.initiatorAgentId;
+        negotiationOut = {
+          negotiationId: n.id,
+          action: ev.action,
+          state: n.state,
+          seq: ev.seq,
+          counterpartyAgentId: counterparty,
+          payload: ev.payload,
+        };
+      }
+    } else if (!body.content) {
+      json(res, 400, { error: 'content is required' });
+      return true;
+    }
+
+    const message: import('../types').TeamMessage = {
       id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       teamId,
       fromAgentId: caller.id,
       fromAgentName: caller.name,
-      content: body.content as string,
-      messageType: (body.messageType as string) || 'text',
+      content: (body.content as string) ??
+        (negotiationOut
+          ? `[negotiation] ${negotiationOut.action} -> ${negotiationOut.state}`
+          : ''),
+      messageType: messageType as import('../types').TeamMessage['messageType'],
       createdAt: new Date().toISOString(),
+      ...(negotiationOut ? { negotiation: negotiationOut } : {}),
     };
     const messages = teamMessageStore.get(teamId) || [];
-    messages.push(message as import('../types').TeamMessage);
+    messages.push(message);
     teamMessageStore.set(teamId, messages.slice(-500));
     persistTeamStore();
     broadcastToRoom(teamId, { type: 'team:message', agent: caller.name, data: message });
     json(res, 201, { success: true, message });
     return true;
+  }
+
+  // GET /api/holomesh/team/:id/negotiations — list all negotiations for the team
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/negotiations$/) && method === 'GET') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/negotiations', '');
+    const team = teamStore.get(teamId);
+    if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
+    if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
+    const negotiations = listNegotiationsForTeam(teamId);
+    json(res, 200, { success: true, negotiations, count: negotiations.length });
+    return true;
+  }
+
+  // GET /api/holomesh/team/:id/negotiations/:negotiationId — full event log
+  {
+    const negMatch = pathname.match(/^\/api\/holomesh\/team\/([^/]+)\/negotiations\/([^/]+)$/);
+    if (negMatch && method === 'GET') {
+      const caller = requireAuth(req, res);
+      if (!caller) return true;
+      const teamId = negMatch[1];
+      const negotiationId = negMatch[2];
+      const team = teamStore.get(teamId);
+      if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
+      if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
+      const negotiation = getNegotiation(negotiationId);
+      if (!negotiation || negotiation.teamId !== teamId) {
+        json(res, 404, { error: 'Negotiation not found' });
+        return true;
+      }
+      // Only parties (or admins) may inspect — keeps quotes private.
+      if (
+        caller.id !== negotiation.initiatorAgentId &&
+        caller.id !== negotiation.responderAgentId &&
+        !hasTeamPermission(team, caller.id, 'config:write')
+      ) {
+        json(res, 403, { error: 'Only negotiation parties may inspect this negotiation' });
+        return true;
+      }
+      json(res, 200, { success: true, negotiation });
+      return true;
+    }
   }
 
   // GET /api/holomesh/team/:id/messages
