@@ -8,7 +8,9 @@
     "build:client": "node build-client.mjs",
     "build:server": "tsup server.ts --out-dir dist/server --external @holoscript/mcp-server --external @holoscript/core",
     "build": "npm run build:client && npm run build:server",
-    "start": "node dist/server/server.js"
+    "start": "node dist/server/server.js",
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "dependencies": {
     "@holoscript/core": "workspace:*",
@@ -38,11 +40,13 @@
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.170.0",
     "@types/ws": "^8.18.1",
+    "@vitest/coverage-v8": "4.1.0",
     "autoprefixer": "^10.4.17",
     "postcss": "^8.4.33",
     "tailwindcss": "^3.4.1",
     "tsup": "^8.0.1",
     "typescript": "^5.3.3",
-    "vite-plugin-node-polyfills": "^0.25.0"
+    "vite-plugin-node-polyfills": "^0.25.0",
+    "vitest": "4.1.0"
   }
 }

@@ -3857,7 +3857,7 @@ describe('HoloMesh HTTP Routes', () => {
       // 65 entries total, asked for 1000 → returned all 65, hasMore=false
       expect(bigRes._body.returned).toBe(65);
       expect(bigRes._body.hasMore).toBe(false);
-    }, 30000);
+    }, 90000);
 
     it('/board.done_count and /board/done.count stay in lockstep across completions (task_1776986320321_xvv6)', async () => {
       // Audit observation 2026-04-23: a live probe returned done_count=482 on

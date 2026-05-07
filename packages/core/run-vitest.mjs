@@ -11,13 +11,20 @@
 import { spawnSync } from 'child_process';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const vitest = resolve(__dir, 'node_modules', 'vitest', 'vitest.mjs');
 // Any extra args forwarded by the caller (e.g. --coverage)
-const extraArgs = process.argv.slice(2);
+const extraArgs = process.argv.slice(2).filter((arg) => arg !== '--');
+
+function ensureCoverageTmp() {
+  if (!extraArgs.includes('--coverage')) return;
+  fs.mkdirSync(resolve(__dir, 'coverage', '.tmp'), { recursive: true });
+}
 
 function runVitest(args) {
+  ensureCoverageTmp();
   return spawnSync(process.execPath, ['--max-old-space-size=16384', vitest, 'run', ...args], {
     stdio: 'inherit',
     env: sharedEnv,
@@ -42,8 +49,14 @@ let overallExitCode = 0;
 
 // If caller already set sharding, or passed explicit test file globs/paths,
 // do a single run to avoid Vitest shard-count errors on small test sets.
-if (hasExplicitShard(extraArgs) || hasPositionalTestTargets(extraArgs)) {
-  const proc = runVitest(extraArgs);
+// W.150: Windows race in @vitest/coverage-v8@4.1.0 .tmp-* dirs - disable
+// sharding for coverage runs; pre-create .tmp so the v8 provider doesn't race.
+const isCoverage = extraArgs.includes('--coverage');
+if (hasExplicitShard(extraArgs) || hasPositionalTestTargets(extraArgs) || isCoverage) {
+  const coverageArgs = isCoverage
+    ? ['--pool=forks', '--maxWorkers=1', '--fileParallelism=false']
+    : [];
+  const proc = runVitest([...coverageArgs, ...extraArgs]);
   overallExitCode = proc.status ?? 1;
 } else {
   for (const shard of ['1/2', '2/2']) {

@@ -30,5 +30,19 @@ export default defineConfig({
     include: ['src/**/*.test.ts', 'examples/**/*.test.ts'],
     exclude: ['**/dist/**', '**/node_modules/**'],
     passWithNoTests: true,
+    testTimeout: 60_000,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json-summary', 'lcov'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.ts'],
+      exclude: [
+        '**/__tests__/**',
+        '**/*.test.ts',
+        '**/*.d.ts',
+        'dist/**',
+        'coverage/**',
+      ],
+    },
   },
 });

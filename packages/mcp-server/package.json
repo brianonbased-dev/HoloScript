@@ -34,6 +34,7 @@
     "scout:logs": "npx pm2 logs holoscout --lines 100",
     "smoke:bitnet": "tsx scripts/bitnet-smoke.ts",
     "test": "vitest run --passWithNoTests",
+    "test:coverage": "node -e \"require('fs').mkdirSync('coverage/.tmp',{recursive:true})\" && vitest run --coverage --passWithNoTests",
     "test:watch": "vitest"
   },
   "dependencies": {
@@ -65,10 +66,11 @@
     "@playwright/test": "^1.58.2",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.11.6",
+    "@vitest/coverage-v8": "4.1.0",
     "tsup": "^8.0.1",
     "tsx": "^4.19.4",
     "typescript": "~5.9.3",
-    "vitest": "^4.1.0"
+    "vitest": "4.1.0"
   },
   "peerDependencies": {
     "@holoscript/core": "workspace:^"

@@ -14,6 +14,8 @@
     "dev": "pnpm -r --parallel dev",
     "test": "pnpm -r --filter=!holoscript test",
     "test:coverage": "pnpm -r --filter=!holoscript test:coverage",
+    "coverage:summary": "node scripts/scan-coverage-summaries.mjs",
+    "coverage:summary:write": "node scripts/scan-coverage-summaries.mjs --write-central",
     "test:core": "pnpm --filter @holoscript/core test",
     "test:holomap": "pnpm --filter @holoscript/holomap test && pnpm --filter @holoscript/core exec vitest run src/reconstruction/__tests__",
     "holomap:status": "node scripts/check-ingest-path-status.mjs",

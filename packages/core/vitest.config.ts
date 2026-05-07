@@ -1,6 +1,10 @@
 import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
 
+const IS_COVERAGE_RUN =
+  process.argv.includes('--coverage') ||
+  process.env.HOLOSCRIPT_CORE_COVERAGE === '1';
+
 export default defineConfig({
   resolve: {
     alias: [
@@ -36,7 +40,16 @@ export default defineConfig({
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
-      '**/hsplus-files.test.ts', // Causes vitest OOM - replaced with hsplus-files-optimized.test.ts
+      '**/hsplus-files.test.ts',
+      ...(IS_COVERAGE_RUN
+        ? [
+            'src/__tests__/StressTests.comprehensive.test.ts',
+            'src/__tests__/RuntimeOptimization.test.ts',
+            'src/__tests__/trait-commutativity.test.ts',
+            'src/__tests__/mockadapter-static-properties.test.ts',
+            'src/reconstruction/__tests__/HoloMapPerformanceBenchmark.test.ts',
+          ]
+        : []),
     ],
     // Give fork processes enough memory for the large test suite (44K+ tests).
     // poolOptions was removed in Vitest 4; execArgv is now a top-level option.
