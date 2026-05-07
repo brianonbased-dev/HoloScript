@@ -31,6 +31,21 @@ export { SpatialFeedRenderer } from './components/SpatialFeedRenderer';
 // Hologram Components (2D-to-3D pipeline)
 export { HologramImage } from './components/HologramImage';
 export type { HologramImageProps } from './components/HologramImage';
+
+// Hologram MCP Content (task_1778114362909_zp7u - content_type protocol)
+export {
+  HologramMcpContentRenderer,
+} from './components/HologramMcpContentRenderer';
+export type { HologramMcpContentRendererProps } from './components/HologramMcpContentRenderer';
+export {
+  useHologramMcpContent,
+  resolveHologramMcpContent,
+} from './hooks/useHologramMcpContent';
+export type {
+  ResolvedHologramContent,
+  UseHologramMcpContentResult,
+  HologramRouteKind,
+} from './hooks/useHologramMcpContent';
 export { HologramGif } from './components/HologramGif';
 export type { HologramGifProps } from './components/HologramGif';
 export { HologramVideo } from './components/HologramVideo';

@@ -315,6 +315,37 @@ export declare function partitionStudioChildren(children: R3FNode[] | undefined)
   batchableDraftMeshes: R3FNode[];
   rest: R3FNode[];
 };
+
+// Hologram MCP Content (task_1778114362909_zp7u)
+
+import type { HologramMcpResponse } from '@holoscript/core';
+
+export type HologramRouteKind = 'parallax' | 'quilt' | 'mvhevc' | 'holo-code';
+
+export interface ResolvedHologramContent {
+  response: HologramMcpResponse;
+  route: HologramRouteKind;
+  assetUrl?: string;
+  holoCode?: string;
+  contentKey: string;
+}
+
+export interface UseHologramMcpContentResult {
+  resolved: ResolvedHologramContent | null;
+  isHologram: boolean;
+  error?: string;
+}
+
+export declare function useHologramMcpContent(envelope: unknown): UseHologramMcpContentResult;
+export declare function resolveHologramMcpContent(response: HologramMcpResponse): ResolvedHologramContent;
+
+export interface HologramMcpContentRendererProps {
+  envelope: unknown;
+  renderResolved?: (resolved: ResolvedHologramContent) => any;
+  fallback?: any;
+  className?: string;
+}
+export declare function HologramMcpContentRenderer(props: HologramMcpContentRendererProps): any;
 `;
 
 writeFileSync(join(distDir, 'index.d.ts'), dts, 'utf8');

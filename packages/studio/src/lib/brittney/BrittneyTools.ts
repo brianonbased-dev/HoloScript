@@ -308,6 +308,16 @@ export interface ToolResult {
   tool: string;
   success: boolean;
   message: string;
+  /**
+   * Raw MCP response envelope passed back to the chat panel. Optional -
+   * present when the tool was an MCP call (`MCPToolExecutor`) or any tool
+   * whose response payload IS a hologram (task_1778114362909_zp7u).
+   *
+   * Studio chat detects hologram content via
+   * `detectHologramContent(envelope)` from @holoscript/core and routes to
+   * `<HologramMcpContentRenderer>` from @holoscript/r3f-renderer.
+   */
+  envelope?: unknown;
 }
 
 // ─── Tool executor ────────────────────────────────────────────────────────────

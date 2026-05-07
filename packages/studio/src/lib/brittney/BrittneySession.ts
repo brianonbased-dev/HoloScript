@@ -15,13 +15,26 @@ export interface AssistantMessage {
 }
 
 export interface AssistantStreamEvent {
-  type: 'text' | 'tool_call' | 'error' | 'done';
+  type: 'text' | 'tool_call' | 'tool_result' | 'error' | 'done';
   payload: unknown;
 }
 
 export interface ToolCallPayload {
   name: string;
   arguments: Record<string, unknown>;
+}
+
+/**
+ * Payload for `tool_result` events emitted by `app/api/brittney/route.ts`
+ * after an MCP / embodied / studio tool resolves. `data` carries the raw
+ * MCP envelope so hologram-typed responses (task_1778114362909_zp7u) can
+ * be detected at the chat surface.
+ */
+export interface ToolResultPayload {
+  name: string;
+  success: boolean;
+  data: unknown;
+  error?: string;
 }
 
 // ─── Context serializer ───────────────────────────────────────────────────────

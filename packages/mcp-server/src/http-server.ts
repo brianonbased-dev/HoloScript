@@ -86,6 +86,7 @@ import { WebRTCSignalingServer } from './holomesh/webrtc-signaling';
 import { formatBroadcastContextMarkdown } from './holomesh/moltbook-broadcast-context';
 import { buildMoltbookCrosspostPayload, createMoltbookPost } from './moltbook/moltbook-post.js';
 import { resolveStoreRoot } from './hologram-renderer';
+import { isHologramMcpResponse, wrapHologramMcpEnvelope } from '@holoscript/core';
 import { promises as fsPromises } from 'fs';
 import { join as pathJoin, extname as pathExtname, basename as pathBasename } from 'path';
 
@@ -604,6 +605,13 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
     };
 
     const { result, isError } = await securedToolExecution(name, args || {}, auth);
+
+    // Hologram MCP envelope detection (task_1778114362909_zp7u): if the tool
+    // returned a HologramMcpResponse, surface the typed channel so REST/MCP
+    // clients can dispatch on content_type without re-parsing JSON.
+    if (!isError && isHologramMcpResponse(result)) {
+      return wrapHologramMcpEnvelope(result);
+    }
 
     return {
       content: [

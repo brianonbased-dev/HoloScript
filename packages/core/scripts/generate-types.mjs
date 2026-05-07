@@ -3567,6 +3567,93 @@ export interface PlacementChoice {
     | 'origin';
 }
 export declare function pickPlacement(ctx: SpatialMCPContext): PlacementChoice;
+
+// Hologram MCP Response - content_type schema for tools whose response
+// payload IS a hologram (.holo / quilt / MV-HEVC), not text.
+// (task_1778114362909_zp7u)
+
+export declare const HOLOGRAM_MCP_VERSION: '0.1';
+export type HologramMcpVersion = typeof HOLOGRAM_MCP_VERSION;
+
+export declare const HOLOGRAM_CONTENT_TYPES: {
+  readonly holo: 'application/holoscript+holo';
+  readonly quilt: 'application/holoscript+quilt';
+  readonly mvhevc: 'application/holoscript+mvhevc';
+  readonly parallax: 'application/holoscript+parallax';
+};
+
+export type HologramContentType =
+  | 'application/holoscript+holo'
+  | 'application/holoscript+quilt'
+  | 'application/holoscript+mvhevc'
+  | 'application/holoscript+parallax';
+
+export interface HologramBundleHashRef {
+  kind: 'hash';
+  hash: string;
+  studioBase?: string;
+}
+export interface HologramBundleUrlRef {
+  kind: 'url';
+  url: string;
+  mimeType?: string;
+}
+export interface HologramBundleHoloCodeRef {
+  kind: 'holo-code';
+  holoCode: string;
+}
+export type HologramBundleRef =
+  | HologramBundleHashRef
+  | HologramBundleUrlRef
+  | HologramBundleHoloCodeRef;
+
+export interface HologramRenderHints {
+  preferredViewer?: 'parallax' | 'quilt' | 'mvhevc' | 'auto';
+  size?: readonly [number, number];
+  background?: string;
+  animate?: boolean;
+}
+
+export interface HologramMcpMeta {
+  producedBy: string;
+  createdAt: string;
+  label?: string;
+  caption?: string;
+  [extra: string]: unknown;
+}
+
+export interface HologramMcpResponse {
+  content_type: HologramContentType;
+  payload: HologramBundleRef;
+  hints?: HologramRenderHints;
+  meta: HologramMcpMeta;
+  text: string;
+  version: HologramMcpVersion;
+}
+
+export interface HologramMcpEnvelope {
+  content: Array<{ type: 'text'; text: string }>;
+  hologramContent: HologramMcpResponse;
+  isError?: false;
+}
+
+export interface HologramMcpValidationError { path: string; message: string }
+export interface HologramMcpValidationResult { ok: boolean; errors: HologramMcpValidationError[] }
+export declare function validateHologramMcpResponse(value: unknown): HologramMcpValidationResult;
+export declare function isHologramMcpResponse(value: unknown): value is HologramMcpResponse;
+export declare function detectHologramContent(envelope: unknown): HologramMcpResponse | null;
+export declare function buildHologramMcpResponse(input: {
+  contentType: HologramContentType;
+  payload: HologramBundleRef;
+  text: string;
+  producedBy: string;
+  createdAt?: string;
+  label?: string;
+  caption?: string;
+  hints?: HologramRenderHints;
+  extraMeta?: Record<string, unknown>;
+}): HologramMcpResponse;
+export declare function wrapHologramMcpEnvelope(response: HologramMcpResponse): HologramMcpEnvelope;
 `;
 
 const parserDTS = `export class HoloScriptPlusParser {

@@ -54,7 +54,15 @@ import { alphafoldTools, handleFetchStructure } from './alphafold-tools';
 import { hologramToolDefinitions, handleHologramTool } from './hologram-mcp-tools';
 import { holotwinToolDefinitions, handleHoloTwinTool } from './holotwin-mcp-tools';
 import { spatialMcpToolDefinitions } from './spatial-mcp-tools';
+import {
+  hologramContentToolDefinitions,
+  handleHologramContentTool,
+} from './hologram-content-tools';
 import { handleBatchToolCall } from './tooling-discovery-tools';
+import {
+  isHologramMcpResponse,
+  wrapHologramMcpEnvelope,
+} from '@holoscript/core';
 
 declare const __SERVICE_VERSION__: string;
 
@@ -80,6 +88,7 @@ const ALL_AVAILABLE_TOOLS: Tool[] = [
   ...hologramToolDefinitions,
   ...holotwinToolDefinitions,
   ...spatialMcpToolDefinitions,
+  ...hologramContentToolDefinitions,
   {
     name: 'holoscript_discover_tools',
     description: 'Search for available MCP tools by intent or keyword. Returns tool names, descriptions, and schemas. Use this when you are unsure which tool to use.',
@@ -254,6 +263,9 @@ registerCategory(traitTools, (name, args) => handleTraitTool(name, args));
 registerCategory(alphafoldTools, (name, args) => handleFetchStructure(args));
 registerCategory(hologramToolDefinitions, (name, args) => handleHologramTool(name, args));
 registerCategory(holotwinToolDefinitions, (name, args) => handleHoloTwinTool(name, args));
+registerCategory(hologramContentToolDefinitions, (name, args) =>
+  handleHologramContentTool(name, args),
+);
 
 // 2. Core fallback (anything else exported in `tools.ts` array)
 for (const t of tools) {
@@ -283,10 +295,19 @@ export async function _handleSingleToolLogic(name: string, args: Record<string, 
     }
 
     const result = await handler(name, args || {});
-    
+
     // Tools that returned null failed to match inside their specialized handler (should be rare with Map)
     if (result === null) {
       throw new Error(`Handler for '${name}' returned null (tool not processed).`);
+    }
+
+    // Hologram MCP envelope detection (task_1778114362909_zp7u). Tools that
+    // return a `HologramMcpResponse` get wrapped in the typed dispatch
+    // envelope so hologram-aware clients can detect content_type without
+    // re-parsing JSON. Backwards-compatible: chat-only clients still see the
+    // text payload at content[0].text.
+    if (isHologramMcpResponse(result)) {
+      return wrapHologramMcpEnvelope(result);
     }
 
     return {

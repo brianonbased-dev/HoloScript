@@ -14,7 +14,14 @@ import {
   VolumeX,
 } from 'lucide-react';
 import { streamAssistant, buildRichContext, executeTool, SimulationToolExecutor } from '@/lib/brittney';
-import type { AssistantMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
+import type {
+  AssistantMessage,
+  ToolCallPayload,
+  ToolResult,
+  ToolResultPayload,
+} from '@/lib/brittney';
+import { HologramMcpContentRenderer } from '@holoscript/r3f-renderer';
+import { detectHologramContent } from '@holoscript/core';
 import { useEditorStore, useSceneGraphStore, useSceneStore } from '@/lib/stores';
 import { useHistoryStore, setNextHistoryLabel } from '@/lib/historyStore';
 import { StudioEvents } from '@/lib/analytics';
@@ -236,7 +243,7 @@ export function BrittneyChatPanel() {
         } else if (event.type === 'tool_call') {
           const tc = event.payload as ToolCallPayload;
           let result: ToolResult;
-          
+
           if (executorRef.current?.isSimulationTool(tc.name)) {
             const simRes = await executorRef.current.execute(tc.name, tc.arguments as Record<string, unknown>);
             result = {
@@ -247,8 +254,31 @@ export function BrittneyChatPanel() {
           } else {
             result = executeTool(tc.name, tc.arguments, storeActions);
           }
-          
+
           StudioEvents.brittneyToolCalled(tc.name, result.success);
+          toolResults.push(result);
+          setChatMessages((m) =>
+            m.map((msg) =>
+              msg.id === assistantMsgId ? { ...msg, toolResults: [...toolResults] } : msg
+            )
+          );
+        } else if (event.type === 'tool_result') {
+          // Server-side MCP/embodied/studio tool resolved. The `data` field
+          // carries the raw MCP envelope so hologram-typed responses
+          // (task_1778114362909_zp7u) can be detected at this surface and
+          // rendered via /hologram instead of as text.
+          const trp = event.payload as ToolResultPayload;
+          const isHologram = detectHologramContent(trp.data) !== null;
+          const result: ToolResult = {
+            tool: trp.name,
+            success: trp.success,
+            message: trp.error
+              ? trp.error
+              : isHologram
+                ? `Hologram returned by ${trp.name}`
+                : `${trp.name} ok`,
+            envelope: trp.data,
+          };
           toolResults.push(result);
           setChatMessages((m) =>
             m.map((msg) =>
@@ -405,7 +435,14 @@ export function BrittneyChatPanel() {
             {msg.toolResults && msg.toolResults.length > 0 && (
               <div className="mt-1.5 w-full max-w-[88%] space-y-1">
                 {msg.toolResults.map((r, i) => (
-                  <ToolBadge key={i} result={r} />
+                  <div key={i} className="space-y-1">
+                    <ToolBadge result={r} />
+                    {/* Hologram MCP content_type detection - task_1778114362909_zp7u.
+                        Renders nothing if the envelope isn't a hologram response. */}
+                    {r.envelope !== undefined && (
+                      <HologramMcpContentRenderer envelope={r.envelope} />
+                    )}
+                  </div>
                 ))}
               </div>
             )}
