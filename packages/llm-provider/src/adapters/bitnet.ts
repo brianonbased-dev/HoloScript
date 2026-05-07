@@ -26,7 +26,12 @@
  */
 
 import { BaseLLMAdapter } from '../base-adapter';
-import type { LLMProviderConfig, LLMCompletionRequest, LLMCompletionResponse } from '../types';
+import type {
+  Capabilities,
+  LLMProviderConfig,
+  LLMCompletionRequest,
+  LLMCompletionResponse,
+} from '../types';
 import { LLMProviderError, messageContentAsString } from '../types';
 
 type BitNetAdapterConfig = Omit<LLMProviderConfig, 'apiKey'> & {
@@ -79,6 +84,25 @@ export class BitNetAdapter extends BaseLLMAdapter {
   readonly name = 'bitnet' as const;
   readonly models = BITNET_MODELS;
   readonly defaultHoloScriptModel: string;
+
+  /**
+   * Capability manifest — BitNet 1-bit quantized models on local CPU
+   * (~500MB model, no GPU required). Tiny model with limited capabilities;
+   * keep declaration minimal and honest. Brains routing here should expect
+   * the no-frills baseline: text in, text out, $0 marginal cost.
+   */
+  readonly capabilities: Capabilities = {
+    contextWindow: 0,              // BitNet 2B-4T: ~4K context typical
+    maxOutput: 0,
+
+    streaming: true,
+    tools: false,                  // BitNet 2B-4T not reliable at function calling
+    vision: false,
+
+    local: true,
+    zeroMarginalInference: true,   // CPU-local, $0
+    bearerTokenAccess: false,
+  };
 
   private readonly localBaseURL: string;
 

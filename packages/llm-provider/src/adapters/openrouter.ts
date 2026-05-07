@@ -15,7 +15,12 @@
  */
 
 import { BaseLLMAdapter } from '../base-adapter';
-import type { LLMCompletionRequest, LLMCompletionResponse, OpenRouterProviderConfig } from '../types';
+import type {
+  Capabilities,
+  LLMCompletionRequest,
+  LLMCompletionResponse,
+  OpenRouterProviderConfig,
+} from '../types';
 import {
   LLMAuthenticationError,
   LLMRateLimitError,
@@ -65,6 +70,30 @@ export class OpenRouterAdapter extends BaseLLMAdapter {
   readonly name = 'openrouter' as const;
   readonly models = OPENROUTER_MODELS;
   readonly defaultHoloScriptModel: string;
+
+  /**
+   * Capability manifest — OpenRouter is a meta-provider whose actual
+   * capabilities depend on the upstream model selected. Conservative
+   * declaration: only what's universally true across the catalog.
+   *
+   * For routing decisions that need specific model superpowers, prefer
+   * the direct provider adapter (Anthropic / OpenAI / etc.) — OpenRouter
+   * is the fallback / cost-shopping path, not the capability-sensitive
+   * default. `costPerMillion` omitted (varies wildly per upstream).
+   */
+  readonly capabilities: Capabilities = {
+    contextWindow: 0,              // per-upstream-model; 0 = use direct adapter for capability-sensitive routing
+    maxOutput: 0,
+
+    streaming: true,
+    tools: true,                   // most upstream models support function calling
+    vision: false,                 // model-dependent — set per-deployment if needed
+    bearerTokenAccess: true,
+
+    // multimodal / reasoning / agentic: model-dependent — left
+    // conservative-default false. Upstream-model-specific manifests would
+    // require a separate per-model capability resolver.
+  };
 
   private readonly referer: string;
   private readonly title: string;

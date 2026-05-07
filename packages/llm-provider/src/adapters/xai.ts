@@ -12,7 +12,12 @@
  */
 
 import { BaseLLMAdapter } from '../base-adapter';
-import type { LLMCompletionRequest, LLMCompletionResponse, XAIProviderConfig } from '../types';
+import type {
+  Capabilities,
+  LLMCompletionRequest,
+  LLMCompletionResponse,
+  XAIProviderConfig,
+} from '../types';
 import {
   LLMAuthenticationError,
   LLMRateLimitError,
@@ -50,6 +55,32 @@ export class XAIAdapter extends BaseLLMAdapter {
   readonly name = 'xai' as const;
   readonly models = XAI_MODELS;
   readonly defaultHoloScriptModel: string;
+
+  /**
+   * Capability manifest sourced from `ai-ecosystem/docs/LLM_CAPABILITIES.md`
+   * § xAI (Grok). Live Search (real-time web + X-platform) is Grok's unique
+   * differentiator vs Anthropic/OpenAI/Gemini for social and news signal.
+   *
+   * Most fields set conservatively until /research task_1778109552044_qed8
+   * verifies. xAI's API is OpenAI-compatible at the wire level so streaming
+   * + tools are confirmed; vision and structured outputs are model-dependent
+   * (some Grok models have vision, some don't) — left false until per-model
+   * declarations land. F.014 forbids pasting training-era stats.
+   */
+  readonly capabilities: Capabilities = {
+    contextWindow: 0,              // [VERIFY task_1778109552044_qed8]
+    maxOutput: 0,                  // [VERIFY task_1778109552044_qed8]
+
+    streaming: true,
+    tools: true,                   // OpenAI-compatible function calling
+    vision: false,                 // [VERIFY] — model-dependent (some Grok have vision)
+
+    liveWebSearch: true,           // Live Search — Grok's unique differentiator
+    bearerTokenAccess: true,
+
+    // structuredOutputs, visibleReasoning: [VERIFY] — model-dependent,
+    // not yet confirmed across the lineup. Conservative-default false.
+  };
 
   constructor(config: XAIProviderConfig) {
     super(config);

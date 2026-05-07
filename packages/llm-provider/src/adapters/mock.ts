@@ -9,7 +9,12 @@
  */
 
 import { BaseLLMAdapter } from '../base-adapter';
-import type { LLMCompletionRequest, LLMCompletionResponse, LLMProviderConfig } from '../types';
+import type {
+  Capabilities,
+  LLMCompletionRequest,
+  LLMCompletionResponse,
+  LLMProviderConfig,
+} from '../types';
 import { messageContentAsString } from '../types';
 
 const MOCK_SCENES: Record<string, string> = {
@@ -91,6 +96,25 @@ export class MockAdapter extends BaseLLMAdapter {
   readonly name = 'mock' as const;
   readonly models = ['mock-gpt-4', 'mock-claude', 'mock-gemini'] as const;
   readonly defaultHoloScriptModel = 'mock-gpt-4';
+
+  /**
+   * Capability manifest — generous defaults so test paths exercising
+   * common features (streaming, tools, vision) can route to mock without
+   * routing-filter rejection. Tests that need to exercise capability-
+   * filter edge cases should construct a custom adapter with narrower
+   * `capabilities` rather than mutating mock's defaults.
+   */
+  readonly capabilities: Capabilities = {
+    contextWindow: 200_000,        // generous test window
+    maxOutput: 64_000,
+
+    streaming: true,
+    tools: true,
+    vision: true,                  // mock images for test paths
+    structuredOutputs: true,
+
+    bearerTokenAccess: false,      // no auth for mock
+  };
 
   /** Number of complete() calls made */
   callCount = 0;

@@ -9,7 +9,12 @@
  */
 
 import { BaseLLMAdapter } from '../base-adapter';
-import type { LLMCompletionRequest, LLMCompletionResponse, GeminiProviderConfig } from '../types';
+import type {
+  Capabilities,
+  LLMCompletionRequest,
+  LLMCompletionResponse,
+  GeminiProviderConfig,
+} from '../types';
 import {
   LLMAuthenticationError,
   LLMRateLimitError,
@@ -72,6 +77,42 @@ export class GeminiAdapter extends BaseLLMAdapter {
   readonly name = 'gemini' as const;
   readonly models = GEMINI_MODELS;
   readonly defaultHoloScriptModel: string;
+
+  /**
+   * Capability manifest sourced from `ai-ecosystem/docs/LLM_CAPABILITIES.md`
+   * § Google (Gemini). Native multimodal is Gemini's strongest differentiator —
+   * text + image + video + audio in one model. Search Grounding (first-party
+   * Google Search citations) and cached_content (long-context reuse) are the
+   * other major routing signals.
+   *
+   * `contextWindow` / `maxOutput` set to 0 (unknown) until /research
+   * task_1778109552044_pc79 populates the per-model spec table — F.014
+   * forbids pasting training-era stats. `costPerMillion` omitted (varies
+   * per model + Vertex vs Studio pricing delta).
+   */
+  readonly capabilities: Capabilities = {
+    contextWindow: 0,              // [VERIFY task_1778109552044_pc79] — 1M-2M depending on tier
+    maxOutput: 0,                  // [VERIFY task_1778109552044_pc79]
+
+    streaming: true,
+    tools: true,                   // function calling
+
+    vision: true,                  // image input
+    videoInput: true,              // native video input — Gemini's differentiator
+    audioInput: true,              // native audio input
+    audioOutput: true,
+    imageGeneration: true,         // Imagen
+    videoGeneration: true,         // Veo (Sora is deprecated; Veo is GA)
+
+    visibleReasoning: true,        // thinking
+    liveWebSearch: true,           // Search Grounding (first-party)
+    promptCaching: true,           // cached_content
+    structuredOutputs: true,       // JSON mode + response schema
+    embeddings: true,              // first-class endpoint
+
+    vertexAvailable: true,         // native Vertex hosting
+    bearerTokenAccess: true,
+  };
 
   constructor(config: GeminiProviderConfig) {
     super(config);
