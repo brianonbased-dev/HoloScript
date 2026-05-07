@@ -189,7 +189,11 @@ Organic assets can now derive renderer-ready material parameters from provenance
 reference pixels instead of asking an agent to guess from the word "lotus".
 
 ```ts
-import { extractBotanicalLotusMaterial, toBotanicalLotusTrait } from '@holoscript/snn-webgpu';
+import {
+  extractBotanicalLotusMaterial,
+  normalizeBotanicalMaterialExtraction,
+  toBotanicalLotusTrait,
+} from '@holoscript/snn-webgpu';
 
 const extraction = extractBotanicalLotusMaterial([
   {
@@ -203,12 +207,19 @@ const extraction = extractBotanicalLotusMaterial([
 ]);
 
 console.log(extraction.material.subsurface_scattering);
+console.log(normalizeBotanicalMaterialExtraction(extraction));
 console.log(toBotanicalLotusTrait(extraction));
 ```
 
 The extractor accepts RGBA pixel buffers so browser callers can pass `ImageData`
 directly, while Node pipelines can keep decoding, hashing, and CAEL wallet
 signing in their own trusted ingestion step.
+
+Use `extractBotanicalMaterialFromPhotoFixtures` when the pipeline already has
+signed region samples instead of raw pixels. Pass either output through
+`normalizeBotanicalMaterialExtraction` before renderer, agent, or provenance
+handoff code so both paths share one canonical status, material, color, and
+confidence shape.
 
 ## Performance
 

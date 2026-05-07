@@ -120,8 +120,13 @@ export type {
 } from './prophetic-gi/index.js';
 
 // Botanical photo-to-material extraction for provenance-grounded organic assets.
-export { extractBotanicalLotusMaterial, toBotanicalLotusTrait } from './material-extraction/botanical-lotus.js';
+export {
+  extractBotanicalLotusMaterial,
+  normalizeBotanicalMaterialExtraction,
+  toBotanicalLotusTrait,
+} from './material-extraction/index.js';
 export type {
+  BotanicalExtractionInput,
   BotanicalColorParams,
   BotanicalGeometryParams,
   BotanicalImageSample,
@@ -132,4 +137,7 @@ export type {
   BotanicalPetalRing,
   BotanicalReferenceProvenance,
   BotanicalReferenceRole,
-} from './material-extraction/botanical-lotus.js';
+  CanonicalBotanicalExtractionStatus,
+  CanonicalBotanicalMaterial,
+  CanonicalBotanicalMaterialExtraction,
+} from './material-extraction/index.js';
