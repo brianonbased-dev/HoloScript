@@ -369,7 +369,7 @@ function makeFullV1Composition(): HoloComposition {
           // Vocabulary v2 (Iteration 2 G-3 fourth slice)
           {
             type: 'ObjectTrait',
-            name: 'editorial_defaults',
+            name: 'editorial_default',
             config: {
               name: 'paper-byline',
               paper_id: 'program',
@@ -381,7 +381,7 @@ function makeFullV1Composition(): HoloComposition {
           },
           {
             type: 'ObjectTrait',
-            name: 'editorial_defaults',
+            name: 'editorial_default',
             config: {
               name: 'editor-contact',
               paper_id: 'tvcg-revision-1',
@@ -393,7 +393,7 @@ function makeFullV1Composition(): HoloComposition {
           },
           {
             type: 'ObjectTrait',
-            name: 'research_defaults',
+            name: 'research_default',
             config: {
               name: 'result-validation-sessions',
               paper_id: 'program',
@@ -405,7 +405,7 @@ function makeFullV1Composition(): HoloComposition {
           },
           {
             type: 'ObjectTrait',
-            name: 'research_defaults',
+            name: 'research_default',
             config: {
               name: 'missing-solver-benchmark-dataset',
               paper_id: 'program',
@@ -2343,7 +2343,7 @@ describe('compile() - vocabulary v2 -> @authority', () => {
 
 // --- Vocabulary v2 (Iteration 2 G-3 fourth slice) -- papers defaults ---
 
-describe('compile() - vocabulary v2 -> @editorial_defaults + @research_defaults', () => {
+describe('compile() - vocabulary v2 -> @editorial_default + @research_default', () => {
   it('extracts scoped editorial and research defaults from the full V1 fixture', () => {
     const compiler = new ContextCompiler({ formats: ['claude_md'] });
     const result = compiler.compile(makeFullV1Composition(), '');
@@ -2441,7 +2441,7 @@ describe('compile() - vocabulary v2 -> @editorial_defaults + @research_defaults'
             traits: [
               {
                 type: 'ObjectTrait',
-                name: 'editorial_defaults',
+                name: 'editorial_default',
                 config: {
                   name: 'program-default',
                   when: 'Can I ship locally?',

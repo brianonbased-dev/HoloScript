@@ -1,7 +1,7 @@
 # Founder Skill Self-Host — Iteration 1 Status Memo
 
 **Date**: 2026-05-06
-**Status**: PROOF complete; G-1/G-2 closed; G-3 slices (`@invocation_mode` + `@date_discipline` + `@domain_preference` + `@embodied_projection` + `@editorial_defaults` + `@research_defaults` + `@authority`) closed; cutover still deferred until the emitted SKILL.md is explicitly ratified
+**Status**: PROOF complete; G-1/G-2 closed; G-3 slices (`@invocation_mode` + `@date_discipline` + `@domain_preference` + `@embodied_projection` + `@editorial_default` + `@research_default` + `@authority`) closed; cutover still deferred until the emitted SKILL.md is explicitly ratified
 **Commit**: (filed alongside `compositions/founder-core.hs` + `scripts/compile-founder-skill.mjs`)
 **Spec source**: `ai-ecosystem/research/2026-05-06_context-as-compile-target.md` § Phase 2
 
@@ -39,8 +39,8 @@ The emitted file has a valid YAML frontmatter (`name`, `description`, `allowed-t
 | `@date_discipline` | 1 | W.317 date refusal contract |
 | `@invocation_mode` | 3 | auto-fire / explicit / wrap-other-skill |
 | `@embodied_projection` | 2 | Quest 3 interactive review + spatial-photo evidence |
-| `@editorial_defaults` | 7 | paper-program editorial defaults |
-| `@research_defaults` | 6 | paper-program research-decision defaults |
+| `@editorial_default` | 7 | paper-program editorial defaults |
+| `@research_default` | 6 | paper-program research-decision defaults |
 
 ## Iteration 1 gaps (named, with close targets)
 
@@ -80,7 +80,7 @@ The live `~/.claude/skills/founder/SKILL.md` includes structural blocks beyond t
 | Vision pillars | ✅ via `@vision_pillar` | none |
 | Production-only rule | ✅ via `@production_rule` | none |
 | Gap = build | ❌ no trait | Existing `@gap_rule` from vocabulary v1 covers this; just not used in iteration 1 source |
-| Papers program | ✅ via `@editorial_defaults` × 7 + `@research_defaults` × 6 (G-3 paper defaults slice closed) | none — paper_id / paper_phase scoped defaults round-trip |
+| Papers program | ✅ via `@editorial_default` × 7 + `@research_default` × 6 (G-3 paper defaults slice closed) | none — paper_id / paper_phase scoped defaults round-trip |
 | Citation discipline | ✅ via `@citation_rule` | none |
 | Output shape | ✅ via `@output_shape` | none |
 | Invocation modes | ✅ via `@invocation_mode` × 3 (G-3 first slice closed) | none — auto-fire / explicit / wrap-other-skill all round-trip via the founder-core source |
@@ -100,7 +100,7 @@ The cutover sequence:
    - ✅ `@date_discipline` (G-3 second slice) — captures the W.317 refusal contract (open_blockers + matrix_row_staleness + engineering_readiness) plus the literal output shape template; emit places it before Citation discipline.
    - ✅ `@domain_preference` (G-3 third slice) — list-shaped (one trait per dispatch row, 6 rows in founder-core.hs). Captures the legal/brand/capital/customer-vendor/governance/public-representation routing table from the live skill's "## Domain preferences" section. Optional `ceiling` field captures spend caps (e.g. "$5 standing spend cap" for capital).
    - ✅ `@embodied_projection` (G-3 embodied slice) — two rows in founder-core.hs: interactive Quest 3 review and read-only spatial evidence. Captures the embodied projection layer from `NORTH_STAR.md` §0.4.
-   - ✅ `@editorial_defaults` + `@research_defaults` (G-3 paper defaults slice) — captures the Papers program editorial defaults and research-decision defaults with optional `paper_id` / `paper_phase` scope.
+   - ✅ `@editorial_default` + `@research_default` (G-3 paper defaults slice) — captures the Papers program editorial defaults and research-decision defaults with optional `paper_id` / `paper_phase` scope.
    - ✅ `@authority` (Track-B) — captures mutable targets and founder-ratification-required targets with `target`, `action_type`, `requires`, and `founder_ratification_required`.
 4. Re-run `node scripts/compile-founder-skill.mjs` — full round-trip parity.
 5. **Cutover**: replace `~/.claude/skills/founder/SKILL.md` with the emitted file after explicit ratification. Future founder-skill rule changes happen in `.hs` and the skill regenerates.

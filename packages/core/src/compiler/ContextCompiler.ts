@@ -33,7 +33,7 @@
  *
  * @version 1.5.0 (Phase 2(a) Iteration 2 G-3 vocabulary v2 now covers
  *   @invocation_mode, @date_discipline, @domain_preference,
- *   @embodied_projection, @editorial_defaults, @research_defaults, and
+ *   @embodied_projection, @editorial_default, @research_default, and
  *   @authority. Phase 1 emitters: claude_md + agents_md + cursor_rules +
  *   skill_md. Remaining Phase 1+ follow-ups: anthropic_system_prompt /
  *   brain_includes / mcp_context_loader.)
@@ -822,7 +822,7 @@ export class ContextCompiler extends CompilerBase {
           notes: stringFieldOrUndef(cfg, 'notes'),
         });
         break;
-      case 'editorial_defaults':
+      case 'editorial_default':
         ast.editorialDefaults.push({
           name: stringField(cfg, 'name', ''),
           paperId: stringFieldOrUndef(cfg, 'paper_id'),
@@ -832,7 +832,7 @@ export class ContextCompiler extends CompilerBase {
           reason: stringFieldOrUndef(cfg, 'reason'),
         });
         break;
-      case 'research_defaults':
+      case 'research_default':
         ast.researchDefaults.push({
           name: stringField(cfg, 'name', ''),
           paperId: stringFieldOrUndef(cfg, 'paper_id'),

@@ -10,7 +10,7 @@
 //             default, output_shape, escalation, citation_rule,
 //             graduated_wisdom, feedback, domain_preference,
 //             date_discipline, invocation_mode, embodied_projection,
-//             editorial_defaults, research_defaults, authority
+//             editorial_default, research_default, authority
 //   DEFERRED — full live SKILL.md cutover.
 //
 // Trait syntax note: uses the compact @trait(field: value, ...) form.
@@ -332,7 +332,7 @@ object "TrackBAuthority" {
 // =============================================================================
 
 object "PapersProgramDefaults" {
-  @editorial_defaults(
+  @editorial_default(
     name: "paper-byline",
     paper_id: "program",
     paper_phase: "all",
@@ -341,7 +341,7 @@ object "PapersProgramDefaults" {
     reason: "F.026"
   )
 
-  @editorial_defaults(
+  @editorial_default(
     name: "editor-contact",
     paper_id: "tvcg-revision-1",
     paper_phase: "held",
@@ -350,7 +350,7 @@ object "PapersProgramDefaults" {
     reason: "I.009"
   )
 
-  @editorial_defaults(
+  @editorial_default(
     name: "gold-citation-verify",
     paper_id: "program",
     paper_phase: "citation",
@@ -359,7 +359,7 @@ object "PapersProgramDefaults" {
     reason: "F.023"
   )
 
-  @editorial_defaults(
+  @editorial_default(
     name: "technical-claim-citation",
     paper_id: "program",
     paper_phase: "writing",
@@ -368,7 +368,7 @@ object "PapersProgramDefaults" {
     reason: "F.017"
   )
 
-  @editorial_defaults(
+  @editorial_default(
     name: "provenance-anchor-drift",
     paper_id: "program",
     paper_phase: "anchoring",
@@ -377,7 +377,7 @@ object "PapersProgramDefaults" {
     reason: "W.090"
   )
 
-  @editorial_defaults(
+  @editorial_default(
     name: "paper-runner-timeout",
     paper_id: "program",
     paper_phase: "runner",
@@ -386,7 +386,7 @@ object "PapersProgramDefaults" {
     reason: "W.080"
   )
 
-  @editorial_defaults(
+  @editorial_default(
     name: "plugin-stub-unconsumed",
     paper_id: "program",
     paper_phase: "implementation",
@@ -395,7 +395,7 @@ object "PapersProgramDefaults" {
     reason: "W.081"
   )
 
-  @research_defaults(
+  @research_default(
     name: "framing-conflict",
     paper_id: "program",
     paper_phase: "framing",
@@ -404,7 +404,7 @@ object "PapersProgramDefaults" {
     reason: "W.GOLD.188 + W.GOLD.189"
   )
 
-  @research_defaults(
+  @research_default(
     name: "result-validation-sessions",
     paper_id: "program",
     paper_phase: "validation",
@@ -413,7 +413,7 @@ object "PapersProgramDefaults" {
     reason: "F.023"
   )
 
-  @research_defaults(
+  @research_default(
     name: "audit-confident-peer-claim",
     paper_id: "program",
     paper_phase: "audit",
@@ -422,7 +422,7 @@ object "PapersProgramDefaults" {
     reason: "W.GOLD.191"
   )
 
-  @research_defaults(
+  @research_default(
     name: "cross-adapter-replay-tolerance",
     paper_id: "program",
     paper_phase: "replay",
@@ -431,7 +431,7 @@ object "PapersProgramDefaults" {
     reason: "W.GOLD.192"
   )
 
-  @research_defaults(
+  @research_default(
     name: "secure-by-default",
     paper_id: "program",
     paper_phase: "design",
@@ -440,7 +440,7 @@ object "PapersProgramDefaults" {
     reason: "W.GOLD.193"
   )
 
-  @research_defaults(
+  @research_default(
     name: "missing-solver-benchmark-dataset",
     paper_id: "program",
     paper_phase: "evidence",
