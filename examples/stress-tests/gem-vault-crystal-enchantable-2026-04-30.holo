@@ -5,6 +5,7 @@
 // Never-exercised traits under test:
 //   @crystal_gem   — gems-minerals vocabulary, 0 refs before this file
 //   @enchantable   — magic-fantasy vocabulary, 0 refs before this file
+//   @gem_resonance — harmonic spatial audio from nearby enchanted gems
 //
 // Well-exercised anchors:
 //   @glowing  @grabbable  @physics  @animated  @collidable  @clickable
@@ -16,10 +17,10 @@
 //   shifts the vault's ambient glow. A clear quartz keystone at the center
 //   is arch-enchanted across all elements — the vault's crowning piece.
 //
-// MISSING-TRAIT WISH (queued for Phase 4):
-//   @gem_resonance — when two crystals are held within 0.5 m of each other
-//   they should produce harmonic audio from their elemental base frequencies.
-//   No such trait exists in the codebase as of 2026-04-30.
+// Resonance acceptance:
+//   The close fire/water tuning pair below starts within 0.5 m, so the
+//   runtime can derive a deterministic 440/528 Hz harmonic chord and 88 Hz
+//   beat-frequency interference without hand-authored audio glue.
 // ============================================================================
 
 composition "Vault of Elemental Crystals" {
@@ -207,6 +208,29 @@ composition "Vault of Elemental Crystals" {
     @glowing { color: "#ffee22", intensity: 3.8, pulse_speed: 2.8 }
     material: { baseColor: "#ffdd00", roughness: 0.06, metallic: 0.0, emissive: "#ccaa00", emissiveIntensity: 4.2 }
     state { element: "storm", held: false }
+  }
+
+  // ── Close-Range Resonance Acceptance Pair ────────────────────────────────
+  // These two gems begin 0.4 m apart, inside @gem_resonance.max_distance.
+
+  object "Resonance_Fire_Tuning" using "ElementalCrystal" {
+    position: [-0.25, 2.85, 0.0]
+    scale: 0.16
+    @crystal_gem { cut: "round", clarity: 0.99, refractive_index: 2.2 }
+    @enchantable { element: "fire", enchant_level: 3, aura_radius: 0.22, aura_visible: true }
+    @glowing { color: "#ff5522", intensity: 2.4, pulse_speed: 1.4 }
+    material: { baseColor: "#ff4422", roughness: 0.06, metallic: 0.0, emissive: "#cc2200", emissiveIntensity: 3.0 }
+    state { element: "fire", held: false }
+  }
+
+  object "Resonance_Water_Tuning" using "ElementalCrystal" {
+    position: [0.15, 2.85, 0.0]
+    scale: 0.16
+    @crystal_gem { cut: "round", clarity: 0.99, refractive_index: 2.2 }
+    @enchantable { element: "water", enchant_level: 3, aura_radius: 0.22, aura_visible: true }
+    @glowing { color: "#22aaff", intensity: 2.4, pulse_speed: 1.0 }
+    material: { baseColor: "#1188dd", roughness: 0.04, metallic: 0.0, emissive: "#0066cc", emissiveIntensity: 3.0 }
+    state { element: "water", held: false }
   }
 
   // ── Keystone — Clear Quartz (Arch-Enchanted Across All Elements) ──────────
