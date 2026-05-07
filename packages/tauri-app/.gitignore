@@ -1,6 +1,8 @@
 # Tauri build output
 src-tauri/target/
+src-tauri/gen/
 src-tauri/Cargo.lock
+target/
 
 # Node
 node_modules/

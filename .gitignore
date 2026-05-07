@@ -262,7 +262,6 @@ deploy_result.json
 
 # Tauri auto-generated code
 packages/tauri-app/src-tauri/gen/
-packages/studio-desktop/src-tauri/gen/
 
 # Build temp files (tsup generates with random hashes)
 tsup.config.bundled_*.mjs
