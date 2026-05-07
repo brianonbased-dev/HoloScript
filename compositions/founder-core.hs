@@ -10,8 +10,8 @@
 //             default, output_shape, escalation, citation_rule,
 //             graduated_wisdom, feedback, domain_preference,
 //             date_discipline, invocation_mode, embodied_projection,
-//             editorial_defaults, research_defaults
-//   DEFERRED — Track-B authority block.
+//             editorial_defaults, research_defaults, authority
+//   DEFERRED — full live SKILL.md cutover.
 //
 // Trait syntax note: uses the compact @trait(field: value, ...) form.
 // The @trait: { field: value } form is also supported since G-2 closed.
@@ -220,6 +220,106 @@ object "DomainPreferences" {
     domain: "public-representation",
     skills: ["/marketer"],
     notes: "Interviews, podcasts, posting; drafts via /marketer + escape-hatch ratification before public commit"
+  )
+}
+
+// =============================================================================
+// Self-edit + tier-write authority (Track B)
+//
+// Mirrors the "## Self-edit + tier-write authority (Track B)" mutation
+// contract in ~/.claude/skills/founder/SKILL.md. Each row declares the
+// mutable target, action_type used in founder-evolve.mjs audit logs, required
+// mutation conditions, and whether same-session founder ratification is
+// mandatory before committing the change.
+// =============================================================================
+
+object "TrackBAuthority" {
+  @authority(
+    target: "SKILL.md (this file)",
+    action_type: "skill-edit",
+    requires: ["backup before write", "edit via normal Edit/Write tool", "log after write with cited reason"],
+    founder_ratification_required: false,
+    notes: "Editing the skill contract; log reason, citation, and what changed."
+  )
+
+  @authority(
+    target: "references/preferences.md",
+    action_type: "preferences-edit",
+    requires: ["backup before write", "cite the ruling", "log after write with cited reason"],
+    founder_ratification_required: false,
+    notes: "Ratifying a row or adding a new domain preference."
+  )
+
+  @authority(
+    target: "D:/GOLD/<tier>/<id>.md write",
+    action_type: "gold-write",
+    requires: ["backup before write", "new entry only", "never overwrite Diamond without same-session founder ratification", "log after write with cited reason"],
+    founder_ratification_required: false,
+    notes: "New GOLD-tier entry write; Diamond overwrite stays founder-ratified."
+  )
+
+  @authority(
+    target: "graduate.py tier promote",
+    action_type: "gold-promote",
+    requires: ["backup before write", "Bronze to Silver to GOLD only", "Platinum or Diamond requires founder ratification in reason", "log after write with cited reason"],
+    founder_ratification_required: false,
+    notes: "Tier promotion through the graduation script."
+  )
+
+  @authority(
+    target: "D:/GOLD/LOTUS_GENESIS_FIRED_<date>.md",
+    action_type: "tier-fire",
+    requires: ["backup before write", "verify all 16 papers have real benchmarks before firing", "log after write with cited reason"],
+    founder_ratification_required: false,
+    notes: "One-shot Lotus Genesis trigger (I.007)."
+  )
+
+  @authority(
+    target: "Paper-program-shape file",
+    action_type: "tier-fire",
+    requires: ["backup before write", "defined paper-program-shape target exists", "log after write with cited reason"],
+    founder_ratification_required: false,
+    notes: "Reordering, retiring, or adding a paper."
+  )
+
+  @authority(
+    target: "Vision pillar mutation",
+    action_type: "pillar-mutate",
+    requires: ["explicit founder line in same session", "backup before write", "log ratification quote"],
+    founder_ratification_required: true,
+    notes: "Adding or retiring one of the 8 pillars."
+  )
+
+  @authority(
+    target: "Authority order rewrite",
+    action_type: "authority-rewrite",
+    requires: ["explicit founder line in same session", "backup before write", "log ratification quote"],
+    founder_ratification_required: true,
+    notes: "Reordering the 7-tier hierarchy."
+  )
+
+  @authority(
+    target: ">$5 ceiling change",
+    action_type: "ceiling-change",
+    requires: ["explicit founder line in same session", "backup before write", "log ratification quote"],
+    founder_ratification_required: true,
+    notes: "Adjusting the standing spend cap."
+  )
+
+  @authority(
+    target: "Escalation criteria edit",
+    action_type: "escalation-change",
+    requires: ["explicit founder line in same session", "backup before write", "log ratification quote"],
+    founder_ratification_required: true,
+    notes: "Changing what triggers ASK_FOUNDER_QUEUE."
+  )
+
+  @authority(
+    target: "Diamond declaration",
+    action_type: "diamond-declaration",
+    requires: ["explicit founder line in same session", "backup before write", "log ratification quote"],
+    founder_ratification_required: true,
+    notes: "Only Joseph can declare Diamond."
   )
 }
 

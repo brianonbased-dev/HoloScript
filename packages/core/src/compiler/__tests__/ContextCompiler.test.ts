@@ -307,6 +307,51 @@ function makeFullV1Composition(): HoloComposition {
               ceiling: '$5 standing spend cap',
             },
           },
+          // Vocabulary v2 (Iteration 2 G-3 authority slice)
+          {
+            type: 'ObjectTrait',
+            name: 'authority',
+            config: {
+              target: 'SKILL.md (this file)',
+              action_type: 'skill-edit',
+              requires: ['backup before write', 'edit via normal Edit/Write tool', 'log after write with cited reason'],
+              founder_ratification_required: false,
+              notes: 'editing the contract',
+            },
+          },
+          {
+            type: 'ObjectTrait',
+            name: 'authority',
+            config: {
+              target: 'references/preferences.md',
+              action_type: 'preferences-edit',
+              requires: ['backup before write', 'cite the ruling', 'log after write'],
+              founder_ratification_required: false,
+              notes: 'ratifying or adding a preference row',
+            },
+          },
+          {
+            type: 'ObjectTrait',
+            name: 'authority',
+            config: {
+              target: 'Vision pillar mutation',
+              action_type: 'pillar-mutate',
+              requires: ['explicit founder line in same session', 'backup before write', 'log ratification quote'],
+              founder_ratification_required: true,
+              notes: 'adding or retiring a pillar',
+            },
+          },
+          {
+            type: 'ObjectTrait',
+            name: 'authority',
+            config: {
+              target: 'Authority order rewrite',
+              action_type: 'authority-rewrite',
+              requires: ['explicit founder line in same session', 'backup before write', 'log ratification quote'],
+              founder_ratification_required: true,
+              notes: 'reordering the 7-tier hierarchy',
+            },
+          },
           // Vocabulary v2 (Iteration 2 G-3 next slice)
           {
             type: 'ObjectTrait',
@@ -2175,6 +2220,124 @@ describe('compile() - vocabulary v2 -> @domain_preference', () => {
     expect(md).toContain('documentarian voice');
     // False case: must NOT prefix a "Ceiling:" label when ceiling absent
     expect(md).not.toContain('Ceiling: documentarian');
+  });
+});
+
+// --- Vocabulary v2 (Iteration 2 G-3 authority slice) -- @authority ---
+
+describe('compile() - vocabulary v2 -> @authority', () => {
+  it('extracts Track-B mutable-target authority rows from the full V1 fixture', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const result = compiler.compile(makeFullV1Composition(), '');
+    expect(result.ast.trackBAuthorities).toHaveLength(4);
+
+    const skillEdit = result.ast.trackBAuthorities.find(
+      (row) => row.actionType === 'skill-edit'
+    );
+    expect(skillEdit?.target).toBe('SKILL.md (this file)');
+    expect(skillEdit?.founderRatificationRequired).toBe(false);
+    expect(skillEdit?.requires).toContain('backup before write');
+
+    const pillar = result.ast.trackBAuthorities.find(
+      (row) => row.actionType === 'pillar-mutate'
+    );
+    expect(pillar?.founderRatificationRequired).toBe(true);
+    expect(pillar?.requires).toContain('explicit founder line in same session');
+    // False case: action_type must stay separate from the target label
+    expect((skillEdit as unknown as { action_type?: string }).action_type).toBeUndefined();
+  });
+
+  it('emits Track-B authority as split mutable and founder-ratified tables in claude_md', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeFullV1Composition(), '').files['CLAUDE.md'];
+    expect(md).toContain('## Self-edit + tier-write authority (Track B)');
+    expect(md).toContain('### Mutable targets');
+    expect(md).toContain('### Founder-ratification-required targets');
+    expect(md).toContain('| SKILL.md (this file) | `skill-edit` |');
+    expect(md).toContain('| references/preferences.md | `preferences-edit` |');
+    expect(md).toContain('| Vision pillar mutation | `pillar-mutate` |');
+    expect(md).toContain('| Authority order rewrite | `authority-rewrite` |');
+    expect(md).toContain('| Vision pillar mutation | `pillar-mutate` | explicit founder line in same session<br>backup before write<br>log ratification quote | Yes |');
+    // False case: founder-ratified rows must not be rendered as mutable "No" rows
+    expect(md).not.toContain('| Vision pillar mutation | `pillar-mutate` | explicit founder line in same session<br>backup before write<br>log ratification quote | No |');
+  });
+
+  it('emits Track-B authority in agents_md (cross-tool surface)', () => {
+    const compiler = new ContextCompiler({ formats: ['agents_md'] });
+    const md = compiler.compile(makeFullV1Composition(), '').files['AGENTS.md'];
+    expect(md).toContain('## Self-edit + tier-write authority (Track B)');
+    expect(md).toContain('| SKILL.md (this file) | `skill-edit` |');
+  });
+
+  it('emits Track-B authority in skill_md (Phase 2(a) self-host target)', () => {
+    const compiler = new ContextCompiler({ formats: ['skill_md'] });
+    const fixture = makeFullV1Composition();
+    const identity = fixture.objects[0]!.traits!.find((t) => t.name === 'identity')!;
+    identity.config.description = 'Test skill description for authority emit verification.';
+    const md = compiler.compile(fixture, '').files['SKILL.md'];
+    expect(md).toContain('## Self-edit + tier-write authority (Track B)');
+    expect(md).toContain('backup-before-write');
+    expect(md).toContain('### Founder-ratification-required targets');
+  });
+
+  it('emits Track-B authority in cursor_rules index file', () => {
+    const compiler = new ContextCompiler({ formats: ['cursor_rules'] });
+    const result = compiler.compile(makeFullV1Composition(), '');
+    const indexContent = result.files['.cursor/rules/_ecosystem-context.mdc'];
+    expect(indexContent).toContain('## Self-edit + tier-write authority (Track B)');
+    expect(indexContent).toContain('| Authority order rewrite | `authority-rewrite` |');
+  });
+
+  it('places Track-B authority after Domain preferences and before Papers program defaults', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeFullV1Composition(), '').files['CLAUDE.md'];
+    const domainIdx = md.indexOf('## Domain preferences');
+    const authorityIdx = md.indexOf('## Self-edit + tier-write authority (Track B)');
+    const papersIdx = md.indexOf('## Papers program defaults');
+    expect(domainIdx).toBeGreaterThan(0);
+    expect(authorityIdx).toBeGreaterThan(domainIdx);
+    expect(papersIdx).toBeGreaterThan(authorityIdx);
+  });
+
+  it('omits Track-B authority section when no @authority traits are declared', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeComposition(), '').files['CLAUDE.md'];
+    // False case: authority_order must not trigger Track-B mutation authority output
+    expect(md).not.toContain('## Self-edit + tier-write authority (Track B)');
+    expect(md).not.toContain('### Mutable targets');
+  });
+
+  it('defaults founder_ratification_required to false and renders missing notes cleanly', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const result = compiler.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'A',
+            properties: [],
+            traits: [
+              {
+                type: 'ObjectTrait',
+                name: 'authority',
+                config: {
+                  target: 'D:/GOLD/<tier>/<id>.md write',
+                  action_type: 'gold-write',
+                  requires: ['backup before write'],
+                  // founder_ratification_required + notes intentionally omitted
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      ''
+    );
+    expect(result.ast.trackBAuthorities[0]?.founderRatificationRequired).toBe(false);
+    const md = result.files['CLAUDE.md'];
+    expect(md).toContain('| D:/GOLD/<tier>/<id>.md write | `gold-write` | backup before write | No |  |');
+    // False case: missing notes should not leak as "undefined"
+    expect(md).not.toContain('undefined');
   });
 });
 

@@ -1,7 +1,7 @@
 # Founder Skill Self-Host — Iteration 1 Status Memo
 
 **Date**: 2026-05-06
-**Status**: PROOF complete; G-1/G-2 closed; G-3 slices (`@invocation_mode` + `@date_discipline` + `@domain_preference` + `@embodied_projection` + `@editorial_defaults` + `@research_defaults`) closed; cutover still deferred until remaining Track-B authority vocabulary lands
+**Status**: PROOF complete; G-1/G-2 closed; G-3 slices (`@invocation_mode` + `@date_discipline` + `@domain_preference` + `@embodied_projection` + `@editorial_defaults` + `@research_defaults` + `@authority`) closed; cutover still deferred until the emitted SKILL.md is explicitly ratified
 **Commit**: (filed alongside `compositions/founder-core.hs` + `scripts/compile-founder-skill.mjs`)
 **Spec source**: `ai-ecosystem/research/2026-05-06_context-as-compile-target.md` § Phase 2
 
@@ -12,14 +12,14 @@ Round-trip pipeline `.hs source → parser → ContextCompiler → SKILL.md emit
 ```text
 compositions/founder-core.hs    (source-of-truth, .hs syntax)
         ↓ parseHolo()
-HoloComposition AST             (10 objects, 51 traits)
+HoloComposition AST             (11 objects, 62 traits)
         ↓ ContextCompiler.compile({ formats: ['skill_md'] })
-dist/founder-skill-emitted.md   (12,579 chars; valid Claude Code skill format)
+dist/founder-skill-emitted.md   (15,235 chars; valid Claude Code skill format)
 ```
 
 The emitted file has a valid YAML frontmatter (`name`, `description`, `allowed-tools`) followed by the body sections Claude Code's skill discovery requires. It is shippable as a SKILL.md if the cutover were to happen today, modulo the documented gaps below.
 
-## Coverage (vocabulary v1 traits round-tripped)
+## Coverage (vocabulary v1 + v2 traits round-tripped)
 
 | Trait | Count in source | Notes |
 | --- | --- | --- |
@@ -34,6 +34,13 @@ The emitted file has a valid YAML frontmatter (`name`, `description`, `allowed-t
 | `@citation_rule` | 1 | F.017 fluent-prose discipline |
 | `@graduated_wisdom` | 2 | W.GOLD.001 + P.GOLD.001 |
 | `@feedback` | 2 | F.014 + F.027 |
+| `@domain_preference` | 6 | legal / brand / capital / customer-vendor / governance / public-representation |
+| `@authority` | 11 | Track-B mutable targets + founder-ratification-required targets |
+| `@date_discipline` | 1 | W.317 date refusal contract |
+| `@invocation_mode` | 3 | auto-fire / explicit / wrap-other-skill |
+| `@embodied_projection` | 2 | Quest 3 interactive review + spatial-photo evidence |
+| `@editorial_defaults` | 7 | paper-program editorial defaults |
+| `@research_defaults` | 6 | paper-program research-decision defaults |
 
 ## Iteration 1 gaps (named, with close targets)
 
@@ -60,7 +67,7 @@ The `@trait(...)` form remains supported and `compositions/founder-core.hs` can 
 
 ### G-3: Larger SKILL.md content not yet covered
 
-The live `~/.claude/skills/founder/SKILL.md` includes structural blocks beyond vocabulary v1:
+The live `~/.claude/skills/founder/SKILL.md` includes structural blocks beyond the original vocabulary v1:
 
 | Live SKILL.md block | Coverage in v1 | Iteration 2 dependency |
 | --- | --- | --- |
@@ -69,7 +76,7 @@ The live `~/.claude/skills/founder/SKILL.md` includes structural blocks beyond v
 | Date discipline (W.317) | ✅ via `@date_discipline` (G-3 next slice closed) | none — refusal_contract + required_components + shape_template + cross_references all round-trip |
 | Known founder defaults | ✅ via `@default` × 8 (subset) | More entries (full table is ~25 rows) |
 | Domain preferences (per-domain table) | ✅ via `@domain_preference` × 6 (G-3 third slice closed) | none — list-shaped (one trait per dispatch row) instead of nested rows; matches @vision_pillar/@refusal/@invocation_mode pattern |
-| Self-edit + tier-write authority (Track B) | ❌ no trait | New `@authority` trait or extension to `@escalation` |
+| Self-edit + tier-write authority (Track B) | ✅ via `@authority` × 11 (G-3 Track-B slice closed) | none — target / action_type / requires / founder_ratification_required all round-trip |
 | Vision pillars | ✅ via `@vision_pillar` | none |
 | Production-only rule | ✅ via `@production_rule` | none |
 | Gap = build | ❌ no trait | Existing `@gap_rule` from vocabulary v1 covers this; just not used in iteration 1 source |
@@ -80,7 +87,7 @@ The live `~/.claude/skills/founder/SKILL.md` includes structural blocks beyond v
 | Embodied projection layer | ✅ via `@embodied_projection` × 2 (G-3 embodied slice closed) | none — interactive Quest 3 review and read-only spatial evidence round-trip through the four Phase 1 emitters |
 | Escape hatch | ✅ via `@escalation` | none (G-1 closed) |
 
-The remaining self-host gap is Track-B authority. The embodied-projection layer has a vocabulary v2 trait; the referenced direction file is not present in this checkout, so the trait is grounded in the board task plus `NORTH_STAR.md` §0.4 embodied projection wording. The papers-program defaults now round-trip through explicit editorial and research traits rather than remaining prose-only skill policy.
+Track-B authority now round-trips as list-shaped `@authority` traits. The emitted section splits mutable targets from founder-ratification-required targets and preserves the action type, mutation requirements, ratification boolean, and notes for each row. The remaining work is no longer vocabulary coverage; it is the explicit cutover/ratification step before replacing the live SKILL.md.
 
 ## Iteration 2 plan
 
@@ -94,9 +101,9 @@ The cutover sequence:
    - ✅ `@domain_preference` (G-3 third slice) — list-shaped (one trait per dispatch row, 6 rows in founder-core.hs). Captures the legal/brand/capital/customer-vendor/governance/public-representation routing table from the live skill's "## Domain preferences" section. Optional `ceiling` field captures spend caps (e.g. "$5 standing spend cap" for capital).
    - ✅ `@embodied_projection` (G-3 embodied slice) — two rows in founder-core.hs: interactive Quest 3 review and read-only spatial evidence. Captures the embodied projection layer from `NORTH_STAR.md` §0.4.
    - ✅ `@editorial_defaults` + `@research_defaults` (G-3 paper defaults slice) — captures the Papers program editorial defaults and research-decision defaults with optional `paper_id` / `paper_phase` scope.
-   - ❌ `@authority` (Track-B) — follow-up task.
+   - ✅ `@authority` (Track-B) — captures mutable targets and founder-ratification-required targets with `target`, `action_type`, `requires`, and `founder_ratification_required`.
 4. Re-run `node scripts/compile-founder-skill.mjs` — full round-trip parity.
-5. **Cutover**: replace `~/.claude/skills/founder/SKILL.md` with the emitted file. Track-B mutable-targets table extends to include `compositions/founder-core.hs` as a `skill-edit` target. Future founder-skill rule changes happen in `.hs` and the skill regenerates.
+5. **Cutover**: replace `~/.claude/skills/founder/SKILL.md` with the emitted file after explicit ratification. Future founder-skill rule changes happen in `.hs` and the skill regenerates.
 6. Validate: founder ratification works through the skill exactly as before.
 
 ## Files in this iteration
@@ -115,15 +122,15 @@ $ pnpm --filter @holoscript/core exec vitest run src/parser/__tests__/TraitConfi
 $ node scripts/compile-founder-skill.mjs
 [compile-founder-skill] source:  ...compositions/founder-core.hs
 [compile-founder-skill] output:  ...dist/founder-skill-emitted.md
-[compile-founder-skill] parsed:  10 objects, 51 traits
-[compile-founder-skill] emitted: 12579 chars to ...dist/founder-skill-emitted.md
+[compile-founder-skill] parsed:  11 objects, 62 traits
+[compile-founder-skill] emitted: 15235 chars to ...dist/founder-skill-emitted.md
 [compile-founder-skill] Round-trip proof complete.
 
 $ pnpm --filter @holoscript/core test -- ContextCompiler
-✓ 115 tests passed
+✓ 123 tests passed
 
 $ pnpm --filter @holoscript/core build
 ✓ Build passed (existing bundle export-shape warnings only)
 ```
 
-Emitted file confirmed valid Claude Code skill format: starts with `---` YAML frontmatter, has `name: founder` + `description: "..."` + `allowed-tools: Bash, Read, Write, Edit, Grep, Glob, WebFetch`, closes frontmatter with `---`, then body header `# founder` + role/domain/surface blockquote + section structure. ContextCompiler tests at 115/115 pass; `pnpm --filter @holoscript/core build` passes with existing bundle export-shape warnings only.
+Emitted file confirmed valid Claude Code skill format: starts with `---` YAML frontmatter, has `name: founder` + `description: "..."` + `allowed-tools: Bash, Read, Write, Edit, Grep, Glob, WebFetch`, closes frontmatter with `---`, then body header `# founder` + role/domain/surface blockquote + section structure. ContextCompiler tests at 123/123 pass; `pnpm --filter @holoscript/core build` passes with existing bundle export-shape warnings only.

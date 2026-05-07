@@ -33,11 +33,10 @@
  *
  * @version 1.5.0 (Phase 2(a) Iteration 2 G-3 vocabulary v2 now covers
  *   @invocation_mode, @date_discipline, @domain_preference,
- *   @embodied_projection, @editorial_defaults, and @research_defaults.
- *   Phase 1 emitters: claude_md + agents_md + cursor_rules + skill_md.
- *   Remaining Phase 1+ follow-ups: anthropic_system_prompt /
- *   brain_includes / mcp_context_loader. Remaining Iteration 2 G-3
- *   vocabulary: Track-B authority.)
+ *   @embodied_projection, @editorial_defaults, @research_defaults, and
+ *   @authority. Phase 1 emitters: claude_md + agents_md + cursor_rules +
+ *   skill_md. Remaining Phase 1+ follow-ups: anthropic_system_prompt /
+ *   brain_includes / mcp_context_loader.)
  * @module @holoscript/core/compiler/ContextCompiler
  */
 
@@ -352,6 +351,22 @@ export interface ContextEmbodiedProjection {
 }
 
 /**
+ * Per-rule: Track-B self-edit + tier-write authority. Vocabulary v2
+ * (Phase 2(a) Iteration 2 G-3 authority slice). Captures the founder
+ * skill's "## Self-edit + tier-write authority (Track B)" mutation
+ * contract: which target can be mutated, what action type is logged,
+ * what every mutation requires, and whether a same-session founder
+ * ratification line is mandatory before committing the change.
+ */
+export interface ContextTrackBAuthority {
+  target: string;
+  actionType: string;
+  requires: string[];
+  founderRatificationRequired: boolean;
+  notes?: string;
+}
+
+/**
  * Parsed context AST - sovereign vocabulary v1 in typed form. The
  * compiler walks the HoloComposition AST, extracts known traits into
  * this shape, validates per BLOCK rules, then dispatches to emitters.
@@ -384,6 +399,7 @@ export interface ContextAST {
   embodiedProjections: ContextEmbodiedProjection[]; // vocabulary v2 (Iteration 2 G-3 embodied slice)
   editorialDefaults: ContextEditorialDefault[]; // vocabulary v2 (Iteration 2 G-3 fourth slice)
   researchDefaults: ContextResearchDefault[]; // vocabulary v2 (Iteration 2 G-3 fourth slice)
+  trackBAuthorities: ContextTrackBAuthority[]; // vocabulary v2 (Iteration 2 G-3 authority slice)
 
   // Diagnostics surfaced from validation
   warnings: ContextValidationDiagnostic[];
@@ -588,6 +604,7 @@ export class ContextCompiler extends CompilerBase {
       embodiedProjections: [],
       editorialDefaults: [],
       researchDefaults: [],
+      trackBAuthorities: [],
       warnings: [],
     };
 
@@ -782,6 +799,19 @@ export class ContextCompiler extends CompilerBase {
           skills: stringListField(cfg, 'skills'),
           notes: stringFieldOrUndef(cfg, 'notes'),
           ceiling: stringFieldOrUndef(cfg, 'ceiling'),
+        });
+        break;
+      case 'authority':
+        ast.trackBAuthorities.push({
+          target: stringField(cfg, 'target', ''),
+          actionType: stringField(cfg, 'action_type', ''),
+          requires: stringListField(cfg, 'requires'),
+          founderRatificationRequired: boolField(
+            cfg,
+            'founder_ratification_required',
+            false
+          ),
+          notes: stringFieldOrUndef(cfg, 'notes'),
         });
         break;
       case 'embodied_projection':
@@ -1014,6 +1044,9 @@ export class ContextCompiler extends CompilerBase {
       }
       lines.push('');
     }
+
+    // Track-B authority (vocabulary v2 - Iteration 2 G-3 authority slice)
+    this.appendTrackBAuthority(lines, ast);
 
     // Papers program defaults (vocabulary v2 - Iteration 2 G-3 fourth slice)
     this.appendPapersProgramDefaults(lines, ast);
@@ -1357,6 +1390,9 @@ export class ContextCompiler extends CompilerBase {
       }
       lines.push('');
     }
+
+    // Track-B authority (vocabulary v2 - Iteration 2 G-3 authority slice)
+    this.appendTrackBAuthority(lines, ast);
 
     // Papers program defaults (vocabulary v2 - Iteration 2 G-3 fourth slice)
     this.appendPapersProgramDefaults(lines, ast);
@@ -1726,6 +1762,9 @@ export class ContextCompiler extends CompilerBase {
       }
       idx.push('');
     }
+
+    // Track-B authority (vocabulary v2 - Iteration 2 G-3 authority slice)
+    this.appendTrackBAuthority(idx, ast);
 
     // Papers program defaults (vocabulary v2 - Iteration 2 G-3 fourth slice)
     this.appendPapersProgramDefaults(idx, ast);
@@ -2101,6 +2140,9 @@ export class ContextCompiler extends CompilerBase {
       lines.push('');
     }
 
+    // Track-B authority (vocabulary v2 - Iteration 2 G-3 authority slice)
+    this.appendTrackBAuthority(lines, ast);
+
     // Papers program defaults (vocabulary v2 - Iteration 2 G-3 fourth slice)
     this.appendPapersProgramDefaults(lines, ast);
 
@@ -2307,6 +2349,48 @@ export class ContextCompiler extends CompilerBase {
     return lines.join('\n');
   }
 
+  private appendTrackBAuthority(lines: string[], ast: ContextAST): void {
+    if (ast.trackBAuthorities.length === 0) {
+      return;
+    }
+
+    const renderRows = (heading: string, rows: ContextTrackBAuthority[]): void => {
+      if (rows.length === 0) return;
+      lines.push(`### ${heading}`);
+      lines.push('');
+      lines.push('| Target | Action type | Requires | Founder ratification | Notes |');
+      lines.push('|---|---|---|---|---|');
+      for (const row of rows) {
+        const actionType = row.actionType ? `\`${mdTableCell(row.actionType)}\`` : '*(unspecified)*';
+        const requires = row.requires.length > 0
+          ? row.requires.map((r) => mdTableCell(r)).join('<br>')
+          : '*(none)*';
+        const notes = row.notes ? mdTableCell(row.notes) : '';
+        lines.push(
+          `| ${mdTableCell(row.target)} | ${actionType} | ${requires} | ${row.founderRatificationRequired ? 'Yes' : 'No'} | ${notes} |`
+        );
+      }
+      lines.push('');
+    };
+
+    const mutableTargets = ast.trackBAuthorities.filter(
+      (row) => !row.founderRatificationRequired
+    );
+    const founderRatifiedTargets = ast.trackBAuthorities.filter(
+      (row) => row.founderRatificationRequired
+    );
+
+    lines.push('## Self-edit + tier-write authority (Track B)');
+    lines.push('');
+    lines.push(
+      'Every mutation requires backup-before-write, normal Edit/Write mutation, ' +
+        'and append-only audit logging with a cited reason.'
+    );
+    lines.push('');
+    renderRows('Mutable targets', mutableTargets);
+    renderRows('Founder-ratification-required targets', founderRatifiedTargets);
+  }
+
   private appendPapersProgramDefaults(lines: string[], ast: ContextAST): void {
     if (ast.editorialDefaults.length === 0 && ast.researchDefaults.length === 0) {
       return;
@@ -2404,6 +2488,10 @@ function boolField(
 ): boolean {
   const v = cfg[key];
   return typeof v === 'boolean' ? v : fallback;
+}
+
+function mdTableCell(value: string): string {
+  return value.replace(/\|/g, '\\|').replace(/[\r\n]+/g, '<br>');
 }
 
 // YAML helpers for compile_to_skill_md frontmatter
