@@ -47,6 +47,7 @@
     "@holoscript/core": "workspace:*",
     "@holoscript/engine": "workspace:*",
     "@holoscript/core-types": "workspace:*",
+    "@holoscript/framework": "workspace:*",
     "@holoscript/llm-provider": "workspace:*",
     "@holoscript/sdk": "workspace:*",
     "@types/adm-zip": "^0.5.7",

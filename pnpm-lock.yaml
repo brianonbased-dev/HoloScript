@@ -51,6 +51,9 @@ importers:
 
   .:
     dependencies:
+      '@holoscript/cli':
+        specifier: workspace:*
+        version: link:packages/cli
       tree-sitter:
         specifier: ^0.22.4
         version: 0.22.4
@@ -415,6 +418,9 @@ importers:
       '@holoscript/engine':
         specifier: workspace:*
         version: link:../engine
+      '@holoscript/framework':
+        specifier: workspace:*
+        version: link:../framework
       '@holoscript/llm-provider':
         specifier: workspace:*
         version: link:../llm-provider

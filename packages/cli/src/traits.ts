@@ -828,7 +828,7 @@ export async function suggestTraits(description: string): Promise<TraitInfo[]> {
   const suggested: TraitInfo[] = [];
 
   // Try AI-assisted search if adapter available
-  const { getDefaultAIAdapter } = await import('@holoscript/core');
+  const { getDefaultAIAdapter } = await import('@holoscript/framework/ai');
   const adapter = getDefaultAIAdapter();
 
   if (adapter && adapter.getEmbeddings) {

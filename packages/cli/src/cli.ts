@@ -81,6 +81,40 @@ function cliError(
   console.error(`\x1b[2mRun \x1b[36mholoscript help\x1b[22m\x1b[2m for all commands.\x1b[0m`);
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function printJson(value: unknown): void {
+  console.log(JSON.stringify(value, null, 2));
+}
+
+function printGraphStatus(status: unknown): void {
+  const payload = asRecord(status);
+  const diskCache = asRecord(payload.diskCache);
+  const stats = asRecord(diskCache.stats);
+
+  console.log('\n\x1b[36mAbsorb graph status\x1b[0m\n');
+  console.log(`  In memory:       ${payload.inMemory ? 'yes' : 'no'}`);
+  console.log(`  Graph RAG ready: ${payload.graphRAGReady ? 'yes' : 'no'}`);
+  console.log(`  Root dir:        ${String(payload.rootDir ?? diskCache.rootDir ?? 'n/a')}`);
+  console.log(`  Disk cache:      ${diskCache.exists ? 'yes' : 'no'}`);
+  if (diskCache.exists) {
+    console.log(`  Cache age:       ${String(diskCache.ageHuman ?? 'n/a')}`);
+    console.log(`  Fresh:           ${diskCache.fresh ? 'yes' : 'no'}`);
+    if (Object.keys(stats).length > 0) {
+      console.log(`  Files:           ${String(stats.totalFiles ?? 'n/a')}`);
+      console.log(`  Symbols:         ${String(stats.totalSymbols ?? 'n/a')}`);
+    }
+  }
+  if (diskCache.hint) {
+    console.log(`\n  \x1b[2m${String(diskCache.hint)}\x1b[0m`);
+  }
+  console.log('');
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const options = parseArgs(args);
@@ -3254,6 +3288,91 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
       } catch (err: unknown) {
         console.error(
           `\x1b[31mAbsorb error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
+        );
+        if (err instanceof Error && err.stack) console.error(err.stack);
+        process.exit(1);
+      }
+      break;
+    }
+
+    case 'graph-status': {
+      try {
+        const { handleCodebaseTool } = await import('@holoscript/absorb-service/mcp');
+        const status = await handleCodebaseTool('holo_graph_status', {});
+        if (options.json) {
+          printJson(status);
+        } else {
+          printGraphStatus(status);
+        }
+        process.exit(0);
+      } catch (err: unknown) {
+        console.error(
+          `\x1b[31mGraph status error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
+        );
+        if (err instanceof Error && err.stack) console.error(err.stack);
+        process.exit(1);
+      }
+      break;
+    }
+
+    case 'impact-analysis': {
+      const filesArg = options.input || options.impactFiles;
+      if (!filesArg) {
+        cliError('E001', 'No changed files specified.', {
+          usage: 'holoscript impact-analysis <comma-separated-files> [--dir <scan-root>] [--json]',
+          hint: 'Paths are relative to --dir. Example: `holoscript impact-analysis src/cli.ts --dir packages/cli/src --json`.',
+        });
+        process.exit(1);
+      }
+
+      try {
+        const path = await import('path');
+        const { handleCodebaseTool } = await import('@holoscript/absorb-service/mcp');
+        const rootDir = options.queryDir ? path.resolve(options.queryDir) : process.cwd();
+        const changedFiles = filesArg
+          .split(',')
+          .map((file) => file.trim())
+          .filter(Boolean);
+
+        const absorb = await handleCodebaseTool('holo_absorb_repo', {
+          rootDir,
+          force: false,
+          outputFormat: 'stats',
+          includeBuildArtifacts: false,
+          interactive: false,
+        });
+        const absorbPayload = asRecord(absorb);
+        if (absorbPayload.error) {
+          console.error(`\x1b[31mAbsorb failed: ${String(absorbPayload.error)}\x1b[0m`);
+          if (absorbPayload.hint) console.error(String(absorbPayload.hint));
+          process.exit(1);
+        }
+
+        const impact = await handleCodebaseTool('holo_impact_analysis', { changedFiles });
+        const impactPayload = asRecord(impact);
+        if (impactPayload.error) {
+          console.error(`\x1b[31mImpact analysis failed: ${String(impactPayload.error)}\x1b[0m`);
+          if (impactPayload.hint) console.error(String(impactPayload.hint));
+          process.exit(1);
+        }
+
+        if (options.json) {
+          printJson({ rootDir, changedFiles, absorb, impact });
+        } else {
+          console.log('\n\x1b[36mAbsorb impact analysis\x1b[0m\n');
+          console.log(`  Root dir:      ${rootDir}`);
+          console.log(`  Changed files: ${changedFiles.join(', ')}`);
+          console.log(`  Blast radius:  ${String(impactPayload.blastRadius ?? 'n/a')}`);
+          console.log(`  Affected:      ${String(impactPayload.affectedCount ?? 'n/a')}`);
+          if (impactPayload.cacheNote) {
+            console.log(`  Cache:         ${String(impactPayload.cacheNote)}`);
+          }
+          console.log('');
+        }
+        process.exit(0);
+      } catch (err: unknown) {
+        console.error(
+          `\x1b[31mImpact analysis error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
         );
         if (err instanceof Error && err.stack) console.error(err.stack);
         process.exit(1);

@@ -52,6 +52,8 @@ export interface CLIOptions {
     | 'prerender'
     | 'pdf'
     | 'absorb'
+    | 'graph-status'
+    | 'impact-analysis'
     | 'query'
     | 'self-improve'
     | 'daemon'
@@ -277,6 +279,8 @@ export function parseArgs(args: string[]): CLIOptions {
           'import',
           'visualize',
           'absorb',
+          'graph-status',
+          'impact-analysis',
           'query',
           'self-improve',
           'daemon',
@@ -642,6 +646,10 @@ Usage: holoscript <command> [options] [input]
                     Use --depth shallow|medium|deep to control detail
                     Use --since <ref> for git-scoped change analysis
                     Use --impact <files> for blast-radius queries
+  graph-status      Print the local Absorb graph cache status
+  impact-analysis <files>
+                    Run Absorb then report blast radius for comma-separated files
+                    Use --dir <root> to set scan root (default: cwd)
   query <question>  Semantic GraphRAG search over an absorbed codebase
                     Use --provider bm25|xenova|openai|ollama (default: bm25)
                     Use --with-llm to get an LLM-synthesised answer
@@ -818,6 +826,8 @@ Usage: holoscript <command> [options] [input]
 
   \x1b[2m# Self-Improvement\x1b[0m
   holoscript self-improve                     # Run 5 cycles (default)
+  holoscript graph-status --json              # Machine-readable graph cache status
+  holoscript impact-analysis "src/cli.ts" --dir packages/cli/src --json
   holoscript self-improve --cycles 10         # Run 10 improvement cycles
   holoscript self-improve --harvest --commit  # Harvest training data + auto-commit
   holoscript self-improve --daemon            # Continuous mode until convergence
