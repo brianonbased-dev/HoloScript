@@ -266,6 +266,20 @@ function makeFullV1Composition(): HoloComposition {
               effect: 'wrapping skill calls /founder for a sub-decision and proceeds',
             },
           },
+          // Vocabulary v2 (Iteration 2 G-3 next slice)
+          {
+            type: 'ObjectTrait',
+            name: 'date_discipline',
+            config: {
+              wisdom_id: 'W.317',
+              refusal_contract: 'Refuse to surface a bare date for any HoloScript milestone; date must carry blockers + staleness + readiness',
+              required_components: ['open_blockers', 'matrix_row_staleness', 'engineering_readiness'],
+              shape_template:
+                'DATE: 2026-MM-DD\nOPEN BLOCKERS:\n  - <named blocker 1>\n  - <named blocker 2>\nMATRIX-ROW STALENESS: <last-verified + ✅/⚠️/❌>\nENGINEERING-READINESS: <green/yellow/red across W.310-W.317>',
+              reason: 'Bare optimistic dates burn credibility on contact with reality (W.317 + W.099)',
+              cross_references: ['F.030 paper-audit-matrix-always-stale', 'W.099 deploy-date-without-blocker'],
+            },
+          },
         ],
       },
     ],
@@ -1628,5 +1642,166 @@ describe('compile() - vocabulary v2 -> @invocation_mode', () => {
       ''
     );
     expect(result.ast.invocationModes[0]?.mode).toBe('explicit');
+  });
+});
+
+// --- Vocabulary v2 (Iteration 2 G-3 next slice) -- @date_discipline ---
+
+describe('compile() - vocabulary v2 -> @date_discipline', () => {
+  it('extracts the W.317 date-discipline contract from the full V1 fixture', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const result = compiler.compile(makeFullV1Composition(), '');
+    expect(result.ast.dateDisciplines).toHaveLength(1);
+    const dd = result.ast.dateDisciplines[0]!;
+    expect(dd.wisdomId).toBe('W.317');
+    expect(dd.requiredComponents).toEqual([
+      'open_blockers',
+      'matrix_row_staleness',
+      'engineering_readiness',
+    ]);
+    expect(dd.shapeTemplate).toContain('DATE: 2026-MM-DD');
+    expect(dd.shapeTemplate).toContain('ENGINEERING-READINESS:');
+    // False case: cross-references must come through as a populated list, not a single string
+    expect(dd.crossReferences).toEqual([
+      'F.030 paper-audit-matrix-always-stale',
+      'W.099 deploy-date-without-blocker',
+    ]);
+  });
+
+  it('emits ## Date discipline section in claude_md with required components + output shape', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeFullV1Composition(), '').files['CLAUDE.md'];
+    expect(md).toContain('## Date discipline');
+    expect(md).toContain('### Refusal contract (W.317)');
+    expect(md).toContain('**Required components** (all must be present):');
+    expect(md).toContain('- open_blockers');
+    expect(md).toContain('- matrix_row_staleness');
+    expect(md).toContain('- engineering_readiness');
+    expect(md).toContain('**Output shape**:');
+    expect(md).toContain('DATE: 2026-MM-DD');
+    expect(md).toContain('**Cross-references**: F.030 paper-audit-matrix-always-stale, W.099 deploy-date-without-blocker');
+    // False case: must NOT print the wisdomId as a bare line outside the heading
+    expect(md).not.toContain('\nwisdomId: W.317');
+  });
+
+  it('renders shape_template inside a fenced code block', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeFullV1Composition(), '').files['CLAUDE.md'];
+    // Code-fenced output template (literal triple-backticks bracket the shape)
+    const fenceCount = (md.match(/```/g) || []).length;
+    expect(fenceCount).toBeGreaterThanOrEqual(2);
+    // Locate the fence around the date-discipline shape
+    const dateBlockIdx = md.indexOf('## Date discipline');
+    const fenceAfterIdx = md.indexOf('```', dateBlockIdx);
+    expect(fenceAfterIdx).toBeGreaterThan(dateBlockIdx);
+  });
+
+  it('emits ## Date discipline in agents_md (cross-tool surface)', () => {
+    const compiler = new ContextCompiler({ formats: ['agents_md'] });
+    const md = compiler.compile(makeFullV1Composition(), '').files['AGENTS.md'];
+    expect(md).toContain('## Date discipline');
+    expect(md).toContain('### Refusal contract (W.317)');
+  });
+
+  it('emits ## Date discipline in skill_md (Phase 2(a) self-host target)', () => {
+    const compiler = new ContextCompiler({ formats: ['skill_md'] });
+    const fixture = makeFullV1Composition();
+    const identity = fixture.objects[0]!.traits!.find((t) => t.name === 'identity')!;
+    identity.config.description = 'Test skill description for date_discipline emit verification.';
+    const md = compiler.compile(fixture, '').files['SKILL.md'];
+    expect(md).toContain('## Date discipline');
+    expect(md).toContain('DATE: 2026-MM-DD');
+  });
+
+  it('emits ## Date discipline in cursor_rules index file', () => {
+    const compiler = new ContextCompiler({ formats: ['cursor_rules'] });
+    const result = compiler.compile(makeFullV1Composition(), '');
+    const indexContent = result.files['.cursor/rules/_ecosystem-context.mdc'];
+    expect(indexContent).toContain('## Date discipline');
+    expect(indexContent).toContain('### Refusal contract (W.317)');
+  });
+
+  it('places Date discipline BEFORE Citation discipline (consistent ordering across emitters)', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeFullV1Composition(), '').files['CLAUDE.md'];
+    const dateIdx = md.indexOf('## Date discipline');
+    const citationIdx = md.indexOf('## Citation discipline');
+    expect(dateIdx).toBeGreaterThan(0);
+    expect(citationIdx).toBeGreaterThan(0);
+    expect(dateIdx).toBeLessThan(citationIdx);
+  });
+
+  it('omits ## Date discipline section when no @date_discipline traits declared', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeComposition(), '').files['CLAUDE.md'];
+    // False case: section header must NOT appear in an empty composition
+    expect(md).not.toContain('## Date discipline');
+    expect(md).not.toContain('### Refusal contract');
+  });
+
+  it('renders without optional fields cleanly (no dangling Reason / Cross-references bullets)', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'A',
+            properties: [],
+            traits: [
+              {
+                type: 'ObjectTrait',
+                name: 'date_discipline',
+                config: {
+                  wisdom_id: 'W.317',
+                  refusal_contract: 'no bare dates',
+                  required_components: ['blockers'],
+                  shape_template: 'DATE: ...',
+                  // reason + cross_references intentionally omitted
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      ''
+    ).files['CLAUDE.md'];
+    expect(md).toContain('## Date discipline');
+    expect(md).toContain('### Refusal contract (W.317)');
+    expect(md).toContain('- blockers');
+    // False case: optional fields must not leak as empty bullets
+    expect(md).not.toContain('**Reason**:');
+    expect(md).not.toContain('**Cross-references**:');
+  });
+
+  it('drops the wisdomId qualifier when wisdom_id is empty', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'A',
+            properties: [],
+            traits: [
+              {
+                type: 'ObjectTrait',
+                name: 'date_discipline',
+                config: {
+                  // wisdom_id intentionally omitted
+                  refusal_contract: 'no bare dates',
+                  required_components: ['blockers'],
+                  shape_template: 'DATE: ...',
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      ''
+    ).files['CLAUDE.md'];
+    expect(md).toContain('### Refusal contract');
+    // False case: must NOT emit empty parens "(W.317)" when wisdomId is empty
+    expect(md).not.toContain('### Refusal contract ()');
   });
 });

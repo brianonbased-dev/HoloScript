@@ -224,6 +224,24 @@ export interface ContextHardPhysicalGap {
 }
 
 /**
+ * Per-rule: a date-surfacing refusal contract. Vocabulary v2 (Phase 2(a)
+ * Iteration 2 G-3 second slice). Captures `~/.claude/skills/founder/SKILL.md`
+ * § Date discipline (W.317): the Martinis-lesson rule that bare optimistic
+ * dates burn credibility, so any date surfaced for a milestone must carry
+ * named open blockers, matrix-row staleness signal, and engineering
+ * readiness color. Multiple date-discipline contracts per agent context
+ * are allowed (e.g. one for paper milestones, one for service deploys).
+ */
+export interface ContextDateDiscipline {
+  wisdomId: string;                  // "W.317" or similar
+  refusalContract: string;           // one-line summary of the gate
+  requiredComponents: string[];      // ordered list (e.g. open_blockers, matrix_row_staleness, engineering_readiness)
+  shapeTemplate: string;             // literal output template (multi-line OK)
+  reason?: string;                   // citation / context
+  crossReferences?: string[];        // related rules / paper-matrix columns
+}
+
+/**
  * Per-rule: how this skill can be invoked. Vocabulary v2 (Phase 2(a)
  * Iteration 2 G-3 first slice). The founder skill exposes 3 modes
  * documented in `~/.claude/skills/founder/SKILL.md` § Invocation modes:
@@ -282,7 +300,8 @@ export interface ContextAST {
   includes: ContextInclude[];
   routines: ContextRoutine[];
   hardPhysicalGaps: ContextHardPhysicalGap[];
-  invocationModes: ContextInvocationMode[];   // vocabulary v2 (Iteration 2 G-3)
+  invocationModes: ContextInvocationMode[];   // vocabulary v2 (Iteration 2 G-3 first slice)
+  dateDisciplines: ContextDateDiscipline[];   // vocabulary v2 (Iteration 2 G-3 next slice)
 
   // Diagnostics surfaced from validation
   warnings: ContextValidationDiagnostic[];
@@ -482,6 +501,7 @@ export class ContextCompiler extends CompilerBase {
       routines: [],
       hardPhysicalGaps: [],
       invocationModes: [],
+      dateDisciplines: [],
       warnings: [],
     };
 
@@ -658,6 +678,18 @@ export class ContextCompiler extends CompilerBase {
           example: stringFieldOrUndef(cfg, 'example'),
         });
         break;
+      case 'date_discipline': {
+        const crossRefs = stringListField(cfg, 'cross_references');
+        ast.dateDisciplines.push({
+          wisdomId: stringField(cfg, 'wisdom_id', ''),
+          refusalContract: stringField(cfg, 'refusal_contract', ''),
+          requiredComponents: stringListField(cfg, 'required_components'),
+          shapeTemplate: stringField(cfg, 'shape_template', ''),
+          reason: stringFieldOrUndef(cfg, 'reason'),
+          crossReferences: crossRefs.length > 0 ? crossRefs : undefined,
+        });
+        break;
+      }
       default:
         // Unknown trait - record as warning, don't block (vocabulary
         // may grow; unknown traits in source today might be valid in v2).
@@ -951,6 +983,42 @@ export class ContextCompiler extends CompilerBase {
       lines.push('');
     }
 
+    // Date discipline (W.317) (vocabulary v2 - Iteration 2 G-3 next slice)
+    if (ast.dateDisciplines.length > 0) {
+      lines.push('## Date discipline');
+      lines.push('');
+      for (const d of ast.dateDisciplines) {
+        const wisdomLabel = d.wisdomId ? ` (${d.wisdomId})` : '';
+        lines.push(`### Refusal contract${wisdomLabel}`);
+        lines.push('');
+        lines.push(`**${d.refusalContract}**`);
+        lines.push('');
+        if (d.requiredComponents.length > 0) {
+          lines.push('**Required components** (all must be present):');
+          for (const comp of d.requiredComponents) {
+            lines.push(`- ${comp}`);
+          }
+          lines.push('');
+        }
+        if (d.shapeTemplate) {
+          lines.push('**Output shape**:');
+          lines.push('');
+          lines.push('```');
+          lines.push(d.shapeTemplate);
+          lines.push('```');
+          lines.push('');
+        }
+        if (d.reason) {
+          lines.push(`**Reason**: ${d.reason}`);
+          lines.push('');
+        }
+        if (d.crossReferences && d.crossReferences.length > 0) {
+          lines.push(`**Cross-references**: ${d.crossReferences.join(', ')}`);
+          lines.push('');
+        }
+      }
+    }
+
     // Citation rules
     if (ast.citationRules.length > 0) {
       lines.push(`## Citation discipline`);
@@ -1232,6 +1300,42 @@ export class ContextCompiler extends CompilerBase {
         }
       }
       lines.push('');
+    }
+
+    // Date discipline (W.317) (vocabulary v2 - Iteration 2 G-3 next slice)
+    if (ast.dateDisciplines.length > 0) {
+      lines.push('## Date discipline');
+      lines.push('');
+      for (const d of ast.dateDisciplines) {
+        const wisdomLabel = d.wisdomId ? ` (${d.wisdomId})` : '';
+        lines.push(`### Refusal contract${wisdomLabel}`);
+        lines.push('');
+        lines.push(`**${d.refusalContract}**`);
+        lines.push('');
+        if (d.requiredComponents.length > 0) {
+          lines.push('**Required components** (all must be present):');
+          for (const comp of d.requiredComponents) {
+            lines.push(`- ${comp}`);
+          }
+          lines.push('');
+        }
+        if (d.shapeTemplate) {
+          lines.push('**Output shape**:');
+          lines.push('');
+          lines.push('```');
+          lines.push(d.shapeTemplate);
+          lines.push('```');
+          lines.push('');
+        }
+        if (d.reason) {
+          lines.push(`**Reason**: ${d.reason}`);
+          lines.push('');
+        }
+        if (d.crossReferences && d.crossReferences.length > 0) {
+          lines.push(`**Cross-references**: ${d.crossReferences.join(', ')}`);
+          lines.push('');
+        }
+      }
     }
 
     // Citation discipline (universal)
@@ -1534,6 +1638,42 @@ export class ContextCompiler extends CompilerBase {
         }
       }
       idx.push('');
+    }
+
+    // Date discipline (W.317) (vocabulary v2 - Iteration 2 G-3 next slice)
+    if (ast.dateDisciplines.length > 0) {
+      idx.push('## Date discipline');
+      idx.push('');
+      for (const d of ast.dateDisciplines) {
+        const wisdomLabel = d.wisdomId ? ` (${d.wisdomId})` : '';
+        idx.push(`### Refusal contract${wisdomLabel}`);
+        idx.push('');
+        idx.push(`**${d.refusalContract}**`);
+        idx.push('');
+        if (d.requiredComponents.length > 0) {
+          idx.push('**Required components** (all must be present):');
+          for (const comp of d.requiredComponents) {
+            idx.push(`- ${comp}`);
+          }
+          idx.push('');
+        }
+        if (d.shapeTemplate) {
+          idx.push('**Output shape**:');
+          idx.push('');
+          idx.push('```');
+          idx.push(d.shapeTemplate);
+          idx.push('```');
+          idx.push('');
+        }
+        if (d.reason) {
+          idx.push(`**Reason**: ${d.reason}`);
+          idx.push('');
+        }
+        if (d.crossReferences && d.crossReferences.length > 0) {
+          idx.push(`**Cross-references**: ${d.crossReferences.join(', ')}`);
+          idx.push('');
+        }
+      }
     }
 
     // Citation discipline
@@ -1856,6 +1996,42 @@ export class ContextCompiler extends CompilerBase {
         }
       }
       lines.push('');
+    }
+
+    // Date discipline (W.317) (vocabulary v2 - Iteration 2 G-3 next slice)
+    if (ast.dateDisciplines.length > 0) {
+      lines.push('## Date discipline');
+      lines.push('');
+      for (const d of ast.dateDisciplines) {
+        const wisdomLabel = d.wisdomId ? ` (${d.wisdomId})` : '';
+        lines.push(`### Refusal contract${wisdomLabel}`);
+        lines.push('');
+        lines.push(`**${d.refusalContract}**`);
+        lines.push('');
+        if (d.requiredComponents.length > 0) {
+          lines.push('**Required components** (all must be present):');
+          for (const comp of d.requiredComponents) {
+            lines.push(`- ${comp}`);
+          }
+          lines.push('');
+        }
+        if (d.shapeTemplate) {
+          lines.push('**Output shape**:');
+          lines.push('');
+          lines.push('```');
+          lines.push(d.shapeTemplate);
+          lines.push('```');
+          lines.push('');
+        }
+        if (d.reason) {
+          lines.push(`**Reason**: ${d.reason}`);
+          lines.push('');
+        }
+        if (d.crossReferences && d.crossReferences.length > 0) {
+          lines.push(`**Cross-references**: ${d.crossReferences.join(', ')}`);
+          lines.push('');
+        }
+      }
     }
 
     // Citation discipline

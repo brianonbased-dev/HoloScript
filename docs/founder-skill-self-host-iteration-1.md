@@ -1,7 +1,7 @@
 # Founder Skill Self-Host — Iteration 1 Status Memo
 
 **Date**: 2026-05-06
-**Status**: PROOF complete; G-1/G-2 closed; G-3 first slice (`@invocation_mode`) closed; cutover still deferred until remaining G-3 vocabulary v2 traits land
+**Status**: PROOF complete; G-1/G-2 closed; G-3 slices (`@invocation_mode` + `@date_discipline`) closed; cutover still deferred until remaining G-3 vocabulary v2 traits land
 **Commit**: (filed alongside `compositions/founder-core.hs` + `scripts/compile-founder-skill.mjs`)
 **Spec source**: `ai-ecosystem/research/2026-05-06_context-as-compile-target.md` § Phase 2
 
@@ -65,7 +65,7 @@ The live `~/.claude/skills/founder/SKILL.md` includes structural blocks beyond v
 |---|---|---|
 | Authority order | ✅ via `@authority_order` | none |
 | The Four Refusals | ✅ via `@refusal` × 4 | none |
-| Date discipline (W.317) | ❌ no trait | New `@date_discipline` trait or extend `@gap_rule` |
+| Date discipline (W.317) | ✅ via `@date_discipline` (G-3 next slice closed) | none — refusal_contract + required_components + shape_template + cross_references all round-trip |
 | Known founder defaults | ✅ via `@default` × 8 (subset) | More entries (full table is ~25 rows) |
 | Domain preferences (per-domain table) | ❌ no trait | New `@domain_preferences` trait + nested per-domain rows |
 | Self-edit + tier-write authority (Track B) | ❌ no trait | New `@authority` trait or extension to `@escalation` |
@@ -88,7 +88,8 @@ The cutover sequence:
 2. ✅ Close **G-2** (`@trait: { ... }` now populates config in the parser).
 3. Vocabulary v2 ratification — add the missing traits from the §G-3 table above.
    - ✅ `@invocation_mode` (G-3 first slice) — landed via the same parser-keyword fix pattern as G-1 (`behavior` is reserved → field renamed to `effect`).
-   - ❌ `@domain_preferences`, `@authority` (Track-B), `@editorial_defaults` / `@research_defaults` (papers program), `@date_discipline`, `@embodied_projection` — each is its own follow-up task.
+   - ✅ `@date_discipline` (G-3 next slice) — captures the W.317 refusal contract (open_blockers + matrix_row_staleness + engineering_readiness) plus the literal output shape template; emit places it before Citation discipline.
+   - ❌ `@domain_preferences`, `@authority` (Track-B), `@editorial_defaults` / `@research_defaults` (papers program), `@embodied_projection` — each is its own follow-up task.
 4. Re-run `node scripts/compile-founder-skill.mjs` — full round-trip parity.
 5. **Cutover**: replace `~/.claude/skills/founder/SKILL.md` with the emitted file. Track-B mutable-targets table extends to include `compositions/founder-core.hs` as a `skill-edit` target. Future founder-skill rule changes happen in `.hs` and the skill regenerates.
 6. Validate: founder ratification works through the skill exactly as before.

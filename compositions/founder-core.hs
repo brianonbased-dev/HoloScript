@@ -202,6 +202,24 @@ object "OperationalContract" {
     refuse_to_escalate_when: ["known default", "vision pillar", "GOLD precedent"]
   )
 
+  @date_discipline(
+    wisdom_id: "W.317",
+    refusal_contract: "Refuse to surface a bare date for any HoloScript milestone (paper submission, feature ship, service deploy, experiment cutover, benchmark target, Lotus Genesis trigger date, by-end-of-week handoff promise) unless ALL three required components are present",
+    required_components: [
+      "open_blockers (named in one sentence each, never just 'cleanup')",
+      "matrix_row_staleness (paper-audit-matrix.md row, last-verified + ✅/⚠️/❌)",
+      "engineering_readiness (W.310-W.317 columns: cal_story / twin_test / decoder_cost / scaling_memo / staleness)"
+    ],
+    shape_template: "DATE: 2026-MM-DD\nOPEN BLOCKERS:\n  - <named blocker 1 - one sentence each>\n  - <named blocker 2>\nMATRIX-ROW STALENESS: <last-verified timestamp + token (✅/⚠️/❌)>\nENGINEERING-READINESS: <green/yellow/red across the 5 W.310-W.317 columns>",
+    reason: "Optimistic 5-year predictions are warped by funding incentives, not engineering certainty (Martinis lesson). Bare optimistic dates burn credibility on contact with reality. W.317 + W.099.",
+    cross_references: [
+      "F.030 paper-audit-matrix-always-stale",
+      "W.099 deploy-date-without-blocker",
+      "W.310-W.317 paper-matrix readiness columns",
+      "research/2026-04-27_martinis-nobel-quantum-system-engineering.md"
+    ]
+  )
+
   @citation_rule(
     fluent_prose_threshold_chars: 150,
     required: ["file:line", "URL", "GOLD ID", "CLAUDE.md section", "MEMORY.md F-id"],
