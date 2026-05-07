@@ -7,12 +7,12 @@
 
 import {
   HoloScriptPlusParser,
+  compilePipelineSourceToNode,
   parseHolo,
   parseHoloStrict,
-  // parsePipeline,
+  parsePipeline,
   VR_TRAITS,
 } from '@holoscript/core';
-// import { compilePipelineSourceToNode } from '@holoscript/core';
 
 import {
   suggestUniversalTraits,
@@ -556,7 +556,16 @@ async function handleParsePipeline(args: Record<string, unknown>) {
   const code = args.code as string;
 
   try {
-    return { success: false, error: 'Pipeline compiler disabled' };
+    if (typeof code !== 'string') {
+      return { success: false, error: 'Missing required string argument: code' };
+    }
+
+    const result = parsePipeline(code);
+    return {
+      success: result.success,
+      pipeline: result.pipeline,
+      errors: result.errors,
+    };
   } catch (error) {
     return {
       success: false,
@@ -577,7 +586,23 @@ async function handleCompilePipeline(args: Record<string, unknown>) {
     };
   }
 
-  return { success: false, error: 'Pipeline compiler disabled' };
+  if (typeof code !== 'string') {
+    return { success: false, error: 'Missing required string argument: code' };
+  }
+
+  const result = compilePipelineSourceToNode(code, { moduleName });
+  if (!result.success) {
+    return {
+      success: false,
+      errors: result.errors || [],
+      error: (result.errors || []).join('; ') || 'Pipeline compilation failed',
+    };
+  }
+
+  return {
+    success: true,
+    code: result.code,
+  };
 }
 
 // === VALIDATION HANDLER ===
