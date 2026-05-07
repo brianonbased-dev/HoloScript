@@ -12,8 +12,8 @@
  *      - Worker invalid JSON → typed error
  *      - Worker HTTP 5xx → error message preserved
  *   2. Abuse-path validation
- *      - Oversized base64 payload forwards to worker unchanged (documents
- *        the currently-missing MCP-layer size cap; see TODO note)
+ *      - Oversized base64 payload is rejected at the MCP layer before the
+ *        worker can receive an inline JSON-RPC payload
  *      - Rapid retries across send + feed share ONE rate bucket per
  *        API key (fix candidate if the intent is separate buckets)
  *      - Malformed mediaType values rejected with a clear message
@@ -33,6 +33,19 @@ const { callWorkerMock, workerConfiguredMock } = vi.hoisted(() => ({
 vi.mock('../hologram-renderer', () => ({
   renderHologramBundle: vi.fn(),
   resolveStoreRoot: vi.fn(() => '/tmp/ignored'),
+}));
+
+vi.mock('@holoscript/engine/hologram', () => ({
+  QuiltCompiler: class {
+    compileQuilt(_composition: unknown, config: Record<string, unknown> = {}) {
+      return { config: { views: 45, ...config } };
+    }
+  },
+  MVHEVCCompiler: class {
+    compileMVHEVC(_composition: unknown, config: Record<string, unknown> = {}) {
+      return { config: { fps: 30, ...config } };
+    }
+  },
 }));
 
 vi.mock('../hologram-worker-client', async () => {

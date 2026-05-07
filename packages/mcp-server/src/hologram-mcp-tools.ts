@@ -52,6 +52,13 @@ type HologramTarget = 'quilt' | 'mvhevc' | 'parallax';
  * (id: oversized-payload-rejection — abuse-path, high severity).
  */
 const DEFAULT_MAX_HOLOGRAM_BASE64_BYTES = 10 * 1024 * 1024; // 10 MiB of base64 (~7.5 MiB decoded)
+const HOLOGRAM_ASSETS = new Set([
+  'depth.bin',
+  'normal.bin',
+  'quilt.png',
+  'mvhevc.mp4',
+  'parallax.webm',
+]);
 
 function getMaxHologramBase64Bytes(): number {
   const raw = process.env.HOLOGRAM_MCP_MAX_BASE64_BYTES;
@@ -61,11 +68,11 @@ function getMaxHologramBase64Bytes(): number {
   return parsed;
 }
 
-function assertBase64WithinLimit(b64: string): void {
+function assertBase64WithinLimit(b64: string, label = 'sourceBase64'): void {
   const cap = getMaxHologramBase64Bytes();
   if (b64.length > cap) {
     throw new Error(
-      `hologram: oversized hologram payload — sourceBase64 length ${b64.length} exceeds cap ${cap} bytes (set HOLOGRAM_MCP_MAX_BASE64_BYTES to override)`,
+      `hologram: oversized hologram payload — ${label} length ${b64.length} exceeds cap ${cap} bytes (set HOLOGRAM_MCP_MAX_BASE64_BYTES to override)`,
     );
   }
 }
@@ -84,18 +91,24 @@ function assertBase64WithinLimit(b64: string): void {
  */
 const BASE64_RE = /^[A-Za-z0-9+/\-_]+=*$/;
 
-function assertBase64WellFormed(b64: string): void {
+function assertBase64WellFormed(b64: string, label = 'sourceBase64'): void {
   if (b64.length === 0) {
     // Empty-string branch is handled by resolveCompositionSource which throws
     // "one of source, sourceUrl, or sourceBase64 is required"; don't shadow it.
     return;
   }
   const stripped = b64.replace(/\s+/g, '');
-  if (stripped.length === 0 || !BASE64_RE.test(stripped)) {
+  if (stripped.length === 0 || stripped.length % 4 === 1 || !BASE64_RE.test(stripped)) {
     throw new Error(
-      'hologram: malformed media payload — sourceBase64 contains non-base64 characters (RFC 4648 alphabet A-Z a-z 0-9 + / = or URL-safe - _ only)',
+      `hologram: malformed media payload — ${label} is not well-formed base64 (RFC 4648 alphabet A-Z a-z 0-9 + / = or URL-safe - _ only)`,
     );
   }
+}
+
+function assertBundleBase64Field(label: string, value: string | undefined): void {
+  if (!value) return;
+  assertBase64WithinLimit(value, label);
+  assertBase64WellFormed(value, label);
 }
 
 function assertInlineSourceWithinLimit(source: string): void {
@@ -601,16 +614,24 @@ export async function handleHologramTool(name: string, args: Record<string, unkn
     const meta = typeof args.meta === 'string' ? args.meta : '';
     const depthBinBase64 = typeof args.depthBinBase64 === 'string' ? args.depthBinBase64 : '';
     const normalBinBase64 = typeof args.normalBinBase64 === 'string' ? args.normalBinBase64 : '';
+    const quiltPngBase64 = typeof args.quiltPngBase64 === 'string' ? args.quiltPngBase64 : undefined;
+    const mvhevcMp4Base64 = typeof args.mvhevcMp4Base64 === 'string' ? args.mvhevcMp4Base64 : undefined;
+    const parallaxWebmBase64 = typeof args.parallaxWebmBase64 === 'string' ? args.parallaxWebmBase64 : undefined;
     if (!meta) throw new Error('hologram upload_bundle: meta is required');
     if (!depthBinBase64) throw new Error('hologram upload_bundle: depthBinBase64 is required');
     if (!normalBinBase64) throw new Error('hologram upload_bundle: normalBinBase64 is required');
+    assertBundleBase64Field('depthBinBase64', depthBinBase64);
+    assertBundleBase64Field('normalBinBase64', normalBinBase64);
+    assertBundleBase64Field('quiltPngBase64', quiltPngBase64);
+    assertBundleBase64Field('mvhevcMp4Base64', mvhevcMp4Base64);
+    assertBundleBase64Field('parallaxWebmBase64', parallaxWebmBase64);
     const result = await uploadHologramBundle({
       meta,
       depthBinBase64,
       normalBinBase64,
-      quiltPngBase64: typeof args.quiltPngBase64 === 'string' ? args.quiltPngBase64 : undefined,
-      mvhevcMp4Base64: typeof args.mvhevcMp4Base64 === 'string' ? args.mvhevcMp4Base64 : undefined,
-      parallaxWebmBase64: typeof args.parallaxWebmBase64 === 'string' ? args.parallaxWebmBase64 : undefined,
+      quiltPngBase64,
+      mvhevcMp4Base64,
+      parallaxWebmBase64,
     });
     return { ok: true, ...result };
   }
@@ -620,6 +641,11 @@ export async function handleHologramTool(name: string, args: Record<string, unkn
     const asset = typeof args.asset === 'string' ? args.asset.trim() : '';
     if (!hash) throw new Error('hologram get_asset: hash is required');
     if (!asset) throw new Error('hologram get_asset: asset is required');
+    if (!HOLOGRAM_ASSETS.has(asset)) {
+      throw new Error(
+        'hologram get_asset: asset must be one of depth.bin|normal.bin|quilt.png|mvhevc.mp4|parallax.webm',
+      );
+    }
     const result = await getHologramAsset(hash, asset);
     return { ok: true, ...result };
   }

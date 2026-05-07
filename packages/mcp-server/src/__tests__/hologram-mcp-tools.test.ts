@@ -18,6 +18,19 @@ vi.mock('../hologram-worker-client', () => ({
   isHologramWorkerConfigured: workerConfiguredMock,
 }));
 
+vi.mock('@holoscript/engine/hologram', () => ({
+  QuiltCompiler: class {
+    compileQuilt(_composition: unknown, config: Record<string, unknown> = {}) {
+      return { config: { views: 45, ...config } };
+    }
+  },
+  MVHEVCCompiler: class {
+    compileMVHEVC(_composition: unknown, config: Record<string, unknown> = {}) {
+      return { config: { fps: 30, ...config } };
+    }
+  },
+}));
+
 vi.mock('../hologram-holomesh-send', () => ({
   sendHologramTeamMessage: vi.fn(async () => ({ success: true, message: { id: 'm' } })),
   publishHologramTeamFeed: vi.fn(async () => ({ success: true, item: { id: 'f1' } })),
@@ -200,6 +213,15 @@ describe('hologram mcp tools', () => {
           // Mojibake / utf-8 bytes that Node sometimes produces when a
           // caller forgets to base64-encode their buffer.
           sourceBase64: 'café☕️binary',
+        } as Record<string, unknown>),
+      ).rejects.toThrow(/malformed media payload/);
+    });
+
+    it('rejects holo_hologram_from_media when sourceBase64 has impossible base64 length', async () => {
+      await expect(
+        handleHologramTool('holo_hologram_from_media', {
+          mediaType: 'image',
+          sourceBase64: 'A',
         } as Record<string, unknown>),
       ).rejects.toThrow(/malformed media payload/);
     });
@@ -538,6 +560,23 @@ describe('hologram mcp tools', () => {
       ).rejects.toThrow('meta is required');
     });
 
+    it('rejects malformed bundle base64 before Studio upload', async () => {
+      const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(
+        new Response(JSON.stringify({ hash: 'should-not-upload' }), { status: 200 }),
+      );
+
+      await expect(
+        handleHologramTool('holo_hologram_upload_bundle', {
+          meta: JSON.stringify({ schemaVersion: 1 }),
+          depthBinBase64: 'A',
+          normalBinBase64: 'AA==',
+        } as Record<string, unknown>),
+      ).rejects.toThrow(/malformed media payload/);
+
+      expect(fetchSpy).not.toHaveBeenCalled();
+      fetchSpy.mockRestore();
+    });
+
     it('surfaces HTTP errors from Studio', async () => {
       vi.spyOn(global, 'fetch').mockResolvedValue(
         new Response(JSON.stringify({ error: 'Payload too large', code: 'payload_too_large' }), {
@@ -609,6 +648,22 @@ describe('hologram mcp tools', () => {
           asset: 'depth.bin',
         } as Record<string, unknown>),
       ).rejects.toThrow('hash is required');
+    });
+
+    it('rejects unknown bundle asset names before Studio fetch', async () => {
+      const fetchSpy = vi
+        .spyOn(global, 'fetch')
+        .mockResolvedValue(new Response('nope', { status: 200 }));
+
+      await expect(
+        handleHologramTool('holo_hologram_get_asset', {
+          hash: 'abc123',
+          asset: '../../secrets.env',
+        } as Record<string, unknown>),
+      ).rejects.toThrow(/asset must be one of/);
+
+      expect(fetchSpy).not.toHaveBeenCalled();
+      fetchSpy.mockRestore();
     });
 
     it('surfaces 404 as error', async () => {
