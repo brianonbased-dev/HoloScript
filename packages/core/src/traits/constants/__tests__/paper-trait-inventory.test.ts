@@ -20,7 +20,13 @@ describe('Paper 11 Benchmark: trait inventory', () => {
       .readdirSync(constantsDir, { withFileTypes: true })
       .filter((entry) => entry.isFile())
       .map((entry) => entry.name)
-      .filter((name) => name.endsWith('.ts') && !name.endsWith('.test.ts') && name !== 'index.ts')
+      .filter(
+        (name) =>
+          name.endsWith('.ts') &&
+          !name.endsWith('.d.ts') &&
+          !name.endsWith('.test.ts') &&
+          name !== 'index.ts'
+      )
       .sort();
 
     const traitExports: TraitExportSummary[] = Object.entries(constants)
@@ -68,6 +74,7 @@ describe('Paper 11 Benchmark: trait inventory', () => {
     console.log('[paper-trait-inventory] JSON artifact:', outFile);
 
     expect(payload.categoryFileCount).toBeGreaterThan(0);
+    expect(payload.categoryFiles.some((name) => name.endsWith('.d.ts'))).toBe(false);
     expect(payload.exportedTraitArraysCount).toBeGreaterThan(0);
     expect(payload.vrTraitsCount).toBeGreaterThan(0);
     expect(fs.existsSync(outFile)).toBe(true);
