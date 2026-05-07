@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// ─── CSRF Protection Middleware ─────────────────────────────────────────────
+// ─── CSRF Protection Proxy ──────────────────────────────────────────────────
 // Validates Origin header on state-changing requests to prevent cross-site
 // request forgery. Allows same-origin and configured Studio frontend origins.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -19,7 +19,7 @@ if (process.env.ALLOWED_ORIGINS) {
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // Skip CSRF check for safe (read-only) methods
   if (SAFE_METHODS.has(request.method)) {
     return addSecurityHeaders(NextResponse.next());

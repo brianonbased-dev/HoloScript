@@ -40,7 +40,7 @@ export default defineConfig({
         'src/app/page.tsx', // Next.js pages (covered by e2e)
         'src/app/**/page.tsx',
         'src/app/**/route.ts', // API routes (will add dedicated tests)
-        'src/middleware.ts', // Next.js middleware
+        'src/proxy.ts', // Next.js proxy
         '**/node_modules/**',
         '**/dist/**',
         '**/.next/**',
