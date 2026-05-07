@@ -201,4 +201,105 @@ describe('BotanicalLotusTrait — handler lifecycle', () => {
     expect(evt?.anchorStatus).toBe('pending_media_ingest');
     expect(evt?.walletSigned).toBe(false);
   });
+
+  it('holomap:surface_anchor_placed binds lotus to a surface anchor', () => {
+    const ctx = createMockContext();
+    const node = createMockNode('botanical-lotus-test');
+    attachTrait(botanicalLotusHandler, node, {}, ctx);
+    ctx.clearEvents();
+
+    sendEvent(botanicalLotusHandler, node, {}, ctx, {
+      type: 'holomap:surface_anchor_placed',
+      payload: {
+        surfaceAnchorId: 'surface-table-01',
+        surfaceNormal: [0, 1, 0],
+        worldPosition: [1.2, 0.8, -0.5],
+      },
+    });
+
+    const evt = getLastEvent(ctx, 'botanical_lotus_surface_bound') as
+      | Record<string, unknown>
+      | undefined;
+    expect(evt).toBeDefined();
+    expect(evt?.surfaceAnchorId).toBe('surface-table-01');
+
+    const responseEvt = getLastEvent(ctx, 'botanical_lotus_response') as
+      | Record<string, unknown>
+      | undefined;
+    if (responseEvt) {
+      const profile = responseEvt.profile as { surface_anchor_id: string };
+      expect(profile.surface_anchor_id).toBe('surface-table-01');
+    }
+  });
+
+  it('holomap:lighting_update sets lighting reference on lotus', () => {
+    const ctx = createMockContext();
+    const node = createMockNode('botanical-lotus-test');
+    attachTrait(botanicalLotusHandler, node, {}, ctx);
+    ctx.clearEvents();
+
+    sendEvent(botanicalLotusHandler, node, {}, ctx, {
+      type: 'holomap:lighting_update',
+      payload: {
+        referenceId: 'lighting-living-room-01',
+        estimatedLux: 320,
+        colorTemperatureK: 4000,
+        dominantDirection: [0.5, -0.8, 0.3],
+      },
+    });
+
+    const evt = getLastEvent(ctx, 'botanical_lotus_lighting_updated') as
+      | Record<string, unknown>
+      | undefined;
+    expect(evt).toBeDefined();
+    expect(evt?.referenceId).toBe('lighting-living-room-01');
+    expect(evt?.estimatedLux).toBe(320);
+  });
+
+  it('holomap:anchor_state_changed emits drift event when lotus is bound', () => {
+    const ctx = createMockContext();
+    const node = createMockNode('botanical-lotus-test');
+    attachTrait(botanicalLotusHandler, node, {}, ctx);
+
+    // First bind to a surface
+    sendEvent(botanicalLotusHandler, node, {}, ctx, {
+      type: 'holomap:surface_anchor_placed',
+      payload: {
+        surfaceAnchorId: 'surface-table-01',
+        surfaceNormal: [0, 1, 0],
+      },
+    });
+    ctx.clearEvents();
+
+    // Then receive drift update
+    sendEvent(botanicalLotusHandler, node, {}, ctx, {
+      type: 'holomap:anchor_state_changed',
+      payload: {
+        anchorFrameIndex: 120,
+      },
+    });
+
+    const evt = getLastEvent(ctx, 'botanical_lotus_anchor_drift') as
+      | Record<string, unknown>
+      | undefined;
+    expect(evt).toBeDefined();
+    expect(evt?.surfaceAnchorId).toBe('surface-table-01');
+    expect(evt?.anchorFrameIndex).toBe(120);
+  });
+
+  it('ignores holomap:surface_anchor_placed without surfaceAnchorId', () => {
+    const ctx = createMockContext();
+    const node = createMockNode('botanical-lotus-test');
+    attachTrait(botanicalLotusHandler, node, {}, ctx);
+    ctx.clearEvents();
+
+    sendEvent(botanicalLotusHandler, node, {}, ctx, {
+      type: 'holomap:surface_anchor_placed',
+      payload: {
+        surfaceNormal: [0, 1, 0],
+      },
+    });
+
+    expect(getLastEvent(ctx, 'botanical_lotus_surface_bound')).toBeUndefined();
+  });
 });

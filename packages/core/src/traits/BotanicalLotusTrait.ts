@@ -112,6 +112,19 @@ export interface BotanicalLotusRendererHints {
   material_model: string;
 }
 
+export interface BotanicalLotusPlacement {
+  surface_anchor_id?: string;
+  surface_normal?: readonly [number, number, number];
+  world_position?: readonly [number, number, number];
+}
+
+export interface BotanicalLotusLighting {
+  reference_id?: string;
+  estimated_lux?: number;
+  color_temperature_k?: number;
+  dominant_direction?: readonly [number, number, number];
+}
+
 export interface BotanicalLotusConfig {
   schema: 'holoscript.trait.botanical_lotus.v0';
   status: 'visual_seed' | 'content_hashed' | 'wallet_signed';
@@ -166,6 +179,10 @@ export interface BotanicalLotusRenderProfile {
   seed_pod_dot_pattern: string;
   reference_anchor_ids: readonly string[];
   renderer_requires: readonly string[];
+  /** HoloMap surface anchor this lotus is bound to, if any */
+  surface_anchor_id?: string;
+  /** HoloMap lighting reference identifier, if any */
+  lighting_reference?: string;
 }
 
 export interface BotanicalLotusValidationResult {
@@ -177,6 +194,8 @@ export interface BotanicalLotusValidationResult {
 interface BotanicalLotusState {
   config: BotanicalLotusConfig;
   profile: BotanicalLotusRenderProfile;
+  placement?: BotanicalLotusPlacement;
+  lighting?: BotanicalLotusLighting;
 }
 
 // =============================================================================
@@ -533,7 +552,9 @@ export function getBotanicalLotusPetalCount(
 }
 
 export function createBotanicalLotusRenderProfile(
-  input: BotanicalLotusConfigInput = {}
+  input: BotanicalLotusConfigInput = {},
+  placement?: BotanicalLotusPlacement,
+  lighting?: BotanicalLotusLighting
 ): BotanicalLotusRenderProfile {
   const config = assertBotanicalLotusConfig(input);
   const anchorStatus = deriveBotanicalLotusAnchorStatus(config.reference_anchors);
@@ -581,6 +602,8 @@ export function createBotanicalLotusRenderProfile(
     seed_pod_dot_pattern: config.geometry.seed_pod_dot_pattern,
     reference_anchor_ids: config.reference_anchors.map((anchor) => anchor.id),
     renderer_requires: config.renderer.requires,
+    surface_anchor_id: placement?.surface_anchor_id,
+    lighting_reference: lighting?.reference_id,
   };
 }
 
@@ -643,48 +666,114 @@ export const botanicalLotusHandler: TraitHandler<BotanicalLotusConfigInput> = {
       return;
     }
 
-    if (event.type !== 'botanical_lotus_reference_anchored') return;
+    if (event.type === 'botanical_lotus_reference_anchored') {
+      const anchorId = String(event.anchorId ?? '');
+      const contentHash = typeof event.contentHash === 'string' ? event.contentHash : undefined;
+      const walletSignature =
+        typeof event.walletSignature === 'string' ? event.walletSignature : undefined;
+      if (!anchorId || !contentHash) return;
 
-    const anchorId = String(event.anchorId ?? '');
-    const contentHash = typeof event.contentHash === 'string' ? event.contentHash : undefined;
-    const walletSignature =
-      typeof event.walletSignature === 'string' ? event.walletSignature : undefined;
-    if (!anchorId || !contentHash) return;
-
-    const updatedAnchors = state.config.reference_anchors.map((anchor) => {
-      if (anchor.id !== anchorId) return anchor;
-      return {
-        ...anchor,
-        content_hash: contentHash,
-        wallet_signature: walletSignature,
-        status: walletSignature ? 'wallet_signed' : 'hashed',
-      } satisfies BotanicalLotusReferenceAnchor;
-    });
-    const updatedConfig = assertBotanicalLotusConfig({
-      ...state.config,
-      status: updatedAnchors.every((anchor) => anchor.status === 'wallet_signed')
-        ? 'wallet_signed'
-        : 'content_hashed',
-      source: {
-        ...state.config.source,
-        content_hash_status: deriveBotanicalLotusAnchorStatus(updatedAnchors),
-        wallet_signature_status: updatedAnchors.every(
-          (anchor) => anchor.status === 'wallet_signed'
-        )
+      const updatedAnchors = state.config.reference_anchors.map((anchor) => {
+        if (anchor.id !== anchorId) return anchor;
+        return {
+          ...anchor,
+          content_hash: contentHash,
+          wallet_signature: walletSignature,
+          status: walletSignature ? 'wallet_signed' : 'hashed',
+        } satisfies BotanicalLotusReferenceAnchor;
+      });
+      const updatedConfig = assertBotanicalLotusConfig({
+        ...state.config,
+        status: updatedAnchors.every((anchor) => anchor.status === 'wallet_signed')
           ? 'wallet_signed'
-          : 'pending_cael_anchor',
-      },
-      reference_anchors: updatedAnchors,
-    });
-    state.config = updatedConfig;
-    state.profile = createBotanicalLotusRenderProfile(updatedConfig);
+          : 'content_hashed',
+        source: {
+          ...state.config.source,
+          content_hash_status: deriveBotanicalLotusAnchorStatus(updatedAnchors),
+          wallet_signature_status: updatedAnchors.every(
+            (anchor) => anchor.status === 'wallet_signed'
+          )
+            ? 'wallet_signed'
+            : 'pending_cael_anchor',
+        },
+        reference_anchors: updatedAnchors,
+      });
+      state.config = updatedConfig;
+      state.profile = createBotanicalLotusRenderProfile(updatedConfig, state.placement, state.lighting);
 
-    context.emit?.('botanical_lotus_reference_updated', {
-      node,
-      anchorId,
-      anchorStatus: state.profile.anchor_status,
-      walletSigned: state.profile.wallet_signed,
-      referenceAnchorIds: state.profile.reference_anchor_ids,
-    });
+      context.emit?.('botanical_lotus_reference_updated', {
+        node,
+        anchorId,
+        anchorStatus: state.profile.anchor_status,
+        walletSigned: state.profile.wallet_signed,
+        referenceAnchorIds: state.profile.reference_anchor_ids,
+      });
+      return;
+    }
+
+    // HoloMap surface anchor placement
+    if (event.type === 'holomap:surface_anchor_placed') {
+      const payload = event.payload ?? {};
+      const surfaceAnchorId = typeof payload.surfaceAnchorId === 'string' ? payload.surfaceAnchorId : undefined;
+      const surfaceNormal = Array.isArray(payload.surfaceNormal) ? payload.surfaceNormal as [number, number, number] : undefined;
+      const worldPosition = Array.isArray(payload.worldPosition) ? payload.worldPosition as [number, number, number] : undefined;
+      if (!surfaceAnchorId) return;
+
+      state.placement = {
+        surface_anchor_id: surfaceAnchorId,
+        surface_normal: surfaceNormal,
+        world_position: worldPosition,
+      };
+      state.profile = createBotanicalLotusRenderProfile(state.config, state.placement, state.lighting);
+
+      context.emit?.('botanical_lotus_surface_bound', {
+        node,
+        surfaceAnchorId,
+        surfaceNormal,
+        worldPosition,
+      });
+      return;
+    }
+
+    // HoloMap lighting update
+    if (event.type === 'holomap:lighting_update') {
+      const payload = event.payload ?? {};
+      const referenceId = typeof payload.referenceId === 'string' ? payload.referenceId : undefined;
+      const estimatedLux = typeof payload.estimatedLux === 'number' && Number.isFinite(payload.estimatedLux) ? payload.estimatedLux : undefined;
+      const colorTemperatureK = typeof payload.colorTemperatureK === 'number' && Number.isFinite(payload.colorTemperatureK) ? payload.colorTemperatureK : undefined;
+      const dominantDirection = Array.isArray(payload.dominantDirection) ? payload.dominantDirection as [number, number, number] : undefined;
+      if (!referenceId) return;
+
+      state.lighting = {
+        reference_id: referenceId,
+        estimated_lux: estimatedLux,
+        color_temperature_k: colorTemperatureK,
+        dominant_direction: dominantDirection,
+      };
+      state.profile = createBotanicalLotusRenderProfile(state.config, state.placement, state.lighting);
+
+      context.emit?.('botanical_lotus_lighting_updated', {
+        node,
+        referenceId,
+        estimatedLux,
+        colorTemperatureK,
+        dominantDirection,
+      });
+      return;
+    }
+
+    // HoloMap anchor state change (drift / reanchor)
+    if (event.type === 'holomap:anchor_state_changed') {
+      const payload = event.payload ?? {};
+      const anchorFrameIndex = typeof payload.anchorFrameIndex === 'number' ? payload.anchorFrameIndex : undefined;
+      if (state.placement?.surface_anchor_id && anchorFrameIndex !== undefined) {
+        context.emit?.('botanical_lotus_anchor_drift', {
+          node,
+          surfaceAnchorId: state.placement.surface_anchor_id,
+          anchorFrameIndex,
+        });
+      }
+      return;
+    }
   },
 };

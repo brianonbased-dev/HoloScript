@@ -57,6 +57,39 @@ export const holomapAnchorContextHandler: TraitHandler<HoloMapAnchorContextTrait
           maxDriftBeforeReanchor: threshold,
         });
       }
+      return;
+    }
+
+    // Surface placement: a scanned surface is ready to receive anchored objects
+    if (event.type === 'holomap:surface_detected') {
+      const surfaceAnchorId = typeof payload.surfaceAnchorId === 'string' ? payload.surfaceAnchorId : undefined;
+      const surfaceNormal = Array.isArray(payload.surfaceNormal) ? payload.surfaceNormal : undefined;
+      const worldPosition = Array.isArray(payload.worldPosition) ? payload.worldPosition : undefined;
+      if (surfaceAnchorId) {
+        context.emit?.('holomap:surface_anchor_placed', {
+          surfaceAnchorId,
+          surfaceNormal,
+          worldPosition,
+        });
+      }
+      return;
+    }
+
+    // Lighting update: broadcast lighting conditions to anchored objects
+    if (event.type === 'holomap:lighting_detected') {
+      const referenceId = typeof payload.referenceId === 'string' ? payload.referenceId : undefined;
+      const estimatedLux = typeof payload.estimatedLux === 'number' && Number.isFinite(payload.estimatedLux) ? payload.estimatedLux : undefined;
+      const colorTemperatureK = typeof payload.colorTemperatureK === 'number' && Number.isFinite(payload.colorTemperatureK) ? payload.colorTemperatureK : undefined;
+      const dominantDirection = Array.isArray(payload.dominantDirection) ? payload.dominantDirection : undefined;
+      if (referenceId) {
+        context.emit?.('holomap:lighting_update', {
+          referenceId,
+          estimatedLux,
+          colorTemperatureK,
+          dominantDirection,
+        });
+      }
+      return;
     }
   },
 };
