@@ -10,6 +10,7 @@ on:
       - 'packages/core/**'
       - 'packages/visual/**'
       - 'services/studio-api/**'
+      - '.github/workflows/studio-ci.yml'
       - 'pnpm-lock.yaml'
   pull_request:
     branches: [main]
@@ -20,6 +21,7 @@ on:
       - 'packages/core/**'
       - 'packages/visual/**'
       - 'services/studio-api/**'
+      - '.github/workflows/studio-ci.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
