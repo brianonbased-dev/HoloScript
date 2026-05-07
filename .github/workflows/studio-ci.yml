@@ -92,7 +92,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run core tests
-        run: pnpm --filter @holoscript/core test --reporter=verbose --passWithNoTests
+        run: pnpm --filter @holoscript/core test -- --reporter=verbose --passWithNoTests
 
       - name: Upload test results
         if: always()

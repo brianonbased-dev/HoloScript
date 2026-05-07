@@ -416,6 +416,84 @@ describe('compile() - vocabulary v1 -> cost_guard_pricing', () => {
   });
 });
 
+// --- Happy path: vocabulary v1 -> json_capability_matrix -------------
+
+describe('compile() - vocabulary v1 -> json_capability_matrix', () => {
+  it('emits llm-capability-matrix.json as the only file when requested alone', () => {
+    const compiler = new LLMProviderCapabilitiesCompiler({
+      formats: ['json_capability_matrix'],
+      nowIso: '2026-05-06',
+    });
+    const result = compiler.compile(makeFullV1Matrix(), '');
+
+    expect(Object.keys(result.files)).toEqual(['llm-capability-matrix.json']);
+    expect(result.files).not.toHaveProperty('LLM_CAPABILITIES.md');
+    expect(result.files).not.toHaveProperty('cost-guard-pricing.ts');
+  });
+
+  it('emits one provider row with every capability flag column', () => {
+    const compiler = new LLMProviderCapabilitiesCompiler({
+      formats: ['json_capability_matrix'],
+      nowIso: '2026-05-06',
+    });
+    const json = compiler.compile(makeFullV1Matrix(), '').files[
+      'llm-capability-matrix.json'
+    ];
+    const matrix = JSON.parse(json);
+
+    expect(matrix.format).toBe('json_capability_matrix');
+    expect(matrix.capabilityColumns).toEqual(['highResVision', 'liveWebSearch']);
+    expect(matrix.rows).toEqual([
+      expect.objectContaining({
+        provider: 'anthropic',
+        status: 'live',
+        highResVision: true,
+        liveWebSearch: null,
+      }),
+      expect.objectContaining({
+        provider: 'xai',
+        status: 'partial',
+        highResVision: null,
+        liveWebSearch: true,
+      }),
+    ]);
+    // False case: missing capability flags must be explicit nulls, not omitted.
+    expect(matrix.rows[0]).toHaveProperty('liveWebSearch', null);
+    expect(matrix.rows[1]).toHaveProperty('highResVision', null);
+  });
+
+  it('emits rich provider payloads for tooling consumers', () => {
+    const compiler = new LLMProviderCapabilitiesCompiler({
+      formats: ['json_capability_matrix'],
+      nowIso: '2026-05-06',
+    });
+    const json = compiler.compile(makeFullV1Matrix(), '').files[
+      'llm-capability-matrix.json'
+    ];
+    const matrix = JSON.parse(json);
+    const anthropic = matrix.providers.find((p: { name: string }) => p.name === 'anthropic');
+
+    expect(anthropic.models).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          modelId: 'claude-opus-4-7',
+          inputPerMTok: 5,
+          outputPerMTok: 25,
+        }),
+      ])
+    );
+    expect(anthropic.capabilities.highResVision).toBe(true);
+    expect(anthropic.capabilityDetails.highResVision.notes).toContain('2576px');
+    expect(anthropic.routing.defaultFor).toContain('coding');
+    expect(anthropic.superpowers[0]).toEqual(
+      expect.objectContaining({
+        name: 'Adaptive thinking',
+        betaHeader: 'task-budgets-2026-03-13',
+      })
+    );
+  });
+});
+
 // --- BLOCK rules (Diamond-invariant violations throw) ---------------
 
 describe('compile() - BLOCK rules', () => {

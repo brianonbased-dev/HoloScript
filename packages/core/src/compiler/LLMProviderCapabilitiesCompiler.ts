@@ -35,9 +35,9 @@
  *   WARN  — missing last_verified, last_verified > 90 days
  *           (F.014 / W.GOLD.341 staleness gate).
  *
- * @version 1.1.0 (Phase 2(b) - markdown_ssot + cost_guard_pricing;
- *   ts_adapter_capabilities + json_capability_matrix are filed Phase 2(b)
- *   follow-ups)
+ * @version 1.2.0 (Phase 2(b) - markdown_ssot + cost_guard_pricing +
+ *   json_capability_matrix; ts_adapter_capabilities is filed as a Phase 2(b)
+ *   follow-up)
  * @module @holoscript/core/compiler/LLMProviderCapabilitiesCompiler
  */
 
@@ -255,8 +255,8 @@ export class LLMProviderCapabilitiesCompiler extends CompilerBase {
    *                 vendor-as-substrate, [VERIFY] in numeric position)
    *                 and WARN rules (missing/stale last_verified)
    *   3. emit     - dispatch to per-format emitters (markdown_ssot +
-   *                 cost_guard_pricing shipped; the remaining two are
-   *                 filed follow-ups)
+   *                 cost_guard_pricing + json_capability_matrix shipped;
+   *                 the TypeScript adapter target is filed as a follow-up)
    */
   compile(
     composition: HoloComposition,
@@ -281,8 +281,10 @@ export class LLMProviderCapabilitiesCompiler extends CompilerBase {
         case 'cost_guard_pricing':
           files['cost-guard-pricing.ts'] = this.emitCostGuardPricing(ast);
           break;
-        case 'ts_adapter_capabilities':
         case 'json_capability_matrix':
+          files['llm-capability-matrix.json'] = this.emitJsonCapabilityMatrix(ast);
+          break;
+        case 'ts_adapter_capabilities':
           // Phase 2(b) follow-ups - see filed board tasks.
           throw new Error(
             `Format "${format}" is a Phase 2(b)+ follow-up; not yet emitted. ` +
@@ -715,6 +717,94 @@ export class LLMProviderCapabilitiesCompiler extends CompilerBase {
   }
 
   /**
+   * Emit a machine-readable capability matrix for routing/autocomplete
+   * tooling. `rows` is the compact cross-provider table (one provider per
+   * row, capability flags as columns). `providers` carries richer context
+   * for dashboards that need models, routing recommendations, or provenance.
+   */
+  private emitJsonCapabilityMatrix(ast: LLMCapabilityMatrixAST): string {
+    const capabilityColumns = Array.from(
+      new Set(ast.capabilities.map((cap) => cap.name).filter(Boolean))
+    ).sort((a, b) => a.localeCompare(b));
+
+    const providers = ast.providers.map((provider) => {
+      const capabilities = ast.capabilities.filter((cap) => cap.provider === provider.name);
+      const capabilityValues = capabilityValueMap(capabilities, capabilityColumns);
+      const routing = ast.routingRecommendations.filter((r) => r.provider === provider.name);
+
+      return {
+        name: provider.name,
+        status: provider.status,
+        vendorUrl: provider.vendorUrl,
+        authEnv: provider.authEnv,
+        baseUrl: provider.baseUrl ?? null,
+        docsRoot: provider.docsRoot ?? null,
+        uniqueSuperpower: provider.uniqueSuperpower,
+        lastVerified: provider.lastVerified,
+        models: ast.models
+          .filter((model) => model.provider === provider.name)
+          .map((model) => ({
+            friendlyName: model.friendlyName,
+            modelId: model.modelId,
+            contextWindow: model.contextWindow,
+            maxOutput: model.maxOutput,
+            inputPerMTok: model.inputPerMTok,
+            outputPerMTok: model.outputPerMTok,
+            status: model.status,
+            lastVerified: model.lastVerified,
+            retiresOn: model.retiresOn ?? null,
+          })),
+        capabilities: capabilityValues,
+        capabilityDetails: Object.fromEntries(
+          capabilities.map((cap) => [
+            cap.name,
+            {
+              value: cap.value,
+              notes: cap.notes ?? null,
+              lastVerified: cap.lastVerified ?? null,
+            },
+          ])
+        ),
+        superpowers: ast.superpowers
+          .filter((superpower) => superpower.provider === provider.name)
+          .map((superpower) => ({
+            name: superpower.name,
+            description: superpower.description,
+            betaHeader: superpower.betaHeader ?? null,
+          })),
+        routing: {
+          useWhen: routing.flatMap((r) => r.useWhen),
+          avoidWhen: routing.flatMap((r) => r.avoidWhen),
+          defaultFor: routing.flatMap((r) => r.defaultFor),
+        },
+      };
+    });
+
+    const rows = providers.map((provider) => ({
+      provider: provider.name,
+      status: provider.status,
+      uniqueSuperpower: provider.uniqueSuperpower,
+      lastVerified: provider.lastVerified,
+      ...provider.capabilities,
+    }));
+
+    const payload = {
+      format: 'json_capability_matrix',
+      formatVersion: '1.0.0',
+      generatedBy: 'HoloScript LLMProviderCapabilitiesCompiler',
+      source: 'HoloScript LLM-capabilities composition',
+      meta: ast.meta ?? null,
+      capabilityColumns,
+      rows,
+      providers,
+      hardDonts: ast.hardDonts,
+      diagnostics: ast.warnings,
+    };
+
+    return JSON.stringify(payload, null, 2) + '\n';
+  }
+
+  /**
    * Emit the CostGuard pricing constants. Shape intentionally mirrors
    * packages/holoscript-agent/src/cost-guard.ts so the runtime can delete
    * hardcoded tables once generated files are wired in.
@@ -854,6 +944,19 @@ function tsStringLiteral(value: string): string {
 
 function formatNumberLiteral(value: number): string {
   return Number.isFinite(value) ? String(value) : '0';
+}
+
+function capabilityValueMap(
+  capabilities: LLMCapability[],
+  capabilityColumns: string[]
+): Record<string, boolean | string | number | null> {
+  const byName = new Map<string, LLMCapability>();
+  for (const capability of capabilities) {
+    byName.set(capability.name, capability);
+  }
+  return Object.fromEntries(
+    capabilityColumns.map((column) => [column, byName.get(column)?.value ?? null])
+  );
 }
 
 /**
