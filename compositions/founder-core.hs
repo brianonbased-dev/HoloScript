@@ -8,15 +8,12 @@
 // Iteration 1 scope discipline:
 //   COVERED — identity, authority_order, vision_pillar, refusal,
 //             default, output_shape, escalation, citation_rule,
-//             graduated_wisdom, feedback
-//   DEFERRED — domain preferences (table), Track-B authority block,
-//              embodied-as-projection-layer, per-paper editorial
-//              defaults, date discipline (W.317) — file as v2 gap-tasks.
+//             graduated_wisdom, feedback, domain_preference,
+//             date_discipline, invocation_mode, embodied_projection
+//   DEFERRED — Track-B authority block and per-paper editorial defaults.
 //
-// Trait syntax note: uses the @trait(field: value, ...) form because
-// HoloCompositionParser populates trait config from this form, while
-// the @trait: { field: value } form recognizes the trait name but
-// drops the config body (parser feature gap; multi-line () form works).
+// Trait syntax note: uses the compact @trait(field: value, ...) form.
+// The @trait: { field: value } form is also supported since G-2 closed.
 //
 // This file is the NARROW first proof. The live SKILL.md at
 // ~/.claude/skills/founder/SKILL.md is NOT replaced by this — Iteration 2
@@ -330,5 +327,29 @@ object "InvocationModes" {
     mode: "wrap-other-skill",
     when: "embedded inside another skill's flow when that skill needs a sub-decision (e.g. /room marathon hits a workaround temptation)",
     effect: "wrapping skill calls /founder for the sub-decision and proceeds with the ratified ruling; founder ruling is captured in the wrapping skill's audit log"
+  )
+}
+
+// =============================================================================
+// Embodied projections (vocabulary v2 - Iteration 2 G-3 embodied slice)
+//
+// Mirrors the NORTH_STAR §0.4 embodied projection layer: back-office agent
+// state becomes a Quest 3 / spatial surface Joseph can review at the
+// architecture level, not an IDE-only transcript.
+// =============================================================================
+
+object "EmbodiedProjections" {
+  @embodied_projection(
+    surface: "quest-3",
+    projection_kind: "interactive",
+    trigger: "daily founder architecture review or any skill output whose state needs spatial inspection",
+    notes: "Project decisive agent state into a Quest 3 spatial dashboard or HoloLand-style room so Joseph reviews architecture-level state, not code diffs."
+  )
+
+  @embodied_projection(
+    surface: "spatial-photo",
+    projection_kind: "read-only",
+    trigger: "artifact, evidence packet, or room state needs asynchronous founder review without an interactive session",
+    notes: "Use still spatial captures for decisive status and reviewable outputs when live Quest 3 interaction is unnecessary."
   )
 }

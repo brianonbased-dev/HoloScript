@@ -266,6 +266,27 @@ function makeFullV1Composition(): HoloComposition {
               effect: 'wrapping skill calls /founder for a sub-decision and proceeds',
             },
           },
+          // Vocabulary v2 (Iteration 2 G-3 embodied slice)
+          {
+            type: 'ObjectTrait',
+            name: 'embodied_projection',
+            config: {
+              surface: 'quest-3',
+              projection_kind: 'interactive',
+              trigger: 'daily founder architecture review',
+              notes: 'project decisive agent state into a Quest 3 spatial surface',
+            },
+          },
+          {
+            type: 'ObjectTrait',
+            name: 'embodied_projection',
+            config: {
+              surface: 'spatial-photo',
+              projection_kind: 'read-only',
+              trigger: 'asynchronous evidence packet review',
+              notes: 'use a still spatial capture when interaction is unnecessary',
+            },
+          },
           // Vocabulary v2 (Iteration 2 G-3 third slice)
           {
             type: 'ObjectTrait',
@@ -1662,6 +1683,138 @@ describe('compile() - vocabulary v2 -> @invocation_mode', () => {
       ''
     );
     expect(result.ast.invocationModes[0]?.mode).toBe('explicit');
+  });
+});
+
+// --- Vocabulary v2 (Iteration 2 G-3 embodied slice) -- @embodied_projection ---
+
+describe('compile() - vocabulary v2 -> @embodied_projection', () => {
+  it('extracts embodied projection rows from the full V1 fixture', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const result = compiler.compile(makeFullV1Composition(), '');
+    expect(result.ast.embodiedProjections).toHaveLength(2);
+    const quest = result.ast.embodiedProjections.find((p) => p.surface === 'quest-3');
+    expect(quest?.projectionKind).toBe('interactive');
+    expect(quest?.trigger).toBe('daily founder architecture review');
+    expect(quest?.notes).toContain('Quest 3 spatial surface');
+    const still = result.ast.embodiedProjections.find((p) => p.surface === 'spatial-photo');
+    expect(still?.projectionKind).toBe('read-only');
+    // False case: source key projection_kind must map to camel projectionKind, not disappear
+    expect((quest as unknown as Record<string, unknown>)?.projection_kind).toBeUndefined();
+  });
+
+  it('emits ## Embodied projections section in claude_md', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeFullV1Composition(), '').files['CLAUDE.md'];
+    expect(md).toContain('## Embodied projections');
+    expect(md).toContain('### quest-3 / interactive');
+    expect(md).toContain('- **Surface**: quest-3');
+    expect(md).toContain('- **Projection kind**: interactive');
+    expect(md).toContain('- **Trigger**: daily founder architecture review');
+    expect(md).toContain('- **Notes**: project decisive agent state into a Quest 3 spatial surface');
+  });
+
+  it('emits ## Embodied projections in agents_md, skill_md, and cursor_rules', () => {
+    const agents = new ContextCompiler({ formats: ['agents_md'] })
+      .compile(makeFullV1Composition(), '')
+      .files['AGENTS.md'];
+    expect(agents).toContain('## Embodied projections');
+    expect(agents).toContain('### spatial-photo / read-only');
+
+    const fixture = makeFullV1Composition();
+    const identity = fixture.objects[0]!.traits!.find((t) => t.name === 'identity')!;
+    identity.config.description = 'Test skill description for embodied_projection emit verification.';
+    const skill = new ContextCompiler({ formats: ['skill_md'] })
+      .compile(fixture, '')
+      .files['SKILL.md'];
+    expect(skill).toContain('## Embodied projections');
+    expect(skill).toContain('### quest-3 / interactive');
+
+    const cursor = new ContextCompiler({ formats: ['cursor_rules'] })
+      .compile(makeFullV1Composition(), '')
+      .files['.cursor/rules/_ecosystem-context.mdc'];
+    expect(cursor).toContain('## Embodied projections');
+    expect(cursor).toContain('### quest-3 / interactive');
+  });
+
+  it('places Embodied projections AFTER Invocation modes and BEFORE Recurring routines', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeFullV1Composition(), '').files['CLAUDE.md'];
+    const invocationIdx = md.indexOf('## Invocation modes');
+    const embodiedIdx = md.indexOf('## Embodied projections');
+    const routinesIdx = md.indexOf('## Recurring routines');
+    expect(invocationIdx).toBeGreaterThan(0);
+    expect(embodiedIdx).toBeGreaterThan(invocationIdx);
+    expect(routinesIdx).toBeGreaterThan(embodiedIdx);
+  });
+
+  it('omits ## Embodied projections section when no @embodied_projection traits declared', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeComposition(), '').files['CLAUDE.md'];
+    // False case: section header must NOT appear in an empty composition
+    expect(md).not.toContain('## Embodied projections');
+    expect(md).not.toContain('### quest-3 / interactive');
+  });
+
+  it('defaults projection_kind to read-only when omitted', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const result = compiler.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'Projection',
+            properties: [],
+            traits: [
+              {
+                type: 'ObjectTrait',
+                name: 'embodied_projection',
+                config: {
+                  surface: 'hologram',
+                  trigger: 'status review',
+                  // projection_kind intentionally omitted
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      ''
+    );
+    expect(result.ast.embodiedProjections[0]?.projectionKind).toBe('read-only');
+    expect(result.files['CLAUDE.md']).toContain('### hologram / read-only');
+  });
+
+  it('renders without optional notes cleanly', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'Projection',
+            properties: [],
+            traits: [
+              {
+                type: 'ObjectTrait',
+                name: 'embodied_projection',
+                config: {
+                  surface: 'quest-3',
+                  projection_kind: 'interactive',
+                  trigger: 'founder review',
+                  // notes intentionally omitted
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      ''
+    ).files['CLAUDE.md'];
+    expect(md).toContain('### quest-3 / interactive');
+    expect(md).toContain('- **Trigger**: founder review');
+    // False case: optional notes must not leak as an empty bullet
+    expect(md).not.toContain('- **Notes**:');
   });
 });
 

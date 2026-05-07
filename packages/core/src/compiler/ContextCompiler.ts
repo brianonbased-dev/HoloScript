@@ -31,13 +31,13 @@
  * declarations). WARN soft-guideline (stale citations, fluent prose
  * without citation, schedule conflicts, unresolved verify-tokens).
  *
- * @version 1.4.0 (Phase 2(a) Iteration 2 G-3 first slice: vocabulary v2
- *   adds @invocation_mode trait. Phase 1 emitters: claude_md + agents_md +
- *   cursor_rules + skill_md (all 4 render the new section). Remaining
+ * @version 1.4.3 (Phase 2(a) Iteration 2 G-3 vocabulary v2 slices:
+ *   @invocation_mode, @date_discipline, @domain_preference, and
+ *   @embodied_projection. Phase 1 emitters: claude_md + agents_md +
+ *   cursor_rules + skill_md (all 4 render the new sections). Remaining
  *   Phase 1+ follow-ups: anthropic_system_prompt / brain_includes /
- *   mcp_context_loader. Remaining Iteration 2 G-3 vocabulary: domain
- *   preferences, Track-B authority, papers program, embodied projection,
- *   date discipline.)
+ *   mcp_context_loader. Remaining Iteration 2 G-3 vocabulary: Track-B
+ *   authority and papers program.)
  * @module @holoscript/core/compiler/ContextCompiler
  */
 
@@ -291,6 +291,33 @@ export interface ContextInvocationMode {
 }
 
 /**
+ * Per-rule: how a back-office skill projects into an embodied review
+ * surface. Vocabulary v2 (Phase 2(a) Iteration 2 G-3 embodied slice).
+ * Captures the "embodied as projection layer" rule from NORTH_STAR §0.4:
+ * agent state is surfaced into Quest 3 / spatial / holographic bodies so
+ * the founder reviews decisive architecture-level state, not IDE-only
+ * chatter. Multiple projections are allowed because the same skill may
+ * support interactive Quest review and read-only spatial evidence.
+ */
+export type ContextEmbodiedProjectionSurface =
+  | 'quest-3'
+  | 'spatial-photo'
+  | 'hologram'
+  | string;
+
+export type ContextEmbodiedProjectionKind =
+  | 'read-only'
+  | 'interactive'
+  | string;
+
+export interface ContextEmbodiedProjection {
+  surface: ContextEmbodiedProjectionSurface;
+  projectionKind: ContextEmbodiedProjectionKind;
+  trigger: string;
+  notes?: string;
+}
+
+/**
  * Parsed context AST - sovereign vocabulary v1 in typed form. The
  * compiler walks the HoloComposition AST, extracts known traits into
  * this shape, validates per BLOCK rules, then dispatches to emitters.
@@ -320,6 +347,7 @@ export interface ContextAST {
   invocationModes: ContextInvocationMode[];   // vocabulary v2 (Iteration 2 G-3 first slice)
   dateDisciplines: ContextDateDiscipline[];   // vocabulary v2 (Iteration 2 G-3 second slice)
   domainPreferences: ContextDomainPreference[]; // vocabulary v2 (Iteration 2 G-3 third slice)
+  embodiedProjections: ContextEmbodiedProjection[]; // vocabulary v2 (Iteration 2 G-3 embodied slice)
 
   // Diagnostics surfaced from validation
   warnings: ContextValidationDiagnostic[];
@@ -521,6 +549,7 @@ export class ContextCompiler extends CompilerBase {
       invocationModes: [],
       dateDisciplines: [],
       domainPreferences: [],
+      embodiedProjections: [],
       warnings: [],
     };
 
@@ -715,6 +744,14 @@ export class ContextCompiler extends CompilerBase {
           skills: stringListField(cfg, 'skills'),
           notes: stringFieldOrUndef(cfg, 'notes'),
           ceiling: stringFieldOrUndef(cfg, 'ceiling'),
+        });
+        break;
+      case 'embodied_projection':
+        ast.embodiedProjections.push({
+          surface: stringField(cfg, 'surface', ''),
+          projectionKind: stringField(cfg, 'projection_kind', 'read-only'),
+          trigger: stringField(cfg, 'trigger', ''),
+          notes: stringFieldOrUndef(cfg, 'notes'),
         });
         break;
       default:
@@ -997,6 +1034,8 @@ export class ContextCompiler extends CompilerBase {
         lines.push('');
       }
     }
+
+    appendEmbodiedProjectionSection(lines, ast.embodiedProjections);
 
     // Routines (A-00X)
     if (ast.routines.length > 0) {
@@ -1335,6 +1374,8 @@ export class ContextCompiler extends CompilerBase {
         lines.push('');
       }
     }
+
+    appendEmbodiedProjectionSection(lines, ast.embodiedProjections);
 
     // Recurring routines (universal - A-00X pattern is cross-tool)
     if (ast.routines.length > 0) {
@@ -1692,6 +1733,8 @@ export class ContextCompiler extends CompilerBase {
         idx.push('');
       }
     }
+
+    appendEmbodiedProjectionSection(idx, ast.embodiedProjections);
 
     // Recurring routines (A-00X)
     if (ast.routines.length > 0) {
@@ -2070,6 +2113,8 @@ export class ContextCompiler extends CompilerBase {
       }
     }
 
+    appendEmbodiedProjectionSection(lines, ast.embodiedProjections);
+
     // Routines (A-00X)
     if (ast.routines.length > 0) {
       lines.push('## Recurring routines (A-00X)');
@@ -2282,6 +2327,31 @@ function stringListField(cfg: Record<string, HoloValue>, key: string): string[] 
   const v = cfg[key];
   if (!Array.isArray(v)) return [];
   return v.filter((x): x is string => typeof x === 'string');
+}
+
+function appendEmbodiedProjectionSection(
+  lines: string[],
+  projections: ContextEmbodiedProjection[]
+): void {
+  if (projections.length === 0) return;
+
+  lines.push('## Embodied projections');
+  lines.push('');
+  for (const projection of projections) {
+    const surface = projection.surface || 'unspecified-surface';
+    const kind = projection.projectionKind || 'read-only';
+    lines.push(`### ${surface} / ${kind}`);
+    lines.push('');
+    lines.push(`- **Surface**: ${surface}`);
+    lines.push(`- **Projection kind**: ${kind}`);
+    if (projection.trigger) {
+      lines.push(`- **Trigger**: ${projection.trigger}`);
+    }
+    if (projection.notes) {
+      lines.push(`- **Notes**: ${projection.notes}`);
+    }
+    lines.push('');
+  }
 }
 
 // =============================================================================
