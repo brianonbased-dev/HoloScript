@@ -20,6 +20,8 @@
  *       walls: 0.1, floor: 0.05, ceiling: 0.15
  *     }
  *     max_frequency_hz: 200                  # filter to sub-200Hz
+ *     emit_heatmap: true
+ *     heatmap_resolution: [12, 8, 4]
  *   }
  *
  * Determinism contract:
@@ -58,6 +60,7 @@
  *         walls: 0.08, floor: 0.04, ceiling: 0.20
  *       }
  *       max_frequency_hz: 200
+ *       emit_heatmap: true
  *     }
  *   }
  *
@@ -137,6 +140,10 @@ export interface RoomModeResonanceConfig {
   materials_absorption: MaterialsAbsorption;
   /** Filter modes above this frequency (Hz). Default 200 (sub-200Hz problem region). */
   max_frequency_hz: number;
+  /** Whether to emit a normalized modal-pressure heatmap on attach/recompute. */
+  emit_heatmap: boolean;
+  /** Heatmap sample resolution [x, y, z]. Values are clamped to [1, 24]. */
+  heatmap_resolution: [number, number, number];
   /** Whether to emit room_mode_attached on attach. */
   emit_attach_event: boolean;
 }
@@ -165,6 +172,22 @@ export interface RoomModeAnalysis {
   volume_m3: number;
   /** Total absorbing area (Σ surface · absorption) in m² Sabin. */
   total_absorption_sabin: number;
+}
+
+export interface RoomModeHeatmapPoint {
+  /** Sample position in room-local metres, [x, y, z]. */
+  position: [number, number, number];
+  /** Normalized modal-pressure buildup in [0, 1]. */
+  value: number;
+}
+
+export interface RoomModeHeatmap {
+  /** Effective sample resolution after clamping. */
+  resolution: [number, number, number];
+  /** Maximum pre-normalization value, useful for legends/debugging. */
+  max_value: number;
+  /** Deterministically ordered x-major sample points. */
+  points: RoomModeHeatmapPoint[];
 }
 
 interface RoomModeResonanceState {
@@ -372,6 +395,93 @@ export function analyzeRoomModes(
   };
 }
 
+function clampHeatmapResolution(value: number): number {
+  if (!Number.isFinite(value)) return 1;
+  return Math.max(1, Math.min(24, Math.floor(value)));
+}
+
+function modeKindWeight(kind: RoomModeKind): number {
+  if (kind === 'axial') return 1.0;
+  if (kind === 'tangential') return 0.62;
+  return 0.38;
+}
+
+function modalPressureMagnitude(
+  mode: RoomMode,
+  position: [number, number, number],
+  roomDimensions: [number, number, number]
+): number {
+  const [x, y, z] = position;
+  const [Lx, Ly, Lz] = roomDimensions;
+  if (Lx <= 0 || Ly <= 0 || Lz <= 0) return 0;
+  const px = Math.cos((mode.nx * Math.PI * x) / Lx);
+  const py = Math.cos((mode.ny * Math.PI * y) / Ly);
+  const pz = Math.cos((mode.nz * Math.PI * z) / Lz);
+  return Math.abs(px * py * pz);
+}
+
+/**
+ * Generate a normalized room-local modal-pressure heatmap from an analysis.
+ *
+ * The heatmap is deterministic and renderer-neutral: each sample sums modal
+ * pressure magnitudes weighted by mode kind and bounded Q. Axial modes carry
+ * the highest perceptual weight because they are usually the loudest room
+ * resonances; tangential and oblique modes contribute less.
+ */
+export function generateRoomModeHeatmap(
+  analysis: RoomModeAnalysis,
+  roomDimensions: [number, number, number],
+  resolution: [number, number, number]
+): RoomModeHeatmap {
+  const [Lx, Ly, Lz] = roomDimensions;
+  const rx = clampHeatmapResolution(resolution[0]);
+  const ry = clampHeatmapResolution(resolution[1]);
+  const rz = clampHeatmapResolution(resolution[2]);
+
+  if (Lx <= 0 || Ly <= 0 || Lz <= 0 || analysis.modes.length === 0) {
+    return { resolution: [rx, ry, rz], max_value: 0, points: [] };
+  }
+
+  const raw: RoomModeHeatmapPoint[] = [];
+  let maxValue = 0;
+
+  for (let ix = 0; ix < rx; ix++) {
+    const x = rx === 1 ? Lx / 2 : (ix / (rx - 1)) * Lx;
+    for (let iy = 0; iy < ry; iy++) {
+      const y = ry === 1 ? Ly / 2 : (iy / (ry - 1)) * Ly;
+      for (let iz = 0; iz < rz; iz++) {
+        const z = rz === 1 ? Lz / 2 : (iz / (rz - 1)) * Lz;
+        const position: [number, number, number] = [x, y, z];
+        let value = 0;
+        for (const mode of analysis.modes) {
+          const qWeight = Number.isFinite(mode.q_factor)
+            ? Math.min(1, mode.q_factor / 200)
+            : 1;
+          value +=
+            modalPressureMagnitude(mode, position, roomDimensions) *
+            modeKindWeight(mode.kind) *
+            qWeight;
+        }
+        maxValue = Math.max(maxValue, value);
+        raw.push({ position, value });
+      }
+    }
+  }
+
+  if (maxValue <= 0) {
+    return { resolution: [rx, ry, rz], max_value: 0, points: raw };
+  }
+
+  return {
+    resolution: [rx, ry, rz],
+    max_value: maxValue,
+    points: raw.map((point) => ({
+      position: point.position,
+      value: point.value / maxValue,
+    })),
+  };
+}
+
 // =============================================================================
 // HANDLER
 // =============================================================================
@@ -388,6 +498,8 @@ export const roomModeResonanceHandler: TraitHandler<RoomModeResonanceConfig> = {
       ceiling: 0.15,
     },
     max_frequency_hz: 200,
+    emit_heatmap: false,
+    heatmap_resolution: [8, 6, 4],
     emit_attach_event: true,
   },
 
@@ -405,6 +517,17 @@ export const roomModeResonanceHandler: TraitHandler<RoomModeResonanceConfig> = {
         lowestModeHz: analysis.modes[0]?.frequency_hz ?? 0,
       });
     }
+
+    if (config.emit_heatmap) {
+      context.emit?.('room_mode_heatmap', {
+        node,
+        heatmap: generateRoomModeHeatmap(
+          analysis,
+          config.room_dimensions,
+          config.heatmap_resolution
+        ),
+      });
+    }
   },
 
   onDetach(node, _config, context) {
@@ -419,11 +542,24 @@ export const roomModeResonanceHandler: TraitHandler<RoomModeResonanceConfig> = {
     if (!state) return;
 
     if (event.type === 'room_mode_query') {
-      context.emit?.('room_mode_response', {
+      const response: {
+        queryId: unknown;
+        node: unknown;
+        analysis: RoomModeAnalysis;
+        heatmap?: RoomModeHeatmap;
+      } = {
         queryId: event.queryId,
         node,
         analysis: state.analysis,
-      });
+      };
+      if (event.includeHeatmap === true) {
+        response.heatmap = generateRoomModeHeatmap(
+          state.analysis,
+          config.room_dimensions,
+          config.heatmap_resolution
+        );
+      }
+      context.emit?.('room_mode_response', response);
       return;
     }
 
@@ -436,6 +572,16 @@ export const roomModeResonanceHandler: TraitHandler<RoomModeResonanceConfig> = {
         modeCount: state.analysis.modes.length,
         t60Seconds: state.analysis.t60_seconds,
       });
+      if (config.emit_heatmap) {
+        context.emit?.('room_mode_heatmap', {
+          node,
+          heatmap: generateRoomModeHeatmap(
+            state.analysis,
+            config.room_dimensions,
+            config.heatmap_resolution
+          ),
+        });
+      }
       return;
     }
   },

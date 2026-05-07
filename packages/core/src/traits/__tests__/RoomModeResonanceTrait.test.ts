@@ -26,10 +26,12 @@ import {
   totalAbsorptionSabin,
   enumerateRoomModes,
   analyzeRoomModes,
+  generateRoomModeHeatmap,
   SPEED_OF_SOUND_MS,
   SABINE_CONSTANT_METRIC,
   type RoomMode,
   type RoomModeAnalysis,
+  type RoomModeHeatmap,
   type MaterialsAbsorption,
 } from '../RoomModeResonanceTrait';
 import {
@@ -325,6 +327,43 @@ describe('RoomModeResonanceTrait — analyzeRoomModes (pure integrative)', () =>
 });
 
 // ---------------------------------------------------------------------------
+// generateRoomModeHeatmap
+// ---------------------------------------------------------------------------
+
+describe('RoomModeResonanceTrait — generateRoomModeHeatmap (pure)', () => {
+  it('returns a deterministic normalized modal-pressure grid', () => {
+    const analysis = analyzeRoomModes({
+      room_dimensions: [10, 7, 4],
+      mode_order: 2,
+      materials_absorption: { walls: 0.1, floor: 0.05, ceiling: 0.15 },
+      max_frequency_hz: 200,
+    });
+    const a = generateRoomModeHeatmap(analysis, [10, 7, 4], [3, 2, 2]);
+    const b = generateRoomModeHeatmap(analysis, [10, 7, 4], [3, 2, 2]);
+    expect(a).toEqual(b);
+    expect(a.resolution).toEqual([3, 2, 2]);
+    expect(a.points).toHaveLength(12);
+    expect(a.max_value).toBeGreaterThan(0);
+    for (const point of a.points) {
+      expect(point.value).toBeGreaterThanOrEqual(0);
+      expect(point.value).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('returns an empty grid for degenerate rooms', () => {
+    const analysis = analyzeRoomModes({
+      room_dimensions: [0, 7, 4],
+      mode_order: 2,
+      materials_absorption: { walls: 0.1, floor: 0.05, ceiling: 0.15 },
+      max_frequency_hz: 200,
+    });
+    const heatmap = generateRoomModeHeatmap(analysis, [0, 7, 4], [3, 2, 2]);
+    expect(heatmap.points).toEqual([]);
+    expect(heatmap.max_value).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Handler — attach
 // ---------------------------------------------------------------------------
 
@@ -352,6 +391,21 @@ describe('RoomModeResonanceTrait — onAttach', () => {
     attachTrait(roomModeResonanceHandler, node, { emit_attach_event: false }, ctx);
     expect(getEventCount(ctx, 'room_mode_attached')).toBe(0);
   });
+
+  it('emits room_mode_heatmap when emit_heatmap is enabled', () => {
+    const node = createMockNode();
+    const ctx = createMockContext();
+    attachTrait(
+      roomModeResonanceHandler,
+      node,
+      { emit_heatmap: true, heatmap_resolution: [3, 2, 2] },
+      ctx
+    );
+    expect(getEventCount(ctx, 'room_mode_heatmap')).toBe(1);
+    const evt = getLastEvent(ctx, 'room_mode_heatmap') as { heatmap: RoomModeHeatmap };
+    expect(evt.heatmap.resolution).toEqual([3, 2, 2]);
+    expect(evt.heatmap.points).toHaveLength(12);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -378,6 +432,33 @@ describe('RoomModeResonanceTrait — query + recompute + detach', () => {
     expect(evt.queryId).toBe('q1');
     expect(evt.analysis.volume_m3).toBe(280);
     expect(evt.analysis.modes.length).toBeGreaterThan(0);
+  });
+
+  it('includes a heatmap in query response when requested', () => {
+    const node = createMockNode();
+    const ctx = createMockContext();
+    attachTrait(roomModeResonanceHandler, node, {}, ctx);
+    ctx.clearEvents();
+
+    sendEvent(
+      roomModeResonanceHandler,
+      node,
+      { heatmap_resolution: [2, 2, 2] },
+      ctx,
+      {
+        type: 'room_mode_query',
+        queryId: 'with-heatmap',
+        includeHeatmap: true,
+      }
+    );
+
+    const evt = getLastEvent(ctx, 'room_mode_response') as {
+      queryId: string;
+      heatmap: RoomModeHeatmap;
+    };
+    expect(evt.queryId).toBe('with-heatmap');
+    expect(evt.heatmap.resolution).toEqual([2, 2, 2]);
+    expect(evt.heatmap.points).toHaveLength(8);
   });
 
   it('recomputes on room_mode_recompute (e.g. partition opened)', () => {

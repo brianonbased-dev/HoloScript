@@ -16,19 +16,14 @@
 // New in this refresh:
 //   @environmental_audio  — outdoor weather acoustics + air absorption
 //                           + Doppler for the taxi passing outside
-//
-// Missing-trait wish (captured for Phase 4):
 //   @room_mode_resonance  — sub-200Hz standing-wave / Helmholtz
-//                           resonance simulation. @reverb_zone handles
-//                           broad RT60 but not per-room eigenfrequencies
-//                           (bass-node buildup in corners, modal peaks).
-//                           Would make the low strings on the grand piano
-//                           accumulate authentically in the hall corners.
+//                           resonance with modal frequency/Q data and
+//                           optional bass-node heatmap output
 //
-// Traits covered (8 total):
+// Traits covered (9 total):
 //   @ambisonics         @hrtf           @reverb_zone
 //   @audio_occlusion    @audio_portal   @audio_material
-//   @head_tracked_audio @environmental_audio
+//   @head_tracked_audio @environmental_audio @room_mode_resonance
 // ============================================================================
 
 composition "SpatialAudioShowcase" {
@@ -192,6 +187,26 @@ composition "SpatialAudioShowcase" {
     decay_time: 2.0
     diffusion: 85
     density: 92
+  }
+
+  object "main_hall_modal_analysis" {
+    geometry: "box"
+    visible: false
+    position: [0, 5, 0]
+    scale: [22, 9, 14]
+
+    @room_mode_resonance {
+      room_dimensions: [22.0, 14.0, 9.0]
+      mode_order: 4
+      materials_absorption: {
+        walls: 0.08
+        floor: 0.04
+        ceiling: 0.20
+      }
+      max_frequency_hz: 200
+      emit_heatmap: true
+      heatmap_resolution: [12, 8, 4]
+    }
   }
 
   // ----------------------------------------------------------
