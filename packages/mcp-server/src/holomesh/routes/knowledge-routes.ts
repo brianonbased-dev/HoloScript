@@ -25,6 +25,30 @@ import { getClient } from '../orchestrator-client';
 import { findKnowledgeEntryById } from '../entry-lookup';
 import { getConsolidationBridge } from '../consolidation-bridge';
 import { buildMoltbookCrosspostPayload, createMoltbookPost } from '../../moltbook/moltbook-post.js';
+import {
+  resolveSecretWithLease,
+  VaultLeaseError,
+} from '../identity/vault-lease-registry';
+
+/**
+ * Phase 3 wrapper around `process.env.MOLTBOOK_API_KEY` for the per-request
+ * knowledge-entry crosspost handler (`POST .../knowledge/:id/crosspost-moltbook`).
+ * This is a per-task MCP fetch helper that reads an outbound API key, which
+ * is exactly the medium-risk Phase 3 tier the task description targets.
+ *
+ * Migration-window passthrough until `HOLOMESH_VAULT_LEASE_ENFORCE` flips
+ * on. Returning `undefined` on `VaultLeaseError` preserves the original
+ * `process.env.MOLTBOOK_API_KEY` semantics where a missing key resolves
+ * to undefined and the handler emits a 503 "not configured" response.
+ */
+function readMoltbookApiKey(): string | undefined {
+  try {
+    return resolveSecretWithLease('env:MOLTBOOK_API_KEY');
+  } catch (err) {
+    if (err instanceof VaultLeaseError) return undefined;
+    throw err;
+  }
+}
 import type {
   MeshKnowledgeEntry,
   StoredComment,
@@ -1684,7 +1708,9 @@ export async function handleKnowledgeRoutes(
       return true;
     }
 
-    const moltbookKey = process.env.MOLTBOOK_API_KEY;
+    // Phase-3 wrapped read: gated by `env:MOLTBOOK_API_KEY` lease when
+    // HOLOMESH_VAULT_LEASE_ENFORCE is on; transparent passthrough otherwise.
+    const moltbookKey = readMoltbookApiKey();
     if (!moltbookKey) {
       json(res, 503, { error: 'MOLTBOOK_API_KEY not configured — crosspost unavailable' });
       return true;

@@ -14,7 +14,30 @@
 
 import { Router, Request, Response } from 'express';
 import { createMoltbookPost } from '../moltbook/moltbook-post.js';
+import {
+  resolveSecretWithLease,
+  VaultLeaseError,
+} from '../holomesh/identity/vault-lease-registry';
 const RBAC = { checkPermission: async (_token: string, _action: string) => true };
+
+/**
+ * Phase 3 wrapper around `process.env.MOLTBOOK_API_KEY` for the per-request
+ * `postToMoltbook` helper. Each call corresponds to a HoloMesh task
+ * completion crosspost, so it is a per-task MCP fetch helper reading an
+ * outbound API key — Phase 3 medium-risk tier.
+ *
+ * Returning `undefined` on `VaultLeaseError` preserves the original
+ * `process.env.MOLTBOOK_API_KEY` semantics where the missing-key branch
+ * throws a "not configured" error from the caller.
+ */
+function readMoltbookApiKey(): string | undefined {
+  try {
+    return resolveSecretWithLease('env:MOLTBOOK_API_KEY');
+  } catch (err) {
+    if (err instanceof VaultLeaseError) return undefined;
+    throw err;
+  }
+}
 
 interface HoloMeshTaskCompletion {
   taskId: string;
@@ -310,7 +333,9 @@ function buildBatchPost(tasks: HoloMeshTaskCompletion[]): MoltbookPost {
 }
 
 async function postToMoltbook(post: MoltbookPost): Promise<{ url: string }> {
-  const apiKey = process.env.MOLTBOOK_API_KEY;
+  // Phase-3 wrapped read: gated by `env:MOLTBOOK_API_KEY` lease when
+  // HOLOMESH_VAULT_LEASE_ENFORCE is on; transparent passthrough otherwise.
+  const apiKey = readMoltbookApiKey();
 
   if (!apiKey) {
     throw new Error('MOLTBOOK_API_KEY not configured. Set it in .env to enable Moltbook posting.');

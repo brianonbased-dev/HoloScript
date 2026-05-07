@@ -47,6 +47,12 @@ const ENV_KEYS_FOR_TESTS = [
   'HOLOMESH_VAULT_LEASE_ENFORCE',
   'LEASE_TEST_KEY',
   'LEASE_TEST_OTHER',
+  // Phase 3 wrap targets — leases scope tests touch these env names
+  // through `resolveSecretWithLease`. Reset in afterEach to avoid bleed.
+  'MOLTBOOK_API_KEY',
+  'HOLOMESH_API_KEY',
+  'HOLOSCRIPT_API_KEY',
+  'ABSORB_API_KEY',
 ];
 const ORIGINAL_ENV = new Map(
   ENV_KEYS_FOR_TESTS.map((key) => [key, process.env[key]])
@@ -795,5 +801,271 @@ describe('getLease', () => {
 
   it('returns undefined for unknown id', () => {
     expect(getLease('lease-bogus')).toBeUndefined();
+  });
+});
+
+// -- Phase 3: medium-risk wrap-site coverage -------------------------------
+//
+// Phase 3 wrapped 7 per-task / per-request reads with resolveSecretWithLease:
+//   1. holomesh-tools.ts:908   moltbook crosspost direct fallback   MOLTBOOK_API_KEY
+//   2. holomesh-tools.ts:1434  knowledge-entry crosspost handler    MOLTBOOK_API_KEY
+//   3. knowledge-routes.ts:1687 POST .../knowledge/:id/crosspost    MOLTBOOK_API_KEY
+//   4. tools/moltbook-crosspost.ts:313  postToMoltbook helper       MOLTBOOK_API_KEY
+//   5. http-server.ts:1831  POST /api/moltbook/crosspost route       MOLTBOOK_API_KEY
+//   6. oracle-handler.ts:92  /oracle agent-inference fetch          HOLOSCRIPT_API_KEY || ABSORB_API_KEY
+//   7. team-coordinator.ts:107 sub-agent delegation (runRoomCycle)  HOLOMESH_API_KEY || HOLOSCRIPT_API_KEY
+//
+// We exercise the lease helper directly with the env names the wrap sites
+// pass — that is the substrate test. It would be more invasive to drive each
+// route end-to-end here; the call-site wrapping is one-line passthrough that
+// reduces to "does resolveSecretWithLease behave correctly for this ref under
+// these flag/lease/context conditions?". The call-site tests live in their
+// own files (absorb-provenance-tools.test.ts, http-routes.test.ts) and stay
+// passing because the migration-window passthrough is transparent.
+//
+// G.GOLD.013: every test asserts the FALSE case for the relevant guard
+// (no_task_context, no_active_lease, lease_revoked, lease_scope_violation,
+// fallback-chain isolation under enforcement) — not just the happy path.
+// G.GOLD.015: failure categories that have bitten production (W.075, W.088,
+// W.129 — env-shadow + auth-fallback drift) are the ones we optimize for.
+
+describe('Phase 3 wrap-site lease semantics', () => {
+  // ── (1, 2, 3, 4, 5) MOLTBOOK_API_KEY: per-task moltbook crosspost surface ──
+
+  it('phase3: moltbook key passes through transparently while enforcement is OFF', () => {
+    delete process.env.HOLOMESH_VAULT_LEASE_ENFORCE;
+    process.env.MOLTBOOK_API_KEY = 'moltbook-secret-7';
+
+    expect(resolveSecretWithLease('env:MOLTBOOK_API_KEY')).toBe('moltbook-secret-7');
+  });
+
+  it('phase3: moltbook key requires task context + lease under enforcement', () => {
+    process.env.HOLOMESH_VAULT_LEASE_ENFORCE = '1';
+    process.env.MOLTBOOK_API_KEY = 'moltbook-secret-7';
+
+    // No active task context → no_task_context (call-site sees ''/undefined
+    // via the wrapper's catch and emits the existing "not configured" error).
+    let caught: VaultLeaseError | null = null;
+    try {
+      resolveSecretWithLease('env:MOLTBOOK_API_KEY');
+    } catch (err) {
+      caught = err as VaultLeaseError;
+    }
+    expect(caught).toBeInstanceOf(VaultLeaseError);
+    expect(caught?.reason).toBe('no_task_context');
+  });
+
+  it('phase3: moltbook key resolves with a valid lease scoped to env:MOLTBOOK_API_KEY', () => {
+    process.env.HOLOMESH_VAULT_LEASE_ENFORCE = '1';
+    process.env.MOLTBOOK_API_KEY = 'moltbook-secret-7';
+    const issued = issueLease({
+      taskId: 'task-mb-1',
+      agentId: 'agent-mb-1',
+      scope: ['env:MOLTBOOK_API_KEY'],
+    });
+    expect(issued.ok).toBe(true);
+
+    const value = runWithTaskContext(
+      { taskId: 'task-mb-1', agentId: 'agent-mb-1' },
+      () => resolveSecretWithLease('env:MOLTBOOK_API_KEY')
+    );
+    expect(value).toBe('moltbook-secret-7');
+  });
+
+  it('phase3: revoked lease blocks moltbook key reads (revocation propagates)', () => {
+    process.env.HOLOMESH_VAULT_LEASE_ENFORCE = '1';
+    process.env.MOLTBOOK_API_KEY = 'moltbook-secret-7';
+    const issued = issueLease({
+      taskId: 'task-mb-2',
+      agentId: 'agent-mb-2',
+      scope: ['env:MOLTBOOK_API_KEY'],
+    });
+    if (!issued.ok) {
+      throw new Error('lease issuance unexpectedly failed: ' + issued.reason);
+    }
+    revokeLease({
+      leaseId: issued.lease.leaseId,
+      reason: 'rotation',
+      by: 'system',
+    });
+
+    let caught: VaultLeaseError | null = null;
+    try {
+      runWithTaskContext(
+        { taskId: 'task-mb-2', agentId: 'agent-mb-2' },
+        () => resolveSecretWithLease('env:MOLTBOOK_API_KEY')
+      );
+    } catch (err) {
+      caught = err as VaultLeaseError;
+    }
+    expect(caught).toBeInstanceOf(VaultLeaseError);
+    // After revocation, findActiveLease returns undefined → no_active_lease.
+    // (resolveSecret on the *direct* leaseId would surface lease_revoked, but
+    //  the wrap-site path goes findActiveLease(taskId, agentId) first, which
+    //  drops revoked leases out of the active index.)
+    expect(caught?.reason).toBe('no_active_lease');
+  });
+
+  it('phase3: moltbook lease does NOT silently grant other env refs (scope isolation)', () => {
+    process.env.HOLOMESH_VAULT_LEASE_ENFORCE = '1';
+    process.env.MOLTBOOK_API_KEY = 'moltbook-secret-7';
+    process.env.LEASE_TEST_OTHER = 'should-be-blocked';
+    const issued = issueLease({
+      taskId: 'task-mb-3',
+      agentId: 'agent-mb-3',
+      scope: ['env:MOLTBOOK_API_KEY'],
+    });
+    expect(issued.ok).toBe(true);
+
+    let caught: VaultLeaseError | null = null;
+    try {
+      runWithTaskContext(
+        { taskId: 'task-mb-3', agentId: 'agent-mb-3' },
+        () => resolveSecretWithLease('env:LEASE_TEST_OTHER')
+      );
+    } catch (err) {
+      caught = err as VaultLeaseError;
+    }
+    expect(caught).toBeInstanceOf(VaultLeaseError);
+    expect(caught?.reason).toBe('lease_scope_violation');
+  });
+
+  // ── (6) oracle-handler agent-inference: HOLOSCRIPT_API_KEY || ABSORB_API_KEY ──
+
+  it('phase3: oracle fallback-chain — primary ref leased, secondary not — only primary resolves', () => {
+    process.env.HOLOMESH_VAULT_LEASE_ENFORCE = '1';
+    process.env.HOLOSCRIPT_API_KEY = 'primary-key-99';
+    process.env.ABSORB_API_KEY = 'secondary-key-99';
+
+    // Lease scoped ONLY to env:HOLOSCRIPT_API_KEY. The wrap-site reads
+    // both refs through resolveSecretWithLease — the primary must succeed
+    // and the secondary MUST throw lease_scope_violation. The wrapper
+    // catches and returns ''; net effect: primary value used, secondary
+    // never bleeds into the auth header.
+    const issued = issueLease({
+      taskId: 'task-oracle-1',
+      agentId: 'agent-oracle-1',
+      scope: ['env:HOLOSCRIPT_API_KEY'],
+    });
+    expect(issued.ok).toBe(true);
+
+    runWithTaskContext(
+      { taskId: 'task-oracle-1', agentId: 'agent-oracle-1' },
+      () => {
+        // Primary read succeeds.
+        expect(resolveSecretWithLease('env:HOLOSCRIPT_API_KEY')).toBe('primary-key-99');
+
+        // Secondary read MUST be blocked even though the env value is set.
+        let caught: VaultLeaseError | null = null;
+        try {
+          resolveSecretWithLease('env:ABSORB_API_KEY');
+        } catch (err) {
+          caught = err as VaultLeaseError;
+        }
+        expect(caught).toBeInstanceOf(VaultLeaseError);
+        expect(caught?.reason).toBe('lease_scope_violation');
+      }
+    );
+  });
+
+  it('phase3: oracle fallback-chain — primary ref unset, secondary leased — secondary resolves', () => {
+    process.env.HOLOMESH_VAULT_LEASE_ENFORCE = '1';
+    delete process.env.HOLOSCRIPT_API_KEY;
+    process.env.ABSORB_API_KEY = 'secondary-only-42';
+
+    const issued = issueLease({
+      taskId: 'task-oracle-2',
+      agentId: 'agent-oracle-2',
+      scope: ['env:ABSORB_API_KEY'],
+    });
+    expect(issued.ok).toBe(true);
+
+    runWithTaskContext(
+      { taskId: 'task-oracle-2', agentId: 'agent-oracle-2' },
+      () => {
+        // Primary read is out-of-scope → lease_scope_violation.
+        let primaryCaught: VaultLeaseError | null = null;
+        try {
+          resolveSecretWithLease('env:HOLOSCRIPT_API_KEY');
+        } catch (err) {
+          primaryCaught = err as VaultLeaseError;
+        }
+        expect(primaryCaught?.reason).toBe('lease_scope_violation');
+
+        // Secondary read succeeds.
+        expect(resolveSecretWithLease('env:ABSORB_API_KEY')).toBe('secondary-only-42');
+      }
+    );
+  });
+
+  // ── (7) team-coordinator sub-agent delegation: HOLOMESH_API_KEY || HOLOSCRIPT_API_KEY ──
+
+  it('phase3: sub-agent delegation chain refuses to bleed across HOLOMESH/HOLOSCRIPT under partial scope', () => {
+    process.env.HOLOMESH_VAULT_LEASE_ENFORCE = '1';
+    process.env.HOLOMESH_API_KEY = 'holomesh-bearer-aa';
+    process.env.HOLOSCRIPT_API_KEY = 'holoscript-bearer-bb';
+
+    // Lease scoped ONLY to env:HOLOMESH_API_KEY. Mirrors the W.075/W.088/
+    // W.129 risk: a stale or wrong-scoped HOLOMESH_API_KEY must NOT
+    // silently fall through to HOLOSCRIPT_API_KEY through the lease layer.
+    const issued = issueLease({
+      taskId: 'task-tc-1',
+      agentId: 'agent-tc-1',
+      scope: ['env:HOLOMESH_API_KEY'],
+    });
+    expect(issued.ok).toBe(true);
+
+    runWithTaskContext(
+      { taskId: 'task-tc-1', agentId: 'agent-tc-1' },
+      () => {
+        expect(resolveSecretWithLease('env:HOLOMESH_API_KEY')).toBe('holomesh-bearer-aa');
+
+        let caught: VaultLeaseError | null = null;
+        try {
+          resolveSecretWithLease('env:HOLOSCRIPT_API_KEY');
+        } catch (err) {
+          caught = err as VaultLeaseError;
+        }
+        expect(caught).toBeInstanceOf(VaultLeaseError);
+        expect(caught?.reason).toBe('lease_scope_violation');
+      }
+    );
+  });
+
+  // ── G.GOLD.016 belt + suspenders: wallet refs MUST stay raw (Phase 3 must NOT loosen) ──
+
+  it('phase3: G.GOLD.016 — wallet refs reject through the helper regardless of which Phase wrapped them', () => {
+    // Phase 3 added MOLTBOOK_API_KEY/etc to the leasable surface but the
+    // unleasable wallet patterns must remain inviolate. This is the
+    // regression guard: every Phase that wraps more reads must NOT widen
+    // the wallet protection.
+    delete process.env.HOLOMESH_VAULT_LEASE_ENFORCE;
+
+    // A representative wallet ref from each pattern family in
+    // UNLEASABLE_PATTERNS: HOLOMESH_WALLET_KEY, TREZOR_*, LEDGER_PRIVATE_*.
+    // Each must throw `unleasable_pattern` even with enforcement off,
+    // because wrapping a wallet through the helper is ALWAYS a programming
+    // error per G.GOLD.016 — not a permission gate.
+    const walletRefs = [
+      'env:HOLOMESH_WALLET_KEY',
+      'env:HOLOMESH_WALLET_ADDRESS',
+      'env:TREZOR_DEVICE_PATH',
+      'env:LEDGER_PRIVATE_KEY',
+    ];
+    for (const ref of walletRefs) {
+      let caught: VaultLeaseError | null = null;
+      try {
+        resolveSecretWithLease(ref);
+      } catch (err) {
+        caught = err as VaultLeaseError;
+      }
+      expect(caught).toBeInstanceOf(VaultLeaseError);
+      expect(caught?.reason).toBe('unleasable_pattern');
+    }
+    // Sanity: the unleasable-pattern list still covers each family
+    // (defense-in-depth check that nothing has been silently relaxed).
+    const haystack = walletRefs.join('|');
+    const matched = UNLEASABLE_PATTERNS.filter((re) => re.test(haystack));
+    expect(matched.length).toBeGreaterThanOrEqual(3);
   });
 });

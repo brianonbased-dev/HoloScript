@@ -85,6 +85,29 @@ loadNativeAgentCompositions();
 import { WebRTCSignalingServer } from './holomesh/webrtc-signaling';
 import { formatBroadcastContextMarkdown } from './holomesh/moltbook-broadcast-context';
 import { buildMoltbookCrosspostPayload, createMoltbookPost } from './moltbook/moltbook-post.js';
+import {
+  resolveSecretWithLease,
+  VaultLeaseError,
+} from './holomesh/identity/vault-lease-registry';
+
+/**
+ * Phase 3 wrapper around `process.env.MOLTBOOK_API_KEY` for the per-request
+ * `POST /api/moltbook/crosspost` route. Each invocation is a per-task MCP
+ * fetch helper reading an outbound API key — Phase 3 medium-risk tier.
+ *
+ * Returning `''` on `VaultLeaseError` preserves the original
+ * `process.env.MOLTBOOK_API_KEY || ''` semantics. The handler branches on
+ * the empty-string falsy case to emit a 503.
+ */
+function readMoltbookApiKeyForRoute(): string {
+  try {
+    return resolveSecretWithLease('env:MOLTBOOK_API_KEY') ?? '';
+  } catch (err) {
+    if (err instanceof VaultLeaseError) return '';
+    throw err;
+  }
+}
+
 import { resolveStoreRoot } from './hologram-renderer';
 import { isHologramMcpResponse, wrapHologramMcpEnvelope } from '@holoscript/core';
 import { promises as fsPromises } from 'fs';
@@ -1828,7 +1851,9 @@ const httpServer = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ success: false, error: 'Authentication required' }));
       return;
     }
-    const moltKey = process.env.MOLTBOOK_API_KEY || '';
+    // Phase-3 wrapped read: gated by `env:MOLTBOOK_API_KEY` lease when
+    // HOLOMESH_VAULT_LEASE_ENFORCE is on; transparent passthrough otherwise.
+    const moltKey = readMoltbookApiKeyForRoute();
     if (!moltKey) {
       res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(

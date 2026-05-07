@@ -71,6 +71,33 @@ function readHoloscriptApiKey(): string {
   }
 }
 
+/**
+ * Phase 3 wrapper around `process.env.MOLTBOOK_API_KEY` for the moltbook
+ * crosspost direct-fallback path and the knowledge-entry crosspost handler
+ * (`handleCrosspostMoltbook`). Both are per-task MCP tool invocations, not
+ * boot/singleton init, so they fall in the Phase 3 medium-risk tier per
+ * the task description (sub-agent delegation auth + MCP fetch helpers
+ * reading API keys for outbound calls).
+ *
+ * Migration-window passthrough until `HOLOMESH_VAULT_LEASE_ENFORCE` flips
+ * on; after that, the read is gated by an active task lease scoped to
+ * `env:MOLTBOOK_API_KEY`. Returning `undefined` on `VaultLeaseError`
+ * preserves the previous `process.env.MOLTBOOK_API_KEY` semantics where
+ * a missing/unset key resolves as undefined and the caller branches on
+ * the falsy value to surface a "not configured" error.
+ *
+ * G.GOLD.016: `MOLTBOOK_API_KEY` is a service token, not a wallet — the
+ * `UNLEASABLE_PATTERNS` check in `resolveSecretWithLease` does not match it.
+ */
+function readMoltbookApiKey(): string | undefined {
+  try {
+    return resolveSecretWithLease('env:MOLTBOOK_API_KEY');
+  } catch (err) {
+    if (err instanceof VaultLeaseError) return undefined;
+    throw err;
+  }
+}
+
 const moltbookCrosspostSchema = z.object({
   taskId: z.string().min(1),
   title: z.string().min(1),
@@ -905,7 +932,9 @@ async function handleMoltbookCrosspost(args: Record<string, unknown>) {
       environmentContext,
     };
   } catch (proxyErr: unknown) {
-    const moltbookApiKey = process.env.MOLTBOOK_API_KEY;
+    // Phase-3 wrapped read: gated by `env:MOLTBOOK_API_KEY` lease when
+    // HOLOMESH_VAULT_LEASE_ENFORCE is on; transparent passthrough otherwise.
+    const moltbookApiKey = readMoltbookApiKey();
     if (!moltbookApiKey) {
       return {
         error: 'Proxy crosspost failed and MOLTBOOK_API_KEY is not configured for direct fallback',
@@ -1431,7 +1460,9 @@ async function handleCrosspostMoltbook(
       return { error: 'Missing required field: entry_id' };
     }
 
-    const moltbookKey = process.env.MOLTBOOK_API_KEY;
+    // Phase-3 wrapped read: gated by `env:MOLTBOOK_API_KEY` lease when
+    // HOLOMESH_VAULT_LEASE_ENFORCE is on; transparent passthrough otherwise.
+    const moltbookKey = readMoltbookApiKey();
     if (!moltbookKey) {
       return { error: 'MOLTBOOK_API_KEY not configured in environment' };
     }

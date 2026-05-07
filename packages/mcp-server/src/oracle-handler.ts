@@ -7,6 +7,38 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import {
+  resolveSecretWithLease,
+  VaultLeaseError,
+} from './holomesh/identity/vault-lease-registry';
+
+/**
+ * Phase 3 wrapper around the orchestrator-knowledge-fetch API key. This is
+ * the per-task agent-inference path (`/oracle` MCP tool dispatching to
+ * `${MCP_ORCHESTRATOR_PUBLIC_URL}/knowledge/query`) — exactly the medium-risk
+ * Phase 3 tier the task description targets ("per-task agent-inference auth
+ * headers"). The original code reads
+ * `process.env.HOLOSCRIPT_API_KEY || process.env.ABSORB_API_KEY` so each ref
+ * resolves through the lease helper independently. A lease scoped only to
+ * `env:HOLOSCRIPT_API_KEY` will not silently fall through to
+ * `env:ABSORB_API_KEY` under enforcement.
+ *
+ * Returning `''` on `VaultLeaseError` for each ref preserves the original
+ * fallback chain semantics during the migration window — both refs failing
+ * yields `'' || '' || undefined` and the caller branches on the falsy value
+ * to skip the knowledge-store query.
+ */
+function readOracleKnowledgeApiKey(): string | undefined {
+  const tryRead = (ref: 'env:HOLOSCRIPT_API_KEY' | 'env:ABSORB_API_KEY'): string => {
+    try {
+      return resolveSecretWithLease(ref) ?? '';
+    } catch (err) {
+      if (err instanceof VaultLeaseError) return '';
+      throw err;
+    }
+  };
+  return tryRead('env:HOLOSCRIPT_API_KEY') || tryRead('env:ABSORB_API_KEY') || undefined;
+}
 
 const TREES: Record<string, string> = {
   package:
@@ -88,8 +120,11 @@ export async function handleOracleConsult(
   }
   if (dtMatches.length > 0) results.push('## Decision Tree Matches\n' + dtMatches.join('\n\n'));
 
-  // Query knowledge store
-  const apiKey = process.env.HOLOSCRIPT_API_KEY || process.env.ABSORB_API_KEY;
+  // Query knowledge store — Phase-3 wrapped read (per-task agent-inference path).
+  // Each ref resolves through resolveSecretWithLease independently so a lease
+  // scoped to only one will not silently fall through to the other under
+  // HOLOMESH_VAULT_LEASE_ENFORCE.
+  const apiKey = readOracleKnowledgeApiKey();
   if (apiKey) {
     try {
       const url =

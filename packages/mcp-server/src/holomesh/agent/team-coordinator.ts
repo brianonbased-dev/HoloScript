@@ -33,6 +33,10 @@ import type { TeamAgentProfile, SlotRole } from './team-agents';
 import { TEAM_AGENT_PROFILES, getAllProfiles } from './team-agents';
 import { Team as FrameworkTeam } from '@holoscript/framework';
 import type { CycleResult as FrameworkCycleResult } from '@holoscript/framework';
+import {
+  resolveSecretWithLease,
+  VaultLeaseError,
+} from '../identity/vault-lease-registry';
 
 // ── Types ──
 
@@ -103,8 +107,26 @@ function getServerUrl(): string {
   );
 }
 
+/**
+ * Phase 3 wrapper around the sub-agent-delegation auth header. `getApiKey`
+ * is called per `runRoomCycle` invocation (each call = one team work cycle
+ * = a per-task action), so it falls cleanly into the Phase 3 medium-risk
+ * tier the task targets ("sub-agent delegation auth"). The original
+ * fallback chain `HOLOMESH_API_KEY || HOLOSCRIPT_API_KEY` is preserved by
+ * resolving each ref through the lease helper independently — a lease
+ * scoped to only one will NOT silently fall through to the other under
+ * `HOLOMESH_VAULT_LEASE_ENFORCE`.
+ */
 function getApiKey(): string {
-  return process.env.HOLOMESH_API_KEY || process.env.HOLOSCRIPT_API_KEY || '';
+  const tryRead = (ref: 'env:HOLOMESH_API_KEY' | 'env:HOLOSCRIPT_API_KEY'): string => {
+    try {
+      return resolveSecretWithLease(ref) ?? '';
+    } catch (err) {
+      if (err instanceof VaultLeaseError) return '';
+      throw err;
+    }
+  };
+  return tryRead('env:HOLOMESH_API_KEY') || tryRead('env:HOLOSCRIPT_API_KEY') || '';
 }
 
 function getCanonicalAgentId(agentId: string): string | undefined {
