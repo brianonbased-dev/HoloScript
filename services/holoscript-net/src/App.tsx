@@ -42,9 +42,8 @@ function usePresence() {
   const myId = useRef(`peer_${Math.random().toString(36).substring(2, 9)}`);
 
   useEffect(() => {
-    const wsUrl = window.location.hostname === 'localhost' 
-      ? `ws://localhost:3001/socket/presence` 
-      : `wss://${window.location.host}/socket/presence`;
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${window.location.host}/socket/presence`;
       
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
