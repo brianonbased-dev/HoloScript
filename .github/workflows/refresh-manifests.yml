@@ -49,7 +49,9 @@ jobs:
   refresh:
     name: Refresh provenance + papers-status + live-evidence manifests
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # A rerun on 2026-05-07 was cancelled before any steps executed because
+    # the hosted runner queue consumed the previous 15-minute budget.
+    timeout-minutes: 45
 
     steps:
       - name: Checkout HoloScript main
