@@ -548,6 +548,13 @@ export async function runComparativeBenchmarks(
 }
 
 export {
+  runVrIdeUxBenchmark,
+  formatUxReport,
+  type UxTaskResult,
+  type UxBenchmarkReport,
+} from './vr-ide-ux-benchmark';
+
+export {
   runPaper12PluginProbe,
   OPENUSD_EQUIVALENT_PROXY,
   type Paper12PluginProbeResult,
