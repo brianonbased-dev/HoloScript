@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { MutableRefObject, ReactNode } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { createBotanicalLotusRenderProfile } from '@holoscript/core/traits';
+import { createBotanicalLotusRenderProfile } from '@holoscript/core/traits/botanical-lotus';
 import { KeyRound, Pause, Play, RefreshCw } from 'lucide-react';
 import type { Group, InstancedMesh, Mesh, MeshPhysicalMaterial } from 'three';
 import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Object3D, Vector3 } from 'three';

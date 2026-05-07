@@ -1,7 +1,7 @@
 {
   "name": "@holoscript/core",
   "version": "7.0.0",
-  "description": "Core parser, AST, compiler infrastructure, trait system, and runtime for HoloScript \u00e2\u20ac\u201d the open AI-spatial reality protocol for 3D/XR/IoT",
+  "description": "Core parser, AST, compiler infrastructure, trait system, and runtime for HoloScript â€” the open AI-spatial reality protocol for 3D/XR/IoT",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -102,6 +102,14 @@
     "./traits": {
       "types": "./dist/traits/index.d.ts",
       "import": "./dist/traits/index.js"
+    },
+    "./traits/botanical-lotus": {
+      "types": "./dist/traits/botanical-lotus.d.ts",
+      "import": "./dist/traits/botanical-lotus.js"
+    },
+    "./traits/simulation-solver-factory": {
+      "types": "./dist/traits/simulation-solver-factory.d.ts",
+      "import": "./dist/traits/simulation-solver-factory.js"
     },
     "./traits/engines": {
       "types": "./dist/traits/engines/index.d.ts",

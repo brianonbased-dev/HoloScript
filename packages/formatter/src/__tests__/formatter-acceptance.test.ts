@@ -3,6 +3,7 @@
  * Covers: HoloScriptFormatter, convenience functions, ConfigLoader
  */
 import { describe, it, expect, beforeEach } from 'vitest';
+import { fileURLToPath } from 'url';
 import {
   HoloScriptFormatter,
   format,
@@ -323,7 +324,7 @@ describe('ConfigLoader', () => {
   it('loadConfig returns FormatterConfig from real path', () => {
     const loader = new ConfigLoader();
     // Use the package src directory (no config file there â†’ returns defaults)
-    const cfg = loader.loadConfig(import.meta.url.replace('file:///', '').replace(/%3A/, ':'));
+    const cfg = loader.loadConfig(fileURLToPath(import.meta.url));
     expect(cfg).toBeDefined();
     expect(typeof cfg.indentSize).toBe('number');
     expect(typeof cfg.maxLineLength).toBe('number');
@@ -331,7 +332,7 @@ describe('ConfigLoader', () => {
 
   it('loadConfig returns object with expected keys', () => {
     const loader = new ConfigLoader();
-    const cfg = loader.loadConfig(import.meta.url.replace('file:///', '').replace(/%3A/, ':'));
+    const cfg = loader.loadConfig(fileURLToPath(import.meta.url));
     const requiredKeys: (keyof FormatterConfig)[] = [
       'indentSize',
       'useTabs',

@@ -74,7 +74,11 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           npm install -g @railway/cli
-          railway redeploy --service mcp-server -y
+          if ! railway redeploy --service mcp-server -y; then
+            echo "WARNING: Railway redeploy could not start, likely because a deployment is already building or deploying."
+            echo "The GHCR image was published successfully; Railway can pick up the latest image on the next deploy."
+            exit 0
+          fi
           echo "Waiting 15s for Railway to start..."
           sleep 15
           curl -sf https://mcp.holoscript.net/health > /dev/null && echo "MCP server healthy after redeploy" || echo "WARNING: MCP health check failed — server may still be starting. Check https://mcp.holoscript.net/health manually."

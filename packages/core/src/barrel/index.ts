@@ -43,11 +43,41 @@ export * from '../worker/LSPWorkerProtocol';
 
 // Compiler module resolver (engine HotReloadBridge relies on invalidate()).
 export { ModuleResolver } from '../compiler/ModuleResolver';
-export type { CachedModule, ModuleHeader, ModuleImport, ModuleExport } from '../compiler/ModuleResolver';
+export type { CachedModule, ModuleHeader, ResolvedImport } from '../compiler/ModuleResolver';
+export type { ResolvedImport as ModuleImport } from '../compiler/ModuleResolver';
+export type ModuleExport = string;
 
 // Theming (consumed by @holoscript/engine RuntimeBridge)
 export * from '../theming/ThemeEngine';
 export * from '../theming/StyleResolver';
 
-// Shared trait types (TraitInstanceDelegate consumed by engine traits)
-export * from '../traits/TraitTypes';
+// Shared trait types (TraitInstanceDelegate consumed by engine traits).
+// Keep this explicit so legacy VR exports remain authoritative for overlapping names.
+export { extractPayload } from '../traits/TraitTypes';
+export type {
+  TraitHandler,
+  HostExecOptions,
+  HostExecResult,
+  HostNetworkRequestOptions,
+  HostNetworkResponse,
+  HostFileSystemCapabilities,
+  HostProcessCapabilities,
+  HostNetworkCapabilities,
+  HostMediaFrame,
+  HostMediaCapabilities,
+  HostDepthMap,
+  HostDepthInferenceCapabilities,
+  HostGpuComputeResult,
+  HostGpuComputeCapabilities,
+  HostCapabilities,
+  TraitContext,
+  AccessibilityContext,
+  VRContext,
+  PhysicsContext,
+  AudioContext,
+  HapticsContext,
+  RaycastHit,
+  TraitEvent,
+  TraitEventPayload,
+  TraitInstanceDelegate,
+} from '../traits/TraitTypes';

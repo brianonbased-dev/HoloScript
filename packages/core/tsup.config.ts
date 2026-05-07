@@ -73,6 +73,10 @@ export default defineConfig({
 
     // Traits barrel (re-exports all trait types for @holoscript/traits)
     'traits/index': 'src/traits/index.ts',
+    // Botanical Lotus contract without the full domain-plugin trait barrel
+    'traits/botanical-lotus': 'src/traits/BotanicalLotusTrait.ts',
+    // Simulation registry without the full domain-plugin trait barrel
+    'traits/simulation-solver-factory': 'src/traits/SimulationSolverFactory.ts',
     // Engines lightweight barrel (no plugin imports — for runtime + r3f consumption)
     'traits/engines/index': 'src/traits/engines/index.ts',
     // Consumer-bus coordinators (Pattern E remediation per /stub-audit Phase 3.5)
@@ -102,8 +106,7 @@ export default defineConfig({
 
     // Agent context compiler (CLAUDE.md / AGENTS.md-style context emitters)
     'compiler/context': 'src/compiler/ContextCompiler.ts',
-    'compiler/llm-provider-capabilities':
-      'src/compiler/LLMProviderCapabilitiesCompiler.ts',
+    'compiler/llm-provider-capabilities': 'src/compiler/LLMProviderCapabilitiesCompiler.ts',
 
     // HoloMap native reconstruction (WebGPU feed-forward, SimulationContract binding)
     'reconstruction/index': 'src/reconstruction/index.ts',

@@ -11,7 +11,7 @@ import {
   HydraulicConfig,
   registerSimulationSolvers,
 } from '@holoscript/engine/simulation';
-import { SimulationSolverFactory } from '@holoscript/core/traits';
+import { SimulationSolverFactory } from '@holoscript/core/traits/simulation-solver-factory';
 import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 
 type SimulationType = 'thermal' | 'structural' | 'structural-tet10' | 'hydraulic';
@@ -44,7 +44,11 @@ export const SimulationContext = createContext<SimulationContextValue>({
   solving: false,
 });
 
-export const SimulationProvider: React.FC<SimulationProviderProps> = ({ type, config, children }) => {
+export const SimulationProvider: React.FC<SimulationProviderProps> = ({
+  type,
+  config,
+  children,
+}) => {
   const solverRef = useRef<AnySolver | null>(null);
   const [scalarField, setScalarField] = useState<Float32Array | Float64Array | null>(null);
   const [displacements, setDisplacements] = useState<Float32Array | Float64Array | null>(null);
@@ -80,21 +84,24 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({ type, co
       // TET10 solve is async (GPU path)
       setSolving(true);
       const tet10 = solver as StructuralSolverTET10;
-      tet10.solve().then(() => {
-        if (cancelled) return;
-        setScalarField(tet10.getVonMisesStress());
-        setDisplacements(tet10.getDisplacements());
-        setDisplacementBuffer(tet10.getDisplacementBuffer());
-        setSolving(false);
-      }).catch(() => {
-        if (cancelled) return;
-        // GPU unavailable — fallback to CPU solve
-        tet10.solveCPU();
-        setScalarField(tet10.getVonMisesStress());
-        setDisplacements(tet10.getDisplacements());
-        setDisplacementBuffer(null);
-        setSolving(false);
-      });
+      tet10
+        .solve()
+        .then(() => {
+          if (cancelled) return;
+          setScalarField(tet10.getVonMisesStress());
+          setDisplacements(tet10.getDisplacements());
+          setDisplacementBuffer(tet10.getDisplacementBuffer());
+          setSolving(false);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          // GPU unavailable — fallback to CPU solve
+          tet10.solveCPU();
+          setScalarField(tet10.getVonMisesStress());
+          setDisplacements(tet10.getDisplacements());
+          setDisplacementBuffer(null);
+          setSolving(false);
+        });
     } else if (solver && type === 'hydraulic') {
       (solver as HydraulicSolver).solve();
       setScalarField((solver as HydraulicSolver).getPressureField());
@@ -123,10 +130,17 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({ type, co
   });
 
   return (
-    <SimulationContext.Provider value={{ solver: solverRef.current, scalarField, displacements, displacementBuffer, type, solving }}>
-      <StudioErrorBoundary label="Simulation Provider">
-        {children}
-      </StudioErrorBoundary>
+    <SimulationContext.Provider
+      value={{
+        solver: solverRef.current,
+        scalarField,
+        displacements,
+        displacementBuffer,
+        type,
+        solving,
+      }}
+    >
+      <StudioErrorBoundary label="Simulation Provider">{children}</StudioErrorBoundary>
     </SimulationContext.Provider>
   );
 };

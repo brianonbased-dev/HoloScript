@@ -4186,6 +4186,205 @@ export * as WineFoodBeveragePlugin from '@holoscript/plugin-wine-food-beverage';
 export * as WisdomGotchaPlugin from '@holoscript/plugin-wisdom-gotcha';
 `;
 
+const botanicalLotusDTS = `/**
+ * @holoscript/core/traits/botanical-lotus — narrow botanical trait surface
+ *
+ * This subpath intentionally avoids the full traits barrel because that barrel
+ * imports every domain plugin. Browser renderers can use this contract without
+ * bundling the entire plugin universe.
+ */
+
+export type BotanicalLotusAnchorStatus =
+  | 'pending_media_ingest'
+  | 'hashed'
+  | 'wallet_signed';
+
+export interface BotanicalLotusColors {
+  petal_base: string;
+  petal_mid: string;
+  petal_inner: string;
+  petal_rim: string;
+  petal_shadow: string;
+  seed_pod: string;
+  seed_pod_rim: string;
+  stamen: string;
+  stamen_tip: string;
+  leaf: string;
+  leaf_dark: string;
+  water: string;
+}
+
+export interface BotanicalLotusReferenceAnchor {
+  id: string;
+  label: string;
+  uri: string;
+  role: string;
+  status: BotanicalLotusAnchorStatus;
+  content_hash?: string;
+  wallet_signature?: string;
+  mime_type?: string;
+  width?: number;
+  height?: number;
+}
+
+export interface BotanicalLotusMaterial {
+  subsurface_scattering: number;
+  subsurface_radius_rgb: readonly [number, number, number];
+  petal_translucency_base: number;
+  petal_translucency_edge: number;
+  roughness: number;
+  ior: number;
+  vein_normal_intensity: number;
+  edge_curl_intensity: number;
+  gravity_sag_outer: number;
+}
+
+export interface BotanicalLotusPetalRing {
+  name: 'inner' | 'mid' | 'outer' | (string & {});
+  count: number;
+  cup: number;
+  gravity_sag: number;
+}
+
+export interface BotanicalLotusGeometry {
+  petal_rings: readonly BotanicalLotusPetalRing[];
+  petal_shape: string;
+  stamen_filament_count: number;
+  seed_pod_dot_pattern: string;
+}
+
+export interface BotanicalLotusSource {
+  kind: string;
+  count: number;
+  content_hash_status: BotanicalLotusAnchorStatus;
+  wallet_signature_status: 'pending_cael_anchor' | 'wallet_signed';
+  note: string;
+}
+
+export interface BotanicalLotusRendererHints {
+  requires: readonly string[];
+  lod: { close: string; mid: string; far: string };
+  material_model: string;
+}
+
+export interface BotanicalLotusPlacement {
+  surface_anchor_id?: string;
+  surface_normal?: readonly [number, number, number];
+  world_position?: readonly [number, number, number];
+}
+
+export interface BotanicalLotusLighting {
+  reference_id?: string;
+  estimated_lux?: number;
+  color_temperature_k?: number;
+  dominant_direction?: readonly [number, number, number];
+}
+
+export interface BotanicalLotusConfig {
+  schema: 'holoscript.trait.botanical_lotus.v0';
+  status: 'visual_seed' | 'content_hashed' | 'wallet_signed';
+  source: BotanicalLotusSource;
+  reference_anchors: readonly BotanicalLotusReferenceAnchor[];
+  material: BotanicalLotusMaterial;
+  colors: BotanicalLotusColors;
+  geometry: BotanicalLotusGeometry;
+  renderer: BotanicalLotusRendererHints;
+}
+
+export type BotanicalLotusConfigInput = Partial<
+  Omit<BotanicalLotusConfig, 'source' | 'material' | 'colors' | 'geometry' | 'renderer'>
+> & {
+  source?: Partial<BotanicalLotusSource>;
+  material?: Partial<BotanicalLotusMaterial>;
+  colors?: Partial<BotanicalLotusColors>;
+  geometry?: Partial<Omit<BotanicalLotusGeometry, 'petal_rings'>> & {
+    petal_rings?: readonly BotanicalLotusPetalRing[];
+  };
+  renderer?: Partial<BotanicalLotusRendererHints>;
+};
+
+export interface BotanicalLotusRenderPetalRing {
+  name: string;
+  count: number;
+  radius: number;
+  length: number;
+  width: number;
+  cup: number;
+  gravity_sag: number;
+  pitch_degrees: number;
+}
+
+export interface BotanicalLotusRenderProfile {
+  trait: 'botanical_lotus';
+  anchor_status: BotanicalLotusAnchorStatus;
+  wallet_signed: boolean;
+  petal_count: number;
+  petal_rings: readonly BotanicalLotusRenderPetalRing[];
+  pbr_uniforms: {
+    subsurface_scattering: number;
+    subsurface_radius_rgb: readonly [number, number, number];
+    transmission: number;
+    thickness: number;
+    roughness: number;
+    ior: number;
+    vein_normal_intensity: number;
+  };
+  colors: BotanicalLotusColors;
+  stamen_filament_count: number;
+  seed_pod_dot_pattern: string;
+  reference_anchor_ids: readonly string[];
+  renderer_requires: readonly string[];
+  surface_anchor_id?: string;
+  lighting_reference?: string;
+}
+
+export interface BotanicalLotusValidationResult {
+  ok: boolean;
+  errors: readonly string[];
+  config: BotanicalLotusConfig;
+}
+
+export declare const DEFAULT_BOTANICAL_LOTUS_CONFIG: BotanicalLotusConfig;
+export declare function normalizeBotanicalLotusConfig(input?: BotanicalLotusConfigInput): BotanicalLotusConfig;
+export declare function validateBotanicalLotusConfig(input?: BotanicalLotusConfigInput): BotanicalLotusValidationResult;
+export declare function assertBotanicalLotusConfig(input?: BotanicalLotusConfigInput): BotanicalLotusConfig;
+export declare function deriveBotanicalLotusAnchorStatus(
+  anchors: readonly BotanicalLotusReferenceAnchor[]
+): BotanicalLotusAnchorStatus;
+export declare function getBotanicalLotusPetalCount(input?: BotanicalLotusConfigInput): number;
+export declare function createBotanicalLotusRenderProfile(
+  input?: BotanicalLotusConfigInput,
+  placement?: BotanicalLotusPlacement,
+  lighting?: BotanicalLotusLighting
+): BotanicalLotusRenderProfile;
+export declare const botanicalLotusHandler: unknown;
+`;
+
+const simulationSolverFactoryDTS = `/**
+ * @holoscript/core/traits/simulation-solver-factory — narrow simulation registry
+ *
+ * Browser renderers import this instead of @holoscript/core/traits so they do
+ * not bundle every domain trait plugin.
+ */
+
+export interface SimulationSolver {
+  step?(dt: number): void;
+  solve?(): unknown;
+  dispose(): void;
+  getStats?(): Record<string, unknown>;
+}
+
+export type SolverFactory = (config: Record<string, unknown>) => SimulationSolver;
+
+export declare const SimulationSolverFactory: {
+  register(type: string, factory: SolverFactory): void;
+  create(type: string, config: Record<string, unknown>): SimulationSolver | null;
+  has(type: string): boolean;
+  types(): string[];
+  clear(): void;
+};
+`;
+
 const compilerDTS = `/**
  * @holoscript/core/compiler — Multi-Target Compiler Type Declarations
  */
@@ -5563,6 +5762,23 @@ for (const { dir, content } of subdirDeclarations) {
   } catch (err) {
     console.error(`✗ Failed to create ${dir}/index.d.ts:`, err.message);
   }
+}
+
+try {
+  const traitsDir = path.join(distDir, 'traits');
+  if (!fs.existsSync(traitsDir)) {
+    fs.mkdirSync(traitsDir, { recursive: true });
+  }
+  fs.writeFileSync(path.join(traitsDir, 'botanical-lotus.d.ts'), botanicalLotusDTS, 'utf8');
+  console.log('✓ Created traits/botanical-lotus.d.ts');
+  fs.writeFileSync(
+    path.join(traitsDir, 'simulation-solver-factory.d.ts'),
+    simulationSolverFactoryDTS,
+    'utf8'
+  );
+  console.log('✓ Created traits/simulation-solver-factory.d.ts');
+} catch (err) {
+  console.error('✗ Failed to create narrow trait subpath declarations:', err.message);
 }
 
 try {

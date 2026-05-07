@@ -505,15 +505,6 @@ Shortfall: 0.003125 ETH
 #### 3. Collection ID Required
 
 ```
-<<<<<<< Updated upstream
-Error: collection_id is required before minting. Deploy a collection with
-packages/marketplace-api/scripts/deploy-protocol-collection.ts or create one at
-https://zora.co/create, then pass its address.
-```
-
-**Solution:** Deploy a collection with `packages/marketplace-api/scripts/deploy-protocol-collection.ts`
-or create one on Zora, then add the collection address as `collection_id` in config.
-=======
 Error: collection_id is required. Deploy a Zora collection with the marketplace-api
 deploy-protocol-collection.ts script or create one at https://zora.co/create,
 then pass its address as collection_id.
@@ -522,7 +513,6 @@ then pass its address as collection_id.
 **Solution:** Deploy the shared protocol collection with
 `pnpm --filter @holoscript/marketplace-api tsx scripts/deploy-protocol-collection.ts --testnet`
 or create a collection on Zora, then add the resulting address as `collection_id`.
->>>>>>> Stashed changes
 
 #### 4. Transaction Timeout
 

@@ -116,12 +116,6 @@ async function executeMinting(
     // Use existing collection
     contractAddress = config.collection_id as Address;
   } else {
-<<<<<<< Updated upstream
-    throw new Error(
-      'collection_id is required before minting. Deploy a collection with ' +
-        'packages/marketplace-api/scripts/deploy-protocol-collection.ts or create one at ' +
-        'https://zora.co/create, then pass its address.'
-=======
     // Collection deployment is an explicit operator step because it spends gas
     // from a funded wallet. Deploy with:
     //   pnpm --filter @holoscript/marketplace-api tsx scripts/deploy-protocol-collection.ts --testnet
@@ -129,7 +123,6 @@ async function executeMinting(
       'collection_id is required. Deploy a Zora collection with the marketplace-api ' +
         'deploy-protocol-collection.ts script or create one at https://zora.co/create, ' +
         'then pass its address as collection_id.'
->>>>>>> Stashed changes
     );
   }
 

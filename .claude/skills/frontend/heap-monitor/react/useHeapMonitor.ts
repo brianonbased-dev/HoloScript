@@ -4,7 +4,8 @@
  * Automatically tracks component state and props size, integrates with HeapBudgetMonitor
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { createElement, useEffect, useRef, useState, useCallback } from 'react';
+import type { ComponentType } from 'react';
 import { heapMonitor, HeapMetrics, MonitorConfig } from '../HeapBudgetMonitor';
 
 export interface UseHeapMonitorOptions {
@@ -140,18 +141,22 @@ export function useHeapMonitor(options: UseHeapMonitorOptions): UseHeapMonitorRe
  * ```
  */
 export function withHeapMonitor<P extends object>(
-  Component: React.ComponentType<P>,
+  Component: ComponentType<P>,
   options: Omit<UseHeapMonitorOptions, 'componentName'> & { componentName?: string }
 ) {
   return function HeapMonitoredComponent(props: P) {
-    const componentName = options.componentName || Component.displayName || Component.name || 'Unknown';
+    const componentName =
+      options.componentName || Component.displayName || Component.name || 'Unknown';
 
     const heapState = useHeapMonitor({
       ...options,
       componentName,
     });
 
-    return <Component {...props} heapMonitor={heapState} />;
+    return createElement(Component as ComponentType<P & { heapMonitor: UseHeapMonitorReturn }>, {
+      ...props,
+      heapMonitor: heapState,
+    });
   };
 }
 
@@ -176,7 +181,9 @@ export function useReduxStoreMonitor(store: any) {
       Object.entries(metrics.slicesSizes)
         .filter(([_, size]) => size > 1024 * 1024) // > 1MB
         .forEach(([slice, size]) => {
-          console.warn(`[HeapMonitor] Large Redux slice: ${slice} (${(size / 1024 / 1024).toFixed(2)} MB)`);
+          console.warn(
+            `[HeapMonitor] Large Redux slice: ${slice} (${(size / 1024 / 1024).toFixed(2)} MB)`
+          );
         });
     }, 10000); // Check every 10 seconds
 
@@ -202,7 +209,9 @@ export function useCacheMonitor(cache: Map<any, any>, options: { maxSize: number
       const metrics = heapMonitor.trackCache(cache);
 
       if (metrics.totalSize > options.maxSize) {
-        console.warn(`[HeapMonitor] Cache size exceeded: ${(metrics.totalSize / 1024 / 1024).toFixed(2)} MB`);
+        console.warn(
+          `[HeapMonitor] Cache size exceeded: ${(metrics.totalSize / 1024 / 1024).toFixed(2)} MB`
+        );
 
         // Evict oldest entries (if cache is a Map)
         const entriesToEvict = Math.ceil(cache.size * 0.3); // Evict 30%

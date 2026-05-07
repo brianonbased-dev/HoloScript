@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { type FormatterConfig, DEFAULT_CONFIG } from './config';
 
 export class ConfigLoader {
@@ -54,8 +55,14 @@ export class ConfigLoader {
   }
 
   private findConfigFile(startDir: string): string | null {
-    // Ensure startDir is an absolute path
-    const resolvedStartDir = path.resolve(startDir);
+    const resolvedStartDir = startDir.startsWith('file:')
+      ? fileURLToPath(startDir)
+      : path.resolve(startDir);
+
+    if (!fs.existsSync(resolvedStartDir)) {
+      return null;
+    }
+
     let currentDir = fs.lstatSync(resolvedStartDir).isDirectory()
       ? resolvedStartDir
       : path.dirname(resolvedStartDir);
