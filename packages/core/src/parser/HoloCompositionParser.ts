@@ -297,12 +297,7 @@ export class HoloCompositionParser {
             } else {
               // Capture unknown root-level traits (e.g., @page, @metadata)
               composition.traits = composition.traits || [];
-              let config: Record<string, HoloValue> = {};
-              if (this.check('LPAREN')) {
-                config = this.parseTraitConfig();
-              } else if (this.check('LBRACE')) {
-                config = this.parseBlockTraitConfig();
-              }
+              const config = this.parseOptionalTraitConfig();
               composition.traits.push({ type: 'ObjectTrait', name: decoratorName, config });
             }
           }
@@ -437,10 +432,7 @@ export class HoloCompositionParser {
     while (this.check('AT')) {
       this.advance(); // consume @
       const traitName = this.expectIdentifier();
-      let config: Record<string, HoloValue> = {};
-      if (this.check('LPAREN')) {
-        config = this.parseTraitConfig();
-      }
+      const config = this.parseOptionalTraitConfig(true);
       traits.push({ type: 'ObjectTrait' as const, name: traitName, config });
     }
 
@@ -456,12 +448,7 @@ export class HoloCompositionParser {
         if (this.check('AT')) {
           this.advance();
           const traitName = this.expectIdentifier();
-          let config: Record<string, HoloValue> = {};
-          if (this.check('LPAREN')) {
-            config = this.parseTraitConfig();
-          } else if (this.check('LBRACE')) {
-            config = this.parseBlockTraitConfig();
-          }
+          const config = this.parseOptionalTraitConfig();
           traits.push({ type: 'ObjectTrait' as const, name: traitName, config });
         } else if (this.check('IDENTIFIER')) {
           const key = this.expectIdentifier();
@@ -703,12 +690,7 @@ export class HoloCompositionParser {
             } else {
               // Capture unknown decorator arguments (e.g. @page, @metadata)
               composition.traits = composition.traits || [];
-              let config: Record<string, HoloValue> = {};
-              if (this.check('LPAREN')) {
-                config = this.parseTraitConfig();
-              } else if (this.check('LBRACE')) {
-                config = this.parseBlockTraitConfig();
-              }
+              const config = this.parseOptionalTraitConfig();
               composition.traits.push({ type: 'ObjectTrait', name: decoratorName, config });
             }
           }
@@ -1659,12 +1641,7 @@ export class HoloCompositionParser {
           template.version = Number(versionToken.value);
           this.expect('RPAREN');
         } else {
-          let config: Record<string, HoloValue> = {};
-          if (this.check('LPAREN')) {
-            config = this.parseTraitConfig();
-          } else if (this.check('LBRACE')) {
-            config = this.parseBlockTraitConfig();
-          }
+          const config = this.parseOptionalTraitConfig();
           template.traits.push({ type: 'ObjectTrait', name: traitName, config } as HoloObjectTrait);
           // Also add traits as directives for compatibility
           template.directives!.push({ type: 'trait', name: traitName, config });
@@ -1819,10 +1796,7 @@ export class HoloCompositionParser {
     while (this.check('AT')) {
       this.advance(); // consume @
       const traitName = this.isAtEnd() ? '' : this.advance().value; // accept any token as trait name
-      let config: Record<string, HoloValue> = {};
-      if (this.check('LPAREN')) {
-        config = this.parseTraitConfig();
-      }
+      const config = this.parseOptionalTraitConfig(true);
       traits.push({ type: 'ObjectTrait' as const, name: traitName, config });
     }
 
@@ -1892,12 +1866,7 @@ export class HoloCompositionParser {
       } else if (this.check('AT')) {
         this.advance(); // consume @
         const traitName = this.isAtEnd() ? '' : this.advance().value; // accept any token as trait name
-        let config: Record<string, HoloValue> = {};
-        if (this.check('LPAREN')) {
-          config = this.parseTraitConfig();
-        } else if (this.check('LBRACE')) {
-          config = this.parseBlockTraitConfig();
-        }
+        const config = this.parseOptionalTraitConfig();
         const trait = { type: 'ObjectTrait' as const, name: traitName, config };
         traits.push(trait);
         directives.push({ type: 'trait', name: traitName, config });
@@ -2957,12 +2926,7 @@ export class HoloCompositionParser {
         if (this.check('AT')) {
           this.advance(); // consume @
           const name = this.expectIdentifier();
-          let config: Record<string, HoloValue> = {};
-          if (this.check('LPAREN')) {
-            config = this.parseTraitConfig();
-          } else if (this.check('LBRACE')) {
-            config = this.parseBlockTraitConfig();
-          }
+          const config = this.parseOptionalTraitConfig();
           traits.push({ type: 'ObjectTrait' as const, name, config });
         } else if (this.check('IDENTIFIER')) {
           const key = this.expectIdentifier();
@@ -3165,6 +3129,55 @@ export class HoloCompositionParser {
       else if (this.check('RBRACE')) depth--;
       this.advance();
     }
+  }
+
+  private parseOptionalTraitConfig(requireBodyAfterBareBrace = false): Record<string, HoloValue> {
+    if (this.check('LPAREN')) {
+      return this.parseTraitConfig();
+    }
+
+    if (this.check('COLON')) {
+      this.advance();
+      this.skipNewlines();
+      if (this.check('LBRACE')) {
+        return this.parseBlockTraitConfig();
+      }
+      return { _arg0: this.parseValue() };
+    }
+
+    if (this.check('LBRACE')) {
+      if (requireBodyAfterBareBrace && !this.isCurrentBraceBlockFollowedBy('LBRACE')) {
+        return {};
+      }
+      return this.parseBlockTraitConfig();
+    }
+
+    return {};
+  }
+
+  private isCurrentBraceBlockFollowedBy(type: TokenType): boolean {
+    if (!this.check('LBRACE')) {
+      return false;
+    }
+
+    let depth = 0;
+    for (let index = this.pos; index < this.tokens.length; index++) {
+      const token = this.tokens[index];
+      if (token.type === 'LBRACE') {
+        depth++;
+      } else if (token.type === 'RBRACE') {
+        depth--;
+        if (depth === 0) {
+          let next = index + 1;
+          while (this.tokens[next]?.type === 'NEWLINE') {
+            next++;
+          }
+          return (this.tokens[next]?.type || 'EOF') === type;
+        }
+      }
+    }
+
+    return false;
   }
 
   private parseTraitConfig(): Record<string, HoloValue> {

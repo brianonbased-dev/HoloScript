@@ -1,7 +1,7 @@
 # Founder Skill Self-Host — Iteration 1 Status Memo
 
 **Date**: 2026-05-06
-**Status**: PROOF complete; G-1 closed; cutover still deferred to Iteration 2 vocabulary coverage
+**Status**: PROOF complete; G-1/G-2 closed; cutover still deferred to Iteration 2 vocabulary coverage
 **Commit**: (filed alongside `compositions/founder-core.hs` + `scripts/compile-founder-skill.mjs`)
 **Spec source**: `ai-ecosystem/research/2026-05-06_context-as-compile-target.md` § Phase 2
 
@@ -49,13 +49,13 @@ Option (a) is the cleaner W.GOLD.039 (Sapir-Whorf) move — the vocabulary shoul
 
 **Update 2026-05-07**: closed via option (a). Vocabulary v1 now uses `do_action`, `ContextEscalation` exposes `doAction`, and `compositions/founder-core.hs` re-adds `@escalation(...)`. The emitted SKILL.md includes the escalation section again.
 
-### G-2: `@trait: { ... }` syntactic form drops config
+### G-2: `@trait: { ... }` syntactic form drops config — CLOSED 2026-05-07
 
 The `.hs` syntax `@trait: { field: value }` parses the trait name but drops the config body — only the `@trait(field: value)` form populates `config`. Verified 2026-05-06: `parseHolo("object \"T\" { @r: { name: \"x\" } }")` returns `traits: [{name: 'r', config: {}}]` — empty.
 
-**Close target**: parser-feature task to make `@trait: { ... }` form populate config the same way `@trait(...)` does. Lower priority than G-1 since the `()` form works; but this affects existing example files (e.g. `examples/ai-agent.hs:236-247` — those traits are recognized but their config is empty, possibly silently broken since file write).
+**Update 2026-05-07**: closed in `HoloCompositionParser`. Trait configs now populate for `@trait: { ... }`, scalar colon values such as `@billboard: true`, `@trait { ... }` in unambiguous body contexts, and `object "x" @trait { ... } { ... }` before an object body. The parser keeps existing no-config pre-body traits such as `object "x" @collidable { ... }` distinct from the object body.
 
-**Workaround in this iteration**: `compositions/founder-core.hs` uses the `@trait(...)` form throughout.
+The `@trait(...)` form remains supported and `compositions/founder-core.hs` can keep using it until the vocabulary source needs the block form.
 
 ### G-3: Larger SKILL.md content not yet covered
 
@@ -85,10 +85,11 @@ Plus the embodied-projection-layer block (referenced in CLAUDE.md `direction_emb
 The cutover sequence:
 
 1. ✅ Close **G-1** (renamed `action` → `do_action` in vocabulary v1) → re-added `@escalation` to `compositions/founder-core.hs`.
-2. Vocabulary v2 ratification — add the missing traits from the §G-3 table above.
-3. Re-run `node scripts/compile-founder-skill.mjs` — full round-trip parity.
-4. **Cutover**: replace `~/.claude/skills/founder/SKILL.md` with the emitted file. Track-B mutable-targets table extends to include `compositions/founder-core.hs` as a `skill-edit` target. Future founder-skill rule changes happen in `.hs` and the skill regenerates.
-5. Validate: founder ratification works through the skill exactly as before.
+2. ✅ Close **G-2** (`@trait: { ... }` now populates config in the parser).
+3. Vocabulary v2 ratification — add the missing traits from the §G-3 table above.
+4. Re-run `node scripts/compile-founder-skill.mjs` — full round-trip parity.
+5. **Cutover**: replace `~/.claude/skills/founder/SKILL.md` with the emitted file. Track-B mutable-targets table extends to include `compositions/founder-core.hs` as a `skill-edit` target. Future founder-skill rule changes happen in `.hs` and the skill regenerates.
+6. Validate: founder ratification works through the skill exactly as before.
 
 ## Files in this iteration
 
@@ -100,6 +101,9 @@ The cutover sequence:
 ## Validation
 
 ```
+$ pnpm --filter @holoscript/core exec vitest run src/parser/__tests__/TraitConfigBlock.test.ts
+✓ 6 tests passed
+
 $ node scripts/compile-founder-skill.mjs
 [compile-founder-skill] source:  ...compositions/founder-core.hs
 [compile-founder-skill] output:  ...dist/founder-skill-emitted.md
