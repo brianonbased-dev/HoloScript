@@ -7,4 +7,4 @@
 // the Docker production image's symlink set; inlining avoids the crash. The
 // Dockerfile builder stage must COPY packages/marketplace-api/ so this path
 // resolves during the platform build.
-export * from '../../../marketplace-api/src/core-marketplace/MarketplaceRegistry.js';
+export * from '../../../marketplace-api/src/core-marketplace/MarketplaceRegistry';
