@@ -392,6 +392,30 @@ export {
   cloneShardReceipt,
 } from './board';
 
+// Creator Playable-Template Pipeline (task_1778186605462_muzd)
+export {
+  TEMPLATE_PARAMETER_KINDS,
+  DEFAULT_PLAYABILITY_REQUIREMENTS,
+  type TemplateParameterKind,
+  type TemplateParameter,
+  type PlayabilityRequirements,
+  type CreatorTemplate,
+  type PlayableChallenge,
+  type PublishReview,
+  isSupportedTemplateParameterKind,
+  validateTemplateParameter,
+  validatePlayabilityRequirements,
+  validateCreatorTemplate,
+  validatePlayableChallenge,
+  validatePublishReview,
+  checkPlayability,
+  cloneTemplateParameter,
+  clonePlayabilityRequirements,
+  cloneCreatorTemplate,
+  clonePlayableChallenge,
+  clonePublishReview,
+} from './board';
+
 export {
   BOARD_WEBHOOK_EVENT_TYPES,
   BOARD_WEBHOOK_ORDERING_GUARANTEE,

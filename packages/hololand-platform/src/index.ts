@@ -21,3 +21,27 @@ export {
   buildFrontierShardZero,
   validateFrontierShardZero,
 } from './world/frontier-shard-zero';
+
+// Creator Playable-Template Pipeline (task_1778186605462_muzd)
+export {
+  compileTemplateToChallenge,
+  submitForReview,
+  approveChallenge,
+  rejectChallenge,
+  resetCreatorRegistry,
+  getCreatorRegistry,
+  listPublishedChallenges,
+  getPublishedChallenge,
+  getKioskSlice,
+  buildKioskCard,
+  paginateKioskCards,
+  kioskSearch,
+  kioskFeatured,
+} from './creator';
+
+export type {
+  CompileOptions,
+  KioskSlice,
+  KioskCard,
+  KioskGrid,
+} from './creator';

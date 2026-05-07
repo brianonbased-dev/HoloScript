@@ -226,6 +226,30 @@ export {
 } from './frontier-shard';
 
 export {
+  // Creator Playable-Template Pipeline (task_1778186605462_muzd)
+  TEMPLATE_PARAMETER_KINDS,
+  DEFAULT_PLAYABILITY_REQUIREMENTS,
+  type TemplateParameterKind,
+  type TemplateParameter,
+  type PlayabilityRequirements,
+  type CreatorTemplate,
+  type PlayableChallenge,
+  type PublishReview,
+  isSupportedTemplateParameterKind,
+  validateTemplateParameter,
+  validatePlayabilityRequirements,
+  validateCreatorTemplate,
+  validatePlayableChallenge,
+  validatePublishReview,
+  checkPlayability,
+  cloneTemplateParameter,
+  clonePlayabilityRequirements,
+  cloneCreatorTemplate,
+  clonePlayableChallenge,
+  clonePublishReview,
+} from './creator-template';
+
+export {
   // Agent steward protocol (task_1778186605462_rp05)
   STEWARD_ROLES,
   STEWARD_CAPABILITY_KINDS,
