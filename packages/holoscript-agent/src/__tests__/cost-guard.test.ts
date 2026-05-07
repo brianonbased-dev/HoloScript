@@ -14,6 +14,17 @@ import {
 import type { CostState } from '../types.js';
 
 describe('defaultAnthropicPricer', () => {
+  it('pins Opus 4.7 and 4.6 to the published reduced MTok rates', () => {
+    expect(ANTHROPIC_PRICING_USD_PER_MTOK['claude-opus-4-7']).toEqual({
+      input: 5,
+      output: 25,
+    });
+    expect(ANTHROPIC_PRICING_USD_PER_MTOK['claude-opus-4-6']).toEqual({
+      input: 5,
+      output: 25,
+    });
+  });
+
   it('computes USD from token usage at the published rate', () => {
     const cost = defaultAnthropicPricer('claude-opus-4-7', {
       promptTokens: 1_000_000,
