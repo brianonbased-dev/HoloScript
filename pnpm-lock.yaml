@@ -900,8 +900,8 @@ importers:
         specifier: ^8.18.1
         version: 8.18.1
       '@vitest/coverage-v8':
-        specifier: 4.1.0
-        version: 4.1.0(vitest@4.1.0)
+        specifier: ^4.1.0
+        version: 4.1.5(vitest@4.1.0)
       '@webgpu/types':
         specifier: '>=0.1.40'
         version: 0.1.69
@@ -915,7 +915,7 @@ importers:
         specifier: ~5.9.3
         version: 5.9.3
       vitest:
-        specifier: 4.1.0
+        specifier: ^4.1.0
         version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
 
   packages/core-types: {}
@@ -1035,7 +1035,7 @@ importers:
         specifier: ^3.8.1
         version: 3.8.1
       '@playwright/test':
-        specifier: ^1.42.0
+        specifier: ^1.58.2
         version: 1.58.2
       '@types/node':
         specifier: ^24.10.1
@@ -1677,8 +1677,8 @@ importers:
         specifier: ^8.11.6
         version: 8.16.0
       '@vitest/coverage-v8':
-        specifier: 4.1.0
-        version: 4.1.0(vitest@4.1.0)
+        specifier: ^4.1.0
+        version: 4.1.5(vitest@4.1.0)
       tsup:
         specifier: ^8.0.1
         version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
@@ -1689,7 +1689,7 @@ importers:
         specifier: ~5.9.3
         version: 5.9.3
       vitest:
-        specifier: 4.1.0
+        specifier: ^4.1.0
         version: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
 
   packages/mesh:
@@ -3774,8 +3774,8 @@ importers:
         specifier: ^8.18.1
         version: 8.18.1
       '@vitest/coverage-v8':
-        specifier: 4.1.0
-        version: 4.1.0(vitest@4.1.0)
+        specifier: ^4.1.0
+        version: 4.1.5(vitest@4.1.0)
       autoprefixer:
         specifier: ^10.4.17
         version: 10.4.24(postcss@8.5.8)
@@ -3795,7 +3795,7 @@ importers:
         specifier: ^0.25.0
         version: 0.25.0(vite@7.3.2)
       vitest:
-        specifier: 4.1.0
+        specifier: ^4.1.0
         version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
 
   services/llm-service:
@@ -15054,28 +15054,6 @@ packages:
       vite: 7.3.2(@types/node@24.10.13)(tsx@4.21.0)
     transitivePeerDependencies:
       - supports-color
-    dev: true
-
-  /@vitest/coverage-v8@4.1.0(vitest@4.1.0):
-    resolution: {integrity: sha512-nDWulKeik2bL2Va/Wl4x7DLuTKAXa906iRFooIRPR+huHkcvp9QDkPQ2RJdmjOFrqOqvNfoSQLF68deE3xC3CQ==}
-    peerDependencies:
-      '@vitest/browser': 4.1.0
-      vitest: 4.1.0
-    peerDependenciesMeta:
-      '@vitest/browser':
-        optional: true
-    dependencies:
-      '@bcoe/v8-coverage': 1.0.2
-      '@vitest/utils': 4.1.0
-      ast-v8-to-istanbul: 1.0.0
-      istanbul-lib-coverage: 3.2.2
-      istanbul-lib-report: 3.0.1
-      istanbul-reports: 3.2.0
-      magicast: 0.5.2
-      obug: 2.1.1
-      std-env: 4.0.0
-      tinyrainbow: 3.1.0
-      vitest: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
     dev: true
 
   /@vitest/coverage-v8@4.1.5(vitest@4.1.0):
