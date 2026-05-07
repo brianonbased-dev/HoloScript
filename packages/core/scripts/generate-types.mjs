@@ -3480,6 +3480,93 @@ export interface HostCapabilities {
   depthInference?: unknown;
   gpuCompute?: unknown;
 }
+
+// Spatial MCP - 3D context as first-class MCP tool params
+// (research/2026-05-07_spatial-mcp-spec.md, task_1778114195597_jira)
+
+export declare const SPATIAL_CONTEXT_VERSION: '0.1';
+export type SpatialContextVersion = typeof SPATIAL_CONTEXT_VERSION;
+export declare const SPATIAL_FRAME: 'tracking-space-y-up-meters';
+export type SpatialFrame = typeof SPATIAL_FRAME;
+
+export type SpatialVec3 = readonly [number, number, number];
+export interface SpatialQuat { x: number; y: number; z: number; w: number }
+export interface SpatialAABB { min: SpatialVec3; max: SpatialVec3 }
+
+export interface HandTransform {
+  position: SpatialVec3;
+  rotation: SpatialQuat;
+  grip: number;
+  pinch?: number;
+}
+
+export interface SpatialControllerPose {
+  position: SpatialVec3;
+  rotation: SpatialQuat;
+  velocity?: SpatialVec3;
+  angularVelocity?: SpatialVec3;
+}
+
+export interface SpatialMCPGazeRay {
+  origin: SpatialVec3;
+  direction: SpatialVec3;
+  hitDistance?: number;
+}
+
+export interface HeadsetPose {
+  position: SpatialVec3;
+  rotation: SpatialQuat;
+}
+
+export interface RoomGeometry {
+  pointCloudPly?: string;
+  aabb?: SpatialAABB;
+  floorHeight?: number;
+}
+
+export interface SpatialMCPContext {
+  version: SpatialContextVersion;
+  frame: SpatialFrame;
+  room?: RoomGeometry;
+  gaze?: SpatialMCPGazeRay;
+  hands?: { left?: HandTransform; right?: HandTransform };
+  controllers?: { left?: SpatialControllerPose; right?: SpatialControllerPose };
+  headset?: HeadsetPose;
+  meta?: Record<string, string | number | boolean>;
+}
+
+export type ScenePatchOp =
+  | { op: 'spawn'; id: string; position: SpatialVec3; trait?: string }
+  | { op: 'move'; id: string; position: SpatialVec3 }
+  | { op: 'highlight'; id: string; color?: string }
+  | { op: 'remove'; id: string };
+
+export interface SpatialMCPResponse {
+  text: string;
+  holo?: string;
+  scenePatch?: ScenePatchOp[];
+  frame: SpatialFrame;
+  version: SpatialContextVersion;
+}
+
+export interface SpatialValidationError { path: string; message: string }
+export interface SpatialValidationResult { ok: boolean; errors: SpatialValidationError[] }
+export declare function validateSpatialContext(input: unknown): SpatialValidationResult;
+
+export interface PlacementChoice {
+  position: SpatialVec3;
+  source:
+    | 'gaze-hit'
+    | 'gaze-ray'
+    | 'hand-right'
+    | 'hand-left'
+    | 'controller-right'
+    | 'controller-left'
+    | 'aabb-center'
+    | 'headset'
+    | 'origin';
+}
+export declare function pickPlacement(ctx: SpatialMCPContext): PlacementChoice;
 `;
 
 const parserDTS = `export class HoloScriptPlusParser {
