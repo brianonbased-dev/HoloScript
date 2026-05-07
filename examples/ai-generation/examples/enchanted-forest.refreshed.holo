@@ -9,14 +9,10 @@
 //   @reactive          — mushrooms pulse faster when player is within 2m
 //   @throwable         — the crystal cluster can be grabbed and thrown
 //   @physics           — crystal bounces off the cave floor and logs
+//   @bioluminescent    — moss and pond surfaces pulse with cyan-green patterns
 //
 // New geometry: fallen hollow log, second crystal cluster, moonbeam
 // pillar, berry thicket. Richer fog depth. Layered post-processing.
-//
-// MISSING-TRAIT WISH (Phase 4 / A-009):
-//   @bioluminescent — the forest floor should slowly pulse with shifting
-//   cyan-green patterns, reactive to player proximity and elapsed time.
-//   Only @glowing (static) exists today. Filed as capability request.
 // ============================================================
 
 @world {
@@ -62,13 +58,24 @@ post_processing {
 
 // === GROUND ===
 
-object "ground" @collidable {
+object "ground" @collidable @bioluminescent {
   position: [0, 0, 0]
   scale: [20, 0.12, 20]
   geometry: "cube"
   color: "#122212"
   material: "moss"
   roughness: 0.95
+
+  @bioluminescent {
+    color: "#00ffcc"
+    pulse_bpm: 12
+    radius_falloff: 3.0
+    min_intensity: 0.05
+    max_intensity: 0.72
+    pattern: "perlin"
+    spatial_scale: 0.28
+    spatial_seed: 28845
+  }
 }
 
 // === ANCIENT TREE ===
@@ -333,11 +340,9 @@ orb "berries_cluster" @glowing @collidable {
 }
 
 // === ENCHANTED POND ===
-// Still water catching moonlight.
-// WISH: @bioluminescent would let the pond surface slowly pulse
-// with shifting cyan patterns. @glowing only provides static glow.
+// Still water catching moonlight with slow bioluminescent ripples.
 
-object "pond_water" @glowing {
+object "pond_water" @glowing @bioluminescent {
   position: [-3.2, 0.06, 2.8]
   scale: [2.2, 0.06, 2.2]
   geometry: "cylinder"
@@ -347,6 +352,17 @@ object "pond_water" @glowing {
   opacity: 0.85
   roughness: 0.05
   metallic: 0.2
+
+  @bioluminescent {
+    color: "#00e5ff"
+    pulse_bpm: 9
+    radius_falloff: 2.4
+    min_intensity: 0.08
+    max_intensity: 0.9
+    pattern: "voronoi"
+    spatial_scale: 0.42
+    spatial_seed: 18177
+  }
 }
 
 object "pond_edge" @collidable {
