@@ -1,12 +1,12 @@
 /**
- * LLMProviderCapabilitiesCompiler tests - vocabulary v1 + markdown_ssot
- * emit + BLOCK/WARN rules.
+ * LLMProviderCapabilitiesCompiler tests - vocabulary v1 + markdown_ssot /
+ * cost_guard_pricing emit + BLOCK/WARN rules.
  *
  * Per "Context as a HoloScript Compile Target" memo § Phase 2(b)
  * (sovereign sibling of ContextCompiler). Inline HoloComposition
  * fixtures (matching ContextCompiler.test.ts pattern) cover:
  *
- *   - Happy-path: full vocabulary v1 -> markdown_ssot output
+ *   - Happy-path: full vocabulary v1 -> markdown_ssot + cost_guard_pricing output
  *   - BLOCK rules: duplicate provider names, orphan FK references
  *     (model/capability/superpower/routing pointing at a non-existent
  *     provider), vendor-as-substrate hard_donts, [VERIFY] placeholder
@@ -359,6 +359,60 @@ describe('compile() - vocabulary v1 -> markdown_ssot', () => {
     expect(result.ast.models[0]?.modelId).toBe('claude-opus-4-7');
     expect(result.ast.hardDonts[0]?.appliesTo).toEqual(['all-providers']);
     expect(result.ast.meta?.refreshCadenceDays).toBe(90);
+  });
+});
+
+// --- Happy path: vocabulary v1 -> cost_guard_pricing -----------------
+
+describe('compile() - vocabulary v1 -> cost_guard_pricing', () => {
+  it('emits cost-guard-pricing.ts as the only file when requested alone', () => {
+    const compiler = new LLMProviderCapabilitiesCompiler({
+      formats: ['cost_guard_pricing'],
+      nowIso: '2026-05-06',
+    });
+    const result = compiler.compile(makeFullV1Matrix(), '');
+
+    expect(Object.keys(result.files)).toEqual(['cost-guard-pricing.ts']);
+    expect(result.files).not.toHaveProperty('LLM_CAPABILITIES.md');
+  });
+
+  it('emits per-provider pricing dictionaries matching CostGuard shape', () => {
+    const compiler = new LLMProviderCapabilitiesCompiler({
+      formats: ['cost_guard_pricing'],
+      nowIso: '2026-05-06',
+    });
+    const ts = compiler.compile(makeFullV1Matrix(), '').files['cost-guard-pricing.ts'];
+
+    expect(ts).toContain(
+      'export const ANTHROPIC_PRICING_USD_PER_MTOK: Record<string, { input: number; output: number }> = {'
+    );
+    expect(ts).toContain("  'claude-opus-4-7': { input: 5, output: 25 },");
+    expect(ts).toContain("  'claude-haiku-4-5': { input: 1, output: 5 },");
+    expect(ts).toContain(
+      'export const XAI_PRICING_USD_PER_MTOK: Record<string, { input: number; output: number }> = {};'
+    );
+    // False case: the emitter must not reproduce the old CostGuard $15/$75 drift.
+    expect(ts).not.toContain('input: 15');
+    expect(ts).not.toContain('output: 75');
+  });
+
+  it('can emit markdown and cost guard pricing in one compile pass', () => {
+    const compiler = new LLMProviderCapabilitiesCompiler({
+      formats: ['markdown_ssot', 'cost_guard_pricing'],
+      nowIso: '2026-05-06',
+    });
+    const result = compiler.compile(makeFullV1Matrix(), '');
+
+    expect(Object.keys(result.files)).toEqual([
+      'LLM_CAPABILITIES.md',
+      'cost-guard-pricing.ts',
+    ]);
+    expect(result.files['LLM_CAPABILITIES.md']).toContain(
+      '# LLM Capabilities & Benchmarks - SSOT'
+    );
+    expect(result.files['cost-guard-pricing.ts']).toContain(
+      'target: compile_to_cost_guard_pricing'
+    );
   });
 });
 
