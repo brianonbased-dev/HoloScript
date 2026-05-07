@@ -399,6 +399,203 @@ describe('compile() - vocabulary v1 -> claude_md', () => {
   });
 });
 
+// --- Happy path: vocabulary v1 -> agents_md (Codex / cross-tool format) ---
+
+describe('compile() - vocabulary v1 -> agents_md', () => {
+  let compiler: ContextCompiler;
+
+  beforeEach(() => {
+    compiler = new ContextCompiler({ formats: ['agents_md'] });
+  });
+
+  it('emits AGENTS.md as the file key (NOT CLAUDE.md)', () => {
+    const result = compiler.compile(makeFullV1Composition(), '');
+    expect(result.files).toHaveProperty('AGENTS.md');
+    // False case: only AGENTS.md is produced, not CLAUDE.md
+    expect(Object.keys(result.files)).toEqual(['AGENTS.md']);
+    expect(result.files).not.toHaveProperty('CLAUDE.md');
+  });
+
+  it('emits the AGENTS.md header with cross-tool blockquote', () => {
+    const result = compiler.compile(makeFullV1Composition(), '');
+    const md = result.files['AGENTS.md'];
+    expect(md).toContain('# AGENTS.md');
+    // False case: does NOT use the identity name as title (that's the
+    // claude_md convention - AGENTS.md uses a fixed title with role in
+    // a blockquote underneath, matching existing AGENTS.md exemplars).
+    expect(md).not.toContain('# ecosystem-engineering-agent');
+    expect(md).toContain('**Role**: team-engineering');
+    expect(md).toContain('**Domain**: holoscript-ecosystem');
+    expect(md).toContain('cross-tool: read by Codex, Copilot, Cursor');
+  });
+
+  it('emits "Project principles" instead of "Vision pillars"', () => {
+    const result = compiler.compile(makeFullV1Composition(), '');
+    const md = result.files['AGENTS.md'];
+    expect(md).toContain('## Project principles');
+    // False case: the claude_md heading must NOT appear
+    expect(md).not.toContain('## Vision pillars');
+    // Content still present under the renamed section
+    expect(md).toContain('Architecture beats alignment');
+    expect(md).toContain('*(W.GOLD.001)*');
+  });
+
+  it('emits "Hard rules" instead of "The Refusals" and merges hard_donts in', () => {
+    const result = compiler.compile(makeFullV1Composition(), '');
+    const md = result.files['AGENTS.md'];
+    expect(md).toContain('## Hard rules');
+    // False case: ritual claude_md heading must NOT appear
+    expect(md).not.toContain('## The Refusals');
+    expect(md).not.toContain("## Hard don't");
+    expect(md).not.toContain('Refuse the bandaid'); // claude_md uses "Refuse the X"; agents_md uses bare name
+    // Both refusals AND hard donts appear under the merged Hard rules section
+    expect(md).toContain('### bandaid');
+    expect(md).toContain('### git_add_all');
+    expect(md).toContain('- **Do**: fix root cause');
+    expect(md).toContain('- **Alternative**: git add <explicit-path>');
+  });
+
+  it('emits "Conventions" instead of "Known defaults"', () => {
+    const result = compiler.compile(makeFullV1Composition(), '');
+    const md = result.files['AGENTS.md'];
+    expect(md).toContain('## Conventions');
+    // False case: claude_md heading must NOT appear
+    expect(md).not.toContain('## Known defaults');
+    // Conventions table still present
+    expect(md).toContain('| When | Do | Reason |');
+    expect(md).toContain('| coherent unit + tests pass |');
+  });
+
+  it('emits "Workflows" instead of "Skills" with Codex-style invocation', () => {
+    const result = compiler.compile(makeFullV1Composition(), '');
+    const md = result.files['AGENTS.md'];
+    expect(md).toContain('## Workflows');
+    // False case: claude_md "## Skills" heading must NOT appear
+    expect(md).not.toContain('## Skills\n');
+    // Codex format: "founder (`/founder`)" instead of claude_md's "`/founder` - founder"
+    expect(md).toContain('### founder (`/founder`)');
+    expect(md).not.toContain('### `/founder` - founder');
+    expect(md).toContain('**Authority**: ratified rulings');
+    expect(md).toContain('**Enforces rules**: bandaid, workaround, demote, wait-for-founder');
+  });
+
+  it('emits universal sections (authority order, output shape, production rule, gaps, routines, escalation, citations, cross-refs)', () => {
+    const result = compiler.compile(makeFullV1Composition(), '');
+    const md = result.files['AGENTS.md'];
+    // Universal section names are shared with claude_md (these are
+    // non-Claude-specific terms, kept identical for parser-consumer reuse).
+    expect(md).toContain('## Authority order (read top-down; first match wins)');
+    expect(md).toContain('## Output shape');
+    expect(md).toContain('## Production-only rule');
+    expect(md).toContain('## Hard physical gaps (never absorb)');
+    expect(md).toContain('## Recurring routines (A-00X)');
+    expect(md).toContain('## Escalation');
+    expect(md).toContain('## Citation discipline');
+    expect(md).toContain('## Authority cross-references');
+    // Cross-ref content carries through
+    expect(md).toContain('**W.GOLD.001** *(diamond)* - Architecture beats alignment');
+    expect(md).toContain('**F.014** (MEMORY.md) - Never hardcode ecosystem stats');
+    // Routines render as table
+    expect(md).toContain('| A-019 | `0 13 * * 1` |');
+    // Hard physical gaps render
+    expect(md).toContain('**trezor-signing**');
+  });
+
+  it('emits AGENTS.md trailer with cross-tool list', () => {
+    const result = compiler.compile(makeFullV1Composition(), '');
+    const md = result.files['AGENTS.md'];
+    expect(md).toContain('Generated by HoloScript ContextCompiler (compile_to_agents_md)');
+    expect(md).toContain('Cross-tool: Codex, Copilot, Cursor, Continue');
+    // False case: must NOT carry the claude_md trailer label
+    expect(md).not.toContain('compile_to_claude_md');
+  });
+
+  it('emits both formats when requested together (claude_md + agents_md in one compile)', () => {
+    const dual = new ContextCompiler({ formats: ['claude_md', 'agents_md'] });
+    const result = dual.compile(makeFullV1Composition(), '');
+    expect(Object.keys(result.files).sort()).toEqual(['AGENTS.md', 'CLAUDE.md']);
+    // Each file carries its own trailer
+    expect(result.files['CLAUDE.md']).toContain('compile_to_claude_md');
+    expect(result.files['AGENTS.md']).toContain('compile_to_agents_md');
+    // The shared AST is the same source for both
+    expect(result.ast.identity?.name).toBe('ecosystem-engineering-agent');
+  });
+
+  it('empty composition produces minimal AGENTS.md (just title + trailer)', () => {
+    const result = compiler.compile(makeComposition(), '');
+    const md = result.files['AGENTS.md'];
+    expect(md).toContain('# AGENTS.md');
+    expect(md).toContain('compile_to_agents_md');
+    // False case: no Codex sections render when AST is empty
+    expect(md).not.toContain('## Project principles');
+    expect(md).not.toContain('## Hard rules');
+    expect(md).not.toContain('## Conventions');
+    expect(md).not.toContain('## Workflows');
+  });
+
+  it('renders refusals-only Hard rules section without dangling hard_dont entries', () => {
+    const refusalOnly = new ContextCompiler({ formats: ['agents_md'] });
+    const result = refusalOnly.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'AgentCtx',
+            properties: [],
+            traits: [
+              {
+                type: 'ObjectTrait',
+                name: 'refusal',
+                config: { name: 'demote', when: 'silent scope cut', do: 'name it', do_not: ['silently descope'] },
+              },
+            ],
+          },
+        ],
+      }),
+      ''
+    );
+    const md = result.files['AGENTS.md'];
+    expect(md).toContain('## Hard rules');
+    expect(md).toContain('### demote');
+    // False case: no spurious second-section content from absent hard_donts
+    expect(md).not.toContain('- **Alternative**:');
+  });
+
+  it('renders hard_donts-only Hard rules section when no refusals declared', () => {
+    const dontOnly = new ContextCompiler({ formats: ['agents_md'] });
+    const result = dontOnly.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'AgentCtx',
+            properties: [],
+            traits: [
+              {
+                type: 'ObjectTrait',
+                name: 'hard_dont',
+                config: {
+                  name: 'force_push_main',
+                  reason: 'overwrites peer commits',
+                  alternative: 'rebase locally then push',
+                  applies_to: ['all'],
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      ''
+    );
+    const md = result.files['AGENTS.md'];
+    expect(md).toContain('## Hard rules');
+    expect(md).toContain('### force_push_main');
+    expect(md).toContain('**Alternative**: rebase locally then push');
+    // False case: no refusal-style "When/Do/Do not" leakage
+    expect(md).not.toContain('- **When**: silent scope cut');
+  });
+});
+
 // --- BLOCK rules (Diamond-invariant violations throw) ---------------
 
 describe('compile() - BLOCK rules', () => {
@@ -658,7 +855,9 @@ describe('compile() - edge cases', () => {
   });
 
   it('throws on requesting an unimplemented Phase 1+ format', () => {
-    const compiler = new ContextCompiler({ formats: ['agents_md'] });
+    // cursor_rules + skill_md + others are still Phase 1+ follow-ups.
+    // (agents_md was promoted out of this branch when the second emitter shipped.)
+    const compiler = new ContextCompiler({ formats: ['cursor_rules'] });
     expect(() => compiler.compile(makeComposition(), '')).toThrow(/Phase 1\+ follow-up/);
   });
 
