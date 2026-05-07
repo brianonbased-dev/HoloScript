@@ -758,16 +758,15 @@ async function ensureCachedGraph(): Promise<{
   return { loaded: false, source: 'none' };
 }
 
-/**
- * Lazy-load the codebase module.
- * Uses dynamic import to avoid hard dependency at compile time.
- * The module path is constructed dynamically to prevent TS from
- * resolving it at type-check time (the dist/ may not exist yet).
- */
 import * as EngineMod from '../engine/index';
 
-async function loadCodebaseModule(): Promise<any> {
-  return EngineMod.CodebaseScanner ? EngineMod : (EngineMod as any).default || EngineMod;
+/**
+ * Return the engine module shape consumed by the MCP codebase tools.
+ * Keeping this wrapper centralizes the dependency while TypeScript verifies
+ * that the engine barrel still exports the expected scanner/graph APIs.
+ */
+async function loadCodebaseModule(): Promise<CodebaseModule> {
+  return EngineMod;
 }
 
 export async function handleCodebaseTool(
