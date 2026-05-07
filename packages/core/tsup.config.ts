@@ -99,6 +99,9 @@ export default defineConfig({
     // Sprint 3: Agent inference export
     'compiler/agent-inference': 'src/compiler/AgentInferenceExportTarget.ts',
 
+    // Agent context compiler (CLAUDE.md / AGENTS.md-style context emitters)
+    'compiler/context': 'src/compiler/ContextCompiler.ts',
+
     // HoloMap native reconstruction (WebGPU feed-forward, SimulationContract binding)
     'reconstruction/index': 'src/reconstruction/index.ts',
 

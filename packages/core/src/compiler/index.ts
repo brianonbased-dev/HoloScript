@@ -113,6 +113,35 @@ export type { MCPConfigCompilerOptions, MCPConfigTarget } from './MCPConfigCompi
 // @ts-expect-error During migration
 export { AgentInferenceExportTarget } from './AgentInferenceExportTarget';
 
+// Agent context compiler
+export { ContextCompiler, ContextCompileError, createContextCompiler } from './ContextCompiler';
+export type {
+  ContextAST,
+  ContextAuthorityOrder,
+  ContextCitationRule,
+  ContextCompileResult,
+  ContextCompilerOptions,
+  ContextDefault,
+  ContextEmitFormat,
+  ContextEscalation,
+  ContextFeedback,
+  ContextGapRule,
+  ContextGraduatedWisdom,
+  ContextHardDont,
+  ContextHardPhysicalGap,
+  ContextIdentity,
+  ContextInclude,
+  ContextOutputShape,
+  ContextProductionRule,
+  ContextRefusal,
+  ContextRoutine,
+  ContextSkill,
+  ContextSurface,
+  ContextValidationDiagnostic,
+  ContextVerifyToken,
+  ContextVisionPillar,
+} from './ContextCompiler';
+
 // Procedural geometry (shared between GLTF pipeline and R3F renderer)
 export {
   generateSplineGeometry,

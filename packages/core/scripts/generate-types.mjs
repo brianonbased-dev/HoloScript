@@ -3897,7 +3897,8 @@ export type ExportTarget =
   | 'nir'
   | 'openxr-spatial-entities'
   | 'phone-sleeve-vr'
-  | 'native-2d';
+  | 'native-2d'
+  | 'context';
 
 export interface HolomapPointCloudPayload {
   positionsB64: string;
@@ -3968,6 +3969,34 @@ export class MCPConfigCompiler extends CompilerBase {
   compile(composition: any, agentToken: string, outputPath?: string): string;
 }
 export class AgentInferenceExportTarget extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export type ContextSurface = 'claude' | 'codex' | 'cursor' | 'copilot' | 'gemini' | 'any';
+export type ContextEmitFormat =
+  | 'claude_md'
+  | 'agents_md'
+  | 'cursor_rules'
+  | 'skill_md'
+  | 'anthropic_system_prompt'
+  | 'brain_includes'
+  | 'mcp_context_loader';
+export interface ContextValidationDiagnostic {
+  severity: 'error' | 'warning';
+  rule: string;
+  message: string;
+  location?: string;
+}
+export interface ContextAST { [key: string]: any; warnings: ContextValidationDiagnostic[]; }
+export interface ContextCompileResult {
+  files: Record<string, string>;
+  ast: ContextAST;
+  diagnostics: ContextValidationDiagnostic[];
+}
+export interface ContextCompilerOptions { formats?: ContextEmitFormat[]; }
+export class ContextCompileError extends Error { constructor(message: string); }
+export class ContextCompiler extends CompilerBase {
+  constructor(options?: ContextCompilerOptions);
+  compile(composition: any, agentToken: string, outputPath?: string): ContextCompileResult;
+}
+export function createContextCompiler(options?: ContextCompilerOptions): ContextCompiler;
 
 export interface GeometryData { vertices: Float32Array; indices?: Uint32Array; normals?: Float32Array; uvs?: Float32Array; }
 export interface BlobDef { center: [number, number, number]; radius: number; }
@@ -4082,6 +4111,36 @@ export declare const ENVIRONMENT_PRESETS: Record<string, any>;
 export declare const MATERIAL_PRESETS: Record<string, Record<string, unknown>>;
 export declare const QUALITY_TIER_SCALES: Record<string, number>;
 export declare const UI_COMPONENT_PRESETS: Record<string, unknown>;
+`;
+
+const contextDTS = `export type ContextSurface = 'claude' | 'codex' | 'cursor' | 'copilot' | 'gemini' | 'any';
+export type ContextEmitFormat =
+  | 'claude_md'
+  | 'agents_md'
+  | 'cursor_rules'
+  | 'skill_md'
+  | 'anthropic_system_prompt'
+  | 'brain_includes'
+  | 'mcp_context_loader';
+export interface ContextValidationDiagnostic {
+  severity: 'error' | 'warning';
+  rule: string;
+  message: string;
+  location?: string;
+}
+export interface ContextAST { [key: string]: any; warnings: ContextValidationDiagnostic[]; }
+export interface ContextCompileResult {
+  files: Record<string, string>;
+  ast: ContextAST;
+  diagnostics: ContextValidationDiagnostic[];
+}
+export interface ContextCompilerOptions { formats?: ContextEmitFormat[]; }
+export declare class ContextCompileError extends Error { constructor(message: string); }
+export declare class ContextCompiler {
+  constructor(options?: ContextCompilerOptions);
+  compile(composition: any, agentToken: string, outputPath?: string): ContextCompileResult;
+}
+export declare function createContextCompiler(options?: ContextCompilerOptions): ContextCompiler;
 `;
 
 const selfImprovementDTS = `/**
@@ -5007,9 +5066,11 @@ try {
     fs.mkdirSync(compilerDir, { recursive: true });
   }
   fs.writeFileSync(path.join(compilerDir, 'r3f.d.ts'), r3fDTS, 'utf8');
+  fs.writeFileSync(path.join(compilerDir, 'context.d.ts'), contextDTS, 'utf8');
   console.log('✓ Created compiler/r3f.d.ts');
+  console.log('✓ Created compiler/context.d.ts');
 } catch (err) {
-  console.error('✗ Failed to create compiler/r3f.d.ts:', err.message);
+  console.error('✗ Failed to create compiler subpath declarations:', err.message);
 }
 
 // Create entries/ subdirectory declaration files
