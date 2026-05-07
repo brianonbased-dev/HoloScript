@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   ProtocolPhase,
   PHASE_NAMES,
+  PHASE_DISPLAY_NAMES,
   BaseAgent,
   BaseService,
   ServiceLifecycle,
@@ -35,6 +36,11 @@ describe('ProtocolPhase', () => {
     expect(PHASE_NAMES[ProtocolPhase.INTAKE]).toBe('INTAKE');
     expect(PHASE_NAMES[ProtocolPhase.EVOLVE]).toBe('EVOLVE');
     expect(PHASE_NAMES[ProtocolPhase.AUTONOMIZE]).toBe('AUTONOMIZE');
+  });
+
+  it('should display REINTAKE as DREAMING while keeping the API key stable', () => {
+    expect(PHASE_NAMES[ProtocolPhase.REINTAKE]).toBe('REINTAKE');
+    expect(PHASE_DISPLAY_NAMES[ProtocolPhase.REINTAKE]).toBe('DREAMING');
   });
 });
 

@@ -170,12 +170,12 @@ Defined in `packages/agent-protocol/src/index.ts`:
 | 1   | **REFLECT**    | Analyze task, identify patterns from PWG knowledge |
 | 2   | **EXECUTE**    | Perform work, call tools                           |
 | 3   | **COMPRESS**   | Extract patterns, wisdom, gotchas from results     |
-| 4   | **REINTAKE**   | Re-evaluate with new knowledge                     |
+| 4   | **DREAMING**   | Validate and re-evaluate new knowledge (`REINTAKE` API key) |
 | 5   | **GROW**       | Update capabilities, expand tool repertoire        |
 | 6   | **EVOLVE**     | Architectural improvements, protocol upgrades      |
 | 7   | **AUTONOMIZE** | Self-directed task generation (max 3/cycle)        |
 
-**BaseAgent contract** (lines 65–143): Every agent implements `intake()`, `reflect()`, `execute()`, `compress()`, `reintake()`, `grow()`, `evolve()`. `runCycle(task, context)` orchestrates all phases sequentially.
+**BaseAgent contract** (lines 65–143): Every agent implements `intake()`, `reflect()`, `execute()`, `compress()`, `reintake()`, `grow()`, `evolve()`. Phase 4 is now Dreaming; the method stays `reintake()` for API compatibility. `runCycle(task, context)` orchestrates all phases sequentially.
 
 ### Agent Identity
 
@@ -191,7 +191,7 @@ interface AgentIdentity {
 
 ### PWG Knowledge Interchange
 
-Three knowledge types flow between agents during COMPRESS/REINTAKE:
+Three knowledge types flow between agents during COMPRESS/DREAMING (legacy REINTAKE):
 
 | Type        | ID Format     | Key Fields                          | Example                            |
 | ----------- | ------------- | ----------------------------------- | ---------------------------------- |

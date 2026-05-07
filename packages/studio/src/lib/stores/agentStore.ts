@@ -9,7 +9,7 @@ import { devtools } from 'zustand/middleware';
 //
 // Phase names follow the uAA2++ protocol:
 //   0 INTAKE → 1 REFLECT → 2 EXECUTE → 3 COMPRESS
-//   4 REINTAKE → 5 GROW → 6 EVOLVE → 7 AUTONOMIZE
+//   4 DREAMING (legacy reintake key) → 5 GROW → 6 EVOLVE → 7 AUTONOMIZE
 
 export type AgentPhase =
   | 'idle'

@@ -15,7 +15,7 @@ const PHASES = [
   { id: 1, name: 'REFLECT', icon: '🔍', color: '#8b5cf6' },
   { id: 2, name: 'EXECUTE', icon: '⚡', color: '#f59e0b' },
   { id: 3, name: 'COMPRESS', icon: '📦', color: '#10b981' },
-  { id: 4, name: 'REINTAKE', icon: '🔄', color: '#06b6d4' },
+  { id: 4, name: 'DREAMING', icon: '🔄', color: '#06b6d4' },
   { id: 5, name: 'GROW', icon: '🌱', color: '#22c55e' },
   { id: 6, name: 'EVOLVE', icon: '🧬', color: '#a855f7' },
 ];

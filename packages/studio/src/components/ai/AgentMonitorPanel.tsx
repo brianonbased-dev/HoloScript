@@ -24,7 +24,7 @@ const PHASE_META: Record<AgentPhase, { label: string; color: string }> = {
   reflect: { label: '1 Reflect', color: 'text-violet-400' },
   execute: { label: '2 Execute', color: 'text-emerald-400' },
   compress: { label: '3 Compress', color: 'text-amber-400' },
-  reintake: { label: '4 Re-intake', color: 'text-sky-300' },
+  reintake: { label: '4 Dreaming', color: 'text-sky-300' },
   grow: { label: '5 Grow', color: 'text-lime-400' },
   evolve: { label: '6 Evolve', color: 'text-fuchsia-400' },
   autonomize: { label: '7 Autonomize', color: 'text-rose-400' },

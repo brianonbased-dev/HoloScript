@@ -12,11 +12,23 @@ export enum ProtocolPhase {
   REFLECT = 1,
   EXECUTE = 2,
   COMPRESS = 3,
+  // Compatibility key retained for ABI/API stability; display name is DREAMING.
   REINTAKE = 4,
   GROW = 5,
   EVOLVE = 6,
   AUTONOMIZE = 7,
 }
+
+export const PHASE_DISPLAY_NAMES: Record<ProtocolPhase, string> = {
+  [ProtocolPhase.INTAKE]: 'INTAKE',
+  [ProtocolPhase.REFLECT]: 'REFLECT',
+  [ProtocolPhase.EXECUTE]: 'EXECUTE',
+  [ProtocolPhase.COMPRESS]: 'COMPRESS',
+  [ProtocolPhase.REINTAKE]: 'DREAMING',
+  [ProtocolPhase.GROW]: 'GROW',
+  [ProtocolPhase.EVOLVE]: 'EVOLVE',
+  [ProtocolPhase.AUTONOMIZE]: 'AUTONOMIZE',
+};
 
 export interface PhaseResult {
   phase: ProtocolPhase;

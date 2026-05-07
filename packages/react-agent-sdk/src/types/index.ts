@@ -18,6 +18,7 @@ export type AgentPhase =
   | 'reflect'
   | 'execute'
   | 'compress'
+  // Runtime key stays `reintake`; UI display label is Dreaming.
   | 'reintake'
   | 'grow'
   | 'evolve'

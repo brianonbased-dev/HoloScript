@@ -17,7 +17,7 @@ export type AgentPhase =
   | 'REFLECT' // Phase 1: Analyze and understand
   | 'EXECUTE' // Phase 2: Take action
   | 'COMPRESS' // Phase 3: Store knowledge efficiently
-  | 'REINTAKE' // Phase 4: Re-evaluate with compressed knowledge
+  | 'REINTAKE' // Phase 4: Dreaming; legacy key re-evaluates compressed knowledge
   | 'GROW' // Phase 5: Learn and improve
   | 'EVOLVE'; // Phase 6: Adapt and optimize
 
@@ -124,7 +124,7 @@ export interface CompressResult extends PhaseResult {
 }
 
 /**
- * REINTAKE phase result
+ * Dreaming phase result (legacy REINTAKE API key)
  */
 export interface ReintakeResult extends PhaseResult {
   phase: 'REINTAKE';

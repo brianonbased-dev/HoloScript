@@ -36,7 +36,7 @@ vm.registerHandler(UAALOpCode.OP_INVOKE_LLM, async (proxy, operands) => {
 | 1. REFLECT  | `0x11` | Analyze and understand                |
 | 2. EXECUTE  | `0x14` | Take action                           |
 | 3. COMPRESS | `0x12` | Store knowledge efficiently           |
-| 4. REINTAKE | `0x15` | Re-evaluate with compressed knowledge |
+| 4. DREAMING | `0x15` | Validate and re-evaluate compressed knowledge (`REINTAKE` opcode) |
 | 5. GROW     | `0x16` | Learn patterns, wisdom, gotchas       |
 | 6. EVOLVE   | `0x17` | Adapt and optimize                    |
 

@@ -20,7 +20,7 @@ import {
   frameworkToProtocolCycleResult,
   ProtocolAgent,
 } from './protocol-agent';
-import { ProtocolPhase } from './protocol/implementations';
+import { ProtocolPhase, PHASE_DISPLAY_NAMES } from './protocol/implementations';
 import type { ProtocolAgentConfig, CycleResult as FrameworkCycleResult } from './types';
 import type { ProtocolCycleResult, PhaseResult } from './protocol/implementations';
 
@@ -33,6 +33,10 @@ const BASE_CONFIG: ProtocolAgentConfig = {
 };
 
 describe('defineProtocolAgent', () => {
+  it('displays the legacy REINTAKE phase as DREAMING', () => {
+    expect(PHASE_DISPLAY_NAMES[ProtocolPhase.REINTAKE]).toBe('DREAMING');
+  });
+
   // ── Validation ──
 
   it('throws on empty name', () => {

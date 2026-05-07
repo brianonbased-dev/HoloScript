@@ -7,7 +7,7 @@
  *   REFLECT → match capabilities to task requirements
  *   EXECUTE → delegate tasks or run workflows
  *   COMPRESS → summarize execution results
- *   REINTAKE → check delegation results, update agent status
+ *   DREAMING (legacy REINTAKE) → check delegation results, update agent status
  *   GROW → record delegation patterns (what worked/failed)
  *   EVOLVE → optimize routing preferences
  *
@@ -239,7 +239,7 @@ export class OrchestratorAgent extends BaseAgent {
   }
 
   // ===========================================================================
-  // PHASE 4: REINTAKE — Check delegation results
+  // PHASE 4: DREAMING (legacy REINTAKE) — Check delegation results
   // ===========================================================================
 
   async reintake(compressed: unknown): Promise<PhaseResult> {

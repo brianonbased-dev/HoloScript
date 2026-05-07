@@ -33,7 +33,7 @@ const PHASE_PROMPTS: Record<number, string> = {
   [ProtocolPhase.COMPRESS]:
     'You are extracting knowledge from completed work. Identify Wisdom (insights), Patterns (reusable solutions), and Gotchas (pitfalls). Format each as: [wisdom|pattern|gotcha] content',
   [ProtocolPhase.REINTAKE]:
-    'You are validating extracted knowledge. Check for accuracy, remove duplicates, and rate confidence (0.0-1.0). Return only validated items.',
+    'You are in DREAMING, the legacy REINTAKE compatibility phase. Validate extracted knowledge against prior knowledge, remove duplicates, quarantine unsupported claims, and rate confidence (0.0-1.0). Return only validated items.',
   [ProtocolPhase.GROW]:
     'You are identifying meta-patterns. Given validated knowledge, find cross-cutting themes and recurring patterns. Be concise.',
   [ProtocolPhase.EVOLVE]:
@@ -193,6 +193,7 @@ export class ProtocolAgent extends BaseAgent {
     };
   }
 
+  // Method name stays reintake for BaseAgent compatibility; the display phase is Dreaming.
   async reintake(compressed: unknown): Promise<PhaseResult> {
     const { insights, rawOutput } = compressed as {
       insights: KnowledgeInsight[];
@@ -343,7 +344,7 @@ export async function runProtocolCycle(
   const summary =
     (executePhase?.data as { output?: string })?.output?.slice(0, 500) ?? 'Task completed';
 
-  // Extract insights from REINTAKE phase (validated) or COMPRESS phase (raw)
+  // Extract insights from Dreaming/REINTAKE phase (validated) or COMPRESS phase (raw)
   const reintakePhase = cycleResult.phases.find((p) => p.phase === ProtocolPhase.REINTAKE);
   const compressPhase = cycleResult.phases.find((p) => p.phase === ProtocolPhase.COMPRESS);
   const insights: KnowledgeInsight[] =
@@ -370,7 +371,7 @@ export function protocolToFrameworkCycleResult(
   teamName: string,
   cycle: number
 ): FrameworkCycleResult {
-  // Extract insights from compress/reintake phases
+  // Extract insights from COMPRESS and Dreaming/REINTAKE phases
   const reintake = protocol.phases.find((p) => p.phase === ProtocolPhase.REINTAKE);
   const compress = protocol.phases.find((p) => p.phase === ProtocolPhase.COMPRESS);
   const insights: KnowledgeInsight[] =

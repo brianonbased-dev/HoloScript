@@ -31,7 +31,7 @@ class MyAgent extends BaseAgent {
     };
   }
 
-  // Implement remaining 6 phases: reflect, execute, compress, reintake, grow, evolve
+  // Implement remaining 6 phases: reflect, execute, compress, dreaming/reintake, grow, evolve
   // ...
 }
 
@@ -48,7 +48,7 @@ const result = await agent.runCycle('Analyze spatial layout');
 | 1. REFLECT    | `1` | Analyze and understand                |
 | 2. EXECUTE    | `2` | Take action                           |
 | 3. COMPRESS   | `3` | Store knowledge efficiently           |
-| 4. REINTAKE   | `4` | Re-evaluate with compressed knowledge |
+| 4. DREAMING   | `4` | Validate and re-evaluate compressed knowledge (`REINTAKE` API key) |
 | 5. GROW       | `5` | Learn patterns, wisdom, gotchas       |
 | 6. EVOLVE     | `6` | Adapt and optimize                    |
 | 7. AUTONOMIZE | `7` | Self-directed goal synthesis          |

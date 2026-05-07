@@ -10,7 +10,8 @@
  *   REFLECT                       → evaluate current state
  *   EXECUTE("task")               → perform action
  *   COMPRESS                      → consolidate learned patterns
- *   REINTAKE                      → re-evaluate with compressed knowledge
+ *   DREAMING                      → validate and re-evaluate compressed knowledge
+ *   REINTAKE                      → legacy alias for DREAMING
  *   GROW                          → learn new patterns from experience
  *   EVOLVE                        → adapt behavior based on growth
  *   CYCLE("task")                 → run full 7-phase protocol
@@ -113,6 +114,7 @@ const KEYWORD_TO_OPCODE: Record<string, UAALOpCode> = {
   REFLECT: UAALOpCode.REFLECT,
   COMPRESS: UAALOpCode.COMPRESS,
   EXECUTE: UAALOpCode.EXECUTE,
+  DREAMING: UAALOpCode.REINTAKE,
   REINTAKE: UAALOpCode.REINTAKE,
   GROW: UAALOpCode.GROW,
   EVOLVE: UAALOpCode.EVOLVE,

@@ -28,7 +28,7 @@ HoloScript docs and filesystems are agent interfaces first. Humans should still 
 | `docs/guides/` | Operational guides for humans and agents. Pages should include direct commands and next actions. |
 | `docs/architecture/` | Stable invariants and system contracts. Avoid dated implementation claims unless they include verification. |
 | `docs/strategy/` | Current strategy and roadmap lanes. Use dated refresh notes and source links. |
-| `docs/archive/` | Historical plans and frozen notes. Do not treat as active truth without re-intake. |
+| `docs/archive/` | Historical plans and frozen notes. Do not treat as active truth without Dreaming/re-intake. |
 | `docs/packages/` | Package reference and API entrypoints. Link to package-local READMEs where possible. |
 | `packages/*/README.md` | Local package entrypoint: purpose, exports, commands, generated outputs, and owner surface. |
 | `scripts/*` | Executable checks and maintenance tools. Scripts that enforce docs policy should be linked from the docs they protect. |

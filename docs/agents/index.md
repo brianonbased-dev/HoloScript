@@ -31,7 +31,7 @@ Every HoloScript agent follows the canonical 8-phase cognitive lifecycle (0-7):
 | 1     | **REFLECT**    | Analyze and understand the environment   |
 | 2     | **EXECUTE**    | Take action (move, speak, trade)         |
 | 3     | **COMPRESS**   | Store knowledge efficiently (PWG format) |
-| 4     | **REINTAKE**   | Re-evaluate with compressed knowledge    |
+| 4     | **DREAMING**   | Validate and re-evaluate compressed knowledge (`REINTAKE` API key) |
 | 5     | **GROW**       | Learn new patterns, wisdom, and gotchas  |
 | 6     | **EVOLVE**     | Adapt and optimize internal models       |
 | 7     | **AUTONOMIZE** | Self-directed goal synthesis             |

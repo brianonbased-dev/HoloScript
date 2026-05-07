@@ -35,6 +35,7 @@ export enum UAALOpCode {
   COMPRESS = 0x12,
   OP_INTAKE_STREAM = 0x13,
   EXECUTE = 0x14,
+  // ABI name retained; agent-facing display phase is DREAMING.
   REINTAKE = 0x15,
   GROW = 0x16,
   EVOLVE = 0x17,

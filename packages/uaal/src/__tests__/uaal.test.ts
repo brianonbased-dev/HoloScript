@@ -87,6 +87,12 @@ describe('UAALCompiler', () => {
     expect(opcodes).toContain(UAALOpCode.COMPRESS);
   });
 
+  it('should compile DREAMING as the legacy REINTAKE opcode', () => {
+    const bytecode = compiler.compileIntent('DREAMING over validated insights');
+    const opcodes = bytecode.instructions.map((i) => i.opCode);
+    expect(opcodes).toContain(UAALOpCode.REINTAKE);
+  });
+
   it('should compile multi-phase intent', () => {
     const bytecode = compiler.compileIntent('INTAKE context THINK deeply STORE insights');
     const opcodes = bytecode.instructions.map((i) => i.opCode);

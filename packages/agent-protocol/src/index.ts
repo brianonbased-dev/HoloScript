@@ -5,7 +5,7 @@
  * Implementations live in @holoscript/framework.
  *
  * Protocol styles:
- * - uaa2: 7-phase (INTAKE→REFLECT→EXECUTE→COMPRESS→REINTAKE→GROW→EVOLVE)
+ * - uaa2: 8-phase (INTAKE→REFLECT→EXECUTE→COMPRESS→DREAMING[REINTAKE]→GROW→EVOLVE→AUTONOMIZE)
  * - react: ReAct loop (think→act→observe)
  * - plan-exec: Plan-and-execute (plan→step→replan)
  * - debate: Multi-agent debate (propose→challenge→defend→resolve)
@@ -33,6 +33,17 @@ export const PHASE_NAMES: Record<ProtocolPhase, string> = {
   [ProtocolPhase.EXECUTE]: 'EXECUTE',
   [ProtocolPhase.COMPRESS]: 'COMPRESS',
   [ProtocolPhase.REINTAKE]: 'REINTAKE',
+  [ProtocolPhase.GROW]: 'GROW',
+  [ProtocolPhase.EVOLVE]: 'EVOLVE',
+  [ProtocolPhase.AUTONOMIZE]: 'AUTONOMIZE',
+};
+
+export const PHASE_DISPLAY_NAMES: Record<ProtocolPhase, string> = {
+  [ProtocolPhase.INTAKE]: 'INTAKE',
+  [ProtocolPhase.REFLECT]: 'REFLECT',
+  [ProtocolPhase.EXECUTE]: 'EXECUTE',
+  [ProtocolPhase.COMPRESS]: 'COMPRESS',
+  [ProtocolPhase.REINTAKE]: 'DREAMING',
   [ProtocolPhase.GROW]: 'GROW',
   [ProtocolPhase.EVOLVE]: 'EVOLVE',
   [ProtocolPhase.AUTONOMIZE]: 'AUTONOMIZE',
