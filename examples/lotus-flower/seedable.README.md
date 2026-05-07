@@ -119,15 +119,15 @@ to active trait blocks when the founder gate allows the flower to fire.
 trigger is allowed to plant the seed. The remaining blocker is the founder-gated
 anchor and final render activation, not an absent trait handler.
 
-### Known parser limitations
+### Parser status
 
-- `instanced_object` block (the form `/idea` recommended for the petals
-  collection) is **not** used in `garden.seedable.holo` because the
-  current `.holo` dialect parser does not recognize that keyword. The 42
-  petals are written as explicit `object` declarations with their
-  deterministic positions hard-coded. When the parser learns
-  `instanced_object`, the 42 explicit declarations collapse into one
-  block driven by `PhyllotaxisAnchor`.
+- `instanced_object` is now recognized by the local `.holo` parser and
+  preserved as `declarationKind: "instanced_object"` with deterministic
+  `instanceMetadata` (`source_trait`, `instance_trait`, count, anchor,
+  seed, generator, and applied traits). `garden.seedable.holo` still keeps
+  the 42 explicit petal declarations for staged readability and founder-gated
+  activation, but the parser can accept the collapsed `PhyllotaxisAnchor`
+  form shown below.
 - Active composition comments use `//`; `#` is not accepted by the current
   `.holo` parser.
 - Backticks in the JSDoc header may still trip the MCP server's security gate

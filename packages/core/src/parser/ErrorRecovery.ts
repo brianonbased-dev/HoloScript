@@ -64,6 +64,7 @@ export type ErrorSeverity = 'error' | 'warning' | 'info' | 'hint';
 const VALID_KEYWORDS = [
   'composition',
   'object',
+  'instanced_object',
   'group',
   'template',
   'state',

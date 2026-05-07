@@ -4,6 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { parseHolo, parseHoloStrict } from './HoloCompositionParser';
+import { generateHoloSource } from './HoloCompositionGenerator';
 
 describe('HoloCompositionParser', () => {
   describe('Basic Composition', () => {
@@ -197,6 +198,49 @@ describe('HoloCompositionParser', () => {
       expect(result.success).toBe(true);
       expect(result.ast?.objects[0].children).toHaveLength(1);
       expect(result.ast?.objects[0].children?.[0].name).toBe('Cockpit');
+    });
+
+    it('parses instanced_object with deterministic instance metadata', () => {
+      const source = `
+        composition "Lotus" {
+          instanced_object "Petals" {
+            source_trait: @phyllotaxis
+            instance_trait: @lotus_petal
+            instance_count: 42
+            generator: {
+              anchor: "PhyllotaxisAnchor"
+              golden_angle_deg: 137.50776
+              seed: "0x0000DEAD"
+            }
+            @bloom_reactive {
+              state_source: "lotus.api.bloom_state"
+            }
+          }
+        }
+      `;
+
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+
+      const petals = result.ast?.objects[0];
+      expect(petals?.name).toBe('Petals');
+      expect(petals?.declarationKind).toBe('instanced_object');
+      expect(petals?.instanceMetadata?.sourceTrait).toBe('@phyllotaxis');
+      expect(petals?.instanceMetadata?.instanceTraits).toEqual(['@lotus_petal']);
+      expect(petals?.instanceMetadata?.count).toBe(42);
+      expect(petals?.instanceMetadata?.anchor).toBe('PhyllotaxisAnchor');
+      expect(petals?.instanceMetadata?.seed).toBe('0x0000DEAD');
+      expect(petals?.instanceMetadata?.generator).toEqual({
+        anchor: 'PhyllotaxisAnchor',
+        golden_angle_deg: 137.50776,
+        seed: '0x0000DEAD',
+      });
+      expect(petals?.traits[0].name).toBe('bloom_reactive');
+      expect(petals?.instanceMetadata?.traits[0].config.state_source).toBe(
+        'lotus.api.bloom_state'
+      );
+      expect(generateHoloSource(result.ast!)).toContain('instanced_object "Petals"');
     });
   });
 

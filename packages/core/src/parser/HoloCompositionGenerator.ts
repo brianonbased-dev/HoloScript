@@ -68,7 +68,8 @@ export function generateHoloSource(ast: HoloComposition): string {
 
 function emitObject(obj: HoloObjectDecl, lines: string[], indentLevel: number) {
   const ind = ' '.repeat(indentLevel);
-  lines.push(`${ind}object "${escapeString(obj.name)}" {`);
+  const keyword = obj.declarationKind === 'instanced_object' ? 'instanced_object' : 'object';
+  lines.push(`${ind}${keyword} "${escapeString(obj.name)}" {`);
 
   // Emit traits INSIDE the body (one per line) — matches the canonical
   // .holo source style used by the benchmark fixtures and avoids the

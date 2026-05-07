@@ -18,6 +18,7 @@ import type {
   HoloStateProperty,
   HoloTemplate,
   HoloObjectDecl,
+  HoloInstancedObjectMetadata,
   HoloObjectProperty,
   HoloObjectTrait,
   HoloSpatialGroup,
@@ -57,6 +58,7 @@ import type {
   HoloConditionalBlock,
   HoloForEachBlock,
   SourceLocation,
+  SourceRange,
   // Brittney AI Features
   HoloNPC,
   HoloBehavior,
@@ -1788,6 +1790,7 @@ export class HoloCompositionParser {
     // the anchor downstream consumers (Absorb ReferenceGraph, DPO splitter)
     // use for the provenance semiring.
     const startLoc = this.currentLocation();
+    const declarationKind = typeOverride ?? this.current().value.toLowerCase();
     if (!typeOverride) {
       this.expect('OBJECT');
     } else {
@@ -2015,7 +2018,87 @@ export class HoloCompositionParser {
       obj.properties.unshift({ type: 'ObjectProperty', key: 'type', value: typeOverride });
     }
 
+    if (declarationKind === 'instanced_object') {
+      obj.declarationKind = 'instanced_object';
+      obj.instanceMetadata = this.buildInstancedObjectMetadata(
+        properties,
+        traits,
+        { start: startLoc, end: endLoc }
+      );
+    }
+
     return obj;
+  }
+
+  private buildInstancedObjectMetadata(
+    properties: HoloObjectProperty[],
+    traits: HoloObjectTrait[],
+    loc: SourceRange
+  ): HoloInstancedObjectMetadata {
+    const propertyMap: Record<string, HoloValue> = {};
+    for (const property of properties) {
+      propertyMap[property.key] = property.value;
+    }
+
+    const count = this.asOptionalNumber(
+      propertyMap['instance_count'] ?? propertyMap['count']
+    );
+    const anchor = this.asOptionalString(
+      propertyMap['anchor'] ?? this.propertyFromObject(propertyMap['generator'], 'anchor')
+    );
+    const seed = propertyMap['seed'] ?? this.propertyFromObject(propertyMap['generator'], 'seed');
+    const generator = propertyMap['generator'];
+
+    return {
+      type: 'InstancedObjectMetadata',
+      sourceTrait: this.normalizeTraitRef(propertyMap['source_trait']),
+      instanceTraits: this.normalizeTraitRefs(
+        propertyMap['instance_trait'] ?? propertyMap['instance_traits']
+      ),
+      ...(count === undefined ? {} : { count }),
+      ...(anchor === undefined ? {} : { anchor }),
+      ...(seed === undefined ? {} : { seed }),
+      ...(generator === undefined ? {} : { generator }),
+      properties: propertyMap,
+      traits: traits.map((trait) => ({
+        ...trait,
+        config: { ...trait.config },
+        ...(trait.args ? { args: [...trait.args] } : {}),
+      })),
+      loc,
+    };
+  }
+
+  private normalizeTraitRefs(value: HoloValue | undefined): string[] {
+    if (Array.isArray(value)) {
+      return value
+        .map((entry) => this.normalizeTraitRef(entry))
+        .filter((entry): entry is string => entry !== undefined);
+    }
+    const single = this.normalizeTraitRef(value);
+    return single ? [single] : [];
+  }
+
+  private normalizeTraitRef(value: HoloValue | undefined): string | undefined {
+    if (typeof value !== 'string' || value.length === 0) {
+      return undefined;
+    }
+    return value.startsWith('@') ? value : `@${value}`;
+  }
+
+  private asOptionalNumber(value: HoloValue | undefined): number | undefined {
+    return typeof value === 'number' ? value : undefined;
+  }
+
+  private asOptionalString(value: HoloValue | undefined): string | undefined {
+    return typeof value === 'string' ? value : undefined;
+  }
+
+  private propertyFromObject(value: HoloValue | undefined, key: string): HoloValue | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value) || '__bind' in value) {
+      return undefined;
+    }
+    return value[key];
   }
 
   private parseSpatialObject(type: string): HoloObjectDecl {
@@ -2564,6 +2647,13 @@ export class HoloCompositionParser {
     // bind() reactive expression: bind(state.score) or bind(state.score, "formatPercent")
     if (this.check('BIND')) {
       return this.parseBindValue();
+    }
+    if (this.match('AT')) {
+      if (this.check('IDENTIFIER')) {
+        return `@${this.advance().value}`;
+      }
+      this.error(`Expected trait name after '@', got ${this.current().type}`);
+      return null;
     }
     if (this.match('IDENTIFIER')) {
       return this.previous().value;

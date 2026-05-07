@@ -429,6 +429,8 @@ export interface HoloTemplateProperty extends HoloNode {
 export interface HoloObjectDecl extends HoloNode {
   type: 'Object';
   name: string;
+  declarationKind?: 'object' | 'instanced_object' | string;
+  instanceMetadata?: HoloInstancedObjectMetadata;
   __holo_id?: string; // Stable identity for hot-reload reference preservation
   template?: string; // "using" clause
   properties: HoloObjectProperty[];
@@ -439,6 +441,18 @@ export interface HoloObjectDecl extends HoloNode {
   subOrbs?: HoloSubOrb[];
   /** @platform() conditional compilation constraint */
   platformConstraint?: PlatformConstraint;
+}
+
+export interface HoloInstancedObjectMetadata extends HoloNode {
+  type: 'InstancedObjectMetadata';
+  sourceTrait?: string;
+  instanceTraits: string[];
+  count?: number;
+  anchor?: string;
+  seed?: HoloValue;
+  generator?: HoloValue;
+  properties: Record<string, HoloValue>;
+  traits: HoloObjectTrait[];
 }
 
 export interface HoloSubOrb extends HoloNode {

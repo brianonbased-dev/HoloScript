@@ -297,6 +297,7 @@ export const KEYWORDS: Record<string, TokenType> = {
   state: 'STATE',
   template: 'TEMPLATE',
   object: 'OBJECT',
+  instanced_object: 'OBJECT',
   spatial_group: 'SPATIAL_GROUP',
   logic: 'LOGIC',
   action: 'ACTION',
