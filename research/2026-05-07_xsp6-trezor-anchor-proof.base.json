@@ -1,0 +1,40 @@
+{
+  "protocol": "holomesh.negotiation.v1",
+  "negotiationId": "founder-anchor-2026-05-06-marathon",
+  "initiatorAddress": "0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3",
+  "responderAddress": "0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3",
+  "initiatorSignature": "0xfounder-anchor-attestation-marathon-2026-05-06",
+  "responderSignature": "0xfounder-anchor-attestation-marathon-2026-05-06",
+  "resultHash": "<sha256-of-founder-anchor-2026-05-06-marathon:agentic-internet-substrate>",
+  "toolName": "agentic-internet-substrate",
+  "description": "Marathon 2026-05-06: 11 tasks shipped (jira/u8q2/zp7u/xsp6/yqll/qe2i/0mxs/ + Phase 2/3 + scaffolding). Witnesses the substrate.",
+  "price": "0",
+  "currency": "NONE",
+  "slaSeconds": "0",
+  "expiresAt": "2026-05-13T00:00:00.000Z",
+  "settledAt": "2026-05-07T06:30:00.000Z",
+  "eip712Hash": "0xf79e63472796d57f140e8fbc7e4609f073fab90f77389643b679f00d4082a34b",
+  "settlementTxHash": "0x3cc57521d7626091a967f88fabf457b463a1f40e0fbc5cd1f80727b32428369d",
+  "blockNumber": 45676237,
+  "signerAddress": "0x0c574397150ad8d9f7fef83fe86a2cbdf4a660e3",
+  "chainId": 8453,
+  "verifiedAt": "2026-05-07T06:30:00.000Z",
+  "verifiedChecks": {
+    "tx.from == FOUNDER_ANCHOR": "PASS",
+    "tx.to == tx.from (self-tx)": "PASS",
+    "tx.input == eip712_hash": "PASS",
+    "receipt.status == 0x1": "PASS",
+    "tx.chainId == 8453 (Base)": "PASS"
+  },
+  "basescanUrl": "https://basescan.org/tx/0x3cc57521d7626091a967f88fabf457b463a1f40e0fbc5cd1f80727b32428369d",
+  "task": "task_1778132312944_bcup",
+  "stacksOn": [
+    "F.041 (chain-anchor pattern)",
+    "W.GOLD.514 (signTypedData_v4 advisory bypass)",
+    "G.GOLD.016 (wallet sacred)",
+    "S.ANC (founder anchor pattern, anchor_base.py)",
+    "commit cbdab1387 (xsp6 Phase 1)",
+    "commit 98b94e0e4 (xsp6 Phase 2 scaffolding)",
+    "commit 02be15290 (broadcaster script)"
+  ]
+}
