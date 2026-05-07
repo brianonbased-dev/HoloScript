@@ -1,0 +1,746 @@
+// ============================================================================
+// A-009 Stress Test — 2026-05-07
+// "Resonant Tide Pool at Dusk"
+//
+// NEVER-EXERCISED TRAITS UNDER TEST:
+//   @bioluminescent  — pulsing emissive surface driven by time + proximity +
+//                      spatial pattern. Exercises all three pattern modes:
+//                      'perlin' (water surface, algae), 'voronoi' (jellyfish
+//                      bells), 'solid' (anemone crown). Also exercises
+//                      the proximity-observer event path and bpm range 6–24.
+//   @buoyancy        — Archimedes' principle physics. Exercises two density
+//                      regimes: near-neutral buoyancy (jellyfish ρ ≈ 1020
+//                      in seawater ρ = 1025) and strongly positive (algae
+//                      ρ = 200, driftwood-class). Exercises flow_direction,
+//                      splash_effect, and the on_splash / on_submerge event
+//                      chain that triggers particle bursts.
+//
+// WELL-EXERCISED ANCHORS (binding the new traits into a living scene):
+//   @animated        — jellyfish bell contraction cycle (0.6 s period)
+//   @particle        — surface shimmer, splash bursts, bioluminescent sparkle
+//   @spatial_audio   — low ocean drone + tide-pool resonance cavity
+//   @collidable      — basalt rocks defining the pool walls
+//   @emissive        — distant moonrise disc providing the only top light
+//
+// SCENE STORY:
+//   It is 20:14 on a Pacific coast evening. The tide has retreated,
+//   leaving a metre-deep pool in a shelf of black basalt. The last
+//   amber light fades from the western sky — and the pool wakes up.
+//
+//   Moon jellyfish (Aurelia aurita) drift near the surface, their
+//   translucent bells pulsing at 10 beats per minute. Buoyancy keeps
+//   them suspended just below the meniscus; a gentle long-shore
+//   current nudges them south at 0.04 m/s. When a jellyfish bell
+//   breaks the surface, a tiny splash triggers a bioluminescent burst
+//   from the disturbed plankton — sparks of cold cyan fire that fade
+//   over 800 ms.
+//
+//   Sea anemones (Anthopleura elegantissima) ring the shallows,
+//   anchored to the rock walls, their crowns in solid-mode bioluminescence
+//   — a steady magenta glow that needs no temporal modulation because
+//   the animal is already at rest, respiring in the dark.
+//
+//   Drifting algae mats (Ulva lactuca, sea lettuce) bob at the
+//   surface: density 200 kg/m³ in seawater means they sit mostly
+//   above the waterline. Their perlin-patterned bioluminescence shifts
+//   cyan-green as they rotate in the current — the spatial coordinates
+//   change so the pattern drifts, giving the impression of living light
+//   flowing through the blades.
+//
+//   Above, a rising moon is the only light source not biological —
+//   an emissive disc at 200 m altitude providing 0.15 lux of cold
+//   blue-white fill. It is enough to see the rocks by, but the real
+//   illumination comes from below.
+//
+// ARTISTIC INTENT:
+//   Bioluminescence is darkness made visible. The scene asks: what if
+//   the organisms themselves are the lamps? Every light source here
+//   belongs to a living thing (or a celestial body standing in for one).
+//   @buoyancy grounds the scene in physics: the jellyfish don't float
+//   because they're objects, they float because seawater is denser than
+//   their mesoglea. The difference is felt in the slow drift, the
+//   reluctant splash when they reach the surface, the way the current
+//   accumulates them against the south wall of the pool.
+//
+// COMPILE TARGET: webgpu
+//   Transparent mesh alpha-sort required for jellyfish bell stacking.
+//   Particle count: ~2 400 (surface shimmer 2 000 + splash burst 400).
+// ============================================================================
+
+composition "ResonantTidePool" {
+  version: "7.0"
+  description: "Bioluminescent sea life in a Pacific tide pool at dusk — @bioluminescent + @buoyancy stress-test."
+  tags: ["a009", "stress-test", "nature", "ocean", "bioluminescent", "buoyancy", "2026-05-07"]
+
+  // --------------------------------------------------------------------------
+  // ENVIRONMENT
+  // Post-sunset Pacific coast — no direct sun, thin marine-layer overcast.
+  // --------------------------------------------------------------------------
+  environment {
+    skybox: "pacific_coast_dusk"
+    ambient_light: 0.04
+    ambient_color: "#0a1520"
+    gravity: [0, -9.81, 0]
+    fog: {
+      enabled: true
+      color: "#07101a"
+      density: 0.018
+      mode: "exponential"
+    }
+    water_surface_y: 0.0
+    seawater_density: 1025
+  }
+
+  // --------------------------------------------------------------------------
+  // MOON DISC
+  // Only non-biological light source. Emissive mesh, not a point light —
+  // gives soft, directionless fill rather than harsh shadows.
+  // --------------------------------------------------------------------------
+  object "MoonRise" {
+    type: "sphere"
+    position: [-60, 200, -300]
+    scale: [18, 18, 18]
+    @emissive {
+      color: "#d8e8ff"
+      intensity: 0.15
+      hdr: false
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // POOL BASIN — basalt shelf walls
+  // Four rocks form the rough rectangle of the pool perimeter.
+  // --------------------------------------------------------------------------
+  object "BasaltSouth" {
+    type: "mesh"
+    model: "models/basalt_slab.glb"
+    position: [0, -0.5, -4]
+    scale: [8, 1.5, 1.2]
+    @collidable {
+      shape: "mesh"
+      friction: 0.9
+      restitution: 0.05
+    }
+  }
+
+  object "BasaltNorth" {
+    type: "mesh"
+    model: "models/basalt_slab.glb"
+    position: [0, -0.5, 4]
+    scale: [8, 1.5, 1.2]
+    @collidable {
+      shape: "mesh"
+      friction: 0.9
+      restitution: 0.05
+    }
+  }
+
+  object "BasaltEast" {
+    type: "mesh"
+    model: "models/basalt_slab.glb"
+    position: [4, -0.5, 0]
+    scale: [1.2, 1.5, 6.6]
+    @collidable {
+      shape: "mesh"
+      friction: 0.9
+      restitution: 0.05
+    }
+  }
+
+  object "BasaltWest" {
+    type: "mesh"
+    model: "models/basalt_slab.glb"
+    position: [-4, -0.5, 0]
+    scale: [1.2, 1.5, 6.6]
+    @collidable {
+      shape: "mesh"
+      friction: 0.9
+      restitution: 0.05
+    }
+  }
+
+  object "PoolFloor" {
+    type: "plane"
+    position: [0, -1.0, 0]
+    scale: [8, 1, 8]
+    material: "basalt_wet"
+    @collidable {
+      shape: "box"
+      friction: 0.95
+      restitution: 0.02
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // WATER SURFACE
+  //
+  // The pool surface uses @bioluminescent with 'perlin' pattern to produce
+  // a slowly-drifting cyan glow that reads as dinoflagellate plankton
+  // distributed unevenly across the water. pulse_bpm 8 = one breath every
+  // 7.5 s — slow enough to be meditative, fast enough to read as alive.
+  //
+  // @particle provides the surface shimmer: 2 000 tiny sprites that catch
+  // the bioluminescent emission and scatter it.
+  // --------------------------------------------------------------------------
+  object "WaterSurface" {
+    type: "plane"
+    position: [0, 0.0, 0]
+    scale: [7.8, 1, 7.8]
+    material: "water_transparent_pbr"
+    render_order: 1
+    @bioluminescent {
+      color: "#00e8cc"
+      pulse_bpm: 8
+      radius_falloff: 6.0
+      min_intensity: 0.02
+      max_intensity: 0.55
+      pattern: "perlin"
+      spatial_scale: 0.4
+      spatial_seed: 0x1A2B
+      emit_attach_event: true
+    }
+    @particle {
+      count: 2000
+      size: [0.008, 0.022]
+      color: "#00ffd0"
+      color_variance: 0.15
+      alpha: [0.3, 0.85]
+      lifetime: [1.2, 3.5]
+      emission_shape: "plane"
+      emission_bounds: [7.6, 0.0, 7.6]
+      velocity: [0.0, 0.01, 0.0]
+      velocity_variance: 0.005
+      gravity_scale: 0.0
+      blend_mode: "additive"
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // JELLYFISH — Moon Jellyfish (Aurelia aurita) × 4
+  //
+  // @bioluminescent: 'voronoi' pattern, 12 BPM — the voronoi cells map
+  // beautifully to the radial symmetry of a jellyfish bell. Different
+  // spatial_seed per individual = no two glow identically.
+  //
+  // @buoyancy: density 1020 kg/m³ in seawater 1025 → very slight positive
+  // buoyancy. fluid_level 0 (the pool surface). A gentle southward current
+  // [0, 0, -0.04] accumulates them toward the south wall over ~3 minutes.
+  // splash_effect = true so surface breaches trigger particle bursts.
+  //
+  // @animated: bell contraction at 10 BPM (0.6 s period). Scale Y drives
+  // the bell squish: contracts to 0.6×, expands to 1.0× on recovery.
+  // The animation phase is offset per jellyfish so they don't contract
+  // simultaneously — creates a natural staggered breathing cadence.
+  // --------------------------------------------------------------------------
+  object "Jelly_A" {
+    type: "mesh"
+    model: "models/aurelia_aurita.glb"
+    position: [-1.5, -0.15, 1.2]
+    scale: [0.28, 0.28, 0.28]
+    @bioluminescent {
+      color: "#88ccff"
+      pulse_bpm: 12
+      radius_falloff: 0.6
+      min_intensity: 0.08
+      max_intensity: 0.92
+      pattern: "voronoi"
+      spatial_scale: 2.4
+      spatial_seed: 0xAE01
+      emit_attach_event: false
+    }
+    @buoyancy {
+      fluid_density: 1025
+      fluid_level: 0.0
+      drag: 2.5
+      angular_drag: 3.0
+      flow_direction: [0, 0, -1]
+      flow_strength: 0.04
+      splash_effect: true
+      submerge_threshold: 0.88
+      object_density: 1020
+      object_volume: 0.0034
+    }
+    @animated {
+      clip: "bell_pulse"
+      speed: 1.0
+      loop: true
+      phase_offset: 0.0
+      channels: {
+        scale_y: { keys: [0.0, 0.3, 0.6], values: [1.0, 0.62, 1.0], easing: "ease_in_out" }
+      }
+    }
+    @collidable {
+      shape: "capsule"
+      radius: 0.12
+      height: 0.18
+      layer: "soft_body"
+      restitution: 0.1
+    }
+  }
+
+  object "Jelly_B" {
+    type: "mesh"
+    model: "models/aurelia_aurita.glb"
+    position: [0.8, -0.12, -0.5]
+    scale: [0.22, 0.22, 0.22]
+    @bioluminescent {
+      color: "#aad4ff"
+      pulse_bpm: 10
+      radius_falloff: 0.5
+      min_intensity: 0.06
+      max_intensity: 0.88
+      pattern: "voronoi"
+      spatial_scale: 2.8
+      spatial_seed: 0xBE72
+      emit_attach_event: false
+    }
+    @buoyancy {
+      fluid_density: 1025
+      fluid_level: 0.0
+      drag: 2.2
+      angular_drag: 2.8
+      flow_direction: [0, 0, -1]
+      flow_strength: 0.04
+      splash_effect: true
+      submerge_threshold: 0.85
+      object_density: 1018
+      object_volume: 0.0021
+    }
+    @animated {
+      clip: "bell_pulse"
+      speed: 1.0
+      loop: true
+      phase_offset: 0.22
+      channels: {
+        scale_y: { keys: [0.0, 0.3, 0.6], values: [1.0, 0.60, 1.0], easing: "ease_in_out" }
+      }
+    }
+    @collidable {
+      shape: "capsule"
+      radius: 0.09
+      height: 0.14
+      layer: "soft_body"
+      restitution: 0.1
+    }
+  }
+
+  object "Jelly_C" {
+    type: "mesh"
+    model: "models/aurelia_aurita.glb"
+    position: [2.1, -0.18, 0.9]
+    scale: [0.32, 0.32, 0.32]
+    @bioluminescent {
+      color: "#66aaff"
+      pulse_bpm: 14
+      radius_falloff: 0.7
+      min_intensity: 0.10
+      max_intensity: 0.95
+      pattern: "voronoi"
+      spatial_scale: 2.1
+      spatial_seed: 0xC4D3
+      emit_attach_event: false
+    }
+    @buoyancy {
+      fluid_density: 1025
+      fluid_level: 0.0
+      drag: 2.8
+      angular_drag: 3.2
+      flow_direction: [0, 0, -1]
+      flow_strength: 0.035
+      splash_effect: true
+      submerge_threshold: 0.90
+      object_density: 1022
+      object_volume: 0.0048
+    }
+    @animated {
+      clip: "bell_pulse"
+      speed: 1.0
+      loop: true
+      phase_offset: 0.47
+      channels: {
+        scale_y: { keys: [0.0, 0.3, 0.6], values: [1.0, 0.65, 1.0], easing: "ease_in_out" }
+      }
+    }
+    @collidable {
+      shape: "capsule"
+      radius: 0.13
+      height: 0.20
+      layer: "soft_body"
+      restitution: 0.1
+    }
+  }
+
+  object "Jelly_D" {
+    type: "mesh"
+    model: "models/aurelia_aurita.glb"
+    position: [-2.8, -0.10, -1.8]
+    scale: [0.19, 0.19, 0.19]
+    @bioluminescent {
+      color: "#99bbff"
+      pulse_bpm: 6
+      radius_falloff: 0.45
+      min_intensity: 0.04
+      max_intensity: 0.80
+      pattern: "voronoi"
+      spatial_scale: 3.0
+      spatial_seed: 0xD9E5
+      emit_attach_event: false
+    }
+    @buoyancy {
+      fluid_density: 1025
+      fluid_level: 0.0
+      drag: 1.8
+      angular_drag: 2.5
+      flow_direction: [0, 0, -1]
+      flow_strength: 0.04
+      splash_effect: true
+      submerge_threshold: 0.82
+      object_density: 1016
+      object_volume: 0.0015
+    }
+    @animated {
+      clip: "bell_pulse"
+      speed: 0.85
+      loop: true
+      phase_offset: 0.73
+      channels: {
+        scale_y: { keys: [0.0, 0.35, 0.70], values: [1.0, 0.58, 1.0], easing: "ease_in_out" }
+      }
+    }
+    @collidable {
+      shape: "capsule"
+      radius: 0.08
+      height: 0.12
+      layer: "soft_body"
+      restitution: 0.1
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // SEA ANEMONES — Anthopleura elegantissima (aggregating anemone)
+  //
+  // @bioluminescent: 'solid' pattern. Anemones do bioluminesce but without
+  // locomotion their spatial coordinates don't change, so a perlin/voronoi
+  // pattern would be static noise. 'solid' gives a constant full-weight
+  // sample: intensity = lerp(min, max, pulse * 1.0 * 1.0). The BPM is
+  // very slow (6 BPM = 10 s cycle) — anemone bioluminescence is metabolic,
+  // not signal.
+  //
+  // No @buoyancy — anemones are sessile (anchored to rock). @animated
+  // drives tentacle sway in the current: a sinusoidal scale_x / rotate_z
+  // oscillation at 0.08 Hz.
+  // --------------------------------------------------------------------------
+  object "Anemone_Ring" {
+    type: "group"
+    position: [0, -0.85, 0]
+
+    object "Anemone_NE" {
+      type: "mesh"
+      model: "models/anthopleura.glb"
+      position: [1.8, 0.0, -2.2]
+      scale: [0.14, 0.14, 0.14]
+      @bioluminescent {
+        color: "#ff44aa"
+        pulse_bpm: 6
+        radius_falloff: 0.0
+        min_intensity: 0.12
+        max_intensity: 0.72
+        pattern: "solid"
+        spatial_scale: 1.0
+        spatial_seed: 0xF001
+        emit_attach_event: true
+      }
+      @animated {
+        clip: "tentacle_sway"
+        loop: true
+        speed: 0.4
+        phase_offset: 0.0
+        channels: {
+          rotate_z: { keys: [0.0, 0.5, 1.0], values: [-4.0, 4.0, -4.0], easing: "sine" }
+        }
+      }
+    }
+
+    object "Anemone_NW" {
+      type: "mesh"
+      model: "models/anthopleura.glb"
+      position: [-2.1, 0.0, -2.0]
+      scale: [0.12, 0.12, 0.12]
+      @bioluminescent {
+        color: "#ee3399"
+        pulse_bpm: 7
+        radius_falloff: 0.0
+        min_intensity: 0.10
+        max_intensity: 0.68
+        pattern: "solid"
+        spatial_scale: 1.0
+        spatial_seed: 0xF002
+        emit_attach_event: false
+      }
+      @animated {
+        clip: "tentacle_sway"
+        loop: true
+        speed: 0.38
+        phase_offset: 0.31
+        channels: {
+          rotate_z: { keys: [0.0, 0.5, 1.0], values: [-3.5, 3.5, -3.5], easing: "sine" }
+        }
+      }
+    }
+
+    object "Anemone_SE" {
+      type: "mesh"
+      model: "models/anthopleura.glb"
+      position: [2.3, 0.0, 2.1]
+      scale: [0.16, 0.16, 0.16]
+      @bioluminescent {
+        color: "#cc2288"
+        pulse_bpm: 5
+        radius_falloff: 0.0
+        min_intensity: 0.15
+        max_intensity: 0.78
+        pattern: "solid"
+        spatial_scale: 1.0
+        spatial_seed: 0xF003
+        emit_attach_event: false
+      }
+      @animated {
+        clip: "tentacle_sway"
+        loop: true
+        speed: 0.42
+        phase_offset: 0.58
+        channels: {
+          rotate_z: { keys: [0.0, 0.5, 1.0], values: [-5.0, 5.0, -5.0], easing: "sine" }
+        }
+      }
+    }
+
+    object "Anemone_SW" {
+      type: "mesh"
+      model: "models/anthopleura.glb"
+      position: [-1.9, 0.0, 2.3]
+      scale: [0.11, 0.11, 0.11]
+      @bioluminescent {
+        color: "#dd3399"
+        pulse_bpm: 8
+        radius_falloff: 0.0
+        min_intensity: 0.08
+        max_intensity: 0.65
+        pattern: "solid"
+        spatial_scale: 1.0
+        spatial_seed: 0xF004
+        emit_attach_event: false
+      }
+      @animated {
+        clip: "tentacle_sway"
+        loop: true
+        speed: 0.35
+        phase_offset: 0.84
+        channels: {
+          rotate_z: { keys: [0.0, 0.5, 1.0], values: [-3.0, 3.0, -3.0], easing: "sine" }
+        }
+      }
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // ALGAE MATS — Ulva lactuca (sea lettuce) × 3
+  //
+  // @bioluminescent: 'perlin' pattern with a unique spatial_seed per blade.
+  // Because the algae rotate with the current their world-space coordinates
+  // change, so the perlin pattern appears to ripple through them as they
+  // turn — the living-light-flows-through-blades effect described in the
+  // story. pulse_bpm 20–24 (fast metabolic rhythm).
+  //
+  // @buoyancy: density 200 kg/m³ (sea lettuce is ~200 kg/m³, much less
+  // than seawater). With object_volume 0.0008 m³ and density 200, the
+  // object mass is 0.16 kg; buoyancy force at full submersion = 1025 ×
+  // 0.0008 × 9.81 = 8.04 N upward vs weight = 200 × 0.0008 × 9.81 =
+  // 1.57 N downward → net 6.47 N upward → algae float vigorously to surface
+  // and mostly sit above the waterline (submersion_ratio ≈ 0.15).
+  // --------------------------------------------------------------------------
+  object "AlgaeMat_A" {
+    type: "mesh"
+    model: "models/ulva_lactuca_blade.glb"
+    position: [-0.6, 0.08, 0.3]
+    scale: [0.25, 0.25, 0.25]
+    @bioluminescent {
+      color: "#22ee88"
+      pulse_bpm: 22
+      radius_falloff: 0.35
+      min_intensity: 0.05
+      max_intensity: 0.65
+      pattern: "perlin"
+      spatial_scale: 1.8
+      spatial_seed: 0x3344
+      emit_attach_event: false
+    }
+    @buoyancy {
+      fluid_density: 1025
+      fluid_level: 0.0
+      drag: 3.5
+      angular_drag: 4.0
+      flow_direction: [-1, 0, 0]
+      flow_strength: 0.02
+      splash_effect: false
+      submerge_threshold: 0.6
+      object_density: 200
+      object_volume: 0.0008
+    }
+    @animated {
+      clip: "blade_flutter"
+      loop: true
+      speed: 0.6
+      phase_offset: 0.0
+      channels: {
+        rotate_y: { keys: [0.0, 0.5, 1.0], values: [-12.0, 12.0, -12.0], easing: "sine" }
+      }
+    }
+  }
+
+  object "AlgaeMat_B" {
+    type: "mesh"
+    model: "models/ulva_lactuca_blade.glb"
+    position: [1.4, 0.06, -1.1]
+    scale: [0.20, 0.20, 0.20]
+    @bioluminescent {
+      color: "#33ff99"
+      pulse_bpm: 24
+      radius_falloff: 0.28
+      min_intensity: 0.04
+      max_intensity: 0.58
+      pattern: "perlin"
+      spatial_scale: 2.2
+      spatial_seed: 0x5566
+      emit_attach_event: false
+    }
+    @buoyancy {
+      fluid_density: 1025
+      fluid_level: 0.0
+      drag: 3.2
+      angular_drag: 3.8
+      flow_direction: [-1, 0, 0]
+      flow_strength: 0.022
+      splash_effect: false
+      submerge_threshold: 0.6
+      object_density: 200
+      object_volume: 0.0006
+    }
+    @animated {
+      clip: "blade_flutter"
+      loop: true
+      speed: 0.55
+      phase_offset: 0.42
+      channels: {
+        rotate_y: { keys: [0.0, 0.5, 1.0], values: [-9.0, 9.0, -9.0], easing: "sine" }
+      }
+    }
+  }
+
+  object "AlgaeMat_C" {
+    type: "mesh"
+    model: "models/ulva_lactuca_blade.glb"
+    position: [-2.2, 0.05, -0.8]
+    scale: [0.30, 0.30, 0.30]
+    @bioluminescent {
+      color: "#11dd77"
+      pulse_bpm: 20
+      radius_falloff: 0.40
+      min_intensity: 0.06
+      max_intensity: 0.70
+      pattern: "perlin"
+      spatial_scale: 1.5
+      spatial_seed: 0x7788
+      emit_attach_event: false
+    }
+    @buoyancy {
+      fluid_density: 1025
+      fluid_level: 0.0
+      drag: 4.0
+      angular_drag: 4.5
+      flow_direction: [-1, 0, 0]
+      flow_strength: 0.018
+      splash_effect: false
+      submerge_threshold: 0.6
+      object_density: 200
+      object_volume: 0.0012
+    }
+    @animated {
+      clip: "blade_flutter"
+      loop: true
+      speed: 0.65
+      phase_offset: 0.78
+      channels: {
+        rotate_y: { keys: [0.0, 0.5, 1.0], values: [-15.0, 15.0, -15.0], easing: "sine" }
+      }
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // SPLASH BURST EMITTER
+  // Invisible particle emitter positioned at the waterline, triggered by
+  // on_splash events from @buoyancy. Produces a brief burst of 40–60
+  // sparkling particles in bioluminescent cyan — the dinoflagellate
+  // disturbance flash that mariners have seen for centuries.
+  // --------------------------------------------------------------------------
+  object "SplashBurstEmitter" {
+    type: "empty"
+    position: [0, 0.0, 0]
+    @particle {
+      count: 400
+      size: [0.01, 0.04]
+      color: "#00ffee"
+      alpha: [0.9, 0.1]
+      lifetime: [0.4, 0.9]
+      emission_rate: 0
+      burst_count: 50
+      burst_trigger: "on_splash"
+      velocity: [0, 1.2, 0]
+      velocity_variance: 0.6
+      gravity_scale: 0.4
+      blend_mode: "additive"
+      follow_emitter_position: false
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // OCEAN AUDIO
+  // @spatial_audio provides the tide-pool soundscape: a low resonant drone
+  // from the pool cavity itself (the water-filled void acts as a Helmholtz
+  // resonator at ~38 Hz) layered over a broad-band wave-wash from the
+  // outer coast. The result is the distinctive "listening to the sea"
+  // bass resonance that makes tide pools feel alive even in silence.
+  // --------------------------------------------------------------------------
+  object "OceanDrone" {
+    type: "empty"
+    position: [0, -0.5, 0]
+    @spatial_audio {
+      src: "audio/tidepool_resonance_38hz.ogg"
+      loop: true
+      volume: 0.55
+      pitch: 1.0
+      rolloff: "exponential"
+      min_distance: 0.5
+      max_distance: 18
+      cone_inner: 360
+      cone_outer: 360
+    }
+  }
+
+  object "OceanWash" {
+    type: "empty"
+    position: [0, 0.2, -8]
+    @spatial_audio {
+      src: "audio/pacific_coast_wave_wash.ogg"
+      loop: true
+      volume: 0.35
+      pitch: 1.0
+      rolloff: "linear"
+      min_distance: 3
+      max_distance: 40
+      cone_inner: 90
+      cone_outer: 180
+      cone_outer_gain: 0.2
+    }
+  }
+}
