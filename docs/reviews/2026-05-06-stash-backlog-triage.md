@@ -80,3 +80,26 @@ git stash drop stash@{0}   # 1c39e6de07f4b1b055fad85985e519f817acd226
 ```
 
 Post-closure `git stash list` should contain 4 named stashes (`stash@{3}`/`{4}`/`{5}` in the original manifest, plus any newer entries since this triage).
+
+### 2026-05-07 — `task_1778130187138_e2ns` absorb/trait mixed stash split
+
+Closed by Codex after read-only re-inspection of the two mixed absorb/trait stashes. The original manifest refs shifted after benchmark stash cleanup; the current refs are:
+
+| Current ref | SHA | Original ref | Subject |
+| --- | --- | --- | --- |
+| `stash@{1}` | `4ceb4f054cc87095c23501d057e6a8b17556cddc` | `stash@{4}` | `WIP on main: b26fef5fe fix(absorb): parenthesize FILTER aggregate before ::int cast` |
+| `stash@{2}` | `e972d5837e160ccb215c8c1f8f65201777b2ad71` | `stash@{5}` | `On main: peer-wip-during-aibrittney-push` |
+
+The stash-local deltas contain some target-looking trait and test-config edits: tuple/object pose shape changes, Vitest exact-alias edits, `legacy-exports.ts` registry comments, and trait handler import adjustments. However, comparing each stash tree against current `HEAD` shows both snapshots are too stale to split safely:
+
+```text
+git diff --shortstat HEAD 'stash@{1}' -- packages/core/src/traits packages/*/vitest.config.ts packages/core/src/legacy-exports.ts
+# 75 files changed, 73 insertions(+), 12905 deletions(-)
+
+git diff --shortstat HEAD 'stash@{2}' -- packages/core/src/traits packages/*/vitest.config.ts packages/core/src/legacy-exports.ts
+# 93 files changed, 905 insertions(+), 13314 deletions(-)
+```
+
+The deletions are current mainline trait and test coverage that did not exist when these stashes were made. Cherry-picking from the stale trees would require re-deriving the change by hand against the current trait registry rather than applying stash hunks.
+
+**Action:** No files recovered, no stashes dropped. Keep both stashes as named archives. If a current typecheck, Vitest run, or trait runtime failure proves one of these old edits is still needed, open a fresh task against `HEAD` with the failing command and re-implement the specific fix directly.
