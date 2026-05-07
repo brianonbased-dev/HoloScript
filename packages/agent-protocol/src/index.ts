@@ -5,7 +5,7 @@
  * Implementations live in @holoscript/framework.
  *
  * Protocol styles:
- * - uaa2: 8-phase (INTAKE→REFLECT→EXECUTE→COMPRESS→DREAMING[REINTAKE]→GROW→EVOLVE→AUTONOMIZE)
+ * - uaa2: 8-phase (INTAKE->REFLECT->EXECUTE->COMPRESS->DREAMING[REINTAKE]->GROW->EVOLVE->AUTONOMIZE)
  * - react: ReAct loop (think→act→observe)
  * - plan-exec: Plan-and-execute (plan→step→replan)
  * - debate: Multi-agent debate (propose→challenge→defend→resolve)

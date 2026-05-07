@@ -10,8 +10,8 @@
  *   REFLECT                       → evaluate current state
  *   EXECUTE("task")               → perform action
  *   COMPRESS                      → consolidate learned patterns
- *   DREAMING                      → validate and re-evaluate compressed knowledge
- *   REINTAKE                      → legacy alias for DREAMING
+ *   DREAMING                      -> validate and re-evaluate compressed knowledge
+ *   REINTAKE                      -> legacy alias for DREAMING
  *   GROW                          → learn new patterns from experience
  *   EVOLVE                        → adapt behavior based on growth
  *   CYCLE("task")                 → run full 7-phase protocol
