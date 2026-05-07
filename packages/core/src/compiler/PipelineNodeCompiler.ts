@@ -34,6 +34,31 @@ function json(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
 
+function unsupportedPipelineStep(
+  kind: 'source' | 'sink',
+  type: string | undefined,
+  name: string
+): string {
+  const typeLabel = type || 'unknown';
+  return `[PipelineNodeCompiler] Unsupported pipeline ${kind} type "${typeLabel}" (step: ${name}). PipelineNodeCompiler does not yet emit code for this type.`;
+}
+
+function unsupportedNodeThrow(
+  kind: 'source' | 'sink',
+  type: string | undefined,
+  name: string
+): string {
+  return `(() => { throw new Error(${json(unsupportedPipelineStep(kind, type, name))}); })()`;
+}
+
+function unsupportedPythonRaise(
+  kind: 'source' | 'sink',
+  type: string | undefined,
+  name: string
+): string {
+  return `raise NotImplementedError(${json(unsupportedPipelineStep(kind, type, name))})`;
+}
+
 function emitSource(source: PipelineSource): string {
   switch (source.type) {
     case 'rest':
@@ -44,7 +69,7 @@ function emitSource(source: PipelineSource): string {
     case 'list':
       return json(source.items || []);
     default:
-      return '[]';
+      return unsupportedNodeThrow('source', source.type, source.name);
   }
 }
 
@@ -100,7 +125,7 @@ function emitSink(sink: PipelineSink): string {
     case 'mcp':
       return `console.warn(${json(`[${sink.name}] mcp sink requires host integration: ${sink.server || ''}/${sink.tool || ''}`)});`;
     default:
-      return `// sink ${sink.name} (${sink.type}) not implemented`;
+      return `${unsupportedNodeThrow('sink', sink.type, sink.name)};`;
   }
 }
 
@@ -114,7 +139,7 @@ function emitPythonSource(source: PipelineSource): string {
     case 'list':
       return `datasets[${json(source.name)}] = ${json(source.items || [])}`;
     default:
-      return `datasets[${json(source.name)}] = []`;
+      return unsupportedPythonRaise('source', source.type, source.name);
   }
 }
 
@@ -171,7 +196,7 @@ function emitPythonSink(sink: PipelineSink): string {
     case 'mcp':
       return `print(${json(`[${sink.name}] mcp sink requires host integration: ${sink.server || ''}/${sink.tool || ''}`)})`;
     default:
-      return `# sink ${sink.name} (${sink.type}) not implemented`;
+      return unsupportedPythonRaise('sink', sink.type, sink.name);
   }
 }
 
