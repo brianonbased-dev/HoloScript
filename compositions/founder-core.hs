@@ -179,6 +179,53 @@ object "KnownDefaults" {
 }
 
 // =============================================================================
+// Domain preferences (vocabulary v2 - Iteration 2 G-3 third slice)
+//
+// Mirrors the "## Domain preferences (beyond engineering)" dispatch
+// table in ~/.claude/skills/founder/SKILL.md. Per Joseph's intent
+// 2026-05-03: founder skill rules on EVERYTHING Joseph rules on.
+// =============================================================================
+
+object "DomainPreferences" {
+  @domain_preference(
+    domain: "legal",
+    skills: ["/legal:triage-nda", "/legal:review-contract", "/legal:legal-risk-assessment", "/legal:legal-response", "/legal:compliance-check", "/legal:vendor-check"],
+    notes: "NDA, contract, IP, compliance, vendor risk"
+  )
+
+  @domain_preference(
+    domain: "brand",
+    skills: ["/brand-voice:enforce-voice", "/brand-voice:generate-guidelines", "/marketer", "/critic", "/marketing:brand-review"],
+    notes: "Brand voice, naming, taste; documentarian over salesy"
+  )
+
+  @domain_preference(
+    domain: "capital",
+    skills: [],
+    notes: "Treasury / spend within ceiling: in-skill default; /finance:* for accounting hygiene",
+    ceiling: "$5 standing spend cap; >$5 escalates"
+  )
+
+  @domain_preference(
+    domain: "customer-vendor",
+    skills: ["/operations:vendor-review", "/customer-support:draft-response", "/customer-support:customer-escalation"],
+    notes: "Customer / vendor coordination"
+  )
+
+  @domain_preference(
+    domain: "governance",
+    skills: [],
+    notes: "Strategic governance — pillar changes, ceiling adjustments, authority rewrites; currently escape-hatch (Track B will give skill self-edit authority)"
+  )
+
+  @domain_preference(
+    domain: "public-representation",
+    skills: ["/marketer"],
+    notes: "Interviews, podcasts, posting; drafts via /marketer + escape-hatch ratification before public commit"
+  )
+}
+
+// =============================================================================
 // Output shape, production rule, escalation, citation discipline
 // =============================================================================
 

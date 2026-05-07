@@ -266,6 +266,26 @@ function makeFullV1Composition(): HoloComposition {
               effect: 'wrapping skill calls /founder for a sub-decision and proceeds',
             },
           },
+          // Vocabulary v2 (Iteration 2 G-3 third slice)
+          {
+            type: 'ObjectTrait',
+            name: 'domain_preference',
+            config: {
+              domain: 'legal',
+              skills: ['/legal:triage-nda', '/legal:review-contract'],
+              notes: 'NDA, contract, IP routing',
+            },
+          },
+          {
+            type: 'ObjectTrait',
+            name: 'domain_preference',
+            config: {
+              domain: 'capital',
+              skills: [],
+              notes: 'in-skill default for spend within ceiling',
+              ceiling: '$5 standing spend cap',
+            },
+          },
           // Vocabulary v2 (Iteration 2 G-3 next slice)
           {
             type: 'ObjectTrait',
@@ -1803,5 +1823,155 @@ describe('compile() - vocabulary v2 -> @date_discipline', () => {
     expect(md).toContain('### Refusal contract');
     // False case: must NOT emit empty parens "(W.317)" when wisdomId is empty
     expect(md).not.toContain('### Refusal contract ()');
+  });
+});
+
+// --- Vocabulary v2 (Iteration 2 G-3 third slice) -- @domain_preference ---
+
+describe('compile() - vocabulary v2 -> @domain_preference', () => {
+  it('extracts both domain-preference rows from the full V1 fixture', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const result = compiler.compile(makeFullV1Composition(), '');
+    expect(result.ast.domainPreferences).toHaveLength(2);
+    const legal = result.ast.domainPreferences.find((d) => d.domain === 'legal');
+    expect(legal?.skills).toEqual(['/legal:triage-nda', '/legal:review-contract']);
+    expect(legal?.ceiling).toBeUndefined();
+    const capital = result.ast.domainPreferences.find((d) => d.domain === 'capital');
+    expect(capital?.skills).toEqual([]);
+    expect(capital?.ceiling).toBe('$5 standing spend cap');
+    // False case: skills must NOT be a single string when source set an array
+    expect(typeof legal?.skills).toBe('object');
+  });
+
+  it('emits ## Domain preferences as a markdown table in claude_md', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeFullV1Composition(), '').files['CLAUDE.md'];
+    expect(md).toContain('## Domain preferences');
+    expect(md).toContain('| Domain | Skills to delegate to | Notes / ceiling |');
+    expect(md).toContain('|---|---|---|');
+    expect(md).toContain('| **legal** |');
+    expect(md).toContain('`/legal:triage-nda`');
+    expect(md).toContain('`/legal:review-contract`');
+    expect(md).toContain('| **capital** |');
+    expect(md).toContain('Ceiling: $5 standing spend cap');
+    // False case: rows must use code spans for skills (not bare slashes that markdown could break on)
+    expect(md).not.toContain('| **legal** | /legal:triage-nda,');
+  });
+
+  it('renders empty skills list as in-skill-default placeholder', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeFullV1Composition(), '').files['CLAUDE.md'];
+    // capital row has skills: [] in fixture
+    expect(md).toContain('*(in-skill default)*');
+    // False case: empty list must NOT render as an empty cell or stray comma
+    expect(md).not.toContain('| **capital** |  |');
+  });
+
+  it('emits ## Domain preferences in agents_md (cross-tool surface)', () => {
+    const compiler = new ContextCompiler({ formats: ['agents_md'] });
+    const md = compiler.compile(makeFullV1Composition(), '').files['AGENTS.md'];
+    expect(md).toContain('## Domain preferences');
+    expect(md).toContain('| **legal** |');
+  });
+
+  it('emits ## Domain preferences in skill_md (Phase 2(a) self-host target)', () => {
+    const compiler = new ContextCompiler({ formats: ['skill_md'] });
+    const fixture = makeFullV1Composition();
+    const identity = fixture.objects[0]!.traits!.find((t) => t.name === 'identity')!;
+    identity.config.description = 'Test skill description for domain_preference emit verification.';
+    const md = compiler.compile(fixture, '').files['SKILL.md'];
+    expect(md).toContain('## Domain preferences');
+    expect(md).toContain('| **legal** |');
+  });
+
+  it('emits ## Domain preferences in cursor_rules index file', () => {
+    const compiler = new ContextCompiler({ formats: ['cursor_rules'] });
+    const result = compiler.compile(makeFullV1Composition(), '');
+    const indexContent = result.files['.cursor/rules/_ecosystem-context.mdc'];
+    expect(indexContent).toContain('## Domain preferences');
+    expect(indexContent).toContain('| **legal** |');
+  });
+
+  it('places Domain preferences AFTER Known defaults and BEFORE Output shape', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeFullV1Composition(), '').files['CLAUDE.md'];
+    const knownDefaultsIdx = md.indexOf('## Known defaults');
+    const domainIdx = md.indexOf('## Domain preferences');
+    const outputShapeIdx = md.indexOf('## Output shape');
+    expect(knownDefaultsIdx).toBeGreaterThan(0);
+    expect(domainIdx).toBeGreaterThan(knownDefaultsIdx);
+    expect(outputShapeIdx).toBeGreaterThan(domainIdx);
+  });
+
+  it('omits ## Domain preferences section when no @domain_preference traits declared', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeComposition(), '').files['CLAUDE.md'];
+    // False case: section header must NOT appear in an empty composition
+    expect(md).not.toContain('## Domain preferences');
+    expect(md).not.toContain('| Domain | Skills to delegate');
+  });
+
+  it('renders ceiling without notes cleanly (no orphan semicolon)', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'A',
+            properties: [],
+            traits: [
+              {
+                type: 'ObjectTrait',
+                name: 'domain_preference',
+                config: {
+                  domain: 'capital',
+                  skills: [],
+                  ceiling: '$5 cap',
+                  // notes intentionally omitted
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      ''
+    ).files['CLAUDE.md'];
+    expect(md).toContain('Ceiling: $5 cap');
+    // False case: trailing "; " from missing notes must not appear
+    expect(md).not.toContain('Ceiling: $5 cap;');
+  });
+
+  it('renders notes without ceiling cleanly', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'A',
+            properties: [],
+            traits: [
+              {
+                type: 'ObjectTrait',
+                name: 'domain_preference',
+                config: {
+                  domain: 'brand',
+                  skills: ['/marketer'],
+                  notes: 'documentarian voice; no salesy hype',
+                  // ceiling intentionally omitted
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      ''
+    ).files['CLAUDE.md'];
+    expect(md).toContain('| **brand** |');
+    expect(md).toContain('`/marketer`');
+    expect(md).toContain('documentarian voice');
+    // False case: must NOT prefix a "Ceiling:" label when ceiling absent
+    expect(md).not.toContain('Ceiling: documentarian');
   });
 });

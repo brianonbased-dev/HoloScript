@@ -224,6 +224,23 @@ export interface ContextHardPhysicalGap {
 }
 
 /**
+ * Per-rule: a domain → execution-skill dispatch row. Vocabulary v2
+ * (Phase 2(a) Iteration 2 G-3 third slice). Captures the founder skill's
+ * "## Domain preferences (beyond engineering)" dispatch table — each
+ * @domain_preference declares which existing skills handle questions
+ * scoped to a domain (legal, brand, capital, customer, governance,
+ * public-representation, etc.). Multiple per agent context (one per
+ * domain). The optional `ceiling` field captures spend or scope caps
+ * the founder skill enforces (e.g. "$5 standing spend cap" for capital).
+ */
+export interface ContextDomainPreference {
+  domain: string;                    // domain label (legal, brand, capital, etc.)
+  skills: string[];                  // /skill-name dispatch targets
+  notes?: string;                    // optional context / disambiguation
+  ceiling?: string;                  // optional spend / scope ceiling for this domain
+}
+
+/**
  * Per-rule: a date-surfacing refusal contract. Vocabulary v2 (Phase 2(a)
  * Iteration 2 G-3 second slice). Captures `~/.claude/skills/founder/SKILL.md`
  * § Date discipline (W.317): the Martinis-lesson rule that bare optimistic
@@ -301,7 +318,8 @@ export interface ContextAST {
   routines: ContextRoutine[];
   hardPhysicalGaps: ContextHardPhysicalGap[];
   invocationModes: ContextInvocationMode[];   // vocabulary v2 (Iteration 2 G-3 first slice)
-  dateDisciplines: ContextDateDiscipline[];   // vocabulary v2 (Iteration 2 G-3 next slice)
+  dateDisciplines: ContextDateDiscipline[];   // vocabulary v2 (Iteration 2 G-3 second slice)
+  domainPreferences: ContextDomainPreference[]; // vocabulary v2 (Iteration 2 G-3 third slice)
 
   // Diagnostics surfaced from validation
   warnings: ContextValidationDiagnostic[];
@@ -502,6 +520,7 @@ export class ContextCompiler extends CompilerBase {
       hardPhysicalGaps: [],
       invocationModes: [],
       dateDisciplines: [],
+      domainPreferences: [],
       warnings: [],
     };
 
@@ -690,6 +709,14 @@ export class ContextCompiler extends CompilerBase {
         });
         break;
       }
+      case 'domain_preference':
+        ast.domainPreferences.push({
+          domain: stringField(cfg, 'domain', ''),
+          skills: stringListField(cfg, 'skills'),
+          notes: stringFieldOrUndef(cfg, 'notes'),
+          ceiling: stringFieldOrUndef(cfg, 'ceiling'),
+        });
+        break;
       default:
         // Unknown trait - record as warning, don't block (vocabulary
         // may grow; unknown traits in source today might be valid in v2).
@@ -870,6 +897,25 @@ export class ContextCompiler extends CompilerBase {
         lines.push(
           `| ${def.when} | **${def.do}** | ${def.reason ?? '*(no citation)*'} |`
         );
+      }
+      lines.push('');
+    }
+
+    // Domain preferences (vocabulary v2 - Iteration 2 G-3 third slice)
+    if (ast.domainPreferences.length > 0) {
+      lines.push('## Domain preferences');
+      lines.push('');
+      lines.push('| Domain | Skills to delegate to | Notes / ceiling |');
+      lines.push('|---|---|---|');
+      for (const pref of ast.domainPreferences) {
+        const skills = pref.skills.length > 0
+          ? pref.skills.map((s) => `\`${s}\``).join(', ')
+          : '*(in-skill default)*';
+        const notesParts: string[] = [];
+        if (pref.ceiling) notesParts.push(`Ceiling: ${pref.ceiling}`);
+        if (pref.notes) notesParts.push(pref.notes);
+        const notes = notesParts.join('; ') || '';
+        lines.push(`| **${pref.domain}** | ${skills} | ${notes} |`);
       }
       lines.push('');
     }
@@ -1189,6 +1235,25 @@ export class ContextCompiler extends CompilerBase {
         lines.push(
           `| ${def.when} | **${def.do}** | ${def.reason ?? '*(no citation)*'} |`
         );
+      }
+      lines.push('');
+    }
+
+    // Domain preferences (vocabulary v2 - Iteration 2 G-3 third slice)
+    if (ast.domainPreferences.length > 0) {
+      lines.push('## Domain preferences');
+      lines.push('');
+      lines.push('| Domain | Skills to delegate to | Notes / ceiling |');
+      lines.push('|---|---|---|');
+      for (const pref of ast.domainPreferences) {
+        const skills = pref.skills.length > 0
+          ? pref.skills.map((s) => `\`${s}\``).join(', ')
+          : '*(in-skill default)*';
+        const notesParts: string[] = [];
+        if (pref.ceiling) notesParts.push(`Ceiling: ${pref.ceiling}`);
+        if (pref.notes) notesParts.push(pref.notes);
+        const notes = notesParts.join('; ') || '';
+        lines.push(`| **${pref.domain}** | ${skills} | ${notes} |`);
       }
       lines.push('');
     }
@@ -1538,6 +1603,25 @@ export class ContextCompiler extends CompilerBase {
       idx.push('');
     }
 
+    // Domain preferences (vocabulary v2 - Iteration 2 G-3 third slice)
+    if (ast.domainPreferences.length > 0) {
+      idx.push('## Domain preferences');
+      idx.push('');
+      idx.push('| Domain | Skills to delegate to | Notes / ceiling |');
+      idx.push('|---|---|---|');
+      for (const pref of ast.domainPreferences) {
+        const skills = pref.skills.length > 0
+          ? pref.skills.map((s) => `\`${s}\``).join(', ')
+          : '*(in-skill default)*';
+        const notesParts: string[] = [];
+        if (pref.ceiling) notesParts.push(`Ceiling: ${pref.ceiling}`);
+        if (pref.notes) notesParts.push(pref.notes);
+        const notes = notesParts.join('; ') || '';
+        idx.push(`| **${pref.domain}** | ${skills} | ${notes} |`);
+      }
+      idx.push('');
+    }
+
     // Output shape
     if (ast.outputShape) {
       idx.push('## Output shape');
@@ -1884,6 +1968,25 @@ export class ContextCompiler extends CompilerBase {
         lines.push(
           `| ${def.when} | **${def.do}** | ${def.reason ?? '*(no citation)*'} |`
         );
+      }
+      lines.push('');
+    }
+
+    // Domain preferences (vocabulary v2 - Iteration 2 G-3 third slice)
+    if (ast.domainPreferences.length > 0) {
+      lines.push('## Domain preferences');
+      lines.push('');
+      lines.push('| Domain | Skills to delegate to | Notes / ceiling |');
+      lines.push('|---|---|---|');
+      for (const pref of ast.domainPreferences) {
+        const skills = pref.skills.length > 0
+          ? pref.skills.map((s) => `\`${s}\``).join(', ')
+          : '*(in-skill default)*';
+        const notesParts: string[] = [];
+        if (pref.ceiling) notesParts.push(`Ceiling: ${pref.ceiling}`);
+        if (pref.notes) notesParts.push(pref.notes);
+        const notes = notesParts.join('; ') || '';
+        lines.push(`| **${pref.domain}** | ${skills} | ${notes} |`);
       }
       lines.push('');
     }
