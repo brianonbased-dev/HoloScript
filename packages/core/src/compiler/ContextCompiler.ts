@@ -31,9 +31,10 @@
  * declarations). WARN soft-guideline (stale citations, fluent prose
  * without citation, schedule conflicts, unresolved verify-tokens).
  *
- * @version 1.2.0 (Phase 1 - claude_md + agents_md + cursor_rules emitters;
- *   skill_md / anthropic_system_prompt / brain_includes / mcp_context_loader
- *   remain Phase 1+ follow-ups)
+ * @version 1.3.0 (Phase 1 - claude_md + agents_md + cursor_rules + skill_md
+ *   emitters; anthropic_system_prompt / brain_includes / mcp_context_loader
+ *   remain Phase 1+ follow-ups. With skill_md shipped, Phase 2(a) — founder
+ *   skill self-host — is unblocked.)
  * @module @holoscript/core/compiler/ContextCompiler
  */
 
@@ -58,13 +59,24 @@ export type ContextSurface =
   | 'gemini'
   | 'any';
 
-/** Top-level block: who is this context for. */
+/**
+ * Top-level block: who is this context for.
+ *
+ * `description` and `allowedTools` are optional fields used by the
+ * compile_to_skill_md emitter for the YAML frontmatter (`description:`
+ * and `allowed-tools:`) Claude Code's skill discovery reads. Other
+ * emitters (claude_md, agents_md, cursor_rules) ignore them. Setting
+ * them is required for self-hosting a Claude Code skill from a
+ * composition source (Phase 2(a) target).
+ */
 export interface ContextIdentity {
   name: string;
   role: string;
   domain: string;
   surface: ContextSurface;
   noMonopoly: boolean;
+  description?: string;          // skill_md frontmatter `description:`
+  allowedTools?: string[];       // skill_md frontmatter `allowed-tools:`
 }
 
 /** Top-level block: priority ordering of authority sources. */
@@ -394,6 +406,8 @@ export class ContextCompiler extends CompilerBase {
           break;
         }
         case 'skill_md':
+          files['SKILL.md'] = this.emitSkillMd(ast);
+          break;
         case 'anthropic_system_prompt':
         case 'brain_includes':
         case 'mcp_context_loader':
@@ -454,15 +468,19 @@ export class ContextCompiler extends CompilerBase {
   private dispatchTrait(trait: HoloObjectTrait, ast: ContextAST): void {
     const cfg = trait.config;
     switch (trait.name) {
-      case 'identity':
+      case 'identity': {
+        const allowedToolsList = stringListField(cfg, 'allowed_tools');
         ast.identity = {
           name: stringField(cfg, 'name', ''),
           role: stringField(cfg, 'role', ''),
           domain: stringField(cfg, 'domain', ''),
           surface: (stringField(cfg, 'surface', 'any') as ContextSurface) ?? 'any',
           noMonopoly: boolField(cfg, 'no_monopoly', false),
+          description: stringFieldOrUndef(cfg, 'description'),
+          allowedTools: allowedToolsList.length > 0 ? allowedToolsList : undefined,
         };
         break;
+      }
       case 'authority_order':
         ast.authorityOrder = { tiers: stringListField(cfg, 'tiers') };
         break;
@@ -1482,6 +1500,309 @@ export class ContextCompiler extends CompilerBase {
 
     return out;
   }
+
+  // --- Phase 3: emit -- compile_to_skill_md --------------------------
+
+  /**
+   * Emit SKILL.md - Claude Code skill format. Read by Claude Code's
+   * skill discovery system at `~/.claude/skills/<name>/SKILL.md` and
+   * `<repo>/.claude/skills/<name>/SKILL.md` (per-window per-repo
+   * skills are loaded into the available-skills block at session start).
+   *
+   * Format differs from claude_md / agents_md / cursor_rules: Claude
+   * Code parses a YAML frontmatter block at the top of the file
+   * (`name:`, `description:`, `allowed-tools:`) for skill registration,
+   * THEN reads the markdown body as the skill prompt. The frontmatter
+   * is what makes a SKILL.md invocable as `/<name>`.
+   *
+   * Phase 2(a) target: this emitter is the dependency for self-hosting
+   * the founder skill - `compositions/founder.hs` becomes source-of-
+   * truth, `~/.claude/skills/founder/SKILL.md` becomes the emitted
+   * artifact. Round-trip parity is the validation gate.
+   *
+   * Source fields:
+   *   - frontmatter `name:` <- ContextIdentity.name
+   *   - frontmatter `description:` <- ContextIdentity.description (required
+   *     for skill discovery; emitter throws if missing - Claude Code
+   *     refuses to register a skill without one)
+   *   - frontmatter `allowed-tools:` <- ContextIdentity.allowedTools
+   *     (defaults to a sensible cross-tool set if omitted)
+   *
+   * Body sections mirror agents_md / claude_md - same vocabulary, same
+   * authority order, same refusals, etc. - so the agent's operational
+   * behavior is consistent across surfaces.
+   */
+  private emitSkillMd(ast: ContextAST): string {
+    if (!ast.identity) {
+      throw new ContextCompileError(
+        `compile_to_skill_md requires an @identity trait. Claude Code's ` +
+          `skill discovery reads the YAML frontmatter \`name:\` field, which ` +
+          `comes from ContextIdentity.name. Add an @identity block to the ` +
+          `composition.`
+      );
+    }
+    if (!ast.identity.description) {
+      throw new ContextCompileError(
+        `compile_to_skill_md requires @identity.description. Claude Code ` +
+          `refuses to register a skill without a description (skill discovery ` +
+          `gate). Add a 'description' field to the @identity trait.`
+      );
+    }
+
+    const lines: string[] = [];
+
+    // --- YAML frontmatter ---
+    lines.push('---');
+    lines.push(`name: ${yamlScalar(ast.identity.name)}`);
+    lines.push(formatYamlDescription(ast.identity.description));
+    const tools =
+      ast.identity.allowedTools && ast.identity.allowedTools.length > 0
+        ? ast.identity.allowedTools
+        : ['Bash', 'Read', 'Write', 'Edit', 'Grep', 'Glob', 'WebFetch'];
+    lines.push(`allowed-tools: ${tools.join(', ')}`);
+    lines.push('---');
+    lines.push('');
+
+    // --- Body header ---
+    lines.push(`# ${ast.identity.name}`);
+    lines.push('');
+    lines.push(`> **Role**: ${ast.identity.role}`);
+    lines.push(`> **Domain**: ${ast.identity.domain}`);
+    lines.push(`> **Surface**: ${ast.identity.surface}`);
+    if (ast.identity.noMonopoly) {
+      lines.push(
+        `> **No-monopoly rule**: this skill applies the absorb-as-adapter ` +
+          `architectural posture (per docs/LLM_CAPABILITIES.md section ` +
+          `Architectural posture).`
+      );
+    }
+    lines.push('');
+
+    // Authority order (universal section)
+    if (ast.authorityOrder && ast.authorityOrder.tiers.length > 0) {
+      lines.push('## Authority order (read top-down; first match wins)');
+      lines.push('');
+      ast.authorityOrder.tiers.forEach((tier, idx) => {
+        lines.push(`${idx + 1}. **${tier}**`);
+      });
+      lines.push('');
+    }
+
+    // Vision pillars
+    if (ast.visionPillars.length > 0) {
+      lines.push('## Vision pillars (follow; do not drift)');
+      lines.push('');
+      ast.visionPillars.forEach((pillar, idx) => {
+        const cite = pillar.citation ? ` *(${pillar.citation})*` : '';
+        lines.push(`${idx + 1}. **${pillar.claim}**${cite}`);
+      });
+      lines.push('');
+    }
+
+    // The Refusals (Claude-Code-skill convention uses ritual-refusal framing
+    // since SKILL.md is the highest-stakes surface for the four refusals)
+    if (ast.refusals.length > 0) {
+      lines.push('## The Refusals');
+      lines.push('');
+      lines.push(
+        'These are not guidelines. They are refusals. If you catch yourself ' +
+          'about to do any of the following, stop and reframe before continuing.'
+      );
+      lines.push('');
+      for (const refusal of ast.refusals) {
+        lines.push(`### Refuse the ${refusal.name}`);
+        lines.push('');
+        lines.push(`**When**: ${refusal.when}`);
+        lines.push('');
+        lines.push(`**Do**: ${refusal.do}`);
+        lines.push('');
+        if (refusal.doNot.length > 0) {
+          lines.push(`**Do not**: ${refusal.doNot.map((d) => `\`${d}\``).join(', ')}`);
+          lines.push('');
+        }
+        if (refusal.reason) {
+          lines.push(`**Reason**: ${refusal.reason}`);
+          lines.push('');
+        }
+      }
+    }
+
+    // Hard don'ts
+    if (ast.hardDonts.length > 0) {
+      lines.push("## Hard don'ts (cross-provider red lines)");
+      lines.push('');
+      lines.push(`| Name | Reason | Alternative |`);
+      lines.push(`|---|---|---|`);
+      for (const dont of ast.hardDonts) {
+        lines.push(
+          `| **${dont.name}** | ${dont.reason} | ${dont.alternative ?? '*(none)*'} |`
+        );
+      }
+      lines.push('');
+    }
+
+    // Known defaults
+    if (ast.defaults.length > 0) {
+      lines.push('## Known defaults (answer immediately - do not re-litigate)');
+      lines.push('');
+      lines.push(`| When | Answer | Reason |`);
+      lines.push(`|---|---|---|`);
+      for (const def of ast.defaults) {
+        lines.push(
+          `| ${def.when} | **${def.do}** | ${def.reason ?? '*(no citation)*'} |`
+        );
+      }
+      lines.push('');
+    }
+
+    // Output shape
+    if (ast.outputShape) {
+      lines.push('## Output shape');
+      lines.push('');
+      lines.push(`- **Silent to**: ${ast.outputShape.silentTo}`);
+      lines.push(`- **Loud to**: ${ast.outputShape.loudTo}`);
+      if (ast.outputShape.noMetaOutput) {
+        lines.push('- **No meta-output**: do not narrate the protocol back to the user');
+      }
+      if (ast.outputShape.surfaceHint) {
+        lines.push(`- **Surface hint**: ${ast.outputShape.surfaceHint}`);
+      }
+      lines.push('');
+    }
+
+    // Production rule
+    if (ast.productionRule) {
+      lines.push('## Production-only rule');
+      lines.push('');
+      if (ast.productionRule.noDevNoMockNoLocalhost) {
+        lines.push('No dev. No mock. No localhost. The real service exists - hit it.');
+      }
+      if (ast.productionRule.exception) {
+        lines.push('');
+        lines.push(`**Exception**: ${ast.productionRule.exception}`);
+      }
+      lines.push('');
+    }
+
+    // Hard physical gaps - critical for SKILL.md so the skill knows
+    // what it never absorbs (Trezor, Quest 3, in-person)
+    if (ast.hardPhysicalGaps.length > 0) {
+      lines.push('## Hard physical gaps (skill never absorbs)');
+      lines.push('');
+      for (const gap of ast.hardPhysicalGaps) {
+        lines.push(`- **${gap.name}** - ${gap.reason}`);
+        if (gap.alternative) {
+          lines.push(`  - Alternative: ${gap.alternative}`);
+        }
+      }
+      lines.push('');
+    }
+
+    // Cross-referenced skills
+    if (ast.skills.length > 0) {
+      lines.push('## Skills this skill cross-references');
+      lines.push('');
+      for (const skill of ast.skills) {
+        lines.push(`### \`${skill.invocableAs}\` - ${skill.name}`);
+        lines.push('');
+        lines.push(`**Authority**: ${skill.authority}`);
+        lines.push('');
+        if (skill.authoritativeFor.length > 0) {
+          lines.push(`**Authoritative for**: ${skill.authoritativeFor.join(', ')}`);
+          lines.push('');
+        }
+        if (skill.refusals && skill.refusals.length > 0) {
+          lines.push(`**Refusals enforced**: ${skill.refusals.join(', ')}`);
+          lines.push('');
+        }
+      }
+    }
+
+    // Routines (A-00X)
+    if (ast.routines.length > 0) {
+      lines.push('## Recurring routines (A-00X)');
+      lines.push('');
+      lines.push(`| ID | Schedule | Skill | Output |`);
+      lines.push(`|---|---|---|---|`);
+      for (const routine of ast.routines) {
+        lines.push(
+          `| ${routine.id} | \`${routine.schedule}\` | ${routine.skill} | ${routine.outputDir ?? '*(varies)*'} |`
+        );
+      }
+      lines.push('');
+    }
+
+    // Escalation
+    if (ast.escalations.length > 0) {
+      lines.push('## Escalation');
+      lines.push('');
+      for (const esc of ast.escalations) {
+        lines.push(`- **Trigger**: ${esc.trigger}`);
+        lines.push(`  - **Action**: ${esc.action}`);
+        lines.push(`  - **Recipient**: ${esc.recipient}`);
+        if (esc.refuseToEscalateWhen.length > 0) {
+          lines.push(
+            `  - **Refuse to escalate when**: ${esc.refuseToEscalateWhen.join(', ')}`
+          );
+        }
+      }
+      lines.push('');
+    }
+
+    // Citation discipline
+    if (ast.citationRules.length > 0) {
+      lines.push('## Citation discipline');
+      lines.push('');
+      for (const rule of ast.citationRules) {
+        lines.push(
+          `- Fluent prose over **${rule.fluentProseThresholdChars} chars** must include ` +
+            `one of: ${rule.required.join(', ')}`
+        );
+        if (rule.exemption) {
+          lines.push(`  - Exemption: ${rule.exemption}`);
+        }
+        if (rule.reason) {
+          lines.push(`  - Reason: ${rule.reason}`);
+        }
+      }
+      lines.push('');
+    }
+
+    // Cross-references - graduated wisdom + feedback
+    if (ast.graduatedWisdoms.length > 0 || ast.feedbacks.length > 0) {
+      lines.push('## Authority cross-references');
+      lines.push('');
+      if (ast.graduatedWisdoms.length > 0) {
+        lines.push('### GOLD-tier wisdom');
+        lines.push('');
+        for (const wisdom of ast.graduatedWisdoms) {
+          lines.push(`- **${wisdom.id}** *(${wisdom.tier})* - ${wisdom.claim}`);
+        }
+        lines.push('');
+      }
+      if (ast.feedbacks.length > 0) {
+        lines.push('### Feedback memory');
+        lines.push('');
+        for (const fb of ast.feedbacks) {
+          const src = fb.source ? ` (${fb.source})` : '';
+          lines.push(`- **${fb.id}**${src} - ${fb.claim}`);
+        }
+        lines.push('');
+      }
+    }
+
+    // Generated-by trailer
+    lines.push('---');
+    lines.push('');
+    lines.push(
+      `*Generated by HoloScript ContextCompiler (compile_to_skill_md). ` +
+        `Source: HoloScript composition. Vocabulary: v1 (ratified 2026-05-06). ` +
+        `Phase 2(a) self-host target.*`
+    );
+    lines.push('');
+
+    return lines.join('\n');
+  }
 }
 
 // =============================================================================
@@ -1535,6 +1856,39 @@ function boolField(
   const v = cfg[key];
   return typeof v === 'boolean' ? v : fallback;
 }
+
+// YAML helpers for compile_to_skill_md frontmatter
+
+/**
+ * Render a string as a YAML scalar. Bare string if it's a simple
+ * identifier; otherwise double-quoted with escapes. Avoids the YAML
+ * footguns (`yes`/`no`/`true`/`false`/numbers being coerced) by
+ * always quoting non-identifier inputs.
+ */
+function yamlScalar(s: string): string {
+  if (/^[A-Za-z][A-Za-z0-9_-]*$/.test(s) && !YAML_RESERVED.has(s.toLowerCase())) {
+    return s;
+  }
+  return JSON.stringify(s);
+}
+
+/**
+ * Render a description for YAML frontmatter. Single-line uses inline
+ * double-quoted form; multi-line uses folded scalar (`>`) with
+ * 2-space indent on each continuation line. Mirrors the convention
+ * used in `~/.claude/skills/founder/SKILL.md`.
+ */
+function formatYamlDescription(description: string): string {
+  if (!description.includes('\n')) {
+    return `description: ${JSON.stringify(description)}`;
+  }
+  const lines = description.split('\n').map((line) => `  ${line}`);
+  return `description: >\n${lines.join('\n')}`;
+}
+
+const YAML_RESERVED: ReadonlySet<string> = new Set([
+  'yes', 'no', 'true', 'false', 'on', 'off', 'null', '~',
+]);
 
 function stringListField(cfg: Record<string, HoloValue>, key: string): string[] {
   const v = cfg[key];

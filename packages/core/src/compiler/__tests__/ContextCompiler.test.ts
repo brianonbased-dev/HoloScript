@@ -855,10 +855,10 @@ describe('compile() - edge cases', () => {
   });
 
   it('throws on requesting an unimplemented Phase 1+ format', () => {
-    // skill_md + anthropic_system_prompt + brain_includes + mcp_context_loader
-    // are still Phase 1+ follow-ups. (cursor_rules and agents_md were
-    // promoted out of this branch when those emitters shipped.)
-    const compiler = new ContextCompiler({ formats: ['skill_md'] });
+    // anthropic_system_prompt + brain_includes + mcp_context_loader are
+    // still Phase 1+ follow-ups. (cursor_rules + agents_md + skill_md
+    // were promoted out of this branch when those emitters shipped.)
+    const compiler = new ContextCompiler({ formats: ['anthropic_system_prompt'] });
     expect(() => compiler.compile(makeComposition(), '')).toThrow(/Phase 1\+ follow-up/);
   });
 
@@ -1143,5 +1143,283 @@ describe('compile() - vocabulary v1 -> cursor_rules', () => {
     // False case: no hard-dont or default files appear when none declared
     expect(keys.some((k) => k.includes('hard-dont-'))).toBe(false);
     expect(keys.some((k) => k.includes('default-'))).toBe(false);
+  });
+});
+
+// --- Happy path: vocabulary v1 -> skill_md (Claude Code skill format) ---
+
+describe('compile() - vocabulary v1 -> skill_md', () => {
+  let compiler: ContextCompiler;
+
+  /**
+   * Skill_md requires identity.description and (optionally) identity.allowedTools.
+   * The base full-V1 fixture doesn't set those, so this builder extends it.
+   */
+  function makeFullV1WithSkillFields(): HoloComposition {
+    return makeComposition({
+      objects: [
+        {
+          type: 'Object',
+          name: 'EcosystemAgent',
+          properties: [],
+          traits: [
+            {
+              type: 'ObjectTrait',
+              name: 'identity',
+              config: {
+                name: 'founder',
+                role: 'team-engineering',
+                domain: 'holoscript-ecosystem',
+                surface: 'claude',
+                no_monopoly: true,
+                description:
+                  'AUTO-FIRE founder decision proxy for the HoloScript / Infinitus ecosystem. Agents invoke this skill on their own when about to bandaid, workaround, demote, or wait-for-founder.',
+                allowed_tools: ['Bash', 'Read', 'Write', 'Edit', 'Grep', 'Glob', 'WebFetch'],
+              },
+            },
+            {
+              type: 'ObjectTrait',
+              name: 'authority_order',
+              config: {
+                tiers: ['GOLD vault', 'this skill', 'NORTH_STAR.md', 'CLAUDE.md', 'memory'],
+              },
+            },
+            {
+              type: 'ObjectTrait',
+              name: 'vision_pillar',
+              config: {
+                id: '3',
+                claim: 'Architecture beats alignment.',
+                citation: 'W.GOLD.001',
+              },
+            },
+            {
+              type: 'ObjectTrait',
+              name: 'refusal',
+              config: {
+                name: 'bandaid',
+                when: 'test failing, type wrong, hook misbehaving',
+                do: 'fix root cause',
+                do_not: ['skip', '.only', '@ts-ignore'],
+                reason: 'W.GOLD.001 - architecture beats alignment',
+              },
+            },
+            {
+              type: 'ObjectTrait',
+              name: 'graduated_wisdom',
+              config: {
+                id: 'W.GOLD.001',
+                claim: 'Architecture beats alignment',
+                tier: 'diamond',
+              },
+            },
+            {
+              type: 'ObjectTrait',
+              name: 'hard_physical_gap',
+              config: {
+                name: 'trezor-signing',
+                reason: 'Hardware signing requires physical presence with the Trezor device',
+                applies_to: ['all skills'],
+                alternative: 'skill drafts the transaction; founder signs',
+              },
+            },
+          ],
+        },
+      ],
+    });
+  }
+
+  beforeEach(() => {
+    compiler = new ContextCompiler({ formats: ['skill_md'] });
+  });
+
+  it('emits SKILL.md as the file key', () => {
+    const result = compiler.compile(makeFullV1WithSkillFields(), '');
+    expect(result.files).toHaveProperty('SKILL.md');
+    // False case: only SKILL.md is produced, not CLAUDE.md or AGENTS.md
+    expect(Object.keys(result.files)).toEqual(['SKILL.md']);
+    expect(result.files).not.toHaveProperty('CLAUDE.md');
+    expect(result.files).not.toHaveProperty('AGENTS.md');
+  });
+
+  it('emits YAML frontmatter with name, description, allowed-tools', () => {
+    const md = compiler.compile(makeFullV1WithSkillFields(), '').files['SKILL.md'];
+    expect(md.startsWith('---\n')).toBe(true);
+    expect(md).toContain('\nname: founder\n');
+    expect(md).toContain('\nallowed-tools: Bash, Read, Write, Edit, Grep, Glob, WebFetch\n');
+    // The description renders as inline JSON-quoted (single-line input)
+    expect(md).toMatch(/description: "AUTO-FIRE founder decision proxy/);
+    // False case: must NOT emit description as bare unquoted text (YAML parse risk)
+    expect(md).not.toContain('description: AUTO-FIRE founder');
+  });
+
+  it('frontmatter block closes with --- before the body header', () => {
+    const md = compiler.compile(makeFullV1WithSkillFields(), '').files['SKILL.md'];
+    // The third occurrence of --- is the trailer separator; the second
+    // is the frontmatter close. Body title (# founder) must come AFTER
+    // the second ---.
+    const titleIdx = md.indexOf('# founder');
+    const closeFmIdx = md.indexOf('---\n', md.indexOf('---\n') + 4); // 2nd ---
+    expect(titleIdx).toBeGreaterThan(closeFmIdx);
+    expect(closeFmIdx).toBeGreaterThan(0);
+  });
+
+  it('emits body title and identity blockquote underneath frontmatter', () => {
+    const md = compiler.compile(makeFullV1WithSkillFields(), '').files['SKILL.md'];
+    expect(md).toContain('# founder');
+    expect(md).toContain('**Role**: team-engineering');
+    expect(md).toContain('**Domain**: holoscript-ecosystem');
+    expect(md).toContain('**Surface**: claude');
+    expect(md).toContain('No-monopoly rule');
+  });
+
+  it('emits universal sections (authority order, vision pillars, refusals, gaps)', () => {
+    const md = compiler.compile(makeFullV1WithSkillFields(), '').files['SKILL.md'];
+    expect(md).toContain('## Authority order (read top-down; first match wins)');
+    expect(md).toContain('1. **GOLD vault**');
+    expect(md).toContain('## Vision pillars');
+    expect(md).toContain('Architecture beats alignment');
+    expect(md).toContain('## The Refusals');
+    expect(md).toContain('### Refuse the bandaid');
+    expect(md).toContain('## Hard physical gaps (skill never absorbs)');
+    expect(md).toContain('**trezor-signing**');
+  });
+
+  it('emits authority cross-references for graduated wisdom', () => {
+    const md = compiler.compile(makeFullV1WithSkillFields(), '').files['SKILL.md'];
+    expect(md).toContain('## Authority cross-references');
+    expect(md).toContain('### GOLD-tier wisdom');
+    expect(md).toContain('**W.GOLD.001** *(diamond)* - Architecture beats alignment');
+  });
+
+  it('emits skill_md trailer naming the Phase 2(a) self-host target', () => {
+    const md = compiler.compile(makeFullV1WithSkillFields(), '').files['SKILL.md'];
+    expect(md).toContain('Generated by HoloScript ContextCompiler (compile_to_skill_md)');
+    expect(md).toContain('Phase 2(a) self-host target');
+    // False case: must NOT carry trailers from other emitters
+    expect(md).not.toContain('compile_to_claude_md');
+    expect(md).not.toContain('compile_to_agents_md');
+    expect(md).not.toContain('compile_to_cursor_rules');
+  });
+
+  it('uses cross-tool default allowed-tools when @identity.allowed_tools is omitted', () => {
+    const compilerLocal = new ContextCompiler({ formats: ['skill_md'] });
+    const md = compilerLocal.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'A',
+            properties: [],
+            traits: [
+              {
+                type: 'ObjectTrait',
+                name: 'identity',
+                config: {
+                  name: 'minimal',
+                  role: 'r',
+                  domain: 'd',
+                  surface: 'claude',
+                  description: 'a minimal skill',
+                  // allowed_tools intentionally omitted - emitter falls back to default
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      ''
+    ).files['SKILL.md'];
+    expect(md).toContain(
+      'allowed-tools: Bash, Read, Write, Edit, Grep, Glob, WebFetch'
+    );
+  });
+
+  it('formats multi-line description as YAML folded scalar (>)', () => {
+    const compilerLocal = new ContextCompiler({ formats: ['skill_md'] });
+    const md = compilerLocal.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'A',
+            properties: [],
+            traits: [
+              {
+                type: 'ObjectTrait',
+                name: 'identity',
+                config: {
+                  name: 'multi',
+                  role: 'r',
+                  domain: 'd',
+                  surface: 'claude',
+                  description: 'first line\nsecond line\nthird line',
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      ''
+    ).files['SKILL.md'];
+    expect(md).toContain('description: >\n  first line\n  second line\n  third line');
+    // False case: multi-line input must NOT collapse to a single double-quoted line with literal \n
+    expect(md).not.toContain('description: "first line\\nsecond line\\nthird line"');
+  });
+
+  it('THROWS when @identity is missing (skill discovery requires name)', () => {
+    const compilerLocal = new ContextCompiler({ formats: ['skill_md'] });
+    expect(() => compilerLocal.compile(makeComposition(), '')).toThrow(/requires an @identity trait/);
+  });
+
+  it('THROWS when @identity.description is missing (skill discovery refuses)', () => {
+    const compilerLocal = new ContextCompiler({ formats: ['skill_md'] });
+    const noDesc = makeComposition({
+      objects: [
+        {
+          type: 'Object',
+          name: 'A',
+          properties: [],
+          traits: [
+            {
+              type: 'ObjectTrait',
+              name: 'identity',
+              config: {
+                name: 'no-desc',
+                role: 'r',
+                domain: 'd',
+                surface: 'claude',
+                // description intentionally omitted
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(() => compilerLocal.compile(noDesc, '')).toThrow(/requires @identity.description/);
+  });
+
+  it('extracts identity.allowedTools into the AST when @identity.allowed_tools is set', () => {
+    const result = compiler.compile(makeFullV1WithSkillFields(), '');
+    expect(result.ast.identity?.allowedTools).toEqual([
+      'Bash', 'Read', 'Write', 'Edit', 'Grep', 'Glob', 'WebFetch',
+    ]);
+    expect(result.ast.identity?.description).toContain('AUTO-FIRE founder');
+  });
+
+  it('quad-format compile (claude_md + agents_md + cursor_rules + skill_md) emits all four', () => {
+    const quad = new ContextCompiler({
+      formats: ['claude_md', 'agents_md', 'cursor_rules', 'skill_md'],
+    });
+    const result = quad.compile(makeFullV1WithSkillFields(), '');
+    const keys = Object.keys(result.files).sort();
+    expect(keys).toContain('CLAUDE.md');
+    expect(keys).toContain('AGENTS.md');
+    expect(keys).toContain('SKILL.md');
+    expect(keys.some((k) => k.startsWith('.cursor/rules/'))).toBe(true);
+    // Each emitter's trailer is distinct - prove cross-emitter separation
+    expect(result.files['CLAUDE.md']).toContain('compile_to_claude_md');
+    expect(result.files['AGENTS.md']).toContain('compile_to_agents_md');
+    expect(result.files['SKILL.md']).toContain('compile_to_skill_md');
   });
 });
