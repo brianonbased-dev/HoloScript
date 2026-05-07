@@ -11,10 +11,12 @@
   },
   "dependencies": {
     "@holoscript/crdt-spatial": "workspace:*",
+    "@holoscript/framework": "workspace:*",
     "@holoscript/runtime": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.0.1",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.5"
   }
 }

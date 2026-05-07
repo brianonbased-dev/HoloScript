@@ -14,3 +14,10 @@ export type { BlockoutVec3, BlockoutVolume } from './collaboration/blockoutCRDT'
 
 export { CausalWorldModel, createVRPhysicsModel } from './world/causal';
 export type { CausalVariable, CausalEdge, CausalQueryResult } from './world/causal';
+
+// Frontier Shard 0 — bootstrap shard built on @holoscript/framework primitives
+// (task_1778186605462_2mlp).
+export {
+  buildFrontierShardZero,
+  validateFrontierShardZero,
+} from './world/frontier-shard-zero';

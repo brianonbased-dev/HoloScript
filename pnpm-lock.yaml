@@ -1239,6 +1239,9 @@ importers:
       '@holoscript/crdt-spatial':
         specifier: workspace:*
         version: link:../crdt-spatial
+      '@holoscript/framework':
+        specifier: workspace:*
+        version: link:../framework
       '@holoscript/runtime':
         specifier: workspace:*
         version: link:../runtime
@@ -1249,6 +1252,9 @@ importers:
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@7.3.2)
 
   packages/holomap:
     dependencies:
