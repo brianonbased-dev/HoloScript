@@ -3,8 +3,9 @@
 /**
  * Team Dashboard — /teams/[id]
  *
- * Unified team workspace with 3 tabs:
+ * Unified team workspace with 4 tabs:
  * - Board: kanban task board (default)
+ * - Trace: multiagent timeline (tasks, messages, events, artifacts)
  * - Agents: team agent profiles (Brittney, Daemon, Absorb, Oracle)
  * - HoloClaw: agent execution engine (live view)
  *
@@ -14,6 +15,7 @@
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { BoardTab } from '@/components/teams/BoardTab';
+import { TraceTab } from '@/components/teams/TraceTab';
 import { AgentsTab } from '@/components/teams/AgentsTab';
 import { HoloClawTab } from '@/components/teams/HoloClawTab';
 
@@ -57,10 +59,11 @@ interface TeamData {
 // Constants
 // ---------------------------------------------------------------------------
 
-type DashboardTab = 'board' | 'agents' | 'holoclaw';
+type DashboardTab = 'board' | 'trace' | 'agents' | 'holoclaw';
 
 const TABS: { id: DashboardTab; label: string; description: string }[] = [
   { id: 'board', label: 'Board', description: 'Task kanban' },
+  { id: 'trace', label: 'Trace', description: 'Multiagent timeline' },
   { id: 'agents', label: 'Agents', description: 'Team agents' },
   { id: 'holoclaw', label: 'HoloClaw', description: 'Execution engine' },
 ];
@@ -298,6 +301,7 @@ export default function TeamDashboardPage({ params }: { params: Promise<{ id: st
         {/* Main content: tab body */}
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           {activeTab === 'board' && <BoardTab teamId={teamId} />}
+          {activeTab === 'trace' && <TraceTab teamId={teamId} />}
           {activeTab === 'agents' && <AgentsTab teamId={teamId} />}
           {activeTab === 'holoclaw' && <HoloClawTab />}
         </div>
