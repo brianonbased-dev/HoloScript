@@ -32,6 +32,7 @@
     "benchmark": "tsx benchmarks/tools/benchmark-runner.ts",
     "ops:dashboard": "tsx docs/ops/admin-cli.ts",
     "webgpu:determinism:mock": "node scripts/run-webgpu-determinism.mjs",
+    "webgpu:probe": "node scripts/probe-webgpu.mjs",
     "clean": "pnpm -r exec rm -rf dist",
     "build:auto": "bash scripts/auto-build-manager.sh",
     "build:archive": "bash scripts/archive-build-artifacts.sh",
