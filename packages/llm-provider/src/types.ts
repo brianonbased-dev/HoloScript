@@ -761,7 +761,7 @@ export interface Capabilities {
   videoGeneration?: boolean;
 
   // ─── Reasoning ──────────────────────────────────────────────────
-  /** Visible chain-of-thought (Anthropic adaptive thinking, OpenAI o-series). */
+  /** Provider-visible reasoning artifacts/summaries; raw private CoT is not assumed. */
   visibleReasoning?: boolean;
   /** Adjustable effort level (low/medium/high/xhigh/max). */
   adjustableEffort?: boolean;
@@ -769,7 +769,7 @@ export interface Capabilities {
   // ─── Agentic / routing-relevant ─────────────────────────────────
   /** Real-time web search (xAI Live Search, Gemini Grounding, OpenAI web tool). */
   liveWebSearch?: boolean;
-  /** Hosted shell tool (OpenAI Responses) — gate via HoloDoor (W.GOLD don't). */
+  /** Shell tool support; may be hosted or caller-executed depending on provider/runtime. */
   hostedShell?: boolean;
   /** Server-side code execution sandbox. */
   codeExecutionSandbox?: boolean;

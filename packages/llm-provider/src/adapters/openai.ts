@@ -376,14 +376,14 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     audioOutput: true,             // Realtime API
     imageGeneration: true,         // GPT Image
 
-    visibleReasoning: true,        // o-series chain-of-thought
-    adjustableEffort: true,        // reasoning_effort: minimal | low | medium | high
+    visibleReasoning: true,        // reasoning summaries/items; raw CoT is not exposed
+    adjustableEffort: true,        // reasoning effort: none/minimal/low/medium/high/xhigh
 
     liveWebSearch: true,           // Responses web_search tool (first-party)
     hostedShell: true,             // Responses shell — DEFAULT-DENY in policy layer (W.GOLD don't)
     codeExecutionSandbox: true,    // Responses code interpreter
     fileSearchBuiltIn: true,       // Vector stores — NOT source-of-truth (W.GOLD don't)
-    promptCaching: true,           // Responses-native
+    promptCaching: true,           // automatic prompt caching + retention controls
     hostedAgenticLoop: true,       // Agents SDK — interop only, never replaces HoloMesh (W.GOLD don't)
     persistentMemoryStore: true,   // Vector stores
     structuredOutputs: true,       // strict JSON schema

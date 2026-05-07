@@ -15,6 +15,10 @@ import { extractTraits } from '../base-adapter';
 import { OpenAIAdapter, OPENAI_MODELS } from '../adapters/openai';
 import { AnthropicAdapter, ANTHROPIC_MODELS } from '../adapters/anthropic';
 import { GeminiAdapter, GEMINI_MODELS } from '../adapters/gemini';
+import { BitNetAdapter } from '../adapters/bitnet';
+import { LocalLLMAdapter } from '../adapters/local-llm';
+import { OpenRouterAdapter } from '../adapters/openrouter';
+import { XAIAdapter } from '../adapters/xai';
 import { LLMProviderManager } from '../provider-manager';
 import {
   LLMProviderError,
@@ -43,6 +47,18 @@ describe('MockAdapter', () => {
   it('has available models', () => {
     expect(mock.models.length).toBeGreaterThan(0);
     expect(mock.defaultHoloScriptModel).toBeTruthy();
+  });
+
+  it('declares broad test capabilities without bearer auth', () => {
+    expect(mock.capabilities).toMatchObject({
+      contextWindow: 200_000,
+      maxOutput: 64_000,
+      streaming: true,
+      tools: true,
+      vision: true,
+      structuredOutputs: true,
+      bearerTokenAccess: false,
+    });
   });
 
   it('complete() returns valid LLMCompletionResponse', async () => {
@@ -210,6 +226,37 @@ describe('OpenAIAdapter (metadata)', () => {
     const adapter = new OpenAIAdapter({ apiKey: 'test-key', defaultModel: 'gpt-5.4-mini' });
     expect(adapter.defaultHoloScriptModel).toBe('gpt-5.4-mini');
   });
+
+  it('declares current Responses-era platform capabilities', () => {
+    const adapter = new OpenAIAdapter({ apiKey: 'test-key' });
+    expect(adapter.capabilities).toMatchObject({
+      contextWindow: 0,
+      maxOutput: 0,
+      streaming: true,
+      tools: true,
+      vision: true,
+      audioInput: true,
+      audioOutput: true,
+      imageGeneration: true,
+      visibleReasoning: true,
+      adjustableEffort: true,
+      liveWebSearch: true,
+      hostedShell: true,
+      codeExecutionSandbox: true,
+      fileSearchBuiltIn: true,
+      promptCaching: true,
+      hostedAgenticLoop: true,
+      persistentMemoryStore: true,
+      structuredOutputs: true,
+      embeddings: true,
+      batchApi: true,
+      realtimeVoice: true,
+      embeddedChatUI: true,
+      appsIframeSurface: true,
+      evalsFirstParty: true,
+      bearerTokenAccess: true,
+    });
+  });
 });
 
 // =============================================================================
@@ -251,6 +298,32 @@ describe('AnthropicAdapter (metadata)', () => {
     expect(hasClaude4).toBe(true);
   });
 
+  it('declares maximum family capabilities for routing', () => {
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    expect(adapter.capabilities).toMatchObject({
+      contextWindow: 1_000_000,
+      maxOutput: 128_000,
+      streaming: true,
+      tools: true,
+      vision: true,
+      highResVision: true,
+      visibleReasoning: true,
+      adjustableEffort: true,
+      liveWebSearch: true,
+      codeExecutionSandbox: true,
+      promptCaching: true,
+      perLoopBudget: true,
+      serverSideCompaction: true,
+      hostedAgenticLoop: true,
+      persistentMemoryStore: true,
+      structuredOutputs: true,
+      batchApi: true,
+      bedrockAvailable: true,
+      vertexAvailable: true,
+      bearerTokenAccess: true,
+    });
+  });
+
   it('throws an LLMProviderError on complete() with invalid API key', async () => {
     const adapter = new AnthropicAdapter({ apiKey: 'invalid-key', maxRetries: 0 });
     // Should throw either an authentication error or a network error
@@ -284,6 +357,88 @@ describe('GeminiAdapter (metadata)', () => {
   it('uses gemini-1.5-flash as default HoloScript model', () => {
     const adapter = new GeminiAdapter({ apiKey: 'test-key' });
     expect(adapter.defaultHoloScriptModel).toBe('gemini-1.5-flash');
+  });
+
+  it('declares multimodal and Vertex capabilities', () => {
+    const adapter = new GeminiAdapter({ apiKey: 'test-key' });
+    expect(adapter.capabilities).toMatchObject({
+      contextWindow: 0,
+      maxOutput: 0,
+      streaming: true,
+      tools: true,
+      vision: true,
+      videoInput: true,
+      audioInput: true,
+      audioOutput: true,
+      imageGeneration: true,
+      videoGeneration: true,
+      visibleReasoning: true,
+      liveWebSearch: true,
+      promptCaching: true,
+      structuredOutputs: true,
+      embeddings: true,
+      vertexAvailable: true,
+      bearerTokenAccess: true,
+    });
+  });
+});
+
+// =============================================================================
+// Local and Meta-Provider Capability Manifests
+// =============================================================================
+
+describe('Local and meta-provider capabilities', () => {
+  it('declares BitNet as a local zero-marginal baseline', () => {
+    const adapter = new BitNetAdapter();
+    expect(adapter.capabilities).toMatchObject({
+      contextWindow: 0,
+      maxOutput: 0,
+      streaming: true,
+      tools: false,
+      vision: false,
+      local: true,
+      zeroMarginalInference: true,
+      bearerTokenAccess: false,
+    });
+  });
+
+  it('declares local LLM runtimes conservatively', () => {
+    const adapter = new LocalLLMAdapter();
+    expect(adapter.capabilities).toMatchObject({
+      contextWindow: 0,
+      maxOutput: 0,
+      streaming: true,
+      tools: false,
+      vision: false,
+      local: true,
+      zeroMarginalInference: true,
+      bearerTokenAccess: false,
+    });
+  });
+
+  it('declares OpenRouter as capability-sensitive fallback routing', () => {
+    const adapter = new OpenRouterAdapter({ apiKey: 'test-key' });
+    expect(adapter.capabilities).toMatchObject({
+      contextWindow: 0,
+      maxOutput: 0,
+      streaming: true,
+      tools: true,
+      vision: false,
+      bearerTokenAccess: true,
+    });
+  });
+
+  it('declares xAI Live Search and OpenAI-compatible tool support', () => {
+    const adapter = new XAIAdapter({ apiKey: 'test-key' });
+    expect(adapter.capabilities).toMatchObject({
+      contextWindow: 0,
+      maxOutput: 0,
+      streaming: true,
+      tools: true,
+      vision: false,
+      liveWebSearch: true,
+      bearerTokenAccess: true,
+    });
   });
 });
 
