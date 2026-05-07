@@ -47,12 +47,19 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Build core (required by studio)
-        run: pnpm --filter @holoscript/core build
+        run: |
+          pnpm -r --filter '@holoscript/core^...' --filter '!@holoscript/core' --workspace-concurrency=1 run --if-present build
+          pnpm --filter @holoscript/core build
         env:
           NODE_OPTIONS: '--max-old-space-size=4096'
 
       - name: Build UI (required by studio)
         run: pnpm --filter @holoscript/ui build
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
+
+      - name: Build R3F renderer (required by studio scene pages)
+        run: pnpm --filter @holoscript/r3f-renderer build
         env:
           NODE_OPTIONS: '--max-old-space-size=4096'
 
