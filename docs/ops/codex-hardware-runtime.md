@@ -12,6 +12,7 @@ Canonical runtime for this machine:
 | Node.js | `C:\Program Files\nodejs\node.exe` |
 | Corepack | `C:\Program Files\nodejs\corepack.cmd` |
 | pnpm shim | `%APPDATA%\npm\pnpm.cmd` |
+| node-gyp Python | Python 3.12 or 3.11 with `setuptools`/`distutils` |
 | Codex shims | `%USERPROFILE%\.codex\hardware-bin` |
 
 Repair command:
@@ -28,11 +29,17 @@ shim directory to the user PATH. When Codex has an active
 also mirrors the shims there so the current session can verify without a
 restart and so Git hooks resolve the same runtime.
 
+The `pnpm` and `corepack` shims also export `npm_config_python` to a local
+Python 3.12 or 3.11 executable that can import `setuptools` and `distutils`.
+This keeps native dependency rebuilds deterministic when Codex is running a
+newer Node line and packages such as `better-sqlite3` fall back to `node-gyp`.
+
 Validation:
 
 ```powershell
 node -v
 corepack --version
 pnpm -v
+pnpm config get python
 pnpm --filter @holoscript/snn-webgpu run build
 ```
