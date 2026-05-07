@@ -424,6 +424,22 @@ describe('Admin Routes — API Key Rotation Mechanism (P.009.01)', () => {
     expect(res._body.error).toContain('replicas must be an integer between 0 and 1000');
   });
 
+  it('POST /api/holomesh/admin/scaling-override rejects fractional replicas', async () => {
+    const numeric = await callAdmin('POST', '/api/holomesh/admin/scaling-override', {
+      service_id: 'svc-api',
+      replicas: 3.5,
+    });
+    expect(numeric._status).toBe(400);
+    expect(numeric._body.error).toContain('replicas must be an integer between 0 and 1000');
+
+    const stringy = await callAdmin('POST', '/api/holomesh/admin/scaling-override', {
+      service_id: 'svc-api',
+      replicas: '3.5',
+    });
+    expect(stringy._status).toBe(400);
+    expect(stringy._body.error).toContain('replicas must be an integer between 0 and 1000');
+  });
+
   it('POST /api/holomesh/admin/scaling-override rejects non-founders', async () => {
     seedNonFounder();
     const res = await callAdmin(
