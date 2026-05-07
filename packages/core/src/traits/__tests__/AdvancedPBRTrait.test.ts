@@ -338,6 +338,69 @@ describe('AdvancedPBRTrait', () => {
     });
   });
 
+  describe('compile() - Godot', () => {
+    it('should generate Godot StandardMaterial3D code', () => {
+      const config: AdvancedPBRConfig = {
+        base_color: [0.2, 0.6, 1.0],
+        metallic: 0.25,
+        roughness: 0.35,
+      };
+
+      const code = AdvancedPBRTrait.compile(config, 'godot');
+
+      expect(code).toContain('extends MeshInstance3D');
+      expect(code).toContain('StandardMaterial3D.new()');
+      expect(code).toContain('material.albedo_color = Color(0.2, 0.6, 1, 1.0)');
+      expect(code).toContain('material.metallic = 0.25');
+      expect(code).toContain('material.roughness = 0.35');
+      expect(code).toContain('set_surface_override_material(0, material)');
+      expect(code).not.toContain('not yet implemented');
+    });
+
+    it('should map Godot textures and advanced PBR features', () => {
+      const config: AdvancedPBRConfig = {
+        base_color: '#FF5733',
+        albedo_map: 'textures/albedo.png',
+        normal_map: 'res://textures/normal.png',
+        clearcoat: {
+          intensity: 0.9,
+          roughness: 0.05,
+          ior: 1.45,
+        },
+        anisotropy: {
+          strength: 0.8,
+          rotation: 30,
+          tangent_map: 'textures/flow.png',
+        },
+        sheen: {
+          color: [1.0, 0.2, 0.4],
+          roughness: 0.6,
+          intensity: 0.7,
+        },
+        transmission: {
+          factor: 0.75,
+          ior: 1.5,
+          thickness: 0.2,
+          attenuation_distance: 1.2,
+          attenuation_color: [0.8, 0.9, 1.0],
+        },
+      };
+
+      const code = AdvancedPBRTrait.compile(config, 'godot');
+
+      expect(code).toContain('material.albedo_color = Color.html("#FF5733")');
+      expect(code).toContain('material.albedo_texture = load("res://textures/albedo.png")');
+      expect(code).toContain('material.normal_texture = load("res://textures/normal.png")');
+      expect(code).toContain('material.clearcoat_enabled = true');
+      expect(code).toContain('material.clearcoat = 0.9');
+      expect(code).toContain('material.anisotropy_enabled = true');
+      expect(code).toContain('material.anisotropy_flowmap = load("res://textures/flow.png")');
+      expect(code).toContain('material.rim_enabled = true');
+      expect(code).toContain('material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA');
+      expect(code).toContain('material.refraction_scale = 0.5');
+    });
+  });
+
   describe('compile() - Web (Three.js)', () => {
     it('should generate Three.js MeshPhysicalMaterial', () => {
       const config: AdvancedPBRConfig = {

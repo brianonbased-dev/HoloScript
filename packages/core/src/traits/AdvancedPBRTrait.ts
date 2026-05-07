@@ -326,8 +326,200 @@ public class AdvancedPBRMaterial : MonoBehaviour {
 `;
 }
 
-function compileGodot(_config: AdvancedPBRConfig): string {
-  return '// Godot PBR material - not yet implemented';
+function compileGodot(config: AdvancedPBRConfig): string {
+  const lines = [
+    '# Godot 4 Advanced PBR Material',
+    'extends MeshInstance3D',
+    '',
+    'func _ready() -> void:',
+    '    var material := StandardMaterial3D.new()',
+    '    material.resource_name = "HoloScriptAdvancedPBRMaterial"',
+    `    material.albedo_color = ${formatGodotColor(config.base_color)}`,
+    `    material.metallic = ${config.metallic ?? 0.0}`,
+    `    material.roughness = ${config.roughness ?? 0.5}`,
+  ];
+
+  if (config.albedo_map) {
+    lines.push(`    material.albedo_texture = load(${formatGodotResource(config.albedo_map)})`);
+  }
+
+  if (config.normal_map) {
+    lines.push(
+      '    material.normal_enabled = true',
+      `    material.normal_texture = load(${formatGodotResource(config.normal_map)})`
+    );
+  }
+
+  if (config.roughness_map) {
+    lines.push(`    material.roughness_texture = load(${formatGodotResource(config.roughness_map)})`);
+  }
+
+  if (config.metallic_map) {
+    lines.push(`    material.metallic_texture = load(${formatGodotResource(config.metallic_map)})`);
+  }
+
+  if (config.ao_map) {
+    lines.push(
+      '    material.ao_enabled = true',
+      `    material.ao_texture = load(${formatGodotResource(config.ao_map)})`
+    );
+  }
+
+  if (config.emissive_map) {
+    lines.push(
+      '    material.emission_enabled = true',
+      `    material.emission_texture = load(${formatGodotResource(config.emissive_map)})`
+    );
+  }
+
+  if (config.clearcoat) {
+    lines.push(
+      '',
+      '    # Clearcoat',
+      '    material.clearcoat_enabled = true',
+      `    material.clearcoat = ${config.clearcoat.intensity}`,
+      `    material.clearcoat_roughness = ${config.clearcoat.roughness}`
+    );
+
+    if (config.clearcoat.ior !== undefined) {
+      lines.push(`    material.set_meta("holoscript_clearcoat_ior", ${config.clearcoat.ior})`);
+    }
+
+    if (config.clearcoat.normal_map) {
+      lines.push(
+        `    material.set_meta("holoscript_clearcoat_normal_map", ${formatGodotResource(
+          config.clearcoat.normal_map
+        )})`,
+        '    push_warning("Godot StandardMaterial3D does not expose clearcoat normal maps; HoloScript stored the requested map as metadata.")'
+      );
+    }
+  }
+
+  if (config.anisotropy) {
+    lines.push(
+      '',
+      '    # Anisotropic reflections',
+      '    material.anisotropy_enabled = true',
+      `    material.anisotropy = ${config.anisotropy.strength}`,
+      `    material.set_meta("holoscript_anisotropy_rotation_degrees", ${config.anisotropy.rotation})`
+    );
+
+    if (config.anisotropy.direction) {
+      lines.push(
+        `    material.set_meta("holoscript_anisotropy_direction", ${JSON.stringify(
+          config.anisotropy.direction
+        )})`
+      );
+    }
+
+    if (config.anisotropy.tangent_map) {
+      lines.push(
+        `    material.anisotropy_flowmap = load(${formatGodotResource(
+          config.anisotropy.tangent_map
+        )})`
+      );
+    }
+  }
+
+  if (config.sheen) {
+    lines.push(
+      '',
+      '    # Sheen approximation via rim lighting',
+      '    material.rim_enabled = true',
+      `    material.rim = ${config.sheen.intensity}`,
+      `    material.rim_tint = ${1.0 - config.sheen.roughness}`,
+      `    material.set_meta("holoscript_sheen_color", ${formatGodotColor(config.sheen.color)})`
+    );
+  }
+
+  if (config.subsurface_scattering) {
+    const sssStrength = Math.min(
+      1,
+      Math.max(0, config.subsurface_scattering.radius * config.subsurface_scattering.thickness)
+    );
+
+    lines.push(
+      '',
+      '    # Subsurface scattering',
+      '    material.subsurf_scatter_enabled = true',
+      `    material.subsurf_scatter_strength = ${sssStrength}`,
+      `    material.set_meta("holoscript_sss_method", ${JSON.stringify(
+        config.subsurface_scattering.method
+      )})`,
+      `    material.set_meta("holoscript_sss_color", ${formatGodotColor(
+        config.subsurface_scattering.color
+      )})`
+    );
+
+    if (config.subsurface_scattering.thickness_map) {
+      lines.push(
+        `    material.subsurf_scatter_texture = load(${formatGodotResource(
+          config.subsurface_scattering.thickness_map
+        )})`
+      );
+    }
+  }
+
+  if (config.iridescence) {
+    lines.push(
+      '',
+      '    # Iridescence provenance',
+      `    material.set_meta("holoscript_iridescence_intensity", ${config.iridescence.intensity})`,
+      `    material.set_meta("holoscript_iridescence_ior", ${config.iridescence.ior})`,
+      `    material.set_meta("holoscript_iridescence_thickness_min", ${config.iridescence.thickness_min})`,
+      `    material.set_meta("holoscript_iridescence_thickness_max", ${config.iridescence.thickness_max})`,
+      '    push_warning("Godot StandardMaterial3D has no native iridescence; HoloScript stored iridescence parameters as metadata.")'
+    );
+
+    if (config.iridescence.thickness_map) {
+      lines.push(
+        `    material.set_meta("holoscript_iridescence_thickness_map", ${formatGodotResource(
+          config.iridescence.thickness_map
+        )})`
+      );
+    }
+  }
+
+  if (config.transmission) {
+    const alpha = Math.max(0.02, Math.min(1, 1.0 - config.transmission.factor));
+    const refractionScale = Math.max(0, config.transmission.ior - 1.0);
+
+    lines.push(
+      '',
+      '    # Transmission approximation',
+      '    material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA',
+      `    material.albedo_color.a = ${alpha}`,
+      '    material.refraction_enabled = true',
+      `    material.refraction_scale = ${refractionScale}`,
+      `    material.set_meta("holoscript_transmission_ior", ${config.transmission.ior})`,
+      `    material.set_meta("holoscript_transmission_thickness", ${config.transmission.thickness})`,
+      `    material.set_meta("holoscript_attenuation_distance", ${config.transmission.attenuation_distance})`,
+      `    material.set_meta("holoscript_attenuation_color", ${formatGodotColor(
+        config.transmission.attenuation_color
+      )})`
+    );
+  }
+
+  lines.push('', '    set_surface_override_material(0, material)', '');
+
+  return lines.join('\n');
+}
+
+function formatGodotColor(color: [number, number, number] | string): string {
+  if (Array.isArray(color)) {
+    return `Color(${color[0]}, ${color[1]}, ${color[2]}, 1.0)`;
+  }
+
+  return `Color.html(${JSON.stringify(color)})`;
+}
+
+function formatGodotResource(path: string): string {
+  const normalized = path.replace(/\\/g, '/');
+  const resourcePath = /^(res|user):\/\//.test(normalized)
+    ? normalized
+    : `res://${normalized.replace(/^\/+/, '')}`;
+
+  return JSON.stringify(resourcePath);
 }
 
 function compileUnreal(config: AdvancedPBRConfig): string {
