@@ -31,8 +31,9 @@
  * declarations). WARN soft-guideline (stale citations, fluent prose
  * without citation, schedule conflicts, unresolved verify-tokens).
  *
- * @version 1.1.0 (Phase 1 - claude_md + agents_md emitters; cursor_rules
- *   is the remaining Phase 1 follow-up)
+ * @version 1.2.0 (Phase 1 - claude_md + agents_md + cursor_rules emitters;
+ *   skill_md / anthropic_system_prompt / brain_includes / mcp_context_loader
+ *   remain Phase 1+ follow-ups)
  * @module @holoscript/core/compiler/ContextCompiler
  */
 
@@ -381,7 +382,17 @@ export class ContextCompiler extends CompilerBase {
         case 'agents_md':
           files['AGENTS.md'] = this.emitAgentsMd(ast);
           break;
-        case 'cursor_rules':
+        case 'cursor_rules': {
+          // One file per @refusal/@hard_dont/@default plus one index file
+          // for top-level blocks (identity, authority order, vision pillars,
+          // routines, skills registry, cross-references). Per spec:
+          // research/2026-05-06_cursor-mdc-spec.md.
+          const cursorFiles = this.emitCursorRules(ast);
+          for (const [path, content] of Object.entries(cursorFiles)) {
+            files[path] = content;
+          }
+          break;
+        }
         case 'skill_md':
         case 'anthropic_system_prompt':
         case 'brain_includes':
@@ -1182,6 +1193,295 @@ export class ContextCompiler extends CompilerBase {
 
     return lines.join('\n');
   }
+
+  // --- Phase 3: emit -- compile_to_cursor_rules ----------------------
+
+  /**
+   * Emit Cursor `.cursor/rules/*.mdc` files. Different output shape from
+   * claude_md / agents_md - one file per rule rather than a single big
+   * file (Cursor's idiom). Per spec:
+   * research/2026-05-06_cursor-mdc-spec.md.
+   *
+   * Layout:
+   *   .cursor/rules/refusal-<name>.mdc       (one per @refusal)
+   *   .cursor/rules/hard-dont-<name>.mdc     (one per @hard_dont)
+   *   .cursor/rules/default-<name>.mdc       (one per @default)
+   *   .cursor/rules/_ecosystem-context.mdc   (top-level blocks: identity,
+   *                                           authority order, vision
+   *                                           pillars, production rule,
+   *                                           output shape, gaps, routines,
+   *                                           skill registry, cross-refs)
+   *
+   * Frontmatter v1: every file emits with `alwaysApply: true` and empty
+   * `globs:`. Glob mapping from `applies_to` -> file patterns is deferred
+   * to v2 (see spec memo § "What the emitter does NOT do (v1 scope)").
+   *
+   * Returns Record<string, string> with full repo-relative paths as keys
+   * (e.g. ".cursor/rules/refusal-bandaid.mdc"). The consumer writes each
+   * entry to disk at exactly that path.
+   */
+  private emitCursorRules(ast: ContextAST): Record<string, string> {
+    const out: Record<string, string> = {};
+
+    // --- Per-rule files: refusals ---
+    for (const refusal of ast.refusals) {
+      const slug = toCursorSlug(refusal.name);
+      const filename = `.cursor/rules/refusal-${slug}.mdc`;
+      const description = oneLine(
+        `Refusal: ${refusal.name} - ${refusal.reason ?? refusal.when}`
+      );
+      const body: string[] = [];
+      body.push(`# Refusal: ${refusal.name}`);
+      body.push('');
+      body.push(`**When**: ${refusal.when}`);
+      body.push('');
+      body.push(`**Do**: ${refusal.do}`);
+      body.push('');
+      if (refusal.doNot.length > 0) {
+        body.push(`**Do not**: ${refusal.doNot.map((d) => `\`${d}\``).join(', ')}`);
+        body.push('');
+      }
+      if (refusal.reason) {
+        body.push(`**Reason**: ${refusal.reason}`);
+        body.push('');
+      }
+      out[filename] = wrapMdc(description, body);
+    }
+
+    // --- Per-rule files: hard_donts ---
+    for (const dont of ast.hardDonts) {
+      const slug = toCursorSlug(dont.name);
+      const filename = `.cursor/rules/hard-dont-${slug}.mdc`;
+      const description = oneLine(`Hard don't: ${dont.name} - ${dont.reason}`);
+      const body: string[] = [];
+      body.push(`# Hard don't: ${dont.name}`);
+      body.push('');
+      body.push(`**Reason**: ${dont.reason}`);
+      body.push('');
+      if (dont.alternative) {
+        body.push(`**Alternative**: ${dont.alternative}`);
+        body.push('');
+      }
+      if (dont.appliesTo.length > 0) {
+        body.push(`**Applies to**: ${dont.appliesTo.join(', ')}`);
+        body.push('');
+      }
+      out[filename] = wrapMdc(description, body);
+    }
+
+    // --- Per-rule files: defaults ---
+    for (const def of ast.defaults) {
+      const slug = toCursorSlug(def.name);
+      const filename = `.cursor/rules/default-${slug}.mdc`;
+      const description = oneLine(`Default: ${def.name} - ${def.when}`);
+      const body: string[] = [];
+      body.push(`# Default: ${def.name}`);
+      body.push('');
+      body.push(`**When**: ${def.when}`);
+      body.push('');
+      body.push(`**Do**: ${def.do}`);
+      body.push('');
+      if (def.reason) {
+        body.push(`**Reason**: ${def.reason}`);
+        body.push('');
+      }
+      out[filename] = wrapMdc(description, body);
+    }
+
+    // --- Index file: top-level blocks + cross-refs + trailer ---
+    // Always emitted (carries the trailer + identity even when no per-rule
+    // traits were declared - matches claude_md/agents_md behavior of
+    // always producing at least one file).
+    const indexFilename = '.cursor/rules/_ecosystem-context.mdc';
+    const indexDescription = ast.identity
+      ? oneLine(`Ecosystem context for ${ast.identity.name} (${ast.identity.role})`)
+      : 'Ecosystem context (HoloScript-generated)';
+    const idx: string[] = [];
+
+    // Identity block
+    if (ast.identity) {
+      idx.push(`# ${ast.identity.name}`);
+      idx.push('');
+      idx.push(`**Role**: ${ast.identity.role}`);
+      idx.push(`**Domain**: ${ast.identity.domain}`);
+      idx.push(`**Surface**: ${ast.identity.surface}`);
+      if (ast.identity.noMonopoly) {
+        idx.push('');
+        idx.push(
+          'No-monopoly rule: this context applies the absorb-as-adapter ' +
+            'architectural posture (per docs/LLM_CAPABILITIES.md).'
+        );
+      }
+      idx.push('');
+    } else {
+      idx.push('# Ecosystem context');
+      idx.push('');
+    }
+
+    // Authority order
+    if (ast.authorityOrder && ast.authorityOrder.tiers.length > 0) {
+      idx.push('## Authority order (read top-down; first match wins)');
+      idx.push('');
+      ast.authorityOrder.tiers.forEach((tier, i) => {
+        idx.push(`${i + 1}. **${tier}**`);
+      });
+      idx.push('');
+    }
+
+    // Vision pillars
+    if (ast.visionPillars.length > 0) {
+      idx.push('## Vision pillars');
+      idx.push('');
+      ast.visionPillars.forEach((pillar, i) => {
+        const cite = pillar.citation ? ` *(${pillar.citation})*` : '';
+        idx.push(`${i + 1}. **${pillar.claim}**${cite}`);
+      });
+      idx.push('');
+    }
+
+    // Output shape
+    if (ast.outputShape) {
+      idx.push('## Output shape');
+      idx.push('');
+      idx.push(`- **Silent to**: ${ast.outputShape.silentTo}`);
+      idx.push(`- **Loud to**: ${ast.outputShape.loudTo}`);
+      if (ast.outputShape.noMetaOutput) {
+        idx.push('- **No meta-output**: do not narrate the protocol back to the user');
+      }
+      if (ast.outputShape.surfaceHint) {
+        idx.push(`- **Surface hint**: ${ast.outputShape.surfaceHint}`);
+      }
+      idx.push('');
+    }
+
+    // Production rule
+    if (ast.productionRule) {
+      idx.push('## Production-only rule');
+      idx.push('');
+      if (ast.productionRule.noDevNoMockNoLocalhost) {
+        idx.push('No dev. No mock. No localhost. The real service exists - hit it.');
+      }
+      if (ast.productionRule.exception) {
+        idx.push('');
+        idx.push(`**Exception**: ${ast.productionRule.exception}`);
+      }
+      idx.push('');
+    }
+
+    // Hard physical gaps - non-absorbable boundaries (deferred to v2 for
+    // per-file split; index-only is enough for v1 since they're posture,
+    // not actionable rules).
+    if (ast.hardPhysicalGaps.length > 0) {
+      idx.push('## Hard physical gaps (skill never absorbs)');
+      idx.push('');
+      for (const gap of ast.hardPhysicalGaps) {
+        idx.push(`- **${gap.name}** - ${gap.reason}`);
+        if (gap.alternative) {
+          idx.push(`  - Alternative: ${gap.alternative}`);
+        }
+      }
+      idx.push('');
+    }
+
+    // Skill registry (one-line summaries; per-skill files belong to
+    // compile_to_skill_md emitter, not this one).
+    if (ast.skills.length > 0) {
+      idx.push('## Skill registry');
+      idx.push('');
+      for (const skill of ast.skills) {
+        idx.push(`- **${skill.invocableAs}** (${skill.name}) - ${skill.authority}`);
+      }
+      idx.push('');
+    }
+
+    // Recurring routines (A-00X)
+    if (ast.routines.length > 0) {
+      idx.push('## Recurring routines (A-00X)');
+      idx.push('');
+      idx.push('| ID | Schedule | Skill | Output |');
+      idx.push('|---|---|---|---|');
+      for (const routine of ast.routines) {
+        idx.push(
+          `| ${routine.id} | \`${routine.schedule}\` | ${routine.skill} | ${routine.outputDir ?? '*(varies)*'} |`
+        );
+      }
+      idx.push('');
+    }
+
+    // Escalation
+    if (ast.escalations.length > 0) {
+      idx.push('## Escalation');
+      idx.push('');
+      for (const esc of ast.escalations) {
+        idx.push(`- **Trigger**: ${esc.trigger}`);
+        idx.push(`  - **Action**: ${esc.action}`);
+        idx.push(`  - **Recipient**: ${esc.recipient}`);
+        if (esc.refuseToEscalateWhen.length > 0) {
+          idx.push(
+            `  - **Refuse to escalate when**: ${esc.refuseToEscalateWhen.join(', ')}`
+          );
+        }
+      }
+      idx.push('');
+    }
+
+    // Citation discipline
+    if (ast.citationRules.length > 0) {
+      idx.push('## Citation discipline');
+      idx.push('');
+      for (const rule of ast.citationRules) {
+        idx.push(
+          `- Fluent prose over **${rule.fluentProseThresholdChars} chars** must include ` +
+            `one of: ${rule.required.join(', ')}`
+        );
+        if (rule.exemption) {
+          idx.push(`  - Exemption: ${rule.exemption}`);
+        }
+        if (rule.reason) {
+          idx.push(`  - Reason: ${rule.reason}`);
+        }
+      }
+      idx.push('');
+    }
+
+    // Authority cross-references (graduated wisdom + feedback)
+    if (ast.graduatedWisdoms.length > 0 || ast.feedbacks.length > 0) {
+      idx.push('## Authority cross-references');
+      idx.push('');
+      if (ast.graduatedWisdoms.length > 0) {
+        idx.push('### GOLD-tier wisdom');
+        idx.push('');
+        for (const wisdom of ast.graduatedWisdoms) {
+          idx.push(`- **${wisdom.id}** *(${wisdom.tier})* - ${wisdom.claim}`);
+        }
+        idx.push('');
+      }
+      if (ast.feedbacks.length > 0) {
+        idx.push('### Feedback memory');
+        idx.push('');
+        for (const fb of ast.feedbacks) {
+          const src = fb.source ? ` (${fb.source})` : '';
+          idx.push(`- **${fb.id}**${src} - ${fb.claim}`);
+        }
+        idx.push('');
+      }
+    }
+
+    // Generated-by trailer (only on the index file - per-rule files
+    // stay terse so Cursor displays the rule body inline cleanly).
+    idx.push('---');
+    idx.push('');
+    idx.push(
+      '*Generated by HoloScript ContextCompiler (compile_to_cursor_rules). ' +
+        'Source: HoloScript composition. Vocabulary: v1 (ratified 2026-05-06). ' +
+        'Per-rule files emit alongside this index under .cursor/rules/.*'
+    );
+    idx.push('');
+
+    out[indexFilename] = wrapMdc(indexDescription, idx);
+
+    return out;
+  }
 }
 
 // =============================================================================
@@ -1240,4 +1540,52 @@ function stringListField(cfg: Record<string, HoloValue>, key: string): string[] 
   const v = cfg[key];
   if (!Array.isArray(v)) return [];
   return v.filter((x): x is string => typeof x === 'string');
+}
+
+// =============================================================================
+// Cursor .mdc helpers (compile_to_cursor_rules emitter)
+// =============================================================================
+
+/**
+ * Wrap a body with Cursor frontmatter. v1 always emits `alwaysApply: true`
+ * with empty `globs:` (per spec § "What the emitter does NOT do (v1 scope)").
+ * Spec memo: research/2026-05-06_cursor-mdc-spec.md.
+ */
+function wrapMdc(description: string, bodyLines: string[]): string {
+  const front = ['---', `description: ${description}`, 'globs:', 'alwaysApply: true', '---', ''];
+  return front.concat(bodyLines).join('\n');
+}
+
+/**
+ * Collapse a string to a single line for use inside a frontmatter scalar.
+ * Strips newlines (which would break YAML), collapses runs of whitespace,
+ * and trims. Returned string is safe to drop directly after `description: `.
+ */
+function oneLine(s: string): string {
+  return s.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Convert a rule name to a kebab-case `.mdc` filename slug. Strict
+ * `[a-z0-9-]+` filter; underscores -> hyphens; runs of separators
+ * collapsed; leading/trailing separators trimmed. Empty result falls
+ * back to a hash-derived token (defensive - never emit a malformed
+ * filename even if upstream sends garbage).
+ */
+function toCursorSlug(name: string): string {
+  const base = name
+    .toLowerCase()
+    .replace(/[_\s]+/g, '-')
+    .replace(/[^a-z0-9-]+/g, '')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '');
+  if (base.length > 0) return base;
+  // Defensive fallback: derive a stable short token from the input. Uses
+  // a tiny non-cryptographic hash (sum of char codes mod 1e6) since this
+  // is just a filename collision avoidance device, not security.
+  let h = 0;
+  for (let i = 0; i < name.length; i += 1) {
+    h = (h + name.charCodeAt(i)) % 1_000_000;
+  }
+  return `rule-${h.toString(36).padStart(4, '0')}`;
 }

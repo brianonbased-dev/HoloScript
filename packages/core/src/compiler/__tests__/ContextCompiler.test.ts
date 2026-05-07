@@ -855,9 +855,10 @@ describe('compile() - edge cases', () => {
   });
 
   it('throws on requesting an unimplemented Phase 1+ format', () => {
-    // cursor_rules + skill_md + others are still Phase 1+ follow-ups.
-    // (agents_md was promoted out of this branch when the second emitter shipped.)
-    const compiler = new ContextCompiler({ formats: ['cursor_rules'] });
+    // skill_md + anthropic_system_prompt + brain_includes + mcp_context_loader
+    // are still Phase 1+ follow-ups. (cursor_rules and agents_md were
+    // promoted out of this branch when those emitters shipped.)
+    const compiler = new ContextCompiler({ formats: ['skill_md'] });
     expect(() => compiler.compile(makeComposition(), '')).toThrow(/Phase 1\+ follow-up/);
   });
 
@@ -882,5 +883,265 @@ describe('compile() - edge cases', () => {
     const result = compiler.compile(comp, '');
     expect(result.files['CLAUDE.md']).toContain('### Refuse the test');
     expect(result.files['CLAUDE.md']).not.toContain('**Reason**:');
+  });
+});
+
+// --- Happy path: vocabulary v1 -> cursor_rules (Cursor .mdc per-file format) ---
+
+describe('compile() - vocabulary v1 -> cursor_rules', () => {
+  let compiler: ContextCompiler;
+
+  beforeEach(() => {
+    compiler = new ContextCompiler({ formats: ['cursor_rules'] });
+  });
+
+  it('emits multiple files (one per rule + index), all under .cursor/rules/', () => {
+    const result = compiler.compile(makeFullV1Composition(), '');
+    const keys = Object.keys(result.files);
+    expect(keys.length).toBeGreaterThan(1);
+    for (const k of keys) {
+      expect(k.startsWith('.cursor/rules/')).toBe(true);
+      expect(k.endsWith('.mdc')).toBe(true);
+    }
+    // False case: must NOT emit CLAUDE.md or AGENTS.md when only
+    // cursor_rules format requested.
+    expect(result.files).not.toHaveProperty('CLAUDE.md');
+    expect(result.files).not.toHaveProperty('AGENTS.md');
+  });
+
+  it('emits one .mdc file per @refusal with refusal- prefix', () => {
+    const result = compiler.compile(makeFullV1Composition(), '');
+    expect(result.files).toHaveProperty('.cursor/rules/refusal-bandaid.mdc');
+    // False case: no claude_md/agents_md naming style leaks into Cursor keys
+    expect(result.files).not.toHaveProperty('.cursor/rules/Refuse-the-bandaid.mdc');
+  });
+
+  it('emits one .mdc file per @hard_dont with hard-dont- prefix', () => {
+    const result = compiler.compile(makeFullV1Composition(), '');
+    expect(result.files).toHaveProperty('.cursor/rules/hard-dont-git-add-all.mdc');
+    // False case: snake_case from source must be normalized to kebab-case
+    expect(result.files).not.toHaveProperty('.cursor/rules/hard-dont-git_add_all.mdc');
+  });
+
+  it('emits one .mdc file per @default with default- prefix', () => {
+    const result = compiler.compile(makeFullV1Composition(), '');
+    expect(result.files).toHaveProperty('.cursor/rules/default-commit-now-if.mdc');
+  });
+
+  it('emits frontmatter with alwaysApply: true and empty globs (v1 spec)', () => {
+    const result = compiler.compile(makeFullV1Composition(), '');
+    const refusalContent = result.files['.cursor/rules/refusal-bandaid.mdc'];
+    // Frontmatter starts file
+    expect(refusalContent.startsWith('---\n')).toBe(true);
+    expect(refusalContent).toContain('alwaysApply: true');
+    expect(refusalContent).toContain('globs:\n');
+    expect(refusalContent).toContain('description: ');
+    // False case: v1 must NOT emit alwaysApply: false (deferred to v2)
+    expect(refusalContent).not.toContain('alwaysApply: false');
+  });
+
+  it('refusal body contains When/Do/Do not/Reason structure', () => {
+    const result = compiler.compile(makeFullV1Composition(), '');
+    const c = result.files['.cursor/rules/refusal-bandaid.mdc'];
+    expect(c).toContain('# Refusal: bandaid');
+    expect(c).toContain('**When**: test failing, type wrong, hook misbehaving');
+    expect(c).toContain('**Do**: fix root cause');
+    expect(c).toContain('`skip`');
+    expect(c).toContain('`@ts-ignore`');
+    expect(c).toContain('**Reason**: W.GOLD.001 - architecture beats alignment');
+  });
+
+  it('hard_dont body contains Reason/Alternative/Applies-to structure', () => {
+    const result = compiler.compile(makeFullV1Composition(), '');
+    const c = result.files['.cursor/rules/hard-dont-git-add-all.mdc'];
+    expect(c).toContain(`# Hard don't: git_add_all`);
+    expect(c).toContain('**Reason**: F.001/F.011 - leaked .env twice');
+    expect(c).toContain('**Alternative**: git add <explicit-path>');
+    expect(c).toContain('**Applies to**: all surfaces');
+    // False case: no claude_md table syntax leaks into per-rule body
+    expect(c).not.toContain('| **git_add_all** |');
+  });
+
+  it('default body contains When/Do/Reason structure', () => {
+    const result = compiler.compile(makeFullV1Composition(), '');
+    const c = result.files['.cursor/rules/default-commit-now-if.mdc'];
+    expect(c).toContain('# Default: commit_now_if');
+    expect(c).toContain('**When**: coherent unit + tests pass');
+    expect(c).toContain('**Do**: commit to main, no PR');
+    expect(c).toContain('**Reason**: F.027 - agents own the room');
+  });
+
+  it('emits the index file at .cursor/rules/_ecosystem-context.mdc', () => {
+    const result = compiler.compile(makeFullV1Composition(), '');
+    expect(result.files).toHaveProperty('.cursor/rules/_ecosystem-context.mdc');
+    const idx = result.files['.cursor/rules/_ecosystem-context.mdc'];
+    // Identity in title
+    expect(idx).toContain('# ecosystem-engineering-agent');
+    // Authority order
+    expect(idx).toContain('## Authority order');
+    expect(idx).toContain('1. **GOLD vault**');
+    // Vision pillars
+    expect(idx).toContain('## Vision pillars');
+    expect(idx).toContain('Architecture beats alignment');
+    expect(idx).toContain('*(W.GOLD.001)*');
+    // Skill registry (one-liners, NOT per-skill files - that's compile_to_skill_md)
+    expect(idx).toContain('## Skill registry');
+    expect(idx).toContain('**/founder** (founder)');
+    // Routines table
+    expect(idx).toContain('| A-019 | `0 13 * * 1` |');
+    // Hard physical gaps
+    expect(idx).toContain('**trezor-signing**');
+    // Cross-references
+    expect(idx).toContain('## Authority cross-references');
+    expect(idx).toContain('**W.GOLD.001** *(diamond)* - Architecture beats alignment');
+  });
+
+  it('only the index file carries the generated-by trailer', () => {
+    const result = compiler.compile(makeFullV1Composition(), '');
+    const idx = result.files['.cursor/rules/_ecosystem-context.mdc'];
+    expect(idx).toContain('Generated by HoloScript ContextCompiler (compile_to_cursor_rules)');
+    // False case: per-rule files MUST NOT carry the trailer (Cursor
+    // displays rule body inline; trailer would clutter every fired rule).
+    const refusalContent = result.files['.cursor/rules/refusal-bandaid.mdc'];
+    expect(refusalContent).not.toContain('Generated by HoloScript');
+    const hardDontContent = result.files['.cursor/rules/hard-dont-git-add-all.mdc'];
+    expect(hardDontContent).not.toContain('Generated by HoloScript');
+    const defaultContent = result.files['.cursor/rules/default-commit-now-if.mdc'];
+    expect(defaultContent).not.toContain('Generated by HoloScript');
+  });
+
+  it('empty composition emits ONLY the index file (no per-rule files)', () => {
+    const result = compiler.compile(makeComposition(), '');
+    const keys = Object.keys(result.files);
+    // False case: no per-rule prefixes appear when no per-rule traits exist
+    expect(keys).toEqual(['.cursor/rules/_ecosystem-context.mdc']);
+    expect(keys).not.toContain('.cursor/rules/refusal-bandaid.mdc');
+    expect(result.files['.cursor/rules/_ecosystem-context.mdc']).toContain(
+      'Generated by HoloScript'
+    );
+  });
+
+  it('frontmatter description is single-line (no embedded newlines)', () => {
+    const compilerLocal = new ContextCompiler({ formats: ['cursor_rules'] });
+    const comp = makeComposition({
+      objects: [
+        {
+          type: 'Object',
+          name: 'AgentCtx',
+          properties: [],
+          traits: [
+            {
+              type: 'ObjectTrait',
+              name: 'refusal',
+              config: {
+                name: 'multi_line_reason',
+                when: 'always',
+                do: 'fix it',
+                do_not: ['ignore'],
+                reason: 'line one\nline two\nline three',
+              },
+            },
+          ],
+        },
+      ],
+    });
+    const result = compilerLocal.compile(comp, '');
+    const c = result.files['.cursor/rules/refusal-multi-line-reason.mdc'];
+    // Extract the description line from frontmatter
+    const descMatch = c.match(/^description: (.*)$/m);
+    expect(descMatch).not.toBeNull();
+    const desc = descMatch![1];
+    // False case: must not contain raw newlines (would break YAML)
+    expect(desc).not.toContain('\n');
+    // Spaces collapsed: "line one line two line three" appears in some form
+    expect(desc).toContain('line one line two line three');
+  });
+
+  it('rule names with special characters slug to safe filenames', () => {
+    const compilerLocal = new ContextCompiler({ formats: ['cursor_rules'] });
+    const comp = makeComposition({
+      objects: [
+        {
+          type: 'Object',
+          name: 'AgentCtx',
+          properties: [],
+          traits: [
+            {
+              type: 'ObjectTrait',
+              name: 'refusal',
+              config: {
+                name: 'has  spaces, punctuation! & symbols',
+                when: 'always',
+                do: 'fix it',
+                do_not: ['ignore'],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    const result = compilerLocal.compile(comp, '');
+    const keys = Object.keys(result.files);
+    const refusalKey = keys.find((k) => k.startsWith('.cursor/rules/refusal-'));
+    expect(refusalKey).toBeDefined();
+    // Must match safe filename pattern (alphanumeric + hyphens only)
+    expect(refusalKey).toMatch(/^\.cursor\/rules\/refusal-[a-z0-9-]+\.mdc$/);
+  });
+
+  it('dual-format compile (cursor_rules + claude_md) emits both shapes in one pass', () => {
+    const dual = new ContextCompiler({ formats: ['claude_md', 'cursor_rules'] });
+    const result = dual.compile(makeFullV1Composition(), '');
+    // Both single-file CLAUDE.md AND per-file Cursor outputs present
+    expect(result.files).toHaveProperty('CLAUDE.md');
+    expect(result.files).toHaveProperty('.cursor/rules/refusal-bandaid.mdc');
+    expect(result.files).toHaveProperty('.cursor/rules/_ecosystem-context.mdc');
+    // Shared AST drives both
+    expect(result.ast.identity?.name).toBe('ecosystem-engineering-agent');
+  });
+
+  it('triple-format compile (claude_md + agents_md + cursor_rules) emits all shapes', () => {
+    const triple = new ContextCompiler({
+      formats: ['claude_md', 'agents_md', 'cursor_rules'],
+    });
+    const result = triple.compile(makeFullV1Composition(), '');
+    expect(result.files).toHaveProperty('CLAUDE.md');
+    expect(result.files).toHaveProperty('AGENTS.md');
+    expect(result.files).toHaveProperty('.cursor/rules/_ecosystem-context.mdc');
+    expect(result.files).toHaveProperty('.cursor/rules/refusal-bandaid.mdc');
+    // Each carries its own trailer label
+    expect(result.files['CLAUDE.md']).toContain('compile_to_claude_md');
+    expect(result.files['AGENTS.md']).toContain('compile_to_agents_md');
+    expect(result.files['.cursor/rules/_ecosystem-context.mdc']).toContain(
+      'compile_to_cursor_rules'
+    );
+  });
+
+  it('refusal-only composition emits exactly one per-rule file plus index', () => {
+    const compilerLocal = new ContextCompiler({ formats: ['cursor_rules'] });
+    const comp = makeComposition({
+      objects: [
+        {
+          type: 'Object',
+          name: 'AgentCtx',
+          properties: [],
+          traits: [
+            {
+              type: 'ObjectTrait',
+              name: 'refusal',
+              config: { name: 'demote', when: 'silent scope cut', do: 'name it', do_not: ['silently descope'] },
+            },
+          ],
+        },
+      ],
+    });
+    const result = compilerLocal.compile(comp, '');
+    const keys = Object.keys(result.files).sort();
+    expect(keys).toEqual([
+      '.cursor/rules/_ecosystem-context.mdc',
+      '.cursor/rules/refusal-demote.mdc',
+    ]);
+    // False case: no hard-dont or default files appear when none declared
+    expect(keys.some((k) => k.includes('hard-dont-'))).toBe(false);
+    expect(keys.some((k) => k.includes('default-'))).toBe(false);
   });
 });
