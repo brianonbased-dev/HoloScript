@@ -35,7 +35,7 @@ describe('HoloScriptPlusParser - Extended Features', () => {
   });
 
   it('Parses VFX particle subtype traits as first-class VR traits', () => {
-    const source = `object#fx_ball @vfx_particle_sparks(color: "#ffaa22", intensity: 2) @vfx_particle_smoke(density: 0.7, drift: [0.1, 0.4, 0]) { position: [0, 1, 0] }`;
+    const source = `object#fx_ball @vfx_particle_sparks(color: "#ffaa22", intensity: 2) @vfx_particle_smoke(density: 0.7, drift: [0.1, 0.4, 0]) @vfx_particle_fire(count: 320, lifetime: 0.4) { position: [0, 1, 0] }`;
     const result = parser.parse(source);
     expect(result.success).toBe(true);
 
@@ -44,6 +44,8 @@ describe('HoloScriptPlusParser - Extended Features', () => {
     expect(node.traits.get('vfx_particle_sparks')?.intensity).toBe(2);
     expect(node.traits.has('vfx_particle_smoke')).toBe(true);
     expect(node.traits.get('vfx_particle_smoke')?.density).toBe(0.7);
+    expect(node.traits.has('vfx_particle_fire')).toBe(true);
+    expect(node.traits.get('vfx_particle_fire')?.count).toBe(320);
   });
 
   it('Parses @gem_resonance as a first-class VR trait', () => {

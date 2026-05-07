@@ -71,11 +71,14 @@ describe('VRTraitSystem — Production', () => {
     it('registers VFX particle subtype handlers through the GPU particle adapter', () => {
       const sparks = vrTraitRegistry.getHandler('vfx_particle_sparks' as any);
       const smoke = vrTraitRegistry.getHandler('vfx_particle_smoke' as any);
+      const fire = vrTraitRegistry.getHandler('vfx_particle_fire' as any);
 
       expect(sparks).toBeDefined();
       expect(smoke).toBeDefined();
+      expect(fire).toBeDefined();
       expect(sparks?.defaultConfig).toMatchObject({ effect: 'sparks', blend_mode: 'additive' });
       expect(smoke?.defaultConfig).toMatchObject({ effect: 'smoke', blend_mode: 'alpha' });
+      expect(fire?.defaultConfig).toMatchObject({ effect: 'fire', blend_mode: 'additive' });
     });
 
     it('returns undefined for unknown handler', () => {

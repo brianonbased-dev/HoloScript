@@ -106,6 +106,7 @@ describe('R3FCompiler — Production', () => {
             makeObj('sparkBall', 'sphere', [
               { name: 'vfx_particle_sparks', config: { count: 256 } },
               { name: 'vfx_particle_smoke', config: { density: 0.4 } },
+              { name: 'vfx_particle_fire', config: { lifetime: 0.35 } },
             ]),
           ],
         })
@@ -116,6 +117,7 @@ describe('R3FCompiler — Production', () => {
       expect(objNode?.props.gpuParticles).toEqual([
         expect.objectContaining({ effect: 'sparks', count: 256 }),
         expect.objectContaining({ effect: 'smoke', density: 0.4 }),
+        expect.objectContaining({ effect: 'fire', lifetime: 0.35 }),
       ]);
     });
 

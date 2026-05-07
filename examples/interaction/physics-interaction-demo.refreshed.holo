@@ -2,24 +2,21 @@
 // Physics Interaction Demo — Refreshed (A-009 2026-05-02)
 // ============================================================================
 // Same playground as v1.0 — three zones of physical mayhem — but now the
-// room is alive. Breakable targets burst with vfx sparks. The scoreboard
+// room is alive. Breakable targets burst with independent sparks, smoke, and
+// fire particle traits. The scoreboard
 // isn't text on a plane; it's a live interactive graph that plots throw
 // velocity and accuracy over time. When you shatter a full stack, the
 // announcer speaks.
 //
 // Traits added in this refresh:
-//   @vfx              -- particle burst system triggered on object break events
+//   @vfx_particle_sparks -- snap and impact flashes composed as their own trait
+//   @vfx_particle_smoke  -- lingering break-effect smoke composed independently
+//   @vfx_particle_fire   -- optional heat flash for high-energy shatter events
 //   @interactive_graph -- scoreboard shows live stat curves (velocity / accuracy)
 //   @speech           -- announcer voice calls out milestones ("Perfect throw!")
 //
 // Traits carried from v1.0 (exercised here, not new):
 //   @throwable @snappable @stackable @breakable @collidable @physics @holdable
-//
-// Miss captured for Phase 4:
-//   Wish: @vfx_particle_sparks, @vfx_particle_smoke as distinct first-class traits
-//   so vfx effects can compose independently of the underlying @breakable
-//   geometry. Currently vfx sub-types live in constants but have no
-//   VRTraitName entry — only the blanket @vfx exists. Filed as feature request.
 // ============================================================================
 
 composition "PhysicsInteractionDemoRefreshed" {
@@ -88,12 +85,14 @@ composition "PhysicsInteractionDemoRefreshed" {
     restitution: 0.78
   }
 
-  // Breakable targets now carry @vfx — burst of sparks on shatter
+  // Breakable targets compose first-class particle subtypes independently.
   template "BreakableTarget" {
     @breakable(break_force: 15, fragment_count: [10, 18], fragment_lifetime: 4.5)
     @breakable(fracture_pattern: "voronoi", debris_physics: true)
     @breakable(sound: "sounds/ceramic_break.ogg", particle_effect: "dust_puff")
-    @vfx(trigger: "on_break", effect: "spark_burst", color: "#ff8800", intensity: 1.4, radius: 0.6, duration: 0.8)
+    @vfx_particle_sparks(trigger: "on_break", count: 900, color: "#ff8800", intensity: 1.4, radius: 0.6, lifetime: 0.8)
+    @vfx_particle_smoke(trigger: "on_break", density: 0.45, color: "#6f6258", drift: [0.15, 0.55, -0.05], lifetime: 2.8)
+    @vfx_particle_fire(trigger: "on_break", count: 360, color: "#ff4d14", intensity: 0.55, radius: 0.35, lifetime: 0.35)
     @throwable(velocity_scale: 1.0, release_assist: false)
     @holdable(grip: "box", hand_pose: "relaxed_grip")
     @physics
@@ -107,6 +106,7 @@ composition "PhysicsInteractionDemoRefreshed" {
   template "SnapBlock" {
     @snappable(grid_size: 0.5, snap_force: "magnetic", snap_distance: 0.18, rotation_snap: 90, align_to_surface: true)
     @stackable(max_stack: 20, stability_check: true, wobble_threshold: 5, auto_align: true, settle_time: 0.3)
+    @vfx_particle_sparks(trigger: "on_snap", count: 160, color: "#26c6da", intensity: 0.75, radius: 0.22, lifetime: 0.28)
     @holdable(grip: "box", hand_pose: "pinch", haptic_on_grab: true)
     @physics
     @collidable
@@ -118,7 +118,7 @@ composition "PhysicsInteractionDemoRefreshed" {
 
   // ── Zone 1: Throwing Range ──────────────────────────────────────────────────
   // Three balls, three targets at close / mid / far. Each shatter fires the
-  // @vfx spark burst — orange flash in the zone's warm light.
+  // particle spark burst, smoke drift, and heat flash in the zone's warm light.
 
   object "Ground" {
     @collidable
@@ -217,7 +217,7 @@ composition "PhysicsInteractionDemoRefreshed" {
   }
 
   // ── Zone 3: Destructible Brick Wall ────────────────────────────────────────
-  // Each brick fires its own @vfx burst independently on shatter.
+  // Each brick fires its own particle subtype stack independently on shatter.
 
   object "Brick_00" using "BreakableTarget" {
     position: [5, 0.3, -2]
