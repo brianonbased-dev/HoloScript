@@ -58,11 +58,13 @@ jobs:
 
       - name: Build R3F renderer dependencies
         run: |
-          pnpm --filter @holoscript/engine build
           pnpm --filter @holoscript/llm-provider build
           pnpm --filter @holoscript/framework build
-          pnpm --filter @holoscript/mesh build
+          pnpm --filter @holoscript/crdt-spatial build
           pnpm --filter @holoscript/snn-webgpu build
+          pnpm --filter @holoscript/uaal build
+          pnpm --filter @holoscript/engine build
+          pnpm --filter @holoscript/mesh build
           pnpm --filter @holoscript/platform build
         env:
           NODE_OPTIONS: '--max-old-space-size=4096'
