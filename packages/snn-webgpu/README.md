@@ -183,6 +183,33 @@ Runtime policy:
 - Small matrices/graphs use CPU fallback paths automatically.
 - Larger problems use WebGPU tropical kernels with automatic CPU fallback on GPU errors.
 
+## Botanical Photo-to-Material Extraction
+
+Organic assets can now derive renderer-ready material parameters from provenance
+reference pixels instead of asking an agent to guess from the word "lotus".
+
+```ts
+import { extractBotanicalLotusMaterial, toBotanicalLotusTrait } from '@holoscript/snn-webgpu';
+
+const extraction = extractBotanicalLotusMaterial([
+  {
+    id: 'lotus-reference-01',
+    width: imageData.width,
+    height: imageData.height,
+    data: imageData.data,
+    role: 'material',
+    provenance: { contentHash: 'sha256:...', walletSignature: 'wallet:...' },
+  },
+]);
+
+console.log(extraction.material.subsurface_scattering);
+console.log(toBotanicalLotusTrait(extraction));
+```
+
+The extractor accepts RGBA pixel buffers so browser callers can pass `ImageData`
+directly, while Node pipelines can keep decoding, hashing, and CAEL wallet
+signing in their own trusted ingestion step.
+
 ## Performance
 
 - **10K neurons @ 60Hz**: ~5.2ms per timestep on RTX 3080

@@ -54,7 +54,7 @@ fn tropical_spmv(@builtin(global_invocation_id) gid: vec3<u32>) {
     return;
   }
 
-  var best = distIn[row];
+  var best: f32 = INF;
   let start = rowPtr[row];
   let finish = rowPtr[row + 1u];
 

@@ -56,9 +56,9 @@
     "petal_material": "MeshPhysicalMaterial with vertex colors, transmission, thickness, and double-sided petals",
     "photo_to_material_extractor": {
       "package": "@holoscript/snn-webgpu",
-      "entrypoint": "extractBotanicalMaterialFromPhotoFixtures",
-      "status": "available_pending_signed_photo_fixtures"
+      "entrypoint": "extractBotanicalLotusMaterial",
+      "status": "available_pending_raw_media_ingest"
     },
-    "photorealism_status": "extractor_available_pending_signed_photo_anchors"
+    "photorealism_status": "extractor_available_pending_raw_media_ingest"
   }
 }

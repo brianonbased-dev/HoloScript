@@ -50,6 +50,17 @@ function arraysEqual(a: Float32Array, b: Float32Array): boolean {
   return true;
 }
 
+function minDistances(a: Float32Array, b: Float32Array): Float32Array {
+  if (a.length !== b.length) {
+    throw new Error(`distance vector length mismatch (${a.length} !== ${b.length})`);
+  }
+  const out = new Float32Array(a.length);
+  for (let i = 0; i < a.length; i++) {
+    out[i] = Math.min(a[i], b[i]);
+  }
+  return out;
+}
+
 function transposeCSR(graph: TropicalCSRGraph): TropicalCSRGraph {
   const rows = graph.rowPtr.length - 1;
   const edgeCount = graph.colIdx.length;
@@ -241,7 +252,6 @@ export class TropicalShortestPaths {
       const iterations = Math.ceil(Math.log2(Math.max(1, n)));
 
       for (let i = 0; i < iterations; i++) {
-        // @ts-ignore
         current = await this.tropicalGemm(current, current, n, n, n);
       }
 
@@ -318,11 +328,11 @@ export class TropicalShortestPaths {
 
     try {
       for (let i = 0; i < rows - 1; i++) {
-        const next = await this.tropicalSpmv(incomingGraph, current);
+        const relaxed = await this.tropicalSpmv(incomingGraph, current);
+        const next = minDistances(current, relaxed);
         if (arraysEqual(current, next)) {
           return next;
         }
-        // @ts-ignore
         current = next;
       }
       return current;
