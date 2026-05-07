@@ -1,4 +1,5 @@
 import type { Vector3 } from '@holoscript/core';
+import { VertexNormalsHelper } from 'three/examples/jsm/helpers/VertexNormalsHelper.js';
 /**
  * SceneInspector.ts
  *
@@ -318,8 +319,7 @@ export class SceneInspector {
         currentUUIDs.add(object.uuid);
 
         if (!this.normalHelpers.has(object.uuid)) {
-          const HelperClass = (THREE as any).VertexNormalsHelper as any;
-          const helper = new HelperClass(object, 1, 0xff0000);
+          const helper = new VertexNormalsHelper(object, 1, 0xff0000);
           this.normalHelpers.set(object.uuid, helper);
           this.scene!.add(helper);
         } else {

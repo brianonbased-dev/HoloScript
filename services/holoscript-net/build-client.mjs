@@ -116,7 +116,10 @@ async function build() {
     },
     minify: true,
     sourcemap: true,
-    logLevel: 'info'
+    logLevel: 'info',
+    logOverride: {
+      'ignored-bare-import': 'silent',
+    },
   });
 
   if (fs.existsSync('dist/client/main.css')) {
