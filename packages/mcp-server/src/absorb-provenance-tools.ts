@@ -1,8 +1,32 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { handleCodebaseTool } from '@holoscript/absorb-service/mcp';
+import {
+  resolveSecretWithLease,
+  VaultLeaseError,
+} from './holomesh/identity/vault-lease-registry';
 
 /** Oldest knowledge entry newer than this → staleness `fresh` (vs `stale`). */
 const STALE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Phase 2 wrapper for the orchestrator graph-context fetch. Original code
+ * read `process.env.HOLOMESH_API_KEY || process.env.HOLOSCRIPT_API_KEY ||
+ * ''` — preserve that fallback chain. Each ref resolves through the lease
+ * helper independently so per-secret scope checks still hold under
+ * enforcement (a lease scoped to only HOLOMESH_API_KEY will not silently
+ * fall through to HOLOSCRIPT_API_KEY).
+ */
+function readGraphContextApiKey(): string {
+  const tryRead = (ref: 'env:HOLOMESH_API_KEY' | 'env:HOLOSCRIPT_API_KEY'): string => {
+    try {
+      return resolveSecretWithLease(ref) ?? '';
+    } catch (err) {
+      if (err instanceof VaultLeaseError) return '';
+      throw err;
+    }
+  };
+  return tryRead('env:HOLOMESH_API_KEY') || tryRead('env:HOLOSCRIPT_API_KEY') || '';
+}
 
 export const absorbProvenanceTools: Tool[] = [
   {
@@ -146,7 +170,10 @@ export async function fetchOrchestratorGraphContext(
   staleness: 'fresh' | 'stale' | 'unknown';
   knowledgeAsOf?: string;
 }> {
-  const apiKey = process.env.HOLOMESH_API_KEY || process.env.HOLOSCRIPT_API_KEY || '';
+  // Phase-2 wrapped read: graph-context fetch is a hot per-request path used
+  // by absorb_provenance_answer. Migration-window passthrough; lease-gated
+  // when HOLOMESH_VAULT_LEASE_ENFORCE is on.
+  const apiKey = readGraphContextApiKey();
   if (!search.trim() || !apiKey) {
     return { graphSnapshotId: fnv1a(`${search}|no-orchestrator`), staleness: 'unknown' };
   }

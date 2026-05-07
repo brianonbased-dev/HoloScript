@@ -16,6 +16,26 @@ import { renderHologramBundle } from './hologram-renderer';
 import { callHologramWorkerRender, isHologramWorkerConfigured } from './hologram-worker-client';
 import { publishHologramTeamFeed, sendHologramTeamMessage } from './hologram-holomesh-send';
 import { getHologramAsset, uploadHologramBundle } from './hologram-bundle-client';
+import {
+  resolveSecretWithLease,
+  VaultLeaseError,
+} from './holomesh/identity/vault-lease-registry';
+
+/**
+ * Phase 2 wrapper around `process.env.HOLOMESH_API_KEY` for hot per-request
+ * hologram routes (publish_feed, send). Migration-window passthrough until
+ * HOLOMESH_VAULT_LEASE_ENFORCE flips on, after which the read is gated by
+ * an active task lease scoped to `env:HOLOMESH_API_KEY`. Returning '' on
+ * VaultLeaseError preserves the previous `?.trim() || ''` semantics.
+ */
+function readHolomeshApiKey(): string {
+  try {
+    return resolveSecretWithLease('env:HOLOMESH_API_KEY')?.trim() ?? '';
+  } catch (err) {
+    if (err instanceof VaultLeaseError) return '';
+    throw err;
+  }
+}
 
 type HologramMediaType = 'image' | 'gif' | 'video';
 type HologramTarget = 'quilt' | 'mvhevc' | 'parallax';
@@ -539,7 +559,8 @@ export async function handleHologramTool(name: string, args: Record<string, unkn
     const shareUrl = typeof args.shareUrl === 'string' ? args.shareUrl.trim() : '';
     const teamIdRaw = typeof args.teamId === 'string' ? args.teamId.trim() : '';
     const teamId = teamIdRaw || process.env.HOLOMESH_TEAM_ID?.trim() || '';
-    const apiKey = process.env.HOLOMESH_API_KEY?.trim() || '';
+    // Phase-2 wrapped read for hologram publish_feed.
+    const apiKey = readHolomeshApiKey();
     if (!hash || !shareUrl) {
       throw new Error('hologram publish_feed: hash and shareUrl are required');
     }
@@ -563,7 +584,8 @@ export async function handleHologramTool(name: string, args: Record<string, unkn
     if (!teamId) {
       throw new Error('hologram send: teamId is required (or set HOLOMESH_TEAM_ID)');
     }
-    const apiKey = process.env.HOLOMESH_API_KEY?.trim() || '';
+    // Phase-2 wrapped read for hologram send.
+    const apiKey = readHolomeshApiKey();
     const holomesh = await sendHologramTeamMessage({
       teamId,
       apiKey,

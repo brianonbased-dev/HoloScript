@@ -38,6 +38,7 @@ import {
 } from './mesh-tool-registry';
 import { z } from 'zod';
 import { messagingTools, handleMessagingTool } from './messaging';
+import { resolveSecretWithLease, VaultLeaseError } from './identity/vault-lease-registry';
 import { notificationTools, handleNotificationTool } from './notifications';
 import { threadTools, handleThreadTool } from './threads';
 import { searchTools, handleSearchTool } from './search';
@@ -50,6 +51,25 @@ import {
   harvestMoltbookBroadcastContext,
 } from './moltbook-broadcast-context';
 import { buildMoltbookCrosspostPayload, createMoltbookPost } from '../moltbook/moltbook-post.js';
+
+/**
+ * Phase 2 wrapper around `process.env.HOLOSCRIPT_API_KEY` for hot per-request
+ * reads. During the migration window (`HOLOMESH_VAULT_LEASE_ENFORCE` unset
+ * or off) this is transparent passthrough; once enforcement flips on, the
+ * read is gated by an active task lease scoped to `env:HOLOSCRIPT_API_KEY`.
+ *
+ * Returning `''` on `VaultLeaseError` mirrors the previous `|| ''` semantics
+ * so callers do not see new throw sites during migration. Phase 3 can add
+ * explicit audit emission at these wrapped call sites.
+ */
+function readHoloscriptApiKey(): string {
+  try {
+    return resolveSecretWithLease('env:HOLOSCRIPT_API_KEY') ?? '';
+  } catch (err) {
+    if (err instanceof VaultLeaseError) return '';
+    throw err;
+  }
+}
 
 const moltbookCrosspostSchema = z.object({
   taskId: z.string().min(1),
@@ -848,8 +868,11 @@ async function handleMoltbookCrosspost(args: Record<string, unknown>) {
     process.env.HOLOMESH_MOLTBOOK_CROSSPOST_URL || `${orchestratorUrl}/api/moltbook/crosspost`;
 
   const authHeaders: Record<string, string> = { 'Content-Type': 'application/json; charset=utf-8' };
-  if (process.env.HOLOSCRIPT_API_KEY) {
-    authHeaders['x-mcp-api-key'] = process.env.HOLOSCRIPT_API_KEY;
+  // Phase-2 wrapped read: gated by `env:HOLOSCRIPT_API_KEY` lease when
+  // HOLOMESH_VAULT_LEASE_ENFORCE is on; transparent passthrough otherwise.
+  const moltbookCrosspostKey = readHoloscriptApiKey();
+  if (moltbookCrosspostKey) {
+    authHeaders['x-mcp-api-key'] = moltbookCrosspostKey;
   }
 
   const environmentContext =
@@ -950,8 +973,11 @@ async function handlePublishAgentTemplate(args: Record<string, unknown>) {
   const author = process.env.HOLOMESH_AGENT_NAME || 'holomesh-swarm';
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json; charset=utf-8' };
-  if (process.env.HOLOSCRIPT_API_KEY) {
-    headers['x-mcp-api-key'] = process.env.HOLOSCRIPT_API_KEY;
+  // Phase-2 wrapped read: marketplace publish header is a hot per-request
+  // path. Gated by `env:HOLOSCRIPT_API_KEY` lease when enforcement is on.
+  const marketplacePublishKey = readHoloscriptApiKey();
+  if (marketplacePublishKey) {
+    headers['x-mcp-api-key'] = marketplacePublishKey;
   }
 
   try {

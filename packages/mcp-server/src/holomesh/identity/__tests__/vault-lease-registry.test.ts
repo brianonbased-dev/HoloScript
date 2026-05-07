@@ -12,13 +12,17 @@
  * @module holomesh/identity/__tests__/vault-lease-registry.test
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   issueLease,
   getLease,
   findActiveLease,
   isLeaseValid,
   resolveSecret,
+  resolveSecretWithLease,
+  runWithTaskContext,
+  getCurrentTaskContext,
+  VaultLeaseError,
   revokeLease,
   revokeLeasesForTask,
   sweepExpiredLeases,
@@ -37,6 +41,26 @@ import {
 beforeEach(() => {
   _resetVaultLeaseRegistryForTests();
   _resetAuditLogForTests();
+});
+
+const ENV_KEYS_FOR_TESTS = [
+  'HOLOMESH_VAULT_LEASE_ENFORCE',
+  'LEASE_TEST_KEY',
+  'LEASE_TEST_OTHER',
+];
+const ORIGINAL_ENV = new Map(
+  ENV_KEYS_FOR_TESTS.map((key) => [key, process.env[key]])
+);
+
+afterEach(() => {
+  for (const key of ENV_KEYS_FOR_TESTS) {
+    const original = ORIGINAL_ENV.get(key);
+    if (original === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = original;
+    }
+  }
 });
 
 // -- issueLease ------------------------------------------------------------
@@ -557,6 +581,153 @@ describe('isLeaseValid', () => {
     });
     if (!issued.ok) return;
     expect(isLeaseValid(issued.lease.leaseId, t0 + 5000)).toBe(false);
+  });
+});
+
+// -- resolveSecretWithLease ------------------------------------------------
+
+describe('resolveSecretWithLease', () => {
+  it('passes through env refs while enforcement is disabled', () => {
+    delete process.env.HOLOMESH_VAULT_LEASE_ENFORCE;
+    process.env.LEASE_TEST_KEY = 'local-secret';
+
+    expect(resolveSecretWithLease('env:LEASE_TEST_KEY')).toBe('local-secret');
+  });
+
+  it('still rejects wallet refs while enforcement is disabled', () => {
+    delete process.env.HOLOMESH_VAULT_LEASE_ENFORCE;
+
+    expect(() => resolveSecretWithLease('env:HOLOMESH_WALLET_KEY')).toThrow(
+      VaultLeaseError
+    );
+    try {
+      resolveSecretWithLease('env:HOLOMESH_WALLET_KEY');
+    } catch (err) {
+      expect((err as VaultLeaseError).reason).toBe('unleasable_pattern');
+    }
+  });
+
+  it('rejects non-env refs because this helper only resolves process.env', () => {
+    expect(() => resolveSecretWithLease('x402:CLAUDECODE_X402')).toThrow(
+      VaultLeaseError
+    );
+    try {
+      resolveSecretWithLease('x402:CLAUDECODE_X402');
+    } catch (err) {
+      expect((err as VaultLeaseError).reason).toBe('lease_scope_violation');
+    }
+  });
+
+  it('requires AsyncLocalStorage task context when enforcement is enabled', () => {
+    process.env.HOLOMESH_VAULT_LEASE_ENFORCE = '1';
+    process.env.LEASE_TEST_KEY = 'local-secret';
+
+    expect(() => resolveSecretWithLease('env:LEASE_TEST_KEY')).toThrow(
+      VaultLeaseError
+    );
+    try {
+      resolveSecretWithLease('env:LEASE_TEST_KEY');
+    } catch (err) {
+      expect((err as VaultLeaseError).reason).toBe('no_task_context');
+    }
+  });
+
+  it('returns env value when enforcement is enabled and scope matches', () => {
+    process.env.HOLOMESH_VAULT_LEASE_ENFORCE = 'true';
+    process.env.LEASE_TEST_KEY = 'leased-secret';
+    const issued = issueLease({
+      taskId: 'task-lease',
+      agentId: 'agent-lease',
+      scope: ['env:LEASE_TEST_KEY'],
+    });
+    expect(issued.ok).toBe(true);
+
+    const value = runWithTaskContext(
+      { taskId: 'task-lease', agentId: 'agent-lease', agentTag: 'codex' },
+      () => resolveSecretWithLease('env:LEASE_TEST_KEY')
+    );
+
+    expect(value).toBe('leased-secret');
+  });
+
+  it('propagates task context across async continuations', async () => {
+    const taskId = await runWithTaskContext(
+      { taskId: 'task-async', agentId: 'agent-async' },
+      async () => {
+        await Promise.resolve();
+        return getCurrentTaskContext()?.taskId;
+      }
+    );
+
+    expect(taskId).toBe('task-async');
+  });
+
+  it('rejects when context exists but no active lease was issued', () => {
+    process.env.HOLOMESH_VAULT_LEASE_ENFORCE = 'on';
+    process.env.LEASE_TEST_KEY = 'local-secret';
+
+    expect(() =>
+      runWithTaskContext({ taskId: 'task-none', agentId: 'agent-none' }, () =>
+        resolveSecretWithLease('env:LEASE_TEST_KEY')
+      )
+    ).toThrow(VaultLeaseError);
+    try {
+      runWithTaskContext({ taskId: 'task-none', agentId: 'agent-none' }, () =>
+        resolveSecretWithLease('env:LEASE_TEST_KEY')
+      );
+    } catch (err) {
+      expect((err as VaultLeaseError).reason).toBe('no_active_lease');
+    }
+  });
+
+  it('rejects refs outside the active lease scope', () => {
+    process.env.HOLOMESH_VAULT_LEASE_ENFORCE = '1';
+    process.env.LEASE_TEST_OTHER = 'other-secret';
+    const issued = issueLease({
+      taskId: 'task-scope',
+      agentId: 'agent-scope',
+      scope: ['env:LEASE_TEST_KEY'],
+    });
+    expect(issued.ok).toBe(true);
+
+    expect(() =>
+      runWithTaskContext({ taskId: 'task-scope', agentId: 'agent-scope' }, () =>
+        resolveSecretWithLease('env:LEASE_TEST_OTHER')
+      )
+    ).toThrow(VaultLeaseError);
+    try {
+      runWithTaskContext({ taskId: 'task-scope', agentId: 'agent-scope' }, () =>
+        resolveSecretWithLease('env:LEASE_TEST_OTHER')
+      );
+    } catch (err) {
+      expect((err as VaultLeaseError).reason).toBe('lease_scope_violation');
+    }
+  });
+
+  it('throws env_value_missing after a valid lease resolves an unset env key', () => {
+    process.env.HOLOMESH_VAULT_LEASE_ENFORCE = '1';
+    delete process.env.LEASE_TEST_KEY;
+    const issued = issueLease({
+      taskId: 'task-missing-env',
+      agentId: 'agent-missing-env',
+      scope: ['env:LEASE_TEST_KEY'],
+    });
+    expect(issued.ok).toBe(true);
+
+    expect(() =>
+      runWithTaskContext(
+        { taskId: 'task-missing-env', agentId: 'agent-missing-env' },
+        () => resolveSecretWithLease('env:LEASE_TEST_KEY')
+      )
+    ).toThrow(VaultLeaseError);
+    try {
+      runWithTaskContext(
+        { taskId: 'task-missing-env', agentId: 'agent-missing-env' },
+        () => resolveSecretWithLease('env:LEASE_TEST_KEY')
+      );
+    } catch (err) {
+      expect((err as VaultLeaseError).reason).toBe('env_value_missing');
+    }
   });
 });
 

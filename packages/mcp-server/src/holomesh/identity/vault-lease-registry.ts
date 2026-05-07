@@ -69,6 +69,7 @@
  */
 
 import * as crypto from 'crypto';
+import { AsyncLocalStorage } from 'async_hooks';
 import { appendAuditEvent, hashPublicKey, type AuditEvent } from './audit-log';
 
 // -- Types -----------------------------------------------------------------
@@ -562,6 +563,209 @@ export function queryLeases(filter: {
     out.push({ ...lease, scope: [...lease.scope] }); // defensive copy
   }
   return out;
+}
+
+// -- Phase 2: AsyncLocalStorage task context + resolveSecretWithLease -----
+//
+// Phase 1 shipped the registry but explicitly deferred wrapping the actual
+// `process.env.<KEY>` reads at the call site (W.GOLD.191 honest-gap rule).
+// Phase 2 closes that gap for the highest-risk-tier 5 reads:
+//   - holomesh-tools.ts: HOLOSCRIPT_API_KEY in moltbook crosspost + marketplace publish headers
+//   - hologram-mcp-tools.ts: HOLOMESH_API_KEY in publish_feed + send
+//   - absorb-provenance-tools.ts: HOLOMESH_API_KEY / HOLOSCRIPT_API_KEY in graph-context fetch
+//
+// Why these five: per W.075 / W.088 / W.129 the API-key tokens shadow real
+// auth paths and have caused renderer hangs (W.088 webview), broken team-id
+// resolution (W.129), and silent auth-failure cascades (W.075). They are
+// per-request hot reads, so AsyncLocalStorage carries the active taskId
+// through the call stack to the helper. Constructor / singleton-init reads
+// keep raw `process.env` for now — those are config-time, not request-time,
+// and threading taskId through the boot path would be Phase 3 scope creep.
+//
+// Wallet refs (HOLOMESH_WALLET_*, TREZOR, LEDGER_PRIVATE etc) are NEVER
+// wrapped here per G.GOLD.016: wallets are identity, not sessions, and
+// wrapping them would imply they are leasable. Raw `process.env` stays for
+// those, with the issuance-time + resolve-time UNLEASABLE_PATTERNS check as
+// the existing belt-and-suspenders.
+
+/** Ambient task context propagated through the request call stack via
+ *  AsyncLocalStorage. Set by the runner / route handler at the request
+ *  boundary; read by `resolveSecretWithLease` deep in the call stack. */
+export interface TaskContext {
+  /** TeamTask.id this request is operating under. */
+  taskId: string;
+  /** Registered agent id (TeamTask.claimedBy) doing the work. */
+  agentId: string;
+  /** Surface-attribution tag captured at the request boundary, audit-only. */
+  agentTag?: string;
+}
+
+/** Module-private AsyncLocalStorage. Exported `runWithTaskContext` and
+ *  `getCurrentTaskContext` are the only public entry points; the storage
+ *  itself stays encapsulated so callers cannot hot-swap the context store. */
+const taskContextStore = new AsyncLocalStorage<TaskContext>();
+
+/** Run `fn` with `ctx` available to every `getCurrentTaskContext` /
+ *  `resolveSecretWithLease` call inside the call stack (including async
+ *  branches and Promise continuations). Use this at the request boundary
+ *  in the runner / route handler. */
+export function runWithTaskContext<T>(ctx: TaskContext, fn: () => T): T {
+  return taskContextStore.run(ctx, fn);
+}
+
+/** Read the current task context, or undefined if no `runWithTaskContext`
+ *  frame is active. Callers should treat undefined as "no lease enforcement
+ *  possible" — see `resolveSecretWithLease` for the policy. */
+export function getCurrentTaskContext(): TaskContext | undefined {
+  return taskContextStore.getStore();
+}
+
+/** Error thrown by `resolveSecretWithLease` when enforcement fails. The
+ *  `reason` is one of the existing `LeaseRejectReason` strings plus the
+ *  Phase-2-specific `no_task_context` (no AsyncLocalStorage frame active)
+ *  and `no_active_lease` (context exists, but no lease was issued for it). */
+export class VaultLeaseError extends Error {
+  public readonly reason:
+    | LeaseRejectReason
+    | 'no_task_context'
+    | 'no_active_lease'
+    | 'unleasable_pattern'
+    | 'env_value_missing';
+  public readonly secretRef: SecretRef;
+  constructor(
+    reason: VaultLeaseError['reason'],
+    secretRef: SecretRef,
+    message?: string
+  ) {
+    super(message ?? `vault lease ${reason} for ${secretRef}`);
+    this.name = 'VaultLeaseError';
+    this.reason = reason;
+    this.secretRef = secretRef;
+  }
+}
+
+/** True iff lease enforcement is enabled at runtime. When false, the helper
+ *  is transparent: it returns `process.env[bareKey]` without audit emission.
+ *  This is the W.GOLD.191-compatible rollout: wrap the call sites NOW (so
+ *  they are ready for enforcement), flip the flag to enable lease checks
+ *  once Phase 3 wraps the rest. */
+export function isVaultLeaseEnforcementEnabled(): boolean {
+  const flag = process.env.HOLOMESH_VAULT_LEASE_ENFORCE;
+  if (!flag) return false;
+  const v = flag.trim().toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes' || v === 'on';
+}
+
+/** Extract the bare env-key from an `env:`-prefixed secretRef. Returns
+ *  undefined for non-env refs (x402:, custodial:, gold:) — those are not
+ *  resolvable through `process.env` and the helper rejects them. */
+function envKeyForRef(secretRef: SecretRef): string | undefined {
+  if (!secretRef.startsWith('env:')) return undefined;
+  const key = secretRef.slice(4);
+  if (!key) return undefined;
+  return key;
+}
+
+/** Phase 2 substrate: resolve a secret value at the call site, gated by the
+ *  active task's lease.
+ *
+ *  Behaviour (enforcement ON, `HOLOMESH_VAULT_LEASE_ENFORCE=1`):
+ *    1. Read the active task context. If none → throw `no_task_context`.
+ *    2. Reject wallet refs unconditionally (G.GOLD.016 belt + suspenders).
+ *    3. Look up the active lease for (taskId, agentId). If none → throw
+ *       `no_active_lease`.
+ *    4. Call `resolveSecret` to enforce expiry / revocation / scope.
+ *    5. On success, return `process.env[bareKey]` (or undefined if unset
+ *       — caller decides whether missing-env is an error).
+ *    6. On failure, throw `VaultLeaseError` with the structured reason.
+ *
+ *  Behaviour (enforcement OFF, default):
+ *    Returns `process.env[bareKey]` directly. Wallet refs still throw
+ *    `unleasable_pattern` even with enforcement off, because wrapping a
+ *    wallet ref through this helper is a programming error regardless of
+ *    the flag. Non-env refs (x402, custodial, gold) throw — those resolve
+ *    through dedicated adapters, not process.env.
+ *
+ *  Why this asymmetry: enforcement OFF is the migration window where call
+ *  sites are wrapped but Phase 3 hasn't shipped yet. Wallet protection is
+ *  not part of the migration window — it must hold from day 1.
+ *
+ *  Returns undefined when the env var itself is unset and enforcement is
+ *  off; throws `env_value_missing` when enforcement is on AND the lease
+ *  resolved successfully AND the env value is empty (because that is a
+ *  config error, not a permission problem).
+ */
+export function resolveSecretWithLease(secretRef: SecretRef): string | undefined {
+  // Wallet protection runs FIRST, before context lookup, regardless of
+  // enforcement flag. Wrapping a wallet through this helper is a bug.
+  if (isWalletRef(secretRef)) {
+    throw new VaultLeaseError(
+      'unleasable_pattern',
+      secretRef,
+      `secretRef '${secretRef}' matches wallet pattern; wallets are identity, not sessions (G.GOLD.016). Read directly from process.env, not via lease helper.`
+    );
+  }
+
+  // Only env: refs are resolvable here. Other surfaces (x402, custodial,
+  // gold) have their own adapters; routing them through this helper would
+  // make the wrong promise.
+  const bareKey = envKeyForRef(secretRef);
+  if (bareKey === undefined) {
+    throw new VaultLeaseError(
+      'lease_scope_violation',
+      secretRef,
+      `secretRef '${secretRef}' is not an env-surface ref; only env:* refs resolve through resolveSecretWithLease`
+    );
+  }
+
+  const enforce = isVaultLeaseEnforcementEnabled();
+  if (!enforce) {
+    // Migration window: transparent passthrough. The call site is wrapped
+    // but the lease layer does not gate the read yet.
+    return process.env[bareKey];
+  }
+
+  // Enforcement ON: lease check is mandatory.
+  const ctx = getCurrentTaskContext();
+  if (!ctx) {
+    throw new VaultLeaseError(
+      'no_task_context',
+      secretRef,
+      `vault lease enforcement is ON but no task context is active for ref '${secretRef}'. Wrap the request entry point in runWithTaskContext({taskId, agentId}).`
+    );
+  }
+
+  const lease = findActiveLease(ctx.taskId, ctx.agentId);
+  if (!lease) {
+    throw new VaultLeaseError(
+      'no_active_lease',
+      secretRef,
+      `no active lease for (task=${ctx.taskId}, agent=${ctx.agentId}); issue a lease scoped to '${secretRef}' first`
+    );
+  }
+
+  const decision = resolveSecret({
+    leaseId: lease.leaseId,
+    agentId: ctx.agentId,
+    secretRef,
+  });
+  if (!decision.ok) {
+    throw new VaultLeaseError(
+      decision.reason ?? 'lease_scope_violation',
+      secretRef,
+      `lease ${lease.leaseId} denied secretRef '${secretRef}': ${decision.reason}`
+    );
+  }
+
+  const value = process.env[bareKey];
+  if (value === undefined || value === '') {
+    throw new VaultLeaseError(
+      'env_value_missing',
+      secretRef,
+      `lease resolved but process.env['${bareKey}'] is unset/empty; configuration error, not a permission issue`
+    );
+  }
+  return value;
 }
 
 // -- Test helpers ----------------------------------------------------------
