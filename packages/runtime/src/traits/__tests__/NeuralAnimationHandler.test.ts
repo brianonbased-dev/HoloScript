@@ -15,6 +15,7 @@ import {
   buildSyntheticBipedPose,
   createSyntheticWalkCycleEngine,
   SYNTHETIC_WALK_JOINTS,
+  type MotionInferenceInput,
   type MotionMatchingEngine,
   type MotionInferenceResult,
 } from '@holoscript/core/traits/engines';
@@ -251,7 +252,7 @@ describe('NeuralAnimationHandler — runtime bridge (RULING 2 pilot)', () => {
       loaded: true,
       load: async () => {},
       dispose: () => {},
-      infer: (input): MotionInferenceResult => ({
+      infer: (input: MotionInferenceInput): MotionInferenceResult => ({
         pose: { joints: {}, timestamp: 0 },
         phase: input.currentPhase,
         trajectory: [],

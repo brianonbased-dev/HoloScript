@@ -2,10 +2,10 @@
  * VRRRuntime — execution coverage aligned with `VRRCompiler` generated bundles.
  * @see packages/core/src/compiler/VRRCompiler.ts
  *
- * Import `.ts` explicitly so Vitest resolves current source (`.js` can bind to stale analysis output).
+ * Import the extensionless source module so both Vitest and tsc noEmit resolve it.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { VRRRuntime, type VRRRuntimeOptions } from './VRRRuntime.ts';
+import { VRRRuntime, type VRRRuntimeOptions } from './VRRRuntime';
 
 function baseOptions(overrides: Partial<VRRRuntimeOptions> = {}): VRRRuntimeOptions {
   return {
