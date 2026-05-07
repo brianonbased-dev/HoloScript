@@ -80,29 +80,34 @@ Rules: Return code only. y >= 0. Use @static on floors.`;
 // BitNet Adapter
 // =============================================================================
 
+/**
+ * Capability manifest — BitNet 1-bit quantized models on local CPU
+ * (~500MB model, no GPU required). Tiny model with limited capabilities;
+ * keep declaration minimal and honest. Brains routing here should expect
+ * the no-frills baseline: text in, text out, $0 marginal cost.
+ *
+ * Exported as a constant so the capability-aware router can read it
+ * without instantiating the adapter — single source of truth per W.GOLD.006.
+ */
+export const BITNET_CAPABILITIES: Capabilities = {
+  contextWindow: 0,              // BitNet 2B-4T: ~4K context typical
+  maxOutput: 0,
+
+  streaming: true,
+  tools: false,                  // BitNet 2B-4T not reliable at function calling
+  vision: false,
+
+  local: true,
+  zeroMarginalInference: true,   // CPU-local, $0
+  bearerTokenAccess: false,
+};
+
 export class BitNetAdapter extends BaseLLMAdapter {
   readonly name = 'bitnet' as const;
   readonly models = BITNET_MODELS;
   readonly defaultHoloScriptModel: string;
 
-  /**
-   * Capability manifest — BitNet 1-bit quantized models on local CPU
-   * (~500MB model, no GPU required). Tiny model with limited capabilities;
-   * keep declaration minimal and honest. Brains routing here should expect
-   * the no-frills baseline: text in, text out, $0 marginal cost.
-   */
-  readonly capabilities: Capabilities = {
-    contextWindow: 0,              // BitNet 2B-4T: ~4K context typical
-    maxOutput: 0,
-
-    streaming: true,
-    tools: false,                  // BitNet 2B-4T not reliable at function calling
-    vision: false,
-
-    local: true,
-    zeroMarginalInference: true,   // CPU-local, $0
-    bearerTokenAccess: false,
-  };
+  readonly capabilities: Capabilities = BITNET_CAPABILITIES;
 
   private readonly localBaseURL: string;
 

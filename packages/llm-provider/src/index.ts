@@ -74,30 +74,49 @@ export { BaseLLMAdapter } from './base-adapter';
 export {
   OpenAIAdapter,
   OPENAI_MODELS,
+  OPENAI_CAPABILITIES,
   messagesToOpenAIResponsesInput,
   parseOpenAIResponsesResult,
   toolSpecsToOpenAIResponseTools,
 } from './adapters/openai';
 export type { OpenAIModel } from './adapters/openai';
 
-export { AnthropicAdapter, ANTHROPIC_MODELS, buildThinkingAndOutputForAnthropic } from './adapters/anthropic';
+export {
+  AnthropicAdapter,
+  ANTHROPIC_MODELS,
+  ANTHROPIC_CAPABILITIES,
+  buildThinkingAndOutputForAnthropic,
+} from './adapters/anthropic';
 export type { AnthropicModel } from './adapters/anthropic';
 
-export { GeminiAdapter, GEMINI_MODELS } from './adapters/gemini';
+export { GeminiAdapter, GEMINI_MODELS, GEMINI_CAPABILITIES } from './adapters/gemini';
 export type { GeminiModel } from './adapters/gemini';
 
-export { MockAdapter } from './adapters/mock';
+export { MockAdapter, MOCK_CAPABILITIES } from './adapters/mock';
 
-export { BitNetAdapter, BITNET_MODELS, BITNET_MODEL_ALIASES } from './adapters/bitnet';
+export {
+  BitNetAdapter,
+  BITNET_MODELS,
+  BITNET_MODEL_ALIASES,
+  BITNET_CAPABILITIES,
+} from './adapters/bitnet';
 export type { BitNetModel } from './adapters/bitnet';
 
-export { LocalLLMAdapter, LOCAL_LLM_MODELS } from './adapters/local-llm';
+export {
+  LocalLLMAdapter,
+  LOCAL_LLM_MODELS,
+  LOCAL_LLM_CAPABILITIES,
+} from './adapters/local-llm';
 export type { LocalLLMModel } from './adapters/local-llm';
 
-export { OpenRouterAdapter, OPENROUTER_MODELS } from './adapters/openrouter';
+export {
+  OpenRouterAdapter,
+  OPENROUTER_MODELS,
+  OPENROUTER_CAPABILITIES,
+} from './adapters/openrouter';
 export type { OpenRouterModel } from './adapters/openrouter';
 
-export { XAIAdapter, XAI_MODELS } from './adapters/xai';
+export { XAIAdapter, XAI_MODELS, XAI_CAPABILITIES } from './adapters/xai';
 export type { XAIModel } from './adapters/xai';
 
 // Provider manager

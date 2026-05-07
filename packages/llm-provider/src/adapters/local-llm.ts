@@ -73,35 +73,40 @@ Rules:
 // LocalLLM Adapter
 // =============================================================================
 
+/**
+ * Capability manifest — Ollama / llama.cpp / LM Studio / vLLM via
+ * OpenAI-compatible interface. Capabilities are PER-MODEL not
+ * per-provider; this is the conservative manifest for the
+ * runtime itself. Brains needing specific local-model superpowers
+ * (e.g. tool-use on deepseek-v3.1) should override via per-deployment
+ * capability declarations.
+ *
+ * Per /research task_1778109552044_xhmm — populate per-model
+ * capability sheets for the models actually run (deepseek-v3.1:671b,
+ * gpt-oss:120b, kimi-1T cloud, etc.). Until then: conservative defaults.
+ *
+ * Exported as a constant so the capability-aware router can read it
+ * without instantiating the adapter — single source of truth per W.GOLD.006.
+ */
+export const LOCAL_LLM_CAPABILITIES: Capabilities = {
+  contextWindow: 0,              // per-model — populate per deployment
+  maxOutput: 0,
+
+  streaming: true,
+  tools: false,                  // model-dependent; many local models don't tool-call reliably
+  vision: false,                 // model-dependent
+
+  local: true,                   // hardware-native deployment
+  zeroMarginalInference: true,   // compute paid via GPU rental, $0 per-call
+  bearerTokenAccess: false,      // local server, no auth required
+};
+
 export class LocalLLMAdapter extends BaseLLMAdapter {
   readonly name = 'local-llm' as const;
   readonly models = LOCAL_LLM_MODELS;
   readonly defaultHoloScriptModel: string;
 
-  /**
-   * Capability manifest — Ollama / llama.cpp / LM Studio / vLLM via
-   * OpenAI-compatible interface. Capabilities are PER-MODEL not
-   * per-provider; this is the conservative manifest for the
-   * runtime itself. Brains needing specific local-model superpowers
-   * (e.g. tool-use on deepseek-v3.1) should override via per-deployment
-   * capability declarations.
-   *
-   * Per /research task_1778109552044_xhmm — populate per-model
-   * capability sheets for the models actually run (deepseek-v3.1:671b,
-   * gpt-oss:120b, kimi-1T cloud, etc.). Until then: conservative defaults.
-   */
-  readonly capabilities: Capabilities = {
-    contextWindow: 0,              // per-model — populate per deployment
-    maxOutput: 0,
-
-    streaming: true,
-    tools: false,                  // model-dependent; many local models don't tool-call reliably
-    vision: false,                 // model-dependent
-
-    local: true,                   // hardware-native deployment
-    zeroMarginalInference: true,   // compute paid via GPU rental, $0 per-call
-    bearerTokenAccess: false,      // local server, no auth required
-  };
+  readonly capabilities: Capabilities = LOCAL_LLM_CAPABILITIES;
 
   private readonly localBaseURL: string;
 

@@ -138,46 +138,53 @@ export function buildThinkingAndOutputForAnthropic(
  * console.log(scene.code);
  * ```
  */
+/**
+ * Capability manifest sourced from `ai-ecosystem/docs/LLM_CAPABILITIES.md`
+ * § Anthropic. Multi-model provider — `contextWindow` / `maxOutput` declare
+ * the MAX across the lineup (Opus 4.7/4.6 + Sonnet 4.6 = 1M context, 128K
+ * out; Haiku 4.5 is 200K/64K). `costPerMillion` intentionally omitted —
+ * varies by model (Opus $5/$25, Sonnet $3/$15, Haiku $1/$5). Per-model
+ * pricing lives in `holoscript-agent/src/cost-guard.ts`
+ * `ANTHROPIC_PRICING_USD_PER_MTOK`.
+ *
+ * Exported as a constant so the capability-aware router in
+ * holoscript-agent can read it without instantiating the adapter
+ * (which requires an API key). The instance property below references
+ * this constant — single source of truth per W.GOLD.006.
+ */
+export const ANTHROPIC_CAPABILITIES: Capabilities = {
+  contextWindow: 1_000_000,
+  maxOutput: 128_000,
+
+  streaming: true,
+  tools: true,
+
+  vision: true,
+  highResVision: true,           // Opus 4.7 — 2576px long edge
+  visibleReasoning: true,        // adaptive thinking
+  adjustableEffort: true,        // low / medium / high / xhigh / max
+
+  liveWebSearch: true,           // server-side web_search tool (proxy, not real-time)
+  codeExecutionSandbox: true,    // server-side code_execution
+  promptCaching: true,           // cache_control breakpoints, 5min/1hr TTL
+  perLoopBudget: true,           // Task Budgets — beta task-budgets-2026-03-13 (Opus 4.7)
+  serverSideCompaction: true,    // beta compact-2026-01-12 (4.6+)
+  hostedAgenticLoop: true,       // Managed Agents — beta managed-agents-2026-04-01 (1P only)
+  persistentMemoryStore: true,   // Memory Stores (under managed-agents)
+  structuredOutputs: true,       // strict JSON schema
+  batchApi: true,                // 50% off, 24h SLA
+
+  bedrockAvailable: true,
+  vertexAvailable: true,
+  bearerTokenAccess: true,
+};
+
 export class AnthropicAdapter extends BaseLLMAdapter {
   readonly name = 'anthropic' as const;
   readonly models = ANTHROPIC_MODELS;
   readonly defaultHoloScriptModel: string;
 
-  /**
-   * Capability manifest sourced from `ai-ecosystem/docs/LLM_CAPABILITIES.md`
-   * § Anthropic. Multi-model provider — `contextWindow` / `maxOutput` declare
-   * the MAX across the lineup (Opus 4.7/4.6 + Sonnet 4.6 = 1M context, 128K
-   * out; Haiku 4.5 is 200K/64K). `costPerMillion` intentionally omitted —
-   * varies by model (Opus $5/$25, Sonnet $3/$15, Haiku $1/$5). Per-model
-   * pricing lives in `holoscript-agent/src/cost-guard.ts`
-   * `ANTHROPIC_PRICING_USD_PER_MTOK`.
-   */
-  readonly capabilities: Capabilities = {
-    contextWindow: 1_000_000,
-    maxOutput: 128_000,
-
-    streaming: true,
-    tools: true,
-
-    vision: true,
-    highResVision: true,           // Opus 4.7 — 2576px long edge
-    visibleReasoning: true,        // adaptive thinking
-    adjustableEffort: true,        // low / medium / high / xhigh / max
-
-    liveWebSearch: true,           // server-side web_search tool (proxy, not real-time)
-    codeExecutionSandbox: true,    // server-side code_execution
-    promptCaching: true,           // cache_control breakpoints, 5min/1hr TTL
-    perLoopBudget: true,           // Task Budgets — beta task-budgets-2026-03-13 (Opus 4.7)
-    serverSideCompaction: true,    // beta compact-2026-01-12 (4.6+)
-    hostedAgenticLoop: true,       // Managed Agents — beta managed-agents-2026-04-01 (1P only)
-    persistentMemoryStore: true,   // Memory Stores (under managed-agents)
-    structuredOutputs: true,       // strict JSON schema
-    batchApi: true,                // 50% off, 24h SLA
-
-    bedrockAvailable: true,
-    vertexAvailable: true,
-    bearerTokenAccess: true,
-  };
+  readonly capabilities: Capabilities = ANTHROPIC_CAPABILITIES;
 
   private readonly apiVersion: string;
   private readonly enablePromptCaching: boolean;

@@ -347,55 +347,60 @@ function parseChatToolCalls(choice: unknown): {
  * console.log(scene.code);
  * ```
  */
+/**
+ * Capability manifest sourced from `ai-ecosystem/docs/LLM_CAPABILITIES.md`
+ * § OpenAI. Per OpenAI/Codex self-audit 2026-05-06: Responses API is the
+ * primary surface (default since commit 1eebdf0ed); Chat Completions kept
+ * as compatibility surface. Lineup spans GPT-5.5 / GPT-5.4 family /
+ * GPT-5.3-codex / o-series / Realtime / Embeddings / GPT Image.
+ *
+ * `contextWindow` / `maxOutput` set to 0 (unknown) until /research
+ * task_1778109552044_wstq populates the per-model spec table — F.014 /
+ * W.GOLD.341 forbid pasting training-era stats. `costPerMillion` omitted
+ * for the same reason (varies per model).
+ *
+ * Exported as a constant so the capability-aware router can read it
+ * without instantiating the adapter — single source of truth per W.GOLD.006.
+ */
+export const OPENAI_CAPABILITIES: Capabilities = {
+  contextWindow: 0,              // [VERIFY task_1778109552044_wstq]
+  maxOutput: 0,                  // [VERIFY task_1778109552044_wstq]
+
+  streaming: true,
+  tools: true,                   // Responses function calling
+
+  vision: true,                  // GPT-5.x, GPT-4o family
+  audioInput: true,              // Realtime API
+  audioOutput: true,             // Realtime API
+  imageGeneration: true,         // GPT Image
+
+  visibleReasoning: true,        // reasoning summaries/items; raw CoT is not exposed
+  adjustableEffort: true,        // reasoning effort: none/minimal/low/medium/high/xhigh
+
+  liveWebSearch: true,           // Responses web_search tool (first-party)
+  hostedShell: true,             // Responses shell — DEFAULT-DENY in policy layer (W.GOLD don't)
+  codeExecutionSandbox: true,    // Responses code interpreter
+  fileSearchBuiltIn: true,       // Vector stores — NOT source-of-truth (W.GOLD don't)
+  promptCaching: true,           // automatic prompt caching + retention controls
+  hostedAgenticLoop: true,       // Agents SDK — interop only, never replaces HoloMesh (W.GOLD don't)
+  persistentMemoryStore: true,   // Vector stores
+  structuredOutputs: true,       // strict JSON schema
+  embeddings: true,              // first-class endpoint
+  batchApi: true,                // 50% off, 24h SLA
+  realtimeVoice: true,           // Realtime API (WebRTC/SIP/WebSocket)
+  embeddedChatUI: true,          // ChatKit
+  appsIframeSurface: true,       // Apps SDK (MCP-Apps iframe)
+  evalsFirstParty: true,         // Evals + Prompt Optimizer
+
+  bearerTokenAccess: true,
+};
+
 export class OpenAIAdapter extends BaseLLMAdapter {
   readonly name = 'openai' as const;
   readonly models = OPENAI_MODELS;
   readonly defaultHoloScriptModel: string;
 
-  /**
-   * Capability manifest sourced from `ai-ecosystem/docs/LLM_CAPABILITIES.md`
-   * § OpenAI. Per OpenAI/Codex self-audit 2026-05-06: Responses API is the
-   * primary surface (default since commit 1eebdf0ed); Chat Completions kept
-   * as compatibility surface. Lineup spans GPT-5.5 / GPT-5.4 family /
-   * GPT-5.3-codex / o-series / Realtime / Embeddings / GPT Image.
-   *
-   * `contextWindow` / `maxOutput` set to 0 (unknown) until /research
-   * task_1778109552044_wstq populates the per-model spec table — F.014 /
-   * W.GOLD.341 forbid pasting training-era stats. `costPerMillion` omitted
-   * for the same reason (varies per model).
-   */
-  readonly capabilities: Capabilities = {
-    contextWindow: 0,              // [VERIFY task_1778109552044_wstq]
-    maxOutput: 0,                  // [VERIFY task_1778109552044_wstq]
-
-    streaming: true,
-    tools: true,                   // Responses function calling
-
-    vision: true,                  // GPT-5.x, GPT-4o family
-    audioInput: true,              // Realtime API
-    audioOutput: true,             // Realtime API
-    imageGeneration: true,         // GPT Image
-
-    visibleReasoning: true,        // reasoning summaries/items; raw CoT is not exposed
-    adjustableEffort: true,        // reasoning effort: none/minimal/low/medium/high/xhigh
-
-    liveWebSearch: true,           // Responses web_search tool (first-party)
-    hostedShell: true,             // Responses shell — DEFAULT-DENY in policy layer (W.GOLD don't)
-    codeExecutionSandbox: true,    // Responses code interpreter
-    fileSearchBuiltIn: true,       // Vector stores — NOT source-of-truth (W.GOLD don't)
-    promptCaching: true,           // automatic prompt caching + retention controls
-    hostedAgenticLoop: true,       // Agents SDK — interop only, never replaces HoloMesh (W.GOLD don't)
-    persistentMemoryStore: true,   // Vector stores
-    structuredOutputs: true,       // strict JSON schema
-    embeddings: true,              // first-class endpoint
-    batchApi: true,                // 50% off, 24h SLA
-    realtimeVoice: true,           // Realtime API (WebRTC/SIP/WebSocket)
-    embeddedChatUI: true,          // ChatKit
-    appsIframeSurface: true,       // Apps SDK (MCP-Apps iframe)
-    evalsFirstParty: true,         // Evals + Prompt Optimizer
-
-    bearerTokenAccess: true,
-  };
+  readonly capabilities: Capabilities = OPENAI_CAPABILITIES;
 
   private readonly organization?: string;
   private readonly apiSurface: NonNullable<OpenAIProviderConfig['apiSurface']>;
