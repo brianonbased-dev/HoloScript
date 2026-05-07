@@ -52,11 +52,17 @@ jobs:
 
       - name: Build studio's type dependencies (provides dist/*.d.ts for tsc to resolve workspace package exports and subpath imports like @holoscript/core-types/ans, @holoscript/engine/orbital, @holoscript/framework/learning, @holoscript/mesh)
         run: |
-          pnpm -r --filter '@holoscript/core^...' --filter '!@holoscript/core' --workspace-concurrency=1 run --if-present build
+          pnpm --filter @holoscript/core-types build
+          pnpm --filter @holoscript/domain-plugin-template build
+          pnpm --filter @holoscript/plugin-emergency-response build
+          pnpm --filter @holoscript/plugin-film-vfx build
+          pnpm --filter @holoscript/plugin-forensics build
+          pnpm --filter @holoscript/plugin-threat-intelligence build
           pnpm --filter @holoscript/core build
           pnpm --filter @holoscript/engine build
           pnpm --filter @holoscript/llm-provider build
           pnpm --filter @holoscript/framework build
+          pnpm --filter @holoscript/crdt-spatial build
           pnpm --filter @holoscript/mesh build
           pnpm --filter @holoscript/r3f-renderer build
 
