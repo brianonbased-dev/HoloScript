@@ -242,5 +242,11 @@ describe('holomesh mesh tool handlers', () => {
 
     expect(invoked.success).toBe(true);
     expect((invoked.invocation as Record<string, unknown>).dryRun).toBe(true);
+    expect((invoked.attestation as Record<string, unknown>).chainLength).toBe(1);
+    expect(
+      verifyMeshToolInvocationChain(
+        (invoked.attestation as { provenanceChain: MeshToolInvocationHop[] }).provenanceChain
+      ).verified
+    ).toBe(true);
   });
 });

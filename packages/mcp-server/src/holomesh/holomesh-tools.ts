@@ -774,21 +774,40 @@ async function handleInvokeTool(
       };
     }
 
-    const result = await invokePublishedMeshTool(
-      selected,
-      (args.args as Record<string, unknown> | undefined) || {},
-      {
-        dryRun: args.dry_run === true,
-        allowHighRisk: args.allow_high_risk === true,
-      }
-    );
-    const priorChain = Array.isArray(args.provenance_chain) ? args.provenance_chain : [];
-    const hop = {
-      manifestId: selected.id,
-      manifestHash: selected.attestation.manifestHash,
-      invokedAt: new Date().toISOString(),
-      callerAgentId: args.caller_agent_id || process.env.HOLOMESH_AGENT_ID || 'did:agent:local',
-    };
+    const toolArgs =
+      args.args && typeof args.args === 'object' && !Array.isArray(args.args)
+        ? (args.args as Record<string, unknown>)
+        : {};
+    const priorChain = Array.isArray(args.provenance_chain)
+      ? (args.provenance_chain as MeshToolInvocationHop[])
+      : [];
+    const verification = verifyMeshToolInvocationChain(priorChain);
+    if (!verification.verified) {
+      return {
+        success: false,
+        error: `Invalid provenance chain: ${verification.errors.join('; ')}`,
+      };
+    }
+
+    const result = await invokePublishedMeshTool(selected, toolArgs, {
+      dryRun: args.dry_run === true,
+      allowHighRisk: args.allow_high_risk === true,
+    });
+    const hop = createMeshToolInvocationHop(selected, toolArgs, {
+      callerAgentId:
+        typeof args.caller_agent_id === 'string'
+          ? args.caller_agent_id
+          : process.env.HOLOMESH_AGENT_ID || 'did:agent:local',
+      invocationId: typeof args.invocation_id === 'string' ? args.invocation_id : undefined,
+      invokedAt:
+        typeof args.invoked_at === 'string'
+          ? args.invoked_at
+          : typeof args.timestamp === 'string'
+            ? args.timestamp
+            : undefined,
+      previousHash: verification.lastHash,
+    });
+    const provenanceChain = [...priorChain, hop];
 
     return {
       success: typeof result === 'object' && result !== null && 'success' in result
@@ -801,7 +820,13 @@ async function handleInvokeTool(
         score: scoreMeshToolManifest(query, tool),
       })),
       invocation: result,
-      provenance_chain: [...priorChain, hop],
+      attestation: {
+        verified: true,
+        chainLength: provenanceChain.length,
+        argsHash: hop.argsHash,
+        provenanceChain,
+      },
+      provenance_chain: provenanceChain,
     };
   } catch (err: unknown) {
     return { error: `Tool invocation failed: ${err instanceof Error ? err.message : String(err)}` };
