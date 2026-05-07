@@ -51,6 +51,7 @@ import {
 import { handleOracleConsult } from './oracle-handler';
 import { isHoloMapToolName, handleHoloMapTool } from './holomap-mcp-tools';
 import { isSpatialMcpToolName, handleSpatialMcpTool } from './spatial-mcp-tools';
+import { isNegotiationToolName, handleNegotiationTool } from './negotiation-mcp-tools';
 import { isHologramToolName, handleHologramTool } from './hologram-mcp-tools';
 import { isHoloTwinToolName, handleHoloTwinTool } from './holotwin-mcp-tools';
 import { handleEstimateTaskDurationTool } from './tools/estimate_task_duration';
@@ -485,6 +486,13 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
   // Spatial MCP - compile_to_spatial (v0.1, research/2026-05-07_spatial-mcp-spec.md)
   if (isSpatialMcpToolName(name)) {
     return handleSpatialMcpTool(name, args);
+  }
+
+  // Agent negotiation primitives (task_1778175122619_xk5l) — wraps xsp6 / qe2i
+  // pure logic in MCP-shape adapters so external agents can drive the
+  // request_quote → quote → accept → execute → settle / dispute cycle via MCP.
+  if (isNegotiationToolName(name)) {
+    return handleNegotiationTool(name, args);
   }
 
   throw new Error(`Unknown tool: ${name}`);

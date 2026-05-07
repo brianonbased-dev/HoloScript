@@ -58,6 +58,10 @@ import {
   hologramContentToolDefinitions,
   handleHologramContentTool,
 } from './hologram-content-tools';
+import {
+  negotiationToolDefinitions,
+  handleNegotiationTool,
+} from './negotiation-mcp-tools';
 import { handleBatchToolCall } from './tooling-discovery-tools';
 import {
   isHologramMcpResponse,
@@ -89,6 +93,7 @@ const ALL_AVAILABLE_TOOLS: Tool[] = [
   ...holotwinToolDefinitions,
   ...spatialMcpToolDefinitions,
   ...hologramContentToolDefinitions,
+  ...negotiationToolDefinitions,
   {
     name: 'holoscript_discover_tools',
     description: 'Search for available MCP tools by intent or keyword. Returns tool names, descriptions, and schemas. Use this when you are unsure which tool to use.',
@@ -265,6 +270,9 @@ registerCategory(hologramToolDefinitions, (name, args) => handleHologramTool(nam
 registerCategory(holotwinToolDefinitions, (name, args) => handleHoloTwinTool(name, args));
 registerCategory(hologramContentToolDefinitions, (name, args) =>
   handleHologramContentTool(name, args),
+);
+registerCategory(negotiationToolDefinitions, (name, args) =>
+  handleNegotiationTool(name, args),
 );
 
 // 2. Core fallback (anything else exported in `tools.ts` array)
