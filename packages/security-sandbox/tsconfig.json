@@ -5,7 +5,8 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "@holoscript/core/reconstruction": ["../core/dist/reconstruction/index.d.ts"]
+      "@holoscript/core": ["../core/dist/index.d.ts"],
+      "@holoscript/holo-vm": ["../holo-vm/dist/index.d.ts"]
     },
     "noEmit": true
   },

@@ -7,9 +7,9 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/holoscript.cdn.mjs",
-      "require": "./dist/holoscript.cdn.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/holoscript.cdn.js"
     }
   },
   "scripts": {

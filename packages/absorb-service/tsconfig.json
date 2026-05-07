@@ -17,7 +17,14 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "@holoscript/core": ["../core/dist/index.d.ts"],
+      "@holoscript/core/runtime": ["../core/dist/runtime.d.ts"],
+      "@holoscript/core/traits": ["../core/dist/traits/index.d.ts"],
+      "@holoscript/core/scripting": ["../core/dist/entries/scripting.d.ts"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "src/**/*.test.ts", "src/**/*.bench.ts", "src/__tests__/**/*"]
