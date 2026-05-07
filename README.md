@@ -190,7 +190,7 @@ git clone https://github.com/brianonbased-dev/HoloScript.git
 cd HoloScript && pnpm install && pnpm build && pnpm test
 ```
 
-**Agent validation (TypeScript):** After touching `packages/*`, run `pnpm preflight` so only **changed** packages are typechecked (fast, Windows-safe spawns). Narrow to TS only with `pnpm preflight --check=typescript,ts`. Before a large merge, use `pnpm preflight --full` (all packages; slower). Flags and checks live in `scripts/preflight.mjs`.
+**Agent validation (TypeScript):** After touching `packages/*`, run `pnpm preflight` so only **changed** packages are typechecked (fast, Windows-safe spawns). Narrow to TS only with `pnpm preflight --check=typescript,ts`. For dependency posture, use `pnpm run health:deps` or `pnpm preflight --check=dependency_audit`; both use the bounded pnpm audit wrapper and emit structured JSON/SKIP instead of hanging. Before a large merge, use `pnpm preflight --full` (all packages; slower). Flags and checks live in `scripts/preflight.mjs`.
 
 ## Three file formats
 
@@ -210,7 +210,7 @@ npm and PyPI packages share the same major version. See the [Release Versioning 
 
 For agents connecting via MCP — what's available beyond the problems listed above.
 
-**Local checks:** `pnpm preflight` (changed packages) · `pnpm preflight --check=typescript,ts` (TS only) · `pnpm preflight --full` (entire monorepo TS sweep).
+**Local checks:** `pnpm preflight` (changed packages) · `pnpm preflight --check=typescript,ts` (TS only) · `pnpm run health:deps` (bounded dependency audit) · `pnpm preflight --full` (entire monorepo TS sweep plus dependency audit).
 
 **HoloDoor (security guardrails):** Use [docs/agents/holodoor-mcp.md](./docs/agents/holodoor-mcp.md). Corridor is deprecated; policy, hooks, and MCP validation live in the ai-ecosystem repo.
 

@@ -30,6 +30,7 @@ pnpm --filter @holoscript/core test       # Test specific package
 pnpm lint                                 # ESLint
 pnpm format                               # Prettier
 pnpm bench                                # Benchmarks
+pnpm run health:deps                      # Bounded pnpm audit; emits JSON pass/fail/cached/skip
 ```
 
 Build order matters: `@holoscript/core` must build before any downstream package.
