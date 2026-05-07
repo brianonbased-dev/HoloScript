@@ -20,12 +20,13 @@ Repair command:
 powershell -ExecutionPolicy Bypass -File scripts\codex-hardware-path.ps1
 ```
 
-The script installs `node.cmd`, `corepack.cmd`, and `pnpm.cmd` shims into the
-stable Codex hardware shim directory and prepends that directory, system Node,
-and the npm shim directory to the user PATH. When Codex has an active
+The script installs both PowerShell/CMD shims (`node.cmd`, `corepack.cmd`,
+`pnpm.cmd`) and Git Bash shims (`node`, `corepack`, `pnpm`) into the stable Codex
+hardware shim directory. It prepends that directory, system Node, and the npm
+shim directory to the user PATH. When Codex has an active
 `%USERPROFILE%\.codex\tmp\arg0\codex-arg*` shim directory on PATH, the script
 also mirrors the shims there so the current session can verify without a
-restart.
+restart and so Git hooks resolve the same runtime.
 
 Validation:
 

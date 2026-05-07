@@ -47,8 +47,31 @@ function Write-CmdShim {
     Set-Content -LiteralPath (Join-Path $Root $Name) -Value $Body -Encoding ASCII
 }
 
+function Convert-ToShPath {
+    param([string]$Path)
+    return $Path.Replace('\', '/')
+}
+
+function Write-ShShim {
+    param(
+        [string]$Root,
+        [string]$Name,
+        [string]$Body
+    )
+
+    New-Item -ItemType Directory -Force -Path $Root | Out-Null
+    $target = Join-Path $Root $Name
+    Set-Content -LiteralPath $target -Value $Body -Encoding ASCII
+}
+
 function Install-Shims {
     param([string]$Root)
+
+    $NodeExeSh = Convert-ToShPath $NodeExe
+    $NodeRootSh = Convert-ToShPath $NodeRoot
+    $NpmRootSh = Convert-ToShPath $NpmRoot
+    $CorepackCmdSh = Convert-ToShPath $CorepackCmd
+    $PnpmCmdSh = Convert-ToShPath $PnpmCmd
 
     Write-CmdShim -Root $Root -Name "node.cmd" -Body @"
 @echo off
@@ -65,6 +88,23 @@ call "$CorepackCmd" %*
 @echo off
 set "PATH=$NodeRoot;$NpmRoot;%PATH%"
 call "$PnpmCmd" %*
+"@
+
+    Write-ShShim -Root $Root -Name "node" -Body @"
+#!/usr/bin/env sh
+exec "$NodeExeSh" "`$@"
+"@
+
+    Write-ShShim -Root $Root -Name "corepack" -Body @"
+#!/usr/bin/env sh
+export PATH="${NodeRootSh}:${NpmRootSh}:`$PATH"
+exec "$CorepackCmdSh" "`$@"
+"@
+
+    Write-ShShim -Root $Root -Name "pnpm" -Body @"
+#!/usr/bin/env sh
+export PATH="${NodeRootSh}:${NpmRootSh}:`$PATH"
+exec "$PnpmCmdSh" "`$@"
 "@
 }
 
