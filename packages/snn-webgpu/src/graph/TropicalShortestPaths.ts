@@ -248,7 +248,7 @@ export class TropicalShortestPaths {
     }
 
     try {
-      let current = new Float32Array(adjacencyMatrix);
+      let current: Float32Array = new Float32Array(adjacencyMatrix);
       const iterations = Math.ceil(Math.log2(Math.max(1, n)));
 
       for (let i = 0; i < iterations; i++) {
@@ -323,7 +323,7 @@ export class TropicalShortestPaths {
 
     const incomingGraph = transposeCSR(graph);
 
-    let current = new Float32Array(rows).fill(INF);
+    let current: Float32Array = new Float32Array(rows).fill(INF);
     current[source] = 0;
 
     try {
