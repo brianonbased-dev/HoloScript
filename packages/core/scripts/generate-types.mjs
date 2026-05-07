@@ -3470,6 +3470,201 @@ export class WebRTCTransport {
   off(event: string, handler?: (...args: unknown[]) => void): void;
 }
 
+// ── Theming (packages/core/src/theming/*) ────────────────────────────────────
+
+export interface ThemeTokens {
+  colors: Record<string, string>;
+  spacing: Record<string, number>;
+  borderRadius: Record<string, number>;
+  fontSize: Record<string, number>;
+  opacity: Record<string, number>;
+  shadow: Record<string, string>;
+}
+
+export interface Theme {
+  name: string;
+  mode: 'light' | 'dark';
+  tokens: ThemeTokens;
+}
+
+export declare const BuiltInThemes: Record<string, Theme>;
+
+export class ThemeEngine {
+  constructor();
+  registerTheme(theme: Theme): void;
+  setTheme(name: string): void;
+  getTheme(): Theme;
+  getTokens(): ThemeTokens;
+  setOverrides(overrides: Partial<ThemeTokens>): void;
+  resolve(path: string): unknown;
+  onThemeChange(callback: (theme: Theme) => void): void;
+  getActiveThemeName(): string;
+  listThemes(): string[];
+}
+
+export interface StyleRule {
+  selector: string;
+  properties: Record<string, unknown>;
+}
+
+export interface ResolvedStyle {
+  [key: string]: unknown;
+}
+
+export class StyleResolver {
+  constructor();
+  addRule(selector: string, properties: Record<string, unknown>): void;
+  addRules(rules: StyleRule[]): void;
+  resolve(
+    type: string,
+    classes?: string[],
+    states?: string[],
+    inline?: Record<string, unknown>
+  ): ResolvedStyle;
+  static fromTokens(tokens: ThemeTokens): StyleResolver;
+  readonly ruleCount: number;
+}
+
+// ── Shared trait delegate (packages/core/src/traits/TraitTypes.ts:264) ───────
+
+export interface TraitInstanceDelegate {
+  onDetach?: (node: HSPlusNode, ctx: TraitContext) => void;
+  onEvent?: (event: TraitEvent) => void;
+  onUpdate?: (node: HSPlusNode, ctx: TraitContext, dt: number) => void;
+  emit?: (event: TraitEvent) => void;
+  dispose?: () => void;
+  cleanup?: () => void;
+  [key: string]: unknown;
+}
+
+// ── Engine-facing public compatibility types ────────────────────────────────
+
+export interface ModuleImport {
+  specifier: string;
+  canonicalPath: string;
+  named: string[];
+  defaultImport?: string;
+}
+
+export interface ModuleExport {
+  name: string;
+  kind: 'object' | 'state' | 'template' | 'function' | 'unknown';
+}
+
+export interface ModuleHeader {
+  imports: ModuleImport[];
+  exports: ModuleExport[];
+}
+
+export interface CachedModule {
+  canonicalPath: string;
+  header: ModuleHeader;
+  rawSource: string;
+  cachedAt: number;
+}
+
+export class ModuleResolver {
+  constructor(options?: {
+    graph?: unknown;
+    loader?: (canonicalPath: string) => string;
+  });
+  resolve(modulePath: string, fromFile: string): string;
+  load(canonicalPath: string, fromFile?: string): CachedModule;
+  invalidate(canonicalPath: string): void;
+  getCached(canonicalPath: string): CachedModule | undefined;
+  clearAll(): void;
+}
+
+export interface HotReloadConfig {
+  watchPaths: string[];
+  debounceMs: number;
+  mode: 'soft' | 'hard';
+  extensions: string[];
+}
+
+export interface HotReloadEvent {
+  filePath: string;
+  type: string;
+  timestamp: number;
+}
+
+export type HotReloadCallback = (event: HotReloadEvent) => void;
+
+export class HotReloadWatcher {
+  constructor(config?: Partial<HotReloadConfig>);
+  start(): void;
+  stop(): void;
+  on(event: string, listener: (...args: unknown[]) => void): this;
+  off(event: string, listener: (...args: unknown[]) => void): this;
+  emit(event: string, ...args: unknown[]): boolean;
+}
+
+export interface ScriptTestResult {
+  name: string;
+  status: 'passed' | 'failed' | 'skipped';
+  durationMs: number;
+  error?: string;
+  assertions: number;
+  passedAssertions: number;
+}
+
+export interface ScriptTestBlock {
+  name: string;
+  setup?: () => void;
+  actions: Array<() => void>;
+  assertions: Array<{ description: string; check: () => boolean }>;
+  teardown?: () => void;
+  skip?: boolean;
+}
+
+export interface ScriptTestRunnerOptions {
+  debug?: boolean;
+  timeout?: number;
+  bail?: boolean;
+  runtimeState?: Record<string, unknown>;
+}
+
+export class ScriptTestRunner {
+  constructor(options?: ScriptTestRunnerOptions);
+  setRuntimeState(state: Record<string, unknown>): void;
+  addTest(test: ScriptTestBlock): void;
+  runAll(): ScriptTestResult[];
+}
+
+export function hashBytes(input: Uint8Array | string, algo?: 'sha256' | 'fnv1a'): Promise<string>;
+
+export type HologramShape =
+  | 'orb'
+  | 'cube'
+  | 'cylinder'
+  | 'pyramid'
+  | 'sphere'
+  | 'function'
+  | 'gate'
+  | 'stream'
+  | 'server'
+  | 'database'
+  | 'fetch';
+
+export type ResourceCategory =
+  | 'particles'
+  | 'physicsBodies'
+  | 'audioSources'
+  | 'meshInstances'
+  | 'gaussians'
+  | 'shaderPasses'
+  | 'networkMsgs'
+  | 'agentCount'
+  | 'memoryMB'
+  | 'gpuDrawCalls';
+
+export const PLATFORM_BUDGETS: Record<string, Partial<Record<ResourceCategory, number>>>;
+
+export interface InstallManifest {
+  packageId: string;
+  [key: string]: unknown;
+}
+
 // ── Host capabilities (packages/core/src/traits/TraitTypes.ts:134) ──────────
 
 export interface HostCapabilities {
@@ -3654,6 +3849,80 @@ export declare function buildHologramMcpResponse(input: {
   extraMeta?: Record<string, unknown>;
 }): HologramMcpResponse;
 export declare function wrapHologramMcpEnvelope(response: HologramMcpResponse): HologramMcpEnvelope;
+
+// ============================================================================
+// ENGINE-PUBLIC TYPES (missing from generate-types.mjs — consumed by @holoscript/engine)
+// ============================================================================
+
+export declare class ThemeEngine {
+  registerTheme(theme: Theme): void;
+  setTheme(name: string): void;
+  getTheme(): Theme;
+  getTokens(): ThemeTokens;
+  setOverrides(overrides: Partial<ThemeTokens>): void;
+  resolve(path: string): unknown;
+  onThemeChange(callback: (theme: Theme) => void): void;
+  [key: string]: unknown;
+}
+
+export declare interface Theme {
+  name: string;
+  mode: 'light' | 'dark';
+  tokens: ThemeTokens;
+}
+
+export declare interface ThemeTokens {
+  colors: Record<string, string>;
+  spacing: Record<string, number>;
+  borderRadius: Record<string, number>;
+  fontSize: Record<string, number>;
+  opacity: Record<string, number>;
+  shadow: Record<string, string>;
+}
+
+export declare class StyleResolver {
+  static fromTokens(tokens: ThemeTokens): StyleResolver;
+  addRule(selector: string, properties: Record<string, any>): void;
+  addRules(rules: { selector: string; properties: Record<string, any> }[]): void;
+  resolve(type: string, classes?: string[], states?: string[], inline?: Record<string, any>): Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export declare class ModuleResolver {
+  resolve(id: string): unknown;
+  [key: string]: unknown;
+}
+
+export declare class HotReloadWatcher {
+  watch(path: string): void;
+  [key: string]: unknown;
+}
+
+export declare type HotReloadConfig = unknown;
+
+export declare class ScriptTestRunner {
+  [key: string]: unknown;
+}
+
+export declare function hashBytes(input: Uint8Array | string, algo?: 'sha256' | 'fnv1a'): Promise<string>;
+
+export declare type HologramShape = 'orb' | 'cube' | 'cylinder' | 'pyramid' | 'sphere' | 'function' | 'gate' | 'stream' | 'server' | 'database' | 'fetch';
+
+export declare type ResourceCategory = 'particles' | 'physicsBodies' | 'audioSources' | 'meshInstances' | 'gaussians' | 'shaderPasses' | 'networkMsgs' | 'agentCount' | 'memoryMB' | 'gpuDrawCalls';
+
+export declare const PLATFORM_BUDGETS: Record<string, Partial<Record<ResourceCategory, number>>>;
+
+export declare type InstallManifest = unknown;
+
+export declare interface TraitInstanceDelegate {
+  onDetach?: (node: any, ctx: any) => void;
+  onEvent?: (event: any) => void;
+  onUpdate?: (node: any, ctx: any, dt: number) => void;
+  emit?: (event: any) => void;
+  dispose?: () => void;
+  cleanup?: () => void;
+  [key: string]: unknown;
+}
 `;
 
 const parserDTS = `export class HoloScriptPlusParser {

@@ -40,3 +40,14 @@ export * from '../extensions';
 export * from '../HoloScriptCodeParser';
 export * from '../worker/CompilerWorkerProxy';
 export * from '../worker/LSPWorkerProtocol';
+
+// Compiler module resolver (engine HotReloadBridge relies on invalidate()).
+export { ModuleResolver } from '../compiler/ModuleResolver';
+export type { CachedModule, ModuleHeader, ModuleImport, ModuleExport } from '../compiler/ModuleResolver';
+
+// Theming (consumed by @holoscript/engine RuntimeBridge)
+export * from '../theming/ThemeEngine';
+export * from '../theming/StyleResolver';
+
+// Shared trait types (TraitInstanceDelegate consumed by engine traits)
+export * from '../traits/TraitTypes';

@@ -15,6 +15,5 @@ function run(cmd, { tolerateFailure = false, label } = {}) {
 
 run('tsup');
 run('tsc -p tsconfig.dts.json', {
-  tolerateFailure: true,
-  label: 'tsc dts emit (Vec3 migration mid-flight; per-file dts still written)',
+  label: 'tsc dts emit',
 });
