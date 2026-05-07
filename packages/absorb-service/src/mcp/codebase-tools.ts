@@ -1726,6 +1726,7 @@ async function handleGraphStatus(): Promise<unknown> {
     sessionProvenance: cacheProvenance ?? null,
     diskCache: cache.exists
       ? {
+          exists: true,
           ageMs: cacheAgeMs,
           ageHuman:
             cacheAgeMs! < 3600000
