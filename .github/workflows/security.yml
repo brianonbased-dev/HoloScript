@@ -146,6 +146,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # UnityCompiler imports @holoscript/core-types/ans at test import time.
+      - name: Build @holoscript/core-types
+        run: pnpm --filter @holoscript/core-types build
+
       - name: Run FlowLevel (Code Injection) Security Checks
         working-directory: packages/core
         env:
