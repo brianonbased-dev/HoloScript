@@ -53,6 +53,7 @@
     "@opentelemetry/sdk-trace-base": "^2.7.0",
     "@opentelemetry/sdk-trace-node": "^2.7.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
+    "ethers": "^6.16.0",
     "eventsource": "^4.1.0",
     "ffmpeg-static": "^5.2.0",
     "loro-crdt": "^1.0.0",

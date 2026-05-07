@@ -1639,6 +1639,9 @@ importers:
       '@opentelemetry/semantic-conventions':
         specifier: ^1.40.0
         version: 1.40.0
+      ethers:
+        specifier: ^6.16.0
+        version: 6.16.0
       eventsource:
         specifier: ^4.1.0
         version: 4.1.0
@@ -13826,7 +13829,7 @@ packages:
     resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
     dependencies:
       '@types/connect': 3.4.38
-      '@types/node': 20.19.29
+      '@types/node': 24.10.13
     dev: true
 
   /@types/chai@5.2.3:
@@ -13846,7 +13849,7 @@ packages:
   /@types/connect@3.4.38:
     resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
     dependencies:
-      '@types/node': 20.19.29
+      '@types/node': 24.10.13
 
   /@types/cors@2.8.19:
     resolution: {integrity: sha512-mFNylyeyqN93lfe/9CSxOGREz8cpzAhH+E93xJ4xWQf62V8sQ/24reV2nyzUWM6H6Xji+GGHpkbLe7pVoUEskg==}
@@ -14078,7 +14081,7 @@ packages:
   /@types/express-serve-static-core@5.1.1:
     resolution: {integrity: sha512-v4zIMr/cX7/d2BpAEX3KNKL/JrT1s43s96lLvvdTmza1oEvDudCqK9aF/djc/SWgy8Yh0h30TZx5VpzqFCxk5A==}
     dependencies:
-      '@types/node': 20.19.29
+      '@types/node': 24.10.13
       '@types/qs': 6.14.0
       '@types/range-parser': 1.2.7
       '@types/send': 1.2.1
@@ -14310,14 +14313,14 @@ packages:
   /@types/send@1.2.1:
     resolution: {integrity: sha512-arsCikDvlU99zl1g69TcAB3mzZPpxgw0UQnaHeC1Nwb015xp8bknZv5rIfri9xTOcMuaVgvabfIRA7PSZVuZIQ==}
     dependencies:
-      '@types/node': 20.19.29
+      '@types/node': 24.10.13
     dev: true
 
   /@types/serve-static@2.2.0:
     resolution: {integrity: sha512-8mam4H1NHLtu7nmtalF7eyBH14QyOASmcxHhSfEoRyr0nP/YdoesEtU+uSRvMe96TW/HPTtkoKqQLl53N7UXMQ==}
     dependencies:
       '@types/http-errors': 2.0.5
-      '@types/node': 20.19.29
+      '@types/node': 24.10.13
     dev: true
 
   /@types/simple-peer@9.11.9:
@@ -15072,7 +15075,7 @@ packages:
       obug: 2.1.1
       std-env: 4.0.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+      vitest: 4.1.0(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(vite@7.3.2)
     dev: true
 
   /@vitest/coverage-v8@4.1.5(vitest@4.1.0):
@@ -25894,7 +25897,7 @@ packages:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
-      '@types/node': 20.19.29
+      '@types/node': 24.10.13
       long: 5.3.2
 
   /proxy-addr@2.0.7:

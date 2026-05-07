@@ -380,10 +380,8 @@ export function advanceNegotiation(input: AdvanceNegotiationInput): AdvanceNegot
   if (!n) {
     return { ok: false, reason: 'not-found', error: `negotiation ${input.negotiationId} not found` };
   }
-  let role: NegotiationRole;
-  if (input.authorAgentId === n.initiatorAgentId) role = 'initiator';
-  else if (input.authorAgentId === n.responderAgentId) role = 'responder';
-  else {
+  const role = roleForAgent(n, input.authorAgentId);
+  if (!role) {
     return {
       ok: false,
       reason: 'not-a-party',
@@ -517,10 +515,11 @@ function applySettlement(
 }
 
 /**
- * Co-signed settlement helper — supplies BOTH legs in one call. Cleaner
- * reference flow for tests and the canonical "one signed receipt" path.
+ * Input for the co-signed settlement helper. Pulled out of the function
+ * signature so the chain-anchor variant can extend it without duplicating
+ * the field list.
  */
-export function settleNegotiation(input: {
+export interface SettleNegotiationInput {
   negotiationId: string;
   authorAgentId: string;
   signerAddress?: string;
@@ -529,8 +528,20 @@ export function settleNegotiation(input: {
   responderSignature: string;
   responderAddress: string;
   resultHash?: string;
+  /**
+   * Caller-supplied tx hash. Use the chain-anchor variant
+   * (`settleNegotiationWithAnchor`) instead when you have a Signer and want
+   * the runtime to mint a real tx hash via `eth_sendTransaction` (F.041 /
+   * W.GOLD.514 chain-anchor pattern).
+   */
   settlementTxHash?: string;
-}): AdvanceNegotiationResult {
+}
+
+/**
+ * Co-signed settlement helper — supplies BOTH legs in one call. Cleaner
+ * reference flow for tests and the canonical "one signed receipt" path.
+ */
+export function settleNegotiation(input: SettleNegotiationInput): AdvanceNegotiationResult {
   const n = negotiations.get(input.negotiationId);
   if (!n) return { ok: false, reason: 'not-found', error: `negotiation ${input.negotiationId} not found` };
   if (!n.quote) {
@@ -568,6 +579,135 @@ export function settleNegotiation(input: {
     signerAddress: input.signerAddress,
     payload: { partialReceipt: receipt },
   });
+}
+
+function roleForAgent(n: Negotiation, agentId: string): NegotiationRole | null {
+  if (agentId === n.initiatorAgentId) return 'initiator';
+  if (agentId === n.responderAgentId) return 'responder';
+  return null;
+}
+
+/**
+ * Chain-anchored settlement — takes a Signer (dev-keyed for tests, Trezor
+ * for the founder swap) and produces a real `settlementTxHash` populated
+ * from `eth_sendTransaction`. The EIP-712 hash of the receipt becomes the
+ * tx calldata (F.041 / W.GOLD.514 pattern).
+ *
+ * This is the canonical Phase 2 path. The non-anchor `settleNegotiation`
+ * stays for backwards compat and for callers that already have a tx hash
+ * from somewhere else (e.g. forwarded by an agent that anchored on a
+ * different RPC).
+ *
+ * Returns the same AdvanceNegotiationResult shape as the sync helper, plus
+ * an `anchor` field on success carrying the EIP-712 hash + signer address +
+ * block info for the route handler to surface.
+ *
+ * Throws ONLY for signer / RPC failures — state-machine rejections still
+ * come back as `{ ok: false, reason }` results.
+ */
+export async function settleNegotiationWithAnchor(input: {
+  negotiationId: string;
+  authorAgentId: string;
+  signerAddress?: string;
+  initiatorSignature: string;
+  initiatorAddress: string;
+  responderSignature: string;
+  responderAddress: string;
+  resultHash?: string;
+  signer: import('./signing/signer').Signer;
+  domain?: import('./signing/chain-anchor').SettlementDomain;
+}): Promise<
+  AdvanceNegotiationResult & { anchor?: import('./signing/chain-anchor').AnchorResult }
+> {
+  // Build the receipt FIRST (without txHash) so we can hash it deterministically.
+  const n = negotiations.get(input.negotiationId);
+  if (!n) {
+    return {
+      ok: false,
+      reason: 'not-found',
+      error: `negotiation ${input.negotiationId} not found`,
+    };
+  }
+  const role = roleForAgent(n, input.authorAgentId);
+  if (!role) {
+    return {
+      ok: false,
+      reason: 'not-a-party',
+      error: `agent ${input.authorAgentId} is not a party to negotiation ${n.id}`,
+    };
+  }
+  const transition = checkTransition(n.state, 'settle', role);
+  if (!transition.ok) {
+    return { ok: false, reason: transition.reason, error: transition.error };
+  }
+  if (!n.quote) {
+    return {
+      ok: false,
+      reason: 'illegal-transition',
+      error: 'cannot settle without a quote',
+    };
+  }
+  const lastExec = [...n.events].reverse().find((e) => e.action === 'execute');
+  if (!lastExec) {
+    return {
+      ok: false,
+      reason: 'illegal-transition',
+      error: 'cannot settle without a prior execute event',
+    };
+  }
+  const resultHash = input.resultHash ?? hashResult(lastExec.payload?.result);
+  const settledAt = new Date().toISOString();
+  const hashable: import('./signing/chain-anchor').HashableReceipt = {
+    protocol: NEGOTIATION_PROTOCOL,
+    negotiationId: n.id,
+    initiatorAddress: input.initiatorAddress,
+    responderAddress: input.responderAddress,
+    initiatorSignature: input.initiatorSignature,
+    responderSignature: input.responderSignature,
+    resultHash,
+    finalQuote: n.quote,
+    settledAt,
+  };
+
+  // Anchor on chain (or mocked broadcast) — produces the txHash we feed back
+  // into the receipt before we let the state machine flip to 'settled'.
+  const { anchorSettlement } = await import('./signing/chain-anchor');
+  const anchor = await anchorSettlement(input.signer, hashable, input.domain);
+
+  // Build the final receipt with the anchored txHash + the SAME settledAt we
+  // hashed (so receipt -> hash round-trips against the chain). Bypass
+  // `applySettlement`'s clock-fresh settledAt to keep the pin tight.
+  const receipt: SettlementReceipt = {
+    protocol: NEGOTIATION_PROTOCOL,
+    negotiationId: n.id,
+    initiatorSignature: input.initiatorSignature,
+    initiatorAddress: input.initiatorAddress,
+    responderSignature: input.responderSignature,
+    responderAddress: input.responderAddress,
+    finalQuote: n.quote,
+    resultHash,
+    settlementTxHash: anchor.txHash,
+    settledAt,
+  };
+  // Apply via advanceNegotiation so the state machine + event log update.
+  // applySettlement reads the partialReceipt fields back out, so re-emitting
+  // the same shape here keeps a single code path for state validation.
+  const advanced = advanceNegotiation({
+    negotiationId: input.negotiationId,
+    action: 'settle',
+    authorAgentId: input.authorAgentId,
+    signerAddress: input.signerAddress,
+    payload: { partialReceipt: receipt },
+  });
+  if (!advanced.ok) return advanced;
+  // Overwrite the receipt with our deterministic version (applySettlement
+  // wrote one with a fresh settledAt; we want the one whose hash matches the
+  // anchor). This is safe — same negotiation, same fields, just a pinned
+  // settledAt.
+  if (advanced.negotiation) {
+    advanced.negotiation.receipt = receipt;
+  }
+  return { ...advanced, anchor };
 }
 
 // ── Hashing helper ────────────────────────────────────────────────────
