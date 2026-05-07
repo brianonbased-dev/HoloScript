@@ -6,6 +6,7 @@
 //   @lip_sync       — vocalist avatar mouth-syncs to audio frequency bands
 //   @cinematic_seq  — opening sequence (fog roll, lights fade, crowd cheer)
 //   @spectator      — remote VR audience gets a passive presence stream
+//   @beatmap        — declarative BPM/cue-point mapping for show events
 //
 // Original intent preserved: virtual concert hall with live audio visualization,
 // gesture-based instrument control, procedural particle effects synced to music,
@@ -22,11 +23,11 @@ composition "ConcertVenue" {
 
   metadata {
     name: 'Concert Venue — Cross-Domain Example (refreshed)'
-    description: 'Virtual concert hall combining spatial audio, hand-tracked instruments, procedural particle effects, advanced rendering, lip-synced vocalist, opening cinematic, and remote spectators.'
+    description: 'Virtual concert hall combining spatial audio, hand-tracked instruments, procedural particle effects, advanced rendering, lip-synced vocalist, opening cinematic, beatmapped cue events, and remote spectators.'
     version: '1.1.0'
     author: 'HoloScript Examples Team'
     category: 'cross-domain'
-    tags: ['cross-domain', 'concert', 'music', 'input', 'rendering', 'procedural', 'vfx', 'lip_sync', 'cinematic', 'spectator']
+    tags: ['cross-domain', 'concert', 'music', 'input', 'rendering', 'procedural', 'vfx', 'lip_sync', 'cinematic', 'spectator', 'beatmap']
     platforms: ['r3f', 'unity', 'godot']
     minPlayers: 1
     maxPlayers: 64
@@ -53,7 +54,6 @@ composition "ConcertVenue" {
     tempo: 128
     isPlaying: true
     masterVolume: 0.85
-    beatCount: 0
     currentBPM: 128
     frequencyBands: [0, 0, 0, 0, 0, 0, 0, 0]
     // Input
@@ -93,6 +93,21 @@ composition "ConcertVenue" {
         { name: "fog_roll",     start_frame: 180,  end_frame: 360  },
         { name: "spot_reveal",  start_frame: 360,  end_frame: 540  },
         { name: "show_start",   start_frame: 540,  end_frame: 600  }
+      ]
+    }
+    visible: false
+    position: { x: 0, y: 0, z: 0 }
+  }
+
+  object "ConcertBeatmap" {
+    @beatmap {
+      bpm: 128
+      sync_to: "AudioAnalysis"
+      cues: [
+        { beat: 0,  event: "intro"       },
+        { beat: 16, event: "fog_roll"    },
+        { beat: 32, event: "spot_reveal" },
+        { beat: 64, event: "show_start"  }
       ]
     }
     visible: false
@@ -239,10 +254,10 @@ composition "ConcertVenue" {
       gravity: -0.5
     }
     behavior {
-      on "beat" {
-        action: "emitParticleBurst"
-        bind: ConcertState.beatCount
-      }
+      on "intro"       { action: "emitParticleBurst" }
+      on "fog_roll"    { action: "emitParticleBurst" }
+      on "spot_reveal" { action: "emitParticleBurst" }
+      on "show_start"  { action: "emitParticleBurst" }
     }
   }
 
@@ -364,19 +379,17 @@ composition "ConcertVenue" {
 
   action triggerNote(instrument) {
     ConcertState.activeInstrument = instrument
-    ConcertState.beatCount = ConcertState.beatCount + 1
     emit("midi:note_on", { instrument: instrument, velocity: 100 })
     emit("procedural:burst", { density: ConcertState.particleDensity })
   }
 
-  action emitParticleBurst(intensity) {
-    emit("procedural:emit", { count: intensity * 50, spread: 3.0 })
+  action emitParticleBurst() {
+    emit("procedural:emit", { count: ConcertState.particleDensity, spread: 3.0 })
     emit("render:bloom_pulse", { intensity: 1.5, duration: 100 })
   }
 
   action onBeatDetected(bpm) {
     ConcertState.currentBPM = bpm
-    ConcertState.beatCount = ConcertState.beatCount + 1
     emit("procedural:beat_sync", { bpm: bpm })
     emit("render:laser_pulse")
   }
