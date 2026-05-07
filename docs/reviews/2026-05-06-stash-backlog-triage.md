@@ -103,3 +103,34 @@ git diff --shortstat HEAD 'stash@{2}' -- packages/core/src/traits packages/*/vit
 The deletions are current mainline trait and test coverage that did not exist when these stashes were made. Cherry-picking from the stale trees would require re-deriving the change by hand against the current trait registry rather than applying stash hunks.
 
 **Action:** No files recovered, no stashes dropped. Keep both stashes as named archives. If a current typecheck, Vitest run, or trait runtime failure proves one of these old edits is still needed, open a fresh task against `HEAD` with the failing command and re-implement the specific fix directly.
+
+### 2026-05-07 — `task_1778130187138_p6d6` deploy w087 vertex branch stash split
+
+Closed by Codex after read-only re-inspection of the deploy branch archive. The original manifest ref shifted after benchmark cleanup; the current ref is:
+
+| Current ref | SHA | Original ref | Subject |
+| --- | --- | --- | --- |
+| `stash@{3}` | `57f2ee167015aaf86908a8d14076eef38343ae5b` | `stash@{6}` | `On deploy/w087-vertex-c: return-to-main-2026-04-24` |
+
+The stash-local delta is a broad archive, not a deploy patch:
+
+```text
+git diff --shortstat 'stash@{3}^1' 'stash@{3}' --
+# 469 files changed, 5113 insertions(+), 3735 deletions(-)
+
+git diff --name-only 'stash@{3}^1' 'stash@{3}' | top-level grouping
+# packages/core 366, packages/studio 55, packages/framework 30,
+# packages/engine 6, packages/marketplace-api 3, plus bench logs,
+# pnpm-lock.yaml, research, crdt-spatial, and mcp-server
+```
+
+Comparing the archived tree to current `HEAD` shows it is far behind current mainline:
+
+```text
+git diff --shortstat HEAD 'stash@{3}' --
+# 3140 files changed, 38965 insertions(+), 388727 deletions(-)
+```
+
+The only deploy-named stash-local file was `packages/studio/src/industry/scenarios/RobotDeployPanel.tsx`, but that hunk is stale against current `packages/studio/src/lib/robotHelpers.ts`: the archive expects `j.origin.position[...]`, while current `HEAD` defines `origin.x`, `origin.y`, and `origin.z`.
+
+**Action:** No files recovered, no stashes dropped. Keep `57f2ee167015` as a branch archive. If a current deploy or robotics test fails, re-implement the failing subsystem directly against `HEAD` instead of applying this branch snapshot.
