@@ -6,6 +6,8 @@
  * actual cryptographic recovery (which is well-covered upstream).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Readable } from 'node:stream';
+import type http from 'node:http';
 
 const mockVerifyTypedData = vi.fn();
 vi.mock('viem', () => ({
@@ -13,6 +15,7 @@ vi.mock('viem', () => ({
 }));
 
 import {
+  handleAttestationRoutes,
   processAttestation,
   processRevocation,
   type AttestationEnvelope,
@@ -28,6 +31,7 @@ const FOUNDER_ANCHOR = '0x0c574397150ad8d9f7fef83fe86a2cbdf4a660e3';
 const SEAT_PUBKEY = '0xCAFEBABEcafebabeCAFEBABEcafebabeCAFEBABE';
 const VALID_SIG = '0x' + 'a'.repeat(130);
 const DOMAIN = { name: 'HoloMesh', version: '1', chainId: 8453 };
+const originalHolomeshApiKey = process.env.HOLOMESH_API_KEY;
 
 function buildAttestationEnvelope(overrides: Partial<AttestationEnvelope> = {}): AttestationEnvelope {
   return {
@@ -61,6 +65,11 @@ beforeEach(() => {
 
 afterEach(() => {
   resetAttestationRegistry();
+  if (originalHolomeshApiKey === undefined) {
+    delete process.env.HOLOMESH_API_KEY;
+  } else {
+    process.env.HOLOMESH_API_KEY = originalHolomeshApiKey;
+  }
 });
 
 // ── processAttestation ───────────────────────────────────────────────
@@ -260,5 +269,50 @@ describe('processRevocation', () => {
     });
     expect(mockVerifyTypedData.mock.calls[0][0].address).toBe(FOUNDER_ANCHOR);
     expect(mockVerifyTypedData.mock.calls[0][0].primaryType).toBe('Revocation');
+  });
+});
+
+// ── handleAttestationRoutes ──────────────────────────────────────────
+
+function makeJsonReq(body: unknown): http.IncomingMessage {
+  const req = Readable.from([JSON.stringify(body)]) as http.IncomingMessage;
+  req.headers = { authorization: 'Bearer test-founder-key' };
+  return req;
+}
+
+function makeJsonRes(): http.ServerResponse & {
+  statusCodeSeen?: number;
+  payload?: unknown;
+} {
+  const res = {
+    writeHead(statusCode: number): void {
+      this.statusCodeSeen = statusCode;
+    },
+    end(body: string): void {
+      this.payload = JSON.parse(body);
+    },
+  };
+  return res as http.ServerResponse & { statusCodeSeen?: number; payload?: unknown };
+}
+
+describe('handleAttestationRoutes — approve-via-tx', () => {
+  it('rejects overlarge via-tx batches before any per-envelope RPC work', async () => {
+    process.env.HOLOMESH_API_KEY = 'test-founder-key';
+    const req = makeJsonReq({
+      attestations_via_tx: Array.from({ length: 51 }, () => ({})),
+    });
+    const res = makeJsonRes();
+
+    const handled = await handleAttestationRoutes(
+      req,
+      res,
+      '/api/identity/attestation/approve-via-tx',
+      'POST',
+      '/api/identity/attestation/approve-via-tx'
+    );
+
+    expect(handled).toBe(true);
+    expect(res.statusCodeSeen).toBe(400);
+    expect(res.payload).toEqual({ error: 'batch too large (max 50, got 51)' });
   });
 });

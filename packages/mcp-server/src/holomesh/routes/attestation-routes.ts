@@ -132,6 +132,17 @@ interface RevokeResult {
 // confirmed self-tx whose calldata equals the envelope's typed-data hash, sent
 // by the founder anchor on the canonical chain, IS the cryptographic proof.
 
+/**
+ * Cap on how many envelopes a single /approve-via-tx request can carry.
+ * Each envelope triggers two outbound Base-RPC calls (eth_getTransactionByHash
+ * + eth_getTransactionReceipt); without a cap, a founder-authenticated client
+ * can fan out enough RPC traffic to exhaust the upstream rate window or hold
+ * the request handler for minutes. 50 is well above legitimate seat-batch
+ * sizes (current fleet is < 20) and small enough that worst-case latency
+ * stays bounded. (A-003 P2-A, 2026-05-06 review.)
+ */
+const MAX_VIA_TX_BATCH = 50;
+
 /** Shape of one via-tx envelope in the approve-via-tx request body. */
 export interface AttestationViaTxEnvelope {
   /** EIP-712 typed data — same shape as the sign-path envelopes. */
@@ -603,6 +614,12 @@ export async function handleAttestationRoutes(
         error:
           'request must contain either { tx_hash, eip712_hash, typedData, chain_id } ' +
           'or { attestations_via_tx: [ ... ] }',
+      });
+      return true;
+    }
+    if (envelopes.length > MAX_VIA_TX_BATCH) {
+      json(res, 400, {
+        error: `batch too large (max ${MAX_VIA_TX_BATCH}, got ${envelopes.length})`,
       });
       return true;
     }
