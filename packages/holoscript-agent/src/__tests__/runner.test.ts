@@ -2,7 +2,11 @@ import { describe, it, expect, vi } from 'vitest';
 import { mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import type { ILLMProvider, LLMCompletionRequest, LLMCompletionResponse } from '@holoscript/llm-provider';
+import type {
+  ILLMProvider,
+  LLMCompletionRequest,
+  LLMCompletionResponse,
+} from '@holoscript/llm-provider';
 import { CostGuard } from '../cost-guard.js';
 import { AgentRunner } from '../runner.js';
 import type { AgentIdentity, BoardTask, ExecutionResult, RuntimeBrainConfig } from '../types.js';
@@ -56,21 +60,23 @@ function mockProvider(opts: {
             // W.107.b: use a PRODUCTIVE bash command (vitest run) by default so
             // the tightened gate passes. Read-only bash like `echo ok` no
             // longer satisfies the gate. write_file uses non-empty content.
-            input: name === 'bash'
-              ? { cmd: 'vitest run --no-coverage' }
-              : name === 'write_file'
-                ? { path: '/root/agent-output/x', content: 'sample artifact content' }
-                : { path: '/tmp/x' },
+            input:
+              name === 'bash'
+                ? { cmd: 'vitest run --no-coverage' }
+                : name === 'write_file'
+                  ? { path: '/root/agent-output/x', content: 'sample artifact content' }
+                  : { path: '/tmp/x' },
           })),
           assistantBlocks: toolCalls.map((name, i) => ({
             type: 'tool_use' as const,
             id: `mock-tu-${i}`,
             name,
-            input: name === 'bash'
-              ? { cmd: 'vitest run --no-coverage' }
-              : name === 'write_file'
-                ? { path: '/root/agent-output/x', content: 'sample artifact content' }
-                : { path: '/tmp/x' },
+            input:
+              name === 'bash'
+                ? { cmd: 'vitest run --no-coverage' }
+                : name === 'write_file'
+                  ? { path: '/root/agent-output/x', content: 'sample artifact content' }
+                  : { path: '/tmp/x' },
           })),
         } as unknown as LLMCompletionResponse;
       }
@@ -92,14 +98,20 @@ function mockProvider(opts: {
   };
 }
 
-function mockMesh(opts: { tasks: BoardTask[]; heartbeatImpl?: () => Promise<void>; joinTeamImpl?: () => Promise<{ success: boolean; role?: string; members?: number }> }) {
+function mockMesh(opts: {
+  tasks: BoardTask[];
+  heartbeatImpl?: () => Promise<void>;
+  joinTeamImpl?: () => Promise<{ success: boolean; role?: string; members?: number }>;
+}) {
   const claimed: string[] = [];
   const messages: Array<{ taskId: string; body: string }> = [];
   return {
     claimed,
     messages,
     heartbeat: vi.fn(opts.heartbeatImpl ?? (async () => undefined)),
-    joinTeam: vi.fn(opts.joinTeamImpl ?? (async () => ({ success: true, role: 'member', members: 31 }))),
+    joinTeam: vi.fn(
+      opts.joinTeamImpl ?? (async () => ({ success: true, role: 'member', members: 31 }))
+    ),
     getOpenTasks: vi.fn(async () => opts.tasks),
     claim: vi.fn(async (id: string) => {
       claimed.push(id);
@@ -133,6 +145,12 @@ const BRAIN: RuntimeBrainConfig = {
   capabilityTags: ['security', 'threat-model', 'paper-21'],
   domain: 'security',
   scopeTier: 'warm',
+  // Universal+segregated routing fields (Lane 3 Phase 2). Empty arrays =
+  // open routing, matches today's behavior. Runner doesn't consume these
+  // fields directly; the supervisor router (Phase 4) will at session start.
+  requires: [],
+  prefers: [],
+  avoids: [],
 };
 
 describe('AgentRunner.tick', () => {
@@ -153,12 +171,23 @@ describe('AgentRunner.tick', () => {
 
   it('heartbeats, claims a tag-matching task, runs the LLM, posts the response, records cost', async () => {
     const tasks: BoardTask[] = [
-      { id: 't-G10', title: 'cross-paper threat-model memo', description: 'G10', priority: 'high', tags: ['security', 'paper-21'], status: 'open' },
+      {
+        id: 't-G10',
+        title: 'cross-paper threat-model memo',
+        description: 'G10',
+        priority: 'high',
+        tags: ['security', 'paper-21'],
+        status: 'open',
+      },
     ];
     const mesh = mockMesh({ tasks });
     // W.107 gate: a happy path must call at least one side-effecting tool
     // (bash or write_file). Pure-text responses now hit the no-artifact path.
-    const provider = mockProvider({ promptTokens: 100, completionTokens: 50, toolCallsBeforeText: ['bash'] });
+    const provider = mockProvider({
+      promptTokens: 100,
+      completionTokens: 50,
+      toolCallsBeforeText: ['bash'],
+    });
     const runner = new AgentRunner({
       identity: IDENTITY,
       brain: BRAIN,
@@ -184,12 +213,24 @@ describe('AgentRunner.tick', () => {
   // the LLM produced a pure-text response with no write_file / bash invocation.
   it('returns no-artifact when the LLM responds with pure text and calls no side-effecting tool (W.107 gate)', async () => {
     const tasks: BoardTask[] = [
-      { id: 't-hallucinated', title: 'paper-20 scene composition validate', description: '', priority: 'high', tags: ['security'], status: 'open' },
+      {
+        id: 't-hallucinated',
+        title: 'paper-20 scene composition validate',
+        description: '',
+        priority: 'high',
+        tags: ['security'],
+        status: 'open',
+      },
     ];
     const mesh = mockMesh({ tasks });
     // Empty toolCallsBeforeText → pure-text response ("100 scenes validated,
     // 0 violations"-style hallucination, the exact pattern mw02 produced).
-    const provider = mockProvider({ promptTokens: 100, completionTokens: 50, toolCallsBeforeText: [], content: '100 scenes validated, 0 violations' });
+    const provider = mockProvider({
+      promptTokens: 100,
+      completionTokens: 50,
+      toolCallsBeforeText: [],
+      content: '100 scenes validated, 0 violations',
+    });
     const runner = new AgentRunner({
       identity: IDENTITY,
       brain: BRAIN,
@@ -213,7 +254,14 @@ describe('AgentRunner.tick', () => {
   // bash (lake build, pnpm --filter, vitest run, lean) counts as artifact.
   it('returns no-artifact when bash is called with a read-only prefix only (W.107.b)', async () => {
     const tasks: BoardTask[] = [
-      { id: 't-trivial-bash', title: 'paper-20 scene composition validate', description: '', priority: 'high', tags: ['security'], status: 'open' },
+      {
+        id: 't-trivial-bash',
+        title: 'paper-20 scene composition validate',
+        description: '',
+        priority: 'high',
+        tags: ['security'],
+        status: 'open',
+      },
     ];
     const mesh = mockMesh({ tasks });
     // Custom mock: model calls bash with `echo done` (read-only) instead of
@@ -235,13 +283,19 @@ describe('AgentRunner.tick', () => {
             provider: 'mock',
             finishReason: 'tool_use',
             toolUses: [{ id: 'tu-1', name: 'bash', input: { cmd: 'echo done' } }],
-            assistantBlocks: [{ type: 'tool_use' as const, id: 'tu-1', name: 'bash', input: { cmd: 'echo done' } }],
+            assistantBlocks: [
+              { type: 'tool_use' as const, id: 'tu-1', name: 'bash', input: { cmd: 'echo done' } },
+            ],
           } as unknown as LLMCompletionResponse;
         }
         return { content: 'done', usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' };
       },
-      async generateHoloScript() { throw new Error('not used'); },
-      async healthCheck() { return { ok: true, latencyMs: 1 }; },
+      async generateHoloScript() {
+        throw new Error('not used');
+      },
+      async healthCheck() {
+        return { ok: true, latencyMs: 1 };
+      },
     };
     const runner = new AgentRunner({
       identity: IDENTITY,
@@ -259,7 +313,14 @@ describe('AgentRunner.tick', () => {
 
   it('returns no-artifact when write_file is called with empty content (W.107.b)', async () => {
     const tasks: BoardTask[] = [
-      { id: 't-empty-write', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' },
+      {
+        id: 't-empty-write',
+        title: 'security memo',
+        description: '',
+        priority: 'high',
+        tags: ['security'],
+        status: 'open',
+      },
     ];
     const mesh = mockMesh({ tasks });
     let callCount = 0;
@@ -278,14 +339,31 @@ describe('AgentRunner.tick', () => {
             provider: 'mock',
             finishReason: 'tool_use',
             // empty content — should NOT count as productive
-            toolUses: [{ id: 'tu-2', name: 'write_file', input: { path: '/root/agent-output/x', content: '' } }],
-            assistantBlocks: [{ type: 'tool_use' as const, id: 'tu-2', name: 'write_file', input: { path: '/root/agent-output/x', content: '' } }],
+            toolUses: [
+              {
+                id: 'tu-2',
+                name: 'write_file',
+                input: { path: '/root/agent-output/x', content: '' },
+              },
+            ],
+            assistantBlocks: [
+              {
+                type: 'tool_use' as const,
+                id: 'tu-2',
+                name: 'write_file',
+                input: { path: '/root/agent-output/x', content: '' },
+              },
+            ],
           } as unknown as LLMCompletionResponse;
         }
         return { content: 'done', usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' };
       },
-      async generateHoloScript() { throw new Error('not used'); },
-      async healthCheck() { return { ok: true, latencyMs: 1 }; },
+      async generateHoloScript() {
+        throw new Error('not used');
+      },
+      async healthCheck() {
+        return { ok: true, latencyMs: 1 };
+      },
     };
     const runner = new AgentRunner({
       identity: IDENTITY,
@@ -302,11 +380,22 @@ describe('AgentRunner.tick', () => {
 
   it('returns no-artifact when the LLM only calls read-only tools (read_file / list_dir)', async () => {
     const tasks: BoardTask[] = [
-      { id: 't-readonly', title: 'audit code', description: '', priority: 'high', tags: ['security'], status: 'open' },
+      {
+        id: 't-readonly',
+        title: 'audit code',
+        description: '',
+        priority: 'high',
+        tags: ['security'],
+        status: 'open',
+      },
     ];
     const mesh = mockMesh({ tasks });
     // The model invokes read_file but never write_file or bash → no artifact produced.
-    const provider = mockProvider({ promptTokens: 100, completionTokens: 50, toolCallsBeforeText: ['read_file'] });
+    const provider = mockProvider({
+      promptTokens: 100,
+      completionTokens: 50,
+      toolCallsBeforeText: ['read_file'],
+    });
     const runner = new AgentRunner({
       identity: IDENTITY,
       brain: BRAIN,
@@ -324,7 +413,14 @@ describe('AgentRunner.tick', () => {
   it('returns over-budget WITHOUT calling the LLM when the cost guard is tripped', async () => {
     const mesh = mockMesh({
       tasks: [
-        { id: 't1', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' },
+        {
+          id: 't1',
+          title: 'security memo',
+          description: '',
+          priority: 'high',
+          tags: ['security'],
+          status: 'open',
+        },
       ],
     });
     const provider = mockProvider({ promptTokens: 100, completionTokens: 50 });
@@ -347,7 +443,14 @@ describe('AgentRunner.tick', () => {
   it('heartbeats and reports no-claimable-task when no open task matches the brain capability set', async () => {
     const mesh = mockMesh({
       tasks: [
-        { id: 't-ui', title: 'theme tweak', description: 'css update', priority: 'low', tags: ['ui'], status: 'open' },
+        {
+          id: 't-ui',
+          title: 'theme tweak',
+          description: 'css update',
+          priority: 'low',
+          tags: ['ui'],
+          status: 'open',
+        },
       ],
     });
     const runner = new AgentRunner({
@@ -368,7 +471,14 @@ describe('AgentRunner.tick', () => {
     const dir = mkdtempSync(join(tmpdir(), 'audit-runner-'));
     const auditLog = new AuditLog({ logPath: join(dir, 'audit.jsonl') });
     const tasks: BoardTask[] = [
-      { id: 't-aud', title: 'audit-wired memo', description: '', priority: 'high', tags: ['security'], status: 'open' },
+      {
+        id: 't-aud',
+        title: 'audit-wired memo',
+        description: '',
+        priority: 'high',
+        tags: ['security'],
+        status: 'open',
+      },
     ];
     const mesh = mockMesh({ tasks });
     const runner = new AgentRunner({
@@ -393,12 +503,21 @@ describe('AgentRunner.tick', () => {
   // task_1777112258989_eeyp: heartbeat-403 self-rejoin tests.
   describe('auto-rejoin on 403 Not a member (task_1777112258989_eeyp)', () => {
     function notAMemberError() {
-      return new Error('HoloMesh POST /team/team_test/presence 403: {"error":"Not a member of this team"}');
+      return new Error(
+        'HoloMesh POST /team/team_test/presence 403: {"error":"Not a member of this team"}'
+      );
     }
 
     it('catches 403 Not a member from heartbeat, calls joinTeam, retries heartbeat, then proceeds', async () => {
       const tasks: BoardTask[] = [
-        { id: 't-recover', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' },
+        {
+          id: 't-recover',
+          title: 'security memo',
+          description: '',
+          priority: 'high',
+          tags: ['security'],
+          status: 'open',
+        },
       ];
       let heartbeatCall = 0;
       const mesh = mockMesh({
@@ -430,7 +549,14 @@ describe('AgentRunner.tick', () => {
 
     it('does NOT call joinTeam more than once per process even across multiple ticks', async () => {
       const tasks: BoardTask[] = [
-        { id: 't-stick', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' },
+        {
+          id: 't-stick',
+          title: 'security memo',
+          description: '',
+          priority: 'high',
+          tags: ['security'],
+          status: 'open',
+        },
       ];
       let heartbeatCall = 0;
       const mesh = mockMesh({
@@ -459,12 +585,21 @@ describe('AgentRunner.tick', () => {
 
     it('does NOT auto-rejoin on a 403 with a different error body (insufficient permissions)', async () => {
       const tasks: BoardTask[] = [
-        { id: 't-perm', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' },
+        {
+          id: 't-perm',
+          title: 'security memo',
+          description: '',
+          priority: 'high',
+          tags: ['security'],
+          status: 'open',
+        },
       ];
       const mesh = mockMesh({
         tasks,
         heartbeatImpl: async () => {
-          throw new Error('HoloMesh POST /team/team_test/presence 403: {"error":"Insufficient permissions"}');
+          throw new Error(
+            'HoloMesh POST /team/team_test/presence 403: {"error":"Insufficient permissions"}'
+          );
         },
       });
       const runner = new AgentRunner({
@@ -481,7 +616,14 @@ describe('AgentRunner.tick', () => {
 
     it('does NOT auto-rejoin on non-403 errors (network failure, 500)', async () => {
       const tasks: BoardTask[] = [
-        { id: 't-net', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' },
+        {
+          id: 't-net',
+          title: 'security memo',
+          description: '',
+          priority: 'high',
+          tags: ['security'],
+          status: 'open',
+        },
       ];
       const mesh = mockMesh({
         tasks,
@@ -503,7 +645,14 @@ describe('AgentRunner.tick', () => {
 
     it('marks joinedThisProcess=true even if joinTeam itself throws (no retry storm on join endpoint)', async () => {
       const tasks: BoardTask[] = [
-        { id: 't-joinfail', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' },
+        {
+          id: 't-joinfail',
+          title: 'security memo',
+          description: '',
+          priority: 'high',
+          tags: ['security'],
+          status: 'open',
+        },
       ];
       const mesh = mockMesh({
         tasks,
@@ -538,7 +687,14 @@ describe('AgentRunner.tick', () => {
 
   it('routes the response through onTaskExecuted when supplied (Phase 1.5 commit hook)', async () => {
     const tasks: BoardTask[] = [
-      { id: 't-G10', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' },
+      {
+        id: 't-G10',
+        title: 'security memo',
+        description: '',
+        priority: 'high',
+        tags: ['security'],
+        status: 'open',
+      },
     ];
     const mesh = mockMesh({ tasks });
     const captured: ExecutionResult[] = [];

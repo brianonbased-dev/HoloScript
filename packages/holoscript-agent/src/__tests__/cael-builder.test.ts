@@ -22,6 +22,10 @@ const brain: RuntimeBrainConfig = {
   capabilityTags: ['paper-19', 'trait-inference'],
   domain: 'trait-inference',
   scopeTier: 'warm',
+  // Lane 3 Phase 2 — open routing (matches today's behavior).
+  requires: [],
+  prefers: [],
+  avoids: [],
 };
 
 const task: BoardTask = {

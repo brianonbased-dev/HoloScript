@@ -2,7 +2,12 @@ import { describe, it, expect, vi } from 'vitest';
 import { mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import type { ILLMProvider, LLMCompletionRequest, LLMCompletionResponse, ToolResultBlock } from '@holoscript/llm-provider';
+import type {
+  ILLMProvider,
+  LLMCompletionRequest,
+  LLMCompletionResponse,
+  ToolResultBlock,
+} from '@holoscript/llm-provider';
 
 // Stub `../tools.js` BEFORE importing the runner so the bash tool returns a
 // canned ToolResultBlock instead of spawning a real subprocess. Each test
@@ -42,13 +47,30 @@ function bashOnceProvider(): ILLMProvider {
           provider: 'mock',
           finishReason: 'tool_use',
           toolUses: [{ id: 'tu-1', name: 'bash', input: { cmd: 'vitest run --no-coverage' } }],
-          assistantBlocks: [{ type: 'tool_use' as const, id: 'tu-1', name: 'bash', input: { cmd: 'vitest run --no-coverage' } }],
+          assistantBlocks: [
+            {
+              type: 'tool_use' as const,
+              id: 'tu-1',
+              name: 'bash',
+              input: { cmd: 'vitest run --no-coverage' },
+            },
+          ],
         } as unknown as LLMCompletionResponse;
       }
-      return { content: 'final text', usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' };
+      return {
+        content: 'final text',
+        usage,
+        model: 'mock-1',
+        provider: 'mock',
+        finishReason: 'stop',
+      };
     },
-    async generateHoloScript() { throw new Error('not used'); },
-    async healthCheck() { return { ok: true, latencyMs: 1 }; },
+    async generateHoloScript() {
+      throw new Error('not used');
+    },
+    async healthCheck() {
+      return { ok: true, latencyMs: 1 };
+    },
   };
 }
 
@@ -88,6 +110,10 @@ const BRAIN: RuntimeBrainConfig = {
   capabilityTags: ['security'],
   domain: 'security',
   scopeTier: 'warm',
+  // Lane 3 Phase 2 — open routing (matches today's behavior).
+  requires: [],
+  prefers: [],
+  avoids: [],
 };
 
 function freshGuard() {
@@ -101,7 +127,14 @@ function freshGuard() {
 
 describe('AgentRunner SHA extraction (regression: tr.is_error vs tr.isError typo)', () => {
   const TASK: BoardTask[] = [
-    { id: 't-sha', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' },
+    {
+      id: 't-sha',
+      title: 'security memo',
+      description: '',
+      priority: 'high',
+      tags: ['security'],
+      status: 'open',
+    },
   ];
 
   it('extracts the commit SHA from successful bash stdout and forwards it to markDone', async () => {
