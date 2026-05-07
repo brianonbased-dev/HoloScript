@@ -1,0 +1,160 @@
+// Agentic Internet Composition Demo (task_1778125252148_qe2i).
+//
+// One .holo file that names every node in the chain Joseph wants
+// to ship: VR user -> SpatialMCPContext -> mesh-tool routing ->
+// agent negotiation -> vault-leased credential -> hologram
+// returned to Studio Brittney chat. The .test.ts next door wires
+// real primitive calls through this same shape headlessly.
+//
+// Founder vision check: "HoloScript = interface of internet+VR".
+// This composition file IS the receipt that the five primitives
+// shipped 2026-05-06 do not just exist - they compose.
+//
+// Stacks on:
+//   jira  57fae81ba+ed284b32f+e134ee1c6  SpatialMCPContext
+//   yqll  e9942dc9e+1419cce6d            mesh tool registry
+//   xsp6  cbdab1387                      agent negotiation
+//   u8q2  16f5014be                      vault leases
+//   zp7u  642ab1d75                      HologramMcpResponse
+//
+// Per task scope guardrail: ONE happy-path cycle, two agents, one
+// VR context, one hologram returned. This file names the cycle.
+
+@world {
+  name: "Agentic Internet Composition Demo"
+  version: "0.1.0"
+  task: "task_1778125252148_qe2i"
+  shipped: "2026-05-07"
+}
+
+// ============================================================
+// VR USER (the human Joseph on Quest 3, headset-as-IDE).
+// Emits a SpatialMCPContext when they ask Brittney chat to
+// "show me the molecule under my gaze". The context is the
+// FIRST PRIMITIVE - jira's SpatialMCPContext schema.
+// ============================================================
+
+agent "VRUser" @vr @initiator {
+  id: "vr-user-quest3"
+  surface: "quest-3"
+  trust_level: "owner"
+
+  capability "emit_spatial_context" @spatial @vr {
+    description: "Emit SpatialMCPContext (gaze + hands + room) for current frame"
+    domain: "spatial"
+    schema: "SpatialMCPContext@0.1"
+  }
+
+  endpoint @local {
+    protocol: "openxr"
+    address: "openxr://quest3/session/0"
+    primary: true
+  }
+}
+
+// ============================================================
+// BRITTNEY CHAT AGENT (the responder; the agent who lives in
+// the Studio chat sidebar and quotes work back to the VR user).
+// The mesh-tool registry routing turns the user's spatial
+// query into a concrete tool dispatch.
+// ============================================================
+
+agent "BrittneyChat" @agent @responder @studio {
+  id: "brittney-chat-studio"
+  trust_level: "team"
+
+  capability "render_alphafold_hologram" @generate @hologram @bio {
+    description: "Render an AlphaFold structure as a HologramMcpResponse"
+    domain: "molecular-visualization"
+    tags: ["alphafold", "hologram", "spatial-mcp"]
+    schema: "HologramMcpResponse@0.1"
+  }
+
+  capability "negotiate_quote" @economics @negotiation {
+    description: "Quote price+SLA for a tool execution"
+    domain: "agent-commerce"
+    schema: "NegotiationQuote@v1"
+  }
+
+  endpoint @local {
+    protocol: "mcp-http"
+    address: "mcp+http://studio.local/brittney"
+    primary: true
+  }
+}
+
+// ============================================================
+// THE FULL CYCLE - one happy path, five primitive surfaces.
+// Each step is named by the primitive that crosses it.
+// ============================================================
+
+skill "agentic_internet_cycle" @cycle @demo {
+  description: "End-to-end demo: VR query -> hologram delivered to chat"
+
+  // [1/5] SPATIAL  - jira's SpatialMCPContext from VR.
+  step "emit_spatial_context" {
+    agent: "VRUser"
+    primitive: "SpatialMCPContext"
+    inputs: { frame_id: "string" }
+    output: { spatialCtx: "SpatialMCPContext" }
+    notes: "Validator enforces version='0.1', frame='tracking-space-y-up-meters', |gaze.dir|=1"
+  }
+
+  // [2/5] ROUTING  - yqll's mesh tool registry resolves capability_query
+  // to a published manifest with attestation hash.
+  step "route_capability_query" {
+    agent: "BrittneyChat"
+    primitive: "MeshToolRegistry"
+    inputs:  { capability_query: "string", spatialCtx: "SpatialMCPContext" }
+    output:  { manifestId: "string", manifestHash: "string", toolName: "string" }
+    notes: "Routed via discoverMeshTools(capability_tags); attestation verified before invocation"
+  }
+
+  // [3/5] NEGOTIATION - xsp6's state machine. open -> quoted -> accepted.
+  // Initiator (VRUser) pays in USDC; responder (Brittney) executes.
+  step "negotiate_quote_and_accept" {
+    agent: "BrittneyChat"
+    primitive: "AgentNegotiation"
+    inputs:  { manifestId: "string", price: "number", slaSeconds: "number" }
+    output:  { negotiationId: "string", state: "accepted" }
+    notes: "createNegotiation -> advanceNegotiation(quote) -> advanceNegotiation(accept)"
+  }
+
+  // [4/5] CREDENTIAL - u8q2's task-scoped vault lease. Mid-negotiation
+  // Brittney needs the AlphaFold API key; resolveSecret enforces lease
+  // scope. Wallet keys are PERMANENTLY UNLEASABLE (G.GOLD.016).
+  step "resolve_leased_credential" {
+    agent: "BrittneyChat"
+    primitive: "VaultLease"
+    inputs:  { taskId: "string", agentId: "string", secretRef: "env:ALPHAFOLD_API_KEY" }
+    output:  { resolved: "boolean", auditEventEmitted: "boolean" }
+    notes: "Lease scope is task-bound; expiry < 24h; wallet refs rejected with 'wallet_unleasable'"
+  }
+
+  // [5/5] HOLOGRAM - zp7u's HologramMcpResponse. The result is content_type
+  // 'application/holoscript+holo' returned through the MCP envelope. The
+  // chat client's detectHologramContent picks it up and routes to /hologram.
+  step "execute_and_return_hologram" {
+    agent: "BrittneyChat"
+    primitive: "HologramMcpResponse"
+    inputs:  { negotiationId: "string", apiKeyResolved: "boolean" }
+    output:  { hologramEnvelope: "HologramMcpEnvelope", resultHash: "string" }
+    notes: "advanceNegotiation(execute) -> settleNegotiation co-signs -> envelope sent to chat"
+  }
+}
+
+// ============================================================
+// CYCLE COMPLETE.
+//
+// Receipt of composition (assertions the .test.ts checks):
+//   - spatialCtx validates ok with no errors
+//   - manifest attestation verifies (no rehashing produces a different hash)
+//   - negotiation reaches state='settled' with a co-signed receipt
+//   - vault lease audit event records 'vault_lease_resolve_secret'
+//   - HologramMcpEnvelope round-trips through detectHologramContent
+//
+// What this file is NOT: a playable scene yet. The renderer sits
+// on top of the chain (HoloScript Studio /hologram route). What
+// this file IS: the named composition that proves the substrate
+// is whole. P.GOLD.004 - interaction as computation attestation.
+// ============================================================
