@@ -201,6 +201,44 @@ describe('agent-negotiation: lifecycle', () => {
     ]);
   });
 
+  it('allows responder to submit the co-signed settlement receipt', () => {
+    const n = freshOpenNegotiation();
+    advanceNegotiation({
+      negotiationId: n.id,
+      action: 'quote',
+      authorAgentId: BOB,
+      signerAddress: BOB_ADDR,
+      payload: { quote: VALID_QUOTE },
+    });
+    advanceNegotiation({
+      negotiationId: n.id,
+      action: 'accept',
+      authorAgentId: ALICE,
+      signerAddress: ALICE_ADDR,
+    });
+    advanceNegotiation({
+      negotiationId: n.id,
+      action: 'execute',
+      authorAgentId: BOB,
+      signerAddress: BOB_ADDR,
+      payload: { result: { ok: true } },
+    });
+
+    const r = settleNegotiation({
+      negotiationId: n.id,
+      authorAgentId: BOB,
+      signerAddress: BOB_ADDR,
+      initiatorSignature: '0xinitsig',
+      initiatorAddress: ALICE_ADDR,
+      responderSignature: '0xrespsig',
+      responderAddress: BOB_ADDR,
+    });
+
+    expect(r.ok).toBe(true);
+    expect(r.negotiation?.state).toBe('settled');
+    expect(r.event?.authorRole).toBe('responder');
+  });
+
   it('reject path: initiator can reject a quote', () => {
     const n = freshOpenNegotiation();
     advanceNegotiation({
@@ -251,6 +289,31 @@ describe('agent-negotiation: lifecycle', () => {
     });
     expect(r.ok).toBe(true);
     expect(r.negotiation?.state).toBe('disputed');
+  });
+
+  it('dispute path: responder can dispute from executed', () => {
+    const n = freshOpenNegotiation();
+    advanceNegotiation({
+      negotiationId: n.id, action: 'quote', authorAgentId: BOB,
+      signerAddress: BOB_ADDR, payload: { quote: VALID_QUOTE },
+    });
+    advanceNegotiation({
+      negotiationId: n.id, action: 'accept', authorAgentId: ALICE, signerAddress: ALICE_ADDR,
+    });
+    advanceNegotiation({
+      negotiationId: n.id, action: 'execute', authorAgentId: BOB,
+      signerAddress: BOB_ADDR, payload: { result: { ok: true } },
+    });
+    const r = advanceNegotiation({
+      negotiationId: n.id,
+      action: 'dispute',
+      authorAgentId: BOB,
+      signerAddress: BOB_ADDR,
+      payload: { reason: 'initiator did not acknowledge receipt' },
+    });
+    expect(r.ok).toBe(true);
+    expect(r.negotiation?.state).toBe('disputed');
+    expect(r.event?.authorRole).toBe('responder');
   });
 
   it('dispute path: from settled', () => {
@@ -345,6 +408,39 @@ describe('agent-negotiation: invariant enforcement', () => {
     });
     expect(r.ok).toBe(false);
     expect(r.error).toMatch(/execute/);
+  });
+
+  it('rejects partial settle without mutating a receipt', () => {
+    const n = freshOpenNegotiation();
+    advanceNegotiation({
+      negotiationId: n.id, action: 'quote', authorAgentId: BOB,
+      signerAddress: BOB_ADDR, payload: { quote: VALID_QUOTE },
+    });
+    advanceNegotiation({
+      negotiationId: n.id, action: 'accept', authorAgentId: ALICE, signerAddress: ALICE_ADDR,
+    });
+    advanceNegotiation({
+      negotiationId: n.id, action: 'execute', authorAgentId: BOB,
+      signerAddress: BOB_ADDR, payload: { result: { ok: true } },
+    });
+
+    const r = advanceNegotiation({
+      negotiationId: n.id,
+      action: 'settle',
+      authorAgentId: ALICE,
+      signerAddress: ALICE_ADDR,
+      payload: {
+        partialReceipt: {
+          initiatorSignature: '0xonly-one-leg',
+          initiatorAddress: ALICE_ADDR,
+        },
+      },
+    });
+
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe('missing-counter-signature');
+    expect(getNegotiation(n.id)?.receipt).toBeUndefined();
+    expect(getNegotiation(n.id)?.state).toBe('executed');
   });
 
   it('returns not-found for unknown negotiationId', () => {

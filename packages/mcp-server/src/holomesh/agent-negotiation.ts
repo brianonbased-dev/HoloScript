@@ -94,7 +94,7 @@ export type NegotiationRole = 'initiator' | 'responder';
  */
 const TRANSITIONS: Record<
   string,
-  { next: NegotiationState; actor: NegotiationRole; coSigned?: boolean } | null
+  { next: NegotiationState; actor: NegotiationRole | 'either'; coSigned?: boolean } | null
 > = {
   // From open
   'open|request_quote': { next: 'open', actor: 'initiator' },
@@ -107,11 +107,11 @@ const TRANSITIONS: Record<
   'quoted|reject': { next: 'rejected', actor: 'initiator' },
   // From accepted
   'accepted|execute': { next: 'executed', actor: 'responder' },
-  // From executed (co-signed receipt — either side can post their leg)
-  'executed|settle': { next: 'settled', actor: 'initiator', coSigned: true },
-  'executed|dispute': { next: 'disputed', actor: 'initiator' },
+  // From executed (co-signed receipt - either side can post the completed receipt)
+  'executed|settle': { next: 'settled', actor: 'either', coSigned: true },
+  'executed|dispute': { next: 'disputed', actor: 'either' },
   // From settled
-  'settled|dispute': { next: 'disputed', actor: 'initiator' },
+  'settled|dispute': { next: 'disputed', actor: 'either' },
 };
 
 /** Terminal states — no further transitions accepted. */
@@ -162,7 +162,7 @@ export function checkTransition(
       error: `cannot apply '${action}' to negotiation in state '${currentState}'`,
     };
   }
-  if (rule.actor !== actorRole) {
+  if (rule.actor !== 'either' && rule.actor !== actorRole) {
     return {
       ok: false,
       reason: 'wrong-actor',
@@ -446,10 +446,10 @@ function validateQuote(q: NegotiationQuote | undefined): { ok: true } | { ok: fa
 // ── Settlement (co-signed receipt) ────────────────────────────────────
 
 /**
- * The `settle` action requires that both parties have signed the
- * executed outcome. The first party to settle deposits their leg via
- * payload.partialReceipt; the second party deposits the counter
- * signature, completing the co-signed SettlementReceipt.
+ * The `settle` action requires one completed receipt containing both
+ * parties' signatures. We intentionally reject half-signed receipts
+ * instead of storing partial state, so a failed settlement attempt cannot
+ * mutate the aggregate or leave a misleading receipt behind.
  *
  * Pattern: scope guardrail says "one signed receipt" — we still take both
  * signatures (initiator + responder) so the receipt is dispute-resistant
@@ -467,7 +467,7 @@ function applySettlement(
     return {
       ok: false,
       reason: 'missing-counter-signature',
-      error: 'settle payload requires partialReceipt with at least the local leg signature',
+      error: 'settle payload requires partialReceipt with both party signatures',
     };
   }
   // Did the previous executed event have an output we can hash?
@@ -488,58 +488,31 @@ function applySettlement(
   }
   const resultHash = (partial.resultHash as string) ?? hashResult(lastExec.payload?.result);
 
-  // First settle leg: deposit partial; second leg: complete the receipt.
-  const existing = n.receipt;
-  if (!existing) {
-    // First leg — record under the actor's role
-    const isInitiator = input.authorAgentId === n.initiatorAgentId;
-    n.receipt = {
-      protocol: NEGOTIATION_PROTOCOL,
-      negotiationId: n.id,
-      initiatorSignature: isInitiator ? (partial.initiatorSignature as string) ?? '' : '',
-      initiatorAddress: isInitiator ? (partial.initiatorAddress as string) ?? input.signerAddress ?? '' : '',
-      responderSignature: !isInitiator ? (partial.responderSignature as string) ?? '' : '',
-      responderAddress: !isInitiator ? (partial.responderAddress as string) ?? input.signerAddress ?? '' : '',
-      finalQuote: n.quote,
-      resultHash,
-      settlementTxHash: partial.settlementTxHash,
-      settledAt: '', // not yet — both legs needed
-    };
-    // First leg keeps state as 'executed'; only the *second* leg flips
-    // to 'settled'. We special-case this in advanceNegotiation by
-    // returning ok but with a note and overriding nextState here.
-    // Approach: we mutate the transitions table indirectly by signaling
-    // a soft-failure on the first leg. To keep the state machine
-    // deterministic we instead require both signatures in one call when
-    // both parties have signed off-band, and return illegal-transition
-    // if only one side is supplied. Stricter == easier to reason about.
+  const initiatorSignature = partial.initiatorSignature as string | undefined;
+  const initiatorAddress = partial.initiatorAddress as string | undefined;
+  const responderSignature = partial.responderSignature as string | undefined;
+  const responderAddress = partial.responderAddress as string | undefined;
+
+  if (!initiatorSignature || !initiatorAddress || !responderSignature || !responderAddress) {
     return {
       ok: false,
       reason: 'missing-counter-signature',
       error: 'settle requires both initiator and responder signatures in partialReceipt',
     };
   }
-  // Both legs supplied in one call — fill missing leg.
-  if (!existing.initiatorSignature && partial.initiatorSignature) {
-    existing.initiatorSignature = partial.initiatorSignature as string;
-    existing.initiatorAddress =
-      (partial.initiatorAddress as string) ?? existing.initiatorAddress;
-  }
-  if (!existing.responderSignature && partial.responderSignature) {
-    existing.responderSignature = partial.responderSignature as string;
-    existing.responderAddress =
-      (partial.responderAddress as string) ?? existing.responderAddress;
-  }
-  if (!existing.initiatorSignature || !existing.responderSignature) {
-    return {
-      ok: false,
-      reason: 'missing-counter-signature',
-      error: 'settle requires both initiator and responder signatures',
-    };
-  }
-  existing.settledAt = new Date().toISOString();
-  existing.settlementTxHash =
-    existing.settlementTxHash ?? (partial.settlementTxHash as string | undefined);
+
+  n.receipt = {
+    protocol: NEGOTIATION_PROTOCOL,
+    negotiationId: n.id,
+    initiatorSignature,
+    initiatorAddress,
+    responderSignature,
+    responderAddress,
+    finalQuote: n.quote,
+    resultHash,
+    settlementTxHash: partial.settlementTxHash as string | undefined,
+    settledAt: new Date().toISOString(),
+  };
   return { ok: true };
 }
 
@@ -588,17 +561,12 @@ export function settleNegotiation(input: {
     settlementTxHash: input.settlementTxHash,
     settledAt: new Date().toISOString(),
   };
-  n.receipt = receipt;
   return advanceNegotiation({
     negotiationId: input.negotiationId,
     action: 'settle',
     authorAgentId: input.authorAgentId,
     signerAddress: input.signerAddress,
-    // Pass the full receipt as `partialReceipt` so applySettlement's
-    // merge branch sees both legs already filled and only needs to
-    // stamp `settledAt`. (Without this, applySettlement's missing-
-    // counter-signature guard fires because partial is undefined.)
-    payload: { partialReceipt: receipt, receipt },
+    payload: { partialReceipt: receipt },
   });
 }
 
