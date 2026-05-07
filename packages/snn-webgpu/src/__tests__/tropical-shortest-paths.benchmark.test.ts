@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { GPUContext } from '../gpu-context.js';
 import { TropicalShortestPaths } from '../graph/TropicalShortestPaths.js';
 import { TROPICAL_INF } from '../graph/TropicalGraphUtils.js';
+import { GPU_LIVE } from './setup.js';
 
 function makeDenseGraph(n: number, edgeProbability = 0.15): Float32Array {
   const out = new Float32Array(n * n).fill(TROPICAL_INF);
@@ -50,8 +51,9 @@ describe('TropicalShortestPaths benchmark harness', () => {
   });
 
   it('cpu and auto routes agree on APSP result for a medium graph', async () => {
-    // GitHub Actions has no Vulkan/WebGPU drivers; the mock layer can diverge from CPU APSP.
-    if (process.env.CI === 'true') {
+    // The mock layer can create pipelines, but compute passes are no-ops.
+    if (!GPU_LIVE) {
+      console.log('[tropical-benchmark] Skipping CPU/AUTO parity assertion: no live GPU');
       return;
     }
     const n = 32;

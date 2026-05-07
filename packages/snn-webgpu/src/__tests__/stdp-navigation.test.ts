@@ -12,6 +12,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { GPUContext } from '../gpu-context.js';
+import { GPU_LIVE } from './setup.js';
 import {
   SNNNavigationAgent,
   bfsPathLength,
@@ -220,6 +221,10 @@ describe('runEpisode (STDP enabled)', () => {
 
 describe('STDP weight plasticity', () => {
   it('weights change after STDP training', async () => {
+    if (!GPU_LIVE) {
+      console.log('[stdp-navigation] Skipping plasticity assertion: mock compute is no-op');
+      return;
+    }
     const world = createSmallWorld();
     const agent = new SNNNavigationAgent(ctx, world, true);
     await agent.initialize();

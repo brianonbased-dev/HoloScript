@@ -4871,9 +4871,82 @@ export class SparsityMonitor {
 export function createSparsityMonitor(config?: any): SparsityMonitor;
 `;
 
+const testingDTS = `/** @holoscript/core/testing — narrow empirical test utilities */
+export interface GpuInfo {
+  vendor?: string;
+  architecture?: string;
+  device?: string;
+  description?: string;
+  backend?: string;
+}
+export interface NodeInfo {
+  version: string;
+  arch: string;
+  platform: string;
+}
+export interface BrowserInfo {
+  userAgent?: string;
+  browser?: string;
+  os?: string;
+}
+export interface EnvironmentInfo {
+  runtime: 'browser' | 'node' | 'unknown';
+  gpu?: GpuInfo;
+  node?: NodeInfo;
+  browser?: BrowserInfo;
+  annotations?: Record<string, string>;
+}
+export interface ProbeResult<T = Uint8Array | string> {
+  name: string;
+  timestamp: number;
+  environment: EnvironmentInfo;
+  durationMs: number;
+  outputHash: string;
+  outputSize: number;
+  output?: T;
+  error?: string;
+}
+export interface DivergenceGroup {
+  hash: string;
+  results: ProbeResult[];
+  environments: string[];
+}
+export interface DivergenceReport {
+  probeName: string;
+  totalResults: number;
+  uniqueHashes: number;
+  divergent: boolean;
+  groups: DivergenceGroup[];
+  summary: string;
+}
+export interface HarnessOptions {
+  captureOutput?: boolean;
+  hashAlgorithm?: 'sha256' | 'fnv1a';
+  annotations?: Record<string, string>;
+}
+export declare function captureEnvironment(
+  annotations?: Record<string, string>
+): Promise<EnvironmentInfo>;
+export declare function hashBytes(
+  input: Uint8Array | string,
+  algo?: 'sha256' | 'fnv1a'
+): Promise<string>;
+export declare class DeterminismHarness {
+  constructor(options?: HarnessOptions);
+  probe<T extends Uint8Array | string>(
+    name: string,
+    fn: () => Promise<T> | T,
+    annotations?: Record<string, string>
+  ): Promise<ProbeResult<T>>;
+  static compareResults(results: ProbeResult[]): DivergenceReport;
+}
+export declare function describeEnvironment(env: EnvironmentInfo): string;
+`;
+
 // Write type declaration files
 const files = [
   { path: path.join(distDir, 'index.d.ts'), content: mainDTS },
+  { path: path.join(distDir, 'testing.d.ts'), content: testingDTS },
   { path: path.join(distDir, 'parser.d.ts'), content: parserDTS },
   { path: path.join(distDir, 'runtime.d.ts'), content: runtimeDTS },
   { path: path.join(distDir, 'type-checker.d.ts'), content: typeCheckerDTS },

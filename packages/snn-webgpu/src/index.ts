@@ -91,7 +91,7 @@ export {
 export { CPUReferenceSimulator, generateSynapticInput, generateWeightMatrix } from './poc/index.js';
 export type { CPUNeuronState, StepResult } from './poc/index.js';
 
-// Paper #2 empirical probe — consumes @holoscript/core's DeterminismHarness
+// Paper #2 empirical probe — pairs with @holoscript/core/testing's DeterminismHarness
 // for cross-backend LIF determinism validation.
 export {
   runLIFDeterminismProbe,

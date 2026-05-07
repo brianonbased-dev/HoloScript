@@ -34,6 +34,11 @@
       "import": "./dist/math/tropical-spmv.js",
       "require": "./dist/math/tropical-spmv.cjs"
     },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js",
+      "require": "./dist/testing.cjs"
+    },
     "./parser": {
       "types": "./dist/parser.d.ts",
       "import": "./dist/parser.js",

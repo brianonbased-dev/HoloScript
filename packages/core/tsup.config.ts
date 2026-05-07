@@ -15,6 +15,7 @@ export default defineConfig({
   entry: {
     // Core exports (always loaded)
     index: 'src/index.ts',
+    testing: 'src/testing/DeterminismHarness.ts',
     'math/vec3': 'src/math/vec3.ts',
     'math/tropical-spmv': 'src/math/tropicalSpmv.ts',
     parser: 'src/parser/index.ts',

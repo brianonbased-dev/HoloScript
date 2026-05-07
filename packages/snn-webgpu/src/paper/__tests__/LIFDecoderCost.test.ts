@@ -15,6 +15,7 @@ import { GPUContext } from '../../gpu-context.js';
 import { LIFSimulator } from '../../lif-simulator.js';
 import { generateSynapticInput } from '../../poc/cpu-reference.js';
 import { DEFAULT_LIF_PARAMS } from '../../types.js';
+import { GPU_LIVE } from '../../__tests__/setup.js';
 
 describe('LIFDecoderCost (Paper #2 readback overhead)', () => {
   let ctx: GPUContext;
@@ -71,18 +72,30 @@ describe('LIFDecoderCost (Paper #2 readback overhead)', () => {
   }
 
   it('readback cost stays sub-linear vs simulation at N=1,024', async () => {
+    if (!GPU_LIVE) {
+      console.log('[lif-decoder-cost] Skipping timing assertion: mock compute has no simulation work');
+      return;
+    }
     const r = await measureReadback(1024, 100);
     expect(r.readbackRatio).toBeLessThan(0.15); // <15% of total time
     expect(r.readbackMs / r.ticks).toBeLessThan(0.05); // <50 µs per tick
   });
 
   it('readback cost stays sub-linear vs simulation at N=65,536', async () => {
+    if (!GPU_LIVE) {
+      console.log('[lif-decoder-cost] Skipping timing assertion: mock compute has no simulation work');
+      return;
+    }
     const r = await measureReadback(65536, 100);
     expect(r.readbackRatio).toBeLessThan(0.10); // <10% of total time
     expect(r.readbackMs / r.ticks).toBeLessThan(0.20); // <200 µs per tick
   });
 
   it('readback scales linearly with N (ratio check)', async () => {
+    if (!GPU_LIVE) {
+      console.log('[lif-decoder-cost] Skipping timing assertion: mock compute has no simulation work');
+      return;
+    }
     const r1k = await measureReadback(1024, 10);
     const r64k = await measureReadback(65536, 10);
 
@@ -97,6 +110,10 @@ describe('LIFDecoderCost (Paper #2 readback overhead)', () => {
   });
 
   it('reports effective readback throughput', async () => {
+    if (!GPU_LIVE) {
+      console.log('[lif-decoder-cost] Skipping throughput assertion: mock compute has no simulation work');
+      return;
+    }
     const r = await measureReadback(262144, 50);
     const gbps = (r.bytesRead / (r.readbackMs / 1000)) / 1e9;
     expect(Number.isFinite(gbps)).toBe(true);

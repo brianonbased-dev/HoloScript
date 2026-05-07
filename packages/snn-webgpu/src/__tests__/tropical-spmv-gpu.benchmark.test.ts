@@ -66,8 +66,8 @@ describe('Tropical CSR SpMV GPU benchmark', () => {
   it('GPU tropicalSpmv vs CPU reference: throughput + correctness', async () => {
     // In CI without a live GPU the mock compute pass is a no-op; timings
     // would be meaningless and correctness would fail. Skip GPU portion.
-    if (!GPU_LIVE && process.env.CI === 'true') {
-      console.log('[tropical-spmv-gpu] Skipping GPU benchmark: no live GPU in CI');
+    if (!GPU_LIVE) {
+      console.log('[tropical-spmv-gpu] Skipping GPU benchmark: no live GPU');
       return;
     }
 

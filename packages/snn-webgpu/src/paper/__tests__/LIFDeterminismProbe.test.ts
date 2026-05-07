@@ -19,8 +19,9 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { DeterminismHarness } from '@holoscript/core';
+import { DeterminismHarness } from '@holoscript/core/testing';
 import { GPUContext } from '../../gpu-context.js';
+import { GPU_LIVE } from '../../__tests__/setup.js';
 import {
   runLIFDeterminismProbe,
   PAPER_2_CANONICAL_CONFIG,
@@ -76,6 +77,10 @@ describe('LIFDeterminismProbe (Paper #2 same-backend baseline)', () => {
   });
 
   it('different stimulus seeds produce different hashes', async () => {
+    if (!GPU_LIVE) {
+      console.log('[lif-determinism] Skipping seed-divergence assertion: mock compute is no-op');
+      return;
+    }
     const harness = new DeterminismHarness();
 
     const r42 = await harness.probe('lif-seed-42', () =>
@@ -89,6 +94,10 @@ describe('LIFDeterminismProbe (Paper #2 same-backend baseline)', () => {
   });
 
   it('different tick counts produce different hashes', async () => {
+    if (!GPU_LIVE) {
+      console.log('[lif-determinism] Skipping tick-divergence assertion: mock compute is no-op');
+      return;
+    }
     const harness = new DeterminismHarness();
 
     const shortRun = await harness.probe('lif-ticks-10', () =>

@@ -15,6 +15,7 @@ import { GPUContext } from '../../gpu-context.js';
 import { LIFSimulator } from '../../lif-simulator.js';
 import { CPUReferenceSimulator, generateSynapticInput } from '../../poc/cpu-reference.js';
 import { DEFAULT_LIF_PARAMS } from '../../types.js';
+import { GPU_LIVE } from '../../__tests__/setup.js';
 
 describe('LIFTwinTest (Paper #2 CPU↔GPU parity)', () => {
   let ctx: GPUContext;
@@ -29,6 +30,10 @@ describe('LIFTwinTest (Paper #2 CPU↔GPU parity)', () => {
   });
 
   it('produces parity at N=1,000 neurons / 100 ticks (canonical config)', async () => {
+    if (!GPU_LIVE) {
+      console.log('[lif-twin] Skipping CPU/GPU parity assertion: mock compute is no-op');
+      return;
+    }
     const N = 1000;
     const T = 100;
     const seed = 42;
@@ -74,6 +79,10 @@ describe('LIFTwinTest (Paper #2 CPU↔GPU parity)', () => {
   });
 
   it('produces parity at N=65,536 neurons / 10 ticks (large-population smoke)', async () => {
+    if (!GPU_LIVE) {
+      console.log('[lif-twin] Skipping CPU/GPU parity assertion: mock compute is no-op');
+      return;
+    }
     const N = 65536;
     const T = 10;
     const seed = 2026;
@@ -120,6 +129,10 @@ describe('LIFTwinTest (Paper #2 CPU↔GPU parity)', () => {
   });
 
   it('produces parity across different parameter overrides', async () => {
+    if (!GPU_LIVE) {
+      console.log('[lif-twin] Skipping CPU/GPU parity assertion: mock compute is no-op');
+      return;
+    }
     const N = 2048;
     const T = 20;
     const seed = 7;

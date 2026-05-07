@@ -14,7 +14,7 @@
  * those are probe parameters so the paper can sweep the space.
  *
  * Usage:
- *   import { DeterminismHarness } from '@holoscript/core';
+ *   import { DeterminismHarness } from '@holoscript/core/testing';
  *   import { runLIFDeterminismProbe } from '@holoscript/snn-webgpu/paper';
  *   import { GPUContext } from '@holoscript/snn-webgpu';
  *

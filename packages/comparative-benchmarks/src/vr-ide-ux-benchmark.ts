@@ -86,7 +86,12 @@ export async function runVrIdeUxBenchmark(): Promise<UxBenchmarkReport> {
     try {
       const result = parseHolo(task.source);
       if (!result.success) {
-        blockers.push("parse failed: " + result.errors.map((e) => e.message).join("; "));
+        blockers.push(
+          "parse failed: " +
+            result.errors
+              .map((e: { message?: string }) => e.message ?? String(e))
+              .join("; ")
+        );
         edits++;
       }
       if (!result.ast) {

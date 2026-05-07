@@ -78,8 +78,8 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      # Build core first (snn-webgpu has @holoscript/core as a peerDep that
-      # the tests import from `./dist/...` exports).
+      # Build core first. snn-webgpu imports @holoscript/core/testing from
+      # `./dist/...`; the narrow testing entry avoids the monolithic core barrel.
       - name: Build core
         run: pnpm --filter @holoscript/core build
       - run: pnpm --filter @holoscript/snn-webgpu test
