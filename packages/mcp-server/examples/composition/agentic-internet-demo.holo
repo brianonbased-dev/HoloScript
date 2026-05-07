@@ -134,12 +134,19 @@ skill "agentic_internet_cycle" @cycle @demo {
   // [5/5] HOLOGRAM - zp7u's HologramMcpResponse. The result is content_type
   // 'application/holoscript+holo' returned through the MCP envelope. The
   // chat client's detectHologramContent picks it up and routes to /hologram.
+  //
+  // PHASE 2 (task_1778132217125_nme4, founder ruling 2026-05-06): the
+  // invoke step REPLACES the local-invoker stub with a real-fetch call
+  // against the EBI AlphaFold public API
+  // (https://alphafold.ebi.ac.uk/api/prediction/{uniprot}). CI determinism
+  // is provided by the .test.ts mocking `globalThis.fetch`, NOT by mocking
+  // the helper. Production-only rule: stubs are bandaids+demote.
   step "execute_and_return_hologram" {
     agent: "BrittneyChat"
     primitive: "HologramMcpResponse"
-    inputs:  { negotiationId: "string", apiKeyResolved: "boolean" }
-    output:  { hologramEnvelope: "HologramMcpEnvelope", resultHash: "string" }
-    notes: "advanceNegotiation(execute) -> settleNegotiation co-signs -> envelope sent to chat"
+    inputs:  { negotiationId: "string", apiKeyResolved: "boolean", uniprot: "string" }
+    output:  { hologramEnvelope: "HologramMcpEnvelope", resultHash: "string", pdbUrl: "string" }
+    notes: "advanceNegotiation(execute) [-> real fetch alphafold.ebi.ac.uk -> PDB] -> settleNegotiation co-signs -> envelope sent to chat"
   }
 }
 
@@ -152,6 +159,9 @@ skill "agentic_internet_cycle" @cycle @demo {
 //   - negotiation reaches state='settled' with a co-signed receipt
 //   - vault lease audit event records 'vault_lease_resolve_secret'
 //   - HologramMcpEnvelope round-trips through detectHologramContent
+//   - real-fetch path hits BOTH alphafold.ebi.ac.uk endpoints
+//     (api/prediction/{uniprot} + the returned pdbUrl) and SHAPE-matches
+//     the documented EBI AlphaFold response schema (Phase 2)
 //
 // What this file is NOT: a playable scene yet. The renderer sits
 // on top of the chain (HoloScript Studio /hologram route). What

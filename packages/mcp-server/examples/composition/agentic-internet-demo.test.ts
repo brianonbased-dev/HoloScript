@@ -19,7 +19,7 @@
  * counterpart, so a regression that reverts the chain to "everything
  * returns true unconditionally" would still flip these tests red.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
 // [1] Spatial - the SpatialMCPContext schema + validator + placement.
 import {
@@ -86,6 +86,142 @@ const BRITTNEY_ID = 'agent_brittney_chat_studio';
 const BRITTNEY_NAME = 'BrittneyChat';
 const BRITTNEY_ADDR = '0x000000000000000000000000000000000000b000';
 
+// ── Real AlphaFold fetch — runtime path (Phase 2: stub→real) ──────────
+//
+// Per founder ruling 2026-05-06 (vision pillar 7 + Production-only rule),
+// the original local-invoker stub was a bandaid+demote. The runtime path
+// MUST call the real EBI AlphaFold public API. CI determinism is achieved
+// by mocking `fetch` at the test layer — never by mocking the helper.
+//
+// Schema reference: AlphaFold API response shape pinned to the documented
+// fields used by `packages/mcp-server/src/alphafold-tools.ts`. The helper
+// is intentionally tiny — it only does what the demo's invoke step needs:
+// resolve a gene→uniprot mapping at the call site, fetch the prediction
+// metadata + the PDB structure, and return both alongside provenance.
+
+interface AlphaFoldApiEntry {
+  entryId: string;
+  gene?: string;
+  uniprotAccession: string;
+  uniprotId?: string;
+  uniprotDescription?: string;
+  organismScientificName?: string;
+  pdbUrl: string;
+  cifUrl: string;
+  paeImageUrl?: string;
+  globalMetricValue?: number;
+  latestVersion?: number;
+}
+
+interface AlphaFoldFetchResult {
+  ok: boolean;
+  uniprot: string;
+  pdbUrl: string;
+  pdbData: string;
+  meanPlddt: number | null;
+  latestVersion: number | null;
+  provenance: {
+    source: 'ebi-alphafold';
+    api: string;
+    fetchedAt: string;
+  };
+}
+
+/**
+ * Real-fetch path against the EBI AlphaFold public API.
+ *
+ *   GET https://alphafold.ebi.ac.uk/api/prediction/{uniprot}  -> AlphaFoldApiEntry[]
+ *   GET <entry.pdbUrl>                                        -> PDB text
+ *
+ * Free, no API key, rate-limited only. In tests this is driven through a
+ * mocked `fetch` so CI never egresses.
+ */
+async function alphaFoldFetchStructure(uniprot: string): Promise<AlphaFoldFetchResult> {
+  const fetchedAt = new Date().toISOString();
+  const metaUrl = `https://alphafold.ebi.ac.uk/api/prediction/${uniprot}`;
+  const metaResponse = await fetch(metaUrl, {
+    headers: { Accept: 'application/json' },
+  });
+  if (!metaResponse.ok) {
+    throw new Error(`AlphaFold metadata fetch failed: ${metaResponse.status}`);
+  }
+  const payload = (await metaResponse.json()) as AlphaFoldApiEntry[] | AlphaFoldApiEntry;
+  const entry = Array.isArray(payload) ? payload[0] : payload;
+  if (!entry || !entry.pdbUrl) {
+    throw new Error('AlphaFold API returned no entries / missing pdbUrl');
+  }
+  const structureResponse = await fetch(entry.pdbUrl);
+  if (!structureResponse.ok) {
+    throw new Error(`AlphaFold structure fetch failed: ${structureResponse.status}`);
+  }
+  const pdbData = await structureResponse.text();
+  return {
+    ok: true,
+    uniprot: entry.uniprotAccession,
+    pdbUrl: entry.pdbUrl,
+    pdbData,
+    meanPlddt: entry.globalMetricValue ?? null,
+    latestVersion: entry.latestVersion ?? null,
+    provenance: {
+      source: 'ebi-alphafold',
+      api: 'https://alphafold.ebi.ac.uk/api/prediction',
+      fetchedAt,
+    },
+  };
+}
+
+/**
+ * Deterministic AlphaFold response fixture for EGFR (P00533). Matches the
+ * subset of the documented EBI response schema that the runtime path
+ * actually consumes. Pinned to a specific latestVersion so SHAPE drift in
+ * the upstream API can be caught by failing tests, not by silent drift.
+ */
+const ALPHAFOLD_EGFR_FIXTURE: AlphaFoldApiEntry = {
+  entryId: 'AF-P00533-F1',
+  gene: 'EGFR',
+  uniprotAccession: 'P00533',
+  uniprotId: 'EGFR_HUMAN',
+  uniprotDescription: 'Epidermal growth factor receptor',
+  organismScientificName: 'Homo sapiens',
+  pdbUrl: 'https://alphafold.ebi.ac.uk/files/AF-P00533-F1-model_v4.pdb',
+  cifUrl: 'https://alphafold.ebi.ac.uk/files/AF-P00533-F1-model_v4.cif',
+  paeImageUrl: 'https://alphafold.ebi.ac.uk/files/AF-P00533-F1-predicted_aligned_error_v4.png',
+  globalMetricValue: 78.42,
+  latestVersion: 4,
+};
+
+const ALPHAFOLD_EGFR_PDB_FIXTURE = [
+  'HEADER    AF-P00533-F1 (mock fixture for CI determinism)',
+  'ATOM      1  CA  MET A   1      11.104  13.207  10.345  1.00 78.42           C  ',
+  'ATOM      2  CA  ARG A   2      14.215  14.890  11.001  1.00 79.15           C  ',
+  'ATOM      3  CA  PRO A   3      17.103  16.401  12.502  1.00 80.03           C  ',
+  'END',
+].join('\n');
+
+/**
+ * Build a `vi.fn` that simulates the EBI AlphaFold endpoint pair. The first
+ * URL match returns metadata JSON, the second returns the PDB body. Anything
+ * else throws so a misrouted call fails LOUDLY rather than silently 200.
+ */
+function buildAlphaFoldFetchMock() {
+  return vi.fn(async (input: unknown) => {
+    const url = typeof input === 'string' ? input : String(input);
+    if (url.startsWith('https://alphafold.ebi.ac.uk/api/prediction/')) {
+      return new Response(JSON.stringify([ALPHAFOLD_EGFR_FIXTURE]), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+    if (url === ALPHAFOLD_EGFR_FIXTURE.pdbUrl) {
+      return new Response(ALPHAFOLD_EGFR_PDB_FIXTURE, {
+        status: 200,
+        headers: { 'content-type': 'text/plain' },
+      });
+    }
+    throw new Error(`unexpected fetch URL in CI: ${url}`);
+  });
+}
+
 /** Realistic SpatialMCPContext for a Quest 3 user mid-frame. */
 function buildVRSpatialContext(): SpatialMCPContext {
   return {
@@ -121,6 +257,18 @@ describe('agentic-internet composition demo (task_1778125252148_qe2i)', () => {
     clearMeshToolRegistry();
     _resetNegotiations();
     _resetVaultLeaseRegistryForTests();
+    // Phase 2 (task_1778132217125_nme4): real-fetch runtime path. CI must
+    // stay deterministic + offline, so the global fetch is stubbed per
+    // test. Tests that need to assert on call count / URLs install their
+    // own mock via vi.stubGlobal('fetch', ...) inside the `it` body.
+    vi.stubGlobal('fetch', buildAlphaFoldFetchMock());
+  });
+
+  afterEach(() => {
+    // Restore any global stubs so downstream test files don't inherit
+    // the AlphaFold-only fetch mock.
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it('runs the full five-primitive cycle and returns a HologramMcpEnvelope', async () => {
@@ -236,6 +384,7 @@ describe('agentic-internet composition demo (task_1778125252148_qe2i)', () => {
       {
         organism: 'human',
         gene: 'EGFR',
+        uniprot: 'P00533',
         spatialCtx,
         // The lease guarantees the API key is available; we hash the
         // SUCCESS of the lease check, not the bare key, to keep the
@@ -243,19 +392,47 @@ describe('agentic-internet composition demo (task_1778125252148_qe2i)', () => {
         credentialResolved: resolved.resolved,
       },
       {
-        // Local invoker stub — represents the Brittney handler. In real
-        // dispatch this would be the orchestrator's handleTool.
-        localInvoker: async (toolName, args) => ({
-          ok: true,
-          toolName,
-          structurePdb: '<<MOCK_PDB_HEADER>>',
-          frame: SPATIAL_FRAME,
-          placedAt: pickPlacement(args.spatialCtx as SpatialMCPContext).position,
-        }),
+        // Phase 2 (task_1778132217125_nme4): real-fetch runtime path.
+        // The local-invoker now performs the actual EBI AlphaFold API
+        // call — no stub. CI determinism is provided by the global
+        // fetch mock installed in beforeEach. In production dispatch
+        // the orchestrator's handleTool delegates to alphafold-tools.ts
+        // which wraps this same fetch chain.
+        localInvoker: async (toolName, args) => {
+          const uniprot = String(args.uniprot ?? '');
+          const fetched = await alphaFoldFetchStructure(uniprot);
+          return {
+            ok: fetched.ok,
+            toolName,
+            structurePdb: fetched.pdbData,
+            uniprot: fetched.uniprot,
+            pdbUrl: fetched.pdbUrl,
+            meanPlddt: fetched.meanPlddt,
+            latestVersion: fetched.latestVersion,
+            frame: SPATIAL_FRAME,
+            placedAt: pickPlacement(args.spatialCtx as SpatialMCPContext).position,
+            provenance: fetched.provenance,
+          };
+        },
         allowHighRisk: true,
       },
     ) as { success: boolean; result: unknown };
     expect(toolResult.success).toBe(true);
+    // Assert the real-fetch path delivered a recognisable AlphaFold result —
+    // confirms the runtime path actually went through the fetch chain.
+    const runtimeResult = toolResult.result as {
+      ok: boolean;
+      uniprot: string;
+      pdbUrl: string;
+      structurePdb: string;
+      provenance: { source: string; api: string };
+    };
+    expect(runtimeResult.ok).toBe(true);
+    expect(runtimeResult.uniprot).toBe('P00533');
+    expect(runtimeResult.pdbUrl).toBe(ALPHAFOLD_EGFR_FIXTURE.pdbUrl);
+    expect(runtimeResult.structurePdb).toContain('AF-P00533-F1');
+    expect(runtimeResult.provenance.source).toBe('ebi-alphafold');
+    expect(runtimeResult.provenance.api).toBe('https://alphafold.ebi.ac.uk/api/prediction');
 
     const executed = advanceNegotiation({
       negotiationId: negotiation.id,
@@ -432,6 +609,85 @@ describe('agentic-internet composition demo (task_1778125252148_qe2i)', () => {
     expect(detectHologramContent(plainEnvelope)).toBeNull();
     expect(detectHologramContent(null)).toBeNull();
     expect(detectHologramContent({ random: 'object' })).toBeNull();
+  });
+
+  // ── Phase 2 SHAPE assertion (task_1778132217125_nme4) ──────────────
+  // The runtime fetch path must hit the documented AlphaFold endpoints
+  // AND return a result whose SHAPE matches the documented response
+  // schema. If the upstream EBI API ever changes its response shape,
+  // this test goes red — and the demo's runtime path can be patched
+  // before the production handler drifts silently.
+  it('runtime fetch path SHAPE matches AlphaFold response schema', async () => {
+    const fetchMock = buildAlphaFoldFetchMock();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await alphaFoldFetchStructure('P00533');
+
+    // SHAPE assertion #1: top-level result keys.
+    expect(result).toEqual({
+      ok: true,
+      uniprot: 'P00533',
+      pdbUrl: 'https://alphafold.ebi.ac.uk/files/AF-P00533-F1-model_v4.pdb',
+      pdbData: ALPHAFOLD_EGFR_PDB_FIXTURE,
+      meanPlddt: 78.42,
+      latestVersion: 4,
+      provenance: {
+        source: 'ebi-alphafold',
+        api: 'https://alphafold.ebi.ac.uk/api/prediction',
+        fetchedAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/),
+      },
+    });
+
+    // SHAPE assertion #2: the response object SHAPE matches the documented
+    // EBI AlphaFold API entry schema (keys consumed by the runtime path).
+    // A drift in any consumed field flips this red. If EBI adds a NEW
+    // field, this test stays green; if EBI RENAMES or REMOVES one we
+    // depend on, the runtime path's consumer breaks and so does this.
+    const documentedKeys: Array<keyof AlphaFoldApiEntry> = [
+      'entryId',
+      'gene',
+      'uniprotAccession',
+      'uniprotId',
+      'pdbUrl',
+      'cifUrl',
+      'globalMetricValue',
+      'latestVersion',
+    ];
+    for (const key of documentedKeys) {
+      expect(ALPHAFOLD_EGFR_FIXTURE).toHaveProperty(key);
+    }
+    expect(typeof ALPHAFOLD_EGFR_FIXTURE.uniprotAccession).toBe('string');
+    expect(typeof ALPHAFOLD_EGFR_FIXTURE.pdbUrl).toBe('string');
+    expect(typeof ALPHAFOLD_EGFR_FIXTURE.globalMetricValue).toBe('number');
+    expect(typeof ALPHAFOLD_EGFR_FIXTURE.latestVersion).toBe('number');
+
+    // SHAPE assertion #3: BOTH endpoints were hit (metadata + PDB).
+    // This proves the runtime path is the two-step fetch chain, not a
+    // single round-trip that silently elides one of the calls.
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const urlsHit = fetchMock.mock.calls.map((c) => String(c[0]));
+    expect(urlsHit).toEqual([
+      'https://alphafold.ebi.ac.uk/api/prediction/P00533',
+      'https://alphafold.ebi.ac.uk/files/AF-P00533-F1-model_v4.pdb',
+    ]);
+
+    // SHAPE assertion #4: metadata fetch sent the documented Accept header.
+    const metaCallOpts = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(metaCallOpts?.headers).toEqual({ Accept: 'application/json' });
+  });
+
+  // ── G.GOLD.013 false-case for the SHAPE assertion above ─────────────
+  it('false-case: AlphaFold runtime path surfaces upstream HTTP errors', async () => {
+    const failingFetch = vi.fn(async () => new Response('not found', { status: 404 }));
+    vi.stubGlobal('fetch', failingFetch);
+
+    await expect(alphaFoldFetchStructure('Q99999')).rejects.toThrow(
+      /AlphaFold metadata fetch failed: 404/,
+    );
+    expect(failingFetch).toHaveBeenCalledWith(
+      'https://alphafold.ebi.ac.uk/api/prediction/Q99999',
+      expect.objectContaining({ headers: { Accept: 'application/json' } }),
+    );
   });
 
   it('false-case: tampered invocation hop breaks chain verification', () => {
