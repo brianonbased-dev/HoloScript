@@ -1,12 +1,13 @@
 /**
  * LLMProviderCapabilitiesCompiler tests - vocabulary v1 + markdown_ssot /
- * cost_guard_pricing emit + BLOCK/WARN rules.
+ * ts_adapter_capabilities / cost_guard_pricing / json_capability_matrix
+ * emit + BLOCK/WARN rules.
  *
  * Per "Context as a HoloScript Compile Target" memo § Phase 2(b)
  * (sovereign sibling of ContextCompiler). Inline HoloComposition
  * fixtures (matching ContextCompiler.test.ts pattern) cover:
  *
- *   - Happy-path: full vocabulary v1 -> markdown_ssot + cost_guard_pricing output
+ *   - Happy-path: full vocabulary v1 -> all Phase 2(b) emit targets
  *   - BLOCK rules: duplicate provider names, orphan FK references
  *     (model/capability/superpower/routing pointing at a non-existent
  *     provider), vendor-as-substrate hard_donts, [VERIFY] placeholder
@@ -14,7 +15,7 @@
  *   - WARN rules: missing last_verified, stale last_verified (>90 days),
  *     zero-pricing models (likely unverified source), unknown traits
  *   - Edge cases: empty composition, missing optional fields, single
- *     provider with only models, unimplemented Phase 2(b)+ format throws
+ *     provider with only models, all Phase 2(b) targets in one pass
  *
  * G.GOLD.013 false-case discipline throughout - every "should produce X"
  * has a paired "must NOT produce Y" assertion.
@@ -359,6 +360,124 @@ describe('compile() - vocabulary v1 -> markdown_ssot', () => {
     expect(result.ast.models[0]?.modelId).toBe('claude-opus-4-7');
     expect(result.ast.hardDonts[0]?.appliesTo).toEqual(['all-providers']);
     expect(result.ast.meta?.refreshCadenceDays).toBe(90);
+  });
+});
+
+// --- Happy path: vocabulary v1 -> ts_adapter_capabilities ------------
+
+describe('compile() - vocabulary v1 -> ts_adapter_capabilities', () => {
+  it('emits one paste-ready capability block per provider', () => {
+    const compiler = new LLMProviderCapabilitiesCompiler({
+      formats: ['ts_adapter_capabilities'],
+      nowIso: '2026-05-06',
+    });
+    const result = compiler.compile(makeFullV1Matrix(), '');
+
+    expect(Object.keys(result.files)).toEqual([
+      'anthropic.ts.capabilities',
+      'xai.ts.capabilities',
+    ]);
+    expect(result.files).not.toHaveProperty('LLM_CAPABILITIES.md');
+  });
+
+  it('emits adapter constants matching the Capabilities interface shape', () => {
+    const compiler = new LLMProviderCapabilitiesCompiler({
+      formats: ['ts_adapter_capabilities'],
+      nowIso: '2026-05-06',
+    });
+    const ts = compiler.compile(makeFullV1Matrix(), '').files[
+      'anthropic.ts.capabilities'
+    ];
+
+    expect(ts).toContain('export const ANTHROPIC_CAPABILITIES: Capabilities = {');
+    expect(ts).toContain('  contextWindow: 1_000_000,');
+    expect(ts).toContain('  maxOutput: 128_000,');
+    expect(ts).toContain('  streaming: true,');
+    expect(ts).toContain('  tools: true,');
+    expect(ts).toContain('  vision: true,');
+    expect(ts).toContain('  highResVision: true,');
+    expect(ts).toContain('  bearerTokenAccess: true,');
+    // False case: multi-model variable pricing must not collapse to one adapter cost.
+    expect(ts).not.toContain('costPerMillion');
+  });
+
+  it('emits provider-specific capability flags without leaking flags across providers', () => {
+    const compiler = new LLMProviderCapabilitiesCompiler({
+      formats: ['ts_adapter_capabilities'],
+      nowIso: '2026-05-06',
+    });
+    const files = compiler.compile(makeFullV1Matrix(), '').files;
+    const xai = files['xai.ts.capabilities'];
+
+    expect(xai).toContain('export const XAI_CAPABILITIES: Capabilities = {');
+    expect(xai).toContain('  contextWindow: 0,');
+    expect(xai).toContain('  maxOutput: 0,');
+    expect(xai).toContain('  vision: false,');
+    expect(xai).toContain('  liveWebSearch: true,');
+    expect(xai).toContain('  bearerTokenAccess: true,');
+    // False case: Anthropic-only high-res vision must not leak to xAI.
+    expect(xai).not.toContain('highResVision');
+  });
+
+  it('emits costPerMillion only when provider model pricing is uniform', () => {
+    const compiler = new LLMProviderCapabilitiesCompiler({
+      formats: ['ts_adapter_capabilities'],
+      nowIso: '2026-05-06',
+    });
+    const comp = makeComposition({
+      objects: [
+        {
+          type: 'Object',
+          name: 'SingleModelProvider',
+          properties: [],
+          traits: [
+            {
+              type: 'ObjectTrait',
+              name: 'llm_provider',
+              config: {
+                name: 'single',
+                vendor_url: 'https://example.test',
+                auth_env: 'SINGLE_API_KEY',
+                status: 'planned',
+                unique_superpower: 'Fixture provider',
+                last_verified: '2026-05-06',
+              },
+            },
+            {
+              type: 'ObjectTrait',
+              name: 'llm_model',
+              config: {
+                provider: 'single',
+                friendly_name: 'Single 1',
+                model_id: 'single-1',
+                context_window: 4096,
+                max_output: 1024,
+                input_per_mtok: 2,
+                output_per_mtok: 8,
+                status: 'active',
+                last_verified: '2026-05-06',
+              },
+            },
+            {
+              type: 'ObjectTrait',
+              name: 'llm_capability',
+              config: {
+                provider: 'single',
+                name: 'bearerTokenAccess',
+                value: false,
+              },
+            },
+          ],
+        },
+      ],
+    });
+    const ts = compiler.compile(comp, '').files['single.ts.capabilities'];
+
+    expect(ts).toContain('export const SINGLE_CAPABILITIES: Capabilities = {');
+    expect(ts).toContain('  contextWindow: 4_096,');
+    expect(ts).toContain('  maxOutput: 1_024,');
+    expect(ts).toContain('  costPerMillion: { input: 2, output: 8 },');
+    expect(ts).toContain('  bearerTokenAccess: false,');
   });
 });
 
@@ -977,13 +1096,24 @@ describe('compile() - edge cases', () => {
     expect(result.files['LLM_CAPABILITIES.md']).not.toContain('### Models');
   });
 
-  it('throws on requesting an unimplemented Phase 2(b)+ format', () => {
+  it('emits all Phase 2(b) targets in one compile pass', () => {
     const compiler = new LLMProviderCapabilitiesCompiler({
-      formats: ['ts_adapter_capabilities'],
+      formats: [
+        'markdown_ssot',
+        'ts_adapter_capabilities',
+        'cost_guard_pricing',
+        'json_capability_matrix',
+      ],
     });
-    expect(() => compiler.compile(makeComposition(), '')).toThrow(
-      /Phase 2\(b\)\+ follow-up/
-    );
+    const result = compiler.compile(makeFullV1Matrix(), '');
+
+    expect(Object.keys(result.files)).toEqual([
+      'LLM_CAPABILITIES.md',
+      'anthropic.ts.capabilities',
+      'xai.ts.capabilities',
+      'cost-guard-pricing.ts',
+      'llm-capability-matrix.json',
+    ]);
   });
 
   it('handles per-provider hard_dont scoping', () => {
