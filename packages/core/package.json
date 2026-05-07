@@ -156,7 +156,8 @@
     "benchmark:paper10:compile-matrix": "node scripts/run-paper10-compile-matrix.mjs",
     "benchmark:paper10:compile-matrix:full": "node scripts/run-paper10-compile-matrix.mjs --full",
     "benchmark:paper10:depth-distribution": "node scripts/run-paper10-depth-distribution.mjs",
-    "benchmark:paper6:mecanim-matrix": "node scripts/run-paper6-mecanim-matrix.mjs"
+    "benchmark:paper6:mecanim-matrix": "node scripts/run-paper6-mecanim-matrix.mjs",
+    "benchmark:critic-loop": "BENCHMARK_CRITIC_LOOP=1 node run-vitest.mjs src/self-improvement/__tests__/OutcomeLoop.benchmark.test.ts"
   },
   "keywords": [
     "holoscript",
