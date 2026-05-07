@@ -59,7 +59,19 @@ jobs:
           pnpm --filter @holoscript/plugin-forensics build
           pnpm --filter @holoscript/plugin-threat-intelligence build
           pnpm --filter @holoscript/core build
+          pnpm --filter @holoscript/ui build
+          pnpm --filter @holoscript/config build
+          pnpm --filter @holoscript/studio-plugin-sdk build
           pnpm --filter @holoscript/llm-provider build
+          pnpm --filter @holoscript/absorb-service build
+          pnpm --filter @holoscript/connector-core build
+          pnpm --filter @holoscript/connector-github build
+          pnpm --filter @holoscript/connector-railway build
+          pnpm --filter @holoscript/connector-upstash build
+          pnpm --filter @holoscript/connector-appstore build
+          pnpm --filter @holoscript/connector-vscode build
+          pnpm --filter @holoscript/std build
+          pnpm --filter @holoscript/marketplace-agentkit build
           pnpm --filter @holoscript/framework build
           pnpm --filter @holoscript/crdt-spatial build
           pnpm --filter @holoscript/snn-webgpu build
@@ -142,6 +154,34 @@ jobs:
 
       - name: Install Playwright browsers
         run: pnpm --filter @holoscript/studio exec playwright install --with-deps chromium
+
+      - name: Build studio workspace dependencies
+        run: |
+          pnpm --filter @holoscript/core-types build
+          pnpm --filter @holoscript/core build
+          pnpm --filter @holoscript/ui build
+          pnpm --filter @holoscript/config build
+          pnpm --filter @holoscript/studio-plugin-sdk build
+          pnpm --filter @holoscript/llm-provider build
+          pnpm --filter @holoscript/absorb-service build
+          pnpm --filter @holoscript/connector-core build
+          pnpm --filter @holoscript/connector-github build
+          pnpm --filter @holoscript/connector-railway build
+          pnpm --filter @holoscript/connector-upstash build
+          pnpm --filter @holoscript/connector-appstore build
+          pnpm --filter @holoscript/connector-vscode build
+          pnpm --filter @holoscript/std build
+          pnpm --filter @holoscript/marketplace-agentkit build
+          pnpm --filter @holoscript/framework build
+          pnpm --filter @holoscript/crdt-spatial build
+          pnpm --filter @holoscript/snn-webgpu build
+          pnpm --filter @holoscript/uaal build
+          pnpm --filter @holoscript/engine build
+          pnpm --filter @holoscript/mesh build
+          pnpm --filter @holoscript/platform build
+          pnpm --filter @holoscript/r3f-renderer build
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
 
       - name: Build studio
         run: pnpm --filter @holoscript/studio build

@@ -56,6 +56,12 @@ interface Paper6WebGPUArtifact {
   notes: string[];
 }
 
+declare global {
+  interface Window {
+    __PAPER6_WEBGPU_ARTIFACT__?: Paper6WebGPUArtifact;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Environment detection
 // ─────────────────────────────────────────────────────────────────────────────
@@ -99,7 +105,7 @@ function fnv1a32(data: Uint8Array): number {
 //   npx tsx -e "import {runAnimationSamplingProbe, PAPER_P2_0_CANONICAL_SPEC} from ..."
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PAPER6_CANONICAL_BASELINE_HASH = 0x9d39d725; // seeded 2026-04-30 from Chromium+Windows+integrated GPU
+const PAPER6_CANONICAL_BASELINE_HASH: number = 0x9d39d725; // seeded 2026-04-30 from Chromium+Windows+integrated GPU
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main benchmark
