@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "holoscript-lint": "./dist/cli.js"
+    "holoscript-lint": "./bin/holoscript-lint.cjs"
   },
   "scripts": {
     "build": "tsup && tsc --emitDeclarationOnly --declarationDir dist --skipLibCheck",
@@ -34,6 +34,7 @@
     "node": ">=18.0.0"
   },
   "files": [
+    "bin",
     "dist",
     "README.md"
   ],

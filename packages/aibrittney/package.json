@@ -7,7 +7,7 @@
   "module": "./dist/cli.js",
   "types": "./dist/cli.d.ts",
   "bin": {
-    "aibrittney": "./dist/cli.js"
+    "aibrittney": "./bin/aibrittney.cjs"
   },
   "exports": {
     ".": {
@@ -24,6 +24,7 @@
     }
   },
   "files": [
+    "bin",
     "dist",
     "README.md"
   ],

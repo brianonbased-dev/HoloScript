@@ -7,10 +7,11 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "bin": {
-    "holoscript-bench": "./dist/cli.js",
-    "holoscript-bench-paper12": "./dist/paper12-cli.js"
+    "holoscript-bench": "./bin/holoscript-bench.cjs",
+    "holoscript-bench-paper12": "./bin/holoscript-bench-paper12.cjs"
   },
   "files": [
+    "bin",
     "dist",
     "results"
   ],

@@ -11,6 +11,7 @@
     "./dist/traits/index.js"
   ],
   "files": [
+    "bin",
     "dist",
     "!dist/**/*.map"
   ],
@@ -140,7 +141,7 @@
     }
   },
   "bin": {
-    "holoscript": "./dist/cli/holoscript-runner.js"
+    "holoscript": "./bin/holoscript.cjs"
   },
   "scripts": {
     "prepublishOnly": "pnpm run build",

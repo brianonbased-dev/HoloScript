@@ -5,11 +5,12 @@
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
-    "create-holoscript": "./dist/index.js",
-    "agent-setup": "./dist/agent-setup/cli.js",
-    "holoscript-agents": "./dist/agent-setup/cli.js"
+    "create-holoscript": "./bin/create-holoscript.cjs",
+    "agent-setup": "./bin/agent-setup.cjs",
+    "holoscript-agents": "./bin/agent-setup.cjs"
   },
   "files": [
+    "bin",
     "dist",
     "templates"
   ],

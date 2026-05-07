@@ -4,7 +4,7 @@
   "description": "Language Server Protocol implementation for HoloScript",
   "main": "dist/server.js",
   "bin": {
-    "holoscript-lsp": "./dist/server.js"
+    "holoscript-lsp": "./bin/holoscript-lsp.cjs"
   },
   "types": "dist/server.d.ts",
   "scripts": {

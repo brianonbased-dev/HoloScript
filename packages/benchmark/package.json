@@ -6,7 +6,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "holoscript-benchmark": "./dist/cli.js"
+    "holoscript-benchmark": "./bin/holoscript-benchmark.cjs"
   },
   "scripts": {
     "bench": "node --experimental-vm-modules dist/index.js",

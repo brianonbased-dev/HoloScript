@@ -5,11 +5,12 @@
   "main": "./dist/index.js",
   "sideEffects": false,
   "files": [
+    "bin",
     "dist"
   ],
   "bin": {
-    "holoscript": "./dist/cli.js",
-    "hs": "./dist/cli.js"
+    "holoscript": "./bin/holoscript.cjs",
+    "hs": "./bin/holoscript.cjs"
   },
   "scripts": {
     "build": "tsup",

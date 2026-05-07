@@ -7,7 +7,7 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "create-holoscript-plugin": "./bin/create-plugin.js"
+    "create-holoscript-plugin": "./bin/create-holoscript-plugin.cjs"
   },
   "exports": {
     ".": {

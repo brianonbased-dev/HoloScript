@@ -14,18 +14,18 @@
     }
   },
   "bin": {
-    "holoscript-mcp": "start.js",
-    "holoscript-mcp-cli": "dist/cli.js"
+    "holoscript-mcp": "./bin/holoscript-mcp.cjs",
+    "holoscript-mcp-cli": "./bin/holoscript-mcp-cli.cjs"
   },
   "files": [
-    "dist",
-    "start.js"
+    "bin",
+    "dist"
   ],
   "scripts": {
     "build": "tsup && node scripts/sync-public-types.mjs",
     "check:public-types": "node scripts/sync-public-types.mjs --check",
     "dev": "tsx watch src/index.ts",
-    "start": "node start.js",
+    "start": "node bin/holoscript-mcp.cjs",
     "scout:start": "npx pm2 start packages/mcp-server/scripts/ecosystem.scout.cjs --only holoscout",
     "scout:restart": "npx pm2 restart holoscout",
     "scout:stop": "npx pm2 stop holoscout",

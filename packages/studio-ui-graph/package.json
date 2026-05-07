@@ -7,7 +7,7 @@
   "module": "./dist/cli.js",
   "types": "./dist/cli.d.ts",
   "bin": {
-    "holoscript-studio-ui-graph": "./dist/cli.js"
+    "holoscript-studio-ui-graph": "./bin/holoscript-studio-ui-graph.cjs"
   },
   "exports": {
     ".": {
@@ -28,6 +28,7 @@
     }
   },
   "files": [
+    "bin",
     "dist",
     "README.md"
   ],
