@@ -195,15 +195,12 @@ object "OperationalContract" {
     exception: "unit tests for pure functions"
   )
 
-  // NOTE: @escalation deferred to Iteration 2. Parser reserves "action"
-  // as a keyword, so @escalation(action: "...") fails parse. Either:
-  //   - Iteration 2: rename ContextEscalation.action -> do_action in
-  //     vocabulary v1 (small breaking change touching extractor + 4
-  //     emitters + test fixtures), or
-  //   - Parser-feature task: whitelist "action" as a trait config key.
-  // Until then, escalation lives only in the live SKILL.md and the
-  // emitted skill from this iteration omits it. Documented in
-  // docs/founder-skill-self-host-iteration-1.md.
+  @escalation(
+    trigger: "novel + irreversible + treasury or paper-editorial boundary",
+    do_action: "add to ASK_FOUNDER_QUEUE",
+    recipient: "founder",
+    refuse_to_escalate_when: ["known default", "vision pillar", "GOLD precedent"]
+  )
 
   @citation_rule(
     fluent_prose_threshold_chars: 150,

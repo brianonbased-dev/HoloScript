@@ -1,7 +1,7 @@
 # Founder Skill Self-Host — Iteration 1 Status Memo
 
 **Date**: 2026-05-06
-**Status**: PROOF complete; cutover deferred to Iteration 2
+**Status**: PROOF complete; G-1 closed; cutover still deferred to Iteration 2 vocabulary coverage
 **Commit**: (filed alongside `compositions/founder-core.hs` + `scripts/compile-founder-skill.mjs`)
 **Spec source**: `ai-ecosystem/research/2026-05-06_context-as-compile-target.md` § Phase 2
 
@@ -12,9 +12,9 @@ Round-trip pipeline `.hs source → parser → ContextCompiler → SKILL.md emit
 ```
 compositions/founder-core.hs    (source-of-truth, .hs syntax)
         ↓ parseHolo()
-HoloComposition AST             (6 objects, 25 traits)
+HoloComposition AST             (6 objects, 26 traits)
         ↓ ContextCompiler.compile({ formats: ['skill_md'] })
-dist/founder-skill-emitted.md   (5,819 chars; valid Claude Code skill format)
+dist/founder-skill-emitted.md   (6,056 chars; valid Claude Code skill format)
 ```
 
 The emitted file has a valid YAML frontmatter (`name`, `description`, `allowed-tools`) followed by the body sections Claude Code's skill discovery requires. It is shippable as a SKILL.md if the cutover were to happen today, modulo the documented gaps below.
@@ -30,6 +30,7 @@ The emitted file has a valid YAML frontmatter (`name`, `description`, `allowed-t
 | `@default` | 8 | repo / package / mcp-vs-cli / commit-cadence / git-staging / test-db / typescript-any / decide-or-ask |
 | `@output_shape` | 1 | silent_to + loud_to + no_meta_output + surface_hint |
 | `@production_rule` | 1 | no_dev_no_mock_no_localhost + exception |
+| `@escalation` | 1 | trigger + do_action + recipient + refuse_to_escalate_when |
 | `@citation_rule` | 1 | F.017 fluent-prose discipline |
 | `@graduated_wisdom` | 2 | W.GOLD.001 + P.GOLD.001 |
 | `@feedback` | 2 | F.014 + F.027 |
@@ -46,7 +47,7 @@ The emitted file has a valid YAML frontmatter (`name`, `description`, `allowed-t
 
 Option (a) is the cleaner W.GOLD.039 (Sapir-Whorf) move — the vocabulary should not adopt parser-reserved tokens. Option (b) is a parser-feature workaround. Recommend (a).
 
-**Workaround in this iteration**: `@escalation` removed from `compositions/founder-core.hs` with a comment block at the would-be-position. The emitted SKILL.md omits the escalation section. Live `~/.claude/skills/founder/SKILL.md` retains escalation by hand-edit; the cutover is gated on this gap closing.
+**Update 2026-05-07**: closed via option (a). Vocabulary v1 now uses `do_action`, `ContextEscalation` exposes `doAction`, and `compositions/founder-core.hs` re-adds `@escalation(...)`. The emitted SKILL.md includes the escalation section again.
 
 ### G-2: `@trait: { ... }` syntactic form drops config
 
@@ -75,7 +76,7 @@ The live `~/.claude/skills/founder/SKILL.md` includes structural blocks beyond v
 | Citation discipline | ✅ via `@citation_rule` | none |
 | Output shape | ✅ via `@output_shape` | none |
 | Invocation modes | ❌ no trait | New `@invocation_mode` trait (× 3 — auto-fire / explicit / wrap-other-skill) |
-| Escape hatch | ✅ via `@escalation` (blocked by G-1) | G-1 fix unblocks this |
+| Escape hatch | ✅ via `@escalation` | none (G-1 closed) |
 
 Plus the embodied-projection-layer block (referenced in CLAUDE.md `direction_embodied-presence-layer.md`) — not yet a trait in any vocabulary; out of scope for v1 self-host.
 
@@ -83,7 +84,7 @@ Plus the embodied-projection-layer block (referenced in CLAUDE.md `direction_emb
 
 The cutover sequence:
 
-1. Close **G-1** (rename `action` → `do_action` in vocabulary v1 OR parser whitelist) → re-add `@escalation` to `compositions/founder-core.hs`.
+1. ✅ Close **G-1** (renamed `action` → `do_action` in vocabulary v1) → re-added `@escalation` to `compositions/founder-core.hs`.
 2. Vocabulary v2 ratification — add the missing traits from the §G-3 table above.
 3. Re-run `node scripts/compile-founder-skill.mjs` — full round-trip parity.
 4. **Cutover**: replace `~/.claude/skills/founder/SKILL.md` with the emitted file. Track-B mutable-targets table extends to include `compositions/founder-core.hs` as a `skill-edit` target. Future founder-skill rule changes happen in `.hs` and the skill regenerates.
@@ -102,8 +103,8 @@ The cutover sequence:
 $ node scripts/compile-founder-skill.mjs
 [compile-founder-skill] source:  ...compositions/founder-core.hs
 [compile-founder-skill] output:  ...dist/founder-skill-emitted.md
-[compile-founder-skill] parsed:  6 objects, 25 traits
-[compile-founder-skill] emitted: 5819 chars to ...dist/founder-skill-emitted.md
+[compile-founder-skill] parsed:  6 objects, 26 traits
+[compile-founder-skill] emitted: 6056 chars to ...dist/founder-skill-emitted.md
 [compile-founder-skill] Round-trip proof complete.
 ```
 

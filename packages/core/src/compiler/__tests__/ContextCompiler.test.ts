@@ -169,7 +169,7 @@ function makeFullV1Composition(): HoloComposition {
             name: 'escalation',
             config: {
               trigger: 'novel + irreversible + treasury or paper-editorial boundary',
-              action: 'add to ASK_FOUNDER_QUEUE',
+              do_action: 'add to ASK_FOUNDER_QUEUE',
               recipient: 'founder',
               refuse_to_escalate_when: ['known default', 'vision pillar', 'GOLD precedent'],
             },
@@ -371,6 +371,14 @@ describe('compile() - vocabulary v1 -> claude_md', () => {
     expect(result.ast.refusals).toHaveLength(1);
     expect(result.ast.visionPillars).toHaveLength(2);
     expect(result.ast.routines).toHaveLength(1);
+    expect(result.ast.escalations).toEqual([
+      {
+        trigger: 'novel + irreversible + treasury or paper-editorial boundary',
+        doAction: 'add to ASK_FOUNDER_QUEUE',
+        recipient: 'founder',
+        refuseToEscalateWhen: ['known default', 'vision pillar', 'GOLD precedent'],
+      },
+    ]);
     expect(result.ast.hardPhysicalGaps).toHaveLength(1);
   });
 
@@ -490,6 +498,7 @@ describe('compile() - vocabulary v1 -> agents_md', () => {
     expect(md).toContain('## Hard physical gaps (never absorb)');
     expect(md).toContain('## Recurring routines (A-00X)');
     expect(md).toContain('## Escalation');
+    expect(md).toContain('**Action**: add to ASK_FOUNDER_QUEUE');
     expect(md).toContain('## Citation discipline');
     expect(md).toContain('## Authority cross-references');
     // Cross-ref content carries through

@@ -147,7 +147,7 @@ export interface ContextFeedback {
 /** Per-rule: when to escalate to founder. */
 export interface ContextEscalation {
   trigger: string;
-  action: string;
+  doAction: string;
   recipient: string;
   refuseToEscalateWhen: string[];
 }
@@ -547,7 +547,7 @@ export class ContextCompiler extends CompilerBase {
       case 'escalation':
         ast.escalations.push({
           trigger: stringField(cfg, 'trigger', ''),
-          action: stringField(cfg, 'action', ''),
+          doAction: stringField(cfg, 'do_action', ''),
           recipient: stringField(cfg, 'recipient', ''),
           refuseToEscalateWhen: stringListField(cfg, 'refuse_to_escalate_when'),
         });
@@ -879,7 +879,7 @@ export class ContextCompiler extends CompilerBase {
       lines.push('');
       for (const esc of ast.escalations) {
         lines.push(`- **Trigger**: ${esc.trigger}`);
-        lines.push(`  - **Action**: ${esc.action}`);
+        lines.push(`  - **Action**: ${esc.doAction}`);
         lines.push(`  - **Recipient**: ${esc.recipient}`);
         if (esc.refuseToEscalateWhen.length > 0) {
           lines.push(
@@ -1146,7 +1146,7 @@ export class ContextCompiler extends CompilerBase {
       lines.push('');
       for (const esc of ast.escalations) {
         lines.push(`- **Trigger**: ${esc.trigger}`);
-        lines.push(`  - **Action**: ${esc.action}`);
+        lines.push(`  - **Action**: ${esc.doAction}`);
         lines.push(`  - **Recipient**: ${esc.recipient}`);
         if (esc.refuseToEscalateWhen.length > 0) {
           lines.push(
@@ -1432,7 +1432,7 @@ export class ContextCompiler extends CompilerBase {
       idx.push('');
       for (const esc of ast.escalations) {
         idx.push(`- **Trigger**: ${esc.trigger}`);
-        idx.push(`  - **Action**: ${esc.action}`);
+        idx.push(`  - **Action**: ${esc.doAction}`);
         idx.push(`  - **Recipient**: ${esc.recipient}`);
         if (esc.refuseToEscalateWhen.length > 0) {
           idx.push(
@@ -1738,7 +1738,7 @@ export class ContextCompiler extends CompilerBase {
       lines.push('');
       for (const esc of ast.escalations) {
         lines.push(`- **Trigger**: ${esc.trigger}`);
-        lines.push(`  - **Action**: ${esc.action}`);
+        lines.push(`  - **Action**: ${esc.doAction}`);
         lines.push(`  - **Recipient**: ${esc.recipient}`);
         if (esc.refuseToEscalateWhen.length > 0) {
           lines.push(
