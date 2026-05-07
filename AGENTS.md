@@ -24,6 +24,7 @@ MCP server at `mcp.holoscript.net` — discover tools via `POST /mcp` with `tool
 pnpm install                              # Install dependencies
 pnpm build                                # Build (core first, then rest — order matters)
 pnpm --filter @holoscript/core build      # Build specific package
+pnpm --filter @holoscript/net-service run build  # Authoritative holoscript.net service build
 pnpm test                                 # Run all tests (vitest)
 pnpm --filter @holoscript/core test       # Test specific package
 pnpm lint                                 # ESLint
