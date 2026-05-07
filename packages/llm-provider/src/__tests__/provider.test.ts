@@ -10,15 +10,15 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import { MockAdapter } from '../adapters/mock';
 import { extractTraits } from '../base-adapter';
-import { OpenAIAdapter, OPENAI_MODELS } from '../adapters/openai';
-import { AnthropicAdapter, ANTHROPIC_MODELS } from '../adapters/anthropic';
-import { GeminiAdapter, GEMINI_MODELS } from '../adapters/gemini';
-import { BitNetAdapter } from '../adapters/bitnet';
-import { LocalLLMAdapter } from '../adapters/local-llm';
-import { OpenRouterAdapter } from '../adapters/openrouter';
-import { XAIAdapter } from '../adapters/xai';
+import { MockAdapter, MOCK_CAPABILITIES } from '../adapters/mock';
+import { OpenAIAdapter, OPENAI_MODELS, OPENAI_CAPABILITIES } from '../adapters/openai';
+import { AnthropicAdapter, ANTHROPIC_MODELS, ANTHROPIC_CAPABILITIES } from '../adapters/anthropic';
+import { GeminiAdapter, GEMINI_MODELS, GEMINI_CAPABILITIES } from '../adapters/gemini';
+import { BitNetAdapter, BITNET_CAPABILITIES } from '../adapters/bitnet';
+import { LocalLLMAdapter, LOCAL_LLM_CAPABILITIES } from '../adapters/local-llm';
+import { OpenRouterAdapter, OPENROUTER_CAPABILITIES } from '../adapters/openrouter';
+import { XAIAdapter, XAI_CAPABILITIES } from '../adapters/xai';
 import { LLMProviderManager } from '../provider-manager';
 import {
   LLMProviderError,
@@ -50,6 +50,7 @@ describe('MockAdapter', () => {
   });
 
   it('declares broad test capabilities without bearer auth', () => {
+    expect(mock.capabilities).toBe(MOCK_CAPABILITIES);
     expect(mock.capabilities).toMatchObject({
       contextWindow: 200_000,
       maxOutput: 64_000,
@@ -229,6 +230,7 @@ describe('OpenAIAdapter (metadata)', () => {
 
   it('declares current Responses-era platform capabilities', () => {
     const adapter = new OpenAIAdapter({ apiKey: 'test-key' });
+    expect(adapter.capabilities).toBe(OPENAI_CAPABILITIES);
     expect(adapter.capabilities).toMatchObject({
       contextWindow: 0,
       maxOutput: 0,
@@ -300,6 +302,7 @@ describe('AnthropicAdapter (metadata)', () => {
 
   it('declares maximum family capabilities for routing', () => {
     const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    expect(adapter.capabilities).toBe(ANTHROPIC_CAPABILITIES);
     expect(adapter.capabilities).toMatchObject({
       contextWindow: 1_000_000,
       maxOutput: 128_000,
@@ -361,6 +364,7 @@ describe('GeminiAdapter (metadata)', () => {
 
   it('declares multimodal and Vertex capabilities', () => {
     const adapter = new GeminiAdapter({ apiKey: 'test-key' });
+    expect(adapter.capabilities).toBe(GEMINI_CAPABILITIES);
     expect(adapter.capabilities).toMatchObject({
       contextWindow: 0,
       maxOutput: 0,
@@ -390,6 +394,7 @@ describe('GeminiAdapter (metadata)', () => {
 describe('Local and meta-provider capabilities', () => {
   it('declares BitNet as a local zero-marginal baseline', () => {
     const adapter = new BitNetAdapter();
+    expect(adapter.capabilities).toBe(BITNET_CAPABILITIES);
     expect(adapter.capabilities).toMatchObject({
       contextWindow: 0,
       maxOutput: 0,
@@ -404,6 +409,7 @@ describe('Local and meta-provider capabilities', () => {
 
   it('declares local LLM runtimes conservatively', () => {
     const adapter = new LocalLLMAdapter();
+    expect(adapter.capabilities).toBe(LOCAL_LLM_CAPABILITIES);
     expect(adapter.capabilities).toMatchObject({
       contextWindow: 0,
       maxOutput: 0,
@@ -418,6 +424,7 @@ describe('Local and meta-provider capabilities', () => {
 
   it('declares OpenRouter as capability-sensitive fallback routing', () => {
     const adapter = new OpenRouterAdapter({ apiKey: 'test-key' });
+    expect(adapter.capabilities).toBe(OPENROUTER_CAPABILITIES);
     expect(adapter.capabilities).toMatchObject({
       contextWindow: 0,
       maxOutput: 0,
@@ -430,6 +437,7 @@ describe('Local and meta-provider capabilities', () => {
 
   it('declares xAI Live Search and OpenAI-compatible tool support', () => {
     const adapter = new XAIAdapter({ apiKey: 'test-key' });
+    expect(adapter.capabilities).toBe(XAI_CAPABILITIES);
     expect(adapter.capabilities).toMatchObject({
       contextWindow: 0,
       maxOutput: 0,
