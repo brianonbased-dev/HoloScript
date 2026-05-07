@@ -3,7 +3,7 @@
  *
  * Spec evidence: research/2026-05-06_anthropic-managed-agents-gap-map.md row
  * "Vault credentials". Anthropic Managed Agents 2026-05-06 launched
- * session-scoped vault references — credentials are injected per session,
+ * session-scoped vault references - credentials are injected per session,
  * not pulled from a broad ambient `.env`. HoloMesh has `.env`, x402 seats,
  * and the GOLD posture, but no unified task-scoped secret lease layer.
  * This module is the substrate fix.
@@ -30,7 +30,7 @@
  *      is rejected as `lease_scope_violation` and audited.
  *   5. Wallet credentials (HOLOMESH_WALLET_*, anything ending in
  *      _WALLET_KEY / _WALLET_ADDRESS) are PERMANENTLY UNLEASABLE per
- *      G.GOLD.016 — wallets are identity, not sessions. Attempting to
+ *      G.GOLD.016 - wallets are identity, not sessions. Attempting to
  *      add a wallet ref to lease scope returns `wallet_unleasable` BEFORE
  *      the lease is persisted.
  *   6. Revocation propagates to running tasks: any open `redeemLease`
@@ -39,7 +39,7 @@
  *      and refuse subsequent `resolveSecret` calls).
  *   7. Every lifecycle event (issue / redeem / deny / expire / revoke)
  *      emits a structured audit event via the existing audit-log module.
- *      No raw secret material in audit events — `secretRef` is the
+ *      No raw secret material in audit events - `secretRef` is the
  *      canonical name, never the value.
  *
  * Atomicity contract for `issueLease`:
@@ -54,7 +54,7 @@
  *   around the same closure. Handler code does not change.
  *
  * Frame check (W.GOLD.191): the deployed read-path for secrets is
- *   `process.env.<KEY>`. This module is a parallel registry — it does NOT
+ *   `process.env.<KEY>`. This module is a parallel registry - it does NOT
  *   replace ambient .env reads in the existing codebase. The path forward is:
  *     - Phase 1 (this commit): registry + routes + tests + audit wiring.
  *       Existing code keeps reading .env. Leases are an opt-in layer.
@@ -71,7 +71,7 @@
 import * as crypto from 'crypto';
 import { appendAuditEvent, hashPublicKey, type AuditEvent } from './audit-log';
 
-// ── Types ─────────────────────────────────────────────────────────────────
+// -- Types -----------------------------------------------------------------
 
 /** A canonical reference to a secret. Format: `<surface>:<key>` where surface
  *  is one of `env`, `x402`, `custodial`, `gold`. Examples:
@@ -147,7 +147,7 @@ export interface IssueLeaseFailure {
 
 export type IssueLeaseResult = IssueLeaseSuccess | IssueLeaseFailure;
 
-/** Outcome of a `resolveSecret` call. NEVER carries the raw value here —
+/** Outcome of a `resolveSecret` call. NEVER carries the raw value here -
  *  callers receive an opaque `resolved` boolean and pass through the
  *  redaction-safe label. The actual value is read by a separate adapter
  *  (Phase 2). This keeps the registry pure and audit-safe. */
@@ -160,17 +160,17 @@ export interface ResolveSecretResult {
   resolved: boolean;
 }
 
-// ── Constants ─────────────────────────────────────────────────────────────
+// -- Constants -------------------------------------------------------------
 
 /** Hard upper bound on lease duration (24h). Leases are SESSION-scoped, not
  *  long-lived API keys. If a task takes longer than 24h, re-issue. */
 export const MAX_LEASE_DURATION_MS = 24 * 60 * 60 * 1000;
 
-/** Minimum lease duration (1 second) — guards against zero/negative durations
+/** Minimum lease duration (1 second) - guards against zero/negative durations
  *  passed by callers. */
 export const MIN_LEASE_DURATION_MS = 1000;
 
-/** Wallet-credential ref patterns. Per G.GOLD.016 — wallets are identity,
+/** Wallet-credential ref patterns. Per G.GOLD.016 - wallets are identity,
  *  not sessions. These cannot be added to lease scope under any circumstances.
  *
  *  Patterns are case-insensitive substring checks against the bare key portion
@@ -188,7 +188,7 @@ export const UNLEASABLE_PATTERNS: readonly RegExp[] = [
   /LEDGER_PRIVATE/i,
 ];
 
-// ── Registry storage ──────────────────────────────────────────────────────
+// -- Registry storage ------------------------------------------------------
 
 /** In-memory lease store. Key: leaseId. Future: swap for PostgreSQL with
  *  a UNIQUE constraint on (taskId, agentId, status='active'). */
@@ -199,7 +199,7 @@ const leasesById: Map<string, VaultLease> = new Map();
  *  and expired leases drop out of the index. */
 const activeLeaseByTaskAgent: Map<string, string> = new Map();
 
-// ── Helpers ───────────────────────────────────────────────────────────────
+// -- Helpers ---------------------------------------------------------------
 
 function nextLeaseId(taskId: string): string {
   // Trim taskId to keep lease ids readable. taskIds are like
@@ -226,13 +226,13 @@ function isExpired(lease: VaultLease, now: number): boolean {
 
 /** Light-weight transaction wrapper. In-memory today; future DB backend
  *  swaps this with a real BEGIN/COMMIT/ROLLBACK. The contract is that
- *  the closure either runs to completion (commit) or throws (rollback —
+ *  the closure either runs to completion (commit) or throws (rollback -
  *  callers MUST not partially mutate before `commit()` runs). */
 export function withTransaction<T>(commit: () => T): T {
   return commit();
 }
 
-// ── Public API ────────────────────────────────────────────────────────────
+// -- Public API ------------------------------------------------------------
 
 /** Issue a new lease. Atomic: either the lease is persisted + indexed +
  *  audit event emitted, OR nothing changes and a structured rejection is
@@ -299,13 +299,13 @@ export function issueLease(params: {
         detail: `active lease ${existing} already exists for (${params.taskId}, ${params.agentId})`,
       };
     }
-    // Lazy expire — observed-but-not-swept lease drops out.
+    // Lazy expire - observed-but-not-swept lease drops out.
     if (existingLease) {
       lazyExpire(existingLease, now);
     }
   }
 
-  // Commit phase — staged so failure mid-stage rolls back.
+  // Commit phase - staged so failure mid-stage rolls back.
   const lease: VaultLease = {
     leaseId: nextLeaseId(params.taskId),
     taskId: params.taskId,
@@ -323,7 +323,7 @@ export function issueLease(params: {
 
     // Audit. We piggyback on the existing audit-log module so all key/secret
     // lifecycle events flow through one sink. Lease events use a distinct
-    // type via the metadata payload — the audit-log type taxonomy stays
+    // type via the metadata payload - the audit-log type taxonomy stays
     // stable; the event-router downstream filters by `metadata.event`.
     appendAuditEvent({
       type: 'key_accessed', // closest existing taxonomy slot; metadata refines
@@ -347,7 +347,7 @@ export function issueLease(params: {
   });
 }
 
-/** Look up a lease by id. Does NOT lazily expire — callers that care
+/** Look up a lease by id. Does NOT lazily expire - callers that care
  *  about freshness should check `isLeaseValid`. */
 export function getLease(leaseId: string): VaultLease | undefined {
   return leasesById.get(leaseId);
@@ -370,7 +370,7 @@ export function isLeaseValid(leaseId: string, now: number = Date.now()): boolean
 }
 
 /** Decide whether `agentId` may resolve `secretRef` under `leaseId`. Does
- *  NOT return the secret value — that is a separate adapter layer. This
+ *  NOT return the secret value - that is a separate adapter layer. This
  *  function is the substrate enforcement point. */
 export function resolveSecret(params: {
   leaseId: string;
@@ -389,7 +389,7 @@ export function resolveSecret(params: {
     return { ok: false, reason: 'lease_revoked', secretRef: params.secretRef, resolved: false };
   }
   if (isExpired(lease, now)) {
-    // Don't mutate here — `expireLease` is the canonical state transition.
+    // Don't mutate here - `expireLease` is the canonical state transition.
     // But audit so the agent's failed attempt is recorded.
     auditLeaseDenied(lease, params.secretRef, 'lease_expired');
     return { ok: false, reason: 'lease_expired', secretRef: params.secretRef, resolved: false };
@@ -403,7 +403,7 @@ export function resolveSecret(params: {
     return { ok: false, reason: 'lease_scope_violation', secretRef: params.secretRef, resolved: false };
   }
   // Belt-and-suspenders: refuse to resolve a wallet ref even if (somehow)
-  // it ended up in scope. Defense in depth — the issuance-time check is
+  // it ended up in scope. Defense in depth - the issuance-time check is
   // the primary gate; this is the last-line check.
   if (isWalletRef(params.secretRef)) {
     auditLeaseDenied(lease, params.secretRef, 'wallet_unleasable');
@@ -430,7 +430,7 @@ export function resolveSecret(params: {
   return { ok: true, secretRef: params.secretRef, resolved: true };
 }
 
-/** Revoke an active lease. Idempotent on already-revoked leases — returns
+/** Revoke an active lease. Idempotent on already-revoked leases - returns
  *  the existing record. Returns `lease_not_found` for unknown ids. */
 export function revokeLease(params: {
   leaseId: string;
@@ -544,7 +544,7 @@ function auditLeaseDenied(
   });
 }
 
-/** List leases matching a filter. Returns a snapshot copy — callers cannot
+/** List leases matching a filter. Returns a snapshot copy - callers cannot
  *  mutate the registry through this view. */
 export function queryLeases(filter: {
   taskId?: string;
@@ -564,9 +564,9 @@ export function queryLeases(filter: {
   return out;
 }
 
-// ── Test helpers ──────────────────────────────────────────────────────────
+// -- Test helpers ----------------------------------------------------------
 
-/** Reset the registry. Test-only — never call from production code. */
+/** Reset the registry. Test-only - never call from production code. */
 export function _resetVaultLeaseRegistryForTests(): void {
   leasesById.clear();
   activeLeaseByTaskAgent.clear();
@@ -577,7 +577,7 @@ export function _getActiveLeaseIndexForTests(): ReadonlyMap<string, string> {
   return new Map(activeLeaseByTaskAgent);
 }
 
-/** Recover audit events for a lease. Test-only — uses the audit-log query
+/** Recover audit events for a lease. Test-only - uses the audit-log query
  *  surface but is exposed here for ergonomic test assertions. */
 export function _getAuditEventsForLeaseInTests(_leaseId: string): readonly AuditEvent[] {
   // The audit-log buffer is module-private; we don't touch it from here.

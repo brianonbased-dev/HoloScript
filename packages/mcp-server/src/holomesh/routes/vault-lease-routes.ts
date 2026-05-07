@@ -1,5 +1,5 @@
 /**
- * Vault-lease routes — task_1778102013331_u8q2.
+ * Vault-lease routes - task_1778102013331_u8q2.
  *
  * Spec evidence: research/2026-05-06_anthropic-managed-agents-gap-map.md
  * "Vault credentials" row. Anthropic Managed Agents 2026-05-06 launch
@@ -9,12 +9,12 @@
  * lives at `holomesh/identity/vault-lease-registry.ts`.
  *
  * Routes (all under /api/identity/vault/*):
- *   POST   /api/identity/vault/lease                 — issue a new lease
- *   GET    /api/identity/vault/lease/:leaseId        — fetch lease metadata (no secrets)
- *   POST   /api/identity/vault/lease/:leaseId/resolve — check if a secretRef can be read
- *   POST   /api/identity/vault/lease/:leaseId/revoke — revoke a lease
- *   GET    /api/identity/vault/leases                — list leases (filterable)
- *   POST   /api/identity/vault/sweep                 — founder-only: sweep expired
+ *   POST   /api/identity/vault/lease                 - issue a new lease
+ *   GET    /api/identity/vault/lease/:leaseId        - fetch lease metadata (no secrets)
+ *   POST   /api/identity/vault/lease/:leaseId/resolve - check if a secretRef can be read
+ *   POST   /api/identity/vault/lease/:leaseId/revoke - revoke a lease
+ *   GET    /api/identity/vault/leases                - list leases (filterable)
+ *   POST   /api/identity/vault/sweep                 - founder-only: sweep expired
  *
  * Authority model:
  *   - issue:   any authenticated agent (caller becomes the leasing agent
@@ -30,7 +30,7 @@
  *
  * Frame check (W.GOLD.191): the deployed read-path for secrets is still
  * `process.env.<KEY>`. This route surface does NOT yet reach into .env to
- * return secret values — `resolve` returns a lease decision boolean. Phase 2
+ * return secret values - `resolve` returns a lease decision boolean. Phase 2
  * (separate task) will add a server-side secret-fetching adapter behind the
  * lease check. Shipping a registry+routes that nothing reaches into yet is
  * honest about the gap; rewiring every secret read in one commit would
@@ -108,7 +108,7 @@ export async function handleVaultLeaseRoutes(
   method: string,
   _url: string
 ): Promise<boolean> {
-  // ── POST /api/identity/vault/lease ────────────────────────────────────
+  // -- POST /api/identity/vault/lease ------------------------------------
   if (method === 'POST' && pathname === '/api/identity/vault/lease') {
     const caller = requireAuth(req, res);
     if (!caller) return true; // requireAuth already wrote 401
@@ -154,7 +154,7 @@ export async function handleVaultLeaseRoutes(
     return true;
   }
 
-  // ── GET /api/identity/vault/lease/:leaseId ───────────────────────────
+  // -- GET /api/identity/vault/lease/:leaseId ---------------------------
   if (method === 'GET' && pathname.startsWith('/api/identity/vault/lease/')) {
     const leaseId = extractLeaseId(pathname, '/api/identity/vault/lease/');
     if (!leaseId) {
@@ -175,7 +175,7 @@ export async function handleVaultLeaseRoutes(
     return true;
   }
 
-  // ── POST /api/identity/vault/lease/:leaseId/resolve ──────────────────
+  // -- POST /api/identity/vault/lease/:leaseId/resolve ------------------
   if (
     method === 'POST' &&
     pathname.startsWith('/api/identity/vault/lease/') &&
@@ -212,7 +212,7 @@ export async function handleVaultLeaseRoutes(
       secretRef,
     });
 
-    // Note: we do NOT expose the secret value here (Phase 1 — frame check).
+    // Note: we do NOT expose the secret value here (Phase 1 - frame check).
     // The response is the lease decision; a downstream Phase 2 adapter will
     // read the actual value behind this gate.
     if (!result.ok) {
@@ -234,7 +234,7 @@ export async function handleVaultLeaseRoutes(
     return true;
   }
 
-  // ── POST /api/identity/vault/lease/:leaseId/revoke ───────────────────
+  // -- POST /api/identity/vault/lease/:leaseId/revoke -------------------
   if (
     method === 'POST' &&
     pathname.startsWith('/api/identity/vault/lease/') &&
@@ -295,7 +295,7 @@ export async function handleVaultLeaseRoutes(
     return true;
   }
 
-  // ── GET /api/identity/vault/leases ───────────────────────────────────
+  // -- GET /api/identity/vault/leases -----------------------------------
   if (method === 'GET' && pathname === '/api/identity/vault/leases') {
     const caller = requireAuth(req, res);
     if (!caller) return true; // requireAuth already wrote 401
@@ -319,7 +319,7 @@ export async function handleVaultLeaseRoutes(
     return true;
   }
 
-  // ── POST /api/identity/vault/sweep ───────────────────────────────────
+  // -- POST /api/identity/vault/sweep -----------------------------------
   if (method === 'POST' && pathname === '/api/identity/vault/sweep') {
     const caller = requireAuth(req, res);
     if (!caller) return true;

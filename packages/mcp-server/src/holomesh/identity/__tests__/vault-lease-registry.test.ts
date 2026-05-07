@@ -1,5 +1,5 @@
 /**
- * Unit tests for identity/vault-lease-registry.ts — task-scoped credential
+ * Unit tests for identity/vault-lease-registry.ts - task-scoped credential
  * vault leases (task_1778102013331_u8q2).
  *
  * Coverage strategy (G.GOLD.013, G.GOLD.015):
@@ -39,9 +39,9 @@ beforeEach(() => {
   _resetAuditLogForTests();
 });
 
-// ── issueLease ────────────────────────────────────────────────────────────
+// -- issueLease ------------------------------------------------------------
 
-describe('issueLease — happy path', () => {
+describe('issueLease - happy path', () => {
   it('issues a lease bound to (taskId, agentId) with the requested scope', () => {
     const result = issueLease({
       taskId: 'task_test_001',
@@ -99,7 +99,7 @@ describe('issueLease — happy path', () => {
   });
 });
 
-describe('issueLease — wallet unleasable (G.GOLD.016)', () => {
+describe('issueLease - wallet unleasable (G.GOLD.016)', () => {
   // Each pattern must reject. False case: every wallet pattern.
   const walletRefs: ReadonlyArray<[string, string]> = [
     ['HOLOMESH_WALLET_ADDRESS', 'env:HOLOMESH_WALLET_ADDRESS'],
@@ -154,7 +154,7 @@ describe('issueLease — wallet unleasable (G.GOLD.016)', () => {
   });
 });
 
-describe('issueLease — argument validation', () => {
+describe('issueLease - argument validation', () => {
   it('rejects missing taskId', () => {
     const result = issueLease({ taskId: '', agentId: 'a', scope: ['env:K'] });
     expect(result.ok).toBe(false);
@@ -221,7 +221,7 @@ describe('issueLease — argument validation', () => {
   });
 });
 
-describe('issueLease — duplicate lease invariant', () => {
+describe('issueLease - duplicate lease invariant', () => {
   it('rejects a second active lease for the same (taskId, agentId)', () => {
     const first = issueLease({ taskId: 't', agentId: 'a', scope: ['env:K'] });
     expect(first.ok).toBe(true);
@@ -260,7 +260,7 @@ describe('issueLease — duplicate lease invariant', () => {
     });
     expect(first.ok).toBe(true);
 
-    // 2 seconds later — the previous lease is past expiry.
+    // 2 seconds later - the previous lease is past expiry.
     const second = issueLease({
       taskId: 't',
       agentId: 'a',
@@ -271,9 +271,9 @@ describe('issueLease — duplicate lease invariant', () => {
   });
 });
 
-// ── resolveSecret ─────────────────────────────────────────────────────────
+// -- resolveSecret ---------------------------------------------------------
 
-describe('resolveSecret — happy path', () => {
+describe('resolveSecret - happy path', () => {
   it('resolves a ref that is in scope under a valid lease', () => {
     const issued = issueLease({
       taskId: 't',
@@ -304,7 +304,7 @@ describe('resolveSecret — happy path', () => {
   });
 });
 
-describe('resolveSecret — failure cases', () => {
+describe('resolveSecret - failure cases', () => {
   it('rejects unknown lease id', () => {
     const result = resolveSecret({
       leaseId: 'lease-nonexistent',
@@ -393,7 +393,7 @@ describe('resolveSecret — failure cases', () => {
   });
 });
 
-// ── revokeLease ───────────────────────────────────────────────────────────
+// -- revokeLease -----------------------------------------------------------
 
 describe('revokeLease', () => {
   it('marks an active lease as revoked', () => {
@@ -467,7 +467,7 @@ describe('revokeLease', () => {
   });
 });
 
-// ── revokeLeasesForTask ───────────────────────────────────────────────────
+// -- revokeLeasesForTask ---------------------------------------------------
 
 describe('revokeLeasesForTask', () => {
   it('revokes all active leases bound to a task', () => {
@@ -489,7 +489,7 @@ describe('revokeLeasesForTask', () => {
   });
 });
 
-// ── sweepExpiredLeases ────────────────────────────────────────────────────
+// -- sweepExpiredLeases ----------------------------------------------------
 
 describe('sweepExpiredLeases', () => {
   it('flips expired active leases to expired status', () => {
@@ -513,7 +513,7 @@ describe('sweepExpiredLeases', () => {
     expect(events).toHaveLength(1);
   });
 
-  it('is idempotent — sweeping twice does not double-emit', () => {
+  it('is idempotent - sweeping twice does not double-emit', () => {
     const t0 = 1_000_000;
     issueLease({ taskId: 't', agentId: 'a', scope: ['env:K'], durationMs: 1000, now: t0 });
     sweepExpiredLeases(t0 + 5000);
@@ -526,7 +526,7 @@ describe('sweepExpiredLeases', () => {
   });
 });
 
-// ── isLeaseValid ──────────────────────────────────────────────────────────
+// -- isLeaseValid ----------------------------------------------------------
 
 describe('isLeaseValid', () => {
   it('returns true for an active, non-expired lease', () => {
@@ -560,7 +560,7 @@ describe('isLeaseValid', () => {
   });
 });
 
-// ── queryLeases ───────────────────────────────────────────────────────────
+// -- queryLeases -----------------------------------------------------------
 
 describe('queryLeases', () => {
   it('returns all active leases by default', () => {
@@ -582,7 +582,7 @@ describe('queryLeases', () => {
     expect(queryLeases({ agentId: 'a' })).toHaveLength(2);
   });
 
-  it('returns defensive copies — caller mutation does not corrupt registry', () => {
+  it('returns defensive copies - caller mutation does not corrupt registry', () => {
     issueLease({ taskId: 't', agentId: 'a', scope: ['env:K'] });
     const out = queryLeases();
     out[0].scope.push('env:UNAUTHORIZED');
@@ -591,7 +591,7 @@ describe('queryLeases', () => {
   });
 });
 
-// ── findActiveLease + getLease ───────────────────────────────────────────
+// -- findActiveLease + getLease -------------------------------------------
 
 describe('findActiveLease', () => {
   it('finds the active lease for (taskId, agentId)', () => {
