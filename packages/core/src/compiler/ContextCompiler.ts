@@ -31,10 +31,13 @@
  * declarations). WARN soft-guideline (stale citations, fluent prose
  * without citation, schedule conflicts, unresolved verify-tokens).
  *
- * @version 1.3.0 (Phase 1 - claude_md + agents_md + cursor_rules + skill_md
- *   emitters; anthropic_system_prompt / brain_includes / mcp_context_loader
- *   remain Phase 1+ follow-ups. With skill_md shipped, Phase 2(a) — founder
- *   skill self-host — is unblocked.)
+ * @version 1.4.0 (Phase 2(a) Iteration 2 G-3 first slice: vocabulary v2
+ *   adds @invocation_mode trait. Phase 1 emitters: claude_md + agents_md +
+ *   cursor_rules + skill_md (all 4 render the new section). Remaining
+ *   Phase 1+ follow-ups: anthropic_system_prompt / brain_includes /
+ *   mcp_context_loader. Remaining Iteration 2 G-3 vocabulary: domain
+ *   preferences, Track-B authority, papers program, embodied projection,
+ *   date discipline.)
  * @module @holoscript/core/compiler/ContextCompiler
  */
 
@@ -221,6 +224,38 @@ export interface ContextHardPhysicalGap {
 }
 
 /**
+ * Per-rule: how this skill can be invoked. Vocabulary v2 (Phase 2(a)
+ * Iteration 2 G-3 first slice). The founder skill exposes 3 modes
+ * documented in `~/.claude/skills/founder/SKILL.md` § Invocation modes:
+ *   - auto-fire        (agent self-invokes when about to bandaid /
+ *                      workaround / demote / wait-for-founder)
+ *   - explicit         ("/founder [question]")
+ *   - wrap-other-skill (embedded in another skill's flow)
+ *
+ * Other skills may declare different modes (e.g. only explicit, or
+ * only auto-fire); the trait is open-ended on `mode` to allow future
+ * skills to declare new modes without vocabulary changes — but the
+ * common cases stay in the union for documentation purposes.
+ */
+export type ContextInvocationModeKind =
+  | 'auto-fire'
+  | 'explicit'
+  | 'wrap-other-skill'
+  | string;
+
+export interface ContextInvocationMode {
+  mode: ContextInvocationModeKind;
+  when: string;                      // condition that triggers this mode
+  effect: string;                    // what the skill does in this mode
+  example?: string;                  // optional invocation example
+  // NOTE: source key is `effect:` (not `behavior:`) because `behavior` is
+  // a parser-reserved keyword in HoloCompositionParser. Rendered label
+  // in emitted markdown is "**Effect**:" for consistency. Same pattern
+  // as G-1's ContextEscalation.action -> doAction rename. Per W.GOLD.039
+  // (Sapir-Whorf), vocabulary should not adopt parser-reserved tokens.
+}
+
+/**
  * Parsed context AST - sovereign vocabulary v1 in typed form. The
  * compiler walks the HoloComposition AST, extracts known traits into
  * this shape, validates per BLOCK rules, then dispatches to emitters.
@@ -247,6 +282,7 @@ export interface ContextAST {
   includes: ContextInclude[];
   routines: ContextRoutine[];
   hardPhysicalGaps: ContextHardPhysicalGap[];
+  invocationModes: ContextInvocationMode[];   // vocabulary v2 (Iteration 2 G-3)
 
   // Diagnostics surfaced from validation
   warnings: ContextValidationDiagnostic[];
@@ -445,6 +481,7 @@ export class ContextCompiler extends CompilerBase {
       includes: [],
       routines: [],
       hardPhysicalGaps: [],
+      invocationModes: [],
       warnings: [],
     };
 
@@ -611,6 +648,14 @@ export class ContextCompiler extends CompilerBase {
           reason: stringField(cfg, 'reason', ''),
           appliesTo: stringListField(cfg, 'applies_to'),
           alternative: stringFieldOrUndef(cfg, 'alternative'),
+        });
+        break;
+      case 'invocation_mode':
+        ast.invocationModes.push({
+          mode: stringField(cfg, 'mode', 'explicit'),
+          when: stringField(cfg, 'when', ''),
+          effect: stringField(cfg, 'effect', ''),
+          example: stringFieldOrUndef(cfg, 'example'),
         });
         break;
       default:
@@ -856,6 +901,22 @@ export class ContextCompiler extends CompilerBase {
           lines.push(`**Refusals enforced**: ${skill.refusals.join(', ')}`);
           lines.push('');
         }
+      }
+    }
+
+    // Invocation modes (vocabulary v2 - Iteration 2 G-3)
+    if (ast.invocationModes.length > 0) {
+      lines.push('## Invocation modes');
+      lines.push('');
+      for (const mode of ast.invocationModes) {
+        lines.push(`### ${mode.mode}`);
+        lines.push('');
+        lines.push(`- **When**: ${mode.when}`);
+        lines.push(`- **Effect**: ${mode.effect}`);
+        if (mode.example) {
+          lines.push(`- **Example**: \`${mode.example}\``);
+        }
+        lines.push('');
       }
     }
 
@@ -1121,6 +1182,22 @@ export class ContextCompiler extends CompilerBase {
         }
         if (skill.refusals && skill.refusals.length > 0) {
           lines.push(`- **Enforces rules**: ${skill.refusals.join(', ')}`);
+        }
+        lines.push('');
+      }
+    }
+
+    // Invocation modes (vocabulary v2 - Iteration 2 G-3)
+    if (ast.invocationModes.length > 0) {
+      lines.push('## Invocation modes');
+      lines.push('');
+      for (const mode of ast.invocationModes) {
+        lines.push(`### ${mode.mode}`);
+        lines.push('');
+        lines.push(`- **When**: ${mode.when}`);
+        lines.push(`- **Effect**: ${mode.effect}`);
+        if (mode.example) {
+          lines.push(`- **Example**: \`${mode.example}\``);
         }
         lines.push('');
       }
@@ -1410,6 +1487,22 @@ export class ContextCompiler extends CompilerBase {
         idx.push(`- **${skill.invocableAs}** (${skill.name}) - ${skill.authority}`);
       }
       idx.push('');
+    }
+
+    // Invocation modes (vocabulary v2 - Iteration 2 G-3)
+    if (ast.invocationModes.length > 0) {
+      idx.push('## Invocation modes');
+      idx.push('');
+      for (const mode of ast.invocationModes) {
+        idx.push(`### ${mode.mode}`);
+        idx.push('');
+        idx.push(`- **When**: ${mode.when}`);
+        idx.push(`- **Effect**: ${mode.effect}`);
+        if (mode.example) {
+          idx.push(`- **Example**: \`${mode.example}\``);
+        }
+        idx.push('');
+      }
     }
 
     // Recurring routines (A-00X)
@@ -1715,6 +1808,22 @@ export class ContextCompiler extends CompilerBase {
           lines.push(`**Refusals enforced**: ${skill.refusals.join(', ')}`);
           lines.push('');
         }
+      }
+    }
+
+    // Invocation modes (vocabulary v2 - Iteration 2 G-3)
+    if (ast.invocationModes.length > 0) {
+      lines.push('## Invocation modes');
+      lines.push('');
+      for (const mode of ast.invocationModes) {
+        lines.push(`### ${mode.mode}`);
+        lines.push('');
+        lines.push(`- **When**: ${mode.when}`);
+        lines.push(`- **Effect**: ${mode.effect}`);
+        if (mode.example) {
+          lines.push(`- **Example**: \`${mode.example}\``);
+        }
+        lines.push('');
       }
     }
 

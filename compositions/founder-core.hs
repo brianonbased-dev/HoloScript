@@ -239,3 +239,31 @@ object "AuthorityRefs" {
     source: "MEMORY.md"
   )
 }
+
+// =============================================================================
+// Invocation modes (vocabulary v2 - Iteration 2 G-3 first slice)
+//
+// Mirrors the "## Invocation modes" section in
+// ~/.claude/skills/founder/SKILL.md - 3 modes the founder skill exposes.
+// =============================================================================
+
+object "InvocationModes" {
+  @invocation_mode(
+    mode: "auto-fire",
+    when: "agent about to bandaid / workaround / demote / wait-for-founder / ASK_FOUNDER_QUEUE-add",
+    effect: "skill self-invokes and rules without queueing for founder; output protocol applies the ruling silently and reports back what changed"
+  )
+
+  @invocation_mode(
+    mode: "explicit",
+    when: "user types /founder [question] in the chat or another agent invokes via /founder skill",
+    effect: "skill executes the full ratification flow on the supplied question; cites authority order tier that resolved it",
+    example: "/founder should the cost-guard pricing emitter ship before the docs-only fix?"
+  )
+
+  @invocation_mode(
+    mode: "wrap-other-skill",
+    when: "embedded inside another skill's flow when that skill needs a sub-decision (e.g. /room marathon hits a workaround temptation)",
+    effect: "wrapping skill calls /founder for the sub-decision and proceeds with the ratified ruling; founder ruling is captured in the wrapping skill's audit log"
+  )
+}

@@ -237,6 +237,35 @@ function makeFullV1Composition(): HoloComposition {
               alternative: 'skill drafts the transaction; founder signs',
             },
           },
+          // Vocabulary v2 (Iteration 2 G-3 first slice)
+          {
+            type: 'ObjectTrait',
+            name: 'invocation_mode',
+            config: {
+              mode: 'auto-fire',
+              when: 'agent about to bandaid / workaround / demote / wait-for-founder',
+              effect: 'skill self-invokes and rules without queueing for founder',
+            },
+          },
+          {
+            type: 'ObjectTrait',
+            name: 'invocation_mode',
+            config: {
+              mode: 'explicit',
+              when: 'user types `/founder [question]`',
+              effect: 'skill executes the ratification flow on the supplied question',
+              example: '/founder should I use a feature flag here?',
+            },
+          },
+          {
+            type: 'ObjectTrait',
+            name: 'invocation_mode',
+            config: {
+              mode: 'wrap-other-skill',
+              when: 'embedded inside another skill\'s flow',
+              effect: 'wrapping skill calls /founder for a sub-decision and proceeds',
+            },
+          },
         ],
       },
     ],
@@ -1430,5 +1459,174 @@ describe('compile() - vocabulary v1 -> skill_md', () => {
     expect(result.files['CLAUDE.md']).toContain('compile_to_claude_md');
     expect(result.files['AGENTS.md']).toContain('compile_to_agents_md');
     expect(result.files['SKILL.md']).toContain('compile_to_skill_md');
+  });
+});
+
+// --- Vocabulary v2 (Iteration 2 G-3 first slice) -- @invocation_mode ---
+
+describe('compile() - vocabulary v2 -> @invocation_mode', () => {
+  it('extracts all 3 founder-skill invocation modes from the full V1 fixture', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const result = compiler.compile(makeFullV1Composition(), '');
+    expect(result.ast.invocationModes).toHaveLength(3);
+    const modes = result.ast.invocationModes.map((m) => m.mode);
+    expect(modes).toEqual(['auto-fire', 'explicit', 'wrap-other-skill']);
+    // False case: optional `example` must come through on modes that set it
+    const explicit = result.ast.invocationModes.find((m) => m.mode === 'explicit');
+    expect(explicit?.example).toBe('/founder should I use a feature flag here?');
+    // False case: omitted example stays undefined, not empty string
+    const auto = result.ast.invocationModes.find((m) => m.mode === 'auto-fire');
+    expect(auto?.example).toBeUndefined();
+  });
+
+  it('emits ## Invocation modes section in claude_md with all 3 modes', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeFullV1Composition(), '').files['CLAUDE.md'];
+    expect(md).toContain('## Invocation modes');
+    expect(md).toContain('### auto-fire');
+    expect(md).toContain('### explicit');
+    expect(md).toContain('### wrap-other-skill');
+    expect(md).toContain('- **When**: agent about to bandaid');
+    expect(md).toContain('- **Effect**: skill self-invokes');
+    expect(md).toContain('- **Example**: `/founder should I use a feature flag here?`');
+    // False case: example renders inside a code span, not bare text
+    expect(md).not.toContain('Example: /founder should');
+  });
+
+  it('emits ## Invocation modes in agents_md (cross-tool surface)', () => {
+    const compiler = new ContextCompiler({ formats: ['agents_md'] });
+    const md = compiler.compile(makeFullV1Composition(), '').files['AGENTS.md'];
+    expect(md).toContain('## Invocation modes');
+    expect(md).toContain('### auto-fire');
+    expect(md).toContain('### explicit');
+    expect(md).toContain('### wrap-other-skill');
+  });
+
+  it('emits ## Invocation modes in skill_md (the Phase 2(a) self-host target)', () => {
+    const compiler = new ContextCompiler({ formats: ['skill_md'] });
+    // skill_md requires identity.description — patch the fixture in-place
+    const fixture = makeFullV1Composition();
+    const identity = fixture.objects[0]!.traits!.find((t) => t.name === 'identity')!;
+    identity.config.description = 'Test skill description for invocation_mode emit verification.';
+    const md = compiler.compile(fixture, '').files['SKILL.md'];
+    expect(md).toContain('## Invocation modes');
+    expect(md).toContain('### auto-fire');
+    expect(md).toContain('### wrap-other-skill');
+  });
+
+  it('emits ## Invocation modes in cursor_rules index file', () => {
+    const compiler = new ContextCompiler({ formats: ['cursor_rules'] });
+    const result = compiler.compile(makeFullV1Composition(), '');
+    const indexContent = result.files['.cursor/rules/_ecosystem-context.mdc'];
+    expect(indexContent).toContain('## Invocation modes');
+    expect(indexContent).toContain('### auto-fire');
+  });
+
+  it('places Invocation modes BEFORE Recurring routines in claude_md (consistent ordering)', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeFullV1Composition(), '').files['CLAUDE.md'];
+    const invocationIdx = md.indexOf('## Invocation modes');
+    const routinesIdx = md.indexOf('## Recurring routines');
+    expect(invocationIdx).toBeGreaterThan(0);
+    expect(routinesIdx).toBeGreaterThan(0);
+    expect(invocationIdx).toBeLessThan(routinesIdx);
+  });
+
+  it('omits ## Invocation modes section when no @invocation_mode traits declared', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(makeComposition(), '').files['CLAUDE.md'];
+    // False case: section header must NOT appear in an empty composition
+    expect(md).not.toContain('## Invocation modes');
+    expect(md).not.toContain('### auto-fire');
+  });
+
+  it('renders an invocation mode without example cleanly (no dangling Example bullet)', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const md = compiler.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'A',
+            properties: [],
+            traits: [
+              {
+                type: 'ObjectTrait',
+                name: 'invocation_mode',
+                config: {
+                  mode: 'auto-fire',
+                  when: 'always',
+                  effect: 'fires',
+                  // example intentionally omitted
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      ''
+    ).files['CLAUDE.md'];
+    expect(md).toContain('### auto-fire');
+    expect(md).toContain('- **When**: always');
+    expect(md).toContain('- **Effect**: fires');
+    // False case: no Example bullet should appear when example is omitted
+    expect(md).not.toContain('- **Example**:');
+  });
+
+  it('accepts open-ended mode strings (vocabulary is extensible)', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const result = compiler.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'A',
+            properties: [],
+            traits: [
+              {
+                type: 'ObjectTrait',
+                name: 'invocation_mode',
+                config: {
+                  mode: 'scheduled-cron',
+                  when: 'cron 0 13 * * 1',
+                  effect: 'A-019 routine fires',
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      ''
+    );
+    expect(result.ast.invocationModes[0]?.mode).toBe('scheduled-cron');
+    expect(result.files['CLAUDE.md']).toContain('### scheduled-cron');
+  });
+
+  it('defaults mode to "explicit" when source omits the field (forgiving extractor)', () => {
+    const compiler = new ContextCompiler({ formats: ['claude_md'] });
+    const result = compiler.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'A',
+            properties: [],
+            traits: [
+              {
+                type: 'ObjectTrait',
+                name: 'invocation_mode',
+                config: {
+                  // mode intentionally omitted
+                  when: 'unspecified',
+                  effect: 'fires somehow',
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      ''
+    );
+    expect(result.ast.invocationModes[0]?.mode).toBe('explicit');
   });
 });

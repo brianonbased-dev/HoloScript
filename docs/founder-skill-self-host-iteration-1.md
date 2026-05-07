@@ -1,7 +1,7 @@
 # Founder Skill Self-Host — Iteration 1 Status Memo
 
 **Date**: 2026-05-06
-**Status**: PROOF complete; G-1/G-2 closed; cutover still deferred to Iteration 2 vocabulary coverage
+**Status**: PROOF complete; G-1/G-2 closed; G-3 first slice (`@invocation_mode`) closed; cutover still deferred until remaining G-3 vocabulary v2 traits land
 **Commit**: (filed alongside `compositions/founder-core.hs` + `scripts/compile-founder-skill.mjs`)
 **Spec source**: `ai-ecosystem/research/2026-05-06_context-as-compile-target.md` § Phase 2
 
@@ -75,7 +75,7 @@ The live `~/.claude/skills/founder/SKILL.md` includes structural blocks beyond v
 | Papers program | ❌ no trait | New `@editorial_defaults` + `@research_defaults` traits |
 | Citation discipline | ✅ via `@citation_rule` | none |
 | Output shape | ✅ via `@output_shape` | none |
-| Invocation modes | ❌ no trait | New `@invocation_mode` trait (× 3 — auto-fire / explicit / wrap-other-skill) |
+| Invocation modes | ✅ via `@invocation_mode` × 3 (G-3 first slice closed) | none — auto-fire / explicit / wrap-other-skill all round-trip via the founder-core source |
 | Escape hatch | ✅ via `@escalation` | none (G-1 closed) |
 
 Plus the embodied-projection-layer block (referenced in CLAUDE.md `direction_embodied-presence-layer.md`) — not yet a trait in any vocabulary; out of scope for v1 self-host.
@@ -87,6 +87,8 @@ The cutover sequence:
 1. ✅ Close **G-1** (renamed `action` → `do_action` in vocabulary v1) → re-added `@escalation` to `compositions/founder-core.hs`.
 2. ✅ Close **G-2** (`@trait: { ... }` now populates config in the parser).
 3. Vocabulary v2 ratification — add the missing traits from the §G-3 table above.
+   - ✅ `@invocation_mode` (G-3 first slice) — landed via the same parser-keyword fix pattern as G-1 (`behavior` is reserved → field renamed to `effect`).
+   - ❌ `@domain_preferences`, `@authority` (Track-B), `@editorial_defaults` / `@research_defaults` (papers program), `@date_discipline`, `@embodied_projection` — each is its own follow-up task.
 4. Re-run `node scripts/compile-founder-skill.mjs` — full round-trip parity.
 5. **Cutover**: replace `~/.claude/skills/founder/SKILL.md` with the emitted file. Track-B mutable-targets table extends to include `compositions/founder-core.hs` as a `skill-edit` target. Future founder-skill rule changes happen in `.hs` and the skill regenerates.
 6. Validate: founder ratification works through the skill exactly as before.
