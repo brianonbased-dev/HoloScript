@@ -7,6 +7,7 @@ import { HolomeshClient } from './holomesh-client.js';
 import { loadBrain } from './brain.js';
 import { makeCommitHook } from './commit-hook.js';
 import { AuditLog } from './audit-log.js';
+import { pickProvider, BUILT_IN_CANDIDATES } from './capability-router.js';
 import type { AgentSpec, SupervisorConfig } from './supervisor-config.js';
 import type { AgentIdentity, BoardTask, ExecutionResult, RuntimeBrainConfig } from './types.js';
 
@@ -99,7 +100,31 @@ export class Supervisor {
   private async bootAgent(spec: AgentSpec): Promise<ManagedAgent> {
     const identity = this.identityFromSpec(spec);
     const brain = await loadBrain(spec.brainPath, spec.scopeTier ?? 'warm');
-    const provider = await this.opts.providerFactory(spec, identity);
+
+    // Capability-aware routing (Lane 3 Phase 4 — founder ruling 2026-05-06):
+    // brain.requires/prefers/avoids drives provider selection at session start;
+    // spec.provider becomes OVERRIDE, not source-of-truth. When brain has empty
+    // requires (today's default), the routing is open and spec.provider wins
+    // (backward-compatible — no behavior change for unmigrated brains).
+    const decision = pickProvider({
+      brain,
+      envOverride: spec.provider,
+      candidates: BUILT_IN_CANDIDATES,
+    });
+    const effectiveSpec: AgentSpec =
+      decision.picked === spec.provider ? spec : { ...spec, provider: decision.picked };
+    if (decision.reason === 'env-override-mismatch' && this.opts.logger) {
+      this.opts.logger({
+        ts: new Date().toISOString(),
+        ev: 'capability-router-mismatch',
+        handle: spec.handle,
+        envOverride: spec.provider,
+        unsatisfiedRequires: decision.unsatisfiedRequires,
+        excludedByAvoids: decision.excludedByAvoids,
+      });
+    }
+
+    const provider = await this.opts.providerFactory(effectiveSpec, identity);
     const stateDir = this.opts.stateDir ?? join(homedir(), '.holoscript-agent', 'cost-state');
     const isFree = spec.provider === 'mock' || spec.provider === 'local-llm' || spec.provider === 'bitnet';
     const costGuard = new CostGuard({

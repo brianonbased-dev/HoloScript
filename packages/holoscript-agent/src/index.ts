@@ -14,6 +14,7 @@ import type { ILLMProvider, LLMProviderName } from '@holoscript/llm-provider';
 import { loadIdentity, identityForLog } from './identity.js';
 import { loadBrain } from './brain.js';
 import { CostGuard, defaultPricerForProvider } from './cost-guard.js';
+import { pickProvider, BUILT_IN_CANDIDATES } from './capability-router.js';
 import { HolomeshClient } from './holomesh-client.js';
 import { AgentRunner } from './runner.js';
 import { makeCommitHook } from './commit-hook.js';
@@ -73,11 +74,37 @@ async function main(): Promise<void> {
 async function cmdRun(opts: { once: boolean }): Promise<void> {
   const identity = loadIdentity();
   const brain = await loadBrain(identity.brainPath, scopeTierFromEnv());
-  const provider = await buildProvider(identity);
+
+  // Capability-aware routing (Lane 3 Phase 4 — founder ruling 2026-05-06):
+  // brain.requires/prefers/avoids drives provider selection at session start;
+  // HOLOSCRIPT_AGENT_PROVIDER env becomes OVERRIDE, not source-of-truth.
+  // Brains with empty requires (today's default) preserve current behavior.
+  const decision = pickProvider({
+    brain,
+    envOverride: identity.llmProvider,
+    candidates: BUILT_IN_CANDIDATES,
+  });
+  const effectiveIdentity =
+    decision.picked === identity.llmProvider
+      ? identity
+      : { ...identity, llmProvider: decision.picked };
+  if (decision.reason === 'env-override-mismatch') {
+    console.log(
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        ev: 'capability-router-mismatch',
+        envOverride: identity.llmProvider,
+        unsatisfiedRequires: decision.unsatisfiedRequires,
+        excludedByAvoids: decision.excludedByAvoids,
+      })
+    );
+  }
+
+  const provider = await buildProvider(effectiveIdentity);
   const costGuard = new CostGuard({
     statePath: stateFilePath(identity),
     dailyBudgetUsd: identity.budgetUsdPerDay,
-    pricer: defaultPricerForProvider(identity.llmProvider),
+    pricer: defaultPricerForProvider(effectiveIdentity.llmProvider),
   });
   const mesh = new HolomeshClient({
     apiBase: identity.meshApiBase,
