@@ -20,8 +20,7 @@
   "author": "brianonbased-dev",
   "license": "MIT",
   "dependencies": {
-    "@holoscript/engine": "workspace:^",
-    "@holoscript/r3f-renderer": "workspace:^"
+    "@holoscript/engine": "workspace:^"
   },
   "peerDependencies": {
     "@holoscript/core": "workspace:*"

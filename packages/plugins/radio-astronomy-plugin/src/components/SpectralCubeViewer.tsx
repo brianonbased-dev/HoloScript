@@ -13,9 +13,10 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import type { ColormapName } from '@holoscript/r3f-renderer';
 
 // ── Types ────────────────────────────────────────────────────────────────────
+
+export type ColormapName = 'jet' | 'viridis' | 'turbo' | 'inferno' | 'coolwarm';
 
 export interface SpectralCubeViewerProps {
   /** Parsed FITS data array (physical values after BSCALE/BZERO) */
