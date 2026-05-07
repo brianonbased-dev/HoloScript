@@ -25,10 +25,10 @@
     "@holoscript/framework": "workspace:*",
     "@holoscript/holomap": "workspace:*",
     "@types/node": "^24.10.1",
-    "@vitest/coverage-v8": "^4.1.0",
+    "@vitest/coverage-v8": "^4.1.5",
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.5"
   },
   "keywords": [
     "holoscript",

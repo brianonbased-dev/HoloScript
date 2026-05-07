@@ -67,11 +67,11 @@
     "@playwright/test": "^1.58.2",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.11.6",
-    "@vitest/coverage-v8": "^4.1.0",
+    "@vitest/coverage-v8": "^4.1.5",
     "tsup": "^8.0.1",
     "tsx": "^4.19.4",
     "typescript": "~5.9.3",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.5"
   },
   "peerDependencies": {
     "@holoscript/core": "workspace:^"

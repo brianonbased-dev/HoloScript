@@ -666,7 +666,7 @@
     "@vscode/vsce": "^2.32.0",
     "esbuild": "^0.27.3",
     "typescript": "~5.9.3",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.5"
   },
   "dependencies": {
     "@holoscript/formatter": "workspace:*",

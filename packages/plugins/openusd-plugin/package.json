@@ -9,7 +9,14 @@
     "build": "tsup src/index.ts --format esm,cjs --dts",
     "test": "vitest run"
   },
-  "keywords": ["holoscript", "plugin", "openusd", "usda", "interop", "paper-12"],
+  "keywords": [
+    "holoscript",
+    "plugin",
+    "openusd",
+    "usda",
+    "interop",
+    "paper-12"
+  ],
   "author": "brianonbased-dev",
   "license": "MIT"
 }

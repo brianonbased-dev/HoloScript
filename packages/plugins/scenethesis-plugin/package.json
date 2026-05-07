@@ -9,7 +9,13 @@
     "build": "tsup src/index.ts --format esm,cjs --dts",
     "test": "vitest run"
   },
-  "keywords": ["holoscript", "plugin", "scenethesis", "scene-synthesis", "universal-ir"],
+  "keywords": [
+    "holoscript",
+    "plugin",
+    "scenethesis",
+    "scene-synthesis",
+    "universal-ir"
+  ],
   "author": "brianonbased-dev",
   "license": "MIT"
 }

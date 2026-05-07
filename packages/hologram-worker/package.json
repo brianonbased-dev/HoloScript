@@ -29,7 +29,7 @@
     "tsup": "^8.3.5",
     "tsx": "^4.19.4",
     "typescript": "^5.7.2",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.5"
   },
   "engines": {
     "node": ">=20"

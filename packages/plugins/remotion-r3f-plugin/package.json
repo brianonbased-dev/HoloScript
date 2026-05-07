@@ -5,8 +5,19 @@
   "description": "Remotion + react-three-fiber live-capture bridge stub — binds Remotion compositions + R3F capture to .holo cinematic traits.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "scripts": { "build": "tsup src/index.ts --format esm,cjs --dts", "test": "vitest run" },
-  "keywords": ["holoscript", "plugin", "remotion", "r3f", "capture", "cinematic", "universal-ir"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "holoscript",
+    "plugin",
+    "remotion",
+    "r3f",
+    "capture",
+    "cinematic",
+    "universal-ir"
+  ],
   "author": "brianonbased-dev",
   "license": "MIT"
 }

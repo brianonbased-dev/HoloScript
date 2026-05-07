@@ -9,7 +9,14 @@
     "build": "tsup src/index.ts --format esm,cjs --dts",
     "test": "vitest run"
   },
-  "keywords": ["holoscript", "plugin", "urdf", "robotics", "urdformer", "universal-ir"],
+  "keywords": [
+    "holoscript",
+    "plugin",
+    "urdf",
+    "robotics",
+    "urdformer",
+    "universal-ir"
+  ],
   "author": "brianonbased-dev",
   "license": "MIT"
 }

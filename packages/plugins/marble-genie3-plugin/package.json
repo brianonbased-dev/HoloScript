@@ -5,8 +5,18 @@
   "description": "Marble / Genie3 world-model bridge stub — imports latent world-model outputs into .holo composition traits.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "scripts": { "build": "tsup src/index.ts --format esm,cjs --dts", "test": "vitest run" },
-  "keywords": ["holoscript", "plugin", "marble", "genie3", "world-model", "universal-ir"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "holoscript",
+    "plugin",
+    "marble",
+    "genie3",
+    "world-model",
+    "universal-ir"
+  ],
   "author": "brianonbased-dev",
   "license": "MIT"
 }

@@ -26,13 +26,13 @@
   "author": "brianonbased-dev",
   "license": "MIT",
   "dependencies": {
-    "@holoscript/engine": "workspace:^"
+    "@holoscript/engine": "workspace:*"
   },
   "peerDependencies": {
     "@holoscript/core": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.0.0",
-    "vitest": "^1.0.0"
+    "vitest": "^4.1.5"
   }
 }

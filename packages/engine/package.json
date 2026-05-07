@@ -836,10 +836,10 @@
     "@types/node": "^24.10.1",
     "@types/three": "^0.170.0",
     "@webgpu/types": ">=0.1.40",
-    "@vitest/coverage-v8": "^4.1.0",
+    "@vitest/coverage-v8": "^4.1.5",
     "@playwright/test": "^1.58.2",
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.5"
   }
 }

@@ -21,6 +21,6 @@
     "node": ">=18.0.0"
   },
   "devDependencies": {
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.5"
   }
 }
