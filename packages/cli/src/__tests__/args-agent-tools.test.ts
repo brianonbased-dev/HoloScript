@@ -16,4 +16,12 @@ describe('agent tooling commands', () => {
     expect(opts.input).toBe('src/cli.ts');
     expect(opts.queryDir).toBe('packages/cli/src');
   });
+
+  it('parses impact as an impact-analysis alias', () => {
+    const opts = parseArgs(['impact', 'src/cli.ts', '--dir', 'packages/cli/src']);
+
+    expect(opts.command).toBe('impact');
+    expect(opts.input).toBe('src/cli.ts');
+    expect(opts.queryDir).toBe('packages/cli/src');
+  });
 });

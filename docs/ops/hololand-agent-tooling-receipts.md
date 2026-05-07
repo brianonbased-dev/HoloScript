@@ -7,6 +7,8 @@ Board task: `task_1778186605462_yrbd`
 
 - Root `pnpm exec holoscript` now resolves the workspace CLI before the global npm binary by declaring `@holoscript/cli` at the repo root.
 - The CLI now exposes explicit `graph-status` and `impact-analysis` commands backed by `@holoscript/absorb-service/mcp`.
+- The shorter `impact` command is accepted as an alias for `impact-analysis`.
+- Light commands no longer import core/runtime/smart-asset modules before dispatch, so `help`, `graph-status`, and `impact` can start without requiring unrelated optional runtime dist files.
 - `suggest` and `generate` use `getDefaultAIAdapter` from `@holoscript/framework/ai`, the canonical export, instead of the stale `@holoscript/core` path.
 
 ## Command Receipts
@@ -21,10 +23,11 @@ Board task: `task_1778186605462_yrbd`
 | Validate | `pnpm exec holoscript validate examples\lotus-flower\garden.holo` | Validation passed with 2 non-fatal warnings. |
 | Compile | `pnpm exec holoscript compile examples\lotus-flower\garden.holo --target threejs -o $env:TEMP\holoscript-cli-receipt-garden.js` | Compilation successful; wrote a 16005-character Three.js output file. |
 | Impact analysis | `pnpm exec holoscript impact-analysis "args.ts" --dir packages\cli\src --json` | Absorbed 104 TypeScript files, 2257 symbols, 11270 calls; impact affected 1 file. |
+| Impact alias | `pnpm exec holoscript impact "args.ts" --dir packages\cli\src --json` | Same route as `impact-analysis`; accepted by parser and dispatch. |
 | Direct MCP | `node -e "import('./packages/absorb-service/dist/mcp/index.js').then(async m=>{const r=await m.handleCodebaseTool('holo_graph_status',{}); console.log(JSON.stringify({graphRAGReady:r.graphRAGReady, fresh:r.diskCache?.fresh, totalFiles:r.diskCache?.stats?.totalFiles}, null, 2));}).finally(()=>process.exit(0))"` | Prints `graphRAGReady: true`, `fresh: true`, `totalFiles: 104`. |
 
 ## Validation
 
 - `pnpm install --prefer-offline --frozen-lockfile` passed.
 - Build chain passed for `@holoscript/llm-provider`, `@holoscript/config`, `@holoscript/framework`, `@holoscript/crdt-spatial`, `@holoscript/snn-webgpu`, `@holoscript/uaal`, `@holoscript/engine`, `@holoscript/mesh`, `@holoscript/core`, `@holoscript/absorb-service`, `@holoscript/platform`, `@holoscript/sdk`, and `@holoscript/cli`.
-- `pnpm --filter @holoscript/cli test -- src/__tests__/args-agent-tools.test.ts` passed with 2 tests.
+- `pnpm --filter @holoscript/cli test -- src/__tests__/args-agent-tools.test.ts` passed with 3 tests.

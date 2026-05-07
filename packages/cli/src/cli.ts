@@ -6,25 +6,14 @@
 // Load environment variables from .env file
 import 'dotenv/config';
 
-import { HoloScriptCLI } from './HoloScriptCLI';
-import { parseArgs, printHelp } from './args';
-import { startREPL } from './repl';
+import { getCliVersionString, parseArgs, printHelp } from './args';
 import { add, remove, list } from './packageManager';
 import { TRAITS, formatTrait, formatAllTraits, suggestTraits } from './traits';
 import { generateObject, listTemplates, getTemplate } from './generator';
-import { packAsset, unpackAsset, inspectAsset } from './smartAssets';
 import { WatchService } from './WatchService';
-import { generateTargetCode } from './build/generators';
 import { publishPackage } from './publish';
 import { hologramCommand } from './commands/hologram';
 import { quickstartCommand } from './commands/quickstart';
-import {
-  getVersionString,
-  getVersionInfo,
-  createHeadlessRuntime,
-  getProfile,
-  HEADLESS_PROFILE,
-} from '@holoscript/core';
 
 /**
  * Minimal structural shape for parse errors emitted by the various parsers
@@ -313,8 +302,22 @@ async function main(): Promise<void> {
     }
 
     case 'version': {
-      const info = getVersionInfo();
-      console.log(`HoloScript CLI v${getVersionString()}`);
+      let info: { version: string; gitCommitSha: string; buildTimestamp: string };
+      let versionString = getCliVersionString();
+
+      try {
+        const { getVersionInfo, getVersionString } = await import('@holoscript/core');
+        info = getVersionInfo();
+        versionString = getVersionString();
+      } catch {
+        info = {
+          version: versionString,
+          gitCommitSha: 'unknown',
+          buildTimestamp: 'unknown',
+        };
+      }
+
+      console.log(`HoloScript CLI v${versionString}`);
       if (options.verbose) {
         console.log(`  Version:    ${info.version}`);
         console.log(`  Git Commit: ${info.gitCommitSha}`);
@@ -327,12 +330,14 @@ async function main(): Promise<void> {
       break;
     }
 
-    case 'repl':
+    case 'repl': {
+      const { startREPL } = await import('./repl');
       await startREPL({
         verbose: options.verbose,
         showAST: options.showAST,
       });
       break;
+    }
 
     case 'watch':
       await watchFile(options);
@@ -376,6 +381,7 @@ async function main(): Promise<void> {
         process.exit(1);
       }
       try {
+        const { packAsset } = await import('./smartAssets');
         await packAsset(options.input, options.output, options.verbose);
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : String(e);
@@ -397,6 +403,7 @@ async function main(): Promise<void> {
         process.exit(1);
       }
       try {
+        const { unpackAsset } = await import('./smartAssets');
         await unpackAsset(options.input, options.output, options.verbose);
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : String(e);
@@ -418,6 +425,7 @@ async function main(): Promise<void> {
         process.exit(1);
       }
       try {
+        const { inspectAsset } = await import('./smartAssets');
         await inspectAsset(options.input, options.verbose);
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : String(e);
@@ -790,6 +798,8 @@ async function main(): Promise<void> {
         }
 
         // Get profile
+        const { createHeadlessRuntime, getProfile, HEADLESS_PROFILE } =
+          await import('@holoscript/core');
         const profileName = options.profile || 'headless';
         let profile;
         try {
@@ -1817,6 +1827,7 @@ async function main(): Promise<void> {
 
         console.log(`\x1b[2m[DEBUG] Starting code generation for target: ${target}...\x1b[0m`);
         // Generate output based on target
+        const { generateTargetCode } = await import('./build/generators');
         const outputCode = generateTargetCode(ast, target, options.verbose);
         console.log(`\x1b[2m[DEBUG] Code generation complete. Length: ${outputCode.length}\x1b[0m`);
 
@@ -1863,6 +1874,7 @@ async function main(): Promise<void> {
 
           try {
             const isHolo = options.input.endsWith('.holo');
+            const { generateTargetCode } = await import('./build/generators');
             let ast: any;
             let composition: any = null;
 
@@ -1961,6 +1973,7 @@ async function main(): Promise<void> {
         } else if (stats.isDirectory()) {
           console.log(`\x1b[36mBuilding asset from directory: ${options.input}\x1b[0m`);
           try {
+            const { packAsset } = await import('./smartAssets');
             await packAsset(options.input, options.output, options.verbose);
             console.log(
               `\x1b[32m✓ Packed asset to ${options.output || options.input + '.hsa'}\x1b[0m`
@@ -3315,12 +3328,13 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
       break;
     }
 
+    case 'impact':
     case 'impact-analysis': {
       const filesArg = options.input || options.impactFiles;
       if (!filesArg) {
         cliError('E001', 'No changed files specified.', {
           usage: 'holoscript impact-analysis <comma-separated-files> [--dir <scan-root>] [--json]',
-          hint: 'Paths are relative to --dir. Example: `holoscript impact-analysis src/cli.ts --dir packages/cli/src --json`.',
+          hint: 'Paths are relative to --dir. Example: `holoscript impact src/cli.ts --dir packages/cli/src --json`.',
         });
         process.exit(1);
       }
@@ -3944,6 +3958,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
     }
 
     default:
+      const { HoloScriptCLI } = await import('./HoloScriptCLI');
       const cli = new HoloScriptCLI(options);
       const exitCode = await cli.run();
       process.exit(exitCode);

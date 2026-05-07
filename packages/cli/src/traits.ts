@@ -828,11 +828,12 @@ export async function suggestTraits(description: string): Promise<TraitInfo[]> {
   const suggested: TraitInfo[] = [];
 
   // Try AI-assisted search if adapter available
-  const { getDefaultAIAdapter } = await import('@holoscript/framework/ai');
-  const adapter = getDefaultAIAdapter();
+  try {
+    const frameworkAiModule = '@holoscript/framework/ai';
+    const { getDefaultAIAdapter } = await import(frameworkAiModule);
+    const adapter = getDefaultAIAdapter();
 
-  if (adapter && adapter.getEmbeddings) {
-    try {
+    if (adapter && adapter.getEmbeddings) {
       const { SemanticSearchService } = await import('@holoscript/core');
       const traitList = Object.values(TRAITS);
       const searchService = new SemanticSearchService(adapter, traitList);
@@ -840,12 +841,12 @@ export async function suggestTraits(description: string): Promise<TraitInfo[]> {
       await searchService.initialize();
       const aiResults = await searchService.search(description, 5);
 
-      return aiResults.map((r) => r.item);
-    } catch (e) {
-      console.warn(
-        `\x1b[2m[AI Search Failed: ${(e as Error).message}. Falling back to keywords...]\x1b[0m`
-      );
+      return aiResults.map((r: { item: TraitInfo }) => r.item);
     }
+  } catch (e) {
+    console.warn(
+      `\x1b[2m[AI Search Failed: ${(e as Error).message}. Falling back to keywords...]\x1b[0m`
+    );
   }
 
   // Keyword matching (Fallback)

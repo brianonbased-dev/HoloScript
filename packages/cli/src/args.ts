@@ -2,7 +2,24 @@
  * CLI argument parsing
  */
 
-import { getVersionString } from '@holoscript/core';
+const CLI_VERSION_FALLBACK = '7.0.0';
+
+export function getCliVersionString(): string {
+  if (process.env.npm_package_name === '@holoscript/cli' && process.env.npm_package_version) {
+    return process.env.npm_package_version;
+  }
+
+  try {
+    if (typeof require === 'function') {
+      const manifest = require('../package.json') as { version?: string };
+      return manifest.version ?? process.env.npm_package_version ?? CLI_VERSION_FALLBACK;
+    }
+  } catch {
+    // Fall back to the package version baked into this CLI source.
+  }
+
+  return process.env.npm_package_version ?? CLI_VERSION_FALLBACK;
+}
 
 export type RuntimeProfileName = 'headless' | 'minimal' | 'standard' | 'vr';
 
@@ -53,6 +70,7 @@ export interface CLIOptions {
     | 'pdf'
     | 'absorb'
     | 'graph-status'
+    | 'impact'
     | 'impact-analysis'
     | 'query'
     | 'self-improve'
@@ -280,6 +298,7 @@ export function parseArgs(args: string[]): CLIOptions {
           'visualize',
           'absorb',
           'graph-status',
+          'impact',
           'impact-analysis',
           'query',
           'self-improve',
@@ -569,7 +588,7 @@ export function parseArgs(args: string[]): CLIOptions {
 
 export function printHelp(): void {
   console.log(`
-\x1b[36mHoloScript CLI v${getVersionString()}\x1b[0m
+\x1b[36mHoloScript CLI v${getCliVersionString()}\x1b[0m
 
 Usage: holoscript <command> [options] [input]
 
@@ -647,6 +666,7 @@ Usage: holoscript <command> [options] [input]
                     Use --since <ref> for git-scoped change analysis
                     Use --impact <files> for blast-radius queries
   graph-status      Print the local Absorb graph cache status
+  impact <files>    Alias for impact-analysis
   impact-analysis <files>
                     Run Absorb then report blast radius for comma-separated files
                     Use --dir <root> to set scan root (default: cwd)
@@ -827,6 +847,7 @@ Usage: holoscript <command> [options] [input]
   \x1b[2m# Self-Improvement\x1b[0m
   holoscript self-improve                     # Run 5 cycles (default)
   holoscript graph-status --json              # Machine-readable graph cache status
+  holoscript impact "src/cli.ts" --dir packages/cli/src --json
   holoscript impact-analysis "src/cli.ts" --dir packages/cli/src --json
   holoscript self-improve --cycles 10         # Run 10 improvement cycles
   holoscript self-improve --harvest --commit  # Harvest training data + auto-commit
