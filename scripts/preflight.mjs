@@ -11,6 +11,7 @@
  *   pnpm preflight --fix      # auto-fix lockfile + prefixed imports
  *   pnpm preflight --json     # structured output for /scan skill
  *   pnpm preflight --check=lockfile,imports  # specific checks only
+ *   pnpm preflight --check=dependency_audit  # bounded pnpm audit JSON/SKIP
  *   pnpm preflight --check=typescript,ts    # TypeScript only (changed packages, max 8)
  */
 
@@ -136,6 +137,82 @@ function checkLockfile() {
       record('lockfile', 'fail', msg, details, duration);
     }
   }
+}
+
+// ── Check 1b: Dependency Audit ─────────────────────────────────────────────
+
+function parseJsonFromOutput(output) {
+  const trimmed = output.trim();
+  if (!trimmed) return null;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const first = trimmed.indexOf('{');
+    const last = trimmed.lastIndexOf('}');
+    if (first >= 0 && last > first) {
+      try {
+        return JSON.parse(trimmed.slice(first, last + 1));
+      } catch { /* fall through */ }
+    }
+  }
+  return null;
+}
+
+function checkDependencyAudit() {
+  const start = Date.now();
+  const script = join(__dirname, 'bounded-pnpm-audit.mjs');
+  const result = spawnSync(process.execPath, [script, '--timeout-ms=25000', '--cache-ttl-ms=86400000'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    timeout: 30_000,
+    stdio: 'pipe',
+  });
+  const duration = Date.now() - start;
+  const combined = `${result.stdout || ''}\n${result.stderr || ''}`.trim();
+  const audit = parseJsonFromOutput(combined);
+
+  if (!audit) {
+    record(
+      'dependency_audit',
+      result.status === 0 ? 'warn' : 'fail',
+      'bounded pnpm audit did not emit parseable JSON',
+      [{ file: script, reason: combined.slice(0, 1200) || `exit ${result.status}` }],
+      duration
+    );
+    return;
+  }
+
+  const reason = audit.reason ? ` (${audit.reason})` : '';
+  if (audit.status === 'skip') {
+    record('dependency_audit', 'skip', `pnpm audit skipped${reason}`, [{ file: audit.command, reason: audit.reason }], duration);
+    return;
+  }
+
+  if (audit.status === 'cached') {
+    const ageSeconds = Math.round((audit.cache_age_ms || 0) / 1000);
+    const status = audit.cached_status === 'fail' ? 'fail' : 'pass';
+    record(
+      'dependency_audit',
+      status,
+      `Used cached pnpm audit (${audit.cached_status}, ${ageSeconds}s old)${reason}`,
+      audit.summary ? [{ file: audit.command, reason: JSON.stringify(audit.summary.vulnerabilities || audit.summary) }] : [],
+      duration
+    );
+    return;
+  }
+
+  if (audit.status === 'pass') {
+    record('dependency_audit', 'pass', 'pnpm audit found no moderate+ vulnerabilities', [], duration);
+    return;
+  }
+
+  record(
+    'dependency_audit',
+    'fail',
+    'pnpm audit found moderate+ vulnerabilities',
+    audit.summary ? [{ file: audit.command, reason: JSON.stringify(audit.summary.vulnerabilities || audit.summary) }] : [],
+    duration
+  );
 }
 
 // ── Check 2: Prefixed Type Imports ──────────────────────────────────────────
@@ -586,6 +663,7 @@ function checkPackageSrcEmitAllowlist() {
 }
 
 if (shouldRun('lockfile')) checkLockfile();
+if (FLAGS.full || (FLAGS.checks && FLAGS.checks.some(c => ['dependency_audit', 'audit', 'deps'].includes(c)))) checkDependencyAudit();
 if (shouldRun('package_src_emit') || shouldRun('src_emit')) checkPackageSrcEmitAllowlist();
 if (shouldRun('imports') || shouldRun('prefixed_imports')) checkPrefixedImports();
 if (shouldRun('loaders') || shouldRun('loader_imports')) checkLoaderImports();

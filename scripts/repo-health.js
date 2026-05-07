@@ -22,9 +22,52 @@ function run(label, command, commandArgs) {
   };
 }
 
+function parseJsonFromOutput(output) {
+  const trimmed = output.trim();
+  if (!trimmed) return null;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const first = trimmed.indexOf('{');
+    const last = trimmed.lastIndexOf('}');
+    if (first >= 0 && last > first) {
+      try {
+        return JSON.parse(trimmed.slice(first, last + 1));
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+function runDependencyAudit() {
+  const result = run('Dependency audit', 'node', ['scripts/bounded-pnpm-audit.mjs', '--timeout-ms=25000', '--cache-ttl-ms=86400000']);
+  const audit = parseJsonFromOutput(result.out);
+  if (!audit) return result;
+
+  const state = audit.status === 'cached'
+    ? `CACHED/${String(audit.cached_status || 'unknown').toUpperCase()}`
+    : String(audit.status || 'unknown').toUpperCase();
+  const ok = audit.status === 'skip' || audit.status === 'pass' || (audit.status === 'cached' && audit.cached_status !== 'fail');
+  const detail = audit.reason
+    ? audit.reason
+    : audit.summary?.vulnerabilities
+      ? JSON.stringify(audit.summary.vulnerabilities)
+      : '';
+
+  return {
+    ...result,
+    ok,
+    state,
+    detail,
+  };
+}
+
 const checks = [
   () => run('Version policy', 'node', ['scripts/check-version-policy.js', '--strict']),
   () => run('Workspace protocol deps', 'node', ['scripts/check-workspace-deps.js']),
+  () => runDependencyAudit(),
   () => run('Architecture coupling', 'node', ['scripts/check-architecture-coupling.js']),
   () => run('Hotspot test coverage', 'node', ['scripts/check-hotspot-test-coverage.js']),
   () => run('Scientific Verification (8-Paper Suite)', 'pnpm', ['bench:ci']),
@@ -50,7 +93,9 @@ const failed = results.filter((r) => !r.ok);
 
 console.log('Repository Health Summary');
 for (const r of results) {
-  console.log(`- ${r.label}: ${r.ok ? 'PASS' : 'FAIL'} (exit ${r.code})`);
+  const status = r.state || (r.ok ? 'PASS' : 'FAIL');
+  const detail = r.detail ? ` - ${r.detail}` : '';
+  console.log(`- ${r.label}: ${status} (exit ${r.code})${detail}`);
 }
 
 if (process.env.GITHUB_STEP_SUMMARY) {
@@ -60,7 +105,7 @@ if (process.env.GITHUB_STEP_SUMMARY) {
   lines.push('| Check | Status | Exit |');
   lines.push('|---|---|---|');
   for (const r of results) {
-    lines.push(`| ${r.label} | ${r.ok ? 'PASS' : 'FAIL'} | ${r.code} |`);
+    lines.push(`| ${r.label} | ${r.state || (r.ok ? 'PASS' : 'FAIL')} | ${r.code} |`);
   }
   lines.push('');
   if (failed.length > 0) {
