@@ -6,7 +6,9 @@
   "license": "MIT",
   "workspaces": [
     "packages/*",
-    "services/*"
+    "packages/plugins/*",
+    "services/*",
+    "benchmarks/*"
   ],
   "scripts": {
     "build": "pnpm --filter @holoscript/core run build && pnpm -r --workspace-concurrency=1 --filter=!@holoscript/core --filter=!@holoscript/tauri-app run --if-present build",
