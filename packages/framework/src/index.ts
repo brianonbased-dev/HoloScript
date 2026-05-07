@@ -318,6 +318,33 @@ export {
   deleteTask,
 } from './board';
 
+// HoloLand receipt model (task_1778186605462_4z0o)
+export {
+  HARDWARE_RECEIPT_KINDS,
+  AGENT_ACTION_KINDS,
+  type HardwareReceiptKind,
+  type HardwareReceipt,
+  type ReplayInput,
+  type ReplayOutcome,
+  type AgentActionKind,
+  type AgentActionReceipt,
+  type ValidationReceipt,
+  validateHardwareReceipt,
+  validateReplayInput,
+  validateReplayOutcome,
+  validateAgentActionReceipt,
+  validateValidationReceipt,
+  isSupportedHardwareReceiptKind,
+  isSupportedAgentActionKind,
+  isSupportedReplayOutcomeStatus,
+  isSupportedValidationStatus,
+  cloneHardwareReceipt,
+  cloneReplayInput,
+  cloneReplayOutcome,
+  cloneAgentActionReceipt,
+  cloneValidationReceipt,
+} from './board';
+
 export {
   BOARD_WEBHOOK_EVENT_TYPES,
   BOARD_WEBHOOK_ORDERING_GUARANTEE,

@@ -152,6 +152,33 @@ export {
 } from './board-ops';
 
 export {
+  // HoloLand receipt types (task_1778186605462_4z0o)
+  HARDWARE_RECEIPT_KINDS,
+  AGENT_ACTION_KINDS,
+  type HardwareReceiptKind,
+  type HardwareReceipt,
+  type ReplayInput,
+  type ReplayOutcome,
+  type AgentActionKind,
+  type AgentActionReceipt,
+  type ValidationReceipt,
+  validateHardwareReceipt,
+  validateReplayInput,
+  validateReplayOutcome,
+  validateAgentActionReceipt,
+  validateValidationReceipt,
+  isSupportedHardwareReceiptKind,
+  isSupportedAgentActionKind,
+  isSupportedReplayOutcomeStatus,
+  isSupportedValidationStatus,
+  cloneHardwareReceipt,
+  cloneReplayInput,
+  cloneReplayOutcome,
+  cloneAgentActionReceipt,
+  cloneValidationReceipt,
+} from './hololand-receipts';
+
+export {
   BOARD_WEBHOOK_EVENT_TYPES,
   BOARD_WEBHOOK_ORDERING_GUARANTEE,
   BOARD_WEBHOOK_FETCH_BY_ID_BEHAVIOR,
