@@ -37,9 +37,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "../studio/public/wasm/**"
-    ],
+    "resources": [],
     "windows": {
       "webviewInstallMode": {
         "type": "downloadBootstrapper"

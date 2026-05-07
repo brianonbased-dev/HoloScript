@@ -313,3 +313,124 @@ pub fn list_projects(directory: String) -> Result<String, String> {
 
     serde_json::to_string(&projects).map_err(|e| e.to_string())
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Tests
+// ═══════════════════════════════════════════════════════════════════
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn test_save_and_load_project() {
+        let temp_dir = std::env::temp_dir();
+        let path = temp_dir.join("holoscript_test_project.holo");
+        let path_str = path.to_str().unwrap().to_string();
+
+        // Clean up if a previous run left it behind
+        let _ = fs::remove_file(&path);
+
+        let content = r#"{"name":"Test","version":"1.0.0"}"#;
+        let save_result = save_project(path_str.clone(), content.to_string());
+        assert!(save_result.is_ok(), "save_project failed: {:?}", save_result.err());
+
+        let load_result = load_project(path_str.clone());
+        assert!(load_result.is_ok(), "load_project failed: {:?}", load_result.err());
+        assert_eq!(load_result.unwrap(), content);
+
+        fs::remove_file(&path).expect("cleanup temp file");
+    }
+
+    #[test]
+    fn test_save_project_creates_parent_directories() {
+        let temp_dir = std::env::temp_dir();
+        let nested = temp_dir.join("holoscript_test_nested").join("deep").join("file.holo");
+        let path_str = nested.to_str().unwrap().to_string();
+
+        // Ensure parent does not exist
+        let _ = fs::remove_dir_all(temp_dir.join("holoscript_test_nested"));
+
+        let result = save_project(path_str.clone(), "{}".to_string());
+        assert!(result.is_ok(), "save_project with nested dirs failed: {:?}", result.err());
+        assert!(nested.exists());
+
+        fs::remove_dir_all(temp_dir.join("holoscript_test_nested")).expect("cleanup nested dirs");
+    }
+
+    #[test]
+    fn test_list_projects_filters_extensions() {
+        let temp_dir = std::env::temp_dir().join("holoscript_test_list");
+        let _ = fs::remove_dir_all(&temp_dir);
+        fs::create_dir_all(&temp_dir).unwrap();
+
+        fs::write(temp_dir.join("a.holo"), "{}").unwrap();
+        fs::write(temp_dir.join("b.hsplus"), "{}").unwrap();
+        fs::write(temp_dir.join("c.txt"), "{}").unwrap();
+        fs::write(temp_dir.join("d.rs"), "{}").unwrap();
+
+        let result = list_projects(temp_dir.to_str().unwrap().to_string());
+        assert!(result.is_ok(), "list_projects failed: {:?}", result.err());
+
+        let projects: Vec<ProjectMeta> = serde_json::from_str(&result.unwrap()).unwrap();
+        assert_eq!(projects.len(), 2, "should only list .holo and .hsplus");
+        let names: Vec<String> = projects.iter().map(|p| p.name.clone()).collect();
+        assert!(names.contains(&"a.holo".to_string()));
+        assert!(names.contains(&"b.hsplus".to_string()));
+
+        fs::remove_dir_all(&temp_dir).expect("cleanup list dir");
+    }
+
+    #[test]
+    fn test_list_projects_sorts_by_modified() {
+        let temp_dir = std::env::temp_dir().join("holoscript_test_sort");
+        let _ = fs::remove_dir_all(&temp_dir);
+        fs::create_dir_all(&temp_dir).unwrap();
+
+        fs::write(temp_dir.join("old.holo"), "{}").unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        fs::write(temp_dir.join("new.holo"), "{}").unwrap();
+
+        let result = list_projects(temp_dir.to_str().unwrap().to_string());
+        assert!(result.is_ok());
+
+        let projects: Vec<ProjectMeta> = serde_json::from_str(&result.unwrap()).unwrap();
+        assert_eq!(projects.len(), 2);
+        // Most recent first
+        assert_eq!(projects[0].name, "new.holo");
+        assert_eq!(projects[1].name, "old.holo");
+
+        fs::remove_dir_all(&temp_dir).expect("cleanup sort dir");
+    }
+
+    #[test]
+    fn test_list_projects_not_a_directory() {
+        let temp_file = std::env::temp_dir().join("holoscript_not_a_dir.txt");
+        let _ = fs::remove_file(&temp_file);
+        fs::write(&temp_file, "i am a file").unwrap();
+
+        let result = list_projects(temp_file.to_str().unwrap().to_string());
+        assert!(result.is_err(), "should error when path is not a directory");
+
+        fs::remove_file(&temp_file).expect("cleanup temp file");
+    }
+
+    #[test]
+    fn test_load_project_missing_file() {
+        let bad_path = std::env::temp_dir()
+            .join("holoscript_missing_999999.holo")
+            .to_str()
+            .unwrap()
+            .to_string();
+
+        let result = load_project(bad_path);
+        assert!(result.is_err(), "should error for missing file");
+    }
+
+    #[test]
+    fn test_get_app_version() {
+        let version = get_app_version();
+        assert_eq!(version, env!("CARGO_PKG_VERSION"));
+    }
+}

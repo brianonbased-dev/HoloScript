@@ -18,7 +18,7 @@ pub struct GpuInfo {
 ///
 /// Returns the first suitable adapter found, or a fallback indicating no GPU.
 pub fn detect_gpu() -> GpuInfo {
-    let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
         backends: wgpu::Backends::all(),
         ..Default::default()
     });
