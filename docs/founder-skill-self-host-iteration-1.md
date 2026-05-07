@@ -37,7 +37,7 @@ The emitted file has a valid YAML frontmatter (`name`, `description`, `allowed-t
 
 ## Iteration 1 gaps (named, with close targets)
 
-### G-1: Parser reserves `action` as a keyword
+### G-1: Parser reserves `action` as a keyword — CLOSED 2026-05-07
 
 `@escalation(action: "...")` fails parse with `Expected value, got ACTION`. Verified 2026-05-06 on commit `7b25869b2` against `compositions/founder-core.hs:200`. Other reserved keywords blocking trait config keys: `if`, `for` (and likely others — full enumeration deferred).
 
@@ -108,4 +108,4 @@ $ node scripts/compile-founder-skill.mjs
 [compile-founder-skill] Round-trip proof complete.
 ```
 
-Emitted file confirmed valid Claude Code skill format: starts with `---` YAML frontmatter, has `name: founder` + `description: "..."` + `allowed-tools: Bash, Read, Write, Edit, Grep, Glob, WebFetch`, closes frontmatter with `---`, then body header `# founder` + role/domain/surface blockquote + section structure. ContextCompiler tests at 70/70 pass; LLMProviderCapabilitiesCompiler at 33/33 pass — no regression.
+Emitted file confirmed valid Claude Code skill format: starts with `---` YAML frontmatter, has `name: founder` + `description: "..."` + `allowed-tools: Bash, Read, Write, Edit, Grep, Glob, WebFetch`, closes frontmatter with `---`, then body header `# founder` + role/domain/surface blockquote + section structure. ContextCompiler tests at 70/70 pass; `pnpm --filter @holoscript/core build` passes with existing bundle export-shape warnings only.
