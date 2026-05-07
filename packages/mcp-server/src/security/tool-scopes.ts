@@ -164,6 +164,8 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   // === HoloMesh (spatial mesh, A2A discovery) ===
   holomesh_status: ['tools:read'],
   holomesh_discover: ['tools:read'],
+  holomesh_publish_tool: ['tools:write'],
+  holomesh_invoke_tool: ['tools:write'],
   holomesh_gossip: ['tools:write', 'tools:admin'],
   holomesh_contribute: ['tools:write'],
   holomesh_query: ['tools:read'],
@@ -243,6 +245,8 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   // HoloMesh: spatial networking
   holomesh_status: 'low',
   holomesh_discover: 'low',
+  holomesh_publish_tool: 'medium',
+  holomesh_invoke_tool: 'high',
   holomesh_query: 'low',
   holomesh_subscribe: 'low',
   holomesh_contribute: 'medium',

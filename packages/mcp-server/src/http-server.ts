@@ -610,7 +610,7 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
     // returned a HologramMcpResponse, surface the typed channel so REST/MCP
     // clients can dispatch on content_type without re-parsing JSON.
     if (!isError && isHologramMcpResponse(result)) {
-      return wrapHologramMcpEnvelope(result);
+      return wrapHologramMcpEnvelope(result) as unknown as Record<string, unknown>;
     }
 
     return {

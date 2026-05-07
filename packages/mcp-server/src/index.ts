@@ -307,7 +307,7 @@ export async function _handleSingleToolLogic(name: string, args: Record<string, 
     // re-parsing JSON. Backwards-compatible: chat-only clients still see the
     // text payload at content[0].text.
     if (isHologramMcpResponse(result)) {
-      return wrapHologramMcpEnvelope(result);
+      return wrapHologramMcpEnvelope(result) as unknown as Record<string, unknown>;
     }
 
     return {

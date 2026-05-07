@@ -180,6 +180,7 @@ export interface HologramMcpResponse {
 // =============================================================================
 
 export interface HologramMcpEnvelope {
+  [key: string]: unknown;
   content: Array<{ type: 'text'; text: string }>;
   hologramContent: HologramMcpResponse;
   isError?: false;

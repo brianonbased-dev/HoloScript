@@ -1,7 +1,7 @@
 /**
  * HoloMesh MCP tool definitions and handlers.
  *
- * 8 tools for the decentralized knowledge exchange mesh:
+ * Tools for the decentralized knowledge exchange mesh:
  * - holomesh_discover: Find agents by traits, workspace, or reputation
  * - holomesh_contribute: Share a W/P/G entry with provenance
  * - holomesh_query: Semantic search across all workspaces
@@ -23,6 +23,19 @@ import type {
 import { DEFAULT_MESH_CONFIG } from './types';
 import { HoloMeshWorldState } from './crdt-sync';
 import { HoloMeshDiscovery } from './discovery';
+import {
+  buildMeshToolManifest,
+  createMeshToolInvocationHop,
+  discoverMeshTools,
+  invokePublishedMeshTool,
+  meshToolManifestFromKnowledgeContent,
+  meshToolManifestToKnowledgeContent,
+  publishMeshToolManifest,
+  scoreMeshToolManifest,
+  verifyMeshToolInvocationChain,
+  type MeshToolInvocationHop,
+  type MeshToolManifest,
+} from './mesh-tool-registry';
 import { z } from 'zod';
 import { messagingTools, handleMessagingTool } from './messaging';
 import { notificationTools, handleNotificationTool } from './notifications';
@@ -146,6 +159,92 @@ export const holomeshTools: Tool[] = [
     },
   },
   {
+    name: 'holomesh_publish_tool',
+    description:
+      'Publish a local MCP tool manifest into the HoloMesh tool registry as a capability-tagged mesh node. Returns: meshToolId, manifest hash, published manifest, and publish attestation.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tool_name: {
+          type: 'string',
+          description: 'Existing MCP tool name to publish as a mesh tool node.',
+        },
+        capability_tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Capability tags used for mesh-native discovery and invocation routing.',
+        },
+        publisher_agent_id: {
+          type: 'string',
+          description: 'Optional publishing agent identity. Defaults to the configured HoloMesh agent.',
+        },
+        endpoint: {
+          type: 'object',
+          description:
+            'Optional endpoint hint. Defaults to local same-server dispatch. For remote use {transport:"mcp-http",url:"https://...",tool_name:"..."}',
+        },
+        allow_transitive_invocation: {
+          type: 'boolean',
+          description:
+            'Explicit opt-in for holomesh_invoke_tool. Defaults false so publish-only manifests are not executable.',
+        },
+        input_schema: {
+          type: 'object',
+          description: 'Optional JSON schema for the target tool arguments.',
+        },
+        capabilities: {
+          type: 'object',
+          description: 'Optional provider Capabilities manifest; true fields become capability tags.',
+        },
+      },
+      required: ['tool_name'],
+    },
+  },
+  {
+    name: 'holomesh_invoke_tool',
+    description:
+      'Resolve a mesh-published MCP tool by capability query or meshToolId, invoke it, and append a verified provenance hop for transitive A->B->C tool calls. Returns: routed tool, result, and attestation chain.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        capability_query: {
+          type: 'string',
+          description: 'Capability phrase or tag query used to select the best mesh-published tool.',
+        },
+        mesh_tool_id: {
+          type: 'string',
+          description: 'Optional exact mesh tool id. Overrides capability_query.',
+        },
+        tool_name: {
+          type: 'string',
+          description: 'Optional exact published MCP tool name. Used when mesh_tool_id is not supplied.',
+        },
+        args: {
+          type: 'object',
+          description: 'Arguments forwarded to the selected MCP tool.',
+        },
+        provenance_chain: {
+          type: 'array',
+          description: 'Existing provenance hops from an upstream mesh invocation; verified before appending.',
+          items: { type: 'object' },
+        },
+        caller_agent_id: {
+          type: 'string',
+          description: 'Optional caller identity for the appended provenance hop.',
+        },
+        dry_run: {
+          type: 'boolean',
+          description: 'Return the selected route and attestation without invoking the target tool.',
+        },
+        allow_high_risk: {
+          type: 'boolean',
+          description: 'Required to execute high/critical risk target tools.',
+        },
+      },
+      required: [],
+    },
+  },
+  {
     name: 'holomesh_publish_insight',
     description: 'Publish a social insight (thought) into the spatial HoloMesh feed. The thought is converted into a physical HoloScript AST object that other agents can interact with. NEXT-GEN VISUALS: Append "@WoTThing" to spawn an IoT physical stream, "@TensorOp" for live SNN WebGPU rings, or "@ZKPrivate" for holographic cryptographic validation shields natively in the spatial viewer.',
     inputSchema: {
@@ -170,7 +269,8 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_discover',
-    description: 'Discover agents on the HoloMesh knowledge exchange network. Find peers by traits, workspace, or browse all connected agents.',
+    description:
+      'Discover agents and mesh-published MCP tools on the HoloMesh network. Agent peers are still filtered by traits; published tools can be queried by capability tags.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -182,6 +282,18 @@ export const holomeshTools: Tool[] = [
         limit: {
           type: 'number',
           description: 'Max results (default: 20)',
+        },
+        include_tools: {
+          type: 'boolean',
+          description: 'Include mesh-published MCP tool nodes in the response. Enabled automatically when capability_query is set.',
+        },
+        capability_query: {
+          type: 'string',
+          description: 'Capability query for mesh-published MCP tools, e.g. "render hologram" or "parse".',
+        },
+        tool_limit: {
+          type: 'number',
+          description: 'Maximum mesh-published tools to return. Defaults to 10.',
         },
       },
     },
@@ -445,10 +557,22 @@ export async function handleHoloMeshTool(
   const teamAgentResult = await handleTeamAgentTool(name, args);
   if (teamAgentResult !== null) return teamAgentResult;
 
-  const sovereignResult = await handleSovereignTool(name, args, getOrCreateClient());
+  if (name === 'holomesh_publish_tool') {
+    return handlePublishTool(hasHoloMeshKey() ? getOrCreateClient() : null, args);
+  }
+  if (name === 'holomesh_invoke_tool') {
+    return handleInvokeTool(hasHoloMeshKey() ? getOrCreateClient() : null, args);
+  }
+
+  const sovereignResult = name.startsWith('holomesh_sovereign_')
+    ? await handleSovereignTool(name, args, hasHoloMeshKey() ? getOrCreateClient() : null)
+    : null;
   if (sovereignResult !== null) return sovereignResult;
 
   if (!hasHoloMeshKey()) {
+    if (name === 'holomesh_discover' && wantsToolDiscovery(args)) {
+      return handleLocalToolDiscovery(args);
+    }
     return {
       error: 'HOLOSCRIPT_API_KEY not configured. Set it as an environment variable to enable HoloMesh.',
     };
@@ -493,6 +617,196 @@ export async function handleHoloMeshTool(
 }
 
 // ── Individual Handlers ──
+
+function wantsToolDiscovery(args: Record<string, unknown>): boolean {
+  return args.include_tools === true || typeof args.capability_query === 'string';
+}
+
+function resolvePublisher(
+  client: HoloMeshOrchestratorClient | null,
+  args: Record<string, unknown>
+): { agentId: string; name: string } {
+  return {
+    agentId:
+      (args.publisher_agent_id as string | undefined) ||
+      client?.getAgentId() ||
+      process.env.HOLOMESH_AGENT_ID ||
+      'did:agent:local',
+    name:
+      (args.publisher_agent_name as string | undefined) ||
+      process.env.HOLOMESH_AGENT_NAME ||
+      DEFAULT_MESH_CONFIG.agentName,
+  };
+}
+
+function manifestKnowledgeEntry(
+  manifest: MeshToolManifest,
+  client: HoloMeshOrchestratorClient | null
+): MeshKnowledgeEntry {
+  return {
+    id: `P.mesh-tool.${manifest.id}`,
+    workspaceId: process.env.HOLOMESH_WORKSPACE || DEFAULT_MESH_CONFIG.workspace,
+    type: 'pattern',
+    content: meshToolManifestToKnowledgeContent(manifest),
+    provenanceHash: manifest.attestation.manifestHash,
+    authorId: client?.getAgentId() || manifest.attestation.publisherAgentId,
+    authorName: manifest.attestation.publisherName,
+    price: 0,
+    queryCount: 0,
+    reuseCount: 0,
+    domain: 'tools',
+    tags: ['mesh-tool', manifest.endpoint.toolName, ...manifest.capabilityTags],
+    confidence: 0.95,
+    createdAt: manifest.attestation.publishedAt,
+  };
+}
+
+async function handlePublishTool(
+  client: HoloMeshOrchestratorClient | null,
+  args: Record<string, unknown>
+) {
+  try {
+    if (client && !client.getAgentId()) {
+      await client.registerAgent(['@knowledge-exchange', '@tool-publisher']);
+    }
+
+    const manifest = publishMeshToolManifest(buildMeshToolManifest(args, resolvePublisher(client, args)));
+    let synced = 0;
+    let remoteError: string | undefined;
+
+    if (client) {
+      try {
+        synced = await client.contributeKnowledge([manifestKnowledgeEntry(manifest, client)]);
+      } catch (err: unknown) {
+        remoteError = err instanceof Error ? err.message : String(err);
+      }
+    }
+
+    return {
+      success: true,
+      meshToolId: manifest.id,
+      manifestHash: manifest.attestation.manifestHash,
+      synced,
+      manifest,
+      ...(remoteError ? { remoteError } : {}),
+    };
+  } catch (err: unknown) {
+    return { error: `Tool publish failed: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
+async function remoteToolManifests(
+  client: HoloMeshOrchestratorClient | null,
+  query: unknown,
+  limit: number
+): Promise<MeshToolManifest[]> {
+  if (!client) return [];
+  try {
+    const search = typeof query === 'string' && query.trim() ? query : 'mesh tool manifest';
+    const entries = await client.queryKnowledge(search, { limit: Math.max(limit, 10), type: 'pattern' });
+    return entries
+      .map((entry) => meshToolManifestFromKnowledgeContent(entry.content))
+      .filter((manifest): manifest is MeshToolManifest => manifest !== null);
+  } catch {
+    return [];
+  }
+}
+
+async function discoverPublishedTools(
+  client: HoloMeshOrchestratorClient | null,
+  args: Record<string, unknown>
+): Promise<MeshToolManifest[]> {
+  const query = args.capability_query || args.tool_name || args.mesh_tool_id;
+  const limit = (args.tool_limit as number | undefined) || (args.limit as number | undefined) || 10;
+  const merged = new Map<string, MeshToolManifest>();
+
+  for (const manifest of discoverMeshTools(query, limit)) {
+    merged.set(manifest.id, manifest);
+  }
+  for (const manifest of await remoteToolManifests(client, query, limit)) {
+    if (scoreMeshToolManifest(query, manifest) > 0) merged.set(manifest.id, manifest);
+  }
+
+  return Array.from(merged.values())
+    .sort((a, b) => scoreMeshToolManifest(query, b) - scoreMeshToolManifest(query, a))
+    .slice(0, limit);
+}
+
+async function handleLocalToolDiscovery(args: Record<string, unknown>) {
+  const tools = await discoverPublishedTools(null, args);
+  return {
+    success: true,
+    peers: [],
+    count: 0,
+    total: 0,
+    tools,
+    toolCount: tools.length,
+    localOnly: true,
+  };
+}
+
+async function handleInvokeTool(
+  client: HoloMeshOrchestratorClient | null,
+  args: Record<string, unknown>
+) {
+  try {
+    const query = args.mesh_tool_id || args.tool_name || args.capability_query;
+    if (!query) {
+      return { error: 'capability_query, mesh_tool_id, or tool_name is required' };
+    }
+
+    const candidates = await discoverPublishedTools(client, {
+      ...args,
+      capability_query: query,
+      tool_limit: args.limit || 10,
+    });
+    const selected = candidates.find((tool) => {
+      if (typeof args.mesh_tool_id === 'string') return tool.id === args.mesh_tool_id;
+      if (typeof args.tool_name === 'string') return tool.endpoint.toolName === args.tool_name;
+      return true;
+    });
+
+    if (!selected) {
+      return {
+        success: false,
+        error: 'No mesh-published tool matched the query',
+        query,
+      };
+    }
+
+    const result = await invokePublishedMeshTool(
+      selected,
+      (args.args as Record<string, unknown> | undefined) || {},
+      {
+        dryRun: args.dry_run === true,
+        allowHighRisk: args.allow_high_risk === true,
+      }
+    );
+    const priorChain = Array.isArray(args.provenance_chain) ? args.provenance_chain : [];
+    const hop = {
+      manifestId: selected.id,
+      manifestHash: selected.attestation.manifestHash,
+      invokedAt: new Date().toISOString(),
+      callerAgentId: args.caller_agent_id || process.env.HOLOMESH_AGENT_ID || 'did:agent:local',
+    };
+
+    return {
+      success: typeof result === 'object' && result !== null && 'success' in result
+        ? (result as { success?: boolean }).success
+        : true,
+      selectedTool: selected,
+      candidates: candidates.map((tool) => ({
+        id: tool.id,
+        name: tool.name,
+        score: scoreMeshToolManifest(query, tool),
+      })),
+      invocation: result,
+      provenance_chain: [...priorChain, hop],
+    };
+  } catch (err: unknown) {
+    return { error: `Tool invocation failed: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
 
 async function handleMoltbookCrosspost(args: Record<string, unknown>) {
   const parsed = moltbookCrosspostSchema.safeParse(args);
@@ -685,11 +999,16 @@ async function handleDiscover(client: HoloMeshOrchestratorClient, args: Record<s
     const peers = await client.discoverPeers({ traits });
     const limit = (args.limit as number) || 20;
 
+    const meshTools = wantsToolDiscovery(args) ? await discoverPublishedTools(client, args) : [];
+
     return {
       success: true,
       peers: peers.slice(0, limit),
       count: Math.min(peers.length, limit),
       total: peers.length,
+      ...(meshTools.length > 0 || wantsToolDiscovery(args)
+        ? { tools: meshTools, toolCount: meshTools.length }
+        : {}),
     };
   } catch (err: unknown) {
     return { error: `Discovery failed: ${err instanceof Error ? err.message : String(err)}` };
