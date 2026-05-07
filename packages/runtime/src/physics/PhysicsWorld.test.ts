@@ -312,6 +312,42 @@ describe('PhysicsWorld', () => {
     });
   });
 
+  describe('replicated transforms', () => {
+    let physics: PhysicsWorld;
+
+    beforeEach(() => {
+      physics = new PhysicsWorld({ gravity: [0, 0, 0] });
+    });
+
+    it('updates networked collidable bounds immediately when position is replicated', () => {
+      const mesh = createMockMesh({ x: 0, y: 0, z: 0 });
+      physics.addBody('remote-collider', mesh, 'box', 0);
+      physics.step(1 / 60);
+
+      expect(physics.raycast([9, 0, 0], [11, 0, 0])).toBeNull();
+
+      physics.setPosition('remote-collider', [10, 0, 0]);
+      const hit = physics.raycast([9, 0, 0], [11, 0, 0]);
+
+      expect(hit?.id).toBe('remote-collider');
+      expect(mesh.position.x).toBe(10);
+    });
+
+    it('updates body, mesh, and collision bounds atomically for replicated transforms', () => {
+      const mesh = createMockMesh({ x: 0, y: 0, z: 0 });
+      physics.addBody('remote-transform', mesh, 'box', 0);
+      physics.step(1 / 60);
+
+      physics.setTransform('remote-transform', [10, 0, 0], [0, 0, 0, 1]);
+      const body = physics.getBody('remote-transform');
+      const hit = physics.raycast([9, 0, 0], [11, 0, 0]);
+
+      expect(body?.position.x).toBe(10);
+      expect(mesh.position.x).toBe(10);
+      expect(hit?.id).toBe('remote-transform');
+    });
+  });
+
   describe('applyImpulse', () => {
     let physics: PhysicsWorld;
 

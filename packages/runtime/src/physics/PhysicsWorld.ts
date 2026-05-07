@@ -140,16 +140,7 @@ export class PhysicsWorld {
 
     // Sync visual meshes with physics bodies
     this.bodies.forEach((body, id) => {
-      const mesh = this.meshes.get(id);
-      if (mesh) {
-        mesh.position.set(body.position.x, body.position.y, body.position.z);
-        mesh.quaternion.set(
-          body.quaternion.x,
-          body.quaternion.y,
-          body.quaternion.z,
-          body.quaternion.w
-        );
-      }
+      this.syncMeshFromBody(id, body);
     });
   }
 
@@ -382,6 +373,8 @@ export class PhysicsWorld {
     const body = this.bodies.get(id);
     if (body) {
       body.position.set(position[0], position[1], position[2]);
+      this.updateBodyBounds(body);
+      this.syncMeshFromBody(id, body);
     }
   }
 
@@ -389,6 +382,40 @@ export class PhysicsWorld {
     const body = this.bodies.get(id);
     if (body) {
       body.quaternion.set(quaternion[0], quaternion[1], quaternion[2], quaternion[3]);
+      this.updateBodyBounds(body);
+      this.syncMeshFromBody(id, body);
+    }
+  }
+
+  setTransform(
+    id: string,
+    position: [number, number, number],
+    quaternion: [number, number, number, number]
+  ): void {
+    const body = this.bodies.get(id);
+    if (body) {
+      body.position.set(position[0], position[1], position[2]);
+      body.quaternion.set(quaternion[0], quaternion[1], quaternion[2], quaternion[3]);
+      this.updateBodyBounds(body);
+      this.syncMeshFromBody(id, body);
+    }
+  }
+
+  private updateBodyBounds(body: CANNON.Body): void {
+    body.aabbNeedsUpdate = true;
+    body.updateAABB();
+  }
+
+  private syncMeshFromBody(id: string, body: CANNON.Body): void {
+    const mesh = this.meshes.get(id);
+    if (mesh) {
+      mesh.position.set(body.position.x, body.position.y, body.position.z);
+      mesh.quaternion.set(
+        body.quaternion.x,
+        body.quaternion.y,
+        body.quaternion.z,
+        body.quaternion.w
+      );
     }
   }
 
