@@ -68,6 +68,108 @@ describe('TreeSitterManager', () => {
     });
   });
 
+  // ─── WASM fallback tests ────────────────────────────────────────────────
+  describe('WASM fallback', () => {
+    it('should initialize with WASM when native binding is unavailable', async () => {
+      const manager = new TreeSitterManager();
+      // Force native init to fail so the fallback chain is exercised
+      (manager as any).initializeNative = async () => false;
+
+      const result = await manager.initialize();
+      // WASM may or may not be available in this environment; either way
+      // the call should not throw and the backend should be consistent.
+      expect(typeof result).toBe('boolean');
+      expect(manager.isReady()).toBe(result);
+      if (result) {
+        expect(manager.getBackend()).toBe('wasm');
+      }
+    });
+
+    it('should parse documents through the WASM parser', async () => {
+      const manager = new TreeSitterManager();
+      (manager as any).initializeNative = async () => false;
+
+      const available = await manager.initialize();
+      if (!available) return; // Skip when WASM is also unavailable
+
+      const source = `composition "TestScene" {
+  object "Cube" {
+    position: [0, 1, 0]
+    scale: [1, 1, 1]
+  }
+}`;
+      const tree = manager.openDocument('file:///wasm-test.holo', source, 1);
+      expect(tree).not.toBeNull();
+      expect(tree!.rootNode).toBeDefined();
+      expect(tree!.rootNode.type).toBe('source_file');
+      expect(tree!.rootNode.hasError).toBe(false);
+    });
+
+    it('should perform incremental re-parse through WASM parser', async () => {
+      const manager = new TreeSitterManager();
+      (manager as any).initializeNative = async () => false;
+
+      const available = await manager.initialize();
+      if (!available) return;
+
+      const original = `composition "Scene" {
+  object "Cube" {
+    position: [0, 0, 0]
+  }
+}`;
+      manager.openDocument('file:///wasm-inc.holo', original, 1);
+
+      const updated = `composition "Scene" {
+  object "Cube" {
+    position: [0, 1, 0]
+  }
+}`;
+      const changes: ContentChange[] = [
+        {
+          range: {
+            start: { line: 2, character: 18 },
+            end: { line: 2, character: 19 },
+          },
+          rangeLength: 1,
+          text: '1',
+        },
+      ];
+
+      const newTree = manager.updateDocument('file:///wasm-inc.holo', updated, 2, changes);
+      expect(newTree).not.toBeNull();
+      expect(newTree!.rootNode.hasError).toBe(false);
+    });
+
+    it('should extract diagnostics through WASM parser', async () => {
+      const manager = new TreeSitterManager();
+      (manager as any).initializeNative = async () => false;
+
+      const available = await manager.initialize();
+      if (!available) return;
+
+      const source = `composition "Broken" {
+  object "Cube" {
+    position: [0, 1,
+  }
+}`;
+      manager.openDocument('file:///wasm-broken.holo', source, 1);
+      const diags = manager.extractDiagnostics('file:///wasm-broken.holo');
+      expect(diags.length).toBeGreaterThan(0);
+      expect(diags.some((d) => d.severity === 'error')).toBe(true);
+    });
+
+    it('should gracefully degrade when both native and WASM fail', async () => {
+      const manager = new TreeSitterManager();
+      (manager as any).initializeNative = async () => false;
+      (manager as any).initializeWasm = async () => false;
+
+      const result = await manager.initialize();
+      expect(result).toBe(false);
+      expect(manager.isReady()).toBe(false);
+      expect(manager.getBackend()).toBe('none');
+    });
+  });
+
   // The remaining tests are conditional on native bindings being available
   describe('with native bindings (integration)', () => {
     let available = false;
