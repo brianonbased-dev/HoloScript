@@ -46,7 +46,7 @@ A hybrid mathematical-sculpture composition:
    - Middle ring (radius 3.4, 13 petals) — Program 2 (4 known animation
      papers + 9 reserved capacity slots).
    - Outer ring (radius 4.8, 21 petals) — Program 3 (3 known core-IR papers
-     - 18 reserved slots, including Papers 17–25 + Longitudinal-RE-INTAKE).
+     + 18 reserved slots, including Papers 17–25 + Longitudinal-RE-INTAKE).
 3. **GPU pollen field** — single canopy-origin emitter using the real
    `GPUParticleTrait`. Stages a turbulence-driven amber pollen drift.
    When per-instance gating lands, this expands to 42 per-petal emitters.
