@@ -8,6 +8,7 @@
 import { Bench } from 'tinybench';
 import { runParserBench } from './suites/parser.bench.js';
 import { runCompilerBench } from './suites/compiler.bench.js';
+import { runCrossTargetBench } from './suites/cross-target.bench.js';
 import { runSyncBench } from './suites/sync.bench.js';
 import { runLspBench } from './suites/lsp.bench.js';
 import { runMcpBench } from './suites/mcp.bench.js';
@@ -165,6 +166,11 @@ async function main(): Promise<void> {
   if (!isJson) console.log('Running compiler benchmarks...');
   const compilerBench = await runCompilerBench();
   suites.push(extractResults(compilerBench, 'Compiler'));
+
+  // Run cross-target compilation benchmarks
+  if (!isJson) console.log('Running cross-target compilation benchmarks...');
+  const crossTargetBench = await runCrossTargetBench();
+  suites.push(extractResults(crossTargetBench, 'CrossTarget'));
 
   // Run sync benchmarks (Sprint 2)
   if (!isJson) console.log('Running sync benchmarks...');
