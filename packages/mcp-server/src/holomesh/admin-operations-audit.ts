@@ -89,8 +89,8 @@ export function recordAdminOperation(params: {
     action: params.action,
     actor: { ...params.actor },
     path: params.path,
-    before: params.before ?? undefined,
-    after: params.after ?? undefined,
+    before: params.before === undefined ? undefined : params.before,
+    after: params.after === undefined ? undefined : params.after,
     metadata: params.metadata,
   };
 

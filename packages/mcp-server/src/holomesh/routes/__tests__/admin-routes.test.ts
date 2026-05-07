@@ -2,7 +2,13 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type http from 'http';
 import { EventEmitter } from 'events';
 import { handleAdminRoutes } from '../admin-routes';
-import { keyRegistry, agentKeyStore, walletToAgent } from '../../state';
+import {
+  keyRegistry,
+  agentKeyStore,
+  walletToAgent,
+  scalingOverrideStore,
+  failoverStateStore,
+} from '../../state';
 import type { KeyRecord } from '../../types';
 import {
   issueLease,
@@ -10,7 +16,10 @@ import {
   _resetVaultLeaseRegistryForTests,
 } from '../../identity/vault-lease-registry';
 import { _resetAuditLogForTests } from '../../identity/audit-log';
-import { resetAdminOperationsAudit } from '../../admin-operations-audit';
+import {
+  resetAdminOperationsAudit,
+  queryAdminOperationsAudit,
+} from '../../admin-operations-audit';
 
 const FOUNDER_KEY = 'founder-admin-key';
 const FOUNDER_ID = 'agent-founder';
@@ -120,6 +129,8 @@ beforeEach(() => {
   keyRegistry.clear();
   agentKeyStore.clear();
   walletToAgent.clear();
+  scalingOverrideStore.clear();
+  failoverStateStore.clear();
   _resetVaultLeaseRegistryForTests();
   _resetAuditLogForTests();
   resetAdminOperationsAudit();
@@ -330,5 +341,124 @@ describe('Admin Routes — API Key Rotation Mechanism (P.009.01)', () => {
       expect(agent.api_key).toBeUndefined();
       expect(agent.key).toBeUndefined();
     }
+  });
+
+  // ── Manual Failover ──
+
+  it('POST /api/holomesh/admin/manual-failover sets primary backend and records audit', async () => {
+    const res = await callAdmin('POST', '/api/holomesh/admin/manual-failover', {
+      service_id: 'svc-web',
+      target_backend: 'backend-b',
+      reason: 'drill test',
+    });
+
+    expect(res._status).toBe(200);
+    expect(res._body.success).toBe(true);
+    expect(res._body.service_id).toBe('svc-web');
+    expect(res._body.primary_backend).toBe('backend-b');
+    expect(res._body.reason).toBe('drill test');
+
+    // Verify in-memory state
+    const state = failoverStateStore.get('svc-web');
+    expect(state).toBeDefined();
+    expect(state!.primaryBackend).toBe('backend-b');
+
+    // Verify audit entry
+    const audit = queryAdminOperationsAudit(50);
+    const entry = audit.entries.find((e) => e.action === 'manual_failover');
+    expect(entry).toBeDefined();
+    expect(entry!.after!.serviceId).toBe('svc-web');
+    expect(entry!.after!.primaryBackend).toBe('backend-b');
+  });
+
+  it('POST /api/holomesh/admin/manual-failover requires service_id and target_backend', async () => {
+    const res = await callAdmin('POST', '/api/holomesh/admin/manual-failover', {});
+    expect(res._status).toBe(400);
+    expect(res._body.error).toContain('service_id and target_backend are required');
+  });
+
+  it('POST /api/holomesh/admin/manual-failover rejects non-founders', async () => {
+    seedNonFounder();
+    const res = await callAdmin(
+      'POST',
+      '/api/holomesh/admin/manual-failover',
+      { service_id: 'svc-web', target_backend: 'backend-b' },
+      NON_FOUNDER_KEY
+    );
+    expect(res._status).toBe(403);
+  });
+
+  // ── Scaling Override ──
+
+  it('POST /api/holomesh/admin/scaling-override sets replica count and records audit', async () => {
+    const res = await callAdmin('POST', '/api/holomesh/admin/scaling-override', {
+      service_id: 'svc-api',
+      replicas: 5,
+      reason: 'black friday prep',
+    });
+
+    expect(res._status).toBe(200);
+    expect(res._body.success).toBe(true);
+    expect(res._body.service_id).toBe('svc-api');
+    expect(res._body.replicas).toBe(5);
+
+    // Verify in-memory state
+    const override = scalingOverrideStore.get('svc-api');
+    expect(override).toBeDefined();
+    expect(override!.replicas).toBe(5);
+
+    // Verify audit entry with before/after
+    const audit = queryAdminOperationsAudit(50);
+    const entry = audit.entries.find((e) => e.action === 'scaling_override');
+    expect(entry).toBeDefined();
+    expect(entry!.after!.serviceId).toBe('svc-api');
+    expect(entry!.after!.replicas).toBe(5);
+  });
+
+  it('POST /api/holomesh/admin/scaling-override validates replica bounds', async () => {
+    const res = await callAdmin('POST', '/api/holomesh/admin/scaling-override', {
+      service_id: 'svc-api',
+      replicas: 5000,
+    });
+    expect(res._status).toBe(400);
+    expect(res._body.error).toContain('replicas must be an integer between 0 and 1000');
+  });
+
+  it('POST /api/holomesh/admin/scaling-override rejects non-founders', async () => {
+    seedNonFounder();
+    const res = await callAdmin(
+      'POST',
+      '/api/holomesh/admin/scaling-override',
+      { service_id: 'svc-api', replicas: 3 },
+      NON_FOUNDER_KEY
+    );
+    expect(res._status).toBe(403);
+  });
+
+  // ── Audit Verification ──
+
+  it('records before/after for provision in the admin audit log', async () => {
+    await callAdmin('POST', '/api/holomesh/admin/provision', { name: 'AuditBot' });
+    const audit = queryAdminOperationsAudit(50);
+    const entry = audit.entries.find((e) => e.action === 'provision');
+    expect(entry).toBeDefined();
+    expect(entry!.before).toBeNull();
+    expect(entry!.after!.agent_name).toBe('AuditBot');
+    expect(entry!.actor!.agentName).toBe('Founder');
+  });
+
+  it('records before/after for key rotation in the admin audit log', async () => {
+    const provisioned = await callAdmin('POST', '/api/holomesh/admin/provision', {
+      name: 'RotateAuditBot',
+    });
+    const agentId = provisioned._body.agent_id;
+
+    await callAdmin('POST', '/api/holomesh/admin/rotate-key', { agent_id: agentId });
+    const audit = queryAdminOperationsAudit(50);
+    const entry = audit.entries.find((e) => e.action === 'key_rotation');
+    expect(entry).toBeDefined();
+    expect(entry!.before!.agent_id).toBe(agentId);
+    expect(entry!.after!.agent_id).toBe(agentId);
+    expect(entry!.after!.rotation_count).toBe(1);
   });
 });

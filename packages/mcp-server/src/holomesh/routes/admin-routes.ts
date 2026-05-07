@@ -22,6 +22,8 @@ import {
   teamStore,
   persistTeamStore,
   reloadTeam,
+  scalingOverrideStore,
+  failoverStateStore,
 } from '../state';
 import { json, parseJsonBody } from '../utils';
 import { resolveRequestingAgent } from '../auth-utils';
@@ -342,6 +344,98 @@ export async function handleAdminRoutes(
       success: true,
       team_id: teamId,
       admin_room: body.enabled,
+    });
+    return true;
+  }
+
+  // ── POST /api/holomesh/admin/manual-failover ───────────────────────────────
+  if (pathname === '/api/holomesh/admin/manual-failover' && method === 'POST') {
+    const body = await parseJsonBody(req);
+    const serviceId = (body.service_id as string | undefined)?.trim() ?? '';
+    const targetBackend = (body.target_backend as string | undefined)?.trim() ?? '';
+    const reason = (body.reason as string | undefined)?.trim();
+
+    if (!serviceId || !targetBackend) {
+      json(res, 400, { error: 'service_id and target_backend are required' });
+      return true;
+    }
+
+    const before = failoverStateStore.get(serviceId) || null;
+    const state = {
+      serviceId,
+      primaryBackend: targetBackend,
+      reason,
+      setAt: new Date().toISOString(),
+      setBy: caller.id,
+    };
+    failoverStateStore.set(serviceId, state);
+
+    recordAdminOperation({
+      actor: {
+        agentId: caller.id,
+        agentName: caller.name,
+        wallet: caller.wallet,
+      },
+      action: 'manual_failover',
+      path: pathname,
+      before: before ? { ...before } : null,
+      after: { ...state },
+    });
+
+    json(res, 200, {
+      success: true,
+      service_id: serviceId,
+      primary_backend: targetBackend,
+      reason,
+    });
+    return true;
+  }
+
+  // ── POST /api/holomesh/admin/scaling-override ──────────────────────────────
+  if (pathname === '/api/holomesh/admin/scaling-override' && method === 'POST') {
+    const body = await parseJsonBody(req);
+    const serviceId = (body.service_id as string | undefined)?.trim() ?? '';
+    const replicasRaw = body.replicas;
+    const reason = (body.reason as string | undefined)?.trim();
+
+    if (!serviceId) {
+      json(res, 400, { error: 'service_id is required' });
+      return true;
+    }
+    const replicas =
+      typeof replicasRaw === 'number' ? Math.floor(replicasRaw) : parseInt(replicasRaw as string, 10);
+    if (!Number.isFinite(replicas) || replicas < 0 || replicas > 1000) {
+      json(res, 400, { error: 'replicas must be an integer between 0 and 1000' });
+      return true;
+    }
+
+    const before = scalingOverrideStore.get(serviceId) || null;
+    const override = {
+      serviceId,
+      replicas,
+      reason,
+      setAt: new Date().toISOString(),
+      setBy: caller.id,
+    };
+    scalingOverrideStore.set(serviceId, override);
+
+    recordAdminOperation({
+      actor: {
+        agentId: caller.id,
+        agentName: caller.name,
+        wallet: caller.wallet,
+      },
+      action: 'scaling_override',
+      path: pathname,
+      before: before ? { ...before } : null,
+      after: { ...override },
+    });
+
+    json(res, 200, {
+      success: true,
+      service_id: serviceId,
+      replicas,
+      reason,
     });
     return true;
   }

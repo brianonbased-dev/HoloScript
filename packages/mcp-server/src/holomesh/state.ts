@@ -504,6 +504,24 @@ export const challengeStore: Map<string, { walletAddress: string; expiresAt: num
 // Key Registry — unified identity anchor
 export const keyRegistry: Map<string, KeyRecord> = new Map(); // token → KeyRecord
 
+// Admin Ops State (P.009.01 — ephemeral; audit trail is the durable record)
+export interface ScalingOverride {
+  serviceId: string;
+  replicas: number;
+  reason?: string;
+  setAt: string;
+  setBy: string;
+}
+export interface FailoverState {
+  serviceId: string;
+  primaryBackend: string;
+  reason?: string;
+  setAt: string;
+  setBy: string;
+}
+export const scalingOverrideStore: Map<string, ScalingOverride> = new Map(); // serviceId → override
+export const failoverStateStore: Map<string, FailoverState> = new Map(); // serviceId → state
+
 // Tier2 Self-Custody Export Sessions (V3 foundation)
 export const exportSessionStore: Map<string, ExportSession> = new Map(); // sessionId → export session
 

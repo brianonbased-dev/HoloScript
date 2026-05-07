@@ -43,4 +43,37 @@ describe('admin-operations-audit', () => {
     const q = queryAdminOperationsAudit(9999);
     expect(q.entries.length).toBe(5);
   });
+
+  it('records manual_failover with before/after state', () => {
+    recordAdminOperation({
+      actor: { agentId: 'a1', agentName: 'Founder', wallet: '0xabc' },
+      action: 'manual_failover',
+      path: '/api/holomesh/admin/manual-failover',
+      before: { serviceId: 'svc-web', primaryBackend: 'backend-a' },
+      after: { serviceId: 'svc-web', primaryBackend: 'backend-b', reason: 'drill' },
+    });
+
+    const q = queryAdminOperationsAudit(50);
+    const entry = q.entries.find((e) => e.action === 'manual_failover');
+    expect(entry).toBeDefined();
+    expect(entry!.before!.primaryBackend).toBe('backend-a');
+    expect(entry!.after!.primaryBackend).toBe('backend-b');
+    expect(entry!.actor.wallet).toBe('0xabc');
+  });
+
+  it('records scaling_override with before/after state', () => {
+    recordAdminOperation({
+      actor: { agentId: 'a1', agentName: 'Founder' },
+      action: 'scaling_override',
+      path: '/api/holomesh/admin/scaling-override',
+      before: { serviceId: 'svc-api', replicas: 2 },
+      after: { serviceId: 'svc-api', replicas: 5, reason: 'peak load' },
+    });
+
+    const q = queryAdminOperationsAudit(50);
+    const entry = q.entries.find((e) => e.action === 'scaling_override');
+    expect(entry).toBeDefined();
+    expect(entry!.before!.replicas).toBe(2);
+    expect(entry!.after!.replicas).toBe(5);
+  });
 });
