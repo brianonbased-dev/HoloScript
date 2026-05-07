@@ -1,0 +1,89 @@
+// AR Bridge Contract Example
+// Declares the runtime contract between HoloScript composition and AR adapters
+
+@world {
+  backgroundColor: "#000000"
+  ambient: 0.8
+  alpha: true              // Pass-through AR background
+  xr_mode: "ar"
+}
+
+// ── Adapter Contract Declaration ───────────────────────────────────────────
+
+bridge "ar_runtime" @ar_bridge {
+  adapter: "webxr"
+  version: "1.0"
+  features: ["hit_test", "image_tracking", "depth_sensing", "light_estimation"]
+  fallback: "ar.js"
+}
+
+// ── Capability Bindings ────────────────────────────────────────────────────
+
+capability "spatial_anchoring" @ar_capability {
+  type: "hit_test"
+  persist: true
+  maxAnchors: 32
+}
+
+capability "beacon_detection" @ar_capability {
+  type: "image_tracking"
+  targets: ["qr", "marker", "nft"]
+  maxConcurrent: 8
+}
+
+capability "environment_mesh" @ar_capability {
+  type: "depth_sensing"
+  usage: " occlusion"
+  quality: "high"
+}
+
+capability "scene_lighting" @ar_capability {
+  type: "light_estimation"
+  mode: "hdr"
+}
+
+// ── Runtime Hooks ────────────────────────────────────────────────────────────
+
+hook "on_session_start" @ar_hook {
+  action: "request_reference_space"
+  space: "local_floor"
+}
+
+hook "on_plane_detected" @ar_hook {
+  action: "spawn_surface_anchor"
+  filter: "horizontal_upward"
+}
+
+hook "on_beacon_found" @ar_hook {
+  action: "emit_event"
+  event: "beacon_detected"
+}
+
+// ── Contract Validation ──────────────────────────────────────────────────────
+
+contract "ar_compat" @contract {
+  required_features: ["hit_test"]
+  min_webgl_version: 2
+  max_latency_ms: 50
+  fallback_policy: "degrade_gracefully"
+}
+
+// ── Visual Grounding ───────────────────────────────────────────────────────
+
+object "floor_plane" @ar_ground {
+  position: [0, 0, 0]
+  scale: [10, 0.01, 10]
+  color: "#ffffff"
+  geometry: "cube"
+  opacity: 0.1
+  material: "transparent"
+}
+
+orb "origin_marker" @glowing @ar_beacon(type: "origin") {
+  position: [0, 0.05, 0]
+  scale: [0.1, 0.1, 0.1]
+  color: "#00aaff"
+  geometry: "sphere"
+  emissive: "#00aaff"
+  emissiveIntensity: 0.8
+}

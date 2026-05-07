@@ -1,0 +1,122 @@
+// AR Portal + Overlay Bridge Example
+// Combines QR beacon entry, camera overlays, and layer-shift transitions
+
+@world {
+  backgroundColor: "#000000"
+  ambient: 0.7
+  alpha: true
+  xr_mode: "ar"
+}
+
+// ── Portal Bridge Contract ───────────────────────────────────────────────────
+
+bridge "portal_runtime" @ar_bridge {
+  adapter: "webxr"
+  features: ["hit_test", "image_tracking", "dom-overlay"]
+  entry_policy: "beacon_or_manual"
+}
+
+// ── QR Beacon Targets ──────────────────────────────────────────────────────
+
+beacon "portal_entry_qr" @ar_beacon(type: "qr", id: "portal_001") {
+  size: 0.15
+  content: "holoscript://worlds/portal_001"
+  action: "trigger_portal_open"
+  cooldown_ms: 3000
+}
+
+beacon "info_marker" @ar_beacon(type: "qr", id: "info_001") {
+  size: 0.10
+  action: "show_overlay"
+  overlay_id: "info_panel"
+}
+
+// ── Portal Geometry ──────────────────────────────────────────────────────────
+
+portal "ar_portal_001" @ar_portal {
+  position: [0, 1.2, -2]
+  scale: [1.2, 2.0, 0.2]
+  destination: "worlds/inner_gallery"
+  transition: "fade_through_white"
+  trigger: "walk_through"
+  render_mode: "stencil_mask"
+}
+
+object "portal_frame" @glowing {
+  position: [0, 1.2, -2]
+  scale: [1.3, 2.1, 0.05]
+  color: "#aa00ff"
+  geometry: "cube"
+  emissive: "#aa00ff"
+  emissiveIntensity: 0.4
+  opacity: 0.3
+  material: "transparent"
+}
+
+// ── Camera Overlays ──────────────────────────────────────────────────────────
+
+overlay "info_panel" @camera_overlay {
+  anchor: "screen_top_left"
+  offset: [16, 16]
+  size: [280, 160]
+  bg_color: "#000000aa"
+  border_radius: 12
+  content: [
+    { type: "text", value: "HoloScript AR Portal", style: "heading" },
+    { type: "text", value: "Scan QR to enter", style: "body" }
+  ]
+}
+
+overlay "beacon_status" @camera_overlay {
+  anchor: "screen_bottom_center"
+  offset: [0, -32]
+  size: [200, 48]
+  bg_color: "#00aa0088"
+  border_radius: 24
+  content: [
+    { type: "text", value: "Beacon detected", style: "badge" }
+  ]
+  visible: false
+  trigger: "on_beacon_found"
+}
+
+// ── Layer Shift Configuration ──────────────────────────────────────────────
+
+layer_shift "reality_blend" @layer_shift {
+  real_world_opacity: 0.3
+  virtual_opacity: 0.9
+  blend_mode: "alpha_composite"
+  depth_sort: true
+}
+
+// ── Spatial Content Inside Portal ──────────────────────────────────────────
+
+object "portal_floor" @collidable {
+  position: [0, 0, -2]
+  scale: [3, 0.05, 3]
+  color: "#2a2a3a"
+  geometry: "cube"
+}
+
+orb "portal_light" @glowing @animated {
+  position: [0, 2.5, -2]
+  scale: [0.2, 0.2, 0.2]
+  color: "#ffaa00"
+  geometry: "sphere"
+  emissive: "#ffaa00"
+  emissiveIntensity: 1.2
+  animate: "pulse"
+  animSpeed: 1.5
+}
+
+// ── Interaction Targets ──────────────────────────────────────────────────────
+
+object "exit_button" @pointable @glowing {
+  position: [0, 1.8, -1.9]
+  scale: [0.4, 0.1, 0.02]
+  color: "#ff3333"
+  geometry: "cube"
+  emissive: "#ff3333"
+  emissiveIntensity: 0.5
+  action: "close_portal"
+}

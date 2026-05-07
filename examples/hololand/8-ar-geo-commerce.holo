@@ -1,0 +1,140 @@
+// AR Geo-Commerce Bridge Example
+// Geo-anchored commerce with x402 payment wall and business markers
+
+@world {
+  backgroundColor: "#000000"
+  ambient: 0.8
+  alpha: true
+  xr_mode: "ar"
+  location_services: true
+}
+
+// ── Geo Bridge Contract ──────────────────────────────────────────────────────
+
+bridge "geo_commerce" @ar_bridge {
+  adapter: "webxr"
+  features: ["hit_test", "geo_anchor", "dom-overlay"]
+  location_accuracy: "high"
+  update_interval_ms: 5000
+}
+
+// ── Business Markers ─────────────────────────────────────────────────────────
+
+marker "cafe_42" @business_marker {
+  position: [0, 0, 0]         // Relative to user start; real coords bound at runtime
+  geo: { lat: 40.7128, lon: -74.0060 }
+  name: "HoloCafe 42"
+  category: "food_and_drink"
+  icon: "coffee_cup"
+  color: "#8B4513"
+}
+
+marker "bookstore_arcade" @business_marker {
+  geo: { lat: 40.7135, lon: -74.0055 }
+  name: "Arcade Books"
+  category: "retail"
+  icon: "book_open"
+  color: "#4a90d9"
+}
+
+// ── Geo Anchored Offers ──────────────────────────────────────────────────────
+
+geo_anchor "daily_special" @geo_anchor {
+  bind_to: "cafe_42"
+  radius_meters: 50
+  trigger: "enter_radius"
+  action: "show_offer"
+}
+
+geo_anchor "loyalty_reward" @geo_anchor {
+  bind_to: "cafe_42"
+  radius_meters: 25
+  trigger: "enter_radius"
+  action: "unlock_reward"
+}
+
+// ── x402 Payment Wall ────────────────────────────────────────────────────────
+
+paywall "cafe_order" @x402_paywall {
+  network: "base"
+  token: "USDC"
+  amount: "5.00"
+  merchant: "cafe_42_wallet"
+  item: "Specialty Latte"
+  on_success: "spawn_order_confirmation"
+  on_fail: "show_payment_error"
+}
+
+paywall "book_purchase" @x402_paywall {
+  network: "base"
+  token: "USDC"
+  amount: "12.99"
+  merchant: "bookstore_arcade_wallet"
+  item: "HoloScript Handbook"
+  on_success: "spawn_digital_receipt"
+}
+
+// ── Offer Overlays ─────────────────────────────────────────────────────────
+
+overlay "cafe_offer" @camera_overlay {
+  anchor: "screen_top_right"
+  offset: [-16, 16]
+  size: [240, 140]
+  bg_color: "#8B4513dd"
+  border_radius: 12
+  content: [
+    { type: "text", value: "Today's Special", style: "heading" },
+    { type: "text", value: "Specialty Latte - $5.00", style: "body" },
+    { type: "button", value: "Pay with x402", action: "trigger_paywall:cafe_order" }
+  ]
+}
+
+overlay "order_confirmation" @camera_overlay {
+  anchor: "screen_center"
+  size: [300, 180]
+  bg_color: "#00aa00dd"
+  border_radius: 16
+  visible: false
+  trigger: "on_payment_success"
+  content: [
+    { type: "text", value: "Order Confirmed!", style: "heading" },
+    { type: "text", value: "Your Latte is being prepared.", style: "body" },
+    { type: "text", value: "ETA: 4 minutes", style: "caption" }
+  ]
+}
+
+// ── 3D Content at Markers ────────────────────────────────────────────────────
+
+object "cafe_sign_3d" @glowing @animated {
+  position: [0, 1.8, 0]
+  scale: [0.6, 0.15, 0.05]
+  color: "#8B4513"
+  geometry: "cube"
+  emissive: "#ffcc88"
+  emissiveIntensity: 0.6
+  animate: "float"
+  animSpeed: 0.5
+}
+
+orb "offer_particle" @glowing @animated {
+  position: [0.3, 1.2, 0.2]
+  scale: [0.08, 0.08, 0.08]
+  color: "#ffd700"
+  geometry: "sphere"
+  emissive: "#ffd700"
+  emissiveIntensity: 1.0
+  animate: "orbit"
+  animSpeed: 1.2
+}
+
+// ── Navigation Helper ────────────────────────────────────────────────────────
+
+object "direction_arrow" @glowing @overlay {
+  position: [0, 0.5, -1]
+  scale: [0.2, 0.04, 0.3]
+  color: "#00aaff"
+  geometry: "arrow"
+  emissive: "#00aaff"
+  emissiveIntensity: 0.5
+  billboard: true
+}

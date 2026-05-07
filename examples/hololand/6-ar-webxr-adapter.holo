@@ -1,0 +1,109 @@
+// WebXR Adapter Example
+// Platform-specific bridge contract for WebXR AR sessions
+
+@world {
+  backgroundColor: "#000000"
+  ambient: 0.9
+  alpha: true
+  xr_mode: "ar"
+  renderer: "webgl2"
+}
+
+// ── WebXR Adapter Binding ────────────────────────────────────────────────────
+
+bridge "webxr_primary" @ar_bridge {
+  adapter: "webxr"
+  session_mode: "immersive-ar"
+  required_features: [
+    "hit-test",
+    "dom-overlay",
+    "light-estimation"
+  ]
+  optional_features: [
+    "anchors",
+    "depth-sensing",
+    "camera-access"
+  ]
+  reference_space: "local-floor"
+  dom_overlay: { root: "#ar-overlay" }
+}
+
+// ── Input Sources ────────────────────────────────────────────────────────────
+
+input "xr_select" @ar_input {
+  source: "xr_input_source"
+  event: "select"
+  action: "place_anchor"
+}
+
+input "screen_tap" @ar_input {
+  source: "dom_overlay"
+  event: "click"
+  action: "raycast_and_spawn"
+}
+
+// ── Hit-Test Configuration ─────────────────────────────────────────────────
+
+config "hit_test" @ar_config {
+  origin: "viewer"
+  direction: "forward"
+  offset: [0, 0, -0.5]
+  filter: "existing_plane"
+}
+
+// ── Anchor Pool ────────────────────────────────────────────────────────────
+
+pool "surface_anchors" @ar_pool {
+  type: "anchor"
+  capacity: 16
+  lifecycle: "session"
+}
+
+// ── Spawnable Prefabs ────────────────────────────────────────────────────────
+
+prefab "placed_cube" @ar_prefab {
+  geometry: "cube"
+  scale: [0.1, 0.1, 0.1]
+  color: "#ff0055"
+  material: "standard"
+  shadow: "cast_and_receive"
+}
+
+prefab "placed_orb" @ar_prefab {
+  geometry: "sphere"
+  scale: [0.08, 0.08, 0.08]
+  color: "#00ff88"
+  material: "standard"
+  emissive: "#00ff88"
+  emissiveIntensity: 0.5
+}
+
+// ── Scene Content ──────────────────────────────────────────────────────────────
+
+object "placement_preview" @overlay @animated {
+  position: [0, 0, -0.5]
+  scale: [0.1, 0.1, 0.1]
+  color: "#ffffff"
+  geometry: "cube"
+  animate: "pulse"
+  animSpeed: 2
+  opacity: 0.5
+  material: "transparent"
+}
+
+orb "reticle" @glowing @overlay {
+  position: [0, 0, -1]
+  scale: [0.05, 0.005, 0.05]
+  color: "#ffffff"
+  geometry: "ring"
+  emissive: "#ffffff"
+  emissiveIntensity: 0.6
+  billboard: true
+}
+
+// ── UI Overlay Anchors (DOM) ─────────────────────────────────────────────────
+
+ui "ar_controls" @dom_overlay {
+  position: "bottom-center"
+  elements: ["place_button", "reset_button", "mode_label"]
+}
