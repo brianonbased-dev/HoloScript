@@ -15,3 +15,4 @@ package-lock.json
 !ops/ml-server-selection.test.ts
 !ops/admin-cli.test.ts
 !ops/sla-burn-rate.test.ts
+!ops/genetic-algorithm.test.ts
