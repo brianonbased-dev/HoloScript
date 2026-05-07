@@ -1,0 +1,423 @@
+{
+  "benchmark": "paper-6-mecanim-divergence",
+  "paper_ref": "ai-ecosystem/research/paper-6-animation-sca.tex",
+  "spec_version": "2026-04-27_paper-6-mecanim-divergence-runner",
+  "ran_at": "2026-05-07T17:58:51.306Z",
+  "duration_ms": 84,
+  "rig_count": 10,
+  "version_count": 3,
+  "rigs": [
+    {
+      "id": "rig-01-humanoid-male",
+      "name": "Humanoid Male",
+      "boneCount": 78,
+      "category": "humanoid"
+    },
+    {
+      "id": "rig-02-humanoid-female",
+      "name": "Humanoid Female",
+      "boneCount": 80,
+      "category": "humanoid"
+    },
+    {
+      "id": "rig-03-quadruped-wolf",
+      "name": "Quadruped Wolf",
+      "boneCount": 64,
+      "category": "creature"
+    },
+    {
+      "id": "rig-04-dragon-large",
+      "name": "Dragon (Large)",
+      "boneCount": 152,
+      "category": "creature"
+    },
+    {
+      "id": "rig-05-vehicle-car",
+      "name": "Vehicle (Sedan)",
+      "boneCount": 21,
+      "category": "vehicle"
+    },
+    {
+      "id": "rig-06-vehicle-mech",
+      "name": "Mech / Vehicle Hybrid",
+      "boneCount": 96,
+      "category": "vehicle"
+    },
+    {
+      "id": "rig-07-prop-cloth",
+      "name": "Prop (Cloth Banner)",
+      "boneCount": 36,
+      "category": "prop"
+    },
+    {
+      "id": "rig-08-fingered-hand",
+      "name": "Fingered Hand (FK+IK)",
+      "boneCount": 31,
+      "category": "humanoid"
+    },
+    {
+      "id": "rig-09-mocap-actor",
+      "name": "Mocap Actor (52-marker)",
+      "boneCount": 104,
+      "category": "humanoid"
+    },
+    {
+      "id": "rig-10-composite",
+      "name": "Composite (Rider+Mount)",
+      "boneCount": 144,
+      "category": "composite"
+    }
+  ],
+  "versions": [
+    {
+      "label": "Unity 2021.3 LTS",
+      "samplerPrecision": "f32",
+      "keyframeTimeTolerance": 0.00001,
+      "tQuantizationStep": 0,
+      "flushDenormals": false
+    },
+    {
+      "label": "Unity 2022.3 LTS",
+      "samplerPrecision": "f32-fma",
+      "keyframeTimeTolerance": 0.0001,
+      "tQuantizationStep": 0.000244140625,
+      "flushDenormals": false
+    },
+    {
+      "label": "Unity 2023.2",
+      "samplerPrecision": "f32-fma",
+      "keyframeTimeTolerance": 0.00005,
+      "tQuantizationStep": 0.000244140625,
+      "flushDenormals": true
+    }
+  ],
+  "cells": [
+    {
+      "rigId": "rig-01-humanoid-male",
+      "rigName": "Humanoid Male",
+      "versionLabel": "Unity 2021.3 LTS",
+      "baselineHash": 389471018,
+      "versionHash": 389471018,
+      "hashesEqual": true,
+      "maxL1Delta": 0,
+      "sampleByteCount": 9600
+    },
+    {
+      "rigId": "rig-02-humanoid-female",
+      "rigName": "Humanoid Female",
+      "versionLabel": "Unity 2021.3 LTS",
+      "baselineHash": 389471018,
+      "versionHash": 389471018,
+      "hashesEqual": true,
+      "maxL1Delta": 0,
+      "sampleByteCount": 9600
+    },
+    {
+      "rigId": "rig-03-quadruped-wolf",
+      "rigName": "Quadruped Wolf",
+      "versionLabel": "Unity 2021.3 LTS",
+      "baselineHash": 389471018,
+      "versionHash": 389471018,
+      "hashesEqual": true,
+      "maxL1Delta": 0,
+      "sampleByteCount": 9600
+    },
+    {
+      "rigId": "rig-04-dragon-large",
+      "rigName": "Dragon (Large)",
+      "versionLabel": "Unity 2021.3 LTS",
+      "baselineHash": 1969228829,
+      "versionHash": 1969228829,
+      "hashesEqual": true,
+      "maxL1Delta": 0,
+      "sampleByteCount": 19200
+    },
+    {
+      "rigId": "rig-05-vehicle-car",
+      "rigName": "Vehicle (Sedan)",
+      "versionLabel": "Unity 2021.3 LTS",
+      "baselineHash": 3114403529,
+      "versionHash": 3114403529,
+      "hashesEqual": true,
+      "maxL1Delta": 0,
+      "sampleByteCount": 3200
+    },
+    {
+      "rigId": "rig-06-vehicle-mech",
+      "rigName": "Mech / Vehicle Hybrid",
+      "versionLabel": "Unity 2021.3 LTS",
+      "baselineHash": 389471018,
+      "versionHash": 389471018,
+      "hashesEqual": true,
+      "maxL1Delta": 0,
+      "sampleByteCount": 9600
+    },
+    {
+      "rigId": "rig-07-prop-cloth",
+      "rigName": "Prop (Cloth Banner)",
+      "versionLabel": "Unity 2021.3 LTS",
+      "baselineHash": 3114403529,
+      "versionHash": 3114403529,
+      "hashesEqual": true,
+      "maxL1Delta": 0,
+      "sampleByteCount": 3200
+    },
+    {
+      "rigId": "rig-08-fingered-hand",
+      "rigName": "Fingered Hand (FK+IK)",
+      "versionLabel": "Unity 2021.3 LTS",
+      "baselineHash": 84742589,
+      "versionHash": 84742589,
+      "hashesEqual": true,
+      "maxL1Delta": 0,
+      "sampleByteCount": 6400
+    },
+    {
+      "rigId": "rig-09-mocap-actor",
+      "rigName": "Mocap Actor (52-marker)",
+      "versionLabel": "Unity 2021.3 LTS",
+      "baselineHash": 1969228829,
+      "versionHash": 1969228829,
+      "hashesEqual": true,
+      "maxL1Delta": 0,
+      "sampleByteCount": 19200
+    },
+    {
+      "rigId": "rig-10-composite",
+      "rigName": "Composite (Rider+Mount)",
+      "versionLabel": "Unity 2021.3 LTS",
+      "baselineHash": 1969228829,
+      "versionHash": 1969228829,
+      "hashesEqual": true,
+      "maxL1Delta": 0,
+      "sampleByteCount": 19200
+    },
+    {
+      "rigId": "rig-01-humanoid-male",
+      "rigName": "Humanoid Male",
+      "versionLabel": "Unity 2022.3 LTS",
+      "baselineHash": 389471018,
+      "versionHash": 2287967152,
+      "hashesEqual": false,
+      "maxL1Delta": 0.000759124755859375,
+      "sampleByteCount": 9600
+    },
+    {
+      "rigId": "rig-02-humanoid-female",
+      "rigName": "Humanoid Female",
+      "versionLabel": "Unity 2022.3 LTS",
+      "baselineHash": 389471018,
+      "versionHash": 2287967152,
+      "hashesEqual": false,
+      "maxL1Delta": 0.000759124755859375,
+      "sampleByteCount": 9600
+    },
+    {
+      "rigId": "rig-03-quadruped-wolf",
+      "rigName": "Quadruped Wolf",
+      "versionLabel": "Unity 2022.3 LTS",
+      "baselineHash": 389471018,
+      "versionHash": 2287967152,
+      "hashesEqual": false,
+      "maxL1Delta": 0.000759124755859375,
+      "sampleByteCount": 9600
+    },
+    {
+      "rigId": "rig-04-dragon-large",
+      "rigName": "Dragon (Large)",
+      "versionLabel": "Unity 2022.3 LTS",
+      "baselineHash": 1969228829,
+      "versionHash": 3749355669,
+      "hashesEqual": false,
+      "maxL1Delta": 0.0007593631744384766,
+      "sampleByteCount": 19200
+    },
+    {
+      "rigId": "rig-05-vehicle-car",
+      "rigName": "Vehicle (Sedan)",
+      "versionLabel": "Unity 2022.3 LTS",
+      "baselineHash": 3114403529,
+      "versionHash": 1098607637,
+      "hashesEqual": false,
+      "maxL1Delta": 0.000759124755859375,
+      "sampleByteCount": 3200
+    },
+    {
+      "rigId": "rig-06-vehicle-mech",
+      "rigName": "Mech / Vehicle Hybrid",
+      "versionLabel": "Unity 2022.3 LTS",
+      "baselineHash": 389471018,
+      "versionHash": 2287967152,
+      "hashesEqual": false,
+      "maxL1Delta": 0.000759124755859375,
+      "sampleByteCount": 9600
+    },
+    {
+      "rigId": "rig-07-prop-cloth",
+      "rigName": "Prop (Cloth Banner)",
+      "versionLabel": "Unity 2022.3 LTS",
+      "baselineHash": 3114403529,
+      "versionHash": 1098607637,
+      "hashesEqual": false,
+      "maxL1Delta": 0.000759124755859375,
+      "sampleByteCount": 3200
+    },
+    {
+      "rigId": "rig-08-fingered-hand",
+      "rigName": "Fingered Hand (FK+IK)",
+      "versionLabel": "Unity 2022.3 LTS",
+      "baselineHash": 84742589,
+      "versionHash": 656173765,
+      "hashesEqual": false,
+      "maxL1Delta": 0.000759124755859375,
+      "sampleByteCount": 6400
+    },
+    {
+      "rigId": "rig-09-mocap-actor",
+      "rigName": "Mocap Actor (52-marker)",
+      "versionLabel": "Unity 2022.3 LTS",
+      "baselineHash": 1969228829,
+      "versionHash": 3749355669,
+      "hashesEqual": false,
+      "maxL1Delta": 0.0007593631744384766,
+      "sampleByteCount": 19200
+    },
+    {
+      "rigId": "rig-10-composite",
+      "rigName": "Composite (Rider+Mount)",
+      "versionLabel": "Unity 2022.3 LTS",
+      "baselineHash": 1969228829,
+      "versionHash": 3749355669,
+      "hashesEqual": false,
+      "maxL1Delta": 0.0007593631744384766,
+      "sampleByteCount": 19200
+    },
+    {
+      "rigId": "rig-01-humanoid-male",
+      "rigName": "Humanoid Male",
+      "versionLabel": "Unity 2023.2",
+      "baselineHash": 389471018,
+      "versionHash": 2287967152,
+      "hashesEqual": false,
+      "maxL1Delta": 0.000759124755859375,
+      "sampleByteCount": 9600
+    },
+    {
+      "rigId": "rig-02-humanoid-female",
+      "rigName": "Humanoid Female",
+      "versionLabel": "Unity 2023.2",
+      "baselineHash": 389471018,
+      "versionHash": 2287967152,
+      "hashesEqual": false,
+      "maxL1Delta": 0.000759124755859375,
+      "sampleByteCount": 9600
+    },
+    {
+      "rigId": "rig-03-quadruped-wolf",
+      "rigName": "Quadruped Wolf",
+      "versionLabel": "Unity 2023.2",
+      "baselineHash": 389471018,
+      "versionHash": 2287967152,
+      "hashesEqual": false,
+      "maxL1Delta": 0.000759124755859375,
+      "sampleByteCount": 9600
+    },
+    {
+      "rigId": "rig-04-dragon-large",
+      "rigName": "Dragon (Large)",
+      "versionLabel": "Unity 2023.2",
+      "baselineHash": 1969228829,
+      "versionHash": 3749355669,
+      "hashesEqual": false,
+      "maxL1Delta": 0.0007593631744384766,
+      "sampleByteCount": 19200
+    },
+    {
+      "rigId": "rig-05-vehicle-car",
+      "rigName": "Vehicle (Sedan)",
+      "versionLabel": "Unity 2023.2",
+      "baselineHash": 3114403529,
+      "versionHash": 1098607637,
+      "hashesEqual": false,
+      "maxL1Delta": 0.000759124755859375,
+      "sampleByteCount": 3200
+    },
+    {
+      "rigId": "rig-06-vehicle-mech",
+      "rigName": "Mech / Vehicle Hybrid",
+      "versionLabel": "Unity 2023.2",
+      "baselineHash": 389471018,
+      "versionHash": 2287967152,
+      "hashesEqual": false,
+      "maxL1Delta": 0.000759124755859375,
+      "sampleByteCount": 9600
+    },
+    {
+      "rigId": "rig-07-prop-cloth",
+      "rigName": "Prop (Cloth Banner)",
+      "versionLabel": "Unity 2023.2",
+      "baselineHash": 3114403529,
+      "versionHash": 1098607637,
+      "hashesEqual": false,
+      "maxL1Delta": 0.000759124755859375,
+      "sampleByteCount": 3200
+    },
+    {
+      "rigId": "rig-08-fingered-hand",
+      "rigName": "Fingered Hand (FK+IK)",
+      "versionLabel": "Unity 2023.2",
+      "baselineHash": 84742589,
+      "versionHash": 656173765,
+      "hashesEqual": false,
+      "maxL1Delta": 0.000759124755859375,
+      "sampleByteCount": 6400
+    },
+    {
+      "rigId": "rig-09-mocap-actor",
+      "rigName": "Mocap Actor (52-marker)",
+      "versionLabel": "Unity 2023.2",
+      "baselineHash": 1969228829,
+      "versionHash": 3749355669,
+      "hashesEqual": false,
+      "maxL1Delta": 0.0007593631744384766,
+      "sampleByteCount": 19200
+    },
+    {
+      "rigId": "rig-10-composite",
+      "rigName": "Composite (Rider+Mount)",
+      "versionLabel": "Unity 2023.2",
+      "baselineHash": 1969228829,
+      "versionHash": 3749355669,
+      "hashesEqual": false,
+      "maxL1Delta": 0.0007593631744384766,
+      "sampleByteCount": 19200
+    }
+  ],
+  "per_version": [
+    {
+      "versionLabel": "Unity 2021.3 LTS",
+      "rigCount": 10,
+      "divergedCount": 0,
+      "divergenceRate": 0,
+      "meanMaxL1": 0,
+      "p99MaxL1": 0
+    },
+    {
+      "versionLabel": "Unity 2022.3 LTS",
+      "rigCount": 10,
+      "divergedCount": 10,
+      "divergenceRate": 1,
+      "meanMaxL1": 0.0007591962814331055,
+      "p99MaxL1": 0.0007593631744384766
+    },
+    {
+      "versionLabel": "Unity 2023.2",
+      "rigCount": 10,
+      "divergedCount": 10,
+      "divergenceRate": 1,
+      "meanMaxL1": 0.0007591962814331055,
+      "p99MaxL1": 0.0007593631744384766
+    }
+  ],
+  "markdown_table": "| Mecanim version | Rigs | Diverged | Divergence rate | Mean max-L1 | p99 max-L1 |\n|---|---|---|---|---|---|\n| Unity 2021.3 LTS | 10 | 0 | 0.0% | 0.000e+0 | 0.000e+0 |\n| Unity 2022.3 LTS | 10 | 10 | 100.0% | 7.592e-4 | 7.594e-4 |\n| Unity 2023.2 | 10 | 10 | 100.0% | 7.592e-4 | 7.594e-4 |"
+}
