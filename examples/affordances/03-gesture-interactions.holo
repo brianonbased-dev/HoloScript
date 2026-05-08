@@ -1,0 +1,425 @@
+/**
+ * Gesture Interactions Example
+ *
+ * Demonstrates gesture-based affordances for XR interaction: gesture recognition,
+ * hand tracking, and grabbable objects. These are the foundational interaction
+ * patterns for hand-centric VR/AR experiences.
+ *
+ * Key Features:
+ * - GestureRecognizer: Detects pinch, grab, point, wave, thumbs_up
+ * - HandTracker: Visualizes hand skeleton and joint positions
+ * - GrabbableBox: Basic grab-and-release with physics
+ * - GrabbableSphere: Two-handed grab with scaling
+ * - GestureSlider: Pinch-to-slide along a track
+ * - WaveActivator: Wave gesture to trigger events
+ *
+ * @version 5.1.0
+ * @category Affordances
+ */
+
+composition GestureInteractionsShowcase {
+  // ─── Environment ──────────────────────────────────────────────────────────
+  environment {
+    skybox: "gradient"
+    ambient_light: 0.4
+    shadows: true
+    hand_tracking: true
+  }
+
+  light "KeyLight" {
+    type: "directional"
+    color: "#ffffff"
+    intensity: 0.9
+    position: [3, 8, 5]
+    cast_shadows: true
+  }
+
+  light "FillLight" {
+    type: "point"
+    color: "#ddeeff"
+    intensity: 0.4
+    position: [-3, 4, 3]
+    range: 12
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.15, threshold: 0.8 }
+    tone_mapping: { type: "aces", exposure: 1.0 }
+  }
+
+  // 1. Gesture Recognizer — detects hand gestures
+  entity GestureRecognizer {
+    gesture_recognizer: {
+      enabled: true,
+      hand: "both",                   // Track both hands
+
+      // Recognized gestures
+      gestures: [
+        "pinch",
+        "grab",
+        "point",
+        "wave",
+        "thumbs_up",
+        "peace",
+        "open_palm",
+      ],
+
+      // Recognition tuning
+      confidence_threshold: 0.75,     // 0-1 (minimum confidence to fire)
+      cooldown_ms: 250,               // Ms between same-gesture repeats
+      smoothing: 0.3,                 // 0-1 (temporal smoothing factor)
+
+      // Visual feedback
+      show_overlay: true,             // Debug overlay of recognized gesture
+      overlay_position: [0, 0.15, 0],   // Offset from hand center
+    },
+
+    transform: {
+      position: [-3.0, 1.5, 0.0],
+      scale: [0.2, 0.2, 0.2],
+    },
+  }
+
+  // 2. Hand Tracker — visualizes hand skeleton
+  entity HandTracker {
+    hand_tracking: {
+      enabled: true,
+      hand: "both",                   // Track both hands
+
+      // Skeleton visualization
+      show_skeleton: true,
+      joint_size: 0.01,               // Meters (visual sphere radius)
+      bone_thickness: 0.003,          // Meters
+      joint_color: [0.0, 1.0, 1.0],   // Cyan joints
+      bone_color: [0.0, 0.6, 0.8],    // Teal bones
+
+      // Tracked joints
+      joints: [
+        "wrist",
+        "thumb_metacarpal", "thumb_proximal", "thumb_distal", "thumb_tip",
+        "index_metacarpal", "index_proximal", "index_intermediate", "index_distal", "index_tip",
+        "middle_metacarpal", "middle_proximal", "middle_intermediate", "middle_distal", "middle_tip",
+        "ring_metacarpal", "ring_proximal", "ring_intermediate", "ring_distal", "ring_tip",
+        "pinky_metacarpal", "pinky_proximal", "pinky_intermediate", "pinky_distal", "pinky_tip",
+      ],
+
+      // Tracking quality
+      smoothing: 0.4,                 // Temporal smoothing (0 = raw, 1 = frozen)
+      prediction: true,               // Predict positions between frames
+      lost_timeout_ms: 500,           // Ms before hand considered lost
+
+      // Interaction zones
+      show_palm_normal: true,
+      palm_normal_length: 0.05,
+    },
+
+    transform: {
+      position: [-2.0, 1.5, 0.0],
+      scale: [0.2, 0.2, 0.2],
+    },
+  }
+
+  // 3. Grabbable Box — basic grab interaction
+  entity GrabbableBox {
+    grabbable: {
+      enabled: true,
+      hand: "both",                   // Either hand can grab
+
+      // Grab behavior
+      grab_type: "pinch",             // "pinch", "palm", "full"
+      require_pinch: true,            // Must pinch to grab
+      pinch_threshold: 0.02,          // Meters (finger tip distance)
+
+      // Visual feedback
+      highlight_on_near: true,
+      highlight_color: [0.2, 0.8, 1.0],
+      highlight_intensity: 0.3,
+
+      // Physics
+      physics_on_release: true,       // Enable physics when released
+      snap_on_release: false,
+      retain_velocity: true,          // Throw physics
+      max_velocity: 10.0,             // M/s (safety cap)
+
+      // Constraints
+      grab_offset: [0, 0, 0],         // Local offset from hand
+      maintain_orientation: false,      // Object rotates with hand
+      two_handed_scale: false,
+    },
+
+    transform: {
+      position: [-1.0, 1.5, 0.0],
+      scale: [0.15, 0.15, 0.15],
+    },
+  }
+
+  // 4. Grabbable Sphere — two-handed scaling
+  entity GrabbableSphere {
+    grabbable: {
+      enabled: true,
+      hand: "both",
+
+      grab_type: "full",
+      require_pinch: false,
+
+      highlight_on_near: true,
+      highlight_color: [1.0, 0.4, 0.6],
+      highlight_intensity: 0.3,
+
+      physics_on_release: true,
+      snap_on_release: false,
+      retain_velocity: true,
+      max_velocity: 10.0,
+
+      maintain_orientation: true,
+      two_handed_scale: true,         // Scale with both hands
+      min_scale: 0.05,
+      max_scale: 0.5,
+    },
+
+    transform: {
+      position: [0.0, 1.5, 0.0],
+      scale: [0.12, 0.12, 0.12],
+    },
+  }
+
+  // 5. Gesture Slider — pinch to slide along a track
+  entity GestureSlider {
+    gesture_slider: {
+      enabled: true,
+      hand: "dominant",               // Use dominant hand
+
+      // Track
+      axis: [1.0, 0.0, 0.0],          // Horizontal track
+      track_length: 0.3,              // Meters
+      track_visual: true,
+
+      // Value
+      min_value: 0.0,
+      max_value: 100.0,
+      current_value: 50.0,
+
+      // Pinch interaction
+      pinch_grab_range: 0.05,         // Meters (how close to track)
+      release_threshold: 0.03,        // Meters (finger spread to release)
+
+      // Visual
+      knob_size: 0.02,
+      knob_color: [1.0, 0.8, 0.2],
+      track_color: [0.3, 0.3, 0.3],
+    },
+
+    transform: {
+      position: [1.0, 1.5, 0.0],
+      scale: [1.0, 1.0, 1.0],
+    },
+  }
+
+  // 6. Wave Activator — wave to trigger
+  entity WaveActivator {
+    gesture_activator: {
+      enabled: true,
+      gesture: "wave",                // Specific gesture to watch
+      hand: "either",                 // Either hand accepted
+
+      // Trigger tuning
+      min_wave_count: 2,              // Minimum oscillations to count as wave
+      max_wave_duration_ms: 1500,   // Max time to complete wave
+      cooldown_ms: 1000,              // Ms between activations
+
+      // Visual feedback
+      idle_color: [0.4, 0.4, 0.4],
+      active_color: [0.2, 1.0, 0.3],  // Green when activated
+      pulse_duration: 0.5,          // Seconds
+    },
+
+    transform: {
+      position: [2.0, 1.5, 0.0],
+      scale: [0.15, 0.15, 0.15],
+    },
+  }
+
+  // 7. Pointing Ray — point to aim/select
+  entity PointingRay {
+    pointing_ray: {
+      enabled: true,
+      hand: "dominant",
+
+      // Ray
+      max_length: 10.0,               // Meters
+      ray_color: [0.0, 1.0, 0.5],
+      ray_thickness: 0.003,
+      show_hit_marker: true,
+      hit_marker_size: 0.015,
+
+      // Activation
+      activation_gesture: "point",    // Must be pointing to raycast
+      pinch_to_select: true,          // Pinch while pointing = click
+
+      // Targeting
+      layer_mask: ["interactable", "ui"],
+      require_line_of_sight: true,
+    },
+
+    transform: {
+      position: [3.0, 1.5, 0.0],
+      scale: [0.1, 0.1, 0.1],
+    },
+  }
+
+  // Camera
+  entity Camera {
+    camera: {
+      fov: 60.0,
+      near: 0.1,
+      far: 100.0,
+      position: [0.0, 1.5, 4.0],
+      target: [0.0, 1.5, 0.0],
+    },
+  }
+
+  // Event handlers
+
+  on GestureRecognizer.gesture_recognizer.gesture_detected -> (event) {
+    console.log(`Gesture: ${event.gesture} (hand=${event.hand}, confidence=${(event.confidence * 100).toFixed(0)}%)`);
+    if (event.gesture == "thumbs_up") {
+      console.log(`  User approved!`);
+    }
+    if (event.gesture == "wave") {
+      console.log(`  Hello!`);
+    }
+    if (event.gesture == "peace") {
+      console.log(`  Peace sign detected`);
+    }
+  }
+
+  on GestureRecognizer.gesture_recognizer.gesture_lost -> (event) {
+    console.log(`Gesture lost: ${event.gesture} (${event.hand})`);
+  }
+
+  on HandTracker.hand_tracking.hand_found -> (event) {
+    console.log(`Hand found: ${event.hand} (${event.joints.length} joints tracked)`);
+  }
+
+  on HandTracker.hand_tracking.hand_lost -> (event) {
+    console.log(`Hand lost: ${event.hand}`);
+  }
+
+  on HandTracker.hand_tracking.joint_moved -> (event) {
+    // Throttled: only log significant movements
+    if (event.joint == "index_tip" && event.velocity > 0.5) {
+      console.log(`Index tip moving fast: ${event.velocity.toFixed(2)} m/s`);
+    }
+  }
+
+  on GrabbableBox.grabbable.grabbed -> (event) {
+    console.log(`Box grabbed by ${event.hand} (pinch_distance=${(event.pinch_distance * 1000).toFixed(1)}mm)`);
+  }
+
+  on GrabbableBox.grabbable.released -> (event) {
+    console.log(`Box released (velocity=${event.velocity.toFixed(2)} m/s)`);
+    if (event.velocity > 2.0) {
+      console.log(`  Thrown!`);
+    }
+  }
+
+  on GrabbableSphere.grabbable.grabbed -> (event) {
+    console.log(`Sphere grabbed by ${event.hand}`);
+    if (event.both_hands) {
+      console.log(`  Two-handed grab — scaling enabled`);
+    }
+  }
+
+  on GrabbableSphere.grabbable.released -> (event) {
+    console.log(`Sphere released`);
+  }
+
+  on GrabbableSphere.grabbable.scaled -> (event) {
+    console.log(`Sphere scaled: ${event.scale.toFixed(2)}x`);
+  }
+
+  on GestureSlider.gesture_slider.value_changed -> (event) {
+    console.log(`Slider: ${event.value.toFixed(1)} (${(event.percentage * 100).toFixed(0)}%)`);
+  }
+
+  on GestureSlider.gesture_slider.grabbed -> (event) {
+    console.log(`Slider grabbed (hand=${event.hand})`);
+  }
+
+  on GestureSlider.gesture_slider.released -> (event) {
+    console.log(`Slider released — final value: ${event.value.toFixed(1)}`);
+  }
+
+  on WaveActivator.gesture_activator.activated -> (event) {
+    console.log(`WaveActivator triggered! (waves=${event.wave_count}, duration=${event.duration_ms}ms)`);
+  }
+
+  on WaveActivator.gesture_activator.cooldown -> (event) {
+    console.log(`WaveActivator cooling down (${(event.remaining_ms / 1000).toFixed(1)}s remaining)`);
+  }
+
+  on PointingRay.pointing_ray.hit -> (event) {
+    console.log(`Pointing at: ${event.target_name} (distance=${event.distance.toFixed(2)}m)`);
+  }
+
+  on PointingRay.pointing_ray.selected -> (event) {
+    console.log(`Selected: ${event.target_name} (gesture=point+pinch)`);
+  }
+
+  on PointingRay.pointing_ray.missed -> (event) {
+    console.log(`Pointing ray missed (no target in range)`);
+  }
+}
+
+// Gesture interaction controls
+ui GestureControls {
+  panel "Gesture Interactions" {
+    section "Gesture Recognizer" {
+      text "Last Gesture" { value: () => `${GestureRecognizer.gesture_recognizer.last_gesture || "none"}` }
+      text "Confidence" { value: () => `${(GestureRecognizer.gesture_recognizer.last_confidence * 100).toFixed(0)}%` }
+      slider "Threshold" { min: 0.0, max: 1.0, value: 0.75, step: 0.05, onChange: (v) => { GestureRecognizer.gesture_recognizer.confidence_threshold = v; } }
+      button "Reset" -> () { GestureRecognizer.gesture_recognizer.reset_history(); }
+    }
+
+    section "Hand Tracker" {
+      text "Left Hand" { value: () => HandTracker.hand_tracking.left_hand_visible ? "Visible" : "Lost" }
+      text "Right Hand" { value: () => HandTracker.hand_tracking.right_hand_visible ? "Visible" : "Lost" }
+      slider "Smoothing" { min: 0.0, max: 1.0, value: 0.4, step: 0.1, onChange: (v) => { HandTracker.hand_tracking.smoothing = v; } }
+      checkbox "Show Skeleton" { value: true, onChange: (v) => { HandTracker.hand_tracking.show_skeleton = v; } }
+    }
+
+    section "Grabbable Box" {
+      text "Grabbed" { value: () => GrabbableBox.grabbable.is_grabbed ? `Yes (${GrabbableBox.grabbable.grabbed_by})` : "No" }
+      text "Velocity" { value: () => `${GrabbableBox.grabbable.velocity.toFixed(2)} m/s` }
+      dropdown "Grab Type" { options: ["pinch", "palm", "full"], value: "pinch", onChange: (v) => { GrabbableBox.grabbable.grab_type = v; } }
+      button "Reset Position" -> () { GrabbableBox.transform.position = [-1.0, 1.5, 0.0]; GrabbableBox.grabbable.velocity = 0.0; }
+    }
+
+    section "Grabbable Sphere" {
+      text "Scale" { value: () => `${GrabbableSphere.transform.scale[0].toFixed(3)}` }
+      text "Two-Handed" { value: () => GrabbableSphere.grabbable.both_hands_grabbed ? "Yes" : "No" }
+      button "Reset Scale" -> () { GrabbableSphere.transform.scale = [0.12, 0.12, 0.12]; }
+    }
+
+    section "Gesture Slider" {
+      text "Value" { value: () => `${GestureSlider.gesture_slider.current_value.toFixed(1)}` }
+      text "Percentage" { value: () => `${(GestureSlider.gesture_slider.percentage * 100).toFixed(0)}%` }
+      slider "Track Length" { min: 0.1, max: 0.6, value: 0.3, step: 0.05, onChange: (v) => { GestureSlider.gesture_slider.track_length = v; } }
+      button "Reset to 50%" -> () { GestureSlider.gesture_slider.current_value = 50.0; }
+    }
+
+    section "Wave Activator" {
+      text "State" { value: () => WaveActivator.gesture_activator.is_cooldown ? "Cooldown" : "Ready" }
+      text "Activations" { value: () => `${WaveActivator.gesture_activator.activation_count}` }
+      slider "Cooldown (s)" { min: 0.5, max: 3.0, value: 1.0, step: 0.5, onChange: (v) => { WaveActivator.gesture_activator.cooldown_ms = v * 1000; } }
+      button "Reset Counter" -> () { WaveActivator.gesture_activator.activation_count = 0; }
+    }
+
+    section "Pointing Ray" {
+      text "Target" { value: () => PointingRay.pointing_ray.current_target || "None" }
+      text "Distance" { value: () => `${PointingRay.pointing_ray.current_distance.toFixed(2)} m` }
+      checkbox "Pinch to Select" { value: true, onChange: (v) => { PointingRay.pointing_ray.pinch_to_select = v; } }
+      slider "Max Length" { min: 1.0, max: 20.0, value: 10.0, step: 1.0, onChange: (v) => { PointingRay.pointing_ray.max_length = v; } }
+    }
+  }
+}
