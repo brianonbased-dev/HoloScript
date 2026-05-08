@@ -3,26 +3,26 @@
 - Date: 2026-04-27
 - Suite: 5 scenes × 2 target paths (HoloScript parser + OpenUSD plugin export)
 - Iterations per measurement: see code (PAPER12_QUICK env supported)
-- Wall-clock: 126.2 ms
+- Wall-clock: 242.3 ms
 - Item 2 (structural-biology USD comparison) is split into a separate board task — NOT covered here.
 
 ## Per-scene measurements
 
 | Scene | Objects | Traits/Obj | Holo LOC | Cold parse mean (ms) | Warm parse mean (ms) | Warm/Cold | USD export mean (ms) | USD plugin LOC |
 |-------|---------|------------|----------|----------------------|----------------------|-----------|----------------------|----------------|
-| tiny | 1 | 0 | 1 | 0.0218 | 0.0112 | 0.515 | 0.0057 | 12 |
-| small | 1 | 4 | 6 | 0.0258 | 0.0204 | 0.788 | 0.0054 | 13 |
-| medium | 5 | 2 | 20 | 0.0718 | 0.0607 | 0.845 | 0.0172 | 29 |
-| large | 20 | 4 | 120 | 0.2952 | 0.1745 | 0.591 | 0.0538 | 109 |
-| plugin-heavy | 10 | 4 | 60 | 0.1278 | 0.0769 | 0.602 | 0.0292 | 59 |
+| tiny | 1 | 0 | 1 | 0.0288 | 0.0167 | 0.580 | 0.0062 | 12 |
+| small | 1 | 4 | 6 | 0.0486 | 0.0453 | 0.930 | 0.0070 | 13 |
+| medium | 5 | 2 | 20 | 0.1064 | 0.1025 | 0.963 | 0.0210 | 29 |
+| large | 20 | 4 | 120 | 0.4138 | 0.5002 | 1.209 | 0.2736 | 109 |
+| plugin-heavy | 10 | 4 | 60 | 0.2330 | 0.1495 | 0.642 | 0.0433 | 59 |
 
 ## Suite aggregates
 
 | Metric | mean | median | p95 | max |
 |--------|------|--------|-----|-----|
-| HoloScript cold parse (ms) | 0.1085 | 0.0718 | 0.2952 | 0.2952 |
-| HoloScript warm parse (ms) | 0.0687 | 0.0607 | 0.1745 | 0.1745 |
-| OpenUSD plugin export (ms) | 0.0223 | 0.0172 | 0.0538 | 0.0538 |
+| HoloScript cold parse (ms) | 0.1661 | 0.1064 | 0.4138 | 0.4138 |
+| HoloScript warm parse (ms) | 0.1628 | 0.1025 | 0.5002 | 0.5002 |
+| OpenUSD plugin export (ms) | 0.0702 | 0.0210 | 0.2736 | 0.2736 |
 
 ## Methodology
 
