@@ -322,6 +322,14 @@ holoscript compile <example>.holo --target webxr
 holoscript compile <example>.holo --target r3f
 ```
 
+## Helper Pairing
+
+`examples/ar` and `examples/ar-foundation` currently contain no TypeScript helper
+sources (`.ts`, `.tsx`, `.mts`, or `.cts`). The AR Foundation validator enforces
+that any future TypeScript helper in either directory must have a same-name
+`.holo` wrapper next to it, so AR behavior stays authored in HoloScript source
+instead of drifting into unpaired TypeScript utilities.
+
 ## Testing
 
 ### iOS Testing

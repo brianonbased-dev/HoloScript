@@ -8,6 +8,10 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOLOSCRIPT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 EXAMPLES_DIR="$SCRIPT_DIR"
+AR_HELPER_DIRS=(
+    "$HOLOSCRIPT_ROOT/examples/ar"
+    "$EXAMPLES_DIR"
+)
 
 # Colors
 RED='\033[0;31m'
@@ -81,7 +85,7 @@ for file in "${EXPECTED_FILES[@]}"; do
 done
 
 if [ ${#MISSING_FILES[@]} -eq 0 ]; then
-    log_success "All expected files present (5/5)"
+    log_success "All expected files present (${#EXPECTED_FILES[@]}/${#EXPECTED_FILES[@]})"
 else
     log_fail "Missing ${#MISSING_FILES[@]} files: ${MISSING_FILES[*]}"
 fi
@@ -101,6 +105,36 @@ if [ ! -f "$EXAMPLES_DIR/face-tracking.holo" ]; then
     log_warning "Missing: face-tracking.holo (critical AR feature)"
 else
     log_success "Found: face-tracking.holo"
+fi
+
+# Test 2b: Check TypeScript helper pairing
+log_info ""
+log_info "Test 2b: Checking AR helper source pairing..."
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
+TS_HELPERS=()
+while IFS= read -r helper; do
+    TS_HELPERS+=("$helper")
+done < <(find "${AR_HELPER_DIRS[@]}" -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.mts" -o -name "*.cts" \) \
+    -not -name "*.d.ts" \
+    -not -path "*/node_modules/*" \
+    -not -path "*/dist/*" \
+    -not -path "*/build/*")
+
+UNPAIRED_HELPERS=()
+for helper in "${TS_HELPERS[@]}"; do
+    wrapper="${helper%.*}.holo"
+    if [ ! -f "$wrapper" ]; then
+        UNPAIRED_HELPERS+=("${helper#$HOLOSCRIPT_ROOT/}")
+    fi
+done
+
+if [ ${#TS_HELPERS[@]} -eq 0 ]; then
+    log_success "No TypeScript-only AR helpers found in examples/ar or examples/ar-foundation"
+elif [ ${#UNPAIRED_HELPERS[@]} -eq 0 ]; then
+    log_success "All TypeScript AR helpers have same-name .holo wrappers"
+else
+    log_fail "Unpaired TypeScript AR helpers: ${UNPAIRED_HELPERS[*]}"
 fi
 
 # Test 3: Syntax validation
@@ -312,20 +346,22 @@ for file in "${EXPECTED_FILES[@]}"; do
 done
 
 # Summary
+TOTAL_CHECKS=${#RESULTS[@]}
+
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  Validation Summary"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo -e "Total Tests: ${BLUE}$TOTAL_TESTS${NC}"
+echo -e "Total Checks: ${BLUE}$TOTAL_CHECKS${NC}"
 echo -e "Passed: ${GREEN}$PASSED_TESTS${NC}"
 echo -e "Failed: ${RED}$FAILED_TESTS${NC}"
 echo -e "Warnings: ${YELLOW}$WARNINGS${NC}"
 echo ""
 
 # Calculate pass rate
-if [ $TOTAL_TESTS -gt 0 ]; then
-    PASS_RATE=$((100 * PASSED_TESTS / TOTAL_TESTS))
+if [ $TOTAL_CHECKS -gt 0 ]; then
+    PASS_RATE=$((100 * PASSED_TESTS / TOTAL_CHECKS))
     echo -e "Pass Rate: ${BLUE}${PASS_RATE}%${NC}"
     echo ""
 fi
