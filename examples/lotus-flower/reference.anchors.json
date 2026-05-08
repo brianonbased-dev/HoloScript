@@ -1,38 +1,44 @@
 {
   "schema": "holoscript.lotus.reference.anchors.v0",
-  "status": "pending_media_ingest",
+  "status": "content_hashed",
   "generated_by": "conversation_reference_images",
   "wallet_signature_status": "pending_cael_anchor",
   "anchors": [
     {
       "id": "lotus-reference-2026-05-06-01",
       "label": "open pink lotus close-up",
-      "uri": "conversation://2026-05-06/lotus-reference-01",
+      "uri": "file://reference/lotus-reference-2026-05-06-01.png",
       "role": "material",
-      "status": "pending_media_ingest",
-      "content_hash": null,
+      "status": "hashed",
+      "content_hash": "sha256:9cd5142a78a1727e53a612299b98bf39ae1145aaebf57ffe05bf7b4f6c917d3a",
       "wallet_signature": null,
-      "note": "Chat attachment only. Ingest via: node examples/lotus-flower/sign-lotus-references.mjs <photo1> <photo2> <photo3>"
+      "note": "Content hashed; pending Base tx broadcast by founder anchor.",
+      "mime_type": "image/png",
+      "byte_length": 1785727
     },
     {
       "id": "lotus-reference-2026-05-06-02",
       "label": "upright pink lotus silhouette",
-      "uri": "conversation://2026-05-06/lotus-reference-02",
+      "uri": "file://reference/lotus-reference-2026-05-06-02.png",
       "role": "silhouette",
-      "status": "pending_media_ingest",
-      "content_hash": null,
+      "status": "hashed",
+      "content_hash": "sha256:0c7a84358ec4d306cbe7677717b76548fddab5dba0d08225218302c85d259574",
       "wallet_signature": null,
-      "note": "Chat attachment only. Ingest via: node examples/lotus-flower/sign-lotus-references.mjs <photo1> <photo2> <photo3>"
+      "note": "Content hashed; pending Base tx broadcast by founder anchor.",
+      "mime_type": "image/png",
+      "byte_length": 3356458
     },
     {
       "id": "lotus-reference-2026-05-06-03",
       "label": "pink lotus with leaves and water context",
-      "uri": "conversation://2026-05-06/lotus-reference-03",
+      "uri": "file://reference/lotus-reference-2026-05-06-03.png",
       "role": "leaf_context",
-      "status": "pending_media_ingest",
-      "content_hash": null,
+      "status": "hashed",
+      "content_hash": "sha256:65b3ab02916e066af044984e45fee539de350e160dbc66c561153c48a44d12ad",
       "wallet_signature": null,
-      "note": "Chat attachment only. Ingest via: node examples/lotus-flower/sign-lotus-references.mjs <photo1> <photo2> <photo3>"
+      "note": "Content hashed; pending Base tx broadcast by founder anchor.",
+      "mime_type": "image/png",
+      "byte_length": 1624422
     }
   ]
 }

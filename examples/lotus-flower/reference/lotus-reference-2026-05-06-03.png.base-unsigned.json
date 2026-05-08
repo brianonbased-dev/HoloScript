@@ -1,0 +1,11 @@
+{
+  "chainId": 8453,
+  "from": "0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3",
+  "to": "0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3",
+  "value": 0,
+  "data": "0x65b3ab02916e066af044984e45fee539de350e160dbc66c561153c48a44d12ad",
+  "maxPriorityFeePerGas": "0x3e8",
+  "maxFeePerGas": "0x4c4b40",
+  "gas": 25000,
+  "type": 2
+}

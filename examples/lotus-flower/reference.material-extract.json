@@ -1,24 +1,28 @@
 {
   "schema": "holoscript.lotus.reference.material-extract.v0",
-  "status": "visual-seed-with-pending-anchors",
+  "status": "visual-seed-with-hashed-anchors",
   "captured_at": "2026-05-06",
   "reference_manifest": "examples/lotus-flower/reference.anchors.json",
   "source": {
     "kind": "conversation_reference_images",
     "count": 3,
-    "content_hash_status": "pending_media_ingest",
+    "content_hash_status": "complete",
     "wallet_signature_status": "pending_cael_anchor",
     "anchor_ids": [
       "lotus-reference-2026-05-06-01",
       "lotus-reference-2026-05-06-02",
       "lotus-reference-2026-05-06-03"
     ],
-    "note": "Derived from the three pink lotus reference images provided in-thread. Ingestion pipeline ready: sign-lotus-references.mjs. Not yet hashed/signed pending raw media files."
+    "note": "Reference anchors are content-hashed; Base tx broadcast pending founder action."
   },
   "botanical_trait_target": "@botanical_lotus",
   "material": {
     "subsurface_scattering": 0.74,
-    "subsurface_radius_rgb": [0.9, 0.32, 0.72],
+    "subsurface_radius_rgb": [
+      0.9,
+      0.32,
+      0.72
+    ],
     "petal_translucency_base": 0.68,
     "petal_translucency_edge": 0.36,
     "roughness": 0.72,
@@ -43,9 +47,24 @@
   },
   "geometry": {
     "petal_rings": [
-      { "name": "inner", "count": 8, "cup": 0.86, "gravity_sag": 0.02 },
-      { "name": "mid", "count": 13, "cup": 0.5, "gravity_sag": 0.12 },
-      { "name": "outer", "count": 21, "cup": 0.24, "gravity_sag": 0.3 }
+      {
+        "name": "inner",
+        "count": 8,
+        "cup": 0.86,
+        "gravity_sag": 0.02
+      },
+      {
+        "name": "mid",
+        "count": 13,
+        "cup": 0.5,
+        "gravity_sag": 0.12
+      },
+      {
+        "name": "outer",
+        "count": 21,
+        "cup": 0.24,
+        "gravity_sag": 0.3
+      }
     ],
     "petal_shape": "broad_elliptic_pointed_tip_with_center_ridge",
     "stamen_filament_count": 58,
@@ -57,8 +76,8 @@
     "photo_to_material_extractor": {
       "package": "@holoscript/snn-webgpu",
       "entrypoint": "extractBotanicalLotusMaterial",
-      "status": "pipeline_ready_pending_raw_media_ingest"
+      "status": "pipeline_ready_pending_cael_anchor"
     },
-    "photorealism_status": "extractor_pipeline_ready_pending_raw_media_ingest"
+    "photorealism_status": "extractor_available_pending_cael_anchor"
   }
 }

@@ -215,6 +215,14 @@ function updateExtractManifest(extract, ingested) {
     },
     renderer_mapping: {
       ...extract.renderer_mapping,
+      photo_to_material_extractor: {
+        ...extract.renderer_mapping.photo_to_material_extractor,
+        status: allSigned
+          ? 'pipeline_ready_with_cael_anchor'
+          : allHashed
+            ? 'pipeline_ready_pending_cael_anchor'
+            : extract.renderer_mapping.photo_to_material_extractor.status,
+      },
       photorealism_status: allSigned ? 'extractor_available' : 'extractor_available_pending_cael_anchor',
     },
   };

@@ -11,6 +11,14 @@ provenance contract.
 | 2 | `silhouette` | Upright pink lotus silhouette | `lotus-reference-2026-05-06-02` |
 | 3 | `leaf_context` | Pink lotus with leaves and water context | `lotus-reference-2026-05-06-03` |
 
+## Supplemental local evidence
+
+`lotus-reference-2026-05-06-04-supplemental.png` is an alternate founder-supplied
+lotus side view retained for local review only. It is not part of the current
+three-anchor CAEL manifest.
+
+- SHA-256: `sha256:4eae593372914110f2a8290be5c55d2291789d2e3b657f2b3ebaa54e76022e98`
+
 ## How to ingest and sign
 
 Phase 1 - copy, hash, and prepare unsigned Base anchor transactions:
