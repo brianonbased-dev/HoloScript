@@ -1,0 +1,207 @@
+// HoloLand Engine Graph Source
+// Canonical source artifact for ECS, physics, and animation runtime graphs.
+// HoloLand consumes this as product/platform semantics; TypeScript remains a bridge.
+
+@world {
+  backgroundColor: "#061017"
+  ambient: 0.35
+  shadows: true
+  fog: { type: "linear", color: "#061017", near: 18, far: 72 }
+}
+
+object "engine_graph_root" @glowing {
+  position: [0, 3, 0]
+  scale: [1.8, 1.8, 1.8]
+  color: "#00d4ff"
+  geometry: "sphere"
+  emissive: "#00d4ff"
+  emissiveIntensity: 0.7
+  graphKind: "hololand_engine_runtime"
+  sourceContract: "HoloScript owns semantics; HoloLand hosts the lived runtime"
+  validationTarget: "parseable_holo_source"
+}
+
+// ECS graph layer.
+object "ecs_world" @scene_graph @glowing {
+  position: [-8, 3, -2]
+  scale: [1.2, 1.2, 1.2]
+  color: "#37d67a"
+  geometry: "cube"
+  sourceModule: "packages/core/src/traits/ECSWorldTrait.ts"
+  graphNode: { layer: "ecs", role: "world", emits: ["entity_created", "ecs_ticked", "ecs_stats"] }
+}
+
+object "entity_registry" @scene_graph {
+  position: [-11, 1.5, -2]
+  scale: [1, 1, 1]
+  color: "#2a9d55"
+  geometry: "cube"
+  graphNode: { layer: "ecs", role: "entity_registry", stores: ["entity_id", "component_mask"] }
+}
+
+object "component_stores" @scene_graph {
+  position: [-8, 1.5, -5]
+  scale: [1.4, 0.8, 1.4]
+  color: "#4bd887"
+  geometry: "cube"
+  graphNode: { layer: "ecs", role: "component_store", stores: ["transform", "velocity", "collider", "renderable", "agent"] }
+}
+
+object "system_scheduler" @scene_graph {
+  position: [-5, 1.5, -2]
+  scale: [1, 1, 1]
+  color: "#81f4b2"
+  geometry: "cube"
+  graphNode: { layer: "ecs", role: "system_scheduler", order: ["physics", "agent_movement", "lod", "animation"] }
+}
+
+object "edge_entity_to_components" @glowing {
+  position: [-9.5, 1.5, -3.5]
+  scale: [2.8, 0.05, 0.05]
+  color: "#37d67a"
+  geometry: "cube"
+  edge: { from: "entity_registry", to: "component_stores", signal: "entity_id" }
+}
+
+object "edge_components_to_scheduler" @glowing {
+  position: [-6.5, 1.5, -3.5]
+  scale: [2.8, 0.05, 0.05]
+  color: "#81f4b2"
+  geometry: "cube"
+  edge: { from: "component_stores", to: "system_scheduler", signal: "query_mask" }
+}
+
+// Physics graph layer.
+object "physics_tick" @physics @collidable {
+  position: [0, 3, -7]
+  scale: [1.3, 1.3, 1.3]
+  color: "#ffb703"
+  geometry: "sphere"
+  mass: 1
+  friction: 0.5
+  restitution: 0.2
+  graphNode: { layer: "physics", role: "tick_source", cadence: "fixed_delta" }
+}
+
+object "gravity_integrator" @physics {
+  position: [-3, 1.5, -9]
+  scale: [1, 1, 1]
+  color: "#f77f00"
+  geometry: "cube"
+  graphNode: { layer: "physics", role: "integrator", reads: ["transform", "velocity"], writes: ["transform"] }
+}
+
+object "collision_pipeline" @physics @collidable {
+  position: [0, 1.5, -10]
+  scale: [1.4, 1, 1.4]
+  color: "#fcbf49"
+  geometry: "cube"
+  graphNode: { layer: "physics", role: "collision_pipeline", stages: ["broad_phase", "narrow_phase", "contact_manifold"] }
+}
+
+object "constraint_solver" @physics {
+  position: [3, 1.5, -9]
+  scale: [1, 1, 1]
+  color: "#ffd166"
+  geometry: "cube"
+  graphNode: { layer: "physics", role: "constraint_solver", writes: ["velocity", "transform"], evidence: "deterministic_step" }
+}
+
+object "edge_physics_to_components" @glowing {
+  position: [-1.5, 1.2, -7.6]
+  scale: [3, 0.05, 0.05]
+  color: "#ffb703"
+  geometry: "cube"
+  edge: { from: "physics_tick", to: "component_stores", signal: "dt" }
+}
+
+object "edge_collision_to_solver" @glowing {
+  position: [1.5, 1.5, -9.5]
+  scale: [3, 0.05, 0.05]
+  color: "#ffd166"
+  geometry: "cube"
+  edge: { from: "collision_pipeline", to: "constraint_solver", signal: "contacts" }
+}
+
+// Animation graph layer.
+object "animation_graph" @animated @glowing {
+  position: [8, 3, -2]
+  scale: [1.2, 1.2, 1.2]
+  color: "#c77dff"
+  geometry: "sphere"
+  animate: "float"
+  animSpeed: 0.55
+  sourceModule: "packages/engine/src/animation/AnimationGraph.ts"
+  graphNode: { layer: "animation", role: "state_graph", emits: ["clip_sampled", "transition_started", "pose_written"] }
+}
+
+object "clip_sampler" @animated {
+  position: [5, 1.5, -1]
+  scale: [1, 1, 1]
+  color: "#9d4edd"
+  geometry: "cube"
+  animate: "pulse"
+  animSpeed: 0.8
+  graphNode: { layer: "animation", role: "clip_sampler", reads: ["time", "tracks"], writes: ["pose"] }
+}
+
+object "transition_blender" @animated {
+  position: [8, 1.5, -4]
+  scale: [1, 1, 1]
+  color: "#b5179e"
+  geometry: "cube"
+  animate: "float"
+  animSpeed: 0.65
+  graphNode: { layer: "animation", role: "transition_blender", reads: ["from_pose", "to_pose"], writes: ["blended_pose"] }
+}
+
+object "ragdoll_bridge" @animated @physics {
+  position: [11, 1.5, -1]
+  scale: [1, 1, 1]
+  color: "#e0aaff"
+  geometry: "cube"
+  animate: "pulse"
+  animSpeed: 0.45
+  graphNode: { layer: "animation", role: "ragdoll_bridge", handoff: ["animation_to_physics", "physics_to_animation"] }
+}
+
+object "edge_animation_to_ecs" @glowing {
+  position: [6.5, 1.5, -2.5]
+  scale: [3, 0.05, 0.05]
+  color: "#c77dff"
+  geometry: "cube"
+  edge: { from: "animation_graph", to: "component_stores", signal: "pose_transform" }
+}
+
+object "edge_ragdoll_to_physics" @glowing {
+  position: [8, 1.2, -6]
+  scale: [4, 0.05, 0.05]
+  color: "#e0aaff"
+  geometry: "cube"
+  edge: { from: "ragdoll_bridge", to: "constraint_solver", signal: "bone_constraints" }
+}
+
+// Hardware and evidence receipts.
+object "hardware_profile_receipt" @glowing {
+  position: [0, 0.6, 4]
+  scale: [2.4, 0.18, 1.2]
+  color: "#8ecae6"
+  geometry: "cube"
+  receipt: { deviceClass: "desktop_xr", gpuPath: "WebGPU_or_D3D12", wasmSimd: true, targetFrameMs: 13.88 }
+}
+
+object "runtime_validation_receipt" @glowing {
+  position: [0, 0.9, 6]
+  scale: [2.4, 0.18, 1.2]
+  color: "#219ebc"
+  geometry: "cube"
+  receipt: { parse: "holoscript parse", graph: "semantic_nodes_and_edges", replay: "fixed_dt_event_log" }
+}
+
+object "floor" @collidable {
+  position: [0, 0, 0]
+  scale: [24, 0.1, 18]
+  color: "#0b1d2a"
+  geometry: "cube"
+  material: "concrete"
+}

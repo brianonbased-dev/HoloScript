@@ -147,6 +147,22 @@ Combines **QR beacon entry**, **camera overlays**, and **layer-shift transitions
 - `paywall` - x402 payment wall declaration
 - `overlay` with `button` actions - Interactive commerce UI
 
+### 9. Engine Graph Source (`9-engine-graphs.holo`)
+
+Declares HoloLand's engine-facing ECS, physics, and animation graph semantics as
+parseable HoloScript source:
+
+- ECS graph nodes for world, entity registry, component stores, and scheduler
+- Physics graph nodes for fixed tick, integration, collision, and constraints
+- Animation graph nodes for state graph, clip sampling, transition blending, and ragdoll handoff
+- Hardware and runtime validation receipt markers for local execution proof
+
+**Key concepts:**
+
+- HoloScript source owns graph semantics; HoloLand TypeScript remains runtime bridge code
+- `graphNode` and `edge` metadata make runtime dependencies inspectable
+- `receipt` metadata ties graph behavior to hardware and replay validation
+
 ## Running the Examples
 
 These examples require the HoloScript compiler and Hololand runtime:
@@ -170,27 +186,31 @@ holoscript build examples/hololand/3-world-definition.holo --platform quest
 
 ## Feature Coverage
 
-| Feature              | Ex 1 | Ex 2 | Ex 3 | Ex 4 | Ex 5 | Ex 6 | Ex 7 | Ex 8 |
-| -------------------- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- |
-| Asset Manifest       | ✓    |      |      | ✓    |      |      |      |      |
-| Asset Dependencies   | ✓    |      |      | ✓    |      |      |      |      |
-| Semantic Annotations |      | ✓    |      | ✓    |      |      |      |      |
-| Property Annotations |      | ✓    |      | ✓    |      |      |      |      |
-| Data Bindings        |      | ✓    |      | ✓    |      |      |      |      |
-| World Metadata       |      |      | ✓    | ✓    |      |      |      |      |
-| World Config         |      |      | ✓    | ✓    |      |      |      |      |
-| Zones                |      |      | ✓    | ✓    |      |      |      |      |
-| Spawn Points         |      |      | ✓    | ✓    |      |      |      |      |
-| Hololand Events      |      |      | ✓    | ✓    |      |      |      |      |
-| NPC Behaviors        |      |      |      | ✓    |      |      |      |      |
-| LOD System           |      |      | ✓    | ✓    |      |      |      |      |
-| Accessibility        |      |      |      | ✓    |      |      |      |      |
-| AR Bridge Contract   |      |      |      |      | ✓    | ✓    | ✓    | ✓    |
-| AR Capability Bind   |      |      |      |      | ✓    | ✓    | ✓    | ✓    |
-| WebXR Adapter        |      |      |      |      |      | ✓    |      |      |
-| Hit-Test / Anchors   |      |      |      |      | ✓    | ✓    |      |      |
-| QR / Image Beacons   |      |      |      |      |      |      | ✓    |      |
-| Portal / Overlay     |      |      |      |      |      |      | ✓    |      |
-| Geo Anchor           |      |      |      |      |      |      |      | ✓    |
-| x402 Paywall         |      |      |      |      |      |      |      | ✓    |
-| Business Marker      |      |      |      |      |      |      |      | ✓    |
+| Feature              | Ex 1 | Ex 2 | Ex 3 | Ex 4 | Ex 5 | Ex 6 | Ex 7 | Ex 8 | Ex 9 |
+| -------------------- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- |
+| Asset Manifest       | ✓    |      |      | ✓    |      |      |      |      |      |
+| Asset Dependencies   | ✓    |      |      | ✓    |      |      |      |      |      |
+| Semantic Annotations |      | ✓    |      | ✓    |      |      |      |      |      |
+| Property Annotations |      | ✓    |      | ✓    |      |      |      |      |      |
+| Data Bindings        |      | ✓    |      | ✓    |      |      |      |      |      |
+| World Metadata       |      |      | ✓    | ✓    |      |      |      |      |      |
+| World Config         |      |      | ✓    | ✓    |      |      |      |      |      |
+| Zones                |      |      | ✓    | ✓    |      |      |      |      |      |
+| Spawn Points         |      |      | ✓    | ✓    |      |      |      |      |      |
+| Hololand Events      |      |      | ✓    | ✓    |      |      |      |      |      |
+| NPC Behaviors        |      |      |      | ✓    |      |      |      |      |      |
+| LOD System           |      |      | ✓    | ✓    |      |      |      |      |      |
+| Accessibility        |      |      |      | ✓    |      |      |      |      |      |
+| AR Bridge Contract   |      |      |      |      | ✓    | ✓    | ✓    | ✓    |      |
+| AR Capability Bind   |      |      |      |      | ✓    | ✓    | ✓    | ✓    |      |
+| WebXR Adapter        |      |      |      |      |      | ✓    |      |      |      |
+| Hit-Test / Anchors   |      |      |      |      | ✓    | ✓    |      |      |      |
+| QR / Image Beacons   |      |      |      |      |      |      | ✓    |      |      |
+| Portal / Overlay     |      |      |      |      |      |      | ✓    |      |      |
+| Geo Anchor           |      |      |      |      |      |      |      | ✓    |      |
+| x402 Paywall         |      |      |      |      |      |      |      | ✓    |      |
+| Business Marker      |      |      |      |      |      |      |      | ✓    |      |
+| ECS Graph Source     |      |      |      |      |      |      |      |      | ✓    |
+| Physics Graph Source |      |      |      |      |      |      |      |      | ✓    |
+| Animation Graph      |      |      |      |      |      |      |      |      | ✓    |
+| Validation Receipts  |      |      |      |      |      |      |      |      | ✓    |

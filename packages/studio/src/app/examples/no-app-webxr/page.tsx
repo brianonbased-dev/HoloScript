@@ -11,7 +11,7 @@
  */
 
 import { useState } from 'react';
-import { Smartphone, Monitor, Headset, QrCode, Globe, Share2, Copy, Check } from 'lucide-react';
+import { Smartphone, Monitor, Glasses, Globe, Share2, Copy, Check } from 'lucide-react';
 import { QRCodeImage } from '@/components/QRCodeImage';
 import { ImmersiveViewer } from '@/app/shared/[id]/ImmersiveViewer.client';
 import { COPY_FEEDBACK_DURATION } from '@/lib/ui-timings';
@@ -114,7 +114,7 @@ export default function NoAppWebXRExamplePage() {
           </div>
           <div className="rounded-xl border border-studio-border bg-studio-panel p-4">
             <div className="mb-2 flex items-center gap-2">
-              <Headset className="h-4 w-4 text-studio-accent" />
+              <Glasses className="h-4 w-4 text-studio-accent" />
               <span className="text-sm font-semibold">Headset</span>
             </div>
             <p className="text-[11px] text-studio-muted">
