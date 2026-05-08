@@ -62,7 +62,6 @@ function mapShaderNodeType(type: string): string {
     texture2d: 'Texture2D',
     output_surface: 'PBROutput',
     noise: 'NoiseNode',
-    fresnel: 'CustomGLSL',
   };
   return map[type] ?? type;
 }
