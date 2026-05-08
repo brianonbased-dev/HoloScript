@@ -17,7 +17,9 @@ vi.mock('@/lib/api-auth', () => ({
 
 import { GET as getAsset } from './[hash]/[asset]/route';
 import { POST as postUpload } from './upload/route';
-import { __resetHologramStoreForTests } from './_lib/store';
+import { POST as postShare } from './share/route';
+import { GET as getShare } from './share/route';
+import { __resetHologramStoreForTests, getShareRegistry } from './_lib/store';
 
 function makeMeta(overrides: Partial<HologramMeta> = {}): HologramMeta {
   return {
@@ -111,6 +113,86 @@ describe('HoloGram API routes', () => {
     expect(getRes.headers.get('Cache-Control')).toContain('immutable');
     const out = new Uint8Array(await getRes.arrayBuffer());
     expect(out).toEqual(depthBin);
+  });
+
+  it('POST /api/hologram/upload records createdBy from session auth', async () => {
+    vi.stubEnv('HOLOGRAM_WORKER_TOKEN', '');
+    requireAuthMock.mockResolvedValue({ user: { id: 'session-user-42', email: 'u@example.com' } });
+
+    const meta = makeMeta();
+    const { depthBin, normalBin, hash } = await minimalBundleBuffers(meta);
+    const fd = new FormData();
+    fd.append('meta', JSON.stringify(meta));
+    fd.append('depth.bin', new Blob([depthBin]), 'depth.bin');
+    fd.append('normal.bin', new Blob([normalBin]), 'normal.bin');
+
+    const postReq = new NextRequest('http://localhost/api/hologram/upload', {
+      method: 'POST',
+      body: fd,
+    });
+    const postRes = await postUpload(postReq);
+    expect(postRes.status).toBe(200);
+
+    const registry = getShareRegistry();
+    const { record } = await registry.getShareStatus(hash);
+    expect(record).toBeTruthy();
+    expect(record!.createdBy).toBe('session-user-42');
+  });
+
+  it('POST /api/hologram/upload leaves createdBy empty for worker bearer', async () => {
+    const meta = makeMeta();
+    const { depthBin, normalBin, hash } = await minimalBundleBuffers(meta);
+    const fd = new FormData();
+    fd.append('meta', JSON.stringify(meta));
+    fd.append('depth.bin', new Blob([depthBin]), 'depth.bin');
+    fd.append('normal.bin', new Blob([normalBin]), 'normal.bin');
+
+    const postReq = new NextRequest('http://localhost/api/hologram/upload', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer worker-test-token' },
+      body: fd,
+    });
+    const postRes = await postUpload(postReq);
+    expect(postRes.status).toBe(200);
+
+    const registry = getShareRegistry();
+    const { record } = await registry.getShareStatus(hash);
+    expect(record).toBeTruthy();
+    expect(record!.createdBy).toBe('');
+  });
+
+  it('POST /api/hologram/share records createdBy from session auth', async () => {
+    vi.stubEnv('HOLOGRAM_WORKER_TOKEN', '');
+    requireAuthMock.mockResolvedValue({ user: { id: 'share-user-7', email: 's@example.com' } });
+
+    // Pre-seed a bundle by uploading with worker token (no session)
+    const meta = makeMeta();
+    const { depthBin, normalBin, hash } = await minimalBundleBuffers(meta);
+    const fd = new FormData();
+    fd.append('meta', JSON.stringify(meta));
+    fd.append('depth.bin', new Blob([depthBin]), 'depth.bin');
+    fd.append('normal.bin', new Blob([normalBin]), 'normal.bin');
+
+    const uploadReq = new NextRequest('http://localhost/api/hologram/upload', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer worker-test-token' },
+      body: fd,
+    });
+    const uploadRes = await postUpload(uploadReq);
+    expect(uploadRes.status).toBe(200);
+
+    const shareReq = new NextRequest('http://localhost/api/hologram/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hash }),
+    });
+    const shareRes = await postShare(shareReq);
+    expect(shareRes.status).toBe(200);
+
+    const registry = getShareRegistry();
+    const { record } = await registry.getShareStatus(hash);
+    expect(record).toBeTruthy();
+    expect(record!.createdBy).toBe('share-user-7');
   });
 
   it('POST /api/hologram/upload rejects Content-Length over cap with 413', async () => {

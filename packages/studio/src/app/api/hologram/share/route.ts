@@ -40,8 +40,8 @@ const HASH_PATTERN = /^[0-9a-f]{64}$/;
 // ── POST: create or return existing share ────────────────────────────────────
 
 export async function POST(request: NextRequest) {
-  const denied = await authorizeHologramUpload(request);
-  if (denied) return denied;
+  const auth = await authorizeHologramUpload(request);
+  if (auth instanceof NextResponse) return auth;
 
   let body: unknown;
   try {
@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
   const record = await registry.createShare({
     hash,
     ttlSeconds,
+    createdBy: auth.userId,
   });
 
   return NextResponse.json({

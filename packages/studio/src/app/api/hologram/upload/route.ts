@@ -64,8 +64,8 @@ async function fileToUint8(file: File): Promise<Uint8Array> {
 }
 
 export async function POST(request: NextRequest) {
-  const denied = await authorizeHologramUpload(request);
-  if (denied) return denied;
+  const auth = await authorizeHologramUpload(request);
+  if (auth instanceof NextResponse) return auth;
 
   const cl = request.headers.get('content-length');
   if (cl) {
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     const registry = getShareRegistry();
     const shareRecord = await registry.createShare({
       hash,
-      createdBy: '', // TODO: extract from session when auth is wired
+      createdBy: auth.userId,
     });
 
     // Sprint 2 (A): canonical share URL — clients display this directly so

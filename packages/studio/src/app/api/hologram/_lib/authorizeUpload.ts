@@ -3,19 +3,26 @@ import { NextResponse } from 'next/server';
 
 import { requireAuth } from '@/lib/api-auth';
 
+export interface UploadAuthResult {
+  type: 'session' | 'worker';
+  userId: string;
+}
+
 /**
  * HoloGram uploads accept either a trusted worker bearer token
  * (`HOLOGRAM_WORKER_TOKEN`) or an authenticated Studio session.
+ *
+ * Returns `UploadAuthResult` on success, or a `NextResponse` (401/403) on denial.
  */
 export async function authorizeHologramUpload(
   request: NextRequest
-): Promise<NextResponse | null> {
+): Promise<NextResponse | UploadAuthResult> {
   const token = process.env.HOLOGRAM_WORKER_TOKEN;
   if (typeof token === 'string' && token.length > 0) {
     const raw = request.headers.get('authorization')?.trim() ?? '';
     const m = /^Bearer\s+(\S+)$/i.exec(raw);
     if (m && m[1] === token) {
-      return null;
+      return { type: 'worker', userId: '' };
     }
   }
 
@@ -23,5 +30,5 @@ export async function authorizeHologramUpload(
   if (session instanceof NextResponse) {
     return session;
   }
-  return null;
+  return { type: 'session', userId: session.user.id };
 }
