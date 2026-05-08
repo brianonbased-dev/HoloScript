@@ -2099,6 +2099,16 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "spatial_voice": {
+        "id": "spatial_voice",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "spectator": {
         "id": "spectator",
         "namespace": "@holoscript/core",

@@ -222,6 +222,7 @@ export * from './SpatialConstraintTraits';
 export * from './SpatialInputTraits';
 export * from './SpatialNavigationTrait';
 export * from './SpatialPersonaTrait';
+export * from './SpatialVoiceTrait';
 export * from './SpatiotemporalTraits';
 export * from './SpectatorTrait';
 export * from './SSOTrait';
