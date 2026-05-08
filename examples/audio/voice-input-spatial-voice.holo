@@ -1,0 +1,227 @@
+// ============================================================================
+// Voice Input + Spatial Voice Showcase
+// P2 refresh — 2026-05-07
+//
+// Demonstrates HoloScript's voice-driven interaction layer inside a
+// collaborative spatial audio environment.
+//
+// New traits covered (2 total):
+//   @voice_input   — Speech recognition with confidence-based command parsing
+//   @spatial_voice — WebRTC spatial voice chat with HRTF positioning
+//
+// Context: placed in a small VR meeting room where users can speak
+// naturally to control objects AND hear each other with 3D positioning.
+// ============================================================================
+
+composition "VoiceInputSpatialVoice" {
+  version: "7.0"
+  description: "Voice-driven scene interaction with spatialized peer voice chat"
+  tags: ["audio", "voice", "spatial", "interaction", "webrtc", "speech"]
+
+  environment {
+    skybox: "studio_soft"
+    ambient_light: 0.4
+    fog: { enabled: false }
+    gravity: [0, -9.81, 0]
+  }
+
+  // ----------------------------------------------------------
+  // LISTENER — User head position for binaural spatial voice
+  // ----------------------------------------------------------
+  audio_listener "UserHead" {
+    @hrtf(profile: "kemar_diffuse", interpolation: "bilinear")
+    @head_tracked_audio(tracking_mode: "6dof", latency_compensation: true)
+    position: [0, 1.6, 0]
+    global_volume: 1.0
+    speed_of_sound: 343
+  }
+
+  // ----------------------------------------------------------
+  // SPATIAL VOICE ZONE — Entire meeting room is a voice chat space
+  //
+  // @spatial_voice configures WebRTC transport + HRTF spatialization.
+  // Peers outside the rolloff range are attenuated; inside, their
+  // voice is positioned according to their avatar transform.
+  // ----------------------------------------------------------
+  object "MeetingRoomVoiceZone" {
+    geometry: "box"
+    visible: false
+    position: [0, 2.5, 0]
+    scale: [10, 5, 10]
+
+    @spatial_voice {
+      range: 20
+      rolloff: "inverse"
+      rolloff_factor: 1.0
+      hrtf: true
+      vad_threshold: -40
+      echo_cancellation: true
+      noise_suppression: true
+      max_streams: 8
+    }
+  }
+
+  // ----------------------------------------------------------
+  // VOICE-CONTROLLED PRESENTATION SCREEN
+  //
+  // @voice_input attaches to the screen so users can say commands
+  // like "next slide", "previous slide", "zoom in" to control it.
+  // ----------------------------------------------------------
+  object "PresentationScreen" {
+    geometry: "plane"
+    position: [0, 2.0, -4.5]
+    scale: [4.0, 2.25, 0.05]
+    material: { baseColor: "#0a0a0a", roughness: 0.2, metallic: 0.1 }
+
+    @voice_input {
+      mode: "push-to-talk"
+      confidenceThreshold: 0.75
+      languages: ["en-US"]
+      showTranscript: true
+      audioFeedback: true
+      timeout: 10000
+      commands: [
+        { phrase: "next slide", action: "screen.next" },
+        { phrase: "previous slide", action: "screen.prev" },
+        { phrase: "zoom in", action: "screen.zoom_in" },
+        { phrase: "zoom out", action: "screen.zoom_out" },
+        { phrase: "reset view", action: "screen.reset" },
+        { phrase: "mute audio", action: "audio.mute" },
+        { phrase: "unmute audio", action: "audio.unmute" }
+      ]
+    }
+
+    // Screen content placeholder
+    texture: "textures/presentation_slide_01.png"
+  }
+
+  // ----------------------------------------------------------
+  // VOICE-CONTROLLED LIGHTING
+  //
+  // A floor lamp that responds to voice commands for brightness
+  // and color temperature.
+  // ----------------------------------------------------------
+  object "FloorLamp" {
+    type: "point_light"
+    color: "#ffecd2"
+    intensity: 2.0
+    position: [-2.5, 2.8, -1.5]
+    castShadow: true
+
+    @voice_input {
+      mode: "push-to-talk"
+      confidenceThreshold: 0.7
+      languages: ["en-US"]
+      showTranscript: false
+      audioFeedback: true
+      timeout: 8000
+      commands: [
+        { phrase: "lights on", action: "lamp.on" },
+        { phrase: "lights off", action: "lamp.off" },
+        { phrase: "warmer light", action: "lamp.warmer" },
+        { phrase: "cooler light", action: "lamp.cooler" },
+        { phrase: "brighter", action: "lamp.brighter" },
+        { phrase: "dimmer", action: "lamp.dimmer" }
+      ]
+    }
+  }
+
+  // ----------------------------------------------------------
+  // SPATIAL VOICE AVATAR — Remote peer placeholder
+  //
+  // Represents another user in the room. Their voice stream is
+  // spatialized via the @spatial_voice zone above.
+  // ----------------------------------------------------------
+  object "RemotePeerAvatar" {
+    geometry: "capsule"
+    position: [2.0, 0.9, 1.5]
+    scale: [0.4, 0.9, 0.4]
+    material: { baseColor: "#4488ff", roughness: 0.5, metallic: 0.0 }
+
+    // Visual indicator when peer is speaking
+    @spatial_voice {
+      range: 20
+      rolloff: "inverse"
+      hrtf: true
+      vad_threshold: -40
+      echo_cancellation: true
+      noise_suppression: true
+      max_streams: 1
+    }
+  }
+
+  // ----------------------------------------------------------
+  // ACOUSTIC SURFACES
+  // ----------------------------------------------------------
+  object "RoomFloor" {
+    @audio_material(absorption_low: 0.25, absorption_mid: 0.35, absorption_high: 0.45)
+    @collidable
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [12, 1, 12]
+    material: { baseColor: "#2a2a2a", roughness: 0.8, metallic: 0.0 }
+  }
+
+  object "RoomCeiling" {
+    @audio_material(absorption_low: 0.15, absorption_mid: 0.20, absorption_high: 0.25)
+    geometry: "plane"
+    position: [0, 5, 0]
+    scale: [12, 1, 12]
+    material: { baseColor: "#e8e8e8", roughness: 0.6, metallic: 0.0 }
+  }
+
+  object "WallFront" {
+    @audio_material(absorption_low: 0.10, absorption_mid: 0.12, absorption_high: 0.15)
+    @audio_occlusion(transmission_loss: 30, frequency_dependent: true)
+    @collidable
+    geometry: "plane"
+    position: [0, 2.5, -6]
+    scale: [12, 5, 1]
+    material: { baseColor: "#d0d0d0", roughness: 0.7, metallic: 0.0 }
+  }
+
+  object "WallBack" {
+    @audio_material(absorption_low: 0.10, absorption_mid: 0.12, absorption_high: 0.15)
+    @audio_occlusion(transmission_loss: 30, frequency_dependent: true)
+    @collidable
+    geometry: "plane"
+    position: [0, 2.5, 6]
+    scale: [12, 5, 1]
+    material: { baseColor: "#d0d0d0", roughness: 0.7, metallic: 0.0 }
+  }
+
+  object "WallLeft" {
+    @audio_material(absorption_low: 0.10, absorption_mid: 0.12, absorption_high: 0.15)
+    @audio_occlusion(transmission_loss: 30, frequency_dependent: true)
+    @collidable
+    geometry: "plane"
+    position: [-6, 2.5, 0]
+    scale: [1, 5, 12]
+    material: { baseColor: "#d0d0d0", roughness: 0.7, metallic: 0.0 }
+  }
+
+  object "WallRight" {
+    @audio_material(absorption_low: 0.10, absorption_mid: 0.12, absorption_high: 0.15)
+    @audio_occlusion(transmission_loss: 30, frequency_dependent: true)
+    @collidable
+    geometry: "plane"
+    position: [6, 2.5, 0]
+    scale: [1, 5, 12]
+    material: { baseColor: "#d0d0d0", roughness: 0.7, metallic: 0.0 }
+  }
+
+  // ----------------------------------------------------------
+  // REVERB — Small meeting room acoustics
+  // ----------------------------------------------------------
+  reverb_zone "MeetingRoomReverb" {
+    @reverb_zone(type: "algorithmic", preset: "medium_room")
+    @reverb_zone(rt60_low: 0.7, rt60_mid: 0.5, rt60_high: 0.3)
+    @reverb_zone(early_reflections: 8, late_diffusion: 0.75)
+    position: [0, 2.5, 0]
+    min_distance: 1
+    max_distance: 8
+    decay_time: 0.5
+    diffusion: 70
+    density: 80
+  }
+}
