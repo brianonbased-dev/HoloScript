@@ -1,19 +1,19 @@
 {
   "schema": "holoscript.lotus.reference.material-extract.v0",
-  "status": "visual-seed-with-hashed-anchors",
+  "status": "visual-seed-with-signed-anchors",
   "captured_at": "2026-05-06",
   "reference_manifest": "examples/lotus-flower/reference.anchors.json",
   "source": {
     "kind": "conversation_reference_images",
     "count": 3,
     "content_hash_status": "complete",
-    "wallet_signature_status": "pending_cael_anchor",
+    "wallet_signature_status": "complete",
     "anchor_ids": [
       "lotus-reference-2026-05-06-01",
       "lotus-reference-2026-05-06-02",
       "lotus-reference-2026-05-06-03"
     ],
-    "note": "Reference anchors are content-hashed; Base tx broadcast pending founder action."
+    "note": "All reference anchors are content-hashed and CAEL-signed on Base."
   },
   "botanical_trait_target": "@botanical_lotus",
   "material": {
@@ -76,8 +76,8 @@
     "photo_to_material_extractor": {
       "package": "@holoscript/snn-webgpu",
       "entrypoint": "extractBotanicalLotusMaterial",
-      "status": "pipeline_ready_pending_cael_anchor"
+      "status": "pipeline_ready_with_cael_anchor"
     },
-    "photorealism_status": "extractor_available_pending_cael_anchor"
+    "photorealism_status": "extractor_available"
   }
 }

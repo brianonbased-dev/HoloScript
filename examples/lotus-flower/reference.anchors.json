@@ -1,18 +1,18 @@
 {
   "schema": "holoscript.lotus.reference.anchors.v0",
-  "status": "content_hashed",
+  "status": "wallet_signed",
   "generated_by": "conversation_reference_images",
-  "wallet_signature_status": "pending_cael_anchor",
+  "wallet_signature_status": "wallet_signed",
   "anchors": [
     {
       "id": "lotus-reference-2026-05-06-01",
       "label": "open pink lotus close-up",
       "uri": "file://reference/lotus-reference-2026-05-06-01.png",
       "role": "material",
-      "status": "hashed",
+      "status": "wallet_signed",
       "content_hash": "sha256:9cd5142a78a1727e53a612299b98bf39ae1145aaebf57ffe05bf7b4f6c917d3a",
-      "wallet_signature": null,
-      "note": "Content hashed; pending Base tx broadcast by founder anchor.",
+      "wallet_signature": "0xf77ab3197a04c969a125203cb59c5ce5e198aeae2cc8dd7e3047b4649bb4c110",
+      "note": "CAEL-anchored on Base via tx 0xf77ab3197a04c969a125203cb59c5ce5e198aeae2cc8dd7e3047b4649bb4c110",
       "mime_type": "image/png",
       "byte_length": 1785727
     },
@@ -21,10 +21,10 @@
       "label": "upright pink lotus silhouette",
       "uri": "file://reference/lotus-reference-2026-05-06-02.png",
       "role": "silhouette",
-      "status": "hashed",
+      "status": "wallet_signed",
       "content_hash": "sha256:0c7a84358ec4d306cbe7677717b76548fddab5dba0d08225218302c85d259574",
-      "wallet_signature": null,
-      "note": "Content hashed; pending Base tx broadcast by founder anchor.",
+      "wallet_signature": "0xecf377703e3777a5c023d2556ab564641adda4ac8df5ffdb0f8d597f014abc11",
+      "note": "CAEL-anchored on Base via tx 0xecf377703e3777a5c023d2556ab564641adda4ac8df5ffdb0f8d597f014abc11",
       "mime_type": "image/png",
       "byte_length": 3356458
     },
@@ -33,10 +33,10 @@
       "label": "pink lotus with leaves and water context",
       "uri": "file://reference/lotus-reference-2026-05-06-03.png",
       "role": "leaf_context",
-      "status": "hashed",
+      "status": "wallet_signed",
       "content_hash": "sha256:65b3ab02916e066af044984e45fee539de350e160dbc66c561153c48a44d12ad",
-      "wallet_signature": null,
-      "note": "Content hashed; pending Base tx broadcast by founder anchor.",
+      "wallet_signature": "0xbbf83dfec9ac621b441ef8a369d76d336b9a5ea5b479196c064f18a760f85c38",
+      "note": "CAEL-anchored on Base via tx 0xbbf83dfec9ac621b441ef8a369d76d336b9a5ea5b479196c064f18a760f85c38",
       "mime_type": "image/png",
       "byte_length": 1624422
     }
