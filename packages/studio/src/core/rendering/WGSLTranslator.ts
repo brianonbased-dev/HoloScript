@@ -446,6 +446,13 @@ export class WGSLTranslator {
         return `exp(-${density})`;
       }
 
+      // ── Lighting nodes ────────────────────────────────────────────────
+      case 'fresnel': {
+        const normal = inputs.get('normal') ?? inputs.get('a') ?? 'normalize(in.vNormal)';
+        const power = inputs.get('power') ?? inputs.get('b') ?? '2.0';
+        return `pow(1.0 - max(dot(normalize(vec3f(0.0, 0.0, 1.0)), ${normal}), 0.0), ${power})`;
+      }
+
       // ── Bake-specific nodes ────────────────────────────────────────────
       case 'ScreenSpaceAO': {
         // Heuristic occlusion from **linearized depth** samples plus a view-axis
@@ -558,6 +565,7 @@ export class WGSLTranslator {
       case 'Clamp':
       case 'Remap':
       case 'FogNode':
+      case 'fresnel':
       case 'ScreenSpaceAO':
       case 'AmbientOcclusion':
       case 'TimeInput':

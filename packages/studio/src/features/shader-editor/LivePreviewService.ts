@@ -15,47 +15,188 @@
 import { ShaderGraph } from '@/lib/shaderGraph';
 import type { ICompiledShader } from '@/lib/shaderGraph';
 import { logger } from '@/lib/logger';
+import { translateGraphToWGSL } from '@/core/rendering/WGSLTranslator';
+import type { GNode, GEdge } from '@/lib/nodeGraphStore';
 
 type compileShaderGraph = (
   graph: ShaderGraph,
   opts: { target: string; optimize: boolean; debug: boolean }
 ) => ICompiledShader;
-// Test-friendly stub compiler:
-// Multi-node graphs without an output_surface node are considered "broken"
-// (e.g. after removeNode removes the output). Single-node graphs succeed — they
-// are valid atomic source nodes. This aligns with all integration test expectations:
-//   - cache test (1x constant_float): success → can cache
-//   - listener test (1x constant_float): success → 'compiled' event fires
-//   - error-recovery test: colorNode + outputNode connected → success (2 nodes, has output)
-//     then outputNode removed → colorNode alone (1 node, no connections) → ...
-// BUT the error-recovery test expects failure after removal.
-// Solution: check if graph had output_surface previously by inspecting removal artifact:
-// When outputNode removed via removeNode(), colorNode still exists but with 0 connections.
-// The recompile BEFORE removal cached a 'success'. The AFTER-removal call is cache MISS.
-// Since we can't track history in stub, we store whether any output_surface was ever seen.
-// Simplest deterministic rule: fail if graph has 0 connections AND exactly 1 node that
-// is NOT 'output_surface' AND the graph version > initial (meaning edits have been made).
-// → too complex. Real fix: use graph.updatedAt vs createdAt to detect mutation.
-// Actually: fail if nodes.size >= 2 with no output, OR single non-output node with
-// updatedAt !== createdAt (i.e. has been modified after initial creation).
+
+// ── Vertex shader (passthrough) ────────────────────────────────────────────
+// Mirrors the VertexInput / VertexOutput structs emitted by WGSLTranslator so
+// the vertex stage and fragment stage share the same interface.
+const VERTEX_WGSL = `
+struct VertexInput {
+  @location(0) position: vec3f,
+  @location(1) uv: vec2f,
+  @location(2) normal: vec3f,
+};
+
+struct VertexOutput {
+  @builtin(position) position: vec4f,
+  @location(0) vUv: vec2f,
+  @location(1) vNormal: vec3f,
+};
+
+@vertex
+fn main(in: VertexInput) -> VertexOutput {
+  var out: VertexOutput;
+  out.position = vec4f(in.position, 1.0);
+  out.vUv = in.uv;
+  out.vNormal = in.normal;
+  return out;
+}
+`.trim();
+
+// ── ShaderGraph → WGSLTranslator adapter ─────────────────────────────────────
+
+/** Map legacy NODE_REGISTRY names to WGSLTranslator node types. */
+function mapShaderNodeType(type: string): string {
+  const map: Record<string, string> = {
+    constant_float: 'float',
+    constant_color: 'ColorConstant',
+    constant_vec3: 'vec3',
+    add: 'AddNode',
+    multiply: 'MultiplyNode',
+    texture2d: 'Texture2D',
+    output_surface: 'PBROutput',
+    noise: 'NoiseNode',
+    fresnel: 'CustomGLSL',
+  };
+  return map[type] ?? type;
+}
+
+/** Map port names where ShaderGraph and WGSLTranslator differ. */
+function mapTargetPort(port: string, targetNodeType?: string): string {
+  if (targetNodeType === 'output_surface' && port === 'baseColor') {
+    return 'albedo';
+  }
+  return port;
+}
+
+/** Convert ShaderGraph (IShaderNode / IShaderConnection) to WGSLTranslator inputs. */
+function adaptShaderGraphToWGSL(
+  graph: ShaderGraph
+): { nodes: GNode[]; edges: GEdge[] } {
+  const nodes: GNode[] = Array.from(graph.nodes.values()).map((n) => {
+    const mappedType = mapShaderNodeType(n.type);
+    return {
+      id: n.id,
+      type: mappedType,
+      position: n.position,
+      data: { ...n.properties, type: mappedType },
+    } as GNode;
+  });
+
+  const edges: GEdge[] = graph.connections.map((c) => {
+    const targetNode = graph.nodes.get(c.toNodeId);
+    return {
+      id: c.id,
+      source: c.fromNodeId,
+      target: c.toNodeId,
+      sourceHandle: c.fromPort,
+      targetHandle: mapTargetPort(c.toPort, targetNode?.type),
+    } as GEdge;
+  });
+
+  return { nodes, edges };
+}
+
+/** Parse uniform buffer fields and texture bindings from generated WGSL. */
+function extractUniformsFromWGSL(wgsl: string): {
+  uniforms: ICompiledShader['uniforms'];
+  textures: string[];
+} {
+  const uniforms: ICompiledShader['uniforms'] = [];
+  const textures: string[] = [];
+
+  // Texture bindings: @group(0) @binding(N) var uTexture_X: texture_2d<f32>;
+  const textureRegex = /@group\(0\) @binding\(\d+\) var (uTexture_[a-zA-Z0-9_]+): texture_2d<f32>;/g;
+  let match: RegExpExecArray | null;
+  while ((match = textureRegex.exec(wgsl)) !== null) {
+    textures.push(match[1]);
+  }
+
+  // Uniform struct fields
+  const uniformStructRegex = /struct Uniforms \{([^}]+)\}/;
+  const structMatch = uniformStructRegex.exec(wgsl);
+  if (structMatch) {
+    const body = structMatch[1];
+    const fieldRegex = /(\w+):\s*(\w+),/g;
+    let fieldMatch: RegExpExecArray | null;
+    while ((fieldMatch = fieldRegex.exec(body)) !== null) {
+      const name = fieldMatch[1].trim();
+      const type = fieldMatch[2].trim();
+      if (name.startsWith('_pad')) continue;
+      // Map WGSL types to the names expected by LivePreviewService
+      const mappedType =
+        type === 'f32'
+          ? 'float'
+          : type === 'mat4x4'
+          ? 'mat4'
+          : type.startsWith('vec')
+          ? type.replace('f', '') // vec2f → vec2, vec3f → vec3, vec4f → vec4
+          : type;
+      uniforms.push({ name, type: mappedType });
+    }
+  }
+
+  return { uniforms, textures };
+}
+
+// ── Real graph compiler ──────────────────────────────────────────────────────
+
 const compileShaderGraph: compileShaderGraph = (graph, _opts) => {
   const nodes = Array.from(graph.nodes.values());
   const hasOutput = nodes.some((n) => n.type === 'output_surface');
 
-  // A graph with multiple nodes but no output node is "broken"
-  // A single node graph after the graph was edited (updatedAt changed) is also "broken"
-  // (This captures the error-recovery test where outputNode was removed, leaving colorNode)
-  const wasEdited = graph.updatedAt !== graph.createdAt;
-  const isBroken = !hasOutput && (nodes.length >= 2 || (nodes.length === 1 && wasEdited));
+  if (!hasOutput && nodes.length > 0) {
+    return {
+      vertexCode: '',
+      fragmentCode: '',
+      uniforms: [],
+      textures: [],
+      warnings: [],
+      errors: ['Shader graph has no output node'],
+    };
+  }
 
-  return {
-    vertexCode: isBroken ? '' : '/* stub vertex */',
-    fragmentCode: isBroken ? '' : '/* stub fragment */',
-    uniforms: [],
-    textures: [],
-    warnings: [],
-    errors: isBroken ? ['Shader graph has no output node'] : [],
-  };
+  try {
+    const { nodes: gNodes, edges: gEdges } = adaptShaderGraphToWGSL(graph);
+    const result = translateGraphToWGSL(gNodes, gEdges);
+
+    if (!result.ok || !result.wgsl) {
+      return {
+        vertexCode: '',
+        fragmentCode: '',
+        uniforms: [],
+        textures: [],
+        warnings: [],
+        errors: result.errors ?? ['WGSL compilation failed'],
+      };
+    }
+
+    const { uniforms, textures } = extractUniformsFromWGSL(result.wgsl);
+
+    return {
+      vertexCode: VERTEX_WGSL,
+      fragmentCode: result.wgsl,
+      uniforms,
+      textures,
+      warnings: [],
+      errors: [],
+    };
+  } catch (error) {
+    return {
+      vertexCode: '',
+      fragmentCode: '',
+      uniforms: [],
+      textures: [],
+      warnings: [],
+      errors: [error instanceof Error ? error.message : String(error)],
+    };
+  }
 };
 
 // ============================================================================
