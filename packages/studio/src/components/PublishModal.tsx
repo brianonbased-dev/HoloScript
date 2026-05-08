@@ -1,18 +1,22 @@
 'use client';
 
 /**
- * PublishModal — one-click scene publishing flow
+ * PublishModal — one-click scene publishing to WebXR
  *
- * States: idle → publishing → done → error
- * On success: shows public URL + copy button + inline QR code (SVG-based)
+ * Publishes the current HoloScript source to /api/share and returns a
+ * WebXR-capable public URL (/w/<id> short URL or custom domain).
+ *
+ * Features:
+ *   - QR code for phone/headset scanning
+ *   - Copy + external link
+ *   - Optional custom domain
+ *   - No-app launch: works on phone, desktop, and VR headset
  */
 
 import { useState, useCallback } from 'react';
 import { Globe, Copy, Check, Loader2, X, ExternalLink } from 'lucide-react';
 import { QRCodeImage } from '@/components/QRCodeImage';
-import { useSceneStore, useSceneGraphStore } from '@/lib/stores';
-import { useAssetStore } from '@/components/assets/useAssetStore';
-import { serializeScene } from '@/lib/serializer';
+import { useSceneStore } from '@/lib/stores';
 import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 interface PublishModalProps {
@@ -24,35 +28,27 @@ type Stage = 'idle' | 'publishing' | 'done' | 'error';
 export function PublishModal({ onClose }: PublishModalProps) {
   const [stage, setStage] = useState<Stage>('idle');
   const [publishedUrl, setPublishedUrl] = useState('');
+  const [customDomain, setCustomDomain] = useState('');
   const [errMsg, setErrMsg] = useState('');
   const [copied, setCopied] = useState(false);
 
   const code = useSceneStore((s) => s.code);
   const metadata = useSceneStore((s) => s.metadata);
-  const r3fTree = useSceneStore((s) => s.r3fTree);
-  const nodes = useSceneGraphStore((s) => s.nodes);
-  const assets = useAssetStore((s) => s.assets);
 
   const handlePublish = useCallback(async () => {
     setStage('publishing');
     try {
-      // Serialize the current scene
-      const scene = serializeScene(
-        {
-          id: metadata.id ?? '',
-          name: metadata.name,
-          createdAt: metadata.createdAt ?? new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
+      const payload: Record<string, string> = {
+        name: metadata.name || 'Untitled Scene',
         code,
-        nodes,
-        assets
-      );
+        author: 'Anonymous',
+      };
+      const domain = customDomain.trim();
+      if (domain) {
+        payload.customDomain = domain;
+      }
 
-      // Attach r3fTree so the viewer can render immediately without re-compiling
-      const payload = { ...scene, r3fTree };
-
-      const res = await fetch('/api/publish', {
+      const res = await fetch('/api/share', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -60,17 +56,20 @@ export function PublishModal({ onClose }: PublishModalProps) {
 
       if (!res.ok) {
         const data = (await res.json()) as { error?: string };
-        throw new Error(data.error ?? 'Publish failed');
+        throw new Error(data.error ?? `HTTP ${res.status}`);
       }
 
-      const data = (await res.json()) as { url: string };
-      setPublishedUrl(data.url);
+      const data = (await res.json()) as { id: string; url: string; customUrl?: string };
+      const base = window.location.origin;
+      // Prefer short /w/<id> URL; fall back to /shared/<id>; use custom domain if provided
+      const url = data.customUrl ?? `${base}/w/${data.id}`;
+      setPublishedUrl(url);
       setStage('done');
     } catch (e) {
       setErrMsg(e instanceof Error ? e.message : String(e));
       setStage('error');
     }
-  }, [assets, code, metadata, nodes, r3fTree]);
+  }, [code, customDomain, metadata.name]);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(publishedUrl).then(() => {
@@ -86,7 +85,7 @@ export function PublishModal({ onClose }: PublishModalProps) {
         <div className="flex items-center justify-between border-b border-studio-border px-5 py-4">
           <div className="flex items-center gap-2">
             <Globe className="h-4 w-4 text-studio-accent" />
-            <span className="font-semibold text-studio-text">Publish Scene</span>
+            <span className="font-semibold text-studio-text">Publish to WebXR</span>
           </div>
           <button onClick={onClose} className="text-studio-muted hover:text-studio-text">
             <X className="h-4 w-4" />
@@ -99,15 +98,35 @@ export function PublishModal({ onClose }: PublishModalProps) {
             <>
               <p className="mb-4 text-sm text-studio-muted">
                 Publish <span className="font-medium text-studio-text">{metadata.name}</span> to a
-                public shareable URL. Anyone with the link can view your scene in read-only mode.
+                public WebXR URL. Anyone with the link can view your scene — no app install
+                required.
               </p>
               <div className="mb-4 rounded-lg border border-studio-border bg-studio-surface p-3 text-xs text-studio-muted">
                 <ul className="space-y-1">
                   <li>✓ Full 3D rendering in the browser</li>
-                  <li>✓ No account required to view</li>
-                  <li>✓ Scene stored on this server</li>
+                  <li>✓ Enter VR on Quest, Vision Pro, and WebXR headsets</li>
+                  <li>✓ Launch from phone, desktop, or headset — no app store</li>
+                  <li>✓ Auto-enters VR when opened in Oculus Browser</li>
                 </ul>
               </div>
+
+              {/* Custom domain */}
+              <div className="mb-4 flex flex-col gap-1.5">
+                <label className="text-[10px] font-medium text-studio-muted uppercase tracking-widest">
+                  Custom domain (optional)
+                </label>
+                <input
+                  type="text"
+                  value={customDomain}
+                  onChange={(e) => setCustomDomain(e.target.value)}
+                  placeholder="e.g. my-experience.com"
+                  className="rounded-lg border border-studio-border bg-studio-surface px-3 py-2 text-xs text-studio-text placeholder:text-studio-muted outline-none focus:border-studio-accent"
+                />
+                <p className="text-[10px] text-studio-muted">
+                  Configure a CNAME to studio.holoscript.net
+                </p>
+              </div>
+
               <button
                 onClick={handlePublish}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-studio-accent py-2.5 text-sm font-medium text-white transition hover:bg-studio-accent/80"
@@ -121,7 +140,7 @@ export function PublishModal({ onClose }: PublishModalProps) {
           {stage === 'publishing' && (
             <div className="flex flex-col items-center gap-3 py-4">
               <Loader2 className="h-8 w-8 animate-spin text-studio-accent" />
-              <p className="text-sm text-studio-muted">Publishing scene…</p>
+              <p className="text-sm text-studio-muted">Publishing scene to WebXR…</p>
             </div>
           )}
 
@@ -130,7 +149,7 @@ export function PublishModal({ onClose }: PublishModalProps) {
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-studio-success/20">
                 <Check className="h-6 w-6 text-studio-success" />
               </div>
-              <p className="text-sm font-medium text-studio-text">Scene is live!</p>
+              <p className="text-sm font-medium text-studio-text">Scene is live on WebXR!</p>
 
               {/* URL bar */}
               <div className="flex w-full items-center gap-2 rounded-lg border border-studio-border bg-studio-surface px-3 py-2">
@@ -161,6 +180,10 @@ export function PublishModal({ onClose }: PublishModalProps) {
                 size={120}
                 className="rounded-lg border border-studio-border"
               />
+
+              <p className="text-[11px] text-studio-muted text-center">
+                Scan this QR code with your phone or Quest to launch instantly.
+              </p>
 
               <button
                 onClick={onClose}
