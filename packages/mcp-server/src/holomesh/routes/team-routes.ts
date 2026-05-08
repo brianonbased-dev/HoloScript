@@ -1387,8 +1387,11 @@ export async function handleTeamRoutes(
 
     if (todoContent) {
       // Parse "file:line: // TODO: text" or "file:line: // FIXME: text"
+      // Skip test/spec files to prevent self-derivation from test fixtures.
+      const SCOUT_SKIP_RE = /(?:__tests__[/\\]|\.test\.ts[:#]|\.spec\.ts[:#])/;
       const lines = todoContent.split('\n').filter(Boolean);
       for (const line of lines) {
+        if (SCOUT_SKIP_RE.test(line)) continue;
         const match = line.match(/^(.+):(\d+):\s*\/\/\s*(TODO|FIXME):?\s*(.+)$/i);
         if (match) {
           const [, file, lineNum, kind, desc] = match;

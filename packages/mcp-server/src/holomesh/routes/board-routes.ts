@@ -408,7 +408,10 @@ export async function handleBoardRoutes(
     }[] = [];
     if (todoContent && todoContent.length > 0) {
       // Mock scout from todos based on expected format
+      // Skip the scanner's own implementation file and test/spec files to prevent self-derivation.
+      const SCOUT_SKIP_RE = /\bboard-routes\.ts[:#]|(?:__tests__[/\\]|\.test\.ts[:#]|\.spec\.ts[:#])/;
       const tasksBody = todoContent.split('\n')
+        .filter(l => !SCOUT_SKIP_RE.test(l))
         .filter(l => l.includes('TODO:') || l.includes('FIXME:'))
         .map((l, i) => ({
           title: l.substring(l.indexOf(l.includes('TODO:') ? 'TODO:' : 'FIXME:')).trim(),
