@@ -56,6 +56,7 @@ import { isHologramToolName, handleHologramTool } from './hologram-mcp-tools';
 import { isHoloTwinToolName, handleHoloTwinTool } from './holotwin-mcp-tools';
 import { handleEstimateTaskDurationTool } from './tools/estimate_task_duration';
 import { handleCriticTool } from './critic-handler';
+import { handleFounderTool } from './founder-handler';
 import {
   LEGACY_TRAIT_CATEGORY_ALIASES,
   loadTraitCategoriesFromCore,
@@ -323,7 +324,11 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     return handleCriticTool(args);
   }
 
-  // All remaining holo_ tools go to the Graph tool handler 
+  if (name === 'holo_founder') {
+    return handleFounderTool(args);
+  }
+
+  // All remaining holo_ tools go to the Graph tool handler
   // (Oracle, Codebase, and Wisdom/Gotcha are now handled directly via the O(1) registry in index.ts)
   if (name.startsWith('holo_')) {
     return handleGraphTool(name, args);
