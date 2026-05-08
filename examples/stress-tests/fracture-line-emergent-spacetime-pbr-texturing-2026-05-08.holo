@@ -1,0 +1,486 @@
+// ============================================================================
+// A-009 Stress Test — 2026-05-08
+// "Fracture Line"
+//
+// NEVER-EXERCISED TRAITS UNDER TEST:
+//   @emergent_spacetime — Provenance-weighted entanglement lattice. Exercises
+//                         initial_voxels=500, ricci_heatmap, force_layout_guard,
+//                         real_time_budget_ms constraint, and the seed path for
+//                         deterministic replay. The lattice forms the scene's
+//                         only interior light source — proving visual output, not
+//                         just silent physics.
+//   @advanced_pbr       — Full PBR extension stack. Tests clearcoat (lacquered
+//                         composite hull plating), iridescence (thin-film oil-slick
+//                         on coolant tank surfaces), anisotropy (brushed titanium
+//                         floor grating), and transmission (blast-glass observation
+//                         window). Four sub-modes in one scene.
+//   @advanced_texturing — Displacement + POM. Hull plate geometry uses tessellated
+//                         displacement (micrometeorite cratering); observation-dome
+//                         interior uses parallax-occlusion mapping with self-shadowed
+//                         surface scratches. Exercises both 'displacement' and 'pom'
+//                         TexMappingMode paths.
+//
+// WELL-EXERCISED ANCHORS (binding the new traits into a living scene):
+//   @emissive           — fracture corona and emergency strip lighting
+//   @particle           — graviton static around the fracture point
+//   @collidable         — all six hull walls for physics boundary
+//   @animated           — slow axial tumble on the station module (no gyros left)
+//   @anchor             — three emergency tether points, world-locked
+//
+// SCENE STORY:
+//   Station module ΔV-7 has been drifting in a 340 km orbit for six hours since
+//   main propulsion died. The crew evacuated. What remains is a 12 × 12 × 4 m
+//   pressurised box of matte-black composite and scratched titanium, still sealed.
+//
+//   In the geometric centre of the module, an entanglement experiment ran past
+//   its containment budget. The ProvenanceNetwork is still live — 500 voxels
+//   self-organising into an emergent distance metric, Ricci curvature visualised
+//   as a heat gradient shifting from violet (low curvature) to amber (high).
+//   The lattice pulses gently at the Hubble-correction frequency: ~0.03 Hz.
+//
+//   Hull plate interiors are lacquered carbon-fibre composite — clearcoat gloss
+//   over a dark-grey base. Where coolant tanks ruptured, thin liquid films
+//   dried into iridescent coatings on the aluminium panels: soap-bubble colours
+//   cycling through the visible spectrum at different viewing angles. The floor
+//   grating is brushed titanium, its anisotropy axis aligned with the extrusion
+//   direction. The observation window is a 30 mm blast-glass panel — transmission
+//   factor 0.88, chromatic dispersion just high enough to produce a faint rainbow
+//   fringe at oblique incidence.
+//
+//   @advanced_texturing gives the hull plates their physical history: thousands
+//   of micrometeorite craters 0.1–3 mm in diameter are encoded in a displacement
+//   height-map tessellated to level 8. Inside the module, the observation-dome
+//   ceiling uses POM (64 ray-march steps, self-shadowed) to render deep surface
+//   scratches from the emergency egress sequence without adding geometry.
+//
+//   Three emergency tether clips are anchored to the hull — world-locked in the
+//   pre-failure orientation — waiting for a salvage crew that may or may not
+//   come.
+// ============================================================================
+
+composition "FractureLine" {
+  description: "Derelict orbital module with spacetime fracture — @emergent_spacetime + @advanced_pbr + @advanced_texturing stress-test."
+  tags: ["a009", "stress-test", "sci-fi", "orbital", "emergent_spacetime", "advanced_pbr", "advanced_texturing", "2026-05-08"]
+
+  // --------------------------------------------------------------------------
+  // ENVIRONMENT
+  // Dead module interior — no internal illumination except the fracture and
+  // emergency strip lights. Ambient nearly zero; HDRI is LEO starfield.
+  // --------------------------------------------------------------------------
+  environment {
+    skybox: "none"
+    ambient_light: 0.03
+    background_color: "#000000"
+    shadows: true
+    fog: false
+  }
+
+  // --------------------------------------------------------------------------
+  // HULL GEOMETRY — six walls of a 12×12×4 m pressurised box
+  // @advanced_pbr: clearcoat (lacquered composite) + normal map
+  // @advanced_texturing: displacement mode, micrometeorite height-map
+  // @collidable: physics boundary
+  // @animated: slow axial tumble — 0.006 rpm around world-Z (no gyros)
+  // --------------------------------------------------------------------------
+
+  object "HullFloor" {
+    geometry: "plane"
+    scale: [12, 1, 12]
+    position: [0, -2, 0]
+    rotation: [0, 0, 0]
+
+    @collidable {
+      friction: 0.9
+      restitution: 0.05
+      layer: "static"
+    }
+
+    @advanced_pbr {
+      base_color: "#1a1a1a"
+      metallic: 0.05
+      roughness: 0.7
+      anisotropy: {
+        strength: 0.82
+        rotation: 90
+        direction: "u"
+      }
+      normal_map: "hull/titanium_grating_normal.png"
+    }
+
+    @advanced_texturing {
+      mode: "displacement"
+      displacement: {
+        heightMap: "hull/micrometeorite_craters.png"
+        scale: 0.004
+        bias: -0.002
+        tessellationLevel: 8
+      }
+    }
+  }
+
+  object "HullCeiling" {
+    geometry: "plane"
+    scale: [12, 1, 12]
+    position: [0, 2, 0]
+    rotation: [180, 0, 0]
+
+    @collidable {
+      friction: 0.6
+      restitution: 0.05
+      layer: "static"
+    }
+
+    @advanced_pbr {
+      base_color: "#1c1c1c"
+      metallic: 0.04
+      roughness: 0.82
+      clearcoat: {
+        intensity: 0.6
+        roughness: 0.05
+        ior: 1.5
+      }
+      normal_map: "hull/composite_panel_normal.png"
+    }
+
+    @advanced_texturing {
+      mode: "pom"
+      pom: {
+        heightMap: "hull/egress_scratches.png"
+        scale: 0.025
+        steps: 64
+        refinementSteps: 8
+        selfShadow: true
+      }
+    }
+  }
+
+  object "HullPortSide" {
+    geometry: "plane"
+    scale: [12, 1, 4]
+    position: [-6, 0, 0]
+    rotation: [0, 0, 90]
+
+    @collidable {
+      friction: 0.7
+      restitution: 0.05
+      layer: "static"
+    }
+
+    @advanced_pbr {
+      base_color: "#161616"
+      metallic: 0.06
+      roughness: 0.75
+      iridescence: {
+        intensity: 0.72
+        ior: 1.35
+        thickness_min: 250
+        thickness_max: 800
+      }
+      clearcoat: {
+        intensity: 0.4
+        roughness: 0.08
+        ior: 1.52
+      }
+    }
+
+    @advanced_texturing {
+      mode: "displacement"
+      displacement: {
+        heightMap: "hull/micrometeorite_craters.png"
+        scale: 0.003
+        bias: -0.0015
+        tessellationLevel: 6
+      }
+    }
+  }
+
+  object "HullStarboardSide" {
+    geometry: "plane"
+    scale: [12, 1, 4]
+    position: [6, 0, 0]
+    rotation: [0, 0, -90]
+
+    @collidable {
+      friction: 0.7
+      restitution: 0.05
+      layer: "static"
+    }
+
+    @advanced_pbr {
+      base_color: "#161616"
+      metallic: 0.06
+      roughness: 0.75
+      iridescence: {
+        intensity: 0.68
+        ior: 1.35
+        thickness_min: 200
+        thickness_max: 750
+      }
+      clearcoat: {
+        intensity: 0.35
+        roughness: 0.09
+        ior: 1.52
+      }
+    }
+
+    @advanced_texturing {
+      mode: "displacement"
+      displacement: {
+        heightMap: "hull/micrometeorite_craters.png"
+        scale: 0.003
+        bias: -0.0015
+        tessellationLevel: 6
+      }
+    }
+  }
+
+  object "HullAftBulkhead" {
+    geometry: "plane"
+    scale: [12, 1, 4]
+    position: [0, 0, -6]
+    rotation: [90, 0, 0]
+
+    @collidable {
+      friction: 0.7
+      restitution: 0.05
+      layer: "static"
+    }
+
+    @advanced_pbr {
+      base_color: "#1a1a1a"
+      metallic: 0.05
+      roughness: 0.72
+      clearcoat: {
+        intensity: 0.55
+        roughness: 0.06
+        ior: 1.5
+      }
+      normal_map: "hull/composite_panel_normal.png"
+    }
+
+    @advanced_texturing {
+      mode: "displacement"
+      displacement: {
+        heightMap: "hull/micrometeorite_craters.png"
+        scale: 0.0035
+        bias: -0.0018
+        tessellationLevel: 7
+      }
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // OBSERVATION WINDOW — blast-glass transmission panel
+  // @advanced_pbr: transmission mode, high-IOR glass, chromatic dispersion
+  // --------------------------------------------------------------------------
+  object "ObservationWindow" {
+    geometry: "plane"
+    scale: [2.4, 1, 1.2]
+    position: [0, 0.3, 6.0]
+
+    @advanced_pbr {
+      base_color: "#cce8ff"
+      metallic: 0.0
+      roughness: 0.02
+      transmission: {
+        factor: 0.88
+        ior: 1.52
+        thickness: 0.03
+        attenuation_distance: 0.8
+        attenuation_color: [0.92, 0.97, 1.0]
+        dispersion: 0.04
+      }
+      clearcoat: {
+        intensity: 0.9
+        roughness: 0.01
+        ior: 1.5
+      }
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // EMERGENCY STRIP LIGHTS — dim red, still powered by backup cells
+  // @emissive: low intensity, long falloff
+  // --------------------------------------------------------------------------
+  object "StripLightPort" {
+    geometry: "cube"
+    scale: [10, 0.04, 0.04]
+    position: [-5.8, -1.7, 0]
+    color: "#ff2200"
+
+    @emissive {
+      color: "#ff2200"
+      intensity: 0.18
+      falloff: "linear"
+      radius: 3.0
+    }
+  }
+
+  object "StripLightStarboard" {
+    geometry: "cube"
+    scale: [10, 0.04, 0.04]
+    position: [5.8, -1.7, 0]
+    color: "#ff2200"
+
+    @emissive {
+      color: "#ff2200"
+      intensity: 0.18
+      falloff: "linear"
+      radius: 3.0
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // TETHER ANCHORS — three emergency clips, world-locked in pre-failure pose
+  // @anchor: world-locked spatial anchor
+  // --------------------------------------------------------------------------
+  object "TetherClipA" {
+    geometry: "cylinder"
+    scale: [0.04, 0.12, 0.04]
+    position: [-2.5, -1.95, 1.5]
+    color: "#ff8800"
+
+    @anchor {
+      locked: true
+      reference_frame: "world"
+      persistence: "session"
+    }
+  }
+
+  object "TetherClipB" {
+    geometry: "cylinder"
+    scale: [0.04, 0.12, 0.04]
+    position: [0, -1.95, 0]
+    color: "#ff8800"
+
+    @anchor {
+      locked: true
+      reference_frame: "world"
+      persistence: "session"
+    }
+  }
+
+  object "TetherClipC" {
+    geometry: "cylinder"
+    scale: [0.04, 0.12, 0.04]
+    position: [2.5, -1.95, -1.5]
+    color: "#ff8800"
+
+    @anchor {
+      locked: true
+      reference_frame: "world"
+      persistence: "session"
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // THE FRACTURE — centre of module, spacetime entanglement experiment
+  //
+  // @emergent_spacetime: 500 voxels, ricci_heatmap ON, force_layout_guard ON.
+  //   The Ricci heatmap makes the entanglement structure visible: violet where
+  //   curvature is low, amber where provenance loops have accumulated stress.
+  //   seed=7743 gives a deterministic fracture morphology for replay.
+  //
+  // @emissive: corona glow on the host object — warm white / pale violet.
+  //   The fracture is the primary light source for the interior.
+  //
+  // @particle: graviton static — fine sparks that orbit the fracture point
+  //   along the entanglement edges, disappearing before they touch the hull.
+  //   Lifetime 1.2 s; no gravity (zero-g interior).
+  // --------------------------------------------------------------------------
+  object "FractureCore" {
+    geometry: "sphere"
+    scale: [0.6, 0.6, 0.6]
+    position: [0, 0, 0]
+    color: "#e8d4ff"
+
+    @emergent_spacetime {
+      initial_voxels: 500
+      max_voxels: 2000
+      real_time_budget_ms: 8
+      ricci_heatmap: true
+      force_layout_guard: true
+      ricci_error_bound: 0.00001
+      loop_threshold: 50
+      seed: 7743
+    }
+
+    @emissive {
+      color: "#e8d4ff"
+      intensity: 2.4
+      falloff: "quadratic"
+      radius: 8.0
+    }
+
+    @particle {
+      count: 320
+      lifetime: 1.2
+      speed: 0.4
+      spread: 360
+      size: 0.012
+      color: "#c4a0ff"
+      opacity: 0.7
+      gravity: 0.0
+      blend_mode: "additive"
+      emission_shape: "sphere"
+      emission_radius: 0.55
+    }
+  }
+
+  // Secondary corona — slightly larger, slower particle belt
+  object "FractureAura" {
+    geometry: "sphere"
+    scale: [1.2, 1.2, 1.2]
+    position: [0, 0, 0]
+    color: "#f0e8ff"
+
+    @emissive {
+      color: "#5522aa"
+      intensity: 0.6
+      falloff: "quadratic"
+      radius: 5.0
+    }
+
+    @particle {
+      count: 80
+      lifetime: 3.0
+      speed: 0.08
+      spread: 360
+      size: 0.025
+      color: "#7744cc"
+      opacity: 0.3
+      gravity: 0.0
+      blend_mode: "additive"
+      emission_shape: "sphere"
+      emission_radius: 1.1
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // SLOW TUMBLE — the whole module drifts on a 166-second rotation period
+  // Represented as an animated wrapper that all geometry is logically inside.
+  // @animated: continuous rotation, no easing, loop forever
+  // --------------------------------------------------------------------------
+  object "ModuleTumbleIndicator" {
+    geometry: "cube"
+    scale: [0.02, 0.02, 0.02]
+    position: [5.8, 1.9, 5.8]
+    color: "#00ff44"
+
+    @animated {
+      property: "rotation"
+      from: [0, 0, 0]
+      to: [0, 360, 0]
+      duration: 166.0
+      loop: true
+      easing: "linear"
+    }
+
+    @emissive {
+      color: "#00ff44"
+      intensity: 0.8
+      falloff: "quadratic"
+      radius: 0.4
+    }
+  }
+}

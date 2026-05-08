@@ -1,0 +1,493 @@
+// ============================================================================
+// A-009 Stress Test — 2026-05-08
+// "Wayfinder's Garden"
+//
+// NEVER-EXERCISED TRAITS UNDER TEST:
+//   @gesture             — GestureConfig full exercise: all six gesture types
+//                         (swipe_left, swipe_right, swipe_up, swipe_down,
+//                         pinch, palm_open). Pinch activates plant info panels.
+//                         Swipe-up advances the navigation trail. Palm-open
+//                         dismisses any overlaid waypoint. Also exercises
+//                         debounce (300 ms) and pinchThreshold (0.85).
+//   @spatial_audio_cue   — Four cue_types in one scene: 'navigation' (path
+//                         breadcrumb chimes), 'information' (plant specimen
+//                         earcon), 'confirmation' (waypoint reached), and
+//                         'alert' (rare-orchid proximity ring). Exercises
+//                         spatial:true, repeat_interval, max_distance, and
+//                         the TTS message path for accessibility.
+//   @spatial_navigation  — holographic PathVisualization in 'walking' mode.
+//                         Exercises show_distance, show_eta, auto_recalculate
+//                         (1.5 m threshold), waypoint_radius_m, and custom
+//                         path_color. Tests the four-waypoint trail from
+//                         the Gate through Oak Glade → Fern Valley → Orchid
+//                         Terrace → Observatory Bench.
+//   @co_located          — cloud_anchor alignment for two simultaneous
+//                         visitors. shared_anchor_id pinned to the Heritage
+//                         Oak. max_participants:4, auto_align:true.
+//                         realignment_threshold:0.25 m (tight — garden paths
+//                         are narrow). Exercises the visual_indicator flag
+//                         that shows the shared-world ring at the anchor.
+//
+// WELL-EXERCISED ANCHORS:
+//   @anchor     — all plant specimen markers are world-locked spatial anchors
+//   @animated   — flower bloom response when pinch gesture is detected
+//   @hoverable  — information panels fade in on hover, fade out on leave
+//   @accessible — TTS labels on every named specimen; role: "landmark"
+//
+// SCENE STORY:
+//   The Wellington Botanical Reserve has an AR trail system. Two visitors —
+//   call them V1 (south entrance) and V2 (north entrance) — open the trail
+//   app simultaneously. Their AR sessions align to a cloud anchor on the
+//   400-year-old Heritage Oak at the centre of the reserve. Once aligned,
+//   they share the same virtual layer: glowing path breadcrumbs on the gravel,
+//   soft chimes when they approach labelled specimens, plant information
+//   panels that bloom open at a pinch gesture.
+//
+//   The trail has four waypoints. A spatial navigation overlay (holographic,
+//   soft green) shows each visitor their remaining distance and ETA. When
+//   both visitors reach the Observatory Bench, the shared session plays a
+//   confirmation chime — the only sound that emanates from both headsets
+//   simultaneously.
+//
+//   The rare orchid — Pterostylis banksii, the greenhood — triggers an alert
+//   cue at 3 m radius. The earcon is a single clear bell tone; the TTS message
+//   reads its Māori name, "perei", for visitors using voice navigation.
+// ============================================================================
+
+composition "WayfinderGarden" {
+  description: "Shared AR botanical trail — @gesture + @spatial_audio_cue + @spatial_navigation + @co_located stress-test."
+  tags: ["a009", "stress-test", "AR", "garden", "gesture", "spatial_audio_cue", "spatial_navigation", "co_located", "2026-05-08"]
+
+  // --------------------------------------------------------------------------
+  // ENVIRONMENT
+  // Overcast midday — flat natural light, no hard shadows.
+  // Passthrough AR mode: the real garden is visible; virtual overlays composite on.
+  // --------------------------------------------------------------------------
+  environment {
+    skybox: "passthrough"
+    ambient_light: 0.85
+    shadows: false
+    fog: true
+    fog_density: 0.012
+    fog_color: "#c8d8c0"
+  }
+
+  // --------------------------------------------------------------------------
+  // CO-LOCATION ANCHOR — Heritage Oak
+  // The shared_anchor_id is the ARKit/ARCore cloud anchor placed on the oak
+  // during installation day. auto_align finds it via VPS if QR is unavailable.
+  // @co_located: cloud_anchor alignment, visual indicator ring
+  // @accessible: landmark role announces "Shared AR trail anchor — Heritage Oak"
+  // --------------------------------------------------------------------------
+  object "HeritageOak" {
+    geometry: "cylinder"
+    scale: [0.9, 8, 0.9]
+    position: [0, 4, 0]
+    color: "#5c3d1e"
+
+    @co_located {
+      shared_anchor_id: "anchor_heritage_oak_wbr_v2"
+      alignment_method: "cloud_anchor"
+      alignment_timeout: 20000
+      visual_indicator: true
+      max_participants: 4
+      auto_align: true
+      realignment_threshold: 0.25
+    }
+
+    @anchor {
+      locked: true
+      reference_frame: "world"
+      persistence: "cloud"
+    }
+
+    @accessible {
+      role: "landmark"
+      label: "Shared AR trail anchor — Heritage Oak, estimated age 400 years"
+    }
+  }
+
+  // Oak canopy — just for visual grounding; no interactivity
+  object "OakCanopy" {
+    geometry: "sphere"
+    scale: [5.5, 4, 5.5]
+    position: [0, 8.5, 0]
+    color: "#2d5a1b"
+  }
+
+  // --------------------------------------------------------------------------
+  // SPATIAL NAVIGATION SYSTEM
+  // One navigation root object carries the @spatial_navigation trait.
+  // Waypoints are injected by the runtime; here we declare the trail config.
+  // @gesture on this object responds to swipe_up to advance waypoints.
+  // --------------------------------------------------------------------------
+  object "TrailNav" {
+    geometry: "none"
+    position: [0, 0, 0]
+
+    @spatial_navigation {
+      navigation_mode: "walking"
+      path_visualization: "holographic"
+      show_distance: true
+      show_eta: true
+      auto_recalculate: true
+      recalculate_threshold_m: 1.5
+      waypoint_radius_m: 2.5
+      path_color: "#44ff88"
+    }
+
+    @gesture {
+      enabledGestures: ["swipe_up", "swipe_down", "palm_open"]
+      swipeThreshold: 0.12
+      debounce: 300
+    }
+
+    @spatial_audio_cue {
+      cue_type: "navigation"
+      earcon: "audio/nav_chime_soft.wav"
+      spatial: false
+      repeat_interval: 0
+      volume: 0.65
+      priority: "low"
+      max_distance: 20
+      tts_message: "Next waypoint reached. Follow the green path."
+      interrupt_lower_priority: false
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // WAYPOINT MARKERS (four along the trail)
+  // Each marker: @anchor (world-locked), @animated (pulse glow on approach),
+  // @accessible (TTS waypoint name), @spatial_audio_cue (confirmation on reach)
+  // --------------------------------------------------------------------------
+
+  object "Waypoint_OakGlade" {
+    geometry: "sphere"
+    scale: [0.18, 0.18, 0.18]
+    position: [12, 0.2, -5]
+    color: "#44ff88"
+
+    @anchor {
+      locked: true
+      reference_frame: "world"
+      persistence: "cloud"
+    }
+
+    @animated {
+      property: "scale"
+      from: [0.18, 0.18, 0.18]
+      to: [0.24, 0.24, 0.24]
+      duration: 1.4
+      loop: true
+      easing: "sine"
+    }
+
+    @spatial_audio_cue {
+      cue_type: "confirmation"
+      earcon: "audio/waypoint_reached.wav"
+      spatial: true
+      repeat_interval: 0
+      volume: 0.8
+      priority: "medium"
+      max_distance: 4
+      tts_message: "Waypoint one — Oak Glade. Distance to next: 38 metres."
+      interrupt_lower_priority: true
+    }
+
+    @accessible {
+      role: "landmark"
+      label: "Waypoint 1 of 4 — Oak Glade"
+    }
+  }
+
+  object "Waypoint_FernValley" {
+    geometry: "sphere"
+    scale: [0.18, 0.18, 0.18]
+    position: [28, 0.2, 14]
+    color: "#44ff88"
+
+    @anchor {
+      locked: true
+      reference_frame: "world"
+      persistence: "cloud"
+    }
+
+    @animated {
+      property: "scale"
+      from: [0.18, 0.18, 0.18]
+      to: [0.24, 0.24, 0.24]
+      duration: 1.4
+      loop: true
+      easing: "sine"
+    }
+
+    @spatial_audio_cue {
+      cue_type: "confirmation"
+      earcon: "audio/waypoint_reached.wav"
+      spatial: true
+      repeat_interval: 0
+      volume: 0.8
+      priority: "medium"
+      max_distance: 4
+      tts_message: "Waypoint two — Fern Valley. Distance to next: 22 metres."
+      interrupt_lower_priority: true
+    }
+
+    @accessible {
+      role: "landmark"
+      label: "Waypoint 2 of 4 — Fern Valley"
+    }
+  }
+
+  object "Waypoint_OrchidTerrace" {
+    geometry: "sphere"
+    scale: [0.18, 0.18, 0.18]
+    position: [36, 0.2, 30]
+    color: "#44ff88"
+
+    @anchor {
+      locked: true
+      reference_frame: "world"
+      persistence: "cloud"
+    }
+
+    @animated {
+      property: "scale"
+      from: [0.18, 0.18, 0.18]
+      to: [0.24, 0.24, 0.24]
+      duration: 1.4
+      loop: true
+      easing: "sine"
+    }
+
+    @spatial_audio_cue {
+      cue_type: "confirmation"
+      earcon: "audio/waypoint_reached.wav"
+      spatial: true
+      repeat_interval: 0
+      volume: 0.8
+      priority: "medium"
+      max_distance: 4
+      tts_message: "Waypoint three — Orchid Terrace. Distance to next: 18 metres."
+      interrupt_lower_priority: true
+    }
+
+    @accessible {
+      role: "landmark"
+      label: "Waypoint 3 of 4 — Orchid Terrace"
+    }
+  }
+
+  object "Waypoint_ObservatoryBench" {
+    geometry: "sphere"
+    scale: [0.22, 0.22, 0.22]
+    position: [45, 0.2, 44]
+    color: "#ffdd44"
+
+    @anchor {
+      locked: true
+      reference_frame: "world"
+      persistence: "cloud"
+    }
+
+    @animated {
+      property: "scale"
+      from: [0.22, 0.22, 0.22]
+      to: [0.32, 0.32, 0.32]
+      duration: 1.0
+      loop: true
+      easing: "sine"
+    }
+
+    @spatial_audio_cue {
+      cue_type: "confirmation"
+      earcon: "audio/trail_complete.wav"
+      spatial: false
+      repeat_interval: 0
+      volume: 1.0
+      priority: "high"
+      max_distance: 6
+      tts_message: "Trail complete — Observatory Bench. You have reached the end of the Wayfinder Garden trail."
+      interrupt_lower_priority: true
+    }
+
+    @accessible {
+      role: "landmark"
+      label: "Final waypoint — Observatory Bench. Trail complete."
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // PLANT SPECIMENS — world-locked markers with pinch-activated info panels
+  //
+  // Each specimen:
+  //   @anchor         — world-locked AR placement
+  //   @gesture        — pinch to bloom panel, palm_open to dismiss
+  //   @animated       — scale bloom when pinch detected
+  //   @hoverable      — approach fade-in for the label disc
+  //   @accessible     — TTS common + scientific name
+  //   @spatial_audio_cue  — information cue on approach
+  // --------------------------------------------------------------------------
+
+  object "Specimen_KowhaiBranch" {
+    geometry: "sphere"
+    scale: [0.12, 0.12, 0.12]
+    position: [8, 1.4, -2]
+    color: "#ffd700"
+
+    @anchor {
+      locked: true
+      reference_frame: "world"
+      persistence: "cloud"
+    }
+
+    @gesture {
+      enabledGestures: ["pinch", "palm_open"]
+      pinchThreshold: 0.85
+      debounce: 300
+    }
+
+    @animated {
+      property: "scale"
+      from: [0.12, 0.12, 0.12]
+      to: [0.22, 0.22, 0.22]
+      duration: 0.4
+      loop: false
+      easing: "ease_out"
+    }
+
+    @hoverable {
+      hover_color: "#fff8cc"
+      hover_scale: 1.15
+      fade_in_ms: 200
+      fade_out_ms: 400
+    }
+
+    @spatial_audio_cue {
+      cue_type: "information"
+      earcon: "audio/plant_info_chime.wav"
+      spatial: true
+      repeat_interval: 0
+      volume: 0.7
+      priority: "low"
+      max_distance: 3.5
+      tts_message: "Kōwhai — Sophora microphylla. New Zealand native. Flowers August to October. Nectar source for tūī."
+      interrupt_lower_priority: false
+    }
+
+    @accessible {
+      role: "button"
+      label: "Specimen: Kōwhai — pinch to expand information panel"
+    }
+  }
+
+  object "Specimen_TreeFern" {
+    geometry: "cylinder"
+    scale: [0.08, 0.9, 0.08]
+    position: [26, 0.45, 12]
+    color: "#4a2c10"
+
+    @anchor {
+      locked: true
+      reference_frame: "world"
+      persistence: "cloud"
+    }
+
+    @gesture {
+      enabledGestures: ["pinch", "palm_open"]
+      pinchThreshold: 0.85
+      debounce: 300
+    }
+
+    @animated {
+      property: "scale"
+      from: [0.08, 0.9, 0.08]
+      to: [0.14, 0.9, 0.14]
+      duration: 0.35
+      loop: false
+      easing: "ease_out"
+    }
+
+    @hoverable {
+      hover_color: "#c8ffb0"
+      hover_scale: 1.1
+      fade_in_ms: 180
+      fade_out_ms: 350
+    }
+
+    @spatial_audio_cue {
+      cue_type: "information"
+      earcon: "audio/plant_info_chime.wav"
+      spatial: true
+      repeat_interval: 0
+      volume: 0.7
+      priority: "low"
+      max_distance: 3.5
+      tts_message: "Mamaku — Cyathea medullaris. Black tree fern. Can reach 20 metres. Among the largest ferns in the world."
+      interrupt_lower_priority: false
+    }
+
+    @accessible {
+      role: "button"
+      label: "Specimen: Mamaku tree fern — pinch to expand information panel"
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // RARE ORCHID — Pterostylis banksii (Greenhood)
+  // ALERT-level cue: single clear bell at 3 m, TTS Māori name "perei"
+  // @gesture: all swipe directions + pinch + palm — most expressive specimen
+  // --------------------------------------------------------------------------
+  object "Specimen_Greenhood" {
+    geometry: "sphere"
+    scale: [0.08, 0.1, 0.08]
+    position: [34, 0.12, 28]
+    color: "#88cc44"
+
+    @anchor {
+      locked: true
+      reference_frame: "world"
+      persistence: "cloud"
+    }
+
+    @gesture {
+      enabledGestures: ["pinch", "swipe_left", "swipe_right", "swipe_up", "swipe_down", "palm_open"]
+      pinchThreshold: 0.85
+      swipeThreshold: 0.1
+      debounce: 300
+    }
+
+    @animated {
+      property: "scale"
+      from: [0.08, 0.1, 0.08]
+      to: [0.18, 0.22, 0.18]
+      duration: 0.6
+      loop: false
+      easing: "ease_out"
+    }
+
+    @hoverable {
+      hover_color: "#aaffcc"
+      hover_scale: 1.2
+      fade_in_ms: 250
+      fade_out_ms: 500
+    }
+
+    @spatial_audio_cue {
+      cue_type: "alert"
+      earcon: "audio/rare_species_bell.wav"
+      spatial: true
+      repeat_interval: 8000
+      volume: 0.9
+      priority: "high"
+      max_distance: 3
+      tts_message: "Rare species nearby — perei. Pterostylis banksii, New Zealand greenhood orchid. Please do not touch."
+      interrupt_lower_priority: true
+    }
+
+    @accessible {
+      role: "alert"
+      label: "Rare species marker — Pterostylis banksii greenhood orchid. Pinch for information."
+    }
+  }
+}
