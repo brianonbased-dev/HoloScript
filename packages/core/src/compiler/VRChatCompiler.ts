@@ -98,6 +98,7 @@ export class VRChatCompiler extends CompilerBase {
   private indentLevel: number = 0;
   private udonScripts: Map<string, string> = new Map();
   private interactableObjects: string[] = [];
+  private worldIdCounter = 0;
 
   constructor(options: VRChatCompilerOptions = {}) {
     super();
@@ -690,12 +691,9 @@ export class VRChatCompiler extends CompilerBase {
   }
 
   private generateWorldId(): string {
-    const chars = 'abcdef0123456789';
-    let id = '';
-    for (let i = 0; i < 8; i++) {
-      id += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return id + '-0000-0000-0000-000000000000';
+    const seq = this.worldIdCounter++;
+    const hex = seq.toString(16).padStart(8, '0');
+    return `${hex}-0000-0000-0000-000000000000`;
   }
 
   // === Utility Methods ===

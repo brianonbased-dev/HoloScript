@@ -59,6 +59,8 @@ export type StateShapeMap = Map<string, ReactiveStateShape>;
 // =============================================================================
 
 export class StateCompiler {
+  private anonCounter = 0;
+
   /**
    * Walk an entire HSPlusAST and extract all per-node stateBlocks.
    *
@@ -158,7 +160,7 @@ export class StateCompiler {
     // Fall back to type + loc for anonymous nodes
     const loc = node.loc;
     if (loc) return `${node.type}@${loc.start.line}:${loc.start.column}`;
-    return `${node.type}_${Math.random().toString(36).slice(2, 7)}`;
+    return `${node.type}_${this.anonCounter++}`;
   }
 }
 

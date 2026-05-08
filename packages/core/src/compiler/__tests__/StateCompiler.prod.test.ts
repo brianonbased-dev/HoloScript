@@ -130,10 +130,10 @@ describe('StateCompiler — Production', () => {
     expect(shape.nodeId).toBe('Inline@5:3');
   });
 
-  it('uses a random id for anonymous nodes with no loc', () => {
+  it('uses a deterministic sequential id for anonymous nodes with no loc', () => {
     const node: HSPlusNode = { type: 'Anon', stateBlock: { v: 1 } };
     const shape = compiler.compileNode(node)!;
-    expect(shape.nodeId).toMatch(/^Anon_/);
+    expect(shape.nodeId).toBe('Anon_0');
   });
 
   // ─── initialState shape ────────────────────────────────────────────

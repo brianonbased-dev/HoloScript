@@ -35,6 +35,7 @@ export class ARCompiler extends CompilerBase {
   private errors: string[] = [];
   private warnings: string[] = [];
   private generatedCode: string[] = [];
+  private sceneCounter = 0;
 
   constructor(options: ARCompilerOptions) {
     super();
@@ -126,7 +127,7 @@ export class ARCompiler extends CompilerBase {
 
     if (this.options.target === 'webxr') {
       this.generatedCode.push(`const arRuntime = new ARRuntime({`);
-      this.generatedCode.push(`  scene_id: 'auto_gen_ar_${Date.now()}',`);
+      this.generatedCode.push(`  scene_id: 'auto_gen_ar_${this.sceneCounter++}',`);
       this.generatedCode.push(`  features: {`);
       this.generatedCode.push(`    hit_test: ${this.options.features.hit_test},`);
       this.generatedCode.push(`    image_tracking: ${this.options.features.image_tracking}`);

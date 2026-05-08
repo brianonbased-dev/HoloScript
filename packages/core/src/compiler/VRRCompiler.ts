@@ -1078,7 +1078,8 @@ export class VRRCompiler extends CompilerBase {
 
     // Business Quest and Inventory scanning
     const questHubs = this.extractNodesWithTrait(twinNodes[0] || {}, '@quest_hub');
-    for (const hub of questHubs) {
+    for (let i = 0; i < questHubs.length; i++) {
+      const hub = questHubs[i];
       const questTrait = hub.traits?.find((t) => t.name === 'quest_hub');
       const quests = questTrait
         ? Array.isArray(questTrait.params.quests)
@@ -1086,7 +1087,7 @@ export class VRRCompiler extends CompilerBase {
           : []
         : [];
       this.generatedCode.push(`\n// Configured @quest_hub for ${hub.name || 'Business'}`);
-      this.generatedCode.push(`const hub_${Math.random().toString(36).substring(7)} = {`);
+      this.generatedCode.push(`const hub_${i} = {`);
       this.generatedCode.push(`  quests: ${JSON.stringify(quests)}`);
       this.generatedCode.push(`};`);
 

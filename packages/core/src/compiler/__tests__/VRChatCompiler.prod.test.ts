@@ -129,11 +129,11 @@ describe('VRChatCompiler — Production', () => {
       expect(result.worldDescriptor).toContain('wrld_');
     });
 
-    it('world IDs differ across compiler instances', () => {
+    it('world IDs are deterministic across compiler instances', () => {
       const r1 = new VRChatCompiler().compile(makeComp(), 'test-token');
       const r2 = new VRChatCompiler().compile(makeComp(), 'test-token');
-      // worldDescriptor IDs should differ (UUID randomness)
-      expect(r1.worldDescriptor).not.toBe(r2.worldDescriptor);
+      // worldDescriptor IDs should be identical (deterministic sequential counter)
+      expect(r1.worldDescriptor).toBe(r2.worldDescriptor);
     });
   });
 

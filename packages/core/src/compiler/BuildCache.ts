@@ -967,9 +967,16 @@ export function createBuildManifest(
     sourceHashes[file] = hashFile(file);
   }
 
+  const buildIdSeed = JSON.stringify({
+    version: '1.0.0',
+    sourceHashes,
+    artifacts: artifacts.map((a) => a.hash).sort(),
+  });
+  const deterministicBuildId = `build-${hashContent(buildIdSeed)}`;
+
   return {
     version: '1.0.0',
-    buildId: `build-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    buildId: deterministicBuildId,
     createdAt: Date.now(),
     sourceHashes,
     artifacts,

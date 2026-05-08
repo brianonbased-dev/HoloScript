@@ -156,8 +156,8 @@ export class SCMCompiler extends CompilerBase {
     }
 
     for (const edge of this.edges) {
-      edge.source = idMap.get(edge.source) || `UNKNOWN_${Math.random()}`;
-      edge.target = idMap.get(edge.target) || `UNKNOWN_${Math.random()}`;
+      edge.source = idMap.get(edge.source) || `UNKNOWN_${counter++}`;
+      edge.target = idMap.get(edge.target) || `UNKNOWN_${counter++}`;
     }
   }
 
