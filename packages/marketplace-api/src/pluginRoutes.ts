@@ -17,6 +17,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import type { PluginMarketplaceService } from './PluginMarketplaceService.js';
 import type { PluginCategory, PluginSearchQuery } from './PluginPackageSpec.js';
+import type { x402PaymentService } from './x402PaymentService.js';
 
 /** Express request extended with middleware-injected fields. */
 interface AuthenticatedRequest extends Request {
@@ -265,7 +266,10 @@ function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunct
  * app.use('/api', createPluginMarketplaceRoutes(pluginMarketplace));
  * ```
  */
-export function createPluginMarketplaceRoutes(marketplace: PluginMarketplaceService): Router {
+export function createPluginMarketplaceRoutes(
+  marketplace: PluginMarketplaceService,
+  paymentService?: x402PaymentService
+): Router {
   const router = Router();
 
   // ── Plugin Discovery ────────────────────────────────────────────────────
@@ -439,11 +443,36 @@ export function createPluginMarketplaceRoutes(marketplace: PluginMarketplaceServ
 
   // ── Download ────────────────────────────────────────────────────────────
 
-  /** GET /plugins/:id/download - Download plugin package */
+  /** GET /plugins/:id/download - Download plugin package (gated for paid plugins) */
   router.get('/plugins/:id/download', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
       const { version } = req.query;
+
+      // Check plugin pricing before allowing download
+      const plugin = await marketplace.getPlugin(id, version as string | undefined);
+      const isPaid = plugin.manifest.pricing && plugin.manifest.pricing.model !== 'free';
+
+      if (isPaid && paymentService) {
+        const paymentId = req.headers['x-payment-id'];
+        if (typeof paymentId === 'string' && paymentId) {
+          const receipt = await paymentService.verifyPayment(paymentId);
+          if (!receipt || !receipt.access_granted) {
+            return res.status(402).json({
+              success: false,
+              error: { code: 'PAYMENT_REQUIRED', message: 'Valid payment receipt required for this plugin' },
+              pricing: plugin.manifest.pricing,
+            });
+          }
+        } else {
+          return res.status(402).json({
+            success: false,
+            error: { code: 'PAYMENT_REQUIRED', message: 'Payment required. Use POST /plugins/:id/purchase to initiate payment.' },
+            pricing: plugin.manifest.pricing,
+          });
+        }
+      }
+
       const downloadInfo = await marketplace.downloadPlugin(id, version as string | undefined);
 
       // Record download
@@ -471,6 +500,215 @@ export function createPluginMarketplaceRoutes(marketplace: PluginMarketplaceServ
       const { id } = req.params;
       const stats = await marketplace.getPluginStats(id);
       res.json({ success: true, data: stats });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // ── Provenance ──────────────────────────────────────────────────────────
+
+  /** GET /plugins/:id/provenance - Get plugin provenance audit trail */
+  router.get('/plugins/:id/provenance', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const provenance = await marketplace.getPluginProvenance(id);
+      res.json({ success: true, data: provenance });
+    } catch (err) {
+      if ((err as Error).message.includes('not found')) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: (err as Error).message },
+        });
+        return;
+      }
+      next(err);
+    }
+  });
+
+  // ── Install Plan ──────────────────────────────────────────────────────────
+
+  const installPlanSchema = z.object({
+    version: z.string().optional(),
+    targetStudioVersion: z.string().optional(),
+    targetPlatform: z.string().optional(),
+    installDependencies: z.boolean().optional().default(true),
+  });
+
+  /** POST /plugins/:id/install-plan - Server-side install plan with compatibility warnings */
+  router.post(
+    '/plugins/:id/install-plan',
+    validate(installPlanSchema),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { id } = req.params;
+        const { version, targetStudioVersion, targetPlatform, installDependencies } = (req as AuthenticatedRequest).validated as {
+          version?: string;
+          targetStudioVersion?: string;
+          targetPlatform?: string;
+          installDependencies?: boolean;
+        };
+
+        const plugin = await marketplace.getPlugin(id, version);
+        const manifest = plugin.manifest;
+
+        // Resolve dependencies if requested
+        let dependencies: { resolved: Array<{ pluginId: string; version: string }>; conflicts: string[] } | undefined;
+        if (installDependencies) {
+          dependencies = await marketplace.resolvePluginDependencies(id, version);
+        }
+
+        // Build compatibility warnings
+        const compatibilityWarnings: string[] = [];
+        const compatibilityErrors: string[] = [];
+
+        if (targetStudioVersion) {
+          const required = manifest.compatibility.studioVersion;
+          // Simple semver-like check: if target < required major.minor, warn
+          const targetMatch = targetStudioVersion.match(/^(\d+)\.(\d+)/);
+          const requiredMatch = required.match(/^(?:>=)?(\d+)\.(\d+)/);
+          if (targetMatch && requiredMatch) {
+            const targetMajor = parseInt(targetMatch[1], 10);
+            const targetMinor = parseInt(targetMatch[2], 10);
+            const reqMajor = parseInt(requiredMatch[1], 10);
+            const reqMinor = parseInt(requiredMatch[2], 10);
+            if (targetMajor < reqMajor || (targetMajor === reqMajor && targetMinor < reqMinor)) {
+              compatibilityErrors.push(
+                `Studio version ${targetStudioVersion} is below the required ${required}`
+              );
+            }
+          }
+        }
+
+        if (targetPlatform && manifest.compatibility.platforms) {
+          const supported = manifest.compatibility.platforms;
+          if (!supported.includes('all') && !supported.includes(targetPlatform)) {
+            compatibilityWarnings.push(
+              `Platform '${targetPlatform}' is not in the plugin's supported platforms: ${supported.join(', ')}`
+            );
+          }
+        }
+
+        // Signature status
+        const signatureStatus = plugin.versions.find((v) => v.version === manifest.version)?.signatureStatus ?? 'unsigned';
+
+        // Provenance summary
+        const provenance = await marketplace.getPluginProvenance(id);
+
+        res.json({
+          success: true,
+          data: {
+            pluginId: id,
+            version: manifest.version,
+            name: manifest.name,
+            manifest: {
+              id: manifest.id,
+              name: manifest.name,
+              version: manifest.version,
+              description: manifest.description,
+              author: manifest.author,
+              license: manifest.license,
+              category: manifest.category,
+              security: manifest.security,
+              compatibility: manifest.compatibility,
+              pricing: manifest.pricing,
+            },
+            dependencies,
+            compatibility: {
+              compatible: compatibilityErrors.length === 0,
+              warnings: compatibilityWarnings,
+              errors: compatibilityErrors,
+            },
+            signatureStatus,
+            provenance: {
+              eventCount: provenance.events.length,
+              latestSignature: provenance.latestSignature,
+              authorKeyCount: provenance.authorKeys.length,
+            },
+          },
+        });
+      } catch (err) {
+        if ((err as Error).message.includes('not found')) {
+          res.status(404).json({
+            success: false,
+            error: { code: 'NOT_FOUND', message: (err as Error).message },
+          });
+          return;
+        }
+        next(err);
+      }
+    }
+  );
+
+  // ── Purchase ────────────────────────────────────────────────────────────
+
+  /** POST /plugins/:id/purchase - Initiate x402 payment for a paid plugin */
+  router.post('/plugins/:id/purchase', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const plugin = await marketplace.getPlugin(id);
+
+      if (!plugin.manifest.pricing || plugin.manifest.pricing.model === 'free') {
+        res.status(400).json({
+          success: false,
+          error: { code: 'FREE_PLUGIN', message: 'This plugin is free; no purchase required.' },
+        });
+        return;
+      }
+
+      if (!paymentService) {
+        res.status(503).json({
+          success: false,
+          error: { code: 'PAYMENT_UNAVAILABLE', message: 'Payment service is not configured.' },
+        });
+        return;
+      }
+
+      const price = plugin.manifest.pricing.price ?? 0;
+      const priceDollars = price / 100;
+
+      paymentService.return402Response(res, {
+        payment_id: `x402_plugin_${id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        price: priceDollars,
+        asset: 'USDC',
+        network: 'base',
+        facilitator: 'https://cdp.coinbase.com/x402',
+        content_id: id,
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  /** GET /plugins/:id/purchase-status - Check whether a payer has an active purchase */
+  router.get('/plugins/:id/purchase-status', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const payerAddress = req.query.payerAddress as string | undefined;
+
+      if (!payerAddress) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'MISSING_PAYER', message: 'Query parameter payerAddress is required.' },
+        });
+        return;
+      }
+
+      if (!paymentService) {
+        res.status(503).json({
+          success: false,
+          error: { code: 'PAYMENT_UNAVAILABLE', message: 'Payment service is not configured.' },
+        });
+        return;
+      }
+
+      const subscription = await paymentService.checkSubscription(payerAddress, id);
+      res.json({
+        success: true,
+        data: {
+          purchased: subscription !== null,
+          subscription: subscription ?? null,
+        },
+      });
     } catch (err) {
       next(err);
     }

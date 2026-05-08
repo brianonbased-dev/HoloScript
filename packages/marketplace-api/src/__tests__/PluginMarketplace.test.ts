@@ -695,12 +695,80 @@ describe('PluginMarketplaceService', () => {
     });
   });
 
+  describe('provenance', () => {
+    beforeEach(async () => {
+      await marketplace.publishPlugin(
+        { manifest: sampleManifest, bundle: 'dGVzdA==' },
+        'test-token'
+      );
+    });
+
+    it('should track publish provenance', async () => {
+      const provenance = await marketplace.getPluginProvenance('@test/analytics-dashboard');
+      expect(provenance.pluginId).toBe('@test/analytics-dashboard');
+      expect(provenance.events.length).toBeGreaterThanOrEqual(1);
+      expect(provenance.events[0].type).toBe('published');
+      expect(provenance.events[0].actor).toBe('testuser');
+    });
+
+    it('should track deprecation provenance', async () => {
+      await marketplace.deprecatePlugin(
+        '@test/analytics-dashboard',
+        'No longer maintained',
+        undefined,
+        'test-token'
+      );
+
+      const provenance = await marketplace.getPluginProvenance('@test/analytics-dashboard');
+      const deprecationEvent = provenance.events.find((e: any) => e.type === 'deprecated');
+      expect(deprecationEvent).toBeDefined();
+      expect(deprecationEvent.payload.message).toBe('No longer maintained');
+    });
+
+    it('should track download provenance', async () => {
+      await marketplace.recordPluginDownload('@test/analytics-dashboard', '1.0.0');
+
+      const provenance = await marketplace.getPluginProvenance('@test/analytics-dashboard');
+      const downloadEvent = provenance.events.find((e: any) => e.type === 'downloaded');
+      expect(downloadEvent).toBeDefined();
+      expect(downloadEvent.payload.version).toBe('1.0.0');
+    });
+
+    it('should track rating provenance', async () => {
+      marketplace.registerSession('user2-token', 'user2', 'authenticated', 'user2');
+      await marketplace.ratePlugin(
+        '@test/analytics-dashboard',
+        4,
+        { title: 'Good', body: 'Nice plugin' },
+        'user2-token'
+      );
+
+      const provenance = await marketplace.getPluginProvenance('@test/analytics-dashboard');
+      const ratingEvent = provenance.events.find((e: any) => e.type === 'rated');
+      expect(ratingEvent).toBeDefined();
+      expect(ratingEvent.payload.rating).toBe(4);
+    });
+
+    it('should include latest signature info', async () => {
+      const provenance = await marketplace.getPluginProvenance('@test/analytics-dashboard');
+      expect(provenance.latestSignature).toBeDefined();
+      expect(provenance.latestSignature?.valid).toBe(false); // unsigned in sample
+      expect(provenance.latestSignature?.trusted).toBe(false);
+    });
+
+    it('should include author keys', async () => {
+      const provenance = await marketplace.getPluginProvenance('@test/analytics-dashboard');
+      expect(provenance.authorKeys).toBeDefined();
+    });
+  });
+
   describe('health', () => {
     it('should return health status', async () => {
       const health = await marketplace.getHealth();
       expect(health.status).toBe('ok');
       expect(health.components.pluginRegistry).toBe('ok');
       expect(health.components.signatureService).toBe('ok');
+      expect(health.components.provenance).toBe('ok');
     });
   });
 });

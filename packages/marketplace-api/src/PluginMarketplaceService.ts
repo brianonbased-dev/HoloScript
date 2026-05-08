@@ -393,6 +393,40 @@ export class InMemoryPluginDatabase implements IPluginDatabase {
 }
 
 // =============================================================================
+// PROVENANCE EVENT
+// =============================================================================
+
+/**
+ * A single provenance event in the lifecycle of a plugin.
+ */
+export interface PluginProvenanceEvent {
+  /** Event type */
+  type: 'published' | 'signed' | 'verified' | 'downloaded' | 'rated' | 'deprecated' | 'revoked';
+  /** When the event occurred */
+  timestamp: Date;
+  /** Actor who triggered the event (author name, system, etc.) */
+  actor: string;
+  /** Event-specific payload */
+  payload: Record<string, unknown>;
+}
+
+/**
+ * Complete provenance record for a plugin.
+ */
+export interface PluginProvenance {
+  pluginId: string;
+  events: PluginProvenanceEvent[];
+  latestSignature?: {
+    valid: boolean;
+    trusted: boolean;
+    keyFingerprint: string;
+    author?: string;
+    signedAt?: string;
+  };
+  authorKeys: Array<{ keyId: string; fingerprint: string; registeredAt: Date; revoked: boolean }>;
+}
+
+// =============================================================================
 // PLUGIN DOWNLOAD STATS TRACKER
 // =============================================================================
 
@@ -577,6 +611,8 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
   private rateLimiters: Map<RateLimitTier, RateLimiter> = new Map();
   private sessions: Map<string, { userId: string; userName: string; tier: RateLimitTier }> =
     new Map();
+  /** Provenance log: pluginId -> ordered list of lifecycle events */
+  private provenance: Map<string, PluginProvenanceEvent[]> = new Map();
 
   constructor(
     options: {
@@ -741,6 +777,23 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
       this.db.storeBundle(manifest.id, manifest.version, request.bundle);
     }
 
+    // Record provenance
+    this.recordProvenanceEvent(manifest.id, {
+      type: 'published',
+      actor: user.userName,
+      payload: {
+        version: manifest.version,
+        shasum,
+        signatureValid: signatureVerification?.valid ?? false,
+        signatureTrusted: signatureVerification?.trusted ?? false,
+        keyFingerprint: signatureVerification?.keyFingerprint ?? '',
+        author: signatureVerification?.author ?? user.userName,
+        signedAt: signatureVerification
+          ? new Date().toISOString()
+          : undefined,
+      },
+    });
+
     // Warnings for missing optional fields
     if (!request.readme && !manifest.readme) {
       warnings.push('No README provided. Consider adding documentation.');
@@ -794,6 +847,12 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
     await this.db.updatePlugin(pluginId, {
       deprecated: true,
       deprecationMessage: message + (replacement ? ` Use ${replacement} instead.` : ''),
+    });
+
+    this.recordProvenanceEvent(pluginId, {
+      type: 'deprecated',
+      actor: user.userName,
+      payload: { message, replacement: replacement ?? null },
     });
   }
 
@@ -1004,6 +1063,11 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
   async recordPluginDownload(pluginId: string, version: string): Promise<void> {
     this.downloadStats.record(pluginId, version);
     await this.db.incrementDownloads(pluginId, version);
+    this.recordProvenanceEvent(pluginId, {
+      type: 'downloaded',
+      actor: 'system',
+      payload: { version },
+    });
   }
 
   // ── Signature Verification ──────────────────────────────────────────────
@@ -1096,6 +1160,12 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
     // Update plugin average rating
     const { average, count } = this.ratingService.getAverageRating(pluginId);
     await this.db.updatePlugin(pluginId, { rating: average, ratingCount: count });
+
+    this.recordProvenanceEvent(pluginId, {
+      type: 'rated',
+      actor: user.userName,
+      payload: { rating, reviewTitle: review?.title ?? null },
+    });
   }
 
   async getPluginRatings(pluginId: string, page = 1): Promise<PluginRatingData> {
@@ -1141,6 +1211,61 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
     };
   }
 
+  // ── Provenance ──────────────────────────────────────────────────────────
+
+  private recordProvenanceEvent(
+    pluginId: string,
+    event: Omit<PluginProvenanceEvent, 'timestamp'>
+  ): void {
+    const events = this.provenance.get(pluginId) ?? [];
+    events.push({ ...event, timestamp: new Date() });
+    this.provenance.set(pluginId, events);
+  }
+
+  async getPluginProvenance(pluginId: string): Promise<PluginProvenance> {
+    const manifest = await this.db.getPluginById(pluginId);
+    const events = this.provenance.get(pluginId) ?? [];
+
+    // Build author key list from signature service
+    const sigService = this.signatureService;
+    const authorKeys: PluginProvenance['authorKeys'] = [];
+    if (manifest) {
+      const keys = await sigService.getKeysForAuthor(manifest.author.name);
+      for (const k of keys) {
+        authorKeys.push({
+          keyId: k.keyId,
+          fingerprint: k.fingerprint,
+          registeredAt: k.registeredAt,
+          revoked: k.revoked,
+        });
+      }
+    }
+
+    // Extract latest signature status from the most recent publish event
+    const latestPublish = [...events]
+      .reverse()
+      .find((e) => e.type === 'published' && e.payload.signatureValid !== undefined);
+
+    return {
+      pluginId,
+      events,
+      latestSignature: latestPublish
+        ? {
+            valid: Boolean(latestPublish.payload.signatureValid),
+            trusted: Boolean(latestPublish.payload.signatureTrusted),
+            keyFingerprint: String(latestPublish.payload.keyFingerprint ?? ''),
+            author: latestPublish.payload.author
+              ? String(latestPublish.payload.author)
+              : undefined,
+            signedAt: latestPublish.payload.signedAt
+              ? String(latestPublish.payload.signedAt)
+              : undefined,
+          }
+        : undefined,
+      authorKeys,
+    };
+  }
+
   // ── Health ──────────────────────────────────────────────────────────────
 
   async getHealth(): Promise<{
@@ -1154,6 +1279,7 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
         signatureService: 'ok',
         downloadStats: 'ok',
         ratingService: 'ok',
+        provenance: 'ok',
       },
     };
   }

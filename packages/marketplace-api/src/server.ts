@@ -14,6 +14,8 @@ import { PostgresTraitDatabase } from './PostgresTraitDatabase.js';
 import { x402PaymentService } from './x402PaymentService.js';
 import { createHololandRoutes } from './hololandRoutes.js';
 import { createASTAssetRouter } from './economy/ast-licensing-middleware.js';
+import { PluginMarketplaceService } from './PluginMarketplaceService.js';
+import { createPluginMarketplaceRoutes } from './pluginRoutes.js';
 
 // =============================================================================
 // SERVER CONFIGURATION
@@ -42,11 +44,13 @@ const DEFAULT_CONFIG: ServerConfig = {
  */
 export function createApp(
   marketplace?: MarketplaceService,
+  pluginMarketplace?: PluginMarketplaceService,
   config?: Partial<ServerConfig>
 ): Express {
   const app = express();
   const cfg = { ...DEFAULT_CONFIG, ...config };
   const service = marketplace ?? new MarketplaceService();
+  const pluginService = pluginMarketplace ?? new PluginMarketplaceService();
 
   // Trust proxy if behind reverse proxy (e.g., nginx, load balancer)
   if (cfg.trustProxy) {
@@ -107,11 +111,12 @@ export function createApp(
   // Root endpoint
   app.get('/', (req, res) => {
     res.json({
-      name: 'HoloScript Trait Marketplace API',
-      version: '1.0.0',
+      name: 'HoloScript Trait & Plugin Marketplace API',
+      version: '1.1.0',
       documentation: '/docs',
       endpoints: {
         traits: '/api/v1/traits',
+        plugins: '/api/v1/plugins',
         resolve: '/api/v1/resolve',
         compatibility: '/api/v1/compatibility',
         health: '/api/v1/health',
@@ -121,6 +126,7 @@ export function createApp(
 
   // API routes
   app.use('/api/v1', createMarketplaceRoutes(service));
+  app.use('/api/v1', createPluginMarketplaceRoutes(pluginService, paymentService));
 
   // Hololand AI Economy routes
   const paymentService = new x402PaymentService({
@@ -183,22 +189,28 @@ export async function startServer(
   }
 
   const marketplace = new MarketplaceService({ registry });
-  const app = createApp(marketplace, cfg);
+  const pluginMarketplace = new PluginMarketplaceService();
+  const app = createApp(marketplace, pluginMarketplace, cfg);
 
   return new Promise((resolve, reject) => {
     const server = app.listen(cfg.port, cfg.host, () => {
       console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║                                                            ║
-║   HoloScript Trait Marketplace API                         ║
+║   HoloScript Trait & Plugin Marketplace API                  ║
 ║                                                            ║
 ║   Server running at http://${cfg.host}:${cfg.port}                ║
 ║                                                            ║
-║   Endpoints:                                               ║
+║   Trait Endpoints:                                         ║
 ║   - GET  /api/v1/traits         Search traits              ║
 ║   - POST /api/v1/traits         Publish trait              ║
 ║   - GET  /api/v1/traits/:id     Get trait                  ║
 ║   - POST /api/v1/resolve        Resolve dependencies       ║
+║                                                            ║
+║   Plugin Endpoints:                                        ║
+║   - GET  /api/v1/plugins        Search plugins             ║
+║   - POST /api/v1/plugins        Publish plugin             ║
+║   - GET  /api/v1/plugins/:id    Get plugin                 ║
 ║   - GET  /api/v1/health         Health check               ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
