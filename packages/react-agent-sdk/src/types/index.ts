@@ -2,49 +2,51 @@
  * @hololand/react-agent-sdk - Type Definitions
  *
  * TypeScript types for the React Agent SDK
+ *
+ * PROTOCOL SHAPES are re-exported from @holoscript/core/agents.
+ * Do NOT define local stubs for these — add them to core first.
+ * The drift-guard.ts file will fail typecheck if shapes diverge.
  */
 
-// ── Local stubs for @holoscript/core/agents (not yet a published subpath) ──
+// ── Canonical agent protocol shapes (source of truth: @holoscript/core/agents) ──
+import type {
+  AgentConfig,
+  AgentPhase,
+  AgentMessage,
+  AgentResponse,
+  CycleResult,
+  TaskParams,
+  TaskResult,
+  TaskStatus,
+  TaskProgress,
+  TaskLog,
+  CircuitState,
+  CircuitBreakerStatus,
+  CircuitBreakerConfig,
+  DegradedModeStatus,
+  AgentMetrics,
+} from '@holoscript/core/agents';
 
-export interface AgentConfig {
-  name: string;
-  endpoint?: string;
-  timeout?: number;
-  [key: string]: unknown;
-}
-
-export type AgentPhase =
-  | 'intake'
-  | 'reflect'
-  | 'execute'
-  | 'compress'
-  // Runtime key stays `reintake`; UI display label is Dreaming.
-  | 'reintake'
-  | 'grow'
-  | 'evolve'
-  | 'autonomize';
-
-export interface CycleResult {
-  success: boolean;
-  phase: AgentPhase;
-  data?: unknown;
-  error?: Error;
-}
-
-export interface AgentMessage {
-  action: string;
-  payload: unknown;
-  timestamp: number;
-}
-
-export interface AgentResponse {
-  success: boolean;
-  data?: unknown;
-  error?: string;
-}
+export type {
+  AgentConfig,
+  AgentPhase,
+  AgentMessage,
+  AgentResponse,
+  CycleResult,
+  TaskParams,
+  TaskResult,
+  TaskStatus,
+  TaskProgress,
+  TaskLog,
+  CircuitState,
+  CircuitBreakerStatus,
+  CircuitBreakerConfig,
+  DegradedModeStatus,
+  AgentMetrics,
+} from '@holoscript/core/agents';
 
 // ============================================================================
-// AGENT CONFIGURATION
+// AGENT CONFIGURATION (SDK-specific extensions)
 // ============================================================================
 
 /**
@@ -63,192 +65,6 @@ export interface UseAgentConfig extends Partial<AgentConfig> {
   circuitBreakerThreshold?: number;
   /** Circuit breaker timeout (ms) */
   circuitBreakerTimeout?: number;
-}
-
-// ============================================================================
-// TASK EXECUTION
-// ============================================================================
-
-/**
- * Task execution parameters
- */
-export interface TaskParams {
-  /** Task input data */
-  input?: Record<string, unknown>;
-  /** Task priority */
-  priority?: 'low' | 'medium' | 'high' | 'critical';
-  /** Task timeout (ms) */
-  timeout?: number;
-  /** Enable automatic retry on failure */
-  retry?: boolean;
-  /** Maximum retry attempts */
-  maxRetries?: number;
-  /** Retry delay (ms) */
-  retryDelay?: number;
-  /** Task metadata */
-  metadata?: Record<string, unknown>;
-}
-
-/**
- * Task execution result
- */
-export interface TaskResult<T = unknown> {
-  /** Task ID */
-  taskId: string;
-  /** Task status */
-  status: TaskStatus;
-  /** Result data */
-  data?: T;
-  /** Error if task failed */
-  error?: Error;
-  /** Task start time */
-  startedAt: number;
-  /** Task end time */
-  completedAt?: number;
-  /** Task duration (ms) */
-  duration?: number;
-  /** Retry count */
-  retryCount: number;
-}
-
-/**
- * Task status
- */
-export type TaskStatus =
-  | 'idle'
-  | 'pending'
-  | 'running'
-  | 'success'
-  | 'error'
-  | 'cancelled'
-  | 'timeout';
-
-/**
- * Task progress information
- */
-export interface TaskProgress {
-  /** Current progress (0-100) */
-  progress: number;
-  /** Current phase */
-  phase?: AgentPhase;
-  /** Estimated time remaining (ms) */
-  estimatedTime?: number;
-  /** Task logs */
-  logs: TaskLog[];
-  /** Detailed status */
-  status: TaskStatus;
-}
-
-/**
- * Task log entry
- */
-export interface TaskLog {
-  /** Timestamp */
-  timestamp: number;
-  /** Log level */
-  level: 'debug' | 'info' | 'warn' | 'error';
-  /** Log message */
-  message: string;
-  /** Log data */
-  data?: unknown;
-}
-
-// ============================================================================
-// CIRCUIT BREAKER
-// ============================================================================
-
-/**
- * Circuit breaker state
- */
-export type CircuitState = 'closed' | 'open' | 'half-open';
-
-/**
- * Circuit breaker status
- */
-export interface CircuitBreakerStatus {
-  /** Current state */
-  state: CircuitState;
-  /** Failure count */
-  failureCount: number;
-  /** Success count */
-  successCount: number;
-  /** Failure rate (0-1) */
-  failureRate: number;
-  /** Last error */
-  lastError?: Error;
-  /** Time until circuit closes (ms) */
-  timeUntilClose?: number;
-  /** Next retry time */
-  nextRetryTime?: number;
-}
-
-/**
- * Circuit breaker configuration
- */
-export interface CircuitBreakerConfig {
-  /** Failure threshold (0-1) */
-  threshold: number;
-  /** Timeout before attempting half-open (ms) */
-  timeout: number;
-  /** Window size for failure rate calculation */
-  windowSize: number;
-  /** Minimum requests before opening circuit */
-  minimumRequests: number;
-}
-
-// ============================================================================
-// DEGRADED MODE
-// ============================================================================
-
-/**
- * Degraded mode status
- */
-export interface DegradedModeStatus {
-  /** Is system in degraded mode */
-  isDegraded: boolean;
-  /** Affected services */
-  affectedServices: string[];
-  /** Recovery status */
-  recoveryStatus: {
-    /** Is recovery in progress */
-    inProgress: boolean;
-    /** Recovery progress (0-100) */
-    progress: number;
-    /** Estimated recovery time (ms) */
-    estimatedTime?: number;
-  };
-  /** Degraded since */
-  degradedSince?: number;
-}
-
-// ============================================================================
-// AGENT METRICS
-// ============================================================================
-
-/**
- * Agent metrics
- */
-export interface AgentMetrics {
-  /** Agent name */
-  agentName: string;
-  /** Circuit breaker state */
-  circuitState: CircuitState;
-  /** Request success rate (0-1) */
-  successRate: number;
-  /** Average latency (ms) */
-  averageLatency: number;
-  /** Request count (last window) */
-  requestCount: number;
-  /** Error count (last window) */
-  errorCount: number;
-  /** Last error */
-  lastError?: Error;
-  /** Last updated */
-  lastUpdated: number;
-  /** Active tasks */
-  activeTasks: number;
-  /** Queued tasks */
-  queuedTasks: number;
 }
 
 // ============================================================================

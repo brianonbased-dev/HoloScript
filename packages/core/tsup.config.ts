@@ -68,6 +68,9 @@ export default defineConfig({
     // Self improvement module
     'self-improvement/index': 'src/self-improvement/index.ts',
 
+    // Canonical agent protocol types
+    'agents/index': 'src/agents/index.ts',
+
     // CLI / Daemon runner (standalone executable)
     'cli/holoscript-runner': 'src/cli/holoscript-runner.ts',
 

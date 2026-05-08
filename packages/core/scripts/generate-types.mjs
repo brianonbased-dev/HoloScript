@@ -5736,6 +5736,108 @@ export declare class NeuralForgeCoordinator {
 }
 `;
 
+const agentsDTS = `/**
+ * @holoscript/core/agents
+ *
+ * Canonical agent protocol types for HoloScript Core.
+ */
+export type AgentPhase = 'intake' | 'reflect' | 'execute' | 'compress' | 'reintake' | 'grow' | 'evolve' | 'autonomize';
+export declare const PHASE_ORDER: readonly AgentPhase[];
+export interface AgentConfig {
+  name: string;
+  endpoint?: string;
+  timeout?: number;
+  [key: string]: unknown;
+}
+export interface AgentMessage {
+  action: string;
+  payload: unknown;
+  timestamp: number;
+}
+export interface AgentResponse {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+}
+export interface CycleResult {
+  success: boolean;
+  phase: AgentPhase;
+  data?: unknown;
+  error?: Error;
+}
+export type TaskStatus = 'idle' | 'pending' | 'running' | 'success' | 'error' | 'cancelled' | 'timeout';
+export interface TaskParams {
+  input?: Record<string, unknown>;
+  priority?: 'low' | 'medium' | 'high' | 'critical';
+  timeout?: number;
+  retry?: boolean;
+  maxRetries?: number;
+  retryDelay?: number;
+  metadata?: Record<string, unknown>;
+}
+export interface TaskResult<T = unknown> {
+  taskId: string;
+  status: TaskStatus;
+  data?: T;
+  error?: Error;
+  startedAt: number;
+  completedAt?: number;
+  duration?: number;
+  retryCount: number;
+}
+export interface TaskLog {
+  timestamp: number;
+  level: 'debug' | 'info' | 'warn' | 'error';
+  message: string;
+  data?: unknown;
+}
+export interface TaskProgress {
+  progress: number;
+  phase?: AgentPhase;
+  estimatedTime?: number;
+  logs: TaskLog[];
+  status: TaskStatus;
+}
+export type CircuitState = 'closed' | 'open' | 'half-open';
+export interface CircuitBreakerConfig {
+  threshold: number;
+  timeout: number;
+  windowSize: number;
+  minimumRequests: number;
+}
+export interface CircuitBreakerStatus {
+  state: CircuitState;
+  failureCount: number;
+  successCount: number;
+  failureRate: number;
+  lastError?: Error;
+  timeUntilClose?: number;
+  nextRetryTime?: number;
+}
+export interface DegradedModeStatus {
+  isDegraded: boolean;
+  affectedServices: string[];
+  recoveryStatus: {
+    inProgress: boolean;
+    progress: number;
+    estimatedTime?: number;
+  };
+  degradedSince?: number;
+}
+export interface AgentMetrics {
+  agentName: string;
+  circuitState: CircuitState;
+  successRate: number;
+  averageLatency: number;
+  requestCount: number;
+  errorCount: number;
+  lastError?: Error;
+  lastUpdated: number;
+  activeTasks: number;
+  queuedTasks: number;
+}
+`;
+
 // Create subdirectory declaration files
 const subdirDeclarations = [
   { dir: 'wot', content: wotDTS },
@@ -5749,6 +5851,7 @@ const subdirDeclarations = [
   { dir: 'reconstruction', content: reconstructionDTS },
   { dir: 'paper-0c-spike', content: paper0cSpikeDTS },
   { dir: 'coordinators', content: coordinatorsDTS },
+  { dir: 'agents', content: agentsDTS },
 ];
 
 for (const { dir, content } of subdirDeclarations) {
