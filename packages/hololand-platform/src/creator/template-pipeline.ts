@@ -40,6 +40,7 @@ import {
   checkPlayability,
   cloneShard,
 } from '@holoscript/framework';
+import { createHash } from 'node:crypto';
 
 // =============================================================================
 // IN-MEMORY REGISTRY (ephemeral — replace with real backend when consumer needs it)
@@ -109,8 +110,8 @@ function defaultValidationReceipt(challengeId: string, shard: Shard): Validation
     scenarioId: shard.id,
     validatedAt: new Date().toISOString(),
     status: 'passed',
-    hash: djb2Hash(JSON.stringify(shard)),
-    hashAlgorithm: 'djb2',
+    hash: createHash('sha256').update(JSON.stringify(shard), 'utf8').digest('hex'),
+    hashAlgorithm: 'sha256',
   };
 }
 
@@ -131,13 +132,11 @@ function defaultValidationReceipt(challengeId: string, shard: Shard): Validation
  */
 export function compileTemplateToChallenge(
   template: CreatorTemplate,
-  options: CompileOptions,
+  options: CompileOptions
 ): PlayableChallenge {
   const templateErrors = validateCreatorTemplate(template);
   if (templateErrors.length > 0) {
-    throw new Error(
-      `Invalid CreatorTemplate: ${templateErrors.join('; ')}`,
-    );
+    throw new Error(`Invalid CreatorTemplate: ${templateErrors.join('; ')}`);
   }
 
   const now = options.now ?? new Date().toISOString();
@@ -148,12 +147,13 @@ export function compileTemplateToChallenge(
   generatedShard.id = `shard_${challengeId}`;
   generatedShard.name = `${template.name} — ${options.creatorId}`;
 
-  const requirements = options.playabilityRequirements ?? template.playabilityRequirements ?? undefined;
+  const requirements =
+    options.playabilityRequirements ?? template.playabilityRequirements ?? undefined;
   const playability = checkPlayability(generatedShard, requirements);
 
   const validationReceipt = (options.makeValidationReceipt ?? defaultValidationReceipt)(
     challengeId,
-    generatedShard,
+    generatedShard
   );
 
   const challenge: PlayableChallenge = {
@@ -193,7 +193,7 @@ export function submitForReview(challenge: PlayableChallenge): PublishReview {
 
   if (challenge.status !== 'playable') {
     throw new Error(
-      `Cannot submit challenge ${challenge.id} for review: status is ${challenge.status} (expected playable).`,
+      `Cannot submit challenge ${challenge.id} for review: status is ${challenge.status} (expected playable).`
     );
   }
 
@@ -218,7 +218,7 @@ export function approveChallenge(
   review: PublishReview,
   reviewerId: string,
   notes?: string,
-  now?: string,
+  now?: string
 ): PlayableChallenge {
   const reviewErrors = validatePublishReview(review);
   if (reviewErrors.length > 0) {
@@ -227,7 +227,7 @@ export function approveChallenge(
 
   if (review.status !== 'pending') {
     throw new Error(
-      `Cannot approve review ${review.id}: status is ${review.status} (expected pending).`,
+      `Cannot approve review ${review.id}: status is ${review.status} (expected pending).`
     );
   }
 
@@ -264,7 +264,7 @@ export function rejectChallenge(
   review: PublishReview,
   reviewerId: string,
   notes?: string,
-  now?: string,
+  now?: string
 ): PlayableChallenge {
   const reviewErrors = validatePublishReview(review);
   if (reviewErrors.length > 0) {
@@ -273,7 +273,7 @@ export function rejectChallenge(
 
   if (review.status !== 'pending') {
     throw new Error(
-      `Cannot reject review ${review.id}: status is ${review.status} (expected pending).`,
+      `Cannot reject review ${review.id}: status is ${review.status} (expected pending).`
     );
   }
 
@@ -309,9 +309,7 @@ export function listPublishedChallenges(options?: {
   search?: string;
   limit?: number;
 }): PlayableChallenge[] {
-  let results = Array.from(registry.challenges.values()).filter(
-    (c) => c.status === 'published',
-  );
+  let results = Array.from(registry.challenges.values()).filter((c) => c.status === 'published');
 
   if (options?.creatorId) {
     results = results.filter((c) => c.creatorId === options.creatorId);
@@ -321,8 +319,7 @@ export function listPublishedChallenges(options?: {
     const term = options.search.toLowerCase();
     results = results.filter(
       (c) =>
-        c.name.toLowerCase().includes(term) ||
-        (c.description ?? '').toLowerCase().includes(term),
+        c.name.toLowerCase().includes(term) || (c.description ?? '').toLowerCase().includes(term)
     );
   }
 

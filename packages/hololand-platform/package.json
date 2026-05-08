@@ -5,9 +5,13 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "hololand-device-lab": "dist/device-lab.js"
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
+    "device-lab": "pnpm run build && node dist/device-lab.js",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage --passWithNoTests"
   },
