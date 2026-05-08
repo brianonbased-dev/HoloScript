@@ -11,6 +11,32 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|WebFetch|WebSearch|Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node C:/Users/Josep/.ai-ecosystem/hooks/run-hook.mjs pretooluse/skill-redirect.mjs",
+            "timeout": 3,
+            "async": false,
+            "statusMessage": "Checking skill availability..."
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node C:/Users/Josep/.ai-ecosystem/hooks/run-hook.mjs pretooluse/caveat-reverify.mjs",
+            "timeout": 3,
+            "async": false,
+            "statusMessage": "Checking caveat freshness..."
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
