@@ -31,6 +31,13 @@
  * declarations). WARN soft-guideline (stale citations, fluent prose
  * without citation, schedule conflicts, unresolved verify-tokens).
  *
+ * @version 1.6.0 (Phase 2(a) Iteration 3 first slice: vocabulary v3
+ *   adds ContextIdentity.commandTemplate optional field — closes the
+ *   functional Loss-1 from docs/founder-skill-cutover-prep.md by
+ *   restoring the `**Command**: $ARGUMENTS` injection point in
+ *   skill_md emit. Iteration 2 vocabulary v2 still valid; v3 is purely
+ *   additive on top of v2.)
+ *
  * @version 1.5.0 (Phase 2(a) Iteration 2 G-3 vocabulary v2 now covers
  *   @invocation_mode, @date_discipline, @domain_preference,
  *   @embodied_projection, @editorial_default, @research_default, and
@@ -79,6 +86,17 @@ export interface ContextIdentity {
   noMonopoly: boolean;
   description?: string;          // skill_md frontmatter `description:`
   allowedTools?: string[];       // skill_md frontmatter `allowed-tools:`
+  /**
+   * Vocabulary v3 (Iteration 3 first slice): the literal placeholder
+   * the surface substitutes with user invocation arguments. For Claude
+   * Code skills the canonical value is `$ARGUMENTS`; emitted as
+   * `**Command**: $ARGUMENTS` line right after the identity blockquote
+   * in skill_md output. Without this, `/founder [question]` style
+   * explicit invocation flows lose the `[question]` text — it's the
+   * functional gap that blocked Phase 2(a) cutover (per
+   * docs/founder-skill-cutover-prep.md Loss-1).
+   */
+  commandTemplate?: string;
 }
 
 /** Top-level block: priority ordering of authority sources. */
@@ -638,6 +656,7 @@ export class ContextCompiler extends CompilerBase {
           noMonopoly: boolField(cfg, 'no_monopoly', false),
           description: stringFieldOrUndef(cfg, 'description'),
           allowedTools: allowedToolsList.length > 0 ? allowedToolsList : undefined,
+          commandTemplate: stringFieldOrUndef(cfg, 'command_template'),
         };
         break;
       }
@@ -2043,6 +2062,16 @@ export class ContextCompiler extends CompilerBase {
       );
     }
     lines.push('');
+
+    // Vocabulary v3 first slice: command_template injection point.
+    // Without this line, /skill-name [question] explicit invocations
+    // lose the [question] text. Per docs/founder-skill-cutover-prep.md
+    // Loss-1 (functional). Skill-md only — other emitters don't need
+    // surface-specific argument injection.
+    if (ast.identity.commandTemplate) {
+      lines.push(`**Command**: ${ast.identity.commandTemplate}`);
+      lines.push('');
+    }
 
     // Authority order (universal section)
     if (ast.authorityOrder && ast.authorityOrder.tiers.length > 0) {

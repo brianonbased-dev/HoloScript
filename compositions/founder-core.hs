@@ -31,7 +31,8 @@ object "FounderIdentity" {
     surface: "claude",
     no_monopoly: true,
     description: "AUTO-FIRE founder decision proxy for the HoloScript / Infinitus ecosystem. Agents invoke this skill on their own when about to bandaid, workaround, demote, or wait-for-founder. Joseph reviews at the architecture level and on Quest 3 daily; stalling for a founder ping when the answer is encoded in GOLD + NORTH_STAR + CLAUDE.md + the 17-paper program is itself a failure mode.",
-    allowed_tools: ["Bash", "Read", "Write", "Edit", "Grep", "Glob", "WebFetch"]
+    allowed_tools: ["Bash", "Read", "Write", "Edit", "Grep", "Glob", "WebFetch"],
+    command_template: "$ARGUMENTS"
   )
 
   @authority_order(

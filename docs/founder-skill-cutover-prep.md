@@ -34,13 +34,13 @@ Section structure parity is high — 13 of 14 live sections have a vocabulary v2
 
 ## What gets LOST on cutover (vocabulary v3 enrichment targets)
 
-### Loss-1 (FUNCTIONAL): `$ARGUMENTS` injection point
+### Loss-1 (FUNCTIONAL): `$ARGUMENTS` injection point — **CLOSED 2026-05-07**
 
-Live skill line 22 declares `**Command**: $ARGUMENTS` — the Claude Code convention that injects the user's `/founder [question]` text into the skill body. Emitted SKILL.md has no equivalent.
+Live skill line 22 declares `**Command**: $ARGUMENTS` — the Claude Code convention that injects the user's `/founder [question]` text into the skill body. Emitted SKILL.md had no equivalent.
 
-**Impact**: cutover would BREAK explicit invocation. Users typing `/founder [question]` would see the skill fire but the `[question]` text wouldn't reach the rule-application body.
+**Impact (pre-fix)**: cutover would BREAK explicit invocation. Users typing `/founder [question]` would see the skill fire but the `[question]` text wouldn't reach the rule-application body.
 
-**Vocabulary v3 fix**: extend `ContextInvocationMode` (or `ContextIdentity`) with an optional `commandTemplate?: string` field that emits as `**Command**: $ARGUMENTS` (or whatever the surface convention requires). Each invocation_mode could declare its own template; the explicit mode emits the placeholder.
+**Vocabulary v3 fix (LANDED)**: `ContextIdentity.commandTemplate?: string` optional field. When source declares `command_template: "$ARGUMENTS"`, the skill_md emitter renders `**Command**: $ARGUMENTS` after the identity blockquote and before the first `## Authority order` section. Other emitters (claude_md, agents_md, cursor_rules) skip the line — surface-specific argument injection only matters for skill_md. ContextCompiler tests at 130/130 (123 prior + 7 new for this slice). Round-trip via `scripts/compile-founder-skill.mjs` now emits the Command line; verified 2026-05-07.
 
 ### Loss-2 (FUNCTIONAL): "You ARE the founder" rhetorical opening
 

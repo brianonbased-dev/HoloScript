@@ -2460,3 +2460,137 @@ describe('compile() - vocabulary v2 -> @editorial_default + @research_default', 
     expect(md).not.toContain('|  /  |');
   });
 });
+
+// --- Vocabulary v3 (Iteration 3 first slice) -- ContextIdentity.commandTemplate ---
+//
+// Closes Loss-1 from docs/founder-skill-cutover-prep.md: the functional
+// gap where /skill-name [question] explicit invocation flows lose the
+// [question] text because the emitted SKILL.md doesn't carry the
+// `**Command**: $ARGUMENTS` placeholder Claude Code substitutes at
+// invocation time. Skill-md only — other emitters don't need the
+// surface-specific argument injection.
+
+describe('compile() - vocabulary v3 -> identity.command_template', () => {
+  function makeIdentityWithCommand(template: string | null): HoloComposition {
+    const config: Record<string, unknown> = {
+      name: 'founder',
+      role: 'founder-decision-proxy',
+      domain: 'holoscript-ecosystem',
+      surface: 'claude',
+      no_monopoly: true,
+      description: 'Test description',
+    };
+    if (template !== null) config.command_template = template;
+    return makeComposition({
+      objects: [
+        {
+          type: 'Object',
+          name: 'A',
+          properties: [],
+          traits: [{ type: 'ObjectTrait', name: 'identity', config }],
+        },
+      ],
+    });
+  }
+
+  it('extracts command_template from @identity into ast.identity.commandTemplate', () => {
+    const compiler = new ContextCompiler({ formats: ['skill_md'] });
+    const result = compiler.compile(makeIdentityWithCommand('$ARGUMENTS'), '');
+    expect(result.ast.identity?.commandTemplate).toBe('$ARGUMENTS');
+    // False case: must NOT default to a placeholder string when source omits it
+  });
+
+  it('emits **Command**: $ARGUMENTS line in skill_md when command_template is set', () => {
+    const compiler = new ContextCompiler({ formats: ['skill_md'] });
+    const md = compiler.compile(makeIdentityWithCommand('$ARGUMENTS'), '').files['SKILL.md'];
+    expect(md).toContain('**Command**: $ARGUMENTS');
+    // False case: must NOT emit a literal `${commandTemplate}` template-literal leak
+    expect(md).not.toContain('${');
+    expect(md).not.toContain('commandTemplate');
+  });
+
+  it('places **Command** line AFTER identity blockquote and BEFORE first ## section', () => {
+    const compiler = new ContextCompiler({
+      formats: ['skill_md'],
+    });
+    const md = compiler.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'A',
+            properties: [],
+            traits: [
+              {
+                type: 'ObjectTrait',
+                name: 'identity',
+                config: {
+                  name: 'founder',
+                  role: 'r',
+                  domain: 'd',
+                  surface: 'claude',
+                  description: 'desc',
+                  command_template: '$ARGUMENTS',
+                },
+              },
+              {
+                type: 'ObjectTrait',
+                name: 'authority_order',
+                config: { tiers: ['GOLD vault'] },
+              },
+            ],
+          },
+        ],
+      }),
+      ''
+    ).files['SKILL.md'];
+    const blockquoteIdx = md.indexOf('> **Surface**:');
+    const commandIdx = md.indexOf('**Command**:');
+    const sectionIdx = md.indexOf('## Authority order');
+    expect(blockquoteIdx).toBeGreaterThan(0);
+    expect(commandIdx).toBeGreaterThan(blockquoteIdx);
+    expect(sectionIdx).toBeGreaterThan(commandIdx);
+  });
+
+  it('omits **Command** line entirely when command_template is absent', () => {
+    const compiler = new ContextCompiler({ formats: ['skill_md'] });
+    const md = compiler.compile(makeIdentityWithCommand(null), '').files['SKILL.md'];
+    // False case: header must NOT leak when source omitted the field
+    expect(md).not.toContain('**Command**:');
+  });
+
+  it('omits **Command** line when command_template is empty string (treats falsy as absent)', () => {
+    const compiler = new ContextCompiler({ formats: ['skill_md'] });
+    const md = compiler.compile(makeIdentityWithCommand(''), '').files['SKILL.md'];
+    // Empty string is the same as absent — no Command line + no orphan colon
+    expect(md).not.toContain('**Command**:');
+    expect(md).not.toContain('**Command**: \n');
+  });
+
+  it('accepts arbitrary command template strings (not just $ARGUMENTS)', () => {
+    const compiler = new ContextCompiler({ formats: ['skill_md'] });
+    const md = compiler.compile(
+      makeIdentityWithCommand('${USER_QUESTION} (received via /founder)'),
+      ''
+    ).files['SKILL.md'];
+    expect(md).toContain('**Command**: ${USER_QUESTION} (received via /founder)');
+  });
+
+  it('does NOT emit Command line in claude_md / agents_md / cursor_rules (skill_md only)', () => {
+    // Other emitters render the same identity but skip surface-specific
+    // command injection. Verify by compiling with all formats and checking
+    // each output file independently.
+    const all = new ContextCompiler({
+      formats: ['claude_md', 'agents_md', 'cursor_rules', 'skill_md'],
+    });
+    const result = all.compile(makeIdentityWithCommand('$ARGUMENTS'), '');
+    expect(result.files['CLAUDE.md']).not.toContain('**Command**: $ARGUMENTS');
+    expect(result.files['AGENTS.md']).not.toContain('**Command**: $ARGUMENTS');
+    expect(result.files['SKILL.md']).toContain('**Command**: $ARGUMENTS');
+    // Cursor rules emits multiple files; ensure none of them carry the placeholder
+    const cursorPaths = Object.keys(result.files).filter((k) => k.startsWith('.cursor/rules/'));
+    for (const p of cursorPaths) {
+      expect(result.files[p]).not.toContain('**Command**: $ARGUMENTS');
+    }
+  });
+});
