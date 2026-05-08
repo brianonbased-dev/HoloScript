@@ -39,8 +39,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { name = 'Untitled', code, author = 'Anonymous' } = body;
+  const { name = 'Untitled', code, author = 'Anonymous', customDomain } = body;
   if (!code) return NextResponse.json({ error: '`code` is required' }, { status: 400 });
+
+  const domain = typeof customDomain === 'string' ? customDomain.trim() : undefined;
 
   const db = getDb();
   if (db) {
@@ -48,12 +50,16 @@ export async function POST(req: NextRequest) {
       .insert(sharedScenes)
       .values({
         code,
-        metadata: { name, author },
+        metadata: { name, author, ...(domain ? { customDomain: domain } : {}) },
       })
       .returning();
 
     const shortId = row.id.slice(0, 8);
-    return NextResponse.json({ id: shortId, url: `/shared/${shortId}` }, { status: 201 });
+    const response: Record<string, string> = { id: shortId, url: `/shared/${shortId}` };
+    if (domain) {
+      response.customUrl = `https://${domain}/w/${shortId}`;
+    }
+    return NextResponse.json(response, { status: 201 });
   }
 
   // Fallback: in-memory
@@ -67,7 +73,11 @@ export async function POST(req: NextRequest) {
     views: 0,
   });
 
-  return NextResponse.json({ id, url: `/shared/${id}` }, { status: 201 });
+  const response: Record<string, string> = { id, url: `/shared/${id}` };
+  if (domain) {
+    response.customUrl = `https://${domain}/w/${id}`;
+  }
+  return NextResponse.json(response, { status: 201 });
 }
 
 /** GET /api/share — list recently shared scenes (public gallery) */
