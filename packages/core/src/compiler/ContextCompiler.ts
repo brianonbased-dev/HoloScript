@@ -31,12 +31,11 @@
  * declarations). WARN soft-guideline (stale citations, fluent prose
  * without citation, schedule conflicts, unresolved verify-tokens).
  *
- * @version 1.6.0 (Phase 2(a) Iteration 3 first slice: vocabulary v3
- *   adds ContextIdentity.commandTemplate optional field — closes the
- *   functional Loss-1 from docs/founder-skill-cutover-prep.md by
- *   restoring the `**Command**: $ARGUMENTS` injection point in
- *   skill_md emit. Iteration 2 vocabulary v2 still valid; v3 is purely
- *   additive on top of v2.)
+ * @version 1.7.0 (Phase 2(a) Iteration 3: vocabulary v3 complete.
+ *   Adds @narrative_opening, @trigger_phrase, @prose_after, and
+ *   section-header label alignment across all 4 emitters. Closes
+ *   functional Losses 1-5 from docs/founder-skill-cutover-prep.md.
+ *   Iteration 2 vocabulary v2 still valid; v3 is purely additive.)
  *
  * @version 1.5.0 (Phase 2(a) Iteration 2 G-3 vocabulary v2 now covers
  *   @invocation_mode, @date_discipline, @domain_preference,
@@ -241,6 +240,39 @@ export interface ContextHardPhysicalGap {
 }
 
 /**
+ * Per-rule: rhetorical frame-setter that establishes the agent's posture
+ * before any rule applies. Vocabulary v3 (Phase 2(a) Iteration 3).
+ * Emits as a top-level prose block right after the identity blockquote,
+ * before the first ## section. Without this, agents may treat refusals
+ * and defaults as advisory rather than mandatory.
+ */
+export interface ContextNarrativeOpening {
+  posture: string;
+  reason?: string;
+}
+
+/**
+ * Per-rule: concrete trigger phrase that enriches the skill description.
+ * Vocabulary v3 (Phase 2(a) Iteration 3). Auto-fire reliability depends
+ * on these phrases being visible in the skill's discovery metadata.
+ */
+export interface ContextTriggerPhrase {
+  phrase: string;
+  context?: string;
+}
+
+/**
+ * Per-rule: prose paragraphs that emit AFTER a structured section.
+ * Vocabulary v3 (Phase 2(a) Iteration 3). Targets a canonical trait name
+ * (e.g. 'refusal', 'authority_order', 'date_discipline') and appends
+ * paragraphs after that section's structured rendering in all emitters.
+ */
+export interface ContextProseAfter {
+  trait: string;
+  paragraphs: string[];
+}
+
+/**
  * Per-rule: a domain → execution-skill dispatch row. Vocabulary v2
  * (Phase 2(a) Iteration 2 G-3 third slice). Captures the founder skill's
  * "## Domain preferences (beyond engineering)" dispatch table — each
@@ -418,6 +450,9 @@ export interface ContextAST {
   editorialDefaults: ContextEditorialDefault[]; // vocabulary v2 (Iteration 2 G-3 fourth slice)
   researchDefaults: ContextResearchDefault[]; // vocabulary v2 (Iteration 2 G-3 fourth slice)
   trackBAuthorities: ContextTrackBAuthority[]; // vocabulary v2 (Iteration 2 G-3 authority slice)
+  narrativeOpenings: ContextNarrativeOpening[]; // vocabulary v3 (Iteration 3)
+  triggerPhrases: ContextTriggerPhrase[]; // vocabulary v3 (Iteration 3)
+  proseAfters: ContextProseAfter[]; // vocabulary v3 (Iteration 3)
 
   // Diagnostics surfaced from validation
   warnings: ContextValidationDiagnostic[];
@@ -623,6 +658,9 @@ export class ContextCompiler extends CompilerBase {
       editorialDefaults: [],
       researchDefaults: [],
       trackBAuthorities: [],
+      narrativeOpenings: [],
+      triggerPhrases: [],
+      proseAfters: [],
       warnings: [],
     };
 
@@ -861,6 +899,24 @@ export class ContextCompiler extends CompilerBase {
           reason: stringFieldOrUndef(cfg, 'reason'),
         });
         break;
+      case 'narrative_opening':
+        ast.narrativeOpenings.push({
+          posture: stringField(cfg, 'posture', ''),
+          reason: stringFieldOrUndef(cfg, 'reason'),
+        });
+        break;
+      case 'trigger_phrase':
+        ast.triggerPhrases.push({
+          phrase: stringField(cfg, 'phrase', ''),
+          context: stringFieldOrUndef(cfg, 'context'),
+        });
+        break;
+      case 'prose_after':
+        ast.proseAfters.push({
+          trait: stringField(cfg, 'trait', ''),
+          paragraphs: stringListField(cfg, 'paragraphs'),
+        });
+        break;
       default:
         // Unknown trait - record as warning, don't block (vocabulary
         // may grow; unknown traits in source today might be valid in v2).
@@ -969,6 +1025,21 @@ export class ContextCompiler extends CompilerBase {
       lines.push('');
     }
 
+    // Narrative opening (vocabulary v3 - Iteration 3)
+    for (const opening of ast.narrativeOpenings) {
+      const postureLines = opening.posture.split(/\r?\n/);
+      for (const pl of postureLines) {
+        lines.push(`> ${pl}`);
+      }
+      if (opening.reason) {
+        const reasonLines = opening.reason.split(/\r?\n/);
+        for (const rl of reasonLines) {
+          lines.push(`> ${rl}`);
+        }
+      }
+      lines.push('');
+    }
+
     // Authority order
     if (ast.authorityOrder && ast.authorityOrder.tiers.length > 0) {
       lines.push(`## Authority order (read top-down; the first match wins)`);
@@ -977,6 +1048,7 @@ export class ContextCompiler extends CompilerBase {
         lines.push(`${idx + 1}. **${tier}**`);
       });
       lines.push('');
+      this.appendProseAfter(lines, ast, 'authority_order');
     }
 
     // Vision pillars
@@ -988,11 +1060,12 @@ export class ContextCompiler extends CompilerBase {
         lines.push(`${idx + 1}. **${pillar.claim}**${cite}`);
       });
       lines.push('');
+      this.appendProseAfter(lines, ast, 'vision_pillar');
     }
 
     // Refusals
     if (ast.refusals.length > 0) {
-      lines.push(`## The Refusals`);
+      lines.push(`## The Four Refusals`);
       lines.push('');
       lines.push(
         `These are not guidelines. They are refusals. If you catch yourself about to ` +
@@ -1015,6 +1088,7 @@ export class ContextCompiler extends CompilerBase {
           lines.push('');
         }
       }
+      this.appendProseAfter(lines, ast, 'refusal');
     }
 
     // Hard don'ts
@@ -1029,11 +1103,12 @@ export class ContextCompiler extends CompilerBase {
         );
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'hard_dont');
     }
 
     // Known defaults
     if (ast.defaults.length > 0) {
-      lines.push(`## Known defaults (answer immediately - do not re-litigate)`);
+      lines.push(`## Known founder defaults (answer immediately)`);
       lines.push('');
       lines.push(`| When | Answer | Reason |`);
       lines.push(`|---|---|---|`);
@@ -1043,11 +1118,12 @@ export class ContextCompiler extends CompilerBase {
         );
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'default');
     }
 
     // Domain preferences (vocabulary v2 - Iteration 2 G-3 third slice)
     if (ast.domainPreferences.length > 0) {
-      lines.push('## Domain preferences');
+      lines.push('## Domain preferences (beyond engineering)');
       lines.push('');
       lines.push('| Domain | Skills to delegate to | Notes / ceiling |');
       lines.push('|---|---|---|');
@@ -1062,17 +1138,21 @@ export class ContextCompiler extends CompilerBase {
         lines.push(`| **${pref.domain}** | ${skills} | ${notes} |`);
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'domain_preference');
     }
 
     // Track-B authority (vocabulary v2 - Iteration 2 G-3 authority slice)
     this.appendTrackBAuthority(lines, ast);
+    this.appendProseAfter(lines, ast, 'authority');
 
     // Papers program defaults (vocabulary v2 - Iteration 2 G-3 fourth slice)
     this.appendPapersProgramDefaults(lines, ast);
+    this.appendProseAfter(lines, ast, 'editorial_default');
+    this.appendProseAfter(lines, ast, 'research_default');
 
     // Output shape
     if (ast.outputShape) {
-      lines.push(`## Output shape`);
+      lines.push(`## Output shape — SILENT-TO-JOSEPH, LOUD-TO-THE-AGENT`);
       lines.push('');
       lines.push(`- **Silent to**: ${ast.outputShape.silentTo}`);
       lines.push(`- **Loud to**: ${ast.outputShape.loudTo}`);
@@ -1083,11 +1163,12 @@ export class ContextCompiler extends CompilerBase {
         lines.push(`- **Surface hint**: ${ast.outputShape.surfaceHint}`);
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'output_shape');
     }
 
     // Production rule
     if (ast.productionRule) {
-      lines.push(`## Production-only rule`);
+      lines.push(`## Production-only rule (no dev, no mock, no localhost)`);
       lines.push('');
       if (ast.productionRule.noDevNoMockNoLocalhost) {
         lines.push(`No dev. No mock. No localhost. The real service exists - hit it.`);
@@ -1097,6 +1178,7 @@ export class ContextCompiler extends CompilerBase {
         lines.push(`**Exception**: ${ast.productionRule.exception}`);
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'production_rule');
     }
 
     // Hard physical gaps
@@ -1110,6 +1192,7 @@ export class ContextCompiler extends CompilerBase {
         }
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'hard_physical_gap');
     }
 
     // Skills
@@ -1130,11 +1213,12 @@ export class ContextCompiler extends CompilerBase {
           lines.push('');
         }
       }
+      this.appendProseAfter(lines, ast, 'skill');
     }
 
     // Invocation modes (vocabulary v2 - Iteration 2 G-3)
     if (ast.invocationModes.length > 0) {
-      lines.push('## Invocation modes');
+      lines.push('## Invocation modes (Track D)');
       lines.push('');
       for (const mode of ast.invocationModes) {
         lines.push(`### ${mode.mode}`);
@@ -1146,9 +1230,11 @@ export class ContextCompiler extends CompilerBase {
         }
         lines.push('');
       }
+      this.appendProseAfter(lines, ast, 'invocation_mode');
     }
 
     appendEmbodiedProjectionSection(lines, ast.embodiedProjections);
+    this.appendProseAfter(lines, ast, 'embodied_projection');
 
     // Routines (A-00X)
     if (ast.routines.length > 0) {
@@ -1162,11 +1248,12 @@ export class ContextCompiler extends CompilerBase {
         );
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'routine');
     }
 
     // Escalations
     if (ast.escalations.length > 0) {
-      lines.push(`## Escalation`);
+      lines.push(`## Escape hatch`);
       lines.push('');
       for (const esc of ast.escalations) {
         lines.push(`- **Trigger**: ${esc.trigger}`);
@@ -1179,11 +1266,14 @@ export class ContextCompiler extends CompilerBase {
         }
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'escalation');
     }
 
     // Date discipline (W.317) (vocabulary v2 - Iteration 2 G-3 next slice)
     if (ast.dateDisciplines.length > 0) {
-      lines.push('## Date discipline');
+      const firstWisdom = ast.dateDisciplines[0]?.wisdomId;
+      const wisdomSuffix = ast.dateDisciplines.length === 1 && firstWisdom ? ` (${firstWisdom})` : '';
+      lines.push(`## Date discipline${wisdomSuffix}`);
       lines.push('');
       for (const d of ast.dateDisciplines) {
         const wisdomLabel = d.wisdomId ? ` (${d.wisdomId})` : '';
@@ -1215,6 +1305,7 @@ export class ContextCompiler extends CompilerBase {
           lines.push('');
         }
       }
+      this.appendProseAfter(lines, ast, 'date_discipline');
     }
 
     // Citation rules
@@ -1234,6 +1325,7 @@ export class ContextCompiler extends CompilerBase {
         }
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'citation_rule');
     }
 
     // Cross-references - graduated wisdom + feedback
@@ -1257,6 +1349,8 @@ export class ContextCompiler extends CompilerBase {
         }
         lines.push('');
       }
+      this.appendProseAfter(lines, ast, 'graduated_wisdom');
+      this.appendProseAfter(lines, ast, 'feedback');
     }
 
     // Generated-by trailer
@@ -1264,7 +1358,7 @@ export class ContextCompiler extends CompilerBase {
     lines.push('');
     lines.push(
       `*Generated by HoloScript ContextCompiler (compile_to_claude_md). ` +
-        `Source: HoloScript composition. Vocabulary: v1 (ratified 2026-05-06).*`
+        `Source: HoloScript composition. Vocabulary: v3 (ratified 2026-05-07).*`
     );
     lines.push('');
 
@@ -1316,6 +1410,21 @@ export class ContextCompiler extends CompilerBase {
       lines.push('');
     }
 
+    // Narrative opening (vocabulary v3 - Iteration 3)
+    for (const opening of ast.narrativeOpenings) {
+      const postureLines = opening.posture.split(/\r?\n/);
+      for (const pl of postureLines) {
+        lines.push(`> ${pl}`);
+      }
+      if (opening.reason) {
+        const reasonLines = opening.reason.split(/\r?\n/);
+        for (const rl of reasonLines) {
+          lines.push(`> ${rl}`);
+        }
+      }
+      lines.push('');
+    }
+
     // Authority order (universal section name)
     if (ast.authorityOrder && ast.authorityOrder.tiers.length > 0) {
       lines.push('## Authority order (read top-down; first match wins)');
@@ -1324,23 +1433,25 @@ export class ContextCompiler extends CompilerBase {
         lines.push(`${idx + 1}. **${tier}**`);
       });
       lines.push('');
+      this.appendProseAfter(lines, ast, 'authority_order');
     }
 
     // Project principles (renamed from "Vision pillars" for Codex audience)
     if (ast.visionPillars.length > 0) {
-      lines.push('## Project principles');
+      lines.push('## Project principles (follow; do not drift)');
       lines.push('');
       ast.visionPillars.forEach((pillar, idx) => {
         const cite = pillar.citation ? ` *(${pillar.citation})*` : '';
         lines.push(`${idx + 1}. **${pillar.claim}**${cite}`);
       });
       lines.push('');
+      this.appendProseAfter(lines, ast, 'vision_pillar');
     }
 
     // Hard rules - merges @refusal + @hard_dont into one flat section
     // per Codex docs convention (no separate "Refusals" subsection).
     if (ast.refusals.length > 0 || ast.hardDonts.length > 0) {
-      lines.push('## Hard rules');
+      lines.push('## Hard rules (The Four Refusals + cross-provider red lines)');
       lines.push('');
       lines.push(
         'Rules below are non-negotiable. Each names what to do, what NOT to do, and why.'
@@ -1373,13 +1484,15 @@ export class ContextCompiler extends CompilerBase {
         }
         lines.push('');
       }
+      this.appendProseAfter(lines, ast, 'refusal');
+      this.appendProseAfter(lines, ast, 'hard_dont');
     }
 
     // Conventions (renamed from "Known defaults" - matches existing
     // AGENTS.md convention pattern in HoloScript/AGENTS.md and
     // ai-ecosystem/AGENTS.md).
     if (ast.defaults.length > 0) {
-      lines.push('## Conventions');
+      lines.push('## Conventions (answer immediately)');
       lines.push('');
       lines.push('| When | Do | Reason |');
       lines.push('|---|---|---|');
@@ -1389,11 +1502,12 @@ export class ContextCompiler extends CompilerBase {
         );
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'default');
     }
 
     // Domain preferences (vocabulary v2 - Iteration 2 G-3 third slice)
     if (ast.domainPreferences.length > 0) {
-      lines.push('## Domain preferences');
+      lines.push('## Domain preferences (beyond engineering)');
       lines.push('');
       lines.push('| Domain | Skills to delegate to | Notes / ceiling |');
       lines.push('|---|---|---|');
@@ -1408,17 +1522,21 @@ export class ContextCompiler extends CompilerBase {
         lines.push(`| **${pref.domain}** | ${skills} | ${notes} |`);
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'domain_preference');
     }
 
     // Track-B authority (vocabulary v2 - Iteration 2 G-3 authority slice)
     this.appendTrackBAuthority(lines, ast);
+    this.appendProseAfter(lines, ast, 'authority');
 
     // Papers program defaults (vocabulary v2 - Iteration 2 G-3 fourth slice)
     this.appendPapersProgramDefaults(lines, ast);
+    this.appendProseAfter(lines, ast, 'editorial_default');
+    this.appendProseAfter(lines, ast, 'research_default');
 
     // Output shape (universal)
     if (ast.outputShape) {
-      lines.push('## Output shape');
+      lines.push('## Output shape — SILENT-TO-JOSEPH, LOUD-TO-THE-AGENT');
       lines.push('');
       lines.push(`- **Silent to**: ${ast.outputShape.silentTo}`);
       lines.push(`- **Loud to**: ${ast.outputShape.loudTo}`);
@@ -1429,11 +1547,12 @@ export class ContextCompiler extends CompilerBase {
         lines.push(`- **Surface hint**: ${ast.outputShape.surfaceHint}`);
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'output_shape');
     }
 
     // Production rule (universal)
     if (ast.productionRule) {
-      lines.push('## Production-only rule');
+      lines.push('## Production-only rule (no dev, no mock, no localhost)');
       lines.push('');
       if (ast.productionRule.noDevNoMockNoLocalhost) {
         lines.push('No dev. No mock. No localhost. The real service exists - hit it.');
@@ -1443,6 +1562,7 @@ export class ContextCompiler extends CompilerBase {
         lines.push(`**Exception**: ${ast.productionRule.exception}`);
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'production_rule');
     }
 
     // Hard physical gaps - explicit in AGENTS.md so non-Claude agents
@@ -1457,6 +1577,7 @@ export class ContextCompiler extends CompilerBase {
         }
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'hard_physical_gap');
     }
 
     // Workflows (renamed from "Skills" - Codex's closer term; skill
@@ -1476,11 +1597,12 @@ export class ContextCompiler extends CompilerBase {
         }
         lines.push('');
       }
+      this.appendProseAfter(lines, ast, 'skill');
     }
 
     // Invocation modes (vocabulary v2 - Iteration 2 G-3)
     if (ast.invocationModes.length > 0) {
-      lines.push('## Invocation modes');
+      lines.push('## Invocation modes (Track D)');
       lines.push('');
       for (const mode of ast.invocationModes) {
         lines.push(`### ${mode.mode}`);
@@ -1492,9 +1614,11 @@ export class ContextCompiler extends CompilerBase {
         }
         lines.push('');
       }
+      this.appendProseAfter(lines, ast, 'invocation_mode');
     }
 
     appendEmbodiedProjectionSection(lines, ast.embodiedProjections);
+    this.appendProseAfter(lines, ast, 'embodied_projection');
 
     // Recurring routines (universal - A-00X pattern is cross-tool)
     if (ast.routines.length > 0) {
@@ -1508,11 +1632,12 @@ export class ContextCompiler extends CompilerBase {
         );
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'routine');
     }
 
     // Escalation (universal)
     if (ast.escalations.length > 0) {
-      lines.push('## Escalation');
+      lines.push('## Escape hatch');
       lines.push('');
       for (const esc of ast.escalations) {
         lines.push(`- **Trigger**: ${esc.trigger}`);
@@ -1525,11 +1650,14 @@ export class ContextCompiler extends CompilerBase {
         }
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'escalation');
     }
 
     // Date discipline (W.317) (vocabulary v2 - Iteration 2 G-3 next slice)
     if (ast.dateDisciplines.length > 0) {
-      lines.push('## Date discipline');
+      const firstWisdom = ast.dateDisciplines[0]?.wisdomId;
+      const wisdomSuffix = ast.dateDisciplines.length === 1 && firstWisdom ? ` (${firstWisdom})` : '';
+      lines.push(`## Date discipline${wisdomSuffix}`);
       lines.push('');
       for (const d of ast.dateDisciplines) {
         const wisdomLabel = d.wisdomId ? ` (${d.wisdomId})` : '';
@@ -1561,6 +1689,7 @@ export class ContextCompiler extends CompilerBase {
           lines.push('');
         }
       }
+      this.appendProseAfter(lines, ast, 'date_discipline');
     }
 
     // Citation discipline (universal)
@@ -1580,6 +1709,7 @@ export class ContextCompiler extends CompilerBase {
         }
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'citation_rule');
     }
 
     // Authority cross-references (universal)
@@ -1603,6 +1733,8 @@ export class ContextCompiler extends CompilerBase {
         }
         lines.push('');
       }
+      this.appendProseAfter(lines, ast, 'graduated_wisdom');
+      this.appendProseAfter(lines, ast, 'feedback');
     }
 
     // Generated-by trailer
@@ -1610,7 +1742,7 @@ export class ContextCompiler extends CompilerBase {
     lines.push('');
     lines.push(
       `*Generated by HoloScript ContextCompiler (compile_to_agents_md). ` +
-        `Source: HoloScript composition. Vocabulary: v1 (ratified 2026-05-06). ` +
+        `Source: HoloScript composition. Vocabulary: v3 (ratified 2026-05-07). ` +
         `Cross-tool: Codex, Copilot, Cursor, Continue, Windsurf, Amp, Devin.*`
     );
     lines.push('');
@@ -1742,6 +1874,21 @@ export class ContextCompiler extends CompilerBase {
       idx.push('');
     }
 
+    // Narrative opening (vocabulary v3 - Iteration 3)
+    for (const opening of ast.narrativeOpenings) {
+      const postureLines = opening.posture.split(/\r?\n/);
+      for (const pl of postureLines) {
+        idx.push(`> ${pl}`);
+      }
+      if (opening.reason) {
+        const reasonLines = opening.reason.split(/\r?\n/);
+        for (const rl of reasonLines) {
+          idx.push(`> ${rl}`);
+        }
+      }
+      idx.push('');
+    }
+
     // Authority order
     if (ast.authorityOrder && ast.authorityOrder.tiers.length > 0) {
       idx.push('## Authority order (read top-down; first match wins)');
@@ -1750,22 +1897,24 @@ export class ContextCompiler extends CompilerBase {
         idx.push(`${i + 1}. **${tier}**`);
       });
       idx.push('');
+      this.appendProseAfter(idx, ast, 'authority_order');
     }
 
     // Vision pillars
     if (ast.visionPillars.length > 0) {
-      idx.push('## Vision pillars');
+      idx.push('## Vision pillars (follow; do not drift)');
       idx.push('');
       ast.visionPillars.forEach((pillar, i) => {
         const cite = pillar.citation ? ` *(${pillar.citation})*` : '';
         idx.push(`${i + 1}. **${pillar.claim}**${cite}`);
       });
       idx.push('');
+      this.appendProseAfter(idx, ast, 'vision_pillar');
     }
 
     // Domain preferences (vocabulary v2 - Iteration 2 G-3 third slice)
     if (ast.domainPreferences.length > 0) {
-      idx.push('## Domain preferences');
+      idx.push('## Domain preferences (beyond engineering)');
       idx.push('');
       idx.push('| Domain | Skills to delegate to | Notes / ceiling |');
       idx.push('|---|---|---|');
@@ -1780,17 +1929,21 @@ export class ContextCompiler extends CompilerBase {
         idx.push(`| **${pref.domain}** | ${skills} | ${notes} |`);
       }
       idx.push('');
+      this.appendProseAfter(idx, ast, 'domain_preference');
     }
 
     // Track-B authority (vocabulary v2 - Iteration 2 G-3 authority slice)
     this.appendTrackBAuthority(idx, ast);
+    this.appendProseAfter(idx, ast, 'authority');
 
     // Papers program defaults (vocabulary v2 - Iteration 2 G-3 fourth slice)
     this.appendPapersProgramDefaults(idx, ast);
+    this.appendProseAfter(idx, ast, 'editorial_default');
+    this.appendProseAfter(idx, ast, 'research_default');
 
     // Output shape
     if (ast.outputShape) {
-      idx.push('## Output shape');
+      idx.push('## Output shape — SILENT-TO-JOSEPH, LOUD-TO-THE-AGENT');
       idx.push('');
       idx.push(`- **Silent to**: ${ast.outputShape.silentTo}`);
       idx.push(`- **Loud to**: ${ast.outputShape.loudTo}`);
@@ -1801,11 +1954,12 @@ export class ContextCompiler extends CompilerBase {
         idx.push(`- **Surface hint**: ${ast.outputShape.surfaceHint}`);
       }
       idx.push('');
+      this.appendProseAfter(idx, ast, 'output_shape');
     }
 
     // Production rule
     if (ast.productionRule) {
-      idx.push('## Production-only rule');
+      idx.push('## Production-only rule (no dev, no mock, no localhost)');
       idx.push('');
       if (ast.productionRule.noDevNoMockNoLocalhost) {
         idx.push('No dev. No mock. No localhost. The real service exists - hit it.');
@@ -1815,6 +1969,7 @@ export class ContextCompiler extends CompilerBase {
         idx.push(`**Exception**: ${ast.productionRule.exception}`);
       }
       idx.push('');
+      this.appendProseAfter(idx, ast, 'production_rule');
     }
 
     // Hard physical gaps - non-absorbable boundaries (deferred to v2 for
@@ -1830,6 +1985,7 @@ export class ContextCompiler extends CompilerBase {
         }
       }
       idx.push('');
+      this.appendProseAfter(idx, ast, 'hard_physical_gap');
     }
 
     // Skill registry (one-line summaries; per-skill files belong to
@@ -1841,11 +1997,12 @@ export class ContextCompiler extends CompilerBase {
         idx.push(`- **${skill.invocableAs}** (${skill.name}) - ${skill.authority}`);
       }
       idx.push('');
+      this.appendProseAfter(idx, ast, 'skill');
     }
 
     // Invocation modes (vocabulary v2 - Iteration 2 G-3)
     if (ast.invocationModes.length > 0) {
-      idx.push('## Invocation modes');
+      idx.push('## Invocation modes (Track D)');
       idx.push('');
       for (const mode of ast.invocationModes) {
         idx.push(`### ${mode.mode}`);
@@ -1857,9 +2014,11 @@ export class ContextCompiler extends CompilerBase {
         }
         idx.push('');
       }
+      this.appendProseAfter(idx, ast, 'invocation_mode');
     }
 
     appendEmbodiedProjectionSection(idx, ast.embodiedProjections);
+    this.appendProseAfter(idx, ast, 'embodied_projection');
 
     // Recurring routines (A-00X)
     if (ast.routines.length > 0) {
@@ -1873,11 +2032,12 @@ export class ContextCompiler extends CompilerBase {
         );
       }
       idx.push('');
+      this.appendProseAfter(idx, ast, 'routine');
     }
 
     // Escalation
     if (ast.escalations.length > 0) {
-      idx.push('## Escalation');
+      idx.push('## Escape hatch');
       idx.push('');
       for (const esc of ast.escalations) {
         idx.push(`- **Trigger**: ${esc.trigger}`);
@@ -1890,11 +2050,14 @@ export class ContextCompiler extends CompilerBase {
         }
       }
       idx.push('');
+      this.appendProseAfter(idx, ast, 'escalation');
     }
 
     // Date discipline (W.317) (vocabulary v2 - Iteration 2 G-3 next slice)
     if (ast.dateDisciplines.length > 0) {
-      idx.push('## Date discipline');
+      const firstWisdom = ast.dateDisciplines[0]?.wisdomId;
+      const wisdomSuffix = ast.dateDisciplines.length === 1 && firstWisdom ? ` (${firstWisdom})` : '';
+      idx.push(`## Date discipline${wisdomSuffix}`);
       idx.push('');
       for (const d of ast.dateDisciplines) {
         const wisdomLabel = d.wisdomId ? ` (${d.wisdomId})` : '';
@@ -1926,6 +2089,7 @@ export class ContextCompiler extends CompilerBase {
           idx.push('');
         }
       }
+      this.appendProseAfter(idx, ast, 'date_discipline');
     }
 
     // Citation discipline
@@ -1945,6 +2109,7 @@ export class ContextCompiler extends CompilerBase {
         }
       }
       idx.push('');
+      this.appendProseAfter(idx, ast, 'citation_rule');
     }
 
     // Authority cross-references (graduated wisdom + feedback)
@@ -1968,6 +2133,8 @@ export class ContextCompiler extends CompilerBase {
         }
         idx.push('');
       }
+      this.appendProseAfter(idx, ast, 'graduated_wisdom');
+      this.appendProseAfter(idx, ast, 'feedback');
     }
 
     // Generated-by trailer (only on the index file - per-rule files
@@ -1976,7 +2143,7 @@ export class ContextCompiler extends CompilerBase {
     idx.push('');
     idx.push(
       '*Generated by HoloScript ContextCompiler (compile_to_cursor_rules). ' +
-        'Source: HoloScript composition. Vocabulary: v1 (ratified 2026-05-06). ' +
+        'Source: HoloScript composition. Vocabulary: v3 (ratified 2026-05-07). ' +
         'Per-rule files emit alongside this index under .cursor/rules/.*'
     );
     idx.push('');
@@ -2039,7 +2206,15 @@ export class ContextCompiler extends CompilerBase {
     // --- YAML frontmatter ---
     lines.push('---');
     lines.push(`name: ${yamlScalar(ast.identity.name)}`);
-    lines.push(formatYamlDescription(ast.identity.description));
+    // Vocabulary v3: enrich description with trigger phrases for auto-fire reliability
+    let enrichedDescription = ast.identity.description;
+    if (ast.triggerPhrases.length > 0) {
+      enrichedDescription += '\n\nTrigger phrases:';
+      for (const tp of ast.triggerPhrases) {
+        enrichedDescription += `\n- "${tp.phrase}"${tp.context ? ` (${tp.context})` : ''}`;
+      }
+    }
+    lines.push(formatYamlDescription(enrichedDescription));
     const tools =
       ast.identity.allowedTools && ast.identity.allowedTools.length > 0
         ? ast.identity.allowedTools
@@ -2073,6 +2248,21 @@ export class ContextCompiler extends CompilerBase {
       lines.push('');
     }
 
+    // Narrative opening (vocabulary v3 - Iteration 3)
+    for (const opening of ast.narrativeOpenings) {
+      const postureLines = opening.posture.split(/\r?\n/);
+      for (const pl of postureLines) {
+        lines.push(`> ${pl}`);
+      }
+      if (opening.reason) {
+        const reasonLines = opening.reason.split(/\r?\n/);
+        for (const rl of reasonLines) {
+          lines.push(`> ${rl}`);
+        }
+      }
+      lines.push('');
+    }
+
     // Authority order (universal section)
     if (ast.authorityOrder && ast.authorityOrder.tiers.length > 0) {
       lines.push('## Authority order (read top-down; first match wins)');
@@ -2081,6 +2271,7 @@ export class ContextCompiler extends CompilerBase {
         lines.push(`${idx + 1}. **${tier}**`);
       });
       lines.push('');
+      this.appendProseAfter(lines, ast, 'authority_order');
     }
 
     // Vision pillars
@@ -2092,12 +2283,13 @@ export class ContextCompiler extends CompilerBase {
         lines.push(`${idx + 1}. **${pillar.claim}**${cite}`);
       });
       lines.push('');
+      this.appendProseAfter(lines, ast, 'vision_pillar');
     }
 
     // The Refusals (Claude-Code-skill convention uses ritual-refusal framing
     // since SKILL.md is the highest-stakes surface for the four refusals)
     if (ast.refusals.length > 0) {
-      lines.push('## The Refusals');
+      lines.push('## The Four Refusals');
       lines.push('');
       lines.push(
         'These are not guidelines. They are refusals. If you catch yourself ' +
@@ -2120,6 +2312,7 @@ export class ContextCompiler extends CompilerBase {
           lines.push('');
         }
       }
+      this.appendProseAfter(lines, ast, 'refusal');
     }
 
     // Hard don'ts
@@ -2134,11 +2327,12 @@ export class ContextCompiler extends CompilerBase {
         );
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'hard_dont');
     }
 
     // Known defaults
     if (ast.defaults.length > 0) {
-      lines.push('## Known defaults (answer immediately - do not re-litigate)');
+      lines.push('## Known founder defaults (answer immediately)');
       lines.push('');
       lines.push(`| When | Answer | Reason |`);
       lines.push(`|---|---|---|`);
@@ -2148,11 +2342,12 @@ export class ContextCompiler extends CompilerBase {
         );
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'default');
     }
 
     // Domain preferences (vocabulary v2 - Iteration 2 G-3 third slice)
     if (ast.domainPreferences.length > 0) {
-      lines.push('## Domain preferences');
+      lines.push('## Domain preferences (beyond engineering)');
       lines.push('');
       lines.push('| Domain | Skills to delegate to | Notes / ceiling |');
       lines.push('|---|---|---|');
@@ -2167,17 +2362,21 @@ export class ContextCompiler extends CompilerBase {
         lines.push(`| **${pref.domain}** | ${skills} | ${notes} |`);
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'domain_preference');
     }
 
     // Track-B authority (vocabulary v2 - Iteration 2 G-3 authority slice)
     this.appendTrackBAuthority(lines, ast);
+    this.appendProseAfter(lines, ast, 'authority');
 
     // Papers program defaults (vocabulary v2 - Iteration 2 G-3 fourth slice)
     this.appendPapersProgramDefaults(lines, ast);
+    this.appendProseAfter(lines, ast, 'editorial_default');
+    this.appendProseAfter(lines, ast, 'research_default');
 
     // Output shape
     if (ast.outputShape) {
-      lines.push('## Output shape');
+      lines.push('## Output shape — SILENT-TO-JOSEPH, LOUD-TO-THE-AGENT');
       lines.push('');
       lines.push(`- **Silent to**: ${ast.outputShape.silentTo}`);
       lines.push(`- **Loud to**: ${ast.outputShape.loudTo}`);
@@ -2188,11 +2387,12 @@ export class ContextCompiler extends CompilerBase {
         lines.push(`- **Surface hint**: ${ast.outputShape.surfaceHint}`);
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'output_shape');
     }
 
     // Production rule
     if (ast.productionRule) {
-      lines.push('## Production-only rule');
+      lines.push('## Production-only rule (no dev, no mock, no localhost)');
       lines.push('');
       if (ast.productionRule.noDevNoMockNoLocalhost) {
         lines.push('No dev. No mock. No localhost. The real service exists - hit it.');
@@ -2202,6 +2402,7 @@ export class ContextCompiler extends CompilerBase {
         lines.push(`**Exception**: ${ast.productionRule.exception}`);
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'production_rule');
     }
 
     // Hard physical gaps - critical for SKILL.md so the skill knows
@@ -2216,6 +2417,7 @@ export class ContextCompiler extends CompilerBase {
         }
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'hard_physical_gap');
     }
 
     // Cross-referenced skills
@@ -2236,11 +2438,12 @@ export class ContextCompiler extends CompilerBase {
           lines.push('');
         }
       }
+      this.appendProseAfter(lines, ast, 'skill');
     }
 
     // Invocation modes (vocabulary v2 - Iteration 2 G-3)
     if (ast.invocationModes.length > 0) {
-      lines.push('## Invocation modes');
+      lines.push('## Invocation modes (Track D)');
       lines.push('');
       for (const mode of ast.invocationModes) {
         lines.push(`### ${mode.mode}`);
@@ -2252,9 +2455,11 @@ export class ContextCompiler extends CompilerBase {
         }
         lines.push('');
       }
+      this.appendProseAfter(lines, ast, 'invocation_mode');
     }
 
     appendEmbodiedProjectionSection(lines, ast.embodiedProjections);
+    this.appendProseAfter(lines, ast, 'embodied_projection');
 
     // Routines (A-00X)
     if (ast.routines.length > 0) {
@@ -2268,11 +2473,12 @@ export class ContextCompiler extends CompilerBase {
         );
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'routine');
     }
 
     // Escalation
     if (ast.escalations.length > 0) {
-      lines.push('## Escalation');
+      lines.push('## Escape hatch');
       lines.push('');
       for (const esc of ast.escalations) {
         lines.push(`- **Trigger**: ${esc.trigger}`);
@@ -2285,11 +2491,14 @@ export class ContextCompiler extends CompilerBase {
         }
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'escalation');
     }
 
     // Date discipline (W.317) (vocabulary v2 - Iteration 2 G-3 next slice)
     if (ast.dateDisciplines.length > 0) {
-      lines.push('## Date discipline');
+      const firstWisdom = ast.dateDisciplines[0]?.wisdomId;
+      const wisdomSuffix = ast.dateDisciplines.length === 1 && firstWisdom ? ` (${firstWisdom})` : '';
+      lines.push(`## Date discipline${wisdomSuffix}`);
       lines.push('');
       for (const d of ast.dateDisciplines) {
         const wisdomLabel = d.wisdomId ? ` (${d.wisdomId})` : '';
@@ -2321,6 +2530,7 @@ export class ContextCompiler extends CompilerBase {
           lines.push('');
         }
       }
+      this.appendProseAfter(lines, ast, 'date_discipline');
     }
 
     // Citation discipline
@@ -2340,6 +2550,7 @@ export class ContextCompiler extends CompilerBase {
         }
       }
       lines.push('');
+      this.appendProseAfter(lines, ast, 'citation_rule');
     }
 
     // Cross-references - graduated wisdom + feedback
@@ -2363,6 +2574,8 @@ export class ContextCompiler extends CompilerBase {
         }
         lines.push('');
       }
+      this.appendProseAfter(lines, ast, 'graduated_wisdom');
+      this.appendProseAfter(lines, ast, 'feedback');
     }
 
     // Generated-by trailer
@@ -2370,7 +2583,7 @@ export class ContextCompiler extends CompilerBase {
     lines.push('');
     lines.push(
       `*Generated by HoloScript ContextCompiler (compile_to_skill_md). ` +
-        `Source: HoloScript composition. Vocabulary: v1 (ratified 2026-05-06). ` +
+        `Source: HoloScript composition. Vocabulary: v3 (ratified 2026-05-07). ` +
         `Phase 2(a) self-host target.*`
     );
     lines.push('');
@@ -2464,6 +2677,21 @@ export class ContextCompiler extends CompilerBase {
     if (paperId) return paperId;
     if (paperPhase) return paperPhase;
     return 'program-wide';
+  }
+
+  /**
+   * Emit @prose_after paragraphs for a given canonical trait name.
+   * Called after the structured rendering of each section so prose
+   * appears immediately after its target section in all emitters.
+   */
+  private appendProseAfter(lines: string[], ast: ContextAST, traitName: string): void {
+    const prose = ast.proseAfters.filter((p) => p.trait === traitName);
+    for (const entry of prose) {
+      for (const paragraph of entry.paragraphs) {
+        lines.push(paragraph);
+      }
+      lines.push('');
+    }
   }
 }
 
