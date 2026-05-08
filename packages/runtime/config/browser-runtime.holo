@@ -1,0 +1,90 @@
+// ============================================================================
+// BrowserRuntime Environment Configuration Schema
+// ============================================================================
+// Declarative runtime bootstrap config for @holoscript/runtime BrowserRuntime.
+// Parsed by BrowserRuntime.load() or ingested as a composition preamble.
+//
+// Reference: packages/runtime/src/browser/BrowserRuntime.ts
+//   - RuntimeConfig (line ~786)
+//   - BrowserRuntime constructor (line ~869)
+//
+// Usage:
+//   const runtime = new BrowserRuntime(parseBrowserRuntimeConfig(source));
+//
+// ============================================================================
+
+composition "BrowserRuntimeConfig" {
+  environment {
+    skybox: "none"
+    ambient_light: 0.4
+    gravity: [0, -9.82, 0]
+    shadows: true
+  }
+
+  // ── Runtime Mode ───────────────────────────────────────────────────────────
+  config "mode" {
+    value: "web"
+    options: ["web", "vr", "ar", "manual"]
+    description: "Execution mode. manual = externally driven render loop."
+  }
+
+  // ── Quality Preset ─────────────────────────────────────────────────────────
+  config "quality" {
+    value: "medium"
+    options: ["low", "medium", "high", "ultra"]
+    description: "Rendering quality tier. Affects antialias, shadows, pixel ratio."
+  }
+
+  // ── Feature Flags ──────────────────────────────────────────────────────────
+  config "features" {
+    monaco: true
+    brittney: false
+    networking: false
+    xr: true
+    description: "Toggle subsystems. monaco=code editor, brittney=AI agent, xr=WebXR."
+  }
+
+  // ── Renderer Overrides (optional — when injecting an existing R3F context) ─
+  config "renderer_context" {
+    scene: null
+    camera: null
+    renderer: null
+    description: "Optional external Three.js context injection for R3F embedding."
+  }
+
+  // ── Container Target ───────────────────────────────────────────────────────
+  config "container" {
+    selector: "#holoscript-canvas"
+    description: "DOM element selector for the runtime canvas root."
+  }
+}
+
+// ── Preset Templates ──────────────────────────────────────────────────────────
+
+template "LowQualityPreset" {
+  quality: "low"
+  shadows: false
+  antialias: false
+  pixel_ratio_cap: 1
+}
+
+template "HighQualityPreset" {
+  quality: "high"
+  shadows: true
+  antialias: true
+  pixel_ratio_cap: 2
+}
+
+template "VRPreset" {
+  mode: "vr"
+  xr: true
+  quality: "high"
+  shadows: true
+}
+
+template "ARPreset" {
+  mode: "ar"
+  xr: true
+  quality: "medium"
+  shadows: false
+}

@@ -1,0 +1,133 @@
+// ============================================================================
+// PhysicsWorld Environment Configuration Schema
+// ============================================================================
+// Declarative physics simulation config for @holoscript/runtime PhysicsWorld.
+// Reference: packages/runtime/src/physics/PhysicsWorld.ts
+//   - PhysicsOptions (line ~8)
+//   - RigidbodyConfig (line ~25)
+//
+// Usage:
+//   const physics = new PhysicsWorld(parsePhysicsConfig(source));
+//   physics.addBodyWithConfig(id, mesh, rigidbodyConfig);
+//
+// ============================================================================
+
+composition "PhysicsWorldConfig" {
+  environment {
+    gravity: [0, -9.82, 0]
+    iterations: 10
+    step_size: 0.0166667
+    description: "Global physics simulation parameters."
+  }
+
+  // ── Default Contact Material ─────────────────────────────────────────────────
+  config "contact_material" {
+    friction: 0.3
+    restitution: 0.3
+    description: "Default surface interaction: friction = grip, restitution = bounciness."
+  }
+
+  // ── Solver Settings ────────────────────────────────────────────────────────
+  config "solver" {
+    iterations: 10
+    tolerance: 0.0001
+    description: "GSSolver iterations and convergence tolerance."
+  }
+}
+
+// ── Rigidbody Preset Templates ────────────────────────────────────────────────
+
+template "DynamicBody" {
+  type: "dynamic"
+  mass: 1
+  shape: "box"
+  friction: 0.3
+  restitution: 0.3
+  linear_damping: 0.01
+  angular_damping: 0.01
+  is_trigger: false
+  fixed_rotation: false
+  collision_group: 1
+  collision_mask: -1
+}
+
+template "StaticBody" {
+  type: "static"
+  mass: 0
+  shape: "box"
+  friction: 0.5
+  restitution: 0.1
+  linear_damping: 0.01
+  angular_damping: 0.01
+  is_trigger: false
+  fixed_rotation: false
+  collision_group: 1
+  collision_mask: -1
+}
+
+template "KinematicBody" {
+  type: "kinematic"
+  mass: 1
+  shape: "box"
+  friction: 0.3
+  restitution: 0.0
+  linear_damping: 0.01
+  angular_damping: 0.01
+  is_trigger: false
+  fixed_rotation: false
+  collision_group: 1
+  collision_mask: -1
+}
+
+template "TriggerVolume" {
+  type: "static"
+  mass: 0
+  shape: "box"
+  is_trigger: true
+  collision_group: 2
+  collision_mask: -1
+}
+
+template "BouncyBall" {
+  type: "dynamic"
+  mass: 1
+  shape: "sphere"
+  friction: 0.2
+  restitution: 0.9
+  linear_damping: 0.01
+  angular_damping: 0.01
+}
+
+template "HeavyCrate" {
+  type: "dynamic"
+  mass: 50
+  shape: "box"
+  friction: 0.6
+  restitution: 0.15
+  linear_damping: 0.2
+  angular_damping: 0.1
+}
+
+template "CharacterCapsule" {
+  type: "dynamic"
+  mass: 75
+  shape: "capsule"
+  friction: 0.4
+  restitution: 0.0
+  linear_damping: 0.1
+  angular_damping: 0.5
+  fixed_rotation: true
+}
+
+// ── Collision Event Definition ──────────────────────────────────────────────
+
+template "CollisionEventSchema" {
+  type: "collision-start"
+  body_a: ""
+  body_b: ""
+  contact_point: [0, 0, 0]
+  contact_normal: [0, 1, 0]
+  relative_velocity: [0, 0, 0]
+  impulse: 0
+  timestamp: 0
+}

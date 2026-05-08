@@ -1,0 +1,277 @@
+// ============================================================================
+// TraitSystem Environment Configuration Schema
+// ============================================================================
+// Declarative trait registration and context config for
+// @holoscript/runtime TraitSystem.
+// Reference: packages/runtime/src/traits/TraitSystem.ts
+//   - TraitContext (line ~5)
+//   - TraitHandler (line ~12)
+//   - TraitSystem constructor (line ~19)
+//
+// Usage:
+//   const traits = new TraitSystem(physicsWorld);
+//   for (const handler of parseTraitHandlers(source)) {
+//     traits.register(handler);
+//   }
+//
+// ============================================================================
+
+composition "TraitSystemConfig" {
+  environment {
+    description: "TraitSystem does not accept direct constructor config beyond the PhysicsWorld reference. Traits are registered imperatively. This schema documents the runtime trait registry for .holo-driven configuration."
+  }
+
+  // ── Trait Registry ─────────────────────────────────────────────────────────
+  config "trait_registry" {
+    // Interaction traits
+    grabbable: true
+    throwable: true
+    collidable: true
+    physics: true
+    gravity: true
+    trigger: true
+    pointable: true
+    hoverable: true
+    clickable: true
+    draggable: true
+    scalable: true
+
+    // Visual traits
+    glowing: true
+    transparent: true
+    spinning: true
+    floating: true
+    billboard: true
+    pulse: true
+    animated: true
+    look_at: true
+    outline: true
+    proximity: true
+
+    // AI / Behavior traits
+    behavior_tree: true
+    emotion: true
+    goal_oriented: true
+    perception: true
+    memory: true
+
+    // Physics traits
+    cloth: true
+    soft_body: true
+    fluid: true
+    buoyancy: true
+    rope: true
+    wind: true
+    joint: true
+    rigidbody: true
+    destruction: true
+
+    // Extended traits
+    rotatable: true
+    stackable: true
+    snappable: true
+    breakable: true
+    character: true
+    patrol: true
+    networked: true
+    anchor: true
+    spatial_audio: true
+    reverb_zone: true
+    voice_proximity: true
+
+    // Advanced traits
+    teleport: true
+    ui_panel: true
+    particle_system: true
+    weather: true
+    day_night: true
+    lod: true
+    hand_tracking: true
+    haptic: true
+    portal: true
+    mirror: true
+
+    // Neural animation bridge
+    neural_animation: true
+  }
+}
+
+// ── Trait Handler Schema ────────────────────────────────────────────────────
+
+template "TraitHandlerSchema" {
+  name: ""
+  has_on_apply: true
+  has_on_update: true
+  has_on_remove: true
+  description: "Every registered trait exposes lifecycle hooks: onApply, onUpdate(delta), onRemove."
+}
+
+// ── Trait Context Schema ──────────────────────────────────────────────────────
+
+template "TraitContextSchema" {
+  object_ref: "THREE.Object3D"
+  physics_world_ref: "PhysicsWorld"
+  config: {}
+  data: {}
+  description: "Runtime context passed to every trait lifecycle hook."
+}
+
+// ── Common Trait Config Presets ───────────────────────────────────────────────
+
+template "GrabbableConfig" {
+  name: "grabbable"
+  config {
+    grab_radius: 0.5
+    use_physics: true
+    snap_to_hand: false
+  }
+}
+
+template "PhysicsConfig" {
+  name: "physics"
+  config {
+    mass: 1
+    shape: "box"
+    use_gravity: true
+    is_kinematic: false
+    freeze_rotation: false
+  }
+}
+
+template "GlowingConfig" {
+  name: "glowing"
+  config {
+    color: "#00aaff"
+    intensity: 0.6
+    pulse: false
+    pulse_speed: 1.0
+  }
+}
+
+template "SpinningConfig" {
+  name: "spinning"
+  config {
+    axis: [0, 1, 0]
+    speed: 1.0
+  }
+}
+
+template "FloatingConfig" {
+  name: "floating"
+  config {
+    amplitude: 0.5
+    speed: 1.0
+    offset: 0
+  }
+}
+
+template "ProximityConfig" {
+  name: "proximity"
+  config {
+    radius: 3.0
+    trigger_once: false
+    on_enter: ""
+    on_exit: ""
+  }
+}
+
+template "ParticleSystemConfig" {
+  name: "particle_system"
+  config {
+    count: 1000
+    lifetime: 2.0
+    color: "#ffffff"
+    size: 0.1
+    velocity: [0, 1, 0]
+    spread: 0.5
+  }
+}
+
+template "PatrolConfig" {
+  name: "patrol"
+  config {
+    waypoints: [[0, 0, 0], [5, 0, 0], [5, 0, 5], [0, 0, 5]]
+    speed: 1.5
+    loop: true
+    wait_time: 1.0
+  }
+}
+
+template "SpatialAudioConfig" {
+  name: "spatial_audio"
+  config {
+    src: ""
+    autoplay: false
+    loop: false
+    volume: 1.0
+    ref_distance: 1.0
+    rolloff_factor: 1.0
+  }
+}
+
+template "PortalConfig" {
+  name: "portal"
+  config {
+    target_scene: ""
+    target_position: [0, 0, 0]
+    transition_duration: 0.5
+  }
+}
+
+template "WeatherConfig" {
+  name: "weather"
+  config {
+    type: "rain"
+    intensity: 1.0
+    wind_direction: [1, 0, 0]
+    wind_speed: 5.0
+  }
+}
+
+template "DayNightConfig" {
+  name: "day_night"
+  config {
+    cycle_duration: 300
+    sun_color: "#fff5e1"
+    moon_color: "#8899ff"
+    ambient_day: 0.6
+    ambient_night: 0.1
+  }
+}
+
+template "HapticConfig" {
+  name: "haptic"
+  config {
+    intensity: 0.8
+    duration: 100
+    pattern: "click"
+  }
+}
+
+template "TeleportConfig" {
+  name: "teleport"
+  config {
+    max_distance: 10.0
+    arc_color: "#00aaff"
+    require_valid_floor: true
+    fade_duration: 0.2
+  }
+}
+
+template "HandTrackingConfig" {
+  name: "hand_tracking"
+  config {
+    joint_mesh_size: 0.02
+    show_skeleton: true
+    show_mesh: false
+  }
+}
+
+template "NeuralAnimationConfig" {
+  name: "neural_animation"
+  config {
+    model_path: ""
+    blend_weight: 1.0
+    use_procedural_fallback: true
+  }
+}
