@@ -1,0 +1,51 @@
+/**
+ * Social Animation Presets — .holo templates
+ *
+ * Communication and interpersonal character behaviors mapped to
+ * canonical Mixamo clips for NPC dialogue, greetings, and social
+ * interaction scenarios.
+ */
+
+// ---------------------------------------------------------------------------
+// Speak
+// ---------------------------------------------------------------------------
+
+template "SpeakPreset" {
+  @animated {
+    name: "speak"
+    description: "Conversational gesturing while speaking. Subtle upper body movement with natural hand gestures. Loops for continuous dialogue."
+    category: "social"
+    duration: 2.5
+    delay: 0
+    easing: "ease-in-out"
+    loop: true
+    blend_weight: 0.8
+    speed: 1.0
+    clip: "Talking"
+    pack: "Conversation"
+    alternatives: ["Arguing", "Explaining", "Storytelling", "Talking On Phone"]
+    tags: ["social", "dialogue", "gesture", "npc", "upper-body"]
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Wave
+// ---------------------------------------------------------------------------
+
+template "WavePreset" {
+  @animated {
+    name: "wave"
+    description: "Friendly hand wave greeting. Single right arm raise with wrist motion. Plays once as a greeting gesture."
+    category: "social"
+    duration: 1.5
+    delay: 0
+    easing: "ease-in-out"
+    loop: false
+    blend_weight: 1.0
+    speed: 1.0
+    clip: "Waving"
+    pack: "Greeting"
+    alternatives: ["Happy Hand Wave", "Quick Wave", "Salute", "Nod Yes"]
+    tags: ["social", "greeting", "gesture", "one-shot", "friendly"]
+  }
+}

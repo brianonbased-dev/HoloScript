@@ -1,0 +1,72 @@
+/**
+ * Environmental Animation Presets — .holo templates
+ *
+ * Ambient states and passive character behaviors mapped to canonical
+ * Mixamo clips. Resting, waiting, and stationary character states.
+ */
+
+// ---------------------------------------------------------------------------
+// Idle
+// ---------------------------------------------------------------------------
+
+template "IdlePreset" {
+  @animated {
+    name: "idle"
+    description: "Relaxed standing idle with subtle weight shift and breathing. The default resting state for all characters."
+    category: "environmental"
+    duration: 4.0
+    delay: 0
+    easing: "ease-in-out"
+    loop: true
+    blend_weight: 1.0
+    speed: 1.0
+    clip: "Idle"
+    pack: "Basic"
+    alternatives: ["Happy Idle", "Bored Idle", "Looking Around", "Weight Shift Idle", "Breathing Idle"]
+    tags: ["environmental", "resting", "default", "ambient", "cycle"]
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sit
+// ---------------------------------------------------------------------------
+
+template "SitPreset" {
+  @animated {
+    name: "sit"
+    description: "Seated position on a surface. Transitions from standing to seated and holds. Clamped loop to maintain final seated pose."
+    category: "environmental"
+    duration: 1.8
+    delay: 0
+    easing: "ease-in-out"
+    loop: false
+    blend_weight: 1.0
+    speed: 1.0
+    clip: "Sitting Down"
+    pack: "Basic"
+    alternatives: ["Sit Cross Legged", "Sitting Idle", "Sit On Chair", "Sitting Clap"]
+    tags: ["environmental", "resting", "seated", "transition"]
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sleep
+// ---------------------------------------------------------------------------
+
+template "SleepPreset" {
+  @animated {
+    name: "sleep"
+    description: "Sleeping pose with gentle breathing motion. Very slow cycle, low speed multiplier for a calm ambient state."
+    category: "environmental"
+    duration: 6.0
+    delay: 0
+    easing: "ease-in-out"
+    loop: true
+    blend_weight: 1.0
+    speed: 0.5
+    clip: "Sleeping"
+    pack: "Basic"
+    alternatives: ["Sleeping Idle", "Lying Down", "Resting", "Unconscious"]
+    tags: ["environmental", "resting", "ambient", "slow", "passive"]
+  }
+}

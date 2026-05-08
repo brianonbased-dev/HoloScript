@@ -1,0 +1,164 @@
+/**
+ * Locomotion Animation Presets — .holo templates
+ *
+ * Movement-based character behaviors mapped to canonical Mixamo clips.
+ * Each template declares an @animated trait with timing, loop, blend,
+ * speed, and clip metadata ready for composition use.
+ *
+ * Usage:
+ *   object "player" using "WalkPreset" { position: [0, 0, 0] }
+ */
+
+// ---------------------------------------------------------------------------
+// Walk
+// ---------------------------------------------------------------------------
+
+template "WalkPreset" {
+  @animated {
+    name: "walk"
+    description: "Standard bipedal walking cycle. Loops continuously with natural stride cadence."
+    category: "locomotion"
+    duration: 1.0
+    delay: 0
+    easing: "linear"
+    loop: true
+    blend_weight: 1.0
+    speed: 1.0
+    clip: "Walking"
+    pack: "Locomotion"
+    alternatives: ["Slow Walk", "Walk With Briefcase", "Sneaking Walk", "Confident Walk"]
+    tags: ["locomotion", "movement", "bipedal", "cycle"]
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Run
+// ---------------------------------------------------------------------------
+
+template "RunPreset" {
+  @animated {
+    name: "run"
+    description: "Fast bipedal running cycle. Higher speed multiplier, tighter timing than walk."
+    category: "locomotion"
+    duration: 0.7
+    delay: 0
+    easing: "linear"
+    loop: true
+    blend_weight: 1.0
+    speed: 1.4
+    clip: "Running"
+    pack: "Locomotion"
+    alternatives: ["Fast Run", "Sprint", "Jog", "Run Forward"]
+    tags: ["locomotion", "movement", "fast", "bipedal", "cycle"]
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Jump
+// ---------------------------------------------------------------------------
+
+template "JumpPreset" {
+  @animated {
+    name: "jump"
+    description: "Vertical jump with anticipation crouch, airborne phase, and landing recovery. Plays once."
+    category: "locomotion"
+    duration: 1.2
+    delay: 0
+    easing: "ease-out"
+    loop: false
+    blend_weight: 1.0
+    speed: 1.0
+    clip: "Jump"
+    pack: "Locomotion"
+    alternatives: ["Standing Jump", "Running Jump", "Jump Up", "Jump Forward"]
+    tags: ["locomotion", "movement", "aerial", "one-shot"]
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Crouch
+// ---------------------------------------------------------------------------
+
+template "CrouchPreset" {
+  @animated {
+    name: "crouch"
+    description: "Lowered crouch stance with knees bent. Blends smoothly from standing to crouched position."
+    category: "locomotion"
+    duration: 0.6
+    delay: 0
+    easing: "ease-in-out"
+    loop: false
+    blend_weight: 1.0
+    speed: 1.0
+    clip: "Crouching Idle"
+    pack: "Locomotion"
+    alternatives: ["Crouch Walk", "Crouch To Stand", "Stand To Crouch", "Sneaking Idle"]
+    tags: ["locomotion", "stance", "stealth", "low"]
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Swim
+// ---------------------------------------------------------------------------
+
+template "SwimPreset" {
+  @animated {
+    name: "swim"
+    description: "Forward crawl swimming cycle. Continuous arm-over-arm stroke with body undulation."
+    category: "locomotion"
+    duration: 1.8
+    delay: 0
+    easing: "ease-in-out"
+    loop: true
+    blend_weight: 1.0
+    speed: 0.9
+    clip: "Swimming"
+    pack: "Aquatic"
+    alternatives: ["Treading Water", "Breaststroke", "Backstroke", "Float Idle"]
+    tags: ["locomotion", "movement", "aquatic", "cycle"]
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Fly
+// ---------------------------------------------------------------------------
+
+template "FlyPreset" {
+  @animated {
+    name: "fly"
+    description: "Aerial flight pose with arms spread. Smooth looping glide suitable for superhero or winged characters."
+    category: "locomotion"
+    duration: 2.0
+    delay: 0
+    easing: "ease-in-out"
+    loop: true
+    blend_weight: 1.0
+    speed: 0.8
+    clip: "Flying"
+    pack: "Aerial"
+    alternatives: ["Hovering", "Fly Forward", "Fly Idle", "Glide"]
+    tags: ["locomotion", "movement", "aerial", "cycle", "superhero"]
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Climb
+// ---------------------------------------------------------------------------
+
+template "ClimbPreset" {
+  @animated {
+    name: "climb"
+    description: "Vertical climbing cycle with alternating hand-over-hand grip and leg push."
+    category: "locomotion"
+    duration: 1.5
+    delay: 0
+    easing: "linear"
+    loop: true
+    blend_weight: 1.0
+    speed: 0.8
+    clip: "Climbing"
+    pack: "Locomotion"
+    alternatives: ["Wall Climb", "Ladder Climb", "Rock Climbing", "Hang Idle"]
+    tags: ["locomotion", "movement", "vertical", "cycle", "traversal"]
+  }
+}

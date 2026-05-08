@@ -1,0 +1,51 @@
+/**
+ * Emote Animation Presets — .holo templates
+ *
+ * Expressive performances and emotional displays mapped to canonical
+ * Mixamo clips for character expressiveness in social VR and
+ * multiplayer environments.
+ */
+
+// ---------------------------------------------------------------------------
+// Dance
+// ---------------------------------------------------------------------------
+
+template "DancePreset" {
+  @animated {
+    name: "dance"
+    description: "Rhythmic full-body dance. Continuous looping performance suitable for social environments and celebrations."
+    category: "emote"
+    duration: 3.0
+    delay: 0
+    easing: "linear"
+    loop: true
+    blend_weight: 1.0
+    speed: 1.0
+    clip: "Hip Hop Dancing"
+    pack: "Dance"
+    alternatives: ["Macarena Dance", "Samba Dancing", "Swing Dancing", "Breakdance", "Thriller Dance"]
+    tags: ["emote", "performance", "social", "full-body", "cycle"]
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Emote (Generic)
+// ---------------------------------------------------------------------------
+
+template "EmotePreset" {
+  @animated {
+    name: "emote"
+    description: "General-purpose expressive emote. Celebratory fist pump with full body engagement. Plays once as a reaction gesture."
+    category: "emote"
+    duration: 2.0
+    delay: 0
+    easing: "ease-out"
+    loop: false
+    blend_weight: 1.0
+    speed: 1.0
+    clip: "Victory"
+    pack: "Emotes"
+    alternatives: ["Clapping", "Cheering", "Laughing", "Shrug", "Fist Pump"]
+    tags: ["emote", "expression", "reaction", "one-shot", "celebration"]
+  }
+}
