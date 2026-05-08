@@ -84,6 +84,12 @@ describe('dispatch health check', () => {
     ...tools.filter((t) => t.name.startsWith('holomesh_')).map((t) => t.name),
     // holo_oracle_consult → handleOracleConsult (local but can be slow)
     'holo_oracle_consult',
+    // Advanced Oracle MCP tools → research archive scan + knowledge store queries (network)
+    'holo_oracle_discover',
+    'holo_oracle_synthesize',
+    'holo_oracle_gaps',
+    'holo_oracle_explore',
+    'holo_oracle_curate',
   ]);
   const localCatchAllTools = catchAllTools.filter((n) => !networkDependentTools.has(n));
 

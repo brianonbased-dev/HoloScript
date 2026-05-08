@@ -47,6 +47,7 @@ import { estimateTaskDurationTools } from './tools/estimate_task_duration';
 import { criticTools } from './critic-tools';
 import { founderTools } from './founder-tools';
 import { premortemTools } from './premortem-tools';
+import { oracleMcpTools } from './oracle-mcp-tools';
 
 /**
  * All MCP tools for HoloScript
@@ -813,6 +814,7 @@ export const tools: Tool[] = [
   ...criticTools,
   ...founderTools,
   ...premortemTools,
+  ...oracleMcpTools,
 ];
 
 // Tool name type for type safety

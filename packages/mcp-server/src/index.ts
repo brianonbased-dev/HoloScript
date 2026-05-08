@@ -44,6 +44,7 @@ import {
   handleAbsorbServiceTool,
 } from '@holoscript/absorb-service/mcp';
 import { handleOracleConsult } from './oracle-handler';
+import { oracleMcpTools, handleOracleMcpTool } from './oracle-mcp-tools';
 import { selfImproveTools, handleSelfImproveTool } from './self-improve-tools';
 import { gltfImportTools, handleGltfTool } from './gltf-import-tools';
 import { holotestTools, handleHolotestTool } from './holotest-tools';
@@ -264,6 +265,7 @@ registerCategory(graphRagTools, (name, args) => handleGraphRagTool(name, args));
 registerCategory(selfImproveTools, (name, args) => handleSelfImproveTool(name, args));
 registerCategory(gltfImportTools, (name, args) => handleGltfTool(name, args));
 registerCategory(wisdomGotchaTools, (name, args) => handleWisdomGotchaTool(name, args));
+registerCategory(oracleMcpTools, (name, args) => handleOracleMcpTool(name, args));
 registerCategory(traitTools, (name, args) => handleTraitTool(name, args));
 registerCategory(alphafoldTools, (name, args) => handleFetchStructure(args));
 registerCategory(hologramToolDefinitions, (name, args) => handleHologramTool(name, args));
@@ -376,6 +378,7 @@ export * from './brittney-lite';
 export * from './compiler-tools';
 export * from './gltf-import-tools';
 export * from './wisdom-gotcha-tools';
+export * from './oracle-mcp-tools';
 export * from './trait-tools';
 export * from './alphafold-tools';
 export * from '@holoscript/absorb-service/mcp';

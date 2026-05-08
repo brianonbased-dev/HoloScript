@@ -49,6 +49,7 @@ import {
   handleToolingDiscoveryTool,
 } from './tooling-discovery-tools';
 import { handleOracleConsult } from './oracle-handler';
+import { handleOracleMcpTool } from './oracle-mcp-tools';
 import { isHoloMapToolName, handleHoloMapTool } from './holomap-mcp-tools';
 import { isSpatialMcpToolName, handleSpatialMcpTool } from './spatial-mcp-tools';
 import { isNegotiationToolName, handleNegotiationTool } from './negotiation-mcp-tools';
@@ -292,6 +293,12 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     }
     case 'holo_oracle_consult':
       return handleOracleConsult(args);
+  }
+
+  // Advanced Oracle MCP tools (graduated from /oracle skill)
+  if (name.startsWith('holo_oracle_') && name !== 'holo_oracle_consult') {
+    const result = await handleOracleMcpTool(name, args);
+    if (result !== null) return result;
   }
 
   // Absorb provenance wrapper tool
