@@ -436,7 +436,11 @@ export function activate(context: ExtensionContext) {
 
   // ── MCP Server Definition Provider ────────────────────────────────────────
 
-  if (vscode.lm && vscode.lm.registerMcpServerDefinitionProvider) {
+  if (
+    vscode.lm &&
+    vscode.lm.registerMcpServerDefinitionProvider &&
+    vscode.McpHttpServerDefinition
+  ) {
     try {
       const mcpProvider = new HoloScriptMcpProvider();
       context.subscriptions.push(

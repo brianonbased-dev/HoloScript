@@ -1,5 +1,3 @@
-/// <reference path="../types/vscode-mcp.d.ts" />
-
 import * as vscode from 'vscode';
 
 /**
@@ -16,14 +14,16 @@ import * as vscode from 'vscode';
  * - Graph understanding and visualization
  * - IDE integration (diagnostics, autocomplete, refactoring)
  */
-export class HoloScriptMcpProvider implements vscode.lm.McpServerDefinitionProvider {
+export class HoloScriptMcpProvider implements vscode.McpServerDefinitionProvider {
   private readonly _onDidChangeMcpServerDefinitions = new vscode.EventEmitter<void>();
   readonly onDidChangeMcpServerDefinitions = this._onDidChangeMcpServerDefinitions.event;
 
   /**
    * Provides the MCP server configuration for the HoloScript production server
    */
-  async provideMcpServerDefinitions(): Promise<vscode.lm.McpServerDefinition[]> {
+  provideMcpServerDefinitions(
+    _token: vscode.CancellationToken
+  ): vscode.ProviderResult<vscode.McpServerDefinition[]> {
     const config = vscode.workspace.getConfiguration('holoscript.mcp');
     const enabled = config.get<boolean>('holoscriptMcpEnabled', true);
 
@@ -32,36 +32,15 @@ export class HoloScriptMcpProvider implements vscode.lm.McpServerDefinitionProvi
     }
 
     // Production HoloScript MCP server at mcp.holoscript.net
-    const serverDefinition: vscode.lm.McpServerDefinition = {
-      name: 'HoloScript',
-      transport: {
-        type: 'streamableHttp',
-        url: 'https://mcp.holoscript.net/mcp',
-        requestHeaders: {
-          'User-Agent': 'vscode-holoscript-extension/3.1.0',
-          'Accept': 'application/json',
-        },
+    const serverDefinition = new vscode.McpHttpServerDefinition(
+      'HoloScript',
+      vscode.Uri.parse('https://mcp.holoscript.net/mcp'),
+      {
+        'User-Agent': 'vscode-holoscript-extension/3.1.0',
+        'Accept': 'application/json',
       },
-      metadata: {
-        description: 'HoloScript language server with 65+ tools for VR/AR development',
-        version: '3.6.1',
-        capabilities: [
-          'code_parsing',
-          'code_generation',
-          'semantic_search',
-          'graph_analysis',
-          'multi_target_compilation',
-          'ai_assistance',
-        ],
-        documentationUrl: 'https://holoscript.net/guides/',
-        endpoints: {
-          health: 'https://mcp.holoscript.net/health',
-          render: 'https://mcp.holoscript.net/api/render',
-          share: 'https://mcp.holoscript.net/api/share',
-          discovery: 'https://mcp.holoscript.net/.well-known/mcp',
-        },
-      },
-    };
+      '3.6.1'
+    );
 
     return [serverDefinition];
   }
@@ -71,8 +50,14 @@ export class HoloScriptMcpProvider implements vscode.lm.McpServerDefinitionProvi
    * Injects GitHub OAuth token if available so the MCP server knows the caller's identity.
    */
   async resolveMcpServerDefinition(
-    definition: vscode.lm.McpServerDefinition
-  ): Promise<vscode.lm.McpServerDefinition> {
+    server: vscode.McpServerDefinition,
+    _token: vscode.CancellationToken
+  ): Promise<vscode.McpServerDefinition> {
+    // Only HTTP server definitions can have their headers modified
+    if (!(server instanceof vscode.McpHttpServerDefinition)) {
+      return server;
+    }
+
     // Verify server health before resolving
     try {
       const response = await fetch('https://mcp.holoscript.net/health');
@@ -85,20 +70,14 @@ export class HoloScriptMcpProvider implements vscode.lm.McpServerDefinitionProvi
 
     // Inject GitHub token into request headers for identity-aware MCP calls
     const token = await this.getGitHubToken();
-    if (token && definition.transport && 'requestHeaders' in definition.transport) {
-      definition = {
-        ...definition,
-        transport: {
-          ...definition.transport,
-          requestHeaders: {
-            ...(definition.transport as { requestHeaders?: Record<string, string> }).requestHeaders,
-            Authorization: `Bearer ${token}`,
-          },
-        },
+    if (token) {
+      server.headers = {
+        ...server.headers,
+        Authorization: `Bearer ${token}`,
       };
     }
 
-    return definition;
+    return server;
   }
 
   /**
