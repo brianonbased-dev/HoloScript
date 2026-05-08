@@ -1,0 +1,88 @@
+// Spatial Audio Rendering Pipeline Descriptor
+// HRTF-based spatial audio with reverb zones and occlusion for HoloLand.
+
+pipeline "SpatialAudio" {
+  hrtf {
+    enabled: true
+    database: "mit_kemar"
+    interpolation: "bilinear"
+    crossfade: 0.05
+  }
+
+  listener {
+    position: [0, 1.7, 0]
+    orientation: [0, 0, 0]
+    head_radius: 0.0875
+  }
+
+  reverb {
+    enabled: true
+    type: "fdn"
+    room_size: [10, 3, 8]
+    rt60: 1.2
+    absorption: 0.3
+    diffusion: 0.5
+    wet_mix: 0.2
+  }
+
+  occlusion {
+    enabled: true
+    method: "ray_cast"
+    max_distance: 50
+    low_pass_cutoff: 2000
+    attenuation: 0.5
+    transition_time: 0.3
+  }
+
+  vad {
+    enabled: true
+    threshold: 0.02
+    hold_time: 0.3
+    release_time: 0.5
+  }
+
+  noise_suppression {
+    enabled: true
+    strength: "moderate"
+    max_reduction: 20
+  }
+
+  echo_cancellation {
+    enabled: true
+    tail_length: 128
+    convergence: 0.9
+  }
+}
+
+preset "SpatialAudioRoom" {
+  pipeline: "SpatialAudio"
+  overrides: {
+    reverb.room_size: [5, 3, 4]
+    reverb.rt60: 0.6
+    reverb.absorption: 0.4
+    reverb.wet_mix: 0.15
+    occlusion.max_distance: 20
+  }
+}
+
+preset "SpatialAudioHall" {
+  pipeline: "SpatialAudio"
+  overrides: {
+    reverb.room_size: [30, 8, 20]
+    reverb.rt60: 2.5
+    reverb.absorption: 0.15
+    reverb.diffusion: 0.7
+    reverb.wet_mix: 0.35
+    occlusion.max_distance: 100
+  }
+}
+
+preset "SpatialAudioOutdoor" {
+  pipeline: "SpatialAudio"
+  overrides: {
+    reverb.enabled: false
+    occlusion.attenuation: 0.3
+    occlusion.max_distance: 200
+    hrtf.crossfade: 0.1
+  }
+}

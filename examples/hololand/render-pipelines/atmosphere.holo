@@ -1,0 +1,64 @@
+// Atmosphere Rendering Pipeline Descriptor
+// Sky models, fog, and atmospheric scattering for HoloLand VR scenes.
+
+pipeline "Atmosphere" {
+  sky {
+    type: "preetham"
+    turbidity: 2.0
+    rayleigh: 2.5
+    mieCoefficient: 0.005
+    mieDirectionalG: 0.8
+    sunPosition: [100, 50, -100]
+    up: [0, 1, 0]
+  }
+
+  fog {
+    type: "linear"
+    color: "#d0e0f0"
+    near: 20
+    far: 100
+    density: 0.01
+  }
+
+  scattering {
+    enabled: true
+    samples: 16
+    intensity: 0.8
+  }
+}
+
+preset "AtmosphereClearDay" {
+  pipeline: "Atmosphere"
+  overrides: {
+    sky.turbidity: 1.5
+    sky.rayleigh: 2.0
+    fog.color: "#e8f4ff"
+    fog.near: 50
+    fog.far: 200
+  }
+}
+
+preset "AtmosphereSunset" {
+  pipeline: "Atmosphere"
+  overrides: {
+    sky.turbidity: 8.0
+    sky.rayleigh: 4.0
+    sky.sunPosition: [100, 5, -50]
+    fog.color: "#ff9955"
+    fog.near: 30
+    fog.far: 120
+    scattering.intensity: 1.2
+  }
+}
+
+preset "AtmosphereFoggy" {
+  pipeline: "Atmosphere"
+  overrides: {
+    sky.turbidity: 10.0
+    sky.rayleigh: 5.0
+    fog.type: "exponential"
+    fog.color: "#c0c8d0"
+    fog.density: 0.03
+    scattering.intensity: 0.4
+  }
+}

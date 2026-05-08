@@ -1,0 +1,58 @@
+// Post-Processing Pipeline Descriptor
+// Defines the R3F post-processing stage chain for HoloLand scenes.
+
+pipeline "PostProcessing" {
+  stage "bloom" {
+    type: "threshold_bloom"
+    intensity: 0.3
+    threshold: 0.8
+    radius: 0.5
+  }
+
+  stage "tone_mapping" {
+    type: "aces"
+    exposure: 1.0
+  }
+
+  stage "ssao" {
+    type: "screen_space_ambient_occlusion"
+    radius: 0.5
+    bias: 0.025
+    intensity: 1.5
+  }
+
+  stage "fxaa" {
+    type: "fast_approximate_antialiasing"
+    enabled: true
+  }
+}
+
+// Quality tier presets
+preset "PostProcessingLow" {
+  pipeline: "PostProcessing"
+  overrides: {
+    bloom.intensity: 0.15
+    ssao.enabled: false
+    fxaa.enabled: true
+  }
+}
+
+preset "PostProcessingMedium" {
+  pipeline: "PostProcessing"
+  overrides: {
+    bloom.intensity: 0.3
+    ssao.enabled: true
+    ssao.intensity: 1.0
+    fxaa.enabled: true
+  }
+}
+
+preset "PostProcessingHigh" {
+  pipeline: "PostProcessing"
+  overrides: {
+    bloom.intensity: 0.5
+    ssao.enabled: true
+    ssao.intensity: 1.5
+    fxaa.enabled: false
+  }
+}

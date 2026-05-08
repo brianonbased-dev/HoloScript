@@ -1,0 +1,107 @@
+// VFX Particle Rendering Pipeline Descriptor
+// Particle system presets for fire, smoke, sparks, and magic effects.
+
+pipeline "VFXParticles" {
+  emitter {
+    shape: "sphere"
+    radius: 0.5
+    rate: 100
+    burst: 0
+    duration: -1  // infinite
+  }
+
+  particle {
+    lifetime: [1.0, 2.5]
+    size: [0.05, 0.2]
+    color: ["#ff5500", "#ffaa00", "#ffdd88"]
+    opacity: [1.0, 0.0]
+    velocity: [0.5, 1.5]
+    drag: 0.1
+    gravity: [0, -2, 0]
+    rotation: [0, 360]
+    angular_velocity: [-30, 30]
+  }
+
+  rendering {
+    type: "billboard"
+    blending: "additive"
+    depth_write: false
+    sort_mode: "distance"
+    max_particles: 1000
+  }
+
+  forces {
+    turbulence {
+      strength: 0.3
+      scale: 2.0
+      speed: 1.0
+    }
+    vortex {
+      strength: 0.0
+      axis: [0, 1, 0]
+    }
+  }
+}
+
+preset "VFXFire" {
+  pipeline: "VFXParticles"
+  overrides: {
+    emitter.shape: "cone"
+    emitter.radius: 0.3
+    emitter.rate: 200
+    particle.color: ["#ff3300", "#ff8800", "#ffcc00"]
+    particle.velocity: [0.5, 2.0]
+    particle.gravity: [0, 1.5, 0]
+    forces.turbulence.strength: 0.5
+    rendering.blending: "additive"
+  }
+}
+
+preset "VFXSmoke" {
+  pipeline: "VFXParticles"
+  overrides: {
+    emitter.shape: "sphere"
+    emitter.radius: 0.5
+    emitter.rate: 50
+    particle.color: ["#444444", "#666666", "#888888"]
+    particle.size: [0.2, 1.0]
+    particle.opacity: [0.6, 0.0]
+    particle.velocity: [0.2, 0.8]
+    particle.gravity: [0, 0.5, 0]
+    particle.drag: 0.3
+    rendering.blending: "normal"
+    rendering.depth_write: false
+  }
+}
+
+preset "VFXSparks" {
+  pipeline: "VFXParticles"
+  overrides: {
+    emitter.shape: "point"
+    emitter.rate: 0
+    emitter.burst: 50
+    particle.color: ["#ffffff", "#ffffaa"]
+    particle.size: [0.02, 0.05]
+    particle.lifetime: [0.2, 0.8]
+    particle.velocity: [2.0, 5.0]
+    particle.gravity: [0, -5, 0]
+    rendering.blending: "additive"
+    rendering.max_particles: 200
+  }
+}
+
+preset "VFXMagic" {
+  pipeline: "VFXParticles"
+  overrides: {
+    emitter.shape: "torus"
+    emitter.radius: 1.0
+    emitter.rate: 80
+    particle.color: ["#00ffff", "#ff00ff", "#ffffff"]
+    particle.size: [0.05, 0.3]
+    particle.lifetime: [2.0, 4.0]
+    particle.velocity: [0.2, 0.8]
+    particle.gravity: [0, 0.5, 0]
+    forces.vortex.strength: 2.0
+    rendering.blending: "additive"
+  }
+}

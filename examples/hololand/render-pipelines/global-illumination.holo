@@ -1,0 +1,76 @@
+// Global Illumination Pipeline Descriptor
+// GI methods and light probe configurations for HoloLand scenes.
+
+pipeline "GlobalIllumination" {
+  method: "irradiance_volume"
+
+  irradiance {
+    resolution: 32
+    spacing: 2.0
+    samples: 256
+    bounces: 2
+    color_space: "linear"
+  }
+
+  light_probes {
+    count: 16
+    placement: "adaptive"
+    min_distance: 5.0
+    max_distance: 50.0
+  }
+
+  reflection {
+    type: "screen_space"
+    max_roughness: 0.4
+    thickness: 0.5
+    stride: 1
+  }
+
+  ambient_occlusion {
+    enabled: true
+    radius: 0.5
+    samples: 16
+    intensity: 1.0
+  }
+}
+
+preset "GILow" {
+  pipeline: "GlobalIllumination"
+  overrides: {
+    method: "lightmap"
+    irradiance.resolution: 16
+    irradiance.samples: 64
+    irradiance.bounces: 1
+    light_probes.count: 4
+    reflection.type: "none"
+    ambient_occlusion.enabled: false
+  }
+}
+
+preset "GIMedium" {
+  pipeline: "GlobalIllumination"
+  overrides: {
+    method: "irradiance_volume"
+    irradiance.resolution: 32
+    irradiance.samples: 256
+    irradiance.bounces: 2
+    light_probes.count: 16
+    reflection.type: "screen_space"
+    ambient_occlusion.enabled: true
+    ambient_occlusion.samples: 16
+  }
+}
+
+preset "GIHigh" {
+  pipeline: "GlobalIllumination"
+  overrides: {
+    method: "path_trace"
+    irradiance.resolution: 64
+    irradiance.samples: 1024
+    irradiance.bounces: 4
+    light_probes.count: 64
+    reflection.type: "ray_trace"
+    ambient_occlusion.enabled: true
+    ambient_occlusion.samples: 32
+  }
+}

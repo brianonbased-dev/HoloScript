@@ -1,0 +1,74 @@
+// Hologram Rendering Pipeline Descriptor
+// 2D-to-3D hologram display pipeline for HoloLand (quilt, MV-HEVC, point cloud).
+
+pipeline "Hologram" {
+  source {
+    type: "quilt"
+    views: 45
+    columns: 9
+    rows: 5
+    aspect: 1.6
+  }
+
+  display {
+    type: "looking_glass"
+    diagonal_inches: 15.6
+    resolution: [3840, 2160]
+    tilt: 0.3
+    pitch: 50.0
+    center: 0.5
+    subpixel: 1
+  }
+
+  rendering {
+    focal_plane: 0.5
+    depth_range: [0.1, 10.0]
+    view_angle: 40.0
+    anti_alias: true
+    chromatic_correction: true
+  }
+
+  depth {
+    type: "onnx"
+    model: "depth_anything_v2"
+    input_size: [518, 518]
+    normalize: true
+    invert: false
+  }
+
+  post {
+    denoise: true
+    sharpen: 0.3
+    brightness: 1.0
+    contrast: 1.0
+  }
+}
+
+preset "HologramQuilt" {
+  pipeline: "Hologram"
+  overrides: {
+    source.type: "quilt"
+    source.views: 45
+    display.type: "looking_glass"
+  }
+}
+
+preset "HologramMVHEVC" {
+  pipeline: "Hologram"
+  overrides: {
+    source.type: "mv_hevc"
+    source.views: 10
+    display.type: "apple_vision_pro"
+    display.resolution: [3664, 3142]
+  }
+}
+
+preset "HologramPointCloud" {
+  pipeline: "Hologram"
+  overrides: {
+    source.type: "point_cloud"
+    depth.type: "native"
+    rendering.depth_range: [0.05, 5.0]
+    post.denoise: false
+  }
+}
