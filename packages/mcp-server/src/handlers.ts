@@ -57,6 +57,7 @@ import { isHoloTwinToolName, handleHoloTwinTool } from './holotwin-mcp-tools';
 import { handleEstimateTaskDurationTool } from './tools/estimate_task_duration';
 import { handleCriticTool } from './critic-handler';
 import { handleFounderTool } from './founder-handler';
+import { handlePremortemTool } from './premortem-handler';
 import {
   LEGACY_TRAIT_CATEGORY_ALIASES,
   loadTraitCategoriesFromCore,
@@ -326,6 +327,10 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
 
   if (name === 'holo_founder') {
     return handleFounderTool(args);
+  }
+
+  if (name === 'holo_premortem') {
+    return handlePremortemTool(args);
   }
 
   // All remaining holo_ tools go to the Graph tool handler
