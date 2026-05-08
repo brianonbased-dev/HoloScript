@@ -1,60 +1,120 @@
 /**
- * @holoscript/openusd-plugin — OpenUSD interop stub.
+ * @holoscript/openusd-plugin — OpenUSD interop baseline.
  *
  * Targets the paper-12 "OpenUSD proxy LOC" bucket by providing a real USDA
- * export from a .holo composition tree. Current scope: stub interface + single
- * canonical USDA template emitted. Replaces the static OPENUSD_EQUIVALENT_PROXY
- * string in packages/comparative-benchmarks/src/paper12PluginProbe.ts.
+ * export from a .holo composition tree. Current scope: deterministic USDA
+ * export, semantic receipt emission, and round-trip conformance checks that do
+ * not require local pxr bindings.
  *
- * Status: STUB. Round-trip parity + pxr binding are future work.
+ * Status: BASELINE. pxr/usdchecker-backed validation remains future work.
  * Research: ai-ecosystem/research/2026-04-23_openusd-holoscript-robotics-frontend.md
  * Paper:    memory/paper-12-plugin-openusd-probe.md
  */
 
+export type UsdaStageKind = 'world' | 'anim' | 'look';
+export type UsdaPrimitiveKind = 'xform' | 'mesh' | 'light';
+export type UsdaAttrValue = string | number | boolean | number[];
+
+export interface UsdaSemanticReceipt {
+  role: string;
+  sourcePath: string;
+  dtId?: string;
+  units?: string;
+  telemetry?: string[];
+  simulationContract?: string;
+  provenance?: string;
+}
+
+export interface UsdaPrimitiveInput {
+  kind: UsdaPrimitiveKind;
+  path: string;
+  attrs?: Record<string, UsdaAttrValue>;
+  semantic?: UsdaSemanticReceipt;
+}
+
 export interface UsdaExportInput {
   name: string;
-  stage?: 'world' | 'anim' | 'look';
-  primitives?: Array<{
-    kind: 'xform' | 'mesh' | 'light';
-    path: string;
-    attrs?: Record<string, string | number | number[]>;
-  }>;
+  stage?: UsdaStageKind;
+  upAxis?: 'Y' | 'Z';
+  metersPerUnit?: number;
+  defaultPrim?: string;
+  customData?: Record<string, string>;
+  primitives?: UsdaPrimitiveInput[];
 }
 
 export interface UsdaExportOutput {
   usda: string;
   loc: number;
   primitive_count: number;
+  semantic_receipt_count: number;
+  semantic_hash: string;
+}
+
+export interface UsdaRoundTripSummary {
+  primitiveNames: string[];
+  semanticSourcePaths: string[];
+  semanticRoles: string[];
+  semanticHash?: string;
+}
+
+export interface UsdaConformanceCheck {
+  id: string;
+  passed: boolean;
+  message: string;
+}
+
+export interface UsdaConformanceReport {
+  passed: boolean;
+  checks: UsdaConformanceCheck[];
+  output: UsdaExportOutput;
+  roundTrip: UsdaRoundTripSummary;
 }
 
 /**
  * Export a minimal .holo-derived scene to USDA (ASCII USD) text.
- * This is a STUB — structure is valid USDA, but semantic fidelity is
- * hand-authored for paper-12 benchmark parity.
+ * Structure is valid USDA text; HoloScript semantics are preserved as custom
+ * namespaced attributes so Omniverse/USD ingestion can round-trip receipts.
  */
 export function exportToUsda(input: UsdaExportInput): UsdaExportOutput {
   const lines: string[] = [];
+  const defaultPrim = sanitizeIdentifier(input.defaultPrim ?? 'World');
+  const upAxis = input.upAxis ?? 'Y';
+  const metersPerUnit = input.metersPerUnit ?? 1.0;
+  const stage = input.stage ?? 'world';
+  const semanticHash = stableHash(input);
+
   lines.push('#usda 1.0');
   lines.push('(');
-  lines.push('  defaultPrim = "World"');
-  lines.push('  metersPerUnit = 1.0');
-  lines.push('  upAxis = "Y"');
+  lines.push(`  defaultPrim = "${defaultPrim}"`);
+  lines.push(`  metersPerUnit = ${formatNumber(metersPerUnit)}`);
+  lines.push(`  upAxis = "${upAxis}"`);
   lines.push(')');
   lines.push('');
-  lines.push(`def Xform "World"`);
+  lines.push(`def Xform "${defaultPrim}"`);
   lines.push('{');
+  lines.push(`    custom string holo:sourceName = "${escapeUsdString(input.name)}"`);
+  lines.push(`    custom string holo:stage = "${stage}"`);
+  lines.push(`    custom string holo:semanticHash = "${semanticHash}"`);
 
-  const prims: NonNullable<UsdaExportInput['primitives']> = input.primitives ?? [
+  for (const [key, value] of Object.entries(input.customData ?? {})) {
+    lines.push(`    custom string holo:${sanitizeIdentifier(key)} = "${escapeUsdString(value)}"`);
+  }
+
+  const prims: UsdaPrimitiveInput[] = input.primitives ?? [
     { kind: 'xform', path: 'root' },
   ];
   for (const prim of prims) {
     const typeName = prim.kind === 'mesh' ? 'Mesh' : prim.kind === 'light' ? 'SphereLight' : 'Xform';
-    lines.push(`    def ${typeName} "${prim.path.replace(/\W/g, '_')}"`);
+    lines.push(`    def ${typeName} "${sanitizeIdentifier(prim.path)}"`);
     lines.push('    {');
+    lines.push(`        custom string holo:sourcePath = "${escapeUsdString(prim.path)}"`);
+
+    if (prim.semantic) {
+      pushSemanticReceipt(lines, prim.semantic, '        ');
+    }
+
     for (const [k, v] of Object.entries(prim.attrs ?? {})) {
-      if (Array.isArray(v)) lines.push(`        float3 ${k} = (${v.join(', ')})`);
-      else if (typeof v === 'number') lines.push(`        float ${k} = ${v}`);
-      else lines.push(`        string ${k} = "${String(v).replace(/"/g, '\\"')}"`);
+      lines.push(formatUsdAttribute(k, v, '        '));
     }
     lines.push('    }');
   }
@@ -64,7 +124,14 @@ export function exportToUsda(input: UsdaExportInput): UsdaExportOutput {
 
   const usda = lines.join('\n');
   const loc = lines.filter((l) => l.trim().length > 0).length;
-  return { usda, loc, primitive_count: input.primitives?.length ?? 1 };
+  const semanticReceiptCount = prims.filter((p) => p.semantic).length;
+  return {
+    usda,
+    loc,
+    primitive_count: input.primitives?.length ?? 1,
+    semantic_receipt_count: semanticReceiptCount,
+    semantic_hash: semanticHash,
+  };
 }
 
 /** Minimal round-trip probe — re-parse emitted USDA to verify syntactic stability. */
@@ -73,8 +140,250 @@ export function usdaStableRoundTrip(input: UsdaExportInput): boolean {
   // Stub check: every declared primitive's sanitized path appears in the emitted text.
   const prims = input.primitives ?? [];
   for (const p of prims) {
-    const sanitized = p.path.replace(/\W/g, '_');
+    const sanitized = sanitizeIdentifier(p.path);
     if (!out.usda.includes(`"${sanitized}"`)) return false;
   }
   return true;
+}
+
+export function summarizeUsdaRoundTrip(usda: string): UsdaRoundTripSummary {
+  const primitiveNames = [...usda.matchAll(/def\s+\w+\s+"([^"]+)"/g)].map((m) => m[1]);
+  const semanticSourcePaths = [...usda.matchAll(/custom string holo:sourcePath = "([^"]+)"/g)].map(
+    (m) => unescapeUsdString(m[1])
+  );
+  const semanticRoles = [...usda.matchAll(/custom string holo:role = "([^"]+)"/g)].map((m) =>
+    unescapeUsdString(m[1])
+  );
+  const semanticHash = usda.match(/custom string holo:semanticHash = "([^"]+)"/)?.[1];
+
+  return {
+    primitiveNames,
+    semanticSourcePaths,
+    semanticRoles,
+    semanticHash,
+  };
+}
+
+export function runOpenUsdConformanceRoundTrip(input: UsdaExportInput): UsdaConformanceReport {
+  const output = exportToUsda(input);
+  const roundTrip = summarizeUsdaRoundTrip(output.usda);
+  const prims = input.primitives ?? [{ kind: 'xform' as const, path: 'root' }];
+  const semanticPrims = prims.filter((p) => p.semantic);
+  const checks: UsdaConformanceCheck[] = [];
+
+  const add = (id: string, passed: boolean, message: string) => checks.push({ id, passed, message });
+
+  add('magic-header', output.usda.startsWith('#usda 1.0'), 'USDA file starts with #usda 1.0');
+  add(
+    'default-prim',
+    output.usda.includes(`defaultPrim = "${sanitizeIdentifier(input.defaultPrim ?? 'World')}"`),
+    'Default prim is declared in the layer preamble'
+  );
+  add('up-axis', /upAxis = "[YZ]"/.test(output.usda), 'Stage declares a USD upAxis');
+  add('meters-per-unit', /metersPerUnit = \d/.test(output.usda), 'Stage declares metersPerUnit');
+  add(
+    'primitive-count',
+    output.primitive_count === prims.length,
+    'Output primitive_count matches declared primitive count'
+  );
+  add(
+    'primitive-roundtrip',
+    prims.every((p) => roundTrip.primitiveNames.includes(sanitizeIdentifier(p.path))),
+    'Every declared primitive survives USDA reparse by sanitized name'
+  );
+  add(
+    'semantic-source-paths',
+    prims.every((p) => roundTrip.semanticSourcePaths.includes(p.path)),
+    'Every primitive sourcePath receipt survives USDA reparse'
+  );
+  add(
+    'semantic-receipts',
+    output.semantic_receipt_count === semanticPrims.length &&
+      semanticPrims.every((p) => roundTrip.semanticRoles.includes(p.semantic!.role)),
+    'Every semantic receipt role survives USDA reparse'
+  );
+  add(
+    'semantic-hash',
+    roundTrip.semanticHash === output.semantic_hash,
+    'Root semantic hash survives USDA reparse'
+  );
+
+  return {
+    passed: checks.every((check) => check.passed),
+    checks,
+    output,
+    roundTrip,
+  };
+}
+
+export function buildIndustrialDigitalTwinFixture(): UsdaExportInput {
+  return {
+    name: 'HoloScriptFactoryCellTwin',
+    stage: 'world',
+    upAxis: 'Z',
+    metersPerUnit: 1,
+    defaultPrim: 'FactoryCell',
+    customData: {
+      domain: 'industrial_digital_twin',
+      targetRuntime: 'omniverse_openusd',
+      evidence: 'semantic_receipts_required',
+    },
+    primitives: [
+      {
+        kind: 'xform',
+        path: '/FactoryCell',
+        semantic: {
+          role: 'factory_cell',
+          sourcePath: 'examples/openusd/industrial-factory-cell.holo',
+          dtId: 'dtmi:holoscript:factory:cell;1',
+          units: 'SI',
+          simulationContract: 'fixed_dt_60hz;z_up;semantic_receipts_required',
+        },
+      },
+      {
+        kind: 'mesh',
+        path: '/FactoryCell/LineA/Conveyor',
+        attrs: { position: [0, 0.5, 0], scale: [8, 1, 1.5], material: 'conveyor_belt' },
+        semantic: {
+          role: 'conveyor',
+          sourcePath: 'object:ConveyorLineA',
+          dtId: 'dt:conveyor:lineA:belt1',
+          units: 'm/s',
+          telemetry: ['speed', 'vibration', 'temperature'],
+          simulationContract: 'kinematic_belt;collision_bounds_preserved',
+        },
+      },
+      {
+        kind: 'mesh',
+        path: '/FactoryCell/LineA/MotorM001',
+        attrs: { position: [-4.5, 0.8, 0], rpm: 1450, powerKW: 2.2 },
+        semantic: {
+          role: 'motor',
+          sourcePath: 'object:MotorM001',
+          dtId: 'dt:motor:lineA:m001',
+          units: 'rpm,kW',
+          telemetry: ['current', 'temperature', 'vibrationRMS'],
+          simulationContract: 'predictive_maintenance_receipt_required',
+        },
+      },
+      {
+        kind: 'xform',
+        path: '/FactoryCell/LineA/VibrationSensor',
+        attrs: { position: [-2, 1.25, -0.9], samplingHz: 1000 },
+        semantic: {
+          role: 'sensor',
+          sourcePath: 'object:VibrationSensorA',
+          dtId: 'dt:sensor:vibration:lineA:s001',
+          units: 'mm/s',
+          telemetry: ['x', 'y', 'z'],
+          simulationContract: 'telemetry_replay_receipt_required',
+        },
+      },
+      {
+        kind: 'mesh',
+        path: '/FactoryCell/Safety/Cage',
+        attrs: { position: [0, 1, -3], scale: [10, 2, 0.1], material: 'safety_fence' },
+        semantic: {
+          role: 'safety_boundary',
+          sourcePath: 'object:SafetyCage',
+          dtId: 'dt:safety:cellA:cage',
+          units: 'meters',
+          simulationContract: 'collision_bounds_preserved;interlock_zone',
+        },
+      },
+      {
+        kind: 'xform',
+        path: '/FactoryCell/Assembly/CobotArm',
+        attrs: { position: [3, 1.5, -2], payloadKg: 5, reachM: 0.85 },
+        semantic: {
+          role: 'robot_actor',
+          sourcePath: 'object:CobotArm',
+          dtId: 'dt:cobot:assembly:cb001',
+          units: 'kg,m',
+          telemetry: ['joint_state', 'tool_pose', 'safety_stop'],
+          simulationContract: 'articulation_root;replayable_joint_commands',
+        },
+      },
+      {
+        kind: 'light',
+        path: '/FactoryCell/Inspection/QualityLight',
+        attrs: { position: [0, 3, 0], intensity: 6500 },
+        semantic: {
+          role: 'inspection_light',
+          sourcePath: 'object:QualityLight',
+          dtId: 'dt:inspection:light:q001',
+          units: 'lumens',
+          simulationContract: 'vision_pipeline_lighting_receipt',
+        },
+      },
+    ],
+  };
+}
+
+function pushSemanticReceipt(lines: string[], semantic: UsdaSemanticReceipt, indent: string) {
+  lines.push(`${indent}custom string holo:role = "${escapeUsdString(semantic.role)}"`);
+  lines.push(`${indent}custom string holo:semanticSource = "${escapeUsdString(semantic.sourcePath)}"`);
+
+  if (semantic.dtId) lines.push(`${indent}custom string holo:dtId = "${escapeUsdString(semantic.dtId)}"`);
+  if (semantic.units) lines.push(`${indent}custom string holo:units = "${escapeUsdString(semantic.units)}"`);
+  if (semantic.telemetry?.length) {
+    lines.push(`${indent}custom string holo:telemetry = "${escapeUsdString(semantic.telemetry.join(','))}"`);
+  }
+  if (semantic.simulationContract) {
+    lines.push(
+      `${indent}custom string holo:simulationContract = "${escapeUsdString(semantic.simulationContract)}"`
+    );
+  }
+  if (semantic.provenance) {
+    lines.push(`${indent}custom string holo:provenance = "${escapeUsdString(semantic.provenance)}"`);
+  }
+}
+
+function formatUsdAttribute(key: string, value: UsdaAttrValue, indent: string): string {
+  const attrName = sanitizeIdentifier(key);
+  if (Array.isArray(value)) return `${indent}float3 ${attrName} = (${value.map(formatNumber).join(', ')})`;
+  if (typeof value === 'number') return `${indent}float ${attrName} = ${formatNumber(value)}`;
+  if (typeof value === 'boolean') return `${indent}bool ${attrName} = ${value ? 'true' : 'false'}`;
+  return `${indent}string ${attrName} = "${escapeUsdString(value)}"`;
+}
+
+function sanitizeIdentifier(value: string): string {
+  const sanitized = value.replace(/\W/g, '_').replace(/^_+/, '');
+  const nonEmpty = sanitized.length ? sanitized : 'Prim';
+  return /^[A-Za-z_]/.test(nonEmpty) ? nonEmpty : `_${nonEmpty}`;
+}
+
+function escapeUsdString(value: string): string {
+  return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+function unescapeUsdString(value: string): string {
+  return value.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+}
+
+function formatNumber(value: number): string {
+  if (Number.isInteger(value)) return String(value);
+  return String(Number(value.toFixed(6)));
+}
+
+function stableHash(value: unknown): string {
+  const text = stableStringify(value);
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `fnv1a32:${(hash >>> 0).toString(16).padStart(8, '0')}`;
+}
+
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value);
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { exportToUsda, usdaStableRoundTrip } from '../index';
 
-describe('openusd-plugin stub', () => {
+describe('openusd-plugin baseline', () => {
   it('emits valid #usda 1.0 preamble', () => {
     const out = exportToUsda({ name: 't' });
     expect(out.usda.startsWith('#usda 1.0')).toBe(true);

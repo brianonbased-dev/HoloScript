@@ -1,0 +1,101 @@
+// HoloScript OpenUSD Industrial Factory Cell
+// Demonstrates the semantic source that the OpenUSD conformance fixture exports.
+
+@world {
+  backgroundColor: "#0b1117"
+  ambient: 0.42
+  shadows: true
+  fog: { type: "linear", color: "#0b1117", near: 24, far: 90 }
+}
+
+object "FactoryCell" @scene_graph {
+  position: [0, 0, 0]
+  scale: [1, 1, 1]
+  color: "#2c3e50"
+  geometry: "cube"
+  usdDefaultPrim: true
+  semanticRole: "factory_cell"
+  dtId: "dtmi:holoscript:factory:cell;1"
+  simulationContract: "fixed_dt_60hz;z_up;semantic_receipts_required"
+}
+
+object "ConveyorLineA" @collidable {
+  position: [0, 0.5, 0]
+  scale: [8, 1, 1.5]
+  color: "#607d8b"
+  geometry: "cube"
+  material: "conveyor_belt"
+  semanticRole: "conveyor"
+  dtId: "dt:conveyor:lineA:belt1"
+  telemetry: ["speed", "vibration", "temperature"]
+  simulationContract: "kinematic_belt;collision_bounds_preserved"
+}
+
+object "MotorM001" @physics @collidable {
+  position: [-4.5, 0.8, 0]
+  rotation: [0, 0, 90]
+  scale: [0.5, 0.8, 0.5]
+  color: "#e74c3c"
+  geometry: "cylinder"
+  rpm: 1450
+  powerKW: 2.2
+  semanticRole: "motor"
+  dtId: "dt:motor:lineA:m001"
+  telemetry: ["current", "temperature", "vibrationRMS"]
+  simulationContract: "predictive_maintenance_receipt_required"
+}
+
+object "VibrationSensorA" @glowing {
+  position: [-2, 1.25, -0.9]
+  scale: [0.2, 0.2, 0.1]
+  color: "#9b59b6"
+  geometry: "cube"
+  samplingHz: 1000
+  semanticRole: "sensor"
+  dtId: "dt:sensor:vibration:lineA:s001"
+  telemetry: ["x", "y", "z"]
+  simulationContract: "telemetry_replay_receipt_required"
+}
+
+object "SafetyCage" @collidable {
+  position: [0, 1, -3]
+  scale: [10, 2, 0.1]
+  color: "#f39c12"
+  geometry: "cube"
+  material: "safety_fence"
+  semanticRole: "safety_boundary"
+  dtId: "dt:safety:cellA:cage"
+  simulationContract: "collision_bounds_preserved;interlock_zone"
+}
+
+object "CobotArm" @physics {
+  position: [3, 1.5, -2]
+  scale: [0.4, 2, 0.4]
+  color: "#eceff1"
+  geometry: "cylinder"
+  payloadKg: 5
+  reachM: 0.85
+  semanticRole: "robot_actor"
+  dtId: "dt:cobot:assembly:cb001"
+  telemetry: ["joint_state", "tool_pose", "safety_stop"]
+  simulationContract: "articulation_root;replayable_joint_commands"
+}
+
+object "QualityLight" @glowing {
+  position: [0, 3, 0]
+  scale: [0.8, 0.1, 0.8]
+  color: "#ffffff"
+  geometry: "sphere"
+  intensity: 6500
+  semanticRole: "inspection_light"
+  dtId: "dt:inspection:light:q001"
+  simulationContract: "vision_pipeline_lighting_receipt"
+}
+
+object "FactoryFloor" @collidable {
+  position: [0, -0.05, 0]
+  scale: [12, 0.1, 8]
+  color: "#34495e"
+  geometry: "cube"
+  material: "industrial_epoxy"
+}

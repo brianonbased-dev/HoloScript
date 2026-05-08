@@ -3,7 +3,7 @@
  *
  * Contract gate for the OpenUSD column of the Universal-IR coverage matrix
  * (docs/universal-ir-coverage.md). MUST keep passing or the matrix row cannot
- * claim "🟡 Adapter + 🟡 Stub" status.
+ * claim OpenUSD adapter baseline status.
  *
  * Source: .ai-ecosystem/research/reviews/2026-04-23-wave-d-negative-sweep/stream-3-universal-ir-negative-sweep.md
  * Audit task: task_1776937048052_ybf4 (Wave D negative sweep, stream 3)
