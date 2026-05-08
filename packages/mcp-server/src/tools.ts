@@ -44,6 +44,7 @@ import { traitTools } from './trait-tools';
 import { worldGeneratorTools } from './world-generator-tools';
 import { hologramToolDefinitions } from './hologram-mcp-tools';
 import { estimateTaskDurationTools } from './tools/estimate_task_duration';
+import { criticTools } from './critic-tools';
 
 /**
  * All MCP tools for HoloScript
@@ -807,6 +808,7 @@ export const tools: Tool[] = [
   ...worldGeneratorTools,
   ...hologramToolDefinitions,
   ...estimateTaskDurationTools,
+  ...criticTools,
 ];
 
 // Tool name type for type safety

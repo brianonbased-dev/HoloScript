@@ -55,6 +55,7 @@ import { isNegotiationToolName, handleNegotiationTool } from './negotiation-mcp-
 import { isHologramToolName, handleHologramTool } from './hologram-mcp-tools';
 import { isHoloTwinToolName, handleHoloTwinTool } from './holotwin-mcp-tools';
 import { handleEstimateTaskDurationTool } from './tools/estimate_task_duration';
+import { handleCriticTool } from './critic-handler';
 import {
   LEGACY_TRAIT_CATEGORY_ALIASES,
   loadTraitCategoriesFromCore,
@@ -316,6 +317,10 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
   if (name === 'holo_estimate_task_duration') {
     const result = await handleEstimateTaskDurationTool(name, args);
     if (result !== null) return result;
+  }
+
+  if (name === 'holo_critic') {
+    return handleCriticTool(args);
   }
 
   // All remaining holo_ tools go to the Graph tool handler 
