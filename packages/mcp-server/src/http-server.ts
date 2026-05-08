@@ -18,11 +18,13 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { ListResourcesRequestSchema, ReadResourceRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { randomUUID, createHash } from 'crypto';
 import http from 'http';
 import { tools } from './tools';
 import { handleTool } from './handlers';
 import { _handleSingleToolLogic } from './index';
+import { listSkillResources, readSkillResource } from './skill-resources';
 import { PluginManager } from './PluginManager';
 import { handleCompilerTool } from './compiler-tools';
 import {
@@ -605,9 +607,33 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
     {
       capabilities: {
         tools: {},
+        resources: {},
       },
     }
   );
+
+  // List available skill resources
+  server.setRequestHandler(ListResourcesRequestSchema, async () => {
+    return { resources: listSkillResources() };
+  });
+
+  // Read a specific skill resource
+  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    const uri = request.params.uri;
+    const result = readSkillResource(uri);
+    if (!result) {
+      throw new Error(`Resource not found: ${uri}`);
+    }
+    return {
+      contents: [
+        {
+          uri,
+          mimeType: result.mimeType,
+          text: result.text,
+        },
+      ],
+    };
+  });
 
   // List available tools
   server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -843,7 +869,7 @@ const httpServer = http.createServer(async (req, res) => {
         },
         capabilities: {
           tools: { count: allTools.length },
-          resources: false,
+          resources: { count: listSkillResources().length },
           prompts: false,
         },
         categories: Object.entries(
@@ -2105,6 +2131,7 @@ const httpServer = http.createServer(async (req, res) => {
                 typeof params?.protocolVersion === 'string' ? params.protocolVersion : '2025-11-25',
               capabilities: {
                 tools: { listChanged: true },
+                resources: {},
               },
               serverInfo: {
                 name: SERVICE_NAME,
@@ -2136,6 +2163,52 @@ const httpServer = http.createServer(async (req, res) => {
             jsonrpc: '2.0',
             id: id,
             result: { tools: allTools },
+          })
+        );
+        return;
+      }
+
+      if (method === 'resources/list') {
+        const resources = listSkillResources();
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            id,
+            result: { resources },
+          })
+        );
+        return;
+      }
+
+      if (method === 'resources/read') {
+        const uri = typeof params.uri === 'string' ? params.uri : '';
+        const result = readSkillResource(uri);
+        if (!result) {
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id,
+              error: { code: -32002, message: `Resource not found: ${uri}` },
+            })
+          );
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            id,
+            result: {
+              contents: [
+                {
+                  uri,
+                  mimeType: result.mimeType,
+                  text: result.text,
+                },
+              ],
+            },
           })
         );
         return;

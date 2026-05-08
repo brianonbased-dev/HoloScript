@@ -27,6 +27,7 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema, type Tool } from '@modelcontextprotocol/sdk/types.js';
+import { ListResourcesRequestSchema, ReadResourceRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 import { tools } from './tools';
 import { handleTool } from './handlers';
@@ -64,6 +65,7 @@ import {
   handleNegotiationTool,
 } from './negotiation-mcp-tools';
 import { handleBatchToolCall } from './tooling-discovery-tools';
+import { listSkillResources, readSkillResource } from './skill-resources';
 import {
   isHologramMcpResponse,
   wrapHologramMcpEnvelope,
@@ -80,6 +82,7 @@ const server = new Server(
   {
     capabilities: {
       tools: {},
+      resources: {},
     },
   }
 );
@@ -153,6 +156,30 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   }
 
   return { tools: mappedTools };
+});
+
+// List available skill resources
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  const resources = listSkillResources();
+  return { resources };
+});
+
+// Read a specific skill resource
+server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+  const uri = request.params.uri;
+  const result = readSkillResource(uri);
+  if (!result) {
+    throw new Error(`Resource not found: ${uri}`);
+  }
+  return {
+    contents: [
+      {
+        uri,
+        mimeType: result.mimeType,
+        text: result.text,
+      },
+    ],
+  };
 });
 
 // Single tool executor allowing internal recursive calls
