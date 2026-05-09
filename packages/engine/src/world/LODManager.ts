@@ -42,7 +42,8 @@ const DEFAULT_LOD_LEVELS: LODLevel[] = [
   { level: 0, maxDistance: 50, meshDetail: 1.0 },
   { level: 1, maxDistance: 150, meshDetail: 0.5 },
   { level: 2, maxDistance: 400, meshDetail: 0.25 },
-  { level: 3, maxDistance: Infinity, meshDetail: 0.1 },
+  { level: 3, maxDistance: 1000, meshDetail: 0.1 },
+  { level: 4, maxDistance: Infinity, meshDetail: 0.05 },
 ];
 
 const DEFAULT_LOD_CONFIG: LODConfig = {

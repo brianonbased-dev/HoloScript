@@ -16,8 +16,8 @@
  * // Create LOD manager
  * const manager = new LODManager({ targetFrameRate: 60 });
  *
- * // Create standard 3-level LOD config
- * const config = createStandardLODConfig('myObject', 3, 10);
+ * // Create standard 5-level LOD config
+ * const config = createStandardLODConfig('myObject', 5, 10);
  * manager.registerConfig('myObject', config);
  *
  * // Generate LODs from a high-poly mesh

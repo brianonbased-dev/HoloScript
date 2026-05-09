@@ -360,7 +360,7 @@ export const DEFAULT_LOD_CONFIG: LODConfig = {
 
 /** Default LOD generation options */
 export const DEFAULT_GENERATION_OPTIONS: LODGenerationOptions = {
-  levelCount: 3,
+  levelCount: 5,
   reductionPerLevel: 0.5,
   algorithm: 'quadricError',
   preserveUVSeams: true,
@@ -405,7 +405,7 @@ export function createLODLevel(
  */
 export function createStandardLODConfig(
   id: string,
-  levelCount: number = 3,
+  levelCount: number = 5,
   baseDistance: number = 10,
   options?: Partial<LODConfig>
 ): LODConfig {
