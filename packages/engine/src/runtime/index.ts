@@ -30,6 +30,7 @@ export * from './RuntimeRegistry';
 export * from './RuntimeRenderer';
 export * from './ThreeJSRenderer';
 export * from './InstancedMeshManager';
+export * from './StaticMeshBatcher';
 export * from './PostProcessingManager';
 export * from './ShaderOptimizationManager';
 export * from './SceneInspector';
