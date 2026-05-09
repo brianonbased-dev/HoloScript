@@ -38,6 +38,12 @@ export interface EyeTrackedTrait {
   smooth_pursuit: boolean;
 }
 
+interface CachedEyeGazeRay {
+  origin: Vector3;
+  direction: Vector3;
+  timestamp: number;
+}
+
 interface EyeTrackedState {
   isGazed: boolean;
   gazeStartTime: number;
@@ -46,11 +52,18 @@ interface EyeTrackedState {
   originalColor: string | null;
   lastGazePosition: Vector3;
   smoothPosition: Vector3;
+  /** Cached real eye-gaze ray from WebXR eye-tracking. null = no eye-tracking data yet. */
+  eyeGazeRay: CachedEyeGazeRay | null;
+  /** true when real eye-tracking data has been received; false = head-rotation fallback. */
+  hasRealEyeTracking: boolean;
 }
 
 // =============================================================================
 // HELPERS
 // =============================================================================
+
+/** Max age (ms) for cached eye-gaze data before falling back to head rotation. */
+const EYE_GAZE_STALE_MS = 250;
 
 function toTuple(v: Vector3): Vector3 {
   if (Array.isArray(v)) return v as Vector3;
@@ -62,13 +75,20 @@ interface GazeRay {
   direction: Vector3;
 }
 
-function getEyeGazeRay(context: TraitContext): GazeRay | null {
-  // Get eye tracking data from headset
-  // This would integrate with device-specific eye tracking APIs
+function getEyeGazeRay(context: TraitContext, state: EyeTrackedState): GazeRay | null {
+  // Prefer real eye-tracking data when available and fresh
+  if (state.eyeGazeRay && Date.now() - state.eyeGazeRay.timestamp <= EYE_GAZE_STALE_MS) {
+    return {
+      origin: state.eyeGazeRay.origin,
+      direction: state.eyeGazeRay.direction,
+    };
+  }
+
+  // Fall back to head rotation (Quest 3-class hardware without eye tracking,
+  // or when eye-tracking data is stale / permission denied)
   const headPos = toTuple(context.vr.headset.position);
   const headRot = toTuple(context.vr.headset.rotation);
 
-  // Calculate forward direction from head rotation
   const radY = (headRot[1] * Math.PI) / 180;
   const radX = (headRot[0] * Math.PI) / 180;
 
@@ -167,13 +187,17 @@ export const eyeTrackedHandler: TraitHandler<EyeTrackedTrait> = {
       originalColor: (node.properties?.color as string) || null,
       lastGazePosition: [pos[0] || 0, pos[1] || 0, pos[2] || 0],
       smoothPosition: [pos[0] || 0, pos[1] || 0, pos[2] || 0],
+      eyeGazeRay: null,
+      hasRealEyeTracking: false,
     };
     node.__eyeTrackedState = state;
 
-    // Register for foveated rendering
+    // Register for foveated rendering with device-gating metadata
     context.emit('register_foveated', {
       node,
       priority: config.foveated_priority,
+      eyeTrackingAvailable: false,
+      foveationMode: 'fixed', // 'fixed' until real eye tracking data arrives
     });
   },
 
@@ -198,8 +222,8 @@ export const eyeTrackedHandler: TraitHandler<EyeTrackedTrait> = {
     const state = node.__eyeTrackedState as EyeTrackedState;
     if (!state) return;
 
-    // Get eye gaze data from VR context
-    const gazeRay = getEyeGazeRay(context);
+    // Get eye gaze data from VR context (prefers real eye tracking, falls back to head rotation)
+    const gazeRay = getEyeGazeRay(context, state);
     if (!gazeRay) return;
 
     // Check if object is being gazed at
@@ -290,6 +314,31 @@ export const eyeTrackedHandler: TraitHandler<EyeTrackedTrait> = {
   onEvent(node, config, context, event) {
     const state = node.__eyeTrackedState as EyeTrackedState;
     if (!state) return;
+
+    // Handle real eye-gaze data from WebXR eye-tracking (Quest Pro, Vision Pro, etc.)
+    if (event.type === 'eye_gaze_update') {
+      const payload = event as unknown as {
+        origin: Vector3;
+        direction: Vector3;
+      };
+      state.eyeGazeRay = {
+        origin: toTuple(payload.origin),
+        direction: toTuple(payload.direction),
+        timestamp: Date.now(),
+      };
+      const wasReal = state.hasRealEyeTracking;
+      state.hasRealEyeTracking = true;
+
+      // Notify foveation pipeline on first real gaze
+      if (!wasReal) {
+        context.emit('register_foveated', {
+          node,
+          priority: config.foveated_priority,
+          eyeTrackingAvailable: true,
+          foveationMode: 'eye_gaze_driven',
+        });
+      }
+    }
 
     // Handle manual gaze simulation (for testing/accessibility)
     if (event.type === 'simulate_gaze') {

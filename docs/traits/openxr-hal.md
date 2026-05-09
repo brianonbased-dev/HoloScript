@@ -158,6 +158,27 @@ logic {
 
 ---
 
+## Foveation Device Gating
+
+The `@eye_tracked` trait wires into the foveation pipeline with **device-gated fallback**:
+
+| Device class | Eye tracking | Foveation mode | Gaze source |
+|---|---|---|---|
+| Quest Pro, Apple Vision Pro, Pico 4 Enterprise | Yes | `eye_gaze_driven` | Real `eye_gaze_update` ray |
+| Quest 3, Quest 2, Valve Index | No | `fixed` | Head rotation proxy |
+| Desktop simulation | No | `fixed` | Head rotation proxy |
+
+### How it works
+
+1. On attach, `@eye_tracked` registers with `foveationMode: 'fixed'` and `eyeTrackingAvailable: false`.
+2. When the first `eye_gaze_update` arrives, the trait caches the real gaze ray, flips `hasRealEyeTracking: true`, and re-registers with `foveationMode: 'eye_gaze_driven'`.
+3. If no `eye_gaze_update` arrives within 250 ms (stale timeout), the trait falls back to head-rotation gaze for that frame.
+4. On detach, the trait unregisters from foveation.
+
+This gating ensures eye-tracking-capable devices get dynamic foveation while Quest 3-class hardware stays on a fixed foveation profile, avoiding wasted GPU work on eye-gaze-driven LOD that would be inaccurate without real sensors.
+
+---
+
 ## Performance Levels
 
 The trait tracks rendering performance and exposes it via `openxr_frame` events:

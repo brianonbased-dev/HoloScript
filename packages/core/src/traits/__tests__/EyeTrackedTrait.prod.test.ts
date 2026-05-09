@@ -296,4 +296,64 @@ describe('eyeTrackedHandler.onEvent', () => {
       eyeTrackedHandler.onEvent!(node as any, config, ctx as any, { type: 'unknown_event' })
     ).not.toThrow();
   });
+
+  // ─── Device gating + eye-gaze adapter (new) ───────────────────────────────
+
+  it('eye_gaze_update caches real gaze and flips hasRealEyeTracking', () => {
+    const { node, ctx, config } = attach();
+    eyeTrackedHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'eye_gaze_update',
+      origin: [0, 1.6, 0],
+      direction: [0, 0, -1],
+    });
+    const s = (node as any).__eyeTrackedState;
+    expect(s.eyeGazeRay.origin).toEqual([0, 1.6, 0]);
+    expect(s.eyeGazeRay.direction).toEqual([0, 0, -1]);
+    expect(s.hasRealEyeTracking).toBe(true);
+  });
+
+  it('first eye_gaze_update re-emits register_foveated with eye_gaze_driven mode', () => {
+    const { node, ctx, config } = attach();
+    ctx.emit.mockClear();
+    eyeTrackedHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'eye_gaze_update',
+      origin: [0, 1.6, 0],
+      direction: [0, 0, -1],
+    });
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'register_foveated',
+      expect.objectContaining({
+        eyeTrackingAvailable: true,
+        foveationMode: 'eye_gaze_driven',
+      })
+    );
+  });
+
+  it('does NOT re-emit register_foveated on second eye_gaze_update', () => {
+    const { node, ctx, config } = attach();
+    eyeTrackedHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'eye_gaze_update',
+      origin: [0, 1.6, 0],
+      direction: [0, 0, -1],
+    });
+    ctx.emit.mockClear();
+    eyeTrackedHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'eye_gaze_update',
+      origin: [0, 1.6, 0],
+      direction: [0.1, 0, -0.9],
+    });
+    expect(ctx.emit).not.toHaveBeenCalledWith('register_foveated', expect.anything());
+  });
+
+  it('falls back to head rotation when no eye_gaze_update received', () => {
+    const node = makeNode({ position: [0, 0, -3], scale: 1, color: '#fff' });
+    const ctx = makeCtx([0, 0, 0], [0, 0, 0]);
+    const config = { ...eyeTrackedHandler.defaultConfig! };
+    eyeTrackedHandler.onAttach!(node as any, config, ctx as any);
+    ctx.emit.mockClear();
+    eyeTrackedHandler.onUpdate!(node as any, config, ctx as any, 0.016);
+    const s = (node as any).__eyeTrackedState;
+    expect(s.isGazed).toBe(true);
+    expect(s.hasRealEyeTracking).toBe(false);
+  });
 });

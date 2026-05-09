@@ -77,4 +77,61 @@ describe('EyeTrackedTrait', () => {
     expect((node as any).__eyeTrackedState).toBeUndefined();
     expect(getEventCount(ctx, 'unregister_foveated')).toBe(1);
   });
+
+  // ─── Eye-gaze adapter + device gating ───────────────────────────────────────
+
+  it('registers foveated with fixed mode on attach (no eye tracking yet)', () => {
+    const events = (ctx as any).emittedEvents.filter(
+      (e: any) => e.event === 'register_foveated'
+    );
+    expect(events[0].data.foveationMode).toBe('fixed');
+    expect(events[0].data.eyeTrackingAvailable).toBe(false);
+  });
+
+  it('caches eye_gaze_update in state', () => {
+    sendEvent(eyeTrackedHandler, node, cfg, ctx, {
+      type: 'eye_gaze_update',
+      origin: [0, 1.6, 0],
+      direction: [0, 0, -1],
+    });
+    const state = (node as any).__eyeTrackedState;
+    expect(state.eyeGazeRay).toBeDefined();
+    expect(state.eyeGazeRay.origin).toEqual([0, 1.6, 0]);
+    expect(state.eyeGazeRay.direction).toEqual([0, 0, -1]);
+    expect(state.hasRealEyeTracking).toBe(true);
+  });
+
+  it('switches to eye_gaze_driven foveation on first eye_gaze_update', () => {
+    sendEvent(eyeTrackedHandler, node, cfg, ctx, {
+      type: 'eye_gaze_update',
+      origin: [0, 1.6, 0],
+      direction: [0, 0, -1],
+    });
+    const events = (ctx as any).emittedEvents.filter(
+      (e: any) => e.event === 'register_foveated'
+    );
+    expect(events.length).toBe(2); // initial fixed + upgrade to eye_gaze_driven
+    expect(events[1].data.foveationMode).toBe('eye_gaze_driven');
+    expect(events[1].data.eyeTrackingAvailable).toBe(true);
+  });
+
+  it('uses real eye gaze for gaze detection when available', () => {
+    // Object at [0, 1.6, -2]; head is at [0, 1.6, 0] facing straight.
+    // With head rotation, object is gazed. With eye gaze looking up-right, it's not.
+    sendEvent(eyeTrackedHandler, node, cfg, ctx, {
+      type: 'eye_gaze_update',
+      origin: [0, 1.6, 0],
+      direction: [0.5, 0.5, -0.5], // looking up-right
+    });
+    eyeTrackedHandler.onUpdate?.(node as any, cfg as any, ctx as any, 0.016);
+    const state = (node as any).__eyeTrackedState;
+    expect(state.isGazed).toBe(false); // up-right misses the object at [0,1.6,-2]
+  });
+
+  it('falls back to head rotation when eye gaze data is absent', () => {
+    // No eye_gaze_update received; head rotation is straight forward
+    eyeTrackedHandler.onUpdate?.(node as any, cfg as any, ctx as any, 0.016);
+    const state = (node as any).__eyeTrackedState;
+    expect(state.isGazed).toBe(true); // head rotation hits object at [0,1.6,-2]
+  });
 });
