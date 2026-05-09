@@ -1,0 +1,127 @@
+{
+  "receiptId": "hldev_80a82b83643fa31d",
+  "schemaVersion": "hololand-device-lab-receipt/v1",
+  "taskId": "task_1778298116936_9fne",
+  "createdAt": "2026-05-09T08:35:53.176Z",
+  "generatedBy": "@holoscript/hololand-platform/device-lab",
+  "command": "hololand-device-lab --task task_1778298116936_9fne --skip-webgpu --json",
+  "host": {
+    "platform": "win32",
+    "release": "10.0.26200",
+    "arch": "x64",
+    "nodeVersion": "v24.15.0",
+    "v8Version": "13.6.233.17-node.48",
+    "cpuModel": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "logicalCores": 16,
+    "totalMemoryGB": 31.73,
+    "freeMemoryGB": 2.98,
+    "gpuControllers": [
+      {
+        "name": "NVIDIA GeForce RTX 3060 Laptop GPU",
+        "driverVersion": "32.0.15.9174",
+        "adapterRAMGB": 4
+      },
+      {
+        "name": "Meta Virtual Monitor",
+        "driverVersion": "5.3.57.114"
+      },
+      {
+        "name": "overay-virtual-display Device",
+        "driverVersion": "2.44.2.393"
+      },
+      {
+        "name": "Intel(R) UHD Graphics",
+        "driverVersion": "32.0.101.6881",
+        "adapterRAMGB": 2
+      }
+    ],
+    "env": {
+      "ci": false
+    }
+  },
+  "checks": [
+    {
+      "id": "wasm-simd",
+      "label": "WASM SIMD",
+      "status": "pass",
+      "detail": "WebAssembly SIMD validation passed.",
+      "evidence": {
+        "nodeVersion": "v24.15.0",
+        "v8Version": "13.6.233.17-node.48"
+      }
+    },
+    {
+      "id": "runtime-inventory",
+      "label": "Local GPU/runtime inventory",
+      "status": "pass",
+      "detail": "Detected 4 GPU controller(s) on win32.",
+      "evidence": {
+        "platform": "win32",
+        "arch": "x64",
+        "nodeVersion": "v24.15.0",
+        "logicalCores": 16,
+        "totalMemoryGB": 31.73,
+        "gpuControllers": [
+          {
+            "name": "NVIDIA GeForce RTX 3060 Laptop GPU",
+            "driverVersion": "32.0.15.9174",
+            "adapterRAMGB": 4
+          },
+          {
+            "name": "Meta Virtual Monitor",
+            "driverVersion": "5.3.57.114"
+          },
+          {
+            "name": "overay-virtual-display Device",
+            "driverVersion": "2.44.2.393"
+          },
+          {
+            "name": "Intel(R) UHD Graphics",
+            "driverVersion": "32.0.101.6881",
+            "adapterRAMGB": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "webgpu-browser",
+      "label": "WebGPU browser smoke",
+      "status": "skipped",
+      "detail": "Skipped by CLI flag."
+    },
+    {
+      "id": "headset-report",
+      "label": "Quest/headset probe report",
+      "status": "skipped",
+      "detail": "No headset report supplied. Export observations.md from Studio /quest-probe and pass --headset-report."
+    },
+    {
+      "id": "replay-receipt",
+      "label": "Replay receipt capture",
+      "status": "skipped",
+      "detail": "No replay artifact supplied. Pass --replay with a scene replay, trace, or validation receipt."
+    }
+  ],
+  "artifacts": [],
+  "gotchas": [
+    {
+      "id": "G.HW.WEBGPU_BROWSER",
+      "severity": "medium",
+      "summary": "WebGPU browser smoke was not run; HoloLand readiness cannot claim GPU path coverage.",
+      "evidenceCheckId": "webgpu-browser"
+    },
+    {
+      "id": "G.HW.HEADSET_REPORT",
+      "severity": "medium",
+      "summary": "Quest/headset probe report missing; headset-specific readiness is unproven.",
+      "evidenceCheckId": "headset-report"
+    },
+    {
+      "id": "G.HW.REPLAY_RECEIPT",
+      "severity": "medium",
+      "summary": "Replay receipt not attached; the run has no deterministic replay evidence.",
+      "evidenceCheckId": "replay-receipt"
+    }
+  ],
+  "overallStatus": "warn"
+}
