@@ -18,9 +18,7 @@
  * @version 1.0.0
  */
 
-// =============================================================================
-// MEMORY TYPES
-// =============================================================================
+import type { NormProvenance } from '@holoscript/core';
 
 /** An episodic memory entry — a single experience */
 export interface EpisodicMemory {
@@ -69,6 +67,32 @@ export interface StigmergicTrace {
   timestamp: number;
   /** Reinforcement count (how many agents have "validated" this trace) */
   reinforcements: number;
+  /** Provenance for how this trace entered the environment */
+  normProvenance?: NormProvenance;
+}
+
+/**
+ * Compute an intensity multiplier based on norm provenance confidence.
+ *
+ * - `genuine` or absent/unknown → 1.0 (full intensity)
+ * - `confabulated` → 0.5 (half intensity — unreliable trace)
+ * - `bullshitted` → 0.1 (severely discounted — indifferent-to-truth trace)
+ */
+function getProvenanceWeight(provenance?: NormProvenance): number {
+  switch (provenance?.confidenceClassification) {
+    case 'bullshitted':
+      return 0.1;
+    case 'confabulated':
+      return 0.5;
+    case 'genuine':
+    default:
+      return 1.0;
+  }
+}
+
+/** Effective intensity = raw intensity × provenance weight */
+function effectiveIntensity(trace: StigmergicTrace): number {
+  return trace.intensity * getProvenanceWeight(trace.normProvenance);
 }
 
 /** A semantic SOP — consolidated cultural knowledge */
@@ -232,13 +256,14 @@ export class CulturalMemory {
       radius: opts.radius ?? 10,
       timestamp: this.currentTick,
       reinforcements: 0,
+      normProvenance: opts.normProvenance,
     };
 
     traces.push(trace);
 
-    // Evict weakest if over capacity
+    // Evict weakest effective intensity if over capacity
     if (traces.length > this.config.stigmergicCapacity) {
-      traces.sort((a, b) => b.intensity - a.intensity);
+      traces.sort((a, b) => effectiveIntensity(b) - effectiveIntensity(a));
       traces.length = this.config.stigmergicCapacity;
     }
 
@@ -257,9 +282,9 @@ export class CulturalMemory {
         const dy = t.position[1] - position[1];
         const dz = t.position[2] - position[2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        return dist <= t.radius && t.intensity > 0.01;
+        return dist <= t.radius && effectiveIntensity(t) > 0.01;
       })
-      .sort((a, b) => b.intensity - a.intensity);
+      .sort((a, b) => effectiveIntensity(b) - effectiveIntensity(a));
   }
 
   /**
@@ -271,7 +296,8 @@ export class CulturalMemory {
     const trace = traces.find((t) => t.id === traceId);
     if (!trace) return false;
     trace.reinforcements++;
-    trace.intensity = Math.min(trace.initialIntensity * 2, trace.intensity + 0.1);
+    const weight = getProvenanceWeight(trace.normProvenance);
+    trace.intensity = Math.min(trace.initialIntensity * 2, trace.intensity + 0.1 * weight);
     trace.decayRate *= 0.95; // Slow decay with each reinforcement
     return true;
   }
@@ -280,7 +306,7 @@ export class CulturalMemory {
    * Get all traces in a zone.
    */
   zoneTraces(zoneId: string): StigmergicTrace[] {
-    return (this.stigmergic.get(zoneId) || []).filter((t) => t.intensity > 0.01);
+    return (this.stigmergic.get(zoneId) || []).filter((t) => effectiveIntensity(t) > 0.01);
   }
 
   // ── Semantic SOPs ────────────────────────────────────────────────────────
