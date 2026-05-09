@@ -394,7 +394,7 @@ export interface HoloScriptGenerationResponse {
 // Provider Configuration
 // =============================================================================
 
-export type LLMProviderName = 'openai' | 'anthropic' | 'gemini' | 'mock' | 'bitnet' | 'local-llm' | 'openrouter' | 'xai';
+export type LLMProviderName = 'openai' | 'anthropic' | 'gemini' | 'mock' | 'bitnet' | 'local-llm' | 'openrouter' | 'xai' | 'brittney-cloud';
 
 export interface LLMProviderConfig {
   /** API key for authentication */
@@ -569,6 +569,19 @@ export interface XAIProviderConfig extends LLMProviderConfig {
   // baseURL defaults to https://api.x.ai/v1.
 }
 
+/**
+ * Config for the Brittney Cloud provider.
+ * Connects to HoloScript's first-party cloud inference gateway.
+ */
+export interface BrittneyCloudProviderConfig extends LLMProviderConfig {
+  /**
+   * Inference tier. 'pro' routes to Kimi K2.5 when available;
+   * 'standard' uses the preferred available provider.
+   * Default: 'standard'.
+   */
+  tier?: 'standard' | 'pro';
+}
+
 // =============================================================================
 // Provider Interface
 // =============================================================================
@@ -660,6 +673,7 @@ export interface LLMProviderRegistry {
   'local-llm'?: ILLMProvider;
   openrouter?: ILLMProvider;
   xai?: ILLMProvider;
+  'brittney-cloud'?: ILLMProvider;
 }
 
 export interface ProviderSelectionStrategy {

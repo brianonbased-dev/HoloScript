@@ -1,9 +1,10 @@
 /**
- * Brittney Provider Resolution — D.025 Phase 3
+ * Brittney Provider Resolution — D.025 Phase 3 + Brittney Cloud
  *
  * Resolves which LLM provider Brittney routes through based on the
  * BRITTNEY_PROVIDER env var. Defaults to Anthropic when ANTHROPIC_API_KEY
- * is set, Ollama when OLLAMA_HOST is set. Produces a clear error otherwise.
+ * is set, Ollama when OLLAMA_HOST is set, Brittney Cloud when
+ * BRITTNEY_SERVICE_URL is set. Produces a clear error otherwise.
  *
  * In downloaded apps (Quest 3, mobile), BRITTNEY_PROVIDER=ollama routes to
  * the local Ollama instance running Brittney's quantized model. In cloud
@@ -18,17 +19,18 @@
 import {
   AnthropicAdapter,
   LocalLLMAdapter,
+  BrittneyCloudAdapter,
   type ILLMProvider,
 } from '@holoscript/llm-provider';
 
-export type BrittneyProviderName = 'anthropic' | 'ollama';
+export type BrittneyProviderName = 'anthropic' | 'ollama' | 'cloud';
 
 export interface ResolvedBrittneyProvider {
-  /** The unified provider (Anthropic or Ollama). */
+  /** The unified provider (Anthropic, Ollama, or Brittney Cloud). */
   provider: ILLMProvider;
   /** The model string to pass to streamCompletion(). */
   model: string;
-  /** Max tokens for this provider. Anthropic = 16K, Ollama = 4-8K. */
+  /** Max tokens for this provider. Anthropic = 16K, Ollama = 4-8K, Cloud = 8K. */
   maxTokens: number;
   /** Which provider was resolved (for logging/response headers). */
   providerName: BrittneyProviderName;
@@ -44,10 +46,11 @@ const OLLAMA_DEFAULT_MODEL = 'brittney-qwen-v23:latest';
  * Resolve Brittney's LLM provider from environment variables.
  *
  * Priority:
- *   1. BRITTNEY_PROVIDER=anthropic|ollama (explicit override)
+ *   1. BRITTNEY_PROVIDER=anthropic|ollama|cloud (explicit override)
  *   2. ANTHROPIC_API_KEY present → anthropic
- *   3. OLLAMA_HOST present → ollama
- *   4. Error — no provider configured
+ *   3. BRITTNEY_SERVICE_URL present → cloud
+ *   4. OLLAMA_HOST present → ollama
+ *   5. Error — no provider configured
  *
  * Ollama host defaults:
  *   - OLLAMA_HOST env (full URL, e.g. http://host.docker.internal:11434)
@@ -59,6 +62,7 @@ export function resolveBrittneyProvider(): ResolvedBrittneyProvider {
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   const ollamaHost = process.env.OLLAMA_HOST || process.env.OLLAMA_BASE_URL;
+  const cloudUrl = process.env.BRITTNEY_SERVICE_URL;
 
   // Explicit override takes priority
   if (explicit === 'ollama') {
@@ -67,17 +71,24 @@ export function resolveBrittneyProvider(): ResolvedBrittneyProvider {
   if (explicit === 'anthropic') {
     return resolveAnthropic(anthropicKey);
   }
+  if (explicit === 'cloud') {
+    return resolveCloud(cloudUrl);
+  }
 
-  // Auto-detect: Anthropic if key present, Ollama if host present
+  // Auto-detect: Anthropic if key present, Cloud if URL present, Ollama if host present
   if (anthropicKey) {
     return resolveAnthropic(anthropicKey);
+  }
+  if (cloudUrl) {
+    return resolveCloud(cloudUrl);
   }
   if (ollamaHost) {
     return resolveOllama(ollamaHost);
   }
 
   throw new Error(
-    'No Brittney provider configured. Set BRITTNEY_PROVIDER=anthropic (with ANTHROPIC_API_KEY) ' +
+    'No Brittney provider configured. Set BRITTNEY_PROVIDER=anthropic (with ANTHROPIC_API_KEY), ' +
+    'BRITTNEY_PROVIDER=cloud (with BRITTNEY_SERVICE_URL), ' +
     'or BRITTNEY_PROVIDER=ollama (with OLLAMA_HOST). In downloaded apps, the installer sets ' +
     'OLLAMA_HOST to point to the local Brittney model.'
   );
@@ -87,7 +98,7 @@ function resolveAnthropic(apiKey: string | undefined): ResolvedBrittneyProvider 
   if (!apiKey) {
     throw new Error(
       'BRITTNEY_PROVIDER=anthropic requires ANTHROPIC_API_KEY. ' +
-      'Set ANTHROPIC_API_KEY or switch to BRITTNEY_PROVIDER=ollama.'
+      'Set ANTHROPIC_API_KEY or switch to BRITTNEY_PROVIDER=cloud or BRITTNEY_PROVIDER=ollama.'
     );
   }
   const provider = new AnthropicAdapter({
@@ -99,6 +110,28 @@ function resolveAnthropic(apiKey: string | undefined): ResolvedBrittneyProvider 
     model: process.env.BRITTNEY_MODEL || 'claude-opus-4-7',
     maxTokens: 16000,
     providerName: 'anthropic',
+  };
+}
+
+function resolveCloud(baseURL: string | undefined): ResolvedBrittneyProvider {
+  if (!baseURL) {
+    throw new Error(
+      'BRITTNEY_PROVIDER=cloud requires BRITTNEY_SERVICE_URL. ' +
+      'Set BRITTNEY_SERVICE_URL or switch to another provider.'
+    );
+  }
+  const apiKey = process.env.BRITTNEY_API_KEY ?? '';
+  const tier = (process.env.BRITTNEY_TIER as 'standard' | 'pro') || 'standard';
+  const provider = new BrittneyCloudAdapter({
+    baseURL,
+    apiKey,
+    tier,
+  });
+  return {
+    provider,
+    model: process.env.BRITTNEY_MODEL || 'brittney-standard',
+    maxTokens: 8192,
+    providerName: 'cloud',
   };
 }
 

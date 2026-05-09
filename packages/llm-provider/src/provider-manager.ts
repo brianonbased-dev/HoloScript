@@ -165,10 +165,13 @@ export class LLMProviderManager {
       return { primary: 'anthropic' }; // Will fail gracefully
     }
 
-    // Prefer Anthropic → OpenAI → OpenRouter → Gemini → xAI → Mock as default priority.
+    // Prefer Anthropic → OpenAI → OpenRouter → Gemini → xAI → Brittney Cloud → Mock as default priority.
     // OpenRouter ranks above Gemini because it can route TO Gemini models
     // (and 200+ others) at cost-competitive rates, making it a superset.
-    const priority: LLMProviderName[] = ['anthropic', 'openai', 'openrouter', 'gemini', 'xai', 'mock'];
+    // Brittney Cloud is first-party but sits after commercial APIs because it
+    // is a routing layer (may delegate to the same backends) and should not
+    // preempt direct provider keys when those are configured.
+    const priority: LLMProviderName[] = ['anthropic', 'openai', 'openrouter', 'gemini', 'xai', 'brittney-cloud', 'mock'];
     const primary = priority.find((p) => registered.includes(p)) ?? registered[0];
     const fallback = priority.find((p) => registered.includes(p) && p !== primary);
 

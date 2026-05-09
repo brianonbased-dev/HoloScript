@@ -119,6 +119,13 @@ export type { OpenRouterModel } from './adapters/openrouter';
 export { XAIAdapter, XAI_MODELS, XAI_CAPABILITIES } from './adapters/xai';
 export type { XAIModel } from './adapters/xai';
 
+export {
+  BrittneyCloudAdapter,
+  BRITTNEY_CLOUD_MODELS,
+  BRITTNEY_CLOUD_CAPABILITIES,
+} from './adapters/brittney-cloud';
+export type { BrittneyCloudModel, BrittneyCloudProviderConfig } from './adapters/brittney-cloud';
+
 // Provider manager
 export { LLMProviderManager } from './provider-manager';
 export type { ProviderManagerConfig } from './provider-manager';
@@ -146,6 +153,7 @@ import { BitNetAdapter } from './adapters/bitnet';
 import { LocalLLMAdapter } from './adapters/local-llm';
 import { OpenRouterAdapter } from './adapters/openrouter';
 import { XAIAdapter } from './adapters/xai';
+import { BrittneyCloudAdapter } from './adapters/brittney-cloud';
 import { LLMProviderManager } from './provider-manager';
 import type {
   OpenAIProviderConfig,
@@ -155,6 +163,7 @@ import type {
   LocalLLMProviderConfig,
   OpenRouterProviderConfig,
   XAIProviderConfig,
+  BrittneyCloudProviderConfig,
 } from './types';
 
 /**
@@ -295,6 +304,36 @@ export function createXAIProvider(config?: Partial<XAIProviderConfig>): XAIAdapt
 }
 
 /**
+ * Create a Brittney Cloud adapter from environment variables.
+ * Uses BRITTNEY_SERVICE_URL and optional BRITTNEY_API_KEY.
+ *
+ * Brittney Cloud is HoloScript's first-party inference gateway.
+ * It routes to Fireworks, Together, Kimi, or Ollama backends.
+ *
+ * @example
+ * ```typescript
+ * const brittney = createBrittneyCloudProvider();
+ * const scene = await brittney.generateHoloScript({
+ *   prompt: "a floating island with glowing crystals",
+ * });
+ * ```
+ */
+export function createBrittneyCloudProvider(
+  config?: Partial<BrittneyCloudProviderConfig>
+): BrittneyCloudAdapter {
+  const baseURL =
+    config?.baseURL ?? (typeof process !== 'undefined' ? process.env.BRITTNEY_SERVICE_URL : '') ?? '';
+  const apiKey =
+    config?.apiKey ?? (typeof process !== 'undefined' ? process.env.BRITTNEY_API_KEY : '') ?? '';
+  if (!baseURL) {
+    throw new Error(
+      'Brittney Cloud URL required. Set BRITTNEY_SERVICE_URL or pass baseURL in config.'
+    );
+  }
+  return new BrittneyCloudAdapter({ ...config, baseURL, apiKey });
+}
+
+/**
  * Create a provider manager with automatic provider detection.
  * Reads API keys from environment variables.
  */
@@ -307,6 +346,7 @@ export function createProviderManager(): LLMProviderManager {
     'local-llm'?: LocalLLMAdapter;
     openrouter?: OpenRouterAdapter;
     xai?: XAIAdapter;
+    'brittney-cloud'?: BrittneyCloudAdapter;
   } = {};
 
   const openaiKey = typeof process !== 'undefined' ? process.env.OPENAI_API_KEY : '';
@@ -323,6 +363,18 @@ export function createProviderManager(): LLMProviderManager {
   if (geminiKey) providers.gemini = new GeminiAdapter({ apiKey: geminiKey });
   if (openrouterKey) providers.openrouter = new OpenRouterAdapter({ apiKey: openrouterKey });
   if (xaiKey) providers.xai = new XAIAdapter({ apiKey: xaiKey });
+
+  // Brittney Cloud: registered when BRITTNEY_SERVICE_URL is explicitly set.
+  const brittneyCloudUrl =
+    typeof process !== 'undefined' ? process.env.BRITTNEY_SERVICE_URL : undefined;
+  if (brittneyCloudUrl) {
+    const brittneyApiKey =
+      (typeof process !== 'undefined' ? process.env.BRITTNEY_API_KEY : undefined) ?? '';
+    providers['brittney-cloud'] = new BrittneyCloudAdapter({
+      baseURL: brittneyCloudUrl,
+      apiKey: brittneyApiKey,
+    });
+  }
 
   // LocalLLM: any OpenAI-compatible local server (llama.cpp, Ollama, LM Studio)
   // Only registered when HOLOSCRIPT_LOCAL_LLM_URL is explicitly set.
@@ -361,7 +413,7 @@ export function createProviderManager(): LLMProviderManager {
 
   if (Object.keys(providers).length === 0) {
     throw new Error(
-      'No LLM providers available. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, OPENROUTER_API_KEY, XAI_API_KEY, or start a local server.'
+      'No LLM providers available. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, OPENROUTER_API_KEY, XAI_API_KEY, BRITTNEY_SERVICE_URL, or start a local server.'
     );
   }
 
