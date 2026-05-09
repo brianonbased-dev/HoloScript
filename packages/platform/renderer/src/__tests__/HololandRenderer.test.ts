@@ -3,6 +3,7 @@ import { HololandRenderer } from '../HololandRenderer';
 import { AdaptiveFrameRateManager, DEFAULT_THRESHOLDS } from '../AdaptiveFrameRateManager';
 import { QualityManager, DEFAULT_QUALITY_POLICY } from '../QualityManager';
 import { InferencePriorityScheduler } from '../RenderInferenceSeparation';
+import { VRPerformanceBudget } from '../VRPerformanceBudget';
 
 describe('HololandRenderer', () => {
   it('constructs with default managers', () => {
@@ -151,5 +152,40 @@ describe('HololandRenderer', () => {
     renderer.update(16, 0);
     expect(tickSpy).not.toHaveBeenCalled();
     tickSpy.mockRestore();
+  });
+
+  /* ---- VRPerformanceBudget (task_1778299058189_tmcs) ---- */
+
+  it('constructs with default performance budget', () => {
+    const renderer = new HololandRenderer();
+    expect(renderer.budget).toBeInstanceOf(VRPerformanceBudget);
+  });
+
+  it('allows injecting a custom performance budget', () => {
+    const custom = new VRPerformanceBudget({ targetFrameTimeMs: 11.11 });
+    const renderer = new HololandRenderer({ performanceBudget: custom });
+    expect(renderer.budget).toBe(custom);
+  });
+
+  it('produces a budget report after update', () => {
+    const renderer = new HololandRenderer();
+    renderer.update(10, 0);
+    const report = renderer.getBudgetReport();
+    expect(report).not.toBeNull();
+    expect(report!.frameTimeMs).toBe(10);
+    expect(report!.categories.length).toBe(4);
+  });
+
+  it('records render usage in budget report', () => {
+    const renderer = new HololandRenderer();
+    renderer.update(8, 0);
+    const report = renderer.getBudgetReport()!;
+    const renderCat = report.categories.find((c) => c.category === 'render')!;
+    expect(renderCat.usedMs).toBe(8);
+  });
+
+  it('returns null budget report before first update', () => {
+    const renderer = new HololandRenderer();
+    expect(renderer.getBudgetReport()).toBeNull();
   });
 });

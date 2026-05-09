@@ -35,3 +35,13 @@ export {
   type FrameDeadlineEnforcerOptions,
   type InferencePrioritySchedulerOptions,
 } from './RenderInferenceSeparation';
+
+export {
+  VRPerformanceBudget,
+  type BudgetCategory,
+  type BudgetConfig,
+  type BudgetSnapshot,
+  type FrameBudgetReport,
+  type VRPerformanceBudgetOptions,
+  DEFAULT_BUDGET_CONFIG,
+} from './VRPerformanceBudget';
