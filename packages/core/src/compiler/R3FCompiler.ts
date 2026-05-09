@@ -3121,6 +3121,8 @@ export class R3FCompiler {
           props.pointCloud = trait.config || true;
         } else if (name === 'photogrammetry') {
           props.photogrammetry = trait.config || true;
+        } else if (name === 'web_surface') {
+          props.webSurface = trait.config || true;
         }
         // ── Physics Expansion ─────────────────────────────────────
         else if (name === 'cloth') {
@@ -4031,6 +4033,8 @@ export class R3FCompiler {
             props.nerf = d.config || true;
           } else if (d.name === 'volumetric_video') {
             props.volumetricVideo = d.config || true;
+          } else if (d.name === 'web_surface') {
+            props.webSurface = d.config || true;
           }
         }
       }

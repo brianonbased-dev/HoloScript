@@ -159,6 +159,13 @@ describe('WebGPUCompiler — Production', () => {
       expect(result).toBeDefined();
     });
 
+    it('compiles a web_surface object', () => {
+      const panel = makeObj('panel', 'plane');
+      panel.traits = [{ name: 'web_surface', config: { url: 'https://example.com' } }];
+      const result = compiler.compile(makeComp({ objects: [panel] }), 'test-token');
+      expect(result).toBeDefined();
+    });
+
     it('compiles a point_cloud object', () => {
       const result = compiler.compile(
         makeComp({ objects: [makeObj('cloud', 'point_cloud')] }),

@@ -50,6 +50,11 @@ export { HologramGif } from './components/HologramGif';
 export type { HologramGifProps } from './components/HologramGif';
 export { HologramVideo } from './components/HologramVideo';
 export type { HologramVideoProps } from './components/HologramVideo';
+
+// Web Surface Components (iframe HTML embed)
+export { WebSurfaceRenderer } from './components/WebSurfaceRenderer';
+export type { WebSurfaceRendererProps } from './components/WebSurfaceRenderer';
+
 export { QuiltViewer } from './components/QuiltViewer';
 export type { QuiltViewerProps } from './components/QuiltViewer';
 export { GaussianSplatViewer } from './components/GaussianSplatViewer';
@@ -191,6 +196,7 @@ export {
 } from './utils/coreLodBridge';
 export {
   resolveGaussianSplatSrc,
+  resolveWebSurfaceConfig,
   isBatchableDraftMesh,
   partitionStudioChildren,
 } from './utils/partitionStudioChildren';

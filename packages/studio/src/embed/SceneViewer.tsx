@@ -10,7 +10,7 @@ import {
   MATERIAL_PRESETS,
 } from '@holoscript/core';
 import type { R3FNode } from '@holoscript/core';
-import { HolomapPointCloudViewer } from '@holoscript/r3f-renderer';
+import { HolomapPointCloudViewer, WebSurfaceRenderer, resolveWebSurfaceConfig } from '@holoscript/r3f-renderer';
 
 // VR edit session — lazy loaded to avoid SSR issues
 const VREditSession = lazy(() =>
@@ -162,13 +162,47 @@ function EmbedNodeRenderer({
         />
       );
     }
-    case 'mesh':
+    case 'mesh': {
+      const webSurfaceCfg = resolveWebSurfaceConfig(node);
+      if (webSurfaceCfg) {
+        const wsUrl = typeof webSurfaceCfg.url === 'string' ? webSurfaceCfg.url : '';
+        if (wsUrl) {
+          const wsSize =
+            Array.isArray(webSurfaceCfg.size) && webSurfaceCfg.size.length === 2
+              ? (webSurfaceCfg.size as [number, number])
+              : ([1024, 768] as [number, number]);
+          const wsSandbox = Array.isArray(webSurfaceCfg.sandbox)
+            ? (webSurfaceCfg.sandbox as string[])
+            : undefined;
+          return (
+            <group>
+              <WebSurfaceRenderer
+                url={wsUrl}
+                size={wsSize}
+                position={props.position as [number, number, number] | undefined}
+                rotation={props.rotation as [number, number, number] | undefined}
+                scale={props.scale as [number, number, number] | number | undefined}
+                sandbox={wsSandbox}
+                allow_mic={!!webSurfaceCfg.allow_mic}
+                allow_camera={!!webSurfaceCfg.allow_camera}
+                origin_whitelist={
+                  Array.isArray(webSurfaceCfg.origin_whitelist)
+                    ? (webSurfaceCfg.origin_whitelist as string[])
+                    : undefined
+                }
+              />
+              {children}
+            </group>
+          );
+        }
+      }
       return (
         <group>
           <EmbedMeshNode node={node} selectedId={selectedId} onSelect={onSelect} />
           {children}
         </group>
       );
+    }
     case 'group':
       return (
         <group position={props.position} rotation={props.rotation} scale={props.scale}>

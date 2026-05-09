@@ -17,6 +17,17 @@ export function resolveGaussianSplatSrc(node: R3FNode): string | null {
   return null;
 }
 
+/** Resolve @web_surface config from a trait or node props. */
+export function resolveWebSurfaceConfig(
+  node: R3FNode
+): Record<string, unknown> | null {
+  const trait = node.traits?.get('web_surface') as Record<string, unknown> | undefined;
+  if (trait) return trait;
+  const p = node.props;
+  if (p.webSurface && typeof p.webSurface === 'object') return p.webSurface as Record<string, unknown>;
+  return null;
+}
+
 /** Draft meshes that can share an InstancedMesh (exclude Gaussian splat drafts). */
 export function isBatchableDraftMesh(node: R3FNode): boolean {
   return (

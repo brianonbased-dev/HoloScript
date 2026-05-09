@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { R3FNode } from '@holoscript/core';
 import {
   resolveGaussianSplatSrc,
+  resolveWebSurfaceConfig,
   isBatchableDraftMesh,
   partitionStudioChildren,
 } from '../utils/partitionStudioChildren';
@@ -70,5 +71,44 @@ describe('partitionStudioChildren', () => {
     } as R3FNode;
     expect(resolveGaussianSplatSrc(node)).toBe('blob:trait');
     expect(isBatchableDraftMesh(node)).toBe(false);
+  });
+
+  it('resolveWebSurfaceConfig reads trait web_surface', () => {
+    const traits = new Map<string, Record<string, unknown>>([
+      ['web_surface', { url: 'https://example.com', size: [800, 600] }],
+    ]);
+    const node = {
+      id: 'n',
+      type: 'mesh',
+      traits,
+      props: {},
+    } as R3FNode;
+    const cfg = resolveWebSurfaceConfig(node);
+    expect(cfg).not.toBeNull();
+    expect(cfg?.url).toBe('https://example.com');
+    expect(cfg?.size).toEqual([800, 600]);
+  });
+
+  it('resolveWebSurfaceConfig falls back to props.webSurface', () => {
+    const node = {
+      id: 'n',
+      type: 'mesh',
+      traits: new Map(),
+      props: { webSurface: { url: 'https://fallback.test', sandbox: ['allow-scripts'] } },
+    } as R3FNode;
+    const cfg = resolveWebSurfaceConfig(node);
+    expect(cfg).not.toBeNull();
+    expect(cfg?.url).toBe('https://fallback.test');
+    expect(cfg?.sandbox).toEqual(['allow-scripts']);
+  });
+
+  it('resolveWebSurfaceConfig returns null when absent', () => {
+    const node = {
+      id: 'n',
+      type: 'mesh',
+      traits: new Map(),
+      props: {},
+    } as R3FNode;
+    expect(resolveWebSurfaceConfig(node)).toBeNull();
   });
 });
