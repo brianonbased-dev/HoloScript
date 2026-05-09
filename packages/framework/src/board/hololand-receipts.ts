@@ -136,6 +136,56 @@ export interface AgentActionReceipt {
   metadata?: Record<string, unknown>;
 }
 
+// ── Qualcomm NIR Model Export ──
+
+export const QUALCOMM_NIR_RUNTIME_TARGETS = [
+  'qualcomm-snpe',
+  'qualcomm-qnn',
+  'nir-generic',
+] as const;
+
+export type QualcommNIRRuntimeTarget = (typeof QUALCOMM_NIR_RUNTIME_TARGETS)[number];
+
+export interface QualcommNIRModelExportReceipt {
+  /** Stable receipt id, e.g. `nir_qualcomm_20260509_xyz`. */
+  id: string;
+  /** Model identifier — matches the NIR graph or HoloScript composition that was exported. */
+  modelId: string;
+  /** Target device family + SoC, e.g. `Snapdragon 8 Gen 3` or `QCS8550`. */
+  targetDevice: string;
+  /** Runtime stack used for the on-device inference. */
+  runtime: QualcommNIRRuntimeTarget;
+  /** End-to-end inference latency in milliseconds (single batch, typical input). */
+  latencyMs: number;
+  /** Model load / initialization time in milliseconds. */
+  loadTimeMs: number;
+  /** Peak resident memory in bytes during inference. */
+  memoryBytes: number;
+  /** Compute-unit utilization ratio, 0.0–1.0 (percentage / 100). */
+  computeUnitUtilization: number;
+  /** Numerical-correctness envelope. */
+  numericalCorrectness: {
+    /** Maximum absolute error versus a reference float32 run. */
+    maxAbsoluteError: number;
+    /** Mean absolute error versus a reference float32 run. */
+    meanAbsoluteError: number;
+    /** Identifier of the dataset / fixture used for validation. */
+    validationDatasetId?: string;
+    /** Number of samples exercised in the correctness check. */
+    sampleCount?: number;
+  };
+  /** Capture timestamp (ISO-8601 or Unix ms). */
+  capturedAt: string | number;
+  /** Hash of the canonical receipt body (id + modelId + targetDevice + ordered metrics). */
+  hash: string;
+  hashAlgorithm: ArtifactHashAlgorithm;
+  /** Provenance link back to the producing task / commit / parent receipt. */
+  provenance?: ArtifactProvenanceLink;
+  /** Verification commands that prove the metrics can be reproduced. */
+  verificationCommands?: ArtifactVerificationCommand[];
+  metadata?: Record<string, unknown>;
+}
+
 // ── ValidationReceipt — top-level envelope ──
 
 /**
@@ -253,6 +303,81 @@ export function validateAgentActionReceipt(receipt: AgentActionReceipt): string[
   return errors;
 }
 
+export function validateQualcommNIRModelExportReceipt(
+  receipt: QualcommNIRModelExportReceipt,
+): string[] {
+  const errors: string[] = [];
+  if (!receipt.id) errors.push('QualcommNIRModelExportReceipt.id is required.');
+  if (!receipt.modelId) {
+    errors.push('QualcommNIRModelExportReceipt.modelId is required.');
+  }
+  if (!receipt.targetDevice) {
+    errors.push('QualcommNIRModelExportReceipt.targetDevice is required.');
+  }
+  if (!isSupportedQualcommNIRRuntimeTarget(receipt.runtime)) {
+    errors.push(
+      `QualcommNIRModelExportReceipt.runtime is unsupported: ${String(receipt.runtime)}.`,
+    );
+  }
+  if (typeof receipt.latencyMs !== 'number' || receipt.latencyMs < 0) {
+    errors.push(
+      `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.latencyMs must be a non-negative number.`,
+    );
+  }
+  if (typeof receipt.loadTimeMs !== 'number' || receipt.loadTimeMs < 0) {
+    errors.push(
+      `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.loadTimeMs must be a non-negative number.`,
+    );
+  }
+  if (typeof receipt.memoryBytes !== 'number' || receipt.memoryBytes < 0) {
+    errors.push(
+      `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.memoryBytes must be a non-negative number.`,
+    );
+  }
+  if (
+    typeof receipt.computeUnitUtilization !== 'number' ||
+    receipt.computeUnitUtilization < 0 ||
+    receipt.computeUnitUtilization > 1
+  ) {
+    errors.push(
+      `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.computeUnitUtilization must be between 0 and 1.`,
+    );
+  }
+  if (!receipt.numericalCorrectness || typeof receipt.numericalCorrectness !== 'object') {
+    errors.push(
+      `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.numericalCorrectness is required.`,
+    );
+  } else {
+    if (typeof receipt.numericalCorrectness.maxAbsoluteError !== 'number') {
+      errors.push(
+        `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.numericalCorrectness.maxAbsoluteError is required.`,
+      );
+    }
+    if (typeof receipt.numericalCorrectness.meanAbsoluteError !== 'number') {
+      errors.push(
+        `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.numericalCorrectness.meanAbsoluteError is required.`,
+      );
+    }
+  }
+  if (!receipt.hash) errors.push('QualcommNIRModelExportReceipt.hash is required.');
+  if (!receipt.hashAlgorithm) errors.push('QualcommNIRModelExportReceipt.hashAlgorithm is required.');
+  if (
+    receipt.capturedAt === undefined ||
+    receipt.capturedAt === null ||
+    receipt.capturedAt === ''
+  ) {
+    errors.push('QualcommNIRModelExportReceipt.capturedAt is required.');
+  }
+  for (const command of receipt.verificationCommands ?? []) {
+    if (!command.command) {
+      errors.push(
+        `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'} has a verification command without command text.`,
+      );
+    }
+  }
+  return errors;
+}
+
 /**
  * Validate a ValidationReceipt envelope. Recursively validates all
  * nested receipts; child errors are prefixed with `<child>[id]: `
@@ -314,6 +439,12 @@ export function isSupportedReplayOutcomeStatus(
   status: string,
 ): status is ReplayOutcome['status'] {
   return (REPLAY_OUTCOME_STATUSES as readonly string[]).includes(status);
+}
+
+export function isSupportedQualcommNIRRuntimeTarget(
+  target: string,
+): target is QualcommNIRRuntimeTarget {
+  return (QUALCOMM_NIR_RUNTIME_TARGETS as readonly string[]).includes(target);
 }
 
 const VALIDATION_STATUSES = ['passed', 'failed', 'inconclusive'] as const;
