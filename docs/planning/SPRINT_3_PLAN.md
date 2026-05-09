@@ -177,22 +177,34 @@ holoscript run --config iot-edge.yaml scene.holo
 
 ```typescript
 // WASM compiler configuration
+// The compiler emits a single .wasm binary that runs on any WASI-compatible runtime.
+// Choose the runtime at deployment time, not at compile time.
 export interface WASMCompilerConfig {
   target: 'wasm32-wasi' | 'wasm32-unknown';
-  runtime: 'wasmtime' | 'wasmedge' | 'browser';
   optimize: boolean;
   debug: boolean;
 }
+
+// Supported runtimes (deployment-time choice)
+// - wasmedge  : IoT edge gateways, lightweight embedded nodes
+// - wasmtime  : Server-side edge, embedded controllers
+// - browser   : In-browser digital twins, WebXR
 ```
 
 ### CLI Usage
 
 ```bash
-# Compile to WASM
+# Compile to WASM (generic target — works on all runtimes)
 holoscript compile scene.holo --target wasm -o scene.wasm
 
-# Run with WasmEdge
+# Run on WasmEdge (IoT edge)
 wasmedge scene.wasm
+
+# Run on Wasmtime (server edge)
+wasmtime scene.wasm
+
+# Run in browser (via generated JS glue)
+node holoscript.js
 ```
 
 ### Files to Create
@@ -203,7 +215,8 @@ wasmedge scene.wasm
 ### Acceptance Criteria
 
 - [x] Generate valid WASM module
-- [x] Run on WasmEdge runtime
+- [x] Run on WasmEdge runtime (generic `--target wasm` output, deployed via `wasmedge`)
+- [x] Run on Wasmtime runtime (same binary, deployed via `wasmtime`)
 - [x] State management works
 - [x] MQTT bindings via WASI sockets
 - [x] Module size < 1MB for simple scenes

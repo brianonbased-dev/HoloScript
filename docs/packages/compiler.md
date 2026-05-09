@@ -66,7 +66,7 @@ const results = await Promise.all(targets.map((target) => compileHoloScript(ast,
 | `three`       | JavaScript | Three.js object tree           |
 | `babylon-web` | TypeScript | Babylon.js web deployment      |
 | `cesium`      | JavaScript | Cesium.js 3D geospatial        |
-| `wasm`        | Rust       | WebAssembly (.wasm module)     |
+| `wasm`        | Rust / WAT | WebAssembly (.wasm module) — runs on WasmEdge, Wasmtime, browser, Node.js, Deno |
 
 ### VR/AR Platforms
 

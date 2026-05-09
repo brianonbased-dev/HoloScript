@@ -76,7 +76,7 @@ model#factory @usd @gltf @scene_graph @portable {
 | `@mqtt_source` / `@mqtt_sink` (protocol-level) | ✅ Implemented | `packages/core/src/traits/MQTTSourceTrait.ts`, `MQTTSinkTrait.ts`                          |
 | `@opc_ua` / `@modbus` (industrial protocols)   | ⚠️ Trait vocabulary exists | `packages/core/src/traits/constants/robotics-industrial.ts`; runtime bridge validation still needed |
 | `@twin_sync`, `@dtdl_interface`, `@telemetry`  | ✅ Trait vocabulary exists | `packages/core/src/traits/constants/iot-autonomous-agents.ts`, `DigitalTwinTrait.ts`       |
-| WasmEdge IoT compilation target                | ⚠️ Still open | No dedicated WasmEdge compiler surfaced in this refresh                                    |
+| WasmEdge IoT compilation target                | ✅ Resolved   | Covered by generic `--target wasm`; WasmEdge is a runtime, not a separate compiler. See `docs/compilers/wasm.md` for edge-runtime usage. |
 | ROS 2 bridge proof of concept                  | ⚠️ Export path exists | URDF/SDF compiler targets exist; live ROS 2 bridge runner still needs proof artifact        |
 | Smart Building integration                     | ⚠️ Trait-level only | Device and climate-control traits exist; no dedicated smart-building scenario verified      |
 
@@ -262,7 +262,7 @@ composition "RobotArm" @urdf_export {
 
 1. Add or refresh tests that prove `@wot_thing`, `@mqtt_source`, and `@mqtt_sink` still match the public examples in this doc.
 2. Produce one ROS 2 / URDF proof artifact from an example scene and link it from the robotics guide.
-3. Decide whether WasmEdge is still the IoT edge target, or replace it with the current WASM/runtime path and update compiler docs.
+3. ~~Decide whether WasmEdge is still the IoT edge target~~ **DECIDED 2026-05-09**: WasmEdge is a runtime for the existing `--target wasm` compiler, not a separate target. Compiler docs updated accordingly.
 
 ### Next
 

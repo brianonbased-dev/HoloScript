@@ -26,7 +26,7 @@ grep -n "export enum ExportTarget" -A 200 packages/core/src/compiler/CircuitBrea
 | `--target openxr`          | [openxr.md](/compilers/openxr)                   | C++                | Cross-platform XR           |
 | `--target threejs`         | three-js.md                                      | JavaScript         | Three.js / Web              |
 | `--target gltf`            | gltf.md                                          | GLB/glTF           | Universal 3D                |
-| `--target wasm`            | wasm.md                                          | WASM binary        | WebAssembly                 |
+| `--target wasm`            | [wasm.md](/compilers/wasm)                         | WASM binary        | WebAssembly / WasmEdge / Wasmtime (IoT edge) |
 | `--target urdf`            | [robotics/urdf.md](/compilers/robotics/urdf)     | URDF XML           | ROS 2                       |
 | `--target sdf`             | [robotics/sdf.md](/compilers/robotics/sdf)       | SDF XML            | Gazebo                      |
 | `--target dtdl`            | [iot/dtdl.md](/compilers/iot/dtdl)               | DTDL JSON          | Azure Digital Twins         |
