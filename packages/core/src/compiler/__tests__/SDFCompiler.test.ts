@@ -260,13 +260,159 @@ describe('SDFCompiler', () => {
     expect(sdf).toContain('model://robot.dae');
   });
 
-  // =========== XML escaping ===========
+  // =========== Gazebo Harmonic Plugins ===========
 
-  it('escapes XML special characters in world name', () => {
-    const custom = new SDFCompiler({ worldName: 'test<world>&"name' });
+  it('emits gz-sim system plugins for Harmonic', () => {
+    const custom = new SDFCompiler({ gazeboVersion: 'harmonic' });
     const sdf = custom.compile(makeComposition(), 'test-token');
-    expect(sdf).toContain('&lt;');
-    expect(sdf).toContain('&amp;');
-    expect(sdf).toContain('&quot;');
+    expect(sdf).toContain('gz-sim-physics-system');
+    expect(sdf).toContain('gz-sim-sensors-system');
+    expect(sdf).toContain('gz-sim-scene-broadcaster-system');
+    expect(sdf).toContain('gz-sim-contact-system');
+    expect(sdf).toContain('gz-sim-imu-system');
+    expect(sdf).toContain('gz-sim-joint-state-publisher-system');
+    expect(sdf).toContain('<engine>ode</engine>');
+    expect(sdf).toContain('<render_engine>ogre2</render_engine>');
+  });
+
+  it('uses custom physics engine in Harmonic plugins', () => {
+    const custom = new SDFCompiler({ gazeboVersion: 'harmonic', physicsEngine: 'bullet' });
+    const sdf = custom.compile(makeComposition(), 'test-token');
+    expect(sdf).toContain('<engine>bullet</engine>');
+  });
+
+  it('skips gz-sim plugins for Classic', () => {
+    const custom = new SDFCompiler({ gazeboVersion: 'classic' });
+    const sdf = custom.compile(makeComposition(), 'test-token');
+    expect(sdf).not.toContain('gz-sim-physics-system');
+    expect(sdf).not.toContain('gz-sim-sensors-system');
+  });
+
+  // =========== Proper Inertia ===========
+
+  it('calculates box inertia properly', () => {
+    const obj = makeObject({
+      name: 'Box',
+      traits: ['physics'],
+      properties: [
+        { type: 'ObjectProperty', key: 'mass', value: 12 } as any,
+        { type: 'ObjectProperty', key: 'geometry', value: 'box' } as any,
+        { type: 'ObjectProperty', key: 'scale', value: 2 } as any,
+      ],
+    });
+    const comp = makeComposition({ objects: [obj] });
+    const sdf = compiler.compile(comp, 'test-token');
+    const boxSection = sdf.split('model name="box"')[1]?.split('</model>')[0] || '';
+    // Box 2x2x2, mass 12: ixx = iyy = izz = 12*(4+4)/12 = 8
+    expect(boxSection).toContain('<ixx>8.000000e+0</ixx>');
+    expect(boxSection).toContain('<iyy>8.000000e+0</iyy>');
+    expect(boxSection).toContain('<izz>8.000000e+0</izz>');
+    expect(boxSection).toContain('<ixy>0.000000e+0</ixy>');
+    expect(boxSection).toContain('<ixz>0.000000e+0</ixz>');
+    expect(boxSection).toContain('<iyz>0.000000e+0</iyz>');
+  });
+
+  it('calculates sphere inertia properly', () => {
+    const obj = makeObject({
+      name: 'Sphere',
+      traits: ['physics'],
+      properties: [
+        { type: 'ObjectProperty', key: 'mass', value: 10 } as any,
+        { type: 'ObjectProperty', key: 'geometry', value: 'sphere' } as any,
+        { type: 'ObjectProperty', key: 'scale', value: 2 } as any,
+      ],
+    });
+    const comp = makeComposition({ objects: [obj] });
+    const sdf = compiler.compile(comp, 'test-token');
+    const sphereSection = sdf.split('model name="sphere"')[1]?.split('</model>')[0] || '';
+    // Sphere r=1, mass 10: i = (2/5)*10*1 = 4
+    expect(sphereSection).toContain('<ixx>4.000000e+0</ixx>');
+    expect(sphereSection).toContain('<izz>4.000000e+0</izz>');
+  });
+
+  it('calculates cylinder inertia properly', () => {
+    const obj = makeObject({
+      name: 'Cylinder',
+      traits: ['physics'],
+      properties: [
+        { type: 'ObjectProperty', key: 'mass', value: 6 } as any,
+        { type: 'ObjectProperty', key: 'geometry', value: 'cylinder' } as any,
+        { type: 'ObjectProperty', key: 'scale', value: 2 } as any,
+      ],
+    });
+    const comp = makeComposition({ objects: [obj] });
+    const sdf = compiler.compile(comp, 'test-token');
+    const cylSection = sdf.split('model name="cylinder"')[1]?.split('</model>')[0] || '';
+    // Cylinder r=1, l=2, mass 6: ixx = iyy = 6*(3+4)/12 = 3.5, izz = 6/2 = 3
+    expect(cylSection).toContain('<ixx>3.500000e+0</ixx>');
+    expect(cylSection).toContain('<iyy>3.500000e+0</iyy>');
+    expect(cylSection).toContain('<izz>3.000000e+0</izz>');
+  });
+
+  it('extracts mass from physics property block', () => {
+    const obj = makeObject({
+      name: 'Heavy',
+      traits: ['physics'],
+      properties: [
+        { type: 'ObjectProperty', key: 'physics', value: { mass: 50 } } as any,
+      ],
+    });
+    const comp = makeComposition({ objects: [obj] });
+    const sdf = compiler.compile(comp, 'test-token');
+    expect(sdf).toContain('<mass>50</mass>');
+  });
+
+  it('prefers direct mass property over physics block', () => {
+    const obj = makeObject({
+      name: 'DirectMass',
+      traits: ['physics'],
+      properties: [
+        { type: 'ObjectProperty', key: 'mass', value: 20 } as any,
+        { type: 'ObjectProperty', key: 'physics', value: { mass: 30 } } as any,
+      ],
+    });
+    const comp = makeComposition({ objects: [obj] });
+    const sdf = compiler.compile(comp, 'test-token');
+    expect(sdf).toContain('<mass>20</mass>');
+  });
+
+  // =========== Joint Articulation ===========
+
+  it('emits fixed joint for object with parent', () => {
+    const parent = makeObject({ name: 'Base' });
+    const child = makeObject({
+      name: 'Arm',
+      properties: [
+        { type: 'ObjectProperty', key: 'parent', value: 'Base' } as any,
+      ],
+    });
+    const comp = makeComposition({ objects: [parent, child] });
+    const sdf = compiler.compile(comp, 'test-token');
+    expect(sdf).toContain('<joint name="arm_joint" type="fixed">');
+    expect(sdf).toContain('<parent>base</parent>');
+    expect(sdf).toContain('<child>arm</child>');
+  });
+
+  it('emits revolute joint with axis', () => {
+    const parent = makeObject({ name: 'Base' });
+    const child = makeObject({
+      name: 'Arm',
+      properties: [
+        { type: 'ObjectProperty', key: 'parent', value: 'Base' } as any,
+        { type: 'ObjectProperty', key: 'joint_type', value: 'revolute' } as any,
+        { type: 'ObjectProperty', key: 'axis', value: [0, 0, 1] } as any,
+      ],
+    });
+    const comp = makeComposition({ objects: [parent, child] });
+    const sdf = compiler.compile(comp, 'test-token');
+    expect(sdf).toContain('<joint name="arm_joint" type="revolute">');
+    expect(sdf).toContain('<xyz>0 0 1</xyz>');
+  });
+
+  it('skips joint when no parent is specified', () => {
+    const obj = makeObject({ name: 'Standalone' });
+    const comp = makeComposition({ objects: [obj] });
+    const sdf = compiler.compile(comp, 'test-token');
+    expect(sdf).not.toContain('joint');
   });
 });

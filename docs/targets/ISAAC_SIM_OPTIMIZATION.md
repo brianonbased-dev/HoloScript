@@ -266,16 +266,21 @@ ixx = iyy = izz = (2 / 5) * mass * r * r;
 
 ### Priority 2 (Pending)
 
-- **Gazebo Harmonic Plugin Migration**: Still outputs Gazebo Classic plugins by default
-  - Partial support via `gazeboVersion: 'harmonic'` option
-  - Full migration requires updating all `emitGazeboSensor()` plugin paths
+- [x] **Gazebo Harmonic Plugin Migration**: SDFCompiler now supports `gazeboVersion: 'harmonic'` option and emits gz-sim system plugins (physics, sensors, scene broadcaster, contact, IMU, joint state publisher).
+- [x] **SDF Joint Articulation**: SDFCompiler now emits `<joint>` elements for objects with a `parent` property, supporting `fixed`, `revolute`, `prismatic`, and `continuous` joint types with configurable axis.
+- [x] **SDF Proper Inertia**: SDFCompiler now calculates proper inertia tensors from geometry shape and dimensions (box, sphere, cylinder, capsule) instead of simplified `mass * 0.1`.
+- [x] **SDF gz-sim System Plugins**: World output now includes gz-sim system plugins when `gazeboVersion: 'harmonic'` is set.
 
 ### Priority 3 (Future Work)
 
-- **SDF Joint Articulation**: SDFCompiler emits per-object models without `<joint>` elements
-- **SDF Proper Inertia**: Still uses simplified `mass * 0.1` calculation
-- **SDF gz-sim System Plugins**: Not yet included in world output
 - **ros_gz_bridge YAML Generation**: Manual configuration still required
+
+### Verification
+
+Run `pnpm --filter @holoscript/core test packages/core/src/compiler/__tests__/SDFCompiler.test.ts`:
+- 33 tests passing (23 existing + 10 new)
+- Coverage: gz-sim plugins, proper inertia (box/sphere/cylinder), joint articulation, mass property extraction
+- Build verified: `pnpm --filter @holoscript/core build` passes cleanly.
 
 ## Testing Checklist
 

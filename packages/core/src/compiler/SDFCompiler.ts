@@ -41,6 +41,8 @@ export interface SDFCompilerOptions {
   worldName?: string;
   /** SDF version */
   sdfVersion?: string;
+  /** Gazebo version target */
+  gazeboVersion?: 'classic' | 'harmonic';
   /** Include physics configuration */
   includePhysics?: boolean;
   /** Physics engine */
@@ -69,6 +71,7 @@ export class SDFCompiler extends CompilerBase {
     this.options = {
       worldName: options.worldName || 'holoscript_world',
       sdfVersion: options.sdfVersion || '1.8',
+      gazeboVersion: options.gazeboVersion ?? 'classic',
       includePhysics: options.includePhysics ?? true,
       physicsEngine: options.physicsEngine || 'ode',
       realTimeFactor: options.realTimeFactor ?? 1.0,
@@ -97,6 +100,11 @@ export class SDFCompiler extends CompilerBase {
     // Physics
     if (this.options.includePhysics) {
       this.emitPhysics();
+    }
+
+    // gz-sim system plugins (Harmonic)
+    if (this.options.gazeboVersion === 'harmonic') {
+      this.emitGzSimPlugins();
     }
 
     // Scene (sky, ambient, shadows)
@@ -133,6 +141,16 @@ export class SDFCompiler extends CompilerBase {
 
     // v4.2: Domain Blocks (materials, physics, audio, weather)
     this.emitSDFDomainBlocks(composition);
+
+    // Joints between objects with parent/child relationships
+    if (composition.objects) {
+      for (const obj of composition.objects) {
+        const parent = this.extractParent(obj);
+        if (parent) {
+          this.emitJoint(obj, parent);
+        }
+      }
+    }
 
     this.indentLevel--;
     this.emit('</world>');
@@ -274,6 +292,62 @@ export class SDFCompiler extends CompilerBase {
     this.indentLevel--;
     this.emit('</scene>');
     this.emit('');
+  }
+
+  private emitGzSimPlugins(): void {
+    this.emit('<!-- gz-sim system plugins (Harmonic) -->');
+    this.emit(`<plugin name="gz::sim::systems::Physics" filename="gz-sim-physics-system">`);
+    this.indentLevel++;
+    this.emit(`<engine>${this.options.physicsEngine}</engine>`);
+    this.indentLevel--;
+    this.emit('</plugin>');
+    this.emit(`<plugin name="gz::sim::systems::Sensors" filename="gz-sim-sensors-system">`);
+    this.indentLevel++;
+    this.emit('<render_engine>ogre2</render_engine>');
+    this.indentLevel--;
+    this.emit('</plugin>');
+    this.emit('<plugin name="gz::sim::systems::SceneBroadcaster" filename="gz-sim-scene-broadcaster-system" />');
+    this.emit('<plugin name="gz::sim::systems::Contact" filename="gz-sim-contact-system" />');
+    this.emit('<plugin name="gz::sim::systems::Imu" filename="gz-sim-imu-system" />');
+    this.emit('<plugin name="gz::sim::systems::JointStatePublisher" filename="gz-sim-joint-state-publisher-system" />');
+    this.emit('');
+  }
+
+  private calculateInertia(geometry: string, mass: number, scale: number): { ixx: number; ixy: number; ixz: number; iyy: number; iyz: number; izz: number } {
+    switch (geometry) {
+      case 'sphere': {
+        const r = scale / 2;
+        const i = (2 / 5) * mass * r * r;
+        return { ixx: i, ixy: 0, ixz: 0, iyy: i, iyz: 0, izz: i };
+      }
+      case 'cylinder': {
+        const r = scale / 2;
+        const l = scale;
+        const ixx = (mass * (3 * r * r + l * l)) / 12;
+        const iyy = ixx;
+        const izz = (mass * r * r) / 2;
+        return { ixx, ixy: 0, ixz: 0, iyy, iyz: 0, izz };
+      }
+      case 'capsule': {
+        const r = scale / 3;
+        const l = scale;
+        const ixx = (mass * (3 * r * r + l * l)) / 12;
+        const iyy = ixx;
+        const izz = (mass * r * r) / 2;
+        return { ixx, ixy: 0, ixz: 0, iyy, iyz: 0, izz };
+      }
+      case 'box':
+      case 'cube':
+      default: {
+        const w = scale;
+        const h = scale;
+        const d = scale;
+        const ixx = (mass * (h * h + d * d)) / 12;
+        const iyy = (mass * (w * w + d * d)) / 12;
+        const izz = (mass * (w * w + h * h)) / 12;
+        return { ixx, ixy: 0, ixz: 0, iyy, iyz: 0, izz };
+      }
+    }
   }
 
   private emitGroundPlane(): void {
@@ -424,14 +498,20 @@ export class SDFCompiler extends CompilerBase {
     // Inertial (for dynamic objects)
     if (!isStatic) {
       const mass = this.extractMass(obj) || 1.0;
+      const geometry = this.extractGeometry(obj);
+      const scale = this.extractScale(obj);
+      const inertia = this.calculateInertia(geometry, mass, scale);
       this.emit('<inertial>');
       this.indentLevel++;
       this.emit(`<mass>${mass}</mass>`);
       this.emit('<inertia>');
       this.indentLevel++;
-      this.emit(`<ixx>${mass * 0.1}</ixx><ixy>0</ixy><ixz>0</ixz>`);
-      this.emit(`<iyy>${mass * 0.1}</iyy><iyz>0</iyz>`);
-      this.emit(`<izz>${mass * 0.1}</izz>`);
+      this.emit(`<ixx>${inertia.ixx.toExponential(6)}</ixx>`);
+      this.emit(`<ixy>${inertia.ixy.toExponential(6)}</ixy>`);
+      this.emit(`<ixz>${inertia.ixz.toExponential(6)}</ixz>`);
+      this.emit(`<iyy>${inertia.iyy.toExponential(6)}</iyy>`);
+      this.emit(`<iyz>${inertia.iyz.toExponential(6)}</iyz>`);
+      this.emit(`<izz>${inertia.izz.toExponential(6)}</izz>`);
       this.indentLevel--;
       this.emit('</inertia>');
       this.indentLevel--;
@@ -579,12 +659,51 @@ export class SDFCompiler extends CompilerBase {
   }
 
   private extractMass(obj: HoloObjectDecl): number | undefined {
+    const massProp = obj.properties.find((p) => p.key === 'mass');
+    if (massProp && typeof massProp.value === 'number') return massProp.value;
+
     const physicsProp = obj.properties.find((p) => p.key === 'physics');
     if (physicsProp && typeof physicsProp.value === 'object' && !Array.isArray(physicsProp.value)) {
       const massEntry = (physicsProp.value as Record<string, unknown>).mass;
       if (typeof massEntry === 'number') return massEntry;
     }
     return undefined;
+  }
+
+  private extractGeometry(obj: HoloObjectDecl): string {
+    const geometryProp = obj.properties.find((p) => p.key === 'geometry');
+    return geometryProp ? this.getStringValue(geometryProp.value) : 'box';
+  }
+
+  private extractParent(obj: HoloObjectDecl): string | undefined {
+    const parentProp = obj.properties.find((p) => p.key === 'parent');
+    return parentProp ? this.getStringValue(parentProp.value) : undefined;
+  }
+
+  private emitJoint(obj: HoloObjectDecl, parentName: string): void {
+    const jointTypeProp = obj.properties.find((p) => p.key === 'joint_type');
+    const jointType = jointTypeProp ? this.getStringValue(jointTypeProp.value) : 'fixed';
+    const name = this.sanitizeName(obj.name);
+    const parent = this.sanitizeName(parentName);
+
+    this.emit(`<joint name="${name}_joint" type="${jointType}">`);
+    this.indentLevel++;
+    this.emit(`<parent>${parent}</parent>`);
+    this.emit(`<child>${name}</child>`);
+
+    const axisProp = obj.properties.find((p) => p.key === 'axis');
+    if (axisProp && Array.isArray(axisProp.value)) {
+      const axis = axisProp.value.map((v) => Number(v) || 0).join(' ');
+      this.emit(`<axis>`);
+      this.indentLevel++;
+      this.emit(`<xyz>${axis}</xyz>`);
+      this.indentLevel--;
+      this.emit(`</axis>`);
+    }
+
+    this.indentLevel--;
+    this.emit('</joint>');
+    this.emit('');
   }
 
   private mapLightType(type?: string): string {
