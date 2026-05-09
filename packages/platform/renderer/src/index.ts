@@ -20,3 +20,18 @@ export {
   HololandRenderer,
   type HololandRendererOptions,
 } from './HololandRenderer';
+
+export {
+  RenderSafeInferenceReader,
+  InferenceIsolationBarrier,
+  FrameDeadlineEnforcer,
+  InferencePriorityScheduler,
+  type InferencePriority,
+  type InferenceTask,
+  type InferenceResult,
+  type InferenceMetrics,
+  type RenderSafeInferenceReaderOptions,
+  type InferenceIsolationBarrierOptions,
+  type FrameDeadlineEnforcerOptions,
+  type InferencePrioritySchedulerOptions,
+} from './RenderInferenceSeparation';

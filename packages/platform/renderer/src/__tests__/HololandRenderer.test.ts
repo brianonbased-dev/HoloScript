@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { HololandRenderer } from '../HololandRenderer';
 import { AdaptiveFrameRateManager, DEFAULT_THRESHOLDS } from '../AdaptiveFrameRateManager';
 import { QualityManager, DEFAULT_QUALITY_POLICY } from '../QualityManager';
+import { InferencePriorityScheduler } from '../RenderInferenceSeparation';
 
 describe('HololandRenderer', () => {
   it('constructs with default managers', () => {
@@ -75,5 +76,80 @@ describe('HololandRenderer', () => {
     }
     expect(renderer.getThermalState()).toBe('critical');
     expect(renderer.quality.getCurrentState()).toBe('critical');
+  });
+
+  /* ---- render-inference separation (task_1778299058189_bskr) ---- */
+
+  it('constructs with default inference scheduler', () => {
+    const renderer = new HololandRenderer();
+    expect(renderer.inference).toBeInstanceOf(InferencePriorityScheduler);
+  });
+
+  it('allows injecting a custom inference scheduler', () => {
+    const custom = new InferencePriorityScheduler();
+    const renderer = new HololandRenderer({ inferenceScheduler: custom });
+    expect(renderer.inference).toBe(custom);
+  });
+
+  it('ticks inference scheduler on every update', () => {
+    const scheduler = new InferencePriorityScheduler();
+    const tickSpy = vi.spyOn(scheduler, 'tick');
+    const renderer = new HololandRenderer({ inferenceScheduler: scheduler });
+
+    renderer.update(16, 0);
+    renderer.update(16, 0);
+    expect(tickSpy).toHaveBeenCalledTimes(2);
+
+    tickSpy.mockRestore();
+  });
+
+  it('drains inference results after update', () => {
+    const scheduler = new InferencePriorityScheduler();
+    const renderer = new HololandRenderer({ inferenceScheduler: scheduler });
+
+    scheduler.schedule({
+      id: 't1',
+      priority: 'normal',
+      input: null,
+      createdAt: 0,
+      execute: () => 123,
+    });
+
+    renderer.update(16, 0);
+    const results = renderer.drainInferenceResults();
+    expect(results.length).toBe(1);
+    expect(results[0].output).toBe(123);
+  });
+
+  it('exposes inference metrics', () => {
+    const renderer = new HololandRenderer();
+    const metrics = renderer.getInferenceMetrics();
+    expect(typeof metrics.queueDepth).toBe('number');
+    expect(typeof metrics.inFlight).toBe('number');
+    expect(typeof metrics.completed).toBe('number');
+    expect(typeof metrics.dropped).toBe('number');
+    expect(typeof metrics.averageLatencyMs).toBe('number');
+    expect(typeof metrics.deadlineMissRate).toBe('number');
+  });
+
+  it('clears inference queue on dispose', () => {
+    const scheduler = new InferencePriorityScheduler();
+    const clearSpy = vi.spyOn(scheduler, 'clear');
+    const renderer = new HololandRenderer({ inferenceScheduler: scheduler });
+
+    renderer.dispose();
+    expect(clearSpy).toHaveBeenCalledTimes(1);
+    clearSpy.mockRestore();
+  });
+
+  it('stops ticking inference after dispose', () => {
+    const scheduler = new InferencePriorityScheduler();
+    const tickSpy = vi.spyOn(scheduler, 'tick');
+    const renderer = new HololandRenderer({ inferenceScheduler: scheduler });
+
+    renderer.dispose();
+    renderer.update(16, 0);
+    expect(tickSpy).not.toHaveBeenCalled();
+    tickSpy.mockRestore();
   });
 });
