@@ -29,7 +29,7 @@
 - ✅ WebGPU substrate exists under `packages/engine/src/gpu/`
 - ✅ WGSL particle and spatial-grid shaders exist under `packages/engine/src/gpu/shaders/`
 - ✅ GPU physics tests exist under `packages/engine/src/gpu/__tests__/`
-- ⚠️ Hardware performance evidence still needs a repeatable artifact linked from this doc
+- ✅ Repeatable hardware artifact: `pnpm run benchmark:webgpu:physics` (packages/engine). Receipt written to `.bench-logs/webgpu-physics-bench.json`.
 
 ### Target State
 

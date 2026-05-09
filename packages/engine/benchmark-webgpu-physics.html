@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>WebGPU Physics Smoke Benchmark</title>
+  <style>
+    body { font-family: monospace; background: #0f172a; color: #e2e8f0; padding: 20px; }
+    pre { background: #1e293b; padding: 15px; border-radius: 8px; overflow-x: auto; }
+    .pass { color: #4ade80; } .fail { color: #f87171; } .info { color: #60a5fa; }
+    h2 { color: #818cf8; }
+    .toolbar { display: flex; gap: 12px; align-items: center; margin: 12px 0 20px; flex-wrap: wrap; }
+    .button {
+      display: inline-block; padding: 8px 12px; border-radius: 6px;
+      background: #334155; color: #e2e8f0; text-decoration: none;
+      border: 1px solid #475569; cursor: pointer;
+    }
+    .hint { color: #94a3b8; }
+  </style>
+</head>
+<body>
+<h1>WebGPU Physics Smoke Benchmark</h1>
+<p class="hint">
+  Runs 1K / 10K / 100K particle physics on local Chrome hardware and produces a machine-readable receipt.
+</p>
+<div class="toolbar">
+  <a id="downloadJson" class="button" href="#">Download JSON receipt</a>
+  <span id="artifactStatus" class="hint">Status: initializing</span>
+</div>
+<pre id="log">Initializing WebGPU context...
+</pre>
+<h2>Receipt JSON</h2>
+<pre id="artifact">{}</pre>
+
+<script src="benchmark-webgpu-physics.js"></script>
+<script>
+(function () {
+  const log = document.getElementById('log');
+  const artifactPre = document.getElementById('artifact');
+  const downloadJson = document.getElementById('downloadJson');
+  const artifactStatus = document.getElementById('artifactStatus');
+
+  function print(msg, cls) {
+    const span = document.createElement('span');
+    span.className = cls || '';
+    span.textContent = msg + '\n';
+    log.appendChild(span);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function refreshArtifactView() {
+    const a = window.__WEBGPU_PHYSICS_ARTIFACT__;
+    if (!a) return;
+    const json = JSON.stringify(a, null, 2);
+    artifactPre.textContent = json;
+    downloadJson.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+    downloadJson.download = 'webgpu-physics-bench.json';
+    artifactStatus.textContent = 'Status: ' + a.status;
+  }
+
+  const poll = setInterval(() => {
+    const a = window.__WEBGPU_PHYSICS_ARTIFACT__;
+    if (!a) return;
+    if (a.status === 'completed' || a.status === 'error' || a.status === 'unsupported') {
+      clearInterval(poll);
+      if (a.status === 'completed') {
+        print('Benchmark completed.', 'pass');
+        a.cells.forEach(c => {
+          const cls = c.passed ? 'pass' : 'fail';
+          print(
+            `${c.particleCount} particles: ${c.avgStepMs.toFixed(3)} ms/step ` +
+            `(${c.fps.toFixed(1)} FPS) — ${c.passed ? 'PASS' : 'FAIL'}`,
+            cls
+          );
+        });
+      } else if (a.status === 'unsupported') {
+        print('WebGPU unsupported on this browser.', 'fail');
+      } else {
+        print('Benchmark error.', 'fail');
+        a.failures.forEach(f => print('[' + f.stage + '] ' + f.message, 'fail'));
+      }
+      a.notes.forEach(n => print('Note: ' + n, 'info'));
+      refreshArtifactView();
+    }
+  }, 250);
+})();
+</script>
+</body>
+</html>

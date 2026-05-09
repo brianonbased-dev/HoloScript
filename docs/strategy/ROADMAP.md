@@ -60,7 +60,7 @@ The missing work is not basic capability. It is making this path obvious, measur
 `.holo` is the shared source for virtual worlds, robotic wrappers, digital twins, and organizational automation. The next useful work is validation-oriented:
 
 - Re-run hardware checks for WebGPU/WebXR paths on local Chrome, Quest-class browsers, and fallback runtimes.
-- Turn existing physics demos into repeatable smoke commands with artifact output.
+- Turn existing physics demos into repeatable smoke commands with artifact output. ✅ WebGPU physics smoke benchmark shipped (`pnpm run benchmark:webgpu:physics` in packages/engine). Receipt: `.bench-logs/webgpu-physics-bench.json`.
 - Connect IoT/robotics trait docs to actual handlers, tests, and compiler targets.
 
 ### 4. Docs Currency
