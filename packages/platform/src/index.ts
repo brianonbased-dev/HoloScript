@@ -18,4 +18,4 @@ export * from './rbac';
 
 // Sprint 6: Token management and access control
 export * from './tokens';
-export * from './access-control';
+export * from '../renderer/src/index';

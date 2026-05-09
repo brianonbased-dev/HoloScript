@@ -10,7 +10,7 @@ export default defineConfig({
   test: {
     name: '@holoscript/platform',
     root: '.',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'renderer/src/**/*.test.ts'],
     exclude: ['**/dist/**', '**/node_modules/**'],
     environment: 'node',
   },

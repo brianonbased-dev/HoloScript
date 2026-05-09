@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
-  entry: { 'index': 'src/index.ts' },
+  entry: { 'index': 'src/index.ts', renderer: 'renderer/src/index.ts' },
   format: ['cjs', 'esm'],
   // dts disabled while platform shares the mid-flight Vec3 migration
   // with engine — same source-level TS errors crash tsup's dts pass.

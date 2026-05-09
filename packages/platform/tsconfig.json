@@ -22,6 +22,6 @@
     "experimentalDecorators": true,
     "jsx": "react-jsx"
   },
-  "include": ["src/**/*", "../marketplace-api/src/core-marketplace/**/*"],
+  "include": ["src/**/*", "renderer/src/**/*", "../marketplace-api/src/core-marketplace/**/*"],
   "exclude": ["node_modules", "dist", "src/**/*.test.ts", "src/**/*.bench.ts", "src/__tests__/**/*"]
 }
