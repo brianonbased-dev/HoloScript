@@ -129,6 +129,13 @@ holoscript compile workspace.holo --target urdf -o robot_description/
 </robot>
 ```
 
+### Validated Proof Artifact
+
+A production-validated URDF generated from the `TwoDoFRobotArm` composition is available as a reference:
+
+- [two-dof-arm.urdf](/compilers/robotics/two-dof-arm.urdf) — ROS 2 / Gazebo compatible
+- [ROS 2 Validation Receipt](/compilers/robotics/ros2-validation-receipt.md) — Verification details
+
 ## ROS 2 Integration
 
 ### Topic Bindings
@@ -293,3 +300,5 @@ robot#arm {
 - [MoveIt 2](https://moveit.picknik.ai/main/index.html)
 - [NVIDIA Isaac Sim](https://developer.nvidia.com/isaac-sim)
 - [URDF Specification](http://wiki.ros.org/urdf/XML)
+- [URDF Compiler](/compilers/robotics/urdf) — HoloScript → URDF compiler reference
+- [ROS 2 Validation Receipt](/compilers/robotics/ros2-validation-receipt.md) — Validated proof artifact
