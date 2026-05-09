@@ -192,3 +192,82 @@ export const graphqlHandler: TraitHandler<GraphQLConfig> = {
     // v6 stub: GraphQL server setup
   },
 };
+
+// ── OPC-UA Trait ───────────────────────────────────────────────────────────────
+
+export interface OpcUaConfig {
+  /** OPC-UA server endpoint URL */
+  endpoint_url: string;
+  /** Security policy (None, Basic128Rsa15, Basic256, Basic256Sha256) */
+  security_policy: string;
+  /** Message security mode (None, Sign, SignAndEncrypt) */
+  security_mode: string;
+  /** Application URI */
+  application_uri: string;
+  /** Namespace index for custom nodes */
+  namespace_index: number;
+  /** Polling interval (ms) */
+  polling_interval: number;
+  /** Enable subscriptions (monitored items) */
+  subscriptions: boolean;
+  /** Max monitored items per subscription */
+  max_monitored_items: number;
+}
+
+export const opcUaHandler: TraitHandler<OpcUaConfig> = {
+  name: 'opc_ua',
+  defaultConfig: {
+    endpoint_url: 'opc.tcp://localhost:4840',
+    security_policy: 'None',
+    security_mode: 'None',
+    application_uri: 'urn:holoscript:client',
+    namespace_index: 1,
+    polling_interval: 1000,
+    subscriptions: true,
+    max_monitored_items: 100,
+  },
+  onAttach(_node: HSPlusNode, _config: OpcUaConfig, _context: TraitContext) {
+    // v6 stub: OPC-UA client session setup
+  },
+  onDetach(_node: HSPlusNode, _config: OpcUaConfig, _context: TraitContext) {
+    // v6 stub: OPC-UA session teardown
+  },
+};
+
+// ── Modbus Trait ───────────────────────────────────────────────────────────────
+
+export interface ModbusConfig {
+  /** Connection type (tcp, rtu, ascii) */
+  connection_type: string;
+  /** Host:port for TCP, serial port for RTU/ASCII */
+  host: string;
+  /** Unit/slave ID */
+  unit_id: number;
+  /** Default register offset */
+  register_offset: number;
+  /** Polling interval (ms) */
+  polling_interval: number;
+  /** Timeout (ms) */
+  timeout: number;
+  /** Retry count */
+  retry: number;
+}
+
+export const modbusHandler: TraitHandler<ModbusConfig> = {
+  name: 'modbus',
+  defaultConfig: {
+    connection_type: 'tcp',
+    host: 'localhost:502',
+    unit_id: 1,
+    register_offset: 0,
+    polling_interval: 1000,
+    timeout: 5000,
+    retry: 3,
+  },
+  onAttach(_node: HSPlusNode, _config: ModbusConfig, _context: TraitContext) {
+    // v6 stub: Modbus client connection setup
+  },
+  onDetach(_node: HSPlusNode, _config: ModbusConfig, _context: TraitContext) {
+    // v6 stub: Modbus client disconnect
+  },
+};

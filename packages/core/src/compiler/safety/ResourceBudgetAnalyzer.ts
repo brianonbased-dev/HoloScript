@@ -155,6 +155,8 @@ export const TRAIT_RESOURCE_COSTS: Record<string, Partial<Record<ResourceCategor
   '@lobby': { networkMsgs: 5, memoryMB: 2 },
   '@mqtt_sink': { networkMsgs: 5 },
   '@mqtt_source': { networkMsgs: 5 },
+  '@modbus': { networkMsgs: 5 },
+  '@opc_ua': { networkMsgs: 5 },
   '@sync_tier': { networkMsgs: 2 },
   '@crdt_room': { networkMsgs: 10, memoryMB: 4 },
   '@shareplay': { networkMsgs: 5, memoryMB: 2 },

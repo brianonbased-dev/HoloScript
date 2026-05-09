@@ -176,6 +176,68 @@ describe('IoT Domain', () => {
     expect(code).toContain('def Scope "IoT_TempSensor"');
     expect(code).toContain('holoscript:protocol = "mqtt"');
   });
+
+  // ── OPC-UA & Modbus protocol validation (beyond trait vocabulary) ──
+  it('compileIoTBlock handles opc-ua protocol', () => {
+    const block = makeBlock('iot', 'sensor', 'OpcUaSensor', {
+      device_type: 'sensor',
+      protocol: 'opc-ua',
+      telemetry_fields: ['temperature', 'pressure'],
+    });
+    const ir = compileIoTBlock(block);
+    expect(ir.protocol).toBe('opc-ua');
+    expect(ir.telemetryFields).toEqual(['temperature', 'pressure']);
+  });
+
+  it('compileIoTBlock handles modbus protocol', () => {
+    const block = makeBlock('iot', 'actuator', 'ModbusValve', {
+      device_type: 'actuator',
+      protocol: 'modbus',
+      telemetry_fields: ['valve_position', 'flow_rate'],
+    });
+    const ir = compileIoTBlock(block);
+    expect(ir.protocol).toBe('modbus');
+    expect(ir.deviceType).toBe('actuator');
+  });
+
+  it('iotToUnity generates C# for opc-ua protocol', () => {
+    const block = makeBlock('iot', 'sensor', 'OpcUaSensor', {
+      protocol: 'opc-ua',
+      telemetry_fields: ['temperature'],
+    });
+    const code = iotToUnity(compileIoTBlock(block));
+    expect(code).toContain('protocol = "opc-ua"');
+    expect(code).toContain('class OpcUaSensorIoT : MonoBehaviour');
+  });
+
+  it('iotToGodot generates GDScript for modbus protocol', () => {
+    const block = makeBlock('iot', 'sensor', 'ModbusSensor', {
+      protocol: 'modbus',
+      telemetry_fields: ['coil_status'],
+    });
+    const code = iotToGodot(compileIoTBlock(block));
+    expect(code).toContain('protocol: String = "modbus"');
+    expect(code).toContain('extends Node');
+  });
+
+  it('iotToR3F generates config for opc-ua protocol', () => {
+    const block = makeBlock('iot', 'sensor', 'OpcUaSensor', {
+      protocol: 'opc-ua',
+      telemetry_fields: ['temperature'],
+    });
+    const code = iotToR3F(compileIoTBlock(block));
+    expect(code).toContain('protocol: "opc-ua"');
+    expect(code).toContain('OpcUaSensorConfig');
+  });
+
+  it('iotToUSDA generates USD annotations for modbus protocol', () => {
+    const block = makeBlock('iot', 'actuator', 'ModbusValve', {
+      protocol: 'modbus',
+    });
+    const code = iotToUSDA(compileIoTBlock(block));
+    expect(code).toContain('holoscript:protocol = "modbus"');
+    expect(code).toContain('def Scope "IoT_ModbusValve"');
+  });
 });
 
 // =============================================================================
