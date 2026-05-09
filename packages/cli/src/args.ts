@@ -301,6 +301,7 @@ export function parseArgs(args: string[]): CLIOptions {
           'impact',
           'impact-analysis',
           'query',
+          'smoke',
           'self-improve',
           'daemon',
           'screenshot',
@@ -635,6 +636,9 @@ Usage: holoscript <command> [options] [input]
   \x1b[33mDiff & Analysis:\x1b[0m
   diff <a> <b>      Compare two HoloScript files (semantic diff)
                     Use --json for machine-readable output
+  smoke <file>      Smoke-test physics demos — validate, detect traits, compile
+                    Use --target to set compile target (default: threejs)
+                    Use -o for JSON receipt output
 
   \x1b[33mIoT & Ecosystem:\x1b[0m
   wot-export <file> Generate W3C Thing Description from @wot_thing objects

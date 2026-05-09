@@ -792,7 +792,8 @@
     "build:paper6-bench": "esbuild src/animation/paper/benchmarks/paper-6-webgpu-matrix.entry.ts --bundle --format=iife --global-name=Paper6Bench --outfile=benchmark-paper6-webgpu.js",
     "benchmark:paper6:webgpu": "playwright test tests/paper-6-webgpu-matrix.spec.ts",
     "build:webgpu-physics-bench": "esbuild src/gpu/benchmarks/webgpu-physics.entry.ts --bundle --format=iife --global-name=WebGPUPhysicsBench --outfile=benchmark-webgpu-physics.js",
-    "benchmark:webgpu:physics": "playwright test tests/webgpu-physics-bench.spec.ts"
+    "benchmark:webgpu:physics": "playwright test tests/webgpu-physics-bench.spec.ts",
+    "smoke:physics": "pnpm exec holoscript smoke ../../examples/physics --target threejs -o ../../.bench-logs/physics-smoke-receipt.json"
   },
   "keywords": [
     "holoscript",

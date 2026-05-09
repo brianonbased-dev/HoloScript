@@ -63,3 +63,12 @@ export {
 } from './importers';
 
 export { hologramCommand, type HologramCommandOptions } from './commands/hologram';
+
+// Physics Smoke Receipts
+export {
+  runPhysicsSmoke,
+  printSmokeReceipt,
+  type SmokeOptions,
+  type PhysicsSmokeReceipt,
+  type DemoReceipt,
+} from './smoke';

@@ -37,6 +37,7 @@
     "ops:dashboard": "tsx docs/ops/admin-cli.ts",
     "webgpu:determinism:mock": "node scripts/run-webgpu-determinism.mjs",
     "webgpu:probe": "node scripts/probe-webgpu.mjs",
+    "smoke:physics": "pnpm exec holoscript smoke examples/physics --target threejs -o .bench-logs/physics-smoke-receipt.json",
     "clean": "pnpm -r exec rm -rf dist",
     "build:auto": "bash scripts/auto-build-manager.sh",
     "build:archive": "bash scripts/archive-build-artifacts.sh",

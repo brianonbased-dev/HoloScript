@@ -14,6 +14,7 @@ import { WatchService } from './WatchService';
 import { publishPackage } from './publish';
 import { hologramCommand } from './commands/hologram';
 import { quickstartCommand } from './commands/quickstart';
+import { runPhysicsSmoke, printSmokeReceipt } from './smoke';
 
 /**
  * Minimal structural shape for parse errors emitted by the various parsers
@@ -3954,6 +3955,59 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         scaffoldOnly: options.scaffoldOnly,
         noOpen: options.noOpen,
       });
+      break;
+    }
+
+    case 'smoke': {
+      if (!options.input) {
+        cliError('E001', 'No input file or directory specified.', {
+          usage: 'holoscript smoke <file.holo|dir> [--target <target>] [-o <receipt.json>] [--json]',
+          hint: 'Pass a .holo file or a directory containing .holo physics demos.',
+        });
+        process.exit(1);
+      }
+
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+        const inputPath = path.resolve(options.input);
+        if (!fs.existsSync(inputPath)) {
+          cliError('E002', `Path not found: ${inputPath}`);
+          process.exit(1);
+        }
+
+        const files: string[] = [];
+        const stat = fs.statSync(inputPath);
+        if (stat.isDirectory()) {
+          files.push(...fs.readdirSync(inputPath)
+            .filter((f: string) => f.endsWith('.holo'))
+            .map((f: string) => path.join(inputPath, f)));
+        } else {
+          files.push(inputPath);
+        }
+
+        const receipt = await runPhysicsSmoke({
+          files,
+          target: options.target,
+          output: options.output,
+          json: options.json,
+          verbose: options.verbose,
+        });
+
+        if (options.json) {
+          printJson(receipt);
+        } else {
+          printSmokeReceipt(receipt);
+        }
+
+        process.exit(receipt.status === 'completed' ? 0 : 1);
+      } catch (err: unknown) {
+        console.error(
+          `\x1b[31mSmoke error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
+        );
+        if (err instanceof Error && err.stack) console.error(err.stack);
+        process.exit(1);
+      }
       break;
     }
 

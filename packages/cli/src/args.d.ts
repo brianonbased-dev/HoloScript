@@ -6,7 +6,7 @@ export type EdgePlatform = 'linux-arm64' | 'linux-x64' | 'windows-x64' | 'wasm';
 export type ExportFormat = 'gltf' | 'glb' | 'usdz' | 'babylon' | 'unity' | 'unreal';
 export type ImportSource = 'unity' | 'godot' | 'gltf';
 export interface CLIOptions {
-    command: 'parse' | 'validate' | 'run' | 'ast' | 'repl' | 'watch' | 'compile' | 'build' | 'add' | 'remove' | 'list' | 'traits' | 'suggest' | 'generate' | 'templates' | 'pack' | 'unpack' | 'inspect' | 'diff' | 'wot-export' | 'headless' | 'package' | 'deploy' | 'monitor' | 'publish' | 'login' | 'logout' | 'whoami' | 'access' | 'org' | 'token' | 'export' | 'import' | 'visualize' | 'screenshot' | 'prerender' | 'pdf' | 'help' | 'version';
+    command: 'parse' | 'validate' | 'run' | 'ast' | 'repl' | 'watch' | 'compile' | 'build' | 'add' | 'remove' | 'list' | 'traits' | 'suggest' | 'generate' | 'templates' | 'pack' | 'unpack' | 'inspect' | 'diff' | 'wot-export' | 'headless' | 'package' | 'deploy' | 'monitor' | 'publish' | 'login' | 'logout' | 'whoami' | 'access' | 'org' | 'token' | 'export' | 'import' | 'visualize' | 'screenshot' | 'prerender' | 'pdf' | 'absorb' | 'graph-status' | 'impact' | 'impact-analysis' | 'query' | 'smoke' | 'self-improve' | 'daemon' | 'setup-hooks' | 'remove-hooks' | 'setup-mcp' | 'issue-key' | 'quickstart' | 'init' | 'help' | 'version';
     input?: string;
     output?: string;
     verbose: boolean;
