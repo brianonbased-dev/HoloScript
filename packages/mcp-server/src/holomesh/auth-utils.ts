@@ -1,4 +1,5 @@
 import type http from 'http';
+import * as crypto from 'crypto';
 import type { RegisteredAgent } from './types';
 import { agentKeyStore, keyRegistry, walletToAgent } from './state';
 import { json } from './utils';
@@ -14,17 +15,101 @@ export type ResolvedCaller = {
 };
 
 /**
- * Resolve the requesting agent from a Bearer token.
+ * Resolve an agent from a signed manifest header.
+ *
+ * Replaces the deprecated raw env-key fallback with cryptographic proof.
+ * The caller provides:
+ *   - x-agent-manifest: base64-encoded JSON { id, name, walletAddress, capabilities? }
+ *   - x-agent-manifest-sig: base64-encoded Ed25519 signature over the canonical manifest JSON
+ *
+ * Verification uses the platform public key from HOLOSCRIPT_PLATFORM_PUBLIC_KEY
+ * (base64-encoded SPKI DER). HoloLand agents and external integrations authenticate
+ * via platform-signed manifests without needing a registry entry.
+ */
+function resolveFromSignedManifest(req: http.IncomingMessage): ResolvedCaller | null {
+  const manifestHeader = req.headers['x-agent-manifest'];
+  const signatureHeader = req.headers['x-agent-manifest-sig'];
+  if (typeof manifestHeader !== 'string' || typeof signatureHeader !== 'string') {
+    return null;
+  }
+
+  const platformPublicKey = process.env.HOLOSCRIPT_PLATFORM_PUBLIC_KEY;
+  if (!platformPublicKey) return null;
+
+  try {
+    const manifest = JSON.parse(Buffer.from(manifestHeader, 'base64').toString('utf-8'));
+    if (
+      typeof manifest.id !== 'string' ||
+      typeof manifest.name !== 'string' ||
+      typeof manifest.walletAddress !== 'string'
+    ) {
+      return null;
+    }
+
+    const key = crypto.createPublicKey({
+      key: Buffer.from(platformPublicKey, 'base64'),
+      format: 'der',
+      type: 'spki',
+    });
+
+    const payload = JSON.stringify({
+      id: manifest.id,
+      name: manifest.name,
+      walletAddress: manifest.walletAddress,
+      capabilities: manifest.capabilities,
+    });
+
+    const valid = crypto.verify(
+      null,
+      Buffer.from(payload),
+      key,
+      Buffer.from(signatureHeader, 'base64')
+    );
+    if (!valid) return null;
+
+    const agent: RegisteredAgent = {
+      id: manifest.id,
+      name: manifest.name,
+      apiKey: manifestHeader,
+      walletAddress: manifest.walletAddress,
+      traits: Array.isArray(manifest.capabilities) ? manifest.capabilities : [],
+      reputation: 0,
+      isFounder: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    return {
+      authenticated: true,
+      id: manifest.id,
+      name: manifest.name,
+      wallet: manifest.walletAddress,
+      agent,
+      isFounder: false,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve the requesting agent from a Bearer token or signed manifest.
  *
  * Resolution order:
- *  1. Key registry (primary) — token → KeyRecord → isFounder, wallet, agentId
- *  2. Agent key store (legacy registered agents)
- *  3. Raw env key comparison (deprecated system keys — warns and resolves as founder)
+ *  1. Signed manifest (x-agent-manifest header) — platform-signed identity for
+ *     HoloLand agents and external integrations without registry entries.
+ *  2. Key registry (primary) — token → KeyRecord → isFounder, wallet, agentId
+ *  3. Agent key store (legacy registered agents)
  */
 export function resolveRequestingAgent(
   req: http.IncomingMessage,
   _client?: unknown
 ): ResolvedCaller {
+  // 1. Signed manifest fallback — replaces the deprecated raw env key comparison.
+  // HoloLand agents and external integrations present a platform-signed manifest
+  // when they don't have a registry entry.
+  const manifestCaller = resolveFromSignedManifest(req);
+  if (manifestCaller) return manifestCaller;
+
   // Accept either `Authorization: Bearer <token>` (HTTP-standard) or
   // `x-mcp-api-key: <token>` (orchestrator convention used by the
   // mcp-orchestrator client + most internal scripts). Closes the W.087
@@ -45,7 +130,7 @@ export function resolveRequestingAgent(
     return { authenticated: false, id: 'anonymous', name: 'anonymous', isFounder: false };
   }
 
-  // 1. Key registry lookup (primary path — covers all provisioned + founder keys)
+  // 2. Key registry lookup (primary path — covers all provisioned + founder keys)
   const record = keyRegistry.get(token);
   if (record) {
     // Prefer an existing RegisteredAgent entry for soft-compatibility with social features
@@ -83,41 +168,6 @@ export function resolveRequestingAgent(
       wallet: legacyAgent.walletAddress,
       agent: legacyAgent,
       isFounder: legacyAgent.isFounder === true,
-    };
-  }
-
-  // 3. Raw env key comparison (deprecated — legacy system/IDE keys)
-  const systemKeys = [
-    process.env.HOLOSCRIPT_API_KEY,
-    process.env.HOLOMESH_API_KEY,
-    process.env.COPILOT_HOLOMESH_KEY,
-    process.env.GEMINI_HOLOMESH_KEY,
-  ].filter((k): k is string => Boolean(k && k.trim()));
-
-  if (systemKeys.includes(token)) {
-    console.warn(
-      '[auth] Deprecated: resolving auth via raw env key comparison. ' +
-        'This key is not in the key registry. Run server once to auto-seed, ' +
-        'or provision via POST /api/holomesh/admin/provision.'
-    );
-    const fallbackAgent: RegisteredAgent = {
-      id: 'system',
-      name: 'Founder',
-      apiKey: token,
-      walletAddress: process.env.HOLOSCRIPT_FOUNDER_WALLET ||
-        '0x0000000000000000000000000000000000000001',
-      traits: [],
-      reputation: 0,
-      isFounder: true,
-      createdAt: new Date().toISOString(),
-    };
-    return {
-      authenticated: true,
-      id: 'system',
-      name: 'Founder',
-      wallet: fallbackAgent.walletAddress,
-      agent: fallbackAgent,
-      isFounder: true,
     };
   }
 

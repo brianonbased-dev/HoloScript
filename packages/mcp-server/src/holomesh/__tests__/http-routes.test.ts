@@ -118,6 +118,7 @@ import {
   teamPresenceStore,
   agentAuditStore,
   appendCaelAuditRecord,
+  keyRegistry,
   type CaelAuditRecord,
 } from '../state';
 
@@ -187,10 +188,24 @@ describe('HoloMesh HTTP Routes', () => {
     mockVerifyTypedData.mockResolvedValue(true);
     process.env.HOLOSCRIPT_API_KEY = 'test-api-key';
     process.env.HOLOMESH_AGENT_NAME = 'test-agent';
+    // Seed the key registry so test-api-key resolves via primary path,
+    // eliminating the need for the deprecated env-key fallback.
+    keyRegistry.set('test-api-key', {
+      key: 'test-api-key',
+      walletAddress: '0x0000000000000000000000000000000000000001',
+      agentId: 'agent_founder',
+      agentName: 'Founder',
+      scopes: ['*'],
+      createdAt: new Date().toISOString(),
+      rotationCount: 0,
+      lastRotatedAt: null,
+      isFounder: true,
+    });
   });
 
   afterEach(() => {
     process.env = { ...originalEnv };
+    keyRegistry.clear();
   });
 
   // ── Register ──

@@ -26,12 +26,31 @@ import {
   resetAttestationRegistry,
   setAttestationRegistry,
 } from '../../identity/signing-middleware';
+import { keyRegistry } from '../../state';
+import type { KeyRecord } from '../../types';
 
 const FOUNDER_ANCHOR = '0x0c574397150ad8d9f7fef83fe86a2cbdf4a660e3';
 const SEAT_PUBKEY = '0xCAFEBABEcafebabeCAFEBABEcafebabeCAFEBABE';
 const VALID_SIG = '0x' + 'a'.repeat(130);
 const DOMAIN = { name: 'HoloMesh', version: '1', chainId: 8453 };
 const originalHolomeshApiKey = process.env.HOLOMESH_API_KEY;
+
+function seedKey(key: string, agentId: string, isFounder = false): void {
+  const record: KeyRecord = {
+    key,
+    walletAddress: isFounder
+      ? '0x0000000000000000000000000000000000000001'
+      : '0x0000000000000000000000000000000000000002',
+    agentId,
+    agentName: isFounder ? 'Founder' : 'Agent',
+    scopes: ['*'],
+    createdAt: new Date().toISOString(),
+    rotationCount: 0,
+    lastRotatedAt: null,
+    isFounder,
+  };
+  keyRegistry.set(key, record);
+}
 
 function buildAttestationEnvelope(overrides: Partial<AttestationEnvelope> = {}): AttestationEnvelope {
   return {
@@ -61,10 +80,12 @@ function buildRevocationEnvelope(overrides: Partial<RevocationEnvelope> = {}): R
 beforeEach(() => {
   mockVerifyTypedData.mockReset();
   resetAttestationRegistry();
+  seedKey('test-founder-key', 'agent_founder', true);
 });
 
 afterEach(() => {
   resetAttestationRegistry();
+  keyRegistry.delete('test-founder-key');
   if (originalHolomeshApiKey === undefined) {
     delete process.env.HOLOMESH_API_KEY;
   } else {

@@ -11,6 +11,8 @@ import {
   handleStoryWeaverGenerationRoutes,
 } from './storyweaver-generation-routes';
 import type { GeneratedQuest } from '@holoscript/llm-provider';
+import { keyRegistry } from '../state';
+import type { KeyRecord } from '../types';
 
 const sampleVrr = {
   compositionName: 'DemoVRR',
@@ -24,15 +26,34 @@ const validQuestReq = {
   difficulty: 'medium' as const,
 };
 
+function seedKey(key: string, agentId: string, isFounder = false): void {
+  const record: KeyRecord = {
+    key,
+    walletAddress: isFounder
+      ? '0x0000000000000000000000000000000000000001'
+      : '0x0000000000000000000000000000000000000002',
+    agentId,
+    agentName: isFounder ? 'Founder' : 'Agent',
+    scopes: ['*'],
+    createdAt: new Date().toISOString(),
+    rotationCount: 0,
+    lastRotatedAt: null,
+    isFounder,
+  };
+  keyRegistry.set(key, record);
+}
+
 describe('Story Weaver generation', () => {
   beforeEach(() => {
     __setQuestNarrativeGeneratorForTests(null);
     __setStoryTextGeneratorForTests(null);
+    seedKey('storyweaver-test-key', 'agent_storyweaver');
   });
 
   afterEach(() => {
     __setQuestNarrativeGeneratorForTests(null);
     __setStoryTextGeneratorForTests(null);
+    keyRegistry.delete('storyweaver-test-key');
   });
 
   it('validates quest narrative request with Zod', () => {
