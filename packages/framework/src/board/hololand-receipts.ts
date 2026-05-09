@@ -186,6 +186,108 @@ export interface QualcommNIRModelExportReceipt {
   metadata?: Record<string, unknown>;
 }
 
+// ── Cross-Hardware Compilation Receipt ──
+
+/**
+ * Device families that HoloScript can compile to via its export targets.
+ * Vendors optimize their own lanes (Jetson, Qualcomm AI Hub, etc.);
+ * HoloScript differentiates by producing portable evidence across all of them.
+ */
+export const HARDWARE_COMPILATION_TARGET_KINDS = [
+  'jetson', // NVIDIA Jetson (Orin, Nano, AGX, etc.)
+  'qualcomm-snapdragon', // Qualcomm Snapdragon / AI Hub
+  'intel-loihi', // Intel Loihi (neuromorphic)
+  'intel-gaudi', // Intel Gaudi
+  'amd-instinct', // AMD Instinct
+  'apple-neural', // Apple Neural Engine
+  'google-coral', // Google Coral TPU
+  'raspberry-pi', // Raspberry Pi
+  'arduino', // Arduino / microcontrollers
+  'generic-embedded', // Catch-all for unlisted edge devices
+] as const;
+
+export type HardwareCompilationTargetKind = (typeof HARDWARE_COMPILATION_TARGET_KINDS)[number];
+
+/**
+ * Constraints applied at compile time for a hardware target.
+ */
+export interface HardwareCompilationConstraints {
+  /** Maximum resident memory in megabytes. */
+  maxMemoryMB?: number;
+  /** Maximum compute units (SMs, DSPs, cores) usable. */
+  maxComputeUnits?: number;
+  /** Thermal budget in Celsius. */
+  thermalBudgetC?: number;
+  /** Power budget in Watts. */
+  powerBudgetW?: number;
+  /** Target inference latency in milliseconds. */
+  targetLatencyMs?: number;
+  /** Quantization mode. */
+  quantization?: 'fp32' | 'fp16' | 'int8' | 'int4' | 'mixed';
+}
+
+/**
+ * Measured results from running the compiled artifact on target hardware.
+ */
+export interface HardwareCompilationMeasuredResults {
+  /** End-to-end latency in milliseconds. */
+  latencyMs?: number;
+  /** Throughput in frames per second (or inferences per second). */
+  throughputFPS?: number;
+  /** Peak resident memory in bytes. */
+  peakMemoryBytes?: number;
+  /** Average power draw in Watts. */
+  powerDrawW?: number;
+  /** Number of thermal-throttle events observed. */
+  thermalThrottleEvents?: number;
+  /** Accuracy versus a reference run, 0.0–1.0. */
+  accuracyVsReference?: number;
+}
+
+/**
+ * Cross-hardware compilation receipt — the portable evidence record that
+ * HoloScript generates when compiling to any hardware lane.
+ *
+ * Competitors (NVIDIA Jetson, Qualcomm AI Hub) record evidence inside
+ * their own vendor-specific formats. HoloScript records it once,
+ * portably, across all targets. This receipt is the data layer of
+ * that differentiator (CG-032).
+ */
+export interface CrossHardwareCompilationReceipt {
+  /** Stable receipt id, e.g. `hwc_jetson_orin_20260509_xyz`. */
+  id: string;
+  /** HoloScript export target that produced this compilation. */
+  exportTarget: string;
+  /** Device family — must match a registered hardware compilation target kind. */
+  deviceFamily: HardwareCompilationTargetKind;
+  /** Free-form device model, e.g. `Jetson Orin Nano 8GB`. */
+  deviceModel?: string;
+  /** Runtime stack + version, e.g. `TensorRT 10.0` or `QNN 2.22`. */
+  runtime: string;
+  /** HoloScript compiler version that emitted the artifact. */
+  compilerVersion: string;
+  /** Vendor toolchain version, e.g. `JetPack 6.0` or `Snapdragon SDK 1.2`. */
+  toolchainVersion?: string;
+  /** Constraints declared at compile time. */
+  constraints?: HardwareCompilationConstraints;
+  /** Results measured on-target. */
+  measuredResults?: HardwareCompilationMeasuredResults;
+  /** Replay inputs that reproduce the measurement. */
+  replayInputs?: ReplayInput[];
+  /** Provenance link back to the task / commit / parent receipt. */
+  provenance?: ArtifactProvenanceLink;
+  /** Owner identity — wallet address, agent handle, or team seat. */
+  owner?: string;
+  /** Hash of the canonical receipt body (id + exportTarget + deviceFamily + ordered fields). */
+  hash: string;
+  hashAlgorithm: ArtifactHashAlgorithm;
+  /** Capture timestamp (ISO-8601 or Unix ms). */
+  capturedAt: string | number;
+  /** Verification commands that prove the compilation reproduces. */
+  verificationCommands?: ArtifactVerificationCommand[];
+  metadata?: Record<string, unknown>;
+}
+
 // ── ValidationReceipt — top-level envelope ──
 
 /**
@@ -379,6 +481,107 @@ export function validateQualcommNIRModelExportReceipt(
 }
 
 /**
+ * Validate a CrossHardwareCompilationReceipt. Returns a list of validation errors;
+ * empty array means the receipt is structurally valid.
+ */
+export function validateCrossHardwareCompilationReceipt(
+  receipt: CrossHardwareCompilationReceipt,
+): string[] {
+  const errors: string[] = [];
+  if (!receipt.id) errors.push('CrossHardwareCompilationReceipt.id is required.');
+  if (!receipt.exportTarget) errors.push('CrossHardwareCompilationReceipt.exportTarget is required.');
+  if (!isSupportedHardwareCompilationTarget(receipt.deviceFamily)) {
+    errors.push(
+      `CrossHardwareCompilationReceipt.deviceFamily is unsupported: ${String(receipt.deviceFamily)}.`,
+    );
+  }
+  if (!receipt.runtime) errors.push('CrossHardwareCompilationReceipt.runtime is required.');
+  if (!receipt.compilerVersion) {
+    errors.push('CrossHardwareCompilationReceipt.compilerVersion is required.');
+  }
+  if (!receipt.hash) errors.push('CrossHardwareCompilationReceipt.hash is required.');
+  if (!receipt.hashAlgorithm) errors.push('CrossHardwareCompilationReceipt.hashAlgorithm is required.');
+  if (
+    receipt.capturedAt === undefined ||
+    receipt.capturedAt === null ||
+    receipt.capturedAt === ''
+  ) {
+    errors.push('CrossHardwareCompilationReceipt.capturedAt is required.');
+  }
+
+  // Constraints: if present, numeric fields must be non-negative
+  if (receipt.constraints) {
+    const c = receipt.constraints;
+    if (c.maxMemoryMB !== undefined && c.maxMemoryMB < 0) {
+      errors.push(
+        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.constraints.maxMemoryMB must be non-negative.`,
+      );
+    }
+    if (c.maxComputeUnits !== undefined && c.maxComputeUnits < 0) {
+      errors.push(
+        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.constraints.maxComputeUnits must be non-negative.`,
+      );
+    }
+    if (c.powerBudgetW !== undefined && c.powerBudgetW < 0) {
+      errors.push(
+        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.constraints.powerBudgetW must be non-negative.`,
+      );
+    }
+    if (c.targetLatencyMs !== undefined && c.targetLatencyMs < 0) {
+      errors.push(
+        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.constraints.targetLatencyMs must be non-negative.`,
+      );
+    }
+  }
+
+  // Measured results: if present, numeric fields must be non-negative
+  if (receipt.measuredResults) {
+    const m = receipt.measuredResults;
+    if (m.latencyMs !== undefined && m.latencyMs < 0) {
+      errors.push(
+        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.measuredResults.latencyMs must be non-negative.`,
+      );
+    }
+    if (m.peakMemoryBytes !== undefined && m.peakMemoryBytes < 0) {
+      errors.push(
+        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.measuredResults.peakMemoryBytes must be non-negative.`,
+      );
+    }
+    if (m.powerDrawW !== undefined && m.powerDrawW < 0) {
+      errors.push(
+        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.measuredResults.powerDrawW must be non-negative.`,
+      );
+    }
+    if (
+      m.accuracyVsReference !== undefined &&
+      (m.accuracyVsReference < 0 || m.accuracyVsReference > 1)
+    ) {
+      errors.push(
+        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.measuredResults.accuracyVsReference must be between 0 and 1.`,
+      );
+    }
+  }
+
+  // Replay inputs
+  if (receipt.replayInputs) {
+    for (const input of receipt.replayInputs) {
+      for (const e of validateReplayInput(input)) {
+        errors.push(`replayInputs[${input.id || '<unknown>'}]: ${e}`);
+      }
+    }
+  }
+
+  for (const command of receipt.verificationCommands ?? []) {
+    if (!command.command) {
+      errors.push(
+        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'} has a verification command without command text.`,
+      );
+    }
+  }
+  return errors;
+}
+
+/**
  * Validate a ValidationReceipt envelope. Recursively validates all
  * nested receipts; child errors are prefixed with `<child>[id]: `
  * for grep-friendly diagnostics.
@@ -445,6 +648,12 @@ export function isSupportedQualcommNIRRuntimeTarget(
   target: string,
 ): target is QualcommNIRRuntimeTarget {
   return (QUALCOMM_NIR_RUNTIME_TARGETS as readonly string[]).includes(target);
+}
+
+export function isSupportedHardwareCompilationTarget(
+  target: string,
+): target is HardwareCompilationTargetKind {
+  return (HARDWARE_COMPILATION_TARGET_KINDS as readonly string[]).includes(target);
 }
 
 const VALIDATION_STATUSES = ['passed', 'failed', 'inconclusive'] as const;
@@ -529,6 +738,24 @@ export function cloneValidationReceipt(receipt: ValidationReceipt): ValidationRe
       : {}),
     ...(receipt.agentActions
       ? { agentActions: receipt.agentActions.map(cloneAgentActionReceipt) }
+      : {}),
+    ...(receipt.provenance ? { provenance: cloneProvenance(receipt.provenance) } : {}),
+    ...(receipt.verificationCommands
+      ? { verificationCommands: cloneVerificationCommands(receipt.verificationCommands) }
+      : {}),
+    ...(receipt.metadata ? { metadata: { ...receipt.metadata } } : {}),
+  };
+}
+
+export function cloneCrossHardwareCompilationReceipt(
+  receipt: CrossHardwareCompilationReceipt,
+): CrossHardwareCompilationReceipt {
+  return {
+    ...receipt,
+    ...(receipt.constraints ? { constraints: { ...receipt.constraints } } : {}),
+    ...(receipt.measuredResults ? { measuredResults: { ...receipt.measuredResults } } : {}),
+    ...(receipt.replayInputs
+      ? { replayInputs: receipt.replayInputs.map(cloneReplayInput) }
       : {}),
     ...(receipt.provenance ? { provenance: cloneProvenance(receipt.provenance) } : {}),
     ...(receipt.verificationCommands

@@ -91,7 +91,8 @@
     "changeset:publish": "changeset publish",
     "syncpack:check": "syncpack lint",
     "agents:status": "tsx scripts/build/deploy-multi-agents.ts --status",
-    "agents:deploy": "tsx scripts/build/deploy-multi-agents.ts"
+    "agents:deploy": "tsx scripts/build/deploy-multi-agents.ts",
+    "render:competitor-gap-matrix": "node scripts/render-competitor-gap-matrix.mjs"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.88.0",

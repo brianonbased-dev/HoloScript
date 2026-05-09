@@ -28,6 +28,7 @@ export const ARTIFACT_RECEIPT_TYPES = [
   'code-patch',
   'test-output',
   'render-output',
+  'hardware-compilation',
   'other',
 ] as const;
 

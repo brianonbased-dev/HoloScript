@@ -17,22 +17,27 @@
 import { describe, expect, it } from 'vitest';
 import {
   AGENT_ACTION_KINDS,
+  HARDWARE_COMPILATION_TARGET_KINDS,
   HARDWARE_RECEIPT_KINDS,
   cloneAgentActionReceipt,
+  cloneCrossHardwareCompilationReceipt,
   cloneHardwareReceipt,
   cloneReplayInput,
   cloneReplayOutcome,
   cloneValidationReceipt,
   isSupportedAgentActionKind,
+  isSupportedHardwareCompilationTarget,
   isSupportedHardwareReceiptKind,
   isSupportedReplayOutcomeStatus,
   isSupportedValidationStatus,
   validateAgentActionReceipt,
+  validateCrossHardwareCompilationReceipt,
   validateHardwareReceipt,
   validateReplayInput,
   validateReplayOutcome,
   validateValidationReceipt,
   type AgentActionReceipt,
+  type CrossHardwareCompilationReceipt,
   type HardwareReceipt,
   type ReplayInput,
   type ReplayOutcome,
@@ -101,6 +106,43 @@ function makeValidation(overrides: Partial<ValidationReceipt> = {}): ValidationR
     replayOutcomes: [makeReplayOutcome()],
     agentActions: [makeAgentAction()],
     provenance: { taskId: 'task_1778186605462_4z0o', commitHash: 'pending' },
+    ...overrides,
+  };
+}
+
+function makeCrossHardwareCompilation(
+  overrides: Partial<CrossHardwareCompilationReceipt> = {},
+): CrossHardwareCompilationReceipt {
+  return {
+    id: 'hwc_jetson_001',
+    exportTarget: 'nir',
+    deviceFamily: 'jetson',
+    deviceModel: 'Jetson Orin Nano 8GB',
+    runtime: 'TensorRT 10.0',
+    compilerVersion: '7.0.0',
+    toolchainVersion: 'JetPack 6.0',
+    constraints: {
+      maxMemoryMB: 8192,
+      maxComputeUnits: 1024,
+      thermalBudgetC: 85,
+      powerBudgetW: 15,
+      targetLatencyMs: 16,
+      quantization: 'fp16',
+    },
+    measuredResults: {
+      latencyMs: 14.2,
+      throughputFPS: 68,
+      peakMemoryBytes: 3_200_000_000,
+      powerDrawW: 12.4,
+      thermalThrottleEvents: 0,
+      accuracyVsReference: 0.982,
+    },
+    replayInputs: [makeReplayInput()],
+    provenance: { taskId: 'task_1778222134390_8ixd', commitHash: 'pending' },
+    owner: 'agent_1776836330914_1bli',
+    hash: 'e'.repeat(64),
+    hashAlgorithm: 'sha256',
+    capturedAt: '2026-05-09T00:00:00Z',
     ...overrides,
   };
 }
@@ -419,5 +461,183 @@ describe('HoloLand receipt type guards', () => {
     expect(isSupportedValidationStatus('failed')).toBe(true);
     expect(isSupportedValidationStatus('inconclusive')).toBe(true);
     expect(isSupportedValidationStatus('maybe')).toBe(false);
+  });
+});
+
+describe('CrossHardwareCompilationReceipt', () => {
+  it('accepts every supported device family', () => {
+    for (const family of HARDWARE_COMPILATION_TARGET_KINDS) {
+      const receipt = makeCrossHardwareCompilation({ deviceFamily: family });
+      expect(validateCrossHardwareCompilationReceipt(receipt)).toEqual([]);
+    }
+  });
+
+  it('rejects unsupported device family', () => {
+    const receipt = makeCrossHardwareCompilation({ deviceFamily: 'nvidia-rtx-4090' as never });
+    const errors = validateCrossHardwareCompilationReceipt(receipt);
+    expect(errors).toContain(
+      'CrossHardwareCompilationReceipt.deviceFamily is unsupported: nvidia-rtx-4090.',
+    );
+  });
+
+  it('rejects when required fields are missing', () => {
+    const receipt = makeCrossHardwareCompilation({
+      id: '',
+      exportTarget: '',
+      runtime: '',
+      compilerVersion: '',
+      hash: '',
+      hashAlgorithm: '' as never,
+      capturedAt: '',
+    });
+    const errors = validateCrossHardwareCompilationReceipt(receipt);
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        'CrossHardwareCompilationReceipt.id is required.',
+        'CrossHardwareCompilationReceipt.exportTarget is required.',
+        'CrossHardwareCompilationReceipt.runtime is required.',
+        'CrossHardwareCompilationReceipt.compilerVersion is required.',
+        'CrossHardwareCompilationReceipt.hash is required.',
+        'CrossHardwareCompilationReceipt.hashAlgorithm is required.',
+        'CrossHardwareCompilationReceipt.capturedAt is required.',
+      ]),
+    );
+  });
+
+  it('rejects negative constraint values', () => {
+    const receipt = makeCrossHardwareCompilation({
+      constraints: {
+        maxMemoryMB: -1,
+        maxComputeUnits: -1,
+        powerBudgetW: -1,
+        targetLatencyMs: -1,
+      },
+    });
+    const errors = validateCrossHardwareCompilationReceipt(receipt);
+    expect(errors).toContain(
+      'CrossHardwareCompilationReceipt hwc_jetson_001.constraints.maxMemoryMB must be non-negative.',
+    );
+    expect(errors).toContain(
+      'CrossHardwareCompilationReceipt hwc_jetson_001.constraints.maxComputeUnits must be non-negative.',
+    );
+    expect(errors).toContain(
+      'CrossHardwareCompilationReceipt hwc_jetson_001.constraints.powerBudgetW must be non-negative.',
+    );
+    expect(errors).toContain(
+      'CrossHardwareCompilationReceipt hwc_jetson_001.constraints.targetLatencyMs must be non-negative.',
+    );
+  });
+
+  it('rejects negative or out-of-range measured result values', () => {
+    const receipt = makeCrossHardwareCompilation({
+      measuredResults: {
+        latencyMs: -1,
+        peakMemoryBytes: -1,
+        powerDrawW: -1,
+        accuracyVsReference: 1.5,
+      },
+    });
+    const errors = validateCrossHardwareCompilationReceipt(receipt);
+    expect(errors).toContain(
+      'CrossHardwareCompilationReceipt hwc_jetson_001.measuredResults.latencyMs must be non-negative.',
+    );
+    expect(errors).toContain(
+      'CrossHardwareCompilationReceipt hwc_jetson_001.measuredResults.peakMemoryBytes must be non-negative.',
+    );
+    expect(errors).toContain(
+      'CrossHardwareCompilationReceipt hwc_jetson_001.measuredResults.powerDrawW must be non-negative.',
+    );
+    expect(errors).toContain(
+      'CrossHardwareCompilationReceipt hwc_jetson_001.measuredResults.accuracyVsReference must be between 0 and 1.',
+    );
+  });
+
+  it('accepts a minimal receipt without optional nested fields', () => {
+    const minimal: CrossHardwareCompilationReceipt = {
+      id: 'hwc_min',
+      exportTarget: 'urdf',
+      deviceFamily: 'generic-embedded',
+      runtime: 'ROS 2 Humble',
+      compilerVersion: '7.0.0',
+      hash: 'a'.repeat(64),
+      hashAlgorithm: 'sha256',
+      capturedAt: '2026-05-09T00:00:00Z',
+    };
+    expect(validateCrossHardwareCompilationReceipt(minimal)).toEqual([]);
+  });
+
+  it('propagates nested replay input errors', () => {
+    const receipt = makeCrossHardwareCompilation({
+      replayInputs: [makeReplayInput({ id: 'rin_bad', source: '' })],
+    });
+    const errors = validateCrossHardwareCompilationReceipt(receipt);
+    expect(errors).toContain('replayInputs[rin_bad]: ReplayInput.source is required.');
+  });
+
+  it('rejects verification command without command text', () => {
+    const receipt = makeCrossHardwareCompilation({
+      verificationCommands: [{ command: '' }],
+    });
+    const errors = validateCrossHardwareCompilationReceipt(receipt);
+    expect(errors).toContain(
+      'CrossHardwareCompilationReceipt hwc_jetson_001 has a verification command without command text.',
+    );
+  });
+
+  it('clones deeply (mutating clone does not mutate original)', () => {
+    const receipt = makeCrossHardwareCompilation({
+      provenance: { taskId: 'task_a', parentArtifactIds: ['parent_1'] },
+      verificationCommands: [{ command: 'replay.sh', artifactIds: ['art_1'] }],
+      metadata: { foo: 'bar' },
+    });
+    const cloned = cloneCrossHardwareCompilationReceipt(receipt);
+    cloned.provenance!.parentArtifactIds!.push('parent_mutant');
+    cloned.verificationCommands![0].artifactIds!.push('art_mutant');
+    (cloned.metadata as Record<string, unknown>).foo = 'mutated';
+
+    expect(receipt.provenance!.parentArtifactIds).toEqual(['parent_1']);
+    expect(receipt.verificationCommands![0].artifactIds).toEqual(['art_1']);
+    expect(receipt.metadata!.foo).toBe('bar');
+  });
+
+  it('demonstrates cross-hardware portability (Jetson vs Qualcomm)', () => {
+    // Same HoloScript composition, two hardware lanes — receipt schema is identical
+    const jetson = makeCrossHardwareCompilation({
+      id: 'hwc_jetson_orin_001',
+      exportTarget: 'nir',
+      deviceFamily: 'jetson',
+      deviceModel: 'Jetson Orin Nano 8GB',
+      runtime: 'TensorRT 10.0',
+      compilerVersion: '7.0.0',
+      toolchainVersion: 'JetPack 6.0',
+    });
+    const qualcomm = makeCrossHardwareCompilation({
+      id: 'hwc_qualcomm_qcs8550_001',
+      exportTarget: 'nir',
+      deviceFamily: 'qualcomm-snapdragon',
+      deviceModel: 'QCS8550',
+      runtime: 'QNN 2.22',
+      compilerVersion: '7.0.0',
+      toolchainVersion: 'Snapdragon SDK 1.2',
+    });
+
+    expect(validateCrossHardwareCompilationReceipt(jetson)).toEqual([]);
+    expect(validateCrossHardwareCompilationReceipt(qualcomm)).toEqual([]);
+
+    // Both carry the same compiler version — the intent was described once
+    expect(jetson.compilerVersion).toBe(qualcomm.compilerVersion);
+
+    // But runtime and device are vendor-specific — evidence is portable
+    expect(jetson.runtime).not.toBe(qualcomm.runtime);
+    expect(jetson.deviceFamily).not.toBe(qualcomm.deviceFamily);
+  });
+});
+
+describe('Cross-hardware compilation type guards', () => {
+  it('isSupportedHardwareCompilationTarget matches the registered list and rejects others', () => {
+    expect(isSupportedHardwareCompilationTarget('jetson')).toBe(true);
+    expect(isSupportedHardwareCompilationTarget('qualcomm-snapdragon')).toBe(true);
+    expect(isSupportedHardwareCompilationTarget('raspberry-pi')).toBe(true);
+    expect(isSupportedHardwareCompilationTarget('nvidia-rtx-4090')).toBe(false);
   });
 });

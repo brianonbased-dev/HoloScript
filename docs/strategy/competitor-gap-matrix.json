@@ -1,0 +1,81 @@
+{
+  "$schema": "holoscript.competitor-gap-matrix.v1",
+  "generatedAt": "2026-05-09T00:00:00Z",
+  "nextReviewBy": "2026-05-21",
+  "verticals": [
+    {
+      "vertical": "Hardware, edge AI, and embedded development",
+      "competitor": "NVIDIA Jetson",
+      "gaps": [
+        {
+          "id": "CG-032",
+          "severity": "P1",
+          "direction": "differentiator",
+          "status": "watch",
+          "title": "HoloScript can become the cross-hardware semantic evidence layer competitors do not provide",
+          "competitorAdvantage": "Hardware vendors optimize their own modules, devices, runtimes, and deployment funnels.",
+          "holoscriptState": "HoloScript can describe intent once across robotics, IoT, twins, spatial apps, agents, and service targets, then attach provenance and validation evidence across vendor-specific hardware lanes.",
+          "neededResponse": "Protect the differentiator by making hardware receipts portable: target, device, runtime, compiler version, constraints, measured results, replay inputs, provenance, and owner must be recorded consistently.",
+          "evidence": [
+            "Jetson and Qualcomm sources show strong vendor-specific edge AI lanes.",
+            "HoloScript export target and definition sources show broader cross-domain semantic ambition."
+          ],
+          "sources": [
+            "https://developer.nvidia.com/embedded-computing",
+            "https://workbench.aihub.qualcomm.com/docs/"
+          ],
+          "boardTaskId": "task_1778222134390_8ixd"
+        }
+      ]
+    },
+    {
+      "vertical": "Spatial computing platforms",
+      "competitor": "Apple Vision Pro",
+      "gaps": [
+        {
+          "id": "CG-005",
+          "severity": "P2",
+          "direction": "catch-up",
+          "status": "in-progress",
+          "title": "VisionOS fidelity gaps in Swift/RealityKit output",
+          "competitorAdvantage": "Native SwiftUI + RealityKit + Reality Composer Pro integration with full platform feature surface.",
+          "holoscriptState": "VisionOSCompiler emits basic struct + RealityView + Entity tree. Many traits map to comments or stubs.",
+          "neededResponse": "Close fidelity gaps: environment.style, hand/eye tracking, window volumetrics, webview/AVPlayer, ornament attach_to, toolbar, portal transitions, palm_menu, visible_when, inline animations, gesture recognisers, SharePlay, audio head_tracking, .usdz geometry loading.",
+          "evidence": [
+            "VisionOSCompiler.smoke.test.ts records 14+ named fidelity gaps."
+          ],
+          "sources": [
+            "packages/core/src/compiler/__tests__/VisionOSCompiler.smoke.test.ts"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
+      "vertical": "Neuromorphic computing",
+      "competitor": "Intel Loihi / SpiNNaker / SynSense",
+      "gaps": [
+        {
+          "id": "CG-001",
+          "severity": "P1",
+          "direction": "differentiator",
+          "status": "shipped",
+          "title": "NIR compiler ships for neuromorphic targets",
+          "competitorAdvantage": "Each neuromorphic platform has its own SDK, toolchain, and verification workflow.",
+          "holoscriptState": "NIRCompiler + NIRToWGSLCompiler provide a unified neuromorphic intermediate representation that targets Intel Loihi 2, SpiNNaker 2, and SynSense.",
+          "neededResponse": "Maintain parity as NIR spec evolves. Add receipt types for each neuromorphic runtime.",
+          "evidence": [
+            "NIRCompiler.ts exists and compiles .holo to NIR.",
+            "QualcommNIRModelExportReceipt provides on-device metrics for Snapdragon NIR deployments."
+          ],
+          "sources": [
+            "packages/core/src/compiler/NIRCompiler.ts",
+            "packages/core/src/compiler/NIRToWGSLCompiler.ts",
+            "packages/framework/src/board/hololand-receipts.ts"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    }
+  ]
+}
