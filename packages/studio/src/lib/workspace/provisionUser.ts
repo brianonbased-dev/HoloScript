@@ -1,3 +1,7 @@
+import { execFile } from 'child_process';
+import * as os from 'os';
+import * as path from 'path';
+
 /**
  * User Provisioning Pipeline
  *
@@ -20,6 +24,9 @@ export interface ProvisionedUser {
   workspaceId: string;
   repoUrl: string;
   repoName: string;
+  tier?: 'starter' | 'founder';
+  capabilities?: string[];
+  accountWorkspace?: FounderAccountWorkspace;
   scaffolded: boolean;
   daemonStarted: boolean;
 }
@@ -61,6 +68,18 @@ export interface ProvisionStep {
   detail?: string;
 }
 
+export interface FounderAccountWorkspace {
+  workspaceId: 'ai-ecosystem';
+  repoUrl: string;
+  repoName: 'ai-ecosystem';
+  defaultBranch: string;
+  currentCommit: string | null;
+  tier: 'founder';
+  capabilities: string[];
+  visibility: 'founder-internal';
+  source: 'existing-ai-ecosystem-repo';
+}
+
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const ORCHESTRATOR_URL =
@@ -68,6 +87,24 @@ const ORCHESTRATOR_URL =
   'https://mcp-orchestrator-production-45f9.up.railway.app';
 
 const MASTER_API_KEY = process.env.HOLOSCRIPT_API_KEY || '';
+const FOUNDER_WORKSPACE_ID = 'ai-ecosystem' as const;
+const DEFAULT_FOUNDER_REPO_URL = 'https://github.com/brianonbased-dev/ai-ecosystem.git';
+const FOUNDER_CAPABILITIES = [
+  'founder',
+  'internal',
+  'private-repo',
+  'knowledge-backfill',
+  'holomesh-board',
+  'paper-program',
+  'lotus-research-state',
+  'absorb-registration',
+];
+
+interface ApiKeyOptions {
+  workspaceId?: string;
+  tier?: 'starter' | 'founder';
+  metadata?: Record<string, unknown>;
+}
 
 // ── Step 1: Provision API Key ────────────────────────────────────────────────
 
@@ -76,9 +113,10 @@ const MASTER_API_KEY = process.env.HOLOSCRIPT_API_KEY || '';
  */
 async function provisionApiKey(
   username: string,
-  email: string
+  email: string,
+  options: ApiKeyOptions = {}
 ): Promise<{ key: string; workspaceId: string }> {
-  const workspaceId = `ws_${username}`;
+  const workspaceId = options.workspaceId ?? `ws_${username}`;
 
   const res = await fetch(`${ORCHESTRATOR_URL}/admin/keys`, {
     method: 'POST',
@@ -88,9 +126,9 @@ async function provisionApiKey(
     },
     body: JSON.stringify({
       name: `studio-${username}`,
-      tier: 'starter',
+      tier: options.tier ?? 'starter',
       workspaceId,
-      metadata: { email, source: 'studio-provision' },
+      metadata: { email, source: 'studio-provision', ...(options.metadata ?? {}) },
     }),
   });
 
@@ -100,6 +138,99 @@ async function provisionApiKey(
 
   const data = (await res.json()) as { key: string };
   return { key: data.key, workspaceId };
+}
+
+function founderIdentityValues(): Set<string> {
+  const configured = (process.env.STUDIO_FOUNDER_GITHUB_USERS ?? '')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  return new Set([
+    'brianonbased',
+    'brianonbased-dev',
+    'josep',
+    'brianonbased@gmail.com',
+    ...configured,
+  ]);
+}
+
+function isFounderIdentity(input: ProvisionInput): boolean {
+  const candidates = [input.githubUsername, input.email].map((value) => value.toLowerCase());
+  const founderValues = founderIdentityValues();
+  return candidates.some((candidate) => founderValues.has(candidate));
+}
+
+function defaultFounderRoot(): string {
+  return process.env.AI_ECOSYSTEM_ROOT ?? path.join(os.homedir(), '.ai-ecosystem');
+}
+
+function execGit(rootPath: string, args: string[]): Promise<string | null> {
+  return new Promise((resolve) => {
+    execFile('git', ['-C', rootPath, ...args], { timeout: 10_000 }, (error, stdout) => {
+      if (error) {
+        resolve(null);
+        return;
+      }
+      const value = String(stdout ?? '').trim();
+      resolve(value || null);
+    });
+  });
+}
+
+function normalizeGitHubRepoUrl(value: string | null): string {
+  if (!value) return DEFAULT_FOUNDER_REPO_URL;
+  const trimmed = value.trim();
+  const sshMatch = trimmed.match(/^git@github\.com:([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+?)(?:\.git)?$/);
+  if (sshMatch) {
+    return `https://github.com/${sshMatch[1]}/${sshMatch[2].replace(/\.git$/i, '')}.git`;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'https:' || parsed.hostname !== 'github.com') {
+      return DEFAULT_FOUNDER_REPO_URL;
+    }
+    if (parsed.username || parsed.password) return DEFAULT_FOUNDER_REPO_URL;
+    const parts = parsed.pathname.replace(/^\/+|\/+$/g, '').split('/');
+    if (parts.length < 2) return DEFAULT_FOUNDER_REPO_URL;
+    const owner = parts[0];
+    const repo = parts[1].replace(/\.git$/i, '');
+    if (!owner || !repo) return DEFAULT_FOUNDER_REPO_URL;
+    return `https://github.com/${owner}/${repo}.git`;
+  } catch {
+    return DEFAULT_FOUNDER_REPO_URL;
+  }
+}
+
+function normalizeDefaultBranch(symbolicRef: string | null, currentBranch: string | null): string {
+  const symbolic = symbolicRef?.replace(/^refs\/remotes\/origin\//, '').replace(/^origin\//, '');
+  if (symbolic) return symbolic;
+  if (currentBranch && currentBranch !== 'HEAD') return currentBranch;
+  return 'main';
+}
+
+async function buildFounderAccountWorkspace(): Promise<FounderAccountWorkspace> {
+  const rootPath = defaultFounderRoot();
+  const remoteUrl = await execGit(rootPath, ['config', '--get', 'remote.origin.url']);
+  const defaultBranchRef = await execGit(rootPath, [
+    'symbolic-ref',
+    '--quiet',
+    'refs/remotes/origin/HEAD',
+  ]);
+  const currentBranch = await execGit(rootPath, ['rev-parse', '--abbrev-ref', 'HEAD']);
+  const currentCommit = await execGit(rootPath, ['rev-parse', 'HEAD']);
+
+  return {
+    workspaceId: FOUNDER_WORKSPACE_ID,
+    repoUrl: normalizeGitHubRepoUrl(remoteUrl),
+    repoName: FOUNDER_WORKSPACE_ID,
+    defaultBranch: normalizeDefaultBranch(defaultBranchRef, currentBranch),
+    currentCommit,
+    tier: 'founder',
+    capabilities: FOUNDER_CAPABILITIES,
+    visibility: 'founder-internal',
+    source: 'existing-ai-ecosystem-repo',
+  };
 }
 
 // ── Step 2: Create or Connect Repo ───────────────────────────────────────────
@@ -129,7 +260,9 @@ async function ensureRepo(
   }
 
   // Create new repo
-  const repoName = (projectName || `holoscript-${Date.now()}`).toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  const repoName = (projectName || `holoscript-${Date.now()}`)
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-');
   const res = await fetch('https://api.github.com/user/repos', {
     method: 'POST',
     headers: {
@@ -179,7 +312,14 @@ async function seedRepo(
   ].join('\n');
 
   // Push .env
-  await pushFile(token, owner, repoName, '.env', envContent, 'chore: provision HoloScript platform credentials');
+  await pushFile(
+    token,
+    owner,
+    repoName,
+    '.env',
+    envContent,
+    'chore: provision HoloScript platform credentials'
+  );
 
   // Push all scaffold files (.claude/CLAUDE.md, .claude/NORTH_STAR.md, skills, hooks, etc.)
   for (const [path, content] of Object.entries(scaffoldFiles)) {
@@ -231,11 +371,7 @@ async function pushFile(
 /**
  * Register the project with the daemon system so self-improvement starts.
  */
-async function startDaemon(
-  apiKey: string,
-  workspaceId: string,
-  repoUrl: string
-): Promise<void> {
+async function startDaemon(apiKey: string, workspaceId: string, repoUrl: string): Promise<void> {
   // Register with orchestrator as a new agent
   await fetch(`${ORCHESTRATOR_URL}/agents/register`, {
     method: 'POST',
@@ -263,15 +399,24 @@ async function startDaemon(
  * 4. Start self-improvement daemon
  */
 export async function provisionUser(input: ProvisionInput): Promise<ProvisionResult> {
-  const steps: ProvisionStep[] = [
-    { name: 'provision-key', status: 'pending' },
-    { name: 'ensure-repo', status: 'pending' },
-    ...(input.approvedAbsorb ? [{ name: 'absorb-scan', status: 'pending' as const }] : []),
-    ...(input.approvedScaffold ? [{ name: 'scaffold', status: 'pending' as const }] : []),
-    ...(input.approvedScaffold ? [{ name: 'seed-repo', status: 'pending' as const }] : []),
-    ...(input.approvedPublishKnowledge ? [{ name: 'publish-knowledge', status: 'pending' as const }] : []),
-    ...(input.approvedDaemon ? [{ name: 'start-daemon', status: 'pending' as const }] : []),
-  ];
+  const founderIdentity = isFounderIdentity(input);
+  const steps: ProvisionStep[] = founderIdentity
+    ? [
+        { name: 'provision-key', status: 'pending' },
+        { name: 'link-founder-workspace', status: 'pending' },
+        { name: 'ensure-repo', status: 'pending' },
+      ]
+    : [
+        { name: 'provision-key', status: 'pending' },
+        { name: 'ensure-repo', status: 'pending' },
+        ...(input.approvedAbsorb ? [{ name: 'absorb-scan', status: 'pending' as const }] : []),
+        ...(input.approvedScaffold ? [{ name: 'scaffold', status: 'pending' as const }] : []),
+        ...(input.approvedScaffold ? [{ name: 'seed-repo', status: 'pending' as const }] : []),
+        ...(input.approvedPublishKnowledge
+          ? [{ name: 'publish-knowledge', status: 'pending' as const }]
+          : []),
+        ...(input.approvedDaemon ? [{ name: 'start-daemon', status: 'pending' as const }] : []),
+      ];
 
   const updateStep = (name: string, status: ProvisionStep['status'], detail?: string) => {
     const step = steps.find((s) => s.name === name);
@@ -282,6 +427,54 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
   };
 
   try {
+    if (founderIdentity) {
+      updateStep('link-founder-workspace', 'running');
+      const accountWorkspace = await buildFounderAccountWorkspace();
+      updateStep(
+        'link-founder-workspace',
+        'done',
+        `${accountWorkspace.workspaceId} -> ${accountWorkspace.repoUrl}`
+      );
+
+      updateStep('provision-key', 'running');
+      const { key: apiKey, workspaceId } = await provisionApiKey(
+        input.githubUsername,
+        input.email,
+        {
+          workspaceId: accountWorkspace.workspaceId,
+          tier: accountWorkspace.tier,
+          metadata: {
+            founder: true,
+            repoUrl: accountWorkspace.repoUrl,
+            defaultBranch: accountWorkspace.defaultBranch,
+            currentCommit: accountWorkspace.currentCommit,
+            capabilities: accountWorkspace.capabilities,
+          },
+        }
+      );
+      updateStep('provision-key', 'done', `key: ${apiKey.slice(0, 8)}...`);
+      updateStep('ensure-repo', 'done', `linked ${accountWorkspace.repoName}`);
+
+      return {
+        success: true,
+        user: {
+          userId: input.githubUsername,
+          githubUsername: input.githubUsername,
+          githubAccessToken: '',
+          mcpApiKey: apiKey,
+          workspaceId,
+          repoUrl: accountWorkspace.repoUrl,
+          repoName: accountWorkspace.repoName,
+          tier: accountWorkspace.tier,
+          capabilities: accountWorkspace.capabilities,
+          accountWorkspace,
+          scaffolded: false,
+          daemonStarted: false,
+        },
+        steps,
+      };
+    }
+
     // Step 1: Provision API key
     updateStep('provision-key', 'running');
     const { key: apiKey, workspaceId } = await provisionApiKey(input.githubUsername, input.email);
@@ -313,19 +506,21 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
     }
 
     // Step 4: Scaffold .claude/ structure (if approved)
-    let scaffold: Awaited<ReturnType<typeof import('./scaffolder').scaffoldProjectWorkspace>> | undefined;
+    let scaffold:
+      | Awaited<ReturnType<typeof import('./scaffolder').scaffoldProjectWorkspace>>
+      | undefined;
     if (input.approvedScaffold) {
       updateStep('scaffold', 'running');
       const { scaffoldProjectWorkspace } = await import('./scaffolder');
       const dna = {
         name: repoName,
         repoUrl,
-        techStack: [],         // Will be enriched by Absorb scan results
+        techStack: [], // Will be enriched by Absorb scan results
         frameworks: [],
         languages: [],
         packageCount: 0,
         testCoverage: 0,
-        codeHealthScore: 5,    // Default until scanned
+        codeHealthScore: 5, // Default until scanned
         compilationTargets: [],
         traits: [],
       };

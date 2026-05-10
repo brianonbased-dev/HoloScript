@@ -79,13 +79,15 @@ export async function POST(request: Request) {
       workspaceId: result.user?.workspaceId,
       repoUrl: result.user?.repoUrl,
       repoName: result.user?.repoName,
+      tier: result.user?.tier,
+      capabilities: result.user?.capabilities,
+      accountWorkspace: result.user?.accountWorkspace,
       scaffolded: result.user?.scaffolded,
       daemonStarted: result.user?.daemonStarted,
     },
     steps: result.steps,
   });
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {
