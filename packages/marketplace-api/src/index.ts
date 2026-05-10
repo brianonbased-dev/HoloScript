@@ -142,6 +142,29 @@ export { GasEstimator } from './web3/GasEstimator.js';
 export { Web3Provider } from './web3/Web3Provider.js';
 export { ViemWeb3Connector } from './web3/ViemWeb3Connector.js';
 
+// ─── Creator Monetization ───────────────────────────────────────────────────
+export { default as CreatorMonetization } from './CreatorMonetization.js';
+export {
+  CreatorMonetizationError,
+  InsufficientBalanceError,
+  IPFSUploadError,
+  ZoraAPIError,
+} from './CreatorMonetization.js';
+export type {
+  CreatorMonetizationOptions,
+  NFTMetadata,
+  MintNFTOptions,
+  MintResult,
+  Collection,
+  CreatorStats,
+  RevenueBreakdown,
+  VRRTwinData,
+  IPFSUploadResult,
+  IPFSUploadRecord,
+  PricingEstimate,
+  TransactionStatus,
+} from './CreatorMonetization.js';
+
 // ─── MCPMe Billing Bridge ────────────────────────────────────────────────────
 export { MCPMeBillingBridge, getMCPMeBillingBridge, tierAllows } from './MCPMeBillingBridge.js';
 export type {

@@ -12,8 +12,13 @@
  */
 
 import type { Address, Hex } from 'viem';
-import { _parseEther, formatEther, _encodeFunctionData } from 'viem';
+import { formatEther } from 'viem';
 import { zoraCreator1155ImplABI } from '@zoralabs/protocol-deployments';
+import { IPFSService } from '@holoscript/core/storage';
+import type {
+  FallbackProvider as CoreIPFSFallbackProvider,
+  IPFSFile as CoreIPFSFile,
+} from '@holoscript/core/storage';
 
 /**
  * Viem's strict contract call types don't align perfectly with the Zora 1155
@@ -32,6 +37,8 @@ import type {
   RevenueBreakdown,
   VRRTwinData,
   IPFSUploadResult,
+  IPFSUploadRecord,
+  IPFSProvider,
   ZoraCreatorResponse,
   PricingEstimate,
   TransactionStatus,
@@ -114,6 +121,7 @@ export class CreatorMonetization {
   private options: CreatorMonetizationOptions;
   private wallet: WalletConnection;
   private isInitialized: boolean = false;
+  private readonly ipfsUploadRecords: IPFSUploadRecord[] = [];
 
   /**
    * Create a new CreatorMonetization instance
@@ -361,8 +369,6 @@ export class CreatorMonetization {
   /**
    * Upload files to IPFS
    *
-   * Note: Currently a placeholder. Full implementation will be provided by Agent 6.
-   *
    * @param files - Files to upload
    * @returns IPFS upload result with CID and URI
    * @throws {IPFSUploadError} If upload fails
@@ -373,55 +379,191 @@ export class CreatorMonetization {
    * console.log(result.uri); // ipfs://Qm...
    * ```
    */
-  async uploadToIPFS(_files: File[]): Promise<IPFSUploadResult> {
-    // Placeholder for Agent 6 implementation
-    throw new IPFSUploadError(
-      'IPFS upload not yet implemented. Will be completed by Agent 6.',
-      this.options.ipfsProvider!
+  async uploadToIPFS(files: File[]): Promise<IPFSUploadResult> {
+    if (files.length === 0) {
+      throw new IPFSUploadError(
+        'At least one file is required for IPFS upload',
+        this.getIPFSProvider()
+      );
+    }
+
+    const ipfsFiles: CoreIPFSFile[] = await Promise.all(
+      files.map(async (file, index) => ({
+        path: this.normalizeIPFSPath(file.name, index),
+        content: Buffer.from(await file.arrayBuffer()),
+      }))
     );
 
-    // Future implementation:
-    /*
-    const provider = this.options.ipfsProvider;
-    const apiKey = this.options.ipfsApiKey;
-
-    switch (provider) {
-      case 'pinata':
-        return await this.uploadToPinata(files, apiKey);
-      case 'nft.storage':
-        return await this.uploadToNFTStorage(files, apiKey);
-      case 'infura':
-        return await this.uploadToInfura(files, apiKey);
-      default:
-        throw new IPFSUploadError('Unsupported IPFS provider', provider);
-    }
-    */
+    return this.uploadIPFSFiles(ipfsFiles, this.getUploadName(ipfsFiles));
   }
 
   /**
    * Upload NFT metadata to IPFS
    *
    * Internal method that uploads metadata JSON to IPFS.
-   * Currently returns a mock URI. Will be implemented by Agent 6.
-   *
    * @param metadata - NFT metadata object
    * @returns IPFS URI (ipfs://...)
    * @private
    */
   private async uploadMetadataToIPFS(metadata: NFTMetadata): Promise<string> {
-    // Mock implementation - will be replaced by Agent 6
     const metadataJson = JSON.stringify(metadata, null, 2);
-    const mockCid = this.generateMockCID(metadataJson);
-
-    return `ipfs://${mockCid}`;
-
-    // Future implementation:
-    /*
-    const blob = new Blob([JSON.stringify(metadata)], { type: 'application/json' });
-    const file = new File([blob], 'metadata.json');
-    const result = await this.uploadToIPFS([file]);
+    const result = await this.uploadIPFSFiles(
+      [{ path: 'metadata.json', content: metadataJson }],
+      `metadata-${this.slugify(metadata.name || 'nft')}`
+    );
     return result.uri;
-    */
+  }
+
+  private async uploadIPFSFiles(
+    files: CoreIPFSFile[],
+    name: string
+  ): Promise<IPFSUploadResult> {
+    const provider = this.getIPFSProvider();
+    const apiKey = this.getIPFSApiKey(provider);
+
+    if (!apiKey) {
+      throw new IPFSUploadError(
+        `Missing IPFS API key for ${provider}. Set ipfsApiKey or the provider-specific environment variable before minting.`,
+        provider
+      );
+    }
+
+    try {
+      const service = new IPFSService({
+        provider,
+        apiKey,
+        apiSecret: this.getIPFSApiSecret(provider),
+        fallbackProviders: this.getIPFSFallbackProviders(),
+        gatewayUrl: this.options.ipfsGatewayUrl || process.env.HOLOSCRIPT_IPFS_GATEWAY_URL,
+        enableCDN: true,
+      });
+
+      const upload = await service.upload({
+        name,
+        files,
+        pin: true,
+        metadata: {
+          name,
+          keyvalues: {
+            source: 'creator-monetization',
+            network: this.options.network,
+            creator: this.options.creatorAddress,
+          },
+        },
+      });
+
+      const result: IPFSUploadResult = {
+        cid: upload.cid,
+        uri: upload.uri,
+        gatewayUrl: upload.gatewayUrl,
+        size: upload.size,
+        uploadedAt: Date.now(),
+      };
+
+      await this.persistIPFSUpload({
+        ...result,
+        provider,
+        name,
+        fileCount: files.length,
+      });
+
+      return result;
+    } catch (error: unknown) {
+      if (error instanceof IPFSUploadError) {
+        throw error;
+      }
+
+      throw new IPFSUploadError(
+        `Failed to upload content to ${provider}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        provider
+      );
+    }
+  }
+
+  private getIPFSProvider(): IPFSProvider {
+    return this.options.ipfsProvider || 'pinata';
+  }
+
+  private getIPFSApiKey(provider: IPFSProvider): string | undefined {
+    if (this.options.ipfsApiKey) return this.options.ipfsApiKey;
+    if (process.env.HOLOSCRIPT_IPFS_API_KEY) return process.env.HOLOSCRIPT_IPFS_API_KEY;
+
+    switch (provider) {
+      case 'pinata':
+        return process.env.PINATA_API_KEY;
+      case 'nft.storage':
+        return process.env.NFT_STORAGE_API_KEY;
+      case 'infura':
+        return process.env.INFURA_IPFS_PROJECT_ID || process.env.INFURA_IPFS_API_KEY;
+      default:
+        return undefined;
+    }
+  }
+
+  private getIPFSApiSecret(provider: IPFSProvider): string | undefined {
+    if (this.options.ipfsApiSecret) return this.options.ipfsApiSecret;
+    if (process.env.HOLOSCRIPT_IPFS_API_SECRET) return process.env.HOLOSCRIPT_IPFS_API_SECRET;
+
+    switch (provider) {
+      case 'pinata':
+        return process.env.PINATA_SECRET_API_KEY;
+      case 'infura':
+        return process.env.INFURA_IPFS_PROJECT_SECRET || process.env.INFURA_IPFS_API_SECRET;
+      case 'nft.storage':
+      default:
+        return undefined;
+    }
+  }
+
+  private getIPFSFallbackProviders(): CoreIPFSFallbackProvider[] {
+    return (this.options.ipfsFallbackProviders || []).map((fallback) => ({
+      provider: fallback.provider,
+      apiKey: fallback.apiKey,
+      apiSecret: fallback.apiSecret,
+    }));
+  }
+
+  private async persistIPFSUpload(record: IPFSUploadRecord): Promise<void> {
+    this.ipfsUploadRecords.push({ ...record });
+
+    if (!this.options.onIPFSUpload) {
+      return;
+    }
+
+    await this.options.onIPFSUpload({ ...record });
+  }
+
+  private normalizeIPFSPath(name: string | undefined, index: number): string {
+    const base = (name || `file-${index + 1}`)
+      .replace(/\\/g, '/')
+      .split('/')
+      .filter(Boolean)
+      .pop();
+
+    return this.slugify(base || `file-${index + 1}`, true);
+  }
+
+  private getUploadName(files: CoreIPFSFile[]): string {
+    if (files.length === 1) {
+      return this.stripExtension(files[0].path);
+    }
+
+    return 'holoscript-upload';
+  }
+
+  private stripExtension(path: string): string {
+    return path.replace(/\.[^.]+$/, '') || path;
+  }
+
+  private slugify(value: string, keepExtension = false): string {
+    const normalized = value.trim().replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
+    if (!normalized) {
+      return keepExtension ? 'file' : 'upload';
+    }
+
+    return keepExtension ? normalized : this.stripExtension(normalized);
   }
 
   // ===========================================================================
@@ -839,23 +981,6 @@ export class CreatorMonetization {
   }
 
   /**
-   * Generate mock CID for metadata (temporary until Agent 6 implements IPFS)
-   * @private
-   */
-  private generateMockCID(content: string): string {
-    // Simple hash-like string generation
-    let hash = 0;
-    for (let i = 0; i < content.length; i++) {
-      const char = content.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-
-    const hashStr = Math.abs(hash).toString(36);
-    return `Qm${hashStr}${'x'.repeat(46 - hashStr.length)}`; // IPFS CIDs start with "Qm"
-  }
-
-  /**
    * Get wallet connection instance
    */
   getWallet(): WalletConnection {
@@ -867,6 +992,13 @@ export class CreatorMonetization {
    */
   getOptions(): CreatorMonetizationOptions {
     return { ...this.options };
+  }
+
+  /**
+   * Get CIDs returned by successful IPFS uploads in this service instance.
+   */
+  getIPFSUploadRecords(): IPFSUploadRecord[] {
+    return this.ipfsUploadRecords.map((record) => ({ ...record }));
   }
 
   /**
@@ -894,6 +1026,7 @@ export {
   type RevenueBreakdown,
   type VRRTwinData,
   type IPFSUploadResult,
+  type IPFSUploadRecord,
   type PricingEstimate,
   type TransactionStatus,
   // Re-export errors

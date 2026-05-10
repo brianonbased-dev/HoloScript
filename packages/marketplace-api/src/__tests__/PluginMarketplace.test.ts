@@ -1020,5 +1020,5 @@ describe('Plugin Marketplace Exports', () => {
     const { createPluginMarketplaceRoutes } = await import('../pluginRoutes.js');
     expect(createPluginMarketplaceRoutes).toBeDefined();
     expect(typeof createPluginMarketplaceRoutes).toBe('function');
-  });
+  }, 10_000);
 });

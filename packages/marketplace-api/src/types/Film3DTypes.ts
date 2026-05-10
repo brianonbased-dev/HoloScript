@@ -54,6 +54,22 @@ export interface CreatorMonetizationOptions {
   /** IPFS API key */
   ipfsApiKey?: string;
 
+  /** IPFS API secret (Pinata key/secret or Infura project secret) */
+  ipfsApiSecret?: string;
+
+  /** Optional IPFS gateway URL override */
+  ipfsGatewayUrl?: string;
+
+  /** Backup providers tried after the primary provider fails */
+  ipfsFallbackProviders?: Array<{
+    provider: IPFSProvider;
+    apiKey: string;
+    apiSecret?: string;
+  }>;
+
+  /** Optional durable callback for recording returned CIDs */
+  onIPFSUpload?: (record: IPFSUploadRecord) => void | Promise<void>;
+
   /** Private key for wallet (optional - for autonomous minting) */
   privateKey?: string;
 }
@@ -321,6 +337,20 @@ export interface IPFSUploadResult {
 
   /** Upload timestamp */
   uploadedAt: number;
+}
+
+/**
+ * Persisted upload record for monetization flows.
+ */
+export interface IPFSUploadRecord extends IPFSUploadResult {
+  /** Provider that returned the CID */
+  provider: IPFSProvider;
+
+  /** Logical upload name */
+  name: string;
+
+  /** Number of files included in the upload */
+  fileCount: number;
 }
 
 // =============================================================================
