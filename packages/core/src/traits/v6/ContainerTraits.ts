@@ -57,6 +57,10 @@ export interface ContainerConfig {
   workdir: string;
 }
 
+interface ContainerState {
+  config: ContainerConfig;
+}
+
 export const containerHandler: TraitHandler<ContainerConfig> = {
   name: 'container',
   defaultConfig: {
@@ -71,8 +75,23 @@ export const containerHandler: TraitHandler<ContainerConfig> = {
     entrypoint: [],
     workdir: '/app',
   },
-  onAttach(_node: HSPlusNode, _config: ContainerConfig, _context: TraitContext) {
-    // v6 stub: container spec generation
+  onAttach(node: HSPlusNode, config: ContainerConfig, context: TraitContext) {
+    node.__containerState = { config };
+    context.emit?.('container_attached', {
+      nodeId: node.id,
+      image: config.image,
+      port: config.port,
+      workdir: config.workdir,
+    });
+  },
+  onDetach(node: HSPlusNode, _config: ContainerConfig, context: TraitContext) {
+    const state = node.__containerState as ContainerState | undefined;
+    if (!state) return;
+    context.emit?.('container_detached', {
+      nodeId: node.id,
+      image: state.config.image,
+    });
+    delete node.__containerState;
   },
 };
 
@@ -99,6 +118,10 @@ export interface DeploymentConfig {
   labels: Record<string, string>;
 }
 
+interface DeploymentState {
+  config: DeploymentConfig;
+}
+
 export const deploymentHandler: TraitHandler<DeploymentConfig> = {
   name: 'deployment',
   defaultConfig: {
@@ -111,8 +134,25 @@ export const deploymentHandler: TraitHandler<DeploymentConfig> = {
     revision_history: 10,
     labels: {},
   },
-  onAttach(_node: HSPlusNode, _config: DeploymentConfig, _context: TraitContext) {
-    // v6 stub: deployment manifest generation
+  onAttach(node: HSPlusNode, config: DeploymentConfig, context: TraitContext) {
+    node.__deploymentState = { config };
+    context.emit?.('deployment_attached', {
+      nodeId: node.id,
+      replicas: config.replicas,
+      strategy: config.strategy,
+      region: config.region,
+      namespace: config.namespace,
+    });
+  },
+  onDetach(node: HSPlusNode, _config: DeploymentConfig, context: TraitContext) {
+    const state = node.__deploymentState as DeploymentState | undefined;
+    if (!state) return;
+    context.emit?.('deployment_detached', {
+      nodeId: node.id,
+      replicas: state.config.replicas,
+      strategy: state.config.strategy,
+    });
+    delete node.__deploymentState;
   },
 };
 
@@ -137,6 +177,11 @@ export interface ScalingConfig {
   custom_query: string;
 }
 
+interface ScalingState {
+  config: ScalingConfig;
+  currentReplicas: number;
+}
+
 export const scalingHandler: TraitHandler<ScalingConfig> = {
   name: 'scaling',
   defaultConfig: {
@@ -148,8 +193,25 @@ export const scalingHandler: TraitHandler<ScalingConfig> = {
     scale_down_cooldown: 300,
     custom_query: '',
   },
-  onAttach(_node: HSPlusNode, _config: ScalingConfig, _context: TraitContext) {
-    // v6 stub: HPA/auto-scaler registration
+  onAttach(node: HSPlusNode, config: ScalingConfig, context: TraitContext) {
+    node.__scalingState = { config, currentReplicas: config.min_replicas };
+    context.emit?.('scaling_attached', {
+      nodeId: node.id,
+      metric: config.metric,
+      target: config.target,
+      minReplicas: config.min_replicas,
+      maxReplicas: config.max_replicas,
+    });
+  },
+  onDetach(node: HSPlusNode, _config: ScalingConfig, context: TraitContext) {
+    const state = node.__scalingState as ScalingState | undefined;
+    if (!state) return;
+    context.emit?.('scaling_detached', {
+      nodeId: node.id,
+      metric: state.config.metric,
+      currentReplicas: state.currentReplicas,
+    });
+    delete node.__scalingState;
   },
 };
 
@@ -177,6 +239,12 @@ export interface SecretConfig {
   required: boolean;
 }
 
+interface SecretState {
+  config: SecretConfig;
+  resolved: boolean;
+  value: string | null;
+}
+
 export const secretHandler: TraitHandler<SecretConfig> = {
   name: 'secret',
   defaultConfig: {
@@ -187,7 +255,37 @@ export const secretHandler: TraitHandler<SecretConfig> = {
     rotation_interval: 0,
     required: true,
   },
-  onAttach(_node: HSPlusNode, _config: SecretConfig, _context: TraitContext) {
-    // v6 stub: secret resolution
+  onAttach(node: HSPlusNode, config: SecretConfig, context: TraitContext) {
+    let value: string | null = null;
+    if (config.source === 'env' && config.key) {
+      value = process.env[config.key] || null;
+    }
+    node.__secretState = { config, resolved: value !== null, value };
+    if (config.required && value === null) {
+      context.emit?.('secret_missing', {
+        nodeId: node.id,
+        name: config.name,
+        source: config.source,
+        key: config.key,
+      });
+    } else {
+      context.emit?.('secret_attached', {
+        nodeId: node.id,
+        name: config.name,
+        source: config.source,
+        mountAs: config.mount_as,
+        resolved: value !== null,
+      });
+    }
+  },
+  onDetach(node: HSPlusNode, _config: SecretConfig, context: TraitContext) {
+    const state = node.__secretState as SecretState | undefined;
+    if (!state) return;
+    context.emit?.('secret_detached', {
+      nodeId: node.id,
+      name: state.config.name,
+      resolved: state.resolved,
+    });
+    delete node.__secretState;
   },
 };

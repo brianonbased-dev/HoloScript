@@ -55,6 +55,13 @@ export interface PipelineConfig {
   metrics: boolean;
 }
 
+interface PipelineState {
+  config: PipelineConfig;
+  executions: number;
+  errors: number;
+  stageMetrics: Map<string, { count: number; avgDuration: number; errors: number }>;
+}
+
 export const pipelineHandler: TraitHandler<PipelineConfig> = {
   name: 'pipeline',
   defaultConfig: {
@@ -66,8 +73,30 @@ export const pipelineHandler: TraitHandler<PipelineConfig> = {
     timeout: 60000,
     metrics: true,
   },
-  onAttach(_node: HSPlusNode, _config: PipelineConfig, _context: TraitContext) {
-    // v6 stub: pipeline registration
+  onAttach(node: HSPlusNode, config: PipelineConfig, context: TraitContext) {
+    node.__pipelineState = {
+      config,
+      executions: 0,
+      errors: 0,
+      stageMetrics: new Map(),
+    };
+    context.emit?.('pipeline_attached', {
+      nodeId: node.id,
+      name: config.name,
+      stages: config.stages,
+      mode: config.mode,
+    });
+  },
+  onDetach(node: HSPlusNode, _config: PipelineConfig, context: TraitContext) {
+    const state = node.__pipelineState as PipelineState | undefined;
+    if (!state) return;
+    context.emit?.('pipeline_detached', {
+      nodeId: node.id,
+      name: state.config.name,
+      executions: state.executions,
+      errors: state.errors,
+    });
+    delete node.__pipelineState;
   },
 };
 
@@ -92,6 +121,13 @@ export interface StreamConfig {
   deserialize: 'json' | 'avro' | 'protobuf' | 'raw';
 }
 
+interface StreamState {
+  config: StreamConfig;
+  connected: boolean;
+  messagesConsumed: number;
+  offsets: Map<string, number>;
+}
+
 export const streamHandler: TraitHandler<StreamConfig> = {
   name: 'stream',
   defaultConfig: {
@@ -103,11 +139,29 @@ export const streamHandler: TraitHandler<StreamConfig> = {
     commit: 'auto',
     deserialize: 'json',
   },
-  onAttach(_node: HSPlusNode, _config: StreamConfig, _context: TraitContext) {
-    // v6 stub: stream consumer setup
+  onAttach(node: HSPlusNode, config: StreamConfig, context: TraitContext) {
+    node.__streamState = {
+      config,
+      connected: false,
+      messagesConsumed: 0,
+      offsets: new Map(),
+    };
+    context.emit?.('stream_attached', {
+      nodeId: node.id,
+      source: config.source,
+      backend: config.backend,
+      consumerGroup: config.consumer_group,
+    });
   },
-  onDetach(_node: HSPlusNode, _config: StreamConfig, _context: TraitContext) {
-    // v6 stub: graceful stream disconnect
+  onDetach(node: HSPlusNode, _config: StreamConfig, context: TraitContext) {
+    const state = node.__streamState as StreamState | undefined;
+    if (!state) return;
+    context.emit?.('stream_detached', {
+      nodeId: node.id,
+      source: state.config.source,
+      messagesConsumed: state.messagesConsumed,
+    });
+    delete node.__streamState;
   },
 };
 
@@ -132,6 +186,13 @@ export interface QueueConfig {
   max_size: number;
 }
 
+interface QueueState {
+  config: QueueConfig;
+  jobs: Array<{ id: string; payload: unknown; attempts: number; priority?: number }>;
+  processed: number;
+  failed: number;
+}
+
 export const queueHandler: TraitHandler<QueueConfig> = {
   name: 'queue',
   defaultConfig: {
@@ -144,8 +205,30 @@ export const queueHandler: TraitHandler<QueueConfig> = {
     priority: false,
     max_size: 0,
   },
-  onAttach(_node: HSPlusNode, _config: QueueConfig, _context: TraitContext) {
-    // v6 stub: queue setup
+  onAttach(node: HSPlusNode, config: QueueConfig, context: TraitContext) {
+    node.__queueState = {
+      config,
+      jobs: [],
+      processed: 0,
+      failed: 0,
+    };
+    context.emit?.('queue_attached', {
+      nodeId: node.id,
+      name: config.name,
+      backend: config.backend,
+    });
+  },
+  onDetach(node: HSPlusNode, _config: QueueConfig, context: TraitContext) {
+    const state = node.__queueState as QueueState | undefined;
+    if (!state) return;
+    context.emit?.('queue_detached', {
+      nodeId: node.id,
+      name: state.config.name,
+      pending: state.jobs.length,
+      processed: state.processed,
+      failed: state.failed,
+    });
+    delete node.__queueState;
   },
 };
 
@@ -166,6 +249,13 @@ export interface WorkerConfig {
   shutdown_timeout: number;
 }
 
+interface WorkerState {
+  config: WorkerConfig;
+  activeJobs: number;
+  totalProcessed: number;
+  lastHeartbeat: number;
+}
+
 export const workerHandler: TraitHandler<WorkerConfig> = {
   name: 'worker',
   defaultConfig: {
@@ -176,11 +266,31 @@ export const workerHandler: TraitHandler<WorkerConfig> = {
     heartbeat: 30000,
     shutdown_timeout: 10000,
   },
-  onAttach(_node: HSPlusNode, _config: WorkerConfig, _context: TraitContext) {
-    // v6 stub: worker registration and queue subscription
+  onAttach(node: HSPlusNode, config: WorkerConfig, context: TraitContext) {
+    node.__workerState = {
+      config,
+      activeJobs: 0,
+      totalProcessed: 0,
+      lastHeartbeat: Date.now(),
+    };
+    context.emit?.('worker_attached', {
+      nodeId: node.id,
+      name: config.name,
+      queue: config.queue,
+      concurrency: config.concurrency,
+      group: config.group,
+    });
   },
-  onDetach(_node: HSPlusNode, _config: WorkerConfig, _context: TraitContext) {
-    // v6 stub: worker graceful shutdown
+  onDetach(node: HSPlusNode, _config: WorkerConfig, context: TraitContext) {
+    const state = node.__workerState as WorkerState | undefined;
+    if (!state) return;
+    context.emit?.('worker_detached', {
+      nodeId: node.id,
+      name: state.config.name,
+      totalProcessed: state.totalProcessed,
+      activeJobs: state.activeJobs,
+    });
+    delete node.__workerState;
   },
 };
 
@@ -203,6 +313,13 @@ export interface SchedulerConfig {
   enabled: boolean;
 }
 
+interface SchedulerState {
+  config: SchedulerConfig;
+  executions: number;
+  failures: number;
+  lastRun: number | null;
+}
+
 export const schedulerHandler: TraitHandler<SchedulerConfig> = {
   name: 'scheduler',
   defaultConfig: {
@@ -214,7 +331,29 @@ export const schedulerHandler: TraitHandler<SchedulerConfig> = {
     payload: {},
     enabled: true,
   },
-  onAttach(_node: HSPlusNode, _config: SchedulerConfig, _context: TraitContext) {
-    // v6 stub: scheduler job registration
+  onAttach(node: HSPlusNode, config: SchedulerConfig, context: TraitContext) {
+    node.__schedulerState = {
+      config,
+      executions: 0,
+      failures: 0,
+      lastRun: null,
+    };
+    context.emit?.('scheduler_attached', {
+      nodeId: node.id,
+      name: config.name,
+      cron: config.cron,
+      enabled: config.enabled,
+    });
+  },
+  onDetach(node: HSPlusNode, _config: SchedulerConfig, context: TraitContext) {
+    const state = node.__schedulerState as SchedulerState | undefined;
+    if (!state) return;
+    context.emit?.('scheduler_detached', {
+      nodeId: node.id,
+      name: state.config.name,
+      executions: state.executions,
+      failures: state.failures,
+    });
+    delete node.__schedulerState;
   },
 };

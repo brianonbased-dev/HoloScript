@@ -30,6 +30,48 @@
 import type { TraitHandler, TraitContext } from '../TraitTypes';
 import type { HSPlusNode } from '../../types/HoloScriptPlus';
 
+// ── Cache Adapter ──────────────────────────────────────────────────────────────
+
+class CacheAdapter {
+  private store = new Map<string, { value: unknown; expiry: number }>();
+  private hits = 0;
+  private misses = 0;
+
+  get(key: string): unknown | undefined {
+    const entry = this.store.get(key);
+    if (!entry) {
+      this.misses++;
+      return undefined;
+    }
+    if (entry.expiry > 0 && Date.now() > entry.expiry) {
+      this.store.delete(key);
+      this.misses++;
+      return undefined;
+    }
+    this.hits++;
+    return entry.value;
+  }
+
+  set(key: string, value: unknown, ttlSeconds = 0) {
+    const expiry = ttlSeconds > 0 ? Date.now() + ttlSeconds * 1000 : 0;
+    this.store.set(key, { value, expiry });
+  }
+
+  invalidate(key: string) {
+    this.store.delete(key);
+  }
+
+  flush() {
+    this.store.clear();
+    this.hits = 0;
+    this.misses = 0;
+  }
+
+  stats() {
+    return { size: this.store.size, hits: this.hits, misses: this.misses };
+  }
+}
+
 // ── Database Trait ─────────────────────────────────────────────────────────────
 
 export type DatabaseEngine =
@@ -58,6 +100,11 @@ export interface DatabaseConfig {
   schema: string;
 }
 
+interface DatabaseState {
+  config: DatabaseConfig;
+  connected: boolean;
+}
+
 export const dbHandler: TraitHandler<DatabaseConfig> = {
   name: 'db',
   defaultConfig: {
@@ -69,11 +116,24 @@ export const dbHandler: TraitHandler<DatabaseConfig> = {
     ssl: true,
     schema: 'public',
   },
-  onAttach(_node: HSPlusNode, _config: DatabaseConfig, _context: TraitContext) {
-    // v6 stub: database connection setup
+  onAttach(node: HSPlusNode, config: DatabaseConfig, context: TraitContext) {
+    node.__dbState = { config, connected: false };
+    context.emit?.('db_attached', {
+      nodeId: node.id,
+      engine: config.engine,
+      connection: config.connection,
+      schema: config.schema,
+    });
   },
-  onDetach(_node: HSPlusNode, _config: DatabaseConfig, _context: TraitContext) {
-    // v6 stub: connection pool teardown
+  onDetach(node: HSPlusNode, _config: DatabaseConfig, context: TraitContext) {
+    const state = node.__dbState as DatabaseState | undefined;
+    if (!state) return;
+    context.emit?.('db_detached', {
+      nodeId: node.id,
+      engine: state.config.engine,
+      connected: state.connected,
+    });
+    delete node.__dbState;
   },
 };
 
@@ -96,6 +156,10 @@ export interface ModelConfig {
   relations: Record<string, string>;
 }
 
+interface ModelState {
+  config: ModelConfig;
+}
+
 export const modelHandler: TraitHandler<ModelConfig> = {
   name: 'model',
   defaultConfig: {
@@ -107,8 +171,20 @@ export const modelHandler: TraitHandler<ModelConfig> = {
     timestamps: true,
     relations: {},
   },
-  onAttach(_node: HSPlusNode, _config: ModelConfig, _context: TraitContext) {
-    // v6 stub: model registration
+  onAttach(node: HSPlusNode, config: ModelConfig, context: TraitContext) {
+    node.__modelState = { config };
+    context.emit?.('model_attached', {
+      nodeId: node.id,
+      name: config.name,
+      table: config.table,
+      fields: Object.keys(config.fields),
+    });
+  },
+  onDetach(node: HSPlusNode, _config: ModelConfig, context: TraitContext) {
+    const state = node.__modelState as ModelState | undefined;
+    if (!state) return;
+    context.emit?.('model_detached', { nodeId: node.id, name: state.config.name });
+    delete node.__modelState;
   },
 };
 
@@ -135,6 +211,11 @@ export interface QueryConfig {
   offset: number;
 }
 
+interface QueryState {
+  config: QueryConfig;
+  executions: number;
+}
+
 export const queryHandler: TraitHandler<QueryConfig> = {
   name: 'query',
   defaultConfig: {
@@ -147,8 +228,24 @@ export const queryHandler: TraitHandler<QueryConfig> = {
     limit: 0,
     offset: 0,
   },
-  onAttach(_node: HSPlusNode, _config: QueryConfig, _context: TraitContext) {
-    // v6 stub: prepared query registration
+  onAttach(node: HSPlusNode, config: QueryConfig, context: TraitContext) {
+    node.__queryState = { config, executions: 0 };
+    context.emit?.('query_attached', {
+      nodeId: node.id,
+      name: config.name,
+      type: config.type,
+      model: config.model,
+    });
+  },
+  onDetach(node: HSPlusNode, _config: QueryConfig, context: TraitContext) {
+    const state = node.__queryState as QueryState | undefined;
+    if (!state) return;
+    context.emit?.('query_detached', {
+      nodeId: node.id,
+      name: state.config.name,
+      executions: state.executions,
+    });
+    delete node.__queryState;
   },
 };
 
@@ -179,6 +276,11 @@ export interface MigrationConfig {
   reversible: boolean;
 }
 
+interface MigrationState {
+  config: MigrationConfig;
+  applied: boolean;
+}
+
 export const migrationHandler: TraitHandler<MigrationConfig> = {
   name: 'migration',
   defaultConfig: {
@@ -189,8 +291,24 @@ export const migrationHandler: TraitHandler<MigrationConfig> = {
     columns: {},
     reversible: true,
   },
-  onAttach(_node: HSPlusNode, _config: MigrationConfig, _context: TraitContext) {
-    // v6 stub: migration registration
+  onAttach(node: HSPlusNode, config: MigrationConfig, context: TraitContext) {
+    node.__migrationState = { config, applied: false };
+    context.emit?.('migration_attached', {
+      nodeId: node.id,
+      version: config.version,
+      action: config.action,
+      table: config.table,
+    });
+  },
+  onDetach(node: HSPlusNode, _config: MigrationConfig, context: TraitContext) {
+    const state = node.__migrationState as MigrationState | undefined;
+    if (!state) return;
+    context.emit?.('migration_detached', {
+      nodeId: node.id,
+      version: state.config.version,
+      applied: state.applied,
+    });
+    delete node.__migrationState;
   },
 };
 
@@ -213,6 +331,11 @@ export interface CacheConfig {
   stats: boolean;
 }
 
+interface CacheState {
+  config: CacheConfig;
+  adapter: CacheAdapter;
+}
+
 export const cacheHandler: TraitHandler<CacheConfig> = {
   name: 'cache',
   defaultConfig: {
@@ -223,10 +346,25 @@ export const cacheHandler: TraitHandler<CacheConfig> = {
     backend: 'memory',
     stats: false,
   },
-  onAttach(_node: HSPlusNode, _config: CacheConfig, _context: TraitContext) {
-    // v6 stub: cache layer setup
+  onAttach(node: HSPlusNode, config: CacheConfig, context: TraitContext) {
+    node.__cacheState = { config, adapter: new CacheAdapter() };
+    context.emit?.('cache_attached', {
+      nodeId: node.id,
+      strategy: config.strategy,
+      maxSize: config.max_size,
+      backend: config.backend,
+    });
   },
-  onDetach(_node: HSPlusNode, _config: CacheConfig, _context: TraitContext) {
-    // v6 stub: cache flush and teardown
+  onDetach(node: HSPlusNode, _config: CacheConfig, context: TraitContext) {
+    const state = node.__cacheState as CacheState | undefined;
+    if (!state) return;
+    const stats = state.adapter.stats();
+    state.adapter.flush();
+    context.emit?.('cache_detached', {
+      nodeId: node.id,
+      strategy: state.config.strategy,
+      stats,
+    });
+    delete node.__cacheState;
   },
 };
