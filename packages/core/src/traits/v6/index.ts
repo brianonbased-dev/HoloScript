@@ -17,6 +17,7 @@
  */
 
 // Service primitives
+export * from './RuntimeContracts';
 export * from './ServiceTraits';
 
 // Contract & schema validation

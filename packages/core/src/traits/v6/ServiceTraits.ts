@@ -26,6 +26,11 @@
 
 import type { TraitHandler, TraitContext } from '../TraitTypes';
 import type { HSPlusNode } from '../../types/HoloScriptPlus';
+import {
+  attachV6RuntimeContract,
+  detachV6RuntimeContract,
+  type V6RuntimeContractDescriptor,
+} from './RuntimeContracts';
 
 // ── Service Trait ──────────────────────────────────────────────────────────────
 
@@ -66,11 +71,11 @@ export const serviceHandler: TraitHandler<ServiceConfig> = {
     logging: true,
     shutdown_timeout: 5000,
   },
-  onAttach(_node: HSPlusNode, _config: ServiceConfig, _context: TraitContext) {
-    // v6 stub: service registration
+  onAttach(node: HSPlusNode, config: ServiceConfig, context: TraitContext) {
+    attachV6RuntimeContract(node, context, serviceContract(config));
   },
-  onDetach(_node: HSPlusNode, _config: ServiceConfig, _context: TraitContext) {
-    // v6 stub: service teardown
+  onDetach(node: HSPlusNode, config: ServiceConfig, context: TraitContext) {
+    detachV6RuntimeContract(node, context, serviceContract(config));
   },
 };
 
@@ -109,8 +114,11 @@ export const endpointHandler: TraitHandler<EndpointConfig> = {
     cache: false,
     cache_ttl: 60,
   },
-  onAttach(_node: HSPlusNode, _config: EndpointConfig, _context: TraitContext) {
-    // v6 stub: endpoint registration
+  onAttach(node: HSPlusNode, config: EndpointConfig, context: TraitContext) {
+    attachV6RuntimeContract(node, context, endpointContract(config));
+  },
+  onDetach(node: HSPlusNode, config: EndpointConfig, context: TraitContext) {
+    detachV6RuntimeContract(node, context, endpointContract(config));
   },
 };
 
@@ -138,8 +146,11 @@ export const routeHandler: TraitHandler<RouteConfig> = {
     middleware: [],
     validate_params: true,
   },
-  onAttach(_node: HSPlusNode, _config: RouteConfig, _context: TraitContext) {
-    // v6 stub: route registration
+  onAttach(node: HSPlusNode, config: RouteConfig, context: TraitContext) {
+    attachV6RuntimeContract(node, context, routeContract(config));
+  },
+  onDetach(node: HSPlusNode, config: RouteConfig, context: TraitContext) {
+    detachV6RuntimeContract(node, context, routeContract(config));
   },
 };
 
@@ -175,8 +186,11 @@ export const handlerHandler: TraitHandler<HandlerConfig> = {
     validate_input: true,
     validate_output: false,
   },
-  onAttach(_node: HSPlusNode, _config: HandlerConfig, _context: TraitContext) {
-    // v6 stub: handler registration
+  onAttach(node: HSPlusNode, config: HandlerConfig, context: TraitContext) {
+    attachV6RuntimeContract(node, context, handlerContract(config));
+  },
+  onDetach(node: HSPlusNode, config: HandlerConfig, context: TraitContext) {
+    detachV6RuntimeContract(node, context, handlerContract(config));
   },
 };
 
@@ -217,7 +231,121 @@ export const middlewareHandler: TraitHandler<MiddlewareConfig> = {
     exclude_paths: [],
     module: '',
   },
-  onAttach(_node: HSPlusNode, _config: MiddlewareConfig, _context: TraitContext) {
-    // v6 stub: middleware registration
+  onAttach(node: HSPlusNode, config: MiddlewareConfig, context: TraitContext) {
+    attachV6RuntimeContract(node, context, middlewareContract(config));
+  },
+  onDetach(node: HSPlusNode, config: MiddlewareConfig, context: TraitContext) {
+    detachV6RuntimeContract(node, context, middlewareContract(config));
   },
 };
+
+export const V6_SERVICE_TRAIT_HANDLERS = [
+  serviceHandler,
+  endpointHandler,
+  routeHandler,
+  handlerHandler,
+  middlewareHandler,
+] as const;
+
+function serviceContract(config: ServiceConfig): V6RuntimeContractDescriptor<ServiceConfig> {
+  return {
+    trait: 'service',
+    kind: 'service',
+    key: `${config.protocol}:${config.port}:${config.base_path}`,
+    config,
+    capabilities: [
+      'service.registry',
+      `service.protocol.${config.protocol}`,
+      `service.framework.${config.framework}`,
+      config.cors ? 'service.cors' : 'service.cors.disabled',
+      config.logging ? 'service.logging' : 'service.logging.disabled',
+      'service.shutdown',
+    ],
+    events: {
+      attached: 'v6:service:registered',
+      detached: 'v6:service:detached',
+    },
+  };
+}
+
+function endpointContract(config: EndpointConfig): V6RuntimeContractDescriptor<EndpointConfig> {
+  return {
+    trait: 'endpoint',
+    kind: 'service-endpoint',
+    key: `${config.method}:${config.path}:${config.handler || 'anonymous-handler'}`,
+    config,
+    capabilities: [
+      'service.endpoint',
+      `http.method.${config.method}`,
+      config.rate_limit > 0 ? 'endpoint.rate-limit' : 'endpoint.rate-limit.unlimited',
+      config.cache ? 'endpoint.cache' : 'endpoint.cache.disabled',
+      'endpoint.timeout',
+    ],
+    events: {
+      attached: 'v6:endpoint:registered',
+      detached: 'v6:endpoint:detached',
+    },
+  };
+}
+
+function routeContract(config: RouteConfig): V6RuntimeContractDescriptor<RouteConfig> {
+  return {
+    trait: 'route',
+    kind: 'service-route',
+    key: `${config.prefix}${config.path}:${config.methods.join(',')}`,
+    config,
+    capabilities: [
+      'service.route',
+      config.validate_params ? 'route.params.validation' : 'route.params.unvalidated',
+      ...config.methods.map((method) => `http.method.${method}`),
+      ...config.middleware.map((name) => `route.middleware.${name}`),
+    ],
+    events: {
+      attached: 'v6:route:registered',
+      detached: 'v6:route:detached',
+    },
+  };
+}
+
+function handlerContract(config: HandlerConfig): V6RuntimeContractDescriptor<HandlerConfig> {
+  return {
+    trait: 'handler',
+    kind: 'service-handler',
+    key: `${config.name || 'anonymous-handler'}:${config.type}`,
+    config,
+    capabilities: [
+      'service.handler',
+      `handler.type.${config.type}`,
+      config.validate_input ? 'handler.input.validation' : 'handler.input.unvalidated',
+      config.validate_output ? 'handler.output.validation' : 'handler.output.unvalidated',
+      config.error_handler ? 'handler.error-handler' : 'handler.error-handler.default',
+    ],
+    events: {
+      attached: 'v6:handler:registered',
+      detached: 'v6:handler:detached',
+    },
+  };
+}
+
+function middlewareContract(
+  config: MiddlewareConfig
+): V6RuntimeContractDescriptor<MiddlewareConfig> {
+  return {
+    trait: 'middleware',
+    kind: 'service-middleware',
+    key: `${config.position}:${config.priority}:${config.type}`,
+    config,
+    capabilities: [
+      'service.middleware',
+      `middleware.type.${config.type}`,
+      `middleware.position.${config.position}`,
+      config.strategy ? `middleware.strategy.${config.strategy}` : 'middleware.strategy.none',
+      ...config.exclude_paths.map((path) => `middleware.exclude.${path}`),
+      config.module ? 'middleware.custom-module' : 'middleware.inline',
+    ],
+    events: {
+      attached: 'v6:middleware:registered',
+      detached: 'v6:middleware:detached',
+    },
+  };
+}

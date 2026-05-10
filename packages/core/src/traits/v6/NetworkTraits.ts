@@ -29,6 +29,11 @@
 
 import type { TraitHandler, TraitContext } from '../TraitTypes';
 import type { HSPlusNode } from '../../types/HoloScriptPlus';
+import {
+  attachV6RuntimeContract,
+  detachV6RuntimeContract,
+  type V6RuntimeContractDescriptor,
+} from './RuntimeContracts';
 
 // ── HTTP Client Trait ──────────────────────────────────────────────────────────
 
@@ -66,8 +71,11 @@ export const httpHandler: TraitHandler<HttpConfig> = {
     follow_redirects: true,
     max_redirects: 5,
   },
-  onAttach(_node: HSPlusNode, _config: HttpConfig, _context: TraitContext) {
-    // v6 stub: HTTP client setup
+  onAttach(node: HSPlusNode, config: HttpConfig, context: TraitContext) {
+    attachV6RuntimeContract(node, context, httpContract(config));
+  },
+  onDetach(node: HSPlusNode, config: HttpConfig, context: TraitContext) {
+    detachV6RuntimeContract(node, context, httpContract(config));
   },
 };
 
@@ -106,11 +114,11 @@ export const websocketHandler: TraitHandler<WebSocketConfig> = {
     message_format: 'json',
     buffer_size: 65536,
   },
-  onAttach(_node: HSPlusNode, _config: WebSocketConfig, _context: TraitContext) {
-    // v6 stub: WebSocket connection setup
+  onAttach(node: HSPlusNode, config: WebSocketConfig, context: TraitContext) {
+    attachV6RuntimeContract(node, context, websocketContract(config));
   },
-  onDetach(_node: HSPlusNode, _config: WebSocketConfig, _context: TraitContext) {
-    // v6 stub: WebSocket graceful disconnect
+  onDetach(node: HSPlusNode, config: WebSocketConfig, context: TraitContext) {
+    detachV6RuntimeContract(node, context, websocketContract(config));
   },
 };
 
@@ -147,11 +155,11 @@ export const grpcHandler: TraitHandler<GrpcConfig> = {
     load_balancing: 'round_robin',
     reflection: false,
   },
-  onAttach(_node: HSPlusNode, _config: GrpcConfig, _context: TraitContext) {
-    // v6 stub: gRPC channel setup
+  onAttach(node: HSPlusNode, config: GrpcConfig, context: TraitContext) {
+    attachV6RuntimeContract(node, context, grpcContract(config));
   },
-  onDetach(_node: HSPlusNode, _config: GrpcConfig, _context: TraitContext) {
-    // v6 stub: gRPC channel shutdown
+  onDetach(node: HSPlusNode, config: GrpcConfig, context: TraitContext) {
+    detachV6RuntimeContract(node, context, grpcContract(config));
   },
 };
 
@@ -188,8 +196,11 @@ export const graphqlHandler: TraitHandler<GraphQLConfig> = {
     persisted_queries: false,
     subscription_transport: 'ws',
   },
-  onAttach(_node: HSPlusNode, _config: GraphQLConfig, _context: TraitContext) {
-    // v6 stub: GraphQL server setup
+  onAttach(node: HSPlusNode, config: GraphQLConfig, context: TraitContext) {
+    attachV6RuntimeContract(node, context, graphqlContract(config));
+  },
+  onDetach(node: HSPlusNode, config: GraphQLConfig, context: TraitContext) {
+    detachV6RuntimeContract(node, context, graphqlContract(config));
   },
 };
 
@@ -226,11 +237,11 @@ export const opcUaHandler: TraitHandler<OpcUaConfig> = {
     subscriptions: true,
     max_monitored_items: 100,
   },
-  onAttach(_node: HSPlusNode, _config: OpcUaConfig, _context: TraitContext) {
-    // v6 stub: OPC-UA client session setup
+  onAttach(node: HSPlusNode, config: OpcUaConfig, context: TraitContext) {
+    attachV6RuntimeContract(node, context, opcUaContract(config));
   },
-  onDetach(_node: HSPlusNode, _config: OpcUaConfig, _context: TraitContext) {
-    // v6 stub: OPC-UA session teardown
+  onDetach(node: HSPlusNode, config: OpcUaConfig, context: TraitContext) {
+    detachV6RuntimeContract(node, context, opcUaContract(config));
   },
 };
 
@@ -264,10 +275,139 @@ export const modbusHandler: TraitHandler<ModbusConfig> = {
     timeout: 5000,
     retry: 3,
   },
-  onAttach(_node: HSPlusNode, _config: ModbusConfig, _context: TraitContext) {
-    // v6 stub: Modbus client connection setup
+  onAttach(node: HSPlusNode, config: ModbusConfig, context: TraitContext) {
+    attachV6RuntimeContract(node, context, modbusContract(config));
   },
-  onDetach(_node: HSPlusNode, _config: ModbusConfig, _context: TraitContext) {
-    // v6 stub: Modbus client disconnect
+  onDetach(node: HSPlusNode, config: ModbusConfig, context: TraitContext) {
+    detachV6RuntimeContract(node, context, modbusContract(config));
   },
 };
+
+export const V6_NETWORK_TRAIT_HANDLERS = [
+  httpHandler,
+  websocketHandler,
+  grpcHandler,
+  graphqlHandler,
+  opcUaHandler,
+  modbusHandler,
+] as const;
+
+function httpContract(config: HttpConfig): V6RuntimeContractDescriptor<HttpConfig> {
+  return {
+    trait: 'http',
+    kind: 'network-http-client',
+    key: config.base_url || 'relative-http-client',
+    config,
+    capabilities: [
+      'network.http-client',
+      config.compression ? 'http.compression' : 'http.compression.disabled',
+      config.follow_redirects ? 'http.redirects' : 'http.redirects.disabled',
+      config.retry > 0 ? 'http.retry' : 'http.retry.disabled',
+      config.auth_header ? `http.auth-header.${config.auth_header}` : 'http.auth-header.none',
+    ],
+    events: {
+      attached: 'v6:http:registered',
+      detached: 'v6:http:detached',
+    },
+  };
+}
+
+function websocketContract(config: WebSocketConfig): V6RuntimeContractDescriptor<WebSocketConfig> {
+  return {
+    trait: 'websocket',
+    kind: 'network-websocket-client',
+    key: config.url || 'unbound-websocket',
+    config,
+    capabilities: [
+      'network.websocket',
+      config.reconnect ? 'websocket.reconnect' : 'websocket.reconnect.disabled',
+      config.heartbeat_interval > 0 ? 'websocket.heartbeat' : 'websocket.heartbeat.disabled',
+      `websocket.message-format.${config.message_format}`,
+      ...config.protocols.map((protocol) => `websocket.protocol.${protocol}`),
+    ],
+    events: {
+      attached: 'v6:websocket:registered',
+      detached: 'v6:websocket:detached',
+    },
+  };
+}
+
+function grpcContract(config: GrpcConfig): V6RuntimeContractDescriptor<GrpcConfig> {
+  return {
+    trait: 'grpc',
+    kind: 'network-grpc-channel',
+    key: `${config.host}:${config.package || 'default-package'}`,
+    config,
+    capabilities: [
+      'network.grpc',
+      config.tls ? 'grpc.tls' : 'grpc.plaintext',
+      `grpc.load-balancing.${config.load_balancing}`,
+      config.reflection ? 'grpc.reflection' : 'grpc.reflection.disabled',
+      config.proto ? 'grpc.proto' : 'grpc.proto.missing',
+    ],
+    events: {
+      attached: 'v6:grpc:registered',
+      detached: 'v6:grpc:detached',
+    },
+  };
+}
+
+function graphqlContract(config: GraphQLConfig): V6RuntimeContractDescriptor<GraphQLConfig> {
+  return {
+    trait: 'graphql',
+    kind: 'network-graphql-endpoint',
+    key: config.endpoint || '/graphql',
+    config,
+    capabilities: [
+      'network.graphql',
+      config.schema ? 'graphql.schema' : 'graphql.schema.inline-or-missing',
+      config.introspection ? 'graphql.introspection' : 'graphql.introspection.disabled',
+      config.playground ? 'graphql.playground' : 'graphql.playground.disabled',
+      config.persisted_queries ? 'graphql.persisted-queries' : 'graphql.persisted-queries.disabled',
+      `graphql.subscription.${config.subscription_transport}`,
+    ],
+    events: {
+      attached: 'v6:graphql:registered',
+      detached: 'v6:graphql:detached',
+    },
+  };
+}
+
+function opcUaContract(config: OpcUaConfig): V6RuntimeContractDescriptor<OpcUaConfig> {
+  return {
+    trait: 'opc_ua',
+    kind: 'network-opc-ua-session',
+    key: config.endpoint_url,
+    config,
+    capabilities: [
+      'network.opc-ua',
+      `opcua.security-policy.${config.security_policy}`,
+      `opcua.security-mode.${config.security_mode}`,
+      config.subscriptions ? 'opcua.subscriptions' : 'opcua.subscriptions.disabled',
+      'opcua.polling',
+    ],
+    events: {
+      attached: 'v6:opc_ua:registered',
+      detached: 'v6:opc_ua:detached',
+    },
+  };
+}
+
+function modbusContract(config: ModbusConfig): V6RuntimeContractDescriptor<ModbusConfig> {
+  return {
+    trait: 'modbus',
+    kind: 'network-modbus-client',
+    key: `${config.connection_type}:${config.host}:${config.unit_id}`,
+    config,
+    capabilities: [
+      'network.modbus',
+      `modbus.connection.${config.connection_type}`,
+      'modbus.polling',
+      config.retry > 0 ? 'modbus.retry' : 'modbus.retry.disabled',
+    ],
+    events: {
+      attached: 'v6:modbus:registered',
+      detached: 'v6:modbus:detached',
+    },
+  };
+}
