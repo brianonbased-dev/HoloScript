@@ -255,3 +255,13 @@ export type {
 // @holoscript/core/compiler. Companion: traits/v6/Semantic2DTraits.ts.
 export { FlatSemanticCompiler } from './FlatSemanticCompiler';
 export type { FlatSemanticCompilerOptions } from './FlatSemanticCompiler';
+
+// DispatchPolicy — NN-Primary, CPU-Backup HoloScript Inversion
+// Source: research/2026-05-09_nn-primary-cpu-backup-holoscript-EVOLVED.md
+export { DispatchPolicy, DispatchTier, AlphaTracker } from './dispatch/DispatchPolicy';
+export type {
+  DispatchPolicyConfig,
+  DispatchableOperation,
+  DispatchDecision,
+  DispatchMetrics,
+} from './dispatch/DispatchPolicy';
