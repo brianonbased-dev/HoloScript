@@ -1,5 +1,21 @@
 import { defineConfig } from '@playwright/test';
+import { existsSync } from 'fs';
 import path from 'path';
+
+const DEFAULT_CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+const useNativeWebGPU =
+  process.env.WEBGPU_DETERMINISM_NATIVE === '1' || process.env.BENCH_VULKAN_BACKEND === 'native';
+const nativeChrome =
+  process.env.WEBGPU_CHROME && existsSync(process.env.WEBGPU_CHROME)
+    ? process.env.WEBGPU_CHROME
+    : existsSync(DEFAULT_CHROME)
+      ? DEFAULT_CHROME
+      : undefined;
+const swiftShaderArgs = [
+  '--use-vulkan=swiftshader',
+  '--disable-vulkan-fallback-to-gl-for-testing',
+  '--disable-gpu-sandbox',
+];
 
 /**
  * Playwright configuration for the Paper-6 WebGPU cross-backend matrix benchmark.
@@ -25,13 +41,12 @@ export default defineConfig({
   use: {
     headless: process.env.BENCH_HEADLESS !== '0',
     launchOptions: {
+      ...(useNativeWebGPU && nativeChrome ? { executablePath: nativeChrome } : {}),
       args: [
         '--enable-unsafe-webgpu',
         '--enable-webgpu-developer-features',
-        '--use-vulkan=swiftshader',
-        '--disable-vulkan-fallback-to-gl-for-testing',
         '--ignore-gpu-blocklist',
-        '--disable-gpu-sandbox',
+        ...(useNativeWebGPU ? [] : swiftShaderArgs),
       ],
     },
   },

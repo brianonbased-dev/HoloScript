@@ -6,6 +6,7 @@ import {
   runDeterminismHarness,
   compareAdapterArtifacts,
   isHarnessMockMode,
+  WebGPUProductionEvidenceMockError,
   type HarnessConfig,
 } from './WebGPUDeterminismHarness';
 import type { CAELTrace } from '../simulation/CAELTrace';
@@ -62,10 +63,18 @@ describe('WebGPUDeterminismHarness (mock)', () => {
   it('runDeterminismHarness returns self-consistent artifact', async () => {
     const art = await runDeterminismHarness(mockConfig({ adapterTag: 'swiftshader' }));
     expect(art.protocol).toBe('2026-04-20_webgpu-determinism-protocol');
+    expect(art.executionMode).toBe('mock');
+    expect(art.kernel.name).toBe('cael-trace-fold-v1');
     expect(art.scenarios.smoke).toBeDefined();
     expect(art.scenarios.smoke!.replications.length).toBe(3);
     const d0 = art.scenarios.smoke!.replications[0]!.finalStateDigest;
     expect(art.scenarios.smoke!.replications.every((r) => r.finalStateDigest === d0)).toBe(true);
+  });
+
+  it('rejects mock mode for production evidence runs', async () => {
+    await expect(
+      runDeterminismHarness(mockConfig({ productionEvidence: true })),
+    ).rejects.toBeInstanceOf(WebGPUProductionEvidenceMockError);
   });
 
   it('compareAdapterArtifacts reports H0 when two mocks share trace semantics', async () => {

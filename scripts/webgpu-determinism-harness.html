@@ -2,35 +2,108 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>WebGPU determinism harness (placeholder)</title>
+    <title>WebGPU Determinism Harness</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
       body {
-        font-family: system-ui, sans-serif;
-        margin: 2rem;
-        line-height: 1.45;
-        max-width: 52rem;
+        margin: 0;
+        min-height: 100vh;
+        background: #101418;
+        color: #e8edf2;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
-      code {
-        background: #f2f2f2;
-        padding: 0.1em 0.35em;
-        border-radius: 4px;
+
+      main {
+        width: min(980px, calc(100vw - 40px));
+        margin: 0 auto;
+        padding: 32px 0;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 24px;
+        font-weight: 650;
+      }
+
+      .subtle {
+        color: #aeb8c2;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin: 20px 0;
+        padding: 8px 10px;
+        border: 1px solid #34404b;
+        border-radius: 6px;
+        background: #172029;
+      }
+
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #e0b34f;
+      }
+
+      .dot.done {
+        background: #4ec98f;
+      }
+
+      .dot.error {
+        background: #ef6a6a;
+      }
+
+      pre {
+        overflow: auto;
+        padding: 16px;
+        border: 1px solid #34404b;
+        border-radius: 6px;
+        background: #0b0f13;
+        color: #d7dde4;
+        line-height: 1.45;
       }
     </style>
   </head>
   <body>
-    <h1>WebGPU determinism harness — test page stub</h1>
-    <p>
-      Full in-browser runs will load the built engine module, acquire <code>navigator.gpu</code>,
-      and invoke <code>runDeterminismHarness()</code> when the WGSL kernel path ships.
-    </p>
-    <p>
-      Until then, use the mock artifact path: <code>WEBGPU_HARNESS_MOCK=1</code> (Node) or set
-      <code>globalThis.__WEBGPU_HARNESS_MOCK__ = true</code> before importing the harness module.
-    </p>
-    <p>
-      CLI smoke: <code>pnpm webgpu:determinism:mock</code> or <code>node scripts/run-webgpu-determinism.mjs</code>
-      from the repo root.
-    </p>
+    <main>
+      <h1>WebGPU Determinism Harness</h1>
+      <p class="subtle">
+        Runs the CAEL trace fold kernel through the browser WebGPU compute path and exposes a
+        protocol-shaped artifact for Playwright.
+      </p>
+      <div class="status">
+        <span id="dot" class="dot"></span>
+        <span id="status">running</span>
+      </div>
+      <pre id="artifact">{}</pre>
+    </main>
+
+    <script src="./webgpu-determinism-harness.js"></script>
+    <script>
+      (function () {
+        const dot = document.getElementById('dot');
+        const status = document.getElementById('status');
+        const artifact = document.getElementById('artifact');
+
+        const poll = setInterval(() => {
+          if (window.__WEBGPU_DETERMINISM_ARTIFACT__) {
+            clearInterval(poll);
+            dot.className = 'dot done';
+            status.textContent = 'completed';
+            artifact.textContent = JSON.stringify(window.__WEBGPU_DETERMINISM_ARTIFACT__, null, 2);
+            return;
+          }
+          if (window.__WEBGPU_DETERMINISM_ERROR__) {
+            clearInterval(poll);
+            dot.className = 'dot error';
+            status.textContent = window.__WEBGPU_DETERMINISM_ERROR__.name || 'error';
+            artifact.textContent = JSON.stringify(window.__WEBGPU_DETERMINISM_ERROR__, null, 2);
+          }
+        }, 100);
+      })();
+    </script>
   </body>
 </html>
