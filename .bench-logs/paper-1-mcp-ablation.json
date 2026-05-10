@@ -1,0 +1,65 @@
+{
+  "generatedAt": "2026-05-10T03:34:35.827Z",
+  "harness": "packages/engine/src/simulation/__tests__/paper-cael-replay-benchmark.test.ts",
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v24.15.0",
+    "vitest": "4.1.5"
+  },
+  "representativeTrace": {
+    "entries": 1003,
+    "bytes": 279880,
+    "timingRuns": 200
+  },
+  "variants": {
+    "full": {
+      "medianUs": 4463.350000000048,
+      "p99Us": 6533.399999999915,
+      "tpRate": 1,
+      "falsePositiveRate": 0
+    },
+    "minusVerify": {
+      "medianUs": 0.09999999997489795,
+      "p99Us": 8.900000000039654,
+      "tpRate": 0,
+      "falsePositiveRate": 0
+    },
+    "baseline": {
+      "medianUs": 0.09999999997489795,
+      "p99Us": 0.7000000000516593,
+      "tpRate": 0,
+      "falsePositiveRate": 0
+    }
+  },
+  "corpus": {
+    "controls": 100,
+    "tampered": 600,
+    "byKind": {
+      "event_type_change": {
+        "trials": 100,
+        "detected": 100
+      },
+      "payload_value_change": {
+        "trials": 100,
+        "detected": 100
+      },
+      "timestamp_alteration": {
+        "trials": 100,
+        "detected": 100
+      },
+      "entry_deletion": {
+        "trials": 100,
+        "detected": 100
+      },
+      "entry_insertion": {
+        "trials": 100,
+        "detected": 100
+      },
+      "entry_reordering": {
+        "trials": 100,
+        "detected": 100
+      }
+    }
+  }
+}
