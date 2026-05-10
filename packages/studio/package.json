@@ -16,6 +16,7 @@
     "prebuild": "pnpm run holo:build",
     "build": "next build --webpack",
     "start": "next start --port 3100",
+    "inventory": "node scripts/studio-inventory.mjs",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",

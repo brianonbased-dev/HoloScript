@@ -54,6 +54,21 @@ Top component buckets:
 - `holomesh`: 13 components
 - `ai`: 12 components
 
+### Generated Inventory Command
+
+Do not update the counts above by hand. Regenerate the live Studio inventory from the
+workspace:
+
+```bash
+pnpm --filter @holoscript/studio inventory
+node packages/studio/scripts/studio-inventory.mjs --json
+```
+
+The script reports App Router page routes, API routes, non-test component/hook/lib
+module counts, `panelVisibilityStore` panel keys, panel component count, top route
+buckets, and `.next/static/chunks/app` bundle-size signal when a local Studio build
+exists.
+
 ## What Is Wrong
 
 ### 1. The docs are giving agents false confidence
