@@ -12,7 +12,11 @@ try {
 }
 
 export default defineConfig({
-  entry: { 'index': 'src/index.ts' },
+  entry: {
+    index: 'src/index.ts',
+    consensus: 'src/consensus/index.ts',
+    messaging: 'src/messaging/index.ts',
+  },
   define: {
     __HOLOSCRIPT_VERSION__: JSON.stringify(pkg.version),
     __GIT_COMMIT_SHA__: JSON.stringify(gitSha),
