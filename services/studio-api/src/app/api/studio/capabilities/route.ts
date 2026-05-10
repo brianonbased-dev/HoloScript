@@ -17,12 +17,12 @@ export async function GET() {
         tools: ['parse_hs', 'parse_holo', 'validate_holoscript', 'generate_object', 'generate_scene'],
       },
       compilation: {
-        description: 'Compile HoloScript to 17 backend targets',
+        description: 'Compile HoloScript to web, XR, asset, robotics, and engine targets',
         targets: ['three', 'r3f', 'gltf', 'usd', 'vrm', 'vrchat', 'aframe', 'babylon', 'unity', 'unreal', 'godot', 'bevy', 'html', 'css', 'svg', 'ascii', 'json'],
         tools: ['compile_holoscript'],
       },
       traits: {
-        description: '2000+ composable traits for physics, materials, animation, economic, spatial behaviors',
+        description: 'Composable traits for physics, materials, animation, economic, spatial behaviors',
         tools: ['list_traits', 'explain_trait', 'suggest_traits'],
       },
       codebase_intelligence: {
@@ -44,18 +44,18 @@ export async function GET() {
     },
 
     access: {
-      mcp: 'POST /api/mcp/call — proxy to 122+ MCP tools',
-      rest: '70 REST API endpoints at /api/*',
+      mcp: 'POST /api/mcp/call — proxy to HoloScript MCP tools; verify live via mcp.holoscript.net/health',
+      rest: 'Studio REST API endpoints at /api/*',
       websocket: 'Collaboration rooms via /api/rooms',
       quickstart: 'POST /api/studio/quickstart — one-request onboarding',
       mcp_config: 'GET /api/studio/mcp-config?format=claude|cursor|generic',
     },
 
-    pages: 34,
-    api_routes: 70,
-    mcp_tools: 122,
-    absorb_tools: 20,
-    traits: '2000+',
-    compilation_targets: 17,
+    metrics_policy: {
+      source: 'docs/NUMBERS.md',
+      live_mcp_health: 'GET https://mcp.holoscript.net/health',
+      note:
+        'Counts are intentionally not hardcoded here because production MCP tools, routes, compilers, traits, and tests change between deploys.',
+    },
   });
 }

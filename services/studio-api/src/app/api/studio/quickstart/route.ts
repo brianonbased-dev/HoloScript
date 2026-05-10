@@ -11,7 +11,8 @@ const MCP_EXTERNAL_URL =
   process.env.MCP_ORCHESTRATOR_URL ||
   'http://localhost:3001';
 
-const STUDIO_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.holoscript.net';
+const STUDIO_URL =
+  process.env.NEXT_PUBLIC_STUDIO_URL || 'https://holoscript.studio';
 const MCP_URL = process.env.MCP_HOLOSCRIPT_URL || 'https://mcp.holoscript.net';
 
 const HELLO_WORLD_SCENE = `scene HelloWorld {
@@ -59,10 +60,10 @@ export async function POST(_request: NextRequest) {
 
     capabilities: {
       scenes: 'Create, edit, compile, and export 3D scenes using HoloScript DSL',
-      traits: '2000+ composable traits (physics, materials, animation, economic, spatial)',
-      compilation: '17 backend targets (Three.js, React Three Fiber, GLTF, USD, VRChat, etc.)',
-      mcp: '122 tools for parsing, compiling, graph analysis, and codebase intelligence',
-      absorb: '20 tools for semantic GraphRAG search over codebases',
+      traits: 'Composable traits for physics, materials, animation, economic, spatial behavior',
+      compilation: 'Compile to web, XR, asset, robotics, and engine targets',
+      mcp: 'Live HoloScript MCP tools for parsing, compiling, graph analysis, and codebase intelligence',
+      absorb: 'Semantic GraphRAG search over codebases',
       collaboration: 'Real-time CRDT-based collaborative editing',
       export: 'GLTF, USD, VRM, standalone HTML, embeddable widgets',
     },

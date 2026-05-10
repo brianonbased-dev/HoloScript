@@ -13,6 +13,7 @@ interface Session {
 }
 
 const sessions = new Map<string, Session>();
+const STUDIO_PUBLIC_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://holoscript.studio';
 
 const LOOKING_GLASS_PRESETS = {
   go: { views: 45, columns: 9, rows: 5, resolution: [1440, 1440], baseline: 0.04 },
@@ -27,10 +28,7 @@ export async function POST(request: NextRequest) {
     const { sessionId, device = '16inch', holoCode } = body;
 
     if (!sessionId) {
-      return NextResponse.json(
-        { ok: false, error: 'sessionId is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'sessionId is required' }, { status: 400 });
     }
 
     const preset = LOOKING_GLASS_PRESETS[device as keyof typeof LOOKING_GLASS_PRESETS];
@@ -43,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     // Generate quilt hash and mock URL
     const quiltHash = `quilt_${sessionId}_${Date.now()}`;
-    const quiltUrl = `https://studio.holoscript.net/hologram/${quiltHash}`;
+    const quiltUrl = `${STUDIO_PUBLIC_URL}/hologram/${quiltHash}`;
 
     // Store session
     let session = sessions.get(sessionId);
@@ -63,7 +61,8 @@ export async function POST(request: NextRequest) {
         resolution: preset.resolution,
         baseline: preset.baseline,
         device,
-        focusDistance: device === 'go' ? 0.15 : device === '16inch' ? 0.2 : device === '27inch' ? 0.25 : 0.5,
+        focusDistance:
+          device === 'go' ? 0.15 : device === '16inch' ? 0.2 : device === '27inch' ? 0.25 : 0.5,
       },
       tiles: generateTiles(preset),
       metadata: {
@@ -92,7 +91,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function generateTiles(preset: typeof LOOKING_GLASS_PRESETS['go']) {
+function generateTiles(preset: (typeof LOOKING_GLASS_PRESETS)['go']) {
   const tiles = [];
   for (let row = 0; row < preset.rows; row++) {
     for (let col = 0; col < preset.columns; col++) {

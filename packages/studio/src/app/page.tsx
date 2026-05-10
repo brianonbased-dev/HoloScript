@@ -249,12 +249,12 @@ function StatsStrip() {
   return (
     <div className="flex flex-wrap justify-center gap-8 text-sm">
       {[
-        { value: '24', label: 'Compilers' },
-        { value: '3,300+', label: 'Traits' },
-        { value: '177', label: 'MCP Tools' },
-        { value: '57,356', label: 'Tests' },
-        { value: '40', label: 'Compile Targets' },
-        { value: '6', label: 'Plugins' },
+        { value: 'Live', label: 'MCP Health' },
+        { value: '.holo', label: 'Source' },
+        { value: 'Web/XR', label: 'Targets' },
+        { value: 'AI', label: 'Agents' },
+        { value: 'Open', label: 'Packages' },
+        { value: 'Docs', label: 'Guides' },
       ].map((s) => (
         <div key={s.label} className="text-center">
           <div className="text-white font-bold text-lg">{s.value}</div>

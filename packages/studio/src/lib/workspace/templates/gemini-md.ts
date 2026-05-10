@@ -15,8 +15,10 @@ import type { ScaffoldDNA } from '../scaffolder';
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 function testCmd(dna: ScaffoldDNA): string {
-  if (dna.techStack.includes('vitest')) return dna.techStack.includes('pnpm') ? 'pnpm vitest' : 'npx vitest';
-  if (dna.techStack.includes('jest')) return dna.techStack.includes('pnpm') ? 'pnpm jest' : 'npx jest';
+  if (dna.techStack.includes('vitest'))
+    return dna.techStack.includes('pnpm') ? 'pnpm vitest' : 'npx vitest';
+  if (dna.techStack.includes('jest'))
+    return dna.techStack.includes('pnpm') ? 'pnpm jest' : 'npx jest';
   if (dna.languages.includes('py')) return 'pytest';
   if (dna.languages.includes('go')) return 'go test ./...';
   if (dna.languages.includes('rs')) return 'cargo test';
@@ -32,7 +34,8 @@ function buildCmd(dna: ScaffoldDNA): string {
 }
 
 function lintCmd(dna: ScaffoldDNA): string {
-  if (dna.techStack.includes('eslint')) return dna.techStack.includes('pnpm') ? 'pnpm lint' : 'npx eslint .';
+  if (dna.techStack.includes('eslint'))
+    return dna.techStack.includes('pnpm') ? 'pnpm lint' : 'npx eslint .';
   if (dna.languages.includes('py')) return 'ruff check .';
   if (dna.languages.includes('go')) return 'golangci-lint run';
   if (dna.languages.includes('rs')) return 'cargo clippy';
@@ -43,19 +46,27 @@ function conventionSection(dna: ScaffoldDNA): string {
   const blocks: string[] = [];
 
   if (dna.techStack.includes('typescript')) {
-    blocks.push(`**TypeScript**: Strict mode, no \`any\` (use \`unknown\`), explicit return types on exports, \`.tsx\` for JSX.`);
+    blocks.push(
+      `**TypeScript**: Strict mode, no \`any\` (use \`unknown\`), explicit return types on exports, \`.tsx\` for JSX.`
+    );
   }
 
   if (dna.languages.includes('py')) {
-    blocks.push(`**Python**: Type hints required on public functions. Format with black, lint with ruff. Use pathlib.Path.`);
+    blocks.push(
+      `**Python**: Type hints required on public functions. Format with black, lint with ruff. Use pathlib.Path.`
+    );
   }
 
   if (dna.languages.includes('go')) {
-    blocks.push(`**Go**: Always check errors. context.Context as first I/O param. Standard layout (cmd/internal/pkg).`);
+    blocks.push(
+      `**Go**: Always check errors. context.Context as first I/O param. Standard layout (cmd/internal/pkg).`
+    );
   }
 
   if (dna.frameworks.includes('next.js')) {
-    blocks.push(`**Next.js**: App Router, Server Components by default, \`'use client'\` only when needed.`);
+    blocks.push(
+      `**Next.js**: App Router, Server Components by default, \`'use client'\` only when needed.`
+    );
   } else if (dna.frameworks.includes('react')) {
     blocks.push(`**React**: Functional components only. Co-locate tests. Named exports.`);
   }
@@ -75,6 +86,7 @@ function conventionSection(dna: ScaffoldDNA): string {
 
 export function generateGeminiMd(dna: ScaffoldDNA): string {
   const isMonorepo = dna.packageCount > 1;
+  const studioUrl = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://holoscript.studio';
 
   return `# GEMINI.md — ${dna.name}
 
@@ -124,6 +136,6 @@ Only ask for: novel features, budget decisions, destructive operations.
 ## Enhanced Features
 
 This project uses [HoloScript](https://holoscript.net) agent infrastructure.
-Activate: \`npx @holoscript/agent-setup\` or [studio.holoscript.net/start](https://studio.holoscript.net/start)
+Activate: \`npx @holoscript/agent-setup\` or [HoloScript Studio start](${studioUrl}/start)
 `.trimStart();
 }

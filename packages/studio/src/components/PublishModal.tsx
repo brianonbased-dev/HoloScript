@@ -123,7 +123,7 @@ export function PublishModal({ onClose }: PublishModalProps) {
                   className="rounded-lg border border-studio-border bg-studio-surface px-3 py-2 text-xs text-studio-text placeholder:text-studio-muted outline-none focus:border-studio-accent"
                 />
                 <p className="text-[10px] text-studio-muted">
-                  Configure a CNAME to studio.holoscript.net
+                  Add the domain to your Studio deployment first
                 </p>
               </div>
 

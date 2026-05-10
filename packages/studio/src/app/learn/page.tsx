@@ -2,5 +2,5 @@
 import { redirect } from 'next/navigation';
 
 export default function RedirectPage() {
-  redirect("http://localhost:3102/learn");
+  redirect('https://holoscript.net/academy/');
 }

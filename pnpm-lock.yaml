@@ -687,6 +687,9 @@ importers:
       '@holoscript/alphafold-plugin':
         specifier: workspace:*
         version: link:../plugins/alphafold-plugin
+      '@holoscript/assimp-plugin':
+        specifier: workspace:*
+        version: link:../plugins/assimp-plugin
       '@holoscript/core-types':
         specifier: workspace:*
         version: link:../core-types

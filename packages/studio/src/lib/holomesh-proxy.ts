@@ -1,7 +1,41 @@
 import { NextRequest } from 'next/server';
 
-const BASE = process.env.HOLOMESH_API_URL || process.env.MCP_SERVER_URL || 'https://mcp.holoscript.net';
+const BASE =
+  process.env.HOLOMESH_API_URL || process.env.MCP_SERVER_URL || 'https://mcp.holoscript.net';
 const KEY = process.env.HOLOMESH_API_KEY || process.env.HOLOMESH_KEY || '';
+
+function holomeshHeaders(req?: Request): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (KEY) headers['Authorization'] = `Bearer ${KEY}`;
+
+  const xPayment = req?.headers.get('x-payment');
+  if (xPayment) headers['X-Payment'] = xPayment;
+
+  const clientAuth = req?.headers.get('authorization');
+  if (clientAuth) headers['Authorization'] = clientAuth;
+
+  return headers;
+}
+
+export async function fetchHoloMeshJson<T>(
+  path: string,
+  req?: Request
+): Promise<{ ok: boolean; status: number; data: T | null }> {
+  const upstream = await fetch(`${BASE}${path}`, {
+    method: 'GET',
+    headers: holomeshHeaders(req),
+    cache: 'no-store',
+  });
+
+  let data: T | null = null;
+  try {
+    data = (await upstream.json()) as T;
+  } catch {
+    data = null;
+  }
+
+  return { ok: upstream.ok, status: upstream.status, data };
+}
 
 /**
  * Proxy a request to the HoloMesh API on the MCP server.
@@ -9,12 +43,7 @@ const KEY = process.env.HOLOMESH_API_KEY || process.env.HOLOMESH_KEY || '';
  */
 export async function proxyHoloMesh(path: string, req: NextRequest): Promise<Response> {
   const url = `${BASE}${path}${req.nextUrl.search}`;
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (KEY) headers['Authorization'] = `Bearer ${KEY}`;
-  const xPayment = req.headers.get('x-payment');
-  if (xPayment) headers['X-Payment'] = xPayment;
-  const clientAuth = req.headers.get('authorization');
-  if (clientAuth) headers['Authorization'] = clientAuth;
+  const headers = holomeshHeaders(req);
 
   const upstream = await fetch(url, {
     method: req.method,

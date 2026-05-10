@@ -9,6 +9,20 @@ HoloScript turns descriptions into working interfaces. Describe a dashboard, a r
 
 MCP server at `mcp.holoscript.net` — discover tools via `POST /mcp` with `tools/list`.
 
+## First Surface: Skills
+
+Before raw grep, raw curl, or long-form code spelunking, check the skill surface. Skills are the front door for HoloScript work because they carry the current workflows, dispatch rules, gotchas, and validation habits.
+
+- Claude Code: invoke the matching skill directly.
+- Codex, Copilot, Cursor, Gemini-Antigravity, Windsurf, Devin: read the relevant `SKILL.md` directly. The ai-ecosystem inventory is `C:/Users/josep/.ai-ecosystem/SKILL_MAP.md`.
+- If no skill matches, use MCP discovery, Absorb Graph RAG, `NORTH_STAR.md`, and local commands.
+
+Skipping a matching skill is a workflow bug. Common examples: use Absorb or `/codebase` for codebase intelligence, `/compile` for compile-target work, `/frontend` for UI audits, `/critic` for hard review, and `/room` for HoloMesh coordination.
+
+Mechanism-design target: skills should be laid out like a payoff matrix where the right skill is the dominant move. See `C:/Users/josep/.ai-ecosystem/docs/handbooks/skill-routing-game-theory.md`.
+
+Tracking source map: before trusting board exports, root JSON files, IDE session stores, backup clones, or worktree folders as current state, classify them with `C:/Users/josep/.ai-ecosystem/docs/handbooks/agent-tracking-source-map.md`. Live board, git status, and the knowledge store win.
+
 ## File Formats
 
 | Extension | Purpose | When to use |

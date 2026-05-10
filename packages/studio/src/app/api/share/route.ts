@@ -32,7 +32,7 @@ const sharedScenesMap = new Map<
 
 /** POST /api/share — publish a scene and get back a share token */
 export async function POST(req: NextRequest) {
-  let body: { name?: string; code?: string; author?: string };
+  let body: { name?: string; code?: string; author?: string; customDomain?: string };
   try {
     body = await req.json();
   } catch {
@@ -112,7 +112,6 @@ export async function GET() {
 
   return NextResponse.json({ scenes: list });
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

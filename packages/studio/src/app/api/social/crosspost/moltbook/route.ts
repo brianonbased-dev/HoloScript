@@ -8,6 +8,7 @@ import { ENDPOINTS, getMoltbookKey } from '@holoscript/config';
 import { corsHeaders } from '../../../_lib/cors';
 const MOLTBOOK_API_BASE = ENDPOINTS.MOLTBOOK_API;
 const MOLTBOOK_API_KEY = getMoltbookKey() || '';
+const STUDIO_PUBLIC_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://holoscript.studio';
 
 type CrosspostInput = {
   title?: string;
@@ -47,7 +48,7 @@ function buildDiscoveryPost(input: CrosspostInput): {
   }
 
   const name = input.agentName || 'HoloScript Studio Agent';
-  const cardUrl = input.agentCardUrl || 'https://studio.holoscript.net/.well-known/agent-card.json';
+  const cardUrl = input.agentCardUrl || `${STUDIO_PUBLIC_URL}/.well-known/agent-card.json`;
   const capabilities = (input.capabilities || []).slice(0, 10);
 
   const lines: string[] = [
@@ -167,7 +168,6 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

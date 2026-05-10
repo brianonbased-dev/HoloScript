@@ -7,12 +7,12 @@
 
 Runs a 30-task spatial-creation benchmark through 4 configurations:
 
-| Configuration          | Model              | Tools                                  | Scene context |
-|------------------------|--------------------|----------------------------------------|---------------|
-| `brittney-prod`        | Opus 4.7           | BRITTNEY + STUDIO_API + MCP + SIM      | yes (prod)    |
-| `cursor-baseline`      | Sonnet 4.6         | synthetic FS (read/write/edit/list)    | no            |
-| `claude-code-baseline` | Opus 4.7           | synthetic FS (read/write/edit/list)    | no            |
-| `vanilla-baseline`     | Opus 4.7           | none                                   | no            |
+| Configuration          | Model      | Tools                               | Scene context |
+| ---------------------- | ---------- | ----------------------------------- | ------------- |
+| `brittney-prod`        | Opus 4.7   | BRITTNEY + STUDIO_API + MCP + SIM   | yes (prod)    |
+| `cursor-baseline`      | Sonnet 4.6 | synthetic FS (read/write/edit/list) | no            |
+| `claude-code-baseline` | Opus 4.7   | synthetic FS (read/write/edit/list) | no            |
+| `vanilla-baseline`     | Opus 4.7   | none                                | no            |
 
 Each `(task, config)` cell runs `N=3` independent trials. Outputs are judged by
 Opus 4.7 against per-task rubrics via structured-output tool use.
@@ -42,7 +42,7 @@ when published.
 ```bash
 cd packages/studio
 export ANTHROPIC_API_KEY=...
-export BRITTNEY_PROD_URL=https://studio.holoscript.net/api/brittney   # optional
+export BRITTNEY_PROD_URL=https://holoscript.studio/api/brittney   # optional
 export HARNESS_FOUNDER_GO=1                                            # required for full run
 
 # Smoke test (3 tasks × 4 configs × 1 trial = 12 cells, ~$2 cap)

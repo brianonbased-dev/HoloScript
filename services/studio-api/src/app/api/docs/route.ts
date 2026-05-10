@@ -11,11 +11,11 @@ export async function GET() {
     info: {
       title: 'HoloScript Studio API',
       version: '0.1.0',
-      description: 'Backend API for HoloScript Studio — 3D scene creation, compilation, and deployment platform. 70+ REST endpoints, MCP tool proxy, OAuth authentication.',
+      description: 'Backend API for HoloScript Studio — 3D scene creation, compilation, deployment, MCP tool proxy, and OAuth authentication.',
       contact: { name: 'HoloScript Team', url: 'https://github.com/brianonbased-dev/HoloScript' },
     },
     servers: [
-      { url: 'https://studio.holoscript.net', description: 'Production' },
+      { url: 'https://holoscript.studio', description: 'Production' },
       { url: 'http://localhost:3105', description: 'Local development' },
     ],
     tags: [

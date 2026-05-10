@@ -1291,18 +1291,22 @@ const httpServer = http.createServer(async (req, res) => {
         rateLimit,
       });
 
-      // Also register with the new OAuth2Provider (token-store backed)
-      await oauth2
-        .registerClient({
+      // Also register with the new OAuth2Provider (token-store backed).
+      // Keep this visible so we do not silently diverge the two registries.
+      try {
+        await oauth2.registerClient({
           clientName,
           redirectUris,
           scopes,
           clientType,
           rateLimit,
-        })
-        .catch(() => {
-          /* non-fatal: new provider registration is additive */
         });
+      } catch (oauth2Err) {
+        console.warn(
+          '[auth] OAuth2Provider registration failed; legacy registry succeeded:',
+          oauth2Err instanceof Error ? oauth2Err.message : oauth2Err
+        );
+      }
 
       auditLog.logAuthEvent({
         event: 'client_registered',
@@ -1339,10 +1343,159 @@ const httpServer = http.createServer(async (req, res) => {
     try {
       const queryString = req.url?.split('?')[1] || '';
       const params = new URLSearchParams(queryString);
-      const result = await oauth2.handleAuthorizeGet(params);
+      const host = req.headers.host || `localhost:${PORT}`;
+      const protocol = req.headers['x-forwarded-proto'] || 'http';
+      const baseUrl = `${protocol}://${host}`;
+      const responseType = params.get('response_type');
+      const clientId = params.get('client_id');
+      const redirectUri = params.get('redirect_uri');
+      const scope = params.get('scope') || 'tools:read';
+      const state = params.get('state');
+      const codeChallenge = params.get('code_challenge');
+      const codeChallengeMethod = params.get('code_challenge_method');
 
-      res.writeHead(result.status, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify(result.body, null, 2));
+      if (responseType !== 'code') {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify(
+            {
+              error: 'unsupported_response_type',
+              error_description: 'Only response_type=code is supported (OAuth 2.1)',
+            },
+            null,
+            2
+          )
+        );
+        return;
+      }
+
+      if (!clientId) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify(
+            {
+              error: 'invalid_request',
+              error_description: 'Missing required parameter: client_id',
+            },
+            null,
+            2
+          )
+        );
+        return;
+      }
+
+      if (!redirectUri) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify(
+            {
+              error: 'invalid_request',
+              error_description: 'Missing required parameter: redirect_uri',
+            },
+            null,
+            2
+          )
+        );
+        return;
+      }
+
+      if (!codeChallenge || codeChallengeMethod !== 'S256') {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify(
+            {
+              error: 'invalid_request',
+              error_description:
+                'PKCE is mandatory. Provide code_challenge with code_challenge_method=S256',
+            },
+            null,
+            2
+          )
+        );
+        return;
+      }
+
+      // Validate against the same registry used by POST /oauth/register and POST /oauth/token.
+      const client = oauth.getClient(clientId);
+      if (!client) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify(
+            {
+              error: 'invalid_client',
+              error_description: 'Unknown client_id. Register via POST /oauth/register first.',
+            },
+            null,
+            2
+          )
+        );
+        return;
+      }
+
+      if (!client.redirectUris.includes(redirectUri)) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify(
+            {
+              error: 'invalid_request',
+              error_description: `redirect_uri "${redirectUri}" is not registered for this client`,
+            },
+            null,
+            2
+          )
+        );
+        return;
+      }
+
+      const requestedScopes = scope.split(' ').filter(Boolean);
+      const invalidScopes = requestedScopes.filter(
+        (requestedScope) => !client.scopes.includes(requestedScope) && !client.scopes.includes('admin')
+      );
+      if (invalidScopes.length > 0) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify(
+            {
+              error: 'invalid_scope',
+              error_description: `Scopes not authorized for client: ${invalidScopes.join(', ')}`,
+            },
+            null,
+            2
+          )
+        );
+        return;
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(
+        JSON.stringify(
+          {
+            authorization_request: {
+              client_id: clientId,
+              client_name: client.clientName,
+              redirect_uri: redirectUri,
+              scope: requestedScopes.join(' '),
+              state: state || undefined,
+              code_challenge: codeChallenge,
+              code_challenge_method: 'S256',
+              available_scopes: Object.entries(OAUTH2_SCOPES).map(([name, description]) => ({
+                name,
+                description,
+                requested: requestedScopes.includes(name),
+              })),
+            },
+            instructions:
+              'POST to /oauth/authorize with the same parameters to obtain an authorization code.',
+            _links: {
+              authorize: `${baseUrl}/oauth/authorize`,
+              token: `${baseUrl}/oauth/token`,
+              register: `${baseUrl}/oauth/register`,
+            },
+          },
+          null,
+          2
+        )
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });

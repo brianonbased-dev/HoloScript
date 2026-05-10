@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'HoloScript Studio',
     short_name: 'HoloScript',
     description:
-      'One description language, 40 compile targets. Write .holo, get Unity, VisionOS, web, robotics, and more.',
+      'One description language for spatial worlds. Write .holo, get web, XR, robotics, and more.',
     start_url: '/',
     display: 'standalone',
     background_color: '#0d0d14',

@@ -28,14 +28,15 @@ const ALLOWED_SLUGS = new Set([
 ]);
 
 function resolveCompositionsDir(): string {
-  // Walk up from packages/studio/src/app/api/surface/[slug] to repo root
-  let dir = __dirname;
-  for (let i = 0; i < 10; i++) {
-    const candidate = path.join(dir, 'compositions', 'studio');
-    if (fs.existsSync(candidate)) return candidate;
-    dir = path.dirname(dir);
+  for (const start of [process.cwd(), __dirname]) {
+    let dir = start;
+    for (let i = 0; i < 12; i++) {
+      const candidate = path.join(dir, 'compositions', 'studio');
+      if (fs.existsSync(candidate)) return candidate;
+      dir = path.dirname(dir);
+    }
   }
-  // Fallback: try relative from process.cwd()
+
   return path.join(process.cwd(), 'compositions', 'studio');
 }
 
@@ -77,7 +78,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
     );
   }
 }
-
 
 // PUBLIC-CORS: documented-public endpoint, intentional wildcard (SEC-T11)
 export function OPTIONS() {

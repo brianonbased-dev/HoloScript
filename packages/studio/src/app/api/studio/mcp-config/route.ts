@@ -9,7 +9,7 @@ import { corsHeaders } from '../../_lib/cors';
 // or `format=generic` rather than relying on client-brand presets.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const STUDIO_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.holoscript.net';
+const STUDIO_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://holoscript.studio';
 const MCP_URL = process.env.MCP_HOLOSCRIPT_URL || 'https://mcp.holoscript.net';
 const ABSORB_URL = process.env.ABSORB_URL || 'https://absorb.holoscript.net';
 
@@ -90,7 +90,6 @@ export async function GET(request: NextRequest) {
     format: 'generic',
   });
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

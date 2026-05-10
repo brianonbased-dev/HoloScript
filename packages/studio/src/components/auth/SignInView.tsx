@@ -21,7 +21,7 @@ export function SignInView() {
       <div className="text-center">
         <h1 className="mb-2 text-3xl font-bold">Sign in to HoloScript Studio</h1>
         <p className="text-sm text-studio-muted">
-          One language. 40 compile targets. Describe it once, deploy everywhere.
+          One language for spatial worlds. Describe it once, deploy across surfaces.
         </p>
       </div>
 

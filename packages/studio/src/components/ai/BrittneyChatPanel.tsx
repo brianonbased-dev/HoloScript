@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   Send,
   Loader2,
@@ -27,6 +28,9 @@ import { useHistoryStore, setNextHistoryLabel } from '@/lib/historyStore';
 import { StudioEvents } from '@/lib/analytics';
 import { useAssistantVoice } from '@/hooks/useBrittneyVoice';
 import { useAssistantHistory } from '@/hooks/useBrittneyHistory';
+import { useProjectStore } from '@/lib/projectStore';
+import { useWorkspaceStore } from '@/lib/stores/workspaceStore';
+import { resolveBrittneyHistoryScope } from '@/lib/brittney/historyScope';
 
 // ─── Message model ────────────────────────────────────────────────────────────
 
@@ -37,6 +41,12 @@ interface ChatMessage {
   toolResults?: ToolResult[];
   isStreaming?: boolean;
 }
+
+const GREETING: ChatMessage = {
+  id: '0',
+  role: 'assistant',
+  text: "Hi! I'm your assistant. Tell me what you want to build and I'll add traits, compose behaviors, and shape the scene for you.",
+};
 
 // ─── Suggestions ──────────────────────────────────────────────────────────────
 
@@ -69,10 +79,13 @@ function ToolBadge({ result }: { result: ToolResult }) {
 // ─── Main Panel ───────────────────────────────────────────────────────────────
 
 export function BrittneyChatPanel() {
+  const pathname = usePathname();
   const selectedId = useEditorStore((s) => s.selectedObjectId);
   const selectedName = useEditorStore((s) => s.selectedObjectName);
   const nodes = useSceneGraphStore((s) => s.nodes);
   const code = useSceneStore((s) => s.code) ?? '';
+  const activeSceneId = useProjectStore((s) => s.activeSceneId);
+  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
   const addTrait = useSceneGraphStore((s) => s.addTrait);
   const removeTrait = useSceneGraphStore((s) => s.removeTrait);
   const setTraitProperty = useSceneGraphStore((s) => s.setTraitProperty);
@@ -80,21 +93,22 @@ export function BrittneyChatPanel() {
   const removeNode = useSceneGraphStore((s) => s.removeNode);
   const updateNode = useSceneGraphStore((s) => s.updateNode);
 
+  const assistantHistoryScope = resolveBrittneyHistoryScope({
+    activeWorkspaceId,
+    activeSceneId,
+    routeScope: pathname,
+  });
+
   // Persistent history
   const {
     history: savedHistory,
     addMessage: persistMessage,
     clearHistory: clearPersistedHistory,
-  } = useAssistantHistory('default');
-
-  const GREETING: ChatMessage = {
-    id: '0',
-    role: 'assistant',
-    text: "Hi! I'm your assistant. Tell me what you want to build and I'll add traits, compose behaviors, and shape the scene for you.",
-  };
+    isLoaded: assistantHistoryLoaded,
+  } = useAssistantHistory(assistantHistoryScope);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([GREETING]);
-  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [loadedHistoryScope, setLoadedHistoryScope] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [llmHistory, setLlmHistory] = useState<AssistantMessage[]>([]);
@@ -126,10 +140,10 @@ export function BrittneyChatPanel() {
     [ttsEnabled]
   );
 
-  // Load persisted history on mount
+  // Load persisted history after storage has resolved for the current workspace/project scope.
   useEffect(() => {
-    if (historyLoaded) return;
-    setHistoryLoaded(true);
+    if (!assistantHistoryLoaded || loadedHistoryScope === assistantHistoryScope) return;
+    setLoadedHistoryScope(assistantHistoryScope);
     if (savedHistory.length > 0) {
       setChatMessages([
         GREETING,
@@ -148,9 +162,11 @@ export function BrittneyChatPanel() {
             }) as AssistantMessage
         )
       );
+    } else {
+      setChatMessages([GREETING]);
+      setLlmHistory([]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [savedHistory]);
+  }, [assistantHistoryLoaded, assistantHistoryScope, loadedHistoryScope, savedHistory]);
 
   // Voice input
   const {

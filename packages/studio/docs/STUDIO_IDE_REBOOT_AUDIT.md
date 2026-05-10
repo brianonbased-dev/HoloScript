@@ -27,32 +27,50 @@ Follow-up applied in this audit pass:
 
 ## Verified Shape
 
-The live codebase is larger than the main Studio docs claim.
+The live codebase is larger than the main Studio docs claim. Latest local inventory:
+`pnpm --filter @holoscript/studio inventory` at 2026-05-10T10:18:15Z.
 
-| Surface         |        Current scan | Docs still claim |
-| --------------- | ------------------: | ---------------: |
-| App page routes |                  67 |         43 / 30+ |
-| API routes      |                 166 |              143 |
-| Components      | 454 non-test TS/TSX |              316 |
-| Hooks           | 115 non-test TS/TSX |              148 |
-| Lib modules     | 352 non-test TS/TSX |              121 |
+| Surface          |        Current scan | Docs still claim |
+| ---------------- | ------------------: | ---------------: |
+| App page routes  |                  68 |         43 / 30+ |
+| API routes       |                 169 |              143 |
+| Components       | 446 non-test TS/TSX |              316 |
+| Hooks            | 112 non-test TS/TSX |              148 |
+| Lib modules      | 344 non-test TS/TSX |              121 |
+| Panel keys       |                  76 |         unstated |
+| Panel components |                  50 |         unstated |
 
 Top route buckets:
 
 - `holomesh`: 13 pages
-- `workspace`: 5 pages
+- `workspace`: 6 pages
 - `agents`: 4 pages
 - `pipeline`: 3 pages
 - `teams`: 3 pages
 
+Top API route buckets:
+
+- `holomesh`: 40 routes
+- `absorb`: 8 routes
+- `git`: 8 routes
+- `connectors`: 6 routes
+- `github`: 6 routes
+- `studio`: 6 routes
+- `daemon`: 5 routes
+- `holotwin`: 5 routes
+
 Top component buckets:
 
-- `panels`: 49 components
-- `wizard`: 25 components
+- `panels`: 50 components
+- `wizard`: 26 components
 - `marketplace`: 15 components
 - `shader-editor`: 14 components
 - `holomesh`: 13 components
 - `ai`: 12 components
+- `diff`: 12 components
+- `camera`: 10 components
+- `coordinator-panels`: 10 components
+- `synthetic`: 10 components
 
 ### Generated Inventory Command
 
@@ -69,6 +87,46 @@ module counts, `panelVisibilityStore` panel keys, panel component count, top rou
 buckets, and `.next/static/chunks/app` bundle-size signal when a local Studio build
 exists.
 
+## Gap Coverage Snapshot
+
+Closed or materially covered since this audit began:
+
+- `ced8f04ff`: repaired `@holoscript/r3f-renderer` generated type drift and restored Studio typecheck.
+- `35c91239a`: hardened workspace import clone safety with argv-based `git`, branch/ref validation, token-free clone URLs, and sanitized clone errors.
+- `e138ca5ec`: connected GitHub repo import to durable Absorb project state.
+- `5215a6336` and `6cbe4bc98`: added and surfaced HoloScript conversion recommendations.
+- `761c486e2`: added publish-worthiness detection for hidden paper-program unlocks.
+- `a6cf59c7c`: provisioned users as ai-ecosystem-shaped account workspaces.
+- `7441751d9` and `7db199fbe`: bootstrapped and backfilled the founder Studio account.
+- `30dbdac22`: added the external repo agent workbench.
+- `fa406b159`: introduced `WorkbenchShell` and made `/create` a workbench perspective.
+- `6390b7e59`: added the generated Studio inventory command used by this section.
+
+Still-open, verified gaps:
+
+- `G-STUDIO-001`: View metadata is still not registry-backed. `panelVisibilityStore.ts`
+  currently has 76 `PANEL_KEYS`, while `/create/page.tsx` still selects individual
+  booleans such as `chatOpen`; `ViewRegistry` does not exist yet.
+- `G-STUDIO-002`: Brittney chat history is still not workspace-scoped:
+  `components/ai/BrittneyChatPanel.tsx` calls `useAssistantHistory('default')`.
+- `G-STUDIO-003`: the visual-system cleanup remains live: `globals.css` still contains
+  mojibake comments and global `html, body { overflow: hidden; }`.
+- `G-STUDIO-004`: user provisioning still pushes a repo `.env` containing the provisioned
+  `HOLOSCRIPT_API_KEY`; approved repo consent is recorded but not enforced as an
+  import/connect authorization gate.
+- `G-STUDIO-005`: the `publish-knowledge` step still marks itself done without publishing
+  extracted knowledge.
+- `G-STUDIO-006`: demo/random simulation values still leak into evidence-shaped surfaces,
+  such as `useDispatchTrace` random replay fingerprints and operations pipeline random
+  commit hashes. These need deterministic inputs or explicit lab/mock gating.
+- `G-STUDIO-007`: production GitHub OAuth for `holoscript.studio` remains open on the
+  board, so production account onboarding is not fully covered.
+- `G-BUILD-001`: the root local build gate is red before Studio is reached.
+  `pnpm --filter @holoscript/core run build` passes, but the downstream recursive
+  workspace build fails first in `@holoscript/ai-validator` DTS generation because
+  `@holoscript/core` types are not resolved through the current workspace type surface.
+  This is tracked as `task_1778408259046_1ydz`.
+
 ## What Is Wrong
 
 ### 1. The docs are giving agents false confidence
@@ -81,7 +139,9 @@ This matters because agents read the docs first and then preserve the sprawl ins
 
 `src/app/create/page.tsx` is 2,322 lines. It dynamically imports dozens of panels, wires dozens of panel booleans manually, and includes remnants of duplicate component cleanup in comments.
 
-The page is carrying layout, feature registration, workbench state, command routing, panel rendering, and product-mode decisions in one place. A Unity/Unreal/VS Code competitor needs a workbench model:
+The route now mounts inside `WorkbenchShell`, but the page internals still carry
+feature registration, command routing, panel rendering, and product-mode decisions
+in one place. A Unity/Unreal/VS Code competitor needs a workbench model:
 
 - activity bar
 - primary side bar
@@ -94,7 +154,8 @@ The page is carrying layout, feature registration, workbench state, command rout
 - extension/view registry
 - workspace-scoped persistence
 
-The current architecture has panels, but not a workbench.
+The shell exists; the missing layer is now the registry-driven workbench model inside
+the shell.
 
 ### 3. Panel state is unbounded feature accumulation
 
@@ -134,7 +195,7 @@ Evidence:
 
 The target should be a quiet professional tool surface, closer to dense creative software than a marketing demo.
 
-### 6. Agent IDE capability exists in fragments but is not unified
+### 6. Agent IDE capability is partially unified, but not finished
 
 Existing fragments:
 
@@ -146,33 +207,36 @@ Existing fragments:
 - Brittney chat and server-side tool execution.
 - Git APIs for status, diff, branch, commit, push, and ship.
 
-Missing workbench synthesis:
+Covered since the initial audit:
 
-- no first-class workspace model visible across IDE UI
-- no durable project/repo explorer as the primary left rail
-- no terminal/process pane
-- no agent session timeline tied to repo state
-- no permissioned tool runner UI
-- no branch/PR review loop as a standard workflow
-- no HoloScript conversion opportunity lane integrated into repo import
-- no project-scoped assistant history for `/create` chat (`BrittneyChatPanel` uses `useAssistantHistory('default')`)
+- `/workspace` now exists as an external repo agent workbench with repo explorer,
+  branch/diff controls, daemon timeline, patch review, Absorb evidence, HoloMesh
+  board tasks, permission review, and branch/PR/direct-ship actions.
+- Repo import now persists conversion candidates and durable Absorb project state.
 
-### 7. The external workspace path needs hardening before innovation
+Missing or incomplete synthesis:
 
-The repo importer is risky:
+- workspace context is not yet shared across all IDE surfaces.
+- `/create` still has its own panel internals instead of registry-backed views.
+- no project-scoped assistant history for `/create` chat (`BrittneyChatPanel` uses
+  `useAssistantHistory('default')`).
+- production GitHub OAuth and account onboarding remain open.
 
-- `/api/workspace/import` builds a shell command string for `git clone`.
-- `branch` is interpolated into that command.
-- OAuth token is embedded into the clone URL.
-- workspace IDs use `Math.random`.
-- file counting uses `git ls-files | wc -l`, which is not Windows-native.
+### 7. The account workspace path still needs consent and secret hardening
 
-The provisioner is also not aligned with the founder/account vision:
+Covered since the initial audit:
 
-- workspace id is `ws_${username}`, not an authenticated account/workspace entity.
+- `/api/workspace/import` uses `execFile`, `--` argument separation, strict GitHub URL
+  parsing, branch validation, token-free clone URLs, `GIT_CONFIG_*` extraheader auth,
+  `randomUUID`, and cross-platform `git ls-files` counting.
+- Founder and non-founder workspace ids now route through authenticated workspace
+  identity helpers.
+
+Remaining provisioner gaps:
+
 - `approvedRepos` is accepted but not enforced when connecting/importing repos.
-- it seeds `.env` with `HOLOSCRIPT_API_KEY` into the target GitHub repo.
-- it scaffolds `.claude/*`, but does not provision an ai-ecosystem-shaped workspace.
+- it still seeds `.env` with `HOLOSCRIPT_API_KEY` into the target GitHub repo when
+  scaffold approval is granted.
 - publish-knowledge is marked done without actual publication.
 
 This should be treated as product-critical, not cleanup polish.
@@ -229,13 +293,15 @@ The mistake to avoid: putting all four lanes into one toolbar.
 
 - Make this audit the current Studio truth until a new architecture doc replaces it.
 - Replace stale counts in `README.md` and `PAGES_ARCHITECTURE.md`.
-- Add a generated inventory script for routes, APIs, components, panels, and bundle sizes.
-- Fix typecheck before further UI expansion.
+- DONE: add a generated inventory script for routes, APIs, components, panels, and
+  bundle-size signal.
+- DONE: fix typecheck before further UI expansion.
+- NEXT: wire the inventory command into docs/CI drift checks so stale counts fail loud.
 
 ### Phase 1: Workbench spine
 
-- Introduce `WorkbenchShell` and route `/workspace` or `/ide` through it.
-- Make `/create` one workbench perspective, not the entire IDE.
+- DONE: introduce `WorkbenchShell`.
+- DONE: make `/create` one workbench perspective, not the entire IDE chrome.
 - Move all panel metadata into `ViewRegistry`.
 - Move all action buttons into `CommandRegistry` and command palette.
 - Collapse toolbar to the small set of scene/run/save/publish/status commands.
@@ -262,22 +328,38 @@ The mistake to avoid: putting all four lanes into one toolbar.
 
 ## Board Task Pack
 
-Filed board tasks:
+Closed board tasks:
 
-- `task_1778382733640_b4iz`: `[studio/P0] Repair Studio typecheck and R3F renderer export drift` (initial fix applied locally; close after commit)
-- `task_1778382733640_dlg3`: `[studio/P1] Rebuild Studio around a real workbench shell`
+- `task_1778382733640_b4iz`: `[studio/P0] Repair Studio typecheck and R3F renderer export drift` -> `ced8f04ff`
+- `task_1778382733640_dlg3`: `[studio/P1] Rebuild Studio around a real workbench shell` -> `fa406b159`
+- `task_1778382733640_mvdm`: `[studio/P1] Implement agent workbench for external repo improvement` -> `30dbdac22`
+- `task_1778405476332_8ov2`: `[studio/P1] Add generated Studio inventory audit script` -> `6390b7e59`
+
+Open board tasks:
+
+- `task_1778380087874_p1c2`: `[studio/P0] Configure production GitHub OAuth for holoscript.studio`
 - `task_1778382733640_4v0v`: `[studio/P1] Replace panel warehouse with typed view and command registries`
-- `task_1778382733640_mvdm`: `[studio/P1] Implement agent workbench for external repo improvement`
 - `task_1778382733640_f8fq`: `[studio/P2] Normalize Studio navigation and professional visual system`
 - `task_1778382733640_fgou`: `[studio/P2] Scope Brittney and agent context to workspace/project/repo`
 - `task_1778382733640_t9ck`: `[studio/P2] Archive or lab-flag non-core IDE routes and panels`
 - `task_1778383136213_o5i2`: `[studio/P2] Remove dynamic dependency warnings from production build`
+- `task_1778381292115_gnha`: `[studio/P2] Surface paper unlock as opt-in research packet in the account workspace`
+- `task_1778381830230_7jmv`: `[studio/P2] Add founder account sync command for local ai-ecosystem`
 
-Existing adjacent board tasks:
+New gap tasks filed from this pass:
 
-- `[studio/P0] Configure production GitHub OAuth for holoscript.studio`
-- `[studio/P1] Harden workspace import clone safety and token handling`
-- `[studio/P1] Connect GitHub repo import to durable Absorb project state`
-- `[studio/P1] Add HoloScript conversion opportunity advisor to repo import`
-- `[studio/P1] Provision Studio users as ai-ecosystem-shaped account workspaces`
-- `[studio/P1] Bootstrap founder Studio account from existing ai-ecosystem repo`
+- `task_1778406354608_m1dj`: `[studio/P1] Enforce approved repo consent across provisioning and import`
+- `task_1778406354608_0d89`: `[studio/P1] Stop committing provisioned API keys into user repos`
+- `task_1778406354608_3g1q`: `[studio/P2] Make publish-knowledge provisioning step publish for real`
+- `task_1778406354608_ugtj`: `[studio/P2] Gate demo/random evidence surfaces or make them deterministic`
+- `task_1778406354608_f6go`: `[studio/P2] Wire Studio inventory drift check into docs or CI`
+- `task_1778408259046_1ydz`: `[build/P0] Restore root pnpm build after workspace type-surface drift`
+
+Closed adjacent board tasks:
+
+- `[studio/P1] Harden workspace import clone safety and token handling` -> `35c91239a`
+- `[studio/P1] Connect GitHub repo import to durable Absorb project state` -> `e138ca5ec`
+- `[studio/P1] Add HoloScript conversion opportunity advisor to repo import` -> `5215a6336`
+- `[studio/P1] Surface conversion recommendations in Project DNA and workspace UI` -> `6cbe4bc98`
+- `[studio/P1] Provision Studio users as ai-ecosystem-shaped account workspaces` -> `a6cf59c7c`
+- `[studio/P1] Bootstrap founder Studio account from existing ai-ecosystem repo` -> `7441751d9`

@@ -64,10 +64,12 @@ export function useAssistantHistory(projectId: string) {
     // Avoid SSR hydration mismatch — populate on mount via effect
     return [];
   });
+  const [loadedProjectId, setLoadedProjectId] = useState<string | null>(null);
 
   // Load from storage on mount / projectId change
   useEffect(() => {
     setHistory(readFromStorage(projectId));
+    setLoadedProjectId(projectId || 'default');
   }, [projectId]);
 
   const addMessage = useCallback(
@@ -86,7 +88,12 @@ export function useAssistantHistory(projectId: string) {
     setHistory([]);
   }, [projectId]);
 
-  return { history, addMessage, clearHistory };
+  return {
+    history,
+    addMessage,
+    clearHistory,
+    isLoaded: loadedProjectId === (projectId || 'default'),
+  };
 }
 
 export const useBrittneyHistory = useAssistantHistory;

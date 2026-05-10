@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 const SITE_NAME = 'HoloScript Studio';
-const BASE_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.holoscript.net';
+const BASE_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://holoscript.studio';
 
 export function studioMetadata(title: string, description: string): Metadata {
   const fullTitle = `${title} — ${SITE_NAME}`;

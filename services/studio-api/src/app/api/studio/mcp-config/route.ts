@@ -5,7 +5,8 @@ import { NextRequest, NextResponse } from 'next/server';
 // Mirrors HoloMesh V8 pattern: GET /api/holomesh/mcp-config?format=claude|cursor|generic
 // ─────────────────────────────────────────────────────────────────────────────
 
-const STUDIO_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.holoscript.net';
+const STUDIO_URL =
+  process.env.NEXT_PUBLIC_STUDIO_URL || 'https://holoscript.studio';
 const MCP_URL = process.env.MCP_HOLOSCRIPT_URL || 'https://mcp.holoscript.net';
 const ABSORB_URL = process.env.ABSORB_URL || 'https://absorb.holoscript.net';
 

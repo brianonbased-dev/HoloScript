@@ -2,6 +2,8 @@
 
 > **One viewport into the semantic graph.** The 3D canvas is one way to view, edit, and interact with HoloScript entities. The same entities can be edited as text, queried via MCP, or compiled to any platform. [Read the V6 Vision →](../../VISION.md)
 
+> **Current IDE reboot audit (2026-05-10):** Studio has outgrown the architecture described below. Before adding routes, panels, or onboarding flows, read [`docs/STUDIO_IDE_REBOOT_AUDIT.md`](docs/STUDIO_IDE_REBOOT_AUDIT.md) for the current workbench, UX, typecheck, and account-workspace findings.
+
 Describe what you want. See it rendered. Deploy it anywhere — browser, headset, hologram. No installation required.
 
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js)](https://nextjs.org)

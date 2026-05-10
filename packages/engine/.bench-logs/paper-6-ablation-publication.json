@@ -1,0 +1,30 @@
+{
+  "schema_version": "paper-6-ablation-v1",
+  "benchmark": "paper-6-ablation-publication",
+  "paper_ref": "ai-ecosystem/research/paper-6-animation-sca.tex",
+  "harness": "packages/engine/src/animation/paper/benchmarks/p6-ablation-publication.ts",
+  "source_clip_id": "paper-6-publication-walk",
+  "frames": 60,
+  "iterations": 1500,
+  "measured_at": "2026-05-10T18:31:08.966Z",
+  "rows": [
+    {
+      "variant": "full-solver",
+      "per_frame_us": 9.659,
+      "reference_hash_equal": true,
+      "divergence_vs_reference": 0
+    },
+    {
+      "variant": "minus-solver",
+      "per_frame_us": 12.717,
+      "reference_hash_equal": false,
+      "divergence_vs_reference": 0.033
+    },
+    {
+      "variant": "baseline-no-pipeline",
+      "per_frame_us": 5.31,
+      "reference_hash_equal": false,
+      "divergence_vs_reference": 1.01292
+    }
+  ]
+}

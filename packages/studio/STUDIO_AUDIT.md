@@ -1,5 +1,7 @@
 # HoloScript Studio — Full Audit (2026-04-09)
 
+> Superseded for current Studio IDE planning by [`docs/STUDIO_IDE_REBOOT_AUDIT.md`](docs/STUDIO_IDE_REBOOT_AUDIT.md) as of 2026-05-10. The status and scores below are historical and do not reflect the current route count, panel sprawl, local typecheck failure, or agent-workbench vision.
+
 302 components, 203 lib files, 60 industry files, 74 API routes, 34 pages audited.
 
 ---

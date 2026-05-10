@@ -1,5 +1,7 @@
 # HoloScript Studio — Pages Architecture & Production Plan
 
+> Current planning note (2026-05-10): this document still contains historical route/component counts. Use [`docs/STUDIO_IDE_REBOOT_AUDIT.md`](docs/STUDIO_IDE_REBOOT_AUDIT.md) as the current source for Studio IDE cleanup, workbench architecture, UX reboot, and account-workspace alignment.
+
 ## Executive Summary
 
 HoloScript has **two separate Next.js frontend applications** that need to work together in production:
@@ -213,7 +215,7 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
                          |
               +----------+----------+
               |                     |
-     studio.holoscript.net   marketplace.holoscript.net
+     holoscript.studio   marketplace.holoscript.net
               |                     |
      [Studio Next.js App]   [Marketplace Next.js App]
          port: 3100              port: 3000
@@ -253,7 +255,7 @@ To solve the limitations of pure cloud hosting while maintaining infinite access
 
 #### Tier 1: The Thin Client (Default)
 
-When users access `studio.holoscript.net` from standard devices (laptops, mobile):
+When users access the public Studio deployment from standard devices (laptops, mobile):
 
 - **Role:** Pure Web Client
 - **Orchestration:** Railway handles all database/API operations.
@@ -273,7 +275,7 @@ When users access the Studio from a high-performance desktop (e.g., equipped wit
 
 ### Critical Issues (Updated v6.0.2)
 
-1. **Missing `/learn` page**: The home page links to `/learn` but no page exists. Needs a full implementation: step-by-step tutorials, visual+code view, achievement system.
+1. ~~**Missing `/learn` page**~~: RESOLVED — `/learn` redirects to the public Academy at `https://holoscript.net/academy/`.
 
 2. ~~**Missing workspace creation pages**~~: RESOLVED — workspace creation flows absorbed into the new `/teams` and `/agents` routes.
 

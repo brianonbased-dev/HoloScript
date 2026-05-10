@@ -16,9 +16,9 @@
  */
 
 const DEFAULT_ALLOWED = [
+  'https://holoscript.studio',
   'https://holoscript.net',
   'https://www.holoscript.net',
-  'https://studio.holoscript.net',
 ];
 
 const SUBDOMAIN_WILDCARD_RE = /^https:\/\/[a-z0-9-]+\.holoscript\.net$/i;
@@ -69,8 +69,7 @@ export function corsHeaders(
   const origin = resolveCorsOrigin(req);
   const headers: Record<string, string> = {
     'Access-Control-Allow-Methods': opts.methods ?? 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers':
-      opts.headers ?? 'Content-Type, Authorization, x-mcp-api-key',
+    'Access-Control-Allow-Headers': opts.headers ?? 'Content-Type, Authorization, x-mcp-api-key',
     Vary: 'Origin',
   };
   if (origin) {
