@@ -1544,3 +1544,62 @@ export type {
   SceneNodeDescriptor,
   SceneGraphDescriptor,
 } from './types';
+
+// ============================================================================
+// Backward-compatibility re-exports (UAA2 API drift repair)
+// These symbols were previously reachable from `@holoscript/core` but moved to
+// sibling packages during A.011.02a. Re-exported here so existing consumers
+// (uaa2-service and third-party integrations) do not break.
+// ============================================================================
+
+// Core-internal types that exist but were not wired into the public barrel
+export {
+  AgentDebugger,
+  getAgentDebugger,
+  resetAgentDebugger,
+} from './debug';
+export {
+  DelegationEngine,
+  getDelegationEngine,
+  resetDelegationEngine,
+} from './hierarchy';
+export type { DelegatedTask } from './hierarchy';
+
+// Framework agents & swarm (migrated from core during A.011.02a)
+export {
+  AgentRegistry,
+  getDefaultRegistry,
+  resetDefaultRegistry,
+} from '@holoscript/framework/agents';
+export type { AgentManifest, CapabilityQuery } from '@holoscript/framework/agents';
+export {
+  SwarmCoordinator,
+  LeaderElection,
+  CollectiveIntelligence,
+  SwarmManager,
+  SwarmMembership,
+  SwarmMetrics,
+  SwarmInspector,
+} from '@holoscript/framework/swarm';
+export type {
+  SwarmInfo,
+  CreateSwarmRequest,
+  AgentInfo,
+  TaskInfo,
+} from '@holoscript/framework/swarm';
+
+// Engine choreography (migrated from core during A.011.02a)
+export {
+  ChoreographyEngine,
+  getDefaultEngine,
+  resetDefaultEngine,
+} from '@holoscript/engine/choreography';
+export type {
+  ChoreographyPlan,
+  ChoreographyResult,
+} from '@holoscript/engine/choreography';
+
+// Mesh consensus & messaging (migrated from core during A.011.02a)
+export { ConsensusManager } from '@holoscript/mesh/consensus';
+export { AgentMessaging } from '@holoscript/mesh/messaging';
+export type { Proposal } from '@holoscript/mesh/consensus';
