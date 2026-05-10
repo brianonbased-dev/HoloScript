@@ -91,6 +91,7 @@ describe('Tool categories', () => {
   it('has scaffold tools', () => {
     expect(findTool('scaffold_project')).toBeDefined();
     expect(findTool('workspace_import')).toBeDefined();
+    expect(findTool('workspace_agent_genesis')).toBeDefined();
   });
 
   it('has generation tools', () => {
@@ -389,6 +390,29 @@ describe('executeStudioTool', () => {
       name: args.name,
       branch: args.branch,
     });
+  });
+
+  it('posts workspace_agent_genesis to the Agent Genesis API', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ plan: { workspaceId: 'ws-1', agents: [] } }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    );
+
+    const args = {
+      workspaceId: 'ws-1',
+      repoName: 'holo-lab',
+      intent: 'Build WebGPU research simulations',
+      techStack: ['webgpu', 'three'],
+    };
+    const result = await executeStudioTool('workspace_agent_genesis', args, BASE_URL);
+    expect(result.success).toBe(true);
+
+    const callArgs = vi.mocked(fetch).mock.calls[0];
+    expect(callArgs[0]).toBe(`${BASE_URL}/api/workspace/agent-genesis`);
+    const body = JSON.parse((callArgs[1] as RequestInit).body as string);
+    expect(body).toEqual(args);
   });
 
   it('builds HoloDaemon mission DNA for daemon jobs', async () => {

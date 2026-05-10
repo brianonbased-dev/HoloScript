@@ -188,6 +188,7 @@ describe('provisionUser founder bootstrap', () => {
         linkedReposPath: 'ecosystem/linked-repos.json',
         boardStatePath: 'ecosystem/board-state.json',
         paperUnlocksPath: 'ecosystem/paper-unlocks.json',
+        agentGenesisPath: 'ecosystem/agent-genesis.json',
       }),
       repoImport: expect.objectContaining({
         workspaceId: 'ws_octocat',
@@ -196,6 +197,7 @@ describe('provisionUser founder bootstrap', () => {
       daemon: expect.objectContaining({
         workspaceId: 'ws_octocat',
         agentConfigPath: 'agents/claude.yml',
+        agentGenesisPath: 'ecosystem/agent-genesis.json',
       }),
     });
     expect(result.user?.capabilities).toEqual(
@@ -251,6 +253,7 @@ describe('provisionUser founder bootstrap', () => {
         'ecosystem/board-state.json',
         'ecosystem/paper-unlocks.json',
         'ecosystem/conversion-recommendations.json',
+        'ecosystem/agent-genesis.json',
         'knowledge/wisdom/README.md',
         '.claude/CLAUDE.md',
       ])
@@ -271,6 +274,31 @@ describe('provisionUser founder bootstrap', () => {
       'ref: "secret://workspace/ws_octocat/holoscript/orchestrator/api-key"'
     );
     expect(secretManifest).toContain('delivery: "studio-broker-or-github-actions-secret"');
+
+    const agentGenesis = JSON.parse(
+      pushedFiles.find((file) => file.path === 'ecosystem/agent-genesis.json')?.content ?? '{}'
+    ) as {
+      strategy: string;
+      agents: Array<{ missionProfile: string; autospawn: boolean; daemonAgent: { rawSecretAccess: boolean } }>;
+      secretBroker: { plaintextInWorkspace: boolean; handlesOnly: boolean };
+      meshWiring: { holoheal: { incidentTarget: string; receiptTarget: string; trustTarget: string } };
+    };
+    expect(agentGenesis.strategy).toBe('skills-first-agent-genesis');
+    expect(agentGenesis.agents.map((agent) => agent.missionProfile)).toEqual(
+      expect.arrayContaining(['holoheal', 'secret-custodian', 'fleet-auditor', 'builder'])
+    );
+    expect(agentGenesis.agents.every((agent) => agent.daemonAgent.rawSecretAccess === false)).toBe(
+      true
+    );
+    expect(agentGenesis.secretBroker).toMatchObject({
+      plaintextInWorkspace: false,
+      handlesOnly: true,
+    });
+    expect(agentGenesis.meshWiring.holoheal).toEqual({
+      incidentTarget: 'HoloClaw',
+      receiptTarget: 'HoloMesh',
+      trustTarget: 'Fleet',
+    });
 
     const manifest = JSON.parse(
       pushedFiles.find((file) => file.path === 'ecosystem/account-workspace.json')?.content ?? '{}'

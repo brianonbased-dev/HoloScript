@@ -1,4 +1,5 @@
 import { normalizeGitHubRepo } from './repoConsent';
+import { buildAgentGenesisPlan } from './agentGenesis';
 
 export type AccountWorkspaceTier = 'starter' | 'founder';
 
@@ -34,6 +35,7 @@ export interface AccountWorkspaceMetadata {
     boardStatePath: 'ecosystem/board-state.json';
     paperUnlocksPath: 'ecosystem/paper-unlocks.json';
     conversionRecommendationsPath: 'ecosystem/conversion-recommendations.json';
+    agentGenesisPath: 'ecosystem/agent-genesis.json';
   };
   linkedRepos: AccountLinkedRepo[];
   boardState: {
@@ -56,6 +58,7 @@ export interface AccountWorkspaceMetadata {
     accountRepoUrl: string;
     agentConfigPath: string;
     boardStatePath: string;
+    agentGenesisPath: string;
   };
 }
 
@@ -234,6 +237,13 @@ function buildFiles(
     recommendations: [],
     note: 'Repo import and Absorb will populate this file with path-backed conversion opportunities.',
   };
+  const agentGenesis = buildAgentGenesisPlan({
+    workspaceId: input.workspaceId,
+    repoUrl: input.repoUrl,
+    repoName: input.repoName,
+    intent: input.intent,
+    approvedRepos: input.approvedRepos,
+  });
 
   return {
     '.gitignore': ['.env', '.env.*', '!.env.example', 'node_modules/', '.DS_Store', ''].join('\n'),
@@ -279,6 +289,7 @@ function buildFiles(
     'ecosystem/board-state.json': json(boardState),
     'ecosystem/paper-unlocks.json': json(paperUnlocks),
     'ecosystem/conversion-recommendations.json': json(conversionRecommendations),
+    'ecosystem/agent-genesis.json': json(agentGenesis),
     'ecosystem/hooks/README.md': '# Hooks\n\nWorkspace-local automation hooks live here.\n',
     'ecosystem/skills/README.md': '# Skills\n\nWorkspace-local agent skills live here.\n',
     'knowledge/wisdom/README.md': knowledgeReadme('Wisdom'),
@@ -322,6 +333,7 @@ export function buildAccountWorkspaceSeed(input: AccountWorkspaceSeedInput): Acc
       boardStatePath: 'ecosystem/board-state.json',
       paperUnlocksPath: 'ecosystem/paper-unlocks.json',
       conversionRecommendationsPath: 'ecosystem/conversion-recommendations.json',
+      agentGenesisPath: 'ecosystem/agent-genesis.json',
     },
     linkedRepos,
     boardState: {
@@ -344,6 +356,7 @@ export function buildAccountWorkspaceSeed(input: AccountWorkspaceSeedInput): Acc
       accountRepoUrl: input.repoUrl,
       agentConfigPath: 'agents/claude.yml',
       boardStatePath: 'ecosystem/board-state.json',
+      agentGenesisPath: 'ecosystem/agent-genesis.json',
     },
   };
 

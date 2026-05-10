@@ -89,6 +89,11 @@ const ENDPOINTS: Record<string, EndpointConfig> = {
       };
     },
   },
+  workspace_agent_genesis: {
+    method: 'POST',
+    path: '/api/workspace/agent-genesis',
+    buildBody: (args) => args,
+  },
 
   // Generation
   generate_code: {

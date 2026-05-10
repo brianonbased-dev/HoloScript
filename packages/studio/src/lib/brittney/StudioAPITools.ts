@@ -198,6 +198,62 @@ const workspaceImport: StudioToolDefinition = {
   },
 };
 
+const workspaceAgentGenesis: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'workspace_agent_genesis',
+    description:
+      'Recommend the automatic skills-first agent crew for a workspace. Produces HoloDaemon mission profiles, HoloHeal/HoloClaw/HoloMesh/Fleet wiring, and broker-only secret handles. Use immediately after GitHub login, repo import, or when deciding which agents to autospawn.',
+    parameters: {
+      type: 'object',
+      properties: {
+        workspaceId: {
+          type: 'string',
+          description: 'Workspace ID, e.g. ws_octocat',
+        },
+        repoUrl: {
+          type: 'string',
+          description: 'Optional GitHub repository URL',
+        },
+        repoName: {
+          type: 'string',
+          description: 'Optional repository or project name',
+        },
+        intent: {
+          type: 'string',
+          description: 'What the user says they want to build or improve',
+        },
+        techStack: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Detected stack signals',
+        },
+        frameworks: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Detected frameworks',
+        },
+        languages: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Detected languages',
+        },
+        traits: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Detected HoloScript traits or domain tags',
+        },
+        approvedRepos: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Repos the user explicitly approved for Studio access',
+        },
+      },
+      required: ['workspaceId'],
+    },
+  },
+};
+
 // ─── Generation Tools ───────────────────────────────────────────────────────
 
 const generateCode: StudioToolDefinition = {
@@ -740,6 +796,7 @@ export const STUDIO_API_TOOLS: StudioToolDefinition[] = [
   // Scaffold
   scaffoldProject,
   workspaceImport,
+  workspaceAgentGenesis,
   // Generation
   generateCode,
   generateMaterial,
