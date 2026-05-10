@@ -15,13 +15,16 @@ import { authOptions } from '@/lib/auth';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { execFile, type ExecFileOptions } from 'child_process';
+import { randomUUID } from 'crypto';
 
 import { corsHeaders } from '../../_lib/cors';
-const execAsync = promisify(exec);
 
-const WORKSPACES_DIR = path.join(os.homedir(), '.holoscript', 'workspaces');
+function getWorkspacesDir(): string {
+  return (
+    process.env.HOLOSCRIPT_WORKSPACES_DIR ?? path.join(os.homedir(), '.holoscript', 'workspaces')
+  );
+}
 
 interface ImportRequest {
   repoUrl: string;
@@ -30,17 +33,135 @@ interface ImportRequest {
 }
 
 function generateId(): string {
-  return `ws-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  return `ws-${randomUUID()}`;
 }
 
 function sanitizeName(name: string): string {
   return name.replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 64);
 }
 
-function extractRepoName(url: string): string {
-  // Handle https://github.com/user/repo.git or git@github.com:user/repo.git
-  const match = url.match(/([^/]+?)(?:\.git)?$/);
-  return match?.[1] ?? 'unknown-repo';
+interface GitHubRepoRef {
+  owner: string;
+  repo: string;
+  cloneUrl: string;
+}
+
+const GITHUB_OWNER_RE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
+const GITHUB_REPO_RE = /^[A-Za-z0-9._-]{1,100}$/;
+const BRANCH_REF_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,254}$/;
+
+function normalizeGitHubRepoUrl(repoUrl: string): GitHubRepoRef | null {
+  const trimmed = repoUrl.trim();
+  if (!trimmed || /[\x00-\x1f]/.test(trimmed)) return null;
+
+  let owner: string | undefined;
+  let repo: string | undefined;
+
+  const sshMatch = trimmed.match(/^git@github\.com:([^/\s]+)\/([^/\s]+?)(?:\.git)?$/);
+  if (sshMatch) {
+    owner = sshMatch[1];
+    repo = sshMatch[2];
+  } else {
+    try {
+      const url = new URL(trimmed);
+      if (url.protocol !== 'https:' || url.hostname !== 'github.com') return null;
+      if (url.username || url.password || url.search || url.hash) return null;
+      const parts = url.pathname.replace(/^\/+|\/+$/g, '').split('/');
+      if (parts.length !== 2) return null;
+      owner = parts[0];
+      repo = parts[1]?.replace(/\.git$/i, '');
+    } catch {
+      return null;
+    }
+  }
+
+  if (!owner || !repo) return null;
+  if (!GITHUB_OWNER_RE.test(owner) || !GITHUB_REPO_RE.test(repo)) return null;
+  if (repo === '.' || repo === '..') return null;
+
+  return {
+    owner,
+    repo,
+    cloneUrl: `https://github.com/${owner}/${repo}.git`,
+  };
+}
+
+function normalizeBranch(branch: string | undefined): string | null | undefined {
+  if (branch === undefined) return undefined;
+  const trimmed = branch.trim();
+  if (!trimmed) return null;
+  if (!BRANCH_REF_RE.test(trimmed)) return null;
+  if (trimmed.startsWith('-')) return null;
+  if (trimmed.includes('..') || trimmed.includes('//') || trimmed.includes('@{')) return null;
+  if (trimmed.endsWith('/') || trimmed.endsWith('.') || trimmed.endsWith('.lock')) return null;
+  if (trimmed.split('/').some((part) => part.startsWith('.') || part.endsWith('.lock')))
+    return null;
+  return trimmed;
+}
+
+function isInsidePath(parent: string, child: string): boolean {
+  const relative = path.relative(parent, child);
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+}
+
+function resolveWorkspacePath(
+  id: string,
+  safeName: string
+): { workspaceDir: string; localPath: string } {
+  const workspacesDir = path.resolve(getWorkspacesDir());
+  const workspaceDir = path.resolve(workspacesDir, id);
+  const localPath = path.resolve(workspaceDir, safeName);
+  if (!isInsidePath(workspacesDir, workspaceDir) || !isInsidePath(workspaceDir, localPath)) {
+    throw new Error('Resolved workspace path escaped workspace root');
+  }
+  return { workspaceDir, localPath };
+}
+
+function withGitHubAuthEnv(token: string | undefined): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    GIT_TERMINAL_PROMPT: '0',
+  };
+  if (!token) return env;
+
+  const parsedCount = Number.parseInt(env.GIT_CONFIG_COUNT ?? '0', 10);
+  const index = Number.isFinite(parsedCount) && parsedCount >= 0 ? parsedCount : 0;
+  env.GIT_CONFIG_COUNT = String(index + 1);
+  env[`GIT_CONFIG_KEY_${index}`] = 'http.https://github.com/.extraheader';
+  env[`GIT_CONFIG_VALUE_${index}`] = `Authorization: basic ${Buffer.from(
+    `x-access-token:${token}`
+  ).toString('base64')}`;
+  return env;
+}
+
+function execGit(
+  args: string[],
+  options: ExecFileOptions = {}
+): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    execFile('git', args, options, (error, stdout, stderr) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve({ stdout: String(stdout ?? ''), stderr: String(stderr ?? '') });
+    });
+  });
+}
+
+function publicCloneError(err: unknown): { error: string; code?: string; hint: string } {
+  const maybe = err as { code?: unknown; status?: unknown };
+  const code =
+    maybe?.code !== undefined
+      ? String(maybe.code)
+      : maybe?.status !== undefined
+        ? String(maybe.status)
+        : undefined;
+  return {
+    error: 'Clone failed',
+    ...(code ? { code } : {}),
+    hint: 'Check that git is installed and the GitHub repo is accessible to the signed-in account.',
+  };
 }
 
 export async function POST(req: NextRequest) {
@@ -56,49 +177,49 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { repoUrl, branch } = body;
+  const { repoUrl } = body;
 
   if (!repoUrl || typeof repoUrl !== 'string') {
     return NextResponse.json({ error: 'repoUrl is required' }, { status: 400 });
   }
 
-  // Validate URL format
-  if (!repoUrl.startsWith('https://') && !repoUrl.startsWith('git@')) {
+  const repoRef = normalizeGitHubRepoUrl(repoUrl);
+  if (!repoRef) {
     return NextResponse.json(
-      { error: 'repoUrl must start with https:// or git@' },
+      { error: 'repoUrl must be a github.com repository URL' },
       { status: 400 }
     );
   }
 
+  const branch = normalizeBranch(body.branch);
+  if (branch === null) {
+    return NextResponse.json({ error: 'branch is not a valid git ref name' }, { status: 400 });
+  }
+
   const id = generateId();
-  const repoName = body.name ?? extractRepoName(repoUrl);
-  const safeName = sanitizeName(repoName);
-  const localPath = path.join(WORKSPACES_DIR, id, safeName);
+  const repoName = body.name ?? repoRef.repo;
+  const safeName = sanitizeName(repoName) || repoRef.repo;
+  const { workspaceDir, localPath } = resolveWorkspacePath(id, safeName);
 
   try {
     // Ensure workspaces directory exists
-    fs.mkdirSync(path.dirname(localPath), { recursive: true });
+    fs.mkdirSync(workspaceDir, { recursive: true });
 
-    // Embed OAuth token for private repo access (https://token@github.com/...)
-    let cloneUrl = repoUrl;
     const oauthToken = session.accessToken ?? process.env.GITHUB_TOKEN;
-    if (oauthToken && cloneUrl.startsWith('https://github.com/')) {
-      cloneUrl = cloneUrl.replace('https://', `https://${oauthToken}@`);
-    }
-
-    // Build git clone command
-    const branchArg = branch ? `--branch ${branch}` : '';
-    const depthArg = '--depth 1'; // shallow clone for speed
-    const cmd = `git clone ${depthArg} ${branchArg} "${cloneUrl}" "${localPath}"`;
+    const env = withGitHubAuthEnv(oauthToken);
+    const cloneArgs = ['clone', '--depth', '1'];
+    if (branch) cloneArgs.push('--branch', branch);
+    cloneArgs.push('--', repoRef.cloneUrl, localPath);
 
     // Clone with 2-minute timeout
-    await execAsync(cmd, { timeout: 120_000 });
+    await execGit(cloneArgs, { timeout: 120_000, env });
 
     // Read actual branch name from cloned repo
     let actualBranch = branch ?? 'main';
     try {
-      const { stdout } = await execAsync('git rev-parse --abbrev-ref HEAD', {
+      const { stdout } = await execGit(['rev-parse', '--abbrev-ref', 'HEAD'], {
         cwd: localPath,
+        env,
       });
       actualBranch = stdout.trim();
     } catch {
@@ -108,8 +229,8 @@ export async function POST(req: NextRequest) {
     // Count files for quick stats
     let fileCount = 0;
     try {
-      const { stdout } = await execAsync('git ls-files | wc -l', { cwd: localPath });
-      fileCount = parseInt(stdout.trim(), 10) || 0;
+      const { stdout } = await execGit(['ls-files'], { cwd: localPath, env });
+      fileCount = stdout.split(/\r?\n/).filter(Boolean).length;
     } catch {
       // non-critical
     }
@@ -117,7 +238,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       id,
       name: safeName,
-      repoUrl,
+      repoUrl: repoRef.cloneUrl,
       branch: actualBranch,
       localPath,
       status: 'ready',
@@ -128,18 +249,12 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     // Clean up on failure
     try {
-      fs.rmSync(path.join(WORKSPACES_DIR, id), { recursive: true, force: true });
+      fs.rmSync(workspaceDir, { recursive: true, force: true });
     } catch {
       /* ignore cleanup failure */
     }
 
-    return NextResponse.json(
-      {
-        error: err instanceof Error ? err.message : 'Clone failed',
-        hint: 'Check that git is installed and the repo URL is accessible.',
-      },
-      { status: 500 }
-    );
+    return NextResponse.json(publicCloneError(err), { status: 500 });
   }
 }
 
@@ -148,15 +263,16 @@ export async function POST(req: NextRequest) {
  */
 export async function GET() {
   try {
-    if (!fs.existsSync(WORKSPACES_DIR)) {
+    const workspacesDir = path.resolve(getWorkspacesDir());
+    if (!fs.existsSync(workspacesDir)) {
       return NextResponse.json({ workspaces: [] });
     }
 
-    const entries = fs.readdirSync(WORKSPACES_DIR, { withFileTypes: true });
+    const entries = fs.readdirSync(workspacesDir, { withFileTypes: true });
     const workspaces = entries
       .filter((e) => e.isDirectory())
       .map((e) => {
-        const wsDir = path.join(WORKSPACES_DIR, e.name);
+        const wsDir = path.join(workspacesDir, e.name);
         const subDirs = fs
           .readdirSync(wsDir, { withFileTypes: true })
           .filter((d) => d.isDirectory());
@@ -173,7 +289,6 @@ export async function GET() {
     return NextResponse.json({ workspaces: [] });
   }
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {
