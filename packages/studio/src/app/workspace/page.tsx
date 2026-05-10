@@ -30,10 +30,15 @@ import {
 } from 'lucide-react';
 import { GlobalNavigation } from '@/components/layout/GlobalNavigation';
 import { PatchReviewPanel } from '@/components/daemon/PatchReviewPanel';
+import {
+  ResearchLanePrompt,
+  ResearchLaneArtifacts,
+} from '@/components/research/ResearchLanePrompt';
 import { useDaemonJobs } from '@/hooks/useDaemonJobs';
 import type { DaemonJob, DaemonProfile } from '@/hooks/useDaemonJobs';
 import { HOLO_DAEMON_MISSIONS } from '@/lib/daemon/agentProfiles';
 import type { DaemonMissionProfile } from '@/lib/daemon/types';
+import type { PaperUnlockState, PublishWorthinessSummary } from '@/lib/stores/workspaceStore';
 
 type WorkbenchTab = 'files' | 'diff' | 'agent' | 'board' | 'absorb';
 
@@ -49,6 +54,8 @@ interface WorkspaceSummary {
   fileCount: number | null;
   updatedAt: string | null;
   metadata: Record<string, unknown>;
+  publishWorthiness?: PublishWorthinessSummary | null;
+  paperUnlockState?: PaperUnlockState | null;
 }
 
 interface WorkspaceImportResponse {
@@ -177,6 +184,48 @@ function numberField(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+function readPublishWorthiness(value: unknown): PublishWorthinessSummary | null {
+  if (!isRecord(value)) return null;
+  const verdict = stringField(value.verdict);
+  if (verdict !== 'locked' && verdict !== 'candidate' && verdict !== 'unlock') return null;
+  return {
+    verdict,
+    hiddenPaperProgramUnlocked: value.hiddenPaperProgramUnlocked === true,
+    deterministicScore: numberField(value.deterministicScore) ?? 0,
+    finalScore: numberField(value.finalScore) ?? 0,
+    threshold: numberField(value.threshold) ?? 78,
+    requiredGateFailures: Array.isArray(value.requiredGateFailures)
+      ? value.requiredGateFailures.filter((item): item is string => typeof item === 'string')
+      : [],
+  };
+}
+
+function readPaperUnlockState(value: unknown): PaperUnlockState | null {
+  if (!isRecord(value)) return null;
+  const status = stringField(value.status);
+  if (status !== 'locked' && status !== 'candidate' && status !== 'opted-in') return null;
+  return {
+    status,
+    optInAt: stringField(value.optInAt) ?? undefined,
+    researchDir: stringField(value.researchDir) ?? undefined,
+    artifactsCreated: Array.isArray(value.artifactsCreated)
+      ? value.artifactsCreated.filter((item): item is string => typeof item === 'string')
+      : undefined,
+    boardTaskIds: Array.isArray(value.boardTaskIds)
+      ? value.boardTaskIds.filter((item): item is string => typeof item === 'string')
+      : undefined,
+    knowledgeEntryIds: Array.isArray(value.knowledgeEntryIds)
+      ? value.knowledgeEntryIds.filter((item): item is string => typeof item === 'string')
+      : undefined,
+    workspaceMemoryEntryIds: Array.isArray(value.workspaceMemoryEntryIds)
+      ? value.workspaceMemoryEntryIds.filter((item): item is string => typeof item === 'string')
+      : undefined,
+    workspaceMemoryPath: stringField(value.workspaceMemoryPath) ?? undefined,
+    publicKnowledgeConsent: value.publicKnowledgeConsent === true,
+    publicationPrepConsent: value.publicationPrepConsent === true,
+  };
+}
+
 function repoRefFromUrl(value: string | null): RepoRef | null {
   if (!value) return null;
   const normalized = value.trim().replace(/\.git$/i, '');
@@ -244,6 +293,8 @@ function readWorkspaceFromProject(project: AbsorbProject): WorkspaceSummary {
     fileCount: numberField(metadata.fileCount),
     updatedAt: project.updatedAt ?? project.lastAbsorbedAt ?? null,
     metadata,
+    publishWorthiness: readPublishWorthiness(metadata.publishWorthiness),
+    paperUnlockState: readPaperUnlockState(metadata.paperUnlockState),
   };
 }
 
@@ -268,6 +319,8 @@ function mergeWorkspaces(diskPayload: unknown, absorbPayload: unknown): Workspac
       fileCount: numberField(item.fileCount),
       updatedAt: stringField(item.createdAt),
       metadata: {},
+      publishWorthiness: null,
+      paperUnlockState: readPaperUnlockState(item.paperUnlockState),
     });
   }
 
@@ -286,6 +339,8 @@ function mergeWorkspaces(diskPayload: unknown, absorbPayload: unknown): Workspac
       sourceUrl: fromProject.sourceUrl ?? existing?.sourceUrl ?? null,
       branch: fromProject.branch ?? existing?.branch ?? null,
       fileCount: fromProject.fileCount ?? existing?.fileCount ?? null,
+      publishWorthiness: fromProject.publishWorthiness ?? existing?.publishWorthiness ?? null,
+      paperUnlockState: existing?.paperUnlockState ?? fromProject.paperUnlockState ?? null,
       metadata: {
         ...(existing?.metadata ?? {}),
         ...fromProject.metadata,
@@ -453,6 +508,14 @@ export default function WorkspaceWorkbenchPage() {
     } finally {
       setLoadingWorkspaces(false);
     }
+  }, []);
+
+  const handlePaperOptIn = useCallback((workspaceId: string, paperUnlockState: PaperUnlockState) => {
+    setWorkspaces((current) =>
+      current.map((workspace) =>
+        workspace.id === workspaceId ? { ...workspace, paperUnlockState } : workspace
+      )
+    );
   }, []);
 
   const loadWorkspaceRuntime = useCallback(async (workspace: WorkspaceSummary) => {
@@ -978,6 +1041,22 @@ export default function WorkspaceWorkbenchPage() {
               <div className="min-h-0 flex-1 overflow-y-auto p-4">
                 {!activeWorkspace && (
                   <EmptyState>Select or import a workspace to begin.</EmptyState>
+                )}
+
+                {activeWorkspace && (
+                  <div className="mb-4 space-y-3">
+                    <ResearchLanePrompt
+                      workspaceId={activeWorkspace.id}
+                      localPath={activeWorkspace.localPath}
+                      publishWorthiness={activeWorkspace.publishWorthiness}
+                      paperUnlockState={activeWorkspace.paperUnlockState}
+                      teamId={teamId}
+                      onOptIn={handlePaperOptIn}
+                    />
+                    <ResearchLaneArtifacts
+                      paperUnlockState={activeWorkspace.paperUnlockState}
+                    />
+                  </div>
                 )}
 
                 {activeWorkspace && activeTab === 'files' && (

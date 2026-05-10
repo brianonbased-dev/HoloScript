@@ -57,6 +57,28 @@ export interface ConversionCandidate {
 
 export type WorkspaceStatus = 'importing' | 'cloning' | 'absorbing' | 'ready' | 'error';
 
+export interface PublishWorthinessSummary {
+  verdict: 'locked' | 'candidate' | 'unlock';
+  hiddenPaperProgramUnlocked: boolean;
+  deterministicScore: number;
+  finalScore: number;
+  threshold: number;
+  requiredGateFailures: string[];
+}
+
+export interface PaperUnlockState {
+  status: 'locked' | 'candidate' | 'opted-in';
+  optInAt?: string;
+  researchDir?: string;
+  artifactsCreated?: string[];
+  boardTaskIds?: string[];
+  knowledgeEntryIds?: string[];
+  workspaceMemoryEntryIds?: string[];
+  workspaceMemoryPath?: string;
+  publicKnowledgeConsent?: boolean;
+  publicationPrepConsent?: boolean;
+}
+
 export interface Workspace {
   id: string;
   name: string;
@@ -76,6 +98,8 @@ export interface Workspace {
   conversionCandidates?: ConversionCandidate[];
   conversionManifestPath?: string | null;
   conversionActions?: Record<string, ConversionAction>;
+  publishWorthiness?: PublishWorthinessSummary | null;
+  paperUnlockState?: PaperUnlockState | null;
 }
 
 // ─── Store Interface ──────────────────────────────────────────────────────────

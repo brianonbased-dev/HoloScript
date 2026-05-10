@@ -5,6 +5,8 @@ import { useWorkspaceStore } from '@/lib/stores/workspaceStore';
 import type {
   ConversionAction,
   ConversionCandidate,
+  PaperUnlockState,
+  PublishWorthinessSummary,
   Workspace,
   ProjectDNA,
 } from '@/lib/stores/workspaceStore';
@@ -80,6 +82,8 @@ interface WorkspaceImportResponse {
   createdAt: string;
   conversionCandidates?: ConversionCandidate[];
   conversionManifestPath?: string;
+  publishWorthiness?: PublishWorthinessSummary | null;
+  paperUnlockState?: PaperUnlockState | null;
 }
 
 export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState {
@@ -195,6 +199,8 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
         conversionCandidates: candidates,
         conversionManifestPath: cloneResult.conversionManifestPath ?? null,
         conversionActions: {},
+        publishWorthiness: cloneResult.publishWorthiness ?? null,
+        paperUnlockState: cloneResult.paperUnlockState ?? null,
       };
       addWorkspace(ws);
       setImportStatus('absorbing');

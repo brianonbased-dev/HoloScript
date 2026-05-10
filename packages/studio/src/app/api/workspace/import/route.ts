@@ -314,6 +314,7 @@ export async function POST(req: NextRequest) {
           deterministicScore: publishWorthiness.deterministicScore,
           finalScore: publishWorthiness.finalScore,
           threshold: publishWorthiness.threshold,
+          requiredGateFailures: publishWorthiness.requiredGateFailures,
         },
       },
     });
@@ -346,6 +347,17 @@ export async function POST(req: NextRequest) {
   }
 }
 
+function readPaperUnlockState(localPath: string): Record<string, unknown> | null {
+  const statePath = path.join(localPath, 'research', 'paper-unlock-state.json');
+  try {
+    if (!fs.existsSync(statePath)) return null;
+    const parsed = JSON.parse(fs.readFileSync(statePath, 'utf-8')) as Record<string, unknown>;
+    return typeof parsed === 'object' && parsed !== null ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * GET /api/workspace/import — List existing workspaces on disk.
  */
@@ -365,10 +377,12 @@ export async function GET() {
           .readdirSync(wsDir, { withFileTypes: true })
           .filter((d) => d.isDirectory());
         const repoDir = subDirs[0]?.name;
+        const localPath = repoDir ? path.join(wsDir, repoDir) : wsDir;
         return {
           id: e.name,
           name: repoDir ?? e.name,
-          localPath: repoDir ? path.join(wsDir, repoDir) : wsDir,
+          localPath,
+          paperUnlockState: readPaperUnlockState(localPath),
         };
       });
 
