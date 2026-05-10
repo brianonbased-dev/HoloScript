@@ -7,6 +7,9 @@
  * Runs server-side in the Brittney route handler — never exposed to the client.
  */
 
+import { buildHoloDaemonAgentConfig, getHoloDaemonMission } from '@/lib/daemon/agentProfiles';
+import type { DaemonProfile } from '@/lib/daemon/types';
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface StudioAPIResult {
@@ -23,6 +26,22 @@ interface EndpointConfig {
   buildBody?: (args: Record<string, unknown>) => Record<string, unknown>;
   /** Transform tool args into query params for GET requests. */
   buildQuery?: (args: Record<string, unknown>) => Record<string, string>;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined;
+}
+
+function objectValue(value: unknown): Record<string, unknown> | undefined {
+  return isRecord(value) ? value : undefined;
+}
+
+function daemonProfileValue(value: unknown, fallback: DaemonProfile): DaemonProfile {
+  return value === 'quick' || value === 'balanced' || value === 'deep' ? value : fallback;
 }
 
 // ─── Endpoint registry ──────────────────────────────────────────────────────
@@ -180,10 +199,44 @@ const ENDPOINTS: Record<string, EndpointConfig> = {
   start_daemon_job: {
     method: 'POST',
     path: '/api/daemon/jobs',
-    buildBody: (args) => ({
-      type: args['type'],
-      ...(args['config'] ? { config: args['config'] } : {}),
-    }),
+    buildBody: (args) => {
+      const config = objectValue(args['config']) ?? {};
+      const missionProfile = stringValue(args['missionProfile']) ?? stringValue(config['missionProfile']);
+      const mission = getHoloDaemonMission(missionProfile);
+      const profile = daemonProfileValue(args['profile'] ?? config['profile'], mission.defaultMode);
+      const jobType = stringValue(args['type']) ?? 'improve';
+      const focus = stringValue(args['focus']) ?? stringValue(config['focus']);
+      const agentName = stringValue(args['agentName']) ?? stringValue(config['agentName']);
+      const projectId =
+        stringValue(args['projectId']) ?? stringValue(config['projectId']) ?? 'brittney-daemon';
+      const projectPath = stringValue(args['projectPath']) ?? stringValue(config['projectPath']);
+
+      return {
+        projectId,
+        profile,
+        ...(projectPath ? { projectPath } : {}),
+        ...(objectValue(config['customLimits']) ? { customLimits: config['customLimits'] } : {}),
+        projectDna: {
+          kind: mission.id === 'spatial-worldbuilder' ? 'spatial' : 'unknown',
+          confidence: 0.82,
+          detectedStack: ['brittney', 'studio-api', `job:${jobType}`, `daemon:${mission.id}`],
+          recommendedProfile: profile,
+          notes: [
+            `Brittney requested ${jobType} HoloDaemon job.`,
+            `HoloDaemon mission: ${mission.id}`,
+            mission.description,
+            ...(focus ? [`Focus: ${focus}`] : []),
+          ],
+          daemonAgent: buildHoloDaemonAgentConfig({
+            missionProfile: mission.id,
+            agentName,
+            skills: args['skills'] ?? config['skills'],
+            authorityRefs: args['authorityRefs'] ?? config['authorityRefs'],
+            schedules: args['schedules'] ?? config['schedules'],
+          }),
+        },
+      };
+    },
   },
   get_daemon_status: {
     method: 'GET',

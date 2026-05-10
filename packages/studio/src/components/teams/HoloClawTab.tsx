@@ -113,7 +113,7 @@ const STATUS_CONFIG: Record<SkillStatus, { dot: string; label: string; ring: str
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// Daemon types — 3 compositions that power the platform
+// Daemon types — resident runtime plus network/social agents
 // ---------------------------------------------------------------------------
 
 type DaemonType = 'holodaemon' | 'holomesh' | 'moltbook';
@@ -132,9 +132,9 @@ const DAEMONS: DaemonInfo[] = [
   {
     id: 'holodaemon',
     name: 'HoloDaemon',
-    composition: 'self-improve-daemon.hsplus',
-    description: 'Self-improvement — types, tests, cleanup, code quality',
-    command: 'holoscript holodaemon compositions/self-improve-daemon.hsplus',
+    composition: 'holodaemon.hsplus + holoheal.hsplus',
+    description: 'Resident runtime — HoloHeal default, customizable builder, launch, research, spatial, secrets, and fleet missions',
+    command: 'holoscript holodaemon compositions/holodaemon.hsplus --mission holoheal',
     color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
     dotColor: 'bg-emerald-400',
   },
@@ -666,7 +666,7 @@ export function HoloClawTab() {
         {section === 'daemons' && (
           <div className="space-y-3">
             <p className="text-xs text-studio-muted mb-4">
-              Three HoloScript compositions power your project. Each runs as a behavior tree with economy limits and Ed25519 signing.
+              HoloDaemon hosts resident mission profiles; HoloMesh and Moltbook connect those agents to network knowledge and social surfaces.
             </p>
             {DAEMONS.map((d) => (
               <div

@@ -32,6 +32,8 @@ import { GlobalNavigation } from '@/components/layout/GlobalNavigation';
 import { PatchReviewPanel } from '@/components/daemon/PatchReviewPanel';
 import { useDaemonJobs } from '@/hooks/useDaemonJobs';
 import type { DaemonJob, DaemonProfile } from '@/hooks/useDaemonJobs';
+import { HOLO_DAEMON_MISSIONS } from '@/lib/daemon/agentProfiles';
+import type { DaemonMissionProfile } from '@/lib/daemon/types';
 
 type WorkbenchTab = 'files' | 'diff' | 'agent' | 'board' | 'absorb';
 
@@ -381,6 +383,8 @@ export default function WorkspaceWorkbenchPage() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [reviewJob, setReviewJob] = useState<DaemonJob | null>(null);
   const [daemonProfile, setDaemonProfile] = useState<DaemonProfile>('balanced');
+  const [daemonMissionProfile, setDaemonMissionProfile] =
+    useState<DaemonMissionProfile>('holoheal');
 
   const [teamId, setTeamId] = useState('');
   const [board, setBoard] = useState<BoardResponse | null>(null);
@@ -405,6 +409,12 @@ export default function WorkspaceWorkbenchPage() {
     if (!activeWorkspace) return null;
     return activeWorkspace.metadata;
   }, [activeWorkspace]);
+  const selectedDaemonMission = useMemo(
+    () =>
+      HOLO_DAEMON_MISSIONS.find((mission) => mission.id === daemonMissionProfile) ??
+      HOLO_DAEMON_MISSIONS[0],
+    [daemonMissionProfile]
+  );
   const workspaceJobs = useMemo(() => {
     if (!activeWorkspace) return [];
     return jobs.filter(
@@ -725,12 +735,22 @@ export default function WorkspaceWorkbenchPage() {
           detectedStack: [
             activeWorkspace.fileCount ? `${activeWorkspace.fileCount} files` : 'imported repo',
             activeWorkspace.branch ? `branch ${activeWorkspace.branch}` : 'git workspace',
+            `daemon:${selectedDaemonMission.id}`,
           ],
           recommendedProfile: daemonProfile,
           notes: [
-            `Workbench assigned ${activeWorkspace.name} to the Studio daemon.`,
+            `Workbench assigned ${activeWorkspace.name} to HoloDaemon mission ${selectedDaemonMission.id}.`,
+            selectedDaemonMission.description,
             `Workspace path: ${activeWorkspace.localPath}`,
           ],
+          daemonAgent: {
+            missionProfile: selectedDaemonMission.id,
+            agentName: selectedDaemonMission.name,
+            skills: selectedDaemonMission.defaultSkills,
+            authorityRefs: selectedDaemonMission.authorityRefs,
+            schedules: selectedDaemonMission.schedules,
+            rawSecretAccess: false,
+          },
         },
       });
       setSelectedJobId(job.id);
@@ -1172,6 +1192,35 @@ export default function WorkspaceWorkbenchPage() {
                       <div className="flex items-center gap-2 text-sm font-medium text-slate-100">
                         <Bot className="h-4 w-4 text-emerald-300" />
                         Agent Assignment
+                      </div>
+                      <label className="block text-xs text-slate-400">
+                        Mission
+                        <select
+                          value={daemonMissionProfile}
+                          onChange={(event) =>
+                            setDaemonMissionProfile(event.target.value as DaemonMissionProfile)
+                          }
+                          className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100"
+                        >
+                          {HOLO_DAEMON_MISSIONS.map((mission) => (
+                            <option key={mission.id} value={mission.id}>
+                              {mission.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <p className="text-xs leading-relaxed text-slate-400">
+                        {selectedDaemonMission.description}
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {selectedDaemonMission.defaultSkills.slice(0, 4).map((skill) => (
+                          <span
+                            key={skill}
+                            className="rounded border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-200"
+                          >
+                            {skill}
+                          </span>
+                        ))}
                       </div>
                       <div className="grid grid-cols-3 gap-2">
                         {(['quick', 'balanced', 'deep'] as DaemonProfile[]).map((profile) => (

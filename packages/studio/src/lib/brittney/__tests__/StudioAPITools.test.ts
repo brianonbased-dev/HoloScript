@@ -125,6 +125,16 @@ describe('Tool categories', () => {
     expect(findTool('get_daemon_status')).toBeDefined();
   });
 
+  it('exposes HoloDaemon mission selection on daemon jobs', () => {
+    const tool = findTool('start_daemon_job');
+    const missionProfile = tool?.function.parameters.properties['missionProfile'];
+    expect(missionProfile).toEqual(
+      expect.objectContaining({
+        enum: expect.arrayContaining(['holoheal', 'secret-custodian', 'fleet-auditor']),
+      })
+    );
+  });
+
   it('has health/config tools', () => {
     expect(findTool('get_capabilities')).toBeDefined();
     expect(findTool('get_mcp_config')).toBeDefined();
@@ -379,6 +389,40 @@ describe('executeStudioTool', () => {
       name: args.name,
       branch: args.branch,
     });
+  });
+
+  it('builds HoloDaemon mission DNA for daemon jobs', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ job: { id: 'dj-1' } }), {
+        status: 201,
+        headers: { 'content-type': 'application/json' },
+      })
+    );
+
+    await executeStudioTool(
+      'start_daemon_job',
+      {
+        type: 'full-pipeline',
+        projectId: 'proj-1',
+        profile: 'deep',
+        missionProfile: 'secret-custodian',
+        focus: 'rotate workspace handles',
+      },
+      BASE_URL
+    );
+
+    const callArgs = vi.mocked(fetch).mock.calls[0];
+    expect(callArgs[0]).toBe(`${BASE_URL}/api/daemon/jobs`);
+    const body = JSON.parse((callArgs[1] as RequestInit).body as string);
+    expect(body.projectId).toBe('proj-1');
+    expect(body.profile).toBe('deep');
+    expect(body.projectDna.detectedStack).toContain('daemon:secret-custodian');
+    expect(body.projectDna.daemonAgent).toEqual(
+      expect.objectContaining({
+        missionProfile: 'secret-custodian',
+        rawSecretAccess: false,
+      })
+    );
   });
 
   it('encodes special characters in team ID', async () => {

@@ -539,7 +539,7 @@ const startDaemonJob: StudioToolDefinition = {
   function: {
     name: 'start_daemon_job',
     description:
-      'Start a background daemon job for continuous code improvement. Daemon agents (Claude/Grok/GPT rotation) fix types, add tests, clean code, and compound knowledge automatically. Use when the user wants background improvement running on their project.',
+      'Start a HoloDaemon resident-agent job. HoloHeal is the default self-improvement mission, but HoloDaemon can also run builder, launch, research, spatial, secret-custody, and fleet-audit missions. Use when the user wants a background agent running on their project.',
     parameters: {
       type: 'object',
       properties: {
@@ -548,11 +548,50 @@ const startDaemonJob: StudioToolDefinition = {
           description: 'Job type',
           enum: ['improve', 'test', 'lint', 'absorb', 'full-pipeline'],
         },
+        projectId: {
+          type: 'string',
+          description: 'Project ID to run against',
+        },
+        profile: {
+          type: 'string',
+          description: 'Execution depth for the daemon job',
+          enum: ['quick', 'balanced', 'deep'],
+        },
+        missionProfile: {
+          type: 'string',
+          description: 'HoloDaemon mission profile',
+          enum: [
+            'holoheal',
+            'builder',
+            'launch-operator',
+            'research-oracle',
+            'spatial-worldbuilder',
+            'secret-custodian',
+            'fleet-auditor',
+          ],
+        },
+        focus: {
+          type: 'string',
+          description: 'Focus area: types, tests, performance, security, docs, launch, secrets',
+        },
+        agentName: {
+          type: 'string',
+          description: 'Optional display name for the resident HoloDaemon agent',
+        },
         config: {
           type: 'object',
-          description: 'Job configuration (varies by type)',
+          description: 'Backward-compatible job configuration. Prefer top-level projectId, profile, missionProfile, and focus when available.',
           properties: {
             projectId: { type: 'string', description: 'Project ID to run against' },
+            profile: {
+              type: 'string',
+              description: 'Execution depth for the daemon job',
+              enum: ['quick', 'balanced', 'deep'],
+            },
+            missionProfile: {
+              type: 'string',
+              description: 'HoloDaemon mission profile',
+            },
             maxIterations: { type: 'number', description: 'Maximum improvement iterations' },
             focus: {
               type: 'string',

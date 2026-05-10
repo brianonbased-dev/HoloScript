@@ -28,6 +28,8 @@ import {
   type DaemonProfile,
   type DaemonTelemetrySummary,
 } from '@/hooks/useDaemonJobs';
+import { HOLO_DAEMON_MISSIONS } from '@/lib/daemon/agentProfiles';
+import type { DaemonMissionProfile } from '@/lib/daemon/types';
 import {
   CreditBalanceCard,
   ProjectCard,
@@ -942,8 +944,16 @@ function HoloDaemonSubPanel() {
   const [_jobs, setJobs] = useState<DaemonJob[]>([]);
   const [telemetry, setTelemetry] = useState<DaemonTelemetrySummary | null>(null);
   const [daemonMode, setDaemonMode] = useState<DaemonProfile>('balanced');
+  const [daemonMissionProfile, setDaemonMissionProfile] =
+    useState<DaemonMissionProfile>('holoheal');
   const { createJob, listJobs, getTelemetry, creating, error } = useDaemonJobs();
   const { job: polledJob } = useDaemonJobPoller(selectedJobId);
+  const selectedDaemonMission = useMemo(
+    () =>
+      HOLO_DAEMON_MISSIONS.find((mission) => mission.id === daemonMissionProfile) ??
+      HOLO_DAEMON_MISSIONS[0],
+    [daemonMissionProfile]
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -1023,9 +1033,20 @@ function HoloDaemonSubPanel() {
         projectDna: {
           kind: 'spatial',
           confidence: 0.95,
-          detectedStack: ['typescript', 'react', 'holoscript', 'three.js'],
+          detectedStack: ['typescript', 'react', 'holoscript', 'three.js', `daemon:${selectedDaemonMission.id}`],
           recommendedProfile: daemonMode,
-          notes: ['HoloScript monorepo — self-improvement daemon run'],
+          notes: [
+            `HoloDaemon mission: ${selectedDaemonMission.id}`,
+            selectedDaemonMission.description,
+          ],
+          daemonAgent: {
+            missionProfile: selectedDaemonMission.id,
+            agentName: selectedDaemonMission.name,
+            skills: selectedDaemonMission.defaultSkills,
+            authorityRefs: selectedDaemonMission.authorityRefs,
+            schedules: selectedDaemonMission.schedules,
+            rawSecretAccess: false,
+          },
         },
       });
       setSelectedJobId(job.id);
@@ -1039,7 +1060,7 @@ function HoloDaemonSubPanel() {
     } catch (err) {
       logger.warn('[AbsorbPage] daemon job creation failed:', err);
     }
-  }, [createJob, daemonMode, composition]);
+  }, [createJob, daemonMode, composition, selectedDaemonMission]);
 
   const daemonStatus =
     polledJob?.status === 'running' ? 'running' : polledJob?.status === 'failed' ? 'error' : 'idle';
@@ -1066,6 +1087,17 @@ function HoloDaemonSubPanel() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <select
+            value={daemonMissionProfile}
+            onChange={(e) => setDaemonMissionProfile(e.target.value as DaemonMissionProfile)}
+            className="rounded-md border border-studio-border bg-studio-surface px-2 py-1 text-xs text-studio-text"
+          >
+            {HOLO_DAEMON_MISSIONS.map((mission) => (
+              <option key={mission.id} value={mission.id}>
+                {mission.name}
+              </option>
+            ))}
+          </select>
           <select
             value={daemonMode}
             onChange={(e) => setDaemonMode(e.target.value as DaemonProfile)}
