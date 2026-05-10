@@ -5,7 +5,13 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as mod from '../index';
-import { mapTalkingHead, type TalkingHeadInput } from '../index';
+import {
+  mapTalkingHead,
+  OfflineVisemeExtractor,
+  WebAudioVisemeExtractor,
+  type TalkingHeadInput,
+  type AudioBufferLike,
+} from '../index';
 
 function fixture(overrides: Partial<TalkingHeadInput> = {}): TalkingHeadInput {
   return {
@@ -23,6 +29,14 @@ function fixture(overrides: Partial<TalkingHeadInput> = {}): TalkingHeadInput {
 describe('CONTRACT: talkinghead-plugin adapter', () => {
   it('exposes mapTalkingHead at stable public path', () => {
     expect(typeof mod.mapTalkingHead).toBe('function');
+  });
+
+  it('exposes OfflineVisemeExtractor at stable public path', () => {
+    expect(typeof mod.OfflineVisemeExtractor).toBe('function');
+  });
+
+  it('exposes WebAudioVisemeExtractor at stable public path', () => {
+    expect(typeof mod.WebAudioVisemeExtractor).toBe('function');
   });
 
   it('lipsync.kind is @lipsync and target_id preserves clip_id', () => {
@@ -90,5 +104,69 @@ describe('CONTRACT: talkinghead-plugin adapter', () => {
     expect(() => mapTalkingHead(fixture({ visemes: [] }))).not.toThrow();
     const r = mapTalkingHead(fixture({ visemes: [] }));
     expect(r.viseme_count).toBe(0);
+  });
+
+  it('silence gaps produce a coverage warning', () => {
+    const r = mapTalkingHead({
+      clip_id: 'gaps',
+      duration_ms: 1000,
+      visemes: [
+        { viseme: 'aa', t_start_ms: 0, t_end_ms: 100 },
+        { viseme: 'E', t_start_ms: 900, t_end_ms: 1000 },
+      ],
+    });
+    expect(r.warnings.some((w) => /silence gaps/.test(w))).toBe(true);
+  });
+
+  it('auto-extracts visemes when audio_buffer is provided and visemes omitted', () => {
+    const samples = new Float32Array(4410); // 100ms at 44.1k
+    for (let i = 0; i < samples.length; i++) {
+      samples[i] = 0.8 * Math.sin((2 * Math.PI * 200 * i) / 44100);
+    }
+    const buf: AudioBufferLike = {
+      samples,
+      sampleRate: 44100,
+      channels: 1,
+      durationMs: 100,
+    };
+    const r = mapTalkingHead({
+      clip_id: 'auto',
+      duration_ms: 100,
+      audio_buffer: buf,
+    });
+    expect(r.viseme_count).toBeGreaterThan(0);
+    expect(r.warnings).not.toContain('no viseme events — full silence');
+  });
+
+  it('warns when audio_uri is present without audio_buffer or visemes', () => {
+    const r = mapTalkingHead({
+      clip_id: 'uri-only',
+      duration_ms: 500,
+      audio_uri: 'https://example.com/audio.wav',
+    });
+    expect(r.warnings.some((w) => /audio_uri provided but no audio_buffer/.test(w))).toBe(true);
+  });
+
+  it('OfflineVisemeExtractor implements VisemeExtractor contract', () => {
+    const ext = new OfflineVisemeExtractor();
+    expect(typeof ext.extract).toBe('function');
+    const silence = new Float32Array(2205);
+    const result = ext.extract({ samples: silence, sampleRate: 44100, channels: 1, durationMs: 50 });
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it('WebAudioVisemeExtractor implements VisemeExtractor contract', () => {
+    const ext = new WebAudioVisemeExtractor();
+    expect(typeof ext.extract).toBe('function');
+    const silence = new Float32Array(2205);
+    const result = ext.extract({ samples: silence, sampleRate: 44100, channels: 1, durationMs: 50 });
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it('WebAudioVisemeExtractor.extractFromURI throws in Node.js (no WebAudio API)', async () => {
+    const ext = new WebAudioVisemeExtractor();
+    await expect(ext.extractFromURI('https://example.com/audio.wav')).rejects.toThrow(
+      /Web Audio API not available/
+    );
   });
 });
