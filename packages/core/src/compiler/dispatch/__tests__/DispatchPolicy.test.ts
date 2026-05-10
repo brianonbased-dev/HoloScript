@@ -3,8 +3,8 @@ import {
   DispatchPolicy,
   DispatchTier,
   AlphaTracker,
+  detectNeuromorphicRuntime,
 } from '../DispatchPolicy';
-import type { EffectCheckResult } from '../../safety/EffectChecker';
 
 describe('DispatchPolicy', () => {
   it('falls back to Tier-3 when no tiers are enabled', async () => {
@@ -37,6 +37,64 @@ describe('DispatchPolicy', () => {
     expect(decision.metrics.fallbackReason).toContain('WebGPU');
   });
 
+  it('does not treat a configured NIR target as discovered hardware', async () => {
+    const policy = new DispatchPolicy({
+      tier1NeuromorphicEnabled: true,
+      tier1NeuromorphicDevice: 'loihi',
+    });
+    const decision = await policy.route({
+      trait: 'grabbable',
+      nodeId: 'nir-missing',
+    });
+    expect(decision.tier).toBe(DispatchTier.TIER_3_CPU_DIRECT);
+    expect(decision.metrics.fallbackReason).toContain('No loihi NIR runtime device discovered');
+    expect(decision.metrics.neuromorphicProbe?.available).toBe(false);
+  });
+
+  it('routes Tier-1 Neuromorphic when the runtime probe discovers a compatible device', async () => {
+    const policy = new DispatchPolicy({
+      tier1NeuromorphicEnabled: true,
+      tier1NeuromorphicDevice: 'synsense',
+      neuromorphicRuntimeProbe: async () => ({
+        available: true,
+        device: 'synsense',
+        source: 'test-probe',
+        devices: [{ target: 'synsense', id: 'speck-1', source: 'test-probe' }],
+      }),
+    });
+    const decision = await policy.route({
+      trait: 'grabbable',
+      nodeId: 'nir-ready',
+    });
+    expect(decision.tier).toBe(DispatchTier.TIER_1_NEUROMORPHIC);
+    expect(decision.accepted).toBe(true);
+    expect(decision.metrics.neuromorphicProbe?.source).toBe('test-probe');
+  });
+
+  it('discovers NIR runtime devices from the global runtime registry', () => {
+    const runtime = globalThis as typeof globalThis & {
+      __HOLOSCRIPT_NIR_DEVICES__?: unknown;
+    };
+    const previous = runtime.__HOLOSCRIPT_NIR_DEVICES__;
+    runtime.__HOLOSCRIPT_NIR_DEVICES__ = [
+      { target: 'spinnaker2', id: 'board-01', source: 'vitest' },
+    ];
+
+    try {
+      const probe = detectNeuromorphicRuntime('spinnaker');
+      expect(probe.available).toBe(true);
+      expect(probe.device).toBe('spinnaker');
+      expect(probe.source).toBe('vitest');
+      expect(probe.devices?.[0]?.id).toBe('board-01');
+    } finally {
+      if (previous === undefined) {
+        delete runtime.__HOLOSCRIPT_NIR_DEVICES__;
+      } else {
+        runtime.__HOLOSCRIPT_NIR_DEVICES__ = previous;
+      }
+    }
+  });
+
   it('promotes to Tier-2 when verifier passes and alpha exceeds threshold', async () => {
     const policy = new DispatchPolicy({
       tier1BrowserEnabled: false,
@@ -61,8 +119,7 @@ describe('DispatchPolicy', () => {
       tier1NeuromorphicEnabled: false,
       tier2Enabled: true,
       tier2AlphaThreshold: 0.5,
-      effectVerifier: async () =>
-        ({ passed: false } as unknown as EffectCheckResult),
+      effectVerifier: async () => ({ passed: false }),
       alphaWindowSize: 10,
     });
     const decision = await policy.route({

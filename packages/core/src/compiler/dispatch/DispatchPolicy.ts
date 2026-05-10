@@ -14,11 +14,7 @@
  * @module @holoscript/core/compiler/dispatch
  */
 
-import type {
-  ProvenanceContext,
-  ProvenanceValue,
-} from '../traits/ProvenanceSemiring';
-import type { EffectCheckResult } from '../safety/EffectChecker';
+import type { ProvenanceContext, ProvenanceValue } from '../traits/ProvenanceSemiring';
 import { isWebGpuEnvironmentPresent } from '../../reconstruction/webgpuGate';
 import type { ReconstructionManifest } from '../../reconstruction/HoloMapRuntime';
 import { assertHoloMapManifestContract } from '../../reconstruction/simulationContractBinding';
@@ -30,19 +26,46 @@ export enum DispatchTier {
   TIER_3_CPU_DIRECT = 'tier-3-cpu-direct',
 }
 
+export type NeuromorphicDeviceTarget = 'loihi' | 'spinnaker' | 'synsense' | 'akida';
+
+export interface NeuromorphicRuntimeDevice {
+  target: NeuromorphicDeviceTarget;
+  id?: string;
+  available?: boolean;
+  source?: string;
+}
+
+export interface NeuromorphicRuntimeProbeResult {
+  available: boolean;
+  device?: NeuromorphicDeviceTarget;
+  source: string;
+  reason?: string;
+  devices?: NeuromorphicRuntimeDevice[];
+}
+
+export type NeuromorphicRuntimeProbe = (
+  preferredDevice?: NeuromorphicDeviceTarget
+) => NeuromorphicRuntimeProbeResult | Promise<NeuromorphicRuntimeProbeResult>;
+
+export interface DispatchEffectVerifierResult {
+  passed: boolean;
+}
+
 export interface DispatchPolicyConfig {
   /** Enable Tier-1 Browser (WebGPU SNN) path */
   tier1BrowserEnabled: boolean;
   /** Enable Tier-1 Neuromorphic (NIR) path */
   tier1NeuromorphicEnabled: boolean;
   /** Specific NIR device target, if any */
-  tier1NeuromorphicDevice?: 'loihi' | 'spinnaker' | 'synsense' | 'akida';
+  tier1NeuromorphicDevice?: NeuromorphicDeviceTarget;
+  /** Runtime NIR device probe. Defaults to global/env discovery signals. */
+  neuromorphicRuntimeProbe?: NeuromorphicRuntimeProbe;
   /** Enable Tier-2 speculative LLM + CPU verifier */
   tier2Enabled: boolean;
   /** Minimum alpha (acceptance rate) to allow Tier-2 promotion */
   tier2AlphaThreshold: number;
   /** Effect-checker verifier for Tier-2 acceptance gate */
-  effectVerifier?: (traits: string[]) => Promise<EffectCheckResult | null>;
+  effectVerifier?: (traits: string[]) => Promise<DispatchEffectVerifierResult | null>;
   /** Simulation-contract verifier for Tier-2 acceptance gate */
   simulationContractVerifier?: (manifest: unknown) => Promise<boolean>;
   /** Rolling window size for alpha tracking */
@@ -69,6 +92,8 @@ export interface DispatchMetrics {
   latencyEstimateMs: number;
   /** For Tier-2: speculative-decoding alpha at time of dispatch */
   alpha?: number;
+  /** Runtime probe evidence for Tier-1 neuromorphic decisions */
+  neuromorphicProbe?: NeuromorphicRuntimeProbeResult;
 }
 
 export interface DispatchDecision {
@@ -138,6 +163,7 @@ export class DispatchPolicy {
     const start = performance.now();
 
     let lastRejectionReason: string | undefined;
+    let lastRejectionMetrics: Partial<DispatchMetrics> | undefined;
 
     // --- Tier 1-Neuromorphic -------------------------------------------------
     if (this.config.tier1NeuromorphicEnabled) {
@@ -147,6 +173,9 @@ export class DispatchPolicy {
         return decision;
       }
       lastRejectionReason = decision.metrics.fallbackReason;
+      lastRejectionMetrics = {
+        neuromorphicProbe: decision.metrics.neuromorphicProbe,
+      };
     }
 
     // --- Tier 1-Browser ------------------------------------------------------
@@ -157,6 +186,7 @@ export class DispatchPolicy {
         return decision;
       }
       lastRejectionReason = decision.metrics.fallbackReason;
+      lastRejectionMetrics = undefined;
     }
 
     // --- Tier 2-Speculative --------------------------------------------------
@@ -167,10 +197,15 @@ export class DispatchPolicy {
         return decision;
       }
       lastRejectionReason = decision.metrics.fallbackReason;
+      lastRejectionMetrics = undefined;
     }
 
     // --- Tier 3-CPU Direct (always available) --------------------------------
-    const decision = this.fallbackTier3(op, lastRejectionReason ?? 'No higher tier accepted or enabled');
+    const decision = this.fallbackTier3(
+      op,
+      lastRejectionReason ?? 'No higher tier accepted or enabled',
+      lastRejectionMetrics
+    );
     decision.metrics.latencyEstimateMs = performance.now() - start;
     return decision;
   }
@@ -185,10 +220,19 @@ export class DispatchPolicy {
   // ---------------------------------------------------------------------------
 
   private async tryTier1Neuromorphic(op: DispatchableOperation): Promise<DispatchDecision> {
-    const available = this.isNeuromorphicHardwarePresent();
-    const accepted = available && this.isTraitSnnCompatible(op.trait);
-    const reason = accepted ? undefined : 'Neuromorphic hardware not present or trait incompatible';
-    return this.buildDecision(DispatchTier.TIER_1_NEUROMORPHIC, accepted, op, reason);
+    const probe = await this.probeNeuromorphicRuntime();
+    const deviceMatches =
+      probe.available &&
+      (!this.config.tier1NeuromorphicDevice ||
+        probe.device === this.config.tier1NeuromorphicDevice);
+    const traitCompatible = this.isTraitSnnCompatible(op.trait);
+    const accepted = deviceMatches && traitCompatible;
+    const reason = accepted
+      ? undefined
+      : this.describeNeuromorphicRejection(probe, traitCompatible);
+    return this.buildDecision(DispatchTier.TIER_1_NEUROMORPHIC, accepted, op, reason, undefined, {
+      neuromorphicProbe: probe,
+    });
   }
 
   private async tryTier1Browser(op: DispatchableOperation): Promise<DispatchDecision> {
@@ -218,28 +262,52 @@ export class DispatchPolicy {
     return this.buildDecision(DispatchTier.TIER_2_SPECULATIVE, accepted, op, reason, alpha);
   }
 
-  private fallbackTier3(op: DispatchableOperation, reason: string): DispatchDecision {
-    return this.buildDecision(DispatchTier.TIER_3_CPU_DIRECT, true, op, reason);
+  private fallbackTier3(
+    op: DispatchableOperation,
+    reason: string,
+    extraMetrics: Partial<DispatchMetrics> = {}
+  ): DispatchDecision {
+    return this.buildDecision(
+      DispatchTier.TIER_3_CPU_DIRECT,
+      true,
+      op,
+      reason,
+      undefined,
+      extraMetrics
+    );
   }
 
   // ---------------------------------------------------------------------------
   // VERIFIERS & HELPERS
   // ---------------------------------------------------------------------------
 
-  private isNeuromorphicHardwarePresent(): boolean {
-    // TODO: replace with real runtime probe once NIR device discovery is wired.
-    return !!this.config.tier1NeuromorphicDevice;
+  private async probeNeuromorphicRuntime(): Promise<NeuromorphicRuntimeProbeResult> {
+    const probe = this.config.neuromorphicRuntimeProbe ?? detectNeuromorphicRuntime;
+    return probe(this.config.tier1NeuromorphicDevice);
+  }
+
+  private describeNeuromorphicRejection(
+    probe: NeuromorphicRuntimeProbeResult,
+    traitCompatible: boolean
+  ): string {
+    if (!probe.available) {
+      return probe.reason ?? 'Neuromorphic runtime device not discovered';
+    }
+    if (
+      this.config.tier1NeuromorphicDevice &&
+      probe.device !== this.config.tier1NeuromorphicDevice
+    ) {
+      return `NIR runtime discovered ${probe.device ?? 'unknown'} but requires ${this.config.tier1NeuromorphicDevice}`;
+    }
+    if (!traitCompatible) {
+      return 'Trait is not mapped to the SNN/NIR hot path';
+    }
+    return 'Neuromorphic runtime probe did not accept dispatch';
   }
 
   private isTraitSnnCompatible(trait: string): boolean {
     // MVP: only @grabbable and interaction traits are mapped to SNN hot path.
-    const snnTraits = new Set([
-      'grabbable',
-      'hoverable',
-      'clickable',
-      'draggable',
-      'throwable',
-    ]);
+    const snnTraits = new Set(['grabbable', 'hoverable', 'clickable', 'draggable', 'throwable']);
     return snnTraits.has(trait);
   }
 
@@ -248,10 +316,7 @@ export class DispatchPolicy {
     return { proposed: true, tier: 2 };
   }
 
-  private async runCpuVerifier(
-    op: DispatchableOperation,
-    _proposal: unknown
-  ): Promise<boolean> {
+  private async runCpuVerifier(op: DispatchableOperation, _proposal: unknown): Promise<boolean> {
     // 1. EffectInference gate
     if (this.config.effectVerifier) {
       const effectResult = await this.config.effectVerifier([op.trait]);
@@ -285,7 +350,8 @@ export class DispatchPolicy {
     accepted: boolean,
     op: DispatchableOperation,
     fallbackReason?: string,
-    alpha?: number
+    alpha?: number,
+    extraMetrics: Partial<DispatchMetrics> = {}
   ): DispatchDecision {
     const metrics: DispatchMetrics = {
       tierAttempted: tier,
@@ -293,6 +359,7 @@ export class DispatchPolicy {
       fallbackReason,
       latencyEstimateMs: 0,
       alpha,
+      ...extraMetrics,
     };
 
     const provenanceContext: ProvenanceContext = op.provenanceContext ?? {
@@ -328,4 +395,120 @@ export class DispatchPolicy {
     }
     return `fnv1a-64:${hash.toString(16)}`;
   }
+}
+
+export function detectNeuromorphicRuntime(
+  preferredDevice?: NeuromorphicDeviceTarget
+): NeuromorphicRuntimeProbeResult {
+  const globalDevices = readGlobalNeuromorphicDevices();
+  const envDevices = readEnvNeuromorphicDevices();
+  const devices = [...globalDevices, ...envDevices]
+    .filter((device) => device.available !== false)
+    .sort((a, b) => deviceRank(a.target) - deviceRank(b.target));
+
+  const selected = preferredDevice
+    ? devices.find((device) => device.target === preferredDevice)
+    : devices[0];
+
+  if (selected) {
+    return {
+      available: true,
+      device: selected.target,
+      source: selected.source ?? 'runtime',
+      devices,
+    };
+  }
+
+  return {
+    available: false,
+    source: devices.length ? 'runtime' : 'none',
+    reason: preferredDevice
+      ? `No ${preferredDevice} NIR runtime device discovered`
+      : 'No NIR runtime device discovered',
+    devices,
+  };
+}
+
+function readGlobalNeuromorphicDevices(): NeuromorphicRuntimeDevice[] {
+  const runtime = globalThis as typeof globalThis & {
+    __HOLOSCRIPT_NIR_DEVICES__?: unknown;
+  };
+  return parseNeuromorphicDevices(runtime.__HOLOSCRIPT_NIR_DEVICES__, 'global');
+}
+
+function readEnvNeuromorphicDevices(): NeuromorphicRuntimeDevice[] {
+  const env = typeof process !== 'undefined' ? process.env : undefined;
+  if (!env) return [];
+
+  const configured = parseNeuromorphicDevices(env.HOLOSCRIPT_NIR_DEVICE ?? env.NIR_DEVICE, 'env');
+  const detected: NeuromorphicRuntimeDevice[] = [...configured];
+
+  if (env.LOIHI2_HOST) {
+    detected.push({ target: 'loihi', id: env.LOIHI2_HOST, available: true, source: 'env' });
+  }
+  if (env.SPINNAKER_BOARD) {
+    detected.push({ target: 'spinnaker', id: env.SPINNAKER_BOARD, available: true, source: 'env' });
+  }
+  if (env.SYNSENSE_DEVICE) {
+    detected.push({ target: 'synsense', id: env.SYNSENSE_DEVICE, available: true, source: 'env' });
+  }
+  if (env.AKIDA_DEVICE) {
+    detected.push({ target: 'akida', id: env.AKIDA_DEVICE, available: true, source: 'env' });
+  }
+
+  return detected;
+}
+
+function parseNeuromorphicDevices(value: unknown, source: string): NeuromorphicRuntimeDevice[] {
+  if (!value) return [];
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((entry) => toNeuromorphicDevice(entry.trim(), source))
+      .filter((device): device is NeuromorphicRuntimeDevice => Boolean(device));
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => toNeuromorphicDevice(entry, source))
+      .filter((device): device is NeuromorphicRuntimeDevice => Boolean(device));
+  }
+  return [];
+}
+
+function toNeuromorphicDevice(value: unknown, source: string): NeuromorphicRuntimeDevice | null {
+  if (typeof value === 'string') {
+    const target = normalizeNeuromorphicTarget(value);
+    return target ? { target, available: true, source } : null;
+  }
+  if (!value || typeof value !== 'object') return null;
+
+  const record = value as Record<string, unknown>;
+  const target = normalizeNeuromorphicTarget(record.target ?? record.device ?? record.kind);
+  if (!target) return null;
+  return {
+    target,
+    id: typeof record.id === 'string' ? record.id : undefined,
+    available: record.available === false ? false : true,
+    source: typeof record.source === 'string' ? record.source : source,
+  };
+}
+
+function normalizeNeuromorphicTarget(value: unknown): NeuromorphicDeviceTarget | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.toLowerCase().replace(/[\s_-]+/g, '');
+  if (normalized === 'loihi' || normalized === 'loihi2') return 'loihi';
+  if (normalized === 'spinnaker' || normalized === 'spinnaker2') return 'spinnaker';
+  if (
+    normalized === 'synsense' ||
+    normalized === 'synsensespeck' ||
+    normalized === 'synsensexylo'
+  ) {
+    return 'synsense';
+  }
+  if (normalized === 'akida') return 'akida';
+  return null;
+}
+
+function deviceRank(device: NeuromorphicDeviceTarget): number {
+  return ['loihi', 'spinnaker', 'synsense', 'akida'].indexOf(device);
 }
