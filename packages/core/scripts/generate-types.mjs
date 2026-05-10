@@ -1744,6 +1744,35 @@ export interface CulturalNorm {
 export type NormCategory = string;
 export type NormEnforcement = 'hard' | 'soft' | 'advisory';
 export type NormScope = 'agent' | 'zone' | 'world' | 'session';
+export type NormProvenanceSource =
+  | 'agent'
+  | 'corpus'
+  | 'declaration_site'
+  | 'builtin'
+  | 'observation'
+  | 'unknown';
+export interface NormProvenance {
+  source: NormProvenanceSource;
+  sourceAgentId?: string;
+  sourceCorpus?: string;
+  declarationSite?: {
+    file: string;
+    line?: number;
+    column?: number;
+  };
+  originInteractionId?: string;
+  confidenceClassification?: 'genuine' | 'confabulated' | 'bullshitted';
+  recordedAtIso?: string;
+}
+export declare const UNKNOWN_NORM_PROVENANCE: Readonly<NormProvenance>;
+export declare const BUILTIN_NORM_PROVENANCE: Readonly<NormProvenance>;
+export declare function normalizeNormProvenance(
+  value: Partial<NormProvenance> | undefined | null
+): NormProvenance;
+export declare function serializeNormProvenance(
+  value: NormProvenance | undefined | null
+): Record<string, unknown>;
+export declare function deserializeNormProvenance(value: unknown): NormProvenance;
 
 // ============================================================================
 // MARKETPLACE
