@@ -2,6 +2,7 @@ import { execFile } from 'child_process';
 import * as os from 'os';
 import * as path from 'path';
 import { buildAccountWorkspaceSeed, type AccountWorkspaceMetadata } from './accountWorkspace';
+import { RepoConsentError, requireApprovedGitHubRepo } from './repoConsent';
 import { resolveWorkspaceIdForIdentity } from './workspaceIdentity';
 
 /**
@@ -61,6 +62,7 @@ export interface ProvisionResult {
   success: boolean;
   user?: ProvisionedUser;
   error?: string;
+  errorStatus?: 400 | 403;
   steps: ProvisionStep[];
 }
 
@@ -244,21 +246,23 @@ async function ensureRepo(
   token: string,
   username: string,
   repoUrl?: string,
-  projectName?: string
+  projectName?: string,
+  approvedRepos: readonly string[] = []
 ): Promise<{ owner: string; repoUrl: string; repoName: string; isNew: boolean }> {
   if (repoUrl) {
+    const repoRef = requireApprovedGitHubRepo(repoUrl, approvedRepos);
     // Verify access to existing repo
-    const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
-    if (!match) throw new Error(`Invalid GitHub URL: ${repoUrl}`);
-    const [, owner, repo] = match;
-    const repoName = repo.replace(/\.git$/, '');
-
-    const res = await fetch(`https://api.github.com/repos/${owner}/${repoName}`, {
+    const res = await fetch(`https://api.github.com/repos/${repoRef.owner}/${repoRef.repo}`, {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json' },
     });
 
-    if (!res.ok) throw new Error(`Cannot access repo ${owner}/${repoName}: ${res.status}`);
-    return { owner, repoUrl, repoName, isNew: false };
+    if (!res.ok) throw new Error(`Cannot access repo ${repoRef.fullName}: ${res.status}`);
+    return {
+      owner: repoRef.owner,
+      repoUrl: repoRef.cloneUrl,
+      repoName: repoRef.repo,
+      isNew: false,
+    };
   }
 
   // Create new repo
@@ -492,6 +496,10 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
     }
 
     // Step 1: Provision API key
+    if (input.repoUrl) {
+      requireApprovedGitHubRepo(input.repoUrl, input.approvedRepos);
+    }
+
     const stableWorkspaceId = resolveWorkspaceIdForIdentity({
       githubUsername: input.githubUsername,
       email: input.email,
@@ -514,7 +522,8 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
       input.githubAccessToken,
       input.githubUsername,
       input.repoUrl,
-      input.projectName
+      input.projectName,
+      input.approvedRepos
     );
     updateStep('ensure-repo', 'done', isNew ? `created ${repoName}` : `connected ${repoName}`);
 
@@ -630,7 +639,14 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
     if (running) {
       running.status = 'failed';
       running.detail = msg;
+    } else if (err instanceof RepoConsentError && input.repoUrl) {
+      updateStep('ensure-repo', 'failed', msg);
     }
-    return { success: false, error: msg, steps };
+    return {
+      success: false,
+      error: msg,
+      ...(err instanceof RepoConsentError ? { errorStatus: err.status } : {}),
+      steps,
+    };
   }
 }

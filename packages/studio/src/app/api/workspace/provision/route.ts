@@ -70,7 +70,10 @@ export async function POST(request: NextRequest) {
   });
 
   if (!result.success) {
-    return NextResponse.json({ error: result.error, steps: result.steps }, { status: 500 });
+    return NextResponse.json(
+      { error: result.error, steps: result.steps },
+      { status: result.errorStatus ?? 500 }
+    );
   }
 
   return NextResponse.json({

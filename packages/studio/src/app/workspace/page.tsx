@@ -577,6 +577,7 @@ export default function WorkspaceWorkbenchPage() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           repoUrl: repoUrl.trim(),
+          approvedRepos: [repoUrl.trim()],
           branch: importBranch.trim() || undefined,
           name: importName.trim() || undefined,
         }),

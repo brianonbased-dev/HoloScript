@@ -60,7 +60,15 @@ const ENDPOINTS: Record<string, EndpointConfig> = {
   workspace_import: {
     method: 'POST',
     path: '/api/workspace/import',
-    buildBody: (args) => ({ source: args['source'], url: args['url'] }),
+    buildBody: (args) => {
+      const repoUrl = args['repoUrl'] ?? args['url'];
+      return {
+        repoUrl,
+        approvedRepos: typeof repoUrl === 'string' && repoUrl.trim() ? [repoUrl] : [],
+        ...(args['branch'] ? { branch: args['branch'] } : {}),
+        ...(args['name'] ? { name: args['name'] } : {}),
+      };
+    },
   },
 
   // Generation
@@ -304,9 +312,10 @@ export async function executeStudioTool(
     }
 
     if (!response.ok) {
-      const errorMsg = typeof data === 'object' && data !== null && 'error' in data
-        ? String((data as Record<string, unknown>)['error'])
-        : `HTTP ${response.status}`;
+      const errorMsg =
+        typeof data === 'object' && data !== null && 'error' in data
+          ? String((data as Record<string, unknown>)['error'])
+          : `HTTP ${response.status}`;
       return {
         tool: name,
         success: false,

@@ -159,6 +159,7 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           repoUrl,
+          approvedRepos: [repoUrl],
           branch: branch || undefined,
           name: repoName,
         }),

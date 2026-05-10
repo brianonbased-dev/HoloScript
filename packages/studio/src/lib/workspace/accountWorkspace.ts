@@ -1,3 +1,5 @@
+import { normalizeGitHubRepo } from './repoConsent';
+
 export type AccountWorkspaceTier = 'starter' | 'founder';
 
 export interface AccountLinkedRepo {
@@ -93,68 +95,34 @@ function sanitizeId(value: string): string {
   );
 }
 
-function parseGitHubRepo(
-  value: string,
-  fallbackOwner: string
-): Omit<AccountLinkedRepo, 'role'> | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  let owner: string | undefined;
-  let repo: string | undefined;
-  const ssh = trimmed.match(/^git@github\.com:([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+?)(?:\.git)?$/);
-  const shorthand = trimmed.match(/^([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+)$/);
-  if (ssh) {
-    owner = ssh[1];
-    repo = ssh[2];
-  } else if (shorthand) {
-    owner = shorthand[1];
-    repo = shorthand[2];
-  } else {
-    try {
-      const parsed = new URL(trimmed);
-      if (parsed.protocol !== 'https:' || parsed.hostname !== 'github.com') return null;
-      if (parsed.username || parsed.password) return null;
-      const parts = parsed.pathname.replace(/^\/+|\/+$/g, '').split('/');
-      if (parts.length < 2) return null;
-      owner = parts[0];
-      repo = parts[1];
-    } catch {
-      return null;
-    }
-  }
-
-  owner = owner || fallbackOwner;
-  repo = repo?.replace(/\.git$/i, '');
-  if (!/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/.test(owner)) return null;
-  if (!repo || !/^[A-Za-z0-9._-]{1,100}$/.test(repo) || repo === '.' || repo === '..') {
-    return null;
-  }
-
+function parseGitHubRepo(value: string): Omit<AccountLinkedRepo, 'role'> | null {
+  const repo = normalizeGitHubRepo(value);
+  if (!repo) return null;
   return {
-    id: `${sanitizeId(owner)}-${sanitizeId(repo)}`,
-    owner,
-    repo,
-    cloneUrl: `https://github.com/${owner}/${repo}.git`,
+    id: `${sanitizeId(repo.owner)}-${sanitizeId(repo.repo)}`,
+    owner: repo.owner,
+    repo: repo.repo,
+    cloneUrl: repo.cloneUrl,
   };
 }
 
 function uniqueLinkedRepos(repos: AccountLinkedRepo[]): AccountLinkedRepo[] {
   const byCloneUrl = new Map<string, AccountLinkedRepo>();
   for (const repo of repos) {
-    if (!byCloneUrl.has(repo.cloneUrl)) byCloneUrl.set(repo.cloneUrl, repo);
+    const key = repo.cloneUrl.toLowerCase();
+    if (!byCloneUrl.has(key)) byCloneUrl.set(key, repo);
   }
   return Array.from(byCloneUrl.values());
 }
 
 function buildLinkedRepos(input: AccountWorkspaceSeedInput): AccountLinkedRepo[] {
-  const accountRepo = parseGitHubRepo(input.repoUrl, input.githubUsername);
+  const accountRepo = parseGitHubRepo(input.repoUrl);
   const linked: AccountLinkedRepo[] = accountRepo
     ? [{ ...accountRepo, role: 'account-workspace' }]
     : [];
 
   for (const approved of input.approvedRepos) {
-    const parsed = parseGitHubRepo(approved, input.githubUsername);
+    const parsed = parseGitHubRepo(approved);
     if (parsed) linked.push({ ...parsed, role: 'approved-repo' });
   }
 

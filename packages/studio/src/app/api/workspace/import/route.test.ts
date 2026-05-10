@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+import { getServerSession, type Session } from 'next-auth';
 
 const execFileMock = vi.hoisted(() => vi.fn());
 
@@ -76,6 +77,10 @@ function mockGitSuccess(): void {
 describe('/api/workspace/import route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getServerSession).mockResolvedValue({
+      user: { id: 'agent', email: 'agent@example.test', githubUsername: 'agent' },
+      accessToken: 'gho_private_token',
+    } as Session);
     savedWorkspaceRoot = process.env.HOLOSCRIPT_WORKSPACES_DIR;
     savedGitConfigCount = process.env.GIT_CONFIG_COUNT;
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-import-test-'));
@@ -102,6 +107,7 @@ describe('/api/workspace/import route', () => {
     const res = await POST(
       importRequest({
         repoUrl: 'https://github.com/acme/private-repo.git',
+        approvedRepos: ['acme/private-repo'],
         branch: 'feature/safe-branch',
         name: 'Private Repo',
       })
@@ -194,6 +200,7 @@ describe('/api/workspace/import route', () => {
     const res = await POST(
       importRequest({
         repoUrl: 'git@github.com:acme/private-repo.git',
+        approvedRepos: ['https://github.com/acme/private-repo.git'],
         branch: 'main',
       })
     );
@@ -203,6 +210,74 @@ describe('/api/workspace/import route', () => {
     expect(body.repoUrl).toBe('https://github.com/acme/private-repo.git');
     const cloneArgs = execFileMock.mock.calls[0]?.[1] as string[];
     expect(cloneArgs).toContain('https://github.com/acme/private-repo.git');
+  });
+
+  it.each([
+    [
+      'HTTPS approval for SSH import',
+      'git@github.com:acme/private-repo.git',
+      ['acme/private-repo'],
+    ],
+    [
+      'SSH approval for HTTPS import',
+      'https://github.com/acme/private-repo.git',
+      ['git@github.com:acme/private-repo.git'],
+    ],
+    [
+      'case-insensitive approval',
+      'https://github.com/acme/private-repo',
+      ['ACME/private-repo.git'],
+    ],
+  ])('accepts normalized consent forms: %s', async (_label, repoUrl, approvedRepos) => {
+    const res = await POST(
+      importRequest({
+        repoUrl,
+        approvedRepos,
+      })
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.repoUrl).toBe('https://github.com/acme/private-repo.git');
+    const cloneArgs = execFileMock.mock.calls[0]?.[1] as string[];
+    expect(cloneArgs).toContain('https://github.com/acme/private-repo.git');
+  });
+
+  it('rejects unapproved imports before invoking git', async () => {
+    const res = await POST(
+      importRequest({
+        repoUrl: 'https://github.com/acme/private-repo.git',
+        approvedRepos: ['acme/other-repo'],
+      })
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(403);
+    expect(body.error).toMatch(/not approved/i);
+    expect(execFileMock).not.toHaveBeenCalled();
+  });
+
+  it('allows founder/internal sessions to import without an approved repo list', async () => {
+    vi.mocked(getServerSession).mockResolvedValueOnce({
+      user: {
+        id: 'founder',
+        email: 'brianonbased@gmail.com',
+        githubUsername: 'brianonbased-dev',
+      },
+      accessToken: 'gho_private_token',
+    } as Session);
+
+    const res = await POST(
+      importRequest({
+        repoUrl: 'https://github.com/brianonbased-dev/ai-ecosystem.git',
+      })
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.repoUrl).toBe('https://github.com/brianonbased-dev/ai-ecosystem.git');
+    const cloneArgs = execFileMock.mock.calls[0]?.[1] as string[];
+    expect(cloneArgs).toContain('https://github.com/brianonbased-dev/ai-ecosystem.git');
   });
 
   it('rejects non-GitHub and decorated repo URLs before invoking git', async () => {
@@ -254,6 +329,7 @@ describe('/api/workspace/import route', () => {
     const res = await POST(
       importRequest({
         repoUrl: 'https://github.com/acme/private-repo.git',
+        approvedRepos: ['acme/private-repo'],
       })
     );
     const body = await res.json();

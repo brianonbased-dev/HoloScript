@@ -48,7 +48,8 @@ const absorbScanRepo: StudioToolDefinition = {
       properties: {
         repoUrl: {
           type: 'string',
-          description: 'Full GitHub URL of the repository to scan, e.g. https://github.com/user/repo',
+          description:
+            'Full GitHub URL of the repository to scan, e.g. https://github.com/user/repo',
         },
         name: {
           type: 'string',
@@ -78,13 +79,14 @@ const absorbQuery: StudioToolDefinition = {
   function: {
     name: 'absorb_query',
     description:
-      'Query the Absorb knowledge graph using semantic search. Returns architecture insights, patterns, code health, and file-level details from scanned repositories. Use when answering questions about the user\'s codebase.',
+      "Query the Absorb knowledge graph using semantic search. Returns architecture insights, patterns, code health, and file-level details from scanned repositories. Use when answering questions about the user's codebase.",
     parameters: {
       type: 'object',
       properties: {
         search: {
           type: 'string',
-          description: 'Natural language search query, e.g. "authentication middleware" or "database connection patterns"',
+          description:
+            'Natural language search query, e.g. "authentication middleware" or "database connection patterns"',
         },
         type: {
           type: 'string',
@@ -102,7 +104,7 @@ const absorbGetCredits: StudioToolDefinition = {
   function: {
     name: 'absorb_get_credits',
     description:
-      'Check the user\'s Absorb credit balance. Credits are consumed by scans and queries. Use before starting expensive operations to warn the user if credits are low.',
+      "Check the user's Absorb credit balance. Credits are consumed by scans and queries. Use before starting expensive operations to warn the user if credits are low.",
     parameters: {
       type: 'object',
       properties: {},
@@ -149,10 +151,22 @@ const scaffoldProject: StudioToolDefinition = {
         traits: {
           type: 'array',
           items: { type: 'string' },
-          description: 'HoloScript traits to include, e.g. ["physics", "multiplayer", "state_sync"]',
+          description:
+            'HoloScript traits to include, e.g. ["physics", "multiplayer", "state_sync"]',
         },
       },
-      required: ['name', 'repoUrl', 'techStack', 'frameworks', 'languages', 'packageCount', 'testCoverage', 'codeHealthScore', 'compilationTargets', 'traits'],
+      required: [
+        'name',
+        'repoUrl',
+        'techStack',
+        'frameworks',
+        'languages',
+        'packageCount',
+        'testCoverage',
+        'codeHealthScore',
+        'compilationTargets',
+        'traits',
+      ],
     },
   },
 };
@@ -162,21 +176,24 @@ const workspaceImport: StudioToolDefinition = {
   function: {
     name: 'workspace_import',
     description:
-      'Import an existing project into the Studio workspace. Supports GitHub repos and ZIP uploads. Use when the user says "import my project" or provides a repo URL to work with.',
+      'Import an existing GitHub project into the Studio workspace after the user has explicitly provided or selected that repo. Use when the user says "import my project" or provides a repo URL to work with.',
     parameters: {
       type: 'object',
       properties: {
-        source: {
+        repoUrl: {
           type: 'string',
-          description: 'Import source type',
-          enum: ['github', 'zip', 'url'],
+          description: 'GitHub repository URL to import, e.g. https://github.com/user/repo',
         },
-        url: {
+        name: {
           type: 'string',
-          description: 'URL of the project to import (GitHub URL or ZIP download link)',
+          description: 'Optional workspace display name',
+        },
+        branch: {
+          type: 'string',
+          description: 'Optional branch or tag to clone',
         },
       },
-      required: ['source', 'url'],
+      required: ['repoUrl'],
     },
   },
 };
@@ -194,7 +211,8 @@ const generateCode: StudioToolDefinition = {
       properties: {
         prompt: {
           type: 'string',
-          description: 'Natural language description of what to generate, e.g. "a VR room with physics-enabled furniture and ambient lighting"',
+          description:
+            'Natural language description of what to generate, e.g. "a VR room with physics-enabled furniture and ambient lighting"',
         },
         existingCode: {
           type: 'string',
@@ -217,7 +235,8 @@ const generateMaterial: StudioToolDefinition = {
       properties: {
         description: {
           type: 'string',
-          description: 'Natural language description of the material, e.g. "brushed copper with green patina" or "glowing neon purple"',
+          description:
+            'Natural language description of the material, e.g. "brushed copper with green patina" or "glowing neon purple"',
         },
       },
       required: ['description'],
@@ -240,7 +259,8 @@ const autocomplete: StudioToolDefinition = {
         },
         cursor: {
           type: 'number',
-          description: 'Cursor position (character offset) in the code where completion is requested',
+          description:
+            'Cursor position (character offset) in the code where completion is requested',
         },
       },
       required: ['code', 'cursor'],
@@ -388,7 +408,8 @@ const exportScene: StudioToolDefinition = {
         },
         format: {
           type: 'string',
-          description: 'Target format: threejs, r3f, unity, unreal, godot, visionos, android-xr, openxr, urdf, sdf, gltf, usdz, native-2d, node-service, agent-inference, vrr, nft-marketplace, webgpu, wasm, etc.',
+          description:
+            'Target format: threejs, r3f, unity, unreal, godot, visionos, android-xr, openxr, urdf, sdf, gltf, usdz, native-2d, node-service, agent-inference, vrr, nft-marketplace, webgpu, wasm, etc.',
         },
       },
       required: ['code', 'format'],
@@ -533,7 +554,10 @@ const startDaemonJob: StudioToolDefinition = {
           properties: {
             projectId: { type: 'string', description: 'Project ID to run against' },
             maxIterations: { type: 'number', description: 'Maximum improvement iterations' },
-            focus: { type: 'string', description: 'Focus area: types, tests, performance, security' },
+            focus: {
+              type: 'string',
+              description: 'Focus area: types, tests, performance, security',
+            },
           },
         },
       },
@@ -562,7 +586,7 @@ const getCapabilities: StudioToolDefinition = {
   function: {
     name: 'get_capabilities',
     description:
-      'Get the current Studio capabilities — which features are enabled, available compilation targets, connected services, and configuration. Use at session start or when you need to know what\'s available.',
+      "Get the current Studio capabilities — which features are enabled, available compilation targets, connected services, and configuration. Use at session start or when you need to know what's available.",
     parameters: {
       type: 'object',
       properties: {},
@@ -590,7 +614,7 @@ const readFile: StudioToolDefinition = {
   function: {
     name: 'read_file',
     description:
-      'Read a file from the user\'s connected GitHub repository. Returns the file contents (decoded from base64). Use when the user asks to see a specific file, or when you need to inspect code in their repo.',
+      "Read a file from the user's connected GitHub repository. Returns the file contents (decoded from base64). Use when the user asks to see a specific file, or when you need to inspect code in their repo.",
     parameters: {
       type: 'object',
       properties: {
@@ -712,6 +736,4 @@ export const STUDIO_API_TOOLS: StudioToolDefinition[] = [
  * Set of tool names that are Studio API tools (not scene-manipulation tools).
  * Used by the route handler to decide whether to execute server-side.
  */
-export const STUDIO_API_TOOL_NAMES = new Set(
-  STUDIO_API_TOOLS.map((t) => t.function.name)
-);
+export const STUDIO_API_TOOL_NAMES = new Set(STUDIO_API_TOOLS.map((t) => t.function.name));

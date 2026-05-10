@@ -3,14 +3,14 @@ export const maxDuration = 300;
 /**
  * POST /api/workspace/import — Clone a GitHub repo and create a workspace.
  *
- * Body: { repoUrl: string, branch?: string, name?: string }
+ * Body: { repoUrl: string, branch?: string, name?: string, approvedRepos?: string[] }
  *
  * Clones into ~/.holoscript/workspaces/<id>/, then kicks off absorb.
  * Returns workspace metadata immediately (absorb runs async via the absorb endpoint).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { getServerSession, type Session } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import * as path from 'path';
 import * as os from 'os';
@@ -30,6 +30,8 @@ import {
 } from '@/lib/workspace/publishWorthinessDetector';
 import { upsertDurableAbsorbProject } from '@/lib/absorb/projectState';
 import { getGitHubToken } from '@/app/api/github/_shared';
+import { isFounderWorkspaceIdentity } from '@/lib/workspace/workspaceIdentity';
+import { isGitHubRepoApproved, normalizeGitHubRepo } from '@/lib/workspace/repoConsent';
 
 import { corsHeaders } from '../../_lib/cors';
 
@@ -43,6 +45,10 @@ interface ImportRequest {
   repoUrl: string;
   branch?: string;
   name?: string;
+  approvedRepos?: string[];
+  consent?: {
+    repos?: string[];
+  };
   intent?: string;
   projectDNA?: PublishWorthinessProjectDNA;
   absorbGraph?: PublishWorthinessAbsorbGraph;
@@ -61,51 +67,7 @@ function sanitizeName(name: string): string {
   return name.replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 64);
 }
 
-interface GitHubRepoRef {
-  owner: string;
-  repo: string;
-  cloneUrl: string;
-}
-
-const GITHUB_OWNER_RE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
-const GITHUB_REPO_RE = /^[A-Za-z0-9._-]{1,100}$/;
 const BRANCH_REF_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,254}$/;
-
-function normalizeGitHubRepoUrl(repoUrl: string): GitHubRepoRef | null {
-  const trimmed = repoUrl.trim();
-  if (!trimmed || /[\x00-\x1f]/.test(trimmed)) return null;
-
-  let owner: string | undefined;
-  let repo: string | undefined;
-
-  const sshMatch = trimmed.match(/^git@github\.com:([^/\s]+)\/([^/\s]+?)(?:\.git)?$/);
-  if (sshMatch) {
-    owner = sshMatch[1];
-    repo = sshMatch[2];
-  } else {
-    try {
-      const url = new URL(trimmed);
-      if (url.protocol !== 'https:' || url.hostname !== 'github.com') return null;
-      if (url.username || url.password || url.search || url.hash) return null;
-      const parts = url.pathname.replace(/^\/+|\/+$/g, '').split('/');
-      if (parts.length !== 2) return null;
-      owner = parts[0];
-      repo = parts[1]?.replace(/\.git$/i, '');
-    } catch {
-      return null;
-    }
-  }
-
-  if (!owner || !repo) return null;
-  if (!GITHUB_OWNER_RE.test(owner) || !GITHUB_REPO_RE.test(repo)) return null;
-  if (repo === '.' || repo === '..') return null;
-
-  return {
-    owner,
-    repo,
-    cloneUrl: `https://github.com/${owner}/${repo}.git`,
-  };
-}
 
 function normalizeBranch(branch: string | undefined): string | null | undefined {
   if (branch === undefined) return undefined;
@@ -190,6 +152,25 @@ function optionalStringArray(value: unknown): string[] | undefined {
   return value.filter((item): item is string => typeof item === 'string');
 }
 
+function approvedReposFromRequest(body: ImportRequest): string[] {
+  if (Array.isArray(body.approvedRepos)) {
+    return body.approvedRepos.filter((item) => typeof item === 'string' && item.trim().length > 0);
+  }
+  if (Array.isArray(body.consent?.repos)) {
+    return body.consent.repos.filter((item) => typeof item === 'string' && item.trim().length > 0);
+  }
+  return [];
+}
+
+function canBypassRepoConsent(session: Session | null): boolean {
+  return isFounderWorkspaceIdentity({
+    id: session?.user?.id,
+    name: session?.user?.name,
+    email: session?.user?.email,
+    githubUsername: session?.user?.githubUsername,
+  });
+}
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -209,7 +190,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'repoUrl is required' }, { status: 400 });
   }
 
-  const repoRef = normalizeGitHubRepoUrl(repoUrl);
+  const repoRef = normalizeGitHubRepo(repoUrl);
   if (!repoRef) {
     return NextResponse.json(
       { error: 'repoUrl must be a github.com repository URL' },
@@ -220,6 +201,14 @@ export async function POST(req: NextRequest) {
   const branch = normalizeBranch(body.branch);
   if (branch === null) {
     return NextResponse.json({ error: 'branch is not a valid git ref name' }, { status: 400 });
+  }
+
+  const approvedRepos = approvedReposFromRequest(body);
+  if (!canBypassRepoConsent(session) && !isGitHubRepoApproved(repoRef, approvedRepos)) {
+    return NextResponse.json(
+      { error: `Repository ${repoRef.fullName} is not approved for Studio import.` },
+      { status: 403 }
+    );
   }
 
   const id = generateId();

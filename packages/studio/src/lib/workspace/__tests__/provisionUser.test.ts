@@ -281,4 +281,65 @@ describe('provisionUser founder bootstrap', () => {
       'gho_customer_secret_token'
     );
   });
+
+  it('connects an existing repo only when it appears in the approved repo list', async () => {
+    const result = await provisionUser({
+      githubAccessToken: 'gho_customer_secret_token',
+      githubUsername: 'octocat',
+      email: 'octocat@example.com',
+      repoUrl: 'git@github.com:octocat/demo-app.git',
+      approvedRepos: ['https://github.com/octocat/demo-app'],
+      approvedScaffold: false,
+      approvedAbsorb: false,
+      approvedPublishKnowledge: false,
+      approvedDaemon: false,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.user).toMatchObject({
+      workspaceId: 'ws_octocat',
+      repoUrl: 'https://github.com/octocat/demo-app.git',
+      repoName: 'demo-app',
+      scaffolded: false,
+      daemonStarted: false,
+    });
+
+    const fetchMock = vi.mocked(fetch);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.github.com/repos/octocat/demo-app',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer gho_customer_secret_token',
+        }),
+      })
+    );
+  });
+
+  it('rejects existing repo provisioning when the repo was not approved', async () => {
+    const result = await provisionUser({
+      githubAccessToken: 'gho_customer_secret_token',
+      githubUsername: 'octocat',
+      email: 'octocat@example.com',
+      repoUrl: 'https://github.com/octocat/private-app.git',
+      approvedRepos: ['octocat/demo-app'],
+      approvedScaffold: false,
+      approvedAbsorb: false,
+      approvedPublishKnowledge: false,
+      approvedDaemon: false,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.errorStatus).toBe(403);
+    expect(result.error).toMatch(/not approved/i);
+    expect(result.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'ensure-repo',
+          status: 'failed',
+          detail: 'Repository octocat/private-app is not approved for Studio access.',
+        }),
+      ])
+    );
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+  });
 });

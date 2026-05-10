@@ -32,9 +32,20 @@ describe('STUDIO_API_TOOLS', () => {
 
   it('no tool name collides with scene tools', () => {
     const sceneToolNames = [
-      'add_trait', 'remove_trait', 'set_trait_property', 'create_object', 'compose_traits',
-      'mount_scenario_panel', 'delete_object', 'move_object', 'rotate_object', 'scale_object',
-      'rename_object', 'duplicate_object', 'list_objects', 'get_object',
+      'add_trait',
+      'remove_trait',
+      'set_trait_property',
+      'create_object',
+      'compose_traits',
+      'mount_scenario_panel',
+      'delete_object',
+      'move_object',
+      'rotate_object',
+      'scale_object',
+      'rename_object',
+      'duplicate_object',
+      'list_objects',
+      'get_object',
     ];
     for (const tool of STUDIO_API_TOOLS) {
       expect(sceneToolNames).not.toContain(tool.function.name);
@@ -342,6 +353,32 @@ describe('executeStudioTool', () => {
     const body = JSON.parse((callArgs[1] as RequestInit).body as string);
     expect(body.name).toBe('TestProject');
     expect(body.techStack).toEqual(['typescript']);
+  });
+
+  it('passes workspace_import repo consent with the repo URL', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ id: 'ws-1' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    );
+
+    const args = {
+      repoUrl: 'https://github.com/user/repo.git',
+      name: 'My Project',
+      branch: 'main',
+    };
+    await executeStudioTool('workspace_import', args, BASE_URL);
+
+    const callArgs = vi.mocked(fetch).mock.calls[0];
+    expect(callArgs[0]).toBe(`${BASE_URL}/api/workspace/import`);
+    const body = JSON.parse((callArgs[1] as RequestInit).body as string);
+    expect(body).toEqual({
+      repoUrl: args.repoUrl,
+      approvedRepos: [args.repoUrl],
+      name: args.name,
+      branch: args.branch,
+    });
   });
 
   it('encodes special characters in team ID', async () => {
