@@ -11,8 +11,8 @@
  */
 
 import { Router, type Request, type Response } from 'express';
-import { authenticate } from '../middleware/authenticate.js';
-import { authorize } from '../middleware/authorize.js';
+import { authenticate, optionalAuth } from '../middleware/authenticate.js';
+import { authorize, hasPermission } from '../middleware/authorize.js';
 import { validateBody } from '../middleware/validateBody.js';
 import { compileRateLimiter } from '../middleware/rateLimiter.js';
 import { compileWorkerService } from '../services/compileWorker.js';
@@ -100,7 +100,9 @@ compileRouter.get(
 
     if (job.status === 'completed') {
       response.completedAt = job.completedAt;
-      response.outputUrl = job.outputUrl;
+      response.outputUrl = job.outputSha256
+        ? compileWorkerService.getSignedOutputUrl(job)
+        : job.outputUrl;
       response.outputSizeBytes = job.outputSizeBytes;
       response.durationMs = job.durationMs;
     }
@@ -121,12 +123,12 @@ compileRouter.get(
 /**
  * GET /api/v1/compile/:jobId/output
  * Download the compilation output.
- * In production: returns a signed S3 URL (ADR-005).
+ * Streams the compilation output. Access is allowed for the job owner/admin or
+ * for callers holding a valid signed output URL.
  */
 compileRouter.get(
   '/:jobId/output',
-  authenticate,
-  authorize('compile:download'),
+  optionalAuth,
   (req: Request, res: Response) => {
     const job = compileWorkerService.getJob(req.params.jobId);
 
@@ -135,7 +137,18 @@ compileRouter.get(
       return;
     }
 
-    if (req.identity!.role !== 'admin' && job.createdBy !== req.identity!.sub) {
+    const signed = compileWorkerService.verifySignedOutputUrl(
+      job,
+      req.query.expires,
+      req.query.signature,
+    );
+    const identity = req.identity;
+    const canDownloadWithIdentity =
+      identity !== undefined &&
+      hasPermission(identity.role, 'compile:download') &&
+      (identity.role === 'admin' || job.createdBy === identity.sub);
+
+    if (!signed && !canDownloadWithIdentity) {
       res.status(404).json({ error: 'Not found' });
       return;
     }
@@ -148,15 +161,17 @@ compileRouter.get(
       return;
     }
 
-    // In production: generate a signed S3 URL and redirect
-    // For scaffold: return a placeholder response
-    res.status(200).json({
-      jobId: job.id,
-      downloadUrl: job.outputUrl,
-      contentType: job.outputContentType,
-      sizeBytes: job.outputSizeBytes,
-      expiresIn: 3600, // URL expires in 1 hour
-      message: 'In production, this would return a signed S3 download URL.',
-    });
+    const output = compileWorkerService.getOutput(job.id);
+    if (!output) {
+      res.status(404).json({ error: 'Not found' });
+      return;
+    }
+
+    res.status(200);
+    res.setHeader('Content-Type', output.contentType);
+    res.setHeader('Content-Length', String(output.sizeBytes));
+    res.setHeader('Content-Disposition', `attachment; filename="${output.fileName}"`);
+    res.setHeader('X-HoloScript-Compile-Job', job.id);
+    res.send(output.buffer);
   }
 );
