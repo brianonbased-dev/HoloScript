@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
@@ -14,11 +17,34 @@ vi.mock('@/lib/services/absorb-client', () => ({
 import { POST } from './route';
 
 describe('/api/absorb/projects/[id]/absorb route', () => {
+  let tempRoot: string;
+  let savedWorkspaceRoot: string | undefined;
+  let savedStateFile: string | undefined;
+
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     callMcpToolMock.mockReset();
     vi.spyOn(console, 'error').mockImplementation(() => {});
+    savedWorkspaceRoot = process.env.HOLOSCRIPT_WORKSPACES_DIR;
+    savedStateFile = process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE;
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'project-absorb-test-'));
+    process.env.HOLOSCRIPT_WORKSPACES_DIR = tempRoot;
+    delete process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE;
+  });
+
+  afterEach(() => {
+    if (savedWorkspaceRoot === undefined) {
+      delete process.env.HOLOSCRIPT_WORKSPACES_DIR;
+    } else {
+      process.env.HOLOSCRIPT_WORKSPACES_DIR = savedWorkspaceRoot;
+    }
+    if (savedStateFile === undefined) {
+      delete process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE;
+    } else {
+      process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE = savedStateFile;
+    }
+    fs.rmSync(tempRoot, { recursive: true, force: true });
   });
 
   it('returns MCP tool result when available', async () => {
@@ -37,6 +63,16 @@ describe('/api/absorb/projects/[id]/absorb route', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.jobId).toBe('job-1');
+    const state = JSON.parse(
+      fs.readFileSync(path.join(tempRoot, '.absorb-projects.json'), 'utf-8')
+    ) as {
+      projects: Array<{ id: string; absorbJobs: Array<{ jobId: string; source: string }> }>;
+    };
+    expect(state.projects[0].id).toBe('p123');
+    expect(state.projects[0].absorbJobs[0]).toMatchObject({
+      jobId: 'job-1',
+      source: 'mcp',
+    });
 
     expect(callMcpToolMock).toHaveBeenCalledWith('absorb_run_absorb', {
       projectId: 'p123',

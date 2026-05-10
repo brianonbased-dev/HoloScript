@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
@@ -9,9 +12,32 @@ vi.mock('@/lib/services/absorb-client', () => ({
 import { GET, POST } from './route';
 
 describe('/api/absorb/projects route', () => {
+  let tempRoot: string;
+  let savedWorkspaceRoot: string | undefined;
+  let savedStateFile: string | undefined;
+
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    savedWorkspaceRoot = process.env.HOLOSCRIPT_WORKSPACES_DIR;
+    savedStateFile = process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE;
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'absorb-projects-test-'));
+    process.env.HOLOSCRIPT_WORKSPACES_DIR = tempRoot;
+    delete process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE;
+  });
+
+  afterEach(() => {
+    if (savedWorkspaceRoot === undefined) {
+      delete process.env.HOLOSCRIPT_WORKSPACES_DIR;
+    } else {
+      process.env.HOLOSCRIPT_WORKSPACES_DIR = savedWorkspaceRoot;
+    }
+    if (savedStateFile === undefined) {
+      delete process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE;
+    } else {
+      process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE = savedStateFile;
+    }
+    fs.rmSync(tempRoot, { recursive: true, force: true });
   });
 
   it('GET returns upstream projects payload and forwards user auth header', async () => {
@@ -67,7 +93,7 @@ describe('/api/absorb/projects route', () => {
     expect(body.project.id).toBe('upstream-created');
   });
 
-  it('POST falls back to local store and GET fallback lists local projects', async () => {
+  it('POST falls back to durable local store and GET fallback lists durable projects', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('service down')));
 
     const postReq = new NextRequest('http://localhost/api/absorb/projects', {
@@ -84,15 +110,19 @@ describe('/api/absorb/projects route', () => {
     expect(postRes.status).toBe(201);
     const postBody = await postRes.json();
     expect(postBody.standalone).toBe(true);
+    expect(postBody.durable).toBe(true);
     expect(postBody.project.name).toBe('Local Project');
+    expect(fs.existsSync(path.join(tempRoot, '.absorb-projects.json'))).toBe(true);
 
     const getReq = new NextRequest('http://localhost/api/absorb/projects');
     const getRes = await GET(getReq);
     expect(getRes.status).toBe(200);
     const getBody = await getRes.json();
     expect(getBody.standalone).toBe(true);
-    expect(getBody.count).toBeGreaterThanOrEqual(1);
+    expect(getBody.durable).toBe(true);
+    expect(getBody.count).toBe(1);
     expect(Array.isArray(getBody.projects)).toBe(true);
+    expect(getBody.projects[0].name).toBe('Local Project');
   });
 
   it('POST fallback returns 400 on invalid request body', async () => {

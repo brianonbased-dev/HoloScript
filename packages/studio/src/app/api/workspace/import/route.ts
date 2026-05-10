@@ -28,6 +28,7 @@ import {
   type PublishWorthinessLLMReview,
   type PublishWorthinessProjectDNA,
 } from '@/lib/workspace/publishWorthinessDetector';
+import { upsertDurableAbsorbProject } from '@/lib/absorb/projectState';
 
 import { corsHeaders } from '../../_lib/cors';
 
@@ -261,6 +262,14 @@ export async function POST(req: NextRequest) {
       // non-critical
     }
 
+    let currentCommit: string | null = null;
+    try {
+      const { stdout } = await execGit(['rev-parse', 'HEAD'], { cwd: localPath, env });
+      currentCommit = stdout.trim() || null;
+    } catch {
+      // non-critical
+    }
+
     const conversionCandidates = buildConversionCandidates({ paths: trackedFiles });
     const publishWorthiness = assessPublishWorthiness({
       userIntent: body.intent ?? body.name ?? `${repoRef.owner}/${repoRef.repo}`,
@@ -292,17 +301,45 @@ export async function POST(req: NextRequest) {
         },
       },
     });
+    const absorbProject = upsertDurableAbsorbProject({
+      id,
+      name: safeName,
+      sourceType: 'github',
+      sourceUrl: repoRef.cloneUrl,
+      localPath,
+      status: 'ready',
+      metadata: {
+        workspaceId: id,
+        workspaceDir,
+        repoOwner: repoRef.owner,
+        repoName: repoRef.repo,
+        branch: actualBranch,
+        currentCommit,
+        fileCount,
+        conversionManifestPath,
+        conversionCandidateCount: conversionCandidates.length,
+        publishWorthiness: {
+          verdict: publishWorthiness.verdict,
+          hiddenPaperProgramUnlocked: publishWorthiness.hiddenPaperProgramUnlocked,
+          deterministicScore: publishWorthiness.deterministicScore,
+          finalScore: publishWorthiness.finalScore,
+          threshold: publishWorthiness.threshold,
+        },
+      },
+    });
 
     return NextResponse.json({
       id,
       name: safeName,
       repoUrl: repoRef.cloneUrl,
       branch: actualBranch,
+      currentCommit,
       localPath,
       status: 'ready',
       fileCount,
       conversionCandidates,
       conversionManifestPath,
+      absorbProject,
       publishWorthiness,
       createdAt: new Date().toISOString(),
       hint: `POST /api/daemon/absorb with projectPath="${localPath}" to index this workspace.`,

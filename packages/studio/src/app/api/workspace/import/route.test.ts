@@ -44,8 +44,12 @@ function mockGitSuccess(): void {
   execFileMock.mockImplementation(
     (_cmd: string, args: string[], _options: unknown, callback?: ExecFileCallback) => {
       if (!callback) throw new Error('Expected execFile callback');
-      if (args[0] === 'rev-parse') {
+      if (args[0] === 'rev-parse' && args.includes('--abbrev-ref')) {
         callback(null, 'feature/safe-branch\n', '');
+        return {};
+      }
+      if (args[0] === 'rev-parse' && args[1] === 'HEAD') {
+        callback(null, 'abc123def456\n', '');
         return {};
       }
       if (args[0] === 'ls-files') {
@@ -106,8 +110,17 @@ describe('/api/workspace/import route', () => {
 
     expect(res.status).toBe(200);
     expect(body.repoUrl).toBe('https://github.com/acme/private-repo.git');
+    expect(body.currentCommit).toBe('abc123def456');
     expect(body.fileCount).toBe(6);
     expect(body.localPath).toContain(tempRoot);
+    expect(body.absorbProject).toMatchObject({
+      id: body.id,
+      name: 'Private-Repo',
+      sourceType: 'github',
+      sourceUrl: 'https://github.com/acme/private-repo.git',
+      localPath: body.localPath,
+      status: 'ready',
+    });
     expect(body.conversionCandidates).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -144,6 +157,12 @@ describe('/api/workspace/import route', () => {
       hiddenPaperProgramUnlocked: false,
       verdict: 'locked',
     });
+    const absorbState = JSON.parse(
+      fs.readFileSync(path.join(tempRoot, '.absorb-projects.json'), 'utf-8')
+    ) as { projects: Array<{ id: string; metadata: Record<string, unknown> }> };
+    expect(absorbState.projects).toHaveLength(1);
+    expect(absorbState.projects[0].id).toBe(body.id);
+    expect(absorbState.projects[0].metadata.currentCommit).toBe('abc123def456');
 
     const [command, args, options] = execFileMock.mock.calls[0] as [
       string,

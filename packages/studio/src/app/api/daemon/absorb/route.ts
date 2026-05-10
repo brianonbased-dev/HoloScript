@@ -3,6 +3,7 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { forwardAuthHeaders } from '@/lib/api-auth';
 import { callMcpTool, ABSORB_BASE } from '@/lib/services/absorb-client';
+import { recordAbsorbJob } from '@/lib/absorb/projectState';
 
 import { corsHeaders } from '../../_lib/cors';
 export async function GET(_req: NextRequest) {
@@ -27,10 +28,20 @@ export async function POST(req: NextRequest) {
   });
 
   if (mcpResult.ok && mcpResult.data) {
+    recordAbsorbJob({
+      projectId: typeof body.projectId === 'string' ? body.projectId : undefined,
+      projectPath: typeof body.projectPath === 'string' ? body.projectPath : undefined,
+      source: 'mcp',
+      depth: body.depth,
+      tier: body.tier,
+      request: body,
+      result: mcpResult.data,
+    });
     return NextResponse.json(mcpResult.data);
   }
 
   // Fallback to HTTP API
+  let httpError: unknown = null;
   try {
     const res = await fetch(`${ABSORB_BASE}/api/absorb`, {
       method: 'POST',
@@ -41,10 +52,34 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(body),
     });
     if (res.ok) {
-      return NextResponse.json(await res.json());
+      const data = await res.json();
+      recordAbsorbJob({
+        projectId: typeof body.projectId === 'string' ? body.projectId : undefined,
+        projectPath: typeof body.projectPath === 'string' ? body.projectPath : undefined,
+        source: 'http',
+        depth: body.depth,
+        tier: body.tier,
+        request: body,
+        result: data,
+      });
+      return NextResponse.json(data);
     }
   } catch (err) {
+    httpError = err;
     console.error('[API daemon/absorb] HTTP fallback failed:', err);
+  }
+
+  if (typeof body.projectId === 'string' || typeof body.projectPath === 'string') {
+    recordAbsorbJob({
+      projectId: typeof body.projectId === 'string' ? body.projectId : undefined,
+      projectPath: typeof body.projectPath === 'string' ? body.projectPath : undefined,
+      source: 'http',
+      depth: body.depth,
+      tier: body.tier,
+      request: body,
+      result: null,
+      error: httpError ?? 'MCP and HTTP absorb calls failed',
+    });
   }
 
   return NextResponse.json(
@@ -52,7 +87,6 @@ export async function POST(req: NextRequest) {
     { status: 502 }
   );
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {
