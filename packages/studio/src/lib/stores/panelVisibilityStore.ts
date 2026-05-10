@@ -2,6 +2,11 @@
 
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+import {
+  DEFAULT_OPEN_STUDIO_VIEW_IDS,
+  STUDIO_VIEW_IDS,
+  type StudioViewId,
+} from '../studio/viewRegistry';
 
 // ─── Panel Visibility Store ──────────────────────────────────────────────────
 // Centralises boolean panel states into a single Zustand store. Each panel gets:
@@ -19,85 +24,7 @@ import { devtools } from 'zustand/middleware';
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** All panel keys managed by this store. */
-export type PanelKey =
-  | 'palette'
-  | 'chat'
-  | 'history'
-  | 'profiler'
-  | 'shaderEditor'
-  | 'timeline'
-  | 'templatePicker'
-  | 'aiMaterial'
-  | 'share'
-  | 'critique'
-  | 'assetPack'
-  | 'versions'
-  | 'repl'
-  | 'registry'
-  | 'remote'
-  | 'export'
-  | 'generator'
-  | 'multiplayer'
-  | 'debugger'
-  | 'snapshots'
-  | 'assetLib'
-  | 'templateGallery'
-  | 'minimap'
-  | 'audio'
-  | 'exportV2'
-  | 'nodeGraph'
-  | 'keyframes'
-  | 'sceneSearch'
-  | 'particles'
-  | 'lod'
-  | 'console'
-  | 'undoHistory'
-  | 'outliner'
-  | 'material'
-  | 'physics'
-  | 'simulation'
-  | 'snapshotDiff'
-  | 'audioVisualizer'
-  | 'multiTransform'
-  | 'environment'
-  | 'inspector'
-  | 'hotkey'
-  | 'plugins'
-  | 'sandboxedPlugins'
-  | 'splatWizard'
-  | 'agentMonitor'
-  | 'texturePaint'
-  | 'mcpConfig'
-  | 'agentWorkflow'
-  | 'behaviorTree'
-  | 'agentEnsemble'
-  | 'eventMonitor'
-  | 'toolCallGraph'
-  | 'marketplace'
-  | 'pluginManager'
-  | 'cloudDeploy'
-  | 'publish'
-  | 'examples'
-  | 'tutorial'
-  | 'hotkeyOverlay'
-  | 'prompts'
-  | 'blame'
-  | 'dag'
-  | 'calibration'
-  | 'dragonPreview'
-  | 'holoDiff'
-  | 'sliderInspector'
-  | 'traitMatrix'
-  | 'assetImport'
-  | 'cinematicCamera'
-  | 'syntheticData'
-  | 'compilationPipeline'
-  | 'confidenceXR'
-  | 'operationsHub'
-  /** FoundationDAO / sovereign economy governance (@foundation_dao) */
-  | 'foundationDao'
-  /** NN-primary inversion runtime tier telemetry */
-  | 'runtimeTier';
+export type PanelKey = StudioViewId;
 
 /** Maps a PanelKey to its boolean field name (e.g. 'chat' -> 'chatOpen'). */
 type OpenField<K extends string> = `${K}Open`;
@@ -124,87 +51,10 @@ export interface PanelVisibilityState extends PanelOpenFields, PanelSetFields, P
 
 // ─── Default Values ─────────────────────────────────────────────────────────
 
-const PANEL_KEYS: PanelKey[] = [
-  'palette',
-  'chat',
-  'history',
-  'profiler',
-  'shaderEditor',
-  'timeline',
-  'templatePicker',
-  'aiMaterial',
-  'share',
-  'critique',
-  'assetPack',
-  'versions',
-  'repl',
-  'registry',
-  'remote',
-  'export',
-  'generator',
-  'multiplayer',
-  'debugger',
-  'snapshots',
-  'assetLib',
-  'templateGallery',
-  'minimap',
-  'audio',
-  'exportV2',
-  'nodeGraph',
-  'keyframes',
-  'sceneSearch',
-  'particles',
-  'lod',
-  'console',
-  'undoHistory',
-  'outliner',
-  'material',
-  'physics',
-  'simulation',
-  'snapshotDiff',
-  'audioVisualizer',
-  'multiTransform',
-  'environment',
-  'inspector',
-  'hotkey',
-  'plugins',
-  'sandboxedPlugins',
-  'splatWizard',
-  'agentMonitor',
-  'texturePaint',
-  'mcpConfig',
-  'agentWorkflow',
-  'behaviorTree',
-  'agentEnsemble',
-  'eventMonitor',
-  'toolCallGraph',
-  'marketplace',
-  'pluginManager',
-  'cloudDeploy',
-  'publish',
-  'examples',
-  'tutorial',
-  'hotkeyOverlay',
-  'prompts',
-  'blame',
-  'dag',
-  'calibration',
-  'dragonPreview',
-  'holoDiff',
-  'sliderInspector',
-  'traitMatrix',
-  'assetImport',
-  'cinematicCamera',
-  'syntheticData',
-  'compilationPipeline',
-  'confidenceXR',
-  'operationsHub',
-  'foundationDao',
-  'runtimeTier',
-];
+export const PANEL_KEYS: readonly PanelKey[] = STUDIO_VIEW_IDS;
 
 /** Panels that default to *open*. */
-const DEFAULTS_OPEN = new Set<PanelKey>(['chat', 'minimap']);
+const DEFAULTS_OPEN = new Set<PanelKey>(DEFAULT_OPEN_STUDIO_VIEW_IDS);
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 

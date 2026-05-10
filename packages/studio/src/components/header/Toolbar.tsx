@@ -29,6 +29,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAIStore, useSceneStore, useEditorStore, usePanelVisibilityStore } from '@/lib/stores';
 import { useSceneGraphStore } from '@/lib/stores/sceneGraphStore';
+import { runStudioCommand, type StudioViewCommandId } from '@/lib/studio/commandRegistry';
 import { SaveBar } from '@/components/SaveBar';
 import { CollabBar } from '@/components/collaboration/CollabBar';
 import { xrStore } from '@/components/vr/VREditSession';
@@ -58,13 +59,9 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
   const setShowConformancePanel = useEditorStore((s) => s.setShowConformancePanel);
 
   const agentMonitorOpen = usePanelVisibilityStore((s) => s.agentMonitorOpen);
-  const toggleAgentMonitorOpen = usePanelVisibilityStore((s) => s.toggleAgentMonitorOpen);
   const materialOpen = usePanelVisibilityStore((s) => s.materialOpen);
-  const toggleMaterialOpen = usePanelVisibilityStore((s) => s.toggleMaterialOpen);
   const texturePaintOpen = usePanelVisibilityStore((s) => s.texturePaintOpen);
-  const toggleTexturePaintOpen = usePanelVisibilityStore((s) => s.toggleTexturePaintOpen);
   const blameOpen = usePanelVisibilityStore((s) => s.blameOpen);
-  const toggleBlameOpen = usePanelVisibilityStore((s) => s.toggleBlameOpen);
 
   const setPublishOpen = usePanelVisibilityStore((s) => s.setPublishOpen);
   const setExamplesOpen = usePanelVisibilityStore((s) => s.setExamplesOpen);
@@ -72,23 +69,13 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
   const setPromptsOpen = usePanelVisibilityStore((s) => s.setPromptsOpen);
 
   const mcpConfigOpen = usePanelVisibilityStore((s) => s.mcpConfigOpen);
-  const setMcpConfigOpen = usePanelVisibilityStore((s) => s.setMcpConfigOpen);
   const agentWorkflowOpen = usePanelVisibilityStore((s) => s.agentWorkflowOpen);
-  const setAgentWorkflowOpen = usePanelVisibilityStore((s) => s.setAgentWorkflowOpen);
   const behaviorTreeOpen = usePanelVisibilityStore((s) => s.behaviorTreeOpen);
-  const setBehaviorTreeOpen = usePanelVisibilityStore((s) => s.setBehaviorTreeOpen);
   const agentEnsembleOpen = usePanelVisibilityStore((s) => s.agentEnsembleOpen);
-  const setAgentEnsembleOpen = usePanelVisibilityStore((s) => s.setAgentEnsembleOpen);
   const eventMonitorOpen = usePanelVisibilityStore((s) => s.eventMonitorOpen);
-  const setEventMonitorOpen = usePanelVisibilityStore((s) => s.setEventMonitorOpen);
   const toolCallGraphOpen = usePanelVisibilityStore((s) => s.toolCallGraphOpen);
-  const setToolCallGraphOpen = usePanelVisibilityStore((s) => s.setToolCallGraphOpen);
-  const _marketplaceOpen = usePanelVisibilityStore((s) => s.marketplaceOpen);
-  const setMarketplaceOpen = usePanelVisibilityStore((s) => s.setMarketplaceOpen);
   const pluginManagerOpen = usePanelVisibilityStore((s) => s.pluginManagerOpen);
-  const setPluginManagerOpen = usePanelVisibilityStore((s) => s.setPluginManagerOpen);
   const cloudDeployOpen = usePanelVisibilityStore((s) => s.cloudDeployOpen);
-  const setCloudDeployOpen = usePanelVisibilityStore((s) => s.setCloudDeployOpen);
   const [xrSupported, setXrSupported] = useState(false);
   const [xrActive, setXrActive] = useState(false);
   const [overflowOpen, setOverflowOpen] = useState(false);
@@ -104,6 +91,15 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [overflowOpen]);
+
+  const runViewCommand = useCallback((commandId: StudioViewCommandId) => {
+    runStudioCommand(commandId);
+  }, []);
+
+  const runOverflowViewCommand = useCallback((commandId: StudioViewCommandId) => {
+    runStudioCommand(commandId);
+    setOverflowOpen(false);
+  }, []);
 
   useEffect(() => {
     if (typeof navigator !== 'undefined' && 'xr' in navigator) {
@@ -204,7 +200,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
       </button>
 
       <button
-        onClick={() => setMarketplaceOpen(true)}
+        onClick={() => runViewCommand('studio.view.marketplace.toggle')}
         title="Content Marketplace"
         className="flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1 text-xs font-medium text-studio-muted transition hover:border-emerald-500/40 hover:text-emerald-400"
       >
@@ -249,7 +245,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
         </button>
 
         <button
-          onClick={toggleBlameOpen}
+          onClick={() => runViewCommand('studio.view.blame.toggle')}
           title="Spatial Blame (Ctrl+Shift+B)"
           className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
             blameOpen
@@ -262,7 +258,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
         </button>
 
         <button
-          onClick={toggleAgentMonitorOpen}
+          onClick={() => runViewCommand('studio.view.agentMonitor.toggle')}
           title="Agent Monitor (uAA2++ cycle)"
           className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
             agentMonitorOpen
@@ -275,7 +271,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
         </button>
 
         <button
-          onClick={toggleMaterialOpen}
+          onClick={() => runViewCommand('studio.view.material.toggle')}
           title="Material Editor"
           className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
             materialOpen
@@ -288,7 +284,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
         </button>
 
         <button
-          onClick={toggleTexturePaintOpen}
+          onClick={() => runViewCommand('studio.view.texturePaint.toggle')}
           title="Texture Paint"
           className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
             texturePaintOpen
@@ -301,7 +297,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
         </button>
 
         <button
-          onClick={() => setMcpConfigOpen(!mcpConfigOpen)}
+          onClick={() => runViewCommand('studio.view.mcpConfig.toggle')}
           title="MCP Servers (Ctrl+M)"
           className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
             mcpConfigOpen
@@ -314,7 +310,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
         </button>
 
         <button
-          onClick={() => setAgentWorkflowOpen(!agentWorkflowOpen)}
+          onClick={() => runViewCommand('studio.view.agentWorkflow.toggle')}
           title="Agent Orchestration (Ctrl+Shift+W)"
           className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
             agentWorkflowOpen
@@ -327,7 +323,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
         </button>
 
         <button
-          onClick={() => setBehaviorTreeOpen(!behaviorTreeOpen)}
+          onClick={() => runViewCommand('studio.view.behaviorTree.toggle')}
           title="Behavior Tree (Ctrl+B)"
           className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
             behaviorTreeOpen
@@ -340,7 +336,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
         </button>
 
         <button
-          onClick={() => setAgentEnsembleOpen(!agentEnsembleOpen)}
+          onClick={() => runViewCommand('studio.view.agentEnsemble.toggle')}
           title="Agent Ensemble (Ctrl+Shift+A)"
           className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
             agentEnsembleOpen
@@ -353,7 +349,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
         </button>
 
         <button
-          onClick={() => setEventMonitorOpen(!eventMonitorOpen)}
+          onClick={() => runViewCommand('studio.view.eventMonitor.toggle')}
           title="Event Monitor (Ctrl+E)"
           className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
             eventMonitorOpen
@@ -366,7 +362,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
         </button>
 
         <button
-          onClick={() => setToolCallGraphOpen(!toolCallGraphOpen)}
+          onClick={() => runViewCommand('studio.view.toolCallGraph.toggle')}
           title="Tool Call Graph (Ctrl+Shift+T)"
           className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
             toolCallGraphOpen
@@ -379,7 +375,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
         </button>
 
         <button
-          onClick={() => setPluginManagerOpen(!pluginManagerOpen)}
+          onClick={() => runViewCommand('studio.view.pluginManager.toggle')}
           title="Plugin Manager (Ctrl+P)"
           className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
             pluginManagerOpen
@@ -392,7 +388,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
         </button>
 
         <button
-          onClick={() => setCloudDeployOpen(!cloudDeployOpen)}
+          onClick={() => runViewCommand('studio.view.cloudDeploy.toggle')}
           title="Cloud Deployment (Ctrl+Shift+D)"
           className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
             cloudDeployOpen
@@ -428,8 +424,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                     icon: Server,
                     active: mcpConfigOpen,
                     onClick: () => {
-                      setMcpConfigOpen(!mcpConfigOpen);
-                      setOverflowOpen(false);
+                      runOverflowViewCommand('studio.view.mcpConfig.toggle');
                     },
                     color: 'blue',
                   },
@@ -448,8 +443,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                     icon: Eye,
                     active: blameOpen,
                     onClick: () => {
-                      toggleBlameOpen();
-                      setOverflowOpen(false);
+                      runOverflowViewCommand('studio.view.blame.toggle');
                     },
                     color: 'rose',
                   },
@@ -458,8 +452,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                     icon: Workflow,
                     active: agentWorkflowOpen,
                     onClick: () => {
-                      setAgentWorkflowOpen(!agentWorkflowOpen);
-                      setOverflowOpen(false);
+                      runOverflowViewCommand('studio.view.agentWorkflow.toggle');
                     },
                     color: 'purple',
                   },
@@ -468,8 +461,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                     icon: GitBranch,
                     active: behaviorTreeOpen,
                     onClick: () => {
-                      setBehaviorTreeOpen(!behaviorTreeOpen);
-                      setOverflowOpen(false);
+                      runOverflowViewCommand('studio.view.behaviorTree.toggle');
                     },
                     color: 'green',
                   },
@@ -478,8 +470,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                     icon: Users,
                     active: agentEnsembleOpen,
                     onClick: () => {
-                      setAgentEnsembleOpen(!agentEnsembleOpen);
-                      setOverflowOpen(false);
+                      runOverflowViewCommand('studio.view.agentEnsemble.toggle');
                     },
                     color: 'cyan',
                   },
@@ -488,8 +479,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                     icon: Activity,
                     active: eventMonitorOpen,
                     onClick: () => {
-                      setEventMonitorOpen(!eventMonitorOpen);
-                      setOverflowOpen(false);
+                      runOverflowViewCommand('studio.view.eventMonitor.toggle');
                     },
                     color: 'orange',
                   },
@@ -498,8 +488,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                     icon: Zap,
                     active: toolCallGraphOpen,
                     onClick: () => {
-                      setToolCallGraphOpen(!toolCallGraphOpen);
-                      setOverflowOpen(false);
+                      runOverflowViewCommand('studio.view.toolCallGraph.toggle');
                     },
                     color: 'amber',
                   },
@@ -508,8 +497,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                     icon: Package,
                     active: pluginManagerOpen,
                     onClick: () => {
-                      setPluginManagerOpen(!pluginManagerOpen);
-                      setOverflowOpen(false);
+                      runOverflowViewCommand('studio.view.pluginManager.toggle');
                     },
                     color: 'violet',
                   },
@@ -518,8 +506,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                     icon: Cloud,
                     active: cloudDeployOpen,
                     onClick: () => {
-                      setCloudDeployOpen(!cloudDeployOpen);
-                      setOverflowOpen(false);
+                      runOverflowViewCommand('studio.view.cloudDeploy.toggle');
                     },
                     color: 'sky',
                   },
