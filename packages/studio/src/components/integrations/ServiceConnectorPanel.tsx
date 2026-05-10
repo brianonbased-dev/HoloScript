@@ -44,7 +44,7 @@ import {
   type ServiceId as StoreServiceId,
   type ConnectionStatus as StoreConnectionStatus,
 } from '@/lib/stores/connectorStore';
-import { GitHubOAuthModal } from './GitHubOAuthModal';
+import { GitHubOAuthModal, type GitHubOAuthConnection } from './GitHubOAuthModal';
 import { logger } from '@/lib/logger';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -224,6 +224,8 @@ function ServiceTabContent({ service }: { service: ServiceConfig }) {
   const connect = useConnectorStore((s) => s.connect);
   const disconnect = useConnectorStore((s) => s.disconnect);
   const updateConfig = useConnectorStore((s) => s.updateConfig);
+  const setStatus = useConnectorStore((s) => s.setStatus);
+  const addActivity = useConnectorStore((s) => s.addActivity);
 
   const isConnecting = service.status === 'connecting';
 
@@ -253,16 +255,24 @@ function ServiceTabContent({ service }: { service: ServiceConfig }) {
   }, [disconnect, service.id]);
 
   const handleOAuthSuccess = useCallback(
-    async (accessToken: string) => {
-      try {
-        // Connect using the OAuth token
-        await connect(service.id as StoreServiceId, { token: accessToken });
-        setShowGitHubOAuth(false);
-      } catch (err) {
-        logger.error(`[ServiceConnectorPanel] OAuth connect failed:`, err);
-      }
+    (connection: GitHubOAuthConnection) => {
+      const serviceId = service.id as StoreServiceId;
+      const safeConfig = Object.fromEntries(
+        Object.entries(connection).filter(
+          (entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].length > 0
+        )
+      );
+
+      updateConfig(serviceId, safeConfig);
+      setStatus(serviceId, 'connected');
+      addActivity({
+        serviceId,
+        action: `Connected to ${service.id} via OAuth`,
+        status: 'success',
+      });
+      setShowGitHubOAuth(false);
     },
-    [connect, service.id]
+    [addActivity, service.id, setStatus, updateConfig]
   );
 
   return (

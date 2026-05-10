@@ -7,7 +7,7 @@
  * 1. Request device code from backend
  * 2. Show user_code and verification URL to user
  * 3. Poll backend until user authorizes
- * 4. Return access token to parent
+ * 4. Backend stores the token in an encrypted HttpOnly cookie
  *
  * @module components/integrations/GitHubOAuthModal
  */
@@ -17,11 +17,34 @@ import { X, ExternalLink, CheckCircle, Loader2, AlertCircle, Copy, Check } from 
 import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 interface GitHubOAuthModalProps {
-  onSuccess: (accessToken: string) => void;
+  onSuccess: (connection: GitHubOAuthConnection) => void;
   onClose: () => void;
 }
 
 type OAuthState = 'initializing' | 'waiting_for_user' | 'polling' | 'success' | 'error' | 'expired';
+
+export interface GitHubOAuthConnection {
+  username?: string;
+  email?: string;
+  scope?: string;
+  token?: string;
+}
+
+interface PollSuccessResponse {
+  status: 'success';
+  config?: GitHubOAuthConnection;
+}
+
+interface PollErrorResponse {
+  status: 'error';
+  error?: string;
+}
+
+interface PollPendingResponse {
+  status: 'pending' | 'slow_down';
+}
+
+type PollResponse = PollSuccessResponse | PollErrorResponse | PollPendingResponse;
 
 interface DeviceCodeData {
   device_code: string;
@@ -104,11 +127,11 @@ export function GitHubOAuthModal({ onSuccess, onClose }: GitHubOAuthModalProps) 
           body: JSON.stringify({ device_code: deviceCode }),
         });
 
-        const data = await response.json();
+        const data = (await response.json()) as PollResponse;
 
         if (data.status === 'success') {
           setState('success');
-          onSuccess(data.access_token);
+          onSuccess(data.config ?? {});
           setTimeout(() => {
             onClose();
           }, 1500);
@@ -117,7 +140,7 @@ export function GitHubOAuthModal({ onSuccess, onClose }: GitHubOAuthModalProps) 
 
         if (data.status === 'error') {
           setState('error');
-          setError(data.error);
+          setError(data.error ?? 'GitHub authorization failed');
           return;
         }
 

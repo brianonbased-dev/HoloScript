@@ -8,7 +8,6 @@ export const maxDuration = 60;
  *
  * Request body:
  *   - compositionId: string (id of starter composition)
- *   - githubToken: string (GitHub OAuth token from device flow)
  *
  * Response:
  *   - liveUrl: string (https://composition-xxx.railway.app or similar)
@@ -20,10 +19,10 @@ export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
+import { getGitHubToken } from '@/app/api/github/_shared';
 
 interface DeployRequest {
   compositionId: string;
-  githubToken: string;
 }
 
 interface DeployResponse {
@@ -53,21 +52,30 @@ function generateLiveUrl(projectName: string): string {
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as DeployRequest;
-    const { compositionId, githubToken } = body;
+    const { compositionId } = body;
 
-    if (!compositionId || !githubToken) {
+    if (!compositionId) {
       return NextResponse.json(
         {
           status: 'error',
-          error: 'Missing compositionId or githubToken',
+          error: 'Missing compositionId',
         },
         { status: 400 }
       );
     }
 
+    if (!(await getGitHubToken(req))) {
+      return NextResponse.json(
+        {
+          status: 'error',
+          error: 'GitHub authorization required',
+        },
+        { status: 401 }
+      );
+    }
+
     logger.info('[api/connectors/railway/deploy] Deploying composition', {
       compositionId,
-      tokenLength: githubToken.length,
     });
 
     // Generate project name and URL

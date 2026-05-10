@@ -28,6 +28,7 @@ import {
   resolveWorkspaceGitPath,
   validateRelativeGitPaths,
 } from '../_shared';
+import { getGitHubToken } from '@/app/api/github/_shared';
 const GITHUB_API_BASE_URL = (
   process.env.GITHUB_API_URL ||
   process.env.GITHUB_API_BASE_URL ||
@@ -106,7 +107,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
   }
 
-  const token = session.accessToken ?? process.env.GITHUB_TOKEN;
+  const token = await getGitHubToken(req);
   if (!token) {
     return NextResponse.json(
       { error: 'No GitHub token available. Sign in with GitHub.' },

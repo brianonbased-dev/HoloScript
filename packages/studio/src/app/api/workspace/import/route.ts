@@ -29,6 +29,7 @@ import {
   type PublishWorthinessProjectDNA,
 } from '@/lib/workspace/publishWorthinessDetector';
 import { upsertDurableAbsorbProject } from '@/lib/absorb/projectState';
+import { getGitHubToken } from '@/app/api/github/_shared';
 
 import { corsHeaders } from '../../_lib/cors';
 
@@ -230,8 +231,8 @@ export async function POST(req: NextRequest) {
     // Ensure workspaces directory exists
     fs.mkdirSync(workspaceDir, { recursive: true });
 
-    const oauthToken = session.accessToken ?? process.env.GITHUB_TOKEN;
-    const env = withGitHubAuthEnv(oauthToken);
+    const oauthToken = await getGitHubToken(req);
+    const env = withGitHubAuthEnv(oauthToken ?? undefined);
     const cloneArgs = ['clone', '--depth', '1'];
     if (branch) cloneArgs.push('--branch', branch);
     cloneArgs.push('--', repoRef.cloneUrl, localPath);

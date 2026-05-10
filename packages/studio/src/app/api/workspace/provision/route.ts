@@ -9,12 +9,13 @@ export const maxDuration = 300;
  */
 
 import { getServerSession } from 'next-auth';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { provisionUser } from '@/lib/workspace/provisionUser';
+import { getGitHubToken } from '@/app/api/github/_shared';
 
 import { corsHeaders } from '../../_lib/cors';
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
@@ -46,8 +47,7 @@ export async function POST(request: Request) {
   const approvedPublishKnowledge = consent.publishKnowledge === true;
   const approvedDaemon = consent.daemon !== false;
 
-  // Access token is now properly persisted via jwt/session callbacks in auth.ts
-  const accessToken = session.accessToken;
+  const accessToken = await getGitHubToken(request);
   if (!accessToken) {
     return NextResponse.json(
       { error: 'GitHub access token not available. Please re-authenticate.' },

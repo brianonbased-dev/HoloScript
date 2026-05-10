@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GitHubConnector } from '@holoscript/connector-github';
 import { RailwayConnector } from '@holoscript/connector-railway';
 import { logger } from '@/lib/logger';
+import { clearGitHubDeviceTokenCookie } from '@/lib/github-device-session';
 
 import { corsHeaders } from '../../_lib/cors';
 /** Minimal connector interface for disconnect operations */
@@ -50,7 +51,9 @@ export async function POST(req: NextRequest) {
         // Clear environment variable
         delete process.env.GITHUB_TOKEN;
 
-        return NextResponse.json({ success: true });
+        const response = NextResponse.json({ success: true });
+        clearGitHubDeviceTokenCookie(response);
+        return response;
       }
 
       case 'railway': {
@@ -130,7 +133,6 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

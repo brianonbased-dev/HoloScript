@@ -64,19 +64,19 @@ const STARTER_COMPOSITIONS: Composition[] = [
 type WizardStep = 'github' | 'composition' | 'deploy' | 'success';
 
 interface FirstRunWizardProps {
-  onComplete?: (data: { githubToken: string; compositionId: string; liveUrl: string }) => void;
+  onComplete?: (data: { githubConnected: boolean; compositionId: string; liveUrl: string }) => void;
 }
 
 export default function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
   const [step, setStep] = useState<WizardStep>('github');
-  const [githubToken, setGithubToken] = useState<string>('');
+  const [githubConnected, setGithubConnected] = useState(false);
   const [selectedComposition, setSelectedComposition] = useState<string>('');
   const [deploymentUrl, setDeploymentUrl] = useState<string>('');
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployError, setDeployError] = useState<string>('');
 
-  const handleGitHubSuccess = (token: string) => {
-    setGithubToken(token);
+  const handleGitHubSuccess = () => {
+    setGithubConnected(true);
     setStep('composition');
   };
 
@@ -96,7 +96,6 @@ export default function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           compositionId: selectedComposition,
-          githubToken,
         }),
       });
 
@@ -110,7 +109,7 @@ export default function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
 
       if (onComplete) {
         onComplete({
-          githubToken,
+          githubConnected,
           compositionId: selectedComposition,
           liveUrl: data.liveUrl,
         });

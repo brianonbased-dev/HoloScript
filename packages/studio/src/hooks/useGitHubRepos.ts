@@ -7,7 +7,7 @@
  *  1. Active GitHub OAuth session (signed in via "Continue with GitHub") — no extra setup needed
  *  2. GitHub connector connected via /integrations connector store
  *
- * Calls GET /api/github/repos which uses the OAuth access token from the session.
+ * Calls GET /api/github/repos which resolves the token server-side.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -49,13 +49,13 @@ export function useGitHubRepos(): UseGitHubReposResult {
 
   // Primary: GitHub OAuth session (signed in with GitHub in Studio)
   const { data: session } = useSession();
-  const hasOAuthToken = !!(session?.accessToken);
+  const hasGitHubSession = session?.githubConnected === true;
 
   // Secondary: manual connector from /integrations
   const githubConnection = useConnectorStore((s) => s.connections.github);
   const connectorConnected = githubConnection?.status === 'connected';
 
-  const isConnected = hasOAuthToken || connectorConnected;
+  const isConnected = hasGitHubSession || connectorConnected;
   const connectionError = isConnected ? null : (githubConnection?.lastError ?? null);
 
   const fetchRepos = useCallback(async () => {

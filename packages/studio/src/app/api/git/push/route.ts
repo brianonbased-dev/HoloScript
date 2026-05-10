@@ -19,6 +19,7 @@ import { promisify } from 'util';
 
 import { corsHeaders } from '../../_lib/cors';
 import { isSafeGitRef, isSafeGitRemote, resolveWorkspaceGitPath } from '../_shared';
+import { getGitHubToken } from '@/app/api/github/_shared';
 const execFileAsync = promisify(execFile);
 
 export async function POST(req: NextRequest) {
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
   }
 
-  const token = session.accessToken ?? process.env.GITHUB_TOKEN;
+  const token = await getGitHubToken(req);
   if (!token) {
     return NextResponse.json(
       { error: 'No GitHub token available. Sign in with GitHub.' },

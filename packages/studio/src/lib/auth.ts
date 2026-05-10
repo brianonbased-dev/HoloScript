@@ -11,6 +11,7 @@ import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { getDb } from '../db/client';
+import { GITHUB_OAUTH_SCOPES, resolveGitHubOAuthConfig } from './github-oauth-config';
 
 /* ------------------------------------------------------------------ */
 /* Type augmentations — extend NextAuth Session & JWT with our fields  */
@@ -18,6 +19,7 @@ import { getDb } from '../db/client';
 declare module 'next-auth' {
   interface Session {
     accessToken?: string;
+    githubConnected?: boolean;
     user: {
       id: string;
       name?: string | null;
@@ -38,13 +40,14 @@ declare module 'next-auth/jwt' {
 
 function buildProviders() {
   const providers: NextAuthOptions['providers'] = [];
+  const githubOAuth = resolveGitHubOAuthConfig();
 
-  if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+  if (githubOAuth.clientId && githubOAuth.clientSecret) {
     providers.push(
       GitHubProvider({
-        clientId: process.env.GITHUB_CLIENT_ID,
-        clientSecret: process.env.GITHUB_CLIENT_SECRET,
-        authorization: { params: { scope: 'repo read:user user:email read:org' } },
+        clientId: githubOAuth.clientId,
+        clientSecret: githubOAuth.clientSecret,
+        authorization: { params: { scope: GITHUB_OAUTH_SCOPES } },
       })
     );
   }
@@ -88,7 +91,7 @@ export function buildAuthOptions(): NextAuthOptions {
   const options: NextAuthOptions = {
     providers: buildProviders(),
     session: {
-      strategy: db ? 'database' : 'jwt',
+      strategy: 'jwt',
       maxAge: 30 * 24 * 60 * 60, // 30 days
     },
     callbacks: {
@@ -110,14 +113,11 @@ export function buildAuthOptions(): NextAuthOptions {
           session.user.id = user?.id ?? token?.sub ?? '';
           // Expose GitHub username for admin checks
           session.user.githubUsername =
-            token?.githubUsername
-            ?? ((user as unknown as Record<string, unknown>)?.githubUsername as string | undefined)
-            ?? '';
+            token?.githubUsername ??
+            ((user as unknown as Record<string, unknown>)?.githubUsername as string | undefined) ??
+            '';
         }
-        // Expose the OAuth access token so provisioning pipeline can use it
-        if (token?.accessToken) {
-          session.accessToken = token.accessToken;
-        }
+        session.githubConnected = token?.provider === 'github';
         return session;
       },
     },
