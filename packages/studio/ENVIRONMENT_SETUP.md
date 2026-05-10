@@ -156,3 +156,45 @@ When running `@holoscript/mcp-server` for `holo_reconstruct_*` tools, optional l
 - Use separate keys for dev/prod
 - Rotate keys if accidentally exposed
 - Use read-only API keys when possible
+
+## Production OAuth Setup (GitHub)
+
+To enable GitHub OAuth sign-in on `https://holoscript.studio`:
+
+### 1. Create the GitHub OAuth App
+
+1. Go to **GitHub Settings > Developer settings > OAuth Apps > New OAuth App**
+2. Fill in:
+   - **Application name**: HoloScript Studio
+   - **Homepage URL**: `https://holoscript.studio`
+   - **Authorization callback URL**: `https://holoscript.studio/api/auth/callback/github`
+   - **Enable Device Flow**: checked (required for server-side repo operations via the device-code flow)
+3. Click **Register application**
+4. Copy the **Client ID** and generate a **Client secret**
+
+### 2. Add GitHub Repository Secrets
+
+In the HoloScript repo, go to **Settings > Secrets and variables > Actions > New repository secret**:
+
+| Secret name | Value |
+|-------------|-------|
+| `STUDIO_GITHUB_CLIENT_ID` | Client ID from step 1 |
+| `STUDIO_GITHUB_CLIENT_SECRET` | Client secret from step 1 |
+| `STUDIO_NEXTAUTH_SECRET` | Run `openssl rand -base64 32` and paste the output |
+
+### 3. Deploy
+
+The next deploy of Studio (via `deploy-railway.yml`) will automatically inject these secrets into Railway environment variables. The deploy workflow also prints warnings during pre-flight if any of the three secrets are missing.
+
+### 4. Verify
+
+After deploy, visit `https://holoscript.studio/auth/signin` and confirm the "Continue with GitHub" button appears and functions.
+
+### 5. (Optional) Google OAuth
+
+Follow the same pattern for Google OAuth:
+1. Create credentials at [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+2. Add authorized redirect URI: `https://holoscript.studio/api/auth/callback/google`
+3. Add repository secrets `STUDIO_GOOGLE_CLIENT_ID` and `STUDIO_GOOGLE_CLIENT_SECRET`
+4. Update `deploy-railway.yml` to inject them (copy the GitHub pattern in `deploy-studio`)
+

@@ -95,6 +95,18 @@ jobs:
             exit 1
           fi
 
+      - name: Validate Studio OAuth secrets (optional but warned)
+        run: |
+          if [ -z "${{ secrets.STUDIO_GITHUB_CLIENT_ID }}" ]; then
+            echo "⚠️ STUDIO_GITHUB_CLIENT_ID secret is missing. Production GitHub OAuth sign-in will be unavailable."
+          fi
+          if [ -z "${{ secrets.STUDIO_GITHUB_CLIENT_SECRET }}" ]; then
+            echo "⚠️ STUDIO_GITHUB_CLIENT_SECRET secret is missing. Production GitHub OAuth sign-in will be unavailable."
+          fi
+          if [ -z "${{ secrets.STUDIO_NEXTAUTH_SECRET }}" ]; then
+            echo "⚠️ STUDIO_NEXTAUTH_SECRET secret is missing. JWT sessions will use a fallback (insecure in production)."
+          fi
+
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -257,6 +269,43 @@ jobs:
         run: |
           railway variables --set "HOLOSCRIPT_API_KEY=${{ secrets.HOLOSCRIPT_API_KEY }}" --service studio || \
           railway variables set HOLOSCRIPT_API_KEY="${{ secrets.HOLOSCRIPT_API_KEY }}" --service studio
+
+      - name: Ensure NextAuth / OAuth variables on studio service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway variables set \
+            --service studio \
+            --environment production \
+            --skip-deploys \
+            "NEXTAUTH_URL=https://holoscript.studio" \
+            "NEXT_PUBLIC_STUDIO_URL=https://holoscript.studio"
+
+          # Inject OAuth secrets only if they are configured.
+          # If secrets are missing, the studio still deploys but GitHub sign-in is unavailable.
+          if [ -n "${{ secrets.STUDIO_NEXTAUTH_SECRET }}" ]; then
+            railway variables set \
+              --service studio \
+              --environment production \
+              --skip-deploys \
+              "NEXTAUTH_SECRET=${{ secrets.STUDIO_NEXTAUTH_SECRET }}"
+          fi
+
+          if [ -n "${{ secrets.STUDIO_GITHUB_CLIENT_ID }}" ]; then
+            railway variables set \
+              --service studio \
+              --environment production \
+              --skip-deploys \
+              "GITHUB_CLIENT_ID=${{ secrets.STUDIO_GITHUB_CLIENT_ID }}"
+          fi
+
+          if [ -n "${{ secrets.STUDIO_GITHUB_CLIENT_SECRET }}" ]; then
+            railway variables set \
+              --service studio \
+              --environment production \
+              --skip-deploys \
+              "GITHUB_CLIENT_SECRET=${{ secrets.STUDIO_GITHUB_CLIENT_SECRET }}"
+          fi
 
       - name: Deploy HoloScript Studio
         env:
