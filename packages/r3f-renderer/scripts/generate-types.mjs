@@ -309,7 +309,23 @@ export interface BiologicalMeshNodeProps {
 }
 export declare function BiologicalMeshNode(props: BiologicalMeshNodeProps): any;
 
+export interface WebSurfaceRendererProps {
+  url: string;
+  size?: [number, number];
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: [number, number, number] | number;
+  sandbox?: string[];
+  allow_mic?: boolean;
+  allow_camera?: boolean;
+  origin_whitelist?: string[];
+  selected?: boolean;
+  onSelect?: () => void;
+}
+export declare function WebSurfaceRenderer(props: WebSurfaceRendererProps): any;
+
 export declare function resolveGaussianSplatSrc(node: R3FNode): string | null;
+export declare function resolveWebSurfaceConfig(node: R3FNode): Record<string, unknown> | null;
 
 export declare function partitionStudioChildren(children: R3FNode[] | undefined): {
   batchableDraftMeshes: R3FNode[];
