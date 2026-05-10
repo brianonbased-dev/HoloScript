@@ -3,13 +3,19 @@
  *
  * Targets the paper-12 "OpenUSD proxy LOC" bucket by providing a real USDA
  * export from a .holo composition tree. Current scope: deterministic USDA
- * export, semantic receipt emission, and round-trip conformance checks that do
- * not require local pxr bindings.
+ * export, semantic receipt emission, optional pxr/usdchecker validation, and
+ * deterministic round-trip conformance checks that do not require local pxr
+ * bindings.
  *
- * Status: BASELINE. pxr/usdchecker-backed validation remains future work.
+ * Status: BASELINE+OPTIONAL_PXR. pxr/usdchecker validation is opt-in.
  * Research: ai-ecosystem/research/2026-04-23_openusd-holoscript-robotics-frontend.md
  * Paper:    memory/paper-12-plugin-openusd-probe.md
  */
+
+import { spawnSync } from 'child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 
 export type UsdaStageKind = 'world' | 'anim' | 'look';
 export type UsdaPrimitiveKind = 'xform' | 'mesh' | 'light';
@@ -63,9 +69,59 @@ export interface UsdaConformanceCheck {
   message: string;
 }
 
+export type UsdaConformanceValidator = 'syntax-roundtrip' | 'pxr.usdchecker';
+export type UsdaConformanceReceiptStatus = 'passed' | 'failed' | 'unavailable';
+export type UsdaConformanceMode = 'syntax-roundtrip' | 'pxr-usdchecker';
+
+export interface UsdaConformanceReceipt {
+  validator: UsdaConformanceValidator;
+  status: UsdaConformanceReceiptStatus;
+  mode: UsdaConformanceMode;
+  semantic_hash: string;
+  primitive_count: number;
+  message: string;
+  command?: string;
+  exitCode?: number | null;
+  signal?: string | null;
+  stdout?: string;
+  stderr?: string;
+}
+
+export interface UsdCheckerProcessResult {
+  status?: number | null;
+  signal?: string | null;
+  stdout?: unknown;
+  stderr?: unknown;
+  error?: unknown;
+}
+
+export interface UsdCheckerRunOptions {
+  timeoutMs: number;
+}
+
+export type UsdCheckerRunner = (
+  command: string,
+  args: string[],
+  options: UsdCheckerRunOptions
+) => UsdCheckerProcessResult;
+
+export interface UsdCheckerValidationOptions {
+  enabled?: boolean;
+  command?: string;
+  args?: string[];
+  timeoutMs?: number;
+  runner?: UsdCheckerRunner;
+}
+
+export interface UsdaConformanceOptions {
+  usdchecker?: UsdCheckerValidationOptions;
+}
+
 export interface UsdaConformanceReport {
   passed: boolean;
   checks: UsdaConformanceCheck[];
+  receipts: UsdaConformanceReceipt[];
+  validationMode: UsdaConformanceMode;
   output: UsdaExportOutput;
   roundTrip: UsdaRoundTripSummary;
 }
@@ -100,11 +156,10 @@ export function exportToUsda(input: UsdaExportInput): UsdaExportOutput {
     lines.push(`    custom string holo:${sanitizeIdentifier(key)} = "${escapeUsdString(value)}"`);
   }
 
-  const prims: UsdaPrimitiveInput[] = input.primitives ?? [
-    { kind: 'xform', path: 'root' },
-  ];
+  const prims: UsdaPrimitiveInput[] = input.primitives ?? [{ kind: 'xform', path: 'root' }];
   for (const prim of prims) {
-    const typeName = prim.kind === 'mesh' ? 'Mesh' : prim.kind === 'light' ? 'SphereLight' : 'Xform';
+    const typeName =
+      prim.kind === 'mesh' ? 'Mesh' : prim.kind === 'light' ? 'SphereLight' : 'Xform';
     lines.push(`    def ${typeName} "${sanitizeIdentifier(prim.path)}"`);
     lines.push('    {');
     lines.push(`        custom string holo:sourcePath = "${escapeUsdString(prim.path)}"`);
@@ -164,14 +219,18 @@ export function summarizeUsdaRoundTrip(usda: string): UsdaRoundTripSummary {
   };
 }
 
-export function runOpenUsdConformanceRoundTrip(input: UsdaExportInput): UsdaConformanceReport {
+export function runOpenUsdConformanceRoundTrip(
+  input: UsdaExportInput,
+  options: UsdaConformanceOptions = {}
+): UsdaConformanceReport {
   const output = exportToUsda(input);
   const roundTrip = summarizeUsdaRoundTrip(output.usda);
   const prims = input.primitives ?? [{ kind: 'xform' as const, path: 'root' }];
   const semanticPrims = prims.filter((p) => p.semantic);
   const checks: UsdaConformanceCheck[] = [];
 
-  const add = (id: string, passed: boolean, message: string) => checks.push({ id, passed, message });
+  const add = (id: string, passed: boolean, message: string) =>
+    checks.push({ id, passed, message });
 
   add('magic-header', output.usda.startsWith('#usda 1.0'), 'USDA file starts with #usda 1.0');
   add(
@@ -208,9 +267,37 @@ export function runOpenUsdConformanceRoundTrip(input: UsdaExportInput): UsdaConf
     'Root semantic hash survives USDA reparse'
   );
 
+  const syntaxPassed = checks.every((check) => check.passed);
+  const receipts: UsdaConformanceReceipt[] = [
+    {
+      validator: 'syntax-roundtrip',
+      status: syntaxPassed ? 'passed' : 'failed',
+      mode: 'syntax-roundtrip',
+      semantic_hash: output.semantic_hash,
+      primitive_count: output.primitive_count,
+      message: syntaxPassed
+        ? 'Deterministic USDA syntax round-trip passed without requiring pxr bindings'
+        : 'Deterministic USDA syntax round-trip failed',
+    },
+  ];
+
+  const usdcheckerReceipt = runOptionalUsdChecker(output, options.usdchecker);
+  if (usdcheckerReceipt) {
+    receipts.push(usdcheckerReceipt);
+    add('pxr-usdchecker', usdcheckerReceipt.status !== 'failed', usdcheckerReceipt.message);
+  }
+
+  const validationMode = receipts.some(
+    (receipt) => receipt.validator === 'pxr.usdchecker' && receipt.status === 'passed'
+  )
+    ? 'pxr-usdchecker'
+    : 'syntax-roundtrip';
+
   return {
     passed: checks.every((check) => check.passed),
     checks,
+    receipts,
+    validationMode,
     output,
     roundTrip,
   };
@@ -322,12 +409,18 @@ export function buildIndustrialDigitalTwinFixture(): UsdaExportInput {
 
 function pushSemanticReceipt(lines: string[], semantic: UsdaSemanticReceipt, indent: string) {
   lines.push(`${indent}custom string holo:role = "${escapeUsdString(semantic.role)}"`);
-  lines.push(`${indent}custom string holo:semanticSource = "${escapeUsdString(semantic.sourcePath)}"`);
+  lines.push(
+    `${indent}custom string holo:semanticSource = "${escapeUsdString(semantic.sourcePath)}"`
+  );
 
-  if (semantic.dtId) lines.push(`${indent}custom string holo:dtId = "${escapeUsdString(semantic.dtId)}"`);
-  if (semantic.units) lines.push(`${indent}custom string holo:units = "${escapeUsdString(semantic.units)}"`);
+  if (semantic.dtId)
+    lines.push(`${indent}custom string holo:dtId = "${escapeUsdString(semantic.dtId)}"`);
+  if (semantic.units)
+    lines.push(`${indent}custom string holo:units = "${escapeUsdString(semantic.units)}"`);
   if (semantic.telemetry?.length) {
-    lines.push(`${indent}custom string holo:telemetry = "${escapeUsdString(semantic.telemetry.join(','))}"`);
+    lines.push(
+      `${indent}custom string holo:telemetry = "${escapeUsdString(semantic.telemetry.join(','))}"`
+    );
   }
   if (semantic.simulationContract) {
     lines.push(
@@ -335,13 +428,115 @@ function pushSemanticReceipt(lines: string[], semantic: UsdaSemanticReceipt, ind
     );
   }
   if (semantic.provenance) {
-    lines.push(`${indent}custom string holo:provenance = "${escapeUsdString(semantic.provenance)}"`);
+    lines.push(
+      `${indent}custom string holo:provenance = "${escapeUsdString(semantic.provenance)}"`
+    );
   }
+}
+
+function runOptionalUsdChecker(
+  output: UsdaExportOutput,
+  options?: UsdCheckerValidationOptions
+): UsdaConformanceReceipt | undefined {
+  if (!options?.enabled) return undefined;
+
+  const command = options.command ?? process.env.HOLOSCRIPT_USDCHECKER ?? 'usdchecker';
+  const timeoutMs = options.timeoutMs ?? 10_000;
+  const runner = options.runner ?? runUsdCheckerProcess;
+  let tempDir: string | undefined;
+
+  try {
+    tempDir = mkdtempSync(join(tmpdir(), 'holoscript-openusd-'));
+    const stagePath = join(tempDir, 'stage.usda');
+    writeFileSync(stagePath, output.usda, 'utf8');
+
+    const result = runner(command, [...(options.args ?? []), stagePath], { timeoutMs });
+    const errorCode = getErrorCode(result.error);
+    const stdout = normalizeProcessOutput(result.stdout);
+    const stderr = normalizeProcessOutput(result.stderr);
+
+    if (errorCode === 'ENOENT') {
+      return {
+        validator: 'pxr.usdchecker',
+        status: 'unavailable',
+        mode: 'syntax-roundtrip',
+        semantic_hash: output.semantic_hash,
+        primitive_count: output.primitive_count,
+        command,
+        message: `${command} was not found; deterministic syntax round-trip fallback used`,
+      };
+    }
+
+    if (result.error) {
+      return {
+        validator: 'pxr.usdchecker',
+        status: 'failed',
+        mode: 'pxr-usdchecker',
+        semantic_hash: output.semantic_hash,
+        primitive_count: output.primitive_count,
+        command,
+        exitCode: result.status ?? null,
+        signal: result.signal ?? null,
+        stdout,
+        stderr,
+        message: `${command} could not complete: ${getErrorMessage(result.error)}`,
+      };
+    }
+
+    const passed = result.status === 0;
+    return {
+      validator: 'pxr.usdchecker',
+      status: passed ? 'passed' : 'failed',
+      mode: 'pxr-usdchecker',
+      semantic_hash: output.semantic_hash,
+      primitive_count: output.primitive_count,
+      command,
+      exitCode: result.status ?? null,
+      signal: result.signal ?? null,
+      stdout,
+      stderr,
+      message: passed
+        ? `${command} accepted the emitted USDA stage`
+        : `${command} rejected the emitted USDA stage`,
+    };
+  } catch (error) {
+    return {
+      validator: 'pxr.usdchecker',
+      status: 'failed',
+      mode: 'pxr-usdchecker',
+      semantic_hash: output.semantic_hash,
+      primitive_count: output.primitive_count,
+      command,
+      message: `Unable to prepare ${command} validation: ${getErrorMessage(error)}`,
+    };
+  } finally {
+    if (tempDir) rmSync(tempDir, { recursive: true, force: true });
+  }
+}
+
+function runUsdCheckerProcess(
+  command: string,
+  args: string[],
+  options: UsdCheckerRunOptions
+): UsdCheckerProcessResult {
+  const result = spawnSync(command, args, {
+    encoding: 'utf8',
+    timeout: options.timeoutMs,
+    windowsHide: true,
+  });
+  return {
+    status: result.status,
+    signal: result.signal,
+    stdout: result.stdout,
+    stderr: result.stderr,
+    error: result.error,
+  };
 }
 
 function formatUsdAttribute(key: string, value: UsdaAttrValue, indent: string): string {
   const attrName = sanitizeIdentifier(key);
-  if (Array.isArray(value)) return `${indent}float3 ${attrName} = (${value.map(formatNumber).join(', ')})`;
+  if (Array.isArray(value))
+    return `${indent}float3 ${attrName} = (${value.map(formatNumber).join(', ')})`;
   if (typeof value === 'number') return `${indent}float ${attrName} = ${formatNumber(value)}`;
   if (typeof value === 'boolean') return `${indent}bool ${attrName} = ${value ? 'true' : 'false'}`;
   return `${indent}string ${attrName} = "${escapeUsdString(value)}"`;
@@ -364,6 +559,27 @@ function unescapeUsdString(value: string): string {
 function formatNumber(value: number): string {
   if (Number.isInteger(value)) return String(value);
   return String(Number(value.toFixed(6)));
+}
+
+function normalizeProcessOutput(value: unknown): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  const text = String(value).trim();
+  return text.length ? text : undefined;
+}
+
+function getErrorCode(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object' || !('code' in error)) return undefined;
+  const code = (error as { code?: unknown }).code;
+  return typeof code === 'string' ? code : undefined;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string') return message;
+  }
+  return String(error);
 }
 
 function stableHash(value: unknown): string {
