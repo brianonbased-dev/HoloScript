@@ -12,10 +12,13 @@ export interface SecretGrantInput {
 
 export interface SecretGrantReceipt {
   version: 1;
+  event: 'secret.granted';
   grantId: string;
   workspaceId: string;
   agentId: string;
+  agent: string;
   secretRef: string;
+  ref: string;
   capabilityRef: string;
   purpose: string;
   issuedAt: string;
@@ -78,10 +81,13 @@ export function createSecretGrant(input: SecretGrantInput): SecretGrantReceipt {
 
   const unsigned: Omit<SecretGrantReceipt, 'receiptHash'> = {
     version: 1,
+    event: 'secret.granted',
     grantId,
     workspaceId,
     agentId,
+    agent: agentId,
     secretRef,
+    ref: secretRef,
     capabilityRef,
     purpose,
     issuedAt,

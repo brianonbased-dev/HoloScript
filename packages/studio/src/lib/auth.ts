@@ -117,6 +117,7 @@ export function buildAuthOptions(): NextAuthOptions {
             ((user as unknown as Record<string, unknown>)?.githubUsername as string | undefined) ??
             '';
         }
+        session.accessToken = token?.accessToken;
         session.githubConnected = token?.provider === 'github';
         return session;
       },

@@ -7,7 +7,7 @@ import {
 } from './agentProfiles';
 
 describe('HoloDaemon mission profiles', () => {
-  it('defaults to HoloHeal as the self-improvement mission', () => {
+  it('defaults to HoloHeal as the resident health mission', () => {
     const mission = getHoloDaemonMission(undefined);
 
     expect(mission.id).toBe('holoheal');

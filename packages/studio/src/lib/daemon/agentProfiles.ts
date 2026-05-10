@@ -15,7 +15,7 @@ export const HOLO_DAEMON_MISSIONS: HoloDaemonMissionDefinition[] = [
   {
     id: 'holoheal',
     name: 'HoloHeal',
-    description: 'Self-improvement loop: diagnose, repair, verify, publish receipts.',
+    description: 'HoloHeal loop: diagnose, repair, verify, publish receipts.',
     defaultMode: 'balanced',
     defaultSkills: ['codebase', 'holoscript-dev', 'scan', 'critic'],
     authorityRefs: ['cap://holoheal/code/write-scoped', 'cap://holoheal/holomesh/publish-receipt'],

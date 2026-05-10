@@ -171,7 +171,7 @@ export function buildAgentGenesisPlan(input: AgentGenesisInput): AgentGenesisPla
       missionProfile: 'holoheal',
       autospawn: true,
       priority: 100,
-      reason: 'Default self-improvement loop for every workspace.',
+      reason: 'Default HoloHeal loop for every workspace: diagnose, repair, verify, and publish receipts.',
       triggers: ['workspace.created', 'daemon.requested', 'health.regression'],
     }),
     buildRecommendation({

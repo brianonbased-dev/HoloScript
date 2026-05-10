@@ -14,8 +14,11 @@ describe('createSecretGrant', () => {
     });
 
     expect(grant).toMatchObject({
+      event: 'secret.granted',
       workspaceId: 'ws_octocat',
       agentId: 'agent_secret_custodian',
+      agent: 'agent_secret_custodian',
+      ref: 'secret://workspace/ws_octocat/holoscript/orchestrator/api-key',
       accessMode: 'brokered-handle',
       plaintextReturned: false,
       issuedAt: '2026-05-10T10:00:00.000Z',

@@ -1,5 +1,5 @@
 import { normalizeGitHubRepo } from './repoConsent';
-import { buildAgentGenesisPlan } from './agentGenesis';
+import { buildAgentGenesisPlan, type AgentGenesisPlan } from './agentGenesis';
 
 export type AccountWorkspaceTier = 'starter' | 'founder';
 
@@ -36,6 +36,11 @@ export interface AccountWorkspaceMetadata {
     paperUnlocksPath: 'ecosystem/paper-unlocks.json';
     conversionRecommendationsPath: 'ecosystem/conversion-recommendations.json';
     agentGenesisPath: 'ecosystem/agent-genesis.json';
+    skillsLobbyPath: 'ecosystem/skills/lobby.yml';
+    agentRosterPath: 'agents/roster.yml';
+    fleetAutospawnPath: 'ecosystem/fleet/autospawn.yml';
+    holohealChecksPath: 'ecosystem/holoheal/checks.yml';
+    secretGrantReceiptPolicyPath: 'ecosystem/holoheal/secret-grant-receipt.yml';
   };
   linkedRepos: AccountLinkedRepo[];
   boardState: {
@@ -59,6 +64,9 @@ export interface AccountWorkspaceMetadata {
     agentConfigPath: string;
     boardStatePath: string;
     agentGenesisPath: string;
+    skillsLobbyPath: string;
+    fleetAutospawnPath: string;
+    holohealChecksPath: string;
   };
 }
 
@@ -142,12 +150,12 @@ function readme(input: AccountWorkspaceSeedInput): string {
     '',
     'This repo is your HoloScript Studio account workspace.',
     '',
-    'It stores identity, knowledge, agent configuration, linked repos, board state, conversion recommendations, and paper unlock state in Git.',
+    'It stores identity, knowledge, agent configuration, linked repos, board state, conversion recommendations, Agent Genesis policy, and HoloHeal receipts in Git.',
     '',
     '```text',
     'knowledge/        -> W/P/G entries your agents discover',
-    'agents/           -> Agent configs',
-    'ecosystem/        -> MCP servers, hooks, linked repos, board state',
+    'agents/           -> Resident agent roster and configs',
+    'ecosystem/        -> MCP servers, hooks, linked repos, board state, skills lobby, Fleet, HoloHeal',
     'profile.yml       -> Studio identity and tier',
     'config.yml        -> Workspace settings',
     '```',
@@ -213,6 +221,190 @@ function knowledgeReadme(type: string): string {
     `# ${type}`,
     '',
     'Add Markdown files with YAML frontmatter. They sync into the scoped knowledge store for this workspace.',
+    '',
+  ].join('\n');
+}
+
+function yamlList(items: readonly string[], indent = '    '): string[] {
+  if (items.length === 0) return [`${indent}- "none"`];
+  return items.map((item) => `${indent}- ${quoteYaml(item)}`);
+}
+
+function skillsLobby(input: AccountWorkspaceSeedInput): string {
+  return [
+    '# Skills Lobby',
+    'schema_version: "0.1.0"',
+    'workspace_id: ' + quoteYaml(input.workspaceId),
+    'rule: "skills-first"',
+    'purpose: "Make the skill route the first thing every resident agent sees."',
+    '',
+    'first_screen:',
+    '  title: "Choose a skill before raw tools"',
+    '  show_before:',
+    '    - "shell"',
+    '    - "browser"',
+    '    - "mcp raw calls"',
+    '  default_route: "holoheal"',
+    '',
+    'routes:',
+    '  codebase_question:',
+    '    first_skills:',
+    ...yamlList(['codebase', 'holoscript-absorb']),
+    '  frontend_or_studio:',
+    '    first_skills:',
+    ...yamlList(['frontend', 'holofrontend']),
+    '  research_or_unknown:',
+    '    first_skills:',
+    ...yamlList(['ai-workspace', 'holomesh-oracle', 'documenter']),
+    '  xr_3d_or_simulation:',
+    '    first_skills:',
+    ...yamlList(['hololand', 'compile', 'holoscript']),
+    '  launch_or_public_surface:',
+    '    first_skills:',
+    ...yamlList(['holomarketer', 'documenter', 'holomesh']),
+    '  secret_token_or_oauth:',
+    '    first_skills:',
+    ...yamlList(['holoheal', 'critic']),
+    '    rule: "request broker grant receipt; never read plaintext from Git"',
+    '  failing_check_or_hook:',
+    '    first_skills:',
+    ...yamlList(['codebase', 'critic']),
+    '    handoff: "HoloHeal opens incident; HoloClaw repairs; HoloMesh stores receipt; Fleet updates trust."',
+    '',
+  ].join('\n');
+}
+
+function agentRoster(input: AccountWorkspaceSeedInput, plan: AgentGenesisPlan): string {
+  const lines = [
+    '# Resident Agent Roster',
+    'schema_version: "0.1.0"',
+    'workspace_id: ' + quoteYaml(input.workspaceId),
+    'source: "ecosystem/agent-genesis.json"',
+    '',
+    'agents:',
+  ];
+
+  for (const agent of plan.agents) {
+    lines.push(
+      `  - id: ${quoteYaml(agent.id)}`,
+      `    name: ${quoteYaml(agent.name)}`,
+      `    mission_profile: ${quoteYaml(agent.missionProfile)}`,
+      `    autospawn: ${agent.autospawn ? 'true' : 'false'}`,
+      `    priority: ${agent.priority}`,
+      '    first_skills:',
+      ...yamlList(agent.skillsFirst.primarySkills, '      '),
+      '    receipts:',
+      ...yamlList(agent.receiptTargets, '      '),
+      '    raw_secret_access: false'
+    );
+  }
+
+  lines.push('');
+  return lines.join('\n');
+}
+
+function fleetAutospawn(input: AccountWorkspaceSeedInput, plan: AgentGenesisPlan): string {
+  return [
+    '# Fleet Autospawn',
+    'schema_version: "0.1.0"',
+    'workspace_id: ' + quoteYaml(input.workspaceId),
+    'agent_genesis: "ecosystem/agent-genesis.json"',
+    'resident_roster: "agents/roster.yml"',
+    'skills_lobby: "ecosystem/skills/lobby.yml"',
+    '',
+    'intents:',
+    '  "secret, token, API key, or OAuth grant":',
+    '    owner: "secret-custodian"',
+    '    spawn:',
+    ...yamlList(['secret-custodian', 'holoheal'], '      '),
+    '    first_route: "secret_token_or_oauth"',
+    '    receipt: "secret.granted"',
+    '  "failing check or broken hook":',
+    '    owner: "holoheal"',
+    '    spawn:',
+    ...yamlList(['holoheal', 'fleet-auditor'], '      '),
+    '    incident_target: "HoloClaw"',
+    '    receipt: "repair.verified"',
+    '  "codebase implementation":',
+    '    owner: "builder"',
+    '    spawn:',
+    ...yamlList(['builder', 'holoheal'], '      '),
+    '    first_route: "codebase_question"',
+    '    receipt: "fleet.assignment"',
+    '  "research, RAG, or unknown domain":',
+    '    owner: "research-oracle"',
+    '    spawn:',
+    ...yamlList(['research-oracle', 'fleet-auditor'], '      '),
+    '    first_route: "research_or_unknown"',
+    '    receipt: "knowledge.compressed"',
+    '  "XR, 3D, HoloLand, or simulation":',
+    '    owner: "spatial-worldbuilder"',
+    '    spawn:',
+    ...yamlList(['spatial-worldbuilder', 'holoheal'], '      '),
+    '    first_route: "xr_3d_or_simulation"',
+    '    receipt: "compile.verified"',
+    '',
+    'limits:',
+    '  max_parallel_agents_default: 4',
+    '  require_receipts: true',
+    '  prefer_resident_owner_first: true',
+    '',
+    'autospawn_defaults:',
+    ...yamlList(
+      plan.agents.filter((agent) => agent.autospawn).map((agent) => agent.missionProfile),
+      '  '
+    ),
+    '',
+  ].join('\n');
+}
+
+function holohealChecks(input: AccountWorkspaceSeedInput): string {
+  const escapedWorkspace = input.workspaceId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return [
+    '# HoloHeal Checks',
+    'schema_version: "0.1.0"',
+    'workspace_id: ' + quoteYaml(input.workspaceId),
+    'receipt_policy:',
+    '  target: "HoloMesh"',
+    '  p0_p1_incident_target: "HoloClaw"',
+    '  trust_target: "Fleet"',
+    '',
+    'checks:',
+    '  skills_lobby_present:',
+    '    severity: "P1"',
+    '    command: \'node -e "require(\\"fs\\").accessSync(\\"ecosystem/skills/lobby.yml\\")"\'',
+    '    repair_agent: "holoheal"',
+    '  agent_genesis_present:',
+    '    severity: "P1"',
+    '    command: \'node -e "require(\\"fs\\").accessSync(\\"ecosystem/agent-genesis.json\\")"\'',
+    '    repair_agent: "holoheal"',
+    '  secret_manifest_handles_only:',
+    '    severity: "P1"',
+    `    command: 'node -e "const fs=require(\\"fs\\"); const s=fs.readFileSync(\\"ecosystem/secrets.manifest.yml\\",\\"utf8\\"); if(!s.includes(\\"secret://workspace/${escapedWorkspace}/\\")) process.exit(1); if(/gho_|sk-[A-Za-z0-9]/.test(s)) process.exit(1)"'`,
+    '    repair_agent: "secret-custodian"',
+    '  fleet_autospawn_present:',
+    '    severity: "P2"',
+    '    command: \'node -e "require(\\"fs\\").accessSync(\\"ecosystem/fleet/autospawn.yml\\")"\'',
+    '    repair_agent: "fleet-auditor"',
+    '',
+  ].join('\n');
+}
+
+function secretGrantReceiptPolicy(input: AccountWorkspaceSeedInput): string {
+  return [
+    '# Secret Grant Receipt Policy',
+    'schema_version: "0.1.0"',
+    'workspace_id: ' + quoteYaml(input.workspaceId),
+    'event: "secret.granted"',
+    'required_fields:',
+    ...yamlList(['grantId', 'agentId', 'secretRef', 'capabilityRef', 'issuedAt', 'expiresAt', 'plaintextReturned'], '  '),
+    'forbidden_fields:',
+    ...yamlList(['value', 'secret', 'token', 'apiKey', 'api_key', 'plaintext'], '  '),
+    'rules:',
+    '  plaintextReturned: false',
+    '  secretRef_prefix: ' + quoteYaml(`secret://workspace/${input.workspaceId}/`),
+    '  capabilityRef_prefix: "cap://daemon/secrets/"',
+    '  stored_secret_values: "Studio server or GitHub Actions secrets only; never Git."',
     '',
   ].join('\n');
 }
@@ -290,6 +482,11 @@ function buildFiles(
     'ecosystem/paper-unlocks.json': json(paperUnlocks),
     'ecosystem/conversion-recommendations.json': json(conversionRecommendations),
     'ecosystem/agent-genesis.json': json(agentGenesis),
+    'ecosystem/skills/lobby.yml': skillsLobby(input),
+    'agents/roster.yml': agentRoster(input, agentGenesis),
+    'ecosystem/fleet/autospawn.yml': fleetAutospawn(input, agentGenesis),
+    'ecosystem/holoheal/checks.yml': holohealChecks(input),
+    'ecosystem/holoheal/secret-grant-receipt.yml': secretGrantReceiptPolicy(input),
     'ecosystem/hooks/README.md': '# Hooks\n\nWorkspace-local automation hooks live here.\n',
     'ecosystem/skills/README.md': '# Skills\n\nWorkspace-local agent skills live here.\n',
     'knowledge/wisdom/README.md': knowledgeReadme('Wisdom'),
@@ -321,6 +518,10 @@ export function buildAccountWorkspaceSeed(input: AccountWorkspaceSeedInput): Acc
       'daemon-workflows',
       'conversion-recommendations',
       'paper-unlock-state',
+      'skills-lobby',
+      'agent-genesis',
+      'fleet-autospawn',
+      'holoheal-receipts',
     ],
     structure: {
       profilePath: 'profile.yml',
@@ -334,6 +535,11 @@ export function buildAccountWorkspaceSeed(input: AccountWorkspaceSeedInput): Acc
       paperUnlocksPath: 'ecosystem/paper-unlocks.json',
       conversionRecommendationsPath: 'ecosystem/conversion-recommendations.json',
       agentGenesisPath: 'ecosystem/agent-genesis.json',
+      skillsLobbyPath: 'ecosystem/skills/lobby.yml',
+      agentRosterPath: 'agents/roster.yml',
+      fleetAutospawnPath: 'ecosystem/fleet/autospawn.yml',
+      holohealChecksPath: 'ecosystem/holoheal/checks.yml',
+      secretGrantReceiptPolicyPath: 'ecosystem/holoheal/secret-grant-receipt.yml',
     },
     linkedRepos,
     boardState: {
@@ -357,6 +563,9 @@ export function buildAccountWorkspaceSeed(input: AccountWorkspaceSeedInput): Acc
       agentConfigPath: 'agents/claude.yml',
       boardStatePath: 'ecosystem/board-state.json',
       agentGenesisPath: 'ecosystem/agent-genesis.json',
+      skillsLobbyPath: 'ecosystem/skills/lobby.yml',
+      fleetAutospawnPath: 'ecosystem/fleet/autospawn.yml',
+      holohealChecksPath: 'ecosystem/holoheal/checks.yml',
     },
   };
 

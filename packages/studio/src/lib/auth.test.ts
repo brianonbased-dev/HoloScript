@@ -43,4 +43,32 @@ describe('auth configuration', () => {
     expect(options.session?.strategy).toBe('jwt');
     expect(DrizzleAdapter).toHaveBeenCalled();
   });
+
+  it('exposes GitHub OAuth access tokens on the session callback', async () => {
+    const options = buildAuthOptions();
+    const sessionCallback = options.callbacks?.session;
+
+    expect(sessionCallback).toBeDefined();
+
+    const session = await sessionCallback!({
+      session: {
+        expires: '2026-05-10T00:00:00.000Z',
+        user: { id: '', name: null, email: null, image: null },
+      },
+      token: {
+        sub: 'github-user-id',
+        accessToken: 'gho_session_token',
+        provider: 'github',
+        githubUsername: 'octocat',
+      },
+      user: undefined as never,
+      newSession: undefined,
+      trigger: 'update',
+    });
+
+    expect(session.accessToken).toBe('gho_session_token');
+    expect(session.githubConnected).toBe(true);
+    expect(session.user.id).toBe('github-user-id');
+    expect(session.user.githubUsername).toBe('octocat');
+  });
 });

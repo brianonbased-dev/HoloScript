@@ -12,7 +12,7 @@ import { resolveWorkspaceIdForIdentity } from './workspaceIdentity';
  * 1. Provisions an MCP API key (scoped to their workspace)
  * 2. Creates or connects their GitHub repo
  * 3. Seeds the .claude/ structure + secret references for their API key
- * 4. Starts the self-improvement daemon
+ * 4. Starts the HoloHeal-capable daemon
  *
  * The user clicks "Sign in with GitHub" and everything else is automatic.
  */
@@ -54,7 +54,7 @@ export interface ProvisionInput {
   approvedAbsorb: boolean;
   /** User approved: publish extracted knowledge to HoloMesh (public) */
   approvedPublishKnowledge: boolean;
-  /** User approved: start self-improvement daemon on their code */
+  /** User approved: start the resident HoloDaemon on their code */
   approvedDaemon: boolean;
 }
 
@@ -411,7 +411,7 @@ async function pushFile(
 // ── Step 4: Start Daemon ─────────────────────────────────────────────────────
 
 /**
- * Register the project with the daemon system so self-improvement starts.
+ * Register the project with the daemon system so HoloHeal and resident missions can start.
  */
 async function startDaemon(apiKey: string, workspaceId: string, repoUrl: string): Promise<void> {
   // Register with orchestrator as a new agent
@@ -424,7 +424,7 @@ async function startDaemon(apiKey: string, workspaceId: string, repoUrl: string)
     body: JSON.stringify({
       name: `daemon-${workspaceId}`,
       type: 'daemon',
-      capabilities: ['self-improve', 'type-fix', 'test-coverage', 'cleanup'],
+      capabilities: ['holoheal', 'resident-missions', 'type-fix', 'test-coverage', 'cleanup'],
       metadata: { repoUrl, workspaceId },
     }),
   });
@@ -438,7 +438,7 @@ async function startDaemon(apiKey: string, workspaceId: string, repoUrl: string)
  * 1. Provision API key on orchestrator
  * 2. Create or connect GitHub repo
  * 3. Scaffold .claude/ structure + seed secret references
- * 4. Start self-improvement daemon
+ * 4. Start HoloDaemon resident missions
  */
 export async function provisionUser(input: ProvisionInput): Promise<ProvisionResult> {
   const founderIdentity = isFounderIdentity(input);

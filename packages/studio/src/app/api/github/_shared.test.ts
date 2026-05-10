@@ -20,6 +20,8 @@ describe('getGitHubToken', () => {
     process.env = { ...envSnapshot };
     process.env.AUTH_SECRET = 'test-auth-secret-for-github-token-helper';
     delete process.env.GITHUB_TOKEN;
+    delete process.env.STUDIO_ALLOW_SERVER_GITHUB_TOKEN_FALLBACK;
+    delete process.env.ALLOW_SERVER_GITHUB_TOKEN_FALLBACK;
   });
 
   it('decrypts the device-flow cookie server-side', async () => {
@@ -34,5 +36,28 @@ describe('getGitHubToken', () => {
     });
 
     await expect(getGitHubToken(req)).resolves.toBe(rawToken);
+  });
+
+  it('does not use the server GitHub token fallback in production by default', async () => {
+    delete process.env.AUTH_SECRET;
+    delete process.env.NEXTAUTH_SECRET;
+    process.env.NODE_ENV = 'production';
+    process.env.GITHUB_TOKEN = 'ghp_server_token';
+
+    const req = new NextRequest('http://localhost/api/github/repos');
+
+    await expect(getGitHubToken(req)).resolves.toBeNull();
+  });
+
+  it('allows the server GitHub token fallback in production when explicitly enabled', async () => {
+    delete process.env.AUTH_SECRET;
+    delete process.env.NEXTAUTH_SECRET;
+    process.env.NODE_ENV = 'production';
+    process.env.GITHUB_TOKEN = 'ghp_server_token';
+    process.env.STUDIO_ALLOW_SERVER_GITHUB_TOKEN_FALLBACK = 'true';
+
+    const req = new NextRequest('http://localhost/api/github/repos');
+
+    await expect(getGitHubToken(req)).resolves.toBe('ghp_server_token');
   });
 });

@@ -14,6 +14,18 @@ export const GITHUB_REQUEST_TIMEOUT_MS = 15_000;
 const GITHUB_MAX_RETRIES = 3;
 const GITHUB_RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 
+function allowsServerTokenFallback(): boolean {
+  const explicit =
+    process.env.STUDIO_ALLOW_SERVER_GITHUB_TOKEN_FALLBACK ??
+    process.env.ALLOW_SERVER_GITHUB_TOKEN_FALLBACK;
+
+  if (explicit !== undefined) {
+    return /^(1|true|yes)$/i.test(explicit.trim());
+  }
+
+  return process.env.NODE_ENV !== 'production';
+}
+
 function parseRetryAfterMs(raw: string | null): number | undefined {
   if (!raw) return undefined;
 
@@ -64,7 +76,11 @@ export async function getGitHubToken(req?: NextRequest): Promise<string | null> 
   const { getServerSession } = await import('next-auth');
   const { authOptions } = await import('@/lib/auth');
   const session = await getServerSession(authOptions);
-  return session?.accessToken ?? process.env.GITHUB_TOKEN ?? null;
+  if (session?.accessToken) {
+    return session.accessToken;
+  }
+
+  return allowsServerTokenFallback() ? process.env.GITHUB_TOKEN ?? null : null;
 }
 
 export function createGitHubHeaders(

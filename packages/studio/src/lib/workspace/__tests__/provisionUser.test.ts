@@ -189,6 +189,10 @@ describe('provisionUser founder bootstrap', () => {
         boardStatePath: 'ecosystem/board-state.json',
         paperUnlocksPath: 'ecosystem/paper-unlocks.json',
         agentGenesisPath: 'ecosystem/agent-genesis.json',
+        skillsLobbyPath: 'ecosystem/skills/lobby.yml',
+        agentRosterPath: 'agents/roster.yml',
+        fleetAutospawnPath: 'ecosystem/fleet/autospawn.yml',
+        holohealChecksPath: 'ecosystem/holoheal/checks.yml',
       }),
       repoImport: expect.objectContaining({
         workspaceId: 'ws_octocat',
@@ -198,6 +202,9 @@ describe('provisionUser founder bootstrap', () => {
         workspaceId: 'ws_octocat',
         agentConfigPath: 'agents/claude.yml',
         agentGenesisPath: 'ecosystem/agent-genesis.json',
+        skillsLobbyPath: 'ecosystem/skills/lobby.yml',
+        fleetAutospawnPath: 'ecosystem/fleet/autospawn.yml',
+        holohealChecksPath: 'ecosystem/holoheal/checks.yml',
       }),
     });
     expect(result.user?.capabilities).toEqual(
@@ -247,6 +254,7 @@ describe('provisionUser founder bootstrap', () => {
         'config.yml',
         'agents/claude.yml',
         'agents/gemini.yml',
+        'agents/roster.yml',
         'ecosystem/secrets.manifest.yml',
         'ecosystem/account-workspace.json',
         'ecosystem/linked-repos.json',
@@ -254,6 +262,10 @@ describe('provisionUser founder bootstrap', () => {
         'ecosystem/paper-unlocks.json',
         'ecosystem/conversion-recommendations.json',
         'ecosystem/agent-genesis.json',
+        'ecosystem/skills/lobby.yml',
+        'ecosystem/fleet/autospawn.yml',
+        'ecosystem/holoheal/checks.yml',
+        'ecosystem/holoheal/secret-grant-receipt.yml',
         'knowledge/wisdom/README.md',
         '.claude/CLAUDE.md',
       ])
@@ -299,6 +311,29 @@ describe('provisionUser founder bootstrap', () => {
       receiptTarget: 'HoloMesh',
       trustTarget: 'Fleet',
     });
+
+    const skillsLobby = pushedFiles.find((file) => file.path === 'ecosystem/skills/lobby.yml')?.content ?? '';
+    expect(skillsLobby).toContain('rule: "skills-first"');
+    expect(skillsLobby).toContain('secret_token_or_oauth');
+
+    const roster = pushedFiles.find((file) => file.path === 'agents/roster.yml')?.content ?? '';
+    expect(roster).toContain('mission_profile: "holoheal"');
+    expect(roster).toContain('raw_secret_access: false');
+
+    const fleetAutospawn =
+      pushedFiles.find((file) => file.path === 'ecosystem/fleet/autospawn.yml')?.content ?? '';
+    expect(fleetAutospawn).toContain('receipt: "secret.granted"');
+    expect(fleetAutospawn).toContain('incident_target: "HoloClaw"');
+
+    const holohealChecks =
+      pushedFiles.find((file) => file.path === 'ecosystem/holoheal/checks.yml')?.content ?? '';
+    expect(holohealChecks).toContain('secret_manifest_handles_only');
+    expect(holohealChecks).toContain('trust_target: "Fleet"');
+
+    const receiptPolicy =
+      pushedFiles.find((file) => file.path === 'ecosystem/holoheal/secret-grant-receipt.yml')?.content ?? '';
+    expect(receiptPolicy).toContain('event: "secret.granted"');
+    expect(receiptPolicy).toContain('plaintextReturned: false');
 
     const manifest = JSON.parse(
       pushedFiles.find((file) => file.path === 'ecosystem/account-workspace.json')?.content ?? '{}'
