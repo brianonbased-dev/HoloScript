@@ -524,8 +524,12 @@ export default function WorkspaceWorkbenchPage() {
 
   useEffect(() => {
     void loadWorkspaces();
+  }, [loadWorkspaces]);
+
+  useEffect(() => {
+    if (!activeWorkspace) return;
     void refreshJobs();
-  }, [loadWorkspaces, refreshJobs]);
+  }, [activeWorkspace, refreshJobs]);
 
   useEffect(() => {
     const stored =
