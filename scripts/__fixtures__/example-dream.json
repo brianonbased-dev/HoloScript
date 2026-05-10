@@ -1,0 +1,12 @@
+{
+  "title": "Implement Neural-Symbolic Hybrid Compilation",
+  "vision": "Build a compiler pass that combines neural-network approximations with symbolic constraint solvers, producing verified executable code for safety-critical XR scenes.",
+  "constraints": [
+    "Must compile to WebGPU in under 200ms",
+    "Formal soundness proof required for symbolic layer",
+    "Integration with existing @holoscript/core trait system"
+  ],
+  "tags": ["compiler", "neural", "formal-verification"],
+  "priority": "P2",
+  "estimated_hours_per_phase": 8
+}
