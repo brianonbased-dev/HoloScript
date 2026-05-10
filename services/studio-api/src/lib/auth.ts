@@ -11,16 +11,40 @@ import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { getDb } from '../db/client';
+import { GITHUB_OAUTH_SCOPES, resolveGitHubOAuthConfig } from './github-oauth-config';
+
+declare module 'next-auth' {
+  interface Session {
+    accessToken?: string;
+    githubConnected?: boolean;
+    user: {
+      id: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+      githubUsername?: string;
+    };
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    accessToken?: string;
+    provider?: string;
+    githubUsername?: string;
+  }
+}
 
 function buildProviders() {
   const providers: NextAuthOptions['providers'] = [];
+  const githubOAuth = resolveGitHubOAuthConfig();
 
-  if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+  if (githubOAuth.clientId && githubOAuth.clientSecret) {
     providers.push(
       GitHubProvider({
-        clientId: process.env.GITHUB_CLIENT_ID,
-        clientSecret: process.env.GITHUB_CLIENT_SECRET,
-        authorization: { params: { scope: 'repo read:user user:email read:org' } },
+        clientId: githubOAuth.clientId,
+        clientSecret: githubOAuth.clientSecret,
+        authorization: { params: { scope: GITHUB_OAUTH_SCOPES } },
       })
     );
   }
@@ -64,15 +88,31 @@ export function buildAuthOptions(): NextAuthOptions {
   const options: NextAuthOptions = {
     providers: buildProviders(),
     session: {
-      strategy: db ? 'database' : 'jwt',
+      strategy: 'jwt',
       maxAge: 30 * 24 * 60 * 60, // 30 days
     },
     callbacks: {
+      async jwt({ token, account, profile }) {
+        if (account) {
+          token.accessToken = account.access_token;
+          token.provider = account.provider;
+        }
+        if (profile && 'login' in profile) {
+          token.githubUsername = (profile as { login: string }).login;
+        }
+        return token;
+      },
       async session({ session, user, token }) {
         if (session.user) {
           // Database sessions have user object, JWT sessions have token
           session.user.id = user?.id ?? token?.sub ?? '';
+          session.user.githubUsername =
+            token?.githubUsername ??
+            ((user as unknown as Record<string, unknown>)?.githubUsername as string | undefined) ??
+            '';
         }
+        session.accessToken = token?.accessToken;
+        session.githubConnected = token?.provider === 'github';
         return session;
       },
     },

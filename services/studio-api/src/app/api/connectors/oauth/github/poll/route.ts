@@ -17,7 +17,7 @@
  *
  * Response (success):
  *   - status: 'success'
- *   - access_token: string (GitHub OAuth token)
+ *   - connected: true
  *   - scope: string (granted scopes)
  *   - token_type: 'bearer'
  *
@@ -29,16 +29,35 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-
-const GITHUB_CLIENT_ID = process.env.GITHUB_OAUTH_CLIENT_ID || '';
+import {
+  createGitHubHeaders,
+  GITHUB_API_BASE_URL,
+  githubFetchWithRetry,
+} from '../../../../github/_shared';
+import { resolveGitHubDeviceClientId } from '../../../../../../lib/github-oauth-config';
+import { setGitHubDeviceTokenCookie } from '../../../../../../lib/github-device-session';
 
 interface PollRequest {
   device_code: string;
 }
 
+interface GitHubTokenResponse {
+  access_token?: string;
+  scope?: string;
+  token_type?: string;
+  error?: string;
+  error_description?: string;
+}
+
+interface GitHubUserResponse {
+  login?: string;
+  email?: string | null;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    if (!GITHUB_CLIENT_ID) {
+    const clientId = resolveGitHubDeviceClientId();
+    if (!clientId) {
       return NextResponse.json(
         {
           status: 'error',
@@ -69,7 +88,7 @@ export async function POST(req: NextRequest) {
         Accept: 'application/json',
       },
       body: JSON.stringify({
-        client_id: GITHUB_CLIENT_ID,
+        client_id: clientId,
         device_code,
         grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
       }),
@@ -79,7 +98,7 @@ export async function POST(req: NextRequest) {
       throw new Error(`GitHub API error: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as GitHubTokenResponse;
 
     // Possible responses:
     // 1. authorization_pending: User hasn't authorized yet
@@ -131,13 +150,42 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Success! Return access token
-    return NextResponse.json({
+    if (!data.access_token) {
+      return NextResponse.json(
+        {
+          status: 'error',
+          error: 'GitHub did not return an access token.',
+        },
+        { status: 502 }
+      );
+    }
+
+    const profile = await loadGitHubUserProfile(data.access_token);
+    const result = NextResponse.json({
       status: 'success',
-      access_token: data.access_token,
+      connected: true,
       scope: data.scope,
       token_type: data.token_type,
+      config: {
+        token: '********',
+        username: profile.login ?? '',
+        email: profile.email ?? '',
+        scope: data.scope ?? '',
+      },
     });
+
+    const cookieSet = await setGitHubDeviceTokenCookie(result, data.access_token);
+    if (!cookieSet) {
+      return NextResponse.json(
+        {
+          status: 'error',
+          error: 'GitHub OAuth token storage is not configured. Set NEXTAUTH_SECRET or AUTH_SECRET.',
+        },
+        { status: 500 }
+      );
+    }
+
+    return result;
   } catch (error) {
     console.error('[api/connectors/oauth/github/poll] Error:', error);
     return NextResponse.json(
@@ -148,4 +196,17 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+async function loadGitHubUserProfile(accessToken: string): Promise<GitHubUserResponse> {
+  const response = await githubFetchWithRetry(`${GITHUB_API_BASE_URL}/user`, {
+    method: 'GET',
+    headers: createGitHubHeaders(accessToken),
+  });
+
+  if (!response.ok) {
+    return {};
+  }
+
+  return (await response.json()) as GitHubUserResponse;
 }

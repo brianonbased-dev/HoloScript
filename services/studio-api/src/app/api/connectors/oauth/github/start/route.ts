@@ -9,7 +9,7 @@
  * 2. Show user the user_code and direct them to verification_uri
  * 3. Poll /api/connectors/oauth/github/poll with device_code
  * 4. User authorizes on GitHub.com and enters user_code
- * 5. Poll endpoint returns access_token when authorized
+ * 5. Poll endpoint stores the token in an encrypted HttpOnly cookie
  *
  * Response:
  *   - device_code: string (used for polling)
@@ -22,17 +22,19 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-
-// GitHub OAuth App credentials
-// In production, these should be in environment variables
-const GITHUB_CLIENT_ID = process.env.GITHUB_OAUTH_CLIENT_ID || '';
+import {
+  getGitHubClientIdEnvHint,
+  GITHUB_OAUTH_SCOPES,
+  resolveGitHubDeviceClientId,
+} from '../../../../../../lib/github-oauth-config';
 
 export async function POST(_req: NextRequest) {
   try {
-    if (!GITHUB_CLIENT_ID) {
+    const clientId = resolveGitHubDeviceClientId();
+    if (!clientId) {
       return NextResponse.json(
         {
-          error: 'GitHub OAuth not configured. Set GITHUB_OAUTH_CLIENT_ID environment variable.',
+          error: `GitHub OAuth not configured. Set ${getGitHubClientIdEnvHint()}.`,
         },
         { status: 500 }
       );
@@ -46,8 +48,8 @@ export async function POST(_req: NextRequest) {
         Accept: 'application/json',
       },
       body: JSON.stringify({
-        client_id: GITHUB_CLIENT_ID,
-        scope: 'repo read:user user:email read:org', // Repo access, user info, org membership
+        client_id: clientId,
+        scope: GITHUB_OAUTH_SCOPES,
       }),
     });
 

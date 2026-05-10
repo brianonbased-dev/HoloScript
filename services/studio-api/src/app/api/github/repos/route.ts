@@ -1,8 +1,8 @@
 /**
  * GET /api/github/repos — List authenticated user's GitHub repositories
  *
- * Uses @holoscript/connector-github to fetch repos via GitHubConnector.
- * Requires GITHUB_TOKEN environment variable (will be replaced by OAuth later).
+ * Uses the OAuth access token from the user's session or encrypted GitHub device-flow cookie.
+ * Falls back to GITHUB_TOKEN for dev/CI environments.
  *
  * Query params:
  *   - per_page: Number of repos per page (default: 50, max: 100)
@@ -12,64 +12,73 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { GitHubConnector } from '@holoscript/connector-github';
+import {
+  createGitHubHeaders,
+  getGitHubToken,
+  githubFetchWithRetry,
+  GITHUB_API_BASE_URL,
+} from '../_shared';
+
+interface GitHubRepo {
+  id: number;
+  name: string;
+  full_name: string;
+  description: string | null;
+  clone_url: string;
+  default_branch: string;
+  language: string | null;
+  stargazers_count: number;
+  pushed_at: string;
+  private: boolean;
+  fork: boolean;
+  size: number;
+}
 
 export async function GET(req: NextRequest) {
   try {
-    // Check if GitHub token is available
-    if (!process.env.GITHUB_TOKEN) {
+    const token = await getGitHubToken(req);
+    if (!token) {
       return NextResponse.json(
-        { error: 'GitHub not connected. Set GITHUB_TOKEN environment variable.' },
+        { error: 'Not authenticated. Sign in with GitHub or set GITHUB_TOKEN.' },
         { status: 401 }
       );
     }
 
-    // Parse query params
     const searchParams = req.nextUrl.searchParams;
     const perPage = Math.min(parseInt(searchParams.get('per_page') || '50', 10), 100);
     const searchQuery = searchParams.get('q') || '';
 
-    // Initialize GitHub connector
-    const github = new GitHubConnector();
-    await github.connect();
+    const url = new URL(`${GITHUB_API_BASE_URL}/user/repos`);
+    url.searchParams.set('type', 'owner');
+    url.searchParams.set('sort', 'updated');
+    url.searchParams.set('per_page', String(perPage));
 
-    // Check health
-    const healthy = await github.health();
-    if (!healthy) {
+    const response = await githubFetchWithRetry(url.toString(), {
+      headers: createGitHubHeaders(token),
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      console.error('[api/github/repos] GitHub API error:', response.status, body);
       return NextResponse.json(
-        { error: 'GitHub connector health check failed' },
-        { status: 503 }
+        { error: `GitHub API error: ${response.status}` },
+        { status: response.status === 401 ? 401 : 502 }
       );
     }
 
-    // Fetch repositories
-    const result = await github.executeTool('github_repo_list', {
-      type: 'owner',
-      sort: 'updated',
-      per_page: perPage,
-    });
+    let repos: GitHubRepo[] = await response.json();
 
-    // Type guard
-    if (!result || typeof result !== 'object' || !('data' in result)) {
-      throw new Error('Invalid response from GitHub connector');
-    }
-
-    const data = result.data as any;
-    let repos = Array.isArray(data) ? data : [];
-
-    // Filter by search query if provided
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       repos = repos.filter(
-        (repo: any) =>
-          repo.name?.toLowerCase().includes(query) ||
+        (repo) =>
+          repo.name.toLowerCase().includes(query) ||
           repo.description?.toLowerCase().includes(query) ||
-          repo.full_name?.toLowerCase().includes(query)
+          repo.full_name.toLowerCase().includes(query)
       );
     }
 
-    // Transform to studio format
-    const transformedRepos = repos.map((repo: any) => ({
+    const transformedRepos = repos.map((repo) => ({
       id: repo.id,
       name: repo.name,
       fullName: repo.full_name,
@@ -77,11 +86,11 @@ export async function GET(req: NextRequest) {
       cloneUrl: repo.clone_url,
       defaultBranch: repo.default_branch,
       language: repo.language,
-      stars: repo.stargazers_count || 0,
+      stars: repo.stargazers_count,
       pushedAt: repo.pushed_at,
       isPrivate: repo.private,
       isFork: repo.fork,
-      sizeKB: repo.size || 0,
+      sizeKB: repo.size,
     }));
 
     return NextResponse.json({
