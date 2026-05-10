@@ -4,6 +4,7 @@
  * Routes trait execution across three tiers:
  *   Tier 1-Browser:      SNN-WebGPU (snn-webgpu package)
  *   Tier 1-Neuromorphic: NIR-targeted (Loihi 2 / SpiNNaker 2 / SynSense per CircuitBreaker.ts:71)
+ *   Tier 1-WASM:         compiler-wasm LIF emulator fallback when WebGPU is absent
  *   Tier 2:              LLM-speculative with CPU verifier (CURE/SimulationContract/EffectInference)
  *   Tier 3:              CPU-direct deterministic (audit/replay/proof generation)
  *
@@ -22,6 +23,7 @@ import { assertHoloMapManifestContract } from '../../reconstruction/simulationCo
 export enum DispatchTier {
   TIER_1_NEUROMORPHIC = 'tier-1-neuromorphic',
   TIER_1_BROWSER = 'tier-1-browser',
+  TIER_1_WASM = 'tier-1-wasm',
   TIER_2_SPECULATIVE = 'tier-2-speculative',
   TIER_3_CPU_DIRECT = 'tier-3-cpu-direct',
 }
@@ -83,9 +85,42 @@ export type TraitEquivalenceOracle = (
   input: TraitEquivalenceOracleInput
 ) => TraitEquivalenceOracleResult | Promise<TraitEquivalenceOracleResult>;
 
+export interface Tier1WasmRuntimeProbeResult {
+  available: boolean;
+  source: string;
+  reason?: string;
+  moduleValidated?: boolean;
+}
+
+export interface Tier1WasmEmulatorResult {
+  accepted: boolean;
+  source: string;
+  runtime: Tier1WasmRuntimeProbeResult;
+  reason?: string;
+  steps?: number;
+  spikeCount?: number;
+  membranePotential?: number;
+  inputChecksum?: number;
+}
+
+export type Tier1WasmRuntimeProbe = () =>
+  | Tier1WasmRuntimeProbeResult
+  | Promise<Tier1WasmRuntimeProbeResult>;
+
+export type Tier1WasmExecutor = (
+  op: DispatchableOperation,
+  runtime: Tier1WasmRuntimeProbeResult
+) => Tier1WasmEmulatorResult | Promise<Tier1WasmEmulatorResult>;
+
 export interface DispatchPolicyConfig {
   /** Enable Tier-1 Browser (WebGPU SNN) path */
   tier1BrowserEnabled: boolean;
+  /** Enable Tier-1 WASM SNN fallback path when WebGPU is absent */
+  tier1WasmEnabled: boolean;
+  /** Runtime WebAssembly probe. Defaults to validating a minimal WASM module. */
+  tier1WasmRuntimeProbe?: Tier1WasmRuntimeProbe;
+  /** compiler-wasm SNN emulator hook. Defaults to the built-in LIF emulator. */
+  tier1WasmExecutor?: Tier1WasmExecutor;
   /** Enable Tier-1 Neuromorphic (NIR) path */
   tier1NeuromorphicEnabled: boolean;
   /** Specific NIR device target, if any */
@@ -136,6 +171,10 @@ export interface DispatchMetrics {
   traitEquivalence?: TraitEquivalenceOracleResult;
   /** Runtime probe evidence for Tier-1 neuromorphic decisions */
   neuromorphicProbe?: NeuromorphicRuntimeProbeResult;
+  /** Runtime probe evidence for Tier-1 WASM fallback decisions */
+  wasmProbe?: Tier1WasmRuntimeProbeResult;
+  /** compiler-wasm SNN emulator evidence for Tier-1 WASM fallback decisions */
+  wasmEmulator?: Tier1WasmEmulatorResult;
 }
 
 export interface DispatchDecision {
@@ -189,6 +228,7 @@ export class DispatchPolicy {
   constructor(config: Partial<DispatchPolicyConfig> = {}) {
     this.config = {
       tier1BrowserEnabled: false,
+      tier1WasmEnabled: false,
       tier1NeuromorphicEnabled: false,
       tier2Enabled: false,
       tier2AlphaThreshold: 0.85,
@@ -229,6 +269,20 @@ export class DispatchPolicy {
       }
       lastRejectionReason = decision.metrics.fallbackReason;
       lastRejectionMetrics = undefined;
+    }
+
+    // --- Tier 1-WASM ---------------------------------------------------------
+    if (this.config.tier1WasmEnabled) {
+      const decision = await this.tryTier1Wasm(op);
+      if (decision.accepted) {
+        decision.metrics.latencyEstimateMs = performance.now() - start;
+        return decision;
+      }
+      lastRejectionReason = decision.metrics.fallbackReason;
+      lastRejectionMetrics = {
+        wasmProbe: decision.metrics.wasmProbe,
+        wasmEmulator: decision.metrics.wasmEmulator,
+      };
     }
 
     // --- Tier 2-Speculative --------------------------------------------------
@@ -286,6 +340,35 @@ export class DispatchPolicy {
     const accepted = available && this.isTraitSnnCompatible(op.trait);
     const reason = accepted ? undefined : 'WebGPU not available or trait incompatible';
     return this.buildDecision(DispatchTier.TIER_1_BROWSER, accepted, op, reason);
+  }
+
+  private async tryTier1Wasm(op: DispatchableOperation): Promise<DispatchDecision> {
+    const runtime = await this.probeWasmRuntime();
+    const traitCompatible = this.isTraitSnnCompatible(op.trait);
+
+    if (!runtime.available || !traitCompatible) {
+      const reason = this.describeWasmRejection(runtime, traitCompatible);
+      return this.buildDecision(DispatchTier.TIER_1_WASM, false, op, reason, undefined, {
+        wasmProbe: runtime,
+      });
+    }
+
+    const emulator = await this.runTier1WasmEmulator(op, runtime);
+    const reason = emulator.accepted
+      ? undefined
+      : emulator.reason ?? 'compiler-wasm SNN emulator rejected dispatch';
+
+    return this.buildDecision(
+      DispatchTier.TIER_1_WASM,
+      emulator.accepted,
+      op,
+      reason,
+      undefined,
+      {
+        wasmProbe: runtime,
+        wasmEmulator: emulator,
+      }
+    );
   }
 
   private async tryTier2(op: DispatchableOperation): Promise<DispatchDecision> {
@@ -355,6 +438,28 @@ export class DispatchPolicy {
     return probe(this.config.tier1NeuromorphicDevice);
   }
 
+  private async probeWasmRuntime(): Promise<Tier1WasmRuntimeProbeResult> {
+    const probe = this.config.tier1WasmRuntimeProbe ?? detectWasmRuntime;
+    return probe();
+  }
+
+  private async runTier1WasmEmulator(
+    op: DispatchableOperation,
+    runtime: Tier1WasmRuntimeProbeResult
+  ): Promise<Tier1WasmEmulatorResult> {
+    const executor = this.config.tier1WasmExecutor ?? runCompilerWasmSnnEmulator;
+    try {
+      return await executor(op, runtime);
+    } catch (error) {
+      return {
+        accepted: false,
+        source: 'compiler-wasm-snn-emulator',
+        runtime,
+        reason: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
   private describeNeuromorphicRejection(
     probe: NeuromorphicRuntimeProbeResult,
     traitCompatible: boolean
@@ -372,6 +477,19 @@ export class DispatchPolicy {
       return 'Trait is not mapped to the SNN/NIR hot path';
     }
     return 'Neuromorphic runtime probe did not accept dispatch';
+  }
+
+  private describeWasmRejection(
+    runtime: Tier1WasmRuntimeProbeResult,
+    traitCompatible: boolean
+  ): string {
+    if (!runtime.available) {
+      return runtime.reason ?? 'WebAssembly runtime unavailable for Tier-1 WASM fallback';
+    }
+    if (!traitCompatible) {
+      return 'Trait is not mapped to the SNN/WASM hot path';
+    }
+    return 'compiler-wasm SNN emulator did not accept dispatch';
   }
 
   private isTraitSnnCompatible(trait: string): boolean {
@@ -508,6 +626,63 @@ export function createTier3CpuDirectOutput(op: DispatchableOperation): Tier3CpuD
   };
 }
 
+export function detectWasmRuntime(): Tier1WasmRuntimeProbeResult {
+  const runtime = globalThis as typeof globalThis & {
+    WebAssembly?: {
+      validate?: (bytes: Uint8Array) => boolean;
+    };
+  };
+  const validate = runtime.WebAssembly?.validate;
+
+  if (typeof validate !== 'function') {
+    return {
+      available: false,
+      source: 'global-webassembly',
+      reason: 'WebAssembly.validate is unavailable',
+    };
+  }
+
+  const moduleValidated = validate(MINIMAL_WASM_MODULE);
+  return {
+    available: moduleValidated,
+    source: 'global-webassembly',
+    moduleValidated,
+    reason: moduleValidated ? undefined : 'Minimal WebAssembly module failed validation',
+  };
+}
+
+export function runCompilerWasmSnnEmulator(
+  op: DispatchableOperation,
+  runtime: Tier1WasmRuntimeProbeResult
+): Tier1WasmEmulatorResult {
+  if (!runtime.available) {
+    return {
+      accepted: false,
+      source: 'compiler-wasm-snn-emulator',
+      runtime,
+      reason: runtime.reason ?? 'WebAssembly runtime unavailable',
+    };
+  }
+
+  const input = stableStringify({
+    trait: op.trait,
+    nodeId: op.nodeId,
+    config: op.config ?? {},
+  });
+  const steps = Math.max(1, Math.min(64, input.length));
+  const state = emulateLifSteps(input, steps);
+
+  return {
+    accepted: true,
+    source: 'compiler-wasm-snn-emulator',
+    runtime,
+    steps,
+    spikeCount: state.spikeCount,
+    membranePotential: state.membranePotential,
+    inputChecksum: state.inputChecksum,
+  };
+}
+
 async function defaultTraitEquivalenceOracle(
   input: TraitEquivalenceOracleInput
 ): Promise<TraitEquivalenceOracleResult> {
@@ -557,6 +732,43 @@ async function sha256Hex(input: string): Promise<string> {
 
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+const MINIMAL_WASM_MODULE = new Uint8Array([
+  0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
+]);
+
+function emulateLifSteps(
+  input: string,
+  steps: number
+): { spikeCount: number; membranePotential: number; inputChecksum: number } {
+  const vRest = -65;
+  const vReset = -65;
+  const vThreshold = -50;
+  const tau = 12;
+
+  let membranePotential = vRest;
+  let spikeCount = 0;
+  let inputChecksum = 2166136261;
+
+  for (let i = 0; i < steps; i += 1) {
+    const code = input.charCodeAt(i % input.length);
+    inputChecksum ^= code;
+    inputChecksum = Math.imul(inputChecksum, 16777619) >>> 0;
+
+    const inputCurrent = 12 + (code % 17);
+    membranePotential += (vRest - membranePotential + inputCurrent) / tau;
+    if (membranePotential >= vThreshold) {
+      spikeCount += 1;
+      membranePotential = vReset;
+    }
+  }
+
+  return {
+    spikeCount,
+    membranePotential: Number(membranePotential.toFixed(6)),
+    inputChecksum,
+  };
 }
 
 export function detectNeuromorphicRuntime(

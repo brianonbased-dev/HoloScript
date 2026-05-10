@@ -263,6 +263,8 @@ export {
   DispatchTier,
   AlphaTracker,
   createTier3CpuDirectOutput,
+  detectWasmRuntime,
+  runCompilerWasmSnnEmulator,
 } from './dispatch/DispatchPolicy';
 export type {
   DispatchEffectVerifierResult,
@@ -273,6 +275,10 @@ export type {
   DispatchMetrics,
   Tier3CpuDirectOutput,
   Tier3CpuExecutor,
+  Tier1WasmEmulatorResult,
+  Tier1WasmExecutor,
+  Tier1WasmRuntimeProbe,
+  Tier1WasmRuntimeProbeResult,
   TraitEquivalenceOracle,
   TraitEquivalenceOracleInput,
   TraitEquivalenceOracleResult,

@@ -103,6 +103,13 @@ export function createDefaultDispatchLatencyScenarios(
       },
     },
     {
+      id: 'tier-1-wasm-fallback',
+      tier: DispatchTier.TIER_1_WASM,
+      config: {
+        tier1WasmEnabled: true,
+      },
+    },
+    {
       id: 'tier-2-speculative',
       tier: DispatchTier.TIER_2_SPECULATIVE,
       config: {

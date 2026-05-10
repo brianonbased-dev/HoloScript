@@ -5,6 +5,7 @@ import {
   AlphaTracker,
   createTier3CpuDirectOutput,
   detectNeuromorphicRuntime,
+  detectWasmRuntime,
 } from '../DispatchPolicy';
 import {
   createDefaultDispatchLatencyScenarios,
@@ -63,6 +64,95 @@ describe('DispatchPolicy', () => {
     // WebGPU not present in vitest Node env => fallback to Tier-3
     expect(decision.tier).toBe(DispatchTier.TIER_3_CPU_DIRECT);
     expect(decision.metrics.fallbackReason).toContain('WebGPU');
+  });
+
+  it('routes Tier-1 WASM when WebGPU is absent and the fallback is enabled', async () => {
+    const runtime = globalThis as typeof globalThis & {
+      navigator?: Navigator & { gpu?: unknown };
+    };
+    const previousNavigator = runtime.navigator;
+    Object.defineProperty(runtime, 'navigator', {
+      configurable: true,
+      value: {},
+    });
+
+    try {
+      const policy = new DispatchPolicy({
+        tier1BrowserEnabled: true,
+        tier1WasmEnabled: true,
+        tier1WasmRuntimeProbe: () => ({
+          available: true,
+          source: 'vitest-wasm',
+          moduleValidated: true,
+        }),
+      });
+      const decision = await policy.route({
+        trait: 'grabbable',
+        nodeId: 'wasm-ready',
+      });
+
+      expect(decision.tier).toBe(DispatchTier.TIER_1_WASM);
+      expect(decision.accepted).toBe(true);
+      expect(decision.metrics.wasmProbe?.source).toBe('vitest-wasm');
+      expect(decision.metrics.wasmEmulator?.source).toBe('compiler-wasm-snn-emulator');
+      expect(decision.metrics.wasmEmulator?.steps).toBeGreaterThan(0);
+    } finally {
+      if (previousNavigator) {
+        Object.defineProperty(runtime, 'navigator', {
+          configurable: true,
+          value: previousNavigator,
+        });
+      } else {
+        delete runtime.navigator;
+      }
+    }
+  });
+
+  it('rejects Tier-1 WASM for traits outside the SNN hot path', async () => {
+    const policy = new DispatchPolicy({
+      tier1WasmEnabled: true,
+      tier1WasmRuntimeProbe: () => ({
+        available: true,
+        source: 'vitest-wasm',
+        moduleValidated: true,
+      }),
+    });
+
+    const decision = await policy.route({
+      trait: 'wooden',
+      nodeId: 'wasm-incompatible',
+    });
+
+    expect(decision.tier).toBe(DispatchTier.TIER_3_CPU_DIRECT);
+    expect(decision.metrics.fallbackReason).toContain('SNN/WASM hot path');
+    expect(decision.metrics.wasmProbe?.available).toBe(true);
+    expect(decision.metrics.wasmEmulator).toBeUndefined();
+  });
+
+  it('falls back from Tier-1 WASM when the runtime probe is unavailable', async () => {
+    const policy = new DispatchPolicy({
+      tier1WasmEnabled: true,
+      tier1WasmRuntimeProbe: () => ({
+        available: false,
+        source: 'vitest-wasm',
+        reason: 'WASM disabled by test runtime',
+      }),
+    });
+
+    const decision = await policy.route({
+      trait: 'grabbable',
+      nodeId: 'wasm-disabled',
+    });
+
+    expect(decision.tier).toBe(DispatchTier.TIER_3_CPU_DIRECT);
+    expect(decision.metrics.fallbackReason).toContain('WASM disabled by test runtime');
+    expect(decision.metrics.wasmProbe?.source).toBe('vitest-wasm');
+  });
+
+  it('detects the host WebAssembly runtime for Tier-1 fallback', () => {
+    const probe = detectWasmRuntime();
+    expect(probe.source).toBe('global-webassembly');
+    expect(typeof probe.available).toBe('boolean');
   });
 
   it('does not treat a configured NIR target as discovered hardware', async () => {
@@ -269,6 +359,7 @@ describe('DispatchPolicy latency benchmark', () => {
       expect(report.summaries.map((summary) => summary.requestedTier)).toEqual([
         DispatchTier.TIER_1_NEUROMORPHIC,
         DispatchTier.TIER_1_BROWSER,
+        DispatchTier.TIER_1_WASM,
         DispatchTier.TIER_2_SPECULATIVE,
         DispatchTier.TIER_3_CPU_DIRECT,
       ]);
