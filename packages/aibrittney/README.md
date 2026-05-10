@@ -1,6 +1,6 @@
 # <sup>AI</sup>Brittney
 
-Interactive CLI agent for HoloScript, backed by a local Ollama model. v0.2 adds opt-in MCP tool-calling against the orchestrator (`holo_query_codebase`, `holo_ask_codebase`, `knowledge_query`, `holo_parse_to_graph`). Gateway daemon and channel adapters are still roadmap (BUILDS 3-4 in `research/2026-04-28_idea-run-3-openclaw-launch-parity.md`).
+Interactive CLI agent for HoloScript, backed by a local Ollama model. v0.2 adds opt-in MCP tool-calling against the orchestrator (`holo_query_codebase`, `holo_ask_codebase`, `knowledge_query`, `holo_parse_to_graph`) plus local config, channel registry, and gateway heartbeat commands.
 
 The display name is **<sup>AI</sup>Brittney** with `AI` set as a math-style superscript exponent — a small lifted prefix on the persona name. Plain-text fallback: `AIBrittney`. POSIX/CLI fallback: `aibrittney`.
 
@@ -34,6 +34,25 @@ AIBRITTNEY_MODEL=qwen2.5-coder:7b aibrittney   # via env
 export OLLAMA_API_KEY=<your-cloud-key>
 aibrittney --cloud --model kimi-k2.6:cloud
 ```
+
+### Local config and gateway
+
+```bash
+aibrittney configure
+aibrittney configure set model qwen2.5-coder:14b
+aibrittney configure set host https://ollama.com
+aibrittney configure set api-key-env OLLAMA_API_KEY
+aibrittney configure set tools on
+
+aibrittney channels add studio webhook https://studio.local/events
+aibrittney channels list
+
+aibrittney gateway start
+aibrittney gateway status
+aibrittney gateway stop
+```
+
+The config file defaults to the platform config directory and can be overridden with `AIBRITTNEY_CONFIG`. API keys are resolved from an environment variable (`OLLAMA_API_KEY` by default, or the configured `api-key-env`) rather than written into the config file. Gateway mode runs as a detached local heartbeat process and records pid/status/last heartbeat in the same config file; channel adapters can consume that registry as the BUILD 4 transports land.
 
 ### REPL slash commands
 
@@ -114,8 +133,10 @@ model gets a `role=tool` error message back and can recover.
 | Model + host overrides (flags + env) | ✅ |
 | HoloScript-aware default system prompt | ✅ |
 | **MCP tool-calling against the orchestrator** | **✅ v0.2** |
-| Cross-platform Gateway daemon | ❌ (BUILD 3) |
-| Channel adapters (Discord, Telegram, Studio, HoloMesh) | ❌ (BUILD 4) |
+| Local config command | ✅ |
+| Channel registry command | ✅ |
+| Cross-platform gateway heartbeat | ✅ |
+| Channel transport adapters (Discord, Telegram, Studio, HoloMesh) | ❌ (BUILD 4) |
 | Refreshed `brittney-qwen` Modelfile + Q4_K_M base | ❌ (BUILD 5) |
 | `ollama launch aibrittney` upstream entry | ❌ (post-PR) |
 
@@ -127,7 +148,8 @@ The display brand sets `AI` as a small superscript prefix on `Brittney` — typo
 
 ```
 src/
-├── cli.ts            argv parser + subcommand router (placeholders for v0.3+)
+├── cli.ts            argv parser + REPL/config/gateway/channel subcommand router
+├── local-config.ts   local JSON config, channel registry, gateway state helpers
 ├── repl.ts           interactive loop, slash commands, ANSI styling
 ├── session.ts        chat history (system/user/assistant/tool roles)
 ├── ollama-stream.ts  POST /api/chat with stream:true — used when tools are OFF

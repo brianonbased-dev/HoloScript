@@ -1,8 +1,22 @@
 import { readFileSync } from 'node:fs';
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { runRepl } from './repl.js';
 import { defaultModel, defaultOllamaHost, defaultApiKey } from './session.js';
+import {
+  defaultConfigPath,
+  readLocalConfig,
+  removeChannel,
+  resolveApiKey,
+  setChannelEnabled,
+  setGatewayState,
+  upsertChannel,
+  writeLocalConfig,
+  type AIBrittneyLocalConfig,
+  type GatewayState,
+} from './local-config.js';
 
 interface ParsedArgs {
   model?: string;
@@ -67,9 +81,14 @@ usage:
   aibrittney --cloud --model kimi-k2.6:cloud
                                    shortcut: Ollama Cloud + the named model
   aibrittney --tools               enable MCP tool calling
-  aibrittney configure             manage local config (placeholder, v0.3+)
-  aibrittney gateway               run as a background gateway (placeholder, v0.3+)
-  aibrittney channels              manage messaging channels (placeholder, v0.3+)
+  aibrittney configure             show local config
+  aibrittney configure set <key> <value>
+                                   set model, host, api-key-env, or tools
+  aibrittney channels list         list configured channels
+  aibrittney channels add <id> <type> <target>
+                                   add or replace a messaging channel
+  aibrittney gateway start|status|stop
+                                   manage the local gateway heartbeat process
   aibrittney --version             print version
   aibrittney --help                print this
 
@@ -78,6 +97,7 @@ defaults:
   host  = ${defaultOllamaHost()} (override via OLLAMA_HOST or --host)
   api-key = ${defaultApiKey() ? '<set via OLLAMA_API_KEY>' : '<not set — local-only>'}
   tools = OFF (toggle in REPL with /tools, or pass --tools)
+  config = ${defaultConfigPath()}
 
 REPL slash commands:
   /help /exit /clear /model <name> /system <prompt> /show /tools
@@ -109,6 +129,184 @@ prerequisites (local mode):
 `);
 }
 
+function printConfig(config: AIBrittneyLocalConfig, configPath: string): void {
+  process.stdout.write(`config: ${configPath}\n`);
+  process.stdout.write(`model: ${config.model ?? '<env/default>'}\n`);
+  process.stdout.write(`host: ${config.ollamaHost ?? '<env/default>'}\n`);
+  process.stdout.write(`api-key-env: ${config.apiKeyEnv ?? 'OLLAMA_API_KEY'}\n`);
+  process.stdout.write(`tools: ${config.toolsEnabled === undefined ? '<cli/repl default>' : String(config.toolsEnabled)}\n`);
+  process.stdout.write(`channels: ${config.channels.length}\n`);
+  if (config.gateway) {
+    process.stdout.write(
+      `gateway: ${config.gateway.status}${config.gateway.pid ? ` pid=${config.gateway.pid}` : ''}\n`,
+    );
+  }
+}
+
+function handleConfigure(args: ParsedArgs, configPath: string): number {
+  const config = readLocalConfig(configPath);
+  const [action, key, ...rest] = args.positional;
+  const value = rest.join(' ').trim();
+
+  if (!action || action === 'show') {
+    printConfig(config, configPath);
+    return 0;
+  }
+  if (action === 'path') {
+    process.stdout.write(`${configPath}\n`);
+    return 0;
+  }
+  if (action === 'set') {
+    if (!key || !value) return usageError('usage: aibrittney configure set <model|host|api-key-env|tools> <value>');
+    const next = { ...config };
+    switch (key) {
+      case 'model':
+        next.model = value;
+        break;
+      case 'host':
+        next.ollamaHost = value;
+        break;
+      case 'api-key-env':
+        next.apiKeyEnv = value;
+        break;
+      case 'tools':
+        next.toolsEnabled = parseOnOff(value);
+        if (next.toolsEnabled === undefined) return usageError('tools must be one of: on, off, true, false');
+        break;
+      default:
+        return usageError(`unknown config key: ${key}`);
+    }
+    writeLocalConfig(next, configPath);
+    process.stdout.write(`updated ${key} in ${configPath}\n`);
+    return 0;
+  }
+  if (action === 'unset') {
+    if (!key) return usageError('usage: aibrittney configure unset <model|host|api-key-env|tools>');
+    const next = { ...config };
+    switch (key) {
+      case 'model':
+        delete next.model;
+        break;
+      case 'host':
+        delete next.ollamaHost;
+        break;
+      case 'api-key-env':
+        delete next.apiKeyEnv;
+        break;
+      case 'tools':
+        delete next.toolsEnabled;
+        break;
+      default:
+        return usageError(`unknown config key: ${key}`);
+    }
+    writeLocalConfig(next, configPath);
+    process.stdout.write(`unset ${key} in ${configPath}\n`);
+    return 0;
+  }
+  return usageError(`unknown configure action: ${action}`);
+}
+
+function handleChannels(args: ParsedArgs, configPath: string): number {
+  const config = readLocalConfig(configPath);
+  const positional = args.positional.filter((item) => item !== '--disabled');
+  const disabled = args.positional.includes('--disabled');
+  const [action, id, type, ...targetParts] = positional;
+
+  if (!action || action === 'list') {
+    if (config.channels.length === 0) {
+      process.stdout.write('no channels configured\n');
+      return 0;
+    }
+    for (const channel of config.channels) {
+      process.stdout.write(
+        `${channel.enabled ? 'on ' : 'off'} ${channel.id} ${channel.type} ${channel.target}\n`,
+      );
+    }
+    return 0;
+  }
+  if (action === 'add') {
+    const target = targetParts.join(' ').trim();
+    if (!id || !type || !target) return usageError('usage: aibrittney channels add <id> <type> <target> [--disabled]');
+    const next = upsertChannel(config, { id, type, target, enabled: !disabled });
+    writeLocalConfig(next, configPath);
+    process.stdout.write(`channel ${id} saved\n`);
+    return 0;
+  }
+  if (action === 'remove') {
+    if (!id) return usageError('usage: aibrittney channels remove <id>');
+    const next = removeChannel(config, id);
+    writeLocalConfig(next, configPath);
+    process.stdout.write(`channel ${id} removed\n`);
+    return 0;
+  }
+  if (action === 'enable' || action === 'disable') {
+    if (!id) return usageError(`usage: aibrittney channels ${action} <id>`);
+    if (!config.channels.some((channel) => channel.id === id)) return usageError(`unknown channel: ${id}`);
+    const next = setChannelEnabled(config, id, action === 'enable');
+    writeLocalConfig(next, configPath);
+    process.stdout.write(`channel ${id} ${action === 'enable' ? 'enabled' : 'disabled'}\n`);
+    return 0;
+  }
+  return usageError(`unknown channels action: ${action}`);
+}
+
+async function handleGateway(args: ParsedArgs, configPath: string): Promise<number> {
+  const config = readLocalConfig(configPath);
+  const [action = 'status'] = args.positional;
+  if (action === 'status') {
+    const state = config.gateway;
+    if (!state) {
+      process.stdout.write('gateway: stopped\n');
+      return 0;
+    }
+    const alive = state.pid ? isProcessRunning(state.pid) : false;
+    const visibleStatus =
+      alive || state.status === 'stopped' ? state.status : 'stale';
+    process.stdout.write(`gateway: ${visibleStatus}\n`);
+    if (state.pid) process.stdout.write(`pid: ${state.pid}\n`);
+    if (state.lastHeartbeatAt) process.stdout.write(`last-heartbeat: ${state.lastHeartbeatAt}\n`);
+    process.stdout.write(`channels: ${config.channels.filter((channel) => channel.enabled).length}\n`);
+    return 0;
+  }
+  if (action === 'start') {
+    const currentPid = config.gateway?.pid;
+    if (currentPid && isProcessRunning(currentPid)) {
+      process.stdout.write(`gateway already running pid=${currentPid}\n`);
+      return 0;
+    }
+    const entry = process.argv[1] ?? fileURLToPath(import.meta.url);
+    const child = spawn(process.execPath, [entry, 'gateway', 'run'], {
+      detached: true,
+      stdio: 'ignore',
+      env: { ...process.env, AIBRITTNEY_CONFIG: configPath },
+    });
+    child.unref();
+    const state = gatewayState('starting', config, configPath, child.pid);
+    writeLocalConfig(setGatewayState(config, state), configPath);
+    process.stdout.write(`gateway starting pid=${child.pid ?? 'unknown'}\n`);
+    return 0;
+  }
+  if (action === 'stop') {
+    const pid = config.gateway?.pid;
+    if (pid && isProcessRunning(pid)) {
+      process.kill(pid);
+    }
+    const state = {
+      ...gatewayState('stopped', config, configPath, pid),
+      stoppedAt: new Date().toISOString(),
+    };
+    writeLocalConfig(setGatewayState(config, state), configPath);
+    process.stdout.write('gateway stopped\n');
+    return 0;
+  }
+  if (action === 'run') {
+    const once = args.positional.includes('--once');
+    const intervalMs = readIntervalMs(args.positional);
+    return runGatewayLoop(configPath, intervalMs, once);
+  }
+  return usageError(`unknown gateway action: ${action}`);
+}
+
 async function main(): Promise<number> {
   const args = parseArgs(process.argv.slice(2));
   if (args.showVersion) {
@@ -119,18 +317,110 @@ async function main(): Promise<number> {
     printHelp();
     return 0;
   }
-  if (args.subcommand === 'configure' || args.subcommand === 'gateway' || args.subcommand === 'channels') {
-    process.stderr.write(
-      `aibrittney: subcommand "${args.subcommand}" is reserved for v0.2+ (BUILDS 3-4 in roadmap). Not implemented yet.\n`,
-    );
-    return 2;
+  const configPath = defaultConfigPath();
+  if (args.subcommand === 'configure') {
+    return handleConfigure(args, configPath);
   }
+  if (args.subcommand === 'channels') {
+    return handleChannels(args, configPath);
+  }
+  if (args.subcommand === 'gateway') {
+    return handleGateway(args, configPath);
+  }
+  const config = readLocalConfig(configPath);
   return runRepl({
-    model: args.model,
-    ollamaHost: args.host,
-    apiKey: args.apiKey,
-    toolsEnabled: args.toolsEnabled,
+    model: args.model ?? config.model,
+    ollamaHost: args.host ?? config.ollamaHost,
+    apiKey: args.apiKey ?? resolveApiKey(config),
+    toolsEnabled: args.toolsEnabled ?? config.toolsEnabled,
   });
+}
+
+function usageError(message: string): number {
+  process.stderr.write(`aibrittney: ${message}\n`);
+  return 2;
+}
+
+function parseOnOff(value: string): boolean | undefined {
+  if (value === 'on' || value === 'true' || value === '1') return true;
+  if (value === 'off' || value === 'false' || value === '0') return false;
+  return undefined;
+}
+
+function gatewayState(
+  status: GatewayState['status'],
+  config: AIBrittneyLocalConfig,
+  configPath: string,
+  pid = process.pid,
+): GatewayState {
+  const now = new Date().toISOString();
+  return {
+    status,
+    pid,
+    startedAt: config.gateway?.startedAt ?? now,
+    lastHeartbeatAt: status === 'stopped' ? config.gateway?.lastHeartbeatAt : now,
+    configPath,
+    channelCount: config.channels.filter((channel) => channel.enabled).length,
+  };
+}
+
+async function runGatewayLoop(configPath: string, intervalMs: number, once: boolean): Promise<number> {
+  process.stdout.write(`aibrittney gateway running pid=${process.pid} config=${configPath}\n`);
+  let stopping = false;
+  const stop = () => {
+    stopping = true;
+  };
+  process.once('SIGINT', stop);
+  process.once('SIGTERM', stop);
+  try {
+    do {
+      const config = readLocalConfig(configPath);
+      const state = gatewayState('running', config, configPath);
+      writeLocalConfig(setGatewayState(config, state), configPath);
+      if (once) {
+        const onceConfig = readLocalConfig(configPath);
+        writeLocalConfig(
+          setGatewayState(onceConfig, {
+            ...gatewayState('stopped', onceConfig, configPath),
+            lastHeartbeatAt: state.lastHeartbeatAt,
+            stoppedAt: new Date().toISOString(),
+          }),
+          configPath,
+        );
+        return 0;
+      }
+      await sleep(intervalMs);
+    } while (!stopping);
+
+    const config = readLocalConfig(configPath);
+    writeLocalConfig(
+      setGatewayState(config, {
+        ...gatewayState('stopped', config, configPath),
+        stoppedAt: new Date().toISOString(),
+      }),
+      configPath,
+    );
+    return 0;
+  } finally {
+    process.removeListener('SIGINT', stop);
+    process.removeListener('SIGTERM', stop);
+  }
+}
+
+function readIntervalMs(args: string[]): number {
+  const idx = args.indexOf('--interval-ms');
+  if (idx < 0) return 30_000;
+  const parsed = Number(args[idx + 1]);
+  return Number.isFinite(parsed) && parsed >= 250 ? parsed : 30_000;
+}
+
+function isProcessRunning(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 main().then(
