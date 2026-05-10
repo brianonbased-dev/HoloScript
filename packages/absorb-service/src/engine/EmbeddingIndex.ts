@@ -21,7 +21,6 @@ const __dirname_esm = path.dirname(__filename_esm);
 // Dynamic import for worker pool (graceful degradation if not available)
 let WorkerPool: typeof import('./workers/WorkerPool').WorkerPool | null;
 try {
-   
   WorkerPool = require('./workers/WorkerPool').WorkerPool;
 } catch {
   // Worker threads not available (browser, WASM, or old Node.js)
@@ -104,7 +103,9 @@ export class EmbeddingIndex {
 
   constructor(options: EmbeddingIndexOptions = {}) {
     if (!options.provider) {
-      throw new Error('EmbeddingIndex requires an explicit provider. Use createEmbeddingProvider() from providers/EmbeddingProviderFactory.');
+      throw new Error(
+        'EmbeddingIndex requires an explicit provider. Use createEmbeddingProvider() from providers/EmbeddingProviderFactory.'
+      );
     }
     this.provider = options.provider;
     // Increased from 32 to 100 for OpenAI (supports up to 2048)
@@ -154,23 +155,14 @@ export class EmbeddingIndex {
     this.startTime = Date.now(); // Reset timer for ETA calculation
 
     const symbols = graph.getAllSymbols();
-    const texts: string[] = [];
-    const symbolRefs: ExternalSymbolDefinition[] = [];
-
-    for (const sym of symbols) {
-      const text = this.symbolToText(sym);
-      texts.push(text);
-      symbolRefs.push(sym);
-    }
-
-    const totalBatches = Math.ceil(texts.length / this.batchSize);
+    const totalBatches = Math.ceil(symbols.length / this.batchSize);
 
     if (this.useWorkers && this.workerPool) {
       // PARALLEL PATH: Use worker threads for 4-8x speedup (Phase 9 Extension)
-      await this.buildIndexParallel(texts, symbolRefs, totalBatches, onProgress);
+      await this.buildIndexParallel(symbols, totalBatches, onProgress);
     } else {
       // SEQUENTIAL PATH: Original implementation (fallback)
-      await this.buildIndexSequential(texts, symbolRefs, totalBatches, onProgress);
+      await this.buildIndexSequential(symbols, totalBatches, onProgress);
     }
   }
 
@@ -178,13 +170,13 @@ export class EmbeddingIndex {
    * Sequential embedding generation (original implementation).
    */
   private async buildIndexSequential(
-    texts: string[],
-    symbolRefs: ExternalSymbolDefinition[],
+    symbols: ExternalSymbolDefinition[],
     totalBatches: number,
     onProgress?: (batchNum: number, totalBatches: number, symbolsProcessed: number) => void
   ): Promise<void> {
-    for (let i = 0; i < texts.length; i += this.batchSize) {
-      const batch = texts.slice(i, i + this.batchSize);
+    for (let i = 0; i < symbols.length; i += this.batchSize) {
+      const batchSymbols = symbols.slice(i, i + this.batchSize);
+      const batch = batchSymbols.map((symbol) => this.symbolToText(symbol));
       const batchNum = Math.floor(i / this.batchSize) + 1;
 
       if (batchNum > 1) {
@@ -196,7 +188,7 @@ export class EmbeddingIndex {
 
       for (let j = 0; j < embeddings.length; j++) {
         this.entries.push({
-          symbol: symbolRefs[i + j],
+          symbol: batchSymbols[j],
           text: batch[j],
           embedding: new Float32Array(embeddings[j]),
         });
@@ -229,8 +221,7 @@ export class EmbeddingIndex {
    * Processes multiple batches concurrently for 4-8x speedup.
    */
   private async buildIndexParallel(
-    texts: string[],
-    symbolRefs: ExternalSymbolDefinition[],
+    symbols: ExternalSymbolDefinition[],
     totalBatches: number,
     onProgress?: (batchNum: number, totalBatches: number, symbolsProcessed: number) => void
   ): Promise<void> {
@@ -250,35 +241,41 @@ export class EmbeddingIndex {
 
     // Process batches in parallel (concurrentBatches at a time)
     for (let i = 0; i < totalBatches; i += this.concurrentBatches) {
-      const batchPromises: Promise<{ batchIndex: number; embeddings: number[][] }>[] = [];
+      const batchPromises: Promise<{
+        batchIndex: number;
+        batchSymbols: ExternalSymbolDefinition[];
+        batchTexts: string[];
+        embeddings: number[][];
+      }>[] = [];
 
       for (let j = 0; j < this.concurrentBatches && i + j < totalBatches; j++) {
         const batchIndex = i + j;
         const start = batchIndex * this.batchSize;
-        const end = Math.min(start + this.batchSize, texts.length);
-        const batch = texts.slice(start, end);
+        const end = Math.min(start + this.batchSize, symbols.length);
+        const batchSymbols = symbols.slice(start, end);
+        const batch = batchSymbols.map((symbol) => this.symbolToText(symbol));
 
-        const promise = this.workerPool!
-          .execute<{
-            jobId: string;
-            embeddings?: number[][];
-            error?: { message: string };
-          }>({
-            texts: batch,
-            provider: providerConfig,
-          })
-          .then((result) => {
-            if (result.error) {
-              throw new Error(result.error.message);
-            }
-            if (!result.embeddings) {
-              throw new Error('Embedding worker returned no embeddings');
-            }
-            return {
-              batchIndex,
-              embeddings: result.embeddings,
-            };
-          });
+        const promise = this.workerPool!.execute<{
+          jobId: string;
+          embeddings?: number[][];
+          error?: { message: string };
+        }>({
+          texts: batch,
+          provider: providerConfig,
+        }).then((result) => {
+          if (result.error) {
+            throw new Error(result.error.message);
+          }
+          if (!result.embeddings) {
+            throw new Error('Embedding worker returned no embeddings');
+          }
+          return {
+            batchIndex,
+            batchSymbols,
+            batchTexts: batch,
+            embeddings: result.embeddings,
+          };
+        });
 
         batchPromises.push(promise);
       }
@@ -289,13 +286,11 @@ export class EmbeddingIndex {
       // Sort results by batch index and add to entries
       results.sort((a, b) => a.batchIndex - b.batchIndex);
 
-      for (const { batchIndex, embeddings } of results) {
-        const start = batchIndex * this.batchSize;
-
+      for (const { batchIndex, batchSymbols, batchTexts, embeddings } of results) {
         for (let k = 0; k < embeddings.length; k++) {
           this.entries.push({
-            symbol: symbolRefs[start + k],
-            text: texts[start + k],
+            symbol: batchSymbols[k],
+            text: batchTexts[k],
             embedding: new Float32Array(embeddings[k]),
           });
         }

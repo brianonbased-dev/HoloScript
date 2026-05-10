@@ -20,13 +20,17 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
   renameSync,
   rmSync,
   statSync,
+  writeFileSync,
 } from 'node:fs';
-import { homedir } from 'node:os';
+import { spawnSync } from 'node:child_process';
+import { freemem, homedir, totalmem } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import v8 from 'node:v8';
 
 loadEnv();
 
@@ -43,9 +47,30 @@ const STAGING_CACHE_DIR =
   process.env.HOLOSCRIPT_REBUILD_CACHE_DIR || join(LIVE_CACHE_DIR, `.rebuild-${REBUILD_ID}`);
 const STAGING_CACHE_FILE = join(STAGING_CACHE_DIR, 'graph-cache.json');
 const STAGING_EMBEDDINGS_FILE = join(STAGING_CACHE_DIR, 'embeddings-cache.bin');
+const IS_SHARD_CHILD = process.env.HOLOSCRIPT_ABSORB_SHARD_CHILD === '1';
+const SHARDING_ENABLED = process.env.HOLOSCRIPT_ABSORB_SHARDS !== '0';
+const SHARD_ROOT_DIR = join(LIVE_CACHE_DIR, 'graph-shards');
+const SHARD_PROGRESS_FILE = join(SHARD_ROOT_DIR, 'progress.json');
+const SHARD_MANIFEST_FILE = join(SHARD_ROOT_DIR, 'manifest.json');
+const SHARD_HEAP_MB =
+  Number(process.env.HOLOSCRIPT_ABSORB_SHARD_HEAP_MB) ||
+  Math.min(6144, Math.max(2048, Math.floor(totalmem() / 1024 / 1024 / 4)));
+const MIN_FREE_MEMORY_MB = Number(process.env.HOLOSCRIPT_ABSORB_MIN_FREE_MB) || 1024;
 
 function normalizePath(inputPath) {
   return resolve(inputPath).replaceAll('\\', '/').toLowerCase();
+}
+
+function isSubpath(childPath, parentPath) {
+  const child = normalizePath(childPath);
+  const parent = normalizePath(parentPath);
+  return child === parent || child.startsWith(`${parent}/`);
+}
+
+function assertSafeCacheSubpath(childPath, label) {
+  if (!isSubpath(childPath, LIVE_CACHE_DIR)) {
+    throw new Error(`${label} must stay under live cache dir ${LIVE_CACHE_DIR}: ${childPath}`);
+  }
 }
 
 function loadEnv() {
@@ -88,6 +113,100 @@ function fileSize(filePath) {
   } catch {
     return 0;
   }
+}
+
+function readJsonFile(filePath, fallback) {
+  try {
+    return JSON.parse(readFileSync(filePath, 'utf8'));
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJsonFile(filePath, data) {
+  mkdirSync(dirname(filePath), { recursive: true });
+  writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+}
+
+function sanitizeShardName(relativePath) {
+  return relativePath
+    .replaceAll('\\', '/')
+    .replace(/[^A-Za-z0-9._/-]/g, '_')
+    .replaceAll('/', '__');
+}
+
+function discoverShardRoots() {
+  const shards = [];
+  const addChildren = (parentName) => {
+    const parent = join(REPO_ROOT, parentName);
+    if (!existsSync(parent)) return;
+
+    for (const entry of readdirSync(parent, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      if (
+        entry.name.startsWith('.') ||
+        ['node_modules', 'dist', 'build', 'out'].includes(entry.name)
+      ) {
+        continue;
+      }
+
+      const rootDir = join(parent, entry.name);
+      const hasProjectShape =
+        existsSync(join(rootDir, 'package.json')) || existsSync(join(rootDir, 'src'));
+      if (!hasProjectShape) continue;
+
+      const relativePath = `${parentName}/${entry.name}`;
+      const name = sanitizeShardName(relativePath);
+      shards.push({
+        name,
+        relativePath,
+        rootDir,
+        cacheDir: join(SHARD_ROOT_DIR, name),
+      });
+    }
+  };
+
+  addChildren('packages');
+  addChildren('services');
+  addChildren('apps');
+
+  for (const relativePath of ['scripts', 'examples', 'compositions']) {
+    const rootDir = join(REPO_ROOT, relativePath);
+    if (existsSync(rootDir)) {
+      const name = sanitizeShardName(relativePath);
+      shards.push({ name, relativePath, rootDir, cacheDir: join(SHARD_ROOT_DIR, name) });
+    }
+  }
+
+  return shards;
+}
+
+function assertHeapHeadroom(label) {
+  const heap = v8.getHeapStatistics();
+  const heapRatio = heap.used_heap_size / heap.heap_size_limit;
+  const freeMb = freemem() / 1024 / 1024;
+
+  if (heapRatio > 0.8) {
+    throw new Error(
+      `${label}: parent heap guard tripped (${Math.round(heapRatio * 100)}% of ${Math.round(
+        heap.heap_size_limit / 1024 / 1024
+      )}MB)`
+    );
+  }
+
+  if (freeMb < MIN_FREE_MEMORY_MB) {
+    throw new Error(
+      `${label}: system memory guard tripped (${Math.round(freeMb)}MB free, need ${MIN_FREE_MEMORY_MB}MB)`
+    );
+  }
+}
+
+function mergeNodeOptionsWithHeap(nodeOptions, heapMb) {
+  const withoutOldSpace = (nodeOptions || '')
+    .split(/\s+/)
+    .filter((part) => part && !part.startsWith('--max-old-space-size='));
+  withoutOldSpace.push(`--max-old-space-size=${heapMb}`);
+  return withoutOldSpace.join(' ');
 }
 
 async function loadHandler() {
@@ -200,8 +319,145 @@ function assertHealthyStatus(postStatus) {
   }
 }
 
+async function runShardedRebuild() {
+  console.log('[1/4] Discovering package/rootDir shards...');
+  mkdirSync(SHARD_ROOT_DIR, { recursive: true });
+
+  const shards = discoverShardRoots();
+  if (shards.length === 0) {
+    throw new Error(`No shard roots found under ${REPO_ROOT}`);
+  }
+
+  const progress = readJsonFile(SHARD_PROGRESS_FILE, {
+    version: 1,
+    rootDir: REPO_ROOT,
+    startedAt: new Date().toISOString(),
+    shards: {},
+  });
+  progress.version = 1;
+  progress.rootDir = REPO_ROOT;
+  progress.updatedAt = new Date().toISOString();
+  progress.shards ??= {};
+
+  const forceShards = process.env.HOLOSCRIPT_ABSORB_SHARD_FORCE === '1';
+  console.log(
+    `[2/4] Rebuilding ${shards.length} shards with ${SHARD_HEAP_MB}MB child heap cap (${forceShards ? 'force' : 'resume'} mode)...`
+  );
+
+  for (let index = 0; index < shards.length; index++) {
+    const shard = shards[index];
+    const cacheFile = join(shard.cacheDir, 'graph-cache.json');
+    const embeddingsFile = join(shard.cacheDir, 'embeddings-cache.bin');
+    const prior = progress.shards[shard.name];
+    const alreadyDone =
+      !forceShards &&
+      prior?.status === 'done' &&
+      fileSize(cacheFile) > 0 &&
+      fileSize(embeddingsFile) > 0;
+
+    if (alreadyDone) {
+      console.log(`[skip ${index + 1}/${shards.length}] ${shard.relativePath}`);
+      continue;
+    }
+
+    assertHeapHeadroom(`before shard ${shard.relativePath}`);
+    progress.shards[shard.name] = {
+      relativePath: shard.relativePath,
+      rootDir: shard.rootDir,
+      cacheDir: shard.cacheDir,
+      status: 'running',
+      startedAt: new Date().toISOString(),
+    };
+    progress.updatedAt = new Date().toISOString();
+    writeJsonFile(SHARD_PROGRESS_FILE, progress);
+
+    console.log(`[run ${index + 1}/${shards.length}] ${shard.relativePath}`);
+    const startedAt = Date.now();
+    const childEnv = {
+      ...process.env,
+      HOLOSCRIPT_ABSORB_SHARD_CHILD: '1',
+      HOLOSCRIPT_ABSORB_SHARDS: '0',
+      HOLOSCRIPT_CACHE_DIR: shard.cacheDir,
+      HOLOSCRIPT_REBUILD_CACHE_DIR: join(shard.cacheDir, `.rebuild-${REBUILD_ID}`),
+      HOLOSCRIPT_SCAN_TARGET: shard.rootDir,
+      NODE_OPTIONS: mergeNodeOptionsWithHeap(process.env.NODE_OPTIONS, SHARD_HEAP_MB),
+    };
+
+    const child = spawnSync(process.execPath, [fileURLToPath(import.meta.url)], {
+      cwd: REPO_ROOT,
+      env: childEnv,
+      stdio: 'inherit',
+      windowsHide: true,
+    });
+
+    const durationMs = Date.now() - startedAt;
+    if (child.status !== 0) {
+      progress.shards[shard.name] = {
+        ...progress.shards[shard.name],
+        status: 'failed',
+        durationMs,
+        exitCode: child.status,
+        failedAt: new Date().toISOString(),
+      };
+      progress.updatedAt = new Date().toISOString();
+      writeJsonFile(SHARD_PROGRESS_FILE, progress);
+      throw new Error(`Shard ${shard.relativePath} failed with exit code ${child.status}`);
+    }
+
+    const envelope = readCacheEnvelope(cacheFile);
+    progress.shards[shard.name] = {
+      ...progress.shards[shard.name],
+      status: 'done',
+      durationMs,
+      completedAt: new Date().toISOString(),
+      stats: envelope?.stats ?? null,
+      cacheBytes: fileSize(cacheFile),
+      embeddingsBytes: fileSize(embeddingsFile),
+    };
+    progress.updatedAt = new Date().toISOString();
+    writeJsonFile(SHARD_PROGRESS_FILE, progress);
+  }
+
+  console.log('[3/4] Writing shard manifest...');
+  const manifest = {
+    version: 1,
+    rootDir: REPO_ROOT,
+    scanTarget: SCAN_TARGET,
+    createdAt: new Date().toISOString(),
+    shardHeapMb: SHARD_HEAP_MB,
+    shards: shards.map((shard) => {
+      const state = progress.shards[shard.name] ?? {};
+      return {
+        name: shard.name,
+        relativePath: shard.relativePath,
+        rootDir: shard.rootDir,
+        cacheDir: shard.cacheDir,
+        status: state.status ?? 'unknown',
+        stats: state.stats ?? null,
+        cacheBytes: state.cacheBytes ?? fileSize(join(shard.cacheDir, 'graph-cache.json')),
+        embeddingsBytes:
+          state.embeddingsBytes ?? fileSize(join(shard.cacheDir, 'embeddings-cache.bin')),
+      };
+    }),
+  };
+  writeJsonFile(SHARD_MANIFEST_FILE, manifest);
+
+  console.log('[4/4] Sharded graph cache rebuild complete.');
+  console.log(`Manifest: ${SHARD_MANIFEST_FILE}`);
+  console.log(`Progress: ${SHARD_PROGRESS_FILE}`);
+}
+
 async function main() {
   console.log('[1/5] Loading environment...');
+
+  if (
+    !IS_SHARD_CHILD &&
+    SHARDING_ENABLED &&
+    normalizePath(SCAN_TARGET) === normalizePath(REPO_ROOT)
+  ) {
+    await runShardedRebuild();
+    return;
+  }
 
   const liveEnvelope = readCacheEnvelope(CACHE_FILE);
   if (isFreshForTarget(liveEnvelope) && fileSize(EMBEDDINGS_FILE) > 0) {
@@ -215,6 +471,7 @@ async function main() {
   }
 
   console.log('[2/5] Cache stale or missing; preparing isolated rebuild cache...');
+  assertSafeCacheSubpath(STAGING_CACHE_DIR, 'staging cache dir');
   rmSync(STAGING_CACHE_DIR, { recursive: true, force: true });
   mkdirSync(STAGING_CACHE_DIR, { recursive: true });
   process.env.HOLOSCRIPT_CACHE_DIR = STAGING_CACHE_DIR;
