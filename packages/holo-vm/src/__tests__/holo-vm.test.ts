@@ -4,6 +4,7 @@ import {
   HoloBytecodeBuilder,
   HoloOpCode,
   VMStatus,
+  UnsupportedHostOpcodeError,
   GeometryType,
   ComponentType,
   BodyType,
@@ -11,6 +12,7 @@ import {
   AssetType,
   getOpcodeFamily,
   getOpcodeName,
+  isHostOpcode,
   isControlFlow,
   HOLOB_MAGIC,
   HOLOB_VERSION,
@@ -75,6 +77,13 @@ describe('HoloOpCode', () => {
     expect(isControlFlow(HoloOpCode.YIELD)).toBe(true);
     expect(isControlFlow(HoloOpCode.SPAWN)).toBe(false);
     expect(isControlFlow(HoloOpCode.PUSH)).toBe(false);
+  });
+
+  it('should identify host integration opcodes', () => {
+    expect(isHostOpcode(HoloOpCode.LOAD_ASSET)).toBe(true);
+    expect(isHostOpcode(HoloOpCode.AGENT_INVOKE)).toBe(true);
+    expect(isHostOpcode(HoloOpCode.RAYCAST)).toBe(true);
+    expect(isHostOpcode(HoloOpCode.SPAWN)).toBe(false);
   });
 });
 
@@ -516,6 +525,53 @@ describe('HoloVM', () => {
       expect(entity).toBeDefined();
       expect(entity!.traits.has(0)).toBe(false); // Removed
       expect(entity!.traits.has(1)).toBe(true); // Still there
+    });
+  });
+
+  describe('Host integration opcodes', () => {
+    it('fails loudly when host opcode has no registered callback', () => {
+      const builder = new HoloBytecodeBuilder();
+      builder.addFunction('main').loadAsset('models/tree.glb', AssetType.Mesh).halt();
+
+      vm.load(builder.build());
+      const result = vm.tick(16.67);
+
+      expect(result.status).toBe(VMStatus.Error);
+      expect(result.error).toContain('Unsupported host opcode LOAD_ASSET');
+      expect(vm.getLastError()).toBeInstanceOf(UnsupportedHostOpcodeError);
+    });
+
+    it('runs registered host callbacks and pushes output operands', () => {
+      vm.registerHostCallback(HoloOpCode.LOAD_ASSET, ({ operands, resolveString }) => {
+        const uri = resolveString(operands[0] as number);
+        return `asset:${uri}:${operands[1]}`;
+      });
+
+      const builder = new HoloBytecodeBuilder();
+      builder.addFunction('main').loadAsset('models/tree.glb', AssetType.Mesh).halt();
+
+      vm.load(builder.build());
+      const result = vm.tick(16.67);
+
+      expect(result.status).toBe(VMStatus.Halted);
+      expect(result.stackTop).toBe(`asset:models/tree.glb:${AssetType.Mesh}`);
+    });
+
+    it('runs no-output host callbacks without mutating the operand stack', () => {
+      const calls: unknown[] = [];
+      vm.registerHostCallback(HoloOpCode.NET_SYNC, ({ operands, opcodeName }) => {
+        calls.push({ opcodeName, operands });
+      });
+
+      const builder = new HoloBytecodeBuilder();
+      builder.addFunction('main').netSync(1, 2).halt();
+
+      vm.load(builder.build());
+      const result = vm.tick(16.67);
+
+      expect(result.status).toBe(VMStatus.Halted);
+      expect(result.stackTop).toBeNull();
+      expect(calls).toEqual([{ opcodeName: 'NET_SYNC', operands: [1, 2] }]);
     });
   });
 

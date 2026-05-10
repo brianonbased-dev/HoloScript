@@ -273,6 +273,67 @@ export interface VMResult {
 }
 
 // =============================================================================
+// HOST INTEGRATION
+// =============================================================================
+
+export type HoloVMHostOpcode =
+  | HoloOpCode.AGENT_INVOKE
+  | HoloOpCode.AGENT_READ
+  | HoloOpCode.AGENT_SUBSCRIBE
+  | HoloOpCode.DIALOG_SHOW
+  | HoloOpCode.QUEST_UPDATE
+  | HoloOpCode.LOAD_ASSET
+  | HoloOpCode.PLAY_AUDIO
+  | HoloOpCode.NET_SYNC
+  | HoloOpCode.NET_SEND
+  | HoloOpCode.NET_RECV
+  | HoloOpCode.XR_INPUT
+  | HoloOpCode.HAPTIC
+  | HoloOpCode.RAYCAST
+  | HoloOpCode.QUERY_BOX
+  | HoloOpCode.QUERY_SPHERE
+  | HoloOpCode.FIND_PATH
+  | HoloOpCode.GET_ZONE;
+
+export type HoloVMHostOpcodeGroup = 'agent' | 'io' | 'spatial';
+
+export interface HoloVMHostContext {
+  opcode: HoloVMHostOpcode;
+  opcodeName: string;
+  opcodeGroup: HoloVMHostOpcodeGroup;
+  operands: readonly HoloOperand[];
+  tickCount: number;
+  currentTimeMs: number;
+  world: ECSWorld;
+  vm: HoloVM;
+  resolveString: (index: number) => string;
+}
+
+export type HoloVMHostCallback = (context: HoloVMHostContext) => HoloOperand | void;
+
+export type HoloVMHostCallbacks = Partial<Record<HoloVMHostOpcode, HoloVMHostCallback>>;
+
+export class UnsupportedHostOpcodeError extends Error {
+  readonly opcode: HoloVMHostOpcode;
+  readonly opcodeName: string;
+  readonly opcodeGroup: HoloVMHostOpcodeGroup;
+  readonly operands: readonly HoloOperand[];
+
+  constructor(opcode: HoloVMHostOpcode, operands: readonly HoloOperand[]) {
+    const opcodeName = getOpcodeName(opcode);
+    const opcodeGroup = getHostOpcodeGroup(opcode);
+    super(
+      `Unsupported host opcode ${opcodeName} (${opcodeGroup}) requires a registered host callback`
+    );
+    this.name = 'UnsupportedHostOpcodeError';
+    this.opcode = opcode;
+    this.opcodeName = opcodeName;
+    this.opcodeGroup = opcodeGroup;
+    this.operands = [...operands];
+  }
+}
+
+// =============================================================================
 // HOLO VM EXECUTOR
 // =============================================================================
 
@@ -298,6 +359,12 @@ export class HoloVM {
   private maxStackSize: number = 4096;
   private maxCallDepth: number = 256;
   private maxInstructionsPerTick: number = 10_000;
+  private hostCallbacks: Map<HoloVMHostOpcode, HoloVMHostCallback> = new Map();
+  private lastError: Error | undefined;
+
+  constructor(hostCallbacks: HoloVMHostCallbacks = {}) {
+    this.registerHostCallbacks(hostCallbacks);
+  }
 
   /**
    * Load a bytecode module into the VM
@@ -319,6 +386,22 @@ export class HoloVM {
     this.timers = [];
     this.currentTimeMs = 0;
     this.eventQueue = [];
+    this.lastError = undefined;
+  }
+
+  registerHostCallback(opcode: HoloVMHostOpcode, callback: HoloVMHostCallback): void {
+    if (!isHostOpcode(opcode)) {
+      throw new Error(`Opcode ${getOpcodeName(opcode)} is not a host-integration opcode`);
+    }
+    this.hostCallbacks.set(opcode, callback);
+  }
+
+  registerHostCallbacks(callbacks: HoloVMHostCallbacks): void {
+    for (const [opcode, callback] of Object.entries(callbacks)) {
+      if (callback) {
+        this.registerHostCallback(Number(opcode) as HoloVMHostOpcode, callback);
+      }
+    }
   }
 
   /**
@@ -355,6 +438,7 @@ export class HoloVM {
    */
   tick(deltaMs: number): VMResult {
     if (!this.bytecode) {
+      this.lastError = new Error('No bytecode loaded');
       return {
         status: VMStatus.Error,
         stackTop: null,
@@ -388,6 +472,7 @@ export class HoloVM {
       stackTop: this.stack.length > 0 ? this.stack[this.stack.length - 1] : null,
       tickCount: this.tickCount,
       entityCount: this.world.entityCount,
+      error: this.status === VMStatus.Error ? this.lastError?.message : undefined,
     };
   }
 
@@ -422,8 +507,9 @@ export class HoloVM {
 
       try {
         this.executeInstruction(instr, frame);
-      } catch (_err) {
+      } catch (err) {
         this.status = VMStatus.Error;
+        this.lastError = err instanceof Error ? err : new Error(String(err));
         break;
       }
 
@@ -773,11 +859,10 @@ export class HoloVM {
       case HoloOpCode.AGENT_SUBSCRIBE:
       case HoloOpCode.DIALOG_SHOW:
       case HoloOpCode.QUEST_UPDATE:
-        // These are handled by the host layer via registered callbacks
-        this.push(null);
+        this.executeHostOpcode(op, operands);
         break;
 
-      // ── I/O (stubs — filled in by host integration) ─────────────────────
+      // ── I/O & Networking (host integration) ─────────────────────────────
       case HoloOpCode.LOAD_ASSET:
       case HoloOpCode.PLAY_AUDIO:
       case HoloOpCode.NET_SYNC:
@@ -785,16 +870,16 @@ export class HoloVM {
       case HoloOpCode.NET_RECV:
       case HoloOpCode.XR_INPUT:
       case HoloOpCode.HAPTIC:
-        this.push(null);
+        this.executeHostOpcode(op, operands);
         break;
 
-      // ── Spatial queries (stubs — need spatial index) ─────────────────────
+      // ── Spatial queries (host integration) ───────────────────────────────
       case HoloOpCode.RAYCAST:
       case HoloOpCode.QUERY_BOX:
       case HoloOpCode.QUERY_SPHERE:
       case HoloOpCode.FIND_PATH:
       case HoloOpCode.GET_ZONE:
-        this.push(null);
+        this.executeHostOpcode(op, operands);
         break;
 
       default:
@@ -845,6 +930,35 @@ export class HoloVM {
 
     this.callStack.push(frame);
     this.status = VMStatus.Running;
+  }
+
+  private executeHostOpcode(opcode: HoloVMHostOpcode, operands: HoloOperand[]): void {
+    const callback = this.hostCallbacks.get(opcode);
+    if (!callback) {
+      throw new UnsupportedHostOpcodeError(opcode, operands);
+    }
+
+    const result = callback({
+      opcode,
+      opcodeName: getOpcodeName(opcode),
+      opcodeGroup: getHostOpcodeGroup(opcode),
+      operands: [...operands],
+      tickCount: this.tickCount,
+      currentTimeMs: this.currentTimeMs,
+      world: this.world,
+      vm: this,
+      resolveString: (index: number) => this.getString(index),
+    });
+
+    if (!HOST_OUTPUT_OPCODES.has(opcode)) {
+      return;
+    }
+
+    if (result === undefined) {
+      throw new Error(`Host callback for ${getOpcodeName(opcode)} must return a VM operand`);
+    }
+
+    this.push(result);
   }
 
   // ── Timer processing ──────────────────────────────────────────────────────
@@ -916,9 +1030,57 @@ export class HoloVM {
   }
 
   /**
+   * Get the last execution error, preserving typed host-integration failures.
+   */
+  getLastError(): Error | undefined {
+    return this.lastError;
+  }
+
+  /**
    * Queue an external event (e.g., from user input or network)
    */
   queueEvent(eventType: number, ...payload: HoloOperand[]): void {
     this.eventQueue.push({ eventType, payload });
   }
+}
+
+const HOST_OPCODE_GROUPS = new Map<HoloVMHostOpcode, HoloVMHostOpcodeGroup>([
+  [HoloOpCode.AGENT_INVOKE, 'agent'],
+  [HoloOpCode.AGENT_READ, 'agent'],
+  [HoloOpCode.AGENT_SUBSCRIBE, 'agent'],
+  [HoloOpCode.DIALOG_SHOW, 'agent'],
+  [HoloOpCode.QUEST_UPDATE, 'agent'],
+  [HoloOpCode.LOAD_ASSET, 'io'],
+  [HoloOpCode.PLAY_AUDIO, 'io'],
+  [HoloOpCode.NET_SYNC, 'io'],
+  [HoloOpCode.NET_SEND, 'io'],
+  [HoloOpCode.NET_RECV, 'io'],
+  [HoloOpCode.XR_INPUT, 'io'],
+  [HoloOpCode.HAPTIC, 'io'],
+  [HoloOpCode.RAYCAST, 'spatial'],
+  [HoloOpCode.QUERY_BOX, 'spatial'],
+  [HoloOpCode.QUERY_SPHERE, 'spatial'],
+  [HoloOpCode.FIND_PATH, 'spatial'],
+  [HoloOpCode.GET_ZONE, 'spatial'],
+]);
+
+const HOST_OUTPUT_OPCODES = new Set<HoloVMHostOpcode>([
+  HoloOpCode.AGENT_INVOKE,
+  HoloOpCode.AGENT_READ,
+  HoloOpCode.LOAD_ASSET,
+  HoloOpCode.NET_RECV,
+  HoloOpCode.XR_INPUT,
+  HoloOpCode.RAYCAST,
+  HoloOpCode.QUERY_BOX,
+  HoloOpCode.QUERY_SPHERE,
+  HoloOpCode.FIND_PATH,
+  HoloOpCode.GET_ZONE,
+]);
+
+export function isHostOpcode(opcode: number): opcode is HoloVMHostOpcode {
+  return HOST_OPCODE_GROUPS.has(opcode as HoloVMHostOpcode);
+}
+
+function getHostOpcodeGroup(opcode: HoloVMHostOpcode): HoloVMHostOpcodeGroup {
+  return HOST_OPCODE_GROUPS.get(opcode) ?? 'io';
 }

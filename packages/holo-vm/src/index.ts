@@ -49,7 +49,7 @@ export type {
 } from './bytecode';
 
 // VM Executor
-export { HoloVM, ECSWorld, VMStatus } from './executor';
+export { HoloVM, ECSWorld, VMStatus, UnsupportedHostOpcodeError, isHostOpcode } from './executor';
 export type {
   Entity,
   Vec3,
@@ -59,4 +59,9 @@ export type {
   MaterialComponent,
   RigidBodyComponent,
   VMResult,
+  HoloVMHostCallback,
+  HoloVMHostCallbacks,
+  HoloVMHostContext,
+  HoloVMHostOpcode,
+  HoloVMHostOpcodeGroup,
 } from './executor';
