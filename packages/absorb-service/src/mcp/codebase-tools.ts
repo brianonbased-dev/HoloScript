@@ -357,6 +357,33 @@ interface AbsorbDiagnostics {
   hints: string[];
 }
 
+function atomicWriteFileSync(
+  targetPath: string,
+  data: string | NodeJS.ArrayBufferView,
+  options?: fs.WriteFileOptions
+): void {
+  const dir = path.dirname(targetPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  const tempPath = path.join(
+    dir,
+    `${path.basename(targetPath)}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  );
+
+  try {
+    fs.writeFileSync(tempPath, data, options);
+    fs.renameSync(tempPath, targetPath);
+  } catch (err) {
+    try {
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+    } catch {
+      // Ignore temp cleanup failures; preserve the original write error.
+    }
+    throw err;
+  }
+}
+
 function saveGraphCache(
   graph: any,
   rootDir: string,
@@ -370,9 +397,6 @@ function saveGraphCache(
     return;
   }
   try {
-    if (!fs.existsSync(CACHE_DIR)) {
-      fs.mkdirSync(CACHE_DIR, { recursive: true });
-    }
     const envelope: GraphCacheEnvelope = {
       version: 2,
       rootDir,
@@ -383,7 +407,7 @@ function saveGraphCache(
       fileHashes,
       embeddingProvider,
     };
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(envelope), 'utf-8');
+    atomicWriteFileSync(CACHE_FILE, JSON.stringify(envelope), 'utf-8');
   } catch (err) {
     // Best-effort — don't break absorb if persistence fails
     console.warn(
@@ -394,10 +418,9 @@ function saveGraphCache(
 
 function saveEmbeddingsCache(index: any, rootDir: string): void {
   try {
-    if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
     if (typeof index.serializeBinary === 'function') {
       const buffer = index.serializeBinary();
-      fs.writeFileSync(EMBEDDINGS_FILE, buffer);
+      atomicWriteFileSync(EMBEDDINGS_FILE, buffer);
     }
   } catch (err) {
     console.warn(
