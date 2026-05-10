@@ -95,7 +95,9 @@ export type PanelKey =
   | 'confidenceXR'
   | 'operationsHub'
   /** FoundationDAO / sovereign economy governance (@foundation_dao) */
-  | 'foundationDao';
+  | 'foundationDao'
+  /** NN-primary inversion runtime tier telemetry */
+  | 'runtimeTier';
 
 /** Maps a PanelKey to its boolean field name (e.g. 'chat' -> 'chatOpen'). */
 type OpenField<K extends string> = `${K}Open`;
@@ -198,6 +200,7 @@ const PANEL_KEYS: PanelKey[] = [
   'confidenceXR',
   'operationsHub',
   'foundationDao',
+  'runtimeTier',
 ];
 
 /** Panels that default to *open*. */

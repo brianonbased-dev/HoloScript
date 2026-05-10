@@ -235,6 +235,37 @@ export const COMPONENT_REGISTRY = {
     usedIn: ['industry/character/layout/CharacterLayout.tsx'],
     note: 'Renamed from ExportPanel to CharacterExportPanel to avoid naming collision with scene export.',
   },
+
+  // ═══════════════════════════════════════════════════════════════════
+  // NN-PRIMARY INVERSION / RUNTIME TIER
+  // ═══════════════════════════════════════════════════════════════════
+
+  RuntimeTierPanel: {
+    canonical: 'components/panels/RuntimeTierPanel.tsx',
+    exports: ['RuntimeTierPanel'],
+    domain: 'profiler',
+    description:
+      'NN-primary inversion public face. Per-frame tier badge, SNN spike-train sparkline, Tier-2 alpha indicator, Tier-3 verdict display, and dispatch-policy A/B toggle.',
+    usedIn: ['components/panels/RightPanelSidebar.tsx'],
+  },
+
+  DispatchTraceCAELPanel: {
+    canonical: 'components/instrumentation/DispatchTraceCAELPanel.tsx',
+    exports: ['DispatchTraceCAELPanel'],
+    domain: 'instrumentation',
+    description:
+      'CAEL-compatible dispatch trace viewer. Consumes dispatch.decision bus events and renders an audit table for reviewers.',
+    usedIn: ['components/panels/RuntimeTierPanel (audit sub-view)'],
+  },
+
+  useDispatchTrace: {
+    canonical: 'hooks/useDispatchTrace.ts',
+    exports: ['useDispatchTrace'],
+    domain: 'hooks',
+    description:
+      'React hook that manages DispatchTraceCollector, simulates dispatch decisions per frame, and exposes rolling telemetry to RuntimeTierPanel.',
+    usedIn: ['components/panels/RuntimeTierPanel.tsx'],
+  },
 } as const;
 
 /**

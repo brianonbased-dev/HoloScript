@@ -52,4 +52,5 @@ export type PanelTab =
   | 'models'
   | 'templates'
   | 'diagnostics'
-  | 'pipeline';
+  | 'pipeline'
+  | 'runtimeTier';

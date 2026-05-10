@@ -56,6 +56,7 @@ import { TemplateGalleryPanel } from './TemplateGalleryPanel';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { AssetPipelinePanel } from './AssetPipelinePanel';
 import { LODMetricsPanel } from './LODMetricsPanel';
+import { RuntimeTierPanel } from './RuntimeTierPanel';
 import { useDomainFilter, type DomainProfile } from '../../hooks/useDomainFilter';
 import type { EffectASTNode } from '@holoscript/core';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
@@ -185,6 +186,12 @@ const TAB_CATEGORIES: TabCategory[] = [
         icon: '🔍',
         label: 'Diag',
         title: 'Unified diagnostics (errors, warnings, hints)',
+      },
+      {
+        id: 'runtimeTier',
+        icon: '⚡',
+        label: 'Tier',
+        title: 'NN-primary inversion runtime tier telemetry',
       },
     ],
   },
@@ -356,6 +363,7 @@ export function RightPanelSidebar({
             {activeTab === 'templates' && <TemplateGalleryPanel />}
             {activeTab === 'diagnostics' && <DiagnosticsPanel />}
             {activeTab === 'pipeline' && <AssetPipelinePanel />}
+            {activeTab === 'runtimeTier' && <RuntimeTierPanel />}
           </div>
         </div>
       )}
