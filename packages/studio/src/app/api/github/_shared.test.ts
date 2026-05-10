@@ -10,7 +10,7 @@ vi.mock('@/lib/auth', () => ({
   authOptions: {},
 }));
 
-import { getGitHubToken } from './_shared';
+import { getGitHubAuthRequiredMessage, getGitHubToken } from './_shared';
 
 describe('getGitHubToken', () => {
   const envSnapshot = { ...process.env };
@@ -59,5 +59,11 @@ describe('getGitHubToken', () => {
     const req = new NextRequest('http://localhost/api/github/repos');
 
     await expect(getGitHubToken(req)).resolves.toBe('ghp_server_token');
+  });
+
+  it('omits the server token hint from production auth errors by default', () => {
+    process.env.NODE_ENV = 'production';
+
+    expect(getGitHubAuthRequiredMessage()).toBe('Not authenticated. Sign in with GitHub.');
   });
 });

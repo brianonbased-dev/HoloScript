@@ -18,6 +18,7 @@ import { logger } from '@/lib/logger';
 import { corsHeaders } from '../../_lib/cors';
 import {
   createGitHubHeaders,
+  getGitHubAuthRequiredMessage,
   getGitHubToken,
   githubFetchWithRetry,
   GITHUB_API_BASE_URL,
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
     const token = await getGitHubToken(req);
     if (!token) {
       return NextResponse.json(
-        { error: 'Not authenticated. Sign in with GitHub or set GITHUB_TOKEN.' },
+        { error: getGitHubAuthRequiredMessage() },
         { status: 401 }
       );
     }

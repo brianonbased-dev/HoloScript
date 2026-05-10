@@ -26,6 +26,12 @@ function allowsServerTokenFallback(): boolean {
   return process.env.NODE_ENV !== 'production';
 }
 
+export function getGitHubAuthRequiredMessage(): string {
+  return allowsServerTokenFallback()
+    ? 'Not authenticated. Sign in with GitHub or set GITHUB_TOKEN.'
+    : 'Not authenticated. Sign in with GitHub.';
+}
+
 function parseRetryAfterMs(raw: string | null): number | undefined {
   if (!raw) return undefined;
 
