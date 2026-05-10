@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
-import { GlobalNavigation } from '@/components/layout/GlobalNavigation';
+import type { ReactNode } from 'react';
+
+import { WorkbenchShell } from '@/components/workbench/WorkbenchShell';
 
 export const metadata: Metadata = {
   title: 'Create — HoloScript Studio',
@@ -13,11 +15,23 @@ export const metadata: Metadata = {
   },
 };
 
-export default function CreateLayout({ children }: { children: React.ReactNode }) {
+export default function CreateLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-screen bg-studio-bg overflow-hidden font-sans">
-      <GlobalNavigation />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">{children}</div>
-    </div>
+    <WorkbenchShell
+      perspectiveId="create"
+      title="Create"
+      subtitle="Scene editor"
+      primarySidebarTitle="Create"
+      bottomPanelTitle="Output"
+      inspectorTitle="Inspector"
+      statusItems={
+        <>
+          <span>Create</span>
+          <span>HoloScript</span>
+        </>
+      }
+    >
+      {children}
+    </WorkbenchShell>
   );
 }
