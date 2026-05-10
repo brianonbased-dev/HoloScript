@@ -1,15 +1,17 @@
 'use client';
 
-import React, { Suspense, useState, useEffect, useRef, useCallback, Component, type ReactNode } from 'react';
+import React, {
+  Suspense,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  Component,
+  type ReactNode,
+} from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
-import {
-  OrbitControls,
-  Grid,
-  Stars,
-  Environment,
-  Stats,
-} from '@react-three/drei';
+import { OrbitControls, Grid, Stars, Environment, Stats } from '@react-three/drei';
 import type { R3FNode } from '@holoscript/core';
 import { R3FNodeRenderer } from './R3FNodeRenderer';
 import { GizmoController } from './GizmoController';
@@ -159,6 +161,8 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
   usePipelineMaturitySync();
 
   const { objects: lodObjects } = useLOD();
+  const performanceRegressionEnabled =
+    process.env.NEXT_PUBLIC_STUDIO_PERFORMANCE_REGRESSION === '1';
 
   // ─── XR support detection ──────────────────────────────────────────────────
   const [xrSupport, setXrSupport] = useState<{ vr: boolean; ar: boolean }>({
@@ -232,123 +236,128 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
       onDrop={handleDrop}
     >
       <StudioErrorBoundary label="R3F Canvas">
-      <Canvas
-        camera={{ position: [3, 3, 5], fov: 60 }}
-        shadows
-        style={{ background: '#0a0a12' }}
-        gl={{
-          antialias: true,
-          toneMapping: 4, // ACESFilmicToneMapping
-          toneMappingExposure: 1.0,
-          outputColorSpace: 'srgb',
-        }}
-      >
-        <Suspense fallback={null}>
-          {r3fTree ? <SceneContent r3fTree={r3fTree} /> : <EmptyScene />}
-        </Suspense>
+        <Canvas
+          camera={{ position: [3, 3, 5], fov: 60 }}
+          shadows
+          style={{ background: '#0a0a12' }}
+          gl={{
+            antialias: true,
+            toneMapping: 4, // ACESFilmicToneMapping
+            toneMappingExposure: 1.0,
+            outputColorSpace: 'srgb',
+          }}
+        >
+          <Suspense fallback={null}>
+            {r3fTree ? <SceneContent r3fTree={r3fTree} /> : <EmptyScene />}
+          </Suspense>
 
-        {/*
+          {/*
           PerformanceRegressionBridge: monitors frame time via R3F's useFrame
           and auto-regresses all mesh entities to draft mode when VR frame
           budget is exceeded (>9ms for 5 consecutive frames). Promotes back
           when FPS stabilizes (sustained <11.5ms for ~170 frames ≈ 2s at 85fps).
 
-          Disabled in development because pnpm resolves @react-three/fiber to
+          Disabled by default because pnpm resolves @react-three/fiber to
           different store paths for studio vs r3f-renderer (peer dep with
           multiple @types/react peers installed), so Canvas context from
           studio's fiber instance isn't visible to useFrame inside
           r3f-renderer's usePerformanceRegression. Re-enable once fiber is
-          deduped (pnpm overrides or a single peer).
+          deduped (pnpm overrides or a single peer), or opt in locally with
+          NEXT_PUBLIC_STUDIO_PERFORMANCE_REGRESSION=1.
 
           @see P.084 — VR Performance Regression Pattern
           @see W.080 — Draft primitives are cheapest rendering AND collision
           @see task_1776640937112_0ozn — [hololand] VR performance regression
         */}
-        {process.env.NODE_ENV === 'production' && (
-          <PerformanceBridgeBoundary>
-            <PerformanceRegressionBridge
-              // VR 90Hz regression thresholds per P.084:
-              // Regress at 9ms frame time for 5 consecutive frames (~55ms)
-              // Promote back when sustained <11.5ms (≈85fps) for 170 frames (~2s at 85fps)
-              thresholdMs={9.0}
-              consecutiveFrames={5}
-              recoveryFrames={170}
-              recoveryThresholdMs={11.5}
-              syncViewMode={true}
-              debounceMs={500}
-            />
-          </PerformanceBridgeBoundary>
-        )}
+          {performanceRegressionEnabled && (
+            <PerformanceBridgeBoundary>
+              <PerformanceRegressionBridge
+                // VR 90Hz regression thresholds per P.084:
+                // Regress at 9ms frame time for 5 consecutive frames (~55ms)
+                // Promote back when sustained <11.5ms (≈85fps) for 170 frames (~2s at 85fps)
+                thresholdMs={9.0}
+                consecutiveFrames={5}
+                recoveryFrames={170}
+                recoveryThresholdMs={11.5}
+                syncViewMode={true}
+                debounceMs={500}
+              />
+            </PerformanceBridgeBoundary>
+          )}
 
-        <OrbitControls
-          makeDefault
-          enableDamping
-          dampingFactor={0.1}
-          minDistance={1}
-          maxDistance={50}
-        />
+          <OrbitControls
+            makeDefault
+            enableDamping
+            dampingFactor={0.1}
+            minDistance={1}
+            maxDistance={50}
+          />
 
-        {/* Paper 24 CAEL Phase 2: throttled camera-move tracking. Emits
+          {/* Paper 24 CAEL Phase 2: throttled camera-move tracking. Emits
             ui.camera.move at ~5Hz while the user is moving the camera.
             Inert in CAEL when no useStudioCAELSession mounted. */}
-        <CameraTrackingBridge />
+          <CameraTrackingBridge />
 
-        <Grid
-          args={[20, 20]}
-          cellSize={1}
-          cellThickness={0.5}
-          cellColor="#2d2d3d"
-          sectionSize={5}
-          sectionThickness={1}
-          sectionColor="#3d3d4d"
-          fadeDistance={25}
-          position={[0, -0.01, 0]}
-        />
+          <Grid
+            args={[20, 20]}
+            cellSize={1}
+            cellThickness={0.5}
+            cellColor="#2d2d3d"
+            sectionSize={5}
+            sectionThickness={1}
+            sectionColor="#3d3d4d"
+            fadeDistance={25}
+            position={[0, -0.01, 0]}
+          />
 
-        <Stars radius={80} depth={50} count={2000} factor={3} saturation={0.1} fade speed={0.5} />
+          <Stars radius={80} depth={50} count={2000} factor={3} saturation={0.1} fade speed={0.5} />
 
-        {/* VR edit session — active when XR is running */}
-        <VREditSession />
+          {/* VR edit session — active when XR is running */}
+          <VREditSession />
 
-        {/* Physics world + debug wireframes */}
-        <PhysicsProviderWrapper />
+          {/* Physics world + debug wireframes */}
+          <PhysicsProviderWrapper />
 
-        {/* Performance profiler overlay */}
-        <PerformanceOverlay open={profilerOpen || showPerfOverlay} />
+          {/* Performance profiler overlay */}
+          <PerformanceOverlay open={profilerOpen || showPerfOverlay} />
 
-        {/* Transform gizmo — must be inside Canvas (now with grid snap) */}
-        <GizmoController />
+          {/* Transform gizmo — must be inside Canvas (now with grid snap) */}
+          <GizmoController />
 
-        {/* Placement system — ground plane + ghost preview */}
-        <PlacementPlane />
+          {/* Placement system — ground plane + ghost preview */}
+          <PlacementPlane />
 
-        {/* Sketch mode — freehand 3D strokes */}
-        {artMode === 'sketch' && <SketchCanvas />}
+          {/* Sketch mode — freehand 3D strokes */}
+          {artMode === 'sketch' && <SketchCanvas />}
 
-        {/* FPS/frame-time stats — shown in dev OR when Perf overlay toggled on */}
-        {(process.env.NODE_ENV !== 'production' || showPerfOverlay) && (
-          <Stats className="!bottom-2 !left-auto !right-2 !top-auto" />
-        )}
+          {/* FPS/frame-time stats — shown in dev OR when Perf overlay toggled on */}
+          {(process.env.NODE_ENV !== 'production' || showPerfOverlay) && (
+            <Stats className="!bottom-2 !left-auto !right-2 !top-auto" />
+          )}
 
-        {/* Handles WebM video recording of the Canvas stream */}
-        <ContentCameraCapture />
+          {/* Handles WebM video recording of the Canvas stream */}
+          <ContentCameraCapture />
 
-        {/* Gap 6: Progressive loader for streaming asset LODs */}
-        <ProgressiveLoader 
-          entities={lodObjects.map(o => ({
-            id: o.id,
-            maturity: o.level === 0 ? 'final' : o.level === 1 ? 'mesh' : 'draft',
-            progress: o.transitioning ? 0.5 : 1.0
-          }))} 
-        />
-      </Canvas>
+          {/* Gap 6: Progressive loader for streaming asset LODs */}
+          <ProgressiveLoader
+            entities={lodObjects.map((o) => ({
+              id: o.id,
+              maturity: o.level === 0 ? 'final' : o.level === 1 ? 'mesh' : 'draft',
+              progress: o.transitioning ? 0.5 : 1.0,
+            }))}
+          />
+        </Canvas>
       </StudioErrorBoundary>
 
       {/* Social Aspect Ratio Overlays & Recording UI */}
       <ContentCameraUI />
 
       {/* Gizmo mode toolbar — top-left overlay */}
-      <div className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-xl border border-gray-700/60 bg-gray-900/80 p-1 backdrop-blur" role="toolbar" aria-label="Transform Tools">
+      <div
+        className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-xl border border-gray-700/60 bg-gray-900/80 p-1 backdrop-blur"
+        role="toolbar"
+        aria-label="Transform Tools"
+      >
         {(['translate', 'rotate', 'scale'] as const).map((m) => (
           <button
             key={m}
@@ -488,7 +497,12 @@ function CameraTrackingBridge() {
     lastPosRef.current = [camera.position.x, camera.position.y, camera.position.z];
     emit('ui.camera.move', {
       position: [camera.position.x, camera.position.y, camera.position.z],
-      quaternion: [camera.quaternion.x, camera.quaternion.y, camera.quaternion.z, camera.quaternion.w],
+      quaternion: [
+        camera.quaternion.x,
+        camera.quaternion.y,
+        camera.quaternion.z,
+        camera.quaternion.w,
+      ],
       // OrthographicCamera has no .fov; PerspectiveCamera does. Guard the cast.
       fov: 'fov' in camera ? (camera as { fov: number }).fov : null,
       timestamp: now,

@@ -3,7 +3,6 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { StudioHeader } from '@/components/StudioHeader';
 import { SceneGraphPanel } from '@/components/scene/SceneGraphPanel';
 // SplatCaptureWizard is a modal — lazy-loaded to reduce initial bundle
 import {
@@ -87,10 +86,7 @@ import { PanelSplitter } from '@holoscript/ui';
 import { ResponsiveStudioLayout } from '@/components/layouts/ResponsiveStudioLayout';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/app/providers';
-import {
-  UXCommandPalette,
-  createStudioPublishingCommands,
-} from '@/core-ui/UXCommandPalette';
+import { UXCommandPalette, createStudioPublishingCommands } from '@/core-ui/UXCommandPalette';
 
 const SceneRenderer = dynamic(
   () => import('@/components/scene/SceneRenderer').then((m) => ({ default: m.SceneRenderer })),
@@ -1089,7 +1085,10 @@ export default function CreatePage() {
   }, []);
 
   const runPaletteMcpTool = useCallback(
-    async (tool: 'holomesh_moltbook_crosspost' | 'holomesh_publish_agent_template', input: Record<string, unknown>) => {
+    async (
+      tool: 'holomesh_moltbook_crosspost' | 'holomesh_publish_agent_template',
+      input: Record<string, unknown>
+    ) => {
       const response = await fetch('/api/mcp/call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1134,7 +1133,6 @@ export default function CreatePage() {
 
   return (
     <>
-      <StudioHeader />
       {/* Multi-scene project tabs */}
       <ProjectTabBar
         onSwitch={(sceneId) => {
