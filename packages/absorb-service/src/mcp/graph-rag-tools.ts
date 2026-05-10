@@ -153,6 +153,14 @@ function detectDefaultLLMProvider(): string {
   return 'ollama';
 }
 
+function graphRagFailureHint(provider: string | undefined): string {
+  if (provider && provider !== 'ollama') {
+    return `Ensure ${provider.toUpperCase()}_API_KEY is set or passed via llmApiKey parameter`;
+  }
+
+  return 'No cloud API keys found. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY for cloud LLM, or ensure Ollama is running locally.';
+}
+
 // ── Handlers ─────────────────────────────────────────────────────────────────
 
 async function handleSemanticSearch(args: Record<string, unknown>): Promise<unknown> {
@@ -215,11 +223,11 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
   const llmProvider = args.llmProvider as string | undefined;
   const llmApiKey = args.llmApiKey as string | undefined;
   const llmModel = args.llmModel as string | undefined;
+  const effectiveProvider = llmProvider ?? detectDefaultLLMProvider();
 
   try {
     // If a custom LLM provider is specified, create a new engine with that provider
     let engine = cachedGraphRAGEngine;
-    const effectiveProvider = llmProvider ?? detectDefaultLLMProvider();
     if (effectiveProvider && effectiveProvider !== 'ollama') {
       try {
         const llmPkg = await import('@holoscript/llm-provider');
@@ -305,12 +313,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
   } catch (err: unknown) {
     return {
       error: `Graph RAG query failed: ${err instanceof Error ? err.message : String(err)}`,
-      hint:
-        // @ts-ignore - Automatic remediation for TS2304
-        effectiveProvider && effectiveProvider !== 'ollama'
-          // @ts-ignore - Automatic remediation for TS2304
-          ? `Ensure ${effectiveProvider.toUpperCase()}_API_KEY is set or passed via llmApiKey parameter`
-          : 'No cloud API keys found. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY for cloud LLM, or ensure Ollama is running locally.',
+      hint: graphRagFailureHint(effectiveProvider),
     };
   }
 }
