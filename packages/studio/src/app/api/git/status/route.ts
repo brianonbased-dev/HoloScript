@@ -10,10 +10,9 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import * as fs from 'fs';
-import * as path from 'path';
 
 import { corsHeaders } from '../../_lib/cors';
+import { resolveWorkspaceGitPath } from '../_shared';
 const execFileAsync = promisify(execFile);
 
 export async function GET(req: NextRequest) {
@@ -29,21 +28,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Required: workspacePath' }, { status: 400 });
   }
 
-  const allowedRoot = path.join(
-    process.env.HOME ?? process.env.USERPROFILE ?? '',
-    '.holoscript',
-    'workspaces'
-  );
-  const resolved = path.resolve(workspacePath);
-  if (!resolved.startsWith(allowedRoot)) {
-    return NextResponse.json(
-      { error: 'workspacePath must be inside ~/.holoscript/workspaces' },
-      { status: 403 }
-    );
+  const validated = resolveWorkspaceGitPath(workspacePath);
+  if (!validated.ok) {
+    return NextResponse.json({ error: validated.error }, { status: validated.status });
   }
-  if (!fs.existsSync(path.join(resolved, '.git'))) {
-    return NextResponse.json({ error: 'Not a git repository' }, { status: 400 });
-  }
+  const { resolved } = validated;
 
   try {
     const [statusResult, branchResult, logResult] = await Promise.all([
@@ -97,7 +86,6 @@ export async function GET(req: NextRequest) {
     );
   }
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

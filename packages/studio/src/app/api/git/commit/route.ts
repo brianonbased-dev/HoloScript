@@ -14,10 +14,9 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import * as fs from 'fs';
-import * as path from 'path';
 
 import { corsHeaders } from '../../_lib/cors';
+import { resolveWorkspaceGitPath, validateRelativeGitPaths } from '../_shared';
 const execFileAsync = promisify(execFile);
 
 export async function POST(req: NextRequest) {
@@ -41,26 +40,11 @@ export async function POST(req: NextRequest) {
 
   const { workspacePath, message, files, author } = body;
 
-  // Security: workspacePath must be inside ~/.holoscript/workspaces
-  const allowedRoot = path.join(
-    process.env.HOME ?? process.env.USERPROFILE ?? '',
-    '.holoscript',
-    'workspaces'
-  );
-  const resolved = path.resolve(workspacePath);
-  if (!resolved.startsWith(allowedRoot)) {
-    return NextResponse.json(
-      { error: 'workspacePath must be inside ~/.holoscript/workspaces' },
-      { status: 403 }
-    );
+  const validated = resolveWorkspaceGitPath(workspacePath);
+  if (!validated.ok) {
+    return NextResponse.json({ error: validated.error }, { status: validated.status });
   }
-
-  if (!fs.existsSync(path.join(resolved, '.git'))) {
-    return NextResponse.json(
-      { error: 'workspacePath does not contain a git repository' },
-      { status: 400 }
-    );
-  }
+  const { resolved } = validated;
 
   const env: NodeJS.ProcessEnv = { ...process.env };
   if (author?.name) env.GIT_AUTHOR_NAME = author.name;
@@ -78,25 +62,9 @@ export async function POST(req: NextRequest) {
   //   3. Always insert the '--' end-of-options separator before the files
   //      list so later args cannot be mistaken for flags, even on a new
   //      git version that adds surprising option semantics.
-  if (files?.length) {
-    const bad = files.find((f) => typeof f !== 'string' || f.length === 0 || f.startsWith('-'));
-    if (bad !== undefined) {
-      return NextResponse.json(
-        { error: 'Flag-like or empty entries are not allowed in files[]' },
-        { status: 400 }
-      );
-    }
-    const traversal = files.find((f) =>
-      f
-        .split(/[/\\]/)
-        .some((seg) => seg === '..')
-    );
-    if (traversal !== undefined) {
-      return NextResponse.json(
-        { error: "Path traversal ('..') is not allowed in files[]" },
-        { status: 400 }
-      );
-    }
+  const fileValidation = validateRelativeGitPaths(files);
+  if (!fileValidation.ok) {
+    return NextResponse.json({ error: fileValidation.error }, { status: 400 });
   }
 
   try {
@@ -138,7 +106,6 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

@@ -20,10 +20,14 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import * as fs from 'fs';
-import * as path from 'path';
 
 import { corsHeaders } from '../../_lib/cors';
+import {
+  isSafeGitRef,
+  isSafeGitRemote,
+  resolveWorkspaceGitPath,
+  validateRelativeGitPaths,
+} from '../_shared';
 const GITHUB_API_BASE_URL = (
   process.env.GITHUB_API_URL ||
   process.env.GITHUB_API_BASE_URL ||
@@ -37,12 +41,8 @@ const execFileAsync = promisify(execFile);
 type GitHubRole = 'owner' | 'maintainer' | 'contributor' | 'viewer' | 'unknown';
 
 function allowedWorkspacePath(workspacePath: string): string | null {
-  const home = process.env.HOME ?? process.env.USERPROFILE ?? '';
-  const allowedRoot = path.join(home, '.holoscript', 'workspaces');
-  const resolved = path.resolve(workspacePath);
-  if (!resolved.startsWith(allowedRoot)) return null;
-  if (!fs.existsSync(path.join(resolved, '.git'))) return null;
-  return resolved;
+  const validated = resolveWorkspaceGitPath(workspacePath);
+  return validated.ok ? validated.resolved : null;
 }
 
 function parseGitHubRemote(remoteUrl: string): { owner: string; repo: string } | null {
@@ -138,6 +138,16 @@ export async function POST(req: NextRequest) {
 
   const remote = body.remote ?? 'origin';
   const force = body.force === true;
+  if (!isSafeGitRemote(remote)) {
+    return NextResponse.json({ error: 'remote is not a valid git remote name' }, { status: 400 });
+  }
+  if (body.branch && !isSafeGitRef(body.branch)) {
+    return NextResponse.json({ error: 'branch is not a valid git ref name' }, { status: 400 });
+  }
+  const fileValidation = validateRelativeGitPaths(body.files);
+  if (!fileValidation.ok) {
+    return NextResponse.json({ error: fileValidation.error }, { status: 400 });
+  }
 
   const env: NodeJS.ProcessEnv = { ...process.env };
   if (body.author?.name) env.GIT_AUTHOR_NAME = body.author.name;
@@ -151,7 +161,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Stage files (or all)
-    const addArgs = body.files?.length ? body.files : ['.'];
+    const addArgs = body.files?.length ? ['--', ...body.files] : ['--', '.'];
     await execFileAsync('git', ['add', ...addArgs], { cwd, env });
 
     // Commit if needed
@@ -245,15 +255,10 @@ export async function POST(req: NextRequest) {
     // SEC-T04: same as /api/git/push — push errors can include OAuth URL with token.
     const e = err as NodeJS.ErrnoException & { status?: number };
     const code =
-      e?.code != null
-        ? String(e.code)
-        : e?.status != null
-          ? String(e.status)
-          : 'unknown';
+      e?.code != null ? String(e.code) : e?.status != null ? String(e.status) : 'unknown';
     return NextResponse.json({ error: 'Git ship failed', code }, { status: 500 });
   }
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

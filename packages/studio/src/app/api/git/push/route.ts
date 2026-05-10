@@ -16,10 +16,9 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import * as fs from 'fs';
-import * as path from 'path';
 
 import { corsHeaders } from '../../_lib/cors';
+import { isSafeGitRef, isSafeGitRemote, resolveWorkspaceGitPath } from '../_shared';
 const execFileAsync = promisify(execFile);
 
 export async function POST(req: NextRequest) {
@@ -51,25 +50,16 @@ export async function POST(req: NextRequest) {
 
   const { workspacePath, remote = 'origin', branch, force = false } = body;
 
-  // Security: workspacePath must be inside ~/.holoscript/workspaces
-  const allowedRoot = path.join(
-    process.env.HOME ?? process.env.USERPROFILE ?? '',
-    '.holoscript',
-    'workspaces'
-  );
-  const resolved = path.resolve(workspacePath);
-  if (!resolved.startsWith(allowedRoot)) {
-    return NextResponse.json(
-      { error: 'workspacePath must be inside ~/.holoscript/workspaces' },
-      { status: 403 }
-    );
+  const validated = resolveWorkspaceGitPath(workspacePath);
+  if (!validated.ok) {
+    return NextResponse.json({ error: validated.error }, { status: validated.status });
   }
-
-  if (!fs.existsSync(path.join(resolved, '.git'))) {
-    return NextResponse.json(
-      { error: 'workspacePath does not contain a git repository' },
-      { status: 400 }
-    );
+  const { resolved } = validated;
+  if (!isSafeGitRemote(remote)) {
+    return NextResponse.json({ error: 'remote is not a valid git remote name' }, { status: 400 });
+  }
+  if (branch && !isSafeGitRef(branch)) {
+    return NextResponse.json({ error: 'branch is not a valid git ref name' }, { status: 400 });
   }
 
   try {
@@ -124,15 +114,10 @@ export async function POST(req: NextRequest) {
     // SEC-T04: never return raw git stderr/stdout — they can echo the authed URL.
     const e = err as NodeJS.ErrnoException & { status?: number };
     const code =
-      e?.code != null
-        ? String(e.code)
-        : e?.status != null
-          ? String(e.status)
-          : 'unknown';
+      e?.code != null ? String(e.code) : e?.status != null ? String(e.status) : 'unknown';
     return NextResponse.json({ error: 'Git push failed', code }, { status: 500 });
   }
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

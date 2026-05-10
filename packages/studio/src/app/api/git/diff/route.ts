@@ -14,10 +14,9 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import * as fs from 'fs';
-import * as path from 'path';
 
 import { corsHeaders } from '../../_lib/cors';
+import { resolveWorkspaceGitPath, validateRelativeGitPaths } from '../_shared';
 const execFileAsync = promisify(execFile);
 
 // SEC-T07: git accepts option-like positional args (e.g. `--output=/tmp/pwn`)
@@ -53,21 +52,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Required: workspacePath' }, { status: 400 });
   }
 
-  const allowedRoot = path.join(
-    process.env.HOME ?? process.env.USERPROFILE ?? '',
-    '.holoscript',
-    'workspaces'
-  );
-  const resolved = path.resolve(workspacePath);
-  if (!resolved.startsWith(allowedRoot)) {
-    return NextResponse.json(
-      { error: 'workspacePath must be inside ~/.holoscript/workspaces' },
-      { status: 403 }
-    );
+  const validated = resolveWorkspaceGitPath(workspacePath);
+  if (!validated.ok) {
+    return NextResponse.json({ error: validated.error }, { status: validated.status });
   }
-  if (!fs.existsSync(path.join(resolved, '.git'))) {
-    return NextResponse.json({ error: 'Not a git repository' }, { status: 400 });
-  }
+  const { resolved } = validated;
 
   const file = p.get('file');
   const staged = p.get('staged') === 'true';
@@ -79,16 +68,16 @@ export async function GET(req: NextRequest) {
   // re-parses as an option (CVE-2017-1000117-class). Reject anything that
   // isn't a conservative ref string.
   if (from !== null && !isSafeRef(from)) {
-    return NextResponse.json(
-      { error: 'Invalid from ref' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Invalid from ref' }, { status: 400 });
   }
   if (to !== null && !isSafeRef(to)) {
-    return NextResponse.json(
-      { error: 'Invalid to ref' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Invalid to ref' }, { status: 400 });
+  }
+  if (file !== null) {
+    const fileValidation = validateRelativeGitPaths([file]);
+    if (!fileValidation.ok) {
+      return NextResponse.json({ error: fileValidation.error }, { status: 400 });
+    }
   }
 
   const args = ['diff', '--unified=3'];
@@ -132,7 +121,6 @@ export async function GET(req: NextRequest) {
     );
   }
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

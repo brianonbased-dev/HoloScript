@@ -16,29 +16,10 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import * as fs from 'fs';
-import * as path from 'path';
 
 import { corsHeaders } from '../../_lib/cors';
+import { isSafeGitRef, resolveWorkspaceGitPath } from '../_shared';
 const execFileAsync = promisify(execFile);
-
-function validatePath(
-  workspacePath: string
-): { ok: true; resolved: string } | { ok: false; error: string } {
-  const allowedRoot = path.join(
-    process.env.HOME ?? process.env.USERPROFILE ?? '',
-    '.holoscript',
-    'workspaces'
-  );
-  const resolved = path.resolve(workspacePath);
-  if (!resolved.startsWith(allowedRoot)) {
-    return { ok: false, error: 'workspacePath must be inside ~/.holoscript/workspaces' };
-  }
-  if (!fs.existsSync(path.join(resolved, '.git'))) {
-    return { ok: false, error: 'workspacePath does not contain a git repository' };
-  }
-  return { ok: true, resolved };
-}
 
 export async function POST(req: NextRequest) {
   const { getServerSession } = await import('next-auth');
@@ -60,12 +41,15 @@ export async function POST(req: NextRequest) {
   }
 
   const { workspacePath, branch, base, checkout = true } = body;
-  const validated = validatePath(workspacePath);
+  const validated = resolveWorkspaceGitPath(workspacePath);
   if (!validated.ok) {
-    return NextResponse.json(
-      { error: validated.error },
-      { status: validated.error.includes('allowed') ? 403 : 400 }
-    );
+    return NextResponse.json({ error: validated.error }, { status: validated.status });
+  }
+  if (!isSafeGitRef(branch)) {
+    return NextResponse.json({ error: 'branch is not a valid git ref name' }, { status: 400 });
+  }
+  if (base && !isSafeGitRef(base)) {
+    return NextResponse.json({ error: 'base is not a valid git ref name' }, { status: 400 });
   }
   const { resolved } = validated;
 
@@ -104,9 +88,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Required: workspacePath' }, { status: 400 });
   }
 
-  const validated = validatePath(workspacePath);
+  const validated = resolveWorkspaceGitPath(workspacePath);
   if (!validated.ok) {
-    return NextResponse.json({ error: validated.error }, { status: 400 });
+    return NextResponse.json({ error: validated.error }, { status: validated.status });
   }
   const { resolved } = validated;
 
@@ -126,7 +110,6 @@ export async function GET(req: NextRequest) {
     );
   }
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {
