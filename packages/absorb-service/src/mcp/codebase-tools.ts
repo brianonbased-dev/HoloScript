@@ -58,7 +58,94 @@ interface CodebaseModule {
   createEmbeddingProvider: DynamicFn;
 }
 
+const CACHE_WARM_GRAPH_RAG_TIMEOUT_MS = readPositiveEnvMs('ABSORB_CACHE_WARM_TIMEOUT_MS', 30_000);
+const EMBEDDING_BUILD_TIMEOUT_MS = readPositiveEnvMs('ABSORB_EMBEDDING_BUILD_TIMEOUT_MS', 90_000);
+const INCREMENTAL_EMBEDDING_TIMEOUT_MS = readPositiveEnvMs(
+  'ABSORB_INCREMENTAL_EMBEDDING_TIMEOUT_MS',
+  60_000
+);
+const MESH_SYNC_TIMEOUT_MS = readPositiveEnvMs('ABSORB_MESH_SYNC_TIMEOUT_MS', 10_000);
 
+function readPositiveEnvMs(name: string, fallback: number): number {
+  const raw = Number(process.env[name]);
+  return Number.isFinite(raw) && raw > 0 ? raw : fallback;
+}
+
+function unrefTimer(timer: ReturnType<typeof setTimeout>): void {
+  if (typeof timer === 'object' && timer !== null && 'unref' in timer) {
+    (timer as { unref: () => void }).unref();
+  }
+}
+
+class AbsorbPhaseTimeoutError extends Error {
+  constructor(
+    readonly phase: string,
+    readonly timeoutMs: number
+  ) {
+    super(`${phase} timed out after ${timeoutMs}ms`);
+    this.name = 'AbsorbPhaseTimeoutError';
+  }
+}
+
+async function withPhaseTimeout<T>(
+  work: Promise<T>,
+  timeoutMs: number,
+  phase: string,
+  onTimeout?: () => Promise<void> | void
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      Promise.resolve(onTimeout?.())
+        .catch(() => undefined)
+        .finally(() => reject(new AbsorbPhaseTimeoutError(phase, timeoutMs)));
+    }, timeoutMs);
+    unrefTimer(timer);
+  });
+
+  work.catch(() => undefined);
+
+  try {
+    return await Promise.race([work, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+async function disposeEmbeddingIndex(index: unknown): Promise<void> {
+  const disposable = index as { dispose?: () => Promise<void> | void } | undefined;
+  if (typeof disposable?.dispose !== 'function') return;
+  try {
+    await disposable.dispose();
+  } catch (err) {
+    console.warn(`[AbsorbCleanup] Embedding index dispose failed: ${String(err)}`);
+  }
+}
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+  phase: string
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  unrefTimer(timer);
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (controller.signal.aborted) {
+      throw new AbsorbPhaseTimeoutError(phase, timeoutMs);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 // =============================================================================
 // SMART EMBEDDING PROVIDER AUTO-DETECTION
@@ -99,6 +186,7 @@ async function detectBestEmbeddingProvider(): Promise<string> {
     if (!ollamaUrl) throw new Error('OLLAMA_URL not set');
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 2000);
+    unrefTimer(timeout);
 
     const response = await fetch(`${ollamaUrl}/api/tags`, {
       signal: controller.signal,
@@ -224,13 +312,14 @@ function createAbsorbJob(rootDir: string): string {
     startedAt: Date.now(),
   });
 
-  // Auto-cleanup after 1 hour
-  setTimeout(
+  // Auto-cleanup after 1 hour. Do not keep one-shot MCP verifier processes alive.
+  const cleanupTimer = setTimeout(
     () => {
       absorbJobs.delete(jobId);
     },
     60 * 60 * 1000
   );
+  unrefTimer(cleanupTimer);
 
   return jobId;
 }
@@ -470,12 +559,14 @@ export const codebaseTools: Tool[] = [
       properties: {
         rootDir: {
           type: 'string',
-          description: 'Absolute path to the root directory to scan (deprecated in favor of rootDirs)',
+          description:
+            'Absolute path to the root directory to scan (deprecated in favor of rootDirs)',
         },
         rootDirs: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Array of absolute paths to root directories to scan (for multi-repository context)',
+          description:
+            'Array of absolute paths to root directories to scan (for multi-repository context)',
         },
         outputFormat: {
           type: 'string',
@@ -742,12 +833,23 @@ async function ensureCachedGraph(): Promise<{
         let idx = await loadEmbeddingsCache(mod, providerObj);
         if (!idx) {
           idx = await createDynamicEmbeddingIndex(mod);
-          await idx.buildIndex(cachedGraph);
+          try {
+            await withPhaseTimeout(
+              idx.buildIndex(cachedGraph),
+              CACHE_WARM_GRAPH_RAG_TIMEOUT_MS,
+              'disk-cache GraphRAG embedding rebuild',
+              () => disposeEmbeddingIndex(idx)
+            );
+          } finally {
+            await disposeEmbeddingIndex(idx);
+          }
           saveEmbeddingsCache(idx, cachedRootDir);
+        } else {
+          await disposeEmbeddingIndex(idx);
         }
         setGraphRAGState(idx, new GraphRAGEngine(cachedGraph, idx));
-      } catch {
-        /* Embedding provider may not be available */
+      } catch (err) {
+        console.warn(`[AbsorbCacheWarm] GraphRAG warmup skipped: ${String(err)}`);
       }
       const ageMs = Date.now() - envelope.timestamp;
       return { loaded: true, source: 'disk-cache', ageMs, rootDir: envelope.rootDir, stale: false };
@@ -827,7 +929,7 @@ async function runFullScan(
 
   const rootDirs = rootDirsRaw && rootDirsRaw.length > 0 ? rootDirsRaw : [];
   if (rootDirs.length === 0) throw new Error('No rootDir or rootDirs provided');
-  const primaryRootDir = rootDirs[0]; 
+  const primaryRootDir = rootDirs[0];
 
   const startTime = Date.now();
 
@@ -895,24 +997,34 @@ async function runFullScan(
     );
 
     // Wire progress callback for granular embedding updates
-    await embeddingIndex.buildIndex(
-      graph,
-      jobId
-        ? (batchNum: number, totalBatches: number, symbolsProcessed: number) => {
-            // Map batch progress to 80-95% range (Phase 8 Extension)
-            const embeddingProgress = 80 + Math.floor((batchNum / totalBatches) * 15);
-            trackAbsorbProgress(
-              jobId,
-              `Embedding batch ${batchNum}/${totalBatches} (${symbolsProcessed} symbols)`,
-              embeddingProgress
-            );
-          }
-        : undefined
-    );
+    try {
+      await withPhaseTimeout(
+        embeddingIndex.buildIndex(
+          graph,
+          jobId
+            ? (batchNum: number, totalBatches: number, symbolsProcessed: number) => {
+                // Map batch progress to 80-95% range (Phase 8 Extension)
+                const embeddingProgress = 80 + Math.floor((batchNum / totalBatches) * 15);
+                trackAbsorbProgress(
+                  jobId,
+                  `Embedding batch ${batchNum}/${totalBatches} (${symbolsProcessed} symbols)`,
+                  embeddingProgress
+                );
+              }
+            : undefined
+        ),
+        EMBEDDING_BUILD_TIMEOUT_MS,
+        'holo_absorb_repo embedding build',
+        () => disposeEmbeddingIndex(embeddingIndex)
+      );
+    } finally {
+      await disposeEmbeddingIndex(embeddingIndex);
+    }
 
     saveEmbeddingsCache(embeddingIndex, primaryRootDir);
     setGraphRAGState(embeddingIndex, new GraphRAGEngine(graph, embeddingIndex));
-  } catch {
+  } catch (err) {
+    console.warn(`[AbsorbEmbeddings] Full-scan GraphRAG skipped: ${String(err)}`);
     // Embedding provider may not be available
   }
 
@@ -1113,14 +1225,24 @@ async function runIncrementalPatch(
       const newSymbols = rescanResult.files.flatMap(
         (f: Record<string, unknown>) => (f as { symbols?: unknown[] }).symbols ?? []
       );
-      if (newSymbols.length > 0) {
-        await index.addSymbols(newSymbols);
-      }
+      try {
+        if (newSymbols.length > 0) {
+          await withPhaseTimeout(
+            index.addSymbols(newSymbols),
+            INCREMENTAL_EMBEDDING_TIMEOUT_MS,
+            'holo_absorb_repo incremental embedding update',
+            () => disposeEmbeddingIndex(index)
+          );
+        }
 
-      saveEmbeddingsCache(index, rootDir);
-      setGraphRAGState(index, new GraphRAGEngine(graph, index));
+        saveEmbeddingsCache(index, rootDir);
+        setGraphRAGState(index, new GraphRAGEngine(graph, index));
+      } finally {
+        await disposeEmbeddingIndex(index);
+      }
     }
-  } catch {
+  } catch (err) {
+    console.warn(`[AbsorbEmbeddings] Incremental GraphRAG skipped: ${String(err)}`);
     // Embedding provider may not be available
   }
 
@@ -1213,9 +1335,10 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
 
   const rootDir = args.rootDir as string;
   const rootDirsRaw = args.rootDirs as string[] | undefined;
-  const effectiveRootDirs = rootDirsRaw && rootDirsRaw.length > 0 ? rootDirsRaw : (rootDir ? [rootDir] : []);
+  const effectiveRootDirs =
+    rootDirsRaw && rootDirsRaw.length > 0 ? rootDirsRaw : rootDir ? [rootDir] : [];
   const primaryRootDir = effectiveRootDirs[0];
-  if (!primaryRootDir) return { error: "rootDir or rootDirs required" };
+  if (!primaryRootDir) return { error: 'rootDir or rootDirs required' };
 
   const outputFormat = (args.outputFormat as string) ?? 'holo';
   const layout = (args.layout as string) ?? 'force';
@@ -1830,18 +1953,23 @@ async function handleResolveSymbol(args: Record<string, unknown>): Promise<unkno
   const apiKey = process.env.HOLOSCRIPT_API_KEY;
 
   try {
-    const response = await fetch(`${orchestratorUrl}/knowledge/query`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-mcp-api-key': apiKey || '',
+    const response = await fetchWithTimeout(
+      `${orchestratorUrl}/knowledge/query`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-mcp-api-key': apiKey || '',
+        },
+        body: JSON.stringify({
+          search: symbolName,
+          type: 'symbol',
+          limit,
+        }),
       },
-      body: JSON.stringify({
-        search: symbolName,
-        type: 'symbol',
-        limit,
-      }),
-    });
+      MESH_SYNC_TIMEOUT_MS,
+      'federated symbol lookup'
+    );
 
     if (!response.ok) {
       throw new Error(`Orchestrator error: ${response.status}`);
@@ -1888,17 +2016,22 @@ export async function syncWithMesh(graph: any, rootDir: string): Promise<void> {
   if (entries.length === 0) return;
 
   try {
-    const response = await fetch(`${orchestratorUrl}/knowledge/sync`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-mcp-api-key': apiKey || '',
+    const response = await fetchWithTimeout(
+      `${orchestratorUrl}/knowledge/sync`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-mcp-api-key': apiKey || '',
+        },
+        body: JSON.stringify({
+          workspace_id: workspaceId,
+          entries,
+        }),
       },
-      body: JSON.stringify({
-        workspace_id: workspaceId,
-        entries,
-      }),
-    });
+      MESH_SYNC_TIMEOUT_MS,
+      'mesh knowledge sync'
+    );
 
     if (response.ok) {
     } else {
