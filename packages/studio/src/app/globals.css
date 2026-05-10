@@ -2,12 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
- * Design Tokens
- * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* Design Tokens */
 
 :root {
-  /* Colors â€” Dark theme (default) */
+  /* Colors - Dark theme (default) */
   --studio-bg: #0d0d14;
   --studio-bg-elevated: #13131f;
   --studio-panel: #1a1a2e;
@@ -56,9 +54,7 @@
   --transition-slow: 300ms ease;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
- * Base Styles
- * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* Base Styles */
 
 html,
 body {
@@ -67,8 +63,8 @@ body {
   background: var(--studio-bg);
   color: var(--studio-text);
   font-family: var(--font-sans);
-  overflow: hidden;
   height: 100%;
+  min-height: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -77,9 +73,7 @@ body {
   height: 100%;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
- * Typography
- * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* Typography */
 
 h1 {
   font-size: 2rem;
@@ -113,9 +107,7 @@ pre,
   font-family: var(--font-mono);
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
- * Scrollbar
- * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* Scrollbar */
 
 ::-webkit-scrollbar {
   width: 6px;
@@ -138,9 +130,7 @@ pre,
   scrollbar-color: var(--studio-border) var(--studio-bg-elevated);
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
- * Animations
- * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* Animations */
 
 @keyframes pulse-glow {
   0%,
@@ -231,9 +221,7 @@ pre,
   background-size: 200% 100%;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
- * Component Utilities
- * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* Component Utilities */
 
 .glass {
   background: rgba(26, 26, 46, 0.85);
@@ -280,9 +268,7 @@ button:focus-visible {
   overflow: hidden;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
- * Touch Target Utilities
- * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* Touch Target Utilities */
 
 /* Minimum 44px touch target (WCAG 2.5.5 / Apple HIG) */
 .touch-target {
@@ -300,17 +286,15 @@ button:focus-visible {
   min-height: 44px;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
- * Responsive Breakpoints
- *
- * Breakpoints:
- *   sm  = 640px   (large phones, landscape)
- *   md  = 768px   (tablets, portrait)
- *   lg  = 1024px  (tablets landscape, small laptops)
- *   xl  = 1280px  (desktops)
- * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* Responsive Breakpoints
+ * Mobile-first helpers:
+ *   sm = 640px   (large phones, landscape)
+ *   md = 768px   (tablets, portrait)
+ *   lg = 1024px  (tablet landscape, small laptops)
+ *   xl = 1280px  (desktops)
+ */
 
-/* â”€â”€ Mobile: max-width 640px â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Mobile: max-width 640px */
 @media (max-width: 640px) {
   h1 {
     font-size: 1.5rem;
@@ -376,7 +360,7 @@ button:focus-visible {
   }
 }
 
-/* â”€â”€ Tablet: max-width 768px â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Tablet: max-width 768px */
 @media (max-width: 768px) {
   .hide-on-tablet-sm {
     display: none !important;
@@ -393,7 +377,7 @@ button:focus-visible {
   }
 }
 
-/* â”€â”€ Tablet landscape: max-width 1024px â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Tablet landscape: max-width 1024px */
 @media (max-width: 1024px) {
   .hide-on-tablet {
     display: none !important;
@@ -410,7 +394,7 @@ button:focus-visible {
   }
 }
 
-/* â”€â”€ Coarse pointer (touch devices) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Coarse pointer (touch devices) */
 @media (pointer: coarse) {
   /* All interactive elements get 44px minimum touch targets */
   button,
@@ -444,7 +428,7 @@ button:focus-visible {
   }
 }
 
-/* â”€â”€ Animations: respect reduced motion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -455,9 +439,7 @@ button:focus-visible {
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
- * Responsive Drawer Animations
- * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* Responsive Drawer Animations */
 
 @keyframes slide-in-from-right {
   from {
@@ -496,11 +478,9 @@ button:focus-visible {
   animation: slide-up-from-bottom 0.3s ease-out;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
- * Landing Page â€” Universal POE
- * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* Landing Page - Universal POE */
 
-/* â”€â”€ Root Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Root Layout */
 
 .home-root {
   position: relative;
@@ -514,7 +494,7 @@ button:focus-visible {
   padding-bottom: 80px;
 }
 
-/* â”€â”€ Animated Mesh Background â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Animated Mesh Background */
 
 .mesh-bg {
   position: fixed;
@@ -608,7 +588,7 @@ button:focus-visible {
   }
 }
 
-/* â”€â”€ Hero Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Hero Section */
 
 .hero {
   position: relative;
@@ -702,7 +682,7 @@ button:focus-visible {
   transform: translateY(0);
 }
 
-/* â”€â”€ Stats Strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Stats Strip */
 
 .hero-stats {
   display: flex;
@@ -742,7 +722,7 @@ button:focus-visible {
   letter-spacing: 0.06em;
 }
 
-/* â”€â”€ Section Labels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Section Labels */
 
 .section-label {
   font-size: 0.75rem;
@@ -754,7 +734,7 @@ button:focus-visible {
   margin-bottom: var(--space-lg);
 }
 
-/* â”€â”€ Mode Cards Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Mode Cards Grid */
 
 .modes {
   position: relative;
@@ -770,7 +750,7 @@ button:focus-visible {
   gap: var(--space-md);
 }
 
-/* â”€â”€ Mode Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Mode Card */
 
 .mode-card {
   display: block;
@@ -897,7 +877,7 @@ button:focus-visible {
   transform: translateX(4px);
 }
 
-/* â”€â”€ Industry Portals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Industry Portals */
 
 .industries {
   position: relative;
@@ -957,7 +937,7 @@ button:focus-visible {
   line-height: 1;
 }
 
-/* â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Footer */
 
 .home-footer {
   position: fixed;
@@ -1004,7 +984,7 @@ button:focus-visible {
   font-size: 0.65rem;
 }
 
-/* â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Responsive */
 
 @media (max-width: 1024px) {
   .modes-grid {
@@ -1050,9 +1030,7 @@ button:focus-visible {
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   PLAY MODE â€” 3D Scene Builder  (Phase 2)
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* Play Mode - 3D Scene Builder */
 
 .play-page {
   display: flex;
@@ -1065,7 +1043,7 @@ button:focus-visible {
   user-select: none;
 }
 
-/* â”€â”€ Header â”€â”€ */
+/* Header */
 .play-header {
   display: flex;
   align-items: center;
@@ -1127,14 +1105,14 @@ button:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
-/* â”€â”€ Workspace â”€â”€ */
+/* Workspace */
 .play-workspace {
   display: flex;
   flex: 1;
   overflow: hidden;
 }
 
-/* â”€â”€ Left Toolbar â”€â”€ */
+/* Left Toolbar */
 .play-toolbar {
   display: flex;
   flex-direction: column;
@@ -1205,7 +1183,7 @@ button:focus-visible {
   font-weight: 500;
 }
 
-/* â”€â”€ Canvas (3D) â”€â”€ */
+/* Canvas */
 .play-canvas-3d {
   flex: 1;
   position: relative;
@@ -1256,7 +1234,7 @@ button:focus-visible {
   }
 }
 
-/* â”€â”€ Right Properties Panel â”€â”€ */
+/* Right Properties Panel */
 .play-properties {
   display: flex;
   flex-direction: column;
@@ -1340,7 +1318,7 @@ button:focus-visible {
   background: rgba(239, 68, 68, 0.3) !important;
 }
 
-/* â”€â”€ Footer â”€â”€ */
+/* Footer */
 .play-footer {
   display: flex;
   align-items: center;
@@ -1388,7 +1366,7 @@ button:focus-visible {
   cursor: not-allowed;
 }
 
-/* â”€â”€ Responsive â”€â”€ */
+/* Responsive */
 @media (max-width: 768px) {
   .play-toolbar {
     width: 60px;
@@ -1432,7 +1410,7 @@ button:focus-visible {
   }
 }
 
-/* ── Physics Toggle ── */
+/* Physics Toggle */
 .play-physics-toggle {
   padding: 4px 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -1457,7 +1435,7 @@ button:focus-visible {
   box-shadow: 0 0 12px rgba(34, 197, 94, 0.15);
 }
 
-/* ── Lighting Presets Bar ── */
+/* Lighting Presets Bar */
 .play-lighting-bar {
   display: flex;
   gap: 4px;
@@ -1486,7 +1464,7 @@ button:focus-visible {
   color: #fbbf24;
 }
 
-/* ── Responsive: footer with lighting ── */
+/* Responsive: footer with lighting */
 @media (max-width: 768px) {
   .play-lighting-bar {
     gap: 2px;
@@ -1501,7 +1479,7 @@ button:focus-visible {
   }
 }
 
-/* ── Animation & Particle Pickers ── */
+/* Animation and Particle Pickers */
 .play-anim-picker {
   display: flex;
   flex-wrap: wrap;
@@ -1550,7 +1528,7 @@ button:focus-visible {
   color: rgba(196, 181, 253, 0.7);
 }
 
-/* ── Simulation Toggle (Footer) ── */
+/* Simulation Toggle (Footer) */
 .play-sim-toggle {
   padding: 3px 10px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1573,7 +1551,7 @@ button:focus-visible {
   color: #c4b5fd;
 }
 
-/* ── Simulation Panel (Overlay) ── */
+/* Simulation Panel (Overlay) */
 .play-sim-panel {
   position: fixed;
   bottom: 56px;
@@ -1677,7 +1655,7 @@ button:focus-visible {
   font-size: 0.65rem;
 }
 
-/* ── Responsive: sim panel ── */
+/* Responsive: sim panel */
 @media (max-width: 768px) {
   .play-sim-panel {
     left: 66px;
@@ -1697,7 +1675,7 @@ button:focus-visible {
   }
 }
 
-/* ── Garden Demo HUD ── */
+/* Garden Demo HUD */
 .play-garden-hud {
   position: absolute;
   top: 12px;
