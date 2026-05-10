@@ -258,12 +258,24 @@ export type { FlatSemanticCompilerOptions } from './FlatSemanticCompiler';
 
 // DispatchPolicy — NN-Primary, CPU-Backup HoloScript Inversion
 // Source: research/2026-05-09_nn-primary-cpu-backup-holoscript-EVOLVED.md
-export { DispatchPolicy, DispatchTier, AlphaTracker } from './dispatch/DispatchPolicy';
+export {
+  DispatchPolicy,
+  DispatchTier,
+  AlphaTracker,
+  createTier3CpuDirectOutput,
+} from './dispatch/DispatchPolicy';
 export type {
+  DispatchEffectVerifierResult,
   DispatchPolicyConfig,
+  DispatchProposalProvider,
   DispatchableOperation,
   DispatchDecision,
   DispatchMetrics,
+  Tier3CpuDirectOutput,
+  Tier3CpuExecutor,
+  TraitEquivalenceOracle,
+  TraitEquivalenceOracleInput,
+  TraitEquivalenceOracleResult,
 } from './dispatch/DispatchPolicy';
 export {
   DEFAULT_DISPATCH_LATENCY_OPERATION,

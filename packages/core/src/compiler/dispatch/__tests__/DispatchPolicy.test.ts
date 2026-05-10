@@ -3,6 +3,7 @@ import {
   DispatchPolicy,
   DispatchTier,
   AlphaTracker,
+  createTier3CpuDirectOutput,
   detectNeuromorphicRuntime,
 } from '../DispatchPolicy';
 import {
@@ -122,11 +123,12 @@ describe('DispatchPolicy', () => {
     }
   });
 
-  it('promotes to Tier-2 when verifier passes and alpha exceeds threshold', async () => {
+  it('promotes to Tier-2 when proposal output matches Tier-3 and alpha exceeds threshold', async () => {
     const policy = new DispatchPolicy({
       tier1BrowserEnabled: false,
       tier1NeuromorphicEnabled: false,
       tier2Enabled: true,
+      llmProposalProvider: (op) => createTier3CpuDirectOutput(op),
       tier2AlphaThreshold: 0.0,
       alphaWindowSize: 10,
     });
@@ -137,16 +139,22 @@ describe('DispatchPolicy', () => {
     expect(decision.tier).toBe(DispatchTier.TIER_2_SPECULATIVE);
     expect(decision.accepted).toBe(true);
     expect(decision.metrics.alpha).toBe(1);
+    expect(decision.metrics.traitEquivalence?.equivalent).toBe(true);
     expect(policy.getAlpha()).toBe(1);
   });
 
-  it('blocks Tier-2 when verifier rejects and alpha collapses', async () => {
+  it('blocks Tier-2 when proposal output differs from Tier-3 and alpha collapses', async () => {
     const policy = new DispatchPolicy({
       tier1BrowserEnabled: false,
       tier1NeuromorphicEnabled: false,
       tier2Enabled: true,
       tier2AlphaThreshold: 0.5,
-      effectVerifier: async () => ({ passed: false }),
+      llmProposalProvider: (op) => ({
+        trait: op.trait,
+        nodeId: op.nodeId,
+        config: { divergent: true },
+      }),
+      effectVerifier: async () => ({ passed: true }),
       alphaWindowSize: 10,
     });
     const decision = await policy.route({
@@ -155,8 +163,52 @@ describe('DispatchPolicy', () => {
     });
     expect(decision.tier).toBe(DispatchTier.TIER_3_CPU_DIRECT);
     expect(decision.accepted).toBe(true); // Tier-3 itself accepted
-    expect(decision.metrics.fallbackReason).toContain('rejected');
+    expect(decision.metrics.fallbackReason).toContain('equivalence failed');
+    expect(decision.metrics.traitEquivalence?.equivalent).toBe(false);
     expect(policy.getAlpha()).toBe(0);
+  });
+
+  it('does not define alpha as verifier pass rate', async () => {
+    const policy = new DispatchPolicy({
+      tier1BrowserEnabled: false,
+      tier1NeuromorphicEnabled: false,
+      tier2Enabled: true,
+      tier2AlphaThreshold: 0.0,
+      llmProposalProvider: (op) => createTier3CpuDirectOutput(op),
+      effectVerifier: async () => ({ passed: false, reason: 'effect rejected' }),
+      alphaWindowSize: 10,
+    });
+
+    const decision = await policy.route({
+      trait: 'grabbable',
+      nodeId: 'n3',
+    });
+
+    expect(decision.tier).toBe(DispatchTier.TIER_3_CPU_DIRECT);
+    expect(decision.metrics.verifierPassed).toBe(false);
+    expect(decision.metrics.traitEquivalence?.equivalent).toBe(true);
+    expect(decision.metrics.alpha).toBe(1);
+    expect(policy.getAlpha()).toBe(1);
+    expect(decision.metrics.fallbackReason).toContain('Verifier rejected');
+  });
+
+  it('fails Tier-2 closed when no proposal provider is wired', async () => {
+    const policy = new DispatchPolicy({
+      tier1BrowserEnabled: false,
+      tier1NeuromorphicEnabled: false,
+      tier2Enabled: true,
+      tier2AlphaThreshold: 0.0,
+      alphaWindowSize: 10,
+    });
+
+    const decision = await policy.route({
+      trait: 'grabbable',
+      nodeId: 'n4',
+    });
+
+    expect(decision.tier).toBe(DispatchTier.TIER_3_CPU_DIRECT);
+    expect(decision.metrics.alpha).toBe(0);
+    expect(decision.metrics.traitEquivalence?.reason).toContain('provider returned no output');
   });
 
   it('includes provenance context when supplied', async () => {

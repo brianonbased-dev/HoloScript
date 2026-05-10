@@ -1,6 +1,7 @@
 import {
   DispatchPolicy,
   DispatchTier,
+  createTier3CpuDirectOutput,
   type DispatchDecision,
   type DispatchPolicyConfig,
   type DispatchableOperation,
@@ -106,6 +107,7 @@ export function createDefaultDispatchLatencyScenarios(
       tier: DispatchTier.TIER_2_SPECULATIVE,
       config: {
         tier2Enabled: true,
+        llmProposalProvider: (op) => createTier3CpuDirectOutput(op),
         tier2AlphaThreshold: 0,
         alphaWindowSize,
         effectVerifier: async () => ({ passed: true }),

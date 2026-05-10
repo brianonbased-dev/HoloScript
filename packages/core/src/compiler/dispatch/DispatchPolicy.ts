@@ -49,7 +49,39 @@ export type NeuromorphicRuntimeProbe = (
 
 export interface DispatchEffectVerifierResult {
   passed: boolean;
+  reason?: string;
 }
+
+export interface Tier3CpuDirectOutput {
+  trait: string;
+  nodeId: string;
+  config: Record<string, unknown>;
+}
+
+export interface TraitEquivalenceOracleInput {
+  operation: DispatchableOperation;
+  proposal: unknown;
+  tier3Output: unknown;
+}
+
+export interface TraitEquivalenceOracleResult {
+  equivalent: boolean;
+  source: string;
+  reason?: string;
+  score?: number;
+  proposalFingerprint?: string;
+  tier3Fingerprint?: string;
+}
+
+export type DispatchProposalProvider = (
+  op: DispatchableOperation
+) => unknown | null | Promise<unknown | null>;
+
+export type Tier3CpuExecutor = (op: DispatchableOperation) => unknown | Promise<unknown>;
+
+export type TraitEquivalenceOracle = (
+  input: TraitEquivalenceOracleInput
+) => TraitEquivalenceOracleResult | Promise<TraitEquivalenceOracleResult>;
 
 export interface DispatchPolicyConfig {
   /** Enable Tier-1 Browser (WebGPU SNN) path */
@@ -62,6 +94,12 @@ export interface DispatchPolicyConfig {
   neuromorphicRuntimeProbe?: NeuromorphicRuntimeProbe;
   /** Enable Tier-2 speculative LLM + CPU verifier */
   tier2Enabled: boolean;
+  /** Tier-2 proposal source. Defaults to unavailable, so Tier-2 fails closed. */
+  llmProposalProvider?: DispatchProposalProvider;
+  /** Deterministic Tier-3 output source used as the semantic-equivalence baseline. */
+  tier3CpuExecutor?: Tier3CpuExecutor;
+  /** Compares Tier-2 proposal output with Tier-3 CPU-direct output. */
+  traitEquivalenceOracle?: TraitEquivalenceOracle;
   /** Minimum alpha (acceptance rate) to allow Tier-2 promotion */
   tier2AlphaThreshold: number;
   /** Effect-checker verifier for Tier-2 acceptance gate */
@@ -92,6 +130,10 @@ export interface DispatchMetrics {
   latencyEstimateMs: number;
   /** For Tier-2: speculative-decoding alpha at time of dispatch */
   alpha?: number;
+  /** For Tier-2: result of the verifier gate independent from alpha. */
+  verifierPassed?: boolean;
+  /** For Tier-2: semantic equivalence against Tier-3 CPU direct output. */
+  traitEquivalence?: TraitEquivalenceOracleResult;
   /** Runtime probe evidence for Tier-1 neuromorphic decisions */
   neuromorphicProbe?: NeuromorphicRuntimeProbeResult;
 }
@@ -197,7 +239,11 @@ export class DispatchPolicy {
         return decision;
       }
       lastRejectionReason = decision.metrics.fallbackReason;
-      lastRejectionMetrics = undefined;
+      lastRejectionMetrics = {
+        alpha: decision.metrics.alpha,
+        verifierPassed: decision.metrics.verifierPassed,
+        traitEquivalence: decision.metrics.traitEquivalence,
+      };
     }
 
     // --- Tier 3-CPU Direct (always available) --------------------------------
@@ -245,21 +291,44 @@ export class DispatchPolicy {
   private async tryTier2(op: DispatchableOperation): Promise<DispatchDecision> {
     const proposal = await this.llmPropose(op);
     if (!proposal) {
-      return this.buildDecision(DispatchTier.TIER_2_SPECULATIVE, false, op, 'LLM proposal failed');
+      this.alphaTracker.recordAttempt(false);
+      const alpha = this.alphaTracker.getAlpha();
+      return this.buildDecision(
+        DispatchTier.TIER_2_SPECULATIVE,
+        false,
+        op,
+        `LLM proposal failed; alpha ${alpha.toFixed(2)} < threshold ${this.config.tier2AlphaThreshold}`,
+        alpha,
+        {
+          verifierPassed: false,
+          traitEquivalence: {
+            equivalent: false,
+            source: 'dispatch-policy',
+            reason: 'LLM proposal provider returned no output',
+            score: 0,
+          },
+        }
+      );
     }
 
     // CPU verifier gate: EffectInference + SimulationContract
     const verifierPassed = await this.runCpuVerifier(op, proposal);
-    this.alphaTracker.recordAttempt(verifierPassed);
+    const tier3Output = await this.runTier3CpuDirect(op);
+    const traitEquivalence = await this.evaluateTraitEquivalence(op, proposal, tier3Output);
+    this.alphaTracker.recordAttempt(traitEquivalence.equivalent);
 
     const alpha = this.alphaTracker.getAlpha();
-    const accepted = verifierPassed && alpha >= this.config.tier2AlphaThreshold;
+    const accepted =
+      verifierPassed && traitEquivalence.equivalent && alpha >= this.config.tier2AlphaThreshold;
 
     const reason = accepted
       ? undefined
-      : `Verifier ${verifierPassed ? 'passed' : 'rejected'}; alpha ${alpha.toFixed(2)} < threshold ${this.config.tier2AlphaThreshold}`;
+      : this.describeTier2Rejection(verifierPassed, traitEquivalence, alpha);
 
-    return this.buildDecision(DispatchTier.TIER_2_SPECULATIVE, accepted, op, reason, alpha);
+    return this.buildDecision(DispatchTier.TIER_2_SPECULATIVE, accepted, op, reason, alpha, {
+      verifierPassed,
+      traitEquivalence,
+    });
   }
 
   private async fallbackTier3(
@@ -311,9 +380,10 @@ export class DispatchPolicy {
     return snnTraits.has(trait);
   }
 
-  private async llmPropose(_op: DispatchableOperation): Promise<unknown> {
-    // Stub: real implementation would call ContextCompiler / LLMProvider.
-    return { proposed: true, tier: 2 };
+  private async llmPropose(op: DispatchableOperation): Promise<unknown | null> {
+    const provider = this.config.llmProposalProvider;
+    if (!provider) return null;
+    return (await provider(op)) ?? null;
   }
 
   private async runCpuVerifier(op: DispatchableOperation, _proposal: unknown): Promise<boolean> {
@@ -339,6 +409,45 @@ export class DispatchPolicy {
 
     // If no verifiers are wired, default to pass (scaffold mode).
     return true;
+  }
+
+  private async runTier3CpuDirect(op: DispatchableOperation): Promise<unknown> {
+    const executor = this.config.tier3CpuExecutor ?? createTier3CpuDirectOutput;
+    return executor(op);
+  }
+
+  private async evaluateTraitEquivalence(
+    op: DispatchableOperation,
+    proposal: unknown,
+    tier3Output: unknown
+  ): Promise<TraitEquivalenceOracleResult> {
+    const oracle = this.config.traitEquivalenceOracle ?? defaultTraitEquivalenceOracle;
+    try {
+      return await oracle({ operation: op, proposal, tier3Output });
+    } catch (error) {
+      return {
+        equivalent: false,
+        source: 'trait-equivalence-oracle',
+        reason: error instanceof Error ? error.message : String(error),
+        score: 0,
+      };
+    }
+  }
+
+  private describeTier2Rejection(
+    verifierPassed: boolean,
+    equivalence: TraitEquivalenceOracleResult,
+    alpha: number
+  ): string {
+    const parts = [
+      `Verifier ${verifierPassed ? 'passed' : 'rejected'}`,
+      `equivalence ${equivalence.equivalent ? 'passed' : 'failed'}`,
+      `alpha ${alpha.toFixed(2)} < threshold ${this.config.tier2AlphaThreshold}`,
+    ];
+    if (equivalence.reason) {
+      parts.push(equivalence.reason);
+    }
+    return parts.join('; ');
   }
 
   // ---------------------------------------------------------------------------
@@ -386,9 +495,53 @@ export class DispatchPolicy {
 
   private async hashDecision(provenance: ProvenanceValue): Promise<string> {
     const value = provenance.value as Record<string, unknown>;
-    const canonical = JSON.stringify(value, Object.keys(value).sort());
+    const canonical = stableStringify(value);
     return `sha256:${await sha256Hex(canonical)}`;
   }
+}
+
+export function createTier3CpuDirectOutput(op: DispatchableOperation): Tier3CpuDirectOutput {
+  return {
+    trait: op.trait,
+    nodeId: op.nodeId,
+    config: op.config ?? {},
+  };
+}
+
+async function defaultTraitEquivalenceOracle(
+  input: TraitEquivalenceOracleInput
+): Promise<TraitEquivalenceOracleResult> {
+  const proposalCanonical = stableStringify(input.proposal);
+  const tier3Canonical = stableStringify(input.tier3Output);
+  const equivalent = proposalCanonical === tier3Canonical;
+  return {
+    equivalent,
+    source: 'canonical-json',
+    reason: equivalent ? 'canonical outputs match' : 'canonical outputs differ',
+    score: equivalent ? 1 : 0,
+    proposalFingerprint: `sha256:${await sha256Hex(proposalCanonical)}`,
+    tier3Fingerprint: `sha256:${await sha256Hex(tier3Canonical)}`,
+  };
+}
+
+function stableStringify(value: unknown): string {
+  return JSON.stringify(canonicalize(value)) ?? 'undefined';
+}
+
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => canonicalize(entry));
+  }
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  const record = value as Record<string, unknown>;
+  const sorted: Record<string, unknown> = {};
+  for (const key of Object.keys(record).sort()) {
+    sorted[key] = canonicalize(record[key]);
+  }
+  return sorted;
 }
 
 async function sha256Hex(input: string): Promise<string> {
