@@ -170,33 +170,85 @@ describe('executeMCPTool', () => {
     expect(body.args.code).toBe('object "Box" {}');
   });
 
-  it('routes knowledge_query with workspace_id', async () => {
+  it('routes knowledge_query with the authenticated workspace_id', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       headers: new Headers({ 'content-type': 'application/json' }),
       json: () => Promise.resolve({ entries: [] }),
     });
 
-    await executeMCPTool('knowledge_query', { search: 'RBAC', type: 'pattern', limit: 10 });
+    await executeMCPTool(
+      'knowledge_query',
+      { search: 'RBAC', type: 'pattern', limit: 10 },
+      { workspaceId: 'ws_octocat' }
+    );
 
     const call = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     const body = JSON.parse(call[1].body as string);
     expect(body.search).toBe('RBAC');
-    expect(body.workspace_id).toBe('ai-ecosystem');
+    expect(body.workspace_id).toBe('ws_octocat');
     expect(body.type).toBe('pattern');
     expect(body.limit).toBe(10);
   });
 
-  it('routes knowledge_sync and injects workspace_id into entries', async () => {
+  it('routes knowledge_sync and injects authenticated workspace_id into entries', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       headers: new Headers({ 'content-type': 'application/json' }),
       json: () => Promise.resolve({ synced: 1 }),
     });
 
-    await executeMCPTool('knowledge_sync', {
-      entries: [{ id: 'W.TEST.001', type: 'wisdom', content: 'test entry' }],
+    await executeMCPTool(
+      'knowledge_sync',
+      {
+        entries: [{ id: 'W.TEST.001', type: 'wisdom', content: 'test entry' }],
+      },
+      { workspaceId: 'ws_builder' }
+    );
+
+    const call = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const body = JSON.parse(call[1].body as string);
+    expect(body.workspace_id).toBe('ws_builder');
+    expect(body.entries[0].workspace_id).toBe('ws_builder');
+  });
+
+  it('does not let non-founder MCP tool args write to ai-ecosystem', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: () => Promise.resolve({ synced: 1 }),
     });
+
+    await executeMCPTool(
+      'knowledge_sync',
+      {
+        workspace_id: 'ai-ecosystem',
+        entries: [{ id: 'P.TEST.001', type: 'pattern', content: 'test entry' }],
+      },
+      { workspaceId: 'ws_nonfounder' }
+    );
+
+    const call = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const body = JSON.parse(call[1].body as string);
+    expect(body.workspace_id).toBe('ws_nonfounder');
+    expect(body.entries[0].workspace_id).toBe('ws_nonfounder');
+  });
+
+  it('allows explicit founder-mode MCP tools to write to ai-ecosystem', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: () => Promise.resolve({ synced: 1 }),
+    });
+
+    await executeMCPTool(
+      'knowledge_sync',
+      {
+        workspace_id: 'ai-ecosystem',
+        entries: [{ id: 'P.TEST.002', type: 'pattern', content: 'founder entry' }],
+      },
+      { workspaceId: 'ai-ecosystem', allowFounderWorkspace: true }
+    );
 
     const call = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     const body = JSON.parse(call[1].body as string);

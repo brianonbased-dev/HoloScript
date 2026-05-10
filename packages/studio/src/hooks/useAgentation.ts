@@ -2,11 +2,12 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import type { Annotation } from 'agentation';
 import { useToast } from '../app/providers';
+import { resolveWorkspaceIdForIdentity } from '@/lib/workspace/workspaceIdentity';
 
-const KNOWLEDGE_ENDPOINT =
-  'https://mcp-orchestrator-production-45f9.up.railway.app/knowledge/sync';
+const KNOWLEDGE_ENDPOINT = 'https://mcp-orchestrator-production-45f9.up.railway.app/knowledge/sync';
 
 /**
  * Full Agentation integration hook.
@@ -16,10 +17,12 @@ const KNOWLEDGE_ENDPOINT =
  */
 export function useAgentation() {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const { addToast } = useToast();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const annotationBuffer = useRef<Annotation[]>([]);
   const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const workspaceId = resolveWorkspaceIdForIdentity(session?.user);
 
   // ── Helpers ──────────────────────────────────────────────────────
 
@@ -74,10 +77,7 @@ export function useAgentation() {
     async (annotations: Annotation[]) => {
       // Only promote blocking/important annotations or explicit submits
       const worth = annotations.filter(
-        (a) =>
-          a.severity === 'blocking' ||
-          a.severity === 'important' ||
-          a.intent === 'fix'
+        (a) => a.severity === 'blocking' || a.severity === 'important' || a.intent === 'fix'
       );
       if (worth.length === 0) return;
 
@@ -86,7 +86,7 @@ export function useAgentation() {
 
       const entries = worth.map((a) => ({
         id: `ann.${a.id}`,
-        workspace_id: 'ai-ecosystem',
+        workspace_id: workspaceId,
         type: a.intent === 'fix' ? 'gotcha' : 'pattern',
         content: [
           `[Visual Annotation] ${a.comment}`,
@@ -118,7 +118,7 @@ export function useAgentation() {
             'x-mcp-api-key': apiKey,
           },
           body: JSON.stringify({
-            workspace_id: 'ai-ecosystem',
+            workspace_id: workspaceId,
             entries,
           }),
         });
@@ -126,7 +126,7 @@ export function useAgentation() {
         // Non-critical — knowledge promotion is best-effort
       }
     },
-    [pathname]
+    [pathname, workspaceId]
   );
 
   // ── Agentation Callbacks ────────────────────────────────────────
@@ -150,9 +150,7 @@ export function useAgentation() {
   const onAnnotationDelete = useCallback(
     (annotation: Annotation) => {
       // Remove from buffer if not yet flushed
-      annotationBuffer.current = annotationBuffer.current.filter(
-        (a) => a.id !== annotation.id
-      );
+      annotationBuffer.current = annotationBuffer.current.filter((a) => a.id !== annotation.id);
       addToast('Annotation removed', 'info', 2000);
     },
     [addToast]

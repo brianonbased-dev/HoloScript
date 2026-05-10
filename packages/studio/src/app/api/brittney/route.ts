@@ -33,7 +33,11 @@ import { BRITTNEY_TOOLS } from '@/lib/brittney/BrittneyTools';
 import { STUDIO_API_TOOLS, STUDIO_API_TOOL_NAMES } from '@/lib/brittney/StudioAPITools';
 import { MCP_TOOLS, MCP_TOOL_NAMES } from '@/lib/brittney/MCPTools';
 import { SIMULATION_TOOLS } from '@/lib/brittney/SimulationTools';
-import { isSceneMutationTool, verifySceneMutation, type SimContractCheckResult } from '@/lib/brittney/SimContractGate';
+import {
+  isSceneMutationTool,
+  verifySceneMutation,
+  type SimContractCheckResult,
+} from '@/lib/brittney/SimContractGate';
 import {
   LOTUS_TOOLS,
   LOTUS_TOOL_NAMES,
@@ -48,6 +52,10 @@ import { buildContextualPrompt } from '@/lib/brittney/systemPrompt';
 import { rateLimit } from '@/lib/rate-limiter';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { requireAuth } from '@/lib/api-auth';
+import {
+  isFounderWorkspaceIdentity,
+  resolveWorkspaceIdForIdentity,
+} from '@/lib/workspace/workspaceIdentity';
 import { corsHeaders } from '../_lib/cors';
 import { readJsonBody } from '../_lib/body-size';
 import {
@@ -124,6 +132,8 @@ export async function POST(request: NextRequest) {
     // SEC-T03: gate on authenticated session before any LLM spend.
     const auth = await requireAuth(request);
     if (auth instanceof NextResponse) return auth;
+    const mcpWorkspaceId = resolveWorkspaceIdForIdentity(auth.user);
+    const allowFounderWorkspace = isFounderWorkspaceIdentity(auth.user);
 
     __phase = 'rate-limit';
     const limit = rateLimit(
@@ -173,7 +183,14 @@ export async function POST(request: NextRequest) {
     }
     const body = parsed.body;
 
-    const { messages, sceneContext, sessionId: bodySessionId, closeSession, simContractCheck, systemPrompt: bodySystemPrompt } = body;
+    const {
+      messages,
+      sceneContext,
+      sessionId: bodySessionId,
+      closeSession,
+      simContractCheck,
+      systemPrompt: bodySystemPrompt,
+    } = body;
     const sessionId =
       typeof bodySessionId === 'string' && bodySessionId.length > 0
         ? bodySessionId
@@ -372,9 +389,12 @@ export async function POST(request: NextRequest) {
                 case 'tool_use_end': {
                   // tool_use_end carries the fully-parsed input.
                   const toolName = currentToolName || `tool:${chunk.id}`;
-                  const parsedArgs: Record<string, unknown> = chunk.input && Object.keys(chunk.input).length > 0
-                    ? chunk.input
-                    : (currentToolInput ? (JSON.parse(currentToolInput) as Record<string, unknown>) : {});
+                  const parsedArgs: Record<string, unknown> =
+                    chunk.input && Object.keys(chunk.input).length > 0
+                      ? chunk.input
+                      : currentToolInput
+                        ? (JSON.parse(currentToolInput) as Record<string, unknown>)
+                        : {};
                   // CAEL: record the call attempt regardless of branch.
                   roundToolCalls.push({ name: toolName, input: parsedArgs });
 
@@ -473,12 +493,20 @@ export async function POST(request: NextRequest) {
                             },
                           });
                         } else if (MCP_TOOL_NAMES.has(tc.name)) {
-                          result = await executeMCPTool(tc.name, tc.input);
+                          result = await executeMCPTool(tc.name, tc.input, {
+                            workspaceId: mcpWorkspaceId,
+                            allowFounderWorkspace,
+                          });
                         } else if (EMBODIED_TOOL_NAMES.has(tc.name)) {
                           const emb = await executeEmbodiedTool(tc.name, tc.input);
                           result = { success: emb.success, data: emb.data, error: emb.error };
                         } else {
-                          result = await executeStudioTool(tc.name, tc.input, baseUrl, forwardHeaders);
+                          result = await executeStudioTool(
+                            tc.name,
+                            tc.input,
+                            baseUrl,
+                            forwardHeaders
+                          );
                         }
                         send({
                           type: 'tool_result',

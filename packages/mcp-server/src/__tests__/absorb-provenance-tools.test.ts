@@ -6,6 +6,9 @@ describe('absorb_provenance_answer', () => {
     vi.unstubAllGlobals();
     delete process.env.HOLOMESH_API_KEY;
     delete process.env.HOLOSCRIPT_API_KEY;
+    delete process.env.HOLOSCRIPT_WORKSPACE_ID;
+    delete process.env.MCP_WORKSPACE_ID;
+    delete process.env.HOLOMESH_WORKSPACE;
     delete process.env.GITHUB_SHA;
   });
 
@@ -57,6 +60,31 @@ describe('absorb_provenance_answer', () => {
     const citations = provenance.citations as Array<Record<string, unknown>>;
     expect(citations.length).toBe(2);
     expect(citations[0].file).toBe('src/parser.ts');
+
+    const call = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const body = JSON.parse(call[1].body as string);
+    expect(body.workspace_id).toBe('studio-workspace');
+  });
+
+  it('uses an explicit workspace id for founder GraphRAG grounding', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ results: [] }),
+      }))
+    );
+    process.env.HOLOMESH_API_KEY = 'test-key';
+
+    await handleAbsorbProvenanceTool(
+      'absorb_provenance_answer',
+      { question: 'Q', workspaceId: 'ai-ecosystem' },
+      async () => ({ answer: 'A' })
+    );
+
+    const call = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const body = JSON.parse(call[1].body as string);
+    expect(body.workspace_id).toBe('ai-ecosystem');
   });
 
   it('is deterministic for same resolver payload', async () => {

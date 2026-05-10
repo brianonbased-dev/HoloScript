@@ -10,6 +10,11 @@
  */
 
 import { MCP_TOOL_NAMES } from './MCPTools';
+import {
+  DEFAULT_STUDIO_WORKSPACE_ID,
+  FOUNDER_WORKSPACE_ID,
+  sanitizeWorkspaceId,
+} from '@/lib/workspace/workspaceIdentity';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -23,7 +28,10 @@ export interface MCPToolResult {
 interface OrchestratorRouteConfig {
   method: 'GET' | 'POST';
   path: string;
-  buildBody?: (args: Record<string, unknown>) => Record<string, unknown>;
+  buildBody?: (
+    args: Record<string, unknown>,
+    context: MCPToolExecutionContext
+  ) => Record<string, unknown>;
   buildQuery?: (args: Record<string, unknown>) => Record<string, string>;
 }
 
@@ -34,6 +42,11 @@ interface DirectMCPConfig {
   method: string;
   /** Transform Brittney tool args → MCP tool args */
   buildArgs: (args: Record<string, unknown>) => Record<string, unknown>;
+}
+
+export interface MCPToolExecutionContext {
+  workspaceId?: string;
+  allowFounderWorkspace?: boolean;
 }
 
 // ─── Environment ────────────────────────────────────────────────────────────
@@ -55,6 +68,34 @@ function getAbsorbMCPUrl(): string {
 
 function getAPIKey(): string {
   return process.env['HOLOSCRIPT_API_KEY'] ?? process.env['MCP_API_KEY'] ?? '';
+}
+
+function getWorkspaceArg(args: Record<string, unknown>): string | null {
+  const raw = args['workspace_id'] ?? args['workspaceId'];
+  return typeof raw === 'string' && raw.trim().length > 0 ? raw : null;
+}
+
+function resolveToolWorkspaceId(
+  args: Record<string, unknown>,
+  context: MCPToolExecutionContext
+): string {
+  const requested = getWorkspaceArg(args);
+  const requestedId = requested ? sanitizeWorkspaceId(requested) : null;
+  const fallback =
+    context.workspaceId ??
+    process.env['HOLOSCRIPT_WORKSPACE_ID'] ??
+    process.env['MCP_WORKSPACE_ID'] ??
+    DEFAULT_STUDIO_WORKSPACE_ID;
+
+  if (requestedId && requestedId !== FOUNDER_WORKSPACE_ID) {
+    return requestedId;
+  }
+
+  if (requestedId === FOUNDER_WORKSPACE_ID && context.allowFounderWorkspace === true) {
+    return FOUNDER_WORKSPACE_ID;
+  }
+
+  return sanitizeWorkspaceId(fallback);
 }
 
 // ─── Orchestrator route registry ────────────────────────────────────────────
@@ -85,23 +126,29 @@ const ORCHESTRATOR_ROUTES: Record<string, OrchestratorRouteConfig> = {
   knowledge_query: {
     method: 'POST',
     path: '/knowledge/query',
-    buildBody: (args) => ({
-      search: args['search'],
-      workspace_id: 'ai-ecosystem',
-      ...(args['type'] ? { type: args['type'] } : {}),
-      ...(args['limit'] ? { limit: args['limit'] } : {}),
-    }),
+    buildBody: (args, context) => {
+      const workspaceId = resolveToolWorkspaceId(args, context);
+      return {
+        search: args['search'],
+        workspace_id: workspaceId,
+        ...(args['type'] ? { type: args['type'] } : {}),
+        ...(args['limit'] ? { limit: args['limit'] } : {}),
+      };
+    },
   },
   knowledge_sync: {
     method: 'POST',
     path: '/knowledge/sync',
-    buildBody: (args) => ({
-      workspace_id: 'ai-ecosystem',
-      entries: ((args['entries'] as Array<Record<string, unknown>>) ?? []).map((e) => ({
-        ...e,
-        workspace_id: 'ai-ecosystem',
-      })),
-    }),
+    buildBody: (args, context) => {
+      const workspaceId = resolveToolWorkspaceId(args, context);
+      return {
+        workspace_id: workspaceId,
+        entries: ((args['entries'] as Array<Record<string, unknown>>) ?? []).map((e) => ({
+          ...e,
+          workspace_id: workspaceId,
+        })),
+      };
+    },
   },
 };
 
@@ -190,7 +237,8 @@ function nextRpcId(): number {
 async function executeOrchestratorTool(
   name: string,
   args: Record<string, unknown>,
-  config: OrchestratorRouteConfig
+  config: OrchestratorRouteConfig,
+  context: MCPToolExecutionContext
 ): Promise<MCPToolResult> {
   const baseUrl = getOrchestratorUrl();
   const apiKey = getAPIKey();
@@ -215,7 +263,7 @@ async function executeOrchestratorTool(
   };
 
   if (config.method === 'POST' && config.buildBody) {
-    fetchOptions.body = JSON.stringify(config.buildBody(args));
+    fetchOptions.body = JSON.stringify(config.buildBody(args, context));
   }
 
   const response = await fetch(url, fetchOptions);
@@ -311,13 +359,14 @@ async function executeDirectMCPTool(
  */
 export async function executeMCPTool(
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  context: MCPToolExecutionContext = {}
 ): Promise<MCPToolResult> {
   try {
     // Check orchestrator routes first
     const orchConfig = ORCHESTRATOR_ROUTES[name];
     if (orchConfig) {
-      return await executeOrchestratorTool(name, args, orchConfig);
+      return await executeOrchestratorTool(name, args, orchConfig, context);
     }
 
     // Check direct MCP routes

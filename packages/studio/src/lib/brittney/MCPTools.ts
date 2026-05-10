@@ -97,6 +97,11 @@ const knowledgeQuery: StudioToolDefinition = {
           type: 'number',
           description: 'Maximum results to return (default: 5, max: 50)',
         },
+        workspace_id: {
+          type: 'string',
+          description:
+            'Optional account workspace id. The founder ai-ecosystem workspace is only honored in founder mode.',
+        },
       },
       required: ['search'],
     },
@@ -132,6 +137,11 @@ const knowledgeSync: StudioToolDefinition = {
             required: ['id', 'type', 'content'],
           } as any,
           description: 'Array of knowledge entries to sync',
+        },
+        workspace_id: {
+          type: 'string',
+          description:
+            'Optional account workspace id. The founder ai-ecosystem workspace is only honored in founder mode.',
         },
       },
       required: ['entries'],
@@ -235,8 +245,7 @@ const holoListTraits: StudioToolDefinition = {
       properties: {
         category: {
           type: 'string',
-          description:
-            'Optional category filter, e.g. "physics", "rendering", "ai", "networking"',
+          description: 'Optional category filter, e.g. "physics", "rendering", "ai", "networking"',
         },
       },
     },

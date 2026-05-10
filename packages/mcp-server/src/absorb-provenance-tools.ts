@@ -1,12 +1,10 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { handleCodebaseTool } from '@holoscript/absorb-service/mcp';
-import {
-  resolveSecretWithLease,
-  VaultLeaseError,
-} from './holomesh/identity/vault-lease-registry';
+import { resolveSecretWithLease, VaultLeaseError } from './holomesh/identity/vault-lease-registry';
 
 /** Oldest knowledge entry newer than this → staleness `fresh` (vs `stale`). */
 const STALE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+const DEFAULT_GRAPH_WORKSPACE_ID = 'studio-workspace';
 
 /**
  * Phase 2 wrapper for the orchestrator graph-context fetch. Original code
@@ -43,7 +41,7 @@ export const absorbProvenanceTools: Tool[] = [
         workspaceId: {
           type: 'string',
           description:
-            'Orchestrator workspace id for GraphRAG knowledge grounding (default: ai-ecosystem).',
+            'Orchestrator workspace id for GraphRAG knowledge grounding. Defaults to the configured account workspace.',
         },
         includeRaw: {
           type: 'boolean',
@@ -123,7 +121,8 @@ function extractCitations(raw: unknown): ProvenanceEnvelope['citations'] {
       if (!r || typeof r !== 'object') return {};
       const ro = r as Record<string, unknown>;
       return {
-        file: typeof ro.path === 'string' ? ro.path : typeof ro.file === 'string' ? ro.file : undefined,
+        file:
+          typeof ro.path === 'string' ? ro.path : typeof ro.file === 'string' ? ro.file : undefined,
         symbol: typeof ro.symbol === 'string' ? ro.symbol : undefined,
         snippet: typeof ro.snippet === 'string' ? ro.snippet : undefined,
       };
@@ -159,6 +158,15 @@ function resolveGraphCommitId(): string | undefined {
   return typeof v === 'string' && v.length >= 7 ? v : undefined;
 }
 
+function resolveDefaultGraphWorkspaceId(): string {
+  return (
+    process.env.MCP_WORKSPACE_ID ||
+    process.env.HOLOSCRIPT_WORKSPACE_ID ||
+    process.env.HOLOMESH_WORKSPACE ||
+    DEFAULT_GRAPH_WORKSPACE_ID
+  );
+}
+
 /**
  * Queries the MCP orchestrator knowledge store (same path as absorb-scanner / framework KnowledgeStore remote mode).
  */
@@ -181,7 +189,7 @@ export async function fetchOrchestratorGraphContext(
   const baseUrl = (
     process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app'
   ).replace(/\/$/, '');
-  const ws = workspaceId || process.env.HOLOSCRIPT_WORKSPACE_ID || 'ai-ecosystem';
+  const ws = workspaceId || resolveDefaultGraphWorkspaceId();
 
   try {
     const res = await fetch(`${baseUrl}/knowledge/query`, {
@@ -202,7 +210,10 @@ export async function fetchOrchestratorGraphContext(
       return { graphSnapshotId: fnv1a(`${search}|query-${res.status}`), staleness: 'unknown' };
     }
 
-    const data = (await res.json()) as { results?: OrchestratorKnowledgeRow[]; entries?: OrchestratorKnowledgeRow[] };
+    const data = (await res.json()) as {
+      results?: OrchestratorKnowledgeRow[];
+      entries?: OrchestratorKnowledgeRow[];
+    };
     const rows = data.results || data.entries || [];
     if (rows.length === 0) {
       return {

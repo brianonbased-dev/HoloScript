@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { useForm, type UseFormProps } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { AlertCircle, AlertTriangle, Send, Search } from 'lucide-react';
 import clsx from 'clsx';
 import { useToast } from '../../app/providers';
+import { resolveWorkspaceIdForIdentity } from '@/lib/workspace/workspaceIdentity';
 
 const wpgSchema = z.object({
   type: z.enum(['wisdom', 'pattern', 'gotcha']),
@@ -27,9 +29,11 @@ const DOMAIN_TEMPLATES = [
 
 export function WPGEntryForm() {
   const { addToast } = useToast();
+  const { data: session } = useSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [queryDomain, setQueryDomain] = useState('');
   const [queryResults, setQueryResults] = useState<any[] | null>(null);
+  const defaultWorkspaceId = resolveWorkspaceIdForIdentity(session?.user);
 
   const formOpts: UseFormProps<WPGFormData> = {
     resolver: zodResolver(wpgSchema as any) as any,
@@ -37,7 +41,7 @@ export function WPGEntryForm() {
       type: 'wisdom',
       domain: '',
       content: '',
-      workspace_id: 'ai-ecosystem',
+      workspace_id: defaultWorkspaceId,
     },
   };
   const {
@@ -49,11 +53,18 @@ export function WPGEntryForm() {
     reset,
   } = useForm<WPGFormData>(formOpts);
 
+  useEffect(() => {
+    setValue('workspace_id', defaultWorkspaceId, { shouldValidate: true });
+  }, [defaultWorkspaceId, setValue]);
+
   const formData = watch();
   const isHealthcare = formData.domain === 'healthcare_informatics';
+  const scopedWorkspaceId = resolveWorkspaceIdForIdentity(session?.user, {
+    requestedWorkspaceId: formData.workspace_id,
+  });
 
   const previewJson = {
-    workspace_id: formData.workspace_id,
+    workspace_id: scopedWorkspaceId,
     entries: [
       {
         type: formData.type,
@@ -66,11 +77,14 @@ export function WPGEntryForm() {
   const onSubmit = async (data: WPGFormData) => {
     setIsSubmitting(true);
     try {
+      const workspaceId = resolveWorkspaceIdForIdentity(session?.user, {
+        requestedWorkspaceId: data.workspace_id,
+      });
       const res = await fetch('/api/knowledge/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          workspace_id: data.workspace_id,
+          workspace_id: workspaceId,
           entries: [{ type: data.type, domain: data.domain, content: data.content }],
         }),
       });
@@ -80,7 +94,7 @@ export function WPGEntryForm() {
       }
 
       addToast('W/P/G entry successfully filed to HoloMesh orchestrator.', 'success', 4000);
-      reset({ ...data, content: '' }); // Clear content but keep domain/type config
+      reset({ ...data, workspace_id: workspaceId, content: '' }); // Clear content but keep domain/type config
     } catch (err: any) {
       addToast(`Sync Failed: ${err.message}`, 'error', 5000);
     } finally {
@@ -97,7 +111,7 @@ export function WPGEntryForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          workspace_id: formData.workspace_id,
+          workspace_id: scopedWorkspaceId,
           search: queryDomain,
           limit: 5,
         }),
@@ -129,9 +143,11 @@ export function WPGEntryForm() {
               <input
                 {...register('workspace_id')}
                 className="w-full bg-h-bg border border-h-border rounded-md px-3 py-2 text-h-text focus:ring-1 focus:ring-h-primary focus:border-h-primary outline-none text-sm transition-colors"
-                placeholder="e.g. ai-ecosystem"
+                placeholder={defaultWorkspaceId}
               />
-              {errors.workspace_id && <p className="text-xs text-red-500">{errors.workspace_id.message}</p>}
+              {errors.workspace_id && (
+                <p className="text-xs text-red-500">{errors.workspace_id.message}</p>
+              )}
             </div>
 
             <div className="space-y-1">
@@ -167,8 +183,10 @@ export function WPGEntryForm() {
             <input
               {...register('domain')}
               className={clsx(
-                "w-full bg-h-bg border rounded-md px-3 py-2 text-h-text focus:ring-1 focus:border-h-primary outline-none text-sm transition-colors",
-                isHealthcare ? "border-amber-500/50 focus:ring-amber-500" : "border-h-border focus:ring-h-primary"
+                'w-full bg-h-bg border rounded-md px-3 py-2 text-h-text focus:ring-1 focus:border-h-primary outline-none text-sm transition-colors',
+                isHealthcare
+                  ? 'border-amber-500/50 focus:ring-amber-500'
+                  : 'border-h-border focus:ring-h-primary'
               )}
               placeholder="e.g. spatial_ai"
             />
@@ -176,7 +194,9 @@ export function WPGEntryForm() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium text-h-text">Content (Compress, do not summarize)</label>
+            <label className="text-sm font-medium text-h-text">
+              Content (Compress, do not summarize)
+            </label>
             <textarea
               {...register('content')}
               rows={5}
@@ -194,7 +214,9 @@ export function WPGEntryForm() {
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-md p-3 flex gap-3 text-amber-500">
               <AlertTriangle className="w-5 h-5 shrink-0" />
               <div className="text-xs leading-relaxed">
-                <strong>HIPAA Warning:</strong> You have selected a medical domain. I explicitly confirm there is no PHI/PII (Protected Health Information) in this payload. All entries must be generalized technical knowledge.
+                <strong>HIPAA Warning:</strong> You have selected a medical domain. I explicitly
+                confirm there is no PHI/PII (Protected Health Information) in this payload. All
+                entries must be generalized technical knowledge.
               </div>
             </div>
           )}
@@ -219,9 +241,7 @@ export function WPGEntryForm() {
             <AlertCircle className="w-4 h-4" /> Preview JSON Payload
           </h3>
           <div className="flex-1 bg-[#121212] rounded border border-[#333] p-4 overflow-y-auto font-mono text-[11px] text-[#9cdcfe]">
-            <pre>
-              {JSON.stringify(previewJson, null, 2)}
-            </pre>
+            <pre>{JSON.stringify(previewJson, null, 2)}</pre>
           </div>
         </div>
 
@@ -229,7 +249,7 @@ export function WPGEntryForm() {
           <div className="border-b border-h-border pb-3 mb-4">
             <h3 className="text-sm font-medium text-h-text">Query Knowledge Store (Smoke Test)</h3>
           </div>
-          
+
           <form onSubmit={onQuerySubmit} className="flex gap-2 mb-4">
             <input
               value={queryDomain}
