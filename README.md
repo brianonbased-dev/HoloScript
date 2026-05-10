@@ -15,6 +15,16 @@ HoloScript is a semantic runtime where descriptions become working software. Wri
 }
 ```
 
+## Try it without an API key
+
+- **`npx create-holoscript@latest my-app`** — scaffold a HoloScript app, browser scene in under a minute.
+- **`npm install @holoscript/cli`** — local CLI; `npm install @holoscript/wasm` for in-browser parsing.
+- **<https://holoscript.studio/playground>** — live editor + WebGPU preview, no login.
+- **`POST mcp.holoscript.net/api/public/tool`** — anonymous read-only MCP tools (parse, validate, examples, syntax, explain, list-targets). 30 req/min per IP.
+- **`POST mcp.holoscript.net/oauth/register`** — self-serve client registration when you need the full tool surface; RFC 7591, no human approval.
+
+Full reference: [docs/PUBLIC_ACCESS.md](docs/PUBLIC_ACCESS.md).
+
 ## Why teams choose HoloScript
 
 HoloScript is for teams that want to describe intent once and execute it across many targets.
