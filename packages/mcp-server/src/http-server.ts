@@ -218,6 +218,21 @@ const RATE_LIMIT = parseInt(process.env.OAUTH_RATE_LIMIT || '100', 10);
 const RATE_WINDOW_MS = 60_000;
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 
+// ── Anonymous public tier (no API key required) ─────────────────────────────
+// Read-only / inert tools agents and humans can call without registering.
+// Designed for first-touch discoverability: parse a `.holo` file, look up
+// docs/examples, validate syntax, list compile targets. Anything that
+// reaches an LLM, writes state, or costs real money stays behind /oauth.
+const PUBLIC_ANON_TOOLS: ReadonlySet<string> = new Set([
+  'parse_holo',
+  'validate_holoscript',
+  'explain_trait',
+  'get_syntax_reference',
+  'get_examples',
+  'list_export_targets',
+]);
+const PUBLIC_ANON_RATE_LIMIT = parseInt(process.env.PUBLIC_ANON_RATE_LIMIT || '30', 10);
+
 function getRateLimit(
   ip: string,
   dynamicLimit?: number
@@ -2936,6 +2951,93 @@ const httpServer = http.createServer(async (req, res) => {
     }
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(record));
+    return;
+  }
+
+  // GET /api/public/tool — Discovery for the anonymous tier
+  if (url === '/api/public/tool' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(
+      JSON.stringify({
+        description:
+          'Anonymous tier — read-only HoloScript tools, no API key required.',
+        tools: Array.from(PUBLIC_ANON_TOOLS),
+        rate_limit_per_minute: PUBLIC_ANON_RATE_LIMIT,
+        usage: {
+          method: 'POST',
+          content_type: 'application/json',
+          body_schema: { tool: 'string', arguments: 'object' },
+          example: {
+            tool: 'parse_holo',
+            arguments: { source: 'composition "Hello" { object "Box" {} }' },
+          },
+        },
+        upgrade: {
+          endpoint: '/oauth/register',
+          why: 'Higher rate limits and access to all MCP tools (compile, generate, codebase intelligence, etc.).',
+        },
+      })
+    );
+    return;
+  }
+
+  // POST /api/public/tool — Anonymous read-only tool dispatch
+  if (url === '/api/public/tool' && req.method === 'POST') {
+    const rl = getRateLimit(`anon:${clientIP}`, PUBLIC_ANON_RATE_LIMIT);
+    setRateLimitHeaders(res, rl);
+    if (rl.remaining === 0) {
+      res.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(
+        JSON.stringify({
+          error: 'rate_limit_exceeded',
+          message: `Anonymous tier limited to ${PUBLIC_ANON_RATE_LIMIT} requests/minute per IP. Register a client at POST /oauth/register for higher limits.`,
+          retry_after_seconds: Math.max(1, Math.ceil((rl.resetAt - Date.now()) / 1000)),
+        })
+      );
+      return;
+    }
+
+    try {
+      const body = await parseJsonBody(req);
+      const tool = body.tool as string | undefined;
+      const args = (body.arguments as Record<string, unknown> | undefined) || {};
+
+      if (!tool || typeof tool !== 'string') {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            error: 'invalid_request',
+            message: 'Missing required field: tool (string)',
+            example: { tool: 'parse_holo', arguments: { source: '...' } },
+          })
+        );
+        return;
+      }
+
+      if (!PUBLIC_ANON_TOOLS.has(tool)) {
+        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            error: 'tool_not_public',
+            message: `Tool '${tool}' is not available on the anonymous tier.`,
+            available_anonymous_tools: Array.from(PUBLIC_ANON_TOOLS),
+            upgrade: {
+              endpoint: '/oauth/register',
+              why: 'Register a client to access all MCP tools.',
+            },
+          })
+        );
+        return;
+      }
+
+      const result = await _handleSingleToolLogic(tool, args);
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(result));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: 'tool_execution_failed', message }));
+    }
     return;
   }
 
