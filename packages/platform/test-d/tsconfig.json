@@ -5,8 +5,7 @@
     "moduleResolution": "bundler",
     "noEmit": true,
     "rootDir": ".",
-    "skipLibCheck": false,
-    "types": []
+    "skipLibCheck": true
   },
   "include": ["platform-public-consumer.ts"]
 }
