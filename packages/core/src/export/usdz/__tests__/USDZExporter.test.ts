@@ -499,6 +499,273 @@ describe('USDZExporter', () => {
       expect(endTime - startTime).toBeLessThan(5000); // < 5 seconds
     });
   });
+
+// ========================================================================
+// Animation Export Tests
+// ========================================================================
+
+  describe('Animation Export', () => {
+    it('should export translation animation with time samples', async () => {
+      const node = createEmptyNode('animated', 'AnimatedNode');
+      sceneGraph.root.children = [node];
+
+      const positions = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0]);
+      const times = new Float32Array([0, 1, 2]);
+      const values = new Float32Array([0, 0, 0, 1, 2, 3, 2, 4, 6]);
+
+      const combinedBuffer = new ArrayBuffer(
+        positions.byteLength + times.byteLength + values.byteLength
+      );
+      const combinedView = new Uint8Array(combinedBuffer);
+      let offset = 0;
+      combinedView.set(new Uint8Array(positions.buffer), offset);
+      offset += positions.byteLength;
+      combinedView.set(new Uint8Array(times.buffer), offset);
+      offset += times.byteLength;
+      combinedView.set(new Uint8Array(values.buffer), offset);
+
+      sceneGraph.buffers.push({
+        id: 'buf1',
+        byteLength: combinedBuffer.byteLength,
+        data: combinedBuffer,
+      });
+
+      sceneGraph.bufferViews.push(
+        { id: 'bv_pos', bufferIndex: 0, byteOffset: 0, byteLength: positions.byteLength },
+        { id: 'bv_times', bufferIndex: 0, byteOffset: positions.byteLength, byteLength: times.byteLength },
+        { id: 'bv_values', bufferIndex: 0, byteOffset: positions.byteLength + times.byteLength, byteLength: values.byteLength }
+      );
+
+      sceneGraph.accessors.push(
+        { id: 'acc_pos', bufferViewIndex: 0, byteOffset: 0, componentType: 'float', type: 'vec3', count: 4, normalized: false },
+        { id: 'acc_times', bufferViewIndex: 1, byteOffset: 0, componentType: 'float', type: 'scalar', count: 3, normalized: false },
+        { id: 'acc_values', bufferViewIndex: 2, byteOffset: 0, componentType: 'float', type: 'vec3', count: 3, normalized: false }
+      );
+
+      sceneGraph.animations.push({
+        id: 'anim1',
+        name: 'MoveAnimation',
+        duration: 2,
+        channels: [
+          { targetNode: 'animated', targetPath: 'translation', samplerIndex: 0 },
+        ],
+        samplers: [
+          { inputBufferView: 1, outputBufferView: 2, interpolation: 'linear' },
+        ],
+      });
+
+      const mesh = createSimpleTriangleMesh();
+      sceneGraph.meshes.push(mesh);
+      node.components = [
+        { type: 'mesh', meshRef: mesh.id, materialRefs: [], castShadows: true, receiveShadows: true, enabled: true, properties: {} },
+      ];
+
+      const result = await exporter.export(sceneGraph);
+      const usda = new TextDecoder().decode(result.usdz);
+      expect(usda).toContain('timeSamples');
+    });
+
+    it('should export rotation animation with time samples', async () => {
+      const node = createEmptyNode('rotated', 'RotatedNode');
+      sceneGraph.root.children = [node];
+
+      const times = new Float32Array([0, 1]);
+      const values = new Float32Array([0, 0, 0, 1, 0, 1, 0, 0]);
+
+      const combinedBuffer = new ArrayBuffer(times.byteLength + values.byteLength);
+      const combinedView = new Uint8Array(combinedBuffer);
+      let offset = 0;
+      combinedView.set(new Uint8Array(times.buffer), offset);
+      offset += times.byteLength;
+      combinedView.set(new Uint8Array(values.buffer), offset);
+
+      sceneGraph.buffers.push({
+        id: 'buf1',
+        byteLength: combinedBuffer.byteLength,
+        data: combinedBuffer,
+      });
+
+      sceneGraph.bufferViews.push(
+        { id: 'bv_times', bufferIndex: 0, byteOffset: 0, byteLength: times.byteLength },
+        { id: 'bv_values', bufferIndex: 0, byteOffset: times.byteLength, byteLength: values.byteLength }
+      );
+
+      sceneGraph.accessors.push(
+        { id: 'acc_times', bufferViewIndex: 0, byteOffset: 0, componentType: 'float', type: 'scalar', count: 2, normalized: false },
+        { id: 'acc_values', bufferViewIndex: 1, byteOffset: 0, componentType: 'float', type: 'vec4', count: 2, normalized: false }
+      );
+
+      sceneGraph.animations.push({
+        id: 'anim1',
+        name: 'RotateAnimation',
+        duration: 1,
+        channels: [
+          { targetNode: 'rotated', targetPath: 'rotation', samplerIndex: 0 },
+        ],
+        samplers: [
+          { inputBufferView: 0, outputBufferView: 1, interpolation: 'linear' },
+        ],
+      });
+
+      const mesh = createSimpleTriangleMesh();
+      sceneGraph.meshes.push(mesh);
+      node.components = [
+        { type: 'mesh', meshRef: mesh.id, materialRefs: [], castShadows: true, receiveShadows: true, enabled: true, properties: {} },
+      ];
+
+      const result = await exporter.export(sceneGraph);
+      const usda = new TextDecoder().decode(result.usdz);
+      expect(usda).toContain('xformOp:rotateXYZ');
+      expect(usda).toContain('timeSamples');
+    });
+  });
+
+// ========================================================================
+// GLTF Conversion Tests
+// ========================================================================
+
+  describe('GLTF Conversion', () => {
+    it('should convert GLTF document to USDZ', async () => {
+      const gltfDocument = {
+        asset: { version: '2.0', generator: 'Test' },
+        scene: 0,
+        scenes: [{ nodes: [0] }],
+        nodes: [{ name: 'TestNode', translation: [1, 2, 3] }],
+        meshes: [],
+        materials: [],
+        buffers: [],
+        bufferViews: [],
+        accessors: [],
+        animations: [],
+        skins: [],
+        cameras: [],
+        textures: [],
+        images: [],
+        samplers: [],
+      };
+
+      const gltfResult = {
+        document: gltfDocument as import('../../gltf/GLTFTypes').IGLTFDocument,
+        resources: new Map<string, ArrayBuffer>(),
+        stats: {
+          nodeCount: 1,
+          meshCount: 0,
+          materialCount: 0,
+          textureCount: 0,
+          animationCount: 0,
+          bufferSize: 0,
+          jsonSize: 0,
+          glbSize: 0,
+          exportTime: 0,
+        },
+      };
+
+      const usdzBuffer = await exporter.convertFromGLTF(gltfResult);
+      expect(usdzBuffer).toBeInstanceOf(ArrayBuffer);
+      expect(usdzBuffer.byteLength).toBeGreaterThan(0);
+
+      const view = new DataView(usdzBuffer);
+      const signature = view.getUint32(0, true);
+      expect(signature).toBe(0x04034b50);
+    });
+
+    it('should convert GLTF with mesh to USDZ', async () => {
+      const positions = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+      const indices = new Uint16Array([0, 1, 2]);
+      const combined = new ArrayBuffer(positions.byteLength + indices.byteLength);
+      const combinedView = new Uint8Array(combined);
+      combinedView.set(new Uint8Array(positions.buffer), 0);
+      combinedView.set(new Uint8Array(indices.buffer), positions.byteLength);
+
+      const gltfDocument = {
+        asset: { version: '2.0', generator: 'Test' },
+        scene: 0,
+        scenes: [{ nodes: [0] }],
+        nodes: [{ name: 'MeshNode', mesh: 0 }],
+        meshes: [
+          {
+            name: 'Triangle',
+            primitives: [
+              {
+                attributes: { POSITION: 0 },
+                indices: 1,
+                mode: 4,
+              },
+            ],
+          },
+        ],
+        materials: [],
+        buffers: [{ byteLength: combined.byteLength }],
+        bufferViews: [
+          { buffer: 0, byteOffset: 0, byteLength: positions.byteLength },
+          { buffer: 0, byteOffset: positions.byteLength, byteLength: indices.byteLength },
+        ],
+        accessors: [
+          { bufferView: 0, componentType: 5126, count: 3, type: 'VEC3' },
+          { bufferView: 1, componentType: 5123, count: 3, type: 'SCALAR' },
+        ],
+        animations: [],
+        skins: [],
+        cameras: [],
+        textures: [],
+        images: [],
+        samplers: [],
+      };
+
+      const jsonString = JSON.stringify(gltfDocument);
+      const jsonBytes = new TextEncoder().encode(jsonString);
+      const jsonPadding = (4 - (jsonBytes.length % 4)) % 4;
+      const binPadding = (4 - (combined.byteLength % 4)) % 4;
+      const totalSize =
+        12 + 8 + jsonBytes.length + jsonPadding + 8 + combined.byteLength + binPadding;
+      const glb = new ArrayBuffer(totalSize);
+      const view = new DataView(glb);
+      const bytes = new Uint8Array(glb);
+      let offset = 0;
+      view.setUint32(offset, 0x46546c67, true);
+      offset += 4;
+      view.setUint32(offset, 2, true);
+      offset += 4;
+      view.setUint32(offset, totalSize, true);
+      offset += 4;
+      view.setUint32(offset, jsonBytes.length + jsonPadding, true);
+      offset += 4;
+      view.setUint32(offset, 0x4e4f534a, true);
+      offset += 4;
+      bytes.set(jsonBytes, offset);
+      offset += jsonBytes.length;
+      for (let i = 0; i < jsonPadding; i++) bytes[offset++] = 0x20;
+      view.setUint32(offset, combined.byteLength + binPadding, true);
+      offset += 4;
+      view.setUint32(offset, 0x004e4942, true);
+      offset += 4;
+      bytes.set(new Uint8Array(combined), offset);
+
+      const gltfResult = {
+        document: gltfDocument as import('../../gltf/GLTFTypes').IGLTFDocument,
+        glb,
+        resources: new Map<string, ArrayBuffer>(),
+        stats: {
+          nodeCount: 1,
+          meshCount: 1,
+          materialCount: 0,
+          textureCount: 0,
+          animationCount: 0,
+          bufferSize: combined.byteLength,
+          jsonSize: jsonBytes.length,
+          glbSize: glb.byteLength,
+          exportTime: 0,
+        },
+      };
+
+      const usdzBuffer = await exporter.convertFromGLTF(gltfResult);
+      expect(usdzBuffer.byteLength).toBeGreaterThan(0);
+
+      const usda = new TextDecoder().decode(usdzBuffer);
+      expect(usda).toContain('Triangle');
+      expect(usda).toContain('Mesh');
+    });
+  });
 });
 
 // ============================================================================

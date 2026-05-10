@@ -9,8 +9,25 @@
  * @version 1.0.0
  */
 
-import type { ISceneGraph, IMaterial, IMesh, IAnimation } from '../SceneGraph';
-import type { IGLTFExportResult } from '../gltf/GLTFTypes';
+import type { ISceneGraph, IMaterial, IMesh, IAnimation, IAnimationChannel, IAnimationSampler, ISceneNode, ITransform, IComponent, ITextureRef, IBuffer, IBufferView, IAccessor } from '../SceneGraph';
+import type {
+  IGLTFExportResult,
+  IGLTFDocument,
+  IGLTFNode,
+  IGLTFMesh,
+  IGLTFMeshPrimitive,
+  IGLTFAccessor,
+  IGLTFBufferView,
+  IGLTFBuffer,
+  IGLTFMaterial,
+  IGLTFPBRMetallicRoughness,
+  IGLTFAnimation,
+  IGLTFAnimationChannel,
+  IGLTFAnimationSampler,
+  GLTFComponentType,
+  GLTFAccessorType,
+  GLTFPrimitiveMode,
+} from '../gltf/GLTFTypes';
 import type {
   IUSDStage,
   IUSDPrim,
@@ -50,6 +67,8 @@ export class USDZExporter {
   private primCounter = 0;
   private materialMap = new Map<string, string>(); // materialId -> USD path
   private meshMap = new Map<string, string>(); // meshId -> USD path
+  private nodePrimMap = new Map<string, IUSDPrim>(); // nodeId -> USD prim
+  private sceneGraphAccessorData = new Map<number, number[]>(); // accessorIndex -> flat data
   private textureFiles: IUSDZFileEntry[] = [];
 
   private static readonly DEFAULT_OPTIONS: Required<IUSDZExportOptions> = {
@@ -107,10 +126,285 @@ export class USDZExporter {
   /**
    * Convert from GLTF intermediate representation
    */
-  async convertFromGLTF(_gltfResult: IGLTFExportResult): Promise<ArrayBuffer> {
-    // This method allows direct GLTF -> USD conversion
-    // For now, we'll use the scene graph path
-    throw new Error('Direct GLTF conversion not yet implemented. Use export() with scene graph.');
+  async convertFromGLTF(gltfResult: IGLTFExportResult): Promise<ArrayBuffer> {
+    const sceneGraph = this.gltfToSceneGraph(gltfResult);
+    const result = await this.export(sceneGraph);
+    return result.usdz;
+  }
+
+  // ========================================================================
+  // Private Methods - GLTF Bridge
+  // ========================================================================
+
+  private gltfToSceneGraph(gltfResult: IGLTFExportResult): ISceneGraph {
+    const doc = gltfResult.document;
+
+    // Extract binary buffer data from GLB or resources
+    const buffers = this.extractGLTFBuffers(gltfResult);
+
+    // Map GLTF buffers -> SceneGraph buffers
+    const sgBuffers: IBuffer[] = buffers.map((data, i) => ({
+      id: `buf_${i}`,
+      byteLength: data.byteLength,
+      data,
+    }));
+
+    // Map GLTF bufferViews -> SceneGraph bufferViews
+    const sgBufferViews: IBufferView[] = (doc.bufferViews || []).map((bv, i) => ({
+      id: `bv_${i}`,
+      bufferIndex: bv.buffer,
+      byteOffset: bv.byteOffset || 0,
+      byteLength: bv.byteLength,
+      byteStride: bv.byteStride,
+      target:
+        bv.target === 34962
+          ? 'arrayBuffer'
+          : bv.target === 34963
+            ? 'elementArrayBuffer'
+            : undefined,
+    }));
+
+    // Map GLTF accessors -> SceneGraph accessors
+    const componentTypeMap: Record<number, string> = {
+      5120: 'byte',
+      5121: 'ubyte',
+      5122: 'short',
+      5123: 'ushort',
+      5125: 'uint',
+      5126: 'float',
+    };
+    const accessorTypeMap: Record<string, string> = {
+      SCALAR: 'scalar',
+      VEC2: 'vec2',
+      VEC3: 'vec3',
+      VEC4: 'vec4',
+      MAT2: 'mat2',
+      MAT3: 'mat3',
+      MAT4: 'mat4',
+    };
+    const sgAccessors: IAccessor[] = (doc.accessors || []).map((acc, i) => ({
+      id: `acc_${i}`,
+      bufferViewIndex: acc.bufferView !== undefined ? acc.bufferView : 0,
+      byteOffset: acc.byteOffset || 0,
+      componentType: (componentTypeMap[acc.componentType] || 'float') as IAccessor['componentType'],
+      type: (accessorTypeMap[acc.type] || 'scalar') as IAccessor['type'],
+      count: acc.count,
+      normalized: acc.normalized || false,
+      min: acc.min,
+      max: acc.max,
+    }));
+
+    // Map GLTF meshes -> SceneGraph meshes
+    const sgMeshes: IMesh[] = (doc.meshes || []).map((mesh, i) => ({
+      id: `mesh_${i}`,
+      name: mesh.name || `Mesh_${i}`,
+      primitives: mesh.primitives.map((prim) => ({
+        attributes: { ...prim.attributes } as Record<string, number>,
+        indices: prim.indices,
+        mode: this.mapGLTFPrimitiveMode(prim.mode) as import('../SceneGraph').PrimitiveMode,
+        materialRef: prim.material !== undefined ? `mat_${prim.material}` : undefined,
+      })),
+      bounds: { min: [0, 0, 0], max: [1, 1, 1] },
+    }));
+
+    // Map GLTF materials -> SceneGraph materials
+    const sgMaterials: IMaterial[] = (doc.materials || []).map((mat, i) => {
+      const pbr = mat.pbrMetallicRoughness;
+      return {
+        id: `mat_${i}`,
+        name: mat.name || `Material_${i}`,
+        type: 'pbr',
+        doubleSided: mat.doubleSided || false,
+        alphaMode: (mat.alphaMode?.toLowerCase() || 'opaque') as 'opaque' | 'mask' | 'blend',
+        alphaCutoff: mat.alphaCutoff ?? 0.5,
+        baseColor: (pbr?.baseColorFactor || [1, 1, 1, 1]) as [number, number, number, number],
+        metallic: pbr?.metallicFactor ?? 0,
+        roughness: pbr?.roughnessFactor ?? 0.5,
+        emissiveColor: (mat.emissiveFactor || [0, 0, 0]) as [number, number, number],
+        emissiveIntensity: 1,
+        normalScale: mat.normalTexture?.scale ?? 1,
+        occlusionStrength: mat.occlusionTexture?.strength ?? 1,
+        baseColorTexture: pbr?.baseColorTexture
+          ? this.mapGLTFTextureRef(pbr.baseColorTexture.index, pbr.baseColorTexture.texCoord || 0)
+          : undefined,
+        normalTexture: mat.normalTexture
+          ? this.mapGLTFTextureRef(mat.normalTexture.index, mat.normalTexture.texCoord || 0)
+          : undefined,
+        occlusionTexture: mat.occlusionTexture
+          ? this.mapGLTFTextureRef(mat.occlusionTexture.index, mat.occlusionTexture.texCoord || 0)
+          : undefined,
+        emissiveTexture: mat.emissiveTexture
+          ? this.mapGLTFTextureRef(mat.emissiveTexture.index, mat.emissiveTexture.texCoord || 0)
+          : undefined,
+        metallicRoughnessTexture: pbr?.metallicRoughnessTexture
+          ? this.mapGLTFTextureRef(pbr.metallicRoughnessTexture.index, pbr.metallicRoughnessTexture.texCoord || 0)
+          : undefined,
+      };
+    });
+
+    // Map GLTF nodes -> SceneGraph nodes
+    const nodeIdMap = new Map<number, string>();
+    const buildNode = (gltfNode: IGLTFNode, index: number): ISceneNode => {
+      const id = `node_${index}`;
+      nodeIdMap.set(index, id);
+      const children: ISceneNode[] = (gltfNode.children || []).map((ci) =>
+        buildNode(doc.nodes![ci], ci)
+      );
+      const components: IComponent[] = [];
+      if (gltfNode.mesh !== undefined) {
+        components.push({
+          type: 'mesh',
+          meshRef: `mesh_${gltfNode.mesh}`,
+          materialRefs: [],
+          castShadows: true,
+          receiveShadows: true,
+          enabled: true,
+          properties: {},
+        } as IComponent);
+      }
+      return {
+        id,
+        name: gltfNode.name || `Node_${index}`,
+        type: 'object',
+        transform: {
+          position: (gltfNode.translation || [0, 0, 0]) as [number, number, number],
+          rotation: gltfNode.rotation
+            ? {
+                x: gltfNode.rotation[0],
+                y: gltfNode.rotation[1],
+                z: gltfNode.rotation[2],
+                w: gltfNode.rotation[3],
+              }
+            : { x: 0, y: 0, z: 0, w: 1 },
+          scale: (gltfNode.scale || [1, 1, 1]) as [number, number, number],
+        },
+        children,
+        components,
+        active: true,
+        layers: 1,
+        tags: [],
+        metadata: {},
+      };
+    };
+
+    const scene = doc.scenes?.[doc.scene ?? 0];
+    const rootChildren = (scene?.nodes || []).map((ni) => buildNode(doc.nodes![ni], ni));
+    const root: ISceneNode = {
+      id: 'root',
+      name: 'Root',
+      type: 'group',
+      transform: {
+        position: [0, 0, 0],
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        scale: [1, 1, 1],
+      },
+      children: rootChildren,
+      components: [],
+      active: true,
+      layers: 1,
+      tags: [],
+      metadata: {},
+    };
+
+    // Map GLTF animations -> SceneGraph animations
+    const sgAnimations: IAnimation[] = (doc.animations || []).map((anim, i) => {
+      const channels = anim.channels.map((ch) => ({
+        targetNode: nodeIdMap.get(ch.target.node!) || `node_${ch.target.node}`,
+        targetPath: ch.target.path as 'translation' | 'rotation' | 'scale' | 'weights',
+        samplerIndex: ch.sampler,
+      }));
+      const samplers = anim.samplers.map((s) => ({
+        inputBufferView: s.input,
+        outputBufferView: s.output,
+        interpolation: (s.interpolation?.toLowerCase() || 'linear') as import('../SceneGraph').AnimationInterpolation,
+      }));
+      return {
+        id: `anim_${i}`,
+        name: anim.name || `Animation_${i}`,
+        duration: 0,
+        channels,
+        samplers,
+      };
+    });
+
+    return {
+      version: '3.3.0',
+      generator: 'HoloScript USDZExporter (GLTF bridge)',
+      metadata: {
+        name: 'GLTFImport',
+        createdAt: new Date().toISOString(),
+        modifiedAt: new Date().toISOString(),
+        tags: [],
+        properties: {},
+      },
+      root,
+      materials: sgMaterials,
+      textures: [],
+      meshes: sgMeshes,
+      buffers: sgBuffers,
+      bufferViews: sgBufferViews,
+      accessors: sgAccessors,
+      animations: sgAnimations,
+      skins: [],
+      extensions: {},
+      extras: {},
+    };
+  }
+
+  private extractGLTFBuffers(gltfResult: IGLTFExportResult): ArrayBuffer[] {
+    const doc = gltfResult.document;
+    if (gltfResult.glb) {
+      const binChunk = this.extractGLBBinChunk(gltfResult.glb);
+      if (binChunk) return [binChunk];
+    }
+    const buffers: ArrayBuffer[] = [];
+    for (const buffer of doc.buffers || []) {
+      if (buffer.uri) {
+        const resource = gltfResult.resources.get(buffer.uri);
+        if (resource) {
+          buffers.push(resource);
+          continue;
+        }
+      }
+      // Empty placeholder if data unavailable
+      buffers.push(new ArrayBuffer(buffer.byteLength));
+    }
+    return buffers;
+  }
+
+  private extractGLBBinChunk(glb: ArrayBuffer): ArrayBuffer | undefined {
+    const view = new DataView(glb);
+    const magic = view.getUint32(0, true);
+    if (magic !== 0x46546c67) return undefined;
+    const version = view.getUint32(4, true);
+    if (version !== 2) return undefined;
+    const length = view.getUint32(8, true);
+    let offset = 12;
+    while (offset < length) {
+      const chunkLength = view.getUint32(offset, true);
+      const chunkType = view.getUint32(offset + 4, true);
+      offset += 8;
+      if (chunkType === 0x004e4942) {
+        return glb.slice(offset, offset + chunkLength);
+      }
+      offset += chunkLength;
+    }
+    return undefined;
+  }
+
+  private mapGLTFPrimitiveMode(mode?: number): string {
+    const modes = ['points', 'lines', 'lineLoop', 'lineStrip', 'triangles', 'triangleStrip', 'triangleFan'];
+    return modes[mode ?? 4] || 'triangles';
+  }
+
+  private mapGLTFTextureRef(index: number, uvChannel: number): ITextureRef {
+    return {
+      id: `tex_${index}`,
+      uvChannel,
+      offset: { u: 0, v: 0 },
+      scale: { u: 1, v: 1 },
+      rotation: 0,
+    };
   }
 
   // ========================================================================
@@ -135,6 +429,9 @@ export class USDZExporter {
   }
 
   private async convertSceneGraph(sceneGraph: ISceneGraph): Promise<void> {
+    // Cache accessor data for animation sampling
+    this.cacheAccessorData(sceneGraph);
+
     // Create root prim
     const rootPrim = createUSDXform('Root', '/Root');
     this.stage.prims.push(rootPrim);
@@ -154,6 +451,13 @@ export class USDZExporter {
     }
   }
 
+  private cacheAccessorData(sceneGraph: ISceneGraph): void {
+    for (let i = 0; i < (sceneGraph.accessors || []).length; i++) {
+      const data = this.extractAccessorData(i, sceneGraph);
+      this.sceneGraphAccessorData.set(i, data);
+    }
+  }
+
   // ========================================================================
   // Private Methods - Node Conversion
   // ========================================================================
@@ -167,6 +471,11 @@ export class USDZExporter {
 
     // Create Xform prim for node
     const xformPrim = createUSDXform(nodeName, nodePath);
+
+    // Track mapping for animation targeting
+    if (node.id) {
+      this.nodePrimMap.set(node.id, xformPrim);
+    }
 
     // Add transform
     if (node.transform) {
@@ -578,10 +887,107 @@ export class USDZExporter {
   // Private Methods - Animation Conversion
   // ========================================================================
 
-  private convertAnimations(_animations: IAnimation[]): void {
-    // Animation support would be implemented here
-    // Would create SkelAnimation prims
-    console.warn('Animation export not yet implemented');
+  private convertAnimations(animations: IAnimation[]): void {
+    for (const animation of animations) {
+      this.convertAnimation(animation);
+    }
+  }
+
+  private convertAnimation(animation: IAnimation): void {
+    // Group channels by target node for efficient prim updates
+    const channelsByNode = new Map<string, IAnimationChannel[]>();
+    for (const channel of animation.channels) {
+      const list = channelsByNode.get(channel.targetNode) || [];
+      list.push(channel);
+      channelsByNode.set(channel.targetNode, list);
+    }
+
+    for (const [nodeId, channels] of Array.from(channelsByNode.entries())) {
+      const prim = this.nodePrimMap.get(nodeId);
+      if (!prim) continue;
+
+      for (const channel of channels) {
+        this.applyAnimationChannel(prim, channel, animation.samplers);
+      }
+    }
+  }
+
+  private applyAnimationChannel(
+    prim: IUSDPrim,
+    channel: IAnimationChannel,
+    samplers: IAnimationSampler[]
+  ): void {
+    const sampler = samplers[channel.samplerIndex];
+    if (!sampler) return;
+
+    // Extract time and value data from buffer views
+    const times = this.extractAccessorDataFlat(sampler.inputBufferView);
+    const values = this.extractAccessorDataFlat(sampler.outputBufferView);
+    if (times.length === 0 || values.length === 0) return;
+
+    const timeSamples = new Map<number, number[]>();
+
+    switch (channel.targetPath) {
+      case 'translation': {
+        for (let i = 0; i < times.length; i++) {
+          timeSamples.set(times[i], [values[i * 3], values[i * 3 + 1], values[i * 3 + 2]]);
+        }
+        this.setXformOpTimeSamples(prim, 'xformOp:translate', 'float3', timeSamples);
+        break;
+      }
+      case 'rotation': {
+        for (let i = 0; i < times.length; i++) {
+          const qx = values[i * 4];
+          const qy = values[i * 4 + 1];
+          const qz = values[i * 4 + 2];
+          const qw = values[i * 4 + 3];
+          const euler = quaternionToEuler([qx, qy, qz, qw]);
+          timeSamples.set(times[i], euler);
+        }
+        this.setXformOpTimeSamples(prim, 'xformOp:rotateXYZ', 'float3', timeSamples);
+        break;
+      }
+      case 'scale': {
+        for (let i = 0; i < times.length; i++) {
+          timeSamples.set(times[i], [values[i * 3], values[i * 3 + 1], values[i * 3 + 2]]);
+        }
+        this.setXformOpTimeSamples(prim, 'xformOp:scale', 'float3', timeSamples);
+        break;
+      }
+      case 'weights': {
+        // Morph target weights not yet supported in USDZ serialization
+        console.warn(`Morph target animation not yet supported for ${prim.name}`);
+        break;
+      }
+    }
+  }
+
+  private extractAccessorDataFlat(accessorIndex: number): number[] {
+    // Reuse existing accessor extraction logic when scene graph context is available
+    // This path is used during animation conversion after scene graph has been
+    // processed into the stage. We look up the original data via the stage's
+    // internal structures, but for animation channels the data is already in the
+    // scene graph accessors. Since convertAnimations is called during
+    // convertSceneGraph before packaging, the sceneGraph is not stored as a
+    // field. To resolve this, we read animation data from a lightweight snapshot.
+    //
+    // Practical fix: store a reference to the current scene graph during export.
+    return this.sceneGraphAccessorData.get(accessorIndex) || [];
+  }
+
+  private setXformOpTimeSamples(
+    prim: IUSDPrim,
+    opName: string,
+    type: USDAttributeType,
+    timeSamples: Map<number, number[]>
+  ): void {
+    // Find existing attribute or create new one
+    let attr = prim.attributes.find((a) => a.name === opName);
+    if (!attr) {
+      attr = { name: opName, type, value: timeSamples.values().next().value || [] };
+      prim.attributes.push(attr);
+    }
+    attr.timeSamples = timeSamples;
   }
 
   // ========================================================================
@@ -692,8 +1098,19 @@ export class USDZExporter {
 
   private serializeAttribute(attr: IUSDAttribute, lines: string[], indent: number): void {
     const ind = '    '.repeat(indent);
-    const value = this.serializeValue(attr.value, attr.type);
-    lines.push(`${ind}${attr.type} ${attr.name} = ${value}`);
+
+    if (attr.timeSamples && attr.timeSamples.size > 0) {
+      // Time-sampled attribute (animation)
+      lines.push(`${ind}${attr.type} ${attr.name}.timeSamples = {`);
+      for (const [time, sample] of Array.from(attr.timeSamples.entries())) {
+        const serializedSample = this.serializeValue(sample, attr.type);
+        lines.push(`${ind}    ${time}: ${serializedSample},`);
+      }
+      lines.push(`${ind}}`);
+    } else {
+      const value = this.serializeValue(attr.value, attr.type);
+      lines.push(`${ind}${attr.type} ${attr.name} = ${value}`);
+    }
   }
 
   private serializeValue(value: unknown, type: string): string {
@@ -841,6 +1258,8 @@ export class USDZExporter {
     this.primCounter = 0;
     this.materialMap.clear();
     this.meshMap.clear();
+    this.nodePrimMap.clear();
+    this.sceneGraphAccessorData.clear();
     this.textureFiles = [];
   }
 

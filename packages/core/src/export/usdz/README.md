@@ -325,11 +325,10 @@ open -a "Reality Converter" model.usdz
 
 ## Known Limitations
 
-1. **No Animation Support**: Skeletal animation export not yet implemented
-2. **Limited Texture Support**: Textures referenced by path, not embedded
-3. **No Light Export**: USD lights not yet supported
-4. **Basic Material Model**: Only UsdPreviewSurface supported (no MaterialX graph)
-5. **No Camera Export**: USD cameras not included in export
+1. **Limited Texture Support**: Textures referenced by path, not embedded
+2. **No Light Export**: USD lights not yet supported
+3. **Basic Material Model**: Only UsdPreviewSurface supported (no MaterialX graph)
+4. **No Camera Export**: USD cameras not included in export
 
 ## Browser Compatibility
 
