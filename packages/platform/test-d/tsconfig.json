@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "rootDir": ".",
+    "skipLibCheck": false,
+    "types": []
+  },
+  "include": ["platform-public-consumer.ts"]
+}
