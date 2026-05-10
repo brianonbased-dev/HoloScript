@@ -20,8 +20,29 @@ describe('DispatchPolicy', () => {
     expect(decision.tier).toBe(DispatchTier.TIER_3_CPU_DIRECT);
     expect(decision.accepted).toBe(true);
     expect(decision.provenance.source).toBe('dispatch-policy');
-    expect(decision.replayFingerprint).toMatch(/^fnv1a-64:/);
+    expect(decision.replayFingerprint).toBe(
+      'sha256:1f3d4e416e0199734e5ab109fb3cd9a3c33eac310381d2b91cae1f98e2a1b3a4'
+    );
     expect(decision.metrics.fallbackReason).toBe('No higher tier accepted or enabled');
+  });
+
+  it('uses a deterministic SHA-256 replay fingerprint', async () => {
+    const policy = new DispatchPolicy({
+      tier1BrowserEnabled: false,
+      tier1NeuromorphicEnabled: false,
+      tier2Enabled: false,
+    });
+    const op = {
+      trait: 'grabbable',
+      nodeId: 'hash-node',
+      config: { ignoredByDecision: true },
+    };
+
+    const first = await policy.route(op);
+    const second = await policy.route({ ...op });
+
+    expect(first.replayFingerprint).toBe(second.replayFingerprint);
+    expect(first.replayFingerprint).toMatch(/^sha256:[0-9a-f]{64}$/);
   });
 
   it('routes Tier-1 Browser for grabbable when WebGPU present (fallback in Node)', async () => {

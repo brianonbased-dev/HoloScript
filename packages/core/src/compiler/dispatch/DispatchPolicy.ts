@@ -201,7 +201,7 @@ export class DispatchPolicy {
     }
 
     // --- Tier 3-CPU Direct (always available) --------------------------------
-    const decision = this.fallbackTier3(
+    const decision = await this.fallbackTier3(
       op,
       lastRejectionReason ?? 'No higher tier accepted or enabled',
       lastRejectionMetrics
@@ -262,11 +262,11 @@ export class DispatchPolicy {
     return this.buildDecision(DispatchTier.TIER_2_SPECULATIVE, accepted, op, reason, alpha);
   }
 
-  private fallbackTier3(
+  private async fallbackTier3(
     op: DispatchableOperation,
     reason: string,
     extraMetrics: Partial<DispatchMetrics> = {}
-  ): DispatchDecision {
+  ): Promise<DispatchDecision> {
     return this.buildDecision(
       DispatchTier.TIER_3_CPU_DIRECT,
       true,
@@ -345,14 +345,14 @@ export class DispatchPolicy {
   // PROVENANCE BUILDER
   // ---------------------------------------------------------------------------
 
-  private buildDecision(
+  private async buildDecision(
     tier: DispatchTier,
     accepted: boolean,
     op: DispatchableOperation,
     fallbackReason?: string,
     alpha?: number,
     extraMetrics: Partial<DispatchMetrics> = {}
-  ): DispatchDecision {
+  ): Promise<DispatchDecision> {
     const metrics: DispatchMetrics = {
       tierAttempted: tier,
       tierAccepted: accepted,
@@ -373,7 +373,7 @@ export class DispatchPolicy {
       context: provenanceContext,
     };
 
-    const replayFingerprint = this.hashDecision(provenance);
+    const replayFingerprint = await this.hashDecision(provenance);
 
     return {
       tier,
@@ -384,17 +384,26 @@ export class DispatchPolicy {
     };
   }
 
-  private hashDecision(provenance: ProvenanceValue): string {
+  private async hashDecision(provenance: ProvenanceValue): Promise<string> {
     const value = provenance.value as Record<string, unknown>;
     const canonical = JSON.stringify(value, Object.keys(value).sort());
-    let hash = 0xcbf29ce484222325n;
-    for (let i = 0; i < canonical.length; i++) {
-      hash ^= BigInt(canonical.charCodeAt(i));
-      hash *= 0x100000001b3n;
-      hash &= 0xffffffffffffffffn;
-    }
-    return `fnv1a-64:${hash.toString(16)}`;
+    return `sha256:${await sha256Hex(canonical)}`;
   }
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  const subtle = globalThis.crypto?.subtle;
+  if (subtle) {
+    const digest = await subtle.digest('SHA-256', new TextEncoder().encode(input));
+    return bytesToHex(new Uint8Array(digest));
+  }
+
+  const { createHash } = await import('node:crypto');
+  return createHash('sha256').update(input).digest('hex');
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 export function detectNeuromorphicRuntime(
