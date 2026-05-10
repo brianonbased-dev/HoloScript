@@ -22,6 +22,7 @@ import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { StorageService } from './services/StorageService';
+import { AuthService, type AuthPrincipal } from './services/AuthService';
 import { InferenceRouter, type ChatRequest, type StreamEvent } from './services/InferenceRouter';
 import { RateLimiter } from './services/RateLimiter';
 import { UsageTracker } from './services/UsageTracker';
@@ -41,7 +42,10 @@ const PORT = process.env.PORT || 8000;
 
 const storage = new StorageService(join(__dirname, '..', '..', '.holoscript-llm'));
 const inference = new InferenceRouter();
-const rateLimiter = new RateLimiter();
+const auth = new AuthService(storage);
+const rateLimiter = new RateLimiter(undefined, {
+  storePath: join(storage.basePath, 'rate-limits', 'windows.json'),
+});
 const usage = new UsageTracker();
 
 // BuildService still uses OllamaService for backward compat
@@ -58,29 +62,99 @@ const buildService = new BuildService(storage, ollama);
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-/**
- * Auth middleware — extract API key from Authorization header.
- * In dev mode (no REQUIRE_AUTH), allow anonymous access.
- */
-function authMiddleware(req: Request, res: Response, next: NextFunction) {
-  const authHeader = req.headers.authorization;
-  const requireAuth = process.env.REQUIRE_AUTH === 'true';
+function requireAuth(): boolean {
+  if (process.env.NODE_ENV === 'production') return true;
+  return process.env.REQUIRE_AUTH === 'true';
+}
 
-  if (authHeader?.startsWith('Bearer ')) {
-    (req as any).apiKey = authHeader.slice(7);
-    (req as any).authenticated = true;
-  } else if (!requireAuth) {
-    (req as any).apiKey = 'anonymous';
-    (req as any).authenticated = false;
-  } else {
-    res.status(401).json({ error: 'Unauthorized', message: 'Bearer token required' });
+function isPublicPath(path: string): boolean {
+  return path === '/api/health' || path === '/api/auth/login' || path === '/api/auth/register';
+}
+
+function bearerToken(req: Request): string {
+  const authHeader = req.headers.authorization;
+  return authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+}
+
+async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  if (isPublicPath(req.path)) {
+    next();
     return;
   }
 
-  next();
+  try {
+    const token = bearerToken(req);
+
+    if (token) {
+      const principal = await auth.validateBearer(token);
+      if (!principal) {
+        res.status(401).json({ error: 'Unauthorized', message: 'Invalid or expired bearer token' });
+        return;
+      }
+
+      (req as any).principal = principal;
+      (req as any).apiKey = principal.userId;
+      (req as any).rateLimitKey = principal.apiKeyId ?? principal.sessionId ?? principal.userId;
+      (req as any).authenticated = true;
+    } else if (!requireAuth()) {
+      const principal: AuthPrincipal = { userId: 'anonymous', username: 'anonymous', role: 'user' };
+      (req as any).principal = principal;
+      (req as any).apiKey = 'anonymous';
+      (req as any).rateLimitKey = req.ip || 'anonymous';
+      (req as any).authenticated = false;
+    } else {
+      res.status(401).json({ error: 'Unauthorized', message: 'Bearer token required' });
+      return;
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
 }
 
 app.use(authMiddleware);
+
+// ============================================================================
+// ROUTES — AUTH
+// ============================================================================
+
+app.post('/api/auth/login', async (req: Request, res: Response) => {
+  const { username, password } = req.body ?? {};
+  if (typeof username !== 'string' || typeof password !== 'string') {
+    res.status(400).json({ error: 'username and password required' });
+    return;
+  }
+
+  const result = await auth.login(username, password);
+  if (!result) {
+    res.status(401).json({ error: 'Invalid credentials' });
+    return;
+  }
+
+  res.json({ tokenType: 'Bearer', ...result });
+});
+
+app.post('/api/auth/register', async (req: Request, res: Response) => {
+  if (process.env.ALLOW_REGISTRATION !== 'true' || process.env.NODE_ENV === 'production') {
+    res.status(403).json({ error: 'Registration disabled' });
+    return;
+  }
+
+  const { username, password } = req.body ?? {};
+  if (typeof username !== 'string' || typeof password !== 'string') {
+    res.status(400).json({ error: 'username and password required' });
+    return;
+  }
+
+  const created = await auth.registerUser(username, password);
+  if (!created) {
+    res.status(409).json({ error: 'User already exists or credentials are invalid' });
+    return;
+  }
+
+  res.status(201).json({ success: true });
+});
 
 // ============================================================================
 // ROUTES — CHAT (SSE Streaming)
@@ -274,6 +348,7 @@ app.delete('/api/builds/:id', async (req: Request, res: Response) => {
 app.get('/api/health', async (req: Request, res: Response) => {
   try {
     const providers = await inference.getStatus();
+    const [authStats, rateLimiterStats] = await Promise.all([auth.getStats(), rateLimiter.getStats()]);
     res.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
@@ -281,7 +356,13 @@ app.get('/api/health', async (req: Request, res: Response) => {
       version: '1.0.0',
       preferred: inference.getPreferredProvider(),
       providers,
-      rateLimiter: rateLimiter.getStats(),
+      auth: {
+        requireAuth: requireAuth(),
+        users: authStats.users,
+        activeSessions: authStats.activeSessions,
+        staticApiKeys: authStats.staticApiKeys,
+      },
+      rateLimiter: rateLimiterStats,
     });
   } catch (_error) {
     res.status(503).json({ status: 'error', error: 'Service unavailable' });
@@ -299,7 +380,21 @@ app.get('/api/models', async (req: Request, res: Response) => {
 
 // For backward compat
 app.get('/api/auth/me', (req: Request, res: Response) => {
-  res.json({ apiKey: (req as any).apiKey, authenticated: (req as any).authenticated });
+  res.json({
+    apiKey: (req as any).apiKey,
+    authenticated: (req as any).authenticated,
+    user: (req as any).principal ?? null,
+  });
+});
+
+app.post('/api/auth/logout', async (req: Request, res: Response) => {
+  const token = bearerToken(req);
+  if (!token) {
+    res.status(400).json({ error: 'Bearer token required' });
+    return;
+  }
+  await auth.logout(token);
+  res.json({ success: true });
 });
 
 // ============================================================================
@@ -321,8 +416,14 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
 
 async function start() {
   try {
+    if (process.env.NODE_ENV === 'production' && process.env.REQUIRE_AUTH === 'false') {
+      throw new Error('Production auth is fail-closed: REQUIRE_AUTH=false is not allowed.');
+    }
+
     await storage.init();
     logger.info('[Storage] Initialized at', storage.basePath);
+    await auth.init();
+    logger.info(`[Auth] Initialized (${requireAuth() ? 'required' : 'development anonymous fallback enabled'})`);
 
     // Check inference providers
     const providers = await inference.getStatus();

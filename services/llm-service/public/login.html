@@ -159,7 +159,7 @@
 
       <div class="form-group">
         <label>Username</label>
-        <input type="text" id="username" placeholder="user" autocomplete="off" />
+        <input type="text" id="username" placeholder="username" autocomplete="off" />
       </div>
 
       <div class="form-group">
@@ -170,18 +170,13 @@
       <button onclick="login()" id="loginBtn">Login</button>
 
       <div class="helper">
-        <div class="helper-title">Demo Credentials</div>
-        <div class="helper-text">🔐 Username: <strong>user</strong></div>
-        <div class="helper-text">🔑 Password: <strong>password</strong></div>
+        <div class="helper-title">Credentials</div>
+        <div class="helper-text">Use the account seeded by LLM_SERVICE_BOOTSTRAP_USER or register when enabled.</div>
       </div>
     </div>
 
     <script>
       const API_URL = 'http://localhost:8000';
-
-      // Auto-fill demo credentials
-      document.getElementById('username').value = 'user';
-      document.getElementById('password').value = 'password';
 
       // Enter key submits
       document.getElementById('password').addEventListener('keypress', (e) => {

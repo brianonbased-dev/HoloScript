@@ -1,12 +1,15 @@
 /**
  * RateLimiter — Sliding Window Rate Limiting
  *
- * In-memory per-key rate limiting for the Brittney Cloud Service.
+ * Durable per-key rate limiting for the Brittney Cloud Service.
  * Enforces requests-per-minute and requests-per-hour limits.
  */
 
+import { createHash } from 'crypto';
 import { Request, Response, NextFunction } from 'express';
+import { join } from 'path';
 import { logger } from '../utils/logger';
+import { JsonFileStore } from './JsonFileStore';
 
 // ============================================================================
 // Types
@@ -17,8 +20,14 @@ interface RateLimitConfig {
   requestsPerHour: number;
 }
 
-interface WindowEntry {
-  timestamps: number[];
+interface RateLimitState {
+  version: 1;
+  windows: Record<string, number[]>;
+}
+
+interface RateLimiterOptions {
+  storePath?: string;
+  now?: () => number;
 }
 
 // ============================================================================
@@ -26,69 +35,77 @@ interface WindowEntry {
 // ============================================================================
 
 export class RateLimiter {
-  private windows: Map<string, WindowEntry> = new Map();
-  private config: RateLimitConfig;
-  private cleanupInterval: ReturnType<typeof setInterval>;
+  private readonly store: JsonFileStore<RateLimitState>;
+  private readonly config: RateLimitConfig;
+  private readonly cleanupInterval: ReturnType<typeof setInterval>;
+  private readonly now: () => number;
 
-  constructor(config?: Partial<RateLimitConfig>) {
+  constructor(config?: Partial<RateLimitConfig>, options: RateLimiterOptions = {}) {
     this.config = {
-      requestsPerMinute: parseInt(process.env.RATE_LIMIT_RPM || '60', 10),
-      requestsPerHour: parseInt(process.env.RATE_LIMIT_RPH || '500', 10),
+      requestsPerMinute: parseLimit(process.env.RATE_LIMIT_RPM, 60),
+      requestsPerHour: parseLimit(process.env.RATE_LIMIT_RPH, 500),
       ...config,
     };
+    this.now = options.now ?? Date.now;
+    this.store = new JsonFileStore(
+      options.storePath ?? process.env.RATE_LIMIT_STORE_PATH ?? join(process.cwd(), '.holoscript-llm', 'rate-limits', 'windows.json'),
+      () => ({ version: 1, windows: {} }),
+      { now: this.now }
+    );
 
     // Clean expired entries every 5 minutes
-    this.cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000);
+    this.cleanupInterval = setInterval(() => {
+      void this.cleanup().catch((error) => logger.warn('[RateLimiter] Cleanup failed:', error));
+    }, 5 * 60 * 1000);
+    this.cleanupInterval.unref?.();
   }
 
   /**
    * Check if a request is allowed. Returns null if allowed, or an error object if limited.
    */
-  check(key: string): { limited: boolean; retryAfterSeconds: number; message: string } | null {
-    const now = Date.now();
-    const entry = this.getOrCreate(key);
+  async check(key: string): Promise<{ limited: boolean; retryAfterSeconds: number; message: string } | null> {
+    const bucket = hashKey(key || 'anonymous');
+    return this.store.update((state) => {
+      const now = this.now();
+      const timestamps = (state.windows[bucket] ?? []).filter((t) => now - t < 3600_000);
 
-    // Prune timestamps older than 1 hour
-    entry.timestamps = entry.timestamps.filter(t => now - t < 3600_000);
+      const oneMinuteAgo = now - 60_000;
+      const minuteTimestamps = timestamps.filter((t) => t >= oneMinuteAgo).sort((a, b) => a - b);
+      const hourTimestamps = timestamps.sort((a, b) => a - b);
 
-    const oneMinuteAgo = now - 60_000;
-    const recentMinute = entry.timestamps.filter(t => t >= oneMinuteAgo).length;
-    const recentHour = entry.timestamps.length;
+      if (minuteTimestamps.length >= this.config.requestsPerMinute) {
+        state.windows[bucket] = timestamps;
+        const retryAfter = Math.ceil(((minuteTimestamps[0] ?? now) + 60_000 - now) / 1000);
+        return {
+          limited: true,
+          retryAfterSeconds: Math.max(1, retryAfter),
+          message: `Rate limit exceeded: ${this.config.requestsPerMinute} requests per minute`,
+        };
+      }
 
-    // Check per-minute limit
-    if (recentMinute >= this.config.requestsPerMinute) {
-      const oldestInMinute = entry.timestamps.filter(t => t >= oneMinuteAgo).sort()[0];
-      const retryAfter = Math.ceil((oldestInMinute + 60_000 - now) / 1000);
-      return {
-        limited: true,
-        retryAfterSeconds: Math.max(1, retryAfter),
-        message: `Rate limit exceeded: ${this.config.requestsPerMinute} requests per minute`,
-      };
-    }
+      if (hourTimestamps.length >= this.config.requestsPerHour) {
+        state.windows[bucket] = timestamps;
+        const retryAfter = Math.ceil(((hourTimestamps[0] ?? now) + 3600_000 - now) / 1000);
+        return {
+          limited: true,
+          retryAfterSeconds: Math.max(1, retryAfter),
+          message: `Rate limit exceeded: ${this.config.requestsPerHour} requests per hour`,
+        };
+      }
 
-    // Check per-hour limit
-    if (recentHour >= this.config.requestsPerHour) {
-      const oldestInHour = entry.timestamps.sort()[0];
-      const retryAfter = Math.ceil((oldestInHour + 3600_000 - now) / 1000);
-      return {
-        limited: true,
-        retryAfterSeconds: Math.max(1, retryAfter),
-        message: `Rate limit exceeded: ${this.config.requestsPerHour} requests per hour`,
-      };
-    }
-
-    // Record this request
-    entry.timestamps.push(now);
-    return null;
+      timestamps.push(now);
+      state.windows[bucket] = timestamps;
+      return null;
+    });
   }
 
   /**
    * Express middleware
    */
   middleware() {
-    return (req: Request, res: Response, next: NextFunction) => {
-      const key = (req as any).apiKey || req.ip || 'anonymous';
-      const result = this.check(key);
+    return async (req: Request, res: Response, next: NextFunction) => {
+      const key = (req as any).rateLimitKey || (req as any).apiKey || req.ip || 'anonymous';
+      const result = await this.check(key);
 
       if (result) {
         logger.warn(`[RateLimiter] Key ${key} rate limited: ${result.message}`);
@@ -105,31 +122,35 @@ export class RateLimiter {
     };
   }
 
-  private getOrCreate(key: string): WindowEntry {
-    let entry = this.windows.get(key);
-    if (!entry) {
-      entry = { timestamps: [] };
-      this.windows.set(key, entry);
-    }
-    return entry;
-  }
-
-  private cleanup(): void {
-    const now = Date.now();
-    for (const [key, entry] of this.windows) {
-      entry.timestamps = entry.timestamps.filter(t => now - t < 3600_000);
-      if (entry.timestamps.length === 0) {
-        this.windows.delete(key);
+  private async cleanup(): Promise<void> {
+    await this.store.update((state) => {
+      const now = this.now();
+      for (const [key, timestamps] of Object.entries(state.windows)) {
+        const fresh = timestamps.filter((t) => now - t < 3600_000);
+        if (fresh.length === 0) {
+          delete state.windows[key];
+        } else {
+          state.windows[key] = fresh;
+        }
       }
-    }
+    });
   }
 
   destroy(): void {
     clearInterval(this.cleanupInterval);
-    this.windows.clear();
   }
 
-  getStats(): { keys: number; config: RateLimitConfig } {
-    return { keys: this.windows.size, config: this.config };
+  async getStats(): Promise<{ keys: number; config: RateLimitConfig; store: 'file' }> {
+    const state = await this.store.read();
+    return { keys: Object.keys(state.windows).length, config: this.config, store: 'file' };
   }
+}
+
+function parseLimit(value: string | undefined, fallback: number): number {
+  const parsed = Number.parseInt(value || '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function hashKey(key: string): string {
+  return createHash('sha256').update(key).digest('hex');
 }
