@@ -11,7 +11,7 @@ import { resolveWorkspaceIdForIdentity } from './workspaceIdentity';
  * When a user authenticates with GitHub OAuth, this module:
  * 1. Provisions an MCP API key (scoped to their workspace)
  * 2. Creates or connects their GitHub repo
- * 3. Seeds the .claude/ structure + .env with their API key
+ * 3. Seeds the .claude/ structure + secret references for their API key
  * 4. Starts the self-improvement daemon
  *
  * The user clicks "Sign in with GitHub" and everything else is automatic.
@@ -306,44 +306,67 @@ async function ensureRepo(
   return { owner: username, repoUrl: repo.html_url, repoName: repo.name, isNew: true };
 }
 
-// ── Step 3: Seed .claude/ + .env ─────────────────────────────────────────────
+// ── Step 3: Seed .claude/ + secret references ───────────────────────────────
 
 /**
- * Push the scaffolded .claude/ structure and .env with the API key to the repo.
+ * Push the scaffolded .claude/ structure and secret references to the repo.
  * Uses the GitHub Contents API to create/update files.
  */
 async function seedRepo(
   token: string,
   owner: string,
   repoName: string,
-  apiKey: string,
   workspaceId: string,
   scaffoldFiles: Record<string, string>
 ): Promise<void> {
-  // Seed .env with the provisioned API key (don't overwrite if exists)
-  const envContent = [
-    '# HoloScript Platform — auto-provisioned by Brittney',
-    `HOLOSCRIPT_API_KEY=${apiKey}`,
-    `MCP_WORKSPACE_ID=${workspaceId}`,
-    `MCP_ORCHESTRATOR_URL=${ORCHESTRATOR_URL}`,
-    `HOLOSCRIPT_MCP=https://mcp.holoscript.net`,
-    '',
-  ].join('\n');
+  const secretReferenceFiles = buildSecretReferenceFiles(workspaceId);
 
-  // Push .env
-  await pushFile(
-    token,
-    owner,
-    repoName,
-    '.env',
-    envContent,
-    'chore: provision HoloScript platform credentials'
-  );
+  for (const [path, content] of Object.entries(secretReferenceFiles)) {
+    await pushFile(
+      token,
+      owner,
+      repoName,
+      path,
+      content,
+      `chore: provision HoloScript secret reference ${path}`
+    );
+  }
 
   // Push all scaffold files (.claude/CLAUDE.md, .claude/NORTH_STAR.md, skills, hooks, etc.)
   for (const [path, content] of Object.entries(scaffoldFiles)) {
     await pushFile(token, owner, repoName, path, content, `chore: scaffold ${path}`);
   }
+}
+
+function buildSecretReferenceFiles(workspaceId: string): Record<string, string> {
+  const secretRef = `secret://workspace/${workspaceId}/holoscript/orchestrator/api-key`;
+  return {
+    '.env.example': [
+      '# HoloScript Platform - local development only',
+      '# Do not commit .env. Store the provisioned value as a Studio/HoloVault',
+      '# workspace secret or GitHub Actions secret named HOLOSCRIPT_API_KEY.',
+      'HOLOSCRIPT_API_KEY=',
+      `MCP_WORKSPACE_ID=${workspaceId}`,
+      `MCP_ORCHESTRATOR_URL=${ORCHESTRATOR_URL}`,
+      'HOLOSCRIPT_MCP=https://mcp.holoscript.net',
+      '',
+    ].join('\n'),
+    'ecosystem/secrets.manifest.yml': [
+      'version: 1',
+      `workspace_id: "${workspaceId}"`,
+      'secrets:',
+      '  - name: "HOLOSCRIPT_API_KEY"',
+      `    ref: "${secretRef}"`,
+      '    delivery: "studio-broker-or-github-actions-secret"',
+      '    required_for:',
+      '      - "holoscript-mcp"',
+      '      - "orchestrator-tools"',
+      '    setup:',
+      '      - "Store the provisioned value in Studio/HoloVault or a GitHub Actions secret named HOLOSCRIPT_API_KEY."',
+      '      - "For local development, copy .env.example to .env outside Git and fill the value locally."',
+      '',
+    ].join('\n'),
+  };
 }
 
 async function pushFile(
@@ -414,7 +437,7 @@ async function startDaemon(apiKey: string, workspaceId: string, repoUrl: string)
  *
  * 1. Provision API key on orchestrator
  * 2. Create or connect GitHub repo
- * 3. Scaffold .claude/ structure + seed .env with API key
+ * 3. Scaffold .claude/ structure + seed secret references
  * 4. Start self-improvement daemon
  */
 export async function provisionUser(input: ProvisionInput): Promise<ProvisionResult> {
@@ -472,7 +495,7 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
           },
         }
       );
-      updateStep('provision-key', 'done', `key: ${apiKey.slice(0, 8)}...`);
+      updateStep('provision-key', 'done', 'workspace key provisioned server-side');
       updateStep('ensure-repo', 'done', `linked ${accountWorkspace.repoName}`);
 
       return {
@@ -514,7 +537,7 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
         approvedRepoCount: input.approvedRepos.length,
       },
     });
-    updateStep('provision-key', 'done', `key: ${apiKey.slice(0, 8)}...`);
+    updateStep('provision-key', 'done', 'workspace key provisioned server-side');
 
     // Step 2: Ensure repo exists
     updateStep('ensure-repo', 'running');
@@ -581,7 +604,7 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
       scaffold = scaffoldProjectWorkspace(dna);
       updateStep('scaffold', 'done');
 
-      // Step 5: Seed repo with .claude/ + .env (only if scaffold approved)
+      // Step 5: Seed repo with .claude/ + secret references (only if scaffold approved)
       updateStep('seed-repo', 'running');
       const files: Record<string, string> = {
         ...accountSeed.files,
@@ -595,7 +618,7 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
       for (const hook of scaffold.hooks) {
         files[`.claude/hooks/${hook.name}`] = hook.content;
       }
-      await seedRepo(input.githubAccessToken, owner, repoName, apiKey, workspaceId, files);
+      await seedRepo(input.githubAccessToken, owner, repoName, workspaceId, files);
       updateStep('seed-repo', 'done');
     }
 

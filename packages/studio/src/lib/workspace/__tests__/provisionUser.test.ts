@@ -55,7 +55,9 @@ describe('provisionUser founder bootstrap', () => {
         const href = String(url);
         const method = init?.method ?? 'GET';
         if (href.includes('/admin/keys')) {
-          return new Response(JSON.stringify({ key: 'mcp-founder-key' }), { status: 200 });
+          return new Response(JSON.stringify({ key: 'mcp-provisioned-secret-key' }), {
+            status: 200,
+          });
         }
         if (href === 'https://api.github.com/user/repos' && method === 'POST') {
           return new Response(
@@ -237,12 +239,13 @@ describe('provisionUser founder bootstrap', () => {
       });
     expect(pushedFiles.map((file) => file.path)).toEqual(
       expect.arrayContaining([
-        '.env',
+        '.env.example',
         'README.md',
         'profile.yml',
         'config.yml',
         'agents/claude.yml',
         'agents/gemini.yml',
+        'ecosystem/secrets.manifest.yml',
         'ecosystem/account-workspace.json',
         'ecosystem/linked-repos.json',
         'ecosystem/board-state.json',
@@ -256,6 +259,18 @@ describe('provisionUser founder bootstrap', () => {
     const profile = pushedFiles.find((file) => file.path === 'profile.yml')?.content;
     expect(profile).toContain('workspace_id: "ws_octocat"');
     expect(profile).toContain('template: "ai-workspace-template"');
+
+    const envExample = pushedFiles.find((file) => file.path === '.env.example')?.content ?? '';
+    expect(envExample).toContain('HOLOSCRIPT_API_KEY=');
+    expect(envExample).toContain('MCP_WORKSPACE_ID=ws_octocat');
+    expect(envExample).toContain('GitHub Actions secret named HOLOSCRIPT_API_KEY');
+
+    const secretManifest =
+      pushedFiles.find((file) => file.path === 'ecosystem/secrets.manifest.yml')?.content ?? '';
+    expect(secretManifest).toContain(
+      'ref: "secret://workspace/ws_octocat/holoscript/orchestrator/api-key"'
+    );
+    expect(secretManifest).toContain('delivery: "studio-broker-or-github-actions-secret"');
 
     const manifest = JSON.parse(
       pushedFiles.find((file) => file.path === 'ecosystem/account-workspace.json')?.content ?? '{}'
@@ -280,6 +295,10 @@ describe('provisionUser founder bootstrap', () => {
     expect(pushedFiles.map((file) => file.content).join('\n')).not.toContain(
       'gho_customer_secret_token'
     );
+    expect(pushedFiles.map((file) => file.content).join('\n')).not.toContain(
+      'mcp-provisioned-secret-key'
+    );
+    expect(pushedFiles.map((file) => file.path)).not.toContain('.env');
   });
 
   it('connects an existing repo only when it appears in the approved repo list', async () => {
