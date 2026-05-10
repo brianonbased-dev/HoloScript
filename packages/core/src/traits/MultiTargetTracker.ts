@@ -130,33 +130,44 @@ export function stepTracker(
   // 1. Predict all existing tracks forward by dt.
   const predicted = state.tracks.map((t) => kalmanPredict(t, dt_seconds));
 
-  // 2. Compute cost matrix between predicted tracks and detections.
-  const cost = buildCostMatrix(predicted, detections, state.config);
+  // 2. Split into active (tentative + confirmed) and lost. Active tracks
+  //    participate in cost-based Hungarian assignment; lost tracks go through
+  //    the explicit ReID-recovery path so re-identification is observable in
+  //    the FrameReidentification output (not silently masked by position cost).
+  const activeIndices: number[] = [];
+  for (let i = 0; i < predicted.length; i++) {
+    if (predicted[i].status !== 'lost') activeIndices.push(i);
+  }
+  const activeTracks = activeIndices.map((i) => predicted[i]);
 
-  // 3. Hungarian assignment with rejection threshold.
+  // 3. Compute cost matrix between active predicted tracks and detections.
+  const cost = buildCostMatrix(activeTracks, detections, state.config);
+
+  // 4. Hungarian assignment with rejection threshold.
   const assignment = hungarianAssign(cost, state.config.hungarian_cost_threshold);
 
-  // 4. Update matched tracks; track which tracks + detections are still unassigned.
+  // 5. Update matched tracks; track which tracks + detections are still unassigned.
   const associations: FrameAssociation[] = [];
   const matchedTrackIds = new Set<string>();
   const matchedDetectionIdx = new Set<number>();
-  const updatedTracks: Track[] = [];
-  for (let i = 0; i < predicted.length; i++) {
-    const detIdx = assignment[i];
+  const updatedTracks: Track[] = predicted.slice();
+  for (let activeIdx = 0; activeIdx < activeTracks.length; activeIdx++) {
+    const trackIdx = activeIndices[activeIdx];
+    const detIdx = assignment[activeIdx];
     if (detIdx >= 0 && detIdx < detections.length) {
       const det = detections[detIdx];
-      const updated = kalmanUpdate(predicted[i], det, state.config, frame_index);
-      updatedTracks.push(updated);
+      const updated = kalmanUpdate(activeTracks[activeIdx], det, state.config, frame_index);
+      updatedTracks[trackIdx] = updated;
       matchedTrackIds.add(updated.id);
       matchedDetectionIdx.add(detIdx);
-      associations.push({ track_id: updated.id, detection_index: detIdx, cost: cost[i][detIdx] });
+      associations.push({ track_id: updated.id, detection_index: detIdx, cost: cost[activeIdx][detIdx] });
     } else {
-      // Track unmatched this frame: age it as occluded.
-      updatedTracks.push(ageOccludedTrack(predicted[i], state.config));
+      // Active track unmatched this frame: age it as occluded.
+      updatedTracks[trackIdx] = ageOccludedTrack(activeTracks[activeIdx], state.config);
     }
   }
 
-  // 5. ReID recovery: try to match unmatched detections against lost tracks.
+  // 6. ReID recovery: try to match unmatched detections against lost tracks.
   const reidentified: FrameReidentification[] = [];
   const lostTracks = updatedTracks.filter((t) => t.status === 'lost');
   for (let detIdx = 0; detIdx < detections.length; detIdx++) {
