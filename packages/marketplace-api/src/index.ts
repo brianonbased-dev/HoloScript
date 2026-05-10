@@ -117,11 +117,12 @@ export { createPluginMarketplaceRoutes } from './pluginRoutes.js';
 // ─── Skill Marketplace ──────────────────────────────────────────────────────
 export {
   SkillMarketplaceService,
+  SkillMarketplacePaymentError,
   InMemorySkillDatabase,
   SkillDownloadStatsTracker,
   SkillRatingService,
 } from './SkillMarketplaceService.js';
-export type { ISkillDatabase } from './SkillMarketplaceService.js';
+export type { ISkillDatabase, SkillPaymentVerifier } from './SkillMarketplaceService.js';
 
 // ─── Skill Marketplace Routes ────────────────────────────────────────────────
 export { createSkillMarketplaceRoutes } from './skillRoutes.js';

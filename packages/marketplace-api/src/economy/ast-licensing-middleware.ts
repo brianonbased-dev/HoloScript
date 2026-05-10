@@ -20,7 +20,7 @@
  */
 
 import express, { type Request, type Response, type NextFunction, type Router } from 'express';
-import pathToRegexpCompat from 'path-to-regexp';
+import { createRequire } from 'node:module';
 import {
   ASTLicenseRegistry,
   ASTLicenseGate,
@@ -38,24 +38,50 @@ import { safeParseX402PaymentPayload } from '@holoscript/framework/economy';
 // (no `.match`) while `router@2.x` expects `pathRegexp.match(...)`.
 // Mutate the cached export once so express/router can create routes reliably.
 // -----------------------------------------------------------------------------
-const pathRegexpAny = pathToRegexpCompat as unknown as {
-  (...args: unknown[]): RegExp;
-  match?: (path: string, options?: unknown) => (pathname: string) => false | {
-    path: string;
-    index: number;
-    params: Record<string, string>;
-  };
+type PathToRegexpMatch = (path: string, options?: unknown) => (pathname: string) => false | {
+  path: string;
+  index: number;
+  params: Record<string, string>;
 };
 
-if (typeof pathRegexpAny.match !== 'function') {
+type PathToRegexpFunction = (
+  path: string,
+  keysOrOptions?: Array<{ name: string }> | unknown,
+  options?: unknown
+) => RegExp | { regexp: RegExp; keys?: Array<{ name: string }> };
+
+type PathToRegexpModule = {
+  (...args: unknown[]): RegExp;
+  default?: PathToRegexpFunction | { match?: PathToRegexpMatch; pathToRegexp?: PathToRegexpFunction };
+  match?: PathToRegexpMatch;
+  pathToRegexp?: PathToRegexpFunction;
+};
+
+const require = createRequire(import.meta.url);
+const pathRegexpAny = require('path-to-regexp') as PathToRegexpModule;
+const defaultExport = pathRegexpAny.default;
+const pathToRegexpFn =
+  typeof pathRegexpAny === 'function'
+    ? (pathRegexpAny as PathToRegexpFunction)
+    : typeof pathRegexpAny.pathToRegexp === 'function'
+      ? pathRegexpAny.pathToRegexp
+      : typeof defaultExport === 'function'
+        ? defaultExport
+        : typeof defaultExport === 'object' && typeof defaultExport.pathToRegexp === 'function'
+          ? defaultExport.pathToRegexp
+          : undefined;
+
+if (typeof pathRegexpAny.match !== 'function' && pathToRegexpFn) {
   pathRegexpAny.match = (path: string, options?: unknown) => {
     const keys: Array<{ name: string }> = [];
-    const re = pathRegexpAny(path, keys, options) as RegExp;
+    const compiled = pathToRegexpFn(path, keys, options);
+    const re = compiled instanceof RegExp ? compiled : compiled.regexp;
+    const compiledKeys = compiled instanceof RegExp ? keys : compiled.keys ?? keys;
     return (pathname: string) => {
       const m = re.exec(pathname);
       if (!m) return false;
       const params: Record<string, string> = {};
-      keys.forEach((k, i) => {
+      compiledKeys.forEach((k, i) => {
         params[k.name] = m[i + 1];
       });
       return {

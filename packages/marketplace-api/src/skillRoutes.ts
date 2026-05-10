@@ -6,7 +6,7 @@
  * @module marketplace-api/skillRoutes
  */
 
-import { Router } from 'express';
+import { Router, type Request, type Response } from 'express';
 import type {
   SkillSearchQuery,
   SkillPublishRequest,
@@ -20,7 +20,68 @@ import type {
   DownloadStats,
   TraitRating,
 } from './types.js';
-import type { SkillMarketplaceService } from './SkillMarketplaceService.js';
+import {
+  SkillMarketplacePaymentError,
+  type SkillMarketplaceService,
+} from './SkillMarketplaceService.js';
+import type { x402PaymentService } from './x402PaymentService.js';
+
+function extractPaymentId(req: Request): string | undefined {
+  const headerPaymentId = req.headers['x-payment-id'];
+  if (typeof headerPaymentId === 'string' && headerPaymentId.trim()) {
+    return headerPaymentId.trim();
+  }
+
+  const body = req.body as Record<string, unknown> | undefined;
+  const bodyPaymentId = body?.payment_id ?? body?.paymentId;
+  if (typeof bodyPaymentId === 'string' && bodyPaymentId.trim()) {
+    return bodyPaymentId.trim();
+  }
+
+  const queryPaymentId = req.query.payment_id ?? req.query.paymentId;
+  if (typeof queryPaymentId === 'string' && queryPaymentId.trim()) {
+    return queryPaymentId.trim();
+  }
+
+  return undefined;
+}
+
+function isPaidSkill(skill: SkillPackage): boolean {
+  return skill.pricingModel !== 'free';
+}
+
+function getSkillPriceDollars(skill: SkillPackage): number {
+  const cents =
+    skill.pricingModel === 'subscription'
+      ? skill.subscriptionPrice ?? skill.price
+      : skill.price;
+  return cents / 100;
+}
+
+function skillPricingPayload(skill: SkillPackage) {
+  return {
+    pricingModel: skill.pricingModel,
+    price: skill.price,
+    subscriptionPrice: skill.subscriptionPrice,
+  };
+}
+
+function handleSkillPaymentError(
+  res: Response,
+  error: unknown,
+  skill?: SkillPackage
+): boolean {
+  if (!(error instanceof SkillMarketplacePaymentError)) {
+    return false;
+  }
+
+  res.status(error.status).json({
+    success: false,
+    error: { code: error.code, message: error.message },
+    ...(skill ? { pricing: skillPricingPayload(skill) } : {}),
+  });
+  return true;
+}
 
 /**
  * Create Express router for skill marketplace endpoints.
@@ -43,7 +104,10 @@ import type { SkillMarketplaceService } from './SkillMarketplaceService.js';
  *   GET    /api/skills/:id/stats      → getSkillDownloadStats
  *   DELETE /api/skills/:id            → unpublishSkill
  */
-export function createSkillMarketplaceRoutes(service: SkillMarketplaceService): Router {
+export function createSkillMarketplaceRoutes(
+  service: SkillMarketplaceService,
+  paymentService?: x402PaymentService
+): Router {
   const router = Router();
 
   // ─── Publishing ────────────────────────────────────────────────────────────
@@ -163,23 +227,44 @@ export function createSkillMarketplaceRoutes(service: SkillMarketplaceService): 
   // ─── Purchase & Download ───────────────────────────────────────────────────
 
   router.post('/:id/purchase', async (req, res) => {
+    let skill: SkillPackage | undefined;
     try {
       const token = req.headers.authorization?.replace('Bearer ', '') || '';
-      const result = await service.purchaseSkill(req.params.id, token);
+      const paymentId = extractPaymentId(req);
+      skill = await service.getSkill(req.params.id);
+
+      if (isPaidSkill(skill) && !paymentId && paymentService) {
+        paymentService.return402Response(res, {
+          payment_id: `x402_skill_${req.params.id}_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
+          price: getSkillPriceDollars(skill),
+          asset: 'USDC',
+          network: 'base',
+          facilitator: 'https://cdp.coinbase.com/x402',
+          content_id: req.params.id,
+        });
+        return;
+      }
+
+      const result = await service.purchaseSkill(req.params.id, token, paymentId);
       res.json({ success: true, data: result });
     } catch (error) {
+      if (handleSkillPaymentError(res, error, skill)) return;
       const message = error instanceof Error ? error.message : 'Purchase failed';
       res.status(400).json({ success: false, error: { code: 'PURCHASE_FAILED', message } });
     }
   });
 
   router.get('/:id/download', async (req, res) => {
+    let skill: SkillPackage | undefined;
     try {
       const token = req.headers.authorization?.replace('Bearer ', '') || '';
-      const result = await service.getDownloadUrl(req.params.id, token);
+      const paymentId = extractPaymentId(req);
+      skill = await service.getSkill(req.params.id);
+      const result = await service.getDownloadUrl(req.params.id, token, paymentId);
       await service.recordSkillDownload(req.params.id);
       res.json({ success: true, data: result });
     } catch (error) {
+      if (handleSkillPaymentError(res, error, skill)) return;
       const message = error instanceof Error ? error.message : 'Download failed';
       res.status(400).json({ success: false, error: { code: 'DOWNLOAD_FAILED', message } });
     }

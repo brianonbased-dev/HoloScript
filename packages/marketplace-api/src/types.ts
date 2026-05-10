@@ -1003,6 +1003,36 @@ export interface SkillPublishResult {
 }
 
 /**
+ * Payment receipt metadata returned after a paid skill purchase is verified.
+ */
+export interface SkillPurchaseReceipt {
+  paymentId: string;
+  contentId: string;
+  amount: number;
+  asset: string;
+  network: string;
+  accessExpiresAt?: number;
+}
+
+/**
+ * Result of purchasing a skill. Free skills omit receipt metadata.
+ */
+export interface SkillPurchaseResult {
+  downloadUrl: string;
+  expiresAt: Date;
+  receipt?: SkillPurchaseReceipt;
+}
+
+/**
+ * Result of resolving a skill download URL.
+ */
+export interface SkillDownloadUrlResult {
+  url: string;
+  expiresAt: Date;
+  receipt?: SkillPurchaseReceipt;
+}
+
+/**
  * Skill marketplace API interface.
  * Extends marketplace with AI skill authoring, testing, and distribution.
  *
@@ -1036,8 +1066,16 @@ export interface ISkillMarketplaceAPI {
   getCategories(): Promise<{ category: SkillCategory; count: number; description: string }[]>;
 
   // Purchase & download
-  purchaseSkill(skillId: string, token: string): Promise<{ downloadUrl: string; expiresAt: Date }>;
-  getDownloadUrl(skillId: string, token: string): Promise<{ url: string; expiresAt: Date }>;
+  purchaseSkill(
+    skillId: string,
+    token: string,
+    paymentId?: string
+  ): Promise<SkillPurchaseResult>;
+  getDownloadUrl(
+    skillId: string,
+    token: string,
+    paymentId?: string
+  ): Promise<SkillDownloadUrlResult>;
 
   // Install (into workspace)
   installSkill(

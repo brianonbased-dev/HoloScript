@@ -16,6 +16,13 @@ import { createHololandRoutes } from './hololandRoutes.js';
 import { createASTAssetRouter } from './economy/ast-licensing-middleware.js';
 import { PluginMarketplaceService } from './PluginMarketplaceService.js';
 import { createPluginMarketplaceRoutes } from './pluginRoutes.js';
+import {
+  InMemorySkillDatabase,
+  SkillDownloadStatsTracker,
+  SkillMarketplaceService,
+  SkillRatingService,
+} from './SkillMarketplaceService.js';
+import { createSkillMarketplaceRoutes } from './skillRoutes.js';
 
 // =============================================================================
 // SERVER CONFIGURATION
@@ -45,12 +52,29 @@ const DEFAULT_CONFIG: ServerConfig = {
 export function createApp(
   marketplace?: MarketplaceService,
   pluginMarketplace?: PluginMarketplaceService,
-  config?: Partial<ServerConfig>
+  config?: Partial<ServerConfig>,
+  skillMarketplace?: SkillMarketplaceService
 ): Express {
   const app = express();
   const cfg = { ...DEFAULT_CONFIG, ...config };
   const service = marketplace ?? new MarketplaceService();
   const pluginService = pluginMarketplace ?? new PluginMarketplaceService();
+  const paymentService = new x402PaymentService({
+    facilitators: [{ name: 'coinbase', endpoint: 'https://cdp.coinbase.com/x402' }],
+    networks: [{ name: 'base', rpc_url: 'https://mainnet.base.org', chain_id: 8453 }],
+    assets: [{ symbol: 'USDC' }],
+    gasless: { enabled: true, subsidy_provider: 'coinbase', max_gas_price: 1000000000 },
+    receipt_storage: { provider: 'postgresql', table: 'x402_receipts' },
+    webhook_endpoint: '/api/payments/x402/callback',
+  });
+  const skillService =
+    skillMarketplace ??
+    new SkillMarketplaceService(
+      new InMemorySkillDatabase(),
+      new SkillDownloadStatsTracker(),
+      new SkillRatingService(),
+      paymentService
+    );
 
   // Trust proxy if behind reverse proxy (e.g., nginx, load balancer)
   if (cfg.trustProxy) {
@@ -71,12 +95,13 @@ export function createApp(
       origin: cfg.corsOrigins,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID', 'X-Payment-ID'],
       exposedHeaders: [
         'X-RateLimit-Limit',
         'X-RateLimit-Remaining',
         'X-RateLimit-Reset',
         'Retry-After',
+        'WWW-Authenticate',
       ],
     })
   );
@@ -117,6 +142,7 @@ export function createApp(
       endpoints: {
         traits: '/api/v1/traits',
         plugins: '/api/v1/plugins',
+        skills: '/api/v1/skills',
         resolve: '/api/v1/resolve',
         compatibility: '/api/v1/compatibility',
         health: '/api/v1/health',
@@ -127,16 +153,9 @@ export function createApp(
   // API routes
   app.use('/api/v1', createMarketplaceRoutes(service));
   app.use('/api/v1', createPluginMarketplaceRoutes(pluginService, paymentService));
+  app.use('/api/v1/skills', createSkillMarketplaceRoutes(skillService, paymentService));
 
   // Hololand AI Economy routes
-  const paymentService = new x402PaymentService({
-    facilitators: [{ name: 'coinbase', endpoint: 'https://cdp.coinbase.com/x402' }],
-    networks: [{ name: 'base', rpc_url: 'https://mainnet.base.org', chain_id: 8453 }],
-    assets: [{ symbol: 'USDC' }],
-    gasless: { enabled: true, subsidy_provider: 'coinbase', max_gas_price: 1000000000 },
-    receipt_storage: { provider: 'postgresql', table: 'x402_receipts' },
-    webhook_endpoint: '/api/payments/x402/callback'
-  });
   app.use('/api/v1', createHololandRoutes(paymentService));
 
   // X402 AST Asset Licensing routes (Phase 2 task _zoje)

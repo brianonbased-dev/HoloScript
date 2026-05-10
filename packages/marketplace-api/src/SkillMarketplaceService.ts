@@ -20,6 +20,9 @@ import type {
   SkillSearchResult,
   SkillPublishRequest,
   SkillPublishResult,
+  SkillPurchaseReceipt,
+  SkillPurchaseResult,
+  SkillDownloadUrlResult,
   SkillSearchFacets,
   SkillPermission,
   DownloadStats,
@@ -29,6 +32,7 @@ import type {
   ISkillMarketplaceAPI,
   FacetCount,
 } from './types.js';
+import type { x402PaymentReceipt } from './x402PaymentService.js';
 
 // =============================================================================
 // HELPERS
@@ -261,6 +265,28 @@ const SKILL_CATEGORY_DESCRIPTIONS: Record<SkillCategory, string> = {
   code_generator: 'Code generation patterns, scaffolding, and boilerplate generators',
 };
 
+export interface SkillPaymentVerifier {
+  verifyPayment(paymentId: string): Promise<x402PaymentReceipt | null>;
+}
+
+export type SkillMarketplacePaymentErrorCode =
+  | 'PAYMENT_REQUIRED'
+  | 'PAYMENT_UNAVAILABLE'
+  | 'PAYMENT_RECEIPT_MISMATCH'
+  | 'PAYMENT_EXPIRED'
+  | 'PAYMENT_INSUFFICIENT';
+
+export class SkillMarketplacePaymentError extends Error {
+  constructor(
+    public readonly code: SkillMarketplacePaymentErrorCode,
+    message: string,
+    public readonly status = code === 'PAYMENT_UNAVAILABLE' ? 503 : 402
+  ) {
+    super(message);
+    this.name = 'SkillMarketplacePaymentError';
+  }
+}
+
 // =============================================================================
 // SKILL MARKETPLACE SERVICE
 // =============================================================================
@@ -272,7 +298,8 @@ export class SkillMarketplaceService implements ISkillMarketplaceAPI {
   constructor(
     private db: ISkillDatabase,
     private downloadTracker: SkillDownloadStatsTracker,
-    private ratingService: SkillRatingService
+    private ratingService: SkillRatingService,
+    private paymentVerifier?: SkillPaymentVerifier
   ) {}
 
   // ─── Publishing ──────────────────────────────────────────────────────────────
@@ -439,23 +466,42 @@ export class SkillMarketplaceService implements ISkillMarketplaceAPI {
 
   async purchaseSkill(
     skillId: string,
-    _token: string
-  ): Promise<{ downloadUrl: string; expiresAt: Date }> {
+    _token: string,
+    paymentId?: string
+  ): Promise<SkillPurchaseResult> {
     const skill = await this.db.getSkill(skillId);
     if (!skill) throw new Error(`Skill not found: ${skillId}`);
 
-    // Payment stub: returns a download URL valid for 24h.
-    // Wire up x402PaymentService when the payment gateway is live.
+    const receipt = await this.requirePaidSkillReceipt(skill, paymentId);
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
-    return {
+    const result: SkillPurchaseResult = {
       downloadUrl: `/api/skills/${skillId}/download`,
       expiresAt,
     };
+    if (receipt) {
+      result.receipt = receipt;
+    }
+    return result;
   }
 
-  async getDownloadUrl(skillId: string, _token: string): Promise<{ url: string; expiresAt: Date }> {
-    const purchase = await this.purchaseSkill(skillId, _token);
-    return { url: purchase.downloadUrl, expiresAt: purchase.expiresAt };
+  async getDownloadUrl(
+    skillId: string,
+    _token: string,
+    paymentId?: string
+  ): Promise<SkillDownloadUrlResult> {
+    const skill = await this.db.getSkill(skillId);
+    if (!skill) throw new Error(`Skill not found: ${skillId}`);
+
+    const receipt = await this.requirePaidSkillReceipt(skill, paymentId);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+    const result: SkillDownloadUrlResult = {
+      url: `/api/skills/${skillId}/download`,
+      expiresAt,
+    };
+    if (receipt) {
+      result.receipt = receipt;
+    }
+    return result;
   }
 
   // ─── Install ─────────────────────────────────────────────────────────────────
@@ -606,6 +652,81 @@ export class SkillMarketplaceService implements ISkillMarketplaceAPI {
       publishedAt: skill.publishedAt,
       updatedAt: skill.updatedAt,
     };
+  }
+
+  private async requirePaidSkillReceipt(
+    skill: SkillPackage,
+    paymentId?: string
+  ): Promise<SkillPurchaseReceipt | undefined> {
+    if (!this.isPaidSkill(skill)) return undefined;
+
+    if (!this.paymentVerifier) {
+      throw new SkillMarketplacePaymentError(
+        'PAYMENT_UNAVAILABLE',
+        'Payment service is not configured for paid skills'
+      );
+    }
+
+    if (!paymentId) {
+      throw new SkillMarketplacePaymentError(
+        'PAYMENT_REQUIRED',
+        'Valid x402 payment receipt required for this skill'
+      );
+    }
+
+    const receipt = await this.paymentVerifier.verifyPayment(paymentId);
+    if (!receipt || !receipt.access_granted) {
+      throw new SkillMarketplacePaymentError(
+        'PAYMENT_REQUIRED',
+        'Valid x402 payment receipt required for this skill'
+      );
+    }
+
+    if (receipt.content_id !== skill.id) {
+      throw new SkillMarketplacePaymentError(
+        'PAYMENT_RECEIPT_MISMATCH',
+        'Payment receipt does not grant access to this skill'
+      );
+    }
+
+    if (
+      receipt.access_expires_at !== undefined &&
+      receipt.access_expires_at < Math.floor(Date.now() / 1000)
+    ) {
+      throw new SkillMarketplacePaymentError(
+        'PAYMENT_EXPIRED',
+        'Payment receipt has expired'
+      );
+    }
+
+    const requiredAmount = this.getRequiredSkillPaymentAmount(skill);
+    if (receipt.amount + Number.EPSILON < requiredAmount) {
+      throw new SkillMarketplacePaymentError(
+        'PAYMENT_INSUFFICIENT',
+        'Payment receipt amount is below the skill price'
+      );
+    }
+
+    return {
+      paymentId: receipt.payment_id,
+      contentId: receipt.content_id,
+      amount: receipt.amount,
+      asset: receipt.asset,
+      network: receipt.network,
+      accessExpiresAt: receipt.access_expires_at,
+    };
+  }
+
+  private isPaidSkill(skill: SkillPackage): boolean {
+    return skill.pricingModel !== 'free';
+  }
+
+  private getRequiredSkillPaymentAmount(skill: SkillPackage): number {
+    const cents =
+      skill.pricingModel === 'subscription'
+        ? skill.subscriptionPrice ?? skill.price
+        : skill.price;
+    return cents / 100;
   }
 
   private buildFacets(skills: SkillPackage[]): SkillSearchFacets {
