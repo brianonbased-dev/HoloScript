@@ -58,7 +58,7 @@ export function runStudioCommand(
     return true;
   }
 
-  const toggle = state[toggleFieldName(view.id)];
+  const toggle = state[toggleFieldName(view.id)] as (() => void) | undefined;
   if (typeof toggle !== 'function') return false;
   toggle();
   return true;

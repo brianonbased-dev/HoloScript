@@ -22,6 +22,12 @@ export type StudioViewPlacement =
   | 'top-overlay';
 
 export type StudioWorkspaceScope = 'global' | 'workspace' | 'project' | 'scene';
+export type StudioViewAvailabilityGate =
+  | 'always'
+  | 'expert'
+  | 'experimental'
+  | 'project'
+  | 'workspace';
 
 const VIEW_TITLES = {
   palette: 'Command Palette',
@@ -108,10 +114,12 @@ export type StudioViewCommandId = `studio.view.${StudioViewId}.toggle`;
 export interface StudioViewDefinition {
   id: StudioViewId;
   title: string;
+  icon: string;
   category: StudioViewCategory;
   defaultPlacement: StudioViewPlacement;
   activationCommand: StudioViewCommandId;
   workspaceScope: StudioWorkspaceScope;
+  availabilityGate: StudioViewAvailabilityGate;
   defaultOpen: boolean;
   exclusiveWith: StudioViewId[];
 }
@@ -120,7 +128,7 @@ export const STUDIO_VIEW_IDS = Object.keys(VIEW_TITLES) as StudioViewId[];
 export const DEFAULT_OPEN_STUDIO_VIEW_IDS = ['chat', 'minimap'] as const satisfies StudioViewId[];
 const DEFAULT_OPEN_VIEW_SET = new Set<StudioViewId>(DEFAULT_OPEN_STUDIO_VIEW_IDS);
 
-const CATEGORY_BY_VIEW = {
+const CATEGORY_BY_VIEW: Partial<Record<StudioViewId, StudioViewCategory>> = {
   chat: 'assistant',
   aiMaterial: 'assistant',
   critique: 'assistant',
@@ -160,9 +168,87 @@ const CATEGORY_BY_VIEW = {
   simulation: 'simulation',
   particles: 'simulation',
   runtimeTier: 'simulation',
-} satisfies Partial<Record<StudioViewId, StudioViewCategory>>;
+};
 
-const PLACEMENT_BY_VIEW = {
+const ICON_BY_VIEW: Partial<Record<StudioViewId, string>> = {
+  palette: 'Search',
+  chat: 'MessageCircle',
+  history: 'History',
+  profiler: 'Activity',
+  shaderEditor: 'Code2',
+  timeline: 'Film',
+  templatePicker: 'LayoutTemplate',
+  aiMaterial: 'Sparkles',
+  share: 'Share2',
+  critique: 'Lightbulb',
+  assetPack: 'Package',
+  versions: 'GitBranch',
+  repl: 'Terminal',
+  registry: 'Store',
+  remote: 'Smartphone',
+  export: 'Download',
+  generator: 'Wand2',
+  multiplayer: 'Users2',
+  debugger: 'Bug',
+  snapshots: 'Camera',
+  assetLib: 'Library',
+  templateGallery: 'LayoutTemplate',
+  minimap: 'Map',
+  audio: 'Music',
+  exportV2: 'Package',
+  nodeGraph: 'Network',
+  keyframes: 'Timer',
+  sceneSearch: 'SearchCode',
+  particles: 'Flame',
+  lod: 'Eye',
+  console: 'Terminal',
+  undoHistory: 'Clock',
+  outliner: 'Layers',
+  material: 'Palette',
+  physics: 'Atom',
+  snapshotDiff: 'GitCompare',
+  audioVisualizer: 'Music2',
+  multiTransform: 'Move3d',
+  environment: 'Sun',
+  inspector: 'SlidersHorizontal',
+  hotkey: 'Keyboard',
+  plugins: 'Puzzle',
+  sandboxedPlugins: 'Shield',
+  splatWizard: 'PaintBucket',
+  agentMonitor: 'Bot',
+  texturePaint: 'Paintbrush',
+  mcpConfig: 'Server',
+  agentWorkflow: 'Workflow',
+  behaviorTree: 'GitBranch',
+  agentEnsemble: 'Users',
+  eventMonitor: 'Activity',
+  toolCallGraph: 'Zap',
+  marketplace: 'ShoppingBag',
+  pluginManager: 'Package',
+  cloudDeploy: 'Cloud',
+  publish: 'Upload',
+  examples: 'BookOpen',
+  tutorial: 'HelpCircle',
+  hotkeyOverlay: 'Keyboard',
+  prompts: 'Sparkles',
+  blame: 'Eye',
+  dag: 'GitGraph',
+  calibration: 'Crosshair',
+  dragonPreview: 'Flame',
+  holoDiff: 'GitCompare',
+  sliderInspector: 'SlidersHorizontal',
+  traitMatrix: 'Table',
+  assetImport: 'Upload',
+  cinematicCamera: 'Film',
+  syntheticData: 'Database',
+  compilationPipeline: 'Network',
+  confidenceXR: 'Glasses',
+  operationsHub: 'Activity',
+  foundationDao: 'Landmark',
+  runtimeTier: 'Gauge',
+};
+
+const PLACEMENT_BY_VIEW: Partial<Record<StudioViewId, StudioViewPlacement>> = {
   palette: 'modal',
   templatePicker: 'modal',
   hotkey: 'modal',
@@ -186,7 +272,7 @@ const PLACEMENT_BY_VIEW = {
   marketplace: 'top-overlay',
   pluginManager: 'top-overlay',
   cloudDeploy: 'top-overlay',
-} satisfies Partial<Record<StudioViewId, StudioViewPlacement>>;
+};
 
 const GLOBAL_VIEWS = new Set<StudioViewId>([
   'palette',
@@ -216,7 +302,7 @@ const WORKSPACE_VIEWS = new Set<StudioViewId>([
   'operationsHub',
 ]);
 
-const EXCLUSIVE_WITH = {
+const EXCLUSIVE_WITH: Partial<Record<StudioViewId, StudioViewId[]>> = {
   timeline: ['shaderEditor'],
   shaderEditor: ['timeline'],
   aiMaterial: ['share'],
@@ -239,7 +325,21 @@ const EXCLUSIVE_WITH = {
   exportV2: ['templateGallery', 'audio'],
   nodeGraph: ['keyframes'],
   keyframes: ['nodeGraph'],
-} satisfies Partial<Record<StudioViewId, StudioViewId[]>>;
+};
+
+const AVAILABILITY_GATE_BY_VIEW: Partial<Record<StudioViewId, StudioViewAvailabilityGate>> = {
+  profiler: 'expert',
+  shaderEditor: 'expert',
+  repl: 'expert',
+  debugger: 'expert',
+  console: 'expert',
+  dag: 'expert',
+  calibration: 'expert',
+  runtimeTier: 'expert',
+  dragonPreview: 'experimental',
+  syntheticData: 'experimental',
+  confidenceXR: 'experimental',
+};
 
 function viewScope(id: StudioViewId): StudioWorkspaceScope {
   if (GLOBAL_VIEWS.has(id)) return 'global';
@@ -250,10 +350,12 @@ function viewScope(id: StudioViewId): StudioWorkspaceScope {
 export const STUDIO_VIEW_REGISTRY: StudioViewDefinition[] = STUDIO_VIEW_IDS.map((id) => ({
   id,
   title: VIEW_TITLES[id],
+  icon: ICON_BY_VIEW[id] ?? 'PanelRight',
   category: CATEGORY_BY_VIEW[id] ?? 'authoring',
   defaultPlacement: PLACEMENT_BY_VIEW[id] ?? 'right-rail',
   activationCommand: `studio.view.${id}.toggle`,
   workspaceScope: viewScope(id),
+  availabilityGate: AVAILABILITY_GATE_BY_VIEW[id] ?? 'always',
   defaultOpen: DEFAULT_OPEN_VIEW_SET.has(id),
   exclusiveWith: EXCLUSIVE_WITH[id] ?? [],
 }));

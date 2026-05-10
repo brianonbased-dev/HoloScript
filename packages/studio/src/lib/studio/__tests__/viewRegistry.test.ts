@@ -46,6 +46,17 @@ describe('studio view registry', () => {
     );
   });
 
+  it('declares command-facing metadata for every registered view', () => {
+    for (const view of STUDIO_VIEW_REGISTRY) {
+      expect(view.title).toBeTruthy();
+      expect(view.icon).toBeTruthy();
+      expect(view.activationCommand).toBe(`studio.view.${view.id}.toggle`);
+      expect(view.availabilityGate).toBeTruthy();
+      expect(view.workspaceScope).toBeTruthy();
+      expect(view.defaultPlacement).toBeTruthy();
+    }
+  });
+
   it('runs view commands through the visibility store', () => {
     expect(usePanelVisibilityStore.getState().chatOpen).toBe(false);
 

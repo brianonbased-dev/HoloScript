@@ -87,6 +87,8 @@ import { ResponsiveStudioLayout } from '@/components/layouts/ResponsiveStudioLay
 import { logger } from '@/lib/logger';
 import { useToast } from '@/app/providers';
 import { UXCommandPalette, createStudioPublishingCommands } from '@/core-ui/UXCommandPalette';
+import { runStudioCommand } from '@/lib/studio/commandRegistry';
+import type { StudioViewCommandId } from '@/lib/studio/viewRegistry';
 
 const SceneRenderer = dynamic(
   () => import('@/components/scene/SceneRenderer').then((m) => ({ default: m.SceneRenderer })),
@@ -759,6 +761,9 @@ export default function CreatePage() {
   const _studioMode = useEditorStore((s) => s.studioMode);
   const { addToast } = useToast();
   const uxPaletteRef = useRef<UXCommandPalette | null>(null);
+  const runViewCommand = useCallback((commandId: StudioViewCommandId) => {
+    runStudioCommand(commandId);
+  }, []);
 
   // Panel widths (px) — driven by PanelSplitter drag
   const [leftPanelW, setLeftPanelW] = useState(256);
@@ -898,7 +903,6 @@ export default function CreatePage() {
   const toggleSandboxedPluginsOpen = usePanelVisibilityStore((s) => s.toggleSandboxedPluginsOpen);
   const splatWizardOpen = usePanelVisibilityStore((s) => s.splatWizardOpen);
   const setSplatWizardOpen = usePanelVisibilityStore((s) => s.setSplatWizardOpen);
-  const toggleExclusive = usePanelVisibilityStore((s) => s.toggleExclusive);
   const agentMonitorOpen = usePanelVisibilityStore((s) => s.agentMonitorOpen);
   const setAgentMonitorOpen = usePanelVisibilityStore((s) => s.setAgentMonitorOpen);
 
@@ -1869,7 +1873,7 @@ export default function CreatePage() {
             </button>
             {/* Timeline toggle */}
             <button
-              onClick={() => toggleExclusive('timeline', ['shaderEditor'])}
+              onClick={() => runViewCommand('studio.view.timeline.toggle')}
               title={timelineOpen ? 'Close Timeline' : 'Open Animation Timeline'}
               className={`transition ${
                 timelineOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1879,7 +1883,7 @@ export default function CreatePage() {
             </button>
             {/* AI Material toggle */}
             <button
-              onClick={() => toggleExclusive('aiMaterial', ['share'])}
+              onClick={() => runViewCommand('studio.view.aiMaterial.toggle')}
               title={aiMaterialOpen ? 'Close AI Materials' : 'AI Material Generator'}
               className={`transition ${
                 aiMaterialOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1889,7 +1893,7 @@ export default function CreatePage() {
             </button>
             {/* Share toggle */}
             <button
-              onClick={() => toggleExclusive('share', ['aiMaterial'])}
+              onClick={() => runViewCommand('studio.view.share.toggle')}
               title={shareOpen ? 'Close Share' : 'Share Scene'}
               className={`transition ${
                 shareOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1903,7 +1907,7 @@ export default function CreatePage() {
             </div>
             {/* AI Critique toggle */}
             <button
-              onClick={() => toggleExclusive('critique', ['assetPack'])}
+              onClick={() => runViewCommand('studio.view.critique.toggle')}
               title={critiqueOpen ? 'Close Critique' : 'Scene Critique (AI)'}
               className={`transition ${
                 critiqueOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1913,7 +1917,7 @@ export default function CreatePage() {
             </button>
             {/* Asset Pack toggle */}
             <button
-              onClick={() => toggleExclusive('assetPack', ['critique'])}
+              onClick={() => runViewCommand('studio.view.assetPack.toggle')}
               title={assetPackOpen ? 'Close Asset Pack' : 'Import Asset Pack'}
               className={`transition ${
                 assetPackOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1923,7 +1927,7 @@ export default function CreatePage() {
             </button>
             {/* Versions toggle */}
             <button
-              onClick={() => toggleExclusive('versions', ['repl'])}
+              onClick={() => runViewCommand('studio.view.versions.toggle')}
               title={versionsOpen ? 'Close Versions' : 'Scene Version History'}
               className={`transition ${
                 versionsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1933,7 +1937,7 @@ export default function CreatePage() {
             </button>
             {/* REPL toggle */}
             <button
-              onClick={() => toggleExclusive('repl', ['versions'])}
+              onClick={() => runViewCommand('studio.view.repl.toggle')}
               title={replOpen ? 'Close REPL' : 'HoloScript REPL'}
               className={`transition ${
                 replOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1943,7 +1947,7 @@ export default function CreatePage() {
             </button>
             {/* Registry toggle */}
             <button
-              onClick={() => toggleExclusive('registry', ['remote'])}
+              onClick={() => runViewCommand('studio.view.registry.toggle')}
               title={registryOpen ? 'Close Registry' : 'Pack Registry'}
               className={`transition ${
                 registryOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1953,7 +1957,7 @@ export default function CreatePage() {
             </button>
             {/* Mobile Remote toggle */}
             <button
-              onClick={() => toggleExclusive('remote', ['registry'])}
+              onClick={() => runViewCommand('studio.view.remote.toggle')}
               title={remoteOpen ? 'Close Remote' : 'Mobile Remote (QR)'}
               className={`transition ${
                 remoteOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1963,7 +1967,7 @@ export default function CreatePage() {
             </button>
             {/* Export toggle */}
             <button
-              onClick={() => toggleExclusive('export', ['generator', 'profiler'])}
+              onClick={() => runViewCommand('studio.view.export.toggle')}
               title={exportOpen ? 'Close Export' : 'Export Scene'}
               className={`transition ${
                 exportOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1973,7 +1977,7 @@ export default function CreatePage() {
             </button>
             {/* AI Generator toggle */}
             <button
-              onClick={() => toggleExclusive('generator', ['export', 'profiler'])}
+              onClick={() => runViewCommand('studio.view.generator.toggle')}
               title={generatorOpen ? 'Close AI Generator' : 'AI Scene Generator'}
               className={`transition ${
                 generatorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1983,7 +1987,7 @@ export default function CreatePage() {
             </button>
             {/* Profiler toggle */}
             <button
-              onClick={() => toggleExclusive('profiler', ['export', 'generator'])}
+              onClick={() => runViewCommand('studio.view.profiler.toggle')}
               title={profilerOpen ? 'Close Profiler' : 'Performance Profiler'}
               className={`transition ${
                 profilerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1993,7 +1997,7 @@ export default function CreatePage() {
             </button>
             {/* Multiplayer toggle */}
             <button
-              onClick={() => toggleExclusive('multiplayer', ['debugger', 'snapshots', 'assetLib'])}
+              onClick={() => runViewCommand('studio.view.multiplayer.toggle')}
               title={multiplayerOpen ? 'Close Multiplayer' : 'Multiplayer Room'}
               className={`transition ${multiplayerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
             >
@@ -2001,7 +2005,7 @@ export default function CreatePage() {
             </button>
             {/* Debugger toggle */}
             <button
-              onClick={() => toggleExclusive('debugger', ['multiplayer', 'snapshots', 'assetLib'])}
+              onClick={() => runViewCommand('studio.view.debugger.toggle')}
               title={debuggerOpen ? 'Close Debugger' : 'HoloScript Debugger'}
               className={`transition ${debuggerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
             >
@@ -2009,7 +2013,7 @@ export default function CreatePage() {
             </button>
             {/* Snapshot Gallery toggle */}
             <button
-              onClick={() => toggleExclusive('snapshots', ['multiplayer', 'debugger', 'assetLib'])}
+              onClick={() => runViewCommand('studio.view.snapshots.toggle')}
               title={snapshotsOpen ? 'Close Gallery' : 'Snapshot Gallery'}
               className={`transition ${snapshotsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
             >
@@ -2017,7 +2021,7 @@ export default function CreatePage() {
             </button>
             {/* Asset Library toggle */}
             <button
-              onClick={() => toggleExclusive('assetLib', ['multiplayer', 'debugger', 'snapshots'])}
+              onClick={() => runViewCommand('studio.view.assetLib.toggle')}
               title={assetLibOpen ? 'Close Asset Library' : 'Asset Library v2'}
               className={`transition ${assetLibOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
             >
@@ -2025,7 +2029,7 @@ export default function CreatePage() {
             </button>
             {/* Templates gallery toggle */}
             <button
-              onClick={() => toggleExclusive('templateGallery', ['audio', 'exportV2'])}
+              onClick={() => runViewCommand('studio.view.templateGallery.toggle')}
               title={templateGalleryOpen ? 'Close Templates' : 'Scene Templates v2'}
               className={`transition ${templateGalleryOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
             >
@@ -2033,7 +2037,7 @@ export default function CreatePage() {
             </button>
             {/* Audio Traits toggle */}
             <button
-              onClick={() => toggleExclusive('audio', ['templateGallery', 'exportV2'])}
+              onClick={() => runViewCommand('studio.view.audio.toggle')}
               title={audioOpen ? 'Close Audio' : 'Audio Traits'}
               className={`transition ${audioOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
             >
@@ -2041,7 +2045,7 @@ export default function CreatePage() {
             </button>
             {/* Export Pipeline v2 toggle */}
             <button
-              onClick={() => toggleExclusive('exportV2', ['templateGallery', 'audio'])}
+              onClick={() => runViewCommand('studio.view.exportV2.toggle')}
               title={exportV2Open ? 'Close Export v2' : 'Export Pipeline v2'}
               className={`transition ${exportV2Open ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
             >
@@ -2057,7 +2061,7 @@ export default function CreatePage() {
             </button>
             {/* Node Graph toggle */}
             <button
-              onClick={() => toggleExclusive('nodeGraph', ['keyframes'])}
+              onClick={() => runViewCommand('studio.view.nodeGraph.toggle')}
               title={nodeGraphOpen ? 'Close Node Graph' : 'Node Graph Editor'}
               className={`transition ${nodeGraphOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
             >
@@ -2065,7 +2069,7 @@ export default function CreatePage() {
             </button>
             {/* Keyframe Editor toggle */}
             <button
-              onClick={() => toggleExclusive('keyframes', ['nodeGraph'])}
+              onClick={() => runViewCommand('studio.view.keyframes.toggle')}
               title={keyframesOpen ? 'Close Keyframes' : 'Animation Keyframes'}
               className={`transition ${keyframesOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
             >
