@@ -9,6 +9,7 @@ import {
   ImagePlus,
   Wand2,
   FolderGit2,
+  Code2,
   Globe,
   Users,
   Bot,
@@ -36,6 +37,7 @@ const coreItems: NavItem[] = [
 ];
 
 const ecosystemItems: NavItem[] = [
+  { label: 'Workspace', href: '/workspace', icon: Code2, exact: false },
   { label: 'HoloMesh', href: '/holomesh', icon: Globe, exact: false },
   { label: 'Teams', href: '/teams', icon: Users, exact: false },
   { label: 'Agents', href: '/agents', icon: Bot, exact: false },
@@ -88,7 +90,10 @@ export function GlobalNavigation() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Main navigation" className="w-16 lg:w-64 h-screen shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-300">
+    <nav
+      aria-label="Main navigation"
+      className="w-16 lg:w-64 h-screen shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-300"
+    >
       {/* App Branding */}
       <div className="h-14 border-b border-slate-800 flex items-center justify-center lg:justify-start lg:px-6">
         <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold font-mono">
