@@ -2,7 +2,13 @@ export const maxDuration = 300;
 
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/api-auth';
-import { getDaemonJob, getJobPatches, getJobLogs, recordPatchAction } from '../store';
+import {
+  applyPatchesToWorkspaceBranch,
+  getDaemonJob,
+  getJobLogs,
+  getJobPatches,
+  recordPatchAction,
+} from '../store';
 
 import { corsHeaders } from '../../../_lib/cors';
 /**
@@ -37,9 +43,10 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
 /**
  * POST /api/daemon/jobs/:id
  *
- * Body: { action: 'apply' | 'export' | 'reject', patchIds: string[] }
+ * Body: { action: 'apply' | 'apply-to-branch' | 'export' | 'reject', patchIds: string[] }
  *
- * Records patch review decisions for telemetry and billing signals.
+ * Applies selected patches to a durable workspace branch or records patch
+ * review decisions for telemetry and billing signals.
  */
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const auth = await requireAuth();
@@ -51,7 +58,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     return NextResponse.json({ error: 'Daemon job not found' }, { status: 404 });
   }
 
-  let body: { action?: string; patchIds?: string[] };
+  let body: { action?: string; patchIds?: string[]; branchName?: string; baseBranch?: string };
   try {
     body = await request.json();
   } catch {
@@ -61,17 +68,40 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const { action, patchIds } = body;
   if (!action || !patchIds || !Array.isArray(patchIds)) {
     return NextResponse.json(
-      { error: 'Missing required fields: action (apply|export|reject), patchIds (string[])' },
+      {
+        error:
+          'Missing required fields: action (apply|apply-to-branch|export|reject), patchIds (string[])',
+      },
       { status: 400 }
     );
   }
 
-  const validActions = ['apply', 'export', 'reject'];
+  const validActions = ['apply', 'apply-to-branch', 'export', 'reject'];
   if (!validActions.includes(action)) {
     return NextResponse.json(
       { error: `Invalid action "${action}". Must be one of: ${validActions.join(', ')}` },
       { status: 400 }
     );
+  }
+
+  if (action === 'apply-to-branch') {
+    try {
+      const applyResult = applyPatchesToWorkspaceBranch(id, patchIds, {
+        branchName: body.branchName,
+        baseBranch: body.baseBranch,
+      });
+      recordPatchAction(id, patchIds, 'applied');
+      return NextResponse.json({
+        success: true,
+        jobId: id,
+        action: 'applied',
+        patchCount: patchIds.length,
+        applyResult,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
   }
 
   const mappedAction =
@@ -90,7 +120,6 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     patchCount: patchIds.length,
   });
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

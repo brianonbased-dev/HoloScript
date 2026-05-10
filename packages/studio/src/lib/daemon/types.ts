@@ -200,3 +200,26 @@ export interface DaemonTelemetrySummary {
   profileUsage: Record<DaemonProfile, number>;
   recentEvents: DaemonTelemetryEvent[];
 }
+
+export interface PatchApplyResult {
+  branchName: string;
+  baseBranch: string;
+  commitHash: string | null;
+  files: string[];
+  noChanges: boolean;
+  pushRequest: {
+    workspacePath: string;
+    remote: string;
+    branch: string;
+    force: boolean;
+  };
+  pullRequest?: {
+    owner: string;
+    repo: string;
+    title: string;
+    body: string;
+    head: string;
+    base: string;
+    draft: boolean;
+  };
+}

@@ -15,7 +15,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import type { DaemonJob, PatchProposal, DaemonLogEntry } from '@/hooks/useDaemonJobs';
+import type { DaemonJob, DaemonLogEntry, PatchProposal } from '@/hooks/useDaemonJobs';
 import { useDaemonJobs } from '@/hooks/useDaemonJobs';
 
 // ---------------------------------------------------------------------------
@@ -26,6 +26,17 @@ interface PatchReviewPanelProps {
   job: DaemonJob;
   onClose: () => void;
   onRerun?: (profile: 'quick' | 'balanced' | 'deep') => void;
+}
+
+interface GitPushResponse {
+  ok?: boolean;
+  error?: string;
+}
+
+interface GitPullRequestResponse {
+  number?: number;
+  url?: string;
+  error?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -126,6 +137,9 @@ export function PatchReviewPanel({ job, onClose, onRerun }: PatchReviewPanelProp
   const [expandedPatch, setExpandedPatch] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'patches' | 'logs' | 'metrics'>('patches');
   const [applying, setApplying] = useState(false);
+  const [applyStatus, setApplyStatus] = useState<string | null>(null);
+  const [applyError, setApplyError] = useState<string | null>(null);
+  const [pullRequestUrl, setPullRequestUrl] = useState<string | null>(null);
   const { recordPatchAction } = useDaemonJobs();
 
   const patches = job.patches ?? [];
@@ -151,8 +165,52 @@ export function PatchReviewPanel({ job, onClose, onRerun }: PatchReviewPanelProp
   const handleApply = useCallback(async () => {
     if (selectedPatches.size === 0) return;
     setApplying(true);
+    setApplyStatus(null);
+    setApplyError(null);
+    setPullRequestUrl(null);
     try {
-      await recordPatchAction(job.id, Array.from(selectedPatches), 'apply');
+      const selected = Array.from(selectedPatches);
+      const actionResult = await recordPatchAction(job.id, selected, 'apply-to-branch');
+      const applyResult = actionResult.applyResult;
+      if (!applyResult) {
+        throw new Error('Patch apply did not return a workspace branch result');
+      }
+
+      if (applyResult.noChanges) {
+        setApplyStatus(`No changes on ${applyResult.branchName}.`);
+        return;
+      }
+
+      const pushResponse = await fetch('/api/git/push', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(applyResult.pushRequest),
+      });
+      const pushJson = (await pushResponse.json()) as GitPushResponse;
+      if (!pushResponse.ok || !pushJson.ok) {
+        throw new Error(pushJson.error || `Git push failed (${pushResponse.status})`);
+      }
+
+      let status = `Pushed ${applyResult.branchName}.`;
+      if (applyResult.pullRequest) {
+        const prResponse = await fetch('/api/github/pr', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(applyResult.pullRequest),
+        });
+        const prJson = (await prResponse.json()) as GitPullRequestResponse;
+        if (!prResponse.ok) {
+          throw new Error(prJson.error || `Pull request create failed (${prResponse.status})`);
+        }
+        if (prJson.url) setPullRequestUrl(prJson.url);
+        status = prJson.number
+          ? `Opened draft PR #${prJson.number} from ${applyResult.branchName}.`
+          : `Opened draft PR from ${applyResult.branchName}.`;
+      }
+      setApplyStatus(status);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setApplyError(message);
     } finally {
       setApplying(false);
     }
@@ -172,7 +230,7 @@ export function PatchReviewPanel({ job, onClose, onRerun }: PatchReviewPanelProp
     a.click();
     URL.revokeObjectURL(url);
 
-    void recordPatchAction(job.id, Array.from(selectedPatches), 'export');
+    void recordPatchAction(job.id, Array.from(selectedPatches), 'export').catch(console.error);
   }, [job.id, patches, selectedPatches, recordPatchAction]);
 
   const handleReject = useCallback(async () => {
@@ -288,6 +346,28 @@ export function PatchReviewPanel({ job, onClose, onRerun }: PatchReviewPanelProp
                       ))}
                     </div>
                   </div>
+
+                  {(applyStatus || applyError || pullRequestUrl) && (
+                    <div
+                      className={`rounded border px-3 py-2 text-xs ${
+                        applyError
+                          ? 'border-red-500/30 bg-red-500/10 text-red-300'
+                          : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                      }`}
+                    >
+                      {applyError ?? applyStatus}
+                      {pullRequestUrl && (
+                        <a
+                          href={pullRequestUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="ml-2 text-studio-accent hover:underline"
+                        >
+                          View PR
+                        </a>
+                      )}
+                    </div>
+                  )}
 
                   {/* Patch list */}
                   {patches.map((patch) => {

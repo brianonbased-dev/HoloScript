@@ -1,20 +1,28 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextResponse } from 'next/server';
 
-const { getDaemonJobMock, getJobPatchesMock, getJobLogsMock, recordPatchActionMock, requireAuthMock } =
-  vi.hoisted(() => ({
-    getDaemonJobMock: vi.fn(),
-    getJobPatchesMock: vi.fn(),
-    getJobLogsMock: vi.fn(),
-    recordPatchActionMock: vi.fn(),
-    requireAuthMock: vi.fn(),
-  }));
+const {
+  applyPatchesToWorkspaceBranchMock,
+  getDaemonJobMock,
+  getJobPatchesMock,
+  getJobLogsMock,
+  recordPatchActionMock,
+  requireAuthMock,
+} = vi.hoisted(() => ({
+  applyPatchesToWorkspaceBranchMock: vi.fn(),
+  getDaemonJobMock: vi.fn(),
+  getJobPatchesMock: vi.fn(),
+  getJobLogsMock: vi.fn(),
+  recordPatchActionMock: vi.fn(),
+  requireAuthMock: vi.fn(),
+}));
 
 vi.mock('@/lib/api-auth', () => ({
   requireAuth: requireAuthMock,
 }));
 
 vi.mock('../store', () => ({
+  applyPatchesToWorkspaceBranch: applyPatchesToWorkspaceBranchMock,
   getDaemonJob: getDaemonJobMock,
   getJobPatches: getJobPatchesMock,
   getJobLogs: getJobLogsMock,
@@ -30,7 +38,9 @@ describe('/api/daemon/jobs/[id] route', () => {
   });
 
   it('returns 401 when requireAuth fails', async () => {
-    requireAuthMock.mockResolvedValue(NextResponse.json({ error: 'Authentication required' }, { status: 401 }));
+    requireAuthMock.mockResolvedValue(
+      NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    );
     getDaemonJobMock.mockReturnValue({ id: 'dj-1', status: 'running' });
 
     const res = await GET(new Request('http://localhost/api/daemon/jobs/dj-1'), {
@@ -161,6 +171,73 @@ describe('/api/daemon/jobs/[id] route', () => {
     expect(body.action).toBe('applied');
     expect(body.patchCount).toBe(2);
     expect(recordPatchActionMock).toHaveBeenCalledWith('dj-7', ['p1', 'p2'], 'applied');
+  });
+
+  it('POST applies selected patches to a durable branch', async () => {
+    getDaemonJobMock.mockReturnValue({ id: 'dj-9' });
+    applyPatchesToWorkspaceBranchMock.mockReturnValue({
+      branchName: 'studio/project/dj-9',
+      baseBranch: 'main',
+      commitHash: 'abc1234',
+      files: ['src/app.ts'],
+      noChanges: false,
+      pushRequest: {
+        workspacePath: '/home/test/.holoscript/workspaces/project',
+        remote: 'origin',
+        branch: 'studio/project/dj-9',
+        force: false,
+      },
+      pullRequest: {
+        owner: 'owner',
+        repo: 'repo',
+        title: 'Apply daemon patches from dj-9',
+        body: 'Changed files',
+        head: 'studio/project/dj-9',
+        base: 'main',
+        draft: true,
+      },
+    });
+
+    const req = new Request('http://localhost/api/daemon/jobs/dj-9', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'apply-to-branch',
+        patchIds: ['p1'],
+        branchName: 'studio/project/dj-9',
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const res = await POST(req, { params: Promise.resolve({ id: 'dj-9' }) });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.action).toBe('applied');
+    expect(body.applyResult.commitHash).toBe('abc1234');
+    expect(applyPatchesToWorkspaceBranchMock).toHaveBeenCalledWith('dj-9', ['p1'], {
+      branchName: 'studio/project/dj-9',
+      baseBranch: undefined,
+    });
+    expect(recordPatchActionMock).toHaveBeenCalledWith('dj-9', ['p1'], 'applied');
+  });
+
+  it('POST returns 400 when branch application fails', async () => {
+    getDaemonJobMock.mockReturnValue({ id: 'dj-10' });
+    applyPatchesToWorkspaceBranchMock.mockImplementation(() => {
+      throw new Error('Workspace has uncommitted changes');
+    });
+
+    const req = new Request('http://localhost/api/daemon/jobs/dj-10', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'apply-to-branch', patchIds: ['p1'] }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const res = await POST(req, { params: Promise.resolve({ id: 'dj-10' }) });
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/uncommitted changes/i);
+    expect(recordPatchActionMock).not.toHaveBeenCalled();
   });
 
   it('POST maps export/reject actions correctly', async () => {

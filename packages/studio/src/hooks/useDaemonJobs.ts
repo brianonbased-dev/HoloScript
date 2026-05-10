@@ -7,6 +7,7 @@ import type {
   DaemonProfile,
   DaemonProjectDNA,
   DaemonTelemetrySummary,
+  PatchApplyResult,
   PatchProposal,
 } from '@/lib/daemon/types';
 
@@ -16,6 +17,7 @@ export type {
   DaemonProfile,
   DaemonProjectDNA,
   DaemonTelemetrySummary,
+  PatchApplyResult,
   PatchProposal,
 } from '@/lib/daemon/types';
 
@@ -24,6 +26,15 @@ interface CreateJobInput {
   profile: DaemonProfile;
   projectDna: DaemonProjectDNA;
   projectPath?: string;
+}
+
+export interface PatchActionResponse {
+  success: boolean;
+  jobId: string;
+  action: 'applied' | 'exported' | 'rejected';
+  patchCount: number;
+  applyResult?: PatchApplyResult;
+  error?: string;
 }
 
 export interface OperationsSurfaceResponse {
@@ -148,13 +159,18 @@ export function useDaemonJobs() {
     async (
       jobId: string,
       patchIds: string[],
-      action: 'apply' | 'export' | 'reject'
-    ): Promise<void> => {
-      await fetch(`/api/daemon/jobs/${jobId}`, {
+      action: 'apply' | 'apply-to-branch' | 'export' | 'reject'
+    ): Promise<PatchActionResponse> => {
+      const response = await fetch(`/api/daemon/jobs/${jobId}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ action, patchIds }),
       });
+      const json = (await response.json()) as PatchActionResponse;
+      if (!response.ok || !json.success) {
+        throw new Error(json.error || `Patch action failed (${response.status})`);
+      }
+      return json;
     },
     []
   );
