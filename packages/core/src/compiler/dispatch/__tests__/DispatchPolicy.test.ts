@@ -5,6 +5,12 @@ import {
   AlphaTracker,
   detectNeuromorphicRuntime,
 } from '../DispatchPolicy';
+import {
+  createDefaultDispatchLatencyScenarios,
+  recommendDispatchPolicyDefaults,
+  runDispatchPolicyLatencyBenchmark,
+  type DispatchLatencySummary,
+} from '../DispatchPolicyBenchmark';
 
 describe('DispatchPolicy', () => {
   it('falls back to Tier-3 when no tiers are enabled', async () => {
@@ -189,3 +195,94 @@ describe('AlphaTracker', () => {
     expect(new AlphaTracker(10).getAlpha()).toBe(0);
   });
 });
+
+describe('DispatchPolicy latency benchmark', () => {
+  it('measures @grabbable dispatch latency for each policy tier', async () => {
+    const runtime = globalThis as typeof globalThis & {
+      navigator?: Navigator & { gpu?: unknown };
+    };
+    const previousNavigator = runtime.navigator;
+    Object.defineProperty(runtime, 'navigator', {
+      configurable: true,
+      value: { gpu: { requestAdapter: async () => ({}) } },
+    });
+
+    try {
+      const report = await runDispatchPolicyLatencyBenchmark({
+        iterations: 3,
+        warmupIterations: 1,
+      });
+
+      expect(report.operationTrait).toBe('grabbable');
+      expect(report.summaries.map((summary) => summary.requestedTier)).toEqual([
+        DispatchTier.TIER_1_NEUROMORPHIC,
+        DispatchTier.TIER_1_BROWSER,
+        DispatchTier.TIER_2_SPECULATIVE,
+        DispatchTier.TIER_3_CPU_DIRECT,
+      ]);
+      for (const summary of report.summaries) {
+        expect(summary.samples).toBe(3);
+        expect(summary.acceptedSamples).toBe(3);
+        expect(summary.maxLatencyMs).toBeGreaterThanOrEqual(summary.minLatencyMs);
+      }
+      expect(report.recommendation.tier2DefaultEnabled).toBe(false);
+    } finally {
+      if (previousNavigator) {
+        Object.defineProperty(runtime, 'navigator', {
+          configurable: true,
+          value: previousNavigator,
+        });
+      } else {
+        delete runtime.navigator;
+      }
+    }
+  });
+
+  it('keeps Tier 2 disabled by default when it is not faster than Tier 3', () => {
+    const recommendation = recommendDispatchPolicyDefaults([
+      latencySummary(DispatchTier.TIER_2_SPECULATIVE, 4, 6),
+      latencySummary(DispatchTier.TIER_3_CPU_DIRECT, 2, 3),
+    ]);
+
+    expect(recommendation.tier2DefaultEnabled).toBe(false);
+    expect(recommendation.reason).toContain('keep Tier 2 disabled by default');
+  });
+
+  it('allows Tier 2 only when mean and p95 beat Tier 3', () => {
+    const recommendation = recommendDispatchPolicyDefaults([
+      latencySummary(DispatchTier.TIER_2_SPECULATIVE, 1, 2),
+      latencySummary(DispatchTier.TIER_3_CPU_DIRECT, 3, 4),
+    ]);
+
+    expect(recommendation.tier2DefaultEnabled).toBe(true);
+  });
+
+  it('sizes Tier-2 alpha window from benchmark iterations and warmup', () => {
+    const tier2Scenario = createDefaultDispatchLatencyScenarios({
+      iterations: 9,
+      warmupIterations: 2,
+    }).find((scenario) => scenario.tier === DispatchTier.TIER_2_SPECULATIVE);
+
+    expect(tier2Scenario?.config.alphaWindowSize).toBe(11);
+  });
+});
+
+function latencySummary(
+  requestedTier: DispatchTier,
+  meanLatencyMs: number,
+  p95LatencyMs: number
+): DispatchLatencySummary {
+  return {
+    id: requestedTier,
+    requestedTier,
+    samples: 10,
+    acceptedSamples: 10,
+    acceptedTierCounts: { [requestedTier]: 10 },
+    fallbackReasons: {},
+    minLatencyMs: meanLatencyMs,
+    meanLatencyMs,
+    p50LatencyMs: meanLatencyMs,
+    p95LatencyMs,
+    maxLatencyMs: p95LatencyMs,
+  };
+}

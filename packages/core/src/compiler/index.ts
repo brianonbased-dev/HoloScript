@@ -265,3 +265,18 @@ export type {
   DispatchDecision,
   DispatchMetrics,
 } from './dispatch/DispatchPolicy';
+export {
+  DEFAULT_DISPATCH_LATENCY_OPERATION,
+  createDefaultDispatchLatencyScenarios,
+  formatDispatchLatencyBenchmarkReport,
+  recommendDispatchPolicyDefaults,
+  runDispatchPolicyLatencyBenchmark,
+} from './dispatch/DispatchPolicyBenchmark';
+export type {
+  DispatchLatencyBenchmarkOptions,
+  DispatchLatencyBenchmarkReport,
+  DispatchLatencyBenchmarkScenario,
+  DispatchLatencySample,
+  DispatchLatencySummary,
+  DispatchTierDefaultRecommendation,
+} from './dispatch/DispatchPolicyBenchmark';

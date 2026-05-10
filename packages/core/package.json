@@ -175,6 +175,7 @@
     "benchmark:paper10:compile-matrix": "node scripts/run-paper10-compile-matrix.mjs",
     "benchmark:paper10:compile-matrix:full": "node scripts/run-paper10-compile-matrix.mjs --full",
     "benchmark:paper10:depth-distribution": "node scripts/run-paper10-depth-distribution.mjs",
+    "benchmark:dispatch-policy": "tsx src/compiler/dispatch/DispatchPolicyBenchmark.cli.ts",
     "benchmark:paper6:mecanim-matrix": "node scripts/run-paper6-mecanim-matrix.mjs",
     "benchmark:critic-loop": "node scripts/run-critic-loop-benchmark.mjs"
   },
