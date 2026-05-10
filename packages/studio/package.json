@@ -17,6 +17,8 @@
     "build": "next build --webpack",
     "start": "next start --port 3100",
     "inventory": "node scripts/studio-inventory.mjs",
+    "inventory:snapshot": "node scripts/studio-inventory.mjs --snapshot",
+    "inventory:check": "node scripts/studio-inventory.mjs --check docs/STUDIO_INVENTORY_SNAPSHOT.json",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",

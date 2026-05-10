@@ -3,6 +3,7 @@
 > **One viewport into the semantic graph.** The 3D canvas is one way to view, edit, and interact with HoloScript entities. The same entities can be edited as text, queried via MCP, or compiled to any platform. [Read the V6 Vision →](../../VISION.md)
 
 > **Current IDE reboot audit (2026-05-10):** Studio has outgrown the architecture described below. Before adding routes, panels, or onboarding flows, read [`docs/STUDIO_IDE_REBOOT_AUDIT.md`](docs/STUDIO_IDE_REBOOT_AUDIT.md) for the current workbench, UX, typecheck, and account-workspace findings.
+> Live route/API/component counts are guarded by [`docs/STUDIO_INVENTORY_SNAPSHOT.json`](docs/STUDIO_INVENTORY_SNAPSHOT.json). Run `pnpm --filter @holoscript/studio inventory:check` before trusting or changing inventory claims.
 
 Describe what you want. See it rendered. Deploy it anywhere — browser, headset, hologram. No installation required.
 
@@ -16,13 +17,13 @@ Describe what you want. See it rendered. Deploy it anywhere — browser, headset
 
 HoloScript Studio is an AI-native spatial IDE that runs in the browser. **Brittney AI generates 3D worlds from natural language**, and experts can refine them with a full suite of visual tools. You can deploy the result as a live URL, embed it in another site, or step inside it with a VR headset.
 
-Studio is organized as a progressive disclosure funnel — new users start simple, and each route unlocks more power.
+Studio is organized around an IDE/workbench journey, with live route inventory tracked by the generated snapshot rather than hand-maintained prose.
 
 ---
 
 ## Route Architecture
 
-Studio has **30+ routes** organized as a progressive disclosure funnel (6 primary) with supporting and dynamic sub-routes. The primary journey:
+Studio has a generated route inventory guarded by `pnpm --filter @holoscript/studio inventory:check`. The primary journey remains:
 
 ```text
 /start → /vibe → /create → /teams → /holomesh → /agents
@@ -202,6 +203,7 @@ pnpm --filter @holoscript/studio dev
 pnpm test          # vitest
 pnpm build         # production Next.js build (runs holo:build first)
 pnpm holo:build    # compile .holo pages to Next.js routes
+pnpm inventory:check # fail if route/API/component inventory drifted from docs snapshot
 pnpm lint          # ESLint + TypeScript check
 ```
 
@@ -213,7 +215,7 @@ pnpm lint          # ESLint + TypeScript check
 
 ```text
 src/
-├── app/                  # Next.js App Router — 43 pages, 143 API routes
+├── app/                  # Next.js App Router; guarded counts in docs/STUDIO_INVENTORY_SNAPSHOT.json
 │   ├── start/            # Onboarding funnel entry
 │   ├── vibe/             # Brittney AI scene generation
 │   ├── create/           # Full IDE
@@ -222,8 +224,8 @@ src/
 │   ├── agents/           # Fleet management (4 sub-routes)
 │   ├── absorb/           # Codebase intelligence
 │   ├── auth/             # GitHub OAuth callback
-│   └── api/              # 143 API routes across 30+ domains
-├── components/           # 316 components
+│   └── api/              # API routes; guarded by inventory:check
+├── components/           # Components; guarded by inventory:check
 │   ├── shader-editor/    # Visual node graph + live GLSL preview
 │   ├── character/        # GLB viewer, skeleton panel, clip library
 │   ├── holomesh/         # Social network components
@@ -240,8 +242,8 @@ src/
 │   └── StudioWidget.tsx  # Prompt bar + viewer widget
 ├── features/
 │   └── shader-editor/    # ShaderEditorService, LivePreviewService
-├── hooks/                # 148 hooks — useShaderGraph, useScenePipeline, useCharacter...
-├── lib/                  # 121 modules — Zustand stores, Brittney tools, exporters, auth
+├── hooks/                # Hooks — useShaderGraph, useScenePipeline, useCharacter...
+├── lib/                  # Modules — Zustand stores, Brittney tools, exporters, auth
 └── __tests__/            # Full vitest suite
 ```
 

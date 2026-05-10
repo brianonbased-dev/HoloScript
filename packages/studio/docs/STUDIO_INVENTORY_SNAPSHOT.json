@@ -1,0 +1,80 @@
+{
+  "package": "@holoscript/studio",
+  "counts": {
+    "appPages": 68,
+    "apiRoutes": 172,
+    "components": 446,
+    "hooks": 112,
+    "libModules": 349,
+    "panelKeys": 76,
+    "panelComponents": 50
+  },
+  "topRouteBuckets": [
+    {
+      "bucket": "holomesh",
+      "count": 13
+    },
+    {
+      "bucket": "workspace",
+      "count": 6
+    },
+    {
+      "bucket": "agents",
+      "count": 4
+    },
+    {
+      "bucket": "pipeline",
+      "count": 3
+    },
+    {
+      "bucket": "teams",
+      "count": 3
+    },
+    {
+      "bucket": "absorb",
+      "count": 2
+    },
+    {
+      "bucket": "playground",
+      "count": 2
+    },
+    {
+      "bucket": "scan-room",
+      "count": 2
+    }
+  ],
+  "topApiBuckets": [
+    {
+      "bucket": "holomesh",
+      "count": 40
+    },
+    {
+      "bucket": "absorb",
+      "count": 8
+    },
+    {
+      "bucket": "git",
+      "count": 8
+    },
+    {
+      "bucket": "workspace",
+      "count": 7
+    },
+    {
+      "bucket": "connectors",
+      "count": 6
+    },
+    {
+      "bucket": "github",
+      "count": 6
+    },
+    {
+      "bucket": "studio",
+      "count": 6
+    },
+    {
+      "bucket": "daemon",
+      "count": 5
+    }
+  ]
+}

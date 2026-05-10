@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { extname, join, relative, sep } from 'node:path';
+import { extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const scriptDir = fileURLToPath(new URL('.', import.meta.url));
@@ -14,6 +14,9 @@ const libRoot = join(srcRoot, 'lib');
 const nextRoot = join(studioRoot, '.next');
 
 const JSON_MODE = process.argv.includes('--json');
+const SNAPSHOT_MODE = process.argv.includes('--snapshot');
+const CHECK_INDEX = process.argv.indexOf('--check');
+const CHECK_PATH = CHECK_INDEX >= 0 ? process.argv[CHECK_INDEX + 1] : null;
 const VALID_SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
 const TEST_FILE_PATTERN =
   /(?:^|[\\/])__(?:tests|mocks|fixtures)__[\\/]|(?:\.test|\.spec)\.[tj]sx?$/;
@@ -182,6 +185,89 @@ function buildInventory() {
   };
 }
 
+function toSnapshot(inventory) {
+  return {
+    package: inventory.package,
+    counts: inventory.counts,
+    topRouteBuckets: inventory.topRouteBuckets,
+    topApiBuckets: inventory.topApiBuckets,
+  };
+}
+
+function collectSnapshotDiffs(expected, actual, path = 'snapshot') {
+  if (Array.isArray(expected) || Array.isArray(actual)) {
+    if (!Array.isArray(expected) || !Array.isArray(actual)) {
+      return [`${path}: expected ${formatValue(expected)}, got ${formatValue(actual)}`];
+    }
+
+    const diffs = [];
+    if (expected.length !== actual.length) {
+      diffs.push(`${path}.length: expected ${expected.length}, got ${actual.length}`);
+    }
+
+    const max = Math.max(expected.length, actual.length);
+    for (let i = 0; i < max; i += 1) {
+      diffs.push(...collectSnapshotDiffs(expected[i], actual[i], `${path}[${i}]`));
+    }
+    return diffs;
+  }
+
+  if (isPlainObject(expected) || isPlainObject(actual)) {
+    if (!isPlainObject(expected) || !isPlainObject(actual)) {
+      return [`${path}: expected ${formatValue(expected)}, got ${formatValue(actual)}`];
+    }
+
+    const keys = [...new Set([...Object.keys(expected), ...Object.keys(actual)])].sort();
+    return keys.flatMap((key) => {
+      if (!(key in expected)) return [`${path}.${key}: unexpected ${formatValue(actual[key])}`];
+      if (!(key in actual)) return [`${path}.${key}: missing, expected ${formatValue(expected[key])}`];
+      return collectSnapshotDiffs(expected[key], actual[key], `${path}.${key}`);
+    });
+  }
+
+  if (expected !== actual) {
+    return [`${path}: expected ${formatValue(expected)}, got ${formatValue(actual)}`];
+  }
+
+  return [];
+}
+
+function isPlainObject(value) {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function formatValue(value) {
+  return JSON.stringify(value);
+}
+
+function runSnapshotCheck(checkPath, inventory) {
+  if (!checkPath || checkPath.startsWith('--')) {
+    console.error('[studio-inventory] --check requires a snapshot path.');
+    process.exit(2);
+  }
+
+  const resolvedPath = resolve(process.cwd(), checkPath);
+  const expected = JSON.parse(readFileSync(resolvedPath, 'utf8'));
+  const actual = toSnapshot(inventory);
+  const diffs = collectSnapshotDiffs(expected, actual);
+
+  if (diffs.length === 0) {
+    console.log(`[studio-inventory] snapshot matches ${normalizePath(relative(process.cwd(), resolvedPath))}`);
+    return;
+  }
+
+  console.error(`[studio-inventory] snapshot drift detected in ${normalizePath(relative(process.cwd(), resolvedPath))}`);
+  for (const diff of diffs.slice(0, 30)) console.error(`  - ${diff}`);
+  if (diffs.length > 30) console.error(`  ... ${diffs.length - 30} more differences`);
+  console.error('');
+  console.error('Refresh intentionally with:');
+  console.error('  node packages/studio/scripts/studio-inventory.mjs --snapshot > packages/studio/docs/STUDIO_INVENTORY_SNAPSHOT.json');
+  console.error('');
+  console.error('Current snapshot:');
+  console.error(JSON.stringify(actual, null, 2));
+  process.exit(1);
+}
+
 function bucketRoutes(routes, limit, ignoredRoot) {
   const buckets = new Map();
   for (const route of routes) {
@@ -236,5 +322,7 @@ function printText(inventory) {
 }
 
 const inventory = buildInventory();
-if (JSON_MODE) console.log(JSON.stringify(inventory, null, 2));
+if (CHECK_INDEX >= 0) runSnapshotCheck(CHECK_PATH, inventory);
+else if (SNAPSHOT_MODE) console.log(JSON.stringify(toSnapshot(inventory), null, 2));
+else if (JSON_MODE) console.log(JSON.stringify(inventory, null, 2));
 else printText(inventory);

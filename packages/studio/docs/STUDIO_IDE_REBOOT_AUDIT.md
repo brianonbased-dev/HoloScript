@@ -27,16 +27,16 @@ Follow-up applied in this audit pass:
 
 ## Verified Shape
 
-The live codebase is larger than the main Studio docs claim. Latest local inventory:
-`pnpm --filter @holoscript/studio inventory` at 2026-05-10T10:18:15Z.
+The live codebase is larger than the main Studio docs historically claimed. Latest local inventory:
+`pnpm --filter @holoscript/studio inventory` at 2026-05-10T19:41:52Z.
 
 | Surface          |        Current scan | Docs still claim |
 | ---------------- | ------------------: | ---------------: |
 | App page routes  |                  68 |         43 / 30+ |
-| API routes       |                 169 |              143 |
+| API routes       |                 172 |              143 |
 | Components       | 446 non-test TS/TSX |              316 |
 | Hooks            | 112 non-test TS/TSX |              148 |
-| Lib modules      | 344 non-test TS/TSX |              121 |
+| Lib modules      | 349 non-test TS/TSX |              121 |
 | Panel keys       |                  76 |         unstated |
 | Panel components |                  50 |         unstated |
 
@@ -80,12 +80,16 @@ workspace:
 ```bash
 pnpm --filter @holoscript/studio inventory
 node packages/studio/scripts/studio-inventory.mjs --json
+pnpm --filter @holoscript/studio inventory:check
+node packages/studio/scripts/studio-inventory.mjs --snapshot > packages/studio/docs/STUDIO_INVENTORY_SNAPSHOT.json
 ```
 
 The script reports App Router page routes, API routes, non-test component/hook/lib
 module counts, `panelVisibilityStore` panel keys, panel component count, top route
 buckets, and `.next/static/chunks/app` bundle-size signal when a local Studio build
-exists.
+exists. `inventory:check` compares the stable source counts and top buckets against
+`docs/STUDIO_INVENTORY_SNAPSHOT.json`; refresh that snapshot only when the route or
+module surface intentionally changes.
 
 ## Gap Coverage Snapshot
 
@@ -131,7 +135,7 @@ Still-open, verified gaps:
 
 ### 1. The docs are giving agents false confidence
 
-`README.md` and `PAGES_ARCHITECTURE.md` still describe a neat progressive funnel and stale route/component counts. `STUDIO_AUDIT.md` is worse: it claims "Overall: 8.5/10" and says maintainability is 9/10, while the current `/create` implementation and typecheck state contradict that.
+`README.md` and `PAGES_ARCHITECTURE.md` previously described a neat progressive funnel and stale route/component counts. They now point to the generated inventory snapshot and `inventory:check`; keep that guard in place so stale prose does not regain authority. `STUDIO_AUDIT.md` remains historical and superseded by this reboot audit.
 
 This matters because agents read the docs first and then preserve the sprawl instead of challenging it.
 
@@ -296,7 +300,7 @@ The mistake to avoid: putting all four lanes into one toolbar.
 - DONE: add a generated inventory script for routes, APIs, components, panels, and
   bundle-size signal.
 - DONE: fix typecheck before further UI expansion.
-- NEXT: wire the inventory command into docs/CI drift checks so stale counts fail loud.
+- DONE: wire the inventory command into docs/package drift checks so stale counts fail loud.
 
 ### Phase 1: Workbench spine
 
