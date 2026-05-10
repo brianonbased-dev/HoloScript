@@ -54,6 +54,7 @@ export interface AgentGenesisPlan {
     plaintextInWorkspace: false;
     handlesOnly: true;
     manifestPath: 'ecosystem/secrets.manifest.yml';
+    grantEndpoint: '/api/workspace/secret-broker/grant';
     handles: AgentGenesisSecretHandle[];
     brokerCapabilities: string[];
   };
@@ -243,6 +244,7 @@ export function buildAgentGenesisPlan(input: AgentGenesisInput): AgentGenesisPla
       plaintextInWorkspace: false,
       handlesOnly: true,
       manifestPath: 'ecosystem/secrets.manifest.yml',
+      grantEndpoint: '/api/workspace/secret-broker/grant',
       handles: buildSecretHandles({ ...input, workspaceId }),
       brokerCapabilities: [
         'cap://daemon/secrets/broker-only',

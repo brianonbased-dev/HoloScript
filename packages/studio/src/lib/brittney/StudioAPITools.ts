@@ -254,6 +254,45 @@ const workspaceAgentGenesis: StudioToolDefinition = {
   },
 };
 
+const workspaceSecretGrant: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'workspace_secret_grant',
+    description:
+      'Issue a brokered grant receipt for an agent to use a secret:// handle. Returns capability and audit receipt metadata only, never the plaintext secret. Use when Secret Custodian or another resident agent needs scoped secret access.',
+    parameters: {
+      type: 'object',
+      properties: {
+        workspaceId: {
+          type: 'string',
+          description: 'Workspace ID that owns the secret handle',
+        },
+        agentId: {
+          type: 'string',
+          description: 'Agent requesting the grant',
+        },
+        secretRef: {
+          type: 'string',
+          description: 'Workspace-scoped secret:// handle',
+        },
+        capabilityRef: {
+          type: 'string',
+          description: 'Secret capability, e.g. cap://daemon/secrets/broker-only',
+        },
+        purpose: {
+          type: 'string',
+          description: 'Single-sentence reason for the grant',
+        },
+        ttlSeconds: {
+          type: 'number',
+          description: 'Optional grant lifetime in seconds, clamped to broker policy',
+        },
+      },
+      required: ['workspaceId', 'agentId', 'secretRef', 'capabilityRef', 'purpose'],
+    },
+  },
+};
+
 // ─── Generation Tools ───────────────────────────────────────────────────────
 
 const generateCode: StudioToolDefinition = {
@@ -797,6 +836,7 @@ export const STUDIO_API_TOOLS: StudioToolDefinition[] = [
   scaffoldProject,
   workspaceImport,
   workspaceAgentGenesis,
+  workspaceSecretGrant,
   // Generation
   generateCode,
   generateMaterial,

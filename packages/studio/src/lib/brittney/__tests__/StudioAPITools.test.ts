@@ -92,6 +92,7 @@ describe('Tool categories', () => {
     expect(findTool('scaffold_project')).toBeDefined();
     expect(findTool('workspace_import')).toBeDefined();
     expect(findTool('workspace_agent_genesis')).toBeDefined();
+    expect(findTool('workspace_secret_grant')).toBeDefined();
   });
 
   it('has generation tools', () => {
@@ -411,6 +412,30 @@ describe('executeStudioTool', () => {
 
     const callArgs = vi.mocked(fetch).mock.calls[0];
     expect(callArgs[0]).toBe(`${BASE_URL}/api/workspace/agent-genesis`);
+    const body = JSON.parse((callArgs[1] as RequestInit).body as string);
+    expect(body).toEqual(args);
+  });
+
+  it('posts workspace_secret_grant to the broker API', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ grant: { grantId: 'sgrant_1', plaintextReturned: false } }), {
+        status: 201,
+        headers: { 'content-type': 'application/json' },
+      })
+    );
+
+    const args = {
+      workspaceId: 'ws-1',
+      agentId: 'agent-secret-custodian',
+      secretRef: 'secret://workspace/ws-1/github/oauth/access-token',
+      capabilityRef: 'cap://daemon/secrets/broker-only',
+      purpose: 'List approved repos through the broker',
+    };
+    const result = await executeStudioTool('workspace_secret_grant', args, BASE_URL);
+    expect(result.success).toBe(true);
+
+    const callArgs = vi.mocked(fetch).mock.calls[0];
+    expect(callArgs[0]).toBe(`${BASE_URL}/api/workspace/secret-broker/grant`);
     const body = JSON.parse((callArgs[1] as RequestInit).body as string);
     expect(body).toEqual(args);
   });

@@ -49,6 +49,7 @@ describe('buildAgentGenesisPlan', () => {
 
     expect(plan.secretBroker.plaintextInWorkspace).toBe(false);
     expect(plan.secretBroker.handlesOnly).toBe(true);
+    expect(plan.secretBroker.grantEndpoint).toBe('/api/workspace/secret-broker/grant');
     expect(plan.secretBroker.handles.map((handle) => handle.ref)).toEqual(
       expect.arrayContaining([
         'secret://workspace/ws_launch/holoscript/orchestrator/api-key',

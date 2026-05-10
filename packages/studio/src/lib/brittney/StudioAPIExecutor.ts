@@ -94,6 +94,11 @@ const ENDPOINTS: Record<string, EndpointConfig> = {
     path: '/api/workspace/agent-genesis',
     buildBody: (args) => args,
   },
+  workspace_secret_grant: {
+    method: 'POST',
+    path: '/api/workspace/secret-broker/grant',
+    buildBody: (args) => args,
+  },
 
   // Generation
   generate_code: {
