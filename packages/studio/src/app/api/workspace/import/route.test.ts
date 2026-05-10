@@ -49,7 +49,18 @@ function mockGitSuccess(): void {
         return {};
       }
       if (args[0] === 'ls-files') {
-        callback(null, 'src/index.ts\nREADME.md\n', '');
+        callback(
+          null,
+          [
+            'package.json',
+            'src/app/dashboard/page.tsx',
+            'src/app/api/generate/route.ts',
+            'src/components/SceneCanvas.tsx',
+            'scripts/sync-knowledge.mjs',
+            'prisma/schema.prisma',
+          ].join('\n') + '\n',
+          ''
+        );
         return {};
       }
       callback(null, '', '');
@@ -95,8 +106,29 @@ describe('/api/workspace/import route', () => {
 
     expect(res.status).toBe(200);
     expect(body.repoUrl).toBe('https://github.com/acme/private-repo.git');
-    expect(body.fileCount).toBe(2);
+    expect(body.fileCount).toBe(6);
     expect(body.localPath).toContain(tempRoot);
+    expect(body.conversionCandidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourcePaths: ['package.json'],
+          target: '.hsplus',
+        }),
+        expect.objectContaining({
+          sourcePaths: ['src/app/api/generate/route.ts'],
+          target: 'mcp-tool',
+        }),
+        expect.objectContaining({
+          sourcePaths: ['src/components/SceneCanvas.tsx'],
+          target: 'hololand-scene',
+        }),
+      ])
+    );
+    expect(fs.existsSync(body.conversionManifestPath)).toBe(true);
+    const manifest = JSON.parse(fs.readFileSync(body.conversionManifestPath, 'utf-8')) as {
+      candidates: unknown[];
+    };
+    expect(manifest.candidates).toHaveLength(body.conversionCandidates.length);
 
     const [command, args, options] = execFileMock.mock.calls[0] as [
       string,

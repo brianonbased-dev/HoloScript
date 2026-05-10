@@ -17,6 +17,10 @@ import * as os from 'os';
 import * as fs from 'fs';
 import { execFile, type ExecFileOptions } from 'child_process';
 import { randomUUID } from 'crypto';
+import {
+  buildConversionCandidates,
+  persistConversionCandidates,
+} from '@/lib/workspace/conversionAdvisor';
 
 import { corsHeaders } from '../../_lib/cors';
 
@@ -228,12 +232,26 @@ export async function POST(req: NextRequest) {
 
     // Count files for quick stats
     let fileCount = 0;
+    let trackedFiles: string[] = [];
     try {
       const { stdout } = await execGit(['ls-files'], { cwd: localPath, env });
-      fileCount = stdout.split(/\r?\n/).filter(Boolean).length;
+      trackedFiles = stdout.split(/\r?\n/).filter(Boolean);
+      fileCount = trackedFiles.length;
     } catch {
       // non-critical
     }
+
+    const conversionCandidates = buildConversionCandidates({ paths: trackedFiles });
+    const conversionManifestPath = persistConversionCandidates({
+      workspaceDir,
+      candidates: conversionCandidates,
+      metadata: {
+        workspaceId: id,
+        repoUrl: repoRef.cloneUrl,
+        branch: actualBranch,
+        localPath,
+      },
+    });
 
     return NextResponse.json({
       id,
@@ -243,6 +261,8 @@ export async function POST(req: NextRequest) {
       localPath,
       status: 'ready',
       fileCount,
+      conversionCandidates,
+      conversionManifestPath,
       createdAt: new Date().toISOString(),
       hint: `POST /api/daemon/absorb with projectPath="${localPath}" to index this workspace.`,
     });
