@@ -110,6 +110,19 @@ describe('AndroidXRTraitMap', () => {
     expect(code.some((l) => l.includes('densityProgram'))).toBe(true);
   });
 
+  it('generates A-009 cloth + fluid + soft_body combo without fallback comments', () => {
+    const code = [
+      ...generateTraitCode('cloth', 'fabric', { stiffness: 0.9, width: 30, height: 30 }),
+      ...generateTraitCode('fluid', 'water', { particle_count: 50000, viscosity: 0.01 }),
+      ...generateTraitCode('soft_body', 'jelly', { compliance: 0.001, substeps: 8 }),
+    ];
+
+    expect(code.some((l) => l.includes('PBDClothSimulation'))).toBe(true);
+    expect(code.some((l) => l.includes('SPHFluidSimulation'))).toBe(true);
+    expect(code.some((l) => l.includes('XPBDSoftBodySolver'))).toBe(true);
+    expect(code.every((l) => !l.includes('no Android XR mapping defined'))).toBe(true);
+  });
+
   it('generates PBD constraint code', () => {
     const code = generateTraitCode('pbd_constraint', 'spring', {
       type: 'distance',
