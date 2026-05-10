@@ -12,7 +12,9 @@ npm install @holoscript/mcp-server
 
 ## Hosted Server
 
-A live instance is available at **`https://mcp.holoscript.net`** — no installation required.
+A live instance is available at **`https://mcp.holoscript.net`** — no local server required.
+Health and discovery endpoints are public; raw `POST /mcp` calls require an
+OAuth 2.1 access token or a production-valid legacy tenant key.
 
 ```bash
 # Health check
@@ -26,7 +28,13 @@ curl -X POST https://mcp.holoscript.net/api/share -H "Content-Type: application/
   -d '{"code": "...", "title": "My Scene", "platform": "x"}'
 
 # MCP protocol
-curl -X POST https://mcp.holoscript.net/mcp -H "Content-Type: application/json" \
+TOKEN="$(curl -s -X POST https://mcp.holoscript.net/oauth/register \
+  -H "Content-Type: application/json" \
+  -d '{"client_name":"docs-smoke","redirect_uris":[],"scope":"tools:read","token_endpoint_auth_method":"client_secret_post"}' \
+  | node -e "let b='';process.stdin.on('data',c=>b+=c).on('end',async()=>{const c=JSON.parse(b);const r=await fetch('https://mcp.holoscript.net/oauth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({grant_type:'client_credentials',client_id:c.client_id,client_secret:c.client_secret,scope:'tools:read'})});const t=await r.json();process.stdout.write(t.access_token||'')})")"
+curl -X POST https://mcp.holoscript.net/mcp \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
   -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
 ```
 
@@ -40,11 +48,18 @@ Use the hosted MCP server — no local installation needed:
 {
   "mcpServers": {
     "holoscript": {
-      "url": "https://mcp.holoscript.net/mcp"
+      "url": "https://mcp.holoscript.net/mcp",
+      "headers": {
+        "Authorization": "Bearer ${HOLOSCRIPT_MCP_ACCESS_TOKEN}"
+      }
     }
   }
 }
 ```
+
+If your MCP client supports OAuth discovery, point it at
+`https://mcp.holoscript.net/mcp` and let it complete registration/token exchange.
+For manual smoke tests, run `pnpm --filter @holoscript/mcp-server smoke:auth`.
 
 ### Option 2: Local (npx)
 

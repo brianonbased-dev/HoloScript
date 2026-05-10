@@ -383,6 +383,14 @@ describe('OAuth21Service', () => {
       expect(result.active).toBe(true);
     });
 
+    it('should accept legacy x-mcp-api-key header used by direct MCP docs', () => {
+      const result = oauth.authenticateRequest({
+        'x-mcp-api-key': 'test-legacy-key',
+      });
+      expect(result.active).toBe(true);
+      expect(result.agentId).toBe('legacy-api-key');
+    });
+
     it('should reject invalid legacy key', () => {
       const result = oauth.authenticateRequest({
         'x-api-key': 'wrong-key',

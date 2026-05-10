@@ -16,7 +16,9 @@ The MCP server provides tools that AI assistants (Claude, GPT, Cursor) can use t
 
 ## Quick Start (Hosted — No Install)
 
-A live MCP server is available at **`https://mcp.holoscript.net`**. Use it directly from any MCP client:
+A live MCP server is available at **`https://mcp.holoscript.net`**. Health and
+discovery are public; direct `POST /mcp` calls require an OAuth 2.1 access token
+or a production-valid tenant key.
 
 ```bash
 # Verify it's running
@@ -31,7 +33,10 @@ Add to Claude config (`~/.claude/settings.json` or Claude Desktop settings):
 {
   "mcpServers": {
     "holoscript": {
-      "url": "https://mcp.holoscript.net/mcp"
+      "url": "https://mcp.holoscript.net/mcp",
+      "headers": {
+        "Authorization": "Bearer ${HOLOSCRIPT_MCP_ACCESS_TOKEN}"
+      }
     }
   }
 }
@@ -45,7 +50,10 @@ Add to `.vscode/mcp.json`:
 {
   "mcpServers": {
     "holoscript": {
-      "url": "https://mcp.holoscript.net/mcp"
+      "url": "https://mcp.holoscript.net/mcp",
+      "headers": {
+        "Authorization": "Bearer ${HOLOSCRIPT_MCP_ACCESS_TOKEN}"
+      }
     }
   }
 }
@@ -59,11 +67,25 @@ Add to Cursor settings or `.cursor/mcp.json`:
 {
   "mcpServers": {
     "holoscript": {
-      "url": "https://mcp.holoscript.net/mcp"
+      "url": "https://mcp.holoscript.net/mcp",
+      "headers": {
+        "Authorization": "Bearer ${HOLOSCRIPT_MCP_ACCESS_TOKEN}"
+      }
     }
   }
 }
 ```
+
+To generate a short-lived token without a UI, dynamically register a client and
+exchange it through `grant_type=client_credentials`:
+
+```bash
+pnpm --filter @holoscript/mcp-server smoke:auth
+```
+
+That smoke command verifies that unauthenticated `POST /mcp` returns `401`, then
+registers an OAuth client, exchanges it for `tools:read`, and confirms
+`tools/list` succeeds with `Authorization: Bearer <access_token>`.
 
 ---
 

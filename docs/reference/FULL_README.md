@@ -761,7 +761,7 @@ Interactive scene graph visualization with:
 ### Additional Tooling
 
 - **HoloScript Studio** — AI-powered 3D scene builder with templates (Enchanted Forest, Space Station, Art Gallery, Zen Garden, Neon City).
-- **MCP Server** — MCP tools across 6 domains (verify via `curl mcp.holoscript.net/health`). `mcp.holoscript.net`. No auth for reads. **[Full guide →](./docs/guides/mcp-server.md)**
+- **MCP Server** — MCP tools across 6 domains (verify via `curl mcp.holoscript.net/health`). `mcp.holoscript.net`. Health/discovery are public; direct `POST /mcp` requires OAuth or a production-valid tenant key. **[Full guide →](./docs/guides/mcp-server.md)**
 - **LSP Server** — IntelliSense for trait handlers (verify via MCP: `list_traits`) with completions, hover docs, and diagnostics
 
 #### MCP Server Quick Reference
@@ -779,15 +779,18 @@ Add to your agent's MCP config:
 }
 ```
 
+`mcp-remote` can complete the OAuth flow for clients that support it. Raw
+JSON-RPC calls to `POST /mcp` must send `Authorization: Bearer <access_token>`.
+
 Key endpoints:
 
 | Action   | Method | Endpoint                                | Auth |
 | -------- | ------ | --------------------------------------- | ---- |
 | Health   | GET    | `https://mcp.holoscript.net/api/health` | None |
-| Parse    | MCP    | `parse_hs` / `parse_holo`               | None |
-| Compile  | MCP    | `compile_holoscript`                    | None |
-| Traits   | MCP    | `list_traits` / `suggest_traits`        | None |
-| Validate | MCP    | `validate_holoscript`                   | None |
+| Parse    | MCP    | `parse_hs` / `parse_holo`               | OAuth/tenant key for direct `/mcp` |
+| Compile  | MCP    | `compile_holoscript`                    | OAuth/tenant key |
+| Traits   | MCP    | `list_traits` / `suggest_traits`        | OAuth/tenant key |
+| Validate | MCP    | `validate_holoscript`                   | OAuth/tenant key |
 | Render   | POST   | `https://mcp.holoscript.net/api/render` | None |
 
 ```bash

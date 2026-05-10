@@ -33,6 +33,7 @@
     "scout:status": "npx pm2 status holoscout",
     "scout:logs": "npx pm2 logs holoscout --lines 100",
     "smoke:bitnet": "tsx scripts/bitnet-smoke.ts",
+    "smoke:auth": "node scripts/smoke-mcp-auth.mjs",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "node -e \"require('fs').mkdirSync('coverage/.tmp',{recursive:true})\" && vitest run --coverage --passWithNoTests",
     "test:watch": "vitest"

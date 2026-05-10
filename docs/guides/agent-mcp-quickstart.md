@@ -8,7 +8,7 @@ Most modern AI agents can connect to HoloScript tools via the hosted Model Conte
 
 - **Discovery URL**: `https://mcp.holoscript.net/.well-known/mcp.json`
 - **Hosted Endpoint**: `https://mcp.holoscript.net/mcp`
-- **Authentication**: Requires a valid `HOLOSCRIPT_API_KEY` (or OAuth 2.1 token).
+- **Authentication**: Requires `Authorization: Bearer <OAuth access_token>` for direct `POST /mcp` calls. Use OAuth discovery/registration when your MCP client supports it; legacy `HOLOSCRIPT_API_KEY`/tenant keys only work if they are provisioned in production.
 
 ### Example: Claude Desktop / AI IDE Configuration
 
