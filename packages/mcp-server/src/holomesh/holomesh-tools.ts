@@ -44,6 +44,7 @@ import { threadTools, handleThreadTool } from './threads';
 import { searchTools, handleSearchTool } from './search';
 import { boardTools, handleBoardTool } from './board-tools';
 import { teamAgentTools, handleTeamAgentTool } from './team-agent-tools';
+import { teamFormationTools, handleTeamFormationTool } from './team-formation-tools';
 import { sovereignTools, handleSovereignTool } from './sovereign-tools';
 import * as crypto from 'crypto';
 import {
@@ -548,6 +549,8 @@ export const holomeshTools: Tool[] = [
   ...boardTools,
   // Team agent coordination tools
   ...teamAgentTools,
+  // Team formation tools (holo_team_form)
+  ...teamFormationTools,
   // Sovereign mesh ops
   ...sovereignTools,
 ];
@@ -603,6 +606,8 @@ export async function handleHoloMeshTool(
   if (boardResult !== null) return boardResult;
   const teamAgentResult = await handleTeamAgentTool(name, args);
   if (teamAgentResult !== null) return teamAgentResult;
+  const teamFormResult = await handleTeamFormationTool(name, args);
+  if (teamFormResult !== null) return teamFormResult;
 
   if (name === 'holomesh_publish_tool') {
     return handlePublishTool(hasHoloMeshKey() ? getOrCreateClient() : null, args);

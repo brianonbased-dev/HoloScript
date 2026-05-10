@@ -9,6 +9,22 @@ export { sendMessage, getInbox, getThread, markRead, getUnreadCount } from './me
 export { boardTools, handleBoardTool } from './board-tools';
 export { teamAgentTools, handleTeamAgentTool } from './team-agent-tools';
 export {
+  teamFormationTools,
+  handleTeamFormationTool,
+  setTeamFormationRosterSource,
+} from './team-formation-tools';
+export {
+  formTeam,
+  DEFAULT_FORMATION_CONFIG,
+} from './team-formation';
+export type {
+  RosterAgent,
+  TeamRequirement,
+  TeamMember,
+  FormedTeam,
+  TeamFormationConfig,
+} from './team-formation';
+export {
   PRIMARY_ASSISTANT_AGENT,
   BRITTNEY_AGENT,
   DAEMON_AGENT,
