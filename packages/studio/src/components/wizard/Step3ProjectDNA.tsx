@@ -1,8 +1,13 @@
 'use client';
 
 import { AlertCircle, Shield, Zap } from 'lucide-react';
-import type { ProjectDNA } from '@/lib/stores/workspaceStore';
+import type {
+  ConversionAction,
+  ConversionCandidate,
+  ProjectDNA,
+} from '@/lib/stores/workspaceStore';
 import { KIND_META } from './importWizardConstants';
+import { ConversionRecommendations } from './ConversionRecommendations';
 
 interface AbsorbStats {
   totalFiles: number;
@@ -14,9 +19,26 @@ interface AbsorbStats {
 interface Step3ProjectDNAProps {
   dna: ProjectDNA | null;
   absorbStats: AbsorbStats | null;
+  conversionCandidates: ConversionCandidate[];
+  conversionActions: Record<string, ConversionAction>;
+  repoUrl: string;
+  branch: string;
+  onAcceptConversion: (candidateId: string) => void;
+  onDismissConversion: (candidateId: string) => void;
+  onExportConversions: () => void;
 }
 
-export function Step3ProjectDNA({ dna, absorbStats }: Step3ProjectDNAProps) {
+export function Step3ProjectDNA({
+  dna,
+  absorbStats,
+  conversionCandidates,
+  conversionActions,
+  repoUrl,
+  branch,
+  onAcceptConversion,
+  onDismissConversion,
+  onExportConversions,
+}: Step3ProjectDNAProps) {
   if (!dna) return null;
 
   return (
@@ -25,7 +47,9 @@ export function Step3ProjectDNA({ dna, absorbStats }: Step3ProjectDNAProps) {
       <div className="flex items-center gap-3 rounded-xl border border-blue-500/30 bg-blue-500/5 p-4">
         <span className="text-3xl">{KIND_META[dna.kind]?.emoji ?? '❓'}</span>
         <div>
-          <p className={`text-sm font-semibold ${KIND_META[dna.kind]?.color ?? 'text-studio-text'}`}>
+          <p
+            className={`text-sm font-semibold ${KIND_META[dna.kind]?.color ?? 'text-studio-text'}`}
+          >
             {KIND_META[dna.kind]?.label ?? dna.kind}
           </p>
           <p className="text-[11px] text-studio-muted">
@@ -133,6 +157,16 @@ export function Step3ProjectDNA({ dna, absorbStats }: Step3ProjectDNAProps) {
           </p>
         </div>
       </div>
+
+      <ConversionRecommendations
+        candidates={conversionCandidates}
+        actions={conversionActions}
+        repoUrl={repoUrl}
+        branch={branch}
+        onAccept={onAcceptConversion}
+        onDismiss={onDismissConversion}
+        onExport={onExportConversions}
+      />
     </div>
   );
 }

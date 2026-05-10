@@ -30,6 +30,31 @@ export interface ProjectDNA {
   recommendedMode: 'quick' | 'balanced' | 'deep';
 }
 
+export type ConversionTarget =
+  | '.holo'
+  | '.hs'
+  | '.hsplus'
+  | 'trait-package'
+  | 'mcp-tool'
+  | 'compiler-export-target'
+  | 'hololand-scene';
+
+export type ConversionAction = 'accepted' | 'dismissed';
+
+export interface ConversionCandidate {
+  id: string;
+  rank: number;
+  sourcePaths: string[];
+  detectedPattern: string;
+  target: ConversionTarget;
+  confidence: number;
+  value: number;
+  effort: 'quick' | 'moderate' | 'deep';
+  risk: 'low' | 'medium' | 'high';
+  whyItMatters: string;
+  nextAction: string;
+}
+
 export type WorkspaceStatus = 'importing' | 'cloning' | 'absorbing' | 'ready' | 'error';
 
 export interface Workspace {
@@ -48,6 +73,9 @@ export interface Workspace {
     totalSymbols: number;
     totalLoc: number;
   } | null;
+  conversionCandidates?: ConversionCandidate[];
+  conversionManifestPath?: string | null;
+  conversionActions?: Record<string, ConversionAction>;
 }
 
 // ─── Store Interface ──────────────────────────────────────────────────────────

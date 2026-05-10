@@ -2,7 +2,12 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useGitHubRepos } from '@/hooks/useGitHubRepos';
 import type { GitHubRepoItem } from '@/hooks/useGitHubRepos';
 import { useWorkspaceStore } from '@/lib/stores/workspaceStore';
-import type { Workspace, ProjectDNA } from '@/lib/stores/workspaceStore';
+import type {
+  ConversionAction,
+  ConversionCandidate,
+  Workspace,
+  ProjectDNA,
+} from '@/lib/stores/workspaceStore';
 import { detectProjectDNA } from '@/lib/workspace/projectDNA';
 import { useAbsorbPipelineBridge } from '@/hooks/useAbsorbPipelineBridge';
 import type { PipelineTriggerConfig } from '@/lib/integrations/absorbPipelineBridge';
@@ -44,6 +49,8 @@ export interface ImportRepoWizardState {
     totalLoc: number;
     durationMs: number;
   } | null;
+  conversionCandidates: ConversionCandidate[];
+  conversionActions: Record<string, ConversionAction>;
 
   // Derived
   repoUrl: string;
@@ -57,8 +64,22 @@ export interface ImportRepoWizardState {
   goToStep: (next: number) => void;
   handleLaunch: () => void;
   handleAbsorbAndImprove: () => Promise<void>;
+  acceptConversionCandidate: (candidateId: string) => void;
+  dismissConversionCandidate: (candidateId: string) => void;
+  exportConversionCandidates: () => void;
   retryImport: () => void;
   timeAgo: (dateStr: string) => string;
+}
+
+interface WorkspaceImportResponse {
+  id: string;
+  name: string;
+  repoUrl: string;
+  branch: string;
+  localPath: string;
+  createdAt: string;
+  conversionCandidates?: ConversionCandidate[];
+  conversionManifestPath?: string;
 }
 
 export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState {
@@ -95,6 +116,9 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
     totalLoc: number;
     durationMs: number;
   } | null>(null);
+  const [conversionCandidates, setConversionCandidates] = useState<ConversionCandidate[]>([]);
+  const [conversionActions, setConversionActions] = useState<Record<string, ConversionAction>>({});
+  const [conversionManifestPath, setConversionManifestPath] = useState<string | null>(null);
 
   const direction: 'left' | 'right' = step >= prevStep ? 'right' : 'left';
   const TOTAL_STEPS = 5;
@@ -145,9 +169,13 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
         throw new Error(body.error ?? `Clone failed: HTTP ${cloneRes.status}`);
       }
 
-      const cloneResult = await cloneRes.json();
+      const cloneResult = (await cloneRes.json()) as WorkspaceImportResponse;
       const wsId = cloneResult.id;
+      const candidates = cloneResult.conversionCandidates ?? [];
       setWorkspaceId(wsId);
+      setConversionCandidates(candidates);
+      setConversionActions({});
+      setConversionManifestPath(cloneResult.conversionManifestPath ?? null);
       setImportProgress(40);
 
       // Create workspace entry in store
@@ -163,6 +191,9 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
         createdAt: cloneResult.createdAt,
         error: null,
         stats: null,
+        conversionCandidates: candidates,
+        conversionManifestPath: cloneResult.conversionManifestPath ?? null,
+        conversionActions: {},
       };
       addWorkspace(ws);
       setImportStatus('absorbing');
@@ -213,6 +244,9 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
           totalSymbols: absorbResult.stats.totalSymbols,
           totalLoc: absorbResult.stats.totalLoc,
         },
+        conversionCandidates: candidates,
+        conversionManifestPath: cloneResult.conversionManifestPath ?? null,
+        conversionActions: {},
       });
 
       setImportProgress(100);
@@ -252,6 +286,58 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
 
     await triggerPipeline(event);
   }, [absorbStats, repoUrl, dna, triggerPipeline]);
+
+  const setConversionAction = useCallback(
+    (candidateId: string, action: ConversionAction) => {
+      setConversionActions((prev) => {
+        const next = { ...prev, [candidateId]: action };
+        if (workspaceId) updateWorkspace(workspaceId, { conversionActions: next });
+        return next;
+      });
+    },
+    [updateWorkspace, workspaceId]
+  );
+
+  const acceptConversionCandidate = useCallback(
+    (candidateId: string) => setConversionAction(candidateId, 'accepted'),
+    [setConversionAction]
+  );
+
+  const dismissConversionCandidate = useCallback(
+    (candidateId: string) => setConversionAction(candidateId, 'dismissed'),
+    [setConversionAction]
+  );
+
+  const exportConversionCandidates = useCallback(() => {
+    if (conversionCandidates.length === 0) return;
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      workspaceId,
+      repoUrl,
+      branch,
+      conversionManifestPath,
+      candidates: conversionCandidates.map((candidate) => ({
+        ...candidate,
+        decision: conversionActions[candidate.id] ?? null,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${repoName || 'workspace'}-conversion-candidates.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }, [
+    branch,
+    conversionActions,
+    conversionCandidates,
+    conversionManifestPath,
+    repoName,
+    repoUrl,
+    workspaceId,
+  ]);
 
   // ── Validation ──
   const canNext = useMemo(() => {
@@ -328,6 +414,8 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
     importProgress,
     dna,
     absorbStats,
+    conversionCandidates,
+    conversionActions,
     repoUrl,
     repoName,
     canNext,
@@ -337,6 +425,9 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
     goToStep,
     handleLaunch,
     handleAbsorbAndImprove,
+    acceptConversionCandidate,
+    dismissConversionCandidate,
+    exportConversionCandidates,
     retryImport,
     timeAgo,
   };

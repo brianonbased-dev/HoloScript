@@ -12,7 +12,16 @@
  * Matches StudioSetupWizard's visual language (emerald accent, AnimatedStep, same layout).
  */
 
-import { X, ChevronRight, ChevronLeft, GitBranch, FolderGit2, Loader2, Zap, BarChart2 } from 'lucide-react';
+import {
+  X,
+  ChevronRight,
+  ChevronLeft,
+  GitBranch,
+  FolderGit2,
+  Loader2,
+  Zap,
+  BarChart2,
+} from 'lucide-react';
 import { useImportRepoWizard } from '@/hooks/useImportRepoWizard';
 import { AnimatedStep } from './AnimatedStep';
 import { KIND_META } from './importWizardConstants';
@@ -28,14 +37,43 @@ interface ImportRepoWizardProps {
 
 export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
   const {
-    step, direction, TOTAL_STEPS,
-    repos, reposLoading, reposError, search, setSearch,
-    selectedRepo, setSelectedRepo, manualUrl, setManualUrl,
-    useManual, setUseManual, branch, setBranch,
-    importStatus, importError, importProgress,
-    dna, absorbStats, repoUrl, repoName,
-    canNext, stepTitles, isTriggering, config,
-    goToStep, handleLaunch, handleAbsorbAndImprove, retryImport, timeAgo,
+    step,
+    direction,
+    TOTAL_STEPS,
+    repos,
+    reposLoading,
+    reposError,
+    search,
+    setSearch,
+    selectedRepo,
+    setSelectedRepo,
+    manualUrl,
+    setManualUrl,
+    useManual,
+    setUseManual,
+    branch,
+    setBranch,
+    importStatus,
+    importError,
+    importProgress,
+    dna,
+    absorbStats,
+    conversionCandidates,
+    conversionActions,
+    repoUrl,
+    repoName,
+    canNext,
+    stepTitles,
+    isTriggering,
+    config,
+    goToStep,
+    handleLaunch,
+    handleAbsorbAndImprove,
+    acceptConversionCandidate,
+    dismissConversionCandidate,
+    exportConversionCandidates,
+    retryImport,
+    timeAgo,
   } = useImportRepoWizard(onClose);
 
   return (
@@ -111,7 +149,17 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
           </AnimatedStep>
 
           <AnimatedStep visible={step === 3} direction={direction}>
-            <Step3ProjectDNA dna={dna} absorbStats={absorbStats} />
+            <Step3ProjectDNA
+              dna={dna}
+              absorbStats={absorbStats}
+              conversionCandidates={conversionCandidates}
+              conversionActions={conversionActions}
+              repoUrl={repoUrl}
+              branch={branch}
+              onAcceptConversion={acceptConversionCandidate}
+              onDismissConversion={dismissConversionCandidate}
+              onExportConversions={exportConversionCandidates}
+            />
           </AnimatedStep>
 
           <AnimatedStep visible={step === 4} direction={direction}>
@@ -119,6 +167,13 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
               repoName={repoName}
               dna={dna}
               absorbStats={absorbStats}
+              conversionCandidates={conversionCandidates}
+              conversionActions={conversionActions}
+              repoUrl={repoUrl}
+              branch={branch}
+              onAcceptConversion={acceptConversionCandidate}
+              onDismissConversion={dismissConversionCandidate}
+              onExportConversions={exportConversionCandidates}
             />
           </AnimatedStep>
         </div>

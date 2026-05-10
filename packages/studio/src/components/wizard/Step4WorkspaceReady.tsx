@@ -1,9 +1,14 @@
 'use client';
 
 import { Check, ArrowRight } from 'lucide-react';
-import type { ProjectDNA } from '@/lib/stores/workspaceStore';
+import type {
+  ConversionAction,
+  ConversionCandidate,
+  ProjectDNA,
+} from '@/lib/stores/workspaceStore';
 import { KIND_META } from './importWizardConstants';
 import { generateWorkspaceSeed } from '@/lib/workspaceSeeder';
+import { ConversionRecommendations } from './ConversionRecommendations';
 
 interface AbsorbStats {
   totalFiles: number;
@@ -16,9 +21,27 @@ interface Step4WorkspaceReadyProps {
   repoName: string;
   dna: ProjectDNA | null;
   absorbStats: AbsorbStats | null;
+  conversionCandidates: ConversionCandidate[];
+  conversionActions: Record<string, ConversionAction>;
+  repoUrl: string;
+  branch: string;
+  onAcceptConversion: (candidateId: string) => void;
+  onDismissConversion: (candidateId: string) => void;
+  onExportConversions: () => void;
 }
 
-export function Step4WorkspaceReady({ repoName, dna, absorbStats }: Step4WorkspaceReadyProps) {
+export function Step4WorkspaceReady({
+  repoName,
+  dna,
+  absorbStats,
+  conversionCandidates,
+  conversionActions,
+  repoUrl,
+  branch,
+  onAcceptConversion,
+  onDismissConversion,
+  onExportConversions,
+}: Step4WorkspaceReadyProps) {
   return (
     <div className="flex flex-col items-center gap-6 py-4">
       <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20 shadow-2xl shadow-emerald-500/20">
@@ -153,7 +176,9 @@ export function Step4WorkspaceReady({ repoName, dna, absorbStats }: Step4Workspa
             </div>
             <div className="flex items-center gap-2">
               <ArrowRight className="h-3 w-3 text-blue-400" />
-              <span>Run the {dna?.recommendedProfile ?? 'recommended'} daemon for improvements</span>
+              <span>
+                Run the {dna?.recommendedProfile ?? 'recommended'} daemon for improvements
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <ArrowRight className="h-3 w-3 text-blue-400" />
@@ -162,6 +187,17 @@ export function Step4WorkspaceReady({ repoName, dna, absorbStats }: Step4Workspa
           </>
         )}
       </div>
+
+      <ConversionRecommendations
+        candidates={conversionCandidates}
+        actions={conversionActions}
+        repoUrl={repoUrl}
+        branch={branch}
+        onAccept={onAcceptConversion}
+        onDismiss={onDismissConversion}
+        onExport={onExportConversions}
+        compact
+      />
 
       {/* Agent Ecosystem Injection Panel */}
       {dna && (
@@ -173,16 +209,18 @@ export function Step4WorkspaceReady({ repoName, dna, absorbStats }: Step4Workspa
             {generateWorkspaceSeed(repoName, dna).map((file, idx) => (
               <div key={idx} className="flex items-center gap-2">
                 <Check className="h-3 w-3 text-indigo-400" />
-                <span className="font-mono truncate" title={file.path}>{file.path}</span>
+                <span className="font-mono truncate" title={file.path}>
+                  {file.path}
+                </span>
               </div>
             ))}
           </div>
           <p className="text-[9px] text-studio-muted mt-3 italic">
-            Your local agents (Claude/Cursor) are now securely constrained by HoloScript domain alignments.
+            Your local agents (Claude/Cursor) are now securely constrained by HoloScript domain
+            alignments.
           </p>
         </div>
       )}
-
     </div>
   );
 }
