@@ -80,6 +80,22 @@ export {
   type SpringConfig,
 } from './SpringAnimator';
 
+export {
+  MixamoRetargeter,
+  retargetToVRM,
+  retargetToURDF,
+  vrmRetargetConfig,
+  urdfRetargetConfig,
+  getRetargetableBones,
+  isRetargetable,
+  type MixamoAnimationSource,
+  type MixamoBoneAnimation,
+  type MixamoKeyframe,
+  type RetargetConfig,
+  type RetargetTarget,
+  type BoneRetargetOptions,
+} from './MixamoRetargeter';
+
 export { Timeline, type TimelineMode, type TimelineEntry, type TimelineConfig } from './Timeline';
 
 export {

@@ -492,6 +492,32 @@ export const VRM_BONE_MAP: Partial<Record<HumanoidBoneName, string>> = {
   right_toes: 'rightToes',
 };
 
+/** Maps HumanoidBoneName → standard URDF joint name for humanoid robots. */
+export const URDF_BONE_MAP: Partial<Record<HumanoidBoneName, string>> = {
+  hips: 'hip_joint',
+  spine: 'spine_joint',
+  spine1: 'spine1_joint',
+  spine2: 'spine2_joint',
+  neck: 'neck_joint',
+  head: 'head_joint',
+  left_shoulder: 'left_shoulder_joint',
+  left_upper_arm: 'left_upper_arm_joint',
+  left_forearm: 'left_forearm_joint',
+  left_hand: 'left_hand_joint',
+  right_shoulder: 'right_shoulder_joint',
+  right_upper_arm: 'right_upper_arm_joint',
+  right_forearm: 'right_forearm_joint',
+  right_hand: 'right_hand_joint',
+  left_upper_leg: 'left_hip_joint',
+  left_lower_leg: 'left_knee_joint',
+  left_foot: 'left_ankle_joint',
+  left_toes: 'left_toe_joint',
+  right_upper_leg: 'right_hip_joint',
+  right_lower_leg: 'right_knee_joint',
+  right_foot: 'right_ankle_joint',
+  right_toes: 'right_toe_joint',
+};
+
 // =============================================================================
 // Utility Functions
 // =============================================================================
