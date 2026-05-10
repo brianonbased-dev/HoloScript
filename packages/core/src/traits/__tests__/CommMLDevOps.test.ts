@@ -11,7 +11,7 @@ import { discordHandler } from '../DiscordTrait';
 import { mqttPubHandler } from '../MqttPubTrait';
 import { sseHandler } from '../SseTrait';
 import { modelLoadHandler } from '../ModelLoadTrait';
-import { inferenceHandler } from '../InferenceTrait';
+import { inferenceHandler, type InferenceAdapter } from '../InferenceTrait';
 import { embeddingHandler } from '../EmbeddingTrait';
 import { fineTuneHandler } from '../FineTuneTrait';
 import { vectorSearchHandler } from '../VectorSearchTrait';
@@ -30,6 +30,10 @@ import {
   getLastEvent,
   getEventCount,
 } from './traitTestHelpers';
+
+async function flushMicrotasks(): Promise<void> {
+  for (let i = 0; i < 6; i++) await Promise.resolve();
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Communication
@@ -150,16 +154,27 @@ describe('ModelLoadTrait', () => {
 });
 
 describe('InferenceTrait', () => {
-  it('should run inference', () => {
+  it('should run inference through a registered adapter', async () => {
     const node = createMockNode('inf');
     const ctx = createMockContext();
-    attachTrait(inferenceHandler, node, {}, ctx);
-    sendEvent(inferenceHandler, node, {}, ctx, {
+    const adapter: InferenceAdapter = {
+      id: 'comm-ml-adapter',
+      run: () => ({ output: 'world', latencyMs: 1 }),
+    };
+    const config = { adapter };
+    attachTrait(inferenceHandler, node, config, ctx);
+    sendEvent(inferenceHandler, node, config, ctx, {
       type: 'inference:run',
       modelId: 'gpt4',
       input: 'hello',
     });
+    await flushMicrotasks();
     expect(getEventCount(ctx, 'inference:result')).toBe(1);
+    expect(getLastEvent(ctx, 'inference:result')).toMatchObject({
+      modelId: 'gpt4',
+      output: 'world',
+      adapterId: 'comm-ml-adapter',
+    });
   });
 });
 
