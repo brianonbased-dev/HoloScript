@@ -1,6 +1,8 @@
 import { execFile } from 'child_process';
 import * as os from 'os';
 import * as path from 'path';
+import { buildAccountWorkspaceSeed, type AccountWorkspaceMetadata } from './accountWorkspace';
+import { resolveWorkspaceIdForIdentity } from './workspaceIdentity';
 
 /**
  * User Provisioning Pipeline
@@ -26,7 +28,7 @@ export interface ProvisionedUser {
   repoName: string;
   tier?: 'starter' | 'founder';
   capabilities?: string[];
-  accountWorkspace?: FounderAccountWorkspace;
+  accountWorkspace?: FounderAccountWorkspace | AccountWorkspaceMetadata;
   scaffolded: boolean;
   daemonStarted: boolean;
 }
@@ -243,7 +245,7 @@ async function ensureRepo(
   username: string,
   repoUrl?: string,
   projectName?: string
-): Promise<{ repoUrl: string; repoName: string; isNew: boolean }> {
+): Promise<{ owner: string; repoUrl: string; repoName: string; isNew: boolean }> {
   if (repoUrl) {
     // Verify access to existing repo
     const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
@@ -256,11 +258,11 @@ async function ensureRepo(
     });
 
     if (!res.ok) throw new Error(`Cannot access repo ${owner}/${repoName}: ${res.status}`);
-    return { repoUrl, repoName, isNew: false };
+    return { owner, repoUrl, repoName, isNew: false };
   }
 
   // Create new repo
-  const repoName = (projectName || `holoscript-${Date.now()}`)
+  const repoName = (projectName || `ai-workspace-${username}`)
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, '-');
   const res = await fetch('https://api.github.com/user/repos', {
@@ -279,12 +281,25 @@ async function ensureRepo(
   });
 
   if (!res.ok) {
+    if (res.status === 422) {
+      const existing = await fetch(`https://api.github.com/repos/${username}/${repoName}`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json' },
+      });
+      if (existing.ok) {
+        return {
+          owner: username,
+          repoUrl: `https://github.com/${username}/${repoName}`,
+          repoName,
+          isNew: false,
+        };
+      }
+    }
     const err = await res.text();
     throw new Error(`Failed to create repo: ${res.status} ${err}`);
   }
 
   const repo = (await res.json()) as { html_url: string; name: string };
-  return { repoUrl: repo.html_url, repoName: repo.name, isNew: true };
+  return { owner: username, repoUrl: repo.html_url, repoName: repo.name, isNew: true };
 }
 
 // ── Step 3: Seed .claude/ + .env ─────────────────────────────────────────────
@@ -409,6 +424,7 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
     : [
         { name: 'provision-key', status: 'pending' },
         { name: 'ensure-repo', status: 'pending' },
+        { name: 'account-workspace', status: 'pending' },
         ...(input.approvedAbsorb ? [{ name: 'absorb-scan', status: 'pending' as const }] : []),
         ...(input.approvedScaffold ? [{ name: 'scaffold', status: 'pending' as const }] : []),
         ...(input.approvedScaffold ? [{ name: 'seed-repo', status: 'pending' as const }] : []),
@@ -476,19 +492,48 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
     }
 
     // Step 1: Provision API key
+    const stableWorkspaceId = resolveWorkspaceIdForIdentity({
+      githubUsername: input.githubUsername,
+      email: input.email,
+    });
     updateStep('provision-key', 'running');
-    const { key: apiKey, workspaceId } = await provisionApiKey(input.githubUsername, input.email);
+    const { key: apiKey, workspaceId } = await provisionApiKey(input.githubUsername, input.email, {
+      workspaceId: stableWorkspaceId,
+      tier: 'starter',
+      metadata: {
+        accountWorkspace: true,
+        template: 'ai-workspace-template',
+        approvedRepoCount: input.approvedRepos.length,
+      },
+    });
     updateStep('provision-key', 'done', `key: ${apiKey.slice(0, 8)}...`);
 
     // Step 2: Ensure repo exists
     updateStep('ensure-repo', 'running');
-    const { repoUrl, repoName, isNew } = await ensureRepo(
+    const { owner, repoUrl, repoName, isNew } = await ensureRepo(
       input.githubAccessToken,
       input.githubUsername,
       input.repoUrl,
       input.projectName
     );
     updateStep('ensure-repo', 'done', isNew ? `created ${repoName}` : `connected ${repoName}`);
+
+    updateStep('account-workspace', 'running');
+    const accountSeed = buildAccountWorkspaceSeed({
+      workspaceId,
+      githubUsername: input.githubUsername,
+      email: input.email,
+      repoUrl,
+      repoName,
+      approvedRepos: input.approvedRepos,
+      intent: input.intent,
+      orchestratorUrl: ORCHESTRATOR_URL,
+    });
+    updateStep(
+      'account-workspace',
+      'done',
+      `${accountSeed.metadata.template} -> ${accountSeed.metadata.structure.accountManifestPath}`
+    );
 
     // Step 3: Absorb scan (if approved)
     if (input.approvedAbsorb) {
@@ -529,8 +574,8 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
 
       // Step 5: Seed repo with .claude/ + .env (only if scaffold approved)
       updateStep('seed-repo', 'running');
-      const owner = input.githubUsername;
       const files: Record<string, string> = {
+        ...accountSeed.files,
         '.claude/CLAUDE.md': scaffold.claudeMd,
         '.claude/NORTH_STAR.md': scaffold.northStar,
         '.claude/memory/MEMORY.md': scaffold.memoryIndex,
@@ -565,13 +610,16 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
       user: {
         userId: input.githubUsername,
         githubUsername: input.githubUsername,
-        githubAccessToken: input.githubAccessToken,
+        githubAccessToken: '',
         mcpApiKey: apiKey,
         workspaceId,
         repoUrl,
         repoName,
-        scaffolded: true,
-        daemonStarted: true,
+        tier: accountSeed.metadata.tier,
+        capabilities: accountSeed.metadata.capabilities,
+        accountWorkspace: accountSeed.metadata,
+        scaffolded: input.approvedScaffold,
+        daemonStarted: input.approvedDaemon,
       },
       steps,
     };
