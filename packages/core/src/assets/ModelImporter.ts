@@ -4,6 +4,8 @@
  * @version 1.0.0
  */
 
+import { convertAssimpSceneToImportResult, type AssimpScene } from './AssimpAdapter';
+
 export interface ImportedMesh {
   id: string;
   name: string;
@@ -124,5 +126,15 @@ export class ModelImporter {
 
   getSupportedFormats(): ImportFormat[] {
     return [...this.supportedFormats];
+  }
+
+  /**
+   * Import from an Assimp scene structure (produced by @holoscript/assimp-plugin
+   * or a native Assimp parser). This wires the Assimp plugin into the real
+   * mesh import pipeline, replacing hardcoded stub data with scene-tree-derived
+   * mesh and material entries.
+   */
+  importFromAssimp(scene: AssimpScene): ImportResult {
+    return convertAssimpSceneToImportResult(scene);
   }
 }

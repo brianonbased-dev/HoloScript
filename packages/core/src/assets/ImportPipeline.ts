@@ -7,6 +7,7 @@
 import { ModelImporter, type ImportResult } from './ModelImporter';
 import { TextureProcessor, type TextureInput, type ProcessedTexture } from './TextureProcessor';
 import { readJson } from '../errors/safeJsonParse';
+import type { AssimpScene } from './AssimpAdapter';
 
 export type PipelineStage = 'validate' | 'parse' | 'process' | 'optimize' | 'finalize';
 
@@ -14,7 +15,7 @@ export interface PipelineJob {
   id: string;
   filename: string;
   type: 'model' | 'texture';
-  data: ArrayBuffer | string;
+  data: ArrayBuffer | string | AssimpScene;
   status: 'queued' | 'running' | 'completed' | 'failed';
   result?: ImportResult | ProcessedTexture;
   error?: string;
@@ -40,6 +41,17 @@ export class ImportPipeline {
   addModelJob(filename: string, data: ArrayBuffer | string): string {
     const id = `job_${this.jobId++}`;
     this.jobs.set(id, { id, filename, type: 'model', data, status: 'queued', stage: 'validate' });
+    return id;
+  }
+
+  /**
+   * Add an Assimp scene import job.
+   * The scene is converted through the Assimp adapter to ImportResult,
+   * wiring @holoscript/assimp-plugin into the real pipeline.
+   */
+  addAssimpJob(filename: string, scene: AssimpScene): string {
+    const id = `job_${this.jobId++}`;
+    this.jobs.set(id, { id, filename, type: 'model', data: scene, status: 'queued', stage: 'validate' });
     return id;
   }
 
@@ -84,7 +96,13 @@ export class ImportPipeline {
       // Parse
       job.stage = 'parse';
       if (job.type === 'model') {
-        const result = this.modelImporter.import(job.filename, job.data);
+        let result: ImportResult;
+        if (typeof job.data === 'object' && !(job.data instanceof ArrayBuffer) && !Array.isArray(job.data)) {
+          // Assimp scene path: data is an AssimpScene object
+          result = this.modelImporter.importFromAssimp(job.data as AssimpScene);
+        } else {
+          result = this.modelImporter.import(job.filename, job.data);
+        }
         if (result.errors.length > 0) {
           throw new Error(result.errors.join('; '));
         }

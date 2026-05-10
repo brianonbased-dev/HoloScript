@@ -210,6 +210,7 @@
   "dependencies": {
     "@holoscript/agent-protocol": "workspace:*",
     "@holoscript/alphafold-plugin": "workspace:*",
+    "@holoscript/assimp-plugin": "workspace:*",
     "@holoscript/core-types": "workspace:*",
     "@holoscript/domain-plugin-template": "workspace:*",
     "@holoscript/llm-provider": "workspace:*",
