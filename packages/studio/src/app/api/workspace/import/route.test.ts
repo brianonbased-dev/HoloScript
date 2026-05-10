@@ -124,11 +124,26 @@ describe('/api/workspace/import route', () => {
         }),
       ])
     );
+    expect(body.publishWorthiness.hiddenPaperProgramUnlocked).toBe(false);
+    expect(body.publishWorthiness.verdict).toBe('locked');
+    expect(body.publishWorthiness.llmAssistPrompt).toContain(
+      'hidden HoloScript paper-program lane'
+    );
     expect(fs.existsSync(body.conversionManifestPath)).toBe(true);
     const manifest = JSON.parse(fs.readFileSync(body.conversionManifestPath, 'utf-8')) as {
       candidates: unknown[];
+      metadata: {
+        publishWorthiness: {
+          hiddenPaperProgramUnlocked: boolean;
+          verdict: string;
+        };
+      };
     };
     expect(manifest.candidates).toHaveLength(body.conversionCandidates.length);
+    expect(manifest.metadata.publishWorthiness).toMatchObject({
+      hiddenPaperProgramUnlocked: false,
+      verdict: 'locked',
+    });
 
     const [command, args, options] = execFileMock.mock.calls[0] as [
       string,

@@ -21,6 +21,13 @@ import {
   buildConversionCandidates,
   persistConversionCandidates,
 } from '@/lib/workspace/conversionAdvisor';
+import {
+  assessPublishWorthiness,
+  type PublishWorthinessAbsorbGraph,
+  type PublishWorthinessEvidencePath,
+  type PublishWorthinessLLMReview,
+  type PublishWorthinessProjectDNA,
+} from '@/lib/workspace/publishWorthinessDetector';
 
 import { corsHeaders } from '../../_lib/cors';
 
@@ -34,6 +41,14 @@ interface ImportRequest {
   repoUrl: string;
   branch?: string;
   name?: string;
+  intent?: string;
+  projectDNA?: PublishWorthinessProjectDNA;
+  absorbGraph?: PublishWorthinessAbsorbGraph;
+  noveltyClaims?: string[];
+  differentiators?: string[];
+  baselineComparisons?: string[];
+  evidence?: PublishWorthinessEvidencePath;
+  llmReview?: PublishWorthinessLLMReview;
 }
 
 function generateId(): string {
@@ -168,6 +183,11 @@ function publicCloneError(err: unknown): { error: string; code?: string; hint: s
   };
 }
 
+function optionalStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value.filter((item): item is string => typeof item === 'string');
+}
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -242,6 +262,18 @@ export async function POST(req: NextRequest) {
     }
 
     const conversionCandidates = buildConversionCandidates({ paths: trackedFiles });
+    const publishWorthiness = assessPublishWorthiness({
+      userIntent: body.intent ?? body.name ?? `${repoRef.owner}/${repoRef.repo}`,
+      projectDNA: body.projectDNA,
+      absorbGraph: body.absorbGraph,
+      paths: trackedFiles,
+      conversionCandidates,
+      noveltyClaims: optionalStringArray(body.noveltyClaims),
+      differentiators: optionalStringArray(body.differentiators),
+      baselineComparisons: optionalStringArray(body.baselineComparisons),
+      evidence: body.evidence,
+      llmReview: body.llmReview,
+    });
     const conversionManifestPath = persistConversionCandidates({
       workspaceDir,
       candidates: conversionCandidates,
@@ -250,6 +282,14 @@ export async function POST(req: NextRequest) {
         repoUrl: repoRef.cloneUrl,
         branch: actualBranch,
         localPath,
+        publishWorthiness: {
+          verdict: publishWorthiness.verdict,
+          hiddenPaperProgramUnlocked: publishWorthiness.hiddenPaperProgramUnlocked,
+          deterministicScore: publishWorthiness.deterministicScore,
+          finalScore: publishWorthiness.finalScore,
+          threshold: publishWorthiness.threshold,
+          requiredGateFailures: publishWorthiness.requiredGateFailures,
+        },
       },
     });
 
@@ -263,6 +303,7 @@ export async function POST(req: NextRequest) {
       fileCount,
       conversionCandidates,
       conversionManifestPath,
+      publishWorthiness,
       createdAt: new Date().toISOString(),
       hint: `POST /api/daemon/absorb with projectPath="${localPath}" to index this workspace.`,
     });
