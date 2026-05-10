@@ -6,6 +6,11 @@
  * deterministic sequence/selector logic; the bridge's executeAction callback
  * dispatches each action to real tool handlers and LLM micro-calls.
  *
+ * HoloHeal is the product/runtime shell around this semantic loop. This file
+ * remains the canonical self-improvement behavior tree; holoheal.hsplus wires
+ * it into HoloClaw, HoloMesh receipts, Fleet trust memory, workspace agent
+ * genesis, and agent-only secret custody.
+ *
  * Architecture:
  *   Behavior tree sequences the improvement cycle:
  *     INTAKE → diagnose → read → generate fix → verify → test → quality →
@@ -30,6 +35,7 @@
  * @format .hsplus (behavior)
  * @experiment HoloScript Self-Orchestration vs TypeScript Daemon
  * @see self-improvement.hsplus (motivation system companion)
+ * @see holoheal.hsplus (self-improvement orchestration shell)
  * @source ∞.POSITIVE_EVOLUTION_KNOWLEDGE_2025-10-30.md
  * @source ∞.PROTOCOL.md (uAA2++ 5.5-Step cycle)
  */

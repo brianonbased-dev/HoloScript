@@ -1,0 +1,410 @@
+/**
+ * Workspace Agent Genesis - .hsplus Behavior Example
+ *
+ * Demonstrates automatic crew creation for HoloScript Studio users.
+ *
+ * Users should not have to know which agent to summon. Studio reads:
+ * - what the user wants
+ * - what the user already has
+ * - which repos, skills, secrets, domains, and deploy targets exist
+ * - which authority grants are safe
+ *
+ * Then it spawns the smallest useful agent crew. Every spawned agent sees
+ * skills first, capability handles second, and user/project context third.
+ *
+ * @version 6.1.0
+ * @format .hsplus (behavior)
+ */
+
+composition "WorkspaceAgentGenesis" {
+  environment {
+    skybox: "studio"
+    ambient_light: 0.5
+    physics: false
+  }
+
+  module AgentCatalog {
+    state {
+      baseline_agents: [
+        {
+          id: "workspace_concierge",
+          role: "Translate user intent into workspace moves",
+          skills: ["room", "codebase", "capabilities"],
+          always_spawn: true
+        },
+        {
+          id: "skill_router",
+          role: "Put the right skills in front of every agent",
+          skills: ["capabilities", "codebase", "scan"],
+          always_spawn: true
+        },
+        {
+          id: "secret_custodian",
+          role: "Own secret references, grants, rotation, and receipts",
+          skills: ["holoscript", "critic"],
+          always_spawn: true
+        },
+        {
+          id: "memory_librarian",
+          role: "Maintain W/P/G memory and prevent stale context",
+          skills: ["ai-workspace", "documenter"],
+          always_spawn: true
+        },
+        {
+          id: "receipt_auditor",
+          role: "Audit authority use, costs, consent, and evidence",
+          skills: ["critic", "scan"],
+          always_spawn: true
+        }
+      ],
+      specialist_agents: [
+        {
+          id: "repo_cartographer",
+          trigger: "has_github_repos",
+          role: "Absorb repos, map architecture, find conversion paths",
+          skills: ["holoscript-absorb", "codebase"]
+        },
+        {
+          id: "builder_agent",
+          trigger: "wants_code_changes",
+          role: "Implement scoped code changes with tests",
+          skills: ["holoscript-dev", "codebase", "frontend"]
+        },
+        {
+          id: "frontend_designer",
+          trigger: "has_frontend",
+          role: "Improve UI workflows, visual quality, and accessibility",
+          skills: ["frontend", "holofrontend"]
+        },
+        {
+          id: "devops_operator",
+          trigger: "has_deploy_target",
+          role: "Manage build, CI, deployment, and runtime health",
+          skills: ["holotool", "scan"]
+        },
+        {
+          id: "research_oracle",
+          trigger: "wants_research",
+          role: "Run uAA2 research and synthesize domain knowledge",
+          skills: ["ai-workspace", "holomesh-oracle"]
+        },
+        {
+          id: "marketer_documentarian",
+          trigger: "wants_launch",
+          role: "Prepare public story, docs, and launch surfaces",
+          skills: ["documenter", "holomarketer"]
+        },
+        {
+          id: "spatial_worldbuilder",
+          trigger: "wants_vr_ar",
+          role: "Create HoloLand, OpenXR, VRChat, and spatial scenes",
+          skills: ["hololand", "compile"]
+        },
+        {
+          id: "robotics_iot_operator",
+          trigger: "has_devices",
+          role: "Operate digital twins, IoT devices, robotics targets",
+          skills: ["holoscript", "compile"]
+        },
+        {
+          id: "healthcare_guarded_specialist",
+          trigger: "healthcare_domain",
+          role: "Handle healthcare knowledge with guarded evidence rules",
+          skills: ["ai-workspace", "critic"]
+        },
+        {
+          id: "education_coach",
+          trigger: "education_domain",
+          role: "Turn projects into lessons, tutors, and learning paths",
+          skills: ["documenter", "holofrontend"]
+        },
+        {
+          id: "game_system_designer",
+          trigger: "gaming_domain",
+          role: "Build mechanics, progression, simulations, and playtests",
+          skills: ["holoscript", "compile"]
+        }
+      ]
+    }
+
+    action all_agents() {
+      return this.state.baseline_agents.concat(this.state.specialist_agents);
+    }
+
+    exports {
+      all_agents
+      state
+    }
+  }
+
+  module WorkspaceInventory {
+    state {
+      profile: {}
+      signals: {}
+    }
+
+    action absorb(user_intent, connected_assets) {
+      const assets = connected_assets || {};
+
+      this.state.profile = {
+        intent: user_intent,
+        repos: assets.repos || [],
+        domains: assets.domains || [],
+        deploy_targets: assets.deploy_targets || [],
+        devices: assets.devices || [],
+        secrets: assets.secrets || [],
+        existing_skills: assets.skills || [],
+        ui_surfaces: assets.ui_surfaces || []
+      };
+
+      this.state.signals = {
+        has_github_repos: this.state.profile.repos.length > 0,
+        wants_code_changes: user_intent.indexOf("build") >= 0 || user_intent.indexOf("fix") >= 0,
+        has_frontend: this.state.profile.ui_surfaces.length > 0,
+        has_deploy_target: this.state.profile.deploy_targets.length > 0,
+        wants_research: user_intent.indexOf("research") >= 0 || user_intent.indexOf("paper") >= 0,
+        wants_launch: user_intent.indexOf("launch") >= 0 || user_intent.indexOf("market") >= 0,
+        wants_vr_ar: user_intent.indexOf("vr") >= 0 || user_intent.indexOf("ar") >= 0 || user_intent.indexOf("spatial") >= 0,
+        has_devices: this.state.profile.devices.length > 0,
+        healthcare_domain: this.state.profile.domains.indexOf("healthcare") >= 0,
+        education_domain: this.state.profile.domains.indexOf("education") >= 0,
+        gaming_domain: this.state.profile.domains.indexOf("gaming") >= 0,
+        has_secrets: this.state.profile.secrets.length > 0
+      };
+
+      emit("workspace:inventoried", {
+        repos: this.state.profile.repos.length,
+        domains: this.state.profile.domains.length,
+        deploy_targets: this.state.profile.deploy_targets.length,
+        devices: this.state.profile.devices.length,
+        secrets: this.state.profile.secrets.length
+      });
+
+      return this.state.signals;
+    }
+
+    exports {
+      absorb
+      state
+    }
+  }
+
+  module SpawnGame {
+    state {
+      max_initial_agents: 8,
+      baseline_weight: 100,
+      triggered_weight: 80,
+      narrow_crew_bonus: 20,
+      idle_agent_penalty: 30
+    }
+
+    action score(agent, signals) {
+      if (agent.always_spawn) {
+        return {
+          spawn: true,
+          score: this.state.baseline_weight,
+          reason: "Baseline account crew"
+        };
+      }
+
+      const triggered = signals[agent.trigger] == true;
+      if (!triggered) {
+        return {
+          spawn: false,
+          score: 0 - this.state.idle_agent_penalty,
+          reason: "No matching workspace signal"
+        };
+      }
+
+      return {
+        spawn: true,
+        score: this.state.triggered_weight + this.state.narrow_crew_bonus,
+        reason: "Triggered by " + agent.trigger
+      };
+    }
+
+    action select_crew(agents, signals) {
+      const scored = agents.map(agent => {
+        const decision = this.score(agent, signals);
+        return {
+          agent: agent,
+          spawn: decision.spawn,
+          score: decision.score,
+          reason: decision.reason
+        };
+      });
+
+      const selected = scored
+        .filter(item => item.spawn)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, this.state.max_initial_agents);
+
+      emit("crew:selected", {
+        count: selected.length,
+        agents: selected.map(item => item.agent.id)
+      });
+
+      return selected;
+    }
+
+    exports {
+      score
+      select_crew
+      state
+    }
+  }
+
+  module SkillFirstContext {
+    action build(agent, workspace_profile, authority_refs) {
+      const context = {
+        agent_id: agent.id,
+        first_screen: {
+          skills: agent.skills,
+          role: agent.role,
+          allowed_authority: authority_refs || [],
+          raw_secret_access: false
+        },
+        second_screen: {
+          workspace: workspace_profile,
+          instructions: [
+            "Use skills before raw tools",
+            "Request capabilities before privileged actions",
+            "Never ask for or print raw secrets",
+            "Write receipts for authority use"
+          ]
+        }
+      };
+
+      emit("agent:context_built", {
+        agent_id: agent.id,
+        skills_first: true,
+        raw_secret_access: false
+      });
+
+      return context;
+    }
+
+    exports {
+      build
+    }
+  }
+
+  module CrewSpawner {
+    state {
+      active_agents: []
+      spawn_receipts: []
+    }
+
+    action spawn(selected, workspace_profile) {
+      for (const item of selected) {
+        const agent = item.agent;
+        const context = SkillFirstContext.build(agent, workspace_profile, [
+          "cap://workspace/request",
+          "secret://workspace/handles-only"
+        ]);
+
+        const spawned = {
+          id: "spawn_" + generate_id(),
+          agent_id: agent.id,
+          role: agent.role,
+          context: context,
+          status: "active",
+          spawned_at: current_time(),
+          reason: item.reason
+        };
+
+        this.state.active_agents.push(spawned);
+        this.state.spawn_receipts.push({
+          agent_id: agent.id,
+          reason: item.reason,
+          skills: agent.skills,
+          raw_secret_access: false
+        });
+
+        emit("agent:spawned", spawned);
+      }
+
+      return this.state.active_agents;
+    }
+
+    exports {
+      spawn
+      state
+    }
+  }
+
+  entity StudioOnboardingRun {
+    @llm_agent {
+      model: "gpt-5.5",
+      bounded_autonomy: true,
+      max_actions_per_turn: 4,
+      tools: [
+        { name: "absorb_workspace", authority: "read_profile" },
+        { name: "select_crew", authority: "policy_only" },
+        { name: "spawn_agent", authority: "capability_scoped" }
+      ]
+    }
+
+    @state_machine {
+      initial: "intake"
+
+      state "intake" {
+        on_entry {
+          this.intent = "build a spatial education product, import my GitHub repos, and prepare a launch";
+          this.assets = {
+            repos: ["github://acme/spatial-classroom"],
+            domains: ["education", "gaming"],
+            deploy_targets: ["github-actions", "vercel"],
+            devices: ["quest-3"],
+            secrets: ["secret://workspace/ws_acme/holoscript/orchestrator/api-key"],
+            skills: ["frontend", "compile", "holoscript-absorb"],
+            ui_surfaces: ["nextjs"]
+          };
+        }
+
+        transition "profile_ready" -> "inventory"
+      }
+
+      state "inventory" {
+        on_entry {
+          this.signals = WorkspaceInventory.absorb(this.intent, this.assets);
+        }
+
+        transition "inventoried" -> "selecting_crew"
+      }
+
+      state "selecting_crew" {
+        on_entry {
+          this.selected = SpawnGame.select_crew(
+            AgentCatalog.all_agents(),
+            this.signals
+          );
+        }
+
+        transition "crew_selected" -> "spawning"
+      }
+
+      state "spawning" {
+        on_entry {
+          this.agents = CrewSpawner.spawn(
+            this.selected,
+            WorkspaceInventory.state.profile
+          );
+        }
+
+        transition "spawned" -> "ready"
+      }
+
+      state "ready" {
+        on_entry {
+          emit("studio:onboarding_agents_ready", {
+            agent_count: this.agents.length,
+            agents: this.agents.map(agent => agent.agent_id),
+            skills_first: true,
+            raw_secret_access: false
+          });
+        }
+      }
+    }
+  }
+}

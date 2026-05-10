@@ -48,9 +48,10 @@ function defaultAgentSlots(): AgentSlot[] {
     },
     {
       role: 'daemon',
-      name: 'Daemon',
-      description: 'Self-improvement agent — runs scans, fixes issues, maintains quality',
-      capabilities: ['scanning', 'auto-fix', 'test-generation', 'refactoring'],
+      name: 'HoloDaemon',
+      description:
+        'Resident agent runtime — runs HoloHeal by default and can spawn builder, launch, research, spatial, secret-custody, and fleet missions',
+      capabilities: ['resident-runtime', 'holoheal', 'skill-routing', 'capability-handles'],
     },
     {
       role: 'knowledge',

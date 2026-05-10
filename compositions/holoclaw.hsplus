@@ -3,7 +3,9 @@
  *
  * The HoloScript-native equivalent of OpenClaw: an autonomous, always-on
  * agent that runs general-purpose tasks, routes messages, hot-reloads
- * skills, and self-improves.
+ * skills, and self-improves. HoloHeal delegates scoped self-improvement
+ * incidents into HoloClaw when a workspace needs code, skill, mesh, fleet,
+ * or secret-custody remediation.
  *
  * Architecture:
  *   1. Always-on loop — restart_on_complete: true keeps the BT cycling
@@ -28,6 +30,7 @@
  * @format .hsplus (behavior + state)
  * @experiment HoloClaw MVP — OpenClaw-like autonomous agent on HoloScript
  * @see holodaemon.hsplus (daemon dashboard + UI surface)
+ * @see holoheal.hsplus (self-improvement orchestration shell)
  * @see self-improve-daemon.hsplus (self-improvement BT model)
  */
 

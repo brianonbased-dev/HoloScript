@@ -1,8 +1,10 @@
 /**
  * Template generator for daemon configuration.
  *
- * Configures the self-improvement daemon with provider rotation,
- * focus areas derived from Absorb health score, and budget caps by tier.
+ * Configures HoloDaemon as a customizable resident agent runtime.
+ * HoloHeal is the default self-improvement mission, while users can spawn
+ * builder, launch, research, spatial, secret-custody, and fleet missions on
+ * the same runtime.
  */
 
 import type { ScaffoldDNA } from '../scaffolder';
@@ -23,8 +25,20 @@ export interface DaemonFocus {
 
 export interface DaemonConfig {
   enabled: boolean;
+  runtime: {
+    name: 'HoloDaemon';
+    defaultMission: 'holoheal';
+    skillsFirst: boolean;
+    rawSecretAccess: false;
+  };
+  missionProfiles: string[];
   providers: DaemonProvider[];
   focusAreas: DaemonFocus[];
+  authority: {
+    secretPolicy: 'handles-only';
+    grantPolicy: 'least-privilege';
+    receiptPolicy: 'always';
+  };
   budgetCap: number;
   scanInterval: number;
   maxConcurrentTasks: number;
@@ -129,8 +143,28 @@ export function generateDaemonConfig(
 ): DaemonConfig {
   return {
     enabled: true,
+    runtime: {
+      name: 'HoloDaemon',
+      defaultMission: 'holoheal',
+      skillsFirst: true,
+      rawSecretAccess: false,
+    },
+    missionProfiles: [
+      'holoheal',
+      'builder',
+      'launch-operator',
+      'research-oracle',
+      'spatial-worldbuilder',
+      'secret-custodian',
+      'fleet-auditor',
+    ],
     providers: defaultProviders(),
     focusAreas: deriveFocusAreas(dna),
+    authority: {
+      secretPolicy: 'handles-only',
+      grantPolicy: 'least-privilege',
+      receiptPolicy: 'always',
+    },
     budgetCap: budgetForTier(tier),
     scanInterval: 15,
     maxConcurrentTasks: 1,

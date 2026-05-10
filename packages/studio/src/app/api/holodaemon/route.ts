@@ -1,13 +1,16 @@
 export const maxDuration = 300;
 
 /**
- * HoloDaemon API Route — /api/holodaemon
+ * HoloHeal / HoloDaemon API Route — /api/holodaemon
  *
- * Dedicated API endpoint for the HoloDaemon MVP. Provides:
+ * Dedicated API endpoint for the HoloHeal self-improvement runtime.
+ * HoloDaemon remains the backward-compatible route and runner name.
+ *
+ * Provides:
  *   GET  — Returns daemon state, composition source, and telemetry
  *   POST — Start/stop/configure daemon operations
  *
- * This route bridges the holodaemon.hsplus composition with the
+ * This route bridges the holoheal.hsplus / holodaemon.hsplus composition with the
  * existing daemon runner infrastructure.
  *
  * @module api/holodaemon
@@ -19,6 +22,11 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { listDaemonJobs, getTelemetrySummary, createDaemonJob } from '@/app/api/daemon/jobs/store';
 import type { DaemonProfile } from '@/lib/daemon/types';
+import {
+  HOLO_DAEMON_MISSIONS,
+  buildHoloDaemonAgentConfig,
+  getHoloDaemonMission,
+} from '@/lib/daemon/agentProfiles';
 
 import { corsHeaders } from '../_lib/cors';
 // ---------------------------------------------------------------------------
@@ -44,21 +52,28 @@ function resolveRepoRoot(): string {
 async function loadCompositionSource(): Promise<{
   code: string;
   sourcePath: string;
+  compositionName: string;
   available: boolean;
 }> {
   const repoRoot = resolveRepoRoot();
-  const sourcePath = path.join(repoRoot, 'compositions', 'holodaemon.hsplus');
+  const candidates = [
+    { file: 'holoheal.hsplus', compositionName: 'HoloHeal' },
+    { file: 'holodaemon.hsplus', compositionName: 'HoloDaemon' },
+  ];
 
-  if (!existsSync(sourcePath)) {
-    return { code: '', sourcePath: '', available: false };
+  for (const candidate of candidates) {
+    const sourcePath = path.join(repoRoot, 'compositions', candidate.file);
+    if (!existsSync(sourcePath)) continue;
+
+    try {
+      const code = await readFile(sourcePath, 'utf8');
+      return { code, sourcePath, compositionName: candidate.compositionName, available: true };
+    } catch {
+      return { code: '', sourcePath: '', compositionName: candidate.compositionName, available: false };
+    }
   }
 
-  try {
-    const code = await readFile(sourcePath, 'utf8');
-    return { code, sourcePath, available: true };
-  } catch {
-    return { code: '', sourcePath, available: false };
-  }
+  return { code: '', sourcePath: '', compositionName: 'HoloHeal', available: false };
 }
 
 // ---------------------------------------------------------------------------
@@ -86,10 +101,20 @@ export async function GET() {
   return NextResponse.json({
     // Daemon state
     daemon: {
-      name: 'HoloDaemon',
+      name: 'HoloHeal',
+      legacyName: 'HoloDaemon',
+      semanticLoop: 'self-improvement',
+      runtime: 'HoloDaemon',
       version: '1.0.0',
       status: daemonStatus,
       activeJobId: runningJobs[0]?.id ?? null,
+    },
+
+    runtime: {
+      name: 'HoloDaemon',
+      role: 'customizable resident agent runtime',
+      defaultMission: 'holoheal',
+      missions: HOLO_DAEMON_MISSIONS,
     },
 
     // Telemetry
@@ -118,6 +143,7 @@ export async function GET() {
     // Composition source
     composition: {
       available: composition.available,
+      name: composition.compositionName,
       code: composition.code,
       sourcePath: composition.sourcePath,
       format: 'hsplus',
@@ -143,6 +169,11 @@ export async function POST(request: Request) {
   let body: {
     action: 'start' | 'stop';
     profile?: DaemonProfile;
+    missionProfile?: string;
+    agentName?: string;
+    skills?: unknown;
+    authorityRefs?: unknown;
+    schedules?: unknown;
     projectPath?: string;
   };
 
@@ -153,7 +184,15 @@ export async function POST(request: Request) {
   }
 
   if (body.action === 'start') {
-    const profile = body.profile ?? 'balanced';
+    const mission = getHoloDaemonMission(body.missionProfile);
+    const profile = body.profile ?? mission.defaultMode;
+    const daemonAgent = buildHoloDaemonAgentConfig({
+      missionProfile: body.missionProfile,
+      agentName: body.agentName,
+      skills: body.skills,
+      authorityRefs: body.authorityRefs,
+      schedules: body.schedules,
+    });
 
     // Check if a job is already running
     const jobs = listDaemonJobs();
@@ -171,9 +210,14 @@ export async function POST(request: Request) {
       projectDna: {
         kind: 'spatial',
         confidence: 0.95,
-        detectedStack: ['typescript', 'react', 'holoscript', 'three.js'],
+        detectedStack: ['typescript', 'react', 'holoscript', 'three.js', `daemon:${daemonAgent.missionProfile}`],
         recommendedProfile: profile,
-        notes: ['HoloDaemon MVP — self-improvement daemon run'],
+        notes: [
+          `HoloDaemon mission: ${daemonAgent.missionProfile}`,
+          `${daemonAgent.agentName} — ${mission.description}`,
+          'Raw secret access disabled; use capability handles and receipts.',
+        ],
+        daemonAgent,
       },
       projectPath: body.projectPath,
     });

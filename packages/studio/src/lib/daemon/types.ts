@@ -19,6 +19,24 @@ export type DaemonPlanProfile =
 // Current Studio job execution presets.
 export type DaemonProfile = 'quick' | 'balanced' | 'deep';
 
+export type DaemonMissionProfile =
+  | 'holoheal'
+  | 'builder'
+  | 'launch-operator'
+  | 'research-oracle'
+  | 'spatial-worldbuilder'
+  | 'secret-custodian'
+  | 'fleet-auditor';
+
+export interface HoloDaemonAgentConfig {
+  missionProfile: DaemonMissionProfile;
+  agentName: string;
+  skills: string[];
+  authorityRefs: string[];
+  schedules: string[];
+  rawSecretAccess: false;
+}
+
 export type DaemonPass =
   | 'absorb'
   | 'typefix'
@@ -67,6 +85,7 @@ export interface DaemonProjectDNA {
   notes: string[];
   manifests?: ManifestData[];
   projectDNA?: ProjectDNA;
+  daemonAgent?: HoloDaemonAgentConfig;
 }
 
 export interface DaemonPlan {

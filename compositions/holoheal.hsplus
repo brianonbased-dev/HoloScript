@@ -1,0 +1,392 @@
+/**
+ * HoloHeal - Self-Improvement Orchestration Layer
+ *
+ * HoloHeal is the product/runtime name for HoloScript self-improvement.
+ * It does not replace the existing self-improvement loop; it wires that
+ * loop into HoloClaw, HoloMesh, Fleet, workspace agent genesis, and
+ * agent-only secret custody.
+ *
+ * Core idea:
+ *   symptoms -> diagnosis -> crew selection -> capability grants ->
+ *   HoloClaw execution -> verification -> HoloMesh receipt -> Fleet memory
+ *
+ * The old term "self-improvement" remains the semantic primitive. HoloHeal
+ * is the orchestration shell that makes it user-facing, agent-native, and
+ * fleet-aware.
+ *
+ * @version 0.1.0
+ * @format .hsplus (behavior)
+ * @see self-improve-daemon.hsplus
+ * @see holoclaw.hsplus
+ * @see holomesh-agent.hsplus
+ * @see fleet-trust-auditor-brain.hsplus
+ * @see examples/agents/workspace-agent-genesis.hsplus
+ * @see examples/cryptography/04-agentic-secret-sovereignty.hsplus
+ */
+
+composition "HoloHeal" {
+  state {
+    productName: "HoloHeal"
+    semanticLoop: "self-improvement"
+    status: "idle"
+    activeWorkspaceId: ""
+    activeIncidentId: ""
+    activeCrew: []
+    receipts: []
+    lastHoloMeshSync: ""
+    lastFleetSync: ""
+    rawSecretExposure: "none"
+  }
+
+  module SymptomGraph {
+    state {
+      symptoms: []
+      domains: {
+        code: ["type_error", "lint_error", "test_failure", "dead_code", "coverage_gap"],
+        secrets: ["raw_secret_in_repo", "raw_secret_in_prompt", "stale_token", "overbroad_grant"],
+        agents: ["missing_skill", "wrong_agent", "idle_agent", "stale_memory", "authority_sprawl"],
+        mesh: ["unpublished_wisdom", "board_stale", "handoff_missing", "knowledge_duplicate"],
+        fleet: ["trust_drift", "unreachable_agent", "budget_spike", "identity_mismatch"]
+      }
+    }
+
+    action ingest(workspace_id, source, findings) {
+      const incident_id = "heal_" + generate_id();
+
+      const incident = {
+        id: incident_id,
+        workspace_id: workspace_id,
+        source: source,
+        findings: findings || [],
+        created_at: current_time(),
+        severity: "unknown",
+        domains: []
+      };
+
+      for (const finding of incident.findings) {
+        for (const domain of Object.keys(this.state.domains)) {
+          if (this.state.domains[domain].indexOf(finding.kind) >= 0) {
+            incident.domains.push(domain);
+          }
+        }
+      }
+
+      incident.severity = incident.domains.indexOf("secrets") >= 0 ? "critical"
+        : incident.domains.indexOf("fleet") >= 0 ? "high"
+        : incident.domains.indexOf("code") >= 0 ? "medium"
+        : "low";
+
+      this.state.symptoms.push(incident);
+
+      emit("holoheal:symptoms_ingested", {
+        incident_id: incident_id,
+        workspace_id: workspace_id,
+        severity: incident.severity,
+        domains: incident.domains
+      });
+
+      return incident;
+    }
+
+    exports {
+      ingest
+      state
+    }
+  }
+
+  module CrewPlanner {
+    state {
+      baseline: [
+        "skill_router",
+        "secret_custodian",
+        "receipt_auditor",
+        "memory_librarian"
+      ],
+      by_domain: {
+        code: ["repo_cartographer", "builder_agent", "verifier_agent"],
+        secrets: ["secret_custodian", "capability_broker", "receipt_auditor"],
+        agents: ["workspace_concierge", "skill_router", "fleet_operator"],
+        mesh: ["holomesh_oracle", "room_operator", "knowledge_compressor"],
+        fleet: ["fleet_trust_auditor", "fleet_operator", "identity_auditor"]
+      }
+    }
+
+    action plan(incident) {
+      const crew = [];
+
+      for (const agent of this.state.baseline) {
+        if (crew.indexOf(agent) < 0) crew.push(agent);
+      }
+
+      for (const domain of incident.domains) {
+        const agents = this.state.by_domain[domain] || [];
+        for (const agent of agents) {
+          if (crew.indexOf(agent) < 0) crew.push(agent);
+        }
+      }
+
+      const plan = {
+        incident_id: incident.id,
+        workspace_id: incident.workspace_id,
+        crew: crew,
+        skills_first: true,
+        raw_secret_access: false,
+        approval_mode: incident.severity == "critical" ? "explicit" : "policy"
+      };
+
+      emit("holoheal:crew_planned", plan);
+      return plan;
+    }
+
+    exports {
+      plan
+      state
+    }
+  }
+
+  module CapabilityPlanner {
+    action request_grants(incident, crew_plan) {
+      const grants = [];
+
+      if (incident.domains.indexOf("code") >= 0) {
+        grants.push({
+          ref: "cap://holoheal/code/write-scoped",
+          scope: "repo_paths",
+          ttl_seconds: 600,
+          max_uses: 1
+        });
+      }
+
+      if (incident.domains.indexOf("secrets") >= 0) {
+        grants.push({
+          ref: "cap://holoheal/secrets/broker-only",
+          scope: "secret_handles",
+          ttl_seconds: 300,
+          max_uses: 1,
+          raw_secret_access: false
+        });
+      }
+
+      if (incident.domains.indexOf("mesh") >= 0) {
+        grants.push({
+          ref: "cap://holoheal/holomesh/publish-receipt",
+          scope: "workspace_knowledge",
+          ttl_seconds: 300,
+          max_uses: 2
+        });
+      }
+
+      if (incident.domains.indexOf("fleet") >= 0) {
+        grants.push({
+          ref: "cap://holoheal/fleet/status-and-attest",
+          scope: "fleet_metadata",
+          ttl_seconds: 300,
+          max_uses: 2
+        });
+      }
+
+      const request = {
+        incident_id: incident.id,
+        workspace_id: incident.workspace_id,
+        crew: crew_plan.crew,
+        grants: grants,
+        raw_secret_access: false
+      };
+
+      emit("holoheal:capability_grants_requested", request);
+      return request;
+    }
+
+    exports {
+      request_grants
+    }
+  }
+
+  module HoloClawBridge {
+    action delegate(incident, crew_plan, capability_request) {
+      const delegated = {
+        runtime: "holoclaw",
+        skill_source: "holoheal",
+        incident_id: incident.id,
+        workspace_id: incident.workspace_id,
+        crew: crew_plan.crew,
+        capabilities: capability_request.grants,
+        cycles: incident.severity == "critical" ? 1 : 3,
+        always_on: false
+      };
+
+      emit("holoheal:delegated_to_holoclaw", delegated);
+      return delegated;
+    }
+
+    exports {
+      delegate
+    }
+  }
+
+  module HoloMeshBridge {
+    action publish_receipt(incident, result) {
+      const receipt = {
+        id: "rct_" + generate_id(),
+        target: "holomesh",
+        incident_id: incident.id,
+        workspace_id: incident.workspace_id,
+        summary: result.summary || "HoloHeal self-improvement run completed",
+        domains: incident.domains,
+        raw_secret_exposure: "none",
+        created_at: current_time()
+      };
+
+      emit("holoheal:holomesh_receipt_ready", receipt);
+      return receipt;
+    }
+
+    exports {
+      publish_receipt
+    }
+  }
+
+  module FleetBridge {
+    action update_fleet_memory(incident, result) {
+      const update = {
+        target: "fleet",
+        incident_id: incident.id,
+        workspace_id: incident.workspace_id,
+        trust_delta: result.verified ? 1 : -1,
+        domains: incident.domains,
+        recommended_spawn_policy: result.verified ? "keep" : "tighten",
+        created_at: current_time()
+      };
+
+      emit("holoheal:fleet_memory_update", update);
+      return update;
+    }
+
+    exports {
+      update_fleet_memory
+    }
+  }
+
+  entity HoloHealOrchestrator {
+    @llm_agent {
+      model: "gpt-5.5",
+      bounded_autonomy: true,
+      max_actions_per_turn: 5,
+      tools: [
+        { name: "symptom_ingest", authority: "workspace_read" },
+        { name: "crew_plan", authority: "policy_only" },
+        { name: "capability_request", authority: "handle_only" },
+        { name: "holoclaw_delegate", authority: "scoped_execution" },
+        { name: "holomesh_receipt", authority: "append_only" },
+        { name: "fleet_update", authority: "attestation_only" }
+      ]
+    }
+
+    @behavior_tree {
+      root: {
+        type: "sequence",
+        name: "holoheal_self_improvement_cycle",
+        children: [
+          {
+            type: "action",
+            name: "ingest_symptoms",
+            action: "holoheal_ingest_symptoms"
+          },
+          {
+            type: "action",
+            name: "plan_crew",
+            action: "holoheal_plan_crew"
+          },
+          {
+            type: "action",
+            name: "request_capabilities",
+            action: "holoheal_request_capabilities"
+          },
+          {
+            type: "action",
+            name: "delegate_to_holoclaw",
+            action: "holoheal_delegate_to_holoclaw"
+          },
+          {
+            type: "action",
+            name: "verify_result",
+            action: "holoheal_verify_result"
+          },
+          {
+            type: "action",
+            name: "publish_holomesh_receipt",
+            action: "holoheal_publish_holomesh_receipt"
+          },
+          {
+            type: "action",
+            name: "update_fleet_memory",
+            action: "holoheal_update_fleet_memory"
+          }
+        ]
+      },
+      tick_rate: 1,
+      restart_on_complete: false,
+      blackboard: {
+        incident: null,
+        crew_plan: null,
+        capability_request: null,
+        holoclaw_run: null,
+        result_verified: false,
+        receipt: null,
+        fleet_update: null
+      }
+    }
+
+    @rate_limiter {
+      strategy: "token_bucket",
+      max_tokens: 10,
+      refill_rate: 2,
+      window_ms: 60000,
+      per_key: false
+    }
+
+    @timeout_guard {
+      default_timeout_ms: 180000,
+      fallback_action: "abort"
+    }
+
+    @circuit_breaker {
+      failure_threshold: 3,
+      window_ms: 300000,
+      reset_timeout_ms: 60000,
+      success_threshold: 1,
+      failure_rate_threshold: 0,
+      min_requests: 3
+    }
+  }
+
+  logic {
+    on_start() {
+      $status = "running"
+      emit("holoheal:started", {
+        productName: $productName,
+        semanticLoop: $semanticLoop,
+        rawSecretExposure: $rawSecretExposure
+      })
+    }
+
+    on_event("holoheal:holomesh_receipt_ready", event) {
+      $lastHoloMeshSync = new Date().toISOString()
+      $receipts = $receipts.concat([event])
+    }
+
+    on_event("holoheal:fleet_memory_update", event) {
+      $lastFleetSync = new Date().toISOString()
+    }
+  }
+
+  @test {
+    name: "holoheal preserves self-improvement identity"
+    assert: { $semanticLoop == "self-improvement" }
+  }
+
+  @test {
+    name: "holoheal never exposes raw secrets by default"
+    assert: { $rawSecretExposure == "none" }
+  }
+}

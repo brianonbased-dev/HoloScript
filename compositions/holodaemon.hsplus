@@ -1,10 +1,9 @@
 /**
- * HoloDaemon MVP — .hsplus Composition
+ * HoloDaemon — Customizable Resident Agent Runtime
  *
- * The first implementation of HoloScript scripting orchestrating both
- * backend (daemon runner pipeline) and frontend (Studio dashboard).
- * This composition bridges legacy TypeScript daemon infrastructure
- * with native HoloScript AI orchestration.
+ * HoloDaemon is the generic long-running agent container: identity, skills,
+ * memory, scheduling, budgets, telemetry, and authority handles. HoloHeal is
+ * the default self-improvement mission profile running on this runtime.
  *
  * Architecture:
  *   1. Dashboard surface — 2D operations view hydrated with live state
@@ -12,16 +11,14 @@
  *   3. Agent pool — manages concurrent daemon workers with rate limiting
  *   4. Telemetry feed — real-time metrics streamed to the UI
  *
- * This is the holodaemon MVP: proving that a .hsplus composition can
- * define the daemon's behavior, its UI surface, and its orchestration
- * logic in a single native HoloScript file. The legacy TypeScript
- * runner continues to execute the actual daemon actions; this
- * composition provides the declarative control plane.
+ * The legacy TypeScript runner continues to execute daemon jobs; this
+ * composition provides the declarative control plane for many missions.
  *
  * @version 1.0.0
  * @format .hsplus (behavior + UI surface)
- * @experiment HoloDaemon MVP — HoloScript-native daemon orchestration
- * @see self-improve-daemon.hsplus (BT-level daemon actions)
+ * @experiment HoloDaemon resident-agent runtime
+ * @see holoheal.hsplus (default self-improvement mission)
+ * @see self-improve-daemon.hsplus (HoloHeal behavior tree)
  * @see studio-operations-dashboard.hsplus (dashboard surface template)
  */
 
@@ -37,6 +34,9 @@ composition "HoloDaemon" {
     daemonVersion: "1.0.0"
     daemonStatus: "idle"
     daemonMode: "balanced"
+    runtimeKind: "resident-agent"
+    missionProfile: "holoheal"
+    missionDescription: "Self-improvement loop: diagnose, repair, verify, publish receipts."
 
     // ── Job Queue ──
     activeJobId: null
@@ -52,13 +52,31 @@ composition "HoloDaemon" {
     typeErrorCount: 0
     testPassRate: 0
 
-    // ── Agent Pool ──
-    agents: [
-      { id: "planner", name: "Planner", state: "idle", role: "Analyzes project DNA and plans passes" },
-      { id: "fixer", name: "Fixer", state: "idle", role: "Generates and applies type/lint fixes" },
-      { id: "verifier", name: "Verifier", state: "idle", role: "Runs tsc + vitest + eslint validation" },
-      { id: "reviewer", name: "Reviewer", state: "idle", role: "Produces patch proposals for human review" }
+    // ── Mission Profiles ──
+    missionProfiles: [
+      { id: "holoheal", name: "HoloHeal", role: "Self-improvement", defaultMode: "balanced" },
+      { id: "builder", name: "Builder", role: "Scoped code changes and tests", defaultMode: "balanced" },
+      { id: "launch-operator", name: "Launch Operator", role: "Docs, release, and public surfaces", defaultMode: "quick" },
+      { id: "research-oracle", name: "Research Oracle", role: "uAA2 research and knowledge compression", defaultMode: "deep" },
+      { id: "spatial-worldbuilder", name: "Spatial Worldbuilder", role: "XR scenes and compile targets", defaultMode: "deep" },
+      { id: "secret-custodian", name: "Secret Custodian", role: "Capability grants and secret receipts", defaultMode: "quick" },
+      { id: "fleet-auditor", name: "Fleet Auditor", role: "Fleet trust and identity drift", defaultMode: "quick" }
     ]
+
+    // ── Resident Agent Pool ──
+    agents: [
+      { id: "planner", name: "Planner", state: "idle", role: "Analyzes mission context and plans passes" },
+      { id: "executor", name: "Executor", state: "idle", role: "Runs scoped tools through capability handles" },
+      { id: "verifier", name: "Verifier", state: "idle", role: "Runs validation for the active mission" },
+      { id: "auditor", name: "Auditor", state: "idle", role: "Produces receipts and Fleet/HoloMesh evidence" }
+    ]
+
+    // ── Skills and Authority ──
+    skillsFirst: true
+    skills: ["codebase", "holoscript-dev", "scan", "critic"]
+    authorityRefs: ["cap://daemon/code/write-scoped", "cap://daemon/holomesh/publish-receipt"]
+    rawSecretAccess: false
+    schedules: ["on_demand"]
 
     // ── Telemetry ──
     recentEvents: []
@@ -85,7 +103,7 @@ composition "HoloDaemon" {
     btCandidateCount: 0
     btCurrentCandidate: null
 
-    // ── Pass Configuration (mirrored from self-improve-daemon) ──
+    // ── Pass Configuration (HoloHeal default; missions may override) ──
     passes: ["absorb", "typefix", "lint", "coverage"]
     currentPass: null
     passProgress: {}
@@ -101,8 +119,8 @@ composition "HoloDaemon" {
     qualityPercent: Math.round($qualityScore * 100)
     qualityDeltaSign: $qualityDelta >= 0 ? "+" : ""
     qualityDeltaLabel: $qualityDeltaSign + String(Math.round($qualityDelta * 100)) + "%"
-    activeAgentCount: $agents.filter(a => a.state == "active").length
-    idleAgentCount: $agents.filter(a => a.state == "idle").length
+    activeAgentCount: 0
+    idleAgentCount: 0
     costLabel: "$" + $costUSD.toFixed(2)
     statusColor: $daemonStatus == "running" ? "#22c55e" : $daemonStatus == "error" ? "#ef4444" : "#f59e0b"
     progressPercent: Math.round($activeJobProgress)

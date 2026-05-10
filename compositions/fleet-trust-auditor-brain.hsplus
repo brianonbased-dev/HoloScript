@@ -8,6 +8,8 @@
  * the HoloMesh API allowlist. Migrating the auditor onto the existing
  * holoscript-agent supervisor service (Railway, fixed regional egress)
  * inherits the allowed IP and unblocks live FLEET_TRUST measurement.
+ * HoloHeal consumes this report class as the fleet-trust input to the broader
+ * self-improvement loop.
  *
  * Sibling to security-auditor-brain — same single-file structure, narrower
  * working set (the audit consumes ~3 endpoints + local git artifacts; no
@@ -32,6 +34,7 @@
  * @load on-demand via HOLOMESH MCP composition runtime in supervisor
  * @see compositions/security-auditor-brain.hsplus (sibling pattern)
  * @see docs/headless-agents.md (deploy + provision flow)
+ * @see compositions/holoheal.hsplus (fleet-aware self-improvement shell)
  * @see research/audit-reports/fleet-trust-2026-05-05.md (latest report —
  *   structure is the canonical output schema)
  */
@@ -282,15 +285,17 @@ composition "FleetTrustAuditorBrain" {
   // OUT OF SCOPE
   // ========================================================================
   out_of_scope {
-    - "Authoring new drift rules (those go in scripts/lib/trust-epoch.mjs
-       and require a separate engineering session)"
-    - "Modifying compositions/*.hsplus (other brains; auditor only reads)"
-    - "Rotating any wallet, bearer, or HOLOMESH credentials"
-    - "Cross-team audits (this brain audits team_1777834718247_unr35n
-       only; expanding to other teams requires explicit configuration)"
-    - "Anchoring .ots OpenTimestamps on every report (A-007 paper-matrix
-       freshness handles a subset; founder anchors the rest)"
-    - "Running the audit more than once per day (over-reporting destroys
+    items: [
+      "Authoring new drift rules (those go in scripts/lib/trust-epoch.mjs
+       and require a separate engineering session)",
+      "Modifying compositions/*.hsplus (other brains; auditor only reads)",
+      "Rotating any wallet, bearer, or HOLOMESH credentials",
+      "Cross-team audits (this brain audits team_1777834718247_unr35n
+       only; expanding to other teams requires explicit configuration)",
+      "Anchoring .ots OpenTimestamps on every report (A-007 paper-matrix
+       freshness handles a subset; founder anchors the rest)",
+      "Running the audit more than once per day (over-reporting destroys
        the streak signal — see anti_patterns rule_7)"
+    ]
   }
 }
