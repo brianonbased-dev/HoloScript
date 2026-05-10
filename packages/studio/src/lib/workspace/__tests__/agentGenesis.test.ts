@@ -61,16 +61,24 @@ describe('buildAgentGenesisPlan', () => {
     expect(JSON.stringify(plan)).not.toContain('gho_');
   });
 
-  it('wires HoloHeal through HoloClaw, HoloMesh, and Fleet receipts', () => {
+  it('wires HoloDoor, HoloHeal, HoloClaw, HoloMesh, and Fleet receipts', () => {
     const plan = buildAgentGenesisPlan({ workspaceId: 'ws_mesh' });
 
     expect(plan.meshWiring.holoheal).toEqual({
+      policyGate: 'HoloDoor',
       incidentTarget: 'HoloClaw',
       receiptTarget: 'HoloMesh',
       trustTarget: 'Fleet',
     });
+    expect(plan.meshWiring.holodoor).toEqual({
+      policyPath: 'ecosystem/holodoor/policy.json',
+      telemetryTarget: 'HoloMesh',
+      gates: ['tool-use', 'mcp-config', 'secret-grant'],
+    });
     expect(plan.meshWiring.events).toEqual(
       expect.arrayContaining([
+        'holodoor.policy.checked',
+        'holodoor.action.blocked',
         'holoclaw.incident.opened',
         'holomesh.receipt.published',
         'fleet.trust.updated',

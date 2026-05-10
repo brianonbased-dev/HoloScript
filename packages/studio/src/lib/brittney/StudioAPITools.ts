@@ -203,7 +203,7 @@ const workspaceAgentGenesis: StudioToolDefinition = {
   function: {
     name: 'workspace_agent_genesis',
     description:
-      'Recommend the automatic skills-first agent crew for a workspace. Produces HoloDaemon mission profiles, HoloHeal/HoloClaw/HoloMesh/Fleet wiring, and broker-only secret handles. Use immediately after GitHub login, repo import, or when deciding which agents to autospawn.',
+      'Recommend the automatic skills-first agent crew for a workspace. Produces HoloDaemon mission profiles, HoloDoor/HoloHeal/HoloClaw/HoloMesh/Fleet wiring, and broker-only secret handles. Use immediately after GitHub login, repo import, or when deciding which agents to autospawn.',
     parameters: {
       type: 'object',
       properties: {
@@ -259,7 +259,7 @@ const workspaceSecretGrant: StudioToolDefinition = {
   function: {
     name: 'workspace_secret_grant',
     description:
-      'Issue a brokered grant receipt for an agent to use a secret:// handle. Returns capability and audit receipt metadata only, never the plaintext secret. Use when Secret Custodian or another resident agent needs scoped secret access.',
+      'Issue a brokered grant receipt for an agent to use a secret:// handle after HoloDoor policy gating. Returns capability and audit receipt metadata only, never the plaintext secret. Use when Secret Custodian or another resident agent needs scoped secret access.',
     parameters: {
       type: 'object',
       properties: {

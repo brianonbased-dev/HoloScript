@@ -40,6 +40,7 @@ export interface AccountWorkspaceMetadata {
     agentRosterPath: 'agents/roster.yml';
     fleetAutospawnPath: 'ecosystem/fleet/autospawn.yml';
     holohealChecksPath: 'ecosystem/holoheal/checks.yml';
+    holodoorPolicyPath: 'ecosystem/holodoor/policy.json';
     secretGrantReceiptPolicyPath: 'ecosystem/holoheal/secret-grant-receipt.yml';
   };
   linkedRepos: AccountLinkedRepo[];
@@ -67,6 +68,7 @@ export interface AccountWorkspaceMetadata {
     skillsLobbyPath: string;
     fleetAutospawnPath: string;
     holohealChecksPath: string;
+    holodoorPolicyPath: string;
   };
 }
 
@@ -150,12 +152,12 @@ function readme(input: AccountWorkspaceSeedInput): string {
     '',
     'This repo is your HoloScript Studio account workspace.',
     '',
-    'It stores identity, knowledge, agent configuration, linked repos, board state, conversion recommendations, Agent Genesis policy, and HoloHeal receipts in Git.',
+    'It stores identity, knowledge, agent configuration, linked repos, board state, conversion recommendations, Agent Genesis policy, HoloDoor policy, and HoloHeal receipts in Git.',
     '',
     '```text',
     'knowledge/        -> W/P/G entries your agents discover',
     'agents/           -> Resident agent roster and configs',
-    'ecosystem/        -> MCP servers, hooks, linked repos, board state, skills lobby, Fleet, HoloHeal',
+    'ecosystem/        -> MCP servers, hooks, linked repos, board state, skills lobby, HoloDoor, Fleet, HoloHeal',
     'profile.yml       -> Studio identity and tier',
     'config.yml        -> Workspace settings',
     '```',
@@ -244,6 +246,7 @@ function skillsLobby(input: AccountWorkspaceSeedInput): string {
     '    - "shell"',
     '    - "browser"',
     '    - "mcp raw calls"',
+    '    - "secret broker grants"',
     '  default_route: "holoheal"',
     '',
     'routes:',
@@ -265,11 +268,11 @@ function skillsLobby(input: AccountWorkspaceSeedInput): string {
     '  secret_token_or_oauth:',
     '    first_skills:',
     ...yamlList(['holoheal', 'critic']),
-    '    rule: "request broker grant receipt; never read plaintext from Git"',
+    '    rule: "check HoloDoor policy, request broker grant receipt, never read plaintext from Git"',
     '  failing_check_or_hook:',
     '    first_skills:',
     ...yamlList(['codebase', 'critic']),
-    '    handoff: "HoloHeal opens incident; HoloClaw repairs; HoloMesh stores receipt; Fleet updates trust."',
+    '    handoff: "HoloDoor gates the action; HoloHeal opens incident; HoloClaw repairs; HoloMesh stores receipt; Fleet updates trust."',
     '',
   ].join('\n');
 }
@@ -299,7 +302,16 @@ function agentRoster(input: AccountWorkspaceSeedInput, plan: AgentGenesisPlan): 
     );
   }
 
-  lines.push('');
+  lines.push(
+    '',
+    'guardrails:',
+    '  holodoor:',
+    '    policy_path: "ecosystem/holodoor/policy.json"',
+    '    telemetry_target: "HoloMesh"',
+    '    gates:',
+    ...yamlList(['tool-use', 'mcp-config', 'secret-grant'], '      '),
+    ''
+  );
   return lines.join('\n');
 }
 
@@ -311,6 +323,7 @@ function fleetAutospawn(input: AccountWorkspaceSeedInput, plan: AgentGenesisPlan
     'agent_genesis: "ecosystem/agent-genesis.json"',
     'resident_roster: "agents/roster.yml"',
     'skills_lobby: "ecosystem/skills/lobby.yml"',
+    'policy_gate: "HoloDoor"',
     '',
     'intents:',
     '  "secret, token, API key, or OAuth grant":',
@@ -318,12 +331,14 @@ function fleetAutospawn(input: AccountWorkspaceSeedInput, plan: AgentGenesisPlan
     '    spawn:',
     ...yamlList(['secret-custodian', 'holoheal'], '      '),
     '    first_route: "secret_token_or_oauth"',
+    '    policy_gate: "HoloDoor"',
     '    receipt: "secret.granted"',
     '  "failing check or broken hook":',
     '    owner: "holoheal"',
     '    spawn:',
     ...yamlList(['holoheal', 'fleet-auditor'], '      '),
     '    incident_target: "HoloClaw"',
+    '    policy_gate: "HoloDoor"',
     '    receipt: "repair.verified"',
     '  "codebase implementation":',
     '    owner: "builder"',
@@ -365,6 +380,7 @@ function holohealChecks(input: AccountWorkspaceSeedInput): string {
     'schema_version: "0.1.0"',
     'workspace_id: ' + quoteYaml(input.workspaceId),
     'receipt_policy:',
+    '  policy_gate: "HoloDoor"',
     '  target: "HoloMesh"',
     '  p0_p1_incident_target: "HoloClaw"',
     '  trust_target: "Fleet"',
@@ -386,8 +402,43 @@ function holohealChecks(input: AccountWorkspaceSeedInput): string {
     '    severity: "P2"',
     '    command: \'node -e "require(\\"fs\\").accessSync(\\"ecosystem/fleet/autospawn.yml\\")"\'',
     '    repair_agent: "fleet-auditor"',
+    '  holodoor_policy_present:',
+    '    severity: "P1"',
+    '    command: \'node -e "const p=require(\\"./ecosystem/holodoor/policy.json\\"); if(p.schemaVersion!==\\"1.0.0\\") process.exit(1); if(p.telemetry?.redact!==\\"strict\\") process.exit(1)"\'',
+    '    repair_agent: "holoheal"',
     '',
   ].join('\n');
+}
+
+function holodoorPolicy(): string {
+  return json({
+    schemaVersion: '1.0.0',
+    mcpServers: {
+      allowlist: [],
+      blocklist: [],
+      matchBy: 'id',
+    },
+    tools: {
+      allowlist: [],
+      blocklist: [],
+      blockedCommandPatterns: [],
+    },
+    guardrails: [
+      'Gate tool use, MCP configuration, and secret grants through HoloDoor policy before execution.',
+      'Keep telemetry redacted; HoloMesh stores policy decisions and receipt references, not secret values.',
+    ],
+    repoRules: {
+      pathGlobs: ['**/*'],
+    },
+    telemetry: {
+      mode: 'local',
+      redact: 'strict',
+    },
+    enforcement: {
+      onViolation: 'warn',
+      postSessionAlertOnBlock: false,
+    },
+  });
 }
 
 function secretGrantReceiptPolicy(input: AccountWorkspaceSeedInput): string {
@@ -486,6 +537,7 @@ function buildFiles(
     'agents/roster.yml': agentRoster(input, agentGenesis),
     'ecosystem/fleet/autospawn.yml': fleetAutospawn(input, agentGenesis),
     'ecosystem/holoheal/checks.yml': holohealChecks(input),
+    'ecosystem/holodoor/policy.json': holodoorPolicy(),
     'ecosystem/holoheal/secret-grant-receipt.yml': secretGrantReceiptPolicy(input),
     'ecosystem/hooks/README.md': '# Hooks\n\nWorkspace-local automation hooks live here.\n',
     'ecosystem/skills/README.md': '# Skills\n\nWorkspace-local agent skills live here.\n',
@@ -521,6 +573,7 @@ export function buildAccountWorkspaceSeed(input: AccountWorkspaceSeedInput): Acc
       'skills-lobby',
       'agent-genesis',
       'fleet-autospawn',
+      'holodoor-policy',
       'holoheal-receipts',
     ],
     structure: {
@@ -539,6 +592,7 @@ export function buildAccountWorkspaceSeed(input: AccountWorkspaceSeedInput): Acc
       agentRosterPath: 'agents/roster.yml',
       fleetAutospawnPath: 'ecosystem/fleet/autospawn.yml',
       holohealChecksPath: 'ecosystem/holoheal/checks.yml',
+      holodoorPolicyPath: 'ecosystem/holodoor/policy.json',
       secretGrantReceiptPolicyPath: 'ecosystem/holoheal/secret-grant-receipt.yml',
     },
     linkedRepos,
@@ -566,6 +620,7 @@ export function buildAccountWorkspaceSeed(input: AccountWorkspaceSeedInput): Acc
       skillsLobbyPath: 'ecosystem/skills/lobby.yml',
       fleetAutospawnPath: 'ecosystem/fleet/autospawn.yml',
       holohealChecksPath: 'ecosystem/holoheal/checks.yml',
+      holodoorPolicyPath: 'ecosystem/holodoor/policy.json',
     },
   };
 

@@ -60,9 +60,15 @@ export interface AgentGenesisPlan {
   };
   meshWiring: {
     holoheal: {
+      policyGate: 'HoloDoor';
       incidentTarget: 'HoloClaw';
       receiptTarget: 'HoloMesh';
       trustTarget: 'Fleet';
+    };
+    holodoor: {
+      policyPath: 'ecosystem/holodoor/policy.json';
+      telemetryTarget: 'HoloMesh';
+      gates: string[];
     };
     events: string[];
   };
@@ -237,7 +243,7 @@ export function buildAgentGenesisPlan(input: AgentGenesisInput): AgentGenesisPla
     workspaceId,
     strategy: 'skills-first-agent-genesis',
     summary:
-      'Autospawn core agents first, route each through its skills before raw tools, and keep secrets behind brokered handles.',
+      'Autospawn core agents first, route each through its skills before raw tools, gate sensitive actions through HoloDoor, and keep secrets behind brokered handles.',
     agents,
     secretBroker: {
       storage: 'studio-server-or-github-actions-secret',
@@ -247,6 +253,7 @@ export function buildAgentGenesisPlan(input: AgentGenesisInput): AgentGenesisPla
       grantEndpoint: '/api/workspace/secret-broker/grant',
       handles: buildSecretHandles({ ...input, workspaceId }),
       brokerCapabilities: [
+        'cap://holodoor/policy/check',
         'cap://daemon/secrets/broker-only',
         'cap://daemon/secrets/rotate',
         'cap://daemon/secrets/receipt',
@@ -254,11 +261,20 @@ export function buildAgentGenesisPlan(input: AgentGenesisInput): AgentGenesisPla
     },
     meshWiring: {
       holoheal: {
+        policyGate: 'HoloDoor',
         incidentTarget: 'HoloClaw',
         receiptTarget: 'HoloMesh',
         trustTarget: 'Fleet',
       },
+      holodoor: {
+        policyPath: 'ecosystem/holodoor/policy.json',
+        telemetryTarget: 'HoloMesh',
+        gates: ['tool-use', 'mcp-config', 'secret-grant'],
+      },
       events: [
+        'holodoor.policy.checked',
+        'holodoor.action.warned',
+        'holodoor.action.blocked',
         'holoheal.run.started',
         'holoclaw.incident.opened',
         'holomesh.receipt.published',

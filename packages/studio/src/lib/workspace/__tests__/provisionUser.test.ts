@@ -193,6 +193,7 @@ describe('provisionUser founder bootstrap', () => {
         agentRosterPath: 'agents/roster.yml',
         fleetAutospawnPath: 'ecosystem/fleet/autospawn.yml',
         holohealChecksPath: 'ecosystem/holoheal/checks.yml',
+        holodoorPolicyPath: 'ecosystem/holodoor/policy.json',
       }),
       repoImport: expect.objectContaining({
         workspaceId: 'ws_octocat',
@@ -205,6 +206,7 @@ describe('provisionUser founder bootstrap', () => {
         skillsLobbyPath: 'ecosystem/skills/lobby.yml',
         fleetAutospawnPath: 'ecosystem/fleet/autospawn.yml',
         holohealChecksPath: 'ecosystem/holoheal/checks.yml',
+        holodoorPolicyPath: 'ecosystem/holodoor/policy.json',
       }),
     });
     expect(result.user?.capabilities).toEqual(
@@ -265,6 +267,7 @@ describe('provisionUser founder bootstrap', () => {
         'ecosystem/skills/lobby.yml',
         'ecosystem/fleet/autospawn.yml',
         'ecosystem/holoheal/checks.yml',
+        'ecosystem/holodoor/policy.json',
         'ecosystem/holoheal/secret-grant-receipt.yml',
         'knowledge/wisdom/README.md',
         '.claude/CLAUDE.md',
@@ -293,7 +296,15 @@ describe('provisionUser founder bootstrap', () => {
       strategy: string;
       agents: Array<{ missionProfile: string; autospawn: boolean; daemonAgent: { rawSecretAccess: boolean } }>;
       secretBroker: { plaintextInWorkspace: boolean; handlesOnly: boolean };
-      meshWiring: { holoheal: { incidentTarget: string; receiptTarget: string; trustTarget: string } };
+      meshWiring: {
+        holoheal: {
+          policyGate: string;
+          incidentTarget: string;
+          receiptTarget: string;
+          trustTarget: string;
+        };
+        holodoor: { policyPath: string; telemetryTarget: string; gates: string[] };
+      };
     };
     expect(agentGenesis.strategy).toBe('skills-first-agent-genesis');
     expect(agentGenesis.agents.map((agent) => agent.missionProfile)).toEqual(
@@ -307,28 +318,47 @@ describe('provisionUser founder bootstrap', () => {
       handlesOnly: true,
     });
     expect(agentGenesis.meshWiring.holoheal).toEqual({
+      policyGate: 'HoloDoor',
       incidentTarget: 'HoloClaw',
       receiptTarget: 'HoloMesh',
       trustTarget: 'Fleet',
+    });
+    expect(agentGenesis.meshWiring.holodoor).toEqual({
+      policyPath: 'ecosystem/holodoor/policy.json',
+      telemetryTarget: 'HoloMesh',
+      gates: ['tool-use', 'mcp-config', 'secret-grant'],
     });
 
     const skillsLobby = pushedFiles.find((file) => file.path === 'ecosystem/skills/lobby.yml')?.content ?? '';
     expect(skillsLobby).toContain('rule: "skills-first"');
     expect(skillsLobby).toContain('secret_token_or_oauth');
+    expect(skillsLobby).toContain('HoloDoor');
 
     const roster = pushedFiles.find((file) => file.path === 'agents/roster.yml')?.content ?? '';
     expect(roster).toContain('mission_profile: "holoheal"');
+    expect(roster).toContain('policy_path: "ecosystem/holodoor/policy.json"');
     expect(roster).toContain('raw_secret_access: false');
 
     const fleetAutospawn =
       pushedFiles.find((file) => file.path === 'ecosystem/fleet/autospawn.yml')?.content ?? '';
     expect(fleetAutospawn).toContain('receipt: "secret.granted"');
     expect(fleetAutospawn).toContain('incident_target: "HoloClaw"');
+    expect(fleetAutospawn).toContain('policy_gate: "HoloDoor"');
 
     const holohealChecks =
       pushedFiles.find((file) => file.path === 'ecosystem/holoheal/checks.yml')?.content ?? '';
     expect(holohealChecks).toContain('secret_manifest_handles_only');
+    expect(holohealChecks).toContain('holodoor_policy_present');
     expect(holohealChecks).toContain('trust_target: "Fleet"');
+
+    const holodoorPolicy = JSON.parse(
+      pushedFiles.find((file) => file.path === 'ecosystem/holodoor/policy.json')?.content ?? '{}'
+    ) as { schemaVersion: string; telemetry: { redact: string }; enforcement: { onViolation: string } };
+    expect(holodoorPolicy).toMatchObject({
+      schemaVersion: '1.0.0',
+      telemetry: { redact: 'strict' },
+      enforcement: { onViolation: 'warn' },
+    });
 
     const receiptPolicy =
       pushedFiles.find((file) => file.path === 'ecosystem/holoheal/secret-grant-receipt.yml')?.content ?? '';
