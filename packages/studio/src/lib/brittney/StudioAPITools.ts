@@ -259,7 +259,7 @@ const workspaceSecretGrant: StudioToolDefinition = {
   function: {
     name: 'workspace_secret_grant',
     description:
-      'Issue a brokered grant receipt for an agent to use a secret:// handle after HoloDoor policy gating. Returns capability and audit receipt metadata only, never the plaintext secret. Use when Secret Custodian or another resident agent needs scoped secret access.',
+      'Issue a brokered grant receipt for an agent to use a secret:// handle. The broker evaluates HoloDoor policy first, returns the policy decision plus audit receipt metadata, and never returns the plaintext secret. Use when Secret Custodian or another resident agent needs scoped secret access.',
     parameters: {
       type: 'object',
       properties: {

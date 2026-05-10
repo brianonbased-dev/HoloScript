@@ -10,7 +10,10 @@ export const maxDuration = 60;
 import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
-import { createSecretGrant } from '@/lib/workspace/secretBroker';
+import {
+  SecretGrantPolicyError,
+  createPolicyGatedSecretGrant,
+} from '@/lib/workspace/secretBroker';
 
 import { corsHeaders } from '../../../_lib/cors';
 
@@ -20,6 +23,12 @@ function optionalString(value: unknown): string | undefined {
 
 function optionalNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function optionalRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -41,16 +50,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const record = body as Record<string, unknown>;
   try {
-    const grant = createSecretGrant({
-      workspaceId: optionalString(record['workspaceId']) ?? '',
-      agentId: optionalString(record['agentId']) ?? '',
-      secretRef: optionalString(record['secretRef']) ?? '',
-      capabilityRef: optionalString(record['capabilityRef']) ?? '',
-      purpose: optionalString(record['purpose']) ?? '',
-      ttlSeconds: optionalNumber(record['ttlSeconds']),
-    });
-    return NextResponse.json({ grant }, { status: 201 });
+    const { policyDecision, grant } = createPolicyGatedSecretGrant(
+      {
+        workspaceId: optionalString(record['workspaceId']) ?? '',
+        agentId: optionalString(record['agentId']) ?? '',
+        secretRef: optionalString(record['secretRef']) ?? '',
+        capabilityRef: optionalString(record['capabilityRef']) ?? '',
+        purpose: optionalString(record['purpose']) ?? '',
+        ttlSeconds: optionalNumber(record['ttlSeconds']),
+      },
+      optionalRecord(record['holodoorPolicy'])
+    );
+    return NextResponse.json({ policyDecision, grant }, { status: 201 });
   } catch (err) {
+    if (err instanceof SecretGrantPolicyError) {
+      return NextResponse.json(
+        { error: err.message, policyDecision: err.decision },
+        { status: 403 }
+      );
+    }
     const message = err instanceof Error ? err.message : 'Invalid secret grant request';
     return NextResponse.json({ error: message }, { status: 400 });
   }

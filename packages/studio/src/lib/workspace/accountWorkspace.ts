@@ -265,9 +265,9 @@ function skillsLobby(input: AccountWorkspaceSeedInput): string {
     '  launch_or_public_surface:',
     '    first_skills:',
     ...yamlList(['holomarketer', 'documenter', 'holomesh']),
-    '  secret_token_or_oauth:',
-    '    first_skills:',
-    ...yamlList(['holoheal', 'critic']),
+  '  secret_token_or_oauth:',
+  '    first_skills:',
+    ...yamlList(['holodoor', 'secret_broker', 'holoheal']),
     '    rule: "check HoloDoor policy, request broker grant receipt, never read plaintext from Git"',
     '  failing_check_or_hook:',
     '    first_skills:',
@@ -402,15 +402,15 @@ function holohealChecks(input: AccountWorkspaceSeedInput): string {
     '    severity: "P2"',
     '    command: \'node -e "require(\\"fs\\").accessSync(\\"ecosystem/fleet/autospawn.yml\\")"\'',
     '    repair_agent: "fleet-auditor"',
-    '  holodoor_policy_present:',
+  '  holodoor_policy_present:',
     '    severity: "P1"',
-    '    command: \'node -e "const p=require(\\"./ecosystem/holodoor/policy.json\\"); if(p.schemaVersion!==\\"1.0.0\\") process.exit(1); if(p.telemetry?.redact!==\\"strict\\") process.exit(1)"\'',
+    '    command: \'node -e "const p=require(\\"./ecosystem/holodoor/policy.json\\"); if(p.schemaVersion!==\\"1.0.0\\") process.exit(1); if(p.telemetry?.redact!==\\"strict\\") process.exit(1); if(!Array.isArray(p.secretGrants?.allowedSecretRefPrefixes)) process.exit(1)"\'',
     '    repair_agent: "holoheal"',
     '',
   ].join('\n');
 }
 
-function holodoorPolicy(): string {
+function holodoorPolicy(input: AccountWorkspaceSeedInput): string {
   return json({
     schemaVersion: '1.0.0',
     mcpServers: {
@@ -422,6 +422,20 @@ function holodoorPolicy(): string {
       allowlist: [],
       blocklist: [],
       blockedCommandPatterns: [],
+    },
+    secretGrants: {
+      allowedSecretRefPrefixes: [`secret://workspace/${input.workspaceId}/`],
+      blockedSecretRefPrefixes: [],
+      allowedCapabilityRefs: [
+        'cap://daemon/secrets/broker-only',
+        'cap://daemon/secrets/rotate',
+        'cap://daemon/secrets/receipt',
+      ],
+      blockedCapabilityRefs: [],
+      allowedAgentIds: [],
+      blockedAgentIds: [],
+      maxTtlSeconds: 900,
+      requirePurpose: true,
     },
     guardrails: [
       'Gate tool use, MCP configuration, and secret grants through HoloDoor policy before execution.',
@@ -448,13 +462,27 @@ function secretGrantReceiptPolicy(input: AccountWorkspaceSeedInput): string {
     'workspace_id: ' + quoteYaml(input.workspaceId),
     'event: "secret.granted"',
     'required_fields:',
-    ...yamlList(['grantId', 'agentId', 'secretRef', 'capabilityRef', 'issuedAt', 'expiresAt', 'plaintextReturned'], '  '),
+    ...yamlList(
+      [
+        'grantId',
+        'agentId',
+        'secretRef',
+        'capabilityRef',
+        'issuedAt',
+        'expiresAt',
+        'plaintextReturned',
+        'policyDecisionId',
+        'policyOutcome',
+      ],
+      '  '
+    ),
     'forbidden_fields:',
     ...yamlList(['value', 'secret', 'token', 'apiKey', 'api_key', 'plaintext'], '  '),
     'rules:',
     '  plaintextReturned: false',
     '  secretRef_prefix: ' + quoteYaml(`secret://workspace/${input.workspaceId}/`),
     '  capabilityRef_prefix: "cap://daemon/secrets/"',
+    '  policyDecisionId_prefix: "hdoor_"',
     '  stored_secret_values: "Studio server or GitHub Actions secrets only; never Git."',
     '',
   ].join('\n');
@@ -537,7 +565,7 @@ function buildFiles(
     'agents/roster.yml': agentRoster(input, agentGenesis),
     'ecosystem/fleet/autospawn.yml': fleetAutospawn(input, agentGenesis),
     'ecosystem/holoheal/checks.yml': holohealChecks(input),
-    'ecosystem/holodoor/policy.json': holodoorPolicy(),
+    'ecosystem/holodoor/policy.json': holodoorPolicy(input),
     'ecosystem/holoheal/secret-grant-receipt.yml': secretGrantReceiptPolicy(input),
     'ecosystem/hooks/README.md': '# Hooks\n\nWorkspace-local automation hooks live here.\n',
     'ecosystem/skills/README.md': '# Skills\n\nWorkspace-local agent skills live here.\n',

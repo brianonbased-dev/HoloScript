@@ -353,9 +353,23 @@ describe('provisionUser founder bootstrap', () => {
 
     const holodoorPolicy = JSON.parse(
       pushedFiles.find((file) => file.path === 'ecosystem/holodoor/policy.json')?.content ?? '{}'
-    ) as { schemaVersion: string; telemetry: { redact: string }; enforcement: { onViolation: string } };
+    ) as {
+      schemaVersion: string;
+      secretGrants: {
+        allowedSecretRefPrefixes: string[];
+        allowedCapabilityRefs: string[];
+        maxTtlSeconds: number;
+      };
+      telemetry: { redact: string };
+      enforcement: { onViolation: string };
+    };
     expect(holodoorPolicy).toMatchObject({
       schemaVersion: '1.0.0',
+      secretGrants: {
+        allowedSecretRefPrefixes: ['secret://workspace/ws_octocat/'],
+        allowedCapabilityRefs: expect.arrayContaining(['cap://daemon/secrets/broker-only']),
+        maxTtlSeconds: 900,
+      },
       telemetry: { redact: 'strict' },
       enforcement: { onViolation: 'warn' },
     });
@@ -364,6 +378,7 @@ describe('provisionUser founder bootstrap', () => {
       pushedFiles.find((file) => file.path === 'ecosystem/holoheal/secret-grant-receipt.yml')?.content ?? '';
     expect(receiptPolicy).toContain('event: "secret.granted"');
     expect(receiptPolicy).toContain('plaintextReturned: false');
+    expect(receiptPolicy).toContain('policyDecisionId');
 
     const manifest = JSON.parse(
       pushedFiles.find((file) => file.path === 'ecosystem/account-workspace.json')?.content ?? '{}'
