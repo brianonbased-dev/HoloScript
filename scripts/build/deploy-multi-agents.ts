@@ -42,15 +42,16 @@ const AGENT_CONFIGS: AgentConfig[] = [
   {
     id: 'agent-2-benchmarks',
     capabilities: ['benchmark', 'webassembly', 'performance_testing'],
-    task: 'TODO-R2: WASM Performance Benchmarking',
+    task: 'TODO-R2-PHASE2: Cross-engine WASM benchmark (Unity / Bevy / Godot 4)',
     priority: 'CRITICAL',
-    estimatedHours: 6,
+    estimatedHours: 16, // Phase 2: 1-2 working days per research/2026-04-19_todo-r2-wasm-bench-results.md
     autoApprove: true, // Technical benchmarks can auto-approve
     deliverables: [
-      'Unity WebGL vs native WASM performance comparison',
-      'Bevy + WASM vs Godot 4 benchmarks',
-      'Public benchmark report (GitHub repo)',
-      'Blog post draft (requires HITL approval before publishing)',
+      'DONE — Phase 1: Native Rust vs WASM vs JS parser benchmarks (see research/2026-04-19_todo-r2-wasm-bench-results.md)',
+      'Phase 2: Unity WebGL vs native WASM performance comparison',
+      'Phase 2: Bevy + WASM vs Godot 4 benchmarks',
+      'Phase 2: Public benchmark report (GitHub repo)',
+      'Phase 2: Blog post draft (requires HITL approval before publishing)',
     ],
   },
   {
