@@ -4,6 +4,41 @@
   "nextReviewBy": "2026-05-21",
   "verticals": [
     {
+      "vertical": "AI runtime architecture",
+      "competitor": "Unity / Unreal / PyTorch / JAX",
+      "gaps": [
+        {
+          "id": "CG-035",
+          "severity": "P1",
+          "direction": "differentiator",
+          "status": "in-progress",
+          "title": "NN-primary runtime with CPU-verifier backup — inverted stack ownership",
+          "competitorAdvantage": "Game engines are CPU-primary stacks that bolt on AI as an add-on (Unity ML-Agents, Unreal Engine ML). NN frameworks are compute substrates with no semantic source language — the program lives in Python scripts and notebook cells, not in a portable, versioned, attestable composition format.",
+          "holoscriptState": "HoloScript inverts the stack: NN (spiking neural network on WebGPU/neuromorphic, plus LLM speculation) is the primary runtime; CPU AST/typecheck/CURE verification is the backup/referee. Tier 1: SNN hot path for spatial/perceptual/animation traits (sub-ms latency, single-digit mW on neuromorphic hardware). Tier 2: LLM speculative warm path for semantic/agentic/compositional traits (CPU verifies via SimulationContract). Tier 3: CPU cold path for safety-critical, low-confidence-NN, audit, or replay scenarios.",
+          "neededResponse": "Ship a three-tier DispatchPolicy in core that routes per-trait by (trait class × confidence × safety-criticality). Benchmark acceptance rate (α) the way speculative decoding literature does. Emit SimulationContract evidence packs on every dispatch. Add ZKML inference receipts on audit/replay paths. Publish energy-budget metadata so Tier 1 defaults to SNN, not LLM.",
+          "evidence": [
+            "packages/snn-webgpu/ ships LIF simulator, prophetic-gi orchestrator, tropical activation, and paper-grade LIFDeterminismProbe.",
+            "packages/core/src/compiler/AgentInferenceExportTarget.ts + LLMProviderCapabilitiesCompiler.ts + ContextCompiler.ts + EffectInference.ts give the compiler-side pieces.",
+            "NIR export target is registered for neuromorphic compile targets.",
+            "2026 speculative-decoding literature (ICML Intel/Weizmann, Dovetail EMNLP) gives prior art and 2–3× speedup metrics for the verifier pattern.",
+            "SpiNNaker digital event-driven SNN reproducibility ≤1% conversion loss; Yao et al. 2026 formal verification toolchain for probabilistic SNNs.",
+            "ZKML survey 2026: DeepSeek-V3-scale proofs with constant proof size and constant verification time."
+          ],
+          "sources": [
+            "packages/snn-webgpu/src/paper/LIFDeterminismProbe.ts",
+            "packages/core/src/compiler/AgentInferenceExportTarget.ts",
+            "packages/core/src/compiler/LLMProviderCapabilitiesCompiler.ts",
+            "packages/core/src/compiler/ContextCompiler.ts",
+            "packages/core/src/compiler/safety/EffectInference.ts",
+            "packages/core/src/compiler/NIRCompiler.ts",
+            "docs/strategy/simulation-contract-evidence-pack-template.md",
+            "research/2026-05-09_nn-primary-cpu-backup-holoscript.md"
+          ],
+          "boardTaskId": "task_1778320033509_xvkn"
+        }
+      ]
+    },
+    {
       "vertical": "Hardware, edge AI, and embedded development",
       "competitor": "NVIDIA Jetson",
       "gaps": [

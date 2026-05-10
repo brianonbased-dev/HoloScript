@@ -4,11 +4,48 @@
 
 | ID | Vertical | Competitor | Severity | Direction | Status | Title |
 |---|---|---|---|---|---|---|
+| CG-035 | AI runtime architecture | Unity / Unreal / PyTorch / JAX | 🟠 P1 | differentiator | 🚧 In Progress | NN-primary runtime with CPU-verifier backup — inverted stack ownership |
 | CG-032 | Hardware, edge AI, and embedded development | NVIDIA Jetson | 🟠 P1 | differentiator | 👁️ Watch | HoloScript can become the cross-hardware semantic evidence layer competitors do not provide |
 | CG-005 | Spatial computing platforms | Apple Vision Pro | 🟡 P2 | catch-up | 🚧 In Progress | VisionOS fidelity gaps in Swift/RealityKit output |
 | CG-001 | Neuromorphic computing | Intel Loihi / SpiNNaker / SynSense | 🟠 P1 | differentiator | ✅ Shipped | NIR compiler ships for neuromorphic targets |
 
 ## Detailed Gap Descriptions
+
+### CG-035 — NN-primary runtime with CPU-verifier backup — inverted stack ownership
+
+- **Vertical:** AI runtime architecture
+- **Competitor:** Unity, Unreal, PlayCanvas, Babylon.js (CPU-primary engines); PyTorch, JAX, MLX (NN frameworks without semantic source)
+- **Severity:** P1
+- **Direction:** differentiator
+- **Status:** in-progress
+- **Board Task:** task_1778320033509_xvkn
+
+**Competitor Advantage:**
+Game engines are CPU-primary stacks that bolt on AI as an add-on (Unity ML-Agents, Unreal Engine ML). NN frameworks are compute substrates with no semantic source language — the program lives in Python scripts and notebook cells, not in a portable, versioned, attestable composition format.
+
+**HoloScript State:**
+HoloScript inverts the stack: NN (spiking neural network on WebGPU/neuromorphic, plus LLM speculation) is the primary runtime; CPU AST/typecheck/CURE verification is the backup/referee. Tier 1: SNN hot path for spatial/perceptual/animation traits (sub-ms latency, single-digit mW on neuromorphic hardware). Tier 2: LLM speculative warm path for semantic/agentic/compositional traits (CPU verifies via SimulationContract). Tier 3: CPU cold path for safety-critical, low-confidence-NN, audit, or replay scenarios.
+
+**Needed Response:**
+Ship a three-tier `DispatchPolicy` in core that routes per-trait by (trait class × confidence × safety-criticality). Benchmark acceptance rate (α) the way speculative decoding literature does. Emit SimulationContract evidence packs on every dispatch. Add ZKML inference receipts on audit/replay paths. Publish energy-budget metadata so Tier 1 defaults to SNN, not LLM.
+
+**Evidence:**
+- `packages/snn-webgpu/` ships LIF simulator, prophetic-gi orchestrator, tropical activation, and paper-grade `LIFDeterminismProbe`.
+- `packages/core/src/compiler/AgentInferenceExportTarget.ts` + `LLMProviderCapabilitiesCompiler.ts` + `ContextCompiler.ts` + `EffectInference.ts` give the compiler-side pieces.
+- NIR export target is registered for neuromorphic compile targets.
+- 2026 speculative-decoding literature (ICML Intel/Weizmann, Dovetail EMNLP) gives prior art and 2–3× speedup metrics for the verifier pattern.
+- SpiNNaker digital event-driven SNN reproducibility ≤1% conversion loss; Yao et al. 2026 formal verification toolchain for probabilistic SNNs.
+- ZKML survey 2026: DeepSeek-V3-scale proofs with constant proof size and constant verification time.
+
+**Sources:**
+- `packages/snn-webgpu/src/paper/LIFDeterminismProbe.ts`
+- `packages/core/src/compiler/AgentInferenceExportTarget.ts`
+- `packages/core/src/compiler/LLMProviderCapabilitiesCompiler.ts`
+- `packages/core/src/compiler/ContextCompiler.ts`
+- `packages/core/src/compiler/safety/EffectInference.ts`
+- `packages/core/src/compiler/NIRCompiler.ts`
+- `docs/strategy/simulation-contract-evidence-pack-template.md`
+- `research/2026-05-09_nn-primary-cpu-backup-holoscript.md`
 
 ### CG-032 — HoloScript can become the cross-hardware semantic evidence layer competitors do not provide
 
