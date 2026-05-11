@@ -77,35 +77,38 @@ test.describe('Studio Navigation Smoke', () => {
     });
   }
 
-  test('global nav links are visible on /create', async ({ page }) => {
+  test('workbench activity links stay on the account/workbench spine', async ({ page }) => {
     await page.goto('/create', { waitUntil: 'domcontentloaded' });
 
-    // Wait for sidebar nav to mount
-    const nav = page.getByRole('navigation', { name: /Main navigation/i });
+    const nav = page.getByRole('navigation', { name: /Workbench activity/i });
     await expect(nav).toBeVisible({ timeout: 10_000 });
 
-    const expectedLinks = ['Start', 'Vibe', 'Playground', 'Create', 'Projects', 'Avatar', 'HoloMesh', 'Teams', 'Agents', 'Absorb', 'Learn'];
+    const expectedLinks = ['Start', 'Workspace', 'Create', 'Projects', 'Settings'];
     for (const label of expectedLinks) {
       const link = nav.getByRole('link', { name: new RegExp(label, 'i') }).first();
       await expect(link, `Nav link "${label}" should be visible`).toBeVisible({ timeout: 5_000 });
     }
+
+    for (const hiddenLabel of ['HoloMesh', 'Agents', 'Absorb', 'Playground']) {
+      await expect(nav.getByRole('link', { name: new RegExp(hiddenLabel, 'i') })).toHaveCount(0);
+    }
   });
 
-  test('can navigate from /create to /holomesh via sidebar', async ({ page }) => {
+  test('can navigate from /create to /workspace via activity bar', async ({ page }) => {
     await page.goto('/create', { waitUntil: 'domcontentloaded' });
-    const nav = page.getByRole('navigation', { name: /Main navigation/i });
-    const holoLink = nav.getByRole('link', { name: /HoloMesh/i }).first();
-    await expect(holoLink).toBeVisible({ timeout: 10_000 });
-    await holoLink.click();
-    await expect(page).toHaveURL(/\/holomesh/);
+    const nav = page.getByRole('navigation', { name: /Workbench activity/i });
+    const workspaceLink = nav.getByRole('link', { name: /Workspace/i }).first();
+    await expect(workspaceLink).toBeVisible({ timeout: 10_000 });
+    await workspaceLink.click();
+    await expect(page).toHaveURL(/\/workspace/);
   });
 
-  test('can navigate from /create to /agents via sidebar', async ({ page }) => {
+  test('can navigate from /create to /projects via activity bar', async ({ page }) => {
     await page.goto('/create', { waitUntil: 'domcontentloaded' });
-    const nav = page.getByRole('navigation', { name: /Main navigation/i });
-    const agentsLink = nav.getByRole('link', { name: /Agents/i }).first();
-    await expect(agentsLink).toBeVisible({ timeout: 10_000 });
-    await agentsLink.click();
-    await expect(page).toHaveURL(/\/agents/, { timeout: 15_000 });
+    const nav = page.getByRole('navigation', { name: /Workbench activity/i });
+    const projectsLink = nav.getByRole('link', { name: /Projects/i }).first();
+    await expect(projectsLink).toBeVisible({ timeout: 10_000 });
+    await projectsLink.click();
+    await expect(page).toHaveURL(/\/projects/, { timeout: 15_000 });
   });
 });

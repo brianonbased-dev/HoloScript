@@ -266,6 +266,8 @@ This should be treated as product-critical, not cleanup polish.
 - stale audit docs that claim resolved quality without current verification.
 
 Archive means remove from primary navigation and docs, not necessarily delete code immediately.
+The current route and panel classification is registry-backed in
+[`STUDIO_SURFACE_CLASSIFICATION.md`](STUDIO_SURFACE_CLASSIFICATION.md).
 
 ### Rebuild as core
 
@@ -301,6 +303,8 @@ The mistake to avoid: putting all four lanes into one toolbar.
   bundle-size signal.
 - DONE: fix typecheck before further UI expansion.
 - DONE: wire the inventory command into docs/package drift checks so stale counts fail loud.
+- DONE: classify Studio routes and panels, then gate lab/public navigation behind
+  `NEXT_PUBLIC_STUDIO_SHOW_LABS`.
 
 ### Phase 1: Workbench spine
 

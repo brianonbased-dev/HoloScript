@@ -2,10 +2,10 @@
   "package": "@holoscript/studio",
   "counts": {
     "appPages": 68,
-    "apiRoutes": 172,
-    "components": 446,
+    "apiRoutes": 173,
+    "components": 447,
     "hooks": 112,
-    "libModules": 349,
+    "libModules": 352,
     "panelKeys": 76,
     "panelComponents": 50
   },
@@ -58,7 +58,7 @@
     },
     {
       "bucket": "workspace",
-      "count": 7
+      "count": 8
     },
     {
       "bucket": "connectors",

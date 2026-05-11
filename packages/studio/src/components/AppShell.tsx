@@ -4,6 +4,34 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import type { LucideIcon } from 'lucide-react';
+import {
+  MessageCircle,
+  Sparkles,
+  Wand2,
+  FolderGit2,
+  Code2,
+  Globe,
+  Users,
+  Bot,
+  Zap,
+  BookOpen,
+  ImagePlus,
+  Check,
+  Plus,
+  ClipboardList,
+  Menu,
+  X,
+  Settings,
+} from 'lucide-react';
+import {
+  STUDIO_LAB_NAVIGATION_ITEMS,
+  STUDIO_PRIMARY_NAVIGATION_ITEMS,
+  STUDIO_SETTINGS_NAVIGATION_ITEM,
+  isStudioLabNavigationEnabled,
+  type StudioNavigationId,
+  type StudioNavigationItemDefinition,
+} from '@/lib/studio/surfaceClassification';
 
 const RightPanelSidebar = dynamic(
   () => import('./panels/RightPanelSidebar').then((m) => ({ default: m.RightPanelSidebar })),
@@ -17,32 +45,39 @@ const RightPanelSidebar = dynamic(
 interface NavItem {
   label: string;
   href: string;
-  icon: string;
+  icon: LucideIcon;
   description: string;
 }
 
-// Core flow (progressive disclosure)
-const CORE_ITEMS: NavItem[] = [
-  { label: 'Start', href: '/start', icon: '💬', description: 'Conversational entry point' },
-  { label: 'Vibe', href: '/vibe', icon: '✨', description: 'Vibe-coded creation' },
-  { label: 'Creator', href: '/creator', icon: 'C', description: 'Creator-first authoring' },
-  { label: 'Create', href: '/create', icon: '🪄', description: 'New scene from prompt' },
-  { label: 'Projects', href: '/projects', icon: '📁', description: 'Your saved work' },
-];
+const ICON_BY_NAV_ID: Record<StudioNavigationId, LucideIcon> = {
+  start: MessageCircle,
+  workspace: Code2,
+  create: Wand2,
+  projects: FolderGit2,
+  settings: Settings,
+  vibe: Sparkles,
+  integrations: Zap,
+  agents: Bot,
+  teams: Users,
+  holomesh: Globe,
+  absorb: BookOpen,
+  playground: ImagePlus,
+};
 
-const ECOSYSTEM_ITEMS: NavItem[] = [
-  { label: 'Store', href: '/store', icon: '🏪', description: 'AI hardware & software store' },
-  { label: 'HoloMesh', href: '/holomesh', icon: '🌐', description: 'Knowledge exchange' },
-  { label: 'Filing', href: '/workspace/knowledge', icon: '📚', description: 'File W/P/G insights' },
-  { label: 'Teams', href: '/teams', icon: '👥', description: 'Team workspaces' },
-  { label: 'Agents', href: '/agents', icon: '🤖', description: 'AI agent network' },
-];
+function toNavItem(item: StudioNavigationItemDefinition): NavItem {
+  return {
+    label: item.label,
+    href: item.href,
+    icon: ICON_BY_NAV_ID[item.id],
+    description: item.description,
+  };
+}
 
-// Resources
-const RESOURCE_ITEMS: NavItem[] = [
-  { label: 'Absorb', href: '/absorb', icon: '⚡', description: 'Codebase intelligence' },
-  { label: 'Learn', href: '/learn', icon: '📖', description: 'Guides & tutorials' },
-];
+const CORE_ITEMS = STUDIO_PRIMARY_NAVIGATION_ITEMS.map(toNavItem);
+const LAB_ITEMS = isStudioLabNavigationEnabled()
+  ? STUDIO_LAB_NAVIGATION_ITEMS.map(toNavItem)
+  : [];
+const SETTINGS_ITEM = toNavItem(STUDIO_SETTINGS_NAVIGATION_ITEM);
 
 // ═══════════════════════════════════════════════════════════════════
 // Responsive Hook
@@ -112,6 +147,7 @@ function SidebarLink({
   collapsed: boolean;
   onClick?: () => void;
 }) {
+  const Icon = item.icon;
   return (
     <Link
       href={item.href}
@@ -127,7 +163,7 @@ function SidebarLink({
         ${collapsed ? 'justify-center px-2' : ''}
       `}
     >
-      <span className="text-base flex-shrink-0">{item.icon}</span>
+      {Icon && <Icon size={18} className="flex-shrink-0" />}
       {!collapsed && <span>{item.label}</span>}
     </Link>
   );
@@ -205,7 +241,7 @@ function TeamSelector({ collapsed }: { collapsed: boolean }) {
           title="Discover teams"
           className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-studio-muted hover:bg-studio-panel hover:text-studio-text transition ${collapsed ? 'justify-center px-2' : ''}`}
         >
-          <span className="text-base flex-shrink-0">👥</span>
+          <Users size={16} className="flex-shrink-0" />
           {!collapsed && <span>Join a team</span>}
         </Link>
       </div>
@@ -219,7 +255,7 @@ function TeamSelector({ collapsed }: { collapsed: boolean }) {
         title={activeTeam ? `Active team: ${activeTeam.name}` : 'Select team'}
         className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs transition hover:bg-studio-panel ${open ? 'bg-studio-panel text-studio-text' : 'text-studio-muted'} ${collapsed ? 'justify-center px-2' : ''}`}
       >
-        <span className="text-base flex-shrink-0">👥</span>
+        <Users size={16} className="flex-shrink-0" />
         {!collapsed && (
           <>
             <span className="flex-1 truncate text-left">{activeTeam?.name ?? 'Select team'}</span>
@@ -237,7 +273,7 @@ function TeamSelector({ collapsed }: { collapsed: boolean }) {
               className={`w-full text-left flex items-center gap-2 px-3 py-2 text-xs transition hover:bg-studio-panel ${team.id === activeId ? 'text-studio-accent font-medium' : 'text-studio-text'}`}
             >
               <span className="flex-1 truncate">{team.name}</span>
-              {team.id === activeId && <span>✓</span>}
+              {team.id === activeId && <Check size={14} />}
             </button>
           ))}
           <div className="border-t border-studio-border" />
@@ -246,7 +282,7 @@ function TeamSelector({ collapsed }: { collapsed: boolean }) {
             onClick={() => setOpen(false)}
             className="flex items-center gap-1.5 px-3 py-2 text-xs text-studio-muted hover:bg-studio-panel hover:text-studio-text transition"
           >
-            <span>＋</span> Discover teams
+            <Plus size={14} /> Discover teams
           </Link>
           {activeId && (
             <Link
@@ -254,7 +290,7 @@ function TeamSelector({ collapsed }: { collapsed: boolean }) {
               onClick={() => setOpen(false)}
               className="flex items-center gap-1.5 px-3 py-2 text-xs text-studio-muted hover:bg-studio-panel hover:text-studio-text transition"
             >
-              <span>📋</span> Open board
+              <ClipboardList size={14} /> Open board
             </Link>
           )}
         </div>
@@ -313,7 +349,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           title="Toggle navigation"
           aria-label="Toggle navigation menu"
         >
-          <span className="text-lg">{mobileMenuOpen ? '✕' : '☰'}</span>
+          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       )}
 
@@ -368,14 +404,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               aria-label="Close menu"
               title="Close menu"
             >
-              ✕
+              <X size={16} />
             </button>
           )}
         </div>
 
         {/* Primary Nav */}
         <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
-          {/* Core flow */}
           {CORE_ITEMS.map((item) => (
             <SidebarLink
               key={item.href}
@@ -386,43 +421,40 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             />
           ))}
 
-          {/* Divider */}
-          <div className="my-3 border-t border-studio-border" />
+          {LAB_ITEMS.length > 0 && (
+            <>
+              <div className="my-3 border-t border-studio-border" />
+              {LAB_ITEMS.map((item) => (
+                <SidebarLink
+                  key={item.href}
+                  item={item}
+                  isActive={pathname.startsWith(item.href)}
+                  collapsed={!isMobile && collapsed}
+                  onClick={isMobile ? closeMobileMenu : undefined}
+                />
+              ))}
+            </>
+          )}
 
-          {/* Ecosystem */}
-          {ECOSYSTEM_ITEMS.map((item) => (
-            <SidebarLink
-              key={item.href}
-              item={item}
-              isActive={pathname.startsWith(item.href)}
-              collapsed={!isMobile && collapsed}
-              onClick={isMobile ? closeMobileMenu : undefined}
-            />
-          ))}
-
-          {/* Team Selector */}
-          <TeamSelector collapsed={!isMobile && collapsed} />
-
-          {/* Divider */}
-          <div className="my-3 border-t border-studio-border" />
-
-          {/* Resources */}
-          {RESOURCE_ITEMS.map((item) => (
-            <SidebarLink
-              key={item.href}
-              item={item}
-              isActive={pathname.startsWith(item.href)}
-              collapsed={!isMobile && collapsed}
-              onClick={isMobile ? closeMobileMenu : undefined}
-            />
-          ))}
+          {LAB_ITEMS.length > 0 && (
+            <>
+              <div className="my-3 border-t border-studio-border" />
+              <TeamSelector collapsed={!isMobile && collapsed} />
+            </>
+          )}
+          <SidebarLink
+            item={SETTINGS_ITEM}
+            isActive={pathname.startsWith('/settings')}
+            collapsed={!isMobile && collapsed}
+            onClick={isMobile ? closeMobileMenu : undefined}
+          />
         </nav>
 
         {/* Footer */}
         {(!collapsed || isMobile) && (
           <div className="border-t border-studio-border p-3">
             <p className="text-[10px] text-studio-muted leading-relaxed">
-              v0.1.0 · Runs locally · Free
+              v7.0.0 · Open platform for spatial computing
             </p>
           </div>
         )}

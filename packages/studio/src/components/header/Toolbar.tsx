@@ -30,7 +30,12 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAIStore, useSceneStore, useEditorStore, usePanelVisibilityStore } from '@/lib/stores';
 import { useSceneGraphStore } from '@/lib/stores/sceneGraphStore';
 import { runStudioCommand } from '@/lib/studio/commandRegistry';
-import type { StudioViewCommandId } from '@/lib/studio/viewRegistry';
+import {
+  getStudioView,
+  type StudioViewCommandId,
+  type StudioViewId,
+} from '@/lib/studio/viewRegistry';
+import { isStudioLabNavigationEnabled } from '@/lib/studio/surfaceClassification';
 import { SaveBar } from '@/components/SaveBar';
 import { CollabBar } from '@/components/collaboration/CollabBar';
 import { xrStore } from '@/components/vr/VREditSession';
@@ -45,6 +50,7 @@ interface ToolbarProps {
 export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProps) {
   const ollamaStatus = useAIStore((s) => s.ollamaStatus);
   const metadata = useSceneStore((s) => s.metadata);
+  const showLabs = isStudioLabNavigationEnabled();
   
   const studioMode = useEditorStore((s) => s.studioMode);
   const isExpert = studioMode === 'expert';
@@ -101,6 +107,18 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
     runStudioCommand(commandId);
     setOverflowOpen(false);
   }, []);
+
+  const shouldShowViewControl = useCallback(
+    (viewId: StudioViewId) => {
+      const surfaceClass = getStudioView(viewId).surfaceClass;
+      return (
+        showLabs ||
+        surfaceClass === 'core-workbench' ||
+        surfaceClass === 'account-workspace'
+      );
+    },
+    [showLabs]
+  );
 
   useEffect(() => {
     if (typeof navigator !== 'undefined' && 'xr' in navigator) {
@@ -182,14 +200,16 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
         <span className="hidden lg:inline">Import</span>
       </button>
 
-      <button
-        onClick={() => setExamplesOpen(true)}
-        title="Browse Examples"
-        className="flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1 text-xs font-medium text-studio-muted transition hover:border-studio-accent/40 hover:text-studio-accent"
-      >
-        <BookOpen className="h-3.5 w-3.5" />
-        <span className="hidden lg:inline">Examples</span>
-      </button>
+      {showLabs && (
+        <button
+          onClick={() => setExamplesOpen(true)}
+          title="Browse Examples"
+          className="flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1 text-xs font-medium text-studio-muted transition hover:border-studio-accent/40 hover:text-studio-accent"
+        >
+          <BookOpen className="h-3.5 w-3.5" />
+          <span className="hidden lg:inline">Examples</span>
+        </button>
+      )}
 
       <button
         onClick={() => setPromptsOpen(true)}
@@ -200,36 +220,42 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
         <span className="hidden lg:inline">Prompts</span>
       </button>
 
-      <button
-        onClick={() => runViewCommand('studio.view.marketplace.toggle')}
-        title="Content Marketplace"
-        className="flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1 text-xs font-medium text-studio-muted transition hover:border-emerald-500/40 hover:text-emerald-400"
-      >
-        <ShoppingBag className="h-3.5 w-3.5" />
-        <span className="hidden lg:inline">Marketplace</span>
-      </button>
+      {showLabs && (
+        <button
+          onClick={() => runViewCommand('studio.view.marketplace.toggle')}
+          title="Content Marketplace"
+          className="flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1 text-xs font-medium text-studio-muted transition hover:border-emerald-500/40 hover:text-emerald-400"
+        >
+          <ShoppingBag className="h-3.5 w-3.5" />
+          <span className="hidden lg:inline">Marketplace</span>
+        </button>
+      )}
 
-      <Link
-        href="/integrations"
-        title="Integration Hub"
-        className="flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1 text-xs font-medium text-studio-muted transition hover:border-indigo-500/40 hover:text-indigo-400"
-      >
-        <Zap className="h-3.5 w-3.5" />
-        <span className="hidden lg:inline">Integrations</span>
-      </Link>
+      {showLabs && (
+        <Link
+          href="/integrations"
+          title="Integration Hub"
+          className="flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1 text-xs font-medium text-studio-muted transition hover:border-indigo-500/40 hover:text-indigo-400"
+        >
+          <Zap className="h-3.5 w-3.5" />
+          <span className="hidden lg:inline">Integrations</span>
+        </Link>
+      )}
 
       <UserMenu 
         setShowSetupWizard={(v) => { if(typeof setShowSetupWizard !== 'function') logger.warn('Missing setSetupWizardOpen'); else setShowSetupWizard(v); }}
         setShowImportWizard={(v) => { if(typeof setShowImportWizard !== 'function') logger.warn('Missing setImportWizardOpen'); else setShowImportWizard(v); }}
       />
 
-      <button
-        onClick={() => setShowTutorial(true)}
-        title="Guided Tour"
-        className="flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2 py-1 text-xs font-medium text-studio-muted transition hover:border-studio-accent/40 hover:text-studio-accent"
-      >
-        <HelpCircle className="h-3.5 w-3.5" />
-      </button>
+      {showLabs && (
+        <button
+          onClick={() => setShowTutorial(true)}
+          title="Guided Tour"
+          className="flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2 py-1 text-xs font-medium text-studio-muted transition hover:border-studio-accent/40 hover:text-studio-accent"
+        >
+          <HelpCircle className="h-3.5 w-3.5" />
+        </button>
+      )}
 
       <div className="hidden xl:contents">
         <button
@@ -258,18 +284,20 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
           <span className="hidden lg:inline">Blame</span>
         </button>
 
-        <button
-          onClick={() => runViewCommand('studio.view.agentMonitor.toggle')}
-          title="Agent Monitor (uAA2++ cycle)"
-          className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
-            agentMonitorOpen
-              ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300'
-              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-emerald-500/40 hover:text-emerald-400'
-          }`}
-        >
-          <Bot className="h-3.5 w-3.5" />
-          <span className="hidden lg:inline">Agent</span>
-        </button>
+        {shouldShowViewControl('agentMonitor') && (
+          <button
+            onClick={() => runViewCommand('studio.view.agentMonitor.toggle')}
+            title="Agent Monitor (uAA2++ cycle)"
+            className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+              agentMonitorOpen
+                ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300'
+                : 'border-studio-border bg-studio-surface text-studio-muted hover:border-emerald-500/40 hover:text-emerald-400'
+            }`}
+          >
+            <Bot className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">Agent</span>
+          </button>
+        )}
 
         <button
           onClick={() => runViewCommand('studio.view.material.toggle')}
@@ -310,70 +338,80 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
           <span className="hidden lg:inline">MCP</span>
         </button>
 
-        <button
-          onClick={() => runViewCommand('studio.view.agentWorkflow.toggle')}
-          title="Agent Orchestration (Ctrl+Shift+W)"
-          className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
-            agentWorkflowOpen
-              ? 'border-purple-500/40 bg-purple-500/20 text-purple-300'
-              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-purple-500/40 hover:text-purple-400'
-          }`}
-        >
-          <Workflow className="h-3.5 w-3.5" />
-          <span className="hidden lg:inline">Workflow</span>
-        </button>
+        {shouldShowViewControl('agentWorkflow') && (
+          <button
+            onClick={() => runViewCommand('studio.view.agentWorkflow.toggle')}
+            title="Agent Orchestration (Ctrl+Shift+W)"
+            className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+              agentWorkflowOpen
+                ? 'border-purple-500/40 bg-purple-500/20 text-purple-300'
+                : 'border-studio-border bg-studio-surface text-studio-muted hover:border-purple-500/40 hover:text-purple-400'
+            }`}
+          >
+            <Workflow className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">Workflow</span>
+          </button>
+        )}
 
-        <button
-          onClick={() => runViewCommand('studio.view.behaviorTree.toggle')}
-          title="Behavior Tree (Ctrl+B)"
-          className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
-            behaviorTreeOpen
-              ? 'border-green-500/40 bg-green-500/20 text-green-300'
-              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-green-500/40 hover:text-green-400'
-          }`}
-        >
-          <GitBranch className="h-3.5 w-3.5" />
-          <span className="hidden lg:inline">BT</span>
-        </button>
+        {shouldShowViewControl('behaviorTree') && (
+          <button
+            onClick={() => runViewCommand('studio.view.behaviorTree.toggle')}
+            title="Behavior Tree (Ctrl+B)"
+            className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+              behaviorTreeOpen
+                ? 'border-green-500/40 bg-green-500/20 text-green-300'
+                : 'border-studio-border bg-studio-surface text-studio-muted hover:border-green-500/40 hover:text-green-400'
+            }`}
+          >
+            <GitBranch className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">BT</span>
+          </button>
+        )}
 
-        <button
-          onClick={() => runViewCommand('studio.view.agentEnsemble.toggle')}
-          title="Agent Ensemble (Ctrl+Shift+A)"
-          className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
-            agentEnsembleOpen
-              ? 'border-cyan-500/40 bg-cyan-500/20 text-cyan-300'
-              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-cyan-500/40 hover:text-cyan-400'
-          }`}
-        >
-          <Users className="h-3.5 w-3.5" />
-          <span className="hidden lg:inline">Agents</span>
-        </button>
+        {shouldShowViewControl('agentEnsemble') && (
+          <button
+            onClick={() => runViewCommand('studio.view.agentEnsemble.toggle')}
+            title="Agent Ensemble (Ctrl+Shift+A)"
+            className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+              agentEnsembleOpen
+                ? 'border-cyan-500/40 bg-cyan-500/20 text-cyan-300'
+                : 'border-studio-border bg-studio-surface text-studio-muted hover:border-cyan-500/40 hover:text-cyan-400'
+            }`}
+          >
+            <Users className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">Agents</span>
+          </button>
+        )}
 
-        <button
-          onClick={() => runViewCommand('studio.view.eventMonitor.toggle')}
-          title="Event Monitor (Ctrl+E)"
-          className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
-            eventMonitorOpen
-              ? 'border-orange-500/40 bg-orange-500/20 text-orange-300'
-              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-orange-500/40 hover:text-orange-400'
-          }`}
-        >
-          <Activity className="h-3.5 w-3.5" />
-          <span className="hidden lg:inline">Events</span>
-        </button>
+        {shouldShowViewControl('eventMonitor') && (
+          <button
+            onClick={() => runViewCommand('studio.view.eventMonitor.toggle')}
+            title="Event Monitor (Ctrl+E)"
+            className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+              eventMonitorOpen
+                ? 'border-orange-500/40 bg-orange-500/20 text-orange-300'
+                : 'border-studio-border bg-studio-surface text-studio-muted hover:border-orange-500/40 hover:text-orange-400'
+            }`}
+          >
+            <Activity className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">Events</span>
+          </button>
+        )}
 
-        <button
-          onClick={() => runViewCommand('studio.view.toolCallGraph.toggle')}
-          title="Tool Call Graph (Ctrl+Shift+T)"
-          className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
-            toolCallGraphOpen
-              ? 'border-amber-500/40 bg-amber-500/20 text-amber-300'
-              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-amber-500/40 hover:text-amber-400'
-          }`}
-        >
-          <Zap className="h-3.5 w-3.5" />
-          <span className="hidden lg:inline">Tools</span>
-        </button>
+        {shouldShowViewControl('toolCallGraph') && (
+          <button
+            onClick={() => runViewCommand('studio.view.toolCallGraph.toggle')}
+            title="Tool Call Graph (Ctrl+Shift+T)"
+            className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+              toolCallGraphOpen
+                ? 'border-amber-500/40 bg-amber-500/20 text-amber-300'
+                : 'border-studio-border bg-studio-surface text-studio-muted hover:border-amber-500/40 hover:text-amber-400'
+            }`}
+          >
+            <Zap className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">Tools</span>
+          </button>
+        )}
 
         <button
           onClick={() => runViewCommand('studio.view.pluginManager.toggle')}
@@ -422,6 +460,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                 [
                   {
                     label: 'MCP Servers',
+                    viewId: 'mcpConfig',
                     icon: Server,
                     active: mcpConfigOpen,
                     onClick: () => {
@@ -431,6 +470,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                   },
                   {
                     label: 'Governance',
+                    viewId: null,
                     icon: GitCommit,
                     active: showGovernancePanel,
                     onClick: () => {
@@ -441,6 +481,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                   },
                   {
                     label: 'Blame',
+                    viewId: 'blame',
                     icon: Eye,
                     active: blameOpen,
                     onClick: () => {
@@ -450,6 +491,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                   },
                   {
                     label: 'Workflow',
+                    viewId: 'agentWorkflow',
                     icon: Workflow,
                     active: agentWorkflowOpen,
                     onClick: () => {
@@ -459,6 +501,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                   },
                   {
                     label: 'Behavior Tree',
+                    viewId: 'behaviorTree',
                     icon: GitBranch,
                     active: behaviorTreeOpen,
                     onClick: () => {
@@ -468,6 +511,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                   },
                   {
                     label: 'Agents',
+                    viewId: 'agentEnsemble',
                     icon: Users,
                     active: agentEnsembleOpen,
                     onClick: () => {
@@ -477,6 +521,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                   },
                   {
                     label: 'Events',
+                    viewId: 'eventMonitor',
                     icon: Activity,
                     active: eventMonitorOpen,
                     onClick: () => {
@@ -486,6 +531,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                   },
                   {
                     label: 'Tools',
+                    viewId: 'toolCallGraph',
                     icon: Zap,
                     active: toolCallGraphOpen,
                     onClick: () => {
@@ -495,6 +541,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                   },
                   {
                     label: 'Plugins',
+                    viewId: 'pluginManager',
                     icon: Package,
                     active: pluginManagerOpen,
                     onClick: () => {
@@ -504,6 +551,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                   },
                   {
                     label: 'Cloud',
+                    viewId: 'cloudDeploy',
                     icon: Cloud,
                     active: cloudDeployOpen,
                     onClick: () => {
@@ -512,7 +560,9 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
                     color: 'sky',
                   },
                 ] as const
-              ).map(({ label, icon: Icon, active, onClick, color }) => (
+              )
+                .filter(({ viewId }) => viewId === null || shouldShowViewControl(viewId))
+                .map(({ label, icon: Icon, active, onClick, color }) => (
                 <button
                   key={label}
                   onClick={onClick}

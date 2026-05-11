@@ -105,9 +105,16 @@ function countPanelKeys() {
 
   const source = readFileSync(storePath, 'utf8');
   const match = source.match(/const PANEL_KEYS:\s*PanelKey\[\]\s*=\s*\[([\s\S]*?)\];/);
-  if (!match) return null;
+  if (match) return [...match[1].matchAll(/'([^']+)'/g)].map((item) => item[1]).length;
 
-  return [...match[1].matchAll(/'([^']+)'/g)].map((item) => item[1]).length;
+  const registryPath = join(libRoot, 'studio', 'viewRegistry.ts');
+  if (!existsSync(registryPath)) return null;
+
+  const registrySource = readFileSync(registryPath, 'utf8');
+  const titlesMatch = registrySource.match(/const VIEW_TITLES\s*=\s*\{([\s\S]*?)\}\s*as const;/);
+  if (!titlesMatch) return null;
+
+  return [...titlesMatch[1].matchAll(/^\s{2}([A-Za-z0-9_]+):/gm)].length;
 }
 
 function collectPanelMetrics() {

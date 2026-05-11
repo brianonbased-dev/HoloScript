@@ -52,6 +52,7 @@ describe('studio view registry', () => {
       expect(view.icon).toBeTruthy();
       expect(view.activationCommand).toBe(`studio.view.${view.id}.toggle`);
       expect(view.availabilityGate).toBeTruthy();
+      expect(view.surfaceClass).toBeTruthy();
       expect(view.workspaceScope).toBeTruthy();
       expect(view.defaultPlacement).toBeTruthy();
     }

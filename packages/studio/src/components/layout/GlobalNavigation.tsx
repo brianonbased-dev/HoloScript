@@ -4,56 +4,56 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  MessageCircle,
-  Sparkles,
-  ImagePlus,
-  Wand2,
-  FolderGit2,
-  Code2,
-  Globe,
-  Users,
   Bot,
-  Zap,
   BookOpen,
+  Code2,
+  FolderGit2,
+  Globe,
+  ImagePlus,
+  MessageCircle,
   Settings,
-  User,
+  Sparkles,
+  Users,
+  Wand2,
+  Zap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import {
+  STUDIO_LAB_NAVIGATION_ITEMS,
+  STUDIO_PRIMARY_NAVIGATION_ITEMS,
+  STUDIO_SETTINGS_NAVIGATION_ITEM,
+  isStudioLabNavigationEnabled,
+  type StudioNavigationId,
+  type StudioNavigationItemDefinition,
+} from '@/lib/studio/surfaceClassification';
 
-interface NavItem {
-  label: string;
-  href: string;
-  icon: LucideIcon;
-  exact: boolean;
-}
+const ICON_BY_NAV_ID: Record<StudioNavigationId, LucideIcon> = {
+  start: MessageCircle,
+  workspace: Code2,
+  create: Wand2,
+  projects: FolderGit2,
+  settings: Settings,
+  vibe: Sparkles,
+  integrations: Zap,
+  agents: Bot,
+  teams: Users,
+  holomesh: Globe,
+  absorb: BookOpen,
+  playground: ImagePlus,
+};
 
-const coreItems: NavItem[] = [
-  { label: 'Start', href: '/start', icon: MessageCircle, exact: true },
-  { label: 'Vibe', href: '/vibe', icon: Sparkles, exact: true },
-  { label: 'Playground', href: '/playground', icon: ImagePlus, exact: true },
-  { label: 'Create', href: '/create', icon: Wand2, exact: false },
-  { label: 'Projects', href: '/projects', icon: FolderGit2, exact: false },
-  { label: 'Avatar', href: '/avatar', icon: User, exact: false },
-];
-
-const ecosystemItems: NavItem[] = [
-  { label: 'Workspace', href: '/workspace', icon: Code2, exact: false },
-  { label: 'HoloMesh', href: '/holomesh', icon: Globe, exact: false },
-  { label: 'Teams', href: '/teams', icon: Users, exact: false },
-  { label: 'Agents', href: '/agents', icon: Bot, exact: false },
-];
-
-const resourceItems: NavItem[] = [
-  { label: 'Absorb', href: '/absorb', icon: Zap, exact: false },
-  { label: 'Learn', href: '/learn', icon: BookOpen, exact: false },
-];
-
-function NavSection({ items, pathname }: { items: NavItem[]; pathname: string }) {
+function NavSection({
+  items,
+  pathname,
+}: {
+  items: StudioNavigationItemDefinition[];
+  pathname: string;
+}) {
   return (
     <>
       {items.map((item) => {
         const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
-        const Icon = item.icon;
+        const Icon = ICON_BY_NAV_ID[item.id];
 
         return (
           <Link
@@ -88,6 +88,7 @@ function SectionDivider() {
 
 export function GlobalNavigation() {
   const pathname = usePathname();
+  const showLabs = isStudioLabNavigationEnabled();
 
   return (
     <nav
@@ -100,30 +101,29 @@ export function GlobalNavigation() {
           HS
         </div>
         <span className="ml-3 font-semibold text-slate-100 hidden lg:block tracking-wide">
-          Studio <span className="text-emerald-400 text-xs align-top">V6</span>
+          Studio <span className="text-emerald-400 text-xs align-top">V7</span>
         </span>
       </div>
 
       {/* Nav Links */}
       <div className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
-        {/* Core flow */}
-        <NavSection items={coreItems} pathname={pathname} />
+        <NavSection items={STUDIO_PRIMARY_NAVIGATION_ITEMS} pathname={pathname} />
 
-        <SectionDivider />
-
-        {/* Ecosystem */}
-        <NavSection items={ecosystemItems} pathname={pathname} />
-
-        <SectionDivider />
-
-        {/* Resources */}
-        <NavSection items={resourceItems} pathname={pathname} />
+        {showLabs ? (
+          <>
+            <SectionDivider />
+            <div className="px-3 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+              Labs
+            </div>
+            <NavSection items={STUDIO_LAB_NAVIGATION_ITEMS} pathname={pathname} />
+          </>
+        ) : null}
       </div>
 
       {/* Settings / Footer */}
       <div className="p-3 border-t border-slate-800">
         <Link
-          href="/settings"
+          href={STUDIO_SETTINGS_NAVIGATION_ITEM.href}
           className={`flex items-center justify-center lg:justify-start gap-3 px-3 py-2.5 rounded-xl transition group ${
             pathname.startsWith('/settings')
               ? 'bg-slate-800 text-slate-200'

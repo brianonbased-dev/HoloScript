@@ -7,6 +7,7 @@ import {
   Boxes,
   ChevronDown,
   Command,
+  FolderGit2,
   FolderTree,
   Home,
   PanelBottom,
@@ -15,7 +16,6 @@ import {
   Search,
   Settings,
   SlidersHorizontal,
-  Sparkles,
   Wand2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -65,9 +65,9 @@ const DEFAULT_LAYOUT: WorkbenchLayoutState = {
 
 const DEFAULT_ACTIVITY_ITEMS: WorkbenchActivityItem[] = [
   { id: 'start', label: 'Start', href: '/start', icon: Home },
-  { id: 'create', label: 'Create', href: '/create', icon: Wand2 },
   { id: 'workspace', label: 'Workspace', href: '/workspace', icon: FolderTree },
-  { id: 'agents', label: 'Agents', href: '/agents', icon: Sparkles },
+  { id: 'create', label: 'Create', href: '/create', icon: Wand2 },
+  { id: 'projects', label: 'Projects', href: '/projects', icon: FolderGit2 },
   { id: 'settings', label: 'Settings', href: '/settings', icon: Settings },
 ];
 

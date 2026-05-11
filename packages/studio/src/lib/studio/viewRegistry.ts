@@ -1,5 +1,7 @@
 'use client';
 
+import type { StudioSurfaceClass } from './surfaceClassification';
+
 export type StudioViewCategory =
   | 'authoring'
   | 'assistant'
@@ -120,6 +122,7 @@ export interface StudioViewDefinition {
   activationCommand: StudioViewCommandId;
   workspaceScope: StudioWorkspaceScope;
   availabilityGate: StudioViewAvailabilityGate;
+  surfaceClass: StudioSurfaceClass;
   defaultOpen: boolean;
   exclusiveWith: StudioViewId[];
 }
@@ -127,6 +130,85 @@ export interface StudioViewDefinition {
 export const STUDIO_VIEW_IDS = Object.keys(VIEW_TITLES) as StudioViewId[];
 export const DEFAULT_OPEN_STUDIO_VIEW_IDS = ['chat', 'minimap'] as const satisfies StudioViewId[];
 const DEFAULT_OPEN_VIEW_SET = new Set<StudioViewId>(DEFAULT_OPEN_STUDIO_VIEW_IDS);
+
+const SURFACE_CLASS_BY_VIEW: Record<StudioViewId, StudioSurfaceClass> = {
+  palette: 'core-workbench',
+  chat: 'core-workbench',
+  history: 'core-workbench',
+  profiler: 'lab',
+  shaderEditor: 'core-workbench',
+  timeline: 'core-workbench',
+  templatePicker: 'core-workbench',
+  aiMaterial: 'core-workbench',
+  share: 'core-workbench',
+  critique: 'core-workbench',
+  assetPack: 'core-workbench',
+  versions: 'core-workbench',
+  repl: 'lab',
+  registry: 'lab',
+  remote: 'lab',
+  export: 'core-workbench',
+  generator: 'core-workbench',
+  multiplayer: 'lab',
+  debugger: 'lab',
+  snapshots: 'lab',
+  assetLib: 'core-workbench',
+  templateGallery: 'core-workbench',
+  minimap: 'core-workbench',
+  audio: 'core-workbench',
+  exportV2: 'core-workbench',
+  nodeGraph: 'core-workbench',
+  keyframes: 'core-workbench',
+  sceneSearch: 'core-workbench',
+  particles: 'core-workbench',
+  lod: 'core-workbench',
+  console: 'lab',
+  undoHistory: 'core-workbench',
+  outliner: 'core-workbench',
+  material: 'core-workbench',
+  physics: 'core-workbench',
+  simulation: 'core-workbench',
+  snapshotDiff: 'core-workbench',
+  audioVisualizer: 'lab',
+  multiTransform: 'core-workbench',
+  environment: 'core-workbench',
+  inspector: 'core-workbench',
+  hotkey: 'core-workbench',
+  plugins: 'account-workspace',
+  sandboxedPlugins: 'account-workspace',
+  splatWizard: 'lab',
+  agentMonitor: 'lab',
+  texturePaint: 'core-workbench',
+  mcpConfig: 'account-workspace',
+  agentWorkflow: 'lab',
+  behaviorTree: 'lab',
+  agentEnsemble: 'lab',
+  eventMonitor: 'lab',
+  toolCallGraph: 'lab',
+  marketplace: 'holomesh-public',
+  pluginManager: 'account-workspace',
+  cloudDeploy: 'account-workspace',
+  publish: 'core-workbench',
+  examples: 'lab',
+  tutorial: 'lab',
+  hotkeyOverlay: 'core-workbench',
+  prompts: 'core-workbench',
+  blame: 'core-workbench',
+  dag: 'lab',
+  calibration: 'core-workbench',
+  dragonPreview: 'lab',
+  holoDiff: 'core-workbench',
+  sliderInspector: 'core-workbench',
+  traitMatrix: 'core-workbench',
+  assetImport: 'core-workbench',
+  cinematicCamera: 'core-workbench',
+  syntheticData: 'lab',
+  compilationPipeline: 'lab',
+  confidenceXR: 'lab',
+  operationsHub: 'account-workspace',
+  foundationDao: 'holomesh-public',
+  runtimeTier: 'lab',
+};
 
 const CATEGORY_BY_VIEW: Partial<Record<StudioViewId, StudioViewCategory>> = {
   chat: 'assistant',
@@ -356,6 +438,7 @@ export const STUDIO_VIEW_REGISTRY: StudioViewDefinition[] = STUDIO_VIEW_IDS.map(
   activationCommand: `studio.view.${id}.toggle`,
   workspaceScope: viewScope(id),
   availabilityGate: AVAILABILITY_GATE_BY_VIEW[id] ?? 'always',
+  surfaceClass: SURFACE_CLASS_BY_VIEW[id],
   defaultOpen: DEFAULT_OPEN_VIEW_SET.has(id),
   exclusiveWith: EXCLUSIVE_WITH[id] ?? [],
 }));
