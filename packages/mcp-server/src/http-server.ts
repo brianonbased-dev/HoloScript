@@ -2969,7 +2969,7 @@ const httpServer = http.createServer(async (req, res) => {
           body_schema: { tool: 'string', arguments: 'object' },
           example: {
             tool: 'parse_holo',
-            arguments: { source: 'composition "Hello" { object "Box" {} }' },
+            arguments: { code: 'composition "Hello" { object "Box" {} }' },
           },
         },
         upgrade: {
@@ -3008,7 +3008,7 @@ const httpServer = http.createServer(async (req, res) => {
           JSON.stringify({
             error: 'invalid_request',
             message: 'Missing required field: tool (string)',
-            example: { tool: 'parse_holo', arguments: { source: '...' } },
+            example: { tool: 'parse_holo', arguments: { code: 'composition "Hello" {}' } },
           })
         );
         return;
