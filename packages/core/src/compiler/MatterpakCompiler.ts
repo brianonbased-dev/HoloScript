@@ -355,7 +355,7 @@ function parseE57(buffer: ArrayBuffer): PointCloud {
   // (x,y,z triples where values are in [-1e6, 1e6] range typical for property scans)
   const points: number[] = [];
   const len = Math.min(buffer.byteLength, 50_000_000); // Cap at 50MB for safety
-  for (let off = 0; off < len - 24; off += 8) {
+  for (let off = 0; off <= len - 24; off += 8) {
     const x = view.getFloat64(off, true);
     const y = view.getFloat64(off + 8, true);
     const z = view.getFloat64(off + 16, true);
