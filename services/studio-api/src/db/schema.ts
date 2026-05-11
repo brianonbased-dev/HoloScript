@@ -144,6 +144,31 @@ export const sharedScenes = pgTable('shared_scenes', {
 });
 
 // =============================================================================
+// REGISTRY PACKS (durable alternative to dev-only seeded memory catalog)
+// =============================================================================
+
+export const registryPacks = pgTable(
+  'registry_packs',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    packId: text('pack_id').notNull(),
+    name: text('name').notNull(),
+    description: text('description').default('').notNull(),
+    author: text('author').notNull(),
+    version: text('version').default('1.0.0').notNull(),
+    tags: jsonb('tags').default([]).notNull(),
+    files: jsonb('files').default([]).notNull(),
+    downloads: integer('downloads').default(0).notNull(),
+    previewCode: text('preview_code'),
+    publishedAt: timestamp('published_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex('idx_registry_packs_pack_id').on(t.packId),
+    index('idx_registry_packs_published').on(t.publishedAt),
+  ]
+);
+
+// =============================================================================
 // ASSETS
 // =============================================================================
 

@@ -1,7 +1,13 @@
 import { NextResponse, NextRequest } from 'next/server';
+import { randomUUID } from 'crypto';
 import { getDb } from '../../../db/client';
 import { sceneVersions } from '../../../db/schema';
 import { eq, desc } from 'drizzle-orm';
+import {
+  getStudioDevMemoryStores,
+  requireDevMemoryPersistence,
+  type DevSceneVersion,
+} from '../../../lib/studio-dev-persistence';
 
 /**
  * Scene Version History API
@@ -10,23 +16,11 @@ import { eq, desc } from 'drizzle-orm';
  * POST /api/versions { sceneId, code, label } — save a new version snapshot
  *
  * Uses PostgreSQL via Drizzle when DATABASE_URL is set.
- * Falls back to in-memory Map for local dev without a database.
+ * Dev memory storage requires STUDIO_API_PERSISTENCE=memory-dev.
  */
 
-interface SceneVersion {
-  versionId: string;
-  sceneId: string;
-  label: string;
-  code: string;
-  savedAt: string;
-  lineCount: number;
-}
-
-// Fallback in-memory store for local dev without DATABASE_URL
-const versionsByScene = new Map<string, SceneVersion[]>();
-
 function makeVersionId() {
-  return `v_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  return `v_${randomUUID()}`;
 }
 
 export async function GET(request: NextRequest) {
@@ -57,7 +51,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ versions });
   }
 
-  // Fallback: in-memory
+  const unavailable = requireDevMemoryPersistence('versions');
+  if (unavailable) return unavailable;
+
+  const versionsByScene = getStudioDevMemoryStores().versionsByScene;
   const versions = versionsByScene.get(sceneId) ?? [];
   return NextResponse.json({ versions: [...versions].reverse() });
 }
@@ -103,8 +100,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Fallback: in-memory
-  const version: SceneVersion = {
+  const unavailable = requireDevMemoryPersistence('versions');
+  if (unavailable) return unavailable;
+
+  const versionsByScene = getStudioDevMemoryStores().versionsByScene;
+  const version: DevSceneVersion = {
     versionId: makeVersionId(),
     sceneId,
     label: versionLabel,

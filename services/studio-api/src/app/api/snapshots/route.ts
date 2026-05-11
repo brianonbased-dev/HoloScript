@@ -1,8 +1,14 @@
 import { NextRequest } from 'next/server';
+import { randomUUID } from 'crypto';
 import { getDb } from '../../../db/client';
 import { sceneSnapshots } from '../../../db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { isStorageConfigured, uploadFile, deleteFile } from '../../../lib/storage-s3';
+import {
+  getStudioDevMemoryStores,
+  requireDevMemoryPersistence,
+  type DevSnapshot,
+} from '../../../lib/studio-dev-persistence';
 
 /**
  * /api/snapshots — scene snapshot store.
@@ -12,30 +18,11 @@ import { isStorageConfigured, uploadFile, deleteFile } from '../../../lib/storag
  * DELETE /api/snapshots?id=x       → delete snapshot
  *
  * Uses PostgreSQL via Drizzle when DATABASE_URL is set.
- * Falls back to in-memory store for local dev without a database.
+ * Dev memory storage requires STUDIO_API_PERSISTENCE=memory-dev.
  */
 
-interface Snapshot {
-  id: string;
-  sceneId: string;
-  label: string;
-  dataUrl: string;
-  code: string;
-  createdAt: string;
-}
-
-interface SnapshotStore {
-  [sceneId: string]: Snapshot[];
-}
-
-// Fallback in-memory store for local dev
-declare global {
-  var __snapshots__: SnapshotStore | undefined;
-}
-const store: SnapshotStore = globalThis.__snapshots__ ?? (globalThis.__snapshots__ = {});
-
 function uid() {
-  return `snap_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+  return `snap_${randomUUID()}`;
 }
 
 export async function GET(request: NextRequest) {
@@ -65,14 +52,17 @@ export async function GET(request: NextRequest) {
     return Response.json({ snapshots });
   }
 
-  // Fallback: in-memory
+  const unavailable = requireDevMemoryPersistence('snapshots');
+  if (unavailable) return unavailable;
+
+  const store = getStudioDevMemoryStores().snapshots;
   return Response.json({ snapshots: store[sceneId] ?? [] });
 }
 
 export async function POST(request: NextRequest) {
-  let body: Partial<Snapshot>;
+  let body: Partial<DevSnapshot>;
   try {
-    body = (await request.json()) as Partial<Snapshot>;
+    body = (await request.json()) as Partial<DevSnapshot>;
   } catch {
     return Response.json({ error: 'Bad JSON' }, { status: 400 });
   }
@@ -88,7 +78,7 @@ export async function POST(request: NextRequest) {
       const mime = mimeMatch?.[1] ?? 'image/png';
       const ext = mime.split('/')[1] ?? 'png';
       const buffer = Buffer.from(base64Data, 'base64');
-      const key = `snapshots/${sceneId}/${Date.now().toString(36)}.${ext}`;
+      const key = `snapshots/${sceneId}/${randomUUID()}.${ext}`;
       imageUrl = await uploadFile(key, buffer, mime);
     } catch {
       // Fall back to storing base64 inline
@@ -119,8 +109,11 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Fallback: in-memory
-  const snap: Snapshot = {
+  const unavailable = requireDevMemoryPersistence('snapshots');
+  if (unavailable) return unavailable;
+
+  const store = getStudioDevMemoryStores().snapshots;
+  const snap: DevSnapshot = {
     id: uid(),
     sceneId,
     label,
@@ -159,7 +152,10 @@ export async function DELETE(request: NextRequest) {
     return Response.json({ error: 'Not found' }, { status: 404 });
   }
 
-  // Fallback: in-memory
+  const unavailable = requireDevMemoryPersistence('snapshots');
+  if (unavailable) return unavailable;
+
+  const store = getStudioDevMemoryStores().snapshots;
   for (const sceneId of Object.keys(store)) {
     const idx = store[sceneId]!.findIndex((s) => s.id === id);
     if (idx !== -1) {

@@ -1,4 +1,13 @@
 import { NextResponse, NextRequest } from 'next/server';
+import { randomUUID } from 'crypto';
+import { desc } from 'drizzle-orm';
+import { getDb } from '../../../db/client';
+import { registryPacks } from '../../../db/schema';
+import {
+  getStudioDevMemoryStores,
+  requireDevMemoryPersistence,
+  type DevRegistryPack,
+} from '../../../lib/studio-dev-persistence';
 
 /**
  * Package Registry API
@@ -20,63 +29,8 @@ export interface RegistryPack {
   previewCode?: string; // optional HoloScript snippet preview
 }
 
-declare global {
-   
-  var __registryStore__: RegistryPack[] | undefined;
-}
-
-const registry: RegistryPack[] =
-  globalThis.__registryStore__ ??
-  (globalThis.__registryStore__ = [
-    // Seed with example packs
-    {
-      packId: 'pack_medieval_001',
-      name: 'Medieval Castle Kit',
-      description: 'Stone walls, towers, portcullis, and interior props for fantasy scenes.',
-      author: 'HoloStudio',
-      version: '1.2.0',
-      tags: ['fantasy', 'architecture', 'medieval'],
-      files: [
-        { name: 'castle_walls.glb', size: 2_400_000, type: 'model/gltf-binary' },
-        { name: 'stone_texture.png', size: 512_000, type: 'image/png' },
-      ],
-      downloads: 1_432,
-      publishedAt: new Date(Date.now() - 86400_000 * 14).toISOString(),
-      previewCode: `scene "Castle" {\n  object "Main Tower" {\n    @mesh(src: "castle_walls.glb")\n    @transform(scale: [2,2,2])\n  }\n}`,
-    },
-    {
-      packId: 'pack_sci_fi_002',
-      name: 'Sci-Fi Interior Pack',
-      description: 'Modular corridors, consoles, and ambient lighting for space stations.',
-      author: 'NeonForge',
-      version: '0.9.1',
-      tags: ['sci-fi', 'interior', 'modular'],
-      files: [
-        { name: 'corridor_a.glb', size: 1_800_000, type: 'model/gltf-binary' },
-        { name: 'console_01.glb', size: 900_000, type: 'model/gltf-binary' },
-      ],
-      downloads: 876,
-      publishedAt: new Date(Date.now() - 86400_000 * 5).toISOString(),
-      previewCode: `scene "Space Station" {\n  object "Corridor A" {\n    @mesh(src: "corridor_a.glb")\n  }\n}`,
-    },
-    {
-      packId: 'pack_vegetation_003',
-      name: 'Procedural Vegetation',
-      description: 'Trees, bushes, grass patches, and flowers with LOD support.',
-      author: 'GreenPixel',
-      version: '2.0.0',
-      tags: ['nature', 'vegetation', 'outdoor'],
-      files: [
-        { name: 'oak_tree.glb', size: 3_200_000, type: 'model/gltf-binary' },
-        { name: 'grass_patch.glb', size: 400_000, type: 'model/gltf-binary' },
-      ],
-      downloads: 2_901,
-      publishedAt: new Date(Date.now() - 86400_000 * 30).toISOString(),
-    },
-  ]);
-
 function makePackId() {
-  return `pack_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  return `pack_${randomUUID()}`;
 }
 
 export async function GET(request: NextRequest) {
@@ -84,7 +38,20 @@ export async function GET(request: NextRequest) {
   const q = searchParams.get('q')?.toLowerCase() ?? '';
   const tag = searchParams.get('tag')?.toLowerCase() ?? '';
 
-  let results = [...registry];
+  const db = getDb();
+  let results: RegistryPack[];
+  if (db) {
+    const rows = await db
+      .select()
+      .from(registryPacks)
+      .orderBy(desc(registryPacks.publishedAt))
+      .limit(200);
+    results = rows.map(packFromRow);
+  } else {
+    const unavailable = requireDevMemoryPersistence('registry');
+    if (unavailable) return unavailable;
+    results = [...getStudioDevMemoryStores().registryPacks];
+  }
 
   if (q) {
     results = results.filter(
@@ -117,7 +84,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'name and author are required' }, { status: 400 });
   }
 
-  const pack: RegistryPack = {
+  const pack: DevRegistryPack = {
     packId: makePackId(),
     name: body.name.trim(),
     description: body.description?.trim() ?? '',
@@ -130,6 +97,44 @@ export async function POST(request: NextRequest) {
     previewCode: body.previewCode,
   };
 
-  registry.push(pack);
+  const db = getDb();
+  if (db) {
+    const [row] = await db
+      .insert(registryPacks)
+      .values({
+        packId: pack.packId,
+        name: pack.name,
+        description: pack.description,
+        author: pack.author,
+        version: pack.version,
+        tags: pack.tags,
+        files: pack.files,
+        downloads: pack.downloads,
+        publishedAt: new Date(pack.publishedAt),
+        previewCode: pack.previewCode,
+      })
+      .returning();
+    return NextResponse.json({ pack: packFromRow(row) }, { status: 201 });
+  }
+
+  const unavailable = requireDevMemoryPersistence('registry');
+  if (unavailable) return unavailable;
+
+  getStudioDevMemoryStores().registryPacks.push(pack);
   return NextResponse.json({ pack }, { status: 201 });
+}
+
+function packFromRow(row: typeof registryPacks.$inferSelect): RegistryPack {
+  return {
+    packId: row.packId,
+    name: row.name,
+    description: row.description,
+    author: row.author,
+    version: row.version,
+    tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
+    files: Array.isArray(row.files) ? (row.files as RegistryPack['files']) : [],
+    downloads: row.downloads,
+    publishedAt: row.publishedAt.toISOString(),
+    previewCode: row.previewCode ?? undefined,
+  };
 }
