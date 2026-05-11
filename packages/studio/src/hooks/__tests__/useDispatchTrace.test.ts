@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useDispatchTrace } from '../useDispatchTrace';
+import { simulateDecision, useDispatchTrace } from '../useDispatchTrace';
 
 // Mock useStudioBus so the hook does not need a real provider tree.
 vi.mock('../useStudioBus', () => ({
@@ -135,6 +135,24 @@ describe('useDispatchTrace', () => {
       result.current.setMode('cpu-only');
     });
     expect(result.current.mode).toBe('cpu-only');
+  });
+
+  it('generates stable replay fingerprints for identical demo inputs', () => {
+    const first = simulateDecision('all-three', 12, 'grabbable');
+    const second = simulateDecision('all-three', 12, 'grabbable');
+
+    expect(first.replayFingerprint).toBe(second.replayFingerprint);
+    expect(first.metrics.latencyEstimateMs).toBe(second.metrics.latencyEstimateMs);
+    expect(first.replayFingerprint).toMatch(/^fnv1a-64:[a-f0-9]{16}$/);
+  });
+
+  it('changes replay fingerprints when replay inputs change', () => {
+    const first = simulateDecision('all-three', 12, 'grabbable');
+    const second = simulateDecision('all-three', 13, 'grabbable');
+    const third = simulateDecision('cpu-only', 12, 'grabbable');
+
+    expect(first.replayFingerprint).not.toBe(second.replayFingerprint);
+    expect(first.replayFingerprint).not.toBe(third.replayFingerprint);
   });
 
   it('reports promoted when tier is not CPU-direct', async () => {

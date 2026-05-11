@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { stableMockCommitHash } from '@/lib/stableEvidenceId';
 import { DEBOUNCE_INPUT } from '@/lib/ui-timings';
 import {
   BuildTarget,
@@ -73,6 +74,14 @@ export function formatDuration(ms: number): string {
 
 export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export function createMockDeploymentCommitHash(
+  name: string,
+  environment: 'staging' | 'production' | 'preview',
+  stages: readonly DeployStage[]
+): string {
+  return stableMockCommitHash(['studio-deploy-demo-v1', name, environment, stages.join(',')]);
 }
 
 // =============================================================================
@@ -224,7 +233,7 @@ export function useDeploymentPipeline() {
         })),
         triggeredAt: Date.now(),
         triggeredBy: 'studio-user',
-        commitHash: Math.random().toString(16).slice(2, 10),
+        commitHash: createMockDeploymentCommitHash(name, environment, stages),
         status: 'running',
       };
 

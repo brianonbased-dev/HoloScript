@@ -18,6 +18,7 @@ import {
   type DispatchMode,
   DISPATCH_MODES,
 } from '@/lib/dispatchTrace';
+import { stableEvidenceFingerprint, stableUnitInterval } from '@/lib/stableEvidenceId';
 import { useStudioBus } from './useStudioBus';
 
 interface UseDispatchTraceOptions {
@@ -68,33 +69,51 @@ interface UseDispatchTraceReturn {
   wasPromoted: boolean;
 }
 
-// Deterministic-ish demo decisions for when no real DispatchPolicy is wired.
-function simulateDecision(
+function hasWebGPU(): boolean {
+  return typeof navigator !== 'undefined' && navigator.gpu !== undefined;
+}
+
+function simulateSpikeTrain(
+  mode: DispatchMode,
+  frameIndex: number,
+  trait: string,
+  tier: StudioDispatchTier
+): number[] | undefined {
+  if (!tier.startsWith('tier-1')) return undefined;
+
+  const min = tier === 'tier-1-neuromorphic' ? 0.2 : 0;
+  const span = tier === 'tier-1-neuromorphic' ? 0.8 : 1;
+  return Array.from({ length: 16 }, (_, idx) =>
+    min + stableUnitInterval(['dispatch-spike-train', mode, frameIndex, trait, tier, idx]) * span
+  );
+}
+
+// Deterministic demo decisions for when no real DispatchPolicy is wired.
+export function simulateDecision(
   mode: DispatchMode,
   frameIndex: number,
   trait: string
 ): StudioDispatchDecision {
   const now = performance.now();
   const baseLatency = mode === 'cpu-only' ? 2.5 : mode === 'tier-1-only' ? 0.8 : 1.4;
-  const jitter = Math.sin(frameIndex * 0.1) * 0.3 + (Math.random() - 0.5) * 0.4;
+  const jitter =
+    Math.sin(frameIndex * 0.1) * 0.3 +
+    (stableUnitInterval(['dispatch-jitter', mode, frameIndex, trait]) - 0.5) * 0.4;
   const latency = Math.max(0.1, baseLatency + jitter);
 
   let tier: StudioDispatchTier = 'tier-3-cpu-direct';
   let accepted = true;
   let alpha: number | undefined;
   let fallbackReason: string | undefined;
-  let spikeTrain: number[] | undefined;
 
   switch (mode) {
     case 'tier-1-only': {
-      const webgpuAvailable = navigator.gpu !== undefined;
+      const webgpuAvailable = hasWebGPU();
       const nirAvailable = frameIndex % 47 === 0; // sporadic demo
       if (webgpuAvailable && frameIndex % 3 !== 0) {
         tier = 'tier-1-browser';
-        spikeTrain = Array.from({ length: 16 }, () => Math.random());
       } else if (nirAvailable) {
         tier = 'tier-1-neuromorphic';
-        spikeTrain = Array.from({ length: 16 }, () => Math.random() * 0.8 + 0.2);
       } else {
         tier = 'tier-3-cpu-direct';
         fallbackReason = webgpuAvailable ? 'Trait incompatible with SNN' : 'WebGPU unavailable';
@@ -102,10 +121,9 @@ function simulateDecision(
       break;
     }
     case 'tier-1-2': {
-      const webgpuAvailable = navigator.gpu !== undefined;
+      const webgpuAvailable = hasWebGPU();
       if (webgpuAvailable && frameIndex % 5 !== 0) {
         tier = 'tier-1-browser';
-        spikeTrain = Array.from({ length: 16 }, () => Math.random());
       } else {
         // Tier-2 speculative
         const windowSize = 50;
@@ -122,14 +140,12 @@ function simulateDecision(
       break;
     }
     case 'all-three': {
-      const webgpuAvailable = navigator.gpu !== undefined;
+      const webgpuAvailable = hasWebGPU();
       const nirAvailable = frameIndex % 89 === 0;
       if (webgpuAvailable && frameIndex % 7 !== 0) {
         tier = 'tier-1-browser';
-        spikeTrain = Array.from({ length: 16 }, () => Math.random());
       } else if (nirAvailable) {
         tier = 'tier-1-neuromorphic';
-        spikeTrain = Array.from({ length: 16 }, () => Math.random() * 0.8 + 0.2);
       } else {
         const windowSize = 50;
         const successes = Math.max(0, windowSize - (frameIndex % (windowSize + 5)));
@@ -149,19 +165,33 @@ function simulateDecision(
       break;
   }
 
+  const latencyEstimateMs = Math.round(latency * 100) / 100;
+  const nodeId = `demo-node-${frameIndex % 4}`;
+
   return {
     tier,
     accepted,
     trait,
-    nodeId: `demo-node-${frameIndex % 4}`,
+    nodeId,
     metrics: {
       tierAttempted: tier,
       tierAccepted: accepted,
-      latencyEstimateMs: Math.round(latency * 100) / 100,
+      latencyEstimateMs,
       alpha,
       fallbackReason,
     },
-    replayFingerprint: `fnv1a-64:${(Math.random() * 0xffffffffffffffff).toString(16)}`,
+    replayFingerprint: stableEvidenceFingerprint([
+      'studio-dispatch-demo-v1',
+      mode,
+      frameIndex,
+      trait,
+      nodeId,
+      tier,
+      accepted,
+      latencyEstimateMs,
+      alpha === undefined ? 'none' : alpha.toFixed(4),
+      fallbackReason ?? 'none',
+    ]),
     timestamp: now,
   };
 }
@@ -180,7 +210,7 @@ export function useDispatchTrace(opts: UseDispatchTraceOptions = {}): UseDispatc
   const tick = useCallback(() => {
     const fi = frameIndexRef.current++;
     const decision = simulateDecision(mode, fi, 'grabbable');
-    const spikeTrain = decision.tier.startsWith('tier-1') ? Array.from({ length: 16 }, () => Math.random()) : undefined;
+    const spikeTrain = simulateSpikeTrain(mode, fi, decision.trait, decision.tier);
 
     collectorRef.current.record(decision, spikeTrain);
     setLatest(decision);
