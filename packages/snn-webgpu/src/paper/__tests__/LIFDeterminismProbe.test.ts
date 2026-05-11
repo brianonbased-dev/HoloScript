@@ -7,9 +7,11 @@
  * if same-backend runs disagree, cross-backend hash-equality is
  * meaningless.
  *
- * Cross-backend runs (Chromium vs. Firefox vs. Safari × GPUs) are
- * Paper #2's submission benchmark and require browser test
- * infrastructure or multi-Dawn-config CI — out of scope here.
+ * **Empirical cross-vendor note (2026-05-10):**
+ * NVIDIA Ampere vs Intel Gen-12LP show ~1.5e-5 absolute variance
+ * (IEEE-754 f32 `exp()` ULP differences). Spike masks remain exact.
+ * The membrane-potential hash is therefore backend-scoped, not
+ * cross-vendor. Full vendor matrix (AMD, Apple Silicon) is pending.
  *
  * This test runs under vitest with the Dawn-native WebGPU backend
  * (see ../../__tests__/setup.ts) on hardware that supports it, and

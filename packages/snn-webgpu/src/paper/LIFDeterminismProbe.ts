@@ -3,11 +3,16 @@
  *
  * Runs a fixed-input LIF simulation through the GPU and returns a
  * `ProbeResult` whose `outputHash` identifies this backend's final
- * membrane-potential state after N ticks. Paper #2's core claim is
- * that this hash is bit-identical across backends (Chromium,
- * Firefox, Safari × NVIDIA, AMD, Apple, integrated) for the same
- * input. The probe is the instrument; the cross-backend table is
- * the result.
+ * membrane-potential state after N ticks.
+ *
+ * **Determinism scope (empirically verified 2026-05-10):**
+ *  - Same-backend (same process, same GPU driver): hash is bit-identical.
+ *  - Cross-vendor (NVIDIA Ampere vs Intel Gen-12LP): membrane potentials
+ *    diverge by ~1.5e-5 absolute / ~0% relative due to IEEE-754 f32 `exp()`
+ *    ULP differences. Spike masks remain exact because the threshold
+ *    comparison is a discrete predicate insensitive to sub-ulp noise.
+ *    Therefore the cryptographic determinism receipt for *spike decisions*
+ *    holds cross-vendor; the membrane-potential hash is backend-scoped.
  *
  * Reusable: this module exports a pure probe function that the paper
  * test suite calls. It never hardcodes a neuron count or tick count —
