@@ -24,4 +24,21 @@ describe('resolveBrittneyHistoryScope', () => {
   it('does not collapse empty context into the old global default key', () => {
     expect(resolveBrittneyHistoryScope({})).toBe('project:studio:default');
   });
+
+  it('keeps separate imported workspaces on separate assistant histories', () => {
+    const first = resolveBrittneyHistoryScope({
+      activeWorkspaceId: 'ws_octocat_demo-app',
+      activeSceneId: 'main',
+      routeScope: '/create',
+    });
+    const second = resolveBrittneyHistoryScope({
+      activeWorkspaceId: 'ws_acme_ops-console',
+      activeSceneId: 'main',
+      routeScope: '/create',
+    });
+
+    expect(first).toBe('workspace:ws_octocat_demo-app');
+    expect(second).toBe('workspace:ws_acme_ops-console');
+    expect(first).not.toBe(second);
+  });
 });

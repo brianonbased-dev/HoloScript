@@ -30,7 +30,15 @@ import { useAssistantVoice } from '@/hooks/useBrittneyVoice';
 import { useAssistantHistory } from '@/hooks/useBrittneyHistory';
 import { useProjectStore } from '@/lib/projectStore';
 import { useWorkspaceStore } from '@/lib/stores/workspaceStore';
+import { useAgentStore } from '@/lib/stores/agentStore';
+import { useOrchestrationStore } from '@/lib/orchestrationStore';
 import { resolveBrittneyHistoryScope } from '@/lib/brittney/historyScope';
+import {
+  buildWorkspaceAssistantContext,
+  type BrittneyBoardContext,
+  type BrittneyDaemonJobContext,
+  type BrittneyGitContext,
+} from '@/lib/brittney/workspaceContext';
 
 // ─── Message model ────────────────────────────────────────────────────────────
 
@@ -56,6 +64,20 @@ const SUGGESTIONS = [
   'Create a patrol guard AI agent',
   'Add a Gaussian Splat to the scene',
 ];
+
+interface DaemonJobsPayload {
+  jobs?: BrittneyDaemonJobContext[];
+  error?: string;
+}
+
+async function fetchAssistantJson<T>(input: RequestInfo | URL): Promise<T> {
+  const response = await fetch(input);
+  const json = (await response.json().catch(() => ({}))) as T & { error?: string };
+  if (!response.ok) {
+    throw new Error(json.error ?? `Request failed (${response.status})`);
+  }
+  return json;
+}
 
 // ─── Tool result badge ────────────────────────────────────────────────────────
 
@@ -86,6 +108,17 @@ export function BrittneyChatPanel() {
   const code = useSceneStore((s) => s.code) ?? '';
   const activeSceneId = useProjectStore((s) => s.activeSceneId);
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
+  const activeWorkspace = useWorkspaceStore((s) =>
+    s.activeWorkspaceId
+      ? (s.workspaces.find((workspace) => workspace.id === s.activeWorkspaceId) ?? null)
+      : null
+  );
+  const isAgentRunning = useAgentStore((s) => s.isRunning);
+  const agentPhase = useAgentStore((s) => s.currentPhase);
+  const agentAction = useAgentStore((s) => s.currentAction);
+  const agentCycleCount = useAgentStore((s) => s.cycleCount);
+  const agentLastError = useAgentStore((s) => s.lastError);
+  const toolCallHistory = useOrchestrationStore((s) => s.toolCallHistory);
   const addTrait = useSceneGraphStore((s) => s.addTrait);
   const removeTrait = useSceneGraphStore((s) => s.removeTrait);
   const setTraitProperty = useSceneGraphStore((s) => s.setTraitProperty);
@@ -114,6 +147,10 @@ export function BrittneyChatPanel() {
   const [llmHistory, setLlmHistory] = useState<AssistantMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [ttsEnabled, setTtsEnabled] = useState(false);
+  const [workspaceGitStatus, setWorkspaceGitStatus] = useState<BrittneyGitContext | null>(null);
+  const [workspaceJobs, setWorkspaceJobs] = useState<BrittneyDaemonJobContext[]>([]);
+  const [assistantTeamId, setAssistantTeamId] = useState<string | null>(null);
+  const [teamBoard, setTeamBoard] = useState<BrittneyBoardContext | null>(null);
 
   const executorRef = useRef<SimulationToolExecutor | null>(null);
   if (!executorRef.current) {
@@ -186,6 +223,75 @@ export function BrittneyChatPanel() {
     }
   }, [transcript, clearTranscript]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const storedTeamId =
+      window.localStorage.getItem('holomesh_active_team_id') ??
+      window.localStorage.getItem('workspace_workbench_team_id') ??
+      process.env.NEXT_PUBLIC_HOLOMESH_TEAM_ID ??
+      '';
+    setAssistantTeamId(storedTeamId.trim() || null);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadWorkspaceRuntimeContext() {
+      setWorkspaceGitStatus(null);
+      setWorkspaceJobs([]);
+      if (!activeWorkspace?.localPath) return;
+
+      const encodedPath = encodeURIComponent(activeWorkspace.localPath);
+      const [gitResult, jobsResult] = await Promise.allSettled([
+        fetchAssistantJson<BrittneyGitContext>(`/api/git/status?workspacePath=${encodedPath}`),
+        fetchAssistantJson<DaemonJobsPayload>('/api/daemon/jobs'),
+      ]);
+      if (cancelled) return;
+
+      if (gitResult.status === 'fulfilled') {
+        setWorkspaceGitStatus(gitResult.value);
+      }
+      if (jobsResult.status === 'fulfilled') {
+        const jobs = jobsResult.value.jobs ?? [];
+        setWorkspaceJobs(
+          jobs.filter(
+            (job) =>
+              job.projectId === activeWorkspace.id || job.projectPath === activeWorkspace.localPath
+          )
+        );
+      }
+    }
+
+    void loadWorkspaceRuntimeContext();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeWorkspace?.id, activeWorkspace?.localPath]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadTeamBoardContext() {
+      setTeamBoard(null);
+      if (!assistantTeamId) return;
+      try {
+        const board = await fetchAssistantJson<BrittneyBoardContext>(
+          `/api/holomesh/team/${encodeURIComponent(assistantTeamId)}/board`
+        );
+        if (!cancelled) setTeamBoard(board);
+      } catch (err) {
+        if (!cancelled) {
+          setTeamBoard({ error: err instanceof Error ? err.message : String(err) });
+        }
+      }
+    }
+
+    void loadTeamBoardContext();
+    return () => {
+      cancelled = true;
+    };
+  }, [assistantTeamId]);
+
   // Auto-scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -222,8 +328,26 @@ export function BrittneyChatPanel() {
     setLlmHistory(updatedHistory);
     setIsThinking(true);
 
-    // Build rich scene context (code + node graph + selection)
+    // Build rich assistant context: workspace/repo state first, scene source second.
     const sceneContext = buildRichContext(code, nodes, selectedId, selectedName);
+    const assistantContext = buildWorkspaceAssistantContext({
+      sceneContext,
+      historyScope: assistantHistoryScope,
+      routeScope: pathname,
+      workspace: activeWorkspace,
+      git: workspaceGitStatus,
+      board: teamBoard,
+      teamId: assistantTeamId,
+      daemonJobs: workspaceJobs,
+      agentRuntime: {
+        isRunning: isAgentRunning,
+        currentPhase: agentPhase,
+        currentAction: agentAction,
+        cycleCount: agentCycleCount,
+        lastError: agentLastError,
+      },
+      toolCalls: toolCallHistory.slice(-8),
+    });
 
     // Create streaming assistant message placeholder
     const assistantMsgId = (Date.now() + 1).toString();
@@ -250,7 +374,7 @@ export function BrittneyChatPanel() {
         setCode: setCodeFn,
       };
 
-      for await (const event of streamAssistant(updatedHistory, sceneContext)) {
+      for await (const event of streamAssistant(updatedHistory, assistantContext)) {
         if (event.type === 'text') {
           accumulatedText += event.payload as string;
           setChatMessages((m) =>
@@ -358,10 +482,25 @@ export function BrittneyChatPanel() {
     selectedId,
     selectedName,
     code,
+    assistantHistoryScope,
+    pathname,
+    activeWorkspace,
+    workspaceGitStatus,
+    teamBoard,
+    assistantTeamId,
+    workspaceJobs,
+    isAgentRunning,
+    agentPhase,
+    agentAction,
+    agentCycleCount,
+    agentLastError,
+    toolCallHistory,
     addTrait,
     removeTrait,
     setTraitProperty,
     addNode,
+    removeNode,
+    updateNode,
     persistMessage,
     speak,
   ]);
