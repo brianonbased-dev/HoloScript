@@ -270,6 +270,8 @@ export * from './VPSTrait';
 export { VRTraitRegistry, vrTraitRegistry } from './VRTraitSystem';
 export * from './VulnerabilityScannerTrait';
 export * from './WalletTrait';
+export * from './WalkableTrait';
+export * from './WalkableNavmeshBuilder';
 export * from './WindTrait';
 export * from './WorldGeneratorTrait';
 export * from './WoTThingTrait';
