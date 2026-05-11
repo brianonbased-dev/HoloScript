@@ -2,18 +2,16 @@
  * paper-6 Mecanim cross-version divergence publication runner.
  *
  * Paper:  ai-ecosystem/research/paper-6-animation-sca.tex
- *         §"Baseline Divergence Rates" (line 361),
- *         (E1) gate cited at lines 423-431,
- *         \todo{} at lines 115-120.
+ *         §"Baseline Divergence Rates".
  * Harness: ../Paper6MecanimDivergenceProbe.ts
  *
  * What this does:
  *   1. Runs the (10 rigs × N Mecanim versions) divergence matrix vs. the
  *      HoloScript contract baseline. With the canonical chain N=3 this is
  *      a 30-cell matrix.
- *   2. Emits .bench-logs/paper-6-gpu-bench.json with the structure the
- *      paper cites (line 402): per-version divergence rate, mean max-L1,
- *      p99 max-L1, and every per-rig cell with both hashes.
+ *   2. Emits .bench-logs/paper-6-mecanim-divergence.json with per-version
+ *      divergence rate, mean max-L1, p99 max-L1, and every per-rig cell
+ *      with both hashes.
  *   3. Stdout prints the markdown table so manual paper paste-in stays
  *      quick.
  *

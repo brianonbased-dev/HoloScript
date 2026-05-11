@@ -1,0 +1,36 @@
+{
+  "schema_version": "paper-6-gpu-bench-v1",
+  "benchmark": "paper-6-gpu-bench",
+  "outputPath": "HoloScript/.bench-logs/paper-6-gpu-bench.json",
+  "generatedAt": "2026-05-11T02:59:00.085Z",
+  "status": "completed",
+  "target": "auto",
+  "strictAdapter": false,
+  "commitSha": "auto",
+  "driver": "auto",
+  "sourceHtml": "packages/engine/benchmark-paper6-webgpu.html",
+  "browserUserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36",
+  "cell": {
+    "browser": "Chromium",
+    "os": "Windows",
+    "gpuVendor": "cpu-only",
+    "gpuDevice": null,
+    "gpuArchitecture": null,
+    "adapterDescription": null,
+    "hash": 2637813541,
+    "baselineHash": 2637813541,
+    "hashEqual": true,
+    "timings": {
+      "preimageBuild_ms": 0,
+      "schemaValidation_ms": 0,
+      "sampling_ms": 4.799999982118607,
+      "hashing_ms": 1.4000000059604645,
+      "regressionCheck_ms": 0,
+      "total_ms": 6.199999988079071
+    }
+  },
+  "failures": [],
+  "notes": [
+    "WebGPU adapter request returned null (software renderer or blocked)."
+  ]
+}

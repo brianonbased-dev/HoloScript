@@ -69,7 +69,7 @@ describe('paper-6 Mecanim cross-version divergence publication runner', () => {
   it('artifact round-trips from disk with schema intact', () => {
     const dir = mkdtempSync(join(tmpdir(), 'paper6-'));
     try {
-      const out_path = join(dir, 'paper-6-gpu-bench.json');
+      const out_path = join(dir, 'paper-6-mecanim-divergence.json');
       const pub = runPaper6MecanimBenchmark();
       writePaper6Artifact(pub, out_path);
       expect(existsSync(out_path)).toBe(true);
