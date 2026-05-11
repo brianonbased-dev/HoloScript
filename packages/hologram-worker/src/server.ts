@@ -7,8 +7,10 @@ import {
   type HologramTarget,
 } from '@holoscript/engine/hologram';
 
-import { closeWorkerBrowser } from './playwright-pipeline.js';
+import { encodeParallaxWebm, encodeStereoMp4 } from './ffmpeg-encode.js';
+import { closeWorkerBrowser, runQuiltBrowserRender } from './playwright-pipeline.js';
 import { WorkerHologramCoordinator } from './providers.js';
+import { prepareRasterPng } from './rasterize.js';
 import { uploadHologramToStudio } from './upload-studio.js';
 
 const MAX_BODY = 20 * 1024 * 1024;
@@ -34,6 +36,11 @@ interface RenderBody {
   targets?: string[];
   /** If true, skip Studio upload (local testing). */
   skipUpload?: boolean;
+  depthMapBase64?: string;
+  normalMapBase64?: string;
+  width?: number;
+  height?: number;
+  frames?: number;
 }
 
 function parseBody(raw: string): RenderBody {
@@ -42,6 +49,30 @@ function parseBody(raw: string): RenderBody {
   } catch {
     throw new Error('invalid JSON body');
   }
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString('base64');
+}
+
+function float32ToBase64(values: Float32Array): string {
+  return bytesToBase64(new Uint8Array(values.buffer, values.byteOffset, values.byteLength));
+}
+
+function base64ToFloat32(base64: string, label: string): Float32Array {
+  const bytes = new Uint8Array(Buffer.from(base64, 'base64')).slice();
+  if (bytes.byteLength % 4 !== 0) {
+    throw new Error(`${label} must be Float32Array bytes encoded as base64`);
+  }
+  return new Float32Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 4);
+}
+
+function parseSourceKind(mediaType: string | undefined): HologramSourceKind {
+  const normalized = (mediaType ?? 'image').toLowerCase();
+  if (normalized !== 'image' && normalized !== 'gif' && normalized !== 'video') {
+    throw new Error('mediaType must be image, gif, or video');
+  }
+  return normalized as HologramSourceKind;
 }
 
 async function loadMediaBytes(body: RenderBody): Promise<Uint8Array> {
@@ -67,6 +98,72 @@ function clientIp(req: import('node:http').IncomingMessage): string {
   return raw.replace(/^::ffff:/, '');
 }
 
+async function handleProviderRoute(route: string, body: RenderBody): Promise<Record<string, unknown>> {
+  const media = await loadMediaBytes(body);
+  const sourceKind = parseSourceKind(body.mediaType);
+
+  if (route === '/providers/depth') {
+    const coord = new WorkerHologramCoordinator();
+    try {
+      const result = await coord.providers.depth.infer(media, sourceKind);
+      return {
+        depthMapBase64: float32ToBase64(result.depthMap),
+        width: result.width,
+        height: result.height,
+        frames: result.frames,
+        backend: result.backend,
+        modelId: result.modelId,
+      };
+    } finally {
+      await coord.dispose();
+    }
+  }
+
+  if (
+    route !== '/providers/quilt' &&
+    route !== '/providers/mvhevc' &&
+    route !== '/providers/parallax'
+  ) {
+    throw new Error(`unknown provider route: ${route}`);
+  }
+
+  if (!body.depthMapBase64) throw new Error('depthMapBase64 is required');
+  if (!Number.isInteger(body.width) || !Number.isInteger(body.height)) {
+    throw new Error('width and height are required');
+  }
+
+  const depthMap = base64ToFloat32(body.depthMapBase64, 'depthMapBase64');
+  const width = body.width as number;
+  const height = body.height as number;
+  if (depthMap.length !== width * height) {
+    throw new Error(`depthMapBase64 has ${depthMap.length} floats, expected ${width * height}`);
+  }
+
+  const raster = await prepareRasterPng(media, sourceKind);
+  try {
+    const art = await runQuiltBrowserRender({
+      pngPath: raster.pngPath,
+      depthMap,
+      width,
+      height,
+      depthBackendLabel: 'worker-provider',
+    });
+
+    if (route === '/providers/quilt') {
+      return { bytesBase64: bytesToBase64(new Uint8Array(art.quilt)) };
+    }
+    if (route === '/providers/mvhevc') {
+      const bytes = await encodeStereoMp4(art.left, art.right, 30);
+      return { bytesBase64: bytesToBase64(bytes) };
+    }
+
+    const bytes = await encodeParallaxWebm(art.preview);
+    return { bytesBase64: bytesToBase64(bytes) };
+  } finally {
+    await raster.dispose();
+  }
+}
+
 const server = createServer(async (req, res) => {
   if (req.url === '/health' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -74,7 +171,9 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  if (req.url !== '/render' || req.method !== 'POST') {
+  const route = (req.url ?? '').split('?')[0];
+  const providerRoute = route.startsWith('/providers/');
+  if ((route !== '/render' && !providerRoute) || req.method !== 'POST') {
     res.writeHead(404);
     res.end();
     return;
@@ -112,12 +211,15 @@ const server = createServer(async (req, res) => {
 
   try {
     const body = parseBody(raw);
-    const media = await loadMediaBytes(body);
-    const mediaType = (body.mediaType ?? 'image').toLowerCase();
-    if (mediaType !== 'image' && mediaType !== 'gif' && mediaType !== 'video') {
-      throw new Error('mediaType must be image, gif, or video');
+    if (providerRoute) {
+      const result = await handleProviderRoute(route, body);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+      return;
     }
-    const sourceKind = mediaType as HologramSourceKind;
+
+    const media = await loadMediaBytes(body);
+    const sourceKind = parseSourceKind(body.mediaType);
     const targets = (body.targets ?? ['quilt', 'mvhevc', 'parallax']) as HologramTarget[];
     for (const t of targets) {
       if (t !== 'quilt' && t !== 'mvhevc' && t !== 'parallax') {

@@ -125,6 +125,15 @@ export interface CreateHologramOptions {
   sequentialRender?: boolean;
 }
 
+export interface CreateNodeProvidersOptions {
+  /** Hologram worker base URL. Default: HOLOGRAM_WORKER_URL. */
+  workerUrl?: string;
+  /** Bearer token for worker ingress. Default: HOLOGRAM_WORKER_INGRESS_TOKEN. */
+  token?: string;
+  /** Fetch implementation for tests or custom runtimes. Default: global fetch. */
+  fetchImpl?: typeof fetch;
+}
+
 export class CreateHologramError extends Error {
   constructor(
     public readonly code:
@@ -144,6 +153,123 @@ export class CreateHologramError extends Error {
 
 const VALID_SOURCE_KINDS = new Set<HologramSourceKind>(['image', 'gif', 'video']);
 const VALID_TARGETS = new Set<HologramTarget>(['quilt', 'mvhevc', 'parallax']);
+
+// ── Node worker provider helpers ────────────────────────────────────────────
+
+type WorkerBytesResponse = { bytesBase64?: string };
+
+interface WorkerDepthResponse {
+  depthMapBase64?: string;
+  width?: number;
+  height?: number;
+  frames?: number;
+  backend?: HologramMeta['backend'];
+  modelId?: string;
+}
+
+function envValue(name: string): string | undefined {
+  const g = globalThis as typeof globalThis & {
+    process?: { env?: Record<string, string | undefined> };
+  };
+  return g.process?.env?.[name]?.trim() || undefined;
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString('base64');
+  }
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+function base64ToBytes(base64: string): Uint8Array {
+  if (typeof Buffer !== 'undefined') {
+    return new Uint8Array(Buffer.from(base64, 'base64'));
+  }
+  const binary = atob(base64);
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+  return out;
+}
+
+function float32ToBase64(values: Float32Array): string {
+  return bytesToBase64(new Uint8Array(values.buffer, values.byteOffset, values.byteLength));
+}
+
+function base64ToFloat32(base64: string, label: string): Float32Array {
+  const bytes = base64ToBytes(base64).slice();
+  if (bytes.byteLength % 4 !== 0) {
+    throw new CreateHologramError(
+      'missing_provider',
+      `hologram-worker ${label} response is ${bytes.byteLength} bytes, expected Float32 bytes`
+    );
+  }
+  return new Float32Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 4);
+}
+
+function resolveWorkerUrl(options: CreateNodeProvidersOptions): string {
+  const url = options.workerUrl ?? envValue('HOLOGRAM_WORKER_URL');
+  if (!url) {
+    throw new CreateHologramError(
+      'missing_provider',
+      'Node hologram providers require HOLOGRAM_WORKER_URL or createNodeProviders({ workerUrl })'
+    );
+  }
+  return url.replace(/\/$/, '');
+}
+
+async function postWorkerJson<T>(
+  options: CreateNodeProvidersOptions,
+  path: string,
+  body: Record<string, unknown>
+): Promise<T> {
+  const fetchImpl = options.fetchImpl ?? globalThis.fetch;
+  if (typeof fetchImpl !== 'function') {
+    throw new CreateHologramError('missing_provider', 'Node hologram providers require fetch');
+  }
+
+  const token = options.token ?? envValue('HOLOGRAM_WORKER_INGRESS_TOKEN');
+  const response = await fetchImpl(`${resolveWorkerUrl(options)}${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+
+  const text = await response.text();
+  let parsed: unknown = {};
+  try {
+    parsed = text ? JSON.parse(text) : {};
+  } catch {
+    throw new CreateHologramError(
+      'missing_provider',
+      `hologram-worker ${path} returned invalid JSON (${response.status})`
+    );
+  }
+
+  if (!response.ok) {
+    const err = parsed as { error?: string };
+    throw new CreateHologramError(
+      'missing_provider',
+      err.error || `hologram-worker ${path} failed with HTTP ${response.status}`
+    );
+  }
+
+  return parsed as T;
+}
+
+function decodeWorkerBytes(response: WorkerBytesResponse, label: string): Uint8Array {
+  if (!response.bytesBase64) {
+    throw new CreateHologramError(
+      'missing_provider',
+      `hologram-worker ${label} response omitted bytesBase64`
+    );
+  }
+  return base64ToBytes(response.bytesBase64);
+}
 
 // ── Orchestrator ─────────────────────────────────────────────────────────────
 
@@ -289,44 +415,99 @@ export async function createHologram(
   return bundle;
 }
 
-// ── Provider stubs for Sprint 0a ─────────────────────────────────────────────
+// ── Node providers backed by the hologram-worker service ────────────────────
 
 /**
- * Node-side providers for CLI and the hologram-worker service. These are
- * STUBS in Sprint 0a — they throw with an explicit Sprint reference so
- * callers can't silently fall through. Real implementations land in
- * Sprint 0c (worker): onnxruntime-node depth + headless Chromium quilt
- * render + ffmpeg MV-HEVC mux.
+ * Node-side providers for CLI and service surfaces. The implementation is
+ * worker-backed: each provider calls the Sprint 0c hologram-worker provider
+ * endpoint and returns bytes/maps to the isomorphic createHologram pipeline.
+ *
+ * If the worker is not configured or reachable, the provider fails loudly with
+ * CreateHologramError('missing_provider'); there is no synthetic fallback.
  */
-export function createNodeProvidersStub(): HologramProviders {
-  const rejectStub = <T>(which: string): Promise<T> => {
-    return Promise.reject(
-      new CreateHologramError(
-        'missing_provider',
-        `Node ${which} provider is not implemented in Sprint 0a — see Sprint 0c (hologram-worker service)`
-      )
-    );
-  };
+export function createNodeProviders(
+  options: CreateNodeProvidersOptions = {}
+): HologramProviders {
   return {
     depth: {
-      async infer() {
-        return rejectStub<DepthInferenceResult>('depth');
+      async infer(media, sourceKind) {
+        const response = await postWorkerJson<WorkerDepthResponse>(options, '/providers/depth', {
+          sourceBase64: bytesToBase64(media),
+          mediaType: sourceKind,
+        });
+        const { depthMapBase64, width, height, frames, backend, modelId } = response;
+        if (
+          !depthMapBase64 ||
+          !Number.isInteger(width) ||
+          !Number.isInteger(height) ||
+          !Number.isInteger(frames) ||
+          !backend ||
+          !modelId
+        ) {
+          throw new CreateHologramError(
+            'missing_provider',
+            'hologram-worker depth response omitted required fields'
+          );
+        }
+        const depthMap = base64ToFloat32(depthMapBase64, 'depth');
+        return {
+          depthMap,
+          width: width as number,
+          height: height as number,
+          frames: frames as number,
+          backend,
+          modelId,
+        };
       },
     },
     quilt: {
-      async render() {
-        return rejectStub<Uint8Array>('quilt');
+      async render(input) {
+        const response = await postWorkerJson<WorkerBytesResponse>(options, '/providers/quilt', {
+          sourceBase64: bytesToBase64(input.media),
+          mediaType: input.sourceKind,
+          depthMapBase64: float32ToBase64(input.depthMap),
+          normalMapBase64: float32ToBase64(input.normalMap),
+          width: input.width,
+          height: input.height,
+          frames: input.frames,
+        });
+        return decodeWorkerBytes(response, 'quilt');
       },
     },
     mvhevc: {
-      async encode() {
-        return rejectStub<Uint8Array>('mvhevc');
+      async encode(input) {
+        const response = await postWorkerJson<WorkerBytesResponse>(options, '/providers/mvhevc', {
+          sourceBase64: bytesToBase64(input.media),
+          mediaType: input.sourceKind,
+          depthMapBase64: float32ToBase64(input.depthMap),
+          width: input.width,
+          height: input.height,
+          frames: input.frames,
+        });
+        return decodeWorkerBytes(response, 'mvhevc');
       },
     },
     parallax: {
-      async encode() {
-        return rejectStub<Uint8Array>('parallax');
+      async encode(input) {
+        const response = await postWorkerJson<WorkerBytesResponse>(options, '/providers/parallax', {
+          sourceBase64: bytesToBase64(input.media),
+          mediaType: input.sourceKind,
+          depthMapBase64: float32ToBase64(input.depthMap),
+          width: input.width,
+          height: input.height,
+        });
+        return decodeWorkerBytes(response, 'parallax');
       },
     },
   };
+}
+
+/**
+ * @deprecated Use createNodeProviders(). Kept as a compatibility alias for
+ * older callers; it no longer returns Sprint-0a stubs.
+ */
+export function createNodeProvidersStub(
+  options: CreateNodeProvidersOptions = {}
+): HologramProviders {
+  return createNodeProviders(options);
 }

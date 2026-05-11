@@ -67,7 +67,7 @@ Convert a still image, GIF, or video into a content-addressed HoloGram bundle (d
 # Depth-only bundle (no render targets — Sprint 0a)
 holoscript hologram photo.jpg --targets ''
 
-# Full bundle with all render targets (requires hologram-worker — Sprint 0c)
+# Full bundle with all render targets (requires HOLOGRAM_WORKER_URL)
 holoscript hologram photo.png --targets quilt,mvhevc,parallax
 
 # Custom output directory
@@ -77,7 +77,7 @@ holoscript hologram clip.mp4 --out ./my-bundle --targets quilt
 holoscript hologram avatar.webp --name "My Avatar"
 ```
 
-The bundle is written to `./hologram-<hash>/` by default.  Pass `--out <dir>` to override.  The directory name encodes the full content hash so bundles are self-verifying.
+The bundle is written to `./hologram-<hash>/` by default. Pass `--out <dir>` to override. The directory name encodes the full content hash so bundles are self-verifying. Node providers call the hologram-worker service; set `HOLOGRAM_WORKER_URL` before requesting render targets without injected providers.
 
 ### Code Tools
 

@@ -9,10 +9,10 @@
  *   - Input validation at every boundary (empty media, bad source kind,
  *     bad target, missing provider for requested target)
  *   - Provider composition (only requested targets render; others skipped)
- *   - Node-stub providers throw with explicit Sprint-0c guidance
+ *   - Node providers call the hologram-worker provider endpoints
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   canonicalMetaJson,
@@ -26,6 +26,7 @@ import {
 import {
   createHologram,
   CreateHologramError,
+  createNodeProviders,
   createNodeProvidersStub,
   type DepthInferenceResult,
   type DepthProvider,
@@ -119,6 +120,14 @@ function fullProviders(): HologramProviders {
     mvhevc: makeMvhevc(),
     parallax: makeParallax(),
   };
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString('base64');
+}
+
+function float32ToBase64(values: Float32Array): string {
+  return bytesToBase64(new Uint8Array(values.buffer, values.byteOffset, values.byteLength));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -479,22 +488,102 @@ describe('createHologram — error propagation', () => {
   });
 });
 
-describe('createNodeProvidersStub', () => {
-  it('returns providers that throw with Sprint 0c guidance', async () => {
-    const stubs = createNodeProvidersStub();
-    await expect(stubs.depth.infer(new Uint8Array([1]), 'image')).rejects.toThrowError(
-      /Sprint 0c|hologram-worker/
+describe('createNodeProviders', () => {
+  const originalFetch = globalThis.fetch;
+  const originalWorkerUrl = process.env.HOLOGRAM_WORKER_URL;
+  const originalIngressToken = process.env.HOLOGRAM_WORKER_INGRESS_TOKEN;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    if (originalWorkerUrl === undefined) delete process.env.HOLOGRAM_WORKER_URL;
+    else process.env.HOLOGRAM_WORKER_URL = originalWorkerUrl;
+    if (originalIngressToken === undefined) delete process.env.HOLOGRAM_WORKER_INGRESS_TOKEN;
+    else process.env.HOLOGRAM_WORKER_INGRESS_TOKEN = originalIngressToken;
+  });
+
+  it('runs createHologram through worker-backed depth and quilt providers', async () => {
+    const media = new Uint8Array([0xff, 0xd8, 0xff]);
+    const workerDepth = makeDepth(3);
+    const quiltBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+    const routes: string[] = [];
+
+    globalThis.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const route = new URL(String(url)).pathname;
+      routes.push(route);
+      const headers = init?.headers as Record<string, string>;
+      expect(headers.Authorization).toBe('Bearer test-token');
+      const body = JSON.parse(String(init?.body ?? '{}'));
+      expect(body.mediaType).toBe('image');
+      expect(body.sourceBase64).toBe(bytesToBase64(media));
+
+      if (route === '/providers/depth') {
+        return new Response(
+          JSON.stringify({
+            depthMapBase64: float32ToBase64(workerDepth),
+            width: 4,
+            height: 4,
+            frames: 1,
+            backend: 'cpu',
+            modelId: 'worker-depth',
+          }),
+          { status: 200 }
+        );
+      }
+      if (route === '/providers/quilt') {
+        expect(body.depthMapBase64).toBe(float32ToBase64(workerDepth));
+        expect(body.normalMapBase64).toEqual(expect.any(String));
+        expect(body.width).toBe(4);
+        expect(body.height).toBe(4);
+        return new Response(JSON.stringify({ bytesBase64: bytesToBase64(quiltBytes) }), {
+          status: 200,
+        });
+      }
+      return new Response(JSON.stringify({ error: 'unexpected route' }), { status: 404 });
+    }) as typeof fetch;
+
+    const providers = createNodeProviders({
+      workerUrl: 'https://worker.test',
+      token: 'test-token',
+    });
+    const bundle = await createHologram(media, 'image', providers, {
+      targets: ['quilt'],
+      now: () => new Date('2026-04-20T00:00:00.000Z'),
+    });
+
+    expect(routes).toEqual(['/providers/depth', '/providers/quilt']);
+    expect(bundle.meta.modelId).toBe('worker-depth');
+    expect(bundle.depthBin.byteLength).toBe(workerDepth.byteLength);
+    expect(bundle.quiltPng).toEqual(quiltBytes);
+  });
+
+  it('fails loudly when worker URL is unavailable', async () => {
+    delete process.env.HOLOGRAM_WORKER_URL;
+    const providers = createNodeProviders({ workerUrl: '' });
+    await expect(providers.depth.infer(new Uint8Array([1]), 'image')).rejects.toThrowError(
+      /HOLOGRAM_WORKER_URL|workerUrl/
     );
-    await expect(
-      stubs.quilt!.render({
-        depthMap: makeDepth(),
-        normalMap: makeNormal(),
-        width: 4,
-        height: 4,
-        frames: 1,
-        media: new Uint8Array([1]),
-        sourceKind: 'image',
-      })
-    ).rejects.toThrowError(/Sprint 0c|hologram-worker/);
+  });
+
+  it('keeps createNodeProvidersStub as a compatibility alias', async () => {
+    globalThis.fetch = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          depthMapBase64: float32ToBase64(makeDepth()),
+          width: 4,
+          height: 4,
+          frames: 1,
+          backend: 'cpu',
+          modelId: 'worker-depth',
+        }),
+        { status: 200 }
+      )
+    ) as typeof fetch;
+
+    const providers = createNodeProvidersStub({ workerUrl: 'https://worker.test' });
+    await expect(providers.depth.infer(new Uint8Array([1]), 'image')).resolves.toMatchObject({
+      width: 4,
+      height: 4,
+      modelId: 'worker-depth',
+    });
   });
 });

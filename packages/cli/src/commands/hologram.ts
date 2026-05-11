@@ -13,12 +13,10 @@
  *     before being forwarded to createHologram().
  *   - --name is informational only; it is never used in a filesystem path.
  *
- * Sprint 0a note:
- *   The Node depth / render providers are stubs in Sprint 0a.  Running this
- *   command against real media will fail with a clear "not implemented" error
- *   pointing at the hologram-worker service (Sprint 0c).  To wire in real
- *   providers, pass them via the `_providers` option (used by tests and the
- *   hologram-worker service adapter).
+ * Node provider note:
+ *   When `_providers` is omitted this command uses createNodeProviders(), which
+ *   calls the hologram-worker service via HOLOGRAM_WORKER_URL. If the worker is
+ *   unavailable, the provider fails loudly before producing a partial bundle.
  */
 
 import { readFile } from 'node:fs/promises';
@@ -42,8 +40,8 @@ export interface HologramCommandOptions {
   name?: string;
   /**
    * Injectable provider bundle — used by tests and the hologram-worker
-   * adapter.  When omitted the command uses createNodeProvidersStub()
-   * which rejects with an explicit Sprint 0c pointer.
+   * adapter. When omitted the command uses createNodeProviders(), backed by
+   * the hologram-worker service.
    */
   _providers?: HologramProviders;
 }
@@ -96,7 +94,7 @@ export async function hologramCommand(
 ): Promise<void> {
   // Lazy imports keep browser bundles clean (engine imports node:fs at the
   // module level — dynamic import defers that to execution time).
-  const { createHologram, createNodeProvidersStub } =
+  const { createHologram, createNodeProviders } =
     await import('@holoscript/engine/hologram');
   const { FileSystemHologramStore } =
     await import('@holoscript/engine/hologram/FileSystemHologramStore');
@@ -126,7 +124,7 @@ export async function hologramCommand(
 
   // ── Build bundle ──────────────────────────────────────────────────────────
 
-  const providers = options._providers ?? createNodeProvidersStub();
+  const providers = options._providers ?? createNodeProviders();
 
   console.log(`\x1b[36m⟳ Building hologram from ${input}...\x1b[0m`);
 

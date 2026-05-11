@@ -13,6 +13,13 @@ Node service for **HoloGram Sprint 0c**: depth (optional ONNX Depth Anything V2 
 
 Response: `{ hash, shareUrl, quiltUrl, mvhevcUrl, targets }`.
 
+Provider endpoints used by `@holoscript/engine` `createNodeProviders()`:
+
+- `POST /providers/depth` — `sourceUrl` or `sourceBase64`, `mediaType`; returns `depthMapBase64`, dimensions, backend, and model ID.
+- `POST /providers/quilt` — source fields plus `depthMapBase64`, `width`, `height`; returns `{ bytesBase64 }` for PNG bytes.
+- `POST /providers/mvhevc` — source fields plus `depthMapBase64`, `width`, `height`; returns `{ bytesBase64 }` for MP4 bytes.
+- `POST /providers/parallax` — source fields plus `depthMapBase64`, `width`, `height`; returns `{ bytesBase64 }` for WebM bytes.
+
 ## Environment
 
 | Variable | Purpose |
@@ -24,7 +31,7 @@ Response: `{ hash, shareUrl, quiltUrl, mvhevcUrl, targets }`.
 | `HOLOGRAM_ONNX_MODEL_PATH` | Filesystem path to Depth Anything V2 Small `.onnx` (optional; without it, depth uses CPU luminance) |
 | `HOLOGRAM_WORKER_DEPTH_BACKEND` | Set to `luminance` to force luminance even if ONNX path is set |
 | `HOLOGRAM_DEPTH_MAX_SIDE` | Max width/height after rasterize (default `640`) |
-| `HOLOGRAM_WORKER_INGRESS_TOKEN` | Optional; if set, `POST /render` requires `Authorization: Bearer …` |
+| `HOLOGRAM_WORKER_INGRESS_TOKEN` | Optional; if set, `POST /render` and `/providers/*` require `Authorization: Bearer …` |
 
 ## ONNX model (supply-chain)
 

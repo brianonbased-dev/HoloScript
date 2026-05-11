@@ -69,12 +69,14 @@ export type {
 // orchestrator runs in browser and Node.
 export {
   createHologram,
+  createNodeProviders,
   createNodeProvidersStub,
   CreateHologramError,
 } from './createHologram';
 
 export type {
   CreateHologramOptions,
+  CreateNodeProvidersOptions,
   DepthInferenceResult,
   DepthProvider,
   HologramProviders,
