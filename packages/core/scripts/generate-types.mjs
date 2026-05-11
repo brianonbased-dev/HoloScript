@@ -4482,7 +4482,8 @@ export type ExportTarget =
   | 'openxr-spatial-entities'
   | 'phone-sleeve-vr'
   | 'native-2d'
-  | 'context';
+  | 'context'
+  | '3dgs';
 
 export interface HolomapPointCloudPayload {
   positionsB64: string;
