@@ -187,6 +187,7 @@ export * from './RemotePresenceTrait';
 export * from './RenderingTrait';
 export * from './RenderJobPersistence';
 export * from './RenderNetworkTrait';
+export * from './ReputationLedgerTrait';
 export * from './ReverbZoneTrait';
 export * from './RewardTrait';
 export { rigidbodyHandler } from './RigidbodyTrait';

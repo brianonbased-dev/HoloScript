@@ -27,6 +27,7 @@ export type AlertRuleType =
   | 'memory_usage'
   | 'cpu_usage'
   | 'api_quota'
+  | 'data_retention'
   | 'custom';
 
 export type ServiceAlertSeverity = 'info' | 'warning' | 'critical';

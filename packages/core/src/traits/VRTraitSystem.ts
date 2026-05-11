@@ -406,6 +406,7 @@ import { poseEstimationHandler } from './PoseEstimationTrait';
 import { ragKnowledgeHandler } from './RAGKnowledgeTrait';
 import { realityKitMeshHandler } from './RealityKitMeshTrait';
 import { renderNetworkHandler } from './RenderNetworkTrait';
+import { reputationLedgerHandler } from './ReputationLedgerTrait';
 import { sceneReconstructionHandler } from './SceneReconstructionTrait';
 import { sharePlayHandler } from './SharePlayTrait';
 import { skillRegistryHandler } from './SkillRegistryTrait';
@@ -2010,6 +2011,7 @@ export class VRTraitRegistry {
     this.register(ragKnowledgeHandler as TraitHandler);
     this.register(realityKitMeshHandler as TraitHandler);
     this.register(renderNetworkHandler as TraitHandler);
+    this.register(reputationLedgerHandler as TraitHandler);
     this.register(sceneReconstructionHandler as TraitHandler);
     this.register(sharePlayHandler as TraitHandler);
     this.register(skillRegistryHandler as unknown as TraitHandler);
@@ -2520,6 +2522,7 @@ export {
   ragKnowledgeHandler,
   realityKitMeshHandler,
   renderNetworkHandler,
+  reputationLedgerHandler,
   sceneReconstructionHandler,
   sharePlayHandler,
   skillRegistryHandler,
