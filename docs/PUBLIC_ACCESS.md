@@ -58,8 +58,10 @@ Calling a tool:
 ```bash
 curl -X POST https://mcp.holoscript.net/api/public/tool \
   -H 'Content-Type: application/json' \
-  -d '{"tool":"parse_holo","arguments":{"source":"composition \"Hello\" { object \"Box\" {} }"}}'
+  -d '{"tool":"parse_holo","arguments":{"code":"composition \"Hello\" { object \"Box\" {} }"}}'
 ```
+
+The argument field names match each tool's schema (`parse_holo` and `validate_holoscript` use `code`; the others have their own — call `GET /api/public/tool` for the schema-mapped example, or call the tool through an MCP client which surfaces the schema automatically).
 
 Rate limit: **30 requests/minute per IP** (configurable via `PUBLIC_ANON_RATE_LIMIT`). Hitting the limit returns `429` with a `retry_after_seconds` hint and a pointer to `/oauth/register`.
 
