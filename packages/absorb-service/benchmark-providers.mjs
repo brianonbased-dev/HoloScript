@@ -22,6 +22,9 @@ const SCAN_DIRS = [
   resolve('../../packages/snn-webgpu/src'),
 ];
 
+const MAX_SCAN_FILES = Number.parseInt(process.env.PAPER5_PROVIDER_MAX_FILES ?? '475', 10);
+const MAX_SYMBOLS = Number.parseInt(process.env.PAPER5_PROVIDER_MAX_SYMBOLS ?? '500', 10);
+
 const QUERIES = [
   { query: 'TropicalShortestPaths', category: 'Lookup', expected: ['TropicalShortestPaths', 'TropicalGraphUtils'] },
   { query: 'hash geometry verification', category: 'Dependency', expected: ['SimulationContract', 'CAELRecorder'] },
@@ -54,10 +57,25 @@ async function run() {
   console.log('=== Paper #5: Embedding Provider Ablation ===\n');
 
   // 1. Scan
-  console.log('Scanning codebase...');
+  console.log(`Scanning codebase (max ${MAX_SCAN_FILES} TypeScript files)...`);
   const scanner = new CodebaseScanner();
   const t0 = performance.now();
-  const scanResult = await scanner.scan({ rootDirs: SCAN_DIRS, shallow: true });
+  let scanResult;
+  try {
+    scanResult = await scanner.scan({
+      rootDirs: SCAN_DIRS,
+      maxFiles: MAX_SCAN_FILES,
+      maxFileSize: 200_000,
+      languages: ['typescript'],
+      onProgress: (parsed, total) => {
+        if (parsed % 50 === 0 || parsed === total) {
+          console.error(`[provider-ablation] parsed ${parsed}/${total} files`);
+        }
+      },
+    });
+  } finally {
+    await scanner.dispose?.();
+  }
   const scanTime = performance.now() - t0;
 
   const graph = scanResult.graph || scanResult;
@@ -123,9 +141,13 @@ async function run() {
           else otherSymbols.push(sym);
         }
       }
-      const subset = [...prioritySymbols, ...otherSymbols].slice(0, 500);
+      const subset = [...prioritySymbols, ...otherSymbols].slice(0, MAX_SYMBOLS);
       console.log(`  Embedding ${subset.length} symbols (${prioritySymbols.length} priority + ${subset.length - prioritySymbols.length} other)...`);
-      await index.addSymbols(subset);
+      try {
+        await index.addSymbols(subset);
+      } finally {
+        await index.dispose?.();
+      }
       const indexTime = performance.now() - indexStart;
       console.log(`  Index built in ${(indexTime / 1000).toFixed(1)}s`);
 
@@ -137,7 +159,7 @@ async function run() {
         const qTime = performance.now() - qStart;
         const { p5, mrr, topResult } = scoreResults(results, expected);
         queryResults.push({ category, p5, mrr, latencyMs: qTime });
-        console.log(`  ${category.padEnd(15)} | P@5=${p5.toFixed(2)} | MRR=${mrr.toFixed(2)} | ${qTime.toFixed(0).padStart(6)}ms | top: ${topResult}`);
+        console.log(`  ${category.padEnd(15)} | Rel@5=${p5.toFixed(2)} | MRR=${mrr.toFixed(2)} | ${qTime.toFixed(0).padStart(6)}ms | top: ${topResult}`);
       }
 
       const avgP5 = queryResults.reduce((s, r) => s + r.p5, 0) / queryResults.length;
@@ -145,7 +167,7 @@ async function run() {
       const avgLat = queryResults.reduce((s, r) => s + r.latencyMs, 0) / queryResults.length;
 
       allResults.push({ provider: prov.name, model: prov.model, dims: prov.dims, indexTimeS: indexTime / 1000, avgP5, avgMRR, avgLatMs: avgLat });
-      console.log(`  AVG: P@5=${avgP5.toFixed(2)} | MRR=${avgMRR.toFixed(2)} | ${avgLat.toFixed(0)}ms/query\n`);
+      console.log(`  AVG: Rel@5=${avgP5.toFixed(2)} | MRR=${avgMRR.toFixed(2)} | ${avgLat.toFixed(0)}ms/query\n`);
     } catch (e) {
       console.log(`  FAILED: ${e.message}\n`);
       allResults.push({ provider: prov.name, model: prov.model, dims: prov.dims, error: e.message });
@@ -156,11 +178,11 @@ async function run() {
   console.log('\n% === LaTeX: Embedding Provider Ablation (Paper #5) ===');
   console.log('\\begin{table}[t]');
   console.log('\\centering');
-  console.log('\\caption{Embedding provider comparison: accuracy and latency across 5 query categories on the same 500-symbol codebase subset. Local providers (Xenova, Ollama) never transmit code externally.}');
+  console.log('\\caption{Embedding provider comparison: relevant-hit density and latency across 5 query categories on the same 500-symbol codebase subset. Local providers (Xenova, Ollama) never transmit code externally.}');
   console.log('\\label{tab:provider-ablation}');
   console.log('\\begin{tabular}{lccccc}');
   console.log('\\toprule');
-  console.log('Provider & Dims & Index (s) & P@5 & MRR & Query (ms) \\\\');
+  console.log('Provider & Dims & Index (s) & Rel@5 & MRR & Query (ms) \\\\');
   console.log('\\midrule');
   for (const r of allResults) {
     if (r.error) {
