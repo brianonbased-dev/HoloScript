@@ -368,4 +368,71 @@ describe('PhoneSleeveVRCompiler', () => {
     const html = c.compile(makeComposition(), 'test-token');
     expect(html).toContain('TARGET_FPS = 72');
   });
+
+  // =========== AI Augmentation (D.037 sovereign-revival) ===========
+
+  it('includes AI tracking config when aiTracking is enabled', () => {
+    const c = new PhoneSleeveVRCompiler({ aiTracking: true });
+    const html = c.compile(makeComposition(), 'test-token');
+    expect(html).toContain('AI_TRACKING_ENABLED = true');
+    expect(html).toContain('MediaPipe Face Mesh');
+    expect(html).toContain('initAITracking');
+    expect(html).toContain('applyAIHeadPose');
+  });
+
+  it('includes AI gaze prediction when aiGazePrediction is enabled', () => {
+    const c = new PhoneSleeveVRCompiler({ aiGazePrediction: true });
+    const html = c.compile(makeComposition(), 'test-token');
+    expect(html).toContain('AI_GAZE_PREDICTION_ENABLED = true');
+    expect(html).toContain('updateGazePrediction');
+    expect(html).toContain('predictedGazeX');
+  });
+
+  it('includes AI thermal prediction when aiThermalPrediction is enabled', () => {
+    const c = new PhoneSleeveVRCompiler({ aiThermalPrediction: true });
+    const html = c.compile(makeComposition(), 'test-token');
+    expect(html).toContain('AI_THERMAL_PREDICTION_ENABLED = true');
+    expect(html).toContain('predictThermalStress');
+    expect(html).toContain('applyPreemptiveThermalScale');
+  });
+
+  it('includes AI voice commands when aiVoiceCommands is enabled', () => {
+    const c = new PhoneSleeveVRCompiler({ aiVoiceCommands: true });
+    const html = c.compile(makeComposition(), 'test-token');
+    expect(html).toContain('AI_VOICE_COMMANDS_ENABLED = true');
+    expect(html).toContain('initVoiceCommands');
+    expect(html).toContain('matchIntent');
+    expect(html).toContain('handleVoiceAction');
+  });
+
+  it('includes neural upscaling when aiUpscaling is enabled', () => {
+    const c = new PhoneSleeveVRCompiler({ aiUpscaling: true });
+    const html = c.compile(makeComposition(), 'test-token');
+    expect(html).toContain('AI_UPSCALING_ENABLED = true');
+    expect(html).toContain('initNeuralUpscaling');
+    expect(html).toContain('neuralUpscaleRT');
+  });
+
+  it('does not include AI modules when AI options are disabled', () => {
+    const html = compiler.compile(makeComposition(), 'test-token');
+    expect(html).toContain('AI_TRACKING_ENABLED = false');
+    expect(html).not.toContain('MediaPipe Face Mesh');
+    expect(html).not.toContain('initAITracking');
+  });
+
+  it('supports all AI features simultaneously', () => {
+    const c = new PhoneSleeveVRCompiler({
+      aiTracking: true,
+      aiGazePrediction: true,
+      aiThermalPrediction: true,
+      aiVoiceCommands: true,
+      aiUpscaling: true,
+    });
+    const html = c.compile(makeComposition(), 'test-token');
+    expect(html).toContain('AI_TRACKING_ENABLED = true');
+    expect(html).toContain('AI_GAZE_PREDICTION_ENABLED = true');
+    expect(html).toContain('AI_THERMAL_PREDICTION_ENABLED = true');
+    expect(html).toContain('AI_VOICE_COMMANDS_ENABLED = true');
+    expect(html).toContain('AI_UPSCALING_ENABLED = true');
+  });
 });

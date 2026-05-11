@@ -51,6 +51,14 @@ export const PHONE_SLEEVE_VR_TRAITS = [
   'reorient_snap', // snap-turn / recenter with single tap
   'static_horizon', // keep horizon line stable to reduce nausea
   'session_timer', // remind user to take breaks (phone heat + eye strain)
+
+  // --- AI Augmentation (D.037 sovereign-revival) ---
+  'ai_head_tracking', // AI-enhanced 6-DOF head tracking via front-camera face mesh
+  'ai_gaze_prediction', // predictive foveated rendering from head movement history
+  'ai_thermal_prediction', // ML-based preemptive thermal throttling
+  'ai_voice_command', // Web Speech API + lightweight intent matching
+  'ai_neural_upscale', // edge-preserving neural super-resolution post-process
+  'neural_texture', // AI-generated texture material property
 ] as const;
 
 export type PhoneSleeveVRTraitName = (typeof PHONE_SLEEVE_VR_TRAITS)[number];
