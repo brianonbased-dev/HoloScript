@@ -398,7 +398,7 @@ export const VR_TRAITS = [
   // Character Materials — SSS, Eye, Hair, Cloth (38 traits — Phase R4)
   ...CHARACTER_MATERIAL_TRAITS,
 
-  // Phone Sleeve VR — smartphone-as-headset (25 traits)
+  // Phone Sleeve VR — smartphone-as-headset (31 traits)
   ...PHONE_SLEEVE_VR_TRAITS,
 
   // Geo-Anchored Holograms — GPS-pinned persistent scenes (12 traits)

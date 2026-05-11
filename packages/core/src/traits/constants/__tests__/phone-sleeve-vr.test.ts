@@ -3,8 +3,8 @@ import { PHONE_SLEEVE_VR_TRAITS } from '../mobile/phone-sleeve-vr';
 import { VR_TRAITS } from '../index';
 
 describe('Phone Sleeve VR Traits', () => {
-  it('exports 25 traits', () => {
-    expect(PHONE_SLEEVE_VR_TRAITS).toHaveLength(25);
+  it('exports 31 traits', () => {
+    expect(PHONE_SLEEVE_VR_TRAITS).toHaveLength(31);
   });
 
   it('contains hardware form factor traits', () => {
@@ -48,6 +48,15 @@ describe('Phone Sleeve VR Traits', () => {
     expect(PHONE_SLEEVE_VR_TRAITS).toContain('reorient_snap');
     expect(PHONE_SLEEVE_VR_TRAITS).toContain('static_horizon');
     expect(PHONE_SLEEVE_VR_TRAITS).toContain('session_timer');
+  });
+
+  it('contains AI augmentation traits', () => {
+    expect(PHONE_SLEEVE_VR_TRAITS).toContain('ai_head_tracking');
+    expect(PHONE_SLEEVE_VR_TRAITS).toContain('ai_gaze_prediction');
+    expect(PHONE_SLEEVE_VR_TRAITS).toContain('ai_thermal_prediction');
+    expect(PHONE_SLEEVE_VR_TRAITS).toContain('ai_voice_command');
+    expect(PHONE_SLEEVE_VR_TRAITS).toContain('ai_neural_upscale');
+    expect(PHONE_SLEEVE_VR_TRAITS).toContain('neural_texture');
   });
 
   it('all traits are included in VR_TRAITS', () => {

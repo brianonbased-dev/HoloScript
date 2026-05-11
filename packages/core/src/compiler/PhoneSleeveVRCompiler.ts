@@ -78,6 +78,23 @@ export interface PhoneSleeveVRCompilerOptions {
   aiUpscaling?: boolean;
 }
 
+type PhoneSleeveAIOption =
+  | 'aiTracking'
+  | 'aiGazePrediction'
+  | 'aiThermalPrediction'
+  | 'aiVoiceCommands'
+  | 'aiUpscaling';
+
+type TraitLike = HoloObjectDecl['traits'][number] | string;
+
+const PHONE_SLEEVE_AI_TRAITS: Record<string, PhoneSleeveAIOption> = {
+  ai_head_tracking: 'aiTracking',
+  ai_gaze_prediction: 'aiGazePrediction',
+  ai_thermal_prediction: 'aiThermalPrediction',
+  ai_voice_command: 'aiVoiceCommands',
+  ai_neural_upscale: 'aiUpscaling',
+};
+
 // ---------------------------------------------------------------------------
 // Shape mapping
 // ---------------------------------------------------------------------------
@@ -140,12 +157,69 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
       return this.generateWebXRFile(composition);
     }
 
-    const title = this.escapeStringValue((composition.name as string) || this.opts.title, 'XML');
-    const sceneObjects = this.compileSceneObjects(composition);
-    const lights = this.compileLights(composition);
-    const environment = this.compileEnvironment(composition);
+    const originalOptions = this.opts;
+    this.opts = this.resolvePhoneSleeveOptions(composition);
 
-    return this.buildHTML(title, sceneObjects, lights, environment);
+    try {
+      const title = this.escapeStringValue((composition.name as string) || this.opts.title, 'XML');
+      const sceneObjects = this.compileSceneObjects(composition);
+      const lights = this.compileLights(composition);
+      const environment = this.compileEnvironment(composition);
+
+      return this.buildHTML(title, sceneObjects, lights, environment);
+    } finally {
+      this.opts = originalOptions;
+    }
+  }
+
+  private resolvePhoneSleeveOptions(composition: HoloComposition): Required<PhoneSleeveVRCompilerOptions> {
+    const traits = this.collectCompositionTraits(composition);
+    const options = { ...this.opts };
+
+    for (const [traitName, optionName] of Object.entries(PHONE_SLEEVE_AI_TRAITS)) {
+      options[optionName] = options[optionName] || traits.has(traitName);
+    }
+
+    return options;
+  }
+
+  private collectCompositionTraits(composition: HoloComposition): Set<string> {
+    const traits = new Set<string>();
+    this.addTraitNames(composition.traits, traits);
+
+    for (const obj of composition.objects || []) {
+      this.collectObjectTraits(obj, traits);
+    }
+
+    for (const group of composition.spatialGroups || []) {
+      this.collectSpatialGroupTraits(group, traits);
+    }
+
+    return traits;
+  }
+
+  private collectObjectTraits(obj: HoloObjectDecl, traits: Set<string>): void {
+    this.addTraitNames(obj.traits, traits);
+
+    for (const child of obj.children || []) {
+      this.collectObjectTraits(child, traits);
+    }
+  }
+
+  private collectSpatialGroupTraits(group: HoloSpatialGroup, traits: Set<string>): void {
+    for (const obj of group.objects || []) {
+      this.collectObjectTraits(obj, traits);
+    }
+
+    for (const nestedGroup of group.groups || []) {
+      this.collectSpatialGroupTraits(nestedGroup, traits);
+    }
+  }
+
+  private addTraitNames(traitList: readonly TraitLike[] | undefined, traits: Set<string>): void {
+    for (const trait of traitList || []) {
+      traits.add(typeof trait === 'string' ? trait : trait.name);
+    }
   }
 
   // =========================================================================
@@ -157,13 +231,7 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
    */
   hasWebXRTraits(composition: HoloComposition): boolean {
     const webxrSet = new Set<string>(WEBXR_TRAITS);
-    for (const obj of composition.objects || []) {
-      for (const trait of obj.traits || []) {
-        const name = typeof trait === 'string' ? trait : trait.name;
-        if (webxrSet.has(name)) return true;
-      }
-    }
-    return false;
+    return [...this.collectCompositionTraits(composition)].some((trait) => webxrSet.has(trait));
   }
 
   /**

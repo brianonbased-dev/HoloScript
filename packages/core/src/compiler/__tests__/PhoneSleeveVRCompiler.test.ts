@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PhoneSleeveVRCompiler } from '../PhoneSleeveVRCompiler';
-import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+  HoloObjectTrait,
+  HoloSpatialGroup,
+} from '../../parser/HoloCompositionTypes';
 
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   const actual = await importOriginal();
@@ -12,6 +17,33 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
 
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return { name: 'TestScene', objects: [], ...overrides } as HoloComposition;
+}
+
+function makeTrait(name: string): HoloObjectTrait {
+  return { type: 'ObjectTrait', name, config: {} };
+}
+
+function makeObject(name: string, traitNames: string[] = []): HoloObjectDecl {
+  return {
+    type: 'Object',
+    name,
+    properties: [],
+    traits: traitNames.map(makeTrait),
+  };
+}
+
+function makeSpatialGroup(
+  name: string,
+  objects: HoloObjectDecl[],
+  groups: HoloSpatialGroup[] = []
+): HoloSpatialGroup {
+  return {
+    type: 'SpatialGroup',
+    name,
+    properties: [],
+    objects,
+    groups,
+  };
 }
 
 describe('PhoneSleeveVRCompiler', () => {
@@ -434,5 +466,51 @@ describe('PhoneSleeveVRCompiler', () => {
     expect(html).toContain('AI_THERMAL_PREDICTION_ENABLED = true');
     expect(html).toContain('AI_VOICE_COMMANDS_ENABLED = true');
     expect(html).toContain('AI_UPSCALING_ENABLED = true');
+  });
+
+  it('activates AI modules from phone-sleeve traits', () => {
+    const html = compiler.compile(
+      makeComposition({
+        objects: [
+          makeObject('RevivedSleeveScene', [
+            'ai_head_tracking',
+            'ai_gaze_prediction',
+            'ai_thermal_prediction',
+            'ai_voice_command',
+            'ai_neural_upscale',
+          ]),
+        ],
+      }),
+      'test-token'
+    );
+
+    expect(html).toContain('AI_TRACKING_ENABLED = true');
+    expect(html).toContain('AI_GAZE_PREDICTION_ENABLED = true');
+    expect(html).toContain('AI_THERMAL_PREDICTION_ENABLED = true');
+    expect(html).toContain('AI_VOICE_COMMANDS_ENABLED = true');
+    expect(html).toContain('AI_UPSCALING_ENABLED = true');
+    expect(html).toContain('initAITracking');
+    expect(html).toContain('initVoiceCommands');
+  });
+
+  it('activates AI traits in nested spatial groups without leaking state', () => {
+    const c = new PhoneSleeveVRCompiler();
+    const html = c.compile(
+      makeComposition({
+        spatialGroups: [
+          makeSpatialGroup('Outer', [], [
+            makeSpatialGroup('Nested', [makeObject('TrackedSleeveTarget', ['ai_head_tracking'])]),
+          ]),
+        ],
+      }),
+      'test-token'
+    );
+
+    expect(html).toContain('AI_TRACKING_ENABLED = true');
+    expect(html).toContain('initAITracking');
+
+    const followupHtml = c.compile(makeComposition(), 'test-token');
+    expect(followupHtml).toContain('AI_TRACKING_ENABLED = false');
+    expect(followupHtml).not.toContain('initAITracking');
   });
 });
