@@ -340,8 +340,20 @@ export default function HomePage() {
           >
             HoloMap
           </Link>
+          <Link
+            href="/playground"
+            className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/15 hover:border-white/30 rounded-xl text-white/80 hover:text-white font-medium text-lg transition-all"
+          >
+            Playground
+          </Link>
         </div>
-        <p className="text-white/30 text-sm mt-1">Free tier included. No credit card required.</p>
+        <p className="text-white/30 text-sm mt-1">
+          Free tier included. No credit card required.{' '}
+          <Link href="/playground" className="text-white/50 hover:text-white/80 underline-offset-2 hover:underline">
+            Try the playground without signing in
+          </Link>
+          .
+        </p>
       </section>
 
       {/* Live code demo -- the pitch */}
