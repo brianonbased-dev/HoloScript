@@ -105,16 +105,18 @@ Closed or materially covered since this audit began:
 - `30dbdac22`: added the external repo agent workbench.
 - `fa406b159`: introduced `WorkbenchShell` and made `/create` a workbench perspective.
 - `6390b7e59`: added the generated Studio inventory command used by this section.
+- Current visual-system pass: `globals.css` now keeps `html, body` scrollable by
+  default, carries an explicit route-shell overflow ownership comment, and is
+  guarded by `src/app/__tests__/globals-css.test.ts` against mojibake/global
+  overflow regressions.
 
 Still-open, verified gaps:
 
-- `G-STUDIO-001`: View metadata is still not registry-backed. `panelVisibilityStore.ts`
-  currently has 76 `PANEL_KEYS`, while `/create/page.tsx` still selects individual
-  booleans such as `chatOpen`; `ViewRegistry` does not exist yet.
+- `G-STUDIO-001`: View metadata is now partially registry-backed, but `/create/page.tsx`
+  still selects individual booleans such as `chatOpen` instead of rendering panels
+  from the registry end to end.
 - `G-STUDIO-002`: Brittney chat history is still not workspace-scoped:
   `components/ai/BrittneyChatPanel.tsx` calls `useAssistantHistory('default')`.
-- `G-STUDIO-003`: the visual-system cleanup remains live: `globals.css` still contains
-  mojibake comments and global `html, body { overflow: hidden; }`.
 - `G-STUDIO-004`: user provisioning still pushes a repo `.env` containing the provisioned
   `HOLOSCRIPT_API_KEY`; approved repo consent is recorded but not enforced as an
   import/connect authorization gate.
@@ -189,13 +191,16 @@ The result is not a coherent professional tool. It reads as several apps stitche
 
 ### 5. Visual system still looks AI-assembled
 
-Evidence:
+Resolved in the current cleanup:
 
-- `globals.css` contains mojibake comments such as `â•` and `â€”`.
-- `globals.css` sets `html, body { overflow: hidden; }`, forcing route-specific workarounds instead of making only the workbench shell own overflow.
+- `globals.css` no longer contains mojibake or global `html, body { overflow: hidden; }`.
+- `AppShell.tsx` now uses lucide icons through the shared surface classification.
+
+Remaining evidence:
+
 - The landing/global CSS still carries decorative mesh/gradient/orb-era patterns.
-- AppShell uses emoji icons while other navigation uses lucide.
-- Toolbar exposes too many top-level buttons at once.
+- Toolbar still exposes a dense set of mode-specific controls, though public/lab
+  controls are now gated by `NEXT_PUBLIC_STUDIO_SHOW_LABS`.
 
 The target should be a quiet professional tool surface, closer to dense creative software than a marketing demo.
 
@@ -316,8 +321,9 @@ The mistake to avoid: putting all four lanes into one toolbar.
 
 ### Phase 2: Professional visual pass
 
-- Remove emoji navigation.
-- Replace mojibake comments and route-global overflow hacks.
+- DONE: remove emoji navigation from `AppShell`.
+- DONE: replace mojibake/global overflow regressions with a CSS ownership comment
+  and `globals-css.test.ts`.
 - Establish one tokenized design system for density, panels, typography, icons, focus, menu, command palette, tabs, splitters, and status bars.
 - Validate with desktop and mobile screenshots.
 
