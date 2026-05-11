@@ -64,8 +64,10 @@ export function createFoundationDAOHandler(): TraitHandler<FoundationDAOConfig> 
     nowMs: number
   ) => {
     const totalVotes = proposal.votesFor + proposal.votesAgainst;
-    const quorumThreshold = state.membersCount * (config.quorumPercent / 100);
-    if (totalVotes <= quorumThreshold || proposal.status !== 'active') return;
+    const rawQuorumThreshold = state.membersCount * (config.quorumPercent / 100);
+    const quorumThreshold =
+      config.quorumPercent <= 0 ? 0 : Math.max(1, Math.floor(rawQuorumThreshold));
+    if (totalVotes < quorumThreshold || proposal.status !== 'active') return;
 
     proposal.status = proposal.votesFor > proposal.votesAgainst ? 'passed' : 'rejected';
     ctx.emit?.('dao:proposal_concluded', {
@@ -166,10 +168,12 @@ export function createFoundationDAOHandler(): TraitHandler<FoundationDAOConfig> 
       } else if (e.type === 'dao:vote') {
          const pid = e.payload?.proposalId as string;
          const prop = s.activeProposals.find(p => p.id === pid);
-         if (prop && prop.status === 'active') {
+         if (prop && prop.status !== 'executed') {
            const voterId = typeof e.payload?.voterId === 'string' ? (e.payload.voterId as string) : 'anonymous_voter';
            const support = Boolean(e.payload?.support);
            const weight = typeof e.payload?.weight === 'number' ? (e.payload.weight as number) : 1;
+           prop.status = 'active';
+           delete prop.executableAtMs;
            applyVote(prop, voterId, support, weight);
            maybeConcludeProposal(prop, c, s, ctx, Date.now());
            executeProposal(prop, s, ctx, Date.now());
