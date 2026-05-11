@@ -2814,6 +2814,28 @@ const httpServer = http.createServer(async (req, res) => {
 
   // POST /api/protocol — Register a protocol record
   if (url === '/api/protocol' && req.method === 'POST') {
+    const auth = await authenticateRequest(req);
+    if (!auth.active) {
+      auditLog.logAuthEvent({
+        event: 'auth_failure',
+        ip: clientIP,
+        reason: '/api/protocol publish - invalid credentials',
+      });
+      res.writeHead(401, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'WWW-Authenticate': 'Bearer realm="holoscript-mcp", error="invalid_token"',
+      });
+      res.end(
+        JSON.stringify({
+          error: 'Unauthorized',
+          message:
+            'Publishing to the HoloScript Protocol requires authentication. Register a client via POST /oauth/register and use the issued bearer token.',
+          token_endpoint: '/oauth/token',
+          registration_endpoint: '/oauth/register',
+        })
+      );
+      return;
+    }
     try {
       const body = await parseJsonBody(req);
       const contentHash = body.contentHash as string;
@@ -2855,6 +2877,21 @@ const httpServer = http.createServer(async (req, res) => {
 
   // POST /api/protocol/metadata — Store provenance metadata
   if (url === '/api/protocol/metadata' && req.method === 'POST') {
+    const auth = await authenticateRequest(req);
+    if (!auth.active) {
+      res.writeHead(401, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'WWW-Authenticate': 'Bearer realm="holoscript-mcp", error="invalid_token"',
+      });
+      res.end(
+        JSON.stringify({
+          error: 'Unauthorized',
+          message: 'Storing protocol metadata requires authentication. See POST /oauth/register.',
+          registration_endpoint: '/oauth/register',
+        })
+      );
+      return;
+    }
     try {
       const body = await parseJsonBody(req);
       const provenance = body.provenance as Record<string, unknown> | undefined;
@@ -3043,6 +3080,28 @@ const httpServer = http.createServer(async (req, res) => {
 
   // POST /api/collect/:hash — Collect a published composition
   if (url?.startsWith('/api/collect/') && req.method === 'POST') {
+    const auth = await authenticateRequest(req);
+    if (!auth.active) {
+      auditLog.logAuthEvent({
+        event: 'auth_failure',
+        ip: clientIP,
+        reason: '/api/collect collect - invalid credentials',
+      });
+      res.writeHead(401, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'WWW-Authenticate': 'Bearer realm="holoscript-mcp", error="invalid_token"',
+      });
+      res.end(
+        JSON.stringify({
+          error: 'Unauthorized',
+          message:
+            'Collecting an edition requires authentication. Register a client via POST /oauth/register and use the issued bearer token.',
+          token_endpoint: '/oauth/token',
+          registration_endpoint: '/oauth/register',
+        })
+      );
+      return;
+    }
     const hash = url.replace('/api/collect/', '');
     const record = protocolRecords.get(hash);
     if (!record) {

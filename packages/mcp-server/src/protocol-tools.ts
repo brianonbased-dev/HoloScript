@@ -197,10 +197,20 @@ async function handlePublish(args: Record<string, unknown>) {
   // Try to register via server
   const serverUrl = process.env.HOLOSCRIPT_SERVER_URL || 'https://mcp.holoscript.net';
   try {
+    // Internal MCP tool dispatch authenticates via the server-side
+    // HOLOSCRIPT_API_KEY (legacy-key auth path on http-server.ts). External
+    // callers must register a client at POST /oauth/register; this is the
+    // in-process privileged loopback.
+    const apiKey = process.env.HOLOSCRIPT_API_KEY || '';
+    const authHeaders: Record<string, string> = {
+      'Content-Type': 'application/json; charset=utf-8',
+    };
+    if (apiKey) authHeaders['x-mcp-api-key'] = apiKey;
+
     // Store metadata
     await fetch(`${serverUrl}/api/protocol/metadata`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      headers: authHeaders,
       body: JSON.stringify({
         contentHash: provenance.hash,
         provenance: {
@@ -217,7 +227,7 @@ async function handlePublish(args: Record<string, unknown>) {
     // Register protocol record
     const res = await fetch(`${serverUrl}/api/protocol`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      headers: authHeaders,
       body: JSON.stringify({
         contentHash: provenance.hash,
         author,
@@ -272,10 +282,18 @@ async function handleCollect(args: Record<string, unknown>) {
 
   const serverUrl = process.env.HOLOSCRIPT_SERVER_URL || 'https://mcp.holoscript.net';
 
+  // Internal MCP tool dispatch authenticates via legacy-key (same pattern
+  // as handlePublish — external callers register via POST /oauth/register).
+  const apiKey = process.env.HOLOSCRIPT_API_KEY || '';
+  const authHeaders: Record<string, string> = {
+    'Content-Type': 'application/json; charset=utf-8',
+  };
+  if (apiKey) authHeaders['x-mcp-api-key'] = apiKey;
+
   try {
     const res = await fetch(`${serverUrl}/api/collect/${contentHash}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      headers: authHeaders,
       body: JSON.stringify({ referrer, quantity }),
     });
 
