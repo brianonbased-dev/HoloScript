@@ -298,3 +298,13 @@ export type {
   DispatchLatencySummary,
   DispatchTierDefaultRecommendation,
 } from './dispatch/DispatchPolicyBenchmark';
+
+// Matterpak importer — bridge ingest from Matterport capture bundles (OBJ + XYZ + E57)
+// Source: research/2026-05-10_3d-real-estate-virtual-tour.md (Path A)
+export { MatterpakCompiler, createMatterpakCompiler } from './MatterpakCompiler';
+export type {
+  MatterpakCompilerOptions,
+  MatterpakCompileResult,
+  MatterpakBundle,
+  PointCloud,
+} from './MatterpakCompiler';
