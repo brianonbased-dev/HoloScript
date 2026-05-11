@@ -1,85 +1,87 @@
 # Fleet-Scale Composability Test
 
-Empirical defense for **W.GOLD.189 (Diamond) — Algebraic Trust (Tropical-Semiring tri-layer framing)**.
+Empirical defense for **W.GOLD.189 (Diamond) — Algebraic Trust (tropical-semiring tri-layer framing)**.
 
 **Spec**: `ai-ecosystem/research/2026-04-25_fleet-empirical-composability-w-gold-189.md`
-**Status**: SCAFFOLD — `run-test.mjs` runs end-to-end with 31 agents loaded; CAEL
-ingestion + tropical-semiring compose are synthetic stubs awaiting wire-up to:
-1. `@holoscript/core` SemiringHash module (production tropical min-plus compose)
-2. `/api/holomesh/agent/<handle>/audit?tick=<iso>` endpoint (CAEL trace read)
 
-## Quick start
+**Status**: LIVE-FIRST — `run-test.mjs` reads CAEL audit records from the live HoloMesh endpoint by default and marks every artifact with evidence provenance. Synthetic mode still exists for smoke tests, but it requires `--source synthetic --allow-synthetic` and writes `paper_evidence_eligible:false`.
+
+## Quick Start
 
 ```bash
-# Smoke test (2 windows, 60s each, deterministic synthetic CAEL)
-node scripts/fleet-composability/run-test.mjs --run-id smoke --tick-windows 2
+# Live CAEL evidence run (requires HOLOMESH_API_KEY)
+node scripts/fleet-composability/run-test.mjs --run-id live-smoke --tick-windows 2
 
-# Full 24h sweep (4 windows at 00:00, 06:00, 12:00, 18:00 UTC)
+# Full 24h sweep (4 windows over the last 24h)
 node scripts/fleet-composability/run-test.mjs --run-id 2026-04-25-A --tick-windows 4
+
+# Synthetic scaffold smoke (never paper evidence)
+node scripts/fleet-composability/run-test.mjs --run-id scaffold-smoke --tick-windows 2 --source synthetic --allow-synthetic
 ```
 
-Smoke output (current scaffold):
+Live artifacts include:
+
+```json
+{
+  "evidence_provenance": {
+    "source": "cael",
+    "scaffold": false,
+    "paper_evidence_eligible": true
+  },
+  "summary": {
+    "records_observed": 123,
+    "observation_gap_windows": 0
+  }
+}
 ```
-fleet size=31
-window 0 ... assoc=FAIL perm=FAIL idem=PASS (5ms)
-window 1 ... assoc=FAIL perm=FAIL idem=PASS (7ms)
-SUMMARY:
-  Associativity:           0/2
-  Permutation invariance:  0/2
-  Idempotency:             2/2
-  Tractability (<10s):     PASS
-  Fleet N:                 31
-OUTCOME: Case B — algebraic identity has a structural limit at fleet scale
-```
 
-## Why the scaffold currently FAILS associativity (this is correct)
+If any live window has missing CAEL observations, the script writes the artifact with `paper_evidence_eligible:false` and exits before reporting a paper outcome. Use `--allow-observation-gaps` only for diagnostics.
 
-The scaffold uses `SHA-256(left || ":" || right)` as `tropicalCompose` for
-self-containment. SHA-concat is **deterministic** but NOT **commutative** and
-not the true tropical (min,+) semiring W.GOLD.189 references.
+## Synthetic Mode
 
-Real production:
-- `@holoscript/core` SemiringHash uses min-plus on hash field elements
-- min-plus IS commutative AND associative → fwd = rev = rand all hold
-- Idempotency holds for both stub and production (correctly PASSES on scaffold)
+Synthetic mode is useful for smoke-testing the reduction mechanics on machines without fleet CAEL logs. It is not evidence for W.GOLD.189. The script requires the explicit `--allow-synthetic` tripwire and records:
 
-The scaffold's FAIL reveals a useful sub-result: the framing of W.GOLD.189
-must distinguish associativity (always true under `@holoscript/core`) from
-commutativity (true only because tropical (min,+) is commutative — would not
-hold for arbitrary semirings). This distinction is added to the spec memo §3.
+- `evidence_provenance.source: "synthetic"`
+- `evidence_provenance.scaffold: true`
+- `paper_evidence_eligible: false`
 
 ## Outputs
 
 `results/<run-id>.json`:
+
 ```json
 {
   "fleet_n": 31,
+  "evidence_provenance": {
+    "source": "cael",
+    "paper_evidence_eligible": true
+  },
   "summary": {
     "associativity_passes": 4,
     "permutation_invariance_passes": 4,
     "idempotency_passes": 4,
     "tractability_pass": true
   },
-  "windows": [...]
+  "windows": []
 }
 ```
 
-## Outcome cases (per spec §4)
+## Outcome Cases
 
-- **Case A** (all gates pass): W.GOLD.189 has its strongest empirical defense to date. Lands as Capstone-UIST §sec:eval:fleet `\subsection{Fleet-Scale Composability Test}`.
-- **Case B** (gates 2-4 fail at some N): Discovery of a structural limit. Becomes a revision of W.GOLD.189 (F.030 retire-with-archive) OR a standalone short paper.
-- **Case C** (gate 5 fails): Composability holds but tractability fails. Engineering paper (PPoPP / SOSP).
+- **Case A**: all live gates pass, giving W.GOLD.189 its fleet-scale empirical defense.
+- **Case B**: algebraic gates fail on live CAEL data, indicating a structural limit.
+- **Case C**: composability holds but tractability fails.
 
-All three outcomes ship a deliverable.
+Synthetic runs report `OUTCOME: Scaffold smoke only` and never enter these paper-evidence cases.
 
-## Companion fleet artifacts
+## Companion Fleet Artifacts
 
-- **Adversarial harness**: `scripts/fleet-adversarial/run-harness.mjs` — every adversarial trial generates 31 agents' worth of hash chains. This composability test runs as background postprocess on the same data → zero additional fleet cost.
-- **Paper 25 corpus**: composability test results land in `paper-25-fleet-multi-brain-aamas` §6 as one of the flagship empirical artifacts.
+- **Adversarial harness**: `scripts/fleet-adversarial/run-harness.mjs` — every adversarial trial generates hash-chain CAEL records.
+- **Paper 25 corpus**: composability results feed `paper-25-fleet-multi-brain-aamas` when the artifact is paper-eligible.
 
-## TODO for production wire-up
+## Production Evidence Rules
 
-1. Replace `tropicalCompose` / `idempotentJoin` stubs with imports from `@holoscript/core/semiring-hash`
-2. Replace `captureAgentChain` synthetic generator with HoloMesh API call to `/api/holomesh/agent/<handle>/audit?tick=<iso>` (audit producer landed in HS commit `94cc69d73`)
-3. Add `--source` flag: `synthetic` (default, scaffold) | `cael` (production)
-4. Add `--ground-truth` flag: skip windows where any agent has missing ticks (reproducibility)
+1. Default source is `cael`; no API key means the run fails before artifacting.
+2. Synthetic source requires `--allow-synthetic`.
+3. Live CAEL observation gaps fail the run unless `--allow-observation-gaps` is passed for diagnostics.
+4. Paper evidence requires `paper_evidence_eligible:true` at the artifact root.

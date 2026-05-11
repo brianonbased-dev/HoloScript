@@ -919,8 +919,13 @@ async function cliMain() {
 }
 
 // Only run CLI when invoked directly, not when imported by run-harness.mjs.
-if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}`
-    || import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'))) {
+const isMainModule = (() => {
+  if (!process.argv[1]) return false;
+  const argvPath = process.argv[1].replace(/\\/g, '/');
+  return import.meta.url === `file://${argvPath}` || import.meta.url.endsWith(argvPath);
+})();
+
+if (isMainModule) {
   cliMain().catch((err) => {
     console.error(`[slow-poisoner] FATAL: ${err.stack || err.message}`);
     process.exit(1);

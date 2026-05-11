@@ -16,10 +16,10 @@
  *   Phase C. Tick-window scaling: repeat at 4 windows over 24h
  *            (00:00, 06:00, 12:00, 18:00 UTC).
  *
- * Status: SCAFFOLD. Tropical-semiring compose helpers are stubs (operate on
- * canonical hash strings; production should call into @holoscript/core
- * SemiringHash module). CAEL ingestion stub returns synthetic data until the
- * audit-log producer (commit 94cc69d73) exposes the read endpoint.
+ * Status: LIVE-FIRST. The default path reads CAEL records from the live
+ * HoloMesh audit endpoint. Synthetic data is smoke-test-only and requires
+ * --source synthetic --allow-synthetic so paper artifacts cannot be generated
+ * from stubs by accident.
  *
  * Usage:
  *   node run-test.mjs --run-id 2026-04-25-A
@@ -48,8 +48,10 @@ function parseArgs(argv) {
     runId: null,
     tickWindows: 4,
     windowSizeMs: 60_000,
-    source: 'synthetic',
-    apiBase: process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net',
+    source: 'cael',
+    allowSynthetic: false,
+    allowObservationGaps: false,
+    apiBase: (process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net').replace(/\/api\/holomesh\/?$/, ''),
     apiKey: process.env.HOLOMESH_API_KEY || null,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -58,12 +60,18 @@ function parseArgs(argv) {
     else if (argv[i] === '--window-size-ms') args.windowSizeMs = Number(argv[++i]);
     else if (argv[i] === '--source') args.source = argv[++i];
     else if (argv[i] === '--api-base') args.apiBase = argv[++i];
+    else if (argv[i] === '--api-key') args.apiKey = argv[++i];
+    else if (argv[i] === '--allow-synthetic') args.allowSynthetic = true;
+    else if (argv[i] === '--allow-observation-gaps') args.allowObservationGaps = true;
   }
   if (!args.runId) {
     args.runId = `${new Date().toISOString().slice(0, 10)}-AUTO`;
   }
   if (!['synthetic', 'cael'].includes(args.source)) {
     throw new Error(`--source must be synthetic|cael (got "${args.source}")`);
+  }
+  if (args.source === 'synthetic' && !args.allowSynthetic) {
+    throw new Error('--source synthetic requires --allow-synthetic; scaffold output is not paper evidence');
   }
   if (args.source === 'cael' && !args.apiKey) {
     throw new Error('--source cael requires HOLOMESH_API_KEY env var (read access to /api/holomesh/agent/:handle/audit)');
@@ -131,7 +139,7 @@ function composeChain(chain) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase A: Per-agent CAEL chain capture (SCAFFOLD — synthetic stub)
+// Phase A: Per-agent CAEL chain capture (live by default; synthetic opt-in)
 // ---------------------------------------------------------------------------
 
 async function loadFleet() {
@@ -152,13 +160,33 @@ async function fetchCaelRecords(args, handle, sinceIso, untilIso) {
   url.searchParams.set('until', untilIso);
   url.searchParams.set('limit', '1000');
   const response = await fetch(url.toString(), {
-    headers: { 'x-mcp-api-key': args.apiKey },
+    headers: {
+      'x-mcp-api-key': args.apiKey,
+      Authorization: `Bearer ${args.apiKey}`,
+    },
   });
   if (!response.ok) {
     throw new Error(`GET ${url} failed: ${response.status} ${response.statusText}`);
   }
   const body = await response.json();
   return body.records || [];
+}
+
+function evidenceProvenance(args, { handle, sinceIso = null, untilIso = null, recordsObserved = 0, error = null }) {
+  return {
+    source: args.source,
+    scaffold: args.source === 'synthetic',
+    paper_evidence_eligible: args.source === 'cael' && recordsObserved > 0 && !error,
+    endpoint: args.source === 'cael'
+      ? `/api/holomesh/agent/${handle}/audit`
+      : null,
+    api_base: args.source === 'cael' ? args.apiBase : null,
+    since: sinceIso,
+    until: untilIso,
+    records_observed: recordsObserved,
+    error,
+    fetched_at: new Date().toISOString(),
+  };
 }
 
 /**
@@ -180,8 +208,8 @@ async function captureAgentChain(agent, tickIso, args) {
     try {
       records = await fetchCaelRecords(args, agent.handle, sinceIso, untilIso);
     } catch (err) {
-      // CAEL read failures are observation gaps — emit null layers so the
-      // composability test scores them as missing, not as bogus.
+      // CAEL read failures are observation gaps. The live-first runner fails
+      // before reporting a paper outcome unless --allow-observation-gaps is set.
       return {
         agent_handle: agent.handle,
         brain_class: (agent.brainPath || '').split('/').pop().replace('.hsplus', ''),
@@ -190,6 +218,12 @@ async function captureAgentChain(agent, tickIso, args) {
         intra_agent_compose: null,
         records_observed: 0,
         cael_error: String(err.message || err),
+        evidence_provenance: evidenceProvenance(args, {
+          handle: agent.handle,
+          sinceIso,
+          untilIso,
+          error: String(err.message || err),
+        }),
       };
     }
     if (records.length === 0) {
@@ -200,6 +234,12 @@ async function captureAgentChain(agent, tickIso, args) {
         layers: null,
         intra_agent_compose: null,
         records_observed: 0,
+        evidence_provenance: evidenceProvenance(args, {
+          handle: agent.handle,
+          sinceIso,
+          untilIso,
+          recordsObserved: 0,
+        }),
       };
     }
     // Per-layer position reduce: records[i].layer_hashes[j] composes per j
@@ -218,9 +258,15 @@ async function captureAgentChain(agent, tickIso, args) {
       layers: perLayer,
       intra_agent_compose: composeChain(perLayer),
       records_observed: records.length,
+      evidence_provenance: evidenceProvenance(args, {
+        handle: agent.handle,
+        sinceIso,
+        untilIso,
+        recordsObserved: records.length,
+      }),
     };
   }
-  // synthetic mode (default)
+  // Synthetic mode is opt-in scaffold smoke only.
   const layers = [];
   for (let j = 1; j <= 7; j++) {
     // Synthetic: deterministic per (handle, tick, layer). Real impl reads CAEL.
@@ -235,6 +281,8 @@ async function captureAgentChain(agent, tickIso, args) {
     tick_iso: tickIso,
     layers,
     intra_agent_compose: composeChain(layers),
+    records_observed: 0,
+    evidence_provenance: evidenceProvenance(args, { handle: agent.handle }),
   };
 }
 
@@ -315,14 +363,32 @@ async function runWindow(window, fleet, args) {
   const start = Date.now();
   const perAgent = await Promise.all(fleet.map((a) => captureAgentChain(a, window.start, args)));
   const tests = composeCrossAgentTests(perAgent);
+  const observationGaps = perAgent
+    .filter((c) => c.intra_agent_compose == null)
+    .map((c) => ({
+      agent_handle: c.agent_handle,
+      error: c.cael_error || null,
+      records_observed: c.records_observed || 0,
+    }));
+  const recordsObserved = perAgent.reduce((sum, c) => sum + (c.records_observed || 0), 0);
   return {
     window,
     tests,
     elapsed_ms: Date.now() - start,
     captured_agents: perAgent.length,
+    evidence_provenance: {
+      source: args.source,
+      scaffold: args.source === 'synthetic',
+      paper_evidence_eligible: args.source === 'cael' && observationGaps.length === 0,
+      records_observed: recordsObserved,
+      agents_observed: tests.n_observed,
+      agents_missing: tests.n_missing,
+      observation_gaps: observationGaps,
+    },
     sample_intra: perAgent.slice(0, 2).map((c) => ({
       agent_handle: c.agent_handle,
       intra_agent_compose: c.intra_agent_compose,
+      records_observed: c.records_observed || 0,
     })),
   };
 }
@@ -338,7 +404,9 @@ async function main() {
   console.log(`[fleet-composability] run-id=${args.runId}`);
   console.log(`[fleet-composability] fleet size=${fleet.length}`);
   console.log(`[fleet-composability] tick windows=${args.tickWindows} window-size-ms=${args.windowSizeMs}`);
-  console.log(`[fleet-composability] STATUS: scaffold — CAEL ingestion is synthetic stub`);
+  console.log(args.source === 'cael'
+    ? `[fleet-composability] STATUS: live CAEL read mode`
+    : `[fleet-composability] STATUS: scaffold synthetic mode (explicit opt-in; not paper evidence)`);
 
   if (fleet.length === 0) {
     console.error(`[fleet-composability] FATAL: empty fleet (agents.json had no enabled agents)`);
@@ -363,6 +431,12 @@ async function main() {
     total_windows: results.length,
     tractability_pass: results.every((r) => r.elapsed_ms < 10_000),
     fleet_n: fleet.length,
+    evidence_source: args.source,
+    scaffold_mode: args.source === 'synthetic',
+    records_observed: results.reduce((sum, r) => sum + (r.evidence_provenance?.records_observed || 0), 0),
+    observation_gap_windows: results.filter((r) => r.evidence_provenance?.observation_gaps?.length > 0).length,
+    paper_evidence_eligible: args.source === 'cael'
+      && results.every((r) => r.evidence_provenance?.paper_evidence_eligible),
   };
 
   const resultsDir = join(__dirname, 'results');
@@ -372,6 +446,14 @@ async function main() {
   await writeFile(outPath, JSON.stringify({
     run_id: args.runId,
     started_at: new Date().toISOString(),
+    evidence_provenance: {
+      source: args.source,
+      scaffold: args.source === 'synthetic',
+      paper_evidence_eligible: summary.paper_evidence_eligible,
+      api_base: args.source === 'cael' ? args.apiBase : null,
+      synthetic_opt_in: args.allowSynthetic,
+      observation_gaps_allowed: args.allowObservationGaps,
+    },
     fleet_n: fleet.length,
     tick_windows_planned: args.tickWindows,
     window_size_ms: args.windowSizeMs,
@@ -386,6 +468,20 @@ async function main() {
   console.log(`  Idempotency:             ${summary.idempotency_passes}/${summary.total_windows}`);
   console.log(`  Tractability (<10s):     ${summary.tractability_pass ? 'PASS' : 'FAIL'}`);
   console.log(`  Fleet N:                 ${summary.fleet_n}`);
+  console.log(`  Evidence source:         ${summary.evidence_source}`);
+  console.log(`  Records observed:        ${summary.records_observed}`);
+  console.log(`  Paper evidence eligible: ${summary.paper_evidence_eligible ? 'YES' : 'NO'}`);
+
+  if (args.source === 'synthetic') {
+    console.log(`[fleet-composability] OUTCOME: Scaffold smoke only — synthetic output is not paper evidence.`);
+    return;
+  }
+
+  if (summary.observation_gap_windows > 0 && !args.allowObservationGaps) {
+    console.error(`[fleet-composability] FATAL: live CAEL observation gaps in ${summary.observation_gap_windows}/${summary.total_windows} windows; no paper outcome reported.`);
+    console.error(`[fleet-composability] Re-run with --allow-observation-gaps only for diagnostics, not paper evidence.`);
+    process.exit(2);
+  }
 
   // Determine outcome class per spec §4
   const allTestsPass = summary.associativity_passes === summary.total_windows
@@ -399,7 +495,6 @@ async function main() {
   } else {
     console.log(`[fleet-composability] OUTCOME: Case B — algebraic identity has a structural limit at fleet scale`);
   }
-  console.log(`[fleet-composability] NOTE: synthetic-stub CAEL means above outcome reflects scaffold integrity, not real fleet semantics.`);
 }
 
 main().catch((err) => {

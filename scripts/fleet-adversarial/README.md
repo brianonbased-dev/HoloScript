@@ -3,88 +3,84 @@
 Empirical eval coordinator for **Paper 21 (Adversarial Trust Injection — USENIX Sec '27)**.
 
 **Spec**: `ai-ecosystem/research/2026-04-25_fleet-adversarial-harness-paper-21.md`
-**Status**: SCAFFOLD — `run-harness.mjs` iterates the 300-cell matrix; attacker
-loops + oracle are stubs awaiting founder ruling on adversarial budget +
-production-vs-sandbox target mode.
 
-## Founder rulings (2026-04-25)
+**Status**: LIVE-FIRST — `run-harness.mjs` requires a HoloMesh API key by default, posts dispatch entries to worker-side attacker loops, scores from live CAEL audit reads, and marks every artifact with evidence provenance. Scaffold mode requires `--allow-scaffold` and cannot clear phase gates.
 
-1. **Budget**: shares the $50/day fleet cap (no separate adversarial envelope).
-2. **Target mode**: PRODUCTION (no sandbox parallel reality).
-3. **Progressive rollout**: phase-gated. Phase N+1 refuses until phase N's `gate-clear-<phase>.json` shows `cael_integrity_pct=100` and `foreign_route_writes=0`.
+## Founder Rulings
 
-## Quick start (production)
+1. **Budget**: shares the fleet cap; no separate adversarial envelope.
+2. **Target mode**: production, with progressive smoke gates.
+3. **Progressive rollout**: phase N+1 refuses until phase N's `gate-clear-<phase>.json` shows `cael_integrity_pct=100` and `foreign_route_writes=0`.
+
+## Quick Start
 
 ```bash
-# Phase 0 — single-cell smoke (1 attacker × 1 target × 30s × 1 trial)
-node run-harness.mjs --run-id phase-0 --phase 0
+# Phase 0 — single-cell live smoke (1 attacker x 1 target x 30s x 1 trial)
+node scripts/fleet-adversarial/run-harness.mjs --run-id phase-0 --phase 0
 
-# Phase 1 — class-coverage smoke (5 attackers × 5 target classes × 30s × 2 trials = 10 cells)
-# Refuses until Phase 0 gate-clear shows CAEL integrity 100%
-node run-harness.mjs --run-id phase-1 --phase 1
+# Phase 1 — class-coverage smoke; refuses until Phase 0 gate-clear passes
+node scripts/fleet-adversarial/run-harness.mjs --run-id phase-1 --phase 1
 
-# Phase 2 — full eval matrix (300-cell short or 450-cell full)
-# Refuses until Phase 1 gate-clear shows CAEL integrity 100%
-node run-harness.mjs --run-id phase-2-short --phase 2 --duration-mode short
-node run-harness.mjs --run-id phase-2-full  --phase 2 --duration-mode full
+# Phase 2 — full eval matrix
+node scripts/fleet-adversarial/run-harness.mjs --run-id phase-2-short --phase 2 --duration-mode short
+node scripts/fleet-adversarial/run-harness.mjs --run-id phase-2-full --phase 2 --duration-mode full
+
+# Scaffold smoke only; never paper evidence
+node scripts/fleet-adversarial/run-harness.mjs --run-id scaffold-phase-0 --phase 0 --allow-scaffold
 ```
 
-## What lives here
+## What Lives Here
 
-```
+```text
 fleet-adversarial/
-├── run-harness.mjs              # Coordinator (LANDED, scaffold)
-├── attacker-loops/              # 5 attack classes (TODO)
-│   ├── whitewasher.mjs          # legitimate trust build → one-shot exploit
-│   ├── sybil-cross-vouch.mjs    # N servers cross-vouching for inflation
-│   ├── slow-poisoner.mjs        # Indistinguishable Canary Probing
-│   ├── reputation-squatter.mjs  # squat well-known names
-│   └── cross-brain-hijack.mjs   # hijack trust-routing across brain classes
-├── oracle/                      # Per-trial scoring (TODO)
-│   ├── divergence-detector.mjs  # CAEL-vs-claimed-trust-score divergence
-│   └── eval-matrix-runner.mjs   # cell iteration + result aggregation
-├── results/                     # per-run JSON (gitignored after first commit)
-└── README.md                    # this file
+├── run-harness.mjs              # live-first coordinator
+├── worker-dispatch-consumer.mjs # worker-side dispatch poller for all 5 attack classes
+├── attacker-loops/
+│   ├── whitewasher.mjs
+│   ├── sybil-cross-vouch.mjs
+│   ├── slow-poisoner.mjs
+│   ├── reputation-squatter.mjs
+│   └── cross-brain-hijack.mjs
+├── oracle/
+│   └── divergence-detector.mjs  # live CAEL scoring
+└── results/
 ```
 
 ## Outputs
 
-`results/<run-id>.json` rows:
+`results/<run-id>.json` rows include:
+
 ```json
 {
   "attacker_handle": "mesh-worker-04",
   "target_handle": "mesh-worker-12",
   "attack_class": "whitewasher",
-  "defense_state": "decay-on-anomaly",
-  "duration_ms": 300000,
-  "divergence_observed": true,
-  "time_to_detect_seconds": 187.3,
-  "status": "OK"
+  "duration_ms": 30000,
+  "status": "OK",
+  "evidence_provenance": {
+    "source": "live-holomesh-cael",
+    "scaffold": false,
+    "paper_evidence_eligible": true,
+    "dispatch_endpoint": "/api/holomesh/agent/mesh-worker-04/dispatch",
+    "attacker_audit_endpoint": "/api/holomesh/agent/mesh-worker-04/audit",
+    "target_audit_endpoint": "/api/holomesh/agent/mesh-worker-12/audit"
+  }
 }
 ```
 
-## Gate clearing → Paper 21 §5/§6 fill-in
+Scaffold rows use `status: "SCAFFOLD_ONLY"` and `paper_evidence_eligible:false`.
 
-Per spec §4, the harness clears the gate when:
-1. ≥4 of 5 attack classes succeed at ≥80% rate against ≥3 of 6 target classes
-2. All 3 defenses individually reduce per-class success by ≥50%
-3. "all-three" defense state reduces by ≥90%
-4. Full eval ≤ $50 fleet-budget over 2 days
-5. 100% CAEL trace integrity
+## Gate Clearing
 
-If gates 1+2+3 clear → §5 §6 fill-in lands.
-If gate 1 fails → publishable null-result ("defenses sufficient by structure alone").
-If gate 2 fails → publishable defense-insufficiency result.
+The harness clears a phase gate only when:
 
-## Companion fleet artifacts
+1. every row scores `status:"OK"`;
+2. `cael_integrity_pct=100`;
+3. `foreign_route_writes=0`.
 
-- **Composability test**: `scripts/fleet-composability/run-test.mjs` shares the same CAEL ingestion pipeline. Runs as background postprocess — zero additional fleet cost.
-- **Paper 25 corpus**: every adversarial trial contributes to the fleet-self-described paper's empirical corpus (`research/2026-04-25_paper-25-fleet-multi-brain-aamas.md`).
+`DISPATCH_FAILED`, `NO_ATTACKER_TRACE`, `CAEL_FETCH_ERROR`, `DEFENSE_PATCH_FAILED`, and `SCAFFOLD_ONLY` all keep the next phase gated. That is intentional: no attacker dispatch, no CAEL, no paper evidence.
 
-## Founder gates — CLOSED 2026-04-25
+## Companion Fleet Artifacts
 
-1. **Adversarial budget**: shares $50/day fleet cap. ✅ RULED.
-2. **Target mode**: PRODUCTION (smoke-pass progressive rollout). ✅ RULED.
-3. **Reviewer disclosure / ethics**: agents are owned property; no IRB needed; production-not-simulation framing IS the methodological contribution. ✅ RULED.
-
-Spec memo §7 carries the full ruling text + citations.
+- **Composability test**: `scripts/fleet-composability/run-test.mjs` shares the same CAEL ingestion discipline.
+- **Paper 25 corpus**: adversarial CAEL traces can feed the fleet self-description corpus when artifacts are paper-eligible.

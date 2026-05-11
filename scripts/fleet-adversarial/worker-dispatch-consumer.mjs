@@ -39,10 +39,8 @@ import process from 'node:process';
 import { runWhitewasher } from './attacker-loops/whitewasher.mjs';
 import { runReputationSquatter } from './attacker-loops/reputation-squatter.mjs';
 import { runCrossBrainHijack } from './attacker-loops/cross-brain-hijack.mjs';
-// sybil + slow-poisoner have their own runner shape that may differ; for
-// now, support whitewasher + reputation-squatter + cross-brain-hijack.
-// TODO(Phase 1.5): unify all 5 attacker entrypoints under a single
-// runAttacker(opts) registry to drop the per-class import here.
+import { runSybilCrossVouch } from './attacker-loops/sybil-cross-vouch.mjs';
+import { runSlowPoisoner } from './attacker-loops/slow-poisoner.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -51,7 +49,8 @@ const ATTACKER_REGISTRY = {
   whitewasher: runWhitewasher,
   'reputation-squatter': runReputationSquatter,
   'cross-brain-hijack': runCrossBrainHijack,
-  // sybil-cross-vouch + slow-poisoner — TODO unify entrypoint
+  'sybil-cross-vouch': runSybilCrossVouch,
+  'slow-poisoner': runSlowPoisoner,
 };
 
 function parseArgs(argv) {
