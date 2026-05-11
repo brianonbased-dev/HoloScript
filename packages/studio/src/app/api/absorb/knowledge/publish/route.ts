@@ -3,6 +3,7 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 
 import { corsHeaders } from '../../../_lib/cors';
+import { publishKnowledgeEntries } from '@/lib/knowledgePublication';
 const MCP_SERVER_URL = process.env.MCP_SERVER_URL || 'https://mcp.holoscript.net';
 const HOLOMESH_KEY = process.env.HOLOMESH_API_KEY;
 
@@ -33,55 +34,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const defaultPremium = body.default_premium === true;
-    let premium_count = 0;
-    let free_count = 0;
-    let successCount = 0;
-    const errors: string[] = [];
-
-    // POST https://mcp.holoscript.net/api/holomesh/contribute
-    for (const entry of entries) {
-      try {
-        const isPremium = entry.is_premium ?? defaultPremium;
-
-        const res = await fetch(`${MCP_SERVER_URL}/api/holomesh/contribute`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${HOLOMESH_KEY}`,
-          },
-          body: JSON.stringify({
-            // Fallback map format if type is raw text
-            type: entry.type?.toLowerCase() || 'wisdom',
-            content: entry.content || '',
-            domain: workspaceId,
-            tags: isPremium ? ['premium'] : [],
-            ...entry,
-            is_premium: isPremium,
-          }),
-        });
-
-        if (res.ok) {
-          successCount++;
-          if (isPremium) {
-            premium_count++;
-          } else {
-            free_count++;
-          }
-        } else {
-          errors.push(await res.text());
-        }
-      } catch (err) {
-        errors.push(String(err));
-      }
-    }
+    const result = await publishKnowledgeEntries({
+      entries,
+      workspaceId,
+      defaultPremium: body.default_premium === true,
+      holomeshKey: HOLOMESH_KEY,
+      mcpServerUrl: MCP_SERVER_URL,
+    });
 
     return NextResponse.json({
       success: true,
-      publishedCount: successCount,
-      premium_count,
-      free_count,
-      errors: errors.length > 0 ? errors : undefined,
+      publishedCount: result.publishedCount,
+      premium_count: result.premium_count,
+      free_count: result.free_count,
+      errors: result.errors,
     });
   } catch (err) {
     return NextResponse.json({ success: false, error: String(err) }, { status: 500 });

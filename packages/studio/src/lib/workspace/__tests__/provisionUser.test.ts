@@ -43,11 +43,26 @@ function mockFounderGit(): void {
 describe('provisionUser founder bootstrap', () => {
   const savedFounderUsers = process.env.STUDIO_FOUNDER_GITHUB_USERS;
   const savedMasterKey = process.env.HOLOSCRIPT_API_KEY;
+  const savedHoloMeshKey = process.env.HOLOMESH_API_KEY;
+  const savedMcpServerUrl = process.env.MCP_SERVER_URL;
+  let publishStatus = 200;
+  let extractEntries: Array<Record<string, unknown>> = [];
 
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.STUDIO_FOUNDER_GITHUB_USERS = 'brianonbased-dev';
     process.env.HOLOSCRIPT_API_KEY = 'master-key';
+    process.env.HOLOMESH_API_KEY = 'holomesh-publish-key';
+    process.env.MCP_SERVER_URL = 'https://mcp.test';
+    publishStatus = 200;
+    extractEntries = [
+      {
+        type: 'wisdom',
+        content: 'Starter workspaces should keep W/P/G entries attributable to the source repo.',
+        tags: ['absorb'],
+        confidence: 0.92,
+      },
+    ];
     mockFounderGit();
     vi.stubGlobal(
       'fetch',
@@ -57,6 +72,20 @@ describe('provisionUser founder bootstrap', () => {
         if (href.includes('/admin/keys')) {
           return new Response(JSON.stringify({ key: 'mcp-provisioned-secret-key' }), {
             status: 200,
+          });
+        }
+        if (href.includes('/tools/call')) {
+          const payload = JSON.parse(String(init?.body ?? '{}')) as { tool?: string };
+          if (payload.tool === 'absorb_run_absorb') {
+            return new Response(JSON.stringify({ success: true }), { status: 200 });
+          }
+          if (payload.tool === 'absorb_extract_knowledge') {
+            return new Response(JSON.stringify({ entries: extractEntries }), { status: 200 });
+          }
+        }
+        if (href === 'https://mcp.test/api/holomesh/contribute' && method === 'POST') {
+          return new Response(publishStatus === 200 ? JSON.stringify({ id: 'entry_1' }) : 'publish failed', {
+            status: publishStatus,
           });
         }
         if (href === 'https://api.github.com/user/repos' && method === 'POST') {
@@ -94,6 +123,16 @@ describe('provisionUser founder bootstrap', () => {
       delete process.env.HOLOSCRIPT_API_KEY;
     } else {
       process.env.HOLOSCRIPT_API_KEY = savedMasterKey;
+    }
+    if (savedHoloMeshKey === undefined) {
+      delete process.env.HOLOMESH_API_KEY;
+    } else {
+      process.env.HOLOMESH_API_KEY = savedHoloMeshKey;
+    }
+    if (savedMcpServerUrl === undefined) {
+      delete process.env.MCP_SERVER_URL;
+    } else {
+      process.env.MCP_SERVER_URL = savedMcpServerUrl;
     }
     vi.unstubAllGlobals();
   });
@@ -439,6 +478,106 @@ describe('provisionUser founder bootstrap', () => {
           Authorization: 'Bearer gho_customer_secret_token',
         }),
       })
+    );
+  });
+
+  it('publishes extracted knowledge with attribution when consent is approved', async () => {
+    const result = await provisionUser({
+      githubAccessToken: 'gho_customer_secret_token',
+      githubUsername: 'octocat',
+      email: 'octocat@example.com',
+      approvedRepos: [],
+      approvedScaffold: false,
+      approvedAbsorb: true,
+      approvedPublishKnowledge: true,
+      approvedDaemon: false,
+      intent: 'Ship a HoloScript starter workspace',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'absorb-scan', status: 'done' }),
+        expect.objectContaining({
+          name: 'publish-knowledge',
+          status: 'done',
+          detail: 'published 1 knowledge entries',
+        }),
+      ])
+    );
+
+    const fetchMock = vi.mocked(fetch);
+    const toolPayloads = fetchMock.mock.calls
+      .filter(([url]) => String(url).includes('/tools/call'))
+      .map(([, init]) => JSON.parse(String(init?.body ?? '{}')) as { tool: string; args: Record<string, unknown> });
+    expect(toolPayloads.map((payload) => payload.tool)).toEqual([
+      'absorb_run_absorb',
+      'absorb_extract_knowledge',
+    ]);
+    expect(toolPayloads[1].args).toMatchObject({
+      workspaceId: 'ws_octocat',
+      repoUrl: 'https://github.com/octocat/ai-workspace-octocat',
+    });
+
+    const [, publishInit] = fetchMock.mock.calls.find(([url]) =>
+      String(url).includes('/api/holomesh/contribute')
+    ) as [string, RequestInit];
+    const published = JSON.parse(String(publishInit.body)) as {
+      type: string;
+      content: string;
+      domain: string;
+      tags: string[];
+      metadata: {
+        attribution: Record<string, string>;
+        provenance: Record<string, string | null>;
+      };
+    };
+
+    expect(publishInit.headers).toMatchObject({
+      Authorization: 'Bearer holomesh-publish-key',
+    });
+    expect(published).toMatchObject({
+      type: 'wisdom',
+      content: 'Starter workspaces should keep W/P/G entries attributable to the source repo.',
+      domain: 'ws_octocat',
+      tags: expect.arrayContaining(['absorb', 'studio-provision', 'workspace:ws_octocat']),
+    });
+    expect(published.metadata.attribution).toMatchObject({
+      githubUsername: 'octocat',
+      workspaceId: 'ws_octocat',
+      repoUrl: 'https://github.com/octocat/ai-workspace-octocat',
+      repoName: 'ai-workspace-octocat',
+    });
+    expect(published.metadata.provenance).toMatchObject({
+      tool: 'absorb_extract_knowledge',
+      intent: 'Ship a HoloScript starter workspace',
+    });
+  });
+
+  it('fails the publish step when HoloMesh publication fails', async () => {
+    publishStatus = 500;
+
+    const result = await provisionUser({
+      githubAccessToken: 'gho_customer_secret_token',
+      githubUsername: 'octocat',
+      email: 'octocat@example.com',
+      approvedRepos: [],
+      approvedScaffold: false,
+      approvedAbsorb: true,
+      approvedPublishKnowledge: true,
+      approvedDaemon: false,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Knowledge publication failed/i);
+    expect(result.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'publish-knowledge',
+          status: 'failed',
+          detail: expect.stringMatching(/publish failed/i),
+        }),
+      ])
     );
   });
 

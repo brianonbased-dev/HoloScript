@@ -1,6 +1,10 @@
 import { execFile } from 'child_process';
 import * as os from 'os';
 import * as path from 'path';
+import {
+  publishKnowledgeEntries,
+  type KnowledgePublicationEntry,
+} from '@/lib/knowledgePublication';
 import { buildAccountWorkspaceSeed, type AccountWorkspaceMetadata } from './accountWorkspace';
 import { RepoConsentError, requireApprovedGitHubRepo } from './repoConsent';
 import { resolveWorkspaceIdForIdentity } from './workspaceIdentity';
@@ -108,6 +112,19 @@ interface ApiKeyOptions {
   workspaceId?: string;
   tier?: 'starter' | 'founder';
   metadata?: Record<string, unknown>;
+}
+
+interface ExtractKnowledgeContext {
+  apiKey: string;
+  workspaceId: string;
+  repoUrl: string;
+  repoName: string;
+  githubUsername: string;
+  intent?: string;
+}
+
+function mcpServerUrl(): string {
+  return process.env.MCP_SERVER_URL || 'https://mcp.holoscript.net';
 }
 
 // ── Step 1: Provision API Key ────────────────────────────────────────────────
@@ -430,6 +447,150 @@ async function startDaemon(apiKey: string, workspaceId: string, repoUrl: string)
   });
 }
 
+async function readJsonResponse(response: Response): Promise<unknown> {
+  return response.json().catch(() => ({}));
+}
+
+function payloadEntries(payload: unknown): unknown[] {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== 'object') return [];
+
+  const record = payload as Record<string, unknown>;
+  if (Array.isArray(record.entries)) return record.entries;
+  if (Array.isArray(record.knowledge)) return record.knowledge;
+  if (Array.isArray(record.items)) return record.items;
+
+  const result = record.result;
+  if (result && typeof result === 'object') {
+    return payloadEntries(result);
+  }
+
+  const content = record.content;
+  if (Array.isArray(content)) {
+    for (const part of content) {
+      if (part && typeof part === 'object' && typeof (part as { text?: unknown }).text === 'string') {
+        try {
+          return payloadEntries(JSON.parse((part as { text: string }).text));
+        } catch {
+          return [];
+        }
+      }
+    }
+  }
+
+  return [];
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+function normalizeKnowledgeEntry(
+  value: unknown,
+  index: number,
+  context: ExtractKnowledgeContext
+): KnowledgePublicationEntry | null {
+  if (!value || typeof value !== 'object') return null;
+  const record = value as Record<string, unknown>;
+  const content = typeof record.content === 'string' ? record.content.trim() : '';
+  if (!content) return null;
+
+  const type = typeof record.type === 'string' ? record.type.toLowerCase() : 'wisdom';
+  const tags = Array.from(
+    new Set([
+      ...stringArray(record.tags),
+      'studio-provision',
+      `workspace:${context.workspaceId}`,
+    ])
+  );
+  const metadata =
+    record.metadata && typeof record.metadata === 'object'
+      ? { ...(record.metadata as Record<string, unknown>) }
+      : {};
+
+  return {
+    ...record,
+    type,
+    content,
+    domain: typeof record.domain === 'string' ? record.domain : context.workspaceId,
+    tags,
+    workspace_id: context.workspaceId,
+    workspaceId: context.workspaceId,
+    metadata: {
+      ...metadata,
+      source: 'studio-provision',
+      extractionIndex: index,
+      attribution: {
+        githubUsername: context.githubUsername,
+        workspaceId: context.workspaceId,
+        repoUrl: context.repoUrl,
+        repoName: context.repoName,
+      },
+      provenance: {
+        tool: 'absorb_extract_knowledge',
+        workspaceId: context.workspaceId,
+        repoUrl: context.repoUrl,
+        repoName: context.repoName,
+        intent: context.intent ?? null,
+      },
+    },
+  };
+}
+
+async function extractProvisionedKnowledge(
+  context: ExtractKnowledgeContext
+): Promise<KnowledgePublicationEntry[]> {
+  const response = await fetch(`${ORCHESTRATOR_URL}/tools/call`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-mcp-api-key': context.apiKey },
+    body: JSON.stringify({
+      server: 'holoscript-absorb',
+      tool: 'absorb_extract_knowledge',
+      args: {
+        workspaceId: context.workspaceId,
+        repoUrl: context.repoUrl,
+        minConfidence: 0.5,
+        maxPerType: 20,
+        includeSpeculative: false,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to extract knowledge: ${response.status}`);
+  }
+
+  const payload = await readJsonResponse(response);
+  return payloadEntries(payload)
+    .map((entry, index) => normalizeKnowledgeEntry(entry, index, context))
+    .filter((entry): entry is KnowledgePublicationEntry => entry !== null);
+}
+
+async function publishProvisionedKnowledge(context: ExtractKnowledgeContext): Promise<number> {
+  const entries = await extractProvisionedKnowledge(context);
+  if (entries.length === 0) return 0;
+
+  const holomeshKey = process.env.HOLOMESH_API_KEY;
+  if (!holomeshKey) {
+    throw new Error('HOLOMESH_API_KEY environment variable is not set');
+  }
+
+  const result = await publishKnowledgeEntries({
+    entries,
+    workspaceId: context.workspaceId,
+    holomeshKey,
+    mcpServerUrl: mcpServerUrl(),
+  });
+
+  if (!result.allSucceeded) {
+    throw new Error(
+      `Knowledge publication failed: ${(result.errors ?? ['unknown publish error']).join('; ')}`
+    );
+  }
+
+  return result.publishedCount;
+}
+
 // ── Main Pipeline ────────────────────────────────────────────────────────────
 
 /**
@@ -625,9 +786,15 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
     // Step 6: Publish knowledge to HoloMesh (if approved)
     if (input.approvedPublishKnowledge) {
       updateStep('publish-knowledge', 'running');
-      // Knowledge extracted by Absorb will be published to HoloMesh
-      // This makes their patterns available to other agents (with attribution)
-      updateStep('publish-knowledge', 'done');
+      const publishedCount = await publishProvisionedKnowledge({
+        apiKey,
+        workspaceId,
+        repoUrl,
+        repoName,
+        githubUsername: input.githubUsername,
+        intent: input.intent,
+      });
+      updateStep('publish-knowledge', 'done', `published ${publishedCount} knowledge entries`);
     }
 
     // Step 7: Start daemon (if approved)
