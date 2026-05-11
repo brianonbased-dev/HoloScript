@@ -308,3 +308,13 @@ export type {
   MatterpakBundle,
   PointCloud,
 } from './MatterpakCompiler';
+
+// HoloGram MLS compiler — 2D listing photos → depth-estimated 3D gallery
+// Source: research/2026-05-10_3d-real-estate-virtual-tour.md (Path C)
+export { HoloGramMLSCompiler, createHoloGramMLSCompiler } from './HoloGramMLSCompiler';
+export type {
+  HoloGramMLSCompilerOptions,
+  HoloGramMLSCompileResult,
+  HoloGramMLSBundle,
+  MLSPhoto,
+} from './HoloGramMLSCompiler';
