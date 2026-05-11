@@ -370,7 +370,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="text-white/20 text-xs">
-        HoloScript v6 -- Open platform for spatial computing
+        HoloScript v7 -- Open platform for spatial computing
       </footer>
     </main>
   );
