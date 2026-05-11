@@ -34,6 +34,7 @@ export const ANSCapabilityPath = {
   SDF: '/compile/robotics/sdf',
   USD: '/compile/interchange/usd',
   GLTF: '/compile/interchange/gltf',
+  GAUSSIAN_SPLATTING: '/compile/interchange/3dgs',
   DTDL: '/compile/iot/dtdl',
   NFT_MARKETPLACE: '/compile/web3/nft-marketplace',
   SCM: '/compile/ai/scm',

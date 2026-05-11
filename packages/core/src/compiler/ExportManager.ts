@@ -58,6 +58,7 @@ import { OpenXRSpatialEntitiesCompiler } from './OpenXRSpatialEntitiesCompiler';
 import { PhoneSleeveVRCompiler } from './PhoneSleeveVRCompiler';
 import { USDPhysicsCompiler } from './USDPhysicsCompiler';
 import { USDZExportCompiler } from './USDZExportCompiler';
+import { GaussianSplattingCompiler } from './GaussianSplattingCompiler';
 import {
   CompilerStateMonitor,
   createCompilerStateMonitor,
@@ -262,6 +263,8 @@ class CompilerFactory {
         return new USDPhysicsCompiler(options);
       case 'usdz':
         return new USDZExportCompiler(options);
+      case '3dgs':
+        return new GaussianSplattingCompiler(options);
       default:
         throw new Error(`Unknown export target: ${target}`);
     }
@@ -599,6 +602,7 @@ export class ExportManager {
       'nir',
       'openxr-spatial-entities',
       'phone-sleeve-vr',
+      '3dgs',
     ];
   }
 

@@ -122,6 +122,7 @@ const COMPILER_CLASS_TO_ANS_NAME: Readonly<Record<string, CompilerName>> = {
   SDFCompiler: 'sdf',
   USDPhysicsCompiler: 'usd',
   GLTFPipeline: 'gltf',
+  GaussianSplattingCompiler: '3dgs',
   DTDLCompiler: 'dtdl',
   NFTMarketplaceCompiler: 'nft-marketplace',
   SCMCompiler: 'scm',

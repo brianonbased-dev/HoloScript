@@ -309,6 +309,10 @@ export type {
   PointCloud,
 } from './MatterpakCompiler';
 
+// Gaussian Splatting compiler — KHR_gaussian_splatting glTF extension
+export { GaussianSplattingCompiler, createGaussianSplattingCompiler } from './GaussianSplattingCompiler';
+export type { GaussianSplattingCompilerOptions } from './GaussianSplattingCompiler';
+
 // HoloGram MLS compiler — 2D listing photos → depth-estimated 3D gallery
 // Source: research/2026-05-10_3d-real-estate-virtual-tour.md (Path C)
 export { HoloGramMLSCompiler, createHoloGramMLSCompiler } from './HoloGramMLSCompiler';

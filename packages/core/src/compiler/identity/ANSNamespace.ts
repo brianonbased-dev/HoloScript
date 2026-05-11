@@ -167,6 +167,7 @@ export type CompilerName =
   // interchange
   | 'usd'
   | 'gltf'
+  | '3dgs'
   // iot
   | 'dtdl'
   // web3
@@ -246,6 +247,7 @@ export const ANSCapabilityPath = {
   // ── interchange ──────────────────────────────────────────────────────
   USD: '/compile/interchange/usd',
   GLTF: '/compile/interchange/gltf',
+  GAUSSIAN_SPLATTING: '/compile/interchange/3dgs',
 
   // ── iot ──────────────────────────────────────────────────────────────
   DTDL: '/compile/iot/dtdl',
@@ -318,6 +320,7 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   // interchange
   usd: ANSDomain.INTERCHANGE,
   gltf: ANSDomain.INTERCHANGE,
+  '3dgs': ANSDomain.INTERCHANGE,
   // iot
   dtdl: ANSDomain.IOT,
   // web3
@@ -373,6 +376,7 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
   sdf: ANSCapabilityPath.SDF,
   usd: ANSCapabilityPath.USD,
   gltf: ANSCapabilityPath.GLTF,
+  '3dgs': ANSCapabilityPath.GAUSSIAN_SPLATTING,
   dtdl: ANSCapabilityPath.DTDL,
   'nft-marketplace': ANSCapabilityPath.NFT_MARKETPLACE,
   scm: ANSCapabilityPath.SCM,
