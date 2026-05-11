@@ -82,7 +82,9 @@ curl https://mcp.holoscript.net/api/protocol/author/<address>
 curl https://mcp.holoscript.net/api/protocol/revenue/<hash>
 ```
 
-Writes (`POST /api/protocol` to publish, `POST /api/collect/:hash` to collect) are separate — they cost gas and are tracked on-chain.
+Writes (`POST /api/protocol` to publish, `POST /api/protocol/metadata`, `POST /api/collect/:hash` to collect) **require an OAuth 2.1 bearer**. Register once at `/oauth/register` (RFC 7591, instant, no human review) and send the token in `Authorization: Bearer <token>` on every write. Returning `401 Unauthorized` with `WWW-Authenticate: Bearer` if you forget — see the "When you outgrow the free tier" section below for the registration flow.
+
+This auth requirement is intentional: the protocol is the economic layer (D.013), and unauthenticated writes would let drive-by spammers poison the publish/collect records. Reads stay public.
 
 ---
 
