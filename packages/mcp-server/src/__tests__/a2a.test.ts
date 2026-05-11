@@ -1079,6 +1079,7 @@ describe('Skill Tag Derivation (comprehensive)', () => {
     ['hs_ai_explain_error', ['ai', 'assistant']],
     ['browser_launch', ['browser', 'preview']],
     ['compile_to_unity', ['compilation', 'export']],
+    ['compile_to_3dgs', ['compilation', 'export']],
     ['push_state_delta', ['networking', 'multiplayer']],
     ['create_temporal_snapshot', ['temporal', 'snapshot']],
     ['get_telemetry_metrics', ['monitoring', 'telemetry']],

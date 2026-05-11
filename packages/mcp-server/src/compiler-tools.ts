@@ -433,6 +433,7 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     'dtdl',
     'vrr',
     'multi-layer',
+    '3dgs',
   ] as unknown as ExportTarget[];
 
   const categories: Record<string, ExportTarget[]> = {
@@ -441,7 +442,7 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     'Mobile AR': ['android', 'android-xr', 'ios', 'visionos', 'ar'] as unknown as ExportTarget[],
     'Web Platforms': ['babylon', 'webgpu', 'r3f', 'wasm', 'playcanvas'] as unknown as ExportTarget[],
     'Robotics/IoT': ['urdf', 'sdf', 'dtdl'] as unknown as ExportTarget[],
-    '3D Formats': ['usd', 'usdz'] as unknown as ExportTarget[],
+    '3D Formats': ['usd', 'usdz', '3dgs'] as unknown as ExportTarget[],
     Advanced: ['vrr', 'multi-layer'] as unknown as ExportTarget[],
   };
 
@@ -537,6 +538,8 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'a2a-agent-card' });
     case 'compile_to_state':
       return handleCompileToTarget({ ...args, target: 'state' });
+    case 'compile_to_3dgs':
+      return handleCompileToTarget({ ...args, target: '3dgs' });
 
     case 'compile_to_mcp_config':
       return handleCompileMCPConfig(args);
@@ -1138,6 +1141,40 @@ export const compilerTools: Tool[] = [
       required: ['code'],
     },
   },
+  {
+    name: 'compile_to_3dgs',
+    description:
+      'Compile HoloScript to glTF 2.0 with KHR_gaussian_splatting extension. ' +
+      'Accepts @gaussian_splat trait with positions/scales/rotations/colors/opacities, ' +
+      'or raw point-cloud positions+colors (auto-computes covariance per splat). ' +
+      'Output formats: glb (single binary) or gltf (JSON + .bin).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: {
+          type: 'object',
+          properties: {
+            format: {
+              type: 'string',
+              enum: ['glb', 'gltf'],
+              description: 'Output format (default: glb)',
+            },
+            colorSpace: {
+              type: 'string',
+              enum: ['srgb_rec709_display', 'lin_rec709_display'],
+              description: 'Color space for Gaussian colors (default: srgb_rec709_display)',
+            },
+            shDegree: {
+              type: 'number',
+              description: 'Maximum spherical-harmonics degree 0-3 (default: 0)',
+            },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
 
   {
     name: 'compile_to_mcp_config',
@@ -1224,6 +1261,7 @@ export const compilerTools: Tool[] = [
             'dtdl',
             'vrr',
             'multi-layer',
+            '3dgs',
           ],
           description: 'Export target to check',
         },

@@ -29,6 +29,10 @@ const TARGET_ALIASES: Record<string, ExportTarget> = {
   wasm: 'wasm',
   urdf: 'urdf',
   sdf: 'sdf',
+  '3dgs': '3dgs',
+  'gaussian-splatting': '3dgs',
+  'gaussian_splatting': '3dgs',
+  'khr-gaussian-splatting': '3dgs',
 };
 
 function fmtNum(n: number): string {
