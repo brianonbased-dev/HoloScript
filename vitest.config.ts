@@ -77,6 +77,7 @@ export default defineConfig({
       resolve(__dirname, 'packages/mcp-server/vitest.config.ts'),
       resolve(__dirname, 'packages/partner-sdk/vitest.config.ts'),
       resolve(__dirname, 'packages/security-sandbox/vitest.config.ts'),
+      resolve(__dirname, 'packages/mcp-server-adversarial/vitest.config.ts'),
       resolve(__dirname, 'packages/ai-validator/vitest.config.ts'),
       resolve(__dirname, 'packages/comparative-benchmarks/vitest.config.ts'),
       resolve(__dirname, 'packages/llm-provider/vitest.config.ts'),

@@ -1707,6 +1707,18 @@ importers:
         specifier: ^4.1.5
         version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(vite@7.3.2)
 
+  packages/mcp-server-adversarial:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.10.13
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@7.3.2)
+
   packages/mesh:
     dependencies:
       '@holoscript/agent-protocol':

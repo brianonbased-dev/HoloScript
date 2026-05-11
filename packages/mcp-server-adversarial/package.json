@@ -1,0 +1,36 @@
+{
+  "name": "@holoscript/mcp-server-adversarial",
+  "version": "0.0.1",
+  "private": true,
+  "description": "PAPER 21 SANDBOX ONLY — Adversarial MCP server attack PoCs (Whitewasher, Sybil, Score Manipulator, Slow Poisoner, Eclipse). Refuses to load outside HOLOMESH_ADVERSARIAL_SANDBOX=1.",
+  "license": "UNLICENSED",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.5"
+  },
+  "keywords": [
+    "paper-21",
+    "adversarial-trust-injection",
+    "sandbox-only",
+    "research"
+  ]
+}
