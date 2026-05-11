@@ -20,9 +20,12 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import { EffectComposer, Bloom, SSAO, Vignette, ToneMapping } from '@react-three/postprocessing';
 import * as THREE from 'three';
-import { emergentSpacetimeHandler, type EmergentSpacetimeConfig } from '@holoscript/core/traits';
 import type { HSPlusNode } from '@holoscript/core';
 import { PerformanceOverlay } from '@/components/profiler/PerformanceOverlay';
+import {
+  emergentSpacetimeHandler,
+  type EmergentSpacetimeConfig,
+} from '@/lib/demo/emergentSpacetimeTrait';
 
 // =============================================================================
 // INSTANCED VOXEL RENDERER

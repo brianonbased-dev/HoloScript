@@ -186,7 +186,7 @@ export const usePluginManager = create<PluginManagerState>((set, get) => ({
         }
         // For browser environments, load via CDN (unpkg/esm.sh) instead of tarball
         const cdnUrl = `https://esm.sh/${source}@${meta.version}`;
-        const mod = await import(/* @vite-ignore */ cdnUrl);
+        const mod = await import(/* webpackIgnore: true */ /* @vite-ignore */ cdnUrl);
         plugin = mod.default ?? mod;
         if (!plugin?.metadata?.id) {
           throw new Error(`Package "${source}" does not export a valid HoloScript plugin`);
@@ -194,7 +194,7 @@ export const usePluginManager = create<PluginManagerState>((set, get) => ({
         (plugin as HoloScriptPlugin & { __source: string }).__source = 'npm';
       } else if (type === 'url') {
         // Load plugin from URL via dynamic import
-        const mod = await import(/* @vite-ignore */ source);
+        const mod = await import(/* webpackIgnore: true */ /* @vite-ignore */ source);
         plugin = mod.default ?? mod;
         if (!plugin?.metadata?.id) {
           throw new Error(`Module at "${source}" does not export a valid HoloScript plugin`);
@@ -361,4 +361,3 @@ export async function initializePlugins() {
     }
   }
 }
-
