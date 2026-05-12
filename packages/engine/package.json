@@ -795,6 +795,7 @@
     "benchmark:webgpu:physics": "playwright test tests/webgpu-physics-bench.spec.ts",
     "build:webgpu-determinism-harness": "esbuild src/testing/webgpu-determinism.entry.ts --bundle --format=iife --global-name=WebGPUDeterminismHarnessBrowser --outfile=../../scripts/webgpu-determinism-harness.js",
     "benchmark:webgpu:determinism": "playwright test tests/webgpu-determinism.spec.ts",
+    "benchmark:p043:shared-sort": "node run-p043-shared-sort-capture.mjs",
     "smoke:physics": "pnpm exec holoscript smoke ../../examples/physics --target threejs -o ../../.bench-logs/physics-smoke-receipt.json"
   },
   "keywords": [

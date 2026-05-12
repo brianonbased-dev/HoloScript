@@ -87,6 +87,8 @@ export const SKUS = Object.freeze([
 ]);
 
 const REQUIRED_METRICS = Object.freeze([
+  "status",
+  "captureMode",
   "adapterInfo",
   "browserVersion",
   "osVersion",
@@ -99,6 +101,8 @@ const REQUIRED_METRICS = Object.freeze([
   "visibilityMaskMs.p95",
   "droppedFrameCount",
   "thermalState",
+  "requiredRuns",
+  "runs",
 ]);
 
 function gitHead() {
@@ -213,11 +217,32 @@ export function validateArtifact(cell, fullPath, matrix) {
     missing.push("frameTimeMs.samples[]");
   }
 
+  const artifactStatus = String(artifact.status ?? "");
+  if (artifactStatus !== "completed") {
+    missing.push(`status=completed (got ${artifactStatus || "missing"})`);
+  }
+
+  const captureMode = String(artifact.captureMode ?? "");
+  if (captureMode.toLowerCase().includes("smoke")) {
+    missing.push(`captureMode must be a real capture mode (got ${captureMode})`);
+  }
+
+  if (Number(artifact.requiredRuns) !== REQUIRED_RUNS) {
+    missing.push(`requiredRuns=${REQUIRED_RUNS} (got ${artifact.requiredRuns ?? "missing"})`);
+  }
+
+  if (!Array.isArray(artifact.runs) || artifact.runs.length < REQUIRED_RUNS) {
+    missing.push(`runs.length>=${REQUIRED_RUNS}`);
+  }
+
   const sku = matrix.skus.find((candidate) => candidate.id === cell.skuId);
-  const adapterText = JSON.stringify(artifact.adapterInfo ?? {}).toLowerCase();
+  const adapterText = adapterIdentityText(artifact.adapterInfo);
   const missingAdapterTokens = (sku?.requiredAdapterTokens ?? []).filter((token) => {
     return !adapterText.includes(token.toLowerCase());
   });
+  if (missingAdapterTokens.length > 0) {
+    missing.push(`adapterInfo tokens: ${missingAdapterTokens.join(", ")}`);
+  }
 
   if (missing.length > 0 || missingAdapterTokens.length > 0) {
     return {
@@ -272,6 +297,16 @@ function parseArgs(argv = process.argv.slice(2)) {
   }
 
   return out;
+}
+
+function adapterIdentityText(adapterInfo) {
+  if (adapterInfo == null) return "";
+  if (typeof adapterInfo === "string") return adapterInfo.toLowerCase();
+  try {
+    return JSON.stringify(adapterInfo).toLowerCase();
+  } catch {
+    return String(adapterInfo).toLowerCase();
+  }
 }
 
 function printHelp() {
