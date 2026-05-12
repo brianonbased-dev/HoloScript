@@ -490,3 +490,121 @@ export function createDeviceFlowChallenge(
     receiptHash: canonicalHash(unsigned),
   });
 }
+
+// =============================================================================
+// CAPABILITY TOKEN REGISTRY
+// =============================================================================
+
+/**
+ * In-memory store for {@link StoredCapabilityToken}, keyed on `tokenId`.
+ *
+ * Composes the existing pure mint / validate / revoke functions into a usable
+ * server-side surface: a route handler can `put` a stored token after minting,
+ * later `get` it by id from a presented capability-token header, and `revoke`
+ * it when the owning seat retires or a compromise is detected.
+ *
+ * Phase 1 storage is in-memory only — the registry is rebuilt on server boot
+ * from a persistence layer when that ships (mirrors the AttestationRegistry
+ * Phase-1 pattern at `packages/mcp-server/src/holomesh/identity/attestation-registry.ts`).
+ *
+ * No automatic expiry sweep: callers either let {@link validateCapabilityToken}
+ * reject expired tokens at validate-time (cheap, lazy), or call
+ * {@link CapabilityTokenRegistry.pruneExpired} on a timer.
+ *
+ * @see mintCapabilityToken
+ * @see storeCapabilityToken
+ * @see validateCapabilityToken
+ * @see revokeCapabilityToken
+ */
+export class CapabilityTokenRegistry {
+  private readonly byId = new Map<string, StoredCapabilityToken>();
+
+  /**
+   * Add or replace a stored token. Replacement is idempotent on identical
+   * input; callers re-storing a revoked token (e.g. on resurrection during
+   * key rotation) should explicitly mint a fresh token instead.
+   */
+  put(stored: StoredCapabilityToken): void {
+    if (!stored.tokenId) throw new CapabilityTokenError('put: tokenId required', 'INVALID_HANDLE');
+    this.byId.set(stored.tokenId, stored);
+  }
+
+  /** Look up a stored token by id. Returns `undefined` when not found. */
+  get(tokenId: string): StoredCapabilityToken | undefined {
+    return this.byId.get(tokenId);
+  }
+
+  /** True iff the registry holds a token under this id (regardless of revoked/expired state). */
+  has(tokenId: string): boolean {
+    return this.byId.has(tokenId);
+  }
+
+  /**
+   * Revoke the stored token under `tokenId`. Returns the new (revoked) record
+   * or `null` if no token exists under that id. Idempotent on already-revoked
+   * tokens — re-revoking returns the existing revoked record without overwriting
+   * the original `revokedAt` / `revokeReason`.
+   */
+  revoke(tokenId: string, reason: string, now: Date = new Date()): StoredCapabilityToken | null {
+    const existing = this.byId.get(tokenId);
+    if (!existing) return null;
+    if (existing.revokedAt) return existing;
+    const revoked = revokeCapabilityToken(existing, reason, now);
+    this.byId.set(tokenId, revoked);
+    return revoked;
+  }
+
+  /** Number of stored tokens (active + revoked + expired). */
+  size(): number {
+    return this.byId.size;
+  }
+
+  /** Snapshot of all stored tokens. Returned array is independent of internal state. */
+  list(): readonly StoredCapabilityToken[] {
+    return Array.from(this.byId.values());
+  }
+
+  /**
+   * Drop expired tokens from the registry. Returns the count removed.
+   * Callers can run this on a timer to bound memory; not running it is fine —
+   * {@link validateCapabilityToken} rejects expired tokens lazily.
+   */
+  pruneExpired(now: Date = new Date()): number {
+    const cutoff = now.getTime();
+    let removed = 0;
+    for (const [id, t] of this.byId) {
+      if (new Date(t.expiresAt).getTime() <= cutoff) {
+        this.byId.delete(id);
+        removed += 1;
+      }
+    }
+    return removed;
+  }
+
+  /**
+   * Convenience: combine {@link get} + {@link validateCapabilityToken} into a
+   * single call. The caller presents a token id + plaintext secret + the
+   * capability they want to exercise; returns `true` on full success or
+   * throws {@link CapabilityTokenError} otherwise.
+   *
+   * Returns `true` only — never `false` — matching the existing validator
+   * contract. Use this in HTTP route handlers wrapping mutating operations.
+   */
+  validateById(
+    tokenId: string,
+    presentedSecret: string,
+    needsCapability: Capability,
+    now: Date = new Date()
+  ): true {
+    const stored = this.byId.get(tokenId);
+    if (!stored) {
+      throw new CapabilityTokenError(`Token ${tokenId} not found`, 'TOKEN_INVALID_SECRET');
+    }
+    return validateCapabilityToken({ presentedSecret, stored, needsCapability, now });
+  }
+
+  /** Test-only: drop all entries. */
+  clear(): void {
+    this.byId.clear();
+  }
+}

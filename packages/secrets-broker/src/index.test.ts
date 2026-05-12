@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   CapabilityTokenError,
+  CapabilityTokenRegistry,
   DEFAULT_CAPABILITY_BY_TRUST,
   DEFAULT_TRUST_BY_SURFACE,
   DEFAULT_TTL_SECONDS,
@@ -509,5 +510,219 @@ describe('frozen-ness contract', () => {
     });
     const stored: StoredCapabilityToken = storeCapabilityToken(t);
     expect(Object.isFrozen(stored)).toBe(true);
+  });
+});
+
+// =============================================================================
+// CAPABILITY TOKEN REGISTRY
+// =============================================================================
+
+function mintAndStore(opts: {
+  handle?: Handle;
+  surface?: 'claude' | 'mobile';
+  rngSeed?: number;
+  now?: Date;
+  ttlSeconds?: number;
+} = {}): { stored: StoredCapabilityToken; plaintextSecret: string } {
+  const t = mintCapabilityToken({
+    handle: opts.handle ?? ('claude1' as Handle),
+    surface: opts.surface ?? 'claude',
+    now: opts.now ?? FIXED_NOW,
+    randomBytes: fixedRng(opts.rngSeed ?? 1001),
+    ttlSeconds: opts.ttlSeconds,
+  });
+  return { stored: storeCapabilityToken(t), plaintextSecret: t.tokenSecret };
+}
+
+describe('CapabilityTokenRegistry — put / get / has / size / list / clear', () => {
+  it('FALSE: empty registry has size 0 and get(unknown) returns undefined', () => {
+    const reg = new CapabilityTokenRegistry();
+    expect(reg.size()).toBe(0);
+    expect(reg.get('unknown-id')).toBeUndefined();
+    expect(reg.has('unknown-id')).toBe(false);
+    expect(reg.list()).toEqual([]);
+  });
+
+  it('TRUE: put stores a token, get returns the same record, has=true', () => {
+    const reg = new CapabilityTokenRegistry();
+    const { stored } = mintAndStore();
+    reg.put(stored);
+    expect(reg.size()).toBe(1);
+    expect(reg.has(stored.tokenId)).toBe(true);
+    const fetched = reg.get(stored.tokenId);
+    expect(fetched?.tokenId).toBe(stored.tokenId);
+    expect(fetched?.tokenSecretHash).toBe(stored.tokenSecretHash);
+  });
+
+  it('TRUE: list snapshot is independent of internal map (mutating snapshot does not affect registry)', () => {
+    const reg = new CapabilityTokenRegistry();
+    reg.put(mintAndStore({ rngSeed: 101 }).stored);
+    reg.put(mintAndStore({ rngSeed: 202 }).stored);
+    const snapshot = reg.list();
+    expect(snapshot).toHaveLength(2);
+    // Returned readonly array — even if a caller casts away the readonly,
+    // the registry's internal Map should be unaffected.
+    (snapshot as StoredCapabilityToken[]).length = 0;
+    expect(reg.size()).toBe(2);
+  });
+
+  it('FALSE: put with empty tokenId throws INVALID_HANDLE', () => {
+    const reg = new CapabilityTokenRegistry();
+    const { stored } = mintAndStore();
+    const bad = { ...stored, tokenId: '' } as StoredCapabilityToken;
+    expect(() => reg.put(bad)).toThrow(CapabilityTokenError);
+  });
+
+  it('TRUE: put with same tokenId replaces previous record (idempotent on identical input)', () => {
+    const reg = new CapabilityTokenRegistry();
+    const { stored } = mintAndStore();
+    reg.put(stored);
+    reg.put(stored);
+    expect(reg.size()).toBe(1);
+  });
+
+  it('TRUE: clear empties the registry', () => {
+    const reg = new CapabilityTokenRegistry();
+    reg.put(mintAndStore({ rngSeed: 1 }).stored);
+    reg.put(mintAndStore({ rngSeed: 2 }).stored);
+    reg.clear();
+    expect(reg.size()).toBe(0);
+    expect(reg.list()).toEqual([]);
+  });
+});
+
+describe('CapabilityTokenRegistry — revoke', () => {
+  it('FALSE: revoke(unknownId) returns null without throwing', () => {
+    const reg = new CapabilityTokenRegistry();
+    expect(reg.revoke('does-not-exist', 'compromise')).toBeNull();
+  });
+
+  it('TRUE: revoke updates the stored record; get reflects revoked state', () => {
+    const reg = new CapabilityTokenRegistry();
+    const { stored } = mintAndStore();
+    reg.put(stored);
+    const REV_NOW = new Date('2026-05-12T12:30:00.000Z');
+    const revoked = reg.revoke(stored.tokenId, 'compromise', REV_NOW);
+    expect(revoked).not.toBeNull();
+    expect(revoked!.revokedAt).toBe(REV_NOW.toISOString());
+    expect(revoked!.revokeReason).toBe('compromise');
+    const fetched = reg.get(stored.tokenId);
+    expect(fetched?.revokedAt).toBe(REV_NOW.toISOString());
+  });
+
+  it('TRUE: re-revoke is idempotent — preserves original revokedAt + reason', () => {
+    const reg = new CapabilityTokenRegistry();
+    const { stored } = mintAndStore();
+    reg.put(stored);
+    const FIRST_REV = new Date('2026-05-12T12:30:00.000Z');
+    const SECOND_REV = new Date('2026-05-12T13:00:00.000Z');
+    const first = reg.revoke(stored.tokenId, 'compromise', FIRST_REV);
+    const second = reg.revoke(stored.tokenId, 'rotation', SECOND_REV);
+    expect(second?.revokedAt).toBe(first?.revokedAt);
+    expect(second?.revokeReason).toBe('compromise');
+  });
+});
+
+describe('CapabilityTokenRegistry — validateById', () => {
+  const FRESH = new Date('2026-05-12T12:05:00.000Z'); // 5 min after FIXED_NOW
+  const NEEDS: Capability = 'mesh:read';
+
+  it('FALSE: validateById on unknown tokenId throws TOKEN_INVALID_SECRET', () => {
+    const reg = new CapabilityTokenRegistry();
+    try {
+      reg.validateById('captok_unknown', 'whatever', NEEDS, FRESH);
+      expect.fail('should have thrown');
+    } catch (err) {
+      expect((err as CapabilityTokenError).code).toBe('TOKEN_INVALID_SECRET');
+    }
+  });
+
+  it('TRUE: validateById on a stored, fresh, correctly-secreted token returns true', () => {
+    const reg = new CapabilityTokenRegistry();
+    const { stored, plaintextSecret } = mintAndStore();
+    reg.put(stored);
+    expect(reg.validateById(stored.tokenId, plaintextSecret, NEEDS, FRESH)).toBe(true);
+  });
+
+  it('FALSE: validateById with wrong secret throws TOKEN_INVALID_SECRET', () => {
+    const reg = new CapabilityTokenRegistry();
+    const { stored } = mintAndStore();
+    reg.put(stored);
+    try {
+      reg.validateById(stored.tokenId, 'wrong-plaintext', NEEDS, FRESH);
+      expect.fail('should have thrown');
+    } catch (err) {
+      expect((err as CapabilityTokenError).code).toBe('TOKEN_INVALID_SECRET');
+    }
+  });
+
+  it('FALSE: validateById on revoked token throws TOKEN_REVOKED', () => {
+    const reg = new CapabilityTokenRegistry();
+    const { stored, plaintextSecret } = mintAndStore();
+    reg.put(stored);
+    reg.revoke(stored.tokenId, 'compromise', FRESH);
+    try {
+      reg.validateById(stored.tokenId, plaintextSecret, NEEDS, FRESH);
+      expect.fail('should have thrown');
+    } catch (err) {
+      expect((err as CapabilityTokenError).code).toBe('TOKEN_REVOKED');
+    }
+  });
+
+  it('FALSE: validateById past expiry throws TOKEN_EXPIRED', () => {
+    const reg = new CapabilityTokenRegistry();
+    const { stored, plaintextSecret } = mintAndStore({ ttlSeconds: 60 });
+    reg.put(stored);
+    const AFTER = new Date(FIXED_NOW.getTime() + 120 * 1000); // 2 min later
+    try {
+      reg.validateById(stored.tokenId, plaintextSecret, NEEDS, AFTER);
+      expect.fail('should have thrown');
+    } catch (err) {
+      expect((err as CapabilityTokenError).code).toBe('TOKEN_EXPIRED');
+    }
+  });
+
+  it('FALSE: validateById asks for capability not in the token throws CAPABILITY_NOT_IN_TRUST_TIER', () => {
+    const reg = new CapabilityTokenRegistry();
+    // Mint a mobile token (reduced trust → no mesh:claim).
+    const { stored, plaintextSecret } = mintAndStore({ handle: 'mobile1' as Handle, surface: 'mobile' });
+    reg.put(stored);
+    try {
+      reg.validateById(stored.tokenId, plaintextSecret, 'mesh:claim', FRESH);
+      expect.fail('should have thrown');
+    } catch (err) {
+      expect((err as CapabilityTokenError).code).toBe('CAPABILITY_NOT_IN_TRUST_TIER');
+    }
+  });
+});
+
+describe('CapabilityTokenRegistry — pruneExpired', () => {
+  it('FALSE: pruneExpired on empty registry returns 0', () => {
+    const reg = new CapabilityTokenRegistry();
+    expect(reg.pruneExpired()).toBe(0);
+  });
+
+  it('FALSE: pruneExpired before any token expires returns 0 and leaves size intact', () => {
+    const reg = new CapabilityTokenRegistry();
+    const { stored } = mintAndStore({ ttlSeconds: MAX_TTL_SECONDS });
+    reg.put(stored);
+    expect(reg.pruneExpired(FIXED_NOW)).toBe(0);
+    expect(reg.size()).toBe(1);
+  });
+
+  it('TRUE: pruneExpired drops only the expired tokens, preserves fresh ones', () => {
+    const reg = new CapabilityTokenRegistry();
+    // Short-TTL token (60s) + long-TTL token (1h).
+    const tShort = mintAndStore({ rngSeed: 10, ttlSeconds: 60 }).stored;
+    const tLong = mintAndStore({ rngSeed: 20, ttlSeconds: MAX_TTL_SECONDS }).stored;
+    reg.put(tShort);
+    reg.put(tLong);
+    expect(reg.size()).toBe(2);
+    // Advance past the short token's expiry but before the long one's.
+    const AFTER = new Date(FIXED_NOW.getTime() + 120 * 1000);
+    expect(reg.pruneExpired(AFTER)).toBe(1);
+    expect(reg.size()).toBe(1);
+    expect(reg.get(tShort.tokenId)).toBeUndefined();
+    expect(reg.get(tLong.tokenId)).toBeDefined();
   });
 });
