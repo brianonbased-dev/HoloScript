@@ -216,6 +216,11 @@ export { emotionalVoiceHandler, type EmotionalVoiceConfig } from './traits/Emoti
 
 export { userMonitorHandler, type UserMonitorConfig } from './traits/UserMonitorTrait';
 
+export { statHandler, type StatConfig, type StatModifier, type StatState } from './traits/StatTrait';
+export { luckHandler, type LuckConfig, type LuckState } from './traits/LuckTrait';
+export { encounterHandler, type EncounterConfig, type EncounterState, shouldFire } from './traits/EncounterTrait';
+export { dropTableHandler, type DropTableConfig, type DropTableEntry, type DropTableState, effectiveWeight, pickByWeight } from './traits/DropTableTrait';
+
 // Core UI Components (Sprint 6)
 export { createUIButton, type UIButtonConfig } from './ui/UIButton';
 export { createUIPanel, type UIPanelConfig } from './ui/UIPanel';
