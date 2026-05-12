@@ -88,15 +88,21 @@ describe('parseSupervisorConfig', () => {
     expect(() => parseSupervisorConfig(JSON.stringify(fastAgent))).toThrowError(/>= 5000/);
   });
 
-  it('rejects non-positive budgets (founder ruling Q1 hard-kill ceiling)', () => {
+  it('requires positive global budget and allows per-agent zero as unlimited', () => {
     expect(() =>
       parseSupervisorConfig(JSON.stringify({ ...VALID, globalBudgetUsdPerDay: 0 }))
-    ).toThrowError(/positive/);
+    ).toThrowError(/globalBudgetUsdPerDay must be positive/);
+
+    const zeroAgentBudget = parseSupervisorConfig(
+      JSON.stringify({ agents: [{ ...VALID.agents[0], budgetUsdPerDay: 0 }] })
+    );
+    expect(zeroAgentBudget.agents[0].budgetUsdPerDay).toBe(0);
+
     expect(() =>
       parseSupervisorConfig(
         JSON.stringify({ agents: [{ ...VALID.agents[0], budgetUsdPerDay: -1 }] })
       )
-    ).toThrowError(/positive/);
+    ).toThrowError(/>= 0 \(0 = unlimited\)/);
   });
 
   it('requires brainPath / walletEnvKey / bearerEnvKey on every agent', () => {
