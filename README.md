@@ -89,6 +89,19 @@ The goal is not to replace every tool you already use. It is to keep intent port
 - "Describe a robot" -> export to robotics/simulation targets
 - "Describe an agent workflow" -> execute via board + tool ecosystem
 
+## Example stories in the repo
+
+The example files are part of the pitch. They show how the three HoloScript formats carry different kinds of intent:
+
+| Format    | Example                                                                                                                  | What it helps someone picture                                                          |
+| --------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| `.hs`     | [`examples/pipelines/inventory-sync.hs`](examples/pipelines/inventory-sync.hs)                                           | A scheduled POS inventory sync: source, transform, validate, and sink.                 |
+| `.hsplus` | [`examples/three-format-showcase/smart-gallery.hsplus`](examples/three-format-showcase/smart-gallery.hsplus)             | A gallery that grows from objects into templates, state, interactions, and audio.      |
+| `.holo`   | [`examples/iot/holotwin-smart-farm.holo`](examples/iot/holotwin-smart-farm.holo)                                         | A smart farm dashboard where MQTT sensors drive a 3D digital twin.                     |
+| `.holo`   | [`examples/novel-use-cases/05-robot-training-metaverse.holo`](examples/novel-use-cases/05-robot-training-metaverse.holo) | A robot training arena that links simulation, agents, feedback, and ROS-style targets. |
+
+Use these when explaining HoloScript to a new person: start with the story, then show the format that carries it.
+
 ## What to verify live
 
 HoloScript avoids hardcoded ecosystem counts in docs. Verify current numbers from live sources:
