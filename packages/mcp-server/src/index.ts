@@ -311,6 +311,27 @@ for (const t of tools) {
   }
 }
 
+async function executeBatchInnerTool(
+  toolName: string,
+  toolArgs: Record<string, unknown>
+): Promise<unknown> {
+  const res = await _handleSingleToolLogic(toolName, toolArgs || {});
+
+  if ((res as { isError?: boolean }).isError) {
+    const errorText = (res as { content?: Array<{ text?: string }> }).content?.[0]?.text;
+    throw new Error(errorText || `Tool ${toolName} failed`);
+  }
+
+  const text = (res as { content?: Array<{ text?: string }> }).content?.[0]?.text;
+  if (!text) return res;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
 // Implementation of executeSingleTool logic previously bound above
 export async function _handleSingleToolLogic(name: string, args: Record<string, unknown>) {
   try {
@@ -323,6 +344,13 @@ export async function _handleSingleToolLogic(name: string, args: Record<string, 
         };
       }
       throw new Error(`Plugin tool '${name}' not found or failed.`);
+    }
+
+    if (name === 'batch_tool_call') {
+      const result = await handleBatchToolCall(args || {}, executeBatchInnerTool);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
     }
 
     // 2. Fast O(1) Dispatch
