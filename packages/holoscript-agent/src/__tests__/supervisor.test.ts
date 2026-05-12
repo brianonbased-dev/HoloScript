@@ -205,6 +205,26 @@ composition "LocalOnly" {
     await sup.stop();
   });
 
+  it('treats per-agent zero budget as unlimited in runtime enforcement', async () => {
+    const tasks = [{ id: 't-unlimited', title: 'security memo', tags: ['security'] }];
+    const sup = new Supervisor({
+      config: { agents: [specForBrain(brainPath, { budgetUsdPerDay: 0 })] },
+      providerFactory: () => provider(),
+      teamId: 't',
+      stateDir: dir,
+      fetchImpl: buildFetch(tasks),
+    });
+
+    await sup.start();
+    const status = await sup.tickOnce('security-auditor');
+
+    expect(status.state).toBe('running');
+    expect(status.spentUsd).toBeGreaterThan(0);
+    expect(status.remainingUsd).toBe(Number.POSITIVE_INFINITY);
+    expect(sup.status().agents[0].state).toBe('running');
+    await sup.stop();
+  });
+
   it('tickOnce on unknown handle throws clearly (no silent no-op)', async () => {
     const sup = new Supervisor({
       config: { agents: [specForBrain(brainPath)] },
