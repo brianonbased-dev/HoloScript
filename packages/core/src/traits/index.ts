@@ -130,6 +130,8 @@ export * from './MotionReducedTrait';
 export * from './MQTTSinkTrait';
 export * from './MQTTSourceTrait';
 export * from './MultiAgentTrait';
+export * from './MultiTargetTracker';
+export * from './MultiTargetTrackingTrait';
 export * from './MultiviewGaussianRendererTrait';
 export * from './NegotiationTrait';
 export * from './NerfTrait';

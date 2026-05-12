@@ -1,13 +1,14 @@
 /**
  * ReID Embedding Trait
  *
- * Person/object re-identification via cosine similarity on appearance
+ * Person/object/stream re-identification via cosine similarity on identity
  * embeddings. Maintains a gallery of recently-lost tracks and matches new
- * detections against them when similarity exceeds the configured threshold.
+ * detections or non-spatial observations against them when similarity exceeds
+ * the configured threshold.
  *
  * Embedding dimension is configurable (uaa2 glasses lab uses 256). Features
- * are tagged (appearance / gait / skeleton / accessories) so callers can
- * report which feature drove the match.
+ * are tagged (appearance / gait / skeleton / accessory / voice / DM / intent)
+ * so callers can report which feature drove the match.
  *
  * Lifted from uaa2-service mtt-algorithm-panel.hsplus.
  *
@@ -20,7 +21,19 @@ import type { TraitHandler } from './TraitTypes';
 // TYPES
 // =============================================================================
 
-export type ReidFeature = 'appearance' | 'gait' | 'skeleton' | 'accessories';
+export type ReidFeature =
+  | 'appearance'
+  | 'gait'
+  | 'face'
+  | 'skeleton'
+  | 'accessory'
+  | 'voice'
+  | 'voiceprint'
+  | 'utterance'
+  | 'dm_stream'
+  | 'intent'
+  | 'multimodal'
+  | 'custom';
 
 export interface ReidEmbedding {
   track_id: string;
@@ -78,7 +91,19 @@ export const reidEmbeddingHandler: TraitHandler<ReidEmbeddingConfig> = {
     embedding_dimension: 256,
     gallery_size: 64,
     gallery_ttl_ms: 60_000,
-    enabled_features: ['appearance', 'gait', 'skeleton', 'accessories'],
+    enabled_features: [
+      'appearance',
+      'gait',
+      'face',
+      'skeleton',
+      'accessory',
+      'voice',
+      'voiceprint',
+      'utterance',
+      'dm_stream',
+      'intent',
+      'multimodal',
+    ],
   },
 
   onAttach(node, _config, _context) {

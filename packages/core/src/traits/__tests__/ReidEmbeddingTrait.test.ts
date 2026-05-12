@@ -40,6 +40,21 @@ describe('ReidEmbeddingTrait', () => {
     expect(m.gallery_track_id).toBe('A');
   });
 
+  it('matches non-spatial voice embeddings when the feature family agrees', () => {
+    const v = makeVec(8, 1.5);
+    sendEvent(reidEmbeddingHandler, node, { embedding_dimension: 8 }, ctx, {
+      type: 'reid_enroll',
+      embedding: { track_id: 'speaker-A', vector: v, feature: 'voice', captured_at: Date.now() },
+    });
+    sendEvent(reidEmbeddingHandler, node, { embedding_dimension: 8 }, ctx, {
+      type: 'reid_match_request',
+      embedding: { track_id: 'utterance-9', vector: v, feature: 'voice', captured_at: Date.now() },
+    });
+    const m = getLastEvent(ctx, 'reid_matched') as { gallery_track_id: string; feature: string };
+    expect(m.gallery_track_id).toBe('speaker-A');
+    expect(m.feature).toBe('voice');
+  });
+
   it('emits reid_no_match when similarity is below threshold (false-case)', () => {
     const dim = 8;
     const orthogonalA = [1, 0, 0, 0, 0, 0, 0, 0];

@@ -8,6 +8,8 @@
  *     detection-to-track assignment with rejection threshold
  *   - ReID cosine similarity for persistent identity recovery across
  *     occlusion windows
+ *   - Identity-only tracking for non-spatial streams such as voice utterances,
+ *     agent DMs, and multi-modal intent fusion
  *
  * The 9-state choice and parameter defaults mirror uaa2-service's
  * DIRECTIVE_XRG_001 v1.1.0 MTT block ("Logan's AR research"). No external
@@ -24,7 +26,8 @@
  * @internal
  */
 
-import type { MultiTargetTrackingConfig, ReidFeature } from './MultiTargetTrackingTrait';
+import type { MultiTargetTrackingConfig } from './MultiTargetTrackingTrait';
+import type { ReidFeature } from './ReidEmbeddingTrait';
 
 // =============================================================================
 // PUBLIC TYPES
@@ -33,15 +36,27 @@ import type { MultiTargetTrackingConfig, ReidFeature } from './MultiTargetTracki
 /** 3D point [x, y, z] in meters. */
 export type Vec3 = [number, number, number];
 
-/** A detection observed in a single frame. */
+export type TrackingModality = 'spatial' | 'voice' | 'dm_stream' | 'intent' | 'multimodal' | 'custom';
+
+/** A detection or non-spatial observation seen in a single frame. */
 export interface Detection {
-  /** 3D position in world coordinates (meters). */
-  position: Vec3;
+  /** 3D position in world coordinates (meters). Optional for non-spatial streams. */
+  position?: Vec3;
   /**
-   * ReID appearance embedding. Should be unit-normalized; the tracker will
-   * normalize if it isn't. Length must equal `reid_embedding_dim`.
+   * Back-compat spatial ReID embedding. Should be unit-normalized; the tracker
+   * will normalize if it isn't. Length must equal `reid_embedding_dim`.
    */
-  appearance_embedding: number[];
+  appearance_embedding?: number[];
+  /** Generic identity embedding for voice, DM, intent, or fused observations. */
+  identity_embedding?: number[];
+  /** Feature family that produced the embedding. */
+  feature?: ReidFeature;
+  /** Domain of the observation. */
+  modality?: TrackingModality;
+  /** Source-specific identifier for audit/debug surfaces. */
+  source_id?: string;
+  /** Caller-owned metadata preserved on the track. */
+  payload?: Record<string, unknown>;
 }
 
 /** Persistent identity tracked across frames. */
@@ -54,6 +69,14 @@ export interface Track {
   covariance: number[];
   /** ReID embedding (running average across observations). */
   reid_embedding: number[];
+  /** Feature family that currently anchors identity matching. */
+  feature?: ReidFeature;
+  /** Observation domain: spatial, voice, DM stream, intent, multimodal, etc. */
+  modality: TrackingModality;
+  /** Whether this track has ever received spatial position measurements. */
+  has_position: boolean;
+  /** Last caller-owned metadata attached to a matched observation. */
+  payload?: Record<string, unknown>;
   /** Frame in which the track was last successfully matched to a detection. */
   last_seen_frame: number;
   /** Number of consecutive frames without a match. */
@@ -221,20 +244,37 @@ export function stepTracker(
 function validateDetections(detections: Detection[], config: Required<MultiTargetTrackingConfig>): void {
   for (let i = 0; i < detections.length; i++) {
     const det = detections[i];
-    if (!Array.isArray(det.position) || det.position.length !== 3) {
-      throw new Error(`MultiTargetTracker: detection[${i}].position must be a length-3 array`);
-    }
-    for (const v of det.position) {
-      if (typeof v !== 'number' || !Number.isFinite(v)) {
-        throw new Error(`MultiTargetTracker: detection[${i}].position has non-finite component`);
+    if (det.position !== undefined) {
+      if (!Array.isArray(det.position) || det.position.length !== 3) {
+        throw new Error(`MultiTargetTracker: detection[${i}].position must be a length-3 array`);
+      }
+      for (const v of det.position) {
+        if (typeof v !== 'number' || !Number.isFinite(v)) {
+          throw new Error(`MultiTargetTracker: detection[${i}].position has non-finite component`);
+        }
       }
     }
-    if (!Array.isArray(det.appearance_embedding) || det.appearance_embedding.length !== config.reid_embedding_dim) {
+    const embedding = embeddingForDetection(det);
+    if (embedding.length !== config.reid_embedding_dim) {
       throw new Error(
-        `MultiTargetTracker: detection[${i}].appearance_embedding must have length=${config.reid_embedding_dim}`
+        `MultiTargetTracker: detection[${i}].appearance_embedding must have length=${config.reid_embedding_dim} (or provide identity_embedding with that length)`
       );
     }
   }
+}
+
+function embeddingForDetection(detection: Detection): number[] {
+  return detection.identity_embedding ?? detection.appearance_embedding ?? [];
+}
+
+function detectionHasPosition(detection: Detection): detection is Detection & { position: Vec3 } {
+  return Array.isArray(detection.position) && detection.position.length === 3;
+}
+
+function featureCompatible(track: Track, detection: Detection): boolean {
+  if (!track.feature || !detection.feature) return true;
+  if (track.feature === 'multimodal' || detection.feature === 'multimodal') return true;
+  return track.feature === detection.feature;
 }
 
 // =============================================================================
@@ -281,6 +321,10 @@ function kalmanUpdate(
   config: Required<MultiTargetTrackingConfig>,
   frame_index: number
 ): Track {
+  if (!detectionHasPosition(detection)) {
+    return mergeIdentityObservation(predicted, detection, frame_index, 0.3);
+  }
+
   const x = predicted.state;
   const P = predicted.covariance;
   const z = detection.position;
@@ -334,18 +378,7 @@ function kalmanUpdate(
   }
 
   // Update ReID embedding as running average (alpha=0.3 toward new observation).
-  const alpha = 0.3;
-  const reid_new = predicted.reid_embedding.map(
-    (v, k) => (1 - alpha) * v + alpha * detection.appearance_embedding[k]
-  );
-  const reid_normalized = normalize(reid_new);
-
-  const newStatus: Track['status'] =
-    predicted.status === 'tentative' && frame_index - predicted.spawned_frame >= 3
-      ? 'confirmed'
-      : predicted.status === 'lost'
-        ? 'confirmed'
-        : predicted.status;
+  const reid_normalized = blendEmbedding(predicted.reid_embedding, embeddingForDetection(detection), 0.3);
 
   return {
     ...predicted,
@@ -354,8 +387,35 @@ function kalmanUpdate(
     reid_embedding: reid_normalized,
     last_seen_frame: frame_index,
     occluded_frames: 0,
-    status: newStatus,
+    status: promotedStatus(predicted, frame_index),
+    feature: detection.feature ?? predicted.feature,
+    modality: detection.modality ?? predicted.modality,
+    has_position: true,
+    payload: detection.payload ?? predicted.payload,
   };
+}
+
+function mergeIdentityObservation(track: Track, detection: Detection, frame_index: number, alpha: number): Track {
+  return {
+    ...track,
+    reid_embedding: blendEmbedding(track.reid_embedding, embeddingForDetection(detection), alpha),
+    last_seen_frame: frame_index,
+    occluded_frames: 0,
+    status: promotedStatus(track, frame_index),
+    feature: detection.feature ?? track.feature,
+    modality: detection.modality ?? track.modality,
+    payload: detection.payload ?? track.payload,
+  };
+}
+
+function promotedStatus(track: Track, frame_index: number): Track['status'] {
+  if (track.status === 'tentative' && frame_index - track.spawned_frame >= 3) return 'confirmed';
+  if (track.status === 'lost') return 'confirmed';
+  return track.status;
+}
+
+function blendEmbedding(current: number[], observed: number[], alpha: number): number[] {
+  return normalize(current.map((v, k) => (1 - alpha) * v + alpha * observed[k]));
 }
 
 function transitionMatrix(dt: number): number[] {
@@ -399,10 +459,16 @@ function buildCostMatrix(
   for (let i = 0; i < tracks.length; i++) {
     const row: number[] = [];
     for (let j = 0; j < detections.length; j++) {
-      const dPos = positionDistance(tracks[i].state, detections[j].position);
-      const sim = cosineSimilarity(tracks[i].reid_embedding, detections[j].appearance_embedding);
+      if (!featureCompatible(tracks[i], detections[j])) {
+        row.push(1);
+        continue;
+      }
+
+      const sim = cosineSimilarity(tracks[i].reid_embedding, embeddingForDetection(detections[j]));
       const reidCost = 1 - Math.max(0, sim); // similarity in [0,1] → cost in [0,1]
-      const total = wPos * normalizedPosCost(dPos) + wReid * reidCost;
+      const total = detectionHasPosition(detections[j]) && tracks[i].has_position
+        ? wPos * normalizedPosCost(positionDistance(tracks[i].state, detections[j].position)) + wReid * reidCost
+        : reidCost;
       row.push(total);
     }
     cost.push(row);
@@ -633,7 +699,8 @@ function findBestReidMatch(
 ): { track: Track; similarity: number } | null {
   let best: { track: Track; similarity: number } | null = null;
   for (const t of lostTracks) {
-    const sim = cosineSimilarity(t.reid_embedding, detection.appearance_embedding);
+    if (!featureCompatible(t, detection)) continue;
+    const sim = cosineSimilarity(t.reid_embedding, embeddingForDetection(detection));
     if (sim >= config.reid_similarity_threshold && (best === null || sim > best.similarity)) {
       best = { track: t, similarity: sim };
     }
@@ -653,9 +720,12 @@ function spawnTrack(
 ): Track {
   // Initial state: position from detection, zero velocity/acceleration.
   const state = new Array(STATE_DIM).fill(0);
-  state[0] = detection.position[0];
-  state[1] = detection.position[1];
-  state[2] = detection.position[2];
+  const hasPosition = detectionHasPosition(detection);
+  if (hasPosition) {
+    state[0] = detection.position[0];
+    state[1] = detection.position[1];
+    state[2] = detection.position[2];
+  }
 
   // Initial covariance: high uncertainty until convergence.
   const covariance = new Array(STATE_DIM * STATE_DIM).fill(0);
@@ -665,7 +735,11 @@ function spawnTrack(
     id,
     state,
     covariance,
-    reid_embedding: normalize(detection.appearance_embedding.slice()),
+    reid_embedding: normalize(embeddingForDetection(detection).slice()),
+    feature: detection.feature ?? 'appearance',
+    modality: detection.modality ?? (hasPosition ? 'spatial' : 'custom'),
+    has_position: hasPosition,
+    payload: detection.payload,
     last_seen_frame: frame_index,
     occluded_frames: 0,
     status: 'tentative',
@@ -686,28 +760,29 @@ function reactivateTrack(
   frame_index: number
 ): Track {
   const state = track.state.slice();
-  // Snap position to detection (best estimate after re-acquisition).
-  state[0] = detection.position[0];
-  state[1] = detection.position[1];
-  state[2] = detection.position[2];
-  // Reset velocity/acceleration; re-converge from this observation.
-  for (let i = 3; i < STATE_DIM; i++) state[i] = 0;
+  const hasPosition = detectionHasPosition(detection);
+  if (hasPosition) {
+    // Snap position to detection (best estimate after re-acquisition).
+    state[0] = detection.position[0];
+    state[1] = detection.position[1];
+    state[2] = detection.position[2];
+    // Reset velocity/acceleration; re-converge from this observation.
+    for (let i = 3; i < STATE_DIM; i++) state[i] = 0;
+  }
 
   // Bump covariance back up for fast re-convergence.
   const covariance = new Array(STATE_DIM * STATE_DIM).fill(0);
   for (let i = 0; i < STATE_DIM; i++) covariance[i * STATE_DIM + i] = i < 3 ? 0.5 : 5.0;
 
-  // Update ReID embedding with new observation (alpha=0.5 — heavier weighting after recovery).
-  const alpha = 0.5;
-  const reid_new = track.reid_embedding.map(
-    (v, k) => (1 - alpha) * v + alpha * detection.appearance_embedding[k]
-  );
-
   return {
     ...track,
     state,
     covariance,
-    reid_embedding: normalize(reid_new),
+    reid_embedding: blendEmbedding(track.reid_embedding, embeddingForDetection(detection), 0.5),
+    feature: detection.feature ?? track.feature,
+    modality: detection.modality ?? track.modality,
+    has_position: track.has_position || hasPosition,
+    payload: detection.payload ?? track.payload,
     last_seen_frame: frame_index,
     occluded_frames: 0,
     status: 'confirmed',

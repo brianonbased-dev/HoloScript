@@ -60,6 +60,15 @@ function det(position: Vec3, seed: number): Detection {
   return { position, appearance_embedding: makeEmbedding(seed) };
 }
 
+function identityDet(feature: 'voice' | 'dm_stream' | 'intent', seed: number): Detection {
+  return {
+    identity_embedding: makeEmbedding(seed),
+    feature,
+    modality: feature === 'voice' ? 'voice' : feature === 'dm_stream' ? 'dm_stream' : 'intent',
+    source_id: `${feature}-${seed}`,
+  };
+}
+
 // =============================================================================
 // TRAIT DECLARATION TESTS
 // =============================================================================
@@ -83,6 +92,14 @@ describe('MultiTargetTrackingTrait.validate', () => {
     ).toBe(true);
   });
 
+  it('accepts non-spatial ReID feature families for voice, DM streams, and intent fusion', () => {
+    expect(
+      MultiTargetTrackingTrait.validate({
+        reid_features: ['voice', 'dm_stream', 'intent', 'multimodal'],
+      })
+    ).toBe(true);
+  });
+
   it('rejects an update_rate_hz below 30Hz', () => {
     expect(() => MultiTargetTrackingTrait.validate({ update_rate_hz: 15 })).toThrow(/30Hz minimum/);
   });
@@ -98,8 +115,8 @@ describe('MultiTargetTrackingTrait.validate', () => {
 
   it('rejects an unknown reid_feature', () => {
     expect(() =>
-      MultiTargetTrackingTrait.validate({ reid_features: ['appearance', 'voiceprint' as never] })
-    ).toThrow(/unknown feature 'voiceprint'/);
+      MultiTargetTrackingTrait.validate({ reid_features: ['appearance', 'thermal' as never] })
+    ).toThrow(/unknown feature 'thermal'/);
   });
 
   it('rejects reid_embedding_dim below 8', () => {
@@ -125,6 +142,7 @@ describe('MultiTargetTrackingTrait.compile', () => {
     expect(out).toContain('createTracker');
     expect(out).toContain('stepTracker');
     expect(out).toContain('appearance_embedding');
+    expect(out).toContain('identity_embedding');
   });
 
   it('emits glasses scaffolding (Brilliant Labs / OpenXR target)', () => {
@@ -394,6 +412,41 @@ describe('Tracker integration', () => {
     expect(r.reidentified.length).toBe(0);
     expect(r.spawned.length).toBe(1);
     expect(r.spawned[0]).not.toBe(trackAId);
+  });
+
+  it('tracks non-spatial voice utterances by embedding alone', () => {
+    const config = resolveConfig(baseConfig);
+    let s = createTracker(config);
+
+    let r = stepTracker(s, [identityDet('voice', 707)], 0);
+    const voiceTrackId = r.state.tracks[0].id;
+    expect(r.spawned).toEqual([voiceTrackId]);
+    expect(r.state.tracks[0].has_position).toBe(false);
+    expect(r.state.tracks[0].modality).toBe('voice');
+    s = r.state;
+
+    for (let f = 1; f <= 4; f++) {
+      r = stepTracker(s, [identityDet('voice', 707)], f);
+      s = r.state;
+    }
+
+    expect(s.tracks).toHaveLength(1);
+    expect(s.tracks[0].id).toBe(voiceTrackId);
+    expect(s.tracks[0].status).toBe('confirmed');
+    expect(s.tracks[0].has_position).toBe(false);
+  });
+
+  it('does not merge unrelated non-spatial DM streams', () => {
+    const config = resolveConfig(baseConfig);
+    const s0 = createTracker(config);
+    const r0 = stepTracker(s0, [identityDet('dm_stream', 11)], 0);
+    const firstTrackId = r0.state.tracks[0].id;
+
+    const r1 = stepTracker(r0.state, [identityDet('dm_stream', 999)], 1);
+
+    expect(r1.associations).toHaveLength(0);
+    expect(r1.spawned).toHaveLength(1);
+    expect(r1.spawned[0]).not.toBe(firstTrackId);
   });
 
   it('rejects detections with wrong embedding length (validation gate)', () => {

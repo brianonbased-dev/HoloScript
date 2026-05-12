@@ -1,12 +1,12 @@
 /**
  * MultiTargetTrackingTrait
  *
- * Sovereign HoloScript primitive for multi-user spatial tracking. Lifts the
+ * Sovereign HoloScript primitive for multi-target identity tracking. Lifts the
  * MTT (Kalman + Hungarian + ReID) algorithm from uaa2-service's mid-flight
  * XR Glasses innovation track (DIRECTIVE_XRG_001, "Logan's AR research")
- * into a generalizable HoloScript trait that composes across six revival
- * surfaces (smart glasses, HoloLand multi-player worlds, Quest 3 multi-user,
- * AR-on-phones, room-scale games, HoloMap + @spatialProof location AR).
+ * into a generalizable HoloScript trait that composes across spatial and
+ * non-spatial surfaces (smart glasses, HoloLand multi-player worlds, voice
+ * utterances, agent DM streams, and multi-modal intent fusion).
  *
  * Closes the original gap that killed first-gen smart glasses: no
  * multi-user social-XR. uaa2-service substrate verified 2026-05-10; this
@@ -30,12 +30,11 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
+export type { ReidFeature } from './ReidEmbeddingTrait';
 
 // =============================================================================
 // TYPES
 // =============================================================================
-
-export type ReidFeature = 'appearance' | 'gait' | 'face' | 'skeleton' | 'accessory';
 
 /**
  * Compose-time configuration for a `@multiTargetTracking` trait declaration.
@@ -65,7 +64,7 @@ export interface MultiTargetTrackingConfig {
   /** ReID cosine-similarity threshold for re-identification. Defaults to 0.75. */
   reid_similarity_threshold?: number;
 
-  /** ReID feature classes the embedding incorporates. Defaults to all five. */
+  /** ReID feature classes the embedding incorporates. Defaults to spatial XR features plus voice/DM/intent features. */
   reid_features?: ReidFeature[];
 
   /**
@@ -81,10 +80,22 @@ const DEFAULT_HUNGARIAN_THRESHOLD = 0.5;
 const DEFAULT_MAX_OCCLUDED_FRAMES = 30;
 const DEFAULT_REID_DIM = 256;
 const DEFAULT_REID_SIMILARITY = 0.75;
-const DEFAULT_REID_FEATURES: ReidFeature[] = ['appearance', 'gait', 'face', 'skeleton', 'accessory'];
+const DEFAULT_REID_FEATURES: ReidFeature[] = [
+  'appearance',
+  'gait',
+  'face',
+  'skeleton',
+  'accessory',
+  'voice',
+  'voiceprint',
+  'utterance',
+  'dm_stream',
+  'intent',
+  'multimodal',
+];
 const DEFAULT_POSITION_VS_REID_WEIGHT = 0.5;
 
-const ALLOWED_REID_FEATURES: ReidFeature[] = ['appearance', 'gait', 'face', 'skeleton', 'accessory'];
+const ALLOWED_REID_FEATURES: ReidFeature[] = [...DEFAULT_REID_FEATURES, 'custom'];
 
 function resolved(config: MultiTargetTrackingConfig): Required<MultiTargetTrackingConfig> {
   return {
@@ -193,9 +204,9 @@ export const MultiTargetTrackingTrait: TraitHandler<MultiTargetTrackingConfig> =
     const r = resolved(config);
     return `
 // MultiTargetTracking — web/react-three-fiber/webxr scaffolding (sovereign primitive).
-// Wire your detection source (camera + person-detector + pose-estimator + ReID-encoder)
-// into stepTracker() each frame. The tracker runs Kalman predict/update + Hungarian
-// frame-to-frame assignment + ReID embedding similarity for persistent identity.
+// Wire your observation source (camera + person detector, voice stream, DM stream,
+// or intent-fusion adapter) into stepTracker() each frame. Spatial observations use
+// Kalman + Hungarian + ReID; identity-only observations use Hungarian + ReID.
 import { createTracker, stepTracker } from '@holoscript/core/traits/MultiTargetTracker';
 
 export const multiTargetTrackingConfig = ${JSON.stringify(r, null, 2)};
@@ -205,7 +216,8 @@ export function newSpatialTracker() {
 }
 
 export function trackFrame(tracker, detections, frame) {
-  // detections: [{position: [x,y,z], appearance_embedding: Float32Array}, ...]
+  // Spatial: [{position: [x,y,z], appearance_embedding: Float32Array}, ...]
+  // Non-spatial: [{identity_embedding: Float32Array, feature: 'voice' | 'dm_stream' | 'intent'}, ...]
   return stepTracker(tracker, detections, frame);
 }
 `.trim();
@@ -232,7 +244,8 @@ export function newGlassesTracker() {
     const r = resolved(config);
     return `
 // MultiTargetTracking — node/server scaffolding (sovereign primitive).
-// Server-side composition: detection data comes from upstream agent payloads.
+// Server-side composition: observations can come from upstream agent payloads,
+// voice utterances, chat streams, or multi-modal intent fusion.
 import { createTracker, stepTracker } from '@holoscript/core/traits/MultiTargetTracker';
 
 export const multiTargetTrackingConfig = ${JSON.stringify(r, null, 2)};
