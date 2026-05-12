@@ -57,6 +57,7 @@ const DEFAULT_TEST_CONFIG: GaussianBakingConfig = {
   densificationInterval: 100,
   positionLR: 0.00016,
   antiAlias: true,
+  frameMasks: undefined,
   octaneBakeMode: 'path_trace',
   bakeSamples: 512,
   bakeMaxBounces: 8,
@@ -308,6 +309,43 @@ describe('GaussianBakingClient — Job Submission', () => {
 
     expect(job.stageProgress.compressing.status).toBe('skipped');
     expect(job.stageProgress.compressing.progress).toBe(100);
+  });
+
+  it('FALSE: should omit frame_masks from payload when frameMasks is undefined', async () => {
+    mockFetch.mockResolvedValueOnce(createMockResponse({ job_id: 'rndr_12345', status: 'queued' }));
+
+    await client.submitBakingJob(DEFAULT_TEST_CONFIG);
+
+    const payload = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(payload.config.training).not.toHaveProperty('frame_masks');
+  });
+
+  it('TRUE: should include frame_masks in payload when frameMasks is provided', async () => {
+    mockFetch.mockResolvedValueOnce(createMockResponse({ job_id: 'rndr_12345', status: 'queued' }));
+
+    const config = {
+      ...DEFAULT_TEST_CONFIG,
+      frameMasks: [
+        { frameKey: 'frame-0001', maskUrl: 'https://cdn/m1.png', dilationPixels: 4, invert: false },
+        { frameKey: 'frame-0002', maskUrl: 'https://cdn/m2.png', dilationPixels: 6, invert: true },
+      ],
+    };
+    await client.submitBakingJob(config);
+
+    const payload = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(payload.config.training.frame_masks).toHaveLength(2);
+    expect(payload.config.training.frame_masks[0]).toEqual({
+      frameKey: 'frame-0001',
+      maskUrl: 'https://cdn/m1.png',
+      dilationPixels: 4,
+      invert: false,
+    });
+    expect(payload.config.training.frame_masks[1]).toEqual({
+      frameKey: 'frame-0002',
+      maskUrl: 'https://cdn/m2.png',
+      dilationPixels: 6,
+      invert: true,
+    });
   });
 
   it('should retry on server errors (500)', async () => {

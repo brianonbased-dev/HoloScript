@@ -87,13 +87,20 @@ function initState(node: HSPlusNode): DynamicRegionMaskState {
   return state;
 }
 
+export interface DynamicRegionMaskAttachment {
+  frameKey: string;
+  maskUrl: string;
+  dilationPixels: number;
+  invert: boolean;
+}
+
 /**
  * Build the mask attachment list emitted alongside training job submission.
  * Pure / deterministic so tests can exercise it without event plumbing.
  */
 export function buildMaskAttachments(
   config: DynamicRegionMaskConfig
-): Array<{ frameKey: string; maskUrl: string; dilationPixels: number; invert: boolean }> {
+): DynamicRegionMaskAttachment[] {
   if (config.source !== 'per_frame') return [];
   const entries = Object.entries(config.perFrameMasks);
   return entries.map(([frameKey, maskUrl]) => ({
