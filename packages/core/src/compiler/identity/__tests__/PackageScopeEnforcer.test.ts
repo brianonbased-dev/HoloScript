@@ -32,6 +32,19 @@ describe('PackagePermissionManifest', () => {
     expect(uniquePaths.size).toBe(paths.length);
   });
 
+  it('should not grant live package permissions to retired Rust spatial packages', () => {
+    const retired = [
+      'spatial-engine',
+      'spatial-engine-wasm',
+      'shader-preview-wgpu',
+      'holoscript-component',
+    ];
+    const names = new Set(PACKAGE_PERMISSION_MANIFEST.map((p) => p.name));
+    for (const name of retired) {
+      expect(names.has(name)).toBe(false);
+    }
+  });
+
   it('should classify core as CRITICAL tier', () => {
     const core = PACKAGE_PERMISSIONS_BY_NAME.get('core');
     expect(core).toBeDefined();

@@ -48,7 +48,7 @@ Monorepo packages for the HoloScript programming language.
 | [`@holoscript/adapter-postgres`](adapter-postgres/)         | PostgreSQL adapter    | MIT     |
 | [`@holoscript/registry`](registry/)                         | Package registry      | MIT     |
 | `@holoscript/std/fs` _(merged from `@holoscript/fs` 2026-04-29)_ | File system utilities — see [`std/src/fs/`](std/src/fs/) | MIT |
-| [`@holoscript/holoscript-component`](holoscript-component/) | Web component         | MIT     |
+| `@holoscript/holoscript-component` _(retired April 2026)_ | Historical WASM component package; use `@holoscript/wasm` / `packages/compiler-wasm` | MIT |
 
 ## Marketplace
 
