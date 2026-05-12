@@ -41,6 +41,11 @@ import {
   type IClassicalVerifier,
   type VerifyDualSignatureResult,
 } from './dual-signature-envelope';
+import {
+  CapabilityTokenError,
+  CapabilityTokenRegistry,
+  type Capability,
+} from '@holoscript/secrets-broker';
 
 // ── Singleton registry instance ────────────────────────────────────────
 
@@ -84,10 +89,16 @@ export interface SigningContext {
   /** Failure reason from request-signing.verifyEnvelope (timestamp-stale, etc). */
   signingReason?: string;
   /** Signing protocol used. `classical` = legacy EIP-191 ECDSA envelope.
-   *  `dual` = post-quantum DualSignatureEnvelope (any of its 3 modes). */
-  signingProtocol?: 'classical' | 'dual';
+   *  `dual` = post-quantum DualSignatureEnvelope (any of its 3 modes).
+   *  `capability` = short-lived capability-token Bearer auth (no payload
+   *  integrity — caller asserts a single capability scope per request). */
+  signingProtocol?: 'classical' | 'dual' | 'capability';
   /** When `signingProtocol='dual'`, which mode the envelope used. */
   dualMode?: 'classical_only' | 'pqc_only' | 'dual';
+  /** When `signingProtocol='capability'`, the capability the token was scoped
+   *  to for THIS request. The route handler asserted it via `req.capability`;
+   *  the registry validated the token grants it. */
+  capabilityScope?: Capability;
 }
 
 export interface ExtractAndVerifyResult {
@@ -108,6 +119,34 @@ export interface ExtractAndVerifyOptions {
   /** Inject a classical-side verifier for the dual-signature path (default:
    *  ViemClassicalVerifier). Tests use a deterministic mock. */
   classicalVerifier?: IClassicalVerifier;
+  /** Inject the capability-token registry for the capability auth path
+   *  (default: module singleton). Tests pass a fresh registry. */
+  capabilityRegistry?: CapabilityTokenRegistry;
+}
+
+// ── Capability-token registry singleton ───────────────────────────────
+
+let _capabilityRegistry: CapabilityTokenRegistry | null = null;
+
+/**
+ * Module-level singleton CapabilityTokenRegistry. Same lazy-init pattern as
+ * the AttestationRegistry singleton above — production paths share state
+ * across the verifier middleware, the broker-issued mint route, and the
+ * broker-revoke route.
+ */
+export function getCapabilityRegistry(): CapabilityTokenRegistry {
+  if (!_capabilityRegistry) _capabilityRegistry = new CapabilityTokenRegistry();
+  return _capabilityRegistry;
+}
+
+/** Test-only: replace the singleton. */
+export function setCapabilityRegistry(registry: CapabilityTokenRegistry): void {
+  _capabilityRegistry = registry;
+}
+
+/** Test-only: drop the singleton. */
+export function resetCapabilityRegistry(): void {
+  _capabilityRegistry = null;
 }
 
 // ── Dual-signature envelope request shape ─────────────────────────────
@@ -143,6 +182,60 @@ export function isDualEnvelopeBody(b: unknown): b is DualEnvelopeRequestBody {
     typeof obj.nonce === 'string' &&
     typeof obj.timestamp === 'string'
   );
+}
+
+// ── Capability-token envelope request shape ─────────────────────────────
+//
+// Third auth shape — used by surfaces that cannot easily sign (mobile,
+// headless reduced-trust), and for high-volume read operations where the
+// signing overhead is excessive. Caller MUST declare `capability` so the
+// registry can enforce scope. The token itself carries the set of granted
+// capabilities; this request asserts which ONE of them is being exercised
+// right now.
+//
+// Trade-off vs signed envelopes: a capability token proves IDENTITY but
+// NOT PAYLOAD INTEGRITY. An attacker who steals the token can mint
+// arbitrary requests up to the token's granted capabilities. Route
+// handlers that mutate high-trust state (mesh:sign, protocol:publish)
+// should require signed envelopes regardless of capability scope.
+//
+export interface CapabilityEnvelopeRequestBody {
+  envelope_type: 'capability';
+  /** Token id (e.g. `captok_a1b2c3...`). */
+  token_id: string;
+  /** Plaintext token secret. Hashed internally before comparison. */
+  token_secret: string;
+  /** The actual payload the handler will consume. */
+  body: unknown;
+  /** Capability the caller is exercising. Must be in the token's granted set. */
+  capability: Capability;
+}
+
+export function isCapabilityEnvelopeBody(b: unknown): b is CapabilityEnvelopeRequestBody {
+  if (b === null || typeof b !== 'object') return false;
+  const obj = b as Record<string, unknown>;
+  return (
+    obj.envelope_type === 'capability' &&
+    typeof obj.token_id === 'string' &&
+    typeof obj.token_secret === 'string' &&
+    typeof obj.capability === 'string'
+  );
+}
+
+/** Map a CapabilityTokenError.code to a stable SigningContext.signingReason. */
+function capabilityTokenErrorToSigningReason(err: CapabilityTokenError): string {
+  switch (err.code) {
+    case 'TOKEN_REVOKED':
+      return 'capability-token-revoked';
+    case 'TOKEN_EXPIRED':
+      return 'capability-token-expired';
+    case 'TOKEN_INVALID_SECRET':
+      return 'capability-token-invalid';
+    case 'CAPABILITY_NOT_IN_TRUST_TIER':
+      return 'capability-not-granted';
+    default:
+      return `capability-error-${err.code}`;
+  }
 }
 
 /** Decode base64 -> bytes. Returns null on malformed input. */
@@ -265,9 +358,20 @@ export async function extractAndVerifySigning(
 ): Promise<ExtractAndVerifyResult> {
   const strict = options.strictMode ?? isStrictMode(options.env, options.nowMs);
 
+  // ── Capability-token envelope path (Bearer-style, mobile/headless) ──
+  //
+  // Detected first because envelope_type='capability' makes the discrimination
+  // unambiguous and the registry lookup is cheap. Callers exercising
+  // high-trust capabilities (mesh:sign / protocol:publish) should still
+  // require a signed envelope — capability scoping is at the route-handler
+  // boundary, not here.
+  if (isCapabilityEnvelopeBody(reqBody)) {
+    return verifyCapabilityEnvelopeRequest(reqBody, options);
+  }
+
   // ── Dual-signature envelope path (post-quantum opt-in) ──────────
   //
-  // Detect dual-envelope shape FIRST so the legacy `extractEnvelope` doesn't
+  // Detect dual-envelope shape next so the legacy `extractEnvelope` doesn't
   // misread `envelope_b64` as a classical signature field. The dual path is
   // strictly opt-in (caller sets envelope_type='dual'); legacy callers fall
   // through to the classical path below with no behavior change.
@@ -480,6 +584,69 @@ export async function verifyDualEnvelopeRequest(
       signingReason: undefined,
       signingProtocol: 'dual',
       dualMode: parsed.envelope.mode,
+    },
+  };
+}
+
+// ── Capability-token envelope verification path ───────────────────────
+
+/**
+ * Verify a capability-token request body. Called by `extractAndVerifySigning`
+ * when the body shape matches `CapabilityEnvelopeRequestBody`.
+ *
+ * Looks up the token in the CapabilityTokenRegistry and validates:
+ *   - token exists
+ *   - presented secret hashes match the stored hash
+ *   - token is not revoked
+ *   - token is not expired (vs `options.nowMs`)
+ *   - the requested `capability` is in the token's granted set
+ *
+ * On any failure, returns a SigningContext with `signingValid=false` and a
+ * structured `signingReason` (capability-token-revoked / -expired / -invalid
+ * / capability-not-granted). On success, the `signer` is the token's
+ * `handle` (e.g. `mobile1`) — NOT an Ethereum address (capability tokens
+ * are surface-bound, not wallet-bound).
+ */
+export async function verifyCapabilityEnvelopeRequest(
+  req: CapabilityEnvelopeRequestBody,
+  options: ExtractAndVerifyOptions = {}
+): Promise<ExtractAndVerifyResult> {
+  const registry = options.capabilityRegistry ?? getCapabilityRegistry();
+  const nowDate = options.nowMs !== undefined ? new Date(options.nowMs) : new Date();
+
+  try {
+    registry.validateById(req.token_id, req.token_secret, req.capability, nowDate);
+  } catch (err) {
+    if (err instanceof CapabilityTokenError) {
+      return {
+        effectiveBody: req.body,
+        ctx: {
+          signedRequest: true,
+          signingValid: false,
+          signer: null,
+          signingReason: capabilityTokenErrorToSigningReason(err),
+          signingProtocol: 'capability',
+          capabilityScope: req.capability,
+        },
+      };
+    }
+    // Non-CapabilityTokenError — re-throw; callers will surface as 500.
+    throw err;
+  }
+
+  // Validation passed. Surface the token's handle as the signer.
+  const stored = registry.get(req.token_id);
+  // stored must be defined here — validateById would have thrown otherwise.
+  const signer = stored ? stored.handle : null;
+
+  return {
+    effectiveBody: req.body,
+    ctx: {
+      signedRequest: true,
+      signingValid: true,
+      signer,
+      signingProtocol: 'capability',
+      capabilityScope: req.capability,
     },
   };
 }
