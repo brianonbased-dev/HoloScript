@@ -12,18 +12,132 @@ import type {
   Capabilities,
   LLMCompletionRequest,
   LLMCompletionResponse,
+  LLMFileMetadata,
+  LLMFileUploadRequest,
   LLMStreamChunk,
   AnthropicProviderConfig,
   AnthropicEffortLevel,
   LLMMessage,
   TokenUsage,
+  ToolSpecUnion,
 } from '../types';
 import {
+  isAnthropicAdvisorTool,
   LLMAuthenticationError,
   LLMRateLimitError,
   LLMContextLengthError,
   LLMProviderError,
 } from '../types';
+
+/** Beta token for the advisor tool (`advisor-tool-2026-03-01`). */
+export const ANTHROPIC_ADVISOR_BETA = 'advisor-tool-2026-03-01';
+/** Beta token for the Files API (`files-api-2025-04-14`). */
+export const ANTHROPIC_FILES_BETA = 'files-api-2025-04-14';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isAnthropicFileContentBlock(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (value.type === 'container_upload') {
+    return typeof value.file_id === 'string' && value.file_id.length > 0;
+  }
+  if (value.type !== 'document' && value.type !== 'image') return false;
+  const source = value.source;
+  return (
+    isRecord(source) &&
+    source.type === 'file' &&
+    typeof source.file_id === 'string' &&
+    source.file_id.length > 0
+  );
+}
+
+export function hasAnthropicFileContent(request: LLMCompletionRequest): boolean {
+  for (const message of request.messages) {
+    if (!Array.isArray(message.content)) continue;
+    if (message.content.some(isAnthropicFileContentBlock)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Collect every `anthropic-beta` token implied by a request:
+ *
+ *   1. Any tool with shape `{ type: 'advisor_20260301', name: 'advisor' }`
+ *      contributes `advisor-tool-2026-03-01`.
+ *   2. Any Files API content block (`document`/`image` with file source, or
+ *      `container_upload`) contributes `files-api-2025-04-14`.
+ *   3. Explicit `req.provider.anthropic.betaHeaders` entries pass through
+ *      verbatim (callers can opt into future betas without an adapter bump).
+ *
+ * Duplicates removed; order preserved (advisor tokens first, then explicit
+ * caller tokens). Returns `undefined` when no betas are required so the
+ * adapter can skip the `anthropic-beta` header entirely and stay on the
+ * fast, header-free request shape for the common case (`request.tools`
+ * absent OR all generic function tools, no `betaHeaders`).
+ */
+export function collectAnthropicBetaHeaders(
+  request: LLMCompletionRequest,
+): string[] | undefined {
+  const tokens: string[] = [];
+  const tools = request.tools as ToolSpecUnion[] | undefined;
+  if (tools && tools.length > 0) {
+    for (const t of tools) {
+      if (isAnthropicAdvisorTool(t)) {
+        tokens.push(ANTHROPIC_ADVISOR_BETA);
+        break; // one advisor tool ⇒ one header; duplicates would be redundant
+      }
+    }
+  }
+  if (hasAnthropicFileContent(request)) {
+    tokens.push(ANTHROPIC_FILES_BETA);
+  }
+  const explicit = request.provider?.anthropic?.betaHeaders;
+  if (explicit && explicit.length > 0) {
+    for (const h of explicit) {
+      if (typeof h === 'string' && h.length > 0) {
+        tokens.push(h);
+      }
+    }
+  }
+  if (tokens.length === 0) return undefined;
+  // Dedupe while preserving order — the SDK forwards verbatim to the
+  // `anthropic-beta` header, and Anthropic accepts comma-separated tokens
+  // but a duplicate is a wasted byte and a log smell.
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const tok of tokens) {
+    if (!seen.has(tok)) {
+      seen.add(tok);
+      out.push(tok);
+    }
+  }
+  return out;
+}
+
+function collectAnthropicUploadBetas(request: LLMFileUploadRequest): string[] {
+  return [
+    ANTHROPIC_FILES_BETA,
+    ...(request.provider?.anthropic?.betaHeaders ?? []),
+  ].filter((token, index, all) => token.length > 0 && all.indexOf(token) === index);
+}
+
+function mapAnthropicFileMetadata(value: unknown): LLMFileMetadata {
+  const record = isRecord(value) ? value : {};
+  return {
+    id: String(record.id ?? ''),
+    type: 'file',
+    filename: String(record.filename ?? ''),
+    mimeType: String(record.mime_type ?? ''),
+    sizeBytes: typeof record.size_bytes === 'number' ? record.size_bytes : 0,
+    createdAt: String(record.created_at ?? ''),
+    downloadable: typeof record.downloadable === 'boolean' ? record.downloadable : undefined,
+    raw: value,
+  };
+}
 
 // Available Anthropic Claude models for HoloScript generation.
 // Use aliases (not date-suffixed IDs) — they auto-resolve to the latest pinned build.
@@ -214,6 +328,38 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     return 'claude-opus-4-7';
   }
 
+  async uploadFile(request: LLMFileUploadRequest): Promise<LLMFileMetadata> {
+    let Anthropic: typeof import('@anthropic-ai/sdk').default;
+    try {
+      const module = await import('@anthropic-ai/sdk');
+      Anthropic = module.default;
+    } catch {
+      throw new LLMProviderError(
+        '@anthropic-ai/sdk package not installed. Run: npm install @anthropic-ai/sdk',
+        'anthropic'
+      );
+    }
+
+    const client = new Anthropic({
+      apiKey: this.config.apiKey,
+      baseURL: this.config.baseURL || undefined,
+      timeout: this.config.timeoutMs,
+      maxRetries: 0,
+    });
+
+    return await this.withRetry(async () => {
+      try {
+        const uploaded = await client.beta.files.upload({
+          file: request.file as never,
+          betas: collectAnthropicUploadBetas(request) as never,
+        });
+        return mapAnthropicFileMetadata(uploaded);
+      } catch (err: unknown) {
+        throw this.mapAnthropicError(err);
+      }
+    });
+  }
+
   async complete(
     request: LLMCompletionRequest,
     model: string = this.defaultHoloScriptModel
@@ -290,7 +436,17 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         !!(this.enablePromptCaching && system),
       );
 
-      const stream = client.messages.stream({
+      // Beta header for the advisor tool / explicit caller-supplied betas.
+      // When undefined the adapter calls stream() with one arg (no options
+      // object) so the request shape is unchanged for the common path —
+      // this preserves the literal-object call shape that the W.production
+      // 30s-wall comment above depends on.
+      const betas = collectAnthropicBetaHeaders(request);
+      const streamOptions = betas
+        ? { headers: { 'anthropic-beta': betas.join(',') } }
+        : undefined;
+
+      const streamBody = {
         model,
         // Default to 16000 per current API skill guidance (was 2048 — too low,
         // truncates commonly on modern models).
@@ -310,7 +466,10 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         ...(thinkingOut.output_config
           ? { output_config: thinkingOut.output_config as never }
           : {}),
-      });
+      };
+      const stream = streamOptions
+        ? client.messages.stream(streamBody, streamOptions)
+        : client.messages.stream(streamBody);
       const response = await stream.finalMessage();
 
       // Capture request-id and response headers for observability.
@@ -442,9 +601,17 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       !!(this.enablePromptCaching && system),
     );
 
+    // Beta header for the advisor tool / explicit caller-supplied betas.
+    // See collectAnthropicBetaHeaders() — undefined ⇒ skip the options arg
+    // entirely so the common-path request shape is unchanged.
+    const betas = collectAnthropicBetaHeaders(request);
+    const streamOptions = betas
+      ? { headers: { 'anthropic-beta': betas.join(',') } }
+      : undefined;
+
     let stream;
     try {
-      stream = client.messages.stream({
+      const streamBody = {
         model,
         max_tokens: request.maxTokens ?? 16000,
         ...samplingParams,
@@ -459,7 +626,10 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         ...(thinkingOut.output_config
           ? { output_config: thinkingOut.output_config as never }
           : {}),
-      });
+      };
+      stream = streamOptions
+        ? client.messages.stream(streamBody, streamOptions)
+        : client.messages.stream(streamBody);
     } catch (err) {
       throw this.mapAnthropicError(err);
     }

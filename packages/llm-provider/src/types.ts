@@ -52,8 +52,10 @@ export interface LLMMessage {
   /** Either plain text (most messages) OR a structured content array.
    *  - Assistant messages mid-tool-loop carry the assistant's prior
    *    text + tool_use blocks so the model has its own turn in context.
-   *  - User messages mid-tool-loop carry tool_result blocks. */
-  content: string | Array<TextBlock | ToolUseBlock | ToolResultBlock>;
+   *  - User messages mid-tool-loop carry tool_result blocks.
+   *  - Anthropic file references use provider-specific blocks so callers can
+   *    pass file_id references instead of base64 payloads. */
+  content: string | LLMContentBlock[];
 }
 
 export interface LLMSystemMessage {
@@ -111,8 +113,15 @@ export interface LLMCompletionRequest {
    * blocks that the caller must execute and re-feed via a follow-up request
    * containing assistantBlocks (the prior response) + tool_result messages.
    * Anthropic adapter passes these straight through to messages.stream.
+   *
+   * Accepts both generic JSONSchema-shaped tools (`ToolSpec`) and Anthropic
+   * server-side tools like the advisor (`AnthropicAdvisorToolSpec`). When an
+   * advisor tool is present, the Anthropic adapter injects the
+   * `anthropic-beta: advisor-tool-2026-03-01` header. Adapters for other
+   * providers strip provider-specific shapes (they fail the function-tool
+   * contract).
    */
-  tools?: ToolSpec[];
+  tools?: ToolSpecUnion[];
 
   /**
    * Anthropic: passed to `messages.stream({ thinking })`. If omitted, Opus 4.6/4.7
@@ -161,6 +170,74 @@ export interface ToolSpec {
   };
 }
 
+/**
+ * Anthropic-defined server-side advisor tool (beta
+ * `advisor-tool-2026-03-01`). Pairs a frontier "advisor" model (e.g. Opus 4.7)
+ * with a cheaper executor in long-horizon HoloScript agentic loops + generated
+ * agents — executor delegates expensive reasoning to advisor, then resumes.
+ *
+ * Distinct shape from `ToolSpec` (no JSON schema — `input` is a free-form
+ * advisor sub-prompt). Including ANY tool of this shape in
+ * `LLMCompletionRequest.tools` causes the Anthropic adapter to inject the
+ * `anthropic-beta: advisor-tool-2026-03-01` header. Other adapters MUST
+ * ignore the entry (it is not a callable function in their tool surface).
+ *
+ * See `ai-ecosystem/docs/LLM_CAPABILITIES.md` § Anthropic → Built-in
+ * server-side tools.
+ */
+export interface AnthropicAdvisorToolSpec {
+  /** Discriminator for the Anthropic advisor beta. */
+  type: 'advisor_20260301';
+  /** The advisor tool's name MUST be the literal `'advisor'` per Anthropic API. */
+  name: 'advisor';
+  /**
+   * Model the advisor uses for sub-inference (e.g. `claude-opus-4-7`).
+   * Caller decides which frontier model pairs with the executor.
+   */
+  model: string;
+  /**
+   * Which caller surfaces are allowed to invoke the advisor. Default is
+   * `['direct']` (the executor model calls advisor directly). Add
+   * `'code_execution_20260120'` to let code-execution sandboxes call advisor
+   * mid-script. Omit for direct-only.
+   */
+  allowed_callers?: Array<'direct' | 'code_execution_20250825' | 'code_execution_20260120'>;
+}
+
+/**
+ * Union of every tool shape the unified request accepts. Generic JSONSchema
+ * tools (`ToolSpec`) pass through to every adapter. Provider-specific tool
+ * shapes (currently only `AnthropicAdvisorToolSpec`) opt in to a beta header
+ * on the matching adapter and are filtered out by non-matching adapters.
+ *
+ * Discriminate via the `type` field: any tool with `type: 'advisor_20260301'`
+ * is the advisor; anything without `type` (or with a future provider-specific
+ * discriminator) is a generic function tool.
+ */
+export type ToolSpecUnion = ToolSpec | AnthropicAdvisorToolSpec;
+
+/** Type guard for the Anthropic advisor tool. */
+export function isAnthropicAdvisorTool(t: ToolSpecUnion): t is AnthropicAdvisorToolSpec {
+  return (t as { type?: string }).type === 'advisor_20260301';
+}
+
+/** Generic JSONSchema function tool guard for non-Anthropic adapters. */
+export function isToolSpec(t: ToolSpecUnion): t is ToolSpec {
+  return typeof (t as ToolSpec).input_schema !== 'undefined';
+}
+
+/**
+ * Filter a heterogenous tools list down to generic `ToolSpec` entries — drops
+ * provider-specific shapes (currently only Anthropic's advisor) that other
+ * adapters can't dispatch. Use this at adapter boundaries for OpenAI,
+ * Gemini, Ollama, etc. so callers can opt into the advisor on Anthropic
+ * without breaking fallback-provider retry on the same `LLMCompletionRequest`.
+ */
+export function filterGenericTools(tools: ToolSpecUnion[] | undefined): ToolSpec[] {
+  if (!tools || tools.length === 0) return [];
+  return tools.filter(isToolSpec);
+}
+
 /** A tool call the model wants the caller to execute. */
 export interface ToolUseBlock {
   type: 'tool_use';
@@ -174,6 +251,94 @@ export interface TextBlock {
   type: 'text';
   text: string;
 }
+
+export interface CacheControlEphemeral {
+  type: 'ephemeral';
+  ttl?: '5m' | '1h';
+}
+
+export interface AnthropicFileSource {
+  type: 'file';
+  file_id: string;
+}
+
+export interface AnthropicDocumentFileBlock {
+  type: 'document';
+  source: AnthropicFileSource;
+  title?: string;
+  context?: string;
+  citations?: { enabled: boolean };
+  cache_control?: CacheControlEphemeral;
+}
+
+export interface AnthropicImageFileBlock {
+  type: 'image';
+  source: AnthropicFileSource;
+  cache_control?: CacheControlEphemeral;
+}
+
+export interface AnthropicContainerUploadBlock {
+  type: 'container_upload';
+  file_id: string;
+  cache_control?: CacheControlEphemeral;
+}
+
+export type AnthropicFileContentBlock =
+  | AnthropicDocumentFileBlock
+  | AnthropicImageFileBlock
+  | AnthropicContainerUploadBlock;
+
+export type AnthropicFileContentBlockType = AnthropicFileContentBlock['type'];
+
+export interface AnthropicFileContentBlockOptions {
+  title?: string;
+  context?: string;
+  citations?: { enabled: boolean };
+  cacheControl?: CacheControlEphemeral;
+}
+
+/**
+ * Helper for referencing an Anthropic Files API `file_id` in messages.
+ *
+ * `document` and `image` blocks let Claude read uploaded PDFs/text/images.
+ * `container_upload` mounts arbitrary uploaded files for code execution.
+ */
+export function anthropicFileContentBlock(
+  fileId: string,
+  type: AnthropicFileContentBlockType,
+  options: AnthropicFileContentBlockOptions = {},
+): AnthropicFileContentBlock {
+  if (type === 'container_upload') {
+    return {
+      type,
+      file_id: fileId,
+      ...(options.cacheControl ? { cache_control: options.cacheControl } : {}),
+    };
+  }
+
+  if (type === 'image') {
+    return {
+      type,
+      source: { type: 'file', file_id: fileId },
+      ...(options.cacheControl ? { cache_control: options.cacheControl } : {}),
+    };
+  }
+
+  return {
+    type,
+    source: { type: 'file', file_id: fileId },
+    ...(options.title ? { title: options.title } : {}),
+    ...(options.context ? { context: options.context } : {}),
+    ...(options.citations ? { citations: options.citations } : {}),
+    ...(options.cacheControl ? { cache_control: options.cacheControl } : {}),
+  };
+}
+
+export type LLMContentBlock =
+  | TextBlock
+  | ToolUseBlock
+  | ToolResultBlock
+  | AnthropicFileContentBlock;
 
 export type AssistantContentBlock = TextBlock | ToolUseBlock;
 
@@ -253,6 +418,15 @@ export function messageContentAsString(content: LLMMessage['content']): string {
       }
       if (block.type === 'tool_result') {
         return `[tool_result for ${block.tool_use_id}${block.is_error ? ' (error)' : ''}]\n${block.content}`;
+      }
+      if (block.type === 'document') {
+        return `[anthropic_file document file_id=${block.source.file_id}${block.title ? ` title=${block.title}` : ''}]`;
+      }
+      if (block.type === 'image') {
+        return `[anthropic_file image file_id=${block.source.file_id}]`;
+      }
+      if (block.type === 'container_upload') {
+        return `[anthropic_file container_upload file_id=${block.file_id}]`;
       }
       return '';
     })
@@ -347,6 +521,29 @@ export interface TokenUsage {
 
   /** Total tokens used */
   totalTokens: number;
+}
+
+export interface LLMFileUploadRequest {
+  /**
+   * Provider-native upload object. Anthropic SDK accepts Node ReadStream,
+   * File/Blob-like values, or other Uploadable shapes. Kept `unknown` here so
+   * the provider-neutral type does not force every adapter to depend on one
+   * vendor SDK's upload type.
+   */
+  file: unknown;
+  /** Provider-namespaced upload extensions. */
+  provider?: ProviderExtensions;
+}
+
+export interface LLMFileMetadata {
+  id: string;
+  type: 'file';
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  createdAt: string;
+  downloadable?: boolean;
+  raw?: unknown;
 }
 
 // =============================================================================
@@ -659,6 +856,13 @@ export interface ILLMProvider {
     request: LLMCompletionRequest,
     model?: string
   ): AsyncIterable<LLMStreamChunk>;
+
+  /**
+   * Upload a reusable file reference on providers that support a Files API.
+   * Adapters without native support inherit BaseLLMAdapter's explicit
+   * unsupported-provider error.
+   */
+  uploadFile(request: LLMFileUploadRequest): Promise<LLMFileMetadata>;
 }
 
 // =============================================================================
