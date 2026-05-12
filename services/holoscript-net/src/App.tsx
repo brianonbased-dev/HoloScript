@@ -307,6 +307,50 @@ export function HoloScriptLandingComponent() {
           </div>
         </section>
 
+        {/* Use-case stories from real examples */}
+        <section className="relative z-10 w-full max-w-7xl mx-auto px-6 pb-20">
+          <div className="mb-8 text-center">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Use-case stories already live in the repo</h2>
+            <p className="text-gray-400 max-w-3xl mx-auto">
+              The formats are easiest to understand when they carry a story: process in <code className="text-cyan-300">.hs</code>,
+              behavior in <code className="text-purple-300">.hsplus</code>, and full-world intent in <code className="text-pink-300">.holo</code>.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-5">
+            {[
+              {
+                format: '.hs',
+                title: 'Inventory sync pipeline',
+                body: 'A scheduled POS sync that reads products, maps fields, validates inventory, and updates storefront plus analytics sinks.',
+                href: 'https://github.com/brianonbased-dev/HoloScript/blob/main/examples/pipelines/inventory-sync.hs'
+              },
+              {
+                format: '.hsplus',
+                title: 'Smart gallery behaviors',
+                body: 'A gallery grows from objects into reusable templates, shared state, tappable paintings, grabbable sculptures, and spatial audio.',
+                href: 'https://github.com/brianonbased-dev/HoloScript/blob/main/examples/three-format-showcase/smart-gallery.hsplus'
+              },
+              {
+                format: '.holo',
+                title: 'Smart farm HoloTwin',
+                body: 'MQTT temperature, humidity, and soil sensors drive a 3D digital twin dashboard that can target holographic display output.',
+                href: 'https://github.com/brianonbased-dev/HoloScript/blob/main/examples/iot/holotwin-smart-farm.holo'
+              }
+            ].map((story) => (
+              <a
+                key={story.href}
+                href={story.href}
+                className="block rounded-xl border border-white/10 bg-white/5 p-6 text-left shadow-xl transition-colors hover:bg-white/10"
+              >
+                <code className="text-sm font-bold text-cyan-300">{story.format}</code>
+                <h3 className="mt-3 text-xl font-bold text-white">{story.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-gray-400">{story.body}</p>
+                <span className="mt-5 inline-block text-sm font-semibold text-cyan-300">View example</span>
+              </a>
+            ))}
+          </div>
+        </section>
+
         <LotusProgram />
 
         {/* Claim 1: Build Physics-Aware Worlds */}

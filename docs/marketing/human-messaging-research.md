@@ -42,6 +42,17 @@ Plain explanation:
 5. Why does it matter?
    - The same intent can stay readable to humans, modifiable by agents, and portable across targets.
 
+## Use Examples as Story Proof
+
+HoloScript has enough example files to make the product concrete. Use them early:
+
+- `.hs` tells process: `examples/pipelines/inventory-sync.hs` shows source -> transform -> validate -> sink.
+- `.hsplus` tells behavior: `examples/three-format-showcase/smart-gallery.hsplus` shows templates, state, interactions, and audio.
+- `.holo` tells full-world intent: `examples/iot/holotwin-smart-farm.holo` shows sensors driving a 3D digital twin.
+- `.holo` can also carry ambitious use-case narratives: `examples/novel-use-cases/05-robot-training-metaverse.holo` ties simulation, agents, feedback, and robotics targets together.
+
+Rule: start with what the example is trying to do, then show the format. Do not start with syntax theory.
+
 ## Codebase Inventory Anchors
 
 Use these surfaces when validating public claims:
