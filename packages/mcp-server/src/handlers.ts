@@ -346,6 +346,12 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     return handlePremortemTool(args);
   }
 
+  if (name.startsWith('holo_secrets_')) {
+    const { handleSecretsBrokerTool } = await import('./secrets-broker-handler');
+    const result = await handleSecretsBrokerTool(name, args);
+    if (result !== null) return result;
+  }
+
   if (name === 'holo_service_scaffold') {
     const { handleObservabilityTool } = await import('./observability-tools');
     return handleObservabilityTool(name, args);
