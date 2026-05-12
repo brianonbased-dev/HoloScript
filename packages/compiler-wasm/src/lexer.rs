@@ -4,7 +4,6 @@ use crate::token::{get_keyword, Token, TokenType};
 
 /// Lexer for tokenizing HoloScript source code
 pub struct Lexer<'a> {
-    source: &'a str,
     chars: std::iter::Peekable<std::str::CharIndices<'a>>,
     line: usize,
     column: usize,
@@ -14,7 +13,6 @@ pub struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     pub fn new(source: &'a str) -> Self {
         Self {
-            source,
             chars: source.char_indices().peekable(),
             line: 1,
             column: 1,
@@ -58,7 +56,14 @@ impl<'a> Lexer<'a> {
                     self.advance();
                     return self.read_block_comment(start, start_line, start_column);
                 }
-                Token::new(TokenType::Slash, "/", start_line, start_column, start, start + 1)
+                Token::new(
+                    TokenType::Slash,
+                    "/",
+                    start_line,
+                    start_column,
+                    start,
+                    start + 1,
+                )
             }
 
             '#' => {
@@ -71,7 +76,7 @@ impl<'a> Lexer<'a> {
 
             // Numbers
             '0'..='9' => self.read_number(),
-            '-' if self.peek_next().map_or(false, |c| c.is_ascii_digit()) => self.read_number(),
+            '-' if self.peek_next().is_some_and(|c| c.is_ascii_digit()) => self.read_number(),
 
             // Traits
             '@' => self.read_trait(),
@@ -98,18 +103,46 @@ impl<'a> Lexer<'a> {
                         );
                     }
                 }
-                Token::new(TokenType::Dot, ".", start_line, start_column, start, start + 1)
+                Token::new(
+                    TokenType::Dot,
+                    ".",
+                    start_line,
+                    start_column,
+                    start,
+                    start + 1,
+                )
             }
             '=' => {
                 self.advance();
                 if let Some(&(_, '>')) = self.chars.peek() {
                     self.advance();
-                    Token::new(TokenType::Arrow, "=>", start_line, start_column, start, self.position)
+                    Token::new(
+                        TokenType::Arrow,
+                        "=>",
+                        start_line,
+                        start_column,
+                        start,
+                        self.position,
+                    )
                 } else if let Some(&(_, '=')) = self.chars.peek() {
                     self.advance();
-                    Token::new(TokenType::Eq, "==", start_line, start_column, start, self.position)
+                    Token::new(
+                        TokenType::Eq,
+                        "==",
+                        start_line,
+                        start_column,
+                        start,
+                        self.position,
+                    )
                 } else {
-                    Token::new(TokenType::Equals, "=", start_line, start_column, start, self.position)
+                    Token::new(
+                        TokenType::Equals,
+                        "=",
+                        start_line,
+                        start_column,
+                        start,
+                        self.position,
+                    )
                 }
             }
             '+' => self.single_char_token(TokenType::Plus, "+"),
@@ -119,45 +152,115 @@ impl<'a> Lexer<'a> {
                 self.advance();
                 if let Some(&(_, '=')) = self.chars.peek() {
                     self.advance();
-                    Token::new(TokenType::Ne, "!=", start_line, start_column, start, self.position)
+                    Token::new(
+                        TokenType::Ne,
+                        "!=",
+                        start_line,
+                        start_column,
+                        start,
+                        self.position,
+                    )
                 } else {
-                    Token::new(TokenType::Bang, "!", start_line, start_column, start, self.position)
+                    Token::new(
+                        TokenType::Bang,
+                        "!",
+                        start_line,
+                        start_column,
+                        start,
+                        self.position,
+                    )
                 }
             }
             '<' => {
                 self.advance();
                 if let Some(&(_, '=')) = self.chars.peek() {
                     self.advance();
-                    Token::new(TokenType::Le, "<=", start_line, start_column, start, self.position)
+                    Token::new(
+                        TokenType::Le,
+                        "<=",
+                        start_line,
+                        start_column,
+                        start,
+                        self.position,
+                    )
                 } else {
-                    Token::new(TokenType::Lt, "<", start_line, start_column, start, self.position)
+                    Token::new(
+                        TokenType::Lt,
+                        "<",
+                        start_line,
+                        start_column,
+                        start,
+                        self.position,
+                    )
                 }
             }
             '>' => {
                 self.advance();
                 if let Some(&(_, '=')) = self.chars.peek() {
                     self.advance();
-                    Token::new(TokenType::Ge, ">=", start_line, start_column, start, self.position)
+                    Token::new(
+                        TokenType::Ge,
+                        ">=",
+                        start_line,
+                        start_column,
+                        start,
+                        self.position,
+                    )
                 } else {
-                    Token::new(TokenType::Gt, ">", start_line, start_column, start, self.position)
+                    Token::new(
+                        TokenType::Gt,
+                        ">",
+                        start_line,
+                        start_column,
+                        start,
+                        self.position,
+                    )
                 }
             }
             '&' => {
                 self.advance();
                 if let Some(&(_, '&')) = self.chars.peek() {
                     self.advance();
-                    Token::new(TokenType::And, "&&", start_line, start_column, start, self.position)
+                    Token::new(
+                        TokenType::And,
+                        "&&",
+                        start_line,
+                        start_column,
+                        start,
+                        self.position,
+                    )
                 } else {
-                    Token::new(TokenType::Invalid, "&", start_line, start_column, start, self.position)
+                    Token::new(
+                        TokenType::Invalid,
+                        "&",
+                        start_line,
+                        start_column,
+                        start,
+                        self.position,
+                    )
                 }
             }
             '|' => {
                 self.advance();
                 if let Some(&(_, '|')) = self.chars.peek() {
                     self.advance();
-                    Token::new(TokenType::Or, "||", start_line, start_column, start, self.position)
+                    Token::new(
+                        TokenType::Or,
+                        "||",
+                        start_line,
+                        start_column,
+                        start,
+                        self.position,
+                    )
                 } else {
-                    Token::new(TokenType::Invalid, "|", start_line, start_column, start, self.position)
+                    Token::new(
+                        TokenType::Invalid,
+                        "|",
+                        start_line,
+                        start_column,
+                        start,
+                        self.position,
+                    )
                 }
             }
 
@@ -174,7 +277,14 @@ impl<'a> Lexer<'a> {
                 self.advance();
                 self.line += 1;
                 self.column = 1;
-                Token::new(TokenType::Newline, "\n", start_line, start_column, start, self.position)
+                Token::new(
+                    TokenType::Newline,
+                    "\n",
+                    start_line,
+                    start_column,
+                    start,
+                    self.position,
+                )
             }
 
             // Invalid character
@@ -240,7 +350,14 @@ impl<'a> Lexer<'a> {
         while let Some(&(_, ch)) = self.chars.peek() {
             if ch == quote {
                 self.advance(); // Skip closing quote
-                return Token::new(TokenType::String, value, start_line, start_column, start, self.position);
+                return Token::new(
+                    TokenType::String,
+                    value,
+                    start_line,
+                    start_column,
+                    start,
+                    self.position,
+                );
             }
             if ch == '\\' {
                 self.advance();
@@ -269,7 +386,14 @@ impl<'a> Lexer<'a> {
         }
 
         // Unterminated string
-        Token::new(TokenType::Invalid, value, start_line, start_column, start, self.position)
+        Token::new(
+            TokenType::Invalid,
+            value,
+            start_line,
+            start_column,
+            start,
+            self.position,
+        )
     }
 
     fn read_number(&mut self) -> Token {
@@ -341,7 +465,14 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        Token::new(TokenType::Number, value, start_line, start_column, start, self.position)
+        Token::new(
+            TokenType::Number,
+            value,
+            start_line,
+            start_column,
+            start,
+            self.position,
+        )
     }
 
     fn read_identifier(&mut self) -> Token {
@@ -360,7 +491,14 @@ impl<'a> Lexer<'a> {
         }
 
         let token_type = get_keyword(&value).unwrap_or(TokenType::Identifier);
-        Token::new(token_type, value, start_line, start_column, start, self.position)
+        Token::new(
+            token_type,
+            value,
+            start_line,
+            start_column,
+            start,
+            self.position,
+        )
     }
 
     fn read_trait(&mut self) -> Token {
@@ -380,7 +518,14 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        Token::new(TokenType::Trait, value, start_line, start_column, start, self.position)
+        Token::new(
+            TokenType::Trait,
+            value,
+            start_line,
+            start_column,
+            start,
+            self.position,
+        )
     }
 
     fn read_line_comment(&mut self, start: usize, start_line: usize, start_column: usize) -> Token {
@@ -392,10 +537,22 @@ impl<'a> Lexer<'a> {
             value.push(ch);
             self.advance();
         }
-        Token::new(TokenType::Comment, value, start_line, start_column, start, self.position)
+        Token::new(
+            TokenType::Comment,
+            value,
+            start_line,
+            start_column,
+            start,
+            self.position,
+        )
     }
 
-    fn read_block_comment(&mut self, start: usize, start_line: usize, start_column: usize) -> Token {
+    fn read_block_comment(
+        &mut self,
+        start: usize,
+        start_line: usize,
+        start_column: usize,
+    ) -> Token {
         let mut value = String::new();
         while let Some((_, ch)) = self.advance() {
             if ch == '*' {
@@ -410,7 +567,14 @@ impl<'a> Lexer<'a> {
             }
             value.push(ch);
         }
-        Token::new(TokenType::BlockComment, value, start_line, start_column, start, self.position)
+        Token::new(
+            TokenType::BlockComment,
+            value,
+            start_line,
+            start_column,
+            start,
+            self.position,
+        )
     }
 }
 

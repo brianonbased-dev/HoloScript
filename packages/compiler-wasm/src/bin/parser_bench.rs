@@ -100,12 +100,10 @@ fn main() {
         .map(|p| p.join("packages/benchmark/fixtures"))
         .expect("could not resolve fixtures dir");
 
-    let small = fs::read_to_string(fixtures_dir.join("small.hsplus"))
-        .expect("read small.hsplus");
-    let medium = fs::read_to_string(fixtures_dir.join("medium.hsplus"))
-        .expect("read medium.hsplus");
-    let large = fs::read_to_string(fixtures_dir.join("large.hsplus"))
-        .expect("read large.hsplus");
+    let small = fs::read_to_string(fixtures_dir.join("small.hsplus")).expect("read small.hsplus");
+    let medium =
+        fs::read_to_string(fixtures_dir.join("medium.hsplus")).expect("read medium.hsplus");
+    let large = fs::read_to_string(fixtures_dir.join("large.hsplus")).expect("read large.hsplus");
 
     let results = vec![
         run_one("parse-small (32 lines)", &small, target_ms),
@@ -117,7 +115,10 @@ fn main() {
     println!("{{");
     println!("  \"suite\": \"NativeRustParser\",");
     println!("  \"timestamp\": \"{}\",", iso8601_now());
-    println!("  \"runtime\": \"native-rust-{}\",", env!("CARGO_PKG_VERSION"));
+    println!(
+        "  \"runtime\": \"native-rust-{}\",",
+        env!("CARGO_PKG_VERSION")
+    );
     println!("  \"target_ms\": {},", target_ms);
     println!("  \"results\": [");
     for (i, r) in results.iter().enumerate() {

@@ -118,7 +118,7 @@ pub fn shader_preview_update(
 ) -> Result<String, String> {
     let guard = state.shader_preview.lock().map_err(|e| e.to_string())?;
 
-    let pipeline = match guard.as_ref() {
+    let _pipeline = match guard.as_ref() {
         Some(p) => p,
         None => return Err("Shader preview not initialized".to_string()),
     };
@@ -269,7 +269,9 @@ pub fn list_projects(directory: String) -> Result<String, String> {
             continue;
         }
 
-        let metadata = entry.metadata().map_err(|e| format!("Failed to read metadata: {}", e))?;
+        let metadata = entry
+            .metadata()
+            .map_err(|e| format!("Failed to read metadata: {}", e))?;
 
         let name = path
             .file_name()
@@ -334,10 +336,18 @@ mod tests {
 
         let content = r#"{"name":"Test","version":"1.0.0"}"#;
         let save_result = save_project(path_str.clone(), content.to_string());
-        assert!(save_result.is_ok(), "save_project failed: {:?}", save_result.err());
+        assert!(
+            save_result.is_ok(),
+            "save_project failed: {:?}",
+            save_result.err()
+        );
 
         let load_result = load_project(path_str.clone());
-        assert!(load_result.is_ok(), "load_project failed: {:?}", load_result.err());
+        assert!(
+            load_result.is_ok(),
+            "load_project failed: {:?}",
+            load_result.err()
+        );
         assert_eq!(load_result.unwrap(), content);
 
         fs::remove_file(&path).expect("cleanup temp file");
@@ -346,14 +356,21 @@ mod tests {
     #[test]
     fn test_save_project_creates_parent_directories() {
         let temp_dir = std::env::temp_dir();
-        let nested = temp_dir.join("holoscript_test_nested").join("deep").join("file.holo");
+        let nested = temp_dir
+            .join("holoscript_test_nested")
+            .join("deep")
+            .join("file.holo");
         let path_str = nested.to_str().unwrap().to_string();
 
         // Ensure parent does not exist
         let _ = fs::remove_dir_all(temp_dir.join("holoscript_test_nested"));
 
         let result = save_project(path_str.clone(), "{}".to_string());
-        assert!(result.is_ok(), "save_project with nested dirs failed: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "save_project with nested dirs failed: {:?}",
+            result.err()
+        );
         assert!(nested.exists());
 
         fs::remove_dir_all(temp_dir.join("holoscript_test_nested")).expect("cleanup nested dirs");

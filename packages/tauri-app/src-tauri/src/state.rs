@@ -3,8 +3,8 @@
 //! Holds the shader preview pipeline (lazy-initialized on first `shader_preview_init`).
 //! All state is behind `Mutex` so multiple IPC calls don't race.
 
-use std::sync::Mutex;
 use crate::shader::ShaderPreviewPipeline;
+use std::sync::Mutex;
 
 pub struct AppState {
     pub shader_preview: Mutex<Option<ShaderPreviewPipeline>>,

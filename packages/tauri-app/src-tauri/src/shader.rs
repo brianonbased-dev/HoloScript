@@ -66,7 +66,7 @@ pub struct ShaderPreviewPipeline {
     pub width: u32,
     pub height: u32,
     pub frame_number: u32,
-    pub initialized_at: Instant,
+    pub _initialized_at: Instant,
     // wgpu resources are added incrementally as the pipeline matures:
     // - device: wgpu::Device
     // - queue: wgpu::Queue
@@ -84,7 +84,7 @@ impl ShaderPreviewPipeline {
             width,
             height,
             frame_number: 0,
-            initialized_at: Instant::now(),
+            _initialized_at: Instant::now(),
         }
     }
 }
