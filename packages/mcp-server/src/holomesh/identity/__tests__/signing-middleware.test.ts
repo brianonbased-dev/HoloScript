@@ -313,9 +313,9 @@ describe('extractAndVerifySigning — singleton integration', () => {
 // ── ctx shape — handler-recipe contract ─────────────────────────────
 
 describe('SigningContext shape — call-site recipe', () => {
-  it('every code path returns the same SigningContext keys', async () => {
+  it('every classical code path returns the same SigningContext keys', async () => {
     mockVerifyMessage.mockResolvedValue(true);
-    const expected = ['signedRequest', 'signingValid', 'signer'].sort();
+    const expected = ['signedRequest', 'signingValid', 'signer', 'signingProtocol'].sort();
     const cases = [
       await extractAndVerifySigning({ legacy: 1 }),                                  // unsigned-grace
       await extractAndVerifySigning({ legacy: 1 }, { strictMode: true }),            // unsigned-rejected
@@ -323,8 +323,13 @@ describe('SigningContext shape — call-site recipe', () => {
       await extractAndVerifySigning(buildEnvelope({ timestamp: 'bad' }), { nowMs: FRESH_NOW }), // signed-stale
     ];
     for (const c of cases) {
-      const keys = Object.keys(c.ctx).filter((k) => k !== 'signingReason').sort();
+      // signingReason is optional (only present on failures);
+      // dualMode is dual-path-only and excluded from the classical shape contract.
+      const keys = Object.keys(c.ctx)
+        .filter((k) => k !== 'signingReason' && k !== 'dualMode')
+        .sort();
       expect(keys).toEqual(expected);
+      expect(c.ctx.signingProtocol).toBe('classical');
     }
   });
 });
