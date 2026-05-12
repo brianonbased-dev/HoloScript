@@ -68,6 +68,18 @@ describe('VRTraitSystem — Production', () => {
       expect(vrTraitRegistry.getHandler('rotatable' as any)).toBeDefined();
     });
 
+    it('registers HoloLand RPG mechanics (stat, luck, encounter, drop_table)', () => {
+      expect(vrTraitRegistry.getHandler('stat' as any)).toBeDefined();
+      expect(vrTraitRegistry.getHandler('luck' as any)).toBeDefined();
+      expect(vrTraitRegistry.getHandler('encounter' as any)).toBeDefined();
+      expect(vrTraitRegistry.getHandler('drop_table' as any)).toBeDefined();
+
+      expect(vrTraitRegistry.getHandler('stat' as any)?.name).toBe('stat');
+      expect(vrTraitRegistry.getHandler('luck' as any)?.name).toBe('luck');
+      expect(vrTraitRegistry.getHandler('encounter' as any)?.name).toBe('encounter');
+      expect(vrTraitRegistry.getHandler('drop_table' as any)?.name).toBe('drop_table');
+    });
+
     it('registers VFX particle subtype handlers through the GPU particle adapter', () => {
       const sparks = vrTraitRegistry.getHandler('vfx_particle_sparks' as any);
       const smoke = vrTraitRegistry.getHandler('vfx_particle_smoke' as any);

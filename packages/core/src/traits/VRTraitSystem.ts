@@ -119,6 +119,10 @@ import { emotionHandler } from './EmotionTrait';
 import { dialogueHandler } from './DialogueTrait';
 import { factionHandler } from './FactionTrait';
 import { patrolHandler } from './PatrolTrait';
+import { statHandler } from './StatTrait';
+import { luckHandler } from './LuckTrait';
+import { encounterHandler } from './EncounterTrait';
+import { dropTableHandler } from './DropTableTrait';
 import { ambisonicsHandler } from './AmbisonicsTrait';
 import { hrtfHandler } from './HRTFTrait';
 import { reverbZoneHandler } from './ReverbZoneTrait';
@@ -1687,6 +1691,12 @@ export class VRTraitRegistry {
     this.register(dialogueHandler as TraitHandler);
     this.register(factionHandler as TraitHandler);
     this.register(patrolHandler as TraitHandler);
+
+    // HoloLand RPG Mechanics
+    this.register(statHandler as TraitHandler);
+    this.register(luckHandler as TraitHandler);
+    this.register(encounterHandler as TraitHandler);
+    this.register(dropTableHandler as TraitHandler);
 
     // Phase 8: Advanced Spatial Audio
     this.register(gemResonanceHandler as TraitHandler);
