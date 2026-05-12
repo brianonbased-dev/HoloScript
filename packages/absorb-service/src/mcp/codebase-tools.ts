@@ -296,6 +296,23 @@ function trackAbsorbProgress(
   }
 }
 
+function failAbsorbJob(
+  jobId: string | undefined,
+  phase: string,
+  error: string,
+  result?: unknown
+): void {
+  if (!jobId) return;
+  const job = absorbJobs.get(jobId);
+  if (!job) return;
+  job.status = 'error';
+  job.phase = phase;
+  job.progress = 100;
+  job.error = error;
+  job.completedAt = Date.now();
+  job.result = result;
+}
+
 /**
  * Create a new absorb job and register it.
  */
@@ -894,13 +911,19 @@ async function loadCodebaseModule(): Promise<CodebaseModule> {
   return EngineMod;
 }
 
+function shouldAutoLoadGraph(name: string, args: Record<string, unknown>): boolean {
+  if (name === 'holo_graph_status' || name === 'holo_get_absorb_status') return false;
+  if (name === 'holo_absorb_repo' && args.force === true) return false;
+  return true;
+}
+
 export async function handleCodebaseTool(
   name: string,
   args: Record<string, unknown>
 ): Promise<unknown | null> {
   // cacheAutoLoaded guard prevents repeated disk I/O within a session;
   // ensureCachedGraph handles the actual lazy-load logic.
-  if (!cacheAutoLoaded) {
+  if (!cacheAutoLoaded && shouldAutoLoadGraph(name, args)) {
     cacheAutoLoaded = true;
     // Pre-warm: load from disk if available (errors intentionally swallowed)
     await ensureCachedGraph().catch(() => {});
@@ -956,6 +979,26 @@ async function runFullScan(
 
   const startTime = Date.now();
 
+  const rootDiagnostics = rootDirs.map(rootDir =>
+    buildAbsorbDiagnostics(rootDir, null, includeBuildArtifacts)
+  );
+  const inaccessibleRoots = rootDiagnostics.filter(
+    diagnostic => !diagnostic.resolvedDirExists || !diagnostic.resolvedDirReadable
+  );
+  if (inaccessibleRoots.length > 0) {
+    const result = {
+      error: 'rootDir_unavailable',
+      message:
+        'One or more requested rootDirs are not accessible from this MCP runtime; graph cache was not updated.',
+      rootDir: primaryRootDir,
+      diagnostics: inaccessibleRoots[0],
+      rootDiagnostics,
+      durationMs: Date.now() - startTime,
+    };
+    failAbsorbJob(jobId, 'Root directory unavailable', result.message, result);
+    return result;
+  }
+
   if (jobId) trackAbsorbProgress(jobId, 'Discovering files', 5);
 
   const scanner = new CodebaseScanner();
@@ -980,6 +1023,25 @@ async function runFullScan(
 
   const graph = new CodebaseGraph();
   graph.buildFromScanResult(scanResult);
+  const stats = graph.getStats();
+  const diagnostics =
+    stats.totalFiles === 0
+      ? buildAbsorbDiagnostics(primaryRootDir, scanResult, includeBuildArtifacts)
+      : undefined;
+
+  if (stats.totalFiles === 0) {
+    const result = {
+      error: 'no_files_scanned',
+      message:
+        'Absorb scan found no supported source files; graph cache and in-memory graph state were not updated.',
+      rootDir: primaryRootDir,
+      stats,
+      diagnostics,
+      durationMs: Date.now() - startTime,
+    };
+    failAbsorbJob(jobId, 'No files scanned', result.message, result);
+    return result;
+  }
 
   // Compute git commit hash and file hashes for v2 cache
   const detector = new GitChangeDetector(primaryRootDir);
@@ -1003,9 +1065,8 @@ async function runFullScan(
   cacheTimestamp = Date.now();
 
   // Persist graph to disk
-  const graphStats = graph.getStats();
   const detectedProvider = embeddingProvider || (await detectBestEmbeddingProvider());
-  saveGraphCache(graph, primaryRootDir, graphStats, gitCommitHash, fileHashes, detectedProvider);
+  saveGraphCache(graph, primaryRootDir, stats, gitCommitHash, fileHashes, detectedProvider);
 
   if (jobId) trackAbsorbProgress(jobId, 'Creating embeddings', 80);
 
@@ -1053,12 +1114,6 @@ async function runFullScan(
 
   // Sync with mesh (Phase 9)
   await syncWithMesh(graph, primaryRootDir);
-
-  const stats = graph.getStats();
-  const diagnostics =
-    stats.totalFiles === 0
-      ? buildAbsorbDiagnostics(primaryRootDir, scanResult, includeBuildArtifacts)
-      : undefined;
 
   if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
 
