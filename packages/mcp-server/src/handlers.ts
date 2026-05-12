@@ -56,6 +56,7 @@ import { isNegotiationToolName, handleNegotiationTool } from './negotiation-mcp-
 import { isHologramToolName, handleHologramTool } from './hologram-mcp-tools';
 import { isHoloTwinToolName, handleHoloTwinTool } from './holotwin-mcp-tools';
 import { handleEstimateTaskDurationTool } from './tools/estimate_task_duration';
+import { handleKolmogorovTaskScoreTool } from './tools/kolmogorov_task_score';
 import { handleCriticTool } from './critic-handler';
 import { handleFounderTool } from './founder-handler';
 import { handlePremortemTool } from './premortem-handler';
@@ -325,6 +326,11 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
 
   if (name === 'holo_estimate_task_duration') {
     const result = await handleEstimateTaskDurationTool(name, args);
+    if (result !== null) return result;
+  }
+
+  if (name === 'holo_task_kolmogorov_score') {
+    const result = await handleKolmogorovTaskScoreTool(name, args);
     if (result !== null) return result;
   }
 
