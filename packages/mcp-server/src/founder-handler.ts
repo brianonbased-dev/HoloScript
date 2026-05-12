@@ -401,7 +401,7 @@ export async function handleFounderTool(
 
   const questions = mode === 'batch'
     ? rawQuestion.split(' // ').map((s) => s.trim()).filter(Boolean)
-    : [rawQuestion];
+    : [rawQuestion.trim()].filter(Boolean);
 
   if (questions.length === 0) {
     throw new Error('holo_founder: question is required (non-empty string).');
@@ -455,18 +455,39 @@ export async function handleFounderTool(
       }
     }
 
-    // 5. Knowledge store fallback
+    // 5. Knowledge store fallback (gated by content-overlap relevance check —
+    //    the store returns top-N by its own ranker, which can surface unrelated
+    //    entries for novel questions. Require at least one query content-word
+    //    to appear in the top entry's content before treating it as precedent;
+    //    otherwise fall through to the judgment layer.)
     if (!ruling) {
       const knowledge = await queryKnowledgeStore(q);
       if (knowledge.length > 0) {
-        knowledgeStoreHit = true;
         const top = knowledge[0];
-        ruling = {
-          layer: 'knowledge',
-          ruling: `Knowledge store returned ${knowledge.length} entr${knowledge.length === 1 ? 'y' : 'ies'}. Top: ${String(top.content || '').slice(0, 200)}`,
-          citation: `knowledge store — ${top.id || top.type || 'unknown'}`,
-          action: 'Use the knowledge store entry as precedent. If it conflicts with GOLD, GOLD wins.',
-        };
+        const topContent = String(top.content || '').toLowerCase();
+        // Content words: non-stopword tokens of length >= 5 from the query.
+        const STOPWORDS = new Set([
+          'should', 'could', 'would', 'about', 'after', 'before', 'between',
+          'which', 'where', 'there', 'their', 'these', 'those', 'while',
+          'because', 'through', 'against', 'across', 'around', 'under',
+          'within', 'without', 'every', 'other', 'another', 'something',
+        ]);
+        const contentWords = q
+          .toLowerCase()
+          .split(/[^a-z0-9]+/)
+          .filter((w) => w.length >= 5 && !STOPWORDS.has(w));
+        const hasOverlap = contentWords.some((w) => topContent.includes(w));
+        if (hasOverlap) {
+          knowledgeStoreHit = true;
+          ruling = {
+            layer: 'knowledge',
+            ruling: `Knowledge store returned ${knowledge.length} entr${knowledge.length === 1 ? 'y' : 'ies'}. Top: ${String(top.content || '').slice(0, 200)}`,
+            citation: `knowledge store — ${top.id || top.type || 'unknown'}`,
+            action: 'Use the knowledge store entry as precedent. If it conflicts with GOLD, GOLD wins.',
+          };
+        }
+        // else: top entry has zero keyword overlap with the query — store
+        // returned a low-relevance match; fall through to judgment.
       }
     }
 
