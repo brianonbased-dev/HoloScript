@@ -231,6 +231,26 @@ export {
 } from './frontier-shard';
 
 export {
+  // Spatial Logic Framework (task_1778462298192_qczd)
+  PREDICATE_KINDS,
+  ACTION_KINDS,
+  type PredicateKind,
+  type ActionKind,
+  type PredicateMode,
+  type SpatialPredicate,
+  type SpatialAction,
+  type SpatialRule,
+  isSupportedPredicateKind,
+  isSupportedActionKind,
+  validateSpatialPredicate,
+  validateSpatialAction,
+  validateSpatialRule,
+  cloneSpatialPredicate,
+  cloneSpatialAction,
+  cloneSpatialRule,
+} from './spatial-logic';
+
+export {
   // Creator Playable-Template Pipeline (task_1778186605462_muzd)
   TEMPLATE_PARAMETER_KINDS,
   DEFAULT_PLAYABILITY_REQUIREMENTS,

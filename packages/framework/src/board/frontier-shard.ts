@@ -28,6 +28,8 @@ import type {
   ArtifactVerificationCommand,
 } from './board-types';
 import type { ValidationReceipt } from './hololand-receipts';
+import { validateSpatialRule, cloneSpatialRule } from './spatial-logic';
+import type { SpatialRule } from './spatial-logic';
 
 // ── Skill — agent-side capability gate ──
 
@@ -283,6 +285,8 @@ export interface Shard {
   items: Item[];
   skills: Skill[];
   lootTables: LootTable[];
+  /** Spatial Logic Framework rules for SLF-grade game intricacies. */
+  spatialRules?: SpatialRule[];
   /** Provenance link back to the producing task / commit. */
   provenance?: ArtifactProvenanceLink;
   metadata?: Record<string, unknown>;
@@ -538,6 +542,17 @@ export function validateShard(shard: Shard): string[] {
       errors.push(`Shard ${shard.id}.lootTables[${table.id || '<unknown>'}]: ${e}`);
     }
   }
+  if (shard.spatialRules !== undefined) {
+    if (!Array.isArray(shard.spatialRules)) {
+      errors.push(`Shard ${shard.id}.spatialRules must be an array.`);
+    } else {
+      for (const rule of shard.spatialRules) {
+        for (const e of validateSpatialRule(rule)) {
+          errors.push(`Shard ${shard.id}.spatialRules[${rule.id || '<unknown>'}]: ${e}`);
+        }
+      }
+    }
+  }
 
   // Cross-reference integrity (only when arrays are present)
   if (Array.isArray(shard.zones) && Array.isArray(shard.encounters)) {
@@ -595,6 +610,18 @@ export function validateShard(shard: Shard): string[] {
             );
           }
         }
+      }
+    }
+  }
+
+  // Cross-reference: spatialRules zoneId references
+  if (Array.isArray(shard.spatialRules) && Array.isArray(shard.zones)) {
+    const zoneIds = new Set(shard.zones.map((z) => z.id));
+    for (const rule of shard.spatialRules) {
+      if (rule.zoneId && !zoneIds.has(rule.zoneId)) {
+        errors.push(
+          `Shard ${shard.id}.spatialRules[${rule.id}].zoneId references unknown Zone: ${rule.zoneId}.`,
+        );
       }
     }
   }
@@ -741,6 +768,7 @@ export function cloneShard(shard: Shard): Shard {
     items: shard.items.map(cloneItem),
     skills: shard.skills.map(cloneSkill),
     lootTables: shard.lootTables.map(cloneLootTable),
+    ...(shard.spatialRules ? { spatialRules: shard.spatialRules.map(cloneSpatialRule) } : {}),
     ...(shard.provenance ? { provenance: cloneProvenance(shard.provenance) } : {}),
     ...(shard.metadata ? { metadata: { ...shard.metadata } } : {}),
   };
