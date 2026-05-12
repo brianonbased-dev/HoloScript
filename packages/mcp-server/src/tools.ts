@@ -44,6 +44,7 @@ import { traitTools } from './trait-tools';
 import { worldGeneratorTools } from './world-generator-tools';
 import { hologramToolDefinitions } from './hologram-mcp-tools';
 import { estimateTaskDurationTools } from './tools/estimate_task_duration';
+import { kolmogorovTaskScoreTools } from './tools/kolmogorov_task_score';
 import { criticTools } from './critic-tools';
 import { founderTools } from './founder-tools';
 import { premortemTools } from './premortem-tools';
@@ -811,6 +812,7 @@ export const tools: Tool[] = [
   ...worldGeneratorTools,
   ...hologramToolDefinitions,
   ...estimateTaskDurationTools,
+  ...kolmogorovTaskScoreTools,
   ...criticTools,
   ...founderTools,
   ...premortemTools,
