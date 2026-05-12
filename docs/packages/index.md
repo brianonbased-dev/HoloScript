@@ -16,7 +16,6 @@ HoloScript currently ships as a monorepo with **59 real packages** under `packag
 | [**@holoscript/fs**](./fs.md)                          | Filesystem utilities for tooling and local workflows   |
 | [**@holoscript/holo-vm**](./holo-vm.md)                | VM-oriented execution runtime                          |
 | [**@holoscript/wasm**](./compiler-wasm.md)             | WebAssembly parser and compilation surface             |
-| [**@holoscript/component**](./holoscript-component.md) | WASM Component Model packaging                         |
 
 ## Developer Tools
 
@@ -99,9 +98,9 @@ HoloScript currently ships as a monorepo with **59 real packages** under `packag
 
 ## What Is Not Counted Here
 
-The repo also contains support directories under `packages/` that are useful internally but do **not** currently expose their own `package.json`. Examples include `components`, `intellij`, `plugins`, `python-bindings`, `spatial-engine`, and `shader-preview-wgpu`.
+The repo also contains support directories under `packages/` that are useful internally but do **not** currently expose their own `package.json`. Examples include `components`, `intellij`, `plugins`, and `python-bindings`.
 
-Those directories are documented separately in [Support Directories](./support-directories.md), but they are not part of the current 59-package manifest count used in this reference.
+Those directories are documented separately in [Support Directories](./support-directories.md), but they are not part of the current 59-package manifest count used in this reference. Historical Rust support packages such as `spatial-engine`, `spatial-engine-wasm`, `shader-preview-wgpu`, and `holoscript-component` are retired; see [Rust Spatial Stack History](./rust-spatial-stack-history.md).
 
 ## Suggested Starting Points
 

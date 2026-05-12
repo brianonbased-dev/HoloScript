@@ -13,9 +13,9 @@ Use this page when you are navigating the repo itself and need to understand wha
 | `intellij/`            | IDE integration source  | JetBrains plugin project for HoloScript         |
 | `plugins/`             | Extension workspace     | Domain-specific plugin prototypes and previews  |
 | `python-bindings/`     | Language binding source | Python package source, examples, and tests      |
-| `shader-preview-wgpu/` | Native tooling crate    | Rust `wgpu` shader preview renderer             |
-| `spatial-engine/`      | Native engine crate     | Bevy-based spatial engine and persistence stack |
-| `spatial-engine-wasm/` | Native/WASM crate       | WebAssembly build of spatial hot-path systems   |
+| `shader-preview-wgpu/` | Retired historical crate | Native `wgpu` preview prototype; see [Rust Spatial Stack History](./rust-spatial-stack-history.md) |
+| `spatial-engine/`      | Retired historical crate | Native spatial/agent prototype; see [Rust Spatial Stack History](./rust-spatial-stack-history.md) |
+| `spatial-engine-wasm/` | Retired historical crate | WASM spatial hot-path prototype; see [Rust Spatial Stack History](./rust-spatial-stack-history.md) |
 
 `node_modules/` is intentionally omitted from this reference because it is an installed dependency tree, not a maintained repo surface.
 
@@ -87,38 +87,15 @@ This directory contains the Python-facing distribution source for HoloScript, in
 
 The README positions it as the Python entry point for parsing, validating, generating, rendering, and sharing HoloScript scenes from Python code. It is better treated as language-binding source and packaging material than as one of the JavaScript/TypeScript workspace packages counted in the monorepo package reference.
 
-## `shader-preview-wgpu/`
+## Retired Rust Spatial Stack
 
-This is a Rust crate for offscreen shader preview rendering. The README describes it as a `wgpu` render-to-texture pipeline that produces PNG or base64 output for shader previews.
+`shader-preview-wgpu/`, `spatial-engine/`, and `spatial-engine-wasm/` existed in
+early 2026 but are not present in the current tree. Their history and re-entry
+bar are documented in [Rust Spatial Stack History](./rust-spatial-stack-history.md).
 
-Use it for:
-
-- Rendering shader previews without running the full Studio application.
-- Benchmarking preview performance with Rust-native tooling.
-- Supporting desktop/native rendering workflows used by Studio-adjacent tools.
-
-## `spatial-engine/`
-
-This directory contains the native spatial engine crate. The README describes it as a Bevy-based 3D runtime with persistence and systems integration layers.
-
-Notable responsibilities called out in the README:
-
-- Core native 3D runtime behavior.
-- Persistence integrations for PostgreSQL, Redis, and Neo4j.
-- Networking via WebSockets.
-- Formal verification integration via Z3.
-
-This is clearly important repo surface, but it is maintained as a Rust crate rather than as a package.json-backed workspace package.
-
-## `spatial-engine-wasm/`
-
-This crate exposes performance-critical spatial logic through WebAssembly. The README positions it as the browser-consumable version of hot-path engine functionality using `wasm-bindgen`.
-
-Use it for:
-
-- Calling collision/noise/pathfinding-style routines from JavaScript.
-- Shipping smaller high-performance runtime helpers into browser tooling.
-- Bridging native engine logic into the web-facing compiler/runtime stack.
+Do not describe them as current support directories. If one of these surfaces is
+needed again, recreate it as a new cargo-checkable workspace member with a
+deterministic test and a current product owner.
 
 ## How To Interpret These Directories
 
@@ -126,7 +103,7 @@ If you are documenting the public package surface, use the 59 package manifests 
 
 If you are navigating or contributing to the repo itself, treat the directories on this page as implementation-adjacent support areas:
 
-- some are Rust crates,
+- some are historical Rust crates recorded for audit continuity,
 - some are language-binding or IDE projects,
 - some are reusable content libraries,
 - some are incubator or generated directories.
