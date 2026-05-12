@@ -116,7 +116,7 @@ function LiveCursors({ peers }: { peers: Record<string, CursorState> }) {
   );
 }
 
-const CLI_QUICKSTART = 'npx create-holoscript@latest my-world';
+const CLI_QUICKSTART = 'npx create-holoscript@latest my-app';
 const MCP_CONFIG_BLOCK = `{
   "mcpServers": {
     "holoscript": {
@@ -205,7 +205,7 @@ export function HoloScriptLandingComponent() {
           <div className="relative z-10 max-w-7xl mx-auto px-6 text-center">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-mono mb-8">
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-              The Open Platform for Spatial Worlds
+              Semantic app platform for AI-assisted builders
             </div>
             <div className="flex items-center justify-center gap-6 mb-8 mt-4">
               <img src="/logo.svg" alt="HoloScript" className="h-16 w-16 drop-shadow-[0_0_15px_rgba(0,255,255,0.5)]" />
@@ -214,11 +214,11 @@ export function HoloScriptLandingComponent() {
             </div>
             
             <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight mb-6 pb-4 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500">
-              Create with AI.<br/>Own what you build.<br/>Ship everywhere.
+              Describe it once.<br/>Run it where it needs to.
             </h1>
             
             <p className="max-w-3xl mx-auto text-lg lg:text-xl text-gray-400 mb-10 leading-relaxed">
-              Imagine it. Build it. Own it. HoloScript lets anyone create interactive 3D worlds with AI, sell them on an open marketplace, and deploy autonomous agents — all from one platform. No engine lock-in. No code required.
+              HoloScript turns plain descriptions into running interfaces, spatial scenes, agent workflows, and target-specific code. Start in Studio or your terminal; keep control through files, runtime execution, MCP tools, and compilers.
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -348,7 +348,7 @@ export function HoloScriptLandingComponent() {
           </div>
         </section>
 
-        {/* Claim 2: 1,800+ Traits Inject Life Instantly */}
+        {/* Claim 2: Semantic traits add behavior without boilerplate */}
         <section className="py-24 bg-[#080812]/40 relative border-y border-white/5 w-full flex flex-col gap-3 p-[12px] semantic-layout-priority">
           <div className="max-w-7xl mx-auto px-6 w-full z-10">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -369,13 +369,13 @@ export function HoloScriptLandingComponent() {
               {/* Right (Claim) */}
               <div>
                 <h2 className="text-4xl font-bold mb-6 text-gray-900 leading-tight">
-                  <span className="text-purple-900">1,800+ Semantic Traits</span>
+                  <span className="text-purple-900">Semantic traits add behavior</span>
                 </h2>
                 <p className="text-xl text-gray-800 mb-6 leading-relaxed font-medium">
-                  Access 99 module communities covering VR, robotics, IoT, AI agents, swarm intelligence, economy, physics, rendering, multiplayer, and more.
+                  Use readable decorators for spatial UI, robotics, IoT, AI agents, economy, physics, rendering, collaboration, and data workflows.
                 </p>
                 <p className="text-xl text-gray-800 leading-relaxed font-medium">
-                  Add powerful behaviors purely through simple decorators representing semantic intent, rather than verbose physical configuration.
+                  The file stays understandable to a person, while the runtime and compilers still get structured instructions they can execute.
                 </p>
               </div>
             </div>
@@ -425,20 +425,20 @@ export function HoloScriptLandingComponent() {
               {/* The Problem */}
               <div>
                 <h2 className="text-3xl font-bold mb-8 text-gray-900 flex items-center gap-3">
-                  <span className="text-red-800">The Problem</span> with VR Development
+                  <span className="text-red-800">The Problem</span> with Multi-Target Builds
                 </h2>
                 <div className="space-y-8">
                   <div className="bg-white/40 border border-black/10 p-6 rounded-xl shadow-md">
-                    <h3 className="text-xl font-bold text-red-800 mb-2 flex items-center gap-2"><IconX /> Steep Learning Curve</h3>
-                    <p className="text-gray-800 font-medium">Traditional VR tools like Unity or Unreal require months of study before you can build even simple experiences. Complex SDKs, engine-specific APIs, and verbose code block creativity.</p>
+                    <h3 className="text-xl font-bold text-red-800 mb-2 flex items-center gap-2"><IconX /> Ideas Get Trapped</h3>
+                    <p className="text-gray-800 font-medium">A prototype starts in one framework, but the next target needs a different engine, SDK, schema, or service shape. The original intent gets buried inside glue code.</p>
                   </div>
                   <div className="bg-white/40 border border-black/10 p-6 rounded-xl shadow-md">
-                    <h3 className="text-xl font-bold text-red-800 mb-2 flex items-center gap-2"><IconX /> Too Much Boilerplate</h3>
-                    <p className="text-gray-800 font-medium">Creating a simple 3D scene requires 200+ lines of setup code. Scene graphs, materials, renderers, cameras — endless configuration before you see results.</p>
+                    <h3 className="text-xl font-bold text-red-800 mb-2 flex items-center gap-2"><IconX /> Agents Need Structure</h3>
+                    <p className="text-gray-800 font-medium">Prompts are easy to change but hard to verify. Production agents need files, contracts, permissions, tool schemas, and runtime behavior they can inspect before editing.</p>
                   </div>
                   <div className="bg-white/40 border border-black/10 p-6 rounded-xl shadow-md">
-                    <h3 className="text-xl font-bold text-red-800 mb-2 flex items-center gap-2"><IconX /> Platform Lock-in</h3>
-                    <p className="text-gray-800 font-medium">Build for Unity, can't use in Unreal. Target VR but can't reach robotics or IoT. No universal language means rewriting for every platform.</p>
+                    <h3 className="text-xl font-bold text-red-800 mb-2 flex items-center gap-2"><IconX /> Integrations Become Glue</h3>
+                    <p className="text-gray-800 font-medium">Teams end up maintaining one-off bridges between renderers, services, robotics, data systems, and AI tools instead of a shared source of intent.</p>
                   </div>
                 </div>
               </div>
@@ -450,16 +450,16 @@ export function HoloScriptLandingComponent() {
                 </h2>
                 <div className="space-y-8">
                   <div className="bg-white/40 border border-cyan-800/20 p-6 rounded-xl shadow-md">
-                    <h3 className="text-xl font-bold text-cyan-800 mb-2 flex items-center gap-2"><IconCheck /> Write It</h3>
-                    <p className="text-gray-800 font-medium">Describe your VR world in plain .holo files using intuitive syntax. No complex APIs or framework knowledge required. Just write what you want to see.</p>
+                    <h3 className="text-xl font-bold text-cyan-800 mb-2 flex items-center gap-2"><IconCheck /> Describe Intent</h3>
+                    <p className="text-gray-800 font-medium">Write plain HoloScript files that describe objects, behavior, workflows, data, and agent actions in a form people can review.</p>
                   </div>
                   <div className="bg-white/40 border border-cyan-800/20 p-6 rounded-xl shadow-md">
-                    <h3 className="text-xl font-bold text-cyan-800 mb-2 flex items-center gap-2"><IconCheck /> See It</h3>
-                    <p className="text-gray-800 font-medium">Instant browser preview with WebXR support. See changes in real-time. Test on desktop, mobile, or VR headset without exports or compilation steps.</p>
+                    <h3 className="text-xl font-bold text-cyan-800 mb-2 flex items-center gap-2"><IconCheck /> Run and Inspect</h3>
+                    <p className="text-gray-800 font-medium">Execute through the runtime, preview in the browser, expose MCP tools, and let agents inspect the same structured project before they modify it.</p>
                   </div>
                   <div className="bg-white/40 border border-cyan-800/20 p-6 rounded-xl shadow-md">
-                    <h3 className="text-xl font-bold text-cyan-800 mb-2 flex items-center gap-2"><IconCheck /> Ship It</h3>
-                    <p className="text-gray-800 font-medium">Compile to 25+ targets: Unity, Unreal, Godot, VRChat, WebGPU, visionOS, ROS 2, and more. Or share a link that runs in any browser. True write-once, deploy-anywhere.</p>
+                    <h3 className="text-xl font-bold text-cyan-800 mb-2 flex items-center gap-2"><IconCheck /> Compile When Needed</h3>
+                    <p className="text-gray-800 font-medium">Translate the same intent to available targets such as renderers, game engines, robotics formats, services, and web runtimes. Verify the current target list from live docs and health checks.</p>
                   </div>
                 </div>
               </div>
@@ -473,9 +473,9 @@ export function HoloScriptLandingComponent() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-purple-500/10 blur-[120px] rounded-full pointer-events-none"></div>
           
           <div className="max-w-7xl mx-auto px-6 relative z-10 text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">No Code? No Problem.</h2>
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">Start from a description. Keep the files.</h2>
             <p className="text-xl text-gray-800 max-w-3xl mx-auto font-medium">
-              HoloScript Studio lets you build 3D scenes just by describing them. Type what you want, see it in real-time. No install, no setup, no coding required.
+              HoloScript Studio helps you generate a first draft, preview it, and keep the underlying HoloScript source editable when you need control.
             </p>
           </div>
           
@@ -508,10 +508,10 @@ export function HoloScriptLandingComponent() {
 
           <div className="max-w-5xl mx-auto px-6 text-center relative z-10 pb-8">
             <h2 className="text-4xl font-bold mb-6 text-gray-900 leading-tight">
-              HoloScript <span className="text-cyan-800">Absorb</span>: Universal Codebase Intelligence
+              HoloScript <span className="text-cyan-800">Absorb</span>: Codebase Intelligence for Agents
             </h2>
             <p className="text-xl text-gray-800 mb-10 leading-relaxed max-w-3xl mx-auto font-medium">
-              Convert any TS/JS monorepo into an interactive spatial knowledge graph. Used natively by autonomous agents, it maps out architectures with complete semantic fidelity so you and your AI companions can execute complex cross-ecosystem refactors with zero hallucinations.
+              Convert a TS/JS monorepo into a queryable map of files, symbols, imports, calls, and communities. Agents can inspect architecture before editing, and humans can see why a change touches the places it does.
             </p>
             
             <div className="bg-[#0a0a1a]/80 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden shadow-[0_0_40px_rgba(0,255,255,0.1)] text-left w-full max-w-3xl mx-auto mb-10">
@@ -528,15 +528,15 @@ export function HoloScriptLandingComponent() {
                   <span className="text-cyan-400 font-bold">$</span> 
                   <span className="text-white font-semibold">holoscript absorb workspace --strategy semantic</span>
                 </div>
-                <div className="text-gray-600 mb-1">[10:42:01] Ingesting <span className="text-gray-500">1,842 files</span> into AST memory...</div>
-                <div className="text-gray-600 mb-1">[10:42:04] Computing semantic heuristics for 99 modules...</div>
-                <div className="text-gray-600 mb-3">[10:42:09] Mapping <span className="text-gray-500">298K cross-ecosystem call edges</span>...</div>
+                <div className="text-gray-600 mb-1">[10:42:01] Scanning workspace files into a graph...</div>
+                <div className="text-gray-600 mb-1">[10:42:04] Grouping symbols, imports, and module communities...</div>
+                <div className="text-gray-600 mb-3">[10:42:09] Mapping call relationships and change impact...</div>
                 <div className="text-purple-400 font-bold mb-2 flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
                   Compressing knowledge graph...
                 </div>
                 <div className="text-green-400 mt-3 flex items-center gap-2">
-                  <IconCheck /> <span className="text-green-300">Absorb complete. 68K symbols ready for multi-agent sync.</span>
+                  <IconCheck /> <span className="text-green-300">Absorb complete. Architecture map ready for agent review.</span>
                 </div>
               </div>
             </div>
@@ -552,16 +552,16 @@ export function HoloScriptLandingComponent() {
         {/* Verticals */}
         <section className="py-24 bg-[#080812]/40 border-t border-white/5 w-full flex flex-col p-[12px] semantic-layout-priority">
           <div className="max-w-7xl mx-auto px-6 w-full z-10">
-            <h2 className="text-4xl font-bold mb-16 text-center text-gray-900">Built for Every Creator</h2>
+            <h2 className="text-4xl font-bold mb-16 text-center text-gray-900">Built for Teams That Need One Source of Intent</h2>
             
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {[
-                { t: 'Education', d: 'Virtual classrooms, interactive science labs, and historical recreations. Make learning immersive without technical barriers.' },
-                { t: 'Autonomous Intelligence', d: '43+ MCP tools, swarm intelligence, economy primitives, and Brittney — a model that writes native HoloScript. Your agents think and evolve.' },
-                { t: 'Gaming', d: 'Indie VR games, physics sandboxes, and interactive experiences. Rapid prototyping for game developers and hobbyists.' },
-                { t: 'Web3 & Creator Economy', d: 'Auto-mint scenes as Zora Coins on Base. Token-gated experiences, NFT-linked objects, bonding curve pricing, and royalties.' },
-                { t: 'Robotics', d: 'Compile scenes to URDF for ROS 2 robots or SDF for Gazebo simulation. Design environments in VR, then deploy to hardware.' },
-                { t: 'IoT & Digital Twins', d: 'Export to DTDL for Azure Digital Twins and W3C WoT for IoT devices. Live sensor data visualization dashboards.' }
+                { t: 'Education', d: 'Interactive labs, simulations, and historical scenes that can move from browser preview to richer spatial targets.' },
+                { t: 'Autonomous Agents', d: 'MCP tools, board workflows, connectors, permissions, and structured outputs for agents that need to work inside real systems.' },
+                { t: 'Games and Spatial UI', d: 'Prototype scenes with semantic traits, then target renderers and engines when the project needs native output.' },
+                { t: 'Creator Economy', d: 'Compose ownership, marketplace, metering, token gating, and royalty traits around the experience instead of bolting them on later.' },
+                { t: 'Robotics', d: 'Describe environments and behaviors, then use available robotics and simulation outputs as the bridge to hardware workflows.' },
+                { t: 'IoT and Digital Twins', d: 'Model devices, telemetry, dashboards, and live state so physical systems can share the same source of intent as the UI.' }
               ].map((v, i) => (
                 <div key={i} className="p-6 bg-white/40 border border-black/10 rounded-xl shadow-md transition-colors">
                   <h3 className="text-xl font-bold text-gray-900 mb-3">{v.t}</h3>
@@ -575,8 +575,8 @@ export function HoloScriptLandingComponent() {
         {/* Footer */}
         <footer className="py-16 bg-[#080812]/40 border-t border-white/5 w-full flex flex-col p-[12px] semantic-layout-priority">
           <div className="max-w-7xl mx-auto px-6 w-full z-10 text-center">
-            <h2 className="text-4xl font-bold mb-4 text-gray-900">Ready to Build Your First VR World?</h2>
-            <p className="text-xl text-gray-800 mb-10 font-medium">Join creators worldwide using HoloScript. Free and open-source.</p>
+            <h2 className="text-4xl font-bold mb-4 text-gray-900">Ready to build from one description?</h2>
+            <p className="text-xl text-gray-800 mb-10 font-medium">Start in the browser, keep the source files, and compile when a target needs native output.</p>
             <div>
               <a href="/guides/quick-start" className="inline-block px-10 py-4 rounded-lg bg-cyan-500 text-black font-bold text-lg hover:bg-cyan-400 hover:scale-105 transition-all shadow-[0_0_20px_rgba(0,255,255,0.2)]">
                 Start Building Now
