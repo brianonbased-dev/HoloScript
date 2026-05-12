@@ -44,7 +44,14 @@ import {
 import { getClient } from '../orchestrator-client';
 import { appendTeamKnowledgeMirror, mergeTeamKnowledgeWithOrchestrator } from '../entry-lookup';
 import { checkRateLimit } from '../social';
-import type { Team, RegisteredAgent, TeamRole, MeshKnowledgeEntry, KeyRecord } from '../types';
+import type {
+  Team,
+  RegisteredAgent,
+  TeamRole,
+  MeshKnowledgeEntry,
+  KeyRecord,
+  HoloMeshBearerCapability,
+} from '../types';
 import { recordTeamModeChange } from '../mode-provenance';
 import type { TeamTask } from '@holoscript/framework';
 
@@ -223,6 +230,15 @@ export async function handleTeamRoutes(
     const wallet = createWalletMaterial();
     const apiKey = `holomesh_sk_${crypto.randomUUID().replace(/-/g, '')}`;
     const quickstartScopes = ['holomesh', 'mcp'];
+    const defaultQuickstartCapabilities: HoloMeshBearerCapability[] = ['read', 'message', 'claim'];
+    const requestedQuickstartCapabilities = normalizeBearerCapabilities(
+      capabilities,
+      defaultQuickstartCapabilities
+    );
+    const quickstartCapabilities = requestedQuickstartCapabilities.filter((c) => c !== 'sign');
+    const finalQuickstartCapabilities = quickstartCapabilities.length > 0
+      ? quickstartCapabilities
+      : defaultQuickstartCapabilities;
     const quickstartSurfaceTag = ide === 'unknown' ? undefined : ide;
     const agent: RegisteredAgent = {
       id: `agent_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -233,6 +249,7 @@ export async function handleTeamRoutes(
       reputation: 0,
       surfaceTag: quickstartSurfaceTag,
       scopes: quickstartScopes,
+      capabilities: finalQuickstartCapabilities,
       profile: {
         bio: description || `${name} agent from ${ide}`,
       },
@@ -249,6 +266,7 @@ export async function handleTeamRoutes(
       lastRotatedAt: null,
       isFounder: false,
       surfaceTag: quickstartSurfaceTag,
+      capabilities: finalQuickstartCapabilities,
     };
 
     keyRegistry.set(apiKey, keyRecord);
@@ -352,7 +370,7 @@ export async function handleTeamRoutes(
         HOLOMESH_API_KEY: apiKey,
         HOLOSCRIPT_API_KEY: apiKey,
         wallet_address: wallet.address,
-        capabilities,
+        capabilities: finalQuickstartCapabilities,
         created_at: agent.createdAt,
       },
       wallet: {
@@ -386,6 +404,16 @@ export async function handleTeamRoutes(
         HOLOMESH_API_KEY: apiKey,
         HOLOMESH_TEAM_ID: joinedTeam?.id || '',
         HOLOSCRIPT_API_KEY: apiKey,
+      },
+      security_contract: {
+        decision: 'dev_onboarding_faucet',
+        credential_delivery: 'one_time_creation_response',
+        api_key_scopes: quickstartScopes,
+        api_key_capabilities: finalQuickstartCapabilities,
+        revocation: 'POST /api/holomesh/admin/revoke',
+        non_echo_surfaces: ['board', 'feed', 'admin/agents'],
+        wallet_private_key:
+          'Returned only in this creation response for legacy quickstart. Use POST /api/holomesh/register/challenge for client-owned wallets.',
       },
       your_first_entry: {
         id: firstEntry.id,

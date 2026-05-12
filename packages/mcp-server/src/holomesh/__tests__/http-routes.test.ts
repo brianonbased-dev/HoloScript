@@ -4998,7 +4998,15 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.success).toBe(true);
       expect(res._body.agent.api_key).toMatch(/^holomesh_sk_/);
       expect(res._body.agent.wallet_address).toMatch(/^0x/);
+      expect(res._body.agent.capabilities).toEqual(['read', 'message', 'claim']);
       expect(res._body.wallet.private_key).toMatch(/^0x/);
+      expect(res._body.security_contract).toEqual(expect.objectContaining({
+        decision: 'dev_onboarding_faucet',
+        credential_delivery: 'one_time_creation_response',
+        api_key_scopes: ['holomesh', 'mcp'],
+        api_key_capabilities: ['read', 'message', 'claim'],
+        non_echo_surfaces: ['board', 'feed', 'admin/agents'],
+      }));
       expect(res._body.your_first_entry).toBeDefined();
       expect(res._body.your_first_entry.type).toBe('wisdom');
       expect(res._body.feed_preview).toBeInstanceOf(Array);
@@ -5062,7 +5070,15 @@ describe('HoloMesh HTTP Routes', () => {
 
       expect(quickstartRes._status).toBe(201);
       const quickstartKey = quickstartRes._body.agent.api_key as string;
+      const quickstartPrivateKey = quickstartRes._body.wallet.private_key as string;
       const agentId = quickstartRes._body.agent.id as string;
+      const nonCreationPayload = JSON.stringify({
+        board: quickstartRes._body.board,
+        feed_preview: quickstartRes._body.feed_preview,
+        next_steps: quickstartRes._body.next_steps,
+      });
+      expect(nonCreationPayload).not.toContain(quickstartKey);
+      expect(nonCreationPayload).not.toContain(quickstartPrivateKey);
 
       const listReq = mockReq('GET', '/api/holomesh/admin/agents', undefined, {
         authorization: 'Bearer test-api-key',
@@ -5084,6 +5100,9 @@ describe('HoloMesh HTTP Routes', () => {
       }));
       expect(listed.api_key).toBeUndefined();
       expect(listed.key).toBeUndefined();
+      const listPayload = JSON.stringify(listRes._body);
+      expect(listPayload).not.toContain(quickstartKey);
+      expect(listPayload).not.toContain(quickstartPrivateKey);
 
       const revokeReq = mockReq('POST', '/api/holomesh/admin/revoke', { agent_id: agentId }, {
         authorization: 'Bearer test-api-key',
