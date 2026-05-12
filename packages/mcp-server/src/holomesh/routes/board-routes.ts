@@ -37,6 +37,7 @@ import {
   promoteSuggestion,
   dismissSuggestion,
   normalizeTitle,
+  normalizeTaskDescription,
   generateTaskId,
   addTasksToBoard,
   type TeamTask,
@@ -56,6 +57,12 @@ import { mergeTeamKnowledgeWithOrchestrator } from '../entry-lookup';
 import { getBoardModeFields } from '../mode-provenance';
 
 const MAX_FEED_QUERY = 100;
+
+function normalizeVerificationEvidence(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.slice(0, 2000) : undefined;
+}
 
 function validateHologramFeedInput(hash: string, shareUrl: string): string | null {
   if (!/^[a-zA-Z0-9._-]{6,128}$/.test(hash)) {
@@ -617,6 +624,7 @@ export async function handleBoardRoutes(
     const deleterTag = caller.surfaceTag
       ?? (typeof body.deleterTag === 'string' ? body.deleterTag : undefined);
     const deleteReason = typeof body.reason === 'string' ? body.reason.slice(0, 500) : undefined;
+    let reviewRequest: TeamMessage | undefined;
 
     switch (action) {
       case 'claim':
@@ -642,14 +650,44 @@ export async function handleBoardRoutes(
         eventType = 'board:claimed';
         break;
       case 'done': {
+        const verificationEvidence = normalizeVerificationEvidence(
+          body.verification_evidence ?? body.verificationEvidence
+        );
+        if (!verificationEvidence) {
+          json(res, 400, {
+            error: 'verification_evidence is required before marking a task done',
+            code: 'verification_evidence_required',
+          });
+          return true;
+        }
         const wrap = completeTask(team.taskBoard, taskId, caller.name, {
           summary: body.summary as string,
           commit: body.commit as string | undefined,
+          verificationEvidence,
           completedByTag,
         });
         result = wrap.result;
         team.taskBoard = wrap.updatedBoard;
-        if (result.doneEntry) team.doneLog.push(result.doneEntry);
+        if (result.doneEntry) {
+          team.doneLog.push(result.doneEntry);
+          reviewRequest = {
+            id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            teamId,
+            fromAgentId: caller.id,
+            fromAgentName: caller.name,
+            content: [
+              `Review verification_evidence on task ${taskId} marked done by ${caller.name}${completedByTag ? ` (${completedByTag})` : ''}.`,
+              `Title: ${result.task?.title || taskId}`,
+              body.commit ? `Commit: ${String(body.commit).slice(0, 80)}` : 'Commit: none supplied',
+              `Evidence: ${verificationEvidence}`,
+            ].join('\n'),
+            messageType: 'review-request',
+            createdAt: new Date().toISOString(),
+          };
+          const messages = teamMessageStore.get(teamId) || [];
+          messages.push(reviewRequest);
+          teamMessageStore.set(teamId, messages.slice(-500));
+        }
         eventType = 'board:completed';
         break;
       }
@@ -720,7 +758,7 @@ export async function handleBoardRoutes(
           if (task.description !== body.description) {
             updates._prevDescription = String(task.description ?? '').slice(0, 500) + (String(task.description ?? '').length > 500 ? '…' : '');
           }
-          updates.description = body.description.slice(0, 2000);
+          updates.description = normalizeTaskDescription(body.description, 2000);
         }
         if (body.priority !== undefined) {
           updates.priority = body.priority;
@@ -757,6 +795,17 @@ export async function handleBoardRoutes(
       agent: caller.name,
       data: { taskId, title: result.task?.title || taskId, agent: caller.name },
     });
+    if (reviewRequest) {
+      broadcastToTeam(teamId, {
+        type: 'message:new',
+        agent: caller.name,
+        data: {
+          id: reviewRequest.id,
+          from: caller.name,
+          content: reviewRequest.content.slice(0, 200),
+        },
+      });
+    }
 
     // Clients must attribute claims to the authenticated agent (Bearer), not body.agentName.
     const payload: Record<string, unknown> = { success: true, task: result.task };
@@ -766,6 +815,9 @@ export async function handleBoardRoutes(
     }
     if (action === 'done' && completedByTag) {
       payload.completedAs = { id: caller.id, name: caller.name, surfaceTag: completedByTag };
+    }
+    if (action === 'done' && reviewRequest) {
+      payload.reviewRequest = reviewRequest;
     }
     if (action === 'delete') {
       payload.deleted = true;
@@ -1253,6 +1305,7 @@ export async function handleBoardRoutes(
         agentId: entry.completedBy,
         surfaceTag: entry.completedByTag,
         commitHash: entry.commitHash,
+        verificationEvidence: entry.verificationEvidence,
         parentTaskId: entry.parentTaskId,
         childTaskIds: entry.childTaskIds,
         content: entry.summary,

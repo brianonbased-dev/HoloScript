@@ -114,7 +114,7 @@ export async function handleBountyRoutes(
       const task: TeamTask = {
         id: taskId,
         title: taskTitle,
-        description: `${tpl.description}\n\nTags: ${tpl.tags.join(', ')}`,
+        description: `${tpl.description}\n\nTags: ${tpl.tags.join(', ')}\n\n## Done when:\n- Target compatibility work includes verification evidence before the task is marked done.`,
         status: 'open',
         source: 'manual',
         priority: 3 as any,

@@ -437,6 +437,8 @@ export interface TeamTask {
   /** Surface-attribution tag for the done action — see `claimedByTag`. */
   completedByTag?: string;
   commitHash?: string;
+  /** Required done-claim evidence recorded by the board done route. */
+  verificationEvidence?: string;
   source?: string;
   priority: number;
   role?: SlotRole;
@@ -482,6 +484,8 @@ export interface DoneLogEntry {
   /** Surface-attribution tag for the done action — see `TeamTask.claimedByTag`. */
   completedByTag?: string;
   commitHash?: string;
+  /** Concrete test/build/audit/receipt/peer-review evidence supplied before closure. */
+  verificationEvidence?: string;
   timestamp: string;
   summary: string;
   /** Artifact receipts preserved when the task is moved off the live board. */

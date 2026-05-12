@@ -133,6 +133,8 @@ export {
   type SuggestionActionResult,
   type SkippedTaskReason,
   type SkippedTaskEntry,
+  hasDefinitionOfDone,
+  normalizeTaskDescription,
   claimTask,
   completeTask,
   blockTask,

@@ -583,8 +583,11 @@ export interface TeamMessage {
   messageType:
     | 'text'
     | 'meeting'
+    | 'dm'
     | 'knowledge'
     | 'handoff'
+    | 'review-request'
+    | 'task'
     | 'hologram'
     | 'mode_change'
     /**

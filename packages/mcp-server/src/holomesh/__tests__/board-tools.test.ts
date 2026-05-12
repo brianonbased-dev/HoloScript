@@ -286,6 +286,7 @@ describe('handleBoardTool with in-memory store', () => {
       task_id: taskId,
       commit: 'abc123',
       summary: 'Fixed it',
+      verification_evidence: 'vitest board-tools complete path passed',
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);

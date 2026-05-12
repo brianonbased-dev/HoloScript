@@ -3202,6 +3202,7 @@ describe('HoloMesh HTTP Routes', () => {
           action: 'done',
           summary: 'closed',
           commit: 'abc1234',
+          verification_evidence: 'vitest http-routes done-log case passed',
         },
         { authorization: `Bearer ${ownerApiKey}` }
       );
@@ -3222,6 +3223,133 @@ describe('HoloMesh HTTP Routes', () => {
       expect(logRes._body.entries.length).toBeGreaterThanOrEqual(1);
       expect(logRes._body.entries[0].taskId).toBe(taskId);
       expect(logRes._body.entries[0].commitHash).toBe('abc1234');
+      expect(logRes._body.entries[0].verificationEvidence).toBe('vitest http-routes done-log case passed');
+      expect(doneRes._body.reviewRequest.messageType).toBe('review-request');
+
+      const messagesReq = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/messages`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const messagesRes = mockRes();
+      await handleHoloMeshRoute(messagesReq, messagesRes, `/api/holomesh/team/${tid}/messages`);
+      expect(messagesRes._status).toBe(200);
+      expect(messagesRes._body.messages.some((m: any) =>
+        m.messageType === 'review-request' && m.content.includes('vitest http-routes done-log case passed')
+      )).toBe(true);
+    });
+
+    it('PATCH /board/:taskId rejects done without verification_evidence', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `done-evidence-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        { tasks: [{ title: 'needs-evidence', description: 'test', priority: 1 }] },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      const taskId = addRes._body.tasks[0].id;
+
+      const claimReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'claim' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const claimRes = mockRes();
+      await handleHoloMeshRoute(claimReq, claimRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(claimRes._status).toBe(200);
+
+      const doneReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'done', summary: 'closed', commit: 'abc1234' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const doneRes = mockRes();
+      await handleHoloMeshRoute(doneReq, doneRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+
+      expect(doneRes._status).toBe(400);
+      expect(doneRes._body.code).toBe('verification_evidence_required');
+    });
+
+    it('PATCH /board/:taskId rejects claim when description lacks Done when block', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `claim-dod-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const team = teamStore.get(tid)!;
+      team.taskBoard = [{
+        id: 'task_missing_dod',
+        title: 'missing definition of done',
+        description: 'No closure criteria here.',
+        status: 'open',
+        priority: 1,
+        createdAt: new Date().toISOString(),
+      } as any];
+
+      const claimReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/task_missing_dod`,
+        { action: 'claim' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const claimRes = mockRes();
+      await handleHoloMeshRoute(claimReq, claimRes, `/api/holomesh/team/${tid}/board/task_missing_dod`);
+
+      expect(claimRes._status).toBe(400);
+      expect(claimRes._body.error).toContain('Definition-of-Done required');
+    });
+
+    it('PATCH /board/:taskId update preserves Definition-of-Done criteria', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `update-dod-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        { tasks: [{ title: 'update needs dod', description: 'Initial criteria.', priority: 1 }] },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      const taskId = addRes._body.tasks[0].id;
+
+      const updateReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'update', description: 'Updated description without a closure block.' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const updateRes = mockRes();
+      await handleHoloMeshRoute(updateReq, updateRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+
+      expect(updateRes._status).toBe(200);
+      expect(updateRes._body.task.description).toContain('## Done when:');
     });
 
     it('GET /api/holomesh/team/:id/trace merges board, done, artifacts, and presence', async () => {
@@ -3378,6 +3506,7 @@ describe('HoloMesh HTTP Routes', () => {
           action: 'done',
           summary: 'closed from cursor after claim from claudecode',
           commit: 'def5678',
+          verification_evidence: 'vitest surface tag done route passed',
           completedByTag: 'cursor-claude',
         },
         { authorization: `Bearer ${ownerApiKey}` }
@@ -3463,6 +3592,7 @@ describe('HoloMesh HTTP Routes', () => {
           action: 'done',
           summary: 'tag-spoof-test',
           commit: 'abcdef0',
+          verification_evidence: 'vitest tag-spoof hardening passed',
           completedByTag: 'cursor', // ← attempted spoof
         },
         { authorization: `Bearer ${victimApiKey}` }
@@ -3526,7 +3656,12 @@ describe('HoloMesh HTTP Routes', () => {
       const doneReq = mockReq(
         'PATCH',
         `/api/holomesh/team/${tid}/board/${taskId}`,
-        { action: 'done', summary: 'closed', commit: 'abc0000' },
+        {
+          action: 'done',
+          summary: 'closed',
+          commit: 'abc0000',
+          verification_evidence: 'vitest no-tag backward compatibility passed',
+        },
         { authorization: `Bearer ${ownerApiKey}` }
       );
       const doneRes = mockRes();
@@ -3818,7 +3953,12 @@ describe('HoloMesh HTTP Routes', () => {
         const doneReq = mockReq(
           'PATCH',
           `/api/holomesh/team/${tid}/board/${taskId}`,
-          { action: 'done', summary: `closed ${i}`, commit: `c${i}` },
+          {
+            action: 'done',
+            summary: `closed ${i}`,
+            commit: `c${i}`,
+            verification_evidence: `pagination test closure ${i}`,
+          },
           { authorization: `Bearer ${ownerApiKey}` }
         );
         const doneRes = mockRes();
@@ -3991,7 +4131,12 @@ describe('HoloMesh HTTP Routes', () => {
         const doneReq = mockReq(
           'PATCH',
           `/api/holomesh/team/${tid}/board/${taskId}`,
-          { action: 'done', summary: `closed ${i}`, commit: `c${i.toString(16).padStart(7, '0')}` },
+          {
+            action: 'done',
+            summary: `closed ${i}`,
+            commit: `c${i.toString(16).padStart(7, '0')}`,
+            verification_evidence: `counter lockstep test closure ${i}`,
+          },
           { authorization: `Bearer ${ownerApiKey}` }
         );
         const doneRes = mockRes();

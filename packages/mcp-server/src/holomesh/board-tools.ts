@@ -122,7 +122,7 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_board_complete',
-    description: 'Mark a claimed task as done. Optionally include a commit hash and summary as proof of work.',
+    description: 'Mark a claimed task as done. Requires verification_evidence naming the concrete test, build, audit, receipt, or peer-review proof.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -142,8 +142,12 @@ export const boardTools: Tool[] = [
           type: 'string',
           description: 'Summary of what was done (optional)',
         },
+        verification_evidence: {
+          type: 'string',
+          description: 'Concrete evidence required before closure: test/build output, audit diff, receipt, or peer review handle.',
+        },
       },
-      required: ['team_id', 'task_id'],
+      required: ['team_id', 'task_id', 'verification_evidence'],
     },
   },
   {
@@ -497,17 +501,24 @@ async function handleBoardComplete(
   const taskId = args.task_id as string;
   const commit = args.commit as string | undefined;
   const summary = args.summary as string | undefined;
+  const verificationEvidence = typeof args.verification_evidence === 'string'
+    ? args.verification_evidence.trim().slice(0, 2000)
+    : '';
 
   if (!teamId) return { error: '"team_id" is required.' };
   if (!taskId) return { error: '"task_id" is required.' };
+  if (!verificationEvidence) return { error: '"verification_evidence" is required.' };
 
   try {
     const team = getTeam(teamId);
-    const wrap = completeTask(team.taskBoard!, taskId, 'mcp-agent', { summary });
+    const wrap = completeTask(team.taskBoard!, taskId, 'mcp-agent', {
+      commit,
+      summary,
+      verificationEvidence,
+    });
     if (!wrap.result.success) return { error: wrap.result.error || 'Complete failed' };
     team.taskBoard = wrap.updatedBoard;
     if (wrap.result.doneEntry) {
-      if (commit) (wrap.result.doneEntry as any).commit = commit;
       team.doneLog!.push(wrap.result.doneEntry as any);
     }
     persistTeamStore();

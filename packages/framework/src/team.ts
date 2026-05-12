@@ -558,7 +558,11 @@ export class Team {
         await this.boardFetch(
           `/api/holomesh/team/${teamId}/board/${encodeURIComponent(task.id)}`,
           'PATCH',
-          { action: 'done', summary }
+          {
+            action: 'done',
+            summary,
+            verification_evidence: `framework Team execution receipt: executeTask returned summary "${summary.slice(0, 300)}".`,
+          }
         );
 
         // Complete the bounty with proof
@@ -1374,12 +1378,14 @@ export class Team {
   async completeTask(
     taskId: string,
     commit?: string,
-    summary?: string
+    summary?: string,
+    verificationEvidence?: string
   ): Promise<Record<string, unknown>> {
     if (!this.isRemote) throw new Error('completeTask() requires a remote board');
     const body: Record<string, unknown> = { action: 'done' };
     if (commit) body.commit = commit;
     if (summary) body.summary = summary;
+    if (verificationEvidence) body.verification_evidence = verificationEvidence;
     const res = await this.boardFetch(
       `/api/holomesh/team/${encodeURIComponent(this.name)}/board/${encodeURIComponent(taskId)}`,
       'PATCH',

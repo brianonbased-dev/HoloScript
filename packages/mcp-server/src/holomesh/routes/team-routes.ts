@@ -1532,7 +1532,7 @@ export async function handleTeamRoutes(
       tasks.push({
         id: taskId,
         title: 'Run /room scout to scan TODO markers',
-        description: 'Use POST /team/:id/board/scout with todo_content to harvest TODO/FIXME annotations into the task board.',
+        description: 'Use POST /team/:id/board/scout with todo_content to harvest TODO/FIXME annotations into the task board.\n\n## Done when:\n- Scout output is posted with verification evidence before the task is marked done.',
         source: 'scout:hint',
         status: 'open',
         createdAt: new Date().toISOString(),

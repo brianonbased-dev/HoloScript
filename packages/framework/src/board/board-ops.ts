@@ -60,6 +60,39 @@ export interface TaskActionResult {
   doneEntry?: DoneLogEntry;
 }
 
+const DEFAULT_DONE_WHEN_BLOCK = [
+  '## Done when:',
+  '- Verification evidence names the concrete test, build, audit, receipt, or peer-review result required to close this task.',
+].join('\n');
+
+export function hasDefinitionOfDone(description: string | undefined): boolean {
+  const lines = String(description || '').split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    if (!/^##\s*Done when:?\s*$/iu.test(lines[i].trim())) continue;
+    for (let j = i + 1; j < lines.length; j++) {
+      const line = lines[j].trim();
+      if (/^##\s+/u.test(line)) break;
+      if (/^[-*]\s+\S/u.test(line)) return true;
+    }
+  }
+  return false;
+}
+
+export function normalizeTaskDescription(description: string, maxLength = 2000): string {
+  if (hasDefinitionOfDone(description)) {
+    const capped = description.slice(0, maxLength);
+    if (hasDefinitionOfDone(capped)) return capped;
+  }
+
+  const base = description.trimEnd();
+  if (!base) return DEFAULT_DONE_WHEN_BLOCK;
+
+  const separator = '\n\n';
+  const reserved = separator.length + DEFAULT_DONE_WHEN_BLOCK.length;
+  const baseBudget = Math.max(0, maxLength - reserved);
+  return `${base.slice(0, baseBudget)}${separator}${DEFAULT_DONE_WHEN_BLOCK}`;
+}
+
 /**
  * Claim an open task. Returns error if task isn't open or has unmet dependencies.
  *
@@ -82,6 +115,12 @@ export function claimTask(
   const task = board.find((t) => t.id === taskId);
   if (!task) return { success: false, error: 'Task not found' };
   if (task.status !== 'open') return { success: false, error: `Task is ${task.status}, not open` };
+  if (!hasDefinitionOfDone(task.description)) {
+    return {
+      success: false,
+      error: 'Definition-of-Done required: task description must include a "## Done when:" section with at least one bullet.',
+    };
+  }
 
   // Check dependencies — all must be done (not on the board)
   if (task.dependsOn && task.dependsOn.length > 0) {
@@ -118,6 +157,7 @@ export function completeTask(
   opts: {
     commit?: string;
     summary?: string;
+    verificationEvidence?: string;
     completedByTag?: string;
     artifacts?: ArtifactReceipt[];
     environmentReceipt?: TaskEnvironmentReceipt;
@@ -180,6 +220,7 @@ export function completeTask(
   task.completedBy = completedBy;
   if (opts.completedByTag) task.completedByTag = opts.completedByTag;
   task.commitHash = opts.commit;
+  if (opts.verificationEvidence) task.verificationEvidence = opts.verificationEvidence;
   task.completedAt = new Date().toISOString();
   if (artifacts.length) task.artifacts = artifacts.map(cloneArtifactReceipt);
   if (environmentReceipt) task.environmentReceipt = cloneTaskEnvironmentReceipt(environmentReceipt);
@@ -190,6 +231,7 @@ export function completeTask(
     completedBy,
     ...(opts.completedByTag ? { completedByTag: opts.completedByTag } : {}),
     commitHash: task.commitHash,
+    ...(opts.verificationEvidence ? { verificationEvidence: opts.verificationEvidence } : {}),
     timestamp: task.completedAt,
     summary: opts.summary || task.title,
     ...(artifacts.length ? { artifacts: artifacts.map(cloneArtifactReceipt) } : {}),
@@ -568,7 +610,7 @@ export function addTasksToBoard(
     // warning signal already existed; raising the cap reduces false friction
     // without changing the signal shape — callers still get `warnings[]`
     // on overflow, just at a higher threshold.
-    const normalizedDescription = rawDescription.slice(0, 2000);
+    const normalizedDescription = normalizeTaskDescription(rawDescription, 2000);
     if (rawDescription.length > normalizedDescription.length) {
       warnings.push({
         title,
@@ -698,7 +740,7 @@ export function voteSuggestion(
     promotedTask = {
       id: generateTaskId(),
       title: suggestion.title,
-      description: `${suggestion.description}\n\n[Auto-promoted from suggestion by ${suggestion.proposedByName} with ${suggestion.score} votes]`,
+      description: normalizeTaskDescription(`${suggestion.description}\n\n[Auto-promoted from suggestion by ${suggestion.proposedByName} with ${suggestion.score} votes]`),
       status: 'open',
       source: `suggestion:${suggestion.id}`,
       priority:
@@ -738,7 +780,7 @@ export function promoteSuggestion(
   const task: TeamTask = {
     id: generateTaskId(),
     title: suggestion.title,
-    description: `${suggestion.description}\n\n[Promoted by ${promoterName} from suggestion by ${suggestion.proposedByName}]`,
+    description: normalizeTaskDescription(`${suggestion.description}\n\n[Promoted by ${promoterName} from suggestion by ${suggestion.proposedByName}]`),
     status: 'open',
     source: `suggestion:${suggestion.id}`,
     priority: opts.priority || 3,
