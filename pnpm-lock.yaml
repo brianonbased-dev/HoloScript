@@ -3056,6 +3056,9 @@ importers:
       '@holoscript/r3f-renderer':
         specifier: workspace:*
         version: link:../r3f-renderer
+      '@holoscript/secrets-broker':
+        specifier: workspace:*
+        version: link:../secrets-broker
       '@holoscript/std':
         specifier: workspace:*
         version: link:../std

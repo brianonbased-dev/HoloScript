@@ -52,6 +52,7 @@
     "@holoscript/mesh": "workspace:*",
     "@holoscript/platform": "workspace:*",
     "@holoscript/r3f-renderer": "workspace:*",
+    "@holoscript/secrets-broker": "workspace:*",
     "@holoscript/std": "workspace:*",
     "@holoscript/studio-plugin-sdk": "workspace:*",
     "@holoscript/uaal": "workspace:*",
