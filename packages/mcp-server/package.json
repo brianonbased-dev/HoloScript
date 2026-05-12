@@ -48,6 +48,7 @@
     "@holoscript/llm-provider": "workspace:*",
     "@holoscript/mesh": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "@noble/post-quantum": "^0.6.0",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/exporter-trace-otlp-http": "^0.215.0",
     "@opentelemetry/resources": "^2.7.0",
