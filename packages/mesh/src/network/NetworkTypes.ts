@@ -1397,3 +1397,41 @@ export interface INeuralSplatPacket {
   compressedSplatsBuffer: ArrayBuffer;
   sortedIndicesBuffer: ArrayBuffer;
 }
+
+/**
+ * Real-time training-progress telemetry for a 3DGS baking job.
+ *
+ * Streamed through NeuralStreamingTransport so a remote viewer can watch a
+ * Render Network job converge live — Brush+Rerun differentiator, since
+ * HoloScript's Render Network training path was previously poll-only via
+ * BakingProgressTracker (research/2026-05-12_brush-vs-holoscript-audit-calibration.md §3.3).
+ *
+ * Stage / progress shape mirrors BakingJobState so callers can re-render
+ * the source pipeline UI without a second model.
+ */
+export interface INeuralTrainingProgressPacket {
+  /** Render Network job id (so multiple concurrent jobs can multiplex onto one channel). */
+  jobId: string;
+  /** Discrete pipeline stage (idle | uploading | training | baking | compressing | downloading | complete | failed). */
+  stage: string;
+  /** Stage change marker for receivers that animate transitions. */
+  previousStage?: string;
+  /** 0-100 aggregate progress for the whole pipeline. */
+  overallProgress: number;
+  /** 0-100 progress within the current stage. */
+  stageProgress: number;
+  /** Human-readable status message for the current stage. */
+  message?: string;
+  /** Optional ETA in ms for the current stage. */
+  estimatedTimeRemainingMs?: number;
+  /** Training metrics snapshot (PSNR/SSIM/LPIPS, gaussian count, GPU type, etc.) — present from `training` stage onward. */
+  trainingMetrics?: Record<string, unknown>;
+  /** Cumulative cost in RENDER tokens. */
+  actualCost?: number;
+  /** Sender-side wall-clock timestamp (ms) — receiver uses for ordering and ETA calibration. */
+  timestamp: number;
+  /** Set to `'complete'` or `'error'` on terminal frames so receivers can stop listening. */
+  terminal?: 'complete' | 'error';
+  /** Error info on terminal=error. */
+  error?: { stage: string; message: string; code: string; retryable: boolean };
+}

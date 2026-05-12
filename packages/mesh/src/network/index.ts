@@ -115,6 +115,7 @@ export {
   // Neural Streaming (Pillar 2)
   INeuralPacket,
   INeuralSplatPacket,
+  INeuralTrainingProgressPacket,
 } from './NetworkTypes';
 
 // Implementations
@@ -248,6 +249,18 @@ export {
   type StreamingTransportConfig,
 } from './NeuralStreamingTransport';
 export { NeuralStreamingService, type NeuralStreamingConfig } from './NeuralStreamingService';
+export {
+  createBakingProgressBridge,
+  projectStateToPacket,
+  type BakingProgressBridge,
+  type BakingProgressBridgeConfig,
+  type BakingJobStateLike,
+  type BakingPipelineErrorLike,
+  type ProgressCallback as BakingProgressCallback,
+  type StageTransitionCallback as BakingStageTransitionCallback,
+  type CompleteCallback as BakingCompleteCallback,
+  type ErrorCallback as BakingErrorCallback,
+} from './BakingProgressBridge';
 
 export * from './AntiCheat';
 export * from './Matchmaker';

@@ -1,4 +1,8 @@
-import type { INeuralPacket, INeuralSplatPacket } from './NetworkTypes.js';
+import type {
+  INeuralPacket,
+  INeuralSplatPacket,
+  INeuralTrainingProgressPacket,
+} from './NetworkTypes.js';
 
 export interface StreamingTransportConfig {
   useWebRTC: boolean;
@@ -217,6 +221,38 @@ export class NeuralStreamingTransport {
     } else if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(payload);
     }
+  }
+
+  /**
+   * Broadcasts a 3DGS training-progress packet for live remote spectating.
+   *
+   * Brush+Rerun differentiator: Render Network training jobs are otherwise
+   * poll-only (BakingProgressTracker). With this method wired via
+   * BakingProgressBridge, a remote viewer can watch convergence in real time.
+   *
+   * Returns `true` if the packet was actually pushed onto the wire (transport
+   * connected + DataChannel/WebSocket open), `false` if it was dropped because
+   * the transport is not ready. Callers can use the return value to buffer
+   * packets locally and replay on reconnect, or to drive a "live"/"buffered"
+   * indicator in the spectator UI.
+   */
+  public broadcastTrainingProgress(packet: INeuralTrainingProgressPacket): boolean {
+    if (!this.isConnected) return false;
+
+    const payload = JSON.stringify({
+      type: 'training_progress',
+      data: packet,
+    });
+
+    if (this.dataChannel && this.dataChannel.readyState === 'open') {
+      this.dataChannel.send(payload);
+      return true;
+    }
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(payload);
+      return true;
+    }
+    return false;
   }
 
   /**
