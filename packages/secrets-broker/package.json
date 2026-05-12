@@ -1,0 +1,53 @@
+{
+  "name": "@holoscript/secrets-broker",
+  "version": "7.0.0",
+  "description": "Sovereign primitive: capability-token broker for per-surface AI-agent bearers. Generalizes the per-brain HOLOMESH_API_KEY_<HANDLE>_X402 pattern into a typed, device-flow-pairable, short-lived-scoped-capability contract usable by any AI surface (mobile, desktop, headless). Companion to /protocol commercialization (D.013).",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "holoscript",
+    "secrets-broker",
+    "x402",
+    "capability-token",
+    "device-flow",
+    "ai-agents",
+    "sovereign-primitive"
+  ],
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/secrets-broker"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.5"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
+}
