@@ -188,8 +188,8 @@ export function formTeam(
   if (gaps.length > 0) {
     recommendations.push(`Cover gaps: ${gaps.join(', ')} via recruit or upskill.`);
   }
-  if (selected.length < (req.teamSize ?? targetSize)) {
-    recommendations.push(`Team underfilled (${selected.length}/${req.teamSize ?? targetSize}). Expand roster or relax requirements.`);
+  if (selected.length < targetSize) {
+    recommendations.push(`Team underfilled (${selected.length}/${targetSize}). Expand roster or relax requirements.`);
   }
   if (selected.length > 0 && coverage === 1) {
     recommendations.push('All required capabilities covered. Consider pairing for redundancy on critical roles.');
