@@ -34,6 +34,7 @@ import { handleAttestationRoutes } from './routes/attestation-routes';
 import { handleTokenRoutes } from './routes/token-routes';
 import { handleCustodialWalletRoutes } from './routes/custodial-wallet-routes';
 import { handleLotusRoutes } from './routes/lotus-routes';
+import { handleSecretsBrokerRoutes } from './routes/secrets-broker-routes';
 import { GossipProtocol, type GossipPacket } from '@holoscript/framework';
 
 const meshGossip = new GossipProtocol();
@@ -210,6 +211,7 @@ export async function handleHoloMeshRoute(
   if (await handleTeamRoutes(req, res, pathname, method, url)) return true;
   if (await handleKnowledgeRoutes(req, res, pathname, method, url)) return true;
   if (await handleTokenRoutes(req, res, pathname, method, url)) return true;
+  if (await handleSecretsBrokerRoutes(req, res, pathname, method, url)) return true;
 
   // 3. Fallback/Uncached routes
   if (pathname === '/api/holomesh/health' && method === 'GET') {
