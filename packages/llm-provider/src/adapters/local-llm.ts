@@ -25,7 +25,7 @@ import type {
   TokenUsage,
   ToolSpec,
 } from '../types';
-import { LLMProviderError, messageContentAsString } from '../types';
+import { LLMProviderError, filterGenericTools, messageContentAsString } from '../types';
 
 type LocalLLMAdapterConfig = Omit<LLMProviderConfig, 'apiKey'> & {
   apiKey?: string;
@@ -297,8 +297,8 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
         ...(request.topP !== undefined ? { top_p: request.topP } : {}),
         ...(request.stop ? { stop: request.stop } : {}),
       },
-      ...(request.tools && request.tools.length > 0
-        ? { tools: this.mapToolsToOllama(request.tools) }
+      ...(filterGenericTools(request.tools).length > 0
+        ? { tools: this.mapToolsToOllama(filterGenericTools(request.tools)) }
         : {}),
     });
 

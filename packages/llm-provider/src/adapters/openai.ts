@@ -25,6 +25,7 @@ import {
   LLMRateLimitError,
   LLMContextLengthError,
   LLMProviderError,
+  filterGenericTools,
   messageContentAsString,
 } from '../types';
 
@@ -482,8 +483,9 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       ...(this.reasoningEffort ? { reasoning: { effort: this.reasoningEffort } } : {}),
     };
 
-    if (request.tools && request.tools.length > 0) {
-      payload.tools = toolSpecsToOpenAIResponseTools(request.tools);
+    const tools = filterGenericTools(request.tools);
+    if (tools.length > 0) {
+      payload.tools = toolSpecsToOpenAIResponseTools(tools);
       payload.tool_choice = 'auto';
       payload.parallel_tool_calls = this.parallelToolCalls;
     }
@@ -498,6 +500,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
   ): Promise<LLMCompletionResponse> {
     return await this.withRetry(async () => {
       try {
+        const tools = filterGenericTools(request.tools);
         const response = await client.chat.completions.create({
           model,
           messages: request.messages.map((m) => ({
@@ -509,9 +512,9 @@ export class OpenAIAdapter extends BaseLLMAdapter {
           top_p: request.topP,
           stop: request.stop,
           stream: false,
-          ...(request.tools && request.tools.length > 0
+          ...(tools.length > 0
             ? {
-                tools: toolSpecsToChatCompletionTools(request.tools) as never,
+                tools: toolSpecsToChatCompletionTools(tools) as never,
                 tool_choice: 'auto' as const,
               }
             : {}),

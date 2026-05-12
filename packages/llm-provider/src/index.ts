@@ -30,6 +30,8 @@ export type {
   MessageRole,
   LLMCompletionRequest,
   LLMCompletionResponse,
+  LLMFileMetadata,
+  LLMFileUploadRequest,
   TokenUsage,
   HoloScriptGenerationRequest,
   HoloScriptGenerationResponse,
@@ -48,6 +50,17 @@ export type {
   ProviderSelectionStrategy,
   // Tool-use types — added 2026-04-25 for mesh-agent runner
   ToolSpec,
+  ToolSpecUnion,
+  AnthropicAdvisorToolSpec,
+  CacheControlEphemeral,
+  AnthropicFileSource,
+  AnthropicDocumentFileBlock,
+  AnthropicImageFileBlock,
+  AnthropicContainerUploadBlock,
+  AnthropicFileContentBlock,
+  AnthropicFileContentBlockType,
+  AnthropicFileContentBlockOptions,
+  LLMContentBlock,
   AnthropicEffortLevel,
   AnthropicThinkingParam,
   ToolUseBlock,
@@ -64,6 +77,10 @@ export {
   LLMRateLimitError,
   LLMAuthenticationError,
   LLMContextLengthError,
+  anthropicFileContentBlock,
+  filterGenericTools,
+  isAnthropicAdvisorTool,
+  isToolSpec,
   messageContentAsString,
 } from './types';
 
@@ -85,7 +102,11 @@ export {
   AnthropicAdapter,
   ANTHROPIC_MODELS,
   ANTHROPIC_CAPABILITIES,
+  ANTHROPIC_ADVISOR_BETA,
+  ANTHROPIC_FILES_BETA,
   buildThinkingAndOutputForAnthropic,
+  collectAnthropicBetaHeaders,
+  hasAnthropicFileContent,
 } from './adapters/anthropic';
 export type { AnthropicModel } from './adapters/anthropic';
 
