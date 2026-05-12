@@ -22,7 +22,7 @@ import {
 } from '../utils';
 import { hasBearerCapability, requireAuth } from '../auth-utils';
 import { broadcastToTeam } from '../team-room';
-import { extractAndVerifySigning } from '../identity/signing-middleware';
+import { extractAndVerifySigning, resolveCapabilityFromHeader } from '../identity/signing-middleware';
 import {
   ROOM_PRESETS,
   claimTask,
@@ -129,10 +129,28 @@ export async function handleBoardRoutes(
 
   // GET /api/holomesh/team/:id/mobile-brief — one-shot aggregated brief for mobile surfaces
   // Replaces the multi-step board-reader hook chain that mobile clients cannot run locally.
+  // S-7 pilot: accepts capability tokens (Authorization: Bearer <tokenId>:<tokenSecret>)
+  // with mesh:read scope. Invalid capability tokens fail closed; legacy Bearer API keys
+  // accepted as fallback during transition.
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/mobile-brief$/) && method === 'GET') {
-    const access = await requireTeamAccessFresh(req, res, url);
-    if (!access) return true;
-    const { teamId } = access;
+    const capResult = resolveCapabilityFromHeader(req, 'mesh:read');
+    let teamId: string;
+    if (capResult.token) {
+      teamId = extractParam(url, '/api/holomesh/team/');
+      await reloadTeam(teamId);
+      const team = teamStore.get(teamId);
+      if (!team) {
+        json(res, 404, { error: 'Team not found' });
+        return true;
+      }
+    } else if (capResult.error) {
+      json(res, 401, { error: 'Invalid capability token', reason: capResult.error });
+      return true;
+    } else {
+      const access = await requireTeamAccessFresh(req, res, url);
+      if (!access) return true;
+      teamId = access.teamId;
+    }
     const team = teamStore.get(teamId)!;
 
     // Tasks — urgency-first (lower priority number = more urgent)

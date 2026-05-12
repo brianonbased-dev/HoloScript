@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type http from 'http';
 import { EventEmitter } from 'events';
 import { handleTeamRoutes } from '../team-routes';
@@ -13,7 +13,12 @@ import {
   persistAgentStore,
 } from '../../state';
 import { resolveRequestingAgent } from '../../auth-utils';
+import {
+  getCapabilityRegistry,
+  resetCapabilityRegistry,
+} from '../../identity/signing-middleware';
 import type { KeyRecord, Team } from '../../types';
+import { mintCapabilityToken, storeCapabilityToken } from '@holoscript/secrets-broker';
 
 const PARENT_KEY = 'parent-agent-key';
 const PARENT_ID = 'agent_parent_001';
@@ -171,11 +176,32 @@ async function callBoard(
   return res;
 }
 
+function seedCapabilityToken(
+  overrides: { handle?: string; capabilities?: ('mesh:read' | 'mesh:message')[]; ttlSeconds?: number } = {}
+): { tokenId: string; tokenSecret: string; raw: string } {
+  const token = mintCapabilityToken({
+    handle: (overrides.handle ?? 'mobile1') as `${string}${number}`,
+    surface: 'mobile',
+    capabilities: overrides.capabilities ?? ['mesh:read'],
+    ttlSeconds: overrides.ttlSeconds ?? 3600,
+    now: new Date(),
+    randomBytes: (size: number) => Buffer.alloc(size, 0xab),
+  });
+  const stored = storeCapabilityToken(token);
+  getCapabilityRegistry().put(stored);
+  return {
+    tokenId: token.tokenId,
+    tokenSecret: token.tokenSecret,
+    raw: `${token.tokenId}:${token.tokenSecret}`,
+  };
+}
+
 beforeEach(() => {
   teamStore.clear();
   keyRegistry.clear();
   agentKeyStore.clear();
   walletToAgent.clear();
+  resetCapabilityRegistry();
   seedParent();
   seedNonMember();
   createTestTeam();
@@ -359,5 +385,124 @@ describe('Team Routes — Mobile Handoff', () => {
     expect(claim._status).toBe(403);
     expect(claim._body.code).toBe('mobile_claim_denied');
     expect(teamStore.get('team_test_mobile')?.taskBoard?.[0].status).toBe('open');
+  });
+});
+
+describe('Board Routes — Mobile Brief (capability-token auth)', () => {
+  it('TRUE: valid capability token with mesh:read returns mobile-brief', async () => {
+    const cap = seedCapabilityToken({ handle: 'mobile1', capabilities: ['mesh:read'] });
+
+    const res = await callBoard(
+      'GET',
+      '/api/holomesh/team/team_test_mobile/mobile-brief',
+      undefined,
+      cap.raw
+    );
+
+    expect(res._status).toBe(200);
+    expect(res._body.success).toBe(true);
+    expect(res._body.teamId).toBe('team_test_mobile');
+    expect(res._body.mode).toBeDefined();
+    expect(Array.isArray(res._body.openTasks)).toBe(true);
+    expect(Array.isArray(res._body.claimedTasks)).toBe(true);
+    expect(Array.isArray(res._body.inbox)).toBe(true);
+    expect(Array.isArray(res._body.recentKnowledge)).toBe(true);
+    expect(Array.isArray(res._body.openSuggestions)).toBe(true);
+    expect(Array.isArray(res._body.presence)).toBe(true);
+    expect(typeof res._body.doneCount).toBe('number');
+  });
+
+  it('FALSE: capability token with wrong scope (mesh:message) rejects', async () => {
+    const cap = seedCapabilityToken({ handle: 'mobile1', capabilities: ['mesh:message'] });
+
+    const res = await callBoard(
+      'GET',
+      '/api/holomesh/team/team_test_mobile/mobile-brief',
+      undefined,
+      cap.raw
+    );
+
+    expect(res._status).toBe(401);
+    expect(res._body.error).toBe('Invalid capability token');
+    expect(res._body.reason).toBe('capability-not-granted');
+  });
+
+  it('FALSE: capability token with invalid secret rejects', async () => {
+    const cap = seedCapabilityToken({ handle: 'mobile1', capabilities: ['mesh:read'] });
+
+    const res = await callBoard(
+      'GET',
+      '/api/holomesh/team/team_test_mobile/mobile-brief',
+      undefined,
+      `${cap.tokenId}:wrongsecret`
+    );
+
+    expect(res._status).toBe(401);
+    expect(res._body.error).toBe('Invalid capability token');
+    expect(res._body.reason).toBe('capability-token-invalid');
+  });
+
+  it('FALSE: capability token with revoked token rejects', async () => {
+    const cap = seedCapabilityToken({ handle: 'mobile1', capabilities: ['mesh:read'] });
+    getCapabilityRegistry().revoke(cap.tokenId, 'test-revoke');
+
+    const res = await callBoard(
+      'GET',
+      '/api/holomesh/team/team_test_mobile/mobile-brief',
+      undefined,
+      cap.raw
+    );
+
+    expect(res._status).toBe(401);
+    expect(res._body.error).toBe('Invalid capability token');
+    expect(res._body.reason).toBe('capability-token-revoked');
+  });
+
+  it('FALSE: capability token expired rejects', async () => {
+    const cap = seedCapabilityToken({
+      handle: 'mobile1',
+      capabilities: ['mesh:read'],
+      ttlSeconds: 60,
+    });
+    // Manually expire the token by patching the registry entry.
+    const registry = getCapabilityRegistry();
+    const stored = registry.get(cap.tokenId)!;
+    registry.put({ ...stored, expiresAt: '2026-05-11T00:00:00Z' } as typeof stored);
+
+    const res = await callBoard(
+      'GET',
+      '/api/holomesh/team/team_test_mobile/mobile-brief',
+      undefined,
+      cap.raw
+    );
+
+    expect(res._status).toBe(401);
+    expect(res._body.error).toBe('Invalid capability token');
+    expect(res._body.reason).toBe('capability-token-expired');
+  });
+
+  it('legacy Bearer API key still works as fallback', async () => {
+    const res = await callBoard(
+      'GET',
+      '/api/holomesh/team/team_test_mobile/mobile-brief',
+      undefined,
+      PARENT_KEY
+    );
+
+    expect(res._status).toBe(200);
+    expect(res._body.success).toBe(true);
+    expect(res._body.teamId).toBe('team_test_mobile');
+  });
+
+  it('legacy Bearer API key rejects non-members', async () => {
+    const res = await callBoard(
+      'GET',
+      '/api/holomesh/team/team_test_mobile/mobile-brief',
+      undefined,
+      NON_MEMBER_KEY
+    );
+
+    expect(res._status).toBe(403);
+    expect(res._body.error).toContain('Not a member');
   });
 });
