@@ -1639,6 +1639,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.27.1
         version: 1.27.1(zod@4.3.6)
+      '@noble/post-quantum':
+        specifier: ^0.6.0
+        version: 0.6.0
       '@opentelemetry/api':
         specifier: ^1.9.1
         version: 1.9.1
@@ -2872,6 +2875,21 @@ importers:
       '@types/three':
         specifier: ^0.170.0
         version: 0.170.0
+      tsup:
+        specifier: ^8.0.1
+        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@7.3.2)
+
+  packages/secrets-broker:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.10.13
       tsup:
         specifier: ^8.0.1
         version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
@@ -8352,7 +8370,6 @@ packages:
     engines: {node: '>= 20.19.0'}
     requiresBuild: true
     dev: false
-    optional: true
 
   /@noble/curves@1.2.0:
     resolution: {integrity: sha512-oYclrNgRaM9SsBUBVbb8M6DTV7ZHRTKugureoYEncY5c65HOmRzvSiTE3y5CYaPYJA/GVkrhXEoF0M3Ya9PMnw==}
@@ -8408,7 +8425,6 @@ packages:
     dependencies:
       '@noble/hashes': 2.0.1
     dev: false
-    optional: true
 
   /@noble/hashes@1.3.2:
     resolution: {integrity: sha512-MVC8EAQp7MvEcm30KWENFjgR+Mkmf+D189XJTkFIlwohU5hcBbn1ZkKq7KVTi2Hme3PMGF390DaL52beVrIihQ==}
@@ -8440,7 +8456,6 @@ packages:
     engines: {node: '>= 20.19.0'}
     requiresBuild: true
     dev: false
-    optional: true
 
   /@noble/post-quantum@0.6.0:
     resolution: {integrity: sha512-rv4UfzjtlwrGFBso6IiofY3j4XhLrvjX6Q/w2bVWUoiPvKDIadeW7+xti0c0zND7K+yk62A2XYSLFlQZVHb5Mg==}
@@ -8451,7 +8466,6 @@ packages:
       '@noble/curves': 2.0.1
       '@noble/hashes': 2.0.1
     dev: false
-    optional: true
 
   /@nodelib/fs.scandir@2.1.5:
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
