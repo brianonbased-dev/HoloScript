@@ -139,7 +139,7 @@ describe('dispatch health check', () => {
           } catch {
             // Handler threw for missing args = dispatch works (handler was found)
           }
-        }, 60_000); // audit_numbers runs execSync with 15s timeout per command
+        }, 60_000); // audit_numbers includes a live health fetch with a 15s timeout
       }
     }
   });

@@ -12,7 +12,6 @@
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -23,9 +22,9 @@ import * as path from 'path';
 interface MetricDefinition {
   id: string;
   name: string;
-  /** Shell command to get the live value (run from HoloScript root) */
-  command: string;
-  /** How to parse the command output into a number or string */
+  /** Native collector for the live value. */
+  collect: () => Promise<string> | string;
+  /** How to parse the collector output into a number or string */
   parser: (output: string) => string;
   /** Regex patterns to search for this metric in docs */
   searchPatterns: RegExp[];
@@ -62,26 +61,22 @@ const METRICS: MetricDefinition[] = [
   {
     id: 'compiler_files',
     name: 'Compiler files',
-    command:
-      'find packages/core/src/compiler -name "*Compiler.ts" -not -name "CompilerBase.ts" -not -name "*.test.*" | wc -l',
+    collect: () => countCompilerFiles(HOLOSCRIPT_ROOT),
     parser: (o) => o.trim(),
     searchPatterns: [/(\d+)\s*compilers?\b/gi, /(\d+)\s*compil(?:ation)?\s*targets?\b/gi],
   },
   {
     id: 'trait_categories',
     name: 'Trait categories',
-    command: 'ls packages/core/src/traits/constants/*.ts | wc -l',
+    collect: () => countTraitCategoryFiles(HOLOSCRIPT_ROOT),
     parser: (o) => o.trim(),
     searchPatterns: [/(\d+)\s*categor(?:y|ies)\b/gi],
   },
   {
     id: 'knowledge_entries',
     name: 'Knowledge entries',
-    command: 'curl -s https://mcp-orchestrator-production-45f9.up.railway.app/health',
-    parser: (o) => {
-      const match = o.match(/"knowledge_entries":(\d+)/);
-      return match ? match[1] : 'unknown';
-    },
+    collect: () => fetchKnowledgeEntryCount(DEFAULT_ORCHESTRATOR_URL),
+    parser: (o) => o.trim(),
     searchPatterns: [/(\d+)\s*(?:knowledge\s*)?entries/gi],
   },
 ];
@@ -104,12 +99,83 @@ const EXTERNAL_FILES = [
 ];
 
 // =============================================================================
+// COLLECTORS
+// =============================================================================
+
+function walkFiles(root: string): string[] {
+  if (!fs.existsSync(root)) return [];
+  const files: string[] = [];
+  const entries = fs.readdirSync(root, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = path.join(root, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...walkFiles(fullPath));
+    } else if (entry.isFile()) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
+export function countCompilerFiles(root: string = HOLOSCRIPT_ROOT): string {
+  const compilerDir = path.join(root, 'packages', 'core', 'src', 'compiler');
+  const count = walkFiles(compilerDir).filter((file) => {
+    const base = path.basename(file);
+    return (
+      base.endsWith('Compiler.ts') &&
+      base !== 'CompilerBase.ts' &&
+      !base.includes('.test.') &&
+      !base.includes('.spec.')
+    );
+  }).length;
+  return String(count);
+}
+
+export function countTraitCategoryFiles(root: string = HOLOSCRIPT_ROOT): string {
+  const constantsDir = path.join(root, 'packages', 'core', 'src', 'traits', 'constants');
+  if (!fs.existsSync(constantsDir)) return '0';
+  const count = fs.readdirSync(constantsDir, { withFileTypes: true }).filter((entry) => (
+    entry.isFile() &&
+    entry.name.endsWith('.ts') &&
+    !entry.name.endsWith('.d.ts')
+  )).length;
+  return String(count);
+}
+
+async function fetchKnowledgeEntryCount(orchestratorUrl: string): Promise<string> {
+  try {
+    const res = await fetch(`${orchestratorUrl}/health`, {
+      signal: AbortSignal.timeout(15_000),
+    });
+    const text = await res.text();
+    if (!res.ok) return 'unknown';
+
+    try {
+      const data = JSON.parse(text) as Record<string, unknown>;
+      const value = data.knowledge_entries ?? data.knowledgeEntries;
+      if (typeof value === 'number') return String(value);
+      if (typeof value === 'string' && /^\d+$/.test(value)) return value;
+    } catch {
+      const match = text.match(/"knowledge_entries"\s*:\s*(\d+)/);
+      if (match) return match[1];
+    }
+
+    return 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+// =============================================================================
 // ENGINE
 // =============================================================================
 
-function runCommand(cmd: string): string {
+async function collectMetric(metric: MetricDefinition): Promise<string> {
   try {
-    return execSync(cmd, { cwd: HOLOSCRIPT_ROOT, encoding: 'utf-8', timeout: 15000 });
+    const output = await metric.collect();
+    return metric.parser(output);
   } catch {
     return 'ERROR';
   }
@@ -158,15 +224,14 @@ function scanFile(
   return occurrences;
 }
 
-export function runAudit(): AuditResult {
+export async function runAudit(): Promise<AuditResult> {
   const metrics: MetricResult[] = [];
   let totalOccurrences = 0;
   let mismatches = 0;
   const allFiles = [...SCAN_GLOBS, ...EXTERNAL_FILES];
 
   for (const metric of METRICS) {
-    const output = runCommand(metric.command);
-    const liveValue = metric.parser(output);
+    const liveValue = await collectMetric(metric);
 
     const occurrences: MetricResult['occurrences'] = [];
     for (const file of allFiles) {
@@ -194,7 +259,7 @@ export function runAudit(): AuditResult {
 // =============================================================================
 
 export async function handleAuditNumbers(_args: Record<string, unknown>): Promise<unknown> {
-  const result = runAudit();
+  const result = await runAudit();
 
   // Build summary
   const summary = result.metrics.map((m) => ({
@@ -229,7 +294,7 @@ export async function handleAuditNumbers(_args: Record<string, unknown>): Promis
 export const auditTools: Tool[] = [
   {
     name: 'holoscript_audit_numbers',
-    description: 'Audit all ecosystem metrics against live ground truth. Runs verification commands ' +
+    description: 'Audit all ecosystem metrics against live ground truth. Collects live metrics ' +
       '(compiler count, trait categories, knowledge entries), scans all docs/configs/skills ' +
       'for each metric, and reports mismatches. Replaces manual re-audit loops.',
     inputSchema: {
