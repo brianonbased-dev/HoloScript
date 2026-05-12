@@ -23,6 +23,72 @@ import type { HoloComposition, HoloObjectDecl, HoloObjectTrait } from '../parser
 import type { GLTFExportResult, GLTFExportStats } from './CompilerTypes';
 
 // =============================================================================
+// MULTI-USER SHARED-SORT DETECTION (P.043 — substrate side of the paper claim)
+// =============================================================================
+//
+// When a composition has BOTH `@gaussian_splat` and `@multiplayer` traits on
+// the same object, the WebGPU emit path should use a shared-sort kernel
+// (single centroid-sorted index buffer + per-view visibility bitmask) instead
+// of N independent per-view radix sorts. The CPU reference algorithm is in
+// `packages/core/src/traits/MultiviewGaussianRendererTrait.ts::preprocess()`.
+//
+// This block is the compiler-side detection layer for that emit branch.
+// G.GOLD.013: callers must test FALSE-case (single trait, neither trait) AND
+// TRUE-case (both on same object, both on nested objects).
+//
+// Trait names in `HoloObjectTrait.name` are stored UNPREFIXED (the parser
+// strips the `@`). The constants below match that convention.
+const GAUSSIAN_SPLAT_TRAIT_NAME = 'gaussian_splat';
+const MULTIPLAYER_TRAIT_NAME = 'multiplayer';
+
+/**
+ * Walk a HoloComposition's object tree and report whether any single object
+ * (or any of its nested children) carries BOTH `@gaussian_splat` and
+ * `@multiplayer` traits.
+ *
+ * Co-occurrence must be on the SAME object — a sibling pair where one object
+ * has `@gaussian_splat` and another has `@multiplayer` does NOT trigger the
+ * shared-sort emit (they would not share a sort buffer at runtime anyway).
+ *
+ * @param composition  Parsed HoloComposition
+ * @returns `true` iff at least one object in the tree carries both traits.
+ *
+ * @see packages/engine/src/gpu/shaders/splat-shared-sort.wgsl (emit target)
+ * @see packages/core/src/traits/MultiviewGaussianRendererTrait.ts (CPU ref)
+ * @see docs/archive/P043_MULTIVIEW_FOVEATED_GS_PAPER.md §5
+ */
+export function detectMultiUserSharedSort(composition: HoloComposition): boolean {
+  const objects = composition.objects ?? [];
+  for (const obj of objects) {
+    if (objectHasBothTraits(obj)) return true;
+  }
+  return false;
+}
+
+function objectHasBothTraits(obj: HoloObjectDecl): boolean {
+  const traits = obj.traits ?? [];
+  let hasSplat = false;
+  let hasMultiplayer = false;
+  for (const t of traits) {
+    if (t.name === GAUSSIAN_SPLAT_TRAIT_NAME) hasSplat = true;
+    else if (t.name === MULTIPLAYER_TRAIT_NAME) hasMultiplayer = true;
+    if (hasSplat && hasMultiplayer) return true;
+  }
+  // Recurse into nested children if the parser surface exposes them. We treat
+  // any 'children' / 'objects' field uniformly as HoloObjectDecl[]; missing
+  // fields are no-ops. Cast-on-read here keeps the detector loose against
+  // future parser shape changes without forcing a parser-type widening.
+  const childrenLike =
+    (obj as unknown as { children?: HoloObjectDecl[] }).children ??
+    (obj as unknown as { objects?: HoloObjectDecl[] }).objects ??
+    [];
+  for (const child of childrenLike) {
+    if (objectHasBothTraits(child)) return true;
+  }
+  return false;
+}
+
+// =============================================================================
 // TYPES
 // =============================================================================
 
@@ -38,6 +104,39 @@ export interface GaussianSplattingCompilerOptions {
   /** Maximum spherical-harmonics degree (0-3) */
   shDegree?: number;
 }
+
+/**
+ * Extended compile result that wraps the glTF export with WebGPU-side metadata
+ * derived from compile-time trait analysis.
+ *
+ * The shared-sort emit path is gated on `multiUserSharedSort` — see
+ * `detectMultiUserSharedSort()` for the detection rule and
+ * `packages/engine/src/gpu/shaders/splat-shared-sort.wgsl` for the kernel.
+ */
+export interface GaussianSplattingExtendedResult {
+  /** Standard glTF export (KHR_gaussian_splatting). Unchanged shape. */
+  gltf: GLTFExportResult;
+  /**
+   * True iff at least one object in the composition carries both
+   * `@gaussian_splat` and `@multiplayer`. When true, the WebGPU runtime
+   * should bind the shared-sort kernel instead of per-view radix sort.
+   */
+  multiUserSharedSort: boolean;
+  /**
+   * Path (relative to repo root) to the WebGPU shader the runtime should
+   * load when `multiUserSharedSort === true`. Undefined when false so callers
+   * can branch on presence.
+   */
+  sharedSortShaderPath?: string;
+}
+
+/**
+ * Repo-relative path to the shared-sort WGSL kernel. Surfaced so call sites
+ * (and the test suite) can verify the compiler points at the right artifact
+ * without hard-coding the string at each call site.
+ */
+export const SHARED_SORT_SHADER_PATH =
+  'packages/engine/src/gpu/shaders/splat-shared-sort.wgsl';
 
 interface GaussianData {
   positions: Float32Array;   // N × 3
@@ -81,6 +180,40 @@ export class GaussianSplattingCompiler extends CompilerBase {
     this.validateCompilerAccess(agentToken, outputPath);
     const data = this.extractGaussianData(composition);
     return this.buildGLTF(data);
+  }
+
+  /**
+   * Extended compile that runs the standard glTF export AND reports
+   * compile-time WebGPU emit flags derived from trait co-occurrence.
+   *
+   * The standard `compile()` API is left unchanged so existing call sites
+   * (MCP `compile_to_3dgs`, ExportManager) keep their contract. Callers that
+   * need the shared-sort flag opt in via this method.
+   *
+   * @see detectMultiUserSharedSort (the detection rule)
+   * @see SHARED_SORT_SHADER_PATH (the kernel artifact path)
+   */
+  compileExtended(
+    composition: HoloComposition,
+    agentToken?: string,
+    outputPath?: string
+  ): GaussianSplattingExtendedResult {
+    const gltf = this.compile(composition, agentToken, outputPath);
+    const multiUserSharedSort = detectMultiUserSharedSort(composition);
+    return {
+      gltf,
+      multiUserSharedSort,
+      sharedSortShaderPath: multiUserSharedSort ? SHARED_SORT_SHADER_PATH : undefined,
+    };
+  }
+
+  /**
+   * Instance accessor for the multi-user shared-sort detector. Mirrors the
+   * standalone `detectMultiUserSharedSort()` export — provided so callers
+   * holding a compiler instance can run the check without a second import.
+   */
+  detectMultiUserSharedSort(composition: HoloComposition): boolean {
+    return detectMultiUserSharedSort(composition);
   }
 
   // ─── Data extraction ────────────────────────────────────────────────────────
