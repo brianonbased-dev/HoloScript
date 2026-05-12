@@ -44,9 +44,9 @@ import type { TeamPresenceEntry, RegisteredAgent } from '../types';
 import { requireAuth, resolveRequestingAgent } from '../auth-utils';
 import { getClient } from '../orchestrator-client';
 import { findKnowledgeEntryById } from '../entry-lookup';
-import { json, parseJsonBody, pruneStalePresence } from '../utils';
+import { json, parseJsonBody, pruneStalePresence, isPresenceStale } from '../utils';
 import type { MeshKnowledgeEntry } from '../types';
-import { PRESENCE_TTL_MS, TEAM_ROLE_PERMISSIONS } from '../types';
+import { TEAM_ROLE_PERMISSIONS } from '../types';
 
 // ── Domain descriptions ─────────────────────────────────────────────────────
 
@@ -393,7 +393,7 @@ export async function handleCoreRoutes(
         if (!entry?.lastHeartbeat) continue;
         const ts = new Date(entry.lastHeartbeat).getTime();
         if (!Number.isFinite(ts)) continue;
-        if (now - ts > PRESENCE_TTL_MS) continue; // stale — already pruned above; defense-in-depth
+        if (isPresenceStale(entry, now)) continue; // stale — already pruned above; defense-in-depth
         // Status==='offline' is the explicit-teardown signal (layer b).
         // Treat it as an immediate offline marker even within TTL window.
         if (entry.status === 'offline') continue;
@@ -759,6 +759,7 @@ export async function handleCoreRoutes(
       // have actually CAEL-touched this server. For the full roster cross-
       // reference, the operator-side `deploy-workers.py --status` complements
       // this by reading agents.json + checking each box.
+      pruneStalePresence(teamId);
       const presence = teamPresenceStore.get(teamId);
       const presenceByHandle = new Map<string, TeamPresenceEntry>();
       if (presence) {
@@ -931,6 +932,7 @@ export async function handleCoreRoutes(
       }
 
       // --- Index: presence-by-handle ---
+      pruneStalePresence(teamId);
       const presence = teamPresenceStore.get(teamId);
       const presenceByHandle = new Map<string, TeamPresenceEntry>();
       if (presence) {

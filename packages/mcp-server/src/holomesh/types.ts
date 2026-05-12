@@ -553,6 +553,15 @@ export interface TeamPresenceEntry {
   ideType: string;
   status: 'active' | 'idle' | 'busy' | 'offline';
   lastHeartbeat: string;
+  /**
+   * Coarse runtime surface for aliveness policy. `surface_tag` remains the
+   * attribution/seat label; this field is the device class such as "mobile".
+   */
+  surface?: string;
+  /** Per-row expiry hint so clients can render transient surfaces accurately. */
+  expiresAt?: string;
+  /** TTL used for this heartbeat row in milliseconds. */
+  ttlMs?: number;
   /** Wallet address of the heartbeating agent (snapshot from RegisteredAgent). */
   walletAddress?: string;
   /** True when the agent's wallet ownership was verified via x402 challenge flow at register time. */
@@ -650,6 +659,7 @@ export const TEAM_ROLE_PERMISSIONS: Record<TeamRole, string[]> = {
 };
 
 export const PRESENCE_TTL_MS = 120 * 1000; // 2 minutes
+export const MOBILE_PRESENCE_TTL_MS = 30 * 1000; // phones background quickly; keep them transient
 
 // --- Agent Identity & Registry ---
 

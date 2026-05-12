@@ -121,6 +121,7 @@ import {
   keyRegistry,
   type CaelAuditRecord,
 } from '../state';
+import { MOBILE_PRESENCE_TTL_MS } from '../types';
 
 // ── Test Helpers ──
 
@@ -1971,6 +1972,52 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._status).toBe(200);
       expect(res._body.online_count).toBe(1);
       expect(res._body.online[0].ideType).toBe('cursor');
+    });
+
+    it('POST /api/holomesh/team/:id/presence accepts mobile surface with faster decay', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `pres-mobile-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const beatReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/presence?surface=mobile`,
+        { ide_type: 'mobile-web', status: 'active' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const beatRes = mockRes();
+      await handleHoloMeshRoute(
+        beatReq,
+        beatRes,
+        `/api/holomesh/team/${tid}/presence?surface=mobile`
+      );
+
+      expect(beatRes._status).toBe(200);
+      expect(beatRes._body.presence.surface).toBe('mobile');
+      expect(beatRes._body.presence.ttlMs).toBe(MOBILE_PRESENCE_TTL_MS);
+      expect(beatRes._body.presence.expiresAt).toBeTruthy();
+      expect(beatRes._body.online_count).toBe(1);
+
+      const stale = teamPresenceStore.get(tid)?.get(ownerAgentId);
+      expect(stale).toBeDefined();
+      stale!.lastHeartbeat = new Date(Date.now() - MOBILE_PRESENCE_TTL_MS - 1000).toISOString();
+      teamPresenceStore.get(tid)!.set(ownerAgentId, stale!);
+
+      const getReq = mockReq('GET', `/api/holomesh/team/${tid}/presence`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const getRes = mockRes();
+      await handleHoloMeshRoute(getReq, getRes, `/api/holomesh/team/${tid}/presence`);
+
+      expect(getRes._status).toBe(200);
+      expect(getRes._body.online_count).toBe(0);
+      expect(teamPresenceStore.get(tid)?.has(ownerAgentId)).toBe(false);
     });
 
     // ── Members + x402/surface observability (W.087 vertex C) ──

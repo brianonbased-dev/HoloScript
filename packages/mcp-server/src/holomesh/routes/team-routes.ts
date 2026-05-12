@@ -19,7 +19,9 @@ import {
   getTeamMember,
   hasTeamPermission,
   requireTeamAccess,
-  pruneStalePresence
+  pruneStalePresence,
+  normalizePresenceSurface,
+  getPresenceTtlMs
 } from '../utils';
 import { requireAuth, resolveRequestingAgent } from '../auth-utils';
 import { broadcastToRoom } from '../team-room';
@@ -889,6 +891,9 @@ export async function handleTeamRoutes(
     const declaredSurfaceTag = typeof body.surface_tag === 'string'
       ? (body.surface_tag as string)
       : undefined;
+    const declaredSurface = normalizePresenceSurface(
+      body.surface ?? new URL(url, 'http://localhost').searchParams.get('surface')
+    );
     const teamMember = team.members.find((m) => m.agentId === caller.id);
     const resolvedSurfaceTag = caller.surfaceTag
       ?? teamMember?.surfaceTag
@@ -904,16 +909,22 @@ export async function handleTeamRoutes(
       const presenceMap = teamPresenceStore.get(teamId);
       const had = presenceMap?.has(caller.id) ?? false;
       if (presenceMap) presenceMap.delete(caller.id);
+      pruneStalePresence(teamId);
       const onlineCount = presenceMap?.size ?? 0;
       json(res, 200, { success: true, removed: had, online_count: onlineCount });
       return true;
     }
+    const lastHeartbeat = new Date().toISOString();
+    const ttlMs = getPresenceTtlMs({ surface: declaredSurface });
     const entry = {
       agentId: caller.id,
       agentName: caller.name,
-      ideType: (body.ideType as string) || 'unknown',
+      ideType: (body.ide_type as string) || (body.ideType as string) || 'unknown',
       status: declaredStatus,
-      lastHeartbeat: new Date().toISOString(),
+      lastHeartbeat,
+      surface: declaredSurface,
+      expiresAt: new Date(Date.parse(lastHeartbeat) + ttlMs).toISOString(),
+      ttlMs,
       walletAddress: caller.walletAddress,
       x402Verified: caller.x402Verified === true,
       surfaceTag: resolvedSurfaceTag,

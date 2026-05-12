@@ -1,6 +1,6 @@
 import type http from 'http';
-import type { Team, TeamMember, TeamRole, RegisteredAgent } from './types';
-import { TEAM_ROLE_PERMISSIONS, PRESENCE_TTL_MS } from './types';
+import type { Team, TeamMember, TeamRole, RegisteredAgent, TeamPresenceEntry } from './types';
+import { TEAM_ROLE_PERMISSIONS, PRESENCE_TTL_MS, MOBILE_PRESENCE_TTL_MS } from './types';
 import { teamStore, teamPresenceStore, teamMessageStore, reloadTeam } from './state';
 import { resolveRequestingAgent } from './auth-utils';
 
@@ -146,6 +146,31 @@ export async function requireTeamAccessFresh(
   return requireTeamAccess(req, res, url, permission);
 }
 
+export function normalizePresenceSurface(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const surface = value.trim().toLowerCase();
+  if (!surface) return undefined;
+  if (surface === 'phone' || surface === 'ios' || surface === 'android') {
+    return 'mobile';
+  }
+  return surface;
+}
+
+export function getPresenceTtlMs(entry: Pick<TeamPresenceEntry, 'surface'>): number {
+  return normalizePresenceSurface(entry.surface) === 'mobile'
+    ? MOBILE_PRESENCE_TTL_MS
+    : PRESENCE_TTL_MS;
+}
+
+export function isPresenceStale(
+  entry: Pick<TeamPresenceEntry, 'lastHeartbeat' | 'surface'>,
+  now = Date.now()
+): boolean {
+  const lastHeartbeat = new Date(entry.lastHeartbeat).getTime();
+  if (!Number.isFinite(lastHeartbeat)) return true;
+  return now - lastHeartbeat > getPresenceTtlMs(entry);
+}
+
 /**
  * Cleanup offline agents and reopen their claimed tasks.
  */
@@ -157,7 +182,7 @@ export function pruneStalePresence(teamId: string): void {
   const deadAgentIds: string[] = [];
 
   for (const [agentId, entry] of presenceMap) {
-    if (now - new Date(entry.lastHeartbeat).getTime() > PRESENCE_TTL_MS) {
+    if (isPresenceStale(entry, now)) {
       presenceMap.delete(agentId);
       deadAgentIds.push(agentId);
     }

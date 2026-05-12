@@ -28,6 +28,7 @@ import {
 } from './state';
 import { broadcastToTeam } from './team-room';
 import { recordTeamModeChange } from './mode-provenance';
+import { normalizePresenceSurface, getPresenceTtlMs, pruneStalePresence } from './utils';
 
 // ── Helper: get team from in-memory store ──
 
@@ -324,6 +325,10 @@ export const boardTools: Tool[] = [
         ide_type: {
           type: 'string',
           description: 'IDE type (vscode, claude-code, cursor, gemini)',
+        },
+        surface: {
+          type: 'string',
+          description: 'Optional device surface for aliveness policy (mobile uses a shorter TTL)',
         },
       },
       required: ['team_id'],
@@ -710,6 +715,7 @@ async function handleHeartbeat(args: Record<string, unknown>): Promise<Record<st
 
   const agentName = (args.agent_name as string) || 'mcp-agent';
   const ideType = (args.ide_type as string) || 'mcp';
+  const surface = normalizePresenceSurface(args.surface);
 
   try {
     getTeam(teamId); // ensure team exists
@@ -719,15 +725,21 @@ async function handleHeartbeat(args: Record<string, unknown>): Promise<Record<st
       teamPresenceStore.set(teamId, presenceMap);
     }
 
+    const lastHeartbeat = new Date().toISOString();
+    const ttlMs = getPresenceTtlMs({ surface });
     const entry = {
       agentId: 'mcp-agent',
       agentName,
       ideType,
       status: 'active' as const,
-      lastHeartbeat: new Date().toISOString(),
+      lastHeartbeat,
+      surface,
+      expiresAt: new Date(Date.parse(lastHeartbeat) + ttlMs).toISOString(),
+      ttlMs,
     };
     presenceMap.set('mcp-agent', entry);
 
+    pruneStalePresence(teamId);
     const online = Array.from(presenceMap.values());
     return { success: true, online, presence: entry, online_count: online.length };
   } catch (err) {

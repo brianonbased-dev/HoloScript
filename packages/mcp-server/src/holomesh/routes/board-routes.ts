@@ -16,7 +16,9 @@ import {
   getTeamMember,
   hasTeamPermission,
   requireTeamAccessFresh,
-  pruneStalePresence
+  pruneStalePresence,
+  normalizePresenceSurface,
+  getPresenceTtlMs
 } from '../utils';
 import { requireAuth } from '../auth-utils';
 import { broadcastToTeam } from '../team-room';
@@ -708,6 +710,9 @@ export async function handleBoardRoutes(
     const declaredSurfaceTag = typeof body.surface_tag === 'string'
       ? (body.surface_tag as string)
       : undefined;
+    const declaredSurface = normalizePresenceSurface(
+      body.surface ?? new URL(url, 'http://localhost').searchParams.get('surface')
+    );
     const resolvedSurfaceTag = caller.surfaceTag
       ?? teamMember?.surfaceTag
       ?? declaredSurfaceTag;
@@ -732,16 +737,22 @@ export async function handleBoardRoutes(
           data: { agentId: caller.id, agentName: caller.name, reason: 'explicit-teardown' },
         });
       }
+      pruneStalePresence(teamId);
       const online = Array.from(presenceMap.values());
       json(res, 200, { success: true, removed: had, online, online_count: online.length });
       return true;
     }
+    const lastHeartbeat = new Date().toISOString();
+    const ttlMs = getPresenceTtlMs({ surface: declaredSurface });
     const entry: TeamPresenceEntry = {
       agentId: caller.id,
       agentName: caller.name,
       ideType: body.ide_type as string,
       status: (body.status as any) || 'active',
-      lastHeartbeat: new Date().toISOString(),
+      lastHeartbeat,
+      surface: declaredSurface,
+      expiresAt: new Date(Date.parse(lastHeartbeat) + ttlMs).toISOString(),
+      ttlMs,
       walletAddress: caller.walletAddress,
       x402Verified: caller.x402Verified === true,
       surfaceTag: resolvedSurfaceTag,
@@ -789,6 +800,7 @@ export async function handleBoardRoutes(
     const { teamId } = access;
     const team = teamStore.get(teamId)!;
 
+    pruneStalePresence(teamId);
     const presenceMap = teamPresenceStore.get(teamId);
 
     // Build an agentId → RegisteredAgent backfill index (by id, not apiKey).
