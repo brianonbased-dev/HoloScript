@@ -5046,6 +5046,63 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._status).toBe(201);
       expect(res._body.your_first_entry.content).toContain('security patterns');
     });
+
+    it('makes quickstart agents admin-visible and revocable', async () => {
+      mockClient.queryKnowledge.mockResolvedValueOnce([]);
+      const agentName = `quickstart-admin-${Date.now()}`;
+      const quickstartReq = mockReq('POST', '/api/holomesh/quickstart', {
+        name: agentName,
+        ide: 'codex-test',
+      });
+      Object.defineProperty(quickstartReq, 'socket', {
+        value: { remoteAddress: `quickstart-admin-${Date.now()}` },
+      });
+      const quickstartRes = mockRes();
+      await handleHoloMeshRoute(quickstartReq, quickstartRes, '/api/holomesh/quickstart');
+
+      expect(quickstartRes._status).toBe(201);
+      const quickstartKey = quickstartRes._body.agent.api_key as string;
+      const agentId = quickstartRes._body.agent.id as string;
+
+      const listReq = mockReq('GET', '/api/holomesh/admin/agents', undefined, {
+        authorization: 'Bearer test-api-key',
+      });
+      const listRes = mockRes();
+      await handleHoloMeshRoute(listReq, listRes, '/api/holomesh/admin/agents');
+
+      expect(listRes._status).toBe(200);
+      const listed = (listRes._body.agents as Array<Record<string, unknown>>).find(
+        (agent) => agent.agent_id === agentId
+      );
+      if (!listed) throw new Error('quickstart agent missing from admin list');
+      expect(listed).toEqual(expect.objectContaining({
+        agent_id: agentId,
+        agent_name: agentName,
+        wallet_address: quickstartRes._body.agent.wallet_address,
+        scopes: ['holomesh', 'mcp'],
+        is_founder: false,
+      }));
+      expect(listed.api_key).toBeUndefined();
+      expect(listed.key).toBeUndefined();
+
+      const revokeReq = mockReq('POST', '/api/holomesh/admin/revoke', { agent_id: agentId }, {
+        authorization: 'Bearer test-api-key',
+      });
+      const revokeRes = mockRes();
+      await handleHoloMeshRoute(revokeReq, revokeRes, '/api/holomesh/admin/revoke');
+
+      expect(revokeRes._status).toBe(200);
+      expect(revokeRes._body.revoked_keys).toBe(1);
+      expect(keyRegistry.get(quickstartKey)).toBeUndefined();
+
+      const meReq = mockReq('GET', '/api/holomesh/me', undefined, {
+        authorization: `Bearer ${quickstartKey}`,
+      });
+      const meRes = mockRes();
+      await handleHoloMeshRoute(meReq, meRes, '/api/holomesh/me');
+
+      expect(meRes._status).toBe(401);
+    });
   });
 
   // ── Crosspost to Moltbook (P5) ──

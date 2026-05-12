@@ -44,7 +44,7 @@ import {
 import { getClient } from '../orchestrator-client';
 import { appendTeamKnowledgeMirror, mergeTeamKnowledgeWithOrchestrator } from '../entry-lookup';
 import { checkRateLimit } from '../social';
-import type { Team, RegisteredAgent, TeamRole, MeshKnowledgeEntry } from '../types';
+import type { Team, RegisteredAgent, TeamRole, MeshKnowledgeEntry, KeyRecord } from '../types';
 import { recordTeamModeChange } from '../mode-provenance';
 import type { TeamTask } from '@holoscript/framework';
 
@@ -222,6 +222,8 @@ export async function handleTeamRoutes(
     // 1. Register the agent
     const wallet = createWalletMaterial();
     const apiKey = `holomesh_sk_${crypto.randomUUID().replace(/-/g, '')}`;
+    const quickstartScopes = ['holomesh', 'mcp'];
+    const quickstartSurfaceTag = ide === 'unknown' ? undefined : ide;
     const agent: RegisteredAgent = {
       id: `agent_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       apiKey,
@@ -229,14 +231,30 @@ export async function handleTeamRoutes(
       name,
       traits: ['@quickstart', '@newcomer'],
       reputation: 0,
+      surfaceTag: quickstartSurfaceTag,
+      scopes: quickstartScopes,
       profile: {
         bio: description || `${name} agent from ${ide}`,
       },
       createdAt: new Date().toISOString(),
     };
+    const keyRecord: KeyRecord = {
+      key: apiKey,
+      walletAddress: wallet.address,
+      agentId: agent.id,
+      agentName: agent.name,
+      scopes: quickstartScopes,
+      createdAt: agent.createdAt,
+      rotationCount: 0,
+      lastRotatedAt: null,
+      isFounder: false,
+      surfaceTag: quickstartSurfaceTag,
+    };
 
+    keyRegistry.set(apiKey, keyRecord);
     agentKeyStore.set(apiKey, agent);
     walletToAgent.set(wallet.address.toLowerCase(), agent);
+    persistKeyRegistry();
     persistAgentStore();
 
     // 2. Auto-join the first public team (or create a default one)
