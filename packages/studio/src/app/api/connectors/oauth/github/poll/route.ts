@@ -39,11 +39,17 @@ import {
 } from '@/app/api/github/_shared';
 import { resolveGitHubDeviceClientId } from '@/lib/github-oauth-config';
 import { setGitHubDeviceTokenCookie } from '@/lib/github-device-session';
+import {
+  mintCapabilityTokenForGitHubUser,
+  storeCapabilityTokenInCookie,
+} from '@/lib/capability-session';
+import type { SurfaceKind } from '@holoscript/secrets-broker';
 
 import { corsHeaders } from '../../../../_lib/cors';
 
 interface PollRequest {
   device_code: string;
+  surface?: SurfaceKind;
 }
 
 interface GitHubTokenResponse {
@@ -166,11 +172,30 @@ export async function POST(req: NextRequest) {
     }
 
     const profile = await loadGitHubUserProfile(data.access_token);
+
+    // S-6: mint a HoloMesh capability token scoped to this GitHub user
+    const surface = body.surface;
+    const capabilityToken = mintCapabilityTokenForGitHubUser({
+      githubUsername: profile.login ?? 'unknown',
+      surface,
+      ttlSeconds: 15 * 60,
+    });
+
     const result = NextResponse.json({
       status: 'success',
       connected: true,
       scope: data.scope,
       token_type: data.token_type,
+      capability_token: {
+        token_id: capabilityToken.tokenId,
+        handle: capabilityToken.handle,
+        surface: capabilityToken.surface,
+        trust: capabilityToken.trust,
+        capabilities: capabilityToken.capabilities,
+        issued_at: capabilityToken.issuedAt,
+        expires_at: capabilityToken.expiresAt,
+        receipt_hash: capabilityToken.receiptHash,
+      },
       config: {
         token: '********',
         username: profile.login ?? '',
@@ -186,6 +211,19 @@ export async function POST(req: NextRequest) {
           status: 'error',
           error:
             'GitHub OAuth token storage is not configured. Set NEXTAUTH_SECRET or AUTH_SECRET.',
+        },
+        { status: 500 }
+      );
+    }
+
+    // Store capability token secret in encrypted cookie as well
+    const { cookieSet: capCookieSet } = await storeCapabilityTokenInCookie(result, capabilityToken);
+    if (!capCookieSet) {
+      return NextResponse.json(
+        {
+          status: 'error',
+          error:
+            'Capability token storage is not configured. Set NEXTAUTH_SECRET or AUTH_SECRET.',
         },
         { status: 500 }
       );

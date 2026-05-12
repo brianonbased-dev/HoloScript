@@ -20,6 +20,7 @@ import { GitHubConnector } from '@holoscript/connector-github';
 import { RailwayConnector } from '@holoscript/connector-railway';
 import { logger } from '@/lib/logger';
 import { clearGitHubDeviceTokenCookie } from '@/lib/github-device-session';
+import { clearCapabilityTokenCookie } from '@/lib/capability-session';
 
 import { corsHeaders } from '../../_lib/cors';
 /** Minimal connector interface for disconnect operations */
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest) {
 
         const response = NextResponse.json({ success: true });
         clearGitHubDeviceTokenCookie(response);
+        clearCapabilityTokenCookie(response);
         return response;
       }
 

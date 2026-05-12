@@ -8,6 +8,7 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 import { GITHUB_DEVICE_TOKEN_COOKIE } from '@/lib/github-device-session';
+import { CAPABILITY_TOKEN_COOKIE } from '@/lib/capability-session';
 import { POST } from './route';
 
 describe('/api/connectors/oauth/github/poll route', () => {
@@ -61,9 +62,21 @@ describe('/api/connectors/oauth/github/poll route', () => {
     expect(body.config.token).toBe('********');
     expect(JSON.stringify(body)).not.toContain(rawToken);
     expect(setCookie).toContain(GITHUB_DEVICE_TOKEN_COOKIE);
+    expect(setCookie).toContain(CAPABILITY_TOKEN_COOKIE);
     expect(setCookie).toContain('HttpOnly');
     expect(setCookie).not.toContain(rawToken);
     expect(process.env.GITHUB_TOKEN).toBeUndefined();
+
+    // S-6: capability token metadata is returned, never the plaintext secret
+    expect(body.capability_token).toMatchObject({
+      handle: 'claude1',
+      surface: 'claude',
+      trust: 'full',
+    });
+    expect(body.capability_token.token_id).toMatch(/^captok_[a-f0-9]{24}$/);
+    expect(body.capability_token.receipt_hash).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(body.capability_token.capabilities).toContain('mesh:read');
+    expect(JSON.stringify(body)).not.toContain(body.capability_token.token_secret ?? '___no_secret');
   });
 
   it('keeps polling pending device codes without setting a cookie', async () => {
