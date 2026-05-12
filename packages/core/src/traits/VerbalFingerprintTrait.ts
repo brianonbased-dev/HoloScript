@@ -71,8 +71,17 @@ export interface VerbalFingerprintState {
 // =============================================================================
 
 function computeTextHash(text: string): string {
-  // TODO: replace with stable hash (FNV-1a or SHA-256 truncated)
-  return `hash_${text.length}_${text.slice(0, 8)}`;
+  let hash = 0x811c9dc5;
+
+  for (let i = 0; i < text.length; i++) {
+    const codeUnit = text.charCodeAt(i);
+    hash ^= codeUnit & 0xff;
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+    hash ^= codeUnit >>> 8;
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+
+  return `fnv1a32:${hash.toString(16).padStart(8, '0')}:${text.length}`;
 }
 
 function verifyStyle(
