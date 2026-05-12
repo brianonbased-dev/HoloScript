@@ -128,8 +128,12 @@ export function auditDoneLog(doneLog: DoneLogEntry[]): AuditResult {
   const proofRequired = doneLog.filter((e) => !isLikelyReportEntry(e));
   const nonProofEntries = doneLog.filter((e) => isLikelyReportEntry(e));
 
-  const verified = proofRequired.filter((e) => isCommitProof(e.commitHash));
-  const unverified = proofRequired.filter((e) => !isCommitProof(e.commitHash));
+  const verified = proofRequired.filter(
+    (e) => isCommitProof(e.commitHash) || e.followUpCommits?.some((c) => isCommitProof(c.hash))
+  );
+  const unverified = proofRequired.filter(
+    (e) => !isCommitProof(e.commitHash) && !e.followUpCommits?.some((c) => isCommitProof(c.hash))
+  );
   const artifactReceipts = doneLog.reduce((sum, e) => sum + (e.artifacts?.length ?? 0), 0);
   const environmentReceipts = doneLog.reduce(
     (sum, e) => sum + (e.environmentReceipt ? 1 : 0),
@@ -226,7 +230,9 @@ export class DoneLogAuditor {
         });
       }
 
-      if (!isCommitProof(entry.commitHash)) {
+      const hasCommitProof = isCommitProof(entry.commitHash) ||
+        entry.followUpCommits?.some((c) => isCommitProof(c.hash));
+      if (!hasCommitProof) {
         violations.push({
           rule: 'missing-commit',
           message: `Task "${entry.title}" (${entry.taskId}) has no valid commit proof.`,
@@ -267,7 +273,7 @@ export class DoneLogAuditor {
       const agent = entry.completedBy || 'unknown';
       const existing = agentMap.get(agent) ?? { completed: 0, verified: 0, unverified: 0 };
       existing.completed++;
-      if (isCommitProof(entry.commitHash)) {
+      if (isCommitProof(entry.commitHash) || entry.followUpCommits?.some((c) => isCommitProof(c.hash))) {
         existing.verified++;
       } else {
         existing.unverified++;

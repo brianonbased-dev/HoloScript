@@ -27,6 +27,7 @@ import {
   ROOM_PRESETS,
   claimTask,
   completeTask,
+  appendFollowUpCommit,
   blockTask,
   reopenTask,
   delegateTask,
@@ -709,6 +710,21 @@ export async function handleBoardRoutes(
         eventType = 'board:completed';
         break;
       }
+      case 'append_commit': {
+        const commit = (body.commit as string | undefined)?.trim();
+        if (!commit) {
+          json(res, 400, { error: 'commit hash required' });
+          return true;
+        }
+        const wrap = appendFollowUpCommit(team.doneLog || [], taskId, commit, body.summary as string | undefined);
+        if (!wrap.success) {
+          json(res, 404, { error: wrap.error || 'Entry not found' });
+          return true;
+        }
+        eventType = 'board:commit_appended';
+        result = { success: true, task: { id: taskId, title: wrap.entry?.title } };
+        break;
+      }
       case 'block':
         result = blockTask(team.taskBoard, taskId);
         eventType = 'board:blocked';
@@ -796,7 +812,7 @@ export async function handleBoardRoutes(
         break;
       }
       default:
-        json(res, 400, { error: 'Unknown action — supported: claim|done|block|reopen|delegate|delete|update (aliases: remove, archive → delete)' });
+        json(res, 400, { error: 'Unknown action — supported: claim|done|append_commit|block|reopen|delegate|delete|update (aliases: remove, archive → delete)' });
         return true;
     }
 

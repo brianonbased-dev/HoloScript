@@ -16,6 +16,7 @@ import {
   addTasksToBoard,
   claimTask,
   completeTask,
+  appendFollowUpCommit,
   createSuggestion,
   voteSuggestion,
   type TeamTask,
@@ -148,6 +149,32 @@ export const boardTools: Tool[] = [
         },
       },
       required: ['team_id', 'task_id', 'verification_evidence'],
+    },
+  },
+  {
+    name: 'holomesh_board_append_commit',
+    description: 'Append a follow-up commit to an existing done-log entry. Use when a completed task receives additional commits post-closure.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        team_id: {
+          type: 'string',
+          description: 'The team ID',
+        },
+        task_id: {
+          type: 'string',
+          description: 'The task ID whose done-log entry should receive the commit',
+        },
+        commit: {
+          type: 'string',
+          description: 'Git commit hash to append',
+        },
+        summary: {
+          type: 'string',
+          description: 'Optional summary of what the follow-up commit contains',
+        },
+      },
+      required: ['team_id', 'task_id', 'commit'],
     },
   },
   {
@@ -377,6 +404,8 @@ export async function handleBoardTool(
       return handleBoardClaim(args);
     case 'holomesh_board_complete':
       return handleBoardComplete(args);
+    case 'holomesh_board_append_commit':
+      return handleBoardAppendCommit(args);
     case 'holomesh_slot_assign':
       return handleSlotAssign(args);
     case 'holomesh_mode_set':
@@ -530,6 +559,43 @@ async function handleBoardComplete(
     });
 
     return { success: true, task: wrap.result.task };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+async function handleBoardAppendCommit(
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const teamId = args.team_id as string;
+  const taskId = args.task_id as string;
+  const commit = (args.commit as string | undefined)?.trim();
+  const summary = args.summary as string | undefined;
+
+  if (!teamId) return { error: '"team_id" is required.' };
+  if (!taskId) return { error: '"task_id" is required.' };
+  if (!commit) return { error: '"commit" is required.' };
+
+  try {
+    const team = getTeam(teamId);
+    const wrap = appendFollowUpCommit(
+      (team.doneLog || []) as any,
+      taskId,
+      commit,
+      summary
+    );
+    if (!wrap.success) {
+      return { error: wrap.error || 'Append failed' };
+    }
+    persistTeamStore();
+
+    broadcastToTeam(teamId, {
+      type: 'board:commit_appended' as any,
+      agent: 'mcp-agent',
+      data: { taskId, title: wrap.entry?.title || taskId, commit, agent: 'mcp-agent' },
+    });
+
+    return { success: true, task: { id: taskId, title: wrap.entry?.title } };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }

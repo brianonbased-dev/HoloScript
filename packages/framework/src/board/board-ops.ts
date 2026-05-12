@@ -374,6 +374,32 @@ export function recordSubagentEvent(
   return { success: true, task };
 }
 
+/**
+ * Append a follow-up commit to an existing done-log entry.
+ *
+ * Returns the updated entry, or null if no entry matched the taskId.
+ */
+export function appendFollowUpCommit(
+  doneLog: DoneLogEntry[],
+  taskId: string,
+  commitHash: string,
+  summary?: string
+): { success: boolean; entry?: DoneLogEntry; error?: string } {
+  const entry = doneLog.find((e) => e.taskId === taskId);
+  if (!entry) {
+    return { success: false, error: 'Done-log entry not found' };
+  }
+  if (!entry.followUpCommits) {
+    entry.followUpCommits = [];
+  }
+  entry.followUpCommits.push({
+    hash: commitHash,
+    timestamp: new Date().toISOString(),
+    summary,
+  });
+  return { success: true, entry };
+}
+
 /** Block a task. */
 export function blockTask(board: TeamTask[], taskId: string): TaskActionResult {
   const task = board.find((t) => t.id === taskId);
