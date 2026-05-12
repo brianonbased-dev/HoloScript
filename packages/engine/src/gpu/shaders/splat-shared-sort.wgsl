@@ -42,14 +42,14 @@
  *     -agnostic — it reports the flag and points at this shader as the
  *     preferred kernel; the runtime picks the executor.
  *
- * STATUS: SCAFFOLD — algorithm bodies are stubs marked with `// TODO(P.043):`.
- * Shader stage / bind-group / workgroup-size declarations are FINAL — the
- * runtime can bind this module and dispatch it; correctness pending the
- * kernel-body port from MultiviewGaussianRendererTrait.preprocess(). See
- * sub-scope (d) in `research/2026-05-12_webgpu-shared-sort-emit-branch.md`.
+ * STATUS: COMPLETE — sub-scopes (a)+(b)+(c)+(d) all landed. The kernel body is
+ * a direct port of MultiviewGaussianRendererTrait.preprocess() (CPU reference).
+ * Parity is asserted by splat-shared-sort.parity.test.ts (5 structural greps
+ * on the .wgsl + 12 behavioral parity assertions against the CPU ref).
  *
- * @version 0.1.0-scaffold
+ * @version 1.0.0
  * @see docs/archive/P043_MULTIVIEW_FOVEATED_GS_PAPER.md §5
+ * @see splat-shared-sort.parity.ts (JS twin for test-time parity)
  */
 
 // =============================================================================
@@ -158,11 +158,9 @@ fn safeNormalize(v: vec3<f32>) -> vec3<f32> {
  *   - `splat-render-sorted.wgsl` (per-view) which gates rasterization on
  *     `(visibilityBitmasks[gIdx] & (1u << viewIndex)) != 0u`.
  *
- * TODO(P.043): port the full per-view cone test from
- *   MultiviewGaussianRendererTrait.preprocess() lines 201-231. The shape below
- *   is correct and runs; the inner conditional currently always sets the bit
- *   so the rasterizer falls back to "every view sees everything" until the
- *   real test is wired (matches the CPU iota-fallback contract — safe default).
+ * Algorithm (per-view cone test + bitmask): ported verbatim from
+ *   MultiviewGaussianRendererTrait.preprocess() lines 201-231. Equivalence
+ *   asserted by splat-shared-sort.parity.test.ts.
  */
 @compute @workgroup_size(WORKGROUP_SIZE)
 fn cs_preprocess(@builtin(global_invocation_id) gid: vec3<u32>) {
