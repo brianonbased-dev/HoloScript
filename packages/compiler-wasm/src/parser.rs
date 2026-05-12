@@ -4,6 +4,8 @@ use crate::ast::*;
 use crate::lexer::Lexer;
 use crate::token::{Token, TokenType};
 
+type ObjectBody = (Vec<TraitNode>, Vec<PropertyNode>, Vec<AstNode>);
+
 /// Parse error
 #[derive(Debug, Clone)]
 pub struct ParseError {
@@ -23,15 +25,14 @@ impl ParseError {
 }
 
 /// Parser for HoloScript
-pub struct Parser<'a> {
+pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
-    source: &'a str,
     errors: Vec<ParseError>,
 }
 
-impl<'a> Parser<'a> {
-    pub fn new(source: &'a str) -> Self {
+impl Parser {
+    pub fn new(source: &str) -> Self {
         let mut lexer = Lexer::new(source);
         let tokens: Vec<Token> = lexer
             .tokenize()
@@ -39,7 +40,10 @@ impl<'a> Parser<'a> {
             .filter(|t| {
                 !matches!(
                     t.token_type,
-                    TokenType::Whitespace | TokenType::Newline | TokenType::Comment | TokenType::BlockComment
+                    TokenType::Whitespace
+                        | TokenType::Newline
+                        | TokenType::Comment
+                        | TokenType::BlockComment
                 )
             })
             .collect();
@@ -47,7 +51,6 @@ impl<'a> Parser<'a> {
         Self {
             tokens,
             current: 0,
-            source,
             errors: Vec::new(),
         }
     }
@@ -75,7 +78,7 @@ impl<'a> Parser<'a> {
 
     fn parse_top_level(&mut self) -> Result<AstNode, ParseError> {
         // Skip any traits at top level - they become directives
-        while self.check(TokenType::Trait) {
+        if self.check(TokenType::Trait) {
             let trait_node = self.parse_trait()?;
             // Store as directive (we could add to ast.directives here)
             return Ok(AstNode::Trait(trait_node));
@@ -110,10 +113,7 @@ impl<'a> Parser<'a> {
                     Err(self.error(&format!("Unexpected identifier: {}", name)))
                 }
             }
-            _ => Err(self.error(&format!(
-                "Unexpected token: {:?}",
-                self.peek().token_type
-            ))),
+            _ => Err(self.error(&format!("Unexpected token: {:?}", self.peek().token_type))),
         }
     }
 
@@ -646,7 +646,7 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    fn parse_object_body(&mut self) -> Result<(Vec<TraitNode>, Vec<PropertyNode>, Vec<AstNode>), ParseError> {
+    fn parse_object_body(&mut self) -> Result<ObjectBody, ParseError> {
         let mut traits = Vec::new();
         let mut properties = Vec::new();
         let mut children = Vec::new();
@@ -1189,7 +1189,10 @@ impl<'a> Parser<'a> {
             None
         };
 
-        Ok(AstNode::Return(ReturnNode { argument, loc: None }))
+        Ok(AstNode::Return(ReturnNode {
+            argument,
+            loc: None,
+        }))
     }
 
     fn parse_variable_declaration(&mut self) -> Result<AstNode, ParseError> {
@@ -1410,7 +1413,7 @@ mod tests {
         assert!(result.is_ok());
         let program = result.unwrap();
         assert_eq!(program.body.len(), 1);
-        
+
         if let AstNode::StateMachine(sm) = &program.body[0] {
             assert_eq!(sm.name, "GameController");
             assert_eq!(sm.states.len(), 2);
@@ -1448,7 +1451,7 @@ mod tests {
         assert!(result.is_ok(), "Parse error: {:?}", result.err());
         let program = result.unwrap();
         assert_eq!(program.body.len(), 1);
-        
+
         if let AstNode::TalentTree(tt) = &program.body[0] {
             assert_eq!(tt.name, "WarriorSkills");
             assert_eq!(tt.tiers.len(), 2);

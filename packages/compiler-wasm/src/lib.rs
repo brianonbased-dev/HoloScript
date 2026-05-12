@@ -12,7 +12,7 @@ mod ast;
 mod lexer;
 mod parser;
 mod token;
-mod types;
+pub mod types;
 
 use wasm_bindgen::prelude::*;
 
@@ -49,9 +49,8 @@ pub fn init() {
 #[wasm_bindgen]
 pub fn parse(source: &str) -> String {
     match parser::Parser::new(source).parse() {
-        Ok(ast) => serde_json::to_string(&ast).unwrap_or_else(|e| {
-            format!(r#"{{"error": "Serialization error: {}"}}"#, e)
-        }),
+        Ok(ast) => serde_json::to_string(&ast)
+            .unwrap_or_else(|e| format!(r#"{{"error": "Serialization error: {}"}}"#, e)),
         Err(errors) => {
             let error_json: Vec<_> = errors
                 .iter()
@@ -75,9 +74,8 @@ pub fn parse(source: &str) -> String {
 #[wasm_bindgen]
 pub fn parse_pretty(source: &str) -> String {
     match parser::Parser::new(source).parse() {
-        Ok(ast) => serde_json::to_string_pretty(&ast).unwrap_or_else(|e| {
-            format!(r#"{{"error": "Serialization error: {}"}}"#, e)
-        }),
+        Ok(ast) => serde_json::to_string_pretty(&ast)
+            .unwrap_or_else(|e| format!(r#"{{"error": "Serialization error: {}"}}"#, e)),
         Err(errors) => {
             let error_json: Vec<_> = errors
                 .iter()
@@ -252,7 +250,11 @@ mod tests {
         let result = validate_detailed(source);
         // Either valid=false or has errors
         let has_errors = result.contains("\"valid\": false") || result.contains("error");
-        assert!(has_errors, "Expected validation to fail for invalid syntax: {}", result);
+        assert!(
+            has_errors,
+            "Expected validation to fail for invalid syntax: {}",
+            result
+        );
     }
 
     #[test]
@@ -345,4 +347,3 @@ mod tests {
         assert!(!result.contains("\"error\""));
     }
 }
-

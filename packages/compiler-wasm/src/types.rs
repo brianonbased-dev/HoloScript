@@ -59,8 +59,9 @@ impl HoloType {
             (HoloType::Array(a), HoloType::Array(b)) => a.is_assignable_to(b),
 
             // Vec3 is assignable to/from arrays of 3 numbers
-            (HoloType::Vec3, HoloType::Array(inner))
-            | (HoloType::Array(inner), HoloType::Vec3) => **inner == HoloType::Number,
+            (HoloType::Vec3, HoloType::Array(inner)) | (HoloType::Array(inner), HoloType::Vec3) => {
+                **inner == HoloType::Number
+            }
 
             // Color can be string (hex) or Vec4
             (HoloType::String, HoloType::Color) | (HoloType::Vec4, HoloType::Color) => true,
@@ -68,39 +69,38 @@ impl HoloType {
             _ => false,
         }
     }
+}
 
-    /// Get the string representation of this type
-    pub fn to_string(&self) -> String {
+impl std::fmt::Display for HoloType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            HoloType::String => "string".to_string(),
-            HoloType::Number => "number".to_string(),
-            HoloType::Boolean => "boolean".to_string(),
-            HoloType::Null => "null".to_string(),
-            HoloType::Array(inner) => format!("{}[]", inner.to_string()),
+            HoloType::String => write!(f, "string"),
+            HoloType::Number => write!(f, "number"),
+            HoloType::Boolean => write!(f, "boolean"),
+            HoloType::Null => write!(f, "null"),
+            HoloType::Array(inner) => write!(f, "{}[]", inner),
             HoloType::Object(props) => {
-                let props_str: Vec<String> = props
-                    .iter()
-                    .map(|(k, v)| format!("{}: {}", k, v.to_string()))
-                    .collect();
-                format!("{{ {} }}", props_str.join(", "))
+                let props_str: Vec<String> =
+                    props.iter().map(|(k, v)| format!("{}: {}", k, v)).collect();
+                write!(f, "{{ {} }}", props_str.join(", "))
             }
             HoloType::Function(params, ret) => {
                 let params_str: Vec<String> = params.iter().map(|p| p.to_string()).collect();
-                format!("({}) => {}", params_str.join(", "), ret.to_string())
+                write!(f, "({}) => {}", params_str.join(", "), ret)
             }
-            HoloType::Vec3 => "Vec3".to_string(),
-            HoloType::Vec4 => "Vec4".to_string(),
-            HoloType::Color => "Color".to_string(),
-            HoloType::Quaternion => "Quaternion".to_string(),
-            HoloType::Orb => "Orb".to_string(),
-            HoloType::Entity => "Entity".to_string(),
-            HoloType::Composition => "Composition".to_string(),
-            HoloType::World => "World".to_string(),
-            HoloType::Template => "Template".to_string(),
-            HoloType::Group => "Group".to_string(),
-            HoloType::Any => "any".to_string(),
-            HoloType::Void => "void".to_string(),
-            HoloType::Unknown => "unknown".to_string(),
+            HoloType::Vec3 => write!(f, "Vec3"),
+            HoloType::Vec4 => write!(f, "Vec4"),
+            HoloType::Color => write!(f, "Color"),
+            HoloType::Quaternion => write!(f, "Quaternion"),
+            HoloType::Orb => write!(f, "Orb"),
+            HoloType::Entity => write!(f, "Entity"),
+            HoloType::Composition => write!(f, "Composition"),
+            HoloType::World => write!(f, "World"),
+            HoloType::Template => write!(f, "Template"),
+            HoloType::Group => write!(f, "Group"),
+            HoloType::Any => write!(f, "any"),
+            HoloType::Void => write!(f, "void"),
+            HoloType::Unknown => write!(f, "unknown"),
         }
     }
 }
@@ -144,10 +144,7 @@ pub fn get_builtin_traits() -> Vec<TraitDefinition> {
         },
         TraitDefinition {
             name: "glowing",
-            properties: &[
-                ("intensity", HoloType::Number),
-                ("color", HoloType::Color),
-            ],
+            properties: &[("intensity", HoloType::Number), ("color", HoloType::Color)],
         },
     ]
 }
