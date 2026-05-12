@@ -44,8 +44,8 @@ function seedTeam(teamId: string, overrides: Record<string, unknown> = {}) {
 // ── Tool Definition Tests ──
 
 describe('boardTools definitions', () => {
-  it('exports 12 tool definitions', () => {
-    expect(boardTools).toHaveLength(12);
+  it('exports 13 tool definitions', () => {
+    expect(boardTools).toHaveLength(13);
   });
 
   it('all tool names use expected holomesh prefixes', () => {
@@ -59,6 +59,7 @@ describe('boardTools definitions', () => {
     'holomesh_board_add',
     'holomesh_board_claim',
     'holomesh_board_complete',
+    'holomesh_board_append_commit',
     'holomesh_slot_assign',
     'holomesh_mode_set',
     'holomesh_scout',

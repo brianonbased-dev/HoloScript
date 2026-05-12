@@ -504,6 +504,12 @@ export interface DoneLogEntry {
   childTaskIds?: string[];
   /** Decomposition plan preserved when the task is moved off the live board. */
   decomposition?: TaskDecompositionPlan;
+  /** Follow-up commits appended after initial closure. */
+  followUpCommits?: Array<{
+    hash: string;
+    timestamp: string;
+    summary?: string;
+  }>;
   /** Subagent coordination events preserved for replay. */
   subagentEvents?: SubagentEvent[];
 }
