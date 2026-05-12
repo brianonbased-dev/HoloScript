@@ -33,6 +33,10 @@ import {
 export const ANTHROPIC_ADVISOR_BETA = 'advisor-tool-2026-03-01';
 /** Beta token for the Files API (`files-api-2025-04-14`). */
 export const ANTHROPIC_FILES_BETA = 'files-api-2025-04-14';
+/** Beta token for server-side compaction (`compact-2026-01-12`). */
+export const ANTHROPIC_COMPACT_BETA = 'compact-2026-01-12';
+/** Beta token for per-loop task budgets (`task-budgets-2026-03-13`). */
+export const ANTHROPIC_TASK_BUDGETS_BETA = 'task-budgets-2026-03-13';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -95,6 +99,16 @@ export function collectAnthropicBetaHeaders(
   if (hasAnthropicFileContent(request)) {
     tokens.push(ANTHROPIC_FILES_BETA);
   }
+  // Per-provider request extensions (compaction / task budgets) are
+  // Anthropic-specific server-side knobs. Each implies its own beta token —
+  // we read them off `request.provider.anthropic.*` and contribute the
+  // matching token here so the request shape stays uniform across adapters.
+  if (request.provider?.anthropic?.compaction) {
+    tokens.push(ANTHROPIC_COMPACT_BETA);
+  }
+  if (request.provider?.anthropic?.taskBudget) {
+    tokens.push(ANTHROPIC_TASK_BUDGETS_BETA);
+  }
   const explicit = request.provider?.anthropic?.betaHeaders;
   if (explicit && explicit.length > 0) {
     for (const h of explicit) {
@@ -114,6 +128,34 @@ export function collectAnthropicBetaHeaders(
       seen.add(tok);
       out.push(tok);
     }
+  }
+  return out;
+}
+
+/**
+ * Build the Anthropic-specific request body fields for server-side compaction
+ * and per-loop task budgets. Returns an object suitable for spread into the
+ * Messages API request — empty when neither extension is set so the common
+ * path emits the unchanged request shape.
+ *
+ * The body field NAMES are snake_case (`compaction`, `task_budget`) to match
+ * the Anthropic API convention; the value shapes are passed through verbatim
+ * from `provider.anthropic.compaction` / `provider.anthropic.taskBudget` as
+ * the typed unions on `AnthropicProviderExtensions` already match the wire
+ * format. The matching `anthropic-beta` tokens are emitted separately by
+ * `collectAnthropicBetaHeaders`.
+ */
+export function buildAnthropicExtensionBody(
+  request: LLMCompletionRequest,
+): { compaction?: { type: string }; task_budget?: { type: string; total: number } } {
+  const out: { compaction?: { type: string }; task_budget?: { type: string; total: number } } = {};
+  const compaction = request.provider?.anthropic?.compaction;
+  if (compaction) {
+    out.compaction = { type: compaction.type };
+  }
+  const taskBudget = request.provider?.anthropic?.taskBudget;
+  if (taskBudget) {
+    out.task_budget = { type: taskBudget.type, total: taskBudget.total };
   }
   return out;
 }
@@ -466,6 +508,10 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         ...(thinkingOut.output_config
           ? { output_config: thinkingOut.output_config as never }
           : {}),
+        // Server-side compaction + per-loop task budgets (see
+        // buildAnthropicExtensionBody). Empty object spread when neither
+        // extension is set, preserving the literal-object call shape.
+        ...buildAnthropicExtensionBody(request),
       };
       const stream = streamOptions
         ? client.messages.stream(streamBody, streamOptions)
@@ -626,6 +672,9 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         ...(thinkingOut.output_config
           ? { output_config: thinkingOut.output_config as never }
           : {}),
+        // Server-side compaction + per-loop task budgets. Same plumbing as
+        // complete() — see buildAnthropicExtensionBody.
+        ...buildAnthropicExtensionBody(request),
       };
       stream = streamOptions
         ? client.messages.stream(streamBody, streamOptions)
