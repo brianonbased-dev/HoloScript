@@ -25,7 +25,12 @@ import {
   normalizePresenceSurface,
   getPresenceTtlMs
 } from '../utils';
-import { requireAuth, resolveRequestingAgent } from '../auth-utils';
+import {
+  normalizeBearerCapabilities,
+  normalizeBearerSurface,
+  requireAuth,
+  resolveRequestingAgent
+} from '../auth-utils';
 import { broadcastToRoom } from '../team-room';
 import { extractAndVerifySigning } from '../identity/signing-middleware';
 import {
@@ -828,13 +833,20 @@ export async function handleTeamRoutes(
 
     const body = await parseJsonBody(req);
 
-    // Scope restriction: default to read-only; allow parent to request a subset
-    // of their own effective permissions, but never exceed them.
-    const DEFAULT_MOBILE_SCOPES = ['holomesh:read', 'team:read'];
+    // Scope restriction: default to read+message; allow a subset of the
+    // mobile-safe grants, but never board-claim/sign capabilities.
+    const DEFAULT_MOBILE_SCOPES = ['holomesh:read', 'team:read', 'team:message'];
+    const ALLOWED_MOBILE_SCOPES = new Set(DEFAULT_MOBILE_SCOPES);
     const requestedScopes = Array.isArray(body.scopes)
       ? (body.scopes as string[]).filter((s) => typeof s === 'string')
       : DEFAULT_MOBILE_SCOPES;
-    const scopes = requestedScopes.length > 0 ? requestedScopes : DEFAULT_MOBILE_SCOPES;
+    const scopedSubset = requestedScopes.filter((s) => ALLOWED_MOBILE_SCOPES.has(s));
+    const scopes = scopedSubset.length > 0 ? scopedSubset : DEFAULT_MOBILE_SCOPES;
+
+    const DEFAULT_MOBILE_CAPABILITIES = ['read', 'message'] as const;
+    const requestedCapabilities = normalizeBearerCapabilities(body.capabilities, [...DEFAULT_MOBILE_CAPABILITIES]);
+    const capabilities = requestedCapabilities.filter((c) => c === 'read' || c === 'message');
+    const finalCapabilities = capabilities.length > 0 ? capabilities : [...DEFAULT_MOBILE_CAPABILITIES];
 
     // Expiry: default 1h, max 24h, min 1s
     const DEFAULT_TTL_SECONDS = 3600;
@@ -849,6 +861,7 @@ export async function handleTeamRoutes(
       typeof body.surface_tag === 'string' && (body.surface_tag as string).trim().length > 0
         ? ((body.surface_tag as string).trim() as string)
         : 'mobile';
+    const surface = normalizeBearerSurface(body.surface) ?? normalizeBearerSurface(surfaceTag) ?? 'mobile';
 
     const label =
       typeof body.label === 'string' && (body.label as string).trim().length > 0
@@ -867,6 +880,8 @@ export async function handleTeamRoutes(
       lastRotatedAt: null,
       isFounder: false,
       surfaceTag,
+      surface,
+      capabilities: finalCapabilities,
       expiresAt,
     };
     keyRegistry.set(mobileKey, record);
@@ -878,8 +893,10 @@ export async function handleTeamRoutes(
       agent_id: caller.id,
       agent_name: caller.name,
       scopes,
+      capabilities: finalCapabilities,
       expires_at: expiresAt,
       expires_in: expiresIn,
+      surface,
       surface_tag: surfaceTag,
       label,
     });

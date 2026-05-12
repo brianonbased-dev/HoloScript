@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type http from 'http';
 import { EventEmitter } from 'events';
 import { handleTeamRoutes } from '../team-routes';
+import { handleBoardRoutes } from '../board-routes';
 import {
   teamStore,
   keyRegistry,
@@ -158,6 +159,18 @@ async function callTeam(
   return res;
 }
 
+async function callBoard(
+  method: string,
+  path: string,
+  body?: Record<string, unknown>,
+  key = PARENT_KEY
+): Promise<CapturedRes> {
+  const req = mockReq(method, path, body, { authorization: `Bearer ${key}` });
+  const res = mockRes();
+  await handleBoardRoutes(req, res, path, method, path);
+  return res;
+}
+
 beforeEach(() => {
   teamStore.clear();
   keyRegistry.clear();
@@ -176,8 +189,10 @@ describe('Team Routes — Mobile Handoff', () => {
     expect(res._body.success).toBe(true);
     expect(res._body.api_key).toMatch(/^hs_mobile_/);
     expect(res._body.agent_id).toBe(PARENT_ID);
-    expect(res._body.scopes).toEqual(['holomesh:read', 'team:read']);
+    expect(res._body.scopes).toEqual(['holomesh:read', 'team:read', 'team:message']);
+    expect(res._body.surface).toBe('mobile');
     expect(res._body.surface_tag).toBe('mobile');
+    expect(res._body.capabilities).toEqual(['read', 'message']);
     expect(res._body.expires_at).toBeTruthy();
     expect(res._body.expires_in).toBe(3600);
 
@@ -186,6 +201,8 @@ describe('Team Routes — Mobile Handoff', () => {
     expect(record).toBeDefined();
     expect(record?.isFounder).toBe(false);
     expect(record?.surfaceTag).toBe('mobile');
+    expect(record?.surface).toBe('mobile');
+    expect(record?.capabilities).toEqual(['read', 'message']);
     expect(record?.expiresAt).toBe(res._body.expires_at);
   });
 
@@ -228,7 +245,20 @@ describe('Team Routes — Mobile Handoff', () => {
     );
 
     expect(res._status).toBe(201);
-    expect(res._body.scopes).toEqual(['holomesh:read', 'team:read']);
+    expect(res._body.scopes).toEqual(['holomesh:read', 'team:read', 'team:message']);
+  });
+
+  it('mobile-handoff clamps requested capabilities to assistant-safe grants', async () => {
+    const res = await callTeam(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/mobile-handoff',
+      { capabilities: ['read', 'claim', 'sign', 'message'] }
+    );
+
+    expect(res._status).toBe(201);
+    expect(res._body.capabilities).toEqual(['read', 'message']);
+    const record = keyRegistry.get(res._body.api_key);
+    expect(record?.capabilities).toEqual(['read', 'message']);
   });
 
   it('mobile-handoff clamps expires_in to max 86400', async () => {
@@ -274,6 +304,9 @@ describe('Team Routes — Mobile Handoff', () => {
     const callerAlive = resolveRequestingAgent(reqAlive);
     expect(callerAlive.authenticated).toBe(true);
     expect(callerAlive.id).toBe(PARENT_ID);
+    expect(callerAlive.agent?.surface).toBe('mobile');
+    expect(callerAlive.agent?.surfaceTag).toBe('mobile');
+    expect(callerAlive.agent?.capabilities).toEqual(['read', 'message']);
 
     // Wait for expiry
     await new Promise((r) => setTimeout(r, 1100));
@@ -291,5 +324,40 @@ describe('Team Routes — Mobile Handoff', () => {
     const res = await callTeam('POST', '/api/holomesh/team/team_unknown/mobile-handoff');
     expect(res._status).toBe(404);
     expect(res._body.error).toContain('Team not found');
+  });
+
+  it('mobile bearer can message but cannot claim board tasks', async () => {
+    const mobile = await callTeam('POST', '/api/holomesh/team/team_test_mobile/mobile-handoff');
+    expect(mobile._status).toBe(201);
+    const mobileKey = mobile._body.api_key;
+
+    const team = teamStore.get('team_test_mobile')!;
+    team.taskBoard = [{
+      id: 'task_mobile_claim',
+      title: 'mobile claim target',
+      description: 'mobile must not claim',
+      status: 'open',
+      priority: 1,
+      createdAt: new Date().toISOString(),
+    } as any];
+    persistTeamStore();
+
+    const message = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/message',
+      { content: 'drafting from phone' },
+      mobileKey
+    );
+    expect(message._status).toBe(201);
+
+    const claim = await callBoard(
+      'PATCH',
+      '/api/holomesh/team/team_test_mobile/board/task_mobile_claim',
+      { action: 'claim' },
+      mobileKey
+    );
+    expect(claim._status).toBe(403);
+    expect(claim._body.code).toBe('mobile_claim_denied');
+    expect(teamStore.get('team_test_mobile')?.taskBoard?.[0].status).toBe('open');
   });
 });

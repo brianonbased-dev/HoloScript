@@ -663,6 +663,9 @@ export const MOBILE_PRESENCE_TTL_MS = 30 * 1000; // phones background quickly; k
 
 // --- Agent Identity & Registry ---
 
+export type HoloMeshBearerSurface = 'mobile' | 'desktop' | 'headless';
+export type HoloMeshBearerCapability = 'read' | 'message' | 'claim' | 'sign';
+
 /**
  * Registry row for a HoloMesh bearer token.
  *
@@ -696,6 +699,16 @@ export interface KeyRecord {
    */
   surfaceTag?: string;
   /**
+   * Policy surface class. Unlike surfaceTag, this is normalized and used for
+   * capability decisions: mobile bearers are assistant surfaces, not seats.
+   */
+  surface?: HoloMeshBearerSurface;
+  /**
+   * Capability grants for bearer-scoped policy. Missing means legacy
+   * unrestricted key; present means routes must check the named capability.
+   */
+  capabilities?: HoloMeshBearerCapability[];
+  /**
    * ISO timestamp after which this key is considered expired.
    * Checked by resolveRequestingAgent; expired keys reject auth.
    */
@@ -727,6 +740,12 @@ export interface RegisteredAgent {
    * an agent claiming another surface's tag post-enrollment.
    */
   surfaceTag?: string;
+  /** Policy surface class copied from the bearer record when available. */
+  surface?: HoloMeshBearerSurface;
+  /** Bearer capability grants copied from the key record when available. */
+  capabilities?: HoloMeshBearerCapability[];
+  /** Raw scope grants copied from the key record when available. */
+  scopes?: string[];
 }
 
 // --- Social Metadata ---

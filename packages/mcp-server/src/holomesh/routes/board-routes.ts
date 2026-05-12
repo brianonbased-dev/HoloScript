@@ -20,7 +20,7 @@ import {
   normalizePresenceSurface,
   getPresenceTtlMs
 } from '../utils';
-import { requireAuth } from '../auth-utils';
+import { hasBearerCapability, requireAuth } from '../auth-utils';
 import { broadcastToTeam } from '../team-room';
 import { extractAndVerifySigning } from '../identity/signing-middleware';
 import {
@@ -620,6 +620,24 @@ export async function handleBoardRoutes(
 
     switch (action) {
       case 'claim':
+        if (caller.surface === 'mobile') {
+          json(res, 403, {
+            error: 'Mobile bearers are assistant surfaces and cannot claim board tasks',
+            code: 'mobile_claim_denied',
+            surface: caller.surface,
+            required_capability: 'claim',
+          });
+          return true;
+        }
+        if (!hasBearerCapability(caller, 'claim')) {
+          json(res, 403, {
+            error: 'Bearer lacks required capability: claim',
+            code: 'capability_denied',
+            required_capability: 'claim',
+            capabilities: caller.capabilities || [],
+          });
+          return true;
+        }
         result = claimTask(team.taskBoard, taskId, caller.id, caller.name, claimedByTag);
         eventType = 'board:claimed';
         break;
@@ -932,6 +950,15 @@ export async function handleBoardRoutes(
     const access = await requireTeamAccessFresh(req, res, url, 'messages:write');
     if (!access) return true;
     const { caller, teamId } = access;
+    if (!hasBearerCapability(caller, 'message')) {
+      json(res, 403, {
+        error: 'Bearer lacks required capability: message',
+        code: 'capability_denied',
+        required_capability: 'message',
+        capabilities: caller.capabilities || [],
+      });
+      return true;
+    }
 
     const rawBody = await parseJsonBody(req);
     const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);

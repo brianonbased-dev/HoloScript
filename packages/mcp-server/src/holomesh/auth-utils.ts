@@ -1,6 +1,6 @@
 import type http from 'http';
 import * as crypto from 'crypto';
-import type { RegisteredAgent } from './types';
+import type { HoloMeshBearerCapability, HoloMeshBearerSurface, RegisteredAgent } from './types';
 import { agentKeyStore, keyRegistry, walletToAgent } from './state';
 import { json } from './utils';
 
@@ -13,6 +13,50 @@ export type ResolvedCaller = {
   /** True when the caller's key is registered as a founder key in the key registry */
   isFounder: boolean;
 };
+
+const BEARER_CAPABILITIES: readonly HoloMeshBearerCapability[] = ['read', 'message', 'claim', 'sign'];
+
+export function normalizeBearerSurface(value: unknown): HoloMeshBearerSurface | undefined {
+  if (typeof value !== 'string') return undefined;
+  const surface = value.trim().toLowerCase();
+  if (!surface) return undefined;
+  if (surface === 'mobile' || surface === 'phone' || surface === 'ios' || surface === 'android') {
+    return 'mobile';
+  }
+  if (surface === 'desktop' || surface === 'claude-code' || surface === 'cursor' || surface === 'vscode') {
+    return 'desktop';
+  }
+  if (surface === 'headless' || surface === 'daemon' || surface === 'ci' || surface === 'server') {
+    return 'headless';
+  }
+  return undefined;
+}
+
+export function normalizeBearerCapabilities(
+  value: unknown,
+  fallback: HoloMeshBearerCapability[]
+): HoloMeshBearerCapability[] {
+  const raw = Array.isArray(value) ? value : fallback;
+  const seen = new Set<HoloMeshBearerCapability>();
+  for (const item of raw) {
+    if (typeof item !== 'string') continue;
+    const capability = item.trim().toLowerCase() as HoloMeshBearerCapability;
+    if ((BEARER_CAPABILITIES as readonly string[]).includes(capability)) {
+      seen.add(capability);
+    }
+  }
+  return seen.size > 0 ? Array.from(seen) : fallback;
+}
+
+export function hasBearerCapability(
+  agent: RegisteredAgent,
+  capability: HoloMeshBearerCapability
+): boolean {
+  // Legacy keys predate bearer-scoped capabilities; preserve behavior until
+  // they are rotated into capability-bearing records.
+  if (!Array.isArray(agent.capabilities) || agent.capabilities.length === 0) return true;
+  return agent.capabilities.includes(capability);
+}
 
 /**
  * Resolve an agent from a signed manifest header.
@@ -138,7 +182,7 @@ export function resolveRequestingAgent(
       return { authenticated: false, id: 'anonymous', name: 'anonymous', isFounder: false };
     }
     // Prefer an existing RegisteredAgent entry for soft-compatibility with social features
-    const agent: RegisteredAgent =
+    const baseAgent: RegisteredAgent =
       agentKeyStore.get(token) ||
       walletToAgent.get(record.walletAddress.toLowerCase()) || {
         id: record.agentId,
@@ -150,8 +194,18 @@ export function resolveRequestingAgent(
         isFounder: record.isFounder,
         createdAt: record.createdAt,
       };
-    // Ensure isFounder is propagated to the agent object in memory
-    agent.isFounder = record.isFounder;
+    const agent: RegisteredAgent = {
+      ...baseAgent,
+      id: record.agentId,
+      apiKey: token,
+      walletAddress: record.walletAddress,
+      name: record.agentName,
+      isFounder: record.isFounder,
+      surfaceTag: record.surfaceTag ?? baseAgent.surfaceTag,
+      surface: record.surface ?? baseAgent.surface,
+      capabilities: record.capabilities ?? baseAgent.capabilities,
+      scopes: record.scopes,
+    };
     return {
       authenticated: true,
       id: record.agentId,
@@ -203,4 +257,3 @@ export function requireAuth(
   }
   return caller.agent;
 }
-
