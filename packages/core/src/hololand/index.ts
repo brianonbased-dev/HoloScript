@@ -116,6 +116,24 @@ export {
   resetCrossValidationRegistry,
 } from './CrossValidationRegistry';
 
+// Item Manifest (W.506 — items as characters with sovereign traits)
+export {
+  ItemAncestry,
+  ItemState,
+  ItemTrajectory,
+  ItemConstraint,
+  HoloLandItem,
+  CreateHoloLandItemOptions,
+  createHoloLandItem,
+  linkItems,
+  getItemChain,
+  ITEM_DEFAULT_TICK_INTERVAL_MS,
+  DEFAULT_ITEM_VERBAL_FINGERPRINT,
+  DEFAULT_ITEM_AUTONOMOUS_AGENDA,
+  DEFAULT_ITEM_REPUTATION_LEDGER,
+  DEFAULT_ITEM_VOCABULARY_REGISTER,
+} from './ItemManifest';
+
 // Streaming Protocol
 export {
   StreamProtocol,

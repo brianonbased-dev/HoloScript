@@ -33,8 +33,8 @@ export interface AgendaItem {
 }
 
 export interface AutonomousAgendaConfig {
-  /** Identity tag: 'npc', 'teammate', 'service' */
-  agent_class: 'npc' | 'teammate' | 'service';
+  /** Identity tag: 'npc', 'teammate', 'service', 'item' */
+  agent_class: 'npc' | 'teammate' | 'service' | 'item';
   /** Tick interval in milliseconds. Default: 60_000 (1 min). */
   tick_interval_ms: number;
   /** Daily spend cap in USD. */
