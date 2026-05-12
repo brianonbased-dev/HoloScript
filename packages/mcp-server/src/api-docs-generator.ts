@@ -125,6 +125,7 @@ const DEFAULT_CATEGORY_RULES: Record<string, string> = {
   export_traces: 'Observability',
   get_agent_health: 'Observability',
   get_metrics: 'Observability',
+  holo_service_scaffold: 'Observability',
   install_plugin: 'Plugin Management',
   list_plugins: 'Plugin Management',
   manage_plugin: 'Plugin Management',

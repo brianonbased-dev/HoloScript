@@ -340,6 +340,11 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     return handlePremortemTool(args);
   }
 
+  if (name === 'holo_service_scaffold') {
+    const { handleObservabilityTool } = await import('./observability-tools');
+    return handleObservabilityTool(name, args);
+  }
+
   // All remaining holo_ tools go to the Graph tool handler
   // (Oracle, Codebase, and Wisdom/Gotcha are now handled directly via the O(1) registry in index.ts)
   if (name.startsWith('holo_')) {
@@ -417,7 +422,8 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     name === 'query_traces' ||
     name === 'export_traces_otlp' ||
     name === 'get_agent_health' ||
-    name === 'get_metrics_prometheus'
+    name === 'get_metrics_prometheus' ||
+    name === 'holo_service_scaffold'
   ) {
     const { handleObservabilityTool } = await import('./observability-tools');
     return handleObservabilityTool(name, args);

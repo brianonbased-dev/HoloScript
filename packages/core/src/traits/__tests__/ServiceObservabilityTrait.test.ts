@@ -1,5 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { serviceObservabilityHandler } from '../ServiceObservabilityTrait';
+import {
+  DEFAULT_ATTRIBUTION_CI_ACCURACY_FLOOR,
+  DEFAULT_HEADLESS_AGENT_DAILY_COST_CEILING_USD,
+  DEFAULT_METRICS_RETENTION_DAYS,
+  DEFAULT_NPC_DAILY_COST_CEILING_USD,
+  SERVICE_ALERT_RULE_TYPES,
+  createApiQuotaAlertRule,
+  createAttributionCiOperationMetric,
+  createMetricsCleanupJob,
+  serviceObservabilityHandler,
+} from '../ServiceObservabilityTrait';
 import {
   createMockContext,
   createMockNode,
@@ -73,5 +83,58 @@ describe('ServiceObservabilityTrait', () => {
     const t = getLastEvent(ctx, 'alert_rule_triggered') as { rule_name: string; severity: string };
     expect(t.rule_name).toBe('cpu_hot');
     expect(t.severity).toBe('critical');
+  });
+
+  it('provides api_quota cost-ceiling rules for NPCs and headless agents', () => {
+    const npcRule = createApiQuotaAlertRule('npc');
+    const agentRule = createApiQuotaAlertRule('headless_agent');
+
+    expect(SERVICE_ALERT_RULE_TYPES).toContain('api_quota');
+    expect(SERVICE_ALERT_RULE_TYPES).toContain('custom');
+    expect(npcRule.rule_type).toBe('api_quota');
+    expect(npcRule.threshold).toBe(DEFAULT_NPC_DAILY_COST_CEILING_USD);
+    expect(agentRule.threshold).toBe(DEFAULT_HEADLESS_AGENT_DAILY_COST_CEILING_USD);
+  });
+
+  it('triggers the default NPC api_quota alert when cost exceeds $0.50/day', () => {
+    const config = {
+      service_name: 'svc-cost',
+      alert_rules: [createApiQuotaAlertRule('npc')],
+    };
+    attachTrait(serviceObservabilityHandler, node, config, ctx);
+    sendEvent(serviceObservabilityHandler, node, config, ctx, {
+      type: 'metric_observed',
+      rule: 'npc_daily_cost_ceiling',
+      value: 0.51,
+    });
+    const alert = getLastEvent(ctx, 'alert_rule_triggered') as { rule_name: string; threshold: number };
+    expect(alert.rule_name).toBe('npc_daily_cost_ceiling');
+    expect(alert.threshold).toBe(DEFAULT_NPC_DAILY_COST_CEILING_USD);
+  });
+
+  it('declares the 90-day scheduled operation-metrics cleanup job', () => {
+    const job = createMetricsCleanupJob();
+
+    expect(job.retention_days).toBe(DEFAULT_METRICS_RETENTION_DAYS);
+    expect(job.sql).toContain("INTERVAL '90 days'");
+    expect(job.sql).toContain('operation_metrics');
+  });
+
+  it('emits an operation_metric CI floor failure below 80 percent attribution accuracy', () => {
+    const config = {
+      service_name: 'svc-ci',
+      operation_metrics: [createAttributionCiOperationMetric()],
+    };
+    attachTrait(serviceObservabilityHandler, node, config, ctx);
+    sendEvent(serviceObservabilityHandler, node, config, ctx, {
+      type: 'operation_metric',
+      metric: 'attribution_ci_accuracy',
+      value: 0.79,
+    });
+
+    expect(getEventCount(ctx, 'operation_metric_recorded')).toBe(1);
+    expect(getEventCount(ctx, 'operation_metric_floor_failed')).toBe(1);
+    const failure = getLastEvent(ctx, 'operation_metric_floor_failed') as { floor: number };
+    expect(failure.floor).toBe(DEFAULT_ATTRIBUTION_CI_ACCURACY_FLOOR);
   });
 });
