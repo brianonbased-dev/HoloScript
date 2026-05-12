@@ -50,7 +50,9 @@ import {
   type TaskOrchestrationAgentRef,
   type TaskPolicyEvent,
 } from '@holoscript/framework';
-import type { Team, TeamPresenceEntry, TeamMessage, TeamHologramFeedItem, RegisteredAgent } from '../types';
+import type { Team, TeamPresenceEntry, TeamMessage, TeamHologramFeedItem, RegisteredAgent, MeshKnowledgeEntry } from '../types';
+import { getClient } from '../orchestrator-client';
+import { mergeTeamKnowledgeWithOrchestrator } from '../entry-lookup';
 import { getBoardModeFields } from '../mode-provenance';
 
 const MAX_FEED_QUERY = 100;
@@ -114,6 +116,93 @@ export async function handleBoardRoutes(
       objective: team.roomConfig?.objective || '',
       communicationStyle: team.roomConfig?.communicationStyle || 'task_first',
       ...getBoardModeFields(team),
+    });
+    return true;
+  }
+
+  // GET /api/holomesh/team/:id/mobile-brief — one-shot aggregated brief for mobile surfaces
+  // Replaces the multi-step board-reader hook chain that mobile clients cannot run locally.
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/mobile-brief$/) && method === 'GET') {
+    const access = await requireTeamAccessFresh(req, res, url);
+    if (!access) return true;
+    const { teamId } = access;
+    const team = teamStore.get(teamId)!;
+
+    // Tasks — urgency-first (lower priority number = more urgent)
+    const flatTasks = team.taskBoard || [];
+    const open = flatTasks
+      .filter((t) => t.status === 'open')
+      .sort((a, b) => (a.priority ?? 5) - (b.priority ?? 5))
+      .slice(0, 8);
+    const claimed = flatTasks
+      .filter((t) => t.status === 'claimed')
+      .slice(0, 5);
+
+    // Inbox (DMs, handoffs, reviews) — newest first
+    const messages = teamMessageStore.get(teamId) || [];
+    const inbox = messages
+      .filter((m) => ['dm', 'handoff', 'review-request'].includes(m.messageType))
+      .slice(-10)
+      .reverse();
+
+    // Knowledge — orchestrator + local mirror, newest first, quality-gated
+    let knowledge: MeshKnowledgeEntry[] = [];
+    try {
+      const workspaceId = `team:${teamId}`;
+      const fromOrch = await getClient().queryKnowledge('', { workspaceId, limit: 15 });
+      knowledge = mergeTeamKnowledgeWithOrchestrator(fromOrch, team.knowledge);
+    } catch {
+      knowledge = team.knowledge || [];
+    }
+    const recentKnowledge = knowledge
+      .filter((e) => e.content !== '[deleted]' && !(e.tags || []).includes('tombstone'))
+      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+      .slice(0, 5);
+
+    // Suggestions — open only, highest score first
+    const suggestions = (team as Team & { suggestions?: TeamSuggestion[] }).suggestions || [];
+    const openSuggestions = suggestions
+      .filter((s) => s.status === 'open')
+      .sort((a, b) => (b.score || 0) - (a.score || 0))
+      .slice(0, 5);
+
+    // Presence — pruned, capped
+    pruneStalePresence(teamId);
+    const presenceMap = teamPresenceStore.get(teamId);
+    const online = presenceMap ? Array.from(presenceMap.values()).slice(0, 10) : [];
+
+    json(res, 200, {
+      success: true,
+      teamId,
+      mode: team.mode || 'build',
+      objective: team.roomConfig?.objective || '',
+      communicationStyle: team.roomConfig?.communicationStyle || 'task_first',
+      openTasks: open,
+      claimedTasks: claimed,
+      doneCount: team.doneLog?.length || 0,
+      inbox,
+      recentKnowledge: recentKnowledge.map((k) => ({
+        id: k.id,
+        type: k.type,
+        domain: k.domain || 'general',
+        content: (k.content || '').slice(0, 150),
+        authorName: k.authorName,
+        createdAt: k.createdAt,
+      })),
+      openSuggestions: openSuggestions.map((s) => ({
+        id: s.id,
+        title: s.title,
+        category: s.category,
+        score: s.score,
+      })),
+      presence: online.map((p) => ({
+        agentId: p.agentId,
+        agentName: p.agentName,
+        ideType: p.ideType,
+        status: p.status,
+        surfaceTag: p.surfaceTag,
+        lastHeartbeat: p.lastHeartbeat,
+      })),
     });
     return true;
   }
