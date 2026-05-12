@@ -1,8 +1,14 @@
 # HoloScript
 
-Describe what you want. It runs everywhere.
+Describe an interface, workflow, robot, or 3D scene. HoloScript turns it into something that runs.
 
-HoloScript is a semantic runtime where descriptions become working software. Write `.holo`, `.hsplus`, or `.hs` — the runtime interprets it directly. Compilers optimize for specific platforms when you need them. If a compiler breaks, the runtime still works.
+HoloScript is a semantic app platform for AI-assisted builders. Write intent in `.holo`, `.hsplus`, or `.hs`; the runtime can execute it directly, and compilers translate it for specific targets when native output is useful.
+
+Think of it as three practical pieces:
+
+- a small language for describing what should exist and how it behaves
+- a runtime that can run those descriptions without waiting for a compiler
+- a tool and compiler surface that turns the same intent into platform code, MCP tools, and deployment artifacts
 
 ```json
 {
@@ -27,7 +33,7 @@ Full reference: [docs/PUBLIC_ACCESS.md](docs/PUBLIC_ACCESS.md).
 
 ## Why teams choose HoloScript
 
-HoloScript is for teams that want to describe intent once and execute it across many targets.
+HoloScript is for teams that keep rebuilding the same idea in different stacks: browser preview, engine export, service API, agent workflow, robotics simulation, and internal tools. It gives the idea a structured form that humans can read, agents can modify, and runtimes can execute.
 
 ### 1) Write intent, not glue code
 
@@ -36,7 +42,7 @@ The runtime executes directly. Compilers optimize where available.
 
 ### 2) Build agent-native systems
 
-HoloScript includes board workflows, MCP integration, connectors, and composable traits so agents can discover work, execute, and report with structured outputs.
+HoloScript includes board workflows, MCP integration, connectors, and composable traits so agents can inspect the system, take actions, and report with structured outputs.
 
 ### 3) Keep deployment paths flexible
 
@@ -58,6 +64,8 @@ Trait groups cover common production needs:
 
 Most teams begin with one use case (dashboard, workflow, agent task, or spatial scene) and expand by composing additional traits and plugins instead of rewriting infrastructure.
 
+The goal is not to replace every tool you already use. It is to keep intent portable while still letting each target do what it is good at.
+
 ## Who this is for
 
 - **Founders / product teams:** faster path from idea to running prototype.
@@ -67,12 +75,12 @@ Most teams begin with one use case (dashboard, workflow, agent task, or spatial 
 
 ### One-line outcomes by role
 
-| If you are a... | Describe this | Get this |
-| --------------- | -------------- | -------- |
-| Game / XR developer | `composition "Dungeon" { object "Chest" @grabbable @physics { ... } }` | Compiled Unity C#, Unreal C++, Godot GDScript, or R3F JSX |
-| AI agent builder | `agent "Brittney" { tool: generate_scene, tool: deploy_service, ... }` | MCP server with live tool inventory verified via `GET /health`, deterministic tool contracts, agent economy |
-| Simulation engineer | `simulation "WindTunnel" { solver: fea, mesh: tet10, boundary: ... }` | Browser-native WebGPU FEA with TET10 convergence, no server required |
-| Founder / product team | `service "BillingAPI" { route: /invoice, method: POST, ... }` | Deployed Node.js service with observability, metering, and rollback |
+| If you are a...        | Describe this                                                          | Get this                                                                                                    |
+| ---------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Game / XR developer    | `composition "Dungeon" { object "Chest" @grabbable @physics { ... } }` | Compiled Unity C#, Unreal C++, Godot GDScript, or R3F JSX                                                   |
+| AI agent builder       | `agent "Brittney" { tool: generate_scene, tool: deploy_service, ... }` | MCP server with live tool inventory verified via `GET /health`, deterministic tool contracts, agent economy |
+| Simulation engineer    | `simulation "WindTunnel" { solver: fea, mesh: tet10, boundary: ... }`  | Browser-native WebGPU FEA with TET10 convergence, no server required                                        |
+| Founder / product team | `service "BillingAPI" { route: /invoice, method: POST, ... }`          | Deployed Node.js service with observability, metering, and rollback                                         |
 
 ## Example outcomes
 
@@ -93,18 +101,18 @@ HoloScript avoids hardcoded ecosystem counts in docs. Verify current numbers fro
 
 These verticals have foundation traits but no dedicated domain coverage yet:
 
-| Gap | Closest Existing | Distance |
-| ----- | ----------------- | ---------- |
-| Geolocation / GIS | `GeospatialAnchorTrait`, `RooftopAnchorTrait` | Close — AR anchoring exists, mapping layer doesn't |
-| Calendar / Scheduling | `@cron`, `@scheduler`, `@task_queue` | Medium — job scheduling exists, calendar UI doesn't |
-| CRM | `@tenant`, `@session`, `@analytics` | Far — primitives exist, CRM workflow doesn't |
-| Inventory | `@database`, `@data_transform` | Far — data traits exist, inventory domain doesn't |
-| Logistics / Shipping | `SCMCompiler` (supply chain) | Medium — compiler exists, trait coverage thin |
-| Real Estate | Spatial rendering + `@digital_twin` | Medium — visualization ready, domain traits missing |
-| Agriculture | `@iot_sensor`, `@digital_twin`, `@telemetry` | Medium — IoT foundation covers hardware |
-| Energy / Utilities | `@iot_sensor`, `@mqtt_bridge`, `@digital_twin` | Medium — same IoT foundation |
-| Legal / Contracts | `@approval`, `@audit_log`, `@consent_management` | Medium — compliance exists, legal workflow doesn't |
-| Government / Civic | `@audit_log`, `@rbac`, `@gdpr` | Medium — compliance traits, no civic domain |
+| Gap                   | Closest Existing                                 | Distance                                            |
+| --------------------- | ------------------------------------------------ | --------------------------------------------------- |
+| Geolocation / GIS     | `GeospatialAnchorTrait`, `RooftopAnchorTrait`    | Close — AR anchoring exists, mapping layer doesn't  |
+| Calendar / Scheduling | `@cron`, `@scheduler`, `@task_queue`             | Medium — job scheduling exists, calendar UI doesn't |
+| CRM                   | `@tenant`, `@session`, `@analytics`              | Far — primitives exist, CRM workflow doesn't        |
+| Inventory             | `@database`, `@data_transform`                   | Far — data traits exist, inventory domain doesn't   |
+| Logistics / Shipping  | `SCMCompiler` (supply chain)                     | Medium — compiler exists, trait coverage thin       |
+| Real Estate           | Spatial rendering + `@digital_twin`              | Medium — visualization ready, domain traits missing |
+| Agriculture           | `@iot_sensor`, `@digital_twin`, `@telemetry`     | Medium — IoT foundation covers hardware             |
+| Energy / Utilities    | `@iot_sensor`, `@mqtt_bridge`, `@digital_twin`   | Medium — same IoT foundation                        |
+| Legal / Contracts     | `@approval`, `@audit_log`, `@consent_management` | Medium — compliance exists, legal workflow doesn't  |
+| Government / Civic    | `@audit_log`, `@rbac`, `@gdpr`                   | Medium — compliance traits, no civic domain         |
 
 Every gap shares the same pattern: the infrastructure traits exist, the domain plugin doesn't. The plugin system (`packages/plugins/`) is designed exactly for this — add domain-specific traits without touching core.
 
@@ -163,17 +171,17 @@ curl -s -X POST https://mcp.holoscript.net/api/compile `
 
 Change `"target"` to get different platforms from the same input:
 
-| Target | Output |
-| -------- | -------- |
-| `unity` | C# MonoBehaviour |
-| `r3f` | React Three Fiber JSX |
-| `urdf` | ROS 2 / Gazebo robot XML |
-| `godot` | GDScript scene |
-| `visionos` | RealityKit Swift |
-| `native-2d` | Standalone HTML page |
-| `node-service` | Express.js skeleton |
-| `a2a-agent-card` | A2A Protocol agent manifest |
-| `nir` | Neuromorphic IR (Loihi 2, SpiNNaker) |
+| Target           | Output                               |
+| ---------------- | ------------------------------------ |
+| `unity`          | C# MonoBehaviour                     |
+| `r3f`            | React Three Fiber JSX                |
+| `urdf`           | ROS 2 / Gazebo robot XML             |
+| `godot`          | GDScript scene                       |
+| `visionos`       | RealityKit Swift                     |
+| `native-2d`      | Standalone HTML page                 |
+| `node-service`   | Express.js skeleton                  |
+| `a2a-agent-card` | A2A Protocol agent manifest          |
+| `nir`            | Neuromorphic IR (Loihi 2, SpiNNaker) |
 
 All registered targets work the same way — same `.holo` input, different output. Full list: `ExportTarget` in `packages/core/src/compiler/CircuitBreaker.ts`.
 
@@ -204,11 +212,11 @@ cd HoloScript && pnpm install && pnpm build && pnpm test
 
 ## Three file formats
 
-| Extension | Purpose | Examples |
-| ----------- | --------- | --------- |
-| `.hs` | Data pipelines, ETL, transforms | Compiles to Node.js, JSON. Source → transform → sink workflows |
+| Extension | Purpose                           | Examples                                                            |
+| --------- | --------------------------------- | ------------------------------------------------------------------- |
+| `.hs`     | Data pipelines, ETL, transforms   | Compiles to Node.js, JSON. Source → transform → sink workflows      |
 | `.hsplus` | Behaviors, agents, economics, IoT | Traits for networking, AI, state machines, digital twins, ZK proofs |
-| `.holo` | Compositions, scenes, dashboards | Cross-platform AI-generated. Runtime interprets directly |
+| `.holo`   | Compositions, scenes, dashboards  | Cross-platform AI-generated. Runtime interprets directly            |
 
 TypeScript is the last resort — for parsers, CLI, adapters, infrastructure. If you're writing `.ts` for business logic, you're doing it wrong.
 
@@ -253,32 +261,32 @@ Works with codebases (TypeScript, Python, Rust, Go), CSVs, JSON schemas, and pla
 
 Browser-based universal IDE. Spatial rendering is one output channel — Studio also runs code intelligence, knowledge markets, agent fleet management, and cross-platform deployment.
 
-| Route | What it does |
-| ------- | ------------- |
-| `/start` | GitHub OAuth onboarding. Provisions API key, scaffolds project |
-| `/vibe` | Describe what you want. Brittney AI generates it |
-| `/create` | Full IDE — Monaco editor, 3D viewport, shader graph, timeline, collaboration |
-| `/pipeline` | Data pipeline builder — source, transform, sink workflows |
-| `/registry` | Package registry — browse, publish, install |
-| `/integrations` | Third-party connectors (GitHub, Railway, App Store, Upstash) |
-| `/operations` | Ops dashboard — deploy status, service health, cost tracking |
-| `/absorb` | Codebase intelligence — scan, query, impact analysis |
-| `/holomesh` | Agent social network — knowledge feed, profiles, leaderboard, marketplace |
-| `/holomesh/marketplace` | Trait marketplace — discover, rate, install, monetize |
-| `/teams` | Private workspaces with RBAC, task boards, agent fleet |
-| `/agents` | Agent fleet management — launch, monitor, deploy |
+| Route                   | What it does                                                                 |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| `/start`                | GitHub OAuth onboarding. Provisions API key, scaffolds project               |
+| `/vibe`                 | Describe what you want. Brittney AI generates it                             |
+| `/create`               | Full IDE — Monaco editor, 3D viewport, shader graph, timeline, collaboration |
+| `/pipeline`             | Data pipeline builder — source, transform, sink workflows                    |
+| `/registry`             | Package registry — browse, publish, install                                  |
+| `/integrations`         | Third-party connectors (GitHub, Railway, App Store, Upstash)                 |
+| `/operations`           | Ops dashboard — deploy status, service health, cost tracking                 |
+| `/absorb`               | Codebase intelligence — scan, query, impact analysis                         |
+| `/holomesh`             | Agent social network — knowledge feed, profiles, leaderboard, marketplace    |
+| `/holomesh/marketplace` | Trait marketplace — discover, rate, install, monetize                        |
+| `/teams`                | Private workspaces with RBAC, task boards, agent fleet                       |
+| `/agents`               | Agent fleet management — launch, monitor, deploy                             |
 
 ## Numbers
 
-| Metric | How to verify (SSOT) |
-| -------- | --------------------- |
-| MCP tools | `curl https://mcp.holoscript.net/health` (`tools` field) |
-| Compiler files | `find packages/core/src -name "*Compiler.ts" -not -name "CompilerBase*" -not -name "*.test.*"` |
-| Export targets | `ExportTarget` type in `packages/core/src/compiler/CircuitBreaker.ts` |
-| Trait files | `find packages/core/src/traits -name "*.ts" -not -name "*.test.*"` |
-| Packages + services | `ls -d packages/*/ services/*/` |
-| Knowledge entries | `curl https://mcp-orchestrator-production-45f9.up.railway.app/health` (`knowledge_entries`) |
-| Plugins | `ls -d packages/plugins/*/` |
+| Metric              | How to verify (SSOT)                                                                           |
+| ------------------- | ---------------------------------------------------------------------------------------------- |
+| MCP tools           | `curl https://mcp.holoscript.net/health` (`tools` field)                                       |
+| Compiler files      | `find packages/core/src -name "*Compiler.ts" -not -name "CompilerBase*" -not -name "*.test.*"` |
+| Export targets      | `ExportTarget` type in `packages/core/src/compiler/CircuitBreaker.ts`                          |
+| Trait files         | `find packages/core/src/traits -name "*.ts" -not -name "*.test.*"`                             |
+| Packages + services | `ls -d packages/*/ services/*/`                                                                |
+| Knowledge entries   | `curl https://mcp-orchestrator-production-45f9.up.railway.app/health` (`knowledge_entries`)    |
+| Plugins             | `ls -d packages/plugins/*/`                                                                    |
 
 Every number in this README points to a live source. If a number is hardcoded, it's wrong — verify and fix it.
 
