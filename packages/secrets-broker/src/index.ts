@@ -608,3 +608,13 @@ export class CapabilityTokenRegistry {
     this.byId.clear();
   }
 }
+
+// =============================================================================
+// SECRET GRANT PRIMITIVES (extracted from Studio, generalized for core)
+// =============================================================================
+
+export * from './types';
+export { createSecretGrant, checkSecretGrantPolicy, createPolicyGatedSecretGrant } from './grant';
+export { allowOnly, denyAll, allowAgentForRef, fromHoloDoorPolicy } from './policy';
+export { createMemoryLeaseAdapter, createNoOpLeaseAdapter } from './lease-adapter';
+export { provisionBrokeredSession, localFileProvisionAdapter } from './provision';
