@@ -63,6 +63,12 @@ import {
 } from '../traits/PhysicsTraits';
 import { neuralAnimationHandler } from '../traits/NeuralAnimationHandler';
 import {
+  StatTrait,
+  LuckTrait,
+  EncounterTrait,
+  DropTableTrait,
+} from '../traits/HoloLandTraits';
+import {
   RotatableTrait,
   StackableTrait,
   SnappableTrait,
@@ -997,6 +1003,12 @@ class BrowserRuntime implements HoloScriptRuntime {
 
     // Motion-matching bridge (idea-run-3 RULING 2 — per-trait runtime wrapper)
     this.traitSystem.register(neuralAnimationHandler);
+
+    // HoloLand sovereign trait family (merge 5a8ea2191)
+    this.traitSystem.register(StatTrait);
+    this.traitSystem.register(LuckTrait);
+    this.traitSystem.register(EncounterTrait);
+    this.traitSystem.register(DropTableTrait);
 
     // Input
     this.inputManager = new InputManager(this.scene, this.camera, this.renderer.domElement);

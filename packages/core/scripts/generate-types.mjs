@@ -5241,9 +5241,41 @@ export declare class DeterminismHarness {
 export declare function describeEnvironment(env: EnvironmentInfo): string;
 `;
 
+// HoloLand sovereign trait handlers (runtime bridge)
+const holoLandTraitsDTS = `
+// ============================================================================
+// HOLOLAND TRAIT HANDLERS (sovereign @stat / @luck / @encounter / @drop_table)
+// ============================================================================
+
+export interface StatModifier { source: string; delta: number; }
+export interface StatState { name: string; baseValue: number; min: number; max: number; modifiers: StatModifier[]; effective: number; }
+export interface StatConfig { name: string; value: number; min?: number; max?: number; }
+export declare const statHandler: TraitHandler<StatConfig>;
+
+export interface LuckState { baseChance: number; luckBonus: number; seed?: number; }
+export interface LuckConfig { baseChance: number; luckBonus?: number; seed?: number; }
+export declare const luckHandler: TraitHandler<LuckConfig>;
+
+export interface EncounterState { encounterId: string; triggerType: 'proximity' | 'interaction' | 'time' | 'state'; cooldownMs: number; lastFireMs: number; firedCount: number; }
+export interface EncounterConfig { encounterId: string; triggerType: 'proximity' | 'interaction' | 'time' | 'state'; cooldownMs?: number; proximity_radius?: number; proximity_target?: string; time_interval?: number; state_key?: string; state_value?: unknown; check_interval?: number; }
+export declare const encounterHandler: TraitHandler<EncounterConfig>;
+export declare function shouldFire(state: EncounterState, config: EncounterConfig, now: number): boolean;
+
+export interface DropTableEntry { itemId: string; weight: number; rareModifier?: number; }
+export interface DropTableState { tableId: string; entries: DropTableEntry[]; respectLuck: boolean; }
+export interface DropTableConfig { tableId: string; entries: DropTableEntry[]; respectLuck?: boolean; }
+export declare const dropTableHandler: TraitHandler<DropTableConfig>;
+export declare function effectiveWeight(entry: DropTableEntry, luckBonus: number): number;
+export declare function pickByWeight(entries: DropTableEntry[], luckBonus: number, seed?: number): DropTableEntry | null;
+
+export declare function extractPayload(event: TraitEvent): unknown;
+`;
+
+const finalMainDTS = mainDTS + holoLandTraitsDTS;
+
 // Write type declaration files
 const files = [
-  { path: path.join(distDir, 'index.d.ts'), content: mainDTS },
+  { path: path.join(distDir, 'index.d.ts'), content: finalMainDTS },
   { path: path.join(distDir, 'testing.d.ts'), content: testingDTS },
   { path: path.join(distDir, 'parser.d.ts'), content: parserDTS },
   { path: path.join(distDir, 'runtime.d.ts'), content: runtimeDTS },
