@@ -33,7 +33,7 @@ to live until it has a curl command that succeeds against the production surface
 
 | Surface | Status | Role | Verification command |
 | --- | --- | --- | --- |
-| HoloScript Studio production app | `live` | Hosted visual authoring surface. Use the Railway URL until DNS is provisioned. | `curl -fsSL https://studio-production-a071.up.railway.app -o /dev/null` |
+| HoloScript Studio production app | `live` | Hosted visual authoring surface at canonical vanity. | `curl -fsSL https://holoscript.studio -o /dev/null` (CNAME → `eiusxhgm.up.railway.app`) |
 
 ## Runtime
 
@@ -69,9 +69,11 @@ to live until it has a curl command that succeeds against the production surface
 
 These are deliberately not listed as live surfaces:
 
-- `https://studio.holoscript.net` — DNS did not resolve on 2026-05-12. Use
-  `https://studio-production-a071.up.railway.app` until the vanity domain is
-  provisioned and curl-verified.
+- `https://studio.holoscript.net` — wrong TLD; this hostname does not resolve.
+  The canonical Studio vanity is `https://holoscript.studio` (the `.studio`
+  TLD, not a subdomain of `holoscript.net`). The `studio-production-a071.up.railway.app`
+  Railway instance is also live but is a separate instance from the one
+  CNAME'd by the vanity (`eiusxhgm.up.railway.app`); cite the vanity in docs.
 - HoloDoor as a product surface — it is middleware, not a door.
 - Named agents, including Brittney — actors are not surfaces unless they expose a
   stable transport endpoint.
