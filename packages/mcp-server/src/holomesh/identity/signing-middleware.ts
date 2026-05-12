@@ -374,13 +374,110 @@ export async function verifyDualEnvelopeRequest(
     classicalVerifier: options.classicalVerifier,
   });
 
+  if (!result.valid) {
+    return {
+      effectiveBody: req.body,
+      ctx: {
+        signedRequest: true,
+        signingValid: false,
+        signer: null,
+        signingReason: dualReasonToSigningReason(result),
+        signingProtocol: 'dual',
+        dualMode: parsed.envelope.mode,
+      },
+    };
+  }
+
+  // ── Registry checks (only when registry is populated — Phase 1.5 safe-default) ──
+  //
+  // Same safe-default as the classical path: an empty registry during early
+  // rollout should not reject every signer. Once any attestation is registered,
+  // checks become enforcing for that signer's mode.
+  const registry = options.registry ?? getAttestationRegistry();
+  const useRegistry = registry.size() > 0;
+  if (useRegistry) {
+    const env = parsed.envelope;
+    if (env.mode === 'classical_only') {
+      const check = registry.toRegistryCheck(options.nowMs);
+      const r = await check(env.classicalSignerAddress);
+      if (!r.attested) {
+        return {
+          effectiveBody: req.body,
+          ctx: {
+            signedRequest: true,
+            signingValid: false,
+            signer: null,
+            signingReason: r.reason ?? 'signer-not-attested',
+            signingProtocol: 'dual',
+            dualMode: env.mode,
+          },
+        };
+      }
+    } else if (env.mode === 'pqc_only') {
+      const pqcCheck = registry.toPqcRegistryCheck(options.nowMs);
+      const r = await pqcCheck(env.pqcPublicKey);
+      if (!r.attested) {
+        return {
+          effectiveBody: req.body,
+          ctx: {
+            signedRequest: true,
+            signingValid: false,
+            signer: null,
+            signingReason: r.reason ?? 'signer-not-attested',
+            signingProtocol: 'dual',
+            dualMode: env.mode,
+          },
+        };
+      }
+    } else {
+      // dual mode — cross-verify both keys map to the SAME attestation.
+      const cross = registry.crossVerifyDual(
+        env.classicalSignerAddress,
+        env.pqcPublicKey,
+        options.nowMs
+      );
+      if (!cross.matched) {
+        return {
+          effectiveBody: req.body,
+          ctx: {
+            signedRequest: true,
+            signingValid: false,
+            signer: null,
+            signingReason: cross.reason,
+            signingProtocol: 'dual',
+            dualMode: env.mode,
+          },
+        };
+      }
+    }
+  }
+
+  // Signer resolution: when the registry has an entry for this signer, prefer
+  // the canonical (lowercased) 0x-Ethereum-address — that's the form the
+  // registry stored on attest(). Works for all 3 modes:
+  //   - `classical_only` / `dual`: look up by the envelope's address
+  //   - `pqc_only`: look up by the PQC public key
+  // Falls back to the raw envelope address (or synthetic pqc:<hex> id) when
+  // the registry is empty or doesn't have an entry.
+  let signer = dualEnvelopeSignerId(parsed.envelope);
+  if (useRegistry) {
+    const env = parsed.envelope;
+    if (env.mode === 'pqc_only') {
+      const att = registry.lookupByPqcKey(env.pqcPublicKey);
+      if (att) signer = att.publicKey;
+    } else {
+      const att = registry.lookup(env.classicalSignerAddress);
+      if (att) signer = att.publicKey;
+    }
+  }
+
   return {
     effectiveBody: req.body,
     ctx: {
       signedRequest: true,
-      signingValid: result.valid,
-      signer: result.valid ? dualEnvelopeSignerId(parsed.envelope) : null,
-      signingReason: dualReasonToSigningReason(result),
+      signingValid: true,
+      signer,
+      signingReason: undefined,
       signingProtocol: 'dual',
       dualMode: parsed.envelope.mode,
     },

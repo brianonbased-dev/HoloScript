@@ -26,6 +26,7 @@ import {
   resetAttestationRegistry,
 } from '../signing-middleware';
 import { canonicalizeBody } from '../../request-signing';
+import { AttestationRegistry } from '../attestation-registry';
 import { createHash } from 'node:crypto';
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -333,5 +334,152 @@ describe('effectiveBody unwrap', () => {
     const req = envelopeToRequest(env, body, nonce, timestamp);
     const result = await extractAndVerifySigning(req);
     expect(result.effectiveBody).toEqual(body);
+  });
+});
+
+// ── Registry-integration: empty-registry safe-default + populated registry ──
+
+describe('verifyDualEnvelopeRequest — registry integration', () => {
+  const body = { team: 'core', op: 'audit' };
+  const nonce = 'n-reg';
+  const timestamp = '2026-05-12T00:00:00.000Z';
+  const SIGNER = CLASSICAL_ADDR.toLowerCase();
+  const SEAT_ID = 'claude-claudecode-test-default-x402';
+
+  // Stable PQC keypair across all registry tests so the same key registers
+  // and verifies (keygen with the all-0x42 seed in buildEnvelope).
+  const PQC_SEED = new Uint8Array(32).fill(0x42);
+  const PQC_KP = ml_dsa65.keygen(PQC_SEED);
+
+  it('FALSE: empty registry → no check, signingValid stays true (Phase 1.5 safe-default)', async () => {
+    const env = buildEnvelope({ mode: 'pqc_only', body, nonce, timestamp, pqcKeyPair: PQC_KP });
+    const req = envelopeToRequest(env, body, nonce, timestamp);
+    const registry = new AttestationRegistry();
+    expect(registry.size()).toBe(0);
+    const result = await extractAndVerifySigning(req, { registry });
+    expect(result.ctx.signingValid).toBe(true);
+    // Synthetic identifier preserved when registry doesn't know this key.
+    expect(result.ctx.signer?.startsWith('pqc:')).toBe(true);
+  });
+
+  it('TRUE: pqc_only with attested pqc-key resolves signer to the registered ETH address', async () => {
+    const env = buildEnvelope({ mode: 'pqc_only', body, nonce, timestamp, pqcKeyPair: PQC_KP });
+    const req = envelopeToRequest(env, body, nonce, timestamp);
+    const registry = new AttestationRegistry();
+    registry.attest({
+      publicKey: SIGNER,
+      seatId: SEAT_ID,
+      authorizedBy: 'ecosystem-root',
+      issuedAt: timestamp,
+      expiresAt: null,
+      pqcPublicKey: PQC_KP.publicKey,
+    });
+    const result = await extractAndVerifySigning(req, { registry });
+    expect(result.ctx.signingValid).toBe(true);
+    expect(result.ctx.signer).toBe(SIGNER); // canonical address, NOT pqc:<hex>
+  });
+
+  it('FALSE: pqc_only with unknown pqc-key + populated registry → rejected (signer-not-attested)', async () => {
+    const env = buildEnvelope({ mode: 'pqc_only', body, nonce, timestamp, pqcKeyPair: PQC_KP });
+    const req = envelopeToRequest(env, body, nonce, timestamp);
+    const registry = new AttestationRegistry();
+    // Register a DIFFERENT seat (so registry.size() > 0 but PQC key is unknown).
+    registry.attest({
+      publicKey: '0x' + '11'.repeat(20),
+      seatId: 'other-seat',
+      authorizedBy: 'ecosystem-root',
+      issuedAt: timestamp,
+      expiresAt: null,
+    });
+    const result = await extractAndVerifySigning(req, { registry });
+    expect(result.ctx.signingValid).toBe(false);
+    expect(result.ctx.signingReason).toBe('signer-not-attested');
+  });
+
+  it('FALSE: pqc_only with retired pqc-key → rejected (signer-retired)', async () => {
+    const env = buildEnvelope({ mode: 'pqc_only', body, nonce, timestamp, pqcKeyPair: PQC_KP });
+    const req = envelopeToRequest(env, body, nonce, timestamp);
+    const registry = new AttestationRegistry();
+    registry.attest({
+      publicKey: SIGNER,
+      seatId: SEAT_ID,
+      authorizedBy: 'ecosystem-root',
+      issuedAt: timestamp,
+      expiresAt: null,
+      pqcPublicKey: PQC_KP.publicKey,
+    });
+    registry.retire(SIGNER, 'compromise');
+    const result = await extractAndVerifySigning(req, { registry });
+    expect(result.ctx.signingValid).toBe(false);
+    expect(result.ctx.signingReason).toBe('signer-retired');
+  });
+
+  it('TRUE: dual-mode cross-verify accepts when classical AND pqc map to the same seat', async () => {
+    const env = buildEnvelope({ mode: 'dual', body, nonce, timestamp, pqcKeyPair: PQC_KP });
+    const req = envelopeToRequest(env, body, nonce, timestamp);
+    const registry = new AttestationRegistry();
+    registry.attest({
+      publicKey: SIGNER,
+      seatId: SEAT_ID,
+      authorizedBy: 'ecosystem-root',
+      issuedAt: timestamp,
+      expiresAt: null,
+      pqcPublicKey: PQC_KP.publicKey,
+    });
+    const result = await extractAndVerifySigning(req, {
+      registry,
+      classicalVerifier: ALWAYS_VALID_CLASSICAL,
+    });
+    expect(result.ctx.signingValid).toBe(true);
+    expect(result.ctx.signer).toBe(SIGNER);
+  });
+
+  it('FALSE: dual-mode cross-verify rejects when classical and pqc map to DIFFERENT seats (substitution attack)', async () => {
+    const env = buildEnvelope({ mode: 'dual', body, nonce, timestamp, pqcKeyPair: PQC_KP });
+    const req = envelopeToRequest(env, body, nonce, timestamp);
+    const registry = new AttestationRegistry();
+    // Seat A: holds the classical address; no PQC key bound.
+    registry.attest({
+      publicKey: SIGNER,
+      seatId: 'seat-A',
+      authorizedBy: 'ecosystem-root',
+      issuedAt: timestamp,
+      expiresAt: null,
+    });
+    // Seat B: holds the PQC key; different classical address.
+    registry.attest({
+      publicKey: '0x' + '22'.repeat(20),
+      seatId: 'seat-B',
+      authorizedBy: 'ecosystem-root',
+      issuedAt: timestamp,
+      expiresAt: null,
+      pqcPublicKey: PQC_KP.publicKey,
+    });
+    const result = await extractAndVerifySigning(req, {
+      registry,
+      classicalVerifier: ALWAYS_VALID_CLASSICAL,
+    });
+    expect(result.ctx.signingValid).toBe(false);
+    expect(result.ctx.signingReason).toBe('cross-key-mismatch');
+  });
+
+  it('FALSE: dual-mode with classical attested but pqc not → pqc-not-attested', async () => {
+    const env = buildEnvelope({ mode: 'dual', body, nonce, timestamp, pqcKeyPair: PQC_KP });
+    const req = envelopeToRequest(env, body, nonce, timestamp);
+    const registry = new AttestationRegistry();
+    registry.attest({
+      publicKey: SIGNER,
+      seatId: SEAT_ID,
+      authorizedBy: 'ecosystem-root',
+      issuedAt: timestamp,
+      expiresAt: null,
+      // no pqcPublicKey
+    });
+    const result = await extractAndVerifySigning(req, {
+      registry,
+      classicalVerifier: ALWAYS_VALID_CLASSICAL,
+    });
+    expect(result.ctx.signingValid).toBe(false);
+    expect(result.ctx.signingReason).toBe('pqc-not-attested');
   });
 });

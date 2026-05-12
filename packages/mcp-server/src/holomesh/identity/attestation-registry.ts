@@ -45,6 +45,19 @@ export interface Attestation {
   retiredAt?: string;
   /** Set when retired; human-readable reason ('compromise' / 'rotation' / etc). */
   retireReason?: string;
+  /**
+   * Optional ML-DSA-65 public key bytes (FIPS-204 Category-3 / ~AES-192).
+   * Present once the seat's owner has bound a post-quantum key alongside
+   * the classical Ethereum address. The same Attestation entry carries both
+   * keys so dual-mode signature verification can cross-check that the
+   * classical address AND the pqc key map to the SAME seat (defends against
+   * substitution attacks where an attacker pairs a valid classical sig from
+   * seat A with a valid pqc sig from seat B).
+   *
+   * 2030 NIST classical-deprecation runway — see
+   * research/2026-05-12_pqc-dual-sign-design.md.
+   */
+  pqcPublicKey?: Uint8Array;
 }
 
 /** Event fired when an attestation is retired. Consumers wire this to SSE. */
@@ -72,8 +85,38 @@ function normalizeKey(publicKey: string): string {
   return publicKey.toLowerCase();
 }
 
+/**
+ * Encode a PQC public key as a stable hex string for use as a Map key.
+ * ML-DSA-65 public keys are 1952 bytes; hex doubles that — within memory
+ * budget for the in-memory registry (a few hundred entries max).
+ *
+ * Returns the empty string for empty/missing input so the secondary index
+ * never accidentally indexes a zero-length key.
+ */
+export function pqcKeyToHex(pqcPublicKey: Uint8Array | undefined): string {
+  if (!pqcPublicKey || pqcPublicKey.length === 0) return '';
+  let hex = '';
+  for (let i = 0; i < pqcPublicKey.length; i++) {
+    hex += pqcPublicKey[i].toString(16).padStart(2, '0');
+  }
+  return hex;
+}
+
+/** Constant-time-flavor compare of two Uint8Arrays — registry indices use hex
+ *  for Map keys so this is only used in defensive equality checks at boundaries. */
+function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+
 export class AttestationRegistry {
   private byKey = new Map<string, Attestation>();
+  /** Secondary index — pqcPublicKey hex → attestation. Always references the
+   *  same Attestation object stored in byKey; updated atomically with attest()
+   *  and retire(). */
+  private byPqcKey = new Map<string, Attestation>();
   private retired = new Set<string>();
   private onRetire?: OnRetireCallback;
 
@@ -81,12 +124,32 @@ export class AttestationRegistry {
     this.onRetire = opts.onRetire;
   }
 
-  /** Add or replace an attestation. Idempotent on identical input. */
+  /** Add or replace an attestation. Idempotent on identical input.
+   *
+   *  When the attestation carries a `pqcPublicKey`, the secondary index is
+   *  also updated. Re-attesting WITHOUT a pqcPublicKey removes any previous
+   *  PQC binding for this seat (intentional: callers explicitly drop PQC
+   *  by re-attesting without it).
+   */
   attest(att: Attestation): void {
     if (!att.publicKey) throw new Error('attest: publicKey required');
     if (!att.seatId) throw new Error('attest: seatId required');
     const key = normalizeKey(att.publicKey);
-    this.byKey.set(key, { ...att, publicKey: key });
+
+    // Clear any previous PQC index entry for this seat (re-attest may rotate
+    // or drop the PQC key).
+    const previous = this.byKey.get(key);
+    if (previous?.pqcPublicKey) {
+      this.byPqcKey.delete(pqcKeyToHex(previous.pqcPublicKey));
+    }
+
+    const stored: Attestation = { ...att, publicKey: key };
+    this.byKey.set(key, stored);
+
+    if (stored.pqcPublicKey && stored.pqcPublicKey.length > 0) {
+      this.byPqcKey.set(pqcKeyToHex(stored.pqcPublicKey), stored);
+    }
+
     // Re-attesting an explicitly-retired key is allowed (key rotation flows);
     // callers must understand the implications. Clear the retired flag.
     this.retired.delete(key);
@@ -95,6 +158,9 @@ export class AttestationRegistry {
   /**
    * Mark an attestation as retired. Returns the (now-retired) attestation, or
    * null if the key was unknown. Fires onRetire callback when present.
+   *
+   * Retirement affects BOTH the classical and the PQC indices — a retired
+   * seat is rejected regardless of which key the verifier looks up.
    */
   retire(publicKey: string, reason: string): Attestation | null {
     const key = normalizeKey(publicKey);
@@ -104,6 +170,12 @@ export class AttestationRegistry {
     const retiredAt = new Date().toISOString();
     const updated: Attestation = { ...att, retiredAt, retireReason: reason };
     this.byKey.set(key, updated);
+    // Keep the PQC index pointing at the now-retired attestation so PQC-side
+    // lookups still find it and see retiredAt — they reject the same way the
+    // classical lookup does.
+    if (updated.pqcPublicKey && updated.pqcPublicKey.length > 0) {
+      this.byPqcKey.set(pqcKeyToHex(updated.pqcPublicKey), updated);
+    }
     this.retired.add(key);
     if (this.onRetire) {
       try {
@@ -121,6 +193,19 @@ export class AttestationRegistry {
     return this.byKey.get(normalizeKey(publicKey));
   }
 
+  /** Look up an attestation by ML-DSA-65 public key (PQC side).
+   *  Returns undefined when no seat has been attested with this PQC key. */
+  lookupByPqcKey(pqcPublicKey: Uint8Array): Attestation | undefined {
+    const hex = pqcKeyToHex(pqcPublicKey);
+    if (!hex) return undefined;
+    const att = this.byPqcKey.get(hex);
+    if (!att) return undefined;
+    // Defensive equality check — guard against the (vanishingly unlikely)
+    // hex-string collision on degenerate inputs.
+    if (!att.pqcPublicKey || !bytesEqual(att.pqcPublicKey, pqcPublicKey)) return undefined;
+    return att;
+  }
+
   /** True iff the key is attested AND not retired AND not expired (vs nowMs). */
   isAttested(publicKey: string, nowMs: number = Date.now()): boolean {
     const key = normalizeKey(publicKey);
@@ -134,9 +219,30 @@ export class AttestationRegistry {
     return true;
   }
 
+  /** PQC-side equivalent of `isAttested`. True iff the PQC key resolves to an
+   *  attestation that is NOT retired AND NOT expired. */
+  isPqcAttested(pqcPublicKey: Uint8Array, nowMs: number = Date.now()): boolean {
+    const att = this.lookupByPqcKey(pqcPublicKey);
+    if (!att) return false;
+    if (this.retired.has(normalizeKey(att.publicKey))) return false;
+    if (att.expiresAt) {
+      const exp = Date.parse(att.expiresAt);
+      if (!Number.isNaN(exp) && exp <= nowMs) return false;
+    }
+    return true;
+  }
+
   /** True iff the key is in the retired set (regardless of expiry / re-attest). */
   isRetired(publicKey: string): boolean {
     return this.retired.has(normalizeKey(publicKey));
+  }
+
+  /** PQC-side equivalent of `isRetired`. True iff the seat bound to this PQC
+   *  key has been retired. */
+  isPqcRetired(pqcPublicKey: Uint8Array): boolean {
+    const att = this.lookupByPqcKey(pqcPublicKey);
+    if (!att) return false;
+    return this.retired.has(normalizeKey(att.publicKey));
   }
 
   /** Number of distinct attestations (retired + active). */
@@ -171,9 +277,77 @@ export class AttestationRegistry {
     };
   }
 
+  /**
+   * Build a PQC-side registryCheck function. Same shape as `toRegistryCheck`
+   * but keyed on `Uint8Array` (the ML-DSA-65 public key bytes) instead of a
+   * 0x-Ethereum-address string.
+   */
+  toPqcRegistryCheck(
+    nowMs?: number
+  ): (pqcPublicKey: Uint8Array) => Promise<RegistryCheckResult> {
+    return async (pqcPublicKey: Uint8Array) => {
+      const att = this.lookupByPqcKey(pqcPublicKey);
+      if (!att) {
+        return { attested: false, retired: false, reason: 'signer-not-attested' };
+      }
+      const classicalKey = normalizeKey(att.publicKey);
+      if (this.retired.has(classicalKey)) {
+        return { attested: false, retired: true, reason: 'signer-retired' };
+      }
+      const attested = this.isPqcAttested(pqcPublicKey, nowMs);
+      return {
+        attested,
+        retired: false,
+        reason: attested ? undefined : 'signer-not-attested',
+      };
+    };
+  }
+
+  /**
+   * Dual-mode cross-verify — confirm that a classical address AND a PQC key
+   * resolve to the SAME attestation entry. Defends against substitution
+   * attacks where an attacker pairs a valid classical sig from seat A with a
+   * valid PQC sig from seat B (both keys are individually attested but for
+   * different seats).
+   *
+   * Returns:
+   *   - `{matched: true,  attestation}` when both keys point at one entry.
+   *   - `{matched: false, reason: 'classical-not-attested'}` when classical missing.
+   *   - `{matched: false, reason: 'pqc-not-attested'}`       when pqc missing.
+   *   - `{matched: false, reason: 'cross-key-mismatch'}`     when both exist but
+   *     bind to different seats.
+   *   - `{matched: false, reason: 'signer-retired'}`         when the bound seat is retired.
+   */
+  crossVerifyDual(
+    classicalAddress: string,
+    pqcPublicKey: Uint8Array,
+    nowMs?: number
+  ): { matched: true; attestation: Attestation } | { matched: false; reason: string } {
+    const classicalAtt = this.lookup(classicalAddress);
+    if (!classicalAtt) return { matched: false, reason: 'classical-not-attested' };
+    const pqcAtt = this.lookupByPqcKey(pqcPublicKey);
+    if (!pqcAtt) return { matched: false, reason: 'pqc-not-attested' };
+    if (normalizeKey(classicalAtt.publicKey) !== normalizeKey(pqcAtt.publicKey)) {
+      return { matched: false, reason: 'cross-key-mismatch' };
+    }
+    if (this.retired.has(normalizeKey(classicalAtt.publicKey))) {
+      return { matched: false, reason: 'signer-retired' };
+    }
+    // Expiry check — both keys share the same Attestation entry so one check covers both.
+    if (classicalAtt.expiresAt) {
+      const exp = Date.parse(classicalAtt.expiresAt);
+      const now = nowMs ?? Date.now();
+      if (!Number.isNaN(exp) && exp <= now) {
+        return { matched: false, reason: 'signer-expired' };
+      }
+    }
+    return { matched: true, attestation: classicalAtt };
+  }
+
   /** Test-only: reset state. Avoid in production code paths. */
   clear(): void {
     this.byKey.clear();
+    this.byPqcKey.clear();
     this.retired.clear();
   }
 }
