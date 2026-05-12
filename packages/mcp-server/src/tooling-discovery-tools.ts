@@ -155,6 +155,7 @@ const EXPLICIT_OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       goal: { type: 'string' },
       suggestions: { type: 'array' },
       suggestedBundles: { type: 'array' },
+      noToolExplanation: { type: 'string' },
     },
     additionalProperties: true,
   },
@@ -229,7 +230,7 @@ function inferTags(name: string, description?: string): string[] {
   const desc = (description || '').toLowerCase();
   const n = name.toLowerCase();
 
-  for (const t of ['parse', 'validate', 'compile', 'render', 'share', 'graph', 'ide', 'ai', 'simulation', 'cael', 'plugin', 'economy', 'observability']) {
+  for (const t of ['parse', 'validate', 'compile', 'render', 'share', 'graph', 'ide', 'ai', 'simulation', 'cael', 'plugin', 'economy', 'observability', 'mcp', 'rest', 'a2a', 'cli', 'control', 'discovery', 'health', 'canary']) {
     if (desc.includes(t) || n.includes(t)) tags.add(t);
   }
 
@@ -262,6 +263,14 @@ export function buildToolManifest(
   }));
 }
 
+function getWordTokens(s: string): string[] {
+  return s
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .map((w) => w.toLowerCase());
+}
+
 export function suggestToolsForGoal(
   goal: string,
   manifest: ToolManifestEntry[],
@@ -270,6 +279,7 @@ export function suggestToolsForGoal(
   goal: string;
   suggestions: Array<{ name: string; score: number; reason: string }>;
   suggestedBundles: Array<{ name: string; tools: string[]; reason: string }>;
+  noToolExplanation?: string;
 } {
   const q = goal.toLowerCase();
   const queryTokens = new Set(q.split(/[^a-z0-9_]+/).filter(Boolean));
@@ -277,10 +287,11 @@ export function suggestToolsForGoal(
   const scored = manifest
     .map((tool) => {
       const haystack = `${tool.name} ${tool.description || ''} ${tool.tags.join(' ')}`.toLowerCase();
+      const haystackWords = getWordTokens(haystack);
       let score = 0;
       for (const token of queryTokens) {
         if (token.length < 2) continue;
-        if (haystack.includes(token)) score += 2;
+        if (haystackWords.some((w) => w === token || w.startsWith(token))) score += 2;
       }
 
       if (q.includes('compile') && tool.name.startsWith('compile_')) score += 3;
@@ -288,6 +299,15 @@ export function suggestToolsForGoal(
       if ((q.includes('parse') || q.includes('ast')) && tool.name.startsWith('parse_')) score += 3;
       if (q.includes('graph') && tool.name.startsWith('holo_')) score += 2;
       if (q.includes('simulate') && (tool.tags.includes('simulation') || tool.name.startsWith('solve_'))) score += 3;
+
+      // MCP, REST, A2A, CLI, control-plane, discovery, health, canary
+      if ((q.includes('mcp') || q.includes('tool manifest')) && (tool.name === 'get_tool_manifest' || tool.name === 'suggest_tools_for_goal' || tool.name === 'batch_tool_call' || tool.name === 'holoscript_discover_tools' || tool.name === 'compile_to_mcp_config')) score += 4;
+      if ((q.includes('rest') || q.includes('api') || q.includes('control') || q.includes('rcp')) && (tool.name === 'get_api_reference' || tool.name === 'get_circuit_breaker_status' || tool.name === 'fetch_authoritative_state' || tool.name === 'get_dev_dashboard_state' || tool.name === 'holo_service_scaffold')) score += 4;
+      if (q.includes('a2a') && (tool.name === 'compile_to_a2a_agent_card' || tool.name === 'discover_agents' || tool.name === 'discover_plugins')) score += 4;
+      if ((q.includes('cli') || q.includes('command line')) && (tool.name === 'holoscript_batch_execute' || tool.name === 'execute_holotest' || tool.name === 'holo_run_tests_targeted' || tool.name === 'holo_run_related_tests')) score += 4;
+      if (q.includes('discovery') && (tool.name.startsWith('discover_') || tool.name === 'holoscript_discover_tools' || tool.name === 'holo_oracle_discover')) score += 4;
+      if ((q.includes('health') || q.includes('diagnostic')) && (tool.name === 'get_agent_health' || tool.name === 'holoscript_code_health' || tool.name === 'holo_self_diagnose' || tool.name === 'get_telemetry_metrics' || tool.name === 'get_metrics_prometheus')) score += 4;
+      if ((q.includes('canary') || q.includes('gap')) && (tool.name === 'execute_holotest' || tool.name === 'holo_run_tests_targeted' || tool.name === 'holo_run_related_tests' || tool.name === 'holoscript_code_health' || tool.name === 'holo_self_diagnose' || tool.name === 'get_circuit_breaker_status')) score += 4;
 
       return {
         name: tool.name,
@@ -317,10 +337,23 @@ export function suggestToolsForGoal(
     });
   }
 
+  if (q.includes('mcp') || q.includes('rest') || q.includes('a2a') || q.includes('cli') || q.includes('control') || q.includes('discovery') || q.includes('health') || q.includes('canary')) {
+    suggestedBundles.push({
+      name: 'control-plane-and-surface-audit',
+      tools: ['get_tool_manifest', 'get_api_reference', 'get_circuit_breaker_status', 'get_agent_health', 'holoscript_code_health', 'discover_agents', 'execute_holotest'],
+      reason: 'Audit MCP, REST, A2A, and CLI surfaces: manifest discovery, API docs, circuit breakers, health checks, and canary tests.',
+    });
+  }
+
+  const noToolExplanation = scored.length === 0
+    ? `No tools matched for goal: "${goal}". Analyzed tokens: ${Array.from(queryTokens).filter((t) => t.length >= 2).join(', ')}. Try rephrasing or use get_tool_manifest for a full listing.`
+    : undefined;
+
   return {
     goal,
     suggestions: scored,
     suggestedBundles,
+    noToolExplanation,
   };
 }
 
@@ -339,6 +372,7 @@ export async function handleToolingDiscoveryTool(
       goal: string;
       suggestions: Array<{ name: string; score: number; reason: string }>;
       suggestedBundles: Array<{ name: string; tools: string[]; reason: string }>;
+      noToolExplanation?: string;
     }
   | {
       results: Array<{ index: number; name: string; ok: boolean; result?: unknown; error?: string }>;
