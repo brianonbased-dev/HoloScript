@@ -98,6 +98,11 @@ export default defineConfig({
       { find: '@holoscript/core/reconstruction', replacement: resolve(__dirname, '../core/src/reconstruction/index.ts') },
       { find: '@holoscript/core/paper-0c-spike', replacement: resolve(__dirname, '../core/src/paper-0c-spike/index.ts') },
       { find: '@holoscript/core/coordinators', replacement: resolve(__dirname, '../core/src/coordinators/index.ts') },
+      // Subpath for test-only access to the multiview trait — needed by the
+      // splat-shared-sort.parity test which asserts WGSL ↔ JS-twin ↔ CPU-ref
+      // equivalence and must import the CPU ref directly (not via the main
+      // `@holoscript/core` barrel, which would pull all 250+ trait exports).
+      { find: '@holoscript/core/traits/multiview-gaussian-renderer', replacement: resolve(__dirname, '../core/src/traits/MultiviewGaussianRendererTrait.ts') },
       // Use exact-match regex to prevent prefix-matching subpath imports
       { find: /^@holoscript\/core$/, replacement: resolve(__dirname, '../core/src/index.ts') },
       { find: '@holoscript/holomap', replacement: resolve(__dirname, '../holomap/src/index.ts') },

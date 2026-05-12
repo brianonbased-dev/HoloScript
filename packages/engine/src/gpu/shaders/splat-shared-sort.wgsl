@@ -177,22 +177,31 @@ fn cs_preprocess(@builtin(global_invocation_id) gid: vec3<u32>) {
   // FINAL — this is the load-bearing sort key for the back-to-front order.
   distances[g] = distSquared(pos, uniforms.centroid);
 
-  // Per-view cone test → uint32 bitmask. SCAFFOLD body: defaults to "visible
-  // in all registered views" (mask = (1 << numViews) - 1) so the runtime
-  // degrades gracefully to per-view-independent-render behavior until the
-  // real cone test lands. CPU ref: lines 201-231 of MultiviewGaussianRendererTrait.
+  // Per-view cone test → uint32 bitmask. Direct port of CPU ref
+  // MultiviewGaussianRendererTrait.preprocess() lines 201-231. The JS parity
+  // twin at splat-shared-sort.parity.ts is the test-time reference — both
+  // implementations must compute identical bitmasks on the same fixture.
+  //
+  // Bit v of mask is set iff Gaussian g is inside the half-FOV cone of view v
+  // OR Gaussian g is degenerately colocated with view v's eye position
+  // (where the cone-test cosine is undefined; CPU ref line 213-216 sets the
+  // bit unconditionally in that case to avoid popping).
   var mask: u32 = 0u;
   let nv = min(uniforms.numViews, MAX_BITMASK_VIEWS);
   for (var v: u32 = 0u; v < nv; v = v + 1u) {
-    // TODO(P.043 sub-scope d): replace this unconditional set with:
-    //   let view = views[v];
-    //   let toG = pos - view.eyePosition;
-    //   let nToG = safeNormalize(toG);
-    //   let nDir = safeNormalize(view.eyeDirection);
-    //   if (dot(nToG, nDir) >= DEFAULT_HALF_FOV_COS) { mask |= (1u << v); }
-    // The degenerate-eye-position case (||toG|| < 1e-6) should set the bit
-    // unconditionally (matches CPU ref line 213-216).
-    mask = mask | (1u << v);
+    let view = views[v];
+    let toG = pos - view.eyePosition;
+    let toGLen2 = dot(toG, toG);
+    if (toGLen2 < 1e-12) {
+      // Degenerate: Gaussian colocated with eye. Match CPU ref lines 213-216.
+      mask = mask | (1u << v);
+      continue;
+    }
+    let nToG = toG * inverseSqrt(toGLen2);
+    let nDir = safeNormalize(view.eyeDirection);
+    if (dot(nToG, nDir) >= DEFAULT_HALF_FOV_COS) {
+      mask = mask | (1u << v);
+    }
   }
   visibilityBitmasks[g] = mask;
 }
