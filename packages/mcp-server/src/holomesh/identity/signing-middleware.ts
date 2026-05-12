@@ -45,6 +45,7 @@ import {
   CapabilityTokenError,
   CapabilityTokenRegistry,
   type Capability,
+  type StoredCapabilityToken,
 } from '@holoscript/secrets-broker';
 
 // ── Singleton registry instance ────────────────────────────────────────
@@ -147,6 +148,58 @@ export function setCapabilityRegistry(registry: CapabilityTokenRegistry): void {
 /** Test-only: drop the singleton. */
 export function resetCapabilityRegistry(): void {
   _capabilityRegistry = null;
+}
+
+// ── Capability-token header resolver ────────────────────────────────────
+
+export interface CapabilityHeaderResult {
+  token: StoredCapabilityToken | null;
+  error?: string;
+}
+
+/**
+ * Resolve a capability token presented in the `Authorization` header.
+ *
+ * Expected format: `Authorization: Bearer <tokenId>:<tokenSecret>`
+ *
+ * Regular API keys (no colon separator) are ignored — callers should fall
+ * through to legacy Bearer resolution (e.g. `resolveRequestingAgent`).
+ *
+ * On success, returns the stored token record. On failure because a token
+ * was presented but invalid, returns `{ token: null, error: <reason> }`.
+ * When no capability token is present at all, returns `{ token: null }`.
+ */
+export function resolveCapabilityFromHeader(
+  req: http.IncomingMessage,
+  needsCapability: Capability
+): CapabilityHeaderResult {
+  const auth = req.headers['authorization'];
+  if (typeof auth !== 'string' || !auth.startsWith('Bearer ')) {
+    return { token: null };
+  }
+  const bearer = auth.slice(7).trim();
+
+  // Capability tokens use `<tokenId>:<tokenSecret>` format.
+  // Regular API keys do not contain a colon in this position.
+  const colonIdx = bearer.indexOf(':');
+  if (colonIdx === -1) {
+    return { token: null };
+  }
+
+  const tokenId = bearer.slice(0, colonIdx);
+  const tokenSecret = bearer.slice(colonIdx + 1);
+
+  const registry = getCapabilityRegistry();
+  try {
+    registry.validateById(tokenId, tokenSecret, needsCapability);
+    const stored = registry.get(tokenId);
+    return { token: stored ?? null };
+  } catch (err) {
+    if (err instanceof CapabilityTokenError) {
+      return { token: null, error: capabilityTokenErrorToSigningReason(err) };
+    }
+    throw err;
+  }
 }
 
 // ── Dual-signature envelope request shape ─────────────────────────────
