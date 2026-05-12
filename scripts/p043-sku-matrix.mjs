@@ -17,6 +17,7 @@ const REPO_ROOT = resolve(__dirname, "..");
 
 export const SAMPLE_SECONDS = 60;
 export const WARMUP_SECONDS = 5;
+export const REQUIRED_RUNS = 3;
 
 export const SCENES = Object.freeze([
   {
@@ -155,8 +156,10 @@ export function buildMatrix(options = {}) {
           views,
           sampleSeconds: SAMPLE_SECONDS,
           warmupSeconds: WARMUP_SECONDS,
+          requiredRuns: REQUIRED_RUNS,
           artifactPath: artifactPath(outputRoot, sku.id, scene.id, views),
           requiredMetrics: [
+            "status",
             "adapterInfo",
             "browserVersion",
             "osVersion",
@@ -169,6 +172,8 @@ export function buildMatrix(options = {}) {
             "visibilityMaskMs.p95",
             "droppedFrameCount",
             "thermalState",
+            "requiredRuns",
+            "runs",
           ],
         };
         cell.captureCommand = captureCommand(cell);
@@ -185,6 +190,7 @@ export function buildMatrix(options = {}) {
     gitHead: options.gitHead ?? gitHead(),
     sampleSeconds: SAMPLE_SECONDS,
     warmupSeconds: WARMUP_SECONDS,
+    requiredRuns: REQUIRED_RUNS,
     scenes: SCENES,
     skus: SKUS,
     targetCellCount: cells.length,
@@ -207,6 +213,22 @@ export function summarizeResults(matrix) {
     try {
       const artifact = JSON.parse(readFileSync(path, "utf8"));
       const missing = cell.requiredMetrics.filter((metric) => !hasPath(artifact, metric));
+      const sku = matrix.skus.find((candidate) => candidate.id === cell.skuId);
+      const adapterText = adapterIdentityText(artifact.adapterInfo);
+      const missingAdapterTokens = (sku?.requiredAdapterTokens ?? []).filter(
+        (token) => !adapterText.includes(token.toLowerCase())
+      );
+      const artifactStatus = String(artifact.status ?? "");
+      const captureMode = String(artifact.captureMode ?? "");
+      if (artifactStatus !== "completed") {
+        missing.push(`status=completed (got ${artifactStatus || "missing"})`);
+      }
+      if (captureMode.toLowerCase().includes("smoke")) {
+        missing.push(`captureMode must be a real capture mode (got ${captureMode})`);
+      }
+      if (missingAdapterTokens.length > 0) {
+        missing.push(`adapterInfo tokens: ${missingAdapterTokens.join(", ")}`);
+      }
       if (missing.length > 0) {
         invalid.push({ id: cell.id, artifactPath: cell.artifactPath, missing });
       } else {
@@ -235,6 +257,16 @@ function hasPath(obj, dottedPath) {
     cur = cur[part];
   }
   return true;
+}
+
+function adapterIdentityText(adapterInfo) {
+  if (adapterInfo == null) return "";
+  if (typeof adapterInfo === "string") return adapterInfo.toLowerCase();
+  try {
+    return JSON.stringify(adapterInfo).toLowerCase();
+  } catch {
+    return String(adapterInfo).toLowerCase();
+  }
 }
 
 function printHelp() {
@@ -273,6 +305,7 @@ function runCell(matrix, cellId, outPath) {
     scene,
     requiredSampleSeconds: SAMPLE_SECONDS,
     requiredWarmupSeconds: WARMUP_SECONDS,
+    requiredRuns: REQUIRED_RUNS,
     outPath: outPath ?? cell.artifactPath,
   };
 
@@ -291,6 +324,7 @@ function runCell(matrix, cellId, outPath) {
     P043_VIEW_COUNT: String(cell.views),
     P043_SAMPLE_SECONDS: String(SAMPLE_SECONDS),
     P043_WARMUP_SECONDS: String(WARMUP_SECONDS),
+    P043_REQUIRED_RUNS: String(REQUIRED_RUNS),
     P043_OUTPUT_PATH: outPath ?? cell.artifactPath,
   };
 
