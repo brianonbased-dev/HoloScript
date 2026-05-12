@@ -824,6 +824,15 @@ let cacheAutoLoaded = false;
 let cacheProvenance: 'fresh-scan' | 'disk-cache' | 'incremental-patch' | null = null;
 let cacheTimestamp = 0;
 
+export function resetCodebaseToolStateForTests(skipDiskAutoload = true): void {
+  cachedGraph = null;
+  cachedRootDir = '';
+  cacheAutoLoaded = skipDiskAutoload;
+  cacheProvenance = null;
+  cacheTimestamp = 0;
+  absorbJobs.clear();
+}
+
 /**
  * Ensure graph is loaded. Returns { loaded: boolean; source: string; ageMs?: number }.
  * Order of preference:
