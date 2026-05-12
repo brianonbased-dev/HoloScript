@@ -261,7 +261,6 @@ export function cloneSpatialPredicate(predicate: SpatialPredicate): SpatialPredi
     ...predicate,
     ...(predicate.timeRange ? { timeRange: [...predicate.timeRange] as [number, number] } : {}),
     ...(predicate.position ? { position: [...predicate.position] as [number, number, number] } : {}),
-    ...(predicate.spawnPosition ? { spawnPosition: [...predicate.spawnPosition] as [number, number, number] } : {}),
     ...(predicate.metadata ? { metadata: { ...predicate.metadata } } : {}),
   };
 }

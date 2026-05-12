@@ -8,8 +8,8 @@
  * knowledge store is the source of truth (always available).
  */
 
-import { execSync } from 'child_process';
-import { resolve } from 'path';
+import { readdirSync, readFileSync } from 'fs';
+import { extname, join, relative, resolve } from 'path';
 
 export interface AbsorbScanConfig {
   /** MCP Orchestrator URL (default: production) */
@@ -51,6 +51,8 @@ export interface ExtractedKnowledge {
 
 const DEFAULT_ORCHESTRATOR_URL = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 const DEFAULT_WORKSPACE_ID = 'ai-ecosystem';
+const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx']);
+const EXCLUDED_DIRECTORIES = new Set(['node_modules', '.pnpm', 'vendor', 'dist', 'build']);
 
 /** Orchestrator knowledge entry shape */
 interface KnowledgeEntry {
@@ -173,62 +175,37 @@ export async function scanImprovementMarkers(codebasePath: string): Promise<Scan
   const improvements: ImprovementTask[] = [];
 
   try {
-    // Use grep to find TODO/FIXME/HACK across .ts/.tsx files
-    // grep returns exit code 1 when no matches (not an error)
-    let grepOutput = '';
-    try {
-      grepOutput = execSync(
-        `grep -rn --include="*.ts" --include="*.tsx" --exclude-dir=node_modules --exclude-dir=.pnpm --exclude-dir=vendor --exclude-dir=dist --exclude-dir=build -E "(TODO|FIXME|HACK):" "${absPath}"`,
-        { encoding: 'utf-8', timeout: 10_000, maxBuffer: 1024 * 1024 }
-      );
-    } catch (grepErr: unknown) {
-      // grep exits 1 when no matches — that's fine
-      const execErr = grepErr as { status?: number; stdout?: string };
-      if (execErr.status === 1) {
-        grepOutput = execErr.stdout || '';
-      } else {
-        throw grepErr;
+    const files = findSourceFiles(absPath);
+
+    for (const filePath of files) {
+      const content = readFileSync(filePath, 'utf8');
+      const lines = content.split(/\r?\n/);
+
+      for (let index = 0; index < lines.length; index++) {
+        const trimmed = lines[index].trim();
+        const markerMatch = trimmed.match(/\b(TODO|FIXME|HACK):\s*(.+)/);
+        if (!markerMatch) continue;
+
+        const [, marker, commentText] = markerMatch;
+        const lineNum = index + 1;
+        const isFixme = marker === 'FIXME';
+        const isHack = marker === 'HACK';
+        const relPath = relative(absPath, filePath);
+
+        improvements.push({
+          title: commentText.trim().slice(0, 120),
+          description: `${marker} in ${relPath}:${lineNum}`,
+          priority: isFixme ? 1 : isHack ? 2 : 3,
+          category: categorizeContent(commentText),
+          file: relPath,
+          line: lineNum,
+        });
       }
-    }
-
-    const lines = grepOutput.split('\n').filter(Boolean);
-
-    for (const line of lines) {
-      // Format: filepath:linenum:content
-      const match = line.match(/^(.+?):(\d+):(.+)$/);
-      if (!match) continue;
-
-      const [, filePath, lineStr, content] = match;
-      const lineNum = parseInt(lineStr, 10);
-      const trimmed = content.trim();
-
-      // Skip vendored / generated paths that shouldn't produce actionable tasks
-      if (/[\\/](node_modules|\.pnpm|vendor|dist|build)[\\/]/.test(filePath)) continue;
-
-      // Extract the marker type
-      const isFixme = trimmed.includes('FIXME');
-      const isHack = trimmed.includes('HACK');
-
-      // Extract the comment text after the marker
-      const markerMatch = trimmed.match(/(?:TODO|FIXME|HACK):\s*(.+)/);
-      const commentText = markerMatch ? markerMatch[1].trim() : trimmed;
-
-      // Relativize path for readability
-      const relPath = filePath.replace(absPath, '').replace(/^[\\/]/, '');
-
-      improvements.push({
-        title: commentText.slice(0, 120),
-        description: `${isFixme ? 'FIXME' : isHack ? 'HACK' : 'TODO'} in ${relPath}:${lineNum}`,
-        priority: isFixme ? 1 : isHack ? 2 : 3,
-        category: categorizeContent(commentText),
-        file: relPath,
-        line: lineNum,
-      });
     }
 
     return {
       scanned: true,
-      filesAnalyzed: lines.length,
+      filesAnalyzed: files.length,
       issuesFound: improvements.length,
       improvements,
       knowledge: [],
@@ -243,6 +220,27 @@ export async function scanImprovementMarkers(codebasePath: string): Promise<Scan
       error: err instanceof Error ? err.message : String(err),
     };
   }
+}
+
+function findSourceFiles(root: string): string[] {
+  const files: string[] = [];
+  const entries = readdirSync(root, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = join(root, entry.name);
+    if (entry.isDirectory()) {
+      if (!EXCLUDED_DIRECTORIES.has(entry.name)) {
+        files.push(...findSourceFiles(fullPath));
+      }
+      continue;
+    }
+
+    if (entry.isFile() && SOURCE_EXTENSIONS.has(extname(entry.name))) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
 }
 
 /** Categorize content into an improvement category based on keywords. */
