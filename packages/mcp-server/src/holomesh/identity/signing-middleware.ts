@@ -651,6 +651,120 @@ export async function verifyCapabilityEnvelopeRequest(
   };
 }
 
+// ── requireCapability — authorization helper for capability-gated handlers ──
+
+/**
+ * Result of a capability-authorization check. Discriminated union so callers
+ * branch on `authorized` and get type-narrowed access to either `signer` or
+ * `reason`.
+ */
+export type AuthorizationResult =
+  | { authorized: true; signer: string; protocol: 'classical' | 'dual' | 'capability' }
+  | { authorized: false; reason: AuthorizationFailureReason };
+
+/**
+ * Stable reason strings handlers can match on for HTTP response shaping.
+ * - `unsigned`              : request had no signing envelope at all (grace mode left signedRequest=false)
+ * - `signing-invalid`       : envelope failed verification (signature mismatch, expired, etc.)
+ * - `capability-scope-mismatch`: capability token DID NOT grant the requested capability
+ * - `capability-required`   : route requires capability-token scoping; caller used classical/dual without the explicit allow flag
+ * - `unknown-protocol`      : SigningContext.signingProtocol was unset (legacy unset path) or an unrecognized value
+ */
+export type AuthorizationFailureReason =
+  | 'unsigned'
+  | 'signing-invalid'
+  | 'capability-scope-mismatch'
+  | 'capability-required'
+  | 'unknown-protocol';
+
+export interface RequireCapabilityOptions {
+  /**
+   * If true, accept a classical-envelope SigningContext WITHOUT
+   * capability-scope checking. Default `false` — classical envelopes carry
+   * identity but no scope, so capability-gated routes must opt in explicitly.
+   */
+  allowClassical?: boolean;
+  /**
+   * If true, accept a dual-envelope SigningContext WITHOUT capability-scope
+   * checking. Default `true` — dual envelopes are the strongest identity
+   * proof in the system; routes that opt out of dual should be rare.
+   */
+  allowDual?: boolean;
+}
+
+/**
+ * Verify that a route caller is authorized to exercise `capability` against
+ * a verified `SigningContext`.
+ *
+ * Semantics by `ctx.signingProtocol`:
+ * - `capability`: authorized iff `ctx.capabilityScope === capability`.
+ *   Capability tokens carry explicit scope; the registry already enforced
+ *   that the scope is in the token's granted set at validate time.
+ * - `dual`     : authorized when `options.allowDual !== false` (default true).
+ *   Dual envelopes don't carry per-request capability scope, but they prove
+ *   the strongest identity available — routes typically trust dual signers.
+ * - `classical`: authorized when `options.allowClassical === true`.
+ *   Default-off: classical signers must explicitly be admitted, since they
+ *   don't carry per-request scope and run the legacy ECDSA path.
+ *
+ * Refuses outright when the caller is unsigned (`!ctx.signedRequest`) or when
+ * the signing path failed (`!ctx.signingValid`) — regardless of what
+ * `capability` the route asks for. These should never reach `requireCapability`
+ * in normal flow (the verifier middleware would have rejected first), but
+ * the guard catches mis-wired handlers.
+ *
+ * Designed to be one-liner-easy at the call site:
+ *
+ *   const auth = requireCapability(ctx, 'secrets:grant.create');
+ *   if (!auth.authorized) return json(res, 401, { error: auth.reason });
+ *   // …handler runs with auth.signer + auth.protocol attached to logs…
+ *
+ * Companion to the F.051 canary task_1778596074561_adcf — adopting this
+ * helper closes the holo_secrets_* authorization gap with a single line
+ * per handler.
+ */
+export function requireCapability(
+  ctx: SigningContext,
+  capability: Capability,
+  options: RequireCapabilityOptions = {}
+): AuthorizationResult {
+  if (!ctx.signedRequest) {
+    return { authorized: false, reason: 'unsigned' };
+  }
+  if (!ctx.signingValid) {
+    return { authorized: false, reason: 'signing-invalid' };
+  }
+  if (!ctx.signer) {
+    // Defense-in-depth: signingValid=true implies signer should be set.
+    // If a future code path lands an inconsistent ctx, treat it as failure.
+    return { authorized: false, reason: 'signing-invalid' };
+  }
+
+  switch (ctx.signingProtocol) {
+    case 'capability':
+      if (ctx.capabilityScope === capability) {
+        return { authorized: true, signer: ctx.signer, protocol: 'capability' };
+      }
+      return { authorized: false, reason: 'capability-scope-mismatch' };
+
+    case 'dual':
+      if (options.allowDual !== false) {
+        return { authorized: true, signer: ctx.signer, protocol: 'dual' };
+      }
+      return { authorized: false, reason: 'capability-required' };
+
+    case 'classical':
+      if (options.allowClassical === true) {
+        return { authorized: true, signer: ctx.signer, protocol: 'classical' };
+      }
+      return { authorized: false, reason: 'capability-required' };
+
+    default:
+      // ctx.signingProtocol is undefined or an unexpected value. Fail closed.
+      return { authorized: false, reason: 'unknown-protocol' };
+  }
+}
+
 // ── Canonical call-site recipe (documentation) ────────────────────────
 //
 // Inside a mutating handler in routes/team-routes.ts (or any other
