@@ -26,6 +26,7 @@ import {
   LLMAuthenticationError,
   LLMRateLimitError,
   LLMContextLengthError,
+  LLMCreditExhaustedError,
   LLMProviderError,
 } from '../types';
 
@@ -968,6 +969,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
   private mapAnthropicError(err: unknown): Error {
     if (err instanceof Error) {
       const status = (err as { status?: number }).status;
+      const message = err.message.toLowerCase();
       if (status === 401 || status === 403) {
         return new LLMAuthenticationError('anthropic');
       }
@@ -980,8 +982,14 @@ export class AnthropicAdapter extends BaseLLMAdapter {
           retryAfter ? parseInt(retryAfter) * 1000 : undefined
         );
       }
-      if (status === 400 && err.message.includes('context')) {
+      if (status === 400 && message.includes('context')) {
         return new LLMContextLengthError('anthropic', 0);
+      }
+      if (
+        status === 400 &&
+        (message.includes('credit balance is too low') || message.includes('credit'))
+      ) {
+        return new LLMCreditExhaustedError('anthropic');
       }
       const isRetryableStatus =
         typeof status === 'number' && status >= 500 && status < 600;

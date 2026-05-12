@@ -324,6 +324,7 @@ function handleHoloServiceScaffold(args: Record<string, unknown>) {
   const alertRules = [
     createApiQuotaSeed('npc_daily_cost_ceiling', 'npc', npcCostCeiling),
     createApiQuotaSeed('headless_agent_daily_cost_ceiling', 'headless_agent', headlessAgentCostCeiling),
+    createCreditFloorSeed('anthropic_credit_floor', 'anthropic'),
     ...(objectArrayArg<ScaffoldAlertRule>(args.alertRules) ?? parsed.alertRules ?? []),
   ];
   const operationMetric = {
@@ -437,6 +438,20 @@ function createApiQuotaSeed(name: string, subject: string, ceiling: number): Sca
       subject,
       unit: 'usd_per_day',
       ceiling_usd_per_day: ceiling,
+    },
+  };
+}
+
+function createCreditFloorSeed(name: string, provider: string): ScaffoldAlertRule {
+  return {
+    name,
+    rule_type: 'custom',
+    severity: 'critical',
+    threshold: 0,
+    rule_config: {
+      subject: provider,
+      check: 'credit_floor',
+      endpoint: '/api/health/llm',
     },
   };
 }

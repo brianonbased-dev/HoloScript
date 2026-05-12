@@ -13,6 +13,7 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { SearchResult } from '../engine/EmbeddingIndex';
 import type { EmbeddingIndex } from '../engine/EmbeddingIndex';
 import { GraphRAGEngine, type EnrichedResult, type LLMProvider } from '../engine/GraphRAGEngine';
+import { LLMCreditExhaustedError } from '@holoscript/llm-provider';
 import {
   ABSORB_EMBEDDING_INDEX_ERROR,
   ABSORB_GRAPH_RAG_ENGINE_ERROR,
@@ -311,6 +312,75 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
       llmProvider: effectiveProvider ?? 'ollama',
     };
   } catch (err: unknown) {
+    // Fallback on auto-detected Anthropic credit exhaustion
+    if (
+      err instanceof LLMCreditExhaustedError &&
+      effectiveProvider === 'anthropic' &&
+      !llmProvider
+    ) {
+      const fallbackOrder = ['openrouter', 'openai', 'gemini'] as const;
+      for (const fb of fallbackOrder) {
+        const fbKey = process.env[`${fb.toUpperCase()}_API_KEY`];
+        if (!fbKey) continue;
+        try {
+          const llmPkg = await import('@holoscript/llm-provider');
+          let fbAdapter: LLMProvider;
+          switch (fb) {
+            case 'openrouter':
+              fbAdapter = new llmPkg.OpenAIAdapter({
+                apiKey: fbKey,
+                defaultModel: llmModel ?? 'anthropic/claude-sonnet-4',
+                baseURL: 'https://openrouter.ai/api/v1',
+              }) as unknown as LLMProvider;
+              break;
+            case 'openai':
+              fbAdapter = new llmPkg.OpenAIAdapter({
+                apiKey: fbKey,
+                defaultModel: llmModel ?? 'gpt-4o-mini',
+              }) as unknown as LLMProvider;
+              break;
+            case 'gemini':
+              fbAdapter = new llmPkg.GeminiAdapter({
+                apiKey: fbKey,
+                defaultModel: llmModel ?? 'gemini-1.5-flash',
+              }) as unknown as LLMProvider;
+              break;
+            default:
+              continue;
+          }
+          const { GraphRAGEngine } = await import('../engine/GraphRAGEngine');
+          const fbEngine = new GraphRAGEngine(cachedGraphRAGEngine.graph, cachedEmbeddingIndex!, {
+            llmProvider: fbAdapter,
+            llmModel,
+          });
+          const fbAnswer = await fbEngine.queryWithLLM(question, {
+            topK,
+            language,
+            type,
+          });
+          return {
+            question,
+            answer: fbAnswer.answer,
+            citations: fbAnswer.citations,
+            context: fbAnswer.context.slice(0, 5).map((r: EnrichedResult) => ({
+              name: r.symbol.owner ? `${r.symbol.owner}.${r.symbol.name}` : r.symbol.name,
+              type: r.symbol.type,
+              file: r.file,
+              line: r.symbol.line,
+              score: r.score,
+              callers: r.callers.slice(0, 3),
+              callees: r.callees.slice(0, 3),
+              impactRadius: r.impactRadius,
+              community: r.community ?? null,
+            })),
+            llmProvider: fb,
+            fallbackFrom: 'anthropic',
+          };
+        } catch {
+          // try next fallback
+        }
+      }
+    }
     return {
       error: `Graph RAG query failed: ${err instanceof Error ? err.message : String(err)}`,
       hint: graphRagFailureHint(effectiveProvider),

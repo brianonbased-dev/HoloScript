@@ -937,6 +937,18 @@ export class LLMContextLengthError extends LLMProviderError {
   }
 }
 
+export class LLMCreditExhaustedError extends LLMProviderError {
+  constructor(provider: LLMProviderName) {
+    super(
+      `Credits exhausted for ${provider} — billing required. Purchase credits or switch provider.`,
+      provider,
+      400,
+      false
+    );
+    this.name = 'LLMCreditExhaustedError';
+  }
+}
+
 // =============================================================================
 // Capabilities Manifest (Universal Axis)
 // =============================================================================

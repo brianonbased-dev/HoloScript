@@ -77,6 +77,7 @@ export {
   LLMRateLimitError,
   LLMAuthenticationError,
   LLMContextLengthError,
+  LLMCreditExhaustedError,
   anthropicFileContentBlock,
   filterGenericTools,
   isAnthropicAdvisorTool,

@@ -823,6 +823,56 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   }
 
+  // LLM provider health probe — confirms credit status for Anthropic and
+  // availability of other configured providers (task_1778462298192_564w).
+  if (url === '/api/health/llm' && method === 'GET') {
+    const providers: Record<string, { configured: boolean; creditStatus?: string; error?: string }> = {};
+    // Anthropic probe
+    if (process.env.ANTHROPIC_API_KEY) {
+      try {
+        const probe = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': process.env.ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5',
+            max_tokens: 1,
+            messages: [{ role: 'user', content: 'hi' }],
+          }),
+        });
+        if (probe.status === 400) {
+          const body = await probe.json().catch(() => ({}));
+          const msg = body.error?.message ?? '';
+          if (msg.toLowerCase().includes('credit balance is too low')) {
+            providers.anthropic = { configured: true, creditStatus: 'exhausted', error: msg };
+          } else {
+            providers.anthropic = { configured: true, creditStatus: 'degraded', error: msg };
+          }
+        } else if (probe.ok) {
+          providers.anthropic = { configured: true, creditStatus: 'ok' };
+        } else {
+          providers.anthropic = { configured: true, creditStatus: 'unknown', error: `HTTP ${probe.status}` };
+        }
+      } catch (e: unknown) {
+        providers.anthropic = { configured: true, creditStatus: 'unreachable', error: e instanceof Error ? e.message : String(e) };
+      }
+    } else {
+      providers.anthropic = { configured: false };
+    }
+    // Other providers (config status only)
+    providers.openrouter = { configured: Boolean(process.env.OPENROUTER_API_KEY) };
+    providers.openai = { configured: Boolean(process.env.OPENAI_API_KEY) };
+    providers.gemini = { configured: Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY) };
+    providers.ollama = { configured: Boolean(process.env.HOLOSCRIPT_LOCAL_LLM_URL) };
+
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ status: 'healthy', providers }));
+    return;
+  }
+
   // Ops Prometheus scrape (P.008.02 — Grafana-friendly secured-tool counters + latency gauges)
   if (url === '/ops/metrics') {
     const { handleOpsMetricsRequest } = await import('./ops/tool-ops-metrics.js');
