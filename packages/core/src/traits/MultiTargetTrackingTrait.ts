@@ -30,6 +30,7 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
+import type { ReidFeature } from './ReidEmbeddingTrait';
 export type { ReidFeature } from './ReidEmbeddingTrait';
 
 // =============================================================================
