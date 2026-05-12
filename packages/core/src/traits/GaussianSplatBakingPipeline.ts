@@ -30,6 +30,8 @@
  * @Sprint v3.3+ (Render Network Gaussian Pipeline)
  */
 
+import type { DynamicRegionMaskAttachment } from './DynamicRegionMaskTrait';
+
 // =============================================================================
 // TYPES — Pipeline Stages
 // =============================================================================
@@ -107,6 +109,8 @@ export interface GaussianBakingConfig {
   positionLR: number;
   /** Enable anti-aliased rendering during training (default: true) */
   antiAlias: boolean;
+  /** Per-frame dynamic-region mask attachments forwarded from DynamicRegionMaskTrait */
+  frameMasks?: DynamicRegionMaskAttachment[];
 
   // --- Baking (Octane 2026.1) ---
   /** Octane bake mode (default: path_trace) */
@@ -385,6 +389,7 @@ const DEFAULT_CONFIG: GaussianBakingConfig = {
   densificationInterval: 100,
   positionLR: 0.00016,
   antiAlias: true,
+  frameMasks: undefined,
   octaneBakeMode: 'path_trace',
   bakeSamples: 512,
   bakeMaxBounces: 8,
@@ -477,6 +482,9 @@ export class GaussianBakingClient {
           densification_interval: config.densificationInterval,
           position_lr: config.positionLR,
           anti_alias: config.antiAlias,
+          ...(config.frameMasks && config.frameMasks.length > 0
+            ? { frame_masks: config.frameMasks }
+            : {}),
         },
         baking: {
           engine: 'octane_2026.1',
