@@ -133,6 +133,10 @@ export function resolveRequestingAgent(
   // 2. Key registry lookup (primary path — covers all provisioned + founder keys)
   const record = keyRegistry.get(token);
   if (record) {
+    // Reject expired keys before resolving identity
+    if (record.expiresAt && new Date(record.expiresAt) < new Date()) {
+      return { authenticated: false, id: 'anonymous', name: 'anonymous', isFounder: false };
+    }
     // Prefer an existing RegisteredAgent entry for soft-compatibility with social features
     const agent: RegisteredAgent =
       agentKeyStore.get(token) ||

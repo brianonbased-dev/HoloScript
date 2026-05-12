@@ -690,6 +690,16 @@ export interface KeyRecord {
   lastRotatedAt: string | null;
   /** Founder keys can provision agents, create teams, and access /admin routes */
   isFounder: boolean;
+  /**
+   * Surface tag snapshotted at provision time — e.g. "mobile", "claude-code".
+   * Used for attribution and audit trails.
+   */
+  surfaceTag?: string;
+  /**
+   * ISO timestamp after which this key is considered expired.
+   * Checked by resolveRequestingAgent; expired keys reject auth.
+   */
+  expiresAt?: string;
 }
 
 export interface RegisteredAgent {

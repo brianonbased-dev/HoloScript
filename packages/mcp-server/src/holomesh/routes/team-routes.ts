@@ -5,6 +5,8 @@ import {
   teamStore,
   agentKeyStore,
   walletToAgent,
+  keyRegistry,
+  persistKeyRegistry,
   teamMessageStore,
   teamPresenceStore,
   persistTeamStore,
@@ -795,6 +797,92 @@ export async function handleTeamRoutes(
     });
 
     json(res, 200, { success: true, role: 'member', members: team.members.length });
+    return true;
+  }
+
+  // POST /api/holomesh/team/:id/mobile-handoff
+  // Issue a reduced-trust temporary API key for a mobile session.
+  // The parent proves identity via their existing Bearer token;
+  // the returned key inherits the parent's wallet/agentId but is
+  //   - non-founder
+  //   - scope-restricted
+  //   - time-bounded
+  //   - surface-tagged as mobile
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/mobile-handoff$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/mobile-handoff', '');
+    await reloadTeam(teamId);
+    const team = teamStore.get(teamId);
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+
+    const member = getTeamMember(team, caller.id);
+    if (!member) {
+      json(res, 403, { error: 'Not a member of this team' });
+      return true;
+    }
+
+    const body = await parseJsonBody(req);
+
+    // Scope restriction: default to read-only; allow parent to request a subset
+    // of their own effective permissions, but never exceed them.
+    const DEFAULT_MOBILE_SCOPES = ['holomesh:read', 'team:read'];
+    const requestedScopes = Array.isArray(body.scopes)
+      ? (body.scopes as string[]).filter((s) => typeof s === 'string')
+      : DEFAULT_MOBILE_SCOPES;
+    const scopes = requestedScopes.length > 0 ? requestedScopes : DEFAULT_MOBILE_SCOPES;
+
+    // Expiry: default 1h, max 24h, min 1s
+    const DEFAULT_TTL_SECONDS = 3600;
+    const MAX_TTL_SECONDS = 86400;
+    let expiresIn = DEFAULT_TTL_SECONDS;
+    if (typeof body.expires_in === 'number' && Number.isFinite(body.expires_in)) {
+      expiresIn = Math.min(Math.max(Math.floor(body.expires_in), 1), MAX_TTL_SECONDS);
+    }
+    const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+
+    const surfaceTag =
+      typeof body.surface_tag === 'string' && (body.surface_tag as string).trim().length > 0
+        ? ((body.surface_tag as string).trim() as string)
+        : 'mobile';
+
+    const label =
+      typeof body.label === 'string' && (body.label as string).trim().length > 0
+        ? ((body.label as string).trim() as string)
+        : `${caller.name} mobile session`;
+
+    const mobileKey = `hs_mobile_${crypto.randomUUID().replace(/-/g, '')}`;
+    const record = {
+      key: mobileKey,
+      walletAddress: caller.walletAddress || member.walletAddress || '',
+      agentId: caller.id,
+      agentName: label,
+      scopes,
+      createdAt: new Date().toISOString(),
+      rotationCount: 0,
+      lastRotatedAt: null,
+      isFounder: false,
+      surfaceTag,
+      expiresAt,
+    };
+    keyRegistry.set(mobileKey, record);
+    persistKeyRegistry();
+
+    json(res, 201, {
+      success: true,
+      api_key: mobileKey,
+      agent_id: caller.id,
+      agent_name: caller.name,
+      scopes,
+      expires_at: expiresAt,
+      expires_in: expiresIn,
+      surface_tag: surfaceTag,
+      label,
+    });
     return true;
   }
 
