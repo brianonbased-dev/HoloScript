@@ -54,6 +54,7 @@ export * from './DialogTrait';
 export * from './DialogueTrait';
 export * from './DiffusionRealtimeTrait';
 export * from './DigitalTwinTrait';
+export * from './DynamicRegionMaskTrait';
 export * from './EconomyPrimitivesTrait';
 export * from './ECSWorldTrait';
 export * from './EmbeddingSearchTrait';
