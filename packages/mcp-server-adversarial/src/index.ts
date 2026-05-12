@@ -27,3 +27,34 @@ export { SybilAttack } from './sybil.js';
 export { ScoreManipulatorAttack } from './score-manipulator.js';
 export { SlowPoisonerAttack } from './slow-poisoner.js';
 export { EclipseAttack } from './eclipse.js';
+
+// --- Testbed + Runner (ATI-3-testbed) ---
+export type {
+  TestbedTopology,
+  ServerProfile,
+} from './testbed/testbed-config.js';
+export {
+  DEFAULT_TOPOLOGY,
+  validateTopology,
+} from './testbed/testbed-config.js';
+export {
+  seedLegit,
+  type ServerManifest,
+} from './testbed/seed-legit.js';
+
+export type {
+  AttackOutput,
+  BaselineSummary,
+  DefendedSummary,
+  OverheadSummary,
+} from './runner/output-schema.js';
+export {
+  validateAttackOutput,
+  wilsonCI,
+} from './runner/output-schema.js';
+export {
+  runTrial,
+  runBaseline,
+  DEFAULT_TRIALS,
+  type RunnableAttack,
+} from './runner/run-attack.js';
