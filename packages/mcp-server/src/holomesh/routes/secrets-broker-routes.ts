@@ -27,6 +27,53 @@ import {
 } from '../utils';
 import { requireAuth } from '../auth-utils';
 
+// ── Protocol commercialization integration ────────────────────────────────────
+// Lazy-loaded to avoid circular deps / startup cost
+async function getProtocolUtils() {
+  const {
+    generateProvenance,
+    calculateRevenueDistribution,
+    formatRevenueDistribution,
+    ethToWei,
+    PROTOCOL_CONSTANTS,
+  } = await import('@holoscript/core');
+  return {
+    generateProvenance,
+    calculateRevenueDistribution,
+    formatRevenueDistribution,
+    ethToWei,
+    PROTOCOL_CONSTANTS,
+  };
+}
+
+async function getProtocolServerUrl(): Promise<string> {
+  return process.env.HOLOSCRIPT_SERVER_URL || 'https://mcp.holoscript.net';
+}
+
+async function getProtocolAuthHeaders(): Promise<Record<string, string>> {
+  const apiKey = process.env.HOLOSCRIPT_API_KEY || '';
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json; charset=utf-8',
+  };
+  if (apiKey) headers['x-mcp-api-key'] = apiKey;
+  return headers;
+}
+
+// In-memory protocol registry for capability tokens (Phase 1)
+interface PublishedCapabilityToken {
+  contentHash: string;
+  tokenId: string;
+  author: string;
+  price: string;
+  license: string;
+  capabilities: Capability[];
+  surface: SurfaceKind;
+  createdAt: string;
+  collectCount: number;
+  revenueWei: string;
+}
+const protocolTokenStore = new Map<string, PublishedCapabilityToken>();
+
 // ── Phase-1 in-memory stores (persistence in follow-up task) ───────────────────
 
 const capRegistry = new CapabilityTokenRegistry();
@@ -424,6 +471,293 @@ export async function handleSecretsBrokerRoutes(
         receipt_hash: t.receiptHash,
       })),
     });
+    return true;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PROTOCOL COMMERCIALIZATION LAYER (D.013)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // ── POST /api/holomesh/team/:id/protocol/secrets/publish ─────────────────────
+  // Publish a capability token to the HoloScript Protocol so others can collect it.
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/protocol\/secrets\/publish$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const body = await parseJsonBody(req);
+    const tokenId = (body.token_id as string | undefined)?.trim();
+    const price = (body.price as string) || '0';
+    const license = (body.license as string) || 'free';
+    const mintAsNFT = (body.mint_as_nft as boolean) || false;
+
+    if (!tokenId) {
+      json(res, 400, { success: false, error: 'token_id required' });
+      return true;
+    }
+
+    const stored = capRegistry.get(tokenId);
+    if (!stored) {
+      json(res, 404, { success: false, error: 'Token not found in registry' });
+      return true;
+    }
+
+    // Ownership check: only the token issuer or a team founder can publish
+    if (stored.handle !== caller.name && !caller.isFounder) {
+      json(res, 403, { success: false, error: 'Only the token issuer can publish to protocol' });
+      return true;
+    }
+
+    try {
+      const { calculateRevenueDistribution, ethToWei, PROTOCOL_CONSTANTS } = await getProtocolUtils();
+      const priceWei = ethToWei(price);
+      const revenuePreview = calculateRevenueDistribution(priceWei, caller.name, []);
+
+      // Register on protocol server
+      const serverUrl = await getProtocolServerUrl();
+      const authHeaders = await getProtocolAuthHeaders();
+
+      const protocolRecord: PublishedCapabilityToken = {
+        contentHash: stored.receiptHash,
+        tokenId: stored.tokenId,
+        author: caller.name,
+        price,
+        license,
+        capabilities: [...stored.capabilities],
+        surface: stored.surface,
+        createdAt: new Date().toISOString(),
+        collectCount: 0,
+        revenueWei: '0',
+      };
+
+      // Store metadata endpoint
+      await fetch(`${serverUrl}/api/protocol/metadata`, {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          contentHash: stored.receiptHash,
+          provenance: {
+            hash: stored.receiptHash,
+            author: caller.name,
+            license,
+            publishMode: 'capability_token',
+            imports: [],
+            created: protocolRecord.createdAt,
+          },
+        }),
+      });
+
+      // Register protocol record
+      const regRes = await fetch(`${serverUrl}/api/protocol`, {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          contentHash: stored.receiptHash,
+          author: caller.name,
+          importHashes: [],
+          license,
+          publishMode: 'capability_token',
+          price,
+          referralBps: PROTOCOL_CONSTANTS.DEFAULT_REFERRAL_BPS,
+          metadataURI: `${serverUrl}/metadata/${stored.receiptHash}`,
+          mintAsNFT,
+          code: JSON.stringify({
+            tokenId: stored.tokenId,
+            capabilities: [...stored.capabilities],
+            surface: stored.surface,
+            handle: stored.handle,
+          }),
+          title: `Capability Token: ${stored.handle}`,
+          description: `Published capability token granting [${stored.capabilities.join(', ')}]`,
+        }),
+      });
+
+      if (!regRes.ok) {
+        const text = await regRes.text();
+        json(res, 502, { status: 'error', error: 'PROTOCOL_REGISTER_FAILED', message: text });
+        return true;
+      }
+
+      protocolTokenStore.set(stored.receiptHash, protocolRecord);
+
+      const regJson = await regRes.json();
+      json(res, 201, {
+        status: 'success',
+        ...regJson,
+        capabilityToken: {
+          token_id: stored.tokenId,
+          handle: stored.handle,
+          capabilities: [...stored.capabilities],
+          surface: stored.surface,
+        },
+        revenuePreview: {
+          totalPrice: price,
+          creatorShare: `${(parseFloat(price) * 0.8).toFixed(4)} ETH`,
+          platformShare: `${(parseFloat(price) * 0.025).toFixed(4)} ETH`,
+          referralShare: `${(parseFloat(price) * 0.02).toFixed(4)} ETH`,
+        },
+      });
+    } catch (err) {
+      json(res, 500, {
+        status: 'error',
+        error: 'PUBLISH_FAILED',
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+    return true;
+  }
+
+  // ── POST /api/holomesh/team/:id/protocol/secrets/collect ─────────────────────
+  // Collect (purchase) a published capability token.
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/protocol\/secrets\/collect$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const body = await parseJsonBody(req);
+    const contentHash = (body.content_hash as string | undefined)?.trim();
+    const referrer = (body.referrer as string | undefined)?.trim();
+    const quantity = (body.quantity as number) || 1;
+
+    if (!contentHash) {
+      json(res, 400, { success: false, error: 'content_hash required' });
+      return true;
+    }
+
+    const published = protocolTokenStore.get(contentHash);
+    if (!published) {
+      json(res, 404, { success: false, error: 'Published capability token not found' });
+      return true;
+    }
+
+    try {
+      const serverUrl = await getProtocolServerUrl();
+      const authHeaders = await getProtocolAuthHeaders();
+
+      const collectRes = await fetch(`${serverUrl}/api/collect/${contentHash}`, {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ referrer, quantity }),
+      });
+
+      if (!collectRes.ok) {
+        const text = await collectRes.text();
+        json(res, 502, { status: 'error', error: 'COLLECT_FAILED', message: text });
+        return true;
+      }
+
+      // Update local stats
+      published.collectCount += quantity;
+
+      const collectJson = await collectRes.json();
+      json(res, 200, {
+        status: 'success',
+        ...collectJson,
+        capabilityToken: {
+          token_id: published.tokenId,
+          handle: published.author,
+          capabilities: published.capabilities,
+          surface: published.surface,
+        },
+      });
+    } catch (err) {
+      json(res, 500, {
+        status: 'error',
+        error: 'COLLECT_FAILED',
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+    return true;
+  }
+
+  // ── GET /api/holomesh/team/:id/protocol/secrets/revenue ──────────────────────
+  // Preview revenue distribution for a capability token at a given price.
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/protocol\/secrets\/revenue$/) && method === 'GET') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const urlObj = new URL(url, 'http://localhost');
+    const price = urlObj.searchParams.get('price') || '0';
+    const author = urlObj.searchParams.get('author') || caller.name;
+
+    try {
+      const { calculateRevenueDistribution, formatRevenueDistribution, ethToWei } =
+        await getProtocolUtils();
+      const priceWei = ethToWei(price);
+      const dist = calculateRevenueDistribution(priceWei, author, []);
+
+      json(res, 200, {
+        status: 'success',
+        totalPrice: price,
+        flows: dist.flows.map((f: any) => ({
+          recipient: f.recipient,
+          amount: f.amount.toString(),
+          reason: f.reason,
+          depth: f.depth,
+          percentage: `${(f.bps / 100).toFixed(1)}%`,
+        })),
+        formatted: formatRevenueDistribution(dist),
+      });
+    } catch (err) {
+      json(res, 500, {
+        status: 'error',
+        error: 'REVENUE_CALC_FAILED',
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+    return true;
+  }
+
+  // ── GET /api/holomesh/team/:id/protocol/secrets/lookup ─────────────────────
+  // Look up published capability tokens by content hash or author.
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/protocol\/secrets\/lookup$/) && method === 'GET') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const urlObj = new URL(url, 'http://localhost');
+    const contentHash = urlObj.searchParams.get('content_hash')?.trim();
+    const author = urlObj.searchParams.get('author')?.trim();
+
+    if (!contentHash && !author) {
+      json(res, 400, { status: 'error', error: 'MISSING_PARAMS', message: 'Provide content_hash or author' });
+      return true;
+    }
+
+    try {
+      if (contentHash) {
+        const published = protocolTokenStore.get(contentHash);
+        if (!published) {
+          json(res, 404, { status: 'not_found', message: `No record for hash ${contentHash}` });
+          return true;
+        }
+        json(res, 200, {
+          status: 'success',
+          record: {
+            ...published,
+            revenue_eth: (parseFloat(published.revenueWei) / 1e18).toFixed(6),
+          },
+        });
+        return true;
+      }
+
+      // Author lookup
+      const results = Array.from(protocolTokenStore.values()).filter(
+        (p) => p.author === author
+      );
+      json(res, 200, {
+        status: 'success',
+        author,
+        count: results.length,
+        records: results.map((p) => ({
+          ...p,
+          revenue_eth: (parseFloat(p.revenueWei) / 1e18).toFixed(6),
+        })),
+      });
+    } catch (err) {
+      json(res, 500, {
+        status: 'error',
+        error: 'LOOKUP_FAILED',
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
     return true;
   }
 
