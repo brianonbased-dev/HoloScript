@@ -192,6 +192,7 @@ import { rbacHandler } from './RBACTrait';
 import { quotaHandler } from './QuotaTrait';
 import { ssoSamlHandler, ssoOidcHandler } from './SSOTrait';
 import { auditLogHandler } from './AuditLogTrait';
+import { resourceAccountingHandler } from './ResourceAccountingTrait';
 
 // Scripting & Automation
 import { cronHandler } from './CronTrait';
@@ -1778,6 +1779,7 @@ export class VRTraitRegistry {
     this.register(ssoSamlHandler as TraitHandler);
     this.register(ssoOidcHandler as TraitHandler);
     this.register(auditLogHandler as TraitHandler);
+    this.register(resourceAccountingHandler as TraitHandler);
 
     // Scripting & Automation
     this.register(cronHandler as TraitHandler);
@@ -2342,6 +2344,7 @@ export {
   ssoSamlHandler,
   ssoOidcHandler,
   auditLogHandler,
+  resourceAccountingHandler,
 };
 
 // Scripting & Automation exports

@@ -193,6 +193,7 @@ export * from './RenderingTrait';
 export * from './RenderJobPersistence';
 export * from './RenderNetworkTrait';
 export * from './ReputationLedgerTrait';
+export * from './ResourceAccountingTrait';
 export * from './ReverbZoneTrait';
 export * from './RewardTrait';
 export { rigidbodyHandler } from './RigidbodyTrait';

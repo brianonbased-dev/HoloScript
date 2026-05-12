@@ -1,0 +1,30 @@
+@trait {
+  name: "@resource_accounting",
+  category: "audit",
+  description: "Provenance-anchored resource accounting receipts for tier-3 oracle reconciliation.",
+  props: {
+    adapters: array<string>,
+    tolerance: string = "0",
+    emit_audit_log: boolean = true,
+    receipt_schema: string = "tier3-resource-accounting-v1"
+  },
+  events: {
+    record: "resource_accounting:record",
+    audit: "resource_accounting:audit",
+    drift: "resource_accounting_drift_detected",
+    receipt: "resource_accounting_receipt"
+  },
+  adapters: ["base_mainnet", "can_bus", "hl7_fhir", "edi_x12"],
+  evidence: [
+    "F.050",
+    "W.GOLD.013",
+    "W.GOLD.191",
+    "D.013",
+    "D.024",
+    "F.037",
+    "F.043",
+    "memo:a233685",
+    "memo:f3e965e",
+    "memo:ffbab5f"
+  ]
+}
