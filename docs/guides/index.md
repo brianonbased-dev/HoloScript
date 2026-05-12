@@ -1,10 +1,10 @@
 # Introduction to HoloScript
 
-HoloScript is a **full programming language** for VR, AR, robotics, IoT, and digital twins. It compiles from one source file to multiple registered targets (Unity, Unreal, Godot, visionOS, Android XR, WebGPU, URDF, SDF, DTDL, WoT, OpenUSD, and more).
+HoloScript helps you describe interfaces, workflows, robots, and spatial scenes in files that can run, compile, and be inspected by agents. Start with intent, keep the source readable, and target the platform that needs the result.
 
 ## 🚀 Start with Studio (Recommended)
 
-**No coding required!** [HoloScript Studio](https://studio.holoscript.net) is a web-based IDE powered by **Brittney AI** that lets you build VR scenes using natural language.
+[HoloScript Studio](https://studio.holoscript.net) is a web-based IDE that helps you generate a first draft from natural language, preview it, and keep the underlying HoloScript files editable.
 
 ### New User? Start Here
 
@@ -30,9 +30,9 @@ HoloScript is a **full programming language** for VR, AR, robotics, IoT, and dig
 
 ### For Humans
 
-- **No syntax errors** - Visual/declarative approach eliminates brackets and semicolons
-- **Universal input** - Voice, gesture, gaze, or traditional keyboard
-- **See the data flow** - Watch computation happen in 3D space
+- **Readable intent** - Files describe what should exist and how it behaves
+- **Flexible input** - Start from prompt, voice, gesture, gaze, or keyboard
+- **Visible structure** - Scenes, workflows, traits, and data flows stay inspectable
 
 ### For AI
 
@@ -43,7 +43,7 @@ HoloScript is a **full programming language** for VR, AR, robotics, IoT, and dig
 ### For Computing
 
 - **One source → many targets** - verify current target keys in `ExportTarget` (`packages/core/src/compiler/CircuitBreaker.ts`)
-- **50,000 → 500 lines** - Declarative syntax eliminates boilerplate
+- **Less boilerplate** - Declarative syntax keeps intent visible
 - **Cross-domain** - VR, AR, robotics, IoT, and digital twins from one source
 - **Dual parser** - TypeScript + Rust/WASM with full LSP, linter, and formatter
 
@@ -51,11 +51,11 @@ HoloScript is a **full programming language** for VR, AR, robotics, IoT, and dig
 
 HoloScript uses three file formats:
 
-| Extension | Purpose            | Best For                         |
-| --------- | ------------------ | -------------------------------- |
-| `.hs`     | Classic HoloScript | Simple prototypes, learning      |
-| `.hsplus` | HoloScript Plus    | VR traits, networking, physics   |
-| `.holo`   | Composition        | AI-generated scenes, full worlds |
+| Extension | Purpose        | Best For                         |
+| --------- | -------------- | -------------------------------- |
+| `.hs`     | Process files  | Pipelines, sync jobs, monitoring |
+| `.hsplus` | Behavior files | Traits, agents, state, events    |
+| `.holo`   | World files    | Scenes, systems, target metadata |
 
 ## Quick Start
 
@@ -86,7 +86,7 @@ composition "Hello World" {
 
 - [Publishing & platform terms](./publishing-platform-terms) - VRChat, Unity, Unreal, Godot, web, mobile: official terms links before you ship
 - [Quick Start Guide](./quick-start) - Build your first HoloScript app
-- [File Formats](./file-formats) - Deep dive into .hs, .hsplus, and .holo
+- [File Formats](./file-formats) - Choose .hs, .hsplus, or .holo by the story you are building
 - [Traits Reference](./traits) - trait categories and usage patterns (inventory changes over time)
 - [Working Tree Triage](./working-tree-triage) - Keep large local change sets cleanly scoped
 - [Release Versioning](./release-versioning) - Version policy and current release info
