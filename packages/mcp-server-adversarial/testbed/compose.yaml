@@ -1,0 +1,205 @@
+# ATI-3 Testbed — Isolated HoloMesh for Paper 21 adversarial measurement.
+# Per evaluation-plan.md §1.2: isolated network, no route to production.
+#
+# Usage:
+#   docker compose -f testbed/compose.yaml up --build
+#   docker compose -f testbed/compose.yaml down --volumes
+#
+# Pre-flight isolation gate:
+#   bash testbed/isolation-check.sh
+
+services:
+  # --- Legitimate servers (≥10) ---
+  legit-01:
+    image: holoscript/mcp-server:latest
+    environment:
+      - HOLOMESH_ADVERSARIAL_SANDBOX=1
+      - NODE_ENV=test
+      - SERVER_ID=legit-01
+      - TOOL_SET=search_knowledge,holo_query
+      - LATENCY_MS=50
+    networks: [ati-isolated]
+  legit-02:
+    image: holoscript/mcp-server:latest
+    environment:
+      - HOLOMESH_ADVERSARIAL_SANDBOX=1
+      - NODE_ENV=test
+      - SERVER_ID=legit-02
+      - TOOL_SET=compile_to_unity,compile_to_godot
+      - LATENCY_MS=120
+    networks: [ati-isolated]
+  legit-03:
+    image: holoscript/mcp-server:latest
+    environment:
+      - HOLOMESH_ADVERSARIAL_SANDBOX=1
+      - NODE_ENV=test
+      - SERVER_ID=legit-03
+      - TOOL_SET=generate_scene,generate_world
+      - LATENCY_MS=80
+    networks: [ati-isolated]
+  legit-04:
+    image: holoscript/mcp-server:latest
+    environment:
+      - HOLOMESH_ADVERSARIAL_SANDBOX=1
+      - NODE_ENV=test
+      - SERVER_ID=legit-04
+      - TOOL_SET=holo_reconstruct,holo_anchor
+      - LATENCY_MS=200
+    networks: [ati-isolated]
+  legit-05:
+    image: holoscript/mcp-server:latest
+    environment:
+      - HOLOMESH_ADVERSARIAL_SANDBOX=1
+      - NODE_ENV=test
+      - SERVER_ID=legit-05
+      - TOOL_SET=protocol_publish,protocol_collect
+      - LATENCY_MS=60
+    networks: [ati-isolated]
+  legit-06:
+    image: holoscript/mcp-server:latest
+    environment:
+      - HOLOMESH_ADVERSARIAL_SANDBOX=1
+      - NODE_ENV=test
+      - SERVER_ID=legit-06
+      - TOOL_SET=absorb_scan,absorb_query
+      - LATENCY_MS=90
+    networks: [ati-isolated]
+  legit-07:
+    image: holoscript/mcp-server:latest
+    environment:
+      - HOLOMESH_ADVERSARIAL_SANDBOX=1
+      - NODE_ENV=test
+      - SERVER_ID=legit-07
+      - TOOL_SET=studio_ui_graph,studio_devtools
+      - LATENCY_MS=40
+    networks: [ati-isolated]
+  legit-08:
+    image: holoscript/mcp-server:latest
+    environment:
+      - HOLOMESH_ADVERSARIAL_SANDBOX=1
+      - NODE_ENV=test
+      - SERVER_ID=legit-08
+      - TOOL_SET=snn_forward,snn_encode
+      - LATENCY_MS=300
+    networks: [ati-isolated]
+  legit-09:
+    image: holoscript/mcp-server:latest
+    environment:
+      - HOLOMESH_ADVERSARIAL_SANDBOX=1
+      - NODE_ENV=test
+      - SERVER_ID=legit-09
+      - TOOL_SET=crdt_sync,crdt_spatial
+      - LATENCY_MS=70
+    networks: [ati-isolated]
+  legit-10:
+    image: holoscript/mcp-server:latest
+    environment:
+      - HOLOMESH_ADVERSARIAL_SANDBOX=1
+      - NODE_ENV=test
+      - SERVER_ID=legit-10
+      - TOOL_SET=lean_check,lean_build
+      - LATENCY_MS=150
+    networks: [ati-isolated]
+  legit-11:
+    image: holoscript/mcp-server:latest
+    environment:
+      - HOLOMESH_ADVERSARIAL_SANDBOX=1
+      - NODE_ENV=test
+      - SERVER_ID=legit-11
+      - TOOL_SET=trust_formula_v1,trust_decay
+      - LATENCY_MS=55
+    networks: [ati-isolated]
+  legit-12:
+    image: holoscript/mcp-server:latest
+    environment:
+      - HOLOMESH_ADVERSARIAL_SANDBOX=1
+      - NODE_ENV=test
+      - SERVER_ID=legit-12
+      - TOOL_SET=canary_probe,canary_verify
+      - LATENCY_MS=65
+    networks: [ati-isolated]
+
+  # --- Adversarial servers (≥2 per attack class) ---
+  adv-whitewasher-01:
+    image: holoscript/mcp-server-adversarial:latest
+    environment:
+      - HOLOMESH_ADVERSARIAL_SANDBOX=1
+      - NODE_ENV=test
+      - SERVER_ID=adv-whitewasher-01
+      - ATTACK_ID=whitewasher
+    networks: [ati-isolated]
+  adv-sybil-01:
+    image: holoscript/mcp-server-adversarial:latest
+    environment:
+      - HOLOMESH_ADVERSARIAL_SANDBOX=1
+      - NODE_ENV=test
+      - SERVER_ID=adv-sybil-01
+      - ATTACK_ID=sybil
+    networks: [ati-isolated]
+  adv-sybil-02:
+    image: holoscript/mcp-server-adversarial:latest
+    environment:
+      - HOLOMESH_ADVERSARIAL_SANDBOX=1
+      - NODE_ENV=test
+      - SERVER_ID=adv-sybil-02
+      - ATTACK_ID=sybil
+    networks: [ati-isolated]
+  adv-score-01:
+    image: holoscript/mcp-server-adversarial:latest
+    environment:
+      - HOLOMESH_ADVERSARIAL_SANDBOX=1
+      - NODE_ENV=test
+      - SERVER_ID=adv-score-01
+      - ATTACK_ID=score-manipulator
+    networks: [ati-isolated]
+  adv-poisoner-01:
+    image: holoscript/mcp-server-adversarial:latest
+    environment:
+      - HOLOMESH_ADVERSARIAL_SANDBOX=1
+      - NODE_ENV=test
+      - SERVER_ID=adv-poisoner-01
+      - ATTACK_ID=slow-poisoner
+    networks: [ati-isolated]
+  adv-eclipse-01:
+    image: holoscript/mcp-server-adversarial:latest
+    environment:
+      - HOLOMESH_ADVERSARIAL_SANDBOX=1
+      - NODE_ENV=test
+      - SERVER_ID=adv-eclipse-01
+      - ATTACK_ID=eclipse
+    networks: [ati-isolated]
+
+  # --- Seed / runner orchestrator ---
+  seed-legit:
+    build:
+      context: ..
+      dockerfile: testbed/Dockerfile.seed
+    environment:
+      - HOLOMESH_ADVERSARIAL_SANDBOX=1
+      - NODE_ENV=test
+      - SANDBOX_ID=ati-testbed-docker
+    networks: [ati-isolated]
+    depends_on:
+      - legit-01
+      - legit-02
+      - legit-03
+      - legit-04
+      - legit-05
+      - legit-06
+      - legit-07
+      - legit-08
+      - legit-09
+      - legit-10
+      - legit-11
+      - legit-12
+      - adv-whitewasher-01
+      - adv-sybil-01
+      - adv-sybil-02
+      - adv-score-01
+      - adv-poisoner-01
+      - adv-eclipse-01
+
+networks:
+  ati-isolated:
+    driver: bridge
+    internal: true

@@ -20,7 +20,10 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run --passWithNoTests",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "run-attack": "node dist/runner/run-attack.js",
+    "seed-legit": "node dist/testbed/seed-legit.js",
+    "isolation-check": "bash testbed/isolation-check.sh"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
