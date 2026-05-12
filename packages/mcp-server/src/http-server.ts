@@ -1743,6 +1743,90 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   }
 
+  // POST /oauth/github/device — GitHub OAuth 2.0 Device Authorization Grant (RFC 8628)
+  if (url === '/oauth/github/device' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+      const {
+        initiateDeviceFlow,
+        pollDeviceFlow,
+        exchangeForHoloMeshToken,
+        getDeviceFlowStats,
+      } = await import('./security/github-device-flow.js');
+
+      const action = body.action as string;
+
+      if (action === 'initiate') {
+        const scope = body.scope as string | undefined;
+        const result = await initiateDeviceFlow(scope);
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(result));
+        return;
+      }
+
+      if (action === 'poll') {
+        const deviceCode = body.device_code as string;
+        if (!deviceCode) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'invalid_request', error_description: 'device_code required' }));
+          return;
+        }
+        const result = await pollDeviceFlow(deviceCode);
+        if ('error' in result) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify(result));
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(result));
+        return;
+      }
+
+      if (action === 'exchange') {
+        const deviceCode = body.device_code as string;
+        if (!deviceCode) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'invalid_request', error_description: 'device_code required' }));
+          return;
+        }
+        const result = await exchangeForHoloMeshToken(deviceCode);
+        if (!result) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(
+            JSON.stringify({
+              error: 'authorization_pending',
+              error_description: 'Device flow not complete or token invalid. Poll again.',
+            })
+          );
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(result));
+        return;
+      }
+
+      if (action === 'stats') {
+        const stats = getDeviceFlowStats();
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(stats));
+        return;
+      }
+
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(
+        JSON.stringify({
+          error: 'invalid_request',
+          error_description: 'Unknown action. Use initiate, poll, exchange, or stats.',
+        })
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: 'server_error', error_description: message }));
+    }
+    return;
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // AUTHENTICATED ENDPOINTS
   // ═══════════════════════════════════════════════════════════════════════════
@@ -3365,6 +3449,7 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
     console.info(`     POST /oauth/token                  - Token exchange`);
     console.info(`     POST /oauth/revoke                 - Token revocation`);
     console.info(`     POST /oauth/introspect             - Token introspection (RFC 7662)`);
+    console.info(`     POST /oauth/github/device          - GitHub device flow (RFC 8628)`);
     console.info(`     POST /mcp                          - MCP Streamable HTTP (authenticated)`);
     if (ALLOW_SSE_TRANSPORT) {
       console.info(
