@@ -265,6 +265,7 @@ export * from './USDTrait';
 export * from './UserMonitorTrait';
 export * from './VectorDBTrait';
 export * from './VisionTrait';
+export * from './WebcamGazeTrait';
 export * from './VoiceInputTrait';
 export * from './VoiceMeshTrait';
 export * from './VoiceOutputTrait';

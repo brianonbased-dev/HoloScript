@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./hooks/useWebcamGaze": {
+      "types": "./dist/hooks/useWebcamGaze.d.ts",
+      "import": "./dist/hooks/useWebcamGaze.js"
     }
   },
   "files": [

@@ -11,6 +11,7 @@ export const ENVIRONMENT_INPUT_TRAITS = [
   'occlusion',
   'light_estimation',
   'eye_tracking',
+  'webcam_gaze',
   'hand_tracking',
   'controller',
   'spatial_accessory',

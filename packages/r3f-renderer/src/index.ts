@@ -216,3 +216,5 @@ export type {
 } from './hooks/usePerformanceRegression';
 export { useGpuSplatSort } from './hooks/useGpuSplatSort';
 export type { GpuSplatSortOptions, GpuSplatSortResult, SplatUploadPayload } from './hooks/useGpuSplatSort';
+export { useWebcamGaze } from './hooks/useWebcamGaze';
+export type { UseWebcamGazeOptions, UseWebcamGazeResult } from './hooks/useWebcamGaze';

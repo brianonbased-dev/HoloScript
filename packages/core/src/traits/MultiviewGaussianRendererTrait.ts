@@ -37,6 +37,8 @@ export const DEFAULT_FOVEATED_BLEND: FoveatedBlendConfig = {
   peripheralDecimation: 0.5,
 };
 
+export const LOCAL_WEBCAM_VIEW_ID = 'local-webcam';
+
 export class MultiviewGaussianRendererTrait {
   public readonly traitName = 'MultiviewGaussianRenderer';
   private views: Map<string, ViewConfig> = new Map();
@@ -57,6 +59,16 @@ export class MultiviewGaussianRendererTrait {
   updateView(userId: string, update: Partial<ViewConfig>): void {
     const v = this.views.get(userId);
     if (v) this.views.set(userId, { ...v, ...update });
+  }
+
+  upsertView(view: ViewConfig): void {
+    const existing = this.views.get(view.userId);
+    this.views.set(view.userId, existing ? { ...existing, ...view } : view);
+  }
+
+  getViewConfig(userId: string): ViewConfig | null {
+    const view = this.views.get(userId);
+    return view ? { ...view } : null;
   }
 
   setGaussianCount(count: number): void {
@@ -140,6 +152,37 @@ export const multiviewGaussianRendererHandler = {
     if (event.type === 'multiview_gaussian_renderer_configure' && event.payload) {
       Object.assign(instance, event.payload);
       ctx.emit('multiview_gaussian_renderer_configured', { node });
+    }
+    if (event.type === 'foveal_center_update') {
+      const eventRecord = event as unknown as Record<string, unknown>;
+      const payload =
+        eventRecord.payload && typeof eventRecord.payload === 'object'
+          ? (eventRecord.payload as Record<string, unknown>)
+          : eventRecord;
+      const center = payload.foveal_center ?? payload.fovealCenter;
+      if (
+        !Array.isArray(center) ||
+        center.length !== 2 ||
+        typeof center[0] !== 'number' ||
+        typeof center[1] !== 'number'
+      ) {
+        return;
+      }
+      const userId = typeof payload.userId === 'string' ? payload.userId : LOCAL_WEBCAM_VIEW_ID;
+      const renderer = instance as unknown as MultiviewGaussianRendererTrait;
+      renderer.upsertView({
+        userId,
+        eyePosition: [0, 0, 0],
+        eyeDirection: [0, 0, -1],
+        foveationCenter: [center[0], center[1]],
+        foveationRadius: DEFAULT_FOVEATED_BLEND.innerRadius,
+        ipd: 0.063,
+      });
+      ctx.emit('multiview_gaussian_renderer_foveal_center_updated', {
+        node,
+        userId,
+        foveationCenter: [center[0], center[1]],
+      });
     }
   },
   onUpdate(node: HSPlusNode, _config: unknown, ctx: TraitContext, dt: number): void {

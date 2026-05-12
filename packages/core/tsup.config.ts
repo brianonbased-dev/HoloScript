@@ -76,6 +76,8 @@ export default defineConfig({
 
     // Traits barrel (re-exports all trait types for @holoscript/traits)
     'traits/index': 'src/traits/index.ts',
+    // Browser-safe webcam gaze adapter without loading the full traits barrel
+    'traits/webcam-gaze': 'src/traits/WebcamGazeTrait.ts',
     // Botanical Lotus contract without the full domain-plugin trait barrel
     'traits/botanical-lotus': 'src/traits/BotanicalLotusTrait.ts',
     // Simulation registry without the full domain-plugin trait barrel
@@ -146,6 +148,7 @@ export default defineConfig({
     'three',
     '@react-three/fiber',
     '@react-three/drei',
+    '@mediapipe/tasks-vision',
     // Externalize workspace dependencies
     '@holoscript/absorb-service',
     '@holoscript/absorb-service/engine',

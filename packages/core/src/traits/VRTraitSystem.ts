@@ -80,6 +80,7 @@ import { handTrackingHandler } from './HandTrackingTrait';
 import { controllerInputHandler } from './ControllerInputTrait';
 import { bodyTrackingHandler } from './BodyTrackingTrait';
 import { faceTrackingHandler } from './FaceTrackingTrait';
+import { webcamGazeHandler } from './WebcamGazeTrait';
 import { spatialAccessoryHandler } from './SpatialAccessoryTrait';
 import { accessibleHandler } from './AccessibleTrait';
 import { altTextHandler } from './AltTextTrait';
@@ -1626,6 +1627,7 @@ export class VRTraitRegistry {
     this.register(controllerInputHandler as TraitHandler);
     this.register(bodyTrackingHandler as TraitHandler);
     this.register(faceTrackingHandler as TraitHandler);
+    this.register(webcamGazeHandler as TraitHandler);
     this.register(spatialAccessoryHandler as TraitHandler);
 
     // Phase 3: Accessibility
@@ -2228,6 +2230,7 @@ export {
   controllerInputHandler,
   bodyTrackingHandler,
   faceTrackingHandler,
+  webcamGazeHandler,
   spatialAccessoryHandler,
   // Phase 3: Accessibility
   accessibleHandler,

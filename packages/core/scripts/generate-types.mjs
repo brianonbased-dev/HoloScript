@@ -4178,6 +4178,56 @@ export interface EmergentSpacetimeState {
 
 export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig>;
 
+export interface NormalizedFaceLandmark {
+  x: number;
+  y: number;
+  z?: number;
+  visibility?: number;
+  presence?: number;
+}
+export interface WebcamGazeSample {
+  gaze_x: number;
+  gaze_y: number;
+  foveal_center: [number, number];
+  confidence: number;
+  timestamp: number;
+  source: 'webcam';
+}
+export interface WebcamGazeConfig {
+  auto_start: boolean;
+  video_width: number;
+  video_height: number;
+  sample_rate_hz: number;
+  confidence_threshold: number;
+  wasm_base_path: string;
+  model_asset_path: string;
+  gaze_gain_x: number;
+  gaze_gain_y: number;
+  max_ray_angle_degrees: number;
+}
+export const DEFAULT_WEBCAM_GAZE_CONFIG: WebcamGazeConfig;
+export class WebcamGazeTracker {
+  constructor(options: {
+    config: WebcamGazeConfig;
+    videoElement?: HTMLVideoElement | null;
+    onSample: (sample: WebcamGazeSample) => void;
+    onError?: (error: Error) => void;
+  });
+  getStream(): MediaStream | null;
+  getVideoElement(): HTMLVideoElement | null;
+  start(): Promise<void>;
+  stop(): void;
+}
+export function estimateWebcamGazeFromLandmarks(
+  landmarks: readonly NormalizedFaceLandmark[],
+  config?: Partial<WebcamGazeConfig>
+): WebcamGazeSample | null;
+export function webcamGazeToRay(
+  sample: Pick<WebcamGazeSample, 'foveal_center'>,
+  maxAngleDegrees?: number
+): [number, number, number];
+export const webcamGazeHandler: TraitHandler<WebcamGazeConfig>;
+
 // ── Namespaced domain plugins (mirrors packages/core/src/traits/index.ts) ──
 // Keeps \`import { FilmVFXPlugin } from '@holoscript/core/traits'\` resolving after barrel namespacing.
 export * as FilmVFXPlugin from '@holoscript/plugin-film-vfx';
@@ -4412,6 +4462,25 @@ export declare const SimulationSolverFactory: {
   types(): string[];
   clear(): void;
 };
+`;
+
+const webcamGazeDTS = `/**
+ * @holoscript/core/traits/webcam-gaze — narrow browser-safe webcam gaze adapter
+ */
+
+export type {
+  NormalizedFaceLandmark,
+  WebcamGazeConfig,
+  WebcamGazeSample,
+} from './index';
+
+export {
+  DEFAULT_WEBCAM_GAZE_CONFIG,
+  WebcamGazeTracker,
+  estimateWebcamGazeFromLandmarks,
+  webcamGazeHandler,
+  webcamGazeToRay,
+} from './index';
 `;
 
 const compilerDTS = `/**
@@ -5904,6 +5973,8 @@ try {
   }
   fs.writeFileSync(path.join(traitsDir, 'botanical-lotus.d.ts'), botanicalLotusDTS, 'utf8');
   console.log('✓ Created traits/botanical-lotus.d.ts');
+  fs.writeFileSync(path.join(traitsDir, 'webcam-gaze.d.ts'), webcamGazeDTS, 'utf8');
+  console.log('✓ Created traits/webcam-gaze.d.ts');
   fs.writeFileSync(
     path.join(traitsDir, 'simulation-solver-factory.d.ts'),
     simulationSolverFactoryDTS,

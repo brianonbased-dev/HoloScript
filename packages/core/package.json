@@ -103,6 +103,11 @@
       "types": "./dist/traits/index.d.ts",
       "import": "./dist/traits/index.js"
     },
+    "./traits/webcam-gaze": {
+      "types": "./dist/traits/webcam-gaze.d.ts",
+      "import": "./dist/traits/webcam-gaze.js",
+      "require": "./dist/traits/webcam-gaze.cjs"
+    },
     "./traits/botanical-lotus": {
       "types": "./dist/traits/botanical-lotus.d.ts",
       "import": "./dist/traits/botanical-lotus.js"
@@ -248,6 +253,7 @@
     "@holoscript/plugin-wisdom-gotcha": "workspace:*",
     "@holoscript/radio-astronomy-plugin": "workspace:*",
     "@holoscript/robotics-plugin": "workspace:*",
+    "@mediapipe/tasks-vision": "0.10.17",
     "jose": "^6.2.2",
     "jsonwebtoken": "^9.0.2",
     "zod": "^4.3.6"
