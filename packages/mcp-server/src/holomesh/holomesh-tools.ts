@@ -45,6 +45,7 @@ import { searchTools, handleSearchTool } from './search';
 import { boardTools, handleBoardTool } from './board-tools';
 import { teamAgentTools, handleTeamAgentTool } from './team-agent-tools';
 import { teamFormationTools, handleTeamFormationTool } from './team-formation-tools';
+import { agentCapabilityTools, handleAgentCapabilityTool } from './agent-capability-tools';
 import { sovereignTools, handleSovereignTool } from './sovereign-tools';
 import * as crypto from 'crypto';
 import {
@@ -116,8 +117,6 @@ const moltbookCrosspostSchema = z.object({
   /** When true (default), attach non-secret environment metadata for provenance. */
   includeContext: z.boolean().optional().default(true),
 });
-
-type MoltbookCrosspostArgs = z.infer<typeof moltbookCrosspostSchema>;
 
 const publishAgentTemplateSchema = z.object({
   name: z.string().min(1),
@@ -551,6 +550,8 @@ export const holomeshTools: Tool[] = [
   ...teamAgentTools,
   // Team formation tools (holo_team_form)
   ...teamFormationTools,
+  // Agent capability introspection + marketplace search
+  ...agentCapabilityTools,
   // Sovereign mesh ops
   ...sovereignTools,
 ];
@@ -608,6 +609,8 @@ export async function handleHoloMeshTool(
   if (teamAgentResult !== null) return teamAgentResult;
   const teamFormResult = await handleTeamFormationTool(name, args);
   if (teamFormResult !== null) return teamFormResult;
+  const agentCapabilityResult = await handleAgentCapabilityTool(name, args);
+  if (agentCapabilityResult !== null) return agentCapabilityResult;
 
   if (name === 'holomesh_publish_tool') {
     return handlePublishTool(hasHoloMeshKey() ? getOrCreateClient() : null, args);

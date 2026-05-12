@@ -21,7 +21,11 @@ import {
   clearRoom,
   _resetState,
 } from '../agent/team-coordinator';
-import { teamAgentTools, handleTeamAgentTool } from '../team-agent-tools';
+import {
+  teamAgentTools,
+  handleTeamAgentTool,
+  _resetAutonomousControlState,
+} from '../team-agent-tools';
 
 // ── Agent Profile Tests ──
 
@@ -461,13 +465,13 @@ describe('compoundKnowledge', () => {
 // ── MCP Tool Definition Tests ──
 
 describe('teamAgentTools definitions', () => {
-  it('exports 3 tool definitions', () => {
-    expect(teamAgentTools).toHaveLength(3);
+  it('exports 4 tool definitions', () => {
+    expect(teamAgentTools).toHaveLength(4);
   });
 
-  it('all tool names start with holomesh_team_', () => {
+  it('all tool names start with holomesh_', () => {
     for (const tool of teamAgentTools) {
-      expect(tool.name).toMatch(/^holomesh_team_/);
+      expect(tool.name).toMatch(/^holomesh_/);
     }
   });
 
@@ -475,6 +479,7 @@ describe('teamAgentTools definitions', () => {
     'holomesh_team_load_agents',
     'holomesh_team_run_cycle',
     'holomesh_team_compound',
+    'holomesh_autonomous_control',
   ];
 
   it.each(expectedTools)('includes %s', (name) => {
@@ -508,6 +513,11 @@ describe('teamAgentTools definitions', () => {
 describe('handleTeamAgentTool', () => {
   beforeEach(() => {
     _resetState();
+    _resetAutonomousControlState();
+  });
+
+  afterEach(() => {
+    _resetAutonomousControlState();
   });
 
   it('returns null for unknown tool names', async () => {
@@ -585,5 +595,50 @@ describe('handleTeamAgentTool', () => {
     })) as Record<string, unknown>;
     expect(result.success).toBe(true);
     expect(result.agentsInvolved).toHaveLength(4);
+  });
+
+  it('holomesh_autonomous_control starts, reports, and stops a loop', async () => {
+    const started = (await handleTeamAgentTool('holomesh_autonomous_control', {
+      action: 'start',
+      team_id: 'room-autonomous',
+      agent_ids: ['agent_daemon'],
+      interval_ms: 5000,
+      max_cycles: 2,
+    })) as Record<string, unknown>;
+
+    expect(started.success).toBe(true);
+    expect(started.loadedAgents).toBe(1);
+    expect(started.loop).toMatchObject({
+      loopId: 'room-autonomous',
+      teamId: 'room-autonomous',
+      status: 'running',
+      running: true,
+      maxCycles: 2,
+    });
+
+    const status = (await handleTeamAgentTool('holomesh_autonomous_control', {
+      action: 'query',
+      team_id: 'room-autonomous',
+    })) as Record<string, unknown>;
+
+    expect(status.success).toBe(true);
+    expect(status.loop).toMatchObject({ status: 'running', running: true });
+
+    const stopped = (await handleTeamAgentTool('holomesh_autonomous_control', {
+      action: 'stop',
+      team_id: 'room-autonomous',
+    })) as Record<string, unknown>;
+
+    expect(stopped.success).toBe(true);
+    expect(stopped.loop).toMatchObject({ status: 'stopped', running: false });
+  });
+
+  it('holomesh_autonomous_control refuses start without loaded agents', async () => {
+    const result = (await handleTeamAgentTool('holomesh_autonomous_control', {
+      action: 'start',
+      team_id: 'empty-room',
+    })) as Record<string, unknown>;
+
+    expect(result.error).toMatch(/No agents loaded/);
   });
 });

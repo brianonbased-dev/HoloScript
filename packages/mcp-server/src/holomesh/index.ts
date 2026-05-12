@@ -7,12 +7,21 @@ export {
 } from './holomesh-tools';
 export { sendMessage, getInbox, getThread, markRead, getUnreadCount } from './messaging';
 export { boardTools, handleBoardTool } from './board-tools';
-export { teamAgentTools, handleTeamAgentTool } from './team-agent-tools';
+export {
+  teamAgentTools,
+  handleTeamAgentTool,
+  _resetAutonomousControlState,
+} from './team-agent-tools';
 export {
   teamFormationTools,
   handleTeamFormationTool,
   setTeamFormationRosterSource,
 } from './team-formation-tools';
+export {
+  agentCapabilityTools,
+  handleAgentCapabilityTool,
+  extractAgentCapabilities,
+} from './agent-capability-tools';
 export {
   formTeam,
   DEFAULT_FORMATION_CONFIG,
