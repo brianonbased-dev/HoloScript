@@ -2,6 +2,12 @@
 
 HoloScript has three file formats. Each owns a lane — they are a progression, not alternatives.
 
+The simplest mental model:
+
+- `.hs` tells a process story: data comes in, changes shape, gets validated, and goes somewhere useful.
+- `.hsplus` tells a behavior story: objects gain state, traits, actions, events, and agent logic.
+- `.holo` tells a world story: environment, metadata, systems, targets, and orchestration live together.
+
 ## Overview
 
 | Extension | Purpose        | Parser                | Best For                            |
@@ -9,6 +15,19 @@ HoloScript has three file formats. Each owns a lane — they are a progression, 
 | `.holo`   | Worlds         | HoloCompositionParser | Scenes, compositions, AI generation |
 | `.hsplus` | Behaviors      | HoloScriptPlusParser  | Agent logic, traits, reactive state |
 | `.hs`     | Data Pipelines | PipelineParser        | ETL flows, sync jobs, monitoring    |
+
+## Story-First Examples
+
+These examples are useful when explaining HoloScript to someone who has not learned the syntax yet:
+
+| If the user says...                                   | Show this file                                                                                                                                                                    | Why it lands                                                                                |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| "I need to keep two business systems in sync."        | [`examples/pipelines/inventory-sync.hs`](https://github.com/brianonbased-dev/HoloScript/blob/main/examples/pipelines/inventory-sync.hs)                                           | The file reads like a scheduled job: source, transform, filter, validate, sink.             |
+| "I want a scene that becomes interactive over time."  | [`examples/three-format-showcase/smart-gallery.hsplus`](https://github.com/brianonbased-dev/HoloScript/blob/main/examples/three-format-showcase/smart-gallery.hsplus)             | The same gallery gains templates, state, tap behavior, grabbable sculptures, and audio.     |
+| "I have sensors and want a live operational display." | [`examples/iot/holotwin-smart-farm.holo`](https://github.com/brianonbased-dev/HoloScript/blob/main/examples/iot/holotwin-smart-farm.holo)                                         | MQTT sensors drive visible 3D state in a digital twin.                                      |
+| "I need simulation, agents, and robotics together."   | [`examples/novel-use-cases/05-robot-training-metaverse.holo`](https://github.com/brianonbased-dev/HoloScript/blob/main/examples/novel-use-cases/05-robot-training-metaverse.holo) | One composition ties training, feedback, agents, and robotics targets into a product story. |
+
+Start with the use case, then show the format. The syntax makes more sense after the reader can picture the system.
 
 ## Format Selection Guide
 
@@ -337,11 +356,11 @@ For full typing, consult the JSDoc references in `packages/core/src/parser/` mod
 
 When `parser.parse()` returns an AST it may also include an `errors[]` array containing `SyntaxError` objects.
 
-| Error | Common Cause | Resolution |
-| ----- | ------------ | ---------- |
-| `SyntaxError: Unexpected '{'` | Missing keyword like `object` or property value assignments lacking quotes. | Check line for missing directives. |
-| `SyntaxError: 'environment' not valid in pipeline` | Using `.holo` elements inside `.hs` files. | File type mismatch; switch to `.holo`. |
-| `Error: Unknown trait '@behavior_tree'` | Missing imports or unregistered extension trait. | Import library providing trait via `@import`. |
+| Error                                              | Common Cause                                                                | Resolution                                    |
+| -------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------- |
+| `SyntaxError: Unexpected '{'`                      | Missing keyword like `object` or property value assignments lacking quotes. | Check line for missing directives.            |
+| `SyntaxError: 'environment' not valid in pipeline` | Using `.holo` elements inside `.hs` files.                                  | File type mismatch; switch to `.holo`.        |
+| `Error: Unknown trait '@behavior_tree'`            | Missing imports or unregistered extension trait.                            | Import library providing trait via `@import`. |
 
 ---
 
