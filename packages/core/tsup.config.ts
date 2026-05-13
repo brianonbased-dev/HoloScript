@@ -99,6 +99,7 @@ export default defineConfig({
     // Sub-barrel focused entry points (lighter than monolithic index.ts)
     'entries/scripting': 'src/entries/scripting.ts',
     'entries/interop': 'src/entries/interop.ts',
+    'wot/index': 'src/wot/index.ts',
 
     // Sprint 2: Compiler extensions
     'compiler/coco': 'src/compiler/COCOExporter.ts',
