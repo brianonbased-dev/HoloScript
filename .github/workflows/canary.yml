@@ -1,0 +1,69 @@
+name: Canary Harness
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  canary:
+    name: MCP/REST/A2A/CLI Canary
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: '20'
+
+      - name: Run canary harness (source-tree)
+        run: node scripts/canary-harness.mjs
+        env:
+          CANARY_OUTPUT: .canary/canary-report-source.json
+
+      - name: Run canary harness (live-service)
+        if: env.HOLOSCRIPT_API_KEY != ''
+        run: node scripts/canary-harness.mjs
+        env:
+          CANARY_LIVE: '1'
+          CANARY_TIMEOUT_MS: '15000'
+          CANARY_OUTPUT: .canary/canary-report-live.json
+          CANARY_FILE_BOARD_TASKS: '1'
+          HOLOSCRIPT_API_KEY: ${{ secrets.HOLOSCRIPT_API_KEY }}
+          HOLOMESH_TEAM_ID: ${{ secrets.HOLOMESH_TEAM_ID }}
+
+      - name: Upload canary artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: canary-reports
+          path: .canary/*.json
+          retention-days: 7
+
+      - name: Write canary summary
+        if: always()
+        run: |
+          echo "## Canary Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          for f in .canary/canary-report-*.json; do
+            if [ -f "$f" ]; then
+              mode=$(jq -r '.mode' "$f")
+              total=$(jq -r '.total' "$f")
+              passed=$(jq -r '.passed' "$f")
+              failed=$(jq -r '.failed' "$f")
+              echo "- **${mode}**: ${passed}/${total} passed (${failed} failed)" >> "$GITHUB_STEP_SUMMARY"
+              if [ "$failed" -gt 0 ]; then
+                echo "  Failed probes:" >> "$GITHUB_STEP_SUMMARY"
+                jq -r '.probes[] | select(.ok == false) | "  - \(.name): \(.error // "status \(.status)")"' "$f" >> "$GITHUB_STEP_SUMMARY"
+              fi
+            fi
+          done
