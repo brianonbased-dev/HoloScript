@@ -199,48 +199,16 @@ export class SpatialEngineBridge {
    * Load the WASM module from a URL or ArrayBuffer.
    * Returns false if loading fails (bridge switches to fallback mode).
    */
-  async load(source: string | ArrayBuffer): Promise<boolean> {
-    const start = performance.now();
-
-    try {
-      let wasmBytes: ArrayBuffer;
-      if (typeof source === 'string') {
-        const resp = await fetch(source);
-        if (!resp.ok) throw new Error(`Failed to fetch WASM: ${resp.status}`);
-        wasmBytes = await resp.arrayBuffer();
-      } else {
-        wasmBytes = source;
-      }
-
-      const module = await WebAssembly.compile(wasmBytes);
-      const instance = await WebAssembly.instantiate(module, {
-        env: {
-          // Minimal import stubs
-          console_log: (ptr: number, len: number) => {
-            const bytes = new Uint8Array(this.wasm!.memory.buffer, ptr, len);
-            console.log(new TextDecoder().decode(bytes));
-          },
-        },
-      });
-
-      this.wasm = instance.exports as unknown as WasmExports;
-      this.status = {
-        wasmLoaded: true,
-        fallbackMode: false,
-        loadTimeMs: performance.now() - start,
-        moduleSize: wasmBytes.byteLength,
-      };
-      return true;
-    } catch (e) {
-      console.warn('[SpatialEngineBridge] WASM load failed, using fallback:', e);
-      this.status = {
-        wasmLoaded: false,
-        fallbackMode: true,
-        loadTimeMs: performance.now() - start,
-        moduleSize: 0,
-      };
-      return false;
-    }
+  async load(_source: string | ArrayBuffer): Promise<boolean> {
+    // WASM spatial engine retired in c5887f4e7; TS fallback is the only backend.
+    console.warn('[SpatialEngineBridge] WASM spatial engine retired (c5887f4e7). Using pure-TS fallback.');
+    this.status = {
+      wasmLoaded: false,
+      fallbackMode: true,
+      loadTimeMs: 0,
+      moduleSize: 0,
+    };
+    return false;
   }
 
   // ---------------------------------------------------------------------------

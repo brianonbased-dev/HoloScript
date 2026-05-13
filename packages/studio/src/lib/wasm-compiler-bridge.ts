@@ -5,6 +5,11 @@ import { logger } from '@/lib/logger';
  * Loads the holoscript-component WASM binary (compiled via jco from WIT interfaces)
  * in a Web Worker and exposes a typed async API for the Web Studio.
  *
+ * STALE-PATH NOTE (c5887f4e7): holoscript-component WASM paths referenced below
+ * were retired in commit c5887f4e7. The bridge operates in TypeScript fallback
+ * mode when WASM is unavailable. Do not add new dependencies on these paths
+ * without restoring the component build.
+ *
  * Architecture:
  *   Main Thread (React UI) ←→ CompilerBridge (this file) ←→ Web Worker ←→ WASM Component
  *

@@ -5,6 +5,11 @@ import { logger } from '@/lib/logger';
  * Runs in a dedicated Web Worker thread. Loads the holoscript-component
  * WASM binary and handles requests from the CompilerBridge on the main thread.
  *
+ * STALE-PATH NOTE (c5887f4e7): holoscript-component WASM paths referenced below
+ * were retired in commit c5887f4e7. The bridge falls back to TypeScript
+ * implementations when WASM is unavailable. Do not add new dependencies on
+ * these paths without restoring the component build.
+ *
  * Message protocol:
  *   Main Thread → Worker: { id, type, payload }
  *   Worker → Main Thread: { id, type: 'result'|'error', payload }

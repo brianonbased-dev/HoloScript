@@ -28,31 +28,12 @@ import { logger } from '@/lib/logger';
  * ```
  */
 export async function initializeWasm(
-  wasmPath: string = '/wasm/holoscript.wasm'
+  _wasmPath: string = '/wasm/holoscript.wasm'
 ): Promise<WasmInstance> {
-  try {
-    // Fetch and instantiate the WASM module
-    const response = await fetch(wasmPath);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch WASM: ${response.statusText}`);
-    }
-
-    const buffer = await response.arrayBuffer();
-    const wasmModule = await WebAssembly.instantiate(buffer, {
-      env: {
-        // WASI imports (if needed - filled in by WASM)
-      },
-    });
-
-    // Extract exported functions from the WASM module
-    const exports = wasmModule.instance.exports as unknown as Record<string, (...args: unknown[]) => unknown>;
-
-    // Create a wrapper with typed interface
-    return createWasmWrapper(exports);
-  } catch (error) {
-    logger.error('Failed to initialize WASM:', error);
-    throw new Error(`WASM initialization failed: ${String(error)}`);
-  }
+  throw new Error(
+    'WASM compiler component retired in c5887f4e7. ' +
+    'Use @holoscript/core TypeScript API directly instead of WASM loader.'
+  );
 }
 
 /**
@@ -273,10 +254,10 @@ let wasmInstance: WasmInstance | null = null;
  * Get the global WASM instance, initializing if needed
  */
 export async function getWasmInstance(): Promise<WasmInstance> {
-  if (!wasmInstance) {
-    wasmInstance = await initializeWasm();
-  }
-  return wasmInstance;
+  throw new Error(
+    'WASM compiler component retired in c5887f4e7. ' +
+    'Use @holoscript/core TypeScript API directly instead of WASM loader.'
+  );
 }
 
 /**
