@@ -49,6 +49,8 @@ npm run dev
 
 ## 📁 Directory Structure
 
+> **Note (2026-05-12):** The `browser-templates/` and `demos/` directories have been archived to `docs/archive/` because they reference deleted packages (`@holoscript/web-preview-plugin`, `@holoscript/studio-bridge`). See `research/2026-05-12_legacy-numbered-examples-triage.md` for the full audit.
+
 ### General Examples (`general/`)
 
 **Universal VR/AR examples showcasing HoloScript's broad applicability:**
