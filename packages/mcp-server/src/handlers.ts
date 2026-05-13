@@ -414,7 +414,15 @@ export async function handleTool(
     name === 'hololand_publish_zone' ||
     name === 'hololand_create_geo_anchor' ||
     name === 'hololand_steward_tick' ||
-    name === 'hololand_capture_runtime_receipt'
+    name === 'hololand_capture_runtime_receipt' ||
+    name === 'hololand_create_npc' ||
+    name === 'hololand_get_npc' ||
+    name === 'hololand_update_npc' ||
+    name === 'hololand_delete_npc' ||
+    name === 'hololand_list_npcs' ||
+    name === 'hololand_npc_generate_dialogue' ||
+    name === 'hololand_npc_byok_status' ||
+    name === 'hololand_brittney_npc_mode'
   ) {
     const { handleHololandMcpTool } = await import('./hololand-mcp-tools');
     return handleHololandMcpTool(name, args);

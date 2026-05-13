@@ -41,6 +41,7 @@ import {
   getHololandClient,
   HololandClient,
 } from '@holoscript/core/hololand';
+import { queryOllama, isOllamaAvailable, getActiveProvider } from './ollama-client.js';
 
 // =============================================================================
 // TOOL DEFINITIONS
@@ -647,6 +648,220 @@ export const hololandMcpTools: Tool[] = [
       required: ['shardId'],
     },
   },
+
+  // ---------------------------------------------------------------------------
+  // Brittney / NPC Sovereign Tools (local BYOK managed modes)
+  // ---------------------------------------------------------------------------
+  {
+    name: 'hololand_create_npc',
+    description:
+      'Create a sovereign NPC inside a HoloLand Shard or World. ' +
+      'Supports local BYOK model routing (ollama, gemma edge) and cloud Brittney. ' +
+      'NPCs can have behavior trees, dialogue trees, and spatial positions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'NPC identifier. Auto-generated if omitted.' },
+        name: { type: 'string', description: 'Display name' },
+        shardId: { type: 'string', description: 'Parent shard identifier. Optional.' },
+        worldId: { type: 'string', description: 'Parent world identifier. Optional.' },
+        role: {
+          type: 'string',
+          enum: ['merchant', 'guide', 'quest_giver', 'enemy', 'companion', 'ambient', 'brittney'],
+          description: 'NPC role. Default: ambient.',
+        },
+        behavior: {
+          type: 'string',
+          enum: ['passive', 'aggressive', 'friendly', 'neutral', 'scripted'],
+          description: 'Behavior disposition. Default: neutral.',
+        },
+        position: {
+          type: 'array',
+          items: { type: 'number' },
+          minItems: 3,
+          maxItems: 3,
+          description: 'Spatial position [x, y, z]. Optional.',
+        },
+        modelUrl: { type: 'string', description: '3D model asset URL. Optional.' },
+        traits: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'HoloScript traits assigned to this NPC. Optional.',
+        },
+        modelProvider: {
+          type: 'string',
+          enum: ['cloud', 'local', 'sovereign'],
+          description:
+            'Inference provider for NPC dialogue/behavior. ' +
+            'cloud = remote API (OpenRouter/Anthropic). ' +
+            'local = Ollama on this machine. ' +
+            'sovereign = deterministic rule-based (no LLM). ' +
+            'Default: cloud.',
+        },
+        modelId: {
+          type: 'string',
+          description:
+            'Model identifier for local/cloud routing. Examples: brittney-qwen-v23, gemma4:e4b, claude-haiku-4-5. Optional.',
+        },
+        systemPrompt: {
+          type: 'string',
+          description: 'Personality / system prompt for this NPC. Optional.',
+        },
+        dialogueTree: {
+          type: 'string',
+          description: 'Inline dialogue tree JSON or asset reference. Optional.',
+        },
+        enabled: {
+          type: 'boolean',
+          description: 'Whether the NPC is active in the world. Default: true.',
+        },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'hololand_get_npc',
+    description: 'Retrieve an NPC by ID.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        npcId: { type: 'string', description: 'NPC identifier' },
+      },
+      required: ['npcId'],
+    },
+  },
+  {
+    name: 'hololand_update_npc',
+    description:
+      'Update mutable fields of an existing NPC — behavior, position, model provider, system prompt, etc.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        npcId: { type: 'string', description: 'NPC identifier' },
+        name: { type: 'string' },
+        shardId: { type: 'string' },
+        worldId: { type: 'string' },
+        role: { type: 'string' },
+        behavior: { type: 'string' },
+        position: {
+          type: 'array',
+          items: { type: 'number' },
+          minItems: 3,
+          maxItems: 3,
+        },
+        modelUrl: { type: 'string' },
+        traits: { type: 'array', items: { type: 'string' } },
+        modelProvider: { type: 'string', enum: ['cloud', 'local', 'sovereign'] },
+        modelId: { type: 'string' },
+        systemPrompt: { type: 'string' },
+        dialogueTree: { type: 'string' },
+        enabled: { type: 'boolean' },
+      },
+      required: ['npcId'],
+    },
+  },
+  {
+    name: 'hololand_delete_npc',
+    description: 'Delete an NPC by ID.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        npcId: { type: 'string', description: 'NPC identifier' },
+      },
+      required: ['npcId'],
+    },
+  },
+  {
+    name: 'hololand_list_npcs',
+    description: 'List NPCs with optional filtering by shard, world, role, or behavior.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        shardId: { type: 'string', description: 'Filter by parent shard' },
+        worldId: { type: 'string', description: 'Filter by parent world' },
+        role: { type: 'string', description: 'Filter by role' },
+        behavior: { type: 'string', description: 'Filter by behavior' },
+        enabled: { type: 'boolean', description: 'Filter by active status' },
+        limit: { type: 'number', description: 'Max results. Default: 50' },
+        offset: { type: 'number', description: 'Pagination offset. Default: 0' },
+      },
+    },
+  },
+  {
+    name: 'hololand_npc_generate_dialogue',
+    description:
+      'Generate NPC dialogue using Brittney or a local BYOK model. ' +
+      'Returns a dialogue line and optional follow-up choices. ' +
+      'Respects the NPC\'s systemPrompt and role. ' +
+      'Falls back to sovereign (rule-based) when no model is available.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        npcId: { type: 'string', description: 'NPC identifier' },
+        playerInput: { type: 'string', description: 'What the player said to the NPC. Optional.' },
+        context: {
+          type: 'string',
+          description: 'Additional scene context (quest state, player history). Optional.',
+        },
+        maxChoices: {
+          type: 'number',
+          description: 'Maximum dialogue choices to generate. Default: 3.',
+        },
+      },
+      required: ['npcId'],
+    },
+  },
+  {
+    name: 'hololand_npc_byok_status',
+    description:
+      'Probe local BYOK (Bring Your Own Key) model availability for NPC inference. ' +
+      'Reports which local models are loaded, which cloud providers are reachable, ' +
+      'and the active provider routing.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'hololand_brittney_npc_mode',
+    description:
+      'Configure Brittney to operate as a sovereign NPC inside a HoloLand world or shard. ' +
+      'Sets her role, system prompt, model provider, and spatial binding. ' +
+      'When modelProvider is local/sovereign, Brittney runs without external API calls.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        worldId: { type: 'string', description: 'Target world identifier. Optional.' },
+        shardId: { type: 'string', description: 'Target shard identifier. Optional.' },
+        role: {
+          type: 'string',
+          enum: ['guide', 'companion', 'quest_giver', 'merchant', 'lorekeeper'],
+          description: 'Brittney NPC role. Default: guide.',
+        },
+        modelProvider: {
+          type: 'string',
+          enum: ['cloud', 'local', 'sovereign'],
+          description: 'Inference mode. Default: cloud.',
+        },
+        modelId: { type: 'string', description: 'Model identifier. Optional.' },
+        systemPrompt: {
+          type: 'string',
+          description: 'Custom personality prompt. Optional — defaults to role-appropriate prompt.',
+        },
+        position: {
+          type: 'array',
+          items: { type: 'number' },
+          minItems: 3,
+          maxItems: 3,
+          description: 'Spawn position [x, y, z]. Optional.',
+        },
+        enabled: {
+          type: 'boolean',
+          description: 'Activate or deactivate Brittney NPC mode. Default: true.',
+        },
+      },
+    },
+  },
 ];
 
 // =============================================================================
@@ -731,6 +946,25 @@ interface StoredShardReceipt {
   sealedAt: string;
 }
 
+interface StoredNPC {
+  id: string;
+  name: string;
+  shardId?: string;
+  worldId?: string;
+  role: string;
+  behavior: string;
+  position?: [number, number, number];
+  modelUrl?: string;
+  traits: string[];
+  modelProvider: 'cloud' | 'local' | 'sovereign';
+  modelId?: string;
+  systemPrompt?: string;
+  dialogueTree?: string;
+  enabled: boolean;
+  createdAt: string;
+  modifiedAt: string;
+}
+
 const worldRegistry = new Map<string, StoredWorld>();
 const shardRegistry = new Map<string, StoredShard>();
 const zoneRegistry = new Map<string, StoredZone>();
@@ -739,6 +973,7 @@ const questRegistry = new Map<string, StoredLocationQuest>();
 const zoneRuntimeRegistry = new Map<string, StoredZoneRuntime>();
 const geoAnchorRegistry = new Map<string, StoredGeoAnchor>();
 const shardReceiptRegistry = new Map<string, StoredShardReceipt>();
+const npcRegistry = new Map<string, StoredNPC>();
 
 function genId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -754,6 +989,7 @@ export function clearHololandRegistries(): void {
   zoneRuntimeRegistry.clear();
   geoAnchorRegistry.clear();
   shardReceiptRegistry.clear();
+  npcRegistry.clear();
 }
 
 // =============================================================================
@@ -838,6 +1074,24 @@ export async function handleHololandMcpTool(
       return handleHololandStewardTick(args);
     case 'hololand_capture_runtime_receipt':
       return handleHololandCaptureRuntimeReceipt(args);
+
+    // Brittney / NPC Sovereign Tools
+    case 'hololand_create_npc':
+      return handleHololandCreateNPC(args);
+    case 'hololand_get_npc':
+      return handleHololandGetNPC(args);
+    case 'hololand_update_npc':
+      return handleHololandUpdateNPC(args);
+    case 'hololand_delete_npc':
+      return handleHololandDeleteNPC(args);
+    case 'hololand_list_npcs':
+      return handleHololandListNPCs(args);
+    case 'hololand_npc_generate_dialogue':
+      return handleHololandNPCGenerateDialogue(args);
+    case 'hololand_npc_byok_status':
+      return handleHololandNPCBYOKStatus();
+    case 'hololand_brittney_npc_mode':
+      return handleHololandBrittneyNPCMode(args);
 
     default:
       return { error: `Unknown HoloLand tool: ${name}` };
@@ -1664,6 +1918,377 @@ function serializeWorld(def: WorldDefinition): Record<string, unknown> {
     spawnPoints: def.spawnPoints,
     lod: def.lod,
   };
+}
+
+// =============================================================================
+// NPC / BRITTNEY SOVEREIGN HANDLERS
+// =============================================================================
+
+async function handleHololandCreateNPC(args: Record<string, unknown>): Promise<unknown> {
+  const npcId = (args.id as string) || genId('npc');
+  const name = args.name as string;
+  if (!name || typeof name !== 'string') {
+    return { error: 'name is required and must be a non-empty string' };
+  }
+
+  const role = (args.role as string) || 'ambient';
+  const behavior = (args.behavior as string) || 'neutral';
+  const position = (args.position as [number, number, number] | undefined) ?? undefined;
+  const modelUrl = (args.modelUrl as string | undefined) ?? undefined;
+  const traits = (args.traits as string[] | undefined) ?? [];
+  const modelProvider = (args.modelProvider as 'cloud' | 'local' | 'sovereign') || 'cloud';
+  const modelId = (args.modelId as string | undefined) ?? undefined;
+  const systemPrompt = (args.systemPrompt as string | undefined) ?? undefined;
+  const dialogueTree = (args.dialogueTree as string | undefined) ?? undefined;
+  const enabled = (args.enabled as boolean | undefined) ?? true;
+
+  const npc: StoredNPC = {
+    id: npcId,
+    name,
+    shardId: (args.shardId as string | undefined) ?? undefined,
+    worldId: (args.worldId as string | undefined) ?? undefined,
+    role,
+    behavior,
+    position,
+    modelUrl,
+    traits,
+    modelProvider,
+    modelId,
+    systemPrompt,
+    dialogueTree,
+    enabled,
+    createdAt: new Date().toISOString(),
+    modifiedAt: new Date().toISOString(),
+  };
+
+  npcRegistry.set(npcId, npc);
+
+  return {
+    success: true,
+    npcId,
+    name,
+    role,
+    behavior,
+    modelProvider,
+    enabled,
+  };
+}
+
+async function handleHololandGetNPC(args: Record<string, unknown>): Promise<unknown> {
+  const npcId = args.npcId as string;
+  const npc = npcRegistry.get(npcId);
+  if (!npc) {
+    return { error: `NPC not found: ${npcId}` };
+  }
+  return { success: true, npcId, npc };
+}
+
+async function handleHololandUpdateNPC(args: Record<string, unknown>): Promise<unknown> {
+  const npcId = args.npcId as string;
+  const npc = npcRegistry.get(npcId);
+  if (!npc) {
+    return { error: `NPC not found: ${npcId}` };
+  }
+
+  if (args.name !== undefined) npc.name = args.name as string;
+  if (args.shardId !== undefined) npc.shardId = args.shardId as string;
+  if (args.worldId !== undefined) npc.worldId = args.worldId as string;
+  if (args.role !== undefined) npc.role = args.role as string;
+  if (args.behavior !== undefined) npc.behavior = args.behavior as string;
+  if (args.position !== undefined) npc.position = args.position as [number, number, number];
+  if (args.modelUrl !== undefined) npc.modelUrl = args.modelUrl as string;
+  if (args.traits !== undefined) npc.traits = args.traits as string[];
+  if (args.modelProvider !== undefined) npc.modelProvider = args.modelProvider as 'cloud' | 'local' | 'sovereign';
+  if (args.modelId !== undefined) npc.modelId = args.modelId as string;
+  if (args.systemPrompt !== undefined) npc.systemPrompt = args.systemPrompt as string;
+  if (args.dialogueTree !== undefined) npc.dialogueTree = args.dialogueTree as string;
+  if (args.enabled !== undefined) npc.enabled = args.enabled as boolean;
+
+  npc.modifiedAt = new Date().toISOString();
+
+  return { success: true, npcId, npc };
+}
+
+async function handleHololandDeleteNPC(args: Record<string, unknown>): Promise<unknown> {
+  const npcId = args.npcId as string;
+  const existed = npcRegistry.delete(npcId);
+  if (!existed) {
+    return { error: `NPC not found: ${npcId}` };
+  }
+  return { success: true, npcId, deleted: true };
+}
+
+async function handleHololandListNPCs(args: Record<string, unknown>): Promise<unknown> {
+  const limit = (args.limit as number) ?? 50;
+  const offset = (args.offset as number) ?? 0;
+  const shardId = args.shardId as string | undefined;
+  const worldId = args.worldId as string | undefined;
+  const role = args.role as string | undefined;
+  const behavior = args.behavior as string | undefined;
+  const enabled = args.enabled as boolean | undefined;
+
+  let items = Array.from(npcRegistry.values());
+  if (shardId !== undefined) items = items.filter((n) => n.shardId === shardId);
+  if (worldId !== undefined) items = items.filter((n) => n.worldId === worldId);
+  if (role !== undefined) items = items.filter((n) => n.role === role);
+  if (behavior !== undefined) items = items.filter((n) => n.behavior === behavior);
+  if (enabled !== undefined) items = items.filter((n) => n.enabled === enabled);
+
+  const total = items.length;
+  items = items.slice(offset, offset + limit);
+
+  return { success: true, total, limit, offset, npcs: items };
+}
+
+async function handleHololandNPCGenerateDialogue(args: Record<string, unknown>): Promise<unknown> {
+  const npcId = args.npcId as string;
+  const npc = npcRegistry.get(npcId);
+  if (!npc) {
+    return { error: `NPC not found: ${npcId}` };
+  }
+
+  const playerInput = (args.playerInput as string | undefined) ?? '';
+  const context = (args.context as string | undefined) ?? '';
+  const maxChoices = (args.maxChoices as number | undefined) ?? 3;
+
+  // Sovereign mode: rule-based deterministic response
+  if (npc.modelProvider === 'sovereign') {
+    return {
+      success: true,
+      npcId,
+      source: 'sovereign',
+      dialogue: sovereignDialogue(npc, playerInput, context),
+      choices: sovereignChoices(npc, maxChoices),
+    };
+  }
+
+  // Build system prompt from NPC personality
+  const personality = npc.systemPrompt || defaultNPCSystemPrompt(npc);
+  const prompt = buildDialoguePrompt(npc, playerInput, context, maxChoices);
+
+  // Try model generation (cloud or local)
+  const raw = await queryOllama(prompt, personality, {
+    requiresDeepReasoning: npc.role === 'quest_giver' || npc.role === 'lorekeeper',
+  });
+
+  if (raw) {
+    const { line, choices } = parseDialogueResponse(raw, maxChoices);
+    return {
+      success: true,
+      npcId,
+      source: npc.modelProvider,
+      modelId: npc.modelId || getActiveProvider(),
+      dialogue: line,
+      choices,
+    };
+  }
+
+  // Fallback to sovereign if model is unavailable
+  return {
+    success: true,
+    npcId,
+    source: 'sovereign-fallback',
+    dialogue: sovereignDialogue(npc, playerInput, context),
+    choices: sovereignChoices(npc, maxChoices),
+    note: 'Model unavailable — returned sovereign fallback.',
+  };
+}
+
+async function handleHololandNPCBYOKStatus(): Promise<unknown> {
+  const localAvailable = await isOllamaAvailable();
+  const activeProvider = getActiveProvider();
+
+  return {
+    success: true,
+    activeProvider,
+    localAvailable,
+    localModels: localAvailable
+      ? [
+          { model: 'brittney-qwen-v23:latest', source: 'ollama', purpose: 'NPC dialogue / behavior' },
+          { model: 'gemma4:e4b', source: 'ollama', purpose: 'Edge NPC inference' },
+        ]
+      : [],
+    cloudProviders: {
+      openrouter: !!process.env.OPENROUTER_API_KEY,
+      anthropic: !!process.env.ANTHROPIC_API_KEY,
+      openai: !!process.env.OPENAI_API_KEY,
+    },
+    sovereignMode: true,
+    note: 'BYOK status reflects current process env. Ollama availability is runtime-probed.',
+  };
+}
+
+async function handleHololandBrittneyNPCMode(args: Record<string, unknown>): Promise<unknown> {
+  const worldId = (args.worldId as string | undefined) ?? undefined;
+  const shardId = (args.shardId as string | undefined) ?? undefined;
+  const role = (args.role as string) || 'guide';
+  const modelProvider = (args.modelProvider as 'cloud' | 'local' | 'sovereign') || 'cloud';
+  const modelId = (args.modelId as string | undefined) ?? undefined;
+  const position = (args.position as [number, number, number] | undefined) ?? undefined;
+  const enabled = (args.enabled as boolean | undefined) ?? true;
+
+  // Derive or use custom system prompt
+  const systemPrompt =
+    (args.systemPrompt as string | undefined) ?? defaultBrittneyNPCSystemPrompt(role);
+
+  // Upsert a special Brittney NPC record
+  const npcId = 'npc_brittney';
+  const existing = npcRegistry.get(npcId);
+
+  const npc: StoredNPC = {
+    id: npcId,
+    name: 'Brittney',
+    worldId,
+    shardId,
+    role: 'brittney',
+    behavior: 'friendly',
+    position,
+    modelUrl: existing?.modelUrl,
+    traits: ['@llm_agent', '@npc', '@dialogue', '@pathfinding'],
+    modelProvider,
+    modelId,
+    systemPrompt,
+    enabled,
+    createdAt: existing?.createdAt || new Date().toISOString(),
+    modifiedAt: new Date().toISOString(),
+  };
+
+  npcRegistry.set(npcId, npc);
+
+  return {
+    success: true,
+    npcId,
+    name: 'Brittney',
+    role,
+    modelProvider,
+    enabled,
+    worldId,
+    shardId,
+    note:
+      modelProvider === 'sovereign'
+        ? 'Brittney is running in sovereign mode — no external API calls.'
+        : modelProvider === 'local'
+          ? 'Brittney is routing to local Ollama for inference.'
+          : 'Brittney is routing to cloud provider for inference.',
+  };
+}
+
+// =============================================================================
+// NPC DIALOGUE HELPERS
+// =============================================================================
+
+function defaultNPCSystemPrompt(npc: StoredNPC): string {
+  return `You are ${npc.name}, a ${npc.role} NPC in a HoloLand world. ` +
+    `Your behavior is ${npc.behavior}. ` +
+    `Respond in character. Keep responses concise (1-2 sentences). ` +
+    `Never break character. Never use [Think] blocks.`;
+}
+
+function defaultBrittneyNPCSystemPrompt(role: string): string {
+  const roleDescriptions: Record<string, string> = {
+    guide: 'You are Brittney, a friendly guide who helps players navigate HoloLand worlds. You know the terrain, quests, and secrets.',
+    companion: 'You are Brittney, a loyal companion who travels with the player, offering support and commentary.',
+    quest_giver: 'You are Brittney, a quest giver who assigns missions and tracks player progress.',
+    merchant: 'You are Brittney, a merchant who trades items and knows market prices.',
+    lorekeeper: 'You are Brittney, a lorekeeper who preserves the history and mythology of the world.',
+  };
+  return (
+    roleDescriptions[role] ||
+    'You are Brittney, an AI assistant embedded in a HoloLand world.'
+  );
+}
+
+function buildDialoguePrompt(
+  npc: StoredNPC,
+  playerInput: string,
+  context: string,
+  maxChoices: number
+): string {
+  let prompt = '';
+  if (context) {
+    prompt += `Scene context: ${context}\n`;
+  }
+  if (playerInput) {
+    prompt += `Player says: "${playerInput}"\n`;
+  } else {
+    prompt += `The player approaches ${npc.name}.\n`;
+  }
+  prompt += `\nRespond as ${npc.name} (${npc.role}). `;
+  prompt += `Provide a single dialogue line, then ${maxChoices} player response choices as a numbered list.`;
+  return prompt;
+}
+
+function parseDialogueResponse(raw: string, maxChoices: number): { line: string; choices: string[] } {
+  const lines = raw.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+  let dialogueLine = lines[0] || '...';
+  const choices: string[] = [];
+
+  for (const line of lines.slice(1)) {
+    const match = line.match(/^\d+[.\)]\s*(.+)$/);
+    if (match) {
+      choices.push(match[1]);
+    }
+  }
+
+  // Pad with defaults if model didn't produce enough choices
+  while (choices.length < maxChoices) {
+    choices.push('...');
+  }
+
+  return { line: dialogueLine, choices: choices.slice(0, maxChoices) };
+}
+
+function sovereignDialogue(npc: StoredNPC, playerInput: string, context: string): string {
+  const greetings: Record<string, string> = {
+    merchant: `Welcome, traveler. I have wares if you have coin.`,
+    guide: `Greetings! I can show you around ${context || 'this place'}.`,
+    quest_giver: `I have a task for someone brave enough.`,
+    enemy: `You should not be here.`,
+    companion: `Good to see you. Ready to move?`,
+    ambient: `${npc.name} nods silently.`,
+    brittney: `Hello! I'm Brittney, your guide in HoloLand. How can I help?`,
+  };
+
+  if (!playerInput) {
+    return greetings[npc.role] || `Hello, I'm ${npc.name}.`;
+  }
+
+  // Simple keyword-based sovereign responses
+  const input = playerInput.toLowerCase();
+  if (input.includes('help') || input.includes('quest')) {
+    return npc.role === 'quest_giver'
+      ? 'Speak with me when you are ready to begin.'
+      : 'I may know someone who can help.';
+  }
+  if (input.includes('buy') || input.includes('shop')) {
+    return npc.role === 'merchant'
+      ? 'Browse my goods and make an offer.'
+      : 'I am not a merchant.';
+  }
+  if (input.includes('who are you')) {
+    return `I am ${npc.name}, ${npc.role === 'brittney' ? 'your guide' : 'a ' + npc.role}.`;
+  }
+
+  return greetings[npc.role] || `Interesting. Tell me more.`;
+}
+
+function sovereignChoices(npc: StoredNPC, maxChoices: number): string[] {
+  const roleChoices: Record<string, string[]> = {
+    merchant: ['What do you sell?', 'How much for that item?', 'I will return later.'],
+    guide: ['Where should I go?', 'Tell me about this place.', 'I am fine on my own.'],
+    quest_giver: ['Tell me the quest.', 'What is the reward?', 'Not right now.'],
+    enemy: ['I will not back down.', 'I mean no harm.', 'Farewell.'],
+    companion: ['Let us move.', 'Wait here.', 'I need to resupply.'],
+    brittney: ['What can I do here?', 'Show me my quests.', 'Goodbye.'],
+    ambient: ['Greetings.', 'Farewell.'],
+  };
+
+  const base = roleChoices[npc.role] || ['Tell me more.', 'Goodbye.'];
+  const padded = [...base];
+  while (padded.length < maxChoices) {
+    padded.push('...');
+  }
+  return padded.slice(0, maxChoices);
 }
 
 /** Type re-export for consumers that need ZoneBiome */
