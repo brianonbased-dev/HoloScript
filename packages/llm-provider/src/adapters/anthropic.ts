@@ -987,7 +987,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       }
       if (
         status === 400 &&
-        (message.includes('credit balance is too low') || message.includes('credit'))
+        message.includes('credit balance is too low')
       ) {
         return new LLMCreditExhaustedError('anthropic');
       }
