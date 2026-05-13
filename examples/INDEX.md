@@ -5,6 +5,8 @@ Complete catalog of all HoloScript examples organized by category, platform, and
 > **📄 New to HoloScript file types?** See [File Formats Guide](../docs/guides/file-formats.md) to understand `.holo`, `.hs`, and `.hsplus` files.
 >
 > **Compilation note:** The 9 featured examples (#1-#9) and all quickstart examples compile clean. Many advanced `.holo` examples use imperative syntax (dot access, arrow functions, conditionals) that the declarative `.holo` parser does not yet support — these are aspirational examples showing target language capabilities. Use `.hs` or `.hsplus` for imperative code.
+>
+> **Health matrix:** Parser-supported vs aspirational grammar examples are tracked in [Examples Health Matrix](../docs/examples-health/examples-health-matrix.md). Public links to non-supported story examples must carry an aspirational label.
 
 ## Quick Reference
 
@@ -86,14 +88,14 @@ v5.0 features are documented across all three formats to demonstrate the right t
 
 ### Format Selection Guide
 
-| Use Case                                   | Best Format | Why                                                |
-| ------------------------------------------ | ----------- | -------------------------------------------------- |
-| Scene descriptions, world building         | `.holo`     | Declarative — describes WHAT things are            |
-| State machines, reactive behavior, modules | `.hsplus`   | Behavioral — describes HOW things react            |
-| Sequential pipelines, data flow, processes | `.hs`       | Procedural — describes WHAT to do step by step     |
-| Agent patrol routes, sensor pipelines      | `.hs`       | Sequential process with `connect`/`execute`        |
-| Game logic, NPC behavior, UI reactivity    | `.hsplus`   | Event-driven with `@state_machine` and `@on_event` |
-| Multi-tenant setup, physics playgrounds    | `.holo`     | Configuration-heavy composition with traits        |
+| Use Case                                   | Best Format | Why                                                                                                                                    |
+| ------------------------------------------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Scene descriptions, world building         | `.holo`     | Declarative — describes WHAT things are                                                                                                |
+| State machines, reactive behavior, modules | `.hsplus`   | Behavioral — describes HOW things react                                                                                                |
+| Sequential pipelines, data flow, processes | `.hs`       | Procedural — describes WHAT to do step by step                                                                                         |
+| Agent patrol routes, sensor pipelines      | `.hs`       | Sequential process with `connect`/`execute`                                                                                            |
+| Game logic, NPC behavior, UI reactivity    | `.hsplus`   | Event-driven with `@state_machine` and `@on_event`                                                                                     |
+| Multi-tenant setup, physics playgrounds    | `.holo`     | Configuration-heavy composition with traits; advanced physics playgrounds are aspirational grammar until promoted in the health matrix |
 
 ## By Platform
 

@@ -14,6 +14,8 @@ Each use case is implemented in **4 formats** for full coverage:
 | `.hs`          | Procedural pipelines (connect wiring)           | `examples/novel-use-cases/`                |
 | `.scenario.ts` | Living-spec vitest tests                        | `packages/studio/src/__tests__/scenarios/` |
 
+The matrix below means the file exists for that lane. Parser support is tracked separately in [`../examples-health.matrix.json`](../examples-health.matrix.json) and [`../../docs/examples-health/examples-health-matrix.md`](../../docs/examples-health/examples-health-matrix.md). Several high-value story files here are intentionally labeled **aspirational grammar** until the parser accepts the full v5 autonomous ecosystem syntax.
+
 ## Format Coverage Matrix
 
 | #   | Use Case                  | `.holo` | `.hsplus` | `.hs` | `.scenario.ts` |
