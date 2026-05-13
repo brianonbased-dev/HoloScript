@@ -93,5 +93,6 @@ doors today. They are listed separately so the gap is visible and tracked.
 | Surface | Status | Role | Notes |
 | --- | --- | --- | --- |
 | HoloHub | `designed` | Package-level hub client and gallery surface. | `packages/holoscript/src/holohub/client.ts` exists; no public vanity endpoint resolves yet. |
+| HoloLand | `designed` | VR/AR worlds product surface — spatial computing runtime, world authoring, NPC + trait runtime. | Substantial integration docs at `docs/integrations/HOLOLAND_*.md` and `packages/vscode-extension/docs/HOLOLAND_*.md`; multiple internal HoloLand instances exist (peer's "HoloLand Central" reference build work). No canonical public vanity URL pinned yet — promote to `live` once a curl-verifiable production hostname is decided. |
 | Papers-as-Service | `designed` | Hosted paper generation and revision service. | Referenced in `STRATEGY.md` D.032; no public endpoint resolves yet. |
 | uaa2-service | `designed` | uAA2++ protocol execution and research orchestration service. | Adjacent repo exists; no public endpoint resolves yet. |
