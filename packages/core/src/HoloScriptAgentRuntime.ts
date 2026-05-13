@@ -6,7 +6,6 @@
  */
 
 import { logger } from './logger';
-// @ts-expect-error During migration
 import type { IParentRuntime, Scope } from './runtime/IParentRuntime';
 import type { OrbNode, HoloScriptValue, ExecutionResult, MethodNode, ParameterNode } from './types';
 import { ReactiveState } from './ReactiveState';
