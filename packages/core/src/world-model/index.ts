@@ -19,6 +19,9 @@ export {
   isReportCountsConsistent,
 } from './AdversarialTrajectoryReport';
 
+export { scoreTrajectory } from './PredicateScorer';
+export type { SoftAnchor, ScorerInputs, ScorerOutput } from './PredicateScorer';
+
 export type {
   TrajectoryId,
   SceneHash,
