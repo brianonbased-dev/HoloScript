@@ -272,7 +272,25 @@ export async function executeSingleTool(
   }
 }
 
-// Handle tool calls
+// Handle tool calls.
+//
+// TODO(adcf-phase2): this entry point does NOT yet populate `signingCtx` from
+// the inbound JSON-RPC request — there is no `request.headers` channel on
+// CallToolRequestSchema, so the upstream HTTP transport (where the
+// `Authorization: Bearer captok_<id>:<secret>` header lives) is the layer
+// that needs to extract signing and propagate it here, e.g. via a request
+// context stash keyed on the JSON-RPC `id`.
+//
+// As long as `signingCtx` stays undefined here, every downstream auth gate
+// (handlers.ts:354 → handleSecretsBrokerTool → SECRETS_BROKER_TOOL_CAPABILITIES)
+// short-circuits on the "legacy ungated" path. The gate is shipped (commit
+// 5991f8d2e), tested, and ready — it just isn't firing.
+//
+// See research/2026-05-12_loop-session-summary.md and F.051 canary
+// task_1778596074561_adcf for the full chain. Closure path:
+//   1. HTTP transport extractAndVerifySigning(rawBody) → SigningContext
+//   2. Stash on request, retrieve here
+//   3. await executeSingleTool(name, args || {}, signingCtx);
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
   return await executeSingleTool(name, args || {});
