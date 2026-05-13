@@ -6,8 +6,8 @@ import { TWIN_EARTH_TRAITS } from '../twin-earth';
 import { VR_TRAITS } from '../index';
 
 describe('Twin Earth Traits', () => {
-  it('exports 39 traits', () => {
-    expect(TWIN_EARTH_TRAITS).toHaveLength(39);
+  it('exports 46 traits', () => {
+    expect(TWIN_EARTH_TRAITS).toHaveLength(46);
   });
 
   it('contains EarthLayer traits', () => {
@@ -65,6 +65,16 @@ describe('Twin Earth Traits', () => {
     expect(TWIN_EARTH_TRAITS).toContain('degradation_static_render');
     expect(TWIN_EARTH_TRAITS).toContain('degradation_text_description');
     expect(TWIN_EARTH_TRAITS).toContain('degradation_audio_narration');
+  });
+
+  it('contains Robot / AI Actor traits', () => {
+    expect(TWIN_EARTH_TRAITS).toContain('robot_actor');
+    expect(TWIN_EARTH_TRAITS).toContain('ai_agent_actor');
+    expect(TWIN_EARTH_TRAITS).toContain('sensor_feed');
+    expect(TWIN_EARTH_TRAITS).toContain('actuator_command');
+    expect(TWIN_EARTH_TRAITS).toContain('robot_task');
+    expect(TWIN_EARTH_TRAITS).toContain('safety_envelope');
+    expect(TWIN_EARTH_TRAITS).toContain('twin_earth_receipt');
   });
 
   it('all traits are included in VR_TRAITS', () => {
