@@ -14,6 +14,7 @@
  *   - PrivacyRule  — consent, collection scope, retention, and opt-out
  *   - LocationQuest — real-world quest primitives (check-in, radius, route)
  *   - Degradation  — mobile/browser fallback when sensors or XR are unavailable
+ *   - RobotAIActor — substrate participants: robots, AI agents, sensors, actuators, tasks, safety envelopes, and receipts
  */
 
 export const TWIN_EARTH_TRAITS = [
@@ -67,6 +68,15 @@ export const TWIN_EARTH_TRAITS = [
   'degradation_static_render', // fallback to pre-rendered static image
   'degradation_text_description', // fallback to text-only description
   'degradation_audio_narration',    // fallback to audio narration
+
+  // --- Robot / AI Actor — Twin Earth substrate participants ---
+  'robot_actor',           // physical robot participant (hardware-bound)
+  'ai_agent_actor',        // AI agent participant (software-bound)
+  'sensor_feed',            // sensor data stream source
+  'actuator_command',       // actuator control endpoint
+  'robot_task',             // assigned objective for a robot actor
+  'safety_envelope',        // runtime-enforced safety boundary
+  'twin_earth_receipt',     // cryptographically signed execution proof
 ] as const;
 
 export type TwinEarthTraitName = (typeof TWIN_EARTH_TRAITS)[number];

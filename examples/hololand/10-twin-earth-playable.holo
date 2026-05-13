@@ -150,6 +150,117 @@ object "degradation_anchor_browser" @browser_degradation @degradation_static_ren
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// Robot / AI Actors — Twin Earth substrate participants
+// ═══════════════════════════════════════════════════════════════════
+
+// Robot Actor — Autonomous ground survey unit (hardware-bound)
+object "twin_survey_robot" @robot_actor @actor @twin_sync {
+  position: [20, 0.5, -15]
+  scale: [0.6, 0.4, 0.9]
+  color: "#607d8b"
+  geometry: "cube"
+  material: "metal"
+  twin_sync: { topic: "twin_earth/robots/survey_01" }
+  actor: { mailbox_size: 200, role: "surveyor" }
+  robot_actor: { kind: "robot", mode: "local", hardware_fingerprint: "sha256:abc123" }
+}
+
+// AI Agent Actor — Museum virtual guide (software-bound)
+object "twin_museum_guide_ai" @ai_agent_actor @actor @ai_npc {
+  position: [12, 1.4, -10]
+  scale: [0.5, 1.2, 0.5]
+  color: "#00bcd4"
+  geometry: "capsule"
+  material: "hologram"
+  emissive: "#00bcd4"
+  emissiveIntensity: 0.5
+  actor: { mailbox_size: 500, role: "guide" }
+  ai_npc: { name: "Aurelia", role: "museum_guide", awareness_radius: 8.0 }
+  ai_agent_actor: { kind: "ai", mode: "BYOK", model_provider: "sovereign", model_id: "brittney-qwen-v23" }
+}
+
+// Sensor Feed — Environmental monitoring stream
+object "twin_sensor_feed" @sensor_feed @actor {
+  position: [-10, 2, -10]
+  scale: [0.3, 0.3, 0.3]
+  color: "#4caf50"
+  geometry: "sphere"
+  material: "neon"
+  emissive: "#4caf50"
+  emissiveIntensity: 0.6
+  animate: "pulse"
+  animSpeed: 1.0
+  sensor_feed: { sensor_type: "environmental", feed_id: "env_01", unit: "celsius/ppm/dbm" }
+}
+
+// Actuator Command — Authorized actuation endpoint
+object "twin_actuator_command" @actuator_command @actor {
+  position: [20, 0.3, -15]
+  scale: [0.4, 0.2, 0.4]
+  color: "#ff5722"
+  geometry: "cylinder"
+  material: "neon"
+  actuator_command: { actuator_id: "arm_01", actuator_type: "gripper", max_force_n: 50 }
+}
+
+// Robot Task — Assigned objective with safety envelope reference
+object "twin_robot_task" @robot_task @actor {
+  position: [22, 1.5, -15]
+  scale: [0.5, 0.5, 0.5]
+  color: "#9c27b0"
+  geometry: "octahedron"
+  material: "glass"
+  robot_task: { task_id: "task_survey_quadrant_3", assignee: "twin_survey_robot", priority: 2, status: "active" }
+}
+
+// Safety Envelope — Runtime boundary for the survey robot
+object "twin_safety_envelope" @safety_envelope @actor {
+  position: [20, 0.1, -15]
+  scale: [6, 0.1, 6]
+  color: "#ffeb3b"
+  geometry: "cube"
+  material: "wireframe"
+  opacity: 0.3
+  safety_envelope: { envelope_id: "env_survey_01", agent_id: "twin_survey_robot", max_tick_duration_ms: 100, max_memory_bytes: 134217728, max_network_calls_per_minute: 10, substrate_enforced: true, deterministic: true, local_only: true }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Twin Earth Receipts — Cryptographically signed execution proofs
+// ═══════════════════════════════════════════════════════════════════
+
+object "receipt_robot_registration" @twin_earth_receipt @glowing {
+  position: [18, 0.5, -13]
+  scale: [1.2, 0.15, 0.6]
+  color: "#4caf50"
+  geometry: "cube"
+  receipt: { id: "rcpt_reg_001", kind: "validation", actor_id: "twin_survey_robot", action: "identity:register", scope: "twin_earth", timestamp: "2026-05-13T00:00:00Z", status: "success", envelope_id: "env_survey_01", substrate_version: "1.0.0" }
+}
+
+object "receipt_ai_registration" @twin_earth_receipt @glowing {
+  position: [10, 0.5, -8]
+  scale: [1.2, 0.15, 0.6]
+  color: "#4caf50"
+  geometry: "cube"
+  receipt: { id: "rcpt_reg_002", kind: "validation", actor_id: "twin_museum_guide_ai", action: "identity:register", scope: "twin_earth", timestamp: "2026-05-13T00:00:00Z", status: "success", envelope_id: "env_guide_01", substrate_version: "1.0.0" }
+}
+
+object "receipt_sensor_bind" @twin_earth_receipt @glowing {
+  position: [-12, 0.5, -8]
+  scale: [1.2, 0.15, 0.6]
+  color: "#2196f3"
+  geometry: "cube"
+  receipt: { id: "rcpt_sensor_001", kind: "action", actor_id: "twin_sensor_feed", action: "shard:tick", scope: "twin_earth", timestamp: "2026-05-13T00:00:00Z", status: "success", envelope_id: "env_sensor_01", substrate_version: "1.0.0" }
+}
+
+object "receipt_task_assignment" @twin_earth_receipt @glowing {
+  position: [24, 0.5, -15]
+  scale: [1.2, 0.15, 0.6]
+  color: "#ff9800"
+  geometry: "cube"
+  receipt: { id: "rcpt_task_001", kind: "action", actor_id: "twin_robot_task", action: "shard:create", scope: "twin_earth", timestamp: "2026-05-13T00:00:00Z", status: "success", envelope_id: "env_task_01", substrate_version: "1.0.0" }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // Ground & Sky
 // ═══════════════════════════════════════════════════════════════════
 
@@ -171,3 +282,8 @@ object "ground" @collidable {
 // - Privacy consent is checked before any @location_quest triggers.
 //   If consent is revoked via @privacy_opt_out, quest events are
 //   suppressed and the user sees only public @earth_layer data.
+// - Robot / AI actors are substrate participants with independent
+//   identity, safety envelopes, and verifiable receipts.
+//   Each @twin_earth_receipt references its actor by actor_id and
+//   is bound to a safety envelope via envelope_id.
+// - Substrate contract: packages/framework/src/board/twin-earth-substrate.ts
