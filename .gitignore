@@ -530,3 +530,7 @@ docs/.vitepress/cache/
 # Local GPU job queue + run log (scripts/gpu-job-queue.mjs)
 scripts/gpu-jobs.local.json
 gpu-job-log.jsonl
+
+# Canary harness artifacts
+.canary/
+canary-report.json
