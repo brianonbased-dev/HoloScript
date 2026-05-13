@@ -1,0 +1,436 @@
+// ============================================================
+// Stress-Test: The Glass Oracle
+// A009 — 2026-05-13
+//
+// Never-exercised traits under test:
+//   @holographic_sprite  — depth-aware 2D→3D conversion:
+//                          SAM-2 background removal + per-pixel
+//                          depth displacement + spherical billboard
+//   @screen_space_effects — full post-processing pipeline:
+//                           SSAO, SSR, depth-of-field (bokeh),
+//                           lens flares, chromatic aberration,
+//                           TAA, film grain
+//
+// Well-exercised anchors:
+//   @glowing  @animated  @collidable  @particle_system
+//   @spatial_audio  @clickable
+//
+// Visual story:
+// You stand in a crystalline observation chamber high above
+// a forgotten city. The walls are glass — thick, curved panes
+// angled to catch starlight. At the center, an oracle column
+// projects vision-sprites: memory-captures of the city's past,
+// each a holographic depth sprite floating at a different
+// altitude. The post-processing suite is doing real work here:
+// depth-of-field bokeh pulls focus to whichever sprite you
+// approach, lens flares burst through the glass panes when
+// the main light catches them, SSR reflects the glowing
+// sprites in the polished obsidian floor. Film grain and
+// chromatic aberration at the edges evoke old surveillance
+// footage playing through new lenses.
+//
+// Compile target verification:
+//   @holographic_sprite  → segmentMethod: 'sam2',
+//                          depthMode: 'continuous',
+//                          billboardType: 'spherical'
+//   @screen_space_effects → ssao + ssr + dof + lens_flare
+//                           + chromatic_aberration + film_grain
+//
+// This is the first time @holographic_sprite and
+// @screen_space_effects are exercised together in any example
+// file. Validates: (a) holographic_sprite config parses with
+// nested segmentMethod/depthMode/billboardType,
+// (b) screen_space_effects accepts partial config (not all
+// sub-effects required), (c) both traits coexist on different
+// nodes in the same composition without handler conflicts.
+// ============================================================
+
+composition "GlassOracle" {
+  version: "7.0"
+  description: "Stress-test: holographic_sprite + screen_space_effects in a crystalline oracle chamber"
+  tags: ["a009", "stress-test", "holographic-sprite", "screen-space-effects", "oracle", "cinematic"]
+
+  // ----------------------------------------------------------
+  // ENVIRONMENT
+  // Night sky. The chamber is lit almost entirely by its own
+  // glow and the stars beyond the glass walls.
+  // ----------------------------------------------------------
+  environment {
+    skybox: "starfield"
+    ambient_light: 0.06
+    fog: { enabled: true, color: "#020208", density: 0.015, near: 12.0, far: 60.0 }
+    gravity: [0, -9.81, 0]
+  }
+
+  // ----------------------------------------------------------
+  // FLOOR
+  // Polished obsidian. SSR will reflect the sprites and pillar.
+  // ----------------------------------------------------------
+  object "obsidian_floor" {
+    geometry: "cylinder"
+    color: "#060610"
+    material: "standard"
+    roughness: 0.05
+    metallic: 0.92
+    position: [0, 0, 0]
+    scale: [9.0, 0.12, 9.0]
+    receiveShadow: true
+  }
+
+  // ----------------------------------------------------------
+  // GLASS WALLS
+  // Eight curved panes arranged in an octagon. Semi-transparent.
+  // Lens flares burst through them when the oracle light hits.
+  // ----------------------------------------------------------
+
+  object "glass_pane_n" {
+    geometry: "cube"
+    color: "#99ccee"
+    material: "glass"
+    opacity: 0.18
+    roughness: 0.04
+    metallic: 0.1
+    position: [0, 3.5, -7.5]
+    scale: [10.5, 7.0, 0.04]
+    @glowing { color: "#88bbdd", intensity: 0.3, radius: 0.5 }
+  }
+
+  object "glass_pane_s" {
+    geometry: "cube"
+    color: "#99ccee"
+    material: "glass"
+    opacity: 0.18
+    roughness: 0.04
+    metallic: 0.1
+    position: [0, 3.5, 7.5]
+    scale: [10.5, 7.0, 0.04]
+    @glowing { color: "#88bbdd", intensity: 0.3, radius: 0.5 }
+  }
+
+  object "glass_pane_e" {
+    geometry: "cube"
+    color: "#99ccee"
+    material: "glass"
+    opacity: 0.18
+    roughness: 0.04
+    metallic: 0.1
+    position: [7.5, 3.5, 0]
+    scale: [0.04, 7.0, 10.5]
+    @glowing { color: "#88bbdd", intensity: 0.3, radius: 0.5 }
+  }
+
+  object "glass_pane_w" {
+    geometry: "cube"
+    color: "#99ccee"
+    material: "glass"
+    opacity: 0.18
+    roughness: 0.04
+    metallic: 0.1
+    position: [-7.5, 3.5, 0]
+    scale: [0.04, 7.0, 10.5]
+    @glowing { color: "#88bbdd", intensity: 0.3, radius: 0.5 }
+  }
+
+
+  // ----------------------------------------------------------
+  // ORACLE COLUMN
+  // The central pillar that projects the vision-sprites.
+  // Slow counter-spin. Emits purple-white light.
+  // ----------------------------------------------------------
+
+  object "oracle_column_base" {
+    geometry: "cylinder"
+    color: "#1a1a2e"
+    material: "standard"
+    roughness: 0.3
+    metallic: 0.8
+    position: [0, 1.5, 0]
+    scale: [0.6, 3.0, 0.6]
+    castShadow: true
+    @collidable { layer: "structure", restitution: 0.05, friction: 0.95 }
+    @glowing { color: "#8866ff", intensity: 0.8, radius: 1.8 }
+  }
+
+  // Crystal tip at the top of the column — the projection apex
+  object "oracle_apex" {
+    geometry: "crystal"
+    color: "#ccaaff"
+    material: "hologram"
+    roughness: 0.02
+    metallic: 0.3
+    emissive: "#9966ff"
+    emissiveIntensity: 3.2
+    glow: true
+    position: [0, 3.4, 0]
+    scale: [0.35, 0.6, 0.35]
+    @animated { type: "float", speed: 0.4, amplitude: 0.12 }
+    @glowing { color: "#ccaaff", intensity: 4.0, radius: 3.0 }
+    @clickable { action: "oracle_reveal", label: "Query the Oracle" }
+  }
+
+  // Orbiting energy ring around the column
+  object "oracle_ring" {
+    geometry: "torus"
+    color: "#9966ff"
+    material: "neon"
+    emissive: "#7744ee"
+    emissiveIntensity: 2.0
+    glow: true
+    position: [0, 2.5, 0]
+    scale: [1.4, 1.4, 0.1]
+    @animated { type: "spin", axis: "y", speed: 0.8 }
+    @glowing { color: "#9966ff", intensity: 2.5, radius: 1.5 }
+  }
+
+  // Particle halo rising from the apex — the oracle "breathing"
+  object "oracle_emission" {
+    type: "particles"
+    count: 60
+    color: "#bb99ff"
+    position: [0, 3.4, 0]
+    spread: 0.4
+    @particle_system {
+      direction: "up"
+      velocity: { min: 0.3, max: 1.2 }
+      lifetime: { min: 1.0, max: 3.5 }
+      size: { start: 0.04, end: 0.0 }
+      emission_rate: 20
+      loop: true
+    }
+  }
+
+
+  // ----------------------------------------------------------
+  // HOLOGRAPHIC SPRITE VISION-FRAMES
+  //
+  // Three vision-sprites orbit the oracle at different heights.
+  // Each converts a 2D image source into a depth-aware 3D
+  // holographic composite. SAM-2 background removal isolates
+  // the subject; depth estimation displaces geometry per-pixel;
+  // spherical billboard keeps the sprite facing the viewer.
+  //
+  // @holographic_sprite is being exercised here for the
+  // first time. The trait pipeline:
+  //   segmentMethod: 'sam2'        → SAM-2 segmentation
+  //   depthMode: 'on-demand'       → static depth map
+  //   displacementScale: 1.2       → moderate 3D pop
+  //   billboardType: 'spherical'   → always faces viewer
+  //   mode: 'scene'                → full depth composition
+  // ----------------------------------------------------------
+
+  // Vision 1 — The city at dawn, north of the oracle, eye level
+  object "vision_city_dawn" {
+    geometry: "plane"
+    color: "#ffffff"
+    material: "standard"
+    roughness: 0.0
+    metallic: 0.0
+    opacity: 0.92
+    position: [0, 2.8, -3.5]
+    scale: [2.2, 1.4, 1.0]
+    imageSource: "visions/city_dawn.jpg"
+    @holographic_sprite {
+      segmentMethod: "sam2"
+      depthMode: "on-demand"
+      displacementScale: 1.2
+      billboardType: "spherical"
+      mode: "scene"
+    }
+    @glowing { color: "#ffddaa", intensity: 0.6, radius: 1.0 }
+    @animated { type: "float", speed: 0.35, amplitude: 0.08 }
+  }
+
+  // Vision 2 — Crowds in the old market, west side, slightly higher
+  object "vision_market" {
+    geometry: "plane"
+    color: "#ffffff"
+    material: "standard"
+    roughness: 0.0
+    metallic: 0.0
+    opacity: 0.88
+    position: [-3.0, 3.5, 0]
+    scale: [1.8, 2.2, 1.0]
+    imageSource: "visions/market_crowds.jpg"
+    @holographic_sprite {
+      segmentMethod: "sam2"
+      depthMode: "on-demand"
+      displacementScale: 0.9
+      billboardType: "spherical"
+      mode: "portrait"
+    }
+    @glowing { color: "#aaddff", intensity: 0.5, radius: 0.8 }
+    @animated { type: "float", speed: 0.28, amplitude: 0.10, phase_offset: 0.4 }
+  }
+
+  // Vision 3 — The collapse, south-east, highest altitude
+  // depthMode: 'interval' keeps the depth map refreshing slowly
+  // to hint that the event is still unfolding in memory
+  object "vision_collapse" {
+    geometry: "plane"
+    color: "#ffffff"
+    material: "standard"
+    roughness: 0.0
+    metallic: 0.0
+    opacity: 0.78
+    position: [2.5, 4.6, 2.5]
+    scale: [2.6, 1.6, 1.0]
+    imageSource: "visions/collapse_event.jpg"
+    @holographic_sprite {
+      segmentMethod: "background-removal"
+      depthMode: "interval"
+      depthIntervalMs: 800
+      displacementScale: 1.5
+      billboardType: "cylindrical"
+      mode: "scene"
+    }
+    @glowing { color: "#ffaa66", intensity: 0.7, radius: 1.2 }
+    @animated { type: "float", speed: 0.22, amplitude: 0.06, phase_offset: 0.8 }
+  }
+
+
+  // ----------------------------------------------------------
+  // LIGHTING
+  // Primary: a cool blue-white overhead point from directly
+  // above the oracle — this is what creates the lens flares
+  // when it catches the glass pane edges.
+  // ----------------------------------------------------------
+
+  light "oracle_overhead" {
+    type: "point"
+    color: "#d0ccff"
+    intensity: 2.0
+    position: [0, 8, 0]
+    range: 22
+    castShadow: true
+  }
+
+  light "rim_east" {
+    type: "point"
+    color: "#4433aa"
+    intensity: 0.8
+    position: [8, 4, 0]
+    range: 10
+  }
+
+  light "rim_west" {
+    type: "point"
+    color: "#223388"
+    intensity: 0.6
+    position: [-8, 4, 0]
+    range: 10
+  }
+
+
+  // ----------------------------------------------------------
+  // SPATIAL AUDIO
+  // Low resonant hum from the oracle column. Crystal-bowl tone
+  // audible throughout the chamber.
+  // ----------------------------------------------------------
+
+  object "oracle_hum" {
+    geometry: "sphere"
+    color: "#00000000"
+    position: [0, 2.5, 0]
+    scale: [0.01, 0.01, 0.01]
+    @spatial_audio {
+      src: "synth_crystal_bowl"
+      volume: 0.22
+      loop: true
+      frequency: 174
+      refDistance: 3
+      rolloffFactor: 1.2
+      maxDistance: 20
+    }
+  }
+
+  object "chamber_resonance" {
+    geometry: "sphere"
+    color: "#00000000"
+    position: [0, 4, 0]
+    scale: [0.01, 0.01, 0.01]
+    @spatial_audio {
+      src: "synth_drone"
+      volume: 0.08
+      loop: true
+      frequency: 55
+      refDistance: 8
+      rolloffFactor: 0.6
+      maxDistance: 30
+    }
+  }
+
+
+  // ----------------------------------------------------------
+  // SCREEN-SPACE EFFECTS
+  //
+  // @screen_space_effects is being exercised here for the
+  // first time. The full pipeline:
+  //
+  //   ssao:                AO for the column base + floor
+  //   ssr:                 Floor reflections of sprites + pillar
+  //   depth_of_field:      Bokeh focus pull to nearest sprite
+  //   lens_flare:          Burst from oracle_overhead through glass
+  //   chromatic_aberration: Subtle edge fringing on vision frames
+  //   film_grain:          Aged surveillance feel at low intensity
+  //   taa:                 Stabilize the bokeh edge motion
+  //   tonemap: 'filmic'    Handles HDR emissive headroom well
+  //
+  // These are placed on a dedicated controller object (no
+  // visible geometry) so the trait scope is unambiguous.
+  // ----------------------------------------------------------
+
+  object "post_process_controller" {
+    geometry: "point"
+    position: [0, 0, 0]
+    @screen_space_effects {
+      ssao: {
+        radius: 0.6
+        bias: 0.025
+        samples: 16
+        intensity: 0.7
+        blur_radius: 2
+      }
+      ssr: {
+        max_roughness: 0.15
+        step_count: 48
+        thickness: 0.5
+        binary_search_iterations: 6
+        fade_start: 0.8
+        fade_end: 0.95
+      }
+      depth_of_field: {
+        focus_distance: 4.5
+        aperture: 1.8
+        bokeh_size: 6
+        max_blur: 0.012
+        quality: "high"
+      }
+      taa: {
+        jitter_spread: 0.5
+        feedback: 0.88
+        sharpness: 0.4
+        motion_rejection: true
+      }
+      chromatic_aberration: {
+        intensity: 0.0025
+        radial_distortion: 0.008
+      }
+      lens_flare: {
+        intensity: 1.2
+        threshold: 1.5
+        ghosts: 6
+        halo_width: 0.4
+        halo_intensity: 0.5
+        star_burst: true
+      }
+      film_grain: {
+        intensity: 0.022
+        size: 1.4
+        colored: false
+      }
+      output_format: "hdr"
+      tonemap: "filmic"
+    }
+  }
+
+}
