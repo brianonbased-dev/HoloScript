@@ -33,6 +33,157 @@ interface CliParseError {
   loc?: { line?: number; column?: number };
 }
 
+interface HsplusDirectiveLike {
+  type?: unknown;
+  name?: unknown;
+  config?: unknown;
+}
+
+interface HsplusNodeLike {
+  type?: unknown;
+  name?: unknown;
+  id?: unknown;
+  event?: unknown;
+  properties?: unknown;
+  directives?: unknown;
+  traits?: unknown;
+  children?: unknown;
+  body?: unknown;
+  state?: unknown;
+  stateBlock?: unknown;
+}
+
+function asHsplusNode(value: unknown): HsplusNodeLike | null {
+  return value && typeof value === 'object' ? (value as HsplusNodeLike) : null;
+}
+
+function collectHsplusNodes(node: unknown): HsplusNodeLike[] {
+  const hsplusNode = asHsplusNode(node);
+  if (!hsplusNode) {
+    return [];
+  }
+
+  const children = Array.isArray(hsplusNode.children) ? hsplusNode.children : [];
+  return [hsplusNode, ...children.flatMap((child) => collectHsplusNodes(child))];
+}
+
+function normalizeHsplusTraits(...nodes: unknown[]): Array<{ name: string; config: unknown }> {
+  const traits = new Map<string, unknown>();
+
+  for (const node of nodes) {
+    const hsplusNode = asHsplusNode(node);
+    if (!hsplusNode) {
+      continue;
+    }
+
+    if (hsplusNode.traits instanceof Map) {
+      for (const [name, config] of hsplusNode.traits.entries()) {
+        traits.set(String(name), config ?? {});
+      }
+    }
+
+    const directives = Array.isArray(hsplusNode.directives) ? hsplusNode.directives : [];
+    for (const directive of directives) {
+      const hsplusDirective =
+        directive && typeof directive === 'object' ? (directive as HsplusDirectiveLike) : undefined;
+      if (hsplusDirective?.type === 'trait' && hsplusDirective.name) {
+        traits.set(String(hsplusDirective.name), hsplusDirective.config ?? {});
+      }
+    }
+  }
+
+  return [...traits.entries()].map(([name, config]) => ({ name, config }));
+}
+
+function normalizeHsplusProperties(properties: Record<string, unknown>): Record<string, unknown> {
+  const normalized = { ...properties };
+  const material = asRecord(normalized.material);
+
+  for (const key of ['color', 'roughness', 'opacity', 'transparent'] as const) {
+    if (normalized[key] === undefined && material[key] !== undefined) {
+      normalized[key] = material[key];
+    }
+  }
+
+  if (normalized.metallic === undefined && material.metalness !== undefined) {
+    normalized.metallic = material.metalness;
+  }
+
+  if (normalized.scale === undefined && typeof normalized.radius === 'number') {
+    const diameter = normalized.radius * 2;
+    normalized.scale = [diameter, diameter, diameter];
+  }
+
+  if (
+    normalized.scale === undefined &&
+    (typeof normalized.width === 'number' || typeof normalized.height === 'number')
+  ) {
+    normalized.scale = [normalized.width ?? 1, 1, normalized.height ?? 1];
+  }
+
+  delete normalized.__templateRef;
+  return normalized;
+}
+
+function mapHsplusToGeneratorAst(parseResult: unknown): {
+  orbs: Array<Record<string, unknown>>;
+  functions: Array<{ name: string }>;
+} {
+  const ast = asRecord(asRecord(parseResult).ast);
+  const root = ast.root ?? asRecord(parseResult).ast;
+  const nodes = collectHsplusNodes(root);
+  const templates = new Map<string, HsplusNodeLike>();
+
+  for (const node of nodes) {
+    if (node.type === 'template' && typeof node.name === 'string') {
+      templates.set(String(node.name), node);
+    }
+  }
+
+  const orbs = nodes
+    .filter((node) => node?.type === 'object' || node?.type === 'orb')
+    .map((node) => {
+      const ownProperties = asRecord(node.properties);
+      const templateRef =
+        typeof ownProperties.__templateRef === 'string' ? ownProperties.__templateRef : undefined;
+      const template = templateRef ? templates.get(templateRef) : undefined;
+      const templateProperties = asRecord(template?.properties);
+      const properties = normalizeHsplusProperties({ ...templateProperties, ...ownProperties });
+
+      return {
+        name: typeof node.name === 'string' ? node.name : node.id,
+        properties,
+        traits: normalizeHsplusTraits(template, node),
+        state: node.stateBlock ?? node.state,
+      };
+    });
+
+  const functions = nodes
+    .flatMap((node) => {
+      if (node?.type === 'logic') {
+        const body = asRecord(node.body);
+        return [
+          ...(Array.isArray(body.functions) ? body.functions : []),
+          ...(Array.isArray(body.eventHandlers) ? body.eventHandlers : []),
+        ];
+      }
+
+      if (typeof node.type === 'string' && ['action', 'function', 'method'].includes(node.type)) {
+        return [node];
+      }
+
+      return [];
+    })
+    .map((node) => {
+      const hsplusNode = asHsplusNode(node);
+      const name = hsplusNode?.name ?? hsplusNode?.event;
+      return typeof name === 'string' ? { name } : undefined;
+    })
+    .filter((node): node is { name: string } => Boolean(node));
+
+  return { orbs, functions };
+}
+
 /**
  * Emit a structured CLI error with a stable error code, message, usage
  * hint, and optional remediation. Keeps output uniform across commands so
@@ -1056,7 +1207,6 @@ async function main(): Promise<void> {
 
       const fs = await import('fs');
       const path = await import('path');
-      const { HoloScriptCodeParser } = await import('@holoscript/core');
 
       const filePath = path.resolve(options.input);
       if (!fs.existsSync(filePath)) {
@@ -1065,7 +1215,6 @@ async function main(): Promise<void> {
       }
 
       const content = fs.readFileSync(filePath, 'utf-8');
-      const _parser = new HoloScriptCodeParser();
 
       // Pipeline-first Node target (.hs pipeline -> runnable index.mjs)
       if (target === 'node') {
@@ -1099,7 +1248,8 @@ async function main(): Promise<void> {
       console.log(`\n\x1b[36mCompiling ${options.input} → ${target}\x1b[0m\n`);
 
       try {
-        const isHolo = options.input.endsWith('.holo');
+        const isHolo = filePath.endsWith('.holo');
+        const isHsplus = filePath.endsWith('.hsplus');
         let ast: any;
 
         if (isHolo) {
@@ -1131,6 +1281,29 @@ async function main(): Promise<void> {
               ...(result.ast?.logic?.handlers?.map((h: any) => ({ name: h.event })) || []),
             ],
           };
+        } else if (isHsplus) {
+          if (options.verbose)
+            console.log(`\x1b[2m[DEBUG] Using HoloScriptPlusParser for .hsplus file...\x1b[0m`);
+          const { HoloScriptPlusParser } = await import('@holoscript/core');
+          const parser = new HoloScriptPlusParser();
+          const result = parser.parse(content);
+          const parserErrors = result.errors ?? [];
+
+          if (!result.success || parserErrors.length > 0) {
+            console.error(`\x1b[31mError parsing HoloScript+ source:\x1b[0m`);
+            parserErrors.forEach((e: CliParseError | string) => {
+              if (typeof e === 'string') {
+                console.error(`  ${e}`);
+              } else {
+                console.error(
+                  `  ${e.line ?? e.loc?.line}:${e.column ?? e.loc?.column}: ${e.message}`
+                );
+              }
+            });
+            process.exit(1);
+          }
+
+          ast = mapHsplusToGeneratorAst(result);
         } else {
           if (options.verbose) console.log(`\x1b[2m[DEBUG] Using HoloScriptCodeParser...\x1b[0m`);
           const { HoloScriptCodeParser } = await import('@holoscript/core');
