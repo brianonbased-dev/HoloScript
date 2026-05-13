@@ -13,6 +13,12 @@ export {
   asCaelReceiptHash,
 } from './AdversarialTrajectory';
 
+export {
+  buildAdversarialTrajectoryReport,
+  serializeReport,
+  isReportCountsConsistent,
+} from './AdversarialTrajectoryReport';
+
 export type {
   TrajectoryId,
   SceneHash,
