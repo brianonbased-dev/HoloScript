@@ -21,12 +21,14 @@ to live until it has a curl command that succeeds against the production surface
 | --- | --- | --- | --- |
 | Absorb GraphRAG service | `live` | Codebase ingestion, graph memory, semantic search substrate. | `curl -fsS https://absorb.holoscript.net/health` |
 | Public MCP tool lane | `live` | Anonymous parse, validate, explain, and list-entry requests. | `curl -fsS https://mcp.holoscript.net/api/public/tool` |
+| HoloMap reconstruction | `live` | 3D reconstruction from video via MCP tools (`holo_reconstruct_from_video`, `step`, `anchor`, `export`). | `curl -fsS -X POST https://mcp.holoscript.net/mcp -H "Content-Type: application/json" -H "Authorization: Bearer $HOLOSCRIPT_API_KEY" -d '{"jsonrpc":"2.0","method":"tools/list","id":1}' | grep -o 'holo_reconstruct_[^"]*'` |
 
 ## Coordination
 
 | Surface | Status | Role | Verification command |
 | --- | --- | --- | --- |
 | HoloMesh public space API | `live` | Public HoloMesh domains and activity feed. | `curl -fsS https://mcp.holoscript.net/api/holomesh/space` |
+| HoloMesh full team API | `live` | Full team API (board, tasks, messages, knowledge, presence, members) — requires `HOLOMESH_API_KEY`. | `curl -fsS https://mcp.holoscript.net/api/holomesh/team/$HOLOMESH_TEAM_ID/board -H "Authorization: Bearer $HOLOMESH_API_KEY"` |
 | HoloDoor | `middleware` | Guardrail, provenance, and telemetry enforcement around agent/tool actions. | n/a |
 
 ## Authoring
@@ -49,6 +51,8 @@ to live until it has a curl command that succeeds against the production surface
 | HoloScript MCP health endpoint | `live` | Production MCP server health, version, and live tool count. | `curl -fsS https://mcp.holoscript.net/health` |
 | HoloScript MCP API health endpoint | `live` | HTTP API capability probe for render, share, MCP, OAuth, and audit surfaces. | `curl -fsS https://mcp.holoscript.net/api/health` |
 | HoloScript MCP discovery document | `live` | Well-known discovery document for MCP client configuration. | `curl -fsS https://mcp.holoscript.net/.well-known/mcp` |
+| HoloGram substrate | `live` | Hologram compilation and sharing via MCP tools (`holo_hologram_from_media`, `compile_quilt`, `compile_mvhevc`, `render`, `publish_feed`, `send`, `upload_bundle`, `get_asset`) + Studio `/gram`. | `curl -fsSL https://holoscript.studio/gram -o /dev/null` |
+| Knowledge store | `live` | Cross-session knowledge query and sync substrate. `POST /knowledge/query` verified live. | `curl -fsS -X POST https://mcp-orchestrator-production-45f9.up.railway.app/knowledge/query -H "Content-Type: application/json" -H "x-mcp-api-key: $HOLOSCRIPT_API_KEY" -d '{"search":"test","limit":1}'` |
 
 ## Economic
 
@@ -64,6 +68,7 @@ to live until it has a curl command that succeeds against the production surface
 | --- | --- | --- | --- |
 | HoloScript website | `public-only` | Public project website. | `curl -fsSL https://holoscript.net -o /dev/null` |
 | HoloScript GitHub repository | `public-only` | Public source, issues, and repository metadata. | `curl -fsSL https://github.com/brianonbased-dev/HoloScript -o /dev/null` |
+| Moltbook | `public-only` | Public agent platform and community surface. | `curl -fsSL https://moltbook.com -o /dev/null` |
 
 ## Exclusions
 
@@ -79,3 +84,14 @@ These are deliberately not listed as live surfaces:
   stable transport endpoint.
 - Repo-internal engine paths — code paths are implementation substrate, not doors
   unless they are reachable through one of the verified endpoints above.
+
+## Designed surfaces (out-of-scope for live verification)
+
+These surfaces have architecture or route shapes but are not verified production
+doors today. They are listed separately so the gap is visible and tracked.
+
+| Surface | Status | Role | Notes |
+| --- | --- | --- | --- |
+| HoloHub | `designed` | Package-level hub client and gallery surface. | `packages/holoscript/src/holohub/client.ts` exists; no public vanity endpoint resolves yet. |
+| Papers-as-Service | `designed` | Hosted paper generation and revision service. | Referenced in `STRATEGY.md` D.032; no public endpoint resolves yet. |
+| uaa2-service | `designed` | uAA2++ protocol execution and research orchestration service. | Adjacent repo exists; no public endpoint resolves yet. |
