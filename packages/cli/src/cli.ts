@@ -963,7 +963,7 @@ async function main(): Promise<void> {
 
         // Get profile
         const { createHeadlessRuntime, getProfile, HEADLESS_PROFILE } =
-          await import('@holoscript/core');
+          await import('@holoscript/engine/runtime');
         const profileName = options.profile || 'headless';
         let profile;
         try {

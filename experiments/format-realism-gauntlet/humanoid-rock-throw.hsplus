@@ -1,0 +1,147 @@
+// Humanoid Rock Throw Gauntlet
+// Behavior and capture contract for the flagship format-realism experiment.
+
+composition "HumanoidRockThrowBehavior" {
+  environment {
+    backgroundColor: "#0b0f14"
+    ambient: 0.45
+    shadows: true
+  }
+
+  state GauntletState {
+    runId: "manual"
+    activeSegment: "00_scene_loaded"
+    previousRunScore: null
+    currentRunScore: 0
+    severeGapCount: 0
+    stillsCaptured: 0
+    receiptsCaptured: 0
+    deterministicReplayHash: null
+  }
+
+  template "SegmentProbe" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    scale: [0.6, 0.18, 1]
+    material: {
+      color: "#111827"
+      emissive: "#1f2937"
+      emissiveIntensity: 0.2
+      transparent: true
+      opacity: 0.92
+    }
+  }
+
+  template "ThrowableRockContract" {
+    @grabbable {
+      hand: "right"
+      haptic: true
+    }
+    @throwable {
+      max_velocity: 18
+      spin_enabled: true
+      trajectory_preview: true
+    }
+    @physics {
+      mass: 1.8
+      friction: 0.8
+      restitution: 0.25
+    }
+    @collidable
+  }
+
+  object "RockContract" using "ThrowableRockContract" {
+    geometry: "sphere"
+    position: [-1.2, 0.35, 0]
+    scale: [0.28, 0.22, 0.25]
+    material: { color: "#7c6f64", roughness: 0.95 }
+
+    behavior {
+      on "grab" {
+        action: "recordSegment"
+        args: { segment: "03_grab_constraint" }
+      }
+      on "throw" {
+        action: "recordSegment"
+        args: { segment: "06_release" }
+      }
+      on "collision" {
+        action: "recordSegment"
+        args: { segment: "08_impact" }
+      }
+    }
+  }
+
+  object "SceneLoadedProbe" using "SegmentProbe" {
+    position: [-4.8, 2.7, -2.8]
+    properties: { segment: "00_scene_loaded", expectedStill: "00_scene_loaded.png" }
+  }
+
+  object "ApproachProbe" using "SegmentProbe" {
+    position: [-3.8, 2.5, -2.8]
+    properties: { segment: "01_avatar_approaches", expectedStill: "01_avatar_approaches.png" }
+  }
+
+  object "ReachProbe" using "SegmentProbe" {
+    position: [-2.8, 2.3, -2.8]
+    properties: { segment: "02_hand_reaches", expectedStill: "02_hand_reaches.png" }
+  }
+
+  object "GrabProbe" using "SegmentProbe" {
+    position: [-1.8, 2.1, -2.8]
+    properties: { segment: "03_grab_constraint", expectedStill: "03_grab_constraint.png" }
+  }
+
+  object "LiftProbe" using "SegmentProbe" {
+    position: [-0.8, 2.0, -2.8]
+    properties: { segment: "04_lift_pose", expectedStill: "04_lift_pose.png" }
+  }
+
+  object "WindupProbe" using "SegmentProbe" {
+    position: [0.2, 2.1, -2.8]
+    properties: { segment: "05_windup", expectedStill: "05_windup.png" }
+  }
+
+  object "ReleaseProbe" using "SegmentProbe" {
+    position: [1.2, 2.2, -2.8]
+    properties: { segment: "06_release", expectedStill: "06_release.png" }
+  }
+
+  object "ArcProbe" using "SegmentProbe" {
+    position: [2.2, 2.25, -2.8]
+    properties: { segment: "07_ballistic_arc", expectedStill: "07_ballistic_arc.png" }
+  }
+
+  object "ImpactProbe" using "SegmentProbe" {
+    position: [3.2, 2.15, -2.8]
+    properties: { segment: "08_impact", expectedStill: "08_impact.png" }
+  }
+
+  object "AftermathProbe" using "SegmentProbe" {
+    position: [4.2, 1.95, -2.8]
+    properties: { segment: "09_aftermath", expectedStill: "09_aftermath.png" }
+  }
+
+  action recordSegment(segment) {
+    GauntletState.activeSegment = segment
+    GauntletState.receiptsCaptured = GauntletState.receiptsCaptured + 1
+    emit("gauntlet:segment_recorded", { segment: segment })
+  }
+
+  action recordStill(segment) {
+    GauntletState.stillsCaptured = GauntletState.stillsCaptured + 1
+    emit("gauntlet:still_recorded", { segment: segment })
+  }
+
+  action recordGap(segment, severity, message) {
+    if (severity == "P1") {
+      GauntletState.severeGapCount = GauntletState.severeGapCount + 1
+    }
+    emit("gauntlet:gap_found", {
+      segment: segment,
+      severity: severity,
+      message: message
+    })
+  }
+}
