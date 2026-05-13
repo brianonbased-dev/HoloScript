@@ -624,4 +624,169 @@ describe('hololand-mcp-tools', () => {
     const result = await handleHololandMcpTool('hololand_capture_runtime_receipt', { shardId: 'nope' });
     expect(result).toMatchObject({ error: expect.stringContaining('not found') });
   });
+
+  // ---------------------------------------------------------------------------
+  // hololand_create_npc
+  // ---------------------------------------------------------------------------
+
+  it('hololand_create_npc stores with defaults', async () => {
+    const result = (await handleHololandMcpTool('hololand_create_npc', {
+      id: 'npc-test',
+      name: 'Garrick',
+      role: 'merchant',
+      behavior: 'friendly',
+      shardId: 'shard-1',
+      modelProvider: 'local',
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(result.npcId).toBe('npc-test');
+    expect(result.name).toBe('Garrick');
+    expect(result.role).toBe('merchant');
+    expect(result.modelProvider).toBe('local');
+  });
+
+  it('hololand_create_npc auto-generates id', async () => {
+    const result = (await handleHololandMcpTool('hololand_create_npc', {
+      name: 'Auto NPC',
+    })) as Record<string, unknown>;
+    expect(result.npcId).toMatch(/^npc_\d+_[a-z0-9]+$/);
+  });
+
+  it('hololand_create_npc rejects missing name', async () => {
+    const result = await handleHololandMcpTool('hololand_create_npc', {});
+    expect(result).toMatchObject({ error: expect.stringContaining('name is required') });
+  });
+
+  // ---------------------------------------------------------------------------
+  // hololand_get_npc / update_npc / delete_npc / list_npcs
+  // ---------------------------------------------------------------------------
+
+  it('hololand_get_npc returns stored npc', async () => {
+    await handleHololandMcpTool('hololand_create_npc', { id: 'gn', name: 'GN', role: 'guide' });
+    const result = (await handleHololandMcpTool('hololand_get_npc', { npcId: 'gn' })) as Record<string, unknown>;
+    expect(result.success).toBe(true);
+    expect((result.npc as Record<string, unknown>).name).toBe('GN');
+  });
+
+  it('hololand_get_npc returns error for missing npc', async () => {
+    const result = await handleHololandMcpTool('hololand_get_npc', { npcId: 'nope' });
+    expect(result).toMatchObject({ error: expect.stringContaining('not found') });
+  });
+
+  it('hololand_update_npc mutates fields', async () => {
+    await handleHololandMcpTool('hololand_create_npc', { id: 'un', name: 'UN', behavior: 'passive' });
+    const updated = (await handleHololandMcpTool('hololand_update_npc', {
+      npcId: 'un',
+      name: 'Updated',
+      behavior: 'aggressive',
+      modelProvider: 'sovereign',
+    })) as Record<string, unknown>;
+    expect(updated.success).toBe(true);
+    expect((updated.npc as Record<string, unknown>).name).toBe('Updated');
+    expect((updated.npc as Record<string, unknown>).behavior).toBe('aggressive');
+    expect((updated.npc as Record<string, unknown>).modelProvider).toBe('sovereign');
+  });
+
+  it('hololand_delete_npc removes npc', async () => {
+    await handleHololandMcpTool('hololand_create_npc', { id: 'dn', name: 'DN' });
+    await handleHololandMcpTool('hololand_delete_npc', { npcId: 'dn' });
+    const gone = await handleHololandMcpTool('hololand_get_npc', { npcId: 'dn' });
+    expect(gone).toMatchObject({ error: expect.stringContaining('not found') });
+  });
+
+  it('hololand_list_npcs filters by role and behavior', async () => {
+    await handleHololandMcpTool('hololand_create_npc', { id: 'ln1', name: 'LN1', role: 'merchant', behavior: 'friendly' });
+    await handleHololandMcpTool('hololand_create_npc', { id: 'ln2', name: 'LN2', role: 'enemy', behavior: 'aggressive' });
+
+    const byRole = (await handleHololandMcpTool('hololand_list_npcs', { role: 'merchant' })) as Record<string, unknown>;
+    expect((byRole.npcs as unknown[]).length).toBe(1);
+
+    const byBehavior = (await handleHololandMcpTool('hololand_list_npcs', { behavior: 'aggressive' })) as Record<string, unknown>;
+    expect((byBehavior.npcs as unknown[]).length).toBe(1);
+
+    const all = (await handleHololandMcpTool('hololand_list_npcs', {})) as Record<string, unknown>;
+    expect((all.npcs as unknown[]).length).toBeGreaterThanOrEqual(2);
+  });
+
+  // ---------------------------------------------------------------------------
+  // hololand_npc_generate_dialogue
+  // ---------------------------------------------------------------------------
+
+  it('hololand_npc_generate_dialogue returns sovereign dialogue for sovereign provider', async () => {
+    await handleHololandMcpTool('hololand_create_npc', {
+      id: 'dg-sovereign',
+      name: 'Sovereign Guard',
+      role: 'enemy',
+      behavior: 'aggressive',
+      modelProvider: 'sovereign',
+    });
+
+    const result = (await handleHololandMcpTool('hololand_npc_generate_dialogue', {
+      npcId: 'dg-sovereign',
+      playerInput: 'Who are you?',
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(result.source).toBe('sovereign');
+    expect(typeof result.dialogue).toBe('string');
+    expect(Array.isArray(result.choices)).toBe(true);
+  });
+
+  it('hololand_npc_generate_dialogue falls back to sovereign on missing npc', async () => {
+    const result = await handleHololandMcpTool('hololand_npc_generate_dialogue', { npcId: 'nope' });
+    expect(result).toMatchObject({ error: expect.stringContaining('not found') });
+  });
+
+  // ---------------------------------------------------------------------------
+  // hololand_npc_byok_status
+  // ---------------------------------------------------------------------------
+
+  it('hololand_npc_byok_status reports provider state', async () => {
+    const result = (await handleHololandMcpTool('hololand_npc_byok_status', {})) as Record<string, unknown>;
+    expect(result.success).toBe(true);
+    expect(typeof result.activeProvider).toBe('string');
+    expect(typeof result.localAvailable).toBe('boolean');
+    expect(result.sovereignMode).toBe(true);
+    expect(Array.isArray(result.localModels)).toBe(true);
+    expect(typeof result.cloudProviders).toBe('object');
+  });
+
+  // ---------------------------------------------------------------------------
+  // hololand_brittney_npc_mode
+  // ---------------------------------------------------------------------------
+
+  it('hololand_brittney_npc_mode configures Brittney as NPC', async () => {
+    const result = (await handleHololandMcpTool('hololand_brittney_npc_mode', {
+      worldId: 'world-1',
+      role: 'guide',
+      modelProvider: 'sovereign',
+      position: [0, 1, -3],
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(result.npcId).toBe('npc_brittney');
+    expect(result.name).toBe('Brittney');
+    expect(result.role).toBe('guide');
+    expect(result.modelProvider).toBe('sovereign');
+    expect(result.worldId).toBe('world-1');
+    expect(result.note).toContain('sovereign');
+  });
+
+  it('hololand_brittney_npc_mode updates existing Brittney NPC', async () => {
+    await handleHololandMcpTool('hololand_brittney_npc_mode', {
+      role: 'guide',
+      modelProvider: 'sovereign',
+    });
+
+    const result = (await handleHololandMcpTool('hololand_brittney_npc_mode', {
+      role: 'companion',
+      modelProvider: 'local',
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(result.role).toBe('companion');
+    expect(result.modelProvider).toBe('local');
+    expect(result.note).toContain('local Ollama');
+  });
 });
