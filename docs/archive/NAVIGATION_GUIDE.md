@@ -9,7 +9,7 @@
 - 📊 **Want quick metrics?** → [EXECUTIVE_SUMMARY.md](./EXECUTIVE_SUMMARY.md) (5 min read)
 - 🔍 **Want full details?** → [PHASE_6_8_PARALLEL_IMPLEMENTATION_COMPLETE.md](./PHASE_6_8_PARALLEL_IMPLEMENTATION_COMPLETE.md) (20 min read)
 - 📦 **Want file index?** → [DELIVERABLES_INDEX.md](./DELIVERABLES_INDEX.md) (10 min reference)
-- 🏗️ **Want integration plan?** → [HOLOLAND_AUDIT.md](./HOLOLAND_AUDIT.md) (15 min read)
+- 🏗️ **Want integration plan?** → [hololand-audit.md](./hololand-audit.md) (15 min read)
 
 ---
 
@@ -50,7 +50,7 @@
   - Comprehensive session documentation
 - `DELIVERABLES_INDEX.md`
   - Complete file reference and access guide
-- `HOLOLAND_AUDIT.md`
+- `hololand-audit.md`
   - Architecture analysis + 5-week integration roadmap
 - `HOLOLAND_ECOSYSTEM_INTEGRATION.md` (existing)
   - Platform overview and opportunities
@@ -166,7 +166,7 @@
 - Status indicators
 - Access guide
 
-### HOLOLAND_AUDIT.md
+### hololand-audit.md
 
 **Best For:** Integration details
 **Time:** 15-20 minutes
@@ -281,7 +281,7 @@
 **For metrics:** EXECUTIVE_SUMMARY.md
 **For details:** PHASE_6_8_PARALLEL_IMPLEMENTATION_COMPLETE.md
 **For files:** DELIVERABLES_INDEX.md
-**For integration:** HOLOLAND_AUDIT.md
+**For integration:** hololand-audit.md
 
 ---
 

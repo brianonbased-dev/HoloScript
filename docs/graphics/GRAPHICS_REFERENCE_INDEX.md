@@ -18,7 +18,7 @@ This document provides a comprehensive index of all graphics-related resources, 
 
 | File                                                                     | Lines | Purpose                        | Audience              |
 | ------------------------------------------------------------------------ | ----- | ------------------------------ | --------------------- |
-| [HOLOLAND_GRAPHICS_INTEGRATION.md](HOLOLAND_GRAPHICS_INTEGRATION.md)     | 653   | Integration guide for Hololand | Integration engineers |
+| [HOLOLAND_GRAPHICS_INTEGRATION.md](../integrations/HOLOLAND_GRAPHICS_INTEGRATION.md) | 653   | Integration guide for Hololand | Integration engineers |
 | [GRAPHICS_IMPLEMENTATION_SUMMARY.md](GRAPHICS_IMPLEMENTATION_SUMMARY.md) | 369   | Implementation details         | Technical leads       |
 
 **Total Documentation:** 2,366 LOC across 5 comprehensive guides
@@ -385,7 +385,7 @@ rendering.setupLODLevels('automatic');
 1. Read [GRAPHICS_QUICK_START.md](GRAPHICS_QUICK_START.md)
 2. Review [examples/graphics-traits.ts](examples/graphics-traits.ts)
 3. Consult [GRAPHICS_TRAITS.md](GRAPHICS_TRAITS.md) for detailed API
-4. See [HOLOLAND_GRAPHICS_INTEGRATION.md](HOLOLAND_GRAPHICS_INTEGRATION.md) for integration
+4. See [HOLOLAND_GRAPHICS_INTEGRATION.md](../integrations/HOLOLAND_GRAPHICS_INTEGRATION.md) for integration
 
 ---
 
@@ -493,7 +493,7 @@ rendering.setupLODLevels('automatic');
 - [Quick Start Guide](GRAPHICS_QUICK_START.md) - Get started in 5 minutes
 - [Complete API Reference](GRAPHICS_TRAITS.md) - Full API documentation
 - [Implementation Examples](examples/graphics-traits.ts) - Code samples
-- [Hololand Integration](HOLOLAND_GRAPHICS_INTEGRATION.md) - Integration roadmap
+- [Hololand Integration](../integrations/HOLOLAND_GRAPHICS_INTEGRATION.md) - Integration roadmap
 
 ### Testing
 
