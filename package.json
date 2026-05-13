@@ -11,7 +11,7 @@
     "benchmarks/*"
   ],
   "scripts": {
-    "build": "pnpm --filter @holoscript/core run build && pnpm -r --workspace-concurrency=1 --filter=!@holoscript/core --filter=!@holoscript/tauri-app run --if-present build",
+    "build": "node scripts/check-pnpm-install-needed.mjs && pnpm --filter @holoscript/core run build && pnpm -r --workspace-concurrency=1 --filter=!@holoscript/core --filter=!@holoscript/tauri-app run --if-present build",
     "build:parallel": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",
     "test": "pnpm -r --filter=!holoscript test",
