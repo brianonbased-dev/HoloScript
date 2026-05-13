@@ -1412,9 +1412,6 @@ export interface AgentRuntime {
   executeAction(actionName: string, args?: HoloScriptValue[]): Promise<ExecutionResult>;
 }
 
-/** IParentRuntime — minimal parent runtime interface; HoloScriptRuntime satisfies this */
-export interface IParentRuntime {}
-
 /** MigrationBlock is a runtime alias for MigrationNode */
 export type MigrationBlock = MigrationNode;
 

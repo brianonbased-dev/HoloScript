@@ -205,6 +205,7 @@ import { telemetry } from './monitoring/telemetry';
 // Namespace import avoids Vitest SSR named-export hoisting (__vite_ssr_import_N__.x is not a function).
 import * as engineRuntime from '@holoscript/engine/runtime';
 import { HoloScriptAgentRuntime } from './HoloScriptAgentRuntime';
+import type { IParentRuntime } from './runtime/IParentRuntime';
 import { mitosisHandler } from './traits/MitosisTrait';
 import { orbitalHandler } from './traits/OrbitalTrait';
 import { TraitHandler } from './traits/TraitTypes';
@@ -325,7 +326,7 @@ interface UIElementState {
   enabled: boolean;
 }
 
-export class HoloScriptRuntime {
+export class HoloScriptRuntime implements IParentRuntime {
   private context: RuntimeContext;
   private wss: WebSocketServer | undefined;
   private timeManager: TimeManager | undefined;
