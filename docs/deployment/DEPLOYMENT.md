@@ -60,7 +60,7 @@ packages:
 - `@holoscript/core` - Core compiler (TypeScript)
 - `@holoscript/lsp` - Language Server Protocol
 - `@holoscript/cli` - Command-line interface
-- `@holoscript/compiler` - Multi-target compiler package
+- `@holoscript/core` - Core parser, AST, and multi-target compiler
 - `@holoscript/wasm` - WASM compiler/runtime bindings
 
 ---

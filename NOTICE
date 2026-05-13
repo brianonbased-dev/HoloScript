@@ -41,8 +41,8 @@ The following components are and will remain MIT-licensed open source:
   - CLI tools (holoscript, holoscript-format, holoscript-lint)
   - Standard library (@holoscript/std)
   - Runtime (@holoscript/runtime)
-  - Spatial audio, accessibility, gestures, haptics, IK, LOD, PCG,
-    portals, physics-joints, voice, test packages
+  - Spatial audio, gestures, haptics, IK, LOD, PCG, portals,
+    physics-joints, voice interfaces (some migrated to Hololand platform)
 
 The following components use the Elastic License 2.0 (ELv2):
 

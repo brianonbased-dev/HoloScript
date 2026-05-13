@@ -5,7 +5,7 @@ HoloScript V6 introduces a dramatic shift in how we build flat interfaces (dashb
 We call this **HoloScript's Semantic2D Pipeline**.
 
 > [!TIP]
-> The Semantic2D Pipeline is a standalone package \`@holoscript/semantic-2d\` that integrates directly into React/R3F stacks, replacing traditional DOM mutations with declarative, 3D-aware semantic entities.
+> The Semantic2D Pipeline lives in \`@holoscript/core\` (merged from the retired \`@holoscript/semantic-2d\` package) and integrates directly into React/R3F stacks, replacing traditional DOM mutations with declarative, 3D-aware semantic entities.
 
 ## The Concept
 

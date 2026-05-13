@@ -35,7 +35,7 @@ graph TB
   subgraph "L4 — Platform Services"
     absorb["@holoscript/absorb-service<br/>Codebase intelligence & self-improvement"]
     marketplace["@holoscript/marketplace-api<br/>Trait publishing & discovery"]
-    collab["@holoscript/collab-server<br/>WebSocket relay for collaboration"]
+    collab["@holoscript/mcp-server<br/>MCP tools + collab WebSocket relay"]
     sandbox["@holoscript/security-sandbox<br/>VM sandbox for code execution"]
   end
 
@@ -98,7 +98,7 @@ graph TB
 | L3    | `@holoscript/snn-webgpu`       | 7.0.0   | GPU spiking neural networks                              |
 | L4    | `@holoscript/absorb-service`   | 7.0.0   | Codebase intelligence pipeline                           |
 | L4    | `@holoscript/marketplace-api`  | 1.2.3   | Trait marketplace                                        |
-| L4    | `@holoscript/collab-server`    | 1.0.0   | WebSocket collaboration relay                            |
+| L4    | `@holoscript/mcp-server`       | 7.0.0   | MCP tools + REST API + WebSocket collab relay            |
 | L4    | `@holoscript/security-sandbox` | 1.2.2   | node:vm sandbox for safe execution (post-vm2 migration, see W.GOLD.193) |
 | L5    | `@holoscript/mcp-server`       | 7.0.0   | MCP tools + REST API                                     |
 | L5    | `@holoscript/cli`              | 7.0.0   | CLI: compile, validate, dev-serve                        |
