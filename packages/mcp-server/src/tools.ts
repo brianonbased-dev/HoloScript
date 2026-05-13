@@ -41,7 +41,7 @@ import { monitoringTools } from './monitoring-tools';
 import { holotestTools } from './holotest-tools';
 import { refactorCodegenTools } from './refactor-codegen-tools';
 import { traitTools } from './trait-tools';
-import { worldGeneratorTools } from './world-generator-tools';
+import { hololandMcpTools } from './hololand-mcp-tools';
 import { hologramToolDefinitions } from './hologram-mcp-tools';
 import { estimateTaskDurationTools } from './tools/estimate_task_duration';
 import { kolmogorovTaskScoreTools } from './tools/kolmogorov_task_score';
@@ -579,61 +579,6 @@ export const textTo3DTools: Tool[] = [
       required: ['description'],
     },
   },
-  {
-    name: 'world_generate',
-    description:
-      'Generate a persistent, navigable 3D world using the native HoloScript sovereign-3d engine (Brittney v43+). ' +
-      'Exclusively supports neural_field output, ultra-quality tier, navmesh generation, multi-view photogrammetry, ' +
-      'and physics-interactive mode. Returns the asset URL, optional navmesh, spatial metadata, ' +
-      'and a ready-to-run .holo composition file.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        prompt: {
-          type: 'string',
-          description: 'Text description of the world (e.g. "a dense cyberpunk city at dusk with rain")',
-        },
-        format: {
-          type: 'string',
-          enum: ['3dgs', 'mesh', 'both', 'neural_field'],
-          description:
-            'Output asset format. neural_field is sovereign-3d exclusive — highest fidelity continuous representation. ' +
-            '3dgs = Gaussian splats. mesh = .glb polygonal. both = splat + mesh. Default: 3dgs.',
-        },
-        quality: {
-          type: 'string',
-          enum: ['low', 'medium', 'high', 'ultra'],
-          description: 'Generation quality tier. ultra produces the highest fidelity output. Default: high.',
-        },
-        input_image: {
-          type: 'string',
-          description: 'Base64-encoded image or URL for single-view reconstruction. Optional.',
-        },
-        input_images: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Multiple images for multi-view photogrammetric reconstruction. Optional.',
-        },
-        navEnabled: {
-          type: 'boolean',
-          description:
-            'Generate a navigable navmesh alongside the world asset. ' +
-            'Returns navmeshUrl in response. Default: false.',
-        },
-        interactiveMode: {
-          type: 'boolean',
-          description:
-            'Enable physics and collision interactive mode. ' +
-            'Injects physics block into the companion .holo composition. Default: false.',
-        },
-        seed: {
-          type: 'number',
-          description: 'Reproducible seed for deterministic generation. Optional.',
-        },
-      },
-      required: ['prompt'],
-    },
-  },
 ];
 
 /**
@@ -810,7 +755,7 @@ export const tools: Tool[] = [
   ...holotestTools,
   ...refactorCodegenTools,
   ...traitTools,
-  ...worldGeneratorTools,
+  ...hololandMcpTools,
   ...hologramToolDefinitions,
   ...estimateTaskDurationTools,
   ...kolmogorovTaskScoreTools,

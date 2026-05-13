@@ -304,6 +304,9 @@ const DOWNSTREAM_TOOLS = new Set([
   // 3D generation (external API: Meshy/Tripo)
   'generate_3d_object',
 
+  // World generation (sovereign-3d pipeline — external inference)
+  'generate_world',
+
   // Networking (external connections)
   'push_state_delta',
   'fetch_authoritative_state',

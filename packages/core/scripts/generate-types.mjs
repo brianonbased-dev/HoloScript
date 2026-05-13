@@ -5969,6 +5969,78 @@ export interface AgentMetrics {
 }
 `;
 
+const hololandDTS = `/** @holoscript/core/hololand — HoloLand runtime integration (world schema + client) */
+export interface WorldMetadata {
+  id: string;
+  name: string;
+  displayName: string;
+  description?: string;
+  version: string;
+  author?: string;
+  license?: string;
+  tags: string[];
+  thumbnailUrl?: string;
+  previewImages: string[];
+  platforms: string[];
+  ageRating?: string;
+  category: string;
+  createdAt: string;
+  modifiedAt: string;
+  status: 'draft' | 'published' | 'archived';
+  metadata: Record<string, unknown>;
+}
+export interface WorldConfig {
+  maxUsers: number;
+  bounds: Record<string, unknown>;
+  physics: Record<string, unknown>;
+  rendering: Record<string, unknown>;
+  audio: Record<string, unknown>;
+  networking: Record<string, unknown>;
+  performance: Record<string, unknown>;
+  accessibility: Record<string, unknown>;
+}
+export interface WorldEnvironment {
+  skybox: Record<string, unknown>;
+  ambientLight: Record<string, unknown>;
+  directionalLights: Array<Record<string, unknown>>;
+}
+export interface WorldDefinition {
+  schemaVersion: string;
+  metadata: WorldMetadata;
+  config: WorldConfig;
+  environment: WorldEnvironment;
+  zones: Array<Record<string, unknown>>;
+  spawnPoints: Array<Record<string, unknown>>;
+  lod: Record<string, unknown>;
+  assetManifest?: string;
+  prefabs: Array<Record<string, unknown>>;
+  sceneGraph: Record<string, unknown>;
+}
+export interface ConnectionInfo {
+  state: string;
+}
+export declare class HololandClient {
+  getConnectionInfo(): ConnectionInfo;
+  registerWorld(def: WorldDefinition): Promise<Record<string, unknown>>;
+  updateWorld(id: string, def: WorldDefinition): Promise<Record<string, unknown>>;
+  getCurrentWorld(): WorldDefinition | null;
+}
+export declare function createWorldMetadata(
+  id: string,
+  name: string,
+  options?: Partial<Omit<WorldMetadata, 'id' | 'name'>>
+): WorldMetadata;
+export declare function createWorldConfig(options?: Partial<WorldConfig>): WorldConfig;
+export declare function createWorldDefinition(
+  id: string,
+  name: string,
+  options?: Partial<Omit<WorldDefinition, 'schemaVersion' | 'metadata' | 'config' | 'environment'>>
+): WorldDefinition;
+export declare function getHololandClient(config?: Partial<Record<string, unknown>>): HololandClient;
+export declare function connectToHololand(config?: Partial<Record<string, unknown>>): Promise<HololandClient>;
+export declare function disconnectFromHololand(): Promise<void>;
+`;
+
 // Create subdirectory declaration files
 const subdirDeclarations = [
   { dir: 'wot', content: wotDTS },
@@ -5983,6 +6055,7 @@ const subdirDeclarations = [
   { dir: 'paper-0c-spike', content: paper0cSpikeDTS },
   { dir: 'coordinators', content: coordinatorsDTS },
   { dir: 'agents', content: agentsDTS },
+  { dir: 'hololand', content: hololandDTS },
 ];
 
 for (const { dir, content } of subdirDeclarations) {
