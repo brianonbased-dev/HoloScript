@@ -136,6 +136,6 @@ Only ask for: novel features, budget decisions, destructive operations.
 ## Enhanced Features
 
 This project uses [HoloScript](https://holoscript.net) agent infrastructure.
-Activate: \`npx @holoscript/agent-setup\` or [HoloScript Studio start](${studioUrl}/start)
+Activate: \`npx create-holoscript\` or [HoloScript Studio start](${studioUrl}/start)
 `.trimStart();
 }

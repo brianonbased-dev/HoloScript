@@ -309,30 +309,8 @@ export const PACKAGE_PERMISSION_MANIFEST: PackagePermission[] = [
     handlesSecrets: false,
     notes: 'VS Code extension with agent API integration.',
   },
-  {
-    name: 'neovim',
-    scopeName: '@holoscript/neovim',
-    path: 'packages/neovim',
-    tier: PackageTier.STANDARD,
-    writeRoles: TIER_WRITE_ROLES[PackageTier.STANDARD],
-    readRoles: ALL_READ_ROLES,
-    allowsFsWrites: false,
-    accessesNetwork: false,
-    handlesSecrets: false,
-    notes: 'Neovim plugin.',
-  },
-  {
-    name: 'intellij',
-    scopeName: '@holoscript/intellij',
-    path: 'packages/intellij',
-    tier: PackageTier.STANDARD,
-    writeRoles: TIER_WRITE_ROLES[PackageTier.STANDARD],
-    readRoles: ALL_READ_ROLES,
-    allowsFsWrites: false,
-    accessesNetwork: false,
-    handlesSecrets: false,
-    notes: 'IntelliJ IDEA plugin.',
-  },
+  // @holoscript/neovim retired 2026-04-29 — zero source code (ghost package).
+  // @holoscript/intellij retired 2026-04-29 — Kotlin/Gradle plugin removed.
   {
     name: 'react-agent-sdk',
     scopeName: '@holoscript/react-agent-sdk',
@@ -345,18 +323,7 @@ export const PACKAGE_PERMISSION_MANIFEST: PackagePermission[] = [
     handlesSecrets: false,
     notes: 'React SDK for agent integration.',
   },
-  {
-    name: 'unity-sdk',
-    scopeName: '@holoscript/unity-sdk',
-    path: 'packages/unity-sdk',
-    tier: PackageTier.STANDARD,
-    writeRoles: TIER_WRITE_ROLES[PackageTier.STANDARD],
-    readRoles: ALL_READ_ROLES,
-    allowsFsWrites: true,
-    accessesNetwork: false,
-    handlesSecrets: false,
-    notes: 'Unity C# SDK.',
-  },
+  // @holoscript/unity-sdk retired 2026-04-29 — ghost package with zero source code.
   {
     name: 'studio-plugin-sdk',
     scopeName: '@holoscript/studio-plugin-sdk',
@@ -422,18 +389,7 @@ export const PACKAGE_PERMISSION_MANIFEST: PackagePermission[] = [
     handlesSecrets: false,
     notes: 'CDN distribution package.',
   },
-  {
-    name: 'components',
-    scopeName: '@holoscript/components',
-    path: 'packages/components',
-    tier: PackageTier.STANDARD,
-    writeRoles: TIER_WRITE_ROLES[PackageTier.STANDARD],
-    readRoles: ALL_READ_ROLES,
-    allowsFsWrites: false,
-    accessesNetwork: false,
-    handlesSecrets: false,
-    notes: 'Shared UI components.',
-  },
+  // @holoscript/components retired 2026-04-29 — ghost package with zero source code.
   {
     name: 'python-bindings',
     scopeName: 'holoscript-python',
@@ -498,18 +454,7 @@ export const PACKAGE_PERMISSION_MANIFEST: PackagePermission[] = [
     handlesSecrets: false,
     notes: 'Cross-platform benchmarks.',
   },
-  {
-    name: 'test',
-    scopeName: '@holoscript/test',
-    path: 'packages/test',
-    tier: PackageTier.LOW,
-    writeRoles: TIER_WRITE_ROLES[PackageTier.LOW],
-    readRoles: ALL_READ_ROLES,
-    allowsFsWrites: true,
-    accessesNetwork: false,
-    handlesSecrets: false,
-    notes: 'Visual test runner and diff viewer.',
-  },
+  // @holoscript/test retired 2026-04-29 — replaced by root-level vitest.
   {
     name: 'visual',
     scopeName: '@holoscript/visual',

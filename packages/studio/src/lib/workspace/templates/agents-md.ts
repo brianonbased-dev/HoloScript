@@ -198,6 +198,6 @@ Enhanced features via [HoloScript Studio](${studioUrl}):
 - **Codebase Intelligence** — Absorb scan provides semantic search over this codebase
 - **Self-Improvement Daemon** — Continuous quality monitoring and automated fixes
 
-To activate: \`npx @holoscript/agent-setup\` or visit [HoloScript Studio start](${studioUrl}/start)
+To activate: \`npx create-holoscript\` or visit [HoloScript Studio start](${studioUrl}/start)
 `.trimStart();
 }

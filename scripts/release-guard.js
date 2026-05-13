@@ -8,7 +8,6 @@ const ROOT = path.resolve(__dirname, '..');
 const PACKAGES_DIR = path.join(ROOT, 'packages');
 
 const PRIVATE_PACKAGE_IGNORELIST = new Set([
-  '@holoscript/collab-server',
   '@holoscript/marketplace-web',
   '@holoscript/studio',
   '@holoscript/ui',

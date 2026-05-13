@@ -143,7 +143,7 @@ Skills are concentrated knowledge files for each domain. **Read the relevant ski
 - Decision Oracle: \`.claude/NORTH_STAR.md\`
 - Persistent Memory: \`.claude/MEMORY.md\`
 - Team Coordination: \`team-connect.mjs\`
-- Upgrade: \`npx @holoscript/agent-setup --upgrade\` or [studio.holoscript.net](https://studio.holoscript.net)
+- Upgrade: \`npx create-holoscript --upgrade\` or [studio.holoscript.net](https://studio.holoscript.net)
 `;
 }
 
@@ -373,7 +373,7 @@ _Agents will track recurring issues here._
 
 | Date | Agent | Summary |
 |------|-------|---------|
-| _setup_ | agent-setup | Initial scaffold via \`npx @holoscript/agent-setup\` |
+| _setup_ | create-holoscript | Initial scaffold via \`npx create-holoscript\` |
 `;
 }
 

@@ -123,7 +123,7 @@ export function buildPackageJson(opts: PackageJsonOptions): Record<string, unkno
     (pkg.dependencies as Record<string, string>)['react-dom'] = '^18.2.0';
     (pkg.dependencies as Record<string, string>)['@react-three/fiber'] = '^8.17.10';
     (pkg.dependencies as Record<string, string>)['@react-three/drei'] = '^9.114.0';
-    (pkg.dependencies as Record<string, string>)['@holoscript/semantic-2d'] = '^6.0.1';
+    (pkg.dependencies as Record<string, string>)['@holoscript/core'] = '^7.0.0';
     (pkg.devDependencies as Record<string, string>)['@vitejs/plugin-react'] = '^4.3.4';
   }
 

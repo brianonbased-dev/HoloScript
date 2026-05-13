@@ -61,16 +61,13 @@ export class PackageManager {
     '@holoscript/core',
     '@holoscript/std',
     '@holoscript/runtime',
-    '@holoscript/network',
-    // @holoscript/fs merged into @holoscript/std/fs (2026-04-29) — kept off
-    // this list so the CLI no longer suggests installing a removed package.
+    // @holoscript/fs merged into @holoscript/std/fs (2026-04-29)
+    // @holoscript/network migrated to Hololand (2026-04-29)
     '@holoscript/linter',
     '@holoscript/formatter',
-    '@holoscript/test',
     '@holoscript/llm',
     '@holoscript/lsp',
     '@holoscript/cli',
-    '@holoscript/commerce',
     '@holoscript/infinityassistant',
   ];
 
@@ -376,10 +373,6 @@ export class PackageManager {
     for (const pkg of packages) {
       if (pkg === '@holoscript/std' || pkg === 'std') {
         console.log(`  import { Vec3, Color, Timer } from '@holoscript/std';`);
-      } else if (pkg === '@holoscript/network' || pkg === 'network') {
-        console.log(`  import { Server, Client, Room } from '@holoscript/network';`);
-      } else if (pkg === '@holoscript/test' || pkg === 'test') {
-        console.log(`  import { describe, it, expect } from '@holoscript/test';`);
       } else if (pkg === '@holoscript/linter' || pkg === 'linter') {
         console.log(`  import { createLinter, LintEngine } from '@holoscript/linter';`);
       }

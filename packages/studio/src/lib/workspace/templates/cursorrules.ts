@@ -98,6 +98,6 @@ ${isMonorepo ? `- Which package? The one closest to the feature.\n` : ''}
 This project has HoloScript agent infrastructure:
 - Decision oracle: .claude/NORTH_STAR.md
 - Persistent memory: .claude/MEMORY.md
-- Upgrade: npx @holoscript/agent-setup
+- Upgrade: npx create-holoscript
 `.trimStart();
 }
