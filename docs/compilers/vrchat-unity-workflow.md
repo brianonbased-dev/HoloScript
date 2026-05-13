@@ -9,7 +9,7 @@ Current export flow is compiler-target based.
 | Tool                 | Role                             |
 | -------------------- | -------------------------------- |
 | @holoscript/cli      | Primary compile/export interface |
-| @holoscript/compiler | Programmatic compiler entrypoint |
+| @holoscript/core     | Parsing, AST, and programmatic compiler entrypoint |
 | @holoscript/core     | Parsing and AST utilities        |
 
 ## Recommended Workflow

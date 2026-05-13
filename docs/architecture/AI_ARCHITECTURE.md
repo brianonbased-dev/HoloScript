@@ -70,7 +70,7 @@ const response = await LLM.infer('What is this object?', {
 });
 ```
 
-### `@holoscript/compiler` (VRChat/Unity Targets)
+### `@holoscript/core` (VRChat/Unity Targets)
 
 _AI-assisted target compilation to Udon/Unity outputs._
 

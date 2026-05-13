@@ -380,7 +380,7 @@ pnpm self-improve       # Daemon self-improvement loop
 - **Call `suggest_traits` before writing HoloScript**, `validate_holoscript` after generating (per CLAUDE.md contract).
 - **For TypeScript refactoring**: call `holo_graph_status` → `holo_absorb_repo` (force=false) → `holo_impact_analysis` BEFORE any edits.
 - **Traits live in `@holoscript/core/src/traits/`** (not a separate package). Count via `find packages/core/src/traits -name "*.ts" | wc -l`.
-- **Compilers live in `@holoscript/core/src/compiler/`** (not @holoscript/compiler -- that package is the CLI-facing compilation orchestrator). Count via `find packages/core/src -name "*Compiler.ts" | wc -l`.
+- **Compilers live in `@holoscript/core/src/compiler/`** (not a separate package). Count via `find packages/core/src -name "*Compiler.ts" | wc -l`.
 - **Git rules**: See NORTH_STAR.md DT-2. Canonical scopes + 72-char limit enforced by commit-msg hook. PR required for 10+ files.
 
 ---

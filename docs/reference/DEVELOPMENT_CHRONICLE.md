@@ -23,7 +23,7 @@ This document recovers that story. It's organized by session — clusters of com
 ### Week of Jan 14-17 — Foundation
 
 **Session 1** (Jan 14 evening): `b841c6f9`
-- Initial repo. `@holoscript/uaa2-client` package.
+- Initial repo. `@holoscript/uaa2-client` package (later superseded by `@holoscript/holoscript-agent`).
 - 12 files, 1,542 lines. Clean origin commit.
 
 **Session 2** (Jan 15 night): `55e43a2c`

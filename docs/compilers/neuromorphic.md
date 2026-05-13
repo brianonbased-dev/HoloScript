@@ -91,7 +91,7 @@ holoscript compile snn.holo --target nir-wgsl
 # → snn-bridge.js   (connects spike outputs to scene objects)
 ```
 
-This is backed by `@holoscript/snn-poc` and `@holoscript/snn-webgpu` packages.
+This is backed by `@holoscript/snn-webgpu` (successor to the retired `@holoscript/snn-poc` PoC).
 
 ## Use Cases
 
@@ -105,8 +105,7 @@ This is backed by `@holoscript/snn-poc` and `@holoscript/snn-webgpu` packages.
 
 | Package                  | Role                                 |
 | ------------------------ | ------------------------------------ |
-| `@holoscript/snn-poc`    | Reference LIF implementation + tests |
-| `@holoscript/snn-webgpu` | GPU-accelerated SNN compute shaders  |
+| `@holoscript/snn-webgpu` | GPU-accelerated SNN compute shaders + reference LIF implementation |
 
 ## Compiler Options
 
