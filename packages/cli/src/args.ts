@@ -80,6 +80,8 @@ export interface CLIOptions {
     | 'setup-mcp'
     | 'issue-key'
     | 'quickstart'
+    | 'twin-earth-status'
+    | 'twin-earth-contract'
     | 'init'
     | 'help'
     | 'version';
@@ -312,6 +314,8 @@ export function parseArgs(args: string[]): CLIOptions {
           'setup-mcp',
           'issue-key',
           'quickstart',
+          'twin-earth-status',
+          'twin-earth-contract',
           'init',
           'help',
           'version',

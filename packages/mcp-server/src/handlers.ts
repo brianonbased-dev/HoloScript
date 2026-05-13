@@ -422,7 +422,9 @@ export async function handleTool(
     name === 'hololand_list_npcs' ||
     name === 'hololand_npc_generate_dialogue' ||
     name === 'hololand_npc_byok_status' ||
-    name === 'hololand_brittney_npc_mode'
+    name === 'hololand_brittney_npc_mode' ||
+    name === 'hololand_twin_earth_contract' ||
+    name === 'hololand_twin_earth_substrate_status'
   ) {
     const { handleHololandMcpTool } = await import('./hololand-mcp-tools');
     return handleHololandMcpTool(name, args);

@@ -24,4 +24,18 @@ describe('agent tooling commands', () => {
     expect(opts.input).toBe('src/cli.ts');
     expect(opts.queryDir).toBe('packages/cli/src');
   });
+
+  it('parses twin-earth-status command', () => {
+    const opts = parseArgs(['twin-earth-status', '--json']);
+
+    expect(opts.command).toBe('twin-earth-status');
+    expect(opts.json).toBe(true);
+  });
+
+  it('parses twin-earth-contract command', () => {
+    const opts = parseArgs(['twin-earth-contract', '--json']);
+
+    expect(opts.command).toBe('twin-earth-contract');
+    expect(opts.json).toBe(true);
+  });
 });
