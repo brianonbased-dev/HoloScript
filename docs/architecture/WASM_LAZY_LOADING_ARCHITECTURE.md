@@ -36,11 +36,13 @@ This document defines the architecture for decomposing HoloScript's 24+ export t
 
 ### 1.2 Existing WASM Components
 
-| Package                | Purpose               | Size   | Technology          |
-| ---------------------- | --------------------- | ------ | ------------------- |
-| `compiler-wasm`        | Parser (Rust)         | ~200KB | wasm-bindgen        |
-| `spatial-engine-wasm`  | Noise, collision, A\* | ~50KB  | wasm-bindgen        |
-| `holoscript-component` | Full runtime (Rust)   | ~459KB | WIT/Component Model |
+> **2026-05-12 reconciliation**: Only `compiler-wasm` is a live Rust crate in the current tree. `spatial-engine-wasm` and `holoscript-component` were retired in commit `c5887f4e7` (2026-04-01). Do not treat them as current build targets. See `docs/packages/rust-spatial-stack-history.md` for the retirement record.
+
+| Package                | Purpose               | Size   | Technology          | Status |
+| ---------------------- | --------------------- | ------ | ------------------- | ------ |
+| `compiler-wasm`        | Parser (Rust)         | ~200KB | wasm-bindgen        | Live   |
+| `spatial-engine-wasm`  | Noise, collision, A\* | ~50KB  | wasm-bindgen        | Retired |
+| `holoscript-component` | Full runtime (Rust)   | ~459KB | WIT/Component Model | Retired |
 
 ### 1.3 Existing WIT Interface
 
