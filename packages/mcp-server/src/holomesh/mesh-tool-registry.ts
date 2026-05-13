@@ -2,6 +2,7 @@ import axios from 'axios';
 import * as crypto from 'crypto';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { getToolRiskLevel, getToolScopes, type ToolRiskLevel } from '../security/tool-scopes';
+import type { SigningContext } from '../holomesh/identity/signing-middleware';
 
 const TOOL_MANIFEST_PROTOCOL = 'holomesh.tool_manifest.v1';
 const TOOL_INVOCATION_PROTOCOL = 'holomesh.tool_invocation.v1';
@@ -363,13 +364,14 @@ export function meshToolManifestFromKnowledgeContent(content: string): MeshToolM
 
 async function defaultLocalInvoker(
   toolName: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  signingCtx?: SigningContext
 ): Promise<unknown> {
   if (toolName === 'holomesh_invoke_tool') {
     throw new Error('holomesh_invoke_tool cannot recursively invoke itself');
   }
   const { handleTool } = await import('../handlers');
-  return handleTool(toolName, args);
+  return handleTool(toolName, args, signingCtx);
 }
 
 export async function invokePublishedMeshTool(
