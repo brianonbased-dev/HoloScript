@@ -794,9 +794,9 @@ Usage: holoscript <command> [options] [input]
   holoscript templates                 # List object templates
 
   \x1b[2m# Package Management\x1b[0m
-  holoscript add @holoscript/std @holoscript/network
-  holoscript add @holoscript/test --dev
-  holoscript remove @holoscript/network
+  holoscript add @holoscript/std @holoscript/runtime
+  holoscript add @holoscript/linter --dev
+  holoscript remove @holoscript/runtime
   holoscript list
 
   \x1b[2m# Publishing Packages\x1b[0m

@@ -81,6 +81,18 @@ function printJson(value: unknown): void {
   console.log(JSON.stringify(value, null, 2));
 }
 
+function isMissingPuppeteerError(error: Error): boolean {
+  return /(?:Cannot find (?:package|module) ['"]puppeteer['"]|Failed to initialize Puppeteer)/i.test(
+    error.message
+  );
+}
+
+function printVerboseError(error: Error, verbose?: boolean): void {
+  if (verbose) {
+    console.error(error.stack || error.message);
+  }
+}
+
 function printGraphStatus(status: unknown): void {
   const payload = asRecord(status);
   const diskCache = asRecord(payload.diskCache);
@@ -1350,8 +1362,7 @@ async function main(): Promise<void> {
             process.exit(1);
           }
 
-          const { HoloCompositionParser } = await import('@holoscript/core');
-          const { FlatSemanticCompiler } = await import('@holoscript/semantic-2d');
+          const { HoloCompositionParser, FlatSemanticCompiler } = await import('@holoscript/core');
           const compositionParser = new HoloCompositionParser();
           const parseResult = compositionParser.parse(content);
 
@@ -2548,7 +2559,7 @@ async function main(): Promise<void> {
       console.log(`\n\x1b[36mCapturing screenshot of ${options.input}...\x1b[0m\n`);
 
       try {
-        const { PuppeteerRenderer } = await import('@holoscript/core');
+        const { PuppeteerRenderer } = await import('@holoscript/engine');
         const renderer = new PuppeteerRenderer({ debug: options.verbose });
 
         await renderer.initialize();
@@ -2569,7 +2580,7 @@ async function main(): Promise<void> {
           console.log(`\x1b[32m✓ Screenshot saved to ${outputPath}\x1b[0m`);
           console.log(`  Size: ${result.metadata?.width}x${result.metadata?.height}`);
           console.log(`  Format: ${result.metadata?.format}`);
-          console.log(`  File size: ${(result.metadata?.size || 0 / 1024).toFixed(1)} KB`);
+          console.log(`  File size: ${((result.metadata?.size || 0) / 1024).toFixed(1)} KB`);
           if (result.timing) {
             console.log(`  Total time: ${result.timing.totalMs}ms`);
           }
@@ -2580,7 +2591,8 @@ async function main(): Promise<void> {
         }
       } catch (error) {
         const err = error as Error;
-        if (err.message.includes('puppeteer')) {
+        printVerboseError(err, options.verbose);
+        if (isMissingPuppeteerError(err)) {
           cliError('E005', 'Puppeteer not installed (required for headless rendering).', {
             hint: 'Install it with `npm install puppeteer` or `pnpm add puppeteer` in your project.',
           });
@@ -2618,7 +2630,7 @@ async function main(): Promise<void> {
       console.log(`\n\x1b[36mGenerating PDF of ${options.input}...\x1b[0m\n`);
 
       try {
-        const { PuppeteerRenderer } = await import('@holoscript/core');
+        const { PuppeteerRenderer } = await import('@holoscript/engine');
         const renderer = new PuppeteerRenderer({ debug: options.verbose });
 
         await renderer.initialize();
@@ -2642,7 +2654,8 @@ async function main(): Promise<void> {
         }
       } catch (error) {
         const err = error as Error;
-        if (err.message.includes('puppeteer')) {
+        printVerboseError(err, options.verbose);
+        if (isMissingPuppeteerError(err)) {
           cliError('E005', 'Puppeteer not installed (required for headless rendering).', {
             hint: 'Install it with `npm install puppeteer` or `pnpm add puppeteer` in your project.',
           });
@@ -2680,7 +2693,7 @@ async function main(): Promise<void> {
       console.log(`\n\x1b[36mPre-rendering ${options.input}...\x1b[0m\n`);
 
       try {
-        const { PuppeteerRenderer } = await import('@holoscript/core');
+        const { PuppeteerRenderer } = await import('@holoscript/engine');
         const renderer = new PuppeteerRenderer({ debug: options.verbose });
 
         await renderer.initialize();
@@ -2704,7 +2717,8 @@ async function main(): Promise<void> {
         }
       } catch (error) {
         const err = error as Error;
-        if (err.message.includes('puppeteer')) {
+        printVerboseError(err, options.verbose);
+        if (isMissingPuppeteerError(err)) {
           cliError('E005', 'Puppeteer not installed (required for headless rendering).', {
             hint: 'Install it with `npm install puppeteer` or `pnpm add puppeteer` in your project.',
           });

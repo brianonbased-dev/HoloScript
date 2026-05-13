@@ -134,6 +134,6 @@ This project uses [HoloScript](https://holoscript.net) agent infrastructure:
 - Persistent memory at \`.claude/MEMORY.md\`
 - Multi-IDE coordination via \`team-connect.mjs\`
 
-Activate full features: \`npx @holoscript/agent-setup\`
+Activate full features: \`npx create-holoscript\`
 `.trimStart();
 }

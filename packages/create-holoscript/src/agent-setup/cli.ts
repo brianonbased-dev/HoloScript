@@ -1,14 +1,14 @@
 /**
- * @holoscript/agent-setup — CLI entry point
+ * create-holoscript agent-setup — CLI entry point
  *
  * Set up multi-agent infrastructure for any existing repo.
  * Works with Claude, Copilot, Cursor, Windsurf, Gemini, Codex, Devin.
  *
  * Usage:
- *   npx @holoscript/agent-setup           # Interactive setup in current directory
- *   npx @holoscript/agent-setup --yes     # Non-interactive, accept all defaults
- *   npx @holoscript/agent-setup --dry-run # Preview files without writing
- *   npx @holoscript/agent-setup ./path    # Target a specific directory
+ *   npx create-holoscript agent-setup           # Interactive setup in current directory
+ *   npx create-holoscript agent-setup --yes     # Non-interactive, accept all defaults
+ *   npx create-holoscript agent-setup --dry-run # Preview files without writing
+ *   npx create-holoscript agent-setup ./path    # Target a specific directory
  */
 
 import fs from 'node:fs';
@@ -46,7 +46,7 @@ function parseArgs(): ParsedArgs {
 function printBanner(): void {
   console.log();
   console.log(pc.cyan('  ╔═══════════════════════════════════════════════╗'));
-  console.log(pc.cyan('  ║') + pc.bold('     @holoscript/agent-setup                  ') + pc.cyan('║'));
+  console.log(pc.cyan('  ║') + pc.bold('     create-holoscript agent-setup            ') + pc.cyan('║'));
   console.log(pc.cyan('  ║') + pc.dim('   Multi-agent infrastructure for any repo    ') + pc.cyan('║'));
   console.log(pc.cyan('  ╚═══════════════════════════════════════════════╝'));
   console.log();
