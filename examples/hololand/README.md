@@ -182,8 +182,8 @@ holoscript build examples/hololand/3-world-definition.holo --platform quest
 
 ## Related Documentation
 
-- [Hololand Integration Guide](../../docs/integration/HOLOLAND_INTEGRATION_GUIDE.md) - Complete API documentation
-- [Graphics Integration](../../docs/integration/HOLOLAND_GRAPHICS_INTEGRATION.md) - Graphics pipeline details
+- [Hololand Integration Guide](../../docs/integrations/hololand.md) - Complete API documentation
+- [Graphics Integration](../../docs/integrations/HOLOLAND_GRAPHICS_INTEGRATION.md) - Graphics pipeline details
 - [Quick Reference Card](../../docs/QUICK_REFERENCE_CARD.md) - HoloScript syntax cheat sheet
 
 ## Feature Coverage

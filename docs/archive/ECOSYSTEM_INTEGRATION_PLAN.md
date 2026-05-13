@@ -329,8 +329,8 @@ HoloScript is already registered in the MCP orchestrator:
 
 ## Related Documents
 
-- [HOLOLAND_ROADMAP.md](integration/HOLOLAND_ROADMAP.md) - Hololand platform roadmap
-- [HOLOLAND_INTEGRATION_GUIDE.md](integration/HOLOLAND_INTEGRATION_GUIDE.md) - Integration guide
+- [HOLOLAND_ROADMAP.md](../integrations/HOLOLAND_ROADMAP.md) - Hololand platform roadmap
+- [hololand.md](../integrations/hololand.md) - Integration guide
 - [RELEASE_NOTES_3.0.md](RELEASE_NOTES_3.0.md) - HoloScript 3.0 release notes
 - [../AI_Workspace/docs/HOLOSCRIPT_TRAINING_INTEGRATION.md](file://C:/Users/josep/Documents/GitHub/AI_Workspace/docs/HOLOSCRIPT_TRAINING_INTEGRATION.md) - Agent training
 

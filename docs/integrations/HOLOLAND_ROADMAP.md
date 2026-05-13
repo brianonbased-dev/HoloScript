@@ -275,7 +275,7 @@ github.com/brianonbased-dev/
 ## Related Documents
 
 - [HoloScript 3.0 Release Notes](../RELEASE_NOTES_3.0.md)
-- [Hololand Integration Guide](./HOLOLAND_INTEGRATION_GUIDE.md)
+- [Hololand Integration Guide](./hololand.md)
 - [Partner SDK Documentation](../../packages/partner-sdk/README.md)
 
 ---

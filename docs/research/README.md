@@ -11,7 +11,7 @@ The following research documentation has been moved to the proprietary AI_Worksp
 | EXECUTIVE_SUMMARY.md                                 | AI_Workspace/Projects/HoloScript/research/ | Phase 6-8 executive summary with financial projections      |
 | AI_USE_CASES.md                                      | AI_Workspace/Projects/HoloScript/research/ | AI integration patterns and multi-agent collaboration       |
 | DELIVERABLES_INDEX.md                                | AI_Workspace/Projects/HoloScript/research/ | Complete deliverables list with ROI analysis                |
-| HOLOLAND_AUDIT.md                                    | AI_Workspace/Projects/HoloScript/research/ | Graphics pipeline audit and integration roadmap             |
+| [hololand-audit.md](../archive/hololand-audit.md)                                  | AI_Workspace/Projects/HoloScript/research/ | Graphics pipeline audit and integration roadmap             |
 | 2026-01-24_holoscript-multi-domain-utility-matrix.md | .ai-workspace/research/                    | Multi-domain utility analysis (VR/AR/Gaming/Enterprise)     |
 | 2026-01-24_brittney-proprietary-training-research.md | .ai-workspace/research/                    | Brittney AI training methodology                            |
 | 2026-01-25_cloud-agent-traits-uaa2-starship.md       | .ai-workspace/research/                    | uAA2++ Starship architecture & ∞++ compression pipeline     |

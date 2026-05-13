@@ -94,7 +94,7 @@
 | [EXECUTIVE_SUMMARY.md](./EXECUTIVE_SUMMARY.md)                                                   | Quick metrics    | 5 min     |
 | [FINAL_STATUS_REPORT.md](./FINAL_STATUS_REPORT.md)                                               | Complete status  | 10 min    |
 | [PHASE_6_8_PARALLEL_IMPLEMENTATION_COMPLETE.md](./PHASE_6_8_PARALLEL_IMPLEMENTATION_COMPLETE.md) | Full details     | 20 min    |
-| [HOLOLAND_AUDIT.md](./HOLOLAND_AUDIT.md)                                                         | Integration plan | 15 min    |
+| [hololand-audit.md](./hololand-audit.md)                                                         | Integration plan | 15 min    |
 | [NAVIGATION_GUIDE.md](./NAVIGATION_GUIDE.md)                                                     | File index       | 5 min     |
 
 ---
@@ -158,7 +158,7 @@
 
 - [EXECUTIVE_SUMMARY.md](./EXECUTIVE_SUMMARY.md) - Start here
 - [FINAL_STATUS_REPORT.md](./FINAL_STATUS_REPORT.md) - Complete status
-- [HOLOLAND_AUDIT.md](./HOLOLAND_AUDIT.md) - Integration roadmap
+- [hololand-audit.md](./hololand-audit.md) - Integration roadmap
 
 **Code:**
 
