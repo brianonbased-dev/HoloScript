@@ -1,0 +1,173 @@
+// Twin Earth — First Playable Proof (HoloLand)
+// Location-based AR game layer with privacy governance and graceful degradation.
+// Canary: task_1778616474061_3yjb
+
+@world {
+  backgroundColor: "#87CEEB"
+  ambient: 0.6
+  fog: { type: "linear", color: "#e0f7fa", near: 80, far: 300 }
+  shadows: true
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// EarthLayer — Digital twin strata
+// ═══════════════════════════════════════════════════════════════════
+
+object "terrain_shell" @earth_layer @earth_terrain @game_geo_anchor @game_geo_persistent {
+  position: [0, -0.5, 0]
+  scale: [200, 1, 200]
+  color: "#5d8a3e"
+  geometry: "plane"
+  material: "grass"
+  lat: 40.7128
+  lon: -74.0060
+  alt: 10
+}
+
+object "city_hall" @earth_layer @earth_building @game_place @place_social {
+  position: [12, 15, -8]
+  scale: [8, 30, 8]
+  color: "#8b4513"
+  geometry: "cube"
+  material: "brick"
+  place_capacity: 500
+  place_schedule: "09:00-17:00"
+}
+
+object "broadway_road" @earth_layer @earth_road {
+  position: [0, 0.1, 20]
+  scale: [120, 0.2, 6]
+  color: "#333333"
+  geometry: "cube"
+  material: "asphalt"
+}
+
+object "central_pond" @earth_layer @earth_water {
+  position: [-25, 0.2, 10]
+  scale: [15, 0.5, 10]
+  color: "#1e90ff"
+  geometry: "cylinder"
+  material: "water"
+}
+
+object "tree_canopy" @earth_layer @earth_vegetation {
+  position: [-15, 4, -15]
+  scale: [3, 8, 3]
+  color: "#228b22"
+  geometry: "sphere"
+  material: "foliage"
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Place — Named venue with ingress/egress
+// ═══════════════════════════════════════════════════════════════════
+
+object "museum_entrance" @game_place @place_ingress @location_quest @location_quest_checkin {
+  position: [12, 1, -12]
+  scale: [2, 2.5, 0.5]
+  color: "#ffd700"
+  geometry: "cube"
+  emissive: "#ffd700"
+  emissiveIntensity: 0.4
+}
+
+object "museum_exit" @game_place @place_egress {
+  position: [16, 1, -4]
+  scale: [2, 2.5, 0.5]
+  color: "#cd5c5c"
+  geometry: "cube"
+}
+
+zone "museum_quarter" @place_zone @game_geo_radius {
+  position: [12, 0, -8]
+  scale: [20, 1, 20]
+  color: "#ffffff"
+  opacity: 0.1
+  geometry: "cube"
+  game_geo_radius: 25
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PrivacyRule — Consent and governance attached to the museum zone
+// ═══════════════════════════════════════════════════════════════════
+
+object "privacy_governance" @privacy_rule @privacy_collection_scope @privacy_consent_receipt {
+  position: [12, 3, -8]
+  scale: [0.5, 0.5, 0.5]
+  color: "#00ff00"
+  geometry: "octahedron"
+  material: "glass"
+  privacy_collection_scope: ["location_coarse", "visit_duration"]
+  privacy_retention_policy: "30_days"
+  privacy_anonymization: true
+  privacy_opt_out: true
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// LocationQuest — Real-world quest primitives
+// ═══════════════════════════════════════════════════════════════════
+
+orb "quest_marker_streak" @location_quest @location_quest_streak @location_quest_proximity {
+  position: [30, 2, 20]
+  scale: [0.6, 0.6, 0.6]
+  color: "#ff4500"
+  geometry: "sphere"
+  emissive: "#ff4500"
+  emissiveIntensity: 1.2
+  animate: "pulse"
+  animSpeed: 1.2
+  location_quest_radius: 15
+}
+
+orb "quest_marker_route" @location_quest @location_quest_route @location_quest_timegate {
+  position: [-30, 2, 20]
+  scale: [0.6, 0.6, 0.6]
+  color: "#9400d3"
+  geometry: "sphere"
+  emissive: "#9400d3"
+  emissiveIntensity: 1.2
+  animate: "pulse"
+  animSpeed: 0.9
+  location_quest_timegate: "weekend_only"
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Degradation — Graceful fallback annotations
+// ═══════════════════════════════════════════════════════════════════
+
+object "degradation_anchor_mobile" @mobile_degradation @degradation_map_view {
+  position: [0, 5, 0]
+  scale: [1, 0.2, 1]
+  color: "#ffa500"
+  geometry: "cube"
+}
+
+object "degradation_anchor_browser" @browser_degradation @degradation_static_render @degradation_text_description {
+  position: [5, 5, 0]
+  scale: [1, 0.2, 1]
+  color: "#4169e1"
+  geometry: "cube"
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Ground & Sky
+// ═══════════════════════════════════════════════════════════════════
+
+object "ground" @collidable {
+  position: [0, -1, 0]
+  scale: [300, 1, 300]
+  color: "#2f4f4f"
+  geometry: "cube"
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Notes
+// ═══════════════════════════════════════════════════════════════════
+// - On mobile without ARKit/ARCore, @mobile_degradation falls back
+//   to @degradation_map_view (2D map pins).
+// - On desktop browser without WebXR, @browser_degradation falls back
+//   to @degradation_static_render (pre-rendered panoramas) plus
+//   @degradation_text_description (rich text POI cards).
+// - Privacy consent is checked before any @location_quest triggers.
+//   If consent is revoked via @privacy_opt_out, quest events are
+//   suppressed and the user sees only public @earth_layer data.
