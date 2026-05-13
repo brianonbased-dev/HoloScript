@@ -219,6 +219,7 @@ describe('DispatchPolicy', () => {
       tier1NeuromorphicEnabled: false,
       tier2Enabled: true,
       llmProposalProvider: (op) => createTier3CpuDirectOutput(op),
+      effectVerifier: async () => ({ passed: true }),
       tier2AlphaThreshold: 0.0,
       alphaWindowSize: 10,
     });

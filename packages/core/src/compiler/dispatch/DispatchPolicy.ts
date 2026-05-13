@@ -19,6 +19,7 @@ import type { ProvenanceContext, ProvenanceValue } from '../traits/ProvenanceSem
 import { isWebGpuEnvironmentPresent } from '../../reconstruction/webgpuGate';
 import type { ReconstructionManifest } from '../../reconstruction/HoloMapRuntime';
 import { assertHoloMapManifestContract } from '../../reconstruction/simulationContractBinding';
+import { ExpressionEvaluator } from '../../ReactiveState';
 
 export enum DispatchTier {
   TIER_1_NEUROMORPHIC = 'tier-1-neuromorphic',
@@ -112,6 +113,10 @@ export type Tier1WasmExecutor = (
   runtime: Tier1WasmRuntimeProbeResult
 ) => Tier1WasmEmulatorResult | Promise<Tier1WasmEmulatorResult>;
 
+export type Tier1BrowserExecutor = (
+  op: DispatchableOperation
+) => Promise<{ accepted: boolean; source: string; steps?: number; reason?: string }>;
+
 export interface DispatchPolicyConfig {
   /** Enable Tier-1 Browser (WebGPU SNN) path */
   tier1BrowserEnabled: boolean;
@@ -121,6 +126,8 @@ export interface DispatchPolicyConfig {
   tier1WasmRuntimeProbe?: Tier1WasmRuntimeProbe;
   /** compiler-wasm SNN emulator hook. Defaults to the built-in LIF emulator. */
   tier1WasmExecutor?: Tier1WasmExecutor;
+  /** WebGPU SNN browser executor. Defaults to dynamic import of @holoscript/snn-webgpu. */
+  tier1BrowserExecutor?: Tier1BrowserExecutor;
   /** Enable Tier-1 Neuromorphic (NIR) path */
   tier1NeuromorphicEnabled: boolean;
   /** Specific NIR device target, if any */
@@ -175,6 +182,8 @@ export interface DispatchMetrics {
   wasmProbe?: Tier1WasmRuntimeProbeResult;
   /** compiler-wasm SNN emulator evidence for Tier-1 WASM fallback decisions */
   wasmEmulator?: Tier1WasmEmulatorResult;
+  /** Runtime evidence for Tier-1 browser decisions */
+  browserExecutor?: { accepted: boolean; source: string; steps?: number; reason?: string };
 }
 
 export interface DispatchDecision {
@@ -337,9 +346,35 @@ export class DispatchPolicy {
 
   private async tryTier1Browser(op: DispatchableOperation): Promise<DispatchDecision> {
     const available = isWebGpuEnvironmentPresent();
-    const accepted = available && this.isTraitSnnCompatible(op.trait);
-    const reason = accepted ? undefined : 'WebGPU not available or trait incompatible';
-    return this.buildDecision(DispatchTier.TIER_1_BROWSER, accepted, op, reason);
+    const traitCompatible = this.isTraitSnnCompatible(op.trait);
+
+    if (!available || !traitCompatible) {
+      const reason = !available
+        ? 'WebGPU not available'
+        : 'Trait is not mapped to the SNN/WebGPU hot path';
+      return this.buildDecision(DispatchTier.TIER_1_BROWSER, false, op, reason);
+    }
+
+    const executor = this.config.tier1BrowserExecutor ?? runTier1BrowserSnn;
+    try {
+      const result = await executor(op);
+      const reason = result.accepted
+        ? undefined
+        : result.reason ?? 'Tier-1 browser executor rejected dispatch';
+      return this.buildDecision(
+        DispatchTier.TIER_1_BROWSER,
+        result.accepted,
+        op,
+        reason,
+        undefined,
+        { browserExecutor: result }
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return this.buildDecision(DispatchTier.TIER_1_BROWSER, false, op, message, undefined, {
+        browserExecutor: { accepted: false, source: 'tier-1-browser-error', reason: message },
+      });
+    }
   }
 
   private async tryTier1Wasm(op: DispatchableOperation): Promise<DispatchDecision> {
@@ -372,7 +407,8 @@ export class DispatchPolicy {
   }
 
   private async tryTier2(op: DispatchableOperation): Promise<DispatchDecision> {
-    const proposal = await this.llmPropose(op);
+    const provider = this.config.llmProposalProvider;
+    const proposal = provider ? (await provider(op)) ?? null : null;
     if (!proposal) {
       this.alphaTracker.recordAttempt(false);
       const alpha = this.alphaTracker.getAlpha();
@@ -498,26 +534,25 @@ export class DispatchPolicy {
     return snnTraits.has(trait);
   }
 
-  private async llmPropose(op: DispatchableOperation): Promise<unknown | null> {
-    const provider = this.config.llmProposalProvider;
-    if (!provider) return null;
-    return (await provider(op)) ?? null;
-  }
-
   private async runCpuVerifier(op: DispatchableOperation, _proposal: unknown): Promise<boolean> {
+    let anyVerifierWired = false;
+
     // 1. EffectInference gate
     if (this.config.effectVerifier) {
+      anyVerifierWired = true;
       const effectResult = await this.config.effectVerifier([op.trait]);
       if (!effectResult || !effectResult.passed) return false;
     }
 
     // 2. SimulationContract gate (when a manifest is supplied)
     if (op.manifest && this.config.simulationContractVerifier) {
+      anyVerifierWired = true;
       const scPassed = await this.config.simulationContractVerifier(op.manifest);
       if (!scPassed) return false;
     } else if (op.manifest) {
       // If a manifest is present but no custom verifier is wired, run the
       // default HoloMap contract assertion as a baseline gate.
+      anyVerifierWired = true;
       try {
         assertHoloMapManifestContract(op.manifest);
       } catch {
@@ -525,12 +560,12 @@ export class DispatchPolicy {
       }
     }
 
-    // If no verifiers are wired, default to pass (scaffold mode).
-    return true;
+    // Fail closed when no verifiers are wired.
+    return anyVerifierWired;
   }
 
   private async runTier3CpuDirect(op: DispatchableOperation): Promise<unknown> {
-    const executor = this.config.tier3CpuExecutor ?? createTier3CpuDirectOutput;
+    const executor = this.config.tier3CpuExecutor ?? runTier3CpuDirectExecutor;
     return executor(op);
   }
 
@@ -624,6 +659,64 @@ export function createTier3CpuDirectOutput(op: DispatchableOperation): Tier3CpuD
     nodeId: op.nodeId,
     config: op.config ?? {},
   };
+}
+
+async function runTier3CpuDirectExecutor(op: DispatchableOperation): Promise<Tier3CpuDirectOutput> {
+  const evaluator = new ExpressionEvaluator(op.config ?? {});
+  const evaluatedConfig: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(op.config ?? {})) {
+    if (typeof value === 'string') {
+      evaluatedConfig[key] = evaluator.evaluate(value);
+    } else {
+      evaluatedConfig[key] = value;
+    }
+  }
+  return {
+    trait: op.trait,
+    nodeId: op.nodeId,
+    config: evaluatedConfig,
+  };
+}
+
+async function runLlmProposalProvider(op: DispatchableOperation): Promise<unknown | null> {
+  try {
+    const { createProviderManager } = await import('@holoscript/llm-provider');
+    const manager = createProviderManager();
+    const response = await manager.generateHoloScript({
+      prompt: `Propose trait dispatch for ${op.trait} on node ${op.nodeId}`,
+    });
+    return response ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function runTier1BrowserSnn(
+  op: DispatchableOperation
+): Promise<{ accepted: boolean; source: string; steps?: number; reason?: string }> {
+  try {
+    // @ts-ignore — optional dependency not declared in core package.json
+    const snnWebgpu = await import('@holoscript/snn-webgpu');
+    const { GPUContext, LIFSimulator, DEFAULT_LIF_PARAMS } = snnWebgpu as {
+      GPUContext: new () => { initialize(): Promise<unknown> };
+      LIFSimulator: new (ctx: unknown, neurons: number, params: unknown) => { initialize(): Promise<unknown>; stepN(steps: number): Promise<unknown> };
+      DEFAULT_LIF_PARAMS: unknown;
+    };
+    const ctx = new GPUContext();
+    await ctx.initialize();
+    const simulator = new LIFSimulator(ctx, 1, DEFAULT_LIF_PARAMS);
+    await simulator.initialize();
+    const input = stableStringify({ trait: op.trait, nodeId: op.nodeId, config: op.config });
+    const steps = Math.max(1, Math.min(64, input.length));
+    await simulator.stepN(steps);
+    return { accepted: true, source: 'snn-webgpu', steps };
+  } catch (error) {
+    return {
+      accepted: false,
+      source: 'snn-webgpu',
+      reason: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 export function detectWasmRuntime(): Tier1WasmRuntimeProbeResult {

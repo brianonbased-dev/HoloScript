@@ -213,6 +213,7 @@ export const DEFAULT_RUNTIME_DISPATCH_CONFIG: DispatchPolicyConfig = {
   tier2AlphaThreshold: 0.85,
   alphaWindowSize: 50,
   // Real executors (replacing the scaffold defaults in DispatchPolicy.ts)
+  tier1BrowserExecutor: executeTier1BrowserSnn,
   tier1WasmExecutor: executeTier1WasmSnn,
   llmProposalProvider: tier2LlmPropose,
   effectVerifier: tier2EffectVerifier,
