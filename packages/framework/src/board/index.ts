@@ -186,6 +186,37 @@ export {
 } from './hololand-receipts';
 
 export {
+  // Twin Earth Substrate Contract (task_1778618552503_3zqx)
+  type ParticipationMode,
+  type TwinEarthRole,
+  type TwinEarthKind,
+  type TwinEarthIdentity,
+  type TwinEarthAction,
+  type PermissionGrant,
+  type SafetyEnvelope,
+  type TwinEarthReceiptKind,
+  type TwinEarthReceiptStatus,
+  type TwinEarthReceipt,
+  type ParticipationModeConfig,
+  type ModeTransitionReceipt,
+  type TwinEarthSubstrateStatus,
+  validateTwinEarthIdentity,
+  validatePermissionGrant,
+  validateSafetyEnvelope,
+  validateTwinEarthReceipt,
+  validateModeTransitionReceipt,
+  isSupportedTwinEarthRole,
+  isSupportedParticipationMode,
+  isSupportedTwinEarthKind,
+  isSupportedTwinEarthReceiptKind,
+  isSupportedTwinEarthReceiptStatus,
+  cloneTwinEarthIdentity,
+  clonePermissionGrant,
+  cloneSafetyEnvelope,
+  cloneTwinEarthReceipt,
+} from './twin-earth-substrate';
+
+export {
   // Frontier Shard 0 primitives (task_1778186605462_2mlp)
   SKILL_RARITIES,
   ITEM_CATEGORIES,
