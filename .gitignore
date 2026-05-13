@@ -62,8 +62,14 @@ dist/
 !scripts/**/*.js
 
 # Exception: Keep package entry points in certain contexts
-!packages/*/dist/**/*.js
-!packages/*/dist/**/*.d.ts
+# NOTE(2026-05-12): These exceptions are broken — a parent directory excluded
+# by `dist/` above cannot be re-included without also un-ignoring the directory
+# itself (`!packages/*/dist/`). Rather than fix them, we treat ALL compiled
+# outputs as generated trash (built in CI, not committed). The two legacy
+# tracked `.d.ts` files in mcp-server and platform remain tracked but new
+# dist files should NOT be added. See task_1778616767102_8ft7.
+# !packages/*/dist/**/*.js
+# !packages/*/dist/**/*.d.ts
 
 # IDE
 .idea/
