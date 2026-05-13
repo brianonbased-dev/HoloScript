@@ -130,8 +130,9 @@ scripts/training/
 
 # Package manager - NOTE: lockfiles should be committed for reproducible builds
 # pnpm-lock.yaml  # KEEP for CI
-# package-lock.json
 # yarn.lock
+package-lock.json
+*.tgz
 
 # Python
 __pycache__/
