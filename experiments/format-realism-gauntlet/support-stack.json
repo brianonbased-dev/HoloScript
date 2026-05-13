@@ -1,0 +1,55 @@
+{
+  "schema": "format-realism-gauntlet-support-stack-v1",
+  "languages": [
+    {
+      "extension": ".ts",
+      "role": "runner, scorecard writer, CLI integration tests, task filing, replay orchestration",
+      "priority": "P1",
+      "firstArtifacts": ["run-gauntlet.ts", "scorecard-writer.ts"]
+    },
+    {
+      "extension": ".py",
+      "role": "offline image analysis, contact sheet generation, trajectory scoring",
+      "priority": "P1",
+      "firstArtifacts": ["analyze_stills.py", "make_contact_sheet.py"]
+    },
+    {
+      "extension": ".rs",
+      "role": "deterministic trajectory kernels, WASM physics probes, replay hashing",
+      "priority": "P2",
+      "firstArtifacts": ["trajectory_kernel.rs", "replay_hash.rs"]
+    },
+    {
+      "extension": ".wgsl",
+      "role": "GPU trajectory, impact, and debug visualization shaders",
+      "priority": "P3",
+      "firstArtifacts": ["trajectory_arc.wgsl", "impact_burst.wgsl"]
+    },
+    {
+      "extension": ".json",
+      "role": "manifest, schemas, scorecards, receipts, baselines",
+      "priority": "P1",
+      "firstArtifacts": ["manifest.json", "scorecard.schema.json"]
+    },
+    {
+      "extension": ".gltf/.glb",
+      "role": "humanoid avatar, hand, rock, target assets",
+      "priority": "P2",
+      "firstArtifacts": ["humanoid_avatar.glb", "throw_rock.glb", "impact_target.glb"]
+    },
+    {
+      "extension": ".tsx",
+      "role": "legacy bridge only for existing React shells; not a primary gauntlet surface",
+      "priority": "P4",
+      "firstArtifacts": []
+    }
+  ],
+  "phaseOrder": [
+    "scaffold-contracts",
+    "automated-runner",
+    "still-capture-contact-sheet",
+    "behavior-physics-receipts",
+    "real-assets-visual-upgrade",
+    "hololand-holoshell-adoption"
+  ]
+}

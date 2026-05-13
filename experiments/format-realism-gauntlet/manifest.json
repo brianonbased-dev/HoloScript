@@ -1,0 +1,96 @@
+{
+  "schema": "format-realism-gauntlet-v1",
+  "flagship": "humanoid-rock-throw",
+  "status": "experimental",
+  "formats": {
+    "stage": "humanoid-rock-throw.holo",
+    "behavior": "humanoid-rock-throw.hsplus",
+    "pipeline": "humanoid-rock-throw.hs"
+  },
+  "artifactRoot": ".bench-logs/format-stress",
+  "supportStack": "support-stack.json",
+  "segments": [
+    {
+      "id": "00_scene_loaded",
+      "title": "Scene Loaded",
+      "expectedStill": "00_scene_loaded.png",
+      "checks": ["avatar_visible", "rock_visible", "target_visible", "lights_visible", "capture_markers_visible"]
+    },
+    {
+      "id": "01_avatar_approaches",
+      "title": "Avatar Approaches",
+      "expectedStill": "01_avatar_approaches.png",
+      "checks": ["locomotion_path_visible", "feet_above_floor", "avatar_faces_rock"]
+    },
+    {
+      "id": "02_hand_reaches",
+      "title": "Hand Reaches",
+      "expectedStill": "02_hand_reaches.png",
+      "checks": ["right_hand_near_rock", "no_body_clipping", "reach_pose_readable"]
+    },
+    {
+      "id": "03_grab_constraint",
+      "title": "Grab Constraint",
+      "expectedStill": "03_grab_constraint.png",
+      "checks": ["rock_attached_to_hand", "constraint_event_recorded", "rock_not_intersecting_floor"]
+    },
+    {
+      "id": "04_lift_pose",
+      "title": "Lift Pose",
+      "expectedStill": "04_lift_pose.png",
+      "checks": ["rock_above_start_height", "arm_pose_stable", "mass_metadata_recorded"]
+    },
+    {
+      "id": "05_windup",
+      "title": "Windup",
+      "expectedStill": "05_windup.png",
+      "checks": ["torso_rotation_visible", "throw_direction_visible", "camera_clear"]
+    },
+    {
+      "id": "06_release",
+      "title": "Release Frame",
+      "expectedStill": "06_release.png",
+      "checks": ["rock_detached", "release_velocity_recorded", "hand_followthrough_visible"]
+    },
+    {
+      "id": "07_ballistic_arc",
+      "title": "Ballistic Arc",
+      "expectedStill": "07_ballistic_arc.png",
+      "checks": ["trajectory_visible", "arc_samples_recorded", "gravity_plausible"]
+    },
+    {
+      "id": "08_impact",
+      "title": "Impact",
+      "expectedStill": "08_impact.png",
+      "checks": ["collision_event_recorded", "target_reacts", "impact_point_visible"]
+    },
+    {
+      "id": "09_aftermath",
+      "title": "Aftermath",
+      "expectedStill": "09_aftermath.png",
+      "checks": ["provenance_panel_visible", "scorecard_visible", "task_seed_generated_when_needed"]
+    }
+  ],
+  "qualityMetrics": [
+    "parse_status",
+    "compile_status",
+    "runtime_status",
+    "still_capture_status",
+    "segment_coverage",
+    "visual_plausibility",
+    "physics_plausibility",
+    "interaction_correctness",
+    "deterministic_replay",
+    "frame_timing",
+    "task_count",
+    "highest_gap_severity"
+  ],
+  "graduationCriteria": [
+    "all_three_formats_parse",
+    "stage_compiles_to_threejs",
+    "at_least_8_segments_emit_receipts",
+    "at_least_8_segment_stills_captured",
+    "no_p1_runtime_blockers",
+    "scorecard_improves_or_matches_previous_run_for_three_consecutive_runs"
+  ]
+}

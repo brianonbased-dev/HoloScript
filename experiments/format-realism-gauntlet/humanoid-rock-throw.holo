@@ -1,0 +1,149 @@
+/**
+ * Humanoid Rock Throw Gauntlet
+ *
+ * Experimental flagship stage for format-realism automation.
+ * This file is intentionally conservative syntax: it should provide a stable
+ * visual stage while .hsplus and .hs push behavior and orchestration.
+ */
+
+composition "Humanoid Rock Throw Gauntlet" {
+  environment {
+    skybox: "studio"
+    backgroundColor: "#0b0f14"
+    ambient_light: 0.45
+    shadows: true
+    physics: true
+    physics_substeps: 4
+  }
+
+  template "FloorTile" {
+    @static
+    @collidable
+    geometry: "plane"
+    color: "#202733"
+  }
+
+  template "AvatarPart" {
+    @animated
+    @collidable
+    geometry: "cylinder"
+    color: "#7aa2f7"
+  }
+
+  template "HandProxy" {
+    @grabbable
+    @collidable
+    geometry: "sphere"
+    color: "#9ece6a"
+  }
+
+  template "ThrowRock" {
+    @grabbable
+    @throwable {
+      max_velocity: 18
+      spin_enabled: true
+      trajectory_preview: true
+      haptic_on_throw: 0.2
+    }
+    @physics {
+      mass: 1.8
+      friction: 0.8
+      restitution: 0.25
+    }
+    @collidable
+
+    geometry: "sphere"
+    color: "#7c6f64"
+  }
+
+  template "ImpactTarget" {
+    @collidable
+    @physics {
+      mass: 20
+      type: "static"
+    }
+    geometry: "cube"
+    color: "#f7768e"
+  }
+
+  template "CaptureMarker" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    color: "#f5f5f5"
+  }
+
+  object "Ground" using "FloorTile" {
+    position: [0, 0, 0]
+    rotation: [-90, 0, 0]
+    scale: [14, 10, 1]
+  }
+
+  object "HumanoidTorso" using "AvatarPart" {
+    position: [-3, 1.1, 0]
+    scale: [0.38, 1.1, 0.38]
+    label: "humanoid torso"
+  }
+
+  object "HumanoidHead" {
+    geometry: "sphere"
+    position: [-3, 1.95, 0]
+    scale: [0.28, 0.28, 0.28]
+    color: "#c0caf5"
+    label: "head gaze toward rock"
+  }
+
+  object "LeftHand" using "HandProxy" {
+    position: [-3.45, 1.25, 0.18]
+    scale: [0.12, 0.12, 0.12]
+    label: "left hand"
+  }
+
+  object "RightHand" using "HandProxy" {
+    position: [-2.55, 1.25, 0.18]
+    scale: [0.12, 0.12, 0.12]
+    label: "right hand reaches rock"
+  }
+
+  object "Rock" using "ThrowRock" {
+    position: [-1.2, 0.35, 0]
+    scale: [0.28, 0.22, 0.25]
+    label: "throw rock"
+  }
+
+  object "Target" using "ImpactTarget" {
+    position: [3.5, 1, 0]
+    scale: [0.9, 1.8, 0.25]
+    label: "impact target"
+  }
+
+  object "TrajectoryArcPreview" {
+    geometry: "cylinder"
+    position: [1.1, 1.65, 0]
+    rotation: [0, 0, 62]
+    scale: [0.025, 3.6, 0.025]
+    color: "#e0af68"
+    label: "ballistic arc placeholder"
+  }
+
+  object "CaptureRail" {
+    geometry: "cube"
+    position: [0, 0.05, -3.2]
+    scale: [7, 0.04, 0.04]
+    color: "#565f89"
+    label: "camera rail"
+  }
+
+  object "SegmentPanel" using "CaptureMarker" {
+    position: [0, 2.9, -2.6]
+    scale: [4.6, 0.72, 0.08]
+    label: "segments: load approach reach grab lift windup release arc impact aftermath"
+  }
+
+  object "ProvenancePanel" using "CaptureMarker" {
+    position: [0, 2.05, -2.62]
+    scale: [4.6, 0.52, 0.08]
+    color: "#d5f5e3"
+    label: "receipt: parse compile runtime stills physics tasks"
+  }
+}

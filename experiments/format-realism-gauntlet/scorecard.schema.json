@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holoscript.net/schemas/format-realism-gauntlet-scorecard.json",
+  "title": "Format Realism Gauntlet Scorecard",
+  "type": "object",
+  "required": ["schema", "runId", "scenarioId", "generatedAt", "segments", "summary"],
+  "properties": {
+    "schema": {
+      "const": "format-realism-gauntlet-scorecard-v1"
+    },
+    "runId": {
+      "type": "string"
+    },
+    "scenarioId": {
+      "type": "string"
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "commands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "command", "exitCode"],
+        "properties": {
+          "name": { "type": "string" },
+          "command": { "type": "string" },
+          "exitCode": { "type": "integer" },
+          "log": { "type": "string" }
+        }
+      }
+    },
+    "segments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "status": {
+            "enum": ["passed", "failed", "blocked", "not-run"]
+          },
+          "still": { "type": "string" },
+          "receipt": { "type": "string" },
+          "checksPassed": { "type": "integer", "minimum": 0 },
+          "checksFailed": { "type": "integer", "minimum": 0 },
+          "notes": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["parseStatus", "compileStatus", "runtimeStatus", "segmentCoverage", "highestGapSeverity"],
+      "properties": {
+        "parseStatus": { "type": "string" },
+        "compileStatus": { "type": "string" },
+        "runtimeStatus": { "type": "string" },
+        "stillCaptureStatus": { "type": "string" },
+        "segmentCoverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "visualPlausibility": { "type": "number", "minimum": 0, "maximum": 1 },
+        "physicsPlausibility": { "type": "number", "minimum": 0, "maximum": 1 },
+        "interactionCorrectness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "deterministicReplay": { "type": "string" },
+        "frameTiming": { "type": "string" },
+        "taskCount": { "type": "integer", "minimum": 0 },
+        "highestGapSeverity": {
+          "enum": ["none", "P3", "P2", "P1", "P0"]
+        }
+      }
+    }
+  }
+}
