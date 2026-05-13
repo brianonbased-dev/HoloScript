@@ -274,23 +274,34 @@ export async function executeSingleTool(
 
 // Handle tool calls.
 //
-// TODO(adcf-phase2): this entry point does NOT yet populate `signingCtx` from
-// the inbound JSON-RPC request — there is no `request.headers` channel on
-// CallToolRequestSchema, so the upstream HTTP transport (where the
-// `Authorization: Bearer captok_<id>:<secret>` header lives) is the layer
-// that needs to extract signing and propagate it here, e.g. via a request
-// context stash keyed on the JSON-RPC `id`.
+// AUTH MODEL — this is the **stdio** MCP transport entry. By transport-layer
+// design it has no Authorization headers and no per-request signing envelope,
+// so it ALWAYS dispatches with `signingCtx=undefined` (trusted local process,
+// no network attacker). Defense-in-depth lives elsewhere:
 //
-// As long as `signingCtx` stays undefined here, every downstream auth gate
-// (handlers.ts:354 → handleSecretsBrokerTool → SECRETS_BROKER_TOOL_CAPABILITIES)
-// short-circuits on the "legacy ungated" path. The gate is shipped (commit
-// 5991f8d2e), tested, and ready — it just isn't firing.
+//   • HTTP MCP entry (http-server.ts:661) — OAuth-style auth via
+//     TokenIntrospection + TOOL_SCOPE_MAP (tool-scopes.ts). Peer's auth path,
+//     gates tools by OAuth scopes (e.g. `tools:admin` for holo_secrets_*).
 //
-// See research/2026-05-12_loop-session-summary.md and F.051 canary
-// task_1778596074561_adcf for the full chain. Closure path:
-//   1. HTTP transport extractAndVerifySigning(rawBody) → SigningContext
-//   2. Stash on request, retrieve here
-//   3. await executeSingleTool(name, args || {}, signingCtx);
+//   • Per-request signing envelopes — SigningContext + capability-token
+//     gate (signing-middleware.ts → handleSecretsBrokerTool's
+//     SECRETS_BROKER_TOOL_CAPABILITIES). Mine, used by HoloMesh routes
+//     where envelopes are first-class.
+//
+// Bridge gap (F.051 canary task_1778596074561_adcf): http-server.ts:671
+// passes `auth: TokenIntrospection` to securedToolExecution but does NOT yet
+// also extract a SigningContext from envelope-shaped request bodies and
+// thread it into executeSingleTool. Until that bridge lands, the leaf-level
+// capability gate at handleSecretsBrokerTool is dormant for HTTP callers
+// (the type-system threading at every layer is in place — peer's commit
+// 17e564097 and mine 5991f8d2e — only the populate step is missing).
+//
+// Closure path for an HTTP caller:
+//   1. http-server.ts line 671 area: parse request body, if it looks like
+//      an envelope (envelope_type in {classical, dual, capability}) call
+//      extractAndVerifySigning(body) → SigningContext.
+//   2. Pass that signingCtx through securedToolExecution → handleTool.
+//   3. The leaf gate at handleSecretsBrokerTool then fires automatically.
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
   return await executeSingleTool(name, args || {});
