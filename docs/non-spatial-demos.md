@@ -6,16 +6,16 @@ HoloScript is not a VR-only tool. The same `.holo` compositions that render in a
 
 ## Existing Examples
 
-| Example                      | Path                                                              | Lines | Vertical          | Compiles To        |
-| ---------------------------- | ----------------------------------------------------------------- | ----- | ----------------- | ------------------ |
-| **Smart Home IoT**           | `examples/domain-starters/iot/iot-starter.holo`                   | 357   | Consumer IoT      | R3F, Unity, OpenXR |
-| **Smart Factory Twin**       | `examples/specialized/iot/smart-factory-twin.holo`                | 521   | Industrial        | DTDL, Azure IoT    |
-| **Smart Building BIM**       | `examples/cross-domain/smart-building.holo`                       | 489   | Architecture+IoT  | R3F, Unity, WebGPU |
-| **Robot Arm Simulation**     | `examples/specialized/robotics/robot-arm-simulation.holo`         | 617   | Robotics          | URDF, SDF, ROS 2   |
-| **Robot Training Metaverse** | `examples/novel-use-cases/05-robot-training-metaverse.holo`       | —     | Sim-to-Real       | URDF, SDF, Unity   |
-| **Industrial Safety**        | `examples/IndustrialExpansionPOC.holo`                            | 117   | Safety Monitoring | DTDL               |
-| **Robotics Benchmark**       | `benchmarks/cross-compilation/compositions/15-robotics.holo`      | 86    | Robotics          | URDF, SDF, DTDL    |
-| **Manufacturing Benchmark**  | `benchmarks/cross-compilation/compositions/06-manufacturing.holo` | 65    | Assembly Line     | URDF, SDF, DTDL    |
+| Example                      | Path                                                                               | Lines | Vertical          | Compiles To        |
+| ---------------------------- | ---------------------------------------------------------------------------------- | ----- | ----------------- | ------------------ |
+| **Smart Home IoT**           | `examples/domain-starters/iot/iot-starter.holo`                                    | 357   | Consumer IoT      | R3F, Unity, OpenXR |
+| **Smart Factory Twin**       | `examples/specialized/iot/smart-factory-twin.holo`                                 | 521   | Industrial        | DTDL, Azure IoT    |
+| **Smart Building BIM**       | `examples/cross-domain/smart-building.holo`                                        | 489   | Architecture+IoT  | R3F, Unity, WebGPU |
+| **Robot Arm Simulation**     | `examples/specialized/robotics/robot-arm-simulation.holo`                          | 617   | Robotics          | URDF, SDF, ROS 2   |
+| **Robot Training Metaverse** | `examples/novel-use-cases/05-robot-training-metaverse.holo` (aspirational grammar) | —     | Sim-to-Real       | URDF, SDF, Unity   |
+| **Industrial Safety**        | `examples/IndustrialExpansionPOC.holo`                                             | 117   | Safety Monitoring | DTDL               |
+| **Robotics Benchmark**       | `benchmarks/cross-compilation/compositions/15-robotics.holo`                       | 86    | Robotics          | URDF, SDF, DTDL    |
+| **Manufacturing Benchmark**  | `benchmarks/cross-compilation/compositions/06-manufacturing.holo`                  | 65    | Assembly Line     | URDF, SDF, DTDL    |
 
 ---
 

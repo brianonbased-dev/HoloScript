@@ -4,6 +4,8 @@ Sample `.holo` files demonstrating the new Hololand integration features includi
 
 ## Examples
 
+The numbered bridge examples are integration-story sources. Additional HoloLand dashboard and V&V scenes, including `vv-results-visualization-space.holo`, must be labeled aspirational unless the [examples health matrix](../../docs/examples-health/examples-health-matrix.md) marks them supported.
+
 ### 1. Asset Manifest (`1-asset-manifest.holo`)
 
 Demonstrates the **Asset Manifest System** for organizing and loading game assets:

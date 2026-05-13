@@ -1,6 +1,8 @@
 # Examples
 
-Learn HoloScript through practical examples. All code is copy-paste ready.
+Learn HoloScript through practical examples. Supported examples are copy-paste ready.
+
+Parser-supported examples and aspirational grammar examples are tracked in the [Examples Health Matrix](/examples-health/examples-health-matrix). Links marked aspirational are product/story examples whose syntax is ahead of the current parser.
 
 ## Basic Examples
 
@@ -22,7 +24,7 @@ Respond to VR controller input — triggers, thumbsticks, haptics.
 
 Draggable items, slots, and equipment.
 
-### [Physics Playground](/examples/physics-playground)
+### [Physics Playground](/examples/physics-playground) (aspirational grammar)
 
 Balls, ramps, Newton's Cradle, and dominos.
 

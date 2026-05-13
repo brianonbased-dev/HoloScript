@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "examples": [
+    {
+      "path": "examples/hello-world.hs",
+      "status": "supported",
+      "reason": "Baseline .hs quickstart example.",
+      "priority": true,
+      "linkPolicy": "public-supported"
+    },
+    {
+      "path": "examples/solar_system.holo",
+      "status": "supported",
+      "reason": "Baseline .holo scene example.",
+      "priority": true,
+      "linkPolicy": "public-supported"
+    },
+    {
+      "path": "examples/multiplayer-game.hsplus",
+      "status": "supported",
+      "reason": "Baseline .hsplus behavior example.",
+      "priority": true,
+      "linkPolicy": "public-supported"
+    },
+    {
+      "path": "examples/three-format-showcase/smart-gallery.hs",
+      "status": "supported",
+      "reason": "Procedural lane of the three-format showcase parses successfully.",
+      "priority": true,
+      "linkPolicy": "public-supported"
+    },
+    {
+      "path": "examples/three-format-showcase/smart-gallery.hsplus",
+      "status": "supported",
+      "reason": "Behavior lane of the three-format showcase parses successfully.",
+      "priority": true,
+      "linkPolicy": "public-supported"
+    },
+    {
+      "path": "examples/novel-use-cases/05-robot-training-metaverse.holo",
+      "status": "aspirational-grammar",
+      "reason": "Uses autonomous ecosystem behavior blocks inside a .holo composition; HoloCompositionParser does not accept that grammar yet.",
+      "priority": true,
+      "linkPolicy": "public-aspirational-label-required"
+    },
+    {
+      "path": "examples/novel-use-cases/05-robot-training-metaverse.hs",
+      "status": "aspirational-grammar",
+      "reason": "Uses on_error(...) pipeline handler syntax; PipelineParser does not accept that handler form yet.",
+      "priority": true,
+      "linkPolicy": "public-aspirational-label-required"
+    },
+    {
+      "path": "examples/novel-use-cases/05-robot-training-metaverse.hsplus",
+      "status": "aspirational-grammar",
+      "reason": "Uses arrow transition shorthand in state-machine maps; HoloScriptPlusParser does not accept that shorthand yet.",
+      "priority": true,
+      "linkPolicy": "public-aspirational-label-required"
+    },
+    {
+      "path": "examples/novel-use-cases/13-disaster-robotics-swarm.holo",
+      "status": "aspirational-grammar",
+      "reason": "Uses full disaster-training scene grammar that is ahead of the current .holo parser.",
+      "priority": true,
+      "linkPolicy": "public-aspirational-label-required"
+    },
+    {
+      "path": "examples/novel-use-cases/13-disaster-robotics-swarm.hs",
+      "status": "aspirational-grammar",
+      "reason": "Uses dotted property expressions in pipeline properties; PipelineParser does not accept that expression shape yet.",
+      "priority": true,
+      "linkPolicy": "public-aspirational-label-required"
+    },
+    {
+      "path": "examples/novel-use-cases/13-disaster-robotics-swarm.hsplus",
+      "status": "aspirational-grammar",
+      "reason": "Uses arrow transition shorthand in behavior state maps; HoloScriptPlusParser does not accept that shorthand yet.",
+      "priority": true,
+      "linkPolicy": "public-aspirational-label-required"
+    },
+    {
+      "path": "examples/sample-projects/physics-playground.holo",
+      "status": "aspirational-grammar",
+      "reason": "Uses nested post_processing blocks such as bloom { ... }; HoloCompositionParser currently expects property-value pairs there.",
+      "priority": true,
+      "linkPolicy": "public-aspirational-label-required"
+    },
+    {
+      "path": "examples/showcase/physics-playground.holo",
+      "status": "aspirational-grammar",
+      "reason": "Uses showcase-scale physics grammar beyond the current declarative parser surface.",
+      "priority": true,
+      "linkPolicy": "public-aspirational-label-required"
+    },
+    {
+      "path": "examples/physics/advanced-physics-showcase.holo",
+      "status": "aspirational-grammar",
+      "reason": "Uses nested post_processing blocks and advanced physics traits ahead of the current parser grammar.",
+      "priority": true,
+      "linkPolicy": "public-aspirational-label-required"
+    },
+    {
+      "path": "examples/product-viewer.holo",
+      "status": "expected-fail",
+      "reason": "Current .holo parser rejects the product viewer's domain-dataviz string property form; keep out of public working-example links until promoted.",
+      "priority": true,
+      "linkPolicy": "internal-only"
+    },
+    {
+      "path": "examples/hololand/vv-results-visualization-space.holo",
+      "status": "aspirational-grammar",
+      "reason": "Uses HoloLand V&V visualization grammar with nested post-processing and dashboard constructs not yet accepted by the parser.",
+      "priority": true,
+      "linkPolicy": "public-aspirational-label-required"
+    },
+    {
+      "path": "examples/site.holo",
+      "status": "deprecated",
+      "reason": "Legacy v5 landing-page composition retained as archive material; do not feature as a current parser-supported example.",
+      "priority": true,
+      "linkPolicy": "archive-only"
+    }
+  ]
+}

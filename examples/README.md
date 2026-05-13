@@ -2,6 +2,19 @@
 
 This directory contains examples demonstrating HoloScript's versatility across different use cases and platforms.
 
+## Example Health Labels
+
+Use `docs/examples-health/examples-health-matrix.md` as the parser-health source of truth for `.holo`, `.hsplus`, and `.hs` examples. Check it with:
+
+```bash
+node scripts/examples-health-matrix.mjs --check
+```
+
+- **Supported** examples parse cleanly and can be linked as working examples.
+- **Aspirational grammar** examples are high-value product or research stories, but their syntax is ahead of the current parser and must be labeled that way in README/website links.
+- **Expected-fail** examples are known parser failures with reasons and should stay internal until promoted.
+- **Deprecated** examples are archive material, not current learning-path material.
+
 ## 🌟 NEW: Advanced Runtime Integration Examples
 
 ### Advanced Earthquake Demo (FEATURED)
