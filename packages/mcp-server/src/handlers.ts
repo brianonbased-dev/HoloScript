@@ -19,7 +19,6 @@ import {
   suggest2DTraits,
   suggestTraits,
   generateSemanticUIForMCP,
-  generateWorldNative,
   generateObjectForMCP,
   generateSceneForMCP,
 } from './generators';
@@ -383,8 +382,42 @@ export async function handleTool(
     return handleGenerate3DObject(args);
   }
 
-  if (name === 'world_generate') {
-    return handleWorldGenerate(args);
+  // HoloLand MCP tools (world CRUD + MMO + Twin Earth)
+  if (
+    name === 'generate_world' ||
+    name === 'create_world' ||
+    name === 'get_world' ||
+    name === 'update_world' ||
+    name === 'delete_world' ||
+    name === 'list_worlds' ||
+    name === 'create_shard' ||
+    name === 'get_shard' ||
+    name === 'update_shard' ||
+    name === 'delete_shard' ||
+    name === 'list_shards' ||
+    name === 'create_zone' ||
+    name === 'get_zone' ||
+    name === 'update_zone' ||
+    name === 'delete_zone' ||
+    name === 'list_zones' ||
+    name === 'create_place' ||
+    name === 'get_place' ||
+    name === 'update_place' ||
+    name === 'delete_place' ||
+    name === 'list_places' ||
+    name === 'create_location_quest' ||
+    name === 'get_location_quest' ||
+    name === 'update_location_quest' ||
+    name === 'delete_location_quest' ||
+    name === 'list_location_quests' ||
+    name === 'hololand_shard_status' ||
+    name === 'hololand_publish_zone' ||
+    name === 'hololand_create_geo_anchor' ||
+    name === 'hololand_steward_tick' ||
+    name === 'hololand_capture_runtime_receipt'
+  ) {
+    const { handleHololandMcpTool } = await import('./hololand-mcp-tools');
+    return handleHololandMcpTool(name, args);
   }
 
   // Hololand training data generation
@@ -508,20 +541,6 @@ export async function handleTool(
     return pluginResult;
   }
 
-  // World generation (sovereign-3d pipeline)
-  if (name === 'generate_world') {
-    const { handleWorldGeneratorTool } = await import('./world-generator-tools');
-    const result = await handleWorldGeneratorTool({
-      method: 'tools/call',
-      params: { name, arguments: args },
-    });
-    if (result.isError) {
-      const msg = result.content[0]?.type === 'text' ? result.content[0].text : 'World generation failed';
-      throw new Error(msg);
-    }
-    const text = result.content[0]?.type === 'text' ? result.content[0].text : '';
-    return JSON.parse(text) as unknown;
-  }
 
   // HoloMap reconstruction tools
   if (isHoloMapToolName(name)) {
@@ -857,33 +876,6 @@ async function handleGenerateScene(args: Record<string, unknown>) {
     style: style as 'minimal' | 'detailed' | 'production',
     features,
   });
-}
-
-async function handleWorldGenerate(args: Record<string, unknown>) {
-  const prompt = args.prompt as string;
-  if (!prompt) {
-    return { error: 'prompt is required' };
-  }
-
-  const result = await generateWorldNative(prompt, {
-    format: args.format as 'mesh' | '3dgs' | 'both' | 'neural_field' | undefined,
-    quality: args.quality as 'low' | 'medium' | 'high' | 'ultra' | undefined,
-    input_image: args.input_image as string | undefined,
-    input_images: args.input_images as string[] | undefined,
-    navEnabled: args.navEnabled as boolean | undefined,
-    interactiveMode: args.interactiveMode as boolean | undefined,
-    seed: args.seed as number | undefined,
-  });
-
-  return {
-    generationId: result.generationId,
-    assetUrl: result.assetUrl,
-    format: result.format,
-    ...(result.navmeshUrl ? { navmeshUrl: result.navmeshUrl } : {}),
-    ...(result.pointCloudUrl ? { pointCloudUrl: result.pointCloudUrl } : {}),
-    metrics: result.metrics,
-    holoCode: result.holoCode,
-  };
 }
 
 // === DOCUMENTATION HANDLERS ===

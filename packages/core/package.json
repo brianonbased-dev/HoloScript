@@ -74,6 +74,11 @@
       "import": "./dist/world/index.js",
       "require": "./dist/world/index.cjs"
     },
+    "./hololand": {
+      "types": "./dist/hololand/index.d.ts",
+      "import": "./dist/hololand/index.js",
+      "require": "./dist/hololand/index.cjs"
+    },
     "./self-improvement": {
       "types": "./dist/self-improvement/index.d.ts",
       "import": "./dist/self-improvement/index.js",

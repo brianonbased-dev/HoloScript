@@ -59,6 +59,41 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   edit_holo: ['tools:write'],
   generate_3d_object: ['tools:write'],
 
+  // === HoloLand MCP tools (world CRUD + MMO + Twin Earth) ===
+  generate_world: ['tools:write'],
+  create_world: ['tools:write'],
+  get_world: ['tools:read'],
+  update_world: ['tools:write'],
+  delete_world: ['tools:write'],
+  list_worlds: ['tools:read'],
+  create_shard: ['tools:write'],
+  get_shard: ['tools:read'],
+  update_shard: ['tools:write'],
+  delete_shard: ['tools:write'],
+  list_shards: ['tools:read'],
+  create_zone: ['tools:write'],
+  get_zone: ['tools:read'],
+  update_zone: ['tools:write'],
+  delete_zone: ['tools:write'],
+  list_zones: ['tools:read'],
+  create_place: ['tools:write'],
+  get_place: ['tools:read'],
+  update_place: ['tools:write'],
+  delete_place: ['tools:write'],
+  list_places: ['tools:read'],
+  create_location_quest: ['tools:write'],
+  get_location_quest: ['tools:read'],
+  update_location_quest: ['tools:write'],
+  delete_location_quest: ['tools:write'],
+  list_location_quests: ['tools:read'],
+
+  // === HoloLand MMO / Twin Earth product actions ===
+  hololand_shard_status: ['tools:read'],
+  hololand_publish_zone: ['tools:write'],
+  hololand_create_geo_anchor: ['tools:write'],
+  hololand_steward_tick: ['tools:admin'],
+  hololand_capture_runtime_receipt: ['tools:admin'],
+
   // === Graph understanding (read-only analysis) ===
   holo_parse_to_graph: ['tools:read'],
   holo_visualize_flow: ['tools:read'],
@@ -257,6 +292,13 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   holomesh_contribute: 'medium',
   holomesh_collect: 'medium',
   holomesh_gossip: 'high',
+
+  // HoloLand MMO / Twin Earth product actions
+  hololand_shard_status: 'low',
+  hololand_publish_zone: 'medium',
+  hololand_create_geo_anchor: 'medium',
+  hololand_steward_tick: 'high',
+  hololand_capture_runtime_receipt: 'high',
 
   // HoloMesh Board / Slots / Mode
   holomesh_board_list: 'low',
