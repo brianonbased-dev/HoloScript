@@ -182,10 +182,10 @@ async function runInBatches(probes, batchSize = 3) {
 
 // ─── HTTP Probe Payload Builders ─────────────────────────────────────────────
 
-function nodeFetchGetProbe(urlPath, extraHeaders = {}) {
+function nodeFetchGetProbe(urlPath, extraHeaders = {}, baseUrl = BASE_URL) {
   const headers = JSON.stringify(extraHeaders).replace(/'/g, "\\'");
   return `
-    fetch('${BASE_URL}${urlPath}', {
+    fetch('${baseUrl}${urlPath}', {
       method: 'GET',
       headers: ${headers},
       signal: AbortSignal.timeout(${TIMEOUT_MS - 2000})
@@ -198,14 +198,14 @@ function nodeFetchGetProbe(urlPath, extraHeaders = {}) {
   `;
 }
 
-function nodeFetchPostProbe(urlPath, bodyObj, extraHeaders = {}) {
+function nodeFetchPostProbe(urlPath, bodyObj, extraHeaders = {}, baseUrl = BASE_URL) {
   const body = JSON.stringify(bodyObj);
   const headers = {
     'Content-Type': 'application/json',
     ...extraHeaders,
   };
   return `
-    fetch('${BASE_URL}${urlPath}', {
+    fetch('${baseUrl}${urlPath}', {
       method: 'POST',
       headers: ${JSON.stringify(headers)},
       body: ${JSON.stringify(body)},
@@ -408,6 +408,99 @@ function buildLiveProbes() {
   return probes;
 }
 
+// ─── External Surface Probes ─────────────────────────────────────────────────
+
+const EXTERNAL_SURFACES = {
+  absorb: {
+    base: 'https://absorb.holoscript.net',
+    healthPath: '/health',
+    authHeader: null, // absorb uses its own API key or none for health
+  },
+  orchestrator: {
+    base: 'https://mcp-orchestrator-production-45f9.up.railway.app',
+    healthPath: '/health',
+    authHeader: { 'x-mcp-api-key': API_KEY },
+  },
+  studio: {
+    base: 'https://holoscript.studio',
+    healthPath: '/',
+    authHeader: null,
+  },
+};
+
+function buildExternalProbes() {
+  const probes = [];
+  const probe = (name, payload) => runWithRetry(name, payload, 2);
+
+  // 1. Absorb health — no auth, JSON response, uptime + database fields
+  probes.push(
+    probe(
+      'external-absorb-health',
+      nodeFetchGetProbe('/health', {}, EXTERNAL_SURFACES.absorb.base)
+    )
+  );
+
+  // 2. Absorb scan endpoint — POST with API key, expects JSON (shape: heavy payload)
+  probes.push(
+    probe(
+      'external-absorb-scan',
+      nodeFetchPostProbe(
+        '/api/absorb/scan',
+        { repoUrl: 'https://github.com/holoscript/holoscript', shallow: true },
+        { 'x-absorb-api-key': process.env.ABSORB_API_KEY || '' },
+        EXTERNAL_SURFACES.absorb.base
+      )
+    )
+  );
+
+  // 3. Orchestrator health — auth required, nested checks object
+  probes.push(
+    probe(
+      'external-orchestrator-health',
+      nodeFetchGetProbe('/health', EXTERNAL_SURFACES.orchestrator.authHeader, EXTERNAL_SURFACES.orchestrator.base)
+    )
+  );
+
+  // 4. Studio availability — HEAD request (lightweight shape, no body)
+  probes.push(
+    probe(
+      'external-studio-availability',
+      `
+        fetch('${EXTERNAL_SURFACES.studio.base}/', {
+          method: 'HEAD',
+          signal: AbortSignal.timeout(${TIMEOUT_MS - 2000})
+        }).then(async r => {
+          done(r.ok, r.status, null, null);
+        }).catch(err => {
+          done(false, null, null, err.message);
+        });
+      `
+    )
+  );
+
+  // 5. Studio HTML landing — GET, text/html response (different content-type shape)
+  probes.push(
+    probe(
+      'external-studio-html',
+      `
+        fetch('${EXTERNAL_SURFACES.studio.base}/', {
+          method: 'GET',
+          headers: { 'Accept': 'text/html' },
+          signal: AbortSignal.timeout(${TIMEOUT_MS - 2000})
+        }).then(async r => {
+          const text = await r.text();
+          const hasHtml = text.toLowerCase().includes('<!doctype html>') || text.toLowerCase().includes('<html');
+          done(r.ok && hasHtml, r.status, text.slice(0, 200), hasHtml ? null : 'missing html doctype');
+        }).catch(err => {
+          done(false, null, null, err.message);
+        });
+      `
+    )
+  );
+
+  return probes;
+}
+
 function buildSourceTreeProbes() {
   const probes = [];
 
@@ -500,6 +593,7 @@ async function main() {
   const probes = [
     ...buildSourceTreeProbes(),
     ...(LIVE ? buildLiveProbes() : []),
+    ...(LIVE ? buildExternalProbes() : []),
   ];
 
   const results = await runInBatches(probes, 3);
