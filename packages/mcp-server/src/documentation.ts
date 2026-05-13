@@ -1284,7 +1284,7 @@ export const TRAIT_DOCS: Record<string, TraitDoc> = {
         default: '0x0000DEAD',
         description: 'Pre-genesis or planted seed source',
       },
-      { name: 'program_count', type: 'number', default: '16', description: 'Expected paper count' },
+      { name: 'program_count', type: 'number', default: '17', description: 'Expected paper count for the full research program' },
     ],
     events: ['lotus_gardener_attached', 'lotus_garden_summary'],
     example: `object "Lotus Gardener" @lotus_gardener(staged: true, genesis_seed: LOTUS_GENESIS_SEED) {
