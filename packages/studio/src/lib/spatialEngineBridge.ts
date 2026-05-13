@@ -128,20 +128,11 @@ let bridgeBackend: BridgeBackend = 'fallback';
 /**
  * Initialize the WASM bridge. Falls back to TS if loading fails.
  */
-export async function initWasmBridge(wasmUrl?: string): Promise<BridgeStatus> {
-  try {
-    if (typeof WebAssembly === 'undefined') throw new Error('WebAssembly not supported');
-    const url = wasmUrl ?? '/spatial-engine-wasm/spatial_engine_wasm_bg.wasm';
-    const response = await fetch(url);
-    const bytes = await response.arrayBuffer();
-    const { instance } = await WebAssembly.instantiate(bytes);
-    wasmModule = instance.exports as unknown as WasmModule;
-    bridgeBackend = 'wasm';
-    return getBridgeStatus();
-  } catch {
-    bridgeBackend = 'fallback';
-    return getBridgeStatus();
-  }
+export async function initWasmBridge(_wasmUrl?: string): Promise<BridgeStatus> {
+  // WASM spatial engine retired in c5887f4e7; TS fallback is the only backend.
+  console.warn('[spatialEngineBridge] WASM spatial engine retired (c5887f4e7). Using pure-TS fallback.');
+  bridgeBackend = 'fallback';
+  return getBridgeStatus();
 }
 
 /**

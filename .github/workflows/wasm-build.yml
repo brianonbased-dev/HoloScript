@@ -4,9 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'packages/spatial-engine-wasm/**'
       - 'packages/compiler-wasm/**'
-      - 'packages/holoscript-component/**'
       - 'packages/tree-sitter-holoscript/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
@@ -15,9 +13,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'packages/spatial-engine-wasm/**'
       - 'packages/compiler-wasm/**'
-      - 'packages/holoscript-component/**'
       - 'packages/tree-sitter-holoscript/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
@@ -26,7 +22,7 @@ on:
   workflow_dispatch:
     inputs:
       modules:
-        description: 'Modules to build (comma-separated: spatial,compiler,component,treesitter or all)'
+        description: 'Modules to build (comma-separated: compiler,treesitter or all)'
         required: false
         default: 'all'
       build_mode:
@@ -78,41 +74,6 @@ jobs:
       - name: Run toolchain check
         run: bash scripts/build/wasm-build.sh --check
 
-  # ─── Build spatial-engine-wasm ─────────────────────────────────────────
-  build-spatial-engine:
-    name: Build spatial-engine-wasm
-    runs-on: ubuntu-latest
-    needs: check-toolchain
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
-        with:
-          targets: wasm32-unknown-unknown
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
-        with:
-          shared-key: 'holoscript-wasm-v1'
-          cache-all-crates: true
-
-      - name: Install wasm-pack
-        uses: jetli/wasm-pack-action@0d096b08b4e5a7de8c28de67e11e945404e9eefa # v0.4.0
-        with:
-          version: 'latest'
-
-      - name: Build spatial-engine-wasm
-        run: bash scripts/build/wasm-build.sh --module spatial --sizes
-
-      - name: Upload WASM artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: spatial-engine-wasm
-          path: packages/spatial-engine-wasm/pkg/
-          retention-days: 14
-          if-no-files-found: error
-
   # ─── Build compiler-wasm ───────────────────────────────────────────────
   build-compiler-wasm:
     name: Build compiler-wasm
@@ -155,57 +116,6 @@ jobs:
           retention-days: 14
           if-no-files-found: error
 
-  # ─── Build holoscript-component ────────────────────────────────────────
-  build-holoscript-component:
-    name: Build holoscript-component
-    runs-on: ubuntu-latest
-    needs: check-toolchain
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
-        with:
-          targets: wasm32-wasip1
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
-        with:
-          shared-key: 'holoscript-wasm-v1'
-          cache-all-crates: true
-
-      - name: Install wasm-tools
-        run: cargo install wasm-tools
-
-      - name: Setup Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
-        with:
-          node-version: '20'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@903f9c1a6ebcba6cf41d87230be49611ac97822e # v6
-
-      - name: Install JS dependencies
-        run: |
-          cd packages/holoscript-component
-          pnpm install
-
-      - name: Build holoscript-component
-        run: bash scripts/build/wasm-build.sh --module component --sizes
-
-      - name: Run component tests
-        run: |
-          cd packages/holoscript-component
-          cargo test
-
-      - name: Upload WASM artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: holoscript-component
-          path: packages/holoscript-component/dist/
-          retention-days: 14
-          if-no-files-found: warn
-
   # ─── Build tree-sitter-holoscript ──────────────────────────────────────
   build-tree-sitter:
     name: Build tree-sitter-holoscript
@@ -241,7 +151,7 @@ jobs:
     name: WASM Size Report
     runs-on: ubuntu-latest
     needs:
-      [build-spatial-engine, build-compiler-wasm, build-holoscript-component, build-tree-sitter]
+      [build-compiler-wasm, build-tree-sitter]
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -305,7 +215,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
-          targets: wasm32-unknown-unknown,wasm32-wasip1
+          targets: wasm32-unknown-unknown
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
@@ -317,9 +227,6 @@ jobs:
         uses: jetli/wasm-pack-action@0d096b08b4e5a7de8c28de67e11e945404e9eefa # v0.4.0
         with:
           version: 'latest'
-
-      - name: Install wasm-tools
-        run: cargo install wasm-tools
 
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
@@ -335,12 +242,7 @@ jobs:
       - name: Install tree-sitter CLI
         run: npm install -g tree-sitter-cli
 
-      - name: Install JS dependencies
-        run: |
-          cd packages/holoscript-component
-          pnpm install
-
-      - name: Build ALL WASM modules (unified pipeline)
+      - name: Build remaining WASM modules (unified pipeline)
         run: bash scripts/build/wasm-build.sh --sizes
 
       - name: Upload all WASM artifacts
@@ -348,9 +250,7 @@ jobs:
         with:
           name: holoscript-wasm-all
           path: |
-            packages/spatial-engine-wasm/pkg/
             packages/compiler-wasm/pkg/
             packages/compiler-wasm/pkg-node/
-            packages/holoscript-component/dist/
             packages/tree-sitter-holoscript/*.wasm
           retention-days: 30

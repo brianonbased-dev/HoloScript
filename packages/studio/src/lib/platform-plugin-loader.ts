@@ -6,6 +6,10 @@
  * `platform-compiler` WIT interface and is loaded only when the user
  * requests compilation for that target.
  *
+ * STALE-PATH NOTE (c5887f4e7): Plugin WASM binaries under /wasm/plugins/ do not
+ * exist; the component build was retired in c5887f4e7. compileForPlatform()
+ * returns error diagnostics for all targets until plugin WASM is restored.
+ *
  * Architecture:
  *   Engine Core WASM (~800KB, always loaded)
  *     ↓ produces JSON AST

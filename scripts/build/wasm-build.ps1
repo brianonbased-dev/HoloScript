@@ -3,16 +3,16 @@
 # =============================================================================
 #
 # Builds all WASM modules with a single command:
-#   - spatial-engine-wasm   (wasm-pack / wasm-bindgen)
 #   - compiler-wasm         (wasm-pack / wasm-bindgen)
-#   - holoscript-component  (WASI Component Model: cargo + wasm-tools + jco)
 #   - tree-sitter-holoscript (tree-sitter CLI)
+#
+# Retired modules (c5887f4e7): spatial-engine-wasm, holoscript-component
 #
 # Usage:
 #   .\scripts\build\wasm-build.ps1                           # Build all (release)
 #   .\scripts\build\wasm-build.ps1 -Debug                    # Build all (debug)
-#   .\scripts\build\wasm-build.ps1 -Module spatial            # Build one module
-#   .\scripts\build\wasm-build.ps1 -Module compiler,component # Build multiple
+#   .\scripts\build\wasm-build.ps1 -Module compiler            # Build one module
+#   .\scripts\build\wasm-build.ps1 -Module compiler,treesitter # Build multiple
 #   .\scripts\build\wasm-build.ps1 -Parallel                  # Parallel builds
 #   .\scripts\build\wasm-build.ps1 -Sizes                     # Report sizes
 #   .\scripts\build\wasm-build.ps1 -CheckOnly                 # Check toolchain
@@ -41,13 +41,11 @@ $BuildMode = if ($Debug) { "debug" } else { "release" }
 
 # Map module names to package directories
 $ModuleMap = @{
-    "spatial"    = "spatial-engine-wasm"
     "compiler"   = "compiler-wasm"
-    "component"  = "holoscript-component"
     "treesitter" = "tree-sitter-holoscript"
 }
 
-$AllModules = @("spatial-engine-wasm", "compiler-wasm", "holoscript-component", "tree-sitter-holoscript")
+$AllModules = @("compiler-wasm", "tree-sitter-holoscript")
 
 # Resolve module selection
 if ($Module -and $Module.Count -gt 0) {
@@ -59,7 +57,7 @@ if ($Module -and $Module.Count -gt 0) {
             $SelectedModules = $AllModules
             break
         } else {
-            Write-Error "Unknown module: $m. Valid: spatial, compiler, component, treesitter, all"
+            Write-Error "Unknown module: $m. Valid: compiler, treesitter, all"
             return
         }
     }
@@ -135,14 +133,7 @@ function Test-Toolchain {
     if (Get-Command wasm-pack -ErrorAction SilentlyContinue) {
         Write-Ok "wasm-pack installed"
     } else {
-        Write-Warn "wasm-pack not found (required for spatial-engine-wasm, compiler-wasm)"
-    }
-
-    # wasm-tools
-    if (Get-Command wasm-tools -ErrorAction SilentlyContinue) {
-        Write-Ok "wasm-tools installed"
-    } else {
-        Write-Warn "wasm-tools not found (required for holoscript-component)"
+        Write-Warn "wasm-pack not found (required for compiler-wasm)"
     }
 
     # tree-sitter
@@ -202,6 +193,10 @@ function Invoke-Clean {
 function Build-SpatialEngineWasm {
     Write-Header "Building: spatial-engine-wasm"
     $pkgDir = Join-Path $PackagesDir "spatial-engine-wasm"
+    if (-not (Test-Path $pkgDir)) {
+        Write-Warn "spatial-engine-wasm not found — retired in c5887f4e7, skipping"
+        return $true
+    }
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
 
     if (-not (Get-Command wasm-pack -ErrorAction SilentlyContinue)) {
@@ -285,6 +280,10 @@ function Build-CompilerWasm {
 function Build-HoloscriptComponent {
     Write-Header "Building: holoscript-component (WASI Component Model)"
     $pkgDir = Join-Path $PackagesDir "holoscript-component"
+    if (-not (Test-Path $pkgDir)) {
+        Write-Warn "holoscript-component not found — retired in c5887f4e7, skipping"
+        return $true
+    }
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
 
     if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {

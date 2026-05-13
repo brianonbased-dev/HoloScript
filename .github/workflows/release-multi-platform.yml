@@ -106,18 +106,12 @@ jobs:
         run: wasm-pack build --target bundler --scope holoscript
         working-directory: packages/compiler-wasm
 
-      # Build holoscript-component
-      - name: Build holoscript-component
-        run: wasm-pack build --target bundler --scope holoscript
-        working-directory: packages/holoscript-component
-
       - name: Upload WASM artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: wasm-packages
           path: |
             packages/compiler-wasm/pkg
-            packages/holoscript-component/pkg
           retention-days: 7
 
   # Job 3: Publish to Cargo (BEFORE npm)
@@ -143,11 +137,6 @@ jobs:
 
       - name: Wait for crates.io indexing
         run: sleep 30
-
-      - name: Publish holoscript-component to crates.io
-        run: cargo publish --token ${{ secrets.CARGO_TOKEN }} --allow-dirty
-        working-directory: packages/holoscript-component
-        continue-on-error: true
 
   # Job 4: Test on all platforms
   test-multi-platform:

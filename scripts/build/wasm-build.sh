@@ -4,17 +4,15 @@
 # =============================================================================
 #
 # Builds all WASM modules with a single command:
-#   - spatial-engine-wasm   (wasm-pack / wasm-bindgen)
 #   - compiler-wasm         (wasm-pack / wasm-bindgen)
-#   - holoscript-component  (WASI Component Model: cargo + wasm-tools + jco)
 #   - tree-sitter-holoscript (tree-sitter CLI)
+#
+# Retired modules (c5887f4e7): spatial-engine-wasm, holoscript-component
 #
 # Usage:
 #   ./scripts/build/wasm-build.sh                    # Build all modules (release)
 #   ./scripts/build/wasm-build.sh --debug            # Build all modules (debug)
-#   ./scripts/build/wasm-build.sh --module spatial    # Build only spatial-engine-wasm
 #   ./scripts/build/wasm-build.sh --module compiler   # Build only compiler-wasm
-#   ./scripts/build/wasm-build.sh --module component  # Build only holoscript-component
 #   ./scripts/build/wasm-build.sh --module treesitter # Build only tree-sitter-holoscript
 #   ./scripts/build/wasm-build.sh --parallel          # Build all modules in parallel
 #   ./scripts/build/wasm-build.sh --sizes             # Report output sizes after build
@@ -60,7 +58,7 @@ print_usage() {
   echo "  --debug            Build in debug mode (faster, larger output)"
   echo "  --release          Build in release mode (default, optimized)"
   echo "  --module <name>    Build specific module (can be repeated)"
-  echo "                     Names: spatial, compiler, component, treesitter, all"
+  echo "                     Names: compiler, treesitter, all"
   echo "  --parallel         Build independent modules in parallel"
   echo "  --sizes            Report WASM output sizes after build"
   echo "  --check            Check toolchain availability only"
@@ -75,9 +73,7 @@ while [[ $# -gt 0 ]]; do
     --module)
       shift
       case "${1:-}" in
-        spatial)    MODULES+=("spatial-engine-wasm") ;;
         compiler)   MODULES+=("compiler-wasm") ;;
-        component)  MODULES+=("holoscript-component") ;;
         treesitter) MODULES+=("tree-sitter-holoscript") ;;
         all)        MODULES=() ;;  # empty = all
         *)          echo -e "${RED}Unknown module: ${1:-}${NC}"; print_usage; exit 1 ;;
@@ -95,7 +91,7 @@ done
 
 # If no modules specified, build all
 if [ ${#MODULES[@]} -eq 0 ]; then
-  MODULES=("spatial-engine-wasm" "compiler-wasm" "holoscript-component" "tree-sitter-holoscript")
+  MODULES=("compiler-wasm" "tree-sitter-holoscript")
 fi
 
 # -- Logging -----------------------------------------------------------------
@@ -144,7 +140,7 @@ check_toolchain() {
   if command -v cargo &> /dev/null; then
     log_ok "cargo $(cargo --version | cut -d' ' -f2)"
   else
-    log_error "cargo not found (required for spatial-engine-wasm, compiler-wasm, holoscript-component)"
+    log_error "cargo not found (required for compiler-wasm)"
     all_ok=false
   fi
 
@@ -164,28 +160,12 @@ check_toolchain() {
     log_warn "rustup not found - cannot verify WASM targets"
   fi
 
-  # wasm-pack (required for spatial-engine-wasm and compiler-wasm)
+  # wasm-pack (required for compiler-wasm)
   if command -v wasm-pack &> /dev/null; then
     log_ok "wasm-pack $(wasm-pack --version 2>/dev/null | head -1)"
   else
-    log_warn "wasm-pack not found (required for spatial-engine-wasm, compiler-wasm)"
+    log_warn "wasm-pack not found (required for compiler-wasm)"
     log_step "Install: cargo install wasm-pack  OR  curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh"
-  fi
-
-  # wasm-tools (required for holoscript-component)
-  if command -v wasm-tools &> /dev/null; then
-    log_ok "wasm-tools $(wasm-tools --version 2>/dev/null || echo 'installed')"
-  else
-    log_warn "wasm-tools not found (required for holoscript-component)"
-    log_step "Install: cargo install wasm-tools"
-  fi
-
-  # jco (required for holoscript-component JS transpilation)
-  if command -v jco &> /dev/null || npx jco --version &> /dev/null 2>&1; then
-    log_ok "jco available (via npx or global)"
-  else
-    log_warn "jco not found (required for holoscript-component JS output)"
-    log_step "Install: npm install -g @bytecodealliance/jco"
   fi
 
   # tree-sitter CLI (required for tree-sitter-holoscript)
@@ -261,6 +241,10 @@ clean_all() {
 build_spatial_engine_wasm() {
   log_header "Building: spatial-engine-wasm"
   local pkg_dir="${PACKAGES_DIR}/spatial-engine-wasm"
+  if [ ! -d "$pkg_dir" ]; then
+    log_warn "spatial-engine-wasm not found — retired in c5887f4e7, skipping"
+    return 0
+  fi
   local start_time=$SECONDS
 
   if ! command -v wasm-pack &> /dev/null; then
@@ -353,6 +337,10 @@ build_compiler_wasm() {
 build_holoscript_component() {
   log_header "Building: holoscript-component (WASI Component Model)"
   local pkg_dir="${PACKAGES_DIR}/holoscript-component"
+  if [ ! -d "$pkg_dir" ]; then
+    log_warn "holoscript-component not found — retired in c5887f4e7, skipping"
+    return 0
+  fi
   local start_time=$SECONDS
 
   if ! command -v cargo &> /dev/null; then

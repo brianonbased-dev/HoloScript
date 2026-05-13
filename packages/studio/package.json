@@ -28,9 +28,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:coverage:watch": "vitest --coverage",
-    "test:coverage:ui": "vitest --coverage --ui",
-    "wasm:deploy": "cp ../holoscript-component/dist/holoscript.core.wasm ../holoscript-component/dist/holoscript.core2.wasm ../holoscript-component/dist/holoscript.js ../holoscript-component/dist/holoscript.d.ts public/wasm/ && cp -r ../holoscript-component/dist/interfaces public/wasm/",
-    "wasm:build": "pnpm --filter @holoscript/component run build && pnpm run wasm:deploy"
+    "test:coverage:ui": "vitest --coverage --ui"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1014.0",

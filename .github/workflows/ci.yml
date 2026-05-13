@@ -174,14 +174,8 @@ jobs:
         env:
           CMAKE_POLICY_VERSION_MINIMUM: '3.5'
         run: |
-          echo "::group::holoscript-component"
-          cargo test --manifest-path packages/holoscript-component/Cargo.toml
-          echo "::endgroup::"
           echo "::group::compiler-wasm"
           cargo test --manifest-path packages/compiler-wasm/Cargo.toml
-          echo "::endgroup::"
-          echo "::group::spatial-engine (build check)"
-          cargo check --manifest-path packages/spatial-engine/Cargo.toml
           echo "::endgroup::"
 
       # GitHub disallows referencing `secrets.*` inside job-level/step-level `if:`
