@@ -169,6 +169,9 @@ import { WEBXR_TRAITS } from './mobile/webxr';
 // Google Lens Integration (M.010.20)
 import { GOOGLE_LENS_TRAITS } from './mobile/google-lens';
 
+// Twin Earth — location-based game-layer primitives (canary: task_1778616474061_3yjb)
+import { TWIN_EARTH_TRAITS } from './twin-earth';
+
 // Portal AR — phone-as-portal magic window (M.010.06)
 import { PORTAL_AR_TRAITS } from './mobile/portal-ar';
 
@@ -463,6 +466,9 @@ export const VR_TRAITS = [
 
   // HoloMap — native reconstruction session traits (5 traits — Sprint 1)
   ...HOLOMAP_RECONSTRUCTION_TRAITS,
+
+  // Twin Earth — location-based game-layer primitives (39 traits)
+  ...TWIN_EARTH_TRAITS,
 
   // Connector Integration (4 traits)
   ...CONNECTOR_INTEGRATION_TRAITS,
@@ -813,6 +819,9 @@ export { WEBXR_TRAITS, type WebXRTraitName } from './mobile/webxr';
 
 // Google Lens (7 traits — M.010.20)
 export { GOOGLE_LENS_TRAITS, type GoogleLensTraitName } from './mobile/google-lens';
+
+// Twin Earth — location-based game-layer primitives
+export { TWIN_EARTH_TRAITS, type TwinEarthTraitName } from './twin-earth';
 
 // HoloMap reconstruction (Sprint 1 — RFC §4.2 + Sprint 3 dispatch)
 export {
