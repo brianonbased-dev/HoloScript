@@ -1,0 +1,17 @@
+{
+  "routine_id": "trig_012VRZzHoo268yWEnwaa14Ep",
+  "routine_name": "A-009 Example freshness + artist stress-test",
+  "fired_at": "2026-05-13T22:16:53Z",
+  "gaps": [
+    {
+      "type": "missing_trait",
+      "title": "Add @impact_ripple trait for barrier-collision VFX (A-009 example-driven request)",
+      "description": "While refreshing examples/quantum-arena.refreshed.hs, the energy barrier scene needed a visual trait that renders deflection ripple waves on a surface when @collidable physics objects strike it. @force_field exists in the registry but only names the effect — no Trait*.ts implements a hit-ripple animation. Suggested API shape: @impact_ripple { pattern: 'ring'|'splash'|'shockwave', color: '#00ffff', intensity: 0.8, duration_ms: 400, radius: 1.2 } — attaches to any @collidable node and spawns a screen-space ripple mesh on collision events received from the physics engine.",
+      "priority": "low",
+      "tags": ["auto-filed-by-A-009", "example-driven", "feature-request", "trait-extension", "vfx", "physics", "collidable"],
+      "dedup_key": "a009-trait-impact_ripple",
+      "source_example": "examples/quantum-arena.refreshed.hs",
+      "phase": "2-missing-trait"
+    }
+  ]
+}
