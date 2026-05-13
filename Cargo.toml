@@ -36,7 +36,7 @@ strip = true              # Strip symbols from binary
 opt-level = 0
 debug = true
 
-# Performance-optimized release for native binaries (CLI, LSP)
+# Performance-optimized release for native binaries (Tauri desktop app, CLI, LSP)
 [profile.release-native]
 inherits = "release"
 opt-level = 3             # Max performance for native code
