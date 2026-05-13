@@ -29,6 +29,70 @@ interface RuntimeDirective {
   body?: unknown;
 }
 
+export interface AgentSeed {
+  wallet: string;
+  handle: string;
+  brainCompositionRef: string;
+  memorySnapshotHash: string;
+  resumeStepId?: string;
+  semanticFacts?: SemanticFact[];
+}
+
+export interface DurableAgentState {
+  wallet?: string;
+  handle?: string;
+  brainCompositionRef?: string;
+  memorySnapshotHash?: string;
+  resumeStepId?: string;
+  semanticFacts: SemanticFact[];
+  annotations: {
+    wallet: 'durable';
+    handle: 'durable';
+    brainCompositionRef: 'durable';
+    memorySnapshotHash: 'durable';
+    resumeStepId: 'durable';
+    semanticFacts: 'durable';
+  };
+}
+
+export interface LosableAgentState {
+  reactiveState: Record<string, HoloScriptValue>;
+  runningActions: string[];
+  rawEpisodes: EpisodicMemory[];
+  annotations: {
+    reactiveState: 'losable';
+    runningActions: 'losable';
+    rawEpisodes: 'losable';
+  };
+}
+
+function stringProperty(value: HoloScriptValue | undefined): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function createDetachedParentRuntime(): IParentRuntime {
+  const rootScope: Scope = { variables: new Map<string, HoloScriptValue>() };
+
+  return {
+    async callFunction(functionName: string): Promise<ExecutionResult> {
+      return {
+        success: false,
+        error: `Detached hydrated agent cannot call function: ${functionName}`,
+      };
+    },
+    getRootScope: () => rootScope,
+    getVariable: () => undefined,
+    async executeProgram(): Promise<ExecutionResult[]> {
+      return [{ success: false, error: 'Detached hydrated agent cannot execute programs' }];
+    },
+    emit: async () => undefined,
+    async executeHoloProgram(): Promise<ExecutionResult[]> {
+      return [{ success: false, error: 'Detached hydrated agent cannot execute Holo programs' }];
+    },
+    evaluateExpression: () => undefined,
+  };
+}
+
 /**
  * Specialized runtime for individual HoloScript agents providing sandboxed execution,
  * local state management, and autonomous behavior capabilities.
@@ -46,6 +110,11 @@ export class HoloScriptAgentRuntime {
   private localState!: ReactiveState;
   private runningActions: Map<string, Promise<unknown>> = new Map();
   private isDestroyed: boolean = false;
+  private wallet?: string;
+  private handle?: string;
+  private brainCompositionRef?: string;
+  private memorySnapshotHash?: string;
+  private resumeStepId?: string;
 
   // Episodic Memory & Semantic Extraction (Phase 7)
   private rawEpisodes: EpisodicMemory[] = [];
@@ -71,7 +140,30 @@ export class HoloScriptAgentRuntime {
     this.agentNode = agentNode;
     this.parentRuntime = parentRuntime;
     this.localState = new ReactiveState(agentNode.properties || {});
+    this.bindDurableIdentity(agentNode.properties || {});
     this.initializeAgentContext();
+  }
+
+  /**
+   * Rehydrate an agent identity from substrate-anchored seed data without relying
+   * on the previous neural map. Reactive state, running actions, and episodes
+   * start empty; only durable identity fields and semantic facts are replayed.
+   */
+  static hydrate(
+    seed: AgentSeed,
+    parentRuntime: IParentRuntime = createDetachedParentRuntime()
+  ): HoloScriptAgentRuntime {
+    const agentNode: OrbNode = {
+      type: 'orb',
+      id: seed.handle,
+      name: seed.handle,
+      template: seed.brainCompositionRef,
+      properties: {},
+      directives: [],
+    };
+    const runtime = new HoloScriptAgentRuntime(agentNode, parentRuntime);
+    runtime.applySeed(seed);
+    return runtime;
   }
 
   /**
@@ -86,7 +178,60 @@ export class HoloScriptAgentRuntime {
     this.localState = new ReactiveState(agentNode.properties || {});
     this.runningActions.clear();
     this.isDestroyed = false;
+    this.bindDurableIdentity(agentNode.properties || {});
     this.initializeAgentContext();
+  }
+
+  private bindDurableIdentity(properties: Record<string, HoloScriptValue>): void {
+    this.wallet = stringProperty(properties.wallet);
+    this.handle = stringProperty(properties.handle) ?? this.agentNode.name;
+    this.brainCompositionRef =
+      stringProperty(properties.brainCompositionRef) ?? this.agentNode.template ?? this.agentNode.name;
+    this.memorySnapshotHash = stringProperty(properties.memorySnapshotHash);
+    this.resumeStepId = stringProperty(properties.resumeStepId);
+  }
+
+  private applySeed(seed: AgentSeed): void {
+    this.wallet = seed.wallet;
+    this.handle = seed.handle;
+    this.brainCompositionRef = seed.brainCompositionRef;
+    this.memorySnapshotHash = seed.memorySnapshotHash;
+    this.resumeStepId = seed.resumeStepId;
+    this.semanticFacts = [...(seed.semanticFacts ?? [])];
+    this.rawEpisodes = [];
+    this.runningActions.clear();
+  }
+
+  durable(): DurableAgentState {
+    return {
+      wallet: this.wallet,
+      handle: this.handle,
+      brainCompositionRef: this.brainCompositionRef,
+      memorySnapshotHash: this.memorySnapshotHash,
+      resumeStepId: this.resumeStepId,
+      semanticFacts: [...this.semanticFacts],
+      annotations: {
+        wallet: 'durable',
+        handle: 'durable',
+        brainCompositionRef: 'durable',
+        memorySnapshotHash: 'durable',
+        resumeStepId: 'durable',
+        semanticFacts: 'durable',
+      },
+    };
+  }
+
+  losable(): LosableAgentState {
+    return {
+      reactiveState: this.localState.getSnapshot(),
+      runningActions: Array.from(this.runningActions.keys()),
+      rawEpisodes: [...this.rawEpisodes],
+      annotations: {
+        reactiveState: 'losable',
+        runningActions: 'losable',
+        rawEpisodes: 'losable',
+      },
+    };
   }
 
   /**
@@ -363,7 +508,7 @@ export class HoloScriptAgentRuntime {
       this.consolidationInterval = null;
     }
 
-    logger.info(`[Agent:${this.agentNode.name}] Runtime destroyed.`);
+    logger.info(`[Agent:${this.agentNode?.name ?? 'unbound'}] Runtime destroyed.`);
   }
 
   /**

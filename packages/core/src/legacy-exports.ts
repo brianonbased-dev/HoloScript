@@ -176,6 +176,7 @@ export type {
 // Runtime
 export { HoloScriptRuntime } from './HoloScriptRuntime';
 export { HoloScriptAgentRuntime } from './HoloScriptAgentRuntime';
+export type { AgentSeed, DurableAgentState, LosableAgentState } from './HoloScriptAgentRuntime';
 export type { IParentRuntime } from './runtime/IParentRuntime';
 
 // Headless Runtime — see './runtime/profiles' re-export block below (line ~1929)
