@@ -1,0 +1,14 @@
+{
+  "routine_id": "build-c5887f4e7-fallout",
+  "routine_name": "c5887f4e7 stale-path cleanup — shader-editor native preview gap",
+  "fired_at": "2026-05-13T04:13:49Z",
+  "gaps": [
+    {
+      "title": "[build][studio] Shader-editor native preview silently broken — needs TS+R3F replacement",
+      "description": "The shader-editor native preview feature (packages/studio/src/components/shader-editor/native-preview/useShaderPreview.ts + NativeShaderPreview.tsx) wraps Tauri IPC for wgpu shader preview. The Tauri-side counterpart (spatial-engine-wasm / shader-preview-wgpu) was deleted in commit c5887f4e7. The UI shows 'Requires HoloScript Studio Desktop (Tauri)' but the Tauri handlers are missing, so the feature is silently broken even in the desktop build. Decision from cleanup task task_1778615333837_keif: replace the wgpu-native pipeline with a TypeScript + React Three Fiber (R3F) preview that runs in the browser without Tauri. The R3F renderer already exists in packages/r3f-renderer/. Scope: reimplement useShaderPreview.ts to compile HS shader AST to R3F material nodes and render to an offscreen canvas, or wire into the existing Studio preview pipeline.",
+      "priority": "medium",
+      "tags": ["build", "studio", "shader-editor", "r3f", "c5887f4e7", "retired-package-fallback", "tauri"],
+      "dedup_key": "build-shader-editor-native-preview-ts-r3f-replacement"
+    }
+  ]
+}
