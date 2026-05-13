@@ -96,3 +96,5 @@ The canonical count of 52 removed package roots was derived by:
 3. Excluding two artifacts: `packages/.bench-logs` and `packages/README.md`.
 
 A prior canary estimated 49; the 3 additional roots are `packages/demo-apps`, `packages/intelligence`, and `packages/unity-adapter`, which the canary filter omitted due to heuristic differences (zero package.json at time of deletion, or misclassified as sub-roots).
+
+**Expanded repo-wide audit:** `research/2026-05-12_repo-wide-deletion-disposition-audit.md` covers all 5,415 deleted files (not just package roots) and classifies them by the broader taxonomy: cleanup, collateral, merged, migrated, superseded, ghost, shim, retired, unfinished, bad-idea.
