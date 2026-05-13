@@ -78,11 +78,11 @@
 
 | Disposition | Count | Packages |
 |---|---|---|
-| migrated | 20 | accessibility, babylon-adapter, creator-tools, gestures, gpu, haptics, ik, lod, multiplayer, navigation, network, pcg, physics-joints, playcanvas-adapter, portals, spatial-audio, state-sync, streaming, three-adapter, voice |
+| migrated | 21 | accessibility, babylon-adapter, creator-tools, gestures, gpu, haptics, ik, lod, multiplayer, navigation, network, pcg, physics-joints, playcanvas-adapter, portals, spatial-audio, state-sync, streaming, three-adapter, unity-adapter, voice |
 | merged | 10 | academy, agent-setup, collab-server, compiler, compiler-utils, fs, parser, playground, semantic-2d, traits |
-| superseded | 7 | agent-sdk, connectors, create-holoscript-app, snn-poc, store, uaa2-client, unity-adapter |
-| retired | 8 | holoscript-component, intellij, neovim, shader-preview-wgpu, spatial-engine, spatial-engine-wasm, test, unity-sdk |
-| unfinished | 5 | commerce, components, demo-apps, intelligence, vrchat-export |
+| superseded | 6 | agent-sdk, connectors, create-holoscript-app, snn-poc, store, uaa2-client |
+| retired | 9 | holoscript-component, intellij, neovim, shader-preview-wgpu, spatial-engine, spatial-engine-wasm, test, unity-sdk, vscode-holoscript |
+| unfinished | 4 | commerce, components, demo-apps, intelligence |
 | bad-idea | 1 | vm-bridge |
 | revive-candidate | 1 | vrchat-export |
 
