@@ -4,12 +4,56 @@
 
 | ID | Vertical | Competitor | Severity | Direction | Status | Title |
 |---|---|---|---|---|---|---|
+| CG-036 | Game / 3D platform ecosystems | Unity | 🔴 P1 | catch-up | 🚧 In Progress | Unity editor, asset store, learning, profiling, collaboration, and LiveOps ecosystem maturity |
 | CG-035 | AI runtime architecture | Unity / Unreal / PyTorch / JAX | 🟠 P1 | differentiator | 🚧 In Progress | NN-primary runtime with CPU-verifier backup — inverted stack ownership |
 | CG-032 | Hardware, edge AI, and embedded development | NVIDIA Jetson | 🟠 P1 | differentiator | 👁️ Watch | HoloScript can become the cross-hardware semantic evidence layer competitors do not provide |
 | CG-005 | Spatial computing platforms | Apple Vision Pro | 🟡 P2 | catch-up | 🚧 In Progress | VisionOS fidelity gaps in Swift/RealityKit output |
 | CG-001 | Neuromorphic computing | Intel Loihi / SpiNNaker / SynSense | 🟠 P1 | differentiator | ✅ Shipped | NIR compiler ships for neuromorphic targets |
 
 ## Detailed Gap Descriptions
+
+### CG-036 — Unity editor, asset store, learning, profiling, collaboration, and LiveOps ecosystem maturity
+
+- **Vertical:** Game / 3D platform ecosystems
+- **Competitor:** Unity
+- **Severity:** P1
+- **Direction:** catch-up
+- **Status:** in-progress
+- **Board Task:** task_1778222134389_0uxt
+
+**Competitor Advantage:**
+Unity has 20+ years of editor maturity, 70K Asset Store assets, Unity Learn certifications, integrated Profiler + Frame Debugger, Plastic SCM collaboration, and a full LiveOps SaaS stack (Analytics, Remote Config, Cloud Build, Multiplay). This ecosystem lock-in is the primary reason teams choose Unity even when the runtime is not optimal for their use case.
+
+**HoloScript State:**
+- **Editor:** Studio is beta; lacks Scene/Game/Inspector/Hierarchy/Project window parity; no terrain editor, animation window, or visual scripting node graph.
+- **Asset Store:** No marketplace at scale. `packages/marketplace-api` and `packages/marketplace-web` exist but have minimal content and no network effect.
+- **Learning:** Docs + `packages/video-tutorials` exist, but no structured certification, no university partnerships, no YouTube/tutorial ecosystem at scale.
+- **Profiler:** `packages/benchmark` and `packages/comparative-benchmarks` provide synthetic benchmarks but no real-time in-editor CPU/GPU/memory/audio/network profiler.
+- **Collaboration:** `packages/crdt` provides real-time multi-user editing, but no Plastic/Git LFS large-asset workflow, no cloud project sharing, no branch/merge for scenes.
+- **LiveOps:** No Analytics, Remote Config, Cloud Build, Multiplay, or User Reporting equivalents.
+
+**Needed Response:**
+1. **Editor:** Prioritize Studio polish — terrain editor, animation timeline, visual scripting graph, shader graph equivalent. Target 12-18 months to close the "beta → viable" gap.
+2. **Asset Store:** Seed marketplace with 500 high-quality simulation assets for verticals Unity ignores (medical, legal, climate, molecular). Don't compete with 70K game assets.
+3. **Learning:** Launch HoloScript Academy with structured courses, certifications, and sample projects. Partner with 3 universities in year 1.
+4. **Profiler:** Build real-time profiler into Studio (CPU, GPU, memory, network). Leverage `packages/benchmark` as the engine; add live data collection.
+5. **Collaboration:** Extend CRDT collab with branch/merge for scenes, Git LFS integration, and cloud project hosting.
+6. **LiveOps:** This is a 36+ month gap. Don't build it yet. Instead, document integration paths to existing LiveOps providers (PlayFab, GameAnalytics, AWS GameLift) so teams can bridge the gap without waiting for us.
+
+**Evidence:**
+- Unity battlecard: `docs/strategy/battlecards/unity.md`
+- Studio reference: `docs/guides/studio-reference.md`
+- Benchmark suite: `packages/benchmark/`
+- CRDT collab: `packages/crdt/`
+- Marketplace API: `packages/marketplace-api/`
+
+**Sources:**
+- `docs/strategy/battlecards/unity.md`
+- `docs/guides/studio-reference.md`
+- `packages/benchmark/`
+- `packages/crdt/`
+- `packages/marketplace-api/`
+- `packages/video-tutorials/`
 
 ### CG-035 — NN-primary runtime with CPU-verifier backup — inverted stack ownership
 

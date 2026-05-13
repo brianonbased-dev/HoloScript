@@ -4,6 +4,38 @@
   "nextReviewBy": "2026-05-21",
   "verticals": [
     {
+      "vertical": "Game / 3D platform ecosystems",
+      "competitor": "Unity",
+      "gaps": [
+        {
+          "id": "CG-036",
+          "severity": "P1",
+          "direction": "catch-up",
+          "status": "in-progress",
+          "title": "Unity editor, asset store, learning, profiling, collaboration, and LiveOps ecosystem maturity",
+          "competitorAdvantage": "Unity has 20+ years of editor maturity, 70K Asset Store assets, Unity Learn certifications, integrated Profiler + Frame Debugger, Plastic SCM collaboration, and a full LiveOps SaaS stack (Analytics, Remote Config, Cloud Build, Multiplay). This ecosystem lock-in is the primary reason teams choose Unity even when the runtime is not optimal for their use case.",
+          "holoscriptState": "Editor: Studio is beta; lacks Scene/Game/Inspector/Hierarchy/Project window parity. Asset Store: No marketplace at scale. Learning: Docs + video-tutorials exist, but no structured certification or university partnerships. Profiler: Synthetic benchmarks only; no real-time in-editor profiler. Collaboration: CRDT multi-user editing exists but no Plastic/Git LFS large-asset workflow or cloud project sharing. LiveOps: No Analytics, Remote Config, Cloud Build, Multiplay, or User Reporting equivalents.",
+          "neededResponse": "1. Editor: Prioritize Studio polish — terrain editor, animation timeline, visual scripting graph. 2. Asset Store: Seed with 500 high-quality simulation assets for verticals Unity ignores. 3. Learning: Launch HoloScript Academy with certifications and university partnerships. 4. Profiler: Build real-time profiler into Studio. 5. Collaboration: Extend CRDT with branch/merge for scenes and Git LFS. 6. LiveOps: Document integration paths to PlayFab/GameAnalytics/AWS GameLift rather than building from scratch.",
+          "evidence": [
+            "Unity battlecard: docs/strategy/battlecards/unity.md",
+            "Studio reference: docs/guides/studio-reference.md",
+            "Benchmark suite: packages/benchmark/",
+            "CRDT collab: packages/crdt/",
+            "Marketplace API: packages/marketplace-api/"
+          ],
+          "sources": [
+            "docs/strategy/battlecards/unity.md",
+            "docs/guides/studio-reference.md",
+            "packages/benchmark/",
+            "packages/crdt/",
+            "packages/marketplace-api/",
+            "packages/video-tutorials/"
+          ],
+          "boardTaskId": "task_1778222134389_0uxt"
+        }
+      ]
+    },
+    {
       "vertical": "AI runtime architecture",
       "competitor": "Unity / Unreal / PyTorch / JAX",
       "gaps": [
