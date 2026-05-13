@@ -5,7 +5,7 @@
  * destroy, executeAction on destroyed agent.
  */
 import { describe, it, expect } from 'vitest';
-import { HoloScriptAgentRuntime } from '../HoloScriptAgentRuntime';
+import { HoloScriptAgentRuntime, type AgentSeed } from '../HoloScriptAgentRuntime';
 import { HoloScriptRuntime } from '../HoloScriptRuntime';
 import type { OrbNode } from '../types';
 
@@ -87,6 +87,54 @@ describe('HoloScriptAgentRuntime — Production', () => {
     const result = await agent.executeAction('move');
     expect(result.success).toBe(false);
     expect(result.error).toContain('destroyed');
+  });
+
+  it('hydrates identity from a seed after the neural map is destroyed', () => {
+    const runtime = new HoloScriptRuntime();
+    const seed: AgentSeed = {
+      wallet: '0xagent-wallet',
+      handle: 'substrate-codex',
+      brainCompositionRef: 'compositions/codex-brain.hsplus',
+      memorySnapshotHash: 'sha256:semantic-snapshot',
+      resumeStepId: 'step-42',
+      semanticFacts: [
+        {
+          id: 'fact-identity',
+          fact: 'substrate-codex owns the hardware validation lane.',
+          confidence: 0.98,
+          sourceEpisodes: ['ep-1', 'ep-2'],
+        },
+      ],
+    };
+    const original = new HoloScriptAgentRuntime(
+      makeOrbNode({
+        name: 'substrate-codex',
+        properties: { transientMood: 'busy', lastAction: 'compile' },
+      }),
+      runtime
+    );
+    original.recordEpisode('compile', 'success', ['runtime']);
+    original.state.lastAction = 'destroyed-map';
+    original.destroy();
+
+    const hydrated = HoloScriptAgentRuntime.hydrate(seed, runtime);
+    const durable = hydrated.durable();
+    const losable = hydrated.losable();
+
+    expect(hydrated.id).toBe(seed.handle);
+    expect(durable.wallet).toBe(seed.wallet);
+    expect(durable.handle).toBe(seed.handle);
+    expect(durable.brainCompositionRef).toBe(seed.brainCompositionRef);
+    expect(durable.memorySnapshotHash).toBe(seed.memorySnapshotHash);
+    expect(durable.resumeStepId).toBe(seed.resumeStepId);
+    expect(durable.semanticFacts).toEqual(seed.semanticFacts);
+    expect(durable.annotations.semanticFacts).toBe('durable');
+    expect(losable.rawEpisodes).toEqual([]);
+    expect(losable.runningActions).toEqual([]);
+    expect(losable.reactiveState).toEqual({});
+    expect(losable.reactiveState.lastAction).toBeUndefined();
+    expect(losable.annotations.reactiveState).toBe('losable');
+    hydrated.destroy();
   });
 
   // ─── executeAction with no matching action ────────────────────────
