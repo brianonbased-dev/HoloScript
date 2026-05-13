@@ -69,8 +69,14 @@ if (process.env.HOLOMESH_SKIP_UNTRACKED_SIBLING_CHECK === '1') {
 // ---- Git helpers ----
 function gitLines(args) {
   try {
-    const out = execSync(`git ${args}`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-    return out.split('\n').filter(Boolean);
+    // -z makes git emit null-separated, raw-UTF-8 paths. Without it, git
+    // quote-prints any path containing non-ASCII bytes (e.g.
+    // `"docs/knowledge/\342\210\236..."` for the ∞-file), and the resulting
+    // literal string fails downstream existence checks. All 4 git commands
+    // used by callers in this script accept -z. Sibling to the same fix in
+    // check-hardcoded-numbers.js (commit d55d81951).
+    const out = execSync(`git ${args} -z`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    return out.split('\0').filter(Boolean);
   } catch (err) {
     // If git fails (e.g. not a repo), be permissive — do not block.
     return null;
