@@ -187,6 +187,11 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   railway_variable_set: ['tools:admin'],
   railway_domain_add: ['tools:admin'],
   railway_deployment_status: ['tools:read'],
+
+  // === Secrets Broker (security-gated) ===
+  holo_secrets_grant: ['tools:admin'],
+  holo_secrets_resolve: ['tools:admin'],
+  holo_secrets_revoke: ['tools:admin'],
 };
 
 // ── Scope Classification ─────────────────────────────────────────────────────
@@ -268,6 +273,11 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   railway_variable_set: 'critical',
   railway_domain_add: 'high',
   railway_deployment_status: 'low',
+
+  // Secrets Broker
+  holo_secrets_grant: 'critical',
+  holo_secrets_resolve: 'critical',
+  holo_secrets_revoke: 'critical',
 };
 
 // ── Gate 2: Tool Authorization ───────────────────────────────────────────────

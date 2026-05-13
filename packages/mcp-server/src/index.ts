@@ -70,6 +70,7 @@ import {
   isHologramMcpResponse,
   wrapHologramMcpEnvelope,
 } from '@holoscript/core';
+import type { SigningContext } from './holomesh/identity/signing-middleware';
 
 declare const __SERVICE_VERSION__: string;
 
@@ -183,7 +184,11 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 });
 
 // Single tool executor allowing internal recursive calls
-export async function executeSingleTool(name: string, args: Record<string, unknown>) {
+export async function executeSingleTool(
+  name: string,
+  args: Record<string, unknown>,
+  signingCtx?: SigningContext
+) {
   try {
     if (name === 'holoscript_discover_tools') {
       const intent = String(args?.intent || '').toLowerCase();
@@ -217,7 +222,11 @@ export async function executeSingleTool(name: string, args: Record<string, unkno
       }>;
       const results: unknown[] = [];
       for (const req of requests) {
-        const res = await executeSingleTool(String(req.name || ''), req.arguments || {});
+        const res = await executeSingleTool(
+          String(req.name || ''),
+          req.arguments || {},
+          signingCtx
+        );
         results.push({
           name: req.name,
           status: (res as { isError?: boolean }).isError ? 'error' : 'success',
@@ -231,7 +240,7 @@ export async function executeSingleTool(name: string, args: Record<string, unkno
 
     if (name === 'batch_tool_call') {
       const batchResult = await handleBatchToolCall(args || {}, async (toolName, toolArgs) => {
-        const res = await executeSingleTool(toolName, toolArgs || {});
+        const res = await executeSingleTool(toolName, toolArgs || {}, signingCtx);
 
         if ((res as { isError?: boolean }).isError) {
           const errorText = (res as { content?: Array<{ text?: string }> }).content?.[0]?.text;
@@ -253,7 +262,7 @@ export async function executeSingleTool(name: string, args: Record<string, unkno
       };
     }
 
-    return await _handleSingleToolLogic(name, args);
+    return await _handleSingleToolLogic(name, args, signingCtx);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return {
@@ -270,7 +279,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 // === O(1) TOOL DISPATCH REGISTRY ===
-type ToolHandler = (name: string, args: Record<string, unknown>) => Promise<any> | any;
+type ToolHandler = (
+  name: string,
+  args: Record<string, unknown>,
+  signingCtx?: SigningContext
+) => Promise<any> | any;
 const TOOL_DISPATCH_REGISTRY = new Map<string, ToolHandler>();
 
 function registerCategory(toolArray: Tool[], handler: ToolHandler) {
@@ -280,42 +293,43 @@ function registerCategory(toolArray: Tool[], handler: ToolHandler) {
 }
 
 // 1. Explicitly mapped domains
-registerCategory(compilerTools, (name, args) => handleCompilerTool(name, args));
-registerCategory(networkingTools, (name, args) => handleNetworkingTool(name, args));
-registerCategory(snapshotTools, (name, args) => handleSnapshotTool(name, args));
-registerCategory(monitoringTools, (name, args) => handleMonitoringTool(name, args));
-registerCategory(holotestTools, (name, args) => handleHolotestTool(name, args));
-registerCategory(refactorCodegenTools, (name, args) => handleRefactorCodegenTool(name, args));
-registerCategory(absorbServiceTools, (name, args) => handleAbsorbServiceTool(name, args));
-registerCategory(codebaseTools, (name, args) => handleCodebaseTool(name, args));
-registerCategory(graphRagTools, (name, args) => handleGraphRagTool(name, args));
-registerCategory(selfImproveTools, (name, args) => handleSelfImproveTool(name, args));
-registerCategory(gltfImportTools, (name, args) => handleGltfTool(name, args));
-registerCategory(wisdomGotchaTools, (name, args) => handleWisdomGotchaTool(name, args));
-registerCategory(oracleMcpTools, (name, args) => handleOracleMcpTool(name, args));
-registerCategory(traitTools, (name, args) => handleTraitTool(name, args));
-registerCategory(alphafoldTools, (name, args) => handleFetchStructure(args));
-registerCategory(hologramToolDefinitions, (name, args) => handleHologramTool(name, args));
-registerCategory(holotwinToolDefinitions, (name, args) => handleHoloTwinTool(name, args));
-registerCategory(hologramContentToolDefinitions, (name, args) =>
+registerCategory(compilerTools, (name, args, _signingCtx) => handleCompilerTool(name, args));
+registerCategory(networkingTools, (name, args, _signingCtx) => handleNetworkingTool(name, args));
+registerCategory(snapshotTools, (name, args, _signingCtx) => handleSnapshotTool(name, args));
+registerCategory(monitoringTools, (name, args, _signingCtx) => handleMonitoringTool(name, args));
+registerCategory(holotestTools, (name, args, _signingCtx) => handleHolotestTool(name, args));
+registerCategory(refactorCodegenTools, (name, args, _signingCtx) => handleRefactorCodegenTool(name, args));
+registerCategory(absorbServiceTools, (name, args, _signingCtx) => handleAbsorbServiceTool(name, args));
+registerCategory(codebaseTools, (name, args, _signingCtx) => handleCodebaseTool(name, args));
+registerCategory(graphRagTools, (name, args, _signingCtx) => handleGraphRagTool(name, args));
+registerCategory(selfImproveTools, (name, args, _signingCtx) => handleSelfImproveTool(name, args));
+registerCategory(gltfImportTools, (name, args, _signingCtx) => handleGltfTool(name, args));
+registerCategory(wisdomGotchaTools, (name, args, _signingCtx) => handleWisdomGotchaTool(name, args));
+registerCategory(oracleMcpTools, (name, args, _signingCtx) => handleOracleMcpTool(name, args));
+registerCategory(traitTools, (name, args, _signingCtx) => handleTraitTool(name, args));
+registerCategory(alphafoldTools, (name, args, _signingCtx) => handleFetchStructure(args));
+registerCategory(hologramToolDefinitions, (name, args, _signingCtx) => handleHologramTool(name, args));
+registerCategory(holotwinToolDefinitions, (name, args, _signingCtx) => handleHoloTwinTool(name, args));
+registerCategory(hologramContentToolDefinitions, (name, args, _signingCtx) =>
   handleHologramContentTool(name, args),
 );
-registerCategory(negotiationToolDefinitions, (name, args) =>
+registerCategory(negotiationToolDefinitions, (name, args, _signingCtx) =>
   handleNegotiationTool(name, args),
 );
 
 // 2. Core fallback (anything else exported in `tools.ts` array)
 for (const t of tools) {
   if (t.name && !TOOL_DISPATCH_REGISTRY.has(t.name)) {
-    TOOL_DISPATCH_REGISTRY.set(t.name, (name, args) => handleTool(name, args));
+    TOOL_DISPATCH_REGISTRY.set(t.name, (name, args, signingCtx) => handleTool(name, args, signingCtx));
   }
 }
 
 async function executeBatchInnerTool(
   toolName: string,
-  toolArgs: Record<string, unknown>
+  toolArgs: Record<string, unknown>,
+  signingCtx?: SigningContext
 ): Promise<unknown> {
-  const res = await _handleSingleToolLogic(toolName, toolArgs || {});
+  const res = await _handleSingleToolLogic(toolName, toolArgs || {}, signingCtx);
 
   if ((res as { isError?: boolean }).isError) {
     const errorText = (res as { content?: Array<{ text?: string }> }).content?.[0]?.text;
@@ -333,7 +347,11 @@ async function executeBatchInnerTool(
 }
 
 // Implementation of executeSingleTool logic previously bound above
-export async function _handleSingleToolLogic(name: string, args: Record<string, unknown>) {
+export async function _handleSingleToolLogic(
+  name: string,
+  args: Record<string, unknown>,
+  signingCtx?: SigningContext
+) {
   try {
     // 1. Plugin namespace isolation (Enforce strict O(1) boundary for proprietary tool shadowing prevention)
     if (name.startsWith('uaa2_') || name.startsWith('hs_plugin_')) {
@@ -347,7 +365,10 @@ export async function _handleSingleToolLogic(name: string, args: Record<string, 
     }
 
     if (name === 'batch_tool_call') {
-      const result = await handleBatchToolCall(args || {}, executeBatchInnerTool);
+      const result = await handleBatchToolCall(
+        args || {},
+        (toolName, toolArgs) => executeBatchInnerTool(toolName, toolArgs, signingCtx)
+      );
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };
@@ -359,7 +380,7 @@ export async function _handleSingleToolLogic(name: string, args: Record<string, 
       throw new Error(`Unknown tool: ${name}`);
     }
 
-    const result = await handler(name, args || {});
+    const result = await handler(name, args || {}, signingCtx);
 
     // Tools that returned null failed to match inside their specialized handler (should be rare with Map)
     if (result === null) {

@@ -65,6 +65,7 @@ import {
   loadTraitCategoriesFromCore,
   resolveTraitCategorySlug,
 } from './trait-categories-from-core';
+import type { SigningContext } from './holomesh/identity/signing-middleware';
 
 /** Used only when core source tree is not present next to mcp-server (e.g. odd installs). */
 const TRAIT_CATEGORIES_FALLBACK: Record<string, string[]> = {
@@ -218,7 +219,11 @@ const ALL_TRAITS: readonly string[] = VR_TRAITS;
 /**
  * Main handler dispatcher for all tools
  */
-export async function handleTool(name: string, args: Record<string, unknown>): Promise<unknown> {
+export async function handleTool(
+  name: string,
+  args: Record<string, unknown>,
+  signingCtx?: SigningContext
+): Promise<unknown> {
   // Core tools
   switch (name) {
     case 'parse_hs':
@@ -287,7 +292,7 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
         name,
         args,
         allTools,
-        (toolName, toolArgs) => handleTool(toolName, toolArgs)
+        (toolName, toolArgs) => handleTool(toolName, toolArgs, signingCtx)
       );
       if (result !== null) return result;
       break;
@@ -348,7 +353,7 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
 
   if (name.startsWith('holo_secrets_')) {
     const { handleSecretsBrokerTool } = await import('./secrets-broker-handler');
-    const result = await handleSecretsBrokerTool(name, args);
+    const result = await handleSecretsBrokerTool(name, args, signingCtx);
     if (result !== null) return result;
   }
 
