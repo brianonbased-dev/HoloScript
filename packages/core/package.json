@@ -148,6 +148,11 @@
       "import": "./dist/entries/interop.js",
       "require": "./dist/entries/interop.cjs"
     },
+    "./wot": {
+      "types": "./dist/wot/index.d.ts",
+      "import": "./dist/wot/index.js",
+      "require": "./dist/wot/index.cjs"
+    },
     "./cli/holoscript-runner": {
       "import": "./dist/cli/holoscript-runner.js",
       "require": "./dist/cli/holoscript-runner.cjs"

@@ -2749,7 +2749,9 @@ async function main(): Promise<void> {
         await renderer.close();
 
         if (result.success && result.data) {
-          fs.writeFileSync(path.resolve(outputPath), result.data as Buffer);
+          const resolvedOutputPath = path.resolve(outputPath);
+          fs.mkdirSync(path.dirname(resolvedOutputPath), { recursive: true });
+          fs.writeFileSync(resolvedOutputPath, result.data as Buffer);
           console.log(`\x1b[32m✓ Screenshot saved to ${outputPath}\x1b[0m`);
           console.log(`  Size: ${result.metadata?.width}x${result.metadata?.height}`);
           console.log(`  Format: ${result.metadata?.format}`);
