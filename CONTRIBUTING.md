@@ -317,7 +317,7 @@ pnpm vitest run \
 
 ### Paper Benchmark Tests
  
- These tests validate the scientific foundations reported in the 8-paper program. Run them to verify algebraic provenance and solver convergence.
+ These tests validate the scientific foundations reported in the 17-paper program. Run them to verify algebraic provenance and solver convergence.
  
  ```bash
  # Paper 0b: Trust by Construction (TET10 Convergence)

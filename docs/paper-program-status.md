@@ -12,7 +12,7 @@
 
 | Metric | Value | Verification |
 |--------|-------|--------------|
-| Main program papers | 15 (+ TVCG held + 2 capstones = 18 total) | `ls research/paper-*.tex \| wc -l` + TVCG |
+| Main program papers | 14 main + TVCG + 2 capstones = 17 total | `ls research/paper-*.tex \| wc -l` + TVCG |
 | Gated research tracks | 13 (+ Longitudinal RE-INTAKE) | Count rows in Gated Tracks table below |
 | Program-wide compile-clean | 16/16 program papers pdflatex EXIT=0 (as of 2026-04-25) | See audit-matrix refresh |
 | D.011 four-pillar closed | 11/15 program papers | See D.011 columns below |
@@ -36,7 +36,7 @@ This dashboard consolidates four per-paper trackers and the gated-research-track
 
 ---
 
-## Main Program Papers (15 + TVCG + 2 Capstones = 18)
+## Main Program Papers (14 + TVCG + 2 Capstones = 17)
 
 <!-- VERIFY: re-run structural grep harness to refresh counts -->
 
@@ -112,6 +112,7 @@ This dashboard consolidates four per-paper trackers and the gated-research-track
 | 11 | HSPlus | N | N | N | N | 0 todos / 5d |
 | 12 | HoloLand | N | N | N | N | 0 todos / 5d |
 | 13 | DumbGlass | Y | partial | partial | N | 0 todos / 5d |
+| TVCG | Trust by Construction | N | N | N | N | 0 todos / 5d |
 | C2 | Capstone P2 | Y | partial | partial | partial | 0 todos / 5d |
 | UI | Capstone UIST | Y | partial | partial | partial | 0 todos / 5d |
 
