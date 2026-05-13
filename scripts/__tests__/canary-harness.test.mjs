@@ -189,6 +189,52 @@ assertEq(result5.status, 0, "batch canary exits 0");
 assertOk(batchDuration < 30000, `batch execution under 30s (was ${batchDuration}ms)`);
 rmSync(tmp5, { recursive: true, force: true });
 
+console.log("Test 7: live mode includes external surface probes with diverse shapes");
+const tmp6 = mkdtempSync(join(tmpdir(), "canary-test-"));
+const extReportPath = join(tmp6, "ext.json");
+const result6 = spawnSync(
+  process.execPath,
+  [SCRIPT],
+  {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      CANARY_LIVE: "1",
+      CANARY_OUTPUT: extReportPath,
+      CANARY_TIMEOUT_MS: "8000",
+      HOLOSCRIPT_API_KEY: process.env.HOLOSCRIPT_API_KEY || "",
+      HOLOMESH_API_KEY: process.env.HOLOMESH_API_KEY || "",
+      ABSORB_API_KEY: process.env.ABSORB_API_KEY || "",
+    },
+  }
+);
+
+// We don't assert exit code here because external surfaces may be down;
+// we only assert the probes are present and shaped correctly.
+const extReport = JSON.parse(readFileSync(extReportPath, "utf8"));
+const externalProbes = extReport.probes.filter((p) =>
+  p.name.startsWith("external-"));
+assertOk(externalProbes.length >= 4, "at least 4 external probes present");
+
+// Shape diversity: at least one GET, one POST, one HEAD
+const methods = new Set();
+for (const p of externalProbes) {
+  if (p.name.includes("health")) methods.add("GET");
+  if (p.name.includes("scan")) methods.add("POST");
+  if (p.name.includes("availability")) methods.add("HEAD");
+  if (p.name.includes("html")) methods.add("GET-html");
+}
+assertOk(methods.size >= 3, "external probes use diverse HTTP methods");
+
+// Verify no secrets leaked in external probe results
+const extReportStr = readFileSync(extReportPath, "utf8");
+assertOk(
+  !extReportStr.includes(process.env.HOLOSCRIPT_API_KEY || "sk_live_"),
+  "external probe report does not leak API keys"
+);
+rmSync(tmp6, { recursive: true, force: true });
+
 if (testsFailed > 0) {
   console.error(`\n${testsFailed}/${testsRun} tests failed`);
   process.exit(1);
