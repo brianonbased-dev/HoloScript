@@ -232,6 +232,82 @@ function printJson(value: unknown): void {
   console.log(JSON.stringify(value, null, 2));
 }
 
+const WORLD_MODEL_REPLAY_SCHEMA = 'world-model-replay-v1';
+const WORLD_MODEL_REPLAY_SCENE_ID = 'deterministic-contact-v1';
+
+async function runWorldModelCommand(options: ReturnType<typeof parseArgs>): Promise<void> {
+  const subcommand = options.subcommand ?? 'replay';
+  if (subcommand !== 'replay') {
+    cliError('E004', `Unknown world-model subcommand: ${subcommand}`, {
+      usage: 'holoscript world-model replay --scene deterministic-contact-v1 [--seed <integer>] [--json]',
+      hint: 'The current world-model CLI exposes the deterministic replay path only.',
+    });
+    process.exit(1);
+  }
+
+  const sceneId = options.sceneId ?? WORLD_MODEL_REPLAY_SCENE_ID;
+  if (sceneId !== WORLD_MODEL_REPLAY_SCENE_ID) {
+    cliError('E003', `Unsupported world-model scene: ${sceneId}`, {
+      usage: 'holoscript world-model replay --scene deterministic-contact-v1 [--seed <integer>] [--json]',
+      hint: 'Only deterministic-contact-v1 has a replayable fixture in this CLI surface.',
+    });
+    process.exit(1);
+  }
+
+  const seedInput = options.seed ?? '1337';
+  const seed = Number(seedInput);
+  if (!Number.isSafeInteger(seed)) {
+    cliError('E003', `Invalid world-model seed: ${seedInput}`, {
+      usage: 'holoscript world-model replay --scene deterministic-contact-v1 --seed <integer> [--json]',
+      hint: 'Pass a deterministic integer seed, for example `--seed 1337`.',
+    });
+    process.exit(1);
+  }
+
+  const { buildDeterministicFailureTrajectory } = await import('@holoscript/core/world-model');
+  const replay = buildDeterministicFailureTrajectory(undefined, { seed });
+  const payload = {
+    schema_version: WORLD_MODEL_REPLAY_SCHEMA,
+    generatedAt: new Date().toISOString(),
+    scene: {
+      id: sceneId,
+      seed,
+      sceneHash: replay.result.sceneHash,
+    },
+    result: replay.result,
+    trajectory: replay.trajectory,
+    score: {
+      predicateScore: replay.trajectory.predicateScore,
+      priority: replay.trajectory.priority,
+    },
+  };
+
+  if (options.output) {
+    const fs = await import('fs');
+    fs.writeFileSync(options.output, `${JSON.stringify(payload, null, 2)}\n`, 'utf-8');
+  }
+
+  if (options.json) {
+    printJson(payload);
+    return;
+  }
+
+  console.log(`World-model replay: ${sceneId}`);
+  console.log(`Seed: ${seed}`);
+  console.log(`Scene hash: ${replay.result.sceneHash}`);
+  console.log(`Event log hash: ${replay.result.eventLogHash}`);
+  console.log(`Events: ${replay.result.events.length}`);
+  console.log(`Contacts: ${replay.result.contactCount}`);
+  console.log(`Predicate violations: ${replay.result.predicateViolationCount}`);
+  console.log(
+    `Trajectory: ${replay.trajectory.id} status=${replay.trajectory.status} priority=${replay.trajectory.priority.priority.toFixed(2)}`
+  );
+  console.log(`Replay command: ${replay.trajectory.replayHandle.replayCommand}`);
+  if (options.output) {
+    console.log(`Wrote JSON receipt: ${options.output}`);
+  }
+}
+
 function propertyListToRecord(properties: unknown): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const property of Array.isArray(properties) ? properties : []) {
@@ -3916,6 +3992,11 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         if (err instanceof Error && err.stack) console.error(err.stack);
         process.exit(1);
       }
+      break;
+    }
+
+    case 'world-model': {
+      await runWorldModelCommand(options);
       break;
     }
 

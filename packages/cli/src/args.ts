@@ -73,6 +73,7 @@ export interface CLIOptions {
     | 'impact'
     | 'impact-analysis'
     | 'query'
+    | 'world-model'
     | 'self-improve'
     | 'daemon'
     | 'setup-hooks'
@@ -188,6 +189,10 @@ export interface CLIOptions {
   importSource?: ImportSource;
   /** Scene name override for import */
   sceneName?: string;
+  /** Scene id for world-model replay commands */
+  sceneId?: string;
+  /** Deterministic seed for replayable commands */
+  seed?: string;
   /** Screenshot/render width */
   width?: number;
   /** Screenshot/render height */
@@ -303,6 +308,7 @@ export function parseArgs(args: string[]): CLIOptions {
           'impact',
           'impact-analysis',
           'query',
+          'world-model',
           'smoke',
           'self-improve',
           'daemon',
@@ -324,6 +330,9 @@ export function parseArgs(args: string[]): CLIOptions {
         options.command = arg as CLIOptions['command'];
       } else if (['access', 'org', 'token'].includes(options.command) && !options.subcommand) {
         // Subcommands for access/org/token
+        options.subcommand = arg;
+      } else if (options.command === 'world-model' && !options.subcommand) {
+        // Subcommands for world-model, currently: replay
         options.subcommand = arg;
       } else if (['add', 'remove'].includes(options.command)) {
         // Collect package names for add/remove commands
@@ -475,6 +484,12 @@ export function parseArgs(args: string[]): CLIOptions {
         break;
       case '--scene-name':
         options.sceneName = args[++i];
+        break;
+      case '--scene':
+        options.sceneId = args[++i];
+        break;
+      case '--seed':
+        options.seed = args[++i];
         break;
       // Screenshot/render options
       case '--width':
@@ -685,6 +700,10 @@ Usage: holoscript <command> [options] [input]
                     Use --model <name> to override default model
                     Use --top-k <n> to control result count (default: 10)
                     Use --json for machine-readable output
+  world-model replay
+                    Replay the deterministic contact failure-discovery scene
+                    Use --scene deterministic-contact-v1 and --seed <integer>
+                    Use --json for machine-readable replay evidence
 
   \x1b[33mSelf-Improvement:\x1b[0m
   quickstart [name] Scaffold a working .holo project and open in browser
@@ -881,6 +900,7 @@ Usage: holoscript <command> [options] [input]
   holoscript query "explain the compiler pipeline" --with-llm --llm openai
   holoscript query "trace call chain from absorb" --with-llm --llm anthropic
   holoscript query "list error handlers" --top-k 20 --json         # Machine-readable output
+  holoscript world-model replay --scene deterministic-contact-v1 --seed 1337 --json
 
 \x1b[1mAliases:\x1b[0m
   hs              Short alias for holoscript
