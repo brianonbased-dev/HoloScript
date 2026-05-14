@@ -1,0 +1,144 @@
+{
+  "manifestId": "eenv_4fffc9c49efb6064",
+  "manifestHash": "sha256:4fffc9c49efb606487887c542f2fdc92fd7d8b1e37f3448c6780f6d31233d3fe",
+  "schemaVersion": "holoscript.evidence-envelope.v1",
+  "generatedAt": "2026-05-14T12:00:00.000Z",
+  "generatedBy": "@holoscript/hololand-platform/evidence-envelope",
+  "paper": {
+    "id": "12",
+    "title": "HoloLand",
+    "target": "I3D '27 (Nov '26)",
+    "basename": "paper-12-holo-i3d.tex"
+  },
+  "hardwareTier": "codex-hardware-local",
+  "environment": {
+    "hash": "sha256:f11f6b7ec92bbd53fe24aff1f582cdb2db82f42d302cfa7ec58a0003c9cea7b4",
+    "runtime": {
+      "os": "win32",
+      "release": "10.0.26200",
+      "arch": "x64",
+      "nodeVersion": "v24.15.0",
+      "v8Version": "13.6.233.17-node.48",
+      "cpuModel": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+      "logicalCores": 16,
+      "totalMemoryGB": 31.7
+    },
+    "sourceRevisions": [
+      {
+        "repo": "HoloScript",
+        "commit": "a1c410c4efdc2b476ab497a984af94e6adc47496",
+        "dirty": true,
+        "path": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript"
+      },
+      {
+        "repo": "Hololand",
+        "commit": "6cd54ced45e03f94a18df4a986c607e5e50f46a0",
+        "dirty": true,
+        "path": "C:\\Users\\josep\\Documents\\GitHub\\Hololand"
+      }
+    ]
+  },
+  "calibration": {
+    "setupCommand": "pnpm install --frozen-lockfile",
+    "checks": [
+      {
+        "id": "runtime-inventory",
+        "label": "Node, pnpm, OS, CPU, and memory inventory captured in the envelope.",
+        "required": true,
+        "artifactRole": "generator"
+      },
+      {
+        "id": "device-lab",
+        "label": "HoloLand hardware probe captures WASM SIMD, WebGPU, headset, and replay evidence.",
+        "required": true,
+        "command": "pnpm --filter @holoscript/hololand-platform run device-lab -- --task task_1778722625102_us8y",
+        "artifactRole": "harness"
+      },
+      {
+        "id": "trace-corpus",
+        "label": "CAEL/user-study trace corpus source is listed as reviewer-visible evidence.",
+        "required": true,
+        "artifactRole": "trace-corpus"
+      }
+    ]
+  },
+  "reproducibility": {
+    "seed": "paper-12-hololand-evidence-envelope-v1",
+    "harnessCommand": "pnpm --filter @holoscript/hololand-platform run device-lab -- --task task_1778722625102_us8y",
+    "rerunCommand": "pnpm --filter @holoscript/hololand-platform run evidence-envelope -- --preset paper-12-hololand --out docs/public/evidence/paper-12-hololand-envelope.json",
+    "artifactPaths": [
+      "HoloScript:packages/hololand-platform/src/evidence-envelope/index.ts",
+      "HoloScript:packages/hololand-platform/src/evidence-envelope/cli.ts",
+      "HoloScript:packages/hololand-platform/src/device-lab/index.ts",
+      "HoloScript:docs/public/evidence/evidence-envelope.schema.json",
+      "HoloScript:docs/paper-program/evidence-envelope-manifests.md",
+      "Hololand:examples/hololand-central/src/evidence/cael-user-study-corpus.hsplus"
+    ]
+  },
+  "artifacts": [
+    {
+      "repo": "HoloScript",
+      "path": "packages/hololand-platform/src/evidence-envelope/index.ts",
+      "role": "generator",
+      "description": "Canonical TypeScript generator for evidence envelopes.",
+      "required": true,
+      "exists": true,
+      "sha256": "sha256:54bfe4c7d5f218591a3fb7560811e338b0c983ffb28cf5218c3f4d4c54afacef",
+      "bytes": 13703
+    },
+    {
+      "repo": "HoloScript",
+      "path": "packages/hololand-platform/src/evidence-envelope/cli.ts",
+      "role": "harness",
+      "description": "One-command envelope generation CLI.",
+      "required": true,
+      "exists": true,
+      "sha256": "sha256:b6ae73c4688e5239a18e0da36e93034ed1066f2ef20bd74cd94d60f86a88973a",
+      "bytes": 5380
+    },
+    {
+      "repo": "HoloScript",
+      "path": "packages/hololand-platform/src/device-lab/index.ts",
+      "role": "harness",
+      "description": "Hardware-native HoloLand readiness receipt builder.",
+      "required": true,
+      "exists": true,
+      "sha256": "sha256:2f1936d9bd192c8c5dc8e93c5311012d61367d47053197b777c5c7e2eae29671",
+      "bytes": 19995
+    },
+    {
+      "repo": "HoloScript",
+      "path": "docs/public/evidence/evidence-envelope.schema.json",
+      "role": "schema",
+      "description": "Public JSON schema for reviewer validation.",
+      "required": true,
+      "exists": true,
+      "sha256": "sha256:4683c93cd2e86170b124e8d2d4036bba3c84644a47a0a7bc921324b469f88ce6",
+      "bytes": 4694
+    },
+    {
+      "repo": "HoloScript",
+      "path": "docs/paper-program/evidence-envelope-manifests.md",
+      "role": "documentation",
+      "description": "Paper citation and rerun instructions.",
+      "required": true,
+      "exists": true,
+      "sha256": "sha256:8841807d34176485cb3ea6e28115768349c8af5298c5d8442adf69f2be7d859f",
+      "bytes": 2271
+    },
+    {
+      "repo": "Hololand",
+      "path": "examples/hololand-central/src/evidence/cael-user-study-corpus.hsplus",
+      "role": "trace-corpus",
+      "description": "Paper 12 HoloLand CAEL/user-study corpus source.",
+      "required": true,
+      "exists": true,
+      "sha256": "sha256:2349470536c3ec1ca65e9996079fc2a597bccde9ba5d583a28fb17c814be24c8",
+      "bytes": 4899
+    }
+  ],
+  "notes": [
+    "Paper 12 cites this envelope for the Calibration/Setup/Reproducibility row.",
+    "The manifest hash covers the runtime, source revisions, calibration checks, rerun command, and artifact hashes."
+  ]
+}

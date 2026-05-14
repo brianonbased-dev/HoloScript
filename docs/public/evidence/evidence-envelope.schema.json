@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holoscript.net/evidence/evidence-envelope.schema.json",
+  "title": "HoloScript Evidence Envelope",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "manifestId",
+    "manifestHash",
+    "generatedAt",
+    "generatedBy",
+    "paper",
+    "hardwareTier",
+    "environment",
+    "calibration",
+    "reproducibility",
+    "artifacts",
+    "notes"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "holoscript.evidence-envelope.v1"
+    },
+    "manifestId": {
+      "type": "string",
+      "pattern": "^eenv_[a-f0-9]{16}$"
+    },
+    "manifestHash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "generatedBy": {
+      "const": "@holoscript/hololand-platform/evidence-envelope"
+    },
+    "paper": {
+      "type": "object",
+      "required": ["id", "title"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "target": { "type": "string" },
+        "basename": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "hardwareTier": {
+      "type": "string",
+      "minLength": 1
+    },
+    "environment": {
+      "type": "object",
+      "required": ["hash", "runtime", "sourceRevisions"],
+      "properties": {
+        "hash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "runtime": {
+          "type": "object",
+          "required": [
+            "os",
+            "release",
+            "arch",
+            "nodeVersion",
+            "v8Version",
+            "cpuModel",
+            "logicalCores",
+            "totalMemoryGB"
+          ],
+          "properties": {
+            "os": { "type": "string" },
+            "release": { "type": "string" },
+            "arch": { "type": "string" },
+            "nodeVersion": { "type": "string" },
+            "v8Version": { "type": "string" },
+            "pnpmVersion": { "type": "string" },
+            "cpuModel": { "type": "string" },
+            "logicalCores": { "type": "integer", "minimum": 1 },
+            "totalMemoryGB": { "type": "number", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "sourceRevisions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["repo"],
+            "properties": {
+              "repo": { "type": "string" },
+              "commit": { "type": "string" },
+              "dirty": { "type": "boolean" },
+              "path": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "calibration": {
+      "type": "object",
+      "required": ["checks"],
+      "properties": {
+        "setupCommand": { "type": "string" },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "label", "required"],
+            "properties": {
+              "id": { "type": "string" },
+              "label": { "type": "string" },
+              "required": { "type": "boolean" },
+              "command": { "type": "string" },
+              "artifactRole": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "reproducibility": {
+      "type": "object",
+      "required": ["seed", "harnessCommand", "rerunCommand", "artifactPaths"],
+      "properties": {
+        "seed": { "type": "string" },
+        "harnessCommand": { "type": "string" },
+        "rerunCommand": { "type": "string" },
+        "artifactPaths": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "role", "required", "exists"],
+        "properties": {
+          "repo": { "type": "string" },
+          "path": { "type": "string" },
+          "role": { "type": "string" },
+          "description": { "type": "string" },
+          "required": { "type": "boolean" },
+          "exists": { "type": "boolean" },
+          "sha256": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "bytes": { "type": "integer", "minimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}
