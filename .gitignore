@@ -1,3 +1,8 @@
+# Mirrored paper sources (canonical source lives in ai-ecosystem/research/)
+/research/paper-*.tex
+/research/notation.tex
+/research/trust-by-construction-paper.tex
+
 # Root-level scratch test files (one-off vitest dry-runs left
 # in the working tree across recent debugging sessions). Each is
 # a 5-50 line script invoking a specific failing test in
