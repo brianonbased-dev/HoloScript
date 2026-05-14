@@ -6,16 +6,22 @@
  */
 
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  renderSegmentReplayStill,
   runSegmentedCapture,
   summarizeVisualEvidence,
 } from '../format-stress-segmented-capture.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..');
+const BASE_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
+  'base64'
+);
 
 let testsRun = 0;
 let testsFailed = 0;
@@ -45,6 +51,10 @@ function assertOk(value, name) {
 function writeJson(path, value) {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, JSON.stringify(value, null, 2));
+}
+
+function sha256(buffer) {
+  return createHash('sha256').update(buffer).digest('hex');
 }
 
 const tmp = mkdtempSync(join(tmpdir(), 'format-stress-segmented-'));
@@ -139,6 +149,7 @@ try {
     existsSync(join(outDir, 'visual-uniqueness-audit.json')),
     'visual uniqueness audit exists'
   );
+  assertOk(existsSync(join(outDir, 'segment-replay-inputs.json')), 'replay inputs exist');
   assertOk(existsSync(join(outDir, 'task-seeds.json')), 'task seeds exist');
 
   const written = JSON.parse(readFileSync(join(outDir, 'segment-receipts.json'), 'utf8'));
@@ -226,6 +237,89 @@ try {
     staticCopyAudit.falseGreenRisk,
     'duplicate-still-hashes',
     'duplicate static copy is flagged'
+  );
+
+  console.log('Test 4: replay still renderer emits distinct segment payloads');
+  const sceneSnapshot = {
+    schema: 'format-stress-headless-scene-snapshot-v1',
+    source: 'test',
+    objectCount: 1,
+    templateCount: 1,
+    objects: [
+      {
+        id: 'Rock',
+        type: 'object',
+        transform: { position: '[1, 2, 3]' },
+      },
+    ],
+  };
+  const firstReplay = renderSegmentReplayStill({
+    segment: segments[1],
+    index: 1,
+    total: segments.length,
+    sceneSnapshot,
+    width: 320,
+    height: 180,
+  });
+  const secondReplay = renderSegmentReplayStill({
+    segment: segments[7],
+    index: 7,
+    total: segments.length,
+    sceneSnapshot,
+    width: 320,
+    height: 180,
+  });
+  assertOk(
+    firstReplay.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])),
+    'first replay is png'
+  );
+  assertOk(secondReplay.length > firstReplay.length * 0.7, 'second replay has image payload');
+  assertOk(sha256(firstReplay) !== sha256(secondReplay), 'segment replay stills are distinct');
+
+  console.log('Test 5: base still plus replay mode clears duplicate-still false green');
+  const replayOutDir = join(tmp, 'out-replay');
+  const baseStillPath = join(tmp, 'base-still.png');
+  writeFileSync(baseStillPath, BASE_PNG);
+  const replayReceipt = await runSegmentedCapture({
+    manifest: manifestPath,
+    out: replayOutDir,
+    dryRun: true,
+    skipHeadless: true,
+    baseStill: baseStillPath,
+  });
+
+  assertEq(replayReceipt.coverage.segmentsWithStill, 10, 'replay mode emits all stills');
+  assertEq(
+    replayReceipt.coverage.qualityAdjustedSegmentsWithStill,
+    10,
+    'distinct replay stills count as visual evidence'
+  );
+  assertEq(replayReceipt.coverage.staticCopySegments, 0, 'replay mode avoids static copies');
+  assertEq(replayReceipt.coverage.placeholderStillSegments, 0, 'replay mode avoids placeholders');
+  assertEq(
+    replayReceipt.coverage.dynamicReplayBlockedSegments,
+    0,
+    'replay mode unblocks dynamic segments'
+  );
+  assertEq(replayReceipt.coverage.falseGreenRisk, 'none-detected', 'replay hashes are unique');
+  assertEq(
+    replayReceipt.visualEvidence.replayDistinctSegmentIds.includes('07_segment'),
+    true,
+    'visual audit records distinct replay segment ids'
+  );
+  assertEq(
+    replayReceipt.segments[1].stillMode,
+    'segment-replay-kinematic',
+    'dynamic segment uses replay still mode'
+  );
+  assertEq(
+    replayReceipt.segments[1].oracle.status,
+    'segment-replay-receipt',
+    'dynamic segment oracle records replay receipt'
+  );
+  assertOk(
+    existsSync(join(replayOutDir, 'segment-replay-inputs.json')),
+    'replay input payload file exists'
   );
 } finally {
   rmSync(tmp, { recursive: true, force: true });
