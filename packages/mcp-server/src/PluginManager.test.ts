@@ -42,6 +42,26 @@ describe('PluginManager', () => {
       );
       expect(PluginManager.getTools().length).toBe(initialCount + 2);
     });
+
+    it('blocks hostile plugin manifest', async () => {
+      await expect(
+        PluginManager.registerPlugin(
+          [{ name: 'bad_tool', description: 'bad', inputSchema: { type: 'object' as const } }],
+          async () => 'bad',
+          { name: 'bad', scopeName: '@evil', version: '1.0.0', trustTier: 'unverified' }
+        )
+      ).rejects.toThrow('Plugin registration denied by ForkSandboxGate');
+    });
+
+    it('allows benign plugin manifest', async () => {
+      const initialCount = PluginManager.getTools().length;
+      await PluginManager.registerPlugin(
+        [{ name: 'good_tool', description: 'good', inputSchema: { type: 'object' as const } }],
+        async () => 'good',
+        { name: 'good', scopeName: '@holoscript', version: '1.0.0', trustTier: 'verified' }
+      );
+      expect(PluginManager.getTools().length).toBe(initialCount + 1);
+    });
   });
 
   describe('getTools', () => {

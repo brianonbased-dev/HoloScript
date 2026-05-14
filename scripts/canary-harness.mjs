@@ -63,7 +63,7 @@ function redact(str) {
 
 // ─── Probe Runner (subprocess isolation) ─────────────────────────────────────
 
-async function runProbe(name, payloadFn) {
+async function runProbe(name, payloadFn, timeoutMs = TIMEOUT_MS) {
   return new Promise((resolve) => {
     const started = Date.now();
     const probeScript = `
@@ -81,7 +81,7 @@ async function runProbe(name, payloadFn) {
     `;
 
     const child = spawn(process.execPath, ['-e', probeScript], {
-      timeout: TIMEOUT_MS,
+      timeout: timeoutMs,
       env: { ...process.env },
       cwd: REPO_ROOT,
     });
@@ -601,6 +601,94 @@ function buildSourceTreeProbes() {
         const hasType = content.includes('PackageProvenanceReceipt');
         const hasValidator = content.includes('validatePackageProvenanceReceipt');
         done(hasType && hasValidator, null, null, (!hasType || !hasValidator) ? 'hololand-receipts.ts missing PackageProvenanceReceipt or validator' : null);
+      `
+    )
+  );
+
+  // 19. Fork sandbox gate: canary tests pass
+  probes.push(
+    runProbe(
+      'fork-sandbox-canary-tests',
+      `
+        const { spawn } = require('child_process');
+        const child = spawn(process.execPath, [
+          'node_modules/vitest/vitest.mjs',
+          'run',
+          'packages/mcp-server/src/__tests__/fork-sandbox-canary.test.ts'
+        ], {
+          cwd: '${REPO_ROOT.replace(/\\/g, '\\\\')}',
+          timeout: 60000,
+          env: { ...process.env, NODE_NO_WARNINGS: '1' },
+        });
+        let out = '';
+        let err = '';
+        child.stdout.on('data', d => out += d);
+        child.stderr.on('data', d => err += d);
+        child.on('error', e => done(false, null, null, e.message));
+        child.on('close', code => {
+          const ok = code === 0 && out.includes('passed');
+          done(ok, null, out.slice(0, 500), ok ? null : (err || 'fork-sandbox-canary tests failed'));
+        });
+      `,
+      60000
+    )
+  );
+
+  // 20. Fork sandbox gate: unit tests pass
+  probes.push(
+    runProbe(
+      'fork-sandbox-unit-tests',
+      `
+        const { spawn } = require('child_process');
+        const child = spawn(process.execPath, [
+          'node_modules/vitest/vitest.mjs',
+          'run',
+          'packages/mcp-server/src/__tests__/fork-sandbox-gate.test.ts'
+        ], {
+          cwd: '${REPO_ROOT.replace(/\\/g, '\\\\')}',
+          timeout: 60000,
+          env: { ...process.env, NODE_NO_WARNINGS: '1' },
+        });
+        let out = '';
+        let err = '';
+        child.stdout.on('data', d => out += d);
+        child.stderr.on('data', d => err += d);
+        child.on('error', e => done(false, null, null, e.message));
+        child.on('close', code => {
+          const ok = code === 0 && out.includes('passed');
+          done(ok, null, out.slice(0, 500), ok ? null : (err || 'fork-sandbox-gate unit tests failed'));
+        });
+      `,
+      60000
+    )
+  );
+
+  // 21. Fork sandbox gate: PluginManager passes manifest
+  probes.push(
+    runProbe(
+      'fork-sandbox-plugin-manifest-passed',
+      `
+        const fs = require('fs');
+        const path = require('path');
+        const pmPath = path.join('${REPO_ROOT.replace(/\\/g, '\\\\')}', 'packages', 'mcp-server', 'src', 'PluginManager.ts');
+        const content = fs.readFileSync(pmPath, 'utf8');
+        const passesManifest = content.includes('gatePluginRegistration(gateManifest)') && content.includes('...manifest');
+        done(passesManifest, null, null, passesManifest ? null : 'PluginManager does not pass plugin manifest to fork-sandbox gate');
+      `
+    )
+  );
+
+  // 22. Fork sandbox gate: handlers.ts wires the gate
+  probes.push(
+    runProbe(
+      'fork-sandbox-handlers-wired',
+      `
+        const fs = require('fs');
+        const path = require('path');
+        const handlersPath = path.join('${REPO_ROOT.replace(/\\/g, '\\\\')}', 'packages', 'mcp-server', 'src', 'handlers.ts');
+        const content = fs.readFileSync(handlersPath, 'utf8');
+        const hasGate = content.includes('runForkSandboxGate') && content.includes('gateHoloScriptCode');
+        done(hasGate, null, null, hasGate ? null : 'handlers.ts missing fork-sandbox gate wiring');
       `
     )
   );
