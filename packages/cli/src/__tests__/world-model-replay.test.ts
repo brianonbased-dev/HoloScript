@@ -24,6 +24,8 @@ describe('world-model replay CLI', { timeout: 120000 }, () => {
       'replay',
       '--scene',
       'deterministic-contact-v1',
+      '--trajectory',
+      'fnv1a-test',
       '--seed',
       '4242',
       '--json',
@@ -32,6 +34,7 @@ describe('world-model replay CLI', { timeout: 120000 }, () => {
     expect(options.command).toBe('world-model');
     expect(options.subcommand).toBe('replay');
     expect(options.sceneId).toBe('deterministic-contact-v1');
+    expect(options.trajectoryId).toBe('fnv1a-test');
     expect(options.seed).toBe('4242');
     expect(options.json).toBe(true);
   });
@@ -46,6 +49,8 @@ describe('world-model replay CLI', { timeout: 120000 }, () => {
         'replay',
         '--scene',
         'deterministic-contact-v1',
+        '--trajectory',
+        'fnv1a-37e561ed',
         '--seed',
         '4242',
         '--json',
@@ -58,6 +63,7 @@ describe('world-model replay CLI', { timeout: 120000 }, () => {
 
     const payload = JSON.parse(stdout);
     expect(payload.schema_version).toBe('world-model-replay-v1');
+    expect(payload.requestedTrajectoryId).toBe('fnv1a-37e561ed');
     expect(payload.scene.id).toBe('deterministic-contact-v1');
     expect(payload.scene.seed).toBe(4242);
     expect(payload.result.eventLogHash).toBe(payload.trajectory.caelReceiptHash);
@@ -65,6 +71,7 @@ describe('world-model replay CLI', { timeout: 120000 }, () => {
     expect(payload.result.contactCount).toBe(2);
     expect(payload.result.predicateViolationCount).toBe(1);
     expect(payload.trajectory.status).toBe('unresolved');
+    expect(payload.trajectory.id).toBe('fnv1a-37e561ed');
     expect(payload.score.priority.priority).toBeGreaterThan(0);
   });
 
@@ -109,6 +116,36 @@ describe('world-model replay CLI', { timeout: 120000 }, () => {
     ).rejects.toMatchObject({
       code: 1,
       stderr: expect.stringContaining('[E003] Unsupported world-model scene: unknown-scene'),
+    });
+  });
+
+  it('rejects trajectory handles that do not match the deterministic replay', async () => {
+    await expect(
+      execFileAsync(
+        process.execPath,
+        [
+          tsxCli,
+          cliSource,
+          'world-model',
+          'replay',
+          '--scene',
+          'deterministic-contact-v1',
+          '--trajectory',
+          'fnv1a-wrong',
+          '--seed',
+          '4242',
+          '--json',
+        ],
+        {
+          cwd: packageRoot,
+          maxBuffer: 1024 * 1024,
+        }
+      )
+    ).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining(
+        'Trajectory handle mismatch: requested fnv1a-wrong, replay produced fnv1a-37e561ed'
+      ),
     });
   });
 });

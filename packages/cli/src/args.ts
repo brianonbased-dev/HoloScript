@@ -193,6 +193,8 @@ export interface CLIOptions {
   sceneId?: string;
   /** Deterministic seed for replayable commands */
   seed?: string;
+  /** Expected trajectory id for deterministic replay validation */
+  trajectoryId?: string;
   /** Screenshot/render width */
   width?: number;
   /** Screenshot/render height */
@@ -491,6 +493,9 @@ export function parseArgs(args: string[]): CLIOptions {
       case '--seed':
         options.seed = args[++i];
         break;
+      case '--trajectory':
+        options.trajectoryId = args[++i];
+        break;
       // Screenshot/render options
       case '--width':
         options.width = parseInt(args[++i], 10) || 1920;
@@ -703,6 +708,7 @@ Usage: holoscript <command> [options] [input]
   world-model replay
                     Replay the deterministic contact failure-discovery scene
                     Use --scene deterministic-contact-v1 and --seed <integer>
+                    Use --trajectory <id> to validate an expected replay handle
                     Use --json for machine-readable replay evidence
 
   \x1b[33mSelf-Improvement:\x1b[0m
@@ -901,6 +907,7 @@ Usage: holoscript <command> [options] [input]
   holoscript query "trace call chain from absorb" --with-llm --llm anthropic
   holoscript query "list error handlers" --top-k 20 --json         # Machine-readable output
   holoscript world-model replay --scene deterministic-contact-v1 --seed 1337 --json
+  holoscript world-model replay --scene deterministic-contact-v1 --trajectory fnv1a-... --seed 1337
 
 \x1b[1mAliases:\x1b[0m
   hs              Short alias for holoscript
