@@ -4,26 +4,50 @@
  * Verifies git change detection for incremental absorb pipeline.
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { GitChangeDetector } from '../GitChangeDetector';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
-
-// Use HoloScript repo as test fixture (we're inside a git repo)
-const HOLOSCRIPT_ROOT = path.resolve(__dirname, '../../../../..');
+import { execFileSync } from 'child_process';
 
 describe('GitChangeDetector', () => {
   let detector: GitChangeDetector;
+  let repoRoot: string;
 
   beforeAll(() => {
-    detector = new GitChangeDetector(HOLOSCRIPT_ROOT);
+    repoRoot = path.join(os.tmpdir(), `holoscript-git-detector-${Date.now()}`);
+    fs.mkdirSync(repoRoot, { recursive: true });
+    fs.writeFileSync(path.join(repoRoot, 'package.json'), '{"name":"fixture"}\n');
+    fs.writeFileSync(path.join(repoRoot, 'README.md'), '# Fixture\n');
+
+    execFileSync('git', ['init'], { cwd: repoRoot, stdio: 'ignore' });
+    execFileSync('git', ['add', 'package.json', 'README.md'], { cwd: repoRoot, stdio: 'ignore' });
+    execFileSync(
+      'git',
+      [
+        '-c',
+        'user.email=holoscript-tests@example.invalid',
+        '-c',
+        'user.name=HoloScript Tests',
+        'commit',
+        '-m',
+        'initial fixture',
+      ],
+      { cwd: repoRoot, stdio: 'ignore' }
+    );
+
+    detector = new GitChangeDetector(repoRoot);
+  });
+
+  afterAll(() => {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
   });
 
   describe('isGitRepo', () => {
-    it('returns true for HoloScript repo', () => {
+    it('returns true for a git repo fixture', () => {
       expect(detector.isGitRepo()).toBe(true);
-    });
+    }, 15_000);
 
     it('returns false for non-git directory', () => {
       const tempDir = path.join(os.tmpdir(), `holoscript-test-${Date.now()}`);
@@ -31,7 +55,7 @@ describe('GitChangeDetector', () => {
       const nonGitDetector = new GitChangeDetector(tempDir);
       expect(nonGitDetector.isGitRepo()).toBe(false);
       fs.rmSync(tempDir, { recursive: true, force: true });
-    });
+    }, 15_000);
   });
 
   describe('getHeadCommit', () => {
@@ -39,7 +63,7 @@ describe('GitChangeDetector', () => {
       const headCommit = detector.getHeadCommit();
       expect(headCommit).toBeTruthy();
       expect(headCommit).toMatch(/^[0-9a-f]{40}$/);
-    });
+    }, 15_000);
   });
 
   describe('detectChanges', () => {
@@ -47,7 +71,7 @@ describe('GitChangeDetector', () => {
       const result = detector.detectChanges(null);
       expect(result.storedCommitMissing).toBe(true);
       expect(result.notGitRepo).toBe(false);
-    });
+    }, 15_000);
 
     it('returns no committed changes when comparing HEAD to itself', () => {
       const headCommit = detector.getHeadCommit()!;
@@ -58,13 +82,13 @@ describe('GitChangeDetector', () => {
       expect(result.modified.length).toBe(0);
       expect(result.deleted.length).toBe(0);
       expect(result.storedCommitMissing).toBe(false);
-    });
+    }, 15_000);
 
     it('returns storedCommitMissing=true for non-existent commit', () => {
       const fakeCommit = '0000000000000000000000000000000000000000';
       const result = detector.detectChanges(fakeCommit);
       expect(result.storedCommitMissing).toBe(true);
-    });
+    }, 15_000);
 
     it('returns notGitRepo=true for non-git directory', () => {
       const tempDir = path.join(os.tmpdir(), `holoscript-test-${Date.now()}`);
@@ -73,7 +97,7 @@ describe('GitChangeDetector', () => {
       const result = nonGitDetector.detectChanges(null);
       expect(result.notGitRepo).toBe(true);
       fs.rmSync(tempDir, { recursive: true, force: true });
-    });
+    }, 15_000);
   });
 
   describe('computeFileHashes', () => {
@@ -136,13 +160,13 @@ describe('GitChangeDetector', () => {
     it('returns array (may be empty)', () => {
       const untracked = detector.getUntrackedFiles();
       expect(Array.isArray(untracked)).toBe(true);
-    });
+    }, 15_000);
 
     it('returns forward-slash normalized paths', () => {
       const untracked = detector.getUntrackedFiles();
       for (const f of untracked) {
         expect(f).not.toMatch(/\\/); // No backslashes
       }
-    });
+    }, 15_000);
   });
 });

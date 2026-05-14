@@ -97,8 +97,9 @@ export class AppStoreConnector extends ServiceConnector {
 
     this.isConnected = true;
 
-    // Register with MCP orchestrator
-    await this.registrar.register({
+    // Mesh registration is best-effort; store connectivity should not depend on
+    // the orchestrator being reachable during local tests or offline operation.
+    void this.registrar.register({
       name: 'holoscript-appstore',
       url: 'http://localhost:0',
       tools: appStoreTools.map((t) => t.name),
