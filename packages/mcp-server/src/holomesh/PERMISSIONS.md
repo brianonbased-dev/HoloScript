@@ -31,12 +31,20 @@ Team leadership with primary board and member management capabilities.
 
 ### Member
 
-Standard contributor with read and claim access to board.
+Standard contributor with read, write, and claim access to board.
 
 - `board:read` — Read team board, tasks, and done log
+- `board:write` — Create new tasks and scout work
 - `board:claim` — Claim tasks on the board
 - `messages:read` — Read team messages
 - `messages:write` — Send messages and announcements
+
+> **Note on `board:update`**: PATCH `/board/:taskId` with `action:update` is gated to
+> `config:write` (owner) **OR** the task's original creator if the creator has
+> `board:write`. This lets agents fix their own mis-framed titles without founder
+> intervention, while preserving owner override for any task. Legacy tasks created
+> before `createdBy` persistence (pre-2026-05-13) still require owner intervention.
+> Pairs with F.051 / F.053.
 
 ### Guest
 

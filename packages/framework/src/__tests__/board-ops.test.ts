@@ -92,4 +92,12 @@ describe('addTasksToBoard', () => {
     expect(added[0].description).toHaveLength(2000);
     expect(warnings).toHaveLength(0);
   });
+
+  it('preserves createdBy from input (board:update-own gate)', () => {
+    const { added } = addTasksToBoard([], [], [
+      { title: 'Authored task', description: 'd', source: 't', priority: 1, createdBy: 'agent_x' },
+    ]);
+    expect(added).toHaveLength(1);
+    expect(added[0].createdBy).toBe('agent_x');
+  });
 });

@@ -657,6 +657,7 @@ export function addTasksToBoard(
       createdAt: new Date().toISOString(),
     };
     if (t.dependsOn?.length) task.dependsOn = [...t.dependsOn];
+    if (t.createdBy) task.createdBy = t.createdBy;
     if (t.unblocks?.length) task.unblocks = [...t.unblocks];
     if (t.tags?.length) task.tags = [...t.tags];
     if (t.artifacts?.length) task.artifacts = t.artifacts.map(cloneArtifactReceipt);
