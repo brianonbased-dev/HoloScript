@@ -331,19 +331,29 @@ export {
   type AgentActionKind,
   type AgentActionReceipt,
   type ValidationReceipt,
+  type QualcommNIRRuntimeTarget,
+  type QualcommNIRModelExportReceipt,
+  type HardwareCompilationTargetKind,
+  type CrossHardwareCompilationReceipt,
   validateHardwareReceipt,
   validateReplayInput,
   validateReplayOutcome,
   validateAgentActionReceipt,
+  validateQualcommNIRModelExportReceipt,
+  validateCrossHardwareCompilationReceipt,
   validateValidationReceipt,
   isSupportedHardwareReceiptKind,
   isSupportedAgentActionKind,
   isSupportedReplayOutcomeStatus,
+  isSupportedQualcommNIRRuntimeTarget,
   isSupportedValidationStatus,
+  isSupportedHardwareCompilationTarget,
   cloneHardwareReceipt,
   cloneReplayInput,
   cloneReplayOutcome,
   cloneAgentActionReceipt,
+  cloneQualcommNIRModelExportReceipt,
+  cloneCrossHardwareCompilationReceipt,
   cloneValidationReceipt,
 } from './board';
 
@@ -475,6 +485,7 @@ export {
   clonePermissionGrant,
   cloneSafetyEnvelope,
   cloneTwinEarthReceipt,
+  cloneModeTransitionReceipt,
 } from './board';
 
 // Mesh module (absorbed from agent-sdk — peer discovery, gossip, A2A)

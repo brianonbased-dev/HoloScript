@@ -747,6 +747,36 @@ export function cloneValidationReceipt(receipt: ValidationReceipt): ValidationRe
   };
 }
 
+export function cloneQualcommNIRModelExportReceipt(
+  receipt: QualcommNIRModelExportReceipt,
+): QualcommNIRModelExportReceipt {
+  return {
+    ...receipt,
+    numericalCorrectness: { ...receipt.numericalCorrectness },
+    ...(receipt.provenance ? { provenance: cloneProvenance(receipt.provenance) } : {}),
+    ...(receipt.verificationCommands
+      ? { verificationCommands: cloneVerificationCommands(receipt.verificationCommands) }
+      : {}),
+    ...(receipt.metadata ? { metadata: { ...receipt.metadata } } : {}),
+  };
+}
+
+export function cloneCrossHardwareCompilationReceipt(
+  receipt: CrossHardwareCompilationReceipt,
+): CrossHardwareCompilationReceipt {
+  return {
+    ...receipt,
+    constraints: receipt.constraints ? { ...receipt.constraints } : undefined,
+    measuredResults: receipt.measuredResults ? { ...receipt.measuredResults } : undefined,
+    replayInputs: receipt.replayInputs ? receipt.replayInputs.map(cloneReplayInput) : undefined,
+    ...(receipt.provenance ? { provenance: cloneProvenance(receipt.provenance) } : {}),
+    ...(receipt.verificationCommands
+      ? { verificationCommands: cloneVerificationCommands(receipt.verificationCommands) }
+      : {}),
+    ...(receipt.metadata ? { metadata: { ...receipt.metadata } } : {}),
+  };
+}
+
 // ── Package Provenance Receipt ──
 
 /**

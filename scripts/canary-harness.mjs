@@ -693,6 +693,33 @@ function buildSourceTreeProbes() {
     )
   );
 
+  // 23. Cross-surface substrate drift canary
+  probes.push(
+    runProbe(
+      'cross-surface-drift-canary',
+      `
+        const { spawn } = require('child_process');
+        const child = spawn(process.execPath, [
+          'scripts/__tests__/cross-surface-drift-canary.test.mjs'
+        ], {
+          cwd: '${REPO_ROOT.replace(/\\/g, '\\\\')}',
+          timeout: 60000,
+          env: { ...process.env, NODE_NO_WARNINGS: '1' },
+        });
+        let out = '';
+        let err = '';
+        child.stdout.on('data', d => out += d);
+        child.stderr.on('data', d => err += d);
+        child.on('error', e => done(false, null, null, e.message));
+        child.on('close', code => {
+          const ok = code === 0 && out.includes('PASSED');
+          done(ok, null, out.slice(0, 500), ok ? null : (err || 'cross-surface drift canary failed'));
+        });
+      `,
+      60000
+    )
+  );
+
   return probes;
 }
 
