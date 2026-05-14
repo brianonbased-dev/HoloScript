@@ -21,6 +21,18 @@ export {
 } from './AdversarialTrajectoryReport';
 
 export { scoreTrajectory } from './PredicateScorer';
+
+export {
+  mutateTrace,
+  exploreAdversarialTraces,
+  BUILT_IN_PROFILES,
+} from './AdversarialMutator';
+export type {
+  MutationStrategy,
+  MutatorProfile,
+  MutatedTrace,
+  AdversarialExplorerOptions,
+} from './AdversarialMutator';
 export type { SoftAnchor, ScorerInputs, ScorerOutput } from './PredicateScorer';
 
 export {
@@ -29,6 +41,7 @@ export {
   createDeterministicFailureDiscoveryScene,
   runDeterministicFailureDiscoveryScene,
   buildDeterministicFailureTrajectory,
+  DETERMINISTIC_FAILURE_CONTRACT,
 } from './DeterministicFailureScene';
 export type {
   Vec3,
