@@ -1,14 +1,14 @@
 {
   "schema": "paper-audit-matrix.v2",
-  "generatedAt": "2026-05-14T05:56:40.511Z",
+  "generatedAt": "2026-05-14T06:32:25.817Z",
   "matrixSourcePath": "research/paper-audit-matrix.md",
-  "scriptCommit": "6b70a0b70d6f96a84f1c78bf215c8386a2a070b1",
+  "scriptCommit": "1f3b9c8aaedd2026f13acfa63377d1ab97ee8d4d",
   "totals": {
     "papers": 17,
     "cellsByToken": {
-      "✅": 199,
-      "⚠️": 42,
-      "❌": 17,
+      "✅": 200,
+      "⚠️": 43,
+      "❌": 15,
       "➖": 14
     }
   },
@@ -1117,8 +1117,8 @@
       "target": "PLDI '27 (Nov '26)",
       "basename": "paper-10-hs-core-pldi.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-10-hs-core-pldi.tex",
-      "loc": 906,
-      "sha256Prefix": "f54c34a2",
+      "loc": 931,
+      "sha256Prefix": "f044f4e5",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1150,8 +1150,8 @@
           "evidence": "paper-10-hs-core-pldi.tex.ots present"
         },
         "anchorBase": {
-          "token": "✅",
-          "evidence": ".tex.base.json signed and matches current .tex hash"
+          "token": "⚠️",
+          "evidence": ".tex.base.json signed for a historical .tex hash; re-anchor current source at submission bundle time"
         },
         "venueFit": {
           "token": "✅",
@@ -1166,8 +1166,8 @@
           "evidence": "no \\todo{measure:} markers"
         },
         "calStory": {
-          "token": "❌",
-          "evidence": "no calibration/setup/pipeline structure"
+          "token": "✅",
+          "evidence": "Calibration/Setup/Reproducibility heading + automation pointer"
         },
         "twinTest": {
           "token": "✅",
@@ -1178,20 +1178,25 @@
           "evidence": "asymptotic class without dedicated heading"
         },
         "scalingMemo": {
-          "token": "❌",
-          "evidence": "no scaling discussion (W.316 risk)"
+          "token": "✅",
+          "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 1d since last commit"
+          "evidence": "0 open \\todo{}, 0d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "b1ff922c12e5feef23c04ff7d18c25134b6bd7b7",
-        "isoDate": "2026-05-11T23:50:46-07:00",
-        "subject": "paper(10): Twin-test fill — k-way multi-target compilation as generalized two-impl agreement"
+        "hash": "1f3b9c8aaedd2026f13acfa63377d1ab97ee8d4d",
+        "isoDate": "2026-05-13T23:31:50-07:00",
+        "subject": "docs(ecosystem): add paper 10 reproducibility scaling"
       },
       "recentCommits": [
+        {
+          "hash": "1f3b9c8aaedd2026f13acfa63377d1ab97ee8d4d",
+          "isoDate": "2026-05-13T23:31:50-07:00",
+          "subject": "docs(ecosystem): add paper 10 reproducibility scaling"
+        },
         {
           "hash": "b1ff922c12e5feef23c04ff7d18c25134b6bd7b7",
           "isoDate": "2026-05-11T23:50:46-07:00",
@@ -1211,11 +1216,6 @@
           "hash": "7b9fc4787ba3f592db1b719cc3ad73bfc8c6e0ef",
           "isoDate": "2026-04-27T02:23:30-07:00",
           "subject": "paper(10): replace §3.3 \\todo with measured 50×k depth distribution + harness citations"
-        },
-        {
-          "hash": "c5fc33bcd64cf79b353b3298cac21df66e5bb5fc",
-          "isoDate": "2026-04-26T19:06:11-07:00",
-          "subject": "docs(paper-10): mark BuildCache/IncrementalCompiler wiring as done"
         }
       ]
     },
