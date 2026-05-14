@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-12
 **Class:** security-instinct
-**Status:** seed
+**Status:** retired
 **Repository:** HoloScript
 **Source context:** docs/archive/reports/ROADMAP_v3.1-v5.0_MERGED.md
 **Archive score:** 70
