@@ -1,0 +1,85 @@
+{
+  "envelopeId": "scaling_3f34d6ba05ce4fce",
+  "envelopeHash": "sha256:3f34d6ba05ce4fce1a4dfa97f49c617daf551dd816935637995c63b3c20baf27",
+  "schemaVersion": "holoscript.paper-scaling-envelope.v1",
+  "generatedAt": "2026-05-14T12:45:00.000Z",
+  "generatedBy": "scripts/paper-scaling-envelope.mjs",
+  "paper": {
+    "id": "12",
+    "title": "HoloLand",
+    "target": "I3D '27 (Nov '26)",
+    "memoPath": "research/paper-12-hololand-scaling.md"
+  },
+  "subsystem": "scene-suite parser/export path",
+  "quantifiedN": {
+    "baseline": "20 objects x 4 annotations/object",
+    "targets": [
+      "50 objects",
+      "500 objects",
+      "5000 objects"
+    ]
+  },
+  "bottleneckModel": {
+    "asymptoticClass": "O(o * a)",
+    "variables": {
+      "o": "scene object count",
+      "a": "annotations or traits per object"
+    },
+    "primaryBottleneck": "plugin export serialization",
+    "secondaryBottleneck": "batch scheduling once scenes exceed 5,000 objects",
+    "evidence": ".bench-logs/2026-04-27-paper-12-scene-suite-overhead.md"
+  },
+  "measuredBaseline": {
+    "sourceArtifact": ".bench-logs/2026-04-27-paper-12-scene-suite-overhead.md",
+    "sourceArtifactHash": "sha256:cb389610b3a258341ff64eb60bdca48f797024d845344f705fdd6a65f481c3d6",
+    "suiteScenes": 5,
+    "aggregateWarmParseMeanMs": 0.2012,
+    "aggregateUsdExportMeanMs": 0.2767,
+    "peakScene": {
+      "scene": "large",
+      "objects": 20,
+      "traitsPerObject": 4,
+      "holoLoc": 120,
+      "coldParseMeanMs": 0.5109,
+      "warmParseMeanMs": 0.3945,
+      "warmColdRatio": 0.772,
+      "usdExportMeanMs": 0.843
+    }
+  },
+  "growthModel": {
+    "runtimeFormula": "T(o,a=4) = 0.843ms * (o / 20)",
+    "memoryFormula": "M(o,a) = o * 256B + (o*a) * 96B",
+    "targets": [
+      {
+        "objects": 50,
+        "annotationsPerObject": 4,
+        "annotationCount": 200,
+        "projectedRuntimeMs": 2.108,
+        "projectedMemoryMB": 0.031,
+        "bottleneck": "linear export serialization"
+      },
+      {
+        "objects": 500,
+        "annotationsPerObject": 4,
+        "annotationCount": 2000,
+        "projectedRuntimeMs": 21.075,
+        "projectedMemoryMB": 0.305,
+        "bottleneck": "linear export serialization"
+      },
+      {
+        "objects": 5000,
+        "annotationsPerObject": 4,
+        "annotationCount": 20000,
+        "projectedRuntimeMs": 210.75,
+        "projectedMemoryMB": 3.052,
+        "bottleneck": "export batch scheduling and plugin serialization"
+      }
+    ]
+  },
+  "scaleOutPlan": [
+    "Batch exports by shard/zone before object count exceeds 500.",
+    "At 500 objects, keep one worker per export batch and persist intermediate manifests.",
+    "At 5,000 objects, split scene-suite export into independent shard jobs and merge provenance manifests."
+  ],
+  "paperCitation": "Cite research/paper-12-hololand-scaling.md from a Scaling/Scalability paragraph or section in paper-12-holo-i3d.tex."
+}
