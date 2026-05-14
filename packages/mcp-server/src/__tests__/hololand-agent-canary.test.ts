@@ -896,4 +896,137 @@ describe('HoloLand agent canary', () => {
     expect(res.success).toBe(false);
     expect(res.admitted).toBe(false);
   });
+
+  // ── Workflow 9: Player / Creator / Agent Provisioning (task_1778617298562_qdpb) ──
+
+  it('canary: provision player and retrieve', async () => {
+    const player = await tool('hololand_provision_player', {
+      id: 'canary-player-1',
+      name: 'Canary Player',
+      walletAddress: '0xPlayer',
+      worldId: 'canary-world',
+    });
+    expect(player.success).toBe(true);
+    expect(player.playerId).toBe('canary-player-1');
+    expect(player.status).toBe('active');
+
+    const fetched = await tool('hololand_get_player', { playerId: 'canary-player-1' });
+    expect(fetched.success).toBe(true);
+    expect((fetched.player as Record<string, unknown>).name).toBe('Canary Player');
+    expect((fetched.player as Record<string, unknown>).walletAddress).toBe('0xPlayer');
+  });
+
+  it('canary: list and revoke player', async () => {
+    await tool('hololand_provision_player', {
+      id: 'canary-player-2',
+      name: 'Player Two',
+      shardId: 'canary-shard',
+    });
+    const list = await tool('hololand_list_players', { shardId: 'canary-shard' });
+    expect(list.success).toBe(true);
+    expect((list.players as unknown[]).length).toBeGreaterThanOrEqual(1);
+
+    const revoked = await tool('hololand_revoke_player', { playerId: 'canary-player-2' });
+    expect(revoked.success).toBe(true);
+    expect(revoked.status).toBe('revoked');
+
+    const fetched = await tool('hololand_get_player', { playerId: 'canary-player-2' });
+    expect((fetched.player as Record<string, unknown>).status).toBe('revoked');
+  });
+
+  it('canary: provision creator and retrieve', async () => {
+    const creator = await tool('hololand_provision_creator', {
+      id: 'canary-creator-1',
+      name: 'Canary Creator',
+      walletAddress: '0xCreator',
+      tier: 'premium',
+    });
+    expect(creator.success).toBe(true);
+    expect(creator.creatorId).toBe('canary-creator-1');
+    expect(creator.tier).toBe('premium');
+
+    const fetched = await tool('hololand_get_creator', { creatorId: 'canary-creator-1' });
+    expect(fetched.success).toBe(true);
+    expect((fetched.creator as Record<string, unknown>).name).toBe('Canary Creator');
+  });
+
+  it('canary: list and revoke creator', async () => {
+    await tool('hololand_provision_creator', {
+      id: 'canary-creator-2',
+      name: 'Creator Two',
+      tier: 'free',
+    });
+    const list = await tool('hololand_list_creators', { tier: 'free' });
+    expect(list.success).toBe(true);
+    expect((list.creators as unknown[]).length).toBeGreaterThanOrEqual(1);
+
+    const revoked = await tool('hololand_revoke_creator', { creatorId: 'canary-creator-2' });
+    expect(revoked.success).toBe(true);
+    expect(revoked.status).toBe('revoked');
+  });
+
+  it('canary: provision agent and retrieve', async () => {
+    const agent = await tool('hololand_provision_agent', {
+      id: 'canary-agent-1',
+      name: 'Canary Agent',
+      walletAddress: '0xAgent',
+      kind: 'headless',
+      shardId: 'canary-shard',
+    });
+    expect(agent.success).toBe(true);
+    expect(agent.agentId).toBe('canary-agent-1');
+    expect(agent.kind).toBe('headless');
+
+    const fetched = await tool('hololand_get_agent', { agentId: 'canary-agent-1' });
+    expect(fetched.success).toBe(true);
+    expect((fetched.agent as Record<string, unknown>).name).toBe('Canary Agent');
+  });
+
+  it('canary: list and revoke agent', async () => {
+    await tool('hololand_provision_agent', {
+      id: 'canary-agent-2',
+      name: 'Agent Two',
+      kind: 'npc',
+      worldId: 'canary-world',
+    });
+    const list = await tool('hololand_list_agents', { kind: 'npc' });
+    expect(list.success).toBe(true);
+    expect((list.agents as unknown[]).length).toBeGreaterThanOrEqual(1);
+
+    const revoked = await tool('hololand_revoke_agent', { agentId: 'canary-agent-2' });
+    expect(revoked.success).toBe(true);
+    expect(revoked.status).toBe('revoked');
+  });
+
+  // ── False-case: Provisioning failures ─────────────────────────────────────
+
+  it('canary: get_player fails for unknown playerId', async () => {
+    const result = await handleTool('hololand_get_player', { playerId: 'ghost-player' });
+    expect(result).toMatchObject({ error: expect.stringContaining('not found') });
+  });
+
+  it('canary: revoke_player fails for unknown playerId', async () => {
+    const result = await handleTool('hololand_revoke_player', { playerId: 'ghost-player' });
+    expect(result).toMatchObject({ error: expect.stringContaining('not found') });
+  });
+
+  it('canary: get_creator fails for unknown creatorId', async () => {
+    const result = await handleTool('hololand_get_creator', { creatorId: 'ghost-creator' });
+    expect(result).toMatchObject({ error: expect.stringContaining('not found') });
+  });
+
+  it('canary: revoke_creator fails for unknown creatorId', async () => {
+    const result = await handleTool('hololand_revoke_creator', { creatorId: 'ghost-creator' });
+    expect(result).toMatchObject({ error: expect.stringContaining('not found') });
+  });
+
+  it('canary: get_agent fails for unknown agentId', async () => {
+    const result = await handleTool('hololand_get_agent', { agentId: 'ghost-agent' });
+    expect(result).toMatchObject({ error: expect.stringContaining('not found') });
+  });
+
+  it('canary: revoke_agent fails for unknown agentId', async () => {
+    const result = await handleTool('hololand_revoke_agent', { agentId: 'ghost-agent' });
+    expect(result).toMatchObject({ error: expect.stringContaining('not found') });
+  });
 });
