@@ -1,14 +1,14 @@
 {
   "schema": "paper-audit-matrix.v2",
-  "generatedAt": "2026-05-14T06:47:46.218Z",
+  "generatedAt": "2026-05-14T06:51:03.903Z",
   "matrixSourcePath": "research/paper-audit-matrix.md",
-  "scriptCommit": "6b965aef348b1d77b5c025397537cae847b09c13",
+  "scriptCommit": "f51a2e3512cd0ea4f6ff33d1bf453df69917c75f",
   "totals": {
     "papers": 17,
     "cellsByToken": {
       "✅": 204,
-      "⚠️": 45,
-      "❌": 9,
+      "⚠️": 46,
+      "❌": 8,
       "➖": 14
     }
   },
@@ -643,7 +643,7 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 1d since last commit"
+          "evidence": "0 open \\todo{}, 2d since last commit"
         }
       },
       "lastCommit": {
@@ -1441,8 +1441,8 @@
       "target": "SIGGRAPH '28",
       "basename": "paper-13-dumbglass-siggraph.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-13-dumbglass-siggraph.tex",
-      "loc": 968,
-      "sha256Prefix": "50409323",
+      "loc": 969,
+      "sha256Prefix": "47e79e57",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1474,8 +1474,8 @@
           "evidence": "paper-13-dumbglass-siggraph.tex.ots present"
         },
         "anchorBase": {
-          "token": "✅",
-          "evidence": ".tex.base.json signed and matches current .tex hash"
+          "token": "⚠️",
+          "evidence": ".tex.base.json signed for a historical .tex hash; re-anchor current source at submission bundle time"
         },
         "venueFit": {
           "token": "✅",
@@ -1502,20 +1502,25 @@
           "evidence": "asymptotic class without dedicated heading"
         },
         "scalingMemo": {
-          "token": "❌",
-          "evidence": "no scaling discussion (W.316 risk)"
+          "token": "✅",
+          "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 2d since last commit"
+          "evidence": "0 open \\todo{}, 0d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "e127624784c6f7ecc4943e9ee17c09b7fcb3e0d5",
-        "isoDate": "2026-05-11T22:06:14-07:00",
-        "subject": "paper(13): Twin-test fill — H1/H3 cross-hardware via shared harness"
+        "hash": "f51a2e3512cd0ea4f6ff33d1bf453df69917c75f",
+        "isoDate": "2026-05-13T23:50:34-07:00",
+        "subject": "docs(ecosystem): add paper 13 scaling envelope"
       },
       "recentCommits": [
+        {
+          "hash": "f51a2e3512cd0ea4f6ff33d1bf453df69917c75f",
+          "isoDate": "2026-05-13T23:50:34-07:00",
+          "subject": "docs(ecosystem): add paper 13 scaling envelope"
+        },
         {
           "hash": "e127624784c6f7ecc4943e9ee17c09b7fcb3e0d5",
           "isoDate": "2026-05-11T22:06:14-07:00",
@@ -1535,11 +1540,6 @@
           "hash": "fab32b24b5c484a9f3776d70c48c158e657293aa",
           "isoDate": "2026-04-24T17:34:11-07:00",
           "subject": "mesh-deploy: provision 31 x402 seats for Vast.ai mesh-agent fleet (LIVE)"
-        },
-        {
-          "hash": "3cd5e20388697b43ed4290dbf255b5e0fdb593fd",
-          "isoDate": "2026-04-24T17:15:38-07:00",
-          "subject": "paper-13(d011): DumbGlass SIGGRAPH '28 — GPU Benchmark + Ablation land"
         }
       ]
     },
