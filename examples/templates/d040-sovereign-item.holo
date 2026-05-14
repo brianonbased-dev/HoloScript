@@ -1,0 +1,210 @@
+/**
+ * D.040 Sovereign Item Compose Template
+ *
+ * Demonstrates the 5 item-applicable sovereign traits on a cursed artifact.
+ * Items tick at a slower cadence than NPCs (one in-world day vs. one hour)
+ * and use the ItemManifest factory for lore-chain integrity.
+ *
+ * @version D.040
+ * @reference docs/sovereign-traits.md
+ */
+
+composition "SovereignItem" {
+  // ==========================================================================
+  // GLOBAL CONFIG
+  // ==========================================================================
+  config {
+    world: "shard_01"
+    time_scale: 1.0
+    item_tick_interval_ms: 86_400_000   // per in-world day
+  }
+
+  // ==========================================================================
+  // ITEM: Lycagon's Contusion (cursed artifact)
+  // ==========================================================================
+  item "lycagons_contusion" {
+    display_name: "Lycagon's Contusion"
+    description: "A dark scar that whispers when the bearer sleeps."
+    position: [-5, 1.2, 3]
+    scale: [0.3, 0.3, 0.3]
+    geometry: "orb"
+    color: "#4a0e4e"
+    emissive: "#2a002a"
+    emissive_intensity: 0.4
+
+    // --- Ancestry ---
+    ancestry {
+      origin_type: "boss_summon"
+      origin_id: "lycagon_boss_01"
+      origin_name: "Lycagon"
+      lore_event: "Shadow of the Colossus"
+      material_source_item_id: null
+    }
+
+    // --- State ---
+    state {
+      durability: 0.72
+      corrosion: 0.15
+      curse_depth: 0.88
+      restoration_progress: 0.0
+      awakened: false
+      equipped_duration_seconds: 0
+      bound_to_player_id: null
+    }
+
+    // --- Trajectory ---
+    trajectory {
+      type: "restoration"
+      condition_description: "Take to Legendary Craftsman Vysache to begin restoration."
+      target_state { restoration_progress: 1.0, curse_depth: 0.0 }
+      required_npc_id: "npc_vysache"
+      required_location_id: "forge_of_legends"
+    }
+
+    // --- Constraint ---
+    constraint {
+      description: "Torso and leg armor disabled while equipped."
+      affected_equipment_slots: ["torso", "legs"]
+      max_equip_duration_seconds: 180
+      playstyle_impact: "Forces glass-cannon mobility build; no heavy armor."
+    }
+
+    // --- @verbalFingerprint ---
+    @verbalFingerprint {
+      fingerprint_key: "cursed_item_whisper"
+      style {
+        label: "cursed_whisper"
+        min_sentence_length: 3
+        max_sentence_length: 20
+        forbidden_phrases: ["hello", "help", "please"]
+        required_phrases: ["sleep", "dream", "shadow"]
+        tone: "ominous"
+      }
+      enforce: true
+      rolling_window: 50
+    }
+
+    // --- @vocabularyRegister ---
+    @vocabularyRegister {
+      active_register: "medieval-fantasy"
+      max_injected_entries: 15
+      prepend_tone_hint: true
+    }
+
+    // --- @autonomousAgenda ---
+    @autonomousAgenda {
+      agent_class: "item"
+      tick_interval_ms: 86_400_000
+      daily_budget_usd: 0.05
+      max_actions_per_tick: 1
+      max_actions_per_day: 5
+      pause_on_ceiling: true
+    }
+
+    // --- @reputationLedger ---
+    @reputationLedger {
+      world_id: "shard_01"
+      subject_id: "lycagons_contusion"
+      initial_trust: 30
+      max_behavior_facts: 20
+      world_ttl_days: 90
+      emit_world_entry_disclosure: true
+      disclosure_text: "The artifact remembers every bearer."
+      deletion_modes: ["npc", "global"]
+      ttl_breach_alert_rule: "behavior_fact_ttl_breach"
+    }
+
+    // --- @speechAwareEncounter (optional: item "hears" player oaths) ---
+    @speechAwareEncounter {
+      voice_enabled: false
+      reid_confidence_threshold: 0.90
+      fallback_to_text: true
+      max_turns: 3
+      reid_backend: "default"
+    }
+
+    // --- Traits list ---
+    traits: [
+      "verbalFingerprint",
+      "vocabularyRegister",
+      "autonomousAgenda",
+      "reputationLedger",
+      "speechAwareEncounter",
+    ]
+
+    tags: ["cursed", "artifact", "boss_drop", "restorable"]
+
+    // Actions
+    action onEquip(player) {
+      this.state.bound_to_player_id = player.id
+      emit("item_equipped", { item: this.id, player: player.id })
+
+      // Curse effect: NPCs react to the item's reputation ledger
+      const trust = this.traits.reputationLedger.initial_trust
+      if (trust < 40) {
+        world.broadcast("ominous_presence", { item: this.id, player: player.id })
+      }
+    }
+
+    action onUnequip(player) {
+      this.state.equipped_duration_seconds += time.now() - this.state.equipped_at
+      this.state.bound_to_player_id = null
+      emit("item_unequipped", { item: this.id, player: player.id })
+    }
+
+    action onTick(tick) {
+      // Item-specific slow tick: corrosion, curse deepening, whisper generation
+      if (this.state.equipped_duration_seconds > 120) {
+        this.state.curse_depth = clamp(this.state.curse_depth + 0.01, 0, 1)
+      }
+      emit("item_tick", { item: this.id, tick })
+    }
+
+    action whisperTo(player) {
+      const voice = this.traits.verbalFingerprint
+      const whisper = generateText({
+        register: this.traits.vocabularyRegister.active_register,
+        tone: voice.style.tone,
+        required: voice.style.required_phrases,
+        forbidden: voice.style.forbidden_phrases,
+        max_length: voice.style.max_sentence_length,
+      })
+      showMessage(player, whisper)
+      emit("item_whispered", { item: this.id, player: player.id, text: whisper })
+    }
+
+    // Events
+    on player_sleep(player) {
+      if (this.state.bound_to_player_id === player.id && this.state.curse_depth > 0.5) {
+        this.whisperTo(player)
+      }
+    }
+
+    on agenda_tick(tick) {
+      if (this.traits.autonomousAgenda.pause_on_ceiling) {
+        // Items have very low budget; pause is common
+        return
+      }
+      this.onTick(tick)
+    }
+
+    on reputation_fact_recorded(fact) {
+      if (fact.behavior === "betrayal") {
+        this.state.curse_depth = clamp(this.state.curse_depth + 0.05, 0, 1)
+      }
+    }
+  }
+
+  // ==========================================================================
+  // SPAWN TRIGGER
+  // ==========================================================================
+  object "contusion_spawn_trigger" @invisible @trigger {
+    position: [-5, 1.2, 3]
+    radius: 5.0
+    on player_enter(player) {
+      if (!world.items.lycagons_contusion) {
+        world.spawn("lycagons_contusion")
+      }
+    }
+  }
+}

@@ -1,0 +1,169 @@
+/**
+ * D.040 Sovereign NPC Compose Template
+ *
+ * Demonstrates all 6 sovereign traits composed onto a single HoloLand NPC.
+ * Use as a reference for creating character-like entities with voice,
+ * autonomy, trust, and multi-modal input.
+ *
+ * @version D.040
+ * @reference docs/sovereign-traits.md
+ */
+
+composition "SovereignNPC" {
+  // ==========================================================================
+  // GLOBAL CONFIG
+  // ==========================================================================
+  config {
+    world: "shard_01"
+    time_scale: 1.0
+    npc_tick_interval_ms: 60_000   // per in-world hour
+  }
+
+  // ==========================================================================
+  // NPC: Elara the Watcher
+  // ==========================================================================
+  npc "elara" {
+    display_name: "Elara the Watcher"
+    description: "A sentinel who speaks only in archaic verse."
+    position: [10, 0, 5]
+    rotation: [0, 45, 0]
+
+    // --- @verbalFingerprint ---
+    @verbalFingerprint {
+      fingerprint_key: "elara_voice"
+      style {
+        label: "archaic_verse"
+        min_sentence_length: 10
+        max_sentence_length: 60
+        forbidden_phrases: ["okay", "yeah", "lol", "omg"]
+        required_phrases: ["behold", "verily"]
+        tone: "formal"
+      }
+      enforce: true
+      rolling_window: 100
+    }
+
+    // --- @vocabularyRegister ---
+    @vocabularyRegister {
+      active_register: "medieval-fantasy"
+      max_injected_entries: 30
+      prepend_tone_hint: true
+    }
+
+    // --- @autonomousAgenda ---
+    @autonomousAgenda {
+      agent_class: "npc"
+      tick_interval_ms: 60_000
+      daily_budget_usd: 0.50
+      max_actions_per_tick: 3
+      max_actions_per_day: 20
+      pause_on_ceiling: true
+    }
+
+    // --- @reputationLedger ---
+    @reputationLedger {
+      world_id: "shard_01"
+      subject_id: "elara"
+      initial_trust: 70
+      max_behavior_facts: 50
+      world_ttl_days: 90
+      emit_world_entry_disclosure: true
+      disclosure_text: "Elara remembers how you treated her."
+      deletion_modes: ["npc"]
+      ttl_breach_alert_rule: "behavior_fact_ttl_breach"
+    }
+
+    // --- @speechAwareEncounter ---
+    @speechAwareEncounter {
+      voice_enabled: true
+      reid_confidence_threshold: 0.85
+      fallback_to_text: true
+      max_turns: 12
+      reid_backend: "default"
+    }
+
+    // --- @avatarIntent (for embodied avatar) ---
+    @avatarIntent {
+      intent_mapping: [
+        { devices: ["controller_left"], predicate: { "controller_left:thumbstick_press": true }, intent: "rest", weight: 1.0 },
+        { devices: ["controller_right", "eye_tracking"], predicate: { "controller_right:trigger": true }, intent: "select", weight: 1.2 },
+        { devices: ["hand_tracking_right"], predicate: { "hand_tracking_right:pinch": true }, intent: "grab", weight: 1.0 },
+      ]
+      smoothing_window_ms: 150
+      dead_zone: 0.05
+      max_sample_buffer: 20
+    }
+
+    // State
+    state {
+      trust_pool: 70
+      encounters_today: 0
+      agenda_paused: false
+    }
+
+    // Actions
+    action greet(player) {
+      const voice = this.traits.verbalFingerprint
+      const register = this.traits.vocabularyRegister
+
+      const greeting = generateText({
+        register: register.active_register,
+        tone: voice.style.tone,
+        required: voice.style.required_phrases,
+        forbidden: voice.style.forbidden_phrases,
+      })
+
+      speak(player, greeting)
+      this.state.encounters_today += 1
+      emit("npc_greeted", { npc: "elara", player: player.id })
+    }
+
+    action onTrustChange(delta) {
+      this.state.trust_pool = clamp(this.state.trust_pool + delta, 0, 100)
+      if (this.state.trust_pool < 30) {
+        this.behavior = "hostile"
+      } else if (this.state.trust_pool > 80) {
+        this.behavior = "ally"
+      }
+    }
+
+    // Events
+    on player_approach(player) {
+      if (this.state.encounters_today < 5) {
+        this.greet(player)
+      }
+    }
+
+    on agenda_tick(tick) {
+      if (this.traits.autonomousAgenda.pause_on_ceiling && this.state.agenda_paused) {
+        return
+      }
+      // NPC-specific tick logic (patrol, rest, observe)
+      emit("npc_tick", { npc: "elara", tick })
+    }
+
+    on verbal_fingerprint_rejected(rejection) {
+      log.warn("Elara voice drift detected", rejection)
+      // Trigger re-synthesis or alert
+    }
+
+    on reputation_fact_recorded(fact) {
+      if (fact.target === player.id) {
+        this.onTrustChange(fact.trust_delta)
+      }
+    }
+  }
+
+  // ==========================================================================
+  // SPAWN TRIGGER
+  // ==========================================================================
+  object "elara_spawn_trigger" @invisible @trigger {
+    position: [10, 0, 5]
+    radius: 20.0
+    on player_enter(player) {
+      if (!world.npcs.elara) {
+        world.spawn("elara")
+      }
+    }
+  }
+}
