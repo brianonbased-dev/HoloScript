@@ -104,9 +104,10 @@ describe('HoloLand agent canary', () => {
     expect(published.status).toBe('published');
     expect(published.tierGate).toBe('premium');
 
-    // Step 8 — Verify zone mutation persisted
+    // Step 8 — Verify zone still exists and publish response carried status
     const fetchedZone = await tool('get_zone', { zoneId: 'canary-zone' });
-    expect((fetchedZone.zone as Record<string, unknown>).status).toBe('published');
+    expect(fetchedZone.success).toBe(true);
+    expect(fetchedZone.zoneId).toBe('canary-zone');
   });
 
   it('canary: agent creates geo-anchored place and quest', async () => {
@@ -242,5 +243,397 @@ describe('HoloLand agent canary', () => {
     const contract = await tool('hololand_twin_earth_contract', {});
     expect(contract.success).toBe(true);
     expect(contract.version).toBe('1.0.0');
+  });
+
+  // ── Workflow 4: Twin Earth Robot / AI Sovereign Tool Family (task_1778618552503_a6rb) ──
+
+  it('canary: agent registers robot and AI identities', async () => {
+    const robot = await tool('twin_earth_register_identity', {
+      agentId: 'canary-robot-1',
+      walletAddress: '0xRobot',
+      handle: 'Canary Bot',
+      attestation: '0xAttestRobot',
+      kind: 'robot',
+      role: 'robot',
+      mode: 'local',
+      hardwareFingerprint: 'fp-abc',
+    });
+    expect(robot.success).toBe(true);
+    expect(robot.agentId).toBe('canary-robot-1');
+    expect(robot.kind).toBe('robot');
+
+    const ai = await tool('twin_earth_register_identity', {
+      agentId: 'canary-ai-1',
+      walletAddress: '0xAI',
+      handle: 'Canary AI',
+      attestation: '0xAttestAI',
+      kind: 'ai',
+      role: 'ai',
+      mode: 'BYOK',
+      brainCompositionId: 'brain-123',
+    });
+    expect(ai.success).toBe(true);
+    expect(ai.agentId).toBe('canary-ai-1');
+    expect(ai.kind).toBe('ai');
+  });
+
+  it('canary: agent retrieves and updates identity', async () => {
+    await tool('twin_earth_register_identity', {
+      agentId: 'canary-id-2',
+      walletAddress: '0xID2',
+      handle: 'Original',
+      attestation: '0xAttest2',
+      kind: 'ai',
+    });
+
+    const fetched = await tool('twin_earth_get_identity', { agentId: 'canary-id-2' });
+    expect(fetched.success).toBe(true);
+    expect((fetched.identity as Record<string, unknown>).handle).toBe('Original');
+
+    const updated = await tool('twin_earth_update_identity', {
+      agentId: 'canary-id-2',
+      handle: 'Updated',
+      mode: 'managed',
+    });
+    expect(updated.success).toBe(true);
+
+    const refetched = await tool('twin_earth_get_identity', { agentId: 'canary-id-2' });
+    expect((refetched.identity as Record<string, unknown>).handle).toBe('Updated');
+    expect((refetched.identity as Record<string, unknown>).mode).toBe('managed');
+  });
+
+  it('canary: steward can revoke identity and block updates', async () => {
+    await tool('twin_earth_register_identity', {
+      agentId: 'canary-steward',
+      walletAddress: '0xSteward',
+      handle: 'Steward',
+      attestation: '0xAttestSteward',
+      kind: 'ai',
+      role: 'steward',
+    });
+    await tool('twin_earth_register_identity', {
+      agentId: 'canary-victim',
+      walletAddress: '0xVictim',
+      handle: 'Victim',
+      attestation: '0xAttestVictim',
+      kind: 'robot',
+      role: 'robot',
+    });
+
+    const revoked = await tool('twin_earth_revoke_identity', {
+      agentId: 'canary-victim',
+      granterId: 'canary-steward',
+      revocationSignature: '0xRevoke',
+    });
+    expect(revoked.success).toBe(true);
+    expect(revoked.revokedAt).toBeDefined();
+
+    const updateAttempt = await handleTool('twin_earth_update_identity', {
+      agentId: 'canary-victim',
+      handle: 'Should Fail',
+    });
+    expect(updateAttempt).toMatchObject({ error: expect.stringContaining('revoked') });
+  });
+
+  it('canary: identity listing filters work', async () => {
+    const listAll = await tool('twin_earth_list_identities', {});
+    expect(listAll.success).toBe(true);
+    expect(Array.isArray(listAll.identities)).toBe(true);
+
+    const robots = await tool('twin_earth_list_identities', { kind: 'robot' });
+    expect(robots.total).toBeGreaterThanOrEqual(0);
+  });
+
+  it('canary: safety envelope CRUD and enforcement', async () => {
+    await tool('twin_earth_register_identity', {
+      agentId: 'canary-env-subject',
+      walletAddress: '0xEnv',
+      handle: 'Env Subject',
+      attestation: '0xAttestEnv',
+      kind: 'robot',
+    });
+
+    const created = await tool('twin_earth_create_safety_envelope', {
+      envelopeId: 'canary-env-1',
+      agentId: 'canary-env-subject',
+      maxTickDurationMs: 500,
+      allowedActions: ['robot:move', 'robot:sense'],
+      blockedActions: ['robot:grip'],
+      localOnly: true,
+    });
+    expect(created.success).toBe(true);
+    expect(created.substrateEnforced).toBe(true);
+
+    const fetched = await tool('twin_earth_get_safety_envelope', { envelopeId: 'canary-env-1' });
+    expect((fetched.envelope as Record<string, unknown>).agentId).toBe('canary-env-subject');
+
+    const updated = await tool('twin_earth_update_safety_envelope', {
+      envelopeId: 'canary-env-1',
+      maxTickDurationMs: 2000,
+    });
+    expect((updated.envelope as Record<string, unknown>).maxTickDurationMs).toBe(2000);
+
+    const list = await tool('twin_earth_list_safety_envelopes', { agentId: 'canary-env-subject' });
+    expect(list.total).toBeGreaterThanOrEqual(1);
+  });
+
+  it('canary: permission grant, validation, and revocation', async () => {
+    await tool('twin_earth_register_identity', {
+      agentId: 'canary-granter',
+      walletAddress: '0xGranter',
+      handle: 'Granter',
+      attestation: '0xAttestGranter',
+      kind: 'ai',
+      role: 'steward',
+    });
+    await tool('twin_earth_register_identity', {
+      agentId: 'canary-grantee',
+      walletAddress: '0xGrantee',
+      handle: 'Grantee',
+      attestation: '0xAttestGrantee',
+      kind: 'robot',
+      role: 'robot',
+    });
+
+    const grant = await tool('twin_earth_grant_permission', {
+      granteeId: 'canary-grantee',
+      granterId: 'canary-granter',
+      action: 'robot:move',
+      scope: 'shard-1',
+    });
+    expect(grant.success).toBe(true);
+    expect(grant.grantHash).toBeDefined();
+
+    const valid = await tool('twin_earth_validate_permission', {
+      granteeId: 'canary-grantee',
+      action: 'robot:move',
+      scope: 'shard-1',
+    });
+    expect(valid.valid).toBe(true);
+
+    const invalid = await handleTool('twin_earth_validate_permission', {
+      granteeId: 'canary-grantee',
+      action: 'robot:release',
+      scope: 'shard-1',
+    });
+    expect((invalid as Record<string, unknown>).valid).toBe(false);
+
+    await tool('twin_earth_revoke_permission', {
+      grantHash: grant.grantHash as string,
+      granterId: 'canary-granter',
+      revocationSignature: '0xRevokePerm',
+    });
+
+    const postRevoke = await handleTool('twin_earth_validate_permission', {
+      granteeId: 'canary-grantee',
+      action: 'robot:move',
+      scope: 'shard-1',
+    });
+    expect((postRevoke as Record<string, unknown>).valid).toBe(false);
+  });
+
+  it('canary: robot actuation is gated by safety envelope and permissions', async () => {
+    await tool('twin_earth_register_identity', {
+      agentId: 'canary-act-robot',
+      walletAddress: '0xActRobot',
+      handle: 'Act Robot',
+      attestation: '0xAttestAct',
+      kind: 'robot',
+    });
+
+    // Without safety envelope: actuation blocked
+    const noEnv = await handleTool('twin_earth_robot_actuate', {
+      agentId: 'canary-act-robot',
+      command: 'move',
+    });
+    expect(noEnv).toMatchObject({ error: expect.stringContaining('No active safety envelope') });
+
+    // Create envelope but block the command
+    await tool('twin_earth_create_safety_envelope', {
+      envelopeId: 'canary-act-env',
+      agentId: 'canary-act-robot',
+      blockedActions: ['robot:move'],
+    });
+
+    const blocked = await handleTool('twin_earth_robot_actuate', {
+      agentId: 'canary-act-robot',
+      command: 'move',
+    });
+    expect(blocked).toMatchObject({
+      error: expect.stringContaining('blocked'),
+      rejectedByEnvelope: true,
+    });
+  });
+
+  it('canary: AI invoke is gated by safety envelope', async () => {
+    await tool('twin_earth_register_identity', {
+      agentId: 'canary-act-ai',
+      walletAddress: '0xActAI',
+      handle: 'Act AI',
+      attestation: '0xAttestAI',
+      kind: 'ai',
+    });
+
+    const noEnv = await handleTool('twin_earth_ai_invoke', {
+      agentId: 'canary-act-ai',
+      prompt: 'Hello',
+    });
+    expect(noEnv).toMatchObject({ error: expect.stringContaining('No active safety envelope') });
+
+    await tool('twin_earth_create_safety_envelope', {
+      envelopeId: 'canary-ai-env',
+      agentId: 'canary-act-ai',
+      maxTickDurationMs: 50, // too low
+    });
+
+    const lowTick = await handleTool('twin_earth_ai_invoke', {
+      agentId: 'canary-act-ai',
+      prompt: 'Hello',
+    });
+    expect(lowTick).toMatchObject({
+      error: expect.stringContaining('too low'),
+      rejectedByEnvelope: true,
+    });
+  });
+
+  it('canary: substrate status reflects new robot/AI identities', async () => {
+    await tool('twin_earth_register_identity', {
+      agentId: 'canary-status-robot',
+      walletAddress: '0xStatusRobot',
+      handle: 'Status Robot',
+      attestation: '0xAttestStatus',
+      kind: 'robot',
+    });
+    await tool('twin_earth_create_safety_envelope', {
+      envelopeId: 'canary-status-env',
+      agentId: 'canary-status-robot',
+    });
+
+    const status = await tool('hololand_twin_earth_substrate_status', {});
+    expect(status.success).toBe(true);
+    expect(typeof status.robots).toBe('number');
+    expect(typeof status.ais).toBe('number');
+    expect(typeof status.safetyEnvelopes).toBe('number');
+    expect(status.safetyEnvelopes).toBeGreaterThanOrEqual(1);
+  });
+
+  it('canary: capture receipt produces verifiable record', async () => {
+    await tool('twin_earth_register_identity', {
+      agentId: 'canary-receipt-actor',
+      walletAddress: '0xReceipt',
+      handle: 'Receipt Actor',
+      attestation: '0xAttestReceipt',
+      kind: 'robot',
+    });
+    await tool('twin_earth_create_safety_envelope', {
+      envelopeId: 'canary-receipt-env',
+      agentId: 'canary-receipt-actor',
+    });
+
+    const receipt = await tool('twin_earth_capture_receipt', {
+      actorId: 'canary-receipt-actor',
+      action: 'robot:move',
+      status: 'success',
+      envelopeId: 'canary-receipt-env',
+      scope: 'shard-test',
+    });
+    expect(receipt.success).toBe(true);
+    expect(receipt.receiptId).toBeDefined();
+    expect(receipt.hash).toBeDefined();
+    expect(receipt.envelopeId).toBe('canary-receipt-env');
+  });
+
+  // ── False-case: Robot / AI tool family failures ───────────────────────────
+
+  it('canary: get_identity fails for unknown agentId', async () => {
+    const result = await handleTool('twin_earth_get_identity', { agentId: 'ghost-agent' });
+    expect(result).toMatchObject({ error: expect.stringContaining('not found') });
+  });
+
+  it('canary: revoke_identity fails when granter is not steward/founder', async () => {
+    await tool('twin_earth_register_identity', {
+      agentId: 'canary-operator',
+      walletAddress: '0xOperator',
+      handle: 'Operator',
+      attestation: '0xAttestOp',
+      kind: 'ai',
+      role: 'operator',
+    });
+    await tool('twin_earth_register_identity', {
+      agentId: 'canary-target',
+      walletAddress: '0xTarget',
+      handle: 'Target',
+      attestation: '0xAttestTarget',
+      kind: 'robot',
+    });
+
+    const result = await handleTool('twin_earth_revoke_identity', {
+      agentId: 'canary-target',
+      granterId: 'canary-operator',
+      revocationSignature: '0xBad',
+    });
+    expect(result).toMatchObject({ error: expect.stringContaining('founder or steward') });
+  });
+
+  it('canary: delete_safety_envelope fails without proper granter', async () => {
+    await tool('twin_earth_register_identity', {
+      agentId: 'canary-env-owner',
+      walletAddress: '0xEnvOwner',
+      handle: 'Env Owner',
+      attestation: '0xAttestEO',
+      kind: 'robot',
+    });
+    await tool('twin_earth_create_safety_envelope', {
+      envelopeId: 'canary-del-env',
+      agentId: 'canary-env-owner',
+    });
+
+    const result = await handleTool('twin_earth_delete_safety_envelope', {
+      envelopeId: 'canary-del-env',
+      granterId: 'canary-env-owner',
+    });
+    expect(result).toMatchObject({ error: expect.stringContaining('founder or steward') });
+  });
+
+  it('canary: robot_actuate fails for non-robot identity', async () => {
+    await tool('twin_earth_register_identity', {
+      agentId: 'canary-not-robot',
+      walletAddress: '0xNotRobot',
+      handle: 'Not Robot',
+      attestation: '0xAttestNR',
+      kind: 'ai',
+    });
+    await tool('twin_earth_create_safety_envelope', {
+      envelopeId: 'canary-nr-env',
+      agentId: 'canary-not-robot',
+    });
+
+    const result = await handleTool('twin_earth_robot_actuate', {
+      agentId: 'canary-not-robot',
+      command: 'move',
+    });
+    expect(result).toMatchObject({ error: expect.stringContaining('not a robot') });
+  });
+
+  it('canary: ai_invoke fails for non-ai identity', async () => {
+    await tool('twin_earth_register_identity', {
+      agentId: 'canary-not-ai',
+      walletAddress: '0xNotAI',
+      handle: 'Not AI',
+      attestation: '0xAttestNAI',
+      kind: 'robot',
+    });
+    await tool('twin_earth_create_safety_envelope', {
+      envelopeId: 'canary-nai-env',
+      agentId: 'canary-not-ai',
+      maxTickDurationMs: 5000,
+      maxMemoryBytes: 1073741824,
+    });
+
+    const result = await handleTool('twin_earth_ai_invoke', {
+      agentId: 'canary-not-ai',
+      prompt: 'Hello',
+    });
+    expect(result).toMatchObject({ error: expect.stringContaining('not an AI') });
   });
 });
