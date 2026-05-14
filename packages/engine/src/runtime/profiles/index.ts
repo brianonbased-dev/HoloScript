@@ -28,6 +28,8 @@ export {
   createHeadlessRuntime,
   type ActionHandler,
   type HeadlessRuntimeOptions,
+  type HeadlessRuntimeSceneReceipt,
+  type HeadlessSceneObjectReceipt,
   type HeadlessRuntimeStats,
   type HeadlessNodeInstance,
 } from './HeadlessRuntime';
