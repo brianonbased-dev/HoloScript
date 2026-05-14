@@ -1596,8 +1596,15 @@ export function createDaemonActions(
           );
 
         for (const f of sourceFiles) {
-          const testFile = f.replace(/\.ts$/, '.test.ts').replace(/\/src\//, '/src/__tests__/');
-          if (!host.exists(testFile) && !isQuarantined(f) && !isCommitted(f)) {
+          const normalized = f.replace(/\\/g, '/');
+          const testCandidates = [
+            normalized.replace(/\.ts$/, '.test.ts'),
+            normalized.replace(/\.ts$/, '.test.ts').replace(/\/src\//, '/src/__tests__/'),
+            normalized.replace(/\.ts$/, '.spec.ts'),
+            normalized.replace(/\.ts$/, '.spec.ts').replace(/\/src\//, '/src/__tests__/'),
+          ];
+          const hasTest = testCandidates.some((t) => host.exists(t));
+          if (!hasTest && !isQuarantined(f) && !isCommitted(f)) {
             candidates.push(f);
           }
         }
