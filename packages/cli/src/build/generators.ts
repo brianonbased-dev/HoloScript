@@ -4,11 +4,73 @@
 
 import { getVersionString } from '@holoscript/core';
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function templateMap(templates: unknown): Map<string, Record<string, unknown>> {
+  const map = new Map<string, Record<string, unknown>>();
+  for (const template of Array.isArray(templates) ? templates : []) {
+    const entry = asRecord(template);
+    if (typeof entry.name === 'string') map.set(entry.name, entry);
+  }
+  return map;
+}
+
+function propertyListToRecord(properties: unknown): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const property of Array.isArray(properties) ? properties : []) {
+    const entry = asRecord(property);
+    if (typeof entry.key === 'string') out[entry.key] = entry.value;
+  }
+  return out;
+}
+
+function normalizeTraits(traits: unknown): Array<Record<string, unknown>> {
+  if (traits instanceof Map) {
+    return [...traits.entries()].map(([name, config]) => ({ name, config }));
+  }
+  return (Array.isArray(traits) ? traits : []).map((trait) =>
+    typeof trait === 'string' ? { name: trait, config: {} } : asRecord(trait)
+  );
+}
+
+function mergeTraits(...traitLists: unknown[]): Array<Record<string, unknown>> {
+  const traits = new Map<string, Record<string, unknown>>();
+  for (const traitList of traitLists) {
+    for (const trait of normalizeTraits(traitList)) {
+      if (typeof trait.name === 'string') traits.set(trait.name, trait);
+    }
+  }
+  return [...traits.values()];
+}
+
+function resolveTemplateOrb(
+  orb: Record<string, unknown>,
+  templates: Map<string, Record<string, unknown>>
+): Record<string, unknown> {
+  const templateName = typeof orb.template === 'string' ? orb.template : undefined;
+  const template = templateName ? templates.get(templateName) : undefined;
+  if (!template) return orb;
+
+  return {
+    ...orb,
+    properties: {
+      ...propertyListToRecord(template.properties),
+      ...asRecord(orb.properties),
+    },
+    traits: mergeTraits(template.traits, orb.traits),
+  };
+}
+
 /**
  * Generate target-specific code from AST
  */
 export function generateTargetCode(ast: any, target: string, verbose: boolean = false): string {
-  const orbs = ast.orbs || [];
+  const templates = templateMap(ast.templates);
+  const orbs = (ast.orbs || []).map((orb: unknown) => resolveTemplateOrb(asRecord(orb), templates));
   const functions = ast.functions || [];
 
   switch (target) {
@@ -109,9 +171,10 @@ scene.add(directionalLight);
       rz = rotation.z || 0;
     }
 
-    const color = props.color || '#ffffff';
-    const geometry = props.geometry || props.model ? 'model' : 'sphere';
-    const opacity = props.opacity;
+    const material = asRecord(props.material);
+    const color = material.color || props.color || '#ffffff';
+    const geometry = props.model ? 'model' : props.geometry || props.mesh || props.type || 'sphere';
+    const opacity = material.opacity ?? props.opacity;
 
     code += `// ${rawName}\n`;
 
@@ -122,13 +185,25 @@ scene.add(directionalLight);
         code += `const ${name}_geometry = new THREE.BoxGeometry(${sx}, ${sy}, ${sz});\n`;
         break;
       case 'plane':
-        code += `const ${name}_geometry = new THREE.PlaneGeometry(${sx}, ${sz});\n`;
+        code += `const ${name}_geometry = new THREE.PlaneGeometry(${sx}, ${sy});\n`;
         break;
       case 'cylinder':
         code += `const ${name}_geometry = new THREE.CylinderGeometry(${sx / 2}, ${sx / 2}, ${sy}, 32);\n`;
         break;
+      case 'capsule': {
+        const radius = Math.max(sx, sz) / 2;
+        const length = Math.max(0, sy - radius * 2);
+        code += `const ${name}_geometry = new THREE.CapsuleGeometry(${radius}, ${length}, 4, 16);\n`;
+        break;
+      }
       case 'cone':
         code += `const ${name}_geometry = new THREE.ConeGeometry(${sx / 2}, ${sy}, 32);\n`;
+        break;
+      case 'dodecahedron':
+        code += `const ${name}_geometry = new THREE.DodecahedronGeometry(${Math.max(sx, sy, sz) / 2});\n`;
+        break;
+      case 'ring':
+        code += `const ${name}_geometry = new THREE.RingGeometry(${sx * 0.3}, ${sx * 0.5}, 64);\n`;
         break;
       case 'torus':
         code += `const ${name}_geometry = new THREE.TorusGeometry(${sx / 2}, ${sx / 6}, 16, 48);\n`;
@@ -144,11 +219,24 @@ scene.add(directionalLight);
     if (isGlowing) {
       matProps.push(`emissive: '${color}'`, `emissiveIntensity: 1.0`);
     }
-    if (props.roughness !== undefined) matProps.push(`roughness: ${props.roughness}`);
+    const roughness = material.roughness ?? props.roughness;
+    const metallic = material.metalness ?? material.metallic ?? props.metalness ?? props.metallic;
+    const emissive = material.emissive ?? props.emissive;
+    const emissiveIntensity = material.emissiveIntensity ?? props.emissiveIntensity;
+    const transparent = material.transparent ?? props.transparent;
+    const side = material.side ?? props.side;
+    if (roughness !== undefined) matProps.push(`roughness: ${roughness}`);
     else matProps.push(`roughness: 0.5`);
-    if (props.metallic !== undefined) matProps.push(`metalness: ${props.metallic}`);
+    if (metallic !== undefined) matProps.push(`metalness: ${metallic}`);
+    if (emissive !== undefined) matProps.push(`emissive: '${emissive}'`);
+    if (emissiveIntensity !== undefined) matProps.push(`emissiveIntensity: ${emissiveIntensity}`);
     if (opacity !== undefined && opacity < 1) {
       matProps.push(`opacity: ${opacity}`, `transparent: true`);
+    } else if (transparent === true) {
+      matProps.push(`transparent: true`);
+    }
+    if (side === 'double') {
+      matProps.push(`side: THREE.DoubleSide`);
     }
     code += `const ${name}_material = new THREE.MeshStandardMaterial({ ${matProps.join(', ')} });\n`;
 

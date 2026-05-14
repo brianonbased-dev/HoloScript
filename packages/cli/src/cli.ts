@@ -1611,9 +1611,11 @@ async function main(): Promise<void> {
 
           // Map HoloComposition AST to Generator AST
           ast = {
+            templates: result.ast?.templates || [],
             orbs:
               result.ast?.objects?.map((obj: any) => ({
                 name: obj.name,
+                template: obj.template,
                 properties: Object.fromEntries(obj.properties.map((p: any) => [p.key, p.value])),
                 traits: obj.traits || [],
                 state: obj.state,
@@ -2414,9 +2416,11 @@ async function main(): Promise<void> {
               }
               composition = result.ast;
               ast = {
+                templates: result.ast?.templates || [],
                 orbs:
                   result.ast?.objects?.map((obj: any) => ({
                     name: obj.name,
+                    template: obj.template,
                     properties: Object.fromEntries(
                       obj.properties.map((p: any) => [p.key, p.value])
                     ),
