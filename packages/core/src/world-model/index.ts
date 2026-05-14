@@ -23,6 +23,27 @@ export {
 export { scoreTrajectory } from './PredicateScorer';
 export type { SoftAnchor, ScorerInputs, ScorerOutput } from './PredicateScorer';
 
+export {
+  DEFAULT_DETERMINISTIC_FAILURE_ACTIONS,
+  hashDeterministicSceneValue,
+  createDeterministicFailureDiscoveryScene,
+  runDeterministicFailureDiscoveryScene,
+  buildDeterministicFailureTrajectory,
+} from './DeterministicFailureScene';
+export type {
+  Vec3,
+  DeterministicSceneObjectKind,
+  DeterministicSceneObject,
+  DeterministicSceneCamera,
+  DeterministicFailureSceneState,
+  DeterministicSceneAction,
+  DeterministicSceneEventType,
+  DeterministicSceneEvent,
+  DeterministicFailureSceneResult,
+  DeterministicFailureTrajectoryBuild,
+  DeterministicFailureSceneOptions,
+} from './DeterministicFailureScene';
+
 export type {
   TrajectoryId,
   SceneHash,
