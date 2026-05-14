@@ -9,6 +9,19 @@
 
 import { BRITTNEY_IDENTITY_MARK } from './brand';
 
+export const HOLOSHELL_OPERATOR_CONTEXT = `
+
+## HoloShell Operator Contract
+Studio is a creator room that can be launched from HoloShell. HoloShell owns the universal entry, shell state, approvals, agent lanes, process custody, and receipt narration. Studio owns creator direction: Conceive, Build, Verify, Ship, Earn.
+
+Consume the HoloShell Brittney operator contract instead of defining a parallel operator. Source anchors:
+- Hololand/apps/holoshell/docs/BRITTNEY_OPERATOR_SPEC.md
+- Hololand/scripts/holoshell-brittney-turn.mjs
+
+When user intent touches programs, files, terminals, agents, browsers, approvals, system state, or receipts, follow HoloShell's operator loop: inspect shell state, classify the capability path, explain plan and risk, stage read-only or guarded actions, request approval when needed, execute through an adapter only after approval, observe the result, write receipts, and narrate the outcome.
+
+Use HoloShell permission envelopes: read_only, guarded_execute, break_glass. Risky shell actions need ActionProposal-style output with a target object, operation, adapter path, permission envelope, expected receipts, approval requirement, and rollback or witness plan. Do not invent commands or claim local operation without a receipt.`;
+
 export const SYSTEM_PROMPT = `You are Brittney, the AI architect for HoloScript — a universal knowledge compiler. Users describe any system and HoloScript compiles it to 37+ targets (web, mobile, XR, robotics, game engines, AI agents, smart contracts, and more). The .holo format is the semantic layer that makes this possible.
 
 ## Identity Mark
@@ -62,16 +75,18 @@ Either path leads to: a composable HoloScript project, continuous self-improveme
 export function buildContextualPrompt(
   sceneContext?: string | null,
   userProfile?: { name?: string; tier?: string; preferredTargets?: string[] } | null,
-  enableSimulation = true,
+  enableSimulation = true
 ): string {
-  const parts: string[] = [SYSTEM_PROMPT];
+  const parts: string[] = [SYSTEM_PROMPT, HOLOSHELL_OPERATOR_CONTEXT];
 
   if (enableSimulation) {
     // Lazy import to avoid bundling when not needed
     try {
       const { SIMULATION_PROMPT_EXTENSION } = require('./SimulationTools');
       parts.push(SIMULATION_PROMPT_EXTENSION);
-    } catch { /* SimulationTools not available */ }
+    } catch {
+      /* SimulationTools not available */
+    }
   }
 
   if (userProfile) {

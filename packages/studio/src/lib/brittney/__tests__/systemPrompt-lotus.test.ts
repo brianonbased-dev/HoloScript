@@ -9,7 +9,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { buildContextualPrompt, isLotusGardenScene } from '../systemPrompt';
+import {
+  HOLOSHELL_OPERATOR_CONTEXT,
+  buildContextualPrompt,
+  isLotusGardenScene,
+} from '../systemPrompt';
 
 describe('isLotusGardenScene', () => {
   it('detects @lotus_petal sentinel', () => {
@@ -42,9 +46,18 @@ describe('isLotusGardenScene', () => {
 });
 
 describe('buildContextualPrompt — lotus mode injection', () => {
+  it('always includes the HoloShell operator contract before scene-specific modes', () => {
+    const prompt = buildContextualPrompt('composition "Other" {}');
+    expect(prompt).toContain('## HoloShell Operator Contract');
+    expect(prompt).toContain('Hololand/apps/holoshell/docs/BRITTNEY_OPERATOR_SPEC.md');
+    expect(prompt).toContain('Hololand/scripts/holoshell-brittney-turn.mjs');
+    expect(prompt).toContain('Consume the HoloShell Brittney operator contract');
+    expect(HOLOSHELL_OPERATOR_CONTEXT).toContain('read_only, guarded_execute, break_glass');
+  });
+
   it('injects Lotus Garden Mode context when sceneContext IS the garden', () => {
     const prompt = buildContextualPrompt(
-      'composition "The Lotus Flower" { object "Petal: CAEL" { @lotus_petal { paper_id: "cael" } } }',
+      'composition "The Lotus Flower" { object "Petal: CAEL" { @lotus_petal { paper_id: "cael" } } }'
     );
     expect(prompt).toContain('--- Lotus Garden Mode ---');
     expect(prompt).toContain('gardener of this garden');
@@ -64,21 +77,20 @@ describe('buildContextualPrompt — lotus mode injection', () => {
   });
 
   it('always includes the base SYSTEM_PROMPT regardless of garden mode', () => {
-    const gardenPrompt = buildContextualPrompt(
-      'composition "The Lotus Flower" { @lotus_petal }',
-    );
+    const gardenPrompt = buildContextualPrompt('composition "The Lotus Flower" { @lotus_petal }');
     const genericPrompt = buildContextualPrompt('composition "Other" {}');
     expect(gardenPrompt).toContain('You are Brittney');
     expect(genericPrompt).toContain('You are Brittney');
   });
 
   it('lotus context appears AFTER the scene context (so model reads scene first)', () => {
-    const prompt = buildContextualPrompt(
-      'composition "The Lotus Flower" { @lotus_petal }',
-    );
+    const prompt = buildContextualPrompt('composition "The Lotus Flower" { @lotus_petal }');
+    const operatorIdx = prompt.indexOf('## HoloShell Operator Contract');
     const sceneIdx = prompt.indexOf('--- Current Scene ---');
     const lotusIdx = prompt.indexOf('--- Lotus Garden Mode ---');
+    expect(operatorIdx).toBeGreaterThan(-1);
     expect(sceneIdx).toBeGreaterThan(-1);
+    expect(sceneIdx).toBeGreaterThan(operatorIdx);
     expect(lotusIdx).toBeGreaterThan(sceneIdx);
   });
 });
