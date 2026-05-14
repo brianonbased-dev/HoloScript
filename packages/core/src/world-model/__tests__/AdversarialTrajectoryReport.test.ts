@@ -13,6 +13,7 @@ import {
   asSceneHash,
   asCaelReceiptHash,
   type AdversarialTrajectory,
+  type SimulationContractReference,
   type TrajectoryStatus,
 } from '../AdversarialTrajectory';
 
@@ -26,12 +27,23 @@ function buildT(
   tieBreaker = 0,
   scene = SCENE
 ): AdversarialTrajectory {
+  const contract: SimulationContractReference = {
+    contractId: `contract-${id}`,
+    hashMode: 'fnv1a',
+    adapterFingerprint: null,
+    replayDigestMode: 'epsilon-cross-adapter',
+    fieldQuantization: [
+      { fieldPattern: 'position', quantum: 1e-5, units: 'm' },
+    ],
+  };
+
   return {
     id: asTrajectoryId(id),
     sceneHash: scene,
     seed: 1,
     trustTier: 'replayable',
     caelReceiptHash: asCaelReceiptHash(`cael-${id}`),
+    simulationContract: contract,
     actionTrace: [],
     observationTrace: [],
     predicateScore: {
@@ -42,7 +54,13 @@ function buildT(
       invalidity: status === 'invalid' ? 1 : 0,
     },
     priority: { priority, tieBreaker, rationale: 'fixture' },
-    replayHandle: { trajectoryId: asTrajectoryId(id), sceneHash: scene, seed: 1 },
+    replayHandle: {
+      trajectoryId: asTrajectoryId(id),
+      sceneHash: scene,
+      simulationContractId: contract.contractId,
+      seed: 1,
+      replayCommand: `holoscript replay --trajectory ${id} --scene ${scene} --contract ${contract.contractId}`,
+    },
     status,
     discoveredAtMs: NOW,
     lastReplayedAtMs: null,

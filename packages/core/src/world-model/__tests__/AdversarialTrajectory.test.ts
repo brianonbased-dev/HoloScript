@@ -9,13 +9,25 @@
 import { describe, it, expect } from 'vitest';
 import {
   isCurriculumEligible,
+  hasReplayEvidence,
   asTrajectoryId,
   asSceneHash,
   asCaelReceiptHash,
   type AdversarialTrajectory,
   type SemanticPredicateScore,
   type CurriculumPriority,
+  type SimulationContractReference,
 } from '../AdversarialTrajectory';
+
+const CONTRACT: SimulationContractReference = {
+  contractId: 'contract-test-001',
+  hashMode: 'sha256',
+  adapterFingerprint: 'adapter-test-001',
+  replayDigestMode: 'strict-same-adapter',
+  fieldQuantization: [
+    { fieldPattern: 'position', quantum: 1e-5, units: 'm' },
+  ],
+};
 
 function buildTrajectory(
   overrides: Partial<AdversarialTrajectory> = {}
@@ -38,6 +50,7 @@ function buildTrajectory(
     seed: 42,
     trustTier: 'replayable',
     caelReceiptHash: asCaelReceiptHash('cael-test-001'),
+    simulationContract: CONTRACT,
     actionTrace: [],
     observationTrace: [],
     predicateScore: score,
@@ -45,7 +58,10 @@ function buildTrajectory(
     replayHandle: {
       trajectoryId: asTrajectoryId('traj-test-001'),
       sceneHash: asSceneHash('scene-test-001'),
+      simulationContractId: CONTRACT.contractId,
       seed: 42,
+      replayCommand:
+        'holoscript replay --trajectory traj-test-001 --scene scene-test-001 --contract contract-test-001',
     },
     status: 'open',
     discoveredAtMs: 1_700_000_000_000,
@@ -88,6 +104,51 @@ describe('isCurriculumEligible', () => {
       priority: { priority: 0.7, tieBreaker: 0, rationale: 'regression risk' },
     });
     expect(isCurriculumEligible(t)).toBe(true);
+  });
+});
+
+describe('hasReplayEvidence', () => {
+  it('TRUE case: matching SimulationContract id + replay command + q_f registry → replayable evidence', () => {
+    const t = buildTrajectory();
+    expect(hasReplayEvidence(t)).toBe(true);
+  });
+
+  it('FALSE case: empty replay command → not replay-evidence complete', () => {
+    const t = buildTrajectory({
+      replayHandle: {
+        trajectoryId: asTrajectoryId('traj-test-001'),
+        sceneHash: asSceneHash('scene-test-001'),
+        simulationContractId: CONTRACT.contractId,
+        seed: 42,
+        replayCommand: '   ',
+      },
+    });
+    expect(hasReplayEvidence(t)).toBe(false);
+  });
+
+  it('FALSE case: replay handle contract id mismatch → stale handle detected', () => {
+    const t = buildTrajectory({
+      replayHandle: {
+        trajectoryId: asTrajectoryId('traj-test-001'),
+        sceneHash: asSceneHash('scene-test-001'),
+        simulationContractId: 'other-contract',
+        seed: 42,
+        replayCommand:
+          'holoscript replay --trajectory traj-test-001 --scene scene-test-001 --contract other-contract',
+      },
+    });
+    expect(hasReplayEvidence(t)).toBe(false);
+  });
+
+  it('FALSE case: epsilon replay without field quantization → oracle contract missing', () => {
+    const t = buildTrajectory({
+      simulationContract: {
+        ...CONTRACT,
+        replayDigestMode: 'epsilon-cross-adapter',
+        fieldQuantization: [],
+      },
+    });
+    expect(hasReplayEvidence(t)).toBe(false);
   });
 });
 

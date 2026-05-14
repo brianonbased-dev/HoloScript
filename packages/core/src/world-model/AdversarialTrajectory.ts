@@ -53,6 +53,47 @@ export type CaelReceiptHash = string & { readonly __brand: 'CaelReceiptHash' };
 export type TrustTier = 'replayable' | 'adapter-bound' | 'unsigned';
 
 /**
+ * Hash mode recorded by SimulationContract / CAEL. Duplicated here as a
+ * lightweight schema type so @holoscript/core/world-model can stay independent
+ * from the optional @holoscript/engine peer dependency.
+ */
+export type SimulationContractHashMode = 'fnv1a' | 'sha256';
+
+/**
+ * Digest enforcement mode for replay. Same-adapter replays can require exact
+ * state-digest equality; cross-adapter replays use W.GOLD.192 ε-tolerance.
+ */
+export type ReplayDigestMode =
+  | 'strict-same-adapter'
+  | 'epsilon-cross-adapter'
+  | 'unsigned-observed';
+
+/**
+ * Per-field quantization exposed as part of the replay contract. Route 2b
+ * requires q_f to be visible to downstream oracles, not hidden in producer
+ * code, so consumers can compare decisions at the right granularity.
+ */
+export interface SimulationFieldQuantum {
+  readonly fieldPattern: string;
+  readonly quantum: number;
+  readonly units?: string;
+}
+
+/**
+ * Minimal SimulationContract identity pinned to a trajectory. This is the
+ * bridge from world-model curriculum data back to the runtime evidence layer:
+ * contract id, CAEL hash mode, adapter identity, replay digest mode, and the
+ * field quantization contract used for ε-tolerant replay.
+ */
+export interface SimulationContractReference {
+  readonly contractId: string;
+  readonly hashMode: SimulationContractHashMode;
+  readonly adapterFingerprint: string | null;
+  readonly replayDigestMode: ReplayDigestMode;
+  readonly fieldQuantization: readonly SimulationFieldQuantum[];
+}
+
+/**
  * Single action step in the action trace. Domain-agnostic by design —
  * the `payload` is interpreted by the scene's action handler.
  */
@@ -151,9 +192,10 @@ export interface ValidityAnchor {
 export interface ReplayHandle {
   readonly trajectoryId: TrajectoryId;
   readonly sceneHash: SceneHash;
+  readonly simulationContractId: string;
   readonly seed: number;
-  /** Optional CLI command snippet, e.g. `holo replay --id=...` */
-  readonly replayCommand?: string;
+  /** CLI command snippet, e.g. `holo replay --id=...` */
+  readonly replayCommand: string;
 }
 
 // =============================================================================
@@ -185,6 +227,7 @@ export interface AdversarialTrajectory {
   readonly seed: number;
   readonly trustTier: TrustTier;
   readonly caelReceiptHash: CaelReceiptHash | null;
+  readonly simulationContract: SimulationContractReference;
 
   readonly actionTrace: readonly ActionStep[];
   readonly observationTrace: readonly ObservationStep[];
@@ -234,6 +277,24 @@ export interface AdversarialTrajectoryReport {
  */
 export function isCurriculumEligible(trajectory: AdversarialTrajectory): boolean {
   return trajectory.status !== 'invalid' && trajectory.priority.priority > 0;
+}
+
+/**
+ * True when the trajectory has enough replay evidence to route back through
+ * SimulationContract / CAEL. This catches stale schema producers that fill the
+ * trajectory data but omit the command or mismatch the replay handle's contract
+ * id against the SimulationContract reference.
+ */
+export function hasReplayEvidence(trajectory: AdversarialTrajectory): boolean {
+  const contract = trajectory.simulationContract;
+  const handle = trajectory.replayHandle;
+  return (
+    contract.contractId.trim().length > 0 &&
+    handle.simulationContractId === contract.contractId &&
+    handle.replayCommand.trim().length > 0 &&
+    (contract.replayDigestMode === 'unsigned-observed' ||
+      contract.fieldQuantization.length > 0)
+  );
 }
 
 /**

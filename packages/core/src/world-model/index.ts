@@ -11,6 +11,7 @@ export {
   asTrajectoryId,
   asSceneHash,
   asCaelReceiptHash,
+  hasReplayEvidence,
 } from './AdversarialTrajectory';
 
 export {
@@ -27,6 +28,10 @@ export type {
   SceneHash,
   CaelReceiptHash,
   TrustTier,
+  SimulationContractHashMode,
+  ReplayDigestMode,
+  SimulationFieldQuantum,
+  SimulationContractReference,
   ActionStep,
   ObservationStep,
   SemanticPredicateScore,

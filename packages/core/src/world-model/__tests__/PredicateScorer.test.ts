@@ -10,10 +10,20 @@ import {
   asCaelReceiptHash,
   type AdversarialTrajectory,
   type ActionStep,
+  type SimulationContractReference,
   type ValidityAnchor,
 } from '../AdversarialTrajectory';
 
 const SCENE = asSceneHash('scene-001');
+const CONTRACT: SimulationContractReference = {
+  contractId: 'contract-1',
+  hashMode: 'fnv1a',
+  adapterFingerprint: null,
+  replayDigestMode: 'epsilon-cross-adapter',
+  fieldQuantization: [
+    { fieldPattern: 'position', quantum: 1e-5, units: 'm' },
+  ],
+};
 
 function buildTrajectory(actions: ActionStep[] = []): AdversarialTrajectory {
   return {
@@ -22,6 +32,7 @@ function buildTrajectory(actions: ActionStep[] = []): AdversarialTrajectory {
     seed: 1,
     trustTier: 'replayable',
     caelReceiptHash: asCaelReceiptHash('cael-1'),
+    simulationContract: CONTRACT,
     actionTrace: actions,
     observationTrace: [],
     predicateScore: {
@@ -32,7 +43,13 @@ function buildTrajectory(actions: ActionStep[] = []): AdversarialTrajectory {
       invalidity: 0,
     },
     priority: { priority: 0, tieBreaker: 0, rationale: '' },
-    replayHandle: { trajectoryId: asTrajectoryId('t1'), sceneHash: SCENE, seed: 1 },
+    replayHandle: {
+      trajectoryId: asTrajectoryId('t1'),
+      sceneHash: SCENE,
+      simulationContractId: CONTRACT.contractId,
+      seed: 1,
+      replayCommand: 'holoscript replay --trajectory t1 --scene scene-001 --contract contract-1',
+    },
     status: 'open',
     discoveredAtMs: 0,
     lastReplayedAtMs: null,
