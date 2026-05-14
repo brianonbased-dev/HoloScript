@@ -501,6 +501,11 @@ export {
   cloneModeTransitionReceipt,
 } from './board';
 
+// Capability module (Phase 1 — canonical definitions + validators + tests)
+// Exported as namespace to avoid AgentCapability collision with mesh/index.ts.
+// Phase 2 will unify the shapes and promote to direct export.
+export * as capability from './capability';
+
 // Mesh module (absorbed from agent-sdk — peer discovery, gossip, A2A)
 export {
   type PeerMetadata,
