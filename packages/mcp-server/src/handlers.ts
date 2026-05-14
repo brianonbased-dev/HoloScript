@@ -424,7 +424,25 @@ export async function handleTool(
     name === 'hololand_npc_byok_status' ||
     name === 'hololand_brittney_npc_mode' ||
     name === 'hololand_twin_earth_contract' ||
-    name === 'hololand_twin_earth_substrate_status'
+    name === 'hololand_twin_earth_substrate_status' ||
+    // Twin Earth Robot / AI Sovereign Tool Family (task_1778618552503_a6rb)
+    name === 'twin_earth_register_identity' ||
+    name === 'twin_earth_get_identity' ||
+    name === 'twin_earth_update_identity' ||
+    name === 'twin_earth_revoke_identity' ||
+    name === 'twin_earth_list_identities' ||
+    name === 'twin_earth_create_safety_envelope' ||
+    name === 'twin_earth_get_safety_envelope' ||
+    name === 'twin_earth_update_safety_envelope' ||
+    name === 'twin_earth_delete_safety_envelope' ||
+    name === 'twin_earth_list_safety_envelopes' ||
+    name === 'twin_earth_grant_permission' ||
+    name === 'twin_earth_revoke_permission' ||
+    name === 'twin_earth_validate_permission' ||
+    name === 'twin_earth_list_permissions' ||
+    name === 'twin_earth_robot_actuate' ||
+    name === 'twin_earth_ai_invoke' ||
+    name === 'twin_earth_capture_receipt'
   ) {
     const { handleHololandMcpTool } = await import('./hololand-mcp-tools');
     return handleHololandMcpTool(name, args);
