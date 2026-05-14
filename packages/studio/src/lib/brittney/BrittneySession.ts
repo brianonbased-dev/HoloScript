@@ -15,7 +15,7 @@ export interface AssistantMessage {
 }
 
 export interface AssistantStreamEvent {
-  type: 'text' | 'tool_call' | 'tool_result' | 'error' | 'done';
+  type: 'text' | 'tool_call' | 'tool_result' | 'operator_receipt' | 'error' | 'done';
   payload: unknown;
 }
 

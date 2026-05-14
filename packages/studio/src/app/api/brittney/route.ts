@@ -1,4 +1,5 @@
 export const maxDuration = 300;
+export const runtime = 'nodejs';
 
 /**
  * POST /api/brittney — Brittney AI chat endpoint.
@@ -49,6 +50,11 @@ import { EMBODIED_TOOLS, EMBODIED_TOOL_NAMES } from '@/lib/brittney/EmbodiedTool
 import { executeEmbodiedTool } from '@/lib/brittney/EmbodiedTools';
 import { executeStudioTool } from '@/lib/brittney/StudioAPIExecutor';
 import { buildContextualPrompt } from '@/lib/brittney/systemPrompt';
+import {
+  resolveHoloShellOperatorConfig,
+  runHoloShellOperatorTurn,
+  summarizeHoloShellOperatorReceipt,
+} from '@/lib/brittney/HoloShellOperatorBridge';
 import { rateLimit } from '@/lib/rate-limiter';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { requireAuth } from '@/lib/api-auth';
@@ -145,21 +151,24 @@ export async function POST(request: NextRequest) {
       return limit.response;
     }
 
-    // Resolve provider via BRITTNEY_PROVIDER env gate (D.025 Phase 3).
-    // Throws a clear error if no provider is configured.
-    __phase = 'provider';
-    let resolved: ReturnType<typeof resolveBrittneyProvider>;
-    try {
-      resolved = resolveBrittneyProvider();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      return sseResponse([
-        { type: 'error', payload: msg },
-        { type: 'done', payload: null },
-      ]);
-    }
+    __phase = 'holoshell-operator';
+    const holoshellOperator = resolveHoloShellOperatorConfig();
 
-    const { provider, model, maxTokens, providerName } = resolved;
+    // Resolve provider via BRITTNEY_PROVIDER env gate (D.025 Phase 3)
+    // unless Studio has explicitly delegated this turn to HoloShell.
+    let resolved: ReturnType<typeof resolveBrittneyProvider> | null = null;
+    if (!holoshellOperator.requested) {
+      __phase = 'provider';
+      try {
+        resolved = resolveBrittneyProvider();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return sseResponse([
+          { type: 'error', payload: msg },
+          { type: 'done', payload: null },
+        ]);
+      }
+    }
 
     // SEC-T17: cap body bytes before parsing. Per-message content is capped
     // below at MAX_MESSAGE_CHARS (4KB); 32KB body budget covers multi-turn
@@ -235,6 +244,13 @@ export async function POST(request: NextRequest) {
       ]);
     }
 
+    if (holoshellOperator.requested && !holoshellOperator.enabled) {
+      return sseResponse([
+        { type: 'error', payload: holoshellOperator.reason },
+        { type: 'done', payload: null },
+      ]);
+    }
+
     // SEC-T03: credit check before first LLM token (pricing op = Brittney chat).
     __phase = 'credit';
     const gate = await checkCredits(request, 'studio_chat');
@@ -243,6 +259,49 @@ export async function POST(request: NextRequest) {
     __phase = 'system-prompt';
     const systemPrompt = bodySystemPrompt ?? buildContextualPrompt(sceneContext);
     const baseUrl = getBaseUrl(request);
+
+    __phase = 'holoshell-operator';
+    if (holoshellOperator.requested) {
+      const lastUserPrompt = lastUserMessage(llmMessages);
+      try {
+        deductCredits(gate.userId, 'studio_chat').catch(() => {});
+        const receipt = await runHoloShellOperatorTurn(
+          lastUserPrompt,
+          sceneContext,
+          holoshellOperator
+        );
+        return sseResponse([
+          {
+            type: 'operator_receipt',
+            payload: summarizeHoloShellOperatorReceipt(receipt),
+          },
+          {
+            type: 'text',
+            payload:
+              receipt.result.finalText ||
+              'HoloShell staged the Brittney operator turn and wrote a receipt.',
+          },
+          { type: 'done', payload: null },
+        ]);
+      } catch (err) {
+        return sseResponse([
+          {
+            type: 'error',
+            payload: `HoloShell operator failed: ${sanitizeDiagnostic(err)}`,
+          },
+          { type: 'done', payload: null },
+        ]);
+      }
+    }
+
+    if (!resolved) {
+      return sseResponse([
+        { type: 'error', payload: 'Brittney provider was not resolved' },
+        { type: 'done', payload: null },
+      ]);
+    }
+
+    const { provider, model, maxTokens, providerName } = resolved;
 
     // Forward auth-related headers so Studio API calls inherit the session
     const forwardHeaders: Record<string, string> = {};
@@ -297,7 +356,6 @@ export async function POST(request: NextRequest) {
           for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
             // Tool-call accumulators for this round.
             let currentToolName = '';
-            let currentToolId = '';
             let currentToolInput = '';
             const pendingToolCalls: Array<{
               id: string;
@@ -376,7 +434,6 @@ export async function POST(request: NextRequest) {
 
                 case 'tool_use_start': {
                   currentToolName = chunk.name;
-                  currentToolId = chunk.id;
                   currentToolInput = '';
                   break;
                 }
@@ -450,7 +507,6 @@ export async function POST(request: NextRequest) {
                   }
                   currentToolName = '';
                   currentToolInput = '';
-                  currentToolId = '';
                   break;
                 }
 
@@ -629,12 +685,31 @@ function sseHeaders(): HeadersInit {
 type BrittneyPhase =
   | 'auth'
   | 'rate-limit'
-  | 'provider'
   | 'parse'
   | 'credit'
   | 'system-prompt'
+  | 'holoshell-operator'
+  | 'provider'
   | 'tool-conversion'
   | 'stream-init';
+
+function lastUserMessage(messages: LLMMessage[]): string {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message.role !== 'user') continue;
+    if (typeof message.content === 'string') return message.content;
+  }
+  return '';
+}
+
+function sanitizeDiagnostic(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  return raw
+    .replace(/sk-[A-Za-z0-9_-]{16,}/g, 'sk-***')
+    .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, 'Bearer ***')
+    .replace(/eyJ[A-Za-z0-9_.-]{10,}/g, 'eyJ***')
+    .slice(0, 500);
+}
 
 /**
  * Convert any uncaught throw from the POST handler into a 503 + JSON
@@ -682,6 +757,8 @@ function hintForPhase(phase: BrittneyPhase): string {
       return 'Credit gate backend unavailable. Check credit DB / billing service connectivity.';
     case 'system-prompt':
       return 'System prompt construction failed. Check buildContextualPrompt and sceneContext shape.';
+    case 'holoshell-operator':
+      return 'HoloShell operator bridge failed. Check BRITTNEY_OPERATOR_TRANSPORT, HOLOLAND_REPO, and scripts/holoshell-brittney-turn.mjs.';
     case 'tool-conversion':
       return 'Tool definition conversion failed. One of BRITTNEY_TOOLS/STUDIO_API_TOOLS/MCP_TOOLS/etc. is malformed.';
     case 'stream-init':
