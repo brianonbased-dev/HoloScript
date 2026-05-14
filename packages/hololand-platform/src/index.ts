@@ -96,3 +96,39 @@ export type {
   ReviewerSafeTraceEntry,
   ReviewerSafeTraceProvenance,
 } from './evidence';
+
+// Adversarial Trajectory — PROWL response substrate
+export {
+  ADVERSARIAL_TRAJECTORY_SCHEMA,
+  ADVERSARIAL_TRAJECTORY_GENERATOR,
+  createAdversarialTrajectoryReport,
+  createDeterministicFailureScene,
+  simulateScene,
+  replayTrajectory,
+  scoreTrajectory,
+  hashValue,
+  canonicalJson,
+} from './adversarial-trajectory';
+
+export type {
+  PredicateName,
+  TrajectoryStatus as AdversarialTrajectoryStatus,
+  AdversarialActionKind,
+  SemanticEventType,
+  Vector3,
+  SceneObject,
+  DeterministicScene,
+  AdversarialAction,
+  SemanticEvent,
+  AdversarialObservation,
+  SemanticPredicateScore as HololandPredicateScore,
+  CurriculumPriority as HololandCurriculumPriority,
+  ValidityAnchor as HololandValidityAnchor,
+  ReplayHandle as HololandReplayHandle,
+  AdversarialTrajectory as HololandAdversarialTrajectory,
+  AdversarialTrajectorySummary,
+  AdversarialTrajectoryReport as HololandAdversarialTrajectoryReport,
+  AdversarialTrajectoryReportOptions,
+  PredicateReplayDelta,
+  AdversarialTrajectoryReplayResult,
+} from './adversarial-trajectory';

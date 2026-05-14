@@ -49,6 +49,7 @@
     "@holoscript/engine": "workspace:*",
     "@holoscript/core-types": "workspace:*",
     "@holoscript/framework": "workspace:*",
+    "@holoscript/hololand-platform": "workspace:*",
     "@holoscript/llm-provider": "workspace:*",
     "@holoscript/platform": "workspace:*",
     "@holoscript/sdk": "workspace:*",
