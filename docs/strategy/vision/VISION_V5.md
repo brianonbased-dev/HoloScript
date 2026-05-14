@@ -176,7 +176,7 @@ These five traits were originally placeholders but have been fully implemented u
 
 | Document                                                                   | Scope                                   | Relation to v5.0                                              |
 | -------------------------------------------------------------------------- | --------------------------------------- | ------------------------------------------------------------- |
-| [`VISION_HOLOLAND_BOOTSTRAP.md`](VISION_HOLOLAND_BOOTSTRAP.md)             | VR authoring with Brittney (v3.5.0)     | Delivers the authoring UX that feeds content into v5.0 scenes |
+| [`VISION_HOLOLAND_BOOTSTRAP.md`](VISION_HOLOLAND_BOOTSTRAP.md)             | VR authoring on Twin Earth substrate with Brittney as one participant (v3.5.0)     | Delivers the authoring UX that feeds content into v5.0 scenes |
 | [`ROADMAP_v3.1-v5.0_MERGED.md`](ROADMAP_v3.1-v5.0_MERGED.md)               | Full version chain with market analysis | Authoritative milestone source for this document              |
 | [`ROADMAP.md`](ROADMAP.md)                                                 | Current sprint tracking (v3.x)          | Sprint completion feeds into v3.1 readiness                   |
 | [`docs/certification/requirements.md`](docs/certification/requirements.md) | Certified package program               | Trust layer for agent marketplace (v5.0 dependency)           |

@@ -3,8 +3,9 @@
  *
  * Free-tier AI assistant for HoloScript. Provides intelligent
  * error explanation, code fixing, review, and scaffolding.
- * Premium Brittney in Hololand MCP adds live debugging, world
- * management, and advanced AI orchestration.
+ * Premium Brittney MCP adds live debugging, world
+ * management, and advanced AI orchestration. Brittney is one
+ * participant on the Twin Earth substrate, not the substrate itself.
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';

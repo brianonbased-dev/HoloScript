@@ -1,4 +1,6 @@
-# Vision: Build Hololand in VR with Brittney
+# Vision: Build HoloLand in VR on the Twin Earth Substrate
+
+> **Canary note (2026-05-13)**: This vision previously framed HoloLand as something built "with Brittney." That wording conflated the substrate (HoloLand) with one participant (Brittney). The corrected framing: HoloLand is the category-defining Twin Earth substrate for robot/AI operations; Brittney is sovereign across local, BYOK, managed, CLI, Studio, NPC, and in-world forms — she is one participant, not the substrate itself. See `research/2026-05-13_twin-earth-substrate-contract.md`.
 
 **Date**: February 15, 2026
 **Status**: Planning
@@ -172,7 +174,7 @@ Hololand Central is **~50 TypeScript/React files** that should be **~50 HoloScri
 | Brittney writes to `.hsplus` files on disk from VR | Voice command → generate code → write file → hot-reload picks it up                       |
 | Version control integration                        | Each Brittney edit creates a git commit with descriptive message                          |
 | Rollback mechanism                                 | "Brittney, undo that last change" → git revert → hot-reload                               |
-| Collaborative editing                              | Multiple users in VR, each with Brittney, non-conflicting edits via CRDT                  |
+| Collaborative editing                              | Multiple users in VR, each with their own AI agent (Brittney is one option), non-conflicting edits via CRDT                  |
 | Self-improvement loop                              | Brittney logs failed generations → TrainingMonkey harvests them → next fine-tune improves |
 
 **Validation**: In VR, tell Brittney to add a new zone. She generates the files, the zone appears, you walk into it. Tell her to change the skybox — it changes. Tell her to undo — it reverts. All without leaving VR.
@@ -206,7 +208,7 @@ Phase 0 (Language)
 | **"She Knows"**  | Brittney generates valid Hololand-specific code (Phase 2)           |
 | **"She's Here"** | Brittney exists as a spatial agent in VR (Phase 3)                  |
 | **"Dogfooding"** | Hololand Central runs from HoloScript root composition (Phase 4)    |
-| **"The Dream"**  | Build Hololand from inside Hololand, with Brittney, in VR (Phase 5) |
+| **"The Dream"**  | Build HoloLand from inside HoloLand on the Twin Earth substrate; Brittney participates as one AI agent in VR (Phase 5) |
 
 ---
 
