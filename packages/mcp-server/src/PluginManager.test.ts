@@ -16,9 +16,9 @@ describe('PluginManager', () => {
   // We test behavior rather than exact counts.
 
   describe('registerPlugin', () => {
-    it('registers tools', () => {
+    it('registers tools', async () => {
       const initialCount = PluginManager.getTools().length;
-      PluginManager.registerPlugin(
+      await PluginManager.registerPlugin(
         [
           {
             name: 'test_tool_1',
@@ -31,9 +31,9 @@ describe('PluginManager', () => {
       expect(PluginManager.getTools().length).toBe(initialCount + 1);
     });
 
-    it('registers multiple tools at once', () => {
+    it('registers multiple tools at once', async () => {
       const initialCount = PluginManager.getTools().length;
-      PluginManager.registerPlugin(
+      await PluginManager.registerPlugin(
         [
           { name: 'multi_1', description: 'Multi 1', inputSchema: { type: 'object' as const } },
           { name: 'multi_2', description: 'Multi 2', inputSchema: { type: 'object' as const } },
@@ -53,7 +53,7 @@ describe('PluginManager', () => {
 
   describe('handleTool', () => {
     it('dispatches to registered handler', async () => {
-      PluginManager.registerPlugin(
+      await PluginManager.registerPlugin(
         [{ name: 'dispatch_test', description: 'Test', inputSchema: { type: 'object' as const } }],
         async (name, args) => ({ handled: true, name, args })
       );
