@@ -707,13 +707,15 @@ describe('IntervalTimer', () => {
     expect(timer.running).toBe(false);
   });
 
-  it('fires callback at interval', async () => {
+  it('fires callback at interval', () => {
+    vi.useFakeTimers();
     const fn = vi.fn();
     const timer = new IntervalTimer(fn, 10);
     timer.start();
-    await new Promise((r) => setTimeout(r, 80));
+    vi.advanceTimersByTime(80);
     timer.stop();
     expect(fn.mock.calls.length).toBeGreaterThanOrEqual(2);
+    vi.useRealTimers();
   });
 
   it('pause stops the interval without clearing isPaused', () => {
