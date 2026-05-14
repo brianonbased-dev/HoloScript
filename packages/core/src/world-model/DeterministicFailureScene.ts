@@ -117,7 +117,7 @@ const DEFAULT_SEED = 1_337;
 const DEFAULT_DISCOVERED_AT_MS = 1_700_000_000_000;
 const STEP_MS = 100;
 
-const CONTRACT: SimulationContractReference = {
+export const DETERMINISTIC_FAILURE_CONTRACT: SimulationContractReference = {
   contractId: 'world-model-deterministic-contact-v1',
   hashMode: 'fnv1a',
   adapterFingerprint: 'core-world-model-deterministic-scene-v1',
@@ -444,7 +444,7 @@ export function buildDeterministicFailureTrajectory(
     seed: result.seed,
     trustTier: 'replayable',
     caelReceiptHash: asCaelReceiptHash(result.eventLogHash),
-    simulationContract: CONTRACT,
+    simulationContract: DETERMINISTIC_FAILURE_CONTRACT,
     actionTrace: result.actionTrace,
     observationTrace: result.observationTrace,
     predicateScore: {
@@ -458,7 +458,7 @@ export function buildDeterministicFailureTrajectory(
     replayHandle: {
       trajectoryId: id,
       sceneHash: result.sceneHash,
-      simulationContractId: CONTRACT.contractId,
+      simulationContractId: DETERMINISTIC_FAILURE_CONTRACT.contractId,
       seed: result.seed,
       replayCommand,
     },
