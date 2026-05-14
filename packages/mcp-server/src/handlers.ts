@@ -414,7 +414,7 @@ export async function handleTool(
     return handleGraphTool(name, args);
   }
 
-  // IDE tools (migrated from Hololand/Brittney)
+  // IDE tools (migrated from legacy HoloLand IDE tooling)
   if (name.startsWith('hs_') && !name.startsWith('hs_ai_')) {
     return handleIDETool(name, args);
   }
