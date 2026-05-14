@@ -4,30 +4,97 @@
  * Experimental flagship stage for format-realism automation.
  * This file is intentionally conservative syntax: it should provide a stable
  * visual stage while .hsplus and .hs push behavior and orchestration.
+ *
+ * Staging goals:
+ *   - avatar reads as humanoid at a glance (silhouette + color)
+ *   - rock is distinct from ground and hands (geometry + material)
+ *   - target is immediately recognizable (emissive bullseye)
+ *   - action line from avatar -> rock -> target is clear (lighting + camera)
+ *   - capture panels are legible (emissive backing + contrast)
+ *   - camera rail and trajectory arc are visible without clutter
  */
 
 composition "Humanoid Rock Throw Gauntlet" {
   environment {
     skybox: "studio"
     backgroundColor: "#0b0f14"
-    ambient_light: 0.45
+    ambient_light: 0.35
     shadows: true
     physics: true
     physics_substeps: 4
+    fog: { color: "#0b0f14", near: 14, far: 28 }
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Lighting: key + fill + rim so silhouette reads at a glance
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  object "KeyLight" {
+    directional_light
+    position: [6, 10, 8]
+    color: "#fff5e6"
+    intensity: 1.4
+    cast_shadow: true
+  }
+
+  object "FillLight" {
+    point_light
+    position: [-4, 5, -3]
+    color: "#c7d9ff"
+    intensity: 0.6
+    distance: 18
+  }
+
+  object "RimLight" {
+    spot_light
+    position: [-2, 4, 6]
+    color: "#ffd4a3"
+    intensity: 1.0
+    angle: 0.55
+    penumbra: 0.45
+    target: [0, 1, 0]
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Templates
+  // ═══════════════════════════════════════════════════════════════════════════
 
   template "FloorTile" {
     @static
     @collidable
     geometry: "plane"
     color: "#202733"
+    material: {
+      color: "#1a2330"
+      roughness: 0.85
+      metallic: 0.05
+    }
+  }
+
+  template "StageEdge" {
+    @static
+    @collidable
+    geometry: "cube"
+    color: "#2a3442"
+    material: {
+      color: "#2a3442"
+      roughness: 0.7
+      metallic: 0.15
+    }
   }
 
   template "AvatarPart" {
     @animated
     @collidable
-    geometry: "cylinder"
+    geometry: "capsule"
     color: "#7aa2f7"
+    material: {
+      color: "#7aa2f7"
+      roughness: 0.5
+      metallic: 0.1
+      emissive: "#2a3f6b"
+      emissiveIntensity: 0.35
+    }
   }
 
   template "HandProxy" {
@@ -35,6 +102,13 @@ composition "Humanoid Rock Throw Gauntlet" {
     @collidable
     geometry: "sphere"
     color: "#9ece6a"
+    material: {
+      color: "#9ece6a"
+      roughness: 0.4
+      metallic: 0.05
+      emissive: "#2a4a1a"
+      emissiveIntensity: 0.25
+    }
   }
 
   template "ThrowRock" {
@@ -52,8 +126,13 @@ composition "Humanoid Rock Throw Gauntlet" {
     }
     @collidable
 
-    geometry: "sphere"
+    geometry: "dodecahedron"
     color: "#7c6f64"
+    material: {
+      color: "#7c6f64"
+      roughness: 0.92
+      metallic: 0.0
+    }
   }
 
   template "ImpactTarget" {
@@ -62,8 +141,29 @@ composition "Humanoid Rock Throw Gauntlet" {
       mass: 20
       type: "static"
     }
-    geometry: "cube"
+    geometry: "cylinder"
     color: "#f7768e"
+    material: {
+      color: "#1e1e2e"
+      roughness: 0.6
+      metallic: 0.2
+      emissive: "#f7768e"
+      emissiveIntensity: 0.55
+    }
+  }
+
+  template "TargetRing" {
+    @billboard
+    geometry: "ring"
+    color: "#f7768e"
+    material: {
+      color: "#f7768e"
+      emissive: "#f7768e"
+      emissiveIntensity: 0.8
+      transparent: true
+      opacity: 0.85
+      side: "double"
+    }
   }
 
   template "CaptureMarker" {
@@ -71,25 +171,86 @@ composition "Humanoid Rock Throw Gauntlet" {
     @anchor
     geometry: "plane"
     color: "#f5f5f5"
+    material: {
+      color: "#f5f5f5"
+      emissive: "#e8e8e8"
+      emissiveIntensity: 0.15
+      transparent: true
+      opacity: 0.94
+    }
   }
+
+  template "LegProxy" {
+    @animated
+    @collidable
+    geometry: "capsule"
+    color: "#5c7aea"
+    material: {
+      color: "#5c7aea"
+      roughness: 0.55
+      metallic: 0.1
+      emissive: "#1a2654"
+      emissiveIntensity: 0.3
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Stage: ground + edge trim so the world boundary reads instantly
+  // ═══════════════════════════════════════════════════════════════════════════
 
   object "Ground" using "FloorTile" {
     position: [0, 0, 0]
     rotation: [-90, 0, 0]
     scale: [14, 10, 1]
+    label: "stage floor"
   }
 
+  object "StageFrontEdge" using "StageEdge" {
+    position: [0, 0.04, 5.05]
+    scale: [14.2, 0.08, 0.12]
+    label: "stage front lip"
+  }
+
+  object "StageBackEdge" using "StageEdge" {
+    position: [0, 0.04, -5.05]
+    scale: [14.2, 0.08, 0.12]
+    label: "stage back lip"
+  }
+
+  object "StageLeftEdge" using "StageEdge" {
+    position: [-7.05, 0.04, 0]
+    scale: [0.12, 0.08, 10.2]
+    label: "stage left lip"
+  }
+
+  object "StageRightEdge" using "StageEdge" {
+    position: [7.05, 0.04, 0]
+    scale: [0.12, 0.08, 10.2]
+    label: "stage right lip"
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Avatar: humanoid silhouette — torso, head, arms, legs
+  // ═══════════════════════════════════════════════════════════════════════════
+
   object "HumanoidTorso" using "AvatarPart" {
-    position: [-3, 1.1, 0]
-    scale: [0.38, 1.1, 0.38]
+    position: [-3, 1.35, 0]
+    scale: [0.38, 0.95, 0.32]
     label: "humanoid torso"
   }
 
   object "HumanoidHead" {
     geometry: "sphere"
-    position: [-3, 1.95, 0]
+    position: [-3, 2.15, 0]
     scale: [0.28, 0.28, 0.28]
     color: "#c0caf5"
+    material: {
+      color: "#c0caf5"
+      roughness: 0.35
+      metallic: 0.05
+      emissive: "#2a3f6b"
+      emissiveIntensity: 0.2
+    }
     label: "head gaze toward rock"
   }
 
@@ -105,6 +266,22 @@ composition "Humanoid Rock Throw Gauntlet" {
     label: "right hand reaches rock"
   }
 
+  object "LeftLeg" using "LegProxy" {
+    position: [-3.2, 0.55, 0]
+    scale: [0.14, 0.55, 0.14]
+    label: "left leg"
+  }
+
+  object "RightLeg" using "LegProxy" {
+    position: [-2.8, 0.55, 0]
+    scale: [0.14, 0.55, 0.14]
+    label: "right leg"
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Props: rock, target, trajectory arc, camera rail
+  // ═══════════════════════════════════════════════════════════════════════════
+
   object "Rock" using "ThrowRock" {
     position: [-1.2, 0.35, 0]
     scale: [0.28, 0.22, 0.25]
@@ -117,13 +294,40 @@ composition "Humanoid Rock Throw Gauntlet" {
     label: "impact target"
   }
 
+  object "TargetBullseye" using "TargetRing" {
+    position: [3.5, 1, 0.14]
+    scale: [0.72, 0.72, 0.72]
+    label: "target bullseye"
+  }
+
+  object "TargetOuterRing" using "TargetRing" {
+    position: [3.5, 1, 0.14]
+    scale: [1.05, 1.05, 1.05]
+    material: {
+      color: "#f7768e"
+      emissive: "#f7768e"
+      emissiveIntensity: 0.4
+      transparent: true
+      opacity: 0.55
+      side: "double"
+    }
+    label: "target outer ring"
+  }
+
   object "TrajectoryArcPreview" {
     geometry: "cylinder"
     position: [1.1, 1.65, 0]
     rotation: [0, 0, 62]
     scale: [0.025, 3.6, 0.025]
     color: "#e0af68"
-    label: "ballistic arc placeholder"
+    material: {
+      color: "#e0af68"
+      emissive: "#e0af68"
+      emissiveIntensity: 0.35
+      transparent: true
+      opacity: 0.75
+    }
+    label: "ballistic arc preview"
   }
 
   object "CaptureRail" {
@@ -131,19 +335,48 @@ composition "Humanoid Rock Throw Gauntlet" {
     position: [0, 0.05, -3.2]
     scale: [7, 0.04, 0.04]
     color: "#565f89"
+    material: {
+      color: "#565f89"
+      emissive: "#414868"
+      emissiveIntensity: 0.25
+    }
     label: "camera rail"
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Evidence panels: larger, emissive-backed, higher contrast
+  // ═══════════════════════════════════════════════════════════════════════════
+
   object "SegmentPanel" using "CaptureMarker" {
-    position: [0, 2.9, -2.6]
-    scale: [4.6, 0.72, 0.08]
+    position: [0, 3.05, -2.6]
+    scale: [5.2, 0.82, 0.08]
     label: "segments: load approach reach grab lift windup release arc impact aftermath"
   }
 
   object "ProvenancePanel" using "CaptureMarker" {
-    position: [0, 2.05, -2.62]
-    scale: [4.6, 0.52, 0.08]
+    position: [0, 2.15, -2.62]
+    scale: [5.2, 0.62, 0.08]
     color: "#d5f5e3"
+    material: {
+      color: "#d5f5e3"
+      emissive: "#1a3a2a"
+      emissiveIntensity: 0.15
+      transparent: true
+      opacity: 0.94
+    }
     label: "receipt: parse compile runtime stills physics tasks"
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Camera: explicit framing so the action line reads from the still
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  camera perspective {
+    position: [-4.5, 2.4, 5.5]
+    look_at: [0.8, 1.0, 0]
+    fov: 42
+    near: 0.1
+    far: 50
+    label: "main capture camera"
   }
 }
