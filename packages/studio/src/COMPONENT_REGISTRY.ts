@@ -266,6 +266,158 @@ export const COMPONENT_REGISTRY = {
       'React hook that manages DispatchTraceCollector, simulates dispatch decisions per frame, and exposes rolling telemetry to RuntimeTierPanel.',
     usedIn: ['components/panels/RuntimeTierPanel.tsx'],
   },
+
+  // ═══════════════════════════════════════════════════════════════════
+  // EXPORT PANELS (2026-05-14 AUDIT: DUPLICATE CLUSTERS)
+  // ═══════════════════════════════════════════════════════════════════
+
+  ExportPanel_Scene: {
+    canonical: 'components/export/ExportPanel.tsx',
+    exports: ['ExportPanel'],
+    domain: 'export',
+    description:
+      'Scene export panel with glTF/USD/USDZ/JSON format picker. Uses useSceneExport hook. Downloads ZIP with source + exported file.',
+    usedIn: ['app/create/page.tsx (exportOpen rail)'],
+    note: 'V1 - uses useSceneExport hook pattern',
+  },
+
+  ExportPipelinePanel: {
+    canonical: 'components/export/ExportPipelinePanel.tsx',
+    exports: ['ExportPipelinePanel'],
+    domain: 'export',
+    description:
+      'Export pipeline v2 with OBJ/FBX/glTF/USD/JSON format grid. Direct API call to /api/export/v2. Includes SceneIngestHarnessSection.',
+    usedIn: ['TBD - needs consolidation'],
+    note: 'V2 - direct API pattern. DUPLICATE: Should consolidate with ExportPanel.',
+    deprecated: [
+      {
+        file: 'components/export/ExportPipelinePanel.tsx',
+        export: 'ExportPipelinePanel',
+        reason:
+          'Functional duplicate of ExportPanel. Same purpose (scene export), different implementation. Consolidate by adding OBJ/FBX to ExportPanel format list.',
+      },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════
+  // SHADER EDITORS (2026-05-14 AUDIT: DUPLICATE CLUSTERS)
+  // ═══════════════════════════════════════════════════════════════════
+
+  ShaderEditor_NodeGraph: {
+    canonical: 'components/shader-editor/ShaderEditor.tsx',
+    exports: ['ShaderEditor'],
+    domain: 'shader-editor',
+    description:
+      'Full visual node-graph shader editor with toolbar, node palette, canvas, material preview, and code panel.',
+    usedIn: ['app/shader-editor/page.tsx'],
+  },
+
+  ShaderEditorPanel_Monaco: {
+    canonical: 'components/shader-editor/ShaderEditorPanel.tsx',
+    exports: ['ShaderEditorPanel'],
+    domain: 'shader-editor',
+    description:
+      'Monaco-based GLSL shader editor with live Three.js preview sphere, vertex/fragment tabs, and apply-to-material.',
+    usedIn: ['app/create/page.tsx (bottom panel)'],
+    note: 'Textual shader editor for quick edits',
+  },
+
+  ShaderPanel_Graph: {
+    canonical: 'components/panels/ShaderPanel.tsx',
+    exports: ['ShaderPanel'],
+    domain: 'shader',
+    description:
+      'Simplified shader graph visual editor with node add buttons, compile, and demo. Uses useShaderGraph hook.',
+    usedIn: ['TBD - needs usage audit'],
+    note: 'DUPLICATE: Overlaps with ShaderEditor components. Simpler graph-only view.',
+    deprecated: [
+      {
+        file: 'components/panels/ShaderPanel.tsx',
+        export: 'ShaderPanel',
+        reason:
+          'Functional overlap with ShaderEditor.tsx and ShaderEditorPanel.tsx. Same domain (shader editing), different UI approach. Consolidate into single ShaderEditor with graph/text toggle.',
+      },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════
+  // PARTICLE PANELS (2026-05-14 AUDIT: DUPLICATE CLUSTERS)
+  // ═══════════════════════════════════════════════════════════════════
+
+  ParticlePanel_Presets: {
+    canonical: 'components/particles/ParticlePanel.tsx',
+    exports: ['ParticlePanel'],
+    domain: 'particles',
+    description:
+      'Right-rail preset picker for @particles trait. Fetches presets from /api/particles, supports search and type filter. Inserts trait snippets into scene code.',
+    usedIn: ['app/create/page.tsx (particlesOpen rail)'],
+    note: 'V2 - API-driven preset browser with trait insertion',
+  },
+
+  ParticlePanel_Legacy: {
+    canonical: 'components/panels/ParticlePanel.tsx',
+    exports: ['ParticlePanel'],
+    domain: 'particles',
+    description:
+      'Legacy particle system preset browser with direct useParticles hook integration. Burst, step, emit controls with visual preview.',
+    usedIn: ['TBD - needs usage audit'],
+    note: 'V1 - Direct hook integration. DUPLICATE: Same name, different implementation.',
+    deprecated: [
+      {
+        file: 'components/panels/ParticlePanel.tsx',
+        export: 'ParticlePanel',
+        reason:
+          'Naming collision + functional overlap with components/particles/ParticlePanel.tsx. Legacy uses useParticles hook directly; newer version uses API. Consolidate by migrating useParticles features to API-driven version.',
+      },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════
+  // HISTORY/UNDO PANELS (2026-05-14 AUDIT: DUPLICATE CLUSTERS)
+  // ═══════════════════════════════════════════════════════════════════
+
+  HistoryPanel: {
+    canonical: 'components/HistoryPanel.tsx',
+    exports: ['HistoryPanel'],
+    domain: 'history',
+    description:
+      'Full history sidebar with list/tree view toggle, labeled entries from historyLabelStore, undo/redo/clear buttons, and future state display.',
+    usedIn: ['app/create/page.tsx (historyOpen rail, undoHistoryOpen rail)'],
+  },
+
+  UndoHistorySidebar: {
+    canonical: 'components/history/UndoHistorySidebar.tsx',
+    exports: ['UndoHistorySidebar'],
+    domain: 'history',
+    description: 'V1 sidebar using useUndoHistory hook. Shows labeled history entries with jumpTo.',
+    usedIn: ['TBD - needs usage audit'],
+    deprecated: [
+      {
+        file: 'components/history/UndoHistorySidebar.tsx',
+        export: 'UndoHistorySidebar',
+        reason:
+          'Already marked deprecated in registry (2026-03-01). Replaced by HistoryPanel with list/tree toggle.',
+      },
+    ],
+  },
+
+  UndoTreePanel: {
+    canonical: 'components/history/UndoTreePanel.tsx',
+    exports: ['UndoTreePanel'],
+    domain: 'history',
+    description: 'Tree-based undo/redo visualization. Alternative view to HistoryPanel list view.',
+    usedIn: ['TBD - needs usage audit'],
+    note: 'May be complementary to HistoryPanel, not duplicate. Verify usage.',
+  },
+
+  VersionHistoryPanel: {
+    canonical: 'components/versionControl/VersionHistoryPanel.tsx',
+    exports: ['VersionHistoryPanel'],
+    domain: 'version-control',
+    description: 'Version control history panel for scene versions.',
+    usedIn: ['TBD - needs usage audit'],
+    note: 'Separate domain (git-like versioning vs undo history). Not a duplicate.',
+  },
 } as const;
 
 /**
