@@ -772,4 +772,120 @@ describe('HoloLand agent canary', () => {
     const findings = r.findings as Array<Record<string, unknown>>;
     expect(findings.some((f) => (f.ruleId as string) === 'IDENTITY-008')).toBe(true);
   });
+
+  // ── Workflow 8: Package & Receipt Provenance (task_1778618757735_1mih) ──
+
+  it('canary: conformance_check_artifact passes a valid package provenance', async () => {
+    const result = await tool('conformance_check_artifact', {
+      artifactKind: 'package',
+      artifactId: 'canary-pkg-ok',
+      artifact: {
+        sourceHash: 'a'.repeat(64),
+        packageId: '@holoscript/core',
+        version: '7.0.0',
+        signer: '0xSigner',
+        trustTier: 'verified',
+        compilerVersion: '7.0.0',
+        runtimeVersion: '7.0.0',
+        admissionDecision: 'admitted',
+        checkedAt: new Date().toISOString(),
+        signature: '0xSig',
+        keyFingerprint: 'fp-abc',
+      },
+    });
+    expect(result.success).toBe(true);
+    expect(result.report.passed).toBe(true);
+    expect(result.report.criticalCount).toBe(0);
+    expect(result.report.findings).toHaveLength(0);
+  });
+
+  it('canary: conformance_check_artifact fails package with missing sourceHash', async () => {
+    const result = await handleTool('conformance_check_artifact', {
+      artifactKind: 'package',
+      artifactId: 'canary-pkg-bad',
+      artifact: {
+        sourceHash: '',
+        packageId: '@holoscript/core',
+        version: '7.0.0',
+        signer: '',
+        trustTier: 'unverified',
+        admissionDecision: 'admitted',
+        checkedAt: 'invalid-date',
+      },
+    });
+    expect(result).toBeDefined();
+    const r = (result as Record<string, unknown>).report as Record<string, unknown>;
+    expect(r.passed).toBe(false);
+    const findings = r.findings as Array<Record<string, unknown>>;
+    expect(findings.some((f) => (f.ruleId as string) === 'PACKAGE-001')).toBe(true);
+    expect(findings.some((f) => (f.ruleId as string) === 'PACKAGE-004')).toBe(true);
+    expect(findings.some((f) => (f.ruleId as string) === 'PACKAGE-006')).toBe(true);
+    expect(findings.some((f) => (f.ruleId as string) === 'PACKAGE-008')).toBe(true);
+  });
+
+  it('canary: conformance_check_artifact passes a valid receipt', async () => {
+    const result = await tool('conformance_check_artifact', {
+      artifactKind: 'receipt',
+      artifactId: 'canary-receipt-ok',
+      artifact: {
+        kind: 'provenance',
+        id: 'receipt-ok',
+        artifactId: 'artifact-1',
+        hash: 'a'.repeat(64),
+        hashAlgorithm: 'sha256',
+        issuedAt: new Date().toISOString(),
+        verificationCommands: [{ command: 'node verify.mjs' }],
+      },
+    });
+    expect(result.success).toBe(true);
+    expect(result.report.passed).toBe(true);
+    expect(result.report.criticalCount).toBe(0);
+  });
+
+  it('canary: conformance_check_artifact fails receipt with missing id and invalid kind', async () => {
+    const result = await handleTool('conformance_check_artifact', {
+      artifactKind: 'receipt',
+      artifactId: 'canary-receipt-bad',
+      artifact: {
+        kind: 'bogus',
+        id: '',
+        artifactId: '',
+        hash: '',
+        hashAlgorithm: 'md5',
+        issuedAt: 'not-a-date',
+        verificationCommands: [{ command: '' }],
+      },
+    });
+    expect(result).toBeDefined();
+    const r = (result as Record<string, unknown>).report as Record<string, unknown>;
+    expect(r.passed).toBe(false);
+    const findings = r.findings as Array<Record<string, unknown>>;
+    expect(findings.some((f) => (f.ruleId as string) === 'RECEIPT-001')).toBe(true);
+    expect(findings.some((f) => (f.ruleId as string) === 'RECEIPT-002')).toBe(true);
+    expect(findings.some((f) => (f.ruleId as string) === 'RECEIPT-003')).toBe(true);
+    expect(findings.some((f) => (f.ruleId as string) === 'RECEIPT-004')).toBe(true);
+    expect(findings.some((f) => (f.ruleId as string) === 'RECEIPT-005')).toBe(true);
+    expect(findings.some((f) => (f.ruleId as string) === 'RECEIPT-006')).toBe(true);
+    expect(findings.some((f) => (f.ruleId as string) === 'RECEIPT-007')).toBe(true);
+  });
+
+  it('canary: conformance_admit_artifact blocks unverified package', async () => {
+    const result = await handleTool('conformance_admit_artifact', {
+      artifactKind: 'package',
+      artifactId: 'canary-pkg-unverified',
+      artifact: {
+        sourceHash: 'a'.repeat(64),
+        packageId: '@holoscript/core',
+        version: '7.0.0',
+        signer: '0xSigner',
+        trustTier: 'unverified',
+        admissionDecision: 'admitted',
+        checkedAt: new Date().toISOString(),
+      },
+    });
+    expect(result).toBeDefined();
+    const res = result as Record<string, unknown>;
+    expect(res.success).toBe(false);
+    expect(res.admitted).toBe(false);
+  });
 });

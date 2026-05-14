@@ -747,16 +747,104 @@ export function cloneValidationReceipt(receipt: ValidationReceipt): ValidationRe
   };
 }
 
-export function cloneCrossHardwareCompilationReceipt(
-  receipt: CrossHardwareCompilationReceipt,
-): CrossHardwareCompilationReceipt {
+// ── Package Provenance Receipt ──
+
+/**
+ * Package provenance receipt — captures source hash, signer trust tier,
+ * compiler/runtime versions, and admission decision for HoloScript artifacts.
+ *
+ * Designed for the artifact admission gate (task_1778618757735_1mih).
+ */
+export interface PackageProvenanceReceipt {
+  /** Stable receipt id, e.g. `pkg_core_7.0.0_20260513_xyz`. */
+  id: string;
+  /** Source code hash (SHA-256 hex of canonical source tree). */
+  sourceHash: string;
+  /** Package identifier (npm scope + name or internal id). */
+  packageId: string;
+  /** Package version (semver). */
+  version: string;
+  /** Signer identity — wallet address, agent handle, or key fingerprint. */
+  signer: string;
+  /** Trust tier of the signer at admission time. */
+  trustTier: 'founder' | 'diamond' | 'platinum' | 'gold' | 'verified' | 'unverified';
+  /** Compiler version that produced the artifact (if compiled). */
+  compilerVersion?: string;
+  /** Runtime version required to execute the artifact. */
+  runtimeVersion?: string;
+  /** Admission decision from the conformance gate. */
+  admissionDecision: 'admitted' | 'rejected' | 'pending';
+  /** ISO-8601 timestamp of the admission check. */
+  checkedAt: string;
+  /** Optional Ed25519 signature over the canonical provenance block. */
+  signature?: string;
+  /** Public key fingerprint for signature verification. */
+  keyFingerprint?: string;
+  /** Provenance link back to the producing task / commit. */
+  provenance?: ArtifactProvenanceLink;
+  /** Verification commands that prove the source hash reproduces. */
+  verificationCommands?: ArtifactVerificationCommand[];
+  metadata?: Record<string, unknown>;
+}
+
+const PACKAGE_PROVENANCE_TRUST_TIERS = [
+  'founder',
+  'diamond',
+  'platinum',
+  'gold',
+  'verified',
+  'unverified',
+] as const;
+
+const PACKAGE_PROVENANCE_ADMISSION_DECISIONS = ['admitted', 'rejected', 'pending'] as const;
+
+export function isSupportedTrustTier(tier: string): tier is PackageProvenanceReceipt['trustTier'] {
+  return (PACKAGE_PROVENANCE_TRUST_TIERS as readonly string[]).includes(tier);
+}
+
+export function isSupportedAdmissionDecision(
+  decision: string,
+): decision is PackageProvenanceReceipt['admissionDecision'] {
+  return (PACKAGE_PROVENANCE_ADMISSION_DECISIONS as readonly string[]).includes(decision);
+}
+
+export function validatePackageProvenanceReceipt(receipt: PackageProvenanceReceipt): string[] {
+  const errors: string[] = [];
+  if (!receipt.id) errors.push('PackageProvenanceReceipt.id is required.');
+  if (!receipt.sourceHash || receipt.sourceHash.length !== 64) {
+    errors.push('PackageProvenanceReceipt.sourceHash is required and must be a 64-character SHA-256 hex string.');
+  }
+  if (!receipt.packageId) errors.push('PackageProvenanceReceipt.packageId is required.');
+  if (!receipt.version || !/^\d+\.\d+\.\d+/.test(receipt.version)) {
+    errors.push(`PackageProvenanceReceipt.version '${receipt.version}' is not valid semver.`);
+  }
+  if (!receipt.signer) errors.push('PackageProvenanceReceipt.signer is required.');
+  if (!isSupportedTrustTier(receipt.trustTier)) {
+    errors.push(`PackageProvenanceReceipt.trustTier is unsupported: ${String(receipt.trustTier)}.`);
+  }
+  if (!isSupportedAdmissionDecision(receipt.admissionDecision)) {
+    errors.push(`PackageProvenanceReceipt.admissionDecision is unsupported: ${String(receipt.admissionDecision)}.`);
+  }
+  if (receipt.trustTier === 'unverified' && receipt.admissionDecision === 'admitted') {
+    errors.push(`PackageProvenanceReceipt ${receipt.id} unverified signer cannot be admitted.`);
+  }
+  if (!receipt.checkedAt || Number.isNaN(Date.parse(receipt.checkedAt))) {
+    errors.push('PackageProvenanceReceipt.checkedAt is required and must be a valid ISO-8601 timestamp.');
+  }
+  if (receipt.signature && !receipt.keyFingerprint) {
+    errors.push(`PackageProvenanceReceipt ${receipt.id} has signature but no keyFingerprint.`);
+  }
+  for (const command of receipt.verificationCommands ?? []) {
+    if (!command.command) {
+      errors.push(`PackageProvenanceReceipt ${receipt.id} has a verification command without command text.`);
+    }
+  }
+  return errors;
+}
+
+export function clonePackageProvenanceReceipt(receipt: PackageProvenanceReceipt): PackageProvenanceReceipt {
   return {
     ...receipt,
-    ...(receipt.constraints ? { constraints: { ...receipt.constraints } } : {}),
-    ...(receipt.measuredResults ? { measuredResults: { ...receipt.measuredResults } } : {}),
-    ...(receipt.replayInputs
-      ? { replayInputs: receipt.replayInputs.map(cloneReplayInput) }
-      : {}),
     ...(receipt.provenance ? { provenance: cloneProvenance(receipt.provenance) } : {}),
     ...(receipt.verificationCommands
       ? { verificationCommands: cloneVerificationCommands(receipt.verificationCommands) }
@@ -764,3 +852,4 @@ export function cloneCrossHardwareCompilationReceipt(
     ...(receipt.metadata ? { metadata: { ...receipt.metadata } } : {}),
   };
 }
+
