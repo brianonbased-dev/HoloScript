@@ -1,25 +1,23 @@
 /**
- * @fileoverview @platform() Conditional Compilation — Negative Tests & Validation Gaps
+ * @fileoverview @platform() Conditional Compilation — Negative Tests & Compiler Gate
  *
  * This test file documents the "rejected" contract for @platform() conditional compilation:
  * - What invalid syntax looks like
  * - How the parser currently handles malformed input
- * - Validation gaps that need to be addressed
+ * - How the **compiler gate** (validatePlatformConstraints) catches invalid constraints
  *
  * PROTOTYPE STATUS (2026-05-14):
- * The parser is permissive — it accepts unknown platform names and some malformed syntax
- * without producing errors. This is by design (future-proofing), but means validation
- * must happen at compile-time or via a separate validation pass.
+ * The parser stays permissive (future-proofing), but the compiler gate now fails clearly
+ * for empty constraints and unknown platform names.
  *
  * What this prototype proves:
  * 1. REPRESENTED: @platform(...) blocks parse into PlatformConstraint AST nodes ✓
  * 2. LOWERED: filterForPlatform() strips non-matching blocks (dead code elimination) ✓
- * 3. REJECTED: Unknown platforms are filtered out (don't match any target) ✓
+ * 3. REJECTED: Compiler gate validates constraints — empty / unknown names fail clearly ✓
  *
- * What needs validation added:
- * - Empty @platform() should fail
- * - Unknown platform names should warn
- * - Malformed syntax (missing commas, etc.) should fail
+ * Remaining gaps (need parser grammar changes):
+ * - Missing comma between platform names (parser swallows both, AST looks valid)
+ * - Trailing comma inside @platform(...)
  */
 
 import { describe, it, expect } from 'vitest';
@@ -27,6 +25,7 @@ import { HoloCompositionParser } from '../../../parser/HoloCompositionParser';
 import {
   PlatformConditionalCompilerMixin,
   createPlatformTarget,
+  validatePlatformConstraints,
 } from '../../PlatformConditionalCompilerMixin';
 import {
   ALL_PLATFORMS,
@@ -332,33 +331,53 @@ describe('Compiler validation integration', () => {
 });
 
 // =============================================================================
-// VALIDATION TODO — Tests that should pass after validation is added
+// COMPILER GATE — Unsupported syntax fails clearly (post-parse validation)
 // =============================================================================
 
-describe.skip('VALIDATION TODO — future validation tests', () => {
+describe('Compiler gate — @platform() validation', () => {
   it('@platform() empty should fail', () => {
-    // TODO: Add validation
-    const { errors } = parseWithErrors(`
+    const { ast } = parseWithErrors(`
       composition "Test" {
         @platform() object "Empty" { visible: true }
       }
     `);
-    expect(errors.length).toBeGreaterThan(0);
+    const validationErrors = validatePlatformConstraints(ast);
+    expect(validationErrors.length).toBeGreaterThan(0);
+    expect(validationErrors[0]).toContain('Empty @platform()');
   });
 
-  it('@platform(xbox) should warn — unknown platform', () => {
-    // TODO: Add compile-time warning for unknown platform names
+  it('@platform(xbox) should fail — unknown platform', () => {
     const { ast } = parseWithErrors(`
       composition "Test" {
         @platform(xbox) object "XBoxOnly" { visible: true }
       }
     `);
-    // Should produce warning: "xbox is not a recognized platform"
-    expect(ast).toBeDefined();
+    const validationErrors = validatePlatformConstraints(ast);
+    expect(validationErrors.length).toBeGreaterThan(0);
+    expect(validationErrors[0]).toContain("Unknown platform 'xbox'");
   });
 
+  it('@platform(not: xbox) should fail — unknown platform in exclusion', () => {
+    const { ast } = parseWithErrors(`
+      composition "Test" {
+        @platform(not: xbox) object "NotXbox" { visible: true }
+      }
+    `);
+    const validationErrors = validatePlatformConstraints(ast);
+    expect(validationErrors.length).toBeGreaterThan(0);
+    expect(validationErrors[0]).toContain("Unknown platform 'xbox'");
+    expect(validationErrors[0]).toContain('@platform(not: ...)');
+  });
+});
+
+// =============================================================================
+// GRAMMAR TODO — Needs parser grammar change to detect missing/trailing commas
+// =============================================================================
+
+describe.skip('GRAMMAR TODO — parser-level syntax validation', () => {
   it('@platform(vr ar) should fail — missing comma', () => {
-    // TODO: Add validation for malformed syntax
+    // The current permissive parser reads both identifiers; the AST looks valid.
+    // A grammar-level comma-enforcement pass is required to catch this.
     const { errors } = parseWithErrors(`
       composition "Test" {
         @platform(vr ar) object "NoComma" { visible: true }
@@ -368,7 +387,8 @@ describe.skip('VALIDATION TODO — future validation tests', () => {
   });
 
   it('@platform(vr, ) should fail — trailing comma', () => {
-    // TODO: Add validation for trailing commas
+    // The current permissive parser ignores the trailing comma; the AST looks valid.
+    // A grammar-level empty-slot check after COMMA is required to catch this.
     const { errors } = parseWithErrors(`
       composition "Test" {
         @platform(vr, ) object "Trailing" { visible: true }
