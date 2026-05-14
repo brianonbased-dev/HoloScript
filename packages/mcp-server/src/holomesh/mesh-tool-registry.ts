@@ -35,6 +35,12 @@ export interface MeshToolManifest {
   maxRisk: ToolRiskLevel;
   scopes: string[];
   attestation: MeshToolAttestation;
+  /** Federation metadata for substrate tool publishing (task_1778618552503_6xk8) */
+  serviceVersion?: string;
+  actorSessionHandoff?: boolean;
+  crossMcpReceiptEnvelope?: boolean;
+  rollbackMetadata?: boolean;
+  sourceArtifactHash?: string;
 }
 
 export interface MeshToolPublisher {
@@ -46,6 +52,7 @@ export interface MeshToolInvokeOptions {
   dryRun?: boolean;
   allowHighRisk?: boolean;
   localInvoker?: (toolName: string, args: Record<string, unknown>) => Promise<unknown>;
+  signingCtx?: SigningContext;
 }
 
 export interface MeshToolInvocationHop {
@@ -77,6 +84,7 @@ function stableJson(value: unknown): string {
     const obj = value as Record<string, unknown>;
     return `{${Object.keys(obj)
       .sort()
+      .filter((key) => obj[key] !== undefined)
       .map((key) => `${JSON.stringify(key)}:${stableJson(obj[key])}`)
       .join(',')}}`;
   }
@@ -182,6 +190,11 @@ function manifestBody(manifest: Omit<MeshToolManifest, 'attestation'>): Record<s
     allowTransitiveInvocation: manifest.allowTransitiveInvocation,
     maxRisk: manifest.maxRisk,
     scopes: manifest.scopes,
+    serviceVersion: manifest.serviceVersion,
+    actorSessionHandoff: manifest.actorSessionHandoff,
+    crossMcpReceiptEnvelope: manifest.crossMcpReceiptEnvelope,
+    rollbackMetadata: manifest.rollbackMetadata,
+    sourceArtifactHash: manifest.sourceArtifactHash,
   };
 }
 
@@ -228,6 +241,11 @@ export function buildMeshToolManifest(
         ? (args.inputSchema as Record<string, unknown>)
         : undefined;
   const allowTransitiveInvocation = args.allow_transitive_invocation === true;
+  const serviceVersion = readOptionalString(args.service_version ?? args.serviceVersion);
+  const actorSessionHandoff = args.actor_session_handoff === true || args.actorSessionHandoff === true;
+  const crossMcpReceiptEnvelope = args.cross_mcp_receipt_envelope === true || args.crossMcpReceiptEnvelope === true;
+  const rollbackMetadata = args.rollback_metadata === true || args.rollbackMetadata === true;
+  const sourceArtifactHash = readOptionalString(args.source_artifact_hash ?? args.sourceArtifactHash);
   const withoutAttestation: Omit<MeshToolManifest, 'attestation'> = {
     id,
     name,
@@ -238,6 +256,11 @@ export function buildMeshToolManifest(
     allowTransitiveInvocation,
     maxRisk,
     scopes: getToolScopes(endpoint.toolName),
+    serviceVersion,
+    actorSessionHandoff,
+    crossMcpReceiptEnvelope,
+    rollbackMetadata,
+    sourceArtifactHash,
   };
 
   return {
@@ -416,7 +439,7 @@ export async function invokePublishedMeshTool(
 
   if (manifest.endpoint.transport === 'local') {
     const invoker = options.localInvoker ?? defaultLocalInvoker;
-    const result = await invoker(manifest.endpoint.toolName, args);
+    const result = await invoker(manifest.endpoint.toolName, args, options.signingCtx);
     return { success: true, route, result };
   }
 

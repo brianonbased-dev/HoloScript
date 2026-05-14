@@ -2,6 +2,14 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 
 import * as generators from '../generators';
 import { handleTool } from '../handlers';
+import type { SigningContext } from '../holomesh/identity/signing-middleware';
+
+const mockSigningCtx: SigningContext = {
+  signedRequest: false,
+  signingValid: true,
+  signer: null,
+  scopes: ['admin:*'],
+} as SigningContext;
 
 describe('handlers AI generation path', () => {
   afterEach(() => {
@@ -20,7 +28,7 @@ describe('handlers AI generation path', () => {
     const result = (await handleTool('generate_scene', {
       description: 'a small arena',
       features: ['logic'],
-    })) as {
+    }, mockSigningCtx)) as {
       code: string;
       source: string;
       provider: string;
