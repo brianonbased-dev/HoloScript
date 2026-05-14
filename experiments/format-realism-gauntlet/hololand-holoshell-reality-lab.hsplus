@@ -1,0 +1,165 @@
+// HoloLand/HoloShell Reality Lab
+// Behavior contract for classifying shell failures into inspectable splash zones.
+
+composition "HoloLandHoloShellRealityLabBehavior" {
+  environment {
+    backgroundColor: "#101419"
+    ambient: 0.5
+    shadows: true
+  }
+
+  state RealityLabState {
+    activeCommand: "parse-holo"
+    activeSplashZone: "parser-splash"
+    failedCommands: 0
+    taskSeedsEmitted: 0
+    economyBalance: 0
+    lastGapSeverity: "P3"
+    lastHoloMeshSeed: null
+  }
+
+  template "GapSplashClassifier" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    scale: [0.72, 0.22, 1]
+    material: {
+      color: "#18212f"
+      emissive: "#233044"
+      emissiveIntensity: 0.18
+      transparent: true
+      opacity: 0.94
+    }
+  }
+
+  template "ReceiptToken" {
+    @grabbable {
+      hand: "both"
+      haptic: true
+    }
+    @physics {
+      mass: 0.35
+      friction: 0.7
+      restitution: 0.18
+    }
+    @collidable
+  }
+
+  object "CommandReceiptClassifier" using "GapSplashClassifier" {
+    @wot_thing {
+      title: "HoloShell Command Classifier"
+      security: "nosec"
+      id: "urn:holoscript:format-stress:command-classifier"
+    }
+    position: [-2.4, 2.2, -2.4]
+    properties: {
+      consumes: "holoshell-command-output.sample.json"
+      emits: "lab:gap_classified"
+      route: "status and gapSeverity to splashZone"
+    }
+
+    behavior {
+      on "command_output" {
+        action: "classifyGap"
+        args: { source: "holoshell" }
+      }
+    }
+  }
+
+  object "ParserSplashClassifier" using "GapSplashClassifier" {
+    position: [-3.6, 1.6, 0.8]
+    properties: { zone: "parser-splash", accepts: "parse and schema failures" }
+  }
+
+  object "GrammarSplashClassifier" using "GapSplashClassifier" {
+    position: [-1.2, 1.6, 0.8]
+    properties: { zone: "grammar-splash", accepts: "hsplus compile contract failures" }
+  }
+
+  object "VisualSplashClassifier" using "GapSplashClassifier" {
+    position: [1.2, 1.6, 0.8]
+    properties: { zone: "visual-splash", accepts: "render and replay failures" }
+  }
+
+  object "InteropSplashClassifier" using "GapSplashClassifier" {
+    position: [3.6, 1.6, 0.8]
+    properties: { zone: "interop-splash", accepts: "WoT, portal, and task-seed failures" }
+  }
+
+  object "RedMassToken" using "ReceiptToken" {
+    geometry: "sphere"
+    position: [-1.2, 0.55, 0.8]
+    scale: [0.18, 0.18, 0.18]
+    material: { color: "#f7768e" }
+    properties: { severity: "P1", splashZone: "grammar-splash" }
+  }
+
+  object "FailureAudioCue" {
+    @spatial_audio {
+      rolloff: "linear"
+      maxDistance: 14
+      refDistance: 1
+    }
+    geometry: "sphere"
+    radius: 0.05
+    position: [0, 2.6, 1.6]
+    visible: false
+    audio: { src: "audio/failure-pulse.wav", loop: false, volume: 0.55 }
+  }
+
+  object "HoloMeshSeedEmitter" using "GapSplashClassifier" {
+    @wot_thing {
+      title: "HoloMesh Task Seed Emitter"
+      security: "nosec"
+      id: "urn:holoscript:format-stress:task-seed-emitter"
+    }
+    position: [2.8, 2.3, -2.4]
+    properties: {
+      seedSchema: "holomesh-board-task-seed-v1"
+      endpoint: "${env.HOLOMESH_BOARD_SEED_URL}"
+    }
+  }
+
+  object "AgentPortalEconomyFeedback" using "GapSplashClassifier" {
+    position: [0, 2.7, -3.0]
+    properties: {
+      portal: "holomesh://team/format-stress"
+      creditOnPass: 1
+      debitOnFailure: -3
+      ledger: "reality-lab-agent-feedback"
+    }
+  }
+
+  action classifyGap(source) {
+    RealityLabState.activeCommand = source
+    emit("lab:classify_requested", { source: source })
+  }
+
+  action recordCommandResult(commandId, status, severity, splashZone, economyDelta) {
+    RealityLabState.activeCommand = commandId
+    RealityLabState.activeSplashZone = splashZone
+    RealityLabState.lastGapSeverity = severity
+    RealityLabState.economyBalance = RealityLabState.economyBalance + economyDelta
+
+    if (status != "pass") {
+      RealityLabState.failedCommands = RealityLabState.failedCommands + 1
+      emit("lab:gap_classified", {
+        commandId: commandId,
+        severity: severity,
+        splashZone: splashZone
+      })
+      emitTaskSeed(commandId, severity, splashZone)
+    }
+  }
+
+  action emitTaskSeed(commandId, severity, splashZone) {
+    RealityLabState.taskSeedsEmitted = RealityLabState.taskSeedsEmitted + 1
+    RealityLabState.lastHoloMeshSeed = commandId
+    emit("holomesh:task_seed", {
+      title: "[format-stress] Fix " + commandId + " in " + splashZone,
+      priority: severity,
+      commandId: commandId,
+      splashZone: splashZone
+    })
+  }
+}

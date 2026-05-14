@@ -29,7 +29,11 @@
       "extension": ".json",
       "role": "manifest, schemas, scorecards, receipts, baselines",
       "priority": "P1",
-      "firstArtifacts": ["manifest.json", "scorecard.schema.json"]
+      "firstArtifacts": [
+        "manifest.json",
+        "scorecard.schema.json",
+        "holoshell-command-output.sample.json"
+      ]
     },
     {
       "extension": ".gltf/.glb",
@@ -50,6 +54,7 @@
     "still-capture-contact-sheet",
     "behavior-physics-receipts",
     "real-assets-visual-upgrade",
-    "hololand-holoshell-adoption"
+    "hololand-holoshell-adoption",
+    "hololand-holoshell-reality-lab"
   ]
 }

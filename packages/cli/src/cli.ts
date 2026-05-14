@@ -413,19 +413,34 @@ async function main(): Promise<void> {
             message: typeof e === 'string' ? e : e.message,
           }));
         } else {
-          if (options.verbose)
-            console.log(`\x1b[2m[TRACE] Importing HoloScriptCodeParser...\x1b[0m`);
-          const { HoloScriptCodeParser } = await import('@holoscript/core');
-          if (options.verbose)
-            console.log(`\x1b[2m[TRACE] Parser imported. Initializing...\x1b[0m`);
-          const parser = new HoloScriptCodeParser();
-          if (options.verbose) console.log(`\x1b[2m[TRACE] Starting parse...\x1b[0m`);
-          const result = parser.parse(content);
-          parseResult = result;
-          if (options.verbose)
-            console.log(`\x1b[2m[TRACE] Parse complete. Success: ${result.success}\x1b[0m`);
-          success = result.success;
-          errorList = result.errors;
+          const { isPipelineSource, parsePipeline } = await import('@holoscript/core');
+
+          if (isPipelineSource(content)) {
+            if (options.verbose)
+              console.log(`\x1b[2m[TRACE] Starting pipeline parse...\x1b[0m`);
+            const result = parsePipeline(content);
+            parseResult = result;
+            success = result.success;
+            errorList = result.errors.map((e: { line?: number; message: string }) => ({
+              line: e.line,
+              column: undefined,
+              message: e.message,
+            }));
+          } else {
+            if (options.verbose)
+              console.log(`\x1b[2m[TRACE] Importing HoloScriptCodeParser...\x1b[0m`);
+            const { HoloScriptCodeParser } = await import('@holoscript/core');
+            if (options.verbose)
+              console.log(`\x1b[2m[TRACE] Parser imported. Initializing...\x1b[0m`);
+            const parser = new HoloScriptCodeParser();
+            if (options.verbose) console.log(`\x1b[2m[TRACE] Starting parse...\x1b[0m`);
+            const result = parser.parse(content);
+            parseResult = result;
+            if (options.verbose)
+              console.log(`\x1b[2m[TRACE] Parse complete. Success: ${result.success}\x1b[0m`);
+            success = result.success;
+            errorList = result.errors;
+          }
         }
 
         // Custom Validations (Shared with LSP)

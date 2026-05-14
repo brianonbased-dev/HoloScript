@@ -9,6 +9,9 @@ The gauntlet is not only `.holo`, `.hsplus`, and `.hs`. Those files define the e
 | `.holo` | Spatial stage, objects, lighting, capture markers, physical affordances | `humanoid-rock-throw.holo` |
 | `.hsplus` | Behavior contract, state transitions, interaction events, segment receipts | `humanoid-rock-throw.hsplus` |
 | `.hs` | Pipeline contract for gathering artifacts, scoring, and task filing | `humanoid-rock-throw.hs` |
+| `.holo` | HoloLand/HoloShell inspection surface for command receipts, gap splash zones, WoT devices, physics receipts, audio, portal, and economy feedback | `hololand-holoshell-reality-lab.holo` |
+| `.hsplus` | Gap classification contract for parser, grammar, visual, and interop splash zones | `hololand-holoshell-reality-lab.hsplus` |
+| `.hs` | HoloShell command-output ingestion, failure filtering, local digest writing, and HoloMesh task seeding | `hololand-holoshell-reality-lab.hs` |
 
 ## Support Languages
 
@@ -124,6 +127,12 @@ Acceptance:
 
 - A HoloLand/HoloShell user can inspect the run without opening raw logs first.
 - Failed segments can become task seeds with reproduction commands.
+
+Current reality-lab surface:
+
+- `.hs` gathers sample HoloShell command receipts from `holoshell-command-output.sample.json`, filters non-pass results, writes a digest, and posts the same failure records to `HOLOMESH_BOARD_SEED_URL` when configured.
+- `.hsplus` classifies command results into parser, grammar, visual, and interop splash zones, then emits `holomesh:task_seed` events for failures.
+- `.holo` renders those splash zones as a spatial lab with WoT command/classifier/camera/task-seed devices, physics receipt tokens, spatial audio cues, an agent portal, and economy feedback.
 
 ## Do Not Hide Gaps
 

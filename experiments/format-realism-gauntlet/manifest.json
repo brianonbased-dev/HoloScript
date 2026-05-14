@@ -7,6 +7,14 @@
     "behavior": "humanoid-rock-throw.hsplus",
     "pipeline": "humanoid-rock-throw.hs"
   },
+  "realityLab": {
+    "id": "hololand-holoshell-reality-lab",
+    "stage": "hololand-holoshell-reality-lab.holo",
+    "behavior": "hololand-holoshell-reality-lab.hsplus",
+    "pipeline": "hololand-holoshell-reality-lab.hs",
+    "commandSample": "holoshell-command-output.sample.json",
+    "purpose": "HoloLand/HoloShell inspection room for command receipts, gap splash zones, WoT devices, physics receipts, spatial audio, and HoloMesh task seeds."
+  },
   "artifactRoot": ".bench-logs/format-stress",
   "supportStack": "support-stack.json",
   "segments": [

@@ -154,6 +154,43 @@ export {
 } from './board-ops';
 
 export {
+  // HoloLand receipt model (task_1778186605462_4z0o)
+  HARDWARE_RECEIPT_KINDS,
+  AGENT_ACTION_KINDS,
+  type HardwareReceiptKind,
+  type HardwareReceipt,
+  type ReplayInput,
+  type ReplayOutcome,
+  type AgentActionKind,
+  type AgentActionReceipt,
+  type ValidationReceipt,
+  type QualcommNIRRuntimeTarget,
+  type QualcommNIRModelExportReceipt,
+  type HardwareCompilationTargetKind,
+  type CrossHardwareCompilationReceipt,
+  validateHardwareReceipt,
+  validateReplayInput,
+  validateReplayOutcome,
+  validateAgentActionReceipt,
+  validateQualcommNIRModelExportReceipt,
+  validateCrossHardwareCompilationReceipt,
+  validateValidationReceipt,
+  isSupportedHardwareReceiptKind,
+  isSupportedAgentActionKind,
+  isSupportedReplayOutcomeStatus,
+  isSupportedQualcommNIRRuntimeTarget,
+  isSupportedValidationStatus,
+  isSupportedHardwareCompilationTarget,
+  cloneHardwareReceipt,
+  cloneReplayInput,
+  cloneReplayOutcome,
+  cloneAgentActionReceipt,
+  cloneQualcommNIRModelExportReceipt,
+  cloneCrossHardwareCompilationReceipt,
+  cloneValidationReceipt,
+} from './hololand-receipts';
+
+export {
   // HoloShell Browser Absorption Receipts (task_1778625587950_34rn)
   BROWSER_ACTION_KINDS,
   type BrowserActionKind,

@@ -1,0 +1,291 @@
+/**
+ * HoloLand/HoloShell Reality Lab
+ *
+ * Spatial review room for format-stress command evidence. The lab turns
+ * HoloShell command receipts into visible splash zones, WoT devices, physics
+ * receipt tokens, spatial audio cues, and agent/economy feedback.
+ */
+
+composition "HoloLand HoloShell Reality Lab" {
+  environment {
+    skybox: "studio"
+    backgroundColor: "#101419"
+    ambient_light: 0.5
+    shadows: true
+    physics: true
+    physics_substeps: 4
+  }
+
+  template "LabPanel" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    scale: [1.1, 0.46, 0.08]
+    color: "#d7e3f4"
+    material: {
+      color: "#17202c"
+      emissive: "#1f2c3d"
+      emissiveIntensity: 0.22
+      transparent: true
+      opacity: 0.94
+    }
+  }
+
+  template "SplashZone" {
+    @collidable
+    geometry: "cube"
+    scale: [1.55, 0.04, 1.25]
+    color: "#4b5563"
+    material: {
+      color: "#4b5563"
+      transparent: true
+      opacity: 0.36
+    }
+  }
+
+  template "ReceiptMassToken" {
+    @grabbable
+    @physics {
+      mass: 0.4
+      friction: 0.7
+      restitution: 0.22
+    }
+    @collidable
+    geometry: "sphere"
+  }
+
+  object "RealityLabFloor" {
+    @collidable
+    @physics {
+      mass: 0
+      type: "static"
+    }
+    geometry: "plane"
+    position: [0, 0, 0]
+    rotation: [-90, 0, 0]
+    scale: [10, 7, 1]
+    color: "#1e2936"
+    label: "format stress reality lab floor"
+  }
+
+  object "CommandConsoleWall" using "LabPanel" {
+    position: [-3.2, 2.4, -2.8]
+    scale: [1.7, 0.68, 0.08]
+    label: "HoloShell receipts: parse, compile, render, wot-export"
+    properties: {
+      source: "holoshell-command-output.sample.json"
+      pipeline: "hololand-holoshell-reality-lab.hs"
+    }
+  }
+
+  object "GapClassifierWall" using "LabPanel" {
+    position: [0, 2.4, -2.8]
+    scale: [1.7, 0.68, 0.08]
+    color: "#c0caf5"
+    label: "hsplus classifier: command status to splash zones"
+    properties: {
+      behavior: "hololand-holoshell-reality-lab.hsplus"
+      emits: "lab:gap_classified"
+    }
+  }
+
+  object "TaskSeedWall" using "LabPanel" {
+    position: [3.2, 2.4, -2.8]
+    scale: [1.7, 0.68, 0.08]
+    color: "#d5f5e3"
+    label: "failures emit HoloMesh task seeds"
+    properties: {
+      seedSchema: "holomesh-board-task-seed-v1"
+      endpoint: "${env.HOLOMESH_BOARD_SEED_URL}"
+    }
+  }
+
+  object "ParserSplashZone" using "SplashZone" {
+    position: [-3.45, 0.08, 1.25]
+    color: "#7aa2f7"
+    label: "parser splash zone"
+    properties: { family: "parse", accepts: "syntax schema validation" }
+  }
+
+  object "GrammarSplashZone" using "SplashZone" {
+    position: [-1.15, 0.08, 1.25]
+    color: "#f7768e"
+    label: "grammar splash zone"
+    properties: { family: "compile", accepts: "hsplus compile contract" }
+  }
+
+  object "VisualSplashZone" using "SplashZone" {
+    position: [1.15, 0.08, 1.25]
+    color: "#e0af68"
+    label: "visual splash zone"
+    properties: { family: "render", accepts: "stills camera replay headless" }
+  }
+
+  object "InteropSplashZone" using "SplashZone" {
+    position: [3.45, 0.08, 1.25]
+    color: "#9ece6a"
+    label: "interop splash zone"
+    properties: { family: "wot portal task seed", accepts: "WoT and HoloMesh adapters" }
+  }
+
+  object "CommandConsoleThing" {
+    @wot_thing {
+      title: "HoloShell Command Console"
+      security: "nosec"
+      id: "urn:holoscript:format-stress:command-console"
+      base: "holoshell://reality-lab/commands"
+    }
+    @iot_sensor
+    geometry: "cube"
+    position: [-4.25, 1.0, -0.55]
+    scale: [0.42, 0.42, 0.18]
+    color: "#7aa2f7"
+    label: "WoT command console"
+  }
+
+  object "GapClassifierThing" {
+    @wot_thing {
+      title: "Gap Classifier"
+      security: "nosec"
+      id: "urn:holoscript:format-stress:gap-classifier"
+      base: "holoshell://reality-lab/gaps"
+    }
+    @iot_sensor
+    geometry: "cylinder"
+    position: [-2.05, 1.0, -0.55]
+    rotation: [0, 0, 90]
+    scale: [0.22, 0.52, 0.22]
+    color: "#f7768e"
+    label: "WoT gap classifier"
+  }
+
+  object "CameraRigThing" {
+    @wot_thing {
+      title: "Segment Camera Rig"
+      security: "nosec"
+      id: "urn:holoscript:format-stress:camera-rig"
+      base: "hololand://reality-lab/camera-rig"
+    }
+    @iot_sensor
+    geometry: "cube"
+    position: [1.15, 1.0, -0.55]
+    scale: [0.52, 0.18, 0.32]
+    color: "#e0af68"
+    label: "WoT camera rig"
+  }
+
+  object "TaskSeedEmitterThing" {
+    @wot_thing {
+      title: "HoloMesh Task Seed Emitter"
+      security: "nosec"
+      id: "urn:holoscript:format-stress:task-seed-emitter"
+      base: "holomesh://team/format-stress/task-seeds"
+    }
+    @actuator
+    geometry: "cube"
+    position: [3.65, 1.0, -0.55]
+    scale: [0.46, 0.46, 0.2]
+    color: "#9ece6a"
+    label: "WoT task seed emitter"
+  }
+
+  object "ReceiptRail" {
+    @collidable
+    @physics {
+      mass: 0
+      type: "static"
+      friction: 0.9
+    }
+    geometry: "cube"
+    position: [0, 0.32, 0]
+    scale: [4.8, 0.08, 0.12]
+    color: "#565f89"
+    label: "physics rail: failures have mass"
+  }
+
+  object "GreenPassToken" using "ReceiptMassToken" {
+    position: [-3.45, 0.55, 0]
+    scale: [0.16, 0.16, 0.16]
+    color: "#9ece6a"
+    label: "pass token plus one credit"
+    properties: { economyDelta: 1, commandStatus: "pass" }
+  }
+
+  object "RedFailureToken" using "ReceiptMassToken" {
+    position: [-1.15, 0.65, 0]
+    scale: [0.22, 0.22, 0.22]
+    color: "#f7768e"
+    label: "P1 failure token minus three credits"
+    properties: { economyDelta: -3, commandStatus: "fail", severity: "P1" }
+  }
+
+  object "YellowBlockedToken" using "ReceiptMassToken" {
+    position: [1.15, 0.6, 0]
+    scale: [0.19, 0.19, 0.19]
+    color: "#e0af68"
+    label: "P2 blocked token minus one credit"
+    properties: { economyDelta: -1, commandStatus: "fail", severity: "P2" }
+  }
+
+  object "FailureAudioBeacon" {
+    @spatial_audio {
+      rolloff: "linear"
+      maxDistance: 18
+      refDistance: 1
+    }
+    geometry: "sphere"
+    radius: 0.08
+    position: [0, 2.7, 1.35]
+    color: "#f7768e"
+    visible: true
+    audio: { src: "audio/failure-pulse.wav", loop: false, volume: 0.55 }
+    label: "spatial audio cue for failed splash zones"
+  }
+
+  object "ReadyAudioBeacon" {
+    @spatial_audio {
+      rolloff: "linear"
+      maxDistance: 12
+      refDistance: 1
+    }
+    geometry: "sphere"
+    radius: 0.06
+    position: [3.45, 2.2, 1.35]
+    color: "#9ece6a"
+    visible: true
+    audio: { src: "audio/ready-chime.wav", loop: false, volume: 0.45 }
+    label: "spatial audio cue for ready interop"
+  }
+
+  object "AgentPortal" {
+    @portal {
+      destination: "holomesh://team/format-stress"
+      label: "Open HoloMesh task queue"
+    }
+    @agent
+    geometry: "torus"
+    position: [0, 1.35, -1.45]
+    rotation: [90, 0, 0]
+    scale: [0.75, 0.75, 0.12]
+    color: "#bb9af7"
+    label: "agent portal to team board"
+    properties: {
+      mode: "review task seeds"
+      feedback: "claim, fix, verify, close"
+    }
+  }
+
+  object "EconomyLedger" using "LabPanel" {
+    position: [0, 1.95, -1.55]
+    scale: [1.45, 0.38, 0.08]
+    color: "#c0caf5"
+    label: "economy feedback: pass credits, failure debits, seed bounty"
+    properties: {
+      ledger: "reality-lab-agent-feedback"
+      passCredit: 1
+      p1Debit: -3
+      p2Debit: -1
+      seedBounty: 5
+    }
+  }
+}
