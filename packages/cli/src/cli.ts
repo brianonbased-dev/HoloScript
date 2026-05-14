@@ -266,9 +266,23 @@ async function runWorldModelCommand(options: ReturnType<typeof parseArgs>): Prom
 
   const { buildDeterministicFailureTrajectory } = await import('@holoscript/core/world-model');
   const replay = buildDeterministicFailureTrajectory(undefined, { seed });
+  if (options.trajectoryId && options.trajectoryId !== replay.trajectory.id) {
+    cliError(
+      'E003',
+      `Trajectory handle mismatch: requested ${options.trajectoryId}, replay produced ${replay.trajectory.id}`,
+      {
+        usage:
+          'holoscript world-model replay --scene deterministic-contact-v1 --trajectory <id> --seed <integer> [--json]',
+        hint: 'Use the trajectory id from the replay handle, or omit --trajectory to replay by scene and seed only.',
+      }
+    );
+    process.exit(1);
+  }
+
   const payload = {
     schema_version: WORLD_MODEL_REPLAY_SCHEMA,
     generatedAt: new Date().toISOString(),
+    requestedTrajectoryId: options.trajectoryId ?? null,
     scene: {
       id: sceneId,
       seed,
