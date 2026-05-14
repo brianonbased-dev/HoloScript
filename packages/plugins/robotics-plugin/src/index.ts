@@ -4,6 +4,10 @@
  *
  * Features:
  * - USD codegen for NVIDIA Isaac Sim (from holoscript-compiler)
+ *   - Isaac Lab sim-to-real interop (Path A)
+ *   - PhysicsDriveAPI for PD actuator control
+ *   - PhysxJointAxisAPI for per-axis friction assumptions
+ *   - Domain randomization configuration blocks
  * - URDF/SDF export for ROS2/Gazebo
  * - ROS2 runtime integration (roslibjs)
  * - VR teleoperation and digital twins
@@ -13,10 +17,13 @@
 
 // Compile-time: USD/URDF codegen (from holoscript-compiler)
 export { USDCodeGen } from './usd-codegen';
+export type { IsaacLabConfig } from './usd-codegen';
 export { Lexer, TokenType } from './lexer';
 export type { Token } from './lexer';
 export { Parser } from './parser';
 export * from './ast';
+// Isaac Lab sim-to-real types
+export type { DomainRandomizationConfig, ActuatorGroupConfig } from './ast';
 
 // Runtime: ROS2/Gazebo integration
 export interface ROS2Config {
