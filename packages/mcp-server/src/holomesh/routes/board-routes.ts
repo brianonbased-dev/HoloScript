@@ -458,7 +458,8 @@ export async function handleBoardRoutes(
     // Add tasks (framework signature: board, doneLog, tasks)
     // doneLog types differ between mcp-server (TeamTask[]) and framework (DoneLogEntry[])
     // but only .title is used for dedup, which both have
-    const result = addTasksToBoard(team.taskBoard, (team.doneLog || []) as any, tasksBody, { dedupMode });
+    const tasksWithCreator = tasksBody.map((t: any) => ({ ...t, createdBy: caller.id }));
+    const result = addTasksToBoard(team.taskBoard, (team.doneLog || []) as any, tasksWithCreator, { dedupMode });
     const normalizationWarnings = Array.isArray((result as any).warnings)
       ? (result as any).warnings
       : (tasksBody as Array<{ title?: string; description?: string }>).flatMap((t) => {
@@ -535,7 +536,8 @@ export async function handleBoardRoutes(
           title: l.substring(l.indexOf(l.includes('TODO:') ? 'TODO:' : 'FIXME:')).trim(),
           description: `Generated from source grep: \n\n${l}`,
           source: 'scout:todo-scan',
-          priority: l.includes('FIXME:') ? 2 : 1
+          priority: l.includes('FIXME:') ? 2 : 1,
+          createdBy: caller.id,
         }));
       if (tasksBody.length > 0) {
         const scopedTasksBody = tasksBody.slice(0, body.max_tasks || 50);
@@ -770,19 +772,22 @@ export async function handleBoardRoutes(
         break;
       }
       case 'update': {
-        // Permission gate: owner only (config:write). Task creator would be
-        // preferable but createdBy is not persisted on BoardTask; owner gate is
-        // the safe fallback until a createdBy field is added.
-        if (!hasTeamPermission(team, caller.id, 'config:write')) {
-          json(res, 403, { error: 'Permission denied: only team owners can update tasks (config:write required)' });
-          return true;
-        }
+        // Permission gate: owner (config:write) OR task creator with board:write.
+        // createdBy is populated since 2026-05-13; old tasks without it still require
+        // owner intervention — agents should comment-not-patch for legacy tasks.
         const taskIndex = (team.taskBoard as any[]).findIndex((t: any) => t.id === taskId);
         if (taskIndex === -1) {
           json(res, 404, { error: 'Task not found' });
           return true;
         }
         const task: any = team.taskBoard[taskIndex];
+        const canUpdate =
+          hasTeamPermission(team, caller.id, 'config:write') ||
+          (hasTeamPermission(team, caller.id, 'board:write') && task.createdBy === caller.id);
+        if (!canUpdate) {
+          json(res, 403, { error: 'Permission denied: only team owners or the task creator can update tasks' });
+          return true;
+        }
         const updates: Record<string, unknown> = {};
         if (typeof body.title === 'string') {
           updates.title = body.title.slice(0, 500);

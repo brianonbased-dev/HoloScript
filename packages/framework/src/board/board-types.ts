@@ -440,6 +440,8 @@ export interface TeamTask {
   /** Required done-claim evidence recorded by the board done route. */
   verificationEvidence?: string;
   source?: string;
+  /** Agent ID that created this task. Enables `board:update-own` permission gate. */
+  createdBy?: string;
   priority: number;
   role?: SlotRole;
   createdAt: string;
