@@ -8,6 +8,18 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { handleTool } from '../handlers';
 import { suggestTraits } from '../generators';
+import type { SigningContext } from '../holomesh/identity/signing-middleware';
+
+const mockSigningCtx: SigningContext = {
+  signedRequest: false,
+  signingValid: true,
+  signer: null,
+  scopes: ['admin:*'],
+} as SigningContext;
+
+async function dispatchTool(name: string, args: Record<string, unknown>) {
+  return handleTool(name, args, mockSigningCtx);
+}
 
 // Mock LLM provider (same pattern as generators.test.ts)
 vi.mock('@holoscript/llm-provider', () => ({
@@ -49,7 +61,7 @@ afterEach(() => {
 describe('Grok E2E Pipeline', () => {
   describe('Step 1: generate_scene', () => {
     it('should generate a scene from natural language', async () => {
-      const result = (await handleTool('generate_scene', {
+      const result = (await dispatchTool('generate_scene', {
         description: 'a shareable collaborative art gallery',
         style: 'detailed',
       })) as Record<string, unknown>;
@@ -69,7 +81,7 @@ describe('Grok E2E Pipeline', () => {
     color: "#ff0000"
   }
 }`;
-      const result = (await handleTool('validate_holoscript', {
+      const result = (await dispatchTool('validate_holoscript', {
         code,
       })) as Record<string, unknown>;
 
@@ -77,7 +89,7 @@ describe('Grok E2E Pipeline', () => {
     });
 
     it('should detect errors in malformed code', async () => {
-      const result = (await handleTool('validate_holoscript', {
+      const result = (await dispatchTool('validate_holoscript', {
         code: 'composition "Broken" { object "x" {',
       })) as Record<string, unknown>;
 
@@ -105,7 +117,7 @@ describe('Grok E2E Pipeline', () => {
 
   describe('Step 4: list_traits social category', () => {
     it('should return traits from core social-effects (legacy alias social)', async () => {
-      const result = (await handleTool('list_traits', {
+      const result = (await dispatchTool('list_traits', {
         category: 'social',
       })) as Record<string, unknown>;
 
@@ -125,7 +137,7 @@ describe('Grok E2E Pipeline', () => {
     color: "#ff0000"
   }
 }`;
-      const result = (await handleTool('create_share_link', {
+      const result = (await dispatchTool('create_share_link', {
         code,
         title: 'My VR Gallery',
         description: 'Interactive 3D art',
@@ -149,7 +161,7 @@ describe('Grok E2E Pipeline', () => {
   describe('Full chain: generate → validate → suggest → share', () => {
     it('should complete the full Grok pipeline without errors', async () => {
       // 1. Generate
-      const scene = (await handleTool('generate_scene', {
+      const scene = (await dispatchTool('generate_scene', {
         description: 'a game arena with physics and multiplayer',
         style: 'detailed',
       })) as Record<string, unknown>;
@@ -157,7 +169,7 @@ describe('Grok E2E Pipeline', () => {
       expect((scene.code as string).length).toBeGreaterThan(0);
 
       // 2. Validate
-      const validation = (await handleTool('validate_holoscript', {
+      const validation = (await dispatchTool('validate_holoscript', {
         code: scene.code as string,
       })) as Record<string, unknown>;
       expect(typeof validation.valid).toBe('boolean');
@@ -170,7 +182,7 @@ describe('Grok E2E Pipeline', () => {
       expect(suggestions.traits).toContain('@networked');
 
       // 4. Share
-      const shareResult = (await handleTool('create_share_link', {
+      const shareResult = (await dispatchTool('create_share_link', {
         code: scene.code as string,
         title: 'Game Arena',
         platform: 'x',
@@ -185,7 +197,7 @@ describe('Grok E2E Pipeline', () => {
 
       const runs = await Promise.all(
         Array.from({ length: 12 }, () =>
-          handleTool('generate_scene', {
+          dispatchTool('generate_scene', {
             description,
             style: 'detailed',
           })
@@ -202,7 +214,7 @@ describe('Grok E2E Pipeline', () => {
         expect(typeof stats?.objects).toBe('number');
         expect(typeof stats?.traits).toBe('number');
 
-        const validation = (await handleTool('validate_holoscript', {
+        const validation = (await dispatchTool('validate_holoscript', {
           code: run.code as string,
         })) as Record<string, unknown>;
         expect(typeof validation.valid).toBe('boolean');
