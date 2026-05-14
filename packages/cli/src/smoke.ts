@@ -86,6 +86,20 @@ interface CliParseError {
   loc?: { line?: number; column?: number };
 }
 
+type SmokeDiagnostic = { line?: number; column?: number; message: string };
+
+function isFatalParserDiagnostic(err: CliParseError): boolean {
+  return err.severity !== 'warning' && err.severity !== 'info';
+}
+
+function toSmokeDiagnostic(err: CliParseError, stage: string): SmokeDiagnostic {
+  return {
+    line: err.loc?.line ?? err.line,
+    column: err.loc?.column ?? err.column,
+    message: `[${stage}] ${err.message}`,
+  };
+}
+
 function extractPhysicsTraits(astObjects: any[]): PhysicsTraitEntry[] {
   const traits: PhysicsTraitEntry[] = [];
   const seen = new Set<string>();
@@ -135,12 +149,8 @@ async function validateFile(
 
   for (const e of result.errors || []) {
     const err = e as CliParseError;
-    const entry = {
-      line: err.loc?.line ?? err.line,
-      column: err.loc?.column ?? err.column,
-      message: err.message,
-    };
-    if (err.severity === 'warning') {
+    const entry = toSmokeDiagnostic(err, 'parser');
+    if (!isFatalParserDiagnostic(err)) {
       warnings.push(entry);
     } else {
       errors.push(entry);
@@ -187,17 +197,9 @@ async function validateFile(
     }
   }
 
-  // Tolerant parse: consider success if we got an AST with objects.
-  // Parser errors are recorded as warnings for smoke purposes — the
-  // demo is still "smokable" if traits and objects were extracted.
   const hasObjects = (result.ast?.objects?.length || 0) > 0;
-  if (hasObjects && errors.length > 0) {
-    // Downgrade parser errors to warnings for smoke reporting
-    warnings.push(...errors.map((e) => ({ ...e, message: `[parser] ${e.message}` })));
-    errors.length = 0;
-  }
   return {
-    success: hasObjects,
+    success: hasObjects && errors.length === 0,
     errors,
     warnings,
     ast: result.ast,
@@ -216,6 +218,24 @@ async function compileDemo(
     const { HoloCompositionParser } = await import('@holoscript/core');
     const parser = new HoloCompositionParser({ tolerant: true });
     const parseResult = parser.parse(content);
+    const fatalDiagnostics = (parseResult.errors || [])
+      .map((e: unknown) => e as CliParseError)
+      .filter(isFatalParserDiagnostic);
+    if (fatalDiagnostics.length > 0) {
+      const summary = fatalDiagnostics
+        .slice(0, 3)
+        .map((err) => {
+          const line = err.loc?.line ?? err.line;
+          const column = err.loc?.column ?? err.column;
+          const location = line ? `${line}:${column ?? 0}: ` : '';
+          return `${location}${err.message}`;
+        })
+        .join('; ');
+      return {
+        success: false,
+        error: `Parse diagnostics before compilation: ${summary}`,
+      };
+    }
 
     const hasObjects = (parseResult.ast?.objects?.length || 0) > 0;
     if (!hasObjects) {

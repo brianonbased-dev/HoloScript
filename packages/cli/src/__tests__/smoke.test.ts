@@ -14,20 +14,34 @@ import {
   printSmokeReceipt,
   type PhysicsSmokeReceipt,
 } from '../smoke';
+import { execFile } from 'child_process';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
+import { promisify } from 'util';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '../../../..');
+const packageRoot = path.resolve(__dirname, '../..');
+const cliSource = path.join(packageRoot, 'src/cli.ts');
+const tsxCli = path.join(repoRoot, 'node_modules/tsx/dist/cli.mjs');
+const execFileAsync = promisify(execFile);
 
 describe('physics smoke receipt', { timeout: 120000 }, () => {
-  const advancedPhysicsDemo = path.join(repoRoot, 'examples/physics/advanced-physics-showcase.holo');
+  const validPhysicsDemo = path.join(
+    repoRoot,
+    'packages/create-holoscript/templates/physics-playground/src/scene.holo'
+  );
+  const fatalDiagnosticsDemo = path.join(
+    __dirname,
+    'fixtures/physics-smoke-fatal-diagnostics.holo'
+  );
 
   it('produces a valid receipt for a single physics demo', async () => {
     const receipt = await runPhysicsSmoke({
-      files: [advancedPhysicsDemo],
+      files: [validPhysicsDemo],
       target: 'threejs',
       json: false,
       verbose: false,
@@ -40,8 +54,8 @@ describe('physics smoke receipt', { timeout: 120000 }, () => {
 
     const demo = receipt.demos[0];
     expect(demo.status).toBe('passed');
-    expect(demo.file).toBe(advancedPhysicsDemo);
-    expect(demo.title).toBe('Advanced Physics Showcase');
+    expect(demo.file).toBe(validPhysicsDemo);
+    expect(demo.title).toBeNull();
     expect(demo.durationMs).toBeGreaterThanOrEqual(0);
 
     // Physics traits should be detected (tolerant parser may yield partial
@@ -61,7 +75,7 @@ describe('physics smoke receipt', { timeout: 120000 }, () => {
 
   it('accepts a directory and finds .holo files', async () => {
     const receipt = await runPhysicsSmoke({
-      files: [path.join(repoRoot, 'examples/physics')],
+      files: [path.dirname(validPhysicsDemo)],
       target: 'threejs',
       json: false,
       verbose: false,
@@ -85,9 +99,9 @@ describe('physics smoke receipt', { timeout: 120000 }, () => {
   });
 
   it('writes receipt to disk when output is specified', async () => {
-    const outPath = path.join(repoRoot, '.bench-logs', 'physics-smoke-test-receipt.json');
+    const outPath = path.join(os.tmpdir(), `physics-smoke-test-receipt-${Date.now()}.json`);
     const receipt = await runPhysicsSmoke({
-      files: [advancedPhysicsDemo],
+      files: [validPhysicsDemo],
       target: 'threejs',
       output: outPath,
       json: false,
@@ -106,7 +120,7 @@ describe('physics smoke receipt', { timeout: 120000 }, () => {
 
   it('printSmokeReceipt does not throw', async () => {
     const receipt = await runPhysicsSmoke({
-      files: [advancedPhysicsDemo],
+      files: [validPhysicsDemo],
       target: 'threejs',
       json: false,
       verbose: false,
@@ -117,7 +131,7 @@ describe('physics smoke receipt', { timeout: 120000 }, () => {
 
   it('produces JSON output compatible with the WebGPU benchmark receipt shape', async () => {
     const receipt = await runPhysicsSmoke({
-      files: [advancedPhysicsDemo],
+      files: [validPhysicsDemo],
       target: 'threejs',
       json: true,
       verbose: false,
@@ -134,5 +148,42 @@ describe('physics smoke receipt', { timeout: 120000 }, () => {
     expect(typeof receipt.summary.total).toBe('number');
     expect(typeof receipt.summary.passed).toBe('number');
     expect(typeof receipt.summary.failed).toBe('number');
+  });
+
+  it('fails when fatal parser diagnostics would make direct compile fail', async () => {
+    const receipt = await runPhysicsSmoke({
+      files: [fatalDiagnosticsDemo],
+      target: 'threejs',
+      json: true,
+      verbose: false,
+    });
+
+    expect(receipt.status).toBe('error');
+    expect(receipt.summary.failed).toBe(1);
+    expect(receipt.summary.passed).toBe(0);
+    expect(receipt.demos[0].status).toBe('failed');
+    expect(receipt.demos[0].validationErrors.some((e) => e.message.startsWith('[parser]'))).toBe(
+      true
+    );
+    expect(receipt.demos[0].validationWarnings.every((w) => !w.message.startsWith('[parser]'))).toBe(
+      true
+    );
+    expect(receipt.demos[0].compileResult).toBeUndefined();
+  });
+
+  it('exits nonzero through the CLI for fatal parser diagnostics', async () => {
+    await expect(
+      execFileAsync(
+        process.execPath,
+        [tsxCli, cliSource, 'smoke', fatalDiagnosticsDemo, '--target', 'threejs', '--json'],
+        {
+          cwd: packageRoot,
+          maxBuffer: 1024 * 1024,
+        }
+      )
+    ).rejects.toMatchObject({
+      code: 1,
+      stdout: expect.stringContaining('"status": "error"'),
+    });
   });
 });
