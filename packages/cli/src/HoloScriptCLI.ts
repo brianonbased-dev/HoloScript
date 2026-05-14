@@ -12,8 +12,10 @@ import {
 import type { CLIOptions } from './args';
 import { formatAST, formatResult, formatError } from './formatters';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import * as readline from 'readline';
+import { pathToFileURL } from 'url';
 import { exec } from 'child_process';
 import { ConfigLoader } from './config/loader';
 import { HoloScriptConfig } from './config/schema';
@@ -103,6 +105,9 @@ export class HoloScriptCLI {
     const content = this.readInput();
     if (!content) return 1;
 
+    const pipelineExitCode = await this.tryRunPipelineSource(content);
+    if (pipelineExitCode !== null) return pipelineExitCode;
+
     let ast: any[];
 
     // Use composition parser for .holo files
@@ -150,6 +155,66 @@ export class HoloScriptCLI {
     }
 
     return allSuccessful ? 0 : 1;
+  }
+
+  private async tryRunPipelineSource(content: string): Promise<number | null> {
+    const { isPipelineSource } = await import('@holoscript/core');
+    if (!isPipelineSource(content)) return null;
+
+    const { compilePipelineSourceToNode } = await import('@holoscript/core/compiler/index');
+    const compiled = compilePipelineSourceToNode(content, {
+      moduleName: this.options.input ? path.basename(this.options.input) : 'pipeline.hs',
+    });
+
+    if (!compiled.success || !compiled.code) {
+      console.error('Pipeline compile failed:');
+      for (const error of compiled.errors || ['Unknown pipeline compiler error']) {
+        console.error(`  ${error}`);
+      }
+      return 1;
+    }
+
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-pipeline-'));
+    const modulePath = path.join(tempDir, 'pipeline-runner.mjs');
+
+    try {
+      fs.writeFileSync(modulePath, compiled.code, 'utf8');
+      const moduleUrl = `${pathToFileURL(modulePath).href}?t=${Date.now()}`;
+      const pipelineModule = (await import(moduleUrl)) as {
+        runPipeline?: () => Promise<unknown>;
+      };
+
+      if (typeof pipelineModule.runPipeline !== 'function') {
+        console.error('Pipeline module did not export runPipeline().');
+        return 1;
+      }
+
+      const result = await pipelineModule.runPipeline();
+      const resultRecord =
+        result && typeof result === 'object' ? (result as Record<string, unknown>) : {};
+      const count =
+        typeof resultRecord.count === 'number'
+          ? resultRecord.count
+          : Array.isArray(resultRecord.data)
+            ? resultRecord.data.length
+            : 0;
+
+      if (this.options.json) {
+        const output = JSON.stringify({ success: true, result }, null, 2);
+        if (this.options.output) this.writeOutput(output);
+        else console.log(output);
+      } else {
+        console.log(`Pipeline completed: ${count} records`);
+      }
+
+      return 0;
+    } catch (error) {
+      console.error('Pipeline execution failed:');
+      console.error(formatError(error instanceof Error ? error : String(error)));
+      return 1;
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
   }
 
   private astCommand(): number {
