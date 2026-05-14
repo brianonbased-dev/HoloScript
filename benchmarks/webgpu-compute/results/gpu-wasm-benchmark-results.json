@@ -1,0 +1,160 @@
+[
+  {
+    "scenarioId": "webgpu-minimal",
+    "engine": "webgpu",
+    "title": "WebGPU — Minimal Composition",
+    "success": true,
+    "compilationTimeMs": 0.8628000000001066,
+    "outputSizeBytes": 5766,
+    "validation": {
+      "passed": true,
+      "checks": {
+        "hasGPU": true,
+        "hasVertex": true,
+        "hasFragment": true,
+        "hasCompute": true,
+        "hasWorkgroup": true,
+        "hasDevice": true
+      },
+      "errors": [],
+      "warnings": []
+    }
+  },
+  {
+    "scenarioId": "webgpu-particles",
+    "engine": "webgpu",
+    "title": "WebGPU — 1M GPU Particles",
+    "success": true,
+    "compilationTimeMs": 0.44640000000003965,
+    "outputSizeBytes": 7408,
+    "validation": {
+      "passed": true,
+      "checks": {
+        "hasGPU": true,
+        "hasVertex": true,
+        "hasFragment": true,
+        "hasCompute": true,
+        "hasWorkgroup": true,
+        "hasDevice": true
+      },
+      "errors": [],
+      "warnings": []
+    }
+  },
+  {
+    "scenarioId": "webgpu-physics",
+    "engine": "webgpu",
+    "title": "WebGPU — 10K Rigid Bodies",
+    "success": true,
+    "compilationTimeMs": 0.2559000000001106,
+    "outputSizeBytes": 7587,
+    "validation": {
+      "passed": true,
+      "checks": {
+        "hasGPU": true,
+        "hasVertex": true,
+        "hasFragment": true,
+        "hasCompute": true,
+        "hasWorkgroup": true,
+        "hasDevice": true
+      },
+      "errors": [],
+      "warnings": []
+    }
+  },
+  {
+    "scenarioId": "webgpu-compute",
+    "engine": "webgpu",
+    "title": "WebGPU — Generic Compute Shader",
+    "success": true,
+    "compilationTimeMs": 0.0807999999999538,
+    "outputSizeBytes": 7573,
+    "validation": {
+      "passed": true,
+      "checks": {
+        "hasGPU": true,
+        "hasVertex": true,
+        "hasFragment": true,
+        "hasCompute": true,
+        "hasWorkgroup": true,
+        "hasDevice": true
+      },
+      "errors": [],
+      "warnings": []
+    }
+  },
+  {
+    "scenarioId": "wasm-minimal",
+    "engine": "wasm",
+    "title": "WASM — Minimal Composition",
+    "success": true,
+    "compilationTimeMs": 0.9713999999999032,
+    "outputSizeBytes": 2157,
+    "validation": {
+      "passed": true,
+      "checks": {
+        "hasModule": true,
+        "hasMemory": true,
+        "hasExport": true,
+        "hasFunc": true
+      },
+      "errors": [],
+      "warnings": []
+    }
+  },
+  {
+    "scenarioId": "wasm-state",
+    "engine": "wasm",
+    "title": "WASM — Composition with State",
+    "success": true,
+    "compilationTimeMs": 0.13969999999994798,
+    "outputSizeBytes": 2650,
+    "validation": {
+      "passed": true,
+      "checks": {
+        "hasModule": true,
+        "hasMemory": true,
+        "hasExport": true,
+        "hasFunc": true
+      },
+      "errors": [],
+      "warnings": []
+    }
+  },
+  {
+    "scenarioId": "unity-minimal",
+    "engine": "unity",
+    "title": "Unity — Minimal Composition",
+    "success": true,
+    "compilationTimeMs": 0.43100000000004,
+    "outputSizeBytes": 329,
+    "validation": {
+      "passed": true,
+      "checks": {
+        "hasNamespace": true,
+        "hasClass": true,
+        "hasMethod": true
+      },
+      "errors": [],
+      "warnings": []
+    }
+  },
+  {
+    "scenarioId": "babylonjs-minimal",
+    "engine": "babylonjs",
+    "title": "Babylon.js — Minimal Composition",
+    "success": true,
+    "compilationTimeMs": 0.3785000000000309,
+    "outputSizeBytes": 1387,
+    "validation": {
+      "passed": true,
+      "checks": {
+        "hasBabylon": true,
+        "hasEngine": true,
+        "hasScene": true
+      },
+      "errors": [],
+      "warnings": []
+    }
+  }
+]
