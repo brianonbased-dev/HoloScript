@@ -1,14 +1,14 @@
 {
   "schema": "paper-audit-matrix.v2",
-  "generatedAt": "2026-05-14T06:42:11.816Z",
+  "generatedAt": "2026-05-14T06:47:46.218Z",
   "matrixSourcePath": "research/paper-audit-matrix.md",
-  "scriptCommit": "af74d89d1501c96133268d674e9af173f95c8988",
+  "scriptCommit": "6b965aef348b1d77b5c025397537cae847b09c13",
   "totals": {
     "papers": 17,
     "cellsByToken": {
-      "✅": 202,
-      "⚠️": 44,
-      "❌": 12,
+      "✅": 204,
+      "⚠️": 45,
+      "❌": 9,
       "➖": 14
     }
   },
@@ -1333,8 +1333,8 @@
       "target": "I3D '27 (Nov '26)",
       "basename": "paper-12-holo-i3d.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-12-holo-i3d.tex",
-      "loc": 783,
-      "sha256Prefix": "ba4fcfb1",
+      "loc": 830,
+      "sha256Prefix": "253f328a",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1366,8 +1366,8 @@
           "evidence": "paper-12-holo-i3d.tex.ots present"
         },
         "anchorBase": {
-          "token": "✅",
-          "evidence": ".tex.base.json signed and matches current .tex hash"
+          "token": "⚠️",
+          "evidence": ".tex.base.json signed for a historical .tex hash; re-anchor current source at submission bundle time"
         },
         "venueFit": {
           "token": "✅",
@@ -1382,32 +1382,37 @@
           "evidence": "no \\todo{measure:} markers"
         },
         "calStory": {
-          "token": "❌",
-          "evidence": "no calibration/setup/pipeline structure"
+          "token": "✅",
+          "evidence": "Calibration/Setup/Reproducibility heading + automation pointer"
         },
         "twinTest": {
           "token": "✅",
           "evidence": "explicit two-impl/digital-twin equivalence + assertion"
         },
         "decoderCost": {
-          "token": "❌",
-          "evidence": "no decoder/runtime cost on novel claims (W.314 risk)"
+          "token": "✅",
+          "evidence": "asymptotic class declaration + Complexity/Cost heading"
         },
         "scalingMemo": {
-          "token": "❌",
-          "evidence": "no scaling discussion (W.316 risk)"
+          "token": "✅",
+          "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 1d since last commit"
+          "evidence": "0 open \\todo{}, 0d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "c060fb3f8aa3f571b15fd62a8398d775f529233b",
-        "isoDate": "2026-05-12T01:43:54-07:00",
-        "subject": "paper(12): Twin-test fill — provenance-preservation theorem as two-impl agreement"
+        "hash": "6b965aef348b1d77b5c025397537cae847b09c13",
+        "isoDate": "2026-05-13T23:47:15-07:00",
+        "subject": "docs(ecosystem): add paper 12 readiness model"
       },
       "recentCommits": [
+        {
+          "hash": "6b965aef348b1d77b5c025397537cae847b09c13",
+          "isoDate": "2026-05-13T23:47:15-07:00",
+          "subject": "docs(ecosystem): add paper 12 readiness model"
+        },
         {
           "hash": "c060fb3f8aa3f571b15fd62a8398d775f529233b",
           "isoDate": "2026-05-12T01:43:54-07:00",
@@ -1427,11 +1432,6 @@
           "hash": "f240e30418c3e5886539d6c4f7f8a195b82ba498",
           "isoDate": "2026-04-27T12:05:10-07:00",
           "subject": "paper(12): replace §RemainingWork item-2 \\todo with measured structural-biology USD comparison"
-        },
-        {
-          "hash": "d91f0dc1a697c8090da02bbe3ce2858aa9742fb3",
-          "isoDate": "2026-04-27T11:22:31-07:00",
-          "subject": "paper(12): replace §RemainingWork item-1 \\todo with measured scene-suite numbers + harness cite"
         }
       ]
     },
