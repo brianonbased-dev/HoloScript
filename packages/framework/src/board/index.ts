@@ -324,6 +324,24 @@ export {
 } from './holoshell-cli-receipts';
 
 export {
+  // HoloShell Source-Native Readiness Receipt (task_1778739828973_uirq)
+  READINESS_OUTCOMES,
+  type ReadinessOutcome,
+  type ReadinessGitStatus,
+  type ReadinessValidationCheck,
+  type ReadinessSourceValidation,
+  type ReadinessDeviceLabCheck,
+  type ReadinessDeviceLabStatus,
+  type ReadinessGraphStatus,
+  type ReadinessTaskFiling,
+  type HoloShellReadinessReceipt,
+  validateHoloShellReadinessReceipt,
+  isSupportedReadinessOutcome,
+  isSupportedReadinessStatus,
+  cloneHoloShellReadinessReceipt,
+} from './holoshell-readiness-receipt';
+
+export {
   // Twin Earth Substrate Contract (task_1778618552503_3zqx)
   type ParticipationMode,
   type TwinEarthRole,
