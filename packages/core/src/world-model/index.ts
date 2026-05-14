@@ -62,4 +62,8 @@ export type {
   TrajectoryStatus,
   AdversarialTrajectory,
   AdversarialTrajectoryReport,
+  FailureCluster,
+  ScoreComponentSummary,
+  ScoreSummary,
+  ReplaySummary,
 } from './AdversarialTrajectory';

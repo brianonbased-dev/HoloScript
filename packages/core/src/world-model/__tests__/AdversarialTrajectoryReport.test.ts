@@ -25,7 +25,8 @@ function buildT(
   status: TrajectoryStatus,
   priority: number,
   tieBreaker = 0,
-  scene = SCENE
+  scene = SCENE,
+  scoreOverrides?: Partial<AdversarialTrajectory['predicateScore']>
 ): AdversarialTrajectory {
   const contract: SimulationContractReference = {
     contractId: `contract-${id}`,
@@ -52,6 +53,7 @@ function buildT(
       learnability: 0,
       regression: 0,
       invalidity: status === 'invalid' ? 1 : 0,
+      ...scoreOverrides,
     },
     priority: { priority, tieBreaker, rationale: 'fixture' },
     replayHandle: {
@@ -157,6 +159,59 @@ describe('buildAdversarialTrajectoryReport', () => {
     const report = buildAdversarialTrajectoryReport(trajectories, SCENE, NOW, 3);
     expect(report.topPriority).toHaveLength(3);
     expect(report.topPriority[0]).toBe(asTrajectoryId('t0'));
+  });
+
+  it('TRUE case: failure clusters group by status and dominant predicate', () => {
+    const trajectories = [
+      buildT('open-violation', 'open', 0.5, 0, SCENE, { violation: 0.8, novelty: 0.1 }),
+      buildT('open-novelty', 'open', 0.6, 0, SCENE, { violation: 0.1, novelty: 0.9 }),
+      buildT('solved-violation', 'solved', 0.4, 0, SCENE, { violation: 0.7, novelty: 0.2 }),
+      buildT('invalid-high', 'invalid', 0, 0, SCENE, { invalidity: 1 }),
+    ];
+    const report = buildAdversarialTrajectoryReport(trajectories, SCENE, NOW);
+
+    const clusterLabels = report.failureClusters.map((c) => c.label);
+    expect(clusterLabels).toContain('open (violation)');
+    expect(clusterLabels).toContain('open (novelty)');
+    expect(clusterLabels).toContain('solved (violation)');
+    expect(clusterLabels).toContain('invalid (invalidity)');
+
+    const invalidCluster = report.failureClusters.find((c) => c.status === 'invalid');
+    expect(invalidCluster?.count).toBe(1);
+    expect(invalidCluster?.dominantPredicate).toBe('invalidity');
+  });
+
+  it('TRUE case: score summary computes min/max/avg per predicate', () => {
+    const trajectories = [
+      buildT('low', 'open', 0.5, 0, SCENE, { violation: 0.2, novelty: 0.1 }),
+      buildT('high', 'open', 0.5, 0, SCENE, { violation: 0.8, novelty: 0.9 }),
+    ];
+    const report = buildAdversarialTrajectoryReport(trajectories, SCENE, NOW);
+
+    expect(report.scoreSummary.violation.min).toBe(0.2);
+    expect(report.scoreSummary.violation.max).toBe(0.8);
+    expect(report.scoreSummary.violation.avg).toBe(0.5);
+    expect(report.scoreSummary.novelty.min).toBe(0.1);
+    expect(report.scoreSummary.novelty.max).toBe(0.9);
+    expect(report.scoreSummary.novelty.avg).toBe(0.5);
+  });
+
+  it('TRUE case: replay summary counts trajectories with and without replay evidence', () => {
+    const withEvidence = buildT('with', 'open', 0.5);
+    const withoutEvidence: AdversarialTrajectory = {
+      ...buildT('without', 'open', 0.5),
+      replayHandle: {
+        trajectoryId: asTrajectoryId('without'),
+        sceneHash: SCENE,
+        simulationContractId: 'mismatched-contract',
+        seed: 1,
+        replayCommand: '',
+      },
+    };
+    const report = buildAdversarialTrajectoryReport([withEvidence, withoutEvidence], SCENE, NOW);
+
+    expect(report.replaySummary.withEvidence).toBe(1);
+    expect(report.replaySummary.withoutEvidence).toBe(1);
   });
 });
 
