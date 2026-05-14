@@ -1,4 +1,9 @@
 > **ARCHIVED** — This document contains historical numbers that were accurate at time of writing. For current ecosystem metrics, see [NUMBERS.md](../NUMBERS.md).
+>
+> **CANARY (2026-05-14)**: This archive predates the substrate-first HoloLand/Brittney framing.
+> Treat HoloLand as the spatial runtime substrate; Brittney is one participant/tool surface
+> under `packages/brittney/**`, not the owner of the substrate namespace. Verify current
+> HoloLand/Brittney paths before configuring new agents from this document.
 
 # MCP Configuration Reference
 
@@ -49,7 +54,12 @@ npx tsx packages/mcp-server/src/index.ts
 
 ---
 
-### Brittney MCP (Hololand repo)
+### HoloLand Runtime MCP / Brittney Tools (legacy Hololand repo path)
+
+Archive canary: this section historically called the runtime MCP surface "Brittney MCP"
+because the tools lived under `packages/brittney/mcp-server`. Current framing is
+substrate-first: HoloLand is the spatial runtime substrate, and Brittney is one participant
+and tool surface that can operate there.
 
 **Package:** `@hololand/mcp-server`  
 **Location:** `Hololand/packages/brittney/mcp-server/`  
