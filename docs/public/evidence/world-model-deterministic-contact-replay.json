@@ -1,0 +1,792 @@
+{
+  "schema_version": "world-model-replay-v1",
+  "generatedAt": "2026-05-14T11:30:57.715Z",
+  "requestedTrajectoryId": "fnv1a-37e561ed",
+  "scene": {
+    "id": "deterministic-contact-v1",
+    "seed": 4242,
+    "sceneHash": "fnv1a-b29f9e5c"
+  },
+  "result": {
+    "sceneId": "deterministic-contact-v1",
+    "seed": 4242,
+    "sceneHash": "fnv1a-b29f9e5c",
+    "objects": [
+      {
+        "id": "contact-pillar",
+        "kind": "obstacle",
+        "center": {
+          "x": 0,
+          "y": 0.35,
+          "z": 0
+        },
+        "halfExtents": {
+          "x": 0.16,
+          "y": 0.35,
+          "z": 0.45
+        },
+        "movable": false
+      },
+      {
+        "id": "target-pad",
+        "kind": "target",
+        "center": {
+          "x": 0.55,
+          "y": 0.05,
+          "z": 0
+        },
+        "halfExtents": {
+          "x": 0.32,
+          "y": 0.05,
+          "z": 0.32
+        },
+        "movable": false
+      },
+      {
+        "id": "probe-block",
+        "kind": "block",
+        "center": {
+          "x": 0.55,
+          "y": 0.15,
+          "z": 0
+        },
+        "halfExtents": {
+          "x": 0.15,
+          "y": 0.15,
+          "z": 0.15
+        },
+        "movable": true
+      }
+    ],
+    "camera": {
+      "position": {
+        "x": 0,
+        "y": 1.25,
+        "z": 2.2
+      },
+      "lookAt": {
+        "x": 0,
+        "y": 0.2,
+        "z": 0
+      }
+    },
+    "events": [
+      {
+        "stepIndex": 0,
+        "timestampMs": 0,
+        "type": "object_placed",
+        "payload": {
+          "objectId": "probe-block",
+          "center": {
+            "x": -0.6,
+            "y": 0.15,
+            "z": 0
+          }
+        }
+      },
+      {
+        "stepIndex": 1,
+        "timestampMs": 100,
+        "type": "camera_moved",
+        "payload": {
+          "position": {
+            "x": 0,
+            "y": 1.25,
+            "z": 2.2
+          },
+          "lookAt": {
+            "x": 0,
+            "y": 0.2,
+            "z": 0
+          }
+        }
+      },
+      {
+        "stepIndex": 2,
+        "timestampMs": 200,
+        "type": "contact",
+        "payload": {
+          "objectId": "probe-block",
+          "otherObjectId": "contact-pillar",
+          "blocked": true
+        }
+      },
+      {
+        "stepIndex": 2,
+        "timestampMs": 200,
+        "type": "predicate_violation",
+        "payload": {
+          "predicate": "no-block-obstacle-overlap",
+          "objectId": "probe-block",
+          "otherObjectId": "contact-pillar"
+        }
+      },
+      {
+        "stepIndex": 3,
+        "timestampMs": 300,
+        "type": "object_moved",
+        "payload": {
+          "objectId": "probe-block",
+          "center": {
+            "x": 0.55,
+            "y": 0.15,
+            "z": 0
+          }
+        }
+      },
+      {
+        "stepIndex": 3,
+        "timestampMs": 300,
+        "type": "target_contact",
+        "payload": {
+          "objectId": "probe-block",
+          "targetId": "target-pad"
+        }
+      }
+    ],
+    "actionTrace": [
+      {
+        "stepIndex": 0,
+        "timestampMs": 0,
+        "type": "place-object",
+        "payload": {
+          "object": {
+            "id": "probe-block",
+            "kind": "block",
+            "center": {
+              "x": -0.6,
+              "y": 0.15,
+              "z": 0
+            },
+            "halfExtents": {
+              "x": 0.15,
+              "y": 0.15,
+              "z": 0.15
+            },
+            "movable": true
+          }
+        }
+      },
+      {
+        "stepIndex": 1,
+        "timestampMs": 100,
+        "type": "move-camera",
+        "payload": {
+          "position": {
+            "x": 0,
+            "y": 1.25,
+            "z": 2.2
+          },
+          "lookAt": {
+            "x": 0,
+            "y": 0.2,
+            "z": 0
+          }
+        }
+      },
+      {
+        "stepIndex": 2,
+        "timestampMs": 200,
+        "type": "move-object",
+        "payload": {
+          "objectId": "probe-block",
+          "center": {
+            "x": 0,
+            "y": 0.15,
+            "z": 0
+          }
+        }
+      },
+      {
+        "stepIndex": 3,
+        "timestampMs": 300,
+        "type": "move-object",
+        "payload": {
+          "objectId": "probe-block",
+          "center": {
+            "x": 0.55,
+            "y": 0.15,
+            "z": 0
+          }
+        }
+      }
+    ],
+    "observationTrace": [
+      {
+        "stepIndex": 0,
+        "timestampMs": 0,
+        "type": "deterministic-scene-snapshot",
+        "payload": {
+          "objects": [
+            {
+              "id": "contact-pillar",
+              "kind": "obstacle",
+              "center": {
+                "x": 0,
+                "y": 0.35,
+                "z": 0
+              }
+            },
+            {
+              "id": "target-pad",
+              "kind": "target",
+              "center": {
+                "x": 0.55,
+                "y": 0.05,
+                "z": 0
+              }
+            },
+            {
+              "id": "probe-block",
+              "kind": "block",
+              "center": {
+                "x": -0.6,
+                "y": 0.15,
+                "z": 0
+              }
+            }
+          ],
+          "camera": {
+            "position": {
+              "x": -0.25,
+              "y": 1.1,
+              "z": 2
+            },
+            "lookAt": {
+              "x": 0,
+              "y": 0.2,
+              "z": 0
+            }
+          },
+          "eventTypes": [
+            "object_placed"
+          ],
+          "contactCount": 0,
+          "predicateViolationCount": 0,
+          "invalidActionCount": 0
+        }
+      },
+      {
+        "stepIndex": 1,
+        "timestampMs": 100,
+        "type": "deterministic-scene-snapshot",
+        "payload": {
+          "objects": [
+            {
+              "id": "contact-pillar",
+              "kind": "obstacle",
+              "center": {
+                "x": 0,
+                "y": 0.35,
+                "z": 0
+              }
+            },
+            {
+              "id": "target-pad",
+              "kind": "target",
+              "center": {
+                "x": 0.55,
+                "y": 0.05,
+                "z": 0
+              }
+            },
+            {
+              "id": "probe-block",
+              "kind": "block",
+              "center": {
+                "x": -0.6,
+                "y": 0.15,
+                "z": 0
+              }
+            }
+          ],
+          "camera": {
+            "position": {
+              "x": 0,
+              "y": 1.25,
+              "z": 2.2
+            },
+            "lookAt": {
+              "x": 0,
+              "y": 0.2,
+              "z": 0
+            }
+          },
+          "eventTypes": [
+            "camera_moved"
+          ],
+          "contactCount": 0,
+          "predicateViolationCount": 0,
+          "invalidActionCount": 0
+        }
+      },
+      {
+        "stepIndex": 2,
+        "timestampMs": 200,
+        "type": "deterministic-scene-snapshot",
+        "payload": {
+          "objects": [
+            {
+              "id": "contact-pillar",
+              "kind": "obstacle",
+              "center": {
+                "x": 0,
+                "y": 0.35,
+                "z": 0
+              }
+            },
+            {
+              "id": "target-pad",
+              "kind": "target",
+              "center": {
+                "x": 0.55,
+                "y": 0.05,
+                "z": 0
+              }
+            },
+            {
+              "id": "probe-block",
+              "kind": "block",
+              "center": {
+                "x": -0.6,
+                "y": 0.15,
+                "z": 0
+              }
+            }
+          ],
+          "camera": {
+            "position": {
+              "x": 0,
+              "y": 1.25,
+              "z": 2.2
+            },
+            "lookAt": {
+              "x": 0,
+              "y": 0.2,
+              "z": 0
+            }
+          },
+          "eventTypes": [
+            "contact",
+            "predicate_violation"
+          ],
+          "contactCount": 1,
+          "predicateViolationCount": 1,
+          "invalidActionCount": 0
+        }
+      },
+      {
+        "stepIndex": 3,
+        "timestampMs": 300,
+        "type": "deterministic-scene-snapshot",
+        "payload": {
+          "objects": [
+            {
+              "id": "contact-pillar",
+              "kind": "obstacle",
+              "center": {
+                "x": 0,
+                "y": 0.35,
+                "z": 0
+              }
+            },
+            {
+              "id": "target-pad",
+              "kind": "target",
+              "center": {
+                "x": 0.55,
+                "y": 0.05,
+                "z": 0
+              }
+            },
+            {
+              "id": "probe-block",
+              "kind": "block",
+              "center": {
+                "x": 0.55,
+                "y": 0.15,
+                "z": 0
+              }
+            }
+          ],
+          "camera": {
+            "position": {
+              "x": 0,
+              "y": 1.25,
+              "z": 2.2
+            },
+            "lookAt": {
+              "x": 0,
+              "y": 0.2,
+              "z": 0
+            }
+          },
+          "eventTypes": [
+            "object_moved",
+            "target_contact"
+          ],
+          "contactCount": 2,
+          "predicateViolationCount": 1,
+          "invalidActionCount": 0
+        }
+      }
+    ],
+    "contactCount": 2,
+    "predicateViolationCount": 1,
+    "invalidActionCount": 0,
+    "eventLogHash": "fnv1a-1204be5e"
+  },
+  "trajectory": {
+    "id": "fnv1a-37e561ed",
+    "sceneHash": "fnv1a-b29f9e5c",
+    "seed": 4242,
+    "trustTier": "replayable",
+    "caelReceiptHash": "fnv1a-1204be5e",
+    "simulationContract": {
+      "contractId": "world-model-deterministic-contact-v1",
+      "hashMode": "fnv1a",
+      "adapterFingerprint": "core-world-model-deterministic-scene-v1",
+      "replayDigestMode": "strict-same-adapter",
+      "fieldQuantization": [
+        {
+          "fieldPattern": "objects.*.center",
+          "quantum": 0.000001,
+          "units": "m"
+        },
+        {
+          "fieldPattern": "camera.position",
+          "quantum": 0.000001,
+          "units": "m"
+        },
+        {
+          "fieldPattern": "camera.lookAt",
+          "quantum": 0.000001,
+          "units": "m"
+        }
+      ]
+    },
+    "actionTrace": [
+      {
+        "stepIndex": 0,
+        "timestampMs": 0,
+        "type": "place-object",
+        "payload": {
+          "object": {
+            "id": "probe-block",
+            "kind": "block",
+            "center": {
+              "x": -0.6,
+              "y": 0.15,
+              "z": 0
+            },
+            "halfExtents": {
+              "x": 0.15,
+              "y": 0.15,
+              "z": 0.15
+            },
+            "movable": true
+          }
+        }
+      },
+      {
+        "stepIndex": 1,
+        "timestampMs": 100,
+        "type": "move-camera",
+        "payload": {
+          "position": {
+            "x": 0,
+            "y": 1.25,
+            "z": 2.2
+          },
+          "lookAt": {
+            "x": 0,
+            "y": 0.2,
+            "z": 0
+          }
+        }
+      },
+      {
+        "stepIndex": 2,
+        "timestampMs": 200,
+        "type": "move-object",
+        "payload": {
+          "objectId": "probe-block",
+          "center": {
+            "x": 0,
+            "y": 0.15,
+            "z": 0
+          }
+        }
+      },
+      {
+        "stepIndex": 3,
+        "timestampMs": 300,
+        "type": "move-object",
+        "payload": {
+          "objectId": "probe-block",
+          "center": {
+            "x": 0.55,
+            "y": 0.15,
+            "z": 0
+          }
+        }
+      }
+    ],
+    "observationTrace": [
+      {
+        "stepIndex": 0,
+        "timestampMs": 0,
+        "type": "deterministic-scene-snapshot",
+        "payload": {
+          "objects": [
+            {
+              "id": "contact-pillar",
+              "kind": "obstacle",
+              "center": {
+                "x": 0,
+                "y": 0.35,
+                "z": 0
+              }
+            },
+            {
+              "id": "target-pad",
+              "kind": "target",
+              "center": {
+                "x": 0.55,
+                "y": 0.05,
+                "z": 0
+              }
+            },
+            {
+              "id": "probe-block",
+              "kind": "block",
+              "center": {
+                "x": -0.6,
+                "y": 0.15,
+                "z": 0
+              }
+            }
+          ],
+          "camera": {
+            "position": {
+              "x": -0.25,
+              "y": 1.1,
+              "z": 2
+            },
+            "lookAt": {
+              "x": 0,
+              "y": 0.2,
+              "z": 0
+            }
+          },
+          "eventTypes": [
+            "object_placed"
+          ],
+          "contactCount": 0,
+          "predicateViolationCount": 0,
+          "invalidActionCount": 0
+        }
+      },
+      {
+        "stepIndex": 1,
+        "timestampMs": 100,
+        "type": "deterministic-scene-snapshot",
+        "payload": {
+          "objects": [
+            {
+              "id": "contact-pillar",
+              "kind": "obstacle",
+              "center": {
+                "x": 0,
+                "y": 0.35,
+                "z": 0
+              }
+            },
+            {
+              "id": "target-pad",
+              "kind": "target",
+              "center": {
+                "x": 0.55,
+                "y": 0.05,
+                "z": 0
+              }
+            },
+            {
+              "id": "probe-block",
+              "kind": "block",
+              "center": {
+                "x": -0.6,
+                "y": 0.15,
+                "z": 0
+              }
+            }
+          ],
+          "camera": {
+            "position": {
+              "x": 0,
+              "y": 1.25,
+              "z": 2.2
+            },
+            "lookAt": {
+              "x": 0,
+              "y": 0.2,
+              "z": 0
+            }
+          },
+          "eventTypes": [
+            "camera_moved"
+          ],
+          "contactCount": 0,
+          "predicateViolationCount": 0,
+          "invalidActionCount": 0
+        }
+      },
+      {
+        "stepIndex": 2,
+        "timestampMs": 200,
+        "type": "deterministic-scene-snapshot",
+        "payload": {
+          "objects": [
+            {
+              "id": "contact-pillar",
+              "kind": "obstacle",
+              "center": {
+                "x": 0,
+                "y": 0.35,
+                "z": 0
+              }
+            },
+            {
+              "id": "target-pad",
+              "kind": "target",
+              "center": {
+                "x": 0.55,
+                "y": 0.05,
+                "z": 0
+              }
+            },
+            {
+              "id": "probe-block",
+              "kind": "block",
+              "center": {
+                "x": -0.6,
+                "y": 0.15,
+                "z": 0
+              }
+            }
+          ],
+          "camera": {
+            "position": {
+              "x": 0,
+              "y": 1.25,
+              "z": 2.2
+            },
+            "lookAt": {
+              "x": 0,
+              "y": 0.2,
+              "z": 0
+            }
+          },
+          "eventTypes": [
+            "contact",
+            "predicate_violation"
+          ],
+          "contactCount": 1,
+          "predicateViolationCount": 1,
+          "invalidActionCount": 0
+        }
+      },
+      {
+        "stepIndex": 3,
+        "timestampMs": 300,
+        "type": "deterministic-scene-snapshot",
+        "payload": {
+          "objects": [
+            {
+              "id": "contact-pillar",
+              "kind": "obstacle",
+              "center": {
+                "x": 0,
+                "y": 0.35,
+                "z": 0
+              }
+            },
+            {
+              "id": "target-pad",
+              "kind": "target",
+              "center": {
+                "x": 0.55,
+                "y": 0.05,
+                "z": 0
+              }
+            },
+            {
+              "id": "probe-block",
+              "kind": "block",
+              "center": {
+                "x": 0.55,
+                "y": 0.15,
+                "z": 0
+              }
+            }
+          ],
+          "camera": {
+            "position": {
+              "x": 0,
+              "y": 1.25,
+              "z": 2.2
+            },
+            "lookAt": {
+              "x": 0,
+              "y": 0.2,
+              "z": 0
+            }
+          },
+          "eventTypes": [
+            "object_moved",
+            "target_contact"
+          ],
+          "contactCount": 2,
+          "predicateViolationCount": 1,
+          "invalidActionCount": 0
+        }
+      }
+    ],
+    "predicateScore": {
+      "violation": 1,
+      "novelty": 1,
+      "learnability": 0.9,
+      "regression": 0,
+      "invalidity": 0
+    },
+    "priority": {
+      "priority": 0.95,
+      "tieBreaker": 4,
+      "rationale": "violation=1.00 × novelty=1.00 × learn=0.90"
+    },
+    "replayHandle": {
+      "trajectoryId": "fnv1a-37e561ed",
+      "sceneHash": "fnv1a-b29f9e5c",
+      "simulationContractId": "world-model-deterministic-contact-v1",
+      "seed": 4242,
+      "replayCommand": "holoscript world-model replay --scene deterministic-contact-v1 --trajectory fnv1a-37e561ed --seed 4242"
+    },
+    "status": "unresolved",
+    "discoveredAtMs": 1700000000000,
+    "lastReplayedAtMs": null
+  },
+  "score": {
+    "predicateScore": {
+      "violation": 1,
+      "novelty": 1,
+      "learnability": 0.9,
+      "regression": 0,
+      "invalidity": 0
+    },
+    "priority": {
+      "priority": 0.95,
+      "tieBreaker": 4,
+      "rationale": "violation=1.00 × novelty=1.00 × learn=0.90"
+    }
+  }
+}
