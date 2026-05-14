@@ -585,6 +585,74 @@ function buildAbsorbDiagnostics(
   };
 }
 
+// ── Inline source-file upload helpers ────────────────────────────────────────
+
+const SOURCE_FILES_MAX_FILES = 500;
+const SOURCE_FILES_MAX_TOTAL_BYTES = 5 * 1024 * 1024; // 5 MB
+
+interface SourceFileEntry {
+  path: string;
+  content: string;
+}
+
+function validateSourceFiles(entries: unknown[]): { valid: false; error: string } | { valid: true; files: SourceFileEntry[] } {
+  if (!Array.isArray(entries)) {
+    return { valid: false, error: 'sourceFiles must be an array.' };
+  }
+  if (entries.length === 0) {
+    return { valid: false, error: 'sourceFiles array is empty.' };
+  }
+  if (entries.length > SOURCE_FILES_MAX_FILES) {
+    return { valid: false, error: `sourceFiles exceeds maximum of ${SOURCE_FILES_MAX_FILES} files.` };
+  }
+
+  const files: SourceFileEntry[] = [];
+  let totalBytes = 0;
+
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    if (!entry || typeof entry !== 'object') {
+      return { valid: false, error: `sourceFiles[${i}] is not an object.` };
+    }
+    const e = entry as Record<string, unknown>;
+    const p = e.path;
+    const c = e.content;
+
+    if (typeof p !== 'string' || typeof c !== 'string') {
+      return { valid: false, error: `sourceFiles[${i}] must have string "path" and "content".` };
+    }
+    if (p.length === 0 || p.length > 4096) {
+      return { valid: false, error: `sourceFiles[${i}] path length invalid.` };
+    }
+    if (p.includes('..') || path.isAbsolute(p)) {
+      return { valid: false, error: `sourceFiles[${i}] path must be relative and cannot contain "..".` };
+    }
+
+    const bytes = Buffer.byteLength(c, 'utf-8');
+    totalBytes += bytes;
+    if (totalBytes > SOURCE_FILES_MAX_TOTAL_BYTES) {
+      return { valid: false, error: `sourceFiles total content exceeds ${SOURCE_FILES_MAX_TOTAL_BYTES} bytes.` };
+    }
+
+    files.push({ path: p, content: c });
+  }
+
+  return { valid: true, files };
+}
+
+function writeSourceFilesToTemp(files: SourceFileEntry[]): string {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-absorb-'));
+  for (const file of files) {
+    const filePath = path.join(tmpDir, file.path);
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(filePath, file.content, 'utf-8');
+  }
+  return tmpDir;
+}
+
 // =============================================================================
 // TOOL DEFINITIONS
 // =============================================================================
@@ -645,6 +713,26 @@ export const codebaseTools: Tool[] = [
           description:
             'When true, includes build output folders (dist/build/out) in scanning. Useful in production containers that only ship compiled output. Defaults to false.',
         },
+        sourceFiles: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              path: {
+                type: 'string',
+                description:
+                  'Relative file path within the source tree (e.g., "src/index.ts"). Must be relative, no ".." traversal.',
+              },
+              content: {
+                type: 'string',
+                description: 'File content as UTF-8 text.',
+              },
+            },
+            required: ['path', 'content'],
+          },
+          description:
+            'Inline source files to absorb when filesystem access is unavailable (e.g., remote MCP servers, containers). Provide EITHER rootDir OR sourceFiles — not both. Max 500 files, 5 MB total content. Path traversal attempts are rejected.',
+        },
         embeddingProvider: {
           type: 'string',
           enum: ['openai', 'ollama', 'xenova'],
@@ -662,7 +750,7 @@ export const codebaseTools: Tool[] = [
             'Model name for embeddings (e.g., "text-embedding-3-small" for OpenAI). Uses provider defaults if not specified.',
         },
       },
-      required: ['rootDir'],
+      required: [],
     },
   },
   {
@@ -1422,17 +1510,42 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
 
   const rootDir = args.rootDir as string;
   const rootDirsRaw = args.rootDirs as string[] | undefined;
-  const effectiveRootDirs =
-    rootDirsRaw && rootDirsRaw.length > 0 ? rootDirsRaw : rootDir ? [rootDir] : [];
-  const primaryRootDir = effectiveRootDirs[0];
-  if (!primaryRootDir) return { error: 'rootDir or rootDirs required' };
+  const sourceFilesRaw = args.sourceFiles as unknown[] | undefined;
+
+  let effectiveRootDirs: string[] = [];
+  let primaryRootDir = '';
+  let tempDir: string | undefined;
+  let fromSourceFiles = false;
+
+  if (sourceFilesRaw && Array.isArray(sourceFilesRaw)) {
+    const validation = validateSourceFiles(sourceFilesRaw);
+    if (!validation.valid) {
+      return { error: 'sourceFiles_validation_failed', message: validation.error };
+    }
+    tempDir = writeSourceFilesToTemp(validation.files);
+    effectiveRootDirs = [tempDir];
+    primaryRootDir = tempDir;
+    fromSourceFiles = true;
+  } else {
+    effectiveRootDirs =
+      rootDirsRaw && rootDirsRaw.length > 0 ? rootDirsRaw : rootDir ? [rootDir] : [];
+    primaryRootDir = effectiveRootDirs[0];
+  }
+
+  if (!primaryRootDir) {
+    return {
+      error: 'rootDir_or_sourceFiles_required',
+      message: 'Provide rootDir (filesystem path) OR sourceFiles (inline file array).',
+    };
+  }
 
   const outputFormat = (args.outputFormat as string) ?? 'holo';
   const layout = (args.layout as string) ?? 'force';
   const languages = args.languages as string[] | undefined;
   const maxFiles = args.maxFiles as number | undefined;
   const interactive = (args.interactive as boolean) ?? false;
-  const force = (args.force as boolean) ?? false;
+  // sourceFiles always forces a fresh scan (no disk cache match for temp dirs)
+  const force = fromSourceFiles ? true : ((args.force as boolean) ?? false);
   const includeBuildArtifacts = (args.includeBuildArtifacts as boolean) ?? false;
   const embeddingProvider = args.embeddingProvider as string | undefined;
   const embeddingApiKey = args.embeddingApiKey as string | undefined;
@@ -1459,7 +1572,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       embeddingApiKey,
       embeddingModel
     );
-    return { ...(result as Record<string, unknown>), jobId };
+    return { ...(result as Record<string, unknown>), jobId, fromSourceFiles };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
