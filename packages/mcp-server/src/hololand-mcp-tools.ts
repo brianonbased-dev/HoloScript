@@ -54,6 +54,26 @@ import {
   twinEarthReceiptRegistry,
 } from './robot-ai-mcp-tools.js';
 
+// ═════════════════════════════════════════════════════════════════════════════
+// HoloLand Fork Admission Gate wiring (task_1778619015439_l51b)
+// ═════════════════════════════════════════════════════════════════════════════
+
+async function gateHololandArtifact(
+  artifactKind: import('./conformance/artifact-admission-gate').ArtifactKind,
+  artifactId: string,
+  artifact: unknown
+): Promise<null | { error: string; report: unknown }> {
+  const { runHololandForkAdmissionGate } = await import('./security/hololand-fork-admission-gate');
+  const report = runHololandForkAdmissionGate({ artifactKind, artifactId, artifact });
+  if (!report.passed) {
+    return {
+      error: `HoloLand fork admission gate blocked ${artifactKind} "${artifactId}"`,
+      report,
+    };
+  }
+  return null;
+}
+
 // =============================================================================
 // TOOL DEFINITIONS
 // =============================================================================
@@ -1330,6 +1350,13 @@ async function handleCreateWorld(args: Record<string, unknown>): Promise<unknown
   });
 
   const stored: StoredWorld = { definition, assetUrl, navmeshUrl, generationId };
+
+  // HoloLand fork admission gate (task_1778619015439_l51b)
+  const gateResult = await gateHololandArtifact('world', worldId, definition);
+  if (gateResult) {
+    return { success: false, error: gateResult.error, report: gateResult.report };
+  }
+
   worldRegistry.set(worldId, stored);
 
   // Attempt remote registration if client is connected
@@ -1411,6 +1438,12 @@ async function handleUpdateWorld(args: Record<string, unknown>): Promise<unknown
     /* offline */
   }
 
+  // HoloLand fork admission gate (task_1778619015439_l51b)
+  const gateResult = await gateHololandArtifact('world', worldId, def);
+  if (gateResult) {
+    return { success: false, error: gateResult.error, report: gateResult.report };
+  }
+
   return { success: true, worldId, definition: serializeWorld(def) };
 }
 
@@ -1480,6 +1513,12 @@ async function handleCreateShard(args: Record<string, unknown>): Promise<unknown
     return { error: 'Shard validation failed', details: errors };
   }
 
+  // HoloLand fork admission gate (task_1778619015439_l51b)
+  const shardGate = await gateHololandArtifact('shard', shardId, shard);
+  if (shardGate) {
+    return { success: false, error: shardGate.error, report: shardGate.report };
+  }
+
   shardRegistry.set(shardId, { shard, createdAt: new Date().toISOString(), modifiedAt: new Date().toISOString() });
   return { success: true, shardId, name };
 }
@@ -1512,6 +1551,12 @@ async function handleUpdateShard(args: Record<string, unknown>): Promise<unknown
   const errors = validateShard(shard);
   if (errors.length > 0) {
     return { error: 'Shard validation failed after update', details: errors };
+  }
+
+  // HoloLand fork admission gate (task_1778619015439_l51b)
+  const shardGate = await gateHololandArtifact('shard', shardId, shard);
+  if (shardGate) {
+    return { success: false, error: shardGate.error, report: shardGate.report };
   }
 
   stored.shard = shard;
@@ -1567,6 +1612,12 @@ async function handleCreateZone(args: Record<string, unknown>): Promise<unknown>
     return { error: 'Zone validation failed', details: errors };
   }
 
+  // HoloLand fork admission gate (task_1778619015439_l51b)
+  const zoneGate = await gateHololandArtifact('zone', zoneId, zone);
+  if (zoneGate) {
+    return { success: false, error: zoneGate.error, report: zoneGate.report };
+  }
+
   zoneRegistry.set(zoneId, { zone, createdAt: new Date().toISOString(), modifiedAt: new Date().toISOString() });
   return { success: true, zoneId, name, biome };
 }
@@ -1604,6 +1655,12 @@ async function handleUpdateZone(args: Record<string, unknown>): Promise<unknown>
   const errors = validateZone(zone);
   if (errors.length > 0) {
     return { error: 'Zone validation failed after update', details: errors };
+  }
+
+  // HoloLand fork admission gate (task_1778619015439_l51b)
+  const zoneGate = await gateHololandArtifact('zone', zoneId, zone);
+  if (zoneGate) {
+    return { success: false, error: zoneGate.error, report: zoneGate.report };
   }
 
   stored.zone = zone;
@@ -2128,6 +2185,12 @@ async function handleHololandCreateNPC(args: Record<string, unknown>): Promise<u
     modifiedAt: new Date().toISOString(),
   };
 
+  // HoloLand fork admission gate (task_1778619015439_l51b)
+  const npcGate = await gateHololandArtifact('npc', npcId, npc);
+  if (npcGate) {
+    return { success: false, error: npcGate.error, report: npcGate.report };
+  }
+
   npcRegistry.set(npcId, npc);
 
   return {
@@ -2170,6 +2233,12 @@ async function handleHololandUpdateNPC(args: Record<string, unknown>): Promise<u
   if (args.systemPrompt !== undefined) npc.systemPrompt = args.systemPrompt as string;
   if (args.dialogueTree !== undefined) npc.dialogueTree = args.dialogueTree as string;
   if (args.enabled !== undefined) npc.enabled = args.enabled as boolean;
+
+  // HoloLand fork admission gate (task_1778619015439_l51b)
+  const npcGate = await gateHololandArtifact('npc', npcId, npc);
+  if (npcGate) {
+    return { success: false, error: npcGate.error, report: npcGate.report };
+  }
 
   npc.modifiedAt = new Date().toISOString();
 

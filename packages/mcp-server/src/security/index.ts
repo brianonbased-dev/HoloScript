@@ -115,3 +115,10 @@ export {
   type ForkDetectionResult,
   type ForkSandboxGateOptions,
 } from './fork-sandbox-gate';
+
+// HoloLand Fork Admission Gate (task_1778619015439_l51b)
+export {
+  runHololandForkAdmissionGate,
+  type HoloLandForkAdmissionInput,
+  type HoloLandForkAdmissionReport,
+} from './hololand-fork-admission-gate';
