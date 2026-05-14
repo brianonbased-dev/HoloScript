@@ -6,12 +6,14 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "hololand-device-lab": "dist/device-lab.js"
+    "hololand-device-lab": "dist/device-lab.js",
+    "hololand-evidence-envelope": "dist/evidence-envelope.js"
   },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "device-lab": "pnpm run build && node dist/device-lab.js",
+    "evidence-envelope": "pnpm run build && node dist/evidence-envelope.js",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage --passWithNoTests"
   },

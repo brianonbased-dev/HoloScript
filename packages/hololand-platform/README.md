@@ -30,3 +30,17 @@ pnpm --filter @holoscript/hololand-platform run device-lab -- \
 
 `WARN` means the receipt is useful but incomplete. `FAIL` means HoloLand hardware
 readiness is not proven on this device.
+
+## Evidence Envelope
+
+Generate the Paper 12 HoloLand calibration/setup/reproducibility manifest:
+
+```bash
+pnpm --filter @holoscript/hololand-platform run evidence-envelope -- \
+  --preset paper-12-hololand \
+  --out docs/public/evidence/paper-12-hololand-envelope.json
+```
+
+The envelope records runtime environment hash, hardware tier, seed, harness
+command, artifact paths, and one-command rerun. Papers cite the public JSON path
+instead of restating those fields by hand.
