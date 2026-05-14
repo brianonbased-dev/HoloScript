@@ -70,7 +70,9 @@ export type TwinEarthAction =
   | 'npc:create' | 'npc:update' | 'npc:delete' | 'npc:dialogue'
   | 'receipt:capture' | 'receipt:validate'
   | 'identity:register' | 'identity:renew' | 'identity:revoke'
-  | 'contract:propose' | 'contract:ratify';
+  | 'contract:propose' | 'contract:ratify'
+  | 'actuator:command' | 'sensor:read' | 'robot:move' | 'robot:task:execute'
+  | 'ai:inference' | 'ai:plan';
 
 /** A signed, revocable, substrate-auditable permission grant. */
 export interface PermissionGrant {
@@ -354,6 +356,134 @@ export function isSupportedTwinEarthReceiptStatus(
 ): status is TwinEarthReceiptStatus {
   const statuses: readonly string[] = ['success', 'failure', 'timeout', 'rejected_by_envelope'];
   return statuses.includes(status);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 8. ACTUATION GATING
+// ═════════════════════════════════════════════════════════════════════════════
+
+/** Result of an actuation permission evaluation. */
+export interface ActuationResult {
+  /** Whether the actuation is permitted. */
+  allowed: boolean;
+  /** Human-readable reason for the decision. */
+  reason: string;
+  /** If denied due to safety envelope, the specific envelope rule that blocked it. */
+  blockingRule?: 'blocked_actions' | 'not_allowed' | 'not_substrate_enforced' | 'expired_grant' | 'revoked_grant';
+  /** Optional receipt if the evaluation itself was logged. */
+  receipt?: TwinEarthReceipt;
+}
+
+/**
+ * Evaluate whether a robot/AI actuation is permitted.
+ *
+ * Checks (in order):
+ * 1. Identity is valid.
+ * 2. Permission grant is valid and covers the requested action + scope.
+ * 3. Grant has not expired.
+ * 4. Grant has not been revoked.
+ * 5. Safety envelope is substrate-enforced.
+ * 6. Action is in envelope allowedActions (if whitelist is non-empty).
+ * 7. Action is NOT in envelope blockedActions (blacklist overrides whitelist).
+ */
+export function evaluateActuation(
+  identity: TwinEarthIdentity,
+  grant: PermissionGrant,
+  envelope: SafetyEnvelope,
+  action: TwinEarthAction,
+  scope: string,
+): ActuationResult {
+  // 1. Identity validation
+  const idErrors = validateTwinEarthIdentity(identity);
+  if (idErrors.length > 0) {
+    return { allowed: false, reason: `Identity invalid: ${idErrors.join('; ')}` };
+  }
+
+  // 2. Grant validation
+  const grantErrors = validatePermissionGrant(grant);
+  if (grantErrors.length > 0) {
+    return { allowed: false, reason: `Grant invalid: ${grantErrors.join('; ')}` };
+  }
+
+  // 3. Grant must match action
+  if (grant.action !== action) {
+    return {
+      allowed: false,
+      reason: `Grant action mismatch: grant permits '${grant.action}' but requested '${action}'.`,
+    };
+  }
+
+  // 4. Scope check — exact match or wildcard grant
+  if (grant.scope !== scope && grant.scope !== '*') {
+    return {
+      allowed: false,
+      reason: `Grant scope mismatch: grant covers '${grant.scope}' but requested '${scope}'.`,
+    };
+  }
+
+  // 5. Expiry check
+  if (grant.expiresAt !== null && new Date(grant.expiresAt) <= new Date()) {
+    return {
+      allowed: false,
+      reason: `Grant expired at ${grant.expiresAt}.`,
+      blockingRule: 'expired_grant',
+    };
+  }
+
+  // 6. Revocation check
+  if (grant.revocationSignature !== null) {
+    return {
+      allowed: false,
+      reason: 'Grant has been revoked.',
+      blockingRule: 'revoked_grant',
+    };
+  }
+
+  // 7. Safety envelope must be substrate-enforced before full validation
+  if (!envelope.substrateEnforced) {
+    return {
+      allowed: false,
+      reason: 'Safety envelope is not substrate-enforced.',
+      blockingRule: 'not_substrate_enforced',
+    };
+  }
+
+  // 8. Safety envelope validation
+  const envErrors = validateSafetyEnvelope(envelope);
+  if (envErrors.length > 0) {
+    return { allowed: false, reason: `Safety envelope invalid: ${envErrors.join('; ')}` };
+  }
+
+  // 9. Envelope must apply to this identity
+  if (envelope.agentId !== identity.agentId) {
+    return {
+      allowed: false,
+      reason: `Safety envelope belongs to '${envelope.agentId}', not '${identity.agentId}'.`,
+    };
+  }
+
+  // 10. Whitelist check (if non-empty)
+  if (envelope.allowedActions.length > 0 && !envelope.allowedActions.includes(action)) {
+    return {
+      allowed: false,
+      reason: `Action '${action}' is not in the safety envelope allowedActions whitelist.`,
+      blockingRule: 'not_allowed',
+    };
+  }
+
+  // 11. Blacklist check
+  if (envelope.blockedActions.includes(action)) {
+    return {
+      allowed: false,
+      reason: `Action '${action}' is explicitly blocked by the safety envelope.`,
+      blockingRule: 'blocked_actions',
+    };
+  }
+
+  return {
+    allowed: true,
+    reason: `Actuation permitted: identity '${identity.agentId}', action '${action}', scope '${scope}'.`,
+  };
 }
 
 // ── Cloning helpers ──
