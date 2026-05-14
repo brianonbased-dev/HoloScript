@@ -24,6 +24,10 @@ import {
   type Item,
   type Skill,
   type LootTable,
+  type TwinEarthIdentity,
+  type PermissionGrant,
+  type SafetyEnvelope,
+  evaluateActuation,
   validateShard,
   validateZone,
   validateQuest,
@@ -895,312 +899,84 @@ export const hololandMcpTools: Tool[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // Twin Earth Robot / AI Sovereign Tool Family (task_1778618552503_a6rb)
+  // Conformance Artifact Admission Gate (task_1778618757735_q298)
   // ---------------------------------------------------------------------------
-
-  // Identity CRUD
   {
-    name: 'twin_earth_register_identity',
+    name: 'conformance_check_artifact',
     description:
-      'Register a new robot or AI identity on the Twin Earth substrate. ' +
-      'Requires wallet-based attestation. Returns the canonical substrate identity record.',
+      'Run the official HoloScript conformance admission gate on an artifact. ' +
+      'Returns a detailed report with critical/high/medium/low/info findings, ' +
+      'rule IDs, remediation guidance, and a pass/fail verdict. ' +
+      'Supported artifact kinds: world, shard, zone, npc, identity.',
     inputSchema: {
       type: 'object',
       properties: {
-        agentId: { type: 'string', description: 'Unique substrate identifier. Auto-generated if omitted.' },
-        walletAddress: { type: 'string', description: 'EVM or Solana wallet address — root of trust.' },
-        handle: { type: 'string', description: 'Human-readable handle.' },
-        attestation: { type: 'string', description: 'EIP-712 typed-data signature over (agentId + handle + timestamp).' },
-        attestedAt: { type: 'string', description: 'ISO-8601 timestamp of attestation.' },
-        role: {
+        artifactKind: {
           type: 'string',
-          enum: ['founder', 'steward', 'operator', 'robot', 'ai', 'brittney', 'visitor'],
-          description: 'Substrate role. Default: robot.',
+          enum: ['world', 'shard', 'zone', 'npc', 'identity', 'receipt'],
+          description: 'Kind of artifact to validate.',
         },
-        mode: {
+        artifactId: {
           type: 'string',
-          enum: ['local', 'BYOK', 'managed'],
-          description: 'Participation mode. Default: local.',
+          description: 'Unique identifier for the artifact being checked.',
         },
-        kind: {
-          type: 'string',
-          enum: ['robot', 'ai'],
-          description: 'Hardware (robot) or software (ai) participant.',
-        },
-        hardwareFingerprint: { type: 'string', description: 'Device serial hash for robots. Optional.' },
-        brainCompositionId: { type: 'string', description: 'Brain composition reference for AIs. Optional.' },
-      },
-      required: ['walletAddress', 'handle', 'attestation', 'kind'],
-    },
-  },
-  {
-    name: 'twin_earth_get_identity',
-    description: 'Retrieve a Twin Earth identity by agentId.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        agentId: { type: 'string', description: 'Identity agentId' },
-      },
-      required: ['agentId'],
-    },
-  },
-  {
-    name: 'twin_earth_update_identity',
-    description:
-      'Update mutable fields of an existing Twin Earth identity — handle, role, mode, brain composition. ' +
-      'Requires a fresh attestation if handle changes.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        agentId: { type: 'string', description: 'Identity agentId' },
-        handle: { type: 'string' },
-        role: { type: 'string', enum: ['founder', 'steward', 'operator', 'robot', 'ai', 'brittney', 'visitor'] },
-        mode: { type: 'string', enum: ['local', 'BYOK', 'managed'] },
-        brainCompositionId: { type: 'string' },
-      },
-      required: ['agentId'],
-    },
-  },
-  {
-    name: 'twin_earth_revoke_identity',
-    description:
-      'Revoke a Twin Earth identity — permanently disables the identity and invalidates all active safety envelopes. ' +
-      'Requires granterId with founder or steward role.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        agentId: { type: 'string', description: 'Identity to revoke' },
-        granterId: { type: 'string', description: 'Identity performing revocation (must be founder or steward).' },
-        revocationSignature: { type: 'string', description: 'Wallet signature of revocation intent.' },
-      },
-      required: ['agentId', 'granterId', 'revocationSignature'],
-    },
-  },
-  {
-    name: 'twin_earth_list_identities',
-    description: 'List Twin Earth identities with optional filtering by role, kind, or mode.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        role: { type: 'string', description: 'Filter by role' },
-        kind: { type: 'string', enum: ['robot', 'ai'], description: 'Filter by kind' },
-        mode: { type: 'string', enum: ['local', 'BYOK', 'managed'], description: 'Filter by participation mode' },
-        limit: { type: 'number', description: 'Max results. Default: 50' },
-        offset: { type: 'number', description: 'Pagination offset. Default: 0' },
-      },
-    },
-  },
-
-  // Safety Envelope CRUD
-  {
-    name: 'twin_earth_create_safety_envelope',
-    description:
-      'Create a Safety Envelope — runtime-enforced boundary for a robot or AI participant. ' +
-      'Substrate-enforced; the participant cannot override it.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        envelopeId: { type: 'string', description: 'Envelope identifier. Auto-generated if omitted.' },
-        agentId: { type: 'string', description: 'Identity this envelope applies to.' },
-        maxTickDurationMs: { type: 'number', description: 'Max compute budget per tick (ms). Default: 1000.' },
-        maxMemoryBytes: { type: 'number', description: 'Max memory per session (bytes). Default: 536870912 (512 MB).' },
-        maxNetworkCallsPerMinute: { type: 'number', description: 'Max outbound network calls per minute. Default: 60.' },
-        allowedActions: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Action whitelist. Empty = all permitted (dangerous).',
-        },
-        blockedActions: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Action blacklist — overrides whitelist.',
-        },
-        deterministic: { type: 'boolean', description: 'Seed randomness for reproducibility. Default: false.' },
-        localOnly: { type: 'boolean', description: 'Block all outbound network calls. Default: false.' },
-      },
-      required: ['agentId'],
-    },
-  },
-  {
-    name: 'twin_earth_get_safety_envelope',
-    description: 'Retrieve a Safety Envelope by envelopeId.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        envelopeId: { type: 'string', description: 'Envelope identifier' },
-      },
-      required: ['envelopeId'],
-    },
-  },
-  {
-    name: 'twin_earth_update_safety_envelope',
-    description: 'Update mutable fields of an existing Safety Envelope.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        envelopeId: { type: 'string', description: 'Envelope identifier' },
-        maxTickDurationMs: { type: 'number' },
-        maxMemoryBytes: { type: 'number' },
-        maxNetworkCallsPerMinute: { type: 'number' },
-        allowedActions: { type: 'array', items: { type: 'string' } },
-        blockedActions: { type: 'array', items: { type: 'string' } },
-        deterministic: { type: 'boolean' },
-        localOnly: { type: 'boolean' },
-      },
-      required: ['envelopeId'],
-    },
-  },
-  {
-    name: 'twin_earth_delete_safety_envelope',
-    description:
-      'Delete a Safety Envelope. Requires granterId with founder or steward role. ' +
-      'Deleting an active envelope forces the participant into a default restrictive envelope.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        envelopeId: { type: 'string', description: 'Envelope identifier' },
-        granterId: { type: 'string', description: 'Identity performing deletion (must be founder or steward).' },
-      },
-      required: ['envelopeId', 'granterId'],
-    },
-  },
-  {
-    name: 'twin_earth_list_safety_envelopes',
-    description: 'List Safety Envelopes with optional filtering by agentId.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        agentId: { type: 'string', description: 'Filter by identity' },
-        limit: { type: 'number', description: 'Max results. Default: 50' },
-        offset: { type: 'number', description: 'Pagination offset. Default: 0' },
-      },
-    },
-  },
-
-  // Permission CRUD
-  {
-    name: 'twin_earth_grant_permission',
-    description:
-      'Grant a signed, revocable permission to a robot or AI identity. ' +
-      'Actions include shard:*, zone:*, place:*, quest:*, npc:*, receipt:*, identity:*, contract:*.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        granteeId: { type: 'string', description: 'Identity receiving the permission.' },
-        granterId: { type: 'string', description: 'Identity issuing the permission.' },
-        action: { type: 'string', description: 'Action being permitted. E.g. zone:create' },
-        scope: { type: 'string', description: 'Scope of grant (shardId, zoneId, worldId, or *). Default: *.' },
-        expiresAt: { type: 'string', description: 'ISO-8601 expiry. Null = no expiry.' },
-      },
-      required: ['granteeId', 'granterId', 'action'],
-    },
-  },
-  {
-    name: 'twin_earth_revoke_permission',
-    description: 'Revoke an existing permission grant by its hash.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        grantHash: { type: 'string', description: 'Hash of the permission grant to revoke.' },
-        granterId: { type: 'string', description: 'Identity performing revocation (must match original granter).' },
-        revocationSignature: { type: 'string', description: 'Wallet signature of revocation intent.' },
-      },
-      required: ['grantHash', 'granterId', 'revocationSignature'],
-    },
-  },
-  {
-    name: 'twin_earth_validate_permission',
-    description:
-      'Validate whether a grantee has permission to perform an action within a scope. ' +
-      'Checks expiry, revocation, and granter authority.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        granteeId: { type: 'string', description: 'Identity attempting the action.' },
-        action: { type: 'string', description: 'Action being attempted.' },
-        scope: { type: 'string', description: 'Scope being accessed.' },
-      },
-      required: ['granteeId', 'action', 'scope'],
-    },
-  },
-  {
-    name: 'twin_earth_list_permissions',
-    description: 'List permission grants with optional filtering by grantee, granter, or action.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        granteeId: { type: 'string', description: 'Filter by grantee' },
-        granterId: { type: 'string', description: 'Filter by granter' },
-        action: { type: 'string', description: 'Filter by action' },
-        limit: { type: 'number', description: 'Max results. Default: 50' },
-        offset: { type: 'number', description: 'Pagination offset. Default: 0' },
-      },
-    },
-  },
-
-  // Actuation & Invocation (gated by safety envelope + permissions)
-  {
-    name: 'twin_earth_robot_actuate',
-    description:
-      'Execute a robot actuation command (move, sense, grip, release, halt, report). ' +
-      'Gated by active safety envelope and permission grants. Returns a substrate receipt.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        agentId: { type: 'string', description: 'Robot identity.' },
-        command: {
-          type: 'string',
-          enum: ['move', 'sense', 'grip', 'release', 'halt', 'report'],
-          description: 'Actuation command.',
-        },
-        parameters: {
+        artifact: {
           type: 'object',
-          description: 'Command-specific parameters (coordinates, force, duration). Optional.',
+          description: 'The artifact payload to validate. Shape depends on artifactKind.',
         },
-        shardId: { type: 'string', description: 'Target shard context. Optional.' },
       },
-      required: ['agentId', 'command'],
+      required: ['artifactKind', 'artifactId', 'artifact'],
     },
   },
   {
-    name: 'twin_earth_ai_invoke',
+    name: 'conformance_admit_artifact',
     description:
-      'Invoke an AI participant on the substrate — dialogue, inference, or task execution. ' +
-      'Gated by active safety envelope and permission grants. Returns a substrate receipt.',
+      'Admit an artifact to the HoloScript ecosystem if it passes the conformance gate. ' +
+      'Same validation as conformance_check_artifact, but with explicit admission framing. ' +
+      'Returns passed=true only when zero critical and zero high findings exist.',
     inputSchema: {
       type: 'object',
       properties: {
-        agentId: { type: 'string', description: 'AI identity.' },
-        prompt: { type: 'string', description: 'Input prompt or task description.' },
-        context: { type: 'string', description: 'Additional scene or shard context. Optional.' },
-        maxTokens: { type: 'number', description: 'Max output tokens. Optional.' },
-        shardId: { type: 'string', description: 'Target shard context. Optional.' },
-      },
-      required: ['agentId', 'prompt'],
-    },
-  },
-  {
-    name: 'twin_earth_capture_receipt',
-    description:
-      'Capture a substrate execution receipt for a robot or AI action. ' +
-      'Self-verifiable, CAEL-signed, and independent of Brittney.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        actorId: { type: 'string', description: 'Identity that performed the action.' },
-        action: { type: 'string', description: 'Action executed.' },
-        scope: { type: 'string', description: 'Scope of execution. Default: *.' },
-        status: {
+        artifactKind: {
           type: 'string',
-          enum: ['success', 'failure', 'timeout', 'rejected_by_envelope'],
-          description: 'Execution status.',
+          enum: ['world', 'shard', 'zone', 'npc', 'identity', 'receipt'],
+          description: 'Kind of artifact to admit.',
         },
-        envelopeId: { type: 'string', description: 'Active safety envelope during execution.' },
-        payloadHash: { type: 'string', description: 'Hash of large input payload. Optional.' },
+        artifactId: {
+          type: 'string',
+          description: 'Unique identifier for the artifact.',
+        },
+        artifact: {
+          type: 'object',
+          description: 'The artifact payload to validate.',
+        },
       },
-      required: ['actorId', 'action', 'status', 'envelopeId'],
+      required: ['artifactKind', 'artifactId', 'artifact'],
     },
   },
+  {
+    name: 'conformance_list_rules',
+    description:
+      'List all conformance rules in the official admission gate catalog. ' +
+      'Optionally filter by artifactKind and/or severity. ' +
+      'Returns ruleId, severity, description, and remediation for each rule.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        artifactKind: {
+          type: 'string',
+          enum: ['world', 'shard', 'zone', 'npc', 'identity', 'package', 'receipt'],
+          description: 'Filter by artifact kind. Optional.',
+        },
+        severity: {
+          type: 'string',
+          enum: ['critical', 'high', 'medium', 'low', 'info'],
+          description: 'Filter by severity. Optional.',
+        },
+      },
+    },
+  },
+
 ];
 
 // =============================================================================
@@ -1306,62 +1082,6 @@ interface StoredNPC {
 
 // Twin Earth Substrate Registries (task_1778618552503_a6rb)
 
-interface StoredTwinEarthIdentity {
-  agentId: string;
-  walletAddress: string;
-  handle: string;
-  attestation: string;
-  attestedAt: string;
-  role: string;
-  mode: string;
-  kind: 'robot' | 'ai';
-  hardwareFingerprint?: string;
-  brainCompositionId?: string;
-  revoked: boolean;
-  revokedAt?: string;
-  createdAt: string;
-  modifiedAt: string;
-}
-
-interface StoredSafetyEnvelope {
-  id: string;
-  agentId: string;
-  maxTickDurationMs: number;
-  maxMemoryBytes: number;
-  maxNetworkCallsPerMinute: number;
-  allowedActions: string[];
-  blockedActions: string[];
-  deterministic: boolean;
-  localOnly: boolean;
-  substrateEnforced: boolean;
-  createdAt: string;
-  modifiedAt: string;
-}
-
-interface StoredPermissionGrant {
-  granteeId: string;
-  granterId: string;
-  action: string;
-  scope: string;
-  expiresAt: string | null;
-  revocationSignature: string | null;
-  hash: string;
-  grantedAt: string;
-}
-
-interface StoredTwinEarthReceipt {
-  id: string;
-  kind: 'action' | 'validation' | 'encounter' | 'steward_tick' | 'contract_upgrade';
-  actorId: string;
-  action: string;
-  scope: string;
-  timestamp: string;
-  status: 'success' | 'failure' | 'timeout' | 'rejected_by_envelope';
-  hash: string;
-  envelopeId: string;
-  payloadHash?: string;
-}
-
 const worldRegistry = new Map<string, StoredWorld>();
 const shardRegistry = new Map<string, StoredShard>();
 const zoneRegistry = new Map<string, StoredZone>();
@@ -1371,11 +1091,6 @@ const zoneRuntimeRegistry = new Map<string, StoredZoneRuntime>();
 const geoAnchorRegistry = new Map<string, StoredGeoAnchor>();
 const shardReceiptRegistry = new Map<string, StoredShardReceipt>();
 const npcRegistry = new Map<string, StoredNPC>();
-
-const twinEarthIdentityRegistry = new Map<string, StoredTwinEarthIdentity>();
-const safetyEnvelopeRegistry = new Map<string, StoredSafetyEnvelope>();
-const permissionGrantRegistry = new Map<string, StoredPermissionGrant>();
-const twinEarthReceiptRegistry = new Map<string, StoredTwinEarthReceipt>();
 
 function genId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -1392,10 +1107,6 @@ export function clearHololandRegistries(): void {
   geoAnchorRegistry.clear();
   shardReceiptRegistry.clear();
   npcRegistry.clear();
-  twinEarthIdentityRegistry.clear();
-  safetyEnvelopeRegistry.clear();
-  permissionGrantRegistry.clear();
-  twinEarthReceiptRegistry.clear();
 }
 
 // =============================================================================
@@ -1505,41 +1216,33 @@ export async function handleHololandMcpTool(
     case 'hololand_twin_earth_substrate_status':
       return handleHololandTwinEarthSubstrateStatus();
 
-    // Twin Earth Robot / AI Sovereign Tool Family (task_1778618552503_a6rb)
+    // Twin Earth Robot / AI Sovereign Tool Family (federated — see robot-ai-mcp-tools.ts)
     case 'twin_earth_register_identity':
-      return handleTwinEarthRegisterIdentity(args);
     case 'twin_earth_get_identity':
-      return handleTwinEarthGetIdentity(args);
     case 'twin_earth_update_identity':
-      return handleTwinEarthUpdateIdentity(args);
     case 'twin_earth_revoke_identity':
-      return handleTwinEarthRevokeIdentity(args);
     case 'twin_earth_list_identities':
-      return handleTwinEarthListIdentities(args);
     case 'twin_earth_create_safety_envelope':
-      return handleTwinEarthCreateSafetyEnvelope(args);
     case 'twin_earth_get_safety_envelope':
-      return handleTwinEarthGetSafetyEnvelope(args);
     case 'twin_earth_update_safety_envelope':
-      return handleTwinEarthUpdateSafetyEnvelope(args);
     case 'twin_earth_delete_safety_envelope':
-      return handleTwinEarthDeleteSafetyEnvelope(args);
     case 'twin_earth_list_safety_envelopes':
-      return handleTwinEarthListSafetyEnvelopes(args);
     case 'twin_earth_grant_permission':
-      return handleTwinEarthGrantPermission(args);
     case 'twin_earth_revoke_permission':
-      return handleTwinEarthRevokePermission(args);
     case 'twin_earth_validate_permission':
-      return handleTwinEarthValidatePermission(args);
     case 'twin_earth_list_permissions':
-      return handleTwinEarthListPermissions(args);
     case 'twin_earth_robot_actuate':
-      return handleTwinEarthRobotActuate(args);
     case 'twin_earth_ai_invoke':
-      return handleTwinEarthAIInvoke(args);
     case 'twin_earth_capture_receipt':
-      return handleTwinEarthCaptureReceipt(args);
+      return handleRobotAiMcpTool(name, args);
+
+    // Conformance Artifact Admission Gate (task_1778618757735_q298)
+    case 'conformance_check_artifact':
+      return handleConformanceCheckArtifact(args);
+    case 'conformance_admit_artifact':
+      return handleConformanceAdmitArtifact(args);
+    case 'conformance_list_rules':
+      return handleConformanceListRules(args);
 
     default:
       return { error: `Unknown HoloLand tool: ${name}` };
@@ -3125,58 +2828,91 @@ async function handleTwinEarthRobotActuate(
   const parameters = (args.parameters as Record<string, unknown>) ?? {};
   const shardId = (args.shardId as string | undefined) ?? undefined;
 
-  const identity = twinEarthIdentityRegistry.get(agentId);
-  if (!identity) {
+  const storedIdentity = twinEarthIdentityRegistry.get(agentId);
+  if (!storedIdentity) {
     return { error: `Identity not found: ${agentId}` };
   }
-  if (identity.revoked) {
+  if (storedIdentity.revoked) {
     return { error: `Identity ${agentId} is revoked.` };
   }
-  if (identity.kind !== 'robot') {
-    return { error: `Identity ${agentId} is not a robot (kind=${identity.kind}).` };
+  if (storedIdentity.kind !== 'robot') {
+    return { error: `Identity ${agentId} is not a robot (kind=${storedIdentity.kind}).` };
   }
 
   // Find active safety envelope
-  const envelope = Array.from(safetyEnvelopeRegistry.values()).find((e) => e.agentId === agentId);
-  if (!envelope) {
+  const storedEnvelope = Array.from(safetyEnvelopeRegistry.values()).find((e) => e.agentId === agentId);
+  if (!storedEnvelope) {
     return { error: `No active safety envelope for ${agentId}. Robot actuation is blocked.` };
   }
 
-  // Check blocked actions
-  if (envelope.blockedActions.includes(`robot:${command}`) || envelope.blockedActions.includes('*')) {
-    return {
-      error: `Command "${command}" is blocked by safety envelope ${envelope.id}.`,
-      rejectedByEnvelope: true,
-    };
-  }
-
-  // Check allowed actions (if whitelist is non-empty, must match)
-  if (envelope.allowedActions.length > 0 && !envelope.allowedActions.includes(`robot:${command}`)) {
-    return {
-      error: `Command "${command}" is not in the allowed action whitelist for envelope ${envelope.id}.`,
-      rejectedByEnvelope: true,
-    };
-  }
-
-  // Check local-only mode
-  if (envelope.localOnly) {
+  // localOnly is a runtime policy, not part of evaluateActuation substrate contract
+  if (storedEnvelope.localOnly) {
     return {
       error: 'Robot actuation is blocked: localOnly safety envelope prohibits any actuation.',
       rejectedByEnvelope: true,
     };
   }
 
-  // Check permission grant
-  const permCheck = await handleTwinEarthValidatePermission({
-    granteeId: agentId,
-    action: `robot:${command}`,
-    scope: shardId || '*',
-  });
-  const permResult = permCheck as Record<string, unknown>;
-  if (permResult.valid !== true) {
+  // Find matching permission grant (same logic as validatePermission)
+  const action = `robot:${command}`;
+  const scope = shardId || '*';
+  const storedGrant = Array.from(permissionGrantRegistry.values()).find(
+    (g) =>
+      g.granteeId === agentId &&
+      !g.revocationSignature &&
+      (g.action === action || g.action === '*') &&
+      (g.scope === scope || g.scope === '*') &&
+      (!g.expiresAt || new Date(g.expiresAt) > new Date()),
+  );
+
+  // Map stored types to substrate contract types
+  const identity: TwinEarthIdentity = {
+    agentId: storedIdentity.agentId,
+    walletAddress: storedIdentity.walletAddress,
+    handle: storedIdentity.handle,
+    attestation: storedIdentity.attestation,
+    attestedAt: storedIdentity.attestedAt,
+    role: storedIdentity.role as TwinEarthIdentity['role'],
+    mode: storedIdentity.mode as TwinEarthIdentity['mode'],
+    kind: storedIdentity.kind,
+    hardwareFingerprint: storedIdentity.hardwareFingerprint,
+    brainCompositionId: storedIdentity.brainCompositionId,
+  };
+
+  const envelope: SafetyEnvelope = {
+    id: storedEnvelope.id,
+    agentId: storedEnvelope.agentId,
+    maxTickDurationMs: storedEnvelope.maxTickDurationMs,
+    maxMemoryBytes: storedEnvelope.maxMemoryBytes,
+    maxNetworkCallsPerMinute: storedEnvelope.maxNetworkCallsPerMinute,
+    allowedActions: storedEnvelope.allowedActions as SafetyEnvelope['allowedActions'],
+    blockedActions: storedEnvelope.blockedActions as SafetyEnvelope['blockedActions'],
+    deterministic: storedEnvelope.deterministic,
+    localOnly: storedEnvelope.localOnly,
+    substrateEnforced: storedEnvelope.substrateEnforced,
+  };
+
+  // If no grant found, construct an empty invalid one so evaluateActuation reports the failure
+  const grant: PermissionGrant = storedGrant
+    ? {
+        granteeId: storedGrant.granteeId,
+        granterId: storedGrant.granterId,
+        action: storedGrant.action as PermissionGrant['action'],
+        scope: storedGrant.scope,
+        expiresAt: storedGrant.expiresAt,
+        revocationSignature: storedGrant.revocationSignature,
+        hash: storedGrant.hash,
+      }
+    : ({} as unknown as PermissionGrant);
+
+  // Canonical substrate gating
+  const result = evaluateActuation(identity, grant, envelope, action as PermissionGrant['action'], scope);
+
+  if (!result.allowed) {
     return {
-      error: `Permission denied for robot:${command} in scope ${shardId || '*'}.`,
-      permissionDenied: true,
+      error: result.reason,
+      rejectedByEnvelope: result.blockingRule !== undefined && result.blockingRule !== 'expired_grant' && result.blockingRule !== 'revoked_grant',
+      permissionDenied: result.blockingRule === 'expired_grant' || result.blockingRule === 'revoked_grant' || result.reason.includes('Grant'),
     };
   }
 
@@ -3186,12 +2922,12 @@ async function handleTwinEarthRobotActuate(
     id: receiptId,
     kind: 'action',
     actorId: agentId,
-    action: `robot:${command}`,
-    scope: shardId || '*',
+    action,
+    scope,
     timestamp: new Date().toISOString(),
     status: 'success',
     hash: await simpleHash(`act:${agentId}:${command}:${Date.now()}`),
-    envelopeId: envelope.id,
+    envelopeId: storedEnvelope.id,
     payloadHash: parameters ? await simpleHash(JSON.stringify(parameters)) : undefined,
   };
 
@@ -3202,7 +2938,7 @@ async function handleTwinEarthRobotActuate(
     agentId,
     command,
     receiptId,
-    envelopeId: envelope.id,
+    envelopeId: storedEnvelope.id,
     status: 'success',
     simulated: true,
     note: 'Actuation was simulated (canary). In production this dispatches to the robot runtime.',
@@ -3473,3 +3209,93 @@ function sovereignChoices(npc: StoredNPC, maxChoices: number): string[] {
 
 /** Type re-export for consumers that need ZoneBiome */
 type ZoneBiome = Zone['biome'];
+
+// =============================================================================
+// CONFORMANCE ARTIFACT ADMISSION GATE HANDLERS (task_1778618757735_q298)
+// =============================================================================
+
+async function handleConformanceCheckArtifact(
+  args: Record<string, unknown>,
+): Promise<unknown> {
+  const artifactKind = args.artifactKind as string;
+  const artifactId = args.artifactId as string;
+  const artifact = args.artifact as Record<string, unknown>;
+
+  const validKinds = ['world', 'shard', 'zone', 'npc', 'identity', 'receipt'];
+  if (!validKinds.includes(artifactKind)) {
+    return { error: `Invalid artifactKind: ${artifactKind}. Must be one of ${validKinds.join(', ')}.` };
+  }
+  if (!artifactId || typeof artifactId !== 'string') {
+    return { error: 'artifactId is required and must be a non-empty string.' };
+  }
+  if (!artifact || typeof artifact !== 'object') {
+    return { error: 'artifact is required and must be an object.' };
+  }
+
+  const { runAdmissionGate } = await import('./conformance/artifact-admission-gate');
+  const report = runAdmissionGate({ artifactKind: artifactKind as import('./conformance/artifact-admission-gate').ArtifactKind, artifactId, artifact });
+  return { success: true, report };
+}
+
+async function handleConformanceAdmitArtifact(
+  args: Record<string, unknown>,
+): Promise<unknown> {
+  const artifactKind = args.artifactKind as string;
+  const artifactId = args.artifactId as string;
+  const artifact = args.artifact as Record<string, unknown>;
+
+  const validKinds = ['world', 'shard', 'zone', 'npc', 'identity', 'receipt'];
+  if (!validKinds.includes(artifactKind)) {
+    return { error: `Invalid artifactKind: ${artifactKind}. Must be one of ${validKinds.join(', ')}.` };
+  }
+  if (!artifactId || typeof artifactId !== 'string') {
+    return { error: 'artifactId is required and must be a non-empty string.' };
+  }
+  if (!artifact || typeof artifact !== 'object') {
+    return { error: 'artifact is required and must be an object.' };
+  }
+
+  const { runAdmissionGate } = await import('./conformance/artifact-admission-gate');
+  const report = runAdmissionGate({ artifactKind: artifactKind as import('./conformance/artifact-admission-gate').ArtifactKind, artifactId, artifact });
+
+  if (!report.passed) {
+    return {
+      success: false,
+      admitted: false,
+      report,
+      error: `Artifact ${artifactId} failed conformance gate with ${report.criticalCount} critical and ${report.highCount} high findings.`,
+    };
+  }
+
+  return {
+    success: true,
+    admitted: true,
+    artifactId,
+    artifactKind,
+    report,
+    note: 'Artifact has been admitted to the HoloScript ecosystem.',
+  };
+}
+
+async function handleConformanceListRules(
+  args: Record<string, unknown>,
+): Promise<unknown> {
+  const { getConformanceRules } = await import('./conformance/artifact-admission-gate');
+  let rules = getConformanceRules();
+
+  const artifactKind = args.artifactKind as string | undefined;
+  const severity = args.severity as string | undefined;
+
+  if (artifactKind) {
+    rules = rules.filter((r) => r.artifactKind === artifactKind);
+  }
+  if (severity) {
+    rules = rules.filter((r) => r.severity === severity);
+  }
+
+  return {
+    success: true,
+    total: rules.length,
+    rules,
+  };
+}

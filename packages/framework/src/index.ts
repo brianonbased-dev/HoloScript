@@ -444,6 +444,39 @@ export {
   recordBoardWebhookDeliveryFailure,
 } from './board';
 
+// Twin Earth Substrate Contract (task_1778618552503_3zqx + task_1778618552503_aw8w)
+export {
+  type ParticipationMode,
+  type TwinEarthRole,
+  type TwinEarthKind,
+  type TwinEarthIdentity,
+  type TwinEarthAction,
+  type PermissionGrant,
+  type SafetyEnvelope,
+  type TwinEarthReceiptKind,
+  type TwinEarthReceiptStatus,
+  type TwinEarthReceipt,
+  type ParticipationModeConfig,
+  type ModeTransitionReceipt,
+  type TwinEarthSubstrateStatus,
+  type ActuationResult,
+  validateTwinEarthIdentity,
+  validatePermissionGrant,
+  validateSafetyEnvelope,
+  validateTwinEarthReceipt,
+  validateModeTransitionReceipt,
+  evaluateActuation,
+  isSupportedTwinEarthRole,
+  isSupportedParticipationMode,
+  isSupportedTwinEarthKind,
+  isSupportedTwinEarthReceiptKind,
+  isSupportedTwinEarthReceiptStatus,
+  cloneTwinEarthIdentity,
+  clonePermissionGrant,
+  cloneSafetyEnvelope,
+  cloneTwinEarthReceipt,
+} from './board';
+
 // Mesh module (absorbed from agent-sdk — peer discovery, gossip, A2A)
 export {
   type PeerMetadata,

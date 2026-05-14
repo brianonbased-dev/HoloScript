@@ -72,7 +72,7 @@ export type TwinEarthAction =
   | 'identity:register' | 'identity:renew' | 'identity:revoke'
   | 'contract:propose' | 'contract:ratify'
   | 'actuator:command' | 'sensor:read' | 'robot:move' | 'robot:task:execute'
-  | 'ai:inference' | 'ai:plan';
+  | 'ai:inference' | 'ai:plan' | 'ai:invoke';
 
 /** A signed, revocable, substrate-auditable permission grant. */
 export interface PermissionGrant {
@@ -379,12 +379,12 @@ export interface ActuationResult {
  *
  * Checks (in order):
  * 1. Identity is valid.
- * 2. Permission grant is valid and covers the requested action + scope.
- * 3. Grant has not expired.
- * 4. Grant has not been revoked.
- * 5. Safety envelope is substrate-enforced.
- * 6. Action is in envelope allowedActions (if whitelist is non-empty).
- * 7. Action is NOT in envelope blockedActions (blacklist overrides whitelist).
+ * 2. Safety envelope is substrate-enforced.
+ * 3. Action is in envelope allowedActions (if whitelist is non-empty).
+ * 4. Action is NOT in envelope blockedActions (blacklist overrides whitelist).
+ * 5. Permission grant is valid and covers the requested action + scope.
+ * 6. Grant has not expired.
+ * 7. Grant has not been revoked.
  */
 export function evaluateActuation(
   identity: TwinEarthIdentity,
@@ -399,47 +399,7 @@ export function evaluateActuation(
     return { allowed: false, reason: `Identity invalid: ${idErrors.join('; ')}` };
   }
 
-  // 2. Grant validation
-  const grantErrors = validatePermissionGrant(grant);
-  if (grantErrors.length > 0) {
-    return { allowed: false, reason: `Grant invalid: ${grantErrors.join('; ')}` };
-  }
-
-  // 3. Grant must match action
-  if (grant.action !== action) {
-    return {
-      allowed: false,
-      reason: `Grant action mismatch: grant permits '${grant.action}' but requested '${action}'.`,
-    };
-  }
-
-  // 4. Scope check — exact match or wildcard grant
-  if (grant.scope !== scope && grant.scope !== '*') {
-    return {
-      allowed: false,
-      reason: `Grant scope mismatch: grant covers '${grant.scope}' but requested '${scope}'.`,
-    };
-  }
-
-  // 5. Expiry check
-  if (grant.expiresAt !== null && new Date(grant.expiresAt) <= new Date()) {
-    return {
-      allowed: false,
-      reason: `Grant expired at ${grant.expiresAt}.`,
-      blockingRule: 'expired_grant',
-    };
-  }
-
-  // 6. Revocation check
-  if (grant.revocationSignature !== null) {
-    return {
-      allowed: false,
-      reason: 'Grant has been revoked.',
-      blockingRule: 'revoked_grant',
-    };
-  }
-
-  // 7. Safety envelope must be substrate-enforced before full validation
+  // 2. Safety envelope must be substrate-enforced before full validation
   if (!envelope.substrateEnforced) {
     return {
       allowed: false,
@@ -448,7 +408,7 @@ export function evaluateActuation(
     };
   }
 
-  // 8. Safety envelope validation
+  // 3. Safety envelope validation
   const envErrors = validateSafetyEnvelope(envelope);
   if (envErrors.length > 0) {
     return { allowed: false, reason: `Safety envelope invalid: ${envErrors.join('; ')}` };
@@ -477,6 +437,46 @@ export function evaluateActuation(
       allowed: false,
       reason: `Action '${action}' is explicitly blocked by the safety envelope.`,
       blockingRule: 'blocked_actions',
+    };
+  }
+
+  // 12. Grant validation
+  const grantErrors = validatePermissionGrant(grant);
+  if (grantErrors.length > 0) {
+    return { allowed: false, reason: `Grant invalid: ${grantErrors.join('; ')}` };
+  }
+
+  // 13. Grant must match action
+  if (grant.action !== action) {
+    return {
+      allowed: false,
+      reason: `Grant action mismatch: grant permits '${grant.action}' but requested '${action}'.`,
+    };
+  }
+
+  // 14. Scope check — exact match or wildcard grant
+  if (grant.scope !== scope && grant.scope !== '*') {
+    return {
+      allowed: false,
+      reason: `Grant scope mismatch: grant covers '${grant.scope}' but requested '${scope}'.`,
+    };
+  }
+
+  // 15. Expiry check
+  if (grant.expiresAt !== null && new Date(grant.expiresAt) <= new Date()) {
+    return {
+      allowed: false,
+      reason: `Grant expired at ${grant.expiresAt}.`,
+      blockingRule: 'expired_grant',
+    };
+  }
+
+  // 16. Revocation check
+  if (grant.revocationSignature !== null) {
+    return {
+      allowed: false,
+      reason: 'Grant has been revoked.',
+      blockingRule: 'revoked_grant',
     };
   }
 
