@@ -3,6 +3,7 @@
 **Last regenerated**: 2026-05-01 (disk-grounded: structural grep of `.tex` files + audit-matrix snapshot)
 **Author**: Claude (Wave C consolidation, task_1776816202153_3f88)
 **Source of truth**: `ai-ecosystem/research/paper-audit-matrix.md` for audit dimensions; `.tex` files on disk for structural counts; this file is a *derived dashboard*, not a replacement for the audit matrix.
+**Canonical paper sources**: `~/.ai-ecosystem/research/*.tex` (ai-ecosystem repo). Run `scripts/mirror-papers-from-ai-ecosystem.sh` (or `.ps1`) to copy into `HoloScript/research/` before running structural verification commands.
 **Program thesis**: `HoloScript/docs/paper-program/readme.md` for the CAEL-rooted novelty-generation and evidence-gating frame.
 
 > **Zero hardcoded stats policy (W.030)**: Counts in this file are derived from `find` and `grep` at generation time. Re-generate from disk when counts drift. Verification commands are noted inline.
