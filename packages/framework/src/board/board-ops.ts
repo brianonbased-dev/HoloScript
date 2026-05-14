@@ -78,13 +78,75 @@ export function hasDefinitionOfDone(description: string | undefined): boolean {
   return false;
 }
 
+/**
+ * Strip prompt-injection patterns from board task descriptions.
+ *
+ * Ouroboros surface (W.204): freeform text in shared board data is an injection
+ * vector for any agent whose board-reader ingests descriptions. P.500.01
+ * (translate-then-evaluate) names the general principle; this function is the
+ * translate step for the board pipeline.
+ *
+ * Patterns stripped:
+ * - <system-reminder ...>...</system-reminder> (XML form)
+ * - <system-reminder .../> (self-closing)
+ * - system-reminder blocks (line-start "system-reminder" through end-of-block)
+ * - <system>...</system> tags
+ * - Any other <system-* opening tags that look like harness injection
+ *
+ * The function is intentionally broad: it strips anything that looks like a
+ * harness/system-reminder injection surface, not just the exact Claude
+ * <system-reminder> tag. This is correct because the board is shared across
+ * multiple agent runtimes, any of which could inject a different surface tag.
+ *
+ * @param text raw description text (may contain injection patterns)
+ * @returns sanitized text with injection patterns removed
+ */
+export function stripInjectionPatterns(text: string): string {
+  // Phase 1: Remove XML-style system-reminder blocks (opening tag through closing tag)
+  // Handles multi-line blocks: <system-reminder ...>...content...</system-reminder>
+  let sanitized = text.replace(
+    /<system-reminder[\s>][\s\S]*?<\/system-reminder>/gi,
+    '',
+  );
+  // Phase 2: Remove self-closing system-reminder tags
+  sanitized = sanitized.replace(
+    /<system-reminder[^>]*\/>/gi,
+    '',
+  );
+  // Phase 3: Remove unclosed <system-reminder ...> tags (the opening tag alone)
+  sanitized = sanitized.replace(
+    /<system-reminder[^>]*>/gi,
+    '',
+  );
+  // Phase 4: Remove <system>...</system> blocks and <system-*> tags (broad harness surface)
+  sanitized = sanitized.replace(
+    /<system[\s>][\s\S]*?<\/system>/gi,
+    '',
+  );
+  sanitized = sanitized.replace(
+    /<system-[^>]*>/gi,
+    '',
+  );
+  // Phase 5: Remove bare "system-reminder" at line start (plain-text form)
+  sanitized = sanitized.replace(
+    /^system-reminder\b.*$/gim,
+    '',
+  );
+  // Collapse multiple blank lines left by removals
+  sanitized = sanitized.replace(/\n{3,}/g, '\n\n');
+  return sanitized.trim();
+}
+
 export function normalizeTaskDescription(description: string, maxLength = 2000): string {
-  if (hasDefinitionOfDone(description)) {
-    const capped = description.slice(0, maxLength);
+  // Strip injection patterns BEFORE any other processing (W.204, P.500.01).
+  const cleaned = stripInjectionPatterns(description);
+
+  if (hasDefinitionOfDone(cleaned)) {
+    const capped = cleaned.slice(0, maxLength);
     if (hasDefinitionOfDone(capped)) return capped;
   }
 
-  const base = description.trimEnd();
+  const base = cleaned.trimEnd();
   if (!base) return DEFAULT_DONE_WHEN_BLOCK;
 
   const separator = '\n\n';
