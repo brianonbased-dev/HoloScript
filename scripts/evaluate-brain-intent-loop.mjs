@@ -18,6 +18,8 @@ function parseArgs(argv) {
     outputDir: DEFAULT_OUTPUT_DIR,
     json: false,
     strict: false,
+    runtimeGate: false,
+    gateLabel: 'brain_intent_runtime_gate',
     selfTest: false,
   };
 
@@ -29,6 +31,8 @@ function parseArgs(argv) {
     else if (arg === '--output-dir') args.outputDir = argv[++index] || DEFAULT_OUTPUT_DIR;
     else if (arg === '--json') args.json = true;
     else if (arg === '--strict') args.strict = true;
+    else if (arg === '--runtime-gate') args.runtimeGate = true;
+    else if (arg === '--gate-label') args.gateLabel = argv[++index] || args.gateLabel;
     else if (arg === '--self-test') args.selfTest = true;
     else if (arg === '--help' || arg === '-h') {
       printHelp();
@@ -55,6 +59,8 @@ Options:
   --output-dir <dir>   Output directory when --output is omitted.
   --json              Print full receipt JSON.
   --strict            Exit 1 when the eval receipt status is fail.
+  --runtime-gate      Mark the receipt as a runtime-blocking gate.
+  --gate-label <id>   Label for runtime gate receipts.
   --self-test          Run pass/fail fixture checks.
   -h, --help          Show this help.
 `);
@@ -302,8 +308,10 @@ function evaluateCase(evalCase, brainContract = null) {
   };
 }
 
-function buildReceipt(evalCase, brainContract, result) {
+function buildReceipt(evalCase, brainContract, result, options = {}) {
   const generatedAt = new Date().toISOString();
+  const runtimeGate = Boolean(options.runtimeGate);
+  const allowed = result.summary.status === 'pass';
   return {
     schemaVersion: SCHEMA_VERSION,
     generatedAt,
@@ -325,10 +333,21 @@ function buildReceipt(evalCase, brainContract, result) {
     },
     summary: result.summary,
     checks: result.checks,
+    gate: {
+      label: options.gateLabel || 'brain_intent_runtime_gate',
+      allowed,
+      status: allowed ? 'allow' : 'block',
+      blocking: runtimeGate,
+      failedCheckIds: result.checks
+        .filter((item) => !item.pass && item.severity !== 'warn')
+        .map((item) => item.id),
+    },
     enforcementBoundary: {
-      kind: 'measurement_receipt',
-      runtimeBlocking: false,
-      note: 'This receipt measures declared intent against an observed outcome. It does not yet block runtime actions.',
+      kind: runtimeGate ? 'runtime_gate_receipt' : 'measurement_receipt',
+      runtimeBlocking: runtimeGate,
+      note: runtimeGate
+        ? 'This receipt is safe to use as a runtime gate: pass allows the guarded workflow to continue; fail blocks it.'
+        : 'This receipt measures declared intent against an observed outcome. It does not yet block runtime actions.',
     },
   };
 }
@@ -435,7 +454,10 @@ try {
   const evalCase = readJson(args.casePath);
   const brainContract = extractBrainContract(args.brain);
   const result = evaluateCase(evalCase, brainContract);
-  const receipt = buildReceipt(evalCase, brainContract, result);
+  const receipt = buildReceipt(evalCase, brainContract, result, {
+    runtimeGate: args.runtimeGate,
+    gateLabel: args.gateLabel,
+  });
   const outputPath = args.output || path.join(args.outputDir, `${evalCase.caseId || 'case'}.eval.json`);
   const written = writeJson(outputPath, receipt);
 
