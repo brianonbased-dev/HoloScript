@@ -237,10 +237,21 @@ const WORLD_MODEL_REPLAY_SCENE_ID = 'deterministic-contact-v1';
 
 async function runWorldModelCommand(options: ReturnType<typeof parseArgs>): Promise<void> {
   const subcommand = options.subcommand ?? 'replay';
+
+  if (subcommand === 'trajectory-replay') {
+    await runWorldModelTrajectoryReplay(options);
+    return;
+  }
+
+  if (subcommand === 'trajectory-generate') {
+    await runWorldModelTrajectoryGenerate(options);
+    return;
+  }
+
   if (subcommand !== 'replay') {
     cliError('E004', `Unknown world-model subcommand: ${subcommand}`, {
-      usage: 'holoscript world-model replay --scene deterministic-contact-v1 [--seed <integer>] [--json]',
-      hint: 'The current world-model CLI exposes the deterministic replay path only.',
+      usage: 'holoscript world-model {replay|trajectory-replay|trajectory-generate}',
+      hint: 'Available subcommands: replay, trajectory-replay, trajectory-generate.',
     });
     process.exit(1);
   }
@@ -294,6 +305,7 @@ async function runWorldModelCommand(options: ReturnType<typeof parseArgs>): Prom
       predicateScore: replay.trajectory.predicateScore,
       priority: replay.trajectory.priority,
     },
+    predicateDeltas: formatPredicateDeltas(replay.trajectory.predicateScore),
   };
 
   if (options.output) {
@@ -317,8 +329,174 @@ async function runWorldModelCommand(options: ReturnType<typeof parseArgs>): Prom
     `Trajectory: ${replay.trajectory.id} status=${replay.trajectory.status} priority=${replay.trajectory.priority.priority.toFixed(2)}`
   );
   console.log(`Replay command: ${replay.trajectory.replayHandle.replayCommand}`);
+  console.log('Predicate deltas:');
+  for (const delta of payload.predicateDeltas) {
+    const mark = delta.passed ? 'PASS' : 'FAIL';
+    console.log(`  ${mark} ${delta.name}: value=${delta.value.toFixed(4)} threshold=${delta.threshold.toFixed(4)}`);
+  }
   if (options.output) {
     console.log(`Wrote JSON receipt: ${options.output}`);
+  }
+}
+
+/**
+ * Format core predicate score as delta entries for the simple replay path.
+ * The core replay doesn't re-derive scores (it produces one set from the
+ * scene), so expected = actual and delta = 0. This is still useful for
+ * machine consumers who expect the same schema as trajectory-replay.
+ */
+function formatPredicateDeltas(
+  predicateScore: import('@holoscript/core/world-model').SemanticPredicateScore,
+): Array<{ name: string; value: number; threshold: number; passed: boolean; delta: number }> {
+  const components: Array<[string, number]> = [
+    ['violation', predicateScore.violation],
+    ['novelty', predicateScore.novelty],
+    ['learnability', predicateScore.learnability],
+    ['regression', predicateScore.regression],
+    ['invalidity', predicateScore.invalidity],
+  ];
+  // Core replay thresholds mirror PredicateScorer defaults
+  const thresholds: Record<string, number> = {
+    violation: 0.55,
+    novelty: 0.45,
+    learnability: 0.5,
+    regression: 0.5,
+    invalidity: 0.55,
+  };
+  return components.map(([name, value]) => ({
+    name,
+    value,
+    threshold: thresholds[name] ?? 0.5,
+    passed: value >= (thresholds[name] ?? 0.5),
+    delta: 0, // single-derivation: no second pass to compare against
+  }));
+}
+
+const ADVERSARIAL_TRAJECTORY_SCHEMA = 'world-model-trajectory-replay-v1';
+
+async function runWorldModelTrajectoryReplay(
+  options: ReturnType<typeof parseArgs>,
+): Promise<void> {
+  const trajectoryId = options.trajectoryId;
+  if (!trajectoryId) {
+    cliError('E003', 'trajectory-replay requires --trajectory <id>', {
+      usage:
+        'holoscript world-model trajectory-replay --trajectory <id> --report <path> [--json]',
+      hint: 'Use the trajectory id from a generated report (see trajectory-generate).',
+    });
+    process.exit(1);
+  }
+
+  const reportPath = options.reportPath;
+  if (!reportPath) {
+    cliError('E003', 'trajectory-replay requires --report <path>', {
+      usage:
+        'holoscript world-model trajectory-replay --trajectory <id> --report <path> [--json]',
+      hint: 'Provide the path to an adversarial trajectory report JSON file (generate one with trajectory-generate).',
+    });
+    process.exit(1);
+  }
+
+  const fs = await import('fs');
+  const path = await import('path');
+  const resolvedPath = path.resolve(reportPath);
+
+  if (!fs.existsSync(resolvedPath)) {
+    cliError('E003', `Report file not found: ${resolvedPath}`, {
+      usage:
+        'holoscript world-model trajectory-replay --trajectory <id> --report <path> [--json]',
+      hint: 'Generate a report first with: holoscript world-model trajectory-generate --out <path>',
+    });
+    process.exit(1);
+  }
+
+  const { replayTrajectory } = await import(
+    '@holoscript/hololand-platform'
+  );
+  type AdversarialTrajectoryReport = import('@holoscript/hololand-platform').HololandAdversarialTrajectoryReport;
+
+  const reportJson = fs.readFileSync(resolvedPath, 'utf-8');
+  const report = JSON.parse(reportJson) as AdversarialTrajectoryReport;
+
+  let result: import('@holoscript/hololand-platform').AdversarialTrajectoryReplayResult;
+  try {
+    result = replayTrajectory(report, trajectoryId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    cliError('E003', `Trajectory replay failed: ${message}`, {
+      usage:
+        'holoscript world-model trajectory-replay --trajectory <id> --report <path> [--json]',
+      hint: `Use a trajectory id from the report. Available ids: ${report.trajectories.slice(0, 5).map((t: { id: string }) => t.id).join(', ')}${report.trajectories.length > 5 ? ', ...' : ''}`,
+    });
+    process.exit(1);
+  }
+
+  const payload = {
+    schema_version: ADVERSARIAL_TRAJECTORY_SCHEMA,
+    generatedAt: new Date().toISOString(),
+    trajectoryId,
+    reportPath: resolvedPath,
+    result,
+  };
+
+  if (options.json) {
+    printJson(payload);
+    return;
+  }
+
+  console.log(`Trajectory replay: ${result.trajectoryId}`);
+  console.log(`Status: ${result.replayStatus.toUpperCase()} (expected=${result.expectedStatus} actual=${result.actualStatus})`);
+  console.log('Receipt hashes:');
+  console.log(`  scene: ${result.receiptHashes.sceneHash}`);
+  console.log(`  actions: ${result.receiptHashes.actionTraceHash}`);
+  console.log(`  observations: ${result.receiptHashes.observationTraceHash}`);
+  console.log(`  expected predicates: ${result.receiptHashes.expectedPredicateHash}`);
+  console.log(`  actual predicates: ${result.receiptHashes.actualPredicateHash}`);
+  console.log(`  CAEL receipt: ${result.receiptHashes.caelReceiptHash}`);
+  console.log('Predicate deltas:');
+  for (const delta of result.predicateDeltas) {
+    const mark = delta.stable ? 'PASS' : 'FAIL';
+    console.log(
+      `  ${mark} ${delta.name}: expected=${delta.expected.toFixed(4)} actual=${delta.actual.toFixed(4)} delta=${delta.delta.toFixed(6)} threshold=${delta.threshold.toFixed(4)}`,
+    );
+  }
+}
+
+async function runWorldModelTrajectoryGenerate(
+  options: ReturnType<typeof parseArgs>,
+): Promise<void> {
+  const { createAdversarialTrajectoryReport } = await import(
+    '@holoscript/hololand-platform'
+  );
+
+  const count = options.trajectoryCount ? Math.max(20, Math.trunc(Number(options.trajectoryCount))) : 20;
+  const seed = options.seed;
+  const taskId = options.taskId;
+
+  const report = createAdversarialTrajectoryReport({
+    count,
+    seed,
+    taskId,
+  });
+
+  if (options.output) {
+    const fs = await import('fs');
+    fs.writeFileSync(options.output, `${JSON.stringify(report, null, 2)}\n`, 'utf-8');
+  }
+
+  if (options.json) {
+    printJson(report);
+    return;
+  }
+
+  console.log(`Generated ${report.summary.total} trajectories`);
+  console.log(
+    `  solved: ${report.summary.solved} | unresolved: ${report.summary.unresolved} | invalid: ${report.summary.invalid}`,
+  );
+  console.log(`  report hash: ${report.reportHash}`);
+  console.log(`  top priority: ${report.summary.topPriorityTrajectoryIds.join(', ')}`);
+  if (options.output) {
+    console.log(`Wrote report: ${options.output}`);
   }
 }
 

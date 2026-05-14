@@ -188,6 +188,10 @@ importers:
         version: 5.9.3
 
   benchmarks/webgpu-compute:
+    dependencies:
+      '@holoscript/core':
+        specifier: workspace:*
+        version: link:../../packages/core
     devDependencies:
       '@types/node':
         specifier: ^24.10.1
@@ -421,6 +425,9 @@ importers:
       '@holoscript/framework':
         specifier: workspace:*
         version: link:../framework
+      '@holoscript/hololand-platform':
+        specifier: workspace:*
+        version: link:../hololand-platform
       '@holoscript/llm-provider':
         specifier: workspace:*
         version: link:../llm-provider

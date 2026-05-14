@@ -195,6 +195,12 @@ export interface CLIOptions {
   seed?: string;
   /** Expected trajectory id for deterministic replay validation */
   trajectoryId?: string;
+  /** Path to adversarial trajectory report JSON for trajectory-replay */
+  reportPath?: string;
+  /** Count of trajectories for trajectory-generate command */
+  trajectoryCount?: string;
+  /** Board task id to bind into trajectory-generate report */
+  taskId?: string;
   /** Screenshot/render width */
   width?: number;
   /** Screenshot/render height */
@@ -334,7 +340,7 @@ export function parseArgs(args: string[]): CLIOptions {
         // Subcommands for access/org/token
         options.subcommand = arg;
       } else if (options.command === 'world-model' && !options.subcommand) {
-        // Subcommands for world-model, currently: replay
+        // Subcommands for world-model: replay, trajectory-replay, trajectory-generate
         options.subcommand = arg;
       } else if (['add', 'remove'].includes(options.command)) {
         // Collect package names for add/remove commands
@@ -495,6 +501,19 @@ export function parseArgs(args: string[]): CLIOptions {
         break;
       case '--trajectory':
         options.trajectoryId = args[++i];
+        break;
+      case '--report':
+        options.reportPath = args[++i];
+        break;
+      case '--task':
+        options.taskId = args[++i];
+        break;
+      case '--count':
+        if (options.command === 'world-model') {
+          options.trajectoryCount = args[++i];
+        } else {
+          options.count = parseInt(args[++i], 10) || 10;
+        }
         break;
       // Screenshot/render options
       case '--width':
@@ -710,6 +729,17 @@ Usage: holoscript <command> [options] [input]
                     Use --scene deterministic-contact-v1 and --seed <integer>
                     Use --trajectory <id> to validate an expected replay handle
                     Use --json for machine-readable replay evidence
+  world-model trajectory-replay
+                    Replay an adversarial trajectory from a report file with predicate deltas
+                    Use --trajectory <id> (required) and --report <path> (required)
+                    Use --json for machine-readable output
+  world-model trajectory-generate
+                    Generate an adversarial trajectory report with replay handles
+                    Use --count <n> to set trajectory count (default: 20)
+                    Use --seed <string> for deterministic generation
+                    Use --task <task-id> to bind a board task id
+                    Use -o <path> to write the report to a file
+                    Use --json for machine-readable output
 
   \x1b[33mSelf-Improvement:\x1b[0m
   quickstart [name] Scaffold a working .holo project and open in browser
@@ -908,6 +938,8 @@ Usage: holoscript <command> [options] [input]
   holoscript query "list error handlers" --top-k 20 --json         # Machine-readable output
   holoscript world-model replay --scene deterministic-contact-v1 --seed 1337 --json
   holoscript world-model replay --scene deterministic-contact-v1 --trajectory fnv1a-... --seed 1337
+  holoscript world-model trajectory-replay --trajectory traj_001_abc12345 --report report.json --json
+  holoscript world-model trajectory-generate --count 20 --seed my-seed -o report.json
 
 \x1b[1mAliases:\x1b[0m
   hs              Short alias for holoscript

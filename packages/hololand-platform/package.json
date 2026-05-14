@@ -5,6 +5,9 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
   "bin": {
     "hololand-device-lab": "dist/device-lab.js",
     "hololand-evidence-envelope": "dist/evidence-envelope.js",
