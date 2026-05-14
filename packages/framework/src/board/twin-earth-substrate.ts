@@ -514,3 +514,7 @@ export function cloneTwinEarthReceipt(receipt: TwinEarthReceipt): TwinEarthRecei
     ...(receipt.verificationCommands ? { verificationCommands: receipt.verificationCommands.map((c) => ({ ...c })) } : {}),
   };
 }
+
+export function cloneModeTransitionReceipt(receipt: ModeTransitionReceipt): ModeTransitionReceipt {
+  return { ...receipt };
+}
