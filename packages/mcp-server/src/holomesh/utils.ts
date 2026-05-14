@@ -18,19 +18,22 @@ export function parseQuery(url: string): URLSearchParams {
 
 export async function parseJsonBody(req: http.IncomingMessage): Promise<any> {
   return new Promise((resolve) => {
-    let body = '';
+    const chunks: Buffer[] = [];
     req.on('data', (chunk) => {
-      body += chunk.toString();
-      if (body.length > 2 * 1024 * 1024) {
+      chunks.push(chunk);
+      const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
+      if (totalLength > 2 * 1024 * 1024) {
         // 2MB limit
         resolve({});
       }
     });
     req.on('end', () => {
       try {
+        const body = Buffer.concat(chunks).toString('utf-8');
         resolve(JSON.parse(body));
       } catch {
         // Check if it's form-urlencoded fallback
+        const body = Buffer.concat(chunks).toString('utf-8');
         const q = new URLSearchParams(body);
         const obj: any = {};
         for (const [k, v] of q.entries()) obj[k] = v;
