@@ -54,13 +54,24 @@ function resolveTemplateOrb(
   const templateName = typeof orb.template === 'string' ? orb.template : undefined;
   const template = templateName ? templates.get(templateName) : undefined;
   if (!template) return orb;
+  const templateProperties = propertyListToRecord(template.properties);
+  const orbProperties = asRecord(orb.properties);
+  const material: Record<string, unknown> = {
+    ...asRecord(templateProperties.material),
+    ...asRecord(orbProperties.material),
+  };
+  if (orbProperties.color !== undefined && asRecord(orbProperties.material).color === undefined) {
+    material.color = orbProperties.color;
+  }
+  const properties: Record<string, unknown> = {
+    ...templateProperties,
+    ...orbProperties,
+  };
+  if (Object.keys(material).length > 0) properties.material = material;
 
   return {
     ...orb,
-    properties: {
-      ...propertyListToRecord(template.properties),
-      ...asRecord(orb.properties),
-    },
+    properties,
     traits: mergeTraits(template.traits, orb.traits),
   };
 }

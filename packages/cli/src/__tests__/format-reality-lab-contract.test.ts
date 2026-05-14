@@ -79,4 +79,37 @@ describe('HoloLand/HoloShell reality lab contract', () => {
       await fs.rm(outDir, { recursive: true, force: true });
     }
   }, 180_000);
+
+  it('preserves per-zone colors when compiling splash-zone templates to Three.js', async () => {
+    const holo = path.join(labRoot, 'hololand-holoshell-reality-lab.holo');
+    const outDir = await fs.mkdtemp(path.join(os.tmpdir(), 'holoscript-reality-lab-threejs-'));
+    const outFile = path.join(outDir, 'reality-lab.js');
+
+    try {
+      const compile = await runCli(['compile', holo, '--target', 'threejs', '-o', outFile]);
+      expect(compile.stdout).toContain('Compilation successful');
+
+      const code = await fs.readFile(outFile, 'utf8');
+      expect(code).toContain(
+        'const ParserSplashZone_geometry = new THREE.BoxGeometry(1.55, 0.04, 1.25);'
+      );
+      expect(code).toContain(
+        "const ParserSplashZone_material = new THREE.MeshStandardMaterial({ color: '#7aa2f7', roughness: 0.5, opacity: 0.36, transparent: true });"
+      );
+      expect(code).toContain(
+        "const GrammarSplashZone_material = new THREE.MeshStandardMaterial({ color: '#f7768e', roughness: 0.5, opacity: 0.36, transparent: true });"
+      );
+      expect(code).toContain(
+        "const VisualSplashZone_material = new THREE.MeshStandardMaterial({ color: '#e0af68', roughness: 0.5, opacity: 0.36, transparent: true });"
+      );
+      expect(code).toContain(
+        "const InteropSplashZone_material = new THREE.MeshStandardMaterial({ color: '#9ece6a', roughness: 0.5, opacity: 0.36, transparent: true });"
+      );
+      expect(code).not.toContain(
+        "SplashZone_material = new THREE.MeshStandardMaterial({ color: '#4b5563'"
+      );
+    } finally {
+      await fs.rm(outDir, { recursive: true, force: true });
+    }
+  }, 180_000);
 });
