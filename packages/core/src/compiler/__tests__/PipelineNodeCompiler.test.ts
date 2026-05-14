@@ -64,6 +64,34 @@ describe('PipelineNodeCompiler', () => {
     expect(result.code).toContain('Pipeline completed');
   });
 
+  it('emits node helpers for templated paths and optional webhook sinks', () => {
+    const result = compilePipelineSourceToNode(`
+      pipeline "ArtifactWriter" {
+        source Manifest {
+          type: "filesystem"
+          path: "logs/\${date}/manifest.json"
+        }
+
+        sink Out {
+          type: "filesystem"
+          path: ".bench-logs/\${date}/artifact-dir"
+          format: "json"
+        }
+
+        sink BoardSeed {
+          type: "webhook"
+          endpoint: "\${env.HOLOMESH_BOARD_SEED_URL}"
+        }
+      }
+    `);
+
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('resolveTemplate');
+    expect(result.code).toContain('normalizeOutputPath');
+    expect(result.code).toContain('await fs.mkdir(path.dirname(outputPath), { recursive: true })');
+    expect(result.code).toContain("console.warn('[PipelineNodeCompiler] skipping empty webhook/rest sink endpoint')");
+  });
+
   it('returns parser errors for invalid pipeline source', () => {
     const result = compilePipelineSourceToNode('object "Cube" { }');
     expect(result.success).toBe(false);
