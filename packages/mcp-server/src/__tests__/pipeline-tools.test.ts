@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import type { SigningContext } from '../holomesh/identity/signing-middleware';
 
 const mocks = vi.hoisted(() => ({
   harvest: vi.fn().mockResolvedValue({ context: 'mocked context' })
@@ -13,6 +14,13 @@ vi.mock('@holoscript/framework', async (importOriginal) => {
     }
   };
 });
+
+const mockSigningCtx: SigningContext = {
+  signedRequest: false,
+  signingValid: true,
+  signer: null,
+  scopes: ['admin:*'],
+} as SigningContext;
 
 describe('pipeline MCP tools', () => {
   const pipelineCode = `
@@ -38,7 +46,7 @@ describe('pipeline MCP tools', () => {
     const handlers = await import('../handlers');
     const result = (await handlers.handleTool('parse_pipeline', {
       code: pipelineCode,
-    })) as {
+    }, mockSigningCtx)) as {
       success: boolean;
       pipeline?: { name: string; sources: Array<{ name: string }>; sinks: Array<{ name: string }> };
     };
@@ -55,7 +63,7 @@ describe('pipeline MCP tools', () => {
       code: pipelineCode,
       target: 'node',
       moduleName: 'index.mjs',
-    })) as { success: boolean; code?: string };
+    }, mockSigningCtx)) as { success: boolean; code?: string };
 
     expect(result.success).toBe(true);
     expect(result.code).toContain('export async function runPipeline()');

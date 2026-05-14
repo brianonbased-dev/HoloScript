@@ -296,6 +296,55 @@ export class HoloScriptAgentRuntime {
   }
 
   /**
+   * Lightweight fork-detection heuristic for runtime adapters.
+   * Scans brain composition ref, template, and string properties for
+   * HS010-blocked keywords, unknown compiler versions, non-canonical imports,
+   * and no-op security traits.  Self-contained (no mcp-server imports).
+   */
+  private checkForkSandbox(): { allowed: boolean; reason?: string } {
+    const sources: string[] = [];
+    if (this.brainCompositionRef) sources.push(this.brainCompositionRef);
+    if (this.agentNode.template) sources.push(this.agentNode.template);
+    for (const val of Object.values(this.agentNode.properties || {})) {
+      if (typeof val === 'string') sources.push(val);
+    }
+    const directives = this.agentNode.directives as unknown as Array<{ body?: unknown }> | undefined;
+    if (directives) {
+      for (const d of directives) {
+        if (typeof d.body === 'string') sources.push(d.body);
+      }
+    }
+
+    const blockedKeywords = [
+      'process', 'fs', 'require', 'eval', 'exec', 'spawn',
+      'child_process', 'constructor', 'prototype', 'globalThis',
+    ];
+    const canonicalVersions = ['7.0.0', '6.0.2', '6.0.1', '6.0.0'];
+
+    for (const src of sources) {
+      for (const kw of blockedKeywords) {
+        if (new RegExp(`\\b${kw}\\b`).test(src)) {
+          return { allowed: false, reason: `HS010-blocked-keyword:${kw}` };
+        }
+      }
+      const versionMatch = src.match(/@compiler\s+version\s+["']?([\d.]+)["']?/i);
+      if (versionMatch) {
+        const claimed = versionMatch[1];
+        if (!canonicalVersions.includes(claimed)) {
+          return { allowed: false, reason: `unknown-compiler-version:${claimed}` };
+        }
+      }
+      if (/\bfrom\s+['"](?!@holoscript\/)[@\w\/-]+['"]/.test(src)) {
+        return { allowed: false, reason: 'non-canonical-import' };
+      }
+      if (/(?:^|\s)@security_sandbox\b/.test(src) && !/\bimport\s+.*security-sandbox/.test(src)) {
+        return { allowed: false, reason: 'no-op-security-trait' };
+      }
+    }
+    return { allowed: true };
+  }
+
+  /**
    * Execute an action (method) defined on the agent template.
    *
    * @param actionName - Name of the action/method to execute
@@ -313,6 +362,14 @@ export class HoloScriptAgentRuntime {
    */
   async executeAction(actionName: string, args: HoloScriptValue[] = []): Promise<ExecutionResult> {
     if (this.isDestroyed) return { success: false, error: 'Agent destroyed' };
+
+    // ── Fork Sandbox Gate (canary task_1778618757735_zpt5) ──────────────────
+    // Reject actions from agents whose brain composition or template looks forked.
+    const forkCheck = this.checkForkSandbox();
+    if (!forkCheck.allowed) {
+      logger.warn(`[Agent:${this.agentNode.name}] ForkSandboxGate blocked action "${actionName}": ${forkCheck.reason}`);
+      return { success: false, error: `ForkSandboxGate: ${forkCheck.reason}` };
+    }
 
     // Search directives for method-type entries (runtime shape may differ from declared types)
     const directives = this.agentNode.directives as unknown as RuntimeDirective[] | undefined;
