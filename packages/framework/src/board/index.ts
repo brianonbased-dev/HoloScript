@@ -298,6 +298,32 @@ export {
 } from './hololand-receipts';
 
 export {
+  // HoloShell Browser Absorption Receipts (task_1778625587950_34rn)
+  BROWSER_ACTION_KINDS,
+  type BrowserActionKind,
+  type BrowserAction,
+  type BrowserAbsorptionPolicy,
+  type BrowserAbsorptionReceipt,
+  validateBrowserAbsorptionReceipt,
+  isSupportedBrowserActionKind,
+  isSupportedBrowserAbsorptionOutcome,
+  cloneBrowserAbsorptionReceipt,
+} from './holoshell-browser-receipts';
+
+export {
+  // HoloShell CLI Absorption Receipts (task_1778625587950_uiv5)
+  CLI_ACTION_KINDS,
+  type CliActionKind,
+  type CliAction,
+  type LocalCliPolicy,
+  type LocalCliAbsorptionReceipt,
+  validateLocalCliAbsorptionReceipt,
+  isSupportedCliActionKind,
+  isSupportedCliAbsorptionOutcome,
+  cloneLocalCliAbsorptionReceipt,
+} from './holoshell-cli-receipts';
+
+export {
   // Twin Earth Substrate Contract (task_1778618552503_3zqx)
   type ParticipationMode,
   type TwinEarthRole,
