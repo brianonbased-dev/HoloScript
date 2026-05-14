@@ -1004,6 +1004,179 @@ export const hololandMcpTools: Tool[] = [
     },
   },
 
+  // ---------------------------------------------------------------------------
+  // Player / Creator / Agent Provisioning (task_1778617298562_qdpb)
+  // ---------------------------------------------------------------------------
+  {
+    name: 'hololand_provision_player',
+    description:
+      'Provision a Player identity in HoloLand. ' +
+      'Binds a human participant to a world, shard, or zone with an active status.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Player identifier. Auto-generated if omitted.' },
+        name: { type: 'string', description: 'Display name' },
+        walletAddress: { type: 'string', description: 'Optional wallet address.' },
+        worldId: { type: 'string', description: 'Target world. Optional.' },
+        shardId: { type: 'string', description: 'Target shard. Optional.' },
+        zoneId: { type: 'string', description: 'Target zone. Optional.' },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'hololand_get_player',
+    description: 'Retrieve a provisioned Player by ID.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        playerId: { type: 'string', description: 'Player identifier' },
+      },
+      required: ['playerId'],
+    },
+  },
+  {
+    name: 'hololand_list_players',
+    description: 'List provisioned Players with optional filtering.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        worldId: { type: 'string', description: 'Filter by world' },
+        shardId: { type: 'string', description: 'Filter by shard' },
+        zoneId: { type: 'string', description: 'Filter by zone' },
+        status: { type: 'string', enum: ['active', 'suspended', 'revoked'], description: 'Filter by status' },
+        limit: { type: 'number', description: 'Max results. Default: 50' },
+        offset: { type: 'number', description: 'Pagination offset. Default: 0' },
+      },
+    },
+  },
+  {
+    name: 'hololand_revoke_player',
+    description: 'Revoke a provisioned Player by ID.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        playerId: { type: 'string', description: 'Player identifier' },
+      },
+      required: ['playerId'],
+    },
+  },
+  {
+    name: 'hololand_provision_creator',
+    description:
+      'Provision a Creator identity in HoloLand. ' +
+      'Grants world-building and publishing capabilities at a chosen tier.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Creator identifier. Auto-generated if omitted.' },
+        name: { type: 'string', description: 'Display name' },
+        walletAddress: { type: 'string', description: 'Optional wallet address.' },
+        tier: {
+          type: 'string',
+          enum: ['free', 'premium', 'ultra'],
+          description: 'Creator tier. Default: free.',
+        },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'hololand_get_creator',
+    description: 'Retrieve a provisioned Creator by ID.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        creatorId: { type: 'string', description: 'Creator identifier' },
+      },
+      required: ['creatorId'],
+    },
+  },
+  {
+    name: 'hololand_list_creators',
+    description: 'List provisioned Creators with optional filtering.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tier: { type: 'string', enum: ['free', 'premium', 'ultra'], description: 'Filter by tier' },
+        status: { type: 'string', enum: ['active', 'suspended', 'revoked'], description: 'Filter by status' },
+        limit: { type: 'number', description: 'Max results. Default: 50' },
+        offset: { type: 'number', description: 'Pagination offset. Default: 0' },
+      },
+    },
+  },
+  {
+    name: 'hololand_revoke_creator',
+    description: 'Revoke a provisioned Creator by ID.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        creatorId: { type: 'string', description: 'Creator identifier' },
+      },
+      required: ['creatorId'],
+    },
+  },
+  {
+    name: 'hololand_provision_agent',
+    description:
+      'Provision an Agent identity in HoloLand. ' +
+      'Registers a headless, NPC, or external AI agent with optional world/shard binding.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Agent identifier. Auto-generated if omitted.' },
+        name: { type: 'string', description: 'Display name' },
+        walletAddress: { type: 'string', description: 'Optional wallet address.' },
+        kind: {
+          type: 'string',
+          enum: ['headless', 'npc', 'external'],
+          description: 'Agent kind. Default: headless.',
+        },
+        worldId: { type: 'string', description: 'Target world. Optional.' },
+        shardId: { type: 'string', description: 'Target shard. Optional.' },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'hololand_get_agent',
+    description: 'Retrieve a provisioned Agent by ID.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        agentId: { type: 'string', description: 'Agent identifier' },
+      },
+      required: ['agentId'],
+    },
+  },
+  {
+    name: 'hololand_list_agents',
+    description: 'List provisioned Agents with optional filtering.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        worldId: { type: 'string', description: 'Filter by world' },
+        shardId: { type: 'string', description: 'Filter by shard' },
+        kind: { type: 'string', enum: ['headless', 'npc', 'external'], description: 'Filter by kind' },
+        status: { type: 'string', enum: ['active', 'suspended', 'revoked'], description: 'Filter by status' },
+        limit: { type: 'number', description: 'Max results. Default: 50' },
+        offset: { type: 'number', description: 'Pagination offset. Default: 0' },
+      },
+    },
+  },
+  {
+    name: 'hololand_revoke_agent',
+    description: 'Revoke a provisioned Agent by ID.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        agentId: { type: 'string', description: 'Agent identifier' },
+      },
+      required: ['agentId'],
+    },
+  },
+
 ];
 
 // =============================================================================
@@ -1107,6 +1280,42 @@ interface StoredNPC {
   modifiedAt: string;
 }
 
+// Player / Creator / Agent Provisioning Registries (task_1778617298562_qdpb)
+
+interface StoredPlayer {
+  id: string;
+  name: string;
+  walletAddress?: string;
+  worldId?: string;
+  shardId?: string;
+  zoneId?: string;
+  status: 'active' | 'suspended' | 'revoked';
+  createdAt: string;
+  modifiedAt: string;
+}
+
+interface StoredCreator {
+  id: string;
+  name: string;
+  walletAddress?: string;
+  tier: 'free' | 'premium' | 'ultra';
+  status: 'active' | 'suspended' | 'revoked';
+  createdAt: string;
+  modifiedAt: string;
+}
+
+interface StoredProvisionedAgent {
+  id: string;
+  name: string;
+  walletAddress?: string;
+  kind: 'headless' | 'npc' | 'external';
+  worldId?: string;
+  shardId?: string;
+  status: 'active' | 'suspended' | 'revoked';
+  createdAt: string;
+  modifiedAt: string;
+}
+
 // Twin Earth Substrate Registries (task_1778618552503_a6rb)
 
 const worldRegistry = new Map<string, StoredWorld>();
@@ -1118,6 +1327,9 @@ const zoneRuntimeRegistry = new Map<string, StoredZoneRuntime>();
 const geoAnchorRegistry = new Map<string, StoredGeoAnchor>();
 const shardReceiptRegistry = new Map<string, StoredShardReceipt>();
 const npcRegistry = new Map<string, StoredNPC>();
+const playerRegistry = new Map<string, StoredPlayer>();
+const creatorRegistry = new Map<string, StoredCreator>();
+const agentRegistry = new Map<string, StoredProvisionedAgent>();
 
 function genId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -1134,6 +1346,9 @@ export function clearHololandRegistries(): void {
   geoAnchorRegistry.clear();
   shardReceiptRegistry.clear();
   npcRegistry.clear();
+  playerRegistry.clear();
+  creatorRegistry.clear();
+  agentRegistry.clear();
   clearRobotAiRegistries();
 }
 
@@ -1271,6 +1486,32 @@ export async function handleHololandMcpTool(
       return handleConformanceAdmitArtifact(args);
     case 'conformance_list_rules':
       return handleConformanceListRules(args);
+
+    // Player / Creator / Agent Provisioning (task_1778617298562_qdpb)
+    case 'hololand_provision_player':
+      return handleProvisionPlayer(args);
+    case 'hololand_get_player':
+      return handleGetPlayer(args);
+    case 'hololand_list_players':
+      return handleListPlayers(args);
+    case 'hololand_revoke_player':
+      return handleRevokePlayer(args);
+    case 'hololand_provision_creator':
+      return handleProvisionCreator(args);
+    case 'hololand_get_creator':
+      return handleGetCreator(args);
+    case 'hololand_list_creators':
+      return handleListCreators(args);
+    case 'hololand_revoke_creator':
+      return handleRevokeCreator(args);
+    case 'hololand_provision_agent':
+      return handleProvisionAgent(args);
+    case 'hololand_get_agent':
+      return handleGetAgent(args);
+    case 'hololand_list_agents':
+      return handleListAgents(args);
+    case 'hololand_revoke_agent':
+      return handleRevokeAgent(args);
 
     default:
       return { error: `Unknown HoloLand tool: ${name}` };
@@ -2684,4 +2925,214 @@ async function handleConformanceListRules(
     total: rules.length,
     rules,
   };
+}
+
+// =============================================================================
+// PLAYER / CREATOR / AGENT PROVISIONING HANDLERS (task_1778617298562_qdpb)
+// =============================================================================
+
+async function handleProvisionPlayer(args: Record<string, unknown>): Promise<unknown> {
+  const id = (args.id as string) || genId('player');
+  const name = args.name as string;
+  if (!name || typeof name !== 'string') {
+    return { error: 'name is required and must be a non-empty string' };
+  }
+
+  const player: StoredPlayer = {
+    id,
+    name,
+    walletAddress: (args.walletAddress as string | undefined) ?? undefined,
+    worldId: (args.worldId as string | undefined) ?? undefined,
+    shardId: (args.shardId as string | undefined) ?? undefined,
+    zoneId: (args.zoneId as string | undefined) ?? undefined,
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    modifiedAt: new Date().toISOString(),
+  };
+
+  playerRegistry.set(id, player);
+
+  return {
+    success: true,
+    playerId: id,
+    name: player.name,
+    status: player.status,
+    createdAt: player.createdAt,
+  };
+}
+
+async function handleGetPlayer(args: Record<string, unknown>): Promise<unknown> {
+  const playerId = args.playerId as string;
+  const player = playerRegistry.get(playerId);
+  if (!player) {
+    return { error: `Player not found: ${playerId}` };
+  }
+  return { success: true, playerId, player };
+}
+
+async function handleListPlayers(args: Record<string, unknown>): Promise<unknown> {
+  const limit = (args.limit as number) ?? 50;
+  const offset = (args.offset as number) ?? 0;
+  const worldId = args.worldId as string | undefined;
+  const shardId = args.shardId as string | undefined;
+  const zoneId = args.zoneId as string | undefined;
+  const status = args.status as string | undefined;
+
+  let items = Array.from(playerRegistry.values());
+  if (worldId !== undefined) items = items.filter((p) => p.worldId === worldId);
+  if (shardId !== undefined) items = items.filter((p) => p.shardId === shardId);
+  if (zoneId !== undefined) items = items.filter((p) => p.zoneId === zoneId);
+  if (status !== undefined) items = items.filter((p) => p.status === status);
+
+  const total = items.length;
+  items = items.slice(offset, offset + limit);
+
+  return { success: true, total, limit, offset, players: items };
+}
+
+async function handleRevokePlayer(args: Record<string, unknown>): Promise<unknown> {
+  const playerId = args.playerId as string;
+  const player = playerRegistry.get(playerId);
+  if (!player) {
+    return { error: `Player not found: ${playerId}` };
+  }
+  player.status = 'revoked';
+  player.modifiedAt = new Date().toISOString();
+  return { success: true, playerId, status: player.status, revokedAt: player.modifiedAt };
+}
+
+async function handleProvisionCreator(args: Record<string, unknown>): Promise<unknown> {
+  const id = (args.id as string) || genId('creator');
+  const name = args.name as string;
+  if (!name || typeof name !== 'string') {
+    return { error: 'name is required and must be a non-empty string' };
+  }
+
+  const creator: StoredCreator = {
+    id,
+    name,
+    walletAddress: (args.walletAddress as string | undefined) ?? undefined,
+    tier: (args.tier as 'free' | 'premium' | 'ultra') ?? 'free',
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    modifiedAt: new Date().toISOString(),
+  };
+
+  creatorRegistry.set(id, creator);
+
+  return {
+    success: true,
+    creatorId: id,
+    name: creator.name,
+    tier: creator.tier,
+    status: creator.status,
+    createdAt: creator.createdAt,
+  };
+}
+
+async function handleGetCreator(args: Record<string, unknown>): Promise<unknown> {
+  const creatorId = args.creatorId as string;
+  const creator = creatorRegistry.get(creatorId);
+  if (!creator) {
+    return { error: `Creator not found: ${creatorId}` };
+  }
+  return { success: true, creatorId, creator };
+}
+
+async function handleListCreators(args: Record<string, unknown>): Promise<unknown> {
+  const limit = (args.limit as number) ?? 50;
+  const offset = (args.offset as number) ?? 0;
+  const tier = args.tier as string | undefined;
+  const status = args.status as string | undefined;
+
+  let items = Array.from(creatorRegistry.values());
+  if (tier !== undefined) items = items.filter((c) => c.tier === tier);
+  if (status !== undefined) items = items.filter((c) => c.status === status);
+
+  const total = items.length;
+  items = items.slice(offset, offset + limit);
+
+  return { success: true, total, limit, offset, creators: items };
+}
+
+async function handleRevokeCreator(args: Record<string, unknown>): Promise<unknown> {
+  const creatorId = args.creatorId as string;
+  const creator = creatorRegistry.get(creatorId);
+  if (!creator) {
+    return { error: `Creator not found: ${creatorId}` };
+  }
+  creator.status = 'revoked';
+  creator.modifiedAt = new Date().toISOString();
+  return { success: true, creatorId, status: creator.status, revokedAt: creator.modifiedAt };
+}
+
+async function handleProvisionAgent(args: Record<string, unknown>): Promise<unknown> {
+  const id = (args.id as string) || genId('agent');
+  const name = args.name as string;
+  if (!name || typeof name !== 'string') {
+    return { error: 'name is required and must be a non-empty string' };
+  }
+
+  const agent: StoredProvisionedAgent = {
+    id,
+    name,
+    walletAddress: (args.walletAddress as string | undefined) ?? undefined,
+    kind: (args.kind as 'headless' | 'npc' | 'external') ?? 'headless',
+    worldId: (args.worldId as string | undefined) ?? undefined,
+    shardId: (args.shardId as string | undefined) ?? undefined,
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    modifiedAt: new Date().toISOString(),
+  };
+
+  agentRegistry.set(id, agent);
+
+  return {
+    success: true,
+    agentId: id,
+    name: agent.name,
+    kind: agent.kind,
+    status: agent.status,
+    createdAt: agent.createdAt,
+  };
+}
+
+async function handleGetAgent(args: Record<string, unknown>): Promise<unknown> {
+  const agentId = args.agentId as string;
+  const agent = agentRegistry.get(agentId);
+  if (!agent) {
+    return { error: `Agent not found: ${agentId}` };
+  }
+  return { success: true, agentId, agent };
+}
+
+async function handleListAgents(args: Record<string, unknown>): Promise<unknown> {
+  const limit = (args.limit as number) ?? 50;
+  const offset = (args.offset as number) ?? 0;
+  const worldId = args.worldId as string | undefined;
+  const shardId = args.shardId as string | undefined;
+  const kind = args.kind as string | undefined;
+  const status = args.status as string | undefined;
+
+  let items = Array.from(agentRegistry.values());
+  if (worldId !== undefined) items = items.filter((a) => a.worldId === worldId);
+  if (shardId !== undefined) items = items.filter((a) => a.shardId === shardId);
+  if (kind !== undefined) items = items.filter((a) => a.kind === kind);
+  if (status !== undefined) items = items.filter((a) => a.status === status);
+
+  const total = items.length;
+  items = items.slice(offset, offset + limit);
+
+  return { success: true, total, limit, offset, agents: items };
+}
+
+async function handleRevokeAgent(args: Record<string, unknown>): Promise<unknown> {
+  const agentId = args.agentId as string;
+  const agent = agentRegistry.get(agentId);
+  if (!agent) {
+    return { error: `Agent not found: ${agentId}` };
+  }
+  agent.status = 'revoked';
+  agent.modifiedAt = new Date().toISOString();
+  return { success: true, agentId, status: agent.status, revokedAt: agent.modifiedAt };
 }

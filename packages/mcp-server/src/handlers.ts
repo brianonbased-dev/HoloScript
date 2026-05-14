@@ -472,6 +472,19 @@ export async function handleTool(
     name === 'hololand_brittney_npc_mode' ||
     name === 'hololand_twin_earth_contract' ||
     name === 'hololand_twin_earth_substrate_status' ||
+    // Player / Creator / Agent Provisioning (task_1778617298562_qdpb)
+    name === 'hololand_provision_player' ||
+    name === 'hololand_get_player' ||
+    name === 'hololand_list_players' ||
+    name === 'hololand_revoke_player' ||
+    name === 'hololand_provision_creator' ||
+    name === 'hololand_get_creator' ||
+    name === 'hololand_list_creators' ||
+    name === 'hololand_revoke_creator' ||
+    name === 'hololand_provision_agent' ||
+    name === 'hololand_get_agent' ||
+    name === 'hololand_list_agents' ||
+    name === 'hololand_revoke_agent' ||
     // Twin Earth Robot / AI Sovereign Tool Family (task_1778618552503_a6rb)
     name === 'twin_earth_register_identity' ||
     name === 'twin_earth_get_identity' ||
