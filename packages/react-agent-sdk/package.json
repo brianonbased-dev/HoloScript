@@ -1,5 +1,5 @@
 {
-  "name": "@hololand/react-agent-sdk",
+  "name": "@holoscript/react-agent-sdk",
   "version": "0.1.1",
   "description": "React SDK for declarative agent usage - hooks and components for building agent-powered UIs",
   "license": "MIT",

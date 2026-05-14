@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { AgentProvider, useAgent, useTask } from '@hololand/react-agent-sdk';
+import { AgentProvider, useAgent, useTask } from '@holoscript/react-agent-sdk';
 
 // This component works with Next.js SSR/SSG
 function DataFetchingComponent() {

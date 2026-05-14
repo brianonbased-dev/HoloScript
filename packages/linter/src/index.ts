@@ -4,7 +4,7 @@
  * Static analysis tool for HoloScript (.holo) and HoloScript+ (.hsplus) files.
  * Enforces best practices, catches errors, and improves code quality.
  *
- * @package @hololand/holoscript-linter
+ * @package @holoscript/linter
  * @version 2.0.0
  */
 

@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { useAgent, useTask } from '@hololand/react-agent-sdk';
+import { useAgent, useTask } from '@holoscript/react-agent-sdk';
 
 export function BasicUsageExample() {
   // 1. Import hook

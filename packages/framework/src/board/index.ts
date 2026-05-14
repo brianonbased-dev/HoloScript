@@ -154,50 +154,6 @@ export {
 } from './board-ops';
 
 export {
-  // HoloLand receipt types (task_1778186605462_4z0o)
-  HARDWARE_RECEIPT_KINDS,
-  AGENT_ACTION_KINDS,
-  QUALCOMM_NIR_RUNTIME_TARGETS,
-  type HardwareReceiptKind,
-  type HardwareReceipt,
-  type ReplayInput,
-  type ReplayOutcome,
-  type AgentActionKind,
-  type AgentActionReceipt,
-  type ValidationReceipt,
-  type QualcommNIRRuntimeTarget,
-  type QualcommNIRModelExportReceipt,
-  type HardwareCompilationTargetKind,
-  type CrossHardwareCompilationReceipt,
-  validateHardwareReceipt,
-  validateReplayInput,
-  validateReplayOutcome,
-  validateAgentActionReceipt,
-  validateQualcommNIRModelExportReceipt,
-  validateCrossHardwareCompilationReceipt,
-  validateValidationReceipt,
-  isSupportedHardwareReceiptKind,
-  isSupportedAgentActionKind,
-  isSupportedReplayOutcomeStatus,
-  isSupportedQualcommNIRRuntimeTarget,
-  isSupportedValidationStatus,
-  isSupportedHardwareCompilationTarget,
-  cloneHardwareReceipt,
-  cloneReplayInput,
-  cloneReplayOutcome,
-  cloneAgentActionReceipt,
-  cloneQualcommNIRModelExportReceipt,
-  cloneCrossHardwareCompilationReceipt,
-  cloneValidationReceipt,
-  // Package Provenance Receipt (task_1778618757735_1mih)
-  type PackageProvenanceReceipt,
-  validatePackageProvenanceReceipt,
-  isSupportedTrustTier,
-  isSupportedAdmissionDecision,
-  clonePackageProvenanceReceipt,
-} from './hololand-receipts';
-
-export {
   // HoloShell Browser Absorption Receipts (task_1778625587950_34rn)
   BROWSER_ACTION_KINDS,
   type BrowserActionKind,

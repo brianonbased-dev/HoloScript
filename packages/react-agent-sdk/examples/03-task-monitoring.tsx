@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from 'react';
-import { useAgent, TaskMonitor } from '@hololand/react-agent-sdk';
+import { useAgent, TaskMonitor } from '@holoscript/react-agent-sdk';
 
 export function TaskMonitoringExample() {
   const { agent } = useAgent('brittney');

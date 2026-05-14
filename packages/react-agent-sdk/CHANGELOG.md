@@ -1,4 +1,4 @@
-# @hololand/react-agent-sdk
+# @holoscript/react-agent-sdk
 
 ## 0.1.1
 

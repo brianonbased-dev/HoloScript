@@ -21,7 +21,6 @@ export * from './culture-agents';
 export * from '../platforms/cross-reality';
 
 export * from './marketplace';
-export * from './hololand-runtime';
 export * from './material-io-pipeline';
 export * from './trait-stdlib-interop';
 export * from './compiler-plugins-crypto';

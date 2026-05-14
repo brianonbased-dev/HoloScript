@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { useAgent, SuspenseTask } from '@hololand/react-agent-sdk';
+import { useAgent, SuspenseTask } from '@holoscript/react-agent-sdk';
 
 function Spinner() {
   return <div>Loading...</div>;

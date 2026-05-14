@@ -3,13 +3,13 @@
 ## Installation
 
 ```bash
-npm install @hololand/react-agent-sdk
+npm install @holoscript/react-agent-sdk
 ```
 
 ## Setup (1 time)
 
 ```tsx
-import { AgentProvider } from '@hololand/react-agent-sdk';
+import { AgentProvider } from '@holoscript/react-agent-sdk';
 
 <AgentProvider config={{ apiUrl: 'https://api.hololand.ai' }}>
   <App />
@@ -19,7 +19,7 @@ import { AgentProvider } from '@hololand/react-agent-sdk';
 ## Basic Usage (3 lines)
 
 ```tsx
-import { useAgent, useTask } from '@hololand/react-agent-sdk';
+import { useAgent, useTask } from '@holoscript/react-agent-sdk';
 
 const { agent } = useAgent('brittney');
 const { data, loading, error } = useTask(agent, 'myTask');
@@ -197,19 +197,19 @@ const { data } = useTask(typeof window !== 'undefined' ? agent : null, 'task');
 
 ```tsx
 // Hooks
-import { useAgent, useTask, useTaskStatus } from '@hololand/react-agent-sdk';
-import { useAgentMetrics, useCircuitBreaker, useDegradedMode } from '@hololand/react-agent-sdk';
+import { useAgent, useTask, useTaskStatus } from '@holoscript/react-agent-sdk';
+import { useAgentMetrics, useCircuitBreaker, useDegradedMode } from '@holoscript/react-agent-sdk';
 
 // Components
-import { AgentProvider, TaskMonitor } from '@hololand/react-agent-sdk';
-import { CircuitBreakerStatus, AgentMetricsDashboard } from '@hololand/react-agent-sdk';
-import { AgentErrorBoundary, SuspenseTask } from '@hololand/react-agent-sdk';
+import { AgentProvider, TaskMonitor } from '@holoscript/react-agent-sdk';
+import { CircuitBreakerStatus, AgentMetricsDashboard } from '@holoscript/react-agent-sdk';
+import { AgentErrorBoundary, SuspenseTask } from '@holoscript/react-agent-sdk';
 
 // Types
-import type { TaskParams, TaskStatus, CircuitState, AgentMetrics } from '@hololand/react-agent-sdk';
+import type { TaskParams, TaskStatus, CircuitState, AgentMetrics } from '@holoscript/react-agent-sdk';
 
 // Utilities (advanced)
-import { CircuitBreaker, ExponentialBackoff } from '@hololand/react-agent-sdk';
+import { CircuitBreaker, ExponentialBackoff } from '@holoscript/react-agent-sdk';
 ```
 
 ## Troubleshooting

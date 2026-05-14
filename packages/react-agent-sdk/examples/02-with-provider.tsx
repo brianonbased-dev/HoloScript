@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { AgentProvider, useAgent, useTask } from '@hololand/react-agent-sdk';
+import { AgentProvider, useAgent, useTask } from '@holoscript/react-agent-sdk';
 
 function ComponentGeneratorApp() {
   const { agent } = useAgent('brittney');

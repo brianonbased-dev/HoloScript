@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { AgentMetricsDashboard } from '@hololand/react-agent-sdk';
+import { AgentMetricsDashboard } from '@holoscript/react-agent-sdk';
 
 export function MetricsDashboardExample() {
   return (

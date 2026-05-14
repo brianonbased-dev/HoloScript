@@ -4,7 +4,7 @@
  * Code formatting tool for HoloScript (.holo) and HoloScript+ (.hsplus) files.
  * Enforces consistent code style and formatting across the codebase.
  *
- * @package @hololand/holoscript-formatter
+ * @package @holoscript/formatter
  * @version 2.0.0
  */
 

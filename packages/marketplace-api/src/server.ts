@@ -12,7 +12,6 @@ import { MarketplaceService } from './MarketplaceService.js';
 import { TraitRegistry } from './TraitRegistry.js';
 import { PostgresTraitDatabase } from './PostgresTraitDatabase.js';
 import { x402PaymentService } from './x402PaymentService.js';
-import { createHololandRoutes } from './hololandRoutes.js';
 import { createASTAssetRouter } from './economy/ast-licensing-middleware.js';
 import { PluginMarketplaceService } from './PluginMarketplaceService.js';
 import { createPluginMarketplaceRoutes } from './pluginRoutes.js';
@@ -154,9 +153,6 @@ export function createApp(
   app.use('/api/v1', createMarketplaceRoutes(service));
   app.use('/api/v1', createPluginMarketplaceRoutes(pluginService, paymentService));
   app.use('/api/v1/skills', createSkillMarketplaceRoutes(skillService, paymentService));
-
-  // Hololand AI Economy routes
-  app.use('/api/v1', createHololandRoutes(paymentService));
 
   // X402 AST Asset Licensing routes (Phase 2 task _zoje)
   app.use('/api/v1', createASTAssetRouter());

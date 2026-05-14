@@ -67,7 +67,7 @@ function MyComponent() {
 ## After: Declarative Approach
 
 ```tsx
-import { useAgent, useTask } from '@hololand/react-agent-sdk';
+import { useAgent, useTask } from '@holoscript/react-agent-sdk';
 
 function MyComponent() {
   const { agent } = useAgent('brittney');
@@ -97,7 +97,7 @@ function MyComponent() {
 ### Step 1: Install SDK
 
 ```bash
-npm install @hololand/react-agent-sdk
+npm install @holoscript/react-agent-sdk
 ```
 
 ### Step 2: Add Provider
@@ -111,7 +111,7 @@ function App() {
 }
 
 // After
-import { AgentProvider } from '@hololand/react-agent-sdk';
+import { AgentProvider } from '@holoscript/react-agent-sdk';
 
 function App() {
   return (
@@ -265,7 +265,7 @@ function MyComponent() {
 **After:**
 
 ```tsx
-import { AgentErrorBoundary } from '@hololand/react-agent-sdk';
+import { AgentErrorBoundary } from '@holoscript/react-agent-sdk';
 
 <AgentErrorBoundary
   fallback={(error, reset) => (
@@ -301,7 +301,7 @@ function MyComponent() {
 **After:**
 
 ```tsx
-import { SuspenseTask } from '@hololand/react-agent-sdk';
+import { SuspenseTask } from '@holoscript/react-agent-sdk';
 
 function MyComponent() {
   const { agent } = useAgent('brittney');
@@ -464,7 +464,7 @@ test('component', () => {
 ### After: Simple Mocking
 
 ```tsx
-import { AgentProvider } from '@hololand/react-agent-sdk';
+import { AgentProvider } from '@holoscript/react-agent-sdk';
 
 test('component', () => {
   render(
@@ -478,7 +478,7 @@ test('component', () => {
 
 ## Checklist
 
-- [ ] Install `@hololand/react-agent-sdk`
+- [ ] Install `@holoscript/react-agent-sdk`
 - [ ] Add `AgentProvider` at app root
 - [ ] Replace manual agent calls with `useAgent` + `useTask`
 - [ ] Remove manual retry logic (use `retry` param)

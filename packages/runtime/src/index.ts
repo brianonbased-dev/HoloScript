@@ -285,18 +285,6 @@ export {
   ScalableTrait,
   calculateThrowVelocity,
 } from './traits/InteractionTraits.js';
-export {
-  StatTrait,
-  LuckTrait,
-  EncounterTrait,
-  DropTableTrait,
-  setStat,
-  modifyStat,
-  queryStat,
-  rollLuck,
-  rollDropTable,
-  resetEncounter,
-} from './traits/HoloLandTraits.js';
 
 /**
  * Initialize the runtime and register globals

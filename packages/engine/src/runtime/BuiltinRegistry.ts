@@ -170,7 +170,7 @@ export class BuiltinRegistry {
       create: async (config) => {
         if (config.backend === 'gpu') {
           // @ts-ignore
-          const { FlowFieldCompute } = await import('@hololand/gpu');
+          const { FlowFieldCompute } = await import('@hololand/renderer');
           const ff = new FlowFieldCompute({
             width: (config.width as number) || 64,
             height: (config.height as number) || 64,
@@ -209,7 +209,7 @@ export class BuiltinRegistry {
       backends: ['webgpu'],
       create: async (config) => {
         // @ts-ignore
-        const { GPUContext } = await import('@hololand/gpu');
+        const { GPUContext } = await import('@hololand/renderer');
         const ctx = new GPUContext({
           powerPreference:
             (config.powerPreference as 'low-power' | 'high-performance') || 'high-performance',

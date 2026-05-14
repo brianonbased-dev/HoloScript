@@ -2,7 +2,7 @@
  * @holoscript/core/agents
  *
  * Canonical agent protocol types for HoloScript Core.
- * Consumed by @hololand/react-agent-sdk and other downstream packages.
+ * Consumed by @holoscript/react-agent-sdk and other downstream packages.
  *
  * RULE: Do not define local stubs in downstream packages.
  * Import from '@holoscript/core/agents' directly.
