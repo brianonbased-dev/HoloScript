@@ -6,7 +6,7 @@
  */
 
 import { Token, TokenType } from './lexer';
-import { CompositionNode, ObjectNode, PropertyValue } from './ast';
+import { CompositionNode, ObjectNode, PropertyValue, DomainRandomizationConfig, ActuatorGroupConfig } from './ast';
 
 export class Parser {
   private tokens: Token[];
@@ -67,12 +67,21 @@ export class Parser {
     this.expect(TokenType.LBRACE);
 
     const objects: ObjectNode[] = [];
+    let domainRandomization: DomainRandomizationConfig | undefined;
 
     while (
       this.currentToken().type !== TokenType.RBRACE &&
       this.currentToken().type !== TokenType.EOF
     ) {
-      objects.push(this.parseObject());
+      // Check for domain_randomization block at composition level
+      if (this.currentToken().type === TokenType.IDENTIFIER &&
+          this.currentToken().value === 'domain_randomization') {
+        this.advance();
+        this.expect(TokenType.COLON);
+        domainRandomization = this.parseDomainRandomizationBlock();
+      } else {
+        objects.push(this.parseObject());
+      }
     }
 
     this.expect(TokenType.RBRACE);
@@ -81,6 +90,7 @@ export class Parser {
       type: 'composition',
       name,
       objects,
+      domainRandomization,
       line: startToken.line,
       column: startToken.column,
     };
@@ -100,15 +110,43 @@ export class Parser {
 
     // Parse properties (key: value)
     const properties: Record<string, PropertyValue> = {};
+    let domainRandomization: DomainRandomizationConfig | undefined;
+    let actuatorGroups: ActuatorGroupConfig[] | undefined;
 
     while (
       this.currentToken().type !== TokenType.RBRACE &&
       this.currentToken().type !== TokenType.EOF
     ) {
-      const key = this.expect(TokenType.IDENTIFIER).value;
-      this.expect(TokenType.COLON);
-      const value = this.parseValue();
-      properties[key] = value;
+      // Support both object "link" @trait { ... } and object "link" { @trait ... }.
+      if (this.currentToken().type === TokenType.TRAIT) {
+        const trait = this.advance().value;
+        if (!traits.includes(trait)) {
+          traits.push(trait);
+        }
+      }
+      // Check for domain_randomization block
+      else if (this.currentToken().type === TokenType.IDENTIFIER &&
+          this.currentToken().value === 'domain_randomization') {
+        this.advance();
+        this.expect(TokenType.COLON);
+        domainRandomization = this.parseDomainRandomizationBlock();
+      }
+      // Check for actuator_group block
+      else if (this.currentToken().type === TokenType.IDENTIFIER &&
+               this.currentToken().value === 'actuator_group') {
+        this.advance();
+        this.expect(TokenType.COLON);
+        const group = this.parseActuatorGroupBlock();
+        if (!actuatorGroups) actuatorGroups = [];
+        actuatorGroups.push(group);
+      }
+      // Regular property
+      else {
+        const keyName = this.expect(TokenType.IDENTIFIER).value;
+        this.expect(TokenType.COLON);
+        const value = this.parseValue();
+        properties[keyName] = value;
+      }
     }
 
     this.expect(TokenType.RBRACE);
@@ -118,6 +156,8 @@ export class Parser {
       name,
       traits,
       properties,
+      domainRandomization,
+      actuatorGroups,
       line: startToken.line,
       column: startToken.column,
     };
@@ -186,5 +226,236 @@ export class Parser {
 
     this.expect(TokenType.RBRACKET);
     return values;
+  }
+
+  private parseDomainRandomizationBlock(): DomainRandomizationConfig {
+    this.expect(TokenType.LBRACE);
+    const config: DomainRandomizationConfig = {};
+
+    while (
+      this.currentToken().type !== TokenType.RBRACE &&
+      this.currentToken().type !== TokenType.EOF
+    ) {
+      const key = this.expect(TokenType.IDENTIFIER).value;
+      this.expect(TokenType.COLON);
+
+      switch (key) {
+        case 'physics':
+          config.physics = this.parsePhysicsRandomization();
+          break;
+        case 'actuator':
+          config.actuator = this.parseActuatorRandomization();
+          break;
+        case 'observation':
+          config.observation = this.parseObservationRandomization();
+          break;
+        case 'initialState':
+          config.initialState = this.parseInitialStateRandomization();
+          break;
+        case 'disturbance':
+          config.disturbance = this.parseDisturbanceRandomization();
+          break;
+        default:
+          // Skip unknown keys
+          this.parseValue();
+      }
+    }
+
+    this.expect(TokenType.RBRACE);
+    return config;
+  }
+
+  private parsePhysicsRandomization(): DomainRandomizationConfig['physics'] {
+    this.expect(TokenType.LBRACE);
+    const physics: DomainRandomizationConfig['physics'] = {};
+
+    while (
+      this.currentToken().type !== TokenType.RBRACE &&
+      this.currentToken().type !== TokenType.EOF
+    ) {
+      const key = this.expect(TokenType.IDENTIFIER).value;
+      this.expect(TokenType.COLON);
+      const value = this.parseValue();
+
+      if (key === 'massScale' && Array.isArray(value)) {
+        physics.massScale = [value[0] as number, value[1] as number];
+      } else if (key === 'frictionRange' && Array.isArray(value)) {
+        physics.frictionRange = [value[0] as number, value[1] as number];
+      } else if (key === 'dampingRange' && Array.isArray(value)) {
+        physics.dampingRange = [value[0] as number, value[1] as number];
+      } else if (key === 'armatureRange' && Array.isArray(value)) {
+        physics.armatureRange = [value[0] as number, value[1] as number];
+      }
+    }
+
+    this.expect(TokenType.RBRACE);
+    return physics;
+  }
+
+  private parseActuatorRandomization(): DomainRandomizationConfig['actuator'] {
+    this.expect(TokenType.LBRACE);
+    const actuator: DomainRandomizationConfig['actuator'] = {};
+
+    while (
+      this.currentToken().type !== TokenType.RBRACE &&
+      this.currentToken().type !== TokenType.EOF
+    ) {
+      const key = this.expect(TokenType.IDENTIFIER).value;
+      this.expect(TokenType.COLON);
+      const value = this.parseValue();
+
+      if (key === 'kpNoise' && typeof value === 'number') {
+        actuator.kpNoise = value;
+      } else if (key === 'kdNoise' && typeof value === 'number') {
+        actuator.kdNoise = value;
+      } else if (key === 'latencyNoise' && typeof value === 'number') {
+        actuator.latencyNoise = value;
+      }
+    }
+
+    this.expect(TokenType.RBRACE);
+    return actuator;
+  }
+
+  private parseObservationRandomization(): DomainRandomizationConfig['observation'] {
+    this.expect(TokenType.LBRACE);
+    const observation: DomainRandomizationConfig['observation'] = {};
+
+    while (
+      this.currentToken().type !== TokenType.RBRACE &&
+      this.currentToken().type !== TokenType.EOF
+    ) {
+      const key = this.expect(TokenType.IDENTIFIER).value;
+      this.expect(TokenType.COLON);
+      const value = this.parseValue();
+
+      if (key === 'jointPosNoise' && typeof value === 'number') {
+        observation.jointPosNoise = value;
+      } else if (key === 'jointVelNoise' && typeof value === 'number') {
+        observation.jointVelNoise = value;
+      } else if (key === 'imuNoise' && typeof value === 'number') {
+        observation.imuNoise = value;
+      }
+    }
+
+    this.expect(TokenType.RBRACE);
+    return observation;
+  }
+
+  private parseInitialStateRandomization(): DomainRandomizationConfig['initialState'] {
+    this.expect(TokenType.LBRACE);
+    const initialState: DomainRandomizationConfig['initialState'] = {};
+
+    while (
+      this.currentToken().type !== TokenType.RBRACE &&
+      this.currentToken().type !== TokenType.EOF
+    ) {
+      const key = this.expect(TokenType.IDENTIFIER).value;
+      this.expect(TokenType.COLON);
+
+      if (key === 'jointPosRange') {
+        initialState.jointPosRange = this.parseNumberRangeMap();
+      } else {
+        const value = this.parseValue();
+        if (key === 'rootPoseRange' && Array.isArray(value)) {
+          initialState.rootPoseRange = value as [number, number, number, number, number, number];
+        }
+      }
+    }
+
+    this.expect(TokenType.RBRACE);
+    return initialState;
+  }
+
+  private parseNumberRangeMap(): Record<string, [number, number]> {
+    this.expect(TokenType.LBRACE);
+    const ranges: Record<string, [number, number]> = {};
+
+    while (
+      this.currentToken().type !== TokenType.RBRACE &&
+      this.currentToken().type !== TokenType.EOF
+    ) {
+      const key = this.expect(TokenType.IDENTIFIER).value;
+      this.expect(TokenType.COLON);
+      const value = this.parseValue();
+
+      if (Array.isArray(value)) {
+        ranges[key] = [value[0] as number, value[1] as number];
+      }
+    }
+
+    this.expect(TokenType.RBRACE);
+    return ranges;
+  }
+
+  private parseDisturbanceRandomization(): DomainRandomizationConfig['disturbance'] {
+    this.expect(TokenType.LBRACE);
+    const disturbance: DomainRandomizationConfig['disturbance'] = {};
+
+    while (
+      this.currentToken().type !== TokenType.RBRACE &&
+      this.currentToken().type !== TokenType.EOF
+    ) {
+      const key = this.expect(TokenType.IDENTIFIER).value;
+      this.expect(TokenType.COLON);
+      const value = this.parseValue();
+
+      if (key === 'forceRange' && Array.isArray(value)) {
+        disturbance.forceRange = [value[0] as number, value[1] as number];
+      } else if (key === 'intervalRange' && Array.isArray(value)) {
+        disturbance.intervalRange = [value[0] as number, value[1] as number];
+      }
+    }
+
+    this.expect(TokenType.RBRACE);
+    return disturbance;
+  }
+
+  private parseActuatorGroupBlock(): ActuatorGroupConfig {
+    // Parse actuator_group { name: "foo" type: "DelayedPDActuator" joints: ["joint1", "joint2"] ... }
+    this.expect(TokenType.LBRACE);
+    const group: ActuatorGroupConfig = {
+      name: '',
+      type: 'IdealPDActuator',
+      jointNames: [],
+    };
+
+    while (
+      this.currentToken().type !== TokenType.RBRACE &&
+      this.currentToken().type !== TokenType.EOF
+    ) {
+      const key = this.expect(TokenType.IDENTIFIER).value;
+      this.expect(TokenType.COLON);
+      const value = this.parseValue();
+
+      switch (key) {
+        case 'name':
+          group.name = value as string;
+          break;
+        case 'type':
+          group.type = value as ActuatorGroupConfig['type'];
+          break;
+        case 'joints':
+          if (Array.isArray(value)) {
+            group.jointNames = value as string[];
+          }
+          break;
+        case 'stiffness':
+          group.stiffness = value as number;
+          break;
+        case 'damping':
+          group.damping = value as number;
+          break;
+        case 'friction':
+          group.friction = value as number;
+          break;
+        case 'latency':
+          group.latency = value as number;
+          break;
+      }
+    }
+
+    this.expect(TokenType.RBRACE);
+    return group;
   }
 }

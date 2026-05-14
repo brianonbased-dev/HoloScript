@@ -1,0 +1,127 @@
+// Isaac Lab Sim-to-Real Example
+// Demonstrates Path A: HoloScript -> Isaac Lab asset/export
+// Features:
+// - PhysicsDriveAPI for PD actuator control
+// - PhysxJointAxisAPI for per-axis joint friction assumptions
+// - Domain randomization configuration
+// - Delayed actuator metadata for communication latency
+
+composition "TwoLinkArm_IsaacLab" {
+  // Domain randomization at composition level
+  // These values are emitted as comments for Isaac Lab Python codegen
+  domain_randomization: {
+    physics: {
+      massScale: [0.8, 1.2]
+      frictionRange: [0.3, 0.7]
+      dampingRange: [0.0, 0.1]
+      armatureRange: [0.0001, 0.002]
+    }
+    actuator: {
+      kpNoise: 0.1
+      kdNoise: 0.05
+      latencyNoise: 0.002
+    }
+    observation: {
+      jointPosNoise: 0.001
+      jointVelNoise: 0.01
+      imuNoise: 0.005
+    }
+    initialState: {
+      rootPoseRange: [-0.5, 0.5, -0.5, 0.5, 0.0, 1.0]
+    }
+    disturbance: {
+      forceRange: [0.0, 5.0]
+      intervalRange: [1.0, 3.0]
+    }
+  }
+
+  object "base_link" {
+    @static
+    geometry: "cylinder"
+    radius: 0.1
+    height: 0.05
+    mass: 2.0
+    position: [0, 0, 0]
+    material: "metal"
+  }
+
+  object "joint1" {
+    @joint_revolute
+    joint_parent: "base_link"
+    joint_origin: [0, 0, 0.05]
+    joint_axis: [0, 0, 1]
+    joint_limits: [-3.14, 3.14]
+    joint_effort: 50
+    max_velocity: 3.14
+    // PD gains for Isaac Lab drive control
+    kp: 100.0
+    kd: 10.0
+    // Joint friction (sim-to-real)
+    joint_friction: 0.05
+    joint_viscous_friction: 0.01
+    armature: 0.001
+    // Actuator latency for DelayedPDActuator
+    actuator_latency: 0.005
+    actuator_group: {
+      name: "arm_group"
+      type: "DelayedPDActuator"
+      joints: ["joint1", "joint2"]
+      stiffness: 100
+      damping: 10
+      friction: 0.05
+      latency: 0.005
+    }
+  }
+
+  object "link1" {
+    @joint_revolute
+    joint_parent: "joint1"
+    geometry: "cylinder"
+    radius: 0.05
+    length: 0.3
+    mass: 1.0
+    position: [0, 0, 0.15]
+    material: "metal"
+    // Inertia tensor
+    inertia: [0.01, 0.01, 0.001, 0, 0, 0]
+    // PD gains
+    kp: 80.0
+    kd: 8.0
+    joint_friction: 0.03
+  }
+
+  object "joint2" {
+    @joint_revolute
+    joint_parent: "link1"
+    joint_origin: [0, 0, 0.3]
+    joint_axis: [0, 1, 0]
+    joint_limits: [-1.57, 1.57]
+    joint_effort: 30
+    max_velocity: 3.14
+    kp: 80.0
+    kd: 8.0
+    joint_friction: 0.03
+    actuator_latency: 0.005
+  }
+
+  object "link2" {
+    geometry: "cylinder"
+    radius: 0.04
+    length: 0.25
+    mass: 0.8
+    position: [0, 0, 0.125]
+    material: "metal"
+    inertia: [0.005, 0.005, 0.0008, 0, 0, 0]
+    kp: 60.0
+    kd: 6.0
+    joint_friction: 0.02
+  }
+
+  object "end_effector" {
+    geometry: "sphere"
+    radius: 0.03
+    mass: 0.2
+    position: [0, 0, 0.25]
+    material: "plastic"
+  }
+}
