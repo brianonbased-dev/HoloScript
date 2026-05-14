@@ -18,7 +18,10 @@
 import type {
   AdversarialTrajectory,
   AdversarialTrajectoryReport,
+  FailureCluster,
+  ReplaySummary,
   SceneHash,
+  ScoreSummary,
   TrajectoryId,
   TrajectoryStatus,
 } from './AdversarialTrajectory';
@@ -75,6 +78,9 @@ export function buildAdversarialTrajectoryReport(
       archived: countBy('archived'),
     },
     topPriority,
+    failureClusters: buildFailureClusters(trajectories),
+    scoreSummary: buildScoreSummary(trajectories),
+    replaySummary: buildReplaySummary(trajectories),
   };
 }
 
@@ -106,4 +112,85 @@ export function isReportCountsConsistent(report: AdversarialTrajectoryReport): b
     report.counts.invalid === re('invalid') &&
     report.counts.archived === re('archived')
   );
+}
+
+// ── Report helpers ──
+
+function buildFailureClusters(trajectories: readonly AdversarialTrajectory[]): readonly FailureCluster[] {
+  const clusters = new Map<string, FailureCluster>();
+
+  for (const t of trajectories) {
+    const dominant = dominantPredicate(t);
+    const key = `${t.status}::${dominant ?? 'none'}`;
+    const existing = clusters.get(key);
+    if (existing) {
+      clusters.set(key, {
+        ...existing,
+        count: existing.count + 1,
+        trajectoryIds: [...existing.trajectoryIds, t.id],
+      });
+    } else {
+      clusters.set(key, {
+        label: `${t.status}${dominant ? ` (${dominant})` : ''}`,
+        status: t.status,
+        count: 1,
+        trajectoryIds: [t.id],
+        dominantPredicate: dominant,
+      });
+    }
+  }
+
+  return Array.from(clusters.values()).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+}
+
+function dominantPredicate(
+  trajectory: AdversarialTrajectory
+): keyof import('./AdversarialTrajectory').ScoreSummary | null {
+  const scores = trajectory.predicateScore;
+  if (trajectory.status === 'invalid') return 'invalidity';
+
+  let maxKey: keyof import('./AdversarialTrajectory').ScoreSummary | null = null;
+  let maxValue = -Infinity;
+  for (const key of ['violation', 'novelty', 'learnability', 'regression'] as const) {
+    if (scores[key] > maxValue) {
+      maxValue = scores[key];
+      maxKey = key;
+    }
+  }
+  return maxKey;
+}
+
+function buildScoreSummary(trajectories: readonly AdversarialTrajectory[]): import('./AdversarialTrajectory').ScoreSummary {
+  const keys = ['violation', 'novelty', 'learnability', 'regression', 'invalidity'] as const;
+  const summary = {} as Record<keyof import('./AdversarialTrajectory').ScoreSummary, { avg: number; min: number; max: number }>;
+
+  for (const key of keys) {
+    const values = trajectories.map((t) => t.predicateScore[key]);
+    const min = values.length > 0 ? Math.min(...values) : 0;
+    const max = values.length > 0 ? Math.max(...values) : 0;
+    const avg = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+    summary[key] = { avg: round4(avg), min: round4(min), max: round4(max) };
+  }
+
+  return summary;
+}
+
+function buildReplaySummary(trajectories: readonly AdversarialTrajectory[]): import('./AdversarialTrajectory').ReplaySummary {
+  let withEvidence = 0;
+  let withoutEvidence = 0;
+  for (const t of trajectories) {
+    if (
+      t.replayHandle.replayCommand.trim().length > 0 &&
+      t.replayHandle.simulationContractId === t.simulationContract.contractId
+    ) {
+      withEvidence += 1;
+    } else {
+      withoutEvidence += 1;
+    }
+  }
+  return { withEvidence, withoutEvidence };
+}
+
+function round4(value: number): number {
+  return Math.round(value * 10_000) / 10_000;
 }

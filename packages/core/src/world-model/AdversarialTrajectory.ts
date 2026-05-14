@@ -243,6 +243,45 @@ export interface AdversarialTrajectory {
   readonly lastReplayedAtMs: number | null;
 }
 
+/**
+ * Failure cluster — groups trajectories by status and dominant predicate.
+ */
+export interface FailureCluster {
+  readonly label: string;
+  readonly status: TrajectoryStatus;
+  readonly count: number;
+  readonly trajectoryIds: readonly TrajectoryId[];
+  readonly dominantPredicate: keyof SemanticPredicateScore | null;
+}
+
+/**
+ * Per-predicate aggregate statistics across the curriculum.
+ */
+export interface ScoreComponentSummary {
+  readonly avg: number;
+  readonly min: number;
+  readonly max: number;
+}
+
+/**
+ * Roll-up of all five predicate components.
+ */
+export interface ScoreSummary {
+  readonly violation: ScoreComponentSummary;
+  readonly novelty: ScoreComponentSummary;
+  readonly learnability: ScoreComponentSummary;
+  readonly regression: ScoreComponentSummary;
+  readonly invalidity: ScoreComponentSummary;
+}
+
+/**
+ * Replay-evidence coverage summary.
+ */
+export interface ReplaySummary {
+  readonly withEvidence: number;
+  readonly withoutEvidence: number;
+}
+
 // =============================================================================
 // JSON REPORT (peer's AUTONOMIZE §5 — JSON first, UI later)
 // =============================================================================
@@ -265,6 +304,9 @@ export interface AdversarialTrajectoryReport {
     readonly archived: number;
   };
   readonly topPriority: readonly TrajectoryId[];
+  readonly failureClusters: readonly FailureCluster[];
+  readonly scoreSummary: ScoreSummary;
+  readonly replaySummary: ReplaySummary;
 }
 
 // =============================================================================
