@@ -106,6 +106,29 @@ function writeJson(path, value) {
   writeFileSync(path, JSON.stringify(value, null, 2) + '\n', 'utf8');
 }
 
+function asRecord(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function propListToObject(properties) {
+  const out = {};
+  for (const prop of Array.isArray(properties) ? properties : []) {
+    const key = prop?.key;
+    if (typeof key === 'string') out[key] = prop.value;
+  }
+  return out;
+}
+
+function traitList(traits) {
+  return (Array.isArray(traits) ? traits : [])
+    .map((trait) => (typeof trait?.name === 'string' ? trait.name : null))
+    .filter(Boolean);
+}
+
+function unique(values) {
+  return [...new Set(values)].sort();
+}
+
 function rel(from, to) {
   return relative(from, to).replace(/\\/g, '/');
 }
@@ -134,6 +157,197 @@ function getCliInvocation() {
     command: process.execPath,
     baseArgs: [join(REPO_ROOT, 'packages', 'cli', 'bin', 'holoscript.cjs')],
     label: 'node packages/cli/bin/holoscript.cjs',
+  };
+}
+
+function fallbackSceneSnapshot(stagePath) {
+  const source = readFileSync(stagePath, 'utf8');
+  const objectRe = /\bobject\s+"([^"]+)"(?:\s+using\s+"([^"]+)")?\s*\{([\s\S]*?)^\s*\}/gm;
+  const objects = [];
+  let match;
+  while ((match = objectRe.exec(source))) {
+    const body = match[3] || '';
+    const property = (name) => {
+      const propMatch = body.match(new RegExp(`${name}:\\s*([^\\n]+)`));
+      return propMatch ? propMatch[1].trim().replace(/^"|"$/g, '') : undefined;
+    };
+    objects.push({
+      id: match[1],
+      type: 'object',
+      template: match[2] || null,
+      groupPath: [],
+      traits: unique([...body.matchAll(/^\s*@([A-Za-z0-9_-]+)/gm)].map((item) => item[1])),
+      properties: {
+        geometry: property('geometry'),
+        color: property('color'),
+        position: property('position'),
+        rotation: property('rotation'),
+        scale: property('scale'),
+      },
+      transform: {
+        position: property('position') ?? null,
+        rotation: property('rotation') ?? null,
+        scale: property('scale') ?? null,
+      },
+    });
+  }
+  return {
+    schema: 'format-stress-headless-scene-snapshot-v1',
+    source: 'regex-fallback',
+    stage: rel(REPO_ROOT, stagePath),
+    objectCount: objects.length,
+    templateCount: (source.match(/\btemplate\s+"/g) || []).length,
+    objects,
+  };
+}
+
+function buildSceneSnapshotFromAst(ast, stagePath) {
+  const composition = asRecord(ast);
+  const templates = new Map();
+  for (const template of Array.isArray(composition.templates) ? composition.templates : []) {
+    if (typeof template?.name === 'string') templates.set(template.name, template);
+  }
+
+  const objects = [];
+  const pushObject = (object, groupPath = [], parentId = null) => {
+    if (!object || typeof object.name !== 'string') return;
+    const template = typeof object.template === 'string' ? templates.get(object.template) : null;
+    const templateProperties = propListToObject(template?.properties);
+    const ownProperties = propListToObject(object.properties);
+    const properties = { ...templateProperties, ...ownProperties };
+    const traits = unique([...traitList(template?.traits), ...traitList(object.traits)]);
+    const sceneObject = {
+      id: object.name,
+      type: String(object.declarationKind || object.type || 'object').toLowerCase(),
+      template: object.template || null,
+      parentId,
+      groupPath,
+      traits,
+      properties,
+      transform: {
+        position: properties.position ?? null,
+        rotation: properties.rotation ?? null,
+        scale: properties.scale ?? null,
+      },
+      material: asRecord(properties.material),
+      geometry: properties.geometry ?? null,
+    };
+    objects.push(sceneObject);
+    for (const child of Array.isArray(object.children) ? object.children : []) {
+      pushObject(child, groupPath, object.name);
+    }
+  };
+
+  for (const object of Array.isArray(composition.objects) ? composition.objects : []) {
+    pushObject(object);
+  }
+  const visitGroup = (group, groupPath = []) => {
+    if (!group || typeof group.name !== 'string') return;
+    const nextPath = [...groupPath, group.name];
+    for (const object of Array.isArray(group.objects) ? group.objects : []) {
+      pushObject(object, nextPath);
+    }
+    for (const childGroup of Array.isArray(group.groups) ? group.groups : []) {
+      visitGroup(childGroup, nextPath);
+    }
+  };
+  for (const group of Array.isArray(composition.spatialGroups) ? composition.spatialGroups : []) {
+    visitGroup(group);
+  }
+  for (const world of Array.isArray(composition.worlds) ? composition.worlds : []) {
+    for (const object of Array.isArray(world.children) ? world.children : []) {
+      pushObject(object, [world.name || 'world']);
+    }
+  }
+
+  return {
+    schema: 'format-stress-headless-scene-snapshot-v1',
+    source: 'HoloCompositionParser',
+    stage: rel(REPO_ROOT, stagePath),
+    objectCount: objects.length,
+    templateCount: templates.size,
+    objects,
+  };
+}
+
+async function loadHeadlessSceneSnapshot(stagePath) {
+  try {
+    const { HoloCompositionParser } = await import('@holoscript/core');
+    const parser = new HoloCompositionParser();
+    const result = parser.parse(readFileSync(stagePath, 'utf8'));
+    if (result?.success && result.ast) {
+      return buildSceneSnapshotFromAst(result.ast, stagePath);
+    }
+    return {
+      ...fallbackSceneSnapshot(stagePath),
+      source: 'regex-fallback-after-parser-error',
+      parserErrors: result?.errors || [],
+    };
+  } catch (error) {
+    return {
+      ...fallbackSceneSnapshot(stagePath),
+      source: 'regex-fallback-after-import-error',
+      parserError: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+function sceneRuntimeSummary(sceneSnapshot) {
+  const objectCount = Number.isFinite(sceneSnapshot?.objectCount) ? sceneSnapshot.objectCount : 0;
+  return {
+    schema: sceneSnapshot?.schema || 'format-stress-headless-scene-snapshot-v1',
+    source: sceneSnapshot?.source || 'unavailable',
+    stage: sceneSnapshot?.stage || null,
+    objectCount,
+    templateCount: Number.isFinite(sceneSnapshot?.templateCount)
+      ? sceneSnapshot.templateCount
+      : null,
+    status: objectCount > 0 ? 'instantiated' : 'missing',
+  };
+}
+
+function sceneObjectAnchors(sceneSnapshot, limit = 8) {
+  return (Array.isArray(sceneSnapshot?.objects) ? sceneSnapshot.objects : [])
+    .slice(0, limit)
+    .map((object) => ({
+      id: object.id,
+      type: object.type,
+      template: object.template ?? null,
+      transform: object.transform ?? {},
+      physics: object.physics ?? {},
+    }));
+}
+
+function readCommandStdoutJson(command) {
+  if (!command || command.skipped || !command.stdout) return null;
+  const stdoutPath = resolveRepoPath(command.stdout);
+  if (!existsSync(stdoutPath)) return null;
+  const raw = readFileSync(stdoutPath, 'utf8').trim();
+  if (!raw) return null;
+  const start = raw.indexOf('{');
+  const end = raw.lastIndexOf('}');
+  if (start < 0 || end <= start) return null;
+  try {
+    return JSON.parse(raw.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+}
+
+function sceneSnapshotFromHeadlessReceipt(receipt, stagePath, fallbackSnapshot) {
+  const scene = asRecord(receipt?.scene);
+  const objects = Array.isArray(scene.objects) ? scene.objects : [];
+  if (objects.length === 0) return fallbackSnapshot;
+  const templates = unique(objects.map((object) => object?.template).filter(Boolean));
+  return {
+    schema: 'format-stress-headless-scene-snapshot-v1',
+    source: 'hs-headless-json',
+    runtimeSchema: scene.schema || null,
+    stage: rel(REPO_ROOT, stagePath),
+    objectCount: Number.isFinite(scene.objectCount) ? scene.objectCount : objects.length,
+    templateCount: templates.length,
+    runtimeStats: receipt.stats || {},
+    objects,
   };
 }
 
@@ -301,7 +515,7 @@ function ownerForSegment(segmentId) {
   return 'HoloLand segmented camera choreography';
 }
 
-function posePhysicsFor(segment, index, total) {
+function posePhysicsFor(segment, index, total, sceneSnapshot) {
   const progress = total <= 1 ? 0 : index / (total - 1);
   const avatarX = -3 + progress * 4.8;
   const rockX = index < 3 ? -1.2 : -1.2 + Math.max(0, progress - 0.33) * 5.8;
@@ -314,13 +528,21 @@ function posePhysicsFor(segment, index, total) {
     mode: 'kinematic-placeholder',
     complete: false,
     owningSurface: ownerForSegment(segment.id),
+    sceneObjectCount: Number.isFinite(sceneSnapshot?.objectCount) ? sceneSnapshot.objectCount : 0,
+    sceneSnapshotSource: sceneSnapshot?.source || 'unavailable',
+    runtimeScene: sceneRuntimeSummary(sceneSnapshot),
+    sceneObjectAnchors: sceneObjectAnchors(sceneSnapshot),
     bodies: {
       avatar: {
         position: [Number(avatarX.toFixed(3)), 1.1, 0],
         facing: 'rock-target-line',
       },
       rightHand: {
-        position: [Number((avatarX + 0.45).toFixed(3)), Number((1.2 + progress * 0.5).toFixed(3)), 0.18],
+        position: [
+          Number((avatarX + 0.45).toFixed(3)),
+          Number((1.2 + progress * 0.5).toFixed(3)),
+          0.18,
+        ],
         contact: index >= 3 && index <= 5 ? 'rock' : null,
       },
       rock: {
@@ -348,6 +570,7 @@ function posePhysicsFor(segment, index, total) {
     notes: [
       'Generated by segmented runner so every segment has a machine-readable receipt.',
       'Not a physics proof; replace with engine replay output when available.',
+      'Headless runtime scene objects are real receipt anchors; segment motion is still placeholder.',
     ],
   };
 }
@@ -362,6 +585,7 @@ export function buildSegmentReceipt({
   eventLogPath,
   posePhysicsPath,
   taskSeedPath,
+  sceneSnapshot,
 }) {
   const headless = commandResults.find((command) => command.id === 'headless-holo');
   const screenshot = commandResults.find((command) => command.id === 'screenshot-base');
@@ -383,6 +607,7 @@ export function buildSegmentReceipt({
     stillMode,
     eventLog: rel(outputDir, eventLogPath),
     posePhysicsJson: rel(outputDir, posePhysicsPath),
+    runtimeScene: sceneRuntimeSummary(sceneSnapshot),
     oracle: {
       status,
       owningSurface: owner,
@@ -391,7 +616,9 @@ export function buildSegmentReceipt({
             'Static still exists, but segment-specific camera/pose playback is not implemented yet.',
             `Next owner: ${owner}.`,
           ]
-        : ['Scene-loaded still and command evidence exist; visual realism remains a separate quality ratchet.'],
+        : [
+            'Scene-loaded still and command evidence exist; visual realism remains a separate quality ratchet.',
+          ],
     },
     timing: {
       runnerMs: 0,
@@ -436,22 +663,31 @@ async function runEvidenceCommands({ options, manifestPath, manifest, outputDir 
   const stagePath = resolveFromManifest(manifestPath, manifest.formats.stage);
   const behaviorPath = resolveFromManifest(manifestPath, manifest.formats.behavior);
   const pipelinePath = resolveFromManifest(manifestPath, manifest.formats.pipeline);
-  const screenshotPath = join(stillsDir, manifest.segments[0]?.expectedStill || '00_scene_loaded.png');
+  const screenshotPath = join(
+    stillsDir,
+    manifest.segments[0]?.expectedStill || '00_scene_loaded.png'
+  );
 
   const commandPlans = [
     ['parse-holo', ['parse', stagePath, '--json']],
     ['parse-hsplus', ['parse', behaviorPath, '--json']],
     ['parse-hs', ['parse', pipelinePath, '--json']],
-    ['compile-holo-threejs', ['compile', stagePath, '--target', 'threejs', '-o', join(compiledDir, 'holo-threejs')]],
+    [
+      'compile-holo-threejs',
+      ['compile', stagePath, '--target', 'threejs', '-o', join(compiledDir, 'holo-threejs')],
+    ],
     [
       'compile-hsplus-threejs',
       ['compile', behaviorPath, '--target', 'threejs', '-o', join(compiledDir, 'hsplus-threejs')],
     ],
-    ['compile-hs-node', ['compile', pipelinePath, '--target', 'node', '-o', join(compiledDir, 'hs-node.mjs')]],
+    [
+      'compile-hs-node',
+      ['compile', pipelinePath, '--target', 'node', '-o', join(compiledDir, 'hs-node.mjs')],
+    ],
   ];
 
   if (!options.skipHeadless) {
-    commandPlans.push(['headless-holo', ['headless', stagePath, '--duration', '250']]);
+    commandPlans.push(['headless-holo', ['headless', stagePath, '--duration', '250', '--json']]);
   }
 
   if (!options.skipScreenshot) {
@@ -477,7 +713,17 @@ async function runEvidenceCommands({ options, manifestPath, manifest, outputDir 
     results.push(await runCommand({ id, args, logDir, dryRun: options.dryRun }));
   }
 
-  return { results, screenshotPath };
+  const fallbackSceneSnapshot = await loadHeadlessSceneSnapshot(stagePath);
+  const headlessReceipt = readCommandStdoutJson(
+    results.find((command) => command.id === 'headless-holo')
+  );
+  const sceneSnapshot = sceneSnapshotFromHeadlessReceipt(
+    headlessReceipt,
+    stagePath,
+    fallbackSceneSnapshot
+  );
+
+  return { results, screenshotPath, sceneSnapshot };
 }
 
 function ensureSegmentStills({ manifest, outputDir, screenshotPath, screenshotCommand }) {
@@ -529,7 +775,11 @@ export async function runSegmentedCapture(rawOptions = {}) {
   mkdirSync(outputDir, { recursive: true });
 
   const startedAt = Date.now();
-  const { results: commandResults, screenshotPath } = await runEvidenceCommands({
+  const {
+    results: commandResults,
+    screenshotPath,
+    sceneSnapshot,
+  } = await runEvidenceCommands({
     options,
     manifestPath,
     manifest,
@@ -564,8 +814,16 @@ export async function runSegmentedCapture(rawOptions = {}) {
       schema: 'format-stress-segment-event-log-v1',
       segmentId: segment.id,
       source: 'format-stress-segmented-capture',
+      runtimeScene: sceneRuntimeSummary(sceneSnapshot),
       events: [
         { type: 'segment_requested', segment: segment.id, atMs: index * 250 },
+        {
+          type: 'runtime_scene_snapshot_loaded',
+          segment: segment.id,
+          atMs: index * 250,
+          objectCount: sceneSnapshot.objectCount,
+          source: sceneSnapshot.source,
+        },
         { type: 'evidence_receipt_emitted', segment: segment.id, atMs: index * 250 + 1 },
       ],
       commandEvidence: commandResults.map((command) => ({
@@ -577,7 +835,7 @@ export async function runSegmentedCapture(rawOptions = {}) {
       })),
     });
 
-    writeJson(posePhysicsPath, posePhysicsFor(segment, index, stills.length));
+    writeJson(posePhysicsPath, posePhysicsFor(segment, index, stills.length, sceneSnapshot));
 
     const receipt = buildSegmentReceipt({
       segment,
@@ -589,6 +847,7 @@ export async function runSegmentedCapture(rawOptions = {}) {
       eventLogPath,
       posePhysicsPath,
       taskSeedPath,
+      sceneSnapshot,
     });
     receipt.timing.runnerMs = Date.now() - startedAt;
 
@@ -603,7 +862,8 @@ export async function runSegmentedCapture(rawOptions = {}) {
 
   const coverage = {
     segmentsRequested: manifest.segments.length,
-    segmentsWithStill: receipts.filter((receipt) => existsSync(join(outputDir, receipt.still))).length,
+    segmentsWithStill: receipts.filter((receipt) => existsSync(join(outputDir, receipt.still)))
+      .length,
     qualityAdjustedSegmentsWithStill: visualEvidence.capturedReplaySegments,
     uniqueStillHashes: visualEvidence.uniqueStillHashes,
     staticCopySegments: visualEvidence.staticCopySegments,
@@ -617,6 +877,9 @@ export async function runSegmentedCapture(rawOptions = {}) {
       existsSync(join(outputDir, receipt.posePhysicsJson))
     ).length,
     segmentsWithTiming: receipts.filter((receipt) => receipt.timing).length,
+    headlessRuntimeSceneObjects: sceneSnapshot.objectCount,
+    headlessRuntimeTemplates: sceneSnapshot.templateCount,
+    segmentsWithHeadlessSceneObjects: sceneSnapshot.objectCount > 0 ? receipts.length : 0,
   };
 
   const receiptPayload = {
@@ -627,6 +890,7 @@ export async function runSegmentedCapture(rawOptions = {}) {
     outputDir: rel(REPO_ROOT, outputDir),
     command: `node scripts/format-stress-segmented-capture.mjs ${rel(REPO_ROOT, manifestPath)}`,
     commands: commandResults,
+    headlessScene: sceneSnapshot,
     segments: receipts,
     coverage,
   };
@@ -645,7 +909,8 @@ export async function runSegmentedCapture(rawOptions = {}) {
     visualEvidence,
     commandFailures: commandResults.filter((command) => !command.success),
     highestGapSeverity:
-      visualEvidence.dynamicReplayBlockedSegments > 0 || visualEvidence.falseGreenRisk !== 'none-detected'
+      visualEvidence.dynamicReplayBlockedSegments > 0 ||
+      visualEvidence.falseGreenRisk !== 'none-detected'
         ? 'P1'
         : 'P2',
   });

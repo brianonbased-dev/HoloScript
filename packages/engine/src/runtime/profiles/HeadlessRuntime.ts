@@ -41,6 +41,36 @@ export interface HeadlessNodeInstance {
   data?: Record<string, unknown>;
 }
 
+export interface HeadlessSceneObjectReceipt {
+  id: string;
+  type: string;
+  name?: string;
+  template?: string | null;
+  parentId: string | null;
+  path: string[];
+  groupPath: string[];
+  traits: string[];
+  properties: Record<string, unknown>;
+  transform: {
+    position: unknown;
+    rotation: unknown;
+    scale: unknown;
+  };
+  physics: {
+    collidable: boolean;
+    kinematic: unknown;
+    massKg: unknown;
+  };
+}
+
+export interface HeadlessRuntimeSceneReceipt {
+  schema: 'holoscript-headless-scene-receipt-v1';
+  source: 'HeadlessRuntime';
+  rootId: string | null;
+  objectCount: number;
+  objects: HeadlessSceneObjectReceipt[];
+}
+
 /**
  * Handler function for BT action dispatch via `runtime.registerAction()`.
  * Called when the BehaviorTree's native action bridge emits `action:${name}`.
@@ -81,6 +111,8 @@ export interface HeadlessRuntimeOptions {
 export interface HeadlessRuntimeStats {
   /** Number of active node instances */
   instanceCount: number;
+  /** Highest active node count observed during this run */
+  peakInstanceCount: number;
   /** Memory usage estimate in bytes */
   memoryEstimate: number;
   /** Total updates processed */
@@ -111,6 +143,7 @@ export class HeadlessRuntime {
   private tickDurations: number[] = [];
   private stats: HeadlessRuntimeStats = {
     instanceCount: 0,
+    peakInstanceCount: 0,
     memoryEstimate: 0,
     updateCount: 0,
     eventCount: 0,
@@ -121,6 +154,7 @@ export class HeadlessRuntime {
   private builtins: Record<string, unknown>;
   private actionRegistry: Map<string, ActionHandler> = new Map();
   private _routingEvent = false;
+  private lastSceneReceipt: HeadlessRuntimeSceneReceipt | null = null;
 
   constructor(ast: HSPlusAST, options: HeadlessRuntimeOptions = {}) {
     this.ast = ast;
@@ -234,6 +268,7 @@ export class HeadlessRuntime {
 
     // Build node tree
     this.rootInstance = this.instantiateNode(this.ast.root, null);
+    this.lastSceneReceipt = this.buildSceneReceipt();
 
     // Call mount lifecycle
     this.callLifecycle(this.rootInstance, 'on_mount');
@@ -250,7 +285,10 @@ export class HeadlessRuntime {
       tickRate: this.options.tickRate,
     });
 
-    this.emit('runtime_started', { timestamp: this.startTime });
+    this.emit('runtime_started', {
+      timestamp: this.startTime,
+      sceneObjects: this.lastSceneReceipt.objectCount,
+    });
   }
 
   /**
@@ -269,6 +307,7 @@ export class HeadlessRuntime {
 
     // Call unmount lifecycle
     if (this.rootInstance) {
+      this.lastSceneReceipt = this.buildSceneReceipt();
       this.callLifecycle(this.rootInstance, 'on_unmount');
       this.destroyInstance(this.rootInstance);
     }
@@ -370,6 +409,7 @@ export class HeadlessRuntime {
     };
 
     this.stats.instanceCount++;
+    this.stats.peakInstanceCount = Math.max(this.stats.peakInstanceCount, this.stats.instanceCount);
 
     // Process directives
     this.processDirectives(instance);
@@ -487,7 +527,7 @@ export class HeadlessRuntime {
     return {
       vr: {
         hands: { left: null, right: null },
-        headset: { position: [0, 1.6, 0 ], rotation: [0, 0, 0 ] },
+        headset: { position: [0, 1.6, 0], rotation: [0, 0, 0] },
         getPointerRay: () => null,
         getDominantHand: () => null,
       },
@@ -496,8 +536,8 @@ export class HeadlessRuntime {
         applyAngularVelocity: () => {},
         setKinematic: () => {},
         raycast: () => null,
-        getBodyPosition: () => ([0, 0, 0 ]),
-        getBodyVelocity: () => ([0, 0, 0 ]),
+        getBodyPosition: () => [0, 0, 0],
+        getBodyVelocity: () => [0, 0, 0],
       },
       audio: {
         playSound: () => {},
@@ -791,6 +831,33 @@ export class HeadlessRuntime {
   }
 
   /**
+   * Deterministic scene object receipt for non-rendered replay/audit tools.
+   *
+   * The runtime keeps the last live receipt so callers can inspect object
+   * state after stop() has torn down active instances.
+   */
+  getSceneReceipt(): HeadlessRuntimeSceneReceipt {
+    if (this.rootInstance) {
+      this.lastSceneReceipt = this.buildSceneReceipt();
+      return this.lastSceneReceipt;
+    }
+
+    return (
+      this.lastSceneReceipt ?? {
+        schema: 'holoscript-headless-scene-receipt-v1',
+        source: 'HeadlessRuntime',
+        rootId: null,
+        objectCount: 0,
+        objects: [],
+      }
+    );
+  }
+
+  getSceneObjects(): HeadlessSceneObjectReceipt[] {
+    return this.getSceneReceipt().objects;
+  }
+
+  /**
    * Find a node by ID
    */
   findNode(id: string): HSPlusNode | null {
@@ -821,6 +888,105 @@ export class HeadlessRuntime {
   // ===========================================================================
   // PRIVATE HELPERS
   // ===========================================================================
+
+  private buildSceneReceipt(): HeadlessRuntimeSceneReceipt {
+    if (!this.rootInstance) {
+      return {
+        schema: 'holoscript-headless-scene-receipt-v1',
+        source: 'HeadlessRuntime',
+        rootId: null,
+        objectCount: 0,
+        objects: [],
+      };
+    }
+
+    const objects: HeadlessSceneObjectReceipt[] = [];
+    const rootId = this.nodeId(this.rootInstance.node);
+
+    const visit = (
+      instance: HeadlessNodeInstance,
+      parentId: string | null,
+      path: string[],
+      includeSelf: boolean
+    ): void => {
+      const id = this.nodeId(instance.node);
+      const nextPath = includeSelf ? [...path, id] : path;
+
+      if (includeSelf) {
+        objects.push(this.describeSceneObject(instance, parentId, nextPath));
+      }
+
+      for (const child of instance.children) {
+        visit(child, includeSelf ? id : null, nextPath, true);
+      }
+    };
+
+    visit(this.rootInstance, null, [], false);
+
+    return {
+      schema: 'holoscript-headless-scene-receipt-v1',
+      source: 'HeadlessRuntime',
+      rootId,
+      objectCount: objects.length,
+      objects,
+    };
+  }
+
+  private describeSceneObject(
+    instance: HeadlessNodeInstance,
+    parentId: string | null,
+    path: string[]
+  ): HeadlessSceneObjectReceipt {
+    const node = instance.node;
+    const properties = this.recordOrEmpty(node.properties);
+    const physicsConfig = this.recordOrEmpty(
+      node.traits?.get('physics' as never) ?? properties.physics
+    );
+    const traits = node.traits ? [...node.traits.keys()].map(String).sort() : [];
+    const position = properties.position ?? node.position ?? null;
+    const rotation = properties.rotation ?? node.rotation ?? null;
+    const scale = properties.scale ?? node.scale ?? null;
+    const template =
+      typeof (node as HSPlusNode & { template?: unknown }).template === 'string'
+        ? ((node as HSPlusNode & { template: string }).template as string)
+        : null;
+    const groupPathValue = (node as HSPlusNode & { groupPath?: unknown }).groupPath;
+    const groupPath = Array.isArray(groupPathValue) ? groupPathValue.map(String) : [];
+    const massKg =
+      physicsConfig.massKg ?? physicsConfig.mass ?? properties.massKg ?? properties.mass ?? null;
+
+    return {
+      id: this.nodeId(node),
+      type: node.type,
+      name: node.name,
+      template,
+      parentId,
+      path,
+      groupPath,
+      traits,
+      properties,
+      transform: {
+        position,
+        rotation,
+        scale,
+      },
+      physics: {
+        collidable: traits.includes('collidable') || Boolean(properties.collidable),
+        kinematic: physicsConfig.kinematic ?? properties.kinematic ?? traits.includes('static'),
+        massKg,
+      },
+    };
+  }
+
+  private nodeId(node: HSPlusNode): string {
+    return node.id || node.name || node.type;
+  }
+
+  private recordOrEmpty(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
 
   private estimateMemory(): number {
     // Rough estimate: ~500 bytes per instance + state size
