@@ -66,15 +66,15 @@ This subtrack becomes paper-grade only when it has:
 | Breadth | Three or more materially different brains represented in receipts. |
 | Depth | Multiple cases per brain, including success, refusal, and negative-control cases. |
 | Enforcement | Strict mode wired into a real CI or pre-merge path. |
-| Runtime bridge | At least one HoloShell or tool-use workflow uses the receipt as an execution gate. |
+| Runtime bridge | At least one HoloShell or tool-use workflow uses a `--runtime-gate` receipt as an execution gate. |
 | Cost study | Latency, token, and retry overhead compared across ablation modes. |
 | Failure taxonomy | Drift categories reported with examples and fix paths. |
 
 ## Current Next Moves
 
-1. Add a third brain family case outside HoloShell and trait inference.
+1. Expand the third brain family case into a small trust/provenance suite.
 2. Add wrong-brain fixtures that intentionally fail under `--strict`.
-3. Add prompt-only baseline receipts for the two existing cases.
+3. Add prompt-only baseline receipts for every brain family.
 4. Wire strict receipt checks into the lowest-risk CI path first.
 5. Promote one HoloShell workflow from post-hoc receipt to runtime-gated receipt.
 

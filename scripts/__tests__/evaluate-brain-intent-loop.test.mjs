@@ -16,7 +16,11 @@ const REPO_ROOT = resolve(__dirname, "..", "..");
 const SCRIPT = join(REPO_ROOT, "scripts", "evaluate-brain-intent-loop.mjs");
 const HOLOSHELL_CASE = join(REPO_ROOT, "research", "brain-intent-eval", "cases", "holoshell-room-marathon.case.json");
 const TRAIT_CASE = join(REPO_ROOT, "research", "brain-intent-eval", "cases", "trait-inference-gate-refusal.case.json");
+const FLEET_CASE = join(REPO_ROOT, "research", "brain-intent-eval", "cases", "fleet-trust-auditor-gate.case.json");
+const PROMPT_ONLY_CONTROL = join(REPO_ROOT, "research", "brain-intent-eval", "cases", "holoshell-prompt-only-baseline.control.case.json");
+const MUTATION_CONTROL = join(REPO_ROOT, "research", "brain-intent-eval", "cases", "holoshell-mutation-before-approval.control.case.json");
 const TRAIT_BRAIN = join(REPO_ROOT, "compositions", "trait-inference-brain.hsplus");
+const FLEET_BRAIN = join(REPO_ROOT, "compositions", "fleet-trust-auditor-brain.hsplus");
 
 let testsRun = 0;
 let testsFailed = 0;
@@ -63,12 +67,14 @@ console.log("Test 2: HoloShell case writes a passing receipt");
 {
   const dir = mkdtempSync(join(tmpdir(), "brain-intent-holoshell-"));
   const out = join(dir, "holoshell.eval.json");
-  const result = runScript(["--case", HOLOSHELL_CASE, "--output", out, "--strict"]);
+  const result = runScript(["--case", HOLOSHELL_CASE, "--output", out, "--runtime-gate", "--strict"]);
   assertEq(result.status, 0, "HoloShell case exits 0 in strict mode");
   assertOk(existsSync(out), "HoloShell receipt exists");
   const receipt = readJson(out);
   assertEq(receipt.summary.status, "pass", "HoloShell receipt status");
   assertEq(receipt.summary.passed, 11, "HoloShell receipt hard pass count");
+  assertEq(receipt.enforcementBoundary.runtimeBlocking, true, "HoloShell runtime gate is blocking");
+  assertEq(receipt.gate.allowed, true, "HoloShell runtime gate allows passing receipt");
   rmSync(dir, { recursive: true, force: true });
 }
 
@@ -104,6 +110,45 @@ console.log("Test 5: mismatched brain fails strict CLI");
   const result = runScript(["--case", HOLOSHELL_CASE, "--brain", TRAIT_BRAIN, "--output", out, "--strict"]);
   assertEq(result.status, 1, "mismatch strict exits 1");
   assertOk(existsSync(out), "strict mismatch still writes receipt");
+  rmSync(dir, { recursive: true, force: true });
+}
+
+console.log("Test 6: mutation-before-approval control fails runtime gate");
+{
+  const dir = mkdtempSync(join(tmpdir(), "brain-intent-mutation-control-"));
+  const out = join(dir, "mutation-control.eval.json");
+  const result = runScript(["--case", MUTATION_CONTROL, "--output", out, "--runtime-gate", "--strict"]);
+  assertEq(result.status, 1, "mutation control exits 1 in strict mode");
+  const receipt = readJson(out);
+  assertEq(receipt.summary.status, "fail", "mutation control receipt status");
+  assertEq(receipt.gate.allowed, false, "mutation control gate blocks");
+  assertOk(receipt.gate.failedCheckIds.includes("mutation-boundary"), "mutation control catches mutation boundary");
+  rmSync(dir, { recursive: true, force: true });
+}
+
+console.log("Test 7: prompt-only baseline control fails runtime gate");
+{
+  const dir = mkdtempSync(join(tmpdir(), "brain-intent-prompt-only-control-"));
+  const out = join(dir, "prompt-only-control.eval.json");
+  const result = runScript(["--case", PROMPT_ONLY_CONTROL, "--output", out, "--runtime-gate", "--strict"]);
+  assertEq(result.status, 1, "prompt-only control exits 1 in strict mode");
+  const receipt = readJson(out);
+  assertEq(receipt.summary.status, "fail", "prompt-only control receipt status");
+  assertEq(receipt.gate.allowed, false, "prompt-only gate blocks");
+  assertOk(receipt.gate.failedCheckIds.includes("approval-minted"), "prompt-only control catches missing approval");
+  rmSync(dir, { recursive: true, force: true });
+}
+
+console.log("Test 8: fleet trust auditor adds a third brain family");
+{
+  const dir = mkdtempSync(join(tmpdir(), "brain-intent-fleet-"));
+  const out = join(dir, "fleet.eval.json");
+  const result = runScript(["--case", FLEET_CASE, "--brain", FLEET_BRAIN, "--output", out, "--runtime-gate", "--strict"]);
+  assertEq(result.status, 0, "fleet case exits 0 in strict mode");
+  const receipt = readJson(out);
+  assertEq(receipt.summary.status, "pass", "fleet receipt status");
+  assertEq(receipt.brain.name, "fleet-trust-auditor-brain", "fleet brain name extracted");
+  assertEq(receipt.gate.allowed, true, "fleet runtime gate allows passing receipt");
   rmSync(dir, { recursive: true, force: true });
 }
 
