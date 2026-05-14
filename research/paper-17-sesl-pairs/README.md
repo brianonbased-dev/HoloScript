@@ -12,9 +12,10 @@ This directory is the HoloScript-side Paper 17 SESL pair counter.
 ## Reproduce
 
 ```bash
-pnpm exec tsx scripts/build-paper17-sesl-phase1-pair.ts
-node scripts/measure-sesl-simcontract.mjs --input=research/paper-17-sesl-pairs/phase-1-corpus.jsonl --target-pairs=1 --target-pass-rate=0.6 --json
-node scripts/measure-sesl-simcontract.mjs --input=research/paper-17-sesl-pairs/INDEX.json --target-pairs=1 --target-pass-rate=0.6 --json
+pnpm exec tsx scripts/build-paper17-sesl-phase1-pair.ts --limit=10
+node scripts/measure-sesl-simcontract.mjs --input=research/paper-17-sesl-pairs/phase-1-corpus.jsonl --target-pairs=5000 --target-pass-rate=0.6 --json
+node scripts/measure-sesl-simcontract.mjs --input=research/paper-17-sesl-pairs/INDEX.json --target-pairs=5000 --target-pass-rate=0.6 --json
+node scripts/paper-17-19-gate-delta.mjs --markdown --out research/2026-05-14_paper-17-19-production-ml-corpus-gates.md
 ```
 
-The committed smoke output intentionally clears a one-pair harness check, not the full Paper 17 publication gate. `INDEX.json.gate.gate_gap_cael_verified` remains the production counter for the remaining path to 5,000 CAEL-verified pairs.
+The committed tranche clears 10 CAEL-verified Phase 1 rows, not the full Paper 17 publication gate. `INDEX.json.gate.gate_gap_cael_verified` remains the production counter for the remaining path to 5,000 CAEL-verified pairs. `scripts/paper-17-19-gate-delta.mjs` also reports the adjacent Paper 19 production ML corpus deltas so reviewer-facing evidence separates structural dataset gates from source-integration and constrained-decoder training gates.

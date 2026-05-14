@@ -7,17 +7,17 @@
   "gate": {
     "target_pairs": 5000,
     "target_pass_rate": 0.6,
-    "pairs_collected": 1,
-    "cael_verified_pairs": 1,
+    "pairs_collected": 10,
+    "cael_verified_pairs": 10,
     "static_seed_pairs": 0,
-    "measured_pairs": 1,
-    "passed": 1,
+    "measured_pairs": 10,
+    "passed": 10,
     "failed": 0,
     "pass_rate": 1,
     "pass_rate_ok": true,
     "volume_ok": false,
     "gate_cleared": false,
-    "gate_gap_cael_verified": 4999
+    "gate_gap_cael_verified": 4990
   },
   "pairs": [
     {
@@ -25,13 +25,94 @@
       "source_pair_id": "paper17-smoke-seed-001",
       "outcome": "success",
       "score": 0.983333,
-      "cael_trace_hash": "1de2a83d92e05d55ab703fa6ac88b6a38ef7aee475c595d2a05b17a0fc53c2ab",
+      "cael_trace_hash": "92a4981e058f4f8665913d98f8fef5d998fe1542bae8e6705cffbbde73aafd1f",
+      "cael_hash_chain_valid": true,
+      "sim_contract_passed": true
+    },
+    {
+      "pair_id": "phase1-paper17-smoke-seed-002",
+      "source_pair_id": "paper17-smoke-seed-002",
+      "outcome": "success",
+      "score": 1,
+      "cael_trace_hash": "75d961dc0bbee05d83a02722c186319a879318307ed56fef27ef9d6497579c99",
+      "cael_hash_chain_valid": true,
+      "sim_contract_passed": true
+    },
+    {
+      "pair_id": "phase1-paper17-smoke-seed-003",
+      "source_pair_id": "paper17-smoke-seed-003",
+      "outcome": "success",
+      "score": 1,
+      "cael_trace_hash": "7a56783db8b9c0865b786edb42ac236ec35f5ebdface279252ddf94ed08bb478",
+      "cael_hash_chain_valid": true,
+      "sim_contract_passed": true
+    },
+    {
+      "pair_id": "phase1-paper17-smoke-seed-004",
+      "source_pair_id": "paper17-smoke-seed-004",
+      "outcome": "success",
+      "score": 1,
+      "cael_trace_hash": "66652bd84d91dddd69ca8cc67c56a425d95a1c9b7255f03018cce12ef897724b",
+      "cael_hash_chain_valid": true,
+      "sim_contract_passed": true
+    },
+    {
+      "pair_id": "phase1-paper17-smoke-seed-005",
+      "source_pair_id": "paper17-smoke-seed-005",
+      "outcome": "success",
+      "score": 1,
+      "cael_trace_hash": "045cb5fcc2cb36e30492da3ef4568630d33455be0fdbedaa40f11bb07b10ce0d",
+      "cael_hash_chain_valid": true,
+      "sim_contract_passed": true
+    },
+    {
+      "pair_id": "phase1-paper17-smoke-seed-006",
+      "source_pair_id": "paper17-smoke-seed-006",
+      "outcome": "success",
+      "score": 1,
+      "cael_trace_hash": "1f9f0977f63615ce58ea9476095e4181b63903d10d45406443975135169a116f",
+      "cael_hash_chain_valid": true,
+      "sim_contract_passed": true
+    },
+    {
+      "pair_id": "phase1-paper17-smoke-seed-007",
+      "source_pair_id": "paper17-smoke-seed-007",
+      "outcome": "success",
+      "score": 1,
+      "cael_trace_hash": "a91ed2d258df4de64642d69dc452a6a34b30c6898733b7c128a0b02d7dc91046",
+      "cael_hash_chain_valid": true,
+      "sim_contract_passed": true
+    },
+    {
+      "pair_id": "phase1-paper17-smoke-seed-008",
+      "source_pair_id": "paper17-smoke-seed-008",
+      "outcome": "success",
+      "score": 0.983333,
+      "cael_trace_hash": "40b7729419bd29e1149b47a0baadef46d70756a4525347310bcf0b9b177e4e5a",
+      "cael_hash_chain_valid": true,
+      "sim_contract_passed": true
+    },
+    {
+      "pair_id": "phase1-paper17-smoke-seed-009",
+      "source_pair_id": "paper17-smoke-seed-009",
+      "outcome": "success",
+      "score": 1,
+      "cael_trace_hash": "83540653da180236233295178251bd18c68b15de168e36970c62d3cefb501e2a",
+      "cael_hash_chain_valid": true,
+      "sim_contract_passed": true
+    },
+    {
+      "pair_id": "phase1-paper17-smoke-seed-010",
+      "source_pair_id": "paper17-smoke-seed-010",
+      "outcome": "success",
+      "score": 1,
+      "cael_trace_hash": "f486c018b20e2d498f2d140cf208fb967f7bfef35810dd4f35cc9654c9f2b1ed",
       "cael_hash_chain_valid": true,
       "sim_contract_passed": true
     }
   ],
   "inputPath": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\research\\paper-17-sesl-pairs\\fixtures\\phase1-seed.jsonl",
   "outputPath": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\research\\paper-17-sesl-pairs\\phase-1-corpus.jsonl",
-  "readRecords": 1,
+  "readRecords": 10,
   "skippedRecords": 0
 }
