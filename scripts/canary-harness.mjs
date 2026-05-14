@@ -541,6 +541,70 @@ function buildSourceTreeProbes() {
     )
   );
 
+  // 15. Provenance gate: artifact-admission-gate has package + receipt validators
+  probes.push(
+    runProbe(
+      'provenance-gate-package-receipt',
+      `
+        const fs = require('fs');
+        const path = require('path');
+        const gatePath = path.join('${REPO_ROOT.replace(/\\/g, '\\\\')}', 'packages', 'mcp-server', 'src', 'conformance', 'artifact-admission-gate.ts');
+        const content = fs.readFileSync(gatePath, 'utf8');
+        const hasPackageValidator = content.includes('validatePackageAdmission');
+        const hasReceiptValidator = content.includes('validateReceiptAdmission');
+        const hasPackageSwitch = content.includes("case 'package':");
+        const ok = hasPackageValidator && hasReceiptValidator && hasPackageSwitch;
+        done(ok, null, null, ok ? null : 'artifact-admission-gate.ts missing package/receipt validators');
+      `
+    )
+  );
+
+  // 16. Provenance gate: PluginInstallPipeline verifySignature is still a stub
+  probes.push(
+    runProbe(
+      'provenance-plugin-verify-stub',
+      `
+        const fs = require('fs');
+        const path = require('path');
+        const pipelinePath = path.join('${REPO_ROOT.replace(/\\/g, '\\\\')}', 'packages', 'marketplace-api', 'src', 'PluginInstallPipeline.ts');
+        const content = fs.readFileSync(pipelinePath, 'utf8');
+        const hasStub = content.includes('return undefined;') && content.includes('verifySignature');
+        done(!hasStub, null, null, hasStub ? 'PluginInstallPipeline.verifySignature is still a stub returning undefined' : null);
+      `
+    )
+  );
+
+  // 17. Provenance gate: marketplace signatureStatus hardcoded to unsigned
+  probes.push(
+    runProbe(
+      'provenance-marketplace-unsigned',
+      `
+        const fs = require('fs');
+        const path = require('path');
+        const servicePath = path.join('${REPO_ROOT.replace(/\\/g, '\\\\')}', 'packages', 'marketplace-api', 'src', 'PluginMarketplaceService.ts');
+        const content = fs.readFileSync(servicePath, 'utf8');
+        const hardcodedCount = (content.match(/signatureStatus: 'unsigned'/g) || []).length;
+        done(hardcodedCount < 3, null, null, hardcodedCount >= 3 ? 'PluginMarketplaceService hardcodes signatureStatus: unsigned in ' + hardcodedCount + ' places' : null);
+      `
+    )
+  );
+
+  // 18. Provenance gate: hololand-receipts exports PackageProvenanceReceipt
+  probes.push(
+    runProbe(
+      'provenance-receipt-type-exported',
+      `
+        const fs = require('fs');
+        const path = require('path');
+        const receiptsPath = path.join('${REPO_ROOT.replace(/\\/g, '\\\\')}', 'packages', 'framework', 'src', 'board', 'hololand-receipts.ts');
+        const content = fs.readFileSync(receiptsPath, 'utf8');
+        const hasType = content.includes('PackageProvenanceReceipt');
+        const hasValidator = content.includes('validatePackageProvenanceReceipt');
+        done(hasType && hasValidator, null, null, (!hasType || !hasValidator) ? 'hololand-receipts.ts missing PackageProvenanceReceipt or validator' : null);
+      `
+    )
+  );
+
   return probes;
 }
 

@@ -183,6 +183,12 @@ export {
   cloneReplayOutcome,
   cloneAgentActionReceipt,
   cloneValidationReceipt,
+  // Package Provenance Receipt (task_1778618757735_1mih)
+  type PackageProvenanceReceipt,
+  validatePackageProvenanceReceipt,
+  isSupportedTrustTier,
+  isSupportedAdmissionDecision,
+  clonePackageProvenanceReceipt,
 } from './hololand-receipts';
 
 export {
