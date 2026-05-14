@@ -64,3 +64,35 @@ export type {
   RuntimeInventory,
   WebGpuProbeCommand,
 } from './device-lab';
+
+// Evidence — reviewer-safe CAEL/user-study trace corpus export
+export {
+  HOLOLAND_TRACE_CORPUS_SCHEMA,
+  HOLOLAND_TRACE_EXPORTER,
+  HOLOLAND_TRACE_GENESIS_HASH,
+  HololandTraceCorpusExporter,
+  exportHololandTraceCorpus,
+  exportHololandTraceJSONL,
+  hashReviewerSubject,
+  ingestHololandTraceCorpus,
+  parseHololandTraceJSONL,
+  redactReviewerPayload,
+  toHololandTraceJSONL,
+  verifyHololandTraceCorpus,
+} from './evidence';
+
+export type {
+  AdaptiveInterfaceGate,
+  HololandTraceCorpus,
+  HololandTraceCorpusIngestion,
+  HololandTraceCorpusOptions,
+  HololandTraceCorpusSummary,
+  HololandTraceEventInput,
+  HololandTraceEventType,
+  HololandTraceProvenanceInput,
+  HololandTraceVerification,
+  LearnedSceneCompositionSignals,
+  ReviewerSafeJSON,
+  ReviewerSafeTraceEntry,
+  ReviewerSafeTraceProvenance,
+} from './evidence';
