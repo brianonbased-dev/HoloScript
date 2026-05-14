@@ -71,7 +71,7 @@ export type { WebGPUCompilerOptions } from './WebGPUCompiler';
 export { SDFCompiler } from './SDFCompiler';
 export type { SDFCompilerOptions } from './SDFCompiler';
 export { DTDLCompiler } from './DTDLCompiler';
-export { URDFCompiler } from './URDFCompiler';
+export { URDFCompiler, createURDFCompiler } from './URDFCompiler';
 export { USDPhysicsCompiler } from './USDPhysicsCompiler';
 export { StateCompiler } from './StateCompiler';
 export { TraitCompositionCompiler } from './TraitCompositionCompiler';

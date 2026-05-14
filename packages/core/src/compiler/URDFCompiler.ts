@@ -1785,6 +1785,13 @@ export class URDFCompiler extends CompilerBase {
 // =============================================================================
 
 /**
+ * Factory function for benchmark and dynamic instantiation
+ */
+export function createURDFCompiler(options?: URDFCompilerOptions): URDFCompiler {
+  return new URDFCompiler(options);
+}
+
+/**
  * Compile HoloScript composition to URDF format
  */
 export function compileToURDF(composition: HoloComposition, options?: URDFCompilerOptions): string {

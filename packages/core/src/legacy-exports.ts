@@ -385,6 +385,7 @@ export {
 // HoloScript Robotics & IoT Compilers (Sprint 3)
 export {
   URDFCompiler,
+  createURDFCompiler,
   compileToURDF,
   compileForROS2,
   compileForGazebo,
