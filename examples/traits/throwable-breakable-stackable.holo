@@ -371,49 +371,32 @@ composition "Physics Interaction Playground" {
   object "ScoreTracker" {
     @observable
 
-    state {
+    properties: {
       total_throws: 0
       total_hits: 0
       total_breaks: 0
       highest_stack: 0
       total_score: 0
+      event_contracts: [
+        "bottle_thrown increments total_throws",
+        "target_hit increments total_hits and adds hit points",
+        "bottle_broken increments total_breaks and adds break points",
+        "block_stacked records highest_stack and stack score"
+      ]
     }
-
-    @on_event("bottle_thrown"): (data) => {
-      this.state.total_throws += 1;
-    }
-
-    @on_event("target_hit"): (data) => {
-      this.state.total_hits += 1;
-      this.state.total_score += data.points;
-    }
-
-    @on_event("bottle_broken"): () => {
-      this.state.total_breaks += 1;
-      this.state.total_score += 25;
-    }
-
-    @on_event("block_stacked"): (data) => {
-      this.state.highest_stack = Math.max(this.state.highest_stack, data.height);
-      this.state.total_score += data.height * 10;
-    }
+    label: "Score tracker observes throws, hits, breaks, and stacks"
   }
 
   // ========================================================================
   // HUD
   // ========================================================================
 
-  panel "StatsHUD" {
-    position: "top-right"
-
-    text "Score" { bind: "Score: " + ScoreTracker.state.total_score; style: "score" }
-    text "Accuracy" {
-      bind: ScoreTracker.state.total_throws > 0
-        ? "Accuracy: " + Math.round(ScoreTracker.state.total_hits / ScoreTracker.state.total_throws * 100) + "%"
-        : "Accuracy: --"
-      style: "info"
-    }
-    text "Stack" { bind: "Highest Stack: " + ScoreTracker.state.highest_stack; style: "info" }
-    text "Broken" { bind: "Broken: " + ScoreTracker.state.total_breaks; style: "info" }
+  object "StatsHUD" {
+    @billboard
+    geometry: "plane"
+    position: [0, 2.6, -3]
+    scale: [2.8, 0.9, 0.05]
+    color: "#111827"
+    label: "Score HUD: score, accuracy, highest stack, broken count"
   }
 }
