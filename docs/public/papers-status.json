@@ -1,14 +1,14 @@
 {
   "schema": "paper-audit-matrix.v2",
-  "generatedAt": "2026-05-14T06:32:25.817Z",
+  "generatedAt": "2026-05-14T06:42:11.816Z",
   "matrixSourcePath": "research/paper-audit-matrix.md",
-  "scriptCommit": "1f3b9c8aaedd2026f13acfa63377d1ab97ee8d4d",
+  "scriptCommit": "af74d89d1501c96133268d674e9af173f95c8988",
   "totals": {
     "papers": 17,
     "cellsByToken": {
-      "✅": 200,
-      "⚠️": 43,
-      "❌": 15,
+      "✅": 202,
+      "⚠️": 44,
+      "❌": 12,
       "➖": 14
     }
   },
@@ -1225,8 +1225,8 @@
       "target": "ECOOP '27 (Feb '27)",
       "basename": "paper-11-hsplus-ecoop.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-11-hsplus-ecoop.tex",
-      "loc": 978,
-      "sha256Prefix": "57ab71fd",
+      "loc": 1027,
+      "sha256Prefix": "c4025830",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1258,8 +1258,8 @@
           "evidence": "paper-11-hsplus-ecoop.tex.ots present"
         },
         "anchorBase": {
-          "token": "✅",
-          "evidence": ".tex.base.json signed and matches current .tex hash"
+          "token": "⚠️",
+          "evidence": ".tex.base.json signed for a historical .tex hash; re-anchor current source at submission bundle time"
         },
         "venueFit": {
           "token": "✅",
@@ -1274,32 +1274,37 @@
           "evidence": "no \\todo{measure:} markers"
         },
         "calStory": {
-          "token": "❌",
-          "evidence": "no calibration/setup/pipeline structure"
+          "token": "✅",
+          "evidence": "Calibration/Setup/Reproducibility heading + automation pointer"
         },
         "twinTest": {
           "token": "✅",
           "evidence": "explicit two-impl/digital-twin equivalence + assertion"
         },
         "decoderCost": {
-          "token": "❌",
-          "evidence": "no decoder/runtime cost on novel claims (W.314 risk)"
+          "token": "✅",
+          "evidence": "asymptotic class declaration + Complexity/Cost heading"
         },
         "scalingMemo": {
-          "token": "❌",
-          "evidence": "no scaling discussion (W.316 risk)"
+          "token": "✅",
+          "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 1d since last commit"
+          "evidence": "0 open \\todo{}, 0d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "08a29723b60160792987060f0045ee62310b68c4",
-        "isoDate": "2026-05-12T01:42:13-07:00",
-        "subject": "paper(11): Twin-test fill — order-independence as multi-implementation agreement"
+        "hash": "af74d89d1501c96133268d674e9af173f95c8988",
+        "isoDate": "2026-05-13T23:41:36-07:00",
+        "subject": "docs(ecosystem): add paper 11 readiness model"
       },
       "recentCommits": [
+        {
+          "hash": "af74d89d1501c96133268d674e9af173f95c8988",
+          "isoDate": "2026-05-13T23:41:36-07:00",
+          "subject": "docs(ecosystem): add paper 11 readiness model"
+        },
         {
           "hash": "08a29723b60160792987060f0045ee62310b68c4",
           "isoDate": "2026-05-12T01:42:13-07:00",
@@ -1319,11 +1324,6 @@
           "hash": "bb99ce2656bbe2341ddb95c9384b40d85f67e643",
           "isoDate": "2026-05-09T23:00:30-07:00",
           "subject": "docs(ecosystem): close paper 11 rtx prose gap"
-        },
-        {
-          "hash": "6e7bb872a0d456d7b9cbbbc64b4f3d3a5fbb6f15",
-          "isoDate": "2026-05-07T19:34:46-07:00",
-          "subject": "docs(paper-11): cite anchored RTX bench memo in ablation section"
         }
       ]
     },
