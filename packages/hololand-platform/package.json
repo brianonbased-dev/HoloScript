@@ -7,11 +7,13 @@
   "types": "dist/index.d.ts",
   "bin": {
     "hololand-device-lab": "dist/device-lab.js",
-    "hololand-evidence-envelope": "dist/evidence-envelope.js"
+    "hololand-evidence-envelope": "dist/evidence-envelope.js",
+    "hololand-adversarial-trajectory": "dist/adversarial-trajectory.js"
   },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
+    "adversarial-trajectory": "pnpm run build && node dist/adversarial-trajectory.js",
     "device-lab": "pnpm run build && node dist/device-lab.js",
     "evidence-envelope": "pnpm run build && node dist/evidence-envelope.js",
     "test": "vitest run --passWithNoTests",
