@@ -1,7 +1,7 @@
 [
   {
     "version": "cael.v1",
-    "runId": "cael-paper17-sesl-paper17-smoke-seed-001",
+    "runId": "cael-paper17-sesl-paper17-smoke-seed-006",
     "index": 0,
     "event": "init",
     "timestamp": 1778068800000,
@@ -12,9 +12,9 @@
       "geometryHash": "geo-sha-3e668f562dce3eb4f3afc3a83132173e2befc7ce7d900093f2aa0179b5e551c2-4n-4e",
       "contractId": "cid-sha-1d15cd6ac7bb021d2b159311b7c29e8d0d61180bce380ac437980f3b98fb8571",
       "config": {
-        "holoHash": "807b4b2961b6b0209946bfd2e8ec470159ac9798ac712f460fd45308ec3e252d",
-        "promptHash": "dc13a05d228d5383aef4e86f8e857c11e73d6b5cf57b4238bbf30368b663bc83",
-        "sourcePairId": "paper17-smoke-seed-001",
+        "holoHash": "e031edb6f3f11de5885b594b9e8ab3a1dd29c2aa8a8d33b18eeb8bdf2cf88a35",
+        "promptHash": "e475ae90590ece11992d19e63cd624100a26f9735b7c6198cd8d81cf3f5efc15",
+        "sourcePairId": "paper17-smoke-seed-006",
         "tetrahedra": {
           "__cael_typed_array": "Uint32Array",
           "data": [
@@ -50,37 +50,39 @@
       },
       "adapterFingerprint": "paper17-sesl-deterministic-smoke-solver-v1",
       "subgridAttestation": null,
-      "hashMode": "sha256"
+      "hashMode": "sha256",
+      "verified": true,
+      "contractViolations": []
     },
-    "hash": "cael-sha-878c173604be29fbfd02ad8f815932e60e6fc79cb7d7e8bf6bed8871e677718d"
+    "hash": "cael-sha-5bce6ad402125f58fd29956edf42bad358248d8758e35ae65f95fa9447195608"
   },
   {
     "version": "cael.v1",
-    "runId": "cael-paper17-sesl-paper17-smoke-seed-001",
+    "runId": "cael-paper17-sesl-paper17-smoke-seed-006",
     "index": 1,
     "event": "interaction",
     "timestamp": 1778068800001,
     "simTime": 0,
-    "prevHash": "cael-sha-878c173604be29fbfd02ad8f815932e60e6fc79cb7d7e8bf6bed8871e677718d",
+    "prevHash": "cael-sha-5bce6ad402125f58fd29956edf42bad358248d8758e35ae65f95fa9447195608",
     "payload": {
       "id": 0,
       "type": "sesl.prompt_sampled",
       "data": {
-        "holoHash": "807b4b2961b6b0209946bfd2e8ec470159ac9798ac712f460fd45308ec3e252d",
-        "promptHash": "dc13a05d228d5383aef4e86f8e857c11e73d6b5cf57b4238bbf30368b663bc83",
-        "sourcePairId": "paper17-smoke-seed-001"
+        "holoHash": "e031edb6f3f11de5885b594b9e8ab3a1dd29c2aa8a8d33b18eeb8bdf2cf88a35",
+        "promptHash": "e475ae90590ece11992d19e63cd624100a26f9735b7c6198cd8d81cf3f5efc15",
+        "sourcePairId": "paper17-smoke-seed-006"
       }
     },
-    "hash": "cael-sha-fba04d2d0b45522bcd60e3d29e42a8190610bd183969bb7191b2a97e8f0525f6"
+    "hash": "cael-sha-05f184b11c03f2993e2bd9dc8a4bf75eb8fadee0a6aadae28f320c5bfa51ac35"
   },
   {
     "version": "cael.v1",
-    "runId": "cael-paper17-sesl-paper17-smoke-seed-001",
+    "runId": "cael-paper17-sesl-paper17-smoke-seed-006",
     "index": 2,
     "event": "step",
     "timestamp": 1778068800002,
     "simTime": 0.02,
-    "prevHash": "cael-sha-fba04d2d0b45522bcd60e3d29e42a8190610bd183969bb7191b2a97e8f0525f6",
+    "prevHash": "cael-sha-05f184b11c03f2993e2bd9dc8a4bf75eb8fadee0a6aadae28f320c5bfa51ac35",
     "payload": {
       "wallDelta": 0.03,
       "stepsTaken": 2,
@@ -90,22 +92,22 @@
         "806da0f4436964753e05ea16d7ceee27d770e511914de21c7641d4328df6b774"
       ]
     },
-    "hash": "cael-sha-0e084730e89510edb828167f08fbf96b870363873e5c54b77f9fb5b1e3fa673e"
+    "hash": "cael-sha-acc0e5b97f54393df6079a154648a7ad2956f26bf4e118bc3193698c596b2c03"
   },
   {
     "version": "cael.v1",
-    "runId": "cael-paper17-sesl-paper17-smoke-seed-001",
+    "runId": "cael-paper17-sesl-paper17-smoke-seed-006",
     "index": 3,
     "event": "final",
     "timestamp": 1778068800003,
     "simTime": 0.02,
-    "prevHash": "cael-sha-0e084730e89510edb828167f08fbf96b870363873e5c54b77f9fb5b1e3fa673e",
+    "prevHash": "cael-sha-acc0e5b97f54393df6079a154648a7ad2956f26bf4e118bc3193698c596b2c03",
     "payload": {
       "provenance": {
         "config": {
-          "holoHash": "807b4b2961b6b0209946bfd2e8ec470159ac9798ac712f460fd45308ec3e252d",
-          "promptHash": "dc13a05d228d5383aef4e86f8e857c11e73d6b5cf57b4238bbf30368b663bc83",
-          "sourcePairId": "paper17-smoke-seed-001",
+          "holoHash": "e031edb6f3f11de5885b594b9e8ab3a1dd29c2aa8a8d33b18eeb8bdf2cf88a35",
+          "promptHash": "e475ae90590ece11992d19e63cd624100a26f9735b7c6198cd8d81cf3f5efc15",
+          "sourcePairId": "paper17-smoke-seed-006",
           "tetrahedra": {
             "__cael_typed_array": "Uint32Array",
             "data": [
@@ -134,6 +136,7 @@
           }
         },
         "contractId": "cid-sha-1d15cd6ac7bb021d2b159311b7c29e8d0d61180bce380ac437980f3b98fb8571",
+        "contractViolations": [],
         "createdAt": "2026-05-06T12:00:00.000Z",
         "deterministic": true,
         "finalStats": {
@@ -147,9 +150,9 @@
         "interactions": [
           {
             "data": {
-              "holoHash": "807b4b2961b6b0209946bfd2e8ec470159ac9798ac712f460fd45308ec3e252d",
-              "promptHash": "dc13a05d228d5383aef4e86f8e857c11e73d6b5cf57b4238bbf30368b663bc83",
-              "sourcePairId": "paper17-smoke-seed-001"
+              "holoHash": "e031edb6f3f11de5885b594b9e8ab3a1dd29c2aa8a8d33b18eeb8bdf2cf88a35",
+              "promptHash": "e475ae90590ece11992d19e63cd624100a26f9735b7c6198cd8d81cf3f5efc15",
+              "sourcePairId": "paper17-smoke-seed-006"
             },
             "id": 0,
             "simTime": 0,
@@ -158,7 +161,7 @@
           }
         ],
         "platformVersion": "6.1.0",
-        "runId": "run-paper17-sesl-paper17-smoke-seed-001",
+        "runId": "run-paper17-sesl-paper17-smoke-seed-006",
         "scale": "continuum",
         "scaleEnvelope": {
           "projectionsTo": {
@@ -176,9 +179,10 @@
         "solverType": "paper17-sesl-smoke",
         "totalSimTime": 0.02,
         "totalSteps": 2,
+        "verified": true,
         "wallTimeMs": 0
       }
     },
-    "hash": "cael-sha-bfde124273d25d200cb8c4fde2f25e982fa50277b7f626f014e0d387fdd282dc"
+    "hash": "cael-sha-b0b56f4387534f1691782bc912e70fd77197653a0615f4d178a261a2cb38e251"
   }
 ]

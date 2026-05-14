@@ -1,0 +1,188 @@
+[
+  {
+    "version": "cael.v1",
+    "runId": "cael-paper17-sesl-paper17-smoke-seed-007",
+    "index": 0,
+    "event": "init",
+    "timestamp": 1778068800000,
+    "simTime": 0,
+    "prevHash": "cael.genesis",
+    "payload": {
+      "solverType": "paper17-sesl-smoke",
+      "geometryHash": "geo-sha-3e668f562dce3eb4f3afc3a83132173e2befc7ce7d900093f2aa0179b5e551c2-4n-4e",
+      "contractId": "cid-sha-1d15cd6ac7bb021d2b159311b7c29e8d0d61180bce380ac437980f3b98fb8571",
+      "config": {
+        "holoHash": "74ad87a4b510abb4868e9f67f532579e545175c3b97c8d2d8e82c85c8584aa5f",
+        "promptHash": "40f9e845386e3746378b05199717c4d064b104170d157b8972bb382d99af4445",
+        "sourcePairId": "paper17-smoke-seed-007",
+        "tetrahedra": {
+          "__cael_typed_array": "Uint32Array",
+          "data": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        "vertices": {
+          "__cael_typed_array": "Float64Array",
+          "data": [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "contractConfig": {
+        "adapterFingerprint": "paper17-sesl-deterministic-smoke-solver-v1",
+        "fixedDt": 0.01,
+        "solverType": "paper17-sesl-smoke",
+        "useCryptographicHash": true
+      },
+      "adapterFingerprint": "paper17-sesl-deterministic-smoke-solver-v1",
+      "subgridAttestation": null,
+      "hashMode": "sha256",
+      "verified": true,
+      "contractViolations": []
+    },
+    "hash": "cael-sha-e2e79785fcd4ab29de7482972b895f27d151864055b5e62dd194becd39196101"
+  },
+  {
+    "version": "cael.v1",
+    "runId": "cael-paper17-sesl-paper17-smoke-seed-007",
+    "index": 1,
+    "event": "interaction",
+    "timestamp": 1778068800001,
+    "simTime": 0,
+    "prevHash": "cael-sha-e2e79785fcd4ab29de7482972b895f27d151864055b5e62dd194becd39196101",
+    "payload": {
+      "id": 0,
+      "type": "sesl.prompt_sampled",
+      "data": {
+        "holoHash": "74ad87a4b510abb4868e9f67f532579e545175c3b97c8d2d8e82c85c8584aa5f",
+        "promptHash": "40f9e845386e3746378b05199717c4d064b104170d157b8972bb382d99af4445",
+        "sourcePairId": "paper17-smoke-seed-007"
+      }
+    },
+    "hash": "cael-sha-ed70c9dbf756d9a48dd847d5750929f05d1ecac599d50e8054e0030046cfbf7e"
+  },
+  {
+    "version": "cael.v1",
+    "runId": "cael-paper17-sesl-paper17-smoke-seed-007",
+    "index": 2,
+    "event": "step",
+    "timestamp": 1778068800002,
+    "simTime": 0.02,
+    "prevHash": "cael-sha-ed70c9dbf756d9a48dd847d5750929f05d1ecac599d50e8054e0030046cfbf7e",
+    "payload": {
+      "wallDelta": 0.03,
+      "stepsTaken": 2,
+      "totalSteps": 2,
+      "stateDigests": [
+        "806da0f4436964753e05ea16d7ceee27d770e511914de21c7641d4328df6b774",
+        "806da0f4436964753e05ea16d7ceee27d770e511914de21c7641d4328df6b774"
+      ]
+    },
+    "hash": "cael-sha-2a0a1a95c808208dc1c2d7840dfb4619b75d869ff99d1d6314ac86e387a45a7d"
+  },
+  {
+    "version": "cael.v1",
+    "runId": "cael-paper17-sesl-paper17-smoke-seed-007",
+    "index": 3,
+    "event": "final",
+    "timestamp": 1778068800003,
+    "simTime": 0.02,
+    "prevHash": "cael-sha-2a0a1a95c808208dc1c2d7840dfb4619b75d869ff99d1d6314ac86e387a45a7d",
+    "payload": {
+      "provenance": {
+        "config": {
+          "holoHash": "74ad87a4b510abb4868e9f67f532579e545175c3b97c8d2d8e82c85c8584aa5f",
+          "promptHash": "40f9e845386e3746378b05199717c4d064b104170d157b8972bb382d99af4445",
+          "sourcePairId": "paper17-smoke-seed-007",
+          "tetrahedra": {
+            "__cael_typed_array": "Uint32Array",
+            "data": [
+              0,
+              1,
+              2,
+              3
+            ]
+          },
+          "vertices": {
+            "__cael_typed_array": "Float64Array",
+            "data": [
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        },
+        "contractId": "cid-sha-1d15cd6ac7bb021d2b159311b7c29e8d0d61180bce380ac437980f3b98fb8571",
+        "contractViolations": [],
+        "createdAt": "2026-05-06T12:00:00.000Z",
+        "deterministic": true,
+        "finalStats": {
+          "converged": true,
+          "currentTime": 0.02,
+          "harness": "paper17-phase1-cael-recorder-v1",
+          "solved": false
+        },
+        "fixedDt": 0.01,
+        "geometryHash": "geo-sha-3e668f562dce3eb4f3afc3a83132173e2befc7ce7d900093f2aa0179b5e551c2-4n-4e",
+        "interactions": [
+          {
+            "data": {
+              "holoHash": "74ad87a4b510abb4868e9f67f532579e545175c3b97c8d2d8e82c85c8584aa5f",
+              "promptHash": "40f9e845386e3746378b05199717c4d064b104170d157b8972bb382d99af4445",
+              "sourcePairId": "paper17-smoke-seed-007"
+            },
+            "id": 0,
+            "simTime": 0,
+            "timestamp": 1778068800000,
+            "type": "sesl.prompt_sampled"
+          }
+        ],
+        "platformVersion": "6.1.0",
+        "runId": "run-paper17-sesl-paper17-smoke-seed-007",
+        "scale": "continuum",
+        "scaleEnvelope": {
+          "projectionsTo": {
+            "empirical-surrogate": "training data from FEM/CFD fields"
+          },
+          "replayAllowed": true,
+          "scale": "continuum",
+          "tolerance": 0.01,
+          "vvCriteria": {
+            "convergence": 0.01,
+            "energy_drift": 0.001,
+            "grid_convergence_index": 1.5
+          }
+        },
+        "solverType": "paper17-sesl-smoke",
+        "totalSimTime": 0.02,
+        "totalSteps": 2,
+        "verified": true,
+        "wallTimeMs": 0
+      }
+    },
+    "hash": "cael-sha-7f166f61efed775f7c3607272c25426819d57f3d3ddeaf74c644cb112b770672"
+  }
+]
