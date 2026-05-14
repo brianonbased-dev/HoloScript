@@ -448,6 +448,24 @@ describe('HoloLand agent canary', () => {
     });
     expect(noEnv).toMatchObject({ error: expect.stringContaining('No active safety envelope') });
 
+    // Register a steward to issue permission
+    await tool('twin_earth_register_identity', {
+      agentId: 'canary-act-steward',
+      walletAddress: '0xActSteward',
+      handle: 'Act Steward',
+      attestation: '0xAttestSteward',
+      kind: 'ai',
+      role: 'steward',
+    });
+
+    // Grant permission before envelope block
+    await tool('twin_earth_grant_permission', {
+      granteeId: 'canary-act-robot',
+      granterId: 'canary-act-steward',
+      action: 'robot:move',
+      scope: '*',
+    });
+
     // Create envelope but block the command
     await tool('twin_earth_create_safety_envelope', {
       envelopeId: 'canary-act-env',
@@ -635,5 +653,123 @@ describe('HoloLand agent canary', () => {
       prompt: 'Hello',
     });
     expect(result).toMatchObject({ error: expect.stringContaining('not an AI') });
+  });
+
+  // ── Workflow 7: Conformance Artifact Admission Gate ───────────────────────
+
+  it('canary: conformance_check_artifact passes a valid world', async () => {
+    const report = await tool('conformance_check_artifact', {
+      artifactKind: 'world',
+      artifactId: 'canary-world-ok',
+      artifact: {
+        schemaVersion: '1.0.0',
+        metadata: { id: 'canary-world-ok', name: 'Canary World' },
+        config: { maxUsers: 50, bounds: { min: [0, 0, 0], max: [100, 100, 100] } },
+        spawnPoints: [{ id: 'sp1', position: [0, 0, 0] }],
+      },
+    });
+    expect(report.success).toBe(true);
+    expect(report.report).toBeDefined();
+    expect(report.report.passed).toBe(true);
+    expect(report.report.criticalCount).toBe(0);
+    expect(report.report.highCount).toBe(0);
+  });
+
+  it('canary: conformance_check_artifact fails an invalid world', async () => {
+    const result = await handleTool('conformance_check_artifact', {
+      artifactKind: 'world',
+      artifactId: 'canary-world-bad',
+      artifact: {
+        schemaVersion: '1.0.0',
+        metadata: { id: '', name: '' },
+        config: { maxUsers: 0 },
+      },
+    });
+    expect(result).toBeDefined();
+    const r = (result as Record<string, unknown>).report as Record<string, unknown>;
+    expect(r.passed).toBe(false);
+    expect((r.findings as unknown[]).length).toBeGreaterThan(0);
+    expect(r.criticalCount).toBeGreaterThan(0);
+  });
+
+  it('canary: conformance_admit_artifact blocks admission on critical findings', async () => {
+    const result = await handleTool('conformance_admit_artifact', {
+      artifactKind: 'world',
+      artifactId: 'canary-world-reject',
+      artifact: {
+        schemaVersion: '1.0.0',
+        metadata: { id: '', name: '' },
+      },
+    });
+    expect(result).toBeDefined();
+    const res = result as Record<string, unknown>;
+    expect(res.success).toBe(false);
+    expect(res.admitted).toBe(false);
+    expect(res.error).toContain('failed conformance gate');
+  });
+
+  it('canary: conformance_admit_artifact admits a clean artifact', async () => {
+    const result = await tool('conformance_admit_artifact', {
+      artifactKind: 'world',
+      artifactId: 'canary-world-admit',
+      artifact: {
+        schemaVersion: '1.0.0',
+        metadata: { id: 'canary-world-admit', name: 'Admitted World' },
+        config: { maxUsers: 50, bounds: { min: [0, 0, 0], max: [100, 100, 100] } },
+        spawnPoints: [{ id: 'sp1', position: [0, 0, 0] }],
+      },
+    });
+    expect(result.success).toBe(true);
+    expect(result.admitted).toBe(true);
+    expect(result.report.passed).toBe(true);
+  });
+
+  it('canary: conformance_list_rules returns the full catalog', async () => {
+    const result = await tool('conformance_list_rules', {});
+    expect(result.success).toBe(true);
+    expect(Array.isArray(result.rules)).toBe(true);
+    expect(result.total).toBeGreaterThan(0);
+    const rules = result.rules as Array<Record<string, unknown>>;
+    expect(rules.some((r) => r.ruleId === 'WORLD-001')).toBe(true);
+    expect(rules.some((r) => r.ruleId === 'IDENTITY-001')).toBe(true);
+  });
+
+  it('canary: conformance_list_rules filters by artifactKind', async () => {
+    const result = await tool('conformance_list_rules', { artifactKind: 'world' });
+    expect(result.success).toBe(true);
+    const rules = result.rules as Array<Record<string, unknown>>;
+    expect(rules.every((r) => r.artifactKind === 'world')).toBe(true);
+  });
+
+  it('canary: conformance_list_rules filters by severity', async () => {
+    const result = await tool('conformance_list_rules', { severity: 'critical' });
+    expect(result.success).toBe(true);
+    const rules = result.rules as Array<Record<string, unknown>>;
+    expect(rules.every((r) => r.severity === 'critical')).toBe(true);
+  });
+
+  it('canary: conformance_check_artifact validates an identity with expired attestation', async () => {
+    const oldDate = new Date();
+    oldDate.setDate(oldDate.getDate() - 91);
+    const result = await handleTool('conformance_check_artifact', {
+      artifactKind: 'identity',
+      artifactId: 'canary-id-expired',
+      artifact: {
+        agentId: 'canary-id-expired',
+        walletAddress: '0xExpired',
+        handle: 'Expired',
+        attestation: '0xAttest',
+        attestedAt: oldDate.toISOString(),
+        kind: 'robot',
+        role: 'robot',
+        mode: 'local',
+        revoked: false,
+      },
+    });
+    expect(result).toBeDefined();
+    const r = (result as Record<string, unknown>).report as Record<string, unknown>;
+    expect(r.passed).toBe(false);
+    const findings = r.findings as Array<Record<string, unknown>>;
+    expect(findings.some((f) => (f.ruleId as string) === 'IDENTITY-008')).toBe(true);
   });
 });
