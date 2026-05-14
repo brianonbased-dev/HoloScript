@@ -1,0 +1,635 @@
+/**
+ * Warehouse Robotics Production Workflow — HoloScript v7.0
+ *
+ * End-to-end pick-and-place fleet pipeline for warehouse automation.
+ * Upgrades the Studio wizard template (`wizard-warehouse-robotics`)
+ * into a declarative production workflow with stage orchestration,
+ * safety envelopes, performance budgets, and multi-target export.
+ *
+ * Demonstrates:
+ *  - Fleet mission planning with priority queues
+ *  - Real-time navmesh + A* pathfinding
+ *  - Sensor-fusion perception (LiDAR + camera + IMU)
+ *  - Pick/place gripper orchestration
+ *  - Safety monitoring (collision avoidance, emergency stop)
+ *  - Battery/charge management
+ *  - Export to URDF / SDF / ROS 2 / USD (Isaac Sim)
+ *  - Quality validation and production metadata
+ *
+ * Workflow Stages:
+ *   1. PLAN    — Mission assignment + priority queue
+ *   2. NAV     — Navmesh update + path planning
+ *   3. PICK    — Approach, identify SKU, grasp
+ *   4. PLACE   — Transport, align, deposit
+ *   5. VERIFY  — SKU scan, weight check, photo
+ *   6. CHARGE  — Battery check, dock, swap
+ *
+ * Performance Budget (Fleet @ 10 Hz):
+ *   - Plan:     5 ms
+ *   - Nav:      15 ms (A* + obstacle inflation)
+ *   - Perceive: 20 ms (LiDAR projection + CNN inference)
+ *   - Pick:     8 ms (gripper trajectory + force feedback)
+ *   - Place:    8 ms
+ *   - Verify:   12 ms (barcode + scale + camera)
+ *   - Charge:   2 ms (voltage polling)
+ *   - Total:    ~70 ms per cycle (14.3 Hz budget, 10 Hz target)
+ *
+ * Run:
+ *   holoc examples/robotics/warehouse-production-workflow.holo --target urdf
+ *   holoc examples/robotics/warehouse-production-workflow.holo --target sdf
+ *   holoc examples/robotics/warehouse-production-workflow.holo --target ros2
+ *
+ * @version 7.0.0
+ * @vertical warehouse-automation
+ */
+
+scene WarehouseProductionWorkflow {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // STAGE 1: MISSION PLANNING
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity FleetController {
+    traits: [fleet_controller];
+
+    fleet_controller: {
+      fleet_size: 4,
+      agv_ids: ["AGV-001", "AGV-002", "AGV-003", "AGV-004"],
+
+      mission_queue: {
+        strategy: "priority",     // priority | fifo | nearest
+        max_pending: 50,
+        timeout_seconds: 300,
+      },
+
+      zone_assignment: {
+        shelf_a: ["AGV-001", "AGV-002"],
+        shelf_b: ["AGV-003"],
+        shelf_c: ["AGV-004"],
+        packing_station: ["AGV-001", "AGV-002", "AGV-003", "AGV-004"],
+      },
+
+      collision_avoidance: {
+        mode: "centralized",      // centralized | distributed | none
+        prediction_horizon_seconds: 2.0,
+        safety_margin_meters: 0.5,
+      },
+
+      performance_budget: {
+        plan_latency_ms: 5,
+        rebalance_interval_ms: 1000,
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // STAGE 2: NAVIGATION & PATH PLANNING
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity NavMeshManager {
+    traits: [navmesh_solver, astar];
+
+    navmesh_solver: {
+      resolution: 0.1,              // 10 cm grid
+      walkable_height: 0.3,
+      walkable_climb: 0.05,
+      walkable_radius: 0.4,
+      max_edge_length: 2.0,
+
+      dynamic_obstacles: {
+        enabled: true,
+        inflation_radius: 0.6,
+        update_rate_hz: 5,
+        sources: ["lidar", "camera", "fleet_positions"],
+      },
+
+      output: {
+        format: "navmesh",
+        path: "./maps/warehouse_navmesh.bin",
+      },
+    };
+
+    astar: {
+      heuristic: "euclidean",
+      diagonal_movement: true,
+      weight: 1.0,
+      tie_breaker: true,
+
+      replan_trigger: {
+        obstacle_detected: true,
+        goal_moved: true,
+        timeout_ms: 500,
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // STAGE 3 & 4: PICK & PLACE ORCHESTRATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity PickPlaceOrchestrator {
+    traits: [pick_place, urdf_robot];
+
+    pick_place: {
+      gripper: {
+        type: "suction",          // suction | finger | magnetic
+        max_force_n: 50,
+        approach_velocity_mps: 0.1,
+        grasp_tolerance_mm: 2.0,
+      },
+
+      perception: {
+        sku_detection: {
+          enabled: true,
+          model: "yolov8n-sku",
+          confidence_threshold: 0.85,
+          input_source: "camera_overhead",
+        },
+
+        pose_estimation: {
+          enabled: true,
+          model: "efficientpose-lite",
+          refinement_iterations: 5,
+        },
+      },
+
+      motion_profile: {
+        max_velocity_mps: 1.5,
+        max_acceleration_mps2: 0.8,
+        jerk_limit_mps3: 2.0,
+        blending_radius_m: 0.05,
+      },
+
+      staging_areas: [
+        { name: "pick_zone_a", position: [-5, 0, -4], tolerance: 0.05 },
+        { name: "pick_zone_b", position: [0, 0, -4], tolerance: 0.05 },
+        { name: "pick_zone_c", position: [5, 0, -4], tolerance: 0.05 },
+        { name: "packing_station", position: [8, 0, 3], tolerance: 0.03 },
+        { name: "loading_dock", position: [8, 0, -4], tolerance: 0.03 },
+      ],
+    };
+
+    urdf_robot: {
+      robot_name: "AGV_PickPlace",
+      base_link: "chassis",
+      links: [
+        { name: "chassis", geometry: "box", mass_kg: 15.0 },
+        { name: "gripper_mount", geometry: "cylinder", mass_kg: 2.5 },
+        { name: "gripper_jaw_left", geometry: "box", mass_kg: 0.3 },
+        { name: "gripper_jaw_right", geometry: "box", mass_kg: 0.3 },
+      ],
+      joints: [
+        {
+          name: "gripper_lift",
+          jointType: "prismatic",
+          connectedBody: "chassis",
+          axis: { x: 0, y: 1, z: 0 },
+          limits: { min: 0, max: 0.4 },
+          motor: { targetVelocity: 0, maxForce: 100 },
+        },
+        {
+          name: "gripper_squeeze",
+          jointType: "prismatic",
+          connectedBody: "gripper_mount",
+          axis: { x: 1, y: 0, z: 0 },
+          limits: { min: 0, max: 0.15 },
+          motor: { targetVelocity: 0, maxForce: 50 },
+        },
+      ],
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // STAGE 5: VERIFICATION & QA
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity VerificationStation {
+    traits: [sensor, perception];
+
+    sensor: {
+      sensors: [
+        {
+          id: "barcode_scanner",
+          type: "camera",
+          resolution: [1280, 720],
+          frame_rate: 30,
+          mount: "fixed_overhead",
+          fov_degrees: 60,
+        },
+        {
+          id: "weight_scale",
+          type: "load_cell",
+          capacity_kg: 25,
+          precision_g: 1,
+          sample_rate_hz: 100,
+        },
+        {
+          id: "package_camera",
+          type: "camera",
+          resolution: [1920, 1080],
+          frame_rate: 15,
+          mount: "side_profile",
+          fov_degrees: 90,
+        },
+      ],
+
+      fusion: {
+        enabled: true,
+        mode: "sequential",       // sequential | parallel | kalman
+        confidence_threshold: 0.95,
+      },
+    };
+
+    perception: {
+      barcode_reader: {
+        enabled: true,
+        formats: ["code128", "qr", "datamatrix"],
+        decode_timeout_ms: 500,
+      },
+
+      damage_detection: {
+        enabled: true,
+        model: "anomaly_resnet18",
+        threshold: 0.7,
+      },
+
+      dimension_check: {
+        enabled: true,
+        tolerance_percent: 5,
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // SAFETY MONITOR (cross-cutting)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity SafetyMonitor {
+    traits: [safety_monitor];
+
+    safety_monitor: {
+      emergency_stop: {
+        enabled: true,
+        triggers: ["collision_imminent", "human_detected", "force_limit_exceeded"],
+        response_time_ms: 50,
+        reset_mode: "manual",
+      },
+
+      speed_zones: [
+        { zone: "aisle", max_speed_mps: 1.5 },
+        { zone: "intersection", max_speed_mps: 0.5 },
+        { zone: "packing", max_speed_mps: 0.3 },
+        { zone: "loading_dock", max_speed_mps: 0.3 },
+      ],
+
+      pedestrian_detection: {
+        enabled: true,
+        sensor_sources: ["lidar", "camera"],
+        safety_distance_m: 1.5,
+        slowdown_distance_m: 3.0,
+      },
+
+      conformance: {
+        iso_3691_4: true,         // Industrial trucks — safety requirements
+        ansi_b56_5: true,         // Powered industrial trucks
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // WORKFLOW ORCHESTRATOR
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity WorkflowManager {
+    traits: [workflow_controller];
+
+    workflow_controller: {
+      stages: [
+        "plan",
+        "nav",
+        "pick",
+        "place",
+        "verify",
+        "charge",
+      ],
+
+      auto_progress: true,
+      parallel_execution: false,
+
+      retry_on_failure: true,
+      max_retries: 2,
+      rollback_on_critical_failure: true,
+
+      log_level: "verbose",
+      log_path: "./logs/warehouse_workflow.log",
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Workflow Lifecycle
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(WorkflowManager, "workflow_started") {
+    log("🚀 Warehouse production workflow started");
+    log(`  Fleet: ${event.fleetSize} AGVs`);
+    log(`  Stages: ${event.stages.join(" → ")}`);
+    log(`  Session: ${event.sessionId}`);
+  }
+
+  on(WorkflowManager, "stage_started") {
+    log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    log(`📍 STAGE ${event.stageIndex + 1}/${event.totalStages}: ${event.stageName.toUpperCase()}`);
+    log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+  }
+
+  on(WorkflowManager, "stage_completed") {
+    log(`✅ Stage complete: ${event.stageName}`);
+    log(`  Duration: ${event.durationSeconds.toFixed(2)} seconds`);
+    log(`  AGV: ${event.agvId}`);
+    log(`  Output: ${event.outputPath}`);
+  }
+
+  on(WorkflowManager, "stage_failed") {
+    log(`❌ Stage failed: ${event.stageName}`);
+    log(`  Error: ${event.error}`);
+    log(`  Retry attempt: ${event.retryAttempt}/${event.maxRetries}`);
+    if (event.critical) {
+      emit(SafetyMonitor, "trigger_estop", { reason: event.error });
+    }
+  }
+
+  on(WorkflowManager, "workflow_completed") {
+    log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    log(`🎉 WAREHOUSE CYCLE COMPLETED`);
+    log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    log(`  Total duration: ${event.totalDurationSeconds.toFixed(2)} seconds`);
+    log(`  Stages completed: ${event.completedStages}/${event.totalStages}`);
+    log(`  Missions completed: ${event.missionsCompleted}`);
+    log(`  Quality metrics:`);
+    log(`    - Pick accuracy: ${(event.qualityMetrics.pickAccuracy * 100).toFixed(1)}%`);
+    log(`    - Place accuracy: ${(event.qualityMetrics.placeAccuracy * 100).toFixed(1)}%`);
+    log(`    - Collision events: ${event.qualityMetrics.collisions}`);
+    log(`    - Path efficiency: ${(event.qualityMetrics.pathEfficiency * 100).toFixed(1)}%`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Fleet & Safety
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(FleetController, "mission_assigned") {
+    log(`📋 Mission assigned to ${event.agvId}`);
+    log(`  SKU: ${event.sku}`);
+    log(`  Source: ${event.sourceZone} → Destination: ${event.destinationZone}`);
+    log(`  Priority: ${event.priority}`);
+  }
+
+  on(FleetController, "fleet_rebalanced") {
+    log(`🔄 Fleet rebalanced`);
+    log(`  Active: ${event.activeCount}/${event.fleetSize}`);
+    log(`  Charging: ${event.chargingCount}`);
+    log(`  Idle: ${event.idleCount}`);
+  }
+
+  on(NavMeshManager, "path_planned") {
+    log(`🗺️  Path planned for ${event.agvId}`);
+    log(`  Waypoints: ${event.waypointCount}`);
+    log(`  Distance: ${event.distanceMeters.toFixed(2)} m`);
+    log(`  Estimated time: ${event.estimatedSeconds.toFixed(1)} s`);
+  }
+
+  on(NavMeshManager, "obstacle_detected") {
+    log(`⚠️  Dynamic obstacle detected`);
+    log(`  Position: [${event.position.join(", ")}]`);
+    log(`  Confidence: ${(event.confidence * 100).toFixed(1)}%`);
+    emit(SafetyMonitor, "evaluate_threat", { obstacle: event });
+  }
+
+  on(PickPlaceOrchestrator, "pick_completed") {
+    log(`📦 Pick completed`);
+    log(`  SKU: ${event.sku}`);
+    log(`  Confidence: ${(event.confidence * 100).toFixed(1)}%`);
+    log(`  Force: ${event.graspForceN.toFixed(1)} N`);
+    log(`  Duration: ${event.durationSeconds.toFixed(2)} s`);
+  }
+
+  on(PickPlaceOrchestrator, "place_completed") {
+    log(`📥 Place completed`);
+    log(`  Destination: ${event.destinationZone}`);
+    log(`  Alignment error: ${event.alignmentErrorMm.toFixed(1)} mm`);
+    log(`  Duration: ${event.durationSeconds.toFixed(2)} s`);
+  }
+
+  on(VerificationStation, "verification_passed") {
+    log(`✅ Verification passed`);
+    log(`  SKU match: ${event.skuMatch}`);
+    log(`  Weight delta: ${event.weightDeltaG.toFixed(1)} g`);
+    log(`  Photo hash: ${event.photoHash}`);
+  }
+
+  on(VerificationStation, "verification_failed") {
+    log(`❌ Verification FAILED`);
+    log(`  Reason: ${event.failureReason}`);
+    log(`  SKU expected: ${event.expectedSku}, got: ${event.actualSku}`);
+    emit(WorkflowManager, "stage_failed", {
+      stage: "verify",
+      error: event.failureReason,
+      critical: false,
+    });
+  }
+
+  on(SafetyMonitor, "emergency_stop_triggered") {
+    log(`🛑 EMERGENCY STOP TRIGGERED`);
+    log(`  Reason: ${event.reason}`);
+    log(`  AGV: ${event.agvId || "ALL"}`);
+    log(`  Time: ${event.timestamp}`);
+    emit(WorkflowManager, "pause_workflow", {});
+  }
+
+  on(SafetyMonitor, "all_clear") {
+    log(`✅ All clear — resuming workflow`);
+    emit(WorkflowManager, "resume_workflow", {});
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EXPORT CONFIGURATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity ExportConfig {
+    traits: [format_exporter];
+
+    format_exporter: {
+      urdf: {
+        enabled: true,
+        robot_name: "AGV_PickPlace",
+        include_visual: true,
+        include_collision: true,
+        include_inertial: true,
+        mesh_path_prefix: "package://warehouse_meshes/",
+        output_path: "./export/warehouse_agv.urdf",
+      },
+
+      sdf: {
+        enabled: true,
+        world_name: "WarehouseWorld",
+        physics_engine: "ode",
+        include_plugin: true,
+        output_path: "./export/warehouse_world.sdf",
+      },
+
+      ros2: {
+        enabled: true,
+        package_name: "warehouse_automation",
+        node_name: "fleet_controller_node",
+        topics: [
+          { name: "/fleet/missions", type: "std_msgs/String", pub: true, sub: false },
+          { name: "/fleet/status", type: "nav_msgs/Odometry", pub: false, sub: true },
+          { name: "/safety/emergency_stop", type: "std_msgs/Bool", pub: true, sub: false },
+          { name: "/perception/detections", type: "vision_msgs/Detection2DArray", pub: false, sub: true },
+        ],
+        output_path: "./export/ros2_package/",
+      },
+
+      usd: {
+        enabled: true,
+        variant: "usda",
+        stage_metadata: {
+          metersPerUnit: 1.0,
+          upAxis: "Y",
+          defaultPrim: "WarehouseWorld",
+        },
+        include_physics: true,
+        output_path: "./export/warehouse_isaac.usda",
+      },
+
+      metadata: {
+        include_workflow_settings: true,
+        include_quality_metrics: true,
+        include_safety_config: true,
+        output_path: "./export/metadata.json",
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // PRODUCTION METADATA
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity ProductionMetadata {
+    traits: [production_tracker];
+
+    production_tracker: {
+      asset_id: "WH-ROB-001",
+      version: "7.0.0",
+      status: "production",
+      department: "warehouse_automation",
+      facility: "FC-Seattle-7",
+      shift: "alpha",
+
+      upstream_tasks: [
+        "inventory_sync",
+        "shelf_calibration",
+      ],
+
+      downstream_tasks: [
+        "shipping_manifest",
+        "quality_dashboard",
+      ],
+
+      compliance: {
+        iso_3691_4: true,
+        ansi_b56_5: true,
+        osha_1910_178: true,
+      },
+
+      contact: {
+        supervisor: "warehouse_ops@example.com",
+        on_call: "robotics_oncall@example.com",
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // PERFORMANCE BUDGET & QUALITY VALIDATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity PerformanceProfiler {
+    traits: [performance_profiler];
+
+    performance_profiler: {
+      cycle_budget_ms: 70,
+      target_hz: 10,
+
+      stage_budgets: [
+        { stage: "plan", max_ms: 5 },
+        { stage: "nav", max_ms: 15 },
+        { stage: "pick", max_ms: 8 },
+        { stage: "place", max_ms: 8 },
+        { stage: "verify", max_ms: 12 },
+        { stage: "charge", max_ms: 2 },
+      ],
+
+      alerts: {
+        latency_p99_threshold_ms: 100,
+        cpu_percent_threshold: 80,
+        memory_mb_threshold: 512,
+      },
+    };
+  }
+
+  entity QualityValidator {
+    traits: [quality_validation];
+
+    quality_validation: {
+      pick_accuracy_threshold: 0.995,   // 99.5%
+      place_accuracy_threshold: 0.995,
+      max_collision_rate_per_hour: 0,   // Zero collisions tolerated
+      path_efficiency_threshold: 0.85,  // 85% of shortest path
+      verification_pass_rate: 0.999,    // 99.9%
+
+      metrics_export: {
+        enabled: true,
+        format: "prometheus",
+        endpoint: "http://metrics.warehouse.internal:9090",
+        interval_seconds: 15,
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DEMO CONTROLS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DemoControls {
+    traits: [interactive];
+  }
+
+  on(DemoControls, "click") {
+    if (event.target === "start_cycle_button") {
+      emit(WorkflowManager, "start_workflow", {});
+      log("🚀 Starting warehouse automation cycle...");
+    }
+  }
+
+  on(DemoControls, "click") {
+    if (event.target === "trigger_estop_button") {
+      emit(SafetyMonitor, "trigger_estop", { reason: "manual_button" });
+      log("🛑 Manual emergency stop triggered");
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // WORKFLOW DASHBOARD
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity WorkflowDashboard {
+    geometry: plane;
+    position: [0, 2.5, -5];
+    scale: [7, 4, 1];
+    traits: [text_display];
+
+    text_display: {
+      content: "WAREHOUSE ROBOTICS PRODUCTION WORKFLOW\n\n📋 STAGE 1: PLAN (0-5 ms)\n  • Fleet mission assignment + priority queue\n  • Zone assignment: 3 shelf rows + packing + dock\n  • Centralized collision avoidance (2 s horizon)\n\n🗺️  STAGE 2: NAV (0-15 ms)\n  • Dynamic navmesh (10 cm resolution, 5 Hz updates)\n  • A* pathfinding with obstacle inflation\n  • Replan on obstacle detect / goal move / 500 ms timeout\n\n📦 STAGE 3: PICK (0-8 ms)\n  • SKU detection (YOLOv8n, 85% confidence)\n  • Pose estimation (EfficientPose-Lite, 5 iterations)\n  • Suction grasp (50 N max, 2 mm tolerance)\n\n📥 STAGE 4: PLACE (0-8 ms)\n  • Transport at 1.5 m/s max, 0.8 m/s² accel\n  • Deposit at packing station or loading dock\n  • Alignment tolerance: 30 mm\n\n✅ STAGE 5: VERIFY (0-12 ms)\n  • Barcode scan (Code128/QR/DataMatrix, 500 ms timeout)\n  • Weight check (±1 g precision, 25 kg capacity)\n  • Damage detection (Anomaly ResNet-18, 70% threshold)\n\n🔋 STAGE 6: CHARGE (0-2 ms)\n  • Battery polling every cycle\n  • Auto-dock when < 20%\n  • Hot-swap capable\n\n⏱️  TOTAL CYCLE BUDGET: 70 ms @ 10 Hz\n\n🎯 QUALITY GATES:\n  • Pick/Place accuracy ≥ 99.5%\n  • Zero collisions per hour\n  • Path efficiency ≥ 85%\n  • Verification pass rate ≥ 99.9%\n\n📤 EXPORT TARGETS:\n  • URDF (ROS 2 / Gazebo / Isaac Sim import)\n  • SDF (Gazebo Classic / Isaac Sim)\n  • ROS 2 package (topics: missions, status, e-stop, detections)\n  • USD (native Isaac Sim / Omniverse)\n\n🏭 PRODUCTION USE CASES:\n  • E-commerce fulfillment center automation\n  • Manufacturing kitting & assembly feed\n  • Cold-storage picking with safety envelopes\n  • 3PL warehouse multi-tenant fleet coordination",
+      fontSize: 0.065,
+      color: "#fbbf24",
+    };
+  }
+}

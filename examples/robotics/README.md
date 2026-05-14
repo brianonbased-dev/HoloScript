@@ -61,6 +61,30 @@ object "ShoulderJoint" {
 
 ## Examples
 
+### warehouse-production-workflow.holo
+
+A full production workflow for a warehouse pick-and-place AGV fleet.
+Upgrades the Studio `wizard-warehouse-robotics` template into a
+HoloScript production pipeline with stage orchestration, safety
+envelopes, performance budgets, and multi-target export.
+
+- Fleet mission planning with priority queues
+- Dynamic navmesh + A* pathfinding
+- Sensor-fusion perception (LiDAR, camera, IMU)
+- Pick/place gripper orchestration
+- Safety monitoring (collision avoidance, emergency stop)
+- Battery/charge management
+- Verification station (barcode, weight, photo)
+- Export to URDF, SDF, ROS 2, and USD (Isaac Sim)
+- Quality validation + production metadata
+
+Run:
+
+```bash
+holoc examples/robotics/warehouse-production-workflow.holo --target urdf
+holoc examples/robotics/warehouse-production-workflow.holo --target sdf
+```
+
 ### two-dof-robot-arm.holo
 
 A simple 2-DOF robot arm demonstrating:
