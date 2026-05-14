@@ -3352,6 +3352,98 @@ describe('HoloMesh HTTP Routes', () => {
       expect(updateRes._body.task.description).toContain('## Done when:');
     });
 
+    it('PATCH /board/:taskId update allows member to update their own task (board:update-own)', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `update-own-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      // Invite member
+      const joinReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
+        { invite_code: createRes._body.team.invite_code },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const joinRes = mockRes();
+      await handleHoloMeshRoute(joinReq, joinRes, `/api/holomesh/team/${tid}/join`);
+      expect(joinRes._body.role).toBe('member');
+
+      // Member creates a task
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        { tasks: [{ title: 'Member task', description: 'orig', priority: 1 }] },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      const taskId = addRes._body.tasks[0].id;
+      expect(addRes._body.tasks[0].createdBy).toBe(memberAgentId);
+
+      // Member updates their own task
+      const updateReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'update', title: 'Member task fixed' },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const updateRes = mockRes();
+      await handleHoloMeshRoute(updateReq, updateRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(updateRes._status).toBe(200);
+      expect(updateRes._body.task.title).toBe('Member task fixed');
+    });
+
+    it('PATCH /board/:taskId update rejects member editing someone elses task', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `update-deny-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      // Invite member
+      const joinReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
+        { invite_code: createRes._body.team.invite_code },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const joinRes = mockRes();
+      await handleHoloMeshRoute(joinReq, joinRes, `/api/holomesh/team/${tid}/join`);
+
+      // Owner creates a task
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        { tasks: [{ title: 'Owner task', description: 'orig', priority: 1 }] },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      const taskId = addRes._body.tasks[0].id;
+
+      // Member tries to update owners task
+      const updateReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'update', title: 'Hijacked' },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const updateRes = mockRes();
+      await handleHoloMeshRoute(updateReq, updateRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(updateRes._status).toBe(403);
+      expect(updateRes._body.error).toContain('only team owners or the task creator');
+    });
+
     it('GET /api/holomesh/team/:id/trace merges board, done, artifacts, and presence', async () => {
       const createReq = mockReq(
         'POST',
@@ -5642,6 +5734,103 @@ describe('HoloMesh HTTP Routes', () => {
         `/api/holomesh/fleet/status?team=${teamId}`
       );
       expect(r403._status).toBe(403);
+    });
+
+    // ── Board Persistence Canary (task_1778628407517_b0x3) ──
+
+    describe('Board persistence canary', () => {
+      it('POST -> GET /board -> done -> GET /board/done round-trip (task persistence)', async () => {
+        // 1. Create a fresh team
+        const createReq = mockReq(
+          'POST',
+          '/api/holomesh/team',
+          { name: `persistence-canary-${Date.now()}` },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const createRes = mockRes();
+        await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+        const tid = createRes._body.team.id;
+
+        // 2. POST a task
+        const postReq = mockReq(
+          'POST',
+          `/api/holomesh/team/${tid}/board`,
+          {
+            tasks: [
+              {
+                title: '[CANARY] board persistence probe',
+                description: 'Verifies that a task created via POST survives claim, done, and done-log retrieval.',
+                priority: 4,
+              },
+            ],
+          },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const postRes = mockRes();
+        await handleHoloMeshRoute(postReq, postRes, `/api/holomesh/team/${tid}/board`);
+        expect(postRes._status).toBe(201);
+        expect(postRes._body.added).toBe(1);
+        const taskId = postRes._body.tasks[0].id;
+
+        // 3. GET /board — task must be present
+        const getReq = mockReq(
+          'GET',
+          `/api/holomesh/team/${tid}/board`,
+          undefined,
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const getRes = mockRes();
+        await handleHoloMeshRoute(getReq, getRes, `/api/holomesh/team/${tid}/board`);
+        expect(getRes._status).toBe(200);
+        const fetched = (getRes._body.tasks || []).find((t: { id: string }) => t.id === taskId);
+        expect(fetched).toBeDefined();
+        expect(fetched.title).toBe('[CANARY] board persistence probe');
+
+        // 4. Claim the task
+        const claimReq = mockReq(
+          'PATCH',
+          `/api/holomesh/team/${tid}/board/${taskId}`,
+          { action: 'claim' },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const claimRes = mockRes();
+        await handleHoloMeshRoute(claimReq, claimRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+        expect(claimRes._status).toBe(200);
+
+        // 5. Mark done
+        const doneReq = mockReq(
+          'PATCH',
+          `/api/holomesh/team/${tid}/board/${taskId}`,
+          {
+            action: 'done',
+            summary: 'Canary completed successfully',
+            verification_evidence: 'test-pass: board persistence round-trip verified in http-routes.test.ts',
+          },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const doneRes = mockRes();
+        await handleHoloMeshRoute(doneReq, doneRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+        expect(doneRes._status).toBe(200);
+        expect(doneRes._body.success).toBe(true);
+
+        // 6. GET /board/done — task must appear in done log
+        const doneLogReq = mockReq(
+          'GET',
+          `/api/holomesh/team/${tid}/board/done`,
+          undefined,
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const doneLogRes = mockRes();
+        await handleHoloMeshRoute(doneLogReq, doneLogRes, `/api/holomesh/team/${tid}/board/done`);
+        expect(doneLogRes._status).toBe(200);
+        expect(doneLogRes._body.count).toBeGreaterThanOrEqual(1);
+        const doneEntry = (doneLogRes._body.entries || []).find(
+          (e: { taskId: string }) => e.taskId === taskId
+        );
+        expect(doneEntry).toBeDefined();
+        expect(doneEntry.title).toBe('[CANARY] board persistence probe');
+        expect(doneEntry.verificationEvidence).toContain('board persistence round-trip');
+      });
     });
   });
 
