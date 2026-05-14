@@ -1,0 +1,129 @@
+/**
+ * HoloShell Flagship Readiness Room
+ *
+ * Visible room concept for:
+ * "Make this computer ready to build a HoloLand world, use local files,
+ * verify it works, and show what changed."
+ */
+
+composition "HoloShell Flagship Readiness Room" {
+  environment {
+    backgroundColor: "#111820"
+    ambient_light: 0.54
+    shadows: true
+  }
+
+  template "ReadinessStation" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    scale: [1.28, 0.5, 0.08]
+    material: {
+      color: "#17212c"
+      emissive: "#23313f"
+      emissiveIntensity: 0.2
+      transparent: true
+      opacity: 0.94
+    }
+  }
+
+  template "ReceiptToken" {
+    @grabbable
+    @collidable
+    geometry: "sphere"
+    scale: [0.16, 0.16, 0.16]
+    material: { color: "#72d6a3" }
+  }
+
+  object "OutcomePedestal" using "ReadinessStation" {
+    position: [0, 2.25, -2.6]
+    label: "Outcome: ready this computer for HoloLand world building"
+    properties: {
+      humanJob: "prepare machine, use local files, verify, show changes"
+      approvalPolicy: "silent reads, guarded builds, break-glass installs"
+    }
+  }
+
+  object "HardwareRealityMachine" using "ReadinessStation" {
+    position: [-3.1, 1.45, -1.2]
+    label: "Hardware reality: GPU, WebGPU, WASM, Node, pnpm"
+    properties: {
+      consumes: "device-lab receipt"
+      failureState: "hardware evidence missing or warned"
+    }
+  }
+
+  object "LocalProjectMachine" using "ReadinessStation" {
+    position: [-1.02, 1.45, -1.2]
+    label: "Local project: HoloScript and HoloLand source"
+    properties: {
+      consumes: "git status, source validation, build log"
+      failureState: "dirty worktree, failed validation, failed build"
+    }
+  }
+
+  object "HoloScriptSourceRoom" using "ReadinessStation" {
+    position: [1.02, 1.45, -1.2]
+    label: "HoloScript source room: parse, validate, graph, compile"
+    properties: {
+      consumes: "CLI and MCP surfaces"
+      failureState: "tool unavailable or stale provenance"
+    }
+  }
+
+  object "HoloMeshCoordinationRoom" using "ReadinessStation" {
+    position: [3.1, 1.45, -1.2]
+    label: "HoloMesh coordination: lanes, tasks, gaps, handoffs"
+    properties: {
+      consumes: "team-connect and board receipts"
+      failureState: "task duplicate risk or unsigned handoff"
+    }
+  }
+
+  object "BuildPassToken" using "ReceiptToken" {
+    position: [-1.6, 0.75, 0.15]
+    label: "pnpm build passed"
+    properties: {
+      receiptKind: "command_receipt"
+      logPath: ".bench-logs/holoshell-human-os-frontier/2026-05-14/pnpm-build.log"
+    }
+  }
+
+  object "WebGpuWarnToken" using "ReceiptToken" {
+    position: [0, 0.75, 0.15]
+    material: { color: "#e0af68" }
+    label: "device lab warned: no headset or replay evidence"
+    properties: {
+      receiptKind: "device_lab_receipt"
+      status: "warn"
+    }
+  }
+
+  object "GraphStatusFailureToken" using "ReceiptToken" {
+    position: [1.6, 0.75, 0.15]
+    material: { color: "#f7768e" }
+    label: "graph-status CLI failed after build"
+    properties: {
+      receiptKind: "tool_failure_receipt"
+      likelyOwner: "HoloScript codebase intelligence"
+    }
+  }
+
+  object "ChangeTimeline" {
+    @anchor
+    geometry: "cube"
+    position: [0, 0.22, 0.15]
+    scale: [5.6, 0.08, 0.14]
+    color: "#5b6475"
+    label: "timeline: inspect -> validate -> build -> device receipt -> task filing"
+  }
+
+  object "RollbackDrawer" using "ReadinessStation" {
+    position: [0, 1.08, 1.55]
+    label: "Rollback drawer: no HoloLand writes; HoloScript artifacts only"
+    properties: {
+      rollback: "delete dated bench artifacts and prototype source if rejected"
+      privateInventory: "not committed"
+    }
+  }
+}

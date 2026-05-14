@@ -1,0 +1,26 @@
+{
+  "name": "holoshell-human-os-frontier",
+  "status": "seeded",
+  "purpose": "Explore HoloShell as a hardware wrapper that turns local computer, app, agent, and device operations into deterministic HoloScript experiences for non-technical users.",
+  "canonicalFormats": [".holo", ".hsplus", ".hs"],
+  "relatedRepos": [
+    "C:/Users/josep/Documents/GitHub/HoloScript",
+    "C:/Users/josep/Documents/GitHub/Hololand"
+  ],
+  "flagshipScenario": "Make this computer ready to build a HoloLand world, use local files, verify it works, and show what changed.",
+  "artifactPolicy": {
+    "researchReceipts": ".bench-logs/holoshell-human-os-frontier/<date>/",
+    "experimentSource": "experiments/holoshell-human-os-frontier/",
+    "hololandRepoWrites": "avoid by default; file tasks or write HoloScript-side artifacts unless explicitly directed"
+  },
+  "scorecardAxes": [
+    "human_determinism",
+    "non_developer_clarity",
+    "hardware_reality",
+    "ai_containment",
+    "holoscript_source",
+    "multi_agent_value",
+    "reversibility",
+    "hololand_path"
+  ]
+}

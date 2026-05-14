@@ -1,0 +1,129 @@
+// HoloShell flagship readiness policy and state machine.
+
+composition "HoloShellFlagshipReadinessPolicy" {
+  state ReadinessState {
+    selectedWorkflow: "prepare-computer-for-hololand-world"
+    approvalsRequired: 0
+    receiptsCaptured: 0
+    blockers: []
+    taskSeeds: []
+    currentLane: "codex-hardware"
+  }
+
+  template "PermissionEnvelope" {
+    readOnly: true
+    guardedExecute: false
+    breakGlass: false
+    receiptRequired: true
+  }
+
+  policy "SilentRead" using "PermissionEnvelope" {
+    readOnly: true
+    guardedExecute: false
+    breakGlass: false
+    appliesTo: [
+      "git_status",
+      "runtime_inventory",
+      "webgpu_probe",
+      "wasm_simd_probe",
+      "source_validation",
+      "holomesh_context_read"
+    ]
+  }
+
+  policy "GuardedExecute" using "PermissionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    breakGlass: false
+    appliesTo: [
+      "pnpm_build",
+      "holoscript_validate",
+      "device_lab_probe",
+      "bench_artifact_write",
+      "task_filing"
+    ]
+  }
+
+  policy "BreakGlass" using "PermissionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    breakGlass: true
+    appliesTo: [
+      "install_dependency",
+      "delete_file",
+      "kill_process",
+      "publish_world",
+      "modify_hololand_worktree",
+      "credential_access"
+    ]
+  }
+
+  role "CodexHardware" {
+    laneId: "codex-hardware"
+    owns: ["hardware_audit", "pnpm_build", "device_lab_probe", "local_receipts"]
+  }
+
+  role "ClaudeArchitect" {
+    laneId: "claude-architecture"
+    owns: ["cross_file_refactor", "source_contract_review", "long_context_design"]
+  }
+
+  role "BrowserVisionAgent" {
+    laneId: "browser-vision"
+    owns: ["holo_land_surface_render", "screenshot_witness", "web_session_boundary"]
+  }
+
+  role "HoloLandProductAgent" {
+    laneId: "hololand-product"
+    owns: ["room_embodiment", "brittney_operator_loop", "creator_surface"]
+  }
+
+  action classifyOperation(operation) {
+    if (operation.kind in BreakGlass.appliesTo) {
+      ReadinessState.approvalsRequired = ReadinessState.approvalsRequired + 1
+      return "break_glass"
+    }
+    if (operation.kind in GuardedExecute.appliesTo) {
+      return "guarded_execute"
+    }
+    return "silent_read"
+  }
+
+  action recordReceipt(receipt) {
+    ReadinessState.receiptsCaptured = ReadinessState.receiptsCaptured + 1
+    emit("holoshell:readiness:receipt", {
+      workflow: ReadinessState.selectedWorkflow,
+      lane: ReadinessState.currentLane,
+      receipt: receipt,
+      count: ReadinessState.receiptsCaptured
+    })
+  }
+
+  action blockOn(reason, evidencePath, ownerSurface) {
+    ReadinessState.blockers.push({
+      reason: reason,
+      evidencePath: evidencePath,
+      ownerSurface: ownerSurface
+    })
+    emit("holoshell:readiness:blocker", {
+      reason: reason,
+      evidencePath: evidencePath,
+      ownerSurface: ownerSurface
+    })
+  }
+
+  action seedTask(title, category, evidencePath, expectedBehavior) {
+    ReadinessState.taskSeeds.push({
+      title: title,
+      category: category,
+      evidencePath: evidencePath,
+      expectedBehavior: expectedBehavior
+    })
+    emit("holomesh:task_seed", {
+      title: title,
+      category: category,
+      evidencePath: evidencePath,
+      expectedBehavior: expectedBehavior
+    })
+  }
+}
