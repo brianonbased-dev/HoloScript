@@ -9,6 +9,7 @@
  */
 
 import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import {
   copyFileSync,
   existsSync,
@@ -214,6 +215,81 @@ function stillModeFor(index, screenshotCommand, screenshotAvailable) {
   if (!screenshotCommand || screenshotCommand.skipped || !screenshotAvailable) return 'placeholder';
   if (!screenshotCommand.success) return 'placeholder';
   return index === 0 ? 'captured-scene-loaded' : 'static-scene-copy';
+}
+
+function sha256File(filePath) {
+  if (!existsSync(filePath)) return null;
+  return createHash('sha256').update(readFileSync(filePath)).digest('hex');
+}
+
+function buildStillEvidence(receipts, outputDir) {
+  return receipts.map((receipt) => {
+    const absolutePath = join(outputDir, receipt.still);
+    const exists = existsSync(absolutePath);
+    return {
+      segment: receipt.segment,
+      label: receipt.label,
+      still: receipt.still,
+      exists,
+      bytes: exists ? statSync(absolutePath).size : 0,
+      sha256: sha256File(absolutePath),
+      mode: receipt.stillMode,
+      oracleStatus: receipt.oracle.status,
+    };
+  });
+}
+
+function isReplayLikeStillMode(mode) {
+  return !['placeholder', 'static-scene-copy'].includes(mode);
+}
+
+export function summarizeVisualEvidence(stillEvidence) {
+  const existing = stillEvidence.filter((entry) => entry.exists);
+  const hashes = existing.map((entry) => entry.sha256).filter(Boolean);
+  const uniqueHashCount = new Set(hashes).size;
+  const hashCounts = new Map();
+  for (const hash of hashes) {
+    hashCounts.set(hash, (hashCounts.get(hash) || 0) + 1);
+  }
+
+  const replayCandidates = existing.filter((entry) => isReplayLikeStillMode(entry.mode));
+  const replayDistinct = replayCandidates.filter(
+    (entry) => entry.sha256 && hashCounts.get(entry.sha256) === 1
+  );
+  const staticCopySegments = existing.filter((entry) => entry.mode === 'static-scene-copy').length;
+  const placeholderSegments = existing.filter((entry) => entry.mode === 'placeholder').length;
+  const falseGreenRisk =
+    existing.length > 1 && uniqueHashCount === 1
+      ? 'all-stills-byte-identical'
+      : existing.length > uniqueHashCount
+        ? 'duplicate-still-hashes'
+        : 'none-detected';
+
+  return {
+    stillFilesPresent: existing.length,
+    uniqueStillHashes: uniqueHashCount,
+    replayCandidateSegments: replayCandidates.length,
+    replayDistinctSegments: replayDistinct.length,
+    capturedReplaySegments: replayDistinct.length,
+    replayDistinctSegmentIds: replayDistinct.map((entry) => entry.segment),
+    staticCopySegments,
+    placeholderSegments,
+    staticCopyCoverageBlocked: staticCopySegments > 0,
+    dynamicReplayBlockedSegments: stillEvidence.filter(
+      (entry) => entry.oracleStatus === 'blocked-dynamic-replay'
+    ).length,
+    falseGreenRisk,
+    visualCoverageStatus:
+      replayDistinct.length > 0 && falseGreenRisk === 'none-detected'
+        ? 'replay-distinct'
+        : staticCopySegments > 0
+          ? 'blocked-static-copy'
+          : placeholderSegments > 0
+            ? 'blocked-placeholder'
+            : falseGreenRisk === 'none-detected'
+              ? 'no-stills'
+              : 'blocked-duplicate-stills',
+  };
 }
 
 function ownerForSegment(segmentId) {
@@ -522,9 +598,18 @@ export async function runSegmentedCapture(rawOptions = {}) {
     seeds.push(seed);
   }
 
+  const stillEvidence = buildStillEvidence(receipts, outputDir);
+  const visualEvidence = summarizeVisualEvidence(stillEvidence);
+
   const coverage = {
     segmentsRequested: manifest.segments.length,
     segmentsWithStill: receipts.filter((receipt) => existsSync(join(outputDir, receipt.still))).length,
+    qualityAdjustedSegmentsWithStill: visualEvidence.capturedReplaySegments,
+    uniqueStillHashes: visualEvidence.uniqueStillHashes,
+    staticCopySegments: visualEvidence.staticCopySegments,
+    placeholderStillSegments: visualEvidence.placeholderSegments,
+    dynamicReplayBlockedSegments: visualEvidence.dynamicReplayBlockedSegments,
+    falseGreenRisk: visualEvidence.falseGreenRisk,
     segmentsWithRuntimeEventLog: receipts.filter((receipt) =>
       existsSync(join(outputDir, receipt.eventLog))
     ).length,
@@ -548,6 +633,8 @@ export async function runSegmentedCapture(rawOptions = {}) {
 
   writeJson(join(outputDir, 'segment-receipts.json'), receiptPayload);
   writeJson(join(dirname(outputDir), 'segment-receipts.json'), receiptPayload);
+  writeJson(join(outputDir, 'still-evidence.json'), stillEvidence);
+  writeJson(join(outputDir, 'visual-uniqueness-audit.json'), visualEvidence);
   writeJson(join(outputDir, 'task-seeds.json'), seeds);
   writeJson(join(outputDir, 'scorecard.json'), {
     schema: 'format-realism-gauntlet-scorecard-v1',
@@ -555,10 +642,12 @@ export async function runSegmentedCapture(rawOptions = {}) {
     generatedAt: receiptPayload.generatedAt,
     qualityMetrics: manifest.qualityMetrics || [],
     coverage,
+    visualEvidence,
     commandFailures: commandResults.filter((command) => !command.success),
-    highestGapSeverity: receipts.some((receipt) => receipt.oracle.status === 'blocked-dynamic-replay')
-      ? 'P1'
-      : 'P2',
+    highestGapSeverity:
+      visualEvidence.dynamicReplayBlockedSegments > 0 || visualEvidence.falseGreenRisk !== 'none-detected'
+        ? 'P1'
+        : 'P2',
   });
 
   const stillBytes = receipts.reduce((sum, receipt) => {
@@ -572,6 +661,8 @@ export async function runSegmentedCapture(rawOptions = {}) {
       segmentReceipts: rel(REPO_ROOT, join(outputDir, 'segment-receipts.json')),
       rootSegmentReceipts: rel(REPO_ROOT, join(dirname(outputDir), 'segment-receipts.json')),
       scorecard: rel(REPO_ROOT, join(outputDir, 'scorecard.json')),
+      stillEvidence: rel(REPO_ROOT, join(outputDir, 'still-evidence.json')),
+      visualUniquenessAudit: rel(REPO_ROOT, join(outputDir, 'visual-uniqueness-audit.json')),
       taskSeeds: rel(REPO_ROOT, join(outputDir, 'task-seeds.json')),
       stillBytes,
     },
