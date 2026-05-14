@@ -50,7 +50,7 @@ const sampleWorkflow: AgentWorkflow = {
       position: { x: 300, y: 100 },
       data: {
         type: 'tool',
-        server: 'brittney-hololand',
+        server: 'hololand-substrate',
         toolName: 'load_assets',
         args: { category: 'environment' },
         timeout: 5000,

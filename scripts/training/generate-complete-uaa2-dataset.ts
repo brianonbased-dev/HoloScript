@@ -170,7 +170,7 @@ await affirmCompletion({
 
 console.log('[3/5] Generating MCP Orchestration patterns...');
 
-const MCP_SERVERS = ['brittney-hololand', 'holoscript-language', 'uaa2-service', 'ai-workspace-knowledge', 'semantic-search-hub'];
+const MCP_SERVERS = ['hololand-substrate', 'holoscript-language', 'uaa2-service', 'ai-workspace-knowledge', 'semantic-search-hub'];
 
 for (let i = 0; i < 4000; i++) {
   const server = MCP_SERVERS[i % MCP_SERVERS.length];

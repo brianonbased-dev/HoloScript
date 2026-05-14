@@ -296,7 +296,7 @@ import { useOrchestrationStore } from '@/lib/orchestrationStore';
      id: 'call1',
      timestamp: Date.now(),
      toolName: 'add_trait',
-     server: 'brittney-hololand',
+     server: 'hololand-substrate',
      args: { trait: '@physics' },
      result: { success: true },
      status: 'success',
@@ -331,7 +331,7 @@ import { useOrchestrationStore } from '@/lib/orchestrationStore';
 
 3. **Add Tool Nodes**
    - Drag **Tool Node** from palette
-   - Configure: server = "brittney-hololand", tool = "add_trait"
+   - Configure: server = "hololand-substrate", tool = "add_trait"
    - Connect: Brittney agent output → Tool node input
 
 4. **Monitor Execution**

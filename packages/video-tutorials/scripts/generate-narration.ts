@@ -296,7 +296,7 @@ const SCRIPTS: Record<string, string[]> = {
     "<break time='0.5s'/> The holoscript-language MCP server registers multiple tools. brittney_scan_project analyses an existing codebase and maps it to HoloScript equivalents. generate_scene takes a natural language prompt and returns a .holo file.",
     "<break time='0.5s'/> Tool calls happen through MCP's standard JSON-RPC protocol. When you ask Claude to generate a VR scene, it calls generate_scene with your description as the argument and returns the complete HoloScript source.",
     "<break time='0.5s'/> To activate the server, add an entry to .claude/settings.json under the mcpServers key. Point it at the holoscript MCP server binary and it starts automatically with your Claude session.",
-    "<break time='0.5s'/> Multiple MCP servers compose together. The brittney-hololand server connects HoloScript to the Hololand asset library. The semantic-search-hub server adds knowledge retrieval across all your project documentation.",
+    "<break time='0.5s'/> Multiple MCP servers compose together. The hololand-substrate server connects HoloScript to the Hololand asset library. The semantic-search-hub server adds knowledge retrieval across all your project documentation.",
     "<break time='0.8s'/> With MCP, your entire HoloScript workflow becomes AI-native — from scene generation to compilation to deployment. Next we look at the LLM provider SDK.",
   ],
 

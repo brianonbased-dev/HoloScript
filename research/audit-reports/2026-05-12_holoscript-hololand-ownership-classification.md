@@ -139,7 +139,7 @@ These files are generic HoloScript infrastructure with misleading HoloLand brand
 
 | File | Rationale |
 |------|-----------|
-| `brittney-hololand-v1.jsonl` | Training dataset for Brittney (AI assistant) covering HoloLand scenarios. This is HoloScript MCP server training data; it stays because the MCP server is core infrastructure. The *content* is HoloLand-specific, but the artifact is server-side training material. |
+| `hololand-substrate-v1.jsonl` | Training dataset for Brittney (AI assistant) covering HoloLand scenarios. This is HoloScript MCP server training data; it stays because the MCP server is core infrastructure. The *content* is HoloLand-specific, but the artifact is server-side training material. |
 
 ### scripts/training/
 

@@ -706,7 +706,7 @@ export const hololandTrainingTools: Tool[] = [
         output_file: {
           type: 'string',
           description:
-            'Optional file path to save JSONL output (e.g. "brittney-hololand-v1.jsonl")',
+            'Optional file path to save JSONL output (e.g. "hololand-substrate-v1.jsonl")',
         },
       },
       required: [],
