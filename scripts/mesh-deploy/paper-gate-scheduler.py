@@ -176,6 +176,38 @@ GATES = [
         ],
         "first_action": "rent RTX 5060 Ti or 6000-Ada → pnpm --filter @holoscript/snn-webgpu bench",
     },
+    {
+        "gate_id": "17-brittney-sovereignty",
+        "paper": "17",
+        "brain": "sesl-training-brain",
+        "priority": "P2",
+        "estimated_hours": 24.0,
+        "blocking_artifact": "research/2026-05-13_brittney-holoshell-model-eval-integration.md",
+        "verification": "AGI approval benchmark scored + ≥100 CAEL-verified SESL Phase 1 rows + model eval plugged into paper program",
+        "matrix_row": "research/paper-audit-matrix.md (Paper 17)",
+        "preconditions": [
+            "Paper 17 SESL corpus gate cleared or in progress",
+            "AGI approval benchmark fixture exists (✓ hooks/data/agi-approval-benchmark.json)",
+            "scripts/agi-approval-benchmark-score.mjs runnable",
+        ],
+        "first_action": "Run agi-approval-benchmark-score.mjs against candidate model → append results to paper gate ledger",
+    },
+    {
+        "gate_id": "29-hololand-npc-lineage",
+        "paper": "29",
+        "brain": "hololand-brain",
+        "priority": "P2",
+        "estimated_hours": 48.0,
+        "blocking_artifact": "research/2026-05-12_d043-hololand-frontier-npc-lens.md",
+        "verification": "5 sovereign traits schema defined + hydrate/merge semantics formalized + sub-100ms Quest 3 hydrate benchmark",
+        "matrix_row": "research/paper-audit-matrix.md (Paper 29)",
+        "preconditions": [
+            "D.043 lens document approved (✓ research/2026-05-12_d043-hololand-frontier-npc-lens.md)",
+            "5 SLF sovereign traits exist in compositions/ (✓ 2026-05-10 thread)",
+            "HoloScriptAgentRuntime.ts hydrate() stub exists",
+        ],
+        "first_action": "Define durable+disposable schemas per trait + hydrate path spec + Quest 3 bench task",
+    },
 ]
 
 # Brain → composition file mapping. Capability requirements live on the
