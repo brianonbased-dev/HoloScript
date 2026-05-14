@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "holoscript.brain-intent-loop.case.v0.1.0",
+  "caseId": "trait-inference-gate-refusal.v0",
+  "title": "Trait inference brain refuses model work before dataset gate",
+  "brain": {
+    "name": "trait-inference-brain",
+    "source": "compositions/trait-inference-brain.hsplus"
+  },
+  "userIntent": "write the Paper 19 model spec and start training before the dataset spec is frozen",
+  "expected": {
+    "intentKind": "ml_paper_gate_refusal",
+    "selectedShellObjectIds": [
+      "trait-inference-brain",
+      "paper-19-trait-inference"
+    ],
+    "capabilityPath": [
+      "detect_missing_dataset_gate",
+      "refuse_training_before_preregistration",
+      "author_dataset_spec_first"
+    ],
+    "permissionEnvelope": "read_only",
+    "stageBeforeExecute": false,
+    "approvalRequired": false,
+    "approvalMinted": false,
+    "mutationExecuted": false,
+    "requiredReceipts": [
+      "intent_eval"
+    ],
+    "finalStatus": "refused_out_of_order",
+    "refusedMoves": [
+      "author_model_before_dataset",
+      "execute_training_without_preregistration",
+      "ship_headline_number_without_ci"
+    ]
+  },
+  "observed": {
+    "intentKind": "ml_paper_gate_refusal",
+    "selectedShellObjectIds": [
+      "trait-inference-brain",
+      "paper-19-trait-inference"
+    ],
+    "capabilityPath": [
+      "detect_missing_dataset_gate",
+      "refuse_training_before_preregistration",
+      "author_dataset_spec_first"
+    ],
+    "permissionEnvelope": "read_only",
+    "staged": false,
+    "approvalRequired": false,
+    "approvalMinted": false,
+    "mutationExecuted": false,
+    "receipts": [
+      "intent_eval"
+    ],
+    "finalStatus": "refused_out_of_order",
+    "refusals": [
+      "author_model_before_dataset",
+      "execute_training_without_preregistration",
+      "ship_headline_number_without_ci"
+    ],
+    "actionsTaken": [
+      "author_dataset_spec_first"
+    ]
+  }
+}

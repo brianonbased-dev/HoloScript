@@ -135,11 +135,20 @@ Tracks not yet committed to a venue slot. Gate condition must clear before the p
 | 23 | Formal Semantics | Type-theoretic foundations, soundness | **Phase 1 GREEN** (2/4 theorems proved, 0 sorry) | Lean encoding + soundness proof + collaborator | POPL/TyDe | `research/papers-22-23-mechanization/HSCore/` |
 | 24 | Adaptive Interface Generation | CAEL-logged traces to personalized spatial UI | Gated (depends on UIST study) | UIST study CAEL-logged (>=30 participants) + generator + >=15% improvement | CHI 2028 | `research/2026-04-24_adaptive-interface-generation-uist.md` |
 | 25 | Coordinated Multi-Brain | Specialized agent topologies under budget | Gated (fleet activated, trusted corpus not started) | >=7 handle-days continuous + audit-log 100% + brain agreement matrix + <=$50/day | AAMAS/NeurIPS 2027 | `research/2026-04-25_paper-25-fleet-multi-brain-aamas.md` |
-| 26 | Brain-Composed LLM Agents | Anti-pattern discipline as capacity multiplier | Gated (Phase 1 shipped) | >=3 end-to-end paper deliverables + honest-refusal cases + cost-bound study | HotOS/NSDI/OSDI workshop | `research/paper-26-bcla/README.md` |
+| 26 | Brain-Composed LLM Agents | Anti-pattern discipline as capacity multiplier | Gated (Phase 1 shipped; 26-BIC measurement arm opened) | >=3 end-to-end paper deliverables + honest-refusal cases + Brain Intent Closure receipts + cost-bound study | HotOS/NSDI/OSDI workshop | `research/paper-26-bcla/README.md` |
 | 27 | Founder-Skill Pattern | Decision-proxy architecture for autonomous teams | Gated (Phase 1 skill shipped) | >=10 `/founder` invocations across >=3 papers + retrospective + refusal-pattern catch | CHI/CSCW 2028 | `research/paper-27-fsdp/README.md` |
 | 28 | Mesh-as-Producer | Headless x402-verified agents on spot GPUs | Gated (Phase 1 shipped, ~30 instances peak) | >=100 tasks end-to-end + >=3 papers progressed + sandbox-escape test 0/10 + <=$10/deliverable | SOPS/EuroSys 2027 | `research/paper-28-mesh-substrate/README.md` |
 | 29 | Algebraic Trust + Tool-Use Sandbox | Composing sandboxed agent capabilities | Gated (algebra exists W.GOLD.037/189) | Composition theorem + >=3 brain demonstration + Lean 4 mechanization + connection to >=3 program papers | TVCG/PLDI/LICS 2028 | `research/paper-29-algebraic-trust-toolsandbox/README.md` |
 | Future | Longitudinal RE-INTAKE | Cross-paper knowledge synthesis | Gated (depends on Capstone + >=50 sessions) | Capstone ships + >=50 longitudinal sessions | NeurIPS/ICLR/Nature MI TBD | `research/paper-future-longitudinal-reintake.md` |
+
+### Paper 26 Internal Measurement Arms
+
+These do not increase the main paper count. They are scoped evidence tracks
+inside Paper 26 until their own promotion gates close.
+
+| Arm | Status | Evidence | Promotion rule |
+|-----|--------|----------|----------------|
+| 26-BIC Brain Intent Closure | Open | `research/paper-26-bcla/brain-intent-closure.md`; `research/brain-intent-eval/` | Keep inside Paper 26 until it has multi-brain coverage, negative controls, strict receipts, a runtime bridge, ablation, and cost data. |
 
 ---
 
