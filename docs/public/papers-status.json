@@ -1,14 +1,14 @@
 {
   "schema": "paper-audit-matrix.v2",
-  "generatedAt": "2026-05-14T05:50:52.032Z",
+  "generatedAt": "2026-05-14T05:56:40.511Z",
   "matrixSourcePath": "research/paper-audit-matrix.md",
-  "scriptCommit": "56e5f6f1aa1bced8763f853e5a30193895813865",
+  "scriptCommit": "6b70a0b70d6f96a84f1c78bf215c8386a2a070b1",
   "totals": {
     "papers": 17,
     "cellsByToken": {
       "✅": 199,
-      "⚠️": 41,
-      "❌": 18,
+      "⚠️": 42,
+      "❌": 17,
       "➖": 14
     }
   },
@@ -1009,8 +1009,8 @@
       "target": "SIG Asia '27",
       "basename": "paper-9-verifiable-motion-siggraphasia.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-9-verifiable-motion-siggraphasia.tex",
-      "loc": 1194,
-      "sha256Prefix": "494ba096",
+      "loc": 1212,
+      "sha256Prefix": "32d37dde",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1042,8 +1042,8 @@
           "evidence": "paper-9-verifiable-motion-siggraphasia.tex.ots present"
         },
         "anchorBase": {
-          "token": "✅",
-          "evidence": ".tex.base.json signed and matches current .tex hash"
+          "token": "⚠️",
+          "evidence": ".tex.base.json signed for a historical .tex hash; re-anchor current source at submission bundle time"
         },
         "venueFit": {
           "token": "✅",
@@ -1058,8 +1058,8 @@
           "evidence": "no \\todo{measure:} markers"
         },
         "calStory": {
-          "token": "❌",
-          "evidence": "no calibration/setup/pipeline structure"
+          "token": "✅",
+          "evidence": "Calibration/Setup/Reproducibility heading + automation pointer"
         },
         "twinTest": {
           "token": "✅",
@@ -1075,15 +1075,20 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 1d since last commit"
+          "evidence": "0 open \\todo{}, 0d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "4f4e77fbea05eedea9cc0e0032da1a0f47229ca9",
-        "isoDate": "2026-05-11T22:54:28-07:00",
-        "subject": "paper(9): Twin-test fill — forward-emit/backward-verify Merkle chain as two-impl agreement"
+        "hash": "6b70a0b70d6f96a84f1c78bf215c8386a2a070b1",
+        "isoDate": "2026-05-13T22:55:51-07:00",
+        "subject": "docs(ecosystem): add paper 9 reproducibility pipeline"
       },
       "recentCommits": [
+        {
+          "hash": "6b70a0b70d6f96a84f1c78bf215c8386a2a070b1",
+          "isoDate": "2026-05-13T22:55:51-07:00",
+          "subject": "docs(ecosystem): add paper 9 reproducibility pipeline"
+        },
         {
           "hash": "4f4e77fbea05eedea9cc0e0032da1a0f47229ca9",
           "isoDate": "2026-05-11T22:54:28-07:00",
@@ -1103,11 +1108,6 @@
           "hash": "28ceec13cce6433ee1ad68c3c309a9caec1182bb",
           "isoDate": "2026-04-26T17:56:01-07:00",
           "subject": "docs(paper-9-motion): \\measuredFrom{} sweep — 2 of 2 tables annotated"
-        },
-        {
-          "hash": "3d11a0f92724d14b63d085e215d49abad1b61884",
-          "isoDate": "2026-04-25T00:23:03-07:00",
-          "subject": "fix(papers): compile-state sweep — papers 0c/7/9 EXIT=0; paper-4 partial"
         }
       ]
     },
