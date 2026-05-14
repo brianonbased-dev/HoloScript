@@ -213,7 +213,7 @@ export interface CLIOptions {
   /** Comma-separated files for quick blast-radius query (relative to scan dir) */
   impactFiles?: string;
   // ── query command ────────────────────────────────────────────────────────
-  /** Embedding provider for holoscript query (default: 'bm25') */
+  /** Embedding provider for holoscript query (default: 'openai') */
   queryProvider?: 'bm25' | 'xenova' | 'openai' | 'ollama';
   /** LLM provider name for queryWithLLM (e.g. 'openai', 'anthropic', 'gemini') */
   queryLlm?: string;
@@ -679,7 +679,7 @@ Usage: holoscript <command> [options] [input]
                     Run Absorb then report blast radius for comma-separated files
                     Use --dir <root> to set scan root (default: cwd)
   query <question>  Semantic GraphRAG search over an absorbed codebase
-                    Use --provider bm25|xenova|openai|ollama (default: bm25)
+                    Use --provider openai|xenova|ollama (default: openai). bm25 is deprecated and maps to openai.
                     Use --with-llm to get an LLM-synthesised answer
                     Use --llm openai|anthropic|gemini to select LLM backend
                     Use --model <name> to override default model
@@ -770,7 +770,7 @@ Usage: holoscript <command> [options] [input]
   --depth <level>     Absorb detail: shallow | medium | deep (default: deep)
   --since <ref>       Limit absorb to files changed since git ref/date
   --impact <files>    Comma-separated files to compute blast-radius for
-  --provider <b>      Embedding backend: bm25 | xenova | openai | ollama (default: bm25)
+  --provider <b>      Embedding backend: openai | xenova | ollama (default: openai). bm25 is deprecated and maps to openai.
   --dir <path>        Directory to scan for query (default: cwd)
   --with-llm          Synthesise a natural-language answer from GraphRAG context
   --llm <adapter>     LLM backend for --with-llm: openai | anthropic | gemini

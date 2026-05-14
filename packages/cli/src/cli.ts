@@ -3689,8 +3689,8 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
     case 'query': {
       if (!options.input) {
         cliError('E001', 'No question specified.', {
-          usage: 'holoscript query "<question>" [--provider bm25|xenova|openai|ollama] [--with-llm] [--top-k <n>]',
-          hint: 'Wrap the question in quotes. Example: `holoscript query "what calls buildIndex"`. Add `--with-llm --llm openai` for a synthesised answer.',
+          usage: 'holoscript query "<question>" [--provider openai|xenova|ollama] [--with-llm] [--top-k <n>]',
+          hint: 'Wrap the question in quotes. Example: `holoscript query "what calls buildIndex"`. Add `--with-llm --llm openai` for a synthesised answer. Default provider is openai (bm25 is deprecated).',
         });
         process.exit(1);
       }
@@ -3708,7 +3708,13 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 
         const rootDir = options.queryDir ? path.resolve(options.queryDir) : process.cwd();
         const question = options.input;
-        const providerName = options.queryProvider ?? 'bm25';
+        let providerName = options.queryProvider ?? 'openai';
+        if (providerName === 'bm25') {
+          console.warn(
+            `${YELLOW}⚠ bm25 is deprecated and has been removed. Using openai instead.${RESET}`
+          );
+          providerName = 'openai';
+        }
         const forceRescan = options.force === true;
         const queryStartTime = Date.now();
 
@@ -3795,6 +3801,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
           let qLastProgressLen = 0;
           const scanResult = await scanner.scan({
             rootDir,
+            maxFiles: 10000,
             onProgress(parsed, total, file) {
               const pct = Math.round((parsed / total) * 100);
               const bar = '█'.repeat(Math.floor(pct / 5)) + '░'.repeat(20 - Math.floor(pct / 5));

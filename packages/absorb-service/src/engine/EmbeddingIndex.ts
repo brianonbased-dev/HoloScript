@@ -554,10 +554,18 @@ export class EmbeddingIndex {
     parts.push('in', sym.filePath);
 
     if (sym.docComment) {
-      // Include first line of doc comment for semantic richness
-      const firstLine = sym.docComment.split('\n')[0].trim();
-      if (firstLine.length > 0) {
-        parts.push('-', firstLine);
+      // Include up to 3 lines / 200 chars of doc comment for semantic richness.
+      // First-line-only loses too much signal for command-handler vs exporter-parser
+      // style discrimination; a short multi-line summary significantly improves
+      // OpenAI embedding retrieval quality without bloating batch sizes.
+      const lines = sym.docComment
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0)
+        .slice(0, 3);
+      const snippet = lines.join(' ').slice(0, 200);
+      if (snippet.length > 0) {
+        parts.push('-', snippet);
       }
     }
 
