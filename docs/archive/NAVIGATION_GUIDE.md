@@ -1,4 +1,8 @@
-# HoloScript+ Phase 6-8: Complete Navigation Guide
+# HoloScript+ Phase 6-8: Complete Navigation Guide (Archive)
+
+> **Status:** ARCHIVE — reflects Phase 6-8 planning circa 2024.  
+> **Staleness:** `packages/creator-tools/` and `packages/demo-apps/` were deleted; see `docs/cross-language-deletion-ledger.md`.  
+> **Current surface:** `packages/studio/`, `packages/framework/`, `examples/`, `docs/demos/`.  
 
 ## 🗂️ Table of Contents - All Phase 6-8 Work
 
@@ -15,31 +19,35 @@
 
 ## 📁 FILE DIRECTORY
 
-### Phase 6 Creator Tools
+### Phase 6 Creator Tools (Historical)
 
-- `packages/creator-tools/src/TraitAnnotationEditor.ts` (500 LOC)
+> Migrated to Hololand platform repo (commit `284b55757`). Current creator surface: `packages/studio/`, `packages/studio-plugin-sdk/`, `packages/studio-ui-graph/`, `packages/create-holoscript/`, `packages/framework/src/board/creator-template.ts`.
+
+- ~~`packages/creator-tools/src/TraitAnnotationEditor.ts`~~ (500 LOC) — *migrated*
   - Visual trait editor for non-programmers
   - 4 material presets, full validation, undo/redo
-- `packages/creator-tools/src/RealtimePreviewEngine.ts` (600 LOC)
+- ~~`packages/creator-tools/src/RealtimePreviewEngine.ts`~~ (600 LOC) — *migrated*
   - Multi-device preview with live metrics
   - 6 pre-configured devices, performance recommendations
 
-### Demo Applications (All 5)
+### Demo Applications (Historical)
 
-- `packages/demo-apps/src/MedicalVRTraining.ts` (400 LOC)
+> Deleted as unfinished (commit `d0a5317e0`). Current demo surface: `examples/` (100+ `.holo`/`.hs` examples), `docs/demos/`, `packages/core/src/demos.ts`.
+
+- ~~`packages/demo-apps/src/MedicalVRTraining.ts`~~ (400 LOC) — *deleted*
   - Healthcare domain: 99% code reduction (50 vs 8,000 LOC)
-- `packages/demo-apps/src/ArchitecturalVisualization.ts` (400 LOC)
+- ~~`packages/demo-apps/src/ArchitecturalVisualization.ts`~~ (400 LOC) — *deleted*
   - Real estate domain: building walkthroughs, lighting simulation
-- `packages/demo-apps/src/ManufacturingDesign.ts` (400 LOC)
+- ~~`packages/demo-apps/src/ManufacturingDesign.ts`~~ (400 LOC) — *deleted*
   - Industrial domain: assembly procedures, stress visualization
-- `packages/demo-apps/src/CollaborativeVR.ts` (400 LOC)
+- ~~`packages/demo-apps/src/CollaborativeVR.ts`~~ (400 LOC) — *deleted*
   - Enterprise domain: multi-user collaboration, gestures
-- `packages/demo-apps/src/ARVRUnified.ts` (400 LOC)
+- ~~`packages/demo-apps/src/ARVRUnified.ts`~~ (400 LOC) — *deleted*
   - Consumer domain: seamless AR/VR transitions
 
 ### Master Showcase
 
-- `packages/demo-apps/src/MasterShowcase.ts` (600 LOC)
+- ~~`packages/demo-apps/src/MasterShowcase.ts`~~ (600 LOC) — *archived at `docs/archive/demos/MasterShowcase.ts`*
   - Unified demonstration, aggregate analysis, reports
 
 ### Documentation
@@ -49,7 +57,7 @@
 - `PHASE_6_8_PARALLEL_IMPLEMENTATION_COMPLETE.md`
   - Comprehensive session documentation
 - `DELIVERABLES_INDEX.md`
-  - Complete file reference and access guide
+  - Complete file reference and access guide **(updated with current package paths)**
 - `hololand-audit.md`
   - Architecture analysis + 5-week integration roadmap
 - `HOLOLAND_ECOSYSTEM_INTEGRATION.md` (existing)
@@ -94,18 +102,16 @@
 
 ## 🚀 WHAT WAS ACCOMPLISHED
 
-### Stream 1: Phase 6 Creator Tools ✅
+### Stream 1: Phase 6 Creator Tools (Migrated)
 
-- ✅ TraitAnnotationEditor.ts (500 LOC) - Visual trait editor
-- ✅ RealtimePreviewEngine.ts (600 LOC) - Multi-device preview
-- Status: Production-ready, awaiting UI wrapper
+- ✅ TraitAnnotationEditor.ts (500 LOC) — migrated to Hololand platform repo
+- ✅ RealtimePreviewEngine.ts (600 LOC) — migrated to Hololand platform repo
+- Status: **Migrated** (commit `284b55757`); current creator surface in `packages/studio/`, `packages/framework/src/board/creator-template.ts`
 
-### Stream 2: Demo Applications ✅
+### Stream 2: Demo Applications (Deleted)
 
-- ✅ All 5 applications complete (430 LOC total)
-- ✅ 6 platforms validated (99% code reuse)
-- ✅ 99.3% code reduction demonstrated
-- Status: Production-ready, ready for deployment
+- ❌ MedicalVRTraining, ArchitecturalVisualization, ManufacturingDesign, CollaborativeVR, ARVRUnified — deleted as unfinished (commit `d0a5317e0`)
+- Status: **Deleted**; demos live in `examples/` (100+ `.holo`/`.hs`), `docs/demos/`, `packages/core/src/demos.ts`
 
 ### Stream 3: Hololand Integration ✅
 
