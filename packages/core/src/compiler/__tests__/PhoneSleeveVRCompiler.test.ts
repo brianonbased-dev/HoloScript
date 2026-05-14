@@ -162,6 +162,15 @@ describe('PhoneSleeveVRCompiler', () => {
     expect(html).toContain('ipd-display');
   });
 
+  it('renders splash IPD edge zones', () => {
+    const html = compiler.compile(makeComposition(), 'test-token');
+    expect(html).toContain('id="ipd-left"');
+    expect(html).toContain('id="ipd-right"');
+    expect(html).toContain('class="ipd-zone ipd-zone-left"');
+    expect(html).toContain('adjustIPD(-1)');
+    expect(html).toContain('adjustIPD(1)');
+  });
+
   // =========== Battery & thermal ===========
 
   it('includes battery awareness', () => {

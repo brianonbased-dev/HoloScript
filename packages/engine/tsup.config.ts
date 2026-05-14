@@ -65,6 +65,9 @@ export default defineConfig({
     '@holoscript/core-types',
     'react',
     'react-dom',
+    'puppeteer',
+    'puppeteer-core',
+    /^@puppeteer\//,
   ],
   target: 'esnext',
 });

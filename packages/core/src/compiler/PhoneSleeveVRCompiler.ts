@@ -861,6 +861,15 @@ ${handTrackingFrame}
       background: transparent; color: #00ccff; border-radius: 8px; cursor: pointer;
     }
     #splash button:active { background: #00ccff22; }
+    #splash .ipd-zone {
+      position: fixed; top: 0; bottom: 0; width: 18vw; min-width: 56px;
+      padding: 0; border: 0; border-radius: 0;
+      color: rgba(255,255,255,0.55); background: rgba(0,204,255,0.08);
+      font-size: 2rem; touch-action: manipulation;
+    }
+    #splash .ipd-zone:active { background: rgba(0,204,255,0.18); }
+    #splash .ipd-zone-left { left: 0; }
+    #splash .ipd-zone-right { right: 0; }
     #reticle {
       position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
       width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.7);
@@ -894,6 +903,8 @@ ${this.opts.aiTracking ? this.buildAIMediaPipeScripts() : ''}
     <h1>Phone Sleeve VR</h1>
     <p>Slide your phone into the sleeve, then tap the button below to enter VR.<br>
        Tap left/right edges to adjust eye spacing (IPD).</p>
+    <button type="button" class="ipd-zone ipd-zone-left" id="ipd-left" aria-label="Decrease IPD">-</button>
+    <button type="button" class="ipd-zone ipd-zone-right" id="ipd-right" aria-label="Increase IPD">+</button>
     <button id="enter-vr">Enter VR</button>
   </div>
   <div id="reticle"><div id="reticle-fill"></div></div>
@@ -1086,22 +1097,42 @@ ${this.opts.aiTracking ? this.buildAIMediaPipeScripts() : ''}
     // =====================================================================
     const ipdDisplay = document.getElementById('ipd-display');
     const ipdVal = document.getElementById('ipd-val');
+    const ipdLeft = document.getElementById('ipd-left');
+    const ipdRight = document.getElementById('ipd-right');
+
+    function adjustIPD(delta) {
+      currentIPD = Math.max(55, Math.min(75, currentIPD + delta));
+      stereoEffect.setEyeSeparation(currentIPD / 1000);
+      showIPD();
+    }
+
+    ipdLeft.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      adjustIPD(-1);
+    });
+
+    ipdRight.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      adjustIPD(1);
+    });
 
     document.addEventListener('touchstart', (e) => {
-      const x = e.touches[0].clientX;
+      const target = e.target;
+      if (target && target.closest && target.closest('.ipd-zone')) return;
+      const touch = e.touches && e.touches[0];
+      if (!touch) return;
+      const x = touch.clientX;
       const w = window.innerWidth;
       if (x < w * 0.15) {
-        // Left edge: decrease IPD
-        currentIPD = Math.max(55, currentIPD - 1);
-        stereoEffect.setEyeSeparation(currentIPD / 1000);
-        showIPD();
+        e.preventDefault();
+        adjustIPD(-1);
       } else if (x > w * 0.85) {
-        // Right edge: increase IPD
-        currentIPD = Math.min(75, currentIPD + 1);
-        stereoEffect.setEyeSeparation(currentIPD / 1000);
-        showIPD();
+        e.preventDefault();
+        adjustIPD(1);
       }
-    });
+    }, { passive: false });
 
     function showIPD() {
       ipdVal.textContent = String(currentIPD);

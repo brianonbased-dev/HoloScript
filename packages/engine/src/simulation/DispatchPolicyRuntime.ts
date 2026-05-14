@@ -25,8 +25,9 @@ import {
   LIFSimulator,
   GPUContext,
   DEFAULT_LIF_PARAMS,
+  type SNNNetwork,
 } from '@holoscript/snn-webgpu';
-import { assertHoloMapManifestContract } from '@holoscript/core';
+import { assertHoloMapManifestContract, type ReconstructionManifest } from '@holoscript/core';
 import type { CAELCognitionEngine } from './CAELAgent';
 
 // ── Tier-1 WebGPU SNN Executor ───────────────────────────────────────────────
@@ -46,7 +47,7 @@ let webGpuState: WebGpuTierExecutorState = {};
  */
 export async function executeTier1BrowserSnn(
   op: DispatchableOperation
-): Promise<unknown> {
+): Promise<{ accepted: boolean; source: string; steps?: number; reason?: string }> {
   if (!webGpuState.gpuContext) {
     try {
       const ctx = new GPUContext();
@@ -73,8 +74,6 @@ export async function executeTier1BrowserSnn(
 
   // Return a provenance-enriched result
   return {
-    trait: op.trait,
-    nodeId: op.nodeId,
     source: 'snn-webgpu',
     steps,
     accepted: true,
@@ -177,7 +176,7 @@ export async function tier2EffectVerifier(
 export async function tier2SimulationContractVerifier(manifest: unknown): Promise<boolean> {
   if (!manifest) return true;
   try {
-    assertHoloMapManifestContract(manifest);
+    assertHoloMapManifestContract(manifest as ReconstructionManifest);
     return true;
   } catch {
     return false;

@@ -829,10 +829,14 @@
     "three": "^0.182.0"
   },
   "peerDependencies": {
-    "@holoscript/uaal": "workspace:*"
+    "@holoscript/uaal": "workspace:*",
+    "puppeteer": "^23.0.0"
   },
   "peerDependenciesMeta": {
     "@holoscript/uaal": {
+      "optional": true
+    },
+    "puppeteer": {
       "optional": true
     }
   },
