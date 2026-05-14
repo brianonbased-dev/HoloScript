@@ -10,22 +10,16 @@
 
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { deflateSync } from 'node:zlib';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
 const DEFAULT_MANIFEST = 'experiments/format-realism-gauntlet/manifest.json';
 const DEFAULT_DATE = new Date().toISOString().slice(0, 10);
+const SEGMENT_REPLAY_MODE = 'segment-replay-kinematic';
 const PLACEHOLDER_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
   'base64'
@@ -40,6 +34,8 @@ Options:
   --width <px>         Screenshot width. Default: 1280.
   --height <px>        Screenshot height. Default: 720.
   --wait-for <ms>      Screenshot stabilization wait. Default: 1000.
+  --base-still <png>   Use an existing scene still, then emit segment replay stills.
+  --no-replay-stills   Preserve historical static-copy still behavior.
   --dry-run            Emit receipts without running parse/compile/headless/screenshot.
   --skip-screenshot    Do not invoke screenshot; write placeholder stills.
   --skip-headless      Do not invoke headless runtime.
@@ -56,6 +52,8 @@ export function parseRunnerArgs(argv = process.argv.slice(2)) {
     width: 1280,
     height: 720,
     waitFor: 1000,
+    baseStill: undefined,
+    replayStills: true,
     dryRun: false,
     skipScreenshot: false,
     skipHeadless: false,
@@ -78,6 +76,10 @@ export function parseRunnerArgs(argv = process.argv.slice(2)) {
       options.height = Number.parseInt(argv[++i], 10) || options.height;
     } else if (arg === '--wait-for') {
       options.waitFor = Number.parseInt(argv[++i], 10) || options.waitFor;
+    } else if (arg === '--base-still') {
+      options.baseStill = argv[++i];
+    } else if (arg === '--no-replay-stills') {
+      options.replayStills = false;
     } else if (arg === '--dry-run') {
       options.dryRun = true;
     } else if (arg === '--skip-screenshot') {
@@ -136,6 +138,260 @@ function rel(from, to) {
 function resolveFromManifest(manifestPath, maybeRelative) {
   if (isAbsolute(maybeRelative)) return maybeRelative;
   return resolve(dirname(manifestPath), maybeRelative);
+}
+
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const CRC_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) {
+      c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    }
+    table[n] = c >>> 0;
+  }
+  return table;
+})();
+
+function crc32(buffer) {
+  let crc = 0xffffffff;
+  for (const byte of buffer) {
+    crc = CRC_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function pngChunk(type, data = Buffer.alloc(0)) {
+  const typeBuffer = Buffer.from(type, 'ascii');
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(data.length, 0);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(crc32(Buffer.concat([typeBuffer, data])), 0);
+  return Buffer.concat([length, typeBuffer, data, crc]);
+}
+
+function encodeRgbaPng(width, height, pixels) {
+  const raw = Buffer.alloc((width * 4 + 1) * height);
+  for (let y = 0; y < height; y++) {
+    const rowStart = y * (width * 4 + 1);
+    raw[rowStart] = 0;
+    pixels.copy(raw, rowStart + 1, y * width * 4, (y + 1) * width * 4);
+  }
+
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 6;
+
+  return Buffer.concat([
+    PNG_SIGNATURE,
+    pngChunk('IHDR', ihdr),
+    pngChunk('IDAT', deflateSync(raw)),
+    pngChunk('IEND'),
+  ]);
+}
+
+function createRaster(width, height, color) {
+  const pixels = Buffer.alloc(width * height * 4);
+  for (let i = 0; i < width * height; i++) {
+    const offset = i * 4;
+    pixels[offset] = color[0];
+    pixels[offset + 1] = color[1];
+    pixels[offset + 2] = color[2];
+    pixels[offset + 3] = color[3] ?? 255;
+  }
+  return { width, height, pixels };
+}
+
+function clampInt(value, min, max) {
+  return Math.max(min, Math.min(max, Math.round(value)));
+}
+
+function blendPixel(canvas, x, y, color) {
+  const px = Math.round(x);
+  const py = Math.round(y);
+  if (px < 0 || py < 0 || px >= canvas.width || py >= canvas.height) return;
+  const offset = (py * canvas.width + px) * 4;
+  const alpha = (color[3] ?? 255) / 255;
+  const inv = 1 - alpha;
+  canvas.pixels[offset] = Math.round(color[0] * alpha + canvas.pixels[offset] * inv);
+  canvas.pixels[offset + 1] = Math.round(color[1] * alpha + canvas.pixels[offset + 1] * inv);
+  canvas.pixels[offset + 2] = Math.round(color[2] * alpha + canvas.pixels[offset + 2] * inv);
+  canvas.pixels[offset + 3] = 255;
+}
+
+function fillRect(canvas, x, y, width, height, color) {
+  const left = clampInt(x, 0, canvas.width);
+  const top = clampInt(y, 0, canvas.height);
+  const right = clampInt(x + width, 0, canvas.width);
+  const bottom = clampInt(y + height, 0, canvas.height);
+  for (let py = top; py < bottom; py++) {
+    for (let px = left; px < right; px++) {
+      blendPixel(canvas, px, py, color);
+    }
+  }
+}
+
+function fillCircle(canvas, cx, cy, radius, color) {
+  const r = Math.max(1, Math.round(radius));
+  for (let y = -r; y <= r; y++) {
+    for (let x = -r; x <= r; x++) {
+      if (x * x + y * y <= r * r) blendPixel(canvas, cx + x, cy + y, color);
+    }
+  }
+}
+
+function drawLine(canvas, x0, y0, x1, y1, color, thickness = 1) {
+  const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    fillCircle(canvas, x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, thickness, color);
+  }
+}
+
+function parseVector(value) {
+  if (Array.isArray(value)) return value.map(Number).filter(Number.isFinite);
+  if (typeof value !== 'string') return [];
+  return [...value.matchAll(/-?\d+(?:\.\d+)?/g)]
+    .map((match) => Number(match[0]))
+    .filter(Number.isFinite);
+}
+
+function worldToCanvas([x, y], width, height) {
+  const marginX = width * 0.1;
+  const marginY = height * 0.16;
+  const nx = (x + 3.8) / 8;
+  const ny = y / 2.8;
+  return [marginX + nx * (width - marginX * 2), height - marginY - ny * (height - marginY * 2)];
+}
+
+function drawSegmentMarkers(canvas, index, total, accent) {
+  const width = canvas.width;
+  const height = canvas.height;
+  fillRect(canvas, 0, 0, width, Math.max(14, height * 0.035), [8, 11, 18, 235]);
+  const progress = total <= 1 ? 1 : (index + 1) / total;
+  fillRect(canvas, 0, 0, width * progress, Math.max(14, height * 0.035), accent);
+
+  const block = Math.max(6, Math.floor(width / 120));
+  const startX = width - block * 14;
+  const top = Math.max(20, Math.floor(height * 0.06));
+  for (let bit = 0; bit < 12; bit++) {
+    const on = ((index + 1) >> bit) & 1;
+    fillRect(
+      canvas,
+      startX + bit * block,
+      top,
+      block - 1,
+      block * 3,
+      on ? accent : [67, 76, 94, 180]
+    );
+  }
+}
+
+export function renderSegmentReplayStill({
+  segment,
+  index,
+  total,
+  sceneSnapshot,
+  width = 1280,
+  height = 720,
+}) {
+  const safeWidth = Math.max(320, Math.round(width));
+  const safeHeight = Math.max(180, Math.round(height));
+  const palette = [
+    [122, 162, 247, 230],
+    [247, 118, 142, 230],
+    [224, 175, 104, 230],
+    [158, 206, 106, 230],
+    [187, 154, 247, 230],
+    [125, 207, 255, 230],
+  ];
+  const accent = palette[index % palette.length];
+  const canvas = createRaster(safeWidth, safeHeight, [13, 17, 25, 255]);
+
+  for (let y = 0; y < safeHeight; y++) {
+    const shade = Math.round(18 + (y / safeHeight) * 20);
+    fillRect(canvas, 0, y, safeWidth, 1, [shade, shade + 2, shade + 8, 255]);
+  }
+
+  const floorY = safeHeight * 0.82;
+  fillRect(canvas, safeWidth * 0.08, floorY, safeWidth * 0.84, 4, [190, 195, 210, 150]);
+  drawSegmentMarkers(canvas, index, total, accent);
+
+  for (const object of sceneObjectAnchors(sceneSnapshot, 10)) {
+    const vec = parseVector(object.transform?.position);
+    if (vec.length >= 2) {
+      const [x, y] = worldToCanvas([vec[0], vec[1]], safeWidth, safeHeight);
+      fillRect(canvas, x - 8, y - 8, 16, 16, [255, 255, 255, 70]);
+      fillRect(canvas, x - 4, y - 4, 8, 8, [255, 255, 255, 130]);
+    }
+  }
+
+  const pose = posePhysicsFor(segment, index, total, sceneSnapshot);
+  const avatar = pose.bodies.avatar.position;
+  const hand = pose.bodies.rightHand.position;
+  const rock = pose.bodies.rock.position;
+  const target = pose.bodies.target.position;
+  const [avatarX, avatarY] = worldToCanvas([avatar[0], avatar[1]], safeWidth, safeHeight);
+  const [handX, handY] = worldToCanvas([hand[0], hand[1]], safeWidth, safeHeight);
+  const [rockX, rockY] = worldToCanvas([rock[0], rock[1]], safeWidth, safeHeight);
+  const [targetX, targetY] = worldToCanvas([target[0], target[1]], safeWidth, safeHeight);
+
+  drawLine(canvas, safeWidth * 0.12, floorY, safeWidth * 0.88, floorY, [95, 109, 139, 180], 2);
+  drawLine(canvas, avatarX, avatarY - 36, handX, handY, accent, 5);
+  drawLine(canvas, avatarX, avatarY + 18, avatarX - 14, floorY - 4, [180, 190, 205, 210], 4);
+  drawLine(canvas, avatarX, avatarY + 18, avatarX + 14, floorY - 4, [180, 190, 205, 210], 4);
+  fillCircle(canvas, avatarX, avatarY - 46, 18, [225, 232, 246, 240]);
+  fillRect(canvas, avatarX - 16, avatarY - 30, 32, 52, [130, 146, 190, 230]);
+  fillCircle(canvas, handX, handY, 9, [245, 207, 168, 245]);
+  fillCircle(
+    canvas,
+    rockX,
+    rockY,
+    14,
+    pose.bodies.rock.attachedToHand ? accent : [210, 210, 220, 245]
+  );
+  fillRect(
+    canvas,
+    targetX - 18,
+    targetY - 45,
+    36,
+    90,
+    pose.bodies.target.impacted ? [247, 118, 142, 235] : [120, 180, 245, 220]
+  );
+
+  if (pose.physics.arcSamples.length > 1) {
+    const points = pose.physics.arcSamples.map((sample) =>
+      worldToCanvas([sample[0], sample[1]], safeWidth, safeHeight)
+    );
+    for (let i = 1; i < points.length; i++) {
+      drawLine(
+        canvas,
+        points[i - 1][0],
+        points[i - 1][1],
+        points[i][0],
+        points[i][1],
+        [255, 213, 128, 220],
+        3
+      );
+    }
+  }
+
+  const phaseWidth = (safeWidth * 0.72) / Math.max(1, total);
+  const phaseY = safeHeight * 0.9;
+  for (let i = 0; i < total; i++) {
+    fillRect(
+      canvas,
+      safeWidth * 0.14 + i * phaseWidth,
+      phaseY,
+      Math.max(2, phaseWidth - 2),
+      10,
+      i <= index ? accent : [70, 77, 96, 170]
+    );
+  }
+
+  return encodeRgbaPng(safeWidth, safeHeight, canvas.pixels);
 }
 
 function resolveRepoPath(path) {
@@ -425,10 +681,11 @@ async function runCommand({ id, args, logDir, dryRun }) {
   });
 }
 
-function stillModeFor(index, screenshotCommand, screenshotAvailable) {
+function stillModeFor(index, screenshotCommand, screenshotAvailable, replayStills) {
   if (!screenshotCommand || screenshotCommand.skipped || !screenshotAvailable) return 'placeholder';
   if (!screenshotCommand.success) return 'placeholder';
-  return index === 0 ? 'captured-scene-loaded' : 'static-scene-copy';
+  if (index === 0) return 'captured-scene-loaded';
+  return replayStills ? SEGMENT_REPLAY_MODE : 'static-scene-copy';
 }
 
 function sha256File(filePath) {
@@ -441,7 +698,7 @@ function buildStillEvidence(receipts, outputDir) {
     const absolutePath = join(outputDir, receipt.still);
     const exists = existsSync(absolutePath);
     return {
-      segment: receipt.segment,
+      segment: receipt.segment ?? receipt.id,
       label: receipt.label,
       still: receipt.still,
       exists,
@@ -590,12 +847,15 @@ export function buildSegmentReceipt({
   const headless = commandResults.find((command) => command.id === 'headless-holo');
   const screenshot = commandResults.find((command) => command.id === 'screenshot-base');
   const dynamicSegment = index > 0;
+  const replayStill = dynamicSegment && stillMode === SEGMENT_REPLAY_MODE;
   const status =
     screenshot?.success && !dynamicSegment && headless?.success
       ? 'partial-pass'
-      : dynamicSegment
-        ? 'blocked-dynamic-replay'
-        : 'partial-pass';
+      : replayStill
+        ? 'segment-replay-receipt'
+        : dynamicSegment
+          ? 'blocked-dynamic-replay'
+          : 'partial-pass';
   const owner = ownerForSegment(segment.id);
 
   return {
@@ -612,10 +872,16 @@ export function buildSegmentReceipt({
       status,
       owningSurface: owner,
       findings: dynamicSegment
-        ? [
-            'Static still exists, but segment-specific camera/pose playback is not implemented yet.',
-            `Next owner: ${owner}.`,
-          ]
+        ? replayStill
+          ? [
+              'Segment replay still generated from the segment pose/state payload.',
+              'The still is visual replay evidence, not a full engine physics proof yet.',
+              `Next owner: ${owner}.`,
+            ]
+          : [
+              'Static still exists, but segment-specific camera/pose playback is not implemented yet.',
+              `Next owner: ${owner}.`,
+            ]
         : [
             'Scene-loaded still and command evidence exist; visual realism remains a separate quality ratchet.',
           ],
@@ -629,7 +895,9 @@ export function buildSegmentReceipt({
         budgetMs: 16.67,
         observedMs: headless?.success ? headless.durationMs : null,
         note: dynamicSegment
-          ? 'No real per-frame segment replay yet; timing is command-level evidence.'
+          ? replayStill
+            ? 'Replay still is generated from deterministic segment state; frame timing is command-level evidence.'
+            : 'No real per-frame segment replay yet; timing is command-level evidence.'
           : 'Scene load command-level timing, not a render-frame profiler.',
       },
     },
@@ -690,7 +958,31 @@ async function runEvidenceCommands({ options, manifestPath, manifest, outputDir 
     commandPlans.push(['headless-holo', ['headless', stagePath, '--duration', '250', '--json']]);
   }
 
-  if (!options.skipScreenshot) {
+  if (options.baseStill) {
+    const baseStillPath = resolveRepoPath(options.baseStill);
+    const stdoutPath = join(logDir, 'screenshot-base.stdout.txt');
+    const stderrPath = join(logDir, 'screenshot-base.stderr.txt');
+    mkdirSync(logDir, { recursive: true });
+    if (!existsSync(baseStillPath)) {
+      writeFileSync(stdoutPath, '', 'utf8');
+      writeFileSync(stderrPath, `Base still not found: ${baseStillPath}\n`, 'utf8');
+      commandPlans.push([
+        'screenshot-base',
+        ['screenshot', stagePath, '-o', screenshotPath, '--base-still', baseStillPath],
+      ]);
+    } else {
+      writeFileSync(screenshotPath, readFileSync(baseStillPath));
+      writeFileSync(
+        stdoutPath,
+        `Using pre-captured base still: ${rel(REPO_ROOT, baseStillPath)}\n`
+      );
+      writeFileSync(stderrPath, '', 'utf8');
+      commandPlans.push([
+        'screenshot-base',
+        ['screenshot', stagePath, '-o', screenshotPath, '--base-still', baseStillPath],
+      ]);
+    }
+  } else if (!options.skipScreenshot) {
     commandPlans.push([
       'screenshot-base',
       [
@@ -710,7 +1002,22 @@ async function runEvidenceCommands({ options, manifestPath, manifest, outputDir 
 
   const results = [];
   for (const [id, args] of commandPlans) {
-    results.push(await runCommand({ id, args, logDir, dryRun: options.dryRun }));
+    if (options.baseStill && id === 'screenshot-base') {
+      const baseStillPath = resolveRepoPath(options.baseStill);
+      results.push({
+        id,
+        command: `pre-captured base still ${rel(REPO_ROOT, baseStillPath)}`,
+        args,
+        success: existsSync(baseStillPath),
+        skipped: false,
+        exitCode: existsSync(baseStillPath) ? 0 : 1,
+        durationMs: 0,
+        stdout: rel(REPO_ROOT, join(logDir, 'screenshot-base.stdout.txt')),
+        stderr: rel(REPO_ROOT, join(logDir, 'screenshot-base.stderr.txt')),
+      });
+    } else {
+      results.push(await runCommand({ id, args, logDir, dryRun: options.dryRun }));
+    }
   }
 
   const fallbackSceneSnapshot = await loadHeadlessSceneSnapshot(stagePath);
@@ -726,7 +1033,16 @@ async function runEvidenceCommands({ options, manifestPath, manifest, outputDir 
   return { results, screenshotPath, sceneSnapshot };
 }
 
-function ensureSegmentStills({ manifest, outputDir, screenshotPath, screenshotCommand }) {
+function ensureSegmentStills({
+  manifest,
+  outputDir,
+  screenshotPath,
+  screenshotCommand,
+  sceneSnapshot,
+  replayStills,
+  width,
+  height,
+}) {
   const stillsDir = join(outputDir, 'stills');
   mkdirSync(stillsDir, { recursive: true });
   const baseExists = existsSync(screenshotPath);
@@ -736,17 +1052,30 @@ function ensureSegmentStills({ manifest, outputDir, screenshotPath, screenshotCo
 
   return manifest.segments.map((segment, index) => {
     const stillPath = join(stillsDir, segment.expectedStill || `${segment.id}.png`);
+    const stillMode = stillModeFor(index, screenshotCommand, baseExists, replayStills);
     if (index === 0) {
       if (!existsSync(stillPath)) writeFileSync(stillPath, PLACEHOLDER_PNG);
-      return { segment, stillPath, stillMode: stillModeFor(index, screenshotCommand, baseExists) };
+      return { segment, stillPath, stillMode };
     }
 
-    if (existsSync(screenshotPath)) {
-      copyFileSync(screenshotPath, stillPath);
+    if (stillMode === SEGMENT_REPLAY_MODE) {
+      writeFileSync(
+        stillPath,
+        renderSegmentReplayStill({
+          segment,
+          index,
+          total: manifest.segments.length,
+          sceneSnapshot,
+          width,
+          height,
+        })
+      );
+    } else if (existsSync(screenshotPath)) {
+      writeFileSync(stillPath, readFileSync(screenshotPath));
     } else {
       writeFileSync(stillPath, PLACEHOLDER_PNG);
     }
-    return { segment, stillPath, stillMode: stillModeFor(index, screenshotCommand, baseExists) };
+    return { segment, stillPath, stillMode };
   });
 }
 
@@ -792,6 +1121,10 @@ export async function runSegmentedCapture(rawOptions = {}) {
     outputDir,
     screenshotPath,
     screenshotCommand,
+    sceneSnapshot,
+    replayStills: options.replayStills,
+    width: options.width,
+    height: options.height,
   });
 
   const eventDir = join(outputDir, 'events');
@@ -824,7 +1157,17 @@ export async function runSegmentedCapture(rawOptions = {}) {
           objectCount: sceneSnapshot.objectCount,
           source: sceneSnapshot.source,
         },
-        { type: 'evidence_receipt_emitted', segment: segment.id, atMs: index * 250 + 1 },
+        {
+          type:
+            stillMode === SEGMENT_REPLAY_MODE
+              ? 'segment_replay_still_emitted'
+              : 'still_evidence_recorded',
+          segment: segment.id,
+          atMs: index * 250 + 1,
+          still: rel(outputDir, stillPath),
+          stillMode,
+        },
+        { type: 'evidence_receipt_emitted', segment: segment.id, atMs: index * 250 + 2 },
       ],
       commandEvidence: commandResults.map((command) => ({
         id: command.id,
@@ -859,6 +1202,18 @@ export async function runSegmentedCapture(rawOptions = {}) {
 
   const stillEvidence = buildStillEvidence(receipts, outputDir);
   const visualEvidence = summarizeVisualEvidence(stillEvidence);
+  const replayInputs = receipts.map((receipt, index) => ({
+    schema: 'format-stress-segment-replay-input-v1',
+    segmentId: receipt.id,
+    title: receipt.title,
+    index,
+    atMs: index * 250,
+    still: receipt.still,
+    stillMode: receipt.stillMode,
+    eventLog: receipt.eventLog,
+    posePhysicsJson: receipt.posePhysicsJson,
+    runtimeScene: receipt.runtimeScene,
+  }));
 
   const coverage = {
     segmentsRequested: manifest.segments.length,
@@ -891,7 +1246,9 @@ export async function runSegmentedCapture(rawOptions = {}) {
     command: `node scripts/format-stress-segmented-capture.mjs ${rel(REPO_ROOT, manifestPath)}`,
     commands: commandResults,
     headlessScene: sceneSnapshot,
+    replayInputs: rel(REPO_ROOT, join(outputDir, 'segment-replay-inputs.json')),
     segments: receipts,
+    visualEvidence,
     coverage,
   };
 
@@ -899,6 +1256,7 @@ export async function runSegmentedCapture(rawOptions = {}) {
   writeJson(join(dirname(outputDir), 'segment-receipts.json'), receiptPayload);
   writeJson(join(outputDir, 'still-evidence.json'), stillEvidence);
   writeJson(join(outputDir, 'visual-uniqueness-audit.json'), visualEvidence);
+  writeJson(join(outputDir, 'segment-replay-inputs.json'), replayInputs);
   writeJson(join(outputDir, 'task-seeds.json'), seeds);
   writeJson(join(outputDir, 'scorecard.json'), {
     schema: 'format-realism-gauntlet-scorecard-v1',
@@ -928,6 +1286,7 @@ export async function runSegmentedCapture(rawOptions = {}) {
       scorecard: rel(REPO_ROOT, join(outputDir, 'scorecard.json')),
       stillEvidence: rel(REPO_ROOT, join(outputDir, 'still-evidence.json')),
       visualUniquenessAudit: rel(REPO_ROOT, join(outputDir, 'visual-uniqueness-audit.json')),
+      segmentReplayInputs: rel(REPO_ROOT, join(outputDir, 'segment-replay-inputs.json')),
       taskSeeds: rel(REPO_ROOT, join(outputDir, 'task-seeds.json')),
       stillBytes,
     },
