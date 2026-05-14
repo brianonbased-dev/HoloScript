@@ -80,3 +80,6 @@ export type {
   TraitEventPayload,
   TraitInstanceDelegate,
 } from '../traits/TraitTypes';
+
+// Trust primitives (ADR-2026-05-14)
+export * from '../trust';
