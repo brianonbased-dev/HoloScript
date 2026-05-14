@@ -1,4 +1,9 @@
 > **ARCHIVED** — This document contains historical numbers that were accurate at time of writing. For current ecosystem metrics, see [NUMBERS.md](../NUMBERS.md).
+>
+> **CANARY (2026-05-14)**: This archive predates the substrate-first HoloLand/Brittney framing.
+> Treat HoloLand as the spatial runtime substrate; Brittney is one participant/tool surface
+> under `packages/brittney/**`, not the owner of the substrate namespace. Verify current
+> HoloLand/Brittney paths before configuring new agents from this document.
 
 # HoloScript MCP Server Guide
 
@@ -235,9 +240,14 @@ Check input matches schema:
 
 ## Related Servers
 
-### Brittney MCP (`Hololand/packages/brittney/mcp-server`)
+### HoloLand Runtime MCP / Brittney Tools (legacy path: `Hololand/packages/brittney/mcp-server`)
 
-For VR platform features, use the Brittney MCP server in the Hololand repo:
+Archive canary: the historical package path below reflects where Brittney runtime tools lived
+at the time. For current framing, HoloLand is the runtime substrate and Brittney is one
+participant/tool surface that can operate in that substrate. Do not infer that Brittney owns
+the HoloLand MCP namespace.
+
+For VR platform features, use the HoloLand runtime MCP surface in the HoloLand repo:
 
 - `brittney_*` tools for AI assistance
 - `holo_*` tools for graph visualization
