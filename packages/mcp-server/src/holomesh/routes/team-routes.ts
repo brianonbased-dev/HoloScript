@@ -791,11 +791,10 @@ export async function handleTeamRoutes(
       return true;
     }
 
-    // Phase 1.5 signing-middleware integration (task _wfrt). Dual-mode by
-    // default: legacy unsigned bodies pass through; signed envelopes are
-    // verified + registry-checked. HOLOMESH_SIGNING_MIGRATION_ACK=1 flips
-    // dual-mode → strict so unsigned bodies are rejected. Recipe documented
-    // in identity/signing-middleware.ts; same shape applies to other
+    // Phase 3 strict-by-default signing-middleware integration. Unsigned
+    // bodies are rejected unless HOLOMESH_SIGNING_GRACE=1 is set; signed
+    // envelopes are verified + registry-checked. Recipe documented in
+    // identity/signing-middleware.ts; same shape applies to other
     // mutating routes (a follow-up task wires the remaining 4 broadcast
     // sites — kept minimal here to ship the integration proof first).
     const rawBody = await parseJsonBody(req);

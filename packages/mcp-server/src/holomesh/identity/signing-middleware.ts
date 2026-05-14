@@ -5,9 +5,8 @@
  * attestation registry (./attestation-registry.ts) into a single helper that
  * route handlers can call once-per-mutation to:
  *   1. Detect whether the request body is a signed envelope or a legacy
- *      unsigned body (during the 14-day Phase 3 grace period both are
- *      accepted; HOLOMESH_SIGNING_MIGRATION_ACK=1 or elapsed grace period
- *      flips dual-mode → strict).
+ *      unsigned body (strict by default; HOLOMESH_SIGNING_GRACE=1 opts
+ *      into the grace period where unsigned requests are still accepted).
  *   2. Verify the cryptographic signature (when present) and the registry
  *      check (when the registry is populated).
  *   3. Return the effective body (unwrapped from the envelope when present)
@@ -359,28 +358,31 @@ export const GRACE_PERIOD_MS = 14 * 24 * 60 * 60 * 1000;
 
 /**
  * True when the server should reject unsigned mutating requests outright.
- * Two independent triggers, either sufficient:
  *
- *   1. **Early opt-in**: `HOLOMESH_SIGNING_MIGRATION_ACK=1` opts a specific
- *      machine into the strict-mode rejection path before the global 14-day
- *      cutover — operators can validate the rejection path in production
- *      without rushing everyone onto signed-only.
+ * Phase 3 strict-by-default: unsigned requests are rejected unless the
+ * operator explicitly opts out. Two escape hatches, either sufficient:
  *
- *   2. **Timed cutover**: when `HOLOMESH_SIGNING_DEPLOY_DATE` is set (ISO 8601
- *      date string, e.g. `2026-05-01` or `2026-05-01T00:00:00Z`) and the
- *      current time is past `deployDate + 14 days`, unsigned requests are
- *      automatically rejected. This implements the Phase 3 14-day migration
- *      window from ADR §Q4.
+ *   1. **Explicit opt-out**: `HOLOMESH_SIGNING_GRACE=1` disables strict mode
+ *      for machines that are not yet sending signed requests. Set this
+ *      temporarily during rollout until all clients are signing.
  *
- * During the grace period (deploy date set but < 14 days elapsed and no
- * MIGRATION_ACK), the server runs in dual-mode: both signed and unsigned
- * requests are accepted, with unsigned ones logged as `unsigned-grace`.
+ *   2. **Timed cutover**: when `HOLOMESH_SIGNING_DEPLOY_DATE` is set (ISO
+ *      8601 date string) and the current time is past `deployDate + 14 days`,
+ *      unsigned requests are automatically rejected regardless of GRACE.
+ *      This implements the Phase 3 14-day migration window from ADR §Q4.
+ *
+ * Migration note (2026-05-14): the old `HOLOMESH_SIGNING_MIGRATION_ACK=1`
+ * opt-in is no longer checked — strict mode is now the default. Remove
+ * MIGRATION_ACK from deployment configs; it has no effect.
  */
 export function isStrictMode(env: NodeJS.ProcessEnv = process.env, nowMs: number = Date.now()): boolean {
-  // Early opt-in: per-machine strict mode for testing the rejection path.
-  if (env.HOLOMESH_SIGNING_MIGRATION_ACK === '1') return true;
+  // Phase 3: strict mode is ON by default. Set GRACE=1 to opt out during
+  // the transition period (for machines not yet sending signed requests).
+  if (env.HOLOMESH_SIGNING_GRACE === '1') return false;
 
   // Timed cutover: automatic strict mode after the 14-day grace period.
+  // This is redundant when strict is already the default, but kept as a
+  // safety net for configs that set DEPLOY_DATE without GRACE=1.
   const deployDateStr = env.HOLOMESH_SIGNING_DEPLOY_DATE;
   if (deployDateStr) {
     const deployMs = Date.parse(deployDateStr);
@@ -389,7 +391,8 @@ export function isStrictMode(env: NodeJS.ProcessEnv = process.env, nowMs: number
     }
   }
 
-  return false;
+  // Default: strict mode ON (signed attribution required).
+  return true;
 }
 
 /**
@@ -399,7 +402,7 @@ export function isStrictMode(env: NodeJS.ProcessEnv = process.env, nowMs: number
  *
  * Failure modes:
  *   - body is unsigned + strict-mode → ctx.signingValid=false, reason='unsigned-rejected'
- *   - body is unsigned + dual-mode  → ctx.signingValid=true (Phase 1 grace),
+ *   - body is unsigned + GRACE=1    → ctx.signingValid=true (Phase 3 grace),
  *     reason='unsigned-grace'
  *   - body is signed + envelope verifies + registry attests → signingValid=true
  *   - any verifier failure → signingValid=false, reason from verifyEnvelope
@@ -842,6 +845,6 @@ export function requireCapability(
 //     },
 //   });
 //
-// The dual-mode default (no HOLOMESH_SIGNING_MIGRATION_ACK=1) means existing
-// callers keep working without code changes; signed callers get richer
-// attribution. After the 14-day cutover ADR §Q4 the default flips to strict.
+// Phase 3 strict-by-default: unsigned requests are rejected unless
+// HOLOMESH_SIGNING_GRACE=1 is set. Signed callers get richer attribution
+// and pass verification. Set GRACE=1 during rollout until all clients sign.

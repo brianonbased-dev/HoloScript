@@ -80,34 +80,39 @@ describe('getAttestationRegistry / setAttestationRegistry / reset', () => {
 // ── Strict-mode env var ─────────────────────────────────────────────
 
 describe('isStrictMode', () => {
-  it('returns false by default (Phase 1 grace period)', () => {
-    expect(isStrictMode({})).toBe(false);
+  it('returns true by default (Phase 3 strict-by-default)', () => {
+    expect(isStrictMode({})).toBe(true);
   });
 
-  it('returns true when HOLOMESH_SIGNING_MIGRATION_ACK=1 (per-machine opt-in)', () => {
+  it('returns false when HOLOMESH_SIGNING_GRACE=1 (explicit opt-out)', () => {
+    expect(isStrictMode({ HOLOMESH_SIGNING_GRACE: '1' })).toBe(false);
+  });
+
+  it('returns true for any other GRACE value (must be exactly "1")', () => {
+    expect(isStrictMode({ HOLOMESH_SIGNING_GRACE: 'true' })).toBe(true);
+    expect(isStrictMode({ HOLOMESH_SIGNING_GRACE: '0' })).toBe(true);
+    expect(isStrictMode({ HOLOMESH_SIGNING_GRACE: '' })).toBe(true);
+  });
+
+  it('ignores the legacy HOLOMESH_SIGNING_MIGRATION_ACK (no longer checked)', () => {
+    // MIGRATION_ACK was the Phase 1-2 opt-in. Phase 3 ignores it entirely.
     expect(isStrictMode({ HOLOMESH_SIGNING_MIGRATION_ACK: '1' })).toBe(true);
-  });
-
-  it('returns false for any other value (must be exactly "1")', () => {
-    expect(isStrictMode({ HOLOMESH_SIGNING_MIGRATION_ACK: 'true' })).toBe(false);
-    expect(isStrictMode({ HOLOMESH_SIGNING_MIGRATION_ACK: '0' })).toBe(false);
-    expect(isStrictMode({ HOLOMESH_SIGNING_MIGRATION_ACK: '' })).toBe(false);
   });
 });
 
-// ── isStrictMode — 14-day timed cutover (Phase 3) ─────────────────
+// ── isStrictMode — Phase 3 strict-by-default + deploy-date safety net ──
 
-describe('isStrictMode — 14-day timed cutover', () => {
-  it('returns false when deploy date is set but grace period has NOT elapsed', () => {
+describe('isStrictMode — Phase 3 strict-by-default', () => {
+  it('returns true when deploy date is set but grace period has NOT elapsed (strict is default)', () => {
     const deployDate = '2026-05-01';
-    // 7 days after deploy — still within 14-day grace
+    // 7 days after deploy — DEPLOY_DATE is now redundant since strict is default
     const nowMs = Date.parse('2026-05-08T00:00:00.000Z');
-    expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: deployDate }, nowMs)).toBe(false);
+    expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: deployDate }, nowMs)).toBe(true);
   });
 
-  it('returns true when deploy date is set and grace period HAS elapsed', () => {
+  it('returns true when deploy date is set and grace period HAS elapsed (redundant but correct)', () => {
     const deployDate = '2026-05-01';
-    // 15 days after deploy — past 14-day grace
+    // 15 days after deploy — DEPLOY_DATE is redundant since strict is default
     const nowMs = Date.parse('2026-05-16T00:00:00.000Z');
     expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: deployDate }, nowMs)).toBe(true);
   });
@@ -118,39 +123,42 @@ describe('isStrictMode — 14-day timed cutover', () => {
     expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: '2026-05-01' }, boundaryMs)).toBe(true);
   });
 
-  it('returns false one millisecond before the grace-period boundary', () => {
+  it('returns true one millisecond before the grace-period boundary (strict is default, not grace)', () => {
     const deployMs = Date.parse('2026-05-01T00:00:00.000Z');
     const justBefore = deployMs + GRACE_PERIOD_MS - 1;
-    expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: '2026-05-01' }, justBefore)).toBe(false);
+    // Before the boundary, strict is still ON because the default is strict
+    expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: '2026-05-01' }, justBefore)).toBe(true);
   });
 
-  it('MIGRATION_ACK=1 takes precedence over grace period (early opt-in)', () => {
+  it('GRACE=1 overrides deploy date (explicit opt-out during transition)', () => {
     const deployDate = '2026-05-01';
-    // Still within grace period, but MIGRATION_ACK=1 forces strict mode
-    const nowMs = Date.parse('2026-05-05T00:00:00.000Z');
+    // Past the 14-day boundary, but GRACE=1 forces grace mode
+    const nowMs = Date.parse('2026-05-16T00:00:00.000Z');
     expect(isStrictMode({
       HOLOMESH_SIGNING_DEPLOY_DATE: deployDate,
-      HOLOMESH_SIGNING_MIGRATION_ACK: '1',
-    }, nowMs)).toBe(true);
+      HOLOMESH_SIGNING_GRACE: '1',
+    }, nowMs)).toBe(false);
   });
 
-  it('returns false when deploy date env var is missing (legacy behavior)', () => {
-    // No deploy date → only MIGRATION_ACK controls strict mode
-    expect(isStrictMode({}, Date.now())).toBe(false);
+  it('returns true when deploy date env var is missing (strict-by-default)', () => {
+    // No deploy date → strict is the default
+    expect(isStrictMode({}, Date.now())).toBe(true);
   });
 
-  it('returns false when deploy date is unparseable (malformed string)', () => {
-    expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: 'not-a-date' }, Date.now())).toBe(false);
+  it('returns true when deploy date is unparseable (malformed string, strict-by-default)', () => {
+    expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: 'not-a-date' }, Date.now())).toBe(true);
   });
 
   it('accepts ISO 8601 date strings with time component', () => {
     const deployDate = '2026-05-01T12:30:00Z';
     const deployMs = Date.parse(deployDate);
-    // Exactly 14 days after deploy
+    // Both past and at boundary are true (strict-by-default)
     const boundaryMs = deployMs + GRACE_PERIOD_MS;
     expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: deployDate }, boundaryMs)).toBe(true);
-    // 1 ms before boundary
-    expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: deployDate }, boundaryMs - 1)).toBe(false);
+    expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: deployDate }, boundaryMs - 1)).toBe(true);
+    // With GRACE=1, both are false (explicit opt-out)
+    expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: deployDate, HOLOMESH_SIGNING_GRACE: '1' }, boundaryMs)).toBe(false);
+    expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: deployDate, HOLOMESH_SIGNING_GRACE: '1' }, boundaryMs - 1)).toBe(false);
   });
 
   it('GRACE_PERIOD_MS equals 14 days in milliseconds', () => {
@@ -161,13 +169,17 @@ describe('isStrictMode — 14-day timed cutover', () => {
 // ── extractAndVerifySigning — unsigned bodies with timed cutover ───
 
 describe('extractAndVerifySigning — unsigned bodies respect timed cutover', () => {
-  it('unsigned body accepted when within grace period (deploy date set)', async () => {
+  it('unsigned body rejected by default (strict-by-default, no env vars)', async () => {
     const legacy = { team: 'core', op: 'claim' };
-    // 5 days after deploy — within 14-day grace
-    const nowMs = Date.parse('2026-05-06T00:00:00.000Z');
+    const r = await extractAndVerifySigning(legacy);
+    expect(r.ctx.signingValid).toBe(false);
+    expect(r.ctx.signingReason).toBe('unsigned-rejected');
+  });
+
+  it('unsigned body accepted when GRACE=1 (explicit opt-out)', async () => {
+    const legacy = { team: 'core', op: 'claim' };
     const r = await extractAndVerifySigning(legacy, {
-      env: { HOLOMESH_SIGNING_DEPLOY_DATE: '2026-05-01' },
-      nowMs,
+      env: { HOLOMESH_SIGNING_GRACE: '1' },
     });
     expect(r.ctx.signingValid).toBe(true);
     expect(r.ctx.signingReason).toBe('unsigned-grace');
@@ -175,7 +187,7 @@ describe('extractAndVerifySigning — unsigned bodies respect timed cutover', ()
 
   it('unsigned body rejected when past grace period (deploy date set)', async () => {
     const legacy = { team: 'core', op: 'claim' };
-    // 15 days after deploy — past 14-day grace
+    // 15 days after deploy — DEPLOY_DATE is redundant since strict is default
     const nowMs = Date.parse('2026-05-16T00:00:00.000Z');
     const r = await extractAndVerifySigning(legacy, {
       env: { HOLOMESH_SIGNING_DEPLOY_DATE: '2026-05-01' },
@@ -184,12 +196,36 @@ describe('extractAndVerifySigning — unsigned bodies respect timed cutover', ()
     expect(r.ctx.signingValid).toBe(false);
     expect(r.ctx.signingReason).toBe('unsigned-rejected');
   });
+
+  it('GRACE=1 allows unsigned body even past deploy-date boundary', async () => {
+    const legacy = { team: 'core', op: 'claim' };
+    // Past the 14-day boundary, but GRACE=1 overrides
+    const nowMs = Date.parse('2026-05-16T00:00:00.000Z');
+    const r = await extractAndVerifySigning(legacy, {
+      env: { HOLOMESH_SIGNING_DEPLOY_DATE: '2026-05-01', HOLOMESH_SIGNING_GRACE: '1' },
+      nowMs,
+    });
+    expect(r.ctx.signingValid).toBe(true);
+    expect(r.ctx.signingReason).toBe('unsigned-grace');
+  });
 });
 
 describe('extractAndVerifySigning — unsigned (legacy) bodies', () => {
-  it('passes through legacy bodies as effectiveBody in dual-mode', async () => {
+  it('rejects legacy bodies by default (strict-by-default)', async () => {
     const legacy = { team: 'core', op: 'claim', taskId: 'abc' };
     const r = await extractAndVerifySigning(legacy);
+    expect(r.effectiveBody).toBe(legacy);
+    expect(r.ctx.signedRequest).toBe(false);
+    expect(r.ctx.signingValid).toBe(false);
+    expect(r.ctx.signer).toBeNull();
+    expect(r.ctx.signingReason).toBe('unsigned-rejected');
+  });
+
+  it('passes through legacy bodies when GRACE=1 (explicit opt-out)', async () => {
+    const legacy = { team: 'core', op: 'claim', taskId: 'abc' };
+    const r = await extractAndVerifySigning(legacy, {
+      env: { HOLOMESH_SIGNING_GRACE: '1' },
+    });
     expect(r.effectiveBody).toBe(legacy);
     expect(r.ctx.signedRequest).toBe(false);
     expect(r.ctx.signingValid).toBe(true);
@@ -197,28 +233,52 @@ describe('extractAndVerifySigning — unsigned (legacy) bodies', () => {
     expect(r.ctx.signingReason).toBe('unsigned-grace');
   });
 
-  it('rejects legacy bodies with unsigned-rejected when strict-mode is on', async () => {
+  it('rejects legacy bodies with unsigned-rejected when strict-mode is explicitly on', async () => {
     const legacy = { team: 'core', op: 'claim' };
     const r = await extractAndVerifySigning(legacy, { strictMode: true });
     expect(r.ctx.signingValid).toBe(false);
     expect(r.ctx.signingReason).toBe('unsigned-rejected');
   });
 
-  it('strict mode is detected via env when not explicitly set', async () => {
+  it('strict mode is the default (no env vars needed)', async () => {
     const legacy = { foo: 1 };
-    const r = await extractAndVerifySigning(legacy, {
-      env: { HOLOMESH_SIGNING_MIGRATION_ACK: '1' },
-    });
+    // Phase 3: strict mode is ON by default, no MIGRATION_ACK needed
+    const r = await extractAndVerifySigning(legacy, { env: {} });
     expect(r.ctx.signingValid).toBe(false);
     expect(r.ctx.signingReason).toBe('unsigned-rejected');
   });
 
-  it('null and primitive bodies are treated as unsigned', async () => {
+  it('legacy MIGRATION_ACK env var is ignored (no longer triggers strict)', async () => {
+    const legacy = { foo: 1 };
+    // MIGRATION_ACK was the Phase 1-2 opt-in; Phase 3 ignores it
+    const r = await extractAndVerifySigning(legacy, {
+      env: { HOLOMESH_SIGNING_MIGRATION_ACK: '1' },
+    });
+    // Strict is already the default; MIGRATION_ACK has no effect
+    expect(r.ctx.signingValid).toBe(false);
+    expect(r.ctx.signingReason).toBe('unsigned-rejected');
+  });
+
+  it('null and primitive bodies are rejected by default (strict)', async () => {
     const r1 = await extractAndVerifySigning(null);
     expect(r1.ctx.signedRequest).toBe(false);
-    expect(r1.ctx.signingReason).toBe('unsigned-grace');
+    expect(r1.ctx.signingReason).toBe('unsigned-rejected');
     const r2 = await extractAndVerifySigning('a-string-body');
     expect(r2.ctx.signedRequest).toBe(false);
+    expect(r2.ctx.signingReason).toBe('unsigned-rejected');
+  });
+
+  it('null and primitive bodies accepted when GRACE=1', async () => {
+    const r1 = await extractAndVerifySigning(null, {
+      env: { HOLOMESH_SIGNING_GRACE: '1' },
+    });
+    expect(r1.ctx.signedRequest).toBe(false);
+    expect(r1.ctx.signingReason).toBe('unsigned-grace');
+    const r2 = await extractAndVerifySigning('a-string-body', {
+      env: { HOLOMESH_SIGNING_GRACE: '1' },
+    });
+    expect(r2.ctx.signedRequest).toBe(false);
+    expect(r2.ctx.signingReason).toBe('unsigned-grace');
   });
 });
 

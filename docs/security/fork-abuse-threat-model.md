@@ -90,8 +90,8 @@ Result: agents on the fork can impersonate any surface (`claude1`, `gemini1`, `c
 
 | Layer | Action |
 |-------|--------|
-| **Canonical codebase** | Keep signing middleware opt-in (`HOLOMESH_REQUEST_SIGNING=1`) but make it the default in production. Document that forks which disable signing lose team-membership guarantees. |
-| **Server strict mode** | The server-side `isStrictMode` flag (in `identity/signing-middleware.ts`) should reject unsigned requests from clients that advertise a HoloScript version >= the signing cutover version. |
+| **Canonical codebase** | Signing middleware is strict-by-default (`isStrictMode` returns `true` unless `HOLOMESH_SIGNING_GRACE=1`). Document that forks which add `GRACE=1` lose team-membership guarantees. |
+| **Server strict mode** | The server-side `isStrictMode` flag (in `identity/signing-middleware.ts`) rejects unsigned requests by default. `HOLOMESH_SIGNING_GRACE=1` is the explicit opt-out during rollout; remove it once all clients sign. |
 | **Attestation registry** | The founder attestation route (`POST /attest-pending`) should flag known-fork signatures (if any are ever observed) and revoke them. |
 | **Canary detection** | The canary package should include a test that verifies a mock x402 challenge can be signed and verified. Failure indicates attestation stripping. |
 
@@ -136,7 +136,7 @@ HoloScript uses threat-model-driven defaults (W.GOLD.193): the dominant (non-adv
 1. Making `useCryptographicHash: false` immutable — the SHA-256 opt-in is removed, forcing all traces to use FNV-1a even in adversarial settings.
 2. Removing the `hashMode` field from CAEL traces so consumers cannot verify which threat model the producer assumed.
 3. Changing the default hash mode to SHA-256 (secure-by-default) but silently using a broken implementation that is actually weaker than FNV-1a.
-4. Removing the `HOLOMESH_SIGNING_MIGRATION_ACK` check so the server accepts unsigned requests from clients that should be in strict mode.
+4. Adding `HOLOMESH_SIGNING_GRACE=1` to the deployment config so the server accepts unsigned requests that should be rejected by strict mode.
 
 These changes are subtle. They do not break compilation or obvious functionality. They silently weaken the evidence chain that downstream consumers rely on for trust decisions.
 
