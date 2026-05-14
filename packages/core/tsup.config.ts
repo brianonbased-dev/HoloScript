@@ -64,6 +64,7 @@ export default defineConfig({
 
     // Native world generation adapters/service
     'world/index': 'src/world/index.ts',
+    'world-model/index': 'src/world-model/index.ts',
 
     // HoloLand runtime integration (world definition schema + client)
     'hololand/index': 'src/hololand/index.ts',
