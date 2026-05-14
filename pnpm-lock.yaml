@@ -424,6 +424,9 @@ importers:
       '@holoscript/llm-provider':
         specifier: workspace:*
         version: link:../llm-provider
+      '@holoscript/platform':
+        specifier: workspace:*
+        version: link:../platform
       '@holoscript/sdk':
         specifier: workspace:*
         version: link:../holoscript
@@ -1036,6 +1039,9 @@ importers:
       '@holoscript/uaal':
         specifier: workspace:*
         version: link:../uaal
+      puppeteer:
+        specifier: ^23.0.0
+        version: 23.11.1(typescript@5.9.3)
       three:
         specifier: ^0.182.0
         version: 0.182.0

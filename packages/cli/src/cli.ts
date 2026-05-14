@@ -812,7 +812,7 @@ async function main(): Promise<void> {
         const path = await import('path');
         const { HoloCompositionParser } = await import('@holoscript/core');
         const { ThingDescriptionGenerator, serializeThingDescription, validateThingDescription } =
-          await import('@holoscript/core/wot');
+          await import('@holoscript/platform');
 
         const filePath = path.resolve(options.input);
         if (!fs.existsSync(filePath)) {

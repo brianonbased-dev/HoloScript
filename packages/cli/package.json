@@ -50,6 +50,7 @@
     "@holoscript/core-types": "workspace:*",
     "@holoscript/framework": "workspace:*",
     "@holoscript/llm-provider": "workspace:*",
+    "@holoscript/platform": "workspace:*",
     "@holoscript/sdk": "workspace:*",
     "@types/adm-zip": "^0.5.7",
     "adm-zip": "^0.5.16",

@@ -202,7 +202,6 @@ export class PuppeteerRenderer {
         '--disable-gpu',
         '--no-first-run',
         '--no-zygote',
-        '--single-process',
       ],
       ...options,
     };
@@ -262,11 +261,53 @@ export class PuppeteerRenderer {
   private async releasePage(page: PuppeteerPage): Promise<void> {
     if (this.pagePool.length < this.maxPoolSize) {
       // Clean up the page before returning to pool
-      await page.goto('about:blank');
-      this.pagePool.push(page);
+      try {
+        await page.goto('about:blank');
+        this.pagePool.push(page);
+      } catch (error) {
+        this.log('Page cleanup failed; closing instead:', (error as Error).message);
+        try {
+          await page.close();
+        } catch (closeError) {
+          this.log('Page close after cleanup failure failed:', (closeError as Error).message);
+        }
+      }
     } else {
-      await page.close();
+      try {
+        await page.close();
+      } catch (error) {
+        this.log('Page close failed:', (error as Error).message);
+      }
     }
+  }
+
+  private async setRenderContent(
+    page: PuppeteerPage,
+    html: string,
+    waitUntil: 'load' | 'domcontentloaded' | 'networkidle0' | 'networkidle2' = 'domcontentloaded',
+    timeout = this.options.timeout!
+  ): Promise<void> {
+    await page.setContent(html, { waitUntil, timeout });
+    await page.evaluate((timeoutMs: number) => {
+      return new Promise<void>((resolve, reject) => {
+        const startedAt = Date.now();
+        const tick = () => {
+          if ((globalThis as any).__HOLOSCRIPT_RENDER_READY__ === true) {
+            resolve();
+            return;
+          }
+
+          if (Date.now() - startedAt > timeoutMs) {
+            reject(new Error('HoloScript render readiness timeout'));
+            return;
+          }
+
+          setTimeout(tick, 50);
+        };
+
+        tick();
+      });
+    }, timeout);
   }
 
   /**
@@ -310,10 +351,7 @@ export class PuppeteerRenderer {
 
       // Generate render HTML and navigate
       const html = this.generateRenderHTML(holoCode);
-      await page.setContent(html, {
-        waitUntil: 'networkidle0',
-        timeout: this.options.timeout,
-      });
+      await this.setRenderContent(page, html);
 
       const navigationMs = Date.now() - navigationStart;
       const renderStart = Date.now();
@@ -415,10 +453,7 @@ export class PuppeteerRenderer {
 
       // Generate render HTML and navigate
       const html = this.generateRenderHTML(holoCode, { printMode: true });
-      await page.setContent(html, {
-        waitUntil: 'networkidle0',
-        timeout: this.options.timeout,
-      });
+      await this.setRenderContent(page, html);
 
       // Wait for scene to load
       await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 2000)));
@@ -496,10 +531,7 @@ export class PuppeteerRenderer {
 
       // Generate render HTML and navigate
       const html = this.generateRenderHTML(holoCode, { seoMode: true });
-      await page.setContent(html, {
-        waitUntil,
-        timeout,
-      });
+      await this.setRenderContent(page, html, waitUntil, timeout);
 
       // Wait for scene to fully render
       await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 3000)));
@@ -586,10 +618,7 @@ export class PuppeteerRenderer {
 
       // Generate render HTML and navigate
       const html = this.generateRenderHTML(holoCode);
-      await page.setContent(html, {
-        waitUntil: 'networkidle0',
-        timeout: this.options.timeout,
-      });
+      await this.setRenderContent(page, html);
 
       // Wait for initial render
       await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 1000)));
@@ -723,12 +752,14 @@ export class PuppeteerRenderer {
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
+    window.__HOLOSCRIPT_RENDER_READY__ = false;
+
     // Scene setup
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a0a0f);
 
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(5, 3, 5);
+    const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 2.6, 7.5);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -736,6 +767,7 @@ export class PuppeteerRenderer {
     document.body.appendChild(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 1, -2);
     controls.enableDamping = true;
 
     // Lighting
@@ -759,6 +791,7 @@ export class PuppeteerRenderer {
       requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
+      window.__HOLOSCRIPT_RENDER_READY__ = true;
     }
     animate();
 
@@ -771,33 +804,55 @@ export class PuppeteerRenderer {
 
     // HoloScript parser
     function renderHoloScript(code, threeScene) {
-      // Extract objects from composition
-      const objectMatches = code.matchAll(/object\\s+"([^"]+)"[^{]*\\{([^}]+)\\}/g);
+      for (const { name, body } of extractBlocks(code, 'light')) {
+        const type = (extractProperty(body, 'type') || 'point').toLowerCase();
+        const color = toColor(extractProperty(body, 'color') || '#ffffff');
+        const intensity = extractNumber(body, 'intensity') ?? 1;
+        const position = extractVector(body, 'position') || [5, 8, 5];
 
-      for (const match of objectMatches) {
-        const name = match[1];
-        const body = match[2];
+        let light;
+        if (type.includes('directional')) {
+          light = new THREE.DirectionalLight(color, intensity);
+        } else if (type.includes('ambient')) {
+          light = new THREE.AmbientLight(color, intensity);
+        } else {
+          light = new THREE.PointLight(color, intensity * 100);
+        }
+
+        light.name = name;
+        if (light.position) light.position.set(position[0], position[1], position[2]);
+        if ('castShadow' in light) light.castShadow = /cast_?shadows?:\\s*true/i.test(body);
+        threeScene.add(light);
+      }
+
+      // Extract objects from composition
+      for (const { name, body } of extractBlocks(code, 'object')) {
 
         const geometry = extractProperty(body, 'geometry') || 'sphere';
-        const color = extractProperty(body, 'color') || '#00ffff';
-        const position = extractArray(body, 'position') || [0, 1, 0];
-        const scale = extractArray(body, 'scale') || [1, 1, 1];
-        const rotation = extractArray(body, 'rotation') || [0, 0, 0];
+        const color = toColor(extractProperty(body, 'color') || '#00ffff');
+        const position = extractVector(body, 'position') || [0, 1, 0];
+        const scale = extractVector(body, 'scale') || dimensionsFor(geometry, body);
+        const rotation = extractVector(body, 'rotation') || [0, 0, 0];
+        const opacity = extractNumber(body, 'opacity') ?? 1;
+        const emissive = toColor(extractProperty(body, 'emissive') || color);
+        const emissiveIntensity = extractNumber(body, 'emissiveIntensity') ?? 0.2;
 
         const geo = createGeometry(geometry);
         const material = new THREE.MeshStandardMaterial({
-          color: color.startsWith('#') ? color : '#' + color,
-          emissive: color.startsWith('#') ? color : '#' + color,
-          emissiveIntensity: 0.2,
+          color,
+          emissive,
+          emissiveIntensity,
           roughness: 0.5,
           metalness: 0.5,
+          opacity,
+          transparent: opacity < 1 || /material:\\s*["']?(glass|hologram|xray)/i.test(body),
         });
 
         const mesh = new THREE.Mesh(geo, material);
         mesh.name = name;
         mesh.position.set(position[0], position[1], position[2]);
         mesh.scale.set(scale[0], scale[1], scale[2]);
-        mesh.rotation.set(rotation[0], rotation[1], rotation[2]);
+        mesh.rotation.set(toRadians(rotation[0]), toRadians(rotation[1]), toRadians(rotation[2]));
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         threeScene.add(mesh);
@@ -808,15 +863,128 @@ export class PuppeteerRenderer {
       threeScene.add(grid);
     }
 
+    function extractBlocks(code, keyword) {
+      const blocks = [];
+      const pattern = new RegExp('\\\\b' + keyword + '\\\\s+"([^"]+)"[^\\\\{]*\\\\{', 'g');
+      let match;
+
+      while ((match = pattern.exec(code))) {
+        const name = match[1];
+        const bodyStart = pattern.lastIndex;
+        let depth = 1;
+        let index = bodyStart;
+        let quote = null;
+
+        for (; index < code.length; index++) {
+          const char = code[index];
+          const prev = code[index - 1];
+
+          if (quote) {
+            if (char === quote && prev !== '\\\\') quote = null;
+            continue;
+          }
+
+          if (char === '"' || char === "'") {
+            quote = char;
+          } else if (char === '{') {
+            depth++;
+          } else if (char === '}') {
+            depth--;
+            if (depth === 0) break;
+          }
+        }
+
+        if (depth === 0) {
+          blocks.push({ name, body: code.slice(bodyStart, index) });
+          pattern.lastIndex = index + 1;
+        }
+      }
+
+      return blocks;
+    }
+
     function extractProperty(body, prop) {
       const match = body.match(new RegExp(prop + ':\\\\s*["\\']?([^"\\',\\\\n]+)["\\']?'));
       return match ? match[1].trim() : null;
     }
 
-    function extractArray(body, prop) {
+    function extractNumber(body, prop) {
+      const match = body.match(new RegExp(prop + ':\\\\s*(-?\\\\d+(?:\\\\.\\\\d+)?)'));
+      return match ? parseFloat(match[1]) : null;
+    }
+
+    function extractVector(body, prop) {
+      const objectMatch = body.match(new RegExp(prop + ':\\\\s*\\\\{([^}]+)\\\\}'));
+      if (objectMatch) {
+        const x = extractNumber(objectMatch[1], 'x') ?? 0;
+        const y = extractNumber(objectMatch[1], 'y') ?? 0;
+        const z = extractNumber(objectMatch[1], 'z') ?? 0;
+        return [x, y, z];
+      }
+
       const match = body.match(new RegExp(prop + ':\\\\s*\\\\[([^\\\\]]+)\\\\]'));
       if (!match) return null;
       return match[1].split(',').map(n => parseFloat(n.trim()));
+    }
+
+    function dimensionsFor(geometry, body) {
+      const width = extractNumber(body, 'width');
+      const height = extractNumber(body, 'height');
+      const depth = extractNumber(body, 'depth');
+      const radius = extractNumber(body, 'radius');
+
+      if (radius !== null) {
+        const diameter = radius * 2;
+        return [diameter, diameter, diameter];
+      }
+
+      if (geometry.toLowerCase() === 'plane') {
+        return [width ?? 1, height ?? 1, 1];
+      }
+
+      if (width !== null || height !== null || depth !== null) {
+        return [width ?? 1, height ?? 1, depth ?? 1];
+      }
+
+      return [1, 1, 1];
+    }
+
+    function toColor(value) {
+      if (!value) return '#00ffff';
+      if (value.startsWith('#')) return value;
+      const named = {
+        aqua: '#7fffd4',
+        black: '#000000',
+        blue: '#4b7bff',
+        brass: '#b58a3c',
+        copper: '#b87333',
+        cyan: '#00ffff',
+        energy: '#39e7ff',
+        gold: '#ffd76a',
+        green: '#35ff88',
+        hologram: '#66fff2',
+        ice: '#bdf6ff',
+        lava: '#ff5a28',
+        lime: '#a8ff3e',
+        magenta: '#ff4df0',
+        neon: '#36e5ff',
+        orange: '#ff9a32',
+        plasma: '#c064ff',
+        purple: '#a56cff',
+        red: '#ff4c4c',
+        rose: '#ff7ca8',
+        silver: '#c8d0da',
+        slate: '#3e536a',
+        terracotta: '#c77755',
+        warning: '#ffcc33',
+        white: '#ffffff',
+        yellow: '#ffe45c',
+      };
+      return named[value.toLowerCase()] || value;
+    }
+
+    function toRadians(value) {
+      return Math.abs(value) > Math.PI * 2 ? (value * Math.PI) / 180 : value;
     }
 
     function createGeometry(type) {

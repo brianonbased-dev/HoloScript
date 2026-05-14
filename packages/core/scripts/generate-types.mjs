@@ -71,6 +71,24 @@ export interface ParsedTrait {
   [key: string]: any;
 }
 
+export interface ReconstructionManifest {
+  version: '1.0.0';
+  worldId: string;
+  displayName: string;
+  createdAt: string;
+  frameCount: number;
+  bounds: { min: [number, number, number]; max: [number, number, number] };
+  replayHash: string;
+  simulationContract: {
+    kind: 'holomap.reconstruction.v1';
+    replayFingerprint: string;
+    holoScriptBuild: string;
+  };
+  [key: string]: unknown;
+}
+
+export function assertHoloMapManifestContract(m: ReconstructionManifest): void;
+
 // ============================================================================
 // PARSERS
 // ============================================================================
@@ -4772,6 +4790,148 @@ export function mergeSocialCausalModels(
   agentDags: SCMDAG[],
   options?: SocialMergeOptions,
 ): SocialMergeResult;
+
+export enum DispatchTier {
+  TIER_1_NEUROMORPHIC = 'tier-1-neuromorphic',
+  TIER_1_BROWSER = 'tier-1-browser',
+  TIER_1_WASM = 'tier-1-wasm',
+  TIER_2_SPECULATIVE = 'tier-2-speculative',
+  TIER_3_CPU_DIRECT = 'tier-3-cpu-direct',
+}
+
+export type NeuromorphicDeviceTarget = 'loihi' | 'spinnaker' | 'synsense' | 'akida';
+export interface NeuromorphicRuntimeDevice {
+  target: NeuromorphicDeviceTarget;
+  id?: string;
+  available?: boolean;
+  source?: string;
+}
+export interface NeuromorphicRuntimeProbeResult {
+  available: boolean;
+  device?: NeuromorphicDeviceTarget;
+  source: string;
+  reason?: string;
+  devices?: NeuromorphicRuntimeDevice[];
+}
+export type NeuromorphicRuntimeProbe = (
+  preferredDevice?: NeuromorphicDeviceTarget
+) => NeuromorphicRuntimeProbeResult | Promise<NeuromorphicRuntimeProbeResult>;
+export interface DispatchEffectVerifierResult {
+  passed: boolean;
+  reason?: string;
+}
+export interface Tier3CpuDirectOutput {
+  trait: string;
+  nodeId: string;
+  config: Record<string, unknown>;
+}
+export interface TraitEquivalenceOracleInput {
+  operation: DispatchableOperation;
+  proposal: unknown;
+  tier3Output: unknown;
+}
+export interface TraitEquivalenceOracleResult {
+  equivalent: boolean;
+  source: string;
+  reason?: string;
+  score?: number;
+  proposalFingerprint?: string;
+  tier3Fingerprint?: string;
+}
+export type DispatchProposalProvider = (
+  op: DispatchableOperation
+) => unknown | null | Promise<unknown | null>;
+export type Tier3CpuExecutor = (op: DispatchableOperation) => unknown | Promise<unknown>;
+export type TraitEquivalenceOracle = (
+  input: TraitEquivalenceOracleInput
+) => TraitEquivalenceOracleResult | Promise<TraitEquivalenceOracleResult>;
+export interface Tier1WasmRuntimeProbeResult {
+  available: boolean;
+  source: string;
+  reason?: string;
+  moduleValidated?: boolean;
+}
+export interface Tier1WasmEmulatorResult {
+  accepted: boolean;
+  source: string;
+  runtime: Tier1WasmRuntimeProbeResult;
+  reason?: string;
+  steps?: number;
+  spikeCount?: number;
+  membranePotential?: number;
+  inputChecksum?: number;
+}
+export type Tier1WasmRuntimeProbe = () =>
+  | Tier1WasmRuntimeProbeResult
+  | Promise<Tier1WasmRuntimeProbeResult>;
+export type Tier1WasmExecutor = (
+  op: DispatchableOperation,
+  runtime: Tier1WasmRuntimeProbeResult
+) => Tier1WasmEmulatorResult | Promise<Tier1WasmEmulatorResult>;
+export type Tier1BrowserExecutor = (
+  op: DispatchableOperation
+) => Promise<{ accepted: boolean; source: string; steps?: number; reason?: string }>;
+export interface DispatchPolicyConfig {
+  tier1BrowserEnabled: boolean;
+  tier1WasmEnabled: boolean;
+  tier1WasmRuntimeProbe?: Tier1WasmRuntimeProbe;
+  tier1WasmExecutor?: Tier1WasmExecutor;
+  tier1BrowserExecutor?: Tier1BrowserExecutor;
+  tier1NeuromorphicEnabled: boolean;
+  tier1NeuromorphicDevice?: NeuromorphicDeviceTarget;
+  neuromorphicRuntimeProbe?: NeuromorphicRuntimeProbe;
+  tier2Enabled: boolean;
+  llmProposalProvider?: DispatchProposalProvider;
+  tier3CpuExecutor?: Tier3CpuExecutor;
+  traitEquivalenceOracle?: TraitEquivalenceOracle;
+  tier2AlphaThreshold: number;
+  effectVerifier?: (traits: string[]) => Promise<DispatchEffectVerifierResult | null>;
+  simulationContractVerifier?: (manifest: unknown) => Promise<boolean>;
+  alphaWindowSize: number;
+}
+export interface DispatchableOperation {
+  trait: string;
+  nodeId: string;
+  config?: Record<string, unknown>;
+  provenanceContext?: unknown;
+  manifest?: ReconstructionManifest;
+}
+export interface DispatchMetrics {
+  tierAttempted: DispatchTier;
+  tierAccepted: boolean;
+  fallbackReason?: string;
+  latencyEstimateMs: number;
+  alpha?: number;
+  verifierPassed?: boolean;
+  traitEquivalence?: TraitEquivalenceOracleResult;
+  neuromorphicProbe?: NeuromorphicRuntimeProbeResult;
+  wasmProbe?: Tier1WasmRuntimeProbeResult;
+  wasmEmulator?: Tier1WasmEmulatorResult;
+  browserExecutor?: { accepted: boolean; source: string; steps?: number; reason?: string };
+}
+export interface DispatchDecision {
+  tier: DispatchTier;
+  accepted: boolean;
+  provenance: unknown;
+  metrics: DispatchMetrics;
+  replayFingerprint?: string;
+}
+export class AlphaTracker {
+  constructor(size?: number);
+  recordAttempt(success: boolean): void;
+  getAlpha(): number;
+  readonly windowLength: number;
+}
+export class DispatchPolicy {
+  constructor(config?: Partial<DispatchPolicyConfig>);
+  route(op: DispatchableOperation): Promise<DispatchDecision>;
+}
+export function createTier3CpuDirectOutput(op: DispatchableOperation): Tier3CpuDirectOutput;
+export function detectWasmRuntime(): Tier1WasmRuntimeProbeResult;
+export function runCompilerWasmSnnEmulator(
+  op: DispatchableOperation,
+  runtime: Tier1WasmRuntimeProbeResult
+): Tier1WasmEmulatorResult;
 `;
 
 const r3fDTS = `export interface R3FNode {
