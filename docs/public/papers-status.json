@@ -1,14 +1,14 @@
 {
   "schema": "paper-audit-matrix.v2",
-  "generatedAt": "2026-05-13T01:31:48.426Z",
+  "generatedAt": "2026-05-14T05:37:02.530Z",
   "matrixSourcePath": "research/paper-audit-matrix.md",
-  "scriptCommit": "ce0a9e6be73c90ae664386a767754c8848041b23",
+  "scriptCommit": "8d35a75d702e665c2334e5a7de8172285963afa3",
   "totals": {
     "papers": 17,
     "cellsByToken": {
       "✅": 198,
-      "⚠️": 38,
-      "❌": 22,
+      "⚠️": 39,
+      "❌": 21,
       "➖": 14
     }
   },
@@ -37,8 +37,8 @@
       "target": "AAMAS '26",
       "basename": "paper-0c-cael-aamas.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-0c-cael-aamas.tex",
-      "loc": 1592,
-      "sha256Prefix": "91727b7d",
+      "loc": 1595,
+      "sha256Prefix": "d37fb9cf",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -70,8 +70,8 @@
           "evidence": "paper-0c-cael-aamas.tex.ots present"
         },
         "anchorBase": {
-          "token": "✅",
-          "evidence": ".tex.base.json signed and matches current .tex hash"
+          "token": "⚠️",
+          "evidence": ".tex.base.json signed for a historical .tex hash; re-anchor current source at submission bundle time"
         },
         "venueFit": {
           "token": "✅",
@@ -107,11 +107,16 @@
         }
       },
       "lastCommit": {
-        "hash": "33907846955136ce7e6a5fe8da1450d2499f3286",
-        "isoDate": "2026-05-12T01:51:25-07:00",
-        "subject": "paper(0c): Decoder cost fill — surface existing O(n)+O(mN) cost discussion in heading"
+        "hash": "47c4691802351b9f21c66cf6d20dfc1e426a36df",
+        "isoDate": "2026-05-13T21:29:35-07:00",
+        "subject": "feat(research): inject D/U/F/I goal citations into intro of P0c, P1, P2, P21"
       },
       "recentCommits": [
+        {
+          "hash": "47c4691802351b9f21c66cf6d20dfc1e426a36df",
+          "isoDate": "2026-05-13T21:29:35-07:00",
+          "subject": "feat(research): inject D/U/F/I goal citations into intro of P0c, P1, P2, P21"
+        },
         {
           "hash": "33907846955136ce7e6a5fe8da1450d2499f3286",
           "isoDate": "2026-05-12T01:51:25-07:00",
@@ -131,11 +136,6 @@
           "hash": "4a67151709eb57b1abe06fe6c108350569e3a6c2",
           "isoDate": "2026-05-10T13:44:46-07:00",
           "subject": "feat(template): holodoor policy and ecosystem config drift"
-        },
-        {
-          "hash": "ef8e42a809e1cb33cd7d37a7ed7eae6e6064972d",
-          "isoDate": "2026-05-10T11:46:34-07:00",
-          "subject": "docs(ecosystem): refresh paper matrix and A-007"
         }
       ]
     },
@@ -145,8 +145,8 @@
       "target": "USENIX Sec '26",
       "basename": "paper-1-mcp-trust-usenix.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-1-mcp-trust-usenix.tex",
-      "loc": 1693,
-      "sha256Prefix": "46f9e50e",
+      "loc": 1713,
+      "sha256Prefix": "151ac0f0",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -178,8 +178,8 @@
           "evidence": "paper-1-mcp-trust-usenix.tex.ots present"
         },
         "anchorBase": {
-          "token": "✅",
-          "evidence": ".tex.base.json signed and matches current .tex hash"
+          "token": "⚠️",
+          "evidence": ".tex.base.json signed for a historical .tex hash; re-anchor current source at submission bundle time"
         },
         "venueFit": {
           "token": "✅",
@@ -206,8 +206,8 @@
           "evidence": "asymptotic class declaration + Complexity/Cost heading"
         },
         "scalingMemo": {
-          "token": "❌",
-          "evidence": "no scaling discussion (W.316 risk)"
+          "token": "✅",
+          "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
           "token": "⚠️",
@@ -215,11 +215,21 @@
         }
       },
       "lastCommit": {
-        "hash": "4990d27a3a5729bc8f8bf16b6dfcb02a764721a1",
-        "isoDate": "2026-05-11T20:11:51-07:00",
-        "subject": "paper(1): Twin-test fill via shared Paper 0c equivalence harness"
+        "hash": "8d35a75d702e665c2334e5a7de8172285963afa3",
+        "isoDate": "2026-05-13T22:34:50-07:00",
+        "subject": "docs(ecosystem): add paper 1 scaling envelope"
       },
       "recentCommits": [
+        {
+          "hash": "8d35a75d702e665c2334e5a7de8172285963afa3",
+          "isoDate": "2026-05-13T22:34:50-07:00",
+          "subject": "docs(ecosystem): add paper 1 scaling envelope"
+        },
+        {
+          "hash": "47c4691802351b9f21c66cf6d20dfc1e426a36df",
+          "isoDate": "2026-05-13T21:29:35-07:00",
+          "subject": "feat(research): inject D/U/F/I goal citations into intro of P0c, P1, P2, P21"
+        },
         {
           "hash": "4990d27a3a5729bc8f8bf16b6dfcb02a764721a1",
           "isoDate": "2026-05-11T20:11:51-07:00",
@@ -234,16 +244,6 @@
           "hash": "52464f31e55eb6f565f5efa7cde1b271416fa815",
           "isoDate": "2026-05-09T20:40:36-07:00",
           "subject": "docs(ecosystem): close paper 1 ablation placeholders"
-        },
-        {
-          "hash": "d207c83f6882f397b9b7f455016ca2aec5787310",
-          "isoDate": "2026-05-03T08:15:16-07:00",
-          "subject": "fix(bib): resolve 10 LIKELY_HALLUCINATED bib entries in holoscript.bib"
-        },
-        {
-          "hash": "9a86050621669d0888a002bc08f1e757b7803ead",
-          "isoDate": "2026-04-27T10:42:35-07:00",
-          "subject": "paper(1): swap §Limitations \\todo{} for SHA-256 vs FNV-1a microbench cite — closes paper-1+2 farm task"
         }
       ]
     },
@@ -253,8 +253,8 @@
       "target": "NeurIPS",
       "basename": "paper-2-snn-neurips.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-2-snn-neurips.tex",
-      "loc": 2009,
-      "sha256Prefix": "47a60420",
+      "loc": 2012,
+      "sha256Prefix": "1b009f78",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -323,11 +323,16 @@
         }
       },
       "lastCommit": {
-        "hash": "3edbdf8f38ba768f2a8d33a0e4a6fd588a41e8a4",
-        "isoDate": "2026-05-11T22:25:34-07:00",
-        "subject": "paper(2): Twin-test fill — WGSL/JS host two-impl pair via SNN shadow-replay"
+        "hash": "47c4691802351b9f21c66cf6d20dfc1e426a36df",
+        "isoDate": "2026-05-13T21:29:35-07:00",
+        "subject": "feat(research): inject D/U/F/I goal citations into intro of P0c, P1, P2, P21"
       },
       "recentCommits": [
+        {
+          "hash": "47c4691802351b9f21c66cf6d20dfc1e426a36df",
+          "isoDate": "2026-05-13T21:29:35-07:00",
+          "subject": "feat(research): inject D/U/F/I goal citations into intro of P0c, P1, P2, P21"
+        },
         {
           "hash": "3edbdf8f38ba768f2a8d33a0e4a6fd588a41e8a4",
           "isoDate": "2026-05-11T22:25:34-07:00",
@@ -347,11 +352,6 @@
           "hash": "adc49e15cc4753b1add53dd50d2d610d34467f14",
           "isoDate": "2026-05-09T23:14:33-07:00",
           "subject": "docs(ecosystem): close paper 2 evidence gate"
-        },
-        {
-          "hash": "61f8344e19b93397e1e2fa140f1dfb06b5e13263",
-          "isoDate": "2026-05-09T19:58:52-07:00",
-          "subject": "refactor(paper-2): reframe executive contribution around NN-primary inversion"
         }
       ]
     },
@@ -427,7 +427,7 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
@@ -535,7 +535,7 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 2d since last commit"
         }
       },
       "lastCommit": {
@@ -643,7 +643,7 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
@@ -751,7 +751,7 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
@@ -859,7 +859,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 7d since last commit"
+          "evidence": "0 open \\todo{}, 9d since last commit"
         }
       },
       "lastCommit": {
@@ -967,7 +967,7 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 2d since last commit"
         }
       },
       "lastCommit": {
@@ -1075,7 +1075,7 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
@@ -1183,7 +1183,7 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
@@ -1291,7 +1291,7 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
@@ -1399,7 +1399,7 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
@@ -1507,7 +1507,7 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 2d since last commit"
         }
       },
       "lastCommit": {
@@ -1615,7 +1615,7 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "evidence": "0 open \\todo{}, 6d since last commit"
         }
       },
       "lastCommit": {
@@ -1723,7 +1723,7 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 2d since last commit"
         }
       },
       "lastCommit": {
@@ -1766,7 +1766,7 @@
       "basename": "paper-capstone-uist.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-capstone-uist.tex",
       "loc": 2254,
-      "sha256Prefix": "090809ad",
+      "sha256Prefix": "fa6d24ac",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1798,8 +1798,8 @@
           "evidence": "paper-capstone-uist.tex.ots present"
         },
         "anchorBase": {
-          "token": "⚠️",
-          "evidence": ".tex.base.json signed for a historical .tex hash; re-anchor current source at submission bundle time"
+          "token": "✅",
+          "evidence": ".tex.base.json signed and matches current .tex hash"
         },
         "venueFit": {
           "token": "✅",
@@ -1831,7 +1831,7 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 2d since last commit"
         }
       },
       "lastCommit": {
