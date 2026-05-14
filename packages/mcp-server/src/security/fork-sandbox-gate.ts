@@ -102,7 +102,7 @@ export function detectForkedHoloScript(code: string): ForkDetectionResult {
 export function detectForkedPlugin(manifest: Record<string, unknown>): ForkDetectionResult {
   const signals: string[] = [];
   const scope = typeof manifest.scopeName === 'string' ? manifest.scopeName : '';
-  if (scope && !scope.startsWith('@holoscript/')) {
+  if (scope && !/^@holoscript(\/|$)/.test(scope)) {
     signals.push(`non-canonical-scope:${scope}`);
   }
   const version = typeof manifest.version === 'string' ? manifest.version : '';
