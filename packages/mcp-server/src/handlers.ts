@@ -442,7 +442,11 @@ export async function handleTool(
     name === 'twin_earth_list_permissions' ||
     name === 'twin_earth_robot_actuate' ||
     name === 'twin_earth_ai_invoke' ||
-    name === 'twin_earth_capture_receipt'
+    name === 'twin_earth_capture_receipt' ||
+    // Conformance Artifact Admission Gate (task_1778618757735_q298)
+    name === 'conformance_check_artifact' ||
+    name === 'conformance_admit_artifact' ||
+    name === 'conformance_list_rules'
   ) {
     const { handleHololandMcpTool } = await import('./hololand-mcp-tools');
     return handleHololandMcpTool(name, args);
