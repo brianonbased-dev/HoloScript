@@ -357,6 +357,19 @@ export {
   cloneValidationReceipt,
 } from './board';
 
+// HoloShell Browser Absorption Receipts (task_1778625587950_34rn)
+export {
+  BROWSER_ACTION_KINDS,
+  type BrowserActionKind,
+  type BrowserAction,
+  type BrowserAbsorptionPolicy,
+  type BrowserAbsorptionReceipt,
+  validateBrowserAbsorptionReceipt,
+  isSupportedBrowserActionKind,
+  isSupportedBrowserAbsorptionOutcome,
+  cloneBrowserAbsorptionReceipt,
+} from './board';
+
 // Frontier Shard 0 primitives (task_1778186605462_2mlp)
 export {
   SKILL_RARITIES,
