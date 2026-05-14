@@ -3,6 +3,7 @@
 **Last regenerated**: 2026-05-01 (disk-grounded: structural grep of `.tex` files + audit-matrix snapshot)
 **Author**: Claude (Wave C consolidation, task_1776816202153_3f88)
 **Source of truth**: `ai-ecosystem/research/paper-audit-matrix.md` for audit dimensions; `.tex` files on disk for structural counts; this file is a *derived dashboard*, not a replacement for the audit matrix.
+**Program thesis**: `HoloScript/docs/paper-program/readme.md` for the CAEL-rooted novelty-generation and evidence-gating frame.
 
 > **Zero hardcoded stats policy (W.030)**: Counts in this file are derived from `find` and `grep` at generation time. Re-generate from disk when counts drift. Verification commands are noted inline.
 
@@ -29,10 +30,11 @@ This dashboard consolidates four per-paper trackers and the gated-research-track
 | # | Source | Location | What it tracks |
 |---|--------|----------|----------------|
 | 1 | Structural audit matrix | `ai-ecosystem/research/paper-audit-matrix.md` | Empirical claims, D.011 repro, citations, anchors, novelty, threat model, venue fit, cal story, twin test, decoder cost, scaling, staleness |
-| 2 | D.011 four-gate checklist | `HoloScript/docs/paper-program/D011_FOUR_GATE_CHECKLIST.md` | G1 Hardware, G2 N=12, G3 Full-loop demo, G4 Ablation |
-| 3 | Benchmark reproducibility | `HoloScript/docs/paper-program/D011-benchmark-reproducibility.md` | Harness commands, env capture, seed, one-command rerun |
-| 4 | P3-CENTER metrics integrity | `HoloScript/docs/paper-program/P3-CENTER-metrics-integrity.md` | Throughput/ops/latency honesty for papers 2, 3, 12, 13 |
-| 5-8+ | Gated research track outlines | Per-track detail docs in `ai-ecosystem/research/2026-04-24_*.md` and `ai-ecosystem/research/paper-{17..29}*` | Gate conditions, target venues, phase status |
+| 2 | Paper program README | `HoloScript/docs/paper-program/readme.md` | CAEL-rooted novelty-generation thesis, promotion rule, hidden-gem patterns |
+| 3 | D.011 four-gate checklist | `HoloScript/docs/paper-program/D011_FOUR_GATE_CHECKLIST.md` | G1 Hardware, G2 N=12, G3 Full-loop demo, G4 Ablation |
+| 4 | Benchmark reproducibility | `HoloScript/docs/paper-program/D011-benchmark-reproducibility.md` | Harness commands, env capture, seed, one-command rerun |
+| 5 | P3-CENTER metrics integrity | `HoloScript/docs/paper-program/P3-CENTER-metrics-integrity.md` | Throughput/ops/latency honesty for papers 2, 3, 12, 13 |
+| 6-9+ | Gated research track outlines | Per-track detail docs in `ai-ecosystem/research/2026-04-24_*.md` and `ai-ecosystem/research/paper-{17..29}*` | Gate conditions, target venues, phase status |
 
 ---
 
@@ -199,6 +201,7 @@ Sorted by (deadline proximity x leverage x effort):
 - **Provenance anchoring**: `docs/provenance-anchoring.md` + `scripts/anchor_ots.py` / `scripts/anchor_base.py` / `scripts/verify_provenance.py`
 - **Bibliography**: `research/holoscript.bib` (225 entries, 64 UNVERIFIED per audit matrix)
 - **Benchmark canon**: `research/benchmark-canon.md`
+- **Program thesis**: `docs/paper-program/readme.md`
 - **D.011 gate**: Memory D.011 + `docs/paper-program/D011_FOUR_GATE_CHECKLIST.md`
 - **Metrics integrity**: `docs/paper-program/P3-CENTER-metrics-integrity.md`
 - **Benchmark reproducibility**: `docs/paper-program/D011-benchmark-reproducibility.md`
