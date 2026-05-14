@@ -1,0 +1,162 @@
+// ============================================================================
+// @platform() Conditional Compilation — Minimal Prototype Fixture
+// ============================================================================
+// This fixture demonstrates the smallest viable contract for platform-
+// conditional compilation in HoloScript. Three behaviors are proven:
+//
+// 1. REPRESENTED: @platform(...) blocks parse into PlatformConstraint AST nodes
+// 2. REJECTED: Invalid platform names emit compile-time diagnostics
+// 3. LOWERED: filterForPlatform() strips non-matching blocks (dead code elimination)
+//
+// Usage:
+//   const ast = parser.parse(source);
+//   const filtered = mixin.filterForPlatform(ast, createPlatformTarget('quest3'));
+//   // filtered.objects contains only quest3-matching blocks
+// ============================================================================
+
+composition "PlatformConditionalProto" {
+
+  // ── Universal block (no @platform constraint) ─────────────────────────────
+  // This block compiles to ALL platforms — no decorator = no filtering.
+
+  object "SharedState" {
+    visible: true
+    crdt_sync: true
+  }
+
+  // ── VR-only block ─────────────────────────────────────────────────────────
+  // Compiles to: quest3, pcvr, visionos, android-xr
+  // Stripped when targeting: mobile, desktop, automotive, wearable, webxr
+
+  @platform(vr)
+  object "VRHandMenu" {
+    position: [0, 1.5, -1]
+    @hand_tracking
+    @spatial_audio_3d
+  }
+
+  // ── Mobile-only block (uses alias) ────────────────────────────────────────
+  // 'phone' is an alias for 'mobile' category → compiles to: ios, android
+  // Stripped when targeting: vr, ar, desktop, automotive, wearable
+
+  @platform(phone)
+  object "TouchUI" {
+    layout: "bottom-sheet"
+    @clickable
+  }
+
+  // ── Desktop-only block ────────────────────────────────────────────────────
+  // Compiles to: windows, macos, linux, web
+  // Stripped when targeting: vr, ar, mobile, automotive, wearable
+
+  @platform(desktop)
+  object "MouseCursor" {
+    cursor: "pointer"
+    @hoverable
+  }
+
+  // ── Exclusion form: NOT automotive ────────────────────────────────────────
+  // Compiles to: ALL platforms EXCEPT android-auto, carplay
+  // Demonstrates negative constraint syntax
+
+  @platform(not: automotive)
+  object "RichVisuals" {
+    resolution: "high"
+    @particle_emitter
+  }
+
+  // ── Multi-platform union ──────────────────────────────────────────────────
+  // Compiles to: quest3 AND android-xr only
+  // Demonstrates explicit multi-target selection
+
+  @platform(quest3, android-xr)
+  object "XRHandTracking" {
+    @hand_tracking
+    @haptic
+  }
+
+  // ── Nested platform block (interaction-level) ─────────────────────────────
+  // Platform constraint on a nested interaction, not just root objects
+
+  object "MultiModalButton" {
+    position: [0, 1, -2]
+
+    @platform(vr, ar)
+    interaction "SpatialGrab" {
+      type: spatial_gesture
+      gesture: grab
+    }
+
+    @platform(mobile, desktop)
+    interaction "MouseClick" {
+      type: pointer
+      gesture: click
+    }
+  }
+
+  // ── Template with platform constraint ─────────────────────────────────────
+  // Templates (not just objects) can be platform-gated
+
+  @platform(vr)
+  template "ImmersiveWidget" {
+    depth: 10
+    @portal
+  }
+
+  @platform(mobile)
+  template "FlatWidget" {
+    depth: 0
+    @billboard
+  }
+
+  // ── Norm with platform constraint ─────────────────────────────────────────
+  // Governance norms can be platform-specific
+
+  @platform(automotive)
+  norm "NoVisualDistraction" @norm {
+    lifecycle: constituted
+    scope: global
+    priority: critical
+    representation {
+      visual: none
+      audio: { maxLength: 5 }
+    }
+  }
+
+  // ── Spatial group with platform constraint ────────────────────────────────
+  // Entire spatial groups can be gated
+
+  @platform(vr, ar)
+  spatial_group "ImmersiveLayout" {
+    layout: circular
+    radius: 3.0
+  }
+
+  @platform(mobile, desktop)
+  spatial_group "FlatLayout" {
+    layout: grid
+    columns: 3
+  }
+}
+
+// ============================================================================
+// Expected filtering results:
+//
+// Target: quest3
+//   Objects: SharedState, VRHandMenu, RichVisuals, XRHandTracking, MultiModalButton
+//   Templates: ImmersiveWidget
+//   Norms: (none for quest3)
+//   SpatialGroups: ImmersiveLayout
+//
+// Target: ios
+//   Objects: SharedState, TouchUI, RichVisuals, MultiModalButton
+//   Templates: FlatWidget
+//   Norms: (none for ios)
+//   SpatialGroups: FlatLayout
+//
+// Target: android-auto
+//   Objects: SharedState (RichVisuals excluded by "not: automotive")
+//   Templates: (none)
+//   Norms: NoVisualDistraction
+//   SpatialGroups: (none)
+// ============================================================================
