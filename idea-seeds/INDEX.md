@@ -15,7 +15,7 @@
 
 | Seed | Class | Status | Score | Source | Reopen trigger |
 |---|---|---|---|---|---|
-| [Adaptive Platform Layers Architecture & Implementation Plan](archive-farm/2026-05-12_archive_adaptive-platform-layers-architecture-implementation-plan.md) | security-instinct | seed | 75 | docs/archive/ADAPTIVE_PLATFORM_LAYERS.md | Reopen when current roadmap, paper work, HoloLand product planning, runtime cleanup, or tool development touches the same theme. |
+| [Adaptive Platform Layers Architecture & Implementation Plan](archive-farm/2026-05-12_archive_adaptive-platform-layers-architecture-implementation-plan.md) | security-instinct | retired | 75 | docs/archive/ADAPTIVE_PLATFORM_LAYERS.md | Reviewed 2026-05-13: topology superseded by package consolidation. Do not preserve. |
 | [Autonomous TODOs: Agent Identity Framework](archive-farm/2026-05-12_archive_autonomous-todos-agent-identity-framework.md) | security-instinct | seed | 50 | docs/archive/AUTONOMOUS_TODOS.md | Reopen when current roadmap, paper work, HoloLand product planning, runtime cleanup, or tool development touches the same theme. |
 | [Build Your Own Platform with HoloScript](archive-farm/2026-05-12_archive_build-your-own-platform-with-holoscript.md) | security-instinct | seed | 47 | docs/archive/BUILD_YOUR_OWN_PLATFORM.md | Reopen when current roadmap, paper work, HoloLand product planning, runtime cleanup, or tool development touches the same theme. |
 | [HoloScript Autonomous Enhancements Summary](archive-farm/2026-05-12_archive_holoscript-autonomous-enhancements-summary.md) | security-instinct | seed | 61 | docs/archive/AUTONOMOUS_ENHANCEMENTS_2026-02-26.md | Reopen when current roadmap, paper work, HoloLand product planning, runtime cleanup, or tool development touches the same theme. |

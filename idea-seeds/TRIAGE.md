@@ -8,18 +8,18 @@
 
 ## Outcome Counts
 
-- promote-to-build: 14
+- promote-to-build: 13
 - promote-to-research: 0
 - promote-to-paper-row: 1
 - merge-into-existing: 1
 - keep-dormant: 4
-- retire-with-reason: 0
+- retire-with-reason: 1
 
 ## Triage Table
 
 | Seed | Outcome | Class | Score | Source | Reason |
 |---|---|---|---|---|---|
-| [Adaptive Platform Layers Architecture & Implementation Plan](archive-farm/2026-05-12_archive_adaptive-platform-layers-architecture-implementation-plan.md) | promote-to-build | security-instinct | 75 | docs/archive/ADAPTIVE_PLATFORM_LAYERS.md | Build-worthy implementation signal with score 75; review for an actionable board or backlog task. |
+| [Adaptive Platform Layers Architecture & Implementation Plan](archive-farm/2026-05-12_archive_adaptive-platform-layers-architecture-implementation-plan.md) | retire-with-reason | security-instinct | 75 | docs/archive/ADAPTIVE_PLATFORM_LAYERS.md | Reviewed 2026-05-13: 47-package topology superseded by consolidation (retired/migrated/merged packages). WASM integration in TS fallback mode. Concept valid, this document is historical. Do not preserve. |
 | [Autonomous TODOs: Agent Identity Framework](archive-farm/2026-05-12_archive_autonomous-todos-agent-identity-framework.md) | promote-to-build | security-instinct | 50 | docs/archive/AUTONOMOUS_TODOS.md | Build-worthy implementation signal with score 50; review for an actionable board or backlog task. |
 | [Build Your Own Platform with HoloScript](archive-farm/2026-05-12_archive_build-your-own-platform-with-holoscript.md) | promote-to-build | security-instinct | 47 | docs/archive/BUILD_YOUR_OWN_PLATFORM.md | Build-worthy implementation signal with score 47; review for an actionable board or backlog task. |
 | [HoloScript Autonomous Enhancements Summary](archive-farm/2026-05-12_archive_holoscript-autonomous-enhancements-summary.md) | promote-to-build | security-instinct | 61 | docs/archive/AUTONOMOUS_ENHANCEMENTS_2026-02-26.md | Build-worthy implementation signal with score 61; review for an actionable board or backlog task. |
@@ -42,7 +42,6 @@
 
 ## Action Candidates
 
-- promote-to-build: [Adaptive Platform Layers Architecture & Implementation Plan](archive-farm/2026-05-12_archive_adaptive-platform-layers-architecture-implementation-plan.md)
 - promote-to-build: [Autonomous TODOs: Agent Identity Framework](archive-farm/2026-05-12_archive_autonomous-todos-agent-identity-framework.md)
 - promote-to-build: [Build Your Own Platform with HoloScript](archive-farm/2026-05-12_archive_build-your-own-platform-with-holoscript.md)
 - promote-to-build: [HoloScript Autonomous Enhancements Summary](archive-farm/2026-05-12_archive_holoscript-autonomous-enhancements-summary.md)
@@ -58,6 +57,7 @@
 - promote-to-build: [Agentic Internet Composition Demo task1778125252148qe2i](research-farm/2026-05-12_research_agentic-internet-composition-demo-task1778125252148qe2i.md)
 - promote-to-build: [Isaac Lab Sim-to-Real: HoloScript Interop Memo](research-farm/2026-05-12_research_isaac-lab-sim-to-real-holoscript-interop-memo.md)
 - promote-to-build: [TODO-R2 WASM Performance Benchmark Results](research-farm/2026-05-12_research_todo-r2-wasm-performance-benchmark-results.md)
+- retire-with-reason: [Adaptive Platform Layers Architecture & Implementation Plan](archive-farm/2026-05-12_archive_adaptive-platform-layers-architecture-implementation-plan.md)
 
 Regenerate with:
 
