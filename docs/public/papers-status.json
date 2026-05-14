@@ -1,14 +1,14 @@
 {
   "schema": "paper-audit-matrix.v2",
-  "generatedAt": "2026-05-14T05:44:57.139Z",
+  "generatedAt": "2026-05-14T05:50:52.032Z",
   "matrixSourcePath": "research/paper-audit-matrix.md",
-  "scriptCommit": "fe78867a746c6990a0e20f2b72463dbdb01270ef",
+  "scriptCommit": "56e5f6f1aa1bced8763f853e5a30193895813865",
   "totals": {
     "papers": 17,
     "cellsByToken": {
       "✅": 199,
-      "⚠️": 40,
-      "❌": 19,
+      "⚠️": 41,
+      "❌": 18,
       "➖": 14
     }
   },
@@ -901,8 +901,8 @@
       "target": "SIGGRAPH '27",
       "basename": "paper-8-unified-siggraph.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-8-unified-siggraph.tex",
-      "loc": 1038,
-      "sha256Prefix": "59bb4531",
+      "loc": 1054,
+      "sha256Prefix": "307f18e4",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -934,8 +934,8 @@
           "evidence": "paper-8-unified-siggraph.tex.ots present"
         },
         "anchorBase": {
-          "token": "✅",
-          "evidence": ".tex.base.json signed and matches current .tex hash"
+          "token": "⚠️",
+          "evidence": ".tex.base.json signed for a historical .tex hash; re-anchor current source at submission bundle time"
         },
         "venueFit": {
           "token": "✅",
@@ -950,8 +950,8 @@
           "evidence": "no \\todo{measure:} markers"
         },
         "calStory": {
-          "token": "❌",
-          "evidence": "no calibration/setup/pipeline structure"
+          "token": "✅",
+          "evidence": "Calibration/Setup/Reproducibility heading + automation pointer"
         },
         "twinTest": {
           "token": "✅",
@@ -967,15 +967,20 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 2d since last commit"
+          "evidence": "0 open \\todo{}, 0d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "8acef63eed5cab1396f6eecc657d51d75fc7df70",
-        "isoDate": "2026-05-11T22:28:32-07:00",
-        "subject": "paper(8): Twin-test fill — auditor decompose-recompose as two-impl agreement"
+        "hash": "56e5f6f1aa1bced8763f853e5a30193895813865",
+        "isoDate": "2026-05-13T22:49:29-07:00",
+        "subject": "docs(ecosystem): add paper 8 reproducibility pipeline"
       },
       "recentCommits": [
+        {
+          "hash": "56e5f6f1aa1bced8763f853e5a30193895813865",
+          "isoDate": "2026-05-13T22:49:29-07:00",
+          "subject": "docs(ecosystem): add paper 8 reproducibility pipeline"
+        },
         {
           "hash": "8acef63eed5cab1396f6eecc657d51d75fc7df70",
           "isoDate": "2026-05-11T22:28:32-07:00",
@@ -995,11 +1000,6 @@
           "hash": "f3e56f2fa2487ac82bb1e26e49cbf4b503ab2cba",
           "isoDate": "2026-04-24T21:03:39-07:00",
           "subject": "docs(paper-8): close 2 founder-polish todos + restore compile state"
-        },
-        {
-          "hash": "7355437ad03d2cce59333808070a83000a5b284d",
-          "isoDate": "2026-04-24T17:07:51-07:00",
-          "subject": "research: paper revisions + .ots receipt refresh (9 papers)"
         }
       ]
     },
