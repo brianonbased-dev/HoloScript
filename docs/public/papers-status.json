@@ -1,14 +1,14 @@
 {
   "schema": "paper-audit-matrix.v2",
-  "generatedAt": "2026-05-14T05:37:02.530Z",
+  "generatedAt": "2026-05-14T05:44:57.139Z",
   "matrixSourcePath": "research/paper-audit-matrix.md",
-  "scriptCommit": "8d35a75d702e665c2334e5a7de8172285963afa3",
+  "scriptCommit": "fe78867a746c6990a0e20f2b72463dbdb01270ef",
   "totals": {
     "papers": 17,
     "cellsByToken": {
-      "✅": 198,
-      "⚠️": 39,
-      "❌": 21,
+      "✅": 199,
+      "⚠️": 40,
+      "❌": 19,
       "➖": 14
     }
   },
@@ -685,8 +685,8 @@
       "target": "SCA '27",
       "basename": "paper-6-animation-sca.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-6-animation-sca.tex",
-      "loc": 1566,
-      "sha256Prefix": "66936623",
+      "loc": 1593,
+      "sha256Prefix": "2867a6ec",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -718,8 +718,8 @@
           "evidence": "paper-6-animation-sca.tex.ots present"
         },
         "anchorBase": {
-          "token": "✅",
-          "evidence": ".tex.base.json signed and matches current .tex hash"
+          "token": "⚠️",
+          "evidence": ".tex.base.json signed for a historical .tex hash; re-anchor current source at submission bundle time"
         },
         "venueFit": {
           "token": "✅",
@@ -742,24 +742,29 @@
           "evidence": "explicit two-impl/digital-twin equivalence + assertion"
         },
         "decoderCost": {
-          "token": "❌",
-          "evidence": "no decoder/runtime cost on novel claims (W.314 risk)"
+          "token": "✅",
+          "evidence": "asymptotic class declaration + Complexity/Cost heading"
         },
         "scalingMemo": {
-          "token": "❌",
-          "evidence": "no scaling discussion (W.316 risk)"
+          "token": "✅",
+          "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 1d since last commit"
+          "evidence": "0 open \\todo{}, 0d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "4b639899d0a372a0a6310c5cdffe91e3b9cfacac",
-        "isoDate": "2026-05-11T23:02:58-07:00",
-        "subject": "paper(6): Twin-test fill — WebGPU/CPU fallback as two-impl agreement"
+        "hash": "fe78867a746c6990a0e20f2b72463dbdb01270ef",
+        "isoDate": "2026-05-13T22:44:14-07:00",
+        "subject": "docs(ecosystem): add paper 6 performance model"
       },
       "recentCommits": [
+        {
+          "hash": "fe78867a746c6990a0e20f2b72463dbdb01270ef",
+          "isoDate": "2026-05-13T22:44:14-07:00",
+          "subject": "docs(ecosystem): add paper 6 performance model"
+        },
         {
           "hash": "4b639899d0a372a0a6310c5cdffe91e3b9cfacac",
           "isoDate": "2026-05-11T23:02:58-07:00",
@@ -779,11 +784,6 @@
           "hash": "129c3c142583f328237a91b24f75e806606e2483",
           "isoDate": "2026-05-07T11:21:28-07:00",
           "subject": "docs(ecosystem): calibrate paper 6 benchmark evidence"
-        },
-        {
-          "hash": "e574db81b537cc72f508f828487709ff0a0168df",
-          "isoDate": "2026-05-03T01:25:40-07:00",
-          "subject": "docs(paper-6): annotate tables with measured data + shipped matrix harness"
         }
       ]
     },
