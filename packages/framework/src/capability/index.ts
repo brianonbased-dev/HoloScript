@@ -3,7 +3,7 @@
  *
  * Unified Capability Schema — canonical base + context extensions.
  *
- * See research/2026-05-13_reusable-capability-schema-proposal.md for
+ * See research/2026-05-14_reusable-capability-schema-proposal.md for
  * design rationale and migration path.
  */
 
