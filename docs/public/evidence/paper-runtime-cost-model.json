@@ -1,0 +1,133 @@
+{
+  "reportId": "runtime_cost_a95625c0c12f2c6e",
+  "reportHash": "sha256:a95625c0c12f2c6e48046dc232c8edcd7f46a659ede4c51c79a464b596154a77",
+  "schemaVersion": "holoscript.paper-runtime-cost-model.v1",
+  "generatedAt": "2026-05-14T12:30:00.000Z",
+  "generatedBy": "scripts/paper-runtime-cost-model.mjs",
+  "summary": {
+    "rows": 3,
+    "measuredRows": 3,
+    "paperStatusFlipCandidates": [
+      "11",
+      "12"
+    ]
+  },
+  "rows": [
+    {
+      "paperId": "6",
+      "paperTitle": "Verifiable Animation",
+      "status": "measured",
+      "surface": "retargeting solver runtime",
+      "asymptoticClass": "O(f * k)",
+      "asymptoticRationale": "Sampling f frames across k animation tracks; publication solver is a deterministic post-pass.",
+      "inputScale": "60 frames x 1500 iterations",
+      "baseline": {
+        "label": "baseline-no-pipeline",
+        "value": 4.229,
+        "unit": "us/frame"
+      },
+      "measured": {
+        "label": "full-solver",
+        "value": 10.457,
+        "unit": "us/frame"
+      },
+      "overhead": {
+        "label": "full-solver vs baseline-no-pipeline",
+        "value": 6.228,
+        "unit": "us/frame",
+        "ratio": 2.4727
+      },
+      "artifacts": [
+        ".bench-logs/paper-6-ablation-publication.json"
+      ],
+      "artifactHashes": [
+        {
+          "path": ".bench-logs/paper-6-ablation-publication.json",
+          "sha256": "sha256:0442f77e3360e1f4a3e00741d32df3a6ab815ee5b6443c3507eed06ece2a4871"
+        }
+      ],
+      "harness": "packages/engine/src/animation/paper/benchmarks/p6-ablation-publication.ts",
+      "interpretation": "Full solver runtime is the cost-bearing publication path; baseline lacks the solver and fails reference-hash equivalence.",
+      "paperStatusDecoderCostCandidate": false
+    },
+    {
+      "paperId": "11",
+      "paperTitle": "HSPlus",
+      "status": "measured",
+      "surface": "trait semiring resolution",
+      "asymptoticClass": "O(t)",
+      "asymptoticRationale": "ProvenanceSemiring.add walks t trait applications once; the paired imperative baseline uses the same t.",
+      "inputScale": "100 trait applications; 500 measured iterations",
+      "baseline": {
+        "label": "imperative direct write",
+        "value": 13.8,
+        "unit": "us/call"
+      },
+      "measured": {
+        "label": "ProvenanceSemiring.add",
+        "value": 136.25,
+        "unit": "us/call"
+      },
+      "overhead": {
+        "label": "ProvenanceSemiring.add vs imperative direct write",
+        "value": 122.45,
+        "unit": "us/call",
+        "ratio": 9.8732
+      },
+      "artifacts": [
+        ".bench-logs/paper-trait-semiring-overhead.json",
+        ".bench-logs/paper-trait-imperative-baseline.json"
+      ],
+      "artifactHashes": [
+        {
+          "path": ".bench-logs/paper-trait-semiring-overhead.json",
+          "sha256": "sha256:7781e27d7c903ac69a8102aa15ccc3f688f27e2d19dd09fd615b0386c0e600eb"
+        },
+        {
+          "path": ".bench-logs/paper-trait-imperative-baseline.json",
+          "sha256": "sha256:4842fa4c4751c3dad2b707116f45502512685a606a61c4e5c01760d01a4d08e5"
+        }
+      ],
+      "harness": "packages/core/src/traits/constants/__tests__/paper-trait-semiring-overhead.test.ts",
+      "interpretation": "Paper 11 can cite this as a decoderCost flip candidate: the report has an explicit O(t) class and paired measured overhead against the uncontracted baseline.",
+      "paperStatusDecoderCostCandidate": true
+    },
+    {
+      "paperId": "12",
+      "paperTitle": "HoloLand",
+      "status": "measured",
+      "surface": "scene-suite parser/export overhead",
+      "asymptoticClass": "O(o * a)",
+      "asymptoticRationale": "The scene-suite parser/export path scales over o scene objects and a annotations/traits per object.",
+      "inputScale": "5-scene suite aggregate",
+      "baseline": {
+        "label": "HoloScript warm parse mean",
+        "value": 0.2012,
+        "unit": "ms"
+      },
+      "measured": {
+        "label": "OpenUSD plugin export mean",
+        "value": 0.2767,
+        "unit": "ms"
+      },
+      "overhead": {
+        "label": "OpenUSD plugin export mean vs HoloScript warm parse mean",
+        "value": 0.0755,
+        "unit": "ms",
+        "ratio": 1.3752
+      },
+      "artifacts": [
+        ".bench-logs/2026-04-27-paper-12-scene-suite-overhead.md"
+      ],
+      "artifactHashes": [
+        {
+          "path": ".bench-logs/2026-04-27-paper-12-scene-suite-overhead.md",
+          "sha256": "sha256:cb389610b3a258341ff64eb60bdca48f797024d845344f705fdd6a65f481c3d6"
+        }
+      ],
+      "harness": "packages/comparative-benchmarks/src/__tests__/paper-12-scene-suite-overhead.bench.test.ts",
+      "interpretation": "Paper 12 has measured runtime/export overhead evidence; the paper still needs to cite it in a Runtime/Cost heading to flip decoderCost.",
+      "paperStatusDecoderCostCandidate": true
+    }
+  ]
+}
