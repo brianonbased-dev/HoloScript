@@ -118,9 +118,9 @@ for (let i = 0; i < 5000; i++) {
 // MCP TOOL CALL PATTERNS (5,000 examples)
 // ============================================================================
 
-const MCP_SERVERS = ['brittney-hololand', 'holoscript-language', 'uaa2-service', 'semantic-search-hub'];
+const MCP_SERVERS = ['hololand-substrate', 'holoscript-language', 'uaa2-service', 'semantic-search-hub'];
 const MCP_TOOLS = {
-  'brittney-hololand': ['generate_scene', 'validate_holoscript', 'render_preview'],
+  'hololand-substrate': ['generate_scene', 'validate_holoscript', 'render_preview'],
   'holoscript-language': ['parse', 'compile', 'analyze'],
   'uaa2-service': ['register_agent', 'execute_task', 'get_metrics'],
   'semantic-search-hub': ['search_knowledge', 'add_pattern', 'get_session_context']

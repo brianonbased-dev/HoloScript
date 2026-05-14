@@ -46,7 +46,7 @@ This document outlines how to integrate HoloScript 3.0 across the entire ecosyst
 │                              MCP ORCHESTRATOR                                │
 │                        (localhost:5567 - Gateway)                            │
 │                                                                              │
-│   Registered Servers: holoscript-mcp, brittney-hololand, ai-workspace       │
+│   Registered Servers: holoscript-mcp, hololand-substrate, ai-workspace       │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
         ┌─────────────────────────────┼─────────────────────────────┐
