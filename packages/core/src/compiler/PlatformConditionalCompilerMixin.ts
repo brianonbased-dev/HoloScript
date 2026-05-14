@@ -188,3 +188,56 @@ export class PlatformConditionalCompilerMixin {
     return blocks.filter((block) => matchesPlatformConstraint(block.platformConstraint, target));
   }
 }
+
+// =============================================================================
+// PLATFORM CONSTRAINT VALIDATION (Compiler Gate)
+// =============================================================================
+
+/** All valid names that can appear inside @platform(...) */
+const VALID_PLATFORM_NAMES = new Set<string>([
+  ...ALL_PLATFORMS,
+  ...Object.keys(PLATFORM_CATEGORIES),
+  ...Object.keys(PLATFORM_ALIASES),
+]);
+
+/**
+ * Walk a parsed HoloComposition and return validation errors for every
+ * @platform() constraint that references unknown platforms or is empty.
+ *
+ * This is the **compiler-side gate** — the parser stays permissive (future-
+ * proofing), but the compilation pipeline can call this to fail clearly.
+ */
+export function validatePlatformConstraints(composition: HoloComposition): string[] {
+  const errors: string[] = [];
+
+  const check = (constraint: PlatformConstraint | undefined, context: string) => {
+    if (!constraint) return;
+    if (constraint.include.length === 0 && constraint.exclude.length === 0) {
+      errors.push(
+        `${context}: Empty @platform() constraint — specify at least one platform or category`
+      );
+    }
+    for (const name of constraint.include) {
+      if (!VALID_PLATFORM_NAMES.has(name)) {
+        errors.push(
+          `${context}: Unknown platform '${name}' in @platform() — not a recognized platform or category`
+        );
+      }
+    }
+    for (const name of constraint.exclude) {
+      if (!VALID_PLATFORM_NAMES.has(name)) {
+        errors.push(
+          `${context}: Unknown platform '${name}' in @platform(not: ...) — not a recognized platform or category`
+        );
+      }
+    }
+  };
+
+  for (const obj of composition.objects || []) check(obj.platformConstraint, `object "${obj.name}"`);
+  for (const tmpl of composition.templates || []) check(tmpl.platformConstraint, `template "${tmpl.name}"`);
+  for (const norm of composition.norms || []) check(norm.platformConstraint, `norm "${norm.name}"`);
+  for (const grp of composition.spatialGroups || []) check(grp.platformConstraint, `spatial group "${grp.name}"`);
+  for (const light of composition.lights || []) check(light.platformConstraint, `light "${light.name}"`);
+
+  return errors;
+}
