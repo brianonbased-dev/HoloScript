@@ -174,7 +174,7 @@ Default servers in MCP Mesh Orchestrator:
 | `mcp-github`             | GitHub integration  | create_pr, list_issues, get_repo         |
 | `semantic-search-hub`    | Vector search       | search_knowledge, add_pattern, reindex   |
 | `holoscript-language`    | Language services   | parse_code, validate_syntax, generate    |
-| `brittney-hololand`      | AI agent            | chat, generate_scene, optimize           |
+| `brittney-hololand`      | AI agent (legacy name; conflates substrate with participant) | chat, generate_scene, optimize |
 | `ai-workspace-knowledge` | Knowledge base      | query_docs, add_insight, get_context     |
 | `uaa2-service`           | Authentication      | verify_token, get_user, check_permission |
 

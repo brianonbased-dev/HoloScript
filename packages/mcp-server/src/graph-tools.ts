@@ -1,7 +1,8 @@
 /**
  * HoloScript Graph Understanding Tools
  *
- * Migrated from Hololand/Brittney MCP to HoloScript MCP (free tier).
+ * Migrated from HoloLand MCP to HoloScript MCP (free tier).
+ * Brittney is one participant on the Twin Earth substrate, not the substrate itself.
  * These tools help AI agents understand .holo files as visual graphs.
  */
 
