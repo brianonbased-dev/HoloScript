@@ -47,6 +47,7 @@ import { teamAgentTools, handleTeamAgentTool } from './team-agent-tools';
 import { teamFormationTools, handleTeamFormationTool } from './team-formation-tools';
 import { agentCapabilityTools, handleAgentCapabilityTool } from './agent-capability-tools';
 import { sovereignTools, handleSovereignTool } from './sovereign-tools';
+import { twinEarthFederationTools, handleTwinEarthFederationTool } from './twin-earth-federation';
 import * as crypto from 'crypto';
 import {
   formatBroadcastContextMarkdown,
@@ -554,6 +555,8 @@ export const holomeshTools: Tool[] = [
   ...agentCapabilityTools,
   // Sovereign mesh ops
   ...sovereignTools,
+  // Twin Earth robot/AI substrate federation (task_1778618552503_6xk8)
+  ...twinEarthFederationTools,
 ];
 
 // ── Singleton Client ──
@@ -623,6 +626,9 @@ export async function handleHoloMeshTool(
     ? await handleSovereignTool(name, args, hasHoloMeshKey() ? getOrCreateClient() : null)
     : null;
   if (sovereignResult !== null) return sovereignResult;
+
+  const twinEarthFedResult = await handleTwinEarthFederationTool(name, args);
+  if (twinEarthFedResult !== null) return twinEarthFedResult;
 
   if (!hasHoloMeshKey()) {
     if (name === 'holomesh_discover' && wantsToolDiscovery(args)) {

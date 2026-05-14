@@ -42,6 +42,7 @@ import { holotestTools } from './holotest-tools';
 import { refactorCodegenTools } from './refactor-codegen-tools';
 import { traitTools } from './trait-tools';
 import { hololandMcpTools } from './hololand-mcp-tools';
+import { robotAiMcpTools } from './robot-ai-mcp-tools';
 import { hologramToolDefinitions } from './hologram-mcp-tools';
 import { estimateTaskDurationTools } from './tools/estimate_task_duration';
 import { kolmogorovTaskScoreTools } from './tools/kolmogorov_task_score';
@@ -756,6 +757,7 @@ export const tools: Tool[] = [
   ...refactorCodegenTools,
   ...traitTools,
   ...hololandMcpTools,
+  ...robotAiMcpTools,
   ...hologramToolDefinitions,
   ...estimateTaskDurationTools,
   ...kolmogorovTaskScoreTools,

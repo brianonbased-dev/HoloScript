@@ -16,5 +16,13 @@ export interface McpToolResult {
 export declare const server: Server;
 export declare const tools: Tool[];
 
-export declare function handleTool(name: string, args: ToolArguments): Promise<unknown>;
-export declare function executeSingleTool(name: string, args: ToolArguments): Promise<McpToolResult>;
+export declare function handleTool(
+  name: string,
+  args: ToolArguments,
+  signingCtx?: import('./src/holomesh/identity/signing-middleware').SigningContext
+): Promise<unknown>;
+export declare function executeSingleTool(
+  name: string,
+  args: ToolArguments,
+  signingCtx?: import('./src/holomesh/identity/signing-middleware').SigningContext
+): Promise<McpToolResult>;

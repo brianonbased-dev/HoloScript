@@ -65,6 +65,8 @@ import {
   resolveTraitCategorySlug,
 } from './trait-categories-from-core';
 import type { SigningContext } from './holomesh/identity/signing-middleware';
+import { runForkSandboxGate, gateHoloScriptCode } from './security/fork-sandbox-gate';
+import type { CapabilityManifest } from './security/sandbox-policy';
 
 /** Used only when core source tree is not present next to mcp-server (e.g. odd installs). */
 const TRAIT_CATEGORIES_FALLBACK: Record<string, string[]> = {
@@ -223,6 +225,51 @@ export async function handleTool(
   args: Record<string, unknown>,
   signingCtx?: SigningContext
 ): Promise<unknown> {
+  // ── Fork Sandbox Gate (canary task_1778618757735_zpt5) ─────────────────────
+  // Block forked/untrusted HoloScript code and sensitive tools before they
+  // can touch HoloLand worlds, robot/AI substrate, payments, or player state.
+  const gateResult = await runForkSandboxGate(
+    {
+      kind: 'mcp_tool',
+      source: 'unknown',
+      subjectId: `mcp:${name}`,
+      payload: args,
+    },
+    {
+      toolName: name,
+      grantedScopes: signingCtx?.scopes ?? [],
+    }
+  );
+  if (!gateResult.allowed) {
+    return {
+      success: false,
+      error: `ForkSandboxGate denied tool "${name}": ${gateResult.receipt?.reason ?? 'policy violation'}`,
+      receiptId: gateResult.receipt?.receiptId,
+      policyId: gateResult.appliedPolicy.policyId,
+      checks: gateResult.checks,
+    };
+  }
+
+  // For tools that ingest HoloScript code, additionally gate the code payload
+  const codePayload =
+    args.code ?? args.content ?? args.holoscript ?? args.source;
+  if (typeof codePayload === 'string' && codePayload.length > 0) {
+    const codeGate = await gateHoloScriptCode(codePayload, {
+      source: 'unknown',
+      toolName: name,
+      grantedScopes: signingCtx?.scopes ?? [],
+    });
+    if (!codeGate.allowed) {
+      return {
+        success: false,
+        error: `ForkSandboxGate denied HoloScript payload for "${name}": ${codeGate.receipt?.reason ?? 'policy violation'}`,
+        receiptId: codeGate.receipt?.receiptId,
+        policyId: codeGate.appliedPolicy.policyId,
+        checks: codeGate.checks,
+      };
+    }
+  }
+
   // Core tools
   switch (name) {
     case 'parse_hs':

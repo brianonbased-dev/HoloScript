@@ -79,3 +79,39 @@ export {
   type BypassCheckInput,
   type BypassCheckResult,
 } from './bypass-detection';
+
+// Sandbox Policy (canary task_1778618757735_zpt5)
+export {
+  resolvePolicy,
+  isSensitiveTool,
+  hashPayload,
+  globalReceiptStore,
+  DEFAULT_SENSITIVE_POLICY,
+  DEFAULT_BENIGN_POLICY,
+  SENSITIVE_TOOL_PATTERNS,
+  type SandboxPolicy,
+  type CapabilityManifest,
+  type CapabilityAttestation,
+  type PermissionRequirements,
+  type NetworkLimits,
+  type FileLimits,
+  type ResourceCeilings,
+  type DenialReceiptConfig,
+  type SandboxSubject,
+  type SandboxSubjectKind,
+  type SandboxSubjectSource,
+  type DenialReceipt,
+  type SandboxGateResult,
+} from './sandbox-policy';
+
+// Fork Sandbox Gate (canary task_1778618757735_zpt5)
+export {
+  runForkSandboxGate,
+  gateHoloScriptCode,
+  gateMcpTool,
+  gatePluginRegistration,
+  detectForkedHoloScript,
+  detectForkedPlugin,
+  type ForkDetectionResult,
+  type ForkSandboxGateOptions,
+} from './fork-sandbox-gate';
