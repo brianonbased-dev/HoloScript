@@ -7,6 +7,8 @@
  * @see HoloScript/docs/architecture/2026-05-14_trust-primitives-decision-record.md
  */
 
+import { createHash } from 'crypto';
+
 export type TrustReceiptStatus =
   | 'success'
   | 'failure'
@@ -34,9 +36,16 @@ export type TrustLayer1Strategy =
   | 'tropical'
   | string; // documented successors
 
+export interface TrustActorBinding {
+  value: string;
+  type: 'lane' | 'wallet' | 'git' | 'shell' | 'agent' | string;
+  verifiedAt?: string; // ISO-8601
+  verifier?: string;
+}
+
 export interface TrustActor {
   passportDid: string;
-  bindings?: string[]; // lane id, wallet address, git key, shell actor id
+  bindings?: TrustActorBinding[];
 }
 
 export interface TrustAction {
@@ -67,6 +76,7 @@ export interface TrustLinks {
 export interface TrustStorage {
   localLedgerRef?: string;
   syncState: TrustSyncState;
+  redactedFields?: string[]; // fields redacted before sync
 }
 
 export interface TrustReceipt {
@@ -82,8 +92,63 @@ export interface TrustReceipt {
   storage: TrustStorage;
 }
 
+export type TrustReceiptInput = Omit<TrustReceipt, 'receiptId' | 'storage'> & {
+  receiptId?: string;
+  storage?: Partial<TrustStorage>;
+};
+
+const VALID_ENVELOPES: TrustPermissionEnvelope[] = ['read_only', 'guarded_execute', 'break_glass'];
+
+const SIMULATION_KEYWORDS = ['sim', 'simulation', 'dt', 'digital-twin', 'digitaltwin', 'replay'];
+
+function looksLikeWallet(value: string): boolean {
+  return typeof value === 'string' && /^0x[a-fA-F0-9]{40}$/.test(value);
+}
+
+function isSimulationRelated(action: TrustAction): boolean {
+  const haystack = `${action.name} ${action.resource}`.toLowerCase();
+  return SIMULATION_KEYWORDS.some((k) => haystack.includes(k));
+}
+
 /**
- * Minimal validator: confirms required fields are present and non-empty.
+ * Deterministic receipt ID derived from canonical content hash.
+ */
+export function generateReceiptId(input: TrustReceiptInput): string {
+  const canonical = stableTrustStringify(input);
+  const hash = createHash('sha256').update(canonical).digest('hex').slice(0, 16);
+  return `trust_${input.recordedAt.replace(/[:.]/g, '-')}_${hash}`;
+}
+
+/**
+ * Canonical JSON for trust hashes. Sorts object keys recursively so equivalent
+ * receipt payloads hash the same after persistence, cloning, or redaction.
+ */
+export function stableTrustStringify(value: unknown): string {
+  return JSON.stringify(canonicalizeTrustValue(value)) ?? 'undefined';
+}
+
+function canonicalizeTrustValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => canonicalizeTrustValue(entry));
+  }
+
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    const sorted: Record<string, unknown> = {};
+    for (const key of Object.keys(record).sort()) {
+      const entry = record[key];
+      if (entry !== undefined) {
+        sorted[key] = canonicalizeTrustValue(entry);
+      }
+    }
+    return sorted;
+  }
+
+  return value;
+}
+
+/**
+ * Strict validator per ADR-2026-05-14 Phase 1.
  */
 export function validateTrustReceipt(r: unknown): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
@@ -101,10 +166,28 @@ export function validateTrustReceipt(r: unknown): { valid: boolean; errors: stri
     errors.push('Missing actor');
   } else {
     const actor = rec.actor as Record<string, unknown>;
-    if (!actor.passportDid || typeof actor.passportDid !== 'string') errors.push('Missing actor.passportDid');
+    if (!actor.passportDid || typeof actor.passportDid !== 'string') {
+      errors.push('Missing actor.passportDid');
+    }
+    if (actor.bindings !== undefined) {
+      if (!Array.isArray(actor.bindings)) {
+        errors.push('actor.bindings must be an array');
+      } else {
+        for (const b of actor.bindings) {
+          if (!b || typeof b !== 'object' || typeof (b as Record<string, unknown>).value !== 'string') {
+            errors.push('Each actor.binding must have a value string');
+            break;
+          }
+        }
+      }
+    }
   }
 
-  if (!rec.permissionEnvelope || typeof rec.permissionEnvelope !== 'string') errors.push('Missing permissionEnvelope');
+  if (!rec.permissionEnvelope || typeof rec.permissionEnvelope !== 'string') {
+    errors.push('Missing permissionEnvelope');
+  } else if (!VALID_ENVELOPES.includes(rec.permissionEnvelope as TrustPermissionEnvelope)) {
+    errors.push(`Non-canonical permissionEnvelope: ${rec.permissionEnvelope}`);
+  }
 
   if (!rec.action || typeof rec.action !== 'object') {
     errors.push('Missing action');
@@ -127,6 +210,11 @@ export function validateTrustReceipt(r: unknown): { valid: boolean; errors: stri
   } else {
     const at = rec.algebraicTrust as Record<string, unknown>;
     if (!at.layer1Strategy || typeof at.layer1Strategy !== 'string') errors.push('Missing algebraicTrust.layer1Strategy');
+    if (!at.layer2HistoryRef || typeof at.layer2HistoryRef !== 'string') errors.push('Missing algebraicTrust.layer2HistoryRef');
+    const action = (rec.action as Record<string, unknown> | undefined) ?? {};
+    if (isSimulationRelated(action as TrustAction) && (!at.layer3OracleRef || typeof at.layer3OracleRef !== 'string')) {
+      errors.push('Missing algebraicTrust.layer3OracleRef for simulation/digital-twin receipts');
+    }
   }
 
   if (!rec.storage || typeof rec.storage !== 'object') {
@@ -134,6 +222,25 @@ export function validateTrustReceipt(r: unknown): { valid: boolean; errors: stri
   } else {
     const storage = rec.storage as Record<string, unknown>;
     if (!storage.syncState || typeof storage.syncState !== 'string') errors.push('Missing storage.syncState');
+    const syncState = storage.syncState as TrustSyncState;
+    if ((syncState === 'synced' || syncState === 'redacted_sync') && !Array.isArray(storage.redactedFields)) {
+      errors.push('Missing storage.redactedFields for synced receipts');
+    }
+  }
+
+  // secp256k1 wallet binding requires transaction evidence
+  const actor = (rec.actor as Record<string, unknown> | undefined) ?? {};
+  const bindings = Array.isArray(actor.bindings) ? actor.bindings : [];
+  const hasWalletBinding = bindings.some((b: unknown) => {
+    if (!b || typeof b !== 'object') return false;
+    const binding = b as Record<string, unknown>;
+    return binding.type === 'wallet' || looksLikeWallet(String(binding.value));
+  });
+  if (hasWalletBinding) {
+    const evidence = (rec.evidence as Record<string, unknown> | undefined) ?? {};
+    if (!evidence.commandHash || typeof evidence.commandHash !== 'string') {
+      errors.push('Wallet binding requires evidence.commandHash (transaction evidence)');
+    }
   }
 
   return { valid: errors.length === 0, errors };
