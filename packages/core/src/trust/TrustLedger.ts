@@ -15,6 +15,7 @@ import {
   TrustReceiptInput,
   TrustPermissionEnvelope,
   TrustReceiptStatus,
+  TrustSyncState,
   validateTrustReceipt,
   generateReceiptId,
   stableTrustStringify,
@@ -23,6 +24,7 @@ import {
 // ─── Query Filter ────────────────────────────────────────────────────────────
 
 export interface TrustQueryFilter {
+  receiptId?: string;
   passportDid?: string;
   permissionEnvelope?: TrustPermissionEnvelope;
   actionName?: string;
@@ -33,6 +35,7 @@ export interface TrustQueryFilter {
   taskId?: string;
   commit?: string;
   parentReceiptId?: string;
+  syncState?: TrustSyncState;
   limit?: number;
   offset?: number;
 }
@@ -160,6 +163,7 @@ export class TrustLedger {
     let results = this.storage.getAll();
 
     results = results.filter((r) => {
+      if (filter.receiptId !== undefined && r.receiptId !== filter.receiptId) return false;
       if (filter.passportDid !== undefined && r.actor.passportDid !== filter.passportDid)
         return false;
       if (
@@ -176,6 +180,7 @@ export class TrustLedger {
         const parents = r.links?.parentReceiptIds ?? [];
         if (!parents.includes(filter.parentReceiptId)) return false;
       }
+      if (filter.syncState !== undefined && r.storage.syncState !== filter.syncState) return false;
       if (filter.since !== undefined && r.recordedAt < filter.since) return false;
       if (filter.until !== undefined && r.recordedAt > filter.until) return false;
       return true;
