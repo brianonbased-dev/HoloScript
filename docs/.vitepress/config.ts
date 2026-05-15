@@ -791,6 +791,7 @@ export default defineConfig({
         {
           text: 'Daily Code Reviews',
           items: [
+            { text: '2026-05-15', link: '/reviews/2026-05-15' },
             { text: '2026-05-09', link: '/reviews/2026-05-09' },
             { text: '2026-05-08', link: '/reviews/2026-05-08' },
             { text: '2026-05-07', link: '/reviews/2026-05-07' },
