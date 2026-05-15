@@ -14,7 +14,7 @@
     "build": "node scripts/check-pnpm-install-needed.mjs && pnpm --filter @holoscript/core run build && pnpm -r --workspace-concurrency=1 --filter=!@holoscript/core --filter=!@holoscript/tauri-app run --if-present build",
     "build:parallel": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",
-    "test": "pnpm -r --filter=!holoscript test",
+    "test": "node scripts/run-root-tests.mjs",
     "test:coverage": "pnpm -r --filter=!holoscript test:coverage",
     "coverage:summary": "node scripts/scan-coverage-summaries.mjs",
     "coverage:summary:write": "node scripts/scan-coverage-summaries.mjs --write-central",

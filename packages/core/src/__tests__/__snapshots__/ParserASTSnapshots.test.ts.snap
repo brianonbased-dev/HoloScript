@@ -3248,6 +3248,7 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
     "body": [
       {
         "body": {
+          "actions": [],
           "eventHandlers": [],
           "functions": [],
           "tickHandlers": [],
@@ -3305,6 +3306,7 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
     "children": [
       {
         "body": {
+          "actions": [],
           "eventHandlers": [],
           "functions": [],
           "tickHandlers": [],
@@ -3383,6 +3385,7 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
       "body": [
         {
           "body": {
+            "actions": [],
             "eventHandlers": [],
             "functions": [],
             "tickHandlers": [],
@@ -3440,6 +3443,7 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
       "children": [
         {
           "body": {
+            "actions": [],
             "eventHandlers": [],
             "functions": [],
             "tickHandlers": [],
@@ -6554,6 +6558,7 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing a
     "body": [
       {
         "body": {
+          "actions": [],
           "eventHandlers": [],
           "functions": [],
           "tickHandlers": [],
@@ -6621,6 +6626,7 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing a
     "children": [
       {
         "body": {
+          "actions": [],
           "eventHandlers": [],
           "functions": [],
           "tickHandlers": [],
@@ -6709,6 +6715,7 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing a
       "body": [
         {
           "body": {
+            "actions": [],
             "eventHandlers": [],
             "functions": [],
             "tickHandlers": [],
@@ -6776,6 +6783,7 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing a
       "children": [
         {
           "body": {
+            "actions": [],
             "eventHandlers": [],
             "functions": [],
             "tickHandlers": [],

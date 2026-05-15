@@ -12,7 +12,7 @@
  * - anonymous: 10 requests/minute
  */
 
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import type { Request } from 'express';
 import { config } from '../config.js';
 
@@ -39,7 +39,7 @@ export const rateLimiterMiddleware = rateLimit({
   },
   keyGenerator: (req: Request) => {
     // Key by identity for authenticated users, IP for anonymous
-    return req.identity?.sub ?? req.ip ?? 'unknown';
+    return req.identity?.sub ?? ipKeyGenerator(req.ip ?? 'unknown');
   },
   standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
   legacyHeaders: false, // Disable `X-RateLimit-*` headers
@@ -70,7 +70,7 @@ export const compileRateLimiter = rateLimit({
     }
   },
   keyGenerator: (req: Request) => {
-    return req.identity?.sub ?? req.ip ?? 'unknown';
+    return req.identity?.sub ?? ipKeyGenerator(req.ip ?? 'unknown');
   },
   standardHeaders: true,
   legacyHeaders: false,

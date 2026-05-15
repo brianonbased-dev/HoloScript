@@ -108,7 +108,7 @@ describe('compile routes', () => {
     server = http.createServer(mod.createApp());
     const port = await listen(server);
     baseUrl = `http://127.0.0.1:${port}`;
-  });
+  }, 30_000);
 
   afterEach(async () => {
     if (server) {

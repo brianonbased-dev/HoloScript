@@ -2,7 +2,7 @@
  * Tests for CapabilityTokenIssuer module
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { AgentRole, AgentPermission, generateAgentKeyPair, AgentKeyPair } from '../AgentIdentity';
 import {
   CapabilityTokenIssuer,
@@ -449,6 +449,38 @@ describe('CapabilityTokenIssuer', () => {
           analyzerKeyPair
         )
       ).rejects.toThrow('Expiration violation');
+    });
+
+    it('should default delegated lifetime to the parent remaining lifetime', async () => {
+      const baseTimeMs = 1_778_872_000_000;
+      const dateNow = vi.spyOn(Date, 'now').mockReturnValue(baseTimeMs);
+
+      try {
+        const parent = await issuer.issueRoot(
+          {
+            issuer: 'agent:orchestrator',
+            audience: 'agent:syntax_analyzer',
+            capabilities: [{ with: HOLOSCRIPT_RESOURCE_ALL, can: '*' }],
+            lifetimeSec: 10,
+          },
+          orchestratorKeyPair
+        );
+
+        dateNow.mockReturnValue(baseTimeMs + 3_000);
+
+        const delegated = await issuer.delegate(
+          {
+            parentToken: parent,
+            audience: 'agent:ast_optimizer',
+            capabilities: [{ with: 'holoscript://ast', can: 'ast/read' }],
+          },
+          analyzerKeyPair
+        );
+
+        expect(delegated.payload.exp).toBe(parent.payload.exp);
+      } finally {
+        dateNow.mockRestore();
+      }
     });
 
     it('should enforce delegation depth limit', async () => {
