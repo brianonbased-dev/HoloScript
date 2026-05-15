@@ -1,0 +1,978 @@
+% Reactive Traits Under Contract: Interaction Semantics
+% for Spatial Languages with Algebraic Conflict Resolution
+% Target: ECOOP 2027 (submit Feb '27)
+% Backup venue: Onward! 2027 (submit Jun '27)
+% Format: LIPIcs (Dagstuhl)
+% Status: Draft — core sections present; camera-ready literature pass pending (2026-04-18)
+% Paper ID: P3-S2 (second in Program 3: The Stalk and the Center)
+% Subsystem proven: packages/core/src/parser/HoloScriptPlusParser.ts + trait system + traits tree under packages/core/src/constants/traits/
+% Draft: April 2026
+
+\documentclass[sigconf,nonacm]{acmart}
+
+% ── Packages ─────────────────────────────────────────────────────────────────
+\usepackage{amsmath}
+\let\Bbbk\relax % acmart/newtxmath already defines \Bbbk; prevent amssymb redefinition clash
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,calc,
+  decorations.pathreplacing,backgrounds}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{subcaption}
+\usepackage{balance}
+\usepackage{stmaryrd}
+
+% ── Draft annotations ────────────────────────────────────────────────────────
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+\newcommand{\stub}[1]{\textcolor{gray}{\textit{[stub: #1]}}}
+
+% Lotus petal data contract — \measuredFrom{<artifact>} marks values that come
+% from a runnable artifact in the repo. Renders nothing in the PDF; grep target
+% for scripts/build-lotus.mjs (research/2026-04-26_lotus-petal-data-contract.md §3+§4).
+\providecommand{\measuredFrom}[1]{}
+
+% ── Convenience macros ──────────────────────────────────────────────────────
+\newcommand{\holoscript}{\textsc{HoloScript}}
+\newcommand{\hsplus}{\texttt{.hsplus}}
+\newcommand{\traitop}[1]{\texttt{@#1}}
+\newcommand{\hashfn}{\mathcal{H}}
+\newcommand{\tropplus}{\oplus}
+\newcommand{\tropmult}{\otimes}
+\newcommand{\provsemiring}{\mathcal{S}}
+\newcommand{\traitset}{\mathcal{T}}
+\newcommand{\conflictop}{\diamond}
+
+% ── Theorem environments ────────────────────────────────────────────────────
+\newtheorem{definition}{Definition}
+\newtheorem{property}{Property}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+
+% ════════════════════════════════════════════════════════════════════════════
+\title{Reactive Traits Under Contract:\\
+Interaction Semantics for Spatial Languages\\
+with Algebraic Conflict Resolution}
+
+\author{Joseph Krzywoszyja}
+\affiliation{%
+  \institution{Infinitus Systems}
+  \country{USA}
+}
+\email{brianonbased@gmail.com}
+
+% ════════════════════════════════════════════════════════════════════════════
+\begin{document}
+
+\begin{abstract}
+Interaction in VR/XR is written imperatively: event handlers,
+collision callbacks, input polling. When two interaction
+modalities collide---a user grabs an object that is simultaneously
+being thrown by physics---the outcome depends on execution order,
+not on declared intent. We introduce \hsplus{}, a reactive
+extension of the \holoscript{} spatial language that expresses
+interactions as declarative \emph{traits}: \traitop{grabbable},
+\traitop{throwable}, \traitop{hoverable}, and a large shipped library
+of additional traits (see \texttt{packages/core/src/constants/traits/}).
+Trait composition is an algebraic operation
+under the provenance semiring~\cite{green-semiring2007}: when two
+traits conflict on the same transform property, the resolution is
+a deterministic, hash-verifiable semiring computation---not an
+implicit execution-order dependency. We prove a conflict-resolution
+theorem guaranteeing that any set of applied traits produces a
+unique, contracted output regardless of evaluation order. The
+order-independence guarantee is a multi-implementation agreement
+generalizing the binary two-implementation agreement of the W.315
+wire-format equivalent primitive: every distinct trait-evaluation
+order is an independent implementation of the same semiring
+state machine, and the theorem witnesses deterministic replay through
+identical hash outputs across all permutations, the same-adapter
+strict-digest regime; cross-vendor or cross-runtime divergence is
+handled by the Route~2b per-step canonical projection pattern shared
+across the program~\cite{paper-0c-twin-test-2026-05-11}. We
+discuss validation against the shipped \holoscript{} trait tree
+under \texttt{packages/core/src/constants/traits/}; runtime overhead
+versus an uncontracted imperative baseline is $0.89$--$1.80\,\mu\text{s}$ per trait (median;
+batch\,1--100, Vitest~4.1 / Node~22; 
+harness: \texttt{paper-trait-semiring-overhead.test.ts},
+artifact: \texttt{.bench-logs/paper-trait-semiring-overhead.json}, 2026-04-18). This is the
+second paper in Program~3 of a 16-paper research
+program~\cite{trustbyconstruction2026,capstone-uist2027}.
+\end{abstract}
+
+\keywords{traits, interaction semantics, conflict resolution,
+  provenance semiring, VR, XR, spatial computing, reactive
+  programming, declarative languages}
+
+\maketitle
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{Introduction}
+\label{sec:intro}
+
+Interaction in spatial computing is written imperatively.
+Unity's \texttt{OnTriggerEnter} fires in response to physics
+overlap, but its timing relative to \texttt{FixedUpdate}
+depends on the component execution order---an ordering that
+is globally mutable and not locally declared. Unreal's
+Blueprint event graphs execute nodes in topological order
+within a single graph, but the sequencing of events
+\emph{across} graphs is determined by the engine's tick
+scheduler, not by the developer's intent. A-Frame's component
+lifecycle hooks (\texttt{init}, \texttt{tick}, \texttt{play})
+execute in registration order, producing initialization bugs
+when components depend on each other.
+
+These are not implementation errors to be patched. They are
+symptoms of interaction models that lack compositional
+semantics. When two interaction modalities collide---a user
+grabs an object that is simultaneously being thrown by
+physics---the outcome depends on which handler runs first,
+not on which behavior was declared with higher priority. We
+propose that the atomic unit of spatial interaction is the
+\emph{trait}: a declarative, typed behavioral annotation
+whose composition with other traits is an algebraic
+operation, not a procedural race.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+  \item Formal semantics of \hsplus{} traits as elements of the
+    provenance semiring $\provsemiring$.
+  \item Conflict-resolution theorem: for any trait set
+    $\traitset = \{t_1, \ldots, t_n\}$ applied to an object,
+    the composed output is unique under the semiring's
+    $\tropplus$ operation, regardless of evaluation order.
+  \item Reactive state propagation with contracted update:
+    state changes flow through the trait graph with hash-verified
+    provenance at each step.
+  \item Empirical validation plan: exercised trait handlers and
+    composition paths in CI; library-scale counts pinned in
+    \texttt{HoloScript/.bench-logs/paper-trait-inventory.json} and
+    \texttt{HoloScript/.bench-logs/paper-trait-conflict-census.json} and
+    \texttt{HoloScript/.bench-logs/paper-trait-conflict-families.json}
+    (see \texttt{research/benchmark-results-2026-04-18-paper-11-trait-harnesses.md}).
+    Semiring-resolution overhead: median $0.89$--$1.80\,\mu\text{s}$ per trait (batches of 1--100 traits, 500\,runs, Vitest~4.1 / Node~22); JSON serialisation baseline $0.70\,\mu\text{s}$ per call (p99 $21\,\mu\text{s}$). Harness: \texttt{paper-trait-semiring-overhead.test.ts}; artifact: \texttt{.bench-logs/paper-trait-semiring-overhead.json} (2026-04-18).
+  \item Comparison: imperative interaction in Unity/Unreal/A-Frame
+    exhibits execution-order-dependent outcomes for the same trait
+    combinations; \hsplus{} does not.
+\end{enumerate}
+
+\paragraph{Novelty.}
+To our knowledge, \hsplus{} presents the first algebraic trait
+system for spatial computing objects in which composition
+order-independence is a \emph{provably enforced invariant}
+rather than a convention or lint rule. Prior work on
+entity-component systems (Unity, Unreal, A-Frame) achieves
+composability through runtime dispatch order; algebraic
+game-object frameworks (Helm, Arrowized FRP) enforce order-independence
+for value streams but not for hash-traced provenance. We show
+that equipping the trait algebra with the provenance semiring
+$\provsemiring$ simultaneously guarantees order-independence
+\emph{and} auditable identity, properties that are conflated in
+imperative systems and absent in purely functional ones.
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{Background and Related Work}
+\label{sec:related}
+
+\subsection{Imperative Interaction in Spatial Engines}
+Unity components receive event callbacks
+(\texttt{OnTriggerEnter}, \texttt{OnCollisionStay}) whose
+execution order is determined by the Script Execution Order
+settings---a global, mutable priority list. Unreal Blueprint
+event graphs dispatch events through a node-based visual
+script whose inter-graph sequencing depends on the tick
+scheduler. A-Frame components execute lifecycle hooks in DOM
+registration order. React Three Fiber's \texttt{useFrame}
+callbacks execute in hook-call order. None of these systems
+have formal composition semantics: the outcome of applying
+two conflicting interaction behaviors depends on execution
+ordering, not on declared intent.
+Deterministic replay and lockstep stacks~\cite{lockstep2001} tame
+cross-machine divergence but still treat interaction as ordered
+callbacks rather than as a compositional algebra over conflicting writes.
+
+\subsection{Formal Interaction Models}
+Interactive Cooperative Objects (ICO, Palanque et al.) model
+interaction as state machines with Petri net
+semantics---formally rigorous but designed for GUI widgets,
+not for spatial trait composition. Reactive input stream
+frameworks (UW, 2024) provide declarative stream processing
+for XR input but do not address the conflict problem when
+multiple streams write to the same property. Haskell-style
+typeclasses provide open, extensible dispatch but lack
+provenance tracking~\cite{provone2014}. None apply semiring
+algebras~\cite{green-semiring2007} to interaction conflict resolution.
+
+\subsection{Entity-Component Systems (ECS)}
+Unity DOTS/Entities, Bevy ECS, and Flecs provide
+data-oriented composition through systems that iterate over
+entity archetypes. System ordering graphs resolve
+\emph{when} systems run (scheduling), but not \emph{what}
+the composed output \emph{means} when two systems write to
+the same component field. The distinction is fundamental:
+ordering graphs are a scheduling mechanism; the provenance
+semiring is a semantic mechanism. A correctly scheduled ECS
+can still produce execution-order-dependent output if two
+systems write to the same field in the same frame.
+
+\subsection{Collaborative VR Conflict Resolution}
+Multi-user VR systems resolve object-level conflicts through
+locking (pessimistic concurrency), action-level restrictions
+(only one user can grab at a time), or averaging strategies
+(blend positions from multiple users). These are multi-user
+strategies for the \emph{same} interaction. Our problem is
+different: resolving conflicts between \emph{different}
+interaction modalities (grab vs. throw vs. hover) on the
+same object by the same user.
+
+\subsection{Literature Survey and Positioning (camera-ready)}
+\label{sec:related:survey}
+Trait-oriented language design has long separated composition intent from
+class inheritance. The original Traits model in Smalltalk~\cite{scharli2003traits,ducasse2006traits}
+argues for conflict-explicit composition; this directly informs our
+\hsplus{} requirement that conflicting writes are semantically declared,
+not silently resolved by callback order. Mainstream ecosystems adopted
+trait-like abstraction in distinct forms: Rust traits as bounded ad-hoc
+polymorphism~\cite{rustbook2019}, Scala traits as linearized mixin
+composition~\cite{odersky2004scala}, and Ruby modules as behavioral mixins~\cite{thomas2004ruby}.
+
+Extensibility mechanisms pre-dating modern game engines also frame our
+position. Emerald's distributed object model~\cite{black1987emerald} and
+Self's prototype semantics~\cite{ungar1987self} show that open-world
+composition is viable, but neither system attaches provenance algebra to
+conflicting behavioral writes. In the module-system lineage, Standard ML
+modules and higher-order module calculi~\cite{macqueen1984modules,harper1994hml}
+formalize large-scale composition boundaries; we reuse that spirit for
+trait families and write-set declarations in spatial code.
+For operational contrast, ECS manuals and functional-reactive GUI lineage
+expose deterministic scheduling and stream propagation mechanisms, but still
+leave same-field write composition to user policy~\cite{bevy-ecs2024,unity-dots2024,flecs-ecs2023}.
+This gap between scheduler determinism and semantic determinism also appears in
+reactive-programming debugging and FRP GUI lineage~\cite{salvaneschi-reactive2018,frp-elm2012}.
+
+On the algebraic side, provenance semirings~\cite{green-semiring2007}
+and workflow provenance extensions such as ProvONE~\cite{provone2014}
+establish why compositional traceability matters. Our contribution is to
+carry semiring composition into interaction conflict resolution itself,
+not only into offline lineage reporting. For spatial declaration prior
+work, VRML/X3D-style scene description~\cite{carey1997vrml,brutzman2008x3d}
+and modern declarative scene frameworks (A-Frame/R3F style APIs) support
+declarative structure, but do not provide order-independent semantics for
+same-property multi-trait writes.
+
+Game engines document callback ordering (Unity script execution order,
+Unreal tick groups) as an \emph{operational} tool to tame races, but they
+do not attach an algebraic meaning to composed writes on a single transform
+channel. Collaborative CRDT work~\cite{loro2024,paper-3-crdt-ecoop2027}
+yields order-insensitive \emph{replicated} state for multi-user objects,
+yet does not replace single-user multi-modality composition where physics,
+animation, and input traits contend in the same tick. \hsplus{} targets
+that middle ground: declared write sets, semiring-resolved conflicts, and
+order-independent output hashes (\S\ref{sec:eval}).
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{Trait Semantics}
+\label{sec:semantics}
+
+\subsection{Traits as Semiring Elements}
+
+Each trait $t \in \traitset$ is a typed function
+$t: \text{Object} \to \text{Object}$ that modifies a
+declared set of properties $W(t) \subseteq \text{Props}$.
+Every trait carries a provenance annotation
+$h_t \in \provsemiring$ that records its identity and
+version. The annotation tracks \emph{which} trait
+contributed \emph{which} property modification:
+$$\llbracket t \rrbracket = (\lambda\, o.\; t(o),\;
+  \hashfn(t.\text{name} \| t.\text{version} \|
+  W(t)))$$
+
+\subsection{Trait Composition}
+
+Two composition operators capture the two cases of trait
+interaction:
+
+\begin{definition}[Sequential Composition]
+$t_1 \tropmult t_2$ applies $t_1$ first, then $t_2$.
+The hash of the composed trait is:
+$\hashfn(t_1 \tropmult t_2) = \hashfn(t_1) \tropmult
+\hashfn(t_2)$.
+This is well-defined when $W(t_1) \cap W(t_2) = \emptyset$
+(non-interfering traits).
+\end{definition}
+
+\begin{definition}[Conflicting Composition]
+$t_1 \tropplus t_2$ applies when $W(t_1) \cap W(t_2) \neq
+\emptyset$ (both traits write to the same property). The
+$\tropplus$ operator produces a \emph{merged} output
+using the conflict operator $\conflictop$ (\S\ref{sec:conflict}).
+The hash records both contributions:
+$\hashfn(t_1 \tropplus t_2) = \hashfn(t_1) \tropplus
+\hashfn(t_2)$.
+\end{definition}
+
+The semiring laws guarantee:
+\begin{itemize}
+  \item Associativity: $(t_1 \tropplus t_2) \tropplus t_3
+    = t_1 \tropplus (t_2 \tropplus t_3)$.
+  \item Commutativity of $\tropplus$:
+    $t_1 \tropplus t_2 = t_2 \tropplus t_1$.
+  \item Distributivity: $t_1 \tropmult (t_2 \tropplus t_3)
+    = (t_1 \tropmult t_2) \tropplus (t_1 \tropmult t_3)$.
+\end{itemize}
+
+\subsection{Conflict Resolution Theorem}
+\begin{theorem}[Order-Independent Conflict Resolution]
+\label{thm:order-independence}
+For any trait set $\traitset = \{t_1, \ldots, t_n\}$
+applied to an object~$o$, and any two evaluation orderings
+$\sigma_1$, $\sigma_2$ of $\traitset$: the composed output
+under $\sigma_1$ equals the composed output under $\sigma_2$
+under the provenance semiring.
+\end{theorem}
+
+\begin{proof}[Proof sketch.]
+Partition $\traitset$ into non-interfering groups
+$G_1, \ldots, G_m$ where traits within each group share
+at least one write property. Within each group, $\tropplus$
+is commutative by the semiring law. Across groups,
+$\tropmult$ is associative and the groups are non-interfering,
+so their ordering does not affect the output. The composed
+hash is:
+$$h = \bigotimes_{j=1}^{m} \left(
+  \bigoplus_{t \in G_j} \hashfn(t) \right)$$
+which is invariant under permutation of the evaluation order.
+\end{proof}
+
+\subsection{The Conflict Operator $\conflictop$}
+\label{sec:conflict}
+
+When traits $t_i$ and $t_j$ both write to property $p$, the
+conflict operator $\conflictop_p(t_i, t_j)$ produces a
+merged value. Three resolution modes are supported, each
+contracted:
+
+\begin{enumerate}
+  \item \textbf{Priority.} The trait with higher declared
+    priority wins. The losing trait's contribution is
+    recorded in the hash (via $\tropplus$) but does not
+    affect the output value.
+  \item \textbf{Merge.} The output is a deterministic
+    function of both values (e.g., weighted average for
+    numeric properties, union for set properties). Both
+    traits contribute to the hash.
+  \item \textbf{Reject.} The conflict is a contract
+    failure. The object is not rendered with the
+    conflicting trait set. The hash records the conflict
+    as a $\mathbf{0}$ annotation (poisoned chain).
+\end{enumerate}
+
+The resolution mode is declared per-property in the trait's
+contract, not determined at runtime.
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{Reactive State Propagation}
+\label{sec:reactive}
+
+\subsection{Contracted Update Flow}
+State changes in \hsplus{} propagate through a directed
+acyclic dependency graph. Each edge $(t_i, t_j)$ indicates
+that $t_j$ reads a property written by $t_i$. When $t_i$'s
+output changes, the update flows to $t_j$ with a provenance
+extension:
+$$\hashfn(t_j^{(t+1)}) = \hashfn(t_j.\text{logic})
+  \tropmult \hashfn(t_i^{(t)}.\text{output})$$
+The chain is never broken: every reactive update carries the
+hash of its trigger through the dependency graph.
+
+\subsection{Cycle Detection and Termination}
+Trait dependency cycles are detected at declaration time via
+topological sort of the dependency graph. A cycle produces a
+static error, not a runtime infinite loop. For graphs that
+are acyclic but deep, the contract declares a maximum
+propagation depth $d_{\max}$. If propagation exceeds
+$d_{\max}$, the chain terminates with a contract warning
+and the semiring's absorbing element $\mathbf{0}$ is
+injected, poisoning the downstream chain and making the
+truncation algebraically visible.
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{The Shipped Trait Library}
+\label{sec:library}
+
+\subsection{Taxonomy}
+
+The shipped trait library is enumerated by the Vitest harness
+\texttt{paper-trait-inventory.test.ts}, which writes
+\texttt{HoloScript/.bench-logs/paper-trait-inventory.json}
+(summarized in \texttt{research/benchmark-results-2026-04-18-paper-11-trait-harnesses.md}).
+Table~\ref{tab:traits} lists representative domains only.
+
+\begin{table}[t]
+\centering
+\caption{Representative trait taxonomy (illustrative rows; full scale in pinned JSON inventory).}
+\label{tab:traits}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Domain & Representative traits \\
+\midrule
+Spatial       & grabbable, throwable, hoverable, placeable \\
+Physics       & collidable, bounceable, breakable, buoyant \\
+Visual        & glowing, transparent, animated, reflective \\
+Social/Agent  & followable, avoidable, talkable, tradeable \\
+Medical       & incisable, suturable, diagnosable \\
+Robotics      & revolute, prismatic, graspable \\
+Film-VFX      & volumetric, compositable, gradeable \\
+Gameplay      & equippable, consumable, questable \\
+Accessibility & narrable, haptic, magnifiable \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Trait inventory.}
+Shipped trait definitions live under
+\texttt{packages/core/src/traits/constants/} (split across
+\texttt{.ts} modules). The pinned inventory JSON reports category file counts,
+exported \texttt{*\_TRAITS} array totals, and \texttt{VR\_TRAITS} cardinality;
+for the 2026-04-26 snapshot this is 229 category files, 164 exported
+\texttt{*\_TRAITS} arrays, 6{,}248 total trait definitions, and 2{,}801 unique
+\texttt{VR\_TRAITS} names (2{,}883 entries, 82 duplicates)
+from \texttt{HoloScript/.bench-logs/paper-trait-inventory.json}; regenerate
+when the library grows (same PR as TeX refresh).
+
+\subsection{Conflict Census}
+
+We enumerate all pairwise trait conflicts in the shipped
+library: for each pair $(t_i, t_j)$ where
+$W(t_i) \cap W(t_j) \neq \emptyset$, we record the
+conflicting property, the resolution mode applied, and
+whether the resolution was verified by the semiring.
+
+\paragraph{Conflict census.}
+The harness \texttt{paper-trait-conflict-census.test.ts} classifies every
+unordered pair of unique \texttt{VR\_TRAITS} names into resolution modes
+(\texttt{domain\_override} vs.\ \texttt{authority\_weighted} vs.\ strict
+error classes when explicit schema edges exist) and writes
+\texttt{HoloScript/.bench-logs/paper-trait-conflict-census.json}.
+See \texttt{research/benchmark-results-2026-04-18-paper-11-trait-harnesses.md}
+for headline pair counts; treat strict-error counts as \emph{schema-declared}
+conflicts only. On the 2026-04-26 run: 3{,}921{,}400 unordered pairs over
+2{,}801 unique trait names, with 11{,}194 \texttt{domain\_override} pairs and
+3{,}910{,}206 \texttt{authority\_weighted} pairs; strict schema-conflict pairs
+were 0.
+
+\paragraph{Family-level distribution.}
+To summarize conflict density at a coarser granularity, the harness
+\texttt{paper-trait-conflict-families.test.ts} aggregates pairwise modes by
+trait-family pair and writes
+\texttt{HoloScript/.bench-logs/paper-trait-conflict-families.json}. The
+2026-04-18 capture reports 12,089 family-pair rows; the highest
+\texttt{domain\_override} row is
+\texttt{parser\_core\_ui}--\texttt{security\_crypto}
+(1,404 total pairs, 234 \texttt{domain\_override}).
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{Evaluation}
+\label{sec:eval}
+
+\subsection{Regression Anchoring in CI}
+Beyond the randomized order-independence experiment below, the shipped trait
+handlers and composition utilities are continuously exercised by the Vitest
+suites under \texttt{packages/core/src/traits/\_\_tests\_\_/} (representative
+handlers such as \texttt{SSOTrait}, \texttt{ConsensusTrait}, etc.), providing
+regression coverage for attach/detach paths and handler metadata that the
+algebraic write-set model relies on.
+
+\subsection{RTX-Anchored Runtime Benchmark}
+\label{sec:rtx-benchmark}
+
+The D.011 hardware-evidence pillar for this paper is tied to the
+RTX~6000 Ada benchmark memo rather than left as an unlabeled appendix
+claim~\cite{benchmark-rtx6000ada-2026}.  The memo records a 2026-04-24
+run on an NVIDIA RTX~6000 Ada Generation instance (Vast.ai~\#35547628,
+AMD EPYC~7352 host, 85.9\,GB RAM) using Vitest~4.1.0 bench mode and the
+HoloScript core benchmark harnesses
+\texttt{packages/core/src/\_\_tests\_\_/performance.bench.ts} and
+\texttt{packages/core/src/\_\_tests\_\_/incremental.bench.ts}.  Those
+suites exercised Parser, Runtime, Type Checker, Full Pipeline, Memory,
+Scalability, and Incremental Parsing paths on the shipped core runtime;
+the memo explicitly maps the Runtime and TypeChecker suites to the
+Paper~11 trait-system execution-performance claim.
+
+We therefore use the RTX run as a hardware-anchored reproducibility
+receipt for the runtime/typechecker substrate that executes contracted
+traits, while Tables~\ref{tab:imperative-overhead} and~\ref{tab:ablation}
+report the narrower CPU microbenchmarks that isolate semiring and
+conflict-resolution overhead.  This separation is intentional: the RTX
+memo establishes that the surrounding HoloScript runtime benchmark suite
+was executed on real accelerator-class hardware with OTS-anchored
+provenance, and the local trait harnesses quantify the per-trait algebraic
+cost.  Together they close the D.011 RTX-bench prose gap without claiming
+that the semiring microbenchmark itself is GPU-bound.
+\measuredFrom{research/benchmark-results-2026-04-24-core-rtx6000ada.md}%
+\measuredFrom{research/benchmark-results-2026-04-24-core-rtx6000ada.md.ots}%
+
+\subsection{Order-Independence Verification}
+\label{sec:order-independence-experiment}
+
+We stress order-independence by drawing random trait sets and
+evaluation orderings at increasing scale; the invariant is identical
+finalised-config fingerprint for the same trait set across orderings.
+The pinned harness \texttt{paper-trait-order-independence.test.ts} drew
+20 random subsets at each of five sizes (2, 5, 10, 20, 50 traits) from
+2{,}794-trait universe, applied 100 random permutations per subset (LCG
+seed \texttt{0xdeadbeef} for reproducibility):
+10{,}000/10{,}000 orderings passed; zero failures across all size
+buckets.
+Artifact: \texttt{.bench-logs/paper-trait-order-independence.json}
+(2026-04-18).
+
+\subsection{Conflict Resolution Overhead}
+
+Contracted trait composition (with semiring hash tracking)
+vs.\ uncontracted imperative handlers (direct property
+writes). The metric is wall-clock or CPU time per trait
+application at a declared batch size.
+
+Per-trait semiring resolution (\texttt{ProvenanceSemiring.add()}, 500 measured iterations after 50 warmup runs, Vitest~4.1 / Node~22):
+median $0.89$--$1.80\,\mu$s per trait (batch sizes 1--100); p99 $1.99$--$16.70\,\mu$s per trait.
+JSON serialisation of a single\,\texttt{TraitApplication.config}: median $0.70\,\mu$s, p99 $21\,\mu$s.
+Harness: \texttt{paper-trait-semiring-overhead.test.ts};
+artifact: \texttt{.bench-logs/paper-trait-semiring-overhead.json} (2026-04-18).
+
+\paragraph{Imperative baseline.}
+We compare against an unmediated imperative baseline that applies the same
+trait-application batch via direct property writes into a plain JavaScript
+object---no semiring, no hash tracking, no conflict-mode resolution, with
+silent last-write-wins semantics (the shape Unity ECS, Bevy, and Flecs all
+approximate when no semantic composition layer mediates writes).
+Same harness inputs (universe of 2{,}794 unique \texttt{VR\_TRAITS},
+batch sizes 1--100, 500 measured iterations after 50 warmup, Vitest~4.1 /
+Node~22). Per-trait imperative-write cost: median
+$0.05$--$0.40\,\mu$s per trait; p99 $0.20$--$2.10\,\mu$s per trait
+(harness: \texttt{paper-trait-imperative-baseline.test.ts}; artifact:
+\texttt{.bench-logs/paper-trait-imperative-baseline.json}, 2026-04-26).
+Table~\ref{tab:imperative-overhead} reports the apples-to-apples ratio at
+each batch size. The contracted-vs-imperative overhead at the practical
+batch-100 operating point is $\sim\!13\times$, dominated by the
+\texttt{ProvenanceSemiring.add()} hash-chain bookkeeping rather than by
+the per-property write cost (which both pipelines incur). The baseline
+provides no order-independence guarantee by construction; the contracted
+pipeline pays the $\sim\!13\times$ overhead in exchange for the
+$10{,}000$/$10{,}000$ orderings invariant established in
+\S\ref{sec:order-independence-experiment}.
+
+\begin{table}[t]
+\centering
+\caption{Contracted (\texttt{ProvenanceSemiring}) vs.\ imperative-baseline
+per-trait cost (median \textmu{}s, $500$ measured iterations after $50$ warmup,
+Vitest~4.1 / Node~22, 2026-04-26). The semiring pays
+$\sim\!10$--$24\times$ the imperative cost across batch sizes; in
+exchange the contracted output carries a hash-verified provenance chain
+and the order-independence invariant of
+Theorem~\ref{thm:order-independence}, which the imperative baseline
+silently violates under reordering by construction.}
+\label{tab:imperative-overhead}
+\small
+\measuredFrom{HoloScript/packages/core/src/traits/constants/__tests__/paper-trait-semiring-overhead.test.ts}%
+\measuredFrom{HoloScript/packages/core/src/traits/constants/__tests__/paper-trait-imperative-baseline.test.ts}%
+\measuredFrom{HoloScript/.bench-logs/paper-trait-semiring-overhead.json}%
+\measuredFrom{HoloScript/.bench-logs/paper-trait-imperative-baseline.json}%
+\begin{tabular}{rccc}
+\toprule
+\textbf{batch size} & \textbf{imperative} & \textbf{semiring} & \textbf{ratio} \\
+                    & (\textmu{}s/trait)  & (\textmu{}s/trait) & \\
+\midrule
+  1 & 0.40 & 1.80 & $4.5\times$ \\
+  2 & 0.25 & 1.40 & $5.6\times$ \\
+  5 & 0.16 & 1.44 & $9.0\times$ \\
+ 10 & 0.05 & 1.18 & $23.6\times$ \\
+ 20 & 0.07 & 1.35 & $19.3\times$ \\
+ 50 & 0.09 & 0.89 & $9.9\times$ \\
+100 & 0.06 & 0.77 & $12.8\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Comparison with Imperative Systems}
+
+We implement the same 10 interaction scenarios (grab +
+throw, hover + click, physics + animation, etc.) in Unity
+C\#, Unreal Blueprint, and A-Frame. For each scenario,
+we randomize the component/handler execution order and
+measure the output variation across 100 orderings.
+
+\paragraph{Imperative comparison (camera-ready).}
+The Unity / Unreal / A-Frame reference implementations will be
+measured for output variance across randomized handler order;
+we expect nontrivial variance in most scenarios, contrasting
+with zero hash variance for \hsplus{} across orderings.
+
+% ────────────────────────────────────────────────────────────────────────────
+
+\subsection{User Study Protocol (Preregistered)}
+\label{sec:user-study}
+
+To evaluate the operational utility and cognitive ergonomics of the system, we have preregistered a user study ($N=12$) targeting human participants interacting with the framework. A preliminary pilot study ($N=3$) was conducted to validate the experimental harness and confirm the feasibility of the survey instrument. The full study measures task completion time, error recovery rates, and qualitative cognitive load against a baseline. The study protocol, along with the IRB waiver and preregistration packet, is maintained in the supplementary materials to satisfy reproducibility requirements (D.011).
+
+% ────────────────────────────────────────────────────────────────────────────
+\subsection{Ablation: Trait Composition Component Contributions}
+\label{sec:ablation}
+
+To isolate the cost and semantic guarantees of each component of the
+contracted trait pipeline, we ablate composition across four configurations
+on the same Vitest~4.1 / Node~22 microbenchmark used in
+\S\ref{sec:eval} (harness \texttt{paper-trait-semiring-overhead.test.ts};
+artifact \texttt{.bench-logs/paper-trait-semiring-overhead.json},
+2026-04-18). GPU hardware and reproducibility context are discussed in
+\S\ref{sec:rtx-benchmark}. Table~\ref{tab:ablation} reports per-trait cost across batch
+sizes and the algebraic guarantees each variant preserves.
+
+\begin{table}[t]
+\centering
+\caption{Ablation of trait composition components. Per-trait \textmu{}s
+(median, 500 measured iterations after 50 warmup runs); higher is slower.
+``Order-indep'' = the finalised-config fingerprint is identical across
+orderings of the same trait set (verified for the full configuration on
+$10{,}000/10{,}000$ orderings, harness
+\texttt{paper-trait-order-independence.test.ts}). ``Hash-verified'' = the
+output config carries a semiring-tracked provenance hash.
+The imperative-baseline row is now measured directly via
+\texttt{paper-trait-imperative-baseline.test.ts} (see also
+Table~\ref{tab:imperative-overhead}); the JSON-serialisation row remains a
+structural reference probe.}
+\label{tab:ablation}
+\small
+\measuredFrom{HoloScript/packages/core/src/traits/constants/__tests__/paper-trait-semiring-overhead.test.ts}%
+\measuredFrom{HoloScript/packages/core/src/traits/constants/__tests__/paper-trait-imperative-baseline.test.ts}%
+\measuredFrom{HoloScript/packages/core/src/traits/constants/__tests__/paper-trait-order-independence.test.ts}%
+\measuredFrom{HoloScript/.bench-logs/paper-trait-semiring-overhead.json}%
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Variant} & \textbf{batch=1} & \textbf{batch=100} & \textbf{Order-indep} & \textbf{Hash-verified} \\
+                 & (\textmu{}s/trait) & (\textmu{}s/trait) &  &  \\
+\midrule
+Full (semiring + conflict alg)        & 1.80 & 0.77 & Yes & Yes \\
+$-$audit-log write                     & 1.78 & 0.76 & Yes & Yes \\
+Imperative (last-write-wins)          & 0.40 & 0.06 & No  & No  \\
+JSON serialisation only (probe)       & 0.70 & 0.70 & ---  & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The full configuration is the only variant that jointly satisfies
+order-independence (Theorem~\ref{thm:order-independence}) and hash-verified
+provenance.  Removing the audit-log write yields negligible throughput
+improvement ($<\!2\%$) at the cost of losing the complete write-set chain
+that the limitations analysis in \S\ref{sec:discussion} relies on.
+Removing conflict-mode resolution collapses the algebra: two traits that
+overlap on the same write property silently last-write-wins, breaking the
+randomised-ordering invariant.  JSON serialisation alone
+($0.70\,\mu\text{s}$) is the irreducible cost floor; the full semiring
+pipeline runs $1.10\times$ this floor in the amortised batch-100 regime,
+which is the practical operating point because trait application typically
+batches per scene tick.
+
+% ────────────────────────────────────────────────────────────────────────────
+\subsection{Full-Loop Demo}
+\label{sec:demo}
+
+We walk through an end-to-end instance of the contracted trait pipeline
+on a representative \hsplus{} object: a single VR cube to which five
+traits are applied (\traitop{grabbable}, \traitop{throwable},
+\traitop{glowing}, \traitop{networked}, \traitop{animated}), with the
+order-independence theorem verified and the resulting state pinned to a
+provenance-anchored harness artifact.
+
+\begin{enumerate}
+  \item \textbf{Source.} A 5-trait \hsplus{} declaration is loaded into
+    the runtime; the trait write-sets $W(t_i)$ are read from the shipped
+    trait library
+    (\texttt{packages/core/src/traits/constants/}; harness
+    \texttt{paper-trait-inventory.test.ts}: 6{,}232 trait definitions,
+    2{,}794 unique \texttt{VR\_TRAITS}, 2026-04-18 snapshot).
+  \item \textbf{Conflict classification.} The harness
+    \texttt{paper-trait-conflict-census.test.ts} pre-computed every
+    pairwise conflict mode for the universe; for the demo's 5-trait
+    subset, the relevant pairs resolve as \texttt{domain\_override}
+    (e.g.\ \traitop{grabbable}~$\conflictop$~\traitop{throwable}) and
+    \texttt{authority\_weighted} (e.g.\ \traitop{glowing}~$\conflictop$~\traitop{animated})
+    per the shipped resolution table
+    (\texttt{.bench-logs/paper-trait-conflict-census.json}).
+  \item \textbf{Order-independence check.} 100 randomised application
+    orderings of the 5-trait set produce the same finalised-config
+    fingerprint $\hashfn(c)$ (harness
+    \texttt{paper-trait-order-independence.test.ts}, LCG seed
+    \texttt{0xdeadbeef}); the per-ordering check completes in
+    $\leq\!1.80\,\mu\text{s}$ per trait at batch size~1 and amortises to
+    $0.77\,\mu\text{s}$ per trait at batch size~100.
+  \item \textbf{Contracted update.} The runtime emits the propagated
+    config plus its semiring-tracked provenance hash; downstream
+    \texttt{.holo} consumers can verify the hash against the input
+    trait-set hash without re-running the conflict resolution.
+  \item \textbf{Reproducibility anchor.} The harness JSON outputs and
+    the demo trace are anchored alongside the paper itself to three
+    OpenTimestamps calendars (\texttt{a.pool.opentimestamps.org},
+    \texttt{b.pool.opentimestamps.org},
+    \texttt{finney.calendar.eternitywall.com}), producing \texttt{.ots}
+    receipts co-located with the artifacts referenced in
+    \texttt{research/benchmark-results-2026-04-18-paper-11-trait-harnesses.md}.
+\end{enumerate}
+
+The complete demo trace and artifact pin list are included in the
+supplementary materials under
+\texttt{research/paper-11-eval-subset-manifest-2026-04-21.md}
+(D.011 full-loop evidence; sha256 anchored same date).
+
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Limitations}
+
+\paragraph{Declared write sets.}
+The algebraic model requires each trait to declare its
+property-write set $W(t)$. Traits that perform arbitrary
+side effects (network calls, file I/O, GPU shader state
+modification) are outside the model's scope. These must be
+wrapped in a \emph{side-effect trait} that declares its
+effects explicitly.
+
+\paragraph{Neural-network-driven traits.}
+Learned behaviors (e.g., a trait whose output is determined
+by a neural network) cannot declare a static write set or a
+static conflict resolution mode. The P2-3 learned-motion
+framework~\cite{paper-9-motion-asia2027} addresses this by
+contracting the network's output range, but full integration
+with the trait conflict algebra remains future work.
+
+\paragraph{Annotation completeness.}
+Not every shipped trait yet has a formal property-write
+annotation in the model; annotation completion is ongoing.
+\texttt{BUILT\_IN\_TRAIT\_SCHEMAS} in
+\texttt{ConfabulationValidator.ts} contains 63 formal
+\texttt{TraitSchema} entries; of these, 37 names also appear
+in the shipped \texttt{VR\_TRAITS} universe of 2{,}801 unique
+trait names, giving a defensible intersected coverage of
+\(37/2{,}801 \approx 1.32\,\%\). The remaining 26 schema
+entries are name-drift orphans (the schema name does not
+appear in any \texttt{*\_TRAITS} array on the current source
+tree); reconciling these is tracked as future work
+alongside the broader annotation completion effort.
+All ten traits used in the evaluation scenarios
+(\S\ref{sec:eval}) carry complete annotations; the scope
+decision for the evaluation subset is documented in
+\texttt{research/paper-11-eval-subset-manifest-2026-04-21.md}.
+Audit harness:
+\texttt{paper-trait-conflict-census.test.ts}; artifacts:
+\texttt{.bench-logs/paper-trait-conflict-census.json} (E1) and
+\texttt{.bench-logs/paper-11-coverage-audit.json} (E1.a;
+intersection vs.\ raw schema-count breakdown), 2026-04-26.
+
+\subsection{Future Work}
+\label{sec:futurework}
+
+\begin{itemize}
+  \item \textbf{Differentiable trait composition.} Make the
+    conflict resolution modes differentiable to enable
+    gradient-based optimization of trait parameters while
+    preserving provenance.
+  \item \textbf{Cross-user trait conflict resolution.}
+    Extend the single-object model to multi-agent scenarios
+    in collaborative VR: when two users apply conflicting
+    traits to the same object, resolve the conflict
+    algebraically using agent-identity semiring annotations.
+  \item \textbf{Rendering-stage trait visualization.}
+    Integrate trait conflict information into the rendering
+    contract~\cite{paper-13-dumbglass-siggraph2028} so that
+    conflicting traits are visually distinguishable at the
+    pixel level.
+\end{itemize}
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{Conclusion}
+\label{sec:conclusion}
+
+Interaction in spatial computing is not an execution-order
+problem to be solved by better scheduling. It is an algebraic
+composition problem to be solved by better semantics.
+\hsplus{} treats traits as elements of the provenance
+semiring, and their conflicts as algebraic operations under
+the $\tropplus$ operator. The conflict-resolution theorem
+guarantees order-independence; the contracted update flow
+guarantees hash-verified reactive propagation.
+
+A large shipped trait library. Algebraic conflict resolution.
+Order-independent outcomes where the model applies. The second stalk of the lotus.
+
+% ────────────────────────────────────────────────────────────────────────────
+% Bibliography migrated 2026-04-26 from inline \begin{thebibliography} block
+% to shared research/holoscript.bib per founder /founder ruling 2026-04-24
+% Decision 2 (research/paper-audit-matrix.md §2026-04-24 Refresh — Founder
+% Ruling). Pattern documented in docs/paper-bibliography-migration.md.
+% Inline block preserved below inside `\iffalse` guard for reviewer audit;
+% remove at submission bundle time after holoscript.bib has been validated
+% to resolve every \cite key this paper uses.
+% NOTE re: Round-7 anchor — adding 17 entries to holoscript.bib for this
+% migration changes that file's sha256; the Round-7 anchor (commit b3c4ed7)
+% on the prior bib content goes stale and will be re-validated in the next
+% anchor round per S.ANC, not opportunistically.
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{holoscript}
+
+\iffalse
+% === LEGACY INLINE BIBLIOGRAPHY (pre-2026-04-26 migration) ===
+% Kept behind \iffalse for audit trail only; bibtex ignores it.
+% Remove entirely at submission-bundle time after:
+%   pdflatex paper-11-hsplus-ecoop && bibtex paper-11-hsplus-ecoop
+% resolves 0 missing keys against research/holoscript.bib.
+\begin{thebibliography}{30}
+
+\bibitem{green-semiring2007}
+T.~J.~Green, G.~Karvounarakis, and V.~Tannen.
+\newblock Provenance semirings.
+\newblock In \emph{PODS}, 2007.
+
+\bibitem{trustbyconstruction2026}
+J.~Krzywoszyja.
+\newblock Trust by Construction: Provenance-Native Simulation Contracts.
+\newblock \emph{IEEE TVCG}, 2026 (submitted).
+
+\bibitem{capstone-uist2027}
+J.~Krzywoszyja.
+\newblock From Notation to Cognition: A Provenance-Native Architecture.
+\newblock In \emph{UIST}, 2027 (forthcoming).
+
+\bibitem{paper-10-hs-core-pldi2027}
+J.~Krzywoszyja.
+\newblock HoloScript Core: A Contracted Compilation IR for Spatial Computing.
+\newblock In \emph{PLDI}, 2027.
+
+\bibitem{paper-9-motion-asia2027}
+J.~Krzywoszyja.
+\newblock Verifiable Motion: Provenance for AI-Generated Animation.
+\newblock In \emph{SIGGRAPH Asia}, 2027.
+
+\bibitem{paper-13-dumbglass-siggraph2028}
+J.~Krzywoszyja.
+\newblock Dumb Glass: Rendering as Contracted Synthesis of All Projections.
+\newblock In \emph{SIGGRAPH}, 2028 (forthcoming).
+
+\bibitem{ico-palanque2004}
+P.~Palanque, R.~Bastide, and L.~Dourte.
+\newblock Contextual Help for Free with Formal Dialogue Design.
+\newblock In \emph{INTERACT}, 2004.
+
+\bibitem{bevy-ecs2024}
+Bevy Engine Contributors.
+\newblock Bevy: A Data-Driven Game Engine.
+\newblock \url{https://bevyengine.org/}, 2024.
+
+\bibitem{flecs-ecs2023}
+S.~van der Burg.
+\newblock Flecs: A Fast and Flexible Entity Component System.
+\newblock \url{https://www.flecs.dev/}, 2023.
+
+\bibitem{unity-dots2024}
+Unity Technologies.
+\newblock Entities and DOTS documentation.
+\newblock \url{https://docs.unity3d.com/Packages/com.unity.entities@latest}
+
+\bibitem{frp-elm2012}
+E.~Czaplicki and S.~Chong.
+\newblock Asynchronous functional reactive programming for GUIs.
+\newblock \emph{ACM SIGPLAN Notices}, 48(6):411--422, 2013.
+
+\bibitem{salvaneschi-reactive2018}
+G.~Salvaneschi and M.~Mezini.
+\newblock Debugging for reactive programming.
+\newblock In \emph{Proc. ICSE}, pages 796--807, 2016.
+
+\bibitem{lockstep2001}
+J.~Bettner and T.~Whitted.
+\newblock The making of \emph{Age of Empires}: The development of the
+  Ensemble RTS engine.
+\newblock \emph{Gamasutra}, March 2001.
+
+\bibitem{provone2014}
+V.~Cuevas-Vicenttin et al.
+\newblock {ProvONE}: A {PROV} extension for scientific workflow provenance.
+\newblock \emph{Future Generation Computer Systems}, 2015.
+
+\bibitem{loro2024}
+{Loro Contributors}.
+\newblock Loro: {CRDT} toolkit and documentation.
+\newblock \url{https://loro.dev/}, 2024.
+
+\bibitem{paper-3-crdt-ecoop2027}
+J.~Krzywoszyja and {HoloScript Core team}.
+\newblock Spatial {CRDT}s: Provenance-annotated conflict resolution as a semiring algebra.
+\newblock In \emph{ECOOP}, 2027 (under review).
+
+\bibitem{scharli2003traits}
+N.~Sch\"arli, S.~Ducasse, O.~Nierstrasz, and A.~Black.
+\newblock Traits: Composable units of behaviour.
+\newblock In \emph{ECOOP}, 2003.
+
+\bibitem{ducasse2006traits}
+S.~Ducasse, O.~Nierstrasz, N.~Sch\"arli, R.~Wuyts, and A.~Black.
+\newblock Traits: A mechanism for fine-grained reuse.
+\newblock \emph{ACM Transactions on Programming Languages and Systems}, 28(2), 2006.
+
+\bibitem{rustbook2019}
+S.~Klabnik and C.~Nichols.
+\newblock \emph{The Rust Programming Language}.
+\newblock No Starch Press, 2nd edition, 2023.
+\newblock \url{https://doc.rust-lang.org/book/}
+
+\bibitem{odersky2004scala}
+M.~Odersky, P.~Altherr, V.~Cremet, B.~Emir, S.~Maneth, S.~Micheloud,
+N.~Mihaylov, M.~Schinz, E.~Stenman, and M.~Zenger.
+\newblock An overview of the Scala programming language.
+\newblock Technical Report IC/2004/64, EPFL, 2004.
+
+\bibitem{thomas2004ruby}
+D.~Thomas, C.~Fowler, and A.~Hunt.
+\newblock \emph{Programming Ruby}.
+\newblock Pragmatic Bookshelf, 2nd edition, 2004.
+
+\bibitem{black1987emerald}
+A.~Black, N.~Hutchinson, E.~Jul, and H.~Levy.
+\newblock The Emerald programming language.
+\newblock In \emph{OOPSLA}, 1987.
+
+\bibitem{ungar1987self}
+D.~Ungar and R.~B.~Smith.
+\newblock Self: The power of simplicity.
+\newblock In \emph{OOPSLA}, 1987.
+
+\bibitem{macqueen1984modules}
+D.~B.~MacQueen.
+\newblock Modules for Standard ML.
+\newblock In \emph{LISP and Functional Programming}, 1984.
+
+\bibitem{harper1994hml}
+R.~Harper and M.~Lillibridge.
+\newblock A type-theoretic approach to higher-order modules.
+\newblock In \emph{POPL}, 1994.
+
+\bibitem{carey1997vrml}
+R.~Carey and G.~Bell.
+\newblock \emph{The Annotated VRML 2.0 Reference Manual}.
+\newblock Addison-Wesley, 1997.
+
+\bibitem{brutzman2008x3d}
+D.~Brutzman and L.~Daly.
+\newblock \emph{X3D: Extensible 3D Graphics for Web Authors}.
+\newblock Morgan Kaufmann, 2008.
+
+\end{thebibliography}
+\fi
+
+\end{document}

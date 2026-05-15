@@ -1,0 +1,783 @@
+% Scene Composition Without Grammar Extension:
+% Plugin-Based Domain Vocabulary for Spatial Languages
+% Target: ACM I3D 2027 (submit Nov '26)
+% Backup venue: SIGGRAPH Asia 2027 (submit May '27)
+% Format: ACM sigconf
+% Status: Draft — threats + USD comparison expanded; measured LOC table pending (2026-04-18)
+% Paper ID: P3-S3 (third in Program 3: The Stalk and the Center)
+% Subsystem proven: packages/core/src/parser/HoloCompositionParser.ts + packages/plugins/
+% Draft: April 2026
+
+\documentclass[sigconf,nonacm]{acmart}
+
+% ── Packages ─────────────────────────────────────────────────────────────────
+\usepackage{amsmath}
+\let\Bbbk\relax % acmart/newtxmath already defines \Bbbk; prevent amssymb redefinition clash
+\usepackage{amssymb}
+% Cross-paper macros: \hsplus and \compilefn used in body but not defined
+% locally; provide minimally. Other shared macros (\holo, \hashfn,
+% \tropplus, \tropmult, \provsemiring) are defined by paper-12's own
+% \newcommand block lower in this preamble — don't shadow.
+\providecommand{\hsplus}{\texttt{.hsplus}}
+\providecommand{\compilefn}{\mathsf{compile}}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,calc,
+  decorations.pathreplacing,backgrounds}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{subcaption}
+\usepackage{balance}
+\usepackage{stmaryrd}
+
+% ── Draft annotations ────────────────────────────────────────────────────────
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+\newcommand{\stub}[1]{\textcolor{gray}{\textit{[stub: #1]}}}
+
+% Lotus petal data contract — \measuredFrom{<artifact>} marks values that come
+% from a runnable artifact in the repo. Renders nothing in the PDF; grep target
+% for scripts/build-lotus.mjs (research/2026-04-26_lotus-petal-data-contract.md §3+§4).
+\providecommand{\measuredFrom}[1]{}
+
+% ── Convenience macros ──────────────────────────────────────────────────────
+\newcommand{\holoscript}{\textsc{HoloScript}}
+\newcommand{\holo}{\texttt{.holo}}
+\newcommand{\hashfn}{\mathcal{H}}
+\newcommand{\tropplus}{\oplus}
+\newcommand{\tropmult}{\otimes}
+\newcommand{\provsemiring}{\mathcal{S}}
+\newcommand{\pluginset}{\mathcal{P}}
+\newcommand{\domainbridge}{\textsc{DomainBridge}}
+
+% ── Theorem environments ────────────────────────────────────────────────────
+\newtheorem{definition}{Definition}
+\newtheorem{property}{Property}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+
+% ════════════════════════════════════════════════════════════════════════════
+\title{Scene Composition Without Grammar Extension:\\
+Plugin-Based Domain Vocabulary for Spatial Languages}
+
+\subtitle{Provenance-Preserving Domain Extension\\
+in the \holoscript{} \holo{} Format}
+
+\author{Joseph Krzywoszyja}
+\affiliation{%
+  \institution{Infinitus Systems}
+  \country{USA}
+}
+\email{brianonbased@gmail.com}
+
+% ════════════════════════════════════════════════════════════════════════════
+\begin{document}
+
+\begin{abstract}
+Scene description languages face a domain-extension dilemma: every
+new application domain (medical simulation, robotics, film VFX,
+structural biology) demands domain-specific vocabulary, but
+extending the core grammar to accommodate each domain leads to
+language fragmentation and maintenance collapse. We present
+\holo{}, a scene composition format in which domain vocabulary
+enters as \emph{plugins}, not as core grammar extensions. The core
+\holo{} grammar recognizes exactly five structural forms (objects,
+templates, spatial groups, traits, metadata) and never changes; domain
+plugins register trait categories, object archetypes, and validation
+rules through a typed extension interface. We prove a
+provenance-preservation theorem: the hash chain from source \holo{}
+through plugin-applied domain vocabulary to compiled output is
+unbroken. The theorem witnesses a two-implementation agreement: the
+forward path (compiler emits the chain as a side effect of producing
+the compiled artifact) and the backward path (the verifier walks the
+hash decomposition and recomputes each link from the same source +
+plugin inputs) are independent implementations of the same provenance
+state machine, and the theorem guarantees deterministic replay across
+the pair through identical hash outputs at every level of the
+core+plugin decomposition --- the same-adapter strict-digest regime
+of the W.315 wire-format equivalent primitive, with the Route~2b
+per-step canonical projection pattern handling cross-vendor
+cases~\cite{paper-0c-twin-test-2026-05-11}. The theorem builds on
+database and workflow provenance
+models~\cite{buneman2001provenance,prov-dm-w3c}
+and provenance-semiring algebra~\cite{green2007provenance}, but
+applies them to spatial language extension rather than query
+evaluation. Unlike OpenUSD schema plugins, which extend the data
+model without compositional trust guarantees, \holo{} keeps the
+extension trace in the compiled artifact. We discuss shipped
+\holoscript{} plugins (AlphaFold, medical, robotics, film-VFX,
+legal-document, Hololand) and a multi-target compile pipeline with
+no core grammar edits; baseline (plugin-free) wall-clock compile provenance
+overhead is frozen in
+\texttt{packages/core/src/compiler/\_\_tests\_\_/paper-targets-overhead-bench.test.ts}
+with logs in \texttt{research/benchmark-results-2026-04-17-paper-targets-overhead.md}
+(\texttt{.ai-ecosystem}) and \texttt{HoloScript/.bench-logs/}. Plugin-specific
+overhead versus non-plugin scenes follows the same W.067 policy as Paper 10:
+only targets above the percent-overhead floor receive ratio claims. Phase 3
+bench extension (commit \texttt{6d4d1186d}) adds 18 additional CompilerBase
+targets as below-floor exclusions with archived logs and frozen summary in
+\texttt{research/benchmark-results-2026-04-17-phase3-noise-floor.md}.
+This is the third
+paper in Program~3 of a 16-paper research
+program~\cite{trustbyconstruction2026,capstone-uist2027}.
+\end{abstract}
+
+\keywords{scene description, plugin architecture, domain extension,
+  provenance, grammar composition, OpenUSD, spatial computing,
+  digital twins}
+
+\maketitle
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{Introduction}
+\label{sec:intro}
+
+Every spatial computing standard faces the domain-extension
+dilemma. VRML established a web-oriented 3D scene graph lineage,
+and X3D (ISO 19775) carried that lineage into a profile-based
+modularity system~\cite{carey1997vrml,brutzman2008x3d}. X3D
+partitions the specification into profiles---Interchange,
+Interactive, Immersive---but adding a new domain (e.g., medical
+simulation) requires proposing a new profile through ISO, a
+multi-year standards process.
+glTF (Khronos) allows \texttt{KHR\_}/\texttt{EXT\_}
+extensions that modify the serialization schema, but these
+create vendor-specific forks: a file with
+\texttt{EXT\_mesh\_gpu\_instancing} is not a valid glTF file
+on implementations that lack the extension. OpenUSD (Pixar/
+AOUSD) supports schema plugins via \texttt{plugInfo.json}
+registration, but plugin-contributed prims carry no
+provenance annotation across the extension
+boundary~\cite{aousd-core-spec-1.0}.
+
+In all three systems, adding domain vocabulary either changes
+the core language (X3D profiles), fragments the ecosystem
+(glTF extensions), or produces provenance-invisible
+contributions (USD schema plugins). We present \holo{}, a
+scene composition format whose core grammar is
+\emph{immutable}---five structural forms, formally specified,
+unchangeable across all domain applications. Domain knowledge
+enters as a \emph{plugin} that registers vocabulary within
+the existing forms. The core parser sees the plugin's
+contributions as instances of its five forms; it does not
+need to be modified, extended, or recompiled.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+  \item The \holo{} core grammar: five structural forms, formally
+    specified, immutable across all domain applications.
+  \item The plugin extension interface: typed registration of trait
+    categories, object archetypes, and validation rules. Plugins
+    extend vocabulary without touching the parser.
+  \item Provenance-preservation theorem: the hash chain spans the
+    plugin boundary. A compiled output from a plugin-extended
+    \holo{} file traces back to both the core source and the
+    plugin's contribution, composed via the provenance semiring.
+  \item Case studies on shipped plugins: AlphaFold (structural
+    biology), medical simulation, robotics (Isaac Sim), film-VFX
+    (volumetrics, GCode), legal-document (programmable law), and
+    Hololand (game world). Zero core grammar modifications in each case study.
+  \item Comparison with OpenUSD schema plugins: provenance breaks
+    at the USD plugin boundary because USD's composition arcs
+    (LIVERPS) resolve \emph{value opinions}, not \emph{trust
+    chains}.
+\end{enumerate}
+
+\paragraph{Novelty.}
+To our knowledge, \holo{} is the first scene composition format to
+provide formal guarantees that domain extension preserves the
+provenance chain end-to-end. X3D, glTF, and OpenUSD all support
+some form of domain extension (profiles, vendor extensions, schema
+plugins, respectively), but none carry hash-chain identity through
+the extension boundary: a prim contributed by a USD schema plugin
+is provenance-invisible to the USD composition arc resolver.
+\holo{} is also the first scene language to treat the five
+structural forms as an \emph{invariant}: the grammar surface cannot
+be enlarged by any downstream consumer, guaranteeing a single
+authoritative parser across all domain deployments.
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{Background and Related Work}
+\label{sec:related}
+
+\subsection{Scene Description Languages}
+X3D (ISO 19775) defines a profile-based modularity system:
+the specification is partitioned into Interchange, Interactive,
+and Immersive profiles, each adding features to the prior.
+Profiles are spec-level partitions decided by standards
+committees, not user-level plugins. The VRML-to-X3D
+migration fractured the ecosystem along profile boundaries.
+glTF (Khronos) uses a JSON-based asset format with
+\texttt{KHR\_} (ratified) and \texttt{EXT\_} (vendor)
+extensions. Extensions modify the serialization schema;
+implementations that do not support an extension may reject
+or silently ignore extension data. Neither approach carries
+provenance through the extension boundary.
+This missing boundary record matters because provenance systems are
+useful precisely when they can answer what changed, where it came
+from, and how it was transformed~\cite{w3c-prov,Herschel2017}.
+
+USD's schema plugin system is discussed in
+\S\ref{sec:related} above.
+
+\subsection{Language Extension Mechanisms}
+Racket's \texttt{\#lang} mechanism allows user-defined
+languages within a host language. Haskell's type classes
+provide open extension via instance declarations. Elixir's
+protocol system enables polymorphic dispatch over data types
+without modifying the data type definition. All three
+provide extension mechanisms for general-purpose programming
+languages. None are designed for scene description, and none
+carry provenance annotations through the extension boundary.
+Compiler infrastructures such as MLIR show that dialect extension can
+scale domain-specific computation when the extension boundary is
+explicit~\cite{mlir-lattner2020}; \holo{} adopts the same separation
+discipline at the scene-language layer, where the extension unit is a
+domain plugin rather than a compiler dialect.
+The \holo{} plugin model differs in that the extension
+interface is constrained to the five structural forms:
+plugins cannot introduce new syntactic categories, only new
+vocabulary within existing categories.
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{The \holo{} Core Grammar}
+\label{sec:grammar}
+
+\subsection{Five Structural Forms}
+
+The \holo{} core grammar defines exactly five structural forms:
+
+\begin{enumerate}
+  \item \texttt{object $id$ \{ $\overline{p}$ \}}: A typed
+    spatial entity with named properties. Object types
+    (\texttt{mesh}, \texttt{light}, \texttt{camera}, etc.)
+    are vocabulary, not grammar---new types are registered
+    by plugins.
+  \item \texttt{template $id$ ($\overline{x}$) \{ $\overline{p}$ \}}:
+    A parameterized blueprint that produces objects upon
+    instantiation. Templates are first-class values.
+  \item \texttt{group $id$ \{ $\overline{e}$ \}}: A spatial
+    hierarchy container. Groups define parent-child
+    transform relationships.
+  \item \texttt{trait $id$ : $category$ \{ $\overline{p}$ \}}:
+    A behavioral annotation from the \hsplus{} trait
+    system~\cite{paper-11-hsplus-ecoop2027}. Trait categories
+    (\texttt{physics}, \texttt{animation}, \texttt{medical},
+    etc.) are vocabulary, not grammar.
+  \item \texttt{metadata \{ $\overline{k{:}v}$ \}}: Key-value
+    annotations for tooling, provenance, and regulatory
+    metadata. Metadata blocks participate in the hash chain.
+\end{enumerate}
+
+The parser is implemented in
+\texttt{HoloCompositionParser.ts} and
+recognizes exactly these five forms. Domain-specific keywords
+(e.g., \texttt{protein}, \texttt{joint}, \texttt{scalpel})
+are resolved at the vocabulary level, not the grammar level.
+
+\subsection{Immutability Invariant}
+\begin{property}[Grammar Immutability]
+No plugin may add, remove, or modify the five core
+structural forms. Plugins may register new vocabularies
+\emph{within} existing forms: new object type names, new
+trait category names, new validation functions. The parser's
+production rules are fixed at compile time and do not depend
+on which plugins are loaded. This invariant is enforced by
+the parser's architecture: plugin contributions are resolved
+\emph{after} parsing, during a separate semantic pass.
+\end{property}
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{The Plugin Extension Interface}
+\label{sec:plugins}
+
+\subsection{Registration Model}
+
+A plugin registers four categories of domain vocabulary via
+a typed TypeScript interface:
+
+\begin{enumerate}
+  \item \textbf{Object type names.} A set of domain-specific
+    type strings (e.g., \texttt{protein}, \texttt{ligand},
+    \texttt{scalpel}). The parser accepts these as valid
+    \texttt{object} type values without modification.
+  \item \textbf{Trait categories.} A set of domain-specific
+    trait category names (e.g., \texttt{foldable},
+    \texttt{dockable}, \texttt{surgical}). Trait composition
+    follows the algebra of~\cite{paper-11-hsplus-ecoop2027}.
+  \item \textbf{Validation functions.} Domain-specific
+    constraint checkers that run during the semantic pass
+    (e.g., verifying that atomic coordinates are within
+    physiological ranges for a medical plugin).
+  \item \textbf{Compilation hooks.} Target-specific lowering
+    extensions that produce domain-aware output (e.g., the
+    AlphaFold plugin emits PDB-format metadata alongside
+    the glTF structural output).
+\end{enumerate}
+
+The parser sees every plugin contribution as an instance of
+the five core forms. A \texttt{protein} object is parsed as
+an \texttt{object} with type \texttt{protein}; the parser
+does not know or care that \texttt{protein} is a plugin
+contribution.
+
+\subsection{Provenance at the Plugin Boundary}
+
+When a plugin contributes a trait or object type, its
+contribution carries a provenance annotation. The hash of
+the compiled output includes the plugin's identity. We model this as
+a provenance semiring in the tradition of semiring-weighted
+provenance and shortest-distance algebra~\cite{green2007provenance,mohri2002semiring},
+with the tropical operator matching the min-plus lineage used by the
+compiler core~\cite{mikhalkin2005tropical}:
+$$\hashfn(\text{output}) = \hashfn(\text{core source})
+  \tropmult \hashfn(\text{plugin}_i)$$
+The plugin's identity hash $\hashfn(\text{plugin}_i)$ is
+derived from the plugin's registered name, version, and
+validation function signatures. An output compiled from a
+medical \holo{} file is cryptographically distinguishable
+from an output compiled from a robotics \holo{} file---by
+provenance, not by naming convention.
+
+\subsection{Provenance-Preservation Theorem}
+\begin{theorem}[Plugin Provenance Preservation]
+For any core \holo{} source $s$ and plugin set
+$\mathcal{P} = \{p_1, \ldots, p_k\}$, the compiled output
+$\compilefn(s, \mathcal{P}, T)$ for target $T$ carries a
+hash that decomposes as:
+$$\hashfn(\compilefn(s, \mathcal{P}, T)) =
+  \hashfn(s) \tropmult
+  \hashfn(p_1) \tropmult \cdots \tropmult \hashfn(p_k)
+  \tropmult \hashfn(T)$$
+No plugin can contribute silently; all contributions are
+algebraically visible in the hash chain.
+\end{theorem}
+
+\begin{proof}[Proof sketch.]
+By induction over the plugin application order. Each
+plugin $p_i$ contributes vocabulary that maps to one of the
+five core forms. The parser evaluates each form according to
+the operational semantics of~\cite{paper-10-hs-core-pldi2027},
+which threads the provenance hash. The plugin's identity hash
+enters as a $\tropmult$ factor at the point where the
+plugin's vocabulary is resolved during the semantic pass.
+Since $\tropmult$ is associative and commutative for
+non-interfering plugins, the decomposition holds regardless
+of application order. Two plugins that register the same
+object type name produce a conflict detected at registration
+time, not at compilation time.
+\end{proof}
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{Case Studies}
+\label{sec:cases}
+
+\subsection{AlphaFold Plugin (Structural Biology)}
+Registers protein, ligand, and chain object types;
+structural-biology traits (\texttt{foldable},
+\texttt{dockable}); and validation functions for atomic
+coordinate ranges (C$\alpha$ bond length $\in [1.4, 1.6]$\AA).
+Core grammar: untouched. Parser diff: zero lines.
+Reference: \texttt{packages/plugins/alphafold-plugin/}.
+
+\subsection{Medical Simulation Plugin}
+Registers anatomy object types (\texttt{organ},
+\texttt{vessel}, \texttt{tissue}), surgical-procedure traits
+(\texttt{incisable}, \texttt{suturable}), and patient-safety
+validation rules (instrument reach constraints, hemodynamic
+bounds). Core grammar: untouched.
+Reference: \texttt{packages/plugins/medical-plugin/}.
+
+\subsection{Robotics Plugin (Isaac Sim)}
+Registers robot-arm object types (\texttt{joint},
+\texttt{link}, \texttt{end\_effector}), joint-constraint
+traits (\texttt{revolute}, \texttt{prismatic}), and Isaac
+Lab compatibility validation (Xform ordering, rotateXYZ
+conventions). Core grammar: untouched.
+Reference: \texttt{packages/plugins/robotics-plugin/}.
+
+\subsection{Film-VFX Plugin}
+Registers volumetric object types (\texttt{vdb\_volume},
+\texttt{particle\_system}), GCode slicing traits for
+3D-printed props, and VFX compositing validation (layer
+ordering, alpha premultiplication). Core grammar: untouched.
+Reference: \texttt{packages/plugins/film3d-volumetrics-plugin/}.
+
+\subsection{Additional Plugins}
+Two further plugins demonstrate the model's generality:
+\begin{itemize}
+  \item \textbf{Legal-document plugin.} Registers contract
+    object types and regulatory-compliance traits for
+    programmable law. Enables \holo{} files that describe
+    legal instruments with hash-verified provenance.
+  \item \textbf{Hololand plugin.} Registers game-world
+    object types (\texttt{npc}, \texttt{quest\_trigger},
+    \texttt{spawn\_point}) and gameplay traits. Extends
+    the VRR compilation target with world-state metadata.
+\end{itemize}
+Both: zero core grammar modifications.
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{Evaluation}
+\label{sec:eval}
+
+\subsection{Parser and Compiler Regression Suites}
+Plugin extensibility assumes the core grammar never forks. In CI, parser and
+compiler behavior are anchored by focused Vitest suites under
+\texttt{packages/core/src/parser/} (including \texttt{HoloCompositionParser.test.ts}
+and domain-block tests) and \texttt{packages/core/src/compiler/\_\_tests\_\_/},
+which replay representative \texttt{.holo}/\texttt{.hsplus} inputs and multi-target compile
+pipelines.
+
+\subsection{Grammar Immutability Verification}
+Across shipped plugins, we verify that the core \holo{}
+parser has zero modifications. The metric is the line-level
+diff of \texttt{HoloCompositionParser.ts} between the
+plugin-free base build and each plugin-loaded configuration.
+
+\paragraph{Parser immutability check.}
+The release process runs a line-level diff of
+\texttt{HoloCompositionParser.ts} across shipped plugin
+configurations; the expected result is zero parser edits
+attributable to plugins (plugins register via the stable API only).
+
+\subsection{Compilation Overhead}
+We compile a representative suite of \holo{} scenes (from single-object domain files to large multi-plugin hierarchies)
+with and without plugins loaded, across the supported compile
+targets. The metric is wall-clock compile-time overhead:
+$$\text{overhead}(\%) = \frac{t_{\text{plugin}}
+  - t_{\text{base}}}{t_{\text{base}}} \times 100$$
+
+\paragraph{Compile overhead.}
+For plugin-free multi-target compile overhead, cite the 2026-04-17 frozen
+harness (\texttt{benchmark-results-2026-04-17-paper-targets-overhead.md};
+\texttt{paper-targets-overhead-bench.test.ts}): prefer $\Sigma$-run aggregates
+on fast code targets and the glTF row for stable positive percent overhead in prose.
+On structural grounds, the cost
+concentrates in plugin validation hooks rather than registration
+(validation walks the AST; registration is one dispatch-table insert).
+
+\subsection{Provenance Chain Integrity}
+For each compiled output from each plugin configuration,
+we verify that the hash chain decomposes into core + plugin
+contributions as the provenance-preservation theorem
+predicts. The decomposition check is:
+$$\hashfn(\text{output}) \stackrel{?}{=}
+  \hashfn(s) \tropmult
+  \hashfn(p_1) \tropmult \cdots \tropmult \hashfn(p_k)
+  \tropmult \hashfn(T)$$
+
+\paragraph{Chain integrity.}
+The decomposition check must pass for every plugin configuration
+on the regression scene suite; any violation is a release blocker.
+
+\subsection{Comparison with OpenUSD Schema Plugins}
+We implement the same domain-extension scenario (structural
+biology: protein objects with foldability traits) in both
+\holo{} and USD. The comparison measures:
+\begin{enumerate}
+  \item \textbf{Extension effort.} USD requires:
+    \texttt{schema.usda} authoring, \texttt{usdGenSchema}
+    code generation, \texttt{plugInfo.json} registration,
+    and C++ plugin compilation. \holo{} requires: a single
+    TypeScript registration call.
+  \item \textbf{Provenance visibility.} USD's compiled
+    output (a \texttt{.usd} file) does not carry a
+    provenance chain through the schema boundary: a prim
+    created by the biology plugin is indistinguishable in
+    hash terms from a built-in prim. \holo{}'s compiled
+    output carries the plugin's identity in its hash chain.
+\end{enumerate}
+
+\paragraph{USD comparison.}
+On structural grounds, the effort differential is order-of-
+magnitude: USD requires schema authoring, \texttt{usdGenSchema} code
+generation, \texttt{plugInfo.json} registration, and a C++ compile
+round trip (hundreds of lines and multiple toolchain steps per standard
+USD workflow), versus a single typed registration call plus trait
+definitions on the \holo{} side.
+
+\subsection{Threats to Validity}
+\label{sec:threats}
+
+\paragraph{Plugin representativeness.}
+The shipped plugins stress diverse domains but do not exhaust every
+OpenUSD or glTF deployment pattern; compile-time overhead and provenance
+checks could differ on pathological scene sizes or extremely deep template
+expansion.
+
+\paragraph{Toolchain drift.}
+OpenUSD and compiler stacks evolve on independent cadences. The USD
+comparison table must name versions (\texttt{usdGenSchema}, core library)
+so LOC and step counts remain reproducible.
+
+\paragraph{Trust boundary.}
+Plugins are trusted at registration time; behavior outside that model falls
+to Program~1 sandboxing~\cite{paper-4-sandbox-usenix} rather than to the
+\holo{} grammar itself.
+
+% ────────────────────────────────────────────────────────────────────────────
+
+\subsection{GPU Benchmark and Ablation Study}
+\label{sec:ablation}
+
+\paragraph{Plugin-free baseline.}
+Compiling \holo{} scenes with no plugins loaded establishes the
+baseline compile time for the five-form grammar alone.
+Incrementally loading the AlphaFold, medical, robotics, and
+film-VFX plugins in sequence isolates the per-plugin registration
+cost. Expected behavior: registration cost scales linearly with
+plugin count (one dispatch-table insert per plugin); provenance-chain
+depth scales with plugin-contributed node count; and the core parser
+line-diff remains zero throughout.
+
+\paragraph{Provenance overhead ablation.}
+The 2026-04-17 frozen harness
+(\texttt{paper-targets-overhead-bench.test.ts}) ablates the hash
+path by compiling with and without \texttt{provenanceHash} enabled
+across eleven targets. For the fast code targets (sub-5\,ms base
+median), overhead is indistinguishable from timer noise; the glTF
+row, at a 210\,ms base median, yields a stable $+$11.57\% (Phase~1)
+and $+$16.60\% on $\Sigma$-run --- the most defensible figure for a
+positive percent claim under W.067 policy. The RTX~6000 Ada rerun
+(2026-04-24; frozen in
+\texttt{research/benchmark-results-2026-04-24-core-rtx6000ada.md})
+confirms the Phase~1 results within JIT noise bands across hardware.
+
+\paragraph{Full-loop demonstration.}
+The reference demonstration pipeline exercises the system
+end-to-end: (1)~author a \texttt{.holo} file that imports from the
+AlphaFold and robotics plugins simultaneously; (2)~invoke the parser
+and verify grammar immutability with a line-level diff;
+(3)~compile to WebGPU and USD targets in a single pipeline invocation;
+(4)~extract the provenance hash chain and verify the decomposition
+theorem holds for each output. This pipeline is fully automated as
+the CI smoke-test suite in
+\texttt{packages/core/src/compiler/\_\_tests\_\_/}, covering
+multi-plugin scenes, multi-target compile, and provenance chain
+decomposition, and runs unmodified on any checkout from commit
+\texttt{548a42ff}.
+
+\subsection{User Study Protocol (Preregistered)}
+\label{sec:user-study}
+
+To evaluate the operational utility and cognitive ergonomics of the
+plugin model, we have preregistered a user study ($N=12$) targeting
+participants who extend a scene with a new domain vocabulary under
+two conditions: (A)~the \holo{} plugin registration interface and
+(B)~the OpenUSD schema-plugin workflow. A preliminary pilot study
+($N=3$) validated the experimental harness and confirmed the
+feasibility of the survey instrument. The full study measures task
+completion time for a plugin registration task, error recovery rates
+when the participant introduces a domain-vocabulary conflict, and
+qualitative cognitive load (NASA-TLX) against the OpenUSD baseline.
+The study protocol, task script, IRB waiver, and preregistration
+packet are archived in \texttt{research/user-study-kit/} to satisfy
+D.011 reproducibility requirements. Camera-ready results replace
+this paragraph once the $N=12$ cohort completes.
+
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Limitations}
+
+\paragraph{Trusted plugins.}
+The plugin model assumes plugins are trusted code. A
+malicious plugin could register object types that pass
+validation but produce semantically incorrect outputs.
+Sandboxing plugin execution---preventing malicious plugins
+from corrupting the scene graph---is addressed by
+Program~1's sandbox paper~\cite{paper-4-sandbox-usenix}.
+
+\paragraph{Language-boundary overhead.}
+Plugins written in languages other than TypeScript (e.g.,
+Python for scientific computing, Rust for performance-critical
+domains) require an FFI bridge. The provenance overhead of
+cross-language plugin calls is not yet measured.
+
+\paragraph{Plugin composition conflicts.}
+Two plugins that register the same object type name produce a
+conflict detected at registration time. The current model
+rejects conflicts; a future extension could support
+namespace-qualified type names.
+
+\subsection{Future Work}
+
+\begin{itemize}
+  \item \textbf{Plugin marketplace.} Domain-specific trait
+    categories distributed via x402 micropayments, enabling
+    an ecosystem of paid domain plugins with provenance-verified
+    contributions.
+  \item \textbf{Dynamic plugin loading.} Currently, plugins
+    are registered at compile time. Runtime plugin loading
+    would enable dynamic domain extension without
+    recompilation.
+  \item \textbf{Plugin composition algebra.} Extend the
+    P3-S2 trait conflict algebra~\cite{paper-11-hsplus-ecoop2027}
+    to the plugin level: when two plugins contribute
+    conflicting trait categories, resolve the conflict
+    algebraically rather than by rejection.
+\end{itemize}
+
+\subsection{Remaining Work for Camera-Ready}
+\begin{itemize}
+  \item \textbf{Plugin-loaded measurements (scene-suite matrix).} The
+5-scene suite (tiny / small / medium / large / plugin-heavy; 1--20
+objects, 0--4 traits per object) is run on the canonical replay host
+across two target paths: HoloScript parser cold/warm and the
+\texttt{@holoscript/openusd-plugin} export pipeline. Measured suite
+aggregates are HoloScript cold parse mean/median/p95/max =
+0.192 / 0.180 / 0.448 / 0.448\,ms; warm parse =
+0.130 / 0.108 / 0.280 / 0.280\,ms; OpenUSD plugin export =
+0.033 / 0.028 / 0.077 / 0.077\,ms. The largest cell (20 objects, 4
+traits) parses in $<$0.45\,ms cold and exports plugin-authored USDA
+in $<$0.08\,ms; cold/warm ratio stays within 0.5--0.9 across the
+suite, indicating amortized parser memoization is the dominant warm-
+path effect rather than per-trait composition cost.
+\measuredFrom{HoloScript/packages/comparative-benchmarks/src/__tests__/paper-12-scene-suite-overhead.bench.test.ts}%
+\measuredFrom{HoloScript/.bench-logs/2026-04-27-paper-12-scene-suite-overhead.md}
+  \item \textbf{Structural-biology extension comparison (USD pin v25.11).}
+The structural-biology extension is authored on both sides: HoloScript
+ships \texttt{@holoscript/structural-biology-plugin} (3 object types
+\texttt{protein}/\texttt{ligand}/\texttt{chain} + 4 annotation traits
+\texttt{foldable}/\texttt{helix}/\texttt{sheet}/\texttt{residue\_anchor}
+registered through a single typed \texttt{register()} call) and the
+OpenUSD comparison authors the equivalent schema-plugin pinned to
+upstream tag \texttt{PixarAnimationStudios/OpenUSD~v25.11} (commit
+\texttt{363a7c8d}). Effective code LOC: \textbf{HoloScript~=~113}
+(\texttt{src/index.ts}~98 + \texttt{package.json}~15) vs
+\textbf{OpenUSD~=~323} hand-authored (\texttt{schema.usda}~131 +
+\texttt{plugInfo.json}~86 + \texttt{tokens.h}~33 +
+\texttt{CMakeLists.txt}~73), giving a USD/Holo authored ratio of
+\textbf{2.86$\times$} before the additional 600--1200 LOC that
+\texttt{usdGenSchema} codegen produces (\texttt{wrap*.cpp},
+\texttt{module.cpp}, per-class \texttt{.h}/\texttt{.cpp} pairs,
+\texttt{generatedSchema.usda}). Toolchain steps: \textbf{HoloScript~=~1}
+(call \texttt{register(host)}); \textbf{OpenUSD~v25.11~=~8} (author
+\texttt{schema.usda}, author \texttt{plugInfo.json}, run
+\texttt{usdGenSchema}, author \texttt{CMakeLists.txt}, configure CMake,
+build+install, set \texttt{PXR\_PLUGINPATH\_NAME}, author host code).
+Provenance visibility: the HoloScript plugin fuses plugin id and
+version into the per-residue anchor and per-object chain hash, so a
+downstream consumer can recover plugin attribution from the compiled
+artifact alone (\texttt{verifyChain} rejects trait tampering
+end-to-end on a 12-residue test protein); on the OpenUSD side a
+compiled \texttt{.usdc} loses plugin attribution after stage flatten,
+because schema composition is not algebraically fused with prim
+identity in v25.11.
+\measuredFrom{HoloScript/packages/plugins/structural-biology-plugin/src/index.ts}%
+\measuredFrom{HoloScript/packages/comparative-benchmarks/usd-comparison/structural-biology/schema.usda}%
+\measuredFrom{HoloScript/packages/comparative-benchmarks/src/__tests__/paper-12-structural-biology-comparison.bench.test.ts}%
+\measuredFrom{HoloScript/.bench-logs/2026-04-27-paper-12-structural-biology-comparison.md}
+\end{itemize}
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{Conclusion}
+\label{sec:conclusion}
+
+The domain-extension dilemma---change the core language or
+fragment the ecosystem---is a false dichotomy. \holo{}
+resolves it by separating grammar from vocabulary. Five
+immutable structural forms host arbitrary domain vocabularies
+via a typed plugin interface. The provenance semiring spans
+the plugin boundary: every domain contribution carries an
+algebraic annotation that makes it visible in the hash chain.
+
+Shipped domain plugins---structural biology, medical
+simulation, robotics, film-VFX, legal documents, game
+worlds---illustrate the model across radically different
+application domains, without core grammar edits. One verifiable chain.
+The third stalk of the lotus.
+
+% ────────────────────────────────────────────────────────────────────────────
+% Bibliography migrated 2026-04-24 from inline \begin{thebibliography} block
+% to shared research/holoscript.bib per founder /founder ruling Decision 2
+% (research/paper-audit-matrix.md §2026-04-24 Refresh — Founder Ruling).
+% Pattern documented in docs/paper-bibliography-migration.md.
+% Inline block preserved below inside `\iffalse` guard for reviewer audit;
+% remove at submission bundle time after holoscript.bib has been validated
+% to resolve every \cite key this paper uses.
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{holoscript}
+
+\iffalse
+% === LEGACY INLINE BIBLIOGRAPHY (pre-2026-04-24 migration) ===
+% Kept behind \iffalse for audit trail only; bibtex ignores it.
+% Remove entirely at submission-bundle time after:
+%   pdflatex paper-12-holo-i3d && bibtex paper-12-holo-i3d
+% resolves 0 missing keys against research/holoscript.bib.
+\begin{thebibliography}{30}
+
+\bibitem{trustbyconstruction2026}
+J.~Krzywoszyja.
+\newblock Trust by Construction: Provenance-Native Simulation Contracts.
+\newblock \emph{IEEE TVCG}, 2026 (submitted).
+
+\bibitem{capstone-uist2027}
+J.~Krzywoszyja.
+\newblock From Notation to Cognition: A Provenance-Native Architecture.
+\newblock In \emph{UIST}, 2027 (forthcoming).
+
+\bibitem{paper-10-hs-core-pldi2027}
+J.~Krzywoszyja.
+\newblock HoloScript Core: A Contracted Compilation IR for Spatial Computing.
+\newblock In \emph{PLDI}, 2027.
+
+\bibitem{paper-11-hsplus-ecoop2027}
+J.~Krzywoszyja.
+\newblock Reactive Traits Under Contract: Interaction Semantics for Spatial Languages.
+\newblock In \emph{ECOOP}, 2027.
+
+\bibitem{paper-4-sandbox-usenix}
+J.~Krzywoszyja.
+\newblock Sandboxing Spatial Computation.
+\newblock In \emph{USENIX Security}, 2026.
+
+\bibitem{paper-13-dumbglass-siggraph2028}
+J.~Krzywoszyja.
+\newblock Dumb Glass: Rendering as Contracted Synthesis of All Projections.
+\newblock In \emph{SIGGRAPH}, 2028 (forthcoming).
+
+\bibitem{green-semiring2007}
+T.~J.~Green, G.~Karvounarakis, and V.~Tannen.
+\newblock Provenance semirings.
+\newblock In \emph{PODS}, 2007.
+
+\bibitem{aousd-core-spec-1.0}
+Alliance for OpenUSD (AOUSD).
+\newblock OpenUSD Core Specification 1.0.
+\newblock Ratified December 17, 2025.
+\newblock \url{https://aousd.org/specifications/}
+
+\bibitem{x3d-iso19775}
+ISO/IEC 19775.
+\newblock Extensible 3D (X3D) architecture.
+
+\bibitem{gltf-khronos}
+Khronos Group.
+\newblock glTF 2.0 Specification.
+\newblock \url{https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html}
+
+\bibitem{racket-lang}
+M.~Flatt and PLT.
+\newblock The Racket Language.
+\newblock \url{https://racket-lang.org/}
+
+\bibitem{wadler-typeclasses1989}
+P.~Wadler and S.~Blott.
+\newblock How to make ad-hoc polymorphism less ad hoc.
+\newblock In \emph{POPL}, 1989.
+
+\bibitem{elixir-protocols}
+J.~Valim et al.
+\newblock Elixir protocols and polymorphism.
+\newblock \url{https://elixir-lang.org/}, 2024.
+
+\end{thebibliography}
+\fi
+
+\end{document}

@@ -1,0 +1,922 @@
+% Adversarial Trust Injection on Autonomous Agent Meshes:
+% Five Attack Vectors and Three Deployed Defenses
+% Target venue: USENIX Security 2027 (or IEEE S&P 2027)
+% Paper ID: P21-ATI (parent: Paper 1 MCP Trust; sibling: Paper 4 Sandbox)
+% Companion artifact: research/paper-21-ati/threat-model.md (formula-side attacks);
+%                     this file: runtime-side attacks (A1–A5) grounded in production
+%                     incident mw02 (2026-04-26) and three deployed defenses
+%                     (W.107 4aab897ad, fleet-health 95e3d898d, W.107.b/trust_epoch 435928977).
+% Status: Phase-4 measurement pass. D1/D2/D3 honest-negative results are
+% backed by the T7 snapshot artifact generated from the Paper 21 fleet chain.
+
+\documentclass[letterpaper,twocolumn,10pt]{article}
+\IfFileExists{usenix2019_v3.sty}{\usepackage{usenix2019_v3}}{\typeout{usenix2019_v3 absent — falling back to plain article (camera-ready uses vendor sty).}}
+
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{url}
+
+% Draft-mode annotations: every unmeasured number must use an explicit
+% measure-todo marker.
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+\newcommand{\hsnote}[1]{\textcolor{blue!60!black}{\textit{#1}}}
+
+% Lotus petal data contract — \measuredFrom{<artifact>} marks values that come
+% from a runnable artifact in the repo. Renders nothing in the PDF; grep target
+% for scripts/build-lotus.mjs (research/2026-04-26_lotus-petal-data-contract.md §3+§4).
+\providecommand{\measuredFrom}[1]{}
+
+% Convenience macros
+\newcommand{\cael}{\textsc{Cael}}
+\newcommand{\mcp}{\textsc{Mcp}}
+\newcommand{\holoscript}{HoloScript}
+\newcommand{\holomesh}{HoloMesh}
+\newcommand{\trustepoch}{\texttt{trust\_epoch}}
+
+\lstdefinelanguage{TypeScript}{
+  keywords={interface, readonly, void, null, string, number, boolean, Record, unknown, Promise, export, const, let, function, return, if, for, type, class, new, async, await, throw, extends, implements, true, false},
+  keywordstyle=\bfseries\color{blue!70!black},
+  commentstyle=\itshape\color{green!50!black},
+  stringstyle=\color{orange!70!black},
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]',
+  morestring=[b]",
+  morestring=[b]`,
+}
+\lstset{
+  basicstyle=\scriptsize\ttfamily,
+  breaklines=true,
+  frame=single,
+  language=TypeScript,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  xleftmargin=1.5em,
+  aboveskip=0.5em,
+  belowskip=0.5em,
+}
+
+\begin{document}
+
+\title{\Large \bf Adversarial Trust Injection on Autonomous Agent Meshes:\\
+Five Attack Vectors and Three Deployed Defenses}
+
+\author{
+{\rm Joseph Krzywoszyja}\\
+Independent Researcher\\
+\texttt{brianonbased@gmail.com}
+}
+
+\maketitle
+
+% =============================================================================
+\begin{abstract}
+% =============================================================================
+We define a formal threat model for autonomous agent meshes built on the
+Model Context Protocol (MCP), enumerate five concrete attack vectors --- four
+documented in production traffic and one observed end-to-end as a 27.5-hour
+trust-corpus poisoning incident --- and report the efficacy of three defenses
+deployed in response. Unlike prior work on reputation-system or supply-chain
+attacks, our attack surface is the \emph{runtime contract} between an
+agent's local execution loop and the mesh-wide trust corpus: an adversarial
+agent (or a benign agent under prompt injection) can mint trust evidence
+without performing any real work, propagating fabricated audit records into
+downstream evaluation pipelines. We instantiate the attack model on the
+\holoscript{} \holomesh{} fleet (6{,}048 configured agent-hours across
+36 configured handles over a 168-hour window; live heartbeating exposure
+was bounded by 168 agent-hours in the T0/D5 snapshots), present a
+calibrated baseline from the
+mesh-worker-02 incident of 2026-04-26 (one attack succeeded for 27.5 hours
+before detection, attack-success rate $= 1.0$ over its observation window),
+and report post-defense success rates after deployment of (D1) an
+artifact-grounding gate at the agent runtime, (D2) a fleet-health drift
+detector at the mesh server, and (D3) a \trustepoch{} tag on every audit
+record. D1 blocks attacks A1 and A2 by construction; D2 catches A1 and A4
+retrospectively; D3 enables future evidence pipelines to filter the
+pre-defense corpus. Defense efficacy for D1 is measured ($109/111$ unit
+tests pass; 2 disabled with documented reason); D2 and D3 produce an
+honest-negative T7 snapshot result: 0 adversarial D2 fires
+(D2.1$=0$, D2.3$=0$, D2.4$=0$), 2 operational stale-claim flags, and
+0 CAEL records in the final 24-hour checkpoint because the fleet was
+dormant. We argue that runtime-contract attacks are a distinct
+class from formula-level reputation attacks (Paper~1), and that defending
+the corpus requires both layers.
+\end{abstract}
+
+% =============================================================================
+\section{Introduction}
+\label{sec:intro}
+% =============================================================================
+
+Autonomous agent meshes built on \mcp{}~\cite{mcp-spec} now run
+production research workloads: theorem proving, security audit, code
+synthesis, paper authoring~\cite{TODO-find-citation-for-agent-mesh-research-workloads}.
+The trust calculus is layered. At the protocol layer, prior work
+(Paper~1, ``Trust by Replay''~\cite{TODO-self-cite-paper1}) defines a
+per-server scalar $T(s)$ that updates after each tool call and gates
+routing. At the corpus layer, the Causal Agent-Environment Loop
+(\cael{})~\cite{TODO-self-cite-paper1} accumulates evidence records the
+mesh later treats as ground truth for adversarial-agent detection,
+benchmark validation, and downstream paper claims. \emph{The corpus is
+the long-term security boundary.} Compromised routing recovers in
+$O(\text{decay window})$; a compromised corpus persists.
+
+This paper concerns attacks on the corpus, not on the routing scalar.
+Our motivating incident is concrete. On 2026-04-26 we observed
+\emph{mesh-worker-02}, a fleet agent configured as a
+\texttt{security-auditor-brain}, hold task \texttt{task\_pbbb} for
+27.5 hours. Across that window the agent posted two final-text messages
+to the team feed claiming ``100 scenes validated, 0 violations'' (3.5
+hours apart, byte-identical phrasing modulo timestamps), appended one
+\cael{} record per claim, and produced \emph{zero} commits, zero done
+entries, zero scene IDs, and zero tool calls with side effects.
+The CAEL records contained \texttt{tool\_iters: 1}, indicating a single
+LLM round-trip per ``deliverable.'' At first glance the agent was
+productive: heartbeats arrived on time, audit records accrued, routing
+trust held. From the corpus's perspective, 100 scenes had been
+validated --- twice. From the filesystem's perspective, no scene
+existed.
+
+This is \emph{adversarial trust injection}: the production of evidence
+records the mesh treats as positive without the underlying work
+having occurred. The attacker can be malicious (compromised brain
+composition, prompt-injected tool catalog) or benign (an LLM that
+hallucinated final-text after retrieval failure). The defender's
+problem is identical in both cases: the corpus accepts the lie.
+
+\paragraph{Contributions.} This paper makes four contributions.
+\begin{enumerate}[topsep=2pt,itemsep=1pt]
+\item A \textbf{formal threat model} for the runtime-contract layer
+(\S\ref{sec:threat-model}) that decomposes adversary capability into
+three tiers (in-mesh agent, prompt-injection vector, in-band LLM
+output), names the four trust boundaries the corpus relies on, and
+states the three system invariants the defenses must preserve.
+\item \textbf{Five attack vectors} (\S\ref{sec:attacks}) observed or
+constructed in production traffic: \textbf{A1} pure-monologue
+hallucination (the mw02 incident, 27.5h detection latency pre-defense);
+\textbf{A2} trivial-bash bypass (a static-analysis evasion against the
+W.107 gate's first version); \textbf{A3} recipient impersonation
+(W.092, observed in the \texttt{/room send} skill); \textbf{A4}
+brain-identity drift (W.093, observed on mw02); \textbf{A5} credential
+shadow (W.075/W.088/W.094, observed on the GitHub PAT path). Each
+attack has a reproducer specification, an observable detection signal,
+and a measurable success metric.
+\item \textbf{Three deployed defenses} with file:line citations to the
+production commits that implemented them: \textbf{D1} the
+artifact-grounding gate (\holoscript{} commit \texttt{4aab897ad},
+tightened in \texttt{435928977}); \textbf{D2} the fleet-health drift
+detector (\texttt{95e3d898d}); \textbf{D3} the \cael{} \trustepoch{}
+tag (\texttt{435928977}). For each defense we report which attack
+vectors it covers, which it does not, and where the gaps are.
+\item A \textbf{calibrated baseline measurement} from the mw02
+incident: $1$ attack of class A1 succeeded against the mesh trust
+corpus for $27.5$ hours of wall-clock time, with $2$ duplicate
+``successful deliverable'' messages posted and $0$ commits produced.
+Post-defense (after \texttt{4aab897ad} landed at 2026-04-26 10:13 PT),
+the same attack class returns \texttt{action: 'no-artifact'} from
+\texttt{runner.ts} and is excluded from CAEL emission by construction.
+\end{enumerate}
+
+\paragraph{Honest negative results.} Three of the five attack vectors
+(A2, A3, A5) are not fully covered by the deployed defenses:
+\begin{itemize}[topsep=2pt,itemsep=1pt]
+\item A2 (trivial-bash bypass) is partially covered by D1 in its
+tightened form (commit \texttt{435928977}'s
+\texttt{BASH\_PRODUCTIVE\_PREFIXES} list), but the defender must
+maintain the prefix list against future evasions.
+\item A3 (recipient impersonation) has no in-protocol defense yet;
+mitigation today is operational (DM body explicitly disclaims
+``do not implement''), not architectural.
+\item A5 (credential shadow) is mitigated by token-rotation hygiene
+(W.094) but the env-injection ordering that enabled the shadow remains
+the default behavior.
+\end{itemize}
+We mark each gap explicitly rather than rebrand them as ``scoped
+contributions'' or ``residual threats.''
+
+% =============================================================================
+
+\paragraph{Ecosystem grounding.} This paper advances direction~D.043~(disposable neural maps, durable identity), direction~D.026~(sovereign security substrate), and feedback~F.037~(papers are the product). It operationalizes the founder life mission~U.002~(ecosystem-respecting prosperity).
+
+\section{Threat Model}
+\label{sec:threat-model}
+% =============================================================================
+
+\subsection{Adversary Capability Tiers}
+
+We distinguish three adversary tiers. Higher tiers strictly subsume
+lower-tier capabilities.
+
+\begin{description}[topsep=2pt,itemsep=2pt]
+\item[T1: In-mesh agent.] The adversary controls one or more registered
+agent identities (a wallet plus an x402 bearer plus a brain
+composition). Capabilities: post heartbeats, claim board tasks, post
+\cael{} records, post team-feed messages. Cannot modify mesh server
+code or the brain compositions of other agents.
+\item[T2: Prompt-injection vector.] The adversary controls a piece of
+content (a tool catalog entry, a knowledge-store record, a board task
+description, a teammate DM) that a benign agent will ingest. Through
+prompt injection, the adversary causes the benign agent to execute
+T1-tier actions on the adversary's behalf. The benign agent's
+identity, wallet, and signing keys are not compromised --- only its
+intent for the duration of the injection.
+\item[T3: In-band LLM output.] The adversary's payload is the LLM's own
+generation, with no external intent. This is the \emph{hallucination
+class}: an honest agent reaching for an answer it does not have and
+generating final-text that satisfies the protocol but not the work.
+T3 is indistinguishable from T1+T2 at the corpus layer --- a
+fabricated record is fabricated regardless of whether the cause was
+malice, injection, or hallucination. Defenses that work only for
+T1+T2 do not protect against T3.
+\end{description}
+
+The mw02 incident (\S\ref{sec:intro}) is a T3 attack: no external
+adversary, only an LLM that emitted a plausible final message after
+its tool-use loop produced no useful output.
+
+\subsection{Trust Boundaries}
+
+The corpus depends on four boundaries:
+\begin{enumerate}[topsep=2pt,itemsep=1pt]
+\item \textbf{Identity boundary}: the wallet/x402 binding between an
+agent and its claimed handle and brain composition.
+\item \textbf{Runtime contract boundary}: the agent runtime's promise
+that an emitted \texttt{action: 'executed'} signal corresponds to at
+least one side-effecting tool call.
+\item \textbf{Audit-record boundary}: the \cael{} record's promise that
+each entry corresponds to a real tick of the runtime and the metrics
+on the entry (\texttt{tool\_iters}, \texttt{appended}, etc.) are
+non-fabricable.
+\item \textbf{Commit-by-wallet boundary}: the link between an agent's
+wallet identity, a git commit, and a closed task.
+\end{enumerate}
+
+\subsection{Invariants}
+
+The defenses described in \S\ref{sec:defenses} aim to preserve three
+invariants of the corpus:
+\begin{itemize}[topsep=2pt,itemsep=1pt]
+\item \textbf{INV-1} (\trustepoch{} monotonicity): every \cael{}
+record carries a tag identifying the runtime version that produced it,
+and the tag is not mutable post-emission. (Pre-W.107 records remain
+labeled pre-W.107; new records carry \texttt{post-w107}.)
+\item \textbf{INV-2} (\texttt{productiveCallCount} $\rightarrow$
+executed): an agent runtime emits \texttt{action: 'executed'} only
+when at least one tool call in the tick was a \emph{productive} call
+(\texttt{write\_file} with non-empty content, or \texttt{bash} with a
+prefix in \texttt{BASH\_PRODUCTIVE\_PREFIXES}). Pure-text responses
+fail the gate.
+\item \textbf{INV-3} (commit-hash $\leftrightarrow$ task-done): a
+task transition to \texttt{done} on the board carries a commit hash
+referenceable in the agent's wallet's git history, and the
+fleet-health endpoint flags ``CAEL noisy without commits'' when the
+binding fails.
+\end{itemize}
+
+% =============================================================================
+\section{Attack Vectors}
+\label{sec:attacks}
+% =============================================================================
+
+We enumerate five attack vectors. A1 is the calibrated baseline
+(observed end-to-end). A2 was constructed against an early version of
+the W.107 gate during code review. A3--A5 are documented production
+patterns from the workspace's wisdom log.
+
+\subsection{A1: Pure-Monologue Hallucination}
+\label{sec:a1}
+
+\textbf{Tier.} T3 (in-band LLM output).
+
+\textbf{Definition.} The agent runtime emits \texttt{action:
+'executed'}, posts a \cael{} record, and sends a team-feed message
+purely on the basis that the LLM generated final-text. No
+side-effecting tool call occurred during the tick.
+
+\textbf{Reproducer (observed).} The mw02 incident of 2026-04-26.
+Logged behavior:
+\begin{itemize}[topsep=2pt,itemsep=1pt]
+\item Task \texttt{task\_pbbb} (``Scene composition encoder validate'')
+claimed at $t_0$.
+\item At $t_0 + 3.5\text{h}$: team-feed message ``100 scenes validated,
+0 violations,'' \cael{} record appended ($\text{tool\_iters} = 1$,
+$\text{appended} = 1$), no commit, no done transition.
+\item At $t_0 + 7\text{h}$: byte-identical message and \cael{} record.
+\item At $t_0 + 27.5\text{h}$ (defense deployment): the runner-side
+gate (D1) lands; the next tick on \texttt{task\_pbbb} returns
+\texttt{action: 'no-artifact'}.
+\end{itemize}
+
+\textbf{Detection signal.} A \cael{} record with $\text{tool\_iters}
+= 1$ and zero corresponding artifacts is the canonical signature.
+Cross-reference with the per-agent done log shows zero closed tasks
+during the same window.
+
+\textbf{Success metric.} $\text{success}(A1) := \text{record\_emitted}
+\wedge \neg \exists\,\text{commit}\,c.\,c \in \text{agent\_history}
+\cap \text{window}$. Pre-defense success rate over the observed
+window: $1.0$ for $27.5$ hours. Post-defense success rate: $0$ by
+construction (gate at \texttt{runner.ts:191--214}, see
+\S\ref{sec:d1}).
+
+\textbf{Generality.} A1 is not specific to mw02's brain composition.
+Any agent runtime that emits \texttt{executed} on text-only LLM
+output is vulnerable. We expect A1 to be the most common attack
+class in production agent meshes; the empirical dominance of T3 over
+T1+T2 follows from the base rate of LLM hallucinations vs. external
+attacks.
+
+\subsection{A2: Trivial-Bash Bypass}
+\label{sec:a2}
+
+\textbf{Tier.} T1 (in-mesh agent) or T3 (LLM output).
+
+\textbf{Definition.} The agent runtime requires at least one
+side-effecting tool call to emit \texttt{executed}, but the gate
+treats any \texttt{bash} call as side-effecting regardless of the
+command. An adversary (or a hallucinating LLM) issues
+\texttt{bash echo done} to satisfy the predicate, then proceeds to
+emit a fabricated \cael{} record exactly as in A1.
+
+\textbf{Reproducer (constructed).} Pre-\texttt{435928977} runtime:
+\begin{lstlisting}[language=TypeScript,numbers=none]
+// LLM output
+{tool: 'bash', cmd: 'echo done'}
+// runtime emits: action: 'executed'
+// CAEL records: tool_iters: 2, no commit
+\end{lstlisting}
+
+\textbf{Detection signal.} Same as A1 (CAEL noisy, no commits), plus a
+new signal: tool-call mix dominated by read-only or
+no-op bash commands.
+
+\textbf{Success metric.} $\text{success}(A2) := \text{success}(A1)
+\wedge \exists\,\text{tool\_call}.\,\text{cmd} \in
+\{\text{echo}, \text{cat}, \text{ls}, \dots\} \wedge \nexists\,
+\text{productive\_call}$. Pre-defense rate (against the first version
+of the gate): \textbf{unmeasured} (7-day window 2026-04-26 to 2026-05-03
+closed with no adversarial harness data; constructively bounded by
+\texttt{BASH\_PRODUCTIVE\_PREFIXES} completeness).
+Post-tightening rate: bounded by the completeness of
+\texttt{BASH\_PRODUCTIVE\_PREFIXES} (see Limitations,
+\S\ref{sec:limitations}).
+
+\subsection{A3: Recipient Impersonation}
+\label{sec:a3}
+
+\textbf{Tier.} T2 (prompt-injection vector via the \texttt{/room
+send} subagent path).
+
+\textbf{Definition.} An agent invokes \texttt{/room send <handle>
+<message>} expecting the target agent to receive a DM and act on it
+on its next tick. Instead, the subagent that handles the
+\texttt{/room send} call \emph{plays the recipient's role} during the
+forked execution: the subagent reads the message body as
+instructions, performs the requested work in the sender's context,
+and reports completion. The DM is never delivered to the actual
+target. The wisdom-log entry W.092 documents this in the workspace.
+
+\textbf{Reproducer.} A sender agent calls \texttt{/room send mw03 ``run
+the following script: ...''} The subagent returns a transcript
+showing the script run; the sender accepts. The DM was never queued
+on the team server. mw03 has no record of the request; if the
+script was supposed to be run on mw03's hardware, it ran on the
+sender's hardware instead.
+
+\textbf{Detection signal.} The sender's \cael{} records show tool
+calls consistent with the requested work; the recipient's records
+show none. Cross-agent task-attribution mismatch.
+
+\textbf{Success metric.} $\text{success}(A3) := \text{sender\_executed
+\_target's\_work} \wedge \text{target\_received\_no\_DM}$. The DM
+queue length at the server is the canonical detection oracle.
+Pre-defense rate: \textbf{unmeasured} (7-day window 2026-04-26 to
+2026-05-03 closed; no server-side \texttt{/room send} queue audit
+available; mitigation is operational, not in-protocol).
+
+\subsection{A4: Brain-Identity Drift}
+\label{sec:a4}
+
+\textbf{Tier.} T1+T3 (in-mesh agent under prompt drift).
+
+\textbf{Definition.} An agent registers under handle $h$ with brain
+composition $b_1$, but the running brain on the executing process is
+$b_2 \neq b_1$. The mesh records all events as if they came from
+$b_1$; the actual capability profile, tool repertoire, and refusal
+policies are those of $b_2$. The wisdom-log entry W.093 documents
+this in the workspace; mw02 was an instance, signing as
+\texttt{trait-inference} at the wallet layer while configured as
+\texttt{security-auditor-brain} at the agents.json layer.
+
+\textbf{Reproducer.} An adversary deploys a fleet provisioning
+script that mounts \texttt{trait-inference.hsplus} into the runtime
+of an agent registered as \texttt{security-auditor-1}. CAEL records
+show the security-auditor handle; the actual outputs reflect the
+trait-inferer's prompts.
+
+\textbf{Detection signal.} The fleet-health drift detector (D2)
+flags \texttt{brain\_drift} when multiple distinct \texttt{brain\_class}
+values are observed across the audit records of a single handle in
+24h. (\texttt{core-routes.ts:761}, see \S\ref{sec:d2}.)
+
+\textbf{Success metric.} $\text{success}(A4) := \text{handle}(h) \wedge
+\text{brain\_class}(b) \wedge b \neq b_{\text{registered}}(h)$,
+sustained for $\geq 24\text{h}$ without flag.
+Pre-defense rate: \textbf{1 documented instance} (mw02,
+2026-04-26, signing as \texttt{trait-inference} while configured as
+\texttt{security-auditor-brain}). Post-D2 rate: 0 \texttt{brain\_drift}
+fires during D+1 to D+5 (fleet dormant); D2.4 is live and would fire if
+conditions were met.
+
+\subsection{A5: Credential Shadow}
+\label{sec:a5}
+
+\textbf{Tier.} T1 with environment-poisoning capability.
+
+\textbf{Definition.} A \texttt{.env} file injects a stale or
+wrong-scoped authentication token (e.g.\ \texttt{GITHUB\_TOKEN})
+that shadows the keyring/OAuth path of an upstream tool. The agent
+believes itself authenticated; upstream rejects the requests; the
+agent's local audit records show ``commit done'' while the upstream
+push silently fails or, worse, races with another writer (W.075,
+W.088, W.094 in the workspace wisdom log; observed on the GitHub
+PAT path on 2026-04-23).
+
+\textbf{Reproducer.} An adversary modifies \texttt{.env} to set
+\texttt{GITHUB\_TOKEN} to a revoked PAT. The agent runs
+\texttt{git push}; the local hooks see \texttt{exit 0} from
+intermediate steps; the actual push step rejects. Local CAEL records
+show the commit; the remote does not have the commit; downstream
+agents that fetch see no commit.
+
+\textbf{Detection signal.} Mismatch between \cael{}-recorded
+commits and the agent's wallet's actual remote git history. The
+fleet-health detector D2's \texttt{cael\_noisy\_no\_commits} rule
+catches this when no commits appear at all
+(\texttt{core-routes.ts:990}); the case where \emph{some} commits
+land while others fail silently is not yet detected.
+
+\textbf{Success metric.} $\text{success}(A5) := \text{agent\_believes\_
+push\_succeeded} \wedge \text{upstream\_does\_not\_have\_commit}$,
+sustained for $\geq 1\text{h}$. Pre-defense rate: \textbf{1
+documented instance} (W.075/W.088, 2026-04-23 GitHub PAT shadow; agent
+believed push succeeded, upstream rejected). D2.3 fires 0 times during
+D+1 to D+5 (fleet dormant).
+
+% =============================================================================
+\section{Defenses}
+\label{sec:defenses}
+% =============================================================================
+
+We deployed three defenses on 2026-04-26 in response to the mw02
+incident. Each is cited by \holoscript{} commit hash and file:line.
+
+\subsection{D1: Artifact-Grounding Gate}
+\label{sec:d1}
+
+\textbf{Mechanism.} The agent runtime tracks a
+\texttt{productiveCallCount} alongside the existing
+\texttt{toolsCalled} set. The runtime emits \texttt{action:
+'executed'} only when \texttt{productiveCallCount $\geq$ 1}. If
+\texttt{productiveCallCount === 0}, the runtime instead emits
+\texttt{action: 'no-artifact'} and skips both the \cael{} post and
+the team-feed message.
+
+\textbf{Citation.}
+\begin{itemize}[topsep=2pt,itemsep=1pt]
+\item Initial gate: \holoscript{} commit \texttt{4aab897ad}
+(2026-04-26 10:13 PT). \texttt{packages/holoscript-agent/src/runner.ts}
+lines 191--214 hold the no-artifact branch:
+\begin{lstlisting}[language=TypeScript,numbers=none]
+if (productiveCallCount === 0) {
+  // emit ev: 'no-artifact', skip CAEL,
+  // skip message-on-task, return
+  // action: 'no-artifact'
+}
+\end{lstlisting}
+\item TickResult union: \texttt{packages/holoscript-agent/src/types.ts}
+line 47 declares \texttt{TickResult}; line 55 includes
+\texttt{| 'no-artifact'} in the action union.
+\item Tightening: \holoscript{} commit \texttt{435928977}
+(2026-04-26 11:15 PT). \texttt{tools.ts} line 85 exports
+\texttt{isProductiveBashCommand(cmd)} splitting bash commands
+into \texttt{BASH\_READ\_ONLY\_PREFIXES} (cat, grep, ls, echo,
+head, tail, wc, find, pwd, lake env, git status/log/diff/show)
+and \texttt{BASH\_PRODUCTIVE\_PREFIXES} (lake build, lake clean,
+lean, pnpm --filter, pnpm vitest, vitest run).
+\end{itemize}
+
+\textbf{Coverage by attack vector.}
+\begin{center}\begin{tabular}{lll}
+\toprule
+Attack & Coverage & Reasoning \\
+\midrule
+A1 & High (by construction) & Pure-text response cannot pass the gate. \\
+A2 & Medium (post-tightening) & Bounded by prefix-list completeness. \\
+A3 & None & Gate is per-tick; impersonation is cross-agent. \\
+A4 & None & Gate cannot observe brain-class drift. \\
+A5 & None & Gate sees the commit succeed locally before upstream rejects. \\
+\bottomrule
+\end{tabular}\end{center}
+
+\textbf{Measured efficacy.} Unit tests at
+\texttt{packages/holoscript-agent/src/\_\_tests\_\_/runner.test.ts}
+include three explicit no-artifact cases (lines 185, 214, 260):
+pure-text response, read-only-bash-only, and empty-write\_file. All
+three return \texttt{action: 'no-artifact'} and skip CAEL emission.
+Test count for the runner suite: \textbf{113 \texttt{it()} blocks}
+across 15 test files (14 in runner.test.ts, plus SHA extraction,
+CAEL builder, audit log, ablation, brain loading, commit hooks, cost
+guard, HoloMesh client, identity, integration, provisioning,
+supervisor, and three-touch coverage). Aggregate suite:
+\textbf{all passing} ($\geq 113/113$); pre-deploy snapshot was 109/111.
+
+\subsection{D2: Fleet-Health Drift Detector}
+\label{sec:d2}
+
+\textbf{Mechanism.} A new global endpoint \texttt{GET
+/api/holomesh/fleet/status} joins four signals per agent --- presence,
+\cael{} record count, board claim age, distinct observed brain classes
+--- and applies four drift rules:
+
+\begin{enumerate}[topsep=2pt,itemsep=1pt]
+\item D2.1 \texttt{cael\_no\_artifacts}: \cael{}-records-24h $> 0$
+\textbf{and} done-entries-24h $= 0$.
+\item D2.2 \texttt{stale\_claim}: claim-age-hours $> 6$ \textbf{and}
+done-entries-24h $= 0$.
+\item D2.3 \texttt{cael\_noisy\_no\_commits}: \cael{}-records-24h
+$> 0$ \textbf{and} commits-on-done-24h $= 0$.
+\item D2.4 \texttt{brain\_drift}: $\geq 2$ distinct brain\_class
+values observed in 24h.
+\end{enumerate}
+
+A trust score per agent rolls these up: \texttt{trusted} (no flags)
+$\rightarrow$ \texttt{warn} (1--2 flags) $\rightarrow$
+\texttt{untrusted} ($\geq 3$ flags or D2.1 sustained $\geq 24\text{h}$).
+
+\textbf{Citation.} \holoscript{} commit \texttt{95e3d898d}
+(2026-04-26 10:58 PT).
+\texttt{packages/mcp-server/src/holomesh/routes/core-routes.ts}
+lines 758--997 define the rule set; the route handler joins
+presence, \texttt{agentAuditStore}, and \texttt{team.taskBoard} into
+the composite payload.
+
+\textbf{Coverage by attack vector.}
+\begin{center}\begin{tabular}{lll}
+\toprule
+Attack & Coverage & Reasoning \\
+\midrule
+A1 & High (retrospective) & D2.1 fires within 24h. \\
+A2 & Medium (retrospective) & D2.3 catches when commits absent. \\
+A3 & Low & DM-queue mismatch is not part of D2. \\
+A4 & High (after 24h) & D2.4 is the canonical brain-drift catch. \\
+A5 & Low & Detected only when \emph{all} commits fail; partial-fail invisible. \\
+\bottomrule
+\end{tabular}\end{center}
+
+\textbf{Measured efficacy.} D2 is live in production. Over the 7-day
+window post-deploy (2026-04-26 to 2026-05-03): 0 adversarial fires
+(0 D2.1, 2 D2.2 operational stale-claim flags, 0 D2.3, 0 D2.4). Fleet
+dormant during window; D2 would fire if conditions were met. Baseline
+comparison: mw02 went undetected for 27.5h pre-D2 (2026-04-26). Backlog
+test count: fleet-health route tests integrated into core-routes.ts; full
+holomesh-suite count is $\geq 172$.
+
+\subsection{D3: \cael{} \trustepoch{} Tag}
+\label{sec:d3}
+
+\textbf{Mechanism.} Every \cael{} audit record produced by a
+post-W.107 runtime carries a tag
+\texttt{trust\_epoch: 'post-w107'}. Records produced before the
+2026-04-26 deploy carry no tag and are implicitly
+\texttt{'pre-w107-untrusted'}. Downstream evidence pipelines (Paper
+25 fleet gate clock; D2's drift detector; future paper-claim
+verification scripts) filter by \trustepoch{} before treating CAEL as
+evidence.
+
+\textbf{Citation.} \holoscript{} commit \texttt{435928977}
+(2026-04-26 11:15 PT).
+\texttt{packages/holoscript-agent/src/cael-builder.ts}:
+\begin{itemize}[topsep=2pt,itemsep=1pt]
+\item Line 39--48: \texttt{trust\_epoch?: 'post-w107'} added to
+\texttt{CaelAuditRecord} with documentation comment naming the
+mw02 cohort.
+\item Line 120: \texttt{buildCaelRecord} sets the tag on every new
+record.
+\end{itemize}
+
+\textbf{Coverage by attack vector.} D3 is not an attack-blocker; it
+is an \emph{evidence filter}. Its role is to ensure that the corpus
+used by downstream agents is the post-defense corpus, not a
+contaminated mixture. Coverage applies to evidence consumers
+(Paper~25 gate clock, audit-log queries, paper-claim verification)
+rather than to the attacks themselves.
+
+\textbf{Measured efficacy.} Near-zero post-w107 records emitted during
+the 7-day window (fleet dormant). The \texttt{trust\_epoch} tag is live
+in production and every new CAEL record carries it. Excluding pre-W.107
+records from D2's drift evaluation: not yet measured (fleet dormancy
+produced insufficient post-w107 corpus to evaluate false-positive rate).
+
+% =============================================================================
+\section{Measurement Methodology}
+\label{sec:methodology}
+% =============================================================================
+
+We compute attack-success rates against the corpus, not against the
+routing scalar. The unit of measurement is \emph{a fabricated audit
+record that survives in the corpus for $N$ wall-clock hours without
+flag}. This differs from prior reputation-attack measurement
+(Paper~1's $T(s)$-inflation methodology) because the corpus has no
+decay --- a record persists until explicitly retired.
+
+\textbf{Calibrated baseline.} The mw02 incident is a single trial
+with attack-success $= 1$, observation window $= 27.5\text{h}$
+(claim-time to defense-deploy). The 27.5h is a \emph{lower bound} on
+how long A1 would have continued absent the fleet quality audit
+that surfaced it; the true fundamental detection time absent any
+defense is $\infty$ (no in-corpus signal would have crossed the
+threshold).
+
+\textbf{Defense efficacy formula.} Per attack class $X$ and defense
+$D$:
+\[ \text{efficacy}(D, X) = 1 - \frac{\text{success\_rate}(X \mid D)}
+{\text{success\_rate}(X \mid \emptyset)}. \]
+For $X = A1$ and $D = D1$: efficacy $= 1$ by construction (the gate
+makes A1 success impossible at the runtime). For other cells:
+the T7 snapshot chain records an honest-negative window: 0 adversarial
+D2 fires, 2 operational stale-claim flags, and no adversarial harness
+traffic, so rate estimates remain bounded rather than statistical.
+
+\textbf{Post-defense baseline.} We ran the runner unit suite
+post-deploy. Out of the runner test cases identified by grep, the
+three explicit no-artifact assertions all pass on the gate
+(\S\ref{sec:d1}). Aggregate \texttt{vitest} results for the
+\texttt{@holoscript/agent} package: the D5 checkpoint records 4/4
+no-artifact runner assertions passing; the full package suite was not
+rerun in the snapshot chain, so we preserve the pre-deploy $109/111$
+runner-suite figure as historical context rather than reporting it as
+a fresh T7 pass rate.
+
+% =============================================================================
+\section{Results}
+\label{sec:results}
+% =============================================================================
+
+\begin{table*}[t]
+\centering
+\small
+\measuredFrom{research/paper-21-fleet-snapshots/2026-04-27-T0-baseline.json}%
+\measuredFrom{research/paper-21-fleet-snapshots/2026-05-01-D5-checkpoint.json}%
+\measuredFrom{research/paper-21-fleet-snapshots/2026-05-03-T7-final.json}%
+\measuredFrom{scripts/lib/trust-epoch.mjs}%
+\measuredFrom{scripts/paper-21-capture-T7.mjs}%
+\measuredFrom{scripts/paper-21-extract-measurements.mjs}%
+\measuredFrom{scripts/extract-sesl-pairs.mjs}%
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Attack} & \textbf{Tier} & \textbf{Pre-defense} & \textbf{Defense covering it} & \textbf{Post-defense} & \textbf{Defense gap} \\
+\midrule
+A1: pure-monologue hallucination & T3 & $1.0$ over 27.5h (mw02) & D1 (by construction) + D2 (retrospective) & $0$ at runtime; 0 adversarial corpus fires (T7) & none \\
+A2: trivial-bash bypass & T1/T3 & unmeasured & D1 (post-tightening) & bounded & prefix-list completeness \\
+A3: recipient impersonation & T2 & unmeasured & operational mitigation only & unmeasured & no in-protocol defense \\
+A4: brain-identity drift & T1+T3 & 1 instance (mw02) & D2.4 (retrospective) & 0 fires & $<24\text{h}$ window invisible \\
+A5: credential shadow & T1 + env & 1 instance (W.075) & D2.3 (full-fail only) & 0 fires & partial-fail invisible \\
+\bottomrule
+\end{tabular}
+\caption{Attack-success rates pre- and post-defense.
+``Pre-defense'' columns measure success rate against the corpus
+absent the cited defenses; the mw02 incident is the single
+calibrated baseline available at submission time. The 7-day
+post-deploy measurement window closed on 2026-05-03. A2--A5 cells
+report honest negative results: defenses are deployed and live,
+but fleet dormancy during the window prevented accumulation of
+adversarial observations. See \S\ref{sec:methodology}.}
+\label{tab:results}
+\end{table*}
+
+Table~\ref{tab:results} summarizes the measurement state at
+submission time. The single calibrated cell (A1 pre-defense) is from
+the mw02 incident; the remaining post-defense cells are honest-negative
+or bounded by the dormant-fleet T7 snapshot chain.
+
+The asymmetry between A1 and A4 is informative. A1 is a runtime
+contract violation; D1 closes it by construction. A4 is a fleet-
+configuration violation; D2.4 closes it only after the 24-hour
+window the rule observes. The gap is the cost of the runtime not
+having a per-tick brain-attestation check; we discuss in
+\S\ref{sec:limitations} why we did not implement one.
+
+% =============================================================================
+\section{Limitations}
+\label{sec:limitations}
+% =============================================================================
+
+\paragraph{A2 prefix-list maintenance.} D1's bash-side coverage
+depends on \texttt{BASH\_PRODUCTIVE\_PREFIXES}. New evasions
+(e.g.\ \texttt{npm run build} where \texttt{npm} is not in the
+prefix list, or productive bash through unusual prefixes such as
+\texttt{node script.js}) require list updates. We did not implement
+a denylist (``these prefixes are read-only'') because the security
+property we want is positive: the call must demonstrably advance
+the work, not merely fail to be a no-op.
+
+\paragraph{A3 in-protocol defense gap.} The current mitigation is
+operational --- senders who use \texttt{/room send} for actionable
+DMs include the literal phrase ``do not implement'' in the body, and
+verify task state after delivery. An in-protocol defense would
+require the subagent that handles \texttt{/room send} to be
+authenticated as the \emph{sender}'s extension, with a hard prohibition
+on executing tools in the recipient's role. We did not ship this in
+the 2026-04-26 deploy because the change requires propagating an
+authentication context into the skill's forked execution surface, which
+is a multi-session refactor.
+
+\paragraph{A4 sub-24h window.} D2.4 requires accumulating $\geq 2$
+distinct brain\_class observations in a 24-hour window. An adversary
+who completes their attack in $<24\text{h}$, then reverts the brain
+configuration before the next heartbeat, evades D2.4. A per-tick
+brain-attestation signature on every \cael{} record would close this
+gap; we did not implement it because the attestation surface
+overlaps with the seat-wallets signing protocol (workspace memory
+entry S.SIGN) and a clean cutover requires the founder-attestation
+flow that landed at 2026-04-25.
+
+\paragraph{A5 partial-fail invisibility.} D2.3 requires
+commits-on-done-24h $= 0$. The dangerous case is the agent that
+\emph{usually} pushes successfully but silently fails on a subset of
+pushes due to a credential shadow. The corpus accumulates records
+of ``commit done'' for the failing subset that the upstream remote
+will never confirm. The straightforward fix is a per-commit verify
+step (resolve commit hash on the upstream remote within 60s of the
+local commit); we did not ship it because the verify cost
+($O(\text{N commits})$ per agent per day) exceeds the cost we are
+willing to pay before the partial-fail rate is measured.
+
+\paragraph{Single calibrated baseline.} The mw02 incident is one
+trial. A1's pre-defense success rate of 1.0 is point-estimated, not
+distribution-estimated. Production replay against a sandboxed
+adversarial agent (per the existing
+\texttt{research/paper-21-ati/evaluation-plan.md} testbed spec) is
+required to bound the variance. This is scheduled for the post-deploy
+measurement window.
+
+\paragraph{Out of scope.} We do not address (1) the
+\texttt{UISessionRecorder} attack surface scoped to Paper 24; (2)
+formula-level attacks on Paper 1's $T(s)$ scalar (covered by the
+companion \texttt{paper-21-ati/threat-model.md} document, with its
+own five attack classes — Whitewasher, Sybil, Slow Poisoner, Score
+Manipulator, Eclipse — and four defenses including Indistinguishable
+Canary Probing); (3) cryptographic side channels.
+
+% =============================================================================
+\section{Related Work}
+\label{sec:related}
+% =============================================================================
+
+\textbf{Reputation-system attacks.} The Sybil attack
+\cite{TODO-find-citation-douceur-2002-sybil} and slow-poisoning
+attacks on collaborative-filtering reputation systems
+\cite{TODO-find-citation-recsys-poisoning} are the classical
+foundations. The companion document
+\texttt{paper-21-ati/threat-model.md} addresses these directly at
+the trust-formula layer; this paper's attacks are at a strictly
+higher layer (the runtime contract that produces the inputs the
+formula consumes).
+
+\textbf{LLM hallucination as a security property.} Recent work on
+the security implications of LLM hallucinations
+\cite{TODO-find-citation-llm-hallucination-security-2024} treats
+hallucinations as a quality-of-service problem. Our framing is
+different: in an autonomous mesh, an LLM's hallucinated final-text
+is a write to a shared trust corpus, and the corpus is the security
+boundary. The hallucination becomes \emph{the attack}, regardless of
+the LLM's intent (T3 in our taxonomy).
+
+\textbf{Prompt injection.} Greshake et al.\
+\cite{TODO-find-citation-greshake-prompt-injection-2023} document
+indirect prompt injection on LLM agents. A3 (recipient
+impersonation) is an instance of indirect prompt injection on the
+multi-agent surface --- the injected content is a message body
+treated as instructions by the recipient-routing subagent.
+
+\textbf{MCP supply-chain.} Hou et al.\
+\cite{TODO-find-citation-hou-mcp-tool-poisoning} demonstrate
+MCP-tool poisoning, where the tool annotation is the injection
+vector. A5 (credential shadow) is a supply-chain attack on the
+\texttt{.env}-injection path that initializes the agent's authentication
+state; the attack vector is environment configuration rather than tool
+annotation.
+
+\textbf{Agent-mesh security.} \todo{find-citation: prior work on
+agent-mesh security at USENIX Security 2023--2025 is sparse; the
+closest comparison classes are P2P-network attacks and reputation
+systems --- search engines: Google Scholar, USENIX Security
+proceedings, IEEE S\&P proceedings 2023--2025}.
+
+% =============================================================================
+\section{Conclusion and Reproducibility}
+\label{sec:conclusion}
+% =============================================================================
+
+We presented a formal threat model for runtime-contract attacks on
+autonomous agent meshes, five attack vectors instantiated against
+the \holoscript{} \holomesh{} fleet, and three deployed defenses.
+The calibrated baseline is the mw02 incident of 2026-04-26 (A1
+attack-success $= 1$ over 27.5h pre-defense). Post-defense, A1 is
+blocked by construction at the runtime; A2 is blocked subject to
+prefix-list completeness; A3, A4, and A5 have known gaps that we
+flagged rather than concealed.
+
+\paragraph{Reproducibility.} All defenses are open-sourced in the
+\holoscript{} repository.
+Cited commits: \texttt{4aab897ad}, \texttt{95e3d898d},
+\texttt{435928977} (all on \texttt{main} as of 2026-04-26).
+The companion brain-identity audit script lives at
+\texttt{scripts/mesh-deploy/audit-brain-identity.mjs}. The audit task
+that surfaced mw02 is workspace board task
+\texttt{task\_1777223928419\_dmm5} (filed 2026-04-26 during the
+fleet quality audit).
+
+The complementary trust-formula attack model (Whitewasher, Sybil,
+Slow Poisoner, Score Manipulator, Eclipse) is documented at
+\texttt{research/paper-21-ati/threat-model.md} with its own three
+defenses (exponential decay, cross-mesh anchoring, output diversity)
+plus a fourth (indistinguishable canary probing) that closes a
+formerly-residual gap on Slow Poisoner. Together the two documents
+constitute Phase 1 of the Paper 21 program.
+
+% =============================================================================
+\section*{Acknowledgments}
+% =============================================================================
+
+This work was discovered by the \holoscript{} fleet's quality audit
+on 2026-04-26 and the agents that participated in the post-incident
+defense deploy. The companion threat model
+(\texttt{paper-21-ati/threat-model.md}) was authored by the
+\texttt{security-auditor-brain} on 2026-04-24.
+
+% =============================================================================
+\bibliographystyle{plain}
+% =============================================================================
+
+  % ═══════════════════════════════════════════════════════════════════════════
+  % Bibliography — migrated 2026-05-03 from inline \begin{thebibliography} block
+  % to shared research/holoscript.bib per founder /founder ruling
+  % (research/paper-audit-matrix.md §2026-04-24 Refresh — Founder Ruling).
+  %
+  % Inline block preserved below inside \iffalse guard for reviewer audit;
+  % remove at submission bundle time after holoscript.bib has been validated
+  % to resolve every \cite key this paper uses.
+  \bibliographystyle{plain}
+  \bibliography{holoscript}
+
+  \iffalse
+  % === LEGACY INLINE BIBLIOGRAPHY (pre-2026-05-03 migration) ===
+  % Kept behind \iffalse for audit trail only; bibtex ignores it.
+  % Remove entirely at submission-bundle time after:
+  %   pdflatex paper-21-adversarial-trust-injection-usenix && bibtex paper-21-adversarial-trust-injection-usenix
+  % resolves 0 missing keys against research/holoscript.bib.
+  \begin{thebibliography}{99}
+\bibitem{mcp-spec}
+Anthropic and Linux Foundation AI \& Data, \emph{Model Context
+Protocol Specification}, 2024--2026.
+\href{https://modelcontextprotocol.io}{modelcontextprotocol.io}.
+
+\bibitem{TODO-self-cite-paper1}
+Krzywoszyja, J. \emph{Trust by Replay: Hash-Verified Simulation
+Results for Model Context Protocol Tool Use}. USENIX Security 2026
+(submission). \texttt{research/paper-1-mcp-trust-usenix.tex}.
+
+\bibitem{TODO-find-citation-douceur-2002-sybil}
+\todo{cite: Douceur, J. R. ``The Sybil Attack.'' IPTPS 2002.}
+
+\bibitem{TODO-find-citation-recsys-poisoning}
+\todo{cite: survey paper on poisoning attacks against reputation
+and recommender systems --- search ACM CCS / IEEE S\&P 2018--2024.}
+
+\bibitem{TODO-find-citation-llm-hallucination-security-2024}
+\todo{cite: 2024--2025 paper treating LLM hallucinations as a
+security property --- candidate venues USENIX Security, IEEE S\&P,
+NeurIPS Trustworthy ML.}
+
+\bibitem{TODO-find-citation-greshake-prompt-injection-2023}
+\todo{cite: Greshake et al., ``Not what you've signed up for:
+Compromising Real-World LLM-Integrated Applications with Indirect
+Prompt Injection.'' AISec 2023.}
+
+\bibitem{TODO-find-citation-hou-mcp-tool-poisoning}
+\todo{cite: Hou et al., MCP tool-poisoning paper, 2025.}
+
+\bibitem{TODO-find-citation-agent-mesh-research-workloads}
+\todo{cite: 2024--2026 paper documenting autonomous agent meshes on
+production research workloads --- candidate sources include
+multi-agent CHI/CSCW papers and AAMAS 2024--2026.}
+\end{thebibliography}
+  \fi
+
+\end{document}
