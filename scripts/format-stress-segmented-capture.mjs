@@ -22,6 +22,7 @@ const DEFAULT_DATE = new Date().toISOString().slice(0, 10);
 const SEGMENT_REPLAY_MODE = 'segment-replay-kinematic';
 const WORLD_MODEL_REPLAY_MODE = 'world-model-event-replay';
 const WORLD_MODEL_PIXEL_REPLAY_MODE = 'world-model-pixel-replay';
+const ENGINE_FRAME_REPLAY_MODE = 'engine-frame-replay';
 const PLACEHOLDER_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
   'base64'
@@ -38,6 +39,8 @@ Options:
   --wait-for <ms>      Screenshot stabilization wait. Default: 1000.
   --base-still <png>   Use an existing scene still, then emit segment replay stills.
   --no-replay-stills   Preserve historical static-copy still behavior.
+  --no-engine-frame-stills
+                        Preserve deterministic receipt-renderer stills for dynamic segments.
   --dry-run            Emit receipts without running parse/compile/headless/screenshot.
   --skip-screenshot    Do not invoke screenshot; write placeholder stills.
   --skip-headless      Do not invoke headless runtime.
@@ -56,6 +59,7 @@ export function parseRunnerArgs(argv = process.argv.slice(2)) {
     waitFor: 1000,
     baseStill: undefined,
     replayStills: true,
+    engineFrameStills: true,
     dryRun: false,
     skipScreenshot: false,
     skipHeadless: false,
@@ -82,6 +86,8 @@ export function parseRunnerArgs(argv = process.argv.slice(2)) {
       options.baseStill = argv[++i];
     } else if (arg === '--no-replay-stills') {
       options.replayStills = false;
+    } else if (arg === '--no-engine-frame-stills') {
+      options.engineFrameStills = false;
     } else if (arg === '--dry-run') {
       options.dryRun = true;
     } else if (arg === '--skip-screenshot') {
@@ -730,6 +736,9 @@ export function summarizeVisualEvidence(stillEvidence) {
   const replayDistinct = replayCandidates.filter(
     (entry) => entry.sha256 && hashCounts.get(entry.sha256) === 1
   );
+  const engineFrameReplaySegments = existing.filter(
+    (entry) => entry.mode === ENGINE_FRAME_REPLAY_MODE
+  ).length;
   const worldModelPixelReplaySegments = existing.filter(
     (entry) => entry.mode === WORLD_MODEL_PIXEL_REPLAY_MODE
   ).length;
@@ -749,6 +758,7 @@ export function summarizeVisualEvidence(stillEvidence) {
     replayDistinctSegments: replayDistinct.length,
     capturedReplaySegments: replayDistinct.length,
     replayDistinctSegmentIds: replayDistinct.map((entry) => entry.segment),
+    engineFrameReplaySegments,
     worldModelPixelReplaySegments,
     staticCopySegments,
     placeholderSegments,
@@ -877,6 +887,96 @@ function worldModelTrajectorySamples(worldModelReplay, { includeImpact = false }
 
 function setVector(target, key, value) {
   if (value) target[key] = value;
+}
+
+function formatVector(vector) {
+  const values = Array.isArray(vector) ? vector : [0, 0, 0];
+  return `[${values.map((value) => Number(Number(value || 0).toFixed(3))).join(', ')}]`;
+}
+
+function objectBlock(name, { geometry, color, position, scale, opacity }) {
+  return [
+    `  object "${name}" {`,
+    `    geometry: "${geometry}"`,
+    `    color: "${color}"`,
+    `    position: ${formatVector(position)}`,
+    `    scale: ${formatVector(scale)}`,
+    opacity === undefined ? null : `    opacity: ${Number(opacity.toFixed(3))}`,
+    '  }',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+function buildEngineReplayHoloSource({ segment, pose }) {
+  const avatar = pose.bodies.avatar.position;
+  const hand = pose.bodies.rightHand.position;
+  const rock = pose.bodies.rock.position;
+  const target = pose.bodies.target.position;
+  const arcSamples = Array.isArray(pose.physics.arcSamples) ? pose.physics.arcSamples : [];
+  const arcBlocks = arcSamples.map((sample, index) =>
+    objectBlock(`ReplayArcSample${String(index).padStart(2, '0')}`, {
+      geometry: 'sphere',
+      color: '#ffd76a',
+      position: sample,
+      scale: [0.12, 0.12, 0.12],
+      opacity: 0.75,
+    })
+  );
+
+  return `composition "EngineReplay_${segment.id}" {
+  light "ReplayKeyLight" {
+    type: "directional"
+    position: [5, 8, 6]
+    color: "#ffffff"
+    intensity: 1.3
+  }
+
+${objectBlock('ReplayGround', {
+  geometry: 'plane',
+  color: '#202733',
+  position: [0, -0.02, 0],
+  scale: [8, 5, 1],
+})}
+
+${objectBlock('ReplayAvatar', {
+  geometry: 'capsule',
+  color: '#7aa2f7',
+  position: avatar,
+  scale: [0.42, 1.12, 0.42],
+})}
+
+${objectBlock('ReplayRightHand', {
+  geometry: 'sphere',
+  color: pose.bodies.rightHand.contact ? '#9ece6a' : '#f6c177',
+  position: hand,
+  scale: [0.2, 0.2, 0.2],
+})}
+
+${objectBlock('ReplayRock', {
+  geometry: 'sphere',
+  color: pose.bodies.rock.attachedToHand ? '#bb9af7' : '#c0caf5',
+  position: rock,
+  scale: [0.26, 0.26, 0.26],
+})}
+
+${objectBlock('ReplayTarget', {
+  geometry: 'cube',
+  color: pose.bodies.target.impacted ? '#f7768e' : '#7dcfff',
+  position: target,
+  scale: [0.28, 0.9, 0.18],
+})}
+
+${arcBlocks.join('\n\n')}
+
+${objectBlock('ReplayProvenancePanel', {
+  geometry: 'cube',
+  color: pose.physics.provenancePanel ? '#9ece6a' : '#414868',
+  position: [2.9, 1.7, -0.25],
+  scale: [0.9, 0.44, 0.05],
+  opacity: 0.82,
+})}
+}`;
 }
 
 function applyWorldModelPoseOverrides(pose, segment, worldModelReplay, worldModelEvents) {
@@ -1107,16 +1207,22 @@ export function buildSegmentReceipt({
 }) {
   const headless = commandResults.find((command) => command.id === 'headless-holo');
   const screenshot = commandResults.find((command) => command.id === 'screenshot-base');
+  const engineFrame = commandResults.find((command) => command.id === `engine-frame-${segment.id}`);
   const dynamicSegment = index > 0;
   const replayStill =
     dynamicSegment &&
-    (stillMode === SEGMENT_REPLAY_MODE || stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE);
+    (stillMode === SEGMENT_REPLAY_MODE ||
+      stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE ||
+      stillMode === ENGINE_FRAME_REPLAY_MODE);
   const worldModelEvents = worldModelEventsForSegment(worldModelReplay, segment.id);
   const hasWorldModelEvidence = worldModelEvents.length > 0;
+  const hasEngineFrameReplay = hasWorldModelEvidence && stillMode === ENGINE_FRAME_REPLAY_MODE;
   const hasWorldModelPixelReplay =
     hasWorldModelEvidence && stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE;
   const status =
-    hasWorldModelPixelReplay
+    hasEngineFrameReplay
+      ? ENGINE_FRAME_REPLAY_MODE
+      : hasWorldModelPixelReplay
       ? WORLD_MODEL_PIXEL_REPLAY_MODE
       : hasWorldModelEvidence
       ? WORLD_MODEL_REPLAY_MODE
@@ -1145,7 +1251,13 @@ export function buildSegmentReceipt({
       status,
       owningSurface: owner,
       findings: dynamicSegment
-        ? hasWorldModelPixelReplay
+        ? hasEngineFrameReplay
+          ? [
+              'World-model replay emitted semantic events for this segment.',
+              'The still was captured through the engine Puppeteer frame path from generated replay-state HoloScript.',
+              `Next owner: ${owner}.`,
+            ]
+          : hasWorldModelPixelReplay
           ? [
               'World-model replay emitted semantic events for this segment.',
               'The still renderer consumed the replay event payload for rock position and trajectory.',
@@ -1161,8 +1273,8 @@ export function buildSegmentReceipt({
             ? [
                 'Segment replay still generated from the segment pose/state payload.',
                 'The still is visual replay evidence, not a full engine physics proof yet.',
-              `Next owner: ${owner}.`,
-            ]
+                `Next owner: ${owner}.`,
+              ]
           : [
               'Static still exists, but segment-specific camera/pose playback is not implemented yet.',
               `Next owner: ${owner}.`,
@@ -1175,12 +1287,15 @@ export function buildSegmentReceipt({
       runnerMs: 0,
       screenshotMs: screenshot?.durationMs ?? null,
       headlessMs: headless?.durationMs ?? null,
+      engineFrameMs: engineFrame?.durationMs ?? null,
       frameBudget: {
         targetHz: 60,
         budgetMs: 16.67,
-          observedMs: headless?.success ? headless.durationMs : null,
-          note: dynamicSegment
-          ? hasWorldModelPixelReplay
+        observedMs: headless?.success ? headless.durationMs : null,
+        note: dynamicSegment
+          ? hasEngineFrameReplay
+            ? 'Engine frame capture consumed generated replay-state HoloScript; frame timing is still command-level evidence.'
+            : hasWorldModelPixelReplay
             ? 'World-model event payload drives this still; frame timing is still command-level evidence.'
             : hasWorldModelEvidence
             ? 'World-model event replay exists for this segment; frame timing is still command-level evidence.'
@@ -1331,14 +1446,55 @@ async function runEvidenceCommands({ options, manifestPath, manifest, outputDir 
   return { results, screenshotPath, sceneSnapshot, worldModelReplay };
 }
 
-function ensureSegmentStills({
+async function tryRenderEngineReplayStill({
+  segment,
+  index,
+  total,
+  outputDir,
+  stillPath,
+  sceneSnapshot,
+  worldModelReplay,
+  width,
+  height,
+  dryRun,
+}) {
+  const pose = posePhysicsFor(segment, index, total, sceneSnapshot, worldModelReplay);
+  const sourceDir = join(outputDir, 'engine-replay-sources');
+  const logDir = join(outputDir, 'commands');
+  mkdirSync(sourceDir, { recursive: true });
+  const sourcePath = join(sourceDir, `${segment.id}.holo`);
+  writeFileSync(sourcePath, buildEngineReplayHoloSource({ segment, pose }), 'utf8');
+
+  return runCommand({
+    id: `engine-frame-${segment.id}`,
+    args: [
+      'screenshot',
+      sourcePath,
+      '-o',
+      stillPath,
+      '--width',
+      String(width),
+      '--height',
+      String(height),
+      '--wait-for',
+      '250',
+    ],
+    logDir,
+    dryRun,
+  });
+}
+
+async function ensureSegmentStills({
   manifest,
   outputDir,
   screenshotPath,
   screenshotCommand,
+  commandResults,
   sceneSnapshot,
   worldModelReplay,
   replayStills,
+  engineFrameStills,
+  dryRun,
   width,
   height,
 }) {
@@ -1349,7 +1505,9 @@ function ensureSegmentStills({
     writeFileSync(screenshotPath, PLACEHOLDER_PNG);
   }
 
-  return manifest.segments.map((segment, index) => {
+  const stills = [];
+  for (let index = 0; index < manifest.segments.length; index++) {
+    const segment = manifest.segments[index];
     const stillPath = join(stillsDir, segment.expectedStill || `${segment.id}.png`);
     let stillMode = stillModeFor(index, screenshotCommand, baseExists, replayStills);
     if (
@@ -1360,10 +1518,36 @@ function ensureSegmentStills({
     }
     if (index === 0) {
       if (!existsSync(stillPath)) writeFileSync(stillPath, PLACEHOLDER_PNG);
-      return { segment, stillPath, stillMode };
+      stills.push({ segment, stillPath, stillMode });
+      continue;
     }
 
-    if (stillMode === SEGMENT_REPLAY_MODE || stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE) {
+    if (
+      engineFrameStills &&
+      stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE &&
+      screenshotCommand?.success
+    ) {
+      const engineFrameCommand = await tryRenderEngineReplayStill({
+        segment,
+        index,
+        total: manifest.segments.length,
+        outputDir,
+        stillPath,
+        sceneSnapshot,
+        worldModelReplay,
+        width,
+        height,
+        dryRun,
+      });
+      commandResults.push(engineFrameCommand);
+      if (engineFrameCommand.success && existsSync(stillPath)) {
+        stillMode = ENGINE_FRAME_REPLAY_MODE;
+      }
+    }
+
+    if (stillMode === ENGINE_FRAME_REPLAY_MODE) {
+      // The segment-specific screenshot command already wrote this still.
+    } else if (stillMode === SEGMENT_REPLAY_MODE || stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE) {
       writeFileSync(
         stillPath,
         renderSegmentReplayStill({
@@ -1381,8 +1565,9 @@ function ensureSegmentStills({
     } else {
       writeFileSync(stillPath, PLACEHOLDER_PNG);
     }
-    return { segment, stillPath, stillMode };
-  });
+    stills.push({ segment, stillPath, stillMode });
+  }
+  return stills;
 }
 
 function outputDirFor(options, manifestPath, manifest) {
@@ -1423,14 +1608,17 @@ export async function runSegmentedCapture(rawOptions = {}) {
   });
 
   const screenshotCommand = commandResults.find((command) => command.id === 'screenshot-base');
-  const stills = ensureSegmentStills({
+  const stills = await ensureSegmentStills({
     manifest,
     outputDir,
     screenshotPath,
     screenshotCommand,
+    commandResults,
     sceneSnapshot,
     worldModelReplay,
     replayStills: options.replayStills,
+    engineFrameStills: options.engineFrameStills,
+    dryRun: options.dryRun,
     width: options.width,
     height: options.height,
   });
@@ -1469,7 +1657,9 @@ export async function runSegmentedCapture(rawOptions = {}) {
         },
         {
           type:
-            stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE
+            stillMode === ENGINE_FRAME_REPLAY_MODE
+              ? 'engine_frame_replay_still_emitted'
+              : stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE
               ? 'world_model_pixel_replay_still_emitted'
               : stillMode === SEGMENT_REPLAY_MODE
               ? 'segment_replay_still_emitted'
@@ -1563,6 +1753,9 @@ export async function runSegmentedCapture(rawOptions = {}) {
     segmentsWithWorldModelPixelReplay: receipts.filter(
       (receipt) => receipt.stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE
     ).length,
+    segmentsWithEngineFrameReplay: receipts.filter(
+      (receipt) => receipt.stillMode === ENGINE_FRAME_REPLAY_MODE
+    ).length,
   };
 
   const receiptPayload = {
@@ -1600,7 +1793,9 @@ export async function runSegmentedCapture(rawOptions = {}) {
       visualEvidence.dynamicReplayBlockedSegments > 0 ||
       visualEvidence.falseGreenRisk !== 'none-detected'
         ? 'P1'
-        : 'P2',
+        : coverage.segmentsWithEngineFrameReplay >= Math.max(0, manifest.segments.length - 1)
+          ? 'P3'
+          : 'P2',
   });
 
   const stillBytes = receipts.reduce((sum, receipt) => {
