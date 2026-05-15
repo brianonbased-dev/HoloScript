@@ -20,6 +20,8 @@ const REPO_ROOT = resolve(__dirname, '..');
 const DEFAULT_MANIFEST = 'experiments/format-realism-gauntlet/manifest.json';
 const DEFAULT_DATE = new Date().toISOString().slice(0, 10);
 const SEGMENT_REPLAY_MODE = 'segment-replay-kinematic';
+const WORLD_MODEL_REPLAY_MODE = 'world-model-event-replay';
+const WORLD_MODEL_PIXEL_REPLAY_MODE = 'world-model-pixel-replay';
 const PLACEHOLDER_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
   'base64'
@@ -294,6 +296,7 @@ export function renderSegmentReplayStill({
   index,
   total,
   sceneSnapshot,
+  worldModelReplay,
   width = 1280,
   height = 720,
 }) {
@@ -328,7 +331,7 @@ export function renderSegmentReplayStill({
     }
   }
 
-  const pose = posePhysicsFor(segment, index, total, sceneSnapshot);
+  const pose = posePhysicsFor(segment, index, total, sceneSnapshot, worldModelReplay);
   const avatar = pose.bodies.avatar.position;
   const hand = pose.bodies.rightHand.position;
   const rock = pose.bodies.rock.position;
@@ -727,6 +730,9 @@ export function summarizeVisualEvidence(stillEvidence) {
   const replayDistinct = replayCandidates.filter(
     (entry) => entry.sha256 && hashCounts.get(entry.sha256) === 1
   );
+  const worldModelPixelReplaySegments = existing.filter(
+    (entry) => entry.mode === WORLD_MODEL_PIXEL_REPLAY_MODE
+  ).length;
   const staticCopySegments = existing.filter((entry) => entry.mode === 'static-scene-copy').length;
   const placeholderSegments = existing.filter((entry) => entry.mode === 'placeholder').length;
   const falseGreenRisk =
@@ -743,6 +749,7 @@ export function summarizeVisualEvidence(stillEvidence) {
     replayDistinctSegments: replayDistinct.length,
     capturedReplaySegments: replayDistinct.length,
     replayDistinctSegmentIds: replayDistinct.map((entry) => entry.segment),
+    worldModelPixelReplaySegments,
     staticCopySegments,
     placeholderSegments,
     staticCopyCoverageBlocked: staticCopySegments > 0,
@@ -772,23 +779,163 @@ function ownerForSegment(segmentId) {
   return 'HoloLand segmented camera choreography';
 }
 
-function posePhysicsFor(segment, index, total, sceneSnapshot) {
+function worldModelEventTypesForSegment(segmentId) {
+  if (segmentId === '00_scene_loaded') return ['scene_loaded'];
+  if (segmentId === '01_avatar_approaches') return ['avatar_approached'];
+  if (segmentId === '02_hand_reaches') return ['hand_reached'];
+  if (segmentId === '03_grab_constraint') return ['grab_constraint_attached'];
+  if (segmentId === '04_lift_pose') return ['lift_pose'];
+  if (segmentId === '05_windup') return ['windup_pose'];
+  if (segmentId === '06_release') return ['release'];
+  if (segmentId === '07_ballistic_arc') return ['ballistic_sample'];
+  if (segmentId === '08_impact') return ['target_contact'];
+  if (segmentId === '09_aftermath') return ['aftermath'];
+  return [];
+}
+
+function worldModelEventsForSegment(worldModelReplay, segmentId) {
+  const eventTypes = new Set(worldModelEventTypesForSegment(segmentId));
+  const events = Array.isArray(worldModelReplay?.result?.events) ? worldModelReplay.result.events : [];
+  return events.filter((event) => eventTypes.has(event?.type));
+}
+
+function worldModelCanDriveSegmentPixels(segmentId, worldModelReplay) {
+  if (!['06_release', '07_ballistic_arc', '08_impact'].includes(segmentId)) return false;
+  return worldModelEventsForSegment(worldModelReplay, segmentId).length > 0;
+}
+
+function finiteMetric(value) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function pointToVector(point) {
+  if (!point || typeof point !== 'object') return null;
+  const x = finiteMetric(point.x);
+  const y = finiteMetric(point.y);
+  const z = finiteMetric(point.z);
+  if (x === null || y === null) return null;
+  return [Number(x.toFixed(3)), Number(y.toFixed(3)), Number((z ?? 0).toFixed(3))];
+}
+
+function eventPayloadVector(event, field) {
+  return pointToVector(event?.payload?.[field]);
+}
+
+function eventPayloadVelocity(event, field) {
+  const velocity = pointToVector(event?.payload?.[field]);
+  return velocity ? velocity.map((value) => Number(value.toFixed(3))) : null;
+}
+
+function worldModelTrajectorySamples(worldModelReplay, { includeImpact = false } = {}) {
+  const events = Array.isArray(worldModelReplay?.result?.events) ? worldModelReplay.result.events : [];
+  const samples = [];
+  const release = events.find((event) => event?.type === 'release');
+  const releasePosition = eventPayloadVector(release, 'releasePosition');
+  if (releasePosition) samples.push(releasePosition);
+
+  for (const event of events.filter((item) => item?.type === 'ballistic_sample')) {
+    const sample = eventPayloadVector(event, 'rockPosition');
+    if (sample) samples.push(sample);
+  }
+
+  if (includeImpact) {
+    const impact = events.find((event) => event?.type === 'target_contact');
+    const impactPosition = eventPayloadVector(impact, 'rockPosition');
+    if (impactPosition) samples.push(impactPosition);
+  }
+
+  return samples;
+}
+
+function applyWorldModelPoseOverrides(pose, segment, worldModelReplay, worldModelEvents) {
+  if (!worldModelCanDriveSegmentPixels(segment.id, worldModelReplay)) return pose;
+  const next = {
+    ...pose,
+    mode: WORLD_MODEL_PIXEL_REPLAY_MODE,
+    complete: true,
+    bodies: {
+      avatar: { ...pose.bodies.avatar },
+      rightHand: { ...pose.bodies.rightHand },
+      rock: { ...pose.bodies.rock, attachedToHand: false, released: true },
+      target: { ...pose.bodies.target },
+    },
+    physics: { ...pose.physics },
+    notes: [
+      'Rendered still positions are driven by the world-model replay event payloads.',
+      'This is a deterministic 2D receipt renderer, not the full engine renderer yet.',
+    ],
+  };
+
+  const release = worldModelEvents.find((event) => event?.type === 'release');
+  const impact = worldModelEvents.find((event) => event?.type === 'target_contact');
+  const releaseVelocity = eventPayloadVelocity(release, 'releaseVelocity');
+  if (releaseVelocity) next.physics.releaseVelocityMps = releaseVelocity;
+
+  if (segment.id === '06_release') {
+    const releasePosition = eventPayloadVector(release, 'releasePosition');
+    if (releasePosition) {
+      next.bodies.rock.position = releasePosition;
+      next.bodies.rightHand.position = releasePosition;
+    }
+    next.physics.arcSamples = releasePosition ? [releasePosition] : [];
+    return next;
+  }
+
+  if (segment.id === '07_ballistic_arc') {
+    const samples = worldModelTrajectorySamples(worldModelReplay);
+    if (samples.length > 0) {
+      next.bodies.rock.position = samples[samples.length - 1];
+      next.physics.arcSamples = samples;
+    }
+    return next;
+  }
+
+  if (segment.id === '08_impact') {
+    const impactPosition = eventPayloadVector(impact, 'rockPosition');
+    if (impactPosition) next.bodies.rock.position = impactPosition;
+    next.bodies.target.impacted = true;
+    next.physics.arcSamples = worldModelTrajectorySamples(worldModelReplay, { includeImpact: true });
+    next.physics.impactImpulseNs = finiteMetric(impact?.payload?.impulseNs);
+  }
+
+  return next;
+}
+
+function worldModelReplaySummary(worldModelReplay) {
+  if (!worldModelReplay?.result || !worldModelReplay?.trajectory) return null;
+  return {
+    schema: worldModelReplay.schema_version,
+    sceneId: worldModelReplay.scene?.id,
+    sceneHash: worldModelReplay.scene?.sceneHash,
+    eventLogHash: worldModelReplay.result.eventLogHash,
+    trajectoryId: worldModelReplay.trajectory.id,
+    trajectoryStatus: worldModelReplay.trajectory.status,
+    contactCount: worldModelReplay.result.contactCount,
+    predicateViolationCount: worldModelReplay.result.predicateViolationCount,
+  };
+}
+
+function posePhysicsFor(segment, index, total, sceneSnapshot, worldModelReplay) {
   const progress = total <= 1 ? 0 : index / (total - 1);
   const avatarX = -3 + progress * 4.8;
   const rockX = index < 3 ? -1.2 : -1.2 + Math.max(0, progress - 0.33) * 5.8;
   const rockY = index < 4 ? 0.35 : index < 7 ? 1.3 : Math.max(0.35, 2.1 - progress * 1.5);
   const released = index >= 6;
+  const worldModelEvents = worldModelEventsForSegment(worldModelReplay, segment.id);
+  const hasWorldModelEvidence = worldModelEvents.length > 0;
 
-  return {
+  const pose = {
     schema: 'format-stress-pose-physics-v1',
     segmentId: segment.id,
-    mode: 'kinematic-placeholder',
-    complete: false,
+    mode: hasWorldModelEvidence ? WORLD_MODEL_REPLAY_MODE : 'kinematic-placeholder',
+    complete: hasWorldModelEvidence,
     owningSurface: ownerForSegment(segment.id),
     sceneObjectCount: Number.isFinite(sceneSnapshot?.objectCount) ? sceneSnapshot.objectCount : 0,
     sceneSnapshotSource: sceneSnapshot?.source || 'unavailable',
     runtimeScene: sceneRuntimeSummary(sceneSnapshot),
     sceneObjectAnchors: sceneObjectAnchors(sceneSnapshot),
+    worldModelReplay: worldModelReplaySummary(worldModelReplay),
+    worldModelEvents,
     bodies: {
       avatar: {
         position: [Number(avatarX.toFixed(3)), 1.1, 0],
@@ -822,14 +969,24 @@ function posePhysicsFor(segment, index, total, sceneSnapshot) {
             [Number((rockX + 1.6).toFixed(3)), Number((rockY - 0.15).toFixed(3)), 0],
           ]
         : [],
-      solver: 'placeholder-until-engine-replay',
+      solver: hasWorldModelEvidence
+        ? 'world-model-humanoid-rock-throw-v1'
+        : 'placeholder-until-engine-replay',
     },
-    notes: [
-      'Generated by segmented runner so every segment has a machine-readable receipt.',
-      'Not a physics proof; replace with engine replay output when available.',
-      'Headless runtime scene objects are real receipt anchors; segment motion is still placeholder.',
-    ],
+    notes: hasWorldModelEvidence
+      ? [
+          'World-model replay emitted semantic events for this segment.',
+          'Visual stills are still kinematic; this receipt upgrades event provenance, not pixel physics.',
+          'Next ratchet: drive rendered segment state directly from this replay event stream.',
+        ]
+      : [
+          'Generated by segmented runner so every segment has a machine-readable receipt.',
+          'Not a physics proof; replace with engine replay output when available.',
+          'Headless runtime scene objects are real receipt anchors; segment motion is still placeholder.',
+        ],
   };
+
+  return applyWorldModelPoseOverrides(pose, segment, worldModelReplay, worldModelEvents);
 }
 
 export function buildSegmentReceipt({
@@ -843,12 +1000,24 @@ export function buildSegmentReceipt({
   posePhysicsPath,
   taskSeedPath,
   sceneSnapshot,
+  worldModelReplay,
 }) {
   const headless = commandResults.find((command) => command.id === 'headless-holo');
   const screenshot = commandResults.find((command) => command.id === 'screenshot-base');
   const dynamicSegment = index > 0;
-  const replayStill = dynamicSegment && stillMode === SEGMENT_REPLAY_MODE;
+  const replayStill =
+    dynamicSegment &&
+    (stillMode === SEGMENT_REPLAY_MODE || stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE);
+  const worldModelEvents = worldModelEventsForSegment(worldModelReplay, segment.id);
+  const hasWorldModelEvidence = worldModelEvents.length > 0;
+  const hasWorldModelPixelReplay =
+    hasWorldModelEvidence && stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE;
   const status =
+    hasWorldModelPixelReplay
+      ? WORLD_MODEL_PIXEL_REPLAY_MODE
+      : hasWorldModelEvidence
+      ? WORLD_MODEL_REPLAY_MODE
+      :
     screenshot?.success && !dynamicSegment && headless?.success
       ? 'partial-pass'
       : replayStill
@@ -868,14 +1037,27 @@ export function buildSegmentReceipt({
     eventLog: rel(outputDir, eventLogPath),
     posePhysicsJson: rel(outputDir, posePhysicsPath),
     runtimeScene: sceneRuntimeSummary(sceneSnapshot),
+    worldModelEvents,
     oracle: {
       status,
       owningSurface: owner,
       findings: dynamicSegment
-        ? replayStill
+        ? hasWorldModelPixelReplay
           ? [
-              'Segment replay still generated from the segment pose/state payload.',
-              'The still is visual replay evidence, not a full engine physics proof yet.',
+              'World-model replay emitted semantic events for this segment.',
+              'The still renderer consumed the replay event payload for rock position and trajectory.',
+              `Next owner: ${owner}.`,
+            ]
+          : hasWorldModelEvidence
+            ? [
+                'World-model replay emitted semantic events for this segment.',
+                'The still is still kinematic; event provenance is replay-backed but pixels are not yet event-driven.',
+                `Next owner: ${owner}.`,
+              ]
+          : replayStill
+            ? [
+                'Segment replay still generated from the segment pose/state payload.',
+                'The still is visual replay evidence, not a full engine physics proof yet.',
               `Next owner: ${owner}.`,
             ]
           : [
@@ -893,9 +1075,13 @@ export function buildSegmentReceipt({
       frameBudget: {
         targetHz: 60,
         budgetMs: 16.67,
-        observedMs: headless?.success ? headless.durationMs : null,
-        note: dynamicSegment
-          ? replayStill
+          observedMs: headless?.success ? headless.durationMs : null,
+          note: dynamicSegment
+          ? hasWorldModelPixelReplay
+            ? 'World-model event payload drives this still; frame timing is still command-level evidence.'
+            : hasWorldModelEvidence
+            ? 'World-model event replay exists for this segment; frame timing is still command-level evidence.'
+            : replayStill
             ? 'Replay still is generated from deterministic segment state; frame timing is command-level evidence.'
             : 'No real per-frame segment replay yet; timing is command-level evidence.'
           : 'Scene load command-level timing, not a render-frame profiler.',
@@ -999,6 +1185,12 @@ async function runEvidenceCommands({ options, manifestPath, manifest, outputDir 
       ],
     ]);
   }
+  if (manifest.flagship === 'humanoid-rock-throw') {
+    commandPlans.push([
+      'world-model-humanoid-rock-throw',
+      ['world-model', 'replay', '--scene', 'humanoid-rock-throw-v1', '--seed', '4242', '--json'],
+    ]);
+  }
 
   const results = [];
   for (const [id, args] of commandPlans) {
@@ -1029,8 +1221,11 @@ async function runEvidenceCommands({ options, manifestPath, manifest, outputDir 
     stagePath,
     fallbackSceneSnapshot
   );
+  const worldModelReplay = readCommandStdoutJson(
+    results.find((command) => command.id === 'world-model-humanoid-rock-throw')
+  );
 
-  return { results, screenshotPath, sceneSnapshot };
+  return { results, screenshotPath, sceneSnapshot, worldModelReplay };
 }
 
 function ensureSegmentStills({
@@ -1039,6 +1234,7 @@ function ensureSegmentStills({
   screenshotPath,
   screenshotCommand,
   sceneSnapshot,
+  worldModelReplay,
   replayStills,
   width,
   height,
@@ -1052,13 +1248,19 @@ function ensureSegmentStills({
 
   return manifest.segments.map((segment, index) => {
     const stillPath = join(stillsDir, segment.expectedStill || `${segment.id}.png`);
-    const stillMode = stillModeFor(index, screenshotCommand, baseExists, replayStills);
+    let stillMode = stillModeFor(index, screenshotCommand, baseExists, replayStills);
+    if (
+      stillMode === SEGMENT_REPLAY_MODE &&
+      worldModelCanDriveSegmentPixels(segment.id, worldModelReplay)
+    ) {
+      stillMode = WORLD_MODEL_PIXEL_REPLAY_MODE;
+    }
     if (index === 0) {
       if (!existsSync(stillPath)) writeFileSync(stillPath, PLACEHOLDER_PNG);
       return { segment, stillPath, stillMode };
     }
 
-    if (stillMode === SEGMENT_REPLAY_MODE) {
+    if (stillMode === SEGMENT_REPLAY_MODE || stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE) {
       writeFileSync(
         stillPath,
         renderSegmentReplayStill({
@@ -1066,6 +1268,7 @@ function ensureSegmentStills({
           index,
           total: manifest.segments.length,
           sceneSnapshot,
+          worldModelReplay,
           width,
           height,
         })
@@ -1108,6 +1311,7 @@ export async function runSegmentedCapture(rawOptions = {}) {
     results: commandResults,
     screenshotPath,
     sceneSnapshot,
+    worldModelReplay,
   } = await runEvidenceCommands({
     options,
     manifestPath,
@@ -1122,6 +1326,7 @@ export async function runSegmentedCapture(rawOptions = {}) {
     screenshotPath,
     screenshotCommand,
     sceneSnapshot,
+    worldModelReplay,
     replayStills: options.replayStills,
     width: options.width,
     height: options.height,
@@ -1142,12 +1347,14 @@ export async function runSegmentedCapture(rawOptions = {}) {
     const eventLogPath = join(eventDir, `${segment.id}.json`);
     const posePhysicsPath = join(poseDir, `${segment.id}.json`);
     const taskSeedPath = join(seedDir, `${segment.id}.json`);
+    const worldModelEvents = worldModelEventsForSegment(worldModelReplay, segment.id);
 
     writeJson(eventLogPath, {
       schema: 'format-stress-segment-event-log-v1',
       segmentId: segment.id,
       source: 'format-stress-segmented-capture',
       runtimeScene: sceneRuntimeSummary(sceneSnapshot),
+      worldModelReplay: worldModelReplaySummary(worldModelReplay),
       events: [
         { type: 'segment_requested', segment: segment.id, atMs: index * 250 },
         {
@@ -1159,7 +1366,9 @@ export async function runSegmentedCapture(rawOptions = {}) {
         },
         {
           type:
-            stillMode === SEGMENT_REPLAY_MODE
+            stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE
+              ? 'world_model_pixel_replay_still_emitted'
+              : stillMode === SEGMENT_REPLAY_MODE
               ? 'segment_replay_still_emitted'
               : 'still_evidence_recorded',
           segment: segment.id,
@@ -1168,6 +1377,12 @@ export async function runSegmentedCapture(rawOptions = {}) {
           stillMode,
         },
         { type: 'evidence_receipt_emitted', segment: segment.id, atMs: index * 250 + 2 },
+        ...worldModelEvents.map((event) => ({
+          type: 'world_model_event_replayed',
+          segment: segment.id,
+          atMs: index * 250 + 3,
+          worldModelEvent: event,
+        })),
       ],
       commandEvidence: commandResults.map((command) => ({
         id: command.id,
@@ -1178,7 +1393,10 @@ export async function runSegmentedCapture(rawOptions = {}) {
       })),
     });
 
-    writeJson(posePhysicsPath, posePhysicsFor(segment, index, stills.length, sceneSnapshot));
+    writeJson(
+      posePhysicsPath,
+      posePhysicsFor(segment, index, stills.length, sceneSnapshot, worldModelReplay)
+    );
 
     const receipt = buildSegmentReceipt({
       segment,
@@ -1191,6 +1409,7 @@ export async function runSegmentedCapture(rawOptions = {}) {
       posePhysicsPath,
       taskSeedPath,
       sceneSnapshot,
+      worldModelReplay,
     });
     receipt.timing.runnerMs = Date.now() - startedAt;
 
@@ -1213,6 +1432,7 @@ export async function runSegmentedCapture(rawOptions = {}) {
     eventLog: receipt.eventLog,
     posePhysicsJson: receipt.posePhysicsJson,
     runtimeScene: receipt.runtimeScene,
+    worldModelEvents: receipt.worldModelEvents,
   }));
 
   const coverage = {
@@ -1235,6 +1455,11 @@ export async function runSegmentedCapture(rawOptions = {}) {
     headlessRuntimeSceneObjects: sceneSnapshot.objectCount,
     headlessRuntimeTemplates: sceneSnapshot.templateCount,
     segmentsWithHeadlessSceneObjects: sceneSnapshot.objectCount > 0 ? receipts.length : 0,
+    segmentsWithWorldModelEvents: receipts.filter((receipt) => receipt.worldModelEvents.length > 0)
+      .length,
+    segmentsWithWorldModelPixelReplay: receipts.filter(
+      (receipt) => receipt.stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE
+    ).length,
   };
 
   const receiptPayload = {
@@ -1246,6 +1471,7 @@ export async function runSegmentedCapture(rawOptions = {}) {
     command: `node scripts/format-stress-segmented-capture.mjs ${rel(REPO_ROOT, manifestPath)}`,
     commands: commandResults,
     headlessScene: sceneSnapshot,
+    worldModelReplay: worldModelReplaySummary(worldModelReplay),
     replayInputs: rel(REPO_ROOT, join(outputDir, 'segment-replay-inputs.json')),
     segments: receipts,
     visualEvidence,
@@ -1266,6 +1492,7 @@ export async function runSegmentedCapture(rawOptions = {}) {
     coverage,
     visualEvidence,
     commandFailures: commandResults.filter((command) => !command.success),
+    worldModelReplay: worldModelReplaySummary(worldModelReplay),
     highestGapSeverity:
       visualEvidence.dynamicReplayBlockedSegments > 0 ||
       visualEvidence.falseGreenRisk !== 'none-detected'
