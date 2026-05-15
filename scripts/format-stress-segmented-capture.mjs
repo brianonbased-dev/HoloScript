@@ -908,7 +908,77 @@ function objectBlock(name, { geometry, color, position, scale, opacity }) {
     .join('\n');
 }
 
-function buildEngineReplayOverlaySource({ segment, pose }) {
+function buildReplayRuntimeState({ segment, pose, worldModelEvents }) {
+  const activeConstraint =
+    pose.bodies.rightHand.contact === 'rock' || Boolean(pose.bodies.rock.attachedToHand);
+  return {
+    schema: 'format-stress-runtime-replay-state-v1',
+    segmentId: segment.id,
+    segmentTitle: segment.title,
+    source: 'humanoid-rock-throw-v1-world-model-replay',
+    poseTargets: {
+      avatar: {
+        objectId: 'HumanoidTorso',
+        position: pose.bodies.avatar.position,
+        facing: pose.bodies.avatar.facing,
+      },
+      rightHand: {
+        objectId: 'RightHand',
+        position: pose.bodies.rightHand.position,
+        contact: pose.bodies.rightHand.contact,
+      },
+      rock: {
+        objectId: 'Rock',
+        position: pose.bodies.rock.position,
+        attachedToHand: Boolean(pose.bodies.rock.attachedToHand),
+        released: Boolean(pose.bodies.rock.released),
+      },
+      target: {
+        objectId: 'Target',
+        position: pose.bodies.target.position,
+        impacted: Boolean(pose.bodies.target.impacted),
+      },
+    },
+    constraints: {
+      handRockFixed: {
+        id: 'hand-rock-fixed',
+        active: activeConstraint,
+        from: 'RightHand',
+        to: 'Rock',
+        type: activeConstraint ? 'fixed' : 'inactive',
+      },
+    },
+    cameraRail: {
+      objectId: 'CaptureRail',
+      activeSegment: segment.id,
+      focus: pose.bodies.rock.released ? 'rock-trajectory-target' : 'avatar-hand-rock',
+      captureCamera: 'main capture camera',
+    },
+    panels: {
+      segmentPanel: {
+        objectId: 'SegmentPanel',
+        activeSegment: segment.id,
+        status: 'world-model-replay',
+      },
+      provenancePanel: {
+        objectId: 'ProvenancePanel',
+        status: pose.physics.provenancePanel ? 'aftermath-provenance' : 'segment-receipt',
+        evidence: 'pose-physics,event-log,still,timing',
+      },
+    },
+    physics: {
+      releaseVelocityMps: pose.physics.releaseVelocityMps,
+      arcSamples: pose.physics.arcSamples,
+      impactImpulseNs: pose.physics.impactImpulseNs ?? null,
+      shoulderYawDeg: pose.physics.shoulderYawDeg ?? null,
+      clearanceM: pose.physics.clearanceM ?? null,
+      constraint: pose.physics.constraint ?? null,
+    },
+    worldModelEvents: Array.isArray(worldModelEvents) ? worldModelEvents : [],
+  };
+}
+
+function buildEngineReplayOverlaySource({ segment, pose, replayState }) {
   const avatar = pose.bodies.avatar.position;
   const hand = pose.bodies.rightHand.position;
   const rock = pose.bodies.rock.position;
@@ -923,6 +993,9 @@ function buildEngineReplayOverlaySource({ segment, pose }) {
       opacity: 0.75,
     })
   );
+  const activeConstraint = replayState.constraints.handRockFixed.active;
+  const panelStatusColor =
+    replayState.panels.provenancePanel.status === 'aftermath-provenance' ? '#9ece6a' : '#7aa2f7';
 
   return `
   // Scene-native replay injection for ${segment.id}; preserves the authored stage.
@@ -947,11 +1020,27 @@ ${objectBlock(`ReplayRightHand_${segment.id}`, {
   scale: [0.2, 0.2, 0.2],
 })}
 
+${objectBlock(`ReplayPoseTarget_RightHand_${segment.id}`, {
+  geometry: 'ring',
+  color: '#9ece6a',
+  position: hand,
+  scale: [0.32, 0.32, 0.32],
+  opacity: 0.68,
+})}
+
 ${objectBlock(`ReplayRock_${segment.id}`, {
   geometry: 'sphere',
   color: pose.bodies.rock.attachedToHand ? '#bb9af7' : '#c0caf5',
   position: rock,
   scale: [0.26, 0.26, 0.26],
+})}
+
+${objectBlock(`ReplayPoseTarget_Rock_${segment.id}`, {
+  geometry: 'ring',
+  color: pose.bodies.rock.released ? '#e0af68' : '#bb9af7',
+  position: rock,
+  scale: [0.42, 0.42, 0.42],
+  opacity: 0.7,
 })}
 
 ${objectBlock(`ReplayTarget_${segment.id}`, {
@@ -961,11 +1050,31 @@ ${objectBlock(`ReplayTarget_${segment.id}`, {
   scale: [0.28, 0.9, 0.18],
 })}
 
+${objectBlock(`ReplayConstraint_hand_rock_${segment.id}`, {
+  geometry: 'cube',
+  color: activeConstraint ? '#9ece6a' : '#565f89',
+  position: [
+    (hand[0] + rock[0]) / 2,
+    (hand[1] + rock[1]) / 2,
+    (hand[2] + rock[2]) / 2,
+  ],
+  scale: [0.06, 0.06, 0.42],
+  opacity: activeConstraint ? 0.88 : 0.28,
+})}
+
+${objectBlock(`ReplayCameraRailState_${segment.id}`, {
+  geometry: 'cube',
+  color: '#7dcfff',
+  position: [0, 0.14, -3.2],
+  scale: [0.22, 0.16, 0.16],
+  opacity: 0.86,
+})}
+
 ${arcBlocks.join('\n\n')}
 
 ${objectBlock(`ReplayProvenancePanel_${segment.id}`, {
   geometry: 'cube',
-  color: pose.physics.provenancePanel ? '#9ece6a' : '#414868',
+  color: panelStatusColor,
   position: [2.9, 1.7, -0.25],
   scale: [0.9, 0.44, 0.05],
   opacity: 0.82,
@@ -1248,6 +1357,9 @@ export function buildSegmentReceipt({
     stillMode,
     eventLog: rel(outputDir, eventLogPath),
     posePhysicsJson: rel(outputDir, posePhysicsPath),
+    runtimeReplayState: engineFrame?.replayState
+      ? rel(outputDir, resolveRepoPath(engineFrame.replayState))
+      : null,
     runtimeScene: sceneRuntimeSummary(sceneSnapshot),
     worldModelEvents,
     oracle: {
@@ -1258,6 +1370,7 @@ export function buildSegmentReceipt({
           ? [
               'World-model replay emitted semantic events for this segment.',
               'The still was captured through the engine Puppeteer frame path from scene-native replay injection in the authored HoloLand stage.',
+              'Runtime replay state includes pose targets, hand-rock constraint state, camera rail focus, and panel status.',
               `Next owner: ${owner}.`,
             ]
           : hasWorldModelPixelReplay
@@ -1464,17 +1577,29 @@ async function tryRenderEngineReplayStill({
 }) {
   const pose = posePhysicsFor(segment, index, total, sceneSnapshot, worldModelReplay);
   const sourceDir = join(outputDir, 'scene-native-replay-sources');
+  const replayStateDir = join(outputDir, 'runtime-replay-state');
   const logDir = join(outputDir, 'commands');
   mkdirSync(sourceDir, { recursive: true });
+  mkdirSync(replayStateDir, { recursive: true });
   const sourcePath = join(sourceDir, `${segment.id}.holo`);
+  const replayStatePath = join(replayStateDir, `${segment.id}.json`);
+  const replayState = buildReplayRuntimeState({
+    segment,
+    pose,
+    worldModelEvents: worldModelEventsForSegment(worldModelReplay, segment.id),
+  });
+  writeJson(replayStatePath, replayState);
   const stageSource = existsSync(stagePath) ? readFileSync(stagePath, 'utf8') : '';
   writeFileSync(
     sourcePath,
-    injectReplayOverlayIntoStage(stageSource, buildEngineReplayOverlaySource({ segment, pose })),
+    injectReplayOverlayIntoStage(
+      stageSource,
+      buildEngineReplayOverlaySource({ segment, pose, replayState })
+    ),
     'utf8'
   );
 
-  return runCommand({
+  const command = await runCommand({
     id: `engine-frame-${segment.id}`,
     args: [
       'screenshot',
@@ -1491,6 +1616,8 @@ async function tryRenderEngineReplayStill({
     logDir,
     dryRun,
   });
+  command.replayState = rel(REPO_ROOT, replayStatePath);
+  return command;
 }
 
 async function ensureSegmentStills({
@@ -1737,6 +1864,7 @@ export async function runSegmentedCapture(rawOptions = {}) {
     stillMode: receipt.stillMode,
     eventLog: receipt.eventLog,
     posePhysicsJson: receipt.posePhysicsJson,
+    runtimeReplayState: receipt.runtimeReplayState,
     runtimeScene: receipt.runtimeScene,
     worldModelEvents: receipt.worldModelEvents,
   }));
@@ -1769,6 +1897,9 @@ export async function runSegmentedCapture(rawOptions = {}) {
     segmentsWithEngineFrameReplay: receipts.filter(
       (receipt) => receipt.stillMode === ENGINE_FRAME_REPLAY_MODE
     ).length,
+    segmentsWithRuntimeReplayState: receipts.filter((receipt) => {
+      return receipt.runtimeReplayState && existsSync(join(outputDir, receipt.runtimeReplayState));
+    }).length,
   };
 
   const receiptPayload = {
