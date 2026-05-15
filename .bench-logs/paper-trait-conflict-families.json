@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-10T02:04:22.693Z",
+  "generatedAt": "2026-05-15T22:28:39.764Z",
   "source": "packages/core/src/traits/constants/__tests__/paper-trait-conflict-families.test.ts",
-  "traitUniverseCount": 2839,
-  "familyPairRows": 12560,
+  "traitUniverseCount": 2892,
+  "familyPairRows": 12719,
   "topByStrict": [
     {
       "familyA": "analytics_observability",
@@ -52,11 +52,11 @@
     {
       "familyA": "analytics_observability",
       "familyB": "phone_sleeve_vr",
-      "totalPairs": 400,
+      "totalPairs": 496,
       "strictBidirectional": 0,
       "strictUnidirectional": 0,
       "domainOverride": 0,
-      "authorityWeighted": 400
+      "authorityWeighted": 496
     },
     {
       "familyA": "analytics_observability",
@@ -120,6 +120,15 @@
       "strictUnidirectional": 0,
       "domainOverride": 0,
       "authorityWeighted": 64
+    },
+    {
+      "familyA": "analytics_observability",
+      "familyB": "twin_earth",
+      "totalPairs": 736,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 0,
+      "authorityWeighted": 736
     },
     {
       "familyA": "analytics_observability",
@@ -219,15 +228,6 @@
       "strictUnidirectional": 0,
       "domainOverride": 0,
       "authorityWeighted": 1248
-    },
-    {
-      "familyA": "analytics_observability",
-      "familyB": "networking_ai",
-      "totalPairs": 416,
-      "strictBidirectional": 0,
-      "strictUnidirectional": 0,
-      "domainOverride": 0,
-      "authorityWeighted": 416
     }
   ],
   "topByDomainOverride": [
@@ -284,6 +284,15 @@
       "strictUnidirectional": 0,
       "domainOverride": 144,
       "authorityWeighted": 720
+    },
+    {
+      "familyA": "parser_core_ui",
+      "familyB": "twin_earth",
+      "totalPairs": 828,
+      "strictBidirectional": 0,
+      "strictUnidirectional": 0,
+      "domainOverride": 138,
+      "authorityWeighted": 690
     },
     {
       "familyA": "data_visualization",
@@ -446,15 +455,6 @@
       "strictUnidirectional": 0,
       "domainOverride": 96,
       "authorityWeighted": 480
-    },
-    {
-      "familyA": "gems_minerals",
-      "familyB": "parser_core_ui",
-      "totalPairs": 558,
-      "strictBidirectional": 0,
-      "strictUnidirectional": 0,
-      "domainOverride": 93,
-      "authorityWeighted": 465
     }
   ],
   "verificationCommand": "pnpm --filter @holoscript/core exec vitest run src/traits/constants/__tests__/paper-trait-conflict-families.test.ts"
