@@ -800,8 +800,36 @@ function worldModelEventsForSegment(worldModelReplay, segmentId) {
 }
 
 function worldModelCanDriveSegmentPixels(segmentId, worldModelReplay) {
-  if (!['06_release', '07_ballistic_arc', '08_impact'].includes(segmentId)) return false;
+  if (
+    ![
+      '01_avatar_approaches',
+      '02_hand_reaches',
+      '03_grab_constraint',
+      '04_lift_pose',
+      '05_windup',
+      '06_release',
+      '07_ballistic_arc',
+      '08_impact',
+      '09_aftermath',
+    ].includes(segmentId)
+  ) {
+    return false;
+  }
   return worldModelEventsForSegment(worldModelReplay, segmentId).length > 0;
+}
+
+function worldModelEvents(worldModelReplay) {
+  return Array.isArray(worldModelReplay?.result?.events) ? worldModelReplay.result.events : [];
+}
+
+function worldModelEvent(worldModelReplay, type) {
+  return worldModelEvents(worldModelReplay).find((event) => event?.type === type);
+}
+
+function worldModelObjectCenter(worldModelReplay, objectId) {
+  const objects = Array.isArray(worldModelReplay?.result?.objects) ? worldModelReplay.result.objects : [];
+  const object = objects.find((item) => item?.id === objectId);
+  return pointToVector(object?.center);
 }
 
 function finiteMetric(value) {
@@ -827,9 +855,9 @@ function eventPayloadVelocity(event, field) {
 }
 
 function worldModelTrajectorySamples(worldModelReplay, { includeImpact = false } = {}) {
-  const events = Array.isArray(worldModelReplay?.result?.events) ? worldModelReplay.result.events : [];
+  const events = worldModelEvents(worldModelReplay);
   const samples = [];
-  const release = events.find((event) => event?.type === 'release');
+  const release = worldModelEvent(worldModelReplay, 'release');
   const releasePosition = eventPayloadVector(release, 'releasePosition');
   if (releasePosition) samples.push(releasePosition);
 
@@ -847,8 +875,22 @@ function worldModelTrajectorySamples(worldModelReplay, { includeImpact = false }
   return samples;
 }
 
+function setVector(target, key, value) {
+  if (value) target[key] = value;
+}
+
 function applyWorldModelPoseOverrides(pose, segment, worldModelReplay, worldModelEvents) {
   if (!worldModelCanDriveSegmentPixels(segment.id, worldModelReplay)) return pose;
+  const approach = worldModelEvent(worldModelReplay, 'avatar_approached');
+  const reach = worldModelEvent(worldModelReplay, 'hand_reached');
+  const lift = worldModelEvent(worldModelReplay, 'lift_pose');
+  const windup = worldModelEvent(worldModelReplay, 'windup_pose');
+  const release = worldModelEvent(worldModelReplay, 'release');
+  const impact = worldModelEvent(worldModelReplay, 'target_contact');
+  const avatarApproachTo = eventPayloadVector(approach, 'to');
+  const handReachPosition = eventPayloadVector(reach, 'handPosition');
+  const initialRockPosition = worldModelObjectCenter(worldModelReplay, 'rock');
+  const targetPosition = worldModelObjectCenter(worldModelReplay, 'target');
   const next = {
     ...pose,
     mode: WORLD_MODEL_PIXEL_REPLAY_MODE,
@@ -866,10 +908,63 @@ function applyWorldModelPoseOverrides(pose, segment, worldModelReplay, worldMode
     ],
   };
 
-  const release = worldModelEvents.find((event) => event?.type === 'release');
-  const impact = worldModelEvents.find((event) => event?.type === 'target_contact');
+  setVector(next.bodies.avatar, 'position', avatarApproachTo);
+  setVector(next.bodies.rock, 'position', initialRockPosition);
+  setVector(next.bodies.target, 'position', targetPosition);
+
   const releaseVelocity = eventPayloadVelocity(release, 'releaseVelocity');
   if (releaseVelocity) next.physics.releaseVelocityMps = releaseVelocity;
+
+  if (segment.id === '01_avatar_approaches') {
+    setVector(next.bodies.avatar, 'position', avatarApproachTo);
+    setVector(next.bodies.rightHand, 'position', worldModelObjectCenter(worldModelReplay, 'right-hand'));
+    setVector(next.bodies.rock, 'position', initialRockPosition);
+    next.bodies.rock.attachedToHand = false;
+    next.bodies.rock.released = false;
+    return next;
+  }
+
+  if (segment.id === '02_hand_reaches') {
+    setVector(next.bodies.rightHand, 'position', handReachPosition);
+    setVector(next.bodies.rock, 'position', initialRockPosition);
+    next.bodies.rightHand.contact = 'near-rock';
+    next.bodies.rock.attachedToHand = false;
+    next.bodies.rock.released = false;
+    next.physics.clearanceM = finiteMetric(reach?.payload?.clearanceM);
+    return next;
+  }
+
+  if (segment.id === '03_grab_constraint') {
+    const grabPosition = handReachPosition ?? initialRockPosition;
+    setVector(next.bodies.rightHand, 'position', grabPosition);
+    setVector(next.bodies.rock, 'position', grabPosition);
+    next.bodies.rightHand.contact = 'rock';
+    next.bodies.rock.attachedToHand = true;
+    next.bodies.rock.released = false;
+    next.physics.constraint = worldModelEvents[0]?.payload?.constraint ?? 'hand-rock-fixed';
+    return next;
+  }
+
+  if (segment.id === '04_lift_pose') {
+    const liftPosition = eventPayloadVector(lift, 'rockPosition');
+    setVector(next.bodies.rightHand, 'position', liftPosition);
+    setVector(next.bodies.rock, 'position', liftPosition);
+    next.bodies.rightHand.contact = 'rock';
+    next.bodies.rock.attachedToHand = true;
+    next.bodies.rock.released = false;
+    return next;
+  }
+
+  if (segment.id === '05_windup') {
+    const windupPosition = eventPayloadVector(windup, 'rockPosition');
+    setVector(next.bodies.rightHand, 'position', windupPosition);
+    setVector(next.bodies.rock, 'position', windupPosition);
+    next.bodies.rightHand.contact = 'rock';
+    next.bodies.rock.attachedToHand = true;
+    next.bodies.rock.released = false;
+    next.physics.shoulderYawDeg = finiteMetric(windup?.payload?.shoulderYawDeg);
+    return next;
+  }
 
   if (segment.id === '06_release') {
     const releasePosition = eventPayloadVector(release, 'releasePosition');
@@ -896,6 +991,14 @@ function applyWorldModelPoseOverrides(pose, segment, worldModelReplay, worldMode
     next.bodies.target.impacted = true;
     next.physics.arcSamples = worldModelTrajectorySamples(worldModelReplay, { includeImpact: true });
     next.physics.impactImpulseNs = finiteMetric(impact?.payload?.impulseNs);
+  }
+
+  if (segment.id === '09_aftermath') {
+    const impactPosition = eventPayloadVector(impact, 'rockPosition');
+    if (impactPosition) next.bodies.rock.position = impactPosition;
+    next.bodies.target.impacted = Boolean(worldModelEvents[0]?.payload?.observedImpact);
+    next.physics.arcSamples = worldModelTrajectorySamples(worldModelReplay, { includeImpact: true });
+    next.physics.provenancePanel = Boolean(worldModelEvents[0]?.payload?.provenancePanel);
   }
 
   return next;
