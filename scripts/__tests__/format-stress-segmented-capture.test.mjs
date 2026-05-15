@@ -276,7 +276,7 @@ try {
   assertOk(secondReplay.length > firstReplay.length * 0.7, 'second replay has image payload');
   assertOk(sha256(firstReplay) !== sha256(secondReplay), 'segment replay stills are distinct');
 
-  console.log('Test 4b: world-model events alter replay pixels for release/arc/impact');
+  console.log('Test 4b: world-model events alter replay pixels across dynamic segments');
   const worldModelReplay = {
     schema_version: 'world-model-replay-v1',
     scene: { id: 'humanoid-rock-throw-v1', sceneHash: 'test-hash' },
@@ -284,7 +284,36 @@ try {
       eventLogHash: 'event-hash',
       contactCount: 1,
       predicateViolationCount: 0,
+      objects: [
+        { id: 'avatar', center: { x: -3, y: 1.25, z: 0 } },
+        { id: 'right-hand', center: { x: -2.72, y: 1.22, z: 0.16 } },
+        { id: 'rock', center: { x: -2.35, y: 0.22, z: 0.12 } },
+        { id: 'target', center: { x: 2.55, y: 0.85, z: 0 } },
+      ],
       events: [
+        {
+          type: 'avatar_approached',
+          payload: {
+            from: { x: -3, y: 1.25, z: 0 },
+            to: { x: -2.35, y: 1.25, z: 0 },
+          },
+        },
+        {
+          type: 'hand_reached',
+          payload: { handPosition: { x: -2.35, y: 0.9, z: 0.12 }, clearanceM: 0.03 },
+        },
+        {
+          type: 'grab_constraint_attached',
+          payload: { constraint: 'hand-rock-fixed' },
+        },
+        {
+          type: 'lift_pose',
+          payload: { rockPosition: { x: -2.15, y: 1.2, z: 0.12 } },
+        },
+        {
+          type: 'windup_pose',
+          payload: { shoulderYawDeg: -38, rockPosition: { x: -1.45, y: 1.55, z: 0.08 } },
+        },
         {
           type: 'release',
           payload: {
@@ -304,10 +333,31 @@ try {
           type: 'target_contact',
           payload: { rockPosition: { x: 2.55, y: 0.85, z: 0 }, impulseNs: 8.6 },
         },
+        {
+          type: 'aftermath',
+          payload: { observedImpact: true, provenancePanel: true },
+        },
       ],
     },
     trajectory: { id: 'trajectory-test', status: 'open' },
   };
+  const kinematicReach = renderSegmentReplayStill({
+    segment: { id: '02_hand_reaches', title: 'Reach', expectedStill: '02_hand_reaches.png' },
+    index: 2,
+    total: 10,
+    sceneSnapshot,
+    width: 320,
+    height: 180,
+  });
+  const worldModelReach = renderSegmentReplayStill({
+    segment: { id: '02_hand_reaches', title: 'Reach', expectedStill: '02_hand_reaches.png' },
+    index: 2,
+    total: 10,
+    sceneSnapshot,
+    worldModelReplay,
+    width: 320,
+    height: 180,
+  });
   const kinematicImpact = renderSegmentReplayStill({
     segment: { id: '08_impact', title: 'Impact', expectedStill: '08_impact.png' },
     index: 8,
@@ -325,6 +375,10 @@ try {
     width: 320,
     height: 180,
   });
+  assertOk(
+    sha256(kinematicReach) !== sha256(worldModelReach),
+    'world-model reach payload changes still pixels'
+  );
   assertOk(
     sha256(kinematicImpact) !== sha256(worldModelImpact),
     'world-model impact payload changes still pixels'
