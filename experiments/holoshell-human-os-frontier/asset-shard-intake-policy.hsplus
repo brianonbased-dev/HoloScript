@@ -1,0 +1,148 @@
+// HoloShell asset shard intake policy and state machine.
+// This is the upstream-oriented substrate shape for HoloLand's product-side
+// asset shard workflow.
+
+composition "HoloShellAssetShardIntakePolicy" {
+  state AssetShardIntakeState {
+    selectedWorkflow: "folder-to-playable-hololand-shard"
+    activeShardId: ""
+    selectedFolderAlias: ""
+    assetCount: 0
+    blockedAssetCount: 0
+    approvalCount: 0
+    receiptCount: 0
+    previewSourcePath: ""
+    validationStatus: "unknown"
+    importStatus: "not_requested"
+    rollbackStatus: "not_needed"
+    currentLane: "codex-hardware"
+  }
+
+  template "PermissionEnvelope" {
+    readOnly: true
+    guardedExecute: false
+    breakGlass: false
+    receiptRequired: true
+  }
+
+  template "AssetIntakeReceipt" {
+    schemaVersion: "holoshell.local-asset-intake/v1"
+    deterministic: true
+    sourceAssetsMutated: false
+    privatePathsRedacted: true
+    replayable: true
+  }
+
+  policy "SilentFolderRead" using "PermissionEnvelope" {
+    readOnly: true
+    guardedExecute: false
+    breakGlass: false
+    appliesTo: [
+      "list_folder",
+      "read_file_metadata",
+      "hash_asset_file",
+      "classify_asset_type",
+      "detect_duplicate",
+      "detect_private_path"
+    ]
+  }
+
+  policy "GuardedShardImport" using "PermissionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    breakGlass: false
+    appliesTo: [
+      "write_tmp_preview",
+      "validate_preview_source",
+      "write_runtime_import_manifest",
+      "import_into_local_hololand_runtime"
+    ]
+  }
+
+  policy "BreakGlassShardAction" using "PermissionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    breakGlass: true
+    appliesTo: [
+      "publish_shard",
+      "overwrite_existing_shard",
+      "delete_source_asset",
+      "upload_private_asset",
+      "execute_untrusted_asset_script"
+    ]
+  }
+
+  role "CodexHardware" {
+    laneId: "codex-hardware"
+    owns: ["folder_snapshot", "hash_receipts", "preview_validation", "local_replay"]
+  }
+
+  role "HoloLandProduct" {
+    laneId: "hololand-product"
+    owns: ["creator_room", "brittney_operator_prompt", "import_visualization"]
+  }
+
+  role "BrowserVision" {
+    laneId: "browser-vision"
+    owns: ["preview_surface_witness", "screenshot_receipt", "canvas_witness"]
+  }
+
+  role "HoloMesh" {
+    laneId: "holomesh"
+    owns: ["gap_task_cards", "agent_handoff", "duplicate_warning"]
+  }
+
+  action classify_asset_operation(operation) {
+    if (operation.kind in BreakGlassShardAction.appliesTo) {
+      AssetShardIntakeState.approvalCount = AssetShardIntakeState.approvalCount + 1
+      return "break_glass"
+    }
+    if (operation.kind in GuardedShardImport.appliesTo) {
+      return "guarded_execute"
+    }
+    return "silent_read"
+  }
+
+  action apply_manifest_receipt(receipt) {
+    AssetShardIntakeState.activeShardId = receipt.shardId
+    AssetShardIntakeState.selectedFolderAlias = receipt.folderAlias
+    AssetShardIntakeState.assetCount = receipt.summary.assetCount
+    AssetShardIntakeState.blockedAssetCount = receipt.summary.blockedAssetCount
+    AssetShardIntakeState.previewSourcePath = receipt.previewSourcePath
+    AssetShardIntakeState.receiptCount = AssetShardIntakeState.receiptCount + 1
+    emit("holoshell:asset-intake:manifest", {
+      shard_id: AssetShardIntakeState.activeShardId,
+      folder_alias: AssetShardIntakeState.selectedFolderAlias,
+      assets: AssetShardIntakeState.assetCount,
+      blocked_assets: AssetShardIntakeState.blockedAssetCount,
+      preview_source: AssetShardIntakeState.previewSourcePath,
+      source_assets_mutated: false,
+      receipt_required: true
+    })
+  }
+
+  action apply_preview_validation(receipt) {
+    AssetShardIntakeState.validationStatus = receipt.status
+    AssetShardIntakeState.receiptCount = AssetShardIntakeState.receiptCount + 1
+    emit("holoshell:asset-intake:validation", {
+      status: AssetShardIntakeState.validationStatus,
+      preview_source: AssetShardIntakeState.previewSourcePath,
+      import_allowed: receipt.status == "pass",
+      receipt_required: true
+    })
+  }
+
+  action apply_import_receipt(receipt) {
+    AssetShardIntakeState.importStatus = receipt.summary.status
+    AssetShardIntakeState.rollbackStatus = receipt.rollback.available ? "available" : "missing"
+    AssetShardIntakeState.receiptCount = AssetShardIntakeState.receiptCount + 1
+    emit("holoshell:asset-intake:import", {
+      status: AssetShardIntakeState.importStatus,
+      shard_id: AssetShardIntakeState.activeShardId,
+      runtime_mutation_executed: receipt.summary.runtimeMutationExecuted,
+      source_assets_mutated: receipt.summary.sourceAssetsMutated,
+      rollback: AssetShardIntakeState.rollbackStatus,
+      receipt_required: true
+    })
+  }
+}
