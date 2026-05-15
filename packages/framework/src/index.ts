@@ -457,6 +457,41 @@ export {
   cloneHoloShellLegacyAppRealitySnapshot,
 } from './board';
 
+// HoloShell Work-File Custody Receipt (task_1778868513735_mv51)
+export {
+  WORKFILE_KINDS,
+  WORKFILE_PRIVACY_CLASSES,
+  WORKFILE_ADAPTER_KINDS,
+  WORKFILE_PARSE_STATUSES,
+  WORKFILE_WARNING_KINDS,
+  WORKFILE_WARNING_SEVERITIES,
+  WORKFILE_PREVIEW_KINDS,
+  WORKFILE_OUTPUT_KINDS,
+  WORKFILE_CUSTODY_OUTCOMES,
+  type WorkFileKind,
+  type WorkFilePrivacyClass,
+  type WorkFileAdapterKind,
+  type WorkFileParseStatus,
+  type WorkFileWarningKind,
+  type WorkFileWarningSeverity,
+  type WorkFilePreviewKind,
+  type WorkFileOutputKind,
+  type WorkFileCustodyOutcome,
+  type WorkFileHashAlgorithm,
+  type WorkFileWarning,
+  type WorkFileSnapshot,
+  type WorkFileParserEvidence,
+  type WorkFilePreviewReceipt,
+  type WorkFileExportReceipt,
+  type WorkFileReceiptMetadataValue,
+  type HoloShellWorkFileCustodyReceipt,
+  isSupportedWorkFileKind,
+  isSupportedWorkFileAdapterKind,
+  isSupportedWorkFileCustodyOutcome,
+  validateHoloShellWorkFileCustodyReceipt,
+  cloneHoloShellWorkFileCustodyReceipt,
+} from './board';
+
 // Frontier Shard 0 primitives (task_1778186605462_2mlp)
 export {
   SKILL_RARITIES,
