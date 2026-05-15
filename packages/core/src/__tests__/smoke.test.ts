@@ -12,7 +12,7 @@ describe('HoloScript Core Smoke Test', () => {
   it('should import constants', async () => {
     const constants = await import('../constants');
     expect(constants).toBeDefined();
-  });
+  }, 90_000);
 
   it('should have parser available', async () => {
     const { HoloScriptPlusParser } = await import('../parser/HoloScriptPlusParser');

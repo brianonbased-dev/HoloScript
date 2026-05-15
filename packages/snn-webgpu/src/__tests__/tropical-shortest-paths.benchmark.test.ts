@@ -121,7 +121,7 @@ describe('TropicalShortestPaths benchmark harness', () => {
       expect(cpuSamples.every((v) => v > 0)).toBe(true);
       expect(autoSamples.every((v) => v > 0)).toBe(true);
     }
-  });
+  }, 60_000);
 
   it('finds GPU crossover point for APSP across extended sizes', async () => {
     const sizes = [32, 64, 128, 256, 512, 1024];

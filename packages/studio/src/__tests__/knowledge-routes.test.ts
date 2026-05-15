@@ -4,6 +4,9 @@
  * Gaps 3, 4, 6: Validates standalone API routes exist with correct exports,
  * and that the publish endpoint validates input correctly.
  */
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock fetch globally for route tests
@@ -12,14 +15,33 @@ vi.stubGlobal('fetch', mockFetch);
 
 describe('Knowledge API Routes', () => {
   const originalKey = process.env.HOLOMESH_API_KEY;
+  let savedWorkspaceRoot: string | undefined;
+  let savedStateFile: string | undefined;
+  let tempRoot: string;
 
   beforeEach(() => {
     process.env.HOLOMESH_API_KEY = 'test_key';
+    savedWorkspaceRoot = process.env.HOLOSCRIPT_WORKSPACES_DIR;
+    savedStateFile = process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE;
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'knowledge-routes-'));
+    process.env.HOLOSCRIPT_WORKSPACES_DIR = tempRoot;
+    delete process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE;
     mockFetch.mockReset();
   });
 
   afterEach(() => {
     process.env.HOLOMESH_API_KEY = originalKey;
+    if (savedWorkspaceRoot === undefined) {
+      delete process.env.HOLOSCRIPT_WORKSPACES_DIR;
+    } else {
+      process.env.HOLOSCRIPT_WORKSPACES_DIR = savedWorkspaceRoot;
+    }
+    if (savedStateFile === undefined) {
+      delete process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE;
+    } else {
+      process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE = savedStateFile;
+    }
+    fs.rmSync(tempRoot, { recursive: true, force: true });
   });
 
   describe('knowledge extraction route', () => {

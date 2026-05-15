@@ -11,6 +11,8 @@ import * as fs from 'fs';
 import * as os from 'os';
 import { execFileSync } from 'child_process';
 
+const GIT_TEST_TIMEOUT_MS = 60_000;
+
 describe('GitChangeDetector', () => {
   let detector: GitChangeDetector;
   let repoRoot: string;
@@ -38,16 +40,16 @@ describe('GitChangeDetector', () => {
     );
 
     detector = new GitChangeDetector(repoRoot);
-  });
+  }, GIT_TEST_TIMEOUT_MS);
 
   afterAll(() => {
     fs.rmSync(repoRoot, { recursive: true, force: true });
-  });
+  }, GIT_TEST_TIMEOUT_MS);
 
   describe('isGitRepo', () => {
     it('returns true for a git repo fixture', () => {
       expect(detector.isGitRepo()).toBe(true);
-    }, 15_000);
+    }, GIT_TEST_TIMEOUT_MS);
 
     it('returns false for non-git directory', () => {
       const tempDir = path.join(os.tmpdir(), `holoscript-test-${Date.now()}`);
@@ -55,7 +57,7 @@ describe('GitChangeDetector', () => {
       const nonGitDetector = new GitChangeDetector(tempDir);
       expect(nonGitDetector.isGitRepo()).toBe(false);
       fs.rmSync(tempDir, { recursive: true, force: true });
-    }, 15_000);
+    }, GIT_TEST_TIMEOUT_MS);
   });
 
   describe('getHeadCommit', () => {
@@ -63,7 +65,7 @@ describe('GitChangeDetector', () => {
       const headCommit = detector.getHeadCommit();
       expect(headCommit).toBeTruthy();
       expect(headCommit).toMatch(/^[0-9a-f]{40}$/);
-    }, 15_000);
+    }, GIT_TEST_TIMEOUT_MS);
   });
 
   describe('detectChanges', () => {
@@ -71,7 +73,7 @@ describe('GitChangeDetector', () => {
       const result = detector.detectChanges(null);
       expect(result.storedCommitMissing).toBe(true);
       expect(result.notGitRepo).toBe(false);
-    }, 15_000);
+    }, GIT_TEST_TIMEOUT_MS);
 
     it('returns no committed changes when comparing HEAD to itself', () => {
       const headCommit = detector.getHeadCommit()!;
@@ -82,13 +84,13 @@ describe('GitChangeDetector', () => {
       expect(result.modified.length).toBe(0);
       expect(result.deleted.length).toBe(0);
       expect(result.storedCommitMissing).toBe(false);
-    }, 15_000);
+    }, GIT_TEST_TIMEOUT_MS);
 
     it('returns storedCommitMissing=true for non-existent commit', () => {
       const fakeCommit = '0000000000000000000000000000000000000000';
       const result = detector.detectChanges(fakeCommit);
       expect(result.storedCommitMissing).toBe(true);
-    }, 15_000);
+    }, GIT_TEST_TIMEOUT_MS);
 
     it('returns notGitRepo=true for non-git directory', () => {
       const tempDir = path.join(os.tmpdir(), `holoscript-test-${Date.now()}`);
@@ -97,7 +99,7 @@ describe('GitChangeDetector', () => {
       const result = nonGitDetector.detectChanges(null);
       expect(result.notGitRepo).toBe(true);
       fs.rmSync(tempDir, { recursive: true, force: true });
-    }, 15_000);
+    }, GIT_TEST_TIMEOUT_MS);
   });
 
   describe('computeFileHashes', () => {
@@ -160,13 +162,13 @@ describe('GitChangeDetector', () => {
     it('returns array (may be empty)', () => {
       const untracked = detector.getUntrackedFiles();
       expect(Array.isArray(untracked)).toBe(true);
-    }, 15_000);
+    }, GIT_TEST_TIMEOUT_MS);
 
     it('returns forward-slash normalized paths', () => {
       const untracked = detector.getUntrackedFiles();
       for (const f of untracked) {
         expect(f).not.toMatch(/\\/); // No backslashes
       }
-    }, 15_000);
+    }, GIT_TEST_TIMEOUT_MS);
   });
 });

@@ -27,6 +27,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import type { LLMStreamChunk } from '../types';
+import { MockAdapter } from '../adapters/mock';
 
 type StreamEvent =
   | { type: 'content_block_start'; content_block: { type: 'text' } | { type: 'tool_use'; id: string; name: string } }
@@ -265,11 +266,10 @@ describe('AnthropicAdapter.streamCompletion — chunk translation', () => {
 
 describe('BaseLLMAdapter default streamCompletion (fallback)', () => {
   it('synthesizes a single batch of chunks from complete() output', async () => {
-    // We exercise the default fallback by importing MockAdapter, which
+    // We exercise the default fallback with MockAdapter, which
     // doesn't override streamCompletion. The adapter inherits the
     // BaseLLMAdapter default that wraps complete() in a single-batch
     // async iterator.
-    const { MockAdapter } = await import('../adapters/mock');
     const adapter = new MockAdapter({ apiKey: 'test' });
 
     const chunks: LLMStreamChunk[] = [];

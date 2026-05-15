@@ -31,6 +31,8 @@ export default defineConfig({
     exclude: ['**/dist/**', '**/node_modules/**'],
     passWithNoTests: true,
     testTimeout: 60_000,
+    // HoloMesh route suites share in-memory registry/state singletons.
+    fileParallelism: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'lcov'],

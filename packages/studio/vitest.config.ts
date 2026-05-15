@@ -86,8 +86,16 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../core/src/reconstruction/index.ts'),
       },
       {
+        find: '@holoscript/core/paper-0c-spike',
+        replacement: path.resolve(__dirname, '../core/src/paper-0c-spike/index.ts'),
+      },
+      {
         find: '@holoscript/core/traits/simulation-solver-factory',
         replacement: path.resolve(__dirname, '../core/src/traits/SimulationSolverFactory.ts'),
+      },
+      {
+        find: '@holoscript/core/traits/webcam-gaze',
+        replacement: path.resolve(__dirname, '../core/src/traits/WebcamGazeTrait.ts'),
       },
       {
         find: '@holoscript/core/traits',

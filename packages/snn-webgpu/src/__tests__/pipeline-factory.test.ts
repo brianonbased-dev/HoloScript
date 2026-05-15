@@ -117,18 +117,16 @@ describe('PipelineFactory', () => {
 
   describe('createBindGroup', () => {
     it('should create a bind group with buffer entries', () => {
-      const buffer1 = ctx.device.createBuffer({ size: 64, usage: GPUBufferUsage.UNIFORM });
-      const buffer2 = ctx.device.createBuffer({ size: 256, usage: GPUBufferUsage.STORAGE });
+      const buffers = createLifStepBuffers(ctx);
 
-      const bindGroup = factory.createBindGroup('lif_step', [buffer1, buffer2], 'test-bg');
+      const bindGroup = factory.createBindGroup('lif_step', buffers, 'test-bg');
       expect(bindGroup).toBeDefined();
     });
   });
 
   describe('encodeDispatch', () => {
     it('should encode a compute dispatch command', () => {
-      const buffer = ctx.device.createBuffer({ size: 64, usage: GPUBufferUsage.UNIFORM });
-      const bindGroup = factory.createBindGroup('lif_step', [buffer], 'dispatch-bg');
+      const bindGroup = factory.createBindGroup('lif_step', createLifStepBuffers(ctx), 'dispatch-bg');
 
       const encoder = ctx.device.createCommandEncoder();
       factory.encodeDispatch(encoder, 'lif_step', bindGroup, 40);
@@ -166,3 +164,13 @@ describe('PipelineFactory', () => {
     });
   });
 });
+
+function createLifStepBuffers(ctx: GPUContext): GPUBuffer[] {
+  return [
+    ctx.device.createBuffer({ size: 64, usage: GPUBufferUsage.UNIFORM }),
+    ctx.device.createBuffer({ size: 256, usage: GPUBufferUsage.STORAGE }),
+    ctx.device.createBuffer({ size: 256, usage: GPUBufferUsage.STORAGE }),
+    ctx.device.createBuffer({ size: 256, usage: GPUBufferUsage.STORAGE }),
+    ctx.device.createBuffer({ size: 256, usage: GPUBufferUsage.STORAGE }),
+  ];
+}

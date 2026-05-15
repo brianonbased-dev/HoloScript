@@ -552,7 +552,7 @@ describe('NAFEMS LE1 — Elliptic Membrane Benchmark', () => {
     if (convergenceResult.richardsonEstimate) {
       expect(typeof convergenceResult.richardsonEstimate).toBe('number');
     }
-  }, 15000); // give it more time for 4 solve loops
+  }, 60_000); // bench-class convergence sweep: four solve loops under root load
 
   it('TET4: multi-mesh convergence study (O(h) validation)', () => {
     // We expect the solver error to decrease precisely as O(h) for TET4 elements.
@@ -597,5 +597,5 @@ describe('NAFEMS LE1 — Elliptic Membrane Benchmark', () => {
     
     expect(convergenceResult.errorsLinf).toHaveLength(4);
     expect(typeof convergenceResult.observedOrderLinf).toBe('number');
-  }, 15000);
+  }, 60_000);
 });

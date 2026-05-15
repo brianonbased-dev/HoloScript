@@ -13,7 +13,7 @@ import { EventEmitter } from 'events';
  * Chunks are passed as Buffers so we can test split multi-byte
  * UTF-8 sequences (the root cause of em-dash -> ? corruption).
  */
-function mockReqWithChunks(chunks: Buffer[]): http.IncomingMessage {
+function mockReqWithChunks(chunks: Array<Buffer | string>): http.IncomingMessage {
   const req = new EventEmitter() as http.IncomingMessage;
   // vitest runs async; schedule chunk emission on next ticks
   process.nextTick(() => {
@@ -72,6 +72,11 @@ describe('parseJsonBody', () => {
     const req = mockReqWithChunks([raw]);
     const result = await parseJsonBody(req);
     expect(result).toEqual({ foo: 'bar', baz: 'qux' });
+  });
+
+  it('accepts string chunks from Readable.from mocks', async () => {
+    const result = await parseJsonBody(mockReqWithChunks([JSON.stringify({ hello: 'stream' })]));
+    expect(result).toEqual({ hello: 'stream' });
   });
 
   it('returns empty object when 2MB limit is exceeded', async () => {

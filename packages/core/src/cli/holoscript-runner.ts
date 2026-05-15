@@ -20,16 +20,22 @@ import * as path from 'path';
 import * as readline from 'readline';
 import { spawn } from 'child_process';
 import { randomUUID } from 'crypto';
-import { createHeadlessRuntime, getProfile, HEADLESS_PROFILE, type ActionHandler } from '@holoscript/engine/runtime';
+import type { ActionHandler } from '@holoscript/engine/runtime';
 import type { HSPlusAST } from '../types/HoloScriptPlus';
 
 // The engine package re-exports its own copy of HSPlusAST/HeadlessRuntime via the
 // dist barrel. Structurally identical to the src types but TS treats them as
 // distinct. These aliases bridge without resorting to `any`.
-type EngineAST = Parameters<typeof createHeadlessRuntime>[0];
-type EngineRuntime = ReturnType<typeof createHeadlessRuntime>;
-type EngineProfileName = Parameters<typeof getProfile>[0];
-const PROFILES_HEADLESS = HEADLESS_PROFILE;
+type EngineRuntimeModule = typeof import('@holoscript/engine/runtime');
+type EngineAST = Parameters<EngineRuntimeModule['createHeadlessRuntime']>[0];
+type EngineProfileName = Parameters<EngineRuntimeModule['getProfile']>[0];
+
+let engineRuntimeModule: EngineRuntimeModule | undefined;
+
+async function loadEngineRuntime(): Promise<EngineRuntimeModule> {
+  engineRuntimeModule ??= await import('@holoscript/engine/runtime');
+  return engineRuntimeModule;
+}
 import { InteropContext } from '../interop/Interoperability';
 import { parse } from '../parser/HoloScriptPlusParser';
 import { ScriptTestRunner } from '../traits/ScriptTestTrait';
@@ -896,6 +902,8 @@ async function runScript(opts: CLIOptions): Promise<void> {
     console.log(`[holoscript] File type: ${ext}`);
   }
 
+  const { createHeadlessRuntime, getProfile, HEADLESS_PROFILE } = await loadEngineRuntime();
+
   // Create runtime
   const profile = opts.profile === 'headless'
     ? HEADLESS_PROFILE
@@ -1029,6 +1037,7 @@ async function testScript(opts: CLIOptions): Promise<void> {
   // Parse and create a headless runtime to populate state for assertions
   const parseResult = parse(source);
   const ast = parseResult.ast as HSPlusAST;
+  const { createHeadlessRuntime, HEADLESS_PROFILE } = await loadEngineRuntime();
   const profile = HEADLESS_PROFILE;
   const runtime = createHeadlessRuntime(ast as unknown as EngineAST, { profile, tickRate: 10, debug: opts.debug });
   runtime.start();
@@ -1997,6 +2006,8 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     process.exit(1);
   }
 
+  const { createHeadlessRuntime, HEADLESS_PROFILE } = await loadEngineRuntime();
+
   // ── Cycle loop ──────────────────────────────────────────────────────────
 
   let convergenceStreak = 0;
@@ -2589,6 +2600,8 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
   console.log(
     `[holomesh-daemon] ${Object.keys(actions).length} action handlers registered${v2Enabled ? ` (V2 P2P enabled, DID: ${localAgentDid})` : ''}${walletEnabled ? ' (V3 Wallet enabled)' : ''}`
   );
+
+  const { createHeadlessRuntime, HEADLESS_PROFILE } = await loadEngineRuntime();
 
   // Cycle loop
   let cycle = 0;

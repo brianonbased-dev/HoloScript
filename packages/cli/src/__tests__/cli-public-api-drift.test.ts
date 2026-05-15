@@ -1,4 +1,6 @@
 import { execFile } from 'node:child_process';
+import { mkdtempSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
@@ -66,6 +68,31 @@ describe('CLI public API drift contracts', () => {
     expect(result.stdout).toContain('Starting headless runtime');
     expect(result.stdout).toContain('Runtime Statistics');
     expect(result.stderr).not.toContain('createHeadlessRuntime is not a function');
+  }, 90_000);
+
+  it('captures smart farm screenshot as a non-empty image', async () => {
+    const tempDir = mkdtempSync(path.join(tmpdir(), 'holoscript-smart-farm-'));
+    const output = path.join(tempDir, 'smart-farm.png');
+
+    try {
+      const result = await runCli([
+        'screenshot',
+        smartFarm,
+        '-o',
+        output,
+        '--width',
+        '640',
+        '--height',
+        '360',
+        '--wait-for',
+        '100',
+      ]);
+
+      expect(result.stdout).toContain('Screenshot saved');
+      expect(statSync(output).size).toBeGreaterThan(0);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
   }, 90_000);
 
   it('runs smart farm WoT export as a clean no-WoT result', async () => {

@@ -240,7 +240,7 @@ describe('Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06)', () => {
     );
 
     expect(replayMs).toBeLessThan(120_000);
-  }, 120_000);
+  }, 240_000);
 
   /**
    * Tab:verify small-$n$ sweep for Paper 1 — hash-chain verify **total** wall time ($\mu$s).

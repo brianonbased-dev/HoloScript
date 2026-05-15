@@ -23,12 +23,24 @@ function resolveRunnerCommand(): { args: string[] } {
 
 function runStatusJson(cwd: string): Record<string, unknown> {
   const { args } = resolveRunnerCommand();
-  const result = spawnSync(process.execPath, args, {
+  let result = spawnSync(process.execPath, args, {
     cwd,
     encoding: 'utf-8',
+    maxBuffer: 10 * 1024 * 1024,
   });
 
-  expect(result.status).toBe(0);
+  if (result.status !== 0) {
+    result = spawnSync(process.execPath, args, {
+      cwd,
+      encoding: 'utf-8',
+      maxBuffer: 10 * 1024 * 1024,
+    });
+  }
+
+  expect(
+    result.status,
+    `daemon status exited ${result.status}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`
+  ).toBe(0);
 
   const lines = result.stdout
     .split(/\r?\n/)

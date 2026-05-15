@@ -9,6 +9,7 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: '@holoscript/core/reconstruction', replacement: resolve(__dirname, 'src/reconstruction/index.ts') },
+      { find: '@holoscript/core/paper-0c-spike', replacement: resolve(__dirname, 'src/paper-0c-spike/index.ts') },
       // Allow sibling packages that import @holoscript/core to resolve it locally
       // Use exact-match regex to prevent prefix-matching subpath imports (e.g. @holoscript/core/trait-docs)
       { find: /^@holoscript\/core$/, replacement: resolve(__dirname, 'src/index.ts') },

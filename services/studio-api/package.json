@@ -8,8 +8,8 @@
     "build": "next build",
     "start": "next start -p 3105",
     "lint": "next lint",
-    "test": "vitest run --passWithNoTests",
-    "test:coverage": "vitest run --coverage --passWithNoTests"
+    "test": "vitest run --config vitest.config.ts --passWithNoTests",
+    "test:coverage": "vitest run --config vitest.config.ts --coverage --passWithNoTests"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.1",

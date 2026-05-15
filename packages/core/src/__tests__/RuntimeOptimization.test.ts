@@ -34,9 +34,12 @@ describe('Runtime Optimization', () => {
     };
 
     // Mock Renderer
+    let updateElementCalls = 0;
     const renderer = {
       createElement: () => ({}),
-      updateElement: () => {}, // Verified call
+      updateElement: () => {
+        updateElementCalls += 1;
+      },
       appendChild: () => {},
       destroy: () => {},
     };
@@ -49,14 +52,25 @@ describe('Runtime Optimization', () => {
     // Warmup (Process dirty flags from instantiation)
     runtime.update(0.016);
 
-    // Benchmark Steady State Update (Should be skipped via dirty check)
-    const start = performance.now();
-    runtime.update(0.016);
-    const end = performance.now();
-    const duration = end - start;
+    // Benchmark steady-state updates. Renderer writes should be skipped by dirty
+    // checks even if host scheduling makes a single wall-clock sample noisy.
+    updateElementCalls = 0;
+    const samples: number[] = [];
+    for (let i = 0; i < 5; i++) {
+      const start = performance.now();
+      runtime.update(0.016);
+      samples.push(performance.now() - start);
+    }
+    const sorted = [...samples].sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)] ?? 0;
+    const max = sorted[sorted.length - 1] ?? 0;
 
-    console.log(`Steady State Update Time for 10k entities: ${duration.toFixed(3)}ms`);
+    console.log(
+      `Steady State Update Time for 10k entities: median=${median.toFixed(3)}ms max=${max.toFixed(3)}ms`
+    );
 
-    expect(duration).toBeLessThan(50); // Aim for < 50ms under test conditions
+    expect(updateElementCalls).toBe(0);
+    expect(median).toBeLessThan(100);
+    expect(max).toBeLessThan(250);
   });
 });

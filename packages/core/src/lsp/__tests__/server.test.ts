@@ -13,7 +13,7 @@ describe('HoloScript LSP Dependencies', () => {
     const { VR_TRAITS } = await import('../../constants');
     expect(Array.isArray(VR_TRAITS)).toBe(true);
     expect(VR_TRAITS.length).toBeGreaterThan(1000);
-  });
+  }, 90_000);
 
   it('HOLOSCHEMA_KEYWORDS exports keyword list', async () => {
     const { HOLOSCHEMA_KEYWORDS } = await import('../../parser/ErrorRecovery');

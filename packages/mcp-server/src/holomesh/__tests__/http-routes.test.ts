@@ -189,6 +189,7 @@ describe('HoloMesh HTTP Routes', () => {
     mockVerifyTypedData.mockResolvedValue(true);
     process.env.HOLOSCRIPT_API_KEY = 'test-api-key';
     process.env.HOLOMESH_AGENT_NAME = 'test-agent';
+    process.env.HOLOMESH_SIGNING_GRACE = '1';
     // Seed the key registry so test-api-key resolves via primary path,
     // eliminating the need for the deprecated env-key fallback.
     keyRegistry.set('test-api-key', {

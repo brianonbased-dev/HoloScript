@@ -1,7 +1,7 @@
 /**
  * HoloScript Per-Package Permission Manifest
  *
- * Defines write-access boundaries for each of the 38+ HoloScript packages.
+ * Defines write-access boundaries for live HoloScript packages.
  * Every package is classified by sensitivity tier and assigned a permission
  * scope that restricts which agent roles can read or write within it.
  *

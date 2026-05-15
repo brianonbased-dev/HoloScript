@@ -227,9 +227,19 @@ const nextConfig = {
 
     // Stub out optional peer deps from @holoscript/core that aren't needed for Studio
     if (!isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'node:crypto': false,
+        'node:fs': false,
+        'node:fs/promises': false,
+        'node:os': false,
+        'node:path': false,
+        'node:zlib': false,
+      };
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
+        'fs/promises': false,
         path: false,
         os: false,
         net: false,
@@ -250,6 +260,12 @@ const nextConfig = {
         util: false,
         querystring: false,
         worker_threads: false,
+        'node:crypto': false,
+        'node:fs': false,
+        'node:fs/promises': false,
+        'node:os': false,
+        'node:path': false,
+        'node:zlib': false,
         'node:worker_threads': false,
       };
     }
