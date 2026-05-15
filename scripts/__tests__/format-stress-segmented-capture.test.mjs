@@ -276,6 +276,60 @@ try {
   assertOk(secondReplay.length > firstReplay.length * 0.7, 'second replay has image payload');
   assertOk(sha256(firstReplay) !== sha256(secondReplay), 'segment replay stills are distinct');
 
+  console.log('Test 4b: world-model events alter replay pixels for release/arc/impact');
+  const worldModelReplay = {
+    schema_version: 'world-model-replay-v1',
+    scene: { id: 'humanoid-rock-throw-v1', sceneHash: 'test-hash' },
+    result: {
+      eventLogHash: 'event-hash',
+      contactCount: 1,
+      predicateViolationCount: 0,
+      events: [
+        {
+          type: 'release',
+          payload: {
+            releasePosition: { x: -0.95, y: 1.62, z: 0.02 },
+            releaseVelocity: { x: 5.2, y: 3.4, z: 0 },
+          },
+        },
+        {
+          type: 'ballistic_sample',
+          payload: { rockPosition: { x: -0.014, y: 2.073078, z: 0.02 } },
+        },
+        {
+          type: 'ballistic_sample',
+          payload: { rockPosition: { x: 0.922, y: 2.208312, z: 0.02 } },
+        },
+        {
+          type: 'target_contact',
+          payload: { rockPosition: { x: 2.55, y: 0.85, z: 0 }, impulseNs: 8.6 },
+        },
+      ],
+    },
+    trajectory: { id: 'trajectory-test', status: 'open' },
+  };
+  const kinematicImpact = renderSegmentReplayStill({
+    segment: { id: '08_impact', title: 'Impact', expectedStill: '08_impact.png' },
+    index: 8,
+    total: 10,
+    sceneSnapshot,
+    width: 320,
+    height: 180,
+  });
+  const worldModelImpact = renderSegmentReplayStill({
+    segment: { id: '08_impact', title: 'Impact', expectedStill: '08_impact.png' },
+    index: 8,
+    total: 10,
+    sceneSnapshot,
+    worldModelReplay,
+    width: 320,
+    height: 180,
+  });
+  assertOk(
+    sha256(kinematicImpact) !== sha256(worldModelImpact),
+    'world-model impact payload changes still pixels'
+  );
+
   console.log('Test 5: base still plus replay mode clears duplicate-still false green');
   const replayOutDir = join(tmp, 'out-replay');
   const baseStillPath = join(tmp, 'base-still.png');
