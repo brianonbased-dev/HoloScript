@@ -9,6 +9,7 @@
 
 import type {
   HoloComposition,
+  HoloScene,
   HoloTheme,
   HoloThemeProperty,
   HoloEnvironment,
@@ -992,7 +993,7 @@ export class HoloCompositionParser {
 
       if (this.check('ENVIRONMENT')) {
         environment = this.parseEnvironment();
-      } else if (this.check('OBJECT') || this.check('ENTITY')) {
+      } else if (this.check('OBJECT')) {
         objects.push(this.parseObject());
       } else {
         // Skip unknown content to avoid infinite loop

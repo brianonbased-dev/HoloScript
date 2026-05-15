@@ -7,6 +7,8 @@
  * with 0xffffffff after a long shard.
  *
  * NODE_OPTIONS is also propagated so every forked worker inherits 16 GB.
+ * Worker concurrency is capped to avoid Windows fork-custody failures where
+ * Vitest reports passing tests but one worker exits unexpectedly under load.
  *
  * Usage: node --max-old-space-size=16384 run-vitest.mjs [extra vitest args]
  *   e.g. node run-vitest.mjs --coverage
@@ -48,6 +50,8 @@ const sharedEnv = {
   NODE_OPTIONS: '--max-old-space-size=16384',
 };
 
+const stabilityArgs = ['--maxWorkers=50%'];
+
 let overallExitCode = 0;
 
 // If caller already set sharding, or passed explicit test file globs/paths,
@@ -56,11 +60,11 @@ let overallExitCode = 0;
 // sharding for coverage runs; pre-create .tmp so the v8 provider doesn't race.
 const isCoverage = extraArgs.includes('--coverage');
 if (hasExplicitShard(extraArgs) || hasPositionalTestTargets(extraArgs) || isCoverage) {
-  const proc = runVitest(extraArgs);
+  const proc = runVitest([...stabilityArgs, ...extraArgs]);
   overallExitCode = proc.status ?? 1;
 } else {
   for (const shard of ['1/4', '2/4', '3/4', '4/4']) {
-    const proc = runVitest(['--shard', shard, ...extraArgs]);
+    const proc = runVitest(['--shard', shard, ...stabilityArgs, ...extraArgs]);
     const code = proc.status ?? 1;
     if (code !== 0) overallExitCode = code;
   }

@@ -37,8 +37,18 @@ export const gestureHandler: TraitHandler<GestureConfig> = {
 
   onAttach(node, config, context) {
     gestureStates.set(node.id!, {
-      left: { lastPosition: null, lastTime: 0, isPinching: false, lastGestureTime: 0 },
-      right: { lastPosition: null, lastTime: 0, isPinching: false, lastGestureTime: 0 },
+      left: {
+        lastPosition: null,
+        lastTime: 0,
+        isPinching: false,
+        lastGestureTime: Number.NEGATIVE_INFINITY,
+      },
+      right: {
+        lastPosition: null,
+        lastTime: 0,
+        isPinching: false,
+        lastGestureTime: Number.NEGATIVE_INFINITY,
+      },
     });
   },
 
@@ -54,6 +64,9 @@ export const gestureHandler: TraitHandler<GestureConfig> = {
     if (!nodeStates) return;
 
     const time = performance.now();
+    const debounce = config.debounce ?? 300;
+    const pinchThreshold = config.pinchThreshold ?? 0.9;
+    const swipeThreshold = config.swipeThreshold ?? 0.1;
 
     (['left', 'right'] as const).forEach((handName) => {
       const hand = vrContext.hands[handName];
@@ -63,9 +76,9 @@ export const gestureHandler: TraitHandler<GestureConfig> = {
 
       // 1. Pinch Detection
       if (config.enabledGestures.includes('pinch')) {
-        const isPinching = (hand.pinchStrength || 0) > (config.pinchThreshold || 0.9);
+        const isPinching = (hand.pinchStrength ?? 0) > pinchThreshold;
         if (isPinching && !state.isPinching) {
-          if (time - state.lastGestureTime > (config.debounce || 300)) {
+          if (time - state.lastGestureTime > debounce) {
             context.emit('gesture', { type: 'pinch', hand: handName, nodeId: node.id });
             state.lastGestureTime = time;
           }
@@ -80,8 +93,8 @@ export const gestureHandler: TraitHandler<GestureConfig> = {
         const dy = hand.position[1] - state.lastPosition[1];
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (dist > (config.swipeThreshold || 0.1)) {
-          if (time - state.lastGestureTime > (config.debounce || 300)) {
+        if (dist > swipeThreshold) {
+          if (time - state.lastGestureTime > debounce) {
             let type: GestureType | null = null;
             if (Math.abs(dx) > Math.abs(dy)) {
               type = dx > 0 ? 'swipe_right' : 'swipe_left';
