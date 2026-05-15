@@ -1,0 +1,158 @@
+// HoloShell document and spreadsheet custody policy and state machine.
+
+composition "HoloShellDocumentSpreadsheetCustodyPolicy" {
+  state CustodyState {
+    selectedWorkflow: "document-spreadsheet-custody"
+    selectedFileKind: "unknown"
+    approvalsRequired: 0
+    receiptsCaptured: 0
+    blockers: []
+    taskSeeds: []
+    currentLane: "codex-hardware"
+    sourceMutated: false
+  }
+
+  template "PermissionEnvelope" {
+    readOnly: true
+    guardedExecute: false
+    breakGlass: false
+    receiptRequired: true
+  }
+
+  policy "SilentRead" using "PermissionEnvelope" {
+    readOnly: true
+    guardedExecute: false
+    breakGlass: false
+    appliesTo: [
+      "select_file",
+      "snapshot_file",
+      "hash_source",
+      "parse_docx",
+      "parse_xlsx",
+      "parse_csv",
+      "summarize_structure",
+      "detect_macros",
+      "detect_external_links"
+    ]
+  }
+
+  policy "GuardedExecute" using "PermissionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    breakGlass: false
+    appliesTo: [
+      "write_preview",
+      "write_export",
+      "open_output",
+      "create_redline",
+      "create_cell_diff",
+      "attach_hololand_card",
+      "file_holomesh_task"
+    ]
+  }
+
+  policy "BreakGlass" using "PermissionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    breakGlass: true
+    appliesTo: [
+      "overwrite_source",
+      "run_macro",
+      "send_email",
+      "upload_cloud_file",
+      "share_link",
+      "delete_source",
+      "credential_access",
+      "use_browser_profile_cookies"
+    ]
+  }
+
+  state_machine "CustodyWorkflow" {
+    initial: "idle"
+    states: ["idle", "snapshotted", "parsed", "previewed", "approved", "exported", "verified", "filed", "blocked"]
+    transition "select" { from: "idle", to: "snapshotted" }
+    transition "parse" { from: "snapshotted", to: "parsed" }
+    transition "preview" { from: "parsed", to: "previewed" }
+    transition "approve" { from: "previewed", to: "approved" }
+    transition "export" { from: "approved", to: "exported" }
+    transition "verify" { from: "exported", to: "verified" }
+    transition "file_task" { from: "verified", to: "filed" }
+    transition "block" { from: "*", to: "blocked" }
+  }
+
+  role "CodexHardware" {
+    laneId: "codex-hardware"
+    owns: ["local_file_snapshot", "hashing", "parser_adapter_probe", "receipt_pack"]
+  }
+
+  role "DocumentParserAgent" {
+    laneId: "document-parser"
+    owns: ["docx_parse", "redline_preview", "pdf_export_witness"]
+  }
+
+  role "SpreadsheetFormulaAgent" {
+    laneId: "spreadsheet-formula"
+    owns: ["xlsx_parse", "formula_inventory", "cell_diff", "csv_export_witness"]
+  }
+
+  role "BrowserAccountWitness" {
+    laneId: "browser-account"
+    owns: ["google_microsoft_boundary", "share_upload_break_glass", "screenshot_witness"]
+  }
+
+  role "HoloLandProductAgent" {
+    laneId: "hololand-product"
+    owns: ["room_embodiment", "brittney_operator_brief", "hololand_work_card"]
+  }
+
+  action classifyOperation(operation) {
+    if (operation.kind in BreakGlass.appliesTo) {
+      CustodyState.approvalsRequired = CustodyState.approvalsRequired + 1
+      return "break_glass"
+    }
+    if (operation.kind in GuardedExecute.appliesTo) {
+      return "guarded_execute"
+    }
+    return "silent_read"
+  }
+
+  action recordReceipt(receipt) {
+    CustodyState.receiptsCaptured = CustodyState.receiptsCaptured + 1
+    emit("holoshell:document_custody:receipt", {
+      workflow: CustodyState.selectedWorkflow,
+      lane: CustodyState.currentLane,
+      receipt: receipt,
+      count: CustodyState.receiptsCaptured,
+      sourceMutated: CustodyState.sourceMutated
+    })
+  }
+
+  action blockOn(reason, evidencePath, ownerSurface) {
+    CustodyWorkflow.transition("block")
+    CustodyState.blockers.push({
+      reason: reason,
+      evidencePath: evidencePath,
+      ownerSurface: ownerSurface
+    })
+    emit("holoshell:document_custody:blocker", {
+      reason: reason,
+      evidencePath: evidencePath,
+      ownerSurface: ownerSurface
+    })
+  }
+
+  action seedTask(title, category, evidencePath, expectedBehavior) {
+    CustodyState.taskSeeds.push({
+      title: title,
+      category: category,
+      evidencePath: evidencePath,
+      expectedBehavior: expectedBehavior
+    })
+    emit("holomesh:task_seed", {
+      title: title,
+      category: category,
+      evidencePath: evidencePath,
+      expectedBehavior: expectedBehavior
+    })
+  }
+}

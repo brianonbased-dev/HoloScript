@@ -1,0 +1,130 @@
+/**
+ * HoloShell Asset Shard Intake Room
+ *
+ * Visible room concept for:
+ * "Turn this local folder of assets into a playable HoloLand shard,
+ * show the source, verify it, and make every mutation reversible."
+ */
+
+composition "HoloShell Asset Shard Intake Room" {
+  environment {
+    backgroundColor: "#111820"
+    ambient_light: 0.58
+    shadows: true
+  }
+
+  template "ShardStation" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    scale: [1.24, 0.48, 0.08]
+    material: {
+      color: "#16212a"
+      emissive: "#243546"
+      emissiveIntensity: 0.18
+      transparent: true
+      opacity: 0.94
+    }
+  }
+
+  template "EvidenceToken" {
+    @grabbable
+    @collidable
+    geometry: "sphere"
+    scale: [0.14, 0.14, 0.14]
+    material: { color: "#72d6a3" }
+  }
+
+  object "HumanOutcome" using "ShardStation" {
+    position: [0, 2.35, -2.7]
+    label: "Outcome: make this folder a playable HoloLand shard"
+    properties: {
+      humanJob: "choose folder, classify assets, preview shard, approve import"
+      defaultPolicy: "silent read, guarded import, break-glass publish/delete"
+    }
+  }
+
+  object "FolderCustodyGate" using "ShardStation" {
+    position: [-3.2, 1.42, -1.35]
+    label: "Folder custody: snapshot, hash, redact, classify"
+    properties: {
+      consumes: "local folder path, file metadata, content hashes"
+      hides: "absolute private paths from browser projection"
+      failureState: "unreadable folder, private data risk, duplicate ambiguity"
+    }
+  }
+
+  object "AssetManifestForge" using "ShardStation" {
+    position: [-1.08, 1.42, -1.35]
+    label: "Manifest forge: models, images, audio, source, unknowns"
+    properties: {
+      consumes: "deterministic asset manifest"
+      failureState: "unsupported type or blocked asset"
+    }
+  }
+
+  object "PreviewSourceStage" using "ShardStation" {
+    position: [1.08, 1.42, -1.35]
+    label: "Preview source: generated .holo shard candidate"
+    properties: {
+      consumes: "shard preview .holo and validation receipt"
+      failureState: "preview source cannot parse or compile"
+    }
+  }
+
+  object "ApprovalImportGate" using "ShardStation" {
+    position: [3.2, 1.42, -1.35]
+    label: "Approval gate: import, publish, overwrite, rollback"
+    properties: {
+      consumes: "nonce-bound approval packet"
+      failureState: "expired nonce, daemon cannot execute, rollback missing"
+    }
+  }
+
+  object "ManifestPassToken" using "EvidenceToken" {
+    position: [-2.15, 0.72, 0.08]
+    label: "asset manifest is deterministic"
+    properties: {
+      receiptKind: "local_asset_manifest_receipt"
+      replayKey: "folder snapshot hash + normalized entries"
+    }
+  }
+
+  object "PreviewWarnToken" using "EvidenceToken" {
+    position: [0, 0.72, 0.08]
+    material: { color: "#e0af68" }
+    label: "preview requires validation before import"
+    properties: {
+      receiptKind: "preview_source_validation"
+      likelyOwner: "HoloScript validation and compiler surface"
+    }
+  }
+
+  object "MutationLockToken" using "EvidenceToken" {
+    position: [2.15, 0.72, 0.08]
+    material: { color: "#f7768e" }
+    label: "source assets cannot be mutated by default"
+    properties: {
+      receiptKind: "permission_envelope"
+      defaultEnvelope: "guarded_execute_for_import"
+    }
+  }
+
+  object "ShardTimeline" {
+    @anchor
+    geometry: "cube"
+    position: [0, 0.23, 0.12]
+    scale: [5.85, 0.08, 0.13]
+    color: "#5b6475"
+    label: "timeline: choose folder -> snapshot -> classify -> preview -> validate -> approve -> import receipt"
+  }
+
+  object "ReplayRollbackDrawer" using "ShardStation" {
+    position: [0, 1.08, 1.58]
+    label: "Replay and rollback: source folder untouched, runtime import reversible"
+    properties: {
+      replay: "rerun from manifest hash and preview source"
+      rollback: "remove imported runtime shard by receipt; never delete source assets"
+    }
+  }
+}

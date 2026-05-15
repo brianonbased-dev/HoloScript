@@ -1,0 +1,129 @@
+/**
+ * HoloShell Document And Spreadsheet Custody Room
+ *
+ * Visible room concept for:
+ * "Take this local document or spreadsheet, safely transform/export it,
+ * show the diff, and keep rollback/replay obvious."
+ */
+
+composition "HoloShell Document Spreadsheet Custody Room" {
+  environment {
+    backgroundColor: "#101820"
+    ambient_light: 0.58
+    shadows: true
+  }
+
+  template "CustodyStation" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    scale: [1.34, 0.5, 0.08]
+    material: {
+      color: "#16212b"
+      emissive: "#243140"
+      emissiveIntensity: 0.22
+      transparent: true
+      opacity: 0.94
+    }
+  }
+
+  template "EvidenceToken" {
+    @grabbable
+    @collidable
+    geometry: "sphere"
+    scale: [0.16, 0.16, 0.16]
+    material: { color: "#76d8a6" }
+  }
+
+  object "HumanOutcomePedestal" using "CustodyStation" {
+    position: [0, 2.35, -2.8]
+    label: "Outcome: transform/export work file with source untouched"
+    properties: {
+      humanJob: "use a document or workbook without learning file formats, apps, macros, exports, or diffs"
+      sourceRule: "original file is read-only until a guarded approval changes an output path"
+    }
+  }
+
+  object "FileCustodyGate" using "CustodyStation" {
+    position: [-3.4, 1.5, -1.22]
+    label: "File custody: snapshot, hash, privacy class"
+    properties: {
+      consumes: "file path, size, extension, content hash, privacy redaction"
+      failureState: "unsupported format, locked file, source hash changed"
+    }
+  }
+
+  object "ParserLens" using "CustodyStation" {
+    position: [-1.14, 1.5, -1.22]
+    label: "Parser lens: document body or workbook model"
+    properties: {
+      consumes: "docx/xlsx/csv parser receipt or Office automation witness"
+      failureState: "macro present, formula external link, parser unavailable"
+    }
+  }
+
+  object "PreviewBench" using "CustodyStation" {
+    position: [1.14, 1.5, -1.22]
+    label: "Preview bench: proposed changes before write"
+    properties: {
+      consumes: "redline, cell diff, summary, export plan"
+      failureState: "ambiguous AI edit or missing preview artifact"
+    }
+  }
+
+  object "ExportForge" using "CustodyStation" {
+    position: [3.4, 1.5, -1.22]
+    label: "Export forge: PDF, DOCX, XLSX, CSV, HoloLand card"
+    properties: {
+      consumes: "approval bundle and output artifact hash"
+      failureState: "export mismatch, blocked cloud upload, app automation warning"
+    }
+  }
+
+  object "SnapshotPassToken" using "EvidenceToken" {
+    position: [-2.25, 0.78, 0.1]
+    label: "snapshot receipt captured"
+    properties: {
+      receiptKind: "file_snapshot_receipt"
+      requiredArtifacts: ["sourceHash", "redactedPath", "sourceMutatedFalse"]
+    }
+  }
+
+  object "PreviewWarnToken" using "EvidenceToken" {
+    position: [0, 0.78, 0.1]
+    material: { color: "#e0af68" }
+    label: "preview required before export"
+    properties: {
+      receiptKind: "transform_preview_receipt"
+      userControl: "approve, revise, or cancel"
+    }
+  }
+
+  object "CloudAccountGateToken" using "EvidenceToken" {
+    position: [2.25, 0.78, 0.1]
+    material: { color: "#f7768e" }
+    label: "cloud/account actions are break-glass"
+    properties: {
+      receiptKind: "account_boundary_receipt"
+      blockedByDefault: ["send_email", "upload_drive", "share_link", "overwrite_source"]
+    }
+  }
+
+  object "ChangeDiffWall" {
+    @anchor
+    geometry: "cube"
+    position: [0, 0.24, 0.12]
+    scale: [6.2, 0.08, 0.14]
+    color: "#5b6475"
+    label: "timeline: select -> snapshot -> parse -> preview -> approve -> export -> verify -> file task"
+  }
+
+  object "RollbackDrawer" using "CustodyStation" {
+    position: [0, 1.1, 1.58]
+    label: "Rollback drawer: delete generated output, keep source snapshot"
+    properties: {
+      rollback: "remove output artifact or restore from snapshot copy after approval"
+      replay: "rerun from source hash, transform plan, approval id, and export adapter"
+    }
+  }
+}
