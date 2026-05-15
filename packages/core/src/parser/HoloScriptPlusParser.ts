@@ -2795,11 +2795,13 @@ export class HoloScriptPlusParser {
    */
   private parseLogicBlock(): {
     functions: Array<{ name: string; params: string[]; body: string }>;
+    actions: Array<{ name: string; params: string[]; body: string }>;
     eventHandlers: Array<{ event: string; params: string[]; body: string }>;
     tickHandlers: Array<{ interval: number; body: string }>;
   } {
     const result = {
       functions: [] as Array<{ name: string; params: string[]; body: string }>,
+      actions: [] as Array<{ name: string; params: string[]; body: string }>,
       eventHandlers: [] as Array<{ event: string; params: string[]; body: string }>,
       tickHandlers: [] as Array<{ interval: number; body: string }>,
     };
@@ -2844,6 +2846,37 @@ export class HoloScriptPlusParser {
 
           const body = this.parseCodeBlock();
           result.functions.push({ name: funcName, params, body });
+        }
+        // Parse HoloScript action block: action name(args) { ... }
+        else if (keyword === 'action') {
+          this.advance(); // action
+          const actionName =
+            this.check('IDENTIFIER') || this.check('STRING') ? this.advance().value : 'anonymous';
+          const params: string[] = [];
+
+          if (this.check('LPAREN')) {
+            this.advance();
+            while (!this.check('RPAREN') && !this.check('EOF')) {
+              if (this.check('IDENTIFIER')) {
+                params.push(this.advance().value);
+                if (this.check('COLON')) {
+                  this.advance();
+                  while (!this.check('COMMA') && !this.check('RPAREN') && !this.check('EOF')) {
+                    this.advance();
+                  }
+                }
+                if (this.check('COMMA')) {
+                  this.advance();
+                }
+              } else {
+                this.advance();
+              }
+            }
+            this.expect('RPAREN', 'Expected )');
+          }
+
+          const body = this.check('LBRACE') ? this.parseCodeBlock() : '';
+          result.actions.push({ name: actionName, params, body });
         }
         // Parse on_tick handler
         else if (keyword === 'on_tick') {
