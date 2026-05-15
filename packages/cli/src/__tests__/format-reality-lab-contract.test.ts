@@ -56,21 +56,16 @@ describe('HoloLand/HoloShell reality lab contract', () => {
       };
 
       expect(payload.success).toBe(true);
-      expect(payload.result.count).toBe(2);
-      expect(payload.result.data.map((entry) => entry.evidenceId)).toEqual([
-        'compile-hsplus-threejs',
-        'screenshot-base',
-      ]);
-      expect(payload.result.data.map((entry) => entry.splashZone)).toEqual([
-        'grammar-splash',
-        'visual-splash',
-      ]);
+      expect(payload.result.count).toBe(0);
+      expect(payload.result.data).toEqual([]);
       expect(payload.result.data.every((entry) => entry.reproCommand.length > 0)).toBe(true);
+      expect(payload.result.data.some((entry) => entry.evidenceId === 'screenshot-base')).toBe(false);
       expect(run.stderr).toContain('skipping empty webhook/rest sink endpoint');
 
       const digest = await fs.readFile(path.join(outDir, 'pipeline-output.json'), 'utf8');
-      expect(digest).toContain('hsplus-compile-contract');
-      expect(digest).toContain('dynamic-replay-missing');
+      expect(digest).not.toContain('hsplus-compile-contract');
+      expect(digest).not.toContain('scene-native-replay-injection-missing');
+      expect(digest).not.toContain('partial-world-model-pixel-replay');
 
       const wotExport = await runCli(['wot-export', holo, '--json']);
       expect(wotExport.stdout).toContain('HoloShell Command Console');

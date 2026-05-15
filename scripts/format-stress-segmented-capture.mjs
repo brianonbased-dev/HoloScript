@@ -908,7 +908,7 @@ function objectBlock(name, { geometry, color, position, scale, opacity }) {
     .join('\n');
 }
 
-function buildEngineReplayHoloSource({ segment, pose }) {
+function buildEngineReplayOverlaySource({ segment, pose }) {
   const avatar = pose.bodies.avatar.position;
   const hand = pose.bodies.rightHand.position;
   const rock = pose.bodies.rock.position;
@@ -924,43 +924,37 @@ function buildEngineReplayHoloSource({ segment, pose }) {
     })
   );
 
-  return `composition "EngineReplay_${segment.id}" {
-  light "ReplayKeyLight" {
+  return `
+  // Scene-native replay injection for ${segment.id}; preserves the authored stage.
+  light "ReplayKeyLight_${segment.id}" {
     type: "directional"
     position: [5, 8, 6]
     color: "#ffffff"
     intensity: 1.3
   }
 
-${objectBlock('ReplayGround', {
-  geometry: 'plane',
-  color: '#202733',
-  position: [0, -0.02, 0],
-  scale: [8, 5, 1],
-})}
-
-${objectBlock('ReplayAvatar', {
+${objectBlock(`ReplayAvatar_${segment.id}`, {
   geometry: 'capsule',
   color: '#7aa2f7',
   position: avatar,
   scale: [0.42, 1.12, 0.42],
 })}
 
-${objectBlock('ReplayRightHand', {
+${objectBlock(`ReplayRightHand_${segment.id}`, {
   geometry: 'sphere',
   color: pose.bodies.rightHand.contact ? '#9ece6a' : '#f6c177',
   position: hand,
   scale: [0.2, 0.2, 0.2],
 })}
 
-${objectBlock('ReplayRock', {
+${objectBlock(`ReplayRock_${segment.id}`, {
   geometry: 'sphere',
   color: pose.bodies.rock.attachedToHand ? '#bb9af7' : '#c0caf5',
   position: rock,
   scale: [0.26, 0.26, 0.26],
 })}
 
-${objectBlock('ReplayTarget', {
+${objectBlock(`ReplayTarget_${segment.id}`, {
   geometry: 'cube',
   color: pose.bodies.target.impacted ? '#f7768e' : '#7dcfff',
   position: target,
@@ -969,14 +963,23 @@ ${objectBlock('ReplayTarget', {
 
 ${arcBlocks.join('\n\n')}
 
-${objectBlock('ReplayProvenancePanel', {
+${objectBlock(`ReplayProvenancePanel_${segment.id}`, {
   geometry: 'cube',
   color: pose.physics.provenancePanel ? '#9ece6a' : '#414868',
   position: [2.9, 1.7, -0.25],
   scale: [0.9, 0.44, 0.05],
   opacity: 0.82,
 })}
-}`;
+`;
+}
+
+function injectReplayOverlayIntoStage(stageSource, overlaySource) {
+  const trimmed = stageSource.trimEnd();
+  if (!trimmed.endsWith('}')) {
+    return `${stageSource}\n${overlaySource}\n`;
+  }
+  const lastBrace = trimmed.lastIndexOf('}');
+  return `${trimmed.slice(0, lastBrace)}\n${overlaySource}\n${trimmed.slice(lastBrace)}\n`;
 }
 
 function applyWorldModelPoseOverrides(pose, segment, worldModelReplay, worldModelEvents) {
@@ -1254,7 +1257,7 @@ export function buildSegmentReceipt({
         ? hasEngineFrameReplay
           ? [
               'World-model replay emitted semantic events for this segment.',
-              'The still was captured through the engine Puppeteer frame path from generated replay-state HoloScript.',
+              'The still was captured through the engine Puppeteer frame path from scene-native replay injection in the authored HoloLand stage.',
               `Next owner: ${owner}.`,
             ]
           : hasWorldModelPixelReplay
@@ -1294,7 +1297,7 @@ export function buildSegmentReceipt({
         observedMs: headless?.success ? headless.durationMs : null,
         note: dynamicSegment
           ? hasEngineFrameReplay
-            ? 'Engine frame capture consumed generated replay-state HoloScript; frame timing is still command-level evidence.'
+            ? 'Engine frame capture consumed scene-native replay HoloScript; frame timing is still command-level evidence.'
             : hasWorldModelPixelReplay
             ? 'World-model event payload drives this still; frame timing is still command-level evidence.'
             : hasWorldModelEvidence
@@ -1452,6 +1455,7 @@ async function tryRenderEngineReplayStill({
   total,
   outputDir,
   stillPath,
+  stagePath,
   sceneSnapshot,
   worldModelReplay,
   width,
@@ -1459,11 +1463,16 @@ async function tryRenderEngineReplayStill({
   dryRun,
 }) {
   const pose = posePhysicsFor(segment, index, total, sceneSnapshot, worldModelReplay);
-  const sourceDir = join(outputDir, 'engine-replay-sources');
+  const sourceDir = join(outputDir, 'scene-native-replay-sources');
   const logDir = join(outputDir, 'commands');
   mkdirSync(sourceDir, { recursive: true });
   const sourcePath = join(sourceDir, `${segment.id}.holo`);
-  writeFileSync(sourcePath, buildEngineReplayHoloSource({ segment, pose }), 'utf8');
+  const stageSource = existsSync(stagePath) ? readFileSync(stagePath, 'utf8') : '';
+  writeFileSync(
+    sourcePath,
+    injectReplayOverlayIntoStage(stageSource, buildEngineReplayOverlaySource({ segment, pose })),
+    'utf8'
+  );
 
   return runCommand({
     id: `engine-frame-${segment.id}`,
@@ -1486,6 +1495,7 @@ async function tryRenderEngineReplayStill({
 
 async function ensureSegmentStills({
   manifest,
+  manifestPath,
   outputDir,
   screenshotPath,
   screenshotCommand,
@@ -1499,6 +1509,7 @@ async function ensureSegmentStills({
   height,
 }) {
   const stillsDir = join(outputDir, 'stills');
+  const stagePath = resolveFromManifest(manifestPath, manifest.formats.stage);
   mkdirSync(stillsDir, { recursive: true });
   const baseExists = existsSync(screenshotPath);
   if (!baseExists) {
@@ -1533,6 +1544,7 @@ async function ensureSegmentStills({
         total: manifest.segments.length,
         outputDir,
         stillPath,
+        stagePath,
         sceneSnapshot,
         worldModelReplay,
         width,
@@ -1610,6 +1622,7 @@ export async function runSegmentedCapture(rawOptions = {}) {
   const screenshotCommand = commandResults.find((command) => command.id === 'screenshot-base');
   const stills = await ensureSegmentStills({
     manifest,
+    manifestPath,
     outputDir,
     screenshotPath,
     screenshotCommand,
