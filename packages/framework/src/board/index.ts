@@ -235,6 +235,41 @@ export {
 } from './holoshell-readiness-receipt';
 
 export {
+  // HoloShell Work-File Custody Receipt (task_1778868513735_mv51)
+  WORKFILE_KINDS,
+  WORKFILE_PRIVACY_CLASSES,
+  WORKFILE_ADAPTER_KINDS,
+  WORKFILE_PARSE_STATUSES,
+  WORKFILE_WARNING_KINDS,
+  WORKFILE_WARNING_SEVERITIES,
+  WORKFILE_PREVIEW_KINDS,
+  WORKFILE_OUTPUT_KINDS,
+  WORKFILE_CUSTODY_OUTCOMES,
+  type WorkFileKind,
+  type WorkFilePrivacyClass,
+  type WorkFileAdapterKind,
+  type WorkFileParseStatus,
+  type WorkFileWarningKind,
+  type WorkFileWarningSeverity,
+  type WorkFilePreviewKind,
+  type WorkFileOutputKind,
+  type WorkFileCustodyOutcome,
+  type WorkFileHashAlgorithm,
+  type WorkFileWarning,
+  type WorkFileSnapshot,
+  type WorkFileParserEvidence,
+  type WorkFilePreviewReceipt,
+  type WorkFileExportReceipt,
+  type WorkFileReceiptMetadataValue,
+  type HoloShellWorkFileCustodyReceipt,
+  isSupportedWorkFileKind,
+  isSupportedWorkFileAdapterKind,
+  isSupportedWorkFileCustodyOutcome,
+  validateHoloShellWorkFileCustodyReceipt,
+  cloneHoloShellWorkFileCustodyReceipt,
+} from './holoshell-workfile-custody-receipt';
+
+export {
   // Twin Earth Substrate Contract (task_1778618552503_3zqx)
   type ParticipationMode,
   type TwinEarthRole,
