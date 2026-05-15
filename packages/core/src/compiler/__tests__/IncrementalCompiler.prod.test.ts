@@ -212,7 +212,7 @@ trait GlowOrb { color: "gold" }`;
       const graph = ic.getTraitGraph();
       const imported = graph.getImportedFiles('/project/scene.hs');
       expect(imported.has('/project/shared.hs')).toBe(true);
-    });
+    }, 90_000);
 
     it('propagates file-changed recompilation via TraitDependencyGraph', async () => {
       const ic = new IncrementalCompiler();

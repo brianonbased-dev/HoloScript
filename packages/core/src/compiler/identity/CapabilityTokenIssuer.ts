@@ -278,7 +278,9 @@ export class CapabilityTokenIssuer {
 
     // --- Expiration monotonicity ---
     const now = Math.floor(Date.now() / 1000);
-    const requestedLifetime = lifetimeSec ?? this.defaultLifetimeSec;
+    const parentRemainingLifetime = Math.max(0, parentPayload.exp - now);
+    const requestedLifetime =
+      lifetimeSec ?? Math.min(this.defaultLifetimeSec, parentRemainingLifetime);
     const childExp = now + requestedLifetime;
 
     if (this.strictExpiration && childExp > parentPayload.exp) {

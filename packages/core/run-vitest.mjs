@@ -1,7 +1,10 @@
 /**
- * Wrapper that splits vitest into 2 shards so each run handles ~1000 test
+ * Wrapper that splits vitest into 4 shards so each run handles ~500 test
  * files, preventing a single fork from accumulating enough live objects to
  * exhaust the V8 heap before GC can reclaim them.
+ * The smaller shard size also keeps Windows hardware-local runs below the
+ * process-custody cliff where Vitest can print a green summary and still exit
+ * with 0xffffffff after a long shard.
  *
  * NODE_OPTIONS is also propagated so every forked worker inherits 16 GB.
  *
@@ -56,7 +59,7 @@ if (hasExplicitShard(extraArgs) || hasPositionalTestTargets(extraArgs) || isCove
   const proc = runVitest(extraArgs);
   overallExitCode = proc.status ?? 1;
 } else {
-  for (const shard of ['1/2', '2/2']) {
+  for (const shard of ['1/4', '2/4', '3/4', '4/4']) {
     const proc = runVitest(['--shard', shard, ...extraArgs]);
     const code = proc.status ?? 1;
     if (code !== 0) overallExitCode = code;

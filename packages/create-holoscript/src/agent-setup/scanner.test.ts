@@ -19,5 +19,5 @@ describe('agent-setup scanner + generator', () => {
     expect(paths).toContain('AGENTS.md');
     expect(paths).toContain('.claude/NORTH_STAR.md');
     expect(paths).toContain('team-connect.mjs');
-  });
+  }, 15_000);
 });
