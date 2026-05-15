@@ -192,6 +192,21 @@ export {
 } from './hololand-receipts';
 
 export {
+  // Device Lab Warning Tokens (task_1778739828973_47f5)
+  WARNING_SEVERITY,
+  WARNING_ACTION_TYPE,
+  type WarningSeverity,
+  type WarningActionType,
+  type DeviceLabWarningToken,
+  type DeviceLabWarningAction,
+  deriveWarningTokens,
+  getWarningColorClass,
+  getWarningIcon,
+  formatWarningForHoloShell,
+  summarizeWarningTokens,
+} from './device-lab-warning-tokens';
+
+export {
   // Twin Earth Substrate Contract (task_1778618552503_3zqx)
   type ParticipationMode,
   type TwinEarthRole,

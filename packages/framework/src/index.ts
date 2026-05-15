@@ -347,6 +347,21 @@ export {
   cloneValidationReceipt,
 } from './board';
 
+// Device Lab Warning Tokens (task_1778739828973_47f5)
+export {
+  WARNING_SEVERITY,
+  WARNING_ACTION_TYPE,
+  type WarningSeverity,
+  type WarningActionType,
+  type DeviceLabWarningToken,
+  type DeviceLabWarningAction,
+  deriveWarningTokens,
+  getWarningColorClass,
+  getWarningIcon,
+  formatWarningForHoloShell,
+  summarizeWarningTokens,
+} from './board';
+
 // Frontier Shard 0 primitives (task_1778186605462_2mlp)
 export {
   SKILL_RARITIES,
