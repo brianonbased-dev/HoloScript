@@ -4,8 +4,13 @@ import { promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { isAbsolute, join, resolve } from 'node:path';
 
-import { chromium } from 'playwright';
+import { chromium, type Browser } from 'playwright';
 
+import {
+  createChromiumLaunchError,
+  isMissingChromiumExecutableError,
+  resolveChromiumExecutable,
+} from './browser/chromium-executable.js';
 import { ffmpegAvailableSync, resolveFfmpegBinary } from './holo-video-ingest';
 import { estimateDepthFromUrl } from './hologram-depth-estimator';
 
@@ -300,10 +305,24 @@ async function writeArtifact(bundleDir: string, filename: string, buffer: Buffer
 }
 
 async function renderBrowserArtifacts(options: RenderBundleOptions, injectedDepth?: { data: Float32Array; backend: string }): Promise<BrowserRenderResult> {
-  const browser = await chromium.launch({
+  const executableResolution = resolveChromiumExecutable();
+  const launchOptions: Parameters<typeof chromium.launch>[0] = {
     headless: true,
     args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--allow-file-access-from-files'],
-  });
+  };
+  if (executableResolution.executablePath) {
+    launchOptions.executablePath = executableResolution.executablePath;
+  }
+
+  let browser: Browser;
+  try {
+    browser = await chromium.launch(launchOptions);
+  } catch (error) {
+    if (isMissingChromiumExecutableError(error) || executableResolution.source === 'missing') {
+      throw createChromiumLaunchError(error, executableResolution);
+    }
+    throw error;
+  }
 
   try {
     const tileWidth = options.quilt.metadata.tileWidth;

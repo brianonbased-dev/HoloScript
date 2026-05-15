@@ -87,7 +87,11 @@ RUN apk add --no-cache su-exec ca-certificates && \
 # Configure Playwright to use system Chromium instead of downloading its own
 # Alpine's chromium package installs the binary at /usr/bin/chromium.
 ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
+ENV CHROMIUM_BIN=/usr/bin/chromium
+ENV CHROME_BIN=/usr/bin/chromium
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+
+RUN if [ "${INSTALL_CHROMIUM}" = "1" ]; then command -v chromium; fi
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate

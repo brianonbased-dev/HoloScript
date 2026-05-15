@@ -4,8 +4,12 @@
  */
 
 import { chromium, type Browser, type Page, type BrowserContext } from 'playwright';
-import { existsSync } from 'node:fs';
 import type { BrowserSession, BrowserSessionConfig, BrowserPoolStats } from './types.js';
+import {
+  createChromiumLaunchError,
+  isMissingChromiumExecutableError,
+  resolveChromiumExecutable,
+} from './chromium-executable.js';
 
 /**
  * Default browser configuration
@@ -43,13 +47,10 @@ export class BrowserPool {
     const sessionId = `holoscript-${Date.now()}-${++this.sessionCounter}`;
 
     // Use system Chromium when available (Railway/Docker/CI)
-    const executablePath = this.resolveChromiumExecutablePath();
-    const isServer = !!executablePath || process.env.CI === 'true' || !process.env.DISPLAY;
-
-    // Launch browser
-    const browser = await chromium.launch({
+    const executableResolution = resolveChromiumExecutable();
+    const isServer = !!executableResolution.executablePath || process.env.CI === 'true' || !process.env.DISPLAY;
+    const launchOptions: Parameters<typeof chromium.launch>[0] = {
       headless: isServer ? true : mergedConfig.headless,
-      executablePath: executablePath || undefined,
       args: [
         '--enable-webgl',
         '--enable-accelerated-2d-canvas',
@@ -60,7 +61,20 @@ export class BrowserPool {
         '--disable-setuid-sandbox',
         ...(isServer ? ['--disable-dev-shm-usage', '--single-process'] : []),
       ],
-    });
+    };
+    if (executableResolution.executablePath) {
+      launchOptions.executablePath = executableResolution.executablePath;
+    }
+
+    let browser: Browser;
+    try {
+      browser = await chromium.launch(launchOptions);
+    } catch (error) {
+      if (isMissingChromiumExecutableError(error) || executableResolution.source === 'missing') {
+        throw createChromiumLaunchError(error, executableResolution);
+      }
+      throw error;
+    }
 
     // Create context with viewport
     const context = await browser.newContext({
@@ -97,30 +111,6 @@ export class BrowserPool {
     this.stats.totalCreated++;
 
     return session;
-  }
-
-  /**
-   * Resolve a valid Chromium executable path from env or common Alpine/Linux locations.
-   * Returns undefined when no installed binary is available, allowing Playwright defaults.
-   */
-  private resolveChromiumExecutablePath(): string | undefined {
-    const fromEnv = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
-    if (fromEnv && existsSync(fromEnv)) {
-      return fromEnv;
-    }
-
-    const candidates = [
-      '/usr/bin/chromium',
-      '/usr/bin/chromium-browser',
-      '/usr/lib/chromium/chrome',
-    ];
-    for (const candidate of candidates) {
-      if (existsSync(candidate)) {
-        return candidate;
-      }
-    }
-
-    return undefined;
   }
 
   /**
