@@ -170,16 +170,22 @@ describe('NetworkedTrait — Production Tests', () => {
 
     it('returns interpolated position between two samples', () => {
       const t = makeTrait({ interpolation: true });
-      const now = Date.now();
-      (t as any).interpolationBuffer = [
-        makeSample(now - 200, [0, 0, 0]),
-        makeSample(now, [100, 0, 0]),
-      ];
-      // renderTime = now - 100, which is exactly the midpoint
-      const result = t.getInterpolatedState(100);
-      expect(result).not.toBeNull();
-      if (result) {
-        expect(result.position[0]).toBeCloseTo(50, 1);
+      vi.useFakeTimers();
+      try {
+        const now = 1_700_000_000_000;
+        vi.setSystemTime(now);
+        (t as any).interpolationBuffer = [
+          makeSample(now - 200, [0, 0, 0]),
+          makeSample(now, [100, 0, 0]),
+        ];
+        // renderTime = now - 100, which is exactly the midpoint
+        const result = t.getInterpolatedState(100);
+        expect(result).not.toBeNull();
+        if (result) {
+          expect(result.position[0]).toBeCloseTo(50, 1);
+        }
+      } finally {
+        vi.useRealTimers();
       }
     });
 

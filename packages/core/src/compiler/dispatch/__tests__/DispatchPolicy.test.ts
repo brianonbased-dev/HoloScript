@@ -351,9 +351,11 @@ describe('DispatchPolicy latency benchmark', () => {
     });
 
     try {
+      let deterministicClock = 0;
       const report = await runDispatchPolicyLatencyBenchmark({
         iterations: 3,
         warmupIterations: 1,
+        now: () => deterministicClock++,
       });
 
       expect(report.operationTrait).toBe('grabbable');

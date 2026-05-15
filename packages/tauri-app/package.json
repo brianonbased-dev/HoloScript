@@ -10,8 +10,8 @@
     "tauri": "tauri",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests",
-    "test:coverage": "vitest run --coverage --passWithNoTests"
+    "test": "vitest run --config vitest.config.ts --passWithNoTests",
+    "test:coverage": "vitest run --config vitest.config.ts --coverage --passWithNoTests"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",

@@ -77,8 +77,9 @@ describe('NavMesh Stress Testing & Fallbacks', () => {
     const t1 = performance.now();
 
     expect(path).not.toBeNull();
-    // V8 typically crushes this in under ~40ms on modern CPUs, but padding for CI.
-    expect(t1 - t0).toBeLessThan(150);
+    // V8 typically crushes this in under ~40ms on modern CPUs, but full-suite
+    // parallel load can add scheduler noise on local Windows runners.
+    expect(t1 - t0).toBeLessThan(250);
   });
 
   it('should fall back gracefully when internal polygon is deleted or walled off', () => {

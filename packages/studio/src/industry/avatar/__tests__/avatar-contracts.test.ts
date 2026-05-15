@@ -6,7 +6,7 @@
  * Uses contract-style assertions (no React mount) to avoid lucide-react ESM issues.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   useAvatarStore,
   getPartById,
@@ -110,6 +110,9 @@ describe('AvatarPreview — rendering predicates', () => {
 
 describe('AvatarExportPanel — export contracts', () => {
   beforeEach(resetStore);
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it('exportAvatarConfig produces versioned JSON', () => {
     const { config } = useAvatarStore.getState();
@@ -155,6 +158,8 @@ describe('AvatarExportPanel — export contracts', () => {
   });
 
   it('export is deterministic for a given config', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
     const { config } = useAvatarStore.getState();
     const a = exportAvatarConfig(config);
     const b = exportAvatarConfig(config);

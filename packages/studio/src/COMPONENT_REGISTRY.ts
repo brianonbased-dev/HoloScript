@@ -271,16 +271,6 @@ export const COMPONENT_REGISTRY = {
   // EXPORT PANELS (2026-05-14 AUDIT: DUPLICATE CLUSTERS)
   // ═══════════════════════════════════════════════════════════════════
 
-  ExportPanel_Scene: {
-    canonical: 'components/export/ExportPanel.tsx',
-    exports: ['ExportPanel'],
-    domain: 'export',
-    description:
-      'Scene export panel with glTF/USD/USDZ/JSON format picker. Uses useSceneExport hook. Downloads ZIP with source + exported file.',
-    usedIn: ['app/create/page.tsx (exportOpen rail)'],
-    note: 'V1 - uses useSceneExport hook pattern',
-  },
-
   ExportPipelinePanel: {
     canonical: 'components/export/ExportPipelinePanel.tsx',
     exports: ['ExportPipelinePanel'],
@@ -302,25 +292,6 @@ export const COMPONENT_REGISTRY = {
   // ═══════════════════════════════════════════════════════════════════
   // SHADER EDITORS (2026-05-14 AUDIT: DUPLICATE CLUSTERS)
   // ═══════════════════════════════════════════════════════════════════
-
-  ShaderEditor_NodeGraph: {
-    canonical: 'components/shader-editor/ShaderEditor.tsx',
-    exports: ['ShaderEditor'],
-    domain: 'shader-editor',
-    description:
-      'Full visual node-graph shader editor with toolbar, node palette, canvas, material preview, and code panel.',
-    usedIn: ['app/shader-editor/page.tsx'],
-  },
-
-  ShaderEditorPanel_Monaco: {
-    canonical: 'components/shader-editor/ShaderEditorPanel.tsx',
-    exports: ['ShaderEditorPanel'],
-    domain: 'shader-editor',
-    description:
-      'Monaco-based GLSL shader editor with live Three.js preview sphere, vertex/fragment tabs, and apply-to-material.',
-    usedIn: ['app/create/page.tsx (bottom panel)'],
-    note: 'Textual shader editor for quick edits',
-  },
 
   ShaderPanel_Graph: {
     canonical: 'components/panels/ShaderPanel.tsx',
@@ -375,15 +346,6 @@ export const COMPONENT_REGISTRY = {
   // ═══════════════════════════════════════════════════════════════════
   // HISTORY/UNDO PANELS (2026-05-14 AUDIT: DUPLICATE CLUSTERS)
   // ═══════════════════════════════════════════════════════════════════
-
-  HistoryPanel: {
-    canonical: 'components/HistoryPanel.tsx',
-    exports: ['HistoryPanel'],
-    domain: 'history',
-    description:
-      'Full history sidebar with list/tree view toggle, labeled entries from historyLabelStore, undo/redo/clear buttons, and future state display.',
-    usedIn: ['app/create/page.tsx (historyOpen rail, undoHistoryOpen rail)'],
-  },
 
   UndoHistorySidebar: {
     canonical: 'components/history/UndoHistorySidebar.tsx',

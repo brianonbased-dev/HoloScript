@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type http from 'http';
 import { EventEmitter } from 'events';
 import { handleTeamRoutes } from '../team-routes';
@@ -26,6 +26,7 @@ const PARENT_WALLET = '0x00000000000000000000000000000000000000A1';
 
 const NON_MEMBER_KEY = 'non-member-key';
 const NON_MEMBER_ID = 'agent_nonmember_001';
+const originalSigningGrace = process.env.HOLOMESH_SIGNING_GRACE;
 
 function seedParent(): void {
   const record: KeyRecord = {
@@ -197,6 +198,7 @@ function seedCapabilityToken(
 }
 
 beforeEach(() => {
+  process.env.HOLOMESH_SIGNING_GRACE = '1';
   teamStore.clear();
   keyRegistry.clear();
   agentKeyStore.clear();
@@ -205,6 +207,14 @@ beforeEach(() => {
   seedParent();
   seedNonMember();
   createTestTeam();
+});
+
+afterEach(() => {
+  if (originalSigningGrace === undefined) {
+    delete process.env.HOLOMESH_SIGNING_GRACE;
+  } else {
+    process.env.HOLOMESH_SIGNING_GRACE = originalSigningGrace;
+  }
 });
 
 describe('Team Routes — Mobile Handoff', () => {

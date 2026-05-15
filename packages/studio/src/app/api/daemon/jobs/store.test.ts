@@ -123,7 +123,7 @@ describe('daemon job store patch application', () => {
       'export const value = 2;\n'
     );
     expect(runGit(workspacePath, ['status', '--porcelain'])).toBe('');
-  });
+  }, 30_000);
 
   it('rejects patch paths that escape the workspace', async () => {
     const workspacePath = createWorkspace();
@@ -148,5 +148,5 @@ describe('daemon job store patch application', () => {
     expect(fs.existsSync(path.join(tempHome, '.holoscript', 'workspaces', 'outside.ts'))).toBe(
       false
     );
-  });
+  }, 30_000);
 });

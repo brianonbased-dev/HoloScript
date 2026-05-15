@@ -350,9 +350,9 @@ describe('PluginManager', () => {
     expect(Array.isArray(tools)).toBe(true);
   });
 
-  it('registerPlugin adds tools', () => {
+  it('registerPlugin adds tools', async () => {
     const before = PluginManager.getTools().length;
-    PluginManager.registerPlugin(
+    await PluginManager.registerPlugin(
       [
         {
           name: 'test_sprint59_tool',
@@ -367,7 +367,7 @@ describe('PluginManager', () => {
   });
 
   it('handleTool calls registered handler', async () => {
-    PluginManager.registerPlugin(
+    await PluginManager.registerPlugin(
       [
         {
           name: 'test_sprint59_echo',
@@ -388,7 +388,7 @@ describe('PluginManager', () => {
 
   it('registering multiple tools in one plugin all get handler', async () => {
     let calls = 0;
-    PluginManager.registerPlugin(
+    await PluginManager.registerPlugin(
       [
         {
           name: 'test_multi_a',

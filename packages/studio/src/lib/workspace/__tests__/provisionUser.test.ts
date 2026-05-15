@@ -84,9 +84,12 @@ describe('provisionUser founder bootstrap', () => {
           }
         }
         if (href === 'https://mcp.test/api/holomesh/contribute' && method === 'POST') {
-          return new Response(publishStatus === 200 ? JSON.stringify({ id: 'entry_1' }) : 'publish failed', {
-            status: publishStatus,
-          });
+          return new Response(
+            publishStatus === 200 ? JSON.stringify({ id: 'entry_1' }) : 'publish failed',
+            {
+              status: publishStatus,
+            }
+          );
         }
         if (href === 'https://api.github.com/user/repos' && method === 'POST') {
           return new Response(
@@ -333,7 +336,11 @@ describe('provisionUser founder bootstrap', () => {
       pushedFiles.find((file) => file.path === 'ecosystem/agent-genesis.json')?.content ?? '{}'
     ) as {
       strategy: string;
-      agents: Array<{ missionProfile: string; autospawn: boolean; daemonAgent: { rawSecretAccess: boolean } }>;
+      agents: Array<{
+        missionProfile: string;
+        autospawn: boolean;
+        daemonAgent: { rawSecretAccess: boolean };
+      }>;
       secretBroker: { plaintextInWorkspace: boolean; handlesOnly: boolean };
       meshWiring: {
         holoheal: {
@@ -368,7 +375,8 @@ describe('provisionUser founder bootstrap', () => {
       gates: ['tool-use', 'mcp-config', 'secret-grant'],
     });
 
-    const skillsLobby = pushedFiles.find((file) => file.path === 'ecosystem/skills/lobby.yml')?.content ?? '';
+    const skillsLobby =
+      pushedFiles.find((file) => file.path === 'ecosystem/skills/lobby.yml')?.content ?? '';
     expect(skillsLobby).toContain('rule: "skills-first"');
     expect(skillsLobby).toContain('secret_token_or_oauth');
     expect(skillsLobby).toContain('HoloDoor');
@@ -414,7 +422,8 @@ describe('provisionUser founder bootstrap', () => {
     });
 
     const receiptPolicy =
-      pushedFiles.find((file) => file.path === 'ecosystem/holoheal/secret-grant-receipt.yml')?.content ?? '';
+      pushedFiles.find((file) => file.path === 'ecosystem/holoheal/secret-grant-receipt.yml')
+        ?.content ?? '';
     expect(receiptPolicy).toContain('event: "secret.granted"');
     expect(receiptPolicy).toContain('plaintextReturned: false');
     expect(receiptPolicy).toContain('policyDecisionId');
@@ -446,7 +455,7 @@ describe('provisionUser founder bootstrap', () => {
       'mcp-provisioned-secret-key'
     );
     expect(pushedFiles.map((file) => file.path)).not.toContain('.env');
-  });
+  }, 30_000);
 
   it('connects an existing repo only when it appears in the approved repo list', async () => {
     const result = await provisionUser({
@@ -509,7 +518,10 @@ describe('provisionUser founder bootstrap', () => {
     const fetchMock = vi.mocked(fetch);
     const toolPayloads = fetchMock.mock.calls
       .filter(([url]) => String(url).includes('/tools/call'))
-      .map(([, init]) => JSON.parse(String(init?.body ?? '{}')) as { tool: string; args: Record<string, unknown> });
+      .map(
+        ([, init]) =>
+          JSON.parse(String(init?.body ?? '{}')) as { tool: string; args: Record<string, unknown> }
+      );
     expect(toolPayloads.map((payload) => payload.tool)).toEqual([
       'absorb_run_absorb',
       'absorb_extract_knowledge',

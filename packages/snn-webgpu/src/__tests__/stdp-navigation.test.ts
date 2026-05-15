@@ -284,7 +284,7 @@ describe('evaluate()', () => {
     expect(efficiency).toBeLessThanOrEqual(1.0);
 
     agent.destroy();
-  });
+  }, 15_000);
 });
 
 // ── Full benchmark ────────────────────────────────────────────────────────

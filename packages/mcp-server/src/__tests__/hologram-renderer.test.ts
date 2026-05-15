@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -35,22 +35,30 @@ vi.mock('../holo-video-ingest', () => ({
 }));
 
 import { renderHologramBundle } from '../hologram-renderer';
+import { chromium } from 'playwright';
 
 describe('hologram-renderer', () => {
   let storeDir: string;
+  let prevChromiumExecutablePath: string | undefined;
 
   beforeEach(async () => {
+    prevChromiumExecutablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
     storeDir = await mkdtemp(join(tmpdir(), 'hologram-renderer-test-'));
     process.env.HOLOGRAM_STORE_DIR = storeDir;
+    delete process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
     mockPage.setContent.mockClear();
     mockPage.waitForFunction.mockClear();
     mockPage.evaluate.mockClear();
     mockBrowser.newPage.mockClear();
     mockBrowser.close.mockClear();
+    vi.mocked(chromium.launch).mockClear();
   });
 
   afterEach(async () => {
     delete process.env.HOLOGRAM_STORE_DIR;
+    if (prevChromiumExecutablePath === undefined)
+      delete process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+    else process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH = prevChromiumExecutablePath;
     await rm(storeDir, { recursive: true, force: true });
   });
 
@@ -96,5 +104,49 @@ describe('hologram-renderer', () => {
     expect(result.depthBackend).toBe('luminance-proxy');
     expect(mockPage.evaluate).toHaveBeenCalledTimes(1);
     expect(mockBrowser.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('launches Playwright with configured system Chromium when present', async () => {
+    const chromiumPath = join(storeDir, 'chromium');
+    await writeFile(chromiumPath, '');
+    process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH = chromiumPath;
+
+    await renderHologramBundle({
+      mediaType: 'image',
+      source: 'gallery/photo.jpg',
+      name: 'Photo',
+      holoCode: 'composition "Photo" {}',
+      quilt: {
+        config: {
+          views: 48,
+          columns: 8,
+          rows: 6,
+          resolution: [3360, 3360],
+          baseline: 0.06,
+          device: '16inch',
+        },
+        tiles: Array.from({ length: 48 }, (_, index) => ({
+          column: index % 8,
+          row: Math.floor(index / 8),
+          cameraOffset: (index - 24) / 24,
+          viewShear: 0,
+        })),
+        metadata: { tileWidth: 420, tileHeight: 560, numViews: 48 },
+      },
+      mvhevc: {
+        config: { fps: 30, container: 'mp4' },
+        views: [
+          { eye: 'left', cameraOffset: -0.0325, viewShear: 0.01 },
+          { eye: 'right', cameraOffset: 0.0325, viewShear: -0.01 },
+        ],
+        metadata: { stereoMode: 'multiview-hevc' },
+      },
+    });
+
+    expect(chromium.launch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        executablePath: chromiumPath,
+      })
+    );
   });
 });

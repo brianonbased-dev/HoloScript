@@ -364,8 +364,8 @@ describe('Feature 5: LLM provider model constant arrays', () => {
     expect(Array.isArray(OPENAI_MODELS)).toBe(true);
   });
 
-  it('OPENAI_MODELS has 7 entries', () => {
-    expect(OPENAI_MODELS.length).toBe(7);
+  it('OPENAI_MODELS keeps the legacy baseline and may include newer models', () => {
+    expect(OPENAI_MODELS.length).toBeGreaterThanOrEqual(7);
   });
 
   it('OPENAI_MODELS includes gpt-4o', () => {

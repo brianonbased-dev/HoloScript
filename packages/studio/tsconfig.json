@@ -1,12 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext",
-      "webworker"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext", "webworker"],
     "allowJs": false,
     "skipLibCheck": true,
     "strict": true,
@@ -24,15 +19,11 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@holoscript/engine": [
-        "../engine/src"
-      ],
-      "@holoscript/engine/*": [
-        "../engine/src/*"
-      ]
+      "@/*": ["./src/*"],
+      "@holoscript/core": ["../core/dist/index.d.ts"],
+      "@holoscript/core/*": ["../core/dist/*"],
+      "@holoscript/engine": ["../engine/src"],
+      "@holoscript/engine/*": ["../engine/src/*"]
     }
   },
   "include": [

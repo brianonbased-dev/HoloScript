@@ -30,71 +30,75 @@ async function isLLMOnline(): Promise<boolean> {
 }
 
 // Resolve once at module load so we can use it.skipIf
-const _online = isLLMOnline();
+const runLocalLLMScenarios = process.env.RUN_LOCAL_LLM_SCENARIOS === '1';
+const _online = runLocalLLMScenarios ? isLLMOnline() : Promise.resolve(false);
 
-describe('Scenario: Studio — V43 Dynamic Architectural Generation', () => {
-  it('connects to local Brittney, interprets complex prompts, and returns raw valid .holo code', async () => {
-    try {
-      const online = await _online;
-      if (!online) {
-        logger.debug('⏭ Skipping: Local LLM (Ollama) is offline');
-        return;
+describe.skipIf(!runLocalLLMScenarios)(
+  'Scenario: Studio — V43 Dynamic Architectural Generation',
+  () => {
+    it('connects to local Brittney, interprets complex prompts, and returns raw valid .holo code', async () => {
+      try {
+        const online = await _online;
+        if (!online) {
+          logger.debug('⏭ Skipping: Local LLM (Ollama) is offline');
+          return;
+        }
+
+        const { V43Generator } = await import('../../core/ai/V43Generator');
+        const generator = new V43Generator();
+        const prompt =
+          'Instantiate a massive cyberpunk architectural structure. Keep it extremely simple with just a few nested geometric blocks to demonstrate syntax.';
+
+        const rawCode = await generator.generateHoloScript(prompt);
+
+        expect(rawCode.length).toBeGreaterThan(20);
+        expect(rawCode.toLowerCase()).toContain('object');
+      } catch {
+        logger.debug('⏭ Skipping: V43 Generator fetch failed (LLM offline)');
       }
+    }, 120000);
 
-      const { V43Generator } = await import('../../core/ai/V43Generator');
-      const generator = new V43Generator();
-      const prompt =
-        'Instantiate a massive cyberpunk architectural structure. Keep it extremely simple with just a few nested geometric blocks to demonstrate syntax.';
+    it('translates raw output directly into parsed AST arrays injected into the WebGL Store', async () => {
+      try {
+        const online = await _online;
+        if (!online) {
+          logger.debug('⏭ Skipping: Local LLM (Ollama) is offline');
+          return;
+        }
 
-      const rawCode = await generator.generateHoloScript(prompt);
-
-      expect(rawCode.length).toBeGreaterThan(20);
-      expect(rawCode.toLowerCase()).toContain('object');
-    } catch {
-      logger.debug('⏭ Skipping: V43 Generator fetch failed (LLM offline)');
-    }
-  }, 120000);
-
-  it('translates raw output directly into parsed AST arrays injected into the WebGL Store', async () => {
-    try {
-      const online = await _online;
-      if (!online) {
-        logger.debug('⏭ Skipping: Local LLM (Ollama) is offline');
-        return;
-      }
-
-      const { V43Generator } = await import('../../core/ai/V43Generator');
-      const generator = new V43Generator();
-      const prompt = `Write a clean HoloScript block creating an object called CyberSkyscraper.
+        const { V43Generator } = await import('../../core/ai/V43Generator');
+        const generator = new V43Generator();
+        const prompt = `Write a clean HoloScript block creating an object called CyberSkyscraper.
 Do not use complicated macros, just a simple valid object block.`;
 
-      const astNodes = await generator.generateAST(prompt);
-      const rawCode = await generator.generateHoloScript(prompt);
-      logger.debug('Raw V43 code:\n', rawCode);
-      logger.debug('AST Layout Length:', astNodes.length, '\nKeys:', Object.keys(astNodes));
+        const astNodes = await generator.generateAST(prompt);
+        const rawCode = await generator.generateHoloScript(prompt);
+        logger.debug('Raw V43 code:\n', rawCode);
+        logger.debug('AST Layout Length:', astNodes.length, '\nKeys:', Object.keys(astNodes));
 
-      expect(astNodes.length).toBeGreaterThan(0);
+        expect(astNodes.length).toBeGreaterThan(0);
 
-      useSceneGraphStore.setState({ nodes: [] });
+        useSceneGraphStore.setState({ nodes: [] });
 
-      const structuralArray: SceneNode[] = astNodes.map((ast: any, idx: number) => ({
-        id: `v43_geo_${idx}`,
-        name: ast.id?.name || 'V43_Structure',
-        type: 'mesh',
-        parentId: null,
-        traits: [{ name: '@ai_generated', properties: {} }],
-        position: [0, 0, 0],
-        rotation: [0, 0, 0],
-        scale: [1, 1, 1],
-      }));
+        const structuralArray: SceneNode[] = astNodes.map((ast: any, idx: number) => ({
+          id: `v43_geo_${idx}`,
+          name: ast.id?.name || 'V43_Structure',
+          type: 'mesh',
+          parentId: null,
+          traits: [{ name: '@ai_generated', properties: {} }],
+          position: [0, 0, 0],
+          rotation: [0, 0, 0],
+          scale: [1, 1, 1],
+        }));
 
-      useSceneGraphStore.setState({ nodes: structuralArray });
-      const nodes = useSceneGraphStore.getState().nodes;
+        useSceneGraphStore.setState({ nodes: structuralArray });
+        const nodes = useSceneGraphStore.getState().nodes;
 
-      expect(nodes.length).toBe(astNodes.length);
-      expect(nodes[0].id).toContain('v43_geo');
-    } catch {
-      logger.debug('⏭ Skipping: V43 Generator fetch failed (LLM offline)');
-    }
-  }, 120000);
-});
+        expect(nodes.length).toBe(astNodes.length);
+        expect(nodes[0].id).toContain('v43_geo');
+      } catch {
+        logger.debug('⏭ Skipping: V43 Generator fetch failed (LLM offline)');
+      }
+    }, 120000);
+  }
+);

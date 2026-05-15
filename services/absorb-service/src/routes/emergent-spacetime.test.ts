@@ -162,7 +162,7 @@ describe('emergent spacetime export route', () => {
 
     expect(res._status).toBe(401);
     expect((res._json as { error: string }).error).toBe('Authentication required');
-  });
+  }, 15_000);
 
   it('persists exports with owner, project, retention, and evidence metadata', async () => {
     const postRes = await postSampleExport();

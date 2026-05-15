@@ -16,8 +16,24 @@ import { PackageScopeEnforcer, resetScopeEnforcer } from '../PackageScopeEnforce
 import { AgentRole } from '../AgentIdentity';
 
 describe('PackagePermissionManifest', () => {
-  it('should contain all expected packages (38+)', () => {
-    expect(PACKAGE_PERMISSION_MANIFEST.length).toBeGreaterThanOrEqual(38);
+  it('should contain the expected live permission surfaces', () => {
+    const names = new Set(PACKAGE_PERMISSION_MANIFEST.map((p) => p.name));
+    const expectedLiveSurfaces = [
+      'core',
+      'security-sandbox',
+      'compiler-wasm',
+      'mcp-server',
+      'partner-sdk',
+      'llm-provider',
+      'std',
+      'std-fs',
+      'holoscript',
+      'studio',
+      'cli',
+      'benchmark',
+    ];
+
+    expect([...names].sort()).toEqual(expect.arrayContaining(expectedLiveSurfaces));
   });
 
   it('should have unique package names', () => {

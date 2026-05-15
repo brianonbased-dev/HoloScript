@@ -132,25 +132,32 @@ describe('Resilience Patterns', () => {
     });
 
     it('should apply exponential backoff', async () => {
-      const timestamps: number[] = [];
+      vi.useFakeTimers();
       const fn = vi.fn(async () => {
-        timestamps.push(Date.now());
-        if (timestamps.length < 3) throw new Error('fail');
+        if (fn.mock.calls.length < 3) throw new Error('fail');
         return 'success';
       });
 
-      await retryWithBackoff(fn, {
-        maxAttempts: 3,
-        initialBackoffMs: 50,
-        multiplier: 2,
-        jitter: false,
-      });
+      try {
+        const result = retryWithBackoff(fn, {
+          maxAttempts: 3,
+          initialBackoffMs: 50,
+          multiplier: 2,
+          jitter: false,
+        });
 
-      // Check that delays increase
-      if (timestamps.length >= 3) {
-        const delay1 = timestamps[1] - timestamps[0];
-        const delay2 = timestamps[2] - timestamps[1];
-        expect(delay2).toBeGreaterThanOrEqual(delay1); // At least as long
+        await vi.advanceTimersByTimeAsync(49);
+        expect(fn).toHaveBeenCalledTimes(1);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(fn).toHaveBeenCalledTimes(2);
+
+        await vi.advanceTimersByTimeAsync(99);
+        expect(fn).toHaveBeenCalledTimes(2);
+        await vi.advanceTimersByTimeAsync(1);
+        await expect(result).resolves.toBe('success');
+        expect(fn).toHaveBeenCalledTimes(3);
+      } finally {
+        vi.useRealTimers();
       }
     });
   });
