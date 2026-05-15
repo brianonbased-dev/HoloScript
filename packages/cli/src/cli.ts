@@ -234,6 +234,7 @@ function printJson(value: unknown): void {
 
 const WORLD_MODEL_REPLAY_SCHEMA = 'world-model-replay-v1';
 const WORLD_MODEL_REPLAY_SCENE_ID = 'deterministic-contact-v1';
+const WORLD_MODEL_HUMANOID_ROCK_THROW_SCENE_ID = 'humanoid-rock-throw-v1';
 
 async function runWorldModelCommand(options: ReturnType<typeof parseArgs>): Promise<void> {
   const subcommand = options.subcommand ?? 'replay';
@@ -257,10 +258,14 @@ async function runWorldModelCommand(options: ReturnType<typeof parseArgs>): Prom
   }
 
   const sceneId = options.sceneId ?? WORLD_MODEL_REPLAY_SCENE_ID;
-  if (sceneId !== WORLD_MODEL_REPLAY_SCENE_ID) {
+  if (
+    sceneId !== WORLD_MODEL_REPLAY_SCENE_ID &&
+    sceneId !== WORLD_MODEL_HUMANOID_ROCK_THROW_SCENE_ID
+  ) {
     cliError('E003', `Unsupported world-model scene: ${sceneId}`, {
-      usage: 'holoscript world-model replay --scene deterministic-contact-v1 [--seed <integer>] [--json]',
-      hint: 'Only deterministic-contact-v1 has a replayable fixture in this CLI surface.',
+      usage:
+        'holoscript world-model replay --scene deterministic-contact-v1|humanoid-rock-throw-v1 [--seed <integer>] [--json]',
+      hint: 'Use one of the replayable world-model fixtures.',
     });
     process.exit(1);
   }
@@ -275,15 +280,20 @@ async function runWorldModelCommand(options: ReturnType<typeof parseArgs>): Prom
     process.exit(1);
   }
 
-  const { buildDeterministicFailureTrajectory } = await import('@holoscript/core/world-model');
-  const replay = buildDeterministicFailureTrajectory(undefined, { seed });
+  const { buildDeterministicFailureTrajectory, buildHumanoidRockThrowTrajectory } = await import(
+    '@holoscript/core/world-model'
+  );
+  const replay =
+    sceneId === WORLD_MODEL_HUMANOID_ROCK_THROW_SCENE_ID
+      ? buildHumanoidRockThrowTrajectory({ seed })
+      : buildDeterministicFailureTrajectory(undefined, { seed });
   if (options.trajectoryId && options.trajectoryId !== replay.trajectory.id) {
     cliError(
       'E003',
       `Trajectory handle mismatch: requested ${options.trajectoryId}, replay produced ${replay.trajectory.id}`,
       {
         usage:
-          'holoscript world-model replay --scene deterministic-contact-v1 --trajectory <id> --seed <integer> [--json]',
+          'holoscript world-model replay --scene deterministic-contact-v1|humanoid-rock-throw-v1 --trajectory <id> --seed <integer> [--json]',
         hint: 'Use the trajectory id from the replay handle, or omit --trajectory to replay by scene and seed only.',
       }
     );
@@ -1804,6 +1814,7 @@ async function main(): Promise<void> {
         'openxr',
         'androidxr',
         'webgpu',
+        'r3f',
         'flat-semantic',
         'web-2d',
         'scm-dag',
@@ -2561,6 +2572,45 @@ async function main(): Promise<void> {
           } else {
             console.log('\n--- WebGPU TypeScript Output ---\n');
             console.log(output);
+          }
+
+          process.exit(0);
+        }
+
+        // Special handling for React Three Fiber target
+        if (target === 'r3f') {
+          if (!isHolo) {
+            console.error(`\x1b[31mError: R3F compilation requires .holo files.\x1b[0m`);
+            process.exit(1);
+          }
+
+          const { HoloCompositionParser } = await import('@holoscript/core');
+          const { R3FCompiler } = await import('@holoscript/core/compiler');
+          const compositionParser = new HoloCompositionParser();
+          const parseResult = compositionParser.parse(content);
+
+          if (!parseResult.success || !parseResult.ast) {
+            console.error(`\x1b[31mError parsing for R3F:\x1b[0m`);
+            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            process.exit(1);
+          }
+
+          console.log(`\x1b[2m[DEBUG] Compiling to React Three Fiber scene graph...\x1b[0m`);
+          const compiler = new R3FCompiler();
+          const output = compiler.compileComposition(parseResult.ast);
+          const serialized = JSON.stringify(output, null, 2);
+
+          console.log(`\x1b[32m✓ R3F compilation successful!\x1b[0m`);
+          console.log(`\x1b[2m  Objects: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
+
+          if (options.output) {
+            const outputPath = path.resolve(options.output);
+            const jsonPath = outputPath.endsWith('.json') ? outputPath : outputPath + '.json';
+            fs.writeFileSync(jsonPath, serialized);
+            console.log(`\x1b[32m✓ R3F scene graph written to ${jsonPath}\x1b[0m`);
+          } else {
+            console.log('\n--- R3F Scene Graph ---\n');
+            console.log(serialized);
           }
 
           process.exit(0);
@@ -3346,7 +3396,7 @@ async function main(): Promise<void> {
       console.log(`\n\x1b[36mCapturing screenshot of ${options.input}...\x1b[0m\n`);
 
       try {
-        const { PuppeteerRenderer } = await import('@holoscript/engine');
+        const { PuppeteerRenderer } = await import('@holoscript/engine/rendering');
         const renderer = new PuppeteerRenderer({ debug: options.verbose });
 
         await renderer.initialize();

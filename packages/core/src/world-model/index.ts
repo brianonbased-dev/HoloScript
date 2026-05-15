@@ -57,6 +57,23 @@ export type {
   DeterministicFailureSceneOptions,
 } from './DeterministicFailureScene';
 
+export {
+  HUMANOID_ROCK_THROW_SCENE_ID,
+  HUMANOID_ROCK_THROW_CONTRACT,
+  createHumanoidRockThrowScene,
+  runHumanoidRockThrowReplay,
+  buildHumanoidRockThrowTrajectory,
+} from './HumanoidRockThrowScene';
+export type {
+  HumanoidRockThrowObject,
+  HumanoidRockThrowSceneState,
+  HumanoidRockThrowEventType,
+  HumanoidRockThrowEvent,
+  HumanoidRockThrowReplayResult,
+  HumanoidRockThrowTrajectoryBuild,
+  HumanoidRockThrowSceneOptions,
+} from './HumanoidRockThrowScene';
+
 export type {
   TrajectoryId,
   SceneHash,
