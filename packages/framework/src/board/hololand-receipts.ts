@@ -724,6 +724,38 @@ export function cloneAgentActionReceipt(receipt: AgentActionReceipt): AgentActio
   };
 }
 
+export function cloneQualcommNIRModelExportReceipt(
+  receipt: QualcommNIRModelExportReceipt,
+): QualcommNIRModelExportReceipt {
+  return {
+    ...receipt,
+    numericalCorrectness: { ...receipt.numericalCorrectness },
+    ...(receipt.provenance ? { provenance: cloneProvenance(receipt.provenance) } : {}),
+    ...(receipt.verificationCommands
+      ? { verificationCommands: cloneVerificationCommands(receipt.verificationCommands) }
+      : {}),
+    ...(receipt.metadata ? { metadata: { ...receipt.metadata } } : {}),
+  };
+}
+
+export function cloneCrossHardwareCompilationReceipt(
+  receipt: CrossHardwareCompilationReceipt,
+): CrossHardwareCompilationReceipt {
+  return {
+    ...receipt,
+    ...(receipt.constraints ? { constraints: { ...receipt.constraints } } : {}),
+    ...(receipt.measuredResults ? { measuredResults: { ...receipt.measuredResults } } : {}),
+    ...(receipt.replayInputs
+      ? { replayInputs: receipt.replayInputs.map(cloneReplayInput) }
+      : {}),
+    ...(receipt.provenance ? { provenance: cloneProvenance(receipt.provenance) } : {}),
+    ...(receipt.verificationCommands
+      ? { verificationCommands: cloneVerificationCommands(receipt.verificationCommands) }
+      : {}),
+    ...(receipt.metadata ? { metadata: { ...receipt.metadata } } : {}),
+  };
+}
+
 export function cloneValidationReceipt(receipt: ValidationReceipt): ValidationReceipt {
   return {
     ...receipt,
@@ -852,4 +884,3 @@ export function clonePackageProvenanceReceipt(receipt: PackageProvenanceReceipt)
     ...(receipt.metadata ? { metadata: { ...receipt.metadata } } : {}),
   };
 }
-
