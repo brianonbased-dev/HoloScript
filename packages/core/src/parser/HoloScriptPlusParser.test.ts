@@ -159,6 +159,38 @@ describe('HoloScriptPlusParser - Logic Block', () => {
     expect(logicNode).toBeDefined();
     expect(logicNode.body.functions.length).toBeGreaterThan(0);
   });
+
+  it('Parses logic block with HoloShell-style actions', () => {
+    const source = `composition "HoloShell Shell World" {
+      logic {
+        on_enter {
+          emit "holoshell_world_loaded"
+        }
+
+        action focus_shell_object(objectId) {
+          state.activeShellObject = objectId
+          emit "shell_object_focused"
+        }
+
+        action change_shell_skin(skinName) {
+          state.activeSkin = skinName
+          emit "shell_skin_changed"
+        }
+      }
+    }`;
+
+    const result = parser.parse(source);
+
+    expect(result.success).toBe(true);
+    expect(result.errors).toHaveLength(0);
+    const logicNode = result.ast.root.children?.find((c: any) => c.type === 'logic') as any;
+    expect(logicNode).toBeDefined();
+    expect(logicNode.body.actions.map((action: any) => action.name)).toEqual([
+      'focus_shell_object',
+      'change_shell_skin',
+    ]);
+    expect(logicNode.body.actions[0].params).toEqual(['objectId']);
+  });
 });
 
 describe('HoloScriptPlusParser - Environment & Lighting', () => {
