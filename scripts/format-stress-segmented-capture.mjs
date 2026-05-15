@@ -894,18 +894,175 @@ function formatVector(vector) {
   return `[${values.map((value) => Number(Number(value || 0).toFixed(3))).join(', ')}]`;
 }
 
-function objectBlock(name, { geometry, color, position, scale, opacity }) {
+function objectBlock(name, { geometry, color, position, scale, rotation, opacity, label }) {
   return [
     `  object "${name}" {`,
     `    geometry: "${geometry}"`,
     `    color: "${color}"`,
     `    position: ${formatVector(position)}`,
+    rotation ? `    rotation: ${formatVector(rotation)}` : null,
     `    scale: ${formatVector(scale)}`,
     opacity === undefined ? null : `    opacity: ${Number(opacity.toFixed(3))}`,
+    label ? `    label: "${label}"` : null,
     '  }',
   ]
     .filter(Boolean)
     .join('\n');
+}
+
+function addVector(a, b) {
+  return a.map((value, index) => value + b[index]);
+}
+
+function midPoint(a, b) {
+  return a.map((value, index) => (value + b[index]) / 2);
+}
+
+function distance2d(a, b) {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function lineBlock(name, { from, to, color, thickness = 0.06, opacity = 0.88, label }) {
+  const dx = to[0] - from[0];
+  const dy = to[1] - from[1];
+  const length = Math.max(distance2d(from, to), 0.08);
+  const rotationZ = (-Math.atan2(dx, dy) * 180) / Math.PI;
+  return objectBlock(name, {
+    geometry: 'cylinder',
+    color,
+    position: midPoint(from, to),
+    rotation: [0, 0, Number(rotationZ.toFixed(2))],
+    scale: [thickness, length, thickness],
+    opacity,
+    label,
+  });
+}
+
+function buildHumanoidRig({ segment, avatar, hand, activeConstraint }) {
+  const hip = addVector(avatar, [0, -0.48, 0]);
+  const chest = addVector(avatar, [0, 0.22, 0]);
+  const neck = addVector(avatar, [0, 0.62, 0]);
+  const head = addVector(avatar, [0, 0.86, 0]);
+  const rightShoulder = addVector(chest, [0.28, 0.05, 0.04]);
+  const leftShoulder = addVector(chest, [-0.28, 0.05, -0.02]);
+  const rightHip = addVector(hip, [0.18, 0, 0.02]);
+  const leftHip = addVector(hip, [-0.18, 0, -0.02]);
+  const rightFoot = addVector(avatar, [0.18, -1.1, 0.06]);
+  const leftFoot = addVector(avatar, [-0.25, -1.04, -0.04]);
+  const handReach = distance2d(rightShoulder, hand);
+  const elbowDrop = activeConstraint ? -0.12 : -0.04;
+  const rightElbow = [
+    rightShoulder[0] + (hand[0] - rightShoulder[0]) * 0.52,
+    rightShoulder[1] + (hand[1] - rightShoulder[1]) * 0.52 + elbowDrop,
+    rightShoulder[2] + (hand[2] - rightShoulder[2]) * 0.52 + 0.12,
+  ];
+  const leftHand = addVector(leftShoulder, [-0.28, -0.45, -0.02]);
+  const leftElbow = addVector(leftShoulder, [-0.18, -0.2, -0.02]);
+  const rightKnee = addVector(rightHip, [0.1, -0.5, 0.04]);
+  const leftKnee = addVector(leftHip, [-0.08, -0.48, -0.03]);
+  const limbColor = '#c0caf5';
+  const activeArmColor = activeConstraint || handReach > 0.48 ? '#9ece6a' : '#f6c177';
+
+  return [
+    objectBlock(`ReplayTorsoCore_${segment.id}`, {
+      geometry: 'capsule',
+      color: '#7aa2f7',
+      position: avatar,
+      scale: [0.32, 0.72, 0.22],
+      opacity: 0.92,
+      label: 'replay humanoid torso pose',
+    }),
+    objectBlock(`ReplayHead_${segment.id}`, {
+      geometry: 'sphere',
+      color: '#d5f5e3',
+      position: head,
+      scale: [0.22, 0.24, 0.22],
+      opacity: 0.95,
+      label: 'replay humanoid head',
+    }),
+    lineBlock(`ReplaySpine_${segment.id}`, {
+      from: hip,
+      to: neck,
+      color: '#a9b1d6',
+      thickness: 0.055,
+      opacity: 0.9,
+      label: 'replay spine chain',
+    }),
+    lineBlock(`ReplayShoulderLine_${segment.id}`, {
+      from: leftShoulder,
+      to: rightShoulder,
+      color: '#7aa2f7',
+      thickness: 0.045,
+      opacity: 0.88,
+      label: 'replay shoulder pose line',
+    }),
+    lineBlock(`ReplayRightUpperArm_${segment.id}`, {
+      from: rightShoulder,
+      to: rightElbow,
+      color: activeArmColor,
+      thickness: 0.07,
+      opacity: 0.94,
+      label: 'replay right upper arm IK',
+    }),
+    lineBlock(`ReplayRightForearm_${segment.id}`, {
+      from: rightElbow,
+      to: hand,
+      color: activeArmColor,
+      thickness: 0.065,
+      opacity: 0.96,
+      label: 'replay right forearm IK',
+    }),
+    lineBlock(`ReplayLeftUpperArm_${segment.id}`, {
+      from: leftShoulder,
+      to: leftElbow,
+      color: limbColor,
+      thickness: 0.055,
+      opacity: 0.74,
+      label: 'replay left upper arm balance pose',
+    }),
+    lineBlock(`ReplayLeftForearm_${segment.id}`, {
+      from: leftElbow,
+      to: leftHand,
+      color: limbColor,
+      thickness: 0.052,
+      opacity: 0.7,
+      label: 'replay left forearm balance pose',
+    }),
+    lineBlock(`ReplayRightThigh_${segment.id}`, {
+      from: rightHip,
+      to: rightKnee,
+      color: '#565f89',
+      thickness: 0.08,
+      opacity: 0.78,
+      label: 'replay right thigh stance',
+    }),
+    lineBlock(`ReplayRightShin_${segment.id}`, {
+      from: rightKnee,
+      to: rightFoot,
+      color: '#565f89',
+      thickness: 0.072,
+      opacity: 0.74,
+      label: 'replay right shin stance',
+    }),
+    lineBlock(`ReplayLeftThigh_${segment.id}`, {
+      from: leftHip,
+      to: leftKnee,
+      color: '#565f89',
+      thickness: 0.08,
+      opacity: 0.78,
+      label: 'replay left thigh stance',
+    }),
+    lineBlock(`ReplayLeftShin_${segment.id}`, {
+      from: leftKnee,
+      to: leftFoot,
+      color: '#565f89',
+      thickness: 0.072,
+      opacity: 0.74,
+      label: 'replay left shin stance',
+    }),
+  ];
 }
 
 function buildReplayRuntimeState({ segment, pose, worldModelEvents }) {
@@ -938,6 +1095,13 @@ function buildReplayRuntimeState({ segment, pose, worldModelEvents }) {
         position: pose.bodies.target.position,
         impacted: Boolean(pose.bodies.target.impacted),
       },
+    },
+    embodiedRig: {
+      overlayVersion: 'articulated-humanoid-overlay-v1',
+      bodyChain: ['ReplayHead', 'ReplayTorsoCore', 'ReplaySpine'],
+      rightArmChain: ['ReplayRightUpperArm', 'ReplayRightForearm', 'ReplayRightHand'],
+      stanceChain: ['ReplayRightThigh', 'ReplayRightShin', 'ReplayLeftThigh', 'ReplayLeftShin'],
+      constraintCue: 'ReplayConstraint_hand_rock',
     },
     constraints: {
       handRockFixed: {
@@ -996,6 +1160,9 @@ function buildEngineReplayOverlaySource({ segment, pose, replayState }) {
   const activeConstraint = replayState.constraints.handRockFixed.active;
   const panelStatusColor =
     replayState.panels.provenancePanel.status === 'aftermath-provenance' ? '#9ece6a' : '#7aa2f7';
+  const rigBlocks = buildHumanoidRig({ segment, avatar, hand, activeConstraint });
+  const constraintTo =
+    distance2d(hand, rock) < 0.05 && activeConstraint ? addVector(rock, [0.18, 0.02, 0.08]) : rock;
 
   return `
   // Scene-native replay injection for ${segment.id}; preserves the authored stage.
@@ -1006,12 +1173,7 @@ function buildEngineReplayOverlaySource({ segment, pose, replayState }) {
     intensity: 1.3
   }
 
-${objectBlock(`ReplayAvatar_${segment.id}`, {
-  geometry: 'capsule',
-  color: '#7aa2f7',
-  position: avatar,
-  scale: [0.42, 1.12, 0.42],
-})}
+${rigBlocks.join('\n\n')}
 
 ${objectBlock(`ReplayRightHand_${segment.id}`, {
   geometry: 'sphere',
@@ -1051,15 +1213,21 @@ ${objectBlock(`ReplayTarget_${segment.id}`, {
 })}
 
 ${objectBlock(`ReplayConstraint_hand_rock_${segment.id}`, {
-  geometry: 'cube',
+  geometry: 'sphere',
   color: activeConstraint ? '#9ece6a' : '#565f89',
-  position: [
-    (hand[0] + rock[0]) / 2,
-    (hand[1] + rock[1]) / 2,
-    (hand[2] + rock[2]) / 2,
-  ],
-  scale: [0.06, 0.06, 0.42],
-  opacity: activeConstraint ? 0.88 : 0.28,
+  position: hand,
+  scale: activeConstraint ? [0.13, 0.13, 0.13] : [0.08, 0.08, 0.08],
+  opacity: activeConstraint ? 0.9 : 0.25,
+  label: activeConstraint ? 'fixed hand rock constraint anchor' : 'inactive hand rock constraint anchor',
+})}
+
+${lineBlock(`ReplayConstraintVector_hand_rock_${segment.id}`, {
+  from: hand,
+  to: constraintTo,
+  color: activeConstraint ? '#9ece6a' : '#565f89',
+  thickness: activeConstraint ? 0.055 : 0.035,
+  opacity: activeConstraint ? 0.86 : 0.26,
+  label: activeConstraint ? 'oriented fixed constraint hand to rock' : 'inactive hand rock relation',
 })}
 
 ${objectBlock(`ReplayCameraRailState_${segment.id}`, {
@@ -1360,6 +1528,7 @@ export function buildSegmentReceipt({
     runtimeReplayState: engineFrame?.replayState
       ? rel(outputDir, resolveRepoPath(engineFrame.replayState))
       : null,
+    replayOverlay: engineFrame?.replayOverlay ?? null,
     runtimeScene: sceneRuntimeSummary(sceneSnapshot),
     worldModelEvents,
     oracle: {
@@ -1371,8 +1540,11 @@ export function buildSegmentReceipt({
               'World-model replay emitted semantic events for this segment.',
               'The still was captured through the engine Puppeteer frame path from scene-native replay injection in the authored HoloLand stage.',
               'Runtime replay state includes pose targets, hand-rock constraint state, camera rail focus, and panel status.',
+              engineFrame?.replayOverlay === 'articulated-humanoid-overlay-v1'
+                ? 'Replay overlay includes articulated torso/head/limb chains and an oriented hand-rock constraint cue.'
+                : null,
               `Next owner: ${owner}.`,
-            ]
+            ].filter(Boolean)
           : hasWorldModelPixelReplay
           ? [
               'World-model replay emitted semantic events for this segment.',
@@ -1617,6 +1789,7 @@ async function tryRenderEngineReplayStill({
     dryRun,
   });
   command.replayState = rel(REPO_ROOT, replayStatePath);
+  command.replayOverlay = replayState.embodiedRig?.overlayVersion ?? null;
   return command;
 }
 
@@ -1865,6 +2038,7 @@ export async function runSegmentedCapture(rawOptions = {}) {
     eventLog: receipt.eventLog,
     posePhysicsJson: receipt.posePhysicsJson,
     runtimeReplayState: receipt.runtimeReplayState,
+    replayOverlay: receipt.replayOverlay,
     runtimeScene: receipt.runtimeScene,
     worldModelEvents: receipt.worldModelEvents,
   }));
@@ -1900,6 +2074,9 @@ export async function runSegmentedCapture(rawOptions = {}) {
     segmentsWithRuntimeReplayState: receipts.filter((receipt) => {
       return receipt.runtimeReplayState && existsSync(join(outputDir, receipt.runtimeReplayState));
     }).length,
+    segmentsWithEmbodiedReplayOverlay: receipts.filter(
+      (receipt) => receipt.replayOverlay === 'articulated-humanoid-overlay-v1'
+    ).length,
   };
 
   const receiptPayload = {
