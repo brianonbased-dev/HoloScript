@@ -91,6 +91,7 @@ export interface HoloComposition extends HoloNode {
   name: string;
   theme?: HoloTheme;
   environment?: HoloEnvironment;
+  scenes?: HoloScene[];
   state?: HoloState;
   templates: HoloTemplate[];
   objects: HoloObjectDecl[];
@@ -162,6 +163,13 @@ export interface HoloThemeProperty extends HoloNode {
 export interface HoloEnvironment extends HoloNode {
   type: 'Environment';
   properties: HoloEnvironmentProperty[];
+}
+
+export interface HoloScene extends HoloNode {
+  type: 'Scene';
+  name: string;
+  environment?: HoloEnvironment;
+  objects: HoloObjectDecl[];
 }
 
 export interface HoloEnvironmentProperty extends HoloNode {

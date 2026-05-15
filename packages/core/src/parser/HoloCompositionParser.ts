@@ -561,6 +561,9 @@ export class HoloCompositionParser {
           composition.theme = this.parseTheme();
         } else if (this.check('ENVIRONMENT')) {
           composition.environment = this.parseEnvironment();
+        } else if (this.check('SCENE')) {
+          if (!composition.scenes) composition.scenes = [];
+          composition.scenes.push(this.parseScene());
         } else if (this.check('STATE')) {
           composition.state = this.parseState();
         } else if (this.check('METADATA_BLOCK')) {
@@ -947,6 +950,10 @@ export class HoloCompositionParser {
         const value = this.parseValue();
         properties.push({ type: 'EnvironmentProperty', key, value });
       }
+      // Allow semicolon as property separator (single-line environment blocks)
+      if (this.check('SEMICOLON')) {
+        this.advance();
+      }
       this.skipNewlines();
     }
 
@@ -954,6 +961,53 @@ export class HoloCompositionParser {
     return {
         loc: { start: startLoc, end: this.currentLocation() },
         type: 'Environment', properties };
+  }
+
+  // ===========================================================================
+  // SCENE (container for environment + objects)
+  // ===========================================================================
+
+  private parseScene(): HoloScene {
+    const startLoc = this.currentLocation();
+    this.expect('SCENE');
+    let name = '';
+    if (this.check('STRING')) {
+      name = this.expectString();
+    } else if (this.check('IDENTIFIER')) {
+      name = this.expectIdentifier();
+    } else {
+      name = 'scene';
+    }
+
+    this.skipNewlines();
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    let environment: HoloEnvironment | undefined;
+    const objects: HoloObjectDecl[] = [];
+
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+
+      if (this.check('ENVIRONMENT')) {
+        environment = this.parseEnvironment();
+      } else if (this.check('OBJECT') || this.check('ENTITY')) {
+        objects.push(this.parseObject());
+      } else {
+        // Skip unknown content to avoid infinite loop
+        this.advance();
+      }
+    }
+
+    this.expect('RBRACE');
+    return {
+      loc: { start: startLoc, end: this.currentLocation() },
+      type: 'Scene',
+      name,
+      environment,
+      objects,
+    };
   }
 
   private parseParticleSystem(): HoloParticleSystem {
