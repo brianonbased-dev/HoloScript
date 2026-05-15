@@ -154,4 +154,20 @@ describe('TrustLedger', () => {
       }
     }
   });
+
+  it('queries by receiptId', () => {
+    const ledger = new TrustLedger();
+    const receipt = ledger.append(makeInput());
+    expect(ledger.query({ receiptId: receipt.receiptId })).toHaveLength(1);
+    expect(ledger.query({ receiptId: 'nonexistent' })).toHaveLength(0);
+  });
+
+  it('queries by syncState', () => {
+    const ledger = new TrustLedger();
+    ledger.append(makeInput({ storage: { syncState: 'local_only' } }));
+    ledger.append(makeInput({ storage: { syncState: 'synced', redactedFields: [] } }));
+    expect(ledger.query({ syncState: 'local_only' })).toHaveLength(1);
+    expect(ledger.query({ syncState: 'synced' })).toHaveLength(1);
+    expect(ledger.query({ syncState: 'redacted_sync' })).toHaveLength(0);
+  });
 });
