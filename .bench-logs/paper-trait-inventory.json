@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-10T02:05:40.215Z",
+  "generatedAt": "2026-05-15T19:43:25.356Z",
   "source": "packages/core/src/traits/constants/__tests__/paper-trait-inventory.test.ts",
-  "categoryFileCount": 118,
+  "categoryFileCount": 119,
   "categoryFiles": [
     "accessibility-extended.ts",
     "accessibility.ts",
@@ -110,6 +110,7 @@
     "testing-qa.ts",
     "time-period.ts",
     "transportation-vehicles.ts",
+    "twin-earth.ts",
     "universal-service.ts",
     "v43-ai-xr.ts",
     "vfx-audio.ts",
@@ -122,15 +123,15 @@
     "workflow-bpm.ts",
     "xr-platform.ts"
   ],
-  "exportedTraitArraysCount": 168,
-  "totalTraitDefinitions": 6366,
-  "vrTraitsCount": 2926,
-  "uniqueVRTraitsCount": 2839,
+  "exportedTraitArraysCount": 169,
+  "totalTraitDefinitions": 6472,
+  "vrTraitsCount": 2979,
+  "uniqueVRTraitsCount": 2892,
   "duplicateCountInVRTraits": 87,
   "topExportsByCount": [
     {
       "exportName": "VR_TRAITS",
-      "count": 2926
+      "count": 2979
     },
     {
       "exportName": "ROBOTICS_INDUSTRIAL_TRAITS",
@@ -159,6 +160,10 @@
     {
       "exportName": "ANIMALS_TRAITS",
       "count": 48
+    },
+    {
+      "exportName": "TWIN_EARTH_TRAITS",
+      "count": 46
     },
     {
       "exportName": "DATA_VISUALIZATION_TRAITS",
@@ -203,10 +208,6 @@
     {
       "exportName": "FURNITURE_DECOR_TRAITS",
       "count": 36
-    },
-    {
-      "exportName": "INSTANCING_GEOMETRY_TRAITS",
-      "count": 35
     }
   ],
   "exports": [
@@ -356,7 +357,7 @@
     },
     {
       "exportName": "ENVIRONMENT_INPUT_TRAITS",
-      "count": 15
+      "count": 16
     },
     {
       "exportName": "ENVIRONMENTAL_BIOME_TRAITS",
@@ -624,7 +625,7 @@
     },
     {
       "exportName": "PHONE_SLEEVE_VR_TRAITS",
-      "count": 25
+      "count": 31
     },
     {
       "exportName": "PHYSICAL_AFFORDANCES_TRAITS",
@@ -791,6 +792,10 @@
       "count": 12
     },
     {
+      "exportName": "TWIN_EARTH_TRAITS",
+      "count": 46
+    },
+    {
       "exportName": "UNIVERSAL_CONTAINER_TRAITS",
       "count": 30
     },
@@ -856,7 +861,7 @@
     },
     {
       "exportName": "VR_TRAITS",
-      "count": 2926
+      "count": 2979
     },
     {
       "exportName": "WATER_FLUID_TRAITS",

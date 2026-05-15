@@ -36,10 +36,10 @@ struct SimParams {
 // =============================================================================
 
 // Grid data (fixed-point from P2G)
-@group(0) @binding(1) var<storage, read> grid_mass_in: array<i32>;
-@group(0) @binding(2) var<storage, read> grid_momentum_x_in: array<i32>;
-@group(0) @binding(3) var<storage, read> grid_momentum_y_in: array<i32>;
-@group(0) @binding(4) var<storage, read> grid_momentum_z_in: array<i32>;
+@group(0) @binding(1) var<storage, read_write> grid_mass: array<atomic<i32>>;
+@group(0) @binding(2) var<storage, read_write> grid_momentum_x: array<atomic<i32>>;
+@group(0) @binding(3) var<storage, read_write> grid_momentum_y: array<atomic<i32>>;
+@group(0) @binding(4) var<storage, read_write> grid_momentum_z: array<atomic<i32>>;
 
 // Grid velocity output (float, for G2P to read)
 @group(0) @binding(5) var<storage, read_write> grid_velocity: array<vec4<f32>>;
@@ -62,7 +62,7 @@ fn cs_grid_update(@builtin(global_invocation_id) gid: vec3<u32>) {
   if (idx >= total_cells) { return; }
 
   // Convert fixed-point back to float
-  let mass = f32(grid_mass_in[idx]) * FIXED_POINT_INV;
+  let mass = f32(atomicLoad(&grid_mass[idx])) * FIXED_POINT_INV;
 
   // Skip empty cells
   if (mass <= 0.0001) {
@@ -72,9 +72,9 @@ fn cs_grid_update(@builtin(global_invocation_id) gid: vec3<u32>) {
 
   // Momentum to velocity
   var vel = vec3<f32>(
-    f32(grid_momentum_x_in[idx]) * FIXED_POINT_INV / mass,
-    f32(grid_momentum_y_in[idx]) * FIXED_POINT_INV / mass,
-    f32(grid_momentum_z_in[idx]) * FIXED_POINT_INV / mass,
+    f32(atomicLoad(&grid_momentum_x[idx])) * FIXED_POINT_INV / mass,
+    f32(atomicLoad(&grid_momentum_y[idx])) * FIXED_POINT_INV / mass,
+    f32(atomicLoad(&grid_momentum_z[idx])) * FIXED_POINT_INV / mass,
   );
 
   // Apply gravity + wind external forces
@@ -109,7 +109,10 @@ fn cs_grid_clear(@builtin(global_invocation_id) gid: vec3<u32>) {
   let total_cells = params.grid_res * params.grid_res * params.grid_res;
   if (idx >= total_cells) { return; }
 
-  // Reset grid for next frame (called BEFORE P2G)
-  // Note: atomicStore not needed here since grid is exclusively written
+  // Reset grid for next frame (called BEFORE P2G).
+  atomicStore(&grid_mass[idx], 0);
+  atomicStore(&grid_momentum_x[idx], 0);
+  atomicStore(&grid_momentum_y[idx], 0);
+  atomicStore(&grid_momentum_z[idx], 0);
   grid_velocity[idx] = vec4<f32>(0.0, 0.0, 0.0, 0.0);
 }

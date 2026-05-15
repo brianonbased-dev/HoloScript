@@ -287,7 +287,16 @@ export class PuppeteerRenderer {
     waitUntil: 'load' | 'domcontentloaded' | 'networkidle0' | 'networkidle2' = 'domcontentloaded',
     timeout = this.options.timeout!
   ): Promise<void> {
-    await page.setContent(html, { waitUntil, timeout });
+    try {
+      await page.setContent(html, { waitUntil, timeout });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.includes('Navigation timeout')) {
+        throw error;
+      }
+      this.log('setContent navigation timed out; waiting for render readiness:', message);
+    }
+
     await page.evaluate((timeoutMs: number) => {
       return new Promise<void>((resolve, reject) => {
         const startedAt = Date.now();

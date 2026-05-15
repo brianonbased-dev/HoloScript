@@ -46,4 +46,50 @@ describe('PuppeteerRenderer', () => {
     expect(html).toContain("extractBlocks(code, 'object')");
     expect(html).toContain("extractVector(body, 'position')");
   });
+
+  it('continues to render readiness after a setContent navigation timeout', async () => {
+    const renderer = new PuppeteerRenderer();
+    const setRenderContent = (renderer as unknown as {
+      setRenderContent: (
+        page: {
+          setContent: (html: string, options?: { waitUntil?: string; timeout?: number }) => Promise<void>;
+          evaluate: (fn: (timeoutMs: number) => Promise<void>, timeoutMs: number) => Promise<void>;
+        },
+        html: string,
+        waitUntil?: 'load' | 'domcontentloaded' | 'networkidle0' | 'networkidle2',
+        timeout?: number
+      ) => Promise<void>;
+    }).setRenderContent.bind(renderer);
+
+    const page = {
+      setContent: vi.fn().mockRejectedValue(new Error('Navigation timeout of 30000 ms exceeded')),
+      evaluate: vi.fn().mockResolvedValue(undefined),
+    };
+
+    await expect(setRenderContent(page, '<html></html>', 'domcontentloaded', 30_000)).resolves.toBeUndefined();
+    expect(page.evaluate).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not swallow non-navigation setContent failures', async () => {
+    const renderer = new PuppeteerRenderer();
+    const setRenderContent = (renderer as unknown as {
+      setRenderContent: (
+        page: {
+          setContent: (html: string, options?: { waitUntil?: string; timeout?: number }) => Promise<void>;
+          evaluate: (fn: (timeoutMs: number) => Promise<void>, timeoutMs: number) => Promise<void>;
+        },
+        html: string,
+        waitUntil?: 'load' | 'domcontentloaded' | 'networkidle0' | 'networkidle2',
+        timeout?: number
+      ) => Promise<void>;
+    }).setRenderContent.bind(renderer);
+
+    const page = {
+      setContent: vi.fn().mockRejectedValue(new Error('bad markup')),
+      evaluate: vi.fn().mockResolvedValue(undefined),
+    };
+
+    await expect(setRenderContent(page, '<html></html>')).rejects.toThrow('bad markup');
+    expect(page.evaluate).not.toHaveBeenCalled();
+  });
 });

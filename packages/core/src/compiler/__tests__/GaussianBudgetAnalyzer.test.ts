@@ -626,4 +626,78 @@ describe('GaussianBudgetAnalyzer', () => {
       expect(result.warnings[0].suggestion).toContain('pruning');
     });
   });
+
+  // ===========================================================================
+  // P.043: Multi-user shared-sort savings (analyzer wires estimateMultiUserCost)
+  //
+  // G.GOLD.013 — test the false case for computed assertions. The
+  // multiUserSavings field is null by default; only userCount > 1 should
+  // populate it. Tests both branches explicitly.
+  // ===========================================================================
+  describe('Multi-user shared-sort savings (P.043)', () => {
+    function overBudgetComp(): HoloComposition {
+      return createGaussianComposition('OverBudgetMultiview', [
+        { name: 'scene', maxSplats: 250_000 },
+      ]);
+    }
+
+    it('FALSE CASE: leaves multiUserSavings = null when userCount is unset', () => {
+      const analyzer = new GaussianBudgetAnalyzer({ platforms: ['quest3'] });
+      const result = analyzer.analyze(overBudgetComp());
+      expect(result.warnings.length).toBeGreaterThan(0);
+      // Field is present on the warning shape but null when no userCount given
+      expect(result.warnings[0].multiUserSavings).toBeNull();
+    });
+
+    it('FALSE CASE: leaves multiUserSavings = null when userCount = 1 (single user)', () => {
+      const analyzer = new GaussianBudgetAnalyzer({ platforms: ['quest3'] });
+      const result = analyzer.analyze(overBudgetComp(), 1);
+      expect(result.warnings[0].multiUserSavings).toBeNull();
+    });
+
+    it('populates savings projection at userCount = 2 with positive savingsPercent', () => {
+      const analyzer = new GaussianBudgetAnalyzer({ platforms: ['quest3'] });
+      const result = analyzer.analyze(overBudgetComp(), 2);
+      const savings = result.warnings[0].multiUserSavings;
+      expect(savings).not.toBeNull();
+      expect(savings!.userCount).toBe(2);
+      expect(savings!.savingsPercent).toBeGreaterThan(0);
+      expect(savings!.savingsPercent).toBeLessThan(60); // asymptotic ceiling
+      expect(savings!.exceedsPracticalCeiling).toBe(false);
+    });
+
+    it('savings grow monotonically with userCount up to the asymptotic ceiling', () => {
+      const analyzer = new GaussianBudgetAnalyzer({ platforms: ['quest3'] });
+      const r2 = analyzer.analyze(overBudgetComp(), 2);
+      const r4 = analyzer.analyze(overBudgetComp(), 4);
+      const r8 = analyzer.analyze(overBudgetComp(), 8);
+      const s2 = r2.warnings[0].multiUserSavings!.savingsPercent;
+      const s4 = r4.warnings[0].multiUserSavings!.savingsPercent;
+      const s8 = r8.warnings[0].multiUserSavings!.savingsPercent;
+      expect(s4).toBeGreaterThan(s2);
+      expect(s8).toBeGreaterThan(s4);
+      // Asymptotic ceiling check (sortFraction default = 0.6 → ceiling 60%)
+      expect(s8).toBeLessThan(60);
+    });
+
+    it('flags exceedsPracticalCeiling at userCount > 12', () => {
+      const analyzer = new GaussianBudgetAnalyzer({ platforms: ['quest3'] });
+      const r12 = analyzer.analyze(overBudgetComp(), 12);
+      const r16 = analyzer.analyze(overBudgetComp(), 16);
+      expect(r12.warnings[0].multiUserSavings!.exceedsPracticalCeiling).toBe(false);
+      expect(r16.warnings[0].multiUserSavings!.exceedsPracticalCeiling).toBe(true);
+    });
+
+    it('savings projection lands on warning-severity entries (not just critical)', () => {
+      // 150K Gaussians on Quest 3 (180K budget) → warning, not critical
+      const comp = createGaussianComposition('WarningRange', [
+        { name: 'scene', maxSplats: 150_000 },
+      ]);
+      const analyzer = new GaussianBudgetAnalyzer({ platforms: ['quest3'] });
+      const result = analyzer.analyze(comp, 4);
+      expect(result.warnings[0].severity).toBe('warning');
+      expect(result.warnings[0].multiUserSavings).not.toBeNull();
+      expect(result.warnings[0].multiUserSavings!.userCount).toBe(4);
+    });
+  });
 });

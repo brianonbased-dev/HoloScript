@@ -416,9 +416,13 @@ export class GaussianBudgetAnalyzer {
    * Analyze a HoloComposition for Gaussian budget compliance.
    *
    * @param composition - The parsed HoloComposition AST
+   * @param userCount - Number of simultaneous users/viewpoints. When > 1,
+   *   each emitted warning carries a P.043 multi-user shared-sort savings
+   *   projection so the compiler can route to MultiviewGaussianRenderer.
+   *   Defaults to undefined (single-user → no savings projection).
    * @returns Complete budget analysis with warnings
    */
-  analyze(composition: HoloComposition): GaussianBudgetAnalysis {
+  analyze(composition: HoloComposition, userCount?: number): GaussianBudgetAnalysis {
     // 1. Collect all Gaussian sources from the composition
     const sources = this.collectGaussianSources(composition);
 
@@ -435,7 +439,13 @@ export class GaussianBudgetAnalyzer {
       const utilization = budget > 0 ? (totalGaussians / budget) * 100 : 0;
       platformUtilization[platform] = Math.round(utilization * 10) / 10;
 
-      const warning = this.evaluateBudget(platform, totalGaussians, budget, utilization);
+      const warning = this.evaluateBudget(
+        platform,
+        totalGaussians,
+        budget,
+        utilization,
+        userCount
+      );
       if (warning) {
         warnings.push(warning);
       }
@@ -642,7 +652,8 @@ export class GaussianBudgetAnalyzer {
     platform: GaussianPlatform,
     totalGaussians: number,
     budget: number,
-    utilization: number
+    utilization: number,
+    userCount?: number
   ): GaussianBudgetWarning | null {
     const platformInfo = GAUSSIAN_PLATFORM_BUDGETS[platform];
     const overage = Math.max(0, totalGaussians - budget);
@@ -658,8 +669,13 @@ export class GaussianBudgetAnalyzer {
             : 1920 * 1080;
     const overdrawFactor = estimateOverdraw(totalGaussians, viewportPixels);
 
-    // P.043: Multi-user savings (null if single-user)
-    const multiUserSavings: MultiUserCostEstimate | null = null;
+    // P.043: Multi-user shared-sort savings (null if single-user or not specified).
+    // estimateMultiUserCost handles the userCount<=1 case by returning savings=0;
+    // we treat that as null so the warning shape matches "no projection available."
+    const multiUserSavings: MultiUserCostEstimate | null =
+      userCount !== undefined && userCount > 1
+        ? estimateMultiUserCost(userCount)
+        : null;
 
     if (totalGaussians > budget) {
       // Critical: over budget

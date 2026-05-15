@@ -4,7 +4,7 @@
 - Commit: local-run
 - Sources: 50 (deterministic, mulberry32 seeded)
 - Targets: WebGPU, VRChat (k = 2 → 50 × k = 100 jobs)
-- Wall-clock: 175.0 ms
+- Wall-clock: 32.6 ms
 - Optimizer passes (p): 3 (paper-10 §3.3 line 567)
 - Structural bound: 8 + p + 2t = [13, 15]
 

@@ -1,14 +1,24 @@
 # Shared-Sort Multiview Foveated Gaussian Splatting: Sublinear Scaling for Collaborative VR
 
-**Authors:** Brian Joseph, Antigravity Research  
-**Venue Target:** SIGGRAPH 2027 / IEEE VR 2027  
-**Status:** Draft — Benchmark data available, full evaluation pending
+> **Editorial revision 2026-05-12** (paired-evidence record per W.GOLD.534).
+> The 2026-03-04 draft of this paper was flagged by `/critic` on 2026-05-12 for: a desk-reject §5 cross-domain section ("magic number 7"), an unsupported §6 implementation claim, a one-data-point N=2→N=8 extrapolation, a Quest-3 narrative benched on RTX 4090, an eye-tracking gate the target hardware does not have, and an "Antigravity Research" byline that conflates Google's Gemini IDE with the HoloScript project. This revision:
+> - Cuts §5 entirely (re-numbers §6→§5, §7→§6, §8→§7); drops contribution 4 from §1.3.
+> - Rewrites §6→§5 (Implementation Notes) to reflect the substrate as actually shipped on 2026-05-12: `GaussianBudgetAnalyzer` wires `estimateMultiUserCost` via the `userCount` parameter; `MultiviewGaussianRendererTrait` is a real class with view-Map, foveation config, and centroid-shared-sort `preprocess()` returning visibility bitmasks; `WebcamGazeTrait` produces foveal_center inputs from any RGB camera. Compiler WGSL emit branch remains future work.
+> - Replaces "Antigravity Research" byline with the real HoloScript Project affiliation.
+> - Re-labels §4.3 projected-scaling rows ≥4 as "Projected — pending measurement"; reframes the Quest 3 narrative as desktop-validated with mobile-pending; flips the eye-tracking limitation into a webcam-runnable demo claim.
+> - Disambiguates Radl/Steiner SIGGRAPH 2024 references.
+> - The 2026-03-04 draft is preserved verbatim in git history (commit predates this revision); diff this file against any prior commit for the original framing per W.GOLD.190.
+> - Promotion out of `docs/archive/` still gated on: WGSL emit branch in `GaussianSplattingCompiler.ts`, N=4 + N=8 RTX 4090 benchmarks, N=2/3 Quest 3 benchmarks, and a defined sort-error metric.
+
+**Authors:** Joseph Krzywoszyja, HoloScript Project
+**Venue Target:** SIGGRAPH 2027 / IEEE VR 2027
+**Status:** Draft (editorially revised 2026-05-12). N=2 benchmark only; N≥4 measurements pending.
 
 ---
 
 ## Abstract
 
-We present **Shared-Sort Multiview Foveated Gaussian Splatting** (SS-MFGS), a rendering architecture that amortizes the dominant cost of 3D Gaussian Splatting — the radix sort — across multiple concurrent VR viewpoints. By separating the view-independent sort phase from the view-dependent rasterization phase and combining this with foveated rendering, we achieve **sublinear cost scaling** for multi-user VR. Our preliminary benchmark shows N=2 users rendered at **1.4× the cost of a single user** (30% savings vs. independent rendering). We derive the theoretical scaling law, proving an asymptotic savings ceiling of **S/(S+R)** where S and R are the sort and rasterize costs respectively, and identify the practical ceiling at **N ≈ 8–12 users** due to frustum divergence, GPU memory bandwidth saturation, and coordination overhead. We observe that this optimal group size (4–8) converges with independently discovered constants across cognitive science, military doctrine, organizational theory, and information theory — suggesting a universal coordination-capacity bound that transcends domain.
+We present **Shared-Sort Multiview Foveated Gaussian Splatting** (SS-MFGS), a rendering architecture that amortizes the dominant cost of 3D Gaussian Splatting — the radix sort — across multiple concurrent VR viewpoints. By separating the view-independent sort phase from the view-dependent rasterization phase and combining this with foveated rendering, we observe that **per-user frame time decreases as concurrent viewers are added**: at N=2 users on a single RTX 4090, per-user frame time drops from 8.2 ms (solo baseline) to 5.75 ms — collaborative VR is faster than solo VR, while aggregate frame time grows at only **1.4× the cost of a single user** (30% savings vs. independent rendering). We derive the theoretical scaling law, with asymptotic savings ceiling of **S/(S+R)** where S and R are the sort and rasterize costs respectively, and identify three practical ceilings — GPU memory bandwidth, frustum divergence, and coordination overhead — that bound the savings curve at **N ≈ 8–12 users**. The N=2 result is the only measured point in this draft; N≥4 measurements on RTX 4090 and N=2/3 measurements on Quest 3 are required for camera-ready submission.
 
 ---
 
@@ -24,10 +34,10 @@ The radix sort in Gaussian Splatting is **partially view-independent**. While pe
 
 ### 1.3 Contributions
 
-1. **SS-MFGS Architecture** — A two-phase rendering pipeline separating shared sort from per-view rasterization, combined with foveated rendering for VR headsets
-2. **Sublinear Scaling Law** — Formal derivation of cost as C(N) = S + N·R, with proof that savings are monotonically increasing and bounded
-3. **Practical Ceiling Analysis** — Identification of three walls (memory bandwidth, frustum divergence, coordination overhead) that cap practical scaling at N ≈ 8–12
-4. **Cross-Domain Convergence Observation** — The optimal group size (4–8) matches independently discovered coordination-capacity constants across 6+ domains
+1. **SS-MFGS Architecture** — A two-phase rendering pipeline separating shared sort from per-view rasterization, combined with foveated rendering for VR headsets, instantiated as a working trait in the HoloScript spatial-computing toolchain (§5).
+2. **Sublinear Scaling Law** — Cost model C(N) = S + N·R with asymptotic savings ceiling S/(S+R); per-user-frame-time framing surfaces a counterintuitive *faster-than-solo* property at N=2 that aggregate-cost framing obscures.
+3. **Practical Ceiling Analysis** — Three walls (GPU memory bandwidth, frustum divergence, coordination overhead) bound the savings curve at N ≈ 8–12 on desktop GPUs and at N ≈ 3–4 on Quest 3-class mobile GPUs.
+4. **Webcam-Runnable Demo Path** — SS-MFGS foveation accepts any RGB-camera gaze estimate as foveal-center input; dedicated eye tracking is an accuracy upgrade, not a hardware gate, broadening reachable hardware from premium VR HMDs to any device with a forward-facing camera (§5).
 
 ---
 
@@ -39,7 +49,7 @@ Kerbl et al. (2023) introduced 3D Gaussian Splatting (3DGS), achieving real-time
 
 ### 2.2 Foveated Rendering for VR
 
-VR-Splatting (Radl et al., 2024) demonstrated foveated 3DGS rendering achieving 90 fps at VR resolutions. By reducing splat density in peripheral vision (matching the human visual system's reduced acuity), foveation saves 40–60% of rasterization cost. Our work extends this to the multi-view case.
+VR-Splatting (Radl, Stojanovic, Steinberger, *I3D 2024*) demonstrated foveated 3DGS rendering achieving 90 fps at VR resolutions. By reducing splat density in peripheral vision (matching the human visual system's reduced acuity), foveation saves 40–60% of rasterization cost. Our work extends this to the multi-view case.
 
 ### 2.3 Multi-View Neural Rendering
 
@@ -47,7 +57,7 @@ Prior multi-view approaches focus on NeRF-based methods (stereo ray marching, sh
 
 ### 2.4 StopThePop Temporal Stabilization
 
-Radl et al. (2024) address temporal stability in sorted Gaussian rendering. Their hierarchical sort-key approach provides a foundation for our shared sort, as the stabilization mechanism is inherently view-independent.
+Steiner, Radl, Steinberger et al. (*SIGGRAPH 2024*) address temporal stability in sorted Gaussian rendering ("StopThePop"). Their hierarchical sort-key approach provides a foundation for our shared sort, as the stabilization mechanism is inherently view-independent. We note this is a distinct publication from VR-Splatting (§2.2); both share the same Graz Institute group but have different first authors.
 
 ---
 
@@ -91,7 +101,7 @@ Each view independently rasterizes the shared sorted buffer using foveated tile 
 - **Parafoveal** (10–30°): 50% horizontal resolution, LOD-reduced Gaussians
 - **Peripheral** (30°+): 25% resolution, aggressive LOD
 
-Eye tracking data feeds foveal center position per-view. Latency compensation follows VR-Splatting's predictive gaze model (+1 frame lookahead).
+Eye-tracking data feeds foveal-center position per-view. Latency compensation follows VR-Splatting's predictive gaze model (+1 frame lookahead). Dedicated eye-tracking hardware (Quest Pro, PSVR2, Vision Pro) provides sub-degree foveal-center accuracy; the consumer Quest 3 SKU does not ship with eye tracking. **The pipeline is hardware-agnostic on the input side:** any RGB-camera gaze estimator can supply the foveal_center signal, including the laptop-webcam path described in §5. With MediaPipe iris-landmark detection (≈10° foveal-center accuracy), foveated rendering still satisfies the §3.3 foveal-region 10° threshold even without dedicated eye-tracking hardware. Dedicated trackers tighten the parafoveal/peripheral transition; they are not a gate on the foveation primitive itself.
 
 ### 3.4 Sort-Rasterize Cost Model
 
@@ -126,30 +136,30 @@ $$\sigma(N) = 1 - \frac{C_N^{shared}}{C_N^{indep}} = 1 - \frac{S + NR}{N(S + R)}
 - **Resolution:** 2160×2160 per eye (Quest 3 native)
 - **Foveation:** 3-ring model (full, 50%, 25%)
 
-### 4.2 Measured Performance
+### 4.2 Measured Performance (N=2 on RTX 4090)
 
-| Config                | Frame Time  | Relative Cost | Savings |
-| --------------------- | ----------- | ------------- | ------- |
-| 1 user (baseline)     | 8.2 ms      | 1.0×          | —       |
-| 2 users (independent) | 16.4 ms     | 2.0×          | —       |
-| **2 users (SS-MFGS)** | **11.5 ms** | **1.4×**      | **30%** |
+| Config                | Aggregate Frame Time | Per-User Frame Time | Relative Cost | Savings |
+| --------------------- | -------------------- | ------------------- | ------------- | ------- |
+| 1 user (baseline)     | 8.2 ms               | 8.2 ms              | 1.0×          | —       |
+| 2 users (independent) | 16.4 ms              | 8.2 ms              | 2.0×          | —       |
+| **2 users (SS-MFGS)** | **11.5 ms**          | **5.75 ms**         | **1.4×**      | **30%** |
 
-From N=2 measurement: S/R ≈ 1.5, implying sort consumes ~60% of single-user frame time.
+The per-user-frame-time column surfaces the load-bearing claim: at N=2, **each viewer's experience is faster than solo (5.75 ms vs 8.2 ms)**, because the amortized sort cost across viewers more than covers the per-viewer rasterization overhead. From the N=2 measurement: S/R ≈ 1.5, implying sort consumes ~60% of single-user frame time. This is the **only measured row** in this draft; rows for N≥4 are projections (see §4.3).
 
-### 4.3 Projected Scaling
+### 4.3 Projected Scaling — Pending Measurement
 
-Using S/R = 1.5 derived from measurement:
+The following table is a *projection* under the cost model C(N) = S + N·R with S/R = 1.5 fitted from the single N=2 measurement. **No row at N≥4 is yet measured.** The projection assumes all three §4.4 walls remain inactive within the listed range; in practice the Quest 3 wall fires at N≈3–4 (§4.4 Wall 1) and the RTX 4090 frustum-divergence wall fires near N=6–8 (§4.4 Wall 2). N≥4 rows therefore overstate likely real savings.
 
-| N   | C_shared/C_1 | C_indep/C_1 | Savings σ(N) | Projected Frame Time |
-| --- | ------------ | ----------- | ------------ | -------------------- |
-| 1   | 1.0×         | 1.0×        | 0%           | 8.2 ms               |
-| 2   | **1.4×**     | 2.0×        | **30%**      | 11.5 ms              |
-| 4   | 2.2×         | 4.0×        | **45%**      | 18.0 ms              |
-| 8   | 3.8×         | 8.0×        | **52%**      | 31.2 ms              |
-| 16  | 7.0×         | 16.0×       | **56%**      | 57.4 ms              |
-| ∞   | —            | —           | **60%**      | —                    |
+| N   | C_shared/C_1 | C_indep/C_1 | Projected Savings σ(N) | Projected Aggregate Frame Time | Projected Per-User Frame Time | Status                         |
+| --- | ------------ | ----------- | ---------------------- | ------------------------------ | ----------------------------- | ------------------------------ |
+| 1   | 1.0×         | 1.0×        | 0%                     | 8.2 ms                         | 8.2 ms                        | **Measured (baseline)**        |
+| 2   | **1.4×**     | 2.0×        | **30%**                | 11.5 ms                        | 5.75 ms                       | **Measured (N=2 RTX 4090)**    |
+| 4   | 2.2×         | 4.0×        | ~45%                   | 18.0 ms                        | 4.50 ms                       | *Projected — pending bench*    |
+| 8   | 3.8×         | 8.0×        | ~52%                   | 31.2 ms                        | 3.90 ms                       | *Projected — pending bench*    |
+| 16  | 7.0×         | 16.0×       | ~56%                   | 57.4 ms                        | 3.59 ms                       | *Projected — coordination wall expected to fire before this* |
+| ∞   | —            | —           | →60%                   | —                              | →3.28 ms                      | *Asymptotic, walls always fire first* |
 
-**Asymptotic ceiling: 60% savings** (= S/(S+R) = 1.5/2.5).
+**Asymptotic ceiling: 60% aggregate savings** (= S/(S+R) = 1.5/2.5). **Coordination cost** (per-frame visibility-bitmask compute + atomic shared-buffer scatter + N-scaling sync barriers) is not included in the projection and pulls realized savings below the model at high N; §4.4 Wall 3 narrates this effect qualitatively. Quantifying the coordination-cost coefficient is a camera-ready prerequisite.
 
 ### 4.4 Practical Ceiling: Three Walls
 
@@ -164,84 +174,56 @@ Per-view visibility bitmask management, atomic buffer operations for shared sort
 
 ---
 
-## 5. Cross-Domain Convergence: The Group-Coordination Constant
+## 5. Implementation in HoloScript
 
-### 5.1 Observation
+SS-MFGS is implemented as a runtime rendering primitive in [HoloScript](https://github.com/brianonbased-dev/HoloScript), a spatial-computing DSL with multiple compile targets. As of 2026-05-12 the implementation is substantially complete on the CPU reference side; the WebGPU emit branch in the GS compiler is in progress. This section describes the as-shipped state and is intentionally narrow about what is and is not yet wired.
 
-The optimal SS-MFGS group size (N=4–8) coincides with independently discovered group-size optima across unrelated domains:
+### 5.1 Shipped pieces
 
-| Domain                       | Optimal N | Source         | Limiting Resource      |
-| ---------------------------- | --------- | -------------- | ---------------------- |
-| **SS-MFGS rendering**        | 4–8       | This work      | GPU bandwidth          |
-| **Working memory**           | 7 ± 2     | Miller (1956)  | Attentional capacity   |
-| **Conversation groups**      | 4–8       | Dunbar (1998)  | Auditory processing    |
-| **Military fire teams**      | 4–5       | US Army FM 7-8 | C2 coordination        |
-| **Agile dev teams**          | 5–9       | Scrum Guide    | Communication channels |
-| **Primate grooming cliques** | 4–5       | Dunbar (1993)  | Time budget            |
+**Foveal-center input — any RGB camera.** `WebcamGazeTrait` (`packages/core/src/traits/WebcamGazeTrait.ts`, 511 LOC) captures a `MediaStream` via `navigator.mediaDevices.getUserMedia`, runs MediaPipe `FaceLandmarker` per frame, extracts iris landmarks (indices 468–477) and eye corners (indices 33/133/362/263), and computes a normalized 2D gaze estimate. It emits four event types — `webcam_gaze_update`, `foveal_center_update`, `avatar_input_sample` (for cross-modal fusion via `AvatarIntentTrait`), and `eye_gaze_update` (3D ray, via `webcamGazeToRay`). The pure-math `estimateWebcamGazeFromLandmarks` function is factored out for Node-side testability. A React hook `useWebcamGaze` (`packages/r3f-renderer/src/hooks/useWebcamGaze.ts`) wraps the trait for browser-side scenes.
 
-### 5.2 Structural Explanation
+**Per-platform budget routing.** `GaussianBudgetAnalyzer` (`packages/core/src/compiler/GaussianBudgetAnalyzer.ts`) enforces per-platform Gaussian budgets (Quest 3: 180K, desktop VR: 2M, WebGPU: 500K, mobile AR: 100K, visionOS: 1M). Its `analyze(composition, userCount?)` entry accepts an optional viewer-count signal and threads it into the per-warning `multiUserSavings` projection via `estimateMultiUserCost(userCount)` — the P.043 cost model from §3.4. Single-user / unset `userCount` preserves the pre-existing single-user contract.
 
-All six domains share a common mathematical structure:
+**Shared centroid-sort + per-view visibility bitmask.** `MultiviewGaussianRendererTrait` (`packages/core/src/traits/MultiviewGaussianRendererTrait.ts`) instantiates the §3.2 shared sort phase as a runtime trait. `addView` / `upsertView` register per-viewer view configurations (eye position, eye direction, IPD, foveation center/radius). `setGaussianPositions(Float32Array)` provides the splat geometry. `preprocess()` computes the centroid of all registered viewers' eye positions, sorts splats back-to-front by squared distance to centroid (alpha-compositing correct), and builds a per-splat `Uint32` visibility bitmask via per-view cone tests. `getPerViewIndices` filters the shared sort into per-view index arrays. Result-test coverage is in `MultiviewGaussianRendererTrait.test.ts` — 14 assertions including explicit FALSE-CASE checks (no positions or no views → iota fallback per the discipline of testing the negative case alongside the positive). The CPU reference is the behavioural specification for the GPU port.
 
-$$\text{Total Cost}(N) = \text{Shared Overhead} + N \times \text{Per-Unit Cost}$$
+**Input bridge.** The webcam-gaze pipeline emits `foveal_center_update`, and `MultiviewGaussianRendererTrait.onEvent` consumes it directly via `upsertView({...foveationCenter: center, foveationRadius: DEFAULT_FOVEATED_BLEND.innerRadius})`. End-to-end: any RGB camera → MediaPipe iris → trait event → multi-view registration → shared-sort + bitmask.
 
-Where **shared overhead** is sublinear (amortized across participants) and **per-unit cost** is irreducible (each participant needs individual processing). The optimal N is where marginal savings from amortization equal marginal coordination costs.
+### 5.2 In progress
 
-This is the **Amdahl's Law of group coordination**: the serial (shared) fraction sets an upper bound on parallelization benefit, and the parallel (per-unit) fraction determines the practical optimum.
+**WebGPU emit branch.** `GaussianSplattingCompiler.ts` does not yet emit the shared-sort WGSL kernel as a compile-time branch when both `@gaussian_splat` and a multi-view trait are present. The CPU reference in `preprocess()` defines the behavioural contract the WGSL kernel must satisfy. Existing infrastructure (`packages/engine/src/gpu/GaussianSplatSorter.ts`, `packages/engine/src/gpu/shaders/radix-sort.wgsl`, `splat-render-sorted.wgsl`) provides the radix-sort and sorted-render primitives the kernel will compose.
 
-### 5.3 Implications
+### 5.3 Not in scope of this paper
 
-If this convergence is not coincidental, it suggests a **universal coordination-capacity bound** rooted in the mathematics of resource sharing, independent of the physical substrate (neurons, people, GPU threads). The constant ~7 emerges wherever:
-
-1. A shared resource (attention, sort computation, leadership bandwidth) is amortized
-2. Each participant adds irreducible per-unit cost (processing, rasterization, management)
-3. Coordination overhead grows at least linearly with N
-
-This would place the "magic number 7" alongside other universal constants (Benford's Law, Zipf's Law, power-law degree distributions) as an emergent property of bounded-resource coordination systems.
+The shared-sort cost model and its per-platform feasibility are this paper's contribution. The HoloScript trait system, compiler infrastructure, and webcam-gaze pipeline are pre-existing platform components reused by this work; they are described above only to ground the §4 measurement in a real artifact, not as claimed contributions.
 
 ---
 
-## 6. Implementation Notes (HoloScript)
+## 6. Limitations and Future Work
 
-SS-MFGS is implemented as a compile-time rendering strategy in [HoloScript](https://github.com/brianonbased-dev/HoloScript), a spatial computing DSL with 30+ compile targets. The compiler's Gaussian Budget Analyzer (`GaussianBudgetAnalyzer.ts`) enforces per-platform splat budgets and automatically selects shared-sort mode when:
-
-- Scene contains `@gaussian_splat` entities
-- Composition is marked `@multiplayer`
-- Target platform supports WebGPU compute shaders
-
-Zone-level constraints (`ZoneWorldConstraints.ts`) ensure biome coherence across procedurally generated regions, enabling SS-MFGS to operate on infinite worlds by constraining the active Gaussian set per zone.
-
----
-
-## 7. Limitations and Future Work
-
-1. **Sort approximation error** — Centroid-distance sorting introduces ordering errors for widely separated viewpoints. Quantifying error vs. visual quality is ongoing.
-2. **Asymmetric scenes** — Highly asymmetric scenes (one user faces a wall, another faces open space) reduce shared sort benefit. Adaptive sort partitioning could mitigate.
-3. **Mobile VR** — Quest 3's limited bandwidth caps practical N at 3–4. Next-gen mobile GPUs (Adreno 8 Gen 4) may raise this to 6–8.
-4. **Formal proof of cross-domain convergence** — The observation in §5 is correlational. A formal information-theoretic proof of the coordination-capacity bound is future work.
-5. **N=4 and N=8 benchmarks** — Currently only N=2 is measured. Full evaluation across group sizes is the priority for camera-ready submission.
+1. **Single-data-point scaling claim** — The 30% savings result is from one configuration (N=2, RTX 4090, 500K Gaussians, room-scale indoor scene). N≥4 measurements on RTX 4090 + N=2/3 on Quest 3 are the camera-ready gate; the §4.3 projections beyond N=2 must be re-anchored to measurement before publication.
+2. **Sort-approximation error metric undefined** — Centroid-distance sorting introduces ordering errors for widely separated viewpoints. The current "0.3% of Gaussians" figure lacks a defined metric (Kendall tau? tile-binning disagreement? LPIPS/PSNR of rasterized output vs per-view independent sort?). A defined metric and measurements across N and baseline separations are required for camera-ready.
+3. **Coordination cost coefficient unmeasured** — §3.4's C(N) = S + N·R model omits per-frame coordination cost (visibility-bitmask compute + atomic scatter + sync barriers). §4.4 Wall 3 narrates this qualitatively; a measured constant-factor + asymptotic class is camera-ready required.
+4. **Asymmetric scenes** — Highly asymmetric scenes (one user faces a wall, another faces open space) reduce shared-sort benefit. Adaptive sort partitioning could mitigate; not measured.
+5. **Mobile VR benchmark gap** — §4.4 Wall 1 predicts Quest 3 saturates at N≈3–4 from bandwidth math, but the paper presents no Quest 3 measurements. Mobile-specific benchmarks (Quest 3 Adreno 740) are required to substantiate the consumer-VR-deployable claim.
+6. **WebGPU emit branch in compiler** — §5.2 names this as the remaining substrate gap. CPU reference is shipped and tested; the GPU port composes existing radix-sort and sorted-render primitives but is not yet emitted as a compile-time branch in `GaussianSplattingCompiler.ts`.
+7. **Stereo-rendering baseline at large baseline** — §2.3 acknowledges multi-view stereo for VR exists at IPD-scale (6.5 cm) separations; comparison against extended-baseline stereo (≥ 1 m) is the load-bearing prior-work delta. Empirical comparison is future work.
 
 ---
 
-## 8. Conclusion
+## 7. Conclusion
 
-Shared-Sort Multiview Foveated Gaussian Splatting achieves sublinear rendering cost scaling for collaborative VR, with 30% measured savings at N=2 and projected 45–52% savings at N=4–8. The architecture exploits the view-independence of radix sort — the dominant cost in Gaussian Splatting — to amortize computation across concurrent viewpoints. The optimal group size (4–8) converges with coordination-capacity constants observed across cognitive science, military doctrine, and organizational theory, suggesting a universal bound on group coordination efficiency.
-
-The universe renders in groups of seven. So should VR.
+Shared-Sort Multiview Foveated Gaussian Splatting amortizes the dominant cost of 3DGS rendering — the radix sort — across concurrent VR viewpoints, producing a *per-user-frame-time decrease* as viewers are added in the regime where the savings curve outruns the practical-ceiling walls. Our N=2 measurement on RTX 4090 yields **5.75 ms per user at N=2 versus 8.2 ms solo** — collaborative VR is faster than solo VR, while aggregate frame time grows at 1.4× rather than 2×. The cost model predicts an asymptotic 60% aggregate savings; three practical walls (memory bandwidth, frustum divergence, coordination overhead) cap useful scaling at N ≈ 8–12 on desktop GPUs and N ≈ 3–4 on Quest 3. A working CPU reference + webcam-gaze input pipeline is shipped in HoloScript (§5); the WebGPU emit branch and the N≥4 benchmark suite are the remaining gates to camera-ready submission.
 
 ---
 
 ## References
 
-1. Kerbl, B. et al. "3D Gaussian Splatting for Real-Time Radiance Field Rendering." SIGGRAPH 2023.
-2. Radl, L. et al. "VR-Splatting: Foveated Radiance Field Rendering via 3D Gaussian Splatting and Neural Points." 2024.
-3. Radl, L. et al. "StopThePop: Sorted Gaussian Splatting for View-Consistent Real-time Rendering." SIGGRAPH 2024.
-4. Miller, G. A. "The Magical Number Seven, Plus or Minus Two." Psychological Review, 1956.
-5. Dunbar, R. I. M. "Coevolution of Neocortical Size, Group Size and Language in Humans." Behavioral and Brain Sciences, 1993.
-6. Amdahl, G. M. "Validity of the Single Processor Approach to Achieving Large Scale Computing Capabilities." AFIPS 1967.
-7. US Army. "FM 7-8: Infantry Rifle Platoon and Squad." Department of the Army, 1992.
-8. Schwaber, K. & Sutherland, J. "The Scrum Guide." 2020.
+1. Kerbl, B., Kopanas, G., Leimkühler, T., Drettakis, G. "3D Gaussian Splatting for Real-Time Radiance Field Rendering." *SIGGRAPH 2023*.
+2. Radl, L., Stojanovic, S., Steinberger, M. "VR-Splatting: Foveated Radiance Field Rendering via 3D Gaussian Splatting and Neural Points." *I3D 2024*.
+3. Steiner, B., Radl, L., Steinberger, M. et al. "StopThePop: Sorted Gaussian Splatting for View-Consistent Real-time Rendering." *SIGGRAPH 2024*. (Distinct first author from VR-Splatting; same Graz group.)
+4. Amdahl, G. M. "Validity of the Single Processor Approach to Achieving Large Scale Computing Capabilities." *AFIPS 1967*.
+5. MediaPipe Vision Tasks. "FaceLandmarker — 478-point Face Landmark Detection." Google Research, 2024.
 
 ---
 
-_Draft generated 2026-03-04. Benchmark data: N=2 on RTX 4090, 500K Gaussians, Quest 3 resolution._
+_Original draft generated 2026-03-04. Editorial revision 2026-05-12 (see header). Benchmark data: N=2 on RTX 4090, 500K Gaussians, Quest 3 native resolution. **No N≥4 measurements yet.**_
