@@ -75,6 +75,40 @@ describe('world-model replay CLI', { timeout: 120000 }, () => {
     expect(payload.score.priority.priority).toBeGreaterThan(0);
   });
 
+  it('emits replayable JSON evidence for humanoid-rock-throw-v1', async () => {
+    const { stdout } = await execFileAsync(
+      process.execPath,
+      [
+        tsxCli,
+        cliSource,
+        'world-model',
+        'replay',
+        '--scene',
+        'humanoid-rock-throw-v1',
+        '--seed',
+        '4242',
+        '--json',
+      ],
+      {
+        cwd: packageRoot,
+        maxBuffer: 1024 * 1024,
+      }
+    );
+
+    const payload = JSON.parse(stdout);
+    const eventTypes = payload.result.events.map((event: { type: string }) => event.type);
+    expect(payload.schema_version).toBe('world-model-replay-v1');
+    expect(payload.scene.id).toBe('humanoid-rock-throw-v1');
+    expect(payload.scene.seed).toBe(4242);
+    expect(payload.result.eventLogHash).toBe(payload.trajectory.caelReceiptHash);
+    expect(eventTypes).toContain('grab_constraint_attached');
+    expect(eventTypes).toContain('release');
+    expect(eventTypes).toContain('target_contact');
+    expect(payload.result.contactCount).toBe(1);
+    expect(payload.result.predicateViolationCount).toBe(0);
+    expect(payload.trajectory.status).toBe('open');
+  });
+
   it('prints a concise text replay receipt', async () => {
     const { stdout } = await execFileAsync(
       process.execPath,
