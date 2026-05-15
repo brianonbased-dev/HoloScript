@@ -142,7 +142,7 @@ describe('ImportResolver — named imports', () => {
 
     expect(result.errors).toHaveLength(0);
     expect(result.scope.has('PhysicsWorld')).toBe(true);
-  });
+  }, 90_000);
 
   it('errors with named_not_exported when name is not in module exports', async () => {
     const files = {

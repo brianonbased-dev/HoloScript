@@ -223,6 +223,7 @@ export type TokenType =
   | 'CHAPTER'
   | 'DIALOGUE_TREE'
   | 'CUTSCENE_SEQUENCE'
+  | 'SCENE'
   // Payment / x402 Protocol (v4.7)
   | 'PAYWALL'
   | 'PAYMENT_GATE'
@@ -579,7 +580,7 @@ export const KEYWORDS: Record<string, TokenType> = {
   // Process pipeline directives (.hs format — v5)
   connect: 'CONNECT',
   execute: 'EXECUTE',
-  scene: 'COMPOSITION',
+  scene: 'SCENE',
   entity: 'OBJECT',
   compute_pipeline: 'PIPELINE_BLOCK',
   frame_loop: 'LOGIC',

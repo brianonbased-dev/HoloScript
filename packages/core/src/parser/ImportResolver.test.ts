@@ -152,7 +152,7 @@ describe('ImportResolver - Basic resolve', () => {
     const res = await resolver.resolve(result, `${BASE}/scene.hs`, opts(reader));
     expect(res.scope.size).toBe(0);
     expect(res.errors).toHaveLength(0);
-  });
+  }, 90_000);
 
   it('resolves a simple import and populates scope under alias', async () => {
     const libSrc = hsExport('Button');

@@ -2650,8 +2650,78 @@ export class HoloScriptPlusParser {
         const token = this.current();
         const next = this.peek(1);
 
+        if (
+          token.type === 'IDENTIFIER' &&
+          token.value === 'system' &&
+          (next.type === 'IDENTIFIER' || next.type === 'STRING') &&
+          this.peek(2).type !== 'LBRACE'
+        ) {
+          const startToken = this.advance();
+          const name = this.advance().value;
+
+          result.systems.push({
+            type: 'system',
+            name,
+            id: name,
+            properties: {},
+            directives: currentDirectives,
+            children: [],
+            traits: new Map(),
+            loc: {
+              start: { line: startToken.line, column: startToken.column },
+              end: { line: this.current().line, column: this.current().column },
+            },
+          } as unknown as HSPlusNode);
+        } else if (token.type === 'IDENTIFIER' && token.value === 'page' && next.type === 'STRING') {
+          const startToken = this.advance();
+          const name = this.advance().value;
+          const properties: Record<string, unknown> = {};
+
+          if (this.check('LBRACE')) {
+            this.advance();
+            this.skipNewlines();
+
+            while (!this.check('RBRACE') && !this.check('EOF')) {
+              this.skipNewlines();
+              if (this.check('RBRACE') || this.check('EOF')) break;
+
+              if (this.check('IDENTIFIER')) {
+                const key = this.advance().value;
+                if (this.check('COLON') || this.check('EQUALS')) {
+                  this.advance();
+                  properties[key] = this.parseValue();
+                } else if (this.check('STRING')) {
+                  properties[key] = this.advance().value;
+                } else {
+                  properties[key] = true;
+                }
+              } else if (this.check('COMMA')) {
+                this.advance();
+              } else {
+                this.advance();
+              }
+              this.skipNewlines();
+            }
+
+            this.expect('RBRACE', 'Expected }');
+          }
+
+          result.children.push({
+            type: 'page',
+            name,
+            id: name,
+            properties,
+            directives: currentDirectives,
+            children: [],
+            traits: new Map(),
+            loc: {
+              start: { line: startToken.line, column: startToken.column },
+              end: { line: this.current().line, column: this.current().column },
+            },
+          } as unknown as HSPlusNode);
+        }
         // Property assignment: key: value or key = value
-        if (next.type === 'COLON' || next.type === 'EQUALS') {
+        else if (next.type === 'COLON' || next.type === 'EQUALS') {
           const key = this.advance().value;
           this.advance(); // consume : or =
           result.properties[key] = this.parseValue();
