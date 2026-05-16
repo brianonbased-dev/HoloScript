@@ -266,22 +266,27 @@ export class HoloGramMLSCompiler extends CompilerBase {
 
       // Room floor
       objects.push({
-        type: 'ObjectDecl' as any,
+        type: 'ObjectDecl',
         id: `floor_${roomName.replace(/\s+/g, '_')}`,
         name: `${roomName} Floor`,
         position: { x: pos.x, y: 0, z: pos.z },
         scale: { x: roomSize, y: 1, z: roomSize },
         rotation: { x: -90, y: 0, z: 0 },
+        properties: [],
         traits: [
-          { name: 'collidable', params: {} },
-          { name: 'static', params: {} },
+          { type: 'ObjectTrait', name: 'collidable', config: {}, params: {} },
+          { type: 'ObjectTrait', name: 'static', config: {}, params: {} },
           {
+            type: 'ObjectTrait',
             name: 'geometry',
-            params: { primitive: 'plane' },
+            config: {},
+          params: { primitive: 'plane' },
           },
           {
+            type: 'ObjectTrait',
             name: 'material',
-            params: {
+            config: {},
+          params: {
               color: this.options.floorColor,
               roughness: 0.1,
               metalness: 0.6,
@@ -296,42 +301,54 @@ export class HoloGramMLSCompiler extends CompilerBase {
         const scale = aspectScale(placement.photo);
         const traits: HoloObjectTrait[] = [
           {
+            type: 'ObjectTrait',
             name: 'image',
-            params: { src: placement.photo.url },
+            config: {},
+          params: { src: placement.photo.url },
           },
           {
+            type: 'ObjectTrait',
             name: 'depth_estimation',
-            params: {
+            config: {},
+          params: {
               model: this.options.depthModel,
               backend: this.options.depthBackend,
             },
           },
           {
+            type: 'ObjectTrait',
             name: 'displacement',
-            params: {
+            config: {},
+          params: {
               scale: this.options.displacementScale,
               segments: this.options.displacementSegments,
             },
           },
           {
+            type: 'ObjectTrait',
             name: 'depth_to_normal',
-            params: {},
+            config: {},
+          params: {},
           },
           {
+            type: 'ObjectTrait',
             name: 'geometry',
-            params: { primitive: 'plane' },
+            config: {},
+          params: { primitive: 'plane' },
           },
         ];
 
         if (placement.photo.caption) {
           traits.push({
+            type: 'ObjectTrait',
             name: 'billboard',
-            params: { label: placement.photo.caption },
+            config: {},
+          params: { label: placement.photo.caption },
           });
         }
 
         objects.push({
-          type: 'ObjectDecl' as any,
+          type: 'ObjectDecl',
           id: `photo_${objects.length}`,
           name: placement.photo.caption || `Photo ${objects.length}`,
           position: {
@@ -345,23 +362,27 @@ export class HoloGramMLSCompiler extends CompilerBase {
             z: 1,
           },
           rotation: placement.rotation,
+          properties: [],
           traits,
         });
       }
 
       // Room label billboard
       objects.push({
-        type: 'ObjectDecl' as any,
+        type: 'ObjectDecl',
         id: `label_${roomName.replace(/\s+/g, '_')}`,
         name: `${roomName} Label`,
         position: { x: pos.x, y: 2.8, z: pos.z },
         scale: { x: 2, y: 0.4, z: 0.01 },
         rotation: { x: 0, y: 0, z: 0 },
+        properties: [],
         traits: [
-          { name: 'billboard', params: {} },
+          { type: 'ObjectTrait', name: 'billboard', config: {}, params: {} },
           {
+            type: 'ObjectTrait',
             name: 'material',
-            params: { color: '#0a0a20', emissive: '#4422cc', emissiveIntensity: 1.2 },
+            config: {},
+          params: { color: '#0a0a20', emissive: '#4422cc', emissiveIntensity: 1.2 },
           },
         ],
       });
@@ -369,35 +390,34 @@ export class HoloGramMLSCompiler extends CompilerBase {
       // Per-room spot light
       if (this.options.spotLighting) {
         lights.push({
-          type: 'Light' as any,
+          type: 'Light',
           id: `spot_${roomName.replace(/\s+/g, '_')}`,
           lightType: 'spot',
           name: `${roomName} Spot`,
           properties: [
-            { type: 'LightProperty' as any, key: 'position', value: [pos.x, 4, pos.z] as any },
-            { type: 'LightProperty' as any, key: 'target', value: [pos.x, 0, pos.z] as any },
-            { type: 'LightProperty' as any, key: 'color', value: '#ffffff' },
-            { type: 'LightProperty' as any, key: 'intensity', value: 1.2 },
-            { type: 'LightProperty' as any, key: 'angle', value: Math.PI / 3 },
-            { type: 'LightProperty' as any, key: 'penumbra', value: 0.3 },
+            { type: 'LightProperty', key: 'position', value: [pos.x, 4, pos.z] },
+            { type: 'LightProperty', key: 'target', value: [pos.x, 0, pos.z] },
+            { type: 'LightProperty', key: 'color', value: '#ffffff' },
+            { type: 'LightProperty', key: 'intensity', value: 1.2 },
+            { type: 'LightProperty', key: 'angle', value: Math.PI / 3 },
+            { type: 'LightProperty', key: 'penumbra', value: 0.3 },
           ],
-        } as any);
+        });
         stats.lights++;
       }
 
       // Spatial group
       spatialGroups.push({
-        type: 'SpatialGroup' as any,
+        type: 'SpatialGroup',
         id: `room_${roomName.replace(/\s+/g, '_')}`,
         name: roomName,
         objects: objects.filter((o) => o.id?.startsWith(`floor_${roomName.replace(/\s+/g, '_')}`) ||
           o.id?.startsWith(`label_${roomName.replace(/\s+/g, '_')}`) ||
           (o.traits?.some((t) => t.name === 'image') &&
             Math.abs((o.position?.x ?? 0) - pos.x) < roomSize &&
-            Math.abs((o.position?.z ?? 0) - pos.z) < roomSize))
-          .map((o) => o.id!) as any,
+            Math.abs((o.position?.z ?? 0) - pos.z) < roomSize)),
         properties: [],
-      } as any);
+      });
 
       // Waypoint at room center
       wpPoints.push([pos.x, 0.1, pos.z]);
@@ -406,61 +426,62 @@ export class HoloGramMLSCompiler extends CompilerBase {
     // Build waypoints object if walkable
     if (this.options.walkable && wpPoints.length > 1) {
       waypoints.push({
-        type: 'Waypoints' as any,
+        type: 'Waypoints',
         name: 'room_navigation',
-        points: wpPoints as any,
-      } as any);
+        points: wpPoints,
+      });
       stats.waypoints = wpPoints.length;
     }
 
     // Ambient + directional lights
     lights.push({
-      type: 'Light' as any,
+      type: 'Light',
       id: 'ambient_main',
       lightType: 'ambient',
       name: 'Ambient',
       properties: [
-        { type: 'LightProperty' as any, key: 'color', value: '#ffffff' },
-        { type: 'LightProperty' as any, key: 'intensity', value: this.options.ambientLight },
+        { type: 'LightProperty', key: 'color', value: '#ffffff' },
+        { type: 'LightProperty', key: 'intensity', value: this.options.ambientLight },
       ],
-    } as any);
+    });
     stats.lights++;
 
     lights.push({
-      type: 'Light' as any,
+      type: 'Light',
       id: 'directional_main',
       lightType: 'directional',
       name: 'Directional',
       properties: [
-        { type: 'LightProperty' as any, key: 'color', value: '#ffffff' },
-        { type: 'LightProperty' as any, key: 'intensity', value: 0.8 },
-        { type: 'LightProperty' as any, key: 'position', value: [5, 10, 5] as any },
+        { type: 'LightProperty', key: 'color', value: '#ffffff' },
+        { type: 'LightProperty', key: 'intensity', value: 0.8 },
+        { type: 'LightProperty', key: 'position', value: [5, 10, 5] },
       ],
-    } as any);
+    });
     stats.lights++;
 
     // Camera at first room entrance
     const firstRoom = roomPositions.get(roomNames[0])!;
     const camera: HoloCamera = {
-      type: 'Camera' as any,
+      type: 'Camera',
       cameraType: 'perspective',
       position: { x: firstRoom.x, y: 1.6, z: firstRoom.z + this.options.roomSpacing * 0.4 },
       target: { x: firstRoom.x, y: 1.2, z: firstRoom.z },
       fov: 70,
       near: 0.01,
       far: 1000,
-    } as any;
+      properties: [],
+    };
 
     const composition: HoloComposition = {
       type: 'Composition',
       name: 'HoloGram MLS Gallery',
-      objects: objects as any,
-      spatialGroups: spatialGroups as any,
-      lights: lights as any,
-      camera: camera as any,
-      waypointSets: waypoints as any,
+      objects,
+      spatialGroups,
+      lights,
+      camera,
+      waypointSets: waypoints,
       worlds: [{
-        type: 'World' as any,
+        type: 'World',
         name: 'gallery_world',
         bounds: {
           minX: -this.options.roomSpacing * 2,
@@ -470,7 +491,7 @@ export class HoloGramMLSCompiler extends CompilerBase {
           maxY: 10,
           maxZ: this.options.roomSpacing * 2,
         },
-      } as any],
+      }],
       templates: [],
       imports: [],
       transitions: [],
@@ -492,7 +513,7 @@ export class HoloGramMLSCompiler extends CompilerBase {
         compiler: 'hologram_mls',
         version: '1.0.0',
       },
-    } as any;
+    };
 
     return {
       success: true,
@@ -526,7 +547,7 @@ export class HoloGramMLSCompiler extends CompilerBase {
       achievements: [],
       talentTrees: [],
       shapes: [],
-    } as any;
+    };
   }
 }
 

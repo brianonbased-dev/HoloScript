@@ -195,6 +195,7 @@ export interface HoloLighting extends HoloNode {
 
 export interface HoloLight extends HoloNode {
   type: 'Light';
+  id?: string;
   name: string;
   lightType: 'directional' | 'point' | 'spot' | 'hemisphere' | 'ambient' | 'area';
   properties: HoloLightProperty[];
@@ -230,6 +231,11 @@ export interface HoloEffect extends HoloNode {
 export interface HoloCamera extends HoloNode {
   type: 'Camera';
   cameraType: 'perspective' | 'orthographic' | 'cinematic';
+  position?: HoloPosition;
+  target?: HoloPosition;
+  fov?: number;
+  near?: number;
+  far?: number;
   properties: HoloCameraProperty[];
 }
 
@@ -301,7 +307,9 @@ export interface HoloZoneProperty extends HoloNode {
 
 export interface HoloWorld extends HoloNode {
   type: 'World';
+  id?: string;
   name?: string;
+  bounds?: HoloObject;
   properties?: HoloWorldProperty[];
   children?: HoloObjectDecl[];
 }
@@ -435,8 +443,12 @@ export interface HoloTemplateProperty extends HoloNode {
  * The `@draft` trait also forces `assetMaturity: 'draft'` and draft rendering props.
  */
 export interface HoloObjectDecl extends HoloNode {
-  type: 'Object';
+  type: 'Object' | 'ObjectDecl';
+  id?: string;
   name: string;
+  position?: HoloPosition;
+  scale?: HoloPosition;
+  rotation?: HoloPosition;
   declarationKind?: 'object' | 'instanced_object' | string;
   instanceMetadata?: HoloInstancedObjectMetadata;
   __holo_id?: string; // Stable identity for hot-reload reference preservation
@@ -474,6 +486,7 @@ export interface HoloObjectTrait extends HoloNode {
   type: 'ObjectTrait';
   name: string;
   config: Record<string, HoloValue>;
+  params?: Record<string, HoloValue>;
   /** Positional arguments for traits (e.g. @trait(arg1, arg2)) */
   args?: HoloValue[];
 }
@@ -546,6 +559,7 @@ export interface HoloShapeProperty extends HoloNode {
 
 export interface HoloSpatialGroup extends HoloNode {
   type: 'SpatialGroup';
+  id?: string;
   name: string;
   properties: HoloGroupProperty[];
   objects: HoloObjectDecl[];
