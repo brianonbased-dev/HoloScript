@@ -1,7 +1,7 @@
 # Studio Integration Hub — Architecture & Implementation Guide
 
-**Status:** Integration Hub UI shipped; six `@holoscript/connector-*` packages exist in-tree (core + five service connectors).
-**Vision:** [research/2026-03-21_studio-integration-hub-vision-AUTONOMIZE.md](../research/2026-03-21_studio-integration-hub-vision-AUTONOMIZE.md)
+**Status:** Integration Hub UI shipped; seven `@holoscript/connector-*` packages exist in-tree, and the Studio panel currently surfaces five service connectors.
+**Vision:** [research/2026-03-21_studio-integration-hub-vision-AUTONOMIZE.md](../../research/2026-03-21_studio-integration-hub-vision-AUTONOMIZE.md)
 
 ## Overview
 
@@ -219,35 +219,23 @@ Backed by `ConnectionStatus` in `connectorStore`: `connected` | `connecting` | `
 
 ## Implementation Status
 
-### ✅ Completed (Today's Session)
+### Current shipped surface
 
-1. Connector foundation (core, railway, github) — **66 tests, 100% pass**
-2. ServiceConnectorPanel UI component
-3. connectorStore with SSE streaming
-4. /integrations page
-5. absorbPipelineBridge integration
+1. Connector foundation packages exist for core, GitHub, Railway, VSCode, App Store, Upstash, and Moltbook.
+2. `ServiceConnectorPanel` renders five user-facing service tabs: GitHub, Railway, VSCode, App Store, and Upstash. The local `pipeline` metadata entry is filtered out of the panel.
+3. `connectorStore` manages connection status, config, activity, and SSE lifecycle for the five Studio services. Its persisted state strips credentials and restores services as disconnected.
+4. `/integrations` renders the full-height Integration Hub panel.
+5. API routes exist for connector connect, disconnect, activity SSE, GitHub device OAuth start/poll, and Railway deploy.
 
-### ✅ Recently Completed
+### Open gaps
 
-1. **API Routes** — `/api/connectors/connect`, `/api/connectors/disconnect`, `/api/connectors/activity` (SSE)
-   - All 4 connectors supported (GitHub, Railway, Upstash, AppStore)
-   - Health checks and credential masking
-   - Real-time activity streaming via Server-Sent Events
+1. `/api/connectors/railway/deploy` still generates mock Railway URLs and IDs instead of creating a project/service/deployment through Railway.
+2. Connector API routes still contain type-debt workarounds (`@ts-ignore` and dynamic imports) around several connector packages.
+3. GitHub device OAuth exists, but production token custody depends on encrypted cookie configuration and should be tied into a durable credential vault.
+4. `@holoscript/connector-moltbook` exists in-tree but is not a Studio tab or `connectorStore` service.
+5. Connector activity SSE is live-session activity, not yet a durable cross-service receipt ledger.
 
-### 🚧 In Progress (Next Steps)
-
-1. **GitHub OAuth Device Flow** — Replace GITHUB_TOKEN with OAuth popup/device code
-2. **ImportRepoWizard Integration** — Use connectorStore GitHub connection instead of separate auth
-3. **Navigation Link** — Add `/integrations` to Studio home page
-
-### 📋 Planned (Priority 2-3)
-
-5. VSCode connector + extension
-6. Upstash connector (Redis + Vector + QStash)
-7. App Store connector (commit + test)
-8. FirstRunWizard enhancement (5-minute onboarding)
-
-## API Routes (To Implement)
+## API Routes
 
 ### POST /api/connectors/connect
 
@@ -340,14 +328,14 @@ data: {"serviceId":"github","action":"PR #42 merged","status":"success"}
 
 ## OAuth Flow (GitHub Example)
 
-### Current: Personal Access Token
+### Personal Access Token path
 
 1. User generates PAT on GitHub
 2. User pastes token in Studio config form
 3. Token stored in connectorStore (not persisted)
 4. Token used for all GitHub API calls
 
-### Future: OAuth Device Flow
+### GitHub OAuth Device Flow
 
 1. User clicks "Connect GitHub" in Studio
 2. Studio calls `/api/connectors/oauth/github/start`
@@ -387,13 +375,18 @@ GitHubConnector.executeTool('github_repo_list')
 
 ## Test Coverage
 
-| Package            | Tests   | Status                                       |
-| ------------------ | ------- | -------------------------------------------- |
-| connector-core     | 17      | ✅ 100%                                      |
-| connector-railway  | 19      | ✅ 100%                                      |
-| connector-github   | 30      | ✅ 100%                                      |
-| connector-appstore | 60      | ⚠️ 38 pass (22 require real API credentials) |
-| **Total**          | **126** | **✅ 104 pass (83% coverage)**               |
+Do not trust historical test counts in this document. Verify package status with focused package commands before updating counts or claiming coverage:
+
+```bash
+pnpm --filter @holoscript/connector-core test
+pnpm --filter @holoscript/connector-github test
+pnpm --filter @holoscript/connector-railway test
+pnpm --filter @holoscript/connector-vscode test
+pnpm --filter @holoscript/connector-appstore test
+pnpm --filter @holoscript/connector-upstash test
+pnpm --filter @holoscript/connector-moltbook test
+pnpm --filter @holoscript/studio test
+```
 
 ## Commits
 
@@ -411,10 +404,8 @@ GitHubConnector.executeTool('github_repo_list')
 
 ## Next Session Tasks
 
-1. Create `/api/connectors/connect` route with GitHub + Railway support
-2. Create `/api/connectors/disconnect` route
-3. Create `/api/connectors/activity` SSE stream
-4. Update `ImportRepoWizard` to use `connectorStore` GitHub connection
-5. Add OAuth device flow for GitHub
-6. Add `/integrations` link to Studio home page navigation
-7. Test end-to-end: Connect GitHub → Browse repos → Import → Absorb → Pipeline
+1. Replace the Railway deploy mock with real `@holoscript/connector-railway` project/service/deployment calls.
+2. Add a production credential vault for connector server routes.
+3. Remove connector route `@ts-ignore` workarounds by aligning exported connector types.
+4. Decide whether Moltbook belongs in Studio, HoloMesh ops, or a separate community surface.
+5. Convert connector activity events into durable receipts that survive page reloads and SSE disconnects.
