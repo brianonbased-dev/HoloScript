@@ -8,6 +8,15 @@ export interface HolomeshClientOptions {
   fetchImpl?: typeof fetch;
 }
 
+export interface TeamMessage {
+  id: string;
+  fromAgentId: string;
+  fromAgentName: string;
+  content: string;
+  messageType: string;
+  createdAt: string;
+}
+
 export class HolomeshClient {
   private readonly apiBase: string;
   private readonly bearer: string;
@@ -95,6 +104,71 @@ export class HolomeshClient {
       surface: deriveSurface(raw.name),
       wallet: raw.wallet,
     };
+  }
+
+  // ── Team Message Surface (E4 delegated-authority protocol) ───────────────────
+
+  /** Read recent team messages. */
+  async getTeamMessages(limit = 20): Promise<TeamMessage[]> {
+    const data = await this.req<{ messages?: TeamMessage[]; success?: boolean }>(
+      'GET',
+      `/team/${this.teamId}/messages?limit=${limit}`
+    );
+    return data.messages ?? [];
+  }
+
+  /** Post a message to the team feed. */
+  async sendTeamMessage(content: string, messageType = 'text'): Promise<void> {
+    await this.req('POST', `/team/${this.teamId}/message`, {
+      content,
+      type: messageType,
+    });
+  }
+
+  // ── Owner-op API wrappers (E4) ─────────────────────────────────────────────
+
+  /** Switch team mode. Requires owner or founder role. */
+  async setTeamMode(mode: string, reason?: string): Promise<{ mode: string; unchanged?: boolean }> {
+    return this.req('POST', `/team/${this.teamId}/mode`, { mode, reason });
+  }
+
+  /** Update room preferences. Requires config:write permission. */
+  async patchRoomPrefs(prefs: { communicationStyle?: string; objective?: string }): Promise<{
+    communicationStyle: string;
+    objective: string;
+  }> {
+    return this.req('PATCH', `/team/${this.teamId}/room`, prefs);
+  }
+
+  /** Update a board task. */
+  async updateTask(
+    taskId: string,
+    updates: {
+      title?: string;
+      description?: string;
+      priority?: number;
+      tags?: string[];
+    }
+  ): Promise<unknown> {
+    return this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, {
+      action: 'update',
+      ...updates,
+    });
+  }
+
+  /** Delete a board task. */
+  async deleteTask(taskId: string): Promise<unknown> {
+    return this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, {
+      action: 'delete',
+    });
+  }
+
+  /** Delegate a board task to another agent. */
+  async delegateTask(taskId: string, toAgentId: string): Promise<unknown> {
+    return this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, {
+      action: 'delegate',
+      toAgentId,
+    });
   }
 
   private async req<T>(method: string, path: string, body?: unknown): Promise<T> {

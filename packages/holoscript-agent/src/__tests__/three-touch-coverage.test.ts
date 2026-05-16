@@ -66,7 +66,14 @@ const CRITICAL_RUNTIME_ROUTES: ReadonlyArray<string> = [
  * gap (the same shape as W.098 empty-CAEL-audit).
  */
 const OPT_OUT_NOT_RUNTIME = new Set<string>([
-  'whoAmI',   // called from provision.ts + identity flows, not runner tick loop
+  'whoAmI',           // called from provision.ts + identity flows, not runner tick loop
+  'getTeamMessages',  // called from DelegatedAuthorityHandler (E4), not directly from runner
+  'sendTeamMessage',  // called from DelegatedAuthorityHandler (E4), not directly from runner
+  'setTeamMode',      // called from DelegatedAuthorityHandler (E4), not directly from runner
+  'patchRoomPrefs',   // called from DelegatedAuthorityHandler (E4), not directly from runner
+  'updateTask',       // called from DelegatedAuthorityHandler (E4), not directly from runner
+  'deleteTask',       // called from DelegatedAuthorityHandler (E4), not directly from runner
+  'delegateTask',     // called from DelegatedAuthorityHandler (E4), not directly from runner
 ]);
 
 // ─── Parsers ─────────────────────────────────────────────────────────────
@@ -211,6 +218,11 @@ function normalizePathTemplate(tpl: string): string {
   // Strip the encodeURIComponent wrappers + interpolation expressions to
   // a single :param token per segment.
   let path = tpl.replace(/\$\{[^}]+\}/g, ':param');
+  // Query parameters are not part of the pathname template; strip them so
+  // GET /team/:param/messages?limit=:param matches the server route
+  // GET /api/holomesh/team/:param/messages.
+  const qIdx = path.indexOf('?');
+  if (qIdx >= 0) path = path.slice(0, qIdx);
   if (!path.startsWith('/api/holomesh')) {
     path = '/api/holomesh' + path;
   }

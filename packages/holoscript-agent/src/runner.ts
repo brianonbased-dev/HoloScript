@@ -5,6 +5,7 @@ import { pickClaimableTask } from './holomesh-client.js';
 import type { AuditLog } from './audit-log.js';
 import { buildCaelRecord } from './cael-builder.js';
 import { MESH_TOOLS, runTool, isProductiveBashCommand } from './tools.js';
+import { DelegatedAuthorityHandler } from './delegated-authority.js';
 import type {
   AgentIdentity,
   BoardTask,
@@ -27,6 +28,8 @@ export interface AgentRunnerOptions {
   logger?: (event: Record<string, unknown>) => void;
   onTaskExecuted?: (result: ExecutionResult, task: BoardTask) => Promise<void>;
   auditLog?: AuditLog;
+  /** Optional delegated-authority handler for governance message processing (E4). */
+  messageHandler?: DelegatedAuthorityHandler;
 }
 
 export class AgentRunner {
@@ -58,6 +61,42 @@ export class AgentRunner {
     const log = logger ?? (() => undefined);
 
     await this.heartbeatWithAutoRejoin();
+
+    // ── Delegated-authority message processing (E4) ──────────────────────────
+    // Run before budget/task claiming so governance requests are handled
+    // even when the agent is over-budget or has no claimable tasks.
+    if (this.opts.messageHandler) {
+      try {
+        const receipts = await this.opts.messageHandler.processMessages();
+        if (receipts.length > 0) {
+          log({
+            ev: 'messages-processed',
+            count: receipts.length,
+            statuses: receipts.map((r) => r.status),
+          });
+          // If this agent has no board-task capability tags (Brittney is
+          // governance-only), return early so the tick result reflects message
+          // work rather than falling through to no-claimable-task.
+          if (brain.capabilityTags.length === 0 || brain.capabilityTags.every((t) => t.startsWith('delegated'))) {
+            return {
+              action: 'messages-processed',
+              spentUsd: costGuard.getState().spentUsd,
+              remainingUsd: costGuard.getRemainingUsd(),
+              receipts: receipts.map((r) => ({
+                status: r.status,
+                action: r.action,
+                reason: r.reason,
+              })),
+            };
+          }
+        }
+      } catch (err) {
+        log({
+          ev: 'message-handler-error',
+          message: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
 
     if (costGuard.isOverBudget()) {
       const state = costGuard.getState();

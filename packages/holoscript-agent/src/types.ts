@@ -76,11 +76,13 @@ export interface TickResult {
     | 'claimed'
     | 'executed'
     | 'errored'
-    | 'no-artifact';
+    | 'no-artifact'
+    | 'messages-processed';
   taskId?: string;
   spentUsd: number;
   remainingUsd: number;
   message?: string;
+  receipts?: Array<{ status: string; action: string; reason: string }>;
 }
 
 export interface ExecutionResult {
