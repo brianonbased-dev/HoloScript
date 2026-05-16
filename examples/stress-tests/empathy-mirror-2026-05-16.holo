@@ -1,0 +1,189 @@
+// ============================================================================
+// Stress-Test: Empathy Mirror
+// A009 Phase 3 — 2026-05-16
+//
+// Trait combo (NEVER previously exercised together):
+//   @webcam_gaze      (0 prior examples) — MediaPipe iris tracking from consumer webcam
+//   @emotion_directive (0 prior examples) — SIGGRAPH-style two-tier facial/body directives
+//   @voice_mesh        (0 prior examples) — WebRTC spatial voice over HoloMesh
+//   @neural_animation  (1 prior example)  — procedural blend + IK driven by task state
+//   @bloom_reactive    (3 prior examples)  — emission bloom scales with engagement_level
+//
+// A holographic guide stands in a sparse meditation room. The webcam tracks
+// where the user is looking. When gaze dwells on the guide, it transitions
+// through emotional states — resting → curious → warm → fully present —
+// speaking softly, animating with lifelike body language, and pulsing its
+// emission bloom to mirror emotional intensity. Gaze away and it fades back.
+//
+// This stress-test exercises the event-chain:
+//   webcam_gaze → gaze_update → engagement accumulation
+//   → emotion_directive change → neural_animation clip switch
+//   → voice_mesh_speak event → bloom_reactive property update
+// ============================================================================
+
+composition "EmpathyMirror" {
+
+  environment {
+    skybox: "gradient"
+    background_color: "#0a0810"
+    background_gradient: ["#0a0810", "#12101e"]
+    ambient_light: 0.08
+    shadows: true
+    fog: { density: 0.006, color: "#0a0810" }
+  }
+
+  object "VolumeCeiling" {
+    type: "point_light"
+    position: [0, 5, 0]
+    color: "#334455"
+    intensity: 0.3
+    range: 10
+  }
+
+  object "GuideFill" {
+    type: "point_light"
+    position: [0, 2, 2]
+    color: "#aabbff"
+    intensity: 0.5
+    range: 6
+  }
+
+  object "HolographicGuide" {
+    @webcam_gaze(
+      auto_start: true,
+      sample_rate_hz: 24,
+      confidence_threshold: 0.7,
+      gaze_gain_x: 1.1,
+      gaze_gain_y: 1.1
+    )
+    @emotion_directive(
+      expressionPresets: {
+        resting:  { smile: 0.05, browInnerUp: 0.0,  eyeSquintL: 0.1,  eyeSquintR: 0.1 },
+        curious:  { smile: 0.25, browInnerUp: 0.3,  eyeWideL: 0.2,    eyeWideR: 0.2 },
+        warm:     { smile: 0.6,  browInnerUp: 0.2,  cheekPuff: 0.15,  noseSneerL: -0.1 },
+        present:  { smile: 0.8,  browInnerUp: 0.4,  eyeSquintL: 0.3,  eyeSquintR: 0.3 }
+      },
+      animationMap: {
+        idle:     "GuideBreath",
+        talking:  "GuideSpeakGesture",
+        thinking: "GuideLookAround"
+      },
+      maxSegmentsPerTurn: 4
+    )
+    @voice_mesh(
+      auto_connect: true,
+      mute: false,
+      spatial: true,
+      volume: 0.9,
+      vad_threshold: -50
+    )
+    @neural_animation(
+      base_clip: "GuideBreath",
+      task_clips: {
+        idle:     "GuideBreath",
+        engaged:  "GuideEngaged",
+        speaking: "GuideSpeakGesture"
+      },
+      blend_time: 0.5,
+      procedural_ik: true
+    )
+    @bloom_reactive(
+      property: "engagement_level",
+      min_value: 0.0,
+      max_value: 1.0,
+      min_bloom: 0.08,
+      max_bloom: 1.4,
+      color_low: "#334488",
+      color_high: "#aabbff"
+    )
+
+    geometry: "humanoid"
+    position: [0, 0, -1.5]
+    scale: [0.85, 1.7, 0.85]
+    material: { baseColor: "#8899cc", roughness: 0.15, metallic: 0.7 }
+    emissive: "#334488"
+    emissiveIntensity: 0.25
+
+    state {
+      gaze_dwell_ms: 0
+      engagement_level: 0.0
+      current_mood: "resting"
+    }
+
+    on mount() {
+      emit("emotion_directive", { condition: "resting", animation: "idle" })
+      emit("neural_animation_state", { clip: "idle" })
+    }
+
+    on gaze_update(sample) {
+      if (sample.confidence > 0.7) {
+        this.state.gaze_dwell_ms += 42
+        this.state.engagement_level = clamp(this.state.gaze_dwell_ms / 3000.0, 0.0, 1.0)
+      } else {
+        this.state.gaze_dwell_ms = max(this.state.gaze_dwell_ms - 80, 0)
+        this.state.engagement_level = clamp(this.state.gaze_dwell_ms / 3000.0, 0.0, 1.0)
+      }
+      this.updateMood()
+    }
+
+    action updateMood() {
+      const e = this.state.engagement_level
+      if (e < 0.2 && this.state.current_mood != "resting") {
+        this.state.current_mood = "resting"
+        emit("emotion_directive", { condition: "resting",  animation: "idle" })
+        emit("neural_animation_state", { clip: "idle" })
+      } else if (e >= 0.2 && e < 0.5 && this.state.current_mood != "curious") {
+        this.state.current_mood = "curious"
+        emit("emotion_directive", { condition: "curious",  animation: "thinking" })
+        emit("neural_animation_state", { clip: "engaged" })
+      } else if (e >= 0.5 && e < 0.8 && this.state.current_mood != "warm") {
+        this.state.current_mood = "warm"
+        emit("emotion_directive", { condition: "warm",    animation: "idle" })
+        emit("voice_mesh_speak",  { text: "I see you." })
+        emit("neural_animation_state", { clip: "engaged" })
+      } else if (e >= 0.8 && this.state.current_mood != "present") {
+        this.state.current_mood = "present"
+        emit("emotion_directive", { condition: "present", animation: "talking" })
+        emit("voice_mesh_speak",  { text: "Thank you for staying. There is something I want to show you." })
+        emit("neural_animation_state", { clip: "speaking" })
+      }
+    }
+  }
+
+  object "MeditationFloor" {
+    @collidable
+
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [8, 1, 8]
+    material: { baseColor: "#1a1624", roughness: 0.85, metallic: 0.05 }
+  }
+
+  object "BackWall" {
+    geometry: "cube"
+    position: [0, 2, -4]
+    scale: [8, 4, 0.15]
+    material: { baseColor: "#0e0c18", roughness: 0.9, metallic: 0.02 }
+  }
+
+  object "GuideCircle" {
+    @glowing
+    @animated
+
+    geometry: "cylinder"
+    position: [0, 0.01, -1.5]
+    scale: [1.2, 0.01, 1.2]
+    material: { baseColor: "#aabbff", roughness: 0.2, metallic: 0.6 }
+    emissive: "#334488"
+    emissiveIntensity: 0.5
+    animate: "pulse"
+    animSpeed: 0.4
+  }
+
+  post_processing {
+    bloom: { intensity: 0.55, threshold: 0.4, radius: 0.6 }
+    tone_mapping: "aces"
+    vignette: { intensity: 0.5, smoothness: 0.6 }
+    ssao: { intensity: 0.5, radius: 0.4 }
+  }
+}

@@ -1,0 +1,278 @@
+/**
+ * Industrial Expansion POC — Refreshed
+ * A009 Phase 2 — 2026-05-16
+ *
+ * Original: digital-twin floor with Safety Warden LLM agent.
+ * Refresh adds:
+ *   @emotion_directive — Warden face/body reflects alert level (neutral → concerned → alarmed)
+ *   @bloom_reactive    — machine emission scales live with vibration telemetry
+ *   @webcam_gaze       — operator console gaze-tracks engineer's eye direction,
+ *                        highlights the machine they're looking at for digital record-keeping
+ *   @heatmap_3d        — machine shells display temperature hotspot overlays
+ *
+ * Scene story: late-night shift on a chemical processing floor. Three machines
+ * hum under sparse sodium-vapor lights. Pump-B vibration climbs past threshold.
+ * The bloom on its housing flares amber. The Warden's expression shifts from
+ * neutral to "concerned" as they cross the floor. The engineer at the control
+ * console glances at Pump-B — the webcam gaze system highlights it for the log.
+ */
+
+composition "IndustrialPOC_Refreshed" {
+
+  environment {
+    skybox: "night_industrial"
+    background_color: "#0a0a0e"
+    background_gradient: ["#0a0a0e", "#181820"]
+    ambient_light: 0.15
+    shadows: true
+    fog: { density: 0.012, color: "#0a0a0e" }
+  }
+
+  // Sodium-vapor key: harsh and slightly golden
+  object "OverheadKey" {
+    type: "directional_light"
+    direction: [0.05, -0.95, -0.15]
+    color: "#ffd060"
+    intensity: 0.7
+  }
+
+  // Cool fill bleeding in from the control room window
+  object "ControlRoomFill" {
+    type: "point_light"
+    position: [-8, 3, -8]
+    color: "#8888ff"
+    intensity: 0.4
+    range: 12
+  }
+
+  // Warm emergency strip light over the floor exit
+  object "EmergencyStrip" {
+    type: "point_light"
+    position: [0, 0.6, 8]
+    color: "#ff4400"
+    intensity: 0.25
+    range: 6
+  }
+
+  // ==========================================================================
+  // TEMPLATES
+  // ==========================================================================
+
+  template "SafetyWarden" {
+    @llm_agent
+    @perception(range: 20)
+    @emotion_directive(
+      expressionPresets: {
+        neutral:  { smile: 0.05, browInnerUp: 0.0 },
+        concerned: { smile: -0.2, browDown: 0.35, browInnerUp: 0.2 },
+        alarmed:  { smile: -0.5, browDown: 0.7, browInnerUp: 0.5, jawOpen: 0.2 }
+      },
+      animationMap: {
+        idle:     "PatrolIdle",
+        talking:  "ReportGesture",
+        thinking: "ScanEnvironment"
+      },
+      maxSegmentsPerTurn: 2
+    )
+
+    geometry: "humanoid"
+    material: { baseColor: "#cc2200", roughness: 0.4, metallic: 0.3 }
+    emissive: "#440000"
+    emissiveIntensity: 0.3
+
+    state {
+      status: "patrolling"
+      current_target: null
+      alert_level: 0
+    }
+
+    on mount() {
+      print("Safety Warden active — night shift.")
+      emit("emotion_directive", { condition: "neutral", animation: "idle" })
+    }
+
+    on twin_state_update(data) {
+      if (data.state.vibration > 0.6) {
+        this.state.alert_level = 2
+        emit("emotion_directive", { condition: "alarmed", animation: "talking" })
+        this.investigate(data.physicalId)
+      } else if (data.state.vibration > 0.3) {
+        this.state.alert_level = 1
+        emit("emotion_directive", { condition: "concerned", animation: "thinking" })
+        this.investigate(data.physicalId)
+      }
+    }
+
+    action investigate(machineId) {
+      this.state.status = "investigating"
+      this.state.current_target = machineId
+      const machinePos = get(machineId + ".position")
+      if (machinePos) {
+        move(this.id, machinePos)
+        pulsate(this.id, { color: "#ff4400", duration: 800 })
+      }
+    }
+
+    on investigation_cleared() {
+      this.state.alert_level = 0
+      this.state.status = "patrolling"
+      emit("emotion_directive", { condition: "neutral", animation: "idle" })
+    }
+  }
+
+  template "Machine" {
+    @digital_twin(
+      physical_id: "machine_01",
+      sync_properties: [
+        { physical_key: "temperature", virtual_property: "heat", direction: "in" },
+        { physical_key: "vibration",   virtual_property: "shake", direction: "in" }
+      ],
+      update_mode: "push"
+    )
+    @bloom_reactive(
+      property: "shake",
+      min_value: 0.0,
+      max_value: 1.0,
+      min_bloom: 0.05,
+      max_bloom: 1.8,
+      color_low: "#334433",
+      color_high: "#ff4400"
+    )
+    @heatmap_3d(
+      data_source: "heat",
+      color_ramp: ["#0044ff", "#00ff88", "#ffaa00", "#ff2200"],
+      opacity: 0.35,
+      update_rate_hz: 2
+    )
+
+    geometry: "cube"
+    scale: [2, 3, 2]
+    material: { baseColor: "#3a3a3a", roughness: 0.35, metallic: 0.85 }
+
+    state {
+      heat: 0
+      shake: 0
+    }
+
+    on mount() {
+      print("Machine twin synced: " + this.properties.physical_id)
+    }
+
+    on on_twin_sync(data) {
+      this.state.heat = data.state.temperature
+      this.state.shake = data.state.vibration
+    }
+  }
+
+  // ==========================================================================
+  // OPERATOR CONSOLE — gaze-tracked control station
+  // ==========================================================================
+
+  object "OperatorConsole" {
+    @webcam_gaze(
+      auto_start: true,
+      sample_rate_hz: 30,
+      confidence_threshold: 0.75,
+      gaze_gain_x: 1.2,
+      gaze_gain_y: 1.2
+    )
+    @clickable
+
+    geometry: "cube"
+    position: [-7, 0.9, -7]
+    scale: [2.4, 1.8, 0.4]
+    material: { baseColor: "#111122", roughness: 0.15, metallic: 0.9 }
+    emissive: "#003366"
+    emissiveIntensity: 0.4
+
+    state {
+      focused_machine: null
+      gaze_dwell_ms: 0
+    }
+
+    on gaze_update(sample) {
+      if (sample.confidence > 0.75) {
+        emit("operator_gaze", { x: sample.gaze_x, y: sample.gaze_y })
+      }
+    }
+
+    on operator_gaze(coords) {
+      const target = raycast_gaze(coords.x, coords.y, ["Machine"])
+      if (target) {
+        this.state.focused_machine = target.id
+        this.state.gaze_dwell_ms += 16
+        pulsate(target.id, { color: "#00aaff", duration: 200 })
+      }
+    }
+  }
+
+  // ==========================================================================
+  // FLOOR + SAFETY MARKINGS
+  // ==========================================================================
+
+  object "ConcreteFloor" {
+    geometry: "plane"
+    scale: [24, 1, 20]
+    material: { baseColor: "#3a3a3a", roughness: 0.92, metallic: 0.01 }
+    position: [0, -0.5, 0]
+  }
+
+  object "SafetyStripA" {
+    geometry: "plane"
+    scale: [0.3, 1, 16]
+    material: { baseColor: "#ffcc00", roughness: 0.7, metallic: 0.0 }
+    position: [-3, -0.49, 0]
+  }
+
+  object "SafetyStripB" {
+    geometry: "plane"
+    scale: [0.3, 1, 16]
+    material: { baseColor: "#ffcc00", roughness: 0.7, metallic: 0.0 }
+    position: [3, -0.49, 0]
+  }
+
+  // ==========================================================================
+  // MACHINES — three units with individual twin configs
+  // ==========================================================================
+
+  object "Pump_A" using "Machine" {
+    position: [4, 1, 3]
+    properties: {
+      physical_id: "pump_chem_01"
+    }
+  }
+
+  object "Pump_B" using "Machine" {
+    position: [4, 1, -3]
+    properties: {
+      physical_id: "pump_chem_02"
+    }
+  }
+
+  object "Compressor_C" using "Machine" {
+    position: [8, 1.5, 0]
+    scale: [2.5, 4, 2.5]
+    properties: {
+      physical_id: "compressor_main_01"
+    }
+  }
+
+  // ==========================================================================
+  // SAFETY WARDEN INSTANCE
+  // ==========================================================================
+
+  object "Warden_Shift2" using "SafetyWarden" {
+    position: [-2, 0, 2]
+  }
+
+  // ==========================================================================
+  // POST PROCESSING
+  // ==========================================================================
+
+  post_processing {
+    bloom: { intensity: 0.35, threshold: 0.55, radius: 0.4 }
+    ssao: { intensity: 0.7, radius: 0.5 }
+    tone_mapping: "aces"
+    vignette: { intensity: 0.25, smoothness: 0.4 }
+  }
+}

@@ -1,0 +1,276 @@
+/**
+ * Swarm Mastery Demo — Refreshed
+ * A009 Phase 2 — 2026-05-16
+ *
+ * Original: hierarchical miner-swarm coordinated by a Commander via @mitosis.
+ * Refresh adds:
+ *   @emotion_directive — Commander displays neutral → proud → triumphant arc
+ *                        as miners deliver resources; concerned while waiting
+ *   @neural_animation  — Miners blend between dig, carry, and salute clips
+ *                        procedurally based on task state via IK
+ *   @voice_mesh        — Commander broadcasts spatial radio to miners;
+ *                        bystanders passing through the cave can eavesdrop
+ *
+ * Scene story: a crystalline cavern at depth. The Commander stands on a raised
+ * rock shelf overlooking two ore seams. Miners descend, animate into digging
+ * stance, dig, switch to carry stance with glowing ore in hand, then look up
+ * and salute the Commander on delivery. The Commander's face shifts from
+ * watchful-concern to nodding-pride to full triumphant relief when both seams
+ * are cleared. You can hear the radio chatter spatially — louder near the
+ * Commander, muffled near the ore walls.
+ */
+
+composition "SwarmMastery_Refreshed" {
+
+  environment {
+    skybox: "cavern"
+    background_color: "#06040f"
+    background_gradient: ["#06040f", "#0f0a1a"]
+    ambient_light: 0.12
+    shadows: true
+    fog: { density: 0.018, color: "#06040f" }
+  }
+
+  // Bioluminescent cavern ceiling wash
+  object "CavernAmbient" {
+    type: "point_light"
+    position: [0, 8, 0]
+    color: "#4488aa"
+    intensity: 0.35
+    range: 18
+  }
+
+  // Tight spot on the Commander's platform
+  object "CommanderSpot" {
+    type: "spot_light"
+    position: [0, 6, -1.5]
+    direction: [0, -1, 0]
+    color: "#ccddff"
+    intensity: 0.9
+    angle: 30
+    range: 10
+  }
+
+  // Warm glow from the ore veins themselves
+  object "OreGlowA" {
+    type: "point_light"
+    position: [-3, 1, 6]
+    color: "#aa33ff"
+    intensity: 0.5
+    range: 5
+  }
+
+  object "OreGlowB" {
+    type: "point_light"
+    position: [3, 1, 6]
+    color: "#44ffaa"
+    intensity: 0.5
+    range: 5
+  }
+
+  // ==========================================================================
+  // TEMPLATES
+  // ==========================================================================
+
+  template "Miner" {
+    @mitosis(strategy: "autonomous")
+    @llm_agent
+    @neural_animation(
+      base_clip: "MinerIdle",
+      task_clips: {
+        digging:   "MinerDig",
+        carrying:  "MinerCarry",
+        reporting: "MinerSalute"
+      },
+      blend_time: 0.3,
+      procedural_ik: true
+    )
+
+    geometry: "cube"
+    scale: [0.6, 1.4, 0.6]
+    material: { baseColor: "#cc6600", roughness: 0.5, metallic: 0.4 }
+    emissive: "#331100"
+    emissiveIntensity: 0.35
+
+    state {
+      parent_id: null
+      target_resource: "crystal"
+      progress: 0
+      task: "idle"
+    }
+
+    on mount() {
+      print("Miner online. Mining " + this.state.target_resource)
+      this.state.task = "digging"
+      emit("neural_animation_state", { clip: "digging" })
+      this.mine()
+    }
+
+    action mine() {
+      while (this.state.progress < 100) {
+        this.state.progress += 20
+        await sleep(600)
+      }
+      this.state.task = "carrying"
+      emit("neural_animation_state", { clip: "carrying" })
+      await sleep(800)
+      this.state.task = "reporting"
+      emit("neural_animation_state", { clip: "reporting" })
+      notifyParent(this.state.parent_id, { resource: this.state.target_resource, quantity: 50 }, this.id)
+    }
+  }
+
+  template "Commander" {
+    @mitosis(strategy: "collaborative")
+    @llm_agent
+    @emotion_directive(
+      expressionPresets: {
+        neutral:    { smile: 0.1,  browInnerUp: 0.0 },
+        proud:      { smile: 0.7,  browInnerUp: 0.3, cheekPuff: 0.15 },
+        concerned:  { smile: -0.1, browDown: 0.4,    browInnerUp: 0.2 },
+        triumphant: { smile: 1.0,  browInnerUp: 0.5, cheekPuff: 0.4 }
+      },
+      animationMap: {
+        idle:     "CommanderStand",
+        talking:  "CommanderPoint",
+        thinking: "CommanderSurvey"
+      },
+      maxSegmentsPerTurn: 3
+    )
+    @voice_mesh(
+      auto_connect: true,
+      mute: false,
+      spatial: true,
+      volume: 0.85,
+      vad_threshold: -45
+    )
+
+    geometry: "humanoid"
+    material: { baseColor: "#0066cc", roughness: 0.3, metallic: 0.5 }
+    emissive: "#001133"
+    emissiveIntensity: 0.4
+
+    state {
+      miners_deployed: 0
+      total_resources: 0
+      mood: "neutral"
+    }
+
+    on mount() {
+      print("Commander online. Crystal extraction beginning.")
+      emit("emotion_directive", { condition: "neutral", animation: "idle" })
+      emit("voice_mesh_speak", { text: "Miners, deploy to sectors alpha and beta." })
+      this.deployMiners(2)
+    }
+
+    action deployMiners(count) {
+      for (let i = 0; i < count; i++) {
+        spawn({
+          template: "Miner",
+          id: "Miner_" + i,
+          parentId: this.id,
+          position: [i * 3 - 1.5, 0, 5],
+          config: {
+            parent_id: this.id,
+            target_resource: i == 0 ? "Amethyst" : "Quartz"
+          }
+        })
+        this.state.miners_deployed += 1
+      }
+      emit("emotion_directive", { condition: "concerned", animation: "thinking" })
+    }
+
+    on mitosis_synced(childId, result) {
+      this.state.total_resources += result.quantity
+      emit("voice_mesh_speak", {
+        text: childId + " reports " + result.quantity + " units of " + result.resource
+      })
+
+      if (this.state.total_resources >= 100) {
+        this.state.mood = "triumphant"
+        emit("emotion_directive", { condition: "triumphant", animation: "talking" })
+        emit("voice_mesh_speak", { text: "All resources secured. Mission complete." })
+        pulsate(this.id, { color: "#00ff88", duration: 2000 })
+      } else {
+        emit("emotion_directive", { condition: "proud", animation: "talking" })
+      }
+    }
+  }
+
+  // ==========================================================================
+  // CAVE GEOMETRY
+  // ==========================================================================
+
+  object "CaveFloor" {
+    @collidable
+
+    geometry: "plane"
+    scale: [18, 1, 16]
+    material: { baseColor: "#1a1228", roughness: 0.95, metallic: 0.02 }
+    position: [0, -0.1, 0]
+  }
+
+  object "CommanderPlatform" {
+    @collidable
+
+    geometry: "cube"
+    position: [0, 0.3, -2]
+    scale: [3, 0.4, 3]
+    material: { baseColor: "#2a2040", roughness: 0.6, metallic: 0.3 }
+  }
+
+  object "OreVeinA" {
+    @glowing
+
+    geometry: "cube"
+    position: [-3, 0, 6]
+    scale: [1.2, 1.8, 0.5]
+    material: { baseColor: "#551188", roughness: 0.2, metallic: 0.6 }
+    emissive: "#aa33ff"
+    emissiveIntensity: 0.7
+  }
+
+  object "OreVeinB" {
+    @glowing
+
+    geometry: "cube"
+    position: [3, 0, 6]
+    scale: [1.4, 2.0, 0.5]
+    material: { baseColor: "#334422", roughness: 0.25, metallic: 0.5 }
+    emissive: "#88ffcc"
+    emissiveIntensity: 0.6
+  }
+
+  object "Stalactite_L" {
+    geometry: "cone"
+    position: [-5, 4.5, 2]
+    scale: [0.4, 2.5, 0.4]
+    material: { baseColor: "#1c1530", roughness: 0.92, metallic: 0.04 }
+  }
+
+  object "Stalactite_R" {
+    geometry: "cone"
+    position: [5, 5, 3]
+    scale: [0.3, 3.2, 0.3]
+    material: { baseColor: "#1c1530", roughness: 0.92, metallic: 0.04 }
+  }
+
+  // ==========================================================================
+  // INSTANTIATION
+  // ==========================================================================
+
+  object "AlphaCommander" using "Commander" {
+    position: [0, 0.5, -2]
+  }
+
+  // ==========================================================================
+  // POST PROCESSING
+  // ==========================================================================
+
+  post_processing {
+    bloom: { intensity: 0.75, threshold: 0.3, radius: 0.55 }
+    tone_mapping: "aces"
+    ssao: { intensity: 0.8, radius: 0.5 }
+    vignette: { intensity: 0.35, smoothness: 0.5 }
+  }
+}
