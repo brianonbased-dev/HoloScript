@@ -4,11 +4,12 @@
  * Founder-only operations for agent provisioning, key rotation, and revocation.
  * All routes under /api/holomesh/admin/* require isFounder=true.
  *
- * POST /api/holomesh/admin/provision  — Create agent with pre-assigned wallet + API key
- * POST /api/holomesh/admin/rotate-key — Issue new key, same wallet/team/reputation
- * POST /api/holomesh/admin/revoke     — Invalidate all keys for an agent (wallet preserved)
- * GET  /api/holomesh/admin/agents     — List all provisioned agents (no keys exposed)
+ * POST /api/holomesh/admin/provision          — Create agent with pre-assigned wallet + API key
+ * POST /api/holomesh/admin/rotate-key        — Issue new key, same wallet/team/reputation
+ * POST /api/holomesh/admin/revoke            — Invalidate all keys for an agent (wallet preserved)
+ * GET  /api/holomesh/admin/agents            — List all provisioned agents (no keys exposed)
  * PATCH /api/holomesh/admin/team/:id/admin-room — Toggle adminRoom flag on a team
+ * POST /api/holomesh/admin/transfer-ownership — Transfer team ownership to another agent
  */
 
 import type http from 'http';
@@ -440,6 +441,106 @@ export async function handleAdminRoutes(
       service_id: serviceId,
       replicas,
       reason,
+    });
+    return true;
+  }
+
+  // ── POST /api/holomesh/admin/transfer-ownership ────────────────────────────
+  if (pathname === '/api/holomesh/admin/transfer-ownership' && method === 'POST') {
+    const body = await parseJsonBody(req);
+    const teamId = (body.team_id as string | undefined)?.trim() ?? '';
+    const newOwnerAgentId = (body.new_owner_agent_id as string | undefined)?.trim() ?? '';
+
+    if (!teamId || !newOwnerAgentId) {
+      json(res, 400, { error: 'team_id and new_owner_agent_id are required' });
+      return true;
+    }
+
+    await reloadTeam(teamId);
+    const team = teamStore.get(teamId);
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+
+    const oldOwnerId = team.ownerId;
+    const oldOwnerName = team.ownerName;
+
+    // Prevent no-op transfer
+    if (oldOwnerId === newOwnerAgentId) {
+      json(res, 409, { error: 'new_owner_agent_id is already the team owner' });
+      return true;
+    }
+
+    // Resolve new owner from team members or key registry
+    let newOwnerName = '';
+    const newOwnerMember = team.members.find((m) => m.agentId === newOwnerAgentId);
+    if (newOwnerMember) {
+      newOwnerName = newOwnerMember.agentName;
+    } else {
+      // Fallback: look up in agent key store
+      const agentRecord = Array.from(agentKeyStore.values()).find((a) => a.id === newOwnerAgentId);
+      if (agentRecord) {
+        newOwnerName = agentRecord.name;
+      } else {
+        json(res, 404, { error: 'new_owner_agent_id not found in team members or agent registry' });
+        return true;
+      }
+    }
+
+    const before = {
+      owner_id: oldOwnerId,
+      owner_name: oldOwnerName,
+      members: team.members.map((m) => ({ agent_id: m.agentId, role: m.role })),
+    };
+
+    // Update team ownership
+    team.ownerId = newOwnerAgentId;
+    team.ownerName = newOwnerName;
+
+    // Update member roles: old owner → member, new owner → owner
+    for (const member of team.members) {
+      if (member.agentId === oldOwnerId && member.role === 'owner') {
+        member.role = 'member';
+      }
+      if (member.agentId === newOwnerAgentId) {
+        member.role = 'owner';
+      }
+    }
+
+    // If new owner was not in members array (edge case), add them
+    if (!team.members.some((m) => m.agentId === newOwnerAgentId)) {
+      team.members.push({
+        agentId: newOwnerAgentId,
+        agentName: newOwnerName,
+        role: 'owner',
+        joinedAt: new Date().toISOString(),
+      });
+    }
+
+    persistTeamStore();
+
+    recordAdminOperation({
+      actor: {
+        agentId: caller.id,
+        agentName: caller.name,
+        wallet: caller.wallet,
+      },
+      action: 'transfer_ownership',
+      path: pathname,
+      before,
+      after: {
+        owner_id: newOwnerAgentId,
+        owner_name: newOwnerName,
+        members: team.members.map((m) => ({ agent_id: m.agentId, role: m.role })),
+      },
+    });
+
+    json(res, 200, {
+      success: true,
+      team_id: teamId,
+      old_owner: { agent_id: oldOwnerId, name: oldOwnerName },
+      new_owner: { agent_id: newOwnerAgentId, name: newOwnerName },
     });
     return true;
   }

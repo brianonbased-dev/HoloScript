@@ -8,6 +8,8 @@ import {
   walletToAgent,
   scalingOverrideStore,
   failoverStateStore,
+  teamStore,
+  persistTeamStore,
 } from '../../state';
 import type { KeyRecord } from '../../types';
 import {
@@ -476,5 +478,152 @@ describe('Admin Routes — API Key Rotation Mechanism (P.009.01)', () => {
     expect(entry!.before!.agent_id).toBe(agentId);
     expect(entry!.after!.agent_id).toBe(agentId);
     expect(entry!.after!.rotation_count).toBe(1);
+  });
+
+  // ── Transfer Ownership ──
+
+  function seedTeam(ownerId: string, ownerName: string, members: { agentId: string; agentName: string; role: string }[]): void {
+    const team = {
+      id: 'team_test_transfer',
+      name: 'Transfer Test Team',
+      description: '',
+      type: 'dev' as const,
+      visibility: 'private' as const,
+      ownerId,
+      ownerName,
+      members: members.map((m) => ({
+        agentId: m.agentId,
+        agentName: m.agentName,
+        role: m.role,
+        joinedAt: new Date().toISOString(),
+      })),
+      maxSlots: 10,
+      waitlist: [],
+      createdAt: new Date().toISOString(),
+    };
+    teamStore.set(team.id, team as any);
+    persistTeamStore();
+  }
+
+  it('POST /api/holomesh/admin/transfer-ownership moves ownership to another team member', async () => {
+    const oldOwnerId = 'agent_old_owner';
+    const newOwnerId = 'agent_new_owner';
+    seedTeam(oldOwnerId, 'OldOwner', [
+      { agentId: oldOwnerId, agentName: 'OldOwner', role: 'owner' },
+      { agentId: newOwnerId, agentName: 'NewOwner', role: 'member' },
+    ]);
+
+    const res = await callAdmin('POST', '/api/holomesh/admin/transfer-ownership', {
+      team_id: 'team_test_transfer',
+      new_owner_agent_id: newOwnerId,
+    });
+
+    expect(res._status).toBe(200);
+    expect(res._body.success).toBe(true);
+    expect(res._body.old_owner.agent_id).toBe(oldOwnerId);
+    expect(res._body.new_owner.agent_id).toBe(newOwnerId);
+
+    const updatedTeam = teamStore.get('team_test_transfer');
+    expect(updatedTeam!.ownerId).toBe(newOwnerId);
+    expect(updatedTeam!.ownerName).toBe('NewOwner');
+    const oldOwnerMember = updatedTeam!.members.find((m) => m.agentId === oldOwnerId);
+    expect(oldOwnerMember!.role).toBe('member');
+    const newOwnerMember = updatedTeam!.members.find((m) => m.agentId === newOwnerId);
+    expect(newOwnerMember!.role).toBe('owner');
+
+    // Audit log
+    const audit = queryAdminOperationsAudit(50);
+    const entry = audit.entries.find((e) => e.action === 'transfer_ownership');
+    expect(entry).toBeDefined();
+    expect(entry!.before!.owner_id).toBe(oldOwnerId);
+    expect(entry!.after!.owner_id).toBe(newOwnerId);
+  });
+
+  it('POST /api/holomesh/admin/transfer-ownership adds new owner to members if absent', async () => {
+    const oldOwnerId = 'agent_old_owner2';
+    const newOwnerId = 'agent_outsider';
+    agentKeyStore.set('key_' + newOwnerId, {
+      id: newOwnerId,
+      apiKey: 'key_' + newOwnerId,
+      walletAddress: '0x1234',
+      name: 'OutsiderAgent',
+      traits: ['@provisioned'],
+      reputation: 0,
+      createdAt: new Date().toISOString(),
+    } as any);
+    seedTeam(oldOwnerId, 'OldOwner', [
+      { agentId: oldOwnerId, agentName: 'OldOwner', role: 'owner' },
+    ]);
+
+    const res = await callAdmin('POST', '/api/holomesh/admin/transfer-ownership', {
+      team_id: 'team_test_transfer2',
+      new_owner_agent_id: newOwnerId,
+    });
+
+    // Need to seed a different team for this test
+    teamStore.set('team_test_transfer2', {
+      id: 'team_test_transfer2',
+      name: 'Transfer Test Team 2',
+      description: '',
+      type: 'dev',
+      visibility: 'private',
+      ownerId: oldOwnerId,
+      ownerName: 'OldOwner',
+      members: [{ agentId: oldOwnerId, agentName: 'OldOwner', role: 'owner', joinedAt: new Date().toISOString() }],
+      maxSlots: 10,
+      waitlist: [],
+      createdAt: new Date().toISOString(),
+    } as any);
+    persistTeamStore();
+
+    const res2 = await callAdmin('POST', '/api/holomesh/admin/transfer-ownership', {
+      team_id: 'team_test_transfer2',
+      new_owner_agent_id: newOwnerId,
+    });
+
+    expect(res2._status).toBe(200);
+    const updatedTeam = teamStore.get('team_test_transfer2');
+    expect(updatedTeam!.members.some((m) => m.agentId === newOwnerId && m.role === 'owner')).toBe(true);
+  });
+
+  it('POST /api/holomesh/admin/transfer-ownership rejects missing fields', async () => {
+    const res = await callAdmin('POST', '/api/holomesh/admin/transfer-ownership', {
+      team_id: 'team_test_transfer',
+    });
+    expect(res._status).toBe(400);
+    expect(res._body.error).toContain('team_id and new_owner_agent_id are required');
+  });
+
+  it('POST /api/holomesh/admin/transfer-ownership rejects unknown team', async () => {
+    const res = await callAdmin('POST', '/api/holomesh/admin/transfer-ownership', {
+      team_id: 'team_nonexistent',
+      new_owner_agent_id: 'agent_x',
+    });
+    expect(res._status).toBe(404);
+    expect(res._body.error).toContain('Team not found');
+  });
+
+  it('POST /api/holomesh/admin/transfer-ownership rejects no-op transfer', async () => {
+    const ownerId = 'agent_same';
+    seedTeam(ownerId, 'SameOwner', [
+      { agentId: ownerId, agentName: 'SameOwner', role: 'owner' },
+    ]);
+    const res = await callAdmin('POST', '/api/holomesh/admin/transfer-ownership', {
+      team_id: 'team_test_transfer',
+      new_owner_agent_id: ownerId,
+    });
+    expect(res._status).toBe(409);
+    expect(res._body.error).toContain('already the team owner');
+  });
+
+  it('POST /api/holomesh/admin/transfer-ownership rejects non-founders', async () => {
+    seedNonFounder();
+    const res = await callAdmin(
+      'POST',
+      '/api/holomesh/admin/transfer-ownership',
+      { team_id: 'team_test_transfer', new_owner_agent_id: 'agent_x' },
+      NON_FOUNDER_KEY
+    );
+    expect(res._status).toBe(403);
   });
 });
