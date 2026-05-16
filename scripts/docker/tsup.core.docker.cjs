@@ -29,6 +29,10 @@ module.exports = {
     // Required by engine's CAEL SimulationContract at runtime
     // through '@holoscript/core/paper-0c-spike'.
     'paper-0c-spike/index': 'src/paper-0c-spike/index.ts',
+    // Required by mcp-server/src/hololand-mcp-tools.ts at runtime
+    // through '@holoscript/core/hololand' — missing entry caused
+    // mcp-server crashloop (prod outage 2026-05-16).
+    'hololand/index': 'src/hololand/index.ts',
   },
   define: {
     __HOLOSCRIPT_VERSION__: JSON.stringify(pkg.version),
