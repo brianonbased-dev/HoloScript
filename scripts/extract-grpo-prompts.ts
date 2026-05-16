@@ -18,7 +18,7 @@ import { fileURLToPath } from 'url';
 import {
   GRPOPromptExtractor,
   createNodeFS,
-} from '../packages/core/src/self-improvement/GRPOPromptExtractor';
+} from '../packages/absorb-service/src/self-improvement/GRPOPromptExtractor';
 
 // ─── Path Resolution ─────────────────────────────────────────────────────────
 

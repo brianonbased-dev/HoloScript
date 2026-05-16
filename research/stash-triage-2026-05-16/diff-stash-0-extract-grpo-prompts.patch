@@ -1,0 +1,57 @@
+diff --git a/scripts/extract-grpo-prompts.ts b/scripts/extract-grpo-prompts.ts
+index 7e34fec38..44443a9ed 100644
+--- a/scripts/extract-grpo-prompts.ts
++++ b/scripts/extract-grpo-prompts.ts
+@@ -15,10 +15,11 @@
+ 
+ import * as path from 'path';
+ import { fileURLToPath } from 'url';
++// GRPOPromptExtractor lives in absorb-service package
+ import {
+   GRPOPromptExtractor,
+   createNodeFS,
+-} from '../packages/core/src/self-improvement/GRPOPromptExtractor';
++} from '../packages/absorb-service/src/self-improvement/GRPOPromptExtractor';
+ 
+ // ─── Path Resolution ─────────────────────────────────────────────────────────
+ 
+@@ -104,7 +105,7 @@ async function main() {
+ 
+   // By source
+   console.log('  BY SOURCE:');
+-  for (const [source, count] of Object.entries(stats.bySource)) {
++  for (const [source, count] of Object.entries(stats.bySource as Record<string, number>)) {
+     const bar = '█'.repeat(Math.ceil(count / 2));
+     console.log(`    ${source.padEnd(22)} ${String(count).padStart(4)}  ${bar}`);
+   }
+@@ -112,7 +113,7 @@ async function main() {
+ 
+   // By difficulty
+   console.log('  BY DIFFICULTY:');
+-  for (const [diff, count] of Object.entries(stats.byDifficulty)) {
++  for (const [diff, count] of Object.entries(stats.byDifficulty as Record<string, number>)) {
+     const bar = '█'.repeat(Math.ceil(count / 2));
+     console.log(`    ${diff.padEnd(22)} ${String(count).padStart(4)}  ${bar}`);
+   }
+@@ -120,7 +121,7 @@ async function main() {
+ 
+   // By domain
+   console.log('  BY DOMAIN:');
+-  const sortedDomains = Object.entries(stats.byDomain).sort((a, b) => b[1] - a[1]);
++  const sortedDomains = Object.entries(stats.byDomain as Record<string, number>).sort((a, b) => b[1] - a[1]);
+   for (const [domain, count] of sortedDomains) {
+     const bar = '█'.repeat(Math.ceil(count / 2));
+     console.log(`    ${domain.padEnd(22)} ${String(count).padStart(4)}  ${bar}`);
+@@ -128,9 +129,9 @@ async function main() {
+   console.log('');
+ 
+   // By package
+-  console.log(`  PACKAGES COVERED (${stats.packagesCovered.length}):`);
+-  for (const pkg of stats.packagesCovered) {
+-    const count = result.prompts.filter((p) => p.packageName === pkg).length;
++  console.log(`  PACKAGES COVERED (${(stats.packagesCovered as string[]).length}):`);
++  for (const pkg of stats.packagesCovered as string[]) {
++    const count = result.prompts.filter((p: { packageName: string }) => p.packageName === pkg).length;
+     console.log(`    ${pkg.padEnd(26)} ${String(count).padStart(4)} prompts`);
+   }
+   console.log('');
