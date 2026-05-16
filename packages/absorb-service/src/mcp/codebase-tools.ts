@@ -345,10 +345,11 @@ function createAbsorbJob(rootDir: string): string {
 // GRAPH PERSISTENCE
 // =============================================================================
 
-const CACHE_DIR = process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript');
-const CACHE_FILE = path.join(CACHE_DIR, 'graph-cache.json');
-const EMBEDDINGS_FILE = path.join(CACHE_DIR, 'embeddings-cache.bin');
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+const GRAPH_UNAVAILABLE_RECEIPT_SCHEMA =
+  'holoscript.codebase.graph-unavailable-receipt.v0.1.0';
+const LOCAL_ADAPTER_RECOMMENDATION =
+  'Route this request through a local HoloShell codebase adapter in the same filesystem namespace as the requested path, or pass sourceFiles inline to holo_absorb_repo before trusting GraphRAG output.';
 
 interface GraphCacheEnvelope {
   version: 1 | 2;
@@ -372,6 +373,70 @@ interface AbsorbDiagnostics {
   scanErrorCount: number;
   scanErrorSample: Array<{ file: string; phase: string; error: string }>;
   hints: string[];
+}
+
+type GraphUnavailableReason = 'rootDir_unavailable' | 'cache_stale' | 'cache_missing';
+
+interface GraphUnavailableReceipt {
+  schemaVersion: typeof GRAPH_UNAVAILABLE_RECEIPT_SCHEMA;
+  kind: 'GraphUnavailableReceipt';
+  reason: GraphUnavailableReason;
+  requestedPath: string | null;
+  runtimePath: string | null;
+  runtimeCwd: string;
+  cacheAgeMs: number | null;
+  cacheAgeHuman: string | null;
+  staleThresholdMs: number;
+  staleByMs: number | null;
+  authoritative: false;
+  recommendation: string;
+  createdAt: string;
+}
+
+function getCacheDir(): string {
+  return process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript');
+}
+
+function getCacheFile(): string {
+  return path.join(getCacheDir(), 'graph-cache.json');
+}
+
+function getEmbeddingsFile(): string {
+  return path.join(getCacheDir(), 'embeddings-cache.bin');
+}
+
+function formatCacheAge(ageMs: number | undefined): string | null {
+  if (ageMs === undefined) return null;
+  if (ageMs < 60_000) return `${Math.max(0, Math.round(ageMs / 1000))}s ago`;
+  if (ageMs < 3_600_000) return `${Math.round(ageMs / 60_000)}m ago`;
+  return `${(ageMs / 3_600_000).toFixed(1)}h ago`;
+}
+
+function buildGraphUnavailableReceipt(options: {
+  reason: GraphUnavailableReason;
+  requestedPath?: string | null;
+  runtimePath?: string | null;
+  cacheAgeMs?: number;
+}): GraphUnavailableReceipt {
+  const cacheAgeMs = options.cacheAgeMs;
+  return {
+    schemaVersion: GRAPH_UNAVAILABLE_RECEIPT_SCHEMA,
+    kind: 'GraphUnavailableReceipt',
+    reason: options.reason,
+    requestedPath: options.requestedPath ?? null,
+    runtimePath: options.runtimePath ?? null,
+    runtimeCwd: process.cwd(),
+    cacheAgeMs: cacheAgeMs ?? null,
+    cacheAgeHuman: formatCacheAge(cacheAgeMs),
+    staleThresholdMs: CACHE_MAX_AGE_MS,
+    staleByMs:
+      cacheAgeMs !== undefined && cacheAgeMs >= CACHE_MAX_AGE_MS
+        ? cacheAgeMs - CACHE_MAX_AGE_MS
+        : null,
+    authoritative: false,
+    recommendation: LOCAL_ADAPTER_RECOMMENDATION,
+    createdAt: new Date().toISOString(),
+  };
 }
 
 function atomicWriteFileSync(
@@ -424,11 +489,12 @@ function saveGraphCache(
       fileHashes,
       embeddingProvider,
     };
-    atomicWriteFileSync(CACHE_FILE, JSON.stringify(envelope), 'utf-8');
+    const cacheFile = getCacheFile();
+    atomicWriteFileSync(cacheFile, JSON.stringify(envelope), 'utf-8');
   } catch (err) {
     // Best-effort — don't break absorb if persistence fails
     console.warn(
-      `[CacheDebug][codebase] save miss path=${CACHE_FILE} error=${(err as Error)?.message ?? String(err)}`
+      `[CacheDebug][codebase] save miss path=${getCacheFile()} error=${(err as Error)?.message ?? String(err)}`
     );
   }
 }
@@ -437,33 +503,35 @@ function saveEmbeddingsCache(index: any, rootDir: string): void {
   try {
     if (typeof index.serializeBinary === 'function') {
       const buffer = index.serializeBinary();
-      atomicWriteFileSync(EMBEDDINGS_FILE, buffer);
+      atomicWriteFileSync(getEmbeddingsFile(), buffer);
     }
   } catch (err) {
     console.warn(
-      `[CacheDebug][codebase] save embeddings miss path=${EMBEDDINGS_FILE} error=${(err as Error)?.message}`
+      `[CacheDebug][codebase] save embeddings miss path=${getEmbeddingsFile()} error=${(err as Error)?.message}`
     );
   }
 }
 
 async function loadEmbeddingsCache(mod: any, providerInstance: any): Promise<any | null> {
   try {
-    if (!fs.existsSync(EMBEDDINGS_FILE)) return null;
-    const buffer = fs.readFileSync(EMBEDDINGS_FILE);
+    const embeddingsFile = getEmbeddingsFile();
+    if (!fs.existsSync(embeddingsFile)) return null;
+    const buffer = fs.readFileSync(embeddingsFile);
     const index = mod.EmbeddingIndex.deserializeBinary(buffer, { provider: providerInstance });
     return index;
   } catch (err) {
-    console.warn(`[CacheDebug][codebase] load embeddings miss path=${EMBEDDINGS_FILE}`);
+    console.warn(`[CacheDebug][codebase] load embeddings miss path=${getEmbeddingsFile()}`);
     return null;
   }
 }
 
 function loadGraphCache(): GraphCacheEnvelope | null {
   try {
-    if (!fs.existsSync(CACHE_FILE)) {
+    const cacheFile = getCacheFile();
+    if (!fs.existsSync(cacheFile)) {
       return null;
     }
-    const raw = fs.readFileSync(CACHE_FILE, 'utf-8');
+    const raw = fs.readFileSync(cacheFile, 'utf-8');
     const envelope: GraphCacheEnvelope = JSON.parse(raw);
 
     // Accept both v1 and v2
@@ -479,7 +547,7 @@ function loadGraphCache(): GraphCacheEnvelope | null {
 
     return envelope;
   } catch {
-    console.warn(`[CacheDebug][codebase] load miss path=${CACHE_FILE} reason=parse-or-io-error`);
+    console.warn(`[CacheDebug][codebase] load miss path=${getCacheFile()} reason=parse-or-io-error`);
     return null;
   }
 }
@@ -491,8 +559,9 @@ function getCacheAge(): {
   stats?: Record<string, unknown>;
 } {
   try {
-    if (!fs.existsSync(CACHE_FILE)) return { exists: false };
-    const raw = fs.readFileSync(CACHE_FILE, 'utf-8');
+    const cacheFile = getCacheFile();
+    if (!fs.existsSync(cacheFile)) return { exists: false };
+    const raw = fs.readFileSync(cacheFile, 'utf-8');
     const envelope: GraphCacheEnvelope = JSON.parse(raw);
     return {
       exists: true,
@@ -901,7 +970,13 @@ async function ensureCachedGraph(): Promise<{
         console.warn(`[AbsorbCacheWarm] GraphRAG warmup skipped: ${String(err)}`);
       }
       const ageMs = Date.now() - envelope.timestamp;
-      return { loaded: true, source: 'disk-cache', ageMs, rootDir: envelope.rootDir, stale: false };
+      return {
+        loaded: true,
+        source: 'disk-cache',
+        ageMs,
+        rootDir: envelope.rootDir,
+        stale: ageMs >= CACHE_MAX_AGE_MS,
+      };
     } catch {
       /* Deserialization failed */
     }
@@ -995,11 +1070,19 @@ async function runFullScan(
     diagnostic => !diagnostic.resolvedDirExists || !diagnostic.resolvedDirReadable
   );
   if (inaccessibleRoots.length > 0) {
+    const cache = getCacheAge();
+    const graphUnavailableReceipt = buildGraphUnavailableReceipt({
+      reason: 'rootDir_unavailable',
+      requestedPath: inaccessibleRoots[0].requestedRootDir,
+      runtimePath: inaccessibleRoots[0].resolvedRootDir,
+      cacheAgeMs: cache.ageMs,
+    });
     const result = {
       error: 'rootDir_unavailable',
       message:
         'One or more requested rootDirs are not accessible from this MCP runtime; graph cache was not updated.',
       rootDir: primaryRootDir,
+      graphUnavailableReceipt,
       diagnostics: inaccessibleRoots[0],
       rootDiagnostics,
       durationMs: Date.now() - startTime,
@@ -1928,21 +2011,36 @@ async function handleGraphStatus(): Promise<unknown> {
   const { isGraphRAGReady } = await import('./graph-rag-tools');
   const cacheAgeMs = cache.ageMs;
   const isFresh = cacheAgeMs !== undefined && cacheAgeMs < CACHE_MAX_AGE_MS;
+  const inMemoryAgeMs =
+    cachedGraph !== null && cacheTimestamp ? Date.now() - cacheTimestamp : undefined;
+  const activeAgeMs = inMemoryAgeMs ?? cacheAgeMs;
+  const activeStale = activeAgeMs !== undefined && activeAgeMs >= CACHE_MAX_AGE_MS;
+  const graphAuthoritative = cachedGraph !== null ? !activeStale : cache.exists && isFresh;
+  const requestedPath = cachedRootDir || cache.rootDir || null;
+  const graphUnavailableReceipt = graphAuthoritative
+    ? undefined
+    : buildGraphUnavailableReceipt({
+        reason: cache.exists || cachedGraph !== null ? 'cache_stale' : 'cache_missing',
+        requestedPath,
+        runtimePath: requestedPath ? path.resolve(requestedPath) : null,
+        cacheAgeMs: activeAgeMs,
+      });
+
   return {
     inMemory: cachedGraph !== null,
     rootDir: cachedRootDir || null,
     graphRAGReady: isGraphRAGReady(),
+    graphAuthoritative,
+    ...(graphUnavailableReceipt && { graphUnavailableReceipt }),
     sessionProvenance: cacheProvenance ?? null,
     diskCache: cache.exists
       ? {
           exists: true,
           ageMs: cacheAgeMs,
-          ageHuman:
-            cacheAgeMs! < 3600000
-              ? `${Math.round(cacheAgeMs! / 60000)}m ago`
-              : `${(cacheAgeMs! / 3600000).toFixed(1)}h ago`,
+          ageHuman: formatCacheAge(cacheAgeMs),
           fresh: isFresh,
           stale: !isFresh,
+          authoritative: isFresh,
           rootDir: cache.rootDir,
           stats: cache.stats,
           hint: isFresh

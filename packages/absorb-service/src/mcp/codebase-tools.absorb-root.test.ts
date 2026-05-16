@@ -1,10 +1,44 @@
+import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { handleCodebaseTool, resetCodebaseToolStateForTests } from './codebase-tools';
 
+const originalCacheDir = process.env.HOLOSCRIPT_CACHE_DIR;
+
+type GraphUnavailableReceipt = {
+  kind?: string;
+  reason?: string;
+  requestedPath?: string | null;
+  runtimePath?: string | null;
+  cacheAgeMs?: number | null;
+  staleByMs?: number | null;
+  authoritative?: boolean;
+  recommendation?: string;
+};
+
+function writeGraphCache(cacheDir: string, rootDir: string, timestamp: number): void {
+  fs.mkdirSync(cacheDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(cacheDir, 'graph-cache.json'),
+    JSON.stringify({
+      version: 2,
+      rootDir,
+      timestamp,
+      stats: { totalFiles: 12, totalSymbols: 34 },
+      graphJson: '{}',
+    }),
+    'utf-8'
+  );
+}
+
 describe('holo_absorb_repo root validation', () => {
   afterEach(() => {
+    if (originalCacheDir === undefined) {
+      delete process.env.HOLOSCRIPT_CACHE_DIR;
+    } else {
+      process.env.HOLOSCRIPT_CACHE_DIR = originalCacheDir;
+    }
     resetCodebaseToolStateForTests(false);
   });
 
@@ -27,10 +61,21 @@ describe('holo_absorb_repo root validation', () => {
     })) as {
       error?: string;
       jobId?: string;
+      graphUnavailableReceipt?: GraphUnavailableReceipt;
       diagnostics?: { requestedRootDir?: string; resolvedDirExists?: boolean };
     };
 
     expect(result.error).toBe('rootDir_unavailable');
+    expect(result.graphUnavailableReceipt).toMatchObject({
+      kind: 'GraphUnavailableReceipt',
+      reason: 'rootDir_unavailable',
+      requestedPath: missingRoot,
+      runtimePath: path.resolve(missingRoot),
+      authoritative: false,
+    });
+    expect(result.graphUnavailableReceipt?.recommendation).toContain(
+      'local HoloShell codebase adapter'
+    );
     expect(result.diagnostics?.requestedRootDir).toBe(missingRoot);
     expect(result.diagnostics?.resolvedDirExists).toBe(false);
 
@@ -49,4 +94,50 @@ describe('holo_absorb_repo root validation', () => {
     expect(after.sessionProvenance).toBe(before.sessionProvenance);
     expect(after.diskCache?.rootDir).toBe(before.diskCache?.rootDir);
   }, 15_000);
+
+  it('returns a graph unavailable receipt when the disk cache is stale', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-stale-graph-cache-'));
+    const requestedRoot = 'C:\\Users\\josep\\Documents\\GitHub\\HoloScript';
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    writeGraphCache(cacheDir, requestedRoot, Date.now() - 27 * 60 * 60 * 1000);
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      graphUnavailableReceipt?: GraphUnavailableReceipt;
+      diskCache?: { stale?: boolean; authoritative?: boolean };
+    };
+
+    expect(status.graphAuthoritative).toBe(false);
+    expect(status.diskCache?.stale).toBe(true);
+    expect(status.diskCache?.authoritative).toBe(false);
+    expect(status.graphUnavailableReceipt).toMatchObject({
+      kind: 'GraphUnavailableReceipt',
+      reason: 'cache_stale',
+      requestedPath: requestedRoot,
+      runtimePath: path.resolve(requestedRoot),
+      authoritative: false,
+    });
+    expect(status.graphUnavailableReceipt?.cacheAgeMs).toBeGreaterThan(24 * 60 * 60 * 1000);
+    expect(status.graphUnavailableReceipt?.staleByMs).toBeGreaterThan(0);
+  });
+
+  it('does not emit a graph unavailable receipt for a fresh disk cache', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-fresh-graph-cache-'));
+    const requestedRoot = path.join(os.tmpdir(), 'fresh-holoscript-root');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    writeGraphCache(cacheDir, requestedRoot, Date.now() - 5 * 60 * 1000);
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      graphUnavailableReceipt?: GraphUnavailableReceipt;
+      diskCache?: { fresh?: boolean; authoritative?: boolean };
+    };
+
+    expect(status.graphAuthoritative).toBe(true);
+    expect(status.diskCache?.fresh).toBe(true);
+    expect(status.diskCache?.authoritative).toBe(true);
+    expect(status.graphUnavailableReceipt).toBeUndefined();
+  });
 });
