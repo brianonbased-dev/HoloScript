@@ -36,6 +36,20 @@ export interface HoloMapMicroConfig {
   modelHash: string;
 }
 
+interface HoloMapMicroWeights {
+  proj: Float32Array;
+  Wq: Float32Array;
+  Wk: Float32Array;
+  Wv: Float32Array;
+  Wxyz: Float32Array;
+  gamma1: Float32Array;
+  beta1: Float32Array;
+  gamma2: Float32Array;
+  beta2: Float32Array;
+}
+
+const weightCache = new Map<string, HoloMapMicroWeights>();
+
 function hashConfigSeed(config: HoloMapMicroConfig): number {
   let h = config.seed >>> 0;
   const s = config.modelHash || '';
@@ -57,6 +71,36 @@ function mulberry32(seed: number): () => number {
 
 function fillGaussian2D(out: Float32Array, rng: () => number, scale: number): void {
   for (let i = 0; i < out.length; i += 1) out[i] = (rng() * 2 - 1) * scale;
+}
+
+function microWeightKey(config: HoloMapMicroConfig): string {
+  return `${config.seed}\0${config.modelHash || ''}`;
+}
+
+function getMicroWeights(config: HoloMapMicroConfig): HoloMapMicroWeights {
+  const key = microWeightKey(config);
+  const cached = weightCache.get(key);
+  if (cached) return cached;
+
+  const rng = mulberry32(hashConfigSeed(config));
+  const weights: HoloMapMicroWeights = {
+    proj: new Float32Array(EMBED_DIM * PATCH_LEN),
+    Wq: new Float32Array(EMBED_DIM * EMBED_DIM),
+    Wk: new Float32Array(EMBED_DIM * EMBED_DIM),
+    Wv: new Float32Array(EMBED_DIM * EMBED_DIM),
+    Wxyz: new Float32Array(EMBED_DIM * 3),
+    gamma1: new Float32Array(EMBED_DIM).fill(1),
+    beta1: new Float32Array(EMBED_DIM).fill(0),
+    gamma2: new Float32Array(EMBED_DIM).fill(1),
+    beta2: new Float32Array(EMBED_DIM).fill(0),
+  };
+  fillGaussian2D(weights.proj, rng, 0.02);
+  fillGaussian2D(weights.Wq, rng, 0.02);
+  fillGaussian2D(weights.Wk, rng, 0.02);
+  fillGaussian2D(weights.Wv, rng, 0.02);
+  fillGaussian2D(weights.Wxyz, rng, 0.05);
+  weightCache.set(key, weights);
+  return weights;
 }
 
 /** Nearest-neighbor RGB (0–255) → planar float [H,W,3] row-major in [0,1]. */
@@ -225,27 +269,11 @@ export function createHoloMapMicroEncoder(device: GPUDevice): HoloMapMicroEncode
   const fusedMha = createFusedMHAKernel(device);
   const gelu = createGeluKernel(device);
 
-  const gamma1 = new Float32Array(EMBED_DIM).fill(1);
-  const beta1 = new Float32Array(EMBED_DIM).fill(0);
-  const gamma2 = new Float32Array(EMBED_DIM).fill(1);
-  const beta2 = new Float32Array(EMBED_DIM).fill(0);
-
   return {
     async run(frame: HoloMapMicroFrame, config: HoloMapMicroConfig): Promise<Float32Array> {
-      const rng = mulberry32(hashConfigSeed(config) ^ (0x9e3779b9 * (frame.index + 1)));
-      const proj = new Float32Array(EMBED_DIM * PATCH_LEN);
-      const Wq = new Float32Array(EMBED_DIM * EMBED_DIM);
-      const Wk = new Float32Array(EMBED_DIM * EMBED_DIM);
-      const Wv = new Float32Array(EMBED_DIM * EMBED_DIM);
-      const Wxyz = new Float32Array(EMBED_DIM * 3);
-      fillGaussian2D(proj, rng, 0.02);
-      fillGaussian2D(Wq, rng, 0.02);
-      fillGaussian2D(Wk, rng, 0.02);
-      fillGaussian2D(Wv, rng, 0.02);
-      fillGaussian2D(Wxyz, rng, 0.05);
-
+      const weights = getMicroWeights(config);
       const image = frameToMicroImage(frame);
-      let tokens = await patchEmbed.run(image, proj, {
+      let tokens = await patchEmbed.run(image, weights.proj, {
         imgH: MICRO,
         imgW: MICRO,
         patchH: MICRO,
@@ -253,11 +281,11 @@ export function createHoloMapMicroEncoder(device: GPUDevice): HoloMapMicroEncode
         numChannels: 3,
         embedDim: EMBED_DIM,
       });
-      tokens = await layerNorm.run(tokens, gamma1, beta1);
+      tokens = await layerNorm.run(tokens, weights.gamma1, weights.beta1);
 
-      const qFlat = await gemm.run(tokens, Wq, 1, EMBED_DIM, EMBED_DIM);
-      const kFlat = await gemm.run(tokens, Wk, 1, EMBED_DIM, EMBED_DIM);
-      const vFlat = await gemm.run(tokens, Wv, 1, EMBED_DIM, EMBED_DIM);
+      const qFlat = await gemm.run(tokens, weights.Wq, 1, EMBED_DIM, EMBED_DIM);
+      const kFlat = await gemm.run(tokens, weights.Wk, 1, EMBED_DIM, EMBED_DIM);
+      const vFlat = await gemm.run(tokens, weights.Wv, 1, EMBED_DIM, EMBED_DIM);
 
       const q3 = await rope.run(qFlat, { seqLen: 1, numHeads: NUM_HEADS, headDim: HEAD_DIM, posOffset: frame.index });
       const k3 = await rope.run(kFlat, { seqLen: 1, numHeads: NUM_HEADS, headDim: HEAD_DIM, posOffset: frame.index });
@@ -269,9 +297,9 @@ export function createHoloMapMicroEncoder(device: GPUDevice): HoloMapMicroEncode
         dHead: HEAD_DIM,
         vHead: HEAD_DIM,
       });
-      attn = await layerNorm.run(attn, gamma2, beta2);
+      attn = await layerNorm.run(attn, weights.gamma2, weights.beta2);
       attn = await gelu.run(attn);
-      return gemm.run(attn, Wxyz, 1, EMBED_DIM, 3);
+      return gemm.run(attn, weights.Wxyz, 1, EMBED_DIM, 3);
     },
   };
 }
@@ -281,35 +309,20 @@ export async function runHoloMapMicroEncoderCpu(
   frame: HoloMapMicroFrame,
   config: HoloMapMicroConfig,
 ): Promise<Float32Array> {
-  const rng = mulberry32(hashConfigSeed(config) ^ (0x9e3779b9 * (frame.index + 1)));
-  const proj = new Float32Array(EMBED_DIM * PATCH_LEN);
-  const Wq = new Float32Array(EMBED_DIM * EMBED_DIM);
-  const Wk = new Float32Array(EMBED_DIM * EMBED_DIM);
-  const Wv = new Float32Array(EMBED_DIM * EMBED_DIM);
-  const Wxyz = new Float32Array(EMBED_DIM * 3);
-  fillGaussian2D(proj, rng, 0.02);
-  fillGaussian2D(Wq, rng, 0.02);
-  fillGaussian2D(Wk, rng, 0.02);
-  fillGaussian2D(Wv, rng, 0.02);
-  fillGaussian2D(Wxyz, rng, 0.05);
-
+  const weights = getMicroWeights(config);
   const image = frameToMicroImage(frame);
-  let tokens = patchEmbedCpu(image, proj, EMBED_DIM);
-  const gamma1 = new Float32Array(EMBED_DIM).fill(1);
-  const beta1 = new Float32Array(EMBED_DIM).fill(0);
-  const gamma2 = new Float32Array(EMBED_DIM).fill(1);
-  const beta2 = new Float32Array(EMBED_DIM).fill(0);
-  tokens = layerNormCpu(tokens, gamma1, beta1, 1, EMBED_DIM);
+  let tokens = patchEmbedCpu(image, weights.proj, EMBED_DIM);
+  tokens = layerNormCpu(tokens, weights.gamma1, weights.beta1, 1, EMBED_DIM);
 
-  const qFlat = gemmCpu(tokens, Wq, 1, EMBED_DIM, EMBED_DIM);
-  const kFlat = gemmCpu(tokens, Wk, 1, EMBED_DIM, EMBED_DIM);
-  const vFlat = gemmCpu(tokens, Wv, 1, EMBED_DIM, EMBED_DIM);
+  const qFlat = gemmCpu(tokens, weights.Wq, 1, EMBED_DIM, EMBED_DIM);
+  const kFlat = gemmCpu(tokens, weights.Wk, 1, EMBED_DIM, EMBED_DIM);
+  const vFlat = gemmCpu(tokens, weights.Wv, 1, EMBED_DIM, EMBED_DIM);
 
   const qR = ropeCpuSync(qFlat, 1, NUM_HEADS, HEAD_DIM, frame.index);
   const kR = ropeCpuSync(kFlat, 1, NUM_HEADS, HEAD_DIM, frame.index);
 
   let attn = mhaCpu(qR, kR, vFlat, NUM_HEADS, 1, 1, HEAD_DIM, HEAD_DIM);
-  attn = layerNormCpu(attn, gamma2, beta2, 1, EMBED_DIM);
+  attn = layerNormCpu(attn, weights.gamma2, weights.beta2, 1, EMBED_DIM);
   attn = geluCpu(attn);
-  return gemmCpu(attn, Wxyz, 1, EMBED_DIM, 3);
+  return gemmCpu(attn, weights.Wxyz, 1, EMBED_DIM, 3);
 }

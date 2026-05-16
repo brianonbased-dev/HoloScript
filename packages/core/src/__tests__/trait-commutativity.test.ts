@@ -1,5 +1,4 @@
 import { describe, test, expect } from 'vitest';
-import { DeterminismHarness } from '../testing/DeterminismHarness';
 import { ProvenanceSemiring, TraitApplication } from '../compiler/traits/ProvenanceSemiring';
 import { hashBytes } from '../testing/DeterminismHarness';
 
@@ -58,7 +57,7 @@ describe('Trait Commutativity Evaluation (P3-S2)', () => {
     const orderingsPerSet = 10; 
     const runs = 10;
     
-    const harness = new DeterminismHarness({ hashAlgorithm: 'sha256' });
+    const semiring = new ProvenanceSemiring(rules);
     
     const semiringOverheadSamples: number[] = [];
     const shaOverheadSamples: number[] = [];
@@ -90,7 +89,6 @@ describe('Trait Commutativity Evaluation (P3-S2)', () => {
 
           for (let ord = 0; ord < orderingsPerSet; ord++) {
             const ordering = shuffle(traitSet);
-            const semiring = new ProvenanceSemiring(rules);
             
             const t0Sem = performance.now();
             const composition = semiring.add(ordering);
@@ -99,16 +97,14 @@ describe('Trait Commutativity Evaluation (P3-S2)', () => {
             const jsonString = JSON.stringify(composition.config);
             
             const t0Hash = performance.now();
-            const result = await harness.probe(`obj-${o}-set-${s}-ord-${ord}`, async () => {
-               return jsonString;
-            });
+            const outputHash = await hashBytes(jsonString, 'sha256');
             const t1Hash = performance.now();
             
             runSemiringTimeMs += (t1Sem - t0Sem);
             runShaTimeMs += (t1Hash - t0Hash);
             runApplications += traitCount;
             
-            results.push({ setId: `obj-${o}-set-${s}`, hash: result.outputHash });
+            results.push({ setId: `obj-${o}-set-${s}`, hash: outputHash });
           }
         }
       }

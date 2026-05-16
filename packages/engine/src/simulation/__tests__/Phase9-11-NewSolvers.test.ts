@@ -124,8 +124,8 @@ describe('Phase 11: MolecularDynamicsSolver', () => {
     solver.positions[3] = 5.0 + r0; solver.positions[4] = 5.0; solver.positions[5] = 5.0;
     solver.velocities.fill(0); // zero velocity
 
-    // Single step to compute forces
-    solver.step(0.001);
+    // Refresh forces/potential after the manual placement without moving.
+    solver.step(0);
 
     const stats = solver.getStats();
     // At equilibrium, PE should be -ε = -1.0

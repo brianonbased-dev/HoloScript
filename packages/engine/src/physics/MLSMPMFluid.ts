@@ -456,16 +456,13 @@ export class MLSMPMFluid {
   private createBindGroups(): void {
     const device = this.device!;
 
-    // Grid Clear bind group (shares grid update layout)
+    // Grid Clear only touches params and grid_velocity; auto layout excludes
+    // the grid mass/momentum buffers used by cs_grid_update.
     this.gridClearBindGroup = device.createBindGroup({
       label: 'Grid Clear BG',
       layout: this.gridClearPipeline!.getBindGroupLayout(0),
       entries: [
         { binding: 0, resource: { buffer: this.simParamsBuffer! } },
-        { binding: 1, resource: { buffer: this.gridMass! } },
-        { binding: 2, resource: { buffer: this.gridMomentumX! } },
-        { binding: 3, resource: { buffer: this.gridMomentumY! } },
-        { binding: 4, resource: { buffer: this.gridMomentumZ! } },
         { binding: 5, resource: { buffer: this.gridVelocity! } },
       ],
     });
