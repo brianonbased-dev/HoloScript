@@ -432,7 +432,9 @@ async function submitRenderJob(
     // Persist state change
     if (state.persistence) {
       // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-      await state.persistence.moveToCompleted(job).catch(() => {});
+      await state.persistence.moveToCompleted(job).catch((err) => {
+        console.error(`[RenderNetworkTrait] submitJobToAPI: moveToCompleted failed for job ${job.id}:`, err);
+      });
     }
 
     context.emit?.('render_job_failed', { node, job, error: job.error });
@@ -622,9 +624,13 @@ function pollJobStatus(
         // Persist state changes
         if (state.persistence) {
           // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-          state.persistence.moveToCompleted(job).catch(() => {});
+          state.persistence.moveToCompleted(job).catch((err) => {
+            console.error(`[RenderNetworkTrait] pollJobStatus: moveToCompleted failed for job ${job.id}:`, err);
+          });
           // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-          state.persistence.saveState(state).catch(() => {});
+          state.persistence.saveState(state).catch((err) => {
+            console.error(`[RenderNetworkTrait] pollJobStatus: saveState failed:`, err);
+          });
         }
 
         // Send webhook notification if configured
@@ -653,7 +659,9 @@ function pollJobStatus(
         // Persist state changes
         if (state.persistence) {
           // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-          state.persistence.moveToCompleted(job).catch(() => {});
+          state.persistence.moveToCompleted(job).catch((err) => {
+            console.error(`[RenderNetworkTrait] pollJobStatus (failed): moveToCompleted failed for job ${job.id}:`, err);
+          });
         }
 
         context.emit?.('render_job_failed', { node, job, error: job.error });

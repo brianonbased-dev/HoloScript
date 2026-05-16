@@ -228,7 +228,9 @@ export const choreographyHandler: TraitHandler<ChoreographyConfig> = {
       // Cancel all active plans
       if (state.engine) {
         for (const planId of state.activePlans.keys()) {
-          state.engine.cancel(planId).catch(() => {});
+          state.engine.cancel(planId).catch((err) => {
+            console.error(`[ChoreographyTrait] onDetach: failed to cancel plan ${planId}:`, err);
+          });
         }
       }
 

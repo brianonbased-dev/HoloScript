@@ -367,7 +367,9 @@ export class AssetRegistry {
     const chunks = this.chunkArray(assetIds, this.config.concurrentLoadLimit);
 
     for (const chunk of chunks) {
-      await Promise.all(chunk.map((id) => this.loadAsset(id).catch(() => {})));
+      await Promise.all(chunk.map((id) => this.loadAsset(id).catch((err) => {
+        console.error(`[AssetRegistry] preloadAssets: failed to load asset ${id}:`, err);
+      })));
     }
   }
 

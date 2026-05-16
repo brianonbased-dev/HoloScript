@@ -149,7 +149,9 @@ export const computerUseHandler = {
     const state: ComputerUseState | undefined = node.__computerUseState;
     if (!state) return;
     // Close all open sessions
-    const closures = [...state.sessions.values()].map((s) => s.page?.close().catch(() => {}));
+    const closures = [...state.sessions.values()].map((s) => s.page?.close().catch((err) => {
+      console.error(`[ComputerUseTrait] onDetach: failed to close page for session ${s.id}:`, err);
+    }));
     Promise.allSettled(closures ?? []);
     ctx.emit('computer_use_stopped', {
       node,
@@ -184,7 +186,9 @@ export const computerUseHandler = {
         const closeBrowserId = payload?.browserId as string | undefined;
         const session = closeBrowserId ? state.sessions.get(closeBrowserId) : undefined;
         if (session) {
-          session.page?.close().catch(() => {});
+          session.page?.close().catch((err) => {
+            console.error(`[ComputerUseTrait] browser_close: failed to close page for session ${session.id}:`, err);
+          });
           state.sessions.delete(session.id);
           ctx.emit('browser_closed', { node, browserId: session.id });
         }
