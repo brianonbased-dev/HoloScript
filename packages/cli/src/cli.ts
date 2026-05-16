@@ -235,6 +235,7 @@ function printJson(value: unknown): void {
 const WORLD_MODEL_REPLAY_SCHEMA = 'world-model-replay-v1';
 const WORLD_MODEL_REPLAY_SCENE_ID = 'deterministic-contact-v1';
 const WORLD_MODEL_HUMANOID_ROCK_THROW_SCENE_ID = 'humanoid-rock-throw-v1';
+const WORLD_MODEL_TWO_AGENT_HANDOFF_CATCH_SCENE_ID = 'two-agent-handoff-catch-v1';
 
 async function runWorldModelCommand(options: ReturnType<typeof parseArgs>): Promise<void> {
   const subcommand = options.subcommand ?? 'replay';
@@ -260,11 +261,12 @@ async function runWorldModelCommand(options: ReturnType<typeof parseArgs>): Prom
   const sceneId = options.sceneId ?? WORLD_MODEL_REPLAY_SCENE_ID;
   if (
     sceneId !== WORLD_MODEL_REPLAY_SCENE_ID &&
-    sceneId !== WORLD_MODEL_HUMANOID_ROCK_THROW_SCENE_ID
+    sceneId !== WORLD_MODEL_HUMANOID_ROCK_THROW_SCENE_ID &&
+    sceneId !== WORLD_MODEL_TWO_AGENT_HANDOFF_CATCH_SCENE_ID
   ) {
     cliError('E003', `Unsupported world-model scene: ${sceneId}`, {
       usage:
-        'holoscript world-model replay --scene deterministic-contact-v1|humanoid-rock-throw-v1 [--seed <integer>] [--json]',
+        'holoscript world-model replay --scene deterministic-contact-v1|humanoid-rock-throw-v1|two-agent-handoff-catch-v1 [--seed <integer>] [--json]',
       hint: 'Use one of the replayable world-model fixtures.',
     });
     process.exit(1);
@@ -280,20 +282,24 @@ async function runWorldModelCommand(options: ReturnType<typeof parseArgs>): Prom
     process.exit(1);
   }
 
-  const { buildDeterministicFailureTrajectory, buildHumanoidRockThrowTrajectory } = await import(
-    '@holoscript/core/world-model'
-  );
+  const {
+    buildDeterministicFailureTrajectory,
+    buildHumanoidRockThrowTrajectory,
+    buildTwoAgentHandoffCatchTrajectory,
+  } = await import('@holoscript/core/world-model');
   const replay =
     sceneId === WORLD_MODEL_HUMANOID_ROCK_THROW_SCENE_ID
       ? buildHumanoidRockThrowTrajectory({ seed })
-      : buildDeterministicFailureTrajectory(undefined, { seed });
+      : sceneId === WORLD_MODEL_TWO_AGENT_HANDOFF_CATCH_SCENE_ID
+        ? buildTwoAgentHandoffCatchTrajectory({ seed })
+        : buildDeterministicFailureTrajectory(undefined, { seed });
   if (options.trajectoryId && options.trajectoryId !== replay.trajectory.id) {
     cliError(
       'E003',
       `Trajectory handle mismatch: requested ${options.trajectoryId}, replay produced ${replay.trajectory.id}`,
       {
         usage:
-          'holoscript world-model replay --scene deterministic-contact-v1|humanoid-rock-throw-v1 --trajectory <id> --seed <integer> [--json]',
+          'holoscript world-model replay --scene deterministic-contact-v1|humanoid-rock-throw-v1|two-agent-handoff-catch-v1 --trajectory <id> --seed <integer> [--json]',
         hint: 'Use the trajectory id from the replay handle, or omit --trajectory to replay by scene and seed only.',
       }
     );
@@ -320,7 +326,10 @@ async function runWorldModelCommand(options: ReturnType<typeof parseArgs>): Prom
 
   if (options.output) {
     const fs = await import('fs');
-    fs.writeFileSync(options.output, `${JSON.stringify(payload, null, 2)}\n`, 'utf-8');
+    const path = await import('path');
+    const outputPath = path.resolve(options.output);
+    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+    fs.writeFileSync(outputPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf-8');
   }
 
   if (options.json) {
@@ -1828,6 +1837,14 @@ async function main(): Promise<void> {
 
       const fs = await import('fs');
       const path = await import('path');
+      const writeCompileOutputFile = (
+        outputPath: string,
+        contents: string,
+        encoding: BufferEncoding = 'utf-8'
+      ): void => {
+        fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+        fs.writeFileSync(outputPath, contents, encoding);
+      };
 
       const filePath = path.resolve(options.input);
       if (!fs.existsSync(filePath)) {
@@ -1861,7 +1878,7 @@ async function main(): Promise<void> {
         }
 
         const outputPath = path.resolve(options.output || 'index.mjs');
-        fs.writeFileSync(outputPath, compiled.code, 'utf-8');
+        writeCompileOutputFile(outputPath, compiled.code);
         console.log(`\n\x1b[32m✓ Pipeline compiled to Node.js module: ${outputPath}\x1b[0m\n`);
         process.exit(0);
       }
@@ -1986,11 +2003,11 @@ async function main(): Promise<void> {
             const watPath = outputPath.endsWith('.wat') ? outputPath : outputPath + '.wat';
             const bindingsPath = outputPath.replace(/\.wat$/, '') + '.bindings.ts';
 
-            fs.writeFileSync(watPath, wasmResult.wat);
+            writeCompileOutputFile(watPath, wasmResult.wat);
             console.log(`\x1b[32m✓ WAT written to ${watPath}\x1b[0m`);
 
             if (wasmResult.bindings) {
-              fs.writeFileSync(bindingsPath, wasmResult.bindings);
+              writeCompileOutputFile(bindingsPath, wasmResult.bindings);
               console.log(`\x1b[32m✓ Bindings written to ${bindingsPath}\x1b[0m`);
             }
           } else {
@@ -2041,7 +2058,7 @@ async function main(): Promise<void> {
           if (options.output) {
             const outputPath = path.resolve(options.output);
             const urdfPath = outputPath.endsWith('.urdf') ? outputPath : outputPath + '.urdf';
-            fs.writeFileSync(urdfPath, urdfOutput);
+            writeCompileOutputFile(urdfPath, urdfOutput);
             console.log(`\x1b[32m✓ URDF written to ${urdfPath}\x1b[0m`);
           } else {
             console.log('\n--- URDF Output ---\n');
@@ -2088,7 +2105,7 @@ async function main(): Promise<void> {
           if (options.output) {
             const outputPath = path.resolve(options.output);
             const sdfPath = outputPath.endsWith('.sdf') ? outputPath : outputPath + '.sdf';
-            fs.writeFileSync(sdfPath, sdfOutput);
+            writeCompileOutputFile(sdfPath, sdfOutput);
             console.log(`\x1b[32m✓ SDF written to ${sdfPath}\x1b[0m`);
           } else {
             console.log('\n--- SDF Output ---\n');
@@ -2136,7 +2153,7 @@ async function main(): Promise<void> {
           if (options.output) {
             const outputPath = path.resolve(options.output);
             const dtdlPath = outputPath.endsWith('.json') ? outputPath : outputPath + '.json';
-            fs.writeFileSync(dtdlPath, dtdlOutput);
+            writeCompileOutputFile(dtdlPath, dtdlOutput);
             console.log(`\x1b[32m✓ DTDL written to ${dtdlPath}\x1b[0m`);
           } else {
             console.log('\n--- DTDL Output ---\n');
@@ -2176,7 +2193,7 @@ async function main(): Promise<void> {
 
           if (options.output) {
             const outputPath = path.resolve(options.output);
-            fs.writeFileSync(outputPath, reactOutput);
+            writeCompileOutputFile(outputPath, reactOutput);
             console.log(`\x1b[32m✓ Component written to ${outputPath}\x1b[0m`);
           } else {
             console.log('\n--- React Code ---\n');
@@ -2361,7 +2378,7 @@ async function main(): Promise<void> {
           if (options.output) {
             const outputPath = path.resolve(options.output);
             const gdPath = outputPath.endsWith('.gd') ? outputPath : outputPath + '.gd';
-            fs.writeFileSync(gdPath, output);
+            writeCompileOutputFile(gdPath, output);
             console.log(`\x1b[32m✓ GDScript written to ${gdPath}\x1b[0m`);
           } else {
             console.log('\n--- Godot GDScript Output ---\n');
@@ -2403,7 +2420,7 @@ async function main(): Promise<void> {
           if (options.output) {
             const outputPath = path.resolve(options.output);
             const swiftPath = outputPath.endsWith('.swift') ? outputPath : outputPath + '.swift';
-            fs.writeFileSync(swiftPath, output);
+            writeCompileOutputFile(swiftPath, output);
             console.log(`\x1b[32m✓ VisionOS Swift written to ${swiftPath}\x1b[0m`);
           } else {
             console.log('\n--- VisionOS Swift Output ---\n');
@@ -2442,7 +2459,7 @@ async function main(): Promise<void> {
           if (options.output) {
             const outputPath = path.resolve(options.output);
             const jsonPath = outputPath.endsWith('.json') ? outputPath : outputPath + '.json';
-            fs.writeFileSync(jsonPath, output);
+            writeCompileOutputFile(jsonPath, output);
             console.log(`\x1b[32m✓ SCM-DAG written to ${jsonPath}\x1b[0m`);
           } else {
             console.log('\n--- SCM-DAG JSON Output ---\n');
@@ -2484,7 +2501,7 @@ async function main(): Promise<void> {
           if (options.output) {
             const outputPath = path.resolve(options.output);
             const cppPath = outputPath.endsWith('.cpp') ? outputPath : outputPath + '.cpp';
-            fs.writeFileSync(cppPath, output);
+            writeCompileOutputFile(cppPath, output);
             console.log(`\x1b[32m✓ OpenXR C++ written to ${cppPath}\x1b[0m`);
           } else {
             console.log('\n--- OpenXR C++ Output ---\n');
@@ -2526,7 +2543,7 @@ async function main(): Promise<void> {
           if (options.output) {
             const outputPath = path.resolve(options.output);
             const ktPath = outputPath.endsWith('.kt') ? outputPath : outputPath + '.kt';
-            fs.writeFileSync(ktPath, output);
+            writeCompileOutputFile(ktPath, output);
             console.log(`\x1b[32m✓ AndroidXR Kotlin written to ${ktPath}\x1b[0m`);
           } else {
             console.log('\n--- AndroidXR Kotlin Output ---\n');
@@ -2567,7 +2584,7 @@ async function main(): Promise<void> {
           if (options.output) {
             const outputPath = path.resolve(options.output);
             const tsPath = outputPath.endsWith('.ts') ? outputPath : outputPath + '.ts';
-            fs.writeFileSync(tsPath, output);
+            writeCompileOutputFile(tsPath, output);
             console.log(`\x1b[32m✓ WebGPU TypeScript written to ${tsPath}\x1b[0m`);
           } else {
             console.log('\n--- WebGPU TypeScript Output ---\n');
@@ -2606,7 +2623,7 @@ async function main(): Promise<void> {
           if (options.output) {
             const outputPath = path.resolve(options.output);
             const jsonPath = outputPath.endsWith('.json') ? outputPath : outputPath + '.json';
-            fs.writeFileSync(jsonPath, serialized);
+            writeCompileOutputFile(jsonPath, serialized);
             console.log(`\x1b[32m✓ R3F scene graph written to ${jsonPath}\x1b[0m`);
           } else {
             console.log('\n--- R3F Scene Graph ---\n');
@@ -2660,7 +2677,7 @@ async function main(): Promise<void> {
 
             const outputStr =
               typeof output === 'string' ? output : (output as { output: string }).output;
-            fs.writeFileSync(finalPath, outputStr);
+            writeCompileOutputFile(finalPath, outputStr);
             console.log(`\x1b[32m✓ Native 2D output written to ${finalPath}\x1b[0m`);
           } else {
             console.log(`\n--- Native 2D Output (${outputFormat}) ---\n`);
@@ -2680,7 +2697,7 @@ async function main(): Promise<void> {
 
         if (options.output) {
           const outputPath = path.resolve(options.output);
-          fs.writeFileSync(outputPath, outputCode);
+          writeCompileOutputFile(outputPath, outputCode);
           console.log(`\x1b[32m✓ Written to ${options.output}\x1b[0m\n`);
         } else {
           console.log(outputCode);

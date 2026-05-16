@@ -1,0 +1,97 @@
+composition "TwoAgentHandoffCatchBehavior" {
+  environment {
+    backgroundColor: "#10131a"
+    ambient: 0.45
+    shadows: true
+  }
+
+  state HandoffState {
+    phase: "align"
+    owner: "thrower"
+    releaseConfirmed: false
+    catchConfirmed: false
+    transferReceipt: null
+    severeGapCount: 0
+  }
+
+  template "HandoffProbe" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    scale: [0.64, 0.18, 1]
+    material: {
+      color: "#111827"
+      emissive: "#1f2937"
+      emissiveIntensity: 0.2
+      transparent: true
+      opacity: 0.92
+    }
+  }
+
+  object "AlignProbe" using "HandoffProbe" {
+    position: [-2.4, 2.35, -1.1]
+    properties: { phase: "align", expected: "hands face each other" }
+  }
+
+  object "ReleaseProbe" using "HandoffProbe" {
+    position: [-1.2, 2.45, -1.1]
+    properties: { phase: "release", expected: "tool detached from thrower" }
+  }
+
+  object "BallisticProbe" using "HandoffProbe" {
+    position: [0, 2.55, -1.1]
+    properties: { phase: "ballistic", expected: "tool arc intersects catch volume" }
+  }
+
+  object "CatchProbe" using "HandoffProbe" {
+    position: [1.2, 2.45, -1.1]
+    properties: { phase: "catch", expected: "tool attached to catcher" }
+  }
+
+  object "ReceiptProbe" using "HandoffProbe" {
+    position: [2.4, 2.35, -1.1]
+    properties: { phase: "receipt", expected: "ownership transfer receipt emitted" }
+  }
+
+  action recordPhase(phase) {
+    HandoffState.phase = phase
+    emit("handoff:phase_recorded", { phase: phase })
+  }
+
+  action releaseTool() {
+    HandoffState.phase = "release"
+    HandoffState.owner = "none"
+    HandoffState.releaseConfirmed = true
+    emit("handoff:release", { object: "SharedTool", from: "ThrowerHand" })
+  }
+
+  action catchTool() {
+    HandoffState.phase = "catch"
+    HandoffState.owner = "catcher"
+    HandoffState.catchConfirmed = true
+    emit("handoff:catch", { object: "SharedTool", to: "CatcherHand" })
+  }
+
+  action writeReceipt() {
+    HandoffState.phase = "receipt"
+    HandoffState.transferReceipt = {
+      from: "thrower",
+      to: "catcher",
+      object: "SharedTool",
+      releaseConfirmed: HandoffState.releaseConfirmed,
+      catchConfirmed: HandoffState.catchConfirmed
+    }
+    emit("handoff:transfer_receipt", HandoffState.transferReceipt)
+  }
+
+  action recordGap(phase, severity, message) {
+    if (severity == "P1") {
+      HandoffState.severeGapCount = HandoffState.severeGapCount + 1
+    }
+    emit("handoff:gap_found", {
+      phase: phase,
+      severity: severity,
+      message: message
+    })
+  }
+}

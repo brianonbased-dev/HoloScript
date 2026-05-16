@@ -1,0 +1,106 @@
+composition "Two Agent Handoff Catch Probe" {
+  environment {
+    skybox: "studio"
+    backgroundColor: "#10131a"
+    ambient_light: 0.45
+    shadows: true
+    physics: true
+  }
+
+  template "AgentBody" {
+    @animated
+    @collidable
+    geometry: "capsule"
+    color: "#7aa2f7"
+    material: { color: "#7aa2f7", roughness: 0.48, metallic: 0.08 }
+  }
+
+  template "Hand" {
+    @grabbable
+    @collidable
+    geometry: "sphere"
+    color: "#9ece6a"
+    material: { color: "#9ece6a", roughness: 0.35, metallic: 0.04 }
+  }
+
+  template "ToolProp" {
+    @grabbable
+    @throwable { trajectory_preview: true, spin_enabled: true, max_velocity: 10 }
+    @physics { mass: 0.65, friction: 0.55, restitution: 0.2 }
+    @collidable
+    geometry: "capsule"
+    color: "#e0af68"
+    material: { color: "#e0af68", roughness: 0.72, metallic: 0.12 }
+  }
+
+  object "Floor" {
+    @static
+    @collidable
+    geometry: "plane"
+    position: [0, 0, 0]
+    rotation: [-90, 0, 0]
+    scale: [9, 5, 1]
+    color: "#242b36"
+    material: { color: "#242b36", roughness: 0.9, metallic: 0.03 }
+  }
+
+  object "ThrowerTorso" using "AgentBody" {
+    position: [-2.2, 1.1, 0]
+    scale: [0.32, 0.82, 0.28]
+    label: "thrower agent"
+  }
+
+  object "CatcherTorso" using "AgentBody" {
+    position: [2.2, 1.1, 0]
+    scale: [0.32, 0.82, 0.28]
+    color: "#bb9af7"
+    label: "catcher agent"
+  }
+
+  object "ThrowerHand" using "Hand" {
+    position: [-1.72, 1.32, 0.08]
+    scale: [0.11, 0.11, 0.11]
+    label: "handoff release hand"
+  }
+
+  object "CatcherHand" using "Hand" {
+    position: [1.74, 1.28, 0.08]
+    scale: [0.11, 0.11, 0.11]
+    label: "handoff catch hand"
+  }
+
+  object "SharedTool" using "ToolProp" {
+    position: [-1.48, 1.32, 0.08]
+    rotation: [0, 0, 88]
+    scale: [0.14, 0.44, 0.14]
+    label: "shared tool baton"
+  }
+
+  object "HandoffArc" {
+    geometry: "cylinder"
+    position: [0, 1.72, 0]
+    rotation: [0, 0, 84]
+    scale: [0.018, 3.35, 0.018]
+    color: "#e0af68"
+    material: { color: "#e0af68", emissive: "#e0af68", emissiveIntensity: 0.35, transparent: true, opacity: 0.72 }
+    label: "handoff arc preview"
+  }
+
+  object "ReceiptPanel" {
+    @billboard
+    geometry: "plane"
+    position: [0, 2.55, -1.4]
+    scale: [3.6, 0.52, 0.05]
+    color: "#d5f5e3"
+    material: { color: "#d5f5e3", emissive: "#1a3a2a", emissiveIntensity: 0.2, transparent: true, opacity: 0.92 }
+    label: "receipts: release catch ownership transfer"
+  }
+
+  camera perspective {
+    position: [-3.6, 2.2, 4.2]
+    look_at: [0, 1.25, 0]
+    fov: 44
+    near: 0.1
+    far: 40
+  }
+}

@@ -1,0 +1,7 @@
+[
+  { "segment": "align", "owner": "thrower", "status": "pass" },
+  { "segment": "release", "owner": "none", "status": "pass" },
+  { "segment": "ballistic", "owner": "none", "status": "pass" },
+  { "segment": "catch", "owner": "catcher", "status": "pass" },
+  { "segment": "receipt", "owner": "catcher", "status": "pass" }
+]

@@ -74,6 +74,23 @@ export type {
   HumanoidRockThrowSceneOptions,
 } from './HumanoidRockThrowScene';
 
+export {
+  TWO_AGENT_HANDOFF_CATCH_SCENE_ID,
+  TWO_AGENT_HANDOFF_CATCH_CONTRACT,
+  createTwoAgentHandoffCatchScene,
+  runTwoAgentHandoffCatchReplay,
+  buildTwoAgentHandoffCatchTrajectory,
+} from './TwoAgentHandoffCatchScene';
+export type {
+  TwoAgentHandoffObject,
+  TwoAgentHandoffCatchSceneState,
+  TwoAgentHandoffCatchEventType,
+  TwoAgentHandoffCatchEvent,
+  TwoAgentHandoffCatchReplayResult,
+  TwoAgentHandoffCatchTrajectoryBuild,
+  TwoAgentHandoffCatchSceneOptions,
+} from './TwoAgentHandoffCatchScene';
+
 export type {
   TrajectoryId,
   SceneHash,

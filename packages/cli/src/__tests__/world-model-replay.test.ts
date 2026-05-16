@@ -109,6 +109,41 @@ describe('world-model replay CLI', { timeout: 120000 }, () => {
     expect(payload.trajectory.status).toBe('open');
   });
 
+  it('emits replayable JSON evidence for two-agent-handoff-catch-v1', async () => {
+    const { stdout } = await execFileAsync(
+      process.execPath,
+      [
+        tsxCli,
+        cliSource,
+        'world-model',
+        'replay',
+        '--scene',
+        'two-agent-handoff-catch-v1',
+        '--seed',
+        '5151',
+        '--json',
+      ],
+      {
+        cwd: packageRoot,
+        maxBuffer: 1024 * 1024,
+      }
+    );
+
+    const payload = JSON.parse(stdout);
+    const eventTypes = payload.result.events.map((event: { type: string }) => event.type);
+    expect(payload.schema_version).toBe('world-model-replay-v1');
+    expect(payload.scene.id).toBe('two-agent-handoff-catch-v1');
+    expect(payload.scene.seed).toBe(5151);
+    expect(payload.result.eventLogHash).toBe(payload.trajectory.caelReceiptHash);
+    expect(eventTypes).toContain('release_constraint_detached');
+    expect(eventTypes).toContain('catch_constraint_attached');
+    expect(eventTypes).toContain('ownership_transferred');
+    expect(eventTypes).toContain('receipt_emitted');
+    expect(payload.result.contactCount).toBe(1);
+    expect(payload.result.predicateViolationCount).toBe(0);
+    expect(payload.trajectory.status).toBe('open');
+  });
+
   it('prints a concise text replay receipt', async () => {
     const { stdout } = await execFileAsync(
       process.execPath,
