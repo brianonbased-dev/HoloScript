@@ -22,6 +22,9 @@ composition "Humanoid Rock Throw Gauntlet" {
     shadows: true
     physics: true
     physics_substeps: 4
+    tone_mapping: "aces"
+    exposure: 1.05
+    color_management: "filmic-hdr"
     fog: { color: "#0b0f14", near: 14, far: 28 }
   }
 
@@ -68,6 +71,10 @@ composition "Humanoid Rock Throw Gauntlet" {
       color: "#1a2330"
       roughness: 0.85
       metallic: 0.05
+      normalMap: "procedural-brushed-concrete-normal"
+      aoMap: "stage-contact-ambient-occlusion"
+      detailMap: "fine-dust-scratch-detail"
+      contact_shadow: true
     }
   }
 
@@ -92,6 +99,9 @@ composition "Humanoid Rock Throw Gauntlet" {
       color: "#7aa2f7"
       roughness: 0.5
       metallic: 0.1
+      normalMap: "woven-suit-normal"
+      detailMap: "joint-panel-detail"
+      wear: "elbow-and-shoulder-edge-wear"
       emissive: "#2a3f6b"
       emissiveIntensity: 0.35
     }
@@ -132,6 +142,10 @@ composition "Humanoid Rock Throw Gauntlet" {
       color: "#7c6f64"
       roughness: 0.92
       metallic: 0.0
+      normalMap: "granite-chip-normal"
+      displacementMap: "uneven-rock-displacement"
+      aoMap: "rock-crevice-ambient-occlusion"
+      detailMap: "sharp-facet-detail"
     }
   }
 
@@ -147,6 +161,9 @@ composition "Humanoid Rock Throw Gauntlet" {
       color: "#1e1e2e"
       roughness: 0.6
       metallic: 0.2
+      normalMap: "painted-steel-normal"
+      scratch: "impact-face-scratches"
+      decal: "bullseye-registration-decals"
       emissive: "#f7768e"
       emissiveIntensity: 0.55
     }
@@ -191,6 +208,98 @@ composition "Humanoid Rock Throw Gauntlet" {
       metallic: 0.1
       emissive: "#1a2654"
       emissiveIntensity: 0.3
+    }
+  }
+
+  template "RockFacetMesh" {
+    @static
+    geometry: "icosahedron"
+    color: "#9a8775"
+    material: {
+      color: "#8c7b6d"
+      roughness: 0.96
+      metallic: 0.0
+      normalMap: "procedural-granite-normal"
+      displacementMap: "fractured-facet-displacement"
+      detailMap: "mineral-sparkle-detail"
+      aoMap: "deep-crevice-ao"
+    }
+  }
+
+  template "ImpactDebrisMesh" {
+    @physics {
+      mass: 0.05
+      friction: 0.9
+      restitution: 0.12
+    }
+    geometry: "cone"
+    color: "#b9a083"
+    material: {
+      color: "#b9a083"
+      roughness: 0.9
+      metallic: 0.0
+      normalMap: "fresh-chip-normal"
+      dust: "impact-dust-coating"
+      detailMap: "fracture-edge-detail"
+    }
+  }
+
+  template "ScuffDecalMesh" {
+    @static
+    geometry: "torus"
+    color: "#4c5568"
+    material: {
+      color: "#4c5568"
+      roughness: 0.88
+      metallic: 0.02
+      decal: "floor-contact-scuff-decal"
+      scratch: "drag-scratch-lines"
+      contact_shadow: true
+      transparent: true
+      opacity: 0.62
+    }
+  }
+
+  template "DustSplatMesh" {
+    @static
+    geometry: "icosahedron"
+    color: "#b4a18b"
+    material: {
+      color: "#b4a18b"
+      roughness: 1.0
+      metallic: 0.0
+      dust: "settled-throw-dust"
+      detailMap: "powder-grain-detail"
+      transparent: true
+      opacity: 0.44
+    }
+  }
+
+  template "RigSurfaceMesh" {
+    @animated
+    geometry: "torus"
+    color: "#394b73"
+    material: {
+      color: "#394b73"
+      roughness: 0.48
+      metallic: 0.22
+      normalMap: "hardsuit-panel-normal"
+      detailMap: "micro-beveled-rig-detail"
+      wear: "hand-shoulder-edge-wear"
+    }
+  }
+
+  template "GripWearMesh" {
+    @animated
+    geometry: "icosahedron"
+    color: "#d7c4a8"
+    material: {
+      color: "#d7c4a8"
+      roughness: 0.72
+      metallic: 0.04
+      normalMap: "skin-glove-grip-normal"
+      scratch: "finger-contact-scratches"
+      detailMap: "palm-pressure-detail"
     }
   }
 
@@ -341,6 +450,309 @@ composition "Humanoid Rock Throw Gauntlet" {
       emissiveIntensity: 0.25
     }
     label: "camera rail"
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Visual realness dressing: facets, contact marks, debris, and rig details
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  object "RockFacetTopA" using "RockFacetMesh" {
+    position: [-1.22, 0.58, 0.04]
+    rotation: [17, 36, 8]
+    scale: [0.09, 0.05, 0.07]
+    label: "procedural mesh normal displacement detail on rock crown"
+  }
+
+  object "RockFacetTopB" using "RockFacetMesh" {
+    position: [-1.11, 0.48, -0.08]
+    rotation: [-11, 68, 19]
+    scale: [0.07, 0.04, 0.06]
+    label: "procedural mesh chipped highlight facet"
+  }
+
+  object "RockFacetFrontA" using "RockFacetMesh" {
+    position: [-1.03, 0.35, 0.13]
+    rotation: [23, 10, -15]
+    scale: [0.08, 0.04, 0.05]
+    label: "granite scan-like face detail"
+  }
+
+  object "RockFacetFrontB" using "RockFacetMesh" {
+    position: [-1.33, 0.35, 0.12]
+    rotation: [-31, 25, 34]
+    scale: [0.06, 0.05, 0.05]
+    label: "fractured mesh surface detail"
+  }
+
+  object "RockFacetSideA" using "RockFacetMesh" {
+    position: [-1.37, 0.42, -0.04]
+    rotation: [9, -44, 21]
+    scale: [0.06, 0.05, 0.07]
+    label: "normal mapped mineral chip"
+  }
+
+  object "RockFacetSideB" using "RockFacetMesh" {
+    position: [-1.04, 0.42, -0.05]
+    rotation: [4, 42, -27]
+    scale: [0.06, 0.05, 0.07]
+    label: "displacement mapped mineral chip"
+  }
+
+  object "RockFacetLowA" using "RockFacetMesh" {
+    position: [-1.25, 0.25, 0.02]
+    rotation: [35, 18, 42]
+    scale: [0.08, 0.04, 0.05]
+    label: "shadowed crevice ao detail"
+  }
+
+  object "RockFacetLowB" using "RockFacetMesh" {
+    position: [-1.15, 0.26, -0.12]
+    rotation: [-28, -22, 19]
+    scale: [0.07, 0.04, 0.06]
+    label: "irregular scan facet"
+  }
+
+  object "RockFacetChipA" using "RockFacetMesh" {
+    position: [-1.45, 0.18, 0.24]
+    rotation: [12, 74, 0]
+    scale: [0.035, 0.025, 0.03]
+    label: "loose rock chip foreground prop"
+  }
+
+  object "RockFacetChipB" using "RockFacetMesh" {
+    position: [-0.93, 0.17, -0.22]
+    rotation: [-10, -51, 17]
+    scale: [0.032, 0.022, 0.03]
+    label: "loose rock chip midground prop"
+  }
+
+  object "ApproachHeelScuff" using "ScuffDecalMesh" {
+    position: [-3.35, 0.075, 0.44]
+    rotation: [90, 0, 8]
+    scale: [0.34, 0.024, 0.18]
+    label: "floor decal wear dust heel scuff foreground"
+  }
+
+  object "ApproachToeScuff" using "ScuffDecalMesh" {
+    position: [-2.7, 0.075, 0.36]
+    rotation: [90, 0, -15]
+    scale: [0.28, 0.022, 0.14]
+    label: "floor decal wear toe scuff midground"
+  }
+
+  object "RockContactRing" using "ScuffDecalMesh" {
+    position: [-1.2, 0.08, 0]
+    rotation: [90, 0, 0]
+    scale: [0.46, 0.028, 0.32]
+    label: "contact shadow decal around resting rock"
+  }
+
+  object "ThrowArcDustA" using "DustSplatMesh" {
+    position: [-0.45, 0.15, 0.18]
+    rotation: [0, 12, 0]
+    scale: [0.055, 0.018, 0.04]
+    label: "dust prop scatter below lift path"
+  }
+
+  object "ThrowArcDustB" using "DustSplatMesh" {
+    position: [0.25, 0.18, -0.1]
+    rotation: [0, -28, 0]
+    scale: [0.045, 0.015, 0.035]
+    label: "dust prop scatter under ballistic arc"
+  }
+
+  object "ThrowArcDustC" using "DustSplatMesh" {
+    position: [0.95, 0.22, 0.08]
+    rotation: [0, 48, 0]
+    scale: [0.05, 0.018, 0.038]
+    label: "powder grain detail along release path"
+  }
+
+  object "ImpactScuffA" using "ScuffDecalMesh" {
+    position: [3.18, 0.09, 0.36]
+    rotation: [90, 0, 24]
+    scale: [0.42, 0.026, 0.18]
+    label: "impact decal scratch mark foreground"
+  }
+
+  object "ImpactScuffB" using "ScuffDecalMesh" {
+    position: [3.76, 0.09, -0.24]
+    rotation: [90, 0, -33]
+    scale: [0.36, 0.024, 0.16]
+    label: "impact decal dust mark midground"
+  }
+
+  object "ImpactScuffC" using "ScuffDecalMesh" {
+    position: [4.05, 0.09, 0.18]
+    rotation: [90, 0, 6]
+    scale: [0.3, 0.02, 0.12]
+    label: "target base contact shadow mark"
+  }
+
+  object "StageForegroundOccluder" using "DustSplatMesh" {
+    position: [-4.9, 0.16, 3.55]
+    rotation: [0, 0, 12]
+    scale: [0.09, 0.03, 0.05]
+    label: "foreground dust scatter for depth occlusion"
+  }
+
+  object "StageBackgroundDressing" using "DustSplatMesh" {
+    position: [4.8, 0.14, -3.6]
+    rotation: [0, 34, 0]
+    scale: [0.08, 0.026, 0.05]
+    label: "background dust scatter environmental dressing"
+  }
+
+  object "TargetChipA" using "ImpactDebrisMesh" {
+    position: [3.18, 0.34, 0.32]
+    rotation: [12, 38, 4]
+    scale: [0.055, 0.11, 0.055]
+    label: "fresh impact debris prop"
+  }
+
+  object "TargetChipB" using "ImpactDebrisMesh" {
+    position: [3.42, 0.22, 0.5]
+    rotation: [-18, -28, 15]
+    scale: [0.05, 0.08, 0.05]
+    label: "fresh impact debris scatter"
+  }
+
+  object "TargetChipC" using "ImpactDebrisMesh" {
+    position: [3.78, 0.28, 0.35]
+    rotation: [26, 12, -16]
+    scale: [0.046, 0.09, 0.046]
+    label: "fractured target debris"
+  }
+
+  object "TargetChipD" using "ImpactDebrisMesh" {
+    position: [4.02, 0.2, 0.06]
+    rotation: [-8, 54, 22]
+    scale: [0.04, 0.07, 0.04]
+    label: "impact debris background"
+  }
+
+  object "TargetChipE" using "ImpactDebrisMesh" {
+    position: [3.0, 0.16, -0.22]
+    rotation: [31, -45, 8]
+    scale: [0.036, 0.065, 0.036]
+    label: "small debris fragment"
+  }
+
+  object "TargetChipF" using "ImpactDebrisMesh" {
+    position: [3.65, 0.14, -0.48]
+    rotation: [14, 18, 47]
+    scale: [0.033, 0.058, 0.033]
+    label: "small debris fragment"
+  }
+
+  object "TargetChipG" using "ImpactDebrisMesh" {
+    position: [4.22, 0.12, 0.42]
+    rotation: [-20, 61, -11]
+    scale: [0.03, 0.052, 0.03]
+    label: "small debris fragment"
+  }
+
+  object "TargetChipH" using "ImpactDebrisMesh" {
+    position: [3.28, 0.13, -0.58]
+    rotation: [7, -72, 28]
+    scale: [0.032, 0.05, 0.032]
+    label: "small debris fragment"
+  }
+
+  object "TorsoChestPlate" using "RigSurfaceMesh" {
+    position: [-3, 1.55, 0.22]
+    rotation: [90, 0, 0]
+    scale: [0.22, 0.035, 0.14]
+    label: "rigged hardsuit chest plate"
+  }
+
+  object "RightShoulderJoint" using "RigSurfaceMesh" {
+    position: [-2.66, 1.72, 0.12]
+    rotation: [0, 12, 82]
+    scale: [0.12, 0.028, 0.12]
+    label: "ik shoulder joint rig detail"
+  }
+
+  object "RightElbowJoint" using "RigSurfaceMesh" {
+    position: [-2.48, 1.5, 0.16]
+    rotation: [0, -22, 74]
+    scale: [0.1, 0.026, 0.1]
+    label: "ik elbow joint rig detail"
+  }
+
+  object "RightWristGrip" using "GripWearMesh" {
+    position: [-2.45, 1.27, 0.2]
+    rotation: [12, 18, 0]
+    scale: [0.045, 0.04, 0.045]
+    label: "finger grip contact detail"
+  }
+
+  object "LeftShoulderJoint" using "RigSurfaceMesh" {
+    position: [-3.34, 1.72, 0.12]
+    rotation: [0, -12, -82]
+    scale: [0.12, 0.028, 0.12]
+    label: "skeleton shoulder joint rig detail"
+  }
+
+  object "LeftElbowJoint" using "RigSurfaceMesh" {
+    position: [-3.52, 1.5, 0.16]
+    rotation: [0, 22, -74]
+    scale: [0.1, 0.026, 0.1]
+    label: "skeleton elbow joint rig detail"
+  }
+
+  object "LeftWristGrip" using "GripWearMesh" {
+    position: [-3.55, 1.27, 0.2]
+    rotation: [-9, -18, 0]
+    scale: [0.045, 0.04, 0.045]
+    label: "finger grip contact detail"
+  }
+
+  object "LeftKneeJoint" using "RigSurfaceMesh" {
+    position: [-3.2, 0.76, 0.1]
+    rotation: [90, 0, 0]
+    scale: [0.09, 0.024, 0.09]
+    label: "leg rig knee joint detail"
+  }
+
+  object "RightKneeJoint" using "RigSurfaceMesh" {
+    position: [-2.8, 0.76, 0.1]
+    rotation: [90, 0, 0]
+    scale: [0.09, 0.024, 0.09]
+    label: "leg rig knee joint detail"
+  }
+
+  object "RightPalmPressureMark" using "GripWearMesh" {
+    position: [-2.48, 1.16, 0.28]
+    rotation: [22, 8, 0]
+    scale: [0.035, 0.03, 0.035]
+    label: "palm pressure contact detail near rock"
+  }
+
+  object "LeftPalmPressureMark" using "GripWearMesh" {
+    position: [-3.48, 1.16, 0.28]
+    rotation: [-18, -8, 0]
+    scale: [0.035, 0.03, 0.035]
+    label: "palm pressure contact detail near rock"
+  }
+
+  object "HDRIReflectionProbe" {
+    geometry: "torus"
+    position: [-5.7, 2.25, -2.2]
+    rotation: [90, 0, 0]
+    scale: [0.18, 0.025, 0.18]
+    color: "#d8e4ff"
+    material: {
+      color: "#d8e4ff"
+      roughness: 0.18
+      metallic: 0.7
+      hdr: "studio-hdri-reflection-check"
+      tone_mapping: "aces"
+      exposure: 1.05
+      emissive: "#8fb7ff"
+      emissiveIntensity: 0.28
+    }
+    label: "hdr filmic color management reference"
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
