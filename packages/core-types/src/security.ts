@@ -749,8 +749,234 @@ export interface RoleConfig {
 }
 
 // =============================================================================
-// CAPABILITY ACTION CONSTANTS (type-level)
+// ASSET MANIFEST RECEIPT (HoloShell folder custody / source-native intake)
 // =============================================================================
+
+/**
+ * Asset type classification for source-native intake.
+ *
+ * Determined by extension and content sniffing during folder snapshot.
+ */
+export type AssetType =
+  | 'model'
+  | 'image'
+  | 'audio'
+  | 'video'
+  | 'source'
+  | 'holo'
+  | 'hsplus'
+  | 'texture'
+  | 'material'
+  | 'animation'
+  | 'unknown'
+  | 'blocked';
+
+/**
+ * A single entry in a deterministic asset manifest.
+ *
+ * Entries are sorted by `pathAlias` (lexicographic, ascending) to guarantee
+ * stable hashes across runs and platforms.
+ */
+export interface AssetManifestEntry {
+  /** Human-readable path relative to the source folder (private segments redacted) */
+  pathAlias: string;
+
+  /**
+   * SHA-256 content hash of the file bytes.
+   * Computed before any mutation; used as replay key.
+   */
+  contentHash: string;
+
+  /** Classified asset type */
+  assetType: AssetType;
+
+  /** File size in bytes */
+  bytes: number;
+
+  /** Last-modified time (Unix ms) captured at snapshot */
+  mtimeMs: number;
+
+  /** Whether this entry was redacted from an absolute/private path */
+  redacted: boolean;
+
+  /** Original absolute path (omitted when redacted === true) */
+  originalPath?: string;
+}
+
+/**
+ * Permission envelope governing what an intake workflow may do.
+ *
+ * Three tiers:
+ * - silent_read: list, hash, classify (read-only)
+ * - guarded_execute: write preview, validate, import (requires receipt)
+ * - break_glass: publish, overwrite, delete source (requires approval + receipt)
+ */
+export interface PermissionEnvelope {
+  /** Workflow tier for this operation */
+  tier: 'silent_read' | 'guarded_execute' | 'break_glass';
+
+  /** True when the workflow may mutate runtime state */
+  guardedExecute: boolean;
+
+  /** True when break-glass escalation is required */
+  breakGlass: boolean;
+
+  /** True when a receipt is required before proceeding */
+  receiptRequired: boolean;
+
+  /** Operations permitted under this envelope */
+  appliesTo: string[];
+}
+
+/**
+ * Summary statistics produced by the asset intake pipeline.
+ */
+export interface AssetIntakeSummary {
+  /** Total entries discovered in the source folder */
+  assetCount: number;
+
+  /** Entries classified as blocked or unsupported */
+  blockedAssetCount: number;
+
+  /** Entries with private-path redaction applied */
+  redactedCount: number;
+
+  /** Total bytes of all entries */
+  totalBytes: number;
+}
+
+/**
+ * Source-native asset manifest receipt.
+ *
+ * Produced when a local folder is snapshotted, hashed, classified, and
+ * redacted before any HoloLand runtime mutation occurs. The receipt is
+ * deterministic: entries are sorted, hashes are content-based, and the
+ * top-level manifest hash is stable across platforms.
+ *
+ * Invariant: `sourceAssetsMutated === false` at generation time.
+ * Invariant: `privatePathsRedacted === true` when any entry has `redacted === true`.
+ */
+export interface LocalAssetManifestReceipt {
+  /** Schema version for forward compatibility */
+  schemaVersion: 'holoshell.local-asset-intake/v1';
+
+  /** Unique manifest id derived from the stable hash */
+  manifestId: string;
+
+  /** SHA-256 hash of the canonical JSON body (sorted keys, sorted entries) */
+  manifestHash: string;
+
+  /** Human-readable alias for the source folder */
+  folderAlias: string;
+
+  /** Deterministically sorted entries (lexicographic by pathAlias) */
+  sortedEntries: AssetManifestEntry[];
+
+  /** Intake summary statistics */
+  summary: AssetIntakeSummary;
+
+  /** Replay key: hash of sorted entries + folderAlias */
+  replayKey: string;
+
+  /** True if any source asset was mutated during intake (always false at generation) */
+  sourceAssetsMutated: false;
+
+  /** True if private/absolute paths were redacted */
+  privatePathsRedacted: boolean;
+
+  /** Permission envelope governing subsequent operations */
+  permissionEnvelope: PermissionEnvelope;
+
+  /** ISO-8601 timestamp when the receipt was generated */
+  generatedAt: string;
+
+  /** Surface / lane that generated the receipt */
+  generatedBy: string;
+}
+
+/**
+ * Alias for LocalAssetManifestReceipt used in folder-custody contexts.
+ */
+export type FolderCustodyReceipt = LocalAssetManifestReceipt;
+
+/**
+ * Runtime state for an active asset shard intake session.
+ */
+export interface AssetShardIntakeState {
+  /** Selected workflow identifier */
+  selectedWorkflow: string;
+
+  /** Active shard id (from the latest manifest receipt) */
+  activeShardId: string;
+
+  /** Selected folder alias */
+  selectedFolderAlias: string;
+
+  /** Number of assets in the current manifest */
+  assetCount: number;
+
+  /** Number of blocked assets */
+  blockedAssetCount: number;
+
+  /** Number of approvals granted */
+  approvalCount: number;
+
+  /** Number of receipts issued */
+  receiptCount: number;
+
+  /** Path to the generated preview source */
+  previewSourcePath: string;
+
+  /** Validation status */
+  validationStatus: 'unknown' | 'pass' | 'fail';
+
+  /** Import status */
+  importStatus: 'not_requested' | 'pending' | 'completed' | 'failed';
+
+  /** Rollback availability */
+  rollbackStatus: 'not_needed' | 'available' | 'missing';
+
+  /** Hardware lane */
+  currentLane: string;
+}
+
+/**
+ * Validation result for a preview source generated from an asset manifest.
+ */
+export interface PreviewSourceValidation {
+  /** Whether the preview passed validation */
+  status: 'pass' | 'fail';
+
+  /** Path to the preview source */
+  previewSourcePath: string;
+
+  /** Whether import is allowed */
+  importAllowed: boolean;
+
+  /** Optional human-readable reason */
+  reason?: string;
+}
+
+/**
+ * Receipt produced after a guarded import operation.
+ */
+export interface AssetImportReceipt {
+  /** Import status summary */
+  status: 'completed' | 'failed';
+
+  /** Whether runtime mutation was executed */
+  runtimeMutationExecuted: boolean;
+
+  /** Whether source assets were mutated (should be false) */
+  sourceAssetsMutated: boolean;
+
+  /** Rollback information */
+  rollback: {
+    available: boolean;
+    receiptId?: string;
+  };
+}
+
 
 /**
  * Standard HoloScript capability action namespace values.
