@@ -67,6 +67,27 @@ export type {
   DecodedHolomapPointCloud,
   HolomapPointCloudViewerProps,
 } from './components/HolomapPointCloudViewer';
+export {
+  POINT_CLOUD_TRAIT_EVENTS,
+  PointCloudEventConsumer,
+  buildPointCloudOctree,
+  createPointCloudEventConsumer,
+  createWindowPointCloudEventConsumer,
+  parsePointCloudText,
+} from './point-cloud/PointCloudEventConsumer';
+export type {
+  ParsedPointCloud,
+  PointCloudBounds,
+  PointCloudColorMode,
+  PointCloudConsumerOptions,
+  PointCloudEventBus,
+  PointCloudFilter,
+  PointCloudFormat,
+  PointCloudLoadPayload,
+  PointCloudOctreeHandle,
+  PointCloudOctreeNode,
+  PointCloudTraitEvent,
+} from './point-cloud/PointCloudEventConsumer';
 
 // GAPS Physics Components (Phase 3)
 export { FluidRenderer } from './components/FluidRenderer';
