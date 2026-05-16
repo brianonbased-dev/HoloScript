@@ -177,6 +177,7 @@ Pre-commit hooks enforce conventional commits. Format: `type(scope): description
 
 - Subject line max 72 characters
 - `git add <specific-files>` only — NEVER `git add -A` or `git add .`
+- On Windows, prefer `pwsh -File scripts/safe-commit.ps1 -m "msg" <specific-files>` for peer-safe commits.
 - Run tests before committing: `pnpm test`
 
 ## File Formats

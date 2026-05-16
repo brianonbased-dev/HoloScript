@@ -31,6 +31,13 @@
 #   bash scripts/safe-commit.sh --amend --no-edit path/one ...
 #   bash scripts/safe-commit.sh --push -m "msg" path/one ...      # commit + fenced push
 #
+#   Windows host:
+#   pwsh -File scripts/safe-commit.ps1 -m "msg" path/one path/two ...
+#
+#   The PowerShell wrapper resolves Git-for-Windows Bash explicitly and
+#   normalizes Windows paths before delegating here. Do not rely on generic
+#   `bash` from PATH on Windows; it can enter WSL and mis-handle repo paths.
+#
 #   All flags before the file list are forwarded to `git commit`. The
 #   files are passed as `--only` paths so the index state at script
 #   start is irrelevant for the commit contents.
@@ -43,6 +50,9 @@
 #   - Snapshots the index tree-hash before AND after the commit attempt.
 #   - Logs both hashes + files-actually-committed to stderr so peer
 #     races leave an audit trail.
+#   - Marks explicitly named untracked files with `git add -N` so
+#     `git commit -o <paths>` can include new files without staging
+#     unrelated paths.
 #   - Refuses to run if no file paths are given (rejects accidental
 #     `git commit -a` style usage that bypasses the protection).
 #
@@ -130,6 +140,17 @@ if [ "${#FILES[@]}" -eq 0 ]; then
     echo "[safe-commit] for an empty commit use: git commit --allow-empty -m '...' " >&2
     exit 2
 fi
+
+# `git commit --only <path>` can include modified/deleted tracked paths, but
+# plain untracked files are invisible to it. Mark only the explicit file list
+# with intent-to-add so new files participate without trusting the broader
+# index. This is an explicit-file operation, not a sweep.
+for f in "${FILES[@]}"; do
+    if [ -e "$f" ] && ! git ls-files --error-unmatch -- "$f" >/dev/null 2>&1; then
+        git add -N -- "$f"
+        echo "[safe-commit] intent-to-add: $f" >&2
+    fi
+done
 
 # --- Detection (option c): snapshot pre-commit index tree-hash. ---
 PRE_TREE=$(git write-tree 2>/dev/null) || PRE_TREE="(unknown)"

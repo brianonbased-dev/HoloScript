@@ -198,6 +198,7 @@ fi
 #
 # Bypass: MULTI_SCOPE_BLOCK_OFF=1 git commit ... (emergency only).
 # Resolution: bash scripts/safe-commit.sh -m 'msg' <explicit paths>
+# Windows:   pwsh -File scripts/safe-commit.ps1 -m 'msg' <explicit paths>
 if [ "${MULTI_SCOPE_BLOCK_OFF:-0}" != "1" ]; then
     STAGED_FOR_SCOPE=$(git diff --cached --name-only --diff-filter=AM 2>/dev/null || true)
     if [ -n "$STAGED_FOR_SCOPE" ]; then
@@ -214,6 +215,8 @@ if [ "${MULTI_SCOPE_BLOCK_OFF:-0}" != "1" ]; then
             echo ""
             echo -e "  ${YELLOW}FIX: use the atomic commit wrapper${NC}"
             echo "    bash scripts/safe-commit.sh -m 'msg' <explicit paths>"
+            echo "    # Windows:"
+            echo "    pwsh -File scripts/safe-commit.ps1 -m 'msg' <explicit paths>"
             echo "    (uses 'git commit -o <paths>' to bypass index trust — peer mutations"
             echo "     mid-window cannot bleed into your commit even if they win the race.)"
             echo ""
@@ -263,6 +266,8 @@ if [ -n "$PRE_GATE_TREE" ]; then
         echo "    1. Re-verify the staged set: git diff --cached --stat"
         echo "    2. Re-commit via the atomic wrapper:"
         echo "         bash scripts/safe-commit.sh -m 'msg' <path1> <path2> ..."
+        echo "         # Windows:"
+        echo "         pwsh -File scripts/safe-commit.ps1 -m 'msg' <path1> <path2> ..."
         echo "    safe-commit.sh uses 'git commit -o <paths>' to re-stage at commit"
         echo "    time, bypassing index trust. That closes the race even if a peer"
         echo "    op mutates the index again between now and the next attempt."
