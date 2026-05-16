@@ -105,7 +105,7 @@ function makeRng(seed: number): Rng {
   let state = (seed >>> 0) || 1;
   const float = (): number => {
     state = (state * 1664525 + 1013904223) >>> 0;
-    return state / 0xffffffff;
+    return state / 0x100000000;
   };
   const int = (min: number, max: number): number =>
     min + Math.floor(float() * (max - min + 1));
