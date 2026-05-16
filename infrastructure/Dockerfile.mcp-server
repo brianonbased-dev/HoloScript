@@ -46,6 +46,7 @@ COPY packages/framework/ packages/framework/
 COPY packages/cli/ packages/cli/
 COPY packages/llm-provider/ packages/llm-provider/
 COPY packages/config/ packages/config/
+COPY packages/secrets-broker/ packages/secrets-broker/
 COPY packages/absorb-service/ packages/absorb-service/
 COPY packages/mcp-server/ packages/mcp-server/
 COPY packages/platform/ packages/platform/
@@ -62,6 +63,7 @@ RUN chmod +x scripts/docker/build-engine-no-dts.sh scripts/docker/build-core-sta
 RUN cd packages/holomap && npx tsup --no-dts
 RUN cd packages/config && npx tsup --no-dts
 RUN cd packages/llm-provider && npx tsup --no-dts
+RUN cd packages/secrets-broker && npx tsup --no-dts
 # platform/mesh/engine/framework are inlined into core's Docker bundle — no separate build needed
 RUN cd packages/absorb-service && npx tsup --no-dts
 RUN cd packages/mcp-server && npx tsup
@@ -123,6 +125,7 @@ COPY --from=builder /app/packages/engine/dist packages/engine/dist
 COPY --from=builder /app/packages/framework/dist packages/framework/dist
 COPY --from=builder /app/packages/config/dist packages/config/dist
 COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
+COPY --from=builder /app/packages/secrets-broker/dist packages/secrets-broker/dist
 COPY --from=builder /app/packages/platform/dist packages/platform/dist
 COPY --from=builder /app/packages/mesh/dist packages/mesh/dist
 COPY --from=builder /app/packages/absorb-service/dist packages/absorb-service/dist
@@ -148,6 +151,7 @@ RUN mkdir -p /app/node_modules/@holoscript && \
     ln -sfn /app/packages/agent-protocol /app/node_modules/@holoscript/agent-protocol && \
     ln -sfn /app/packages/crdt /app/node_modules/@holoscript/crdt && \
     ln -sfn /app/packages/config /app/node_modules/@holoscript/config && \
+    ln -sfn /app/packages/secrets-broker /app/node_modules/@holoscript/secrets-broker && \
     ln -sfn /app/packages/llm-provider /app/node_modules/@holoscript/llm-provider
 
 # Fail fast if critical build artifacts are missing
@@ -161,6 +165,7 @@ RUN test -f /app/packages/core/dist/index.cjs && \
     test -f /app/packages/snn-webgpu/dist/index.js && \
     test -f /app/packages/core-types/dist/ans.cjs && \
     test -f /app/packages/engine/dist/choreography/index.cjs && \
+    test -f /app/packages/secrets-broker/dist/index.cjs && \
     test -f /app/packages/framework/dist/learning/index.cjs
 
 # Create persistent directories (Railway volume mount points)
