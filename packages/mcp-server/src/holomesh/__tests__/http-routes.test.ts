@@ -3017,6 +3017,67 @@ describe('HoloMesh HTTP Routes', () => {
       expect(fetched.tags).toEqual(inputTags);
     });
 
+    it('GET /api/holomesh/team/:id/board/:taskId returns a fresh active task by id', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `board-detail-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        {
+          tasks: [
+            {
+              title: 'verify direct task detail lookup',
+              description: 'freshly filed tasks should be retrievable by id',
+              priority: 2,
+            },
+          ],
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      expect(addRes._status).toBe(201);
+      const taskId = addRes._body.tasks[0].id;
+
+      const detailReq = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const detailRes = mockRes();
+      await handleHoloMeshRoute(detailReq, detailRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+
+      expect(detailRes._status).toBe(200);
+      expect(detailRes._body.success).toBe(true);
+      expect(detailRes._body.task.id).toBe(taskId);
+      expect(detailRes._body.task.title).toBe('verify direct task detail lookup');
+
+      const missingReq = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/board/task_missing_detail`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const missingRes = mockRes();
+      await handleHoloMeshRoute(
+        missingReq,
+        missingRes,
+        `/api/holomesh/team/${tid}/board/task_missing_detail`
+      );
+
+      expect(missingRes._status).toBe(404);
+      expect(missingRes._body.error).toBe('Task not found');
+    });
+
     // task_1776981805111_4fg3 [BOARD-BUG] — closed by exposing addTasksToBoard's
     // existing `dedupMode: 'exact'` opt-in via `?dedup=exact` query OR `body.dedup`.
     // The legacy 'normalized' mode collapses titles to their first 60 chars and

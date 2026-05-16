@@ -593,6 +593,35 @@ export async function handleBoardRoutes(
     return true;
   }
 
+  // GET /api/holomesh/team/:id/board/:taskId — direct task lookup
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/[^/]+$/) && method === 'GET') {
+    // Same freshness contract as GET /board: task-detail probes commonly run
+    // immediately after POST /board and must see writes from any Railway replica.
+    const access = await requireTeamAccessFresh(req, res, url, 'board:read');
+    if (!access) return true;
+    const { teamId } = access;
+    const team = teamStore.get(teamId)!;
+    const m = pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/([^/]+)$/);
+    const taskId = decodeURIComponent(m?.[1] || '');
+
+    const task = (team.taskBoard || []).find((t) => t.id === taskId);
+    if (task) {
+      json(res, 200, { success: true, teamId, task });
+      return true;
+    }
+
+    const doneEntry = ((team.doneLog || []) as unknown as DoneLogEntry[]).find(
+      (entry) => entry.taskId === taskId
+    );
+    if (doneEntry) {
+      json(res, 200, { success: true, teamId, task: doneEntry, done: true });
+      return true;
+    }
+
+    json(res, 404, { error: 'Task not found', taskId });
+    return true;
+  }
+
   // PATCH /api/holomesh/team/:id/board/:taskId — claim/done/block/reopen/delegate/delete
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/[^/]+$/) && method === 'PATCH') {
     // Pattern Gamma residual fix — fresh variant reloads from postgres before
