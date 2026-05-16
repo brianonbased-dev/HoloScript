@@ -169,10 +169,8 @@ RUN test -f /app/packages/core/dist/index.cjs && \
     test -f /app/packages/framework/dist/learning/index.cjs
 
 # Create persistent directories (Railway volume mount points)
-RUN mkdir -p /app/.holoscript /app/.holoscript/holomesh
-
-# Set ownership
-RUN chown -R nodejs:nodejs /app
+RUN mkdir -p /app/.holoscript /app/.holoscript/holomesh && \
+    chown -R nodejs:nodejs /app/.holoscript
 
 # Ensure entrypoint is executable
 RUN chmod +x /app/packages/mcp-server/scripts/docker-entrypoint.sh
