@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/webgpu-compute-benchmark",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "WebGPU compute shader benchmark suite for HoloScript",
   "private": true,
   "type": "module",

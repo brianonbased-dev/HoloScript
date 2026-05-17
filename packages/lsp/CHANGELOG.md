@@ -1,5 +1,13 @@
 # @holoscript/lsp
 
+## 8.0.0
+
+### Patch Changes
+
+- @holoscript/core@8.0.0
+- @holoscript/framework@7.0.1
+- @holoscript/linter@8.0.0
+
 ## 7.0.0
 
 ### Patch Changes

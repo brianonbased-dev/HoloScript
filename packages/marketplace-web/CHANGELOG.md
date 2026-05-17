@@ -1,5 +1,11 @@
 # @holoscript/marketplace-web
 
+## 1.0.3
+
+### Patch Changes
+
+- @holoscript/marketplace-api@1.2.4
+
 ## 1.0.2
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @holoscript/benchmark
 
+## 8.0.0
+
+### Patch Changes
+
+- @holoscript/core@8.0.0
+- @holoscript/mesh@8.0.0
+- @holoscript/lsp@8.0.0
+
 ## 7.0.0
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @holoscript/studio-api
 
+## 1.0.3
+
+### Patch Changes
+
+- @holoscript/core@8.0.0
+- @holoscript/mcp-server@8.0.0
+- @holoscript/absorb-service@8.0.0
+
 ## 1.0.2
 
 ### Patch Changes

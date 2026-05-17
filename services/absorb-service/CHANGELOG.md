@@ -1,5 +1,12 @@
 # @holoscript/absorb-service-host
 
+## 7.0.1
+
+### Patch Changes
+
+- @holoscript/core@8.0.0
+- @holoscript/absorb-service@8.0.0
+
 ## 6.0.2
 
 ### Patch Changes

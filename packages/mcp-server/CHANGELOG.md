@@ -1,5 +1,18 @@
 # @holoscript/mcp-server
 
+## 8.0.0
+
+### Patch Changes
+
+- Updated dependencies [c6e69b8]
+- Updated dependencies [440e163]
+  - @holoscript/engine@8.0.0
+  - @holoscript/core@8.0.0
+  - @holoscript/mesh@8.0.0
+  - @holoscript/absorb-service@8.0.0
+  - @holoscript/framework@7.0.1
+  - @holoscript/holomap@1.0.2
+
 ## 7.0.0
 
 ### Minor Changes

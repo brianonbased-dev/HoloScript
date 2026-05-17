@@ -1,5 +1,49 @@
 # @holoscript/engine
 
+## 8.0.0
+
+### Minor Changes
+
+- c6e69b8: Stage 4 sovereign auto-rigger (BETA) — Pinocchio TS+WebGPU pipeline + Studio Auto-Rig tab.
+
+  **@holoscript/engine** — new `Stage4` namespace export under `@holoscript/engine/character`:
+  - `rigCharacter(glbBuffer, options)` — end-to-end: GLB → mesh → SDF → medial spheres → sphere graph → embedded skeleton → skin weights
+  - `writeRiggedGlb(result, options)` — emit a spec-conformant glTF 2.0 binary with skin block, JOINTS_0, WEIGHTS_0, inverse-bind-matrices
+  - 13 underlying modules: Stage4_MeshIO, Stage4_MeshRepair, Stage4_BVH, Stage4_SDF, Stage4_Voxelizer (CPU + GPU/WGSL paths), Stage4_MedialSurface, Stage4_SphereGraph, Stage4_DiscreteEmbedding, Stage4_ContinuousEmbedding, Stage4_SkinWeights, Stage4_Rigger, Stage4_RigWriter
+  - 191 passing tests (3 WebGPU-gated, run via `pnpm test:stage4:gpu` Playwright lane)
+  - Architecture: Pinocchio (Baran & Popović 2007) baseline on the existing 65-bone HumanoidSkeleton template; no model weights, no cloud, no Adobe dependency
+
+  **@holoscript/studio** — new Auto-Rig tab in CharacterCreationModal:
+  - Drag/drop GLB → click Auto-Rig → preview + per-stage timing → download rigged GLB
+  - Dynamic import of `@holoscript/engine/character` (lean initial Studio bundle)
+  - Strict rig-quality gate: blocks download with explicit warning when >70% of joints land outside the mesh (Stage 4 v1 algorithm limitation; see research/2026-05-16_stage4-rig-quality-critical.md)
+  - Shows joints-outside-mesh, fallback ratio, weak-vertex ratio, full per-stage timing
+
+  **Quality (v1.1 — after the U5c/U5d/minRadius fixes shipped same session)**:
+
+  Live-asset validation across 3 Khronos Sample Asset fixtures at 32³:
+  - RiggedSimple (160v, T-pose): **0/55 joints outside mesh** (perfect)
+  - RiggedFigure (370v, T-pose stick figure): **3/55 joints outside** (5%)
+  - CesiumMan (3273v, running pose): **43/55 joints outside** (78%) — still poor
+
+  **Ships CLEAN for T/A-pose humanoids.** Action-pose meshes (running, jumping, sitting) still suffer the documented Pinocchio §3.1 bent-medial-axis limitation; the strict Studio rig-quality gate (>70% joints outside = download blocked) correctly catches these cases.
+
+  Three algorithm fixes shipped this version:
+  - `minRadius` default `voxSize * 1.5` → `voxSize * 0.3` (was filtering out 90% of medial-axis spheres at humanoid scale)
+  - U5c: U5b refinement gains a project-to-interior pre-step + interiorWeight default 1.0→10.0
+  - U5d: discrete-embedding fallback joints now project to mesh interior via SDF gradient walk
+
+  Paper 30 PGSE neural augment (greenlit, queued, 4-6 weeks) is the long-term fix for action-pose meshes.
+
+### Patch Changes
+
+- 440e163: Add engine WGSL raw declarations and Paper 6 browser artifact typing so Studio CI can build engine-sourced WebGPU surfaces.
+  - @holoscript/core@8.0.0
+  - @holoscript/framework@7.0.1
+  - @holoscript/snn-webgpu@8.0.0
+  - @holoscript/crdt-spatial@1.0.1
+  - @holoscript/uaal@8.0.0
+
 ## 7.0.0
 
 ### Minor Changes

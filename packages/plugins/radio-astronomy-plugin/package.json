@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/radio-astronomy-plugin",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Radio Astrophysics plugin for HoloScript spatial environments. Adds primitives for interferometers, pulsar analysis, and synchrotron emissions.",
   "main": "src/index.ts",
   "types": "src/index.ts",

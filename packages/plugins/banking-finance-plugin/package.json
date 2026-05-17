@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/plugin-banking-finance",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "main": "src/index.ts",
   "peerDependencies": {
     "@holoscript/core": "workspace:*"

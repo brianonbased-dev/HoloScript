@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/plugin-hardware-invention",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "HoloScript domain plugin for hardware invention, PCB design, and firmware workflows.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

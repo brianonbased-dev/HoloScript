@@ -1,5 +1,14 @@
 # @holoscript/net-service
 
+## 1.0.5
+
+### Patch Changes
+
+- @holoscript/core@8.0.0
+- @holoscript/mcp-server@8.0.0
+- @holoscript/r3f-renderer@7.0.1
+- @holoscript/runtime@8.0.0
+
 ## 1.0.4
 
 ### Patch Changes

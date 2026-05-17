@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/hololand-platform",
-  "version": "6.0.5",
+  "version": "6.0.6",
   "description": "Hololand VR Platform Services (Affective Memory, State, etc)",
   "type": "module",
   "main": "dist/index.js",

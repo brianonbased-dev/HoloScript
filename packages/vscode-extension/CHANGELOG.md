@@ -1,5 +1,12 @@
 # holoscript-vscode
 
+## 4.0.3
+
+### Patch Changes
+
+- @holoscript/sdk@8.0.0
+- @holoscript/lsp@8.0.0
+
 ## 4.0.2
 
 ### Patch Changes

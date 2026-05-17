@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/plugin-film-vfx",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Film/VFX domain plugin for HoloScript — shot lists, color grading, DMX lighting, director AI, and virtual production",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

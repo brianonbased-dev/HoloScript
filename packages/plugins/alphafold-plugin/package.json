@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/alphafold-plugin",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "AlphaFold protein structure prediction for HoloScript - Generate novel proteins in VR",
   "main": "src/index.ts",
   "scripts": {

@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/plugin-threat-intelligence",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "HoloScript domain plugin for cybersecurity threat intelligence workflows.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

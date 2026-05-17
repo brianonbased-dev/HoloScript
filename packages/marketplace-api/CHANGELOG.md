@@ -1,5 +1,12 @@
 # @holoscript/marketplace-api
 
+## 1.2.4
+
+### Patch Changes
+
+- @holoscript/core@8.0.0
+- @holoscript/framework@7.0.1
+
 ## 1.2.3
 
 ### Patch Changes

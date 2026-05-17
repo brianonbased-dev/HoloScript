@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/benchmark",
-  "version": "7.0.0",
+  "version": "8.0.0",
   "description": "Performance benchmarking suite for HoloScript parser, type checker, formatter, and LSP",
   "type": "module",
   "main": "./dist/index.js",

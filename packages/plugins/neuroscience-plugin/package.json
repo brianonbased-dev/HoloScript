@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/plugin-neuroscience",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "HoloScript domain plugin for neuroscience",
   "main": "src/index.ts",
   "peerDependencies": {

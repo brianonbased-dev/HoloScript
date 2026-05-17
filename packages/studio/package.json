@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/studio",
-  "version": "7.0.0",
+  "version": "7.1.0",
   "description": "HoloScript Studio - AI-powered 3D scene builder for everyone",
   "private": true,
   "exports": {
