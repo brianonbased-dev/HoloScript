@@ -1,0 +1,258 @@
+#!/usr/bin/env node
+import { createServer } from 'node:http';
+import { execFile } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+
+const PORT = 8474;
+const HOST = '127.0.0.1';
+const EXPECTED_WALLET  = '0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3';
+const BASE_CHAIN_ID    = 8453;
+const BASE_CHAIN_ID_HEX = '0x2105';
+
+// Resolved at startup — works regardless of cwd
+const REPO_ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
+const TEX_PATH  = resolve(REPO_ROOT, 'research/trust-by-construction-paper.tex');
+const PY_SCRIPT = resolve(
+  process.env.USERPROFILE || process.env.HOME || 'C:/Users/Josep',
+  '.ai-ecosystem/scripts/anchor_base.py'
+);
+
+const TX = {
+  from:                 EXPECTED_WALLET,
+  to:                   EXPECTED_WALLET,
+  value:                '0x0',
+  // sha256 of trust-by-construction-paper.tex as calldata (not a key — content hash)
+  data:                 '0x' + '1bb17f254e90031dc35e58138bca035c15b0379502a13ed0391c61c319a3bd83',
+  chainId:              BASE_CHAIN_ID_HEX,
+  gas:                  '0x613c',
+  maxFeePerGas:         '0x2faf080',
+  maxPriorityFeePerGas: '0xf4240',
+};
+
+function send(res, status, body, type = 'application/json') {
+  const payload = typeof body === 'string' ? body : JSON.stringify(body, null, 2);
+  res.writeHead(status, {
+    'content-type': type,
+    'cache-control': 'no-store',
+    'access-control-allow-origin': `http://${HOST}:${PORT}`,
+    'access-control-allow-methods': 'GET,POST,OPTIONS',
+    'access-control-allow-headers': 'content-type',
+  });
+  res.end(payload);
+}
+
+function readBody(req) {
+  return new Promise((ok, err) => {
+    let s = '';
+    req.on('data', c => { s += c; if (s.length > 8192) { err(new Error('body too large')); req.destroy(); } });
+    req.on('end', () => ok(s));
+    req.on('error', err);
+  });
+}
+
+function runRecord(txHash) {
+  return new Promise(ok => {
+    execFile(
+      'python',
+      [PY_SCRIPT, '--record', TEX_PATH, '--tx-hash', txHash],
+      { cwd: REPO_ROOT, timeout: 30_000 },
+      (error, stdout, stderr) => ok({ ok: !error, stdout, stderr, error: error ? String(error) : null })
+    );
+  });
+}
+
+function html() {
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TVCG — Base Anchor</title>
+<style>
+  :root{color-scheme:light;--ink:#172018;--muted:#5d6d63;--line:#d8e2d8;--green:#176c46;--blue:#175cd3;--gold:#8a5b08;--red:#a11d26}
+  body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;background:#f7faf7;color:var(--ink)}
+  main{width:min(680px,calc(100vw - 32px));margin:28px auto 44px}
+  h1{font-size:22px;margin:0 0 4px}
+  p.sub{margin:4px 0 18px;color:var(--muted);font-size:13px}
+  button{border:1px solid var(--blue);background:var(--blue);color:white;border-radius:6px;padding:8px 14px;cursor:pointer;font-weight:650;font-size:14px}
+  button:disabled{border-color:#cad4ca;background:#dce4dc;color:#7b887d;cursor:not-allowed}
+  a{color:var(--blue)}
+  code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
+  .panel{background:white;border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:14px}
+  .notice{border-left:4px solid var(--gold);background:#fff8e1}
+  .row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:5px 0}
+  .row b{color:#46574b;font-weight:650;min-width:110px;flex-shrink:0}
+  .hash{padding:10px;background:#f1f5f1;border:1px solid #e0e7e0;border-radius:6px;word-break:break-all;margin:10px 0}
+  .badge{display:inline-flex;align-items:center;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:750}
+  .badge.waiting{background:#e8eee8;color:#536254}
+  .badge.ready{background:#e2eeff;color:#174ea6}
+  .badge.pending{background:#fff2c5;color:#7a4d00}
+  .badge.done{background:#dcfce7;color:#166534}
+  .badge.err{background:#fee2e2;color:#991b1b}
+  .top{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding-bottom:14px}
+  #recordBox{display:none}
+  #log{white-space:pre-wrap;max-height:160px;overflow:auto;margin-top:10px;font-size:12px;background:#f1f5f1;border:1px solid #e0e7e0;border-radius:6px;padding:10px}
+</style>
+</head>
+<body>
+<main>
+  <h1>TVCG Submission — Base Anchor</h1>
+  <p class="sub">trust-by-construction-paper.tex &middot; SHA-256 as Base mainnet calldata &middot; nonce 193</p>
+
+  <div class="panel notice">
+    <b>Before clicking send:</b> Unlock Trezor, open Rabby, select Base mainnet,
+    select <code>${EXPECTED_WALLET}</code>.
+  </div>
+
+  <div class="top">
+    <button id="connect">Connect Rabby</button>
+    <button id="switch" disabled>Switch to Base</button>
+    <span id="walletLabel" class="mono">wallet: not connected</span>
+    <span id="chainLabel"  class="mono">chain: unknown</span>
+  </div>
+
+  <div class="panel">
+    <div class="row"><b>File</b><span class="mono">trust-by-construction-paper.tex</span></div>
+    <div class="row"><b>SHA-256</b><span class="mono" style="word-break:break-all">1bb17f254e90031dc35e58138bca035c15b0379502a13ed0391c61c319a3bd83</span></div>
+    <div class="row"><b>Nonce</b><span>193</span></div>
+    <div class="row"><b>Chain</b><span>Base mainnet (8453)</span></div>
+    <div class="row"><b>Value</b><span>0 ETH (self-tx)</span></div>
+    <div class="row"><b>Status</b><span id="badge" class="badge waiting">waiting</span></div>
+    <div class="row"><b>Tx hash</b><span id="txDisplay" class="mono">none</span></div>
+    <div style="margin-top:12px">
+      <button id="send" disabled>Send Base Anchor</button>
+    </div>
+  </div>
+
+  <div class="panel" id="recordBox">
+    <b style="color:var(--green)">Transaction confirmed ✓</b>
+    <div class="hash mono" id="txHashFull"></div>
+    <p style="margin:6px 0;color:var(--muted);font-size:13px">
+      Click <b>Record Receipt</b> to save the <code>.base.json</code> sidecar via the server.
+    </p>
+    <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+      <button id="record">Record Receipt</button>
+    </div>
+    <pre id="log"></pre>
+  </div>
+</main>
+
+<script>
+const EXPECTED_WALLET   = ${JSON.stringify(EXPECTED_WALLET)};
+const BASE_CHAIN_ID     = ${BASE_CHAIN_ID};
+const BASE_CHAIN_ID_HEX = ${JSON.stringify(BASE_CHAIN_ID_HEX)};
+const TX = ${JSON.stringify(TX, null, 2)};
+
+let wallet = null, chain = null, confirmedHash = null;
+const $ = id => document.getElementById(id);
+
+function setBadge(text, cls) {
+  const el = $('badge'); el.className = 'badge ' + cls; el.textContent = text;
+}
+function isReady() {
+  return wallet && wallet.toLowerCase() === EXPECTED_WALLET.toLowerCase() && chain === BASE_CHAIN_ID;
+}
+function updateButtons() {
+  $('send').disabled   = !isReady() || !!confirmedHash;
+  $('switch').disabled = chain === BASE_CHAIN_ID;
+  if (isReady() && !confirmedHash) setBadge('ready', 'ready');
+}
+async function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+async function waitReceipt(hash){
+  for(let i=0;i<120;i++){
+    const r=await ethereum.request({method:'eth_getTransactionReceipt',params:[hash]});
+    if(r)return r;
+    await sleep(2500);
+  }
+  throw new Error('Timed out waiting for Base receipt');
+}
+async function connect(){
+  if(!window.ethereum){alert('No injected wallet. Open in a browser with Rabby installed.');return;}
+  const accounts=await ethereum.request({method:'eth_requestAccounts'});
+  wallet=accounts[0];
+  const hex=await ethereum.request({method:'eth_chainId'});
+  chain=parseInt(hex,16);
+  $('walletLabel').textContent='wallet: '+wallet;
+  $('chainLabel').textContent='chain: '+chain+(chain===BASE_CHAIN_ID?' (Base ✓)':' (wrong — click Switch)');
+  if(wallet.toLowerCase()!==EXPECTED_WALLET.toLowerCase())
+    alert('Wrong account. Select '+EXPECTED_WALLET+' in Rabby.');
+  updateButtons();
+}
+async function switchChain(){
+  await ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:BASE_CHAIN_ID_HEX}]});
+  await connect();
+}
+async function sendAnchor(){
+  if(!isReady())return;
+  try{
+    setBadge('confirm on Trezor…','pending');
+    $('send').disabled=true;
+    const txHash=await ethereum.request({method:'eth_sendTransaction',params:[{...TX,from:wallet}]});
+    $('txDisplay').innerHTML='<a target="_blank" href="https://basescan.org/tx/'+txHash+'">'+txHash.slice(0,12)+'…'+txHash.slice(-8)+'</a>';
+    setBadge('mining…','pending');
+    await waitReceipt(txHash);
+    confirmedHash=txHash;
+    setBadge('confirmed ✓','done');
+    $('txHashFull').textContent=txHash;
+    $('recordBox').style.display='block';
+  }catch(err){
+    setBadge('error','err');
+    $('send').disabled=false;
+    alert(err.message||String(err));
+  }
+}
+async function recordReceipt(){
+  $('record').disabled=true;
+  $('log').textContent='Recording…';
+  const res=await fetch('/api/record',{
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({txHash:confirmedHash})
+  });
+  const body=await res.json();
+  $('log').textContent=JSON.stringify(body,null,2);
+  if(!body.ok)$('record').disabled=false;
+}
+$('connect').addEventListener('click',connect);
+$('switch').addEventListener('click',switchChain);
+$('send').addEventListener('click',sendAnchor);
+$('record').addEventListener('click',recordReceipt);
+if(window.ethereum){
+  ethereum.on?.('accountsChanged',()=>location.reload());
+  ethereum.on?.('chainChanged',()=>location.reload());
+}
+</script>
+</body>
+</html>`;
+}
+
+const server = createServer(async (req, res) => {
+  try {
+    if (req.method === 'OPTIONS') return send(res, 204, '');
+    const url = new URL(req.url || '/', `http://${HOST}:${PORT}`);
+
+    if (req.method === 'GET' && url.pathname === '/') {
+      return send(res, 200, html(), 'text/html; charset=utf-8');
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/record') {
+      const body = JSON.parse(await readBody(req));
+      const { txHash } = body;
+      if (!txHash || !/^0x[0-9a-fA-F]{64}$/.test(txHash)) {
+        return send(res, 400, { ok: false, error: 'Invalid tx hash' });
+      }
+      return send(res, 200, await runRecord(txHash));
+    }
+
+    return send(res, 404, { ok: false, error: 'not found' });
+  } catch (err) {
+    return send(res, 500, { ok: false, error: String(err?.stack || err) });
+  }
+});
+
+server.listen(PORT, HOST, () => {
+  console.log(`TVCG anchor server → http://${HOST}:${PORT}/`);
+  // Auto-open browser
+  execFile('cmd', ['/c', 'start', '', `http://${HOST}:${PORT}/`], () => {});
+});
