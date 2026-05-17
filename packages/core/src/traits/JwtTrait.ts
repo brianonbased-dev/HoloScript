@@ -12,7 +12,7 @@
  */
 
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
-import { SignJWT, jwtVerify } from 'jose';
+import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 
 export interface JwtConfig {
   algorithm: string;
@@ -41,20 +41,21 @@ export const jwtHandler: TraitHandler<JwtConfig> = {
     switch (t) {
       case 'jwt:issue': {
         state.issued++;
-        const exp =
-          Math.floor(Date.now() / 1000) + ((event.expiresIn as number) ?? config.default_expiry_s);
+        const claims = (event.claims as JWTPayload) ?? {};
+        const sub = (event.sub as string) || 'anonymous';
+        const expiresIn = (event.expiresIn as number) ?? config.default_expiry_s;
+        const exp = Math.floor(Date.now() / 1000) + expiresIn;
 
-        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-        new SignJWT((event.claims as JWTPayload) || {})
+        new SignJWT(claims)
           .setProtectedHeader({ alg: config.algorithm })
-          .setSubject((event.sub as string) || 'anonymous')
+          .setSubject(sub)
           .setExpirationTime(exp)
           .sign(secretKey)
           .then((token) => {
             if (context && context.emit) {
               context.emit('jwt:issued', {
                 token,
-                sub: event.sub,
+                sub,
                 exp: exp * 1000,
                 algorithm: config.algorithm,
               });
@@ -67,24 +68,24 @@ export const jwtHandler: TraitHandler<JwtConfig> = {
       }
       case 'jwt:verify': {
         state.verified++;
-        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-        jwtVerify(event.token, secretKey)
+        const token = event.token as string;
+        jwtVerify(token, secretKey)
           .then((result) => {
             if (context && context.emit) {
               context.emit('jwt:verified', {
                 valid: true,
                 sub: result.payload.sub,
-                token: event.token,
+                token,
                 claims: result.payload,
               });
             }
           })
-          .catch((err) => {
+          .catch((err: unknown) => {
             if (context && context.emit) {
               context.emit('jwt:verified', {
                 valid: false,
-                error: err.message,
-                token: event.token,
+                error: err instanceof Error ? err.message : String(err),
+                token,
               });
             }
           });

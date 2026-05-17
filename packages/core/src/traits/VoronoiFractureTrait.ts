@@ -681,8 +681,7 @@ export const voronoiFractureHandler = {
   name: 'voronoi_fracture',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
-    // @ts-expect-error
-    const instance = new VoronoiFractureSystem(config);
+    const instance = new VoronoiFractureSystem(config as Partial<VoronoiFractureConfig>);
     node.__voronoi_fracture_instance = instance;
     ctx.emit('voronoi_fracture_attached', { node, config });
   },

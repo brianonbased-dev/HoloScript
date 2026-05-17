@@ -49,8 +49,7 @@ export const voiceMeshHandler: TraitHandler<VoiceMeshConfig> = {
     node.__voiceMeshState = state;
 
     if (config.auto_connect) {
-      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-      this.startLocalStream(node, config, context);
+      startVoiceStream(node, config, context);
     }
 
     context.emit?.('voice_mesh_ready', { node });
@@ -106,41 +105,40 @@ export const voiceMeshHandler: TraitHandler<VoiceMeshConfig> = {
       });
     }
   },
-
-  // --- Helpers ---
-
-  async startLocalStream(node: HSPlusNode, config: VoiceMeshConfig, context: TraitContext) {
-    const state = node.__voiceMeshState as VoiceMeshState;
-
-    // In node/test env, navigator might be missing
-    if (typeof navigator === 'undefined' || !navigator.mediaDevices) {
-      console.warn('VoiceMesh: No media devices found (non-browser env).');
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      state.localStream = stream;
-
-      // Setup Analysis for VAD
-      const _w = window as unknown as Record<string, unknown>;
-      const AudioContextClass = (_w.AudioContext || _w.webkitAudioContext) as
-        | typeof AudioContext
-        | undefined;
-      if (AudioContextClass) {
-        state.audioContext = new AudioContextClass();
-        const source = state.audioContext.createMediaStreamSource(stream);
-        state.analyzer = state.audioContext.createAnalyser();
-        state.analyzer.fftSize = 256;
-        source.connect(state.analyzer);
-      }
-
-      context.emit?.('voice_local_stream_started', { node, stream });
-    } catch (err) {
-      console.error('VoiceMesh: Failed to get microphone:', err);
-      context.emit?.('voice_error', { node, error: err });
-    }
-  },
 };
+
+/** Standalone helper: start local microphone stream for VoiceMesh. */
+async function startVoiceStream(node: HSPlusNode, config: VoiceMeshConfig, context: TraitContext) {
+  const state = node.__voiceMeshState as VoiceMeshState;
+
+  // In node/test env, navigator might be missing
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices) {
+    console.warn('VoiceMesh: No media devices found (non-browser env).');
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    state.localStream = stream;
+
+    // Setup Analysis for VAD
+    const _w = window as unknown as Record<string, unknown>;
+    const AudioContextClass = (_w.AudioContext || _w.webkitAudioContext) as
+      | typeof AudioContext
+      | undefined;
+    if (AudioContextClass) {
+      state.audioContext = new AudioContextClass();
+      const source = state.audioContext.createMediaStreamSource(stream);
+      state.analyzer = state.audioContext.createAnalyser();
+      state.analyzer.fftSize = 256;
+      source.connect(state.analyzer);
+    }
+
+    context.emit?.('voice_local_stream_started', { node, stream });
+  } catch (err) {
+    console.error('VoiceMesh: Failed to get microphone:', err);
+    context.emit?.('voice_error', { node, error: err });
+  }
+}
 
 export default voiceMeshHandler;

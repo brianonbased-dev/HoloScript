@@ -59,8 +59,7 @@ export const cacheHandler: TraitHandler<CacheConfig> = {
   },
 
   onUpdate(node: HSPlusNode, config: CacheConfig, _context: TraitContext, _delta: number): void {
-    // @ts-expect-error
-    const state: CacheState | undefined = node.__cacheState;
+    const state = node.__cacheState as CacheState | undefined;
     if (!state) return;
     // Expire entries
     const now = Date.now();
@@ -73,8 +72,7 @@ export const cacheHandler: TraitHandler<CacheConfig> = {
   },
 
   onEvent(node: HSPlusNode, config: CacheConfig, context: TraitContext, event: TraitEvent): void {
-    // @ts-expect-error
-    const state: CacheState | undefined = node.__cacheState;
+    const state = node.__cacheState as CacheState | undefined;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;
 

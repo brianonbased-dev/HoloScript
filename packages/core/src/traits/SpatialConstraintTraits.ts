@@ -241,8 +241,7 @@ export const spatialAdjacentHandler: TraitHandler<SpatialAdjacentConfig> = {
     ) {
       const state = context.getState().spatialAdjacent as AdjacentState | undefined;
       if (state) {
-        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-        state.targetPosition = (event as Record<string, unknown>).position;
+        state.targetPosition = (event as Record<string, unknown>).position as Vector3 | null;
         context.setState({ spatialAdjacent: state });
       }
     }
@@ -499,8 +498,7 @@ export const spatialReachableHandler: TraitHandler<SpatialReachableConfig> = {
         );
         if (len > 0) {
           const normalized = [direction[0] / len, direction[1] / len, direction[2] / len];
-          // @ts-expect-error
-          const hit = context.physics.raycast(nodePos, normalized, dist);
+          const hit = context.physics.raycast(nodePos as Vector3, normalized as Vector3, dist);
           state.isReachable = !hit || hit.distance >= dist - 0.01;
         } else {
           state.isReachable = true;

@@ -1,5 +1,18 @@
-// @ts-expect-error
-import { World, Entity, ComponentType } from '@holoscript/engine/ecs/World';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// World, Entity, and ComponentType are defined in the engine package.
+// Until the engine package provides runtime exports, we declare the minimal
+// shape we depend on here so type-checking stays strict within this module.
+interface World {
+  hasEntity(entity: any): boolean;
+  getComponentTypes(entity: any): ComponentType[];
+  getComponent(entity: any, type: ComponentType): unknown;
+  createEntity(): Entity;
+  addComponent(entity: Entity, type: string, data: unknown): void;
+  addTag(entity: Entity, tag: string): void;
+}
+type Entity = number;
+type ComponentType = string;
+
 import { SelectionManager } from './SelectionManager';
 import { effect, computed } from '../state/ReactiveState';
 
@@ -65,9 +78,8 @@ export class Inspector {
    */
   setProperty(type: ComponentType, key: string, value: unknown) {
     const data = this.getComponentData(type);
-    if (data) {
-      // @ts-expect-error
-      data[key] = value;
+    if (data && typeof data === 'object' && data !== null) {
+      (data as Record<string, unknown>)[key] = value;
     }
   }
 }

@@ -574,14 +574,8 @@ export class NetworkedTrait {
     // Extrapolate if past the latest sample
     if (latest.timestamp <= renderTime) {
       const dtMs = renderTime - latest.timestamp;
-      // @ts-ignore - access internal config helper
-      const interpConfig =
-        typeof this['getInterpolationConfig'] === 'function'
-          ? this['getInterpolationConfig']()
-          : this.config.interpolation;
-      const maxExtrapolationMs =
-        (interpConfig && typeof interpConfig === 'object' ? interpConfig.maxExtrapolation : 250) ??
-        250;
+      const interpConfig = this.getInterpolationConfig();
+      const maxExtrapolationMs = interpConfig.maxExtrapolation ?? 250;
 
       if (dtMs > 0 && dtMs <= maxExtrapolationMs) {
         const dtSec = dtMs / 1000;
@@ -1087,8 +1081,7 @@ export const networkedHandler = {
   name: 'networked',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
-    // @ts-expect-error
-    const instance = new NetworkedTrait(config);
+    const instance = new NetworkedTrait(config as NetworkedConfig);
     node.__networked_instance = instance;
     ctx.emit('networked_attached', { node, config });
   },

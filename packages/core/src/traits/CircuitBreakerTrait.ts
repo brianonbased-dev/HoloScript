@@ -105,8 +105,7 @@ export const circuitBreakerHandler: TraitHandler<CircuitBreakerConfig> = {
     context: TraitContext,
     _delta: number
   ): void {
-    // @ts-expect-error
-    const state: CircuitBreakerState | undefined = node.__circuitBreakerState;
+    const state = node.__circuitBreakerState as CircuitBreakerState | undefined;
     if (!state) return;
 
     // Auto-transition from open → half-open
@@ -132,8 +131,7 @@ export const circuitBreakerHandler: TraitHandler<CircuitBreakerConfig> = {
     context: TraitContext,
     event: TraitEvent
   ): void {
-    // @ts-expect-error
-    const state: CircuitBreakerState | undefined = node.__circuitBreakerState;
+    const state = node.__circuitBreakerState as CircuitBreakerState | undefined;
     if (!state) return;
 
     const eventType = typeof event === 'string' ? event : event.type;

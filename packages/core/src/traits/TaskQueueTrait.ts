@@ -120,8 +120,7 @@ export const taskQueueHandler: TraitHandler<TaskQueueConfig> = {
     context: TraitContext,
     event: TraitEvent
   ): void {
-    // @ts-expect-error
-    const state: TaskQueueState | undefined = node.__taskQueueState;
+    const state = node.__taskQueueState as TaskQueueState | undefined;
     if (!state) return;
 
     const eventType = typeof event === 'string' ? event : event.type;

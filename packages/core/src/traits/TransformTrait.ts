@@ -221,8 +221,7 @@ export const transformHandler: TraitHandler<TransformConfig> = {
     context: TraitContext,
     event: TraitEvent
   ): void {
-    // @ts-expect-error
-    const state: TransformState | undefined = node.__transformState;
+    const state = node.__transformState as TransformState | undefined;
     if (!state) return;
 
     const eventType = typeof event === 'string' ? event : event.type;
@@ -296,8 +295,7 @@ export const transformHandler: TraitHandler<TransformConfig> = {
         context.emit?.('transform:error', {
           transformId: rule.id,
           sourceEvent: eventType,
-          // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-          error: err.message,
+          error: err instanceof Error ? err.message : String(err),
         });
       }
     }

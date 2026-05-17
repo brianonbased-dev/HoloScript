@@ -52,16 +52,9 @@ export function createUIButton(id: string, config: UIButtonConfig): HSPlusNode {
           stiffness: 200,
           damping: 10,
         },
-        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-        traits: [
-          {
-            name: 'pressable',
-            properties: {
-              distance: depth * 0.8,
-            },
-          },
-          // Optional: Collider/Collision trait if explicit collision needed defined separately
-        ],
+        traits: new Map<string, Record<string, unknown>>([
+          ['pressable', { distance: depth * 0.8 }],
+        ]),
         children: [
           {
             id: textId,

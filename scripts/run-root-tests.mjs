@@ -78,7 +78,11 @@ function readManifest(packageDir) {
 
 function resolvePnpm() {
   const npmExecPath = process.env.npm_execpath;
-  if (npmExecPath && /pnpm/i.test(path.basename(npmExecPath))) {
+  // Only invoke pnpm via `node <npm_execpath>` if it's a JS file (.js/.mjs/.cjs).
+  // Some setups (e.g. GitHub Actions setup-pnpm with @pnpm/exe) expose a native
+  // ELF binary at npm_execpath — `node <ELF>` crashes with SyntaxError: Invalid
+  // or unexpected token. Spawn the binary directly in that case.
+  if (npmExecPath && /pnpm/i.test(path.basename(npmExecPath)) && /\.(c|m)?js$/i.test(npmExecPath)) {
     return { command: process.execPath, args: [npmExecPath] };
   }
 

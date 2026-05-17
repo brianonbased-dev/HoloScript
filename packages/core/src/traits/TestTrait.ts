@@ -597,8 +597,7 @@ export const testHandler: TraitHandler<CompositionTestConfig> = {
     ctx: TraitContext,
     event: TraitEvent
   ): void {
-    // @ts-expect-error
-    const instance: CompositionTestRunner | undefined = node.__test_instance;
+    const instance = node.__test_instance as CompositionTestRunner | undefined;
     if (!instance) return;
 
     const eventType = typeof event === 'string' ? event : event.type;

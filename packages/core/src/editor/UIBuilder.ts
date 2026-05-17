@@ -1,5 +1,13 @@
-// @ts-expect-error
-import { World, Entity } from '@holoscript/engine/ecs/World';
+// World and Entity are defined in the engine package.
+// Until the engine provides runtime exports, we declare the minimal shape
+// we depend on here so type-checking stays strict within this module.
+interface World {
+  hasEntity(entity: Entity): boolean;
+  createEntity(): Entity;
+  addComponent(entity: Entity, type: string, data: unknown): void;
+  addTag(entity: Entity, tag: string): void;
+}
+type Entity = number;
 import { HSPlusNode } from '../types/HoloScriptPlus';
 
 /** Convert Euler angles (radians) to quaternion { x, y, z, w }. */
@@ -56,7 +64,6 @@ export class UIBuilder {
 
     this.world.addComponent(entity, 'Transform', {
       position,
-      // @ts-expect-error During migration
       rotation: eulerToQuat(rotation),
       scale,
       parent, // If World supports hierarchy via component, or handle manually

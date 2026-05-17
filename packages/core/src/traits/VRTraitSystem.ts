@@ -160,16 +160,12 @@ import {
   thermalSimulationHandler,
   structuralFEMHandler,
   hydraulicPipeHandler,
-  saturationThermalHandler,
-  saturationMoistureHandler,
-  saturationPressureHandler,
-  saturationElectricalHandler,
-  saturationChemicalHandler,
-  saturationStructuralHandler,
-  phaseTransitionHandler,
-  thresholdWarningHandler,
-  thresholdCriticalHandler,
-  thresholdRecoveryHandler,
+  // 10 retired handlers (saturation_* x6 + phase_transition + threshold_* x3)
+  // removed 2026-05-17 per founder ruling task_1778979065243_dksg + design doc
+  // at docs/simulation/SATURATION_MONITORING_DESIGN.md. Pattern E violations
+  // per /stub-audit 2026-05-16. SaturationManager preserved as intended-but-
+  // unwired consumer for the rebuild path. Second-pass re-apply after peer
+  // commit a9daad4d3 silently re-introduced them via stale-base auto-tool.
   scalarFieldOverlayHandler,
 } from './SimulationTraitHandlers';
 import { ropeHandler } from './RopeTrait';
@@ -1748,20 +1744,16 @@ export class VRTraitRegistry {
     this.register(buoyancyHandler as TraitHandler);
     this.register(destructionHandler as TraitHandler);
 
-    // Phase 14: Simulation Domains (Thermal, Structural, Hydraulic, Saturation)
+    // Phase 14: Simulation Domains (Thermal, Structural, Hydraulic)
+    // The 10 saturation_* / phase_transition / threshold_* handler registrations
+    // were retired 2026-05-17 per founder ruling task_1778979065243_dksg + design
+    // doc at docs/simulation/SATURATION_MONITORING_DESIGN.md. Rebuild path: new
+    // handlers wire to the EXISTING SaturationManager (packages/engine/src/
+    // simulation/SaturationManager.ts), not to a new component. Second-pass
+    // re-apply after peer commit a9daad4d3 silently re-introduced them.
     this.register(thermalSimulationHandler as TraitHandler);
     this.register(structuralFEMHandler as TraitHandler);
     this.register(hydraulicPipeHandler as TraitHandler);
-    this.register(saturationThermalHandler as TraitHandler);
-    this.register(saturationMoistureHandler as TraitHandler);
-    this.register(saturationPressureHandler as TraitHandler);
-    this.register(saturationElectricalHandler as TraitHandler);
-    this.register(saturationChemicalHandler as TraitHandler);
-    this.register(saturationStructuralHandler as TraitHandler);
-    this.register(phaseTransitionHandler as TraitHandler);
-    this.register(thresholdWarningHandler as TraitHandler);
-    this.register(thresholdCriticalHandler as TraitHandler);
-    this.register(thresholdRecoveryHandler as TraitHandler);
     this.register(scalarFieldOverlayHandler as TraitHandler);
 
     this.register(userMonitorHandler as TraitHandler);

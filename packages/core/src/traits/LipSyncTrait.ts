@@ -518,12 +518,14 @@ export class LipSyncTrait {
    * Call this each frame during FFT-based lip sync
    */
   public analyzeFFT(): Record<string, number> {
-    if (!this.analyserNode || !this.frequencyData || !this.audioContext) {
+    const analyserNode = this.analyserNode;
+    const frequencyData = this.frequencyData;
+    const audioContext = this.audioContext;
+    if (!analyserNode || !frequencyData || !audioContext) {
       return {};
     }
 
-    // @ts-expect-error During migration
-    this.analyserNode.getByteFrequencyData(this.frequencyData);
+    analyserNode.getByteFrequencyData(frequencyData);
 
     const sampleRate = this.audioContext.sampleRate;
     const binCount = this.analyserNode.frequencyBinCount;
@@ -1039,8 +1041,7 @@ export const lipSyncHandler = {
   name: 'lip_sync',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
-    // @ts-expect-error
-    const instance = new LipSyncTrait(config);
+    const instance = new LipSyncTrait(config as LipSyncConfig);
     node.__lip_sync_instance = instance;
     ctx.emit('lip_sync_attached', { node, config });
   },

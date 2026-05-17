@@ -914,8 +914,7 @@ export const voiceOutputHandler = {
   name: 'voice_output',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
-    // @ts-expect-error
-    const instance = new VoiceOutputTrait(config);
+    const instance = new VoiceOutputTrait(config as Partial<VoiceOutputConfig>);
     node.__voice_output_instance = instance;
     ctx.emit('voice_output_attached', { node, config });
   },

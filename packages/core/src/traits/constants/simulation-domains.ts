@@ -25,16 +25,12 @@ export const SIMULATION_DOMAIN_TRAITS = [
   'colormap_turbo',
   'colormap_inferno',
   'colormap_coolwarm',
-  'saturation_thermal',
-  'saturation_moisture',
-  'saturation_pressure',
-  'saturation_electrical',
-  'saturation_chemical',
-  'saturation_structural',
-  'phase_transition',
-  'threshold_warning',
-  'threshold_critical',
-  'threshold_recovery',
+  // 10 trait names (saturation_* x6 + phase_transition + threshold_* x3) retired
+  // 2026-05-17 per founder ruling task_1778979065243_dksg. Design intent preserved
+  // at docs/simulation/SATURATION_MONITORING_DESIGN.md with full default tables.
+  // Rebuild path: re-add the names here when the consumer-side use case appears
+  // and the new trait handlers wire to the existing SaturationManager. Second-
+  // pass re-apply after peer commit a9daad4d3 silently re-introduced them.
 ] as const;
 
 export type SimulationDomainTraitName =

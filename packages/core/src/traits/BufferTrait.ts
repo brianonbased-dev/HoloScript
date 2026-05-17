@@ -92,8 +92,7 @@ export const bufferHandler: TraitHandler<BufferConfig> = {
   },
 
   onDetach(node: HSPlusNode, _config: BufferConfig, _context: TraitContext): void {
-    // @ts-expect-error
-    const state: BufferState | undefined = node.__bufferState;
+    const state = node.__bufferState as BufferState | undefined;
     if (state) {
       for (const [, cs] of state.channels) {
         if (cs.timer) clearTimeout(cs.timer);
@@ -108,8 +107,7 @@ export const bufferHandler: TraitHandler<BufferConfig> = {
   },
 
   onEvent(node: HSPlusNode, _config: BufferConfig, context: TraitContext, event: TraitEvent): void {
-    // @ts-expect-error
-    const state: BufferState | undefined = node.__bufferState;
+    const state = node.__bufferState as BufferState | undefined;
     if (!state) return;
 
     const eventType = typeof event === 'string' ? event : event.type;

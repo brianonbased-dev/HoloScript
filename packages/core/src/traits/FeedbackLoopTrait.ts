@@ -201,8 +201,7 @@ export const feedbackLoopHandler: TraitHandler<FeedbackConfig> = {
   // onDetach
   // ===========================================================================
   onDetach(node: HSPlusNode, _config: FeedbackConfig, context: TraitContext): void {
-    // @ts-expect-error
-    const state: FeedbackState | undefined = node.__feedbackState;
+    const state = node.__feedbackState as FeedbackState | undefined;
     if (state) {
       context.emit?.('feedback:shutdown', {
         totalFeedback: state.totalFeedback,
@@ -234,8 +233,7 @@ export const feedbackLoopHandler: TraitHandler<FeedbackConfig> = {
     context: TraitContext,
     event: TraitEvent
   ): void {
-    // @ts-expect-error
-    const state: FeedbackState | undefined = node.__feedbackState;
+    const state = node.__feedbackState as FeedbackState | undefined;
     if (!state) return;
 
     const eventType = typeof event === 'string' ? event : event.type;

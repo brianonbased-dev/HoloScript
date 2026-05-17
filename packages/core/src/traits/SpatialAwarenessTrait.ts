@@ -473,8 +473,7 @@ export const spatialAwarenessHandler = {
   name: 'spatial_awareness',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
-    // @ts-expect-error
-    const instance = new SpatialAwarenessTrait(config);
+    const instance = new SpatialAwarenessTrait(node.id || 'spatial_awareness', config as Partial<SpatialAwarenessTraitConfig>);
     node.__spatial_awareness_instance = instance;
     ctx.emit('spatial_awareness_attached', { node, config });
   },
@@ -488,7 +487,6 @@ export const spatialAwarenessHandler = {
     ctx.emit('spatial_awareness_detached', { node });
     delete node.__spatial_awareness_instance;
   },
-  // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
   onEvent(node: HSPlusNode, _config: unknown, ctx: TraitContext, event: TraitEvent): void {
     const instance = node.__spatial_awareness_instance as TraitInstanceDelegate;
     if (!instance) return;
@@ -504,4 +502,4 @@ export const spatialAwarenessHandler = {
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },
-} as const satisfies TraitHandler;
+} as const satisfies TraitHandler<unknown>;

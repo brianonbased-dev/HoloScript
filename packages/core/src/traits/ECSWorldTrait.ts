@@ -522,14 +522,12 @@ export const wasmBridgeHandler = {
   },
 
   onEvent(node: HSPlusNode, config: WASMBridgeConfig, ctx: TraitContext, event: TraitEvent): void {
-    // @ts-expect-error
-    const world: ECSWorld | undefined = node.__ecsWorld;
+    const world = node.__ecsWorld as ECSWorld | undefined;
     if (!world) return;
 
     switch (event.type) {
       case 'ecs_tick':
-        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-        world.tick((event.payload as number)?.dt ?? 1 / config.target_fps);
+        world.tick((event.payload?.dt as number | undefined) ?? 1 / config.target_fps);
         ctx.emit('ecs_ticked', { node, stats: world.getStats() });
         break;
       case 'ecs_spawn_entity': {

@@ -95,8 +95,7 @@ export const schedulerHandler: TraitHandler<SchedulerConfig> = {
   },
 
   onDetach(node: HSPlusNode, _config: SchedulerConfig, _context: TraitContext): void {
-    // @ts-expect-error
-    const state: SchedulerState | undefined = node.__schedulerState;
+    const state = node.__schedulerState as SchedulerState | undefined;
     if (state) {
       for (const [, js] of state.jobs) {
         if (js.timer) clearInterval(js.timer);
@@ -121,8 +120,7 @@ export const schedulerHandler: TraitHandler<SchedulerConfig> = {
     context: TraitContext,
     event: TraitEvent
   ): void {
-    // @ts-expect-error
-    const state: SchedulerState | undefined = node.__schedulerState;
+    const state = node.__schedulerState as SchedulerState | undefined;
     if (!state) return;
 
     const eventType = typeof event === 'string' ? event : event.type;

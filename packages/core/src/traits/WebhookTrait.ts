@@ -100,8 +100,7 @@ export const webhookHandler: TraitHandler<WebhookConfig> = {
   },
 
   onEvent(node: HSPlusNode, config: WebhookConfig, context: TraitContext, event: TraitEvent): void {
-    // @ts-expect-error
-    const state: WebhookState | undefined = node.__webhookState;
+    const state = node.__webhookState as WebhookState | undefined;
     if (!state) return;
 
     const eventType = typeof event === 'string' ? event : event.type;
@@ -162,8 +161,7 @@ export const webhookHandler: TraitHandler<WebhookConfig> = {
             state.totalErrors++;
             context.emit?.('webhook:error', {
               url,
-              // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-              error: err.name === 'AbortError' ? 'Timeout' : err.message,
+              error: err instanceof Error ? (err.name === 'AbortError' ? 'Timeout' : err.message) : String(err),
             });
           });
 

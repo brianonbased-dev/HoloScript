@@ -178,120 +178,41 @@ export const hydraulicPipeHandler: TraitHandler<HydraulicPipeConfig> = {
   },
 };
 
-// ── Saturation Threshold ─────────────────────────────────────────────────────
-
-interface SaturationConfig {
-  type?: string;
-  warning?: number;
-  critical?: number;
-  recovery?: number;
-}
-
-export const saturationThermalHandler: TraitHandler<SaturationConfig> = {
-  name: 'saturation_thermal',
-  defaultConfig: { type: 'thermal', warning: 0.8, critical: 0.95, recovery: 0.7 },
-  onAttach(node, config, context) {
-    (node as unknown as Record<string, unknown>).__saturationConfig = config;
-    context.emit?.('saturation_create', { node, config, type: 'thermal' });
-  },
-};
-
-export const saturationMoistureHandler: TraitHandler<SaturationConfig> = {
-  name: 'saturation_moisture',
-  defaultConfig: { type: 'moisture', warning: 0.7, critical: 0.9, recovery: 0.5 },
-  onAttach(node, config, context) {
-    (node as unknown as Record<string, unknown>).__saturationConfig = config;
-    context.emit?.('saturation_create', { node, config, type: 'moisture' });
-  },
-};
-
-export const saturationPressureHandler: TraitHandler<SaturationConfig> = {
-  name: 'saturation_pressure',
-  defaultConfig: { type: 'pressure', warning: 0.85, critical: 0.95, recovery: 0.75 },
-  onAttach(node, config, context) {
-    (node as unknown as Record<string, unknown>).__saturationConfig = config;
-    context.emit?.('saturation_create', { node, config, type: 'pressure' });
-  },
-};
-
-export const saturationElectricalHandler: TraitHandler<SaturationConfig> = {
-  name: 'saturation_electrical',
-  defaultConfig: { type: 'electrical', warning: 0.8, critical: 0.95, recovery: 0.7 },
-  onAttach(node, config, context) {
-    (node as unknown as Record<string, unknown>).__saturationConfig = config;
-    context.emit?.('saturation_create', { node, config, type: 'electrical' });
-  },
-};
-
-export const saturationChemicalHandler: TraitHandler<SaturationConfig> = {
-  name: 'saturation_chemical',
-  defaultConfig: { type: 'chemical', warning: 0.75, critical: 0.9, recovery: 0.6 },
-  onAttach(node, config, context) {
-    (node as unknown as Record<string, unknown>).__saturationConfig = config;
-    context.emit?.('saturation_create', { node, config, type: 'chemical' });
-  },
-};
-
-export const saturationStructuralHandler: TraitHandler<SaturationConfig> = {
-  name: 'saturation_structural',
-  defaultConfig: { type: 'structural', warning: 0.7, critical: 0.9, recovery: 0.5 },
-  onAttach(node, config, context) {
-    (node as unknown as Record<string, unknown>).__saturationConfig = config;
-    context.emit?.('saturation_create', { node, config, type: 'structural' });
-  },
-};
-
-// ── Phase Transition ─────────────────────────────────────────────────────────
-
-interface PhaseTransitionConfig {
-  transition_point?: number;
-  latent_heat?: number;
-  from_phase?: string;
-  to_phase?: string;
-}
-
-export const phaseTransitionHandler: TraitHandler<PhaseTransitionConfig> = {
-  name: 'phase_transition',
-  defaultConfig: {
-    transition_point: 373.15, // water boiling point (K)
-    latent_heat: 2260000, // J/kg
-    from_phase: 'liquid',
-    to_phase: 'gas',
-  },
-  onAttach(node, config, context) {
-    (node as unknown as Record<string, unknown>).__phaseTransitionConfig = config;
-    context.emit?.('phase_transition_create', { node, config });
-  },
-};
-
-// ── Threshold Traits (metadata markers) ──────────────────────────────────────
-
-export const thresholdWarningHandler: TraitHandler<{ level?: number }> = {
-  name: 'threshold_warning',
-  defaultConfig: { level: 0.8 },
-  onAttach(node, config, context) {
-    (node as unknown as Record<string, unknown>).__thresholdWarning = config;
-    context.emit?.('threshold_configure', { node, type: 'warning', ...config });
-  },
-};
-
-export const thresholdCriticalHandler: TraitHandler<{ level?: number }> = {
-  name: 'threshold_critical',
-  defaultConfig: { level: 0.95 },
-  onAttach(node, config, context) {
-    (node as unknown as Record<string, unknown>).__thresholdCritical = config;
-    context.emit?.('threshold_configure', { node, type: 'critical', ...config });
-  },
-};
-
-export const thresholdRecoveryHandler: TraitHandler<{ level?: number }> = {
-  name: 'threshold_recovery',
-  defaultConfig: { level: 0.7 },
-  onAttach(node, config, context) {
-    (node as unknown as Record<string, unknown>).__thresholdRecovery = config;
-    context.emit?.('threshold_configure', { node, type: 'recovery', ...config });
-  },
-};
+// ── TOMBSTONE: Saturation / Phase Transition / Threshold handlers ────────────
+//
+// 10 handlers (6 saturation_* + phase_transition + 3 threshold_*) were retired
+// 2026-05-17 via founder ruling on board task task_1778979065243_dksg. They
+// were Pattern E violations per /stub-audit 2026-05-16 — every handler emitted
+// an event (saturation_create, phase_transition_create, threshold_configure)
+// with ZERO listeners anywhere in the codebase. SaturationManager
+// (packages/engine/src/simulation/SaturationManager.ts) existed as the intended
+// consumer but was never subscribed.
+//
+// SECOND-PASS NOTE: original deletion landed at commit d1046b2f6. Peer commit
+// a9daad4d3 (Codex type-harden pass) silently re-introduced the handlers as a
+// side effect of working off a stale base — the commit message lists 9 other
+// trait files for type-hardening but not SimulationTraitHandlers. This is the
+// second pass re-applying the founder-authorized deletion while preserving
+// peer's type-hardening on the 3 KEPT handlers (thermal/structural/hydraulic
+// gained `(config ?? {}) as Record<string, unknown>` casts on the
+// SimulationSolverFactory.create() call sites).
+//
+// DESIGN INTENT PRESERVED at docs/simulation/SATURATION_MONITORING_DESIGN.md
+// with full default tables (warning/critical/recovery per domain), 4 concrete
+// rebuild triggers (industrial-twin dashboards, real-time alerting, CAEL
+// training-pair generation, multi-physics coupling chain), and the rebuild
+// path discipline per F.058 + amendment.
+//
+// SaturationManager.ts is shipped and unaffected. The trait-name strings
+// (saturation_thermal, phase_transition, threshold_warning, etc.) are removed
+// from constants/simulation-domains.ts in the same commit.
+//
+// References: ca818d90f (design doc commit), d1046b2f6 (first deletion pass),
+// a9daad4d3 (peer auto-tool collision that necessitated this second pass),
+// 8d345bccb (Pattern Z fix — preserves thermal/structural/hydraulic),
+// SATURATION_MONITORING_DESIGN.md (rebuild guidance).
+//
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ── Scalar Field Overlay ─────────────────────────────────────────────────────
 

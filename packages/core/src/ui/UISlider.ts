@@ -51,23 +51,12 @@ export function createUISlider(id: string, config: UISliderConfig): HSPlusNode {
           length: length,
           value: config.initialValue || 0.5,
         },
-        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-        traits: [
-          {
-            name: 'slidable',
-            properties: {
-              axis: axis,
-              length: length,
-            },
-          },
-          {
-            name: 'grabbable', // Handle must be grabbable to move it!
-            properties: {
-              snap_to_hand: true,
-              // Constraint will limit movement
-            },
-          },
-        ],
+        // traits is a dynamic property on HSPlusNode used at runtime by trait handlers
+        ...(config.initialValue !== undefined ? { value: config.initialValue } : {}),
+        traits: new Map<string, Record<string, unknown>>([
+          ['slidable', { axis: axis, length: length }],
+          ['grabbable', { snap_to_hand: true }],
+        ]),
       },
     ],
   };

@@ -91,8 +91,7 @@ export const rateLimiterHandler: TraitHandler<RateLimiterConfig> = {
     _context: TraitContext,
     _delta: number
   ): void {
-    // @ts-expect-error
-    const state: RateLimiterState | undefined = node.__rateLimiterState;
+    const state = node.__rateLimiterState as RateLimiterState | undefined;
     if (!state) return;
 
     if (config.strategy === 'token_bucket') {
@@ -121,8 +120,7 @@ export const rateLimiterHandler: TraitHandler<RateLimiterConfig> = {
     context: TraitContext,
     event: TraitEvent
   ): void {
-    // @ts-expect-error
-    const state: RateLimiterState | undefined = node.__rateLimiterState;
+    const state = node.__rateLimiterState as RateLimiterState | undefined;
     if (!state) return;
 
     const eventType = typeof event === 'string' ? event : event.type;
