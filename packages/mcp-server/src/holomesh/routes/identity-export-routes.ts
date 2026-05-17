@@ -664,18 +664,12 @@ export async function handleIdentityExportRoutes(
  * (exported `requireCustodial`). The route-layer adapter below is the
  * integration seam.
  *
- * When a real custodial-signing endpoint lands, it calls
- * `rejectIfMigratedToSelfCustody(userId, res)` at the top of its handler.
- * If this returns `true` the endpoint must not continue (response is
- * already written). If `false`, the user is still custodial and the
- * endpoint proceeds normally.
- *
- * TODO(post-_dny4): when `/api/identity/custodial/sign` or similar lands,
- * wire the first line of its handler to:
- *     if (rejectIfMigratedToSelfCustody(agent.id, res)) return;
- * Test: `packages/mcp-server/src/holomesh/identity/__tests__/
- *        custody-registry.test.ts` already verifies the guard shape; the
- *        endpoint-level test lives alongside that endpoint when shipped.
+ * Resolved (task_1779051172129_1fpf): `custodial-wallet-routes.ts` ships
+ * `POST /api/identity/custodial/sign`. Its handler (`handleSign`) calls
+ * `rejectIfMigratedToSelfCustody(userId, res)` at line ~178 — if that
+ * returns `true`, the handler returns without continuing. The Invariant #1
+ * contract is satisfied. Route-level regression tests live in:
+ *   `routes/__tests__/custodial-wallet-routes.test.ts`
  */
 export function rejectIfMigratedToSelfCustody(
   userId: string,
