@@ -65,13 +65,15 @@ RUN cd packages/agent-protocol && npx tsup --no-dts && (npx tsup --dts-only || t
 RUN cd packages/core-types && npx tsup
 RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
 RUN chmod +x scripts/docker/build-engine-no-dts.sh && ./scripts/docker/build-engine-no-dts.sh
-# Framework has a custom multi-batch build (4 tsup configs split for OOM avoidance
-# + a final `tsc -p tsconfig.build.json` declaration emit). Bypassing it with a
-# single `tsup --no-dts` call skipped the dts emit entirely, leaving subpath
-# exports (./agents, ./ai, ./swarm, etc.) without .d.ts files. Studio's
-# `next build --webpack` type-check then fails on
-# `@holoscript/framework/agents` with TS7016/TS2307. Use the custom script.
-RUN cd packages/framework && node scripts/build-framework.mjs
+# Framework needs BOTH the tsup JS build AND a tsc declaration emit because
+# tsup.config.ts has dts: false (subpath dts via tsup is unreliable for this
+# package). Without the tsc step, dist/agents/index.d.ts etc. don't exist, and
+# Studio's `next build` type-check fails on `@holoscript/framework/agents`
+# with TS7016. The custom scripts/build-framework.mjs would do this in 4
+# memory-tuned batches, but requests up to 6GB heap which OOMs in Railway's
+# build container. The single-pass tsup proved fine in the prior Dockerfile,
+# so we keep it + add the missing tsc declaration step.
+RUN cd packages/framework && npx tsup --no-dts && npx tsc -p tsconfig.build.json
 RUN cd packages/std && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/config && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/absorb-service && npx tsup --no-dts && (npx tsup --dts-only || true)
