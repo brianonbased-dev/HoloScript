@@ -65,7 +65,13 @@ RUN cd packages/agent-protocol && npx tsup --no-dts && (npx tsup --dts-only || t
 RUN cd packages/core-types && npx tsup
 RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
 RUN chmod +x scripts/docker/build-engine-no-dts.sh && ./scripts/docker/build-engine-no-dts.sh
-RUN cd packages/framework && npx tsup --no-dts && (npx tsup --dts-only || true)
+# Framework has a custom multi-batch build (4 tsup configs split for OOM avoidance
+# + a final `tsc -p tsconfig.build.json` declaration emit). Bypassing it with a
+# single `tsup --no-dts` call skipped the dts emit entirely, leaving subpath
+# exports (./agents, ./ai, ./swarm, etc.) without .d.ts files. Studio's
+# `next build --webpack` type-check then fails on
+# `@holoscript/framework/agents` with TS7016/TS2307. Use the custom script.
+RUN cd packages/framework && node scripts/build-framework.mjs
 RUN cd packages/std && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/config && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/absorb-service && npx tsup --no-dts && (npx tsup --dts-only || true)
