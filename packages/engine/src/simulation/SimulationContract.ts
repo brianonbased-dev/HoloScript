@@ -1362,12 +1362,12 @@ export class ContractedSimulation {
 
     this.geometryHash = hashGeometry(meshVertices, meshElements, this.hashMode);
 
-    // Paper-0c TODO-05 followup: build the subgrid-parameter attestation
-    // envelope synchronously when subgridParams is supplied. Mode flag
-    // (useCryptographicHash → 'sha256' / 'fnv1a') propagates here too —
-    // an adversarial peer who downgrades the contract's hash mode also
-    // downgrades the subgrid hash, and the mode is recorded in the
-    // envelope itself so replay can detect mode-substitution attacks.
+    // Paper-0c subgrid-parameter attestation (TODO-05 — shipped).
+    // Build the attestation envelope synchronously when subgridParams is
+    // supplied. Mode flag (useCryptographicHash → 'sha256' / 'fnv1a')
+    // propagates here — an adversarial peer who downgrades the contract's
+    // hash mode also downgrades the subgrid hash, and the mode is recorded
+    // in the envelope itself so replay can detect mode-substitution attacks.
     //
     // BACKWARD COMPAT: when subgridParams is absent, this branch is
     // skipped entirely — no canonicalization, no hashing, no envelope.
