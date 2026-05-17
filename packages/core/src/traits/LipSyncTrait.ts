@@ -357,7 +357,7 @@ export class LipSyncTrait {
 
   // FFT analysis state
   private analyserNode: AnalyserNode | null = null;
-  private frequencyData: Uint8Array | null = null;
+  private frequencyData: Uint8Array<ArrayBuffer> | null = null;
   private audioContext: AudioContext | null = null;
 
   constructor(config: LipSyncConfig = {}) {
@@ -527,8 +527,8 @@ export class LipSyncTrait {
 
     analyserNode.getByteFrequencyData(frequencyData);
 
-    const sampleRate = this.audioContext.sampleRate;
-    const binCount = this.analyserNode.frequencyBinCount;
+    const sampleRate = audioContext.sampleRate;
+    const binCount = analyserNode.frequencyBinCount;
     const binSize = sampleRate / (binCount * 2);
     const bands = this.config.frequencyBands ?? DEFAULT_FREQUENCY_BANDS;
     const sensitivity = this.config.sensitivity ?? 1.0;
@@ -536,10 +536,10 @@ export class LipSyncTrait {
 
     // Calculate average energy to detect speech
     let totalEnergy = 0;
-    for (let i = 0; i < this.frequencyData.length; i++) {
-      totalEnergy += this.frequencyData[i];
+    for (let i = 0; i < frequencyData.length; i++) {
+      totalEnergy += frequencyData[i];
     }
-    const averageEnergy = totalEnergy / this.frequencyData.length / 255;
+    const averageEnergy = totalEnergy / frequencyData.length / 255;
 
     if (averageEnergy < (this.config.silenceThreshold ?? 0.05)) {
       // Silence detected
@@ -564,7 +564,7 @@ export class LipSyncTrait {
       let count = 0;
 
       for (let i = lowBin; i <= highBin; i++) {
-        bandEnergy += this.frequencyData[i];
+        bandEnergy += frequencyData[i];
         count++;
       }
 
