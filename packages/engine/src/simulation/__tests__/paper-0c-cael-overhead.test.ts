@@ -139,6 +139,64 @@ describe('Paper 0c — CAEL Overhead Benchmark (Scenario 1)', () => {
     console.log(`Verify Time:              ${verifyStats.median.toFixed(2)} ms (median) / ${verifyStats.p99.toFixed(2)} ms (p99)\n`);
 
     // The relative overhead against the 16.67ms frame budget should be < 1.5%
-    expect(overheadPercent).toBeLessThan(1.5); 
+    expect(overheadPercent).toBeLessThan(1.5);
   }, 60000);
+});
+
+describe('Paper 0c — CAELRecorder.getContractId() (TODO-05 surface)', () => {
+  test('getContractId() matches contractId in init trace payload (no subgridParams)', () => {
+    // Baseline: no adapterFingerprint, no subgridParams → contractId
+    // equals geometryHash byte-identically (backward-compat invariant).
+    const recorder = new CAELRecorder(
+      mockSolver(),
+      {
+        vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+        tetrahedra: new Uint32Array([0, 1, 2, 3]),
+      },
+      { solverType: 'structural-tet10', fixedDt: 0.01 }
+    );
+
+    const contractId = recorder.getContractId();
+    expect(typeof contractId).toBe('string');
+    expect(contractId.length).toBeGreaterThan(0);
+
+    // Must match what was recorded in the trace init payload (O(1) shortcut
+    // returns the same value as scanning trace[0].payload.contractId).
+    const trace = parseCAELJSONL(recorder.toJSONL());
+    expect(trace[0].event).toBe('init');
+    expect(trace[0].payload.contractId).toBe(contractId);
+
+    recorder.dispose();
+  });
+
+  test('getContractId() returns composite ID when adapterFingerprint is set', () => {
+    // When adapterFingerprint is supplied, contractId is a composite hash
+    // (not bare geometryHash). The getter must still agree with the trace.
+    const recorder = new CAELRecorder(
+      mockSolver(),
+      {
+        vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+        tetrahedra: new Uint32Array([0, 1, 2, 3]),
+      },
+      { solverType: 'structural-tet10', fixedDt: 0.01, adapterFingerprint: 'fp-abc123' }
+    );
+
+    const contractId = recorder.getContractId();
+    const trace = parseCAELJSONL(recorder.toJSONL());
+    expect(trace[0].payload.contractId).toBe(contractId);
+
+    // Composite ID must differ from the no-fingerprint baseline.
+    const baseline = new CAELRecorder(
+      mockSolver(),
+      {
+        vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+        tetrahedra: new Uint32Array([0, 1, 2, 3]),
+      },
+      { solverType: 'structural-tet10', fixedDt: 0.01 }
+    );
+    expect(contractId).not.toBe(baseline.getContractId());
+
+    recorder.dispose();
+    baseline.dispose();
+  });
 });
