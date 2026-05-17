@@ -1,0 +1,247 @@
+// ============================================================================
+// Solar System — Physically-Based Orrery
+// A-009 refresh — 2026-05-17
+//
+// Original intent: Keplerian orbital mechanics for inner planets + Moon.
+// Refresh adds:
+//   @atmosphere_bruneton — Mie+Rayleigh sky on Earth (blue limb) and Mars (rust limb)
+//   @day_night_cycle     — Earth rotates; city-lights texture on night side
+//   @irradiance_volume   — Sun-driven planetary bounce light captured in GI probes
+//   @emissive_gi         — Sun's self-illumination contributes outward to GI probes
+//   @lens_flare          — solar lens flare when camera faces the Sun
+//
+// Scene story:
+//   You drift in space between Venus and Earth. The Sun blazes ahead, its corona
+//   blooming with lens flare arcs. Earth hangs blue and white — day side shining,
+//   night side jewelled with city lights, its Rayleigh-blue limb distinguishing it
+//   instantly from the rust-limbed Mars further out. The Moon traces its tilted
+//   5° orbit. An instanced asteroid belt scatters debris between 1.9–2.8 AU.
+//
+//   Bruneton atmosphere gives Earth a proper scattering limb and Mars a thin
+//   reddish haze. The irradiance volume captures Solar bounce light so the dark
+//   side of each planet picks up a faint warm ambient. The day/night cycle on
+//   Earth switches to city-lights texture as each hemisphere turns away from the Sun.
+//
+// MISSING-TRAIT WISH (queued for Phase 4):
+//   @corona_simulation — procedural solar corona with prominence loops and
+//   coronal hole fast wind. Currently faked with bloom + emissive_gi.
+//   A real trait would support MHD flux-tube geometry, streamer belts,
+//   and CME events — useful for edu-XR and space-weather visualizations.
+// ============================================================================
+
+composition "SolarSystem_Orrery" {
+  version: "7.0"
+  description: "Physically-based inner solar system — Keplerian orbits, Bruneton atmosphere, irradiance GI"
+  tags: ["a009", "refresh", "solar-system", "astronomy", "orbital-mechanics", "bruneton", "gi"]
+
+  environment {
+    skybox: "texture/milky-way-8k.hdr"
+    background_color: "#000005"
+    ambient_light: 0.04
+    ambient_color: "#0a0818"
+    shadows: true
+    tone_mapping: "aces"
+    exposure: 0.9
+  }
+
+  // ── Irradiance volume — Sun-driven GI across the inner solar system ───────
+
+  object "GiVolume" {
+    geometry: "box"
+    position: [0, 0, 0]
+    scale: [120, 40, 120]
+    visible: false
+
+    @irradiance_volume {
+      origin: [0, 0, 0],
+      extent: [120, 40, 120],
+      probe_spacing: 15.0,
+      update_rate: "once_static",
+      contribution: 0.18
+    }
+  }
+
+  // ── Sun ──────────────────────────────────────────────────────────────────
+
+  object "Sun" {
+    geometry: "sphere"
+    position: [0, 0, 0]
+    scale: 5.0
+    material: { baseColor: "#FDB813", roughness: 0.3, metallic: 0.0 }
+    emissive: "#FDB813"
+    emissiveIntensity: 3.2
+
+    @emissive_gi {
+      intensity_multiplier: 1.8,
+      color: "#FFF0C0",
+      contribute_to_probes: true
+    }
+
+    @lens_flare {
+      intensity: 1.4,
+      color: "#fff8e0",
+      scale: 2.5,
+      flare_count: 7
+    }
+  }
+
+  object "SolarLight" {
+    type: "directional_light"
+    position: [0, 0, 0]
+    direction: [1, 0, 0]
+    color: "#fff8e0"
+    intensity: 4.2
+    cast_shadows: true
+  }
+
+  // ── Mercury ──────────────────────────────────────────────────────────────
+
+  object "Mercury" {
+    geometry: "sphere"
+    material: { baseColor: "#8C7853", roughness: 0.85, metallic: 0.1 }
+    emissive: "#2a2010"
+    emissiveIntensity: 0.05
+    scale: 0.4
+
+    semiMajorAxis: 0.387098
+    eccentricity: 0.205630
+    inclination: 7.005
+    longitudeAscending: 48.331
+    argumentPeriapsis: 29.124
+    meanAnomalyEpoch: 174.796
+    orbitalPeriod: 87.969
+    rotationPeriod: 58.646
+
+    @orbital()
+    @collidable { layer: "planet", friction: 0.8 }
+  }
+
+  // ── Venus ─────────────────────────────────────────────────────────────────
+
+  object "Venus" {
+    geometry: "sphere"
+    material: { baseColor: "#FFC649", roughness: 0.7, metallic: 0.05 }
+    emissive: "#4a3510"
+    emissiveIntensity: 0.08
+    scale: 0.9
+
+    semiMajorAxis: 0.723332
+    eccentricity: 0.006773
+    inclination: 3.3947
+    longitudeAscending: 76.680
+    argumentPeriapsis: 54.891
+    meanAnomalyEpoch: 50.115
+    orbitalPeriod: 224.701
+    rotationPeriod: -243.025
+
+    @orbital()
+    @collidable { layer: "planet" }
+  }
+
+  // ── Earth ─────────────────────────────────────────────────────────────────
+
+  object "Earth" {
+    geometry: "sphere"
+    material: { baseColor: "#0088FF", roughness: 0.6, metallic: 0.05 }
+    scale: 1.0
+
+    semiMajorAxis: 1.000000
+    eccentricity: 0.016710
+    inclination: 0.00005
+    longitudeAscending: -11.26064
+    argumentPeriapsis: 114.2078
+    meanAnomalyEpoch: 357.517
+    orbitalPeriod: 365.256
+    rotationPeriod: 0.997269
+
+    @orbital()
+    @collidable { layer: "planet" }
+
+    // Bruneton scattering: Rayleigh blue limb + Mie cloud haze
+    @atmosphere_bruneton {
+      planet_radius_km: 6371.0,
+      atmosphere_thickness_km: 80.0,
+      rayleigh_scale_height_km: 8.0,
+      mie_scale_height_km: 1.2,
+      mie_asymmetry: 0.76,
+      sun_intensity: 20.0
+    }
+
+    // City-lights side rotates with the planet
+    @day_night_cycle {
+      period: 0.997269,
+      period_unit: "earth_days",
+      night_texture: "textures/earth_night_lights_8k.png",
+      night_intensity: 0.9,
+      terminator_softness: 0.06
+    }
+  }
+
+  // ── Moon ──────────────────────────────────────────────────────────────────
+
+  object "Moon" {
+    geometry: "sphere"
+    material: { baseColor: "#AAAAAA", roughness: 0.9, metallic: 0.05 }
+    scale: 0.27
+
+    parent: "Earth"
+    semiMajorAxis: 0.002570
+    eccentricity: 0.054900
+    inclination: 5.145
+    longitudeAscending: 125.08
+    argumentPeriapsis: 318.15
+    meanAnomalyEpoch: 135.27
+    orbitalPeriod: 27.321
+    rotationPeriod: 27.321
+
+    @orbital()
+  }
+
+  // ── Mars ──────────────────────────────────────────────────────────────────
+
+  object "Mars" {
+    geometry: "sphere"
+    material: { baseColor: "#CD5C5C", roughness: 0.8, metallic: 0.08 }
+    scale: 0.5
+
+    semiMajorAxis: 1.523662
+    eccentricity: 0.093412
+    inclination: 1.8506
+    longitudeAscending: 49.578
+    argumentPeriapsis: 286.462
+    meanAnomalyEpoch: 19.412
+    orbitalPeriod: 686.980
+    rotationPeriod: 1.025957
+
+    @orbital()
+    @collidable { layer: "planet" }
+
+    // Mars atmosphere: thin CO₂, strong Mie reddening at limb
+    @atmosphere_bruneton {
+      planet_radius_km: 3389.5,
+      atmosphere_thickness_km: 11.0,
+      rayleigh_scale_height_km: 10.8,
+      mie_scale_height_km: 0.8,
+      mie_asymmetry: 0.65,
+      sun_intensity: 14.0
+    }
+  }
+
+  // ── Asteroid belt (instanced debris) ─────────────────────────────────────
+
+  object "AsteroidBelt" {
+    type: "instanced_group"
+    instance_count: 1800
+    geometry: "mesh/asteroid_low.glb"
+    scale_range: [0.02, 0.12]
+    material: { baseColor: "#776655", roughness: 0.95, metallic: 0.2 }
+
+    @instanced { seed: 2026, randomize_rotation: true }
+  }
+
+  post_processing {
+    bloom: { intensity: 1.1, threshold: 0.4, radius: 0.7 }
+    tone_mapping: "aces"
+    vignette: { intensity: 0.3, radius: 0.65 }
+  }
+}

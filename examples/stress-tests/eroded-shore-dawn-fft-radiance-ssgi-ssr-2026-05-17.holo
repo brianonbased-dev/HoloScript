@@ -1,0 +1,305 @@
+/**
+ * Stress-Test: Eroded Shore at Dawn
+ * A-009 — 2026-05-17
+ *
+ * Five never-exercised traits under test (all ZERO prior examples):
+ *
+ *   @ocean_fft              — Tessendorf FFT ocean with 4-cascade wave simulation,
+ *                             white-cap foam threshold, and sub-surface scattering tint.
+ *                             The ocean's normal map updates at 60 Hz from GPU FFT.
+ *
+ *   @terrain_hydraulic_erosion — procedural coastline geometry carved by simulated
+ *                             water flow. Tallus slopes, undercut sea arches, and
+ *                             tidal pool hollows generated from an initial heightmap.
+ *
+ *   @radiance_cascades      — multi-scale 2D radiance cascade GI for the sky dome.
+ *                             Four cascade levels: 1m / 4m / 16m / 64m resolution.
+ *                             Dawn sky colour propagates as soft bounce into cliff faces.
+ *
+ *   @screen_space_reflection — SSR on wet stone ledges and tidal pools.
+ *                             Ray-march depth buffer; temporal reprojection to
+ *                             suppress flicker on glancing angles.
+ *
+ *   @ssgi                   — Screen-space global illumination for cliff crevices
+ *                             and cave mouths. Captures amber sky bounce into shadowed
+ *                             rock faces that GI probes miss at short range.
+ *
+ * Well-exercised anchors (pull the zero-coverage traits into a proven context):
+ *   @glowing       — dawn horizon glow strip + bioluminescent kelp in tidal pools
+ *   @animated      — kelp fronds wave in surge; foam patches drift
+ *   @spatial_audio — wave crash + wind + distant seabird
+ *   @collidable    — player can stand on the shore ledge
+ *
+ * Visual story:
+ *   04:58. First light over the North Atlantic. You stand on a basalt ledge
+ *   15 metres above the sea. The cliff face behind you — undercut by ten
+ *   thousand years of wave action (@terrain_hydraulic_erosion) — drops sheer
+ *   to a tidal platform below. The ocean heaves: two-metre Atlantic swell,
+ *   cross-sea chop, wind ripple (@ocean_fft). Every wave face is a different
+ *   shade of grey-green in the pre-dawn, catching the first orange smear on
+ *   the eastern horizon.
+ *
+ *   Radiance cascades (@radiance_cascades) carry that orange smear into the
+ *   underside of the cliff overhang — a warm ambient glow where there would
+ *   otherwise be nothing. SSGI (@ssgi) picks up the bounce inside the crevice
+ *   at your feet, amber light finding the dark corners that probes miss.
+ *   A tidal pool at the foot of the ledge mirrors the sky through screen-space
+ *   reflections (@screen_space_reflection): the orange streak, the first star
+ *   not yet faded, a gannet banking 200 metres out.
+ *
+ *   Bioluminescent kelp (@glowing) rings the pool in pale blue, animated fronds
+ *   stirred by the surge. The @spatial_audio field puts the wave crash below,
+ *   the wind behind, the seabird ahead — you turn toward the sound before you
+ *   look.
+ *
+ *   This is the first time @ocean_fft, @terrain_hydraulic_erosion,
+ *   @radiance_cascades, @screen_space_reflection, and @ssgi appear together
+ *   in any A-009 stress-test or example file.
+ *
+ * @version 0.1.0
+ * @category stress-test, terrain, ocean, gi, post-processing, dawn
+ * @traits @ocean_fft @terrain_hydraulic_erosion @radiance_cascades @screen_space_reflection @ssgi @glowing @animated @spatial_audio @collidable
+ * @filed-by A-009 Example freshness + artist stress-test
+ */
+
+composition "ErodedShore_Dawn" {
+
+  environment {
+    skybox: "hdri/dawn_north_atlantic.hdr"
+    sun_direction: [0.95, 0.06, 0.0]
+    sun_color: "#ff8c3a"
+    sun_intensity: 0.6
+    ambient_light: 0.28
+    ambient_color: "#c8d8f0"
+    fog: { type: "linear", color: "#c0ccd8", near: 80.0, far: 320.0 }
+    tone_mapping: "aces"
+    exposure: 1.15
+  }
+
+  // ── Radiance Cascades — sky GI propagated into cliff geometry ─────────────
+
+  object "GI_RadianceCascades" {
+    geometry: "box"
+    position: [0, 0, 0]
+    scale: [200, 80, 200]
+    visible: false
+
+    @radiance_cascades {
+      cascade_count: 4,
+      level_0_spacing: 1.0,
+      level_1_spacing: 4.0,
+      level_2_spacing: 16.0,
+      level_3_spacing: 64.0,
+      ray_count_per_probe: 64,
+      temporal_accumulation: 0.92,
+      sky_contribution: true
+    }
+  }
+
+  // ── Basalt Cliff Face ─────────────────────────────────────────────────────
+
+  object "CliffFace" {
+    geometry: "heightmap"
+    heightmap_asset: "terrain/basalt_coast_512.png"
+    position: [0, 0, 10]
+    scale: [80, 28, 30]
+    material: {
+      baseColor: "#3a3530",
+      roughness: 0.92,
+      metallic: 0.05,
+      normal_map: "textures/basalt_normal.png",
+      tiling: [6, 4]
+    }
+
+    @terrain_hydraulic_erosion {
+      iterations: 80000,
+      rain_rate: 0.003,
+      erosion_radius: 3,
+      deposition_rate: 0.3,
+      evaporation_rate: 0.02,
+      sediment_capacity: 4.0,
+      generate_features: ["tallus_slope", "sea_arch", "tidal_platform"],
+      feature_seed: 20260517
+    }
+
+    @collidable { layer: "terrain", friction: 0.85 }
+    @ssgi { intensity: 0.45, radius: 1.2, sample_count: 16, temporal_weight: 0.88 }
+  }
+
+  // Cliff overhang — the undercut face receiving radiance-cascade bounce
+  object "CliffOverhang" {
+    geometry: "mesh"
+    mesh_asset: "terrain/basalt_overhang.glb"
+    position: [0, 12, 4]
+    scale: [1.0, 1.0, 1.0]
+    material: {
+      baseColor: "#2e2a26",
+      roughness: 0.95,
+      metallic: 0.04
+    }
+
+    @collidable { layer: "terrain" }
+    @ssgi { intensity: 0.6, radius: 0.8, sample_count: 12, temporal_weight: 0.9 }
+  }
+
+  // Shore ledge — where the player stands
+  object "ShoreLedge" {
+    geometry: "box"
+    position: [0, 0, -2]
+    scale: [12, 1.2, 4]
+    material: {
+      baseColor: "#3d3530",
+      roughness: 0.88,
+      metallic: 0.06,
+      wetness: 0.65
+    }
+
+    @collidable { layer: "terrain", friction: 0.7 }
+    @screen_space_reflection { intensity: 0.35, roughness_cutoff: 0.55, thickness: 0.08 }
+  }
+
+  // ── Tidal Pool ────────────────────────────────────────────────────────────
+
+  object "TidalPool" {
+    geometry: "box"
+    position: [1.5, -0.9, -5]
+    scale: [4, 0.25, 3]
+    material: {
+      baseColor: "#0a1a25",
+      roughness: 0.04,
+      metallic: 0.0,
+      transmission: 0.92,
+      ior: 1.335
+    }
+
+    // SSR mirrors the dawn sky into the pool surface
+    @screen_space_reflection {
+      intensity: 0.82,
+      roughness_cutoff: 0.08,
+      thickness: 0.04,
+      temporal_reprojection: true
+    }
+  }
+
+  // Bioluminescent kelp ringing the tidal pool
+  object "KelpRing_A" {
+    geometry: "mesh"
+    mesh_asset: "flora/kelp_strand.glb"
+    position: [1.5, -0.65, -5]
+    scale: [3.8, 1.0, 2.8]
+    material: { baseColor: "#0d4a2a", roughness: 0.75, metallic: 0.0 }
+    emissive: "#00e8c0"
+    emissiveIntensity: 1.4
+
+    @glowing { color: "#00e8c0", radius: 0.5, falloff: 2.2 }
+    @animated { type: "sway", axis: "xz", frequency: 0.6, amplitude: 0.12, loop: true }
+  }
+
+  // ── Atlantic Ocean — FFT wave simulation ──────────────────────────────────
+
+  object "AtlanticOcean" {
+    geometry: "plane"
+    position: [0, -2.0, -40]
+    scale: [500, 1, 500]
+    material: {
+      baseColor: "#0d2030",
+      roughness: 0.06,
+      metallic: 0.0,
+      deep_color: "#060f18",
+      shallow_color: "#1a4a5a",
+      foam_color: "#d8e8f0"
+    }
+
+    // Tessendorf FFT: 4 wave cascades, Atlantic swell profile
+    @ocean_fft {
+      resolution: 512,
+      cascade_count: 4,
+      wind_speed: 12.5,
+      wind_direction: 225,
+      fetch_km: 800,
+      depth_m: 40,
+      choppiness: 1.8,
+      foam_threshold: 0.42,
+      foam_decay: 0.96,
+      subsurface_color: "#0a2a40",
+      update_hz: 60
+    }
+
+    @screen_space_reflection { intensity: 0.55, roughness_cutoff: 0.12, thickness: 0.06, temporal_reprojection: true }
+    @spatial_audio { clip: "audio/atlantic_swell.wav", loop: true, volume: 0.85, rolloff: "none", global: true }
+  }
+
+  // Wave crash audio at base of cliff
+  object "WaveCrashSource" {
+    geometry: "sphere"
+    position: [0, -1.5, -8]
+    scale: [0.1, 0.1, 0.1]
+    visible: false
+
+    @spatial_audio {
+      clip: "audio/wave_crash_basalt.wav",
+      loop: true,
+      volume: 1.0,
+      rolloff: "inverse",
+      ref_distance: 6.0,
+      max_distance: 80.0
+    }
+  }
+
+  // Distant seabird
+  object "SeabirdAmbient" {
+    geometry: "sphere"
+    position: [-20, 8, -60]
+    scale: [0.1, 0.1, 0.1]
+    visible: false
+
+    @spatial_audio {
+      clip: "audio/gannet_call.wav",
+      loop: false,
+      volume: 0.4,
+      interval_range: [8, 25],
+      rolloff: "inverse",
+      max_distance: 200.0
+    }
+  }
+
+  // Wind
+  object "WindAmbient" {
+    geometry: "sphere"
+    position: [0, 6, 0]
+    scale: [0.1, 0.1, 0.1]
+    visible: false
+
+    @spatial_audio { clip: "audio/coastal_wind.wav", loop: true, volume: 0.5, rolloff: "none", global: true }
+  }
+
+  // ── Dawn Horizon Glow ─────────────────────────────────────────────────────
+
+  object "DawnGlowStrip" {
+    type: "directional_light"
+    direction: [-0.95, -0.06, 0.0]
+    color: "#ff7020"
+    intensity: 0.45
+    cast_shadows: false
+  }
+
+  // Horizon emissive plane — faint ambient warm fill from the east
+  object "HorizonGlow" {
+    geometry: "plane"
+    position: [0, 1, -200]
+    scale: [600, 1, 1]
+    rotation: [90, 0, 0]
+    material: { baseColor: "#ff5500", roughness: 1.0, metallic: 0.0 }
+    emissive: "#ff3300"
+    emissiveIntensity: 0.3
+
+    @glowing { color: "#ff4400", radius: 4.0, falloff: 0.5 }
+  }
+
+  post_processing {
+    bloom: { intensity: 0.55, threshold: 0.7, radius: 0.5 }
+    tone_mapping: "aces"
+    vignette: { intensity: 0.35, radius: 0.7 }
+    chromatic_aberration: { intensity: 0.012 }
+  }
+}
