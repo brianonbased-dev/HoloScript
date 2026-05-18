@@ -45,7 +45,7 @@ export interface HologramGifProps {
 export function HologramGif({
   src,
   fps,
-  _depthScale = 0.3,
+  depthScale: _depthScale = 0.3,
   width = 2,
   height,
   position = [0, 0, 0],

@@ -1,4 +1,4 @@
-import { Buffer } from 'node:buffer';
+// Buffer is available globally in the Node.js/vitest environment
 import { describe, expect, it } from 'vitest';
 import { decodeHolomapPointCloudPayload } from '../components/HolomapPointCloudViewer';
 

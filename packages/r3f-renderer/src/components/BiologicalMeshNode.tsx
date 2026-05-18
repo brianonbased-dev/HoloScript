@@ -64,14 +64,14 @@ export function BiologicalMeshNode({ node }: { node: R3FNode }) {
     <group ref={groupRef}>
       <points>
         <bufferGeometry>
-          <bufferAttribute attach="attributes-position" count={numAtoms} array={atomPositions} itemSize={3} />
-          <bufferAttribute attach="attributes-color" count={numAtoms} array={atomColors} itemSize={3} />
+          <bufferAttribute args={[atomPositions, 3]} attach="attributes-position" />
+          <bufferAttribute args={[atomColors, 3]} attach="attributes-color" />
         </bufferGeometry>
         <pointsMaterial size={isLigand ? 0.4 : 0.2} vertexColors={true} />
       </points>
       <lineSegments>
         <bufferGeometry>
-          <bufferAttribute attach="attributes-position" count={geometryBonds.attributes.position.count} array={geometryBonds.attributes.position.array} itemSize={3} />
+          <bufferAttribute args={[geometryBonds.attributes.position.array, 3]} attach="attributes-position" />
         </bufferGeometry>
         <lineBasicMaterial color="#ffffff" opacity={0.15} transparent />
       </lineSegments>

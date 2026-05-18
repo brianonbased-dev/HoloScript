@@ -15,9 +15,9 @@
  * ```
  */
 
-import { _useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { LODBridge, type LODChain } from '@holoscript/engine';
-import { _useThree, _useFrame } from '@react-three/fiber';
+import { useThree, useFrame } from '@react-three/fiber';
 import type { R3FNode } from '@holoscript/core';
 
 /** Shared LODBridge instance (singleton per renderer lifecycle) */

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Text, Float, RoundedBox, Html, Sphere, Ring, _Edges } from '@react-three/drei';
+import { Text, Float, RoundedBox, Html, Sphere, Ring, Edges } from '@react-three/drei';
 import * as THREE from 'three';
 
 import { AgentRoomRenderer } from './AgentRoomRenderer';

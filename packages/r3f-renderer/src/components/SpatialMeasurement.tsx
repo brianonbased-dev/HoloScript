@@ -179,16 +179,13 @@ function DimensionLine({ from, to, color, opacity = 1 }: {
     new THREE.Vector3(...to),
   ], [from, to]);
 
-  const geometry = useMemo(() => {
+  const lineObj = useMemo(() => {
     const geo = new THREE.BufferGeometry().setFromPoints(points);
-    return geo;
-  }, [points]);
+    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+    return new THREE.Line(geo, mat);
+  }, [points, color, opacity]);
 
-  return (
-    <line geometry={geometry}>
-      <lineBasicMaterial color={color} transparent opacity={opacity} />
-    </line>
-  );
+  return <primitive object={lineObj} />;
 }
 
 function CompletedMeasurement({ measurement: m, color, fieldUnit }: {
@@ -281,6 +278,15 @@ export interface SpatialAnnotationsProps {
   onRemove?: (id: string) => void;
 }
 
+function PinLine({ color }: { color: string }) {
+  const lineObj = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0, 0, 0, 0, -0.05, 0]), 3));
+    return new THREE.Line(geo, new THREE.LineBasicMaterial({ color }));
+  }, [color]);
+  return <primitive object={lineObj} />;
+}
+
 export function SpatialAnnotations({ annotations, onRemove }: SpatialAnnotationsProps) {
   return (
     <group>
@@ -292,17 +298,7 @@ export function SpatialAnnotations({ annotations, onRemove }: SpatialAnnotations
             <meshBasicMaterial color={a.color ?? '#ffaa00'} />
           </mesh>
           {/* Pin line down to surface */}
-          <line>
-            <bufferGeometry>
-              <bufferAttribute
-                attach="attributes-position"
-                count={2}
-                array={new Float32Array([0, 0, 0, 0, -0.05, 0])}
-                itemSize={3}
-              />
-            </bufferGeometry>
-            <lineBasicMaterial color={a.color ?? '#ffaa00'} />
-          </line>
+          <PinLine color={a.color ?? '#ffaa00'} />
           {/* Text label */}
           <Text
             position={[0, 0.03, 0]}

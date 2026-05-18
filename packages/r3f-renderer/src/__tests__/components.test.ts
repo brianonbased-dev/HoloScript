@@ -170,7 +170,7 @@ describe('useLODBridge logic', () => {
   });
 
   it('default maturity is mesh', () => {
-    const maturity = ('mesh' as string) || 'mesh';
+    const maturity = 'mesh' as string;
     expect(maturity).toBe('mesh');
   });
 });
