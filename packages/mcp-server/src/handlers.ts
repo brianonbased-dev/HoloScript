@@ -214,6 +214,74 @@ function getTraitCategoryMap(): Record<string, string[]> {
   return TRAIT_CATEGORIES_FALLBACK;
 }
 
+function asCapabilityManifest(value: unknown): CapabilityManifest | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const candidate = value as Partial<CapabilityManifest>;
+  if (
+    (candidate.protocol === 'holomesh.tool_manifest.v1' ||
+      candidate.protocol === 'holoscript.capability.v1') &&
+    Array.isArray(candidate.declaredCapabilities)
+  ) {
+    return candidate as CapabilityManifest;
+  }
+  return undefined;
+}
+
+function validationFallbackCommand(args: Record<string, unknown>): {
+  command: string[];
+  commandPreview: string;
+  exact: boolean;
+  sourcePath: string;
+} {
+  const sourcePath =
+    typeof args.sourcePath === 'string'
+      ? args.sourcePath
+      : typeof args.filePath === 'string'
+        ? args.filePath
+        : '';
+  const target = sourcePath || '<local-holoscript-source>';
+  const command = ['pnpm', 'exec', 'holoscript', 'validate', target];
+  return {
+    command,
+    commandPreview: command.join(' '),
+    exact: Boolean(sourcePath),
+    sourcePath,
+  };
+}
+
+function validationUnavailableReceipt(
+  args: Record<string, unknown>,
+  gate:
+    | {
+        receipt?: { receiptId: string; failedCheck: string; reason: string };
+        appliedPolicy: { policyId: string };
+        checks: Array<{ name: string; passed: boolean; detail?: string }>;
+      }
+    | undefined
+) {
+  return {
+    schemaVersion: 'holoscript.validation-unavailable-receipt.v0.1.0',
+    kind: 'ValidationUnavailableReceipt',
+    generatedAt: new Date().toISOString(),
+    reason: gate?.receipt?.reason ?? 'Local validation was denied before parser execution.',
+    receiptId: gate?.receipt?.receiptId ?? '',
+    policyId: gate?.appliedPolicy.policyId ?? '',
+    failedCheck: gate?.receipt?.failedCheck ?? 'fork_sandbox_gate',
+    checks: gate?.checks ?? [],
+    localFallback: validationFallbackCommand(args),
+    capabilityManifestTemplate: {
+      protocol: 'holoscript.capability.v1',
+      declaredCapabilities: ['holoscript:validate', 'filesystem:read:local-source'],
+      attestation: {
+        manifestHash: '<sha256-of-canonical-manifest>',
+        signer: '<verified-signer>',
+        trustTier: 'verified',
+        attestedAt: '<iso8601>',
+      },
+    },
+  };
+}
+
 // All 1,800+ traits from @holoscript/core
 const ALL_TRAITS: readonly string[] = VR_TRAITS;
 
@@ -228,12 +296,14 @@ export async function handleTool(
   // ── Fork Sandbox Gate (canary task_1778618757735_zpt5) ─────────────────────
   // Block forked/untrusted HoloScript code and sensitive tools before they
   // can touch HoloLand worlds, robot/AI substrate, payments, or player state.
+  const capabilityManifest = asCapabilityManifest(args.capabilityManifest ?? args.manifest);
   const gateResult = await runForkSandboxGate(
     {
       kind: 'mcp_tool',
       source: 'unknown',
       subjectId: `mcp:${name}`,
       payload: args,
+      manifest: capabilityManifest,
     },
     {
       toolName: name,
@@ -247,6 +317,9 @@ export async function handleTool(
       receiptId: gateResult.receipt?.receiptId,
       policyId: gateResult.appliedPolicy.policyId,
       checks: gateResult.checks,
+      ...(name === 'validate_holoscript'
+        ? { validationUnavailableReceipt: validationUnavailableReceipt(args, gateResult) }
+        : {}),
     };
   }
 
@@ -258,6 +331,7 @@ export async function handleTool(
       source: 'unknown',
       toolName: name,
       grantedScopes: signingCtx?.scopes ?? [],
+      manifest: capabilityManifest,
     });
     if (!codeGate.allowed) {
       return {
@@ -266,6 +340,9 @@ export async function handleTool(
         receiptId: codeGate.receipt?.receiptId,
         policyId: codeGate.appliedPolicy.policyId,
         checks: codeGate.checks,
+        ...(name === 'validate_holoscript'
+          ? { validationUnavailableReceipt: validationUnavailableReceipt(args, codeGate) }
+          : {}),
       };
     }
   }

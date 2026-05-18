@@ -1,7 +1,7 @@
 /**
  * HoloScript VR Traits Documentation
  *
- * Complete reference for all 49 VR traits available in HoloScript.
+ * Complete reference for bundled VR traits available in HoloScript.
  * Used by CLI for `holoscript traits` command.
  */
 
@@ -24,7 +24,7 @@ export interface TraitInfo {
 }
 
 /**
- * All 49 VR Traits organized by category
+ * Bundled VR Traits organized by category
  */
 export const TRAITS: Record<string, TraitInfo> = {
   // =====================================================

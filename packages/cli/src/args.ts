@@ -855,7 +855,7 @@ Usage: holoscript <command> [options] [input]
   holoscript build components/glowing_orb/
 
   \x1b[2m# Traits & Generation\x1b[0m
-  holoscript traits                    # List all 49 VR traits
+  holoscript traits                    # List all available traits
   holoscript traits grabbable          # Explain @grabbable trait
   holoscript suggest "glowing orb"     # Suggest traits for object
   holoscript generate "red button"     # Generate HoloScript code

@@ -202,6 +202,62 @@ describe('ThingDescriptionGenerator', () => {
       expect(result!.events!.release_constraint_detached.forms![0].op).toBe('subscribeevent');
     });
 
+    it('should inherit @wot_thing from referenced templates', () => {
+      const template: HSPlusNode = {
+        type: 'template',
+        name: 'SensorNodeMesh',
+        properties: [
+          { type: 'ObjectProperty', key: 'geometry', value: 'sphere' },
+          {
+            type: 'ObjectProperty',
+            key: 'properties',
+            value: { source: 'template-source', expected: 'template expectation' },
+          },
+        ] as unknown as Record<string, unknown>,
+        directives: [
+          {
+            type: 'trait',
+            name: 'wot_thing',
+            args: { title: 'Sensor template', security: 'nosec' },
+          } as HSPlusDirective,
+        ],
+      };
+
+      const node = {
+        type: 'object',
+        name: 'WindSensorNodeMesh',
+        template: 'SensorNodeMesh',
+        properties: [
+          {
+            type: 'ObjectProperty',
+            key: 'properties',
+            value: {
+              thingId: 'urn:holoscript:wind-sensor',
+              source: 'wind-feed.log',
+              action: 'calibrate',
+              expected: 'calibrate wind sensor',
+            },
+          },
+        ],
+        directives: [],
+      } as unknown as HSPlusNode;
+
+      const templateAwareGenerator = new ThingDescriptionGenerator({
+        baseUrl: 'http://localhost:8080',
+        defaultObservable: true,
+        templates: [template],
+      });
+
+      const result = templateAwareGenerator.generate(node);
+
+      expect(result).not.toBeNull();
+      expect(result!.title).toBe('Sensor template');
+      expect(result!.id).toBe('urn:holoscript:WindSensorNodeMesh');
+      expect(result!.properties!.thingId.default).toBe('urn:holoscript:wind-sensor');
+      expect(result!.properties!.source.default).toBe('wind-feed.log');
+      expect(result!.actions!.calibrate.description).toBe('calibrate wind sensor');
+    });
+
     it('should handle different security schemes', () => {
       const securityTypes: Array<'nosec' | 'basic' | 'bearer' | 'oauth2' | 'apikey'> = [
         'nosec',

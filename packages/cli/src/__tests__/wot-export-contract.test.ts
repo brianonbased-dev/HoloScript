@@ -101,4 +101,32 @@ describe('wot-export public API contract', () => {
       expect(result.stdout).toContain('"release_constraint_detached"');
     });
   }, 120_000);
+
+  it('exports objects that inherit @wot_thing from templates', async () => {
+    await withTempDir(async (dir) => {
+      const file = path.join(dir, 'template-wot.holo');
+      await fs.writeFile(
+        file,
+        `composition "TemplateWoT" {
+  template "SensorNode" {
+    @wot_thing(title: "Sensor template", security: "nosec")
+    geometry: "sphere"
+  }
+
+  object "WindSensor" using "SensorNode" {
+    properties: { thingId: "urn:test:wind", action: "calibrate", expected: "calibrate wind sensor" }
+  }
+}
+`
+      );
+
+      const result = await runCli(['wot-export', file, '--json']);
+
+      expect(result.stdout).toContain('"title": "Sensor template"');
+      expect(result.stdout).toContain('"id": "urn:holoscript:WindSensor"');
+      expect(result.stdout).toContain('"thingId"');
+      expect(result.stdout).toContain('"calibrate"');
+      expect(result.stdout).not.toContain('No objects with @wot_thing trait found.');
+    });
+  }, 120_000);
 });

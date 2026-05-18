@@ -173,6 +173,8 @@ export interface ThingDescriptionGeneratorOptions {
   defaultObservable?: boolean;
   /** Custom security definitions */
   securityDefinitions?: Record<string, SecurityScheme>;
+  /** Template nodes available for resolving inherited directives/properties */
+  templates?: HSPlusNode[];
 }
 
 // =============================================================================
@@ -181,6 +183,7 @@ export interface ThingDescriptionGeneratorOptions {
 
 export class ThingDescriptionGenerator {
   private options: ThingDescriptionGeneratorOptions;
+  private templateIndex: Map<string, HSPlusNode>;
 
   constructor(options: ThingDescriptionGeneratorOptions = {}) {
     this.options = {
@@ -188,27 +191,35 @@ export class ThingDescriptionGenerator {
       contentType: options.contentType || 'application/json',
       defaultObservable: options.defaultObservable ?? true,
       securityDefinitions: options.securityDefinitions,
+      templates: options.templates || [],
     };
+
+    this.templateIndex = new Map(
+      (this.options.templates || [])
+        .filter((template) => typeof template.name === 'string')
+        .map((template) => [template.name as string, template])
+    );
   }
 
   /**
    * Generate a Thing Description from a HoloScript node with @wot_thing trait
    */
   generate(node: HSPlusNode): ThingDescription | null {
-    const wotTrait = this.findWoTTrait(node);
+    const resolvedNode = this.mergeNodeWithTemplate(node);
+    const wotTrait = this.findWoTTrait(resolvedNode);
     if (!wotTrait) {
       return null;
     }
 
     const config = this.parseWoTConfig(wotTrait);
-    const stateProperties = this.extractStateProperties(node);
-    const actions = this.extractActions(node);
-    const events = this.extractEvents(node);
+    const stateProperties = this.extractStateProperties(resolvedNode);
+    const actions = this.extractActions(resolvedNode);
+    const events = this.extractEvents(resolvedNode);
 
     const td: ThingDescription = {
       '@context': 'https://www.w3.org/2022/wot/td/v1.1',
-      id: config.id || `urn:holoscript:${node.name || 'thing'}`,
-      title: config.title || node.name || 'Unnamed Thing',
+      id: config.id || `urn:holoscript:${resolvedNode.name || 'thing'}`,
+      title: config.title || resolvedNode.name || 'Unnamed Thing',
       security: 'default',
       securityDefinitions: this.buildSecurityDefinitions(config.security),
     };
@@ -295,6 +306,34 @@ export class ThingDescriptionGenerator {
   private readInlineAffordanceMetadata(node: HSPlusNode): Record<string, unknown> {
     const properties = this.readNodeProperties(node);
     return this.asRecord(properties.properties);
+  }
+
+  private templateNameFor(node: HSPlusNode): string | null {
+    const template = (node as { template?: unknown }).template;
+    return typeof template === 'string' ? template : null;
+  }
+
+  private resolveTemplateNode(node: HSPlusNode): HSPlusNode | null {
+    const templateName = this.templateNameFor(node);
+    return templateName ? this.templateIndex.get(templateName) || null : null;
+  }
+
+  private mergeNodeWithTemplate(node: HSPlusNode): HSPlusNode {
+    const template = this.resolveTemplateNode(node);
+    if (!template) {
+      return node;
+    }
+
+    return {
+      ...template,
+      ...node,
+      properties: {
+        ...this.propertyListToRecord(template.properties),
+        ...this.propertyListToRecord(node.properties),
+      },
+      directives: [...(template.directives || []), ...(node.directives || [])],
+      children: node.children,
+    } as unknown as HSPlusNode;
   }
 
   /**

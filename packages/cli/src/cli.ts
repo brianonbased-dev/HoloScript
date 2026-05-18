@@ -1401,12 +1401,56 @@ async function main(): Promise<void> {
         }
 
         // Generate Thing Descriptions
+        const templates = parseResult.ast?.templates || [];
+        const templateMap = new Map(
+          templates
+            .filter((template: { name?: unknown }) => typeof template.name === 'string')
+            .map((template: { name: string }) => [template.name, template])
+        );
+        const withTemplateInheritance = (node: Record<string, unknown>): Record<string, unknown> => {
+          const templateName = typeof node.template === 'string' ? node.template : undefined;
+          const template = templateName ? templateMap.get(templateName) : undefined;
+          const inherited =
+            template && typeof template === 'object' && !Array.isArray(template)
+              ? (template as Record<string, unknown>)
+              : {};
+          const inheritedChildren = Array.isArray(node.children)
+            ? node.children.map((child) =>
+                child && typeof child === 'object'
+                  ? withTemplateInheritance(child as Record<string, unknown>)
+                  : child
+              )
+            : undefined;
+
+          return {
+            ...inherited,
+            ...node,
+            template: undefined,
+            properties: [
+              ...(Array.isArray(inherited.properties) ? inherited.properties : []),
+              ...(Array.isArray(node.properties) ? node.properties : []),
+            ],
+            directives: [
+              ...(Array.isArray(inherited.directives) ? inherited.directives : []),
+              ...(Array.isArray(node.directives) ? node.directives : []),
+            ],
+            traits: [
+              ...(Array.isArray(inherited.traits) ? inherited.traits : []),
+              ...(Array.isArray(node.traits) ? node.traits : []),
+            ],
+            ...(inheritedChildren ? { children: inheritedChildren } : {}),
+          };
+        };
+        const wotObjects = objects.map((object: Record<string, unknown>) =>
+          withTemplateInheritance(object)
+        );
         const generator = new ThingDescriptionGenerator({
           baseUrl: 'http://localhost:8080',
           defaultObservable: true,
+          templates,
         });
 
-        const thingDescriptions = generator.generateAll(objects);
+        const thingDescriptions = generator.generateAll(wotObjects);
 
         if (thingDescriptions.length === 0) {
           console.log('\x1b[33mNo objects with @wot_thing trait found.\x1b[0m');
