@@ -492,8 +492,52 @@ export {
   cloneHoloShellWorkFileCustodyReceipt,
 } from './board';
 
+// HoloShell Asset Shard Receipts (task_1779092479438_6pk4)
+export {
+  ASSET_SHARD_KINDS,
+  ASSET_SHARD_STATUSES,
+  ASSET_SHARD_PERMISSION_ENVELOPES,
+  type AssetShardKind,
+  type AssetShardStatus,
+  type AssetShardPermissionEnvelope,
+  type AssetShardFileProxy,
+  type AssetShardWorkflowReceipt,
+  type AssetShardImportApprovalReceipt,
+  type AssetShardImportReceipt,
+  type PlayableShardWitnessReceipt,
+  isSupportedAssetShardKind,
+  isSupportedAssetShardStatus,
+  validateAssetShardWorkflowReceipt,
+  validateAssetShardImportApprovalReceipt,
+  validateAssetShardImportReceipt,
+  validatePlayableShardWitnessReceipt,
+  validateAssetShardReceiptBundle,
+  cloneAssetShardWorkflowReceipt,
+} from './board';
 
 // Device Lab Warning Tokens (task_1778739828973_47f5)
+// HoloShell Asset Shard Receipts (task_1779092479438_6pk4)
+export {
+  ASSET_SHARD_KINDS,
+  ASSET_SHARD_STATUSES,
+  ASSET_SHARD_PERMISSION_ENVELOPES,
+  type AssetShardKind,
+  type AssetShardStatus,
+  type AssetShardPermissionEnvelope,
+  type AssetShardFileProxy,
+  type AssetShardWorkflowReceipt,
+  type AssetShardImportApprovalReceipt,
+  type AssetShardImportReceipt,
+  type PlayableShardWitnessReceipt,
+  isSupportedAssetShardKind,
+  isSupportedAssetShardStatus,
+  validateAssetShardWorkflowReceipt,
+  validateAssetShardImportApprovalReceipt,
+  validateAssetShardImportReceipt,
+  validatePlayableShardWitnessReceipt,
+  validateAssetShardReceiptBundle,
+  cloneAssetShardWorkflowReceipt,
+} from './board';
 export {
   WARNING_SEVERITY,
   WARNING_ACTION_TYPE,
