@@ -21,22 +21,27 @@ async function runCli(args: string[]) {
   });
 }
 
+function writeSmokeHolo(tempDir: string): string {
+  const sourcePath = path.join(tempDir, 'scene.holo');
+  writeFileSync(
+    sourcePath,
+    `composition "Compile Output Parent Smoke" {
+      object "Cube" {
+        geometry: "cube"
+        position: [0, 1, 0]
+      }
+    }`
+  );
+  return sourcePath;
+}
+
 describe('CLI compile output writing', () => {
   it('creates parent directories for single-file target output', async () => {
     const tempDir = mkdtempSync(path.join(tmpdir(), 'holoscript-cli-compile-output-'));
 
     try {
-      const sourcePath = path.join(tempDir, 'scene.holo');
+      const sourcePath = writeSmokeHolo(tempDir);
       const outputPath = path.join(tempDir, 'nested', 'captures', 'scene-r3f.json');
-      writeFileSync(
-        sourcePath,
-        `composition "Compile Output Parent Smoke" {
-          object "Cube" {
-            geometry: "cube"
-            position: [0, 1, 0]
-          }
-        }`
-      );
 
       const result = await runCli(['compile', sourcePath, '--target', 'r3f', '-o', outputPath]);
 
@@ -46,6 +51,93 @@ describe('CLI compile output writing', () => {
         children?: Array<{ id?: string; type?: string }>;
       };
       expect(scene.children?.some((child) => child.type === 'mesh')).toBe(true);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('writes Android XR multi-file output directories for the canonical target', async () => {
+    const tempDir = mkdtempSync(path.join(tmpdir(), 'holoscript-cli-compile-output-'));
+
+    try {
+      const sourcePath = writeSmokeHolo(tempDir);
+      const outputDir = path.join(tempDir, 'nested', 'android-xr');
+
+      const result = await runCli(['compile', sourcePath, '--target', 'android-xr', '-o', outputDir]);
+
+      expect(result.stdout).toContain('AndroidXR compilation successful');
+      expect(existsSync(path.join(outputDir, 'GeneratedXRActivity.kt'))).toBe(true);
+      expect(existsSync(path.join(outputDir, 'XRSceneState.kt'))).toBe(true);
+      expect(existsSync(path.join(outputDir, 'XRNodeFactory.kt'))).toBe(true);
+      expect(existsSync(path.join(outputDir, 'AndroidManifest.xml'))).toBe(true);
+      expect(existsSync(path.join(outputDir, 'build.gradle.kts'))).toBe(true);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('normalizes legacy Android XR target aliases', async () => {
+    const tempDir = mkdtempSync(path.join(tmpdir(), 'holoscript-cli-compile-output-'));
+
+    try {
+      const sourcePath = writeSmokeHolo(tempDir);
+      const outputDir = path.join(tempDir, 'nested', 'androidxr');
+
+      const result = await runCli(['compile', sourcePath, '--target', 'androidxr', '-o', outputDir]);
+
+      expect(result.stdout).toContain('AndroidXR compilation successful');
+      expect(existsSync(path.join(outputDir, 'GeneratedXRActivity.kt'))).toBe(true);
+      expect(existsSync(path.join(outputDir, 'AndroidManifest.xml'))).toBe(true);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('writes USD output with parent directory creation', async () => {
+    const tempDir = mkdtempSync(path.join(tmpdir(), 'holoscript-cli-compile-output-'));
+
+    try {
+      const sourcePath = writeSmokeHolo(tempDir);
+      const outputPath = path.join(tempDir, 'nested', 'usd', 'scene.usda');
+
+      const result = await runCli(['compile', sourcePath, '--target', 'usd', '-o', outputPath]);
+
+      expect(result.stdout).toContain('USD compilation successful');
+      expect(readFileSync(outputPath, 'utf8')).toContain('#usda');
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('writes USDZ packages with parent directory creation', async () => {
+    const tempDir = mkdtempSync(path.join(tmpdir(), 'holoscript-cli-compile-output-'));
+
+    try {
+      const sourcePath = writeSmokeHolo(tempDir);
+      const outputPath = path.join(tempDir, 'nested', 'usdz', 'scene.usdz');
+
+      const result = await runCli(['compile', sourcePath, '--target', 'usdz', '-o', outputPath]);
+      const output = readFileSync(outputPath);
+
+      expect(result.stdout).toContain('USDZ compilation successful');
+      expect(output.byteLength).toBeGreaterThan(0);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('writes 3DGS GLB output with parent directory creation', async () => {
+    const tempDir = mkdtempSync(path.join(tmpdir(), 'holoscript-cli-compile-output-'));
+
+    try {
+      const sourcePath = writeSmokeHolo(tempDir);
+      const outputPath = path.join(tempDir, 'nested', '3dgs', 'scene.glb');
+
+      const result = await runCli(['compile', sourcePath, '--target', '3dgs', '-o', outputPath]);
+      const output = readFileSync(outputPath);
+
+      expect(result.stdout).toContain('3DGS compilation successful');
+      expect(output.subarray(0, 4).toString('utf8')).toBe('glTF');
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
