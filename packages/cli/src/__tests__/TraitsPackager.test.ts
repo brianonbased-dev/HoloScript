@@ -79,7 +79,7 @@ describe('getCategories — Production', () => {
     expect(cats.length).toBe(distinct.size);
     // Every reported category is actually used by at least one trait.
     for (const cat of cats) {
-      expect(distinct.has(cat.name)).toBe(true);
+      expect(distinct.has(cat.name as any)).toBe(true);
     }
   });
 

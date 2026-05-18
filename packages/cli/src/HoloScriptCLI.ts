@@ -491,7 +491,7 @@ export class HoloScriptCLI {
     // Execute the script to populate the runtime
     console.log(`✓ Executing script...`);
     const results = await this.runtime.executeProgram(ast);
-    const allSuccessful = results.every((r) => r.success);
+    const allSuccessful = results.every((r: { success: boolean }) => r.success);
 
     if (!allSuccessful) {
       console.log('⚠️  Some nodes failed to execute');

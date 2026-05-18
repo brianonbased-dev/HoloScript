@@ -981,7 +981,7 @@ async function main(): Promise<void> {
           parseResult = result;
           if (options.verbose)
             console.log(`\x1b[2m[TRACE] Parse complete. Success: ${result.success}\x1b[0m`);
-          success = result.success;
+          success = result.success ?? false;
           errorList = result.errors;
         }
 
@@ -1085,7 +1085,7 @@ async function main(): Promise<void> {
     }
 
     case 'version': {
-      let info: { version: string; gitCommitSha: string; buildTimestamp: string };
+      let info: { version: string; gitCommitSha?: string; buildTimestamp?: string; [key: string]: any };
       let versionString = getCliVersionString();
 
       try {
@@ -2128,7 +2128,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for DTDL:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2181,7 +2181,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for flat-semantic:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2216,7 +2216,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for Unreal:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2245,7 +2245,7 @@ async function main(): Promise<void> {
             }
           } else {
             console.log('\n--- Unreal Output ---\n');
-            console.log(result.files.map((f) => `// ${f.filename}\n${f.content}`).join('\n\n'));
+            console.log(result.files.map((f: any) => `// ${f.filename}\n${f.content}`).join('\n\n'));
           }
 
           process.exit(0);
@@ -2264,7 +2264,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for iOS:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2293,7 +2293,7 @@ async function main(): Promise<void> {
             }
           } else {
             console.log('\n--- iOS Output ---\n');
-            console.log(result.files.map((f) => `// ${f.filename}\n${f.content}`).join('\n\n'));
+            console.log(result.files.map((f: any) => `// ${f.filename}\n${f.content}`).join('\n\n'));
           }
 
           process.exit(0);
@@ -2312,7 +2312,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for Android:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2341,7 +2341,7 @@ async function main(): Promise<void> {
             }
           } else {
             console.log('\n--- Android Output ---\n');
-            console.log(result.files.map((f) => `// ${f.filename}\n${f.content}`).join('\n\n'));
+            console.log(result.files.map((f: any) => `// ${f.filename}\n${f.content}`).join('\n\n'));
           }
 
           process.exit(0);
@@ -2360,7 +2360,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for Godot:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2401,7 +2401,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for VisionOS:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2482,7 +2482,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for OpenXR:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2524,7 +2524,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for AndroidXR:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2566,7 +2566,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for WebGPU:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2608,7 +2608,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for R3F:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2737,7 +2737,7 @@ async function main(): Promise<void> {
           const target = options.target || 'threejs';
 
           try {
-            const isHolo = options.input.endsWith('.holo');
+            const isHolo = (options.input ?? '').endsWith('.holo');
             const { generateTargetCode } = await import('./build/generators');
             let ast: any;
             let composition: any = null;
@@ -2840,7 +2840,7 @@ async function main(): Promise<void> {
           console.log(`\x1b[36mBuilding asset from directory: ${options.input}\x1b[0m`);
           try {
             const { packAsset } = await import('./smartAssets');
-            await packAsset(options.input, options.output, options.verbose);
+            await packAsset(options.input ?? '', options.output, options.verbose);
             console.log(
               `\x1b[32m✓ Packed asset to ${options.output || options.input + '.hsa'}\x1b[0m`
             );
@@ -3945,7 +3945,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         let lastProgressLen = 0;
         const scanResult = await scanner.scan({
           rootDir,
-          onProgress(parsed, total, file) {
+          onProgress(parsed: number, total: number, file: string) {
             const pct = Math.round((parsed / total) * 100);
             const msg = `  \x1b[36m  Parsing files... ${parsed}/${total} (${pct}%) — ${file}\x1b[0m`;
             process.stdout.write('\r' + msg.padEnd(lastProgressLen));
@@ -4006,7 +4006,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
             process.exit(1);
           }
           const impactSet = graph.getImpactSet(inputFiles);
-          const indirect = Array.from(impactSet)
+          const indirect = (Array.from(impactSet) as string[])
             .filter((f) => !inputFiles.includes(f))
             .sort();
           console.log(
@@ -4016,7 +4016,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
             const out = JSON.stringify(
               {
                 input: inputFiles,
-                blast_radius: Array.from(impactSet).sort(),
+                blast_radius: (Array.from(impactSet) as string[]).sort(),
                 indirect,
                 total: impactSet.size,
               },
@@ -4113,9 +4113,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
                 .filter((f) => fs.existsSync(f));
               if (changedFiles.length > 0) {
                 const impactSet = graph.getImpactSet(changedFiles);
-                changeImpact = Array.from(impactSet).filter((f) => !changedFiles!.includes(f));
+                changeImpact = (Array.from(impactSet) as string[]).filter((f) => !changedFiles!.includes(f));
                 console.log(
-                  `  \x1b[36m→\x1b[0m Since ${sinceRef}: ${changedFiles.length} changed, ${changeImpact.length} transitively affected`
+                  `  \x1b[36m→\x1b[0m Since ${sinceRef}: ${changedFiles.length} changed, ${changeImpact!.length} transitively affected`
                 );
               }
             } catch {
@@ -4332,15 +4332,6 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 
         const rootDir = options.queryDir ? path.resolve(options.queryDir) : process.cwd();
         const question = options.input;
-        let providerName = options.queryProvider ?? 'openai';
-        if (providerName === 'bm25') {
-          console.warn(
-            `${YELLOW}⚠ bm25 is deprecated and has been removed. Using openai instead.${RESET}`
-          );
-          providerName = 'openai';
-        }
-        const forceRescan = options.force === true;
-        const queryStartTime = Date.now();
 
         // ── Formatting helpers ───────────────────────────────────────────────
         const DIM = '\x1b[2m';
@@ -4363,6 +4354,16 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
             : ms < 60000
               ? `${(ms / 1000).toFixed(1)}s`
               : `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`;
+
+        let providerName = options.queryProvider ?? 'openai';
+        if (providerName === 'bm25') {
+          console.warn(
+            `${YELLOW}⚠ bm25 is deprecated and has been removed. Using openai instead.${RESET}`
+          );
+          providerName = 'openai';
+        }
+        const forceRescan = options.force === true;
+        const queryStartTime = Date.now();
 
         // ── Header ───────────────────────────────────────────────────────────
         console.log(`\n${DIM}╔${'═'.repeat(58)}╗${RESET}`);
@@ -4391,7 +4392,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         const cacheDir = path.join(rootDir, '.holoscript');
         const cachePath = path.join(cacheDir, `graph-${cacheKey}.json`);
 
-        let graph: InstanceType<typeof CodebaseGraph>;
+        let graph: InstanceType<typeof CodebaseGraph> | undefined;
         let fromCache = false;
         let graphSymbolCount = 0;
 
@@ -4426,7 +4427,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
           const scanResult = await scanner.scan({
             rootDir,
             maxFiles: 10000,
-            onProgress(parsed, total, file) {
+            onProgress(parsed: number, total: number, file: string) {
               const pct = Math.round((parsed / total) * 100);
               const bar = '█'.repeat(Math.floor(pct / 5)) + '░'.repeat(20 - Math.floor(pct / 5));
               const msg = `  ${CYAN}${bar}${RESET} ${pct}% ${DIM}(${parsed}/${total})${RESET} ${DIM}${file.length > 30 ? '...' + file.slice(-27) : file}${RESET}`;
@@ -4478,7 +4479,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
           openaiApiKey: options.queryLlmKey,
         });
 
-        let index: InstanceType<typeof EmbeddingIndex>;
+        let index: InstanceType<typeof EmbeddingIndex> | undefined;
         let indexFromCache = false;
 
         // Try binary cache first, then legacy JSON
@@ -4527,7 +4528,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         if (!indexFromCache) {
           const embedStart = Date.now();
           index = new EmbeddingIndex({ provider });
-          await index.buildIndex(graph);
+          await index!.buildIndex(graph!);
           console.log(
             bullet(
               `${GREEN}✓${RESET}`,
@@ -4618,7 +4619,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         }
 
         // ── 5. Run query ─────────────────────────────────────────────────────
-        const engine = new GraphRAGEngine(graph, index, { llmProvider });
+        const engine = new GraphRAGEngine(graph!, index!, { llmProvider });
         const topK = options.queryTopK ?? 10;
 
         if (options.queryWithLlm && llmProvider) {

@@ -33,7 +33,7 @@ export class ManifestGenerator {
 
       // Add spatial bounds if available in chunk metadata/zones
       if (chunk.metadata.bounds) {
-        info.bounds = chunk.metadata.bounds;
+        info.bounds = chunk.metadata.bounds as number[][];
       }
 
       manifest.chunks[chunk.id] = info;

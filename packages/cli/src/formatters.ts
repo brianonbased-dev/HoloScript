@@ -22,8 +22,10 @@ function formatNode(node: ASTNode, index: number): string {
   }
 
   if (node.position) {
-    const { x, y, z } = node.position;
-    lines.push(`    position: (${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)})`);
+    // SpatialPosition may be a tuple [x,y,z] or an object {x,y,z} depending on context
+    const pos = node.position as any;
+    const [px, py, pz] = Array.isArray(pos) ? pos : [pos.x, pos.y, pos.z];
+    lines.push(`    position: (${(px as number).toFixed(2)}, ${(py as number).toFixed(2)}, ${(pz as number).toFixed(2)})`);
   }
 
   if (node.hologram) {

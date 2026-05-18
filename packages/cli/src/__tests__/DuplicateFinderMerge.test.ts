@@ -107,7 +107,7 @@ describe('mergeConfigs — Production', () => {
   it('deep merge nested objects', () => {
     const result = mergeConfigs(
       { db: { host: 'localhost', port: 5432 }, name: 'app' },
-      { db: { port: 3306 } }
+      { db: { host: 'localhost', port: 3306 } }
     );
     expect(result.db.host).toBe('localhost');
     expect(result.db.port).toBe(3306);

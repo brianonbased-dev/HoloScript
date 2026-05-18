@@ -509,7 +509,7 @@ describe('NginxDeployer', () => {
 
     // Mock SSH executor to avoid real SSH calls
     mockSshExecutor = vi.fn().mockResolvedValue('');
-    deployer.setSshExecutor(mockSshExecutor);
+    deployer.setSshExecutor(mockSshExecutor as unknown as (command: string) => Promise<string>);
 
     // Mock SCP uploader to avoid real SCP calls
     deployer.setScpUploader(vi.fn().mockResolvedValue(undefined));

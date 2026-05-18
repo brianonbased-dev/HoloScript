@@ -84,8 +84,17 @@ export interface CLIOptions {
     | 'twin-earth-status'
     | 'twin-earth-contract'
     | 'init'
+    | 'serve'
+    | 'rebuild-index'
+    | 'hologram'
+    | 'smoke'
     | 'help'
     | 'version';
+  count?: number;
+  all?: boolean;
+  args?: string[];
+  targets?: string[];
+  name?: string;
   /** Scaffold project only (no server) — for quickstart command */
   scaffoldOnly?: boolean;
   /** Skip auto-opening browser — for quickstart command */

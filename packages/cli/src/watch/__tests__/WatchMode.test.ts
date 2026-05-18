@@ -89,28 +89,28 @@ describe('WatchReporter', () => {
     const reporter = new WatchReporter(false);
     reporter.watching(['**/*.hsplus', '**/*.holo']);
     expect(consoleSpy).toHaveBeenCalled();
-    const output = consoleSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+    const output = consoleSpy.mock.calls.map((c: any[]) => c.join(' ')).join('\n');
     expect(output).toContain('Watching for changes');
   });
 
   test('changed() prints file path', () => {
     const reporter = new WatchReporter(false);
     reporter.changed('/project/src/scene.hsplus');
-    const output = consoleSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+    const output = consoleSpy.mock.calls.map((c: any[]) => c.join(' ')).join('\n');
     expect(output).toContain('scene.hsplus');
   });
 
   test('built() shows build time', () => {
     const reporter = new WatchReporter(false);
     reporter.built({ file: '/project/src/main.hsplus', durationMs: 45, incremental: false });
-    const output = consoleSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+    const output = consoleSpy.mock.calls.map((c: any[]) => c.join(' ')).join('\n');
     expect(output).toContain('45ms');
   });
 
   test('built() marks incremental rebuilds', () => {
     const reporter = new WatchReporter(false);
     reporter.built({ file: '/project/src/main.hsplus', durationMs: 12, incremental: true });
-    const output = consoleSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+    const output = consoleSpy.mock.calls.map((c: any[]) => c.join(' ')).join('\n');
     expect(output).toContain('12ms');
     expect(output).toContain('incremental');
   });
@@ -123,7 +123,7 @@ describe('WatchReporter', () => {
       incremental: false,
       errors: ['Unexpected token at line 10'],
     });
-    const output = consoleSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+    const output = consoleSpy.mock.calls.map((c: any[]) => c.join(' ')).join('\n');
     expect(output).toContain('Unexpected token');
     expect(output).toContain('Watching for fixes');
   });
@@ -131,7 +131,7 @@ describe('WatchReporter', () => {
   test('stopped() prints shutdown message', () => {
     const reporter = new WatchReporter(false);
     reporter.stopped();
-    const output = consoleSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+    const output = consoleSpy.mock.calls.map((c: any[]) => c.join(' ')).join('\n');
     expect(output).toContain('stopped');
   });
 });
