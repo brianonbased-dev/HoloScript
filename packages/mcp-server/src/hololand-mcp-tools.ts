@@ -1261,7 +1261,7 @@ interface StoredShardReceipt {
   sealedAt: string;
 }
 
-interface StoredNPC {
+export interface StoredNPC {
   id: string;
   name: string;
   shardId?: string;

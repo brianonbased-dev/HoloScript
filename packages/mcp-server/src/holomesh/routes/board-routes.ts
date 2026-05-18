@@ -747,7 +747,7 @@ export async function handleBoardRoutes(
           json(res, 400, { error: 'commit hash required' });
           return true;
         }
-        const wrap = appendFollowUpCommit(team.doneLog || [], taskId, commit, body.summary as string | undefined);
+        const wrap = appendFollowUpCommit((team.doneLog || []) as unknown as import('@holoscript/framework').DoneLogEntry[], taskId, commit, body.summary as string | undefined);
         if (!wrap.success) {
           json(res, 404, { error: wrap.error || 'Entry not found' });
           return true;
@@ -1265,6 +1265,7 @@ export async function handleBoardRoutes(
       category?: string;
       score?: number;
       modeChange?: { previousMode: string; newMode: string; source: string; reason?: string };
+      verificationEvidence?: string;
     }
 
     const entries: TraceTimelineEntry[] = [];

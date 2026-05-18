@@ -22,7 +22,7 @@ import {
 // TYPES
 // =============================================================================
 
-interface StoredTwinEarthIdentity {
+export interface StoredTwinEarthIdentity {
   agentId: string;
   walletAddress: string;
   handle: string;
@@ -39,7 +39,7 @@ interface StoredTwinEarthIdentity {
   modifiedAt: string;
 }
 
-interface StoredSafetyEnvelope {
+export interface StoredSafetyEnvelope {
   id: string;
   agentId: string;
   maxTickDurationMs: number;

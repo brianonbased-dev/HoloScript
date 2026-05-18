@@ -825,7 +825,7 @@ const httpServer = http.createServer(async (req, res) => {
 
   // LLM provider health probe — confirms credit status for Anthropic and
   // availability of other configured providers (task_1778462298192_564w).
-  if (url === '/api/health/llm' && method === 'GET') {
+  if (url === '/api/health/llm' && req.method === 'GET') {
     const providers: Record<string, { configured: boolean; creditStatus?: string; error?: string }> = {};
     // Anthropic probe
     if (process.env.ANTHROPIC_API_KEY) {

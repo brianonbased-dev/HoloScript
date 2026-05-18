@@ -637,6 +637,7 @@ export {
   cloneSafetyEnvelope,
   cloneTwinEarthReceipt,
   cloneModeTransitionReceipt,
+  appendFollowUpCommit,
 } from './board';
 
 // Capability module (Phase 1 — canonical definitions + validators + tests)

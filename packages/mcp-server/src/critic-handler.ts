@@ -305,7 +305,7 @@ async function tryCompleteWithAI(request: {
     attemptedProviders.push(providerName);
 
     try {
-      const result = await provider.complete(request);
+      const result = await provider.complete(request as import('@holoscript/llm-provider').LLMCompletionRequest);
       return {
         content: result.content,
         provider: providerName,

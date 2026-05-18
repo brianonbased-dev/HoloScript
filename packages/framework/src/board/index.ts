@@ -151,6 +151,7 @@ export {
   voteSuggestion,
   promoteSuggestion,
   dismissSuggestion,
+  appendFollowUpCommit,
 } from './board-ops';
 
 export {
