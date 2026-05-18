@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/secrets-broker",
-  "version": "7.0.0",
+  "version": "6.1.0",
   "description": "Sovereign primitive: capability-token broker for per-surface AI-agent bearers. Generalizes the per-brain HOLOMESH_API_KEY_<HANDLE>_X402 pattern into a typed, device-flow-pairable, short-lived-scoped-capability contract usable by any AI surface (mobile, desktop, headless). Companion to /protocol commercialization (D.013).",
   "type": "module",
   "main": "./dist/index.cjs",

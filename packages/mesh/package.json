@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/mesh",
-  "version": "8.0.0",
+  "version": "6.1.0",
   "description": "HoloScript Mesh and Network Layer",
   "type": "module",
   "main": "./dist/index.js",
