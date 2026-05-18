@@ -70,7 +70,7 @@ const DEMO_CAPSULES: TimeCapsule[] = [
         id: 'd',
         type: 'code',
         label: 'Test Count',
-        preview: '17,740 tests passing',
+        preview: 'Test count: verify current CI',
         addedAt: Date.now() - 172800000,
       },
     ],

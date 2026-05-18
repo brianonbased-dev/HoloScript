@@ -1242,7 +1242,7 @@ Create GitHub issue with:
 
 - Browser: Chrome 120.0.6099.109
 - OS: Windows 11
-- HoloScript Studio version: 1.0.0
+- HoloScript Studio version: current package manifest version
 
 **Steps to Reproduce:**
 

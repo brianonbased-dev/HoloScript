@@ -251,7 +251,7 @@ export interface SwarmProtocolSpec {
 // but are DEPRECATED. Migrate to `import { X } from '@holoscript/framework'` directly.
 
 /**
- * @deprecated Import from '@holoscript/framework' instead. Will be removed in v7.0.
+ * @deprecated Import from '@holoscript/framework' instead. Removal is reserved for a future public major release.
  */
 export {
   BaseAgent,

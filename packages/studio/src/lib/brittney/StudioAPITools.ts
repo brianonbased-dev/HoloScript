@@ -1,7 +1,7 @@
 /**
  * Studio API Tool Definitions for Brittney
  *
- * Extends Brittney beyond scene manipulation (5 tools) to the full
+ * Extends Brittney beyond scene manipulation to the full
  * Studio API surface: Absorb, scaffolding, generation, HoloMesh,
  * export, deployment, daemon jobs, and health/config.
  *

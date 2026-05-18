@@ -5,6 +5,7 @@
  */
 
 import type { SceneNode } from './serializer';
+import { HOLOSCRIPT_STUDIO_GENERATOR } from './release';
 
 export type ExportFormat = 'glb' | 'gltf' | 'obj' | 'fbx' | 'usd' | 'holoscript';
 
@@ -105,7 +106,7 @@ function generateFormatHeader(
     case 'glb':
       return JSON.stringify(
         {
-          asset: { version: '2.0', generator: 'HoloScript Studio v7.0.0' },
+          asset: { version: '2.0', generator: HOLOSCRIPT_STUDIO_GENERATOR },
           scene: 0,
           scenes: [{ name: 'HoloScene', nodes: nodes.map((_, i) => i) }],
           nodes: nodes.map((n) => ({

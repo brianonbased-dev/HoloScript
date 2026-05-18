@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 import { corsHeaders } from '../_lib/cors';
 /**
  * GET /api/plugins
- * Returns 12 community HoloScript plugins across 6 categories.
+ * Returns community HoloScript plugins grouped by category.
  */
 
 export interface HoloPlugin {
