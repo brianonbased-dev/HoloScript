@@ -313,7 +313,7 @@ When WASM is unavailable (e.g., SSR, older browsers), the bridge automatically f
 - `compile()` uses `R3FCompiler` or `BabylonCompiler` from core
 - Generator methods return template-based results
 - `format()` returns source unchanged
-- `listTraits()` returns a subset of core traits (8 vs 1525+ in WASM)
+- `listTraits()` returns a bridge-specific subset of the live core trait inventory
 
 The `getStatus().backend` property always reflects which backend is active.
 

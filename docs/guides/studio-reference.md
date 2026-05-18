@@ -7,7 +7,7 @@ head:
       content: HoloScript Studio - Complete IDE Reference
   - - meta
     - property: og:description
-      content: Comprehensive IDE guide for HoloScript Studio. Master 5 modes, Brittney AI, VR editing, collaboration, and export to 25+ platforms.
+      content: Comprehensive IDE guide for HoloScript Studio. Master 5 modes, Brittney AI, VR editing, collaboration, and export to registered platforms.
   - - meta
     - property: og:image
       content: https://holoscript.net/tutorials/og-studio-reference.png
@@ -22,7 +22,7 @@ head:
       content: HoloScript Studio - Complete IDE Reference
   - - meta
     - name: twitter:description
-      content: Master HoloScript Studio's 5 modes, Brittney AI assistant, and export to 25+ platforms. Complete IDE reference guide.
+      content: Master HoloScript Studio's 5 modes, Brittney AI assistant, and export to registered platforms. Complete IDE reference guide.
   - - meta
     - name: twitter:image
       content: https://holoscript.net/tutorials/og-studio-reference.png
@@ -51,7 +51,7 @@ HoloScript Studio is a **web-based IDE** for building VR/AR/XR scenes without wr
 - 🦴 Character animation editor
 - 🤝 Real-time multiplayer editing (CRDT)
 - 🚀 One-click publish & share
-- 📤 Export to 25+ platforms
+- 📤 Export to registered platforms
 
 ---
 
@@ -606,7 +606,7 @@ Brittney will:
 
 ### Multi-Platform Export
 
-**Available Targets (25+):**
+**Available Targets:**
 
 **Game Engines:**
 

@@ -30,14 +30,14 @@ There is no distinction between "backend code" and "3D content." Traits describe
 
 ### 3. The Compiler Makes It Real
 
-HoloScript's compiler fleet has **30+ platform-level compile targets** and 9 internal compilation modes. The same trait declaration compiles to:
+HoloScript's compiler fleet has registered platform-level compile targets and internal compilation modes. The same trait declaration can compile to:
 
 - **Unity C#**: `AddComponent<Rigidbody>(); rb.mass = 5.0f;`
 - **VRChat Udon**: `[UdonBehaviourSyncMode] rb.mass = 5.0f;`
 - **URDF (ROS)**: `<inertial><mass value="5"/></inertial>`
 - **Node.js Service**: Express route handler with validation (planned)
 
-The compiler is a pure function: same input, same output, no ambient state. Determinism, exhaustiveness, and composability are formally guaranteed.
+The compiler is designed as a pure function: same input, same output, no ambient state. Treat determinism, exhaustiveness, and composability as verification goals backed by tests and formal artifacts where available.
 
 ### 4. The Studio Is One Viewport
 
@@ -45,7 +45,7 @@ HoloScript Studio — the React/R3F-based visual editor — is **one way to view
 
 - Rendered as a 3D scene (Studio viewport)
 - Edited as text (`.holo`, `.hs`, `.hsplus` files)
-- Queried via MCP tools (65+ tools for AI agents)
+- Queried via MCP tools (live inventory for AI agents; verify via MCP health)
 - Analyzed as a dependency graph (`holoscript absorb`)
 - Compiled to platform code (compiler fleet)
 

@@ -4,7 +4,7 @@
 
 ## Overview
 
-HoloScript compiles to 18+ targets. Each compiler transforms the parsed AST into platform-specific code. This guide walks through adding a new one.
+HoloScript compiles to registered targets discovered from the compiler inventory. Each compiler transforms the parsed AST into platform-specific code. This guide walks through adding a new one.
 
 ## Architecture
 

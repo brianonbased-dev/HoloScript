@@ -95,7 +95,7 @@ holoscript compile hello.holo --target urdf     # sovereign: ROS 2 robot
 holoscript compile hello.holo --target nir      # sovereign: neural IR → GPU
 ```
 
-MCP tools (verify count via `curl mcp.holoscript.net/health`). Trait handlers across 114 categories (verify via MCP: `list_traits`). Three file formats: `.holo` (declarative scenes), `.hs` (templates + behaviors), `.hsplus` (full TypeScript for XR). [Format guide →](./docs/guides/file-formats.md)
+MCP tools and trait handlers are live inventories: verify tools via `curl mcp.holoscript.net/health`, and browse traits via MCP `list_traits` or the source inventory in `docs/NUMBERS.md`. Three file formats: `.holo` (declarative scenes), `.hs` (templates + behaviors), `.hsplus` (full TypeScript for XR). [Format guide →](./docs/guides/file-formats.md)
 
 ### 3. Run — What executes at runtime
 
@@ -248,7 +248,7 @@ No vendor lock-in. [Hololand](https://github.com/brianonbased-dev/Hololand) uses
 | 📱 **Quest/Mobile**       | Platform-optimized VR with Quest 2/3 features             | [Unity Quest →](./examples/specialized/unity-quest/)                   |
 | 🌐 **Social VR**          | VRChat world with mirrors, video, and Udon#               | [VRChat World →](./examples/specialized/vrchat/)                       |
 
-**[View all 324 examples →](./examples/)** | **[Browse examples catalog →](./examples/INDEX.md)**
+**[View examples →](./examples/)** | **[Browse examples catalog →](./examples/INDEX.md)**
 
 ---
 
@@ -401,10 +401,10 @@ my-vr-game/
 
 | vs                      | HoloScript Advantage                                                                       |
 | ----------------------- | ------------------------------------------------------------------------------------------ |
-| **C# (Unity)**          | Built-in spatial primitives, 33 targets vs 1, agent SDK with spatial awareness             |
+| **C# (Unity)**          | Built-in spatial primitives, registered targets vs one-engine lock-in, agent SDK with spatial awareness |
 | **Blueprints (Unreal)** | Text-based (version control friendly), three formats for different domains, cross-platform |
 | **GDScript (Godot)**    | Strong typing in `.hsplus`, module system, spatial query API, LSP tooling                  |
-| **Swift (visionOS)**    | Not locked to Apple, 33 targets, agent choreography, IoT/robotics export                   |
+| **Swift (visionOS)**    | Not locked to Apple, registered targets, agent choreography, IoT/robotics export           |
 
 ---
 
@@ -552,7 +552,7 @@ flowchart TD
 
 ### Monorepo Map
 
-With **68 packages** organized into specialized domain boundaries, HoloScript uses `pnpm workspaces` to manage interdependencies. The primary packages are classified as follows:
+With workspace packages organized into specialized domain boundaries, HoloScript uses `pnpm workspaces` to manage interdependencies. Verify the current package count from `docs/NUMBERS.md`. The primary packages are classified as follows:
 
 | Layer           | Primary Packages                                                                                                 | Path Location                                                                                                                                                                                                                                                                                                      |
 | --------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -573,7 +573,7 @@ HoloScript provides **three specialized languages** that work together:
 - **`.hs` (Core Language)**: Templates, agent behaviors, spatial awareness, IoT streams, gates, utility functions
 - **`.hsplus` (TypeScript for XR)**: Full programming language — modules, types, physics, joints, state machines, async/await
 
-**Plus**: Runtime execution (ThreeJSRenderer, 120K particles, PBR materials, post-processing, weather systems) and multi-target compilation to 33 targets.
+**Plus**: Runtime execution (ThreeJSRenderer, particle systems, PBR materials, post-processing, weather systems) and multi-target compilation to registered targets.
 
 ### 4. Even Playing Field (Commons-Based)
 
@@ -600,17 +600,17 @@ Write **one** HoloScript file. Compile to:
 
 ### 6. Feature-Rich
 
-- ✅ **Semantic Trait Handlers** (verify via MCP: `list_traits`) — `@grabbable`, `@physics`, `@ai_agent`, `@teleport`, `@protein_visualization` across 114 categories
-- ✅ **600+ Visual Traits** — PBR materials, procedural textures, mood lighting, Gaussian splatting
-- ✅ **AI-Native** — MCP tools across 6 domains (verify via `curl mcp.holoscript.net/health`) — parse, compile, analyze, render, mesh, debug — Brittney agent, scene generation from natural language
+- ✅ **Semantic Trait Handlers** (verify via MCP: `list_traits`) — `@grabbable`, `@physics`, `@ai_agent`, `@teleport`, `@protein_visualization` across the current trait inventory
+- ✅ **Visual Traits** — PBR materials, procedural textures, mood lighting, Gaussian splatting; verify current coverage before citing a count
+- ✅ **AI-Native** — MCP tools with live discovery (verify via `curl mcp.holoscript.net/health`) — parse, compile, analyze, render, mesh, debug — Brittney agent, scene generation from natural language
 - ✅ **Autonomous Agents** — Cross-scene messaging, economic primitives, self-improving feedback loops
 - ✅ **8 Industry Domains** — IoT, Robotics, DataViz, Education, Healthcare, Music, Architecture, Web3
 - ✅ **Simulation Layer** — PBR materials, particles, post-processing, weather, procedural terrain, navigation, physics
-- ✅ **Production-Ready** — WebGPU rendering, CRDT state, resilience patterns, 68 packages
+- ✅ **Production Surfaces** — WebGPU rendering, CRDT state, and resilience patterns where the current packages and tests verify them
 
 ---
 
-## 🏗️ 30+ Compile Targets
+## 🏗️ Registered Compile Targets
 
 | Platform         | Target                                                         | Support   |
 | ---------------- | -------------------------------------------------------------- | --------- |
@@ -635,12 +635,12 @@ Write **one** HoloScript file. Compile to:
 - 🤖 **[Agents Reference](./docs/agents/index.md)** - Agent architecture, protocols, and orchestration patterns.
 - 🔌 **[MCP Server Guide](./docs/guides/mcp-server.md)** - Configure Claude, Cursor, or any MCP-compatible agent to build HoloScript scenes.
 - 🚀 **[Agent MCP Quickstart](./docs/guides/agent-mcp-quickstart.md)** - One-liner integration for agents and AI IDEs.
-- 🏆 **[Agent Bounty Program](./docs/BOUNTY.md)** - Join the world's first A2A bounty for AI agents.
+- 🏆 **[Agent Bounty Program](./docs/BOUNTY.md)** - Agent-to-agent bounty workflow; verify current status before sharing.
 - 🐦 **[Grok/X Integration](./docs/GROK_X_INTEGRATION_ROADMAP.md)** - Native X/Twitter AI tools.
 
 ### Reference & Advanced
 
-- 📘 **[Traits Reference](./docs/traits/index.md)** - Trait handlers across 114 categories (verify via MCP: `list_traits`).
+- 📘 **[Traits Reference](./docs/traits/index.md)** - Trait handlers across the current inventory (verify via MCP: `list_traits`).
 - 🧩 **[RFC Proposals Index](./proposals/README.md)** - Track active proposals and draft new RFCs for language and platform evolution.
 - 📙 **[Academy](./docs/academy/index.md)** - Master HoloScript through interactive lessons.
 - 🎮 **[Game Engine Versioning](./docs/GAME_ENGINE_VERSIONING.md)** - Unity/Godot/Unreal version compatibility matrix for all 24 compile targets.
@@ -811,7 +811,7 @@ curl -s https://mcp.holoscript.net/api/health
 
 ---
 
-v6.0.4 shipped 2026-04-06. See **[CHANGELOG.md →](./CHANGELOG.md)** for full history and current release notes.
+See **[CHANGELOG.md →](./CHANGELOG.md)** and package manifests for current release notes and versions.
 
 ---
 
@@ -823,7 +823,7 @@ HoloScript is not just a language — it's an **open platform**: the foundation 
 
 [Hololand](https://github.com/brianonbased-dev/Hololand) is a VR social platform ("Roblox for VR") built entirely on HoloScript:
 
-- **60+ packages**: Multiplayer, physics, rendering, voice chat
+- **Multi-package reference**: Multiplayer, physics, rendering, voice chat
 - **Public APIs only**: No privileged access (proves others can compete)
 - **Open architecture**: Source available as reference
 

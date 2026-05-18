@@ -2,7 +2,7 @@
 
 ## Overview
 
-HoloScript is the world's first **AI-Native Spatial Operating System**, built from the ground up to host autonomous intelligence. At its core is the **uAA2++ (Universal Autonomous Agent) protocol**, which provides agents with cognitive, perceptual, and economic sovereignty. Agents are not just NPCs; they are first-class citizens that can perceive scenes, communicate across realities, claim ownership of objects, and trade autonomously.
+HoloScript is an **AI-native semantic platform** built to host autonomous intelligence in inspectable source files, runtimes, and MCP tools. At its core is the **uAA2++ (Universal Autonomous Agent) protocol**, which gives agents explicit lifecycle, perception, coordination, and settlement surfaces. Agents are not just NPCs; they are first-class actors that can perceive scenes, communicate across realities, claim ownership of objects, and trade autonomously when the relevant protocol path is wired.
 
 ```text
 ┌─────────────────────────────────────────────────────────┐

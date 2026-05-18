@@ -36,11 +36,11 @@
 
 ### W.DSL.002 - Multi-Target Compilation Enables True Cross-Platform
 
-**Compressed**: Single HoloScript source compiles to: DOM2D (web), WebXR (VR), Unity (native AR), Metal (iOS). Write once, deploy 4+ platforms without platform-specific code. Compilation targets share 85%+ code path.
+**Compressed**: Single HoloScript source can compile to registered web, XR, engine, and native targets without keeping separate source files for each target. Verify the current target list from the compiler inventory before citing counts.
 
 **Elaboration**: Architecture: HoloScript AST → Platform-agnostic IR → Target-specific codegen (DOM2D.ts, WebXR.ts, Unity.cs). Common optimizations (layout calc, collision detection) execute in IR phase. Platform codegen translates IR spatial primitives to native APIs. Example: `element Button` → `<button>` (DOM2D), `XRInputSource` (WebXR), `GameObject` (Unity). Enables parallel platform development without version drift.
 
-**Quantified**: 4 compilation targets, 85% shared code path, 1 source for 4 platforms  
+**Quantified**: registered compilation targets, shared IR/code paths, one source for multiple platforms
 **Confidence**: 98%
 
 ### W.DSL.003 - Declarative Layout Outperforms Imperative for Spatial UI
@@ -65,9 +65,9 @@
 
 **Compressed**: DSL ecosystem (compilers, editors, runtimes) fragments when language evolves without version compatibility strategy. Semantic versioning + feature flags enable gradual migration without breaking existing code.
 
-**Elaboration**: HoloScript versioning: `@version "2.0.0"` in source files. Compiler supports v1.x (deprecated) and v2.x (current) simultaneously. New features gated by version: `@feature "spatial-audio"` enables v2.1+ syntax. Migration tools: `holoscript migrate v1-to-v2 MyFile.holo` auto-upgrades syntax. Result: 0 breaking changes during v1→v2 migration (6 months), 100% backward compatibility for v1 code.
+**Elaboration**: HoloScript versioning uses `@version` in source files, feature gates, and migration tooling to reduce ecosystem breakage. Treat compatibility claims as version-policy guarantees only when they are backed by the current migration tests and release notes.
 
-**Quantified**: 2 language versions supported, 0 breaking changes in 6-month migration, auto-migration tools  
+**Quantified**: versioned syntax, migration tooling, and compatibility tests verified per release
 **Confidence**: 98%
 
 ---

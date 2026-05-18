@@ -4,8 +4,8 @@
 
 The Graphics Traits system provides advanced capabilities for creating photorealistic 3D scenes in HoloScript+. These three core traits enable developers to specify material properties, dynamic lighting, and GPU optimization directives.
 
-**Release:** Phase 2 (v2.0.0+)
-**Tests:** 99 comprehensive tests (31 Material + 33 Lighting + 35 Rendering)
+**Release:** See package manifests and changelogs for the current release lane.
+**Tests:** Material, lighting, and rendering suites cover this surface; rerun the current suite before citing counts.
 
 ---
 
@@ -503,7 +503,7 @@ class OutdoorScene {
 
 ## Compatibility
 
-- **HoloScript+ Version**: 2.0.0+
+- **HoloScript+ Version**: verify against the current package manifest and language docs
 - **Rendering Engines**: Supports specifications for Three.js, Babylon.js, Unreal Engine, Unity
 - **Target Platforms**: Desktop, Mobile (iOS/Android), VR (Meta Quest, HTC Vive), AR (Magic Leap)
 
@@ -530,5 +530,5 @@ All traits include comprehensive test suites:
 
 ---
 
-_Created: Phase 2 Release (v2.0.0)_
+_Created: Phase 2 release notes; verify current status before citing externally._
 _Last Updated: 2024_

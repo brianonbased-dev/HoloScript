@@ -4,18 +4,18 @@
 
 ### Patch Changes
 
-- @holoscript/core@8.0.0
-- @holoscript/mcp-server@8.0.0
-- @holoscript/absorb-service@8.0.0
+- @holoscript/core@6.1.0
+- @holoscript/mcp-server@6.1.0
+- @holoscript/absorb-service@6.1.0
 
 ## 1.0.2
 
 ### Patch Changes
 
 - Updated dependencies
-  - @holoscript/core@7.0.0
-  - @holoscript/mcp-server@7.0.0
-  - @holoscript/absorb-service@7.0.0
+  - @holoscript/core@6.1.0
+  - @holoscript/mcp-server@6.1.0
+  - @holoscript/absorb-service@6.1.0
 
 ## 1.0.1
 

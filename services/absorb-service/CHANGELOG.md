@@ -1,19 +1,18 @@
 # @holoscript/absorb-service-host
 
-## 7.0.1
+## 6.1.0
 
-### Patch Changes
+### Changed
 
-- @holoscript/core@8.0.0
-- @holoscript/absorb-service@8.0.0
+- Align release metadata with the HoloScript 6.x line. See the root CHANGELOG for the outward-facing release narrative.
 
 ## 6.0.2
 
 ### Patch Changes
 
 - Updated dependencies
-  - @holoscript/core@7.0.0
-  - @holoscript/absorb-service@7.0.0
+  - @holoscript/core@6.1.0
+  - @holoscript/absorb-service@6.1.0
 
 ## 6.0.1
 

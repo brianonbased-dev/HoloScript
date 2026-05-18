@@ -5,6 +5,7 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 const POLICY_FILE = path.join(ROOT, 'scripts', 'version-policy.json');
+const ROOT_PKG = path.join(ROOT, 'package.json');
 const WORKSPACE_DIRS = ['packages', 'services'];
 const args = new Set(process.argv.slice(2));
 const strict = args.has('--strict');
@@ -40,6 +41,19 @@ function loadWorkspacePackages() {
   return all;
 }
 
+function checkRootReleaseLine(policy, violations) {
+  if (!policy.releaseLineMajor) return;
+  const rootPkg = readJson(ROOT_PKG);
+  const major = parseMajor(rootPkg.version);
+  if (major !== policy.releaseLineMajor) {
+    violations.push({
+      type: 'root-major-mismatch',
+      lane: 'root',
+      message: `root package.json@${rootPkg.version}: expected release line ${policy.releaseLineMajor}.x`,
+    });
+  }
+}
+
 function main() {
   if (!fs.existsSync(POLICY_FILE)) {
     console.error(`Missing policy file: ${POLICY_FILE}`);
@@ -52,6 +66,8 @@ function main() {
   const laneAssignments = new Map();
   const violations = [];
   const unmanaged = [];
+
+  checkRootReleaseLine(policy, violations);
 
   for (const lane of policy.lanes || []) {
     for (const pkgName of lane.packages || []) {

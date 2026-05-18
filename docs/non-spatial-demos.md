@@ -1,6 +1,6 @@
 # HoloScript Beyond VR — IoT, Digital Twins & Robotics
 
-> **Date**: 2026-03-20 | **Source**: 8 existing example files, 3 industrial compilers, 253+ IoT/robotics traits
+> **Date**: 2026-03-20 | **Source**: existing example files, industrial compilers, and the live IoT/robotics trait inventory
 
 HoloScript is not a VR-only tool. The same `.holo` compositions that render in a headset compile to URDF for ROS 2 robots, DTDL for Azure Digital Twins, SDF for Gazebo simulation, and MQTT for IoT device networks. This document indexes the existing non-spatial examples and shows real compilation output.
 
@@ -269,7 +269,7 @@ Produces full world files with physics config, ground plane, lighting, sensors, 
 
 ---
 
-## IoT Trait Library (253+ traits)
+## IoT Trait Library (verify live inventory)
 
 ### Consumer IoT (`iot-autonomous-agents.ts`)
 

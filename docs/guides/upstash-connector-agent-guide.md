@@ -38,7 +38,7 @@ export QSTASH_TOKEN=your-qstash-token
 
 ---
 
-## Redis Subsystem (7 tools)
+## Redis Subsystem Tools
 
 ### Scene Caching
 
@@ -180,7 +180,7 @@ Get user preferences.
 
 ---
 
-## Vector Subsystem (6 tools)
+## Vector Subsystem Tools
 
 ### Semantic Search for Compositions
 
@@ -307,7 +307,7 @@ Get index statistics (dimensions, count, similarity function).
 
 ---
 
-## QStash Subsystem (9 tools)
+## QStash Subsystem Tools
 
 ### Scheduled Compilation
 
@@ -490,7 +490,7 @@ Remove message from DLQ.
 
 ---
 
-## Convenience Tools (3 tools)
+## Convenience Tools
 
 High-level operations combining multiple subsystems.
 
@@ -659,7 +659,7 @@ Trigger deployment after delay (CI/CD integration).
 
 1. `QStashSubsystem > DLQ list` - @upstash/qstash v2.7.0 response format changed
 2. `QStashSubsystem > DLQ delete` - SDK method signature changed
-3. `UpstashConnector > listTools` - Expected 26 tools but array has 25 (test count is wrong)
+3. `UpstashConnector > listTools` - expected registry shape changed; re-run the current connector suite for the live count
 
 **Workaround**: All tools work in production, test failures are SDK version compatibility issues.
 

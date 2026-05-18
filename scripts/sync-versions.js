@@ -70,6 +70,37 @@ function writeJson(p, obj) {
   fs.writeFileSync(p, JSON.stringify(obj, null, 2) + '\n');
 }
 
+function discoverPackageManifests(dir, out = []) {
+  if (!fs.existsSync(dir)) return out;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === '.next') {
+      continue;
+    }
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      discoverPackageManifests(full, out);
+    } else if (entry.name === 'package.json') {
+      out.push(full);
+    }
+  }
+  return out;
+}
+
+function workspacePackageMap() {
+  const manifests = [
+    ...discoverPackageManifests(path.join(ROOT, 'packages')),
+    ...discoverPackageManifests(path.join(ROOT, 'services')),
+  ];
+  const byName = new Map();
+  for (const manifest of manifests) {
+    const pkg = readJson(manifest);
+    if (pkg.name) {
+      byName.set(pkg.name, manifest);
+    }
+  }
+  return byName;
+}
+
 const laneArgIndex = process.argv.indexOf('--lane');
 const laneFilter = laneArgIndex >= 0 ? process.argv[laneArgIndex + 1] : null;
 
@@ -99,11 +130,11 @@ if (laneFilter && selected.length === 0) {
 }
 
 let updated = 0;
+const packagesByName = workspacePackageMap();
 for (const lane of selected) {
   for (const pkgName of lane.packages || []) {
-    const short = pkgName.startsWith('@') ? pkgName.split('/')[1] : pkgName;
-    const pkgPath = path.join(ROOT, 'packages', short, 'package.json');
-    if (!fs.existsSync(pkgPath)) continue;
+    const pkgPath = packagesByName.get(pkgName);
+    if (!pkgPath || !fs.existsSync(pkgPath)) continue;
     const pkg = readJson(pkgPath);
     const parsed = parseVersion(pkg.version);
     if (!parsed) continue;

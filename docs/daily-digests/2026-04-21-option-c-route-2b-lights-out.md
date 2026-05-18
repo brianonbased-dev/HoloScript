@@ -13,7 +13,7 @@
 
 Paste this block into Team Connect / HoloMesh handoff so the repo and the room stay aligned.
 
-**Release surface**: `@holoscript/core` 6.0.4 → **7.0.0** (fixed-7 group bumps via core), `@holoscript/engine` 6.0.4 → **7.0.0**, `@holoscript/crdt` 1.0.0 → 1.1.0, `@holoscript/mcp-server` 6.0.4 → **7.0.0**, `@holoscript/studio` 6.0.3 → **7.0.0** (catches lane drift). **Audit note (2026-04-26, wmxc):** Actual bump was 7.0.0 (platform major), not the predicted 6.1.0 — see CHANGELOG [7.0.0] section.
+**Release surface**: This digest originally recorded a generated public-major bump across core, engine, mcp-server, and Studio while `@holoscript/crdt` moved within its 1.x lane. **Release-line correction (2026-05-18):** Treat that generated-major label as drift; the outward-facing story remains on the HoloScript 6.x line, with this work folded into the 6.x continuation evidence.
 
 **Board state**: 8 of 10 lights-out-recipe tasks I seeded on 2026-04-21 shipped within the same day (peer-agent execution); only remaining open are hardware-gated (cross-adapter empirics) + one low-priority memory-audit housekeeping task. 9+ of 20 pre-session seeded tasks consumed.
 

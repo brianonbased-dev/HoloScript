@@ -293,7 +293,7 @@ composition "Dispensary" {
 - Complete game levels and worlds
 - Multi-object spatial compositions
 - Scenes that need their own data pipelines
-- Cross-platform compilation (24+ targets)
+- Cross-platform compilation to registered targets
 
 ---
 
@@ -311,7 +311,7 @@ composition "Dispensary" {
 | Environment      | ❌                   | ❌                    | `environment {}`        |
 | Spatial Groups   | ❌                   | ❌                    | `spatial_group {}`      |
 | Logic Block      | ❌                   | ❌                    | `logic {}`              |
-| Compiles to      | Node, Python, Lambda | 24+ spatial targets   | 24+ spatial targets     |
+| Compiles to      | Node, Python, Lambda | Registered spatial targets | Registered spatial targets |
 
 ---
 
@@ -332,7 +332,7 @@ All compile from HoloScript to whatever runtime the target needs.
 
 ```
 
-HoloScript is the **intermediate representation**, not the implementation language. It bridges TypeScript (infrastructure), Python (ML/AI), and 24+ spatial targets from one source of truth.
+HoloScript is the **intermediate representation**, not the implementation language. It bridges TypeScript (infrastructure), Python (ML/AI), and registered spatial targets from one source of truth.
 
 ---
 
@@ -383,4 +383,4 @@ When `parser.parse()` returns an AST it may also include an `errors[]` array con
 | `generate_object`    | Natural language | `.hsplus`        |
 | `parse_pipeline`     | `.hs` source     | Pipeline AST     |
 | `compile_pipeline`   | `.hs` source     | Node.js / Python |
-| `compile_holoscript` | Any format       | 24+ targets      |
+| `compile_holoscript` | Any format       | Registered targets |

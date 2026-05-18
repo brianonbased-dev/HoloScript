@@ -6,16 +6,16 @@ title: HoloScript Platform Architecture
 graph TB
     subgraph STUDIO["<b>Layer 6: Studio & Frontend</b> — Next.js App"]
         direction LR
-        PAGES["18 Routes<br/><i>home, create, holoclaw,<br/>holodaemon, playground, ...</i>"]
+        PAGES["Studio Routes<br/><i>home, create, holoclaw,<br/>holodaemon, playground, ...</i>"]
         SURFACE["HoloSurfaceRenderer<br/><i>.hsplus → React DOM</i>"]
         R3F_RENDER["R3F Renderer<br/><i>Three.js in browser</i>"]
-        API["65 API Routes<br/><i>assets, daemon, mcp,<br/>brittney, stripe, social</i>"]
+        API["API Routes<br/><i>assets, daemon, mcp,<br/>brittney, stripe, social</i>"]
     end
 
     subgraph MCP["<b>Layer 5: MCP & Communications</b> — mcp.holoscript.net"]
         direction LR
-        MCP_SERVER["MCP Server v3.6.1<br/><i>Streamable HTTP transport</i>"]
-        TOOLS["72+ Tools<br/><i>parse, validate, compile,<br/>graph-rag, browser, gltf</i>"]
+        MCP_SERVER["MCP Server<br/><i>Streamable HTTP transport</i>"]
+        TOOLS["Live Tool Inventory<br/><i>parse, validate, compile,<br/>graph-rag, browser, gltf</i>"]
         ORCH["Orchestrator<br/><i>Cross-workspace discovery</i>"]
         A2A["Agent-to-Agent<br/><i>HoloClaw marketplace</i>"]
         WELLKNOWN["/.well-known/mcp<br/><i>Discovery endpoint</i>"]
@@ -34,12 +34,12 @@ graph TB
         direction LR
         HEADLESS["HeadlessRuntime<br/><i>CLI/daemon, no VR deps</i>"]
         HSPLUS_RT["HSPlus Runtime<br/><i>State machines</i>"]
-        TRAITS["1,020+ Traits<br/><i>@grabbable, @physics,<br/>@networked, @llm_agent, ...</i>"]
+        TRAITS["Trait Registry<br/><i>@grabbable, @physics,<br/>@networked, @llm_agent, ...</i>"]
         BT["Behavior Trees<br/><i>Daemon self-improvement</i>"]
         STDLIB["Stdlib I/O<br/><i>fs, process, net_fetch</i>"]
     end
 
-    subgraph COMPILER["<b>Layer 2: Compiler Backends</b> — 26 verified targets"]
+    subgraph COMPILER["<b>Layer 2: Compiler Backends</b> — registered targets"]
         direction LR
 
         subgraph ENGINES["Game Engines & XR"]

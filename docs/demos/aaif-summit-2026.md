@@ -772,4 +772,4 @@ node docs/demos/aaif-summit-demo.mjs --act 5
 ---
 
 _Generated for AAIF MCP Dev Summit, April 2-3 2026_
-_HoloScript v5.1.0 | @holoscript/mcp-server v3.6.1_
+_Versions: verify HoloScript package manifests and MCP health before presenting._

@@ -34,9 +34,9 @@ A semantic resonance algorithm that weighs multiple predictive paths to find the
 
 ## Implementation Status
 
-- **@holoscript/snn-webgpu**: Production-ready (v5.1.0).
-- **@holoscript/snn-poc**: CPU Reference implementation.
-- **NIR Target**: Fully implemented for Loihi 2 and SpiNNaker 2 deployments.
+- **@holoscript/snn-webgpu**: Verify readiness and version from the package README, manifest, and current tests.
+- **@holoscript/snn-poc**: CPU reference implementation.
+- **NIR Target**: Backend support exists; verify target coverage before deployment claims.
 
 ---
 

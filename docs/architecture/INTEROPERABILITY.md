@@ -1,6 +1,6 @@
 # HoloScript Language Interoperability Architecture
 
-> **HoloScript is a 22-connection language interop hub** that compiles from a single source language to 15+ target languages/formats spanning VR/AR/XR, web, mobile, robotics, IoT, and AI ecosystems.
+> **HoloScript is a language interop hub** that compiles from a single source language to registered target languages/formats spanning VR/AR/XR, web, mobile, robotics, IoT, and AI ecosystems.
 
 ---
 
@@ -10,7 +10,7 @@ HoloScript's architecture mirrors the best patterns from the broader language in
 
 | Pattern                        | Industry Parallel                | HoloScript Implementation           |
 | ------------------------------ | -------------------------------- | ----------------------------------- |
-| Write once, compile everywhere | Slang (shader cross-compilation) | Single AST → 15+ platform compilers |
+| Write once, compile everywhere | Slang (shader cross-compilation) | Single AST -> registered platform compilers |
 | Universal scene interchange    | OpenUSD, glTF                    | JSON AST as bridge format           |
 | Polyglot composition           | WASM Component Model             | Rust/WASM + TypeScript dual parser  |
 | AI tool integration            | MCP Protocol                     | `@holoscript/mcp-server` package    |
@@ -157,7 +157,7 @@ HoloComposition   JSON AST
          │
     ┌────┼────┬────┬────┬────┐
     │    │    │    │    │    │
-  Unity Unreal WebGPU URDF DTDL ... (25+ targets)
+  Unity Unreal WebGPU URDF DTDL ... (registered targets)
 ```
 
 **Key Implementation Details:**
@@ -266,7 +266,7 @@ Abstract traits map to platform-specific implementations:
 
 ### W.001: AST is the Keystone
 
-HoloScript's power is in its AST - a single parsed representation fans out to 15+ compilation targets spanning VR, web, mobile, robotics, IoT, and AI.
+HoloScript's power is in its AST - a single parsed representation fans out to registered compilation targets spanning VR, web, mobile, robotics, IoT, and AI.
 
 ### W.002: JSON AST Bridge
 

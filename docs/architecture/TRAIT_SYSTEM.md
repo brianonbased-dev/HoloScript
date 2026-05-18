@@ -4,18 +4,18 @@
 
 ## Overview
 
-The trait system is the semantic core of HoloScript. Traits like `@physics`, `@grabbable`, and `@ai_agent` describe WHAT an entity is. The compiler converts them to platform-specific code for each of the 18+ compile targets.
+The trait system is the semantic core of HoloScript. Traits like `@physics`, `@grabbable`, and `@ai_agent` describe WHAT an entity is. The compiler converts them to platform-specific code for each registered compile target.
 
 ## Architecture Diagram
 
 ```text
 ┌─────────────────────────────────────────────────────────┐
 │  TRAIT DEFINITION                                       │
-│  src/traits/constants/ (118 category files)             │
+│  src/traits/constants/ (verify category files)          │
 │  ├── core-vr-interaction.ts  (grabbable, throwable...)  │
 │  ├── physics.ts              (rigidbody, collider...)   │
 │  ├── audio.ts                (spatial_audio, reverb...) │
-│  └── ... 115 more categories                             │
+│  └── ... additional categories                           │
 └────────────────────┬────────────────────────────────────┘
                      ▼
 ┌─────────────────────────────────────────────────────────┐

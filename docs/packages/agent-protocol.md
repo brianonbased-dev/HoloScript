@@ -56,7 +56,7 @@ const context = await agent.initialize({
   authentication: { token: process.env.GITHUB_TOKEN },
 });
 
-console.log(context.packageCount); // 59 packages discovered
+console.log(context.packageCount); // package count discovered
 console.log(context.cacheAge); // '5 hours old'
 console.log(context.availableTools); // List of MCP tools
 ```
