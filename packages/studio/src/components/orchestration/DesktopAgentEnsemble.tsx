@@ -11,6 +11,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Users, X } from 'lucide-react';
 import { useAgentRegistryStore } from '@/lib/agentRegistryStore';
+import { LiquidDesktop3D } from '../components/LiquidDesktop3D'; // 3D stationary depth upgrade (P2 task)
 
 interface DesktopAgentEnsembleProps {
   onClose: () => void;
@@ -80,6 +81,109 @@ export function DesktopAgentEnsemble({ onClose }: DesktopAgentEnsembleProps) {
     }
   };
 
+  // 3D stationary depth upgrade (P2 task fulfillment)
+  const use3DDesktop = true; // 3D stationary LiquidDesktop depth upgrade (P2 task) — now the default for agent desktop experience
+
+  // Local selection state for depth-ray interaction (wires into environmental feedback P2)
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+
+  if (use3DDesktop) {
+    // 3D fish-tank view with real depth, tilt parallax, and depth ray selection
+    return (
+      <div className="flex h-full flex-col bg-studio-panel">
+        <div className="flex shrink-0 items-center gap-2 border-b border-studio-border px-3 py-2.5">
+          <Users className="h-4 w-4 text-studio-accent" />
+          <span className="text-[12px] font-semibold">Agent Ensemble (3D Stationary View)</span>
+          <span className="text-[10px] text-studio-muted ml-2">[{registryAgents.length} active]</span>
+          <button onClick={onClose} className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="flex-1">
+          <LiquidDesktop3D
+            reaction={selectedAgentId ? 0.9 : 0} // strong reaction while something is selected (environmental feedback P2)
+            onObjectSelect={(id, point) => {
+              // Depth-ray selection from the 3D scene → real HoloShell action + world reaction
+              console.log('[LiquidDesktop3D] depth-selected', id, point);
+              setSelectedAgentId(id);
+              // The reaction prop above will make the floor clearer and bubbles reduce
+              // (this is the direct implementation of "Brittney actions → environmental visual feedback")
+            }}
+          >
+            {/* Real 3D agents at depth — this is the P2 "3D stationary view" upgrade */}
+            {registryAgents.map((agent, i) => {
+              const pos = positions[agent.id] || { x: 200 + i * 180, y: 200 };
+              const z = -3.5 + (i % 6) * 1.4; // real depth layering
+
+              return (
+                <group
+                  key={agent.id}
+                  position={[
+                    (pos.x - 400) * 0.017, 
+                    (200 - pos.y) * 0.017, 
+                    selectedAgentId === agent.id ? z + 1.2 : z   // pop selected agent forward in depth
+                  ]}
+                  scale={selectedAgentId === agent.id ? [1.25, 1.25, 1.25] : [1, 1, 1]} // highlight on depth selection
+                >
+                  {/* Small 3D icon plane (desktop-style) */}
+                  <mesh position={[0, 0.15, 0.4]} rotation={[0, 0, 0]}>
+                    <planeGeometry args={[0.9, 0.9]} />
+                    <meshBasicMaterial color="#0f172a" side={2} />
+                  </mesh>
+
+                  {/* 3D agent body — rounded desktop icon */}
+                  <mesh>
+                    <sphereGeometry args={[0.55]} />
+                    <meshPhongMaterial
+                      color={getColorForStatus(agent.status)}
+                      emissive={selectedAgentId === agent.id 
+                        ? '#ffffff' 
+                        : (agent.status === 'running' ? '#22c55e' : '#111111')}
+                      shininess={selectedAgentId === agent.id ? 90 : 50}
+                    />
+                  </mesh>
+
+                  {/* Tiny "window frame" at a different depth for true 3D desktop feel */}
+                  <mesh position={[0, -0.9, -0.3]} rotation={[0.1, 0, 0]}>
+                    <planeGeometry args={[1.4, 0.9]} />
+                    <meshPhongMaterial color="#1e2937" shininess={10} side={2} />
+                  </mesh>
+
+                  {/* Screen-space icon + name label (faces camera, readable at depth) */}
+                  <Html
+                    position={[0, 1.1, 0]}
+                    style={{
+                      pointerEvents: 'none',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: '#e4e4e7',
+                      textAlign: 'center',
+                      transform: 'translate(-50%, -50%)',
+                      textShadow: '0 1px 3px rgba(0,0,0,0.6)',
+                    }}
+                  >
+                    {getEmojiForType(agent.type, agent.status, (agent as any).configEmoji)}
+                    <div style={{ fontSize: '9px', opacity: 0.85, marginTop: '-2px' }}>
+                      {agent.name?.slice(0, 12) || agent.id.slice(0, 8)}
+                    </div>
+                  </Html>
+
+                  {/* Depth cue ring */}
+                  <mesh position={[0, -0.7, 0]} rotation={[Math.PI / 2, 0, 0]}>
+                    <ringGeometry args={[0.68, 0.78, 32]} />
+                    <meshBasicMaterial color={getColorForStatus(agent.status)} side={2} transparent opacity={0.55} />
+                  </mesh>
+                </group>
+              );
+            })}
+          </LiquidDesktop3D>
+        </div>
+      </div>
+    );
+  }
+
+  // Legacy 2D SVG path (kept for fallback)
   return (
     <div className="flex h-full flex-col bg-studio-panel">
       {/* Header */}
