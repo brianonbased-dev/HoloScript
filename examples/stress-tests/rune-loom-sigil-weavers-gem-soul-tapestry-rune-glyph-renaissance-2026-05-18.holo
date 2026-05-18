@@ -1,0 +1,439 @@
+/**
+ * The Rune-Loom of the Sigil Weavers (A-009 stress-test 2026-05-18)
+ *
+ * Exercises six zero-coverage trait combinations in a single coherent scene:
+ *   @gem_resonance   — crystal heddles resonate in harmonic sympathy as threads cross
+ *   @soul_bound      — the Loom remembers every weaver who has worked it; 6 since 1441
+ *   @tapestry        — cloth sim on the in-progress work hanging from the beam
+ *   @rune            — 12 runes embossed along the loom's oak frame; they slowly animate
+ *   @glyph           — protective glyphs burned into the workshop floor
+ *   @renaissance     — the scene is set in a Florentine bottega, circa 1467
+ *
+ * Scene story: a third-floor workshop in a wool merchant's palazzo, Florence, 1467.
+ * The Loom dominates the center of the room — eight feet wide, four feet deep,
+ * floor to ceiling. Its heddles are quartz crystals, each matched to a harmonic
+ * partner in the frame. When the weaver passes the shuttle, the crystals ring at
+ * intervals too close to silence to be music, but too regular to be accident.
+ * The current work: a scene of the Annunciation in silver and lapis, half complete.
+ * Runes along the frame shift when no one is watching. The floor bears seven
+ * protective glyphs laid down when the first weaver bound her soul to the Loom.
+ * Six souls since. The seventh position is vacant.
+ */
+
+composition "RuneLoom_SigilWeavers" {
+
+  environment {
+    skybox: "hdri/renaissance_florence_dusk.hdr"
+    sun_direction: [0.3, -0.6, -0.74]
+    sun_color: "#ffd080"
+    sun_intensity: 2.4
+    ambient_light: 0.22
+    ambient_color: "#c0a870"
+    gravity: [0, -9.81, 0]
+    fog: {
+      type: "linear"
+      start: 20.0
+      end: 60.0
+      color: "#c8b090"
+    }
+  }
+
+  // ── Era and period declaration ────────────────────────────────────────
+
+  // @renaissance anchors every object's material and lighting to Florentine
+  // quattrocento standards: egg tempera, oak, wool, lapis lazuli, silver leaf.
+  scene_trait @renaissance {
+    circa: "1467"
+    style: "florentine_quattrocento"
+    patron: "wool_guild"
+    available_pigments: ["lapis_lazuli", "minium", "lead_white", "verdigris", "orpiment"]
+  }
+
+  // ── Materials ─────────────────────────────────────────────────────────
+
+  material "AgedOak" @advanced_pbr {
+    base_color: "#5a3e24"
+    metallic: 0.0
+    roughness: 0.86
+    normal_map: "textures/aged_oak_normal.png"
+    ao_map: "textures/aged_oak_ao.png"
+  }
+
+  material "QuartzCrystal" @advanced_pbr {
+    base_color: "#e8e8ee"
+    metallic: 0.0
+    roughness: 0.02
+    transmission: { enabled: true, intensity: 0.88, ior: 1.55 }
+    emissive_color: "#a0c8f0"
+    emissive_intensity: 0.0
+  }
+
+  material "WovenLapisThread" @advanced_pbr {
+    base_color: "#1e3a6b"
+    metallic: 0.0
+    roughness: 0.62
+    normal_map: "textures/woven_fine_normal.png"
+  }
+
+  material "SilverThread" @advanced_pbr {
+    base_color: "#d0d4d8"
+    metallic: 0.95
+    roughness: 0.18
+  }
+
+  material "StoneFloor" @advanced_pbr {
+    base_color: "#b0a090"
+    metallic: 0.0
+    roughness: 0.78
+    normal_map: "textures/terracotta_normal.png"
+  }
+
+  // ── Room shell ───────────────────────────────────────────────────────
+
+  object "Floor" using "StoneFloor" {
+    geometry: "plane"
+    width: 12.0
+    height: 10.0
+    position: [0, 0, 0]
+    rotation: [-90, 0, 0]
+    @collidable { friction: 0.75 }
+    shadow_receiver: true
+  }
+
+  object "WestWall" {
+    geometry: "box"
+    width: 0.4
+    height: 5.0
+    depth: 10.0
+    position: [-6.2, 2.5, 0]
+    @advanced_pbr { base_color: "#d8ccb8" metallic: 0.0 roughness: 0.82 normal_map: "textures/rough_plaster_normal.png" }
+  }
+
+  object "NorthWall" {
+    geometry: "box"
+    width: 12.0
+    height: 5.0
+    depth: 0.4
+    position: [0, 2.5, -5.2]
+    @advanced_pbr { base_color: "#d8ccb8" metallic: 0.0 roughness: 0.82 }
+  }
+
+  // Arched window — south wall — evening light
+  object "SouthWindow" {
+    geometry: "plane"
+    width: 2.0
+    height: 2.8
+    position: [2.0, 2.8, 5.0]
+    rotation: [0, 180, 0]
+    @advanced_pbr {
+      base_color: "#ffd890"
+      metallic: 0.0
+      roughness: 0.04
+      transmission: { enabled: true, intensity: 0.9, ior: 1.5 }
+      emissive_color: "#ffc860"
+      emissive_intensity: 0.9
+    }
+  }
+
+  object "WindowGodRaySource" {
+    position: [2.0, 3.0, 4.5]
+    rotation: [-18, 12, 0]
+    light_source: { type: "directional" color: "#ffd080" intensity: 3.8 cast_shadows: true }
+    god_rays: { enabled: true density: 0.18 weight: 0.5 decay: 0.97 exposure: 0.65 samples: 56 dithering: true use_depth_occlusion: true }
+  }
+
+  // ── The Loom — central focus ──────────────────────────────────────────
+
+  object "LoomFrame_Base" using "AgedOak" {
+    geometry: "box"
+    width: 2.6
+    height: 0.18
+    depth: 1.2
+    position: [0, 0.09, -0.5]
+    @collidable { mass_kg: 280, friction: 0.9 }
+  }
+
+  object "LoomFrame_LeftPost" using "AgedOak" {
+    geometry: "box"
+    width: 0.14
+    height: 3.8
+    depth: 0.14
+    position: [-1.23, 1.9, -0.5]
+  }
+
+  object "LoomFrame_RightPost" using "AgedOak" {
+    geometry: "box"
+    width: 0.14
+    height: 3.8
+    depth: 0.14
+    position: [1.23, 1.9, -0.5]
+  }
+
+  object "LoomFrame_TopBeam" using "AgedOak" {
+    geometry: "box"
+    width: 2.6
+    height: 0.16
+    depth: 0.14
+    position: [0, 3.74, -0.5]
+  }
+
+  // 12 runes embossed along the oak frame posts and top beam
+  object "RuneSet_LeftPost" {
+    position: [-1.23, 1.9, -0.5]
+
+    @rune {
+      count: 4
+      script: "elder_futhark"
+      sequence: ["tiwaz", "ehwaz", "mannaz", "ingwaz"]
+      animation_period_s: 1164960
+      current_phase: 0.67
+      glow_color: "#a0c0ff"
+      glow_intensity: 0.8
+      visible_to: "soul_bound_weaver"
+    }
+  }
+
+  object "RuneSet_RightPost" {
+    position: [1.23, 1.9, -0.5]
+
+    @rune {
+      count: 4
+      script: "elder_futhark"
+      sequence: ["berkano", "sowilo", "teiwaz", "laguz"]
+      animation_period_s: 1164960
+      current_phase: 0.34
+      glow_color: "#a0c0ff"
+      glow_intensity: 0.8
+      visible_to: "soul_bound_weaver"
+    }
+  }
+
+  object "RuneSet_TopBeam" {
+    position: [0, 3.74, -0.5]
+
+    @rune {
+      count: 4
+      script: "elder_futhark"
+      sequence: ["fehu", "uruz", "thurisaz", "ansuz"]
+      animation_period_s: 1164960
+      current_phase: 0.11
+      glow_color: "#d0a840"
+      glow_intensity: 1.4
+      visible_to: "all"
+    }
+  }
+
+  // ── Soul-binding — the Loom remembers six weavers ──────────────────────
+
+  object "LoomSoulMatrix" {
+    position: [0, 1.9, -0.5]
+
+    @soul_bound {
+      max_bound_entities: 7
+      current_bound: [
+        { soul: "Agnese_di_Benci",    year_bound: 1441, thread_color: "#c8902a" },
+        { soul: "Filippa_Rucellai",   year_bound: 1458, thread_color: "#3a6baa" },
+        { soul: "Margherita_Vettori", year_bound: 1462, thread_color: "#2a8a3a" },
+        { soul: "Costanza_Strozzi",   year_bound: 1464, thread_color: "#aa2a2a" },
+        { soul: "Lessandra_Albizzi",  year_bound: 1466, thread_color: "#7a3aaa" },
+        { soul: "Nannina_Tornabuoni", year_bound: 1467, thread_color: "#8a7a2a" },
+      ]
+      seventh_position: "vacant"
+      binding_effect: "loom_remembers_weave_pattern"
+      visual_manifestation: "faint_light_thread_from_crystal_to_heart"
+    }
+  }
+
+  // ── Quartz crystal heddles — the resonating instruments ───────────────
+
+  spatial_group "QuartzHeddles" {
+    object "H01" using "QuartzCrystal" { geometry: "cylinder" radius_top: 0.018 radius_bottom: 0.018 height: 0.32 position: [-1.1, 1.65, -0.5] rotation: [90, 0, 0]
+      @gem_resonance { frequency_hz: 432.0 partner: "H02" resonance_threshold: 0.15 resonance_color: "#80c0ff" emission_on_resonance: 2.8 } }
+    object "H02" using "QuartzCrystal" { geometry: "cylinder" radius_top: 0.018 radius_bottom: 0.018 height: 0.32 position: [1.1,  1.65, -0.5] rotation: [90, 0, 0]
+      @gem_resonance { frequency_hz: 432.0 partner: "H01" resonance_threshold: 0.15 resonance_color: "#80c0ff" emission_on_resonance: 2.8 } }
+
+    object "H03" using "QuartzCrystal" { geometry: "cylinder" radius_top: 0.018 radius_bottom: 0.018 height: 0.32 position: [-0.82, 1.65, -0.5] rotation: [90, 0, 0]
+      @gem_resonance { frequency_hz: 528.0 partner: "H04" resonance_threshold: 0.12 resonance_color: "#a0d8ff" emission_on_resonance: 2.4 } }
+    object "H04" using "QuartzCrystal" { geometry: "cylinder" radius_top: 0.018 radius_bottom: 0.018 height: 0.32 position: [0.82,  1.65, -0.5] rotation: [90, 0, 0]
+      @gem_resonance { frequency_hz: 528.0 partner: "H03" resonance_threshold: 0.12 resonance_color: "#a0d8ff" emission_on_resonance: 2.4 } }
+
+    object "H05" using "QuartzCrystal" { geometry: "cylinder" radius_top: 0.018 radius_bottom: 0.018 height: 0.32 position: [-0.54, 1.65, -0.5] rotation: [90, 0, 0]
+      @gem_resonance { frequency_hz: 639.0 partner: "H06" resonance_threshold: 0.10 resonance_color: "#c0e8ff" emission_on_resonance: 2.2 } }
+    object "H06" using "QuartzCrystal" { geometry: "cylinder" radius_top: 0.018 radius_bottom: 0.018 height: 0.32 position: [0.54,  1.65, -0.5] rotation: [90, 0, 0]
+      @gem_resonance { frequency_hz: 639.0 partner: "H05" resonance_threshold: 0.10 resonance_color: "#c0e8ff" emission_on_resonance: 2.2 } }
+
+    object "H07" using "QuartzCrystal" { geometry: "cylinder" radius_top: 0.018 radius_bottom: 0.018 height: 0.32 position: [-0.27, 1.65, -0.5] rotation: [90, 0, 0]
+      @gem_resonance { frequency_hz: 741.0 partner: "H08" resonance_threshold: 0.08 resonance_color: "#e0f4ff" emission_on_resonance: 2.0 } }
+    object "H08" using "QuartzCrystal" { geometry: "cylinder" radius_top: 0.018 radius_bottom: 0.018 height: 0.32 position: [0.27,  1.65, -0.5] rotation: [90, 0, 0]
+      @gem_resonance { frequency_hz: 741.0 partner: "H07" resonance_threshold: 0.08 resonance_color: "#e0f4ff" emission_on_resonance: 2.0 } }
+
+  }
+
+  // Resonance ambient fill — when any pair activates, the room gets a faint chime
+  object "HeddleChime" {
+    position: [0, 1.65, -0.5]
+    @spatial_audio {
+      clip: "sfx/crystal_bowl_432hz.ogg"
+      volume: 0.35
+      trigger: "gem_resonance.activated"
+      max_distance: 12.0
+    }
+  }
+
+  // ── In-progress tapestry — Annunciation half-complete ─────────────────
+
+  object "InProgressTapestry" {
+    geometry: "plane"
+    width: 2.2
+    height: 1.85
+    position: [0, 2.05, -0.52]
+
+    // The hanging textile responds to the room's cross-draught from the window
+    @tapestry {
+      weave: "gothic_basse_lisse"
+      thread_count_warp: 30
+      thread_count_weft: 24
+      wind_response: 0.04
+      drape_gravity: 1.0
+      anchor_top: true
+      completion_pct: 0.48
+    }
+
+    // Upper zone: lapis and silver; lower zone: bare warp threads
+    @advanced_pbr {
+      base_color: "#1e3a6b"
+      metallic: 0.0
+      roughness: 0.62
+      normal_map: "textures/woven_fine_normal.png"
+    }
+  }
+
+  // ── Floor glyphs — protective sigil geometry ──────────────────────────
+
+  spatial_group "FloorGlyphs" {
+    object "Glyph_1_Agnese" {
+      geometry: "plane"
+      width: 0.55
+      height: 0.55
+      position: [0.0,  0.002, 0.9]
+      rotation: [-90, 0, 0]
+
+      @glyph {
+        sigil_type: "protective_binding"
+        soul: "Agnese_di_Benci"
+        active: true
+        glow_color: "#c8902a"
+        glow_intensity: 0.9
+        pulse_speed: 0.08
+        pattern: "textures/sigil_binding_01.png"
+      }
+
+      @advanced_pbr {
+        base_color: "#80600a"
+        metallic: 0.0
+        roughness: 0.6
+        emissive_color: "#c8902a"
+        emissive_intensity: 0.9
+      }
+    }
+
+    object "Glyph_2_Filippa" {
+      geometry: "plane"
+      width: 0.55
+      height: 0.55
+      position: [0.86, 0.002, 0.45]
+      rotation: [-90, 0, 0]
+      @glyph { sigil_type: "protective_binding" soul: "Filippa_Rucellai" active: true glow_color: "#3a6baa" glow_intensity: 0.9 pulse_speed: 0.09 pattern: "textures/sigil_binding_02.png" }
+      @advanced_pbr { base_color: "#0a2060" metallic: 0.0 roughness: 0.6 emissive_color: "#3a6baa" emissive_intensity: 0.9 }
+    }
+
+    object "Glyph_3_Margherita" {
+      geometry: "plane"
+      width: 0.55
+      height: 0.55
+      position: [0.86, 0.002, -0.45]
+      rotation: [-90, 0, 0]
+      @glyph { sigil_type: "protective_binding" soul: "Margherita_Vettori" active: true glow_color: "#2a8a3a" glow_intensity: 0.9 pulse_speed: 0.07 pattern: "textures/sigil_binding_03.png" }
+      @advanced_pbr { base_color: "#0a400a" metallic: 0.0 roughness: 0.6 emissive_color: "#2a8a3a" emissive_intensity: 0.9 }
+    }
+
+    object "Glyph_4_Costanza" {
+      geometry: "plane"
+      width: 0.55
+      height: 0.55
+      position: [0.0,  0.002, -0.9]
+      rotation: [-90, 0, 0]
+      @glyph { sigil_type: "protective_binding" soul: "Costanza_Strozzi" active: true glow_color: "#aa2a2a" glow_intensity: 0.9 pulse_speed: 0.11 pattern: "textures/sigil_binding_04.png" }
+      @advanced_pbr { base_color: "#500a0a" metallic: 0.0 roughness: 0.6 emissive_color: "#aa2a2a" emissive_intensity: 0.9 }
+    }
+
+    object "Glyph_5_Lessandra" {
+      geometry: "plane"
+      width: 0.55
+      height: 0.55
+      position: [-0.86, 0.002, -0.45]
+      rotation: [-90, 0, 0]
+      @glyph { sigil_type: "protective_binding" soul: "Lessandra_Albizzi" active: true glow_color: "#7a3aaa" glow_intensity: 0.9 pulse_speed: 0.10 pattern: "textures/sigil_binding_05.png" }
+      @advanced_pbr { base_color: "#350a60" metallic: 0.0 roughness: 0.6 emissive_color: "#7a3aaa" emissive_intensity: 0.9 }
+    }
+
+    object "Glyph_6_Nannina" {
+      geometry: "plane"
+      width: 0.55
+      height: 0.55
+      position: [-0.86, 0.002, 0.45]
+      rotation: [-90, 0, 0]
+      @glyph { sigil_type: "protective_binding" soul: "Nannina_Tornabuoni" active: true glow_color: "#8a7a2a" glow_intensity: 0.9 pulse_speed: 0.06 pattern: "textures/sigil_binding_06.png" }
+      @advanced_pbr { base_color: "#40380a" metallic: 0.0 roughness: 0.6 emissive_color: "#8a7a2a" emissive_intensity: 0.9 }
+    }
+
+    // Seventh glyph — dark, dormant, waiting
+    object "Glyph_7_Vacant" {
+      geometry: "plane"
+      width: 0.55
+      height: 0.55
+      position: [0.0, 0.002, 0.0]
+      rotation: [-90, 0, 0]
+      @glyph {
+        sigil_type: "protective_binding"
+        soul: "vacant"
+        active: false
+        glow_color: "#000000"
+        glow_intensity: 0.0
+        pattern: "textures/sigil_binding_07_dark.png"
+        proximity_effect: "subtle_draw"
+        proximity_radius: 2.0
+      }
+      @advanced_pbr { base_color: "#282018" metallic: 0.0 roughness: 0.82 emissive_color: "#000000" emissive_intensity: 0.0 }
+    }
+  }
+
+  // ── Ambient lighting — beeswax candles and twilight window ────────────
+
+  spatial_group "WorkshopCandles" {
+    object "Candle_A" { position: [-2.8, 1.2, 1.5] light_source: { type: "point" color: "#ffc060" intensity: 60  radius: 0.04 } geometry: "cylinder" radius_top: 0.025 radius_bottom: 0.025 height: 0.2 @advanced_pbr { base_color: "#e8dab0" metallic: 0.0 roughness: 0.85 } }
+    object "Candle_B" { position: [3.0,  1.8, 1.8] light_source: { type: "point" color: "#ffc060" intensity: 55  radius: 0.04 } geometry: "cylinder" radius_top: 0.025 radius_bottom: 0.025 height: 0.2 @advanced_pbr { base_color: "#e8dab0" metallic: 0.0 roughness: 0.85 } }
+    object "Candle_C" { position: [2.5, 0.9, -2.5]  light_source: { type: "point" color: "#ffb840" intensity: 50  radius: 0.04 } geometry: "cylinder" radius_top: 0.025 radius_bottom: 0.025 height: 0.2 @advanced_pbr { base_color: "#e8dab0" metallic: 0.0 roughness: 0.85 } }
+  }
+
+  // ── Camera — weaver's position, looking at the Loom ──────────────────
+
+  object "Camera" {
+    camera: {
+      type: "perspective"
+      fov: 55
+      near: 0.05
+      far: 40.0
+      position: [-0.4, 1.55, 2.8]
+      target: [0.1, 1.85, -0.5]
+      exposure: 1.4
+      dof: {
+        enabled: true
+        focus_distance: 3.5
+        f_stop: 2.2
+        bokeh_blades: 8
+      }
+    }
+  }
+
+}

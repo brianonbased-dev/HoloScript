@@ -1,0 +1,460 @@
+/**
+ * Keeper of the Cape — Lighthouse at Hurricane Landfall (A-009 refresh 2026-05-18)
+ *
+ * Original intent preserved: lightning bolts, thunderstorm, tornado, hurricane,
+ * and typhoon weather systems with procedural generation and physics.
+ *
+ * Refresh adds:
+ *   @lighthouse   — the rotating Fresnel-lens beacon at the top of the tower
+ *   @tattered     — storm-shredded maritime flags whipping in the gale
+ *   @banner       — signal flags along the pier chain; three still legible
+ *   @figurehead   — carved wooden prow-figure from a wrecked schooner, half-buried in rocks
+ *   @anchor_ship  — salvaged anchor chained to the dock bollard, clanging in surge
+ *
+ * Scene story: 03:40 local time. Hurricane Elara (Category 3, max winds 62 m/s)
+ * is making landfall six nautical miles south. The keeper has sealed every shutter.
+ * The tower sways perceptibly. The Fresnel lens turns — one revolution every 4 s,
+ * one flash per 4 s visible 22 nautical miles out. Rain moves horizontally.
+ * A figurehead from the schooner Mirabel (lost 1897, refloated by the surge)
+ * now stares seaward from the rocks below. The keeper sees it in the sweep of the
+ * lamp and thinks, improbably, that she is smiling.
+ *
+ * @version 5.2.0
+ * @category weather, lighthouse, hurricane, maritime
+ * @traits @lighthouse @tattered @banner @figurehead @anchor_ship
+ */
+
+composition "KeeperOfTheCape_HurricaneLandfall" {
+
+  environment {
+    skybox: "hdri/hurricane_night_overcast.hdr"
+    ambient_light: 0.04
+    ambient_color: "#1a2030"
+    gravity: [0, -9.81, 0]
+    fog: {
+      type: "exponential",
+      density: 0.055,
+      color: "#2a3040",
+      start: 4.0
+    }
+  }
+
+  // ── Materials ─────────────────────────────────────────────────────────
+
+  material "GranitePromontory" @advanced_pbr {
+    base_color: "#484848"
+    metallic: 0.0
+    roughness: 0.95
+    normal_map: "textures/granite_wet_normal.png"
+    ao_map: "textures/granite_ao.png"
+    // Wet rocks glisten in the spray
+    wetness: 1.0
+    puddle_depth: 0.04
+  }
+
+  material "LimewashedTower" @advanced_pbr {
+    base_color: "#d8d2c4"
+    metallic: 0.0
+    roughness: 0.72
+    normal_map: "textures/rough_plaster_normal.png"
+    wetness: 0.9
+  }
+
+  material "TarredTimber" @advanced_pbr {
+    base_color: "#2a2218"
+    metallic: 0.0
+    roughness: 0.88
+    normal_map: "textures/rough_timber_normal.png"
+  }
+
+  // ── Terrain and promontory ────────────────────────────────────────────
+
+  object "RockyPromontory" using "GranitePromontory" {
+    geometry: "heightmap"
+    source: "heightmaps/cape_promontory.png"
+    width: 60.0
+    height: 60.0
+    depth: 12.0
+    position: [0, -4, 0]
+    @collidable { friction: 0.8 }
+  }
+
+  object "OceanSurface" {
+    geometry: "plane"
+    width: 200.0
+    height: 200.0
+    subdivisions: 128
+    position: [0, -2, -40]
+
+    @advanced_pbr {
+      base_color: "#0e1f3a"
+      metallic: 0.0
+      roughness: 0.05
+      normal_map: "textures/ocean_wave_normal.png"
+    }
+
+    // Hurricane-driven swells: 8–10m significant wave height
+    ocean_waves: {
+      height: 9.2
+      period: 14.0
+      wind_speed: 62.0
+      wind_direction: [0.6, 0, -0.8]
+      choppiness: 1.8
+      foam_threshold: 0.65
+      spray_enabled: true
+    }
+  }
+
+  // ── Lighthouse tower ──────────────────────────────────────────────────
+
+  object "LighthouseTower" using "LimewashedTower" {
+    geometry: "cylinder"
+    radius_top: 1.8
+    radius_bottom: 2.4
+    height: 22.0
+    position: [0, 11, 0]
+    @collidable { friction: 0.85 }
+  }
+
+  object "LanternRoom" using "LimewashedTower" {
+    geometry: "cylinder"
+    radius_top: 2.2
+    radius_bottom: 2.0
+    height: 3.0
+    position: [0, 22.5, 0]
+    @collidable { friction: 0.85 }
+  }
+
+  // The Fresnel lens and beacon — the heart of the scene
+  object "FresenlLensBeacon" {
+    position: [0, 23.8, 0]
+
+    @lighthouse {
+      // 4-second period: one white flash every revolution
+      rotation_period_s: 4.0
+      characteristic: "Fl W 4s"
+      nominal_range_nm: 22
+      lens_type: "third_order_fresnel"
+      lens_diameter_mm: 920
+      lamp_lumens: 1200000
+      // In hurricane: keeper has engaged emergency power; lamp still turns
+      emergency_power: true
+    }
+
+    light_source: {
+      type: "spot"
+      color: "#ffffff"
+      intensity: 280000.0
+      angle: 8.0
+      penumbra: 2.0
+      cast_shadows: true
+    }
+
+    // Animated rotation — one revolution every 4s
+    animation: {
+      property: "rotation.y"
+      from: 0
+      to: 360
+      duration: 4.0
+      loop: true
+      easing: "linear"
+    }
+  }
+
+  // ── Signal flags — hurricane warning display ──────────────────────────
+
+  // Three flags still recognizable despite the gale; two reduced to tatters.
+
+  object "FlagPole" using "TarredTimber" {
+    geometry: "cylinder"
+    radius_top: 0.04
+    radius_bottom: 0.06
+    height: 6.0
+    position: [5, 3, 2]
+    @collidable { friction: 0.7 }
+  }
+
+  object "HurricaneWarningFlag_A" {
+    geometry: "plane"
+    width: 1.0
+    height: 0.65
+    position: [5.55, 5.4, 2]
+
+    // Red square — international hurricane warning
+    @banner {
+      code: "IALA_HURRICANE_WARNING"
+      color_primary: "#cc2200"
+      color_secondary: "#000000"
+      mount_edge: "left"
+    }
+
+    @advanced_pbr {
+      base_color: "#cc2200"
+      metallic: 0.0
+      roughness: 0.75
+      normal_map: "textures/canvas_normal.png"
+    }
+
+    cloth_sim: {
+      wind: [62.0, 0, -18.0]
+      mass_per_sqm: 0.18
+      stiffness: 0.35
+      damping: 0.22
+    }
+  }
+
+  object "SignalFlag_B" {
+    geometry: "plane"
+    width: 0.85
+    height: 0.55
+    position: [5.55, 4.6, 2]
+
+    @banner {
+      code: "ICS_N"
+      color_primary: "#003399"
+      color_secondary: "#ffffff"
+      mount_edge: "left"
+    }
+
+    @advanced_pbr {
+      base_color: "#003399"
+      metallic: 0.0
+      roughness: 0.75
+    }
+
+    cloth_sim: {
+      wind: [62.0, 0, -18.0]
+      mass_per_sqm: 0.16
+      stiffness: 0.28
+      damping: 0.18
+    }
+  }
+
+  // Two flags shredded beyond recognition — @tattered drives procedural tear simulation
+  object "TatteredFlag_C" {
+    geometry: "plane"
+    width: 0.9
+    height: 0.6
+    position: [5.55, 3.9, 2]
+
+    @tattered {
+      // Storm has torn this flag to 35% of its original area
+      integrity: 0.35
+      tear_count: 14
+      tear_length_max: 0.28
+      // Torn strips flap at high frequency in the gusts
+      strip_flutter_hz: 6.0
+    }
+
+    @banner {
+      code: "ICS_C"
+      color_primary: "#ffffff"
+      color_secondary: "#003399"
+      mount_edge: "left"
+    }
+
+    @advanced_pbr {
+      base_color: "#aabbcc"
+      metallic: 0.0
+      roughness: 0.88
+    }
+
+    cloth_sim: {
+      wind: [62.0, 0, -18.0]
+      mass_per_sqm: 0.06
+      stiffness: 0.12
+      damping: 0.08
+    }
+  }
+
+  object "TatteredFlag_D" {
+    geometry: "plane"
+    width: 0.9
+    height: 0.6
+    position: [5.55, 3.2, 2]
+
+    @tattered {
+      integrity: 0.18
+      tear_count: 22
+      tear_length_max: 0.35
+      strip_flutter_hz: 9.0
+    }
+
+    @banner { code: "ICS_B" color_primary: "#cc2200" color_secondary: "#ffffff" mount_edge: "left" }
+
+    @advanced_pbr { base_color: "#884433" metallic: 0.0 roughness: 0.92 }
+    cloth_sim: { wind: [62.0, 0, -18.0] mass_per_sqm: 0.04 stiffness: 0.08 damping: 0.05 }
+  }
+
+  // ── Figurehead from the schooner Mirabel ─────────────────────────────
+
+  object "MirabelFigurehead" {
+    position: [-8, -1.2, -14]
+    rotation: [12, 48, 0]
+
+    @figurehead {
+      vessel_name: "Mirabel"
+      year_carved: 1892
+      material: "white_pine_gilt"
+      // The gilding is mostly gone; bare wood shows through
+      gilt_remaining: 0.12
+      subject: "female_figure_allegorical"
+    }
+
+    @advanced_pbr {
+      base_color: "#c8a878"
+      metallic: 0.0
+      roughness: 0.82
+      normal_map: "textures/carved_wood_normal.png"
+      ao_map: "textures/carved_wood_ao.png"
+    }
+
+    @collidable { friction: 0.6 }
+  }
+
+  // ── Salvaged anchor — dock bollard ────────────────────────────────────
+
+  object "HarbourAnchor" {
+    position: [10, -0.8, -6]
+    rotation: [0, 30, 15]
+
+    @anchor_ship {
+      weight_kg: 480
+      stock_style: "admiralty_pattern"
+      chain_length_m: 8
+      chain_diameter_mm: 38
+      // Chain is taut against the bollard — wave surge is pulling it
+      tension_kn: 4.2
+    }
+
+    @advanced_pbr {
+      base_color: "#303030"
+      metallic: 0.88
+      roughness: 0.7
+      emissive_color: "#00000000"
+    }
+
+    @collidable { mass_kg: 480, friction: 0.95 }
+
+    // The chain clangs against the bollard at each wave surge
+    audio_emitter: {
+      clip: "sfx/chain_clang_surge.ogg"
+      loop: false
+      trigger: "physics_impact"
+      volume: 0.7
+      spatial: true
+      max_distance: 18.0
+    }
+  }
+
+  // ── Hurricane weather system ──────────────────────────────────────────
+
+  object "HurricaneElara" {
+    position: [0, 0, -800]
+
+    hurricane: {
+      enabled: true
+      category: 3
+      eye_radius: 18000.0
+      eye_wall_radius: 36000.0
+      outer_radius: 180000.0
+      max_wind_speed: 62.0
+      wind_profile: "exponential"
+      eye_calm: true
+
+      rain_bands: {
+        enabled: true
+        band_count: 7
+        band_spacing: 22000.0
+        rain_rate: 75.0
+        rotation_period: 3200.0
+      }
+
+      storm_surge: {
+        enabled: true
+        height: 4.2
+        radius: 40000.0
+      }
+    }
+  }
+
+  // Driving rain — near-horizontal at this wind speed
+  object "DrivingRain" {
+    position: [0, 25, 10]
+
+    particle_emitter: {
+      type: "rain"
+      rate: 35000
+      wind: [62.0, -0.5, -18.0]
+      drop_size: 0.004
+      drop_length: 0.22
+      color: "#a0b8cc"
+      opacity: 0.45
+      lifetime: 1.2
+      collision_response: "splash"
+    }
+  }
+
+  // Sea spray rolling up the promontory
+  object "RockSpray" {
+    position: [0, 2, -22]
+
+    particle_emitter: {
+      type: "spray"
+      rate: 8000
+      velocity: [0, 12, 8]
+      velocity_random: [18, 6, 12]
+      size: 0.018
+      color: "#d0e8f0"
+      opacity: 0.35
+      lifetime: 1.8
+    }
+  }
+
+  // ── Lightning bolt over the bay ───────────────────────────────────────
+
+  object "HurricaneLightning" {
+    position: [-30, 0, -60]
+
+    lightning_bolt: {
+      enabled: true
+      frequency: 0.4
+      start_point: [0, 800, 0]
+      target_mode: "random"
+      branch_probability: 0.5
+      max_branches: 10
+      segments: 40
+      thickness: 0.25
+      color: "#c8e0ff"
+      glow_intensity: 8.0
+      duration: 0.12
+      flash_scene: true
+      flash_intensity: 12.0
+      flash_duration: 0.08
+      thunder_enabled: true
+      thunder_delay: 3.6
+      thunder_volume: 0.9
+    }
+  }
+
+  // ── Camera — keeper's window view ────────────────────────────────────
+
+  object "Camera" {
+    camera: {
+      type: "perspective"
+      fov: 65
+      near: 0.1
+      far: 800.0
+      position: [0, 10.5, 6]
+      target: [-8, -1, -14]
+      exposure: 0.55
+      dof: {
+        enabled: true
+        focus_distance: 22.0
+        f_stop: 1.8
+        bokeh_blades: 6
+      }
+    }
+  }
+
+}

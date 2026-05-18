@@ -1,0 +1,434 @@
+/**
+ * The Amber Hall — Gothic Cathedral at Golden Hour (A-009 refresh 2026-05-18)
+ *
+ * Original intent preserved: caustics, god rays, cascaded shadows, backlit
+ * surfaces, and ambient glow — all the advanced lighting phenomena in one space.
+ *
+ * Refresh adds:
+ *   @tapestry   — linen banners hang from triforium arches, dyed crimson and gold
+ *   @canopy     — fabric baldachin suspended above the high altar
+ *   @renaissance — the hall is a 15th-century nave at the height of its patronage
+ *   @relic      — a glass reliquary on the altar glows with stored luminance
+ *
+ * Scene story: late afternoon, the sun angles through south rose windows at 32°.
+ * Colored rays pierce the nave dust into defined shafts. The font on the crossing
+ * throws caustic nets across the mosaic floor. Six tall beeswax candles encircle
+ * the reliquary, their heat hazing the air above. Every surface — limestone pillar,
+ * gilded tapestry thread, polished floor tile — is a collaborator in the light show.
+ *
+ * @version 5.2.0
+ * @category lighting, cathedral, golden-hour
+ * @traits @tapestry @canopy @renaissance @relic
+ */
+
+composition "AmberHall_GoldenHour" {
+
+  environment {
+    skybox: "hdri/overcast_cathedral_exterior.hdr"
+    sun_direction: [0.55, -0.42, -0.72]
+    sun_color: "#ffb347"
+    sun_intensity: 4.8
+    ambient_light: 0.08
+    ambient_color: "#c8b89a"
+    gravity: [0, -9.81, 0]
+    fog: {
+      type: "exponential",
+      density: 0.004,
+      color: "#e0c89a",
+      start: 20.0
+    }
+  }
+
+  // ── Materials ────────────────────────────────────────────────────────────
+
+  material "LimestoneWall" @advanced_pbr {
+    base_color: "#d4c5a9"
+    metallic: 0.0
+    roughness: 0.88
+    normal_map: "textures/stone_carved_normal.png"
+    ao_map: "textures/stone_carved_ao.png"
+  }
+
+  material "MosaicFloor" @advanced_pbr {
+    base_color: "#b8965a"
+    metallic: 0.0
+    roughness: 0.35
+    emissive_color: "#00000000"
+    normal_map: "textures/mosaic_normal.png"
+  }
+
+  material "GildedThread" @advanced_pbr {
+    base_color: "#c8a84b"
+    metallic: 0.95
+    roughness: 0.12
+    emissive_color: "#c8a84b"
+    emissive_intensity: 0.3
+  }
+
+  // ── Architectural shell ──────────────────────────────────────────────────
+
+  object "NavFloor" using "MosaicFloor" {
+    geometry: "plane"
+    width: 18.0
+    height: 48.0
+    subdivisions: 8
+    position: [0, 0, 0]
+    rotation: [-90, 0, 0]
+    @collidable { friction: 0.7 }
+    // Caustic receiver — high-res subdivided for smooth irradiance projection
+    caustic_receiver: true
+    shadow_receiver: true
+  }
+
+  object "LeftWall" using "LimestoneWall" {
+    geometry: "box"
+    width: 0.6
+    height: 24.0
+    depth: 48.0
+    position: [-9.3, 12, 0]
+  }
+
+  object "RightWall" using "LimestoneWall" {
+    geometry: "box"
+    width: 0.6
+    height: 24.0
+    depth: 48.0
+    position: [9.3, 12, 0]
+  }
+
+  object "EastWall" using "LimestoneWall" {
+    geometry: "box"
+    width: 18.0
+    height: 24.0
+    depth: 0.6
+    position: [0, 12, -24]
+  }
+
+  // ── Rose Window — stained-glass light source ─────────────────────────────
+
+  object "SouthRoseWindow" {
+    geometry: "plane"
+    width: 6.0
+    height: 6.0
+    position: [0, 14, 24]
+    rotation: [0, 180, 0]
+
+    @advanced_pbr {
+      base_color: "#e8a030"
+      metallic: 0.0
+      roughness: 0.05
+      transmission: { enabled: true, intensity: 0.85, ior: 1.52 }
+      emissive_color: "#ffd06a"
+      emissive_intensity: 1.2
+    }
+  }
+
+  // ── God-ray light through the rose window ───────────────────────────────
+
+  object "GodRaySource" {
+    position: [0.5, 13, 22]
+    rotation: [-35, 15, 0]
+
+    light_source: {
+      type: "directional"
+      color: "#ffcc80"
+      intensity: 6.0
+      cast_shadows: true
+    }
+
+    god_rays: {
+      enabled: true
+      density: 0.28
+      weight: 0.6
+      decay: 0.96
+      exposure: 0.75
+      samples: 72
+      dithering: true
+      use_depth_occlusion: true
+      occlusion_strength: 1.0
+    }
+  }
+
+  // ── Water font — caustic generator on the crossing ──────────────────────
+
+  object "CrossingFont" {
+    geometry: "cylinder"
+    radius_top: 0.85
+    radius_bottom: 0.9
+    height: 0.12
+    position: [0, 0.9, -2]
+    @advanced_pbr {
+      base_color: "#6090b0"
+      metallic: 0.0
+      roughness: 0.04
+      transmission: { enabled: true, intensity: 0.92, ior: 1.33 }
+    }
+    caustics: {
+      enabled: true
+      method: "photon_mapping"
+      photon_count: 160000
+      search_radius: 0.035
+      intensity: 2.8
+      animated: true
+      animation_speed: 0.3
+      blur_radius: 2
+      color_tint: "#ddeeff"
+    }
+  }
+
+  object "FontPedestal" using "LimestoneWall" {
+    geometry: "cylinder"
+    radius_top: 0.25
+    radius_bottom: 0.35
+    height: 0.9
+    position: [0, 0.45, -2]
+    @collidable { friction: 0.9 }
+  }
+
+  // ── Cascaded shadow caster — south sun ──────────────────────────────────
+
+  object "SunShadowCaster" {
+    position: [4, 18, 16]
+    rotation: [-42, 28, 0]
+
+    light_source: {
+      type: "directional"
+      color: "#fff5e0"
+      intensity: 3.2
+      cast_shadows: true
+    }
+
+    shadow_caster: {
+      technique: "csm"
+      resolution: 4096
+      cascade_count: 4
+      cascade_splits: [0.05, 0.15, 0.35, 1.0]
+      bias: 0.0004
+      normal_bias: 0.008
+      filter: "pcss"
+      pcf_samples: 16
+      pcss_enabled: true
+      pcss_light_size: 0.08
+    }
+  }
+
+  // ── Backlit leaf sculpture near side chapel ──────────────────────────────
+
+  object "AcanthusLeafLeft" {
+    geometry: "plane"
+    width: 0.55
+    height: 0.55
+    position: [-6.5, 2.2, 8]
+    rotation: [0, 42, 0]
+
+    @advanced_pbr {
+      base_color: "#3d6b2e"
+      metallic: 0.0
+      roughness: 0.68
+      normal_map: "textures/leaf_carved_normal.png"
+    }
+
+    backlit: {
+      enabled: true
+      intensity: 1.8
+      scattering: [0.4, 0.82, 0.25]
+      thickness: 0.003
+      distortion: 0.4
+      use_thickness_map: true
+      thickness_map: "textures/leaf_thickness.png"
+    }
+  }
+
+  object "SideChapelBackLight" {
+    position: [-7.2, 2.2, 7.5]
+    point_light: {
+      color: "#ffe8c0"
+      intensity: 420.0
+      radius: 0.08
+    }
+  }
+
+  // ── Reliquary — glowing relic on the high altar ─────────────────────────
+
+  object "HighAltar" using "LimestoneWall" {
+    geometry: "box"
+    width: 3.2
+    height: 1.1
+    depth: 1.0
+    position: [0, 0.55, -20]
+    @collidable { friction: 0.9 }
+  }
+
+  object "Reliquary" {
+    geometry: "sphere"
+    radius: 0.28
+    position: [0, 1.56, -20]
+
+    @relic {
+      origin: "saint_anselm_fragment"
+      material: "carved_crystal"
+      age_centuries: 6
+    }
+
+    @advanced_pbr {
+      base_color: "#f0e0c0"
+      metallic: 0.05
+      roughness: 0.02
+      transmission: { enabled: true, intensity: 0.7, ior: 1.55 }
+      emissive_color: "#ffd080"
+      emissive_intensity: 3.5
+    }
+
+    ambient_glow: {
+      enabled: true
+      radius: 1.4
+      intensity: 1.1
+      color: "#ffd080"
+      samples: 16
+      bloom_threshold: 0.9
+      bloom_radius: 0.4
+      bloom_intensity: 2.2
+    }
+  }
+
+  // Candles ringing the reliquary
+  spatial_group "AltarCandles" {
+    object "Candle_N"  { position: [0.0,  1.15, -19.2] light_source: { type: "point" color: "#ffcc70" intensity: 80  radius: 0.04 } geometry: "cylinder" radius_top: 0.03 radius_bottom: 0.03 height: 0.22 }
+    object "Candle_NE" { position: [0.55, 1.15, -19.4] light_source: { type: "point" color: "#ffcc70" intensity: 80  radius: 0.04 } geometry: "cylinder" radius_top: 0.03 radius_bottom: 0.03 height: 0.22 }
+    object "Candle_SE" { position: [0.55, 1.15, -20.6] light_source: { type: "point" color: "#ffcc70" intensity: 80  radius: 0.04 } geometry: "cylinder" radius_top: 0.03 radius_bottom: 0.03 height: 0.22 }
+    object "Candle_S"  { position: [0.0,  1.15, -20.8] light_source: { type: "point" color: "#ffcc70" intensity: 80  radius: 0.04 } geometry: "cylinder" radius_top: 0.03 radius_bottom: 0.03 height: 0.22 }
+    object "Candle_SW" { position: [-0.55,1.15, -20.6] light_source: { type: "point" color: "#ffcc70" intensity: 80  radius: 0.04 } geometry: "cylinder" radius_top: 0.03 radius_bottom: 0.03 height: 0.22 }
+    object "Candle_NW" { position: [-0.55,1.15, -19.4] light_source: { type: "point" color: "#ffcc70" intensity: 80  radius: 0.04 } geometry: "cylinder" radius_top: 0.03 radius_bottom: 0.03 height: 0.22 }
+  }
+
+  // ── Tapestries — crimson wool panels hung from triforium arches ──────────
+
+  // @renaissance situates these in the 15th-century patronage period;
+  // @tapestry drives cloth simulation so they respond to the draught from the open west door.
+
+  object "TapestryLeft_A" {
+    geometry: "plane"
+    width: 1.8
+    height: 4.5
+    position: [-8.5, 9.5, -6]
+    rotation: [0, 90, 0]
+
+    @renaissance {
+      circa: "1440"
+      style: "flanders_wool"
+    }
+
+    @tapestry {
+      weave: "twill"
+      thread_count_warp: 24
+      thread_count_weft: 18
+      wind_response: 0.18
+      drape_gravity: 1.0
+      anchor_top: true
+    }
+
+    @advanced_pbr {
+      base_color: "#8b1a1a"
+      metallic: 0.0
+      roughness: 0.82
+      normal_map: "textures/woven_fabric_normal.png"
+    }
+
+    // Gold-thread motif (Annunciation scene)
+    material_overlay "GildedThread" {
+      mask: "textures/tapestry_left_a_goldmask.png"
+      blend_mode: "additive"
+      intensity: 0.7
+    }
+  }
+
+  object "TapestryLeft_B" {
+    geometry: "plane"
+    width: 1.8
+    height: 4.5
+    position: [-8.5, 9.5, 4]
+    rotation: [0, 90, 0]
+
+    @renaissance { circa: "1440" style: "flanders_wool" }
+    @tapestry { weave: "twill" wind_response: 0.18 drape_gravity: 1.0 anchor_top: true }
+
+    @advanced_pbr {
+      base_color: "#1a3a6b"
+      metallic: 0.0
+      roughness: 0.82
+      normal_map: "textures/woven_fabric_normal.png"
+    }
+  }
+
+  object "TapestryRight_A" {
+    geometry: "plane"
+    width: 1.8
+    height: 4.5
+    position: [8.5, 9.5, -6]
+    rotation: [0, -90, 0]
+
+    @renaissance { circa: "1445" style: "flanders_wool" }
+    @tapestry { weave: "plain" wind_response: 0.15 drape_gravity: 1.0 anchor_top: true }
+
+    @advanced_pbr {
+      base_color: "#4a2a10"
+      metallic: 0.0
+      roughness: 0.80
+      normal_map: "textures/woven_fabric_normal.png"
+    }
+  }
+
+  // ── Baldachin (canopy) over the altar ────────────────────────────────────
+
+  object "BaldachinCanopy" {
+    geometry: "plane"
+    width: 3.8
+    height: 3.0
+    position: [0, 5.2, -20]
+
+    @canopy {
+      // Silk baldachin draped over four gilded poles
+      mount_points: [[-1.9, 5.2, -18.5], [1.9, 5.2, -18.5], [1.9, 5.2, -21.5], [-1.9, 5.2, -21.5]]
+      drape_sag: 0.18
+      wind_response: 0.06
+      fringe_length: 0.22
+    }
+
+    @advanced_pbr {
+      base_color: "#d4af37"
+      metallic: 0.4
+      roughness: 0.35
+      emissive_color: "#c8a040"
+      emissive_intensity: 0.15
+    }
+  }
+
+  // Baldachin support poles
+  spatial_group "BaldachinPoles" {
+    object "Pole_NW" { geometry: "cylinder" radius_top: 0.04 radius_bottom: 0.04 height: 5.2 position: [-1.9, 2.6, -18.5] @advanced_pbr { base_color: "#c8a84b" metallic: 0.95 roughness: 0.12 } }
+    object "Pole_NE" { geometry: "cylinder" radius_top: 0.04 radius_bottom: 0.04 height: 5.2 position: [1.9,  2.6, -18.5] @advanced_pbr { base_color: "#c8a84b" metallic: 0.95 roughness: 0.12 } }
+    object "Pole_SW" { geometry: "cylinder" radius_top: 0.04 radius_bottom: 0.04 height: 5.2 position: [-1.9, 2.6, -21.5] @advanced_pbr { base_color: "#c8a84b" metallic: 0.95 roughness: 0.12 } }
+    object "Pole_SE" { geometry: "cylinder" radius_top: 0.04 radius_bottom: 0.04 height: 5.2 position: [1.9,  2.6, -21.5] @advanced_pbr { base_color: "#c8a84b" metallic: 0.95 roughness: 0.12 } }
+  }
+
+  // ── Camera ───────────────────────────────────────────────────────────────
+
+  object "Camera" {
+    camera: {
+      type: "perspective"
+      fov: 58
+      near: 0.1
+      far: 100.0
+      position: [0, 3.2, 18]
+      target: [0, 6.0, -10]
+      exposure: 1.1
+      dof: {
+        enabled: true
+        focus_distance: 28.0
+        f_stop: 2.8
+        bokeh_blades: 8
+      }
+    }
+  }
+
+}
