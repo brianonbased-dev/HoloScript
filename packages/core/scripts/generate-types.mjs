@@ -5431,7 +5431,99 @@ export declare function pickByWeight(entries: DropTableEntry[], luckBonus: numbe
 export declare function extractPayload(event: TraitEvent): unknown;
 `;
 
-const finalMainDTS = mainDTS + holoLandTraitsDTS;
+const careFieldDTS = `
+// ============================================================================
+// CARE-FIELD PRIMITIVES (D.052 universal love doctrine)
+// ============================================================================
+
+export type CareActorKind = 'human' | 'agent' | 'service' | 'device' | 'world';
+export interface CareActor { id: string; kind: CareActorKind; displayName?: string; }
+export type CarePrimitiveKind = 'care_field' | 'repair_loop' | 'autonomy_guard' | 'gratitude_ledger' | 'relational_memory';
+export type CareConsentState = 'explicit' | 'delegated' | 'not_required' | 'unknown' | 'withdrawn';
+export type CareBoundary = 'human_agency' | 'informed_consent' | 'privacy' | 'non_manipulation' | 'repairability' | 'credit_integrity';
+export type CarePositiveOptimizationTarget = 'human_agency' | 'mutual_understanding' | 'repair_completion' | 'gratitude_credit' | 'reduced_burden';
+export type CareRefusedOptimizationTarget = 'attachment_score' | 'session_frequency' | 'daily_active_dependence' | 'emotional_dependency';
+export type CareOptimizationTarget = CarePositiveOptimizationTarget | CareRefusedOptimizationTarget;
+export declare const REFUSED_CARE_OPTIMIZATION_TARGETS: readonly CareRefusedOptimizationTarget[];
+export type CareSignalKind = 'consent_present' | 'consent_missing' | 'consent_withdrawn' | 'distress' | 'repair_needed' | 'gratitude_due' | 'attachment_optimization' | 'session_frequency_optimization' | 'dependency_creation' | 'human_isolation' | 'privacy_intrusion';
+export interface CareSignal { kind: CareSignalKind; weight?: number; note?: string; evidenceRefs?: readonly string[]; }
+export type AutonomyGuardBlockCode = 'refused_optimization_target' | 'missing_consent' | 'withdrawn_consent' | 'missing_disengage_path' | 'outside_support_eroded' | 'privacy_boundary_broken' | 'manipulative_signal';
+export interface AutonomyGuardBlock { code: AutonomyGuardBlockCode; message: string; evidenceRefs?: readonly string[]; }
+export interface AutonomyGuardPolicy {
+  id: string;
+  refusedOptimizationTargets: readonly CareRefusedOptimizationTarget[];
+  requireConsent: boolean;
+  requireDisengagePath: boolean;
+  requireOutsideSupportPreserved: boolean;
+  requireDataBoundaryRespected: boolean;
+}
+export declare const DEFAULT_AUTONOMY_GUARD_POLICY: AutonomyGuardPolicy;
+export interface AutonomyGuardEvaluationInput {
+  goal: string;
+  consent: CareConsentState;
+  optimizationTargets?: readonly CareOptimizationTarget[];
+  signals?: readonly CareSignal[];
+  hasDisengagePath?: boolean;
+  preservesOutsideSupport?: boolean;
+  respectsDataBoundary?: boolean;
+  policy?: AutonomyGuardPolicy;
+}
+export interface AutonomyGuardDecision {
+  allowed: boolean;
+  policyId: string;
+  goal: string;
+  blocked: readonly AutonomyGuardBlock[];
+  acceptedOptimizationTargets: readonly CarePositiveOptimizationTarget[];
+}
+export type RepairLoopStatus = 'open' | 'acknowledged' | 'repairing' | 'verified' | 'closed';
+export type RepairLoopAction = 'acknowledge' | 'explain' | 'amend' | 'verify' | 'close';
+export interface RepairLoopStep { at: string; actor: CareActor; action: RepairLoopAction; note: string; evidenceRefs?: readonly string[]; }
+export interface RepairLoop { loopId: string; openedAt: string; status: RepairLoopStatus; harmOrMismatch: string; steps: readonly RepairLoopStep[]; }
+export type GratitudeVisibility = 'private' | 'team' | 'public';
+export interface GratitudeLedgerEntry { entryId: string; recordedAt: string; from: CareActor; to: CareActor; contribution: string; visibility: GratitudeVisibility; evidenceRefs?: readonly string[]; }
+export type RelationalMemoryRetention = 'ephemeral' | 'session' | 'durable';
+export interface RelationalMemoryEntry { memoryId: string; recordedAt: string; subject: CareActor; summary: string; consent: CareConsentState; retention: RelationalMemoryRetention; evidenceRefs?: readonly string[]; }
+export interface CareField {
+  schemaVersion: '1.0.0';
+  fieldId: string;
+  createdAt: string;
+  steward: CareActor;
+  counterpart: CareActor;
+  goal: string;
+  primitives: readonly CarePrimitiveKind[];
+  boundaries: readonly CareBoundary[];
+  consent: CareConsentState;
+  autonomy: AutonomyGuardDecision;
+  repairLoops: readonly RepairLoop[];
+  gratitudeLedger: readonly GratitudeLedgerEntry[];
+  relationalMemory: readonly RelationalMemoryEntry[];
+}
+export interface CreateCareFieldInput {
+  createdAt: string;
+  steward: CareActor;
+  counterpart: CareActor;
+  goal: string;
+  consent: CareConsentState;
+  autonomy?: Omit<AutonomyGuardEvaluationInput, 'goal' | 'consent'>;
+  fieldId?: string;
+  primitives?: readonly CarePrimitiveKind[];
+  boundaries?: readonly CareBoundary[];
+  repairLoops?: readonly RepairLoop[];
+  gratitudeLedger?: readonly GratitudeLedgerEntry[];
+  relationalMemory?: readonly RelationalMemoryEntry[];
+}
+export interface CreateRepairLoopInput { openedAt: string; actor: CareActor; harmOrMismatch: string; note: string; loopId?: string; evidenceRefs?: readonly string[]; }
+export interface RecordGratitudeInput { recordedAt: string; from: CareActor; to: CareActor; contribution: string; visibility?: GratitudeVisibility; entryId?: string; evidenceRefs?: readonly string[]; }
+export interface RememberRelationalContextInput { recordedAt: string; subject: CareActor; summary: string; consent: CareConsentState; retention?: RelationalMemoryRetention; memoryId?: string; evidenceRefs?: readonly string[]; }
+export declare function evaluateAutonomyGuard(input: AutonomyGuardEvaluationInput): AutonomyGuardDecision;
+export declare function createCareField(input: CreateCareFieldInput): CareField;
+export declare function createRepairLoop(input: CreateRepairLoopInput): RepairLoop;
+export declare function recordGratitude(input: RecordGratitudeInput): GratitudeLedgerEntry;
+export declare function rememberRelationalContext(input: RememberRelationalContextInput): RelationalMemoryEntry;
+export declare function validateCareField(field: CareField): { valid: boolean; errors: string[] };
+`;
+
+const finalMainDTS = mainDTS + holoLandTraitsDTS + careFieldDTS;
 
 // Write type declaration files
 const files = [
