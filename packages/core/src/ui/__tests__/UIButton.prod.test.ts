@@ -68,6 +68,6 @@ describe('createUIButton — Production', () => {
     const node = createUIButton('btn1', {});
     const btn = node.children![0];
     expect(btn.traits).toBeDefined();
-    expect(btn.traits!.some((t: any) => t.name === 'pressable')).toBe(true);
+    expect((btn.traits as Map<string, any>).has('pressable')).toBe(true);
   });
 });

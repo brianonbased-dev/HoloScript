@@ -40,9 +40,9 @@ describe('createUISlider — Production', () => {
   it('handle has slidable + grabbable traits', () => {
     const node = createUISlider('s1', {});
     const handle = node.children![0];
-    const traitNames = handle.traits!.map((t: any) => t.name);
-    expect(traitNames).toContain('slidable');
-    expect(traitNames).toContain('grabbable');
+    const traits = handle.traits as Map<string, any>;
+    expect(traits.has('slidable')).toBe(true);
+    expect(traits.has('grabbable')).toBe(true);
   });
 
   it('handle gets initial value', () => {

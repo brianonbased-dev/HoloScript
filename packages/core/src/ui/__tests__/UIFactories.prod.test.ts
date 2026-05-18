@@ -45,9 +45,8 @@ describe('createUIButton — Production', () => {
 
   it('button child has pressable trait', () => {
     const btn = createUIButton('b', {});
-    const traits = btn.children![0].traits as any[];
-    const traitNames = traits.map((t: any) => t.name);
-    expect(traitNames).toContain('pressable');
+    const traits = btn.children![0].traits as Map<string, any>;
+    expect(traits.has('pressable')).toBe(true);
   });
 
   it('custom colors', () => {
