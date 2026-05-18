@@ -145,7 +145,7 @@ export function OnboardingWizard({ onClose }: OnboardingWizardProps) {
         {/* Footer */}
         <div className="border-t border-studio-border px-6 py-3">
           <p className="text-xs text-studio-muted text-center">
-            All paths lead to the same platform. 37 compilers. Every device.
+            All paths lead to the same platform. Registered compilers. Every device that has a supported target.
           </p>
         </div>
       </div>

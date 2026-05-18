@@ -136,7 +136,7 @@ export function Step4WorkspaceReady({
             </div>
             <div className="flex items-center gap-2">
               <ArrowRight className="h-3 w-3 text-emerald-400" />
-              <span>Compile to any of 37 targets from the same source</span>
+              <span>Compile to any registered target from the same source</span>
             </div>
           </>
         )}

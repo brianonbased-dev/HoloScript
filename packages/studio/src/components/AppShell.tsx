@@ -454,7 +454,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {(!collapsed || isMobile) && (
           <div className="border-t border-studio-border p-3">
             <p className="text-[10px] text-studio-muted leading-relaxed">
-              v7.0.0 · Open platform for spatial computing
+              Version from package manifests · Open platform for spatial computing
             </p>
           </div>
         )}

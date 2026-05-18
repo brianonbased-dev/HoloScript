@@ -372,7 +372,7 @@ export const DEFAULT_MCP_CONFIG: MCPServerConfig = {
   },
 };
 
-/** HoloScript MCP direct access (37+ tools — parse, compile, graph, render, share) */
+/** HoloScript MCP direct access (live tools: parse, compile, graph, render, share) */
 export const HOLOSCRIPT_MCP_URL = 'https://mcp.holoscript.net';
 
 /** Create MCP client with default config */
