@@ -1444,11 +1444,8 @@ async function main(): Promise<void> {
         const wotObjects = objects.map((object: Record<string, unknown>) =>
           withTemplateInheritance(object)
         );
-        const generator = new ThingDescriptionGenerator({
-          baseUrl: 'http://localhost:8080',
-          defaultObservable: true,
-          templates,
-        });
+        const generatorOpts = { baseUrl: 'http://localhost:8080', defaultObservable: true, templates };
+        const generator = new ThingDescriptionGenerator(generatorOpts);
 
         const thingDescriptions = generator.generateAll(wotObjects);
 
