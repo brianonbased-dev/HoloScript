@@ -24,7 +24,9 @@ import {
 import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseGoerli } from 'viem/chains';
 import { WalletConnection } from '../web3/WalletConnection.js';
-import type { HexAddress } from '@holoscript/core';
+// HexAddress is not re-exported from the hand-crafted @holoscript/core dist/index.d.ts.
+// Import it from the local ProtocolRegistry definitions instead.
+import type { HexAddress } from './ProtocolRegistry.js';
 
 // =============================================================================
 // TYPES
@@ -128,7 +130,7 @@ export class InvisibleWallet {
       transport: http(rpcUrl),
     });
 
-    return new InvisibleWallet(publicClient, walletClient, account.address as HexAddress, chain);
+    return new InvisibleWallet(publicClient as PublicClient, walletClient as WalletClient<Transport, Chain>, account.address as HexAddress, chain);
   }
 
   // ===========================================================================
@@ -210,7 +212,7 @@ export class InvisibleWallet {
         transport: http(rpcUrl),
       });
 
-      return new InvisibleWallet(publicClient, walletClient, address as HexAddress, chain);
+      return new InvisibleWallet(publicClient as PublicClient, walletClient as WalletClient<Transport, Chain>, address as HexAddress, chain);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       throw new InvisibleWalletError(`AgentKit initialization failed: ${msg}`, 'AGENTKIT_FAILED');

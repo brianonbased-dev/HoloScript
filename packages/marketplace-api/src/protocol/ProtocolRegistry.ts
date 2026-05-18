@@ -25,24 +25,126 @@ import { WalletConnection } from '../web3/WalletConnection.js';
 import { GasEstimator } from '../web3/GasEstimator.js';
 import {
   PROTOCOL_CONSTANTS,
-  type HexAddress,
-  type ProtocolRecord,
-  type PublishOptions,
-  type PublishResult,
-  type CollectOptions,
-  type CollectResult,
-  type RevenueDistribution,
-  type RevenueFlow,
-  type ImportChainNode,
-  type RevenueCalculatorOptions,
-} from '@holoscript/core';
-import {
   calculateRevenueDistribution,
+  // @ts-expect-error resolveImportChain is exported at runtime but missing from hand-crafted dist/index.d.ts
   resolveImportChain,
   ethToWei,
+  // @ts-expect-error weiToEth is exported at runtime but missing from hand-crafted dist/index.d.ts
   weiToEth,
 } from '@holoscript/core';
-import type { LicenseType, PublishMode, ProvenanceBlock } from '@holoscript/core';
+
+// Runtime exports that are missing from the hand-crafted dist/index.d.ts — declare locally.
+declare function resolveImportChain(
+  imports: Array<{ hash?: string; author?: string; path: string }>,
+  fetchRecord: (hash: string) => Promise<{ importHashes?: string[]; author?: string } | null>,
+  maxDepth?: number
+): Promise<ImportChainNode[]>;
+declare function weiToEth(wei: bigint | string): string;
+
+// These types are in @holoscript/core source barrel but not yet re-exported
+// from the hand-crafted dist/index.d.ts. Define them locally to unblock TS.
+/** Ethereum address (0x-prefixed). */
+export type HexAddress = `0x${string}`;
+
+export type LicenseType = 'free' | 'cc_by' | 'cc_by_sa' | 'cc_by_nc' | 'exclusive' | 'commercial';
+export type PublishMode = 'original' | 'remix' | 'curated';
+
+export interface ProvenanceImport {
+  path: string;
+  hash?: string;
+  author?: string;
+}
+
+export interface ProvenanceBlock {
+  author: string;
+  created: string;
+  hash: string;
+  license: LicenseType;
+  version: number;
+  publishMode: PublishMode;
+  imports: ProvenanceImport[];
+}
+
+export type RevenueReason = 'creator' | 'import_royalty' | 'platform' | 'referral';
+
+export interface RevenueFlow {
+  recipient: string;
+  amount: bigint;
+  reason: RevenueReason;
+  depth?: number;
+  bps: number;
+}
+
+export interface RevenueDistribution {
+  totalPrice: bigint;
+  flows: RevenueFlow[];
+}
+
+export interface ImportChainNode {
+  contentHash: string;
+  author: string;
+  depth: number;
+  children: ImportChainNode[];
+}
+
+export interface ProtocolRecord {
+  contentHash: string;
+  author: HexAddress;
+  importHashes: string[];
+  license: LicenseType;
+  publishMode: PublishMode;
+  timestamp: number;
+  metadataURI: string;
+  price: bigint;
+  referralBps: number;
+  tokenId?: string;
+  txHash?: string;
+  editionCount?: number;
+}
+
+export interface PublishOptions {
+  price?: string;
+  referralBps?: number;
+  mintAsNFT?: boolean;
+  zoraCollection?: HexAddress;
+  walletKey?: string;
+  testnet?: boolean;
+}
+
+export interface PublishResult {
+  protocolId: string;
+  contentHash: string;
+  txHash: string;
+  collectUrl: string;
+  registryUrl: string;
+  sceneId: string;
+  sceneUrl: string;
+  embedUrl: string;
+  revenuePreview: RevenueDistribution;
+  zoraResult?: { tokenId: string; txHash: string; zoraUrl: string };
+}
+
+export interface CollectOptions {
+  referrer?: string;
+  quantity?: number;
+  walletKey?: string;
+  testnet?: boolean;
+}
+
+export interface CollectResult {
+  tokenId: string;
+  txHash: string;
+  editions: number[];
+  pricePaid: string;
+  revenueFlows: RevenueFlow[];
+}
+
+export interface RevenueCalculatorOptions {
+  platformFeeBps?: number;
+  importRoyaltyBps?: number;
+  maxImportDepth?: number;
+  referralBps?: number;
+}
 
 // =============================================================================
 // CONFIGURATION
@@ -126,7 +228,7 @@ export class ProtocolRegistry {
       const metadataURI = await this.storeMetadata(provenance, source);
 
       // Step 2: Build protocol record
-      const price = options.price ? ethToWei(options.price) : 0n;
+      const price: bigint = options.price ? BigInt(ethToWei(options.price)) : 0n;
       const referralBps = options.referralBps ?? PROTOCOL_CONSTANTS.DEFAULT_REFERRAL_BPS;
 
       const record: ProtocolRecord = {
@@ -726,12 +828,4 @@ export function createProtocolRegistry(config?: ProtocolRegistryConfig): Protoco
   return new ProtocolRegistry(config);
 }
 
-// =============================================================================
-// TYPE RE-EXPORT (ProvenanceImport used internally)
-// =============================================================================
-
-interface ProvenanceImport {
-  path: string;
-  hash?: string;
-  author?: string;
-}
+// ProvenanceImport is defined at the top of this file as a local type.

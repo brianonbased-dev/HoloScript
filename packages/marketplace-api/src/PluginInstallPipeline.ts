@@ -574,7 +574,7 @@ export class PluginInstallPipeline {
 
     const data = (await response.json()) as Record<string, unknown>;
     const inner = data.data as Record<string, unknown> | undefined;
-    return inner?.manifest ?? inner ?? data;
+    return (inner?.manifest ?? inner ?? data) as PluginPackageManifest;
   }
 
   /**

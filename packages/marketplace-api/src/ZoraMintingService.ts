@@ -1,4 +1,4 @@
-import { _z } from 'zod';
+import { z as _z } from 'zod';
 
 export interface CreatorRoyalty {
   address: string;

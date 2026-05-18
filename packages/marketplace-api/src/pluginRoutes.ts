@@ -17,7 +17,9 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import type { PluginMarketplaceService } from './PluginMarketplaceService.js';
 import type { PluginCategory, PluginSearchQuery } from './PluginPackageSpec.js';
+import type { Platform } from './types.js';
 import type { x402PaymentService } from './x402PaymentService.js';
+import type { PluginPublishRequest } from './PluginPackageSpec.js';
 
 /** Express request extended with middleware-injected fields. */
 interface AuthenticatedRequest extends Request {
@@ -120,8 +122,8 @@ const pluginPublishSchema = z.object({
       requiredFeatures: z.array(z.string()).optional(),
       apiVersion: z.string().optional(),
     }),
-    dependencies: z.record(z.string()).optional(),
-    peerDependencies: z.record(z.string()).optional(),
+    dependencies: z.record(z.string(), z.string()).optional(),
+    peerDependencies: z.record(z.string(), z.string()).optional(),
     contributions: z.any().optional(),
     pricing: z
       .object({
@@ -224,7 +226,7 @@ function validate<T>(schema: z.ZodSchema<T>) {
   };
 }
 
-function validateQuery<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>) {
+function validateQuery<T>(schema: z.ZodSchema<T>) {
   return (req: Request, res: Response, next: NextFunction): void => {
     const result = schema.safeParse(req.query);
     if (!result.success) {
@@ -354,8 +356,8 @@ export function createPluginMarketplaceRoutes(
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const token = (req as AuthenticatedRequest).token;
-        const request = (req as AuthenticatedRequest).validated;
-        const result = await marketplace.publishPlugin(request, token);
+        const request = (req as AuthenticatedRequest).validated as PluginPublishRequest;
+        const result = await marketplace.publishPlugin(request, token!);
 
         if (result.success) {
           res.status(201).json({ success: true, data: result });
@@ -378,7 +380,7 @@ export function createPluginMarketplaceRoutes(
   /** GET /plugins/:id - Get plugin detail */
   router.get('/plugins/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { id: string };
       const { version } = req.query;
       const data = await marketplace.getPlugin(id, version as string | undefined);
       res.json({ success: true, data });
@@ -401,7 +403,7 @@ export function createPluginMarketplaceRoutes(
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const token = (req as AuthenticatedRequest).token;
-        const { id } = req.params;
+        const { id } = req.params as { id: string };
         const { version } = req.query;
         await marketplace.unpublishPlugin(id, version as string | undefined, token);
         res.status(204).send();
@@ -418,7 +420,7 @@ export function createPluginMarketplaceRoutes(
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const token = (req as AuthenticatedRequest).token;
-        const { id } = req.params;
+        const { id } = req.params as { id: string };
         const { message, replacement } = req.body;
         await marketplace.deprecatePlugin(id, message, replacement, token);
         res.json({ success: true, data: { deprecated: true } });
@@ -433,7 +435,7 @@ export function createPluginMarketplaceRoutes(
   /** GET /plugins/:id/versions - Get all versions */
   router.get('/plugins/:id/versions', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { id: string };
       const versions = await marketplace.getPluginVersions(id);
       res.json({ success: true, data: versions });
     } catch (err) {
@@ -446,7 +448,7 @@ export function createPluginMarketplaceRoutes(
   /** GET /plugins/:id/download - Download plugin package (gated for paid plugins) */
   router.get('/plugins/:id/download', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { id: string };
       const { version } = req.query;
 
       // Check plugin pricing before allowing download
@@ -497,7 +499,7 @@ export function createPluginMarketplaceRoutes(
   /** GET /plugins/:id/stats - Get download stats */
   router.get('/plugins/:id/stats', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { id: string };
       const stats = await marketplace.getPluginStats(id);
       res.json({ success: true, data: stats });
     } catch (err) {
@@ -510,7 +512,7 @@ export function createPluginMarketplaceRoutes(
   /** GET /plugins/:id/provenance - Get plugin provenance audit trail */
   router.get('/plugins/:id/provenance', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { id: string };
       const provenance = await marketplace.getPluginProvenance(id);
       res.json({ success: true, data: provenance });
     } catch (err) {
@@ -540,7 +542,7 @@ export function createPluginMarketplaceRoutes(
     validate(installPlanSchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const { id } = req.params;
+        const { id } = req.params as { id: string };
         const { version, targetStudioVersion, targetPlatform, installDependencies } = (req as AuthenticatedRequest).validated as {
           version?: string;
           targetStudioVersion?: string;
@@ -581,7 +583,7 @@ export function createPluginMarketplaceRoutes(
 
         if (targetPlatform && manifest.compatibility.platforms) {
           const supported = manifest.compatibility.platforms;
-          if (!supported.includes('all') && !supported.includes(targetPlatform)) {
+          if (!supported.includes('all') && !supported.includes(targetPlatform as Platform)) {
             compatibilityWarnings.push(
               `Platform '${targetPlatform}' is not in the plugin's supported platforms: ${supported.join(', ')}`
             );
@@ -644,7 +646,7 @@ export function createPluginMarketplaceRoutes(
   /** POST /plugins/:id/purchase - Initiate x402 payment for a paid plugin */
   router.post('/plugins/:id/purchase', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { id: string };
       const plugin = await marketplace.getPlugin(id);
 
       if (!plugin.manifest.pricing || plugin.manifest.pricing.model === 'free') {
@@ -682,7 +684,7 @@ export function createPluginMarketplaceRoutes(
   /** GET /plugins/:id/purchase-status - Check whether a payer has an active purchase */
   router.get('/plugins/:id/purchase-status', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { id: string };
       const payerAddress = req.query.payerAddress as string | undefined;
 
       if (!payerAddress) {
@@ -719,7 +721,7 @@ export function createPluginMarketplaceRoutes(
   /** GET /plugins/:id/ratings - Get plugin ratings */
   router.get('/plugins/:id/ratings', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { id: string };
       const page = parseInt(req.query.page as string) || 1;
       const data = await marketplace.getPluginRatings(id, page);
       res.json({ success: true, data });
@@ -736,8 +738,8 @@ export function createPluginMarketplaceRoutes(
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const token = (req as AuthenticatedRequest).token;
-        const { id } = req.params;
-        const { rating, review } = (req as AuthenticatedRequest).validated;
+        const { id } = req.params as { id: string };
+        const { rating, review } = (req as AuthenticatedRequest).validated as { rating: number; review?: { title?: string; body?: string } };
         await marketplace.ratePlugin(id, rating, review, token);
         res.status(201).json({ success: true, data: { rated: true } });
       } catch (err) {
@@ -769,8 +771,8 @@ export function createPluginMarketplaceRoutes(
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const token = (req as AuthenticatedRequest).token;
-        const { publicKey } = (req as AuthenticatedRequest).validated;
-        const result = await marketplace.registerSigningKey(publicKey, token);
+        const { publicKey } = (req as AuthenticatedRequest).validated as { publicKey: string; label?: string };
+        const result = await marketplace.registerSigningKey(publicKey, token!);
         res.status(201).json({ success: true, data: result });
       } catch (err) {
         next(err);
@@ -785,8 +787,8 @@ export function createPluginMarketplaceRoutes(
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const token = (req as AuthenticatedRequest).token;
-        const { keyId } = req.params;
-        await marketplace.revokeSigningKey(keyId, token);
+        const { keyId } = req.params as { keyId: string };
+        await marketplace.revokeSigningKey(keyId, token!);
         res.status(204).send();
       } catch (err) {
         next(err);
@@ -799,7 +801,7 @@ export function createPluginMarketplaceRoutes(
   /** GET /authors/:id - Get author profile */
   router.get('/authors/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { id: string };
       const data = await marketplace.getAuthorProfile(id);
       res.json({ success: true, data });
     } catch (err) {

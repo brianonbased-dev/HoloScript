@@ -22,8 +22,27 @@
 import type { TraitHandler } from '@holoscript/core';
 import { WalletConnection } from '../web3/WalletConnection';
 import { GasEstimator } from '../web3/GasEstimator';
-import { _parseEther, _formatEther, type Address, type Hex } from 'viem';
+import { parseEther as _parseEther, formatEther as _formatEther, type Address, type Hex } from 'viem';
 import { zoraCreator1155ImplABI } from '@zoralabs/protocol-deployments';
+
+// mintWithRewards is present on some Zora contract versions but not in the
+// typed ABI from @zoralabs/protocol-deployments. Define it locally so viem
+// can call it by name without a type error.
+const MINT_WITH_REWARDS_ABI = [
+  {
+    name: 'mintWithRewards',
+    type: 'function',
+    stateMutability: 'payable',
+    inputs: [
+      { name: 'minter', type: 'address' },
+      { name: 'tokenId', type: 'uint256' },
+      { name: 'quantity', type: 'uint256' },
+      { name: 'minterArguments', type: 'bytes' },
+      { name: 'mintReferral', type: 'address' },
+    ],
+    outputs: [],
+  },
+] as const;
 
 // =============================================================================
 // TYPES
@@ -854,7 +873,7 @@ async function executeMinting(
   try {
     const { request } = await publicClient.simulateContract({
       address: contractAddress,
-      abi: zoraCreator1155ImplABI,
+      abi: MINT_WITH_REWARDS_ABI,
       functionName: 'mintWithRewards',
       args: [
         walletAddress, // minter (who receives the NFT)

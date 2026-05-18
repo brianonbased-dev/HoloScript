@@ -7,7 +7,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { AuthService } from '@holoscript/auth';
 import type { MarketplaceService } from './MarketplaceService.js';
-import type { SearchQuery, TraitCategory } from './types.js';
+import type { SearchQuery, TraitCategory, PublishRequest } from './types.js';
 
 /** Express request extended with middleware-injected fields. */
 interface AuthenticatedRequest extends Request {
@@ -120,8 +120,8 @@ const publishRequestSchema = z.object({
       })
     )
     .optional(),
-  dependencies: z.record(z.string()).optional(),
-  peerDependencies: z.record(z.string()).optional(),
+  dependencies: z.record(z.string(), z.string()).optional(),
+  peerDependencies: z.record(z.string(), z.string()).optional(),
   repository: z.string().url().optional(),
   homepage: z.string().url().optional(),
 });
@@ -212,7 +212,7 @@ function validate<T>(schema: z.ZodSchema<T>) {
 /**
  * Validate query params with zod schema
  */
-function validateQuery<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>) {
+function validateQuery<T>(schema: z.ZodSchema<T>) {
   return (req: Request, res: Response, next: NextFunction): void => {
     const result = schema.safeParse(req.query);
     if (!result.success) {
@@ -291,9 +291,9 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const token = (req as AuthenticatedRequest).token;
-        const request = (req as AuthenticatedRequest).validated;
+        const request = (req as AuthenticatedRequest).validated as PublishRequest;
 
-        const result = await marketplace.publish(request, token);
+        const result = await marketplace.publish(request, token!);
 
         if (result.success) {
           res.status(201).json({
@@ -357,10 +357,10 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
    */
   router.get('/traits/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { id: string };
       const { version } = req.query;
 
-      const trait = await marketplace.getTrait(id, version as string | undefined);
+      const trait = await marketplace.getTrait(id, typeof version === 'string' ? version : undefined);
 
       res.json({
         success: true,
@@ -387,16 +387,16 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const token = (req as AuthenticatedRequest).token;
-        const { id } = req.params;
+        const { id } = req.params as { id: string };
         const { version, reason } = req.query;
 
         await marketplace.unpublish(
           {
             traitId: id,
-            version: version as string | undefined,
-            reason: reason as string | undefined,
+            version: typeof version === 'string' ? version : undefined,
+            reason: typeof reason === 'string' ? reason : undefined,
           },
-          token
+          token!
         );
 
         res.status(204).send();
@@ -411,7 +411,7 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
    */
   router.get('/traits/:id/versions', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { id: string };
       const versions = await marketplace.getVersions(id);
 
       res.json({
@@ -428,10 +428,10 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
    */
   router.get('/traits/:id/download', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { id: string };
       const { version } = req.query;
 
-      const trait = await marketplace.getTrait(id, version as string | undefined);
+      const trait = await marketplace.getTrait(id, typeof version === 'string' ? version : undefined);
 
       // Record download
       await marketplace.recordDownload(id, trait.version);
@@ -460,7 +460,7 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
    */
   router.get('/traits/:id/stats', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { id: string };
       const stats = await marketplace.getDownloadStats(id);
 
       res.json({
@@ -481,10 +481,10 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const token = (req as AuthenticatedRequest).token;
-        const { id } = req.params;
+        const { id } = req.params as { id: string };
         const { message, version, replacement } = req.body;
 
-        await marketplace.deprecate({ traitId: id, message, version, replacement }, token);
+        await marketplace.deprecate({ traitId: id, message, version, replacement }, token!);
 
         res.json({
           success: true,
@@ -505,7 +505,7 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
    */
   router.get('/traits/:id/ratings', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { id: string };
       const page = parseInt(req.query.page as string) || 1;
 
       const ratings = await marketplace.getRatings(id, page);
@@ -529,8 +529,8 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const token = (req as AuthenticatedRequest).token;
-        const { id } = req.params;
-        const { rating, review } = (req as AuthenticatedRequest).validated;
+        const { id } = req.params as { id: string };
+        const { rating, review } = (req as AuthenticatedRequest).validated as { rating: number; review?: string };
 
         await marketplace.rateTrait(id, rating, review, token);
 
@@ -556,7 +556,7 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
     validate(dependencyResolveSchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const { traits } = (req as AuthenticatedRequest).validated;
+        const { traits } = (req as AuthenticatedRequest).validated as { traits: Array<{ name: string; version: string }> };
         const result = await marketplace.resolveDependencies(traits);
 
         res.json({
@@ -577,7 +577,7 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
     validate(dependencyResolveSchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const { traits } = (req as AuthenticatedRequest).validated;
+        const { traits } = (req as AuthenticatedRequest).validated as { traits: Array<{ name: string; version: string }> };
         const result = await marketplace.checkCompatibility(traits);
 
         res.json({
@@ -599,7 +599,7 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
    */
   router.get('/users/:id/verification', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { id: string };
       const status = await marketplace.getVerificationStatus(id);
 
       res.json({
@@ -619,7 +619,7 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
     requireAuth(marketplace),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const token = (req as AuthenticatedRequest).token;
+        const token = (req as AuthenticatedRequest).token!;
         const request = req.body;
 
         await marketplace.requestVerification(request, token);

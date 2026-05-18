@@ -9,7 +9,7 @@
  */
 
 import type { PublicClient, Address, Hex } from 'viem';
-import { parseGwei, formatEther, _parseEther } from 'viem';
+import { parseGwei, formatEther, parseEther as _parseEther } from 'viem';
 
 /**
  * Gas estimation result

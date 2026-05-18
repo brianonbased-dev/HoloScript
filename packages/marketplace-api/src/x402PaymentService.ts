@@ -289,11 +289,11 @@ export class x402PaymentService {
       base: createPublicClient({
         chain: base,
         transport: http(options.networks.find((n) => n.name === 'base')?.rpc_url),
-      }),
+      }) as ReturnType<typeof createPublicClient>,
       ethereum: createPublicClient({
         chain: mainnet,
         transport: http(options.networks.find((n) => n.name === 'ethereum')?.rpc_url),
-      }),
+      }) as ReturnType<typeof createPublicClient>,
     };
 
     this.rateLimiter = new SlidingWindowRateLimiter();
@@ -362,7 +362,7 @@ export class x402PaymentService {
           asset: config.asset as 'USDC' | 'ETH' | 'SOL',
           network: config.network as 'base' | 'ethereum' | 'solana',
           facilitator: this.selectFacilitator(config.network),
-          content_id: req.params.twin_id || req.params.menu_id || 'unknown_content',
+          content_id: (req.params.twin_id as string) || (req.params.menu_id as string) || 'unknown_content',
         });
       } catch (_err) {
         // Sanitized: no internal error details leaked

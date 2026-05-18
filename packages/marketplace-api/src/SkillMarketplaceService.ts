@@ -551,7 +551,7 @@ export class SkillMarketplaceService implements ISkillMarketplaceAPI {
             description: manifest.description || '',
             author: manifest.author || { name: 'unknown', verified: false },
             category: manifest.category || 'workflow',
-            targetPlatform: manifest.targetPlatform || 'claude_code',
+            targetPlatform: manifest.targetPlatform || 'claude',
             pricingModel: manifest.pricingModel || 'free',
             price: manifest.price || 0,
             subscriptionPrice: manifest.subscriptionPrice,
