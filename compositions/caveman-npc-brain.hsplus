@@ -1,0 +1,61 @@
+// caveman-npc-brain.hsplus
+// Sovereign LLM-driven caveman archetype brain (research/2026-05-16_glb-character-to-sovereign-caveman-agent.md)
+// ~200 word vocab, 9 action verbs, 2-step planning ceiling, drive-reactive
+// Default LLM: Gemma 3 1B via LocalLLM (sovereign on-device)
+
+composition "Caveman NPC Brain" {
+  metadata {
+    archetype: "caveman"
+    vocab_size: 200
+    max_planning_steps: 2
+    llm_default: "gemma3-1b"
+    target_no_llm_ratio: 0.90
+  }
+
+  // Identity + drive surface (wired to CavemanDriveTrait)
+  trait @identity {
+    domain: "embodied-npc"
+    capability_tags: ["caveman", "sovereign-llm", "bounded-autonomy"]
+    requires: ["CavemanDriveTrait", "AIDriverTrait", "BehaviorTreeTrait", "NeuralAnimationTrait"]
+  }
+
+  // The 9 action verbs the LLM is allowed to emit (research §4)
+  verbs: [
+    "eat <target>",
+    "drink <target>",
+    "flee <target>",
+    "inspect <target>",
+    "rest",
+    "idle",
+    "grunt",
+    "gesture <kind>",
+    "attack <target>"
+  ]
+
+  // 2-step planning ceiling (keeps token count < 200 per call)
+  planning {
+    max_steps: 2
+    example: "if hunger high and berries nearby → eat berries; else if fear high → flee to cave"
+  }
+
+  // Drive-reactive gating (the 95% no-LLM magic)
+  drive_reactive {
+    gate: "CavemanDriveTrait.shouldCallLLM()"
+    fallback: "continue current BehaviorTree branch"
+  }
+
+  // Bounded autonomy interfaces (arXiv 2604.04703 mapping)
+  interfaces {
+    agent_world: "BehaviorTreeTrait + AIDriverTrait"
+    player_agent: "GestureTrait + ComputerUseTrait"
+    agent_agent: "HoloMesh + delegated-authority"
+  }
+
+  // Tiny personality prompt (the ~200 word root)
+  system_prompt: """
+  You are a primitive caveman. You speak in 1-2 word grunts or very short sentences.
+  Your drives are hunger, thirst, fatigue, fear, curiosity.
+  Only emit one of the 9 allowed verbs. Never plan more than 2 steps.
+  Stay in character. Never mention modern concepts.
+  """
+}
