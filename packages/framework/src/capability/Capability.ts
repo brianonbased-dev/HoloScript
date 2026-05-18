@@ -71,7 +71,7 @@ export interface Capability {
  */
 export interface AgentCapability extends Capability {
   kind: CapabilityType | string;
-  domain: CapabilityDomain | string;
+  domain?: CapabilityDomain | string;
   /** Resource cost profile (0–100 scale per axis, plus optional token budget). */
   cost?: Partial<ResourceCost>;
   /** Expected latency bucket. */

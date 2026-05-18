@@ -6,7 +6,7 @@
  * seek, flee, arrive, wander, flock, obstacleAvoidance, applyForce.
  */
 import { describe, it, expect } from 'vitest';
-import { SteeringBehaviors, type SteeringAgent } from '../SteeringBehaviors';
+import { SteeringBehaviors, type SteeringAgent, type ObstacleCircle } from '../SteeringBehaviors';
 
 function agent(px = 0, py = 0, pz = 0, vx = 0, vy = 0, vz = 0): SteeringAgent {
   return {
@@ -105,14 +105,14 @@ describe('SteeringBehaviors — Production', () => {
   // ─── Obstacle Avoidance ───────────────────────────────────────────
   it('obstacleAvoidance returns zero when no obstacles near', () => {
     const a = agent(0, 0, 0, 1, 0, 0);
-    const obstacles = [{ center: [100, 0, 0], radius: 1 }];
+    const obstacles: ObstacleCircle[] = [{ center: [100, 0, 0], radius: 1 }];
     const force = SteeringBehaviors.obstacleAvoidance(a, obstacles, 5);
     expect(len(force)).toBe(0);
   });
 
   it('obstacleAvoidance returns force near obstacle', () => {
     const a = agent(0, 0, 0, 1, 0, 0);
-    const obstacles = [{ center: [3, 0, 0], radius: 10 }]; // huge obstacle right ahead
+    const obstacles: ObstacleCircle[] = [{ center: [3, 0, 0], radius: 10 }]; // huge obstacle right ahead
     const force = SteeringBehaviors.obstacleAvoidance(a, obstacles, 5);
     expect(len(force)).toBeGreaterThan(0);
   });

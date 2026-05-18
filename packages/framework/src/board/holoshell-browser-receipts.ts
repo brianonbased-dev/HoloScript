@@ -13,7 +13,6 @@
  */
 
 import type {
-  ArtifactHashAlgorithm,
   ArtifactProvenanceLink,
   ArtifactVerificationCommand,
 } from './board-types';
@@ -73,7 +72,7 @@ export interface BrowserAbsorptionPolicy {
   /** Domains the agent must never navigate to. Blacklist overrides whitelist. */
   blockedDomains: string[];
   /** Actions the agent is permitted to execute. Empty = all permitted (dangerous). */
-  allowedActions: BrowserActionKind[];
+  allowedActions: string[];
   /** Maximum total session duration in milliseconds. */
   maxDurationMs: number;
   /** Whether the browser runs headless (no visible window). */
@@ -113,7 +112,7 @@ export interface BrowserAbsorptionReceipt {
   /** Hash of the canonical final screenshot (primary evidence). */
   screenshotHash: string;
   /** Hash algorithm for the screenshot. */
-  screenshotHashAlgorithm: ArtifactHashAlgorithm;
+  screenshotHashAlgorithm: string;
   /** Hash of the captured network log (HAR), if captured. */
   networkLogHash?: string;
   /** Hash of the cookie + localStorage audit snapshot, if audited. */
@@ -128,7 +127,7 @@ export interface BrowserAbsorptionReceipt {
   summary?: string;
   /** Hash of the canonical receipt body (id + domain + url + ordered actions + policy). */
   hash: string;
-  hashAlgorithm: ArtifactHashAlgorithm;
+  hashAlgorithm: string;
   /** Provenance link back to the producing task / commit. */
   provenance?: ArtifactProvenanceLink;
   /** Verification commands that reproduce the automation. */

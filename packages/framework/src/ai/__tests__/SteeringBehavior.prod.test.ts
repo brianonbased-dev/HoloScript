@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { SteeringBehavior } from '../SteeringBehavior';
-import type { SteeringAgent } from '../SteeringBehavior';
+import type { SteeringAgent, Vector3 } from '../SteeringBehavior';
 
 function makeAgent(overrides: Partial<SteeringAgent> = {}): SteeringAgent {
   return {
@@ -64,7 +64,7 @@ describe('SteeringBehavior.seek', () => {
 describe('SteeringBehavior.flee', () => {
   it('is exact negation of seek result', () => {
     const agent = makeAgent();
-    const target = [5, 0, 3];
+    const target: Vector3 = [5, 0, 3];
     const seek = SteeringBehavior.seek(agent, target);
     const flee = SteeringBehavior.flee(agent, target);
     expect(flee[0]).toBeCloseTo(-seek[0], 6);

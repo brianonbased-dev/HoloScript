@@ -606,12 +606,14 @@ function lineIntersectsBox(
   let tmin = 0;
   let tmax = 1;
 
+  const axisIndex = { x: 0, y: 1, z: 2 } as const;
   const axes: Array<'x' | 'y' | 'z'> = ['x', 'y', 'z'];
   for (const axis of axes) {
-    const d = dir[axis];
-    const o = a[axis === 'x' ? 0 : axis === 'y' ? 1 : 2];
-    const bmin = box.min[axis];
-    const bmax = box.max[axis];
+    const idx = axisIndex[axis];
+    const d = dir[idx];
+    const o = a[idx];
+    const bmin = box.min[idx];
+    const bmax = box.max[idx];
 
     if (Math.abs(d) < 1e-10) {
       if (o < bmin || o > bmax) return false;
@@ -967,7 +969,7 @@ export class SpatialTrainingDataGenerator {
 
     // Generate container (zone)
     const containerName = this.rng.pick(ZONE_NAMES);
-    const containerSize = [this.rng.float(4, 12), this.rng.float(3, 8), this.rng.float(4, 12)];
+    const containerSize: [number, number, number] = [this.rng.float(4, 12), this.rng.float(3, 8), this.rng.float(4, 12)];
     const containerPos = this.randomPosition(difficulty);
     const margin = this.rng.float(0, 0.5);
 
@@ -976,12 +978,12 @@ export class SpatialTrainingDataGenerator {
         containerPos[0] - containerSize[0] / 2,
         containerPos[1] - containerSize[1] / 2,
         containerPos[2] - containerSize[2] / 2
-      ],
+      ] as [number, number, number],
       max: [
         containerPos[0] + containerSize[0] / 2,
         containerPos[1] + containerSize[1] / 2,
         containerPos[2] + containerSize[2] / 2
-      ],
+      ] as [number, number, number],
     };
 
     const containerObj: SceneObject = {
@@ -1066,7 +1068,7 @@ export class SpatialTrainingDataGenerator {
       // Add inner container
       const innerContainerName = this.pickUniqueName(ZONE_NAMES, usedNames);
       usedNames.push(innerContainerName);
-      const innerSize = [containerSize[0] * 0.4, containerSize[1] * 0.4, containerSize[2] * 0.4];
+      const innerSize: [number, number, number] = [containerSize[0] * 0.4, containerSize[1] * 0.4, containerSize[2] * 0.4];
       const innerObj: SceneObject = {
         id: innerContainerName,
         type: 'zone',
@@ -1205,7 +1207,7 @@ export class SpatialTrainingDataGenerator {
       usedNames.push(obsName);
       obstacleNames.push(obsName);
 
-      const obsScale = [this.rng.float(1.5, 4), this.rng.float(2, 5), this.rng.float(1.5, 4)];
+      const obsScale: [number, number, number] = [this.rng.float(1.5, 4), this.rng.float(2, 5), this.rng.float(1.5, 4)];
 
       let obsPos;
       if (!isPositive && i === 0) {
@@ -1250,12 +1252,12 @@ export class SpatialTrainingDataGenerator {
           obsPos[0] - obsScale[0] / 2,
           obsPos[1] - obsScale[1] / 2,
           obsPos[2] - obsScale[2] / 2
-        ],
+        ] as [number, number, number],
         max: [
           obsPos[0] + obsScale[0] / 2,
           obsPos[1] + obsScale[1] / 2,
           obsPos[2] + obsScale[2] / 2
-        ],
+        ] as [number, number, number],
       };
 
       objects.push({

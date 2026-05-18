@@ -27,13 +27,29 @@ export interface DeviceGotcha {
   evidenceCheckId: string;
 }
 
+export interface DeviceLabHost {
+  platform: string;
+  release: string;
+  arch: string;
+  nodeVersion: string;
+  v8Version: string;
+  cpuModel: string;
+  logicalCores: number;
+  totalMemoryGB: number;
+  freeMemoryGB: number;
+  gpuControllers: unknown[];
+  env: Record<string, unknown>;
+}
+
 export interface DeviceLabReceipt {
   receiptId: string;
   schemaVersion: 'hololand-device-lab-receipt/v1';
   createdAt: string;
   generatedBy: string;
   command: string;
+  host?: DeviceLabHost;
   checks: ProbeCheck[];
+  artifacts?: unknown[];
   gotchas: DeviceGotcha[];
   overallStatus: 'pass' | 'warn' | 'fail';
 }

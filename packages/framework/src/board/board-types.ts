@@ -39,6 +39,7 @@ export type ArtifactVerificationStatus = 'pending' | 'passed' | 'failed' | 'skip
 export interface ArtifactVerificationCommand {
   id?: string;
   command: string;
+  description?: string;
   status?: ArtifactVerificationStatus;
   artifactIds?: string[];
   exitCode?: number;

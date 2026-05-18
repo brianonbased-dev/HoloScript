@@ -73,7 +73,7 @@ export interface ReadinessDeviceLabCheck {
   id: string;
   label: string;
   status: 'pass' | 'warn' | 'fail';
-  detail: string;
+  detail?: string;
 }
 
 /** Device-lab sub-receipt — lightweight copy of hololand-platform schema. */
