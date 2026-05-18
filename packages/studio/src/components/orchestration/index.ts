@@ -8,7 +8,7 @@ export { MCPServerConfigPanel } from './MCPServerConfigPanel';
 export { AgentOrchestrationGraphEditor } from './AgentOrchestrationGraphEditor';
 export { BehaviorTreeVisualEditor } from './BehaviorTreeVisualEditor';
 export { DesktopAgentEnsemble } from './DesktopAgentEnsemble';
-export { LiquidDesktop3D } from '../components/LiquidDesktop3D';
+export { LiquidDesktop3D } from '../LiquidDesktop3D';
 export { AgentEventMonitorPanel } from './AgentEventMonitorPanel';
 export { ToolCallGraphVisualizer } from './ToolCallGraphVisualizer';
 export { OrchestrationErrorBoundary } from './ErrorBoundary';

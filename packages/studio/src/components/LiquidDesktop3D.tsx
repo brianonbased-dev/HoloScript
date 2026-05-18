@@ -102,7 +102,7 @@ function DepthRaycaster({ onSelect }: { onSelect: (id: string | null, point: THR
   );
 }
 
-export function LiquidDesktop3D({ children, onObjectSelect }: LiquidDesktop3DProps) {
+export function LiquidDesktop3D({ children, onObjectSelect, reaction }: LiquidDesktop3DProps) {
   const handleSelect = (id: string | null, point: THREE.Vector3) => {
     onObjectSelect?.(id, point);
   };

@@ -10,8 +10,10 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Users, X } from 'lucide-react';
+import * as THREE from 'three';
+import { Html } from '@react-three/drei';
 import { useAgentRegistryStore } from '@/lib/agentRegistryStore';
-import { LiquidDesktop3D } from '../components/LiquidDesktop3D'; // 3D stationary depth upgrade (P2 task)
+import { LiquidDesktop3D } from '../LiquidDesktop3D'; // 3D stationary depth upgrade (P2 task)
 
 interface DesktopAgentEnsembleProps {
   onClose: () => void;
@@ -103,7 +105,7 @@ export function DesktopAgentEnsemble({ onClose }: DesktopAgentEnsembleProps) {
         <div className="flex-1">
           <LiquidDesktop3D
             reaction={selectedAgentId ? 0.9 : 0} // strong reaction while something is selected (environmental feedback P2)
-            onObjectSelect={(id, point) => {
+            onObjectSelect={(id: string | null, point: THREE.Vector3) => {
               // Depth-ray selection from the 3D scene → real HoloShell action + world reaction
               console.log('[LiquidDesktop3D] depth-selected', id, point);
               setSelectedAgentId(id);
