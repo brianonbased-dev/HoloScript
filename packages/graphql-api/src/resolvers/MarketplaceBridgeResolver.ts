@@ -174,16 +174,19 @@ export class MarketplaceBridgeResolver {
       }
 
       const core = await import('@holoscript/core');
-      let compiler: { compile(ast: unknown): string };
+      // Core compiler types use [key: string]: any index signatures without
+      // explicit compile() declarations, so `any` is the accurate type here.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let compiler: any;
       let compiledOutput: string;
 
       switch (input.target) {
         case CompilerTarget.UNITY:
-          compiler = new core.UnityCompiler(input.options || {});
+          compiler = new core.UnityCompiler();
           compiledOutput = compiler.compile(parseResult.ast);
           break;
         case CompilerTarget.BABYLON:
-          compiler = new core.BabylonCompiler(input.options || {});
+          compiler = new core.BabylonCompiler();
           compiledOutput = compiler.compile(parseResult.ast);
           break;
         case CompilerTarget.R3F:
@@ -191,31 +194,31 @@ export class MarketplaceBridgeResolver {
           compiledOutput = compiler.compile(parseResult.ast);
           break;
         case CompilerTarget.UNREAL:
-          compiler = new core.UnrealCompiler(input.options || {});
+          compiler = new core.UnrealCompiler();
           compiledOutput = compiler.compile(parseResult.ast);
           break;
         case CompilerTarget.GODOT:
-          compiler = new core.GodotCompiler(input.options || {});
+          compiler = new core.GodotCompiler();
           compiledOutput = compiler.compile(parseResult.ast);
           break;
         case CompilerTarget.VRCHAT:
-          compiler = new core.VRChatCompiler(input.options || {});
+          compiler = new core.VRChatCompiler();
           compiledOutput = compiler.compile(parseResult.ast);
           break;
         case CompilerTarget.VISIONOS:
-          compiler = new core.VisionOSCompiler(input.options || {});
+          compiler = new core.VisionOSCompiler();
           compiledOutput = compiler.compile(parseResult.ast);
           break;
         case CompilerTarget.ANDROID:
-          compiler = new core.AndroidXRCompiler(input.options || {});
+          compiler = new core.AndroidXRCompiler();
           compiledOutput = compiler.compile(parseResult.ast);
           break;
         case CompilerTarget.OPENXR:
-          compiler = new core.OpenXRCompiler(input.options || {});
+          compiler = new core.OpenXRCompiler();
           compiledOutput = compiler.compile(parseResult.ast);
           break;
         case CompilerTarget.IOS:
-          compiler = new core.ARCompiler(input.options || {});
+          compiler = new core.ARCompiler();
           compiledOutput = compiler.compile(parseResult.ast);
           break;
         default:

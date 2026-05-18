@@ -42,12 +42,12 @@ export class CompilerResolver {
 
       switch (input.target) {
         case CompilerTarget.UNITY:
-          compiler = new core.UnityCompiler(input.options || {});
+          compiler = new core.UnityCompiler();
           compiledOutput = compiler.compile(parseResult.ast);
           break;
 
         case CompilerTarget.BABYLON:
-          compiler = new core.BabylonCompiler(input.options || {});
+          compiler = new core.BabylonCompiler();
           compiledOutput = compiler.compile(parseResult.ast);
           break;
 

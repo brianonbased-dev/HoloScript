@@ -1,7 +1,7 @@
 import 'reflect-metadata';
-import { ApolloServer } from '@apollo/server';
-import { expressMiddleware } from '@apollo/server/express4';
+import { ApolloServer, HeaderMap } from '@apollo/server';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
+import type { Request, Response } from 'express';
 import { createServer } from 'http';
 import express from 'express';
 import { WebSocketServer } from 'ws';
@@ -22,7 +22,7 @@ import { createComplexityPlugin } from './plugins/complexityPlugin.js';
 import { createCachePlugin } from './plugins/cachePlugin.js';
 import { createRateLimitPlugin, OPERATION_RATE_LIMITS } from './plugins/rateLimitPlugin.js';
 import { createAuthPlugin } from './plugins/authPlugin.js';
-import { pubsub } from './services/pubsub.js';
+import { typeGraphQLPubSub } from './services/pubsub.js';
 
 /**
  * Start the GraphQL server with WebSocket support for subscriptions
@@ -39,7 +39,7 @@ export async function startServer() {
       MarketplaceBridgeResolver,
     ],
     validate: true,
-    pubSub: pubsub, // Required for subscriptions
+    pubSub: typeGraphQLPubSub, // type-graphql compatible adapter over graphql-subscriptions PubSubEngine
   });
 
   // Create Express app
@@ -127,15 +127,46 @@ export async function startServer() {
   await server.start();
 
   // Setup Express middleware
+  // Apollo Server v5 does not bundle expressMiddleware; use executeHTTPGraphQLRequest directly.
   app.use(
     '/graphql',
     cors<cors.CorsRequest>(),
     bodyParser.json(),
-    expressMiddleware(server, {
-      context: async (): Promise<GraphQLContext> => ({
+    async (req: Request, res: Response) => {
+      const context = async (): Promise<GraphQLContext> => ({
         compilationLoader: createCompilationLoader(),
-      }),
-    })
+      });
+      const httpResponse = await server.executeHTTPGraphQLRequest({
+        httpGraphQLRequest: {
+          method: req.method,
+          headers: (() => {
+            const map = new HeaderMap();
+            for (const [k, v] of Object.entries(req.headers)) {
+              if (v != null) {
+                map.set(k, Array.isArray(v) ? v.join(', ') : v);
+              }
+            }
+            return map;
+          })(),
+          search: req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '',
+          body: { kind: 'parsed', parsed: req.body },
+        },
+        context,
+      });
+      res.status(httpResponse.status ?? 200);
+      for (const [key, value] of httpResponse.headers) {
+        res.setHeader(key, value);
+      }
+      if (httpResponse.body.kind === 'complete') {
+        res.send(httpResponse.body.string);
+      } else {
+        // Incremental delivery — stream chunks
+        for await (const chunk of httpResponse.body.asyncIterator) {
+          res.write(chunk);
+        }
+        res.end();
+      }
+    }
   );
 
   // Start HTTP server

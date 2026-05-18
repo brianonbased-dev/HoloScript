@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { Hover } from 'vscode';
 import { HoloScriptHoverProvider } from '../hoverProvider';
 import { ALL_TRAITS } from '../completionProvider';
 import {
@@ -14,6 +15,11 @@ import {
   Range,
   MarkdownString,
 } from '../__tests__/__mocks__/vscode';
+
+/** Cast provider result to a concrete Hover — providers here are synchronous. */
+function asHover(r: unknown): Hover | undefined {
+  return r as Hover | undefined;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -90,10 +96,10 @@ describe('HoloScriptHoverProvider', () => {
       const result = provider.provideHover(doc as any, pos, token as any);
 
       expect(result).toBeDefined();
-      expect(result!.range).toBe(range);
+      expect(asHover(result)!.range).toBe(range);
 
       // The contents field should be a MarkdownString-like object
-      const md = result!.contents as any;
+      const md = asHover(result)!.contents as any;
       expect(md).toHaveProperty('value');
       expect(md.value).toContain('@grabbable');
       expect(md.value).toContain('Interaction');
@@ -110,7 +116,7 @@ describe('HoloScriptHoverProvider', () => {
       const result = provider.provideHover(doc as any, pos, token as any);
 
       expect(result).toBeDefined();
-      const md = result!.contents as MarkdownString;
+      const md = asHover(result)!.contents as unknown as MarkdownString;
       expect(md.value).toContain('@physics');
       expect(md.value).toContain('Interaction');
       // Documentation should mention rigid-body physics
@@ -128,7 +134,7 @@ describe('HoloScriptHoverProvider', () => {
       const result = provider.provideHover(doc as any, pos, token as any);
 
       expect(result).toBeDefined();
-      const md = result!.contents as MarkdownString;
+      const md = asHover(result)!.contents as unknown as MarkdownString;
       expect(md.value).toContain('@portal');
       expect(md.value).toContain('Advanced');
     });
@@ -148,7 +154,7 @@ describe('HoloScriptHoverProvider', () => {
       const result = provider.provideHover(doc as any, pos, token as any);
 
       expect(result).toBeDefined();
-      const md = result!.contents as MarkdownString;
+      const md = asHover(result)!.contents as unknown as MarkdownString;
       const val = md.value;
 
       // Heading with trait label
@@ -170,7 +176,7 @@ describe('HoloScriptHoverProvider', () => {
       const result = provider.provideHover(doc as any, pos, token as any);
 
       expect(result).toBeDefined();
-      const md = result!.contents as MarkdownString;
+      const md = asHover(result)!.contents as unknown as MarkdownString;
       expect((md as any).isTrusted).toBe(true);
       expect((md as any).supportHtml).toBe(true);
     });
@@ -192,7 +198,7 @@ describe('HoloScriptHoverProvider', () => {
         const result = provider.provideHover(doc as any, pos, token as any);
 
         expect(result).toBeDefined();
-        const md = result!.contents as MarkdownString;
+        const md = asHover(result)!.contents as unknown as MarkdownString;
         expect(md.value).toContain(trait.label);
         expect(md.value).toContain(trait.category);
       });

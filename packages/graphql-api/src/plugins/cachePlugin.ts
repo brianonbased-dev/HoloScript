@@ -6,10 +6,11 @@
 import { ApolloServerPlugin, GraphQLRequestListener, BaseContext } from '@apollo/server';
 import type { GraphQLRequest } from '@apollo/server';
 import { createHash } from 'crypto';
+import type { FormattedExecutionResult } from 'graphql';
 
 /** Extended request type carrying cached result through the plugin pipeline. */
 interface CacheableRequest extends GraphQLRequest {
-  __cachedResult?: Record<string, unknown>;
+  __cachedResult?: FormattedExecutionResult;
 }
 
 export interface CachePluginOptions {
@@ -39,7 +40,7 @@ export interface CachePluginOptions {
 }
 
 interface CacheEntry {
-  result: Record<string, unknown>;
+  result: FormattedExecutionResult;
   timestamp: number;
   hits: number;
 }
@@ -73,7 +74,7 @@ class ResponseCache {
   get(
     operationName: string | undefined,
     variables: Record<string, unknown> | null
-  ): CacheEntry['result'] | null {
+  ): FormattedExecutionResult | null {
     const key = this.generateKey(operationName, variables);
     const entry = this.cache.get(key);
 
@@ -100,7 +101,7 @@ class ResponseCache {
   set(
     operationName: string | undefined,
     variables: Record<string, unknown> | null,
-    result: Record<string, unknown>
+    result: FormattedExecutionResult
   ): void {
     const key = this.generateKey(operationName, variables);
 
@@ -177,7 +178,7 @@ export function createCachePlugin(
           }
 
           // Check cache
-          const cached = cache.get(operationName, request.variables);
+          const cached = cache.get(operationName, request.variables ?? null);
           if (cached) {
             _cacheHit = true;
             (request as CacheableRequest).__cachedResult = cached;
@@ -212,7 +213,7 @@ export function createCachePlugin(
           if (isCacheable && response.body.kind === 'single') {
             const result = response.body.singleResult;
             if (!result.errors || result.errors.length === 0) {
-              cache.set(operationName, request.variables, result);
+              cache.set(operationName, request.variables ?? null, result);
 
               // Add cache status to extensions
               if (includeStatus) {

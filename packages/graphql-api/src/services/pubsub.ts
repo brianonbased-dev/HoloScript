@@ -60,6 +60,24 @@ export interface CompilationCompleteEvent {
 export const pubsub = new PubSub();
 
 /**
+ * type-graphql compatible PubSub adapter.
+ *
+ * type-graphql's PubSub interface requires `subscribe` to return
+ * `AsyncIterable<unknown>`, whereas graphql-subscriptions v3's `PubSub`
+ * returns `Promise<number>`.  This adapter delegates `subscribe` to the
+ * PubSubEngine's `asyncIterableIterator`, which does return an AsyncIterable,
+ * and proxies `publish` directly to the underlying instance.
+ */
+export const typeGraphQLPubSub = {
+  publish(routingKey: string, payload: unknown): void {
+    pubsub.publish(routingKey, payload as never);
+  },
+  subscribe(routingKey: string): AsyncIterable<unknown> {
+    return pubsub.asyncIterableIterator(routingKey);
+  },
+};
+
+/**
  * Helper function to publish compilation progress
  */
 export function publishCompilationProgress(event: CompilationProgressEvent): void {
