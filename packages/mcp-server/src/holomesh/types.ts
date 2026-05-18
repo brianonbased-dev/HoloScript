@@ -16,7 +16,7 @@ export type {
   MemoryReceipt,
 } from '@holoscript/framework';
 
-import type { TeamTask, BountyManager } from '@holoscript/framework';
+import type { TeamTask, DoneLogEntry, BountyManager } from '@holoscript/framework';
 export type { TeamTask, BountyManager };
 export {
   /* TeamTask, BountyManager, */
@@ -491,7 +491,7 @@ export interface Team {
 
   // Board data
   taskBoard?: TeamTask[];
-  doneLog?: TeamTask[];
+  doneLog?: DoneLogEntry[];
 
   /** Local mirror of team-scoped knowledge (orchestrator GET may lag or omit workspace-scoped rows). */
   knowledge?: MeshKnowledgeEntry[];

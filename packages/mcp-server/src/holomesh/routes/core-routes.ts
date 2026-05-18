@@ -973,9 +973,9 @@ export async function handleCoreRoutes(
         { count: number; lastIso: string | null; lastCommitHash: string | null; commitHashCount: number }
       >();
       for (const d of team.doneLog ?? []) {
-        const handle = d.completedBy || d.claimedByName;
+        const handle = d.completedBy;
         if (!handle) continue;
-        const completedAt = d.completedAt || d.createdAt;
+        const completedAt = d.timestamp;
         if (!completedAt) continue;
         const t = Date.parse(completedAt);
         if (!Number.isFinite(t) || t < sinceMs) continue;

@@ -459,7 +459,7 @@ export async function handleBoardRoutes(
     // doneLog types differ between mcp-server (TeamTask[]) and framework (DoneLogEntry[])
     // but only .title is used for dedup, which both have
     const tasksWithCreator = tasksBody.map((t: any) => ({ ...t, createdBy: caller.id }));
-    const result = addTasksToBoard(team.taskBoard, (team.doneLog || []) as any, tasksWithCreator, { dedupMode });
+    const result = addTasksToBoard(team.taskBoard, (team.doneLog || []), tasksWithCreator, { dedupMode });
     const normalizationWarnings = Array.isArray((result as any).warnings)
       ? (result as any).warnings
       : (tasksBody as Array<{ title?: string; description?: string }>).flatMap((t) => {
@@ -541,7 +541,7 @@ export async function handleBoardRoutes(
         }));
       if (tasksBody.length > 0) {
         const scopedTasksBody = tasksBody.slice(0, body.max_tasks || 50);
-        const result = addTasksToBoard(team.taskBoard, (team.doneLog || []) as any, scopedTasksBody);
+        const result = addTasksToBoard(team.taskBoard, (team.doneLog || []), scopedTasksBody);
         addedTasks = result.added;
         skippedTasks = result.skipped;
         warnings = Array.isArray((result as any).warnings)
@@ -560,7 +560,7 @@ export async function handleBoardRoutes(
       }
     } else if (team.taskBoard.length === 0) {
       // Empty board auto-hint task
-      const result = addTasksToBoard(team.taskBoard, (team.doneLog || []) as any, [{
+      const result = addTasksToBoard(team.taskBoard, (team.doneLog || []), [{
         title: 'Run /room scout to find actionable work in this repository',
         description: 'Your project board is empty. Run /room scout with todo_content populated or use it directly in terminal.',
         source: 'scout:auto-hint',
@@ -610,7 +610,7 @@ export async function handleBoardRoutes(
       return true;
     }
 
-    const doneEntry = ((team.doneLog || []) as unknown as DoneLogEntry[]).find(
+    const doneEntry = ((team.doneLog || [])).find(
       (entry) => entry.taskId === taskId
     );
     if (doneEntry) {
@@ -1392,7 +1392,7 @@ export async function handleBoardRoutes(
     }
 
     // 2. Done log
-    for (const entry of (team.doneLog || []) as unknown as DoneLogEntry[]) {
+    for (const entry of (team.doneLog || [])) {
       pushDoneTrace(entry);
       for (const ev of entry.subagentEvents || []) pushSubagentTrace(ev);
       for (const ev of entry.policyEvents || []) pushPolicyTrace(ev);

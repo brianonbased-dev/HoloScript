@@ -8,7 +8,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { createProviderManager, type LLMProviderName } from '@holoscript/llm-provider';
+import { createProviderManager, type LLMProviderName, type MessageRole } from '@holoscript/llm-provider';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -303,7 +303,7 @@ function buildPremortemPrompt(
 // ---------------------------------------------------------------------------
 
 async function tryCompleteWithAI(request: {
-  messages: Array<{ role: string; content: string }>;
+  messages: Array<{ role: MessageRole; content: string }>;
   maxTokens: number;
   temperature: number;
 }): Promise<{ content: string; provider: LLMProviderName | undefined; attemptedProviders: LLMProviderName[] }> {
@@ -356,7 +356,7 @@ async function tryCompleteWithAI(request: {
     attemptedProviders.push(providerName);
 
     try {
-      const result = await provider.complete(request as import('@holoscript/llm-provider').LLMCompletionRequest);
+      const result = await provider.complete(request);
       return {
         content: result.content,
         provider: providerName,
