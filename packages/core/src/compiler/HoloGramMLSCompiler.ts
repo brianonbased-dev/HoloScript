@@ -228,7 +228,18 @@ export class HoloGramMLSCompiler extends CompilerBase {
     };
   }
 
-  compile(bundle: HoloGramMLSBundle): HoloGramMLSCompileResult {
+  /**
+   * Satisfy CompilerBase abstract method — HoloGramMLSCompiler is a format-ingest
+   * compiler (bundle → HoloComposition). Use compileBundle() for ingestion.
+   */
+  compile(..._args: unknown[]): string {
+    throw new Error(
+      'HoloGramMLSCompiler.compile() is not supported. ' +
+      'Use compileBundle(bundle: HoloGramMLSBundle) to ingest an MLS bundle.'
+    );
+  }
+
+  compileBundle(bundle: HoloGramMLSBundle): HoloGramMLSCompileResult {
     const warnings: string[] = [];
     const errors: string[] = [];
     const stats = { photos: 0, rooms: 0, waypoints: 0, lights: 0 };

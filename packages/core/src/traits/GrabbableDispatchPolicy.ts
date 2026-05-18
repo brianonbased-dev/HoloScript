@@ -19,6 +19,7 @@ import type { ProvenanceContext } from '../compiler/traits/ProvenanceSemiring';
 export const DEFAULT_GRABBABLE_DISPATCH_CONFIG: DispatchPolicyConfig = {
   tier1BrowserEnabled: true,
   tier1NeuromorphicEnabled: false,
+  tier1WasmEnabled: false,
   tier2Enabled: true,
   tier2AlphaThreshold: 0.85,
   alphaWindowSize: 50,

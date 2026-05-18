@@ -364,7 +364,7 @@ export const multiAgentHandler: TraitHandler<MultiAgentConfig> = {
     }
 
     if (event.type === 'receive_agent_message') {
-      const message = event.payload as AgentMessage;
+      const message = event.payload as unknown as AgentMessage;
 
       // Check if message is for us
       if (message.to && message.to !== state.self.id) return;

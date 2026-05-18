@@ -14,9 +14,8 @@
  * Composes with existing: AIDriverTrait, BehaviorTreeTrait, NeuralAnimationTrait, HumanoidLoader (GLB ingest).
  */
 
-import { Trait } from '../trait-system';
+import type { Trait } from './Trait';
 import { AIDriverTrait } from './AIDriverTrait';
-import { BehaviorTreeTrait } from './BehaviorTreeTrait';
 
 export interface CavemanDriveState {
   hunger: number;     // 0..1 — rises on time, falls on eat
@@ -28,9 +27,12 @@ export interface CavemanDriveState {
   lastLLMCallTick: number;
 }
 
-export class CavemanDriveTrait extends Trait {
+export class CavemanDriveTrait implements Trait {
   static readonly id = 'caveman_drive';
   static readonly version = '0.1.0';
+
+  // Implements Trait.name
+  readonly name = CavemanDriveTrait.id;
 
   private state: CavemanDriveState = {
     hunger: 0.5,
@@ -44,17 +46,16 @@ export class CavemanDriveTrait extends Trait {
 
   private tickCount = 0;
 
-  constructor() {
-    super(CavemanDriveTrait.id, CavemanDriveTrait.version);
-  }
-
   onAttach(entity: any) {
     // Compose with existing driver + BT if present
-    const aiDriver = entity.getTrait(AIDriverTrait.id) as AIDriverTrait;
-    const bt = entity.getTrait(BehaviorTreeTrait.id) as BehaviorTreeTrait;
+    // AIDriverTrait.id not exposed as static — use the canonical string ID
+    const aiDriver = entity.getTrait('ai_driver') as AIDriverTrait;
+    // BehaviorTreeTrait is a handler not a class — use string ID
+    void entity.getTrait('behavior_tree'); // kept for future composition
 
     if (aiDriver) {
-      aiDriver.setPerceptionCallback((nearby: any[]) => this.perceive(nearby));
+      // setPerceptionCallback is not yet in AIDriverTrait public API — cast to any
+      (aiDriver as any).setPerceptionCallback?.((nearby: any[]) => this.perceive(nearby));
     }
   }
 

@@ -46,11 +46,14 @@ import type {
   HologramProperties,
   HologramShape,
   HoloScriptValue,
-  IParentRuntime,
   MigrationBlock,
   OrbNode,
   TemplateNode,
 } from '../types';
+
+/** Minimal interface for the parent runtime passed to agentRuntime.reset(). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type IParentRuntime = Record<string, any>;
 
 /** Fat context for orb execution — 13 fields, some optional. */
 export interface OrbExecutorContext {

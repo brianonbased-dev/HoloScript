@@ -467,7 +467,7 @@ export function createSharedSpatialProvider(): SpatialContextProvider {
 }
 
 // ── Handler (delegates to SpatialAwarenessTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitInstanceDelegate } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitInstanceDelegate, TraitEvent } from './TraitTypes';
 
 export const spatialAwarenessHandler = {
   name: 'spatial_awareness',

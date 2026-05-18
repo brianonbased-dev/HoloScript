@@ -51,7 +51,7 @@ export interface PipelineOnError {
 export interface PipelineSource {
   kind: 'source';
   name: string;
-  type: 'rest' | 'stream' | 'filesystem' | 'database' | 'mcp' | 'list';
+  type: 'rest' | 'webhook' | 'stream' | 'filesystem' | 'database' | 'mcp' | 'list' | 'stdout';
   endpoint?: string;
   path?: string;
   pattern?: string;
