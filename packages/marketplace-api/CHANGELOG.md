@@ -4,15 +4,15 @@
 
 ### Patch Changes
 
-- @holoscript/core@8.0.0
-- @holoscript/framework@7.0.1
+- @holoscript/core@6.1.0
+- @holoscript/framework@6.1.0
 
 ## 1.2.3
 
 ### Patch Changes
 
 - Updated dependencies
-  - @holoscript/core@7.0.0
+  - @holoscript/core@6.1.0
   - @holoscript/framework@6.0.5
 
 ## 1.2.2

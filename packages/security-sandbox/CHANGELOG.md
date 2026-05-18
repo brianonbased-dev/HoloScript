@@ -6,18 +6,18 @@
 
 - Updated dependencies [c6e69b8]
 - Updated dependencies [440e163]
-  - @holoscript/engine@8.0.0
-  - @holoscript/core@8.0.0
-  - @holoscript/holo-vm@8.0.0
+  - @holoscript/engine@6.1.0
+  - @holoscript/core@6.1.0
+  - @holoscript/holo-vm@6.1.0
 
 ## 1.2.2
 
 ### Patch Changes
 
 - Updated dependencies
-  - @holoscript/core@7.0.0
-  - @holoscript/engine@7.0.0
-  - @holoscript/holo-vm@7.0.0
+  - @holoscript/core@6.1.0
+  - @holoscript/engine@6.1.0
+  - @holoscript/holo-vm@6.1.0
 
 ## 1.2.1
 

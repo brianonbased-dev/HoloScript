@@ -1,14 +1,7 @@
 # @holoscript/adapter-postgres
 
-## 2.0.0
-
-### Patch Changes
-
-- @holoscript/core@8.0.0
-
 ## 1.0.0
 
-### Patch Changes
+### Changed
 
-- Updated dependencies
-  - @holoscript/core@7.0.0
+- Align release metadata with the HoloScript 6.x line. See the root CHANGELOG for the outward-facing release narrative.

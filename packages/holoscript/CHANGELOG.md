@@ -1,17 +1,10 @@
 # @holoscript/sdk
 
-## 8.0.0
+## 6.1.0
 
-### Patch Changes
+### Changed
 
-- @holoscript/core@8.0.0
-
-## 7.0.0
-
-### Patch Changes
-
-- Updated dependencies
-  - @holoscript/core@7.0.0
+- Align release metadata with the HoloScript 6.x line. See the root CHANGELOG for the outward-facing release narrative.
 
 ## 6.0.3
 

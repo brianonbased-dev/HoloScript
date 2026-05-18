@@ -4,5 +4,5 @@
 
 ### Patch Changes
 
-- @holoscript/core@8.0.0
-- @holoscript/framework@7.0.1
+- @holoscript/core@6.1.0
+- @holoscript/framework@6.1.0
