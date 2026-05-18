@@ -74,4 +74,31 @@ describe('wot-export public API contract', () => {
       expect(result.stderr).not.toContain('@holoscript/core/wot');
     });
   }, 120_000);
+
+  it('preserves replay-overlay properties, action, and event affordances', async () => {
+    await withTempDir(async (dir) => {
+      const file = path.join(dir, 'replay-overlay.holo');
+      await fs.writeFile(
+        file,
+        `composition "ReplayOverlay" {
+  object "ReleaseEventTile" {
+    @wot_thing(title: "Release replay event", security: "nosec")
+    geometry: "plane"
+    label: "release_constraint_detached"
+    properties: { source: "world-model-two-agent.log", action: "release", expected: "tool owner becomes null" }
+  }
+}
+`
+      );
+
+      const result = await runCli(['wot-export', file, '--json']);
+
+      expect(result.stdout).toContain('"source"');
+      expect(result.stdout).toContain('"release"');
+      expect(result.stdout).toContain('"expected"');
+      expect(result.stdout).toContain('"actions"');
+      expect(result.stdout).toContain('"events"');
+      expect(result.stdout).toContain('"release_constraint_detached"');
+    });
+  }, 120_000);
 });

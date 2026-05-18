@@ -2909,6 +2909,7 @@ export class HoloCompositionParser {
       'TEMPLATE',
       'STATE',
       'OBJECT',
+      'ACTION',
       'ON_ERROR',
       // Structured physics sub-block keywords (can also appear as property names)
       'COLLIDER',

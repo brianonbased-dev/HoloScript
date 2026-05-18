@@ -266,6 +266,37 @@ export class ThingDescriptionGenerator {
     return results;
   }
 
+  private propertyListToRecord(properties: unknown): Record<string, unknown> {
+    if (!Array.isArray(properties)) {
+      return this.asRecord(properties);
+    }
+
+    const record: Record<string, unknown> = {};
+    for (const property of properties) {
+      const entry = this.asRecord(property);
+      const key = entry.key;
+      if (typeof key === 'string') {
+        record[key] = entry.value;
+      }
+    }
+    return record;
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private readNodeProperties(node: HSPlusNode): Record<string, unknown> {
+    return this.propertyListToRecord(node.properties);
+  }
+
+  private readInlineAffordanceMetadata(node: HSPlusNode): Record<string, unknown> {
+    const properties = this.readNodeProperties(node);
+    return this.asRecord(properties.properties);
+  }
+
   /**
    * Find @wot_thing directive in node
    */
@@ -316,15 +347,20 @@ export class ThingDescriptionGenerator {
 
     // Find @state directive (use any for flexibility with directive variants)
     const stateDirective = node.directives.find(
-      (d: any) =>
-        d.type === 'state' || (d.type === 'directive' && d.name === 'state')
+      (d: any) => d.type === 'state' || (d.type === 'directive' && d.name === 'state')
     );
 
     if (!stateDirective || !(stateDirective as { body?: unknown }).body) {
       // Also check node.properties for inline state
-      if (node.properties?.state && typeof node.properties.state === 'object') {
-        return this.mapStateToProperties(node.properties.state as Record<string, unknown>);
+      const nodeProperties = this.readNodeProperties(node);
+      if (nodeProperties.state && typeof nodeProperties.state === 'object') {
+        Object.assign(
+          properties,
+          this.mapStateToProperties(nodeProperties.state as Record<string, unknown>)
+        );
       }
+
+      Object.assign(properties, this.mapStateToProperties(this.readInlineAffordanceMetadata(node)));
       return properties;
     }
 
@@ -332,7 +368,9 @@ export class ThingDescriptionGenerator {
     const rawBody = (stateDirective as { body?: unknown }).body;
     const stateBody =
       typeof rawBody === 'object' && rawBody !== null ? (rawBody as Record<string, unknown>) : {};
-    return this.mapStateToProperties(stateBody);
+    Object.assign(properties, this.mapStateToProperties(stateBody));
+    Object.assign(properties, this.mapStateToProperties(this.readInlineAffordanceMetadata(node)));
+    return properties;
   }
 
   /**
@@ -448,7 +486,42 @@ export class ThingDescriptionGenerator {
       }
     }
 
+    const metadata = this.readInlineAffordanceMetadata(node);
+    const authoredAction = metadata.action;
+    if (typeof authoredAction === 'string' && authoredAction.trim()) {
+      const actionName = this.normalizeAffordanceName(authoredAction);
+      actions[actionName] = this.buildActionAffordance(
+        actionName,
+        typeof metadata.expected === 'string' ? metadata.expected : undefined
+      );
+    }
+
+    const authoredActions = metadata.actions;
+    if (Array.isArray(authoredActions)) {
+      for (const action of authoredActions) {
+        if (typeof action !== 'string' || !action.trim()) continue;
+        const actionName = this.normalizeAffordanceName(action);
+        actions[actionName] = this.buildActionAffordance(actionName);
+      }
+    }
+
     return actions;
+  }
+
+  private buildActionAffordance(actionName: string, expected?: string): ActionAffordance {
+    return {
+      title: this.toTitleCase(actionName),
+      description: expected || `Invoke ${actionName} action`,
+      safe: false,
+      idempotent: false,
+      forms: [
+        {
+          href: `${this.options.baseUrl}/actions/${actionName}`,
+          contentType: this.options.contentType,
+          op: 'invokeaction',
+        },
+      ],
+    };
   }
 
   /**
@@ -525,7 +598,51 @@ export class ThingDescriptionGenerator {
       }
     }
 
+    const metadata = this.readInlineAffordanceMetadata(node);
+    const nodeProperties = this.readNodeProperties(node);
+    const authoredEvent = metadata.event ?? nodeProperties.label;
+    if (typeof authoredEvent === 'string' && authoredEvent.trim()) {
+      const eventName = this.normalizeAffordanceName(authoredEvent);
+      if (!events[eventName]) {
+        events[eventName] = this.buildEventAffordance(eventName);
+      }
+    }
+
+    const authoredEvents = metadata.events;
+    if (Array.isArray(authoredEvents)) {
+      for (const event of authoredEvents) {
+        if (typeof event !== 'string' || !event.trim()) continue;
+        const eventName = this.normalizeAffordanceName(event);
+        if (!events[eventName]) {
+          events[eventName] = this.buildEventAffordance(eventName);
+        }
+      }
+    }
+
     return events;
+  }
+
+  private buildEventAffordance(eventName: string): EventAffordance {
+    return {
+      title: this.toTitleCase(eventName),
+      description: `${eventName} event`,
+      forms: [
+        {
+          href: `${this.options.baseUrl}/events/${eventName}`,
+          contentType: this.options.contentType,
+          subprotocol: 'sse',
+          op: 'subscribeevent',
+        },
+      ],
+    };
+  }
+
+  private normalizeAffordanceName(value: string): string {
+    return value
+      .trim()
+      .replace(/[^a-zA-Z0-9_ -]+/g, '')
+      .replace(/[\s-]+/g, '_')
+      .toLowerCase();
   }
 
   /**
