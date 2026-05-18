@@ -7,7 +7,7 @@ import {
   isCognitiveOp,
   isControlFlowOp,
 } from '../index';
-import type { UAALBytecode, VMProxy } from '../index';
+import type { UAALBytecode, UAALOperand, VMProxy } from '../index';
 
 // =============================================================================
 // OPCODE TESTS

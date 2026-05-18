@@ -97,7 +97,7 @@ async function runOnnxDepth(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const results = await session.run({ [inputName]: tensor } as any);
   const outName = session.outputNames[0];
-  const output = results[outName] as ort.Tensor;
+  const output = results[outName] as InstanceType<typeof ort.Tensor>;
   const outData = output.data as Float32Array;
   const dims = output.dims;
   let oh = target;

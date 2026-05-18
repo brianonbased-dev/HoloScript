@@ -178,7 +178,7 @@ export function lerpVec3(a: Vec3, b: Vec3, t: number): Vec3 {
 
 /** Identity transform */
 export const IDENTITY_TRANSFORM: SpatialTransform = {
-  position: [0, 0, 0],
+  position: { x: 0, y: 0, z: 0 },
   rotation: { x: 0, y: 0, z: 0, w: 1 },
   scale: { x: 1, y: 1, z: 1 },
 };

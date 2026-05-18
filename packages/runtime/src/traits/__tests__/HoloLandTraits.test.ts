@@ -38,7 +38,7 @@ function collectEvents(object: THREE.Object3D): Array<{ type: string; [k: string
   object.dispatchEvent = ((event: unknown) => {
     const e = event as { type: string; [k: string]: unknown };
     events.push(e);
-    return original(e as Event);
+    return original(e as Parameters<typeof original>[0]);
   }) as typeof object.dispatchEvent;
   return events;
 }
