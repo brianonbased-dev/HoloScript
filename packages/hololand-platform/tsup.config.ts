@@ -7,6 +7,7 @@ export default defineConfig({
     'evidence-envelope': 'src/evidence-envelope/cli.ts',
     'adversarial-trajectory': 'src/adversarial-trajectory/cli.ts',
     'headset-share': 'src/headset-share/cli.ts',
+    'holo-tunnel': 'src/holo-tunnel/cli.ts',
   },
   format: ['cjs', 'esm'],
   dts: true,

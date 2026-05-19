@@ -12,7 +12,8 @@
     "hololand-device-lab": "dist/device-lab.js",
     "hololand-evidence-envelope": "dist/evidence-envelope.js",
     "hololand-adversarial-trajectory": "dist/adversarial-trajectory.js",
-    "hololand-headset-share": "dist/headset-share.js"
+    "hololand-headset-share": "dist/headset-share.js",
+    "holo-tunnel": "dist/holo-tunnel.js"
   },
   "scripts": {
     "build": "tsup",
