@@ -3,6 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: {
     index: 'src/index.ts',
+    'board/index': 'src/board/index.ts',
     behavior: 'src/behavior.ts',
     'agents/index': 'src/agents/index.ts',
     'ai/index': 'src/ai/index.ts',

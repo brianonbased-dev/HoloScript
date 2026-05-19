@@ -322,12 +322,14 @@ export function redactPermissionGatePreview(value: string | undefined): Permissi
   });
   preview = preview.replace(
     /\b(access_token|refresh_token|id_token|client_secret|authorization|cookie|code)=([^&\s]+)/gi,
-    (_match, key: string) => {
+    (_match, key: string, value: string) => {
+      if (value === '<redacted>') return `${key}=<redacted>`;
       credentialMaterialRedacted = true;
       return `${key}=<redacted>`;
     }
   );
-  preview = preview.replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, () => {
+  preview = preview.replace(/\bBearer\s+([A-Za-z0-9._~+/=-]+|<redacted>)/gi, (_match, value: string) => {
+    if (value === '<redacted>') return 'Bearer <redacted>';
     credentialMaterialRedacted = true;
     return 'Bearer <redacted>';
   });
