@@ -202,21 +202,20 @@ export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
     };
   }, [parsed]);
 
-  // Feature-detect immersive-vr — deferred to after window.load so Quest Browser
-  // has time to initialize its XR runtime. Querying isSessionSupported too early
-  // (e.g. at React useEffect time, before load fires) returns false on Quest 3.
+  // Feature-detect immersive-vr.
+  // Quest Browser returns false from isSessionSupported('immersive-vr') while
+  // the page is flat (2D panel mode) even though requestSession succeeds. We
+  // enable the button optimistically whenever navigator.xr exists and rely on
+  // the requestSession error path in enterVR() to surface real failures.
   useEffect(() => {
-    const check = () => {
-      const xr = (navigator as unknown as { xr?: { isSessionSupported: (m: string) => Promise<boolean> } }).xr;
-      if (!xr) return;
-      xr.isSessionSupported('immersive-vr').then(setXrSupported).catch(() => setXrSupported(false));
-    };
-    if (document.readyState === 'complete') {
-      check();
-    } else {
-      window.addEventListener('load', check, { once: true });
-      return () => window.removeEventListener('load', check);
-    }
+    const xr = (navigator as unknown as { xr?: { isSessionSupported: (m: string) => Promise<boolean> } }).xr;
+    if (!xr) return;
+    // Optimistically enable for any browser that has the XR API.
+    setXrSupported(true);
+    // Refine: if the browser explicitly reports no support, disable.
+    xr.isSessionSupported('immersive-vr').then((supported) => {
+      if (!supported) setXrSupported(false);
+    }).catch(() => { /* leave optimistic true */ });
   }, []);
 
   const enterVR = async () => {
