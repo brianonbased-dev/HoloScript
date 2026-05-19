@@ -23,6 +23,7 @@ import { spawnSync } from 'node:child_process';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { startHoloTunnel } from '../holo-tunnel/index.js';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,7 @@ export type HeadsetTransportKind =
   | 'holomesh-relay'
   | 'lan-https'
   | 'usb-adb'
+  | 'holo-tunnel'
   | 'ngrok-https';
 
 export interface HeadsetShareOptions {
@@ -408,6 +410,11 @@ export async function startHeadsetShareServer(
     return startRelayUpload(code, name, author, shareId, options, startMs);
   }
 
+  // For holo-tunnel, start local server + relay through the owned HoloTunnel relay
+  if (transport === 'holo-tunnel') {
+    return startHoloTunnelServer(code, name, author, shareId, options, startMs);
+  }
+
   throw new Error(`Unsupported headset share transport: ${transport}`);
 }
 
@@ -582,6 +589,44 @@ async function startAdbServer(
     shareId,
     transport: 'usb-adb',
     close,
+  };
+}
+
+async function startHoloTunnelServer(
+  code: string,
+  name: string,
+  author: string,
+  shareId: string,
+  options: HeadsetShareOptions,
+  startMs: number
+): Promise<HeadsetShareServer> {
+  // Start a local LAN server on a random port, then punch through HoloTunnel
+  const lanServer = await startLanServer(code, name, author, shareId, {
+    ...options,
+    transport: 'lan-https',
+    host: '127.0.0.1',
+  }, startMs);
+
+  const tunnel = await startHoloTunnel({
+    localPort: lanServer.port,
+    localHost: '127.0.0.1',
+    ...(options.holomeshHost ? { relayBase: options.holomeshHost } : {}),
+    onRequest: (method, path) => {
+      // surfaced to CLI only — no-op in library usage
+      void method; void path;
+    },
+  });
+
+  const originalClose = lanServer.close;
+  lanServer.close = async () => {
+    tunnel.close();
+    await originalClose();
+  };
+
+  return {
+    ...lanServer,
+    url: tunnel.url,
+    transport: 'holo-tunnel',
   };
 }
 
