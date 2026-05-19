@@ -1,0 +1,436 @@
+// ============================================================================
+// Stress-Test: Alpine Observatory at Midnight
+// A-009 Phase 3 — 2026-05-19
+//
+// Trait combo (NEVER previously exercised together):
+//   @aurora            (0 prior examples) — soft northern-lights curtain on
+//                      the northern horizon, green-to-magenta band, 3-4 Hz
+//                      shimmer, does not wash the zenith stars.
+//
+//   @starfield         (0 prior examples) — procedural star catalogue, 8,200
+//                      stars above magnitude 6.5. Milky Way band rendered as
+//                      a volumetric noise lane with dust extinction.
+//
+//   @meteor_shower     (0 prior examples) — Perseid radiant at Perseus (RA 3h
+//                      04m, Dec +58°), 80 km altitude ablation trails,
+//                      2–4 sec burn with magnesium-white to orange-red fade.
+//
+//   @ambisonics        (0 prior examples) — 2nd-order (FOA+) ambisonics
+//                      captures observatory dome acoustics: concrete floor
+//                      reverb, metal dome ring, wind directionality.
+//                      Binaural decode on headset, stereo decode otherwise.
+//
+//   @chromatic_aberration (0 prior examples) — subtle prismatic fringing at
+//                      the eyepiece view edge; triggers momentarily on dome
+//                      rotation events, simulating refractive lens shift.
+//
+//   @iridescent        (0 prior examples) — thin-film oil-and-dew sheen on
+//                      the cold aluminium dome skin; shifts between green,
+//                      gold, and violet as the viewing angle changes.
+//
+// Well-exercised anchors (pull the zero-coverage traits into proven context):
+//   @glowing     (726 prior) — instrument panel warm amber glow; eyepiece
+//                              red-light safety lamp
+//   @animated    (271 prior) — dome drive motor rotation; wind-flag ripple
+//   @collidable  (664 prior) — observatory floor, dome walls, telescope mount
+//   @spatial_audio (77 prior)— point-source wind whistle at dome slit edge
+//
+// Visual story:
+//   02:47 local. You stand on the concrete floor of a stone observatory at
+//   3,100 m in the Swiss Alps. The slit is open — a 30° wedge of sky
+//   visible directly overhead. The Milky Way stretches through it in
+//   startling density: not a smear but individual star lanes, the dark rift
+//   of the dust cloud bisecting the band from Sagittarius to Cygnus.
+//
+//   A Perseid burns through your slit at 02:47:13. Two seconds of
+//   magnesium-white ablation, decaying through yellow to orange-red, then
+//   gone. The trail lingers as a ghost smear for five seconds more. You
+//   blink. The dark-adapted eye takes thirty seconds to recover magnitude 6.
+//
+//   On the northern horizon — just visible through the slit's edge — a pale
+//   green aurora ribbon hangs at 110 km altitude. It is not dramatic. It is
+//   precisely the dim, wavering kind that real aurora-watchers wait all night
+//   for, faint enough that you question whether it is there, then certain
+//   when the 3 Hz shimmer catches your eye.
+//
+//   The dome skin is cold — 4°C. Dew has condensed on it since 23:00. You
+//   hear the dome drive motor click: the RA axis is tracking, advancing the
+//   dome slot 4 arcminutes every 16 seconds to keep the slit aligned with
+//   the telescope. As the dome moves, the iridescent dew film shifts color
+//   — green to gold to violet — visible through the observation window.
+//
+//   You remove your eye from the eyepiece. The sudden shift from the dark-
+//   adapted ocular field to the ambient dome red-lights sends a brief wave
+//   of chromatic aberration: the nearby instrument panel's amber light
+//   splits into red-fringing on the left, blue on the right, for ~1.4 sec.
+//
+//   Ambisonics: the dome is acoustically interesting. Wind from the west
+//   whistles at the slit's northern lip — you hear it above-left. The
+//   concrete floor gives a flat reflection below. The metal dome curves
+//   sound around you. Take off headphones: it still sounds right. Put them
+//   on: it is spatial, enveloping, cold.
+// ============================================================================
+
+composition "AlpineObservatoryMidnight" {
+
+  version: "1.0"
+  target: "xr"
+  xr_mode: "vr_and_flat"
+
+  // ── Environment ──────────────────────────────────────────────────────────
+
+  environment {
+    skybox: "none"
+    background_color: "#020308"
+    ambient_light: 0.04
+    ambient_color: "#1a2840"
+    shadows: true
+    shadow_resolution: 2048
+    fog: { density: 0.0008, color: "#020308" }
+  }
+
+  // ── Sky layer 1: starfield (never exercised) ──────────────────────────────
+
+  object "MilkyWayDome" {
+    type: "sky_sphere"
+    radius: 5000
+
+    @starfield(
+      catalogue: "hipparcos_subset",
+      magnitude_limit: 6.5,
+      star_count: 8200,
+      scintillation: true,
+      scintillation_speed: 0.8,
+      scintillation_amplitude: 0.12,
+      milky_way: {
+        enabled: true,
+        band_intensity: 0.55,
+        dust_extinction: true,
+        dust_density: 0.38,
+        core_glow_color: "#ffd8a8",
+        arm_color: "#c8d8ff"
+      },
+      atmosphere_extinction: true,
+      horizon_fade_degrees: 12
+    )
+  }
+
+  // ── Sky layer 2: aurora (never exercised) ─────────────────────────────────
+
+  object "AuroraBorealis" {
+    type: "volumetric_curtain"
+    position: [0, 110000, -4500]
+
+    @aurora(
+      altitude_km: 110,
+      width_km: 800,
+      height_km: 40,
+      base_color: "#22ff66",
+      upper_color: "#cc44ff",
+      shimmer_frequency_hz: 3.2,
+      shimmer_amplitude: 0.28,
+      ray_density: 0.6,
+      brightness: 0.18,
+      direction: "north",
+      horizon_elevation_deg: 8,
+      activity_level: "moderate"
+    )
+  }
+
+  // ── Sky layer 3: meteor shower (never exercised) ──────────────────────────
+
+  object "PerseidShower" {
+    type: "meteor_emitter"
+
+    @meteor_shower(
+      radiant_ra_h: 3.07,
+      radiant_dec_deg: 58.1,
+      radiant_label: "Perseus",
+      ablation_altitude_km: 80,
+      peak_zhr: 110,
+      current_zhr: 85,
+      trail_duration_sec: 2.2,
+      persistent_trail_sec: 5.0,
+      head_color: "#ffffff",
+      mid_color: "#ffdd88",
+      tail_color: "#ff6622",
+      head_magnitude_range: [-1, 4],
+      specular_bloom: true,
+      sonic_boom: false
+    )
+  }
+
+  // ── Observatory structure ─────────────────────────────────────────────────
+
+  object "ObservatoryBase" {
+    type: "cylinder"
+    position: [0, 0, 0]
+    radius: 5.2
+    height: 3.5
+    material: "stone_limestone"
+    roughness: 0.88
+    metalness: 0.0
+    color: "#8a8070"
+
+    @collidable
+  }
+
+  object "DomeSkin" {
+    type: "hemisphere"
+    position: [0, 3.5, 0]
+    radius: 5.3
+    material: "brushed_aluminium"
+    roughness: 0.4
+    metalness: 0.85
+    color: "#c8c8c8"
+
+    @collidable
+
+    @iridescent(
+      film_thickness_nm: 280,
+      base_color: "#c8c8c8",
+      primary_shift_color: "#66ff88",
+      secondary_shift_color: "#ffdd44",
+      tertiary_shift_color: "#8866ff",
+      angle_sensitivity: 1.4,
+      coverage: 0.72,
+      dew_texture: "condensation_fine",
+      dew_coverage: 0.65
+    )
+
+    @animated(
+      property: "rotation_y",
+      driver: "motor_ra_tracking",
+      speed_deg_per_min: 0.25,
+      easing: "linear",
+      loop: true
+    )
+  }
+
+  object "DomeSlit" {
+    type: "rectangular_aperture"
+    position: [0, 5.8, 0]
+    width: 1.4
+    height: 3.0
+    orientation: "vertical"
+    open: true
+  }
+
+  // ── Telescope ─────────────────────────────────────────────────────────────
+
+  object "TelescopeMount" {
+    type: "equatorial_mount"
+    position: [0, 1.2, 0.4]
+    material: "cast_iron_painted"
+    color: "#1a1a1a"
+
+    @collidable
+    @glowing(
+      color: "#ff3300",
+      intensity: 0.05,
+      radius: 0.3,
+      pulsing: false
+    )
+  }
+
+  object "TelescopeTube" {
+    type: "cylinder"
+    position: [0, 2.0, 0.4]
+    radius: 0.31
+    height: 1.8
+    material: "carbon_fibre_tube"
+    color: "#111111"
+    metalness: 0.2
+    roughness: 0.6
+
+    @collidable
+  }
+
+  object "Eyepiece" {
+    type: "cylinder"
+    position: [-0.32, 2.6, 0.4]
+    radius: 0.04
+    height: 0.18
+    material: "anodised_aluminium"
+    color: "#222222"
+
+    @clickable(
+      on_click: "enter_eyepiece_view",
+      interaction_range: 0.6
+    )
+    @glowing(
+      color: "#cc4400",
+      intensity: 0.08,
+      radius: 0.15,
+      emits_from: "base_ring"
+    )
+  }
+
+  // ── Eyepiece view (chromatic aberration activated inside) ─────────────────
+
+  object "EyepieceViewPort" {
+    type: "render_portal"
+    active_when: "eyepiece_view_active"
+    fov_deg: 0.67
+    magnification: 200
+
+    @chromatic_aberration(
+      red_offset: [0.004, 0.0],
+      green_offset: [0.0, 0.0],
+      blue_offset: [-0.004, 0.002],
+      radial_scale: 1.6,
+      edge_only: true,
+      edge_falloff: 0.35,
+      trigger_on_events: ["dome_rotation_start", "focus_pull"],
+      trigger_intensity_multiplier: 2.8,
+      trigger_decay_sec: 1.4
+    )
+  }
+
+  // ── Instrument panel ──────────────────────────────────────────────────────
+
+  object "InstrumentPanel" {
+    type: "panel"
+    position: [-2.8, 1.4, -0.8]
+    rotation: [0, 35, 0]
+    width: 1.2
+    height: 0.7
+    material: "brushed_metal"
+    color: "#2a2a2a"
+
+    @collidable
+    @glowing(
+      color: "#cc6600",
+      intensity: 0.35,
+      radius: 0.9,
+      flicker: false,
+      emits_from: "display_surface"
+    )
+  }
+
+  object "RADriveIndicator" {
+    type: "display"
+    position: [-2.8, 1.58, -0.78]
+    text: "RA TRACK  +00h 04m 00s"
+    font_size: 0.045
+    color: "#ff6600"
+    background: "transparent"
+  }
+
+  object "SiderealClock" {
+    type: "display"
+    position: [-2.8, 1.44, -0.78]
+    text: "LST  02:47:13"
+    font_size: 0.045
+    color: "#ff6600"
+    background: "transparent"
+
+    @animated(
+      property: "text",
+      driver: "sidereal_clock_tick",
+      update_rate_hz: 1
+    )
+  }
+
+  // ── Ambient audio: ambisonics (never exercised) ───────────────────────────
+
+  object "DomeAcousticField" {
+    type: "audio_volume"
+    position: [0, 3.5, 0]
+    radius: 12
+
+    @ambisonics(
+      order: 2,
+      normalization: "sn3d",
+      channel_ordering: "acn",
+      decoder: "binaural",
+      source: "audio/observatory-midnight-2oa.amb",
+      loop: true,
+      volume: 0.82,
+      scene_rotation_lock: true
+    )
+  }
+
+  // ── Point-source wind at slit edge: spatial_audio anchor ─────────────────
+
+  object "SlitWindWhistle" {
+    type: "audio_emitter"
+    position: [0.7, 7.1, 0.4]
+
+    @spatial_audio(
+      source: "audio/alpine-wind-slit.wav",
+      loop: true,
+      volume: 0.55,
+      min_distance: 0.5,
+      max_distance: 14,
+      rolloff: "inverse",
+      directional: false
+    )
+
+    @animated(
+      property: "volume_multiplier",
+      driver: "wind_speed_sensor",
+      range: [0.3, 1.0],
+      update_rate_hz: 0.5
+    )
+  }
+
+  // ── Wind flag outside dome ────────────────────────────────────────────────
+
+  object "WindFlag" {
+    type: "cloth_strip"
+    position: [5.8, 5.2, 0]
+    width: 0.4
+    height: 0.22
+    color: "#dd2222"
+
+    @animated(
+      driver: "wind_procedural",
+      wind_speed_mps: 6.2,
+      wind_direction_deg: 270,
+      turbulence: 0.4
+    )
+  }
+
+  // ── Observatory floor ─────────────────────────────────────────────────────
+
+  object "ConcreteFloor" {
+    type: "plane"
+    position: [0, 0.02, 0]
+    width: 10
+    height: 10
+    material: "concrete_worn"
+    roughness: 0.94
+    metalness: 0.0
+    color: "#555048"
+
+    @collidable
+  }
+
+  // ── Red-light safety lamps ────────────────────────────────────────────────
+
+  object "SafetyLampA" {
+    type: "sphere"
+    position: [-3.8, 2.2, 1.0]
+    radius: 0.08
+
+    @glowing(
+      color: "#cc1100",
+      intensity: 0.22,
+      radius: 2.8
+    )
+  }
+
+  object "SafetyLampB" {
+    type: "sphere"
+    position: [3.8, 2.2, -1.2]
+    radius: 0.08
+
+    @glowing(
+      color: "#cc1100",
+      intensity: 0.18,
+      radius: 2.4
+    )
+  }
+
+}
