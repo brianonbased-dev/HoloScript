@@ -31,6 +31,7 @@ export * from './BlackboardTrait';
 export * from './BodyTrackingTrait';
 export * from './BufferTrait';
 export * from './BuoyancyTrait';
+export * from './CareEthicsTrait';
 export * from './ChainTrait';
 export { characterHandler } from './CharacterTrait';
 export { choreographyHandler } from './ChoreographyTrait';

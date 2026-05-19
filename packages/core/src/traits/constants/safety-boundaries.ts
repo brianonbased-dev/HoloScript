@@ -16,4 +16,5 @@ export const SAFETY_BOUNDARIES_TRAITS = [
   'tutorial_zone',
   'boss_arena',
   'spawn_point',
+  'care_ethics',
 ] as const;
