@@ -47,6 +47,7 @@ export { NavierStokesSolver, type NavierStokesConfig, type CFDBC, type NavierSto
 export { MultiphaseNSSolver, type MultiphaseConfig, type MultiphaseStats } from './MultiphaseNSSolver';
 export { MolecularDynamicsSolver, type MDConfig, type MDStats } from './MolecularDynamicsSolver';
 export { ReactionDiffusionSolver, type ReactionDiffusionConfig, type ReactionDiffusionStats, type Species, type Reaction } from './ReactionDiffusionSolver';
+export { AffinityODESolver, type AffinityConfig, type AffinityState, type AffinityStats, type AgentParams, type PersonalityArchetype, type SternbergParams, type NashEffortParams } from './AffinityODESolver';
 
 // Meshing — Surface-to-volume tet mesh generation
 export {
@@ -245,6 +246,7 @@ export {
   ThermalSolverAdapter, StructuralSolverAdapter,
   TET10SolverAdapter, HydraulicSolverAdapter, AcousticSolverAdapter,
   FDTDSolverAdapter, ReactionDiffusionSolverAdapter,
+  AffinityODESolverAdapter,
 } from './adapters/SolverAdapters';
 
 // Experiment Orchestration

@@ -117,6 +117,7 @@ import { UNIVERSAL_V6_TRAITS } from './universal-service';
 import { SIMULATION_DOMAIN_TRAITS } from './simulation-domains';
 import { CONNECTOR_INTEGRATION_TRAITS } from './connector-integration';
 import { HOLOMAP_RECONSTRUCTION_TRAITS } from './holomap-reconstruction';
+import { AFFINITY_TRAITS } from './affinity';
 
 // Phone Sleeve VR (smartphone-as-headset)
 import { PHONE_SLEEVE_VR_TRAITS } from './mobile/phone-sleeve-vr';
@@ -472,6 +473,9 @@ export const VR_TRAITS = [
 
   // Connector Integration (4 traits)
   ...CONNECTOR_INTEGRATION_TRAITS,
+
+  // Affinity & Relational Dynamics (15 traits — Strogatz-Rinaldi ODEs)
+  ...AFFINITY_TRAITS,
 ] as const;
 
 

@@ -40,6 +40,12 @@ import {
   type Species,
   type Reaction,
 } from './ReactionDiffusionSolver';
+import {
+  AffinityODESolver,
+  type AffinityConfig,
+  type SternbergParams,
+  type NashEffortParams,
+} from './AffinityODESolver';
 import { MLSMPMFluid, type MLSMPMConfig } from '../physics/MLSMPMFluid';
 import { registerWasmMesher } from './AutoMesher';
 import { TetGenWasmMesher } from './wasm/TetGenWasmMesher';
@@ -226,6 +232,24 @@ export function initSimulationSolvers(): void {
       absoluteTolerance: cfg.absoluteTolerance as number | undefined,
       relativeTolerance: cfg.relativeTolerance as number | undefined,
       maxSubsteps: cfg.maxSubsteps as number | undefined,
+    }) as unknown as SimulationSolver;
+  });
+
+  SimulationSolverFactory.register('affinity-ode', (raw) => {
+    const cfg = raw as Record<string, unknown>;
+    const agents = cfg.agents as AffinityConfig['agents'] ?? [
+      { id: 'agent_0', dampingRate: -0.2, couplingToPartner: 0.5 },
+      { id: 'agent_1', dampingRate: -0.1, couplingToPartner: 0.8 },
+    ];
+    return new AffinityODESolver({
+      agents,
+      initialFeelings: cfg.initialFeelings as [number, number] | undefined,
+      enableSternberg: cfg.enableSternberg as boolean | undefined,
+      sternberg: cfg.sternberg as SternbergParams | undefined,
+      initialSternbergState: cfg.initialSternbergState as [number, number, number] | undefined,
+      nashEffort: cfg.nashEffort as NashEffortParams | undefined,
+      timeStep: (cfg.timeStep as number) ?? 0.01,
+      maxTime: cfg.maxTime as number | undefined,
     }) as unknown as SimulationSolver;
   });
 

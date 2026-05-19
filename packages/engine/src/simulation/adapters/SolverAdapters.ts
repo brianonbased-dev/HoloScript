@@ -10,6 +10,7 @@ import type { HydraulicSolver } from '../HydraulicSolver';
 import type { AcousticSolver } from '../AcousticSolver';
 import type { FDTDSolver } from '../FDTDSolver';
 import type { ReactionDiffusionSolver } from '../ReactionDiffusionSolver';
+import type { AffinityODESolver } from '../AffinityODESolver';
 
 // Helper to avoid repetition
 function stats(s: { getStats(): unknown }): Record<string, unknown> {
@@ -133,6 +134,26 @@ export class ReactionDiffusionSolverAdapter implements SimSolver {
     if (name === 'heat_source') return this.s.getHeatSourceField();
     if (name === 'heat_source_grid') return this.s.getHeatSourceGrid();
     if (name === 'temperature_grid') return this.s.getTemperatureGrid();
+    return null;
+  }
+  getStats() { return stats(this.s); }
+  dispose(): void { this.s.dispose(); }
+}
+
+export class AffinityODESolverAdapter implements SimSolver {
+  readonly mode: SolverMode = 'transient';
+  readonly fieldNames = ['state_vector', 'feelings_R', 'feelings_J', 'intimacy', 'passion', 'commitment'] as const;
+  constructor(private s: AffinityODESolver) {}
+  step(dt: number): void { this.s.step(dt); }
+  solve(): void {}
+  getField(name: string): FieldData | null {
+    if (name === 'state_vector') return this.s.getStateVector();
+    const st = this.s.getState();
+    if (name === 'feelings_R') return new Float32Array([st.R]);
+    if (name === 'feelings_J') return new Float32Array([st.J]);
+    if (name === 'intimacy') return new Float32Array([Number.isNaN(st.intimacy) ? 0 : st.intimacy]);
+    if (name === 'passion') return new Float32Array([Number.isNaN(st.passion) ? 0 : st.passion]);
+    if (name === 'commitment') return new Float32Array([Number.isNaN(st.commitment) ? 0 : st.commitment]);
     return null;
   }
   getStats() { return stats(this.s); }
