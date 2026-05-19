@@ -34,3 +34,20 @@ export {
   estimateKVBytes,
   entryFromStep,
 } from './KVFlowCacheManager';
+
+// Early Warning — carousel-pattern detection and per-brain metrics
+export {
+  KVFlowCarouselDetector,
+  checkCarouselEarlyWarning,
+  defaultCarouselDetector,
+} from './KVFlowEarlyWarning';
+
+export type {
+  BrainMetrics,
+  CarouselSeverity,
+  CarouselWarning,
+  WorkflowDrift,
+  CarouselEarlyWarningReport,
+  CarouselSummary,
+  CarouselEarlyWarningConfig,
+} from './KVFlowEarlyWarning';
