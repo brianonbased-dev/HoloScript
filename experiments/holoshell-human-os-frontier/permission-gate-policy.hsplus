@@ -1,0 +1,201 @@
+// HoloShell provider/app/device permission gate policy and state machine.
+
+composition "HoloShellPermissionGatePolicy" {
+  state PermissionGateState {
+    workflow: "provider-app-device-permission-gate"
+    subjectKind: "provider_account"
+    provider: "unknown"
+    redactedSubjectLabel: "unknown"
+    status: "idle"
+    permissionEnvelope: "read_only"
+    approvalId: "unknown"
+    minimumScopeCount: 0
+    grantedScopeCount: 0
+    extraScopeCount: 0
+    missingRequiredScopeCount: 0
+    minimumScopeSatisfied: false
+    excessScopesAbsent: false
+    rawCredentialCaptured: false
+    hiddenAutomationUsed: false
+    readyForHoloLand: false
+    revocationInstructionVisible: false
+    currentLane: "codex-hardware"
+    blockers: []
+  }
+
+  template "PermissionEnvelope" {
+    readOnly: true
+    guardedGrant: false
+    breakGlassPermission: false
+    revokeOnly: false
+    receiptRequired: true
+    humanVisible: true
+  }
+
+  template "PermissionGateReceiptContract" {
+    receiptType: "HoloShellPermissionGateReceiptPack"
+    schemaVersion: "hololand.holoshell.permission-gate.v0.1.0"
+    workflow: "provider-app-device-permission-gate"
+    subjectReceiptRequired: true
+    minimumRequiredScopesRequired: true
+    neverScopesRequired: true
+    freshHumanGestureRequiredForGrant: true
+    rawCredentialCaptureAllowed: false
+    hiddenAutomationAllowed: false
+    revocationInstructionRequired: true
+    verificationRequiredBeforeReady: true
+    replayable: true
+  }
+
+  policy "ReadOnlyPermissionDiscovery" using "PermissionEnvelope" {
+    readOnly: true
+    guardedGrant: false
+    breakGlassPermission: false
+    appliesTo: [
+      "detect_provider_account",
+      "read_app_manifest",
+      "read_os_permission_state",
+      "read_device_permission_state",
+      "calculate_minimum_scope",
+      "stage_permission_plan"
+    ]
+  }
+
+  policy "GuardedPermissionGrant" using "PermissionEnvelope" {
+    readOnly: false
+    guardedGrant: true
+    breakGlassPermission: false
+    appliesTo: [
+      "open_provider_consent_screen",
+      "request_oauth_scope",
+      "grant_os_app_permission",
+      "grant_device_permission",
+      "store_token_reference_hash",
+      "write_grant_receipt"
+    ]
+  }
+
+  policy "BreakGlassPermission" using "PermissionEnvelope" {
+    readOnly: false
+    guardedGrant: true
+    breakGlassPermission: true
+    appliesTo: [
+      "request_write_scope",
+      "grant_location_permission",
+      "grant_microphone_permission",
+      "grant_camera_permission",
+      "grant_payment_or_billing_adjacent_scope",
+      "grant_robot_or_device_actuation"
+    ]
+  }
+
+  policy "RevokeOnlyPermission" using "PermissionEnvelope" {
+    readOnly: false
+    guardedGrant: false
+    revokeOnly: true
+    appliesTo: [
+      "open_revoke_page",
+      "revoke_provider_app",
+      "revoke_os_permission",
+      "revoke_device_permission",
+      "verify_revoked",
+      "write_revocation_receipt"
+    ]
+  }
+
+  state_machine "PermissionGateWorkflow" {
+    initial: "idle"
+    states: [
+      "idle",
+      "subject_detected",
+      "scope_planned",
+      "approval_required",
+      "grant_observed",
+      "verified",
+      "ready",
+      "revoked",
+      "blocked"
+    ]
+    transition "detect_subject" { from: "idle", to: "subject_detected" }
+    transition "plan_scope" { from: "subject_detected", to: "scope_planned" }
+    transition "require_approval" { from: "scope_planned", to: "approval_required" }
+    transition "observe_grant" { from: "approval_required", to: "grant_observed" }
+    transition "verify_scope_diff" { from: "grant_observed", to: "verified" }
+    transition "unlock_tool" { from: "verified", to: "ready" }
+    transition "revoke" { from: "ready", to: "revoked" }
+    transition "block" { from: "*", to: "blocked" }
+  }
+
+  role "CodexHardware" {
+    laneId: "codex-hardware"
+    owns: ["local_permission_probe", "browser_profile_detection", "os_prompt_witness", "device_permission_probe"]
+  }
+
+  role "HoloShellPolicyAgent" {
+    laneId: "holoshell-policy"
+    owns: ["minimum_scope_calculation", "never_scope_blocker", "approval_gate", "revoke_path"]
+  }
+
+  role "HoloScriptSubstrateAgent" {
+    laneId: "holoscript-substrate"
+    owns: ["receipt_schema", "receipt_validator", "receipt_capability_registry", "stdlib_policy_gap"]
+  }
+
+  role "HoloLandProductAgent" {
+    laneId: "hololand-product"
+    owns: ["permission_room", "scope_chips", "revoke_lever", "world_tool_unlock"]
+  }
+
+  role "ProviderAccountAgent" {
+    laneId: "provider-account"
+    owns: ["provider_consent_screen", "scope_tokeninfo_probe", "provider_settings_witness"]
+  }
+
+  action classifyPermissionOperation(operation) {
+    if (operation.kind in RevokeOnlyPermission.appliesTo) {
+      return "revoke_only_permission"
+    }
+    if (operation.kind in BreakGlassPermission.appliesTo) {
+      return "break_glass_permission"
+    }
+    if (operation.kind in GuardedPermissionGrant.appliesTo) {
+      return "guarded_permission_grant"
+    }
+    return "read_only_permission_discovery"
+  }
+
+  action consumePermissionGateReceipt(receipt) {
+    PermissionGateState.status = receipt.status
+    PermissionGateState.subjectKind = receipt.subject.subjectKind
+    PermissionGateState.provider = receipt.subject.provider
+    PermissionGateState.redactedSubjectLabel = receipt.subject.redactedSubjectLabel
+    PermissionGateState.permissionEnvelope = receipt.request.permissionEnvelope
+    PermissionGateState.approvalId = receipt.request.approvalId
+    PermissionGateState.minimumScopeCount = receipt.request.minimumRequiredScopes.length
+    PermissionGateState.grantedScopeCount = receipt.grant.grantedScopes.length
+    PermissionGateState.extraScopeCount = receipt.grant.extraScopes.length
+    PermissionGateState.missingRequiredScopeCount = receipt.grant.missingRequiredScopes.length
+    PermissionGateState.minimumScopeSatisfied = receipt.verification.minimumScopeSatisfied
+    PermissionGateState.excessScopesAbsent = receipt.verification.excessScopesAbsent
+    PermissionGateState.rawCredentialCaptured = receipt.replay.rawCredentialCaptured
+    PermissionGateState.hiddenAutomationUsed = receipt.grant.hiddenAutomationUsed
+    PermissionGateState.readyForHoloLand = receipt.replay.readyForHoloLand
+    PermissionGateState.revocationInstructionVisible = receipt.grant.revocationInstruction != ""
+
+    emit("holoshell:permission_gate:receipt", {
+      workflow: PermissionGateState.workflow,
+      lane: PermissionGateState.currentLane,
+      provider: PermissionGateState.provider,
+      subject_kind: PermissionGateState.subjectKind,
+      permission_envelope: PermissionGateState.permissionEnvelope,
+      minimum_scope_count: PermissionGateState.minimumScopeCount,
+      granted_scope_count: PermissionGateState.grantedScopeCount,
+      extra_scope_count: PermissionGateState.extraScopeCount,
+      minimum_scope_satisfied: PermissionGateState.minimumScopeSatisfied,
+      excess_scopes_absent: PermissionGateState.excessScopesAbsent,
+      raw_credential_captured: PermissionGateState.rawCredentialCaptured,
+      hidden_automation_used: PermissionGateState.hiddenAutomationUsed,
+      ready_for_hololand: PermissionGateState.readyForHoloLand
+    })
+  }
+}

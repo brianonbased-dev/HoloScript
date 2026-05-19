@@ -247,6 +247,18 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
     subjects: ['install', 'update', 'upgrade', 'uninstall', 'package-manager', 'rollback', 'admin', 'winget', 'pnpm'],
     tags: ['holoshell', 'package', 'install', 'safety', 'break-glass'],
   },
+  {
+    capability: 'permission-gate',
+    description: 'Provider, app, connector, and device permission gate receipts — prove minimum scope, grant verification, revocation, and redacted credential handling.',
+    receiptType: 'HoloShellPermissionGateReceiptPack',
+    module: 'holoshell-permission-gate-receipts',
+    exportName: 'HoloShellPermissionGateReceiptPack',
+    validateFn: 'validateHoloShellPermissionGateReceiptPack',
+    cloneFn: 'cloneHoloShellPermissionGateReceiptPack',
+    isSupportedFn: 'isSupportedPermissionSubjectKind',
+    subjects: ['oauth', 'scope', 'grant', 'revoke', 'connector', 'provider-account', 'os-permission', 'device'],
+    tags: ['holoshell', 'permissions', 'oauth', 'safety', 'privacy', 'hololand'],
+  },
 
   // ── Structural Receipts ──
   {

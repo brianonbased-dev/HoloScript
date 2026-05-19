@@ -1,0 +1,145 @@
+/**
+ * HoloShell Permission Gate Room
+ *
+ * Visible deterministic wrapper for:
+ * "Connect the account, app, connector, or device permission HoloLand needs;
+ * grant the minimum scope; verify it; and show the revoke path."
+ */
+
+composition "HoloShell Permission Gate Room" {
+  environment {
+    backgroundColor: "#111722"
+    ambient_light: 0.58
+    shadows: true
+  }
+
+  template "GatePanel" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    scale: [1.28, 0.54, 0.08]
+    material: {
+      color: "#17202a"
+      emissive: "#26313d"
+      emissiveIntensity: 0.18
+      transparent: true
+      opacity: 0.94
+    }
+  }
+
+  template "ReceiptOrb" {
+    @glowing
+    @collidable
+    geometry: "sphere"
+    scale: [0.14, 0.14, 0.14]
+    material: { color: "#7dcfff" }
+  }
+
+  object "HumanJob" using "GatePanel" {
+    position: [0, 2.28, -2.8]
+    label: "Connect the permission without losing control"
+    properties: {
+      plainLanguageJob: "grant only the account, app, connector, or device permission a HoloLand world needs"
+      deterministicPromise: "minimum scope, visible approval, verified grant, revoke instructions, and replay receipts"
+      sourceBoundary: "HoloScript validates permission gate receipts; HoloLand renders gates and unlocks tools after verification"
+    }
+  }
+
+  object "SubjectGate" using "GatePanel" {
+    position: [-4.12, 1.42, -1.15]
+    label: "Subject"
+    properties: {
+      reads: ["provider", "redacted_account", "browser_profile", "app_identifier", "device_id_hash"]
+      failureStates: ["ambiguous_account", "wrong_browser_profile", "device_identity_unverified", "raw_label_leak"]
+      receipt: "PermissionSubjectReceipt"
+    }
+  }
+
+  object "ScopeGate" using "GatePanel" {
+    position: [-2.06, 1.42, -1.15]
+    label: "Minimum scope"
+    properties: {
+      reads: ["requestedScopes", "minimumRequiredScopes", "neverScopes", "purpose"]
+      blocks: ["wildcard_scope", "admin_scope", "billing_scope", "delete_scope", "full_access_scope"]
+      receipt: "PermissionRequestReceipt"
+    }
+  }
+
+  object "ApprovalGate" using "GatePanel" {
+    position: [0, 1.42, -1.15]
+    label: "Fresh approval"
+    properties: {
+      visibleControls: ["grant", "block", "open_provider_screen", "show_url_preview", "show_expiry"]
+      hiddenAutomationBlocked: ["silent_oauth", "cookie_scrape", "token_copy", "background_consent"]
+      receipt: "PermissionGrantReceipt"
+    }
+  }
+
+  object "VerifyGate" using "GatePanel" {
+    position: [2.06, 1.42, -1.15]
+    label: "Verify"
+    properties: {
+      proves: ["minimum_scope_satisfied", "excess_scopes_absent", "token_reference_hash_only", "tool_ready"]
+      methods: ["oauth_tokeninfo", "provider_settings", "os_permission_probe", "device_permission_probe", "connector_probe"]
+      receipt: "PermissionVerificationReceipt"
+    }
+  }
+
+  object "RevokeGate" using "GatePanel" {
+    position: [4.12, 1.42, -1.15]
+    label: "Revoke"
+    properties: {
+      visibleControls: ["open_revoke_page", "revoke_now", "verify_revoked", "record_residual_access_warning"]
+      failureStates: ["revoke_endpoint_missing", "revocation_unverified", "residual_session_access", "provider_delay"]
+      receipt: "PermissionRevocationReceipt"
+    }
+  }
+
+  object "SubjectOrb" using "ReceiptOrb" {
+    position: [-3.09, 0.72, 0.08]
+    label: "redacted subject"
+    properties: {
+      publicReceiptMayContainAbsolutePath: false
+      credentialExtrusionAllowed: false
+    }
+  }
+
+  object "ScopeOrb" using "ReceiptOrb" {
+    position: [-1.03, 0.72, 0.08]
+    material: { color: "#e0af68" }
+    label: "scope diff"
+    properties: {
+      required: ["minimumRequiredScopes"]
+      blocked: ["neverScopes", "extraScopes", "overbroadScopeAccepted"]
+    }
+  }
+
+  object "TokenOrb" using "ReceiptOrb" {
+    position: [1.03, 0.72, 0.08]
+    material: { color: "#f7768e" }
+    label: "no raw token"
+    properties: {
+      allowed: ["tokenReferenceHash", "refreshChainHash", "revocationUrlHash"]
+      blocked: ["raw_access_token", "refresh_token", "cookie_dump"]
+    }
+  }
+
+  object "ReadyOrb" using "ReceiptOrb" {
+    position: [3.09, 0.72, 0.08]
+    material: { color: "#9ece6a" }
+    label: "tool unlocked"
+    properties: {
+      requires: ["minimumScopeSatisfied", "excessScopesAbsent", "verificationReceiptId", "revocationInstruction"]
+      productLoop: "unlock HoloLand world operation only after permission receipt pack validates"
+    }
+  }
+
+  object "PermissionTimeline" {
+    @anchor
+    geometry: "cube"
+    position: [0, 0.18, 0.1]
+    scale: [7.25, 0.08, 0.14]
+    color: "#6b7f90"
+    label: "subject -> minimum scope -> approval -> grant observed -> verify scope diff -> ready token -> revoke -> replay lesson"
+  }
+}

@@ -808,6 +808,42 @@ export {
 } from './holoshell-package-mutation-receipt';
 
 export {
+  // HoloShell Permission Gate Receipts (holoshell-human-os-frontier)
+  HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION,
+  PERMISSION_GATE_WORKFLOW,
+  PERMISSION_SUBJECT_KINDS,
+  PERMISSION_GATE_ENVELOPES,
+  PERMISSION_GATE_STATUSES,
+  PERMISSION_VERIFICATION_METHODS,
+  PERMISSION_RISK_LEVELS,
+  type PermissionSubjectKind,
+  type PermissionGateEnvelope,
+  type PermissionGateStatus,
+  type PermissionVerificationMethod,
+  type PermissionRiskLevel,
+  type PermissionScopeGrant,
+  type PermissionSubjectReceipt,
+  type PermissionRequestReceipt,
+  type PermissionGrantReceipt,
+  type PermissionVerificationReceipt,
+  type PermissionRevocationReceipt,
+  type PermissionReplayReceipt,
+  type HoloShellPermissionGateReceiptPack,
+  isSupportedPermissionSubjectKind,
+  isSupportedPermissionGateEnvelope,
+  isSupportedPermissionGateStatus,
+  isSupportedPermissionVerificationMethod,
+  validatePermissionSubjectReceipt,
+  validatePermissionRequestReceipt,
+  validatePermissionGrantReceipt,
+  validatePermissionVerificationReceipt,
+  validatePermissionRevocationReceipt,
+  validatePermissionReplayReceipt,
+  validateHoloShellPermissionGateReceiptPack,
+  cloneHoloShellPermissionGateReceiptPack,
+} from './holoshell-permission-gate-receipts';
+
+export {
   // Download / Import Shelf Receipts (generic) - task_1779150614671_37ao
   DOWNLOAD_SHELF_SOURCES,
   DOWNLOAD_QUARANTINE_MODES,

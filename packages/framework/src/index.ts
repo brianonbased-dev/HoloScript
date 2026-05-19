@@ -626,6 +626,42 @@ export {
   cloneHoloShellPackageMutationReceipt,
 } from './board';
 
+// HoloShell Permission Gate Receipts (holoshell-human-os-frontier)
+export {
+  HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION,
+  PERMISSION_GATE_WORKFLOW,
+  PERMISSION_SUBJECT_KINDS,
+  PERMISSION_GATE_ENVELOPES,
+  PERMISSION_GATE_STATUSES,
+  PERMISSION_VERIFICATION_METHODS,
+  PERMISSION_RISK_LEVELS,
+  type PermissionSubjectKind,
+  type PermissionGateEnvelope,
+  type PermissionGateStatus,
+  type PermissionVerificationMethod,
+  type PermissionRiskLevel,
+  type PermissionScopeGrant,
+  type PermissionSubjectReceipt,
+  type PermissionRequestReceipt,
+  type PermissionGrantReceipt,
+  type PermissionVerificationReceipt,
+  type PermissionRevocationReceipt,
+  type PermissionReplayReceipt,
+  type HoloShellPermissionGateReceiptPack,
+  isSupportedPermissionSubjectKind,
+  isSupportedPermissionGateEnvelope,
+  isSupportedPermissionGateStatus,
+  isSupportedPermissionVerificationMethod,
+  validatePermissionSubjectReceipt,
+  validatePermissionRequestReceipt,
+  validatePermissionGrantReceipt,
+  validatePermissionVerificationReceipt,
+  validatePermissionRevocationReceipt,
+  validatePermissionReplayReceipt,
+  validateHoloShellPermissionGateReceiptPack,
+  cloneHoloShellPermissionGateReceiptPack,
+} from './board';
+
 // HoloShell Provider Export Repair Receipts (task_1779178784570_91vx)
 export {
   PROVIDER_EXPORT_FAILURE_RECEIPT_VERSION,
