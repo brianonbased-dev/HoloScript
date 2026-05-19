@@ -188,7 +188,7 @@ export class PluginInstallPipeline {
       );
       this.emitProgress(pluginId, 'download', 30);
 
-      const { bundle, shasum, expectedShasum } = await this.downloadPackage(
+      const { bundle, shasum, expectedShasum, signature: downloadSignature } = await this.downloadPackage(
         pluginId,
         metadata.version
       );
@@ -205,7 +205,7 @@ export class PluginInstallPipeline {
       // Stage 3b: Verify signature (if enabled)
       let signatureVerification: SignatureVerificationResult | undefined;
       if (this.options.verifySignatures) {
-        signatureVerification = await this.verifySignature(bundle, metadata);
+        signatureVerification = await this.verifySignature(bundle, metadata, downloadSignature);
         if (
           signatureVerification &&
           !signatureVerification.valid &&
@@ -579,11 +579,20 @@ export class PluginInstallPipeline {
 
   /**
    * Downloads the plugin package from the marketplace CDN.
+   *
+   * Returns the bundle, its computed SHA-256, the expected SHA-256 from
+   * the server, and the Ed25519 signature (if the server provides one
+   * via x-signature-* headers).
    */
   private async downloadPackage(
     pluginId: string,
     version: string
-  ): Promise<{ bundle: string; shasum: string; expectedShasum: string }> {
+  ): Promise<{
+    bundle: string;
+    shasum: string;
+    expectedShasum: string;
+    signature?: PluginSignature;
+  }> {
     const url = `${this.options.marketplaceUrl}/plugins/${encodeURIComponent(pluginId)}/download?version=${version}`;
 
     const headers: Record<string, string> = {};
@@ -600,7 +609,28 @@ export class PluginInstallPipeline {
     const shasum = createHash('sha256').update(bundle).digest('hex');
     const expectedShasum = response.headers.get('x-shasum') ?? shasum;
 
-    return { bundle, shasum, expectedShasum };
+    // Extract signature from response headers if present
+    // The marketplace CDN provides Ed25519 signature via x-signature-* headers
+    const sigValue = response.headers.get('x-signature');
+    const sigPublicKey = response.headers.get('x-signature-public-key');
+    const sigFingerprint = response.headers.get('x-signature-fingerprint');
+    const sigAlgorithm = response.headers.get('x-signature-algorithm');
+    const sigTimestamp = response.headers.get('x-signature-timestamp');
+    const sigKeyId = response.headers.get('x-signature-key-id');
+
+    let signature: PluginSignature | undefined;
+    if (sigValue && sigPublicKey && sigFingerprint) {
+      signature = {
+        algorithm: (sigAlgorithm as 'Ed25519') || 'Ed25519',
+        signature: sigValue,
+        publicKey: sigPublicKey,
+        keyFingerprint: sigFingerprint,
+        signedAt: sigTimestamp ?? new Date().toISOString(),
+        keyId: sigKeyId ?? undefined,
+      };
+    }
+
+    return { bundle, shasum, expectedShasum, signature };
   }
 
   /**
@@ -625,16 +655,32 @@ export class PluginInstallPipeline {
 
   /**
    * Verifies the digital signature of a plugin package.
+   *
+   * Uses PluginSignatureService for cryptographic verification:
+   *   1. Computes SHA-256 content hash from the bundle
+   *   2. If a signature is available (from download headers or manifest),
+   *      delegates to signatureService.verifyPackageIntegrity for full
+   *      Ed25519 verification + trust check
+   *   3. If no signature is available, returns an unsigned result
+   *      (valid=true, trusted=false, warning about missing signature)
+   *
+   * P.009: previous implementation was a stub returning undefined, which
+   * meant unsigned plugins passed verification without any check at all.
    */
   private async verifySignature(
-    _bundle: string,
-    _manifest: PluginPackageManifest
+    bundle: string,
+    manifest: PluginPackageManifest,
+    signature?: PluginSignature
   ): Promise<SignatureVerificationResult | undefined> {
-    // In a real implementation, the signature would be embedded in the package
-    // or fetched from the marketplace API alongside the package metadata.
-    // For now, we return undefined (unsigned) since the signature data
-    // is not part of the manifest directly.
-    return undefined;
+    // Compute the content hash from the bundle
+    const contentHash = this.signatureService.computeContentHash(bundle);
+
+    // Delegate to the fully implemented PluginSignatureService
+    return this.signatureService.verifyPackageIntegrity(
+      bundle,
+      contentHash,
+      signature
+    );
   }
 
   /**
