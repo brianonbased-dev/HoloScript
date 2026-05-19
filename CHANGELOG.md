@@ -18,6 +18,73 @@ Post-6.x release-line correction: package manifests, release lanes, Studio versi
 
 ---
 
+## [6.1.0 continuation] — 2026-05-12 to 2026-05-19
+
+639 commits. 72 tasks closed. The sprint that connected the wiring layer.
+
+### Added
+
+**Simulation registry wired** (`4a4177efd`) — `SimulationSolverFactory.register()` now called for all 11 domain solvers at engine init (`packages/engine/src/simulation-registry.ts`). Before this commit, every `.holo` scene using `@thermal`, `@structural_fem`, or `@hydraulic` silently returned `isSimulating = false`. The receipt architecture now has a live producer.
+
+**Receipt capability router** (`29312b004`) — `holo_query_receipts` MCP tool: 39 receipt types in `packages/framework/src/board/` are now queryable by capability, not just filename. First tool that makes the receipt economy discoverable to agents.
+
+**GRPO self-improvement loop exposed** (`8cbaa3145`) — `holo_run_grpo_pass` + `holo_extract_grpo_prompts` MCP tools. The `GRPORewardOrchestrator` in `packages/absorb-service/src/self-improvement/` has been headless since it shipped. It now has an agent-accessible surface. D.012 (lights-out improvement) is no longer a design goal — it's a callable MCP tool.
+
+**HoloTunnel** (`dcbdf1162`, `8f863e72c`) — sovereign ngrok replacement. `packages/holo-tunnel/` ships a full tunnel client. No third-party dependency for local-to-public URL bridging.
+
+**ConversationDaemon contracts** (`49f26715c`, `5a27f6f73`) — `ConversationDaemon` + `DaemonCustomizationProfile` type contracts in `packages/core/src/daemon/`. Personal daemon identity is now structurally separated from Brittney field continuity and HoloShell evidence substrate. D.053 invariant enforced by validators.
+
+**Care-field primitives** (`9316a1758`) — `CareField.ts` in `packages/core/`. Static ethics policy layer for NPC ethics gate. Relational physics substrate. Note: AffinityODE solver (dynamic CareField) is not yet shipped — filed as `task_1779158489767_dmw0`.
+
+**Competitor gap matrix expanded** (`8f9ad8661`) — NMoS landscape with full tri-bucket classification. USD/Omniverse integration guide added (`e2e837a9a`) — the `compile_to_usd` bridge targeting `isaac_sim|omniverse|generic` is now documented externally.
+
+**HoloShell receipt validators** — account export archive verifier (`7989f3f40`), downloads shelf receipts (`a87a159c3`), device safety envelope receipts (`61a870193`), asset shard receipt chain (`f27b93955`, `14ff365a1`), Brittney field action receipts (`13038bdb1`), ProviderExportCustodyReceipt (`1d180b803`).
+
+**Roundtable governance** — tier-0 ref enforcement (`6399747`), close note validator/builder, vehicle/home-system authority triple (`b9dfc8c`), care field + closeout receipts, issue-roundtable task-cluster integration (`1759c8c`).
+
+**Grok Phase 1 continuous participation** (`7be6264`) — adapters, status endpoint, GOLD warming. Grok is the only surface currently running the full continuous participation contract (start + prompt + stop). Config sync to `~/.grok/agents/` now automated.
+
+**Heartbeat substrate metadata** (`8ac7a2f`) — `/presence` now carries `program/supplier/vehicle/home_system/authority/safety` fields. HoloMesh topology is now substrate-aware.
+
+**Ed25519 signature verification** (`96aff212b`) — `PluginInstallPipeline.verifySignature` was a stub. Real verification now in place.
+
+**Railway keep-alive** (`65decfaaf`) — self-ping prevents cold-start (~14s) for MCP server. Uptime improved.
+
+**Simulation domain coverage SSOT** — `docs/simulation/DOMAIN_COVERAGE.md` created (this session). Per-solver: shipped / trait-shipped / factory-registered / runtime-validated / receipt-type / paper-citation. Evidence Readiness scores for each domain. First time the ecosystem has a provability index.
+
+### Fixed
+
+**Simulation factory silent failure** (`4a4177efd`) — the root cause: `SimulationSolverFactory.register()` was never called in the production init path. 15+ solvers existed as code, zero as runtime.
+
+**Paper-gate SSH auth** (`a700f21d2`, `0eaf00484`) — wait for SSH before bootstrap SCP + retry bootstrap on check. LF line endings enforced in `agent.env` and `runner.sh` (`a665798fc`).
+
+**Bootstrap GPU compat** (`9dfab21b5`, `81bee2e73`) — torch cu130/cu13x mismatch detection + downgrade to cu124; Blackwell GPU (sm_120+) `--enforce-eager` flag.
+
+**Offer picker CUDA threshold** (`846f04c48`) — `cuda_max_good >= 13.0` now required by default.
+
+**Auto-rent SSH timeout** (`537f887`) — 120s → 420s. SSH auth was timing out before executor spawn.
+
+**Swarm .env load** (`ef372c9` in ai-ecosystem) — env vars now sourced before executor spawn.
+
+**Marketplace-api TypeScript** (`b210b58e4`) — all TS errors resolved (moduleResolution bundler, Zod v4 types, Express query params).
+
+**CLI compile target exports** (`f99a5e4f9`, `4508e7b66`) — reconciled exports, resolved final TS errors.
+
+**UI tests** (`79c4db33f`) — updated to use Map API after traits changed from array.
+
+**Intelligence layer retired** (`69f283e` in ai-ecosystem) — 3 bash analytics scripts removed, `INTELLIGENCE_LAYER.md` bannered. Dead infra cleared.
+
+### Known open issues (not fixed this sprint)
+
+- **20 critical CodeQL alerts** in `packages/mcp-server/src/` — 15 SSRF, 3 cmd-injection, 2 type-confusion. Filed as GH #209 by QA automation (this session). Blocks security hardening gate.
+- **Fleet UNREACHABLE — day 21** — `HOLOMESH_API_KEY` absent from cloud environment. All fleet-trust endpoints return `403 Host not in allowlist`. A-008 fires every cycle; local brain files are stable.
+- **Daemon identity gap** — `DaemonBrittneyRehydrationChannel` has no caller identity assertion. 4 attack vectors documented in `research/security-audit-daemon-rehydration-2026-05-19.md`. P0 task filed (`task_1779159341924_8xmt`). MUST be closed before `holo_create_daemon` MCP tools ship.
+- **Paper matrix drift** — A-007 fired twice on 2026-05-18. Matrix anchor 4+ days stale. 10 drift rows confirmed. Matrix not updated by any commit.
+- **14 stop hooks not firing** — `ai-ecosystem/.claude/settings.json` Stop and PostToolUse arrays empty (pipeline-audit ORPH-001). Session-close telemetry, knowledge graduation, presence teardown silently missing.
+- **GitHub Actions billing** — anchor-research.yml failing at spending-limit runner allocation. Founder account action required.
+
+---
+
 ## Withdrawn generated-major metadata — 2026-04-21 to 2026-05-17
 
 > **Version audit note (2026-05-18):** This section was previously labeled as a public 7.0.0 release. That label conflicted with the root 6.x package line and later generated 8.0.0 package metadata. The code and package work below remains useful release evidence, but it belongs to the 6.x continuation until a real public-major release is approved.
