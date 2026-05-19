@@ -595,6 +595,42 @@ export {
   cloneHoloShellAccountExportReceiptPack,
 } from './board';
 
+// HoloShell Provider Export Repair Receipts (task_1779178784570_91vx)
+export {
+  PROVIDER_EXPORT_FAILURE_RECEIPT_VERSION,
+  PARTIAL_ARCHIVE_EVIDENCE_RECEIPT_VERSION,
+  PROVIDER_EXPORT_REPAIR_PLAN_RECEIPT_VERSION,
+  EXPORT_REPAIR_REPLAY_RECEIPT_VERSION,
+  PROVIDER_EXPORT_REPAIR_RECEIPT_PACK_VERSION,
+  PROVIDER_EXPORT_FAILURE_KINDS,
+  PROVIDER_EXPORT_REPAIR_ACTIONS,
+  PROVIDER_EXPORT_REPAIR_STATUSES,
+  type ProviderExportFailureKind,
+  type ProviderExportRepairAction,
+  type ProviderExportRepairStatus,
+  type ProviderExportFailureReceipt,
+  type PartialArchivePartEvidence,
+  type PartialArchiveEvidenceReceipt,
+  type ProviderExportRepairPlanReceipt,
+  type ExportRepairReplayReceipt,
+  type HoloShellProviderExportRepairReceiptPack,
+  type BuildProviderExportRepairPlanOptions,
+  isSupportedProviderExportFailureKind,
+  isSupportedProviderExportRepairAction,
+  isSupportedProviderExportRepairStatus,
+  validateProviderExportFailureReceipt,
+  validatePartialArchiveEvidenceReceipt,
+  validateProviderExportRepairPlanReceipt,
+  validateExportRepairReplayReceipt,
+  validateHoloShellProviderExportRepairReceiptPack,
+  buildProviderExportRepairPlanReceipt,
+  cloneProviderExportFailureReceipt,
+  clonePartialArchiveEvidenceReceipt,
+  cloneProviderExportRepairPlanReceipt,
+  cloneExportRepairReplayReceipt,
+  cloneHoloShellProviderExportRepairReceiptPack,
+} from './board';
+
 // Device Lab Warning Tokens (task_1778739828973_47f5)
 export {
   WARNING_SEVERITY,
@@ -886,4 +922,3 @@ export type { Vote, VotingResult } from './negotiation';
 
 export * from './training/index.js';
 export * from './learning/index.js';
-

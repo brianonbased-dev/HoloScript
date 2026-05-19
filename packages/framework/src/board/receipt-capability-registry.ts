@@ -140,6 +140,18 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
     tags: ['holoshell', 'data-portability', 'privacy'],
   },
   {
+    capability: 'provider-export-repair',
+    description: 'Provider export repair receipts — preserve failed exports, partial archives, retry plans, and replay lessons.',
+    receiptType: 'HoloShellProviderExportRepairReceiptPack',
+    module: 'holoshell-provider-export-repair-receipts',
+    exportName: 'HoloShellProviderExportRepairReceiptPack',
+    validateFn: 'validateHoloShellProviderExportRepairReceiptPack',
+    cloneFn: 'cloneHoloShellProviderExportRepairReceiptPack',
+    isSupportedFn: 'isSupportedProviderExportRepairAction',
+    subjects: ['provider-failure', 'partial-archive', 'retry', 'quarantine', 'replay', 'repair'],
+    tags: ['holoshell', 'account-export', 'repair', 'privacy'],
+  },
+  {
     capability: 'brittney-action',
     description: 'Brittney field action receipts — prove autonomous agent actions with repair paths.',
     receiptType: 'HoloShellBrittneyActionReceiptPack',

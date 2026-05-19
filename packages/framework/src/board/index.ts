@@ -364,6 +364,42 @@ export {
 } from './holoshell-account-export-receipts';
 
 export {
+  // HoloShell Provider Export Repair Receipts (task_1779178784570_91vx)
+  PROVIDER_EXPORT_FAILURE_RECEIPT_VERSION,
+  PARTIAL_ARCHIVE_EVIDENCE_RECEIPT_VERSION,
+  PROVIDER_EXPORT_REPAIR_PLAN_RECEIPT_VERSION,
+  EXPORT_REPAIR_REPLAY_RECEIPT_VERSION,
+  PROVIDER_EXPORT_REPAIR_RECEIPT_PACK_VERSION,
+  PROVIDER_EXPORT_FAILURE_KINDS,
+  PROVIDER_EXPORT_REPAIR_ACTIONS,
+  PROVIDER_EXPORT_REPAIR_STATUSES,
+  type ProviderExportFailureKind,
+  type ProviderExportRepairAction,
+  type ProviderExportRepairStatus,
+  type ProviderExportFailureReceipt,
+  type PartialArchivePartEvidence,
+  type PartialArchiveEvidenceReceipt,
+  type ProviderExportRepairPlanReceipt,
+  type ExportRepairReplayReceipt,
+  type HoloShellProviderExportRepairReceiptPack,
+  type BuildProviderExportRepairPlanOptions,
+  isSupportedProviderExportFailureKind,
+  isSupportedProviderExportRepairAction,
+  isSupportedProviderExportRepairStatus,
+  validateProviderExportFailureReceipt,
+  validatePartialArchiveEvidenceReceipt,
+  validateProviderExportRepairPlanReceipt,
+  validateExportRepairReplayReceipt,
+  validateHoloShellProviderExportRepairReceiptPack,
+  buildProviderExportRepairPlanReceipt,
+  cloneProviderExportFailureReceipt,
+  clonePartialArchiveEvidenceReceipt,
+  cloneProviderExportRepairPlanReceipt,
+  cloneExportRepairReplayReceipt,
+  cloneHoloShellProviderExportRepairReceiptPack,
+} from './holoshell-provider-export-repair-receipts';
+
+export {
   // HoloShell CLI Absorption Receipts (task_1778625587950_uiv5)
   CLI_ACTION_KINDS,
   type CliActionKind,
@@ -868,4 +904,3 @@ export {
   listReceiptSubjects,
   receiptCapabilityCount,
 } from './receipt-capability-registry';
-
