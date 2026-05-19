@@ -584,7 +584,11 @@ export async function generateWorldNative(
 ): Promise<NativeWorldGenerationResult> {
   const { Sovereign3DAdapter } = await import('@holoscript/core/world');
 
-  const adapter = new Sovereign3DAdapter();
+  const adapter = new Sovereign3DAdapter({
+    // HOLOSCRIPT_SOVEREIGN_MOCK=true enables deterministic mock output when the
+    // live sovereign service (wss://api.hololand.io) is offline or not yet deployed.
+    mockMode: Boolean(process.env.HOLOSCRIPT_SOVEREIGN_MOCK),
+  });
 
   const result = await adapter.generate({
     prompt,

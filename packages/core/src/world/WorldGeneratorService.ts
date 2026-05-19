@@ -99,7 +99,11 @@ export class WorldGeneratorService {
    */
   registerDefaultAdapters(): void {
     if (this.defaultAdaptersRegistered) return;
-    this.registry.register(new Sovereign3DAdapter());
+    this.registry.register(new Sovereign3DAdapter({
+      // HOLOSCRIPT_SOVEREIGN_MOCK=true enables deterministic mock output when the
+      // live sovereign service (wss://api.hololand.io) is offline or not yet deployed.
+      mockMode: Boolean(process.env.HOLOSCRIPT_SOVEREIGN_MOCK),
+    }));
     this.defaultAdaptersRegistered = true;
   }
 
