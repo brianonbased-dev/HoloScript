@@ -341,11 +341,14 @@ async function handleCollect(args: Record<string, unknown>) {
 }
 
 async function handleRevenue(args: Record<string, unknown>) {
+  if (typeof args.price !== 'string') return { status: 'error', error: 'price must be a string' };
+  if (typeof args.author !== 'string') return { status: 'error', error: 'author must be a string' };
+
   const { calculateRevenueDistribution, formatRevenueDistribution, ethToWei } =
     await import('@holoscript/core');
 
-  const price = args.price as string;
-  const author = args.author as string;
+  const price = args.price;
+  const author = args.author;
   const referrer = args.referrer as string | undefined;
   const imports =
     (args.imports as Array<{ contentHash: string; author: string; depth: number }>) || [];
