@@ -312,6 +312,58 @@ export {
 } from './holoshell-browser-receipts';
 
 export {
+  // HoloShell Account Export Receipts (task_1779135531091_h53w)
+  ACCOUNT_EXPORT_PROVIDERS,
+  ACCOUNT_EXPORT_DELIVERY_METHODS,
+  ACCOUNT_EXPORT_ARCHIVE_FORMATS,
+  ACCOUNT_EXPORT_STATUSES,
+  PROVIDER_EXPORT_WAIT_STATES,
+  ACCOUNT_EXPORT_PERMISSION_ENVELOPES,
+  ACCOUNT_EXPORT_WARNING_KINDS,
+  type AccountExportProvider,
+  type AccountExportDeliveryMethod,
+  type AccountExportArchiveFormat,
+  type AccountExportStatus,
+  type ProviderExportWaitState,
+  type AccountExportPermissionEnvelope,
+  type AccountExportWarningKind,
+  type AccountExportWarning,
+  type ProviderExportProductSelection,
+  type ProviderExportPlanReceipt,
+  type ProviderExportRequestReceipt,
+  type ProviderExportReadyReceipt,
+  type AccountExportArchivePart,
+  type LocalArchiveDownloadReceipt,
+  type BrowserAccountBoundaryReceipt,
+  type AccountExportApprovalReceipt,
+  type ProviderExportWaitReceipt,
+  type LocalDownloadQuarantineReceipt,
+  type ProviderExportRollbackLimitReceipt,
+  type AccountExportArchiveReceipt,
+  type AccountExportReplayReceipt,
+  type HoloShellAccountExportReceiptPack,
+  isSupportedAccountExportProvider,
+  isSupportedAccountExportDeliveryMethod,
+  isSupportedAccountExportArchiveFormat,
+  isSupportedAccountExportStatus,
+  isSupportedProviderExportWaitState,
+  validateBrowserAccountBoundaryReceipt,
+  validateAccountExportApprovalReceipt,
+  validateProviderExportWaitReceipt,
+  validateLocalDownloadQuarantineReceipt,
+  validateProviderExportRollbackLimitReceipt,
+  validateProviderExportPlanReceipt,
+  validateProviderExportRequestReceipt,
+  validateProviderExportReadyReceipt,
+  validateLocalArchiveDownloadReceipt,
+  validateAccountExportArchiveReceipt,
+  validateAccountExportReplayReceipt,
+  validateHoloShellAccountExportReceiptPack,
+  cloneProviderExportPlanReceipt,
+  cloneHoloShellAccountExportReceiptPack,
+} from './holoshell-account-export-receipts';
+
+export {
   // HoloShell CLI Absorption Receipts (task_1778625587950_uiv5)
   CLI_ACTION_KINDS,
   type CliActionKind,
@@ -399,6 +451,8 @@ export {
   validateAssetShardReceiptBundle,
   cloneAssetShardWorkflowReceipt,
 } from './holoshell-asset-shard-receipts';
+
+
 export {
   // Device Lab Warning Tokens (task_1778739828973_47f5)
   WARNING_SEVERITY,
@@ -619,3 +673,4 @@ export {
   nextBoardWebhookRetry,
   recordBoardWebhookDeliveryFailure,
 } from './webhooks';
+

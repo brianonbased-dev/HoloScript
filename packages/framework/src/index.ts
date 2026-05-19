@@ -515,6 +515,58 @@ export {
   cloneAssetShardWorkflowReceipt,
 } from './board';
 
+// HoloShell Account Export Receipts (task_1779135531091_h53w)
+export {
+  ACCOUNT_EXPORT_PROVIDERS,
+  ACCOUNT_EXPORT_DELIVERY_METHODS,
+  ACCOUNT_EXPORT_ARCHIVE_FORMATS,
+  ACCOUNT_EXPORT_STATUSES,
+  PROVIDER_EXPORT_WAIT_STATES,
+  ACCOUNT_EXPORT_PERMISSION_ENVELOPES,
+  ACCOUNT_EXPORT_WARNING_KINDS,
+  type AccountExportProvider,
+  type AccountExportDeliveryMethod,
+  type AccountExportArchiveFormat,
+  type AccountExportStatus,
+  type ProviderExportWaitState,
+  type AccountExportPermissionEnvelope,
+  type AccountExportWarningKind,
+  type AccountExportWarning,
+  type ProviderExportProductSelection,
+  type ProviderExportPlanReceipt,
+  type ProviderExportRequestReceipt,
+  type ProviderExportReadyReceipt,
+  type AccountExportArchivePart,
+  type LocalArchiveDownloadReceipt,
+  type BrowserAccountBoundaryReceipt,
+  type AccountExportApprovalReceipt,
+  type ProviderExportWaitReceipt,
+  type LocalDownloadQuarantineReceipt,
+  type ProviderExportRollbackLimitReceipt,
+  type AccountExportArchiveReceipt,
+  type AccountExportReplayReceipt,
+  type HoloShellAccountExportReceiptPack,
+  isSupportedAccountExportProvider,
+  isSupportedAccountExportDeliveryMethod,
+  isSupportedAccountExportArchiveFormat,
+  isSupportedAccountExportStatus,
+  isSupportedProviderExportWaitState,
+  validateBrowserAccountBoundaryReceipt,
+  validateAccountExportApprovalReceipt,
+  validateProviderExportWaitReceipt,
+  validateLocalDownloadQuarantineReceipt,
+  validateProviderExportRollbackLimitReceipt,
+  validateProviderExportPlanReceipt,
+  validateProviderExportRequestReceipt,
+  validateProviderExportReadyReceipt,
+  validateLocalArchiveDownloadReceipt,
+  validateAccountExportArchiveReceipt,
+  validateAccountExportReplayReceipt,
+  validateHoloShellAccountExportReceiptPack,
+  cloneProviderExportPlanReceipt,
+  cloneHoloShellAccountExportReceiptPack,
+} from './board';
+
 // Device Lab Warning Tokens (task_1778739828973_47f5)
 export {
   WARNING_SEVERITY,
@@ -529,6 +581,7 @@ export {
   formatWarningForHoloShell,
   summarizeWarningTokens,
 } from './board';
+
 
 // Frontier Shard 0 primitives (task_1778186605462_2mlp)
 export {
@@ -794,3 +847,4 @@ export type { Vote, VotingResult } from './negotiation';
 
 export * from './training/index.js';
 export * from './learning/index.js';
+
