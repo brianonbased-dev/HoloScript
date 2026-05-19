@@ -1,0 +1,99 @@
+{
+  "automationId": "holoshell-human-os-frontier",
+  "composedAt": "2026-05-18T19:30:00.000Z",
+  "workflow": "world-build-readiness-cockpit-composition",
+  "taskId": "task_1779092549879_oudm",
+  "composition": {
+    "cockpitRoom": "apps/holoshell/source/holoshell-world-build-cockpit.holo",
+    "cockpitPolicy": "apps/holoshell/source/holoshell-world-build-cockpit-policy.hsplus",
+    "cockpitPipeline": "apps/holoshell/source/holoshell-world-build-cockpit-pipeline.hs",
+    "ingestedReceipts": [
+      {
+        "gateId": "local-files",
+        "receiptType": "LocalFileManifestReceipt",
+        "sourceContract": "apps/holoshell/source/holoshell-local-file-manifest.hsplus",
+        "status": "new",
+        "compilesWithGotchas": true
+      },
+      {
+        "gateId": "hardware-reality",
+        "receiptType": "CodexHardwareAuditReceipt",
+        "sourceContract": "apps/holoshell/source/holoshell-codex-hardware-audit.hsplus",
+        "status": "new",
+        "compilesWithGotchas": true
+      },
+      {
+        "gateId": "source-validation",
+        "receiptType": "SourceValidationReceipt",
+        "sourceContract": "apps/holoshell/source/holoshell-source-validation.hsplus",
+        "status": "existing",
+        "compilesWithGotchas": true
+      },
+      {
+        "gateId": "build-custody",
+        "receiptType": "BuildCustodyReceipt",
+        "sourceContract": "apps/holoshell/source/holoshell-build-custody.hsplus",
+        "status": "existing",
+        "compilesWithGotchas": true
+      },
+      {
+        "gateId": "hololand-preview",
+        "receiptType": "VisualWitnessReceipt",
+        "sourceContract": "apps/holoshell/source/holoshell-visual-witness.hsplus",
+        "status": "existing",
+        "compilesWithGotchas": true
+      },
+      {
+        "gateId": "agent-orchestra",
+        "receiptType": "AgentLaneReceipt",
+        "sourceContract": "apps/holoshell/source/holoshell-agent-presence-lanes.hsplus",
+        "status": "existing",
+        "compilesWithGotchas": true
+      },
+      {
+        "gateId": "replay",
+        "receiptType": "WorldBuildReadinessCockpitReceipt",
+        "sourceContract": "pipeline-merged-output",
+        "status": "composed",
+        "compilesWithGotchas": true
+      }
+    ],
+    "policyGates": [
+      "LocalFileManifestGate",
+      "HardwareRealityGate",
+      "HoloScriptSourceGate",
+      "BuildCustodyGate",
+      "HoloLandPreviewGate",
+      "ReplayGate"
+    ],
+    "policies": [
+      "NoHoloLandMutationBeforePromotion",
+      "StaleGraphIsWarningNotTruth",
+      "AgentWorkMustBeLegible"
+    ],
+    "readinessStates": ["ready", "ready_with_warnings", "blocked"],
+    "humanPromotion": "preview_only_until_promoted"
+  },
+  "validationResults": {
+    "allSourceFilesCompileWithGotchas": true,
+    "cockpitRoomCompiles": true,
+    "cockpitPolicyCompiles": true,
+    "cockpitPipelineCompiles": true,
+    "localFileManifestCompiles": true,
+    "codexHardwareAuditCompiles": true,
+    "totalReceiptContracts": 9,
+    "newReceiptContracts": 2,
+    "existingReceiptContracts": 7
+  },
+  "scorecardScores": {
+    "humanDeterminism": 5,
+    "nonDeveloperClarity": 5,
+    "hardwareReality": 5,
+    "aiContainment": 5,
+    "holoscriptSourceNativeness": 5,
+    "multiAgentValue": 5,
+    "reversibilityReplay": 5,
+    "hololandEmbodiment": 5,
+    "taskability": 5
+  }
+}
