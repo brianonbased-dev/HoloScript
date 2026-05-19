@@ -191,6 +191,40 @@ export interface HoloShellPermissionGateReceiptPack {
   hashAlgorithm: ArtifactHashAlgorithm;
 }
 
+export interface PermissionScopePolicyEvaluation {
+  scope: string;
+  normalizedScope: string;
+  allowed: boolean;
+  reason?: string;
+}
+
+export interface PermissionScopeDiffInput {
+  requestedScopes: PermissionScopeGrant[];
+  minimumRequiredScopes: PermissionScopeGrant[];
+  grantedScopes?: PermissionScopeGrant[];
+  neverScopes?: string[];
+}
+
+export interface PermissionScopeDiffResult {
+  requestedScopes: string[];
+  minimumRequiredScopes: string[];
+  grantedScopes: string[];
+  missingRequestedRequiredScopes: string[];
+  missingGrantedRequiredScopes: string[];
+  extraGrantedScopes: string[];
+  forbiddenRequestedScopes: PermissionScopePolicyEvaluation[];
+  forbiddenGrantedScopes: PermissionScopePolicyEvaluation[];
+  minimumScopeSatisfied: boolean;
+  excessScopesAbsent: boolean;
+}
+
+export interface PermissionPreviewRedactionResult {
+  preview: string;
+  redacted: boolean;
+  absolutePathRedacted: boolean;
+  credentialMaterialRedacted: boolean;
+}
+
 function isOneOf<T extends readonly string[]>(values: T, value: string): value is T[number] {
   return values.includes(value);
 }
@@ -203,30 +237,112 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-function hasAbsolutePath(value: string | undefined): boolean {
-  return (
-    typeof value === 'string' &&
-    /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
-  );
-}
-
-function normalizeScope(scope: string): string {
+export function normalizePermissionScopeName(scope: string): string {
   return scope.trim().toLowerCase();
 }
 
 function scopeNames(scopes: PermissionScopeGrant[]): Set<string> {
-  return new Set(scopes.map((scope) => normalizeScope(scope.scope)).filter(Boolean));
+  return new Set(scopes.map((scope) => normalizePermissionScopeName(scope.scope)).filter(Boolean));
 }
 
 function forbiddenScopeReason(scope: string, neverScopes: string[]): string | undefined {
-  const normalized = normalizeScope(scope);
-  const explicitNever = neverScopes.map(normalizeScope);
+  const normalized = normalizePermissionScopeName(scope);
+  const explicitNever = neverScopes.map(normalizePermissionScopeName);
   if (explicitNever.includes(normalized)) return 'is listed in neverScopes';
   if (normalized === '*' || normalized.includes('*')) return 'uses a wildcard';
   if (/\b(admin|billing|owner|delete|full_access|write_all|manage_all)\b/.test(normalized)) {
     return 'requests broad administrative authority';
   }
   return undefined;
+}
+
+export function evaluatePermissionScopePolicy(
+  scope: string,
+  neverScopes: string[] = []
+): PermissionScopePolicyEvaluation {
+  const normalizedScope = normalizePermissionScopeName(scope);
+  const reason = forbiddenScopeReason(scope, neverScopes);
+  return {
+    scope,
+    normalizedScope,
+    allowed: !reason,
+    ...(reason ? { reason } : {}),
+  };
+}
+
+export function buildPermissionScopeDiff(input: PermissionScopeDiffInput): PermissionScopeDiffResult {
+  const requestedScopes = (input.requestedScopes ?? []).map((scope) => scope.scope);
+  const minimumRequiredScopes = (input.minimumRequiredScopes ?? []).map((scope) => scope.scope);
+  const grantedScopes = (input.grantedScopes ?? []).map((scope) => scope.scope);
+  const requestedNames = scopeNames(input.requestedScopes ?? []);
+  const grantedNames = scopeNames(input.grantedScopes ?? []);
+  const neverScopes = input.neverScopes ?? [];
+  const requiredMinimum = (input.minimumRequiredScopes ?? []).filter((scope) => scope.required);
+  const missingRequestedRequiredScopes = requiredMinimum
+    .map((scope) => scope.scope)
+    .filter((scope) => !requestedNames.has(normalizePermissionScopeName(scope)));
+  const missingGrantedRequiredScopes = requiredMinimum
+    .map((scope) => scope.scope)
+    .filter((scope) => !grantedNames.has(normalizePermissionScopeName(scope)));
+  const extraGrantedScopes = findExtraScopes(input.grantedScopes ?? [], input.minimumRequiredScopes ?? []);
+  const forbiddenRequestedScopes = (input.requestedScopes ?? [])
+    .map((scope) => evaluatePermissionScopePolicy(scope.scope, neverScopes))
+    .filter((scope) => !scope.allowed);
+  const forbiddenGrantedScopes = (input.grantedScopes ?? [])
+    .map((scope) => evaluatePermissionScopePolicy(scope.scope, neverScopes))
+    .filter((scope) => !scope.allowed);
+
+  return {
+    requestedScopes,
+    minimumRequiredScopes,
+    grantedScopes,
+    missingRequestedRequiredScopes,
+    missingGrantedRequiredScopes,
+    extraGrantedScopes,
+    forbiddenRequestedScopes,
+    forbiddenGrantedScopes,
+    minimumScopeSatisfied:
+      missingRequestedRequiredScopes.length === 0 &&
+      missingGrantedRequiredScopes.length === 0 &&
+      forbiddenRequestedScopes.length === 0 &&
+      forbiddenGrantedScopes.length === 0,
+    excessScopesAbsent: extraGrantedScopes.length === 0,
+  };
+}
+
+export function redactPermissionGatePreview(value: string | undefined): PermissionPreviewRedactionResult {
+  const original = value ?? '';
+  let preview = original;
+  let absolutePathRedacted = false;
+  let credentialMaterialRedacted = false;
+
+  preview = preview.replace(/(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/g, (match, prefix: string) => {
+    absolutePathRedacted = true;
+    return `${prefix}<absolute-path-redacted>`;
+  });
+  preview = preview.replace(
+    /\b(access_token|refresh_token|id_token|client_secret|authorization|cookie|code)=([^&\s]+)/gi,
+    (_match, key: string) => {
+      credentialMaterialRedacted = true;
+      return `${key}=<redacted>`;
+    }
+  );
+  preview = preview.replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, () => {
+    credentialMaterialRedacted = true;
+    return 'Bearer <redacted>';
+  });
+
+  return {
+    preview,
+    redacted: preview !== original,
+    absolutePathRedacted,
+    credentialMaterialRedacted,
+  };
+}
+
+export function permissionPreviewHasPublicLeak(value: string | undefined): boolean {
+  const redaction = redactPermissionGatePreview(value);
+  return redaction.absolutePathRedacted || redaction.credentialMaterialRedacted;
 }
 
 function validateTimestamp(label: string, value: string | undefined, errors: string[]): void {
@@ -257,14 +373,14 @@ function findMissingRequired(request: PermissionRequestReceipt, granted: Permiss
   return request.minimumRequiredScopes
     .filter((scope) => scope.required)
     .map((scope) => scope.scope)
-    .filter((scope) => !grantedNames.has(normalizeScope(scope)));
+    .filter((scope) => !grantedNames.has(normalizePermissionScopeName(scope)));
 }
 
 function findExtraScopes(granted: PermissionScopeGrant[], minimum: PermissionScopeGrant[]): string[] {
   const minimumNames = scopeNames(minimum);
   return granted
     .map((scope) => scope.scope)
-    .filter((scope) => !minimumNames.has(normalizeScope(scope)));
+    .filter((scope) => !minimumNames.has(normalizePermissionScopeName(scope)));
 }
 
 export function isSupportedPermissionSubjectKind(value: string): value is PermissionSubjectKind {
@@ -345,7 +461,7 @@ export function validatePermissionRequestReceipt(
   }
   const requestedNames = scopeNames(receipt.requestedScopes ?? []);
   for (const required of receipt.minimumRequiredScopes ?? []) {
-    if (required.required && !requestedNames.has(normalizeScope(required.scope))) {
+    if (required.required && !requestedNames.has(normalizePermissionScopeName(required.scope))) {
       errors.push(`PermissionRequestReceipt.requestedScopes is missing required scope: ${required.scope}.`);
     }
   }
@@ -360,7 +476,7 @@ export function validatePermissionRequestReceipt(
   if (receipt.commandPreviewContainsAbsolutePaths !== false) {
     errors.push('PermissionRequestReceipt.commandPreviewContainsAbsolutePaths must be false.');
   }
-  if (hasAbsolutePath(receipt.commandOrUrlPreview)) {
+  if (permissionPreviewHasPublicLeak(receipt.commandOrUrlPreview)) {
     errors.push('PermissionRequestReceipt.commandOrUrlPreview must be redacted before public receipts.');
   }
   validateTimestamp('PermissionRequestReceipt.requestedAt', receipt.requestedAt, errors);

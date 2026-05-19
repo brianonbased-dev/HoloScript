@@ -6,11 +6,16 @@ import {
   PERMISSION_GATE_WORKFLOW,
   PERMISSION_SUBJECT_KINDS,
   PERMISSION_VERIFICATION_METHODS,
+  buildPermissionScopeDiff,
   cloneHoloShellPermissionGateReceiptPack,
+  evaluatePermissionScopePolicy,
   isSupportedPermissionGateEnvelope,
   isSupportedPermissionGateStatus,
   isSupportedPermissionSubjectKind,
   isSupportedPermissionVerificationMethod,
+  normalizePermissionScopeName,
+  permissionPreviewHasPublicLeak,
+  redactPermissionGatePreview,
   validateHoloShellPermissionGateReceiptPack,
   validatePermissionGrantReceipt,
   validatePermissionReplayReceipt,
@@ -260,6 +265,64 @@ describe('validateHoloShellPermissionGateReceiptPack', () => {
         'PermissionSubjectReceipt.credentialExtrusionAllowed must be false.',
       ])
     );
+  });
+});
+
+describe('permission scope policy helpers', () => {
+  it('normalizes provider scope names for deterministic comparison', () => {
+    expect(normalizePermissionScopeName(' Drive.File ')).toBe('drive.file');
+  });
+
+  it('evaluates forbidden scope policy with neverScopes and broad authority terms', () => {
+    expect(evaluatePermissionScopePolicy('drive.file', validPack.request.neverScopes)).toEqual({
+      scope: 'drive.file',
+      normalizedScope: 'drive.file',
+      allowed: true,
+    });
+    expect(evaluatePermissionScopePolicy('billing', validPack.request.neverScopes)).toEqual({
+      scope: 'billing',
+      normalizedScope: 'billing',
+      allowed: false,
+      reason: 'is listed in neverScopes',
+    });
+    expect(evaluatePermissionScopePolicy('project.owner', [])).toEqual({
+      scope: 'project.owner',
+      normalizedScope: 'project.owner',
+      allowed: false,
+      reason: 'requests broad administrative authority',
+    });
+  });
+
+  it('builds reusable minimum-scope diffs for adapters and validators', () => {
+    const diff = buildPermissionScopeDiff({
+      requestedScopes: [driveFileScope],
+      minimumRequiredScopes: [driveFileScope],
+      grantedScopes: [
+        driveFileScope,
+        { ...driveFileScope, scope: 'drive.readonly', required: false },
+      ],
+      neverScopes: validPack.request.neverScopes,
+    });
+
+    expect(diff.minimumScopeSatisfied).toBe(true);
+    expect(diff.excessScopesAbsent).toBe(false);
+    expect(diff.extraGrantedScopes).toEqual(['drive.readonly']);
+    expect(diff.missingGrantedRequiredScopes).toEqual([]);
+    expect(diff.forbiddenGrantedScopes).toEqual([]);
+  });
+
+  it('redacts credential material and absolute paths from public previews', () => {
+    const redaction = redactPermissionGatePreview(
+      'node C:/Users/private/oauth-helper.js --url https://provider.example/callback?access_token=secret'
+    );
+
+    expect(redaction.redacted).toBe(true);
+    expect(redaction.absolutePathRedacted).toBe(true);
+    expect(redaction.credentialMaterialRedacted).toBe(true);
+    expect(redaction.preview).toContain('<absolute-path-redacted>');
+    expect(redaction.preview).toContain('access_token=<redacted>');
+    expect(permissionPreviewHasPublicLeak('Bearer abc.def.ghi')).toBe(true);
+    expect(permissionPreviewHasPublicLeak('https://accounts.example/auth?scope=drive.file')).toBe(false);
   });
 });
 
