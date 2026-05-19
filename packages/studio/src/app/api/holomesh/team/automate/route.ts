@@ -30,7 +30,8 @@ export async function POST(req: NextRequest) {
 
     const auth = req.headers.get('authorization') || '';
 
-    const delegateRes = await fetch(`${req.nextUrl.origin}/api/holomesh/delegate`, {
+    const internalBase = process.env.NEXTJS_INTERNAL_URL || 'http://localhost:3000';
+    const delegateRes = await fetch(`${internalBase}/api/holomesh/delegate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

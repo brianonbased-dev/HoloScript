@@ -150,12 +150,35 @@ export async function handleProtocolTool(
 }
 
 // =============================================================================
+// Input validation helpers
+// =============================================================================
+
+const CONTENT_HASH_RE = /^[a-f0-9]{64}$/;
+const AUTHOR_RE = /^[\w.-]+$/;
+
+function validateContentHash(value: unknown): string {
+  if (typeof value !== 'string' || !CONTENT_HASH_RE.test(value)) {
+    throw new Error(`Invalid contentHash — must be a 64-character lowercase hex string`);
+  }
+  return value;
+}
+
+function validateAuthor(value: unknown): string {
+  if (typeof value !== 'string' || !AUTHOR_RE.test(value)) {
+    throw new Error(`Invalid author — must contain only word characters, dots, and hyphens`);
+  }
+  return value;
+}
+
+// =============================================================================
 // Individual Handlers
 // =============================================================================
 
 async function handlePublish(args: Record<string, unknown>) {
-  const code = args.code as string;
-  const author = args.author as string;
+  if (typeof args.code !== 'string') return { status: 'error', error: 'code must be a string' };
+  if (typeof args.author !== 'string') return { status: 'error', error: 'author must be a string' };
+  const code = args.code;
+  const author = args.author;
   const license = (args.license as string) || 'free';
   const price = (args.price as string) || '0';
   const mintAsNFT = (args.mintAsNFT as boolean) || false;
@@ -276,7 +299,12 @@ async function handlePublish(args: Record<string, unknown>) {
 }
 
 async function handleCollect(args: Record<string, unknown>) {
-  const contentHash = args.contentHash as string;
+  let contentHash: string;
+  try {
+    contentHash = validateContentHash(args.contentHash);
+  } catch (err) {
+    return { status: 'error', error: 'INVALID_PARAMS', message: (err as Error).message };
+  }
   const referrer = args.referrer as string | undefined;
   const quantity = (args.quantity as number) || 1;
 
@@ -352,15 +380,21 @@ async function handleRevenue(args: Record<string, unknown>) {
 }
 
 async function handleLookup(args: Record<string, unknown>) {
-  const contentHash = args.contentHash as string | undefined;
-  const author = args.author as string | undefined;
-
-  if (!contentHash && !author) {
+  if (!args.contentHash && !args.author) {
     return {
       status: 'error',
       error: 'MISSING_PARAMS',
       message: 'Provide either contentHash or author',
     };
+  }
+
+  let contentHash: string | undefined;
+  let author: string | undefined;
+  try {
+    if (args.contentHash !== undefined) contentHash = validateContentHash(args.contentHash);
+    if (args.author !== undefined) author = validateAuthor(args.author);
+  } catch (err) {
+    return { status: 'error', error: 'INVALID_PARAMS', message: (err as Error).message };
   }
 
   const serverUrl = process.env.HOLOSCRIPT_SERVER_URL || 'https://mcp.holoscript.net';

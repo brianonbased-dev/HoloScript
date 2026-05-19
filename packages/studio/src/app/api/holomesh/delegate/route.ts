@@ -176,7 +176,8 @@ export async function POST(req: NextRequest) {
 
     let runResult: unknown = null;
     if (autoRun) {
-      const runRes = await fetch(`${req.nextUrl.origin}/api/holoclaw/run`, {
+      const internalBase = process.env.NEXTJS_INTERNAL_URL || 'http://localhost:3000';
+      const runRes = await fetch(`${internalBase}/api/holoclaw/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: skillName, cycles, alwaysOn: false }),

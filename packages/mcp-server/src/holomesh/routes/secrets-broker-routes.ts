@@ -613,14 +613,19 @@ export async function handleSecretsBrokerRoutes(
     if (!caller) return true;
 
     const body = await parseJsonBody(req);
-    const contentHash = (body.content_hash as string | undefined)?.trim();
+    const rawContentHash = (body.content_hash as string | undefined)?.trim();
     const referrer = (body.referrer as string | undefined)?.trim();
     const quantity = (body.quantity as number) || 1;
 
-    if (!contentHash) {
+    if (!rawContentHash) {
       json(res, 400, { success: false, error: 'content_hash required' });
       return true;
     }
+    if (!/^[a-f0-9]{64}$/.test(rawContentHash)) {
+      json(res, 400, { success: false, error: 'content_hash must be a 64-character lowercase hex string' });
+      return true;
+    }
+    const contentHash = rawContentHash;
 
     const published = protocolTokenStore.get(contentHash);
     if (!published) {
