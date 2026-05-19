@@ -54,6 +54,8 @@ export { ARCompiler } from './ARCompiler';
 export { OpenXRCompiler } from './OpenXRCompiler';
 export type { OpenXRCompilerOptions } from './OpenXRCompiler';
 export { VRChatCompiler } from './VRChatCompiler';
+export { VRRCompiler } from './VRRCompiler';
+export type { VRRCompilerOptions } from './VRRCompiler';
 
 // Platform compilers
 export { VisionOSCompiler } from './VisionOSCompiler';

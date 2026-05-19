@@ -142,4 +142,40 @@ describe('CLI compile output writing', () => {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });
+
+  it('writes VRR JavaScript output with parent directory creation', async () => {
+    const tempDir = mkdtempSync(path.join(tmpdir(), 'holoscript-cli-compile-output-'));
+
+    try {
+      const sourcePath = writeSmokeHolo(tempDir);
+      const outputPath = path.join(tempDir, 'nested', 'vrr', 'scene.js');
+
+      const result = await runCli(['compile', sourcePath, '--target', 'vrr', '-o', outputPath]);
+      const output = readFileSync(outputPath, 'utf8');
+
+      expect(result.stdout).toContain('VRR compilation successful');
+      expect(output).toContain('VRRRuntime');
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('writes multi-layer bundle output and normalizes aliases', async () => {
+    const tempDir = mkdtempSync(path.join(tmpdir(), 'holoscript-cli-compile-output-'));
+
+    try {
+      const sourcePath = writeSmokeHolo(tempDir);
+      const outputDir = path.join(tempDir, 'nested', 'multi-layer');
+
+      const result = await runCli(['compile', sourcePath, '--target', 'multilayer', '-o', outputDir]);
+
+      expect(result.stdout).toContain('Multi-layer compilation successful');
+      expect(existsSync(path.join(outputDir, 'vr.js'))).toBe(true);
+      expect(existsSync(path.join(outputDir, 'vrr.js'))).toBe(true);
+      expect(existsSync(path.join(outputDir, 'ar.js'))).toBe(true);
+      expect(existsSync(path.join(outputDir, 'multi-layer.json'))).toBe(true);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
 });

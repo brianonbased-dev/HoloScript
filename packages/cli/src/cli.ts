@@ -236,6 +236,8 @@ const COMPILE_TARGET_ALIASES: Record<string, string> = {
   androidxr: 'android-xr',
   android_xr: 'android-xr',
   'usd-physics': 'usd',
+  multilayer: 'multi-layer',
+  multi_layer: 'multi-layer',
 };
 
 function normalizeCompileTarget(target: string): string {
@@ -1896,6 +1898,8 @@ async function main(): Promise<void> {
         'usd',
         'usdz',
         '3dgs',
+        'vrr',
+        'multi-layer',
         'flat-semantic',
         'web-2d',
         'scm-dag',
@@ -2376,6 +2380,139 @@ async function main(): Promise<void> {
             console.log(Buffer.from(result.binary).toString('base64'));
           } else {
             console.log(JSON.stringify(result.json ?? {}, null, 2));
+          }
+
+          process.exit(0);
+        }
+
+        // Special handling for VRR target - use the reality-mirror compiler
+        if (target === 'vrr') {
+          if (!isHolo) {
+            console.error(`\x1b[31mError: VRR compilation requires .holo files.\x1b[0m`);
+            process.exit(1);
+          }
+
+          const { HoloCompositionParser } = await import('@holoscript/core');
+          const { VRRCompiler } = await import('@holoscript/core/compiler');
+          const compositionParser = new HoloCompositionParser();
+          const parseResult = compositionParser.parse(content);
+
+          if (!parseResult.success || !parseResult.ast) {
+            console.error(`\x1b[31mError parsing for VRR:\x1b[0m`);
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
+            process.exit(1);
+          }
+
+          console.log(`\x1b[2m[DEBUG] Compiling to VRR Three.js reality mirror...\x1b[0m`);
+          const compiler = new VRRCompiler({
+            target: 'threejs',
+            minify: false,
+            source_maps: false,
+            api_integrations: {},
+            performance: { target_fps: 60, max_players: 1000, lazy_loading: true },
+          });
+          const result = compiler.compile(parseResult.ast, '');
+
+          if (!result.success) {
+            console.error(`\x1b[31mVRR compilation failed:\x1b[0m`);
+            for (const error of result.errors) {
+              console.error(`  - ${error}`);
+            }
+            process.exit(1);
+          }
+
+          console.log(`\x1b[32m✓ VRR compilation successful!\x1b[0m`);
+          console.log(`\x1b[2m  Objects: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
+          if (result.warnings.length > 0) {
+            for (const warning of result.warnings) {
+              console.log(`\x1b[33m  Warning: ${warning}\x1b[0m`);
+            }
+          }
+
+          if (options.output) {
+            const outputPath = path.resolve(options.output);
+            const jsPath = outputPath.endsWith('.js') ? outputPath : outputPath + '.js';
+            writeCompileOutputFile(jsPath, result.code);
+            console.log(`\x1b[32m✓ VRR JavaScript written to ${jsPath}\x1b[0m`);
+          } else {
+            console.log('\n--- VRR JavaScript Output ---\n');
+            console.log(result.code);
+          }
+
+          process.exit(0);
+        }
+
+        // Special handling for multi-layer target - compile VR/VRR/AR views together
+        if (target === 'multi-layer') {
+          if (!isHolo) {
+            console.error(`\x1b[31mError: multi-layer compilation requires .holo files.\x1b[0m`);
+            process.exit(1);
+          }
+
+          const { HoloCompositionParser } = await import('@holoscript/core');
+          const { MultiLayerCompiler } = await import('@holoscript/core/compiler');
+          const compositionParser = new HoloCompositionParser();
+          const parseResult = compositionParser.parse(content);
+
+          if (!parseResult.success || !parseResult.ast) {
+            console.error(`\x1b[31mError parsing for multi-layer:\x1b[0m`);
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
+            process.exit(1);
+          }
+
+          console.log(`\x1b[2m[DEBUG] Compiling to multi-layer VR/VRR/AR bundle...\x1b[0m`);
+          const compiler = new MultiLayerCompiler({
+            targets: ['vr', 'vrr', 'ar'],
+            minify: false,
+            source_maps: false,
+          });
+          const result = compiler.compile(parseResult.ast, '');
+
+          if (!result.success) {
+            console.error(`\x1b[31mMulti-layer compilation failed:\x1b[0m`);
+            for (const error of result.errors) {
+              console.error(`  - ${error}`);
+            }
+            process.exit(1);
+          }
+
+          console.log(`\x1b[32m✓ Multi-layer compilation successful!\x1b[0m`);
+          console.log(`\x1b[2m  Objects: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
+          console.log(
+            `\x1b[2m  Layers: ${['vr', 'vrr', 'ar'].filter((layer) => result[layer as 'vr' | 'vrr' | 'ar']).join(', ')}\x1b[0m`
+          );
+          if (result.warnings.length > 0) {
+            for (const warning of result.warnings) {
+              console.log(`\x1b[33m  Warning: ${warning}\x1b[0m`);
+            }
+          }
+
+          const serialized = JSON.stringify(result, null, 2);
+          if (options.output) {
+            const outputPath = path.resolve(options.output);
+            if (outputPath.endsWith('.json')) {
+              writeCompileOutputFile(outputPath, serialized);
+              console.log(`\x1b[32m✓ Multi-layer manifest written to ${outputPath}\x1b[0m`);
+            } else {
+              fs.mkdirSync(outputPath, { recursive: true });
+              if (result.vr) {
+                writeCompileOutputFile(path.join(outputPath, 'vr.js'), result.vr);
+                console.log(`\x1b[32m✓ Written vr.js\x1b[0m`);
+              }
+              if (result.vrr?.code) {
+                writeCompileOutputFile(path.join(outputPath, 'vrr.js'), result.vrr.code);
+                console.log(`\x1b[32m✓ Written vrr.js\x1b[0m`);
+              }
+              if (result.ar?.code) {
+                writeCompileOutputFile(path.join(outputPath, 'ar.js'), result.ar.code);
+                console.log(`\x1b[32m✓ Written ar.js\x1b[0m`);
+              }
+              writeCompileOutputFile(path.join(outputPath, 'multi-layer.json'), serialized);
+              console.log(`\x1b[32m✓ Written multi-layer.json\x1b[0m`);
+            }
+          } else {
+            console.log('\n--- Multi-layer Output ---\n');
+            console.log(serialized);
           }
 
           process.exit(0);
