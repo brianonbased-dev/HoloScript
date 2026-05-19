@@ -257,7 +257,12 @@ export async function POST(request: NextRequest) {
     if (gate.error) return gate.error;
 
     __phase = 'system-prompt';
-    const systemPrompt = bodySystemPrompt ?? buildContextualPrompt(sceneContext);
+    const systemPrompt =
+      bodySystemPrompt ??
+      buildContextualPrompt(sceneContext, null, true, {
+        providerName: resolved?.providerName,
+        model: resolved?.model,
+      });
     const baseUrl = getBaseUrl(request);
 
     __phase = 'holoshell-operator';

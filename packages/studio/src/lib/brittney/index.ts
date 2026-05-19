@@ -15,7 +15,11 @@ export type {
 export { BRITTNEY_TOOLS, executeTool } from './BrittneyTools';
 export type { ToolResult } from './BrittneyTools';
 export { STUDIO_API_TOOLS, STUDIO_API_TOOL_NAMES } from './StudioAPITools';
-export type { StudioToolDefinition, StudioToolFunction, ToolPropertySchema } from './StudioAPITools';
+export type {
+  StudioToolDefinition,
+  StudioToolFunction,
+  ToolPropertySchema,
+} from './StudioAPITools';
 export { executeStudioTool, isStudioAPITool } from './StudioAPIExecutor';
 export type { StudioAPIResult } from './StudioAPIExecutor';
 export { MCP_TOOLS, MCP_TOOL_NAMES } from './MCPTools';
@@ -47,6 +51,19 @@ export {
 export type { ScenarioMatch, MatchResult } from './ScenarioMatcher';
 export { validateHoloOutput, stripMarkdownFences } from './holoValidator';
 export type { ValidationResult } from './holoValidator';
+export {
+  buildBrainCachingPromptBlock,
+  buildBrainCachingRecommendation,
+  inferBrainCacheCapability,
+  inferBrainCachingScope,
+} from './caching';
+export type {
+  BrainCacheCapability,
+  BrainCacheUsage,
+  BrainCachingContext,
+  BrainCachingRecommendation,
+  BrainCachingScope,
+} from './caching';
 export { SIMULATION_TOOLS, SIMULATION_PROMPT_EXTENSION } from './SimulationTools';
 export { SimulationToolExecutor, type SimToolResult } from './SimulationToolExecutor';
 export {

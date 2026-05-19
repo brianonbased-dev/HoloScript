@@ -8,6 +8,7 @@
  */
 
 import { BRITTNEY_IDENTITY_MARK } from './brand';
+import { buildBrainCachingPromptBlock, type BrainCachingContext } from './caching';
 
 export const HOLOSHELL_OPERATOR_CONTEXT = `
 
@@ -75,7 +76,8 @@ Either path leads to: a composable HoloScript project, continuous self-improveme
 export function buildContextualPrompt(
   sceneContext?: string | null,
   userProfile?: { name?: string; tier?: string; preferredTargets?: string[] } | null,
-  enableSimulation = true
+  enableSimulation = true,
+  cachingContext: BrainCachingContext = {}
 ): string {
   const parts: string[] = [SYSTEM_PROMPT, HOLOSHELL_OPERATOR_CONTEXT];
 
@@ -105,6 +107,13 @@ export function buildContextualPrompt(
       parts.push(LOTUS_GARDEN_CONTEXT);
     }
   }
+
+  parts.push(
+    buildBrainCachingPromptBlock({
+      ...cachingContext,
+      sceneContext: cachingContext.sceneContext ?? sceneContext,
+    })
+  );
 
   return parts.join('');
 }
