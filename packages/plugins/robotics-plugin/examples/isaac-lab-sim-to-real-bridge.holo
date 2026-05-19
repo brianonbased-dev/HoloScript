@@ -1,0 +1,63 @@
+# Isaac Lab Sim-to-Real Bridge Prototype v0.1
+# Task: task_1779183224900_643n [p3][build] — minimal bridge (idea-seed 51)
+# Source memo: research/2026-04-19_isaac-lab-sim-to-real.md (Claude 2026-04-19)
+#
+# Demonstrates the *declarative authoring surface* for Path A (HoloScript → Isaac Lab feed).
+# This composition is the thinnest runnable example that encodes the sim-to-real
+# parameters identified in the memo (§1.1–1.3): domain randomization, non-ideal actuators,
+# and future USD friction schema.
+#
+# Current state (2026-05-19): parser ignores the @isaac_lab block (no IsaacLabCompiler yet).
+# Future: usd-codegen.ts emits PhysxArticulationAPI + drive:* + joint-friction schema;
+#        IsaacLabCompiler.ts emits ManagerBasedRLEnvCfg + EventTermCfg references.
+#
+# See packages/plugins/robotics-plugin/python/isaac_lab_bridge.py for the matching
+# thin shim that "executes" the bridge concept without requiring an Isaac Sim license.
+
+robot spot {
+  # Base from existing robotics examples (robot-arm-complete.holo)
+  @urdf_export "spot.urdf"
+  @usd_export   "spot.usd"
+  @ros_node     { topic: "/joint_states", rate_hz: 30 }
+
+  @isaac_lab {
+    # Memo Path A, step 3 (DR vocabulary) + step 4 (actuator groups)
+    actuator_model: "DelayedPDActuator",   # maps to isaaclab.actuators.DelayedPDActuator
+    actuator_groups: {
+      legs: { kp: 120.0, kd: 8.0, latency_ms: 4 }   # explicit comms delay (sim-to-real)
+    }
+
+    domain_randomization: {
+      # EventTermCfg targets (isaaclab.envs.mdp.*)
+      rigid_body_mass:     { range: [0.95, 1.05], mode: "reset" }
+      rigid_body_friction: { range: [0.7, 1.3],   mode: "reset" }
+      joint_damping:       { range: [0.8, 1.2],   mode: "interval", interval_s: 2.0 }
+      push_force:          { magnitude: 120,      interval_s: [3, 12] }
+    }
+
+    observation_noise: {
+      joint_pos: 0.012,
+      joint_vel: 0.025,
+      imu:       0.018
+    }
+
+    # Future: emit PhysxJointFrictionAPI / PhysxArticulation:friction:* (memo §1.4)
+    joint_friction_schema: "physx"
+  }
+
+  # Minimal kinematic skeleton (enough for USD/Isaac import)
+  base_link { mass: 12.0 }
+  joints {
+    FL_hip  { type: revolute, axis: "y", limits: [-1.57, 1.57] }
+    FL_knee { type: revolute, axis: "x", limits: [-2.5,  2.5 ] }
+    # ... (truncated for prototype; full 12-DOF in real Spot asset)
+  }
+}
+
+# Done criteria for this task satisfied by:
+# - 1 runnable demo: python .../isaac_lab_bridge.py  (emits Isaac Lab stub config)
+# - Docs: this file header + memo cross-ref + py docstring
+# - Thin interop shim: maps HoloScript declarative → Isaac Lab EventTermCfg/ActuatorCfg
+#
+# Next (out of scope for p3): full IsaacLabCompiler.ts + usd-codegen patches (memo steps 1-5).
+# Verification: see commit that landed these two files + `python` execution output.
