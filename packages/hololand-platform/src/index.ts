@@ -97,6 +97,31 @@ export type {
   ReviewerSafeTraceProvenance,
 } from './evidence';
 
+// Headset Share — owned HTTPS transport for Quest proof (task_1778964942978_iuct)
+export {
+  startHeadsetShareServer,
+  buildHeadsetShareReceipt,
+  detectLanIp,
+  detectAllLanIps,
+  adbAvailable,
+  adbListDevices,
+  adbReverseForward,
+  adbReverseRemove,
+  generateShareId,
+  renderScenePage,
+  DEFAULT_HEADSET_SHARE_OUTPUT_DIR,
+} from './headset-share';
+
+export type {
+  HeadsetTransportKind,
+  HeadsetShareOptions,
+  HeadsetShareReceipt,
+  HeadsetShareArtifact,
+  ShareRecord,
+  SelfSignedCert,
+  HeadsetShareServer,
+} from './headset-share';
+
 // Adversarial Trajectory — PROWL response substrate
 export {
   ADVERSARIAL_TRAJECTORY_SCHEMA,

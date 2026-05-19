@@ -6,6 +6,7 @@ export default defineConfig({
     'device-lab': 'src/device-lab/cli.ts',
     'evidence-envelope': 'src/evidence-envelope/cli.ts',
     'adversarial-trajectory': 'src/adversarial-trajectory/cli.ts',
+    'headset-share': 'src/headset-share/cli.ts',
   },
   format: ['cjs', 'esm'],
   dts: true,
