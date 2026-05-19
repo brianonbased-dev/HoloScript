@@ -363,6 +363,22 @@ for tier in table['tiers']:
   if echo "$LLM_MODEL" | grep -qi "awq"; then
     $PIP_BIN install --quiet autoawq || true
   fi
+  # Blackwell (sm_120 / compute 12.x) workaround: FlashInfer checks compute
+  # capability as a string ("12.0" < "7.5" lexicographically = false positive).
+  # --enforce-eager disables CUDA Graph compilation and avoids the broken path.
+  # Also needed for any sm >= 100 (future architectures) until FlashInfer fixes
+  # the string comparison bug.
+  BLACKWELL_EAGER=""
+  GPU_SM=$("$PY_BIN" -c "
+import torch
+if torch.cuda.is_available():
+    p = torch.cuda.get_device_properties(0)
+    print(f'{p.major}')
+" 2>/dev/null || echo "0")
+  if [ -n "$GPU_SM" ] && [ "$GPU_SM" -ge 10 ] 2>/dev/null; then
+    echo "[bootstrap] Blackwell/future GPU (sm_${GPU_SM}x) detected — adding --enforce-eager to avoid FlashInfer sm-check false-positive"
+    BLACKWELL_EAGER="--enforce-eager"
+  fi
   # EXTRA_ARGS comes from gpu-tier-models.json (e.g. --max-model-len 16384
   # --gpu-memory-utilization 0.92 for 72B-class models). Word-split intentional;
   # entries are pre-quoted in the JSON.
@@ -370,6 +386,7 @@ for tier in table['tiers']:
     --model "$LLM_MODEL" \
     --port "$LLM_PORT" \
     $EXTRA_ARGS \
+    $BLACKWELL_EAGER \
     > "$LOG_DIR/vllm.log" 2>&1 &
   echo $! > "$LOG_DIR/vllm.pid"
   # Adapter (@holoscript/llm-provider local-llm) appends `/v1/chat/completions`
