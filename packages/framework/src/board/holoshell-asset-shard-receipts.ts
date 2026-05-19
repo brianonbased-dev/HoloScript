@@ -246,6 +246,14 @@ export function validateAssetShardWorkflowReceipt(receipt: AssetShardWorkflowRec
   if (receipt.summary?.mutationExecuted !== false) {
     errors.push('AssetShardWorkflowReceipt.summary.mutationExecuted must be false.');
   }
+  // Blocked-file gate: secretLikeAssetGate must be 'pass' or 'blocked' (never absent/invalid)
+  if (receipt.validation?.secretLikeAssetGate !== 'pass' && receipt.validation?.secretLikeAssetGate !== 'blocked') {
+    errors.push('AssetShardWorkflowReceipt.validation.secretLikeAssetGate must be pass or blocked.');
+  }
+  // Preview source validation gate: must be 'pass', 'blocked', or 'fail'
+  if (!isOneOf(['pass', 'blocked', 'fail'] as const, String(receipt.validation?.previewSourceValidation))) {
+    errors.push(`AssetShardWorkflowReceipt.validation.previewSourceValidation is unsupported: ${String(receipt.validation?.previewSourceValidation)}.`);
+  }
   if (receipt.validation?.browserPathRedaction !== 'pass') {
     errors.push('AssetShardWorkflowReceipt.validation.browserPathRedaction must pass.');
   }
@@ -407,6 +415,434 @@ export function validateAssetShardReceiptBundle(bundle: {
     ...(bundle.witness ? validatePlayableShardWitnessReceipt(bundle.witness) : []),
   ];
   return errors;
+}
+
+// ---------------------------------------------------------------------------
+// AssetIntakeReceipt — records initial scan/intake of an asset folder
+// ---------------------------------------------------------------------------
+
+export const ASSET_INTAKE_STATUSES = ['scanned', 'blocked', 'empty', 'failed'] as const;
+export type AssetIntakeStatus = (typeof ASSET_INTAKE_STATUSES)[number];
+
+export const ASSET_INTAKE_KINDS = [
+  'folder_scan',
+  'single_file',
+  'archive_extract',
+  'drag_drop',
+  'cli_import',
+] as const;
+export type AssetIntakeKind = (typeof ASSET_INTAKE_KINDS)[number];
+
+export interface AssetIntakeReceipt {
+  schemaVersion: string;
+  intakeId: string;
+  generatedAt: string;
+  intakeKind: AssetIntakeKind;
+  source: {
+    assetFolderName: string;
+    assetFolderFingerprint: string;
+    pathPolicy: 'absolute_path_kept_in_private_receipt_only';
+    privacyClass: 'local_private';
+  };
+  summary: {
+    status: AssetIntakeStatus;
+    fileCount: number;
+    totalSizeBytes: number;
+    blockedFileCount: number;
+    blockedFileGate: 'pass' | 'blocked';
+    requiresApproval: boolean;
+  };
+  files: Array<{
+    id: string;
+    name: string;
+    relativePath: string;
+    kind: AssetShardKind;
+    sizeBytes: number;
+    hashSha256: string;
+    blocked: boolean;
+    blockReason?: string;
+  }>;
+  intakeNonce: string;
+  rollback: {
+    sourceAssetsMutated: false;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// AssetConversionReceipt — records asset conversion/transform step
+// ---------------------------------------------------------------------------
+
+export const ASSET_CONVERSION_KINDS = [
+  'model_to_holo',
+  'image_optimization',
+  'audio_transcode',
+  'manifest_generation',
+  'material_compression',
+  'scene_composition',
+] as const;
+export type AssetConversionKind = (typeof ASSET_CONVERSION_KINDS)[number];
+
+export const ASSET_CONVERSION_STATUSES = ['completed', 'failed', 'skipped'] as const;
+export type AssetConversionStatus = (typeof ASSET_CONVERSION_STATUSES)[number];
+
+export interface AssetConversionReceipt {
+  schemaVersion: string;
+  conversionId: string;
+  generatedAt: string;
+  conversionKind: AssetConversionKind;
+  source: {
+    sourceFileId: string;
+    sourceFileName: string;
+    sourceFileHash: string;
+    pathPolicy: 'absolute_path_kept_in_private_receipt_only';
+  };
+  output: {
+    outputFileName: string;
+    outputFileHash: string;
+    outputPath: string;
+  };
+  summary: {
+    status: AssetConversionStatus;
+    sourceMutated: false;
+    conversionDurationMs: number;
+  };
+  rollback: {
+    sourceAssetsMutated: false;
+    generatedTmpPaths: string[];
+  };
+}
+
+// ---------------------------------------------------------------------------
+// PreviewShardSourceReceipt — records preview source generation
+// ---------------------------------------------------------------------------
+
+export const PREVIEW_SOURCE_STATUSES = ['generated', 'failed', 'skipped'] as const;
+export type PreviewSourceStatus = (typeof PREVIEW_SOURCE_STATUSES)[number];
+
+export interface PreviewShardSourceReceipt {
+  schemaVersion: string;
+  previewId: string;
+  generatedAt: string;
+  source: {
+    workflowId: string;
+    sourceFingerprint: string;
+    pathPolicy: 'absolute_path_kept_in_private_receipt_only';
+  };
+  summary: {
+    status: PreviewSourceStatus;
+    assetCount: number;
+    previewSourceHash: string;
+    sourceAssetsMutated: false;
+  };
+  output: {
+    previewSourcePath: string;
+    privateReceiptPath: string;
+  };
+  rollback: {
+    sourceAssetsMutated: false;
+    generatedTmpPaths: string[];
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Rollback/Replay contract validation
+// ---------------------------------------------------------------------------
+
+export interface AssetShardRollbackContract {
+  workflowId: string;
+  rollbackPoints: Array<{
+    step: string;
+    sourceAssetsMutated: false;
+    tmpPaths: string[];
+    replayKey: string;
+  }>;
+  replayDeterministic: boolean;
+  sourceIntegrityPreserved: true;
+}
+
+// ---------------------------------------------------------------------------
+// Validators for new receipt types
+// ---------------------------------------------------------------------------
+
+export function validateAssetIntakeReceipt(receipt: AssetIntakeReceipt): string[] {
+  const errors: string[] = [];
+
+  if (!receipt.intakeId) errors.push('AssetIntakeReceipt.intakeId is required.');
+  if (!isIsoTimestamp(receipt.generatedAt)) {
+    errors.push('AssetIntakeReceipt.generatedAt must be a valid ISO-8601 timestamp.');
+  }
+  if (!isOneOf(ASSET_INTAKE_KINDS, String(receipt.intakeKind))) {
+    errors.push(`AssetIntakeReceipt.intakeKind is unsupported: ${String(receipt.intakeKind)}.`);
+  }
+  if (!receipt.source?.assetFolderName) {
+    errors.push('AssetIntakeReceipt.source.assetFolderName is required.');
+  }
+  if (!receipt.source?.assetFolderFingerprint) {
+    errors.push('AssetIntakeReceipt.source.assetFolderFingerprint is required.');
+  }
+  if (receipt.source?.pathPolicy !== 'absolute_path_kept_in_private_receipt_only') {
+    errors.push('AssetIntakeReceipt.source.pathPolicy must keep absolute paths private.');
+  }
+  if (receipt.source?.privacyClass !== 'local_private') {
+    errors.push('AssetIntakeReceipt.source.privacyClass must be local_private.');
+  }
+
+  if (!isOneOf(ASSET_INTAKE_STATUSES, String(receipt.summary?.status))) {
+    errors.push(`AssetIntakeReceipt.summary.status is unsupported: ${String(receipt.summary?.status)}.`);
+  }
+  for (const [field, value] of [
+    ['fileCount', receipt.summary?.fileCount],
+    ['totalSizeBytes', receipt.summary?.totalSizeBytes],
+    ['blockedFileCount', receipt.summary?.blockedFileCount],
+  ] as const) {
+    if (!isNonNegativeInteger(Number(value))) {
+      errors.push(`AssetIntakeReceipt.summary.${field} must be a non-negative integer.`);
+    }
+  }
+  if (receipt.summary?.blockedFileGate !== 'pass' && receipt.summary?.blockedFileGate !== 'blocked') {
+    errors.push('AssetIntakeReceipt.summary.blockedFileGate must be pass or blocked.');
+  }
+  if (receipt.summary?.requiresApproval !== true) {
+    errors.push('AssetIntakeReceipt.summary.requiresApproval must be true.');
+  }
+
+  // Validate file entries — reject absolute paths, enforce blocked-file gate
+  if (!receipt.files || receipt.files.length === 0) {
+    errors.push('AssetIntakeReceipt.files must contain at least one file entry.');
+  }
+  for (const file of receipt.files ?? []) {
+    if (!file.id) errors.push('AssetIntakeReceipt file entry id is required.');
+    if (!file.name) errors.push('AssetIntakeReceipt file entry name is required.');
+    if (hasAbsolutePath(file.relativePath)) {
+      errors.push(`AssetIntakeReceipt file(${file.id || 'unknown'}).relativePath must be repo-relative/redacted, not an absolute path.`);
+    }
+    if (!isOneOf(ASSET_SHARD_KINDS, String(file.kind))) {
+      errors.push(`AssetIntakeReceipt file(${file.id || 'unknown'}).kind is unsupported: ${String(file.kind)}.`);
+    }
+    if (!isNonNegativeInteger(file.sizeBytes)) {
+      errors.push(`AssetIntakeReceipt file(${file.id || 'unknown'}).sizeBytes must be a non-negative integer.`);
+    }
+    if (!file.hashSha256) {
+      errors.push(`AssetIntakeReceipt file(${file.id || 'unknown'}).hashSha256 is required.`);
+    }
+    if (file.blocked && !file.blockReason) {
+      errors.push(`AssetIntakeReceipt file(${file.id || 'unknown'}).blockReason is required when blocked.`);
+    }
+  }
+
+  // Nonce/approval gate
+  if (!receipt.intakeNonce) {
+    errors.push('AssetIntakeReceipt.intakeNonce is required.');
+  }
+
+  if (receipt.rollback?.sourceAssetsMutated !== false) {
+    errors.push('AssetIntakeReceipt.rollback.sourceAssetsMutated must be false.');
+  }
+
+  return errors;
+}
+
+export function validateAssetConversionReceipt(receipt: AssetConversionReceipt): string[] {
+  const errors: string[] = [];
+
+  if (!receipt.conversionId) errors.push('AssetConversionReceipt.conversionId is required.');
+  if (!isIsoTimestamp(receipt.generatedAt)) {
+    errors.push('AssetConversionReceipt.generatedAt must be a valid ISO-8601 timestamp.');
+  }
+  if (!isOneOf(ASSET_CONVERSION_KINDS, String(receipt.conversionKind))) {
+    errors.push(`AssetConversionReceipt.conversionKind is unsupported: ${String(receipt.conversionKind)}.`);
+  }
+  if (!receipt.source?.sourceFileId) {
+    errors.push('AssetConversionReceipt.source.sourceFileId is required.');
+  }
+  if (!receipt.source?.sourceFileName) {
+    errors.push('AssetConversionReceipt.source.sourceFileName is required.');
+  }
+  if (!receipt.source?.sourceFileHash) {
+    errors.push('AssetConversionReceipt.source.sourceFileHash is required.');
+  }
+  if (receipt.source?.pathPolicy !== 'absolute_path_kept_in_private_receipt_only') {
+    errors.push('AssetConversionReceipt.source.pathPolicy must keep absolute paths private.');
+  }
+
+  if (receipt.summary?.sourceMutated !== false) {
+    errors.push('AssetConversionReceipt.summary.sourceMutated must be false.');
+  }
+  if (!isOneOf(ASSET_CONVERSION_STATUSES, String(receipt.summary?.status))) {
+    errors.push(`AssetConversionReceipt.summary.status is unsupported: ${String(receipt.summary?.status)}.`);
+  }
+
+  // Output validation — reject absolute paths, require hash for completed
+  if (receipt.summary?.status === 'completed') {
+    if (!receipt.output?.outputFileName) {
+      errors.push('AssetConversionReceipt.output.outputFileName is required for completed conversions.');
+    }
+    if (!receipt.output?.outputFileHash) {
+      errors.push('AssetConversionReceipt.output.outputFileHash is required for completed conversions.');
+    }
+    pushPathErrors('AssetConversionReceipt.output.outputPath', receipt.output?.outputPath, errors);
+  }
+
+  if (receipt.rollback?.sourceAssetsMutated !== false) {
+    errors.push('AssetConversionReceipt.rollback.sourceAssetsMutated must be false.');
+  }
+
+  return errors;
+}
+
+export function validatePreviewShardSourceReceipt(receipt: PreviewShardSourceReceipt): string[] {
+  const errors: string[] = [];
+
+  if (!receipt.previewId) errors.push('PreviewShardSourceReceipt.previewId is required.');
+  if (!isIsoTimestamp(receipt.generatedAt)) {
+    errors.push('PreviewShardSourceReceipt.generatedAt must be a valid ISO-8601 timestamp.');
+  }
+  if (!receipt.source?.workflowId) {
+    errors.push('PreviewShardSourceReceipt.source.workflowId is required.');
+  }
+  if (!receipt.source?.sourceFingerprint) {
+    errors.push('PreviewShardSourceReceipt.source.sourceFingerprint is required.');
+  }
+  if (receipt.source?.pathPolicy !== 'absolute_path_kept_in_private_receipt_only') {
+    errors.push('PreviewShardSourceReceipt.source.pathPolicy must keep absolute paths private.');
+  }
+
+  if (!isOneOf(PREVIEW_SOURCE_STATUSES, String(receipt.summary?.status))) {
+    errors.push(`PreviewShardSourceReceipt.summary.status is unsupported: ${String(receipt.summary?.status)}.`);
+  }
+  if (!isNonNegativeInteger(Number(receipt.summary?.assetCount))) {
+    errors.push('PreviewShardSourceReceipt.summary.assetCount must be a non-negative integer.');
+  }
+  if (!receipt.summary?.previewSourceHash) {
+    errors.push('PreviewShardSourceReceipt.summary.previewSourceHash is required.');
+  }
+  if (receipt.summary?.sourceAssetsMutated !== false) {
+    errors.push('PreviewShardSourceReceipt.summary.sourceAssetsMutated must be false.');
+  }
+
+  // Path validation — reject absolute paths in output
+  pushPathErrors('PreviewShardSourceReceipt.output.previewSourcePath', receipt.output?.previewSourcePath, errors);
+  pushPathErrors('PreviewShardSourceReceipt.output.privateReceiptPath', receipt.output?.privateReceiptPath, errors);
+
+  if (receipt.rollback?.sourceAssetsMutated !== false) {
+    errors.push('PreviewShardSourceReceipt.rollback.sourceAssetsMutated must be false.');
+  }
+
+  return errors;
+}
+
+export function validateAssetShardRollbackContract(contract: AssetShardRollbackContract): string[] {
+  const errors: string[] = [];
+
+  if (!contract.workflowId) errors.push('AssetShardRollbackContract.workflowId is required.');
+
+  if (!contract.rollbackPoints || contract.rollbackPoints.length === 0) {
+    errors.push('AssetShardRollbackContract.rollbackPoints must contain at least one rollback point.');
+  }
+
+  for (const point of contract.rollbackPoints ?? []) {
+    if (!point.step) errors.push('AssetShardRollbackContract rollback point step is required.');
+    if (point.sourceAssetsMutated !== false) {
+      errors.push(`AssetShardRollbackContract rollback point(${point.step || 'unknown'}).sourceAssetsMutated must be false.`);
+    }
+    if (!point.replayKey) {
+      errors.push(`AssetShardRollbackContract rollback point(${point.step || 'unknown'}).replayKey is required.`);
+    }
+  }
+
+  if (contract.replayDeterministic !== true) {
+    errors.push('AssetShardRollbackContract.replayDeterministic must be true.');
+  }
+  if (contract.sourceIntegrityPreserved !== true) {
+    errors.push('AssetShardRollbackContract.sourceIntegrityPreserved must be true.');
+  }
+
+  return errors;
+}
+
+export function validateAssetShardFullReceiptChain(chain: {
+  intake?: AssetIntakeReceipt;
+  conversion?: AssetConversionReceipt;
+  preview?: PreviewShardSourceReceipt;
+  workflow?: AssetShardWorkflowReceipt;
+  approval?: AssetShardImportApprovalReceipt;
+  importReceipt?: AssetShardImportReceipt;
+  witness?: PlayableShardWitnessReceipt;
+  rollback?: AssetShardRollbackContract;
+}): string[] {
+  const errors: string[] = [];
+
+  if (!chain.intake) {
+    errors.push('AssetShardFullReceiptChain.intake is required.');
+  } else {
+    errors.push(...validateAssetIntakeReceipt(chain.intake));
+  }
+
+  if (chain.conversion) {
+    errors.push(...validateAssetConversionReceipt(chain.conversion));
+  }
+
+  if (!chain.preview) {
+    errors.push('AssetShardFullReceiptChain.preview is required.');
+  } else {
+    errors.push(...validatePreviewShardSourceReceipt(chain.preview));
+  }
+
+  if (!chain.workflow) {
+    errors.push('AssetShardFullReceiptChain.workflow is required.');
+  } else {
+    errors.push(...validateAssetShardWorkflowReceipt(chain.workflow));
+  }
+
+  if (chain.approval) {
+    errors.push(...validateAssetShardImportApprovalReceipt(chain.approval));
+  }
+
+  if (chain.importReceipt) {
+    errors.push(...validateAssetShardImportReceipt(chain.importReceipt));
+  }
+
+  // Witness required when import is completed
+  if (chain.importReceipt?.summary?.status === 'completed' && !chain.witness) {
+    errors.push('AssetShardFullReceiptChain.witness is required when importReceipt is completed.');
+  }
+  if (chain.witness) {
+    errors.push(...validatePlayableShardWitnessReceipt(chain.witness));
+  }
+
+  if (chain.rollback) {
+    errors.push(...validateAssetShardRollbackContract(chain.rollback));
+  }
+
+  // Cross-receipt consistency checks
+  if (chain.intake && chain.workflow) {
+    if (chain.intake.source.assetFolderFingerprint !== chain.workflow.source.assetFolderFingerprint) {
+      errors.push('AssetShardFullReceiptChain: intake and workflow source fingerprints must match.');
+    }
+  }
+  if (chain.preview && chain.workflow) {
+    if (chain.preview.summary.previewSourceHash !== chain.workflow.validation.previewSourceHash) {
+      errors.push('AssetShardFullReceiptChain: preview and workflow preview hashes must match.');
+    }
+  }
+
+  return errors;
+}
+
+export function cloneAssetIntakeReceipt(receipt: AssetIntakeReceipt): AssetIntakeReceipt {
+  return JSON.parse(JSON.stringify(receipt)) as AssetIntakeReceipt;
+}
+
+export function cloneAssetConversionReceipt(receipt: AssetConversionReceipt): AssetConversionReceipt {
+  return JSON.parse(JSON.stringify(receipt)) as AssetConversionReceipt;
+}
+
+export function clonePreviewShardSourceReceipt(receipt: PreviewShardSourceReceipt): PreviewShardSourceReceipt {
+  return JSON.parse(JSON.stringify(receipt)) as PreviewShardSourceReceipt;
+}
+
+export function cloneAssetShardRollbackContract(contract: AssetShardRollbackContract): AssetShardRollbackContract {
+  return JSON.parse(JSON.stringify(contract)) as AssetShardRollbackContract;
 }
 
 export function cloneAssetShardWorkflowReceipt(
