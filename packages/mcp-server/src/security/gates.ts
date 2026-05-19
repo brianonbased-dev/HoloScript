@@ -55,8 +55,8 @@ export interface Gate1Config {
 }
 
 export const DEFAULT_GATE1_CONFIG: Gate1Config = {
-  maxBodySize: 1 * 1024 * 1024,
-  maxArgStringLength: 100 * 1024,
+  maxBodySize: 10 * 1024 * 1024, // 10MB — increased for inline sourceFiles absorb
+  maxArgStringLength: 500 * 1024, // 500KB per string — needed for large source file inline absorb
   maxArgDepth: 10,
   blockInjectionPatterns: true,
   rateLimitPerMinute: 120,
@@ -552,7 +552,13 @@ export function runTripleGate(
   }
 
   // Gate 1: Prompt validation
-  const g1 = gate1ValidateRequest(toolName, args, auth.clientId || 'unknown', gate1Config);
+  // sourceFiles absorb: disable injection pattern check — source code naturally contains
+  // patterns like __proto__, path traversal, and template literals that are false positives.
+  const resolvedGate1Config: Gate1Config =
+    toolName === 'holo_absorb_repo' && Array.isArray(args['sourceFiles'])
+      ? { ...(gate1Config ?? DEFAULT_GATE1_CONFIG), blockInjectionPatterns: false }
+      : (gate1Config ?? DEFAULT_GATE1_CONFIG);
+  const g1 = gate1ValidateRequest(toolName, args, auth.clientId || 'unknown', resolvedGate1Config);
   if (!g1.passed) {
     return {
       passed: false,

@@ -384,7 +384,7 @@ function parseJsonBody(req: http.IncomingMessage): Promise<Record<string, unknow
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     let totalSize = 0;
-    const MAX_BODY = 2 * 1024 * 1024; // 2MB hard limit
+    const MAX_BODY = 10 * 1024 * 1024; // 10MB hard limit (increased for inline sourceFiles absorb)
 
     req.on('data', (chunk: Buffer) => {
       totalSize += chunk.length;
