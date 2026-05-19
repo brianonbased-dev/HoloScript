@@ -208,6 +208,26 @@ export function isSupportedAssetShardStatus(status: string): status is AssetShar
   return isOneOf(ASSET_SHARD_STATUSES, status);
 }
 
+export function isSupportedAssetIntakeKind(kind: string): kind is AssetIntakeKind {
+  return isOneOf(ASSET_INTAKE_KINDS, kind);
+}
+
+export function isSupportedAssetIntakeStatus(status: string): status is AssetIntakeStatus {
+  return isOneOf(ASSET_INTAKE_STATUSES, status);
+}
+
+export function isSupportedAssetConversionKind(kind: string): kind is AssetConversionKind {
+  return isOneOf(ASSET_CONVERSION_KINDS, kind);
+}
+
+export function isSupportedAssetConversionStatus(status: string): status is AssetConversionStatus {
+  return isOneOf(ASSET_CONVERSION_STATUSES, status);
+}
+
+export function isSupportedPreviewSourceStatus(status: string): status is PreviewSourceStatus {
+  return isOneOf(PREVIEW_SOURCE_STATUSES, status);
+}
+
 export function validateAssetShardWorkflowReceipt(receipt: AssetShardWorkflowReceipt): string[] {
   const errors: string[] = [];
 
