@@ -135,8 +135,16 @@ def filter_offers(
     min_reliability: float,
     max_dph_total: float,
     headroom_gb: int = 0,
+    min_cuda_ver: float = 13.0,
 ) -> tuple[list[dict], list[dict]]:
-    """Filter offers by capability fit. Returns (kept, rejected)."""
+    """Filter offers by capability fit. Returns (kept, rejected).
+
+    min_cuda_ver defaults to 13.0 because vLLM ≥0.21 ships PyTorch +cu130
+    and requires NVIDIA driver ≥580 (CUDA 13.0).  Instances with 570.x
+    drivers (CUDA 12.8) fail at torch.cuda.init() even with sufficient VRAM.
+    Override via @runtime_requirements { min_cuda_ver: 12.0, ... } if an
+    older vLLM or non-vLLM workload is used.
+    """
     rx = re.compile(gpu_class_regex)
     required_vram_mib = (min_vram_gb + headroom_gb) * 1024
     kept: list[dict] = []
@@ -156,6 +164,9 @@ def filter_offers(
         dph = float(o.get("dph_total") or 0)
         if dph <= 0 or dph > max_dph_total:
             reasons.append(f"dph_total {dph:.2f} > cap {max_dph_total}")
+        cuda_ok = float(o.get("cuda_max_good") or 0)
+        if min_cuda_ver > 0 and cuda_ok < min_cuda_ver:
+            reasons.append(f"cuda_max_good {cuda_ok} < required {min_cuda_ver}")
         if reasons:
             rejected.append({**o, "_reject_reasons": reasons})
         else:
@@ -175,12 +186,18 @@ def rank_offers(offers: list[dict]) -> list[dict]:
     )
 
 
-def query_live_offers(filter_query: str = "") -> list[dict]:
+def query_live_offers(filter_query: str = "", min_cuda_ver: float = 13.0) -> list[dict]:
     """Call `vastai search offers --raw` and parse JSON. Caller MUST handle
     subprocess errors — we surface the exit code as ValueError."""
     cmd = ["vastai", "search", "offers", "--raw"]
+    # Build query: start with CUDA version floor so Vast.ai server-filters early
+    parts: list[str] = []
+    if min_cuda_ver > 0:
+        parts.append(f"cuda_max_good >= {min_cuda_ver}")
     if filter_query:
-        cmd.append(filter_query)
+        parts.append(filter_query)
+    if parts:
+        cmd.append(" ".join(parts))
     try:
         cp = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
     except FileNotFoundError as exc:
@@ -306,6 +323,9 @@ def main() -> int:
     if args.headroom_gb:
         req["headroom_gb"] = args.headroom_gb
 
+    # min_cuda_ver: brain can override; default 13.0 because vLLM ≥0.21 requires it
+    min_cuda_ver: float = float(req.get("min_cuda_ver", 13.0))
+
     needed = ["min_vram_gb", "gpu_class_regex", "min_reliability", "max_dph_total_usd"]
     missing = [k for k in needed if k not in req]
     if missing:
@@ -318,7 +338,7 @@ def main() -> int:
         offers = json.loads(args.offers_file.read_text(encoding="utf-8"))
     else:
         try:
-            offers = query_live_offers()
+            offers = query_live_offers(min_cuda_ver=min_cuda_ver)
         except ValueError as exc:
             print(f"ERROR: {exc}", file=sys.stderr)
             return 2
@@ -330,6 +350,7 @@ def main() -> int:
         min_reliability=float(req["min_reliability"]),
         max_dph_total=float(req["max_dph_total_usd"]),
         headroom_gb=int(req.get("headroom_gb", 0)),
+        min_cuda_ver=min_cuda_ver,
     )
     ranked = rank_offers(kept)[: args.top]
 
