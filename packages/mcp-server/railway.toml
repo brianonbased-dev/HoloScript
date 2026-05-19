@@ -12,6 +12,10 @@ restartPolicyMaxRetries = 10
 [env]
 NODE_ENV = "production"
 PORT = "3000"
+# P.009 — keep container warm to prevent ~14s cold-start on first MCP initialize.
+# Railway sleeps containers after ~5 min idle; self-ping at 4.5 min keeps it live.
+MCP_KEEP_ALIVE_ENABLED = "true"
+MCP_KEEP_ALIVE_INTERVAL_MS = "270000"
 # W.101 / task_1777114501690_h56d — point HOLOMESH_DATA_DIR at the persistent
 # volume mounted at /data/holomesh (see [[volumes]] block below). Without the
 # volume + this env, the CAEL audit JSONL store at <HOLOMESH_DATA_DIR>/audit/

@@ -81,6 +81,7 @@ import {
   registerMcpAutoscaleSessions,
 } from './ops/railway-autoscale-loop.js';
 import { maybeStartPredictiveCloudflareLbLoop } from './ops/predictive-cloudflare-lb.js';
+import { maybeStartKeepAliveLoop, getKeepAliveStatus } from './ops/keep-alive.js';
 
 // Initialize native agent compositions
 loadNativeAgentCompositions();
@@ -800,6 +801,7 @@ const httpServer = http.createServer(async (req, res) => {
           registeredClients: oauthStats.registeredClients,
           activeTokens: oauthStats.activeAccessTokens,
         },
+        keepAlive: getKeepAliveStatus(),
       })
     );
     return;
@@ -3488,6 +3490,7 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
     console.info(`     GET  /api/audit/export             - Export audit log (admin)`);
     maybeStartRailwayAutoscaleLoop({ port: PORT });
     maybeStartPredictiveCloudflareLbLoop();
+    maybeStartKeepAliveLoop({ port: PORT });
   });
 })();
 
