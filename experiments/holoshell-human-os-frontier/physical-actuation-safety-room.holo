@@ -1,0 +1,194 @@
+// HoloShell Physical Actuation Safety Room
+//
+// Experiment-only source for wrapping real headset, robot, and device actions
+// as visible, deterministic, auditable HoloScript experiences.
+
+composition "HoloShell Physical Actuation Safety Room" {
+  metadata {
+    title: "Physical Actuation Safety"
+    productSurface: "HoloShell"
+    upstreamContracts: ["HoloShellDeviceSafetyReceiptPack", "TwinEarthReceipt", "SafetyEnvelope"]
+    hololandAdoption: "Twin Earth robot/device operator room"
+    defaultExecution: "simulation_first"
+  }
+
+  environment {
+    theme: "hardware_truth_control_room"
+    renderMode: "desktop_spatial"
+    receiptUnderlay: true
+    mutationDefault: "blocked_until_simulation_preview_and_fresh_approval"
+  }
+
+  state {
+    selectedActor: "HeadsetOrRobot"
+    inventoryStatus: "detected"
+    permissionStatus: "minimum_scope_pending"
+    simulationStatus: "not_run"
+    freshnessStatus: "not_checked"
+    envelopeStatus: "not_evaluated"
+    executionStatus: "blocked"
+    rollbackStatus: "physical_rollback_limited"
+    replayStatus: "pending"
+  }
+
+  template "ActuationPanel" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    scale: [1.42, 0.56, 0.06]
+    material: {
+      color: "#10202a"
+      emissive: "#113948"
+      emissiveIntensity: 0.2
+      transparent: true
+      opacity: 0.94
+    }
+  }
+
+  template "ReceiptToken" {
+    @grabbable
+    @collidable
+    geometry: "sphere"
+    scale: [0.16, 0.16, 0.16]
+    material: { color: "#74c0fc" }
+  }
+
+  room "PhysicalActuationSafetyRoom" {
+    label: "Operate a real device safely"
+    userJob: "Use a headset, robot, or device only after I can see the plan, simulate it, approve it, and replay what happened."
+    visualForm: "inventory_permission_simulation_freshness_envelope_execution_stop_rollback_replay"
+
+    object "HumanJob" using "ActuationPanel" {
+      label: "Human job"
+      position: [-3.2, 1.6, -2.8]
+      status: "plain_language_goal"
+      job: "Make the device do one bounded thing and show what changed."
+      failureState: "intent is too broad, ambiguous, or secretly credential/payment/deletion adjacent"
+    }
+
+    object "ActorInventory" using "ActuationPanel" {
+      label: "Actor inventory"
+      position: [-1.6, 1.6, -2.6]
+      status: $inventoryStatus
+      examples: ["Quest 3", "robot arm", "camera rig", "printer", "sensor", "local app bridge"]
+      receiptKind: "DeviceInventoryReceipt"
+      failureState: "device identity, adapter, or owner lane is missing"
+    }
+
+    object "MinimumPermissionGate" using "ActuationPanel" {
+      label: "Minimum permission"
+      position: [0, 1.6, -2.45]
+      status: $permissionStatus
+      receipts: ["PermissionSubjectReceipt", "PermissionRequestReceipt", "PermissionVerificationReceipt"]
+      requires: ["least privilege", "fresh user gesture", "revoke path", "no credential extrusion"]
+      failureState: "overbroad permission or unverifiable grant blocks execution"
+    }
+
+    object "SimulationPreview" using "ActuationPanel" {
+      label: "Simulation preview"
+      position: [1.6, 1.6, -2.6]
+      status: $simulationStatus
+      receiptKind: "ActuationSimulationReceipt"
+      checks: ["target pose", "expected device delta", "safe range", "human-visible result"]
+      failureState: "no deterministic preview means no physical command"
+    }
+
+    object "FreshnessGate" using "ActuationPanel" {
+      label: "Freshness gate"
+      position: [3.2, 1.6, -2.8]
+      status: $freshnessStatus
+      receiptKind: "SensorFreshnessReceipt"
+      limits: ["sensor age", "approval age", "adapter health", "owner lane freshness"]
+      failureState: "stale sensor or approval writes a replay lesson"
+    }
+
+    object "SafetyEnvelopeGate" using "ActuationPanel" {
+      label: "Safety envelope"
+      position: [-2.4, 0.65, -2.9]
+      status: $envelopeStatus
+      receiptKind: "DeviceSafetyEnvelopeReceipt"
+      checks: ["safe ranges", "rate limits", "stop plan", "privacy redactions", "receipt sink"]
+      failureState: "range, rate, identity, or redaction violation blocks command"
+    }
+
+    object "ExecutionDock" using "ActuationPanel" {
+      label: "Guarded execution"
+      position: [-0.8, 0.65, -2.75]
+      status: $executionStatus
+      modes: ["read_only", "simulation", "guarded_execute", "break_glass_blocked"]
+      daemonDefault: "execute_disabled"
+      failureState: "adapter unavailable, daemon disabled, approval mismatch, or safety stop"
+    }
+
+    object "SafeStopLever" using "ActuationPanel" {
+      label: "Safe stop"
+      position: [0.8, 0.65, -2.75]
+      status: "armed"
+      receiptKind: "SafeStopReceipt"
+      guarantees: ["stop attempted", "stop receipt written", "owner handoff visible"]
+      failureState: "stop unavailable becomes critical task, not hidden retry"
+    }
+
+    object "RollbackLimit" using "ActuationPanel" {
+      label: "Rollback limit"
+      position: [2.4, 0.65, -2.9]
+      status: $rollbackStatus
+      receiptKind: "PhysicalRollbackLimitReceipt"
+      note: "Software state can be replayed; physical motion cannot always be undone."
+      failureState: "irreversible physical effect requires break-glass block"
+    }
+
+    object "BrittneyOperator" using "ActuationPanel" {
+      label: "Brittney operator"
+      position: [0, -0.25, -2.3]
+      role: "plain_language_explainer"
+      says: "I can show the device, simulate the move, ask for approval, stop it, and replay the receipts."
+      failureState: "agent proposes action without receipts or owner lane"
+    }
+
+    object "ReplayTimeline" {
+      @anchor
+      geometry: "cube"
+      position: [0, -1.15, -2.95]
+      scale: [6.9, 0.08, 0.12]
+      color: "#6b7280"
+      label: "timeline: inventory -> permission -> simulate -> freshness -> envelope -> execute or stop -> rollback note -> replay"
+    }
+
+    object "InventoryToken" using "ReceiptToken" {
+      position: [-3.0, -0.75, -2.35]
+      label: "inventory receipt"
+      receiptKind: "DeviceInventoryReceipt"
+    }
+
+    object "PermissionToken" using "ReceiptToken" {
+      position: [-1.8, -0.75, -2.35]
+      label: "minimum scope receipt"
+      receiptKind: "HoloShellPermissionGateReceiptPack"
+    }
+
+    object "SimulationToken" using "ReceiptToken" {
+      position: [-0.6, -0.75, -2.35]
+      label: "simulation receipt"
+      receiptKind: "ActuationSimulationReceipt"
+    }
+
+    object "EnvelopeToken" using "ReceiptToken" {
+      position: [0.6, -0.75, -2.35]
+      label: "safety envelope receipt"
+      receiptKind: "DeviceSafetyEnvelopeReceipt"
+    }
+
+    object "ActionToken" using "ReceiptToken" {
+      position: [1.8, -0.75, -2.35]
+      label: "action or safe stop receipt"
+      receiptKind: "DeviceActionReceipt"
+    }
+
+    object "ReplayToken" using "ReceiptToken" {
+      position: [3.0, -0.75, -2.35]
+      label: "replay lesson"
+      receiptKind: "ReplayLessonReceipt"
+    }
+  }
+}

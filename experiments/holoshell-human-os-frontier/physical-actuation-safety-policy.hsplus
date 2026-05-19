@@ -1,0 +1,201 @@
+// HoloShell Physical Actuation Safety Policy
+//
+// Experiment-only policy for turning real device operations into visible,
+// deterministic HoloScript state machines with receipts and physical rollback
+// limits.
+
+composition "HoloShellPhysicalActuationSafetyPolicy" {
+  config {
+    title: "Physical Actuation Safety Policy"
+    productSurface: "HoloShell"
+    hololandSurface: "Twin Earth device operator room"
+    defaultExecution: "simulation_first"
+    mutationDefault: "blocked"
+    upstreamValidators: ["validateHoloShellDeviceSafetyReceiptPack", "validateHoloShellPermissionGateReceiptPack", "validateSafetyEnvelope", "validateTwinEarthReceipt"]
+  }
+
+  state ActuationState {
+    phase: "inventory"
+    actorId: ""
+    actionIntent: ""
+    permissionEnvelope: "read_only"
+    minimumScopeVerified: false
+    simulationPassed: false
+    sensorFresh: false
+    approvalFresh: false
+    envelopeSatisfied: false
+    executionAllowed: false
+    physicalMutationPerformed: false
+    safeStopArmed: false
+    rollbackClass: "physical_limited"
+    receiptCount: 0
+    taskFiled: false
+  }
+
+  enum ActuationPhase {
+    inventory
+    permission_gate
+    simulation_preview
+    freshness_gate
+    safety_envelope
+    guarded_execution
+    safe_stop
+    replay
+    blocked
+  }
+
+  enum PermissionEnvelope {
+    read_only
+    simulation
+    guarded_execute
+    break_glass_blocked
+  }
+
+  template "ActuationReceiptFamily" {
+    receiptType: "holoshell.physical-actuation-safety-pack.v0.1.0"
+    receiptKinds: ["DeviceInventoryReceipt", "HoloShellPermissionGateReceiptPack", "ActuationSimulationReceipt", "SensorFreshnessReceipt", "DeviceSafetyEnvelopeReceipt", "DeviceActionReceipt", "SafeStopReceipt", "PhysicalRollbackLimitReceipt", "ReplayLessonReceipt"]
+    publicReceiptRules: ["no raw secrets", "no absolute paths", "no raw device ids", "hash private identifiers", "show rollback limits"]
+    replayRequired: true
+  }
+
+  policy "ReadOnlyInventory" {
+    appliesTo: ["list_devices", "read_status", "show_owner_lane"]
+    permissionEnvelope: "read_only"
+    approvalRequired: false
+    mutationAllowed: false
+    receiptRequired: true
+  }
+
+  policy "SimulationBeforeActuation" {
+    appliesTo: ["trigger_haptic", "start_xr_session", "move_robot", "write_device_state"]
+    simulationRequired: true
+    deterministicPreviewRequired: true
+    mutationAllowedBeforeSimulation: false
+    receiptRequired: true
+  }
+
+  policy "FreshnessBeforeActuation" {
+    appliesTo: ["move_robot", "mirror_avatar", "trigger_haptic", "capture_sensor"]
+    sensorFreshRequired: true
+    approvalFreshRequired: true
+    staleBlocksExecution: true
+    receiptRequired: true
+  }
+
+  policy "PhysicalRollbackLimit" {
+    appliesTo: ["move_robot", "calibrate_device", "write_device_state", "firmware_update"]
+    softwareReplayRequired: true
+    physicalRollbackCannotBeAssumed: true
+    irreversibleEffectBlocksWithoutBreakGlass: true
+    receiptRequired: true
+  }
+
+  policy "SafeStopRequired" {
+    appliesTo: ["guarded_execute"]
+    safeStopArmedRequired: true
+    ownerHandoffRequiredOnFailure: true
+    stopReceiptRequired: true
+  }
+
+  role "HumanOwner" {
+    permissions: ["approve_scope", "approve_nonce", "press_safe_stop", "review_replay"]
+    cannotDelegate: ["fresh_user_gesture", "break_glass_physical_actuation"]
+  }
+
+  role "CodexHardwareAgent" {
+    permissions: ["run_read_only_probe", "write_receipt_pack", "validate_source", "file_task"]
+    cannot: ["execute_physical_mutation_without_approval", "hide_raw_adapter_failure"]
+  }
+
+  role "BrittneyOperatorNPC" {
+    permissions: ["explain_plan", "translate_receipts", "show_replay", "warn_rollback_limit"]
+    cannot: ["approve_for_human", "conceal_stale_sensor", "invent_success"]
+  }
+
+  action requestActuation(intent) {
+    ActuationState.phase = "permission_gate"
+    ActuationState.actorId = intent.actorId
+    ActuationState.actionIntent = intent.action
+    ActuationState.permissionEnvelope = intent.permissionEnvelope
+    ActuationState.executionAllowed = false
+    emit("holoshell:physical_actuation:requested", {
+      actorId: intent.actorId,
+      action: intent.action,
+      permissionEnvelope: intent.permissionEnvelope,
+      executionAllowed: false,
+      receiptRequired: true
+    })
+  }
+
+  action applyPermissionVerification(receipt) {
+    ActuationState.minimumScopeVerified = receipt.readyForHoloLand
+    ActuationState.receiptCount = ActuationState.receiptCount + 1
+    emit("holoshell:physical_actuation:permission_verified", {
+      receiptId: receipt.id,
+      minimumScopeVerified: ActuationState.minimumScopeVerified,
+      executionAllowed: false
+    })
+  }
+
+  action applySimulationPreview(receipt) {
+    ActuationState.phase = "simulation_preview"
+    ActuationState.simulationPassed = receipt.status == "passed"
+    ActuationState.receiptCount = ActuationState.receiptCount + 1
+    emit("holoshell:physical_actuation:simulation_preview", {
+      receiptId: receipt.id,
+      simulationPassed: ActuationState.simulationPassed,
+      executionAllowed: false
+    })
+  }
+
+  action applyFreshness(receipt) {
+    ActuationState.phase = "freshness_gate"
+    ActuationState.sensorFresh = receipt.sensorFresh
+    ActuationState.approvalFresh = receipt.approvalFresh
+    ActuationState.receiptCount = ActuationState.receiptCount + 1
+    emit("holoshell:physical_actuation:freshness", {
+      receiptId: receipt.id,
+      sensorFresh: receipt.sensorFresh,
+      approvalFresh: receipt.approvalFresh
+    })
+  }
+
+  action evaluateEnvelope(receipt) {
+    ActuationState.phase = "safety_envelope"
+    ActuationState.envelopeSatisfied = receipt.executionAllowed && !receipt.mutationExecuted
+    ActuationState.safeStopArmed = receipt.safeStopArmed
+    ActuationState.executionAllowed = ActuationState.minimumScopeVerified && ActuationState.simulationPassed && ActuationState.sensorFresh && ActuationState.approvalFresh && ActuationState.envelopeSatisfied && ActuationState.safeStopArmed
+    ActuationState.receiptCount = ActuationState.receiptCount + 1
+    emit("holoshell:physical_actuation:envelope", {
+      receiptId: receipt.id,
+      envelopeSatisfied: ActuationState.envelopeSatisfied,
+      safeStopArmed: ActuationState.safeStopArmed,
+      executionAllowed: ActuationState.executionAllowed
+    })
+  }
+
+  action recordAction(receipt) {
+    ActuationState.phase = "guarded_execution"
+    ActuationState.physicalMutationPerformed = receipt.deviceMutationPerformed
+    ActuationState.executionAllowed = false
+    ActuationState.receiptCount = ActuationState.receiptCount + 1
+    emit("holoshell:physical_actuation:action_recorded", {
+      receiptId: receipt.id,
+      outcome: receipt.outcome,
+      physicalMutationPerformed: receipt.deviceMutationPerformed,
+      rollbackClass: ActuationState.rollbackClass
+    })
+  }
+
+  action blockWithReplay(reason) {
+    ActuationState.phase = "blocked"
+    ActuationState.executionAllowed = false
+    ActuationState.taskFiled = true
+    emit("holoshell:physical_actuation:blocked", {
+      reason: reason,
+      taskRequired: true,
+      replayRequired: true,
+      rollbackClass: ActuationState.rollbackClass
+    })
+  }
+}
