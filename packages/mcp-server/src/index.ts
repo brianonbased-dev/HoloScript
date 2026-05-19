@@ -47,6 +47,7 @@ import {
 import { handleOracleConsult } from './oracle-handler';
 import { oracleMcpTools, handleOracleMcpTool } from './oracle-mcp-tools';
 import { selfImproveTools, handleSelfImproveTool } from './self-improve-tools';
+import { grpoTools, handleGrpoTool } from './grpo-tools';
 import { gltfImportTools, handleGltfTool } from './gltf-import-tools';
 import { holotestTools, handleHolotestTool } from './holotest-tools';
 import { wisdomGotchaTools, handleWisdomGotchaTool } from './wisdom-gotcha-tools';
@@ -94,6 +95,7 @@ const server = new Server(
 // Only add synthetic meta-tools here (discover + batch).
 const ALL_AVAILABLE_TOOLS: Tool[] = [
   ...tools,
+  ...grpoTools,
   ...alphafoldTools,
   ...hologramToolDefinitions,
   ...holotwinToolDefinitions,
@@ -333,6 +335,7 @@ registerCategory(absorbServiceTools, (name, args, _signingCtx) => handleAbsorbSe
 registerCategory(codebaseTools, (name, args, _signingCtx) => handleCodebaseTool(name, args));
 registerCategory(graphRagTools, (name, args, _signingCtx) => handleGraphRagTool(name, args));
 registerCategory(selfImproveTools, (name, args, _signingCtx) => handleSelfImproveTool(name, args));
+registerCategory(grpoTools, (name, args, _signingCtx) => handleGrpoTool(name, args));
 registerCategory(gltfImportTools, (name, args, _signingCtx) => handleGltfTool(name, args));
 registerCategory(wisdomGotchaTools, (name, args, _signingCtx) => handleWisdomGotchaTool(name, args));
 registerCategory(receiptQueryTools, (name, args, _signingCtx) => handleReceiptQueryTool(name, args));

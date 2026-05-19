@@ -31,3 +31,7 @@ export type {
 export { createDaemonActions, getDaemonFileState } from './daemon-actions.js';
 
 export type { DaemonConfig, DaemonExecResult, DaemonHost, LLMProvider } from './daemon-actions.js';
+
+// GRPO daemon runner (bridges GRPORewardOrchestrator into daemon pipeline)
+export { runDaemonGRPOPass } from './daemon-grpo-runner.js';
+export type { DaemonGRPOConfig, DaemonGRPOResult } from './daemon-grpo-runner.js';
