@@ -1,0 +1,182 @@
+{
+  "benchmark": "paper-8-cross-backend-determinism",
+  "paper_ref": "ai-ecosystem/research/paper-8-unified-siggraph.tex",
+  "spec_version": "2026-04-28_paper-8-determinism-runner",
+  "ran_at": "2026-05-19T08:09:25.144Z",
+  "duration_ms": 763,
+  "task_count": 10000,
+  "seed": 1337,
+  "solver_modes": [
+    "analytic",
+    "ccd",
+    "fabrik"
+  ],
+  "chain_lengths": [
+    2,
+    3,
+    5,
+    10
+  ],
+  "gpu_configs": [
+    {
+      "id": "rtx6000-ada",
+      "label": "RTX 6000 Ada (local)",
+      "platform": "windows-node"
+    },
+    {
+      "id": "rtx3060",
+      "label": "RTX 3060 (local)",
+      "platform": "windows-node"
+    },
+    {
+      "id": "a100-40gb",
+      "label": "A100 40 GB (vast.ai)",
+      "platform": "linux-node"
+    },
+    {
+      "id": "h100-80gb",
+      "label": "H100 80 GB (vast.ai)",
+      "platform": "linux-node"
+    }
+  ],
+  "matrix": {
+    "cells": [
+      {
+        "mode": "analytic",
+        "chainLength": 2,
+        "taskCount": 10000,
+        "seed": 1337,
+        "hashA": 1960299383,
+        "hashB": 1960299383,
+        "passed": true,
+        "runAMs": 5.506400000000042,
+        "runBMs": 3.0260000000000105
+      },
+      {
+        "mode": "analytic",
+        "chainLength": 3,
+        "taskCount": 10000,
+        "seed": 1337,
+        "hashA": 668359896,
+        "hashB": 668359896,
+        "passed": true,
+        "runAMs": 7.7777000000000385,
+        "runBMs": 5.185599999999965
+      },
+      {
+        "mode": "analytic",
+        "chainLength": 5,
+        "taskCount": 10000,
+        "seed": 1337,
+        "hashA": 3480121997,
+        "hashB": 3480121997,
+        "passed": true,
+        "runAMs": 3.751700000000028,
+        "runBMs": 2.3134000000000015
+      },
+      {
+        "mode": "analytic",
+        "chainLength": 10,
+        "taskCount": 10000,
+        "seed": 1337,
+        "hashA": 2380580631,
+        "hashB": 2380580631,
+        "passed": true,
+        "runAMs": 1.554899999999975,
+        "runBMs": 2.108699999999999
+      },
+      {
+        "mode": "ccd",
+        "chainLength": 2,
+        "taskCount": 10000,
+        "seed": 1337,
+        "hashA": 937381430,
+        "hashB": 937381430,
+        "passed": true,
+        "runAMs": 15.39269999999999,
+        "runBMs": 15.686399999999992
+      },
+      {
+        "mode": "ccd",
+        "chainLength": 3,
+        "taskCount": 10000,
+        "seed": 1337,
+        "hashA": 1539665894,
+        "hashB": 1539665894,
+        "passed": true,
+        "runAMs": 31.2183,
+        "runBMs": 28.98249999999996
+      },
+      {
+        "mode": "ccd",
+        "chainLength": 5,
+        "taskCount": 10000,
+        "seed": 1337,
+        "hashA": 2294087086,
+        "hashB": 2294087086,
+        "passed": true,
+        "runAMs": 52.88530000000003,
+        "runBMs": 58.63099999999997
+      },
+      {
+        "mode": "ccd",
+        "chainLength": 10,
+        "taskCount": 10000,
+        "seed": 1337,
+        "hashA": 4248174964,
+        "hashB": 4248174964,
+        "passed": true,
+        "runAMs": 159.9307,
+        "runBMs": 159.4914
+      },
+      {
+        "mode": "fabrik",
+        "chainLength": 2,
+        "taskCount": 10000,
+        "seed": 1337,
+        "hashA": 2087814727,
+        "hashB": 2087814727,
+        "passed": true,
+        "runAMs": 9.911799999999971,
+        "runBMs": 5.994199999999978
+      },
+      {
+        "mode": "fabrik",
+        "chainLength": 3,
+        "taskCount": 10000,
+        "seed": 1337,
+        "hashA": 155618501,
+        "hashB": 155618501,
+        "passed": true,
+        "runAMs": 17.110499999999888,
+        "runBMs": 10.66859999999997
+      },
+      {
+        "mode": "fabrik",
+        "chainLength": 5,
+        "taskCount": 10000,
+        "seed": 1337,
+        "hashA": 797753771,
+        "hashB": 797753771,
+        "passed": true,
+        "runAMs": 7.012299999999982,
+        "runBMs": 7.0628999999999
+      },
+      {
+        "mode": "fabrik",
+        "chainLength": 10,
+        "taskCount": 10000,
+        "seed": 1337,
+        "hashA": 1249488670,
+        "hashB": 1249488670,
+        "passed": true,
+        "runAMs": 18.699899999999843,
+        "runBMs": 18.599899999999934
+      }
+    ],
+    "passCount": 12,
+    "totalCount": 12,
+    "overallPassed": true
+  },
+  "markdown_table": "| Mode | Chain | Tasks | Hash A | Hash B | Match | A ms | B ms |\n|------|-------|-------|--------|--------|-------|------|------|\n| analytic | 2 | 10000 | 74d7cb77 | 74d7cb77 | ✓ | 5.5 | 3.0 |\n| analytic | 3 | 10000 | 27d65cd8 | 27d65cd8 | ✓ | 7.8 | 5.2 |\n| analytic | 5 | 10000 | cf6e728d | cf6e728d | ✓ | 3.8 | 2.3 |\n| analytic | 10 | 10000 | 8de4c717 | 8de4c717 | ✓ | 1.6 | 2.1 |\n| ccd | 2 | 10000 | 37df4e36 | 37df4e36 | ✓ | 15.4 | 15.7 |\n| ccd | 3 | 10000 | 5bc56fe6 | 5bc56fe6 | ✓ | 31.2 | 29.0 |\n| ccd | 5 | 10000 | 88bcfdae | 88bcfdae | ✓ | 52.9 | 58.6 |\n| ccd | 10 | 10000 | fd360174 | fd360174 | ✓ | 159.9 | 159.5 |\n| fabrik | 2 | 10000 | 7c718647 | 7c718647 | ✓ | 9.9 | 6.0 |\n| fabrik | 3 | 10000 | 09468cc5 | 09468cc5 | ✓ | 17.1 | 10.7 |\n| fabrik | 5 | 10000 | 2f8cc1ab | 2f8cc1ab | ✓ | 7.0 | 7.1 |\n| fabrik | 10 | 10000 | 4a79af1e | 4a79af1e | ✓ | 18.7 | 18.6 |\n\nPass rate: 12/12 (ALL PASS)"
+}
