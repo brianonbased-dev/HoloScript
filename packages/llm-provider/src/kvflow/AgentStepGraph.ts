@@ -189,8 +189,12 @@ export class InMemoryAgentStepGraph {
       }
     }
 
-    // BFS through forward edges, collecting steps by priority
-    while (queue.length > 0 && result.length < count) {
+    // BFS through forward edges, collecting ALL reachable steps.
+    // The early `result.length < count` exit was wrong: it stopped BFS
+    // before seeing all candidates, so the subsequent priority sort could
+    // only pick among BFS-order arrivals — missing higher-priority steps
+    // that would have been found later in the traversal.
+    while (queue.length > 0) {
       const currentId = queue.shift()!;
       const step = this.steps.get(currentId);
       if (!step) continue;
