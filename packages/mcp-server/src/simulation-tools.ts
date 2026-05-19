@@ -2,10 +2,19 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 // Lazy import to avoid breaking tests when @holoscript/engine isn't resolvable
 let _Simulation: typeof import('@holoscript/engine').Simulation | null = null;
+let _solversInitialized = false;
 async function getSimulation() {
   if (!_Simulation) {
     const mod = await import('@holoscript/engine');
     _Simulation = mod.Simulation;
+    // Ensure SimulationSolverFactory is populated so trait handlers can
+    // instantiate solvers. Idempotent — no-ops if already registered
+    // (e.g., by SimulationProvider in React context). Guard against
+    // incomplete mocks in tests that don't provide initSimulationSolvers.
+    if (!_solversInitialized && typeof mod.Simulation.initSimulationSolvers === 'function') {
+      mod.Simulation.initSimulationSolvers();
+      _solversInitialized = true;
+    }
   }
   return _Simulation;
 }

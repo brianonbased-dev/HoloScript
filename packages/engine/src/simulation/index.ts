@@ -220,6 +220,7 @@ export {
 export { SimulationRecorder, type RecorderConfig, type FieldSnapshot } from './SimulationRecorder';
 export { SimulationPlayback, type PlaybackConfig, type PlaybackState } from './SimulationPlayback';
 export { registerSimulationSolvers } from './register';
+export { initSimulationSolvers, resetSimulationRegistry } from './simulation-registry';
 
 // Simulation Serialization — Shareable simulation configs
 export {

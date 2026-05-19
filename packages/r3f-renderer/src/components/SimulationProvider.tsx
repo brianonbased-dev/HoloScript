@@ -9,9 +9,8 @@ import {
   TET10Config,
   HydraulicSolver,
   HydraulicConfig,
-  registerSimulationSolvers,
+  initSimulationSolvers,
 } from '@holoscript/engine/simulation';
-import { SimulationSolverFactory } from '@holoscript/core/traits/simulation-solver-factory';
 import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 
 type SimulationType = 'thermal' | 'structural' | 'structural-tet10' | 'hydraulic';
@@ -56,8 +55,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const [solving, setSolving] = useState(false);
 
   useEffect(() => {
-    // Ensure trait handlers can instantiate solvers via the factory
-    registerSimulationSolvers(SimulationSolverFactory);
+    // Ensure trait handlers can instantiate solvers via the factory.
+    // Idempotent — no-ops on second call.
+    initSimulationSolvers();
 
     let solver: AnySolver | null = null;
     let cancelled = false;
