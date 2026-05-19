@@ -1,0 +1,214 @@
+// HoloShell failed provider export repair policy and state machine.
+// Board task: task_1779178784570_a5c2 [holoshell][user-shell] Build provider export repair room
+// Marathon cycle 14 — grok1-x402 — 2026-05-19
+// 5-lane alignment + receipt templates + 3-tier permission policies + 10-state machine + 5 surface roles (Codex/HoloShell/HoloScript/HoloLand/Browser)
+
+composition "HoloShellFailedProviderExportRepairPolicy" {
+  state FailedProviderExportRepairState {
+    selectedWorkflow: "failed-provider-export-repair"
+    provider: "unknown"
+    redactedAccount: "unknown"
+    exportId: "unknown"
+    deliveryMethod: "unknown"
+    failureKind: "unknown"
+    archivePartCount: 0
+    missingPartCount: 0
+    verifiedPartCount: 0
+    importAllowed: false
+    retryAllowed: false
+    deleteAllowed: false
+    rawPrivateDataPublished: false
+    privatePathLeakedToPublicReceipt: false
+    providerMutationPerformed: false
+    sourceFileMutationPerformed: false
+    currentLane: "codex-hardware"
+    blockers: []
+    receipts: []
+  }
+
+  template "RepairPermissionEnvelope" {
+    readOnly: true
+    guardedExecute: false
+    breakGlass: false
+    receiptRequired: true
+    humanVisible: true
+  }
+
+  template "ProviderExportFailureReceipt" {
+    receiptType: "provider_export_failure_receipt"
+    providerRequired: true
+    redactedAccountRequired: true
+    exportIdRequired: false
+    failureKindRequired: true
+    deliveryMethodRequired: true
+    providerWaitStateRequired: true
+    linkExpiryRequired: false
+    adminOrManagedAccountBlockRequired: false
+    connectedAppAccessRequired: false
+    accountMutationPerformed: false
+    rawPrivateDataPublished: false
+    privatePathLeakedToPublicReceipt: false
+  }
+
+  template "PartialArchiveEvidenceReceipt" {
+    receiptType: "partial_archive_evidence_receipt"
+    destinationFolderRequired: true
+    observedPartsRequired: true
+    missingPartsRequired: true
+    perPartHashRequired: true
+    unzipErrorRequired: false
+    executableDetectionRequired: true
+    sensitivityScanRequired: true
+    importAllowed: false
+    deleteAllowed: false
+    rawPrivateDataPublished: false
+    privateAbsolutePathStoredLocallyOnly: true
+  }
+
+  template "ProviderExportRepairPlanReceipt" {
+    receiptType: "provider_export_repair_plan_receipt"
+    repairActionRequired: true
+    safeReasonRequired: true
+    userApprovalNonceRequired: true
+    selectedProductsRequired: true
+    retryWillMutateProviderState: true
+    previousEvidencePreserved: true
+    rollbackNoteRequired: true
+  }
+
+  template "ExportRepairReplayReceipt" {
+    receiptType: "export_repair_replay_receipt"
+    replayKeyRequired: true
+    originalFailureKindRequired: true
+    repairedOutcomeRequired: false
+    missingEvidenceListed: true
+    replayableWithoutProviderAccess: true
+    rawPrivateDataPublished: false
+  }
+
+  policy "SilentRepairInspect" using "RepairPermissionEnvelope" {
+    readOnly: true
+    guardedExecute: false
+    breakGlass: false
+    appliesTo: [
+      "read_provider_status_summary",
+      "inspect_quarantine_folder",
+      "hash_existing_parts",
+      "classify_archive_error",
+      "build_replay_lesson"
+    ]
+  }
+
+  policy "GuardedRepairPreparation" using "RepairPermissionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    breakGlass: false
+    appliesTo: [
+      "write_redacted_failure_receipt",
+      "write_partial_archive_manifest",
+      "open_provider_help_page",
+      "open_download_folder",
+      "file_holomesh_task"
+    ]
+  }
+
+  policy "BreakGlassProviderRetry" using "RepairPermissionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    breakGlass: true
+    appliesTo: [
+      "submit_new_export_request",
+      "change_provider_export_scope",
+      "change_archive_part_size",
+      "grant_cloud_destination_access",
+      "delete_quarantined_parts",
+      "download_private_archive_again"
+    ]
+  }
+
+  state_machine "FailedProviderExportRepairWorkflow" {
+    initial: "idle"
+    states: [
+      "idle",
+      "failure_observed",
+      "parts_preserved",
+      "gap_classified",
+      "repair_planned",
+      "approval_pending",
+      "provider_retry_wait",
+      "verified",
+      "lesson_replayable",
+      "blocked"
+    ]
+    transition "observe_failure" { from: "idle", to: "failure_observed" }
+    transition "preserve_parts" { from: "failure_observed", to: "parts_preserved" }
+    transition "classify_gap" { from: "parts_preserved", to: "gap_classified" }
+    transition "plan_repair" { from: "gap_classified", to: "repair_planned" }
+    transition "require_approval" { from: "repair_planned", to: "approval_pending" }
+    transition "wait_for_provider_retry" { from: "approval_pending", to: "provider_retry_wait" }
+    transition "verify_repaired_archive" { from: "provider_retry_wait", to: "verified" }
+    transition "write_replay_lesson" { from: "verified", to: "lesson_replayable" }
+    transition "block" { from: "*", to: "blocked" }
+  }
+
+  role "CodexHardware" {
+    laneId: "codex-hardware"
+    owns: ["local_archive_parts", "hashes", "quarantine_status", "parse_validation"]
+  }
+
+  role "BrowserAccountWitness" {
+    laneId: "browser-account-witness"
+    owns: ["provider_status", "link_expiry", "download_ready_state", "profile_boundary"]
+  }
+
+  role "HoloShellCustodian" {
+    laneId: "holoshell-custodian"
+    owns: ["redaction", "approval_nonce", "mutation_blocks", "repair_receipt_pack"]
+  }
+
+  role "HoloScriptSubstrateAgent" {
+    laneId: "holoscript-substrate"
+    owns: ["receipt_schema", "archive_validator", "retry_policy", "replay_contract"]
+  }
+
+  role "HoloLandProductAgent" {
+    laneId: "hololand-product"
+    owns: ["repair_room", "brittney_npc_language", "lesson_replay_surface", "import_dock"]
+  }
+
+  action classifyRepairOperation(operation) {
+    if (operation.kind in BreakGlassProviderRetry.appliesTo) {
+      return "break_glass_provider_retry"
+    }
+    if (operation.kind in GuardedRepairPreparation.appliesTo) {
+      return "guarded_repair_preparation"
+    }
+    return "silent_repair_inspect"
+  }
+
+  action blockImport(reason, evidencePath) {
+    FailedProviderExportRepairState.importAllowed = false
+    FailedProviderExportRepairWorkflow.transition("block")
+    FailedProviderExportRepairState.blockers.push({
+      reason: reason,
+      evidencePath: evidencePath,
+      ownerSurface: "holoscript-substrate"
+    })
+    emit("holoshell:provider_export_repair:block_import", {
+      reason: reason,
+      evidencePath: evidencePath,
+      importAllowed: false
+    })
+  }
+
+  action recordRepairPlan(receipt) {
+    FailedProviderExportRepairState.retryAllowed = true
+    FailedProviderExportRepairState.receipts.push(receipt.receiptType)
+    emit("holoshell:provider_export_repair:plan", {
+      provider: FailedProviderExportRepairState.provider,
+      failureKind: FailedProviderExportRepairState.failureKind,
+      repairAction: receipt.repairAction,
+      previousEvidencePreserved: receipt.previousEvidencePreserved
+    })
+  }
+}

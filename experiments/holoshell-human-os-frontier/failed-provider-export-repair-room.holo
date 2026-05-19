@@ -1,0 +1,157 @@
+/**
+ * HoloShell Failed Provider Export Repair Room
+ *
+ * Board task: task_1779178784570_a5c2 [holoshell][user-shell] Build provider export repair room
+ * Marathon cycle 14 (grok1-x402) — 2026-05-19
+ *
+ * Visible room concept for:
+ * "My provider export failed or downloaded only partly. Recover what is safe,
+ * prove what is missing, and show the next retry without losing evidence."
+ *
+ * 5-lane recovery alignment (cross-ref sibling 2026-05-19_holoshell-partial-download-recovery-room.md + task_1779178749225_47xh):
+ * Interrupted | Completeness (hash) | Retry (fresh gesture) | Quarantine (exec/mime/size) | ImportHandoff (to shelf)
+ * All raw private paths local-only; receipts + redacted summaries only cross to HoloLand/Brittney.
+ */
+
+composition "HoloShell Failed Provider Export Repair Room" {
+  environment {
+    backgroundColor: "#11161a"
+    ambient_light: 0.62
+    shadows: true
+  }
+
+  template "RepairPanel" {
+    @billboard
+    @anchor
+    @state
+    geometry: "plane"
+    scale: [1.46, 0.58, 0.08]
+    material: {
+      color: "#172226"
+      emissive: "#2d4448"
+      emissiveIntensity: 0.16
+      transparent: true
+      opacity: 0.96
+    }
+  }
+
+  template "EvidenceToken" {
+    @owned
+    @grabbable
+    @collidable
+    @reactive
+    geometry: "sphere"
+    scale: [0.16, 0.16, 0.16]
+    material: { color: "#82aaff" }
+  }
+
+  object "HumanJob" using "RepairPanel" {
+    position: [0, 2.45, -2.85]
+    label: "Repair failed account export without hiding what is missing"
+    properties: {
+      humanJob: "recover from provider delay, failed export, expired link, missing archive part, corrupt zip, or partial download"
+      visiblePromise: "show the provider state, local parts, missing pieces, retry choices, and replay lesson before any re-request or import"
+      sourceBoundary: "HoloScript owns repair receipts, validation, replay, and retry orchestration; HoloLand owns the room, NPC language, and user controls"
+    }
+  }
+
+  object "ProviderFailureGate" using "RepairPanel" {
+    position: [-4.55, 1.55, -1.2]
+    label: "Provider failure state"
+    properties: {
+      reads: "provider, account label hash, export id, delivery method, link expiry, admin restrictions, quota or risk review status"
+      states: ["requested", "provider_wait", "provider_failed", "link_expired", "admin_blocked", "ready_for_retry"]
+      failureState: "provider gives no machine-readable export id or wait-state receipt"
+    }
+  }
+
+  object "PartialArchiveGate" using "RepairPanel" {
+    position: [-2.28, 1.55, -1.2]
+    label: "Partial archive evidence"
+    properties: {
+      reads: "download folder, quarantine folder, part names, sizes, hashes, unzip errors, manifest hints"
+      blockedByDefault: ["import_partial_archive", "delete_partial_evidence", "summarize_private_files", "upload_raw_archive"]
+      failureState: "archive has missing part, hash drift, corrupt member, unexpected executable, or unknown format"
+    }
+  }
+
+  object "RepairPlanGate" using "RepairPanel" {
+    position: [0, 1.55, -1.2]
+    label: "Repair plan"
+    properties: {
+      options: ["wait", "resume_download", "re_download_same_link", "split_product_scope", "change_archive_size", "change_delivery_method", "manual_provider_ticket"]
+      approvalBinding: ["provider", "exportId", "redactedAccount", "selectedProducts", "archiveFormat", "destinationFolder", "reason"]
+      breakGlass: ["submit_new_export_request", "grant_cloud_destination_access", "delete_quarantined_parts"]
+    }
+  }
+
+  object "ReplayLessonGate" using "RepairPanel" {
+    position: [2.28, 1.55, -1.2]
+    label: "Replay lesson"
+    properties: {
+      replayKey: "intent hash + provider export id + selected products + destination hash + observed part hashes"
+      lessonKinds: ["missing_part", "provider_delay", "expired_link", "corrupt_archive", "managed_account_block", "cloud_handoff_block"]
+      output: "plain-language repair note plus exact blocked action and next safe action"
+    }
+  }
+
+  object "HoloLandRepairDock" using "RepairPanel" {
+    position: [4.55, 1.55, -1.2]
+    label: "HoloLand repair dock"
+    properties: {
+      mode: "preview_only_until_verified"
+      adoption: ["user-shell repair room", "Brittney custody NPC", "Twin Earth personal archive quest", "provider lesson replay"]
+      publishRule: "only redacted repair summaries and receipt hashes become world objects; raw account data remains local"
+    }
+  }
+
+  object "ProviderWaitToken" using "EvidenceToken" {
+    position: [-3.42, 0.78, 0.12]
+    label: "provider wait"
+    properties: {
+      receiptKind: "ProviderExportFailureReceipt"
+      accountMutationPerformed: false
+      userActionRequired: "wait or choose retry"
+    }
+  }
+
+  object "MissingPartToken" using "EvidenceToken" {
+    position: [-1.14, 0.78, 0.12]
+    material: { color: "#f7768e" }
+    label: "missing part"
+    properties: {
+      receiptKind: "PartialArchiveEvidenceReceipt"
+      importAllowed: false
+      deleteAllowed: false
+    }
+  }
+
+  object "RetryToken" using "EvidenceToken" {
+    position: [1.14, 0.78, 0.12]
+    material: { color: "#e0af68" }
+    label: "retry locked"
+    properties: {
+      receiptKind: "ProviderExportRepairPlanReceipt"
+      requiresFreshUserGesture: true
+    }
+  }
+
+  object "ReplayToken" using "EvidenceToken" {
+    position: [3.42, 0.78, 0.12]
+    material: { color: "#9ece6a" }
+    label: "lesson replay"
+    properties: {
+      receiptKind: "ExportRepairReplayReceipt"
+      replayableWithoutProviderAccess: true
+    }
+  }
+
+  object "RepairTimeline" {
+    @anchor
+    geometry: "cube"
+    position: [0, 0.22, 0.12]
+    scale: [8.15, 0.08, 0.14]
+    color: "#66767c"
+    label: "timeline: observe failure -> preserve parts -> classify gap -> choose repair -> approve retry -> verify -> replay"
+  }
+}
