@@ -31,6 +31,7 @@ import {
   verifyChainAnchor,
   toHashable,
   settlementDomain,
+  priceToUint256,
   type ChainAnchorFetcher,
   type HashableReceipt,
 } from '../signing/chain-anchor';
@@ -148,6 +149,67 @@ describe('chain-anchor: hashSettlementReceipt', () => {
     const otherDomain = { name: 'HoloMeshNegotiation', version: '1', chainId: 1 };
     const h4 = hashSettlementReceipt(FIXED_HASHABLE, otherDomain);
     expect(h4).not.toBe(h1);
+  });
+
+  // B-001 regression suite — sub-$1 price truncation (introduced in 98b94e0).
+  // Prior code: BigInt(Math.trunc(price)) → 0.05 USDC became price=0 on-chain.
+  // Fix: priceToUint256(price, scaleFactor) rounds after scaling.
+  describe('B-001: sub-$1 price encoding (priceToUint256)', () => {
+    it('priceToUint256 encodes 0.05 USDC correctly (50_000 micro-USDC, not 0)', () => {
+      expect(priceToUint256(0.05)).toBe(50_000n);
+    });
+
+    it('priceToUint256 encodes 0.00 as 0', () => {
+      expect(priceToUint256(0)).toBe(0n);
+    });
+
+    it('priceToUint256 encodes 1.00 USDC as 1_000_000', () => {
+      expect(priceToUint256(1.0)).toBe(1_000_000n);
+    });
+
+    it('priceToUint256 encodes 100 USDC as 100_000_000', () => {
+      expect(priceToUint256(100)).toBe(100_000_000n);
+    });
+
+    it('priceToUint256 rounds floating-point noise (0.05 * 1e6 = 49999.99...)', () => {
+      // Demonstrate that Math.round handles IEEE-754 noise correctly.
+      expect(priceToUint256(0.05, 1_000_000)).toBe(50_000n);
+    });
+
+    it('priceToUint256 throws for negative price', () => {
+      expect(() => priceToUint256(-0.01)).toThrow(/non-negative/);
+    });
+
+    it('priceToUint256 throws for non-finite price', () => {
+      expect(() => priceToUint256(Infinity)).toThrow(/non-negative/);
+      expect(() => priceToUint256(NaN)).toThrow(/non-negative/);
+    });
+
+    it('hashSettlementReceipt with 0.05 USDC price produces a non-zero price in the hash', () => {
+      const domain = settlementDomain({ HOLOMESH_NEGOTIATION_CHAIN_ID: '8453' } as NodeJS.ProcessEnv);
+      const subDollarHashable: HashableReceipt = {
+        ...FIXED_HASHABLE,
+        finalQuote: { ...FIXED_HASHABLE.finalQuote, price: 0.05 },
+      };
+      const zeroHashable: HashableReceipt = {
+        ...FIXED_HASHABLE,
+        finalQuote: { ...FIXED_HASHABLE.finalQuote, price: 0 },
+      };
+      // The sub-$1 hash must differ from the zero-price hash — they were
+      // identical before B-001 fix because 0.05 truncated to 0.
+      const subDollarHash = hashSettlementReceipt(subDollarHashable, domain);
+      const zeroHash = hashSettlementReceipt(zeroHashable, domain);
+      expect(subDollarHash).not.toBe(zeroHash);
+    });
+
+    it('hashSettlementReceipt with priceScaleFactor=1 keeps integer prices unchanged', () => {
+      const domain = settlementDomain({ HOLOMESH_NEGOTIATION_CHAIN_ID: '8453' } as NodeJS.ProcessEnv);
+      // Using scaleFactor=1 means price is already in smallest unit.
+      const h1 = hashSettlementReceipt(FIXED_HASHABLE, domain, { priceScaleFactor: 1 });
+      const h2 = hashSettlementReceipt(FIXED_HASHABLE, domain, { priceScaleFactor: 1 });
+      expect(h1).toBe(h2);
+      expect(h1).toMatch(/^0x[0-9a-fA-F]{64}$/);
+    });
   });
 
   it('toHashable strips settlementTxHash from a SettlementReceipt (avoids self-cycle)', () => {

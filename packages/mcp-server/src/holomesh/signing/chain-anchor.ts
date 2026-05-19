@@ -93,6 +93,35 @@ export interface HashableReceipt {
   settledAt: string;
 }
 
+/**
+ * Scale a floating-point price to the smallest token unit for uint256
+ * EIP-712 encoding. EIP-712 `uint256` is an integer; a raw `Math.trunc()`
+ * silently zeroes any price < 1 (e.g. 0.05 USDC → 0). This function
+ * multiplies by `scaleFactor` (default 1_000_000 = USDC 6 decimals) and
+ * rounds to the nearest integer so sub-$1 amounts are preserved.
+ *
+ * Examples (USDC, scaleFactor = 1_000_000):
+ *   0.05  → 50_000
+ *   1.00  → 1_000_000
+ *   100   → 100_000_000
+ *   0     → 0
+ *
+ * @throws {Error} if price is negative or not finite.
+ */
+export function priceToUint256(
+  price: number,
+  scaleFactor = 1_000_000
+): bigint {
+  if (!Number.isFinite(price) || price < 0) {
+    throw new Error(
+      `priceToUint256: price must be a non-negative finite number, got ${price}`
+    );
+  }
+  // Round to nearest integer after scaling to avoid floating-point noise
+  // (e.g. 0.05 * 1_000_000 = 49999.99999... → rounds to 50_000).
+  return BigInt(Math.round(price * scaleFactor));
+}
+
 /** Build the hashable subset from a full SettlementReceipt. */
 export function toHashable(receipt: SettlementReceipt): HashableReceipt {
   return {
@@ -109,19 +138,46 @@ export function toHashable(receipt: SettlementReceipt): HashableReceipt {
 }
 
 /**
+ * Options for `hashSettlementReceipt`.
+ */
+export interface HashSettlementReceiptOptions {
+  /**
+   * Scale factor for converting the floating-point `price` to a uint256
+   * integer. Defaults to 1_000_000 (USDC 6 decimals). Set to 1 if the
+   * price is already in the smallest unit (integer). Must be a positive
+   * integer.
+   *
+   * Why this matters: `NegotiationQuote.price` is a JS `number` where
+   * callers typically express prices as "0.05 USDC". EIP-712 `uint256`
+   * requires an integer. The prior `Math.trunc()` silently zeroed any
+   * price < 1 (bug B-001 / A-006). `priceToUint256` multiplies by this
+   * factor and rounds, preserving sub-$1 amounts.
+   */
+  priceScaleFactor?: number;
+}
+
+/**
  * Compute the EIP-712 hash of a SettlementReceipt. Uses viem's
  * `hashTypedData` (the same encoder attestation-routes.ts uses) so the
  * canonicalization is bit-identical to the founder-side path.
  *
- * Throws on malformed input (e.g. missing finalQuote).
+ * Throws on malformed input (e.g. missing finalQuote, negative price).
+ *
+ * **Price encoding (B-001 fix):** the prior `Math.trunc()` silently zeroed
+ * any sub-$1 price (e.g. `0.05 USDC → price=0` on-chain). This function
+ * now uses `priceToUint256(price, options.priceScaleFactor ?? 1_000_000)`
+ * which scales by 1e6 (USDC 6 decimals) and rounds, so 0.05 USDC encodes
+ * as 50_000 (micro-USDC) — the correct on-chain representation.
  */
 export function hashSettlementReceipt(
   hashable: HashableReceipt,
-  domain: SettlementDomain = settlementDomain()
+  domain: SettlementDomain = settlementDomain(),
+  options: HashSettlementReceiptOptions = {}
 ): string {
   if (!hashable.finalQuote) {
     throw new Error('hashSettlementReceipt: hashable.finalQuote is required');
   }
+  const priceScaleFactor = options.priceScaleFactor ?? 1_000_000;
   const message = {
     protocol: hashable.protocol,
     negotiationId: hashable.negotiationId,
@@ -132,9 +188,12 @@ export function hashSettlementReceipt(
     resultHash: hashable.resultHash,
     toolName: hashable.finalQuote.toolName,
     description: hashable.finalQuote.description,
-    price: BigInt(Math.trunc(hashable.finalQuote.price)),
+    // B-001 fix: use priceToUint256 instead of Math.trunc to preserve
+    // sub-$1 prices (0.05 USDC → 50_000 micro-USDC, not 0).
+    price: priceToUint256(hashable.finalQuote.price, priceScaleFactor),
     currency: hashable.finalQuote.currency,
-    slaSeconds: BigInt(Math.trunc(hashable.finalQuote.slaSeconds)),
+    // slaSeconds is always a whole number; Math.round is safe here.
+    slaSeconds: BigInt(Math.round(hashable.finalQuote.slaSeconds)),
     expiresAt: hashable.finalQuote.expiresAt,
     settledAt: hashable.settledAt,
   };

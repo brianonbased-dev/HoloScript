@@ -42,7 +42,16 @@ const REPO_ROOT = join(__dirname, '..');
 
 // ── Constants pinned to the runtime path (chain-anchor.ts) ─────────────
 
-const FOUNDER_ANCHOR = '0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3';
+// S-01 fix: wallet address is now configurable via env so rotation does not
+// require a code change. Fall back to the legacy hard-pinned value for
+// backward compatibility when the env var is absent.
+//
+//   export HOLOMESH_FOUNDER_ANCHOR=0xYourNewAddress
+//   node scripts/anchor-founder-settlement-receipt.mjs
+//
+const FOUNDER_ANCHOR =
+  process.env.HOLOMESH_FOUNDER_ANCHOR?.trim() ||
+  '0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3';
 const BASE_CHAIN_ID = 8453;
 const BASE_CHAIN_ID_HEX = '0x2105';
 
@@ -392,15 +401,33 @@ document.getElementById("anchor").addEventListener("click", anchor);
 
 async function verifyTx(txHash, expectedHash) {
   const RPC = process.env.HOLOMESH_BASE_RPC ?? 'https://mainnet.base.org';
+  // S-02 fix: cap each RPC call with an AbortController so the process
+  // cannot hang indefinitely on an unresponsive node.
+  const RPC_TIMEOUT_MS = Number(process.env.HOLOMESH_RPC_TIMEOUT_MS ?? 15_000);
   const body = (method, params) =>
     JSON.stringify({ jsonrpc: '2.0', id: 1, method, params });
 
   async function rpc(method, params) {
-    const res = await fetch(RPC, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: body(method, params),
-    });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), RPC_TIMEOUT_MS);
+    let res;
+    try {
+      res = await fetch(RPC, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: body(method, params),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        throw new Error(
+          `${method} timed out after ${RPC_TIMEOUT_MS}ms — set HOLOMESH_RPC_TIMEOUT_MS to adjust or HOLOMESH_BASE_RPC to a faster endpoint`
+        );
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
     const j = await res.json();
     if (j.error) throw new Error(`${method} failed: ${JSON.stringify(j.error)}`);
     return j.result;
