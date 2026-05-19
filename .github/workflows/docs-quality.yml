@@ -79,7 +79,7 @@ jobs:
 
       - name: Check docs count drift markers
         if: steps.changed-docs.outputs.has_docs == 'true'
-        run: node scripts/check-doc-count-drift.mjs
+        run: pnpm docs:counts:drift
 
   typedoc-api:
     name: TypeDoc API reference

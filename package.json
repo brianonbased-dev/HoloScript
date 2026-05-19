@@ -87,6 +87,7 @@
     "docs:api:json": "typedoc --json docs/api/api.json",
     "audit:red-flags": "node scripts/check-red-flags.mjs",
     "docs:roadmap:drift": "node scripts/check-roadmap-drift.mjs",
+    "docs:counts:drift": "node scripts/check-doc-count-drift.mjs",
     "check:tropical-mentions": "node scripts/check-tropical-mentions.mjs",
     "check:security-audit": "node scripts/security-audit-io-network.mjs",
     "check:security-audit:strict": "node scripts/security-audit-io-network.mjs --strict",
