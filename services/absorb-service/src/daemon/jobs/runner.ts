@@ -252,6 +252,71 @@ async function runAbsorbPhase(
 // WORKSPACE MANAGEMENT
 // =============================================================================
 
+// =============================================================================
+// PATH VALIDATION — ATK-B1 (CodeQL js/command-line-injection) defense
+// =============================================================================
+
+/**
+ * Shell metacharacters that MUST NOT appear in a projectPath.
+ * Double-quote is the primary RCE vector (breaks out of quoted shell args);
+ * backtick, dollar, pipe, ampersand, semicolon, newline, and carriage return
+ * are also rejected as defense-in-depth.
+ */
+const SHELL_METACHAR_PATTERN = /["`$|&;\r\n]/;
+
+/**
+ * Validates that a projectPath is safe for use in file operations and spawn
+ * calls. Throws a descriptive error if validation fails.
+ *
+ * Checks:
+ * 1. Path must not contain null bytes
+ * 2. Path must not contain shell metacharacters (", `, $, |, &, ;, \r, \n)
+ * 3. Resolved path must start within ABSORB_PROJECT_ROOT (env var, defaults
+ *    to the system temp directory if not set)
+ * 4. Path must not traverse outside the allowed root
+ *
+ * @throws Error with descriptive message if validation fails
+ */
+export function validateProjectPath(projectPath: string): string {
+  // 1. Null byte check — prevents path truncation attacks
+  if (projectPath.includes('\0')) {
+    throw new Error(`Invalid projectPath: contains null byte`);
+  }
+
+  // 2. Shell metacharacter rejection — prevents command injection even if
+  //    a caller accidentally uses shell interpolation downstream.
+  //    Double-quote is the primary RCE vector from ATK-B1.
+  if (SHELL_METACHAR_PATTERN.test(projectPath)) {
+    throw new Error(
+      `Invalid projectPath: contains shell metacharacters (${projectPath.match(SHELL_METACHAR_PATTERN)!.join(', ')})`,
+    );
+  }
+
+  const resolved = path.resolve(projectPath);
+
+  // 3. Resolve-then-check: path.resolve() eliminates .., so if the resolved
+  //    path still contains .. it's a literal directory name (still suspicious).
+  if (resolved.includes('..')) {
+    throw new Error(`Invalid projectPath: resolved path contains '..': ${resolved}`);
+  }
+
+  // 4. Allowed-root prefix check — projectPath must start within
+  //    ABSORB_PROJECT_ROOT (env var) or the system temp directory (default).
+  //    This prevents an attacker from pointing the daemon at /etc, /root,
+  //    or any directory outside the designated project root.
+  const allowedRoot = path.resolve(
+    process.env.ABSORB_PROJECT_ROOT || path.join(os.tmpdir(), 'holoscript-daemon'),
+  );
+  if (!resolved.startsWith(allowedRoot + path.sep) && resolved !== allowedRoot) {
+    throw new Error(
+      `Invalid projectPath: resolved path (${resolved}) is outside allowed root (${allowedRoot}). ` +
+      `Set ABSORB_PROJECT_ROOT env var to the directory containing projects this daemon may access.`,
+    );
+  }
+
+  return resolved;
+}
+
 /**
  * Creates an isolated workspace directory for the daemon to operate in.
  * This is a shallow copy: only the file listing metadata is copied; actual
@@ -261,6 +326,14 @@ async function createIsolatedWorkspace(
   projectPath: string,
   jobId: string,
 ): Promise<{ workDir: string; cleanup: () => Promise<void> }> {
+  // Validate projectPath BEFORE any use — reject paths outside allowed root,
+  // paths with traversal sequences, null bytes, or shell metacharacters.
+  // ATK-B1 (CodeQL js/command-line-injection): projectPath is user-supplied
+  // and must never reach shell interpolation. Even though the copy commands
+  // now use spawn(shell:false), defense-in-depth requires rejecting dangerous
+  // inputs at the gate.
+  const resolvedProject = validateProjectPath(projectPath);
+
   const tmpBase = path.join(os.tmpdir(), 'holoscript-daemon');
   if (!fs.existsSync(tmpBase)) {
     fs.mkdirSync(tmpBase, { recursive: true });
@@ -274,18 +347,12 @@ async function createIsolatedWorkspace(
     path.join(workDir, '.daemon-workspace.json'),
     JSON.stringify({
       jobId,
-      projectPath,
+      projectPath: resolvedProject,
       createdAt: new Date().toISOString(),
       readonly: true,
     }),
     'utf-8',
   );
-
-  // Validate projectPath before use — reject paths outside tmpdir or with traversal sequences
-  const resolvedProject = path.resolve(projectPath);
-  if (resolvedProject.includes('..') || !/^[^\0]+$/.test(resolvedProject)) {
-    throw new Error(`Invalid projectPath: ${projectPath}`);
-  }
 
   // Copy project structure for analysis (skip node_modules and .git).
   // Uses spawn with shell:false + explicit arg arrays to prevent command injection.
@@ -682,6 +749,11 @@ export async function runDaemonJob(
   onProgress: DaemonProgressCallback,
   customLimits?: Partial<DaemonJobLimits>,
 ): Promise<DaemonRunResult> {
+  // Validate projectPath at the entry point before any use.
+  // ATK-B1: ensure user-supplied path is safe before it reaches any
+  // filesystem or spawn call downstream.
+  const resolvedProjectPath = validateProjectPath(projectPath);
+
   const startTime = Date.now();
   // @ts-ignore - Automatic remediation for TS2538
   const limits = { ...PROFILE_LIMITS[profile], ...customLimits };
@@ -711,7 +783,7 @@ export async function runDaemonJob(
   let cleanup: () => Promise<void>;
 
   try {
-    const ws = await createIsolatedWorkspace(projectPath, jobId);
+    const ws = await createIsolatedWorkspace(resolvedProjectPath, jobId);
     workDir = ws.workDir;
     cleanup = ws.cleanup;
     log('info', `Workspace created at ${workDir}`);
@@ -915,7 +987,7 @@ export async function runDaemonJob(
   log('info', 'Detecting changes and generating patches...');
   let patches: PatchProposal[] = [];
   try {
-    patches = await detectChanges(projectPath, workDir, allDenyPatterns, limits.maxFilesChanged);
+    patches = await detectChanges(resolvedProjectPath, workDir, allDenyPatterns, limits.maxFilesChanged);
     log('info', `Generated ${patches.length} patch proposal(s)`);
   } catch (err: any) {
     log('warn', `Patch detection error: ${err.message}`);

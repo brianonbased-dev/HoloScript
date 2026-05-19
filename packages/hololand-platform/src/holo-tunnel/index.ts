@@ -95,9 +95,12 @@ export function startHoloTunnel(options: HoloTunnelOptions): Promise<HoloTunnelH
         const localUrl = `http://${localHost}:${localPort}${path}`;
         const bodyBuf = body ? Buffer.from(body, 'base64') : undefined;
 
-        // Strip hop-by-hop headers before forwarding
+        // Strip hop-by-hop and encoding headers before forwarding.
+        // Remove accept-encoding so the local server responds with plain bytes —
+        // Node fetch auto-decompresses, so we must not ask for gzip or the
+        // Content-Encoding response header will mismatch the actual body bytes.
         const fwdHeaders: Record<string, string> = { ...headers };
-        for (const h of ['host', 'connection', 'transfer-encoding']) delete fwdHeaders[h];
+        for (const h of ['host', 'connection', 'transfer-encoding', 'accept-encoding']) delete fwdHeaders[h];
         fwdHeaders['host'] = `${localHost}:${localPort}`;
 
         let status = 502;
@@ -114,6 +117,8 @@ export function startHoloTunnel(options: HoloTunnelOptions): Promise<HoloTunnelH
           });
           status = resp.status;
           resp.headers.forEach((v, k) => { respHeaders[k] = v; });
+          // Drop content-encoding — fetch already decoded the body
+          delete respHeaders['content-encoding'];
           const buf = await resp.arrayBuffer();
           respBody = Buffer.from(buf).toString('base64');
         } catch (err) {
