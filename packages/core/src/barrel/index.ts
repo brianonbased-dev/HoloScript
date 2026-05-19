@@ -87,3 +87,6 @@ export * from '../trust';
 
 // Care-field primitives (D.052 universal love doctrine)
 export * from '../care';
+
+// Conversation daemon primitives (D.052 Brittney field / user daemon model)
+export * from '../daemon';

@@ -5523,7 +5523,38 @@ export declare function rememberRelationalContext(input: RememberRelationalConte
 export declare function validateCareField(field: CareField): { valid: boolean; errors: string[] };
 `;
 
-const finalMainDTS = mainDTS + holoLandTraitsDTS + careFieldDTS;
+const conversationDaemonDTS = `
+// ============================================================================
+// CONVERSATION DAEMON PRIMITIVES (D.052 Brittney field / user daemon model)
+// ============================================================================
+
+export type DaemonOwnerPolicy = 'private' | 'shared_household' | 'workspace';
+export type MemoryRetentionPolicy = 'session_only' | 'persisted_local' | 'persisted_with_absorb';
+export type DispatchConfidence = 'autonomous' | 'confirm_before' | 'always_ask';
+export interface DaemonAppearanceProfile { characterClass?: string; visualStyle?: string; colorPalette?: string[]; animationSet?: string; scale?: 'tiny' | 'small' | 'medium' | 'large'; }
+export interface DaemonVoiceProfile { enabled: boolean; voiceId?: string; speed?: number; tone?: 'warm' | 'neutral' | 'formal' | 'playful'; }
+export interface DaemonToneProfile { formality?: 'casual' | 'balanced' | 'formal'; verbosity?: 'terse' | 'balanced' | 'detailed'; humor?: 'none' | 'light' | 'moderate'; patience?: 'quick' | 'patient'; }
+export interface DaemonPermissionProfile { readOnly: boolean; proposeMutations: boolean; autonomousMutations: boolean; breakGlassAllowed: boolean; custodyScope: string[]; permissionEnvelope: 'read_only' | 'guarded_execute' | 'break_glass'; }
+export interface DaemonMemoryPolicy { retention: MemoryRetentionPolicy; maxContextWindowTokens?: number; absorbIntegration: boolean; ownerScoped: true; }
+export type DaemonContextSourceKind = 'operator_brief' | 'holoscript_surface_map' | 'absorb_graph' | 'holomesh_lanes' | 'recent_receipts' | 'room_state' | 'holoscript_tool_manifest';
+export interface DaemonDispatchPolicy { defaultConfidence: DispatchConfidence; trustedPatterns: string[]; receiptRequired: boolean; maxAutonomousActionsPerSession: number; }
+export interface DaemonReceiptSink { local: boolean; holoshell: boolean; absorb: boolean; holomesh: boolean; }
+export interface DaemonBrittneyRehydrationChannel { enabled: boolean; channelId: string; deltaCompression: boolean; minimumDeltaSignificance: number; }
+export interface ConversationDaemon { daemonId: string; ownerId: string; ownerPolicy: DaemonOwnerPolicy; displayName: string; appearanceProfile: DaemonAppearanceProfile; voiceProfile: DaemonVoiceProfile; careProfile: string; toneProfile: DaemonToneProfile; permissionProfile: DaemonPermissionProfile; memoryPolicy: DaemonMemoryPolicy; contextSources: DaemonContextSourceKind[]; dispatchPolicy: DaemonDispatchPolicy; receiptSink: DaemonReceiptSink; brittneyRehydrationChannel: DaemonBrittneyRehydrationChannel; createdAt: string; lastActiveAt?: string; }
+export type DaemonUrgencyLevel = 'low' | 'medium' | 'high' | 'immediate';
+export type DaemonConsentBoundary = 'no_action' | 'read_only' | 'propose' | 'execute';
+export interface ExtractedIntent { verb: string; target?: string; parameters: Record<string, unknown>; confidence: number; }
+export interface ExtractedArtifact { kind: 'file' | 'url' | 'entity' | 'code' | 'receipt' | 'task'; ref: string; label?: string; }
+export interface ContextDelta { newIntentSignals: ExtractedIntent[]; updatedPreferences: Record<string, unknown>; newReceiptRefs: string[]; capabilityUpdates: Array<{ capability: string; available: boolean }>; careSignalHistory: string[]; significanceScore: number; }
+export interface ProposedAction { actionId: string; description: string; toolRef: string; parameters: Record<string, unknown>; permissionEnvelope: 'read_only' | 'guarded_execute' | 'break_glass'; reversible: boolean; estimatedImpact: 'none' | 'minor' | 'moderate' | 'significant'; }
+export interface ConversationDaemonTurn { turnId: string; daemonId: string; surfaceId: string; userUtterance: string; selectedShellObject?: string; extractedIntent?: ExtractedIntent; extractedArtifacts: ExtractedArtifact[]; careSignal?: string; urgency: DaemonUrgencyLevel; consentBoundary: DaemonConsentBoundary; contextDelta: ContextDelta; proposedNextAction?: ProposedAction; requiredApproval: boolean; receiptLinks: string[]; timestamp: string; }
+export declare class DaemonFieldSeparationError extends Error { constructor(message: string); }
+export declare function assertDaemonFieldSeparation(daemon: ConversationDaemon): void;
+export declare function makeDefaultConversationDaemon(daemonId: string, ownerId: string, displayName: string, careProfile: string): ConversationDaemon;
+export declare function makeEmptyContextDelta(): ContextDelta;
+`;
+
+const finalMainDTS = mainDTS + holoLandTraitsDTS + careFieldDTS + conversationDaemonDTS;
 
 // Write type declaration files
 const files = [
