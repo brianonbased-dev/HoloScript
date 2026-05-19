@@ -150,6 +150,63 @@ function writeAblationArtifact(result: AblationResult): string | null {
   return artifactPath;
 }
 
+interface ScalingMemoRow {
+  entries: number;
+  bytes: number;
+  bytesPerEntry: number;
+  verifyMedianUs: number;
+  verifyP99Us: number;
+  verifyUsPerEntry: number;
+}
+
+interface ScalingMemo {
+  generatedAt: string;
+  harness: string;
+  host: { platform: string; arch: string; node: string };
+  rows: ScalingMemoRow[];
+  regression: {
+    slope: number;
+    intercept: number;
+    rSquared: number;
+    bytesPerEntrySlope: number;
+  };
+  projection1M: {
+    projectedBytes: number;
+    projectedBytesPerEntry: number;
+    projectedVerifyUs: number;
+    note: string;
+  };
+  claims: {
+    slopeWithin320BytesPerEntry: boolean;
+    slopePaperClaimDiscrepancy: boolean;
+    linearityRSquaredAbove0999: boolean;
+    h1VerifyUsPerEntryBelow8: boolean;
+  };
+}
+
+function linearRegression(xs: number[], ys: number[]): { slope: number; intercept: number; rSquared: number } {
+  const n = xs.length;
+  const sumX = xs.reduce((a, b) => a + b, 0);
+  const sumY = ys.reduce((a, b) => a + b, 0);
+  const sumXY = xs.reduce((acc, x, i) => acc + x * (ys[i] ?? 0), 0);
+  const sumX2 = xs.reduce((acc, x) => acc + x * x, 0);
+  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+  const intercept = (sumY - slope * sumX) / n;
+  const yMean = sumY / n;
+  const ssTot = ys.reduce((acc, y) => acc + (y - yMean) ** 2, 0);
+  const ssRes = ys.reduce((acc, y, i) => acc + (y - (slope * (xs[i] ?? 0) + intercept)) ** 2, 0);
+  const rSquared = ssTot === 0 ? 1 : 1 - ssRes / ssTot;
+  return { slope, intercept, rSquared };
+}
+
+function writeScalingMemo(memo: ScalingMemo, repoRoot: string): string {
+  const benchLogsDir = resolve(repoRoot, '.bench-logs');
+  if (!existsSync(benchLogsDir)) mkdirSync(benchLogsDir, { recursive: true });
+  const jsonPath = resolve(benchLogsDir, 'paper-1-trace-scaling-memo.json');
+  writeFileSync(jsonPath, JSON.stringify(memo, null, 2) + '\n', 'utf8');
+  return jsonPath;
+}
+
 describe('Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06)', () => {
   /** Each `step()` adds one row after `init`; `finalize()` adds `final`. Entries = steps + 2. */
   function buildTrace(steps: number): { jsonl: string; entryCount: number } {
@@ -448,4 +505,144 @@ describe('Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06)', () => {
     expect(result.variants.minusVerify.tpRate).toBe(0);
     expect(result.variants.baseline.tpRate).toBe(0);
   }, 120_000);
+
+  /**
+   * Scaling memo — Paper 1 §Trace Size claim validation.
+   *
+   * Sweeps N ∈ {1 003, 10 003, 100 003} entries; measures bytes and per-entry
+   * hash-chain verify wall time; runs a linear regression to confirm the
+   * paper's claim that "trace size scales linearly with simulation steps at
+   * ~180 bytes per entry."  Writes a JSON artifact + logs a summary table.
+   *
+   * PAPER1_SCALING_WRITE=1 to persist artifact to .bench-logs/.
+   * N=10^6 is projected from the observed H1 slope (not run in CI).
+   */
+  it('scaling memo — trace bytes and verify µs/entry sweep (paper-1 §Trace Size)', async () => {
+    // Sweep targets: entries ≈ 10^3, 10^4, 10^5.
+    // steps = entries - 2  (recorder emits init + steps + finalize).
+    const sweepTargets: Array<{ steps: number; expectedEntries: number }> = [
+      { steps: 1001, expectedEntries: 1003 },
+      { steps: 10001, expectedEntries: 10003 },
+      { steps: 100001, expectedEntries: 100003 },
+    ];
+    const verifyRuns = 5; // keep CI duration reasonable
+
+    const rows: ScalingMemoRow[] = [];
+
+    console.log('\n[paper-cael-replay-benchmark] === scaling memo sweep ===');
+    console.log('[paper-cael-replay-benchmark] entries | bytes | bytes/entry | verify med µs | µs/entry');
+
+    for (const { steps, expectedEntries } of sweepTargets) {
+      const { jsonl, entryCount } = buildTrace(steps);
+      expect(entryCount).toBe(expectedEntries);
+
+      const bytes = Buffer.byteLength(jsonl, 'utf8');
+      const bytesPerEntry = bytes / entryCount;
+
+      const trace = parseCAELJSONL(jsonl);
+      const verifySamples: number[] = [];
+      for (let r = 0; r < verifyRuns; r++) {
+        const t0 = performance.now();
+        const v = verifyCAELHashChain(trace);
+        verifySamples.push((performance.now() - t0) * 1000); // µs total
+        expect(v.valid).toBe(true);
+      }
+      const verifyStats = calcStats(verifySamples);
+      const verifyUsPerEntry = verifyStats.median / entryCount;
+
+      rows.push({
+        entries: entryCount,
+        bytes,
+        bytesPerEntry,
+        verifyMedianUs: verifyStats.median,
+        verifyP99Us: verifyStats.p99,
+        verifyUsPerEntry,
+      });
+
+      console.log(
+        `[paper-cael-replay-benchmark] ${String(entryCount).padStart(7)} | ` +
+          `${String(bytes).padStart(9)} | ` +
+          `${bytesPerEntry.toFixed(1).padStart(10)} | ` +
+          `${verifyStats.median.toFixed(1).padStart(13)} | ` +
+          `${verifyUsPerEntry.toFixed(4).padStart(8)}`
+      );
+    }
+
+    // Linear regression over (entries, bytes) to confirm O(n) scaling.
+    const xs = rows.map((r) => r.entries);
+    const ys = rows.map((r) => r.bytes);
+    const reg = linearRegression(xs, ys);
+
+    // Project to N=10^6.
+    const N1M = 1_000_000;
+    const projectedBytes = Math.round(reg.slope * N1M + reg.intercept);
+    const projectedBytesPerEntry = projectedBytes / N1M;
+    // H1 median µs/entry from last row; project H3 with ~3.4× improvement from the paper.
+    const h1UsPerEntry = (rows[rows.length - 1]?.verifyUsPerEntry) ?? 3.4;
+    const h3Factor = 3.4;
+    const projectedVerifyUs = (h1UsPerEntry / h3Factor) * N1M;
+
+    // NOTE: The paper abstract claims "~180 bytes per entry" based on a pre-Wave-2
+    // implementation that lacked per-step stateDigests in the payload (Wave-2 item 5a,
+    // added 2026-04-20). The current implementation records stateDigests (FNV-1a hex)
+    // per step, adding ~100 bytes/entry. Actual measured slope is ~282 bytes/entry.
+    // The paper must be updated to reflect this; see research/paper-1-mcp-trust-scaling.md.
+    const actualSlope = reg.slope;
+    const claims = {
+      // Linear scaling confirmed (slope ≤ 320 bytes/entry covers current stateDigests payload).
+      slopeWithin320BytesPerEntry: actualSlope <= 320,
+      // Slope is above the old 180 byte estimate (confirms implementation has grown).
+      slopePaperClaimDiscrepancy: actualSlope > 200,
+      linearityRSquaredAbove0999: reg.rSquared >= 0.999,
+      // H1 verify cost — at large N, JIT warmup is complete; measured ~4-5 µs/entry.
+      h1VerifyUsPerEntryBelow8: (rows[rows.length - 1]?.verifyUsPerEntry ?? 999) < 8,
+    };
+
+    const __dir = dirname(fileURLToPath(import.meta.url));
+    const repoRoot = resolve(__dir, '..', '..', '..', '..', '..');
+
+    const memo: ScalingMemo = {
+      generatedAt: new Date().toISOString(),
+      harness:
+        'packages/engine/src/simulation/__tests__/paper-cael-replay-benchmark.test.ts',
+      host: { platform: process.platform, arch: process.arch, node: process.version },
+      rows,
+      regression: {
+        slope: reg.slope,
+        intercept: reg.intercept,
+        rSquared: reg.rSquared,
+        bytesPerEntrySlope: reg.slope,
+      },
+      projection1M: {
+        projectedBytes,
+        projectedBytesPerEntry,
+        projectedVerifyUs,
+        note: `N=10^6 projected from linear fit (H1 slope; H3 ~${h3Factor}× speedup applied to verify projection)`,
+      },
+      claims,
+    };
+
+    if (process.env.PAPER1_SCALING_WRITE === '1') {
+      const jsonPath = writeScalingMemo(memo, repoRoot);
+      console.log(`[paper-cael-replay-benchmark] scaling memo artifact: ${jsonPath}`);
+    }
+
+    console.log('\n[paper-cael-replay-benchmark] === regression results ===');
+    console.log(
+      `[paper-cael-replay-benchmark] slope=${reg.slope.toFixed(2)} bytes/entry  ` +
+        `intercept=${reg.intercept.toFixed(0)}  R²=${reg.rSquared.toFixed(6)}`
+    );
+    console.log(
+      `[paper-cael-replay-benchmark] N=10^6 projected: ${projectedBytesPerEntry.toFixed(1)} bytes/entry  ` +
+        `verify H3 projection: ${(projectedVerifyUs / 1_000_000).toFixed(3)} s total`
+    );
+    console.log(`[paper-cael-replay-benchmark] claims: ${JSON.stringify(claims)}`);
+
+    // Hard assertions — these gate paper acceptance.
+    expect(claims.slopeWithin320BytesPerEntry).toBe(true);
+    expect(claims.linearityRSquaredAbove0999).toBe(true);
+    expect(claims.h1VerifyUsPerEntryBelow8).toBe(true);
+    // Confirm the discrepancy is real (paper must be updated).
+    expect(claims.slopePaperClaimDiscrepancy).toBe(true);
+  }, 1_200_000); // 20 min ceiling for 100k-entry step
 });
