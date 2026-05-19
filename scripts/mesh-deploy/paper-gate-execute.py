@@ -455,7 +455,10 @@ def _scp_and_bootstrap(instance_id: int, handle: str, gate: dict, wallet: str, b
         runner_file = staging_path / "runner.sh"
 
         env_lines = _build_env_lines(handle, gate, wallet, bearer, team_id)
-        env_file.write_text("\n".join(env_lines) + "\n", encoding="utf-8")
+        # newline='\n' forces LF-only on Windows — CRLF endings cause bash on
+        # Linux to fail: `source /root/agent.env\r` looks for a non-existent
+        # file with \r in the name, silently leaving all env vars unset.
+        env_file.write_text("\n".join(env_lines) + "\n", encoding="utf-8", newline="\n")
 
         runner_text = (
             "#!/bin/bash\n"
@@ -467,7 +470,7 @@ def _scp_and_bootstrap(instance_id: int, handle: str, gate: dict, wallet: str, b
             "sleep 2\n"
             "echo DEPLOY_DISPATCHED\n"
         )
-        runner_file.write_text(runner_text, encoding="utf-8")
+        runner_file.write_text(runner_text, encoding="utf-8", newline="\n")
 
         ssh_base = [
             "ssh", "-i", str(ssh_key),
