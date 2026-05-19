@@ -155,6 +155,7 @@ export async function handleProtocolTool(
 
 const CONTENT_HASH_RE = /^[a-f0-9]{64}$/;
 const AUTHOR_RE = /^[\w.-]+$/;
+const VALID_LICENSES = new Set(['free', 'cc_by', 'cc_by_sa', 'cc_by_nc', 'commercial', 'exclusive']);
 
 function validateContentHash(value: unknown): string {
   if (typeof value !== 'string' || !CONTENT_HASH_RE.test(value)) {
@@ -170,18 +171,105 @@ function validateAuthor(value: unknown): string {
   return value;
 }
 
+/**
+ * Runtime type guard for required string parameters.
+ * Returns the string if valid, or a structured error response if not.
+ * Prevents TypeErrors from `as string` casts when MCP callers send null/number/object.
+ */
+function requireString(value: unknown, fieldName: string): string | { status: 'error'; error: string; message: string } {
+  if (typeof value !== 'string') {
+    return { status: 'error', error: 'INVALID_PARAMS', message: `${fieldName} must be a string, got ${value === null ? 'null' : value === undefined ? 'undefined' : typeof value}` };
+  }
+  return value;
+}
+
+/**
+ * Runtime type guard for optional string parameters.
+ * Returns the string if present, undefined if absent/null/non-string.
+ */
+function optionalString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+/**
+ * Runtime type guard for number parameters with optional clamping.
+ * Returns the number if valid (or default), or a structured error response if non-numeric.
+ */
+function requireNumberInRange(value: unknown, fieldName: string, defaultValue: number, min: number, max: number): number | { status: 'error'; error: string; message: string } {
+  if (value === undefined || value === null) return defaultValue;
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return { status: 'error', error: 'INVALID_PARAMS', message: `${fieldName} must be a finite number, got ${typeof value}` };
+  }
+  return Math.max(min, Math.min(max, value));
+}
+
+interface ImportError {
+  index: number;
+  field: string;
+  message: string;
+}
+
+/**
+ * Runtime type guard for the imports array parameter.
+ * Validates that each element has the expected shape, returning a structured
+ * error response if any element is malformed.
+ */
+function validateImportsArray(value: unknown): { imports: Array<{ contentHash: string; author: string; depth: number }>; errors: ImportError[] } | { status: 'error'; error: string; message: string } {
+  if (value === undefined || value === null) return { imports: [], errors: [] };
+  if (!Array.isArray(value)) {
+    return { status: 'error', error: 'INVALID_PARAMS', message: `imports must be an array, got ${typeof value}` };
+  }
+  const imports: Array<{ contentHash: string; author: string; depth: number }> = [];
+  const errors: ImportError[] = [];
+  for (let i = 0; i < value.length; i++) {
+    const item = value[i];
+    if (typeof item !== 'object' || item === null) {
+      errors.push({ index: i, field: '', message: `imports[${i}] must be an object, got ${item === null ? 'null' : typeof item}` });
+      continue;
+    }
+    const obj = item as Record<string, unknown>;
+    if (typeof obj.contentHash !== 'string') {
+      errors.push({ index: i, field: 'contentHash', message: `imports[${i}].contentHash must be a string` });
+    }
+    if (typeof obj.author !== 'string') {
+      errors.push({ index: i, field: 'author', message: `imports[${i}].author must be a string` });
+    }
+    if (obj.depth !== undefined && typeof obj.depth !== 'number') {
+      errors.push({ index: i, field: 'depth', message: `imports[${i}].depth must be a number` });
+    }
+    if (errors.length > 0) continue;
+    imports.push({
+      contentHash: obj.contentHash as string,
+      author: obj.author as string,
+      depth: typeof obj.depth === 'number' ? obj.depth : 1,
+    });
+  }
+  if (errors.length > 0) {
+    return { status: 'error', error: 'INVALID_PARAMS', message: errors.map(e => e.message).join('; ') };
+  }
+  return { imports, errors: [] };
+}
+
 // =============================================================================
 // Individual Handlers
 // =============================================================================
 
 async function handlePublish(args: Record<string, unknown>) {
-  if (typeof args.code !== 'string') return { status: 'error', error: 'code must be a string' };
-  if (typeof args.author !== 'string') return { status: 'error', error: 'author must be a string' };
-  const code = args.code;
-  const author = args.author;
-  const license = (args.license as string) || 'free';
-  const price = (args.price as string) || '0';
-  const mintAsNFT = (args.mintAsNFT as boolean) || false;
+  const codeResult = requireString(args.code, 'code');
+  if (typeof codeResult !== 'string') return codeResult;
+  const code = codeResult;
+
+  const authorResult = requireString(args.author, 'author');
+  if (typeof authorResult !== 'string') return authorResult;
+  const author = authorResult;
+
+  const rawLicense = optionalString(args.license);
+  const license = rawLicense && VALID_LICENSES.has(rawLicense) ? rawLicense : 'free';
+
+  const rawPrice = optionalString(args.price);
+  const price = rawPrice ?? '0';
+
+  const mintAsNFT = args.mintAsNFT === true;
 
   // Dynamic imports to avoid circular deps
   const {
@@ -305,8 +393,10 @@ async function handleCollect(args: Record<string, unknown>) {
   } catch (err) {
     return { status: 'error', error: 'INVALID_PARAMS', message: (err as Error).message };
   }
-  const referrer = args.referrer as string | undefined;
-  const quantity = (args.quantity as number) || 1;
+  const referrer = optionalString(args.referrer);
+  const quantityResult = requireNumberInRange(args.quantity, 'quantity', 1, 1, 10000);
+  if (typeof quantityResult !== 'number') return quantityResult;
+  const quantity = quantityResult;
 
   const serverUrl = process.env.HOLOSCRIPT_SERVER_URL || 'https://mcp.holoscript.net';
 
@@ -341,17 +431,20 @@ async function handleCollect(args: Record<string, unknown>) {
 }
 
 async function handleRevenue(args: Record<string, unknown>) {
-  if (typeof args.price !== 'string') return { status: 'error', error: 'price must be a string' };
-  if (typeof args.author !== 'string') return { status: 'error', error: 'author must be a string' };
+  const priceResult = requireString(args.price, 'price');
+  if (typeof priceResult !== 'string') return priceResult;
+  const authorResult = requireString(args.author, 'author');
+  if (typeof authorResult !== 'string') return authorResult;
 
   const { calculateRevenueDistribution, formatRevenueDistribution, ethToWei } =
     await import('@holoscript/core');
 
-  const price = args.price;
-  const author = args.author;
-  const referrer = args.referrer as string | undefined;
-  const imports =
-    (args.imports as Array<{ contentHash: string; author: string; depth: number }>) || [];
+  const price = priceResult;
+  const author = authorResult;
+  const referrer = optionalString(args.referrer);
+  const importsResult = validateImportsArray(args.imports);
+  if (!('imports' in importsResult)) return importsResult;
+  const imports = importsResult.imports;
 
   const priceWei = ethToWei(price);
   const importChain = imports.map((imp) => ({
