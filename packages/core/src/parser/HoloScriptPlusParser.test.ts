@@ -141,6 +141,37 @@ describe('HoloScriptPlusParser - Import Statements', () => {
   });
 });
 
+describe('HoloScriptPlusParser - Studio Surface Blocks', () => {
+  const parser = new HoloScriptPlusParser({ enableVRTraits: true });
+
+  it('parses page and include as nested child nodes', () => {
+    const source = `composition "Studio Shell" {
+      object "Workspace" {
+        page "Dashboard" {
+          route: "/dashboard"
+          title: "Dashboard"
+        }
+
+        include "SharedToolbar" {
+          source: "./toolbar.holo"
+        }
+      }
+    }`;
+
+    const result = parser.parse(source);
+
+    expect(result.success).toBe(true);
+    const workspace = result.ast.root.children?.find((child) => child.type === 'object');
+    const page = workspace?.children?.find((child) => child.type === 'page');
+    const include = workspace?.children?.find((child) => child.type === 'include');
+
+    expect(page?.name).toBe('Dashboard');
+    expect(page?.properties?.route).toBe('/dashboard');
+    expect(include?.name).toBe('SharedToolbar');
+    expect(include?.properties?.source).toBe('./toolbar.holo');
+  });
+});
+
 describe('HoloScriptPlusParser - Logic Block', () => {
   const parser = new HoloScriptPlusParser({ enableVRTraits: true });
 

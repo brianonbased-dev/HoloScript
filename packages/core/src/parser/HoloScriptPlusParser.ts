@@ -1675,6 +1675,8 @@ export class HoloScriptPlusParser {
                 'transition',
                 'on_entry',
                 'on_exit',
+                'page',
+                'include',
               ];
 
               if (name === 'transition' && this.check('STRING')) {
@@ -2622,6 +2624,8 @@ export class HoloScriptPlusParser {
       'npc',
       'camera',
       'timeline',
+      'page',
+      'include',
     ];
 
     while (!this.check('RBRACE') && !this.check('EOF')) {
