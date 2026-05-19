@@ -398,20 +398,35 @@ def _build_env_lines(handle: str, gate: dict, wallet: str, bearer: str, team_id:
     return lines
 
 
-def _wait_for_ssh(host: str, port: int, *, max_wait_s: int = 300, poll_s: int = 15) -> bool:
-    """Poll until SSH port accepts connections or max_wait_s elapsed."""
-    import time, socket
+def _wait_for_ssh(host: str, port: int, ssh_key: Path | None = None, *,
+                  max_wait_s: int = 300, poll_s: int = 15) -> bool:
+    """Poll until SSH auth succeeds (not just TCP open) or max_wait_s elapsed.
+
+    Vast.ai's ssh proxy answers TCP immediately but authorized_keys on the
+    instance is provisioned ~30-90s after creation — TCP-only check passes
+    too early and SCP gets permission-denied. We test actual auth here.
+    """
+    import time
     deadline = time.monotonic() + max_wait_s
     attempt = 0
+    key_args = ["-i", str(ssh_key)] if ssh_key and ssh_key.exists() else []
     while time.monotonic() < deadline:
         attempt += 1
-        try:
-            with socket.create_connection((host, port), timeout=8):
-                print(f"[bootstrap] SSH ready after ~{attempt * poll_s}s", file=sys.stderr)
-                return True
-        except OSError:
-            print(f"[bootstrap] SSH not ready (attempt {attempt}), waiting {poll_s}s...", file=sys.stderr)
-            time.sleep(poll_s)
+        rc, out, _ = run_subprocess([
+            "ssh", *key_args,
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "UserKnownHostsFile=/dev/null",
+            "-o", "ConnectTimeout=8",
+            "-o", "BatchMode=yes",
+            "-p", str(port),
+            f"root@{host}",
+            "echo SSH_READY",
+        ], timeout=15)
+        if rc == 0 and "SSH_READY" in out:
+            print(f"[bootstrap] SSH auth ready after ~{attempt * poll_s}s", file=sys.stderr)
+            return True
+        print(f"[bootstrap] SSH not auth-ready (attempt {attempt}, rc={rc}), waiting {poll_s}s...", file=sys.stderr)
+        time.sleep(poll_s)
     return False
 
 
@@ -423,10 +438,11 @@ def _scp_and_bootstrap(instance_id: int, handle: str, gate: dict, wallet: str, b
         return {"ok": False, "error": "could not resolve SSH host:port for instance"}
     host, port = ssh
 
-    # Wait for SSH to be ready — instances need ~1-3 min to boot after creation;
-    # immediate SCP always times out (2026-05-19 incident: all 4 gates failed).
-    if not _wait_for_ssh(host, port):
-        return {"ok": False, "error": f"SSH not ready after 300s: {host}:{port}"}
+    # Wait for SSH auth to be ready — instances need ~1-3 min to boot and for
+    # Vast.ai to provision authorized_keys; TCP-only check passes too early
+    # (permission-denied incident 2026-05-19: all 4 gates failed on SCP).
+    if not _wait_for_ssh(host, port, ssh_key):
+        return {"ok": False, "error": f"SSH auth not ready after 300s: {host}:{port}"}
 
     brain_name = gate["brain"]
     brain_local = Path.home() / ".ai-ecosystem" / "compositions" / f"{brain_name}.hsplus"
