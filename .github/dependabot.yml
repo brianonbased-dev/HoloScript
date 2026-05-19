@@ -4,8 +4,10 @@ updates:
   - package-ecosystem: 'npm'
     directory: '/'
     schedule:
-      interval: 'weekly'
-    open-pull-requests-limit: 10
+      interval: 'monthly'
+    # In-house posture: dependency sweeps are driven by HoloMesh/local agents,
+    # not by hosted Dependabot PR storms that fan out into expensive checks.
+    open-pull-requests-limit: 0
     labels:
       - 'dependencies'
     commit-message:
@@ -32,7 +34,8 @@ updates:
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
-      interval: 'weekly'
+      interval: 'monthly'
+    open-pull-requests-limit: 0
     labels:
       - 'dependencies'
       - 'github-actions'

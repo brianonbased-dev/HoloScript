@@ -40,6 +40,10 @@ such as multi-platform release, Docker image publishing, CodeQL, benchmark
 matrices, video rendering, Playwright, WASM, and Studio builds should default to
 local/self-hosted/HoloMesh execution.
 
+Dependabot automatic PR creation is also disabled. Dependency sweeps should be
+batched by HoloMesh/local agents with focused receipts instead of weekly hosted
+CI fan-out across the whole ecosystem.
+
 ## Receipt Standard
 
 Every in-house validation handoff should include:
