@@ -296,7 +296,7 @@ describe('DeviceInventoryReceipt validator', () => {
   it('rejects wrong schema version', () => {
     const errors = validateDeviceInventoryReceipt({
       ...validInventoryReceipt,
-      schemaVersion: 'holoscript-device-inventory-receipt/v1',
+      schemaVersion: 'holoscript-device-inventory-receipt/v99',
     });
     expect(errors.some((e) => e.includes('schemaVersion'))).toBe(true);
   });
