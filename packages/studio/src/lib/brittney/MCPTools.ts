@@ -175,7 +175,7 @@ const holoCompile: StudioToolDefinition = {
   function: {
     name: 'holo_compile',
     description:
-      'Compile HoloScript code to any supported target (37 targets including Three.js, React, Unity, Unreal, GLTF, URDF, VisionOS, WebGPU, etc.). Returns compiled output code for the target platform.',
+      'Compile HoloScript code to any registered target, including renderer, engine, robotics, XR, WebGPU, and service outputs. Discover the current target list before promising a count.',
     parameters: {
       type: 'object',
       properties: {

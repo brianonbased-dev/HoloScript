@@ -358,7 +358,7 @@ export function SimResultsMesh({
     uniforms.uUseGPU.value = !!gpuDisplacementBuffer;
   });
 
-  const onBeforeCompile = useCallback((shader: THREE.Shader) => {
+  const onBeforeCompile = useCallback((shader: { defines: Record<string, string | undefined> }) => {
     if (gpuDisplacementBuffer) {
       shader.defines.USE_GPU_BUFFERS = '';
     }

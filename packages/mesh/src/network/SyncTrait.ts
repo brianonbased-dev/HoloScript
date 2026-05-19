@@ -5,7 +5,7 @@
  * Tracks which properties should be synced across the network.
  */
 
-import type { TraitHandler } from '@holoscript/core/traits';
+import type { TraitHandler } from '@holoscript/core';
 import type { HSPlusNode } from '@holoscript/core';
 import { NetworkManager } from './NetworkManager';
 

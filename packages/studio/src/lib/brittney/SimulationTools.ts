@@ -1,9 +1,9 @@
 /**
  * SimulationTools — Brittney's simulation-specific function-calling tools.
  *
- * When a scientist says "simulate heat flow" or "is this safe?", Brittney
- * uses these tools to set up solvers, run simulations, interpret results,
- * and generate reports — all without the scientist writing code.
+ * When a scientist or engineer asks about physics, Brittney can help configure
+ * developer-facing solvers, inspect results, and draft reports. These tools do
+ * not replace CAD import review, mesh-quality checks, or domain V&V sign-off.
  */
 
 // ── Tool Schemas ─────────────────────────────────────────────────────────────
@@ -13,7 +13,7 @@ export const SIMULATION_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'setup_simulation',
-      description: 'Set up a simulation on the active scene object. Configures mesh, material, constraints, loads, and solver type. The scientist describes what they want; you translate to config.',
+      description: 'Set up a simulation on the active scene object. Configures mesh, material, constraints, loads, and solver type. Translate the request into explicit config, and ask for missing geometry, units, loads, constraints, or validation context before treating the result as evidence.',
       parameters: {
         type: 'object',
         properties: {
@@ -53,7 +53,7 @@ export const SIMULATION_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'query_results',
-      description: 'Ask a question about the simulation results in plain English. Examples: "is this safe?", "what is the max stress?", "did it converge?", "give me a summary".',
+      description: 'Ask a question about simulation results in plain English. Examples: "what is the max stress?", "did it converge?", "give me a summary". Do not certify safety; report assumptions and missing validation.',
       parameters: {
         type: 'object',
         properties: {
@@ -67,7 +67,7 @@ export const SIMULATION_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'generate_report',
-      description: 'Generate a complete simulation report with executive summary, metrics, findings, and recommendations. Returns Markdown.',
+      description: 'Generate a simulation report draft with assumptions, metrics, findings, limitations, and recommendations. Returns Markdown.',
       parameters: {
         type: 'object',
         properties: {
@@ -100,7 +100,7 @@ export const SIMULATION_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'import_data',
-      description: 'Import scientific data from a file that the user dropped into the scene. Supports FITS (astronomy), STL/OBJ (CAD), CSV (tabular), VTK (simulation results).',
+      description: 'Import scientific or engineering data from a file that the user dropped into the scene. Supports FITS (astronomy), STL/OBJ surface meshes, CSV (tabular), and VTK (simulation results). STEP/IGES CAD import is not part of this tool.',
       parameters: {
         type: 'object',
         properties: {
@@ -206,10 +206,10 @@ export const SIMULATION_TOOLS = [
 export const SIMULATION_PROMPT_EXTENSION = `
 ## Simulation Capabilities
 
-You can set up and run physics simulations directly. When a scientist describes their problem, translate it into the right solver configuration. Don't ask for technical details unless truly needed — infer reasonable defaults:
+You can help set up and run developer-facing physics simulations. When a scientist or engineer describes a problem, translate it into explicit solver configuration and clearly label assumptions. Ask for geometry, units, materials, loads, constraints, mesh quality, or validation context when those facts affect the result.
 
 **Available solvers:**
-- structural / structural-tet10: Static stress analysis on solid bodies (bridges, beams, brackets). Use TET10 for accuracy.
+- structural / structural-tet10: Static stress analysis on supplied or generated meshes. TET10 can improve element accuracy, but only after geometry, loads, constraints, and mesh quality are credible.
 - thermal: Heat conduction with sources, insulation, boundary temperatures.
 - acoustic: Sound wave propagation, room acoustics, ultrasound.
 - fdtd: Electromagnetic wave simulation (antennas, waveguides, radar).
@@ -217,16 +217,16 @@ You can set up and run physics simulations directly. When a scientist describes 
 - multiphase: Gas-liquid flows (bubbles, droplets, sloshing).
 - molecular-dynamics: Atomic/molecular simulation (phase transitions, diffusion).
 
-**Default behavior when scientist drops a file:**
+**Default behavior when a scientific or engineering file appears:**
 - .fits → import as spectral cube, show 3D with channel slider, ask what they want to investigate
-- .stl/.obj → import as surface mesh, offer to run structural simulation on it
+- .stl/.obj → import as surface mesh, explain the meshing assumptions, and offer structural setup only after units, material, constraints, and loads are known
 - .csv → import as scalar field, visualize with colormap, offer analysis
 - .vtk → import existing simulation results, offer re-analysis or comparison
 
 **When interpreting results, always:**
-1. State the key finding in plain language first ("The beam will hold" or "This will fail")
+1. State the key finding in plain language first ("Under the stated assumptions, the beam clears the chosen threshold" or "This setup exceeds the chosen limit")
 2. Give the number with units ("Safety factor: 2.3, max stress: 150 MPa")
-3. Provide a recommendation ("Consider reducing the load or increasing the cross-section")
+3. Provide a recommendation plus the assumption it depends on ("Consider reducing the load or increasing the cross-section; verify material and boundary conditions first")
 4. Offer to generate a full report or run a parameter sweep
 
 **Spatial verification tools (what makes HoloScript unique):**
@@ -236,9 +236,9 @@ You can set up and run physics simulations directly. When a scientist describes 
 
 **You exceed expectations by:**
 - Running the simulation before being asked (when the intent is clear)
-- Generating a report automatically after every structural analysis
+- Generating a report draft after every structural analysis, with assumptions and limitations visible
 - Suggesting parameter sweeps when the design is marginal (safety factor 1-2)
-- Animating transient results automatically so they can see the physics evolve
+- Animating transient results when a recorded simulation exists
 - Comparing multiple materials without being asked ("Here's how aluminum, steel, and titanium compare")
 - Adding measurements and annotations proactively: "I measured 2.3mm deflection at the tip. I've pinned a note at the stress concentration near the fillet."
 - Setting the coordinate system automatically: .fits files → astronomical, structural → engineering (mm), seismic → geophysical (depth)

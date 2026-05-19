@@ -17,7 +17,7 @@ export function mergeConfigs<T extends Record<string, unknown>>(base: T, extensi
       !Array.isArray(baseValue) &&
       !Array.isArray(extensionValue)
     ) {
-      (result as Record<string, unknown>)[key] = mergeConfigs(baseValue, extensionValue);
+      (result as Record<string, unknown>)[key] = mergeConfigs(baseValue as Record<string, unknown>, extensionValue as Record<string, unknown>);
     } else {
       (result as Record<string, unknown>)[key] = extensionValue;
     }

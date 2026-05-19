@@ -16,7 +16,8 @@ export type AdminOperationAction =
   | 'revoke'
   | 'manual_failover'
   | 'scaling_override'
-  | 'team_admin_room_toggle';
+  | 'team_admin_room_toggle'
+  | 'transfer_ownership';
 
 export interface AdminOperationAuditEntry {
   id: string;

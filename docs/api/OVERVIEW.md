@@ -1,10 +1,10 @@
 # HoloScript API Reference
 
-**Version:** 3.4.0 | **License:** MIT | [GitHub](https://github.com/brianonbased-dev/HoloScript)
+**Version:** see repository package manifests | **License:** MIT | [GitHub](https://github.com/brianonbased-dev/HoloScript)
 
 ---
 
-HoloScript is an AI-native, declarative spatial computing language that compiles to 25+ platforms. This API reference covers the TypeScript runtime, trait system, security, AI validation, and tooling packages.
+HoloScript is an AI-native, declarative platform for interfaces, spatial scenes, services, agents, and device workflows. Compile targets and tool inventory change over time; verify them from `ExportTarget` and live MCP health instead of copying a count.
 
 ## Quick Navigation
 
@@ -235,9 +235,8 @@ const { results, report } = await runComparativeBenchmarks({
   targets: ['holoscript', 'unity', 'gltf'],
 });
 
-// Summary: HoloScript wins 5/5 benchmarks
-// - 2.3x faster than Unity
-// - 1.7x faster than glTF
+// Inspect the generated report before quoting benchmark results.
+// Do not reuse cached win counts or speedup claims in public copy.
 console.log(report);
 ```
 
@@ -255,7 +254,7 @@ Model Context Protocol server for AI agent integration (tool inventory is live; 
 // get_syntax_reference, get_examples
 // explain_code, analyze_code
 // compile_target, list_targets
-// ... and 20+ more
+// Discover the current list with tools/list or the /health endpoint.
 ```
 
 **Configuration:** Add to Claude/Cursor MCP config:
@@ -302,4 +301,4 @@ HoloScript compiles to registered platforms (see `ExportTarget` for canonical ke
 
 ---
 
-_API Reference generated with TypeDoc v0.26 · HoloScript v3.4.0_
+_API reference generated with TypeDoc. HoloScript package versions live in the repository manifests._

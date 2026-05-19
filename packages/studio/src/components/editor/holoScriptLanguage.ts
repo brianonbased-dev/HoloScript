@@ -61,7 +61,7 @@ export const TYPE_KEYWORDS = [
   'Scene',
 ];
 
-// 60+ traits covering all major HoloScript subsystems
+// Curated trait completions covering major HoloScript subsystems
 export const BUILTIN_TRAITS: { name: string; detail: string; docs: string }[] = [
   // Core rendering
   {

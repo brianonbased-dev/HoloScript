@@ -8,6 +8,7 @@
  * @module self-improve
  */
 
+import * as path from 'path';
 import type { CLIOptions } from '../args';
 import type { SelfImproveIO } from './CliSelfImproveIO';
 import { CliSelfImproveIO } from './CliSelfImproveIO';

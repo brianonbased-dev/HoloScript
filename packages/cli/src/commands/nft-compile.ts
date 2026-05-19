@@ -97,10 +97,10 @@ export async function nftCompileCommand(
       console.log(chalk.gray('\nSeverity Breakdown:'));
       console.log(`  ${chalk.red('Critical')}: ${output.gasAnalysis.criticalIssues.length}`);
       console.log(
-        `  ${chalk.yellow('High')}: ${output.gasAnalysis.criticalIssues.filter((i) => i.severity === 'high').length}`
+        `  ${chalk.yellow('High')}: ${output.gasAnalysis.criticalIssues.filter((i: any) => i.severity === 'high').length}`
       );
       console.log(
-        `  ${chalk.blue('Medium')}: ${output.gasAnalysis.criticalIssues.filter((i) => i.severity === 'medium').length}`
+        `  ${chalk.blue('Medium')}: ${output.gasAnalysis.criticalIssues.filter((i: any) => i.severity === 'medium').length}`
       );
 
       if (output.gasAnalysis.criticalIssues.length > 0) {

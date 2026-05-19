@@ -782,14 +782,23 @@ function ownerForSegment(segmentId) {
 function worldModelEventTypesForSegment(segmentId) {
   if (segmentId === '00_scene_loaded') return ['scene_loaded'];
   if (segmentId === '01_avatar_approaches') return ['avatar_approached'];
+  if (segmentId === '01_agents_aligned') return ['agents_aligned'];
   if (segmentId === '02_hand_reaches') return ['hand_reached'];
+  if (segmentId === '02_release_detach') return ['release_constraint_detached'];
   if (segmentId === '03_grab_constraint') return ['grab_constraint_attached'];
+  if (segmentId === '03_ballistic_arc_early') return ['ballistic_sample'];
   if (segmentId === '04_lift_pose') return ['lift_pose'];
+  if (segmentId === '04_ballistic_arc_mid') return ['ballistic_sample'];
   if (segmentId === '05_windup') return ['windup_pose'];
+  if (segmentId === '05_ballistic_arc_late') return ['ballistic_sample'];
   if (segmentId === '06_release') return ['release'];
+  if (segmentId === '06_catch_volume') return ['catch_volume_entered'];
   if (segmentId === '07_ballistic_arc') return ['ballistic_sample'];
+  if (segmentId === '07_catch_constraint') return ['catch_constraint_attached'];
   if (segmentId === '08_impact') return ['target_contact'];
+  if (segmentId === '08_ownership_transfer') return ['ownership_transferred'];
   if (segmentId === '09_aftermath') return ['aftermath'];
+  if (segmentId === '09_receipt_panel') return ['receipt_emitted'];
   return [];
 }
 
@@ -803,14 +812,23 @@ function worldModelCanDriveSegmentPixels(segmentId, worldModelReplay) {
   if (
     ![
       '01_avatar_approaches',
+      '01_agents_aligned',
       '02_hand_reaches',
+      '02_release_detach',
       '03_grab_constraint',
+      '03_ballistic_arc_early',
       '04_lift_pose',
+      '04_ballistic_arc_mid',
       '05_windup',
+      '05_ballistic_arc_late',
       '06_release',
+      '06_catch_volume',
       '07_ballistic_arc',
+      '07_catch_constraint',
       '08_impact',
+      '08_ownership_transfer',
       '09_aftermath',
+      '09_receipt_panel',
     ].includes(segmentId)
   ) {
     return false;
@@ -857,18 +875,23 @@ function eventPayloadVelocity(event, field) {
 function worldModelTrajectorySamples(worldModelReplay, { includeImpact = false } = {}) {
   const events = worldModelEvents(worldModelReplay);
   const samples = [];
-  const release = worldModelEvent(worldModelReplay, 'release');
+  const release =
+    worldModelEvent(worldModelReplay, 'release') ??
+    worldModelEvent(worldModelReplay, 'release_constraint_detached');
   const releasePosition = eventPayloadVector(release, 'releasePosition');
   if (releasePosition) samples.push(releasePosition);
 
   for (const event of events.filter((item) => item?.type === 'ballistic_sample')) {
-    const sample = eventPayloadVector(event, 'rockPosition');
+    const sample = eventPayloadVector(event, 'rockPosition') ?? eventPayloadVector(event, 'toolPosition');
     if (sample) samples.push(sample);
   }
 
   if (includeImpact) {
-    const impact = events.find((event) => event?.type === 'target_contact');
-    const impactPosition = eventPayloadVector(impact, 'rockPosition');
+    const impact = events.find((event) =>
+      ['target_contact', 'catch_volume_entered', 'catch_constraint_attached'].includes(event?.type)
+    );
+    const impactPosition =
+      eventPayloadVector(impact, 'rockPosition') ?? eventPayloadVector(impact, 'toolPosition');
     if (impactPosition) samples.push(impactPosition);
   }
 
@@ -881,6 +904,9 @@ function setVector(target, key, value) {
 
 function applyWorldModelPoseOverrides(pose, segment, worldModelReplay, worldModelEvents) {
   if (!worldModelCanDriveSegmentPixels(segment.id, worldModelReplay)) return pose;
+  if (worldModelReplay?.scene?.id === 'two-agent-handoff-catch-v1') {
+    return applyTwoAgentWorldModelPoseOverrides(pose, segment, worldModelReplay, worldModelEvents);
+  }
   const approach = worldModelEvent(worldModelReplay, 'avatar_approached');
   const reach = worldModelEvent(worldModelReplay, 'hand_reached');
   const lift = worldModelEvent(worldModelReplay, 'lift_pose');
@@ -1000,6 +1026,74 @@ function applyWorldModelPoseOverrides(pose, segment, worldModelReplay, worldMode
     next.physics.arcSamples = worldModelTrajectorySamples(worldModelReplay, { includeImpact: true });
     next.physics.provenancePanel = Boolean(worldModelEvents[0]?.payload?.provenancePanel);
   }
+
+  return next;
+}
+
+function applyTwoAgentWorldModelPoseOverrides(pose, segment, worldModelReplay, worldModelEvents) {
+  const release = worldModelEvent(worldModelReplay, 'release_constraint_detached');
+  const catchVolume = worldModelEvent(worldModelReplay, 'catch_volume_entered');
+  const firstEvent = worldModelEvents[0];
+  const samples = worldModelTrajectorySamples(worldModelReplay, { includeImpact: true });
+  const toolPosition =
+    eventPayloadVector(firstEvent, 'toolPosition') ??
+    eventPayloadVector(firstEvent, 'releasePosition') ??
+    (samples.length > 0 ? samples[samples.length - 1] : worldModelObjectCenter(worldModelReplay, 'shared-tool'));
+  const releasePosition = eventPayloadVector(release, 'releasePosition');
+  const releaseVelocity = eventPayloadVelocity(release, 'releaseVelocity');
+  const thrower = worldModelObjectCenter(worldModelReplay, 'thrower');
+  const catcher = worldModelObjectCenter(worldModelReplay, 'catcher');
+  const throwerHand = worldModelObjectCenter(worldModelReplay, 'thrower-hand');
+  const catcherHand = worldModelObjectCenter(worldModelReplay, 'catcher-hand');
+  const next = {
+    ...pose,
+    mode: WORLD_MODEL_PIXEL_REPLAY_MODE,
+    complete: true,
+    bodies: {
+      avatar: { ...pose.bodies.avatar },
+      rightHand: { ...pose.bodies.rightHand },
+      rock: { ...pose.bodies.rock },
+      target: { ...pose.bodies.target },
+    },
+    physics: {
+      ...pose.physics,
+      solver: 'world-model-two-agent-handoff-catch-v1',
+      arcSamples: samples,
+    },
+    notes: [
+      'Rendered still positions are driven by the two-agent world-model replay event payloads.',
+      'The shared tool is mapped onto the generic rock body slot until the receipt schema grows tool-specific fields.',
+      'This proves deterministic handoff semantics, not headset-grade interaction timing.',
+    ],
+  };
+
+  setVector(next.bodies.avatar, 'position', segment.id.includes('catch') ? catcher : thrower);
+  setVector(next.bodies.rightHand, 'position', segment.id.includes('catch') ? catcherHand : throwerHand);
+  setVector(next.bodies.rock, 'position', toolPosition ?? releasePosition);
+  setVector(next.bodies.target, 'position', catcher);
+  next.bodies.rock.attachedToHand = ['07_catch_constraint', '08_ownership_transfer', '09_receipt_panel'].includes(
+    segment.id
+  );
+  next.bodies.rock.released = [
+    '02_release_detach',
+    '03_ballistic_arc_early',
+    '04_ballistic_arc_mid',
+    '05_ballistic_arc_late',
+    '06_catch_volume',
+  ].includes(segment.id);
+  next.bodies.rightHand.contact = next.bodies.rock.attachedToHand
+    ? 'shared-tool'
+    : segment.id === '06_catch_volume'
+      ? 'catch-volume'
+      : null;
+  next.bodies.target.impacted = ['06_catch_volume', '07_catch_constraint', '08_ownership_transfer', '09_receipt_panel'].includes(
+    segment.id
+  );
+  next.physics.releaseVelocityMps = releaseVelocity;
+  next.physics.clearanceM = finiteMetric(catchVolume?.payload?.clearanceM);
+  next.physics.semanticOwner = firstEvent?.payload?.ownerId ?? firstEvent?.payload?.to ?? null;
+  next.physics.transferMode = firstEvent?.payload?.transferMode ?? null;
+  next.physics.provenancePanel = Boolean(firstEvent?.payload?.provenancePanel);
 
   return next;
 }
@@ -1293,6 +1387,11 @@ async function runEvidenceCommands({ options, manifestPath, manifest, outputDir 
       'world-model-humanoid-rock-throw',
       ['world-model', 'replay', '--scene', 'humanoid-rock-throw-v1', '--seed', '4242', '--json'],
     ]);
+  } else if (manifest.flagship === 'two-agent-handoff-catch') {
+    commandPlans.push([
+      'world-model-two-agent-handoff-catch',
+      ['world-model', 'replay', '--scene', 'two-agent-handoff-catch-v1', '--seed', '5151', '--json'],
+    ]);
   }
 
   const results = [];
@@ -1325,7 +1424,11 @@ async function runEvidenceCommands({ options, manifestPath, manifest, outputDir 
     fallbackSceneSnapshot
   );
   const worldModelReplay = readCommandStdoutJson(
-    results.find((command) => command.id === 'world-model-humanoid-rock-throw')
+    results.find((command) =>
+      ['world-model-humanoid-rock-throw', 'world-model-two-agent-handoff-catch'].includes(
+        command.id
+      )
+    )
   );
 
   return { results, screenshotPath, sceneSnapshot, worldModelReplay };

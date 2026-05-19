@@ -313,7 +313,7 @@ This bidirectionality is the formal closure of the grounding loop:
                     └──────┬─────────┬──────────┬─────────────────┘
                            │         │          │
                     ┌──────▼──┐ ┌────▼────┐ ┌───▼──────┐
-HoloScript ──parse──►  Unity  │ │ VRChat  │ │  URDF    │  ... 30+ targets
+HoloScript ──parse──►  Unity  │ │ VRChat  │ │  URDF    │  ... registered targets
 Declaration         │  C# .cs │ │  Udon   │ │  XML     │
                     └────┬────┘ └─────────┘ └──────────┘
                          │
@@ -536,7 +536,7 @@ HoloScript v1–v5 established the spatial computing use case. Version 6 recogni
 - **Data pipeline specification**: Traits describe schema and transformation, compile to ETL code
 - **Infrastructure as Code**: Traits describe topology, compile to deployment manifests
 
-The trait system is a **semantic vocabulary** with 2,000+ entries across 14 categories. Physics is one category. The vocabulary grows with each domain HoloScript absorbs.
+The trait system is a **semantic vocabulary** whose current inventory is verified from source and `list_traits`. Physics is one category. The vocabulary grows with each domain HoloScript absorbs.
 
 ---
 

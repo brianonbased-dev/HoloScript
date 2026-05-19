@@ -176,7 +176,7 @@ export const timeoutHandler: TraitHandler<TimeoutConfig> = {
     cancel_on_timeout: true,
   },
   onAttach(node: HSPlusNode, config: TimeoutConfig, context: TraitContext) {
-    const execute = <T>(fn: () => Promise<T>) => withTimeout(fn, config.duration);
+    const execute = <T>(fn: () => Promise<T>) => withTimeout(fn(), config.duration);
     node.__timeoutState = { execute };
     context.emit?.('timeout_attached', { nodeId: node.id, duration: config.duration });
   },

@@ -101,7 +101,7 @@ export class ImportPipeline {
           // Assimp scene path: data is an AssimpScene object
           result = this.modelImporter.importFromAssimp(job.data as AssimpScene);
         } else {
-          result = this.modelImporter.import(job.filename, job.data);
+          result = this.modelImporter.import(job.filename, job.data as string | ArrayBuffer);
         }
         if (result.errors.length > 0) {
           throw new Error(result.errors.join('; '));

@@ -68,11 +68,11 @@ function createCompilationLoader() {
 
             switch (request.target) {
               case CompilerTarget.UNITY:
-                compiler = new core.UnityCompiler(request.options || {});
+                compiler = new core.UnityCompiler();
                 output = compiler.compile(parseResult.ast);
                 break;
               case CompilerTarget.BABYLON:
-                compiler = new core.BabylonCompiler(request.options || {});
+                compiler = new core.BabylonCompiler();
                 output = compiler.compile(parseResult.ast);
                 break;
               case CompilerTarget.R3F:
@@ -80,46 +80,46 @@ function createCompilationLoader() {
                 output = compiler.compile(parseResult.ast);
                 break;
               case CompilerTarget.UNREAL:
-                compiler = new core.UnrealCompiler(request.options || {});
+                compiler = new core.UnrealCompiler();
                 output = compiler.compile(parseResult.ast);
                 break;
               case CompilerTarget.GODOT:
-                compiler = new core.GodotCompiler(request.options || {});
+                compiler = new core.GodotCompiler();
                 output = compiler.compile(parseResult.ast);
                 break;
               case CompilerTarget.VRCHAT:
-                compiler = new core.VRChatCompiler(request.options || {});
+                compiler = new core.VRChatCompiler();
                 output = compiler.compile(parseResult.ast);
                 break;
               case CompilerTarget.WEBGPU:
-                compiler = new core.WebGPUCompiler(request.options || {});
+                compiler = new core.WebGPUCompiler();
                 output = compiler.compile(parseResult.ast);
                 break;
               case CompilerTarget.VISIONOS:
-                compiler = new core.VisionOSCompiler(request.options || {});
+                compiler = new core.VisionOSCompiler();
                 output = compiler.compile(parseResult.ast);
                 break;
               case CompilerTarget.ANDROID:
-                compiler = new core.AndroidXRCompiler(request.options || {});
+                compiler = new core.AndroidXRCompiler();
                 output = compiler.compile(parseResult.ast);
                 break;
               case CompilerTarget.OPENXR:
-                compiler = new core.OpenXRCompiler(request.options || {});
+                compiler = new core.OpenXRCompiler();
                 output = compiler.compile(parseResult.ast);
                 break;
               case CompilerTarget.IOS:
                 // iOS uses ARKit - check if ARCompiler can handle it
-                compiler = new core.ARCompiler(request.options || {});
+                compiler = new core.ARCompiler();
                 output = compiler.compile(parseResult.ast);
                 break;
-              case CompilerTarget.WASM:
-                // WebAssembly compilation
-                const wasmResult = await core.compileToWasm?.(
-                  parseResult.ast,
-                  request.options || {}
-                );
-                output = wasmResult?.output || 'WASM compilation not fully implemented';
+              case CompilerTarget.WASM: {
+                // WebAssembly compilation uses WASMCompiler
+                const wasmCompiler = new core.WASMCompiler();
+                output = wasmCompiler.compile
+                  ? wasmCompiler.compile(parseResult.ast, request.options || {})
+                  : 'WASM compilation not fully implemented';
                 break;
+              }
               default:
                 return {
                   success: false,

@@ -1,6 +1,6 @@
 {
   "generatedAt": "2026-05-15T22:28:12.811Z",
-  "holoScriptBuild": "v7.0.0",
+  "holoScriptBuild": "v6.1.0",
   "benchmarks": [
     {
       "frameCount": 500,

@@ -130,7 +130,7 @@ Both Path 1 (compilation) and Path 2 (runtime execution) are fully operational w
 **By Component**:
 
 - Core Parser: ~10,000 lines
-- Compilers: ~50,000 lines (25+ targets)
+- Compilers: verify via `find packages/core/src -name "*Compiler.ts" -not -name "CompilerBase*" -not -name "*.test.*"`
 - Runtimes: ~10,000 lines (demos + registry)
 - Rendering: ~1,000 lines (renderer + Three.js)
 - Tests: ~30,000 lines
@@ -144,7 +144,7 @@ Both Path 1 (compilation) and Path 2 (runtime execution) are fully operational w
 
 ### Test Coverage
 
-- Total Tests: 800+ tests
+- Total Tests: verify from `pnpm test` or current CI output
 - Demolition Tests: [see NUMBERS.md] 
 - Coverage: 80%+ (Codecov enforced)
 - Passing: ✅ All tests passing
@@ -173,8 +173,8 @@ Both Path 1 (compilation) and Path 2 (runtime execution) are fully operational w
 ✅ **Validate** types and traits
 ✅ **Execute** runtime platform (physics simulation)
 ✅ **Render** real-time 3D with PBR materials
-✅ **Export** code to 25+ targets (Unity, Unreal, WebXR, etc.)
-✅ **Test** 800+ automated tests
+✅ **Export** code to registered targets (Unity, Unreal, WebXR, etc.)
+✅ **Test** automated tests; verify the current count before citing it
 ✅ **Benchmark** performance vs Unity/glTF
 ✅ **Secure** sandboxing and validation
 ✅ **Extend** via trait system and runtime registry

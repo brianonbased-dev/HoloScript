@@ -17,6 +17,7 @@ export enum CompilerTarget {
   VISIONOS = 'VISIONOS',
   GODOT = 'GODOT',
   OPENXR = 'OPENXR',
+  WEBGPU = 'WEBGPU',
 }
 
 registerEnumType(CompilerTarget, {

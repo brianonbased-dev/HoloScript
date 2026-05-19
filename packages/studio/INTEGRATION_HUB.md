@@ -38,8 +38,8 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
 ┌─────────────────────────────────────────────────────────────┐
 │ Connector Packages (@holoscript/connector-*)                │
 │ ┌─────────────┐ ┌─────────────┐ ┌──────────────┐ ┌────────┐│
-│ │ core (17T)  │ │ railway(19T)│ │ github (30T) │ │appstore││
-│ │ - ServiceCon│ │ - 6 tools   │ │ - 12 tools   │ │- Dual  ││
+│ │ core       │ │ railway    │ │ github      │ │appstore││
+│ │ - ServiceCon│ │ - tools    │ │ - tools     │ │- Dual  ││
 │ │ - McpRegistr│ │ - Rate limit│ │ - Octokit    │ │  Apple ││
 │ │ - Interfaces│ │ - Backoff   │ │ - OAuth ready│ │  Google││
 │ └─────────────┘ └─────────────┘ └──────────────┘ └────────┘│
@@ -68,7 +68,7 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
 
 - **Status:** Complete, 19 tests pass
 - **Location:** `packages/connector-railway/`
-- **Tools:** 6 MCP tools
+- **Tools:** MCP tools listed in the connector source and current registry
   - `railway_project_create`, `railway_service_create`, `railway_deploy`
   - `railway_variable_set`, `railway_domain_add`, `railway_deployment_status`
 - **Features:**
@@ -80,7 +80,7 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
 
 - **Status:** Complete, 30 tests pass
 - **Location:** `packages/connector-github/`
-- **Tools:** 12 MCP tools
+- **Tools:** MCP tools listed in the connector source and current registry
   - `github_repo_get`, `github_repo_list`, `github_repo_create`
   - `github_branches_list`
   - `github_pr_create`, `github_pr_list`, `github_pr_comment`
@@ -96,7 +96,7 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
 
 - **Status:** Complete, 60 tests (38 pass, 22 require real credentials)
 - **Location:** `packages/connector-appstore/`
-- **Tools:** 16 MCP tools (7 Apple, 7 Google, 2 cross-platform)
+- **Tools:** Apple, Google, and cross-platform MCP tools listed in the connector source and current registry
   - Apple: `apple_app_get`, `apple_build_upload`, `apple_builds_list`, `apple_testflight_submit`, `apple_beta_review_status`, `apple_metadata_update`
   - Google: `google_app_get`, `google_build_upload`, `google_track_get`, `google_tracks_list`, `google_release_promote`, `google_rollout_update`, `google_listing_update`
   - Cross-platform: `appstore_health`, `appstore_unity_publish`
@@ -121,7 +121,7 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
 
 - **Status:** Complete, 89 tests (86 pass, 3 minor API compatibility issues)
 - **Location:** `packages/connector-upstash/`
-- **Tools:** 25 MCP tools (7 Redis, 6 Vector, 9 QStash, 3 Convenience)
+- **Tools:** Redis, Vector, QStash, and convenience MCP tools listed in the connector source and current registry
   - **Redis:** `upstash_redis_cache_get/set/delete`, `upstash_redis_session_get/set`, `upstash_redis_prefs_get/set`
   - **Vector:** `upstash_vector_upsert/search/search_text/fetch/delete/info`
   - **QStash:** `upstash_qstash_schedule/publish/list/get/delete/pause/resume`, `upstash_qstash_dlq_list/delete`

@@ -205,7 +205,7 @@ export function HoloScriptLandingComponent() {
           <div className="relative z-10 max-w-7xl mx-auto px-6 text-center">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-mono mb-8">
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-              Semantic app platform for AI-assisted builders
+              Plain files for apps, agents, scenes, and services
             </div>
             <div className="flex items-center justify-center gap-6 mb-8 mt-4">
               <img src="/logo.svg" alt="HoloScript" className="h-16 w-16 drop-shadow-[0_0_15px_rgba(0,255,255,0.5)]" />
@@ -214,11 +214,11 @@ export function HoloScriptLandingComponent() {
             </div>
             
             <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight mb-6 pb-4 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500">
-              Describe it once.<br/>Run it where it needs to.
+              Build from one description.
             </h1>
             
             <p className="max-w-3xl mx-auto text-lg lg:text-xl text-gray-400 mb-10 leading-relaxed">
-              HoloScript turns plain descriptions into running interfaces, spatial scenes, agent workflows, and target-specific code. Start in Studio or your terminal; keep control through files, runtime execution, MCP tools, and compilers.
+              HoloScript turns plain descriptions into running interfaces, scenes, services, agent workflows, and code for the platforms you need. Start in Studio or your terminal, keep the source files, and translate them only when a platform needs its own code.
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -226,7 +226,7 @@ export function HoloScriptLandingComponent() {
                 href="https://studio.holoscript.net"
                 className="w-full sm:w-auto px-8 py-3.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold text-lg hover:scale-105 transition-transform shadow-[0_0_30px_rgba(0,255,255,0.3)] text-center"
               >
-                Open HoloScript Studio
+                Open Studio
               </a>
               <button
                 type="button"
@@ -236,7 +236,7 @@ export function HoloScriptLandingComponent() {
                 Try the wizard
               </button>
               <a href="/guides/quick-start" className="w-full sm:w-auto px-8 py-3.5 rounded-lg bg-white/5 border border-white/10 text-white font-bold text-lg hover:bg-white/10 transition-colors text-center">
-                Docs: Quick start
+                Read quick start
               </a>
             </div>
           </div>
@@ -245,9 +245,9 @@ export function HoloScriptLandingComponent() {
         {/* First-visit CTAs: CLI + MCP + plugin store */}
         <section className="relative z-10 w-full max-w-4xl mx-auto px-6 pb-12 -mt-2">
           <div className="rounded-2xl border border-cyan-500/25 bg-[#0a0a14]/95 backdrop-blur-md p-6 md:p-8 shadow-[0_0_50px_rgba(0,255,255,0.06)]">
-            <h2 className="text-xl md:text-2xl font-bold text-center text-white mb-2">Start in your terminal or IDE</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-center text-white mb-2">Start with the CLI or your AI agent</h2>
             <p className="text-center text-gray-400 text-sm mb-8 max-w-2xl mx-auto">
-              Scaffold a project with the CLI, paste the MCP block into Claude Code or Cursor for live tools, then browse plugins — or grab a free API key in Studio when you need authenticated MCP calls.
+              Scaffold a project, or paste this agent tool config into Claude Code, Cursor, or another agent client to give it HoloScript tools. Studio can create an API key when a tool needs auth.
             </p>
             <div className="space-y-6 text-left">
               <div>
@@ -267,7 +267,7 @@ export function HoloScriptLandingComponent() {
               </div>
               <div>
                 <div className="flex items-center justify-between gap-3 mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-purple-400/90">MCP config</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-purple-400/90">Agent tool config</span>
                   <button
                     type="button"
                     onClick={() => copyText('mcp', MCP_CONFIG_BLOCK)}
@@ -280,7 +280,7 @@ export function HoloScriptLandingComponent() {
                   <code>{MCP_CONFIG_BLOCK}</code>
                 </pre>
                 <p className="mt-2 text-xs text-gray-500">
-                  For tools that need auth, set <code className="text-cyan-500/90">HOLOSCRIPT_API_KEY</code> next to this block (get a key from Studio → Account).
+                  For authenticated tools, set <code className="text-cyan-500/90">HOLOSCRIPT_API_KEY</code> next to this block. Create one in Studio &gt; Account.
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-3 pt-2">

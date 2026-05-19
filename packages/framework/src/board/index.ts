@@ -151,6 +151,7 @@ export {
   voteSuggestion,
   promoteSuggestion,
   dismissSuggestion,
+  appendFollowUpCommit,
 } from './board-ops';
 
 export {
@@ -311,6 +312,58 @@ export {
 } from './holoshell-browser-receipts';
 
 export {
+  // HoloShell Account Export Receipts (task_1779135531091_h53w)
+  ACCOUNT_EXPORT_PROVIDERS,
+  ACCOUNT_EXPORT_DELIVERY_METHODS,
+  ACCOUNT_EXPORT_ARCHIVE_FORMATS,
+  ACCOUNT_EXPORT_STATUSES,
+  PROVIDER_EXPORT_WAIT_STATES,
+  ACCOUNT_EXPORT_PERMISSION_ENVELOPES,
+  ACCOUNT_EXPORT_WARNING_KINDS,
+  type AccountExportProvider,
+  type AccountExportDeliveryMethod,
+  type AccountExportArchiveFormat,
+  type AccountExportStatus,
+  type ProviderExportWaitState,
+  type AccountExportPermissionEnvelope,
+  type AccountExportWarningKind,
+  type AccountExportWarning,
+  type ProviderExportProductSelection,
+  type ProviderExportPlanReceipt,
+  type ProviderExportRequestReceipt,
+  type ProviderExportReadyReceipt,
+  type AccountExportArchivePart,
+  type LocalArchiveDownloadReceipt,
+  type BrowserAccountBoundaryReceipt,
+  type AccountExportApprovalReceipt,
+  type ProviderExportWaitReceipt,
+  type LocalDownloadQuarantineReceipt,
+  type ProviderExportRollbackLimitReceipt,
+  type AccountExportArchiveReceipt,
+  type AccountExportReplayReceipt,
+  type HoloShellAccountExportReceiptPack,
+  isSupportedAccountExportProvider,
+  isSupportedAccountExportDeliveryMethod,
+  isSupportedAccountExportArchiveFormat,
+  isSupportedAccountExportStatus,
+  isSupportedProviderExportWaitState,
+  validateBrowserAccountBoundaryReceipt,
+  validateAccountExportApprovalReceipt,
+  validateProviderExportWaitReceipt,
+  validateLocalDownloadQuarantineReceipt,
+  validateProviderExportRollbackLimitReceipt,
+  validateProviderExportPlanReceipt,
+  validateProviderExportRequestReceipt,
+  validateProviderExportReadyReceipt,
+  validateLocalArchiveDownloadReceipt,
+  validateAccountExportArchiveReceipt,
+  validateAccountExportReplayReceipt,
+  validateHoloShellAccountExportReceiptPack,
+  cloneProviderExportPlanReceipt,
+  cloneHoloShellAccountExportReceiptPack,
+} from './holoshell-account-export-receipts';
+
+export {
   // HoloShell CLI Absorption Receipts (task_1778625587950_uiv5)
   CLI_ACTION_KINDS,
   type CliActionKind,
@@ -375,6 +428,53 @@ export {
   validateHoloShellWorkFileCustodyReceipt,
   cloneHoloShellWorkFileCustodyReceipt,
 } from './holoshell-workfile-custody-receipt';
+
+export {
+  // HoloShell Asset Shard Receipts (task_1779092479438_6pk4)
+  ASSET_SHARD_KINDS,
+  ASSET_SHARD_STATUSES,
+  ASSET_SHARD_PERMISSION_ENVELOPES,
+  ASSET_INTAKE_STATUSES,
+  ASSET_INTAKE_KINDS,
+  ASSET_CONVERSION_KINDS,
+  ASSET_CONVERSION_STATUSES,
+  PREVIEW_SOURCE_STATUSES,
+  type AssetShardKind,
+  type AssetShardStatus,
+  type AssetShardPermissionEnvelope,
+  type AssetShardFileProxy,
+  type AssetShardWorkflowReceipt,
+  type AssetShardImportApprovalReceipt,
+  type AssetShardImportReceipt,
+  type PlayableShardWitnessReceipt,
+  type AssetIntakeStatus,
+  type AssetIntakeKind,
+  type AssetIntakeReceipt,
+  type AssetConversionKind,
+  type AssetConversionStatus,
+  type AssetConversionReceipt,
+  type PreviewSourceStatus,
+  type PreviewShardSourceReceipt,
+  type AssetShardRollbackContract,
+  isSupportedAssetShardKind,
+  isSupportedAssetShardStatus,
+  validateAssetShardWorkflowReceipt,
+  validateAssetShardImportApprovalReceipt,
+  validateAssetShardImportReceipt,
+  validatePlayableShardWitnessReceipt,
+  validateAssetShardReceiptBundle,
+  validateAssetIntakeReceipt,
+  validateAssetConversionReceipt,
+  validatePreviewShardSourceReceipt,
+  validateAssetShardRollbackContract,
+  validateAssetShardFullReceiptChain,
+  cloneAssetIntakeReceipt,
+  cloneAssetConversionReceipt,
+  clonePreviewShardSourceReceipt,
+  cloneAssetShardRollbackContract,
+  cloneAssetShardWorkflowReceipt,
+} from './holoshell-asset-shard-receipts';
+
 
 export {
   // Device Lab Warning Tokens (task_1778739828973_47f5)
@@ -596,3 +696,4 @@ export {
   nextBoardWebhookRetry,
   recordBoardWebhookDeliveryFailure,
 } from './webhooks';
+

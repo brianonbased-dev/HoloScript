@@ -1,0 +1,45 @@
+Cover Letter
+IEEE Transactions on Visualization and Computer Graphics
+
+Dear Editor-in-Chief,
+
+We are resubmitting the manuscript "Trust by Construction: A Simulation Contract
+for Reproducible Computational Experiments" as a new submission to IEEE TVCG.
+This manuscript was previously submitted (reference TVCG-2026-04-0403) and
+returned before external review with three readiness concerns raised by the
+Associate Editor. We have addressed each concern in full.
+
+Concern 1 — Individual solution elements need more explanation and justification.
+Each of the six simulation contract guarantees now includes an explicit "Why this
+shape" discussion that (a) states the design rationale, (b) explains why traditional
+export pipelines fail to provide the same property, and (c) explains why in-situ
+co-processing approaches also fall short. These additions appear in Section 3.2
+(Guarantees 1-6) and are new relative to the prior submission.
+
+Concern 2 — Manuscript errors made some parts unreadable.
+The prior submission contained a bibliography migration regression that produced
+approximately 30 undefined-citation warnings throughout the compiled PDF, causing
+reference markers to appear as "[?]" in the text. This has been corrected: the
+bibliography is now an inline thebibliography environment with all 30 cited keys
+explicitly defined. The manuscript compiles to zero warnings.
+
+Concern 3 — Several references were incorrect or incorrectly referred to in the text.
+All citations have been audited. The manuscript cites 30 unique keys; all 30 have
+correct, complete bibitem entries. No orphan entries exist. The bibliography entries
+for ASME V&V standards, NAFEMS, Roache GCI, and Zienkiewicz-Zhu SPR have been
+verified against their primary sources.
+
+The scientific contribution — embodied simulation, the six-guarantee simulation
+contract, and the provenance semiring formalization — is unchanged. The evaluation
+results, including TET10 exact solution, TET4 convergence at p = 1.44, and contract
+overhead indistinguishable from runtime scheduling variance, are unchanged and
+honestly reported, including the explicit acknowledgment of the open NAFEMS LE1
+curved-boundary gap.
+
+We confirm this manuscript is submitted solely to IEEE TVCG and is not under
+review elsewhere.
+
+Sincerely,
+Joseph Krzywoszyja
+Independent Researcher
+brianonbased@gmail.com

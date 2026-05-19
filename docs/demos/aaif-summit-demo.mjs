@@ -51,7 +51,7 @@ const MOCK_TOOLS = [
   },
   {
     name: 'compile_holoscript',
-    description: 'Compile HoloScript to any of 28+ targets',
+    description: 'Compile HoloScript to any registered target',
     inputSchema: {
       type: 'object',
       properties: { code: { type: 'string' }, target: { type: 'string' } },
@@ -207,7 +207,7 @@ function buildAgentCard() {
     id: 'holoscript-agent',
     name: 'HoloScript Agent',
     description:
-      'HoloScript language tooling agent -- parse, validate, compile, render, and generate spatial computing code across 28+ export targets.',
+      'HoloScript language tooling agent -- parse, validate, compile, render, and generate spatial computing code across registered export targets.',
     endpoint: `${BASE_URL}/a2a`,
     version: '1.0.0',
     documentationUrl: 'https://github.com/buildwithholoscript/HoloScript',

@@ -41,7 +41,7 @@ This decision record evaluates four futures for Rust in the HoloScript/HoloLand 
 
 **Evidence against:**
 - The retired stack mixed concerns (agent runtime, Redis/Postgres/Neo4j/Pinecone clients, networking, event store, replay, Z3 solver) without a current cargo-checkable product owner.
-- `packages/core` already hosts a TypeScript spatial engine that compiles to 28+ targets via the multi-target compiler pipeline.
+- `packages/core` already hosts a TypeScript spatial engine that compiles to registered targets via the multi-target compiler pipeline.
 - Headless agent runtime is `@holoscript/holoscript-agent` (TypeScript/Node). There is no performance bottleneck justifying a Rust rewrite.
 - The old crate had no deterministic test suite that passed in CI; reviving it would require weeks of archaeology before any product could use it.
 

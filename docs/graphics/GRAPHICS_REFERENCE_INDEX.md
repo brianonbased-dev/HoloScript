@@ -505,7 +505,7 @@ rendering.setupLODLevels('automatic');
 
 - Repository: https://github.com/brianonbased-dev/holoscript
 - Issues: Report bugs and feature requests
-- Releases: v2.0.0+ includes graphics traits
+- Releases: verify graphics trait availability from current manifests and changelogs
 
 ---
 
@@ -564,5 +564,5 @@ rendering.setupLODLevels('automatic');
 ---
 
 **Last Updated:** 2025  
-**Version:** 2.0.0  
+**Version:** verify from the current package manifest
 **Status:** Production Ready ✅

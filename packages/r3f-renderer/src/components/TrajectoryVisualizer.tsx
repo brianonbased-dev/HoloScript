@@ -19,7 +19,7 @@
  * the trajectory prop. Keeps this component testable without a trait runtime.
  */
 
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, type ReactElement } from 'react';
 import * as THREE from 'three';
 
 export interface TrajectoryVisualizerProps {
@@ -114,7 +114,7 @@ export function TrajectoryVisualizer({
   floorOffset = 0.02,
   lineWidth = 2,
   visible = true,
-}: TrajectoryVisualizerProps): JSX.Element | null {
+}: TrajectoryVisualizerProps): ReactElement | null {
   const geometryRef = useRef<THREE.BufferGeometry | null>(null);
 
   const { positions, colors } = useMemo(() => {

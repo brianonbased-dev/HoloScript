@@ -175,8 +175,12 @@ function parseOBJExtended(text: string): ParsedOBJGroup[] {
       startGroup(name);
     } else if (cmd === 'usemtl' && parts.length >= 2) {
       currentMaterial = parts[1];
-      if (currentGroup) {
-        currentGroup.materialName = currentMaterial;
+      // Explicit cast needed: closures (startGroup/flushGroup) mutate currentGroup,
+      // causing TypeScript to infer it as the initial literal type `null` and
+      // then narrow `if (grp)` to `never`. Cast restores the declared union.
+      const grp = currentGroup as ParsedOBJGroup | null;
+      if (grp !== null) {
+        grp.materialName = currentMaterial;
       }
     } else if (cmd === 'f' && parts.length >= 4) {
       if (!currentGroup) {
@@ -398,9 +402,22 @@ export class MatterpakCompiler extends CompilerBase {
   }
 
   /**
+   * Satisfy CompilerBase abstract method — MatterpakCompiler is a format-ingest
+   * compiler (bundle → HoloComposition) rather than a target compiler
+   * (HoloComposition → output). Use compileBundle() for ingestion.
+   */
+  compile(..._args: unknown[]): string {
+    throw new Error(
+      'MatterpakCompiler.compile() is not supported. ' +
+      'Use compileBundle(bundle: MatterpakBundle) to ingest a Matterpak bundle ' +
+      'into a HoloComposition AST.'
+    );
+  }
+
+  /**
    * Compile a Matterpak bundle into a HoloComposition AST.
    */
-  compile(bundle: MatterpakBundle): MatterpakCompileResult {
+  compileBundle(bundle: MatterpakBundle): MatterpakCompileResult {
     const warnings: string[] = [];
     const errors: string[] = [];
     const stats = {
@@ -470,21 +487,25 @@ export class MatterpakCompiler extends CompilerBase {
         const matName = g.materialName;
         if (matName && mtl.materials.has(matName)) {
           const mat = mtl.materials.get(matName)!;
+          const matConfig: Record<string, HoloValue> = {
+            baseColor: mat.baseColor as HoloValue[],
+            metallic: mat.metallic,
+            roughness: mat.roughness,
+          };
+          if (mat.textureMap !== undefined) matConfig.textureMap = mat.textureMap;
+          if (mat.normalMap !== undefined) matConfig.normalMap = mat.normalMap;
           traits.push({
+            type: 'ObjectTrait' as const,
             name: 'material',
-            params: {
-              baseColor: mat.baseColor,
-              metallic: mat.metallic,
-              roughness: mat.roughness,
-              textureMap: mat.textureMap,
-            },
+            config: matConfig,
           });
         }
 
         // Geometry trait with inline vertex buffer
         traits.push({
+          type: 'ObjectTrait' as const,
           name: 'geometry',
-          params: {
+          config: {
             primitive: 'mesh',
             vertices: Array.from(g.vertices),
             indices: Array.from(g.triangles),
@@ -505,6 +526,7 @@ export class MatterpakCompiler extends CompilerBase {
           type: 'ObjectDecl',
           id: `obj_${g.name}`,
           name: g.name,
+          properties: [],
           position: {
             x: (gx - cx) * scale,
             y: (gy - cy) * scale,
@@ -520,7 +542,8 @@ export class MatterpakCompiler extends CompilerBase {
           type: 'SpatialGroup',
           id: `room_${g.name}`,
           name: g.name,
-          objects: [obj.id!],
+          properties: [],
+          objects: [obj],
         });
       }
       stats.rooms = spatialGroups.length;
@@ -528,8 +551,9 @@ export class MatterpakCompiler extends CompilerBase {
       // Single spatial group, multiple objects
       for (const g of objGroups) {
         const traits: HoloObjectTrait[] = [{
+          type: 'ObjectTrait' as const,
           name: 'geometry',
-          params: {
+          config: {
             primitive: 'mesh',
             vertices: Array.from(g.vertices),
             indices: Array.from(g.triangles),
@@ -538,20 +562,24 @@ export class MatterpakCompiler extends CompilerBase {
         const matName = g.materialName;
         if (matName && mtl.materials.has(matName)) {
           const mat = mtl.materials.get(matName)!;
+          const matConfig: Record<string, HoloValue> = {
+            baseColor: mat.baseColor as HoloValue[],
+            metallic: mat.metallic,
+            roughness: mat.roughness,
+          };
+          if (mat.textureMap !== undefined) matConfig.textureMap = mat.textureMap;
+          if (mat.normalMap !== undefined) matConfig.normalMap = mat.normalMap;
           traits.push({
+            type: 'ObjectTrait' as const,
             name: 'material',
-            params: {
-              baseColor: mat.baseColor,
-              metallic: mat.metallic,
-              roughness: mat.roughness,
-              textureMap: mat.textureMap,
-            },
+            config: matConfig,
           });
         }
         objects.push({
           type: 'ObjectDecl',
           id: `obj_${g.name}`,
           name: g.name,
+          properties: [],
           position: { x: 0, y: 0, z: 0 },
           scale: { x: scale, y: scale, z: scale },
           rotation: { x: 0, y: rotY, z: 0 },
@@ -562,7 +590,8 @@ export class MatterpakCompiler extends CompilerBase {
         type: 'SpatialGroup',
         id: 'room_all',
         name: 'Full Property',
-        objects: objects.map((o) => o.id!),
+        properties: [],
+        objects: [...objects],
       });
       stats.rooms = 1;
     }
@@ -605,15 +634,17 @@ export class MatterpakCompiler extends CompilerBase {
           type: 'ObjectDecl',
           id: `pointcloud_${systemIndex}`,
           name: `Point Cloud ${systemIndex}`,
+          properties: [],
           position: { x: 0, y: 0, z: 0 },
           scale: { x: 1, y: 1, z: 1 },
           rotation: { x: 0, y: 0, z: 0 },
           traits: [{
+            type: 'ObjectTrait' as const,
             name: 'particleSystem',
-            params: {
+            config: {
               count: particles.length / 3,
               positions: particles,
-              colors: particleColors.length > 0 ? particleColors : undefined,
+              ...(particleColors.length > 0 ? { colors: particleColors } : {}),
               size: 0.02 * scale,
               billboard: true,
             },
@@ -626,6 +657,8 @@ export class MatterpakCompiler extends CompilerBase {
     // Default camera
     const camera: HoloCamera = {
       type: 'Camera',
+      cameraType: 'perspective',
+      properties: [],
       position: { x: 0, y: 1.6 * scale, z: 3 * scale },
       target: { x: 0, y: 0.5 * scale, z: 0 },
       fov: 70,
@@ -637,25 +670,36 @@ export class MatterpakCompiler extends CompilerBase {
     lights.push({
       type: 'Light',
       id: 'ambient_main',
-      kind: 'ambient',
-      color: '#ffffff',
-      intensity: 0.6,
+      name: 'ambient_main',
+      lightType: 'ambient',
+      properties: [
+        { type: 'LightProperty', key: 'color', value: '#ffffff' },
+        { type: 'LightProperty', key: 'intensity', value: 0.6 },
+      ],
     });
     lights.push({
       type: 'Light',
       id: 'directional_main',
-      kind: 'directional',
-      color: '#ffffff',
-      intensity: 0.8,
-      position: { x: 5 * scale, y: 10 * scale, z: 5 * scale },
+      name: 'directional_main',
+      lightType: 'directional',
+      properties: [
+        { type: 'LightProperty', key: 'color', value: '#ffffff' },
+        { type: 'LightProperty', key: 'intensity', value: 0.8 },
+        { type: 'LightProperty', key: 'position', value: [5 * scale, 10 * scale, 5 * scale] },
+      ],
     });
 
     const composition: HoloComposition = {
       type: 'Composition',
       name: 'Matterpak Import',
       environment: {
-        background: '#202020',
-        fog: { color: '#202020', near: 10 * scale, far: 50 * scale },
+        type: 'Environment',
+        properties: [
+          { type: 'EnvironmentProperty', key: 'background', value: '#202020' },
+          { type: 'EnvironmentProperty', key: 'fogColor', value: '#202020' },
+          { type: 'EnvironmentProperty', key: 'fogNear', value: 10 * scale },
+          { type: 'EnvironmentProperty', key: 'fogFar', value: 50 * scale },
+        ],
       },
       templates: [],
       objects,
@@ -663,8 +707,11 @@ export class MatterpakCompiler extends CompilerBase {
       lights,
       camera,
       effects: {
-        shadows: true,
-        ambientOcclusion: true,
+        type: 'Effects',
+        effects: [
+          { type: 'Effect', effectType: 'shadows', properties: { enabled: true } },
+          { type: 'Effect', effectType: 'ambientOcclusion', properties: { enabled: true } },
+        ],
       },
       imports: [],
       timelines: [],
@@ -674,16 +721,21 @@ export class MatterpakCompiler extends CompilerBase {
         type: 'World',
         id: 'property_world',
         name: 'Imported Property',
-        gravity: { x: 0, y: -9.81, z: 0 },
-        bounds: {
-          min: { x: (minX - cx) * scale, y: (minY - cy) * scale, z: (minZ - cz) * scale },
-          max: { x: (maxX - cx) * scale, y: (maxY - cy) * scale, z: (maxZ - cz) * scale },
-        },
+        properties: [
+          { type: 'WorldProperty', key: 'gravityX', value: 0 },
+          { type: 'WorldProperty', key: 'gravityY', value: -9.81 },
+          { type: 'WorldProperty', key: 'gravityZ', value: 0 },
+          { type: 'WorldProperty', key: 'boundsMinX', value: (minX - cx) * scale },
+          { type: 'WorldProperty', key: 'boundsMinY', value: (minY - cy) * scale },
+          { type: 'WorldProperty', key: 'boundsMinZ', value: (minZ - cz) * scale },
+          { type: 'WorldProperty', key: 'boundsMaxX', value: (maxX - cx) * scale },
+          { type: 'WorldProperty', key: 'boundsMaxY', value: (maxY - cy) * scale },
+          { type: 'WorldProperty', key: 'boundsMaxZ', value: (maxZ - cz) * scale },
+        ],
       }],
       ui: {
         type: 'UI',
-        panels: [],
-        overlays: [],
+        elements: [],
       },
       transitions: [],
       conditionals: [],

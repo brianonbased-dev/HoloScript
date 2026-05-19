@@ -716,14 +716,14 @@ export async function signDual(
   let classicalSignerAddress = '';
   if (needsClassical && signers.classical) {
     classicalSignerAddress = await signers.classical.getAddress();
-    classicalSignature = await signers.classical.sign(payloadHash);
+    classicalSignature = (await signers.classical.sign(payloadHash)) as Uint8Array<ArrayBuffer>;
   }
 
   let pqcSignature = new Uint8Array(0);
   let pqcPublicKey = new Uint8Array(0);
   if (needsPqc && signers.pqc) {
-    pqcPublicKey = await signers.pqc.getPublicKey();
-    pqcSignature = await signers.pqc.sign(payloadHash);
+    pqcPublicKey = (await signers.pqc.getPublicKey()) as Uint8Array<ArrayBuffer>;
+    pqcSignature = (await signers.pqc.sign(payloadHash)) as Uint8Array<ArrayBuffer>;
   }
 
   return {

@@ -168,6 +168,96 @@ describe('ThingDescriptionGenerator', () => {
       expect(result!.events!.motion_detected.forms![0].subprotocol).toBe('sse');
     });
 
+    it('should preserve replay overlay metadata as WoT affordances', () => {
+      const node: HSPlusNode = {
+        type: 'object',
+        name: 'ReleaseEventTile',
+        properties: [
+          { type: 'ObjectProperty', key: 'label', value: 'release_constraint_detached' },
+          {
+            type: 'ObjectProperty',
+            key: 'properties',
+            value: {
+              source: 'world-model-two-agent.log',
+              action: 'release',
+              expected: 'tool owner becomes null',
+            },
+          },
+        ] as unknown as Record<string, unknown>,
+        directives: [
+          {
+            type: 'trait',
+            name: 'wot_thing',
+            args: { title: 'Release replay event', security: 'nosec' },
+          } as HSPlusDirective,
+        ],
+      };
+
+      const result = generator.generate(node);
+
+      expect(result).not.toBeNull();
+      expect(result!.properties!.source.default).toBe('world-model-two-agent.log');
+      expect(result!.properties!.expected.default).toBe('tool owner becomes null');
+      expect(result!.actions!.release.description).toBe('tool owner becomes null');
+      expect(result!.events!.release_constraint_detached.forms![0].op).toBe('subscribeevent');
+    });
+
+    it('should inherit @wot_thing from referenced templates', () => {
+      const template: HSPlusNode = {
+        type: 'template',
+        name: 'SensorNodeMesh',
+        properties: [
+          { type: 'ObjectProperty', key: 'geometry', value: 'sphere' },
+          {
+            type: 'ObjectProperty',
+            key: 'properties',
+            value: { source: 'template-source', expected: 'template expectation' },
+          },
+        ] as unknown as Record<string, unknown>,
+        directives: [
+          {
+            type: 'trait',
+            name: 'wot_thing',
+            args: { title: 'Sensor template', security: 'nosec' },
+          } as HSPlusDirective,
+        ],
+      };
+
+      const node = {
+        type: 'object',
+        name: 'WindSensorNodeMesh',
+        template: 'SensorNodeMesh',
+        properties: [
+          {
+            type: 'ObjectProperty',
+            key: 'properties',
+            value: {
+              thingId: 'urn:holoscript:wind-sensor',
+              source: 'wind-feed.log',
+              action: 'calibrate',
+              expected: 'calibrate wind sensor',
+            },
+          },
+        ],
+        directives: [],
+      } as unknown as HSPlusNode;
+
+      const templateAwareGenerator = new ThingDescriptionGenerator({
+        baseUrl: 'http://localhost:8080',
+        defaultObservable: true,
+        templates: [template],
+      });
+
+      const result = templateAwareGenerator.generate(node);
+
+      expect(result).not.toBeNull();
+      expect(result!.title).toBe('Sensor template');
+      expect(result!.id).toBe('urn:holoscript:WindSensorNodeMesh');
+      expect(result!.properties!.thingId.default).toBe('urn:holoscript:wind-sensor');
+      expect(result!.properties!.source.default).toBe('wind-feed.log');
+      expect(result!.actions!.calibrate.description).toBe('calibrate wind sensor');
+    });
+
     it('should handle different security schemes', () => {
       const securityTypes: Array<'nosec' | 'basic' | 'bearer' | 'oauth2' | 'apikey'> = [
         'nosec',

@@ -10,7 +10,7 @@
  */
 
 import { useRef, useState, useEffect, useMemo } from 'react';
-import { useFrame, _useLoader } from '@react-three/fiber';
+import { useFrame, useLoader } from '@react-three/fiber';
 import * as THREE from 'three';
 
 export interface HologramImageProps {

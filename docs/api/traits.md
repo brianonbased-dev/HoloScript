@@ -2,7 +2,7 @@
 
 ### By Domain
 
-> **Note:** This reference documents the full trait design space. Not all traits listed below have runtime implementations yet. For currently implemented traits (~57), see `packages/runtime/src/traits/`. For parser-validated traits (~37), see `packages/core/src/parser/ErrorRecovery.ts`.
+> **Note:** This reference documents the trait design space, not a promise that every listed trait has runtime behavior. Verify current trait files with `find packages/core/src/traits -name "*.ts" -not -name "*.test.*"`, and verify runtime/parser support from the package source before claiming a trait is implemented.
 
 | Domain                 | Traits                                                                                                                                                                                                                     |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -891,4 +891,4 @@ template "Simulation" {
 
 ---
 
-_Note: This is a living document. For a full list of all 165+ traits, see the [VRTraitSystem.ts](file:///c:/Users/josep/Documents/GitHub/HoloScript/packages/core/src/traits/VRTraitSystem.ts)._
+_Note: This is a living document. For the current trait inventory, use the commands in [`docs/NUMBERS.md`](../NUMBERS.md) and inspect `packages/core/src/traits/`; do not rely on a copied count._

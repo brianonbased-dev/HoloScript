@@ -54,6 +54,35 @@ describe('MCP Tool Error Cases', () => {
     expect((result.errors as Array<Record<string, unknown>>)[0].message).toContain('requires a string `code` argument');
   });
 
+  it('validate_holoscript returns a local fallback receipt when sandbox gating denies source', async () => {
+    const result = (await handleTool('validate_holoscript', {
+      code: 'composition "Unsafe" { object "Runner" { note: "process" } }',
+      format: 'holo',
+      sourcePath: 'experiments/holoshell-human-os-frontier/unsafe.holo',
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('ForkSandboxGate denied HoloScript payload');
+    const receipt = result.validationUnavailableReceipt as Record<string, unknown>;
+    expect(receipt.kind).toBe('ValidationUnavailableReceipt');
+    expect(receipt.failedCheck).toBe('capability_manifest');
+    expect(receipt.capabilityManifestTemplate).toMatchObject({
+      protocol: 'holoscript.capability.v1',
+      declaredCapabilities: ['holoscript:validate', 'filesystem:read:local-source'],
+    });
+    expect(receipt.localFallback).toMatchObject({
+      exact: true,
+      sourcePath: 'experiments/holoshell-human-os-frontier/unsafe.holo',
+      command: [
+        'pnpm',
+        'exec',
+        'holoscript',
+        'validate',
+        'experiments/holoshell-human-os-frontier/unsafe.holo',
+      ],
+    });
+  });
+
   it('parse_hs handles invalid syntax with error array', async () => {
     const result = (await handleTool('parse_hs', {
       code: 'not valid holoscript {',

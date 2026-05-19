@@ -327,7 +327,7 @@ describe('HoloMap Sprint-3 — Performance Benchmark Suite', () => {
 
     const dashboard: PerfDashboard = {
       generatedAt: new Date().toISOString(),
-      holoScriptBuild: 'v7.0.0', // Verified at runtime via getVersionString in real harness
+      holoScriptBuild: 'v6.1.0', // Verified at runtime via getVersionString in real harness
       benchmarks: benchResults.map((b) => ({
         ...b,
         // Strip raw memory objects for JSON serialization

@@ -9,18 +9,18 @@
  */
 
 import {
-  type WorldDefinition,
   type Shard,
   type Zone,
   validateShard,
   validateZone,
 } from '@holoscript/framework';
+import { type WorldDefinition } from '../../../core/src/hololand/WorldDefinitionSchema';
 
+import { type StoredNPC } from '../hololand-mcp-tools';
 import {
-  type StoredNPC,
   type StoredTwinEarthIdentity,
   type StoredSafetyEnvelope,
-} from '../hololand-mcp-tools';
+} from '../robot-ai-mcp-tools';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // CONFORMANCE RULES

@@ -164,7 +164,6 @@ describe('CreatorTemplate — validation', () => {
 
   it('rejects a template without id', () => {
     const template = makeValidTemplate();
-    // @ts-expect-error — deliberate mutation for false-case testing
     template.id = '';
     const errors = validateCreatorTemplate(template);
     expect(errors.some((e) => e.includes('CreatorTemplate.id is required'))).toBe(true);
@@ -172,7 +171,6 @@ describe('CreatorTemplate — validation', () => {
 
   it('rejects a template without name', () => {
     const template = makeValidTemplate();
-    // @ts-expect-error
     template.name = '';
     const errors = validateCreatorTemplate(template);
     expect(errors.some((e) => e.includes('.name is required'))).toBe(true);
@@ -225,7 +223,6 @@ describe('PlayableChallenge — validation', () => {
 
   it('rejects a challenge without id', () => {
     const challenge = makeValidChallenge();
-    // @ts-expect-error
     challenge.id = '';
     const errors = validatePlayableChallenge(challenge);
     expect(errors.some((e) => e.includes('PlayableChallenge.id is required'))).toBe(true);
@@ -255,7 +252,6 @@ describe('PlayableChallenge — validation', () => {
 
   it('rejects a challenge without creatorId', () => {
     const challenge = makeValidChallenge();
-    // @ts-expect-error
     challenge.creatorId = '';
     const errors = validatePlayableChallenge(challenge);
     expect(errors.some((e) => e.includes('creatorId is required'))).toBe(true);
@@ -287,7 +283,6 @@ describe('PublishReview — validation', () => {
 
   it('rejects a review without id', () => {
     const review = makeValidReview();
-    // @ts-expect-error
     review.id = '';
     const errors = validatePublishReview(review);
     expect(errors.some((e) => e.includes('PublishReview.id is required'))).toBe(true);
@@ -295,7 +290,6 @@ describe('PublishReview — validation', () => {
 
   it('rejects a review without challengeId', () => {
     const review = makeValidReview();
-    // @ts-expect-error
     review.challengeId = '';
     const errors = validatePublishReview(review);
     expect(errors.some((e) => e.includes('challengeId is required'))).toBe(true);

@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { hashBytes } from '../../../core/src/testing/DeterminismHarness';
+import { hashBytes } from '@holoscript/core';
 
 function calcStats(samples: number[]) {
   const n = samples.length;

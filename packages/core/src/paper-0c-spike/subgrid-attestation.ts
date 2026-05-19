@@ -23,16 +23,15 @@
  * Inference, where posterior fidelity depends on knowing which simulator
  * configuration produced each training sample.
  *
- * ## Integration hook (followup, out-of-scope for this ship)
+ * ## Integration (shipped — engine side complete)
  *
- * Engine integration site: `packages/engine/src/simulation/SimulationContract.ts`
- * ContractConfig — add `subgridParams?: SubgridParams` field, call
- * `attestSubgridParams()` at ContractedSimulation construction, and fold the
- * resulting `hash` into Contract-ID alongside `geometryHash` and
- * `adapterFingerprint`. Record the full SubgridAttestation envelope in
- * `cael.init.payload.subgridAttestation`.
- *
- * This ship provides the primitive; engine integration is a separate task.
+ * Engine integration: `packages/engine/src/simulation/SimulationContract.ts`
+ * ContractConfig carries `subgridParams?: SubgridParams`. At ContractedSimulation
+ * construction, `buildSubgridAttestationSync()` is called and the resulting hash
+ * is folded into Contract-ID alongside `geometryHash` and `adapterFingerprint`.
+ * The full SubgridAttestation envelope is exposed via `getSubgridAttestation()`,
+ * surfaced in `getProvenance()`, and recorded in `cael.init.payload.subgridAttestation`
+ * by CAELRecorder. TODO-05 followup is closed.
  *
  * ## Design notes
  *

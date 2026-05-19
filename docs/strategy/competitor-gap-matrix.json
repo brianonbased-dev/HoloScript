@@ -1,11 +1,29 @@
 {
   "$schema": "holoscript.competitor-gap-matrix.v1",
-  "generatedAt": "2026-05-09T00:00:00Z",
-  "nextReviewBy": "2026-05-21",
+  "generatedAt": "2026-05-18T00:00:00Z",
+  "nextReviewBy": "2026-06-18",
+  "nmosLegend": {
+    "bars": ["massive-scale", "network-effect", "open-standard", "gated-distribution", "specialized-depth"],
+    "classifications": {
+      "BRIDGE": "1+ bars pass — connect, do not replace",
+      "WATCH": "fails F.045 vitality gate (3+ decline signals) — monitor, pattern-harvest",
+      "BUILD-INTERNAL": "0 bars — sovereign primitive replaces it",
+      "ABSORB": "special BRIDGE — HoloScript ingests their format, turning their data into our compositions"
+    },
+    "references": ["F.045 vitality gate", "F.046 NMoS", "F.049 incumbent metrics inflate"]
+  },
   "verticals": [
     {
       "vertical": "Game / 3D platform ecosystems",
       "competitor": "Unity",
+      "nmos": {
+        "bars_passed": ["network-effect", "specialized-depth"],
+        "score": "2/5",
+        "classification": "BRIDGE",
+        "vitality": "healthy — recovering from 2023 pricing disaster; runtime fee walked back"
+      },
+      "holoscript_superiority": "multi-target IR (Unity is a destination, not a source); SimulationContract receipts; semantic AST survives cross-target compile",
+      "holoscript_gap": "editor maturity, asset store scale, LiveOps ecosystem, learning certifications",
       "gaps": [
         {
           "id": "CG-036",
@@ -36,8 +54,173 @@
       ]
     },
     {
+      "vertical": "Game / 3D platform ecosystems",
+      "competitor": "Unreal Engine (Epic Games)",
+      "nmos": {
+        "bars_passed": ["open-standard", "specialized-depth"],
+        "score": "2/5",
+        "classification": "BRIDGE",
+        "vitality": "healthy — UE5 Nanite/Lumen adoption growing; Fortnite ecosystem massive"
+      },
+      "holoscript_superiority": "multi-target IR; SimulationContract; web/browser deployment Unreal cannot match; agent-native MCP",
+      "holoscript_gap": "visual fidelity (Nanite/Lumen); AAA toolchain; Blueprints visual scripting; MetaHuman creator",
+      "gaps": [
+        {
+          "id": "CG-037",
+          "severity": "P2",
+          "direction": "differentiator",
+          "status": "in-progress",
+          "title": "Unreal visual fidelity and toolchain depth vs HoloScript simulation fidelity",
+          "competitorAdvantage": "Nanite virtualized geometry, Lumen global illumination, MetaHuman digital humans, Blueprints visual scripting, UE Marketplace with 10K+ assets, Fab asset store. For cinematic-quality real-time rendering there is no peer.",
+          "holoscriptState": "UnrealCompiler.ts emits C++ + Blueprints. HoloScript's advantage is simulation fidelity and multi-target — the same composition that compiles to Unreal also compiles to Unity, Godot, WASM, VRChat, USD. Unreal compiles to Unreal only.",
+          "neededResponse": "Position as the IR layer above Unreal: studios use HoloScript for world logic and simulation, Unreal for rendering. Publish integration guide showing HoloScript USD export → Unreal import with SimulationContract preserved.",
+          "evidence": [
+            "packages/core/src/compiler/UnrealCompiler.ts",
+            "docs/targets/usd-omniverse.md — USD pipeline applies to Unreal too"
+          ],
+          "sources": [
+            "packages/core/src/compiler/UnrealCompiler.ts"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
+      "vertical": "Game / 3D platform ecosystems",
+      "competitor": "Godot Engine",
+      "nmos": {
+        "bars_passed": ["network-effect", "open-standard"],
+        "score": "2/5",
+        "classification": "BRIDGE",
+        "vitality": "very healthy — post-Unity-pricing-drama migration; 100K+ GitHub stars; Godot 4.x gaining professional adoption rapidly"
+      },
+      "holoscript_superiority": "multi-target IR (HoloScript compiles TO Godot); physics simulation depth; SimulationContract; agent-native MCP",
+      "holoscript_gap": "GodotCompiler output fidelity unvalidated; no integration guide; Godot community not yet aware of HoloScript",
+      "gaps": [
+        {
+          "id": "CG-038",
+          "severity": "P2",
+          "direction": "differentiator",
+          "status": "watch",
+          "title": "Godot community bridge — massive Unity-migrator cohort with no physics simulation story",
+          "competitorAdvantage": "MIT license (no runtime fees ever), growing professional dev community (~50K active developers post-Unity migration), GDScript + C# support, 2D/3D in one engine, free Godot Asset Library. The 'sovereignty' narrative of Godot (no corporate control) resonates exactly with HoloScript's D.026 framing.",
+          "holoscriptState": "GodotCompiler.ts exists. No integration tutorial, no community presence in Godot Discord/forums, no competitive differentiation communicated.",
+          "neededResponse": "1. Validate GodotCompiler output against Godot 4.3+. 2. Publish tutorial: .holo physics scene → compile_to_godot → import. 3. Post in r/godot and Godot Discord — the sovereignty/open-source framing lands perfectly with this community. 4. Position HoloScript as 'the simulation layer Godot outsources to GDScript workarounds.'",
+          "evidence": [
+            "packages/core/src/compiler/GodotCompiler.ts"
+          ],
+          "sources": [
+            "packages/core/src/compiler/GodotCompiler.ts"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
+      "vertical": "Web 3D engine ecosystem",
+      "competitor": "Babylon.js (Microsoft)",
+      "nmos": {
+        "bars_passed": ["open-standard", "specialized-depth"],
+        "score": "2/5",
+        "classification": "BRIDGE",
+        "vitality": "healthy — Babylon 9.0 shipped March 2026; Microsoft distribution; community MCP server is the threat signal",
+        "threat_level": "HIGH — see docs/strategy/battlecards/babylon-js-9.md"
+      },
+      "holoscript_superiority": "compile once to Babylon + Three.js + Unity + Unreal + USD (Babylon is a destination, not an IR); first-party MCP vs community plugin; SimulationContract; semantic AST",
+      "holoscript_gap": "editor/inspector maturity; OpenPBR material pipeline; geospatial rendering; time-to-wow (no npx create-holoscript equivalent yet)",
+      "gaps": [
+        {
+          "id": "CG-039",
+          "severity": "P1",
+          "direction": "catch-up",
+          "status": "in-progress",
+          "title": "Babylon.js community MCP server threatens to own 'agent-native 3D' narrative before HoloScript achieves distribution",
+          "competitorAdvantage": "Babylon 9.0 ships OpenPBR, geospatial rendering, improved navmesh + crowd agents. Community-contributed MCP server lets LLMs inspect/manipulate Babylon scenes live — creating an agent-native 3D narrative HoloScript must counter. Microsoft distribution (Windows Dev Blog, Azure examples) gives organic reach HoloScript lacks.",
+          "holoscriptState": "HoloScript MCP has 215+ tools vs Babylon's scene-inspection-only plugin. BabylonCompiler.ts is a compile target. Studio inspector is newer/less mature than Babylon's.",
+          "neededResponse": "1. Ship npx create-holoscript with 30-sec time-to-wow. 2. Submit HoloScript MCP to Cursor marketplace before Babylon does. 3. Publish flagship multi-target demo: same .holo → Babylon + Three.js + Unity + Unreal side by side. 4. Write 'HoloScript compiles TO Babylon' positioning — they can use both.",
+          "evidence": [
+            "docs/strategy/battlecards/babylon-js-9.md",
+            "packages/core/src/compiler/BabylonCompiler.ts"
+          ],
+          "sources": [
+            "docs/strategy/battlecards/babylon-js-9.md",
+            "packages/core/src/compiler/BabylonCompiler.ts"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
+      "vertical": "Web 3D engine ecosystem",
+      "competitor": "Three.js / React Three Fiber",
+      "nmos": {
+        "bars_passed": ["network-effect", "open-standard"],
+        "score": "2/5",
+        "classification": "BRIDGE",
+        "vitality": "very healthy — Three.js is the dominant web 3D library; R3F is the dominant React binding; millions of developers"
+      },
+      "holoscript_superiority": "semantic IR that compiles TO Three.js/R3F — HoloScript is the source language, they are a render target; simulation layer they cannot provide; multi-target",
+      "holoscript_gap": "most web devs start with Three.js directly; no HoloScript story for pure web 3D devs; R3FCompiler fidelity unvalidated against latest R3F/Drei",
+      "gaps": [
+        {
+          "id": "CG-040",
+          "severity": "P2",
+          "direction": "differentiator",
+          "status": "watch",
+          "title": "Three.js/R3F developer community not yet aware HoloScript compiles to their stack",
+          "competitorAdvantage": "Three.js has 100K+ GitHub stars, dominant npm download count, entire ecosystem of tools (Drei, GLTF-transform, Leva, Theatre.js). R3F is standard for React 3D. Every web 3D tutorial uses Three.js.",
+          "holoscriptState": "R3FCompiler.ts + ThreeJSCompiler.ts exist. No integration guide for Three.js/R3F developers. No npm package marketing to this community.",
+          "neededResponse": "1. Publish 'HoloScript for Three.js developers' guide — shows same .holo scene compiled to R3F, with simulation and provenance Three.js alone cannot do. 2. Contribute to Three.js/R3F community forums. 3. Validate R3FCompiler against Drei latest.",
+          "evidence": [
+            "packages/core/src/compiler/R3FCompiler.ts",
+            "packages/core/src/compiler/ThreeJSCompiler.ts"
+          ],
+          "sources": [
+            "packages/core/src/compiler/R3FCompiler.ts",
+            "packages/core/src/compiler/ThreeJSCompiler.ts"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
+      "vertical": "Web 3D engine ecosystem",
+      "competitor": "PlayCanvas",
+      "nmos": {
+        "bars_passed": ["open-standard"],
+        "score": "1/5",
+        "classification": "WATCH",
+        "vitality": "declining signals — ARM acquired 2023, growth trajectory unclear, niche web game engine market"
+      },
+      "holoscript_superiority": "multi-target IR; simulation; ARM acquisition creates uncertainty",
+      "holoscript_gap": "PlayCanvas has collaborative cloud editor — HoloScript Studio doesn't yet match",
+      "gaps": [
+        {
+          "id": "CG-041",
+          "severity": "P3",
+          "direction": "watch",
+          "status": "watch",
+          "title": "PlayCanvas — WATCH, pattern harvest cloud collaboration model",
+          "competitorAdvantage": "Cloud-first collaborative editor, real-time multi-user scene editing, PlayCanvas Engine open-source with asset CDN.",
+          "holoscriptState": "PlayCanvasCompiler.ts exists as compile target.",
+          "neededResponse": "Pattern harvest: cloud-first collaborative editor model for Studio roadmap. No active build required.",
+          "evidence": ["packages/core/src/compiler/PlayCanvasCompiler.ts"],
+          "sources": ["packages/core/src/compiler/PlayCanvasCompiler.ts"],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
       "vertical": "AI runtime architecture",
       "competitor": "Unity / Unreal / PyTorch / JAX",
+      "nmos": {
+        "bars_passed": ["network-effect", "specialized-depth"],
+        "score": "2/5",
+        "classification": "BRIDGE",
+        "vitality": "healthy"
+      },
+      "holoscript_superiority": "NN-primary runtime with CPU-verifier backup — inverted stack; SimulationContract evidence on every dispatch",
+      "holoscript_gap": "three-tier DispatchPolicy not yet shipped; ZKML inference receipts not yet wired",
       "gaps": [
         {
           "id": "CG-035",
@@ -71,8 +254,51 @@
       ]
     },
     {
+      "vertical": "AI developer tools",
+      "competitor": "Cursor",
+      "nmos": {
+        "bars_passed": ["network-effect", "specialized-depth"],
+        "score": "2/5",
+        "classification": "BRIDGE",
+        "vitality": "healthy — fastest-growing AI IDE; ~$300M ARR estimated; VS Code compatibility drives adoption",
+        "threat_level": "HIGH — see docs/strategy/battlecards/cursor.md"
+      },
+      "holoscript_superiority": "HoloScript MCP turns any AI IDE (including Cursor) into a HoloScript authoring tool — Cursor users become HoloScript users; simulation + provenance layer Cursor cannot provide",
+      "holoscript_gap": "HoloScript MCP not yet in Cursor marketplace; no HoloScript-specific Cursor extension; Studio has less code-editing ergonomics than Cursor",
+      "gaps": [
+        {
+          "id": "CG-042",
+          "severity": "P1",
+          "direction": "differentiator",
+          "status": "watch",
+          "title": "HoloScript MCP not yet submitted to Cursor marketplace — missing the agent-native IDE distribution channel",
+          "competitorAdvantage": "Cursor has the fastest-growing AI developer mindshare, native MCP client support, and a marketplace of MCP servers. The developers most likely to adopt HoloScript (AI-native, agent-first) are Cursor users. Whoever wins their MCP ecosystem wins the developer wedge.",
+          "holoscriptState": "HoloScript MCP server exists at mcp.holoscript.net with 215+ tools. Not yet published to Cursor marketplace. No HoloScript-specific Cursor config template in docs.",
+          "neededResponse": "1. Submit HoloScript MCP to Cursor marketplace immediately. 2. Publish Cursor-specific quickstart: add mcp.holoscript.net to cursor settings, first compile in 60 seconds. 3. Create docs/guides/cursor-holoscript.md. 4. The win condition: every Cursor user can author HoloScript without leaving their IDE.",
+          "evidence": [
+            "docs/strategy/battlecards/cursor.md",
+            "mcp.holoscript.net — live MCP server",
+            "docs/guides/agent-mcp-quickstart.md"
+          ],
+          "sources": [
+            "docs/strategy/battlecards/cursor.md",
+            "docs/guides/agent-mcp-quickstart.md"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
       "vertical": "Hardware, edge AI, and embedded development",
       "competitor": "NVIDIA Jetson",
+      "nmos": {
+        "bars_passed": ["specialized-depth"],
+        "score": "1/5",
+        "classification": "BRIDGE",
+        "vitality": "healthy — Jetson Orin is embedded AI standard; Isaac platform growing"
+      },
+      "holoscript_superiority": "cross-hardware semantic evidence layer; one composition compiles to Jetson + Loihi + Qualcomm + cloud; provenance portable across vendor runtimes",
+      "holoscript_gap": "no hardware receipt types for Jetson-specific runtime metrics; no JetPack SDK integration guide",
       "gaps": [
         {
           "id": "CG-032",
@@ -96,8 +322,51 @@
       ]
     },
     {
+      "vertical": "NVIDIA simulation and digital twin",
+      "competitor": "NVIDIA Omniverse / Isaac Sim",
+      "nmos": {
+        "bars_passed": ["massive-scale", "open-standard", "specialized-depth"],
+        "score": "3/5",
+        "classification": "BRIDGE",
+        "vitality": "healthy — $130.5B parent; 300K+ enterprise downloads; USD is becoming the spatial computing open standard"
+      },
+      "holoscript_superiority": "physics simulation substrate (multi-domain solvers Omniverse outsources to ANSYS); USDPhysicsCompiler produces physics-bearing USD Omniverse/Isaac Sim can directly consume; SimulationContract receipts",
+      "holoscript_gap": "no NVIDIA developer relations outreach; integration guide just written (docs/targets/usd-omniverse.md); underpromoted — enterprise buyers don't know the bridge exists",
+      "gaps": [
+        {
+          "id": "CG-043",
+          "severity": "P1",
+          "direction": "differentiator",
+          "status": "in-progress",
+          "title": "USDPhysicsCompiler capability underpromoted — enterprise buyers unaware HoloScript bridges to Omniverse/Isaac Sim",
+          "competitorAdvantage": "NVIDIA Omniverse has 300K+ enterprise downloads, USD as the open spatial standard, and Jensen Huang's '$50T physical AI operating system' positioning. For factory digital twins and robot simulation, Omniverse is the enterprise default.",
+          "holoscriptState": "USDPhysicsCompiler.ts (v1.0.0) explicitly targets isaac_sim | omniverse | generic contexts. Physics schemas: PhysicsScene, PhysicsRigidBodyAPI, PhysicsCollisionAPI, PhysicsArticulationRootAPI, PhysicsDriveAPI, PhysicsMassAPI. USDZExportCompiler for Apple visionOS also present. Integration guide at docs/targets/usd-omniverse.md (written 2026-05-18). This is architecturally complete — underpromoted, not unbuilt.",
+          "neededResponse": "1. NVIDIA developer relations outreach — pitch HoloScript as the physics simulation substrate for Omniverse scenes. 2. NVIDIA Omniverse Exchange listing for HoloScript extension. 3. Enterprise sales deck section: 'HoloScript = simulation layer; Omniverse = visualization layer — you already outsource physics to ANSYS; replace ANSYS with HoloScript.' 4. Publish benchmark: HoloScript physics → USD → Isaac Sim FPS comparison vs ANSYS baseline.",
+          "evidence": [
+            "packages/core/src/compiler/USDPhysicsCompiler.ts — targetContext: 'isaac_sim' | 'omniverse' | 'generic'",
+            "docs/targets/usd-omniverse.md — integration guide (2026-05-18)",
+            "research/2026-05-18_competitor-landscape-EVOLVED.md — Correction 0: USD gap does not exist"
+          ],
+          "sources": [
+            "packages/core/src/compiler/USDPhysicsCompiler.ts",
+            "docs/targets/usd-omniverse.md",
+            "docs/strategy/battlecards/nvidia-omniverse.md"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
       "vertical": "Spatial computing platforms",
-      "competitor": "Apple Vision Pro",
+      "competitor": "Apple (Vision Pro / visionOS / iOS / USDZ)",
+      "nmos": {
+        "bars_passed": ["gated-distribution", "specialized-depth"],
+        "score": "2/5",
+        "classification": "BRIDGE",
+        "vitality": "tempered — Apple Vision Pro is ANNOUNCED-INNOVATION-TIER per F.049 (press outpaces real adoption); iOS platform itself is vital; USDZ is load-bearing standard"
+      },
+      "holoscript_superiority": "multi-target (visionOS + iOS + USDZ all compile targets from one .holo file); cross-platform reach Apple cannot provide",
+      "holoscript_gap": "VisionOSCompiler fidelity gaps (14+ named stubs); no first-party RealityKit physics integration; USDZ export lacks animation tracks",
       "gaps": [
         {
           "id": "CG-005",
@@ -115,12 +384,411 @@
             "packages/core/src/compiler/__tests__/VisionOSCompiler.smoke.test.ts"
           ],
           "boardTaskId": null
+        },
+        {
+          "id": "CG-044",
+          "severity": "P2",
+          "direction": "catch-up",
+          "status": "watch",
+          "title": "USDZ export missing animation tracks and AR Quick Look metadata for iOS AR Quick Look",
+          "competitorAdvantage": "Apple AR Quick Look lets any iOS user view 3D objects in AR from Safari/Messages with zero app install. USDZ with animation + environment maps is the native format. Reality Composer Pro handles complex AR experiences.",
+          "holoscriptState": "USDZExportCompiler.ts exists. Animation track support and AR Quick Look metadata (activationEvent, allowsContentScaling, canonicalWebPageURL) not yet validated.",
+          "neededResponse": "Audit USDZExportCompiler against Apple USDZ spec for AR Quick Look. Add animation track emission. Add AR Quick Look metadata block. Publish tutorial: .holo object → compile_to_usdz → AR Quick Look in iOS Safari.",
+          "evidence": [
+            "packages/core/src/compiler/USDZExportCompiler.ts"
+          ],
+          "sources": [
+            "packages/core/src/compiler/USDZExportCompiler.ts"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
+      "vertical": "Google platform ecosystem",
+      "competitor": "Google (Android XR / Android / A2A Protocol / AI Glasses)",
+      "nmos": {
+        "bars_passed": ["massive-scale", "network-effect", "open-standard", "gated-distribution", "specialized-depth"],
+        "score": "5/5",
+        "classification": "BRIDGE",
+        "vitality": "healthy — Android XR launching 2026 with Samsung; A2A protocol published April 2025; AI Glasses hardware in development"
+      },
+      "holoscript_superiority": "semantic IR that compiles to all three Google surfaces from one source; physics simulation layer Google platforms lack; multi-target gives Google users cross-platform reach",
+      "holoscript_gap": "AndroidXRCompiler and AIGlassesCompiler are new targets — fidelity unvalidated on real hardware; A2A workflow not yet documented for HoloScript compositions; no Google developer relations outreach",
+      "gaps": [
+        {
+          "id": "CG-045",
+          "severity": "P1",
+          "direction": "differentiator",
+          "status": "watch",
+          "title": "Android XR + AI Glasses platform launching 2026 — HoloScript has compile targets but no developer story",
+          "competitorAdvantage": "Android XR (Google + Samsung, launching 2026) brings Android's 3B+ device developer ecosystem to spatial computing. AI Glasses with Jetpack Compose Glimmer UI create a new form factor. Google's distribution at device activation scale is unmatched.",
+          "holoscriptState": "AndroidXRCompiler.ts exists (Jetpack Compose XR). AIGlassesCompiler.ts exists (Jetpack Compose Glimmer UI for transparent optical see-through). Both are compile targets from .holo compositions. No integration guide, no real-device validation, no developer community presence.",
+          "neededResponse": "1. Obtain Android XR developer hardware (Samsung Galaxy XR device) for compiler validation. 2. Write integration guide: .holo scene → compile_to_android_xr. 3. Publish on Android Developers Blog or via Google Developer Program. 4. Position: 'Android XR devs get physics simulation and multi-target compile for free.'",
+          "evidence": [
+            "packages/core/src/compiler/AndroidXRCompiler.ts",
+            "packages/core/src/compiler/AIGlassesCompiler.ts — Jetpack Compose Glimmer UI for AI Glasses"
+          ],
+          "sources": [
+            "packages/core/src/compiler/AndroidXRCompiler.ts",
+            "packages/core/src/compiler/AIGlassesCompiler.ts"
+          ],
+          "boardTaskId": null
+        },
+        {
+          "id": "CG-046",
+          "severity": "P2",
+          "direction": "differentiator",
+          "status": "watch",
+          "title": "Google A2A Protocol — HoloScript compositions can be published as A2A agent cards",
+          "competitorAdvantage": "Google's A2A (Agent-to-Agent) protocol, published April 2025, is becoming the standard for agent interoperability. If Google's agent ecosystem adopts A2A as the discovery protocol, HoloScript needs a clean A2A publication path.",
+          "holoscriptState": "A2AAgentCardCompiler.ts generates A2A Protocol-compliant Agent Card JSON from HoloScript compositions. This means a HoloScript world or service can be published as an A2A-discoverable agent. No documentation or workflow guide exists.",
+          "neededResponse": "1. Document the workflow: .holo composition → compile_to_a2a_agent_card → publish to A2A registry. 2. Publish a HoloScript world as a demo A2A agent. 3. Integrate with HoloMesh — HoloMesh agents could be A2A-discoverable by external Google-ecosystem agents.",
+          "evidence": [
+            "packages/core/src/compiler/A2AAgentCardCompiler.ts — 'A2A (Agent-to-Agent) protocol, introduced by Google in April 2025'"
+          ],
+          "sources": [
+            "packages/core/src/compiler/A2AAgentCardCompiler.ts"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
+      "vertical": "Enterprise digital twin platforms",
+      "competitor": "Microsoft Azure Digital Twins (DTDL)",
+      "nmos": {
+        "bars_passed": ["massive-scale", "open-standard", "gated-distribution", "specialized-depth"],
+        "score": "4/5",
+        "classification": "BRIDGE",
+        "vitality": "healthy — Azure investing heavily in digital twins; DTDL v3 is published and enterprise-adopted"
+      },
+      "holoscript_superiority": "physics simulation layer Azure lacks (DTDL models relationships, not physics); SimulationContract receipts; multi-target compile from same .holo source; AI-native runtime",
+      "holoscript_gap": "no Azure IoT Hub integration guide; DTDL relationship graph compilation not fully modeled; no enterprise sales motion documented",
+      "gaps": [
+        {
+          "id": "CG-047",
+          "severity": "P2",
+          "direction": "differentiator",
+          "status": "in-progress",
+          "title": "DTDL compiler exists but no enterprise integration guide or Azure partnership story",
+          "competitorAdvantage": "Azure Digital Twins has massive enterprise distribution, IoT Hub integration, time-series (Azure Data Explorer), and graph queries (Azure Digital Twins Query Language). For industrial IoT digital twins, Azure is the enterprise default.",
+          "holoscriptState": "DTDLCompiler.ts generates DTDL v3 compliant models from HoloScript compositions. HoloScript's physics simulation layer is the differentiator Azure lacks — DTDL models relationships and state, not physics behavior. No integration guide, no Azure marketplace listing.",
+          "neededResponse": "1. Write enterprise integration guide: HoloScript physics simulation → DTDL export → Azure Digital Twins. 2. Publish on Azure Marketplace or Azure Samples GitHub. 3. Enterprise sales positioning: 'Azure Digital Twins models the state; HoloScript simulates the physics. Together = complete digital twin.'",
+          "evidence": [
+            "packages/core/src/compiler/DTDLCompiler.ts — DTDL v3 compliant"
+          ],
+          "sources": [
+            "packages/core/src/compiler/DTDLCompiler.ts"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
+      "vertical": "Enterprise digital twin platforms",
+      "competitor": "Palantir AIP / Foundry",
+      "nmos": {
+        "bars_passed": ["massive-scale", "gated-distribution", "specialized-depth"],
+        "score": "3/5",
+        "classification": "BRIDGE",
+        "vitality": "healthy — $3.74B ARR +70% YoY; defense + enterprise growth"
+      },
+      "holoscript_superiority": "physics simulation receipts (SimulationContract) complement Palantir digital thread; URDF/SDF outputs feed Palantir operational ontology",
+      "holoscript_gap": "FedRAMP certification required for defense contracts; Palantir Foundry API integration not yet mapped",
+      "gaps": [
+        {
+          "id": "CG-048",
+          "severity": "P2",
+          "direction": "differentiator",
+          "status": "watch",
+          "title": "Palantir Foundry integration — SimulationContract receipts as Palantir digital thread data",
+          "competitorAdvantage": "Palantir maintains a 'digital thread' across program lifecycle for defense + enterprise. $10B+ Army contract. FedRAMP IL2 authorized. For defense digital twins, Palantir is the intelligence layer.",
+          "holoscriptState": "HoloScript's simulation receipts (SimulationContract) are exactly the substrate Palantir needs for verified digital threads. URDF/SDF outputs feed Arsenal-1 digital twin → physical pipeline. Gated by FedRAMP.",
+          "neededResponse": "1. Research Palantir Foundry external data ingestion API — can SimulationContract receipts be formatted as Palantir-compatible data inputs? 2. FedRAMP IL2 certification investigation (founder-gate: >$5 commitment). 3. Stack positioning: HoloScript (simulation substrate) → Palantir Foundry (digital thread) → Anduril Lattice (physical deployment).",
+          "evidence": [
+            "research/2026-05-18_competitor-landscape-AUTONOMIZE.md — TODO-I: Palantir API surface investigation"
+          ],
+          "sources": [
+            "research/2026-05-18_competitor-landscape-AUTONOMIZE.md"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
+      "vertical": "Enterprise digital twin platforms",
+      "competitor": "Anduril (defense digital twin)",
+      "nmos": {
+        "bars_passed": ["gated-distribution", "specialized-depth"],
+        "score": "2/5",
+        "classification": "BRIDGE",
+        "vitality": "healthy — $30.5B valuation; $20B Army IVAS contract; Arsenal-1 platform growing"
+      },
+      "holoscript_superiority": "URDF/SDF compile targets feed Arsenal-1 digital twin → physical hardware pipeline; SimulationContract receipts meet DoD verification standards",
+      "holoscript_gap": "FedRAMP required; no DoD IV&V documentation format for SimulationContract; no defense sector go-to-market",
+      "gaps": [
+        {
+          "id": "CG-049",
+          "severity": "P2",
+          "direction": "differentiator",
+          "status": "watch",
+          "title": "Defense digital twin pipeline — FedRAMP gate blocks Anduril/Palantir integration",
+          "competitorAdvantage": "Anduril Arsenal-1 converts digital twin designs to physical hardware 'in weeks.' $20B Army contract. Requires verified simulation evidence chain.",
+          "holoscriptState": "HoloScript's URDF/SDF outputs + SimulationContract receipts are the exact substrate Arsenal-1 needs. Gated by FedRAMP IL2 certification and DoD IV&V documentation format.",
+          "neededResponse": "FedRAMP IL2 certification path investigation — FOUNDER-GATE before any spend commitment. Defense pilot opportunity: if SimulationContract receipts can be formatted to DoD IV&V standards, HoloScript becomes the simulation evidence layer for a $30B+ market.",
+          "evidence": [
+            "research/2026-05-18_competitor-landscape-AUTONOMIZE.md — TODO-H: FedRAMP investigation"
+          ],
+          "sources": [
+            "packages/core/src/compiler/URDFCompiler.ts",
+            "packages/core/src/compiler/SDFCompiler.ts"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
+      "vertical": "Simulation / FEA incumbents",
+      "competitor": "ANSYS",
+      "nmos": {
+        "bars_passed": ["specialized-depth"],
+        "score": "1/5",
+        "classification": "BUILD-INTERNAL",
+        "vitality": "healthy but incumbent — 40+ years of domain algorithms; industrial trust; offline batch, not real-time"
+      },
+      "holoscript_superiority": "real-time embodied simulation with AI agents in the loop; SimulationContract receipts; multi-domain coupled solvers; 15+ shipped solver domains vs ANSYS separate-product-per-domain",
+      "holoscript_gap": "40 years of validated domain algorithms; industrial certification (ASME, FDA, FAA); offline batch FEA accuracy for structural analysis edge cases",
+      "gaps": [
+        {
+          "id": "CG-050",
+          "severity": "P1",
+          "direction": "differentiator",
+          "status": "in-progress",
+          "title": "Position HoloScript as ANSYS for the age of AI agents — real-time, embodied, SimContract-receipted",
+          "competitorAdvantage": "ANSYS has 40+ years of validated solvers, industrial certifications (FDA 21 CFR Part 11, ASME V&V 10-2006, FAA DO-178C), and customer trust in regulated industries. For offline batch FEA on real engineered systems, no competitor matches ANSYS depth.",
+          "holoscriptState": "15+ shipped solver domains (Thermal, Structural TET4+TET10, Hydraulic, Acoustic, FDTD EM, Navier-Stokes, Multiphase, MD, Reaction-Diffusion, PBD, SoftBody, Constraint, IK, Navmesh, QM bridge). CouplingManagerV2 for multi-physics. Real-time constraint ANSYS cannot meet. SimulationContract receipts are the trust primitive ANSYS lacks for AI-in-the-loop simulation.",
+          "neededResponse": "1. Publish 'ANSYS for AI agents' positioning — HoloScript is real-time, embodied, AI-in-the-loop; ANSYS is offline, batch, human-reviewed. 2. Benchmark HoloScript solvers against ANSYS on benchmark problems for verticals HoloScript targets (robotics sim-to-real, digital twin, spatial computing). 3. SimulationContract + Lean proof pipeline = the certification path ANSYS has via manual processes. 4. Target ANSYS users at companies adopting AI-native workflows.",
+          "evidence": [
+            "docs/strategy/battlecards/ansys.md",
+            "S.SIM in memory: 15+ solvers across 9 physics domains",
+            "research/2026-05-18_competitor-landscape-EVOLVED.md — ANSYS BUILD-INTERNAL classification"
+          ],
+          "sources": [
+            "docs/strategy/battlecards/ansys.md",
+            "packages/core/src/compiler/URDFCompiler.ts",
+            "packages/core/src/compiler/SDFCompiler.ts"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
+      "vertical": "Social VR / virtual worlds",
+      "competitor": "VRChat",
+      "nmos": {
+        "bars_passed": ["network-effect"],
+        "score": "1/5",
+        "classification": "BRIDGE",
+        "vitality": "healthy — 149K CCU; Japan fastest-growing community (Shangri-La Frontier IP catalyst, not streamer); creator economy active"
+      },
+      "holoscript_superiority": "physics-interactive world authoring (HoloScript) vs Unity-only scripted worlds; multi-domain physics VRChat creators cannot achieve without HoloScript; SimulationContract",
+      "holoscript_gap": "VRChat tutorial exists now (docs/tutorials/vrchat-physics-worlds.md); no community presence in VRChat Discord; no Japanese-language outreach; Japanese creator community = primary wedge (D.050)",
+      "gaps": [
+        {
+          "id": "CG-051",
+          "severity": "P2",
+          "direction": "differentiator",
+          "status": "in-progress",
+          "title": "VRChat Japan creator community — Shangri-La Frontier IP demand is unmet; HoloLand is the destination",
+          "competitorAdvantage": "VRChat has 149K CCU, network effect, Japanese creator community primed by Shangri-La Frontier anime (IP-driven category revival per F.047). Community is actively building physics-interactive worlds with Unity — but Unity cannot deliver the physics fidelity SLF depicted.",
+          "holoscriptState": "compile_to_vrchat live. Tutorial written (docs/tutorials/vrchat-physics-worlds.md, 2026-05-18). No Japanese-language content. No VRChat community presence. HoloLand is the destination platform for what VRChat creators want to build (D.050 — HoloLand as Japan's Shangri-La Frontier).",
+          "neededResponse": "1. Translate VRChat tutorial to Japanese. 2. Post in VRChat Creator Hub (Japanese section) + r/VRChat JP. 3. Identify Japanese VRChat world creators building physics worlds — reach out directly. 4. Commission a flagship physics-interactive HoloLand world: cloth curtains, fluid fountain, structural collapse — the scenes SLF depicted. 5. Position HoloLand as 'the real Shangri-La Frontier.'",
+          "evidence": [
+            "docs/tutorials/vrchat-physics-worlds.md — just written",
+            "D.050 direction_hololand-japan-sfl.md",
+            "F.059 feedback_vrchat-japan-catalyst.md — SLF not Sutanmi"
+          ],
+          "sources": [
+            "packages/core/src/compiler/VRChatCompiler.ts",
+            "docs/tutorials/vrchat-physics-worlds.md"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
+      "vertical": "Social VR / virtual worlds",
+      "competitor": "Roblox",
+      "nmos": {
+        "bars_passed": ["massive-scale", "network-effect"],
+        "score": "2/5",
+        "classification": "WATCH",
+        "vitality": "healthy but different market — 144M DAU; $4.9B revenue; creator economy ($1.5B paid to creators = 31% share)"
+      },
+      "holoscript_superiority": "simulation fidelity (SimulationContract vs Lua scripts); creator share (70% vs 31%); physics depth Roblox cannot approach",
+      "holoscript_gap": "consumer accessibility; brand recognition in gaming community; Roblox Studio ease-of-use for non-technical creators",
+      "gaps": [
+        {
+          "id": "CG-052",
+          "severity": "P2",
+          "direction": "differentiator",
+          "status": "watch",
+          "title": "Roblox creator payout model inversion — HoloScript Protocol can offer 70% vs Roblox 31%",
+          "competitorAdvantage": "144M DAU, $4.9B revenue, 31% creator payout ($1.5B/yr). The largest creator economy in gaming. For non-technical creators, Roblox Studio is the easiest path to a world-building career.",
+          "holoscriptState": "HoloScript Protocol can structurally offer 70%+ creator share. Studio targets experienced creators, not Roblox's non-technical audience. Different job-to-be-done but same 'earn from your world' promise.",
+          "neededResponse": "1. Add '70% creator share' messaging to Studio onboarding + creator landing page. 2. Use Roblox as market-size evidence in positioning: '$4.9B proves the market; we offer better economics.' 3. Target Roblox power-users who want simulation fidelity and better economics, not beginners.",
+          "evidence": [
+            "research/2026-05-18_competitor-landscape-EVOLVED.md — Finding 4: Roblox monetization benchmark"
+          ],
+          "sources": [
+            "research/2026-05-18_competitor-landscape-EVOLVED.md"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
+      "vertical": "3D capture / digital twin ingestion",
+      "competitor": "Matterport",
+      "nmos": {
+        "bars_passed": ["massive-scale", "network-effect", "specialized-depth"],
+        "score": "3/5",
+        "classification": "ABSORB",
+        "vitality": "declining — acquired by CoStar 2023 for $2.9B; being absorbed into commercial real estate platform; F.045 signals: revenue growth slowing, team movement, strategic pivot away from platform independence",
+        "note": "ABSORB = special BRIDGE: HoloScript ingests Matterpak format, converting their 11M+ scanned spaces into HoloScript compositions. Their data becomes our asset even as their platform declines."
+      },
+      "holoscript_superiority": "MatterpakCompiler ingests Matterport's scan library (OBJ + MTL + JPG + XYZ + E57) as HoloComposition AST; downstream multi-target compilation Matterport cannot do; physics layer on top of their scans",
+      "holoscript_gap": "no marketing to Matterport customer base (real estate, architecture, construction); no CoStar partnership discussion; Matterpak ingest path undocumented",
+      "gaps": [
+        {
+          "id": "CG-053",
+          "severity": "P2",
+          "direction": "differentiator",
+          "status": "watch",
+          "title": "MatterpakCompiler turns Matterport's 11M+ scanned spaces into HoloScript compositions — undocumented offensive capability",
+          "competitorAdvantage": "Matterport has 11M+ scanned real-world spaces (largest 3D scan library in existence), established customer base in real estate + architecture + construction + facilities management. Even as the platform declines, the scan library is a permanent asset.",
+          "holoscriptState": "MatterpakCompiler.ts parses Matterpak Bundle format (OBJ + MTL + JPG + XYZ + E57) into HoloComposition AST. Any Matterport scan can become a HoloScript composition — then compile to Omniverse, Unity, VRChat, glTF, USD, or any target. This is absorption, not competition.",
+          "neededResponse": "1. Document Matterpak ingest workflow. 2. Market to Matterport customers: 'Your scans, any platform.' 3. Approach CoStar about HoloScript as the simulation/compilation layer above Matterport scans. 4. Demo: Matterport office scan → HoloScript → compile to Isaac Sim for robot navigation training.",
+          "evidence": [
+            "packages/core/src/compiler/MatterpakCompiler.ts — 'Ingest Matterport Matterpak bundles to HoloComposition'"
+          ],
+          "sources": [
+            "packages/core/src/compiler/MatterpakCompiler.ts"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
+      "vertical": "3D capture / digital twin ingestion",
+      "competitor": "Luma AI / 3DGS ecosystem (Gaussian Splatting)",
+      "nmos": {
+        "bars_passed": ["network-effect", "open-standard", "specialized-depth"],
+        "score": "3/5",
+        "classification": "BRIDGE",
+        "vitality": "healthy and growing — KHR_gaussian_splatting glTF extension being standardized by Khronos; Luma AI, Polycam, KIRI Engine all generating 3DGS captures"
+      },
+      "holoscript_superiority": "GaussianSplattingCompiler exports @gaussian_splat traits to KHR_gaussian_splatting glTF — HoloScript is on the standard; multi-target compile of captured scenes; physics layer on top of photorealistic captures",
+      "holoscript_gap": "ingest path (3DGS → HoloScript) not yet validated; training/optimization pipeline for splat quality; no Luma AI API integration",
+      "gaps": [
+        {
+          "id": "CG-054",
+          "severity": "P2",
+          "direction": "differentiator",
+          "status": "watch",
+          "title": "Gaussian Splatting — HoloScript exports the standard but ingest path undocumented",
+          "competitorAdvantage": "3DGS is the photorealistic capture standard of 2025-2026. Luma AI, Polycam, KIRI Engine generate Gaussian Splat captures at consumer quality. KHR_gaussian_splatting is being standardized by Khronos. Any platform without a 3DGS story is invisible to the spatial capture market.",
+          "holoscriptState": "GaussianSplattingCompiler.ts exports @gaussian_splat traits to KHR_gaussian_splatting glTF. Export path exists. Ingest path (capture a real space as 3DGS, import into HoloScript, add physics/simulation, re-export) not yet documented or validated.",
+          "neededResponse": "1. Validate GaussianSplattingCompiler against Khronos KHR_gaussian_splatting spec. 2. Document ingest workflow: Luma AI capture → .splat → HoloScript import → physics annotation → multi-target compile. 3. Demo: real room captured → HoloScript → VRChat world with cloth/fluid physics. This is the 'scan the real world, simulate it, deploy anywhere' story.",
+          "evidence": [
+            "packages/core/src/compiler/GaussianSplattingCompiler.ts — 'KHR_gaussian_splatting glTF extension'"
+          ],
+          "sources": [
+            "packages/core/src/compiler/GaussianSplattingCompiler.ts"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
+      "vertical": "Robotics platform",
+      "competitor": "ROS 2 / Gazebo (OSRF)",
+      "nmos": {
+        "bars_passed": ["network-effect", "open-standard"],
+        "score": "2/5",
+        "classification": "BRIDGE",
+        "vitality": "healthy — ROS 2 is the standard robot OS; Gazebo Harmonic active; nearly every robotics team uses URDF/SDF"
+      },
+      "holoscript_superiority": "semantic layer above URDF/SDF (HoloScript compiles TO both); SimulationContract receipts for sim-to-real verification; multi-domain physics solvers beyond Gazebo's ODE/Bullet defaults",
+      "holoscript_gap": "no ROS 2 workspace integration guide; no ros2_control→HoloScript round-trip; no Gazebo Harmonic world generation tutorial",
+      "gaps": [
+        {
+          "id": "CG-055",
+          "severity": "P2",
+          "direction": "differentiator",
+          "status": "in-progress",
+          "title": "HoloScript is the semantic layer above ROS 2 / URDF / SDF — no integration guide exists",
+          "competitorAdvantage": "URDF and SDF are the de facto standards for robot description. Every ROS 2 team uses them. Gazebo Harmonic is the standard simulator. The ecosystem lock-in is the URDF/SDF file format, not the tools.",
+          "holoscriptState": "URDFCompiler.ts + SDFCompiler.ts are mature compile targets. URDF/SDF output is used as the bridge to ROS 2 and Gazebo. HoloScript is the semantic source; URDF/SDF are the standard outputs. No integration guide. No ROS 2 package example.",
+          "neededResponse": "1. Write 'HoloScript for ROS 2 developers' guide: .holo robot → compile_to_urdf → ROS 2 workspace. 2. Publish as ROS 2 community resource (ROS Discourse + GitHub robotics-worldwide). 3. Isaac Sim integration (docs/targets/usd-omniverse.md) covers the USD path; add URDF path explicitly. 4. Position: 'Write your robot in HoloScript once, deploy to Gazebo, Isaac Sim, and real hardware from the same source.'",
+          "evidence": [
+            "packages/core/src/compiler/URDFCompiler.ts",
+            "packages/core/src/compiler/SDFCompiler.ts",
+            "docs/targets/ISAAC_SIM_OPTIMIZATION.md — URDF path to Isaac Sim"
+          ],
+          "sources": [
+            "packages/core/src/compiler/URDFCompiler.ts",
+            "packages/core/src/compiler/SDFCompiler.ts"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
+      "vertical": "Hardware, edge AI, and embedded development",
+      "competitor": "NVIDIA Jetson",
+      "nmos": {
+        "bars_passed": ["specialized-depth"],
+        "score": "1/5",
+        "classification": "BRIDGE",
+        "vitality": "healthy — Jetson Orin is embedded AI standard; Isaac platform growing"
+      },
+      "holoscript_superiority": "cross-hardware semantic evidence layer; one composition compiles to Jetson + Loihi + Qualcomm + cloud; provenance portable across vendor runtimes",
+      "holoscript_gap": "no hardware receipt types for Jetson-specific runtime metrics; no JetPack SDK integration guide",
+      "gaps": [
+        {
+          "id": "CG-032",
+          "severity": "P1",
+          "direction": "differentiator",
+          "status": "watch",
+          "title": "HoloScript can become the cross-hardware semantic evidence layer competitors do not provide",
+          "competitorAdvantage": "Hardware vendors optimize their own modules, devices, runtimes, and deployment funnels.",
+          "holoscriptState": "HoloScript can describe intent once across robotics, IoT, twins, spatial apps, agents, and service targets, then attach provenance and validation evidence across vendor-specific hardware lanes.",
+          "neededResponse": "Protect the differentiator by making hardware receipts portable: target, device, runtime, compiler version, constraints, measured results, replay inputs, provenance, and owner must be recorded consistently.",
+          "evidence": [
+            "Jetson and Qualcomm sources show strong vendor-specific edge AI lanes.",
+            "HoloScript export target and definition sources show broader cross-domain semantic ambition."
+          ],
+          "sources": [
+            "https://developer.nvidia.com/embedded-computing",
+            "https://workbench.aihub.qualcomm.com/docs/"
+          ],
+          "boardTaskId": "task_1778222134390_8ixd"
         }
       ]
     },
     {
       "vertical": "Neuromorphic computing",
       "competitor": "Intel Loihi / SpiNNaker / SynSense",
+      "nmos": {
+        "bars_passed": ["specialized-depth"],
+        "score": "1/5",
+        "classification": "BRIDGE",
+        "vitality": "healthy — neuromorphic hardware investment growing; NIR standard emerging"
+      },
+      "holoscript_superiority": "NIRCompiler provides unified neuromorphic IR targeting all three platforms; WGSL fallback path for non-neuromorphic deployment; SNN WebGPU package for browser-native spiking networks",
+      "holoscript_gap": "NIR spec evolving; receipt types per neuromorphic runtime needed",
       "gaps": [
         {
           "id": "CG-001",
@@ -139,6 +807,102 @@
             "packages/core/src/compiler/NIRCompiler.ts",
             "packages/core/src/compiler/NIRToWGSLCompiler.ts",
             "packages/framework/src/board/hololand-receipts.ts"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
+      "vertical": "Causal ML / simulation-for-ML",
+      "competitor": "DoWhy / CausalML (causal inference frameworks)",
+      "nmos": {
+        "bars_passed": ["open-standard", "specialized-depth"],
+        "score": "2/5",
+        "classification": "BRIDGE",
+        "vitality": "healthy niche — do-calculus and causal inference growing in ML research; Microsoft DoWhy + Uber CausalML are active"
+      },
+      "holoscript_superiority": "SCMCompiler exports HoloScript compositions as do-calculus intervention DAGs — HoloScript simulations become causal training data; SimulationContract receipts give causal claims verifiable provenance",
+      "holoscript_gap": "SCM export workflow undocumented; no ML pipeline integration guide; causal ML community unaware HoloScript generates SCM-compatible output",
+      "gaps": [
+        {
+          "id": "CG-056",
+          "severity": "P3",
+          "direction": "differentiator",
+          "status": "watch",
+          "title": "SCMCompiler positions HoloScript as a causal training data generator — undocumented niche",
+          "competitorAdvantage": "DoWhy (Microsoft) and CausalML (Uber) are the dominant causal inference frameworks. For ML teams needing intervention data, these are standard tools. Neither generates physically grounded simulation data.",
+          "holoscriptState": "SCMCompiler.ts exports HoloScript compositions to JSON causal DAG formats supporting do-calculus interventions. HoloScript physics simulations can generate causally-labeled training datasets with SimulationContract provenance. No documentation, no ML community presence.",
+          "neededResponse": "1. Document SCM export workflow for ML researchers. 2. Demo: HoloScript rigid body simulation → SCM DAG → DoWhy causal inference. 3. Position: 'Physically grounded causal training data with verifiable provenance.' Paper candidate — pairs with Papers 17-20 (ML experiments).",
+          "evidence": [
+            "packages/core/src/compiler/SCMCompiler.ts — 'do-calculus intervention'"
+          ],
+          "sources": [
+            "packages/core/src/compiler/SCMCompiler.ts"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
+      "vertical": "Creator economy / on-chain assets",
+      "competitor": "OpenSea / NFT Marketplaces",
+      "nmos": {
+        "bars_passed": ["network-effect", "open-standard"],
+        "score": "2/5",
+        "classification": "WATCH",
+        "vitality": "declining — NFT market crashed 98%+ from 2021-2022 peak; OpenSea revenue collapsed; F.045: 4+ decline signals",
+        "note": "NFTMarketplaceCompiler emits ERC-1155 Solidity — HoloScript Protocol is the sovereign alternative for in-world HoloScript asset economies. BUILD-INTERNAL for HoloScript's own creator economy."
+      },
+      "holoscript_superiority": "HoloScript Protocol is the sovereign on-chain economy for HoloScript worlds — creator share 70%+ vs OpenSea's model; SimulationContract provenance for verified digital assets",
+      "holoscript_gap": "holo_protocol tools not yet widely adopted; no external NFT marketplace integration guide",
+      "gaps": [
+        {
+          "id": "CG-057",
+          "severity": "P3",
+          "direction": "watch",
+          "status": "watch",
+          "title": "NFT marketplace — WATCH + BUILD-INTERNAL (HoloScript Protocol is the sovereign answer)",
+          "competitorAdvantage": "ERC-1155 + OpenSea were the dominant NFT infrastructure. Now declining but the on-chain digital asset pattern survives in specific gaming/virtual world contexts.",
+          "holoscriptState": "NFTMarketplaceCompiler.ts emits ERC-1155 Solidity contracts. HoloScript Protocol (holo_protocol_* tools) is the sovereign economy layer for HoloScript worlds. For in-world assets, Protocol > OpenSea.",
+          "neededResponse": "1. Document when to use HoloScript Protocol vs NFTMarketplaceCompiler. 2. Pattern harvest: what survived the NFT crash (gaming assets, concert tickets, verifiable digital provenance). 3. HoloScript Protocol as the on-chain economy for HoloLand — this is BUILD-INTERNAL, not bridge.",
+          "evidence": [
+            "packages/core/src/compiler/NFTMarketplaceCompiler.ts"
+          ],
+          "sources": [
+            "packages/core/src/compiler/NFTMarketplaceCompiler.ts"
+          ],
+          "boardTaskId": null
+        }
+      ]
+    },
+    {
+      "vertical": "Phone-sleeve VR (sovereign revival)",
+      "competitor": "Google Cardboard / phone-sleeve VR category",
+      "nmos": {
+        "bars_passed": [],
+        "score": "0/5",
+        "classification": "BUILD-INTERNAL — sovereign revival (F.047)",
+        "vitality": "vendor dead (Google discontinued Cardboard); sentiment alive (15M+ Cardboard units = real demand; demand unmet by $499 Quest)",
+        "note": "PhoneSleeveVRCompiler exists — HoloScript is the substrate for the sovereign revival. D.037 + D.041 (prone-bed) + I.012 (Revival Scan Initiative)."
+      },
+      "holoscript_superiority": "PhoneSleeveVRCompiler generates WebXR stereoscopic HTML from .holo compositions; AI-native content generation fills the quality gap that killed Cardboard; NN-primary perception handles phone sensor limitations",
+      "holoscript_gap": "no consumer-facing PhoneSleeve product yet; revival is architecture-complete at compiler layer but not marketed",
+      "gaps": [
+        {
+          "id": "CG-058",
+          "severity": "P2",
+          "direction": "differentiator",
+          "status": "watch",
+          "title": "PhoneSleeveVR sovereign revival — compiler exists, no product or marketing yet",
+          "competitorAdvantage": "Google Cardboard reached 15M+ units proving the $0-device-cost market segment. $499+ Quest cannot reach this segment. The category died for vendor-strategic reasons, not fundamental ones.",
+          "holoscriptState": "PhoneSleeveVRCompiler.ts generates self-contained WebXR HTML for stereoscopic VR on phone-sleeve headsets. D.037 classified this as sovereign-revival-target. D.041 (prone-bed ease-of-play) maps to the same hardware. Missing innovation arrived: AI content generation + WebXR + NN-primary perception.",
+          "neededResponse": "1. Demo: HoloScript scene → compile_to_phonesleevevr → QR code → any phone in a $15 sleeve. 2. Target: gaming cafes, education, emerging markets ($499 Quest is out of reach). 3. Pairs with D.041 prone-bed: face-down VR on a phone sleeve is the most accessible form factor.",
+          "evidence": [
+            "packages/core/src/compiler/PhoneSleeveVRCompiler.ts",
+            "research/2026-05-10_ai-revival-of-abandoned-categories.md — PhoneSleeveVR worked example"
+          ],
+          "sources": [
+            "packages/core/src/compiler/PhoneSleeveVRCompiler.ts"
           ],
           "boardTaskId": null
         }

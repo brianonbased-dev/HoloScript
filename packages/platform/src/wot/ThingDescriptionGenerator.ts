@@ -173,6 +173,8 @@ export interface ThingDescriptionGeneratorOptions {
   defaultObservable?: boolean;
   /** Custom security definitions */
   securityDefinitions?: Record<string, SecurityScheme>;
+  /** Template nodes available for resolving inherited directives/properties */
+  templates?: HSPlusNode[];
 }
 
 // =============================================================================
@@ -181,6 +183,7 @@ export interface ThingDescriptionGeneratorOptions {
 
 export class ThingDescriptionGenerator {
   private options: ThingDescriptionGeneratorOptions;
+  private templateIndex: Map<string, HSPlusNode>;
 
   constructor(options: ThingDescriptionGeneratorOptions = {}) {
     this.options = {
@@ -188,27 +191,35 @@ export class ThingDescriptionGenerator {
       contentType: options.contentType || 'application/json',
       defaultObservable: options.defaultObservable ?? true,
       securityDefinitions: options.securityDefinitions,
+      templates: options.templates || [],
     };
+
+    this.templateIndex = new Map(
+      (this.options.templates || [])
+        .filter((template) => typeof template.name === 'string')
+        .map((template) => [template.name as string, template])
+    );
   }
 
   /**
    * Generate a Thing Description from a HoloScript node with @wot_thing trait
    */
   generate(node: HSPlusNode): ThingDescription | null {
-    const wotTrait = this.findWoTTrait(node);
+    const resolvedNode = this.mergeNodeWithTemplate(node);
+    const wotTrait = this.findWoTTrait(resolvedNode);
     if (!wotTrait) {
       return null;
     }
 
     const config = this.parseWoTConfig(wotTrait);
-    const stateProperties = this.extractStateProperties(node);
-    const actions = this.extractActions(node);
-    const events = this.extractEvents(node);
+    const stateProperties = this.extractStateProperties(resolvedNode);
+    const actions = this.extractActions(resolvedNode);
+    const events = this.extractEvents(resolvedNode);
 
     const td: ThingDescription = {
       '@context': 'https://www.w3.org/2022/wot/td/v1.1',
-      id: config.id || `urn:holoscript:${node.name || 'thing'}`,
-      title: config.title || node.name || 'Unnamed Thing',
+      id: config.id || `urn:holoscript:${resolvedNode.name || 'thing'}`,
+      title: config.title || resolvedNode.name || 'Unnamed Thing',
       security: 'default',
       securityDefinitions: this.buildSecurityDefinitions(config.security),
     };
@@ -266,6 +277,65 @@ export class ThingDescriptionGenerator {
     return results;
   }
 
+  private propertyListToRecord(properties: unknown): Record<string, unknown> {
+    if (!Array.isArray(properties)) {
+      return this.asRecord(properties);
+    }
+
+    const record: Record<string, unknown> = {};
+    for (const property of properties) {
+      const entry = this.asRecord(property);
+      const key = entry.key;
+      if (typeof key === 'string') {
+        record[key] = entry.value;
+      }
+    }
+    return record;
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private readNodeProperties(node: HSPlusNode): Record<string, unknown> {
+    return this.propertyListToRecord(node.properties);
+  }
+
+  private readInlineAffordanceMetadata(node: HSPlusNode): Record<string, unknown> {
+    const properties = this.readNodeProperties(node);
+    return this.asRecord(properties.properties);
+  }
+
+  private templateNameFor(node: HSPlusNode): string | null {
+    const template = (node as { template?: unknown }).template;
+    return typeof template === 'string' ? template : null;
+  }
+
+  private resolveTemplateNode(node: HSPlusNode): HSPlusNode | null {
+    const templateName = this.templateNameFor(node);
+    return templateName ? this.templateIndex.get(templateName) || null : null;
+  }
+
+  private mergeNodeWithTemplate(node: HSPlusNode): HSPlusNode {
+    const template = this.resolveTemplateNode(node);
+    if (!template) {
+      return node;
+    }
+
+    return {
+      ...template,
+      ...node,
+      properties: {
+        ...this.propertyListToRecord(template.properties),
+        ...this.propertyListToRecord(node.properties),
+      },
+      directives: [...(template.directives || []), ...(node.directives || [])],
+      children: node.children,
+    } as unknown as HSPlusNode;
+  }
+
   /**
    * Find @wot_thing directive in node
    */
@@ -316,15 +386,20 @@ export class ThingDescriptionGenerator {
 
     // Find @state directive (use any for flexibility with directive variants)
     const stateDirective = node.directives.find(
-      (d: any) =>
-        d.type === 'state' || (d.type === 'directive' && d.name === 'state')
+      (d: any) => d.type === 'state' || (d.type === 'directive' && d.name === 'state')
     );
 
     if (!stateDirective || !(stateDirective as { body?: unknown }).body) {
       // Also check node.properties for inline state
-      if (node.properties?.state && typeof node.properties.state === 'object') {
-        return this.mapStateToProperties(node.properties.state as Record<string, unknown>);
+      const nodeProperties = this.readNodeProperties(node);
+      if (nodeProperties.state && typeof nodeProperties.state === 'object') {
+        Object.assign(
+          properties,
+          this.mapStateToProperties(nodeProperties.state as Record<string, unknown>)
+        );
       }
+
+      Object.assign(properties, this.mapStateToProperties(this.readInlineAffordanceMetadata(node)));
       return properties;
     }
 
@@ -332,7 +407,9 @@ export class ThingDescriptionGenerator {
     const rawBody = (stateDirective as { body?: unknown }).body;
     const stateBody =
       typeof rawBody === 'object' && rawBody !== null ? (rawBody as Record<string, unknown>) : {};
-    return this.mapStateToProperties(stateBody);
+    Object.assign(properties, this.mapStateToProperties(stateBody));
+    Object.assign(properties, this.mapStateToProperties(this.readInlineAffordanceMetadata(node)));
+    return properties;
   }
 
   /**
@@ -448,7 +525,42 @@ export class ThingDescriptionGenerator {
       }
     }
 
+    const metadata = this.readInlineAffordanceMetadata(node);
+    const authoredAction = metadata.action;
+    if (typeof authoredAction === 'string' && authoredAction.trim()) {
+      const actionName = this.normalizeAffordanceName(authoredAction);
+      actions[actionName] = this.buildActionAffordance(
+        actionName,
+        typeof metadata.expected === 'string' ? metadata.expected : undefined
+      );
+    }
+
+    const authoredActions = metadata.actions;
+    if (Array.isArray(authoredActions)) {
+      for (const action of authoredActions) {
+        if (typeof action !== 'string' || !action.trim()) continue;
+        const actionName = this.normalizeAffordanceName(action);
+        actions[actionName] = this.buildActionAffordance(actionName);
+      }
+    }
+
     return actions;
+  }
+
+  private buildActionAffordance(actionName: string, expected?: string): ActionAffordance {
+    return {
+      title: this.toTitleCase(actionName),
+      description: expected || `Invoke ${actionName} action`,
+      safe: false,
+      idempotent: false,
+      forms: [
+        {
+          href: `${this.options.baseUrl}/actions/${actionName}`,
+          contentType: this.options.contentType,
+          op: 'invokeaction',
+        },
+      ],
+    };
   }
 
   /**
@@ -525,7 +637,51 @@ export class ThingDescriptionGenerator {
       }
     }
 
+    const metadata = this.readInlineAffordanceMetadata(node);
+    const nodeProperties = this.readNodeProperties(node);
+    const authoredEvent = metadata.event ?? nodeProperties.label;
+    if (typeof authoredEvent === 'string' && authoredEvent.trim()) {
+      const eventName = this.normalizeAffordanceName(authoredEvent);
+      if (!events[eventName]) {
+        events[eventName] = this.buildEventAffordance(eventName);
+      }
+    }
+
+    const authoredEvents = metadata.events;
+    if (Array.isArray(authoredEvents)) {
+      for (const event of authoredEvents) {
+        if (typeof event !== 'string' || !event.trim()) continue;
+        const eventName = this.normalizeAffordanceName(event);
+        if (!events[eventName]) {
+          events[eventName] = this.buildEventAffordance(eventName);
+        }
+      }
+    }
+
     return events;
+  }
+
+  private buildEventAffordance(eventName: string): EventAffordance {
+    return {
+      title: this.toTitleCase(eventName),
+      description: `${eventName} event`,
+      forms: [
+        {
+          href: `${this.options.baseUrl}/events/${eventName}`,
+          contentType: this.options.contentType,
+          subprotocol: 'sse',
+          op: 'subscribeevent',
+        },
+      ],
+    };
+  }
+
+  private normalizeAffordanceName(value: string): string {
+    return value
+      .trim()
+      .replace(/[^a-zA-Z0-9_ -]+/g, '')
+      .replace(/[\s-]+/g, '_')
+      .toLowerCase();
   }
 
   /**

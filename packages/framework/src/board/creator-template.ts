@@ -35,9 +35,11 @@ import type {
 import type {
   ValidationReceipt,
 } from './hololand-receipts';
+export type { ValidationReceipt } from './hololand-receipts';
 import type {
   Shard,
 } from './frontier-shard';
+export type { Shard } from './frontier-shard';
 import {
   validateShard,
 } from './frontier-shard';

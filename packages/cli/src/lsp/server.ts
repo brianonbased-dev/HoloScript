@@ -22,7 +22,7 @@ export class HoloScriptLanguageServer {
   constructor() {
     this.proxy = new CompilerWorkerProxy();
     // Intentionally fire and forget initialization
-    this.proxy.initialize().catch(err => {
+    this.proxy.initialize().catch((err: unknown) => {
       console.error('[CLI LSP] Failed to initialize worker proxy:', err);
     });
   }

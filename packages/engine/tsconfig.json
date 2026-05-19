@@ -18,13 +18,13 @@
     "isolatedModules": false,
     "baseUrl": ".",
     "paths": {
-      "@holoscript/core": ["../core/src"],
-      "@holoscript/core/*": ["../core/src/*"],
-      "@holoscript/framework": ["../framework/src"],
-      "@holoscript/framework/*": ["../framework/src/*"],
-      "@holoscript/crdt-spatial": ["../crdt-spatial/src"],
-      "@holoscript/snn-webgpu": ["../snn-webgpu/src"],
-      "@holoscript/uaal": ["../uaal/src"]
+      "@holoscript/core": ["../core/dist"],
+      "@holoscript/core/*": ["../core/dist/*"],
+      "@holoscript/framework": ["../framework/dist"],
+      "@holoscript/framework/*": ["../framework/dist/*"],
+      "@holoscript/crdt-spatial": ["../crdt-spatial/dist"],
+      "@holoscript/snn-webgpu": ["../snn-webgpu/dist"],
+      "@holoscript/uaal": ["../uaal/dist"]
     },
     "noImplicitAny": false
   },

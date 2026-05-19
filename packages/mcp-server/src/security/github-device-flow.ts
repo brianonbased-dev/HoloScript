@@ -285,9 +285,9 @@ export async function exchangeForHoloMeshToken(
   const { getOAuth21Service } = await import('./oauth21.js');
   const oauth = getOAuth21Service();
   const token = oauth.issueAccessToken({
-    clientId: introspection.clientId,
+    clientId: introspection.clientId ?? 'github',
     agentId: introspection.agentId,
-    scopes: introspection.scopes,
+    scopes: (introspection.scopes ?? []) as import('./oauth21.js').OAuthScope[],
   });
 
   return { holoMeshToken: token.accessToken, expiresIn: token.expiresIn };

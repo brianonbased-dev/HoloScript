@@ -636,6 +636,17 @@ export class OAuth21Service {
     };
   }
 
+  // ── Convenience ─────────────────────────────────────────────────────────
+
+  /** Issue a standalone access token for a pre-authenticated agent (e.g. from GitHub device flow). */
+  issueAccessToken(opts: { clientId: string; agentId?: string; scopes: OAuthScope[] }): {
+    accessToken: string;
+    expiresIn: number;
+  } {
+    const pair = this.issueTokenPair(opts.clientId, opts.scopes, opts.agentId);
+    return { accessToken: pair.access_token, expiresIn: pair.expires_in };
+  }
+
   // ── Internal ─────────────────────────────────────────────────────────────
 
   private issueTokenPair(

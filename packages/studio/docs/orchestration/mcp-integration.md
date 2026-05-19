@@ -115,11 +115,11 @@ HoloScript Studio auto-configures the MCP Mesh Orchestrator:
 │                                                    │
 │  ● mcp-orchestrator                        [✓]    │
 │    http://localhost:5567                          │
-│    8 tools • 245ms                                │
+│    live tool inventory • 245ms                    │
 │                                                    │
 │  ● semantic-search-hub                     [✓]    │
 │    via orchestrator                               │
-│    5 tools • 156ms                                │
+│    live tool inventory • 156ms                    │
 │                                                    │
 │  ○ holoscript-language                     [ ]    │
 │    via orchestrator                               │

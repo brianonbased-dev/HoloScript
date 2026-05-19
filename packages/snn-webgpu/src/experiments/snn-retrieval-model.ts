@@ -425,7 +425,7 @@ export class SNNRetrievalModel implements FactRetrievalModel {
           this.totalSpikeCount - Array.from(outputSpikeCounts).reduce((a, b) => a + b, 0),
         outputSpikes: Array.from(outputSpikeCounts).reduce((a, b) => a + b, 0),
         confidence,
-        shouldAbstain,
+        shouldAbstain: shouldAbstain ? 1 : 0,
         abstentionThreshold,
       },
     };

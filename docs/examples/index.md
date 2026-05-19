@@ -40,7 +40,7 @@ A full VR battle arena in ~100 lines.
 
 ### [AI Integration](/examples/ai-agent)
 
-Use MCP server (122 tools) for AI-generated content.
+Use the live MCP tool inventory for AI-generated content; verify the current count from `https://mcp.holoscript.net/health`.
 
 ### [Multi-Platform Export](/examples/export)
 

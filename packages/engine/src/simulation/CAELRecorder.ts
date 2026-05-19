@@ -40,11 +40,11 @@ export class CAELRecorder {
     this.append('init', 0, {
       solverType: replay.solverType,
       geometryHash: replay.geometryHash,
-      // Paper-0c TODO-05 followup: surface the composite Contract-ID
-      // (geometryHash + adapterFingerprint + subgridHash) at top level
-      // so replayers and dispute-dispatch logic can compare run identity
-      // in O(1). Backward-compat: equals geometryHash byte-identically
-      // when neither adapterFingerprint nor subgridParams was set.
+      // Composite Contract-ID (geometryHash + adapterFingerprint +
+      // subgridHash) at top level for O(1) replay-side identity
+      // comparison. Equals geometryHash byte-identically when neither
+      // adapterFingerprint nor subgridParams was set (backward-compat).
+      // Also exposed via getContractId() for direct caller access.
       contractId: replay.contractId,
       config: encodeCAELValue(config),
       contractConfig: encodeCAELValue(contractConfig),
@@ -53,11 +53,9 @@ export class CAELRecorder {
       // having to decode the entire contractConfig. Null when absent
       // (safe fallback: replayer treats null as cross-adapter).
       adapterFingerprint: contractConfig.adapterFingerprint ?? null,
-      // Paper-0c TODO-05 followup: full SubgridAttestation envelope
-      // (canonical form + hash + mode) for replay-side verification
-      // via verifySubgridAttestation() / verifySubgridAttestationAsync()
-      // from `@holoscript/core/paper-0c-spike`. Null when contract
-      // had no subgridParams — safe fallback (no attestation to verify).
+      // Full SubgridAttestation envelope (canonical form + hash + mode)
+      // for replay-side verification. Null when contract had no
+      // subgridParams — safe fallback (no attestation to verify).
       subgridAttestation: subgridAttestation ?? null,
       // Option C (Prereq 3): self-identify the hash mode so the
       // replayer can verify every event's hash shape matches the
@@ -77,6 +75,23 @@ export class CAELRecorder {
 
   getSolver(): SimSolver {
     return this.solver;
+  }
+
+  /**
+   * Returns the composite Contract-ID for this run in O(1).
+   *
+   * The Contract-ID is the composite of `geometryHash`, optional
+   * `adapterFingerprint`, and optional `subgridHash` (from subgridParams),
+   * exactly as defined in paper-0c §"Subgrid attestation". When neither
+   * `adapterFingerprint` nor `subgridParams` was set on the contract this
+   * equals `geometryHash` byte-identically (backward-compat).
+   *
+   * This is identical to `trace[0].payload.contractId` but avoids
+   * scanning the trace array — intended for replay and dispute-dispatch
+   * paths that need O(1) run-identity comparison.
+   */
+  getContractId(): string {
+    return this.contracted.getContractId();
   }
 
   step(wallDelta: number): number {

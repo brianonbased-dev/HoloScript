@@ -11,7 +11,7 @@
  * @see G.RENDER.005: Post-processing order matters
  */
 
-import { _useRef, useMemo, useEffect } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 

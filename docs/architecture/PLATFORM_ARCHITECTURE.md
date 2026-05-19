@@ -34,7 +34,7 @@
                     │                              │
          ┌──────────▼──────────┐        ┌─────────▼──────────┐
          │  Compiler Registry  │        │  Runtime Registry  │
-         │  25+ targets        │        │  Runtimes + Render │
+         │  registered targets │        │  Runtimes + Render │
          └──────────┬──────────┘        └─────────┬──────────┘
                     │                              │
                     │                              │
@@ -69,10 +69,10 @@
 .holo → Parser → HoloComposition → Compiler → Unity C# Code
                                             → Unreal C++ Code
                                             → WebXR JavaScript
-                                            → 12+ other targets
+                                            → other registered targets
 ```
 
-**Targets** (15 total):
+**Targets** (examples; verify the full list from `ExportTarget`):
 
 - Unity (C#)
 - Unreal Engine (C++)
@@ -141,8 +141,8 @@
 
 #### 3. Compiler Registry (`packages/core/src/compiler/`)
 
-- **Purpose**: Code generation for 25+ targets
-- **Size**: compilers (verify via `find *Compiler.ts`), ~50,000 lines
+- **Purpose**: Code generation for registered targets
+- **Size**: compilers (verify via `find *Compiler.ts`)
 - **Knowledge Base**: Material presets, type mappings, platform APIs
 - **Status**: ✅ Complete
 
@@ -235,16 +235,16 @@ Extracted from `R3FCompiler.ts` and reused at runtime:
 
 ### Codebase Size
 
-- **Total Project**: ~100,000+ lines
-- **Core Parser**: ~10,000 lines
-- **Compilers**: ~50,000 lines (25+ targets)
-- **Runtimes**: ~10,000 lines (demos + registry)
-- **Rendering**: ~1,000 lines (renderer interface + Three.js)
-- **Tests**: ~30,000 lines
+- **Total Project**: verify with the current code traversal tooling
+- **Core Parser**: verify from `packages/core/src/parser/`
+- **Compilers**: verify via `find packages/core/src -name "*Compiler.ts" -not -name "CompilerBase*" -not -name "*.test.*"`
+- **Runtimes**: verify from runtime package source
+- **Rendering**: verify from renderer package source
+- **Tests**: verify from the current test run or CI summary
 
 ### Test Coverage
 
-- **Total Tests**: 800+ tests
+- **Total Tests**: verify from `pnpm test` or current CI output
 - **Demolition Tests**: [see NUMBERS.md] 
 - **Coverage**: 80%+ (Codecov enforced)
 
@@ -258,9 +258,8 @@ Extracted from `R3FCompiler.ts` and reused at runtime:
 
 ### Compiler Targets
 
-- **Total Compilers**: 15
-- **String Output**: 12 (Unity, Godot, Babylon, OpenXR, WebGPU, URDF, SDF, PlayCanvas, DTDL, VisionOS)
-- **Object Output**: 3 (Unreal, VRChat, Android, iOS, WASM)
+- **Total Compilers**: verify via `docs/NUMBERS.md`
+- **Output Shapes**: inspect the current compiler implementations before publishing a count
 
 ## Platform Capabilities
 
@@ -271,8 +270,8 @@ Extracted from `R3FCompiler.ts` and reused at runtime:
 ✅ **Execute** - Runtime platform execution
 ✅ **Render** - Real-time 3D rendering with PBR
 ✅ **Simulate** - Physics, particles, structural mechanics
-✅ **Export** - Code generation for 25+ targets
-✅ **Test** - 800+ automated tests
+✅ **Export** - Code generation for registered targets
+✅ **Test** - automated tests; verify current count from CI or `pnpm test`
 ✅ **Secure** - Security sandbox, hallucination detection
 ✅ **Benchmark** - Performance comparisons vs Unity/glTF
 ✅ **Extend** - Trait system, runtime registry
@@ -286,7 +285,7 @@ Extracted from `R3FCompiler.ts` and reused at runtime:
 | **Visual Editor**        | ✅ Unity Editor    | 🚧 Hololand (planned) |
 | **Physics**              | ✅ PhysX           | ✅ Custom physics     |
 | **Rendering**            | ✅ Built-in RP     | ✅ Three.js/WebGL     |
-| **Export Targets**       | ❌ Unity only      | ✅ 25+ targets        |
+| **Export Targets**       | ❌ Unity only      | ✅ registered targets |
 | **Web Native**           | ❌ WebGL export    | ✅ Native web         |
 | **Material Library**     | ✅ Standard Assets | ✅ 80+ PBR presets    |
 | **Particle Systems**     | ✅ Shuriken        | ✅ 120K particles     |

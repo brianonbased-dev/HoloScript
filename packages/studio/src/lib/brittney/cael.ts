@@ -26,6 +26,7 @@ import { createHash } from 'node:crypto';
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { HOLOSCRIPT_VERSION } from '../release';
 
 export interface SimContractCheck {
   passed: boolean;
@@ -60,7 +61,7 @@ export interface BuildBrittneyCaelInput {
   prevChain: string | null;
 }
 
-const RUNTIME_VERSION = '7.0.0';
+const RUNTIME_VERSION = HOLOSCRIPT_VERSION;
 const PROVIDER = 'anthropic';
 const BRAIN_CLASS = 'brittney';
 

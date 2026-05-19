@@ -7,7 +7,7 @@
 
 import { FileWatcher, type ChangeEvent } from './Watcher';
 import { WatchReporter } from './Reporter';
-import { ChunkBasedIncrementalParser } from '../../core/src/parser/IncrementalParser';
+import { ChunkBasedIncrementalParser } from '@holoscript/core';
 
 export interface WatchOptions {
   /** Source files/globs to watch */

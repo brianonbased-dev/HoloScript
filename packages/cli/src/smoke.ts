@@ -141,7 +141,7 @@ async function validateFile(
   const content = fs.readFileSync(filePath, 'utf-8');
 
   const { HoloCompositionParser } = await import('@holoscript/core');
-  const parser = new HoloCompositionParser({ tolerant: true });
+  const parser = new HoloCompositionParser();
   const result = parser.parse(content);
 
   const errors: Array<{ line?: number; column?: number; message: string }> = [];
@@ -216,7 +216,7 @@ async function compileDemo(
     const content = fs.readFileSync(filePath, 'utf-8');
 
     const { HoloCompositionParser } = await import('@holoscript/core');
-    const parser = new HoloCompositionParser({ tolerant: true });
+    const parser = new HoloCompositionParser();
     const parseResult = parser.parse(content);
     const fatalDiagnostics = (parseResult.errors || [])
       .map((e: unknown) => e as CliParseError)
@@ -224,7 +224,7 @@ async function compileDemo(
     if (fatalDiagnostics.length > 0) {
       const summary = fatalDiagnostics
         .slice(0, 3)
-        .map((err) => {
+        .map((err: CliParseError) => {
           const line = err.loc?.line ?? err.line;
           const column = err.loc?.column ?? err.column;
           const location = line ? `${line}:${column ?? 0}: ` : '';
@@ -287,7 +287,7 @@ export async function runPhysicsSmoke(options: SmokeOptions): Promise<PhysicsSmo
     schema_version: 'physics-smoke-receipt-v1',
     benchmark: 'physics-smoke',
     generatedAt: new Date().toISOString(),
-    status: 'initializing',
+    status: 'completed',
     demos: [],
     summary: { total: 0, passed: 0, failed: 0, skipped: 0, physicsTraitCounts: {} },
     failures: [],

@@ -102,7 +102,7 @@ Edit: `C:/Users/josep/Documents/GitHub/HoloScript/.vscode/mcp.json`
       "command": "node",
       "args": ["dist/index.js"],
       "cwd": "C:/Users/josep/Documents/GitHub/HoloScript/packages/mcp-server",
-      "description": "HoloScript with browser control (37 tools)"
+      "description": "HoloScript with browser control (live tool inventory)"
     }
   }
 }

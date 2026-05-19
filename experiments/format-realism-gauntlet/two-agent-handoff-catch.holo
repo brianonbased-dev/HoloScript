@@ -33,6 +33,74 @@ composition "Two Agent Handoff Catch Probe" {
     material: { color: "#e0af68", roughness: 0.72, metallic: 0.12 }
   }
 
+  template "RiggedSuitMesh" {
+    @animated
+    @collidable
+    geometry: "skinned_mesh"
+    material: { color: "#6aa7ff", roughness: 0.36, metallic: 0.18, normal: "woven-fabric-normal", detail: "stitched-panel-detail", ao: "suit-ambient-occlusion" }
+  }
+
+  template "IKArmMesh" {
+    @animated
+    geometry: "rigged_mesh"
+    material: { color: "#8fd3ff", roughness: 0.32, metallic: 0.12, normal: "forearm-normal", detail: "muscle-line-detail" }
+  }
+
+  template "GloveMesh" {
+    @grabbable
+    geometry: "skinned_mesh"
+    material: { color: "#b7f28b", roughness: 0.28, metallic: 0.06, normal: "glove-grip-normal", detail: "finger-pad-detail", wear: "knuckle-wear" }
+  }
+
+  template "BootMesh" {
+    @collidable
+    geometry: "gltf_mesh"
+    material: { color: "#263241", roughness: 0.58, metallic: 0.1, normal: "boot-tread-normal", detail: "sole-detail", contact_shadow: true }
+  }
+
+  template "TrajectorySampleMesh" {
+    geometry: "sdf_mesh"
+    material: { color: "#f9c86a", roughness: 0.18, metallic: 0.05, emissive: "#e0af68", emissiveIntensity: 0.45, normal: "trajectory-spark-normal", detail: "motion-sample-detail" }
+  }
+
+  template "CatchVolumeMesh" {
+    @collidable
+    geometry: "gltf_mesh"
+    material: { color: "#bb9af7", roughness: 0.22, metallic: 0.04, transparent: true, opacity: 0.24, normal: "catch-volume-normal", detail: "proximity-grid-detail" }
+  }
+
+  template "SensorNodeMesh" {
+    @wot_thing
+    geometry: "detail_mesh"
+    material: { color: "#89ddff", roughness: 0.24, metallic: 0.22, emissive: "#17475a", emissiveIntensity: 0.38, normal: "sensor-housing-normal", detail: "indicator-led-detail" }
+  }
+
+  template "LightingProbeMesh" {
+    geometry: "environment-map-mesh"
+    material: { color: "#fff2c5", roughness: 0.2, metallic: 0.02, emissive: "#fff2c5", emissiveIntensity: 0.55, hdr: true, exposure: 1.05, detail: "softbox-diffuser-detail" }
+  }
+
+  template "SetDressingMesh" {
+    geometry: "photogrammetry_mesh"
+    material: { color: "#314155", roughness: 0.82, metallic: 0.04, normal: "floor-scuff-normal", displacement: "rubber-mat-displacement", detail: "dust-scratch-decal" }
+  }
+
+  template "ReceiptTileMesh" {
+    @billboard
+    geometry: "ui_mesh"
+    material: { color: "#d5f5e3", roughness: 0.18, metallic: 0.0, emissive: "#153426", emissiveIntensity: 0.28, detail: "receipt-text-glyph-detail", decal: "verified-stamp-decal" }
+  }
+
+  template "CameraRailMesh" {
+    geometry: "gltf_mesh"
+    material: { color: "#4b5563", roughness: 0.46, metallic: 0.22, normal: "rail-brushed-normal", detail: "dolly-marker-detail" }
+  }
+
+  template "MicroDebrisMesh" {
+    geometry: "scan_mesh"
+    material: { color: "#64748b", roughness: 0.88, metallic: 0.02, normal: "debris-normal", detail: "scatter-dust-detail", ao: "ground-contact-ao" }
+  }
+
   object "Floor" {
     @static
     @collidable
@@ -95,6 +163,62 @@ composition "Two Agent Handoff Catch Probe" {
     material: { color: "#d5f5e3", emissive: "#1a3a2a", emissiveIntensity: 0.2, transparent: true, opacity: 0.92 }
     label: "receipts: release catch ownership transfer"
   }
+
+  object "ThrowerHeadMesh" using "RiggedSuitMesh" { position: [-2.2, 1.92, 0.02] scale: [0.2, 0.24, 0.18] material: { color: "#8fb9ff", roughness: 0.34, metallic: 0.12, normal: "helmet-normal", detail: "visor-decal-detail" } label: "skinned thrower head gaze line" }
+  object "ThrowerSpineMesh" using "RiggedSuitMesh" { position: [-2.2, 1.38, 0.0] scale: [0.28, 0.42, 0.18] label: "rigged thrower spine twist" }
+  object "ThrowerLeftArmMesh" using "IKArmMesh" { position: [-2.45, 1.38, -0.04] rotation: [0, 0, -20] scale: [0.11, 0.46, 0.11] label: "thrower left arm counterbalance" }
+  object "ThrowerRightArmMesh" using "IKArmMesh" { position: [-1.86, 1.36, 0.06] rotation: [0, 0, 58] scale: [0.11, 0.54, 0.11] label: "thrower right arm release ik" }
+  object "ThrowerRightGloveMesh" using "GloveMesh" { position: [-1.62, 1.34, 0.08] scale: [0.12, 0.12, 0.1] label: "thrower release glove detail" }
+  object "ThrowerLeftGloveMesh" using "GloveMesh" { position: [-2.58, 1.22, -0.05] scale: [0.1, 0.1, 0.09] label: "thrower balance glove detail" }
+  object "ThrowerLeftBootMesh" using "BootMesh" { position: [-2.42, 0.28, 0.16] scale: [0.16, 0.12, 0.28] label: "thrower planted boot contact shadow" }
+  object "ThrowerRightBootMesh" using "BootMesh" { position: [-2.02, 0.28, -0.12] scale: [0.16, 0.12, 0.28] label: "thrower pivot boot contact shadow" }
+  object "CatcherHeadMesh" using "RiggedSuitMesh" { position: [2.2, 1.92, 0.02] scale: [0.2, 0.24, 0.18] material: { color: "#c9adff", roughness: 0.34, metallic: 0.12, normal: "helmet-normal", detail: "catcher-visor-decal-detail" } label: "skinned catcher head tracks baton" }
+  object "CatcherSpineMesh" using "RiggedSuitMesh" { position: [2.2, 1.38, 0.0] scale: [0.28, 0.42, 0.18] material: { color: "#bb9af7", roughness: 0.34, metallic: 0.12, normal: "suit-panel-normal", detail: "catcher-rib-detail" } label: "rigged catcher spine brace" }
+  object "CatcherLeftArmMesh" using "IKArmMesh" { position: [1.86, 1.34, 0.08] rotation: [0, 0, -58] scale: [0.11, 0.54, 0.11] material: { color: "#c4b5fd", roughness: 0.3, metallic: 0.1, normal: "forearm-normal", detail: "catcher-reach-detail" } label: "catcher left arm receive ik" }
+  object "CatcherRightArmMesh" using "IKArmMesh" { position: [2.47, 1.34, -0.04] rotation: [0, 0, 20] scale: [0.11, 0.46, 0.11] material: { color: "#c4b5fd", roughness: 0.32, metallic: 0.1, normal: "forearm-normal", detail: "catcher-balance-detail" } label: "catcher right arm stabilizer" }
+  object "CatcherLeftGloveMesh" using "GloveMesh" { position: [1.62, 1.3, 0.08] scale: [0.12, 0.12, 0.1] material: { color: "#f0abfc", roughness: 0.26, metallic: 0.06, normal: "glove-grip-normal", detail: "catch-pad-detail", wear: "palm-wear" } label: "catcher catch glove detail" }
+  object "CatcherRightGloveMesh" using "GloveMesh" { position: [2.58, 1.2, -0.05] scale: [0.1, 0.1, 0.09] material: { color: "#f0abfc", roughness: 0.28, metallic: 0.06, normal: "glove-grip-normal", detail: "brace-pad-detail" } label: "catcher brace glove detail" }
+  object "CatcherLeftBootMesh" using "BootMesh" { position: [2.0, 0.28, 0.16] scale: [0.16, 0.12, 0.28] label: "catcher lead boot contact shadow" }
+  object "CatcherRightBootMesh" using "BootMesh" { position: [2.42, 0.28, -0.12] scale: [0.16, 0.12, 0.28] label: "catcher rear boot contact shadow" }
+  object "CatchVolumeOuterMesh" using "CatchVolumeMesh" { position: [1.68, 1.3, 0.08] scale: [0.44, 0.34, 0.34] label: "transparent catch volume foreground" }
+  object "CatchVolumeInnerMesh" using "CatchVolumeMesh" { position: [1.62, 1.3, 0.08] scale: [0.24, 0.18, 0.18] material: { color: "#9ece6a", roughness: 0.18, metallic: 0.04, transparent: true, opacity: 0.34, normal: "inner-volume-normal", detail: "catch-threshold-detail" } label: "inner catch threshold marker" }
+  object "OwnershipThreadMesh" using "TrajectorySampleMesh" { position: [0.15, 1.42, 0.11] rotation: [0, 0, 84] scale: [0.04, 0.34, 0.04] label: "ownership transfer line from thrower to catcher" }
+  object "TrajectorySample00Mesh" using "TrajectorySampleMesh" { position: [-1.26, 1.35, 0.08] scale: [0.05, 0.05, 0.05] label: "trajectory foreground release sample" }
+  object "TrajectorySample01Mesh" using "TrajectorySampleMesh" { position: [-0.82, 1.54, 0.1] scale: [0.055, 0.055, 0.055] label: "trajectory early arc sample" }
+  object "TrajectorySample02Mesh" using "TrajectorySampleMesh" { position: [-0.38, 1.7, 0.12] scale: [0.06, 0.06, 0.06] label: "trajectory midground arc sample" }
+  object "TrajectorySample03Mesh" using "TrajectorySampleMesh" { position: [0.08, 1.82, 0.14] scale: [0.065, 0.065, 0.065] label: "trajectory apex arc sample" }
+  object "TrajectorySample04Mesh" using "TrajectorySampleMesh" { position: [0.56, 1.74, 0.12] scale: [0.06, 0.06, 0.06] label: "trajectory late arc sample" }
+  object "TrajectorySample05Mesh" using "TrajectorySampleMesh" { position: [1.04, 1.55, 0.1] scale: [0.055, 0.055, 0.055] label: "trajectory catch approach sample" }
+  object "TrajectorySample06Mesh" using "TrajectorySampleMesh" { position: [1.48, 1.34, 0.08] scale: [0.05, 0.05, 0.05] label: "trajectory catch volume sample" }
+  object "KeyAreaLightMesh" using "LightingProbeMesh" { position: [-1.2, 3.2, 1.7] scale: [0.18, 0.18, 0.06] label: "area_light key softbox hdr exposure" }
+  object "RimPointLightMesh" using "LightingProbeMesh" { position: [2.7, 2.45, 1.2] scale: [0.14, 0.14, 0.06] label: "point_light rim highlight hdr" }
+  object "FillDirectionalLightMesh" using "LightingProbeMesh" { position: [0, 2.9, -1.7] scale: [0.2, 0.08, 0.08] label: "directional_light fill color_management aces tonemapping" }
+  object "ExposureReferenceTileMesh" using "ReceiptTileMesh" { position: [-3.1, 2.05, -1.2] scale: [0.7, 0.2, 0.04] label: "hdr exposure reference tile" }
+  object "CameraRailForegroundMesh" using "CameraRailMesh" { position: [-1.6, 0.08, 1.25] rotation: [0, 18, 0] scale: [0.12, 0.12, 0.9] label: "foreground camera rail shot marker" }
+  object "CameraRailMidgroundMesh" using "CameraRailMesh" { position: [0, 0.08, 1.35] rotation: [0, 0, 0] scale: [0.12, 0.12, 1.1] label: "midground dolly rail framing marker" }
+  object "CameraRailBackgroundMesh" using "CameraRailMesh" { position: [1.6, 0.08, 1.25] rotation: [0, -18, 0] scale: [0.12, 0.12, 0.9] label: "background camera rail occlusion marker" }
+  object "FloorMatForegroundMesh" using "SetDressingMesh" { position: [-1.7, 0.02, 0.5] scale: [0.7, 0.04, 0.5] label: "foreground rubber mat scuff decal" }
+  object "FloorMatMidgroundMesh" using "SetDressingMesh" { position: [0, 0.02, 0.48] scale: [0.9, 0.04, 0.52] label: "midground floor mat dust scratch decal" }
+  object "FloorMatBackgroundMesh" using "SetDressingMesh" { position: [1.7, 0.02, 0.5] scale: [0.7, 0.04, 0.5] label: "background floor mat contact shadow" }
+  object "OcclusionStandLeftMesh" using "SetDressingMesh" { position: [-2.95, 0.78, -0.42] scale: [0.16, 0.92, 0.16] label: "left occlusion stand prop" }
+  object "OcclusionStandRightMesh" using "SetDressingMesh" { position: [2.95, 0.78, -0.42] scale: [0.16, 0.92, 0.16] label: "right occlusion stand prop" }
+  object "WindSensorNodeMesh" using "SensorNodeMesh" { position: [0, 2.1, -1.05] scale: [0.22, 0.14, 0.1] properties: { thingId: "urn:holoscript:format-stress:handoff-wind", base: "hololand://handoff/wind", observedProperty: "crosswind" } label: "WoT sensor node affects catch risk" }
+  object "LatencySensorNodeMesh" using "SensorNodeMesh" { position: [-0.52, 2.02, -1.08] scale: [0.18, 0.12, 0.08] properties: { thingId: "urn:holoscript:format-stress:handoff-latency", base: "holoshell://handoff/latency", observedProperty: "handoff_latency_ms" } label: "HoloShell latency sensor node" }
+  object "OwnershipSensorNodeMesh" using "SensorNodeMesh" { position: [0.52, 2.02, -1.08] scale: [0.18, 0.12, 0.08] properties: { thingId: "urn:holoscript:format-stress:ownership", base: "holomesh://handoff/ownership", observedProperty: "semantic_owner" } label: "HoloMesh ownership sensor node" }
+  object "ReleaseReceiptTileMesh" using "ReceiptTileMesh" { position: [-1.65, 2.45, -1.26] scale: [0.72, 0.18, 0.04] label: "receipt release detached verified stamp" }
+  object "ArcReceiptTileMesh" using "ReceiptTileMesh" { position: [-0.55, 2.53, -1.28] scale: [0.72, 0.18, 0.04] label: "receipt ballistic arc sample verified stamp" }
+  object "CatchReceiptTileMesh" using "ReceiptTileMesh" { position: [0.55, 2.53, -1.28] scale: [0.72, 0.18, 0.04] label: "receipt catch constraint verified stamp" }
+  object "TransferReceiptTileMesh" using "ReceiptTileMesh" { position: [1.65, 2.45, -1.26] scale: [0.72, 0.18, 0.04] label: "receipt ownership transfer verified stamp" }
+  object "ProvenancePanelMesh" using "ReceiptTileMesh" { position: [0, 2.85, -1.34] scale: [1.6, 0.22, 0.04] label: "provenance panel deterministic replay event hash" }
+  object "DebrisScatter00Mesh" using "MicroDebrisMesh" { position: [-2.65, 0.06, 0.78] scale: [0.06, 0.035, 0.05] label: "foreground scatter debris contact shadow" }
+  object "DebrisScatter01Mesh" using "MicroDebrisMesh" { position: [-2.1, 0.06, 0.92] scale: [0.05, 0.03, 0.04] label: "foreground dust scatter" }
+  object "DebrisScatter02Mesh" using "MicroDebrisMesh" { position: [-1.45, 0.06, 0.86] scale: [0.05, 0.032, 0.045] label: "release foot debris scatter" }
+  object "DebrisScatter03Mesh" using "MicroDebrisMesh" { position: [-0.72, 0.06, 0.72] scale: [0.052, 0.03, 0.042] label: "midground debris scatter" }
+  object "DebrisScatter04Mesh" using "MicroDebrisMesh" { position: [0.18, 0.06, 0.88] scale: [0.048, 0.03, 0.04] label: "arc shadow dust scatter" }
+  object "DebrisScatter05Mesh" using "MicroDebrisMesh" { position: [0.92, 0.06, 0.74] scale: [0.056, 0.034, 0.046] label: "catch approach debris scatter" }
+  object "DebrisScatter06Mesh" using "MicroDebrisMesh" { position: [1.6, 0.06, 0.9] scale: [0.05, 0.03, 0.04] label: "catch boot debris scatter" }
+  object "DebrisScatter07Mesh" using "MicroDebrisMesh" { position: [2.25, 0.06, 0.82] scale: [0.054, 0.034, 0.046] label: "catcher stance debris scatter" }
+  object "DebrisScatter08Mesh" using "MicroDebrisMesh" { position: [2.78, 0.06, 0.68] scale: [0.045, 0.03, 0.04] label: "background debris scatter" }
 
   camera perspective {
     position: [-3.6, 2.2, 4.2]

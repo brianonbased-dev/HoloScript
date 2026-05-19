@@ -2909,6 +2909,7 @@ export class HoloCompositionParser {
       'TEMPLATE',
       'STATE',
       'OBJECT',
+      'ACTION',
       'ON_ERROR',
       // Structured physics sub-block keywords (can also appear as property names)
       'COLLIDER',
@@ -3308,6 +3309,29 @@ export class HoloCompositionParser {
     const include: string[] = [];
     const exclude: string[] = [];
     let isExclude = false;
+    let sawNotClause = false;
+
+    this.skipNewlines();
+
+    // Reject leading comma: @platform(, vr)
+    if (this.check('COMMA')) {
+      this.error(
+        '@platform(): leading comma is not valid syntax — remove the comma before the first platform name',
+        'Example: @platform(vr, ar)'
+      );
+      this.advance(); // consume the leading comma and continue
+      this.skipNewlines();
+    }
+
+    // Reject empty @platform() at the parser level
+    if (this.check('RPAREN')) {
+      this.error(
+        '@platform(): empty platform list — specify at least one platform or category (e.g. @platform(vr))',
+        'Valid categories: vr, ar, mobile, desktop, automotive, wearable'
+      );
+      this.expect('RPAREN');
+      return { include, exclude };
+    }
 
     while (!this.check('RPAREN') && !this.isAtEnd()) {
       this.skipNewlines();
@@ -3322,6 +3346,38 @@ export class HoloCompositionParser {
         this.advance(); // consume 'not'
         this.advance(); // consume ':'
         isExclude = true;
+        sawNotClause = true;
+        this.skipNewlines();
+
+        // Reject empty not: clause: @platform(not: )
+        if (this.check('RPAREN')) {
+          this.error(
+            '@platform(not: ...): empty exclusion list — specify at least one platform after "not:"',
+            'Example: @platform(not: desktop)'
+          );
+          break;
+        }
+        continue;
+      }
+
+      // Check for invalid negation syntax: @platform(:not vr)
+      // The lexer tokenises ':' as COLON; if we see COLON followed by 'not', it is a misplaced colon.
+      if (this.check('COLON')) {
+        const nextTok = this.peek(1);
+        if (nextTok.type === 'IDENTIFIER' && nextTok.value === 'not') {
+          this.error(
+            '@platform(): invalid negation syntax ":not ..." — the correct form is "not: <platform>"',
+            'Example: @platform(not: desktop)'
+          );
+          this.advance(); // consume ':'
+          this.advance(); // consume 'not'
+          isExclude = true;
+          sawNotClause = true;
+          this.skipNewlines();
+          continue;
+        }
+        // Other stray colons — skip
+        this.advance();
         continue;
       }
 
@@ -3346,10 +3402,21 @@ export class HoloCompositionParser {
         include.push(platformName);
       }
 
+      this.skipNewlines();
+
       if (this.check('COMMA')) {
         this.advance(); // consume ','
+        this.skipNewlines();
+
+        // Reject trailing comma: @platform(vr, )
+        if (this.check('RPAREN')) {
+          this.error(
+            '@platform(): trailing comma is not valid syntax — remove the comma after the last platform name',
+            'Example: @platform(vr, ar)'
+          );
+          break;
+        }
       }
-      this.skipNewlines();
     }
 
     this.expect('RPAREN');

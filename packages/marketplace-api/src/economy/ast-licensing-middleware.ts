@@ -59,29 +59,31 @@ type PathToRegexpModule = {
 
 const require = createRequire(import.meta.url);
 const pathRegexpAny = require('path-to-regexp') as PathToRegexpModule;
-const defaultExport = pathRegexpAny.default;
-const pathToRegexpFn =
-  typeof pathRegexpAny === 'function'
-    ? (pathRegexpAny as PathToRegexpFunction)
-    : typeof pathRegexpAny.pathToRegexp === 'function'
-      ? pathRegexpAny.pathToRegexp
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const pathRegexpAnyLoose = pathRegexpAny as any;
+const defaultExport = pathRegexpAnyLoose.default;
+const pathToRegexpFn: PathToRegexpFunction | undefined =
+  typeof pathRegexpAnyLoose === 'function'
+    ? (pathRegexpAnyLoose as PathToRegexpFunction)
+    : typeof pathRegexpAnyLoose.pathToRegexp === 'function'
+      ? (pathRegexpAnyLoose.pathToRegexp as PathToRegexpFunction)
       : typeof defaultExport === 'function'
-        ? defaultExport
+        ? (defaultExport as PathToRegexpFunction)
         : typeof defaultExport === 'object' && typeof defaultExport.pathToRegexp === 'function'
-          ? defaultExport.pathToRegexp
+          ? (defaultExport.pathToRegexp as PathToRegexpFunction)
           : undefined;
 
-if (typeof pathRegexpAny.match !== 'function' && pathToRegexpFn) {
-  pathRegexpAny.match = (path: string, options?: unknown) => {
+if (typeof pathRegexpAnyLoose.match !== 'function' && pathToRegexpFn) {
+  pathRegexpAnyLoose.match = (path: string, options?: unknown) => {
     const keys: Array<{ name: string }> = [];
     const compiled = pathToRegexpFn(path, keys, options);
-    const re = compiled instanceof RegExp ? compiled : compiled.regexp;
-    const compiledKeys = compiled instanceof RegExp ? keys : compiled.keys ?? keys;
+    const re = compiled instanceof RegExp ? compiled : (compiled as { regexp: RegExp }).regexp;
+    const compiledKeys = compiled instanceof RegExp ? keys : ((compiled as { keys?: Array<{ name: string }> }).keys ?? keys);
     return (pathname: string) => {
       const m = re.exec(pathname);
       if (!m) return false;
       const params: Record<string, string> = {};
-      compiledKeys.forEach((k, i) => {
+      compiledKeys.forEach((k: { name: string }, i: number) => {
         params[k.name] = m[i + 1];
       });
       return {
@@ -122,7 +124,7 @@ export interface ASTLicenseRouteOptions {
  */
 export function requireASTLicense(registry: ASTLicenseRegistry) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const assetId = req.params.assetId;
+    const assetId = req.params['assetId'] as string;
     const gate = registry.getGate(assetId);
     if (!gate) {
       res.status(404).json({ error: 'Unknown asset', assetId });
@@ -284,9 +286,9 @@ export function createASTAssetRouter(opts: ASTLicenseRouteOptions = {}): Router 
 
   // ── PUBLIC MANIFEST (no payment) ───────────────────────────────────────────
   router.get('/ast-assets/:assetId/manifest', (req: Request, res: Response) => {
-    const gate = registry.getGate(req.params.assetId);
+    const gate = registry.getGate(req.params['assetId'] as string);
     if (!gate) {
-      res.status(404).json({ error: 'Unknown asset', assetId: req.params.assetId });
+      res.status(404).json({ error: 'Unknown asset', assetId: req.params['assetId'] as string });
       return;
     }
     res.json({ manifest: gate.getPublicManifest() });

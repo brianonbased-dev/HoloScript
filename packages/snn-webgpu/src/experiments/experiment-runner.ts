@@ -33,7 +33,7 @@ import {
   splitTrainTest,
   computePropertyAccuracy,
   computeMSE,
-  _encodeTraitDense,
+  encodeTraitDense as _encodeTraitDense,
 } from './trait-knowledge-base.js';
 import { SNNRetrievalModel } from './snn-retrieval-model.js';
 import { BackpropRetrievalModel } from './backprop-retrieval-model.js';

@@ -4,5 +4,5 @@
 
 ### Patch Changes
 
-- @holoscript/core@8.0.0
+- @holoscript/core@6.1.0
 - @holoscript/crdt-spatial@1.0.1

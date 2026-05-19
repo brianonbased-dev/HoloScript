@@ -4,15 +4,15 @@
 
 ### Patch Changes
 
-- @holoscript/sdk@8.0.0
-- @holoscript/lsp@8.0.0
+- @holoscript/sdk@6.1.0
+- @holoscript/lsp@6.1.0
 
 ## 4.0.2
 
 ### Patch Changes
 
-- @holoscript/sdk@7.0.0
-- @holoscript/lsp@7.0.0
+- @holoscript/sdk@6.1.0
+- @holoscript/lsp@6.1.0
 
 ## 4.0.1
 

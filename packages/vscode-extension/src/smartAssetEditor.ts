@@ -82,9 +82,9 @@ export class SmartAssetEditorProvider implements vscode.CustomReadonlyEditorProv
 
   private getHtmlForWebview(asset: Record<string, unknown>): string {
     const scriptPreview = asset.script || '// No script provided';
-    const metadata = asset.metadata || {};
-    const physics = asset.physics || {};
-    const ai = asset.ai || {};
+    const metadata = (asset.metadata || {}) as Record<string, unknown>;
+    const physics = (asset.physics || {}) as Record<string, unknown>;
+    const ai = (asset.ai || {}) as Record<string, unknown>;
 
     return `
             <!DOCTYPE html>
@@ -141,7 +141,7 @@ export class SmartAssetEditorProvider implements vscode.CustomReadonlyEditorProv
                 <div class="card">
                     <p>${metadata.description || 'No description provided.'}</p>
                     <div style="margin-top: 10px;">
-                        ${(metadata.tags || []).map((t: string) => `<span class="tag">${t}</span>`).join('')}
+                        ${((metadata.tags as string[] | undefined) || []).map((t: string) => `<span class="tag">${t}</span>`).join('')}
                     </div>
                 </div>
 
@@ -158,7 +158,7 @@ export class SmartAssetEditorProvider implements vscode.CustomReadonlyEditorProv
                 </div>
 
                 <h2>HoloScript Logic</h2>
-                <pre><code>${this.escapeHtml(scriptPreview)}</code></pre>
+                <pre><code>${this.escapeHtml(String(scriptPreview))}</code></pre>
 
                 <script>
                     const vscode = acquireVsCodeApi();

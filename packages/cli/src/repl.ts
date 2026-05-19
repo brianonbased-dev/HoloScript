@@ -252,7 +252,7 @@ ${COLORS.bright}HoloScript Syntax Examples:${COLORS.reset}
     }
 
     console.log(`\n${COLORS.bright}Variables:${COLORS.reset}`);
-    vars.forEach((value, name) => {
+    vars.forEach((value: any, name: any) => {
       const type = typeof value;
       const display = JSON.stringify(value);
       console.log(
@@ -272,8 +272,8 @@ ${COLORS.bright}HoloScript Syntax Examples:${COLORS.reset}
     }
 
     console.log(`\n${COLORS.bright}Functions:${COLORS.reset}`);
-    funcs.forEach((func, name) => {
-      const params = func.parameters.map((p) => `${p.name}: ${p.dataType}`).join(', ');
+    funcs.forEach((func: any, name: any) => {
+      const params = (func.parameters ?? []).map((p: any) => `${p.name}: ${p.dataType}`).join(', ');
       const returnType = func.returnType || 'void';
       console.log(
         `  ${COLORS.magenta}${name}${COLORS.reset}(${params}): ${COLORS.dim}${returnType}${COLORS.reset}`
@@ -430,14 +430,14 @@ ${COLORS.dim}Example: .k search spread operator${COLORS.reset}
     console.log(`\n${COLORS.bright}Found ${results.length} results:${COLORS.reset}\n`);
 
     results.forEach((r, i) => {
-      const categoryColor =
-        {
+      const categoryColorMap: Record<string, string> = {
           pattern: COLORS.cyan,
           gotcha: COLORS.yellow,
           wisdom: COLORS.magenta,
           research: COLORS.blue,
           session: COLORS.dim,
-        }[r.metadata.category] || COLORS.reset;
+        };
+      const categoryColor = categoryColorMap[r.metadata.category as string] || COLORS.reset;
 
       console.log(
         `${categoryColor}${i + 1}. [${r.score.toFixed(2)}] ${r.metadata.category}:${r.metadata.domain}${COLORS.reset}`

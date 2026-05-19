@@ -2,9 +2,9 @@
 
 ## Rule
 
-**PyPI major tracks npm platform major unless explicitly declared independent.**
+**Package versions are lane-managed. Do not assume every workspace package shares the same major.**
 
-When we release a new version (e.g. `v7.0.0`) as a git tag:
+When we release a new version tag:
 
 - npm packages in the platform-synced lane publish at that version
 - PyPI `holoscript` publishes at that version
@@ -20,8 +20,8 @@ These follow their own semver:
 
 ## How it works
 
-1. Create a git tag: `git tag v7.0.0` (example)
-2. Push: `git push origin v7.0.0`
+1. Create a git tag for the release lane.
+2. Push the tag.
 3. GitHub Actions triggers:
    - `publish-pypi.yml` → extracts version from tag → builds Python package → publishes to PyPI
    - `release-multi-platform.yml` → runs `pnpm release:publish` → publishes npm packages via changesets
@@ -32,12 +32,17 @@ These follow their own semver:
 The publish-pypi workflow validates that the tag major matches the npm root major.
 If they diverge, the workflow fails with a clear error message.
 
-## Current state (verified from repository)
+## Current state
 
-- npm root `holoscript`: `7.0.0` (from `/package.json`)
-- npm `@holoscript/core`: `7.0.0` (from `packages/core/package.json`)
-- npm `@holoscript/engine`: `7.0.0` (from `packages/engine/package.json`)
-- npm `@holoscript/mcp-server`: `7.0.0` (from `packages/mcp-server/package.json`)
+Verify from repository manifests at release time:
+
+```bash
+node -p "require('./package.json').version"
+node -p "require('./packages/core/package.json').version"
+node -p "require('./packages/engine/package.json').version"
+node -p "require('./packages/mcp-server/package.json').version"
+pnpm version:check
+```
 
 For PyPI package state, verify directly at release time (do not hardcode here):
 
@@ -46,4 +51,4 @@ pip index versions holoscript
 pip index versions holoscript-mesh
 ```
 
-If npm platform lane is moved to 6.1.x, PyPI `holoscript` should follow that major on the next tagged publish.
+If a lane moves, update `scripts/version-policy.json`, rerun `pnpm version:check`, and only then update registry-facing copy.

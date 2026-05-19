@@ -1,28 +1,10 @@
 # @holoscript/cli
 
-## 8.0.0
+## 6.1.0
 
-### Patch Changes
+### Changed
 
-- Updated dependencies [c6e69b8]
-- Updated dependencies [440e163]
-  - @holoscript/engine@8.0.0
-  - @holoscript/core@8.0.0
-  - @holoscript/platform@8.0.0
-  - @holoscript/absorb-service@8.0.0
-  - @holoscript/framework@7.0.1
-  - @holoscript/sdk@8.0.0
-  - @holoscript/hololand-platform@6.0.6
-
-## 7.0.0
-
-### Patch Changes
-
-- Updated dependencies
-  - @holoscript/core@7.0.0
-  - @holoscript/engine@7.0.0
-  - @holoscript/absorb-service@7.0.0
-  - @holoscript/sdk@7.0.0
+- Align release metadata with the HoloScript 6.x line. See the root CHANGELOG for the outward-facing release narrative.
 
 ## 6.0.3
 

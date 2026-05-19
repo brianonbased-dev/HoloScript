@@ -44,11 +44,11 @@ export class ConfigLoader {
 
       for (const base of bases) {
         const baseConfig = await this.resolveAndLoadBase(base, path.dirname(absolutePath));
-        mergedBase = mergeConfigs(mergedBase, baseConfig);
+        mergedBase = mergeConfigs(mergedBase as Record<string, unknown>, baseConfig as Record<string, unknown>) as HoloScriptConfig;
       }
 
       // Merge current config over the bases
-      config = mergeConfigs(mergedBase, config);
+      config = mergeConfigs(mergedBase as Record<string, unknown>, config as Record<string, unknown>) as HoloScriptConfig;
     }
 
     return config;

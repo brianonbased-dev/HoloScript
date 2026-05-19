@@ -118,7 +118,7 @@ export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResul
 
         await sorter.initialize();
         if (cancelled) {
-          sorter.dispose();
+          sorter.destroy();
           device.destroy();
           return;
         }
@@ -136,7 +136,7 @@ export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResul
     return () => {
       cancelled = true;
       if (sorterRef.current) {
-        sorterRef.current.dispose();
+        sorterRef.current.destroy();
         sorterRef.current = null;
       }
       if (deviceRef.current) {
@@ -198,7 +198,7 @@ export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResul
 
   const dispose = useCallback(() => {
     if (sorterRef.current) {
-      sorterRef.current.dispose();
+      sorterRef.current.destroy();
       sorterRef.current = null;
     }
     deviceRef.current = null;

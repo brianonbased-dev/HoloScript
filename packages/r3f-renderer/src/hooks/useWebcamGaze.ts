@@ -53,13 +53,13 @@ export function useWebcamGaze(options: UseWebcamGazeOptions = {}): UseWebcamGaze
     const tracker = new WebcamGazeTracker({
       config,
       videoElement: options.videoRef?.current ?? null,
-      onSample(sample) {
+      onSample(sample: WebcamGazeSample) {
         setGaze(sample);
         setTracking(true);
         setError(null);
         options.onSample?.(sample);
       },
-      onError(err) {
+      onError(err: Error) {
         setError(err.message);
       },
     });

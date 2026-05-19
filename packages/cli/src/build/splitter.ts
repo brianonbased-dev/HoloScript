@@ -63,7 +63,7 @@ export class SceneSplitter {
   private extractZoneBounds(zones: HoloZone[]): Map<string, number[][]> {
     const boundsMap = new Map<string, number[][]>();
     for (const zone of zones) {
-      const boundsProp = zone.properties.find((p) => p.key === 'bounds');
+      const boundsProp = zone.properties.find((p: any) => p.key === 'bounds');
       if (boundsProp && Array.isArray(boundsProp.value)) {
         boundsMap.set(zone.name, boundsProp.value as number[][]);
       }

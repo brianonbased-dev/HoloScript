@@ -290,7 +290,7 @@ describe('create-holoscript-app', () => {
       expect(deps['react-dom']).toBe('^18.2.0');
       expect(deps['@react-three/fiber']).toBe('^8.17.10');
       expect(deps['@react-three/drei']).toBe('^9.114.0');
-      expect(deps['@holoscript/core']).toBe('^7.0.0');
+      expect(deps['@holoscript/core']).toBe('^6.1.0');
       expect(devDeps['@vitejs/plugin-react']).toBe('^4.3.4');
     });
 

@@ -4,26 +4,30 @@
   "lanes": [
     {
       "name": "platform-v6",
-      "description": "Primary platform/runtime packages on major 7 (lane id kept for scripts; 2026-04 platform-v7 release)",
+      "description": "Primary platform/runtime packages on the current 6.x release line",
       "enforce": "major",
-      "targetMajor": 7,
+      "targetMajor": 6,
       "sync": true,
       "packages": [
         "@holoscript/absorb-service",
         "@holoscript/absorb-service-host",
-        "@holoscript/core",
-        "@holoscript/cli",
         "@holoscript/agent-protocol",
         "@holoscript/auth",
+        "@holoscript/cli",
         "@holoscript/config",
+        "@holoscript/core",
         "@holoscript/core-types",
         "@holoscript/engine",
         "@holoscript/framework",
         "@holoscript/holo-vm",
+        "@holoscript/hololand-platform",
         "@holoscript/mcp-server",
+        "@holoscript/mesh",
+        "@holoscript/platform",
         "@holoscript/r3f-renderer",
         "@holoscript/runtime",
         "@holoscript/sdk",
+        "@holoscript/secrets-broker",
         "@holoscript/snn-webgpu",
         "@holoscript/studio",
         "@holoscript/uaal"
@@ -31,9 +35,9 @@
     },
     {
       "name": "tooling-v6",
-      "description": "Tooling and developer-facing support packages on major 7 (aligned with platform lane)",
+      "description": "Tooling and developer-facing support packages aligned with the current 6.x release line",
       "enforce": "major",
-      "targetMajor": 7,
+      "targetMajor": 6,
       "packages": [
         "@holoscript/benchmark",
         "@holoscript/linter",
@@ -60,6 +64,7 @@
       "enforce": "major",
       "targetMajor": 1,
       "packages": [
+        "@holoscript/adapter-postgres",
         "@holoscript/ai-validator",
         "@holoscript/animation-presets",
         "@holoscript/cdn",
@@ -67,14 +72,16 @@
         "@holoscript/connector-appstore",
         "@holoscript/connector-core",
         "@holoscript/connector-github",
+        "@holoscript/connector-moltbook",
         "@holoscript/connector-railway",
         "@holoscript/connector-upstash",
-        "@holoscript/adapter-postgres",
         "@holoscript/connector-vscode",
         "@holoscript/crdt",
         "@holoscript/crdt-spatial",
         "@holoscript/export-api",
+        "@holoscript/holomap",
         "@holoscript/llm-provider",
+        "@holoscript/marketplace-agentkit",
         "@holoscript/marketplace-api",
         "@holoscript/marketplace-web",
         "@holoscript/mvc-schema",
@@ -84,7 +91,8 @@
         "@holoscript/studio-api",
         "@holoscript/studio-bridge",
         "@holoscript/studio-plugin-sdk",
-        "brittney-service"
+        "brittney-service",
+        "create-holoscript"
       ]
     },
     {
@@ -104,8 +112,13 @@
       "targetMajor": 0,
       "packages": [
         "@hololand/react-agent-sdk",
+        "@holoscript/aibrittney",
         "@holoscript/graphql-api",
+        "@holoscript/hologram-worker",
+        "@holoscript/mcp-server-adversarial",
         "@holoscript/preview-component",
+        "@holoscript/studio-ui-graph",
+        "@holoscript/tauri-app",
         "@holoscript/ui",
         "@holoscript/video-tutorials"
       ]
@@ -127,6 +140,17 @@
       "packages": [
         "tree-sitter-holoscript"
       ]
+    },
+    {
+      "name": "agent-v2",
+      "description": "Agent runtime packages on independent major 2",
+      "enforce": "major",
+      "targetMajor": 2,
+      "packages": [
+        "@holoscript/holoscript-agent"
+      ]
     }
-  ]
+  ],
+  "releaseLineMajor": 6,
+  "releaseLineVersion": "6.1.0"
 }

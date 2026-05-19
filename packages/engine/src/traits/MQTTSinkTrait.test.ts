@@ -30,7 +30,7 @@ describe('MQTTSinkTrait', () => {
 
     // Reset module mocks
     vi.mocked(MQTTClientModule.createMQTTClient).mockReturnValue(mockClient);
-    vi.mocked(MQTTClientModule.getMQTTClient).mockReturnValue(null);
+    vi.mocked(MQTTClientModule.getMQTTClient).mockReturnValue(undefined);
 
     // Setup node and context
     mockNode = { name: 'test-node', type: 'sensor' };

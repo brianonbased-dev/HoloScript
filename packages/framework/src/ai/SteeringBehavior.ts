@@ -9,7 +9,7 @@
 // alias). SteeringBehavior treats Vec3 as a tuple: array literal
 // construction + numeric index access throughout. (Was importing from
 // non-existent ../types/HoloScriptPlus; fixed 2026-04-25.)
-type Vector3 = [number, number, number];
+export type Vector3 = [number, number, number];
 
 export type SteeringType = 'seek' | 'flee' | 'arrive' | 'wander' | 'avoid' | 'pursue' | 'evade';
 

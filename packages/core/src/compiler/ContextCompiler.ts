@@ -151,14 +151,14 @@ export interface ContextDefault {
 
 /** Per-rule: GOLD-tier wisdom reference. */
 export interface ContextGraduatedWisdom {
-  id: string;             // W.GOLD.XXX or P.GOLD.XXX
+  id: string;             // e.g. W.GOLD.001 or P.GOLD.007
   claim: string;
   tier: 'diamond' | 'platinum' | 'gold';
 }
 
 /** Per-rule: F.* feedback memory entry. */
 export interface ContextFeedback {
-  id: string;             // F.XXX
+  id: string;             // e.g. F.017 (feedback entry from MEMORY.md)
   claim: string;
   source?: string;
 }

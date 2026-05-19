@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-This document defines the architecture for decomposing HoloScript's 24+ export targets into independently loadable WASM components that are fetched on-demand rather than bundled monolithically. The design leverages the WASM Component Model (WIT interfaces), Rust crate splitting, and a TypeScript-side `ComponentLoader` that orchestrates lazy instantiation.
+This document defines the architecture for decomposing HoloScript's registered export targets into independently loadable WASM components that are fetched on-demand rather than bundled monolithically. The design leverages the WASM Component Model (WIT interfaces), Rust crate splitting, and a TypeScript-side `ComponentLoader` that orchestrates lazy instantiation.
 
 **Key Outcomes:**
 
@@ -1258,6 +1258,6 @@ describe('ComponentLoader', () => {
 
 ---
 
-_Architecture designed for HoloScript v3.43.0+_
+_Architecture designed for HoloScript's registered compiler inventory_
 _Author: HoloScript Autonomous Administrator_
 _Date: 2026-02-28_

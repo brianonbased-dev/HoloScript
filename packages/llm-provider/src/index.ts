@@ -70,6 +70,7 @@ export type {
   // Stream-completion types — added 2026-04-27 for D.025 provider-routing
   // refactor (Brittney route migration to unified streaming surface).
   LLMStreamChunk,
+  Capabilities,
 } from './types';
 
 export {

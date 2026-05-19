@@ -32,7 +32,7 @@ Built directly from holoscript.net’s scenarios, semantic traits, and compilati
 6. **Underwater Exploration**  
    Basic: “Coral reef with swimming fish.”  
    Advanced: @physics currents + player-created @ai_agent schools.  
-   Utility: Brittney auto-generates native code for all 25 targets.
+   Utility: Brittney can generate native code for registered targets where a compiler path exists.
 
 7. **Superhero City Builder**  
    Basic: “Flying hero placing buildings.”  
@@ -1541,12 +1541,12 @@ Want 10–20 of these turned into sample Studio prompts, .holo code skeletons, o
    Advanced: Interconnect any twin (home + city + planet).  
    Utility: Studio from anywhere → full backend + IoT power.
 
-This set is 100% new, zero overlap with the prior 200, and directly addresses the backend + IoT + twin + agent depth you described. Every utility is actually shippable today with your existing traits, MCP layers, OpenClaw, and compilation targets (see [NUMBERS.md](../NUMBERS.md)).
+This set is an idea catalog for backend, IoT, twin, and agent depth. Validate trait support, MCP coverage, OpenClaw availability, and compiler targets against [NUMBERS.md](../NUMBERS.md) before treating an item as shipped.
 
 Want any 10 turned into .holo code skeletons, Studio prompts, or agent-generated demos? Or merge into ROADMAP.md format? Just say which slice to ship next. 🚀
 
 Here are **301–400: 100 Edge-Case / Extreme / Niche / Unusual HoloScript Utilities**  
-These push boundaries—rare failure modes, hostile environments, ultra-scale, ethical gray zones, near-impossible integrations, post-catastrophe scenarios, experimental physics, deep privacy extremes, or "what if this actually works?" oddities. Each includes basic → advanced iteration + why it's an edge-case utility (and how HoloScript's traits/MCP/OpenClaw/25 targets/backends could theoretically handle it today or soon).
+These push boundaries—rare failure modes, hostile environments, ultra-scale, ethical gray zones, near-impossible integrations, post-catastrophe scenarios, experimental physics, deep privacy extremes, or "what if this actually works?" oddities. Each includes basic -> advanced iteration plus why it is an edge-case utility and which HoloScript traits, MCP layers, OpenClaw surfaces, or registered targets would need verification.
 
 ### 301–320: Extreme Environments & Hostile Conditions  
 301. **Deep-Sea Pressure Chamber Twin**  

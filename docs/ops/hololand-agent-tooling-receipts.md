@@ -16,7 +16,7 @@ Board task: `task_1778186605462_yrbd`
 | Route | Command | Receipt |
 | --- | --- | --- |
 | Local bin resolution | `pnpm exec where.exe holoscript` | `node_modules\.bin\holoscript` and `.CMD` appear before `AppData\Roaming\npm\holoscript`. |
-| Help | `pnpm exec holoscript --help` | Prints `HoloScript CLI v7.0.0+46290210a` and lists `graph-status` plus `impact-analysis`. |
+| Help | `pnpm exec holoscript --help` | Prints the workspace CLI version banner and lists `graph-status` plus `impact-analysis`; release-line metadata is now anchored to the 6.x package manifests. |
 | Graph status | `pnpm exec holoscript graph-status --json` | JSON response with `graphRAGReady: true`, fresh disk cache, and cache stats. |
 | Suggest | `pnpm exec holoscript suggest "glowing grabbable platform" --json` | Returns `grabbable`, `glowing`, and `collidable` traits. |
 | Generate | `pnpm exec holoscript generate "red button" --json` | Returns local HoloScript object code with clickable, hoverable, glowing red button traits. |

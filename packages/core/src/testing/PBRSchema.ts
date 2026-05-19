@@ -1,13 +1,14 @@
 /**
- * PBRSchema.ts - Unified PBR material property schema (TODO-043).
+ * PBRSchema.ts - Unified PBR material property schema.
  *
  * LOCATION: packages/core/src/testing/PBRSchema.ts
- * TARGET:   packages/core/src/materials/PBRSchema.ts
  *
- * This file should be moved to materials/PBRSchema.ts once the directory
- * is created. Update imports in MaterialLibrary.ts, MaterialEditor.ts,
- * and rendering/index.ts accordingly:
- *   import { ... } from '@holoscript/engine/materials';
+ * TODO-043 resolved: the canonical runtime schema now lives in
+ * `packages/engine/src/materials/UnifiedPBRSchema.ts`, exported via
+ * `@holoscript/engine/materials`. This file remains in `testing/` as a
+ * complementary test-surface type registry (validator fixtures + preset
+ * definitions used in core tests). The originally planned materials/
+ * directory migration was superseded by UnifiedPBRSchema.ts in engine.
  *
  * This module defines the single canonical set of PBR types shared across
  * all HoloScript subsystems:

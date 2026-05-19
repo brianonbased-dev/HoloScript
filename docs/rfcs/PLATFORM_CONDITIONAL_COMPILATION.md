@@ -30,7 +30,7 @@
 
 ### Problem
 
-Spatial computing experiences must target 25+ platforms with radically different capabilities:
+Spatial computing experiences must target multiple registered platforms with radically different capabilities:
 
 | Platform        | Runtime        | Capabilities                                          | Frame Budget |
 | --------------- | -------------- | ----------------------------------------------------- | ------------ |

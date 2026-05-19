@@ -232,6 +232,33 @@ function printJson(value: unknown): void {
   console.log(JSON.stringify(value, null, 2));
 }
 
+const COMPILE_TARGET_ALIASES: Record<string, string> = {
+  androidxr: 'android-xr',
+  android_xr: 'android-xr',
+  'usd-physics': 'usd',
+};
+
+function normalizeCompileTarget(target: string): string {
+  return COMPILE_TARGET_ALIASES[target] ?? target;
+}
+
+function compileOutputFieldToFileName(field: string): string {
+  const knownFiles: Record<string, string> = {
+    activityFile: 'GeneratedXRActivity.kt',
+    stateFile: 'XRSceneState.kt',
+    nodeFactoryFile: 'XRNodeFactory.kt',
+    manifestFile: 'AndroidManifest.xml',
+    buildGradle: 'build.gradle.kts',
+    glimmerComponentsFile: 'GlimmerComponents.kt',
+  };
+
+  if (knownFiles[field]) {
+    return knownFiles[field];
+  }
+
+  return `${field.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()}.txt`;
+}
+
 const WORLD_MODEL_REPLAY_SCHEMA = 'world-model-replay-v1';
 const WORLD_MODEL_REPLAY_SCENE_ID = 'deterministic-contact-v1';
 const WORLD_MODEL_HUMANOID_ROCK_THROW_SCENE_ID = 'humanoid-rock-throw-v1';
@@ -981,7 +1008,7 @@ async function main(): Promise<void> {
           parseResult = result;
           if (options.verbose)
             console.log(`\x1b[2m[TRACE] Parse complete. Success: ${result.success}\x1b[0m`);
-          success = result.success;
+          success = result.success ?? false;
           errorList = result.errors;
         }
 
@@ -1085,7 +1112,7 @@ async function main(): Promise<void> {
     }
 
     case 'version': {
-      let info: { version: string; gitCommitSha: string; buildTimestamp: string };
+      let info: { version: string; gitCommitSha?: string; buildTimestamp?: string; [key: string]: any };
       let versionString = getCliVersionString();
 
       try {
@@ -1401,12 +1428,53 @@ async function main(): Promise<void> {
         }
 
         // Generate Thing Descriptions
-        const generator = new ThingDescriptionGenerator({
-          baseUrl: 'http://localhost:8080',
-          defaultObservable: true,
-        });
+        const templates = parseResult.ast?.templates || [];
+        const templateMap = new Map(
+          templates
+            .filter((template: { name?: unknown }) => typeof template.name === 'string')
+            .map((template: { name: string }) => [template.name, template])
+        );
+        const withTemplateInheritance = (node: Record<string, unknown>): Record<string, unknown> => {
+          const templateName = typeof node.template === 'string' ? node.template : undefined;
+          const template = templateName ? templateMap.get(templateName) : undefined;
+          const inherited =
+            template && typeof template === 'object' && !Array.isArray(template)
+              ? (template as Record<string, unknown>)
+              : {};
+          const inheritedChildren = Array.isArray(node.children)
+            ? node.children.map((child) =>
+                child && typeof child === 'object'
+                  ? withTemplateInheritance(child as Record<string, unknown>)
+                  : child
+              )
+            : undefined;
 
-        const thingDescriptions = generator.generateAll(objects);
+          return {
+            ...inherited,
+            ...node,
+            template: undefined,
+            properties: [
+              ...(Array.isArray(inherited.properties) ? inherited.properties : []),
+              ...(Array.isArray(node.properties) ? node.properties : []),
+            ],
+            directives: [
+              ...(Array.isArray(inherited.directives) ? inherited.directives : []),
+              ...(Array.isArray(node.directives) ? node.directives : []),
+            ],
+            traits: [
+              ...(Array.isArray(inherited.traits) ? inherited.traits : []),
+              ...(Array.isArray(node.traits) ? node.traits : []),
+            ],
+            ...(inheritedChildren ? { children: inheritedChildren } : {}),
+          };
+        };
+        const wotObjects = objects.map((object: Record<string, unknown>) =>
+          withTemplateInheritance(object)
+        );
+        const generatorOpts = { baseUrl: 'http://localhost:8080', defaultObservable: true, templates };
+        const generator = new ThingDescriptionGenerator(generatorOpts);
+
+        const thingDescriptions = generator.generateAll(wotObjects);
 
         if (thingDescriptions.length === 0) {
           console.log('\x1b[33mNo objects with @wot_thing trait found.\x1b[0m');
@@ -1801,7 +1869,8 @@ async function main(): Promise<void> {
         process.exit(1);
       }
 
-      const target = options.target || 'threejs';
+      const requestedTarget = options.target || 'threejs';
+      const target = normalizeCompileTarget(requestedTarget);
       const validTargets = [
         'node',
         'threejs',
@@ -1821,16 +1890,19 @@ async function main(): Promise<void> {
         'godot',
         'visionos',
         'openxr',
-        'androidxr',
+        'android-xr',
         'webgpu',
         'r3f',
+        'usd',
+        'usdz',
+        '3dgs',
         'flat-semantic',
         'web-2d',
         'scm-dag',
       ];
 
       if (!validTargets.includes(target)) {
-        console.error(`\x1b[31mError: Unknown target "${target}".\x1b[0m`);
+        console.error(`\x1b[31mError: Unknown target "${requestedTarget}".\x1b[0m`);
         console.log(`Valid targets: ${validTargets.join(', ')}`);
         process.exit(1);
       }
@@ -1839,11 +1911,29 @@ async function main(): Promise<void> {
       const path = await import('path');
       const writeCompileOutputFile = (
         outputPath: string,
-        contents: string,
+        contents: string | Uint8Array,
         encoding: BufferEncoding = 'utf-8'
       ): void => {
         fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-        fs.writeFileSync(outputPath, contents, encoding);
+        if (typeof contents === 'string') {
+          fs.writeFileSync(outputPath, contents, encoding);
+        } else {
+          fs.writeFileSync(outputPath, contents);
+        }
+      };
+      const writeCompileOutputMap = (
+        outputDir: string,
+        files: Record<string, string | undefined>
+      ): void => {
+        fs.mkdirSync(outputDir, { recursive: true });
+        for (const [field, contents] of Object.entries(files)) {
+          if (typeof contents !== 'string') {
+            continue;
+          }
+          const fileName = compileOutputFieldToFileName(field);
+          writeCompileOutputFile(path.join(outputDir, fileName), contents);
+          console.log(`\x1b[32m✓ Written ${fileName}\x1b[0m`);
+        }
       };
 
       const filePath = path.resolve(options.input);
@@ -2128,7 +2218,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for DTDL:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2163,6 +2253,134 @@ async function main(): Promise<void> {
           process.exit(0);
         }
 
+        // Special handling for USD target - use USD Physics compiler
+        if (target === 'usd') {
+          if (!isHolo) {
+            console.error(`\x1b[31mError: USD compilation requires .holo files.\x1b[0m`);
+            process.exit(1);
+          }
+
+          const { HoloCompositionParser } = await import('@holoscript/core');
+          const { USDPhysicsCompiler } = await import('@holoscript/core/compiler');
+          const compositionParser = new HoloCompositionParser();
+          const parseResult = compositionParser.parse(content);
+
+          if (!parseResult.success || !parseResult.ast) {
+            console.error(`\x1b[31mError parsing for USD:\x1b[0m`);
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
+            process.exit(1);
+          }
+
+          console.log(`\x1b[2m[DEBUG] Compiling to USD Physics USDA...\x1b[0m`);
+          const compiler = new USDPhysicsCompiler({
+            stageName: parseResult.ast.name || 'HoloScriptScene',
+            includePhysicsScene: true,
+          });
+          const output = compiler.compile(parseResult.ast, '');
+
+          console.log(`\x1b[32m✓ USD compilation successful!\x1b[0m`);
+          console.log(`\x1b[2m  Objects: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
+
+          if (options.output) {
+            const outputPath = path.resolve(options.output);
+            const usdPath =
+              outputPath.endsWith('.usd') || outputPath.endsWith('.usda')
+                ? outputPath
+                : outputPath + '.usda';
+            writeCompileOutputFile(usdPath, output);
+            console.log(`\x1b[32m✓ USD written to ${usdPath}\x1b[0m`);
+          } else {
+            console.log('\n--- USD Output ---\n');
+            console.log(output);
+          }
+
+          process.exit(0);
+        }
+
+        // Special handling for USDZ target - use USDZ pipeline
+        if (target === 'usdz') {
+          if (!isHolo) {
+            console.error(`\x1b[31mError: USDZ compilation requires .holo files.\x1b[0m`);
+            process.exit(1);
+          }
+
+          const { HoloCompositionParser } = await import('@holoscript/core');
+          const { USDZPipeline } = await import('@holoscript/core/compiler');
+          const compositionParser = new HoloCompositionParser();
+          const parseResult = compositionParser.parse(content);
+
+          if (!parseResult.success || !parseResult.ast) {
+            console.error(`\x1b[31mError parsing for USDZ:\x1b[0m`);
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
+            process.exit(1);
+          }
+
+          console.log(`\x1b[2m[DEBUG] Compiling to USDZ package...\x1b[0m`);
+          const output = new USDZPipeline().generateUSDZ(parseResult.ast);
+
+          console.log(`\x1b[32m✓ USDZ compilation successful!\x1b[0m`);
+          console.log(`\x1b[2m  Objects: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
+
+          if (options.output) {
+            const outputPath = path.resolve(options.output);
+            const usdzPath = outputPath.endsWith('.usdz') ? outputPath : outputPath + '.usdz';
+            writeCompileOutputFile(usdzPath, output);
+            console.log(`\x1b[32m✓ USDZ written to ${usdzPath}\x1b[0m`);
+          } else {
+            console.log(Buffer.from(output).toString('base64'));
+          }
+
+          process.exit(0);
+        }
+
+        // Special handling for Gaussian splatting target
+        if (target === '3dgs') {
+          if (!isHolo) {
+            console.error(`\x1b[31mError: 3DGS compilation requires .holo files.\x1b[0m`);
+            process.exit(1);
+          }
+
+          const { HoloCompositionParser } = await import('@holoscript/core');
+          const { GaussianSplattingCompiler } = await import('@holoscript/core/compiler');
+          const compositionParser = new HoloCompositionParser();
+          const parseResult = compositionParser.parse(content);
+
+          if (!parseResult.success || !parseResult.ast) {
+            console.error(`\x1b[31mError parsing for 3DGS:\x1b[0m`);
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
+            process.exit(1);
+          }
+
+          const wantsGltf = options.output?.endsWith('.gltf') ?? false;
+          console.log(`\x1b[2m[DEBUG] Compiling to KHR_gaussian_splatting ${wantsGltf ? 'glTF' : 'GLB'}...\x1b[0m`);
+          const compiler = new GaussianSplattingCompiler({ format: wantsGltf ? 'gltf' : 'glb' });
+          const result = compiler.compile(parseResult.ast, '');
+
+          console.log(`\x1b[32m✓ 3DGS compilation successful!\x1b[0m`);
+          console.log(`\x1b[2m  Gaussians: ${result.stats.totalVertices}\x1b[0m`);
+
+          if (options.output) {
+            const outputPath = path.resolve(options.output);
+            if (wantsGltf) {
+              writeCompileOutputFile(outputPath, JSON.stringify(result.json ?? {}, null, 2));
+              if (result.buffer) {
+                writeCompileOutputFile(outputPath.replace(/\.gltf$/i, '.bin'), result.buffer);
+              }
+              console.log(`\x1b[32m✓ 3DGS glTF written to ${outputPath}\x1b[0m`);
+            } else {
+              const glbPath = outputPath.endsWith('.glb') ? outputPath : outputPath + '.glb';
+              writeCompileOutputFile(glbPath, result.binary ?? new Uint8Array());
+              console.log(`\x1b[32m✓ 3DGS GLB written to ${glbPath}\x1b[0m`);
+            }
+          } else if (result.binary) {
+            console.log(Buffer.from(result.binary).toString('base64'));
+          } else {
+            console.log(JSON.stringify(result.json ?? {}, null, 2));
+          }
+
+          process.exit(0);
+        }
+
         // V6 2D UI Revolution - Flat Semantic Target
         const isFlatSemantic =
           target === 'flat-semantic' ||
@@ -2181,7 +2399,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for flat-semantic:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2216,7 +2434,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for Unreal:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2245,7 +2463,7 @@ async function main(): Promise<void> {
             }
           } else {
             console.log('\n--- Unreal Output ---\n');
-            console.log(result.files.map((f) => `// ${f.filename}\n${f.content}`).join('\n\n'));
+            console.log(result.files.map((f: any) => `// ${f.filename}\n${f.content}`).join('\n\n'));
           }
 
           process.exit(0);
@@ -2264,7 +2482,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for iOS:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2293,7 +2511,7 @@ async function main(): Promise<void> {
             }
           } else {
             console.log('\n--- iOS Output ---\n');
-            console.log(result.files.map((f) => `// ${f.filename}\n${f.content}`).join('\n\n'));
+            console.log(result.files.map((f: any) => `// ${f.filename}\n${f.content}`).join('\n\n'));
           }
 
           process.exit(0);
@@ -2312,7 +2530,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for Android:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2341,7 +2559,7 @@ async function main(): Promise<void> {
             }
           } else {
             console.log('\n--- Android Output ---\n');
-            console.log(result.files.map((f) => `// ${f.filename}\n${f.content}`).join('\n\n'));
+            console.log(result.files.map((f: any) => `// ${f.filename}\n${f.content}`).join('\n\n'));
           }
 
           process.exit(0);
@@ -2360,7 +2578,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for Godot:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2401,7 +2619,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for VisionOS:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2482,7 +2700,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for OpenXR:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2512,7 +2730,7 @@ async function main(): Promise<void> {
         }
 
         // Special handling for AndroidXR target
-        if (target === 'androidxr') {
+        if (target === 'android-xr') {
           if (!isHolo) {
             console.error(`\x1b[31mError: AndroidXR compilation requires .holo files.\x1b[0m`);
             process.exit(1);
@@ -2524,7 +2742,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for AndroidXR:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2541,13 +2759,15 @@ async function main(): Promise<void> {
           console.log(`\x1b[2m  Objects: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
 
           if (options.output) {
-            const outputPath = path.resolve(options.output);
-            const ktPath = outputPath.endsWith('.kt') ? outputPath : outputPath + '.kt';
-            writeCompileOutputFile(ktPath, output);
-            console.log(`\x1b[32m✓ AndroidXR Kotlin written to ${ktPath}\x1b[0m`);
+            const outputDir = path.resolve(options.output);
+            writeCompileOutputMap(outputDir, output);
           } else {
             console.log('\n--- AndroidXR Kotlin Output ---\n');
-            console.log(output);
+            for (const [field, fileContents] of Object.entries(output)) {
+              if (typeof fileContents === 'string') {
+                console.log(`// ${compileOutputFieldToFileName(field)}\n${fileContents}\n`);
+              }
+            }
           }
 
           process.exit(0);
@@ -2566,7 +2786,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for WebGPU:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2608,7 +2828,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for R3F:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -2737,7 +2957,7 @@ async function main(): Promise<void> {
           const target = options.target || 'threejs';
 
           try {
-            const isHolo = options.input.endsWith('.holo');
+            const isHolo = (options.input ?? '').endsWith('.holo');
             const { generateTargetCode } = await import('./build/generators');
             let ast: any;
             let composition: any = null;
@@ -2840,7 +3060,7 @@ async function main(): Promise<void> {
           console.log(`\x1b[36mBuilding asset from directory: ${options.input}\x1b[0m`);
           try {
             const { packAsset } = await import('./smartAssets');
-            await packAsset(options.input, options.output, options.verbose);
+            await packAsset(options.input ?? '', options.output, options.verbose);
             console.log(
               `\x1b[32m✓ Packed asset to ${options.output || options.input + '.hsa'}\x1b[0m`
             );
@@ -3945,7 +4165,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         let lastProgressLen = 0;
         const scanResult = await scanner.scan({
           rootDir,
-          onProgress(parsed, total, file) {
+          onProgress(parsed: number, total: number, file: string) {
             const pct = Math.round((parsed / total) * 100);
             const msg = `  \x1b[36m  Parsing files... ${parsed}/${total} (${pct}%) — ${file}\x1b[0m`;
             process.stdout.write('\r' + msg.padEnd(lastProgressLen));
@@ -4006,7 +4226,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
             process.exit(1);
           }
           const impactSet = graph.getImpactSet(inputFiles);
-          const indirect = Array.from(impactSet)
+          const indirect = (Array.from(impactSet) as string[])
             .filter((f) => !inputFiles.includes(f))
             .sort();
           console.log(
@@ -4016,7 +4236,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
             const out = JSON.stringify(
               {
                 input: inputFiles,
-                blast_radius: Array.from(impactSet).sort(),
+                blast_radius: (Array.from(impactSet) as string[]).sort(),
                 indirect,
                 total: impactSet.size,
               },
@@ -4113,9 +4333,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
                 .filter((f) => fs.existsSync(f));
               if (changedFiles.length > 0) {
                 const impactSet = graph.getImpactSet(changedFiles);
-                changeImpact = Array.from(impactSet).filter((f) => !changedFiles!.includes(f));
+                changeImpact = (Array.from(impactSet) as string[]).filter((f) => !changedFiles!.includes(f));
                 console.log(
-                  `  \x1b[36m→\x1b[0m Since ${sinceRef}: ${changedFiles.length} changed, ${changeImpact.length} transitively affected`
+                  `  \x1b[36m→\x1b[0m Since ${sinceRef}: ${changedFiles.length} changed, ${changeImpact!.length} transitively affected`
                 );
               }
             } catch {
@@ -4332,15 +4552,6 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 
         const rootDir = options.queryDir ? path.resolve(options.queryDir) : process.cwd();
         const question = options.input;
-        let providerName = options.queryProvider ?? 'openai';
-        if (providerName === 'bm25') {
-          console.warn(
-            `${YELLOW}⚠ bm25 is deprecated and has been removed. Using openai instead.${RESET}`
-          );
-          providerName = 'openai';
-        }
-        const forceRescan = options.force === true;
-        const queryStartTime = Date.now();
 
         // ── Formatting helpers ───────────────────────────────────────────────
         const DIM = '\x1b[2m';
@@ -4363,6 +4574,16 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
             : ms < 60000
               ? `${(ms / 1000).toFixed(1)}s`
               : `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`;
+
+        let providerName = options.queryProvider ?? 'openai';
+        if (providerName === 'bm25') {
+          console.warn(
+            `${YELLOW}⚠ bm25 is deprecated and has been removed. Using openai instead.${RESET}`
+          );
+          providerName = 'openai';
+        }
+        const forceRescan = options.force === true;
+        const queryStartTime = Date.now();
 
         // ── Header ───────────────────────────────────────────────────────────
         console.log(`\n${DIM}╔${'═'.repeat(58)}╗${RESET}`);
@@ -4391,7 +4612,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         const cacheDir = path.join(rootDir, '.holoscript');
         const cachePath = path.join(cacheDir, `graph-${cacheKey}.json`);
 
-        let graph: InstanceType<typeof CodebaseGraph>;
+        let graph: InstanceType<typeof CodebaseGraph> | undefined;
         let fromCache = false;
         let graphSymbolCount = 0;
 
@@ -4426,7 +4647,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
           const scanResult = await scanner.scan({
             rootDir,
             maxFiles: 10000,
-            onProgress(parsed, total, file) {
+            onProgress(parsed: number, total: number, file: string) {
               const pct = Math.round((parsed / total) * 100);
               const bar = '█'.repeat(Math.floor(pct / 5)) + '░'.repeat(20 - Math.floor(pct / 5));
               const msg = `  ${CYAN}${bar}${RESET} ${pct}% ${DIM}(${parsed}/${total})${RESET} ${DIM}${file.length > 30 ? '...' + file.slice(-27) : file}${RESET}`;
@@ -4478,7 +4699,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
           openaiApiKey: options.queryLlmKey,
         });
 
-        let index: InstanceType<typeof EmbeddingIndex>;
+        let index: InstanceType<typeof EmbeddingIndex> | undefined;
         let indexFromCache = false;
 
         // Try binary cache first, then legacy JSON
@@ -4527,7 +4748,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         if (!indexFromCache) {
           const embedStart = Date.now();
           index = new EmbeddingIndex({ provider });
-          await index.buildIndex(graph);
+          await index!.buildIndex(graph!);
           console.log(
             bullet(
               `${GREEN}✓${RESET}`,
@@ -4618,7 +4839,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         }
 
         // ── 5. Run query ─────────────────────────────────────────────────────
-        const engine = new GraphRAGEngine(graph, index, { llmProvider });
+        const engine = new GraphRAGEngine(graph!, index!, { llmProvider });
         const topK = options.queryTopK ?? 10;
 
         if (options.queryWithLlm && llmProvider) {

@@ -236,7 +236,7 @@ function getNodeDescription(node: HSPlusNode, _verbosity: string): string {
 
   let desc = `${name} is a ${type}`;
 
-  const mat = node.material as Record<string, unknown> | undefined;
+  const mat = (node as unknown as { material?: Record<string, unknown> }).material;
   if (mat && mat.color) {
     desc += `, colored ${mat.color}`;
   }

@@ -1,3 +1,5 @@
+// scout:ignore — sample file strings below contain encoded marker variables (${TASK_MARKER} etc.)
+// that expand to marker keywords at runtime; they are intentional test fixtures, not actionable items.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { PromptExtractorFS } from '../GRPOPromptExtractor';
 import {

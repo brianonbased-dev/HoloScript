@@ -59,7 +59,7 @@ export class UIBuilder {
     // 1. Transform & Properties
     // Map common properties to Transform component
     const position = node.properties?.position || [0, 0, 0];
-    const rotation = node.properties?.rotation || [0, 0, 0];
+    const rotation = (node.properties?.rotation as [number, number, number] | undefined) ?? ([0, 0, 0] as [number, number, number]);
     const scale = node.properties?.scale || [1, 1, 1];
 
     this.world.addComponent(entity, 'Transform', {

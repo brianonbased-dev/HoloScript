@@ -10,7 +10,7 @@
  */
 
 import { useRef, useState, useEffect, useMemo } from 'react';
-import { _useFrame } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 export interface HologramVideoProps {
@@ -46,7 +46,7 @@ export interface HologramVideoProps {
  */
 export function HologramVideo({
   src,
-  _depthScale = 0.2,
+  depthScale: _depthScale = 0.2,
   segments = 64,
   width = 3,
   height,

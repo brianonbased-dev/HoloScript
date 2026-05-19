@@ -139,7 +139,7 @@ export class InMemoryPluginDatabase implements IPluginDatabase {
         packageUrl: `/api/plugins/${pkg.id}/versions/${pkg.version}/download`,
         shasum,
         size: Buffer.byteLength(bundle, 'base64'),
-        signatureStatus: 'unsigned' as const, // Would check actual signature in production
+        signatureStatus: pkg.signature ? 'signed' as const : 'unsigned' as const,
         studioVersion: pkg.compatibility.studioVersion,
         releaseNotes: undefined,
       };
@@ -309,7 +309,7 @@ export class InMemoryPluginDatabase implements IPluginDatabase {
       ratingCount: p.ratingCount ?? 0,
       verified: p.verified ?? false,
       deprecated: p.deprecated ?? false,
-      signatureStatus: 'unsigned',
+      signatureStatus: p.signature ? 'signed' : 'unsigned',
       platforms: p.compatibility.platforms ?? ['all'],
       permissions: p.security.permissions,
       updatedAt: p.updatedAt ?? new Date(),

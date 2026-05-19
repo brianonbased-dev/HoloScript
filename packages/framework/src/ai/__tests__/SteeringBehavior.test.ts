@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { SteeringBehavior, SteeringAgent, SteeringOutput, Vec2 } from '../SteeringBehavior';
+import { SteeringBehavior, SteeringAgent, SteeringOutput, Vector3 } from '../SteeringBehavior';
 
-function agent(pos: Vec2 = [0, 0, 0], vel: Vec2 = [0, 0, 0]): SteeringAgent {
+function agent(pos: Vector3 = [0, 0, 0], vel: Vector3 = [0, 0, 0]): SteeringAgent {
   return { position: pos, velocity: vel, maxSpeed: 10, maxForce: 5, mass: 1 };
 }
 
-function mag(v: Vec2): number {
+function mag(v: Vector3): number {
   return Math.sqrt(v[0] ** 2 + v[2] ** 2);
 }
 
@@ -46,7 +46,7 @@ describe('SteeringBehavior', () => {
   // --- Arrive ---
   it('arrive matches seek when far away', () => {
     const a = agent();
-    const target = [100, 0, 0];
+    const target: Vector3 = [100, 0, 0];
     const arrive = SteeringBehavior.arrive(a, target, 5);
     const seek = SteeringBehavior.seek(a, target);
     // When far from slowRadius, arrive ≈ seek
@@ -85,14 +85,14 @@ describe('SteeringBehavior', () => {
   // --- Avoid ---
   it('avoid pushes away from obstacle', () => {
     const a = agent([0, 0, 0], [1, 0, 0]);
-    const obstacles = [{ position: [3, 0, 0], radius: 1 }];
+    const obstacles: { position: Vector3; radius: number }[] = [{ position: [3, 0, 0], radius: 1 }];
     const f = SteeringBehavior.avoid(a, obstacles, 5);
     expect(f[0]).toBeLessThan(0); // Push back
   });
 
   it('avoid returns zero when no obstacles in range', () => {
     const a = agent();
-    const obstacles = [{ position: [100, 0, 100], radius: 1 }];
+    const obstacles: { position: Vector3; radius: number }[] = [{ position: [100, 0, 100], radius: 1 }];
     const f = SteeringBehavior.avoid(a, obstacles, 5);
     expect(f[0]).toBe(0);
     expect(f[2]).toBe(0);
@@ -100,7 +100,7 @@ describe('SteeringBehavior', () => {
 
   it('avoid handles multiple obstacles', () => {
     const a = agent([5, 0, 5]);
-    const obstacles = [
+    const obstacles: { position: Vector3; radius: number }[] = [
       { position: [6, 0, 5], radius: 1 },
       { position: [5, 0, 6], radius: 1 },
     ];

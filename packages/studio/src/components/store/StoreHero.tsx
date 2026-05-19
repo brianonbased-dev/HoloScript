@@ -27,7 +27,7 @@ export function StoreHero({ onSearch }: StoreHeroProps) {
         </h1>
         
         <p className="text-lg text-studio-muted mb-10 max-w-2xl mx-auto leading-relaxed">
-          Welcome to the world's first AI-Native store. Discover high-fidelity scenes, 
+          Welcome to the HoloScript AI-native store. Discover high-fidelity scenes,
           agentic workflows, and the scripts that turn any machine into HoloScript Hardware.
         </p>
 

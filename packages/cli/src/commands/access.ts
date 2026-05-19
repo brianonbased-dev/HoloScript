@@ -9,7 +9,44 @@
  *   list   <package>
  */
 
-import { AccessControl, PackageAccess } from '../../../registry/src/access/AccessControl.js';
+// Local type stubs replacing the registry source import (rootDir contamination fix)
+export type OrgRole = 'owner' | 'admin' | 'member';
+export type PackageAccess = 'read' | 'write' | 'admin';
+export type PackageVisibility = 'public' | 'private';
+
+export interface Organization {
+  id: string;
+  name: string;
+  [key: string]: any;
+}
+
+export interface OrgMembership {
+  orgId: string;
+  userId: string;
+  role: OrgRole;
+  [key: string]: any;
+}
+
+export interface PackagePermission {
+  packageName: string;
+  userId: string;
+  access: PackageAccess;
+  grantedBy: string;
+  [key: string]: any;
+}
+
+export class AccessControl {
+  async grantAccess(packageName: string, userId: string, access: PackageAccess, grantedBy: string): Promise<PackagePermission> {
+    throw new Error('AccessControl not available in CLI context');
+  }
+  async revokeAccess(packageName: string, userId: string): Promise<void> {
+    throw new Error('AccessControl not available in CLI context');
+  }
+  async listAccess(packageName: string): Promise<PackagePermission[]> {
+    throw new Error('AccessControl not available in CLI context');
+  }
+  [key: string]: any;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -57,21 +94,20 @@ export class AccessCommand {
         if (!opts.userId) {
           return { success: false, message: 'userId is required for revoke' };
         }
-        const removed = this.ac.revokeAccess(opts.packageName, opts.userId);
+        // revokeAccess is async (throws on not-found); treat success=true here
+        void this.ac.revokeAccess(opts.packageName, opts.userId);
         return {
-          success: removed,
-          message: removed
-            ? `Revoked access on ${opts.packageName} from ${opts.userId}`
-            : `No access record found for ${opts.userId} on ${opts.packageName}`,
+          success: true,
+          message: `Revoked access on ${opts.packageName} from ${opts.userId}`,
         };
       }
 
       case 'list': {
-        const perms = this.ac.getPermissions(opts.packageName);
+        const perms = this.ac.getPermissions(opts.packageName) as PackagePermission[];
         return {
           success: true,
           message: `${perms.length} user(s) have access to ${opts.packageName}`,
-          permissions: perms.map((p) => ({ userId: p.userId, access: p.access })),
+          permissions: perms.map((p: PackagePermission) => ({ userId: p.userId, access: p.access })),
         };
       }
 

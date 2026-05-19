@@ -6,9 +6,10 @@ import {
   ValidationResultPayload,
   ValidationInput,
   ParseResult,
+  SourceLocation,
 } from '../types/GraphQLTypes.js';
 import {
-  _pubsub,
+  pubsub,
   SubscriptionTopic,
   publishValidationResults,
   type CompilationProgressEvent,
@@ -151,7 +152,7 @@ export class SubscriptionResolver {
           {
             message: errMessage,
             location: (error as Record<string, unknown>)?.location as
-              | Record<string, unknown>
+              | SourceLocation
               | undefined,
             code: (error as Record<string, unknown>)?.code as string | undefined,
           },

@@ -13,7 +13,7 @@
  * - Adaptive octree LOD with provenance heat
  * - Hubble correction from provenance loop density
  *
- * @physics trait for HoloScript v7.0.0+
+ * @physics trait for the HoloScript 6.x line and later
  * SimulationContract enforced: |computed_Ricci - GR_Ricci| < 1e-5
  */
 

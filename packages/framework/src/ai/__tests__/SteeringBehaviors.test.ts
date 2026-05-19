@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SteeringBehaviors, type SteeringAgent, type FlockConfig } from '../SteeringBehaviors';
+import { SteeringBehaviors, type SteeringAgent, type FlockConfig, type ObstacleCircle } from '../SteeringBehaviors';
 
 type Vec3 = [number, number, number];
 
@@ -109,7 +109,7 @@ describe('SteeringBehaviors', () => {
 
   it('obstacleAvoidance returns force when obstacle ahead', () => {
     const a = agent([0, 0, 0], [1, 0, 0]);
-    const obstacles = [{ center: [3, 0, 0], radius: 1 }];
+    const obstacles: ObstacleCircle[] = [{ center: [3, 0, 0], radius: 1 }];
     const force = SteeringBehaviors.obstacleAvoidance(a, obstacles, 5);
     expect(Number.isFinite(force[0])).toBe(true);
   });

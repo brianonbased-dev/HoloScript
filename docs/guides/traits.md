@@ -1,34 +1,34 @@
 # Traits Reference
 
-HoloScript includes **built-in traits** across **118+ categories** that cover VR/AR interaction, physics, networking, audio, AI, scripting, automation, robotics, IoT, and more. Add traits with the `@` prefix.
+HoloScript includes **built-in traits** across source-verified categories that cover VR/AR interaction, physics, networking, audio, AI, scripting, automation, robotics, IoT, and more. Add traits with the `@` prefix.
 
-> **Note:** This page shows a curated selection of commonly used traits. The full trait set are organized in 118+ category modules in the HoloScript core package. Use `holoscript list-traits` or the MCP tool `list_traits` to browse all available traits.
+> **Note:** This page shows a curated selection of commonly used traits. The full trait set is organized in category modules in the HoloScript core package. Use `holoscript list-traits`, MCP `list_traits`, or `docs/NUMBERS.md` to browse and verify the live inventory.
 
 ## Trait Categories Overview
 
-| Category                  | Examples                                   | Count |
-| ------------------------- | ------------------------------------------ | ----- |
-| Core VR                   | @grabbable, @physics, @collidable          | 25+   |
-| Interaction               | @clickable, @hoverable, @draggable         | 30+   |
-| Visual/Effects            | @glowing, @particle_system, @weather       | 40+   |
-| Physics                   | @rigid, @kinematic, @cloth, @fluid         | 25+   |
-| Networking                | @networked, @synced, @persistent           | 20+   |
-| Audio                     | @spatial_audio, @ambient, @voice_activated | 15+   |
-| AI/Agents                 | @behavior_tree, @pathfinding, @npc         | 30+   |
-| Humanoid                  | @avatar, @hand_tracked, @eye_tracked       | 35+   |
-| Locomotion                | @teleport, @flying, @climbing              | 20+   |
-| UI                        | @billboard, @tooltip, @menu                | 25+   |
-| Platform                  | @visionos, @quest, @webxr                  | 15+   |
-| Environment               | @skybox, @terrain, @water                  | 30+   |
-| Nature                    | @flora, @fauna, @ecosystem                 | 25+   |
-| Game                      | @inventory, @health, @scoreboard           | 40+   |
-| Magic/Sci-Fi              | @spell, @shield, @hologram                 | 50+   |
-| Building                  | @snappable, @resizable, @blueprint         | 30+   |
-| Emotion/Mood              | @expression, @ambient_mood                 | 20+   |
-| Social                    | @voice_chat, @emote, @presence             | 20+   |
-| Media                     | @video_player, @screen_share               | 15+   |
-| Accessibility             | @screen_reader, @haptic_guide              | 15+   |
-| ...and 41 more categories |                                            |       |
+| Category       | Examples                                   |
+| -------------- | ------------------------------------------ |
+| Core VR        | @grabbable, @physics, @collidable          |
+| Interaction    | @clickable, @hoverable, @draggable         |
+| Visual/Effects | @glowing, @particle_system, @weather       |
+| Physics        | @rigid, @kinematic, @cloth, @fluid         |
+| Networking     | @networked, @synced, @persistent           |
+| Audio          | @spatial_audio, @ambient, @voice_activated |
+| AI/Agents      | @behavior_tree, @pathfinding, @npc         |
+| Humanoid       | @avatar, @hand_tracked, @eye_tracked       |
+| Locomotion     | @teleport, @flying, @climbing              |
+| UI             | @billboard, @tooltip, @menu                |
+| Platform       | @visionos, @quest, @webxr                  |
+| Environment    | @skybox, @terrain, @water                  |
+| Nature         | @flora, @fauna, @ecosystem                 |
+| Game           | @inventory, @health, @scoreboard           |
+| Magic/Sci-Fi   | @spell, @shield, @hologram                 |
+| Building       | @snappable, @resizable, @blueprint         |
+| Emotion/Mood   | @expression, @ambient_mood                 |
+| Social         | @voice_chat, @emote, @presence             |
+| Media          | @video_player, @screen_share               |
+| Accessibility  | @screen_reader, @haptic_guide              |
+| More categories | Browse live inventory with `list_traits`  |
 
 ## Interaction Traits
 

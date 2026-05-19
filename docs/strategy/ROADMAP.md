@@ -4,20 +4,20 @@
 >
 > _The declarative language for the spatial and autonomous web._
 
-> **Current release marker: v7.0.0** — shipped 2026-04-21. See [CHANGELOG.md](../../CHANGELOG.md) for full release history.
+> **Current release marker: HoloScript 6.x** — package manifests and public docs are aligned to the 6.x line. See [CHANGELOG.md](../../CHANGELOG.md) for release-line corrections and full history.
 > **V6 vision document:** [docs/strategy/vision/VISION_V6.md](./vision/VISION_V6.md) (realized).
 > **Historical milestones:** v3.x to v5.0 archived at [docs/archive/ROADMAP_v3_to_v5_ARCHIVED.md](../archive/ROADMAP_v3_to_v5_ARCHIVED.md).
 > **Metrics policy:** live counts belong in [docs/NUMBERS.md](../NUMBERS.md), not in this roadmap.
 
 ---
 
-## Current State (v7.0.0, refreshed 2026-05-05)
+## Current State (6.x line, refreshed 2026-05-18)
 
-v7.0.0 is the current platform-era marker. The active roadmap is no longer "finish the v5/v6 feature list"; it is verification, adoption, and physical-world closure over the substrate that already shipped.
+6.x is the current outward-facing platform line. The active roadmap is no longer "finish the v5/v6 feature list"; it is verification, adoption, and physical-world closure over the substrate that already shipped.
 
 | Surface | Current state | Evidence |
 | ------- | ------------- | -------- |
-| Platform release | v7.0.0 shipped as Platform v7: Option C security plus Route 2b/2d cross-adapter verification. | [CHANGELOG.md](../../CHANGELOG.md) |
+| Platform release | Current public release story stays on 6.x while generated v7/v8 metadata is treated as drift. Option C security plus Route 2b/2d cross-adapter verification remain part of the 6.x continuation evidence. | [CHANGELOG.md](../../CHANGELOG.md) |
 | Live metrics | Counts are dynamic and must be re-derived before citation. | [docs/NUMBERS.md](../NUMBERS.md) |
 | Studio funnel | Progressive creation, team, HoloMesh, agent, and provisioning surfaces exist; ongoing work is polish and discoverability. | [packages/studio/README.md](../../packages/studio/README.md) |
 | HoloMesh / Teams | Team board, presence, messages, suggestions, and knowledge are production coordination surfaces. | [packages/mcp-server/src/holomesh/README.md](../../packages/mcp-server/src/holomesh/README.md) |
@@ -35,7 +35,7 @@ v7.0.0 is the current platform-era marker. The active roadmap is no longer "fini
 
 ---
 
-## Active v7 Lanes
+## Active 6.x Lanes
 
 ### 1. Evidence Over Claims
 
@@ -69,16 +69,16 @@ Active roadmaps must answer "what is true now?" in the first screen. Historical 
 
 ---
 
-## v7 Verification Criteria
+## 6.x Verification Criteria
 
-v7 is operationally credible when an autonomous agent can:
+The 6.x line is operationally credible when an autonomous agent can:
 
 1. Spawn natively in a VR training simulation.
 2. Form a sovereign economic contract through x402.
 3. Move the same logic into a physical robotic or digital-twin wrapper.
 4. Produce replayable evidence that the task executed without undocumented workarounds.
 
-All four steps powered by the v6.0 architecture without workarounds.
+All four steps powered by the 6.x architecture without workarounds.
 
 ---
 

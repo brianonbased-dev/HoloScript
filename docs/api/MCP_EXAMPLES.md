@@ -54,7 +54,7 @@ Returns AST with objects, traits, imports, and diagnostics.
 { "name": "compile_to_webgpu", "arguments": { "code": "object Mesh { @wireframe vertices: [...] }" } }
 ```
 
-Available compile targets: `compile_to_r3f`, `compile_to_unity`, `compile_to_unreal`, `compile_to_godot`, `compile_to_vrchat`, `compile_to_babylon`, `compile_to_webgpu`, `compile_to_wasm`, `compile_to_openxr`, `compile_to_android`, `compile_to_android_xr`, `compile_to_ios`, `compile_to_visionos`, `compile_to_ar`, `compile_to_playcanvas`, `compile_to_usd`, `compile_to_gltf`, `compile_to_dtdl`, `compile_to_nir`, `compile_to_sdf`, `compile_to_urdf`, `compile_to_native_2d`, `compile_to_node_service`, `compile_to_a2a_agent_card`, `compile_to_state`
+Compile targets change with the deployed server. Discover the current `compile_to_*` tools with `tools/list`, or verify the deployed count from `https://mcp.holoscript.net/health`.
 
 ### Validate a composition
 
@@ -105,7 +105,7 @@ Always do this first — if the graph is stale, scan before querying.
 }
 ```
 
-Returns a cited answer with file:line references. See the [absorb-service README](../../packages/absorb-service/README.md) for 50+ example questions.
+Returns a cited answer with file:line references. See the [absorb-service README](../../packages/absorb-service/README.md) for maintained example questions.
 
 ### Semantic search
 
@@ -331,6 +331,8 @@ Types: `wisdom` (things that work), `pattern` (reusable approaches), `gotcha` (t
 
 ## Simulation
 
+Simulation tools are developer-facing. Supply explicit meshes, materials, loads, constraints, units, and validation evidence before treating a result as engineering or scientific support.
+
 ### Structural FEA solver
 
 ```json
@@ -495,4 +497,4 @@ mcp_servers {
 - **Heartbeat every 60s** — `holomesh_heartbeat` keeps you visible on the team board
 - **Compile targets are separate tools** — `compile_to_r3f`, not `compile({ target: "r3f" })`
 - **Knowledge types matter** — `wisdom` = what works, `pattern` = reusable approach, `gotcha` = what bites you
-- **The orchestrator has 213 tools across 6 servers** — use `suggest_tools_for_goal` to find the right one
+- **Tool inventory is live** — use `suggest_tools_for_goal`, `tools/list`, or the relevant `/health` endpoint instead of copying a tool count

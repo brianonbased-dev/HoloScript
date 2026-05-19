@@ -467,7 +467,7 @@ function buildCostMatrix(
       const sim = cosineSimilarity(tracks[i].reid_embedding, embeddingForDetection(detections[j]));
       const reidCost = 1 - Math.max(0, sim); // similarity in [0,1] → cost in [0,1]
       const total = detectionHasPosition(detections[j]) && tracks[i].has_position
-        ? wPos * normalizedPosCost(positionDistance(tracks[i].state, detections[j].position)) + wReid * reidCost
+        ? wPos * normalizedPosCost(positionDistance(tracks[i].state, detections[j].position!)) + wReid * reidCost
         : reidCost;
       row.push(total);
     }

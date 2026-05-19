@@ -29,7 +29,7 @@ function levelToRendererEntry(
     meta && typeof meta.textureScale === 'number' ? meta.textureScale : polygonRatio;
   let disabledFeatures: string[] | undefined;
   if (meta && Array.isArray(meta.disabledFeatures)) {
-    disabledFeatures = meta.disabledFeatures.filter((x) => typeof x === 'string') as string[];
+    disabledFeatures = meta.disabledFeatures.filter((x: unknown) => typeof x === 'string') as string[];
   }
   return {
     level: levelIndex,

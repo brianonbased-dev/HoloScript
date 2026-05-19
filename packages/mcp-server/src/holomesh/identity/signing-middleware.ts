@@ -25,6 +25,7 @@
  * @module holomesh/identity/signing-middleware
  */
 
+import * as http from 'http';
 import {
   canonicalizeBody,
   extractEnvelope,
@@ -99,6 +100,9 @@ export interface SigningContext {
    *  to for THIS request. The route handler asserted it via `req.capability`;
    *  the registry validated the token grants it. */
   capabilityScope?: Capability;
+  /** Convenience alias — granted capability scopes for ForkSandboxGate.
+   *  Populated from capabilityScope when present, otherwise empty. */
+  scopes?: string[];
 }
 
 export interface ExtractAndVerifyResult {

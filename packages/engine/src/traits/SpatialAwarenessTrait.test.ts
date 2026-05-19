@@ -16,9 +16,8 @@ describe('SpatialAwarenessTrait', () => {
     otherEntity = {
       id: 'entity-2',
       type: 'npc',
-      position: [20, 0, 0], // Out of range initially (radius 10)
-      rotation: [0, 0, 0 ],
-      scale: [1, 1, 1 ],
+      position: [20, 0, 0] as [number, number, number], // Out of range initially (radius 10)
+      rotation: [0, 0, 0, 1] as [number, number, number, number],
     };
   });
 
@@ -65,7 +64,7 @@ describe('SpatialAwarenessTrait', () => {
     trait.start();
     // Start close
     trait.setPosition([0, 0, 0 ]);
-    const closeEntity = { ...otherEntity, position: [5, 0, 0] };
+    const closeEntity = { ...otherEntity, position: [5, 0, 0] as [number, number, number] };
     trait['provider'].setEntity(closeEntity);
 
     // Initial update to establish "entered" state
@@ -89,12 +88,12 @@ describe('SpatialAwarenessTrait', () => {
     trait.setEntityTypeFilter(['player']);
     trait.start();
 
-    const npcEntity = { ...otherEntity, id: 'npc-1', type: 'npc', position: [5, 0, 0] };
+    const npcEntity = { ...otherEntity, id: 'npc-1', type: 'npc', position: [5, 0, 0] as [number, number, number] };
     const playerEntity = {
       ...otherEntity,
       id: 'player-1',
       type: 'player',
-      position: [5, 0, 0],
+      position: [5, 0, 0] as [number, number, number],
     };
 
     trait['provider'].setEntity(npcEntity);
@@ -116,7 +115,7 @@ describe('SpatialAwarenessTrait', () => {
     trait.setPosition([0, 0, 0 ]);
 
     // Set entity inside radius
-    const nearby = { ...otherEntity, position: [5, 0, 0] };
+    const nearby = { ...otherEntity, position: [5, 0, 0] as [number, number, number] };
     trait['provider'].setEntity(nearby);
     (trait as any).provider.update();
 
@@ -136,8 +135,8 @@ describe('SpatialAwarenessTrait', () => {
   it('should perform queries via provider', () => {
     trait.start();
     trait.setPosition([0, 0, 0 ]);
-    const e1 = { ...otherEntity, id: 'e1', position: [5, 0, 0] }; // Dist 5
-    const e2 = { ...otherEntity, id: 'e2', position: [8, 5, 0] }; // Dist sqrt(64+25) = sqrt(89) ~ 9.4
+    const e1 = { ...otherEntity, id: 'e1', position: [5, 0, 0] as [number, number, number] }; // Dist 5
+    const e2 = { ...otherEntity, id: 'e2', position: [8, 5, 0] as [number, number, number] }; // Dist sqrt(64+25) = sqrt(89) ~ 9.4
 
     trait['provider'].setEntities([e1, e2]);
 
@@ -163,9 +162,9 @@ describe('SpatialAwarenessTrait', () => {
     // Register a region
     const region = {
       id: 'zone-1',
-      type: 'safe_zone',
-      bounds: { min: [-5, -5, -5 ], max: [5, 5, 5 ] },
-      priority: 1,
+      name: 'Safe Zone',
+      type: 'box' as const,
+      bounds: { min: [-5, -5, -5] as [number, number, number], max: [5, 5, 5] as [number, number, number] },
     };
     trait.registerRegion(region); // Should delegate to provider
 

@@ -212,7 +212,7 @@ export function validateTrustReceipt(r: unknown): { valid: boolean; errors: stri
     if (!at.layer1Strategy || typeof at.layer1Strategy !== 'string') errors.push('Missing algebraicTrust.layer1Strategy');
     if (!at.layer2HistoryRef || typeof at.layer2HistoryRef !== 'string') errors.push('Missing algebraicTrust.layer2HistoryRef');
     const action = (rec.action as Record<string, unknown> | undefined) ?? {};
-    if (isSimulationRelated(action as TrustAction) && (!at.layer3OracleRef || typeof at.layer3OracleRef !== 'string')) {
+    if (isSimulationRelated(action as unknown as TrustAction) && (!at.layer3OracleRef || typeof at.layer3OracleRef !== 'string')) {
       errors.push('Missing algebraicTrust.layer3OracleRef for simulation/digital-twin receipts');
     }
   }

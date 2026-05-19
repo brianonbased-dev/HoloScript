@@ -56,6 +56,7 @@ interface AuditResult {
 // =============================================================================
 
 const HOLOSCRIPT_ROOT = path.resolve(__dirname, '../../..');
+const DEFAULT_ORCHESTRATOR_URL = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 
 const METRICS: MetricDefinition[] = [
   {

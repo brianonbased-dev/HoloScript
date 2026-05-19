@@ -1,6 +1,6 @@
 # AI Integration
 
-Use the HoloScript MCP server (34+ tools) to let AI agents generate, validate, and modify VR scenes through natural language.
+Use the HoloScript MCP server to let AI agents generate, validate, and modify HoloScript scenes and workflows through natural language. Verify the live tool inventory from `https://mcp.holoscript.net/health` instead of copying a count.
 
 ## Overview
 
@@ -51,7 +51,7 @@ Add to your MCP settings:
 }
 ```
 
-## Key MCP Tools (34 Total)
+## Key MCP Tools
 
 | Tool                  | What it does                          |
 | --------------------- | ------------------------------------- |

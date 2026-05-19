@@ -74,4 +74,59 @@ describe('wot-export public API contract', () => {
       expect(result.stderr).not.toContain('@holoscript/core/wot');
     });
   }, 120_000);
+
+  it('preserves replay-overlay properties, action, and event affordances', async () => {
+    await withTempDir(async (dir) => {
+      const file = path.join(dir, 'replay-overlay.holo');
+      await fs.writeFile(
+        file,
+        `composition "ReplayOverlay" {
+  object "ReleaseEventTile" {
+    @wot_thing(title: "Release replay event", security: "nosec")
+    geometry: "plane"
+    label: "release_constraint_detached"
+    properties: { source: "world-model-two-agent.log", action: "release", expected: "tool owner becomes null" }
+  }
+}
+`
+      );
+
+      const result = await runCli(['wot-export', file, '--json']);
+
+      expect(result.stdout).toContain('"source"');
+      expect(result.stdout).toContain('"release"');
+      expect(result.stdout).toContain('"expected"');
+      expect(result.stdout).toContain('"actions"');
+      expect(result.stdout).toContain('"events"');
+      expect(result.stdout).toContain('"release_constraint_detached"');
+    });
+  }, 120_000);
+
+  it('exports objects that inherit @wot_thing from templates', async () => {
+    await withTempDir(async (dir) => {
+      const file = path.join(dir, 'template-wot.holo');
+      await fs.writeFile(
+        file,
+        `composition "TemplateWoT" {
+  template "SensorNode" {
+    @wot_thing(title: "Sensor template", security: "nosec")
+    geometry: "sphere"
+  }
+
+  object "WindSensor" using "SensorNode" {
+    properties: { thingId: "urn:test:wind", action: "calibrate", expected: "calibrate wind sensor" }
+  }
+}
+`
+      );
+
+      const result = await runCli(['wot-export', file, '--json']);
+
+      expect(result.stdout).toContain('"title": "Sensor template"');
+      expect(result.stdout).toContain('"id": "urn:holoscript:WindSensor"');
+      expect(result.stdout).toContain('"thingId"');
+      expect(result.stdout).toContain('"calibrate"');
+      expect(result.stdout).not.toContain('No objects with @wot_thing trait found.');
+    });
+  }, 120_000);
 });

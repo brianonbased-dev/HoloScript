@@ -14,7 +14,7 @@
  */
 
 import React, { useRef, useMemo, useEffect } from 'react';
-import { _useFrame } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 // =============================================================================

@@ -157,6 +157,13 @@ export class QueryResolver {
         version: '1.0+',
         supportedFeatures: ['Hand Tracking', 'Eye Tracking', 'Passthrough', 'Composition Layers'],
       },
+      [CompilerTarget.WEBGPU]: {
+        target: CompilerTarget.WEBGPU,
+        name: 'WebGPU',
+        description: 'Modern GPU API for the web',
+        version: 'W3C Candidate Recommendation',
+        supportedFeatures: ['Compute Shaders', 'Render Pipelines', 'Bindless Resources'],
+      },
     };
 
     return targetInfoMap[target] || null;

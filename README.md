@@ -1,14 +1,16 @@
 # HoloScript
 
-Describe an interface, workflow, robot, or 3D scene. HoloScript turns it into something that runs.
+Describe what you want to build. HoloScript turns that description into files that can run, be inspected, and move to the platform you need.
 
-HoloScript is a semantic app platform for AI-assisted builders. Write intent in `.holo`, `.hsplus`, or `.hs`; the runtime can execute it directly, and compilers translate it for specific targets when native output is useful.
+HoloScript is for teams building with AI agents, real apps, and more than one place to ship. You write `.holo`, `.hsplus`, or `.hs` files that describe screens, scenes, services, data, devices, and agent workflows. HoloScript can run those files directly while you iterate, then translate the same source when you need code for a browser, engine, robot, service, or deployment.
 
 Think of it as three practical pieces:
 
-- a small language for describing what should exist and how it behaves
-- a runtime that can run those descriptions without waiting for a compiler
-- a tool and compiler surface that turns the same intent into platform code, MCP tools, and deployment artifacts
+- readable project files for what should exist and how it should behave
+- a runner that can execute those files before you choose a final platform
+- tools that turn the same source into apps, scenes, services, agent tools, and deployment artifacts
+
+Use this to connect an AI coding agent to HoloScript tools:
 
 ```json
 {
@@ -23,34 +25,33 @@ Think of it as three practical pieces:
 
 ## Try it without an API key
 
-- **`npx create-holoscript@latest my-app`** — scaffold a HoloScript app, browser scene in under a minute.
-- **`npm install @holoscript/cli`** — local CLI; `npm install @holoscript/wasm` for in-browser parsing.
-- **<https://holoscript.studio/playground>** — live editor + WebGPU preview, no login.
-- **`POST mcp.holoscript.net/api/public/tool`** — anonymous read-only MCP tools (parse, validate, examples, syntax, explain, list-targets). 30 req/min per IP.
-- **`POST mcp.holoscript.net/oauth/register`** — self-serve client registration when you need the full tool surface; RFC 7591, no human approval.
+- **`npx create-holoscript@latest my-app`** - scaffold a HoloScript app with a browser scene in under a minute.
+- **`npm install @holoscript/cli`** - use the local CLI; `npm install @holoscript/wasm` adds in-browser parsing.
+- **<https://holoscript.studio/playground>** - try the live editor and WebGPU preview with no login.
+- **`POST mcp.holoscript.net/api/public/tool`** - call read-only public tools for parsing, validation, examples, syntax help, explanations, and target lists. 30 req/min per IP.
+- **`POST mcp.holoscript.net/oauth/register`** - register a client yourself when you need the full set of tools. No human approval step.
 
 Full reference: [docs/PUBLIC_ACCESS.md](docs/PUBLIC_ACCESS.md).
 
 ## Why teams choose HoloScript
 
-HoloScript is for teams that keep rebuilding the same idea in different stacks: browser preview, engine export, service API, agent workflow, robotics simulation, and internal tools. It gives the idea a structured form that humans can read, agents can modify, and runtimes can execute.
+HoloScript helps when the same product idea has to show up in too many places: a browser preview, engine export, service API, agent workflow, robotics simulation, internal tool, or digital twin. Instead of burying the idea in framework-specific glue, it keeps the intent in a readable source file that humans can review, agents can edit, and HoloScript can run.
 
-### 1) Write intent, not glue code
+### 1) Describe the thing, not the glue
 
-Use semantic files (`.holo`, `.hsplus`, `.hs`) to define behavior, data, and interfaces.  
-The runtime executes directly. Compilers optimize where available.
+Use `.holo`, `.hsplus`, or `.hs` files to define behavior, data, interfaces, objects, and workflows. Run them directly, then translate them to platform code when that is worth it.
 
-### 2) Build agent-native systems
+### 2) Give agents something solid to work with
 
-HoloScript includes board workflows, MCP integration, connectors, and composable traits so agents can inspect the system, take actions, and report with structured outputs.
+HoloScript includes task boards, MCP tools, connectors, permissions, and traits so agents can inspect a system, make bounded changes, and report what they did.
 
-### 3) Keep deployment paths flexible
+### 3) Keep deployment paths open
 
-The same composition can target multiple outputs (renderers, services, robotics, and more). If a compiler path is unavailable, runtime interpretation keeps your workflow alive.
+The same composition can feed multiple outputs: renderers, services, robotics, web runtimes, and more. If a translation is not ready, HoloScript can still run the source.
 
 ### 4) Compose real product capabilities
 
-Trait groups cover common production needs:
+Add production concerns as traits instead of one-off glue:
 
 - payments and economy
 - compliance and auditability
@@ -60,27 +61,27 @@ Trait groups cover common production needs:
 - AI/ML and agent orchestration
 - IoT, simulation, and digital twins
 
-### 5) Start small, scale systemically
+### 5) Start with one use case, grow from there
 
-Most teams begin with one use case (dashboard, workflow, agent task, or spatial scene) and expand by composing additional traits and plugins instead of rewriting infrastructure.
+Start with a dashboard, workflow, agent task, or 3D scene. Add traits and plugins as the work grows, without rewriting the core idea.
 
-The goal is not to replace every tool you already use. It is to keep intent portable while still letting each target do what it is good at.
+HoloScript is not trying to replace every tool in your stack. It keeps the intent portable so each target can still do what it does best.
 
 ## Who this is for
 
-- **Founders / product teams:** faster path from idea to running prototype.
-- **Platform engineers:** one semantic layer for multi-target outputs.
-- **Agent builders:** deterministic interfaces and task-driven execution loops.
-- **Research / simulation teams:** provenance-aware workflows with replayability hooks.
+- **Product teams:** a faster path from idea to running prototype.
+- **Platform engineers:** one readable source for outputs that would otherwise split across stacks.
+- **Agent builders:** files, tools, and checks agents can inspect before acting.
+- **Research / simulation teams:** developer-facing solvers and repeatable workflows with provenance and replay hooks.
 
 ### One-line outcomes by role
 
 | If you are a...        | Describe this                                                          | Get this                                                                                                    |
 | ---------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Game / XR developer    | `composition "Dungeon" { object "Chest" @grabbable @physics { ... } }` | Compiled Unity C#, Unreal C++, Godot GDScript, or R3F JSX                                                   |
-| AI agent builder       | `agent "Brittney" { tool: generate_scene, tool: deploy_service, ... }` | MCP server with live tool inventory verified via `GET /health`, deterministic tool contracts, agent economy |
-| Simulation engineer    | `simulation "WindTunnel" { solver: fea, mesh: tet10, boundary: ... }`  | Browser-native WebGPU FEA with TET10 convergence, no server required                                        |
-| Founder / product team | `service "BillingAPI" { route: /invoice, method: POST, ... }`          | Deployed Node.js service with observability, metering, and rollback                                         |
+| Game / XR developer    | `composition "Dungeon" { object "Chest" @grabbable @physics { ... } }` | Unity, Unreal, Godot, or React Three Fiber output from the same scene                    |
+| AI agent builder       | `agent "Brittney" { tool: generate_scene, tool: deploy_service, ... }` | MCP tools with typed inputs, permissions, and live inventory verified via `GET /health`  |
+| Simulation engineer    | `simulation "WindTunnel" { solver: fea, mesh: tet10, boundary: ... }`  | TypeScript-accessible solvers with replay/provenance hooks; verify geometry, meshing, boundary conditions, and V&V depth before scientific use |
+| Founder / product team | `service "BillingAPI" { route: /invoice, method: POST, ... }`          | Node.js service scaffold with observability, metering, and rollback hooks                |
 
 ## Example outcomes
 
@@ -145,11 +146,11 @@ Individual traits solve individual problems. When you wire them together, autono
 
 **Cross-reality coordination.** CRDT + presence + sync + connectors. Same composition state live in VS Code, browser, phone, headset, and IoT device simultaneously — with conflict resolution.
 
-**Full provenance chain.** CAEL (Continuous Agentic Event Logging) records the perception → cognition → action → physics loop in a tamper-evident hash chain. The SimulationContract enforces physical guarantees (geometry hash, unit validation, deterministic stepping), ensuring the render model IS the solver model. Trust is compositional from shader to neural spike.
+**Full provenance chain.** CAEL (Continuous Agentic Event Logging) records the perception -> cognition -> action -> physics loop in a tamper-evident hash chain. When a workflow is actually backed by `SimulationContract`, it can bind geometry hashes, unit validation, deterministic stepping, and replay evidence. Do not treat visual previews as solver evidence unless the contract path emitted the receipt.
 
-**Scientific Foundation (8-Paper Program).** HoloScript is the first platform where trust is algebraically composable via the **provenance semiring** (tropical min-plus/max-plus).
+**Scientific foundation under active verification.** The paper program frames trust as composable provenance rather than marketing copy. Current public claims should point to rerunnable evidence, not cached numbers or old pitch decks.
 
-- **Trust by Construction:** Provable simulation accuracy (TET10 convergence p=1.99).
+- **Trust by Construction:** SimulationContract replay, unit checks, and structural convergence evidence; rerun the solver benchmarks before citing a convergence number.
 - **CAEL Agent Contracts:** Hash-chained, replayable, and forkable agent thoughts.
 - **Trustworthy Tool Use:** independent trace replay for MCP tool verification.
 - **Browser-Native SNN:** neuromorphic computing via WebGPU compute shaders (verify benchmarks live).
@@ -235,7 +236,7 @@ TypeScript is the last resort — for parsers, CLI, adapters, infrastructure. If
 
 ### Versioning
 
-npm and PyPI packages share the same major version. See the [Release Versioning Guide](./docs/guides/release-versioning.md).
+Package versions are lane-managed, and not every package shares the same major. Check `package.json`, `packages/*/package.json`, and the [Release Versioning Guide](./docs/guides/release-versioning.md) before publishing or citing a version.
 
 ## Agent quick reference
 
@@ -305,7 +306,7 @@ Every number in this README points to a live source. If a number is hardcoded, i
 
 ## Release
 
-HoloScript release lanes are managed under `scripts/version-policy.json` (for example, the `platform-v6` lane id targets **major 7** after the 2026-04 platform release), and npm publishing is now guarded.
+HoloScript release lanes are managed under `scripts/version-policy.json`, and npm publishing is guarded. Treat that file and each package manifest as the source of truth instead of copying a version into docs.
 
 - Use `pnpm release:publish` for production publish flows.
 - Raw `pnpm publish` at repo root is intentionally blocked.
@@ -327,4 +328,4 @@ HoloScript release lanes are managed under `scripts/version-policy.json` (for ex
 
 ---
 
-v7.0.0 · [MIT License](./LICENSE)
+Package versions live in the repo manifests · [MIT License](./LICENSE)

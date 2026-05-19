@@ -11,6 +11,7 @@ import { resolveWebSurfaceConfig } from '../utils/partitionStudioChildren';
 describe('WebSurfaceRenderer logic', () => {
   it('resolveWebSurfaceConfig returns trait data when present', () => {
     const node = {
+      type: 'mesh',
       traits: new Map([['web_surface', { url: 'https://a.test', size: [640, 480] }]]),
       props: {},
     };
@@ -21,6 +22,7 @@ describe('WebSurfaceRenderer logic', () => {
 
   it('resolveWebSurfaceConfig falls back to props.webSurface', () => {
     const node = {
+      type: 'mesh',
       traits: new Map(),
       props: { webSurface: { url: 'https://b.test' } },
     };
@@ -30,6 +32,7 @@ describe('WebSurfaceRenderer logic', () => {
 
   it('resolveWebSurfaceConfig prefers trait over props', () => {
     const node = {
+      type: 'mesh',
       traits: new Map([['web_surface', { url: 'https://trait.test' }]]),
       props: { webSurface: { url: 'https://prop.test' } },
     };
@@ -38,7 +41,7 @@ describe('WebSurfaceRenderer logic', () => {
   });
 
   it('resolveWebSurfaceConfig returns null when nothing present', () => {
-    const node = { traits: new Map(), props: {} };
+    const node = { type: 'mesh', traits: new Map(), props: {} };
     expect(resolveWebSurfaceConfig(node)).toBeNull();
   });
 });
