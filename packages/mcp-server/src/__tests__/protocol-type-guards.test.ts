@@ -256,6 +256,85 @@ describe('ATK-C1: Type confusion guards in protocol-tools', () => {
     });
   });
 
+  describe('ATK-A2/C1: Import-array regex validation (path traversal + type confusion)', () => {
+    it('rejects imports with path-traversal contentHash', async () => {
+      const handle = await getHandler();
+      const result = await handle('holo_protocol_revenue', {
+        price: '0.1',
+        author: 'test-author',
+        imports: [{ contentHash: '../../etc/passwd', author: 'upstream', depth: 1 }],
+      });
+      expect(result).toMatchObject({ status: 'error', error: 'INVALID_PARAMS' });
+      expect((result as any).message).toContain('64-character lowercase hex');
+    });
+
+    it('rejects imports with short contentHash', async () => {
+      const handle = await getHandler();
+      const result = await handle('holo_protocol_revenue', {
+        price: '0.1',
+        author: 'test-author',
+        imports: [{ contentHash: 'abc123', author: 'upstream', depth: 1 }],
+      });
+      expect(result).toMatchObject({ status: 'error', error: 'INVALID_PARAMS' });
+    });
+
+    it('rejects imports with special chars in author', async () => {
+      const handle = await getHandler();
+      const result = await handle('holo_protocol_revenue', {
+        price: '0.1',
+        author: 'test-author',
+        imports: [{ contentHash: 'a'.repeat(64), author: 'has spaces', depth: 1 }],
+      });
+      expect(result).toMatchObject({ status: 'error', error: 'INVALID_PARAMS' });
+      expect((result as any).message).toContain('word characters');
+    });
+
+    it('rejects imports with path-traversal author', async () => {
+      const handle = await getHandler();
+      const result = await handle('holo_protocol_revenue', {
+        price: '0.1',
+        author: 'test-author',
+        imports: [{ contentHash: 'a'.repeat(64), author: '../../../etc', depth: 1 }],
+      });
+      expect(result).toMatchObject({ status: 'error', error: 'INVALID_PARAMS' });
+    });
+
+    it('accepts valid imports after skipping invalid items', async () => {
+      const handle = await getHandler();
+      const validHash = 'abcdef0123456789'.repeat(4);
+      const result = await handle('holo_protocol_revenue', {
+        price: '0.1',
+        author: 'test-author',
+        imports: [
+          { contentHash: validHash, author: 'valid-author', depth: 1 },
+          { contentHash: '../../bad', author: 'valid-author', depth: 1 },
+        ],
+      });
+      // The whole imports array is rejected because one item fails validation
+      expect(result).toMatchObject({ status: 'error', error: 'INVALID_PARAMS' });
+    });
+
+    it('rejects null contentHash in imports', async () => {
+      const handle = await getHandler();
+      const result = await handle('holo_protocol_revenue', {
+        price: '0.1',
+        author: 'test-author',
+        imports: [{ contentHash: null, author: 'upstream', depth: 1 }],
+      });
+      expect(result).toMatchObject({ status: 'error', error: 'INVALID_PARAMS' });
+    });
+
+    it('rejects null author in imports', async () => {
+      const handle = await getHandler();
+      const result = await handle('holo_protocol_revenue', {
+        price: '0.1',
+        author: 'test-author',
+        imports: [{ contentHash: 'a'.repeat(64), author: null, depth: 1 }],
+      });
+      expect(result).toMatchObject({ status: 'error', error: 'INVALID_PARAMS' });
+    });
+  });
+
   describe('handleLookup — contentHash and author validation', () => {
     it('rejects invalid contentHash format', async () => {
       const handle = await getHandler();

@@ -228,16 +228,20 @@ function validateImportsArray(value: unknown): { imports: Array<{ contentHash: s
       continue;
     }
     const obj = item as Record<string, unknown>;
-    if (typeof obj.contentHash !== 'string') {
-      errors.push({ index: i, field: 'contentHash', message: `imports[${i}].contentHash must be a string` });
+    // Validate contentHash with regex guard (ATK-A2: path traversal via imports array)
+    if (typeof obj.contentHash !== 'string' || !CONTENT_HASH_RE.test(obj.contentHash)) {
+      errors.push({ index: i, field: 'contentHash', message: typeof obj.contentHash !== 'string' ? `imports[${i}].contentHash must be a string` : `imports[${i}].contentHash must be a 64-character lowercase hex string` });
     }
-    if (typeof obj.author !== 'string') {
-      errors.push({ index: i, field: 'author', message: `imports[${i}].author must be a string` });
+    // Validate author with regex guard (ATK-C1: type confusion via imports array)
+    if (typeof obj.author !== 'string' || !AUTHOR_RE.test(obj.author)) {
+      errors.push({ index: i, field: 'author', message: typeof obj.author !== 'string' ? `imports[${i}].author must be a string` : `imports[${i}].author must contain only word characters, dots, and hyphens` });
     }
     if (obj.depth !== undefined && typeof obj.depth !== 'number') {
       errors.push({ index: i, field: 'depth', message: `imports[${i}].depth must be a number` });
     }
-    if (errors.length > 0) continue;
+    // Skip only this item if it has errors (previous `errors.length > 0` skipped ALL items after first error)
+    const itemHasErrors = errors.some(e => e.index === i);
+    if (itemHasErrors) continue;
     imports.push({
       contentHash: obj.contentHash as string,
       author: obj.author as string,
