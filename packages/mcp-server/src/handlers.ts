@@ -58,6 +58,7 @@ import { handleEstimateTaskDurationTool } from './tools/estimate_task_duration';
 import { handleKolmogorovTaskScoreTool } from './tools/kolmogorov_task_score';
 import { handleCriticTool } from './critic-handler';
 import { handleFounderTool } from './founder-handler';
+import { handleDaemonLifecycleTool } from './daemon-lifecycle-tools';
 import { handlePremortemTool } from './premortem-handler';
 import {
   LEGACY_TRAIT_CATEGORY_ALIASES,
@@ -689,6 +690,17 @@ export async function handleTool(
   if (name.startsWith('holomesh_')) {
     const { handleHoloMeshTool } = await import('./holomesh/index');
     return handleHoloMeshTool(name, args);
+  }
+
+  // ConversationDaemon lifecycle tools (D.052 Brittney field / user daemon model)
+  if (
+    name === 'holo_create_daemon' ||
+    name === 'holo_get_daemon' ||
+    name === 'holo_update_daemon_ritual' ||
+    name === 'holo_list_daemons'
+  ) {
+    const result = await handleDaemonLifecycleTool(name, args);
+    if (result !== null) return result;
   }
 
   // Trait composition / ROS2 sync / economic contract (trait-tools.ts) — also in index.ts registry

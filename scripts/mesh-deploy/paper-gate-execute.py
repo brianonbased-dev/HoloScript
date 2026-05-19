@@ -725,7 +725,7 @@ def cmd_check(args: argparse.Namespace) -> int:
                     "-o", "BatchMode=yes",
                     "-p", str(port),
                     f"root@{host}",
-                    "pgrep -f gpu-runner.mjs >/dev/null 2>&1 && echo RUNNER_UP || echo RUNNER_ABSENT",
+                    "pgrep -f 'node.*gpu-runner.mjs' >/dev/null 2>&1 && echo RUNNER_UP || echo RUNNER_ABSENT",
                 ], timeout=20)
                 if check_runner[0] == 0 and "RUNNER_ABSENT" in check_runner[1]:
                     # Bootstrap never ran — retry it
