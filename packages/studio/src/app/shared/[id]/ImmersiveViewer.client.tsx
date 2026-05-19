@@ -127,9 +127,11 @@ function makeMesh(obj: ParsedObject): THREE.Mesh {
   return mesh;
 }
 
-function isOculusBrowser(): boolean {
+function isQuestBrowser(): boolean {
   if (typeof navigator === 'undefined') return false;
-  return /OculusBrowser/i.test(navigator.userAgent);
+  // Quest 3 Browser reports "Quest 3" (not OculusBrowser) in its UA.
+  // Match both for forward/backward compat.
+  return /OculusBrowser|Quest\s*\d/i.test(navigator.userAgent);
 }
 
 export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
@@ -200,11 +202,21 @@ export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
     };
   }, [parsed]);
 
-  // Feature-detect immersive-vr
+  // Feature-detect immersive-vr — deferred to after window.load so Quest Browser
+  // has time to initialize its XR runtime. Querying isSessionSupported too early
+  // (e.g. at React useEffect time, before load fires) returns false on Quest 3.
   useEffect(() => {
-    const xr = (navigator as unknown as { xr?: { isSessionSupported: (m: string) => Promise<boolean> } }).xr;
-    if (!xr) return;
-    xr.isSessionSupported('immersive-vr').then(setXrSupported).catch(() => setXrSupported(false));
+    const check = () => {
+      const xr = (navigator as unknown as { xr?: { isSessionSupported: (m: string) => Promise<boolean> } }).xr;
+      if (!xr) return;
+      xr.isSessionSupported('immersive-vr').then(setXrSupported).catch(() => setXrSupported(false));
+    };
+    if (document.readyState === 'complete') {
+      check();
+    } else {
+      window.addEventListener('load', check, { once: true });
+      return () => window.removeEventListener('load', check);
+    }
   }, []);
 
   const enterVR = async () => {
@@ -240,7 +252,7 @@ export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
 
   // Auto-enter on Oculus Browser once XR support is confirmed
   useEffect(() => {
-    if (xrSupported && isOculusBrowser() && !xrActive && parsed.parseOk) {
+    if (xrSupported && isQuestBrowser() && !xrActive && parsed.parseOk) {
       const t = setTimeout(() => void enterVR(), 1500);
       return () => clearTimeout(t);
     }
