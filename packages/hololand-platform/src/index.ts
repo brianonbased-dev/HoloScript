@@ -157,3 +157,8 @@ export type {
   PredicateReplayDelta,
   AdversarialTrajectoryReplayResult,
 } from './adversarial-trajectory';
+
+// HoloTunnel — sovereign ngrok replacement for local-to-cloud tunneling
+export { startHoloTunnel } from './holo-tunnel';
+
+export type { HoloTunnelOptions, HoloTunnelHandle } from './holo-tunnel';

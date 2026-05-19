@@ -52,6 +52,7 @@ import { founderTools } from './founder-tools';
 import { premortemTools } from './premortem-tools';
 import { oracleMcpTools } from './oracle-mcp-tools';
 import { secretsBrokerTools } from './secrets-broker-tools';
+import { holoTunnelTools } from './holo-tunnel-tools';
 
 /**
  * All MCP tools for HoloScript
@@ -768,6 +769,7 @@ export const tools: Tool[] = [
   ...oracleMcpTools,
   ...secretsBrokerTools,
   ...receiptQueryTools,
+  ...holoTunnelTools,
 ];
 
 // Tool name type for type safety

@@ -57,6 +57,7 @@ import { traitTools, handleTraitTool } from './trait-tools';
 import { alphafoldTools, handleFetchStructure } from './alphafold-tools';
 import { hologramToolDefinitions, handleHologramTool } from './hologram-mcp-tools';
 import { holotwinToolDefinitions, handleHoloTwinTool } from './holotwin-mcp-tools';
+import { holoTunnelTools, handleHoloTunnelTool } from './holo-tunnel-tools';
 import { spatialMcpToolDefinitions } from './spatial-mcp-tools';
 import {
   hologramContentToolDefinitions,
@@ -99,6 +100,7 @@ const ALL_AVAILABLE_TOOLS: Tool[] = [
   ...alphafoldTools,
   ...hologramToolDefinitions,
   ...holotwinToolDefinitions,
+  ...holoTunnelTools,
   ...spatialMcpToolDefinitions,
   ...hologramContentToolDefinitions,
   ...negotiationToolDefinitions,
@@ -344,6 +346,7 @@ registerCategory(traitTools, (name, args, _signingCtx) => handleTraitTool(name, 
 registerCategory(alphafoldTools, (name, args, _signingCtx) => handleFetchStructure(args));
 registerCategory(hologramToolDefinitions, (name, args, _signingCtx) => handleHologramTool(name, args));
 registerCategory(holotwinToolDefinitions, (name, args, _signingCtx) => handleHoloTwinTool(name, args));
+registerCategory(holoTunnelTools, (name, args, _signingCtx) => handleHoloTunnelTool(name, args));
 registerCategory(hologramContentToolDefinitions, (name, args, _signingCtx) =>
   handleHologramContentTool(name, args),
 );

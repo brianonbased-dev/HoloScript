@@ -363,11 +363,14 @@ for tier in table['tiers']:
   if echo "$LLM_MODEL" | grep -qi "awq"; then
     $PIP_BIN install --quiet autoawq || true
   fi
-  # Blackwell (sm_120 / compute 12.x) workaround: FlashInfer checks compute
-  # capability as a string ("12.0" < "7.5" lexicographically = false positive).
-  # --enforce-eager disables CUDA Graph compilation and avoids the broken path.
-  # Also needed for any sm >= 100 (future architectures) until FlashInfer fixes
-  # the string comparison bug.
+  # Blackwell (sm_120 / compute 12.x) workaround:
+  # (1) FlashInfer checks compute capability as a string — "12.0" < "7.5"
+  #     lexicographically (lex: "1" < "7"), so sm_120 incorrectly fails the
+  #     "sm75+" check in both attention AND sampling (topk_topp_sampler.py).
+  # (2) --enforce-eager disables CUDA Graph compilation (attention path).
+  # (3) Uninstalling flashinfer makes vLLM fall back to Triton for sampling,
+  #     removing the broken FlashInfer sampler path entirely.
+  # Both fixes are needed; either alone is insufficient.
   BLACKWELL_EAGER=""
   GPU_SM=$("$PY_BIN" -c "
 import torch
@@ -376,8 +379,9 @@ if torch.cuda.is_available():
     print(f'{p.major}')
 " 2>/dev/null || echo "0")
   if [ -n "$GPU_SM" ] && [ "$GPU_SM" -ge 10 ] 2>/dev/null; then
-    echo "[bootstrap] Blackwell/future GPU (sm_${GPU_SM}x) detected — adding --enforce-eager to avoid FlashInfer sm-check false-positive"
+    echo "[bootstrap] Blackwell/future GPU (sm_${GPU_SM}x) detected — adding --enforce-eager + uninstalling flashinfer for Triton fallback"
     BLACKWELL_EAGER="--enforce-eager"
+    $PIP_BIN uninstall -y flashinfer flashinfer-python 2>/dev/null || true
   fi
   # EXTRA_ARGS comes from gpu-tier-models.json (e.g. --max-model-len 16384
   # --gpu-memory-utilization 0.92 for 72B-class models). Word-split intentional;

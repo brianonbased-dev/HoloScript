@@ -45,6 +45,7 @@
     "@holoscript/engine": "workspace:*",
     "@holoscript/framework": "workspace:*",
     "@holoscript/holomap": "workspace:*",
+    "@holoscript/hololand-platform": "workspace:*",
     "@holoscript/llm-provider": "workspace:*",
     "@holoscript/mesh": "workspace:*",
     "@holoscript/secrets-broker": "workspace:*",
