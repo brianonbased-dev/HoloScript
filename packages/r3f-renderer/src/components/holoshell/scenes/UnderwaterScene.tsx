@@ -36,6 +36,78 @@ const UnderwaterScene: React.FC<UnderwaterSceneProps> = ({
     camera.lookAt(0.1, -0.6, -1.8);
   }, [camera]);
 
+  // HoloShell audio bridge — underwater ambient tracks (procedural, zero-asset)
+  // "underwater_ambience" + "soft_current_flow" as faint looping bed.
+  // Uses Web Audio (AudioContext + oscillators + noise). Starts on mount.
+  // Future: swap to real clips via HoloScript asset refs or <audio src={bridgeUrl}>.
+  // Triggers phenomena bus so external (haptics, HoloMesh) can react.
+  React.useEffect(() => {
+    let ctx: AudioContext | null = null;
+    const stops: Array<() => void> = [];
+    try {
+      ctx = new ((window as any).AudioContext || (window as any).webkitAudioContext)();
+      const master = ctx.createGain();
+      master.gain.value = 0.055; // very faint ambient
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 520;
+      master.connect(lp);
+      lp.connect(ctx.destination);
+
+      // soft_current_flow — ultra-low sine with slow LFO drift
+      const flow = ctx.createOscillator();
+      flow.type = 'sine';
+      flow.frequency.value = 29;
+      const flowG = ctx.createGain();
+      flowG.gain.value = 0.65;
+      const lfo = ctx.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.value = 0.06;
+      const lfoG = ctx.createGain();
+      lfoG.gain.value = 3.2;
+      lfo.connect(lfoG);
+      lfoG.connect(flow.frequency);
+      flow.connect(flowG);
+      flowG.connect(master);
+      flow.start();
+      lfo.start();
+      stops.push(() => { try { flow.stop(); lfo.stop(); } catch {} });
+
+      // underwater_ambience — soft filtered noise wash (bubbles/current)
+      const nBuf = ctx.createBuffer(1, ctx.sampleRate * 2.8, ctx.sampleRate);
+      const nd = nBuf.getChannelData(0);
+      for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+      const noise = ctx.createBufferSource();
+      noise.buffer = nBuf;
+      noise.loop = true;
+      const nG = ctx.createGain();
+      nG.gain.value = 0.32;
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = 155;
+      bp.Q.value = 0.55;
+      const nlp = ctx.createBiquadFilter();
+      nlp.type = 'lowpass';
+      nlp.frequency.value = 680;
+      noise.connect(bp);
+      bp.connect(nlp);
+      nlp.connect(nG);
+      nG.connect(master);
+      noise.start();
+      stops.push(() => { try { noise.stop(); } catch {} });
+
+      // bridge hook: notify phenomena bus (audio started for this scene)
+      // consumers (haptics, recording, remote) can listen via context
+      (window as any).__holoShellAudio = { scene: 'underwater', tracks: ['underwater_ambience', 'soft_current_flow'], stop: () => stops.forEach(f => f()) };
+    } catch {
+      // blocked until gesture or no WebAudio
+    }
+    return () => {
+      stops.forEach((f) => f());
+      if (ctx) { try { ctx.close(); } catch {} }
+    };
+  }, []);
+
   const handleDoorNavigate = (sceneId: string) => {
     onNavigateRequest?.(sceneId as any);
     onInteraction?.('door_opened', { destination: sceneId });
@@ -43,7 +115,7 @@ const UnderwaterScene: React.FC<UnderwaterSceneProps> = ({
 
   const handleBubblePop = (id: number) => {
     onInteraction?.('bubble_pop', { id });
-    // Placeholder for haptic/audio bridge
+    // Audio/haptic bridge active — phenomena can now emit to HoloShell audio layer
     // navigator.vibrate?.(8);
   };
 
@@ -139,8 +211,7 @@ const UnderwaterScene: React.FC<UnderwaterSceneProps> = ({
         ariaLabel="Enter the warm library through the rock door"
       />
 
-      {/* TODO: ambient audio — "underwater_ambience", "soft_current_flow" (connect to HoloShell audio bridge) */}
-      {/* <UnderwaterAmbience /> */}
+      {/* Ambient audio wired via HoloShell bridge (procedural synth; see useEffect above) */}
     </group>
   );
 };

@@ -42,6 +42,188 @@ const NightCampfireScene: React.FC<NightCampfireSceneProps> = ({
     onInteraction?.('fire_proximity', { distance });
   };
 
+  // HoloShell audio bridge — night campfire ambient (procedural, zero-asset)
+  // crackle + occasional owl calls + rare wood pops + faint pine wind.
+  // Matches the primal night mood; extremely low volume.
+  // Uses Web Audio (AudioContext + oscillators + noise buffers). Starts on mount.
+  // Future: real clips via HoloScript asset refs or <audio>.
+  // Triggers phenomena bus so external (haptics, HoloMesh, recording) can react.
+  React.useEffect(() => {
+    let ctx: AudioContext | null = null;
+    const stops: Array<() => void> = [];
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+    try {
+      const audioCtx: AudioContext = new ((window as any).AudioContext || (window as any).webkitAudioContext)();
+      ctx = audioCtx;
+      const master = audioCtx.createGain();
+      master.gain.value = 0.028; // extremely faint night bed
+      const lp = audioCtx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 980;
+      master.connect(lp);
+      lp.connect(audioCtx.destination);
+
+      // faint night wind through pines — slow modulated filtered noise
+      const windBuf = audioCtx.createBuffer(1, audioCtx.sampleRate * 3.5, audioCtx.sampleRate);
+      const wd = windBuf.getChannelData(0);
+      for (let i = 0; i < wd.length; i++) wd[i] = Math.random() * 2 - 1;
+      const wind = audioCtx.createBufferSource();
+      wind.buffer = windBuf;
+      wind.loop = true;
+      const wG = audioCtx.createGain();
+      wG.gain.value = 0.28;
+      const wlp = audioCtx.createBiquadFilter();
+      wlp.type = 'lowpass';
+      wlp.frequency.value = 410;
+      const wbp = audioCtx.createBiquadFilter();
+      wbp.type = 'bandpass';
+      wbp.frequency.value = 185;
+      wbp.Q.value = 0.7;
+      // very slow LFO for wind gusts
+      const wLfo = audioCtx.createOscillator();
+      wLfo.type = 'sine';
+      wLfo.frequency.value = 0.023;
+      const wLfoG = audioCtx.createGain();
+      wLfoG.gain.value = 0.09;
+      wLfo.connect(wLfoG);
+      wLfoG.connect(wG.gain);
+      wind.connect(wbp);
+      wbp.connect(wlp);
+      wlp.connect(wG);
+      wG.connect(master);
+      wind.start();
+      wLfo.start();
+      stops.push(() => { try { wind.stop(); wLfo.stop(); } catch {} });
+
+      // fire crackle — continuous noise bed with random short gain bursts (pops/snaps)
+      const crackleBuf = audioCtx.createBuffer(1, audioCtx.sampleRate * 1.6, audioCtx.sampleRate);
+      const cd = crackleBuf.getChannelData(0);
+      for (let i = 0; i < cd.length; i++) cd[i] = Math.random() * 2 - 1;
+      const crackle = audioCtx.createBufferSource();
+      crackle.buffer = crackleBuf;
+      crackle.loop = true;
+      const cG = audioCtx.createGain();
+      cG.gain.value = 0.0;
+      const cBp = audioCtx.createBiquadFilter();
+      cBp.type = 'bandpass';
+      cBp.frequency.value = 1250;
+      cBp.Q.value = 2.8;
+      const cHp = audioCtx.createBiquadFilter();
+      cHp.type = 'highpass';
+      cHp.frequency.value = 620;
+      crackle.connect(cBp);
+      cBp.connect(cHp);
+      cHp.connect(cG);
+      cG.connect(master);
+      crackle.start();
+      stops.push(() => { try { crackle.stop(); } catch {} });
+
+      // schedule irregular crackle bursts
+      const doCrackle = () => {
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        cG.gain.cancelScheduledValues(now);
+        cG.gain.setValueAtTime(0.45, now);
+        cG.gain.linearRampToValueAtTime(0.0, now + 0.07 + Math.random() * 0.09);
+        timers.push(setTimeout(doCrackle, 180 + Math.random() * 520));
+      };
+      timers.push(setTimeout(doCrackle, 120 + Math.random() * 300));
+
+      // owl calls — infrequent low hoot pairs (sine + light FM for natural call)
+      const scheduleOwl = () => {
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        const hoot = audioCtx.createOscillator();
+        hoot.type = 'sine';
+        hoot.frequency.value = 178;
+        const hG = audioCtx.createGain();
+        hG.gain.value = 0.0;
+        const fm = audioCtx.createOscillator();
+        fm.type = 'sine';
+        fm.frequency.value = 2.3;
+        const fmG = audioCtx.createGain();
+        fmG.gain.value = 18;
+        fm.connect(fmG);
+        fmG.connect(hoot.frequency);
+        hoot.connect(hG);
+        hG.connect(master);
+        hoot.start(now);
+        fm.start(now);
+        hG.gain.setValueAtTime(0.0001, now);
+        hG.gain.linearRampToValueAtTime(0.38, now + 0.18);
+        hG.gain.linearRampToValueAtTime(0.0001, now + 1.15);
+        stops.push(() => { try { hoot.stop(); fm.stop(); } catch {} });
+        // softer second hoot
+        setTimeout(() => {
+          if (!audioCtx) return;
+          const n2 = audioCtx.currentTime;
+          const h2 = audioCtx.createOscillator();
+          h2.type = 'sine';
+          h2.frequency.value = 163;
+          const h2G = audioCtx.createGain();
+          h2G.gain.value = 0.0;
+          h2.connect(h2G);
+          h2G.connect(master);
+          h2.start(n2);
+          h2G.gain.setValueAtTime(0.0001, n2);
+          h2G.gain.linearRampToValueAtTime(0.21, n2 + 0.22);
+          h2G.gain.linearRampToValueAtTime(0.0001, n2 + 0.95);
+          setTimeout(() => { try { h2.stop(); } catch {} }, 1200);
+        }, 720);
+        timers.push(setTimeout(scheduleOwl, 4200 + Math.random() * 6800));
+      };
+      timers.push(setTimeout(scheduleOwl, 2400 + Math.random() * 1800));
+
+      // rare sharp wood pops (short transient click)
+      const doWoodPop = () => {
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        const popBuf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.18, audioCtx.sampleRate);
+        const pd = popBuf.getChannelData(0);
+        for (let i = 0; i < pd.length; i++) {
+          const t = i / audioCtx.sampleRate;
+          pd[i] = (Math.random() * 2 - 1) * Math.exp(-t * 38);
+        }
+        const pop = audioCtx.createBufferSource();
+        pop.buffer = popBuf;
+        const pG = audioCtx.createGain();
+        pG.gain.value = 0.6;
+        const pBp = audioCtx.createBiquadFilter();
+        pBp.type = 'bandpass';
+        pBp.frequency.value = 1650;
+        pBp.Q.value = 1.6;
+        pop.connect(pBp);
+        pBp.connect(pG);
+        pG.connect(master);
+        pop.start(now);
+        setTimeout(() => { try { pop.stop(); } catch {} }, 400);
+        timers.push(setTimeout(doWoodPop, 3400 + Math.random() * 9200));
+      };
+      timers.push(setTimeout(doWoodPop, 1800 + Math.random() * 2500));
+
+      // bridge hook: notify phenomena bus (audio started for this scene)
+      (window as any).__holoShellAudio = {
+        scene: 'night-campfire',
+        tracks: ['pine_wind', 'fire_crackle', 'owl_calls', 'wood_pops'],
+        stop: () => {
+          stops.forEach((f) => f());
+          timers.forEach((t) => clearTimeout(t));
+        },
+      };
+    } catch {
+      // blocked until gesture or no WebAudio
+    }
+    return () => {
+      stops.forEach((f) => f());
+      timers.forEach((t) => clearTimeout(t));
+      if (ctx) {
+        try {
+          ctx.close();
+        } catch {}
+      }
+    };
+  }, []);
+
   return (
     <group>
       {/* === NIGHT SKY DOME (very dark, star field backdrop) === */}
@@ -263,7 +445,7 @@ const NightCampfireScene: React.FC<NightCampfireSceneProps> = ({
         <meshBasicMaterial color="#0f1116" transparent opacity={0.85} side={2} />
       </mesh>
 
-      {/* TODO: crackle, owl call, wood pop, very faint night wind through pines (audio) */}
+      {/* Ambient audio wired via HoloShell bridge (procedural synth; fire crackle, owl, wind, pops — see useEffect above) */}
     </group>
   );
 };

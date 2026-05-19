@@ -50,6 +50,141 @@ const WarmLibraryScene: React.FC<WarmLibrarySceneProps> = ({
     onInteraction?.('dust_mote', detail);
   };
 
+  // HoloShell audio bridge — warm library ambient (procedural, zero-asset)
+  // distant page turning (soft rustle pulses) + soft crackle (binding/wood) + very faint music box (sparse high melody).
+  // Scholarly, contemplative, extremely low volume to sit under voice/haptics.
+  // Uses Web Audio (AudioContext + oscillators + noise buffers + scheduled events). Starts on mount.
+  // Future: real clips via HoloScript asset refs or <audio>.
+  // Triggers phenomena bus so external (haptics, HoloMesh, recording) can react.
+  React.useEffect(() => {
+    let ctx: AudioContext | null = null;
+    const stops: Array<() => void> = [];
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+    try {
+      const audioCtx: AudioContext = new ((window as any).AudioContext || (window as any).webkitAudioContext)();
+      ctx = audioCtx;
+      const master = audioCtx.createGain();
+      master.gain.value = 0.022; // extremely faint library bed — page study quiet
+      const lp = audioCtx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 1850;
+      master.connect(lp);
+      lp.connect(audioCtx.destination);
+
+      // distant page turning — soft filtered noise bursts, infrequent, low amplitude
+      const pageBuf = audioCtx.createBuffer(1, audioCtx.sampleRate * 1.2, audioCtx.sampleRate);
+      const pd = pageBuf.getChannelData(0);
+      for (let i = 0; i < pd.length; i++) pd[i] = Math.random() * 2 - 1;
+      const doPageTurn = () => {
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        const page = audioCtx.createBufferSource();
+        page.buffer = pageBuf;
+        const pG = audioCtx.createGain();
+        pG.gain.value = 0.0;
+        const pBp = audioCtx.createBiquadFilter();
+        pBp.type = 'bandpass';
+        pBp.frequency.value = 620;
+        pBp.Q.value = 0.9;
+        const pLp = audioCtx.createBiquadFilter();
+        pLp.type = 'lowpass';
+        pLp.frequency.value = 980;
+        page.connect(pBp);
+        pBp.connect(pLp);
+        pLp.connect(pG);
+        pG.connect(master);
+        page.start(now);
+        pG.gain.setValueAtTime(0.0001, now);
+        pG.gain.linearRampToValueAtTime(0.32, now + 0.18);
+        pG.gain.linearRampToValueAtTime(0.0001, now + 1.35);
+        setTimeout(() => { try { page.stop(); } catch {} }, 1600);
+        timers.push(setTimeout(doPageTurn, 6800 + Math.random() * 9200));
+      };
+      timers.push(setTimeout(doPageTurn, 1400 + Math.random() * 2200));
+
+      // soft crackle — occasional gentle binding/wood micro-pops, very faint
+      const doCrackle = () => {
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        const cBuf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.22, audioCtx.sampleRate);
+        const cd = cBuf.getChannelData(0);
+        for (let i = 0; i < cd.length; i++) {
+          const t = i / audioCtx.sampleRate;
+          cd[i] = (Math.random() * 2 - 1) * Math.exp(-t * 28);
+        }
+        const crack = audioCtx.createBufferSource();
+        crack.buffer = cBuf;
+        const cG = audioCtx.createGain();
+        cG.gain.value = 0.18;
+        const cBp = audioCtx.createBiquadFilter();
+        cBp.type = 'bandpass';
+        cBp.frequency.value = 1480;
+        cBp.Q.value = 2.1;
+        crack.connect(cBp);
+        cBp.connect(cG);
+        cG.connect(master);
+        crack.start(now);
+        setTimeout(() => { try { crack.stop(); } catch {} }, 380);
+        timers.push(setTimeout(doCrackle, 2400 + Math.random() * 6800));
+      };
+      timers.push(setTimeout(doCrackle, 3200 + Math.random() * 1800));
+
+      // very faint music box — sparse, high, repeating 5-note motif (music-box timbre via sine+light detune)
+      const scheduleMusicBox = () => {
+        if (!audioCtx) return;
+        const notes = [1240, 1380, 1120, 1470, 1310]; // soft high music-box scale
+        const now0 = audioCtx.currentTime;
+        notes.forEach((f, idx) => {
+          const t = now0 + idx * 0.42;
+          const mb = audioCtx.createOscillator();
+          mb.type = 'sine';
+          mb.frequency.value = f;
+          const mbG = audioCtx.createGain();
+          mbG.gain.value = 0.0;
+          // light detune for box resonance
+          const det = audioCtx.createOscillator();
+          det.type = 'sine';
+          det.frequency.value = f * 1.003;
+          const detG = audioCtx.createGain();
+          detG.gain.value = 0.12;
+          det.connect(detG);
+          detG.connect(mb.frequency);
+          mb.connect(mbG);
+          mbG.connect(master);
+          mb.start(t);
+          det.start(t);
+          mbG.gain.setValueAtTime(0.0001, t);
+          mbG.gain.linearRampToValueAtTime(0.19, t + 0.09);
+          mbG.gain.linearRampToValueAtTime(0.0001, t + 0.72);
+          setTimeout(() => { try { mb.stop(); det.stop(); } catch {} }, 1100);
+        });
+        timers.push(setTimeout(scheduleMusicBox, 9200 + Math.random() * 3100));
+      };
+      timers.push(setTimeout(scheduleMusicBox, 4800 + Math.random() * 2400));
+
+      // bridge hook: notify phenomena bus (audio started for this scene)
+      (window as any).__holoShellAudio = {
+        scene: 'warm-library',
+        tracks: ['page_turn_rustle', 'soft_crackle', 'music_box'],
+        stop: () => {
+          stops.forEach((f) => f());
+          timers.forEach((t) => clearTimeout(t));
+        },
+      };
+    } catch {
+      // blocked until gesture or no WebAudio
+    }
+    return () => {
+      stops.forEach((f) => f());
+      timers.forEach((t) => clearTimeout(t));
+      if (ctx) {
+        try {
+          ctx.close();
+        } catch {}
+      }
+    };
+  }, []);
+
   return (
     <group>
       {/* === BACKGROUND DEPTH: deep library wall + tall bookcases at z=-4.2 === */}
@@ -259,8 +394,6 @@ const WarmLibraryScene: React.FC<WarmLibrarySceneProps> = ({
         <planeGeometry args={[6, 5.5]} />
         <meshStandardMaterial color="#231b14" roughness={0.95} side={2} />
       </mesh>
-
-      {/* TODO: distant page turning + soft crackle + very faint music box (audio bridge) */}
     </group>
   );
 };

@@ -38,6 +38,124 @@ const MountainLakeScene: React.FC<MountainLakeSceneProps> = ({
     onInteraction?.('door_opened', { destination: id });
   };
 
+  // HoloShell audio bridge — mountain lake ambient (procedural, zero-asset)
+  // faint water lapping (soft rhythmic shore waves against rock) + high altitude wind across peaks (breathy distant gusts).
+  // Peaceful, vast, reflective, contemplative scale; master volume extremely low to match the still scene.
+  // Uses Web Audio (AudioContext + oscillators + noise buffers + scheduled envelopes). Starts on mount.
+  // Future: real clips via HoloScript asset refs or <audio>.
+  // Triggers phenomena bus so external (haptics, HoloMesh, recording) can react.
+  React.useEffect(() => {
+    let ctx: AudioContext | null = null;
+    const stops: Array<() => void> = [];
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+    try {
+      const audioCtx: AudioContext = new ((window as any).AudioContext || (window as any).webkitAudioContext)();
+      ctx = audioCtx;
+      const master = audioCtx.createGain();
+      master.gain.value = 0.016; // extremely faint alpine bed — vast contemplative scale
+      const lp = audioCtx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 1380;
+      master.connect(lp);
+      lp.connect(audioCtx.destination);
+
+      // high altitude wind across peaks — thin airy whooshes, slow breathing modulation, distant and light
+      const windBuf = audioCtx.createBuffer(1, audioCtx.sampleRate * 4.8, audioCtx.sampleRate);
+      const wd = windBuf.getChannelData(0);
+      for (let i = 0; i < wd.length; i++) {
+        const t = i / audioCtx.sampleRate;
+        wd[i] = (Math.random() * 2 - 1) * (0.55 + 0.35 * Math.sin(t * 0.9 + Math.sin(t * 0.11) * 0.6));
+      }
+      const wind = audioCtx.createBufferSource();
+      wind.buffer = windBuf;
+      wind.loop = true;
+      const wG = audioCtx.createGain();
+      wG.gain.value = 0.32;
+      const wHp = audioCtx.createBiquadFilter();
+      wHp.type = 'highpass';
+      wHp.frequency.value = 265;
+      const wBp = audioCtx.createBiquadFilter();
+      wBp.type = 'bandpass';
+      wBp.frequency.value = 780;
+      wBp.Q.value = 0.85;
+      const wLp = audioCtx.createBiquadFilter();
+      wLp.type = 'lowpass';
+      wLp.frequency.value = 1620;
+      // very slow LFO for high altitude gusts and whooshes (feels vast and thin)
+      const wLfo = audioCtx.createOscillator();
+      wLfo.type = 'sine';
+      wLfo.frequency.value = 0.0095;
+      const wLfoG = audioCtx.createGain();
+      wLfoG.gain.value = 0.14;
+      wLfo.connect(wLfoG);
+      wLfoG.connect(wG.gain);
+      wind.connect(wHp);
+      wHp.connect(wBp);
+      wBp.connect(wLp);
+      wLp.connect(wG);
+      wG.connect(master);
+      wind.start();
+      wLfo.start();
+      stops.push(() => { try { wind.stop(); wLfo.stop(); } catch {} });
+
+      // faint water lapping — sparse soft rhythmic waves kissing the rocky shoreline, very low energy and irregular
+      const scheduleLap = () => {
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        const lapSrc = audioCtx.createBufferSource();
+        const lapBuf = audioCtx.createBuffer(1, audioCtx.sampleRate * 1.15, audioCtx.sampleRate);
+        const ld = lapBuf.getChannelData(0);
+        for (let i = 0; i < ld.length; i++) {
+          const t = i / audioCtx.sampleRate;
+          // soft decaying whoosh + micro texture for natural lap feel
+          ld[i] = (Math.random() * 2 - 1) * Math.pow(1 - t * 0.92, 1.6) * (0.7 + 0.3 * Math.sin(t * 14));
+        }
+        lapSrc.buffer = lapBuf;
+        const lG = audioCtx.createGain();
+        lG.gain.value = 0.0;
+        const lLp = audioCtx.createBiquadFilter();
+        lLp.type = 'lowpass';
+        lLp.frequency.value = 395;
+        const lHp = audioCtx.createBiquadFilter();
+        lHp.type = 'highpass';
+        lHp.frequency.value = 72;
+        lapSrc.connect(lLp);
+        lLp.connect(lHp);
+        lHp.connect(lG);
+        lG.connect(master);
+        lapSrc.start(now);
+        // gentle envelope: slow attack, medium tail for peaceful lapping
+        lG.gain.setValueAtTime(0.0001, now);
+        lG.gain.linearRampToValueAtTime(0.48, now + 0.18);
+        lG.gain.linearRampToValueAtTime(0.00001, now + 1.65 + Math.random() * 0.55);
+        setTimeout(() => { try { lapSrc.stop(); } catch {} }, 2300);
+        timers.push(setTimeout(scheduleLap, 3850 + Math.random() * 7200));
+      };
+      timers.push(setTimeout(scheduleLap, 950 + Math.random() * 1850));
+
+      // bridge hook: notify phenomena bus (audio started for this scene)
+      (window as any).__holoShellAudio = {
+        scene: 'mountain-lake',
+        tracks: ['faint_water_lapping', 'high_altitude_wind'],
+        stop: () => {
+          stops.forEach((f) => f());
+          timers.forEach((t) => clearTimeout(t));
+        },
+      };
+    } catch {
+      // blocked until gesture or no WebAudio support
+    }
+    return () => {
+      stops.forEach((f) => f());
+      timers.forEach((t) => clearTimeout(t));
+      if (ctx) {
+        try {
+          ctx.close();
+        } catch {}
+      }
+    };
+  }, []);
+
   return (
     <group>
       {/* === BACKGROUND: 4 LAYERED MOUNTAIN SILHOUETTES (depth from z=-5.2 to -10.5) === */}
@@ -219,7 +337,7 @@ const MountainLakeScene: React.FC<MountainLakeSceneProps> = ({
         <meshStandardMaterial color="#2f3842" roughness={0.98} side={2} />
       </mesh>
 
-      {/* TODO: faint water lapping + high altitude wind across peaks (audio bridge) */}
+      {/* Ambient audio wired via HoloShell bridge (procedural synth; faint water lapping + high altitude wind across peaks — see useEffect above) */}
     </group>
   );
 };

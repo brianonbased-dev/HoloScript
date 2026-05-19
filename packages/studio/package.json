@@ -16,6 +16,7 @@
     "prebuild": "pnpm run holo:build",
     "build": "next build --webpack",
     "start": "next start --port 3100",
+    "tunnel": "node scripts/holotunnel-client.mjs",
     "inventory": "node scripts/studio-inventory.mjs",
     "inventory:snapshot": "node scripts/studio-inventory.mjs --snapshot",
     "inventory:check": "node scripts/studio-inventory.mjs --check docs/STUDIO_INVENTORY_SNAPSHOT.json",
