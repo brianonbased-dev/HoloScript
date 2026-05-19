@@ -235,6 +235,18 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
     subjects: ['inventory', 'quarantine', 'executable', 'duplicate', 'preview', 'delete'],
     tags: ['holoshell', 'download', 'safety'],
   },
+  {
+    capability: 'package-mutation',
+    description: 'Package install/update custody receipts — prove package identity, approval, rollback limits, and blocked ambient execution.',
+    receiptType: 'HoloShellPackageMutationReceipt',
+    module: 'holoshell-package-mutation-receipt',
+    exportName: 'HoloShellPackageMutationReceipt',
+    validateFn: 'validateHoloShellPackageMutationReceipt',
+    cloneFn: 'cloneHoloShellPackageMutationReceipt',
+    isSupportedFn: 'isSupportedPackageMutationKind',
+    subjects: ['install', 'update', 'upgrade', 'uninstall', 'package-manager', 'rollback', 'admin', 'winget', 'pnpm'],
+    tags: ['holoshell', 'package', 'install', 'safety', 'break-glass'],
+  },
 
   // ── Structural Receipts ──
   {

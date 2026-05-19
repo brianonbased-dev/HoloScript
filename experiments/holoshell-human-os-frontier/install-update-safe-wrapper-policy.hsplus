@@ -1,0 +1,200 @@
+// HoloShell install/update safe wrapper policy and state machine.
+
+composition "HoloShellInstallUpdateSafeWrapperPolicy" {
+  state InstallUpdateSafeWrapperState {
+    workflow: "install-update-tool-custody"
+    packageId: "unknown"
+    manager: "unknown"
+    source: "unknown"
+    fromVersion: "unknown"
+    toVersion: "unknown"
+    status: "idle"
+    permissionEnvelope: "read_only"
+    approvalRequired: false
+    approvalCaptured: false
+    executionAllowed: false
+    mutationPerformed: false
+    adminRequired: false
+    launchVerified: false
+    rollbackLimitCount: 0
+    receiptHash: "unknown"
+    currentLane: "codex-hardware"
+    blockers: []
+  }
+
+  template "PermissionEnvelope" {
+    readOnly: true
+    guardedExecute: false
+    breakGlass: false
+    receiptRequired: true
+    humanVisible: true
+  }
+
+  template "PackageMutationReceiptContract" {
+    receiptType: "HoloShellPackageMutationReceipt"
+    schemaVersion: "hololand.holoshell.package-custody.v0.1.0"
+    packageIdRequired: true
+    managerRequired: true
+    sourceRequired: true
+    approvalPacketRequiredForMutation: true
+    freshHumanGestureRequiredForMutation: true
+    rollbackLimitsRequiredForMutation: true
+    commandPreviewRequiredForMutation: true
+    liveMutationExecutionSupported: false
+    replayable: true
+  }
+
+  policy "ReadOnlyPackageInventory" using "PermissionEnvelope" {
+    readOnly: true
+    guardedExecute: false
+    breakGlass: false
+    appliesTo: [
+      "list_installed_packages",
+      "check_available_versions",
+      "check_package_source",
+      "check_package_manager_available",
+      "check_disk_space",
+      "check_network_cost",
+      "check_admin_status",
+      "check_running_process_conflicts",
+      "stage_approval_packet"
+    ]
+  }
+
+  policy "GuardedLaunchWitness" using "PermissionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    breakGlass: false
+    appliesTo: [
+      "run_version_command",
+      "open_installed_app",
+      "refresh_program_registry",
+      "write_launch_verification_receipt",
+      "file_holomesh_task"
+    ]
+  }
+
+  policy "BreakGlassPackageMutation" using "PermissionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    breakGlass: true
+    appliesTo: [
+      "download_installer",
+      "install_package",
+      "upgrade_package",
+      "uninstall_package",
+      "modify_path",
+      "modify_registry",
+      "modify_startup_item",
+      "change_file_association",
+      "approve_admin_prompt",
+      "install_driver",
+      "reboot_machine"
+    ]
+  }
+
+  state_machine "SafeInstallUpdateWorkflow" {
+    initial: "idle"
+    states: [
+      "idle",
+      "inventoried",
+      "preflighted",
+      "planned",
+      "approval_required",
+      "approved",
+      "mutating",
+      "installed",
+      "verified",
+      "filed",
+      "blocked"
+    ]
+    transition "inventory" { from: "idle", to: "inventoried" }
+    transition "preflight" { from: "inventoried", to: "preflighted" }
+    transition "plan" { from: "preflighted", to: "planned" }
+    transition "require_approval" { from: "planned", to: "approval_required" }
+    transition "approve" { from: "approval_required", to: "approved" }
+    transition "mutate" { from: "approved", to: "mutating" }
+    transition "install_complete" { from: "mutating", to: "installed" }
+    transition "verify" { from: "installed", to: "verified" }
+    transition "file_task" { from: "verified", to: "filed" }
+    transition "block" { from: "*", to: "blocked" }
+  }
+
+  role "CodexHardware" {
+    laneId: "codex-hardware"
+    owns: ["local_preflight", "package_manager_probe", "process_health_gate", "launch_verification"]
+  }
+
+  role "HoloShellPolicyAgent" {
+    laneId: "holoshell-policy"
+    owns: ["permission_classification", "approval_packet", "rollback_limit", "human_explanation"]
+  }
+
+  role "HoloScriptSubstrateAgent" {
+    laneId: "holoscript-substrate"
+    owns: ["receipt_schema", "receipt_validator", "receipt_capability_registry", "stdlib_policy_gap"]
+  }
+
+  role "HoloLandProductAgent" {
+    laneId: "hololand-product"
+    owns: ["install_room", "admin_boundary_gate", "tool_ready_token", "creator_world_readiness_loop"]
+  }
+
+  action classifyPackageOperation(operation) {
+    if (operation.kind in BreakGlassPackageMutation.appliesTo) {
+      return "break_glass_package_mutation"
+    }
+    if (operation.kind in GuardedLaunchWitness.appliesTo) {
+      return "guarded_launch_witness"
+    }
+    return "read_only_package_inventory"
+  }
+
+  action consumePackageMutationReceipt(receipt) {
+    InstallUpdateSafeWrapperState.status = receipt.summary.status
+    InstallUpdateSafeWrapperState.packageId = receipt.summary.packageId
+    InstallUpdateSafeWrapperState.manager = receipt.summary.manager
+    InstallUpdateSafeWrapperState.source = receipt.summary.source
+    InstallUpdateSafeWrapperState.fromVersion = receipt.summary.fromVersion
+    InstallUpdateSafeWrapperState.toVersion = receipt.summary.toVersion
+    InstallUpdateSafeWrapperState.permissionEnvelope = receipt.summary.permissionEnvelope
+    InstallUpdateSafeWrapperState.approvalRequired = receipt.summary.approvalRequired
+    InstallUpdateSafeWrapperState.approvalCaptured = receipt.approval.approvalCaptured
+    InstallUpdateSafeWrapperState.executionAllowed = receipt.summary.executionAllowed
+    InstallUpdateSafeWrapperState.mutationPerformed = receipt.summary.mutationPerformed
+    InstallUpdateSafeWrapperState.adminRequired = receipt.summary.adminRequired
+    InstallUpdateSafeWrapperState.launchVerified = receipt.summary.launchVerified
+    InstallUpdateSafeWrapperState.rollbackLimitCount = receipt.summary.rollbackLimitCount
+    InstallUpdateSafeWrapperState.receiptHash = receipt.hash
+
+    emit("holoshell:install_update_safe_wrapper:receipt", {
+      workflow: InstallUpdateSafeWrapperState.workflow,
+      lane: InstallUpdateSafeWrapperState.currentLane,
+      package_id: InstallUpdateSafeWrapperState.packageId,
+      manager: InstallUpdateSafeWrapperState.manager,
+      source: InstallUpdateSafeWrapperState.source,
+      permission_envelope: InstallUpdateSafeWrapperState.permissionEnvelope,
+      approval_required: InstallUpdateSafeWrapperState.approvalRequired,
+      approval_captured: InstallUpdateSafeWrapperState.approvalCaptured,
+      execution_allowed: InstallUpdateSafeWrapperState.executionAllowed,
+      mutation_performed: InstallUpdateSafeWrapperState.mutationPerformed,
+      rollback_limit_count: InstallUpdateSafeWrapperState.rollbackLimitCount,
+      launch_verified: InstallUpdateSafeWrapperState.launchVerified,
+      receipt_hash: InstallUpdateSafeWrapperState.receiptHash
+    })
+  }
+
+  action blockOn(reason, evidencePath, ownerSurface) {
+    SafeInstallUpdateWorkflow.transition("block")
+    InstallUpdateSafeWrapperState.blockers.push({
+      reason: reason,
+      evidencePath: evidencePath,
+      ownerSurface: ownerSurface
+    })
+    emit("holoshell:install_update_safe_wrapper:blocker", {
+      reason: reason,
+      evidence_path: evidencePath,
+      owner_surface: ownerSurface
+    })
+  }
+}

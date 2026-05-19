@@ -777,6 +777,37 @@ export {
 } from './holoshell-downloads-shelf-receipts';
 
 export {
+  // HoloShell Package Mutation Receipts (holoshell-human-os-frontier)
+  HOLOSHELL_PACKAGE_MUTATION_RECEIPT_VERSION,
+  PACKAGE_MUTATION_KINDS,
+  PACKAGE_MUTATION_STATUSES,
+  PACKAGE_PERMISSION_ENVELOPES,
+  PACKAGE_MANAGERS,
+  PACKAGE_PREFLIGHT_STATUSES,
+  type PackageMutationKind,
+  type PackageMutationStatus,
+  type PackagePermissionEnvelope,
+  type PackageManagerKind,
+  type PackagePreflightStatus,
+  type PackageCandidate,
+  type PackagePreflightReceipt,
+  type PackageMutationApproval,
+  type PackageLaunchVerification,
+  type PackageMutationSourceAnchors,
+  type PackageMutationSummary,
+  type PackageMutationOutputRefs,
+  type PackageMutationMetadata,
+  type HoloShellPackageMutationReceipt,
+  isSupportedPackageMutationKind,
+  isSupportedPackageMutationStatus,
+  isSupportedPackagePermissionEnvelope,
+  isSupportedPackageManagerKind,
+  validateHoloShellPackageMutationReceipt,
+  clonePackageCandidate,
+  cloneHoloShellPackageMutationReceipt,
+} from './holoshell-package-mutation-receipt';
+
+export {
   // Download / Import Shelf Receipts (generic) - task_1779150614671_37ao
   DOWNLOAD_SHELF_SOURCES,
   DOWNLOAD_QUARANTINE_MODES,

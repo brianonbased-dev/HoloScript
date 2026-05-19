@@ -1,0 +1,146 @@
+/**
+ * HoloShell Install/Update Safe Wrapper Room
+ *
+ * Visible deterministic wrapper for:
+ * "Install or update the desktop tool I need, prove it launches, and show
+ * every machine change before HoloShell lets anything mutate the computer."
+ */
+
+composition "HoloShell Install Update Safe Wrapper Room" {
+  environment {
+    backgroundColor: "#101418"
+    ambient_light: 0.6
+    shadows: true
+  }
+
+  template "GatePanel" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    scale: [1.34, 0.52, 0.08]
+    material: {
+      color: "#17232b"
+      emissive: "#263945"
+      emissiveIntensity: 0.18
+      transparent: true
+      opacity: 0.94
+    }
+  }
+
+  template "ReceiptOrb" {
+    @glowing
+    @collidable
+    geometry: "sphere"
+    scale: [0.14, 0.14, 0.14]
+    material: { color: "#79c0ff" }
+  }
+
+  object "HumanJob" using "GatePanel" {
+    position: [0, 2.26, -2.8]
+    label: "Make this tool ready without breaking the computer"
+    properties: {
+      plainLanguageJob: "install or update a world-building desktop tool, verify it launches, and show the exact machine changes"
+      deterministicPromise: "inventory and dry-run planning first; install, uninstall, PATH, startup, registry, and admin prompts are break-glass gates"
+      sourceBoundary: "HoloScript validates package mutation receipts; HoloLand renders the approval room and tool-ready token"
+    }
+  }
+
+  object "PackageIdentity" using "GatePanel" {
+    position: [-4.1, 1.42, -1.15]
+    label: "Package identity"
+    properties: {
+      reads: ["package_id", "manager", "source", "publisher", "from_version", "to_version", "installer_hash"]
+      failureStates: ["ambiguous_package", "publisher_mismatch", "untrusted_source", "missing_installer_hash"]
+      receipt: "HoloShellPackageMutationReceipt.candidate"
+    }
+  }
+
+  object "MachinePreflight" using "GatePanel" {
+    position: [-2.05, 1.42, -1.15]
+    label: "Machine preflight"
+    properties: {
+      reads: ["disk_status", "network_status", "admin_session", "package_manager_available", "process_conflicts"]
+      failureStates: ["metered_network_without_owner_gesture", "low_disk", "app_running", "package_manager_missing", "reboot_pending"]
+      receipt: "HoloShellPackageMutationReceipt.preflight"
+    }
+  }
+
+  object "MutationPlan" using "GatePanel" {
+    position: [0, 1.42, -1.15]
+    label: "Mutation plan"
+    properties: {
+      visiblePlan: ["download", "install_or_upgrade", "path_or_startup_delta", "launch_verify", "receipt_archive"]
+      blockedByDefault: ["ambient_execute", "silent_admin", "silent_uninstall", "driver_install", "reboot_machine"]
+      receipt: "HoloShellPackageMutationReceipt.approval"
+    }
+  }
+
+  object "RollbackAndReplay" using "GatePanel" {
+    position: [2.05, 1.42, -1.15]
+    label: "Rollback and replay"
+    properties: {
+      rollbackVisible: ["previous_version_limit", "installer_cache_limit", "preference_loss_limit", "admin_prompt_limit"]
+      replayInputs: ["package_id", "manager", "source", "from_version", "to_version", "command_preview", "receipt_hash"]
+      receipt: "HoloShellPackageMutationReceipt.replayKey"
+    }
+  }
+
+  object "LaunchWitness" using "GatePanel" {
+    position: [4.1, 1.42, -1.15]
+    label: "Launch witness"
+    properties: {
+      proves: ["binary_exists", "version_command_passed", "program_registry_updated", "world_tool_ready"]
+      failureStates: ["installed_but_not_launchable", "path_missing", "gpu_feature_unavailable", "app_crash"]
+      receipt: "HoloShellPackageMutationReceipt.verification"
+    }
+  }
+
+  object "InventoryOrb" using "ReceiptOrb" {
+    position: [-3.08, 0.72, 0.08]
+    label: "read-only inventory"
+    properties: {
+      permissionEnvelope: "read_only"
+      allowed: ["list_installed_packages", "check_versions", "check_disk", "check_network", "check_admin"]
+    }
+  }
+
+  object "ApprovalOrb" using "ReceiptOrb" {
+    position: [-1.02, 0.72, 0.08]
+    material: { color: "#e0af68" }
+    label: "fresh approval"
+    properties: {
+      permissionEnvelope: "break_glass"
+      requiresFreshUserGesture: true
+      mutationAllowedBeforeGesture: false
+    }
+  }
+
+  object "AdminOrb" using "ReceiptOrb" {
+    position: [1.02, 0.72, 0.08]
+    material: { color: "#f7768e" }
+    label: "admin boundary"
+    properties: {
+      blocks: ["approve_admin_prompt", "install_driver", "system_path_change", "reboot_machine"]
+      rule: "show exact mutation before the human crosses the operating-system prompt"
+    }
+  }
+
+  object "ReadyOrb" using "ReceiptOrb" {
+    position: [3.08, 0.72, 0.08]
+    material: { color: "#9ece6a" }
+    label: "tool ready"
+    properties: {
+      requires: ["launchVerified", "versionCommandPassed", "receiptValid", "rollbackLimitsVisible"]
+      productLoop: "spawn HoloLand world-building tool token only after receipts validate"
+    }
+  }
+
+  object "SafeWrapperTimeline" {
+    @anchor
+    geometry: "cube"
+    position: [0, 0.18, 0.1]
+    scale: [7.25, 0.08, 0.14]
+    color: "#687782"
+    label: "inventory -> preflight -> dry-run plan -> approval packet -> mutation gate -> launch verify -> receipts -> replay lesson"
+  }
+}

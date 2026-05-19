@@ -595,6 +595,37 @@ export {
   cloneHoloShellAccountExportReceiptPack,
 } from './board';
 
+// HoloShell Package Mutation Receipts (holoshell-human-os-frontier)
+export {
+  HOLOSHELL_PACKAGE_MUTATION_RECEIPT_VERSION,
+  PACKAGE_MUTATION_KINDS,
+  PACKAGE_MUTATION_STATUSES,
+  PACKAGE_PERMISSION_ENVELOPES,
+  PACKAGE_MANAGERS,
+  PACKAGE_PREFLIGHT_STATUSES,
+  type PackageMutationKind,
+  type PackageMutationStatus,
+  type PackagePermissionEnvelope,
+  type PackageManagerKind,
+  type PackagePreflightStatus,
+  type PackageCandidate,
+  type PackagePreflightReceipt,
+  type PackageMutationApproval,
+  type PackageLaunchVerification,
+  type PackageMutationSourceAnchors,
+  type PackageMutationSummary,
+  type PackageMutationOutputRefs,
+  type PackageMutationMetadata,
+  type HoloShellPackageMutationReceipt,
+  isSupportedPackageMutationKind,
+  isSupportedPackageMutationStatus,
+  isSupportedPackagePermissionEnvelope,
+  isSupportedPackageManagerKind,
+  validateHoloShellPackageMutationReceipt,
+  clonePackageCandidate,
+  cloneHoloShellPackageMutationReceipt,
+} from './board';
+
 // HoloShell Provider Export Repair Receipts (task_1779178784570_91vx)
 export {
   PROVIDER_EXPORT_FAILURE_RECEIPT_VERSION,
