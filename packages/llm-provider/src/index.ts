@@ -157,6 +157,27 @@ export type { ProviderManagerConfig } from './provider-manager';
 export { QuestGenerator } from './QuestGenerator';
 export type { QuestNarrativeRequest, QuestNarrativeResponse } from './QuestGenerator';
 
+// KVFlow — workflow-aware KV cache management (arXiv:2507.07400 harvest)
+export {
+  InMemoryAgentStepGraph,
+  KVFlowCacheManager,
+  scopeFromBrainCaching,
+  scopeToCacheUsage,
+  estimateKVBytes,
+  entryFromStep,
+} from './kvflow';
+export type {
+  StepNodeId,
+  KVFlowScope,
+  KVResidency,
+  AgentStep,
+  KVCacheEntry,
+  KVFlowConfig,
+  EvictionResult,
+  PrefetchResult,
+  KVFlowTelemetry,
+} from './kvflow';
+
 // Narrative Quest Service
 export {
   getNarrativeQuestService,
