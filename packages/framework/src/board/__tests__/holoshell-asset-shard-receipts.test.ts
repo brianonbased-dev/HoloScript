@@ -311,4 +311,35 @@ describe('HoloShell asset shard receipts', () => {
     expect(isSupportedAssetShardStatus('staged')).toBe(true);
     expect(isSupportedAssetShardStatus('pending')).toBe(false);
   });
+
+  it('accepts a completed import bundle with playable shard visual witness', () => {
+    expect(validateAssetShardReceiptBundle({
+      workflow: makeWorkflow(),
+      approval: makeApproval(),
+      importReceipt: makeImportReceipt(),
+      witness: makeWitness(),
+    })).toEqual([]);
+  });
+
+  it('rejects playable shard witnesses with status fail or missing required fields', () => {
+    const failReceipt = makeWitness({
+      status: 'fail',
+      shardWitness: {
+        enabled: true,
+        workflowReceipt: '.tmp/holoshell/shard-workflow-latest.json',
+        previewSource: '.tmp/holoshell/shard-preview.holo',
+        shardId: 'shard.demo-assets.001',
+        previewHash: '',
+        assetCount: 1,
+        sourceAssetsMutated: false,
+      },
+    });
+
+    expect(validatePlayableShardWitnessReceipt(failReceipt)).toEqual(
+      expect.arrayContaining([
+        'PlayableShardWitnessReceipt.status must be pass before publishing/import completion can be trusted.',
+        'PlayableShardWitnessReceipt.shardWitness.previewHash is required.',
+      ])
+    );
+  });
 });
