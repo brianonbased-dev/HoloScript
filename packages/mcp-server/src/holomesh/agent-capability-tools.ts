@@ -385,7 +385,10 @@ const ALLOWED_MARKETPLACE_HOSTNAMES = new Set([
   '127.0.0.1',
 ]);
 
-function resolveMarketplaceSearchUrl(value: unknown): string {
+/** Schemes permitted for marketplace search URLs. http: only allowed for loopback hosts. */
+const ALLOWED_MARKETPLACE_SCHEMES = new Set(['https:', 'http:']);
+
+export function resolveMarketplaceSearchUrl(value: unknown): string {
   const override = stringOrUndefined(value);
   if (override) {
     let parsed: URL;
@@ -393,6 +396,15 @@ function resolveMarketplaceSearchUrl(value: unknown): string {
       parsed = new URL(override);
     } catch {
       throw new Error(`marketplace_url is not a valid URL: ${override}`);
+    }
+    // Reject dangerous schemes (file, data, ftp, etc.) unconditionally.
+    if (!ALLOWED_MARKETPLACE_SCHEMES.has(parsed.protocol)) {
+      throw new Error(`marketplace_url scheme not allowed: ${parsed.protocol} (only https: and http: are permitted)`);
+    }
+    // http: is only permitted for loopback hosts (localhost / 127.0.0.1).
+    // Non-loopback hosts must use https: to prevent MITM on marketplace responses.
+    if (parsed.protocol === 'http:' && parsed.hostname !== 'localhost' && parsed.hostname !== '127.0.0.1') {
+      throw new Error(`marketplace_url must use https: for non-loopback host: ${parsed.hostname}`);
     }
     if (!ALLOWED_MARKETPLACE_HOSTNAMES.has(parsed.hostname)) {
       throw new Error(`marketplace_url host not allowed: ${parsed.hostname}`);

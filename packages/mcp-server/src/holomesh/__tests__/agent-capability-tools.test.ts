@@ -3,6 +3,7 @@ import {
   agentCapabilityTools,
   extractAgentCapabilities,
   handleAgentCapabilityTool,
+  resolveMarketplaceSearchUrl,
 } from '../agent-capability-tools';
 
 describe('agent capability tools', () => {
@@ -123,5 +124,100 @@ describe('agent capability tools', () => {
 
   it('returns null for unrelated tool names', async () => {
     await expect(handleAgentCapabilityTool('holomesh_unknown', {})).resolves.toBeNull();
+  });
+});
+
+describe('resolveMarketplaceSearchUrl SSRF protection', () => {
+  // --- Allowed cases ---
+  it('allows https URLs to allowed hosts', () => {
+    expect(resolveMarketplaceSearchUrl('https://mcp.holoscript.net/search')).toBe('https://mcp.holoscript.net/search');
+    expect(resolveMarketplaceSearchUrl('https://mcp-orchestrator-production-45f9.up.railway.app/marketplace/search')).toBe(
+      'https://mcp-orchestrator-production-45f9.up.railway.app/marketplace/search'
+    );
+  });
+
+  it('allows http URLs to loopback hosts (localhost, 127.0.0.1)', () => {
+    expect(resolveMarketplaceSearchUrl('http://localhost:4555/marketplace/search')).toBe('http://localhost:4555/marketplace/search');
+    expect(resolveMarketplaceSearchUrl('http://127.0.0.1:4555/marketplace/search')).toBe('http://127.0.0.1:4555/marketplace/search');
+  });
+
+  it('allows https URLs to loopback hosts', () => {
+    expect(resolveMarketplaceSearchUrl('https://localhost/search')).toBe('https://localhost/search');
+  });
+
+  it('returns env default when no override is provided', () => {
+    const original = process.env.HOLOMESH_MARKETPLACE_SEARCH_URL;
+    process.env.HOLOMESH_MARKETPLACE_SEARCH_URL = 'https://mcp.holoscript.net/search';
+    try {
+      expect(resolveMarketplaceSearchUrl(undefined)).toBe('https://mcp.holoscript.net/search');
+    } finally {
+      if (original === undefined) {
+        delete process.env.HOLOMESH_MARKETPLACE_SEARCH_URL;
+      } else {
+        process.env.HOLOMESH_MARKETPLACE_SEARCH_URL = original;
+      }
+    }
+  });
+
+  // --- Rejected schemes ---
+  it('rejects file:// scheme', () => {
+    expect(() => resolveMarketplaceSearchUrl('file:///etc/passwd')).toThrow('scheme not allowed');
+  });
+
+  it('rejects data: scheme', () => {
+    expect(() => resolveMarketplaceSearchUrl('data:text/html,<script>alert(1)</script>')).toThrow('scheme not allowed');
+  });
+
+  it('rejects ftp:// scheme', () => {
+    expect(() => resolveMarketplaceSearchUrl('ftp://mcp.holoscript.net/pub/exploit')).toThrow('scheme not allowed');
+  });
+
+  it('rejects javascript: scheme', () => {
+    expect(() => resolveMarketplaceSearchUrl('javascript:alert(1)')).toThrow('scheme not allowed');
+  });
+
+  it('rejects gopher:// scheme (classic SSRF vector)', () => {
+    expect(() => resolveMarketplaceSearchUrl('gopher://169.254.169.254:80/')).toThrow('scheme not allowed');
+  });
+
+  // --- Host allowlist ---
+  it('rejects arbitrary host even with https', () => {
+    expect(() => resolveMarketplaceSearchUrl('https://evil.example.com/search')).toThrow('host not allowed');
+  });
+
+  it('rejects AWS instance metadata (non-loopback http:// blocked before host check)', () => {
+    // http:// on a non-loopback host is rejected by the scheme check, not the host allowlist.
+    // Either error is a correct SSRF block; the http: check fires first.
+    expect(() => resolveMarketplaceSearchUrl('http://169.254.169.254/latest/meta-data/')).toThrow();
+  });
+
+  it('rejects internal Redis (non-loopback http:// blocked before host check)', () => {
+    expect(() => resolveMarketplaceSearchUrl('http://10.0.0.5:6379/')).toThrow();
+  });
+
+  // --- http on non-loopback ---
+  it('rejects http:// on non-loopback allowed hosts (MITM protection)', () => {
+    expect(() => resolveMarketplaceSearchUrl('http://mcp.holoscript.net/search')).toThrow('must use https');
+    expect(() => resolveMarketplaceSearchUrl('http://mcp-orchestrator-production-45f9.up.railway.app/search')).toThrow('must use https');
+  });
+
+  // --- Invalid input ---
+  it('rejects malformed URL', () => {
+    expect(() => resolveMarketplaceSearchUrl('not a url at all')).toThrow('not a valid URL');
+  });
+
+  it('returns env default for empty string override', () => {
+    // Empty string is falsy, so it should fall through to env default
+    const original = process.env.HOLOMESH_MARKETPLACE_SEARCH_URL;
+    process.env.HOLOMESH_MARKETPLACE_SEARCH_URL = 'https://mcp.holoscript.net/search';
+    try {
+      expect(resolveMarketplaceSearchUrl('')).toBe('https://mcp.holoscript.net/search');
+    } finally {
+      if (original === undefined) {
+        delete process.env.HOLOMESH_MARKETPLACE_SEARCH_URL;
+      } else {
+        process.env.HOLOMESH_MARKETPLACE_SEARCH_URL = original;
+      }
+    }
   });
 });
