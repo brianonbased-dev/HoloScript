@@ -741,6 +741,44 @@ export {
 } from './holoshell-downloads-shelf-receipts';
 
 export {
+  // Download / Import Shelf Receipts (generic) - task_1779150614671_37ao
+  DOWNLOAD_SHELF_SOURCES,
+  DOWNLOAD_QUARANTINE_MODES,
+  DOWNLOAD_SHELF_PERMISSION_ENVELOPES,
+  DOWNLOAD_IMPORT_OUTCOMES,
+  DOWNLOAD_SHELF_QUARANTINE_RECEIPT_VERSION,
+  DOWNLOAD_SHELF_CONSENT_RECEIPT_VERSION,
+  DOWNLOAD_SHELF_IMPORT_RESULT_RECEIPT_VERSION,
+  DOWNLOAD_SHELF_REPLAY_LESSON_RECEIPT_VERSION,
+  type DownloadShelfSource,
+  type DownloadShelfIdentityEntry,
+  type DownloadQuarantineMode,
+  type DownloadShelfPermissionEnvelope,
+  type DownloadShelfQuarantineReceipt,
+  type DownloadShelfConsentReceipt,
+  type DownloadImportOutcome,
+  type DownloadShelfImportResultReceipt,
+  type DownloadShelfReplayLessonReceipt,
+  type HoloShellDownloadShelfReceiptPack,
+  isSupportedDownloadShelfSource,
+  isSupportedDownloadQuarantineMode,
+  isSupportedDownloadShelfPermissionEnvelope,
+  isSupportedDownloadImportOutcome,
+  validateDownloadShelfQuarantineReceipt,
+  validateDownloadShelfConsentReceipt,
+  validateDownloadShelfImportResultReceipt,
+  validateDownloadShelfReplayLessonReceipt,
+  validateHoloShellDownloadShelfReceiptPack,
+  dryRunValidateDownloadShelfPreview,
+  cloneDownloadShelfIdentityEntry,
+  cloneDownloadShelfQuarantineReceipt,
+  cloneDownloadShelfConsentReceipt,
+  cloneDownloadShelfImportResultReceipt,
+  cloneDownloadShelfReplayLessonReceipt,
+  cloneHoloShellDownloadShelfReceiptPack,
+} from './holoshell-download-shelf-receipts';
+
+export {
   // Device Safety Envelope Receipts (task_1779092805820_n2xw)
   DEVICE_CATEGORIES,
   DEVICE_IDENTITY_SOURCES,

@@ -1640,6 +1640,9 @@ importers:
       '@holoscript/framework':
         specifier: workspace:*
         version: link:../framework
+      '@holoscript/hololand-platform':
+        specifier: workspace:*
+        version: link:../hololand-platform
       '@holoscript/holomap':
         specifier: workspace:*
         version: link:../holomap
@@ -14791,7 +14794,7 @@ packages:
       obug: 2.1.1
       std-env: 4.0.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@7.3.2)
+      vitest: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(vite@7.3.2)
     dev: true
 
   /@vitest/expect@3.2.4:
