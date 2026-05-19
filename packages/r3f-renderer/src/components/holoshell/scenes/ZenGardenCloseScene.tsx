@@ -61,6 +61,134 @@ const ZenGardenCloseScene: React.FC<ZenGardenCloseSceneProps> = ({
     onInteraction?.('final_leaf_touch');
   };
 
+  // HoloShell audio bridge — zen garden close ambient (procedural, zero-asset)
+  // extremely faint single wind chime tone + dew evaporation (soft continuous hiss).
+  // Intimate macro calm; master volume extremely low to match the quiet scene.
+  // Uses Web Audio (AudioContext + oscillators + noise buffers). Starts on mount.
+  // Future: real clips via HoloScript asset refs or <audio>.
+  // Triggers phenomena bus so external (haptics, HoloMesh, recording) can react.
+  React.useEffect(() => {
+    let ctx: AudioContext | null = null;
+    const stops: Array<() => void> = [];
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+    try {
+      const audioCtx: AudioContext = new ((window as any).AudioContext || (window as any).webkitAudioContext)();
+      ctx = audioCtx;
+      const master = audioCtx.createGain();
+      master.gain.value = 0.014; // extremely faint zen bed
+      const lp = audioCtx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 6200;
+      master.connect(lp);
+      lp.connect(audioCtx.destination);
+
+      // dew evaporation — very soft continuous high-freq noise hiss (steam / micro water evap)
+      const dewBuf = audioCtx.createBuffer(1, audioCtx.sampleRate * 2.8, audioCtx.sampleRate);
+      const dd = dewBuf.getChannelData(0);
+      for (let i = 0; i < dd.length; i++) {
+        const t = i / audioCtx.sampleRate;
+        dd[i] = (Math.random() * 2 - 1) * (0.6 + 0.4 * Math.sin(t * 1.7));
+      }
+      const dew = audioCtx.createBufferSource();
+      dew.buffer = dewBuf;
+      dew.loop = true;
+      const dG = audioCtx.createGain();
+      dG.gain.value = 0.22;
+      const dHp = audioCtx.createBiquadFilter();
+      dHp.type = 'highpass';
+      dHp.frequency.value = 1850;
+      const dBp = audioCtx.createBiquadFilter();
+      dBp.type = 'bandpass';
+      dBp.frequency.value = 4200;
+      dBp.Q.value = 1.1;
+      // slow LFO for evap intensity (gentle breathing)
+      const dLfo = audioCtx.createOscillator();
+      dLfo.type = 'sine';
+      dLfo.frequency.value = 0.019;
+      const dLfoG = audioCtx.createGain();
+      dLfoG.gain.value = 0.07;
+      dLfo.connect(dLfoG);
+      dLfoG.connect(dG.gain);
+      dew.connect(dBp);
+      dBp.connect(dHp);
+      dHp.connect(dG);
+      dG.connect(master);
+      dew.start();
+      dLfo.start();
+      stops.push(() => { try { dew.stop(); dLfo.stop(); } catch {} });
+
+      // extremely faint single wind chime tones — sparse metallic rings, long decay, very occasional
+      const scheduleChime = () => {
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        const chime = audioCtx.createOscillator();
+        chime.type = 'sine';
+        chime.frequency.value = 1320 + Math.random() * 480;
+        const cG = audioCtx.createGain();
+        cG.gain.value = 0.0;
+        const cBp = audioCtx.createBiquadFilter();
+        cBp.type = 'bandpass';
+        cBp.frequency.value = 1450;
+        cBp.Q.value = 4.5;
+        const cLp = audioCtx.createBiquadFilter();
+        cLp.type = 'lowpass';
+        cLp.frequency.value = 3800;
+        chime.connect(cBp);
+        cBp.connect(cLp);
+        cLp.connect(cG);
+        cG.connect(master);
+        chime.start(now);
+        // very soft attack + long natural decay (~2.8s)
+        cG.gain.setValueAtTime(0.0001, now);
+        cG.gain.linearRampToValueAtTime(0.65, now + 0.08);
+        cG.gain.linearRampToValueAtTime(0.00001, now + 2.85 + Math.random() * 0.6);
+        setTimeout(() => { try { chime.stop(); } catch {} }, 4200);
+        // occasional 2nd softer overtone for realism
+        if (Math.random() < 0.45) {
+          setTimeout(() => {
+            if (!audioCtx) return;
+            const n2 = audioCtx.currentTime;
+            const ch2 = audioCtx.createOscillator();
+            ch2.type = 'sine';
+            ch2.frequency.value = chime.frequency.value * 2.02 + Math.random() * 30;
+            const ch2G = audioCtx.createGain();
+            ch2G.gain.value = 0.0;
+            ch2.connect(ch2G);
+            ch2G.connect(master);
+            ch2.start(n2);
+            ch2G.gain.setValueAtTime(0.0001, n2);
+            ch2G.gain.linearRampToValueAtTime(0.18, n2 + 0.05);
+            ch2G.gain.linearRampToValueAtTime(0.00001, n2 + 1.9);
+            setTimeout(() => { try { ch2.stop(); } catch {} }, 2800);
+          }, 90 + Math.random() * 40);
+        }
+        timers.push(setTimeout(scheduleChime, 9200 + Math.random() * 11500));
+      };
+      timers.push(setTimeout(scheduleChime, 1600 + Math.random() * 4200));
+
+      // bridge hook: notify phenomena bus (audio started for this scene)
+      (window as any).__holoShellAudio = {
+        scene: 'zen-garden-close',
+        tracks: ['dew_evaporation', 'wind_chime_tone'],
+        stop: () => {
+          stops.forEach((f) => f());
+          timers.forEach((t) => clearTimeout(t));
+        },
+      };
+    } catch {
+      // blocked until gesture or no WebAudio
+    }
+    return () => {
+      stops.forEach((f) => f());
+      timers.forEach((t) => clearTimeout(t));
+      if (ctx) {
+        try {
+          ctx.close();
+        } catch {}
+      }
+    };
+  }, []);
+
   return (
     <group>
       {/* === MACRO SAND — fills lower 2/3 of the entire frame (primary surface) === */}
@@ -190,7 +318,7 @@ const ZenGardenCloseScene: React.FC<ZenGardenCloseSceneProps> = ({
         <meshStandardMaterial color="#c8b89a" roughness={0.94} />
       </mesh>
 
-      {/* TODO: extremely faint single wind chime tone + dew evaporation (audio) */}
+      {/* Ambient audio wired via HoloShell bridge (procedural synth; faint wind chimes + dew evaporation hiss — see useEffect above) */}
     </group>
   );
 };
