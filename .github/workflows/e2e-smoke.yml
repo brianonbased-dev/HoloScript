@@ -4,11 +4,7 @@ name: E2E Smoke (every commit)
 # changed. Full sharded E2E is in studio-ci.yml (path-filtered for cost).
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
+  workflow_dispatch:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

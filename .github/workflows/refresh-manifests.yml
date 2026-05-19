@@ -25,18 +25,7 @@ name: Refresh manifests (provenance + papers-status + live-evidence)
 # staleness is the cron interval.
 
 on:
-  schedule:
-    # Every 6 hours. Catches drift without overcommitting CI minutes.
-    - cron: '0 */6 * * *'
   workflow_dispatch:
-    # Manual trigger - fire after a known anchor round / paper-touching commit.
-  repository_dispatch:
-    # Push-based refresh from brianonbased-dev/ai-ecosystem.
-    # The ai-ecosystem-side workflow (.github/workflows/notify-holoscript.yml)
-    # POSTs this event type when research/paper-*.tex, research/**/*.base.json,
-    # or research/**/*.ots files change on main.
-    types: [ai-ecosystem-research-changed]
-
 permissions:
   contents: write   # publish refreshed manifests to an automation branch
   pull-requests: write

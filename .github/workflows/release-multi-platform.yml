@@ -1,11 +1,7 @@
 name: Multi-Platform Release
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
-
 env:
   CARGO_TERM_COLOR: always
 

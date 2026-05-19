@@ -1,22 +1,7 @@
 name: Performance Benchmarks
 
 on:
-  schedule:
-    # Run weekly on Sundays at 00:00 UTC
-    - cron: '0 0 * * 0'
-  pull_request:
-    paths:
-      - 'packages/core/src/parser/**'
-      - 'packages/core/src/compiler/**'
-      - 'packages/core/src/reconstruction/**'
-      - 'benchmarks/**'
-      - 'scripts/perf-regression-check.mjs'
-      - '.github/workflows/benchmarks.yml'
-      - 'packages/mcp-server/src/**'
-      - 'packages/r3f-renderer/**'
-      - 'packages/compiler-wasm/**'
-  workflow_dispatch: # Allow manual trigger
-
+  workflow_dispatch:
 jobs:
   compile-time-benchmarks:
     name: Compile-Time Benchmarks

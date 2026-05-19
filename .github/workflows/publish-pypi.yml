@@ -1,22 +1,7 @@
 name: Publish Python Package to PyPI
 
 on:
-  push:
-    tags:
-      - 'v*'
-  release:
-    types: [published]
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Deploy target (testpypi or pypi)'
-        required: true
-        default: 'testpypi'
-        type: choice
-        options:
-          - testpypi
-          - pypi
-
 jobs:
   test-python:
     name: Test Python Bindings

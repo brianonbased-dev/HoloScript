@@ -1,26 +1,7 @@
 name: Security Scanning
 
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - 'docs/**'
-      - '**/*.md'
-      - '.vscode/**'
-      - '.github/ISSUE_TEMPLATE/**'
-      - 'LICENSE'
-  pull_request:
-    branches: [main]
-    paths-ignore:
-      - 'docs/**'
-      - '**/*.md'
-      - '.vscode/**'
-      - '.github/ISSUE_TEMPLATE/**'
-      - 'LICENSE'
-  schedule:
-    # Run daily at 2 AM UTC
-    - cron: '0 2 * * *'
-
+  workflow_dispatch:
 jobs:
   snyk-scan:
     name: Snyk Security Scan

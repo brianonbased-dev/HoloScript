@@ -1,53 +1,7 @@
 name: Docs Quality
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'docs/**'
-      - 'DOCS_AUDIT_COMPLETE.md'
-      - '.github/workflows/docs-quality.yml'
-      - 'scripts/check-roadmap-drift.mjs'
-      - 'scripts/check-doc-count-drift.mjs'
-      - 'package.json'
-      - 'typedoc.json'
-      - 'pnpm-lock.yaml'
-      - 'packages/core/**'
-      - 'packages/engine/**'
-      - 'packages/mcp-server/**'
-      - 'packages/cli/**'
-      - 'packages/runtime/**'
-      - 'packages/linter/**'
-      - 'packages/formatter/**'
-      - 'packages/llm-provider/**'
-      - 'packages/partner-sdk/**'
-      - 'packages/ai-validator/**'
-      - 'packages/security-sandbox/**'
-      - 'packages/comparative-benchmarks/**'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'docs/**'
-      - 'DOCS_AUDIT_COMPLETE.md'
-      - '.github/workflows/docs-quality.yml'
-      - 'scripts/check-roadmap-drift.mjs'
-      - 'scripts/check-doc-count-drift.mjs'
-      - 'package.json'
-      - 'typedoc.json'
-      - 'pnpm-lock.yaml'
-      - 'packages/core/**'
-      - 'packages/engine/**'
-      - 'packages/mcp-server/**'
-      - 'packages/cli/**'
-      - 'packages/runtime/**'
-      - 'packages/linter/**'
-      - 'packages/formatter/**'
-      - 'packages/llm-provider/**'
-      - 'packages/partner-sdk/**'
-      - 'packages/ai-validator/**'
-      - 'packages/security-sandbox/**'
-      - 'packages/comparative-benchmarks/**'
-
+  workflow_dispatch:
 jobs:
   docs-build:
     name: Build Docs

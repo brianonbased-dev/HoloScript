@@ -9,13 +9,7 @@ name: Test Snapshot (S.TST refresher)
 # ai-ecosystem/hooks/sessionstart/s-tst-refresh.mjs.
 
 on:
-  schedule:
-    # Nightly at 09:00 UTC (= ~02:00 Pacific). Off-peak Railway window so
-    # nothing else competes for shared runners.
-    - cron: '0 9 * * *'
   workflow_dispatch:
-    # Manual trigger — agents can fire after a known suite-wide change.
-
 permissions:
   contents: write   # commit docs/test-snapshot.json back to main
 

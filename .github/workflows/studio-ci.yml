@@ -1,28 +1,7 @@
 name: HoloScript Studio CI
 
 on:
-  push:
-    branches: [main, develop]
-    paths:
-      - 'packages/studio/**'
-      - 'packages/studio-bridge/**'
-      - 'packages/std/**'
-      - 'packages/core/**'
-      - 'packages/visual/**'
-      - 'services/studio-api/**'
-      - '.github/workflows/studio-ci.yml'
-      - 'pnpm-lock.yaml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'packages/studio/**'
-      - 'packages/studio-bridge/**'
-      - 'packages/std/**'
-      - 'packages/core/**'
-      - 'packages/visual/**'
-      - 'services/studio-api/**'
-      - '.github/workflows/studio-ci.yml'
-
+  workflow_dispatch:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

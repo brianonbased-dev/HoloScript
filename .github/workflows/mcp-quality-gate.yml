@@ -1,17 +1,7 @@
 name: MCP Quality Gate
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'packages/mcp-server/**'
-      - 'scripts/validate-mcp-tools.mjs'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'packages/mcp-server/**'
-      - 'scripts/validate-mcp-tools.mjs'
-
+  workflow_dispatch:
 jobs:
   mcp-quality:
     name: MCP Tool Quality

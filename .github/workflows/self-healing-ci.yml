@@ -32,16 +32,7 @@
 name: Self-healing CI
 
 on:
-  workflow_run:
-    workflows: ["Deploy to Railway"]
-    types: [completed]
   workflow_dispatch:
-    inputs:
-      run_id:
-        description: 'Failed workflow run ID to diagnose (defaults to latest failed Deploy to Railway run)'
-        required: false
-        type: string
-
 permissions:
   contents: write
   pull-requests: write

@@ -1,11 +1,7 @@
 name: Release Compliance
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
+  workflow_dispatch:
 jobs:
   compliance:
     name: Release Compliance

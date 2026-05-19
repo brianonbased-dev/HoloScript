@@ -14,22 +14,7 @@ name: Render Tutorial Videos
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
-  release:
-    types: [published]
-
   workflow_dispatch:
-    inputs:
-      composition:
-        description: 'Composition to render (leave empty for all)'
-        required: false
-        default: ''
-        type: string
-      attach_to_release:
-        description: 'Attach to latest release'
-        required: false
-        default: 'false'
-        type: boolean
-
 jobs:
   render:
     name: Render Tutorial Videos

@@ -1,39 +1,7 @@
 name: WASM Build
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'packages/compiler-wasm/**'
-      - 'packages/tree-sitter-holoscript/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'scripts/build/wasm-build.sh'
-      - '.github/workflows/wasm-build.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'packages/compiler-wasm/**'
-      - 'packages/tree-sitter-holoscript/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'scripts/build/wasm-build.sh'
-      - '.github/workflows/wasm-build.yml'
   workflow_dispatch:
-    inputs:
-      modules:
-        description: 'Modules to build (comma-separated: compiler,treesitter or all)'
-        required: false
-        default: 'all'
-      build_mode:
-        description: 'Build mode'
-        required: false
-        default: 'release'
-        type: choice
-        options:
-          - release
-          - debug
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

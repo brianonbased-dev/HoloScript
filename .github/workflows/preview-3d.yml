@@ -1,13 +1,7 @@
 name: 3D Preview
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '**/*.hsplus'
-      - '**/*.holo'
-      - 'examples/**/*.hs'
-
+  workflow_dispatch:
 permissions:
   contents: read
   pull-requests: write

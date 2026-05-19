@@ -5,27 +5,6 @@ env:
 
 on:
   workflow_dispatch:
-    inputs:
-      service:
-        description: 'Service to deploy (or "all")'
-        required: false
-        default: 'all'
-        type: choice
-        options:
-          - all
-          - studio
-          - marketplace-web
-          - marketplace-api
-          - export-api
-          - llm-service
-          - absorb-service
-          - mcp-server
-      skip_preflight:
-        description: 'Skip heavy pre-flight build checks (emergency/manual deploy only)'
-        required: false
-        default: false
-        type: boolean
-
 concurrency:
   group: railway-deploy-${{ github.ref }}
   cancel-in-progress: false

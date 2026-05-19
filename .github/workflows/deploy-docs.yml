@@ -2,15 +2,7 @@
 name: Deploy Docs
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'docs/**'
-      - 'packages/*/src/**/*.ts'
-      - 'typedoc.json'
-      - '.github/workflows/deploy-docs.yml'
   workflow_dispatch:
-
 permissions:
   contents: read
   pages: write
