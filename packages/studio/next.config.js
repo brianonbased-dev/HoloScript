@@ -64,14 +64,17 @@ const nextConfig = {
             value:
               "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; font-src 'self' data:; connect-src 'self' ws: wss: https:;",
           },
-          // Cross-origin isolation enables SharedArrayBuffer for @holoscript/compiler-wasm
-          // and unlocks WebXR features that need it. `credentialless` COEP lets
-          // third-party resources (Polyhaven, avatars) load without requiring them
-          // to ship CORP headers — safer than `require-corp` for our current deps.
+          // Cross-origin isolation enables SharedArrayBuffer for @holoscript/compiler-wasm.
+          // COOP must be `same-origin-allow-popups` (not `same-origin`) — Quest Browser's
+          // VR compositor spawns a cross-origin context that needs opener access.
+          // `same-origin` breaks navigator.xr.isSessionSupported on Meta Quest Browser.
           // See research/quest3-iphone-moment/a-quest3-feasibility-probe.md (step 7)
           // and c-studio-share-path-map.md (G5).
-          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin-allow-popups' },
           { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
+          // Quest Browser requires explicit xr-spatial-tracking permission.
+          // Omitting this causes isSessionSupported('immersive-vr') to return false.
+          { key: 'Permissions-Policy', value: 'xr-spatial-tracking=*, camera=(), microphone=(), geolocation=()' },
         ],
       },
     ];
