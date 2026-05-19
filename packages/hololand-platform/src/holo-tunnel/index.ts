@@ -17,8 +17,20 @@ export interface HoloTunnelOptions {
   relayBase?: string;
   /** Local hostname. Default: 'localhost'. */
   localHost?: string;
+  /** Optional relay client token. Defaults to HOLOTUNNEL_CLIENT_TOKEN when set. */
+  clientToken?: string;
+  /** HoloLand world/session identifier for sanitized share packets. */
+  worldId?: string;
+  /** Human-readable session name for sanitized share packets. */
+  sessionName?: string;
+  /** HoloScript source path or identifier backing the preview. */
+  sourceRef?: string;
+  /** Producer label for sanitized share packets. Default: 'holoscript'. */
+  createdBy?: 'studio' | 'agent' | 'cli' | 'holoscript';
+  /** Optional access expiry to pass through to HoloLand. */
+  expiresAt?: string;
   /** Called when the tunnel URL is ready. */
-  onReady?: (url: string, tunnelId: string) => void;
+  onReady?: (url: string, tunnelId: string, handle: HoloTunnelHandle) => void;
   /** Called on each proxied request for logging. */
   onRequest?: (method: string, path: string) => void;
   /** Injectable WebSocket constructor for testing. */
@@ -30,9 +42,26 @@ export interface HoloTunnelOptions {
 export interface HoloTunnelHandle {
   /** Public URL Quest 3 connects to. */
   url: string;
+  /** Stable relay URL that redirects to the newest active tunnel. */
+  liveUrl: string;
   tunnelId: string;
+  /** Relay base URL used to derive url/liveUrl. */
+  relayBase: string;
+  /** Product-safe packet for HoloLand access surfaces. */
+  sharePacket: HoloTunnelSharePacket;
   /** Close the tunnel. */
   close: () => void;
+}
+
+export interface HoloTunnelSharePacket {
+  schemaVersion: 'holoscript.holotunnel.share-packet.v1';
+  worldId: string;
+  sessionName: string;
+  stableUrl: string;
+  directUrl: string;
+  sourceRef?: string;
+  createdBy: 'studio' | 'agent' | 'cli' | 'holoscript';
+  expiresAt?: string;
 }
 
 type TunnelMessage =
@@ -44,20 +73,76 @@ type TunnelMessage =
 
 const DEFAULT_RELAY = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 
+export function normalizeHoloTunnelRelayBase(relayBase: string = DEFAULT_RELAY): string {
+  const normalized = relayBase
+    .trim()
+    .replace(/^wss:/, 'https:')
+    .replace(/^ws:/, 'http:')
+    .replace(/\/+$/, '');
+
+  return normalized.endsWith('/tunnel-ws')
+    ? normalized.slice(0, -'/tunnel-ws'.length)
+    : normalized;
+}
+
+export function buildHoloTunnelWsUrl(relayBase: string = DEFAULT_RELAY): string {
+  const normalizedRelayBase = normalizeHoloTunnelRelayBase(relayBase);
+  return `${normalizedRelayBase.replace(/^https?/, (p) => (p === 'https' ? 'wss' : 'ws'))}/tunnel-ws`;
+}
+
+export function buildHoloTunnelLiveUrl(relayBase: string = DEFAULT_RELAY): string {
+  return `${normalizeHoloTunnelRelayBase(relayBase)}/live`;
+}
+
+export function resolveHoloTunnelClientToken(token?: string): string | undefined {
+  return token || process.env.HOLOTUNNEL_CLIENT_TOKEN || undefined;
+}
+
+export function buildHoloTunnelSharePacket(options: {
+  directUrl: string;
+  relayBase?: string;
+  worldId?: string;
+  sessionName?: string;
+  sourceRef?: string;
+  createdBy?: HoloTunnelSharePacket['createdBy'];
+  expiresAt?: string;
+}): HoloTunnelSharePacket {
+  return {
+    schemaVersion: 'holoscript.holotunnel.share-packet.v1',
+    worldId: options.worldId || 'studio-local-preview',
+    sessionName: options.sessionName || 'HoloScript Studio Preview',
+    stableUrl: buildHoloTunnelLiveUrl(options.relayBase),
+    directUrl: options.directUrl,
+    ...(options.sourceRef ? { sourceRef: options.sourceRef } : {}),
+    createdBy: options.createdBy || 'holoscript',
+    ...(options.expiresAt ? { expiresAt: options.expiresAt } : {}),
+  };
+}
+
 export function startHoloTunnel(options: HoloTunnelOptions): Promise<HoloTunnelHandle> {
   return new Promise((resolve, reject) => {
     const {
       localPort,
       localHost = 'localhost',
-      relayBase = process.env.MCP_ORCHESTRATOR_URL ?? DEFAULT_RELAY,
+      relayBase: rawRelayBase = process.env.MCP_ORCHESTRATOR_URL ?? DEFAULT_RELAY,
+      clientToken,
+      worldId,
+      sessionName,
+      sourceRef,
+      createdBy,
+      expiresAt,
       onReady,
       onRequest,
       WebSocketImpl = WebSocket,
       fetchImpl = fetch,
     } = options;
 
-    const wsUrl = relayBase.replace(/^https?/, (p) => (p === 'https' ? 'wss' : 'ws')) + '/tunnel-ws';
-    const ws = new WebSocketImpl(wsUrl) as WebSocket;
+    const relayBase = normalizeHoloTunnelRelayBase(rawRelayBase);
+    const wsUrl = buildHoloTunnelWsUrl(relayBase);
+    const token = resolveHoloTunnelClientToken(clientToken);
+    const ws = token
+      ? new WebSocketImpl(wsUrl, { headers: { 'x-holotunnel-token': token } }) as WebSocket
+      : new WebSocketImpl(wsUrl) as WebSocket;
 
     let tunnelId = '';
     let publicUrl = '';
@@ -83,8 +168,24 @@ export function startHoloTunnel(options: HoloTunnelOptions): Promise<HoloTunnelH
       if (msg.type === 'hello') {
         tunnelId = msg.tunnelId;
         publicUrl = msg.publicUrl;
-        onReady?.(publicUrl, tunnelId);
-        resolve({ url: publicUrl, tunnelId, close });
+        const handle: HoloTunnelHandle = {
+          url: publicUrl,
+          liveUrl: buildHoloTunnelLiveUrl(relayBase),
+          tunnelId,
+          relayBase,
+          sharePacket: buildHoloTunnelSharePacket({
+            directUrl: publicUrl,
+            relayBase,
+            worldId,
+            sessionName,
+            sourceRef,
+            createdBy,
+            expiresAt,
+          }),
+          close,
+        };
+        onReady?.(publicUrl, tunnelId, handle);
+        resolve(handle);
         return;
       }
 

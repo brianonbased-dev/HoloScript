@@ -67,7 +67,19 @@ describe('holo_tunnel MCP tools', () => {
     const close = vi.fn();
     const startHoloTunnel = vi.fn().mockResolvedValue({
       url: 'https://mcp-orchestrator-production-45f9.up.railway.app/t/test-tunnel',
+      liveUrl: 'https://mcp-orchestrator-production-45f9.up.railway.app/live',
       tunnelId: 'test-tunnel',
+      relayBase: 'https://mcp-orchestrator-production-45f9.up.railway.app',
+      sharePacket: {
+        schemaVersion: 'holoscript.holotunnel.share-packet.v1',
+        worldId: 'world-1',
+        sessionName: 'Studio Preview',
+        stableUrl: 'https://mcp-orchestrator-production-45f9.up.railway.app/live',
+        directUrl: 'https://mcp-orchestrator-production-45f9.up.railway.app/t/test-tunnel',
+        sourceRef: 'scene.holo',
+        createdBy: 'agent',
+        expiresAt: '2026-05-19T10:00:00.000Z',
+      },
       close,
     });
     __setStartHoloTunnelForTests(startHoloTunnel);
@@ -77,6 +89,11 @@ describe('holo_tunnel MCP tools', () => {
         port: 3101,
         relayBase: 'https://mcp-orchestrator-production-45f9.up.railway.app',
         localHost: '127.0.0.1',
+        clientToken: 'secret-token',
+        worldId: 'world-1',
+        sessionName: 'Studio Preview',
+        sourceRef: 'scene.holo',
+        expiresAt: '2026-05-19T10:00:00.000Z',
       }),
     );
 
@@ -85,11 +102,30 @@ describe('holo_tunnel MCP tools', () => {
       tunnelId: 'test-tunnel',
       port: 3101,
       url: 'https://mcp-orchestrator-production-45f9.up.railway.app/t/test-tunnel',
+      liveUrl: 'https://mcp-orchestrator-production-45f9.up.railway.app/live',
+      localHost: '127.0.0.1',
+      relayBase: 'https://mcp-orchestrator-production-45f9.up.railway.app',
+      sharePacket: {
+        schemaVersion: 'holoscript.holotunnel.share-packet.v1',
+        worldId: 'world-1',
+        sessionName: 'Studio Preview',
+        stableUrl: 'https://mcp-orchestrator-production-45f9.up.railway.app/live',
+        directUrl: 'https://mcp-orchestrator-production-45f9.up.railway.app/t/test-tunnel',
+        sourceRef: 'scene.holo',
+        createdBy: 'agent',
+        expiresAt: '2026-05-19T10:00:00.000Z',
+      },
     });
     expect(startHoloTunnel).toHaveBeenCalledWith({
       localPort: 3101,
       relayBase: 'https://mcp-orchestrator-production-45f9.up.railway.app',
       localHost: '127.0.0.1',
+      clientToken: 'secret-token',
+      worldId: 'world-1',
+      sessionName: 'Studio Preview',
+      sourceRef: 'scene.holo',
+      createdBy: 'agent',
+      expiresAt: '2026-05-19T10:00:00.000Z',
     });
 
     const status = parseToolJson(await handleHoloTunnelTool('holo_tunnel_status', {}));
@@ -100,6 +136,20 @@ describe('holo_tunnel MCP tools', () => {
         {
           tunnelId: 'test-tunnel',
           url: 'https://mcp-orchestrator-production-45f9.up.railway.app/t/test-tunnel',
+          liveUrl: 'https://mcp-orchestrator-production-45f9.up.railway.app/live',
+          relayBase: 'https://mcp-orchestrator-production-45f9.up.railway.app',
+          port: 3101,
+          localHost: '127.0.0.1',
+          sharePacket: {
+            schemaVersion: 'holoscript.holotunnel.share-packet.v1',
+            worldId: 'world-1',
+            sessionName: 'Studio Preview',
+            stableUrl: 'https://mcp-orchestrator-production-45f9.up.railway.app/live',
+            directUrl: 'https://mcp-orchestrator-production-45f9.up.railway.app/t/test-tunnel',
+            sourceRef: 'scene.holo',
+            createdBy: 'agent',
+            expiresAt: '2026-05-19T10:00:00.000Z',
+          },
         },
       ],
     });

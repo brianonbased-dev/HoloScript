@@ -159,6 +159,13 @@ export type {
 } from './adversarial-trajectory';
 
 // HoloTunnel — sovereign ngrok replacement for local-to-cloud tunneling
-export { startHoloTunnel } from './holo-tunnel';
+export {
+  buildHoloTunnelLiveUrl,
+  buildHoloTunnelSharePacket,
+  buildHoloTunnelWsUrl,
+  normalizeHoloTunnelRelayBase,
+  resolveHoloTunnelClientToken,
+  startHoloTunnel,
+} from './holo-tunnel';
 
-export type { HoloTunnelOptions, HoloTunnelHandle } from './holo-tunnel';
+export type { HoloTunnelOptions, HoloTunnelHandle, HoloTunnelSharePacket } from './holo-tunnel';

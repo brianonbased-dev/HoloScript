@@ -3186,6 +3186,9 @@ importers:
       viem:
         specifier: ^2.47.1
         version: 2.47.2(typescript@5.9.3)(zod@4.3.6)
+      ws:
+        specifier: ^8.16.0
+        version: 8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       y-websocket:
         specifier: ^2.0.3
         version: 2.1.0(yjs@13.6.29)

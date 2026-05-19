@@ -324,6 +324,15 @@ describe('permission scope policy helpers', () => {
     expect(permissionPreviewHasPublicLeak('Bearer abc.def.ghi')).toBe(true);
     expect(permissionPreviewHasPublicLeak('https://accounts.example/auth?scope=drive.file')).toBe(false);
   });
+
+  it('keeps already-redacted previews stable across repeated checks', () => {
+    const redaction = redactPermissionGatePreview('Bearer <redacted> access_token=<redacted>');
+
+    expect(redaction.redacted).toBe(false);
+    expect(redaction.credentialMaterialRedacted).toBe(false);
+    expect(redaction.preview).toBe('Bearer <redacted> access_token=<redacted>');
+    expect(permissionPreviewHasPublicLeak(redaction.preview)).toBe(false);
+  });
 });
 
 describe('cloneHoloShellPermissionGateReceiptPack', () => {
