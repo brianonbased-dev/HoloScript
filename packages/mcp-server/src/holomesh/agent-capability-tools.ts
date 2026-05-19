@@ -378,9 +378,27 @@ function resolveBrainSource(
   }
 }
 
+const ALLOWED_MARKETPLACE_HOSTNAMES = new Set([
+  'mcp-orchestrator-production-45f9.up.railway.app',
+  'mcp.holoscript.net',
+  'localhost',
+  '127.0.0.1',
+]);
+
 function resolveMarketplaceSearchUrl(value: unknown): string {
   const override = stringOrUndefined(value);
-  if (override) return override;
+  if (override) {
+    let parsed: URL;
+    try {
+      parsed = new URL(override);
+    } catch {
+      throw new Error(`marketplace_url is not a valid URL: ${override}`);
+    }
+    if (!ALLOWED_MARKETPLACE_HOSTNAMES.has(parsed.hostname)) {
+      throw new Error(`marketplace_url host not allowed: ${parsed.hostname}`);
+    }
+    return override;
+  }
   if (process.env.HOLOMESH_MARKETPLACE_SEARCH_URL) {
     return process.env.HOLOMESH_MARKETPLACE_SEARCH_URL;
   }

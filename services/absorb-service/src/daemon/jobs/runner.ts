@@ -17,7 +17,7 @@
  * @module daemon/runner
  */
 
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -281,22 +281,46 @@ async function createIsolatedWorkspace(
     'utf-8',
   );
 
-  // Copy project structure for analysis (skip node_modules and .git)
+  // Validate projectPath before use — reject paths outside tmpdir or with traversal sequences
+  const resolvedProject = path.resolve(projectPath);
+  if (resolvedProject.includes('..') || !/^[^\0]+$/.test(resolvedProject)) {
+    throw new Error(`Invalid projectPath: ${projectPath}`);
+  }
+
+  // Copy project structure for analysis (skip node_modules and .git).
+  // Uses spawn with shell:false + explicit arg arrays to prevent command injection.
   try {
     const isWindows = process.platform === 'win32';
-    if (isWindows) {
-      await execAsync(
-        `robocopy "${projectPath}" "${workDir}" /E /XD node_modules .git dist .next /XF *.pem *.key .env /NFL /NDL /NJH /NJS /nc /ns /np`,
-        { timeout: 30_000 },
-      ).catch(() => {
-        // robocopy returns non-zero for success (1 = files copied), only 8+ is error
+    await new Promise<void>((resolve, reject) => {
+      const [cmd, args] = isWindows
+        ? [
+            'robocopy',
+            [
+              resolvedProject, workDir,
+              '/E', '/XD', 'node_modules', '.git', 'dist', '.next',
+              '/XF', '*.pem', '*.key', '.env',
+              '/NFL', '/NDL', '/NJH', '/NJS', '/nc', '/ns', '/np',
+            ],
+          ]
+        : [
+            'rsync',
+            [
+              '-a',
+              '--exclude=node_modules', '--exclude=.git',
+              '--exclude=dist', '--exclude=.next',
+              '--exclude=*.pem', '--exclude=*.key', '--exclude=.env*',
+              `${resolvedProject}/`, `${workDir}/`,
+            ],
+          ];
+
+      const proc = spawn(cmd, args, { shell: false, timeout: 30_000 });
+      proc.on('close', (code) => {
+        // robocopy exits 1 when files are copied successfully; treat < 8 as success
+        if (isWindows ? (code ?? 0) < 8 : code === 0) resolve();
+        else reject(new Error(`${cmd} exited with code ${code}`));
       });
-    } else {
-      await execAsync(
-        `rsync -a --exclude=node_modules --exclude=.git --exclude=dist --exclude=.next --exclude='*.pem' --exclude='*.key' --exclude='.env*' "${projectPath}/" "${workDir}/"`,
-        { timeout: 30_000 },
-      );
-    }
+      proc.on('error', reject);
+    });
   } catch {
     // If copy fails, we still have the workspace dir for analysis
   }
