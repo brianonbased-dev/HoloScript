@@ -294,6 +294,13 @@ export function deriveSkillTags(toolName: string): string[] {
   else if (toolName.startsWith('generate_') || toolName === 'generate_scene') {
     tags.push('generation', 'ai', 'codegen');
   }
+  // Receipt capability query (must come before the holo_query catch-all)
+  else if (
+    toolName.startsWith('holo_query_receipts') ||
+    toolName.startsWith('holo_list_receipt')
+  ) {
+    tags.push('receipts', 'capability', 'query');
+  }
   // Codebase intelligence
   else if (
     toolName.startsWith('holo_absorb') ||

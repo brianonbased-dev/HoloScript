@@ -177,6 +177,10 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   holo_add_wisdom: ['tools:admin'],
   holo_add_gotcha: ['tools:admin'],
 
+  // === Receipt Capability Query ===
+  holo_query_receipts: ['tools:read'],
+  holo_list_receipt_capabilities: ['tools:read'],
+
   // === Training data generation (admin) ===
   generate_hololand_training: ['tools:admin'],
 

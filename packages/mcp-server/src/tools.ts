@@ -21,6 +21,7 @@ import { selfImproveTools } from './self-improve-tools';
 import { gltfImportTools } from './gltf-import-tools';
 import { editHoloTools } from './edit-holo-tools';
 import { wisdomGotchaTools } from './wisdom-gotcha-tools';
+import { receiptQueryTools } from './receipt-query-tools';
 import { serviceContractTools } from './service-contract-tools';
 import { validationTools } from './validation-tools';
 import { agentOrchestrationTools } from './agent-orchestration-tools';
@@ -766,6 +767,7 @@ export const tools: Tool[] = [
   ...premortemTools,
   ...oracleMcpTools,
   ...secretsBrokerTools,
+  ...receiptQueryTools,
 ];
 
 // Tool name type for type safety

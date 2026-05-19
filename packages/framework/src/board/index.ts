@@ -820,3 +820,14 @@ export {
   recordBoardWebhookDeliveryFailure,
 } from './webhooks';
 
+export {
+  // Receipt Capability Registry (task_1779157196014_yx3r)
+  type ReceiptCapabilityEntry,
+  RECEIPT_CAPABILITY_REGISTRY,
+  queryReceiptCapabilities,
+  getReceiptCapability,
+  listReceiptCapabilities,
+  listReceiptSubjects,
+  receiptCapabilityCount,
+} from './receipt-capability-registry';
+

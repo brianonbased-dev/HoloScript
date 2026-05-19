@@ -743,6 +743,17 @@ export {
   appendFollowUpCommit,
 } from './board';
 
+// Receipt Capability Registry (task_1779157196014_yx3r)
+export {
+  type ReceiptCapabilityEntry,
+  RECEIPT_CAPABILITY_REGISTRY,
+  queryReceiptCapabilities,
+  getReceiptCapability,
+  listReceiptCapabilities,
+  listReceiptSubjects,
+  receiptCapabilityCount,
+} from './board';
+
 // Capability module (Phase 1 — canonical definitions + validators + tests)
 // Exported as namespace to avoid AgentCapability collision with mesh/index.ts.
 // Phase 2 will unify the shapes and promote to direct export.

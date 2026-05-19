@@ -50,6 +50,7 @@ import { selfImproveTools, handleSelfImproveTool } from './self-improve-tools';
 import { gltfImportTools, handleGltfTool } from './gltf-import-tools';
 import { holotestTools, handleHolotestTool } from './holotest-tools';
 import { wisdomGotchaTools, handleWisdomGotchaTool } from './wisdom-gotcha-tools';
+import { receiptQueryTools, handleReceiptQueryTool } from './receipt-query-tools';
 import { refactorCodegenTools, handleRefactorCodegenTool } from './refactor-codegen-tools';
 import { traitTools, handleTraitTool } from './trait-tools';
 import { alphafoldTools, handleFetchStructure } from './alphafold-tools';
@@ -334,6 +335,7 @@ registerCategory(graphRagTools, (name, args, _signingCtx) => handleGraphRagTool(
 registerCategory(selfImproveTools, (name, args, _signingCtx) => handleSelfImproveTool(name, args));
 registerCategory(gltfImportTools, (name, args, _signingCtx) => handleGltfTool(name, args));
 registerCategory(wisdomGotchaTools, (name, args, _signingCtx) => handleWisdomGotchaTool(name, args));
+registerCategory(receiptQueryTools, (name, args, _signingCtx) => handleReceiptQueryTool(name, args));
 registerCategory(oracleMcpTools, (name, args, _signingCtx) => handleOracleMcpTool(name, args));
 registerCategory(traitTools, (name, args, _signingCtx) => handleTraitTool(name, args));
 registerCategory(alphafoldTools, (name, args, _signingCtx) => handleFetchStructure(args));
