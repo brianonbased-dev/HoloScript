@@ -398,6 +398,23 @@ def _build_env_lines(handle: str, gate: dict, wallet: str, bearer: str, team_id:
     return lines
 
 
+def _wait_for_ssh(host: str, port: int, *, max_wait_s: int = 300, poll_s: int = 15) -> bool:
+    """Poll until SSH port accepts connections or max_wait_s elapsed."""
+    import time, socket
+    deadline = time.monotonic() + max_wait_s
+    attempt = 0
+    while time.monotonic() < deadline:
+        attempt += 1
+        try:
+            with socket.create_connection((host, port), timeout=8):
+                print(f"[bootstrap] SSH ready after ~{attempt * poll_s}s", file=sys.stderr)
+                return True
+        except OSError:
+            print(f"[bootstrap] SSH not ready (attempt {attempt}), waiting {poll_s}s...", file=sys.stderr)
+            time.sleep(poll_s)
+    return False
+
+
 def _scp_and_bootstrap(instance_id: int, handle: str, gate: dict, wallet: str, bearer: str, team_id: str, ssh_key: Path) -> dict:
     """SCP bootstrap-agent.sh + env + runner + brain, then SSH dispatch.
     Returns {ok, ssh_host, ssh_port} or {ok, error}."""
@@ -405,6 +422,11 @@ def _scp_and_bootstrap(instance_id: int, handle: str, gate: dict, wallet: str, b
     if not ssh:
         return {"ok": False, "error": "could not resolve SSH host:port for instance"}
     host, port = ssh
+
+    # Wait for SSH to be ready — instances need ~1-3 min to boot after creation;
+    # immediate SCP always times out (2026-05-19 incident: all 4 gates failed).
+    if not _wait_for_ssh(host, port):
+        return {"ok": False, "error": f"SSH not ready after 300s: {host}:{port}"}
 
     brain_name = gate["brain"]
     brain_local = Path.home() / ".ai-ecosystem" / "compositions" / f"{brain_name}.hsplus"
@@ -656,6 +678,35 @@ def cmd_check(args: argparse.Namespace) -> int:
             "curl -sf http://localhost:8081/v1/models >/dev/null 2>&1 && echo OK || echo FAIL",
         ], timeout=20)
         if rc != 0 or "OK" not in out:
+            # SSH is reachable (rc==0 from the ssh call itself means we connected)
+            # but vllm isn't up. Check if gpu_runner is running — if not, bootstrap
+            # never ran and we should retry it now rather than burn the instance.
+            ssh_reachable = (rc == 0)  # rc!=0 means SSH itself failed, not just vllm
+            if ssh_reachable and gate:
+                check_runner = run_subprocess([
+                    "ssh", "-i", str(Path.home() / ".ssh" / "id_rsa"),
+                    "-o", "StrictHostKeyChecking=no",
+                    "-o", "UserKnownHostsFile=/dev/null",
+                    "-o", "ConnectTimeout=10",
+                    "-o", "BatchMode=yes",
+                    "-p", str(port),
+                    f"root@{host}",
+                    "pgrep -f gpu-runner.mjs >/dev/null 2>&1 && echo RUNNER_UP || echo RUNNER_ABSENT",
+                ], timeout=20)
+                if check_runner[0] == 0 and "RUNNER_ABSENT" in check_runner[1]:
+                    # Bootstrap never ran — retry it
+                    wallet = os.environ.get(args.wallet_env_key or "HOLOMESH_WALLET_PAPER_GATE_X402", "")
+                    bearer = os.environ.get(args.bearer_env_key or "HOLOMESH_API_KEY_PAPER_GATE_X402", "")
+                    team_id = args.team_id or os.environ.get("HOLOMESH_TEAM_ID", "")
+                    if wallet and bearer:
+                        print(f"[check] vllm unhealthy + runner absent — retrying bootstrap", file=sys.stderr)
+                        retry = _scp_and_bootstrap(
+                            args.instance_id, handle, gate, wallet, bearer, team_id,
+                            Path.home() / ".ssh" / "id_rsa",
+                        )
+                        print(json.dumps({"status": "vllm-unhealthy", "bootstrap_retry": retry,
+                                          "instance_id": args.instance_id, "handle": handle}, indent=2))
+                        return 5
             print(json.dumps({"status": "vllm-unhealthy", "instance_id": args.instance_id, "handle": handle}, indent=2))
             return 5
 
