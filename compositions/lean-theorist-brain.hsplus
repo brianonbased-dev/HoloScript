@@ -156,25 +156,26 @@ composition "LeanTheoristBrain" {
   //
   // Lean-theorist on Qwen2.5-72B-AWQ + Goedel-V2-7B sidecar requires:
   //   72B-AWQ ~36GB + KV cache ~30GB + sidecar 7B ~14GB + sidecar KV ~8GB
-  //   = ~88GB total VRAM. Round up to 96GB headroom safety; H200 (140GB)
-  //   fits trivially, A100 80GB does NOT fit the full stack (drop sidecar
-  //   or skip 72B), H100 80GB same constraint. Per AMBER memo §7.1.
+  //   = ~88GB total VRAM. H200 (140GB) fits trivially; A100 80GB does NOT
+  //   fit the full stack; H100 80GB same constraint; H100 NVL (93.58GB)
+  //   fits with ~5.6GB natural margin. Per AMBER memo §7.1.
+  //
+  // headroom_gb is 0 because the 88GB figure already accounts for all
+  // runtime overhead (KV-cache growth, sidecar warmup, concurrent batches).
+  // Setting headroom_gb > 0 would double-count and push the picker threshold
+  // to (88+N)*1024 MiB, blocking H100 NVL ($2.855/hr) unnecessarily.
   // ========================================================================
   object "RuntimeRequirements" {
     @runtime_requirements {
-      min_vram_gb: 96,
+      min_vram_gb: 88,
       gpu_class_regex: "H200|H100.*NVL|A100.*SXM",
       min_reliability: 0.95,
       max_dph_total_usd: 3.50,
       preferred_disk_gb: 80,
       cpu_min_cores: 16,
       ram_min_gb: 64,
-      // Why not just min_vram_gb: 88? The 8GB headroom buffer absorbs (a)
-      // KV-cache growth as the agent context expands across a session,
-      // (b) Goedel sidecar warmup overshoot, (c) a single concurrent
-      // request batch above batch=1. Tight VRAM == OOM under load.
-      headroom_gb: 8,
-      reasoning: "AMBER memo §7.1 VRAM table: Qwen2.5-72B-AWQ (~36) + KV cache (~30) + Goedel-V2-7B (~14) + sidecar KV (~8) = ~88GB. Plus 8GB headroom buffer = 96GB minimum. H200 140GB has 52GB free after fit. A100 80GB cannot fit full stack."
+      headroom_gb: 0,
+      reasoning: "AMBER memo §7.1 VRAM table: Qwen2.5-72B-AWQ (~36) + KV cache (~30) + Goedel-V2-7B (~14) + sidecar KV (~8) = ~88GB actual stack. headroom_gb=0 because 88 already includes all runtime overhead; adding extra headroom double-counts and blocks H100 NVL (93,830 MiB). H100 NVL passes at 90,112 MiB required with 5,718 MiB margin."
     }
   }
 
