@@ -40,6 +40,7 @@ absorb-service/
       providers/       Embedding providers (OpenAI, Ollama, Xenova/HuggingFace)
       visualization/   Scene compilation, theming, tooltips, interactive enrichment
       workers/         Worker pool for parallel parsing and embedding
+    ingest/            Professional ingest contracts and canonical format registry
     pipeline/          Recursive self-improvement orchestrator (L0/L1/L2)
     self-improvement/  Training data generation, GRPO, OPLoRA, quality scoring
     daemon/            HoloDaemon action handlers, error taxonomy, prompt profiles
@@ -83,6 +84,7 @@ Import from the specific sub-path you need:
 | ---------------- | --------------------------------------------- | --------------------------------------------------------------- |
 | Root             | `@holoscript/absorb-service`                  | Engine + bridge (default)                                       |
 | Engine           | `@holoscript/absorb-service/engine`           | Scanner, graph, embeddings, visualization, knowledge extraction |
+| Ingest           | `@holoscript/absorb-service/ingest`           | Professional ingest adapter contract + format registry          |
 | Pipeline         | `@holoscript/absorb-service/pipeline`         | Recursive self-improvement orchestrator                         |
 | Daemon           | `@holoscript/absorb-service/daemon`           | HoloDaemon actions, error taxonomy, prompt profiles             |
 | Self-Improvement | `@holoscript/absorb-service/self-improvement` | GRPO, OPLoRA, DPO, quality scoring, convergence detection       |

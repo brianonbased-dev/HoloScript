@@ -6,6 +6,7 @@
  *
  * Sub-modules (import via sub-paths to avoid name collisions):
  *   - @holoscript/absorb-service/engine         -- Codebase scanner, graph, embeddings, visualization
+ *   - @holoscript/absorb-service/ingest         -- Professional ingest contracts and format registry
  *   - @holoscript/absorb-service/pipeline        -- Recursive self-improvement orchestrator (L0/L1/L2)
  *   - @holoscript/absorb-service/daemon          -- Daemon actions, error taxonomy, prompt profiles, types
  *   - @holoscript/absorb-service/self-improvement -- Training data generation, quality scoring, GRPO
@@ -23,6 +24,9 @@
 
 // Engine is the primary export (most commonly used)
 export * from './engine/index';
+
+// Professional ingest contracts and registry
+export * from './ingest/index';
 
 // Bridge (no collisions)
 export * from './bridge';
