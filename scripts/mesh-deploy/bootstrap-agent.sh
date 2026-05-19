@@ -345,6 +345,18 @@ for tier in table['tiers']:
     exit 7
   fi
   echo "[bootstrap] python=$PY_BIN  pip=$PIP_BIN"
+  # Vast.ai conda base images often ship PyTorch compiled for CUDA 13.0 (cu130)
+  # but most instances run NVIDIA drivers that only support up to CUDA 12.8.
+  # PyTorch cu130 refuses to init when the driver is <575.x, causing vLLM to
+  # crash with "Engine core initialization failed".  Detect this mismatch and
+  # downgrade torch to cu124 (compatible with CUDA 12.4-12.8 drivers) before
+  # installing vLLM, so vLLM inherits the compatible torch instead of upgrading.
+  if "$PY_BIN" -c "import torch; v=torch.__version__; exit(0 if '+cu130' not in v and '+cu13' not in v else 1)" 2>/dev/null; then
+    echo "[bootstrap] torch CUDA version OK (no cu130 mismatch)"
+  else
+    echo "[bootstrap] torch cu130/cu13x detected but driver may be <CUDA13 — reinstalling with cu124"
+    $PIP_BIN install --quiet "torch" --index-url https://download.pytorch.org/whl/cu124 || true
+  fi
   $PIP_BIN install --quiet vllm || true
   # AWQ models need autoawq for vLLM to recognize the quantization format.
   # Cheap to install if model is non-AWQ; required if it is.
