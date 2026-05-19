@@ -126,10 +126,25 @@ def fetch_gate(gate_id: str) -> dict | None:
         result.get("schedulable", [])
         + result.get("blocked_by_cap", [])
         + result.get("blocked_by_missing_scaffold", [])
+        + result.get("already_running", [])  # active instances not in schedulable
+        + result.get("active", [])
+        + result.get("all_gates", [])
     )
     for g in all_gates:
         if g.get("gate_id") == gate_id:
             return g
+    # Scheduler may not return active gates in any bucket — fall through to
+    # direct GATES lookup by importing the scheduler module.
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("scheduler", str(SCHEDULER))
+        sched = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(sched)
+        for g in getattr(sched, "GATES", []):
+            if g.get("gate_id") == gate_id:
+                return g
+    except Exception:
+        pass
     return None
 
 
