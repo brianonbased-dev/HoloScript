@@ -28,7 +28,8 @@
   "dependencies": {
     "@holoscript/crdt-spatial": "workspace:*",
     "@holoscript/framework": "workspace:*",
-    "@holoscript/runtime": "workspace:*"
+    "@holoscript/runtime": "workspace:*",
+    "ws": "8.20.0"
   },
   "devDependencies": {
     "tsup": "^8.0.1",

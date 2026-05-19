@@ -36,6 +36,17 @@ async function getStartHoloTunnel() {
   return startHoloTunnelFn!;
 }
 
+export function __setStartHoloTunnelForTests(
+  fn: typeof import('@holoscript/hololand-platform').startHoloTunnel | null,
+): void {
+  startHoloTunnelFn = fn;
+}
+
+export function __resetHoloTunnelToolsForTests(): void {
+  activeTunnels.clear();
+  startHoloTunnelFn = null;
+}
+
 // ---------------------------------------------------------------------------
 // Tool definitions
 // ---------------------------------------------------------------------------

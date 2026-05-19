@@ -1,7 +1,23 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { holoTunnelTools, handleHoloTunnelTool } from '../holo-tunnel-tools';
+import {
+  holoTunnelTools,
+  handleHoloTunnelTool,
+  __resetHoloTunnelToolsForTests,
+  __setStartHoloTunnelForTests,
+} from '../holo-tunnel-tools';
+
+const parseToolJson = (result: Awaited<ReturnType<typeof handleHoloTunnelTool>>) =>
+  JSON.parse(result.content[0].text);
 
 describe('holo_tunnel MCP tools', () => {
+  beforeEach(() => {
+    __resetHoloTunnelToolsForTests();
+  });
+
+  afterEach(() => {
+    __resetHoloTunnelToolsForTests();
+  });
+
   it('registers all three tool definitions in the public tool list', () => {
     const create = holoTunnelTools.find((t) => t.name === 'holo_tunnel_create');
     const close = holoTunnelTools.find((t) => t.name === 'holo_tunnel_close');
@@ -22,43 +38,94 @@ describe('holo_tunnel MCP tools', () => {
 
   it('rejects invalid port numbers', async () => {
     const result = await handleHoloTunnelTool('holo_tunnel_create', { port: 0 });
-    const parsed = JSON.parse(result.content[0].text);
+    const parsed = parseToolJson(result);
     expect(parsed.success).toBe(false);
     expect(parsed.error).toContain('Invalid port');
   });
 
   it('rejects negative port numbers', async () => {
     const result = await handleHoloTunnelTool('holo_tunnel_create', { port: -1 });
-    const parsed = JSON.parse(result.content[0].text);
+    const parsed = parseToolJson(result);
     expect(parsed.success).toBe(false);
   });
 
   it('rejects port > 65535', async () => {
     const result = await handleHoloTunnelTool('holo_tunnel_create', { port: 70000 });
-    const parsed = JSON.parse(result.content[0].text);
+    const parsed = parseToolJson(result);
     expect(parsed.success).toBe(false);
   });
 
   it('returns status with empty tunnels when none created', async () => {
     const result = await handleHoloTunnelTool('holo_tunnel_status', {});
-    const parsed = JSON.parse(result.content[0].text);
+    const parsed = parseToolJson(result);
     expect(parsed.success).toBe(true);
     expect(parsed.tunnels).toEqual([]);
     expect(parsed.count).toBe(0);
+  });
+
+  it('creates, reports, and closes a tunnel handle', async () => {
+    const close = vi.fn();
+    const startHoloTunnel = vi.fn().mockResolvedValue({
+      url: 'https://mcp-orchestrator-production-45f9.up.railway.app/t/test-tunnel',
+      tunnelId: 'test-tunnel',
+      close,
+    });
+    __setStartHoloTunnelForTests(startHoloTunnel);
+
+    const created = parseToolJson(
+      await handleHoloTunnelTool('holo_tunnel_create', {
+        port: 3101,
+        relayBase: 'https://mcp-orchestrator-production-45f9.up.railway.app',
+        localHost: '127.0.0.1',
+      }),
+    );
+
+    expect(created).toMatchObject({
+      success: true,
+      tunnelId: 'test-tunnel',
+      port: 3101,
+      url: 'https://mcp-orchestrator-production-45f9.up.railway.app/t/test-tunnel',
+    });
+    expect(startHoloTunnel).toHaveBeenCalledWith({
+      localPort: 3101,
+      relayBase: 'https://mcp-orchestrator-production-45f9.up.railway.app',
+      localHost: '127.0.0.1',
+    });
+
+    const status = parseToolJson(await handleHoloTunnelTool('holo_tunnel_status', {}));
+    expect(status).toEqual({
+      success: true,
+      count: 1,
+      tunnels: [
+        {
+          tunnelId: 'test-tunnel',
+          url: 'https://mcp-orchestrator-production-45f9.up.railway.app/t/test-tunnel',
+        },
+      ],
+    });
+
+    const closed = parseToolJson(
+      await handleHoloTunnelTool('holo_tunnel_close', { tunnelId: 'test-tunnel' }),
+    );
+    expect(closed).toEqual({ success: true, closed: true, tunnelId: 'test-tunnel' });
+    expect(close).toHaveBeenCalledOnce();
+
+    const statusAfterClose = parseToolJson(await handleHoloTunnelTool('holo_tunnel_status', {}));
+    expect(statusAfterClose).toMatchObject({ success: true, count: 0, tunnels: [] });
   });
 
   it('returns error when closing non-existent tunnel', async () => {
     const result = await handleHoloTunnelTool('holo_tunnel_close', {
       tunnelId: 'nonexistent',
     });
-    const parsed = JSON.parse(result.content[0].text);
+    const parsed = parseToolJson(result);
     expect(parsed.success).toBe(false);
     expect(parsed.error).toContain('No active tunnel');
   });
 
   it('returns error for unknown tool name', async () => {
     const result = await handleHoloTunnelTool('holo_tunnel_unknown', {});
-    const parsed = JSON.parse(result.content[0].text);
+    const parsed = parseToolJson(result);
     expect(parsed.error).toContain('Unknown holo_tunnel tool');
   });
 });
