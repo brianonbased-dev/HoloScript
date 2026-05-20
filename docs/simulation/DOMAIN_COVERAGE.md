@@ -44,7 +44,7 @@ never calls `initSimulationSolvers()` still produces an empty registry.
 | `ReactionDiffusionSolver` | ✅ `ReactionDiffusionSolver.ts` | ⚠️ verify trait name | ✅ `simulation-registry.ts` | ✅ `ReactionDiffusionSolver.test.ts` | Generic `ValidationReceipt`; no reaction-diffusion-specific module | Paper 4 |
 | `UncertaintyQuantification` | ✅ `UncertaintyQuantification.ts` | ❌ no trait found | ❌ not a factory registrant | ✅ `UncertaintyQuantification.test.ts` | — | Paper 4 |
 | `MLSMPMFluid` (browser-native MPM) | ✅ `physics/MLSMPMFluid.ts` | ⚠️ no trait handler | ✅ `simulation-registry.ts` (`mls-mpm-fluid`) | ✅ MLS-MPM bench in `packages/engine/src/physics/` | — | sovereign-race candidate (Paper TBD) |
-| `AffinityODESolver` (relational dynamics) | ✅ `simulation/AffinityODESolver.ts` | ⚠️ `@affinity` trait pending | ✅ `simulation-registry.ts` (`affinity-ode`) | ⚠️ registered; end-to-end validation pending | — | D.027 Brittney, D.052 ConversationDaemon |
+| `AffinityODESolver` (relational dynamics) | ✅ `simulation/AffinityODESolver.ts` | ✅ `affinityHandler` (`AffinityTrait.ts`) | ✅ `simulation-registry.ts` (`affinity-ode`) | ⚠️ registered; end-to-end validation pending | — | D.027 Brittney, D.052 ConversationDaemon |
 
 ---
 
