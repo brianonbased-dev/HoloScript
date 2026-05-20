@@ -225,21 +225,111 @@ export class OfflineVisemeExtractor implements VisemeExtractor {
  * OfflineVisemeExtractor if the API is missing (e.g. SSR / Node.js).
  */
 export class WebAudioVisemeExtractor implements VisemeExtractor {
-  private offlineExtractor = new OfflineVisemeExtractor();
+  private offlineExtractor: OfflineVisemeExtractor;
 
+  constructor(options?: { frameMs?: number; silenceThreshold?: number }) {
+    this.offlineExtractor = new OfflineVisemeExtractor(options);
+  }
+
+  /**
+   * Fetch audio from `audioURI`, decode via Web Audio API (browser) or
+   * node:fs (Node.js), then pipe PCM through OfflineVisemeExtractor.
+   *
+   * Browser path:  fetch() + AudioContext.decodeAudioData()
+   * Node.js path:  node:fs/promises readFile + node-web-audio-api fallback,
+   *                or OfflineVisemeExtractor on raw bytes if audio API absent.
+   */
   async extractFromURI(audioURI: string): Promise<VisemeEvent[]> {
-    if (typeof AudioContext === 'undefined' && typeof OfflineAudioContext === 'undefined') {
-      throw new Error('WebAudioVisemeExtractor: Web Audio API not available');
+    // ── 1. Fetch raw bytes ──────────────────────────────────────────────────
+    let arrayBuffer: ArrayBuffer;
+
+    if (typeof fetch !== 'undefined') {
+      const res = await fetch(audioURI);
+      if (!res.ok) {
+        throw new Error(
+          `WebAudioVisemeExtractor: fetch failed for "${audioURI}" — HTTP ${res.status}`
+        );
+      }
+      arrayBuffer = await res.arrayBuffer();
+    } else {
+      // Node.js 18+ — file path or file:// URI
+      const { readFile } = await import('node:fs/promises');
+      const filePath = audioURI.startsWith('file://')
+        ? new URL(audioURI).pathname
+        : audioURI;
+      const buf = await readFile(filePath);
+      arrayBuffer = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
     }
-    // Full implementation deferred to runtime integration (I.002 Mobile / HoloClaw).
-    // Adapter contract is present so callers can swap extractors.
-    throw new Error('WebAudioVisemeExtractor.extractFromURI: not yet implemented');
+
+    // ── 2. Decode with Web Audio (browser) or fall back to heuristic ────────
+    const AudioCtx: typeof AudioContext | undefined =
+      typeof AudioContext !== 'undefined'
+        ? AudioContext
+        : typeof (globalThis as Record<string, unknown>).AudioContext !== 'undefined'
+          ? (globalThis as unknown as { AudioContext: typeof AudioContext }).AudioContext
+          : undefined;
+
+    if (!AudioCtx) {
+      // No Web Audio available (pure Node.js without polyfill).
+      // Best-effort: treat raw bytes as 16-bit PCM at 44100 Hz mono.
+      const samples = pcmBytesToFloat32(new Uint8Array(arrayBuffer));
+      return this.offlineExtractor.extract({
+        samples,
+        sampleRate: 44100,
+        channels: 1,
+        durationMs: (samples.length / 44100) * 1000,
+      });
+    }
+
+    // ── 3. Decode and convert to AudioBufferLike ─────────────────────────────
+    const ctx = new AudioCtx();
+    let decoded: AudioBuffer;
+    try {
+      decoded = await ctx.decodeAudioData(arrayBuffer.slice(0));
+    } finally {
+      await ctx.close().catch(() => undefined);
+    }
+
+    const monoSamples =
+      decoded.numberOfChannels > 1
+        ? mixToMono(decoded)
+        : decoded.getChannelData(0).slice();
+
+    return this.offlineExtractor.extract({
+      samples: monoSamples,
+      sampleRate: decoded.sampleRate,
+      channels: 1,
+      durationMs: (decoded.length / decoded.sampleRate) * 1000,
+    });
   }
 
   extract(audio: AudioBufferLike): VisemeEvent[] {
-    // In a browser context with decoded AudioBuffer, delegate to offline heuristic.
     return this.offlineExtractor.extract(audio);
   }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function mixToMono(buffer: AudioBuffer): Float32Array {
+  const mono = new Float32Array(buffer.length);
+  const scale = 1 / buffer.numberOfChannels;
+  for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+    const channelData = buffer.getChannelData(ch);
+    for (let i = 0; i < channelData.length; i++) {
+      mono[i] += channelData[i] * scale;
+    }
+  }
+  return mono;
+}
+
+function pcmBytesToFloat32(bytes: Uint8Array): Float32Array {
+  // Interpret as little-endian signed 16-bit PCM (WAV default)
+  const samples = new Float32Array(Math.floor(bytes.length / 2));
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  for (let i = 0; i < samples.length; i++) {
+    samples[i] = view.getInt16(i * 2, true) / 32768;
+  }
+  return samples;
 }
 
 // =============================================================================
