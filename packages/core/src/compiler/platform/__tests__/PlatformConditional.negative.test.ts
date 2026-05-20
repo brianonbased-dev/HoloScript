@@ -51,7 +51,16 @@ function getValidPlatformNames(): string[] {
   // All specific platforms + all category names + all aliases
   const platforms = ALL_PLATFORMS;
   const categories = Object.keys(PLATFORM_CATEGORIES);
-  const aliases = ['phone', 'car'];
+  const aliases = [
+    'phone',
+    'car',
+    'androidxr',
+    'android_xr',
+    'visionosar',
+    'visionos_ar',
+    'androidxrar',
+    'android_xr_ar',
+  ];
   return [...platforms, ...categories, ...aliases];
 }
 
@@ -261,6 +270,8 @@ describe('Platform validation helper', () => {
     // Should include aliases
     expect(valid).toContain('phone');
     expect(valid).toContain('car');
+    expect(valid).toContain('androidxr');
+    expect(valid).toContain('android_xr');
 
     // Should NOT include invalid names
     expect(valid).not.toContain('xbox');

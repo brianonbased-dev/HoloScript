@@ -134,6 +134,31 @@ describe('VisionOSCompiler', () => {
     expect(swift).toContain('obj_b');
   });
 
+  it('filters @platform() blocks for visionOS before Swift generation', () => {
+    const comp = makeComposition({
+      objects: [
+        {
+          name: 'vision_panel',
+          properties: [{ key: 'geometry', value: 'box' }],
+          traits: [],
+          platformConstraint: { include: ['visionos'], exclude: [] },
+        },
+        {
+          name: 'android_panel',
+          properties: [{ key: 'geometry', value: 'box' }],
+          traits: [],
+          platformConstraint: { include: ['androidxr'], exclude: [] },
+        },
+        { name: 'shared_panel', properties: [{ key: 'geometry', value: 'box' }], traits: [] },
+      ] as any,
+    });
+
+    const swift = compiler.compile(comp, 'test-token');
+    expect(swift).toContain('vision_panel');
+    expect(swift).toContain('shared_panel');
+    expect(swift).not.toContain('android_panel');
+  });
+
   // =========== Reset ===========
 
   it('resets between compilations', () => {

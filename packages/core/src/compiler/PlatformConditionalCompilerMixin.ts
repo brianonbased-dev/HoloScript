@@ -15,6 +15,7 @@
 import type {
   HoloComposition,
   HoloObjectDecl,
+  HoloObjectTrait,
   HoloTemplate,
   HoloNormBlock,
   HoloSpatialGroup,
@@ -51,10 +52,11 @@ export interface CompilePlatformTarget {
  * Create a CompilePlatformTarget from just the platform name.
  * The formFactor is automatically derived from the platform hierarchy.
  */
-export function createPlatformTarget(platform: PlatformTarget): CompilePlatformTarget {
+export function createPlatformTarget(platform: PlatformTarget | string): CompilePlatformTarget {
+  const normalized = normalizePlatformName(platform) as PlatformTarget;
   return {
-    platform,
-    formFactor: platformCategory(platform),
+    platform: normalized,
+    formFactor: platformCategory(normalized),
   };
 }
 
@@ -68,9 +70,15 @@ export function createPlatformTarget(platform: PlatformTarget): CompilePlatformT
  *
  * For example, `@platform(phone)` is equivalent to `@platform(mobile)`.
  */
-const PLATFORM_ALIASES: Record<string, PlatformCategory> = {
+const PLATFORM_ALIASES: Record<string, PlatformCategory | PlatformTarget> = {
   phone: 'mobile',
   car: 'automotive',
+  androidxr: 'android-xr',
+  android_xr: 'android-xr',
+  visionosar: 'visionos-ar',
+  visionos_ar: 'visionos-ar',
+  androidxrar: 'android-xr-ar',
+  android_xr_ar: 'android-xr-ar',
 };
 
 // =============================================================================
@@ -85,11 +93,16 @@ const PLATFORM_ALIASES: Record<string, PlatformCategory> = {
  * `@platform(phone)` expands to `['ios', 'android']` (alias for `mobile`).
  * Unknown names are kept as-is (they might be future platform names).
  */
+export function normalizePlatformName(name: string): string {
+  const normalized = name.trim().toLowerCase();
+  return PLATFORM_ALIASES[normalized] ?? normalized;
+}
+
 function expandPlatformNames(names: string[]): string[] {
   const expanded: string[] = [];
   for (const rawName of names) {
     // Resolve alias first (e.g., phone -> mobile, car -> automotive)
-    const name = rawName in PLATFORM_ALIASES ? PLATFORM_ALIASES[rawName] : rawName;
+    const name = normalizePlatformName(rawName);
 
     if (name in PLATFORM_CATEGORIES) {
       expanded.push(...PLATFORM_CATEGORIES[name as PlatformCategory]);
@@ -160,10 +173,10 @@ export class PlatformConditionalCompilerMixin {
   filterForPlatform(composition: HoloComposition, target: CompilePlatformTarget): HoloComposition {
     return {
       ...composition,
-      objects: this.filterBlocks(composition.objects, target),
-      templates: this.filterBlocks(composition.templates, target),
-      spatialGroups: this.filterBlocks(composition.spatialGroups, target),
-      lights: this.filterBlocks(composition.lights, target),
+      objects: this.filterObjects(composition.objects || [], target),
+      templates: this.filterTemplates(composition.templates || [], target),
+      spatialGroups: this.filterSpatialGroups(composition.spatialGroups || [], target),
+      lights: this.filterBlocks(composition.lights || [], target),
       norms: composition.norms ? this.filterBlocks(composition.norms, target) : undefined,
     };
   }
@@ -187,6 +200,42 @@ export class PlatformConditionalCompilerMixin {
   ): T[] {
     return blocks.filter((block) => matchesPlatformConstraint(block.platformConstraint, target));
   }
+
+  private filterTraits(traits: HoloObjectTrait[] | undefined, target: CompilePlatformTarget) {
+    return this.filterBlocks(traits || [], target);
+  }
+
+  private filterObjects(
+    objects: HoloObjectDecl[] | undefined,
+    target: CompilePlatformTarget
+  ): HoloObjectDecl[] {
+    return this.filterBlocks(objects || [], target).map((obj) => ({
+      ...obj,
+      traits: this.filterTraits(obj.traits, target),
+      children: obj.children ? this.filterObjects(obj.children, target) : obj.children,
+    }));
+  }
+
+  private filterTemplates(
+    templates: HoloTemplate[] | undefined,
+    target: CompilePlatformTarget
+  ): HoloTemplate[] {
+    return this.filterBlocks(templates || [], target).map((template) => ({
+      ...template,
+      traits: this.filterTraits(template.traits, target),
+    }));
+  }
+
+  private filterSpatialGroups(
+    groups: HoloSpatialGroup[] | undefined,
+    target: CompilePlatformTarget
+  ): HoloSpatialGroup[] {
+    return this.filterBlocks(groups || [], target).map((group) => ({
+      ...group,
+      objects: this.filterObjects(group.objects, target),
+      groups: group.groups ? this.filterSpatialGroups(group.groups, target) : group.groups,
+    }));
+  }
 }
 
 // =============================================================================
@@ -199,6 +248,10 @@ const VALID_PLATFORM_NAMES = new Set<string>([
   ...Object.keys(PLATFORM_CATEGORIES),
   ...Object.keys(PLATFORM_ALIASES),
 ]);
+
+function isValidPlatformName(name: string): boolean {
+  return VALID_PLATFORM_NAMES.has(normalizePlatformName(name));
+}
 
 /**
  * Walk a parsed HoloComposition and return validation errors for every
@@ -218,14 +271,14 @@ export function validatePlatformConstraints(composition: HoloComposition): strin
       );
     }
     for (const name of constraint.include) {
-      if (!VALID_PLATFORM_NAMES.has(name)) {
+      if (!isValidPlatformName(name)) {
         errors.push(
           `${context}: Unknown platform '${name}' in @platform() — not a recognized platform or category`
         );
       }
     }
     for (const name of constraint.exclude) {
-      if (!VALID_PLATFORM_NAMES.has(name)) {
+      if (!isValidPlatformName(name)) {
         errors.push(
           `${context}: Unknown platform '${name}' in @platform(not: ...) — not a recognized platform or category`
         );
@@ -233,11 +286,52 @@ export function validatePlatformConstraints(composition: HoloComposition): strin
     }
   };
 
-  for (const obj of composition.objects || []) check(obj.platformConstraint, `object "${obj.name}"`);
+  const checkObject = (obj: HoloObjectDecl, contextPrefix = 'object') => {
+    check(obj.platformConstraint, `${contextPrefix} "${obj.name}"`);
+    for (const trait of obj.traits || []) {
+      check(trait.platformConstraint, `trait "@${trait.name}" on ${contextPrefix} "${obj.name}"`);
+    }
+    for (const child of obj.children || []) {
+      checkObject(child, `child object of ${obj.name}`);
+    }
+  };
+
+  const checkGroup = (grp: HoloSpatialGroup) => {
+    check(grp.platformConstraint, `spatial group "${grp.name}"`);
+    for (const obj of grp.objects || []) {
+      checkObject(obj, `object in spatial group "${grp.name}"`);
+    }
+    for (const childGroup of grp.groups || []) {
+      checkGroup(childGroup);
+    }
+  };
+
+  for (const obj of composition.objects || []) checkObject(obj);
   for (const tmpl of composition.templates || []) check(tmpl.platformConstraint, `template "${tmpl.name}"`);
+  for (const tmpl of composition.templates || []) {
+    for (const trait of tmpl.traits || []) {
+      check(trait.platformConstraint, `trait "@${trait.name}" on template "${tmpl.name}"`);
+    }
+  }
   for (const norm of composition.norms || []) check(norm.platformConstraint, `norm "${norm.name}"`);
-  for (const grp of composition.spatialGroups || []) check(grp.platformConstraint, `spatial group "${grp.name}"`);
+  for (const grp of composition.spatialGroups || []) checkGroup(grp);
   for (const light of composition.lights || []) check(light.platformConstraint, `light "${light.name}"`);
 
   return errors;
+}
+
+export function filterCompositionForPlatform(
+  composition: HoloComposition,
+  platform: PlatformTarget | string
+): HoloComposition {
+  const errors = validatePlatformConstraints(composition);
+  if (errors.length > 0) {
+    throw new Error(`Invalid @platform() constraints:\n${errors.join('\n')}`);
+  }
+
+  const normalized = normalizePlatformName(platform);
+  return new PlatformConditionalCompilerMixin().filterForPlatform(
+    composition,
+    createPlatformTarget(normalized as PlatformTarget)
+  );
 }

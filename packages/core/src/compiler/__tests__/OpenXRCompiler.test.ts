@@ -127,6 +127,43 @@ describe('OpenXRCompiler', () => {
       expect(result).toContain('obj1');
       expect(result).toContain('obj2');
     });
+
+    it('filters @platform() blocks for Quest/OpenXR before C++ generation', () => {
+      const result = compiler.compile(
+        makeComposition({
+          objects: [
+            {
+              name: 'quest_panel',
+              mesh: 'box',
+              properties: [{ key: 'mesh', value: 'box' }],
+              traits: [],
+              children: [],
+              platformConstraint: { include: ['quest3'], exclude: [] },
+            },
+            {
+              name: 'android_panel',
+              mesh: 'box',
+              properties: [{ key: 'mesh', value: 'box' }],
+              traits: [],
+              children: [],
+              platformConstraint: { include: ['androidxr'], exclude: [] },
+            },
+            {
+              name: 'shared_panel',
+              mesh: 'box',
+              properties: [{ key: 'mesh', value: 'box' }],
+              traits: [],
+              children: [],
+            },
+          ] as any,
+        }),
+        'test-token'
+      );
+
+      expect(result).toContain('quest_panel');
+      expect(result).toContain('shared_panel');
+      expect(result).not.toContain('android_panel');
+    });
   });
 
   // ===========================================================================

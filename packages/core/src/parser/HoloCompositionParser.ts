@@ -1847,10 +1847,16 @@ export class HoloCompositionParser {
     }
 
     // Parse traits BEFORE the brace: object "name" @trait1 @trait2 { ... }
+    let platformConstraint: PlatformConstraint | undefined;
     const traits: HoloObjectTrait[] = [];
     while (this.check('AT')) {
       this.advance(); // consume @
       const traitName = this.isAtEnd() ? '' : this.advance().value; // accept any token as trait name
+      if (String(traitName).toLowerCase() === 'platform') {
+        platformConstraint = this.parsePlatformConstraint();
+        this.skipNewlines();
+        continue;
+      }
       const config = this.parseOptionalTraitConfig(true);
       traits.push({ type: 'ObjectTrait' as const, name: traitName, config });
     }
@@ -1921,6 +1927,37 @@ export class HoloCompositionParser {
       } else if (this.check('AT')) {
         this.advance(); // consume @
         const traitName = this.isAtEnd() ? '' : this.advance().value; // accept any token as trait name
+        if (String(traitName).toLowerCase() === 'platform') {
+          const constraint = this.parsePlatformConstraint();
+          this.skipNewlines();
+
+          if (this.check('AT')) {
+            this.advance(); // consume @
+            const nextTraitName = this.isAtEnd() ? '' : this.advance().value;
+            const config = this.parseOptionalTraitConfig();
+            const trait = {
+              type: 'ObjectTrait' as const,
+              name: nextTraitName,
+              config,
+              platformConstraint: constraint,
+            };
+            traits.push(trait);
+            directives.push({ type: 'trait', name: nextTraitName, config, platformConstraint: constraint });
+          } else if (
+            this.check('OBJECT') ||
+            this.check('SPATIAL_AGENT') ||
+            this.check('TOOL_SLOT') ||
+            this.check('BEHAVIOR') ||
+            this.current().type.startsWith('UI_')
+          ) {
+            const nestedType = this.check('OBJECT') ? undefined : this.current().value.toLowerCase();
+            const child = this.parseObject(nestedType);
+            child.platformConstraint = constraint;
+            children.push(child);
+          }
+          this.skipNewlines();
+          continue;
+        }
         const config = this.parseOptionalTraitConfig();
         const trait = { type: 'ObjectTrait' as const, name: traitName, config };
         traits.push(trait);
@@ -2031,6 +2068,7 @@ export class HoloCompositionParser {
       properties,
       state,
       traits, // Added traits property
+      platformConstraint,
       directives, // Added directives
       children: children.length > 0 ? children : undefined,
       subOrbs: subOrbs.length > 0 ? subOrbs : undefined,

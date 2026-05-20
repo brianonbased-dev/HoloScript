@@ -18,6 +18,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
+import { filterCompositionForPlatform } from './PlatformConditionalCompilerMixin';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import type { Extensible } from '../types/utility-types';
 import {
@@ -71,6 +72,7 @@ export class OpenXRCompiler extends CompilerBase {
 
   compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
     this.validateCompilerAccess(agentToken, outputPath);
+    composition = filterCompositionForPlatform(composition, 'quest3');
     this.lines = [];
     this.indentLevel = 0;
 

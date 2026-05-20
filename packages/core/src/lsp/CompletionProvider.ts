@@ -338,6 +338,13 @@ const V6_TRAIT_COMPLETIONS: CompletionItem[] = [
 const DIRECTIVE_COMPLETIONS: CompletionItem[] = [
   { label: 'version', kind: 'directive', detail: 'Scene version', insertText: '@version("1.0")' },
   { label: 'author', kind: 'directive', detail: 'Author metadata', insertText: '@author("")' },
+  {
+    label: 'platform',
+    kind: 'directive',
+    detail: 'Compile-time platform guard',
+    insertText: '@platform(visionos)',
+    documentation: 'Filters the following block or trait for specific platform targets.',
+  },
   { label: 'if', kind: 'directive', detail: 'Conditional rendering', insertText: '@if(condition)' },
   {
     label: 'each',

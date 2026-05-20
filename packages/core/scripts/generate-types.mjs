@@ -223,6 +223,7 @@ export interface HoloObjectTrait extends ASTNode {
   name: string;
   config?: any;
   args?: any[];
+  platformConstraint?: PlatformConstraint;
 }
 
 export interface HoloSpatialGroup extends ASTNode {
@@ -4777,6 +4778,10 @@ export type EffectViolationSeverity = 'error' | 'warning' | 'info';
 export interface EffectViolation { effect: VREffect; severity: EffectViolationSeverity; [key: string]: any; }
 export interface EffectDeclaration { effects: VREffect[]; [key: string]: any; }
 export type CompilePlatformTarget = string;
+export function createPlatformTarget(platform: string): CompilePlatformTarget;
+export function filterCompositionForPlatform(composition: any, platform: string): any;
+export function matchesPlatformConstraint(constraint: any, target: CompilePlatformTarget): boolean;
+export function normalizePlatformName(name: string): string;
 
 export class USDZPipeline { [key: string]: any; }
 export interface USDZPipelineOptions { [key: string]: any; }

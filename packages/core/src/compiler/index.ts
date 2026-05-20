@@ -181,6 +181,12 @@ export type { SafetyPassResult, SafetyPassConfig } from './safety/CompilerSafety
 export type { SafetyReport, SafetyVerdict } from './safety/SafetyReport';
 export type { LinearCheckerConfig } from './safety/LinearTypeChecker';
 export type { InferredEffects } from './safety/EffectInference';
+export {
+  createPlatformTarget,
+  filterCompositionForPlatform,
+  matchesPlatformConstraint,
+  normalizePlatformName,
+} from './PlatformConditionalCompilerMixin';
 export type { CompilePlatformTarget } from './PlatformConditionalCompilerMixin';
 export {
   selectModality,

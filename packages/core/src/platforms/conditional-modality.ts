@@ -37,6 +37,8 @@ export {
   PlatformConditionalCompilerMixin,
   matchesPlatformConstraint,
   createPlatformTarget,
+  filterCompositionForPlatform,
+  normalizePlatformName,
 } from '../compiler/PlatformConditionalCompilerMixin';
 export type { CompilePlatformTarget } from '../compiler/PlatformConditionalCompilerMixin';
 

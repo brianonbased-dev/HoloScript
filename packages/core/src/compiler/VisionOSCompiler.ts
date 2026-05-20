@@ -30,6 +30,7 @@ import type {
 } from '../parser/HoloCompositionTypes';
 import { generateTraitCode, getRequiredImports, getMinVisionOSVersion } from './VisionOSTraitMap';
 import { CompilerBase } from './CompilerBase';
+import { filterCompositionForPlatform } from './PlatformConditionalCompilerMixin';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import {
   compileDomainBlocks,
@@ -74,6 +75,7 @@ export class VisionOSCompiler extends CompilerBase {
 
   compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
     this.validateCompilerAccess(agentToken, outputPath);
+    composition = filterCompositionForPlatform(composition, 'visionos');
     this.lines = [];
     this.indentLevel = 0;
 

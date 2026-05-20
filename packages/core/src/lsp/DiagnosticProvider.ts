@@ -58,6 +58,7 @@ const KNOWN_DIRECTIVES = new Set([
   'tags',
   'license',
   'deprecated',
+  'platform',
   'if',
   'each',
   'slot',

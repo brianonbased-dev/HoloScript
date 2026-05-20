@@ -35,6 +35,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
+import { filterCompositionForPlatform } from './PlatformConditionalCompilerMixin';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import type {
   HoloComposition,
@@ -132,6 +133,7 @@ export class AndroidXRCompiler extends CompilerBase {
     outputPath?: string
   ): AndroidXRCompileResult {
     this.validateCompilerAccess(agentToken, outputPath);
+    composition = filterCompositionForPlatform(composition, 'android-xr');
 
     if (this.isGlassesMode) {
       return {

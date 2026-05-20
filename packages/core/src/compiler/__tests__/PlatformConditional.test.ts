@@ -176,6 +176,38 @@ describe('@platform() parser support', () => {
     expect(ast.objects).toHaveLength(1);
     expect(ast.objects[0].platformConstraint!.include).toEqual(['android-xr']);
   });
+
+  it('parses quoted androidxr alias names from the RFC examples', () => {
+    const ast = parse(`
+      composition "TestScene" {
+        @platform("androidxr") object "AndroidXR" {
+          tracking: true
+        }
+      }
+    `);
+
+    expect(ast.objects).toHaveLength(1);
+    expect(ast.objects[0].platformConstraint!.include).toEqual(['androidxr']);
+  });
+
+  it('attaches @platform() to trait-level variants inside an object', () => {
+    const ast = parse(`
+      composition "TestScene" {
+        object "Controller" {
+          @platform(visionos) @hand_tracking
+          @platform(androidxr) @face_tracking
+          @clickable
+        }
+      }
+    `);
+
+    expect(ast.objects[0].traits).toHaveLength(3);
+    expect(ast.objects[0].traits[0].name).toBe('hand_tracking');
+    expect(ast.objects[0].traits[0].platformConstraint!.include).toEqual(['visionos']);
+    expect(ast.objects[0].traits[1].name).toBe('face_tracking');
+    expect(ast.objects[0].traits[1].platformConstraint!.include).toEqual(['androidxr']);
+    expect(ast.objects[0].traits[2].platformConstraint).toBeUndefined();
+  });
 });
 
 // =============================================================================
@@ -231,6 +263,13 @@ describe('matchesPlatformConstraint', () => {
     expect(matchesPlatformConstraint(constraint, createPlatformTarget('quest3'))).toBe(true);
     expect(matchesPlatformConstraint(constraint, createPlatformTarget('visionos'))).toBe(false);
     expect(matchesPlatformConstraint(constraint, createPlatformTarget('ios'))).toBe(false);
+  });
+
+  it('normalizes androidxr aliases before matching', () => {
+    const constraint: PlatformConstraint = { include: ['androidxr'], exclude: [] };
+    expect(matchesPlatformConstraint(constraint, createPlatformTarget('android-xr'))).toBe(true);
+    expect(matchesPlatformConstraint(constraint, createPlatformTarget('androidxr'))).toBe(true);
+    expect(matchesPlatformConstraint(constraint, createPlatformTarget('visionos'))).toBe(false);
   });
 });
 
@@ -360,6 +399,39 @@ describe('PlatformConditionalCompilerMixin', () => {
 
       expect(filtered.name).toBe('MyScene');
       expect(filtered.type).toBe('Composition');
+    });
+
+    it('filters nested objects and trait-level platform variants', () => {
+      const ast = parse(`
+        composition "NestedPlatform" {
+          object "Rig" {
+            @platform(visionos) @hand_tracking
+            @platform(androidxr) @face_tracking
+            @clickable
+
+            @platform(visionos) object "VisionChild" {
+              visible: true
+            }
+
+            @platform(androidxr) object "AndroidChild" {
+              visible: true
+            }
+          }
+        }
+      `);
+
+      const visionos = mixin.filterForPlatform(ast, createPlatformTarget('visionos'));
+      const android = mixin.filterForPlatform(ast, createPlatformTarget('android-xr'));
+      const quest = mixin.filterForPlatform(ast, createPlatformTarget('quest3'));
+
+      expect(visionos.objects[0].traits.map((t) => t.name)).toEqual(['hand_tracking', 'clickable']);
+      expect(visionos.objects[0].children?.map((o) => o.name)).toEqual(['VisionChild']);
+
+      expect(android.objects[0].traits.map((t) => t.name)).toEqual(['face_tracking', 'clickable']);
+      expect(android.objects[0].children?.map((o) => o.name)).toEqual(['AndroidChild']);
+
+      expect(quest.objects[0].traits.map((t) => t.name)).toEqual(['clickable']);
+      expect(quest.objects[0].children).toEqual([]);
     });
   });
 
@@ -525,5 +597,11 @@ describe('createPlatformTarget', () => {
     const target = createPlatformTarget('watchos');
     expect(target.platform).toBe('watchos');
     expect(target.formFactor).toBe('wearable');
+  });
+
+  it('normalizes androidxr target aliases', () => {
+    const target = createPlatformTarget('androidxr');
+    expect(target.platform).toBe('android-xr');
+    expect(target.formFactor).toBe('vr');
   });
 });

@@ -172,6 +172,33 @@ describe('AndroidXRCompiler', () => {
     expect(result.activityFile).toContain('my_special_box_');
   });
 
+  it('filters @platform() blocks for Android XR before Kotlin generation', () => {
+    const comp = minimalComposition({
+      objects: [
+        {
+          name: 'androidPanel',
+          properties: [{ key: 'mesh', value: 'box' }],
+          traits: [],
+          children: [],
+          platformConstraint: { include: ['androidxr'], exclude: [] },
+        },
+        {
+          name: 'visionPanel',
+          properties: [{ key: 'mesh', value: 'box' }],
+          traits: [],
+          children: [],
+          platformConstraint: { include: ['visionos'], exclude: [] },
+        },
+        { name: 'sharedPanel', properties: [{ key: 'mesh', value: 'box' }], traits: [], children: [] },
+      ],
+    });
+
+    const result = compiler.compile(comp, 'test-token');
+    expect(result.activityFile).toContain('androidPanel');
+    expect(result.activityFile).toContain('sharedPanel');
+    expect(result.activityFile).not.toContain('visionPanel');
+  });
+
   it('compiles state with mutableStateOf', () => {
     const comp = minimalComposition({
       state: {

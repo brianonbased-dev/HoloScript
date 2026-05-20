@@ -26,6 +26,13 @@ describe('LanguageService', () => {
     expect(hover!.contents).toContain('grabbable');
   });
 
+  it('getHoverInfo returns docs for @platform()', () => {
+    const hover = service.getHoverInfo('@platform');
+    expect(hover).not.toBeNull();
+    expect(hover!.contents).toContain('Compile-time platform guard');
+    expect(hover!.contents).toContain('androidxr');
+  });
+
   it('getHoverInfo returns null for unknown symbols', () => {
     expect(service.getHoverInfo('nonexistent_thing')).toBeNull();
   });
@@ -50,5 +57,10 @@ describe('LanguageService', () => {
     const completions = service.getCompletions('b');
     // Should return array (may be empty or populated based on CompletionProvider)
     expect(Array.isArray(completions)).toBe(true);
+  });
+
+  it('completes @platform() as a directive', () => {
+    const completions = service.getCompletions('@pla', '@');
+    expect(completions.some((item) => item.label === 'platform')).toBe(true);
   });
 });

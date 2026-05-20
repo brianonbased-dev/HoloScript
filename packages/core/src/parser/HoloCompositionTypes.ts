@@ -489,6 +489,8 @@ export interface HoloObjectTrait extends HoloNode {
   params?: Record<string, HoloValue>;
   /** Positional arguments for traits (e.g. @trait(arg1, arg2)) */
   args?: HoloValue[];
+  /** @platform() conditional compilation constraint for trait-level variants */
+  platformConstraint?: PlatformConstraint;
 }
 
 // =============================================================================

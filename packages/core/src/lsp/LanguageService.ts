@@ -54,6 +54,8 @@ export const HOVER_DOCS: Record<string, string> = {
   '@audio': '**@audio** — Attaches spatial audio\n\nConfig: sound, volume, loop, maxDistance',
   '@particles': '**@particles** — Attaches particle system\n\nConfig: preset, rate, lifetime',
   '@state': '**@state** — Attaches state machine\n\nConfig: initial, states, transitions',
+  '@platform':
+    '**@platform()** — Compile-time platform guard\n\nExamples: @platform("visionos"), @platform(androidxr), @platform(not: web)',
   '@sync': '**@sync** — Network synchronization\n\nConfig: syncRate, syncProperties, authority',
   '@theme': '**@theme** — Applies theme styling\n\nConfig: classes, states, inline',
   '@animation': '**@animation** — Keyframe animation\n\nConfig: clip, duration, easing, loop',
