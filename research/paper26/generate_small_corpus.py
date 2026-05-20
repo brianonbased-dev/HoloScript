@@ -19,22 +19,51 @@ from pathlib import Path
 from datetime import datetime
 
 def synthetic_episode(robot: str, length: int = 50):
-    """Fake but structured episode that looks like a ROS 2 / Gazebo trajectory."""
+    """Fake but structured episode that looks like a real ROS 2 / Gazebo trajectory
+    (rich observations + contacts + effort) as would come from the D.007 ROS 2 bridge."""
     actions = []
     observations = []
     ground_truth = []
     for t in range(length):
-        # Simple "navigation" or "arm" motion
-        action = {"vx": random.uniform(-0.5, 0.5), "vy": random.uniform(-0.3, 0.3), "w": random.uniform(-1.0, 1.0)}
-        obs = {
-            "joint_states": [random.uniform(-3.14, 3.14) for _ in range(4)],
-            "scan": [random.random() * 5.0 for _ in range(8)],
-            "odom": {"x": t * 0.1 + random.uniform(-0.02, 0.02), "y": random.uniform(-0.1, 0.1)}
+        # More realistic navigation-style action
+        action = {
+            "cmd_vel": {
+                "linear": {"x": random.uniform(-0.8, 0.8), "y": 0.0},
+                "angular": {"z": random.uniform(-1.2, 1.2)}
+            }
         }
-        gt = {"x": obs["odom"]["x"] + 0.01, "joints": obs["joint_states"][:2]}  # "perfect" simulator ground truth
+
+        # Richer observation (what a real robot would publish)
+        obs = {
+            "joint_states": {
+                "position": [random.uniform(-3.14, 3.14) for _ in range(4)],
+                "velocity": [random.uniform(-2.0, 2.0) for _ in range(4)],
+                "effort": [random.uniform(-10.0, 10.0) for _ in range(4)]
+            },
+            "scan": [random.random() * 8.0 for _ in range(64)],   # 64-beam lidar (realistic)
+            "odom": {
+                "pose": {"x": t * 0.08 + random.uniform(-0.015, 0.015),
+                         "y": random.uniform(-0.12, 0.12),
+                         "theta": random.uniform(-0.3, 0.3)},
+                "twist": {"vx": random.uniform(-0.7, 0.7), "vy": 0.0, "wz": random.uniform(-1.0, 1.0)}
+            },
+            "imu": {"linear_accel": [random.uniform(-0.2, 0.2), 9.81 + random.uniform(-0.3, 0.3), random.uniform(-0.2, 0.2)]},
+            "contacts": [random.uniform(0, 120) for _ in range(random.randint(0, 3))]  # 0-3 contacts
+        }
+
+        # Richer ground truth (what Gazebo "knows")
+        gt = {
+            "pose": obs["odom"]["pose"],
+            "twist": obs["odom"]["twist"],
+            "joint_positions": obs["joint_states"]["position"],
+            "joint_velocities": obs["joint_states"]["velocity"],
+            "contact_forces": obs["contacts"]
+        }
+
         actions.append(action)
         observations.append(obs)
         ground_truth.append(gt)
+
     return {
         "robot": robot,
         "length": length,
