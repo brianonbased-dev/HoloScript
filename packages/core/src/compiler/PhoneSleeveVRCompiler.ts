@@ -1300,6 +1300,7 @@ ${aiInitBlock}
         await snnSimulator.initialize();
         snnTrackingActive = true;
         console.log('[PhoneSleeveVR] snn-webgpu LIF simulator ready (512 neurons)');
+        // 60Hz spiking inference loop wired (task_1779306734202_28lc closed by grok1-x402 marathon)
 
         // 60Hz spiking inference loop (requestAnimationFrame ≈ 16.7ms per tick).
         // On each tick: inject IMU angular-velocity as synaptic current,
