@@ -1,0 +1,175 @@
+// HoloShell process owner-lane restart policy and state machine.
+
+composition "HoloShellProcessOwnerLaneRestartPolicy" {
+  state RestartState {
+    selectedWorkflow: "process-owner-lane-restart"
+    riskState: "warn"
+    processCount: 585
+    shellRunCount: 62
+    ownerHandoffPlanCount: 18
+    ownerUnknownReviewCount: 33
+    cleanupStopPlanCount: 12
+    controlDaemonStatus: "offline"
+    networkSentinelStatus: "offline"
+    verifiedPidCount: 0
+    serviceMutationTaken: false
+    destructiveActionsTaken: false
+    executeEnabled: false
+    trustedExecuteEnabled: false
+    receiptsCaptured: 4
+    blockers: []
+    currentLane: "codex-hardware"
+  }
+
+  template "ServiceRestartReceipt" {
+    receiptType: "owner_lane_service_restart"
+    sourceNative: true
+    localOnly: true
+    exactPidRequired: true
+    rawCommandLineIncluded: false
+    serviceMutationTaken: false
+    destructiveActionsTaken: false
+    replayable: true
+  }
+
+  template "PermissionEnvelope" {
+    readOnly: true
+    guardedExecute: false
+    breakGlass: false
+    freshHumanGestureRequired: false
+    ownerAckRequired: false
+    receiptRequired: true
+  }
+
+  policy "ReadOnlyObservation" using "PermissionEnvelope" {
+    readOnly: true
+    guardedExecute: false
+    appliesTo: [
+      "read_process_health",
+      "read_service_status",
+      "run_service_self_test",
+      "classify_owner_lanes",
+      "render_restart_room",
+      "write_evidence_pack"
+    ]
+  }
+
+  policy "ManagedServiceMutation" using "PermissionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    freshHumanGestureRequired: true
+    appliesTo: [
+      "start_managed_service",
+      "stop_verified_service_pid",
+      "restart_verified_service_pid",
+      "ensure_managed_service"
+    ]
+  }
+
+  policy "ExecutePermissionEscalation" using "PermissionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    breakGlass: true
+    freshHumanGestureRequired: true
+    ownerAckRequired: true
+    appliesTo: [
+      "enable_execute",
+      "enable_trusted_execute",
+      "run_mutating_daemon_action"
+    ]
+  }
+
+  policy "VerifiedPidOnly" {
+    exactPidRequired: true
+    stopOnlyVerifiedManagedPid: true
+    unverifiedPidStopRefused: true
+    forceKillAllowed: false
+    commandHashRequired: true
+    afterActionStatusRequired: true
+    receiptRequired: true
+  }
+
+  state_machine "RestartWorkflow" {
+    initial: "idle"
+    states: [
+      "idle",
+      "observed",
+      "owner_lanes_classified",
+      "service_status_checked",
+      "pid_verified",
+      "approval_requested",
+      "mutation_staged",
+      "mutation_applied",
+      "after_action_verified",
+      "blocked"
+    ]
+    transition "observe" { from: "idle", to: "observed" }
+    transition "classify" { from: "observed", to: "owner_lanes_classified" }
+    transition "check_service" { from: "owner_lanes_classified", to: "service_status_checked" }
+    transition "verify_pid" { from: "service_status_checked", to: "pid_verified" }
+    transition "request_approval" { from: "pid_verified", to: "approval_requested" }
+    transition "stage_mutation" { from: "approval_requested", to: "mutation_staged" }
+    transition "apply_mutation" { from: "mutation_staged", to: "mutation_applied" }
+    transition "verify_after" { from: "mutation_applied", to: "after_action_verified" }
+    transition "block" { from: "*", to: "blocked" }
+  }
+
+  role "CodexHardware" {
+    laneId: "codex-hardware"
+    owns: ["process_scan", "service_status", "self_test", "source_validation", "evidence_pack"]
+  }
+
+  role "HoloShellCustodian" {
+    laneId: "holoshell-custodian"
+    owns: ["owner_lane_classification", "restart_plan", "approval_packet", "after_action_receipt"]
+  }
+
+  role "HoloLandProductAgent" {
+    laneId: "hololand-product"
+    owns: ["non_developer_room", "brittney_explanation", "world_build_ready_loop"]
+  }
+
+  role "OwnerLaneAgent" {
+    laneId: "owner-lane"
+    owns: ["acknowledge_owned_process", "extend_run", "close_run", "justify_service_dependency"]
+  }
+
+  action classifyOperation(operation) {
+    if (operation.kind in ExecutePermissionEscalation.appliesTo) {
+      return "break_glass_execute_permission"
+    }
+    if (operation.kind in ManagedServiceMutation.appliesTo) {
+      return "guarded_service_mutation"
+    }
+    return "read_only"
+  }
+
+  action recordServiceReceipt(receipt) {
+    RestartState.receiptsCaptured = RestartState.receiptsCaptured + 1
+    RestartState.serviceMutationTaken = receipt.receipt.serviceMutationTaken
+    RestartState.destructiveActionsTaken = receipt.receipt.destructiveActionsTaken
+    emit("holoshell:process_owner_lane_restart:receipt", {
+      workflow: RestartState.selectedWorkflow,
+      lane: RestartState.currentLane,
+      service: receipt.service,
+      status: receipt.summary.serviceStatus,
+      serviceMutationTaken: RestartState.serviceMutationTaken,
+      destructiveActionsTaken: RestartState.destructiveActionsTaken,
+      receiptHash: receipt.receipt.snapshotHash
+    })
+  }
+
+  action blockOn(reason, evidencePath, ownerSurface) {
+    RestartWorkflow.transition("block")
+    RestartState.blockers.push({
+      reason: reason,
+      evidencePath: evidencePath,
+      ownerSurface: ownerSurface
+    })
+    emit("holoshell:process_owner_lane_restart:blocker", {
+      reason: reason,
+      evidencePath: evidencePath,
+      ownerSurface: ownerSurface
+    })
+  }
+}

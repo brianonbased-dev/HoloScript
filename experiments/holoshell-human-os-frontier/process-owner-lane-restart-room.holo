@@ -1,0 +1,149 @@
+/**
+ * HoloShell Process Owner Lane Restart Room
+ *
+ * Visible room concept for:
+ * "Start or restart the local HoloShell services needed for HoloLand world work
+ * without breaking another agent, hidden process, browser session, or device lane."
+ */
+
+composition "HoloShell Process Owner Lane Restart Room" {
+  environment {
+    backgroundColor: "#11161b"
+    ambient_light: 0.62
+    shadows: true
+  }
+
+  template "RestartPanel" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    scale: [1.52, 0.62, 0.08]
+    material: {
+      color: "#182028"
+      emissive: "#22303a"
+      emissiveIntensity: 0.18
+      transparent: true
+      opacity: 0.96
+    }
+  }
+
+  template "ReceiptToken" {
+    @grabbable
+    @collidable
+    geometry: "sphere"
+    scale: [0.14, 0.14, 0.14]
+    material: { color: "#7dcfff" }
+  }
+
+  object "HumanJob" using "RestartPanel" {
+    position: [0, 2.34, -2.8]
+    label: "Make the local HoloShell services ready"
+    properties: {
+      humanJob: "start, stop, or restart only the managed local services that HoloLand needs, after showing owner custody and what will change"
+      promise: "observe first, verify exact PID, mutate only managed services, keep execute permissions disabled unless explicitly granted"
+      failureState: "service offline, stale heartbeat, unverified PID, owner lane conflict, approval expired, after-action check failed"
+    }
+  }
+
+  object "ProcessCustodyWall" using "RestartPanel" {
+    position: [-4.4, 1.45, -1.15]
+    label: "Process custody"
+    properties: {
+      reads: "process table, run registry, owner lane evidence, visible PID set"
+      currentEvidence: "risk warn; process-health saw owner handoffs and owner-unknown cleanup candidates"
+      rule: "do not convert stale lane-owned work into cleanup actions"
+    }
+  }
+
+  object "ServiceInventory" using "RestartPanel" {
+    position: [-2.2, 1.45, -1.15]
+    label: "Managed services"
+    properties: {
+      services: ["control daemon", "network sentinel"]
+      currentEvidence: "both live status receipts reported offline; fixture self-tests reported verified online contracts"
+      rule: "start/stop/restart only services with a matching source anchor and service receipt"
+    }
+  }
+
+  object "VerifiedPidGate" using "RestartPanel" {
+    position: [0, 1.45, -1.15]
+    label: "PID gate"
+    properties: {
+      checks: ["pid file exists", "pid alive", "command hash matches managed adapter", "loopback or heartbeat proves service identity"]
+      blocks: ["unverified pid", "wrong command", "pid vanished", "parent lane conflict"]
+      exactPidRequired: true
+    }
+  }
+
+  object "ApprovalAndMode" using "RestartPanel" {
+    position: [2.2, 1.45, -1.15]
+    label: "Approval and mode"
+    properties: {
+      defaultMode: "read_stage_only"
+      freshGestureRequiredFor: ["restart", "stop", "enable_execute", "enable_trusted_execute"]
+      executeDefault: "disabled"
+      allowedWithoutApproval: ["status", "self_test", "offline_start_plan"]
+    }
+  }
+
+  object "AfterActionReplay" using "RestartPanel" {
+    position: [4.4, 1.45, -1.15]
+    label: "After-action replay"
+    properties: {
+      receipts: ["before status", "process health", "approval packet", "action receipt", "after status", "rollback note"]
+      verifies: ["service online/offline target", "pid changed or stopped as expected", "execute mode unchanged unless approved"]
+      rollback: "restart can be replayed; prior process termination cannot be undone, so the receipt names the limit"
+    }
+  }
+
+  object "ProcessHealthReceipt" using "ReceiptToken" {
+    position: [-3.3, 0.72, 0.1]
+    label: "process health"
+    properties: {
+      receiptKind: "process_health"
+      evidencePath: ".bench-logs/holoshell-human-os-frontier/2026-05-20/process-owner-lane-restart/process-health.json"
+    }
+  }
+
+  object "ControlDaemonReceipt" using "ReceiptToken" {
+    position: [-1.1, 0.72, 0.1]
+    material: { color: "#9ece6a" }
+    label: "control daemon status"
+    properties: {
+      receiptKind: "service_status"
+      service: "control-daemon"
+      currentState: "offline"
+    }
+  }
+
+  object "NetworkSentinelReceipt" using "ReceiptToken" {
+    position: [1.1, 0.72, 0.1]
+    material: { color: "#e0af68" }
+    label: "network sentinel status"
+    properties: {
+      receiptKind: "service_status"
+      service: "network-sentinel"
+      currentState: "offline"
+    }
+  }
+
+  object "ReplayReceipt" using "ReceiptToken" {
+    position: [3.3, 0.72, 0.1]
+    material: { color: "#f7768e" }
+    label: "restart replay"
+    properties: {
+      receiptKind: "owner_lane_service_restart_replay"
+      destructiveActionsTaken: false
+      serviceMutationTaken: false
+    }
+  }
+
+  object "RestartTimeline" {
+    @anchor
+    geometry: "cube"
+    position: [0, 0.22, 0.1]
+    scale: [7.6, 0.08, 0.14]
+    color: "#687582"
+    label: "timeline: observe -> classify owner lanes -> check service -> verify PID -> request approval -> act -> verify -> replay"
+  }
+}
