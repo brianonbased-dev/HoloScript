@@ -57,12 +57,12 @@ Scale to 1,500–3,000 episodes across 2–3 robot morphologies + multi-physics 
 **Date**: 2026-05-20
 **Using**: Actual JEPAPredictor.plan() (latentDim=8, condDim=4) + real receipt generation
 
-**Results** (first honest small training loop on solver pairs):
+**Results** (first honest JEPA-style training loop on solver pairs):
 - Episodes: 30
 - Total steps: 1,361
 - Receipts generated: 1,361 (full WorldModelReceipt objects)
-- Loss curve (5 real epochs with crude weight updates via setWeights): [0.12748, 0.12749, 0.12748, 0.12748, 0.12748]
-- Notes: Loss essentially flat (expected with tiny model + crude updates). This is the first real "train on solver pairs" loop structure using the sovereign JEPAPredictor. Ready for proper JEPAObjective training.
+- Loss curve (5 epochs, output-layer SGD on W2/b2): [0.053064, 0.048106, 0.048107, 0.048107, 0.048107]
+- Notes: Clear descent on first real gradient epoch (0.053 → 0.048), then plateau (tiny 8-dim model + head-only update on synthetic corpus). This is the first honest "train JEPAObjective on solver pairs" artifact using the sovereign predictor. Ready for full latentDim + full backprop + baseline.
 
 **Loss curve file**: research/paper26/results/loss-curve-slice-001.json
 
@@ -71,7 +71,7 @@ Scale to 1,500–3,000 episodes across 2–3 robot morphologies + multi-physics 
 npx tsx research/paper26/train_jepa_real.ts
 ```
 
-This is the first honest small training loop on solver-pair data (repeated forward passes + crude weight updates via setWeights, receipts every step). The structure for a real JEPA training experiment is now live. Next: hook the full JEPAObjective objective for proper gradients + baseline + scale-up.
+This is the first honest JEPA-style training loop on solver-pair data (sovereign JEPAPredictor + real MSE gradient steps on the output layer, 1,361 receipts). Loss visibly descends on the first gradient epoch. The minimum publishable training structure for Paper 26 P1 is now running. Next: full latentDim model + complete backprop through both layers + baseline comparison on larger corpus.
 
 **Related**: ROS 2 bridge (docs/integrations/ros2-holoscript-bridge.md), D.050, D.055, NMoS P2
 
