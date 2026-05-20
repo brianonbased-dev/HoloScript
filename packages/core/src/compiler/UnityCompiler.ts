@@ -77,6 +77,12 @@ import {
   inputToUnity,
 } from './DomainBlockCompilerMixin';
 
+import {
+  PlatformConditionalCompilerMixin,
+  createPlatformTarget,
+  type CompilePlatformTarget,
+} from './PlatformConditionalCompilerMixin';
+
 export interface UnityCompilerOptions {
   namespace?: string;
   className?: string;
@@ -86,6 +92,8 @@ export interface UnityCompilerOptions {
   provenanceHash?: string;
   /** Optional HoloMap reconstruction samples (MCP export). */
   holomapPointCloud?: HolomapPointCloudPayload;
+  /** Target platform for @platform() conditional compilation (Adaptive Platform Layers). */
+  platformTarget?: CompilePlatformTarget | string;
 }
 
 export class UnityCompiler extends CompilerBase {
@@ -101,6 +109,7 @@ export class UnityCompiler extends CompilerBase {
     useURP: boolean;
     indent: string;
   };
+  private _platformTarget?: CompilePlatformTarget;
   private lines: string[] = [];
   private indentLevel: number = 0;
 
@@ -114,6 +123,11 @@ export class UnityCompiler extends CompilerBase {
       provenanceHash: options.provenanceHash ?? '',
       holomapPointCloud: options.holomapPointCloud,
     };
+    if (options.platformTarget) {
+      this._platformTarget = typeof options.platformTarget === 'string'
+        ? createPlatformTarget(options.platformTarget as any)
+        : options.platformTarget;
+    }
   }
 
   compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
@@ -123,6 +137,14 @@ export class UnityCompiler extends CompilerBase {
     // 2. Generate Unity C# code
     // 3. Write to output path (if specified)
     this.validateCompilerAccess(agentToken, outputPath);
+
+    // Apply @platform() conditional filtering (third compiler slice for
+    // Adaptive Platform Layers seed 75 + @platform() RFC implementation).
+    if (this._platformTarget) {
+      const platformMixin = new PlatformConditionalCompilerMixin();
+      composition = platformMixin.filterForPlatform(composition, this._platformTarget);
+    }
+
     // ───────────────────────────────────────────────────────────────────────
     this.lines = [];
     this.indentLevel = 0;
