@@ -129,6 +129,55 @@ export class JEPAPredictor {
   getWeights(): Readonly<JEPAPredictorWeights> {
     return this.weights;
   }
+
+  /**
+   * Plan: given a context state string and a list of candidate action names,
+   * return the action predicted to yield the highest-confidence next-state
+   * embedding (lowest L2 norm from the current state embedding — a proxy for
+   * "least surprising / most on-manifold" outcome).
+   *
+   * Encoding strategy: deterministic text→float32 hash (same technique used
+   * in JEPAObjective.encodeContext — no async/LLM dependency at plan time).
+   *
+   * @param currentState  Snapshot string of the agent's current state.
+   * @param candidateActions  Non-empty list of action name strings to score.
+   * @returns The action name with the highest predicted confidence, plus its
+   *          predicted embedding for downstream SimulationContract verification.
+   */
+  plan(
+    currentState: string,
+    candidateActions: string[]
+  ): { action: string; predicted: Float32Array; confidence: number } {
+    if (candidateActions.length === 0) {
+      throw new RangeError('JEPAPredictor.plan: candidateActions must be non-empty');
+    }
+
+    const contextEmb = textToEmbedding(currentState, this.latentDim);
+
+    let bestAction = candidateActions[0];
+    let bestPredicted = new Float32Array(this.latentDim);
+    let bestConfidence = -Infinity;
+
+    for (const action of candidateActions) {
+      const conditioning = this.condDim > 0
+        ? textToEmbedding(action, this.condDim)
+        : null;
+
+      const { predicted } = this.forward(contextEmb, conditioning);
+
+      // Confidence heuristic: negative L2 distance from context (on-manifold proxy).
+      // Higher = predicted next-state stays close to the current manifold.
+      const confidence = -l2Norm(predicted);
+
+      if (confidence > bestConfidence) {
+        bestConfidence = confidence;
+        bestAction = action;
+        bestPredicted = predicted;
+      }
+    }
+
+    return { action: bestAction, predicted: bestPredicted, confidence: bestConfidence };
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -198,6 +247,34 @@ function initDeterministicWeights(
   // Biases initialised to zero
 
   return { W1, b1, W2, b2 };
+}
+
+/**
+ * Deterministic text → Float32Array embedding via DJB2 hash scatter.
+ * No external dependency; suitable for synchronous plan() calls.
+ * Distribution is uniform over [-1, 1] for each dimension.
+ */
+function textToEmbedding(text: string, dim: number): Float32Array {
+  const out = new Float32Array(dim);
+  // DJB2 variant seeded by the text
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) {
+    h = Math.imul(h, 33) ^ text.charCodeAt(i);
+    h = h >>> 0;
+  }
+  for (let d = 0; d < dim; d++) {
+    h = Math.imul(h, 1664525) + 1013904223;
+    h = h >>> 0;
+    out[d] = (h / 0x100000000) * 2 - 1;
+  }
+  return out;
+}
+
+/** L2 (Euclidean) norm of a Float32Array. */
+function l2Norm(v: Float32Array): number {
+  let sum = 0;
+  for (let i = 0; i < v.length; i++) sum += v[i] * v[i];
+  return Math.sqrt(sum);
 }
 
 function validateWeights(

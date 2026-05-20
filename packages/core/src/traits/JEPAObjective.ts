@@ -137,7 +137,7 @@ export const jepObjectiveHandler: TraitHandler<JEPAObjectiveConfig> = {
       latentDim: config.latentDim,
       condDim: config.condDim,
     };
-    (node as Record<string, unknown>).__jepaState = {
+    node.__jepaState = {
       step: 0,
       predictor: new JEPAPredictor(predictorConfig),
       embeddingConfig: {
@@ -149,7 +149,7 @@ export const jepObjectiveHandler: TraitHandler<JEPAObjectiveConfig> = {
   },
 
   onDetach(node: HSPlusNode): void {
-    delete (node as Record<string, unknown>).__jepaState;
+    delete node.__jepaState;
   },
 
   onUpdate(): void {},
@@ -160,7 +160,7 @@ export const jepObjectiveHandler: TraitHandler<JEPAObjectiveConfig> = {
     context: TraitContext,
     event: TraitEvent
   ): void {
-    const state = (node as Record<string, unknown>).__jepaState as JEPAState | undefined;
+    const state = node.__jepaState as JEPAState | undefined;
     if (!state) return;
 
     const eventType = typeof event === 'string' ? event : event.type;

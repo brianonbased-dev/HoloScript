@@ -10,6 +10,9 @@ import type { IParentRuntime, Scope } from './runtime/IParentRuntime';
 import type { OrbNode, HoloScriptValue, ExecutionResult, MethodNode, ParameterNode } from './types';
 import { ReactiveState } from './ReactiveState';
 import { MemoryConsolidator, EpisodicMemory, SemanticFact } from '@holoscript/framework/learning';
+import { JEPAPredictor } from './traits/JEPAPredictor';
+import { jepObjectiveHandler } from './traits/JEPAObjective';
+import type { HSPlusNode, TraitContext } from './traits/TraitTypes';
 
 /**
  * Runtime shape of a directive found in OrbNode.directives at runtime.
@@ -94,6 +97,26 @@ function createDetachedParentRuntime(): IParentRuntime {
 }
 
 /**
+ * Deterministic text → Float32Array via DJB2 hash scatter.
+ * Mirrors the implementation in JEPAPredictor (duplicated here to avoid a
+ * circular import between the runtime module and the traits layer).
+ */
+function textToEmbeddingFloat32(text: string, dim: number): Float32Array {
+  const out = new Float32Array(dim);
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) {
+    h = Math.imul(h, 33) ^ text.charCodeAt(i);
+    h = h >>> 0;
+  }
+  for (let d = 0; d < dim; d++) {
+    h = Math.imul(h, 1664525) + 1013904223;
+    h = h >>> 0;
+    out[d] = (h / 0x100000000) * 2 - 1;
+  }
+  return out;
+}
+
+/**
  * Specialized runtime for individual HoloScript agents providing sandboxed execution,
  * local state management, and autonomous behavior capabilities.
  *
@@ -120,6 +143,13 @@ export class HoloScriptAgentRuntime {
   private rawEpisodes: EpisodicMemory[] = [];
   public semanticFacts: SemanticFact[] = [];
   private consolidationInterval: NodeJS.Timeout | null = null;
+
+  // JEPA action-planning loop (Phase 8)
+  // Default latentDim=64, condDim=16 (action conditioning). Caller can swap
+  // weights externally via this.jepaPredictor.setWeights() after training.
+  private readonly jepaPredictor: JEPAPredictor = new JEPAPredictor({ latentDim: 64, condDim: 16 });
+  private readonly jepaObjectiveNode: HSPlusNode = {} as HSPlusNode;
+  private jepaObjectiveAttached: boolean = false;
 
   /**
    * Creates a new HoloScript agent runtime instance.
@@ -296,6 +326,86 @@ export class HoloScriptAgentRuntime {
   }
 
   /**
+   * Lazily attach the JEPAObjective trait on first use so constructor stays fast.
+   */
+  private ensureJepaObjectiveAttached(): void {
+    if (!this.jepaObjectiveAttached) {
+      jepObjectiveHandler.onAttach(
+        this.jepaObjectiveNode,
+        jepObjectiveHandler.defaultConfig,
+        this.buildJepaTraitContext()
+      );
+      this.jepaObjectiveAttached = true;
+    }
+  }
+
+  /**
+   * Build a minimal TraitContext for the offline JEPA training call.
+   * Losses are logged via the runtime logger; no external emit dependency.
+   */
+  private buildJepaTraitContext(): TraitContext {
+    const agentName = this.agentNode?.name ?? 'agent';
+    return {
+      vr: null as unknown as TraitContext['vr'],
+      physics: null as unknown as TraitContext['physics'],
+      audio: null as unknown as TraitContext['audio'],
+      haptics: null as unknown as TraitContext['haptics'],
+      emit: (eventName: string, payload: unknown) => {
+        if (eventName === 'jepa:loss') {
+          const p = payload as { totalLoss: number; step: number };
+          logger.info(`[JEPA:${agentName}] step=${p.step} totalLoss=${p.totalLoss.toFixed(4)}`);
+        } else if (eventName === 'jepa:error') {
+          const e = payload as { code: string; message: string };
+          logger.warn(`[JEPA:${agentName}] error code=${e.code} ${e.message}`);
+        }
+      },
+      getState: () => ({}),
+      setState: () => {},
+      getScaleMultiplier: () => 1,
+      setScaleContext: () => {},
+    } as unknown as TraitContext;
+  }
+
+  /**
+   * Store a JEPA training episode and trigger an offline JEPAObjective training
+   * step. Called after each executeAction() to ensure every agent run generates
+   * JEPA training data automatically.
+   *
+   * The (state, action, outcome) tuple is encoded as a `jepa:encode_pair` event
+   * where context = JSON.stringify(state + action) and targetVec is derived from
+   * the outcome string deterministically (same hash used by JEPAPredictor.plan).
+   */
+  private trainJepaOffline(
+    stateBefore: Record<string, HoloScriptValue>,
+    action: string,
+    outcome: ExecutionResult
+  ): void {
+    this.ensureJepaObjectiveAttached();
+
+    // Encode state+action as context string
+    const contextStr = JSON.stringify({ state: stateBefore, action });
+
+    // Deterministic outcome → target vector (same DJB2 scatter as plan())
+    const latentDim = jepObjectiveHandler.defaultConfig.latentDim;
+    const outcomeStr = outcome.success
+      ? `success:${String(outcome.output ?? '')}`
+      : `failure:${String(outcome.error ?? '')}`;
+    const targetVec = textToEmbeddingFloat32(outcomeStr, latentDim);
+
+    jepObjectiveHandler.onEvent(
+      this.jepaObjectiveNode,
+      jepObjectiveHandler.defaultConfig,
+      this.buildJepaTraitContext(),
+      {
+        type: 'jepa:encode_pair',
+        context: contextStr,
+        targetVec,
+        conditioning: undefined,
+      }
+    );
+  }
+
+  /**
    * Lightweight fork-detection heuristic for runtime adapters.
    * Scans brain composition ref, template, and string properties for
    * HS010-blocked keywords, unknown compiler versions, non-canonical imports,
@@ -384,6 +494,9 @@ export class HoloScriptAgentRuntime {
 
     logger.info(`[Agent:${this.agentNode.name}] Executing action: ${actionName}`);
 
+    // Capture state before execution for JEPA training replay
+    const stateBefore = this.localState.getSnapshot();
+
     // Create a local scope for this agent
     const agentScope: Scope = {
       variables: new Map<string, HoloScriptValue>(),
@@ -415,12 +528,13 @@ export class HoloScriptAgentRuntime {
       });
     }
 
+    let executionResult: ExecutionResult = { success: false, error: 'Action did not complete' };
     try {
       // Check if action.body is HoloStatement[]
       if (Array.isArray(action.body)) {
         const results = await this.parentRuntime.executeHoloProgram(action.body, agentScope);
         const success = results.every((r: ExecutionResult) => r.success);
-        return {
+        executionResult = {
           success,
           output: results[results.length - 1]?.output,
           error: results.find((r: ExecutionResult) => !r.success)?.error,
@@ -428,7 +542,7 @@ export class HoloScriptAgentRuntime {
       } else {
         const results = await this.parentRuntime.executeProgram(action.body, 1);
         const success = results.every((r) => r.success);
-        return {
+        executionResult = {
           success,
           output: results[results.length - 1]?.output,
           error: results.find((r) => !r.success)?.error,
@@ -437,6 +551,27 @@ export class HoloScriptAgentRuntime {
     } finally {
       this.runningActions.delete(actionName);
     }
+
+    // ── EpisodicMemory + JEPA offline training ───────────────────────────────
+    // Store (state, action, actual_outcome) tuple for both memory consolidation
+    // and JEPA world-model training.  This runs after every executeAction() so
+    // every agent step automatically generates JEPA training data.
+    const outcomeStr = executionResult.success
+      ? `success:${String(executionResult.output ?? '')}`
+      : `failure:${String(executionResult.error ?? '')}`;
+
+    this.recordEpisode(actionName, outcomeStr, [this.agentNode.name]);
+
+    // Fire-and-forget offline JEPA train (synchronous — JEPAObjective is sync).
+    try {
+      this.trainJepaOffline(stateBefore, actionName, executionResult);
+    } catch (trainErr) {
+      logger.warn(
+        `[JEPA:${this.agentNode.name}] trainJepaOffline error: ${String(trainErr)}`
+      );
+    }
+
+    return executionResult;
   }
 
   /**
@@ -454,15 +589,42 @@ export class HoloScriptAgentRuntime {
   async think(prompt?: string): Promise<string> {
     logger.info(`[Agent:${this.agentNode.name}] Thinking...`);
 
+    // ── JEPA action-planning gate ────────────────────────────────────────────
+    // Collect candidate actions from the agent's declared methods so the
+    // predictor can score them before handing off to the LLM.
+    const directives = this.agentNode.directives as unknown as RuntimeDirective[] | undefined;
+    const candidateActions: string[] = (directives ?? [])
+      .filter((d) => d.type === 'method' && d.name)
+      .map((d) => d.name as string);
+
+    let jepaSuggestion: string | undefined;
+    if (candidateActions.length > 0) {
+      const stateSnapshot = JSON.stringify(this.localState.getSnapshot());
+      const planResult = this.jepaPredictor.plan(stateSnapshot, candidateActions);
+      jepaSuggestion = planResult.action;
+      logger.info(
+        `[JEPA:${this.agentNode.name}] plan() → "${planResult.action}" ` +
+        `confidence=${planResult.confidence.toFixed(4)}`
+      );
+    }
+
+    // Build prompt with JEPA suggestion as a soft prior
+    const effectivePrompt = jepaSuggestion
+      ? `${prompt ?? 'Decide the next best action based on current state.'} ` +
+        `JEPA predictor suggests: "${jepaSuggestion}".`
+      : (prompt ?? 'Decide the next best action based on current state.');
+
     // Emit event for the bridge/orchestrator to handle LLM call
     const result = await this.parentRuntime.emit('agent_think', {
       agentId: this.agentNode.name,
       context: this.localState.getSnapshot(),
-      prompt: prompt || 'Decide the next best action based on current state.',
+      prompt: effectivePrompt,
+      jepaSuggestion,
     });
 
     return (
       ((result as Record<string, unknown> | undefined)?.decision as string) ||
+      jepaSuggestion ||
       'No clear decision made.'
     );
   }
