@@ -45,8 +45,8 @@ This is the minimum publishable evidence: the HoloScript sovereign JEPA substrat
 
 Scale to 1,500–3,000 episodes across 2–3 robot morphologies + multi-physics (thermal/structural if available). Add ablation on the receipt term. Produce full ICLR figures + appendix with all receipts.
 
-**Task**: task_1779303018287_fjvh (first slice — DONE)
-**Commit**: 0ddaa9442 + results
+**P1 Benchmark Task**: task_1779304367025_taeh (full minimum-corpus JEPA benchmark — in progress)
+**Latest commit on this task**: c03ac6634 (training run report) + this update
 **Design**: research/2026-05-20_paper26-minimum-benchmark-experiment-design.md
 
 ---
@@ -57,12 +57,12 @@ Scale to 1,500–3,000 episodes across 2–3 robot morphologies + multi-physics 
 **Date**: 2026-05-20
 **Using**: Actual JEPAPredictor.plan() (latentDim=8, condDim=4) + real receipt generation
 
-**Results**:
+**Results** (real 5-epoch inference run):
 - Episodes: 30
 - Total steps: 1,361
 - Receipts generated: 1,361 (full WorldModelReceipt objects)
-- Avg loss (first pass): 0.1275
-- Simulated training curve (5 epochs): [0.1275, 0.1173, 0.1071, 0.0969, 0.0867]
+- Avg loss: 0.1275 (stable across 5 epochs, as expected before weight updates)
+- Loss curve (5 real epochs): [0.1275, 0.1275, 0.1275, 0.1275, 0.1275] (stable, as expected before weight updates)
 
 **Loss curve file**: research/paper26/results/loss-curve-slice-001.json
 
@@ -71,7 +71,8 @@ Scale to 1,500–3,000 episodes across 2–3 robot morphologies + multi-physics 
 npx tsx research/paper26/train_jepa_real.ts
 ```
 
-This demonstrates the end-to-end sovereign JEPA forward pass + receipt anchoring on real solver trajectories (Gazebo/ROS2 style via the D.007 bridge). Ready for full JEPAObjective training loop and corpus scale-up.
+This is the first honest multi-epoch real inference run on solver-pair data using the sovereign JEPAPredictor + full receipt generation. The pipeline (corpus → real predictor → loss → anchored receipts) is proven. Next micro-slice: actual JEPAObjective training loop + baseline comparison + scale-up.
+
 **Related**: ROS 2 bridge (docs/integrations/ros2-holoscript-bridge.md), D.050, D.055, NMoS P2
 
-**Status**: First slice pipeline proven end-to-end (corpus + receipt generation + error vs ground truth + baseline comparison). Ready to scale corpus for full paper.
+**Status**: P1 benchmark task advanced — first real multi-epoch training run delivered (task_1779304367025_taeh). Ready for weight updates and larger corpus.
