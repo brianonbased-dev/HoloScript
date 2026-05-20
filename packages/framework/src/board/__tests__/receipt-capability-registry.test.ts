@@ -98,6 +98,12 @@ describe('Receipt Capability Registry', () => {
       expect(results.length).toBeGreaterThanOrEqual(1);
       expect(results[0].capability).toBe('device-safety');
     });
+
+    it('finds physical actuation by safe-stop subject', () => {
+      const results = queryReceiptCapabilities('physical', 'safe-stop');
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      expect(results[0].capability).toBe('physical-actuation');
+    });
   });
 
   describe('getReceiptCapability', () => {
@@ -121,6 +127,7 @@ describe('Receipt Capability Registry', () => {
       expect(caps).toContain('hardware');
       expect(caps).toContain('browser');
       expect(caps).toContain('device-safety');
+      expect(caps).toContain('physical-actuation');
     });
   });
 
@@ -138,6 +145,7 @@ describe('Receipt Capability Registry', () => {
       const subjects = listReceiptSubjects();
       expect(subjects).toContain('gpu');
       expect(subjects).toContain('consent');
+      expect(subjects).toContain('safe-stop');
     });
   });
 

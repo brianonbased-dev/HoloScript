@@ -260,6 +260,18 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
     tags: ['holoshell', 'permissions', 'oauth', 'safety', 'privacy', 'hololand'],
   },
 
+  {
+    capability: 'physical-actuation',
+    description: 'Physical actuation receipts — prove simulation, freshness, safe stop, rollback limits, and replay before hardware mutation.',
+    receiptType: 'HoloShellPhysicalActuationReceiptPack',
+    module: 'holoshell-physical-actuation-receipts',
+    exportName: 'HoloShellPhysicalActuationReceiptPack',
+    validateFn: 'validateHoloShellPhysicalActuationReceiptPack',
+    cloneFn: 'cloneHoloShellPhysicalActuationReceiptPack',
+    isSupportedFn: 'isSupportedPhysicalActuationAction',
+    subjects: ['actuation', 'robot', 'headset', 'haptic', 'xr-session', 'safe-stop', 'freshness', 'rollback', 'simulation'],
+    tags: ['holoshell', 'device', 'safety', 'physical-world', 'hololand', 'twin-earth'],
+  },
   // ── Structural Receipts ──
   {
     capability: 'artifact',

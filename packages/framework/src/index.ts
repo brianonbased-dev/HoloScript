@@ -671,6 +671,41 @@ export {
   cloneHoloShellPermissionGateReceiptPack,
 } from './board';
 
+// HoloShell Physical Actuation Receipts (task_1779224072780_t5pu)
+export {
+  HOLOSHELL_PHYSICAL_ACTUATION_RECEIPT_VERSION,
+  PHYSICAL_ACTUATION_WORKFLOW,
+  PHYSICAL_ACTUATION_ACTIONS,
+  PHYSICAL_ACTUATION_STATUSES,
+  ACTUATION_SIMULATION_STATUSES,
+  SAFE_STOP_STATUSES,
+  PHYSICAL_ROLLBACK_CLASSES,
+  type PhysicalActuationAction,
+  type PhysicalActuationStatus,
+  type ActuationSimulationStatus,
+  type SafeStopStatus,
+  type PhysicalRollbackClass,
+  type ActuationSimulationReceipt,
+  type SensorFreshnessReceipt,
+  type SafeStopReceipt,
+  type PhysicalRollbackLimitReceipt,
+  type HoloShellPhysicalActuationReceiptPack,
+  isSupportedPhysicalActuationAction,
+  isSupportedPhysicalActuationStatus,
+  isSupportedActuationSimulationStatus,
+  isSupportedSafeStopStatus,
+  isSupportedPhysicalRollbackClass,
+  validateActuationSimulationReceipt,
+  validateSensorFreshnessReceipt,
+  validateSafeStopReceipt,
+  validatePhysicalRollbackLimitReceipt,
+  validateHoloShellPhysicalActuationReceiptPack,
+  cloneActuationSimulationReceipt,
+  cloneSensorFreshnessReceipt,
+  cloneSafeStopReceipt,
+  clonePhysicalRollbackLimitReceipt,
+  cloneHoloShellPhysicalActuationReceiptPack,
+} from './board';
 // HoloShell Provider Export Repair Receipts (task_1779178784570_91vx)
 export {
   PROVIDER_EXPORT_FAILURE_RECEIPT_VERSION,
