@@ -52,6 +52,12 @@ import {
   audioSourceToBabylon,
 } from './DomainBlockCompilerMixin';
 
+import {
+  PlatformConditionalCompilerMixin,
+  createPlatformTarget,
+  type CompilePlatformTarget,
+} from './PlatformConditionalCompilerMixin';
+
 export interface BabylonCompilerOptions {
   className?: string;
   useHavok?: boolean;
@@ -59,6 +65,8 @@ export interface BabylonCompilerOptions {
   indent?: string;
   /** When set, emits a `// Provenance Hash:` banner (compile-time overhead bench / Paper 10). */
   provenanceHash?: string;
+  /** Target platform for @platform() conditional compilation filtering (Adaptive Platform Layers). */
+  platformTarget?: CompilePlatformTarget | string;
 }
 
 const SHAPE_TO_MESH: Record<string, string> = {
@@ -103,6 +111,17 @@ export class BabylonCompiler extends CompilerBase {
     // ─── Agent Identity Verification ───────────────────────────────────────
     this.validateCompilerAccess(agentToken, outputPath);
     // ───────────────────────────────────────────────────────────────────────
+
+    // Apply @platform() conditional filtering if a target was supplied
+    // (first concrete slice for Adaptive Platform Layers + @platform() RFC implementation).
+    if (this.options.platformTarget) {
+      const target = typeof this.options.platformTarget === 'string'
+        ? createPlatformTarget(this.options.platformTarget as any)
+        : this.options.platformTarget;
+      const platformMixin = new PlatformConditionalCompilerMixin();
+      composition = platformMixin.filterForPlatform(composition, target); // returns filtered copy or mutates safely
+    }
+
     this.lines = [];
     this.indentLevel = 0;
 
