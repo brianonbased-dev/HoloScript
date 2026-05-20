@@ -9,6 +9,15 @@ describe('agent tooling commands', () => {
     expect(opts.json).toBe(true);
   });
 
+  it('parses bounded absorb max-files', () => {
+    const opts = parseArgs(['absorb', 'apps/holoshell/source', '--for-agent', '--max-files', '25']);
+
+    expect(opts.command).toBe('absorb');
+    expect(opts.input).toBe('apps/holoshell/source');
+    expect(opts.forAgent).toBe(true);
+    expect(opts.absorbMaxFiles).toBe(25);
+  });
+
   it('parses impact-analysis command with scan dir', () => {
     const opts = parseArgs(['impact-analysis', 'src/cli.ts', '--dir', 'packages/cli/src']);
 

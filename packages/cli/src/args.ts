@@ -232,6 +232,8 @@ export interface CLIOptions {
   absorbDepth?: 'shallow' | 'medium' | 'deep';
   /** Git ref for scoped change impact in agent mode (e.g. "HEAD~1", "main") */
   absorbSince?: string;
+  /** Maximum files to scan for bounded local absorb runs */
+  absorbMaxFiles?: number;
   /** Comma-separated files for quick blast-radius query (relative to scan dir) */
   impactFiles?: string;
   // ── query command ────────────────────────────────────────────────────────
@@ -604,6 +606,9 @@ export function parseArgs(args: string[]): CLIOptions {
       case '--since':
         options.absorbSince = args[++i];
         break;
+      case '--max-files':
+        options.absorbMaxFiles = parseInt(args[++i], 10) || undefined;
+        break;
       case '--impact':
         options.impactFiles = args[++i];
         break;
@@ -833,6 +838,7 @@ Usage: holoscript <command> [options] [input]
   --for-agent         Emit agent-optimized manifest instead of spatial .holo
   --depth <level>     Absorb detail: shallow | medium | deep (default: deep)
   --since <ref>       Limit absorb to files changed since git ref/date
+  --max-files <n>     Bound absorb scan size for large local workspaces
   --impact <files>    Comma-separated files to compute blast-radius for
   --provider <b>      Embedding backend: openai | xenova | ollama (default: openai). bm25 is deprecated and maps to openai.
   --dir <path>        Directory to scan for query (default: cwd)

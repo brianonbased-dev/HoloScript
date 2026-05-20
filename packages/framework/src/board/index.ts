@@ -807,6 +807,32 @@ export {
 } from './holoshell-package-mutation-receipt';
 
 export {
+  // HoloShell Managed Service Restart Receipts (task_1779267479120_r8rv)
+  HOLOSHELL_MANAGED_SERVICE_RESTART_RECEIPT_PACK_VERSION,
+  MANAGED_LOCAL_SERVICES,
+  MANAGED_SERVICE_ACTIONS,
+  MANAGED_SERVICE_STATUSES,
+  MANAGED_SERVICE_PERMISSION_ENVELOPES,
+  type ManagedLocalServiceId,
+  type ManagedServiceAction,
+  type ManagedServiceStatus,
+  type ManagedServicePermissionEnvelope,
+  type ManagedLocalServiceReceipt,
+  type VerifiedPidGateReceipt,
+  type ServiceRestartApprovalReceipt,
+  type ServiceAfterActionReceipt,
+  type ManagedServiceRestartSourceAnchors,
+  type HoloShellManagedServiceRestartReceiptPack,
+  isSupportedManagedLocalService,
+  isSupportedManagedServiceAction,
+  isSupportedManagedServiceStatus,
+  isSupportedManagedServicePermissionEnvelope,
+  validateHoloShellManagedServiceRestartReceiptPack,
+  cloneManagedLocalServiceReceipt,
+  cloneHoloShellManagedServiceRestartReceiptPack,
+} from './holoshell-managed-service-restart-receipts';
+
+export {
   // HoloShell Permission Gate Receipts (holoshell-human-os-frontier)
   HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION,
   PERMISSION_GATE_WORKFLOW,

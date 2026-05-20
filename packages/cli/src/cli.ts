@@ -4318,6 +4318,13 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         }
 
         console.log(`\n\x1b[36m🔍 Absorbing codebase: ${rootDir}\x1b[0m\n`);
+        const absorbMaxFiles =
+          typeof options.absorbMaxFiles === 'number' && options.absorbMaxFiles > 0
+            ? Math.trunc(options.absorbMaxFiles)
+            : undefined;
+        if (absorbMaxFiles) {
+          console.log(`  \x1b[36m→\x1b[0m Bounded scan: maxFiles=${absorbMaxFiles}`);
+        }
 
         // Scan (useWorkers=false: native tree-sitter addons can't resolve in worker threads)
         const scanner = new CodebaseScanner(undefined, false);
@@ -4325,6 +4332,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         let lastProgressLen = 0;
         const scanResult = await scanner.scan({
           rootDir,
+          maxFiles: absorbMaxFiles,
           onProgress(parsed: number, total: number, file: string) {
             const pct = Math.round((parsed / total) * 100);
             const msg = `  \x1b[36m  Parsing files... ${parsed}/${total} (${pct}%) — ${file}\x1b[0m`;

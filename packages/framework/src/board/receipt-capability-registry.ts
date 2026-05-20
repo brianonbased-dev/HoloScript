@@ -322,6 +322,29 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
     tags: ['holoshell', 'package', 'install', 'safety', 'break-glass'],
   },
   {
+    capability: 'managed-service-restart',
+    description:
+      'Managed local service restart receipts — prove PID custody, approval, redacted service status, and after-action verification.',
+    receiptType: 'HoloShellManagedServiceRestartReceiptPack',
+    module: 'holoshell-managed-service-restart-receipts',
+    exportName: 'HoloShellManagedServiceRestartReceiptPack',
+    validateFn: 'validateHoloShellManagedServiceRestartReceiptPack',
+    cloneFn: 'cloneHoloShellManagedServiceRestartReceiptPack',
+    isSupportedFn: 'isSupportedManagedServiceAction',
+    subjects: [
+      'service',
+      'restart',
+      'start',
+      'stop',
+      'pid',
+      'approval',
+      'after-action',
+      'control-daemon',
+      'network-sentinel',
+    ],
+    tags: ['holoshell', 'service', 'process', 'restart', 'safety', 'hololand'],
+  },
+  {
     capability: 'permission-gate',
     description:
       'Provider, app, connector, and device permission gate receipts — prove minimum scope, grant verification, revocation, and redacted credential handling.',
