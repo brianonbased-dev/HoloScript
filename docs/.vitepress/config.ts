@@ -555,6 +555,7 @@ export default defineConfig({
         {
           text: 'Guides',
           items: [
+            { text: 'Unreal USD Physics Bridge', link: '/compilers/unreal-usd-physics-bridge' },
             { text: 'VRChat + Unity Workflow', link: '/compilers/vrchat-unity-workflow' },
             { text: 'VRChat Optimization', link: '/compilers/vrchat-optimization' },
           ],

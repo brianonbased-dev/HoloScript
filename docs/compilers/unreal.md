@@ -107,5 +107,8 @@ object Torch {
 
 ## See Also
 
+- [Unreal USD Physics Bridge](/compilers/unreal-usd-physics-bridge) - use HoloScript
+  as the SimulationContract-preserving IR, then import USD into Unreal for
+  rendering and packaging
 - [Publishing & platform terms](/guides/publishing-platform-terms) — Unreal Engine EULA and platform compliance
 - [Platform Overview](/compilers/)

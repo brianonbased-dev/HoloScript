@@ -256,17 +256,24 @@ new USDPhysicsCompiler({ embedSemanticAST: false });
 
 ## Provenance Hash (Paper 10)
 
-For simulation evidence workflows, attach a provenance hash to the USDA output:
+For simulation evidence workflows, attach the `SimulationContract` receipt hash
+for the exact source state that produced the USDA output:
 
 ```typescript
-const hash = computeSimulationHash(composition);  // SHA-256 of inputs
+const simulationContractHash = process.env.SIMULATION_CONTRACT_HASH ?? '';
+
 const compiler = new USDPhysicsCompiler({
   targetContext: 'isaac_sim',
-  provenanceHash: hash,
+  provenanceHash: simulationContractHash,
+  embedSemanticAST: true,
 });
 ```
 
 Output includes a `# Provenance Hash: <sha256>` comment immediately after the file preamble. This enables `SimulationContract` receipt linkage — the hash identifies the exact composition state that produced the USD file.
+
+For Unreal Engine workflows, use HoloScript as the portable simulation IR and
+import the USDA into Unreal as a rendering destination. See
+[Unreal USD Physics Bridge](/compilers/unreal-usd-physics-bridge).
 
 ---
 
@@ -375,6 +382,7 @@ For robot development targeting Isaac Lab's `ArticulationView`, both paths work.
 ## See Also
 
 - [`ISAAC_SIM_OPTIMIZATION.md`](./ISAAC_SIM_OPTIMIZATION.md) — URDF/SDF path for robot import
+- [Unreal USD Physics Bridge](/compilers/unreal-usd-physics-bridge) — USD import path for Unreal rendering with SimulationContract provenance
 - [`USDPhysicsCompiler.ts`](../../packages/core/src/compiler/USDPhysicsCompiler.ts) — Compiler source
 - [NVIDIA Isaac Sim Physics Documentation](https://docs.isaacsim.omniverse.nvidia.com/latest/physics/simulation_fundamentals.html)
 - [USD Physics Schema Reference](https://openusd.org/release/wp_rigid_bodies.html)
