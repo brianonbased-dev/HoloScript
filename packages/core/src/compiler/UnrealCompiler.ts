@@ -43,6 +43,12 @@ import {
   weatherToUnreal,
 } from './DomainBlockCompilerMixin';
 
+import {
+  PlatformConditionalCompilerMixin,
+  createPlatformTarget,
+  type CompilePlatformTarget,
+} from './PlatformConditionalCompilerMixin';
+
 export interface UnrealCompilerOptions {
   moduleName?: string;
   className?: string;
@@ -52,6 +58,8 @@ export interface UnrealCompilerOptions {
   generateBlueprints?: boolean;
   /** When set, emits a `// Provenance Hash:` banner in the generated header (Paper 10 bench). */
   provenanceHash?: string;
+  /** Target platform for @platform() conditional compilation (Adaptive Platform Layers). */
+  platformTarget?: CompilePlatformTarget | string;
 }
 
 export interface UnrealCompileResult {
@@ -68,6 +76,7 @@ export class UnrealCompiler extends CompilerBase {
   }
 
   private options: Required<UnrealCompilerOptions>;
+  private _platformTarget?: CompilePlatformTarget;
   private headerLines: string[] = [];
   private sourceLines: string[] = [];
   private indentLevel: number = 0;
@@ -84,6 +93,11 @@ export class UnrealCompiler extends CompilerBase {
       generateBlueprints: options.generateBlueprints ?? false,
       provenanceHash: options.provenanceHash ?? '',
     };
+    if (options.platformTarget) {
+      this._platformTarget = typeof options.platformTarget === 'string'
+        ? createPlatformTarget(options.platformTarget as any)
+        : options.platformTarget;
+    }
   }
 
   compile(
@@ -93,6 +107,14 @@ export class UnrealCompiler extends CompilerBase {
   ): UnrealCompileResult {
     // ─── Agent Identity Verification ───────────────────────────────────────
     this.validateCompilerAccess(agentToken, outputPath);
+
+    // Apply @platform() conditional filtering (fourth compiler slice for
+    // Adaptive Platform Layers seed 75 + @platform() RFC implementation).
+    if (this._platformTarget) {
+      const platformMixin = new PlatformConditionalCompilerMixin();
+      composition = platformMixin.filterForPlatform(composition, this._platformTarget);
+    }
+
     // ───────────────────────────────────────────────────────────────────────
     this.headerLines = [];
     this.sourceLines = [];
