@@ -1,0 +1,81 @@
+// Modern PhoneSleeveVR Experience — AI-Augmented Revival Path
+// Sovereign revival for the 15M-device category (D.037 / I.012 / F.047)
+//
+// This .holo demonstrates the post-2024 AI-augmented experience:
+// - snn-webgpu on-device perception (aiSnnTracking)
+// - Brittney-style natural language content
+// - Full sovereign compilation (no Google runtime)
+//
+// Compile with:
+//   hs compile examples/phonesleevevr/modern-meditation.holo \
+//      --target phonesleevevr \
+//      --ai-snn-tracking \
+//      --ai-voice-commands \
+//      --output modern-meditation.cardboard.html
+
+scene modernMeditationGarden {
+  environment: {
+    type: "soft_gradient_sky"
+    colors: ["#0a1428", "#1a2a4a"]
+    fog: { density: 0.015, color: "#0f1f3a" }
+  }
+
+  objects: [
+    {
+      id: "orb_01"
+      type: "floating_orb"
+      position: [0.8, 1.2, -2.5]
+      scale: 0.25
+      traits: ["gaze_selectable", "pulse_on_select", "soft_glow"]
+      material: { color: "#a5f3fc", emissive: 0.6 }
+    },
+    {
+      id: "orb_02"
+      type: "floating_orb"
+      position: [-1.1, 0.9, -3.2]
+      scale: 0.3
+      traits: ["gaze_selectable", "pulse_on_select", "soft_glow"]
+      material: { color: "#c084fc", emissive: 0.5 }
+    },
+    {
+      id: "orb_03"
+      type: "floating_orb"
+      position: [0.2, 1.8, -4.0]
+      scale: 0.2
+      traits: ["gaze_selectable", "pulse_on_select", "soft_glow"]
+      material: { color: "#f0abfc", emissive: 0.7 }
+    }
+  ]
+
+  audio: {
+    type: "ambient"
+    source: "soft_forest_night"
+    volume: 0.65
+    spatial: false
+  }
+
+  interaction: {
+    type: "gaze_dwell"
+    dwell_ms: 650
+    on_select: "orb_pulse_and_chime"
+    cursor: { type: "soft_reticle", color: "#e0f2fe" }
+  }
+
+  effects: {
+    comfort_vignette: true
+    thermal_throttle: true
+    battery_aware_lod: true
+    foveated_rendering: true
+  }
+
+  // Sovereign revival AI flags (NMoS 2026-05-10 + F.047)
+  ai: {
+    snn_tracking: true          // snn-webgpu on-device head/pose (replaces old DeviceOrientation)
+    voice_commands: true        // "bigger orbs", "calmer sounds", "next garden"
+    neural_upscale: true        // post-process sharpening for older phones
+  }
+}
+
+// The sovereign PhoneSleeveVRCompiler will emit a single HTML file
+// that runs in any modern phone browser inside a $5–15 viewer.
+// All perception, content, and rendering stays inside HoloScript sovereignty.
