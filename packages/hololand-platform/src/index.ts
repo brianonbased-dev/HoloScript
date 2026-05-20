@@ -48,6 +48,11 @@ export {
   parseQuestProbeMarkdown,
   runDeviceLabProbe,
   writeDeviceLabReceipt,
+};
+
+// World Build Cockpit — codebase-trust gate (task_1779267196745_rhwb, HoloLand JEPA dogfooding slice 1)
+export { renderCodebaseTrustGate } from './cockpit/codebase-trust-gate';
+export type { CodebaseTrustGateProps, CodebaseTrustGateRender } from './cockpit/codebase-trust-gate';
 } from './device-lab';
 
 export type {
