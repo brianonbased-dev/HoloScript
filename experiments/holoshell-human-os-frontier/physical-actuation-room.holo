@@ -1,0 +1,214 @@
+/**
+ * HoloShell Physical Actuation Room
+ *
+ * Production operator room for:
+ * "Operate a real headset, robot, or device only after I can see the plan,
+ * simulate it, confirm it is fresh, approve it, and replay what happened."
+ *
+ * Upstream receipt contracts (from @holoscript/framework):
+ *   HoloShellDeviceSafetyReceiptPack   → inventory + envelope + consent + action + replay
+ *   HoloShellPhysicalActuationReceiptPack → simulation + freshness + safeStop + rollback
+ *   HoloShellPermissionGateReceiptPack → minimum-scope permission chain
+ *
+ * taskId: task_1779224072780_2x6m
+ */
+
+composition "HoloShell Physical Actuation Room" {
+  environment {
+    backgroundColor: "#0d1a20"
+    ambient_light: 0.52
+    shadows: true
+  }
+
+  template "ActuationStation" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    scale: [1.36, 0.52, 0.08]
+    material: {
+      color: "#10202a"
+      emissive: "#113948"
+      emissiveIntensity: 0.2
+      transparent: true
+      opacity: 0.94
+    }
+  }
+
+  template "ReceiptToken" {
+    @grabbable
+    @collidable
+    geometry: "sphere"
+    scale: [0.16, 0.16, 0.16]
+    material: { color: "#74c0fc" }
+  }
+
+  // ── Top row: what the human sees ─────────────────────────────────────────
+
+  object "HumanJob" using "ActuationStation" {
+    position: [0, 2.3, -2.7]
+    label: "Human job: operate one device safely"
+    properties: {
+      plainLanguageJob: "make the device do one bounded thing and show what changed"
+      failureState: "intent is too broad, ambiguous, or secretly credential / payment / deletion adjacent"
+      sourceBoundary: "HoloScript owns receipt validation; HoloLand renders the operator surface"
+    }
+  }
+
+  // ── Upper row: safety gates left → right ─────────────────────────────────
+
+  object "ActorInventory" using "ActuationStation" {
+    position: [-3.2, 1.52, -1.3]
+    label: "Actor inventory"
+    properties: {
+      reads: ["Quest 3", "robot arm", "camera rig", "printer", "sensor", "local app bridge"]
+      receiptKind: "DeviceInventoryReceipt"
+      validator: "validateDeviceInventoryReceipt"
+      failureState: "device identity, adapter, or owner lane is missing"
+    }
+  }
+
+  object "MinimumPermissionGate" using "ActuationStation" {
+    position: [-1.6, 1.52, -1.3]
+    label: "Minimum permission"
+    properties: {
+      receipts: ["PermissionSubjectReceipt", "PermissionRequestReceipt", "PermissionGrantReceipt", "PermissionVerificationReceipt"]
+      requires: ["least privilege", "fresh user gesture", "no credential extrusion", "revoke path"]
+      validator: "validateHoloShellPermissionGateReceiptPack"
+      failureState: "overbroad permission or unverifiable grant blocks execution"
+    }
+  }
+
+  object "SimulationPreview" using "ActuationStation" {
+    position: [0, 1.52, -1.3]
+    label: "Simulation preview"
+    properties: {
+      receiptKind: "ActuationSimulationReceipt"
+      checks: ["target pose", "expected device delta hash", "safe range names", "human-visible summary"]
+      validator: "validateActuationSimulationReceipt"
+      guard: "no deterministicPreview=true means no physical command"
+      failureState: "simulation failed or status is not passed"
+    }
+  }
+
+  object "FreshnessGate" using "ActuationStation" {
+    position: [1.6, 1.52, -1.3]
+    label: "Freshness gate"
+    properties: {
+      receiptKind: "SensorFreshnessReceipt"
+      limits: ["sensor age", "approval age", "adapter health", "owner lane freshness"]
+      validator: "validateSensorFreshnessReceipt"
+      failureState: "stale sensor, stale approval, or unhealthy adapter blocks execution"
+    }
+  }
+
+  object "SafetyEnvelopeGate" using "ActuationStation" {
+    position: [3.2, 1.52, -1.3]
+    label: "Safety envelope"
+    properties: {
+      receiptKind: "DeviceSafetyEnvelopeReceipt"
+      checks: ["safe ranges", "rate limits", "stop plan", "privacy redactions", "receipt sink", "nonce binding"]
+      validator: "validateDeviceSafetyEnvelopeReceipt"
+      failureState: "range, rate, identity, or redaction violation blocks command"
+    }
+  }
+
+  // ── Lower row: execution and aftermath ───────────────────────────────────
+
+  object "ExecutionDock" using "ActuationStation" {
+    position: [-2.4, 0.72, -1.4]
+    label: "Guarded execution"
+    properties: {
+      modes: ["read_only", "simulation", "guarded_execute", "break_glass_blocked"]
+      daemonDefault: "execute_disabled"
+      receiptKind: "DeviceActionReceipt"
+      validator: "validateDeviceActionReceipt"
+      failureState: "adapter unavailable, daemon disabled, approval mismatch, or safety stop"
+    }
+  }
+
+  object "SafeStopLever" using "ActuationStation" {
+    position: [-0.8, 0.72, -1.4]
+    label: "Safe stop — always armed"
+    properties: {
+      receiptKind: "SafeStopReceipt"
+      validator: "validateSafeStopReceipt"
+      statusRequired: "armed or triggered before any ready/executed pack is valid"
+      guarantees: ["stop attempted", "stop receipt written", "owner handoff visible"]
+      failureState: "stop unavailable becomes a critical task, not a hidden retry"
+    }
+  }
+
+  object "RollbackLimit" using "ActuationStation" {
+    position: [0.8, 0.72, -1.4]
+    label: "Rollback limit"
+    properties: {
+      receiptKind: "PhysicalRollbackLimitReceipt"
+      validator: "validatePhysicalRollbackLimitReceipt"
+      classes: ["software_replayable", "physical_limited", "irreversible_blocked"]
+      note: "physicalUndoGuaranteed is always false — software replays; physical motion cannot always be undone"
+      failureState: "irreversible_blocked rollback class requires blocked status on the pack"
+    }
+  }
+
+  object "BrittneyOperator" using "ActuationStation" {
+    position: [2.4, 0.72, -1.4]
+    label: "Brittney operator"
+    properties: {
+      role: "plain_language_explainer and receipt anchor"
+      says: "I can show the device, simulate the move, check freshness, ask for approval, stop it, and replay the receipts."
+      failureState: "Brittney proposes action without receipts or owner lane"
+    }
+  }
+
+  // ── Floor: receipt token trail ────────────────────────────────────────────
+
+  object "ReplayTimeline" {
+    @anchor
+    geometry: "cube"
+    position: [0, 0.2, 0.12]
+    scale: [7.6, 0.08, 0.14]
+    color: "#4a5568"
+    label: "inventory → permission → simulate → freshness → envelope → execute or stop → rollback note → replay lesson"
+  }
+
+  object "InventoryToken" using "ReceiptToken" {
+    position: [-3.0, 0.72, 0.12]
+    label: "inventory receipt"
+    properties: { receiptKind: "DeviceInventoryReceipt" }
+  }
+
+  object "PermissionToken" using "ReceiptToken" {
+    position: [-1.8, 0.72, 0.12]
+    material: { color: "#c3a6ff" }
+    label: "permission gate receipts"
+    properties: { receiptKind: "HoloShellPermissionGateReceiptPack" }
+  }
+
+  object "SimulationToken" using "ReceiptToken" {
+    position: [-0.6, 0.72, 0.12]
+    material: { color: "#ffd580" }
+    label: "simulation receipt"
+    properties: { receiptKind: "ActuationSimulationReceipt" }
+  }
+
+  object "FreshnessToken" using "ReceiptToken" {
+    position: [0.6, 0.72, 0.12]
+    material: { color: "#73daca" }
+    label: "freshness receipt"
+    properties: { receiptKind: "SensorFreshnessReceipt" }
+  }
+
+  object "EnvelopeToken" using "ReceiptToken" {
+    position: [1.8, 0.72, 0.12]
+    material: { color: "#f7768e" }
+    label: "safety envelope receipt"
+    properties: { receiptKind: "DeviceSafetyEnvelopeReceipt" }
+  }
+
+  object "ActionOrStopToken" using "ReceiptToken" {
+    position: [3.0, 0.72, 0.12]
+    material: { color: "#9ece6a" }
+    label: "action or safe-stop receipt"
+    properties: { receiptKind: "DeviceActionReceipt | SafeStopReceipt" }
+  }
+}
