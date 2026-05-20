@@ -129,7 +129,7 @@ importers:
         version: 14.0.0
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typedoc:
         specifier: ^0.28.17
         version: 0.28.17(typescript@5.9.3)
@@ -257,7 +257,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -304,7 +304,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -329,7 +329,7 @@ importers:
         version: 4.1.5(vitest@4.1.5)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -347,7 +347,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -369,7 +369,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -470,7 +470,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -504,7 +504,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -518,7 +518,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.5.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -612,7 +612,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -634,7 +634,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.0
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
@@ -681,7 +681,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.0
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ^5.4.0
         version: 5.9.3
@@ -929,7 +929,7 @@ importers:
         version: 0.1.69
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typedoc:
         specifier: ^0.28.17
         version: 0.28.17(typescript@5.9.3)
@@ -968,7 +968,7 @@ importers:
         version: 4.1.5(vitest@4.1.5)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -999,7 +999,7 @@ importers:
         version: 4.1.5(vitest@4.1.5)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1021,7 +1021,7 @@ importers:
         version: 2.4.9
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1076,7 +1076,7 @@ importers:
         version: 0.1.69
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1113,7 +1113,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.0
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
@@ -1198,7 +1198,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1217,7 +1217,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1276,7 +1276,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1295,13 +1295,56 @@ importers:
         version: 4.1.5(vitest@4.1.5)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
         version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@7.3.2)
+
+  packages/holomesh-web:
+    dependencies:
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+      lucide-react:
+        specifier: ^0.468.0
+        version: 0.468.0(react@19.2.4)
+      next:
+        specifier: '>=15.5.15'
+        version: 16.2.4(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@19.2.4)(react@19.2.4)
+      react:
+        specifier: ^19.2.0
+        version: 19.2.4
+      react-dom:
+        specifier: ^19.2.0
+        version: 19.2.4(react@19.2.4)
+      tailwind-merge:
+        specifier: ^2.5.4
+        version: 2.6.1
+    devDependencies:
+      '@types/node':
+        specifier: ^22
+        version: 22.19.12
+      '@types/react':
+        specifier: ^19
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.3(@types/react@19.2.14)
+      autoprefixer:
+        specifier: ^10.4.20
+        version: 10.4.24(postcss@8.5.9)
+      postcss:
+        specifier: ^8.4.49
+        version: 8.5.9
+      tailwindcss:
+        specifier: ^3.4.1
+        version: 3.4.19
+      typescript:
+        specifier: ^5
+        version: 5.9.3
 
   packages/holoscript:
     dependencies:
@@ -1314,7 +1357,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1336,7 +1379,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1383,7 +1426,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1972,7 +2015,7 @@ importers:
         version: 0.1.69
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typedoc:
         specifier: ^0.28.17
         version: 0.28.17(typescript@5.9.3)
@@ -2009,7 +2052,7 @@ importers:
         version: 4.1.5(vitest@4.1.5)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -2267,7 +2310,7 @@ importers:
         version: 0.1.69
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typedoc:
         specifier: ^0.28.17
         version: 0.28.17(typescript@5.9.3)
@@ -2706,7 +2749,7 @@ importers:
         version: 0.182.0
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -2755,7 +2798,7 @@ importers:
         version: 0.182.0
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
@@ -2822,7 +2865,7 @@ importers:
         version: 10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@19.2.4)(react@19.2.4)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -2899,7 +2942,7 @@ importers:
         version: 0.170.0
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -2914,7 +2957,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -2948,7 +2991,7 @@ importers:
         version: 4.1.5(vitest@4.1.5)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -2978,7 +3021,7 @@ importers:
         version: 1.58.2
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -2996,7 +3039,7 @@ importers:
         version: 4.1.5(vitest@4.1.5)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -3273,7 +3316,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -3372,7 +3415,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -13932,7 +13975,6 @@ packages:
     resolution: {integrity: sha512-0QEp0aPJYSyf6RrTjDB7HlKgNMTY+V2C7ESTaVt6G9gQ0rPLzTGz7OF2NXTLR5vcy7HJEtIUsyWLsfX0kTqJBA==}
     dependencies:
       undici-types: 6.21.0
-    dev: false
 
   /@types/node@22.7.5:
     resolution: {integrity: sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==}
@@ -14800,7 +14842,7 @@ packages:
       obug: 2.1.1
       std-env: 4.0.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(vite@7.3.2)
+      vitest: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@7.3.2)
     dev: true
 
   /@vitest/expect@3.2.4:
@@ -16772,6 +16814,21 @@ packages:
       fraction.js: 5.3.4
       picocolors: 1.1.1
       postcss: 8.5.8
+      postcss-value-parser: 4.2.0
+    dev: true
+
+  /autoprefixer@10.4.24(postcss@8.5.9):
+    resolution: {integrity: sha512-uHZg7N9ULTVbutaIsDRoUkoS8/h3bdsmVJYZ5l3wv8Cp/6UIIoRDm90hZ+BwxUj/hGBEzLxdHNSKuFpn8WOyZw==}
+    engines: {node: ^10 || ^12 || >=14}
+    hasBin: true
+    peerDependencies:
+      postcss: ^8.1.0
+    dependencies:
+      browserslist: 4.28.1
+      caniuse-lite: 1.0.30001768
+      fraction.js: 5.3.4
+      picocolors: 1.1.1
+      postcss: 8.5.9
       postcss-value-parser: 4.2.0
     dev: true
 
@@ -22888,6 +22945,14 @@ packages:
       react: 19.2.4
     dev: false
 
+  /lucide-react@0.468.0(react@19.2.4):
+    resolution: {integrity: sha512-6koYRhnM2N0GGZIdXzSeiNwguv1gt/FAjZOiPl76roBi3xKEXa4WmfpxgQwTTL4KipXjefrnf3oV4IsYhi4JFA==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0-rc
+    dependencies:
+      react: 19.2.4
+    dev: false
+
   /lunr@2.3.9:
     resolution: {integrity: sha512-zTU3DaZaF3Rt9rhN3uBMGQD3dD2/vFQqnvZCDv4dl5iOzq2IZQqTxu90r4E5J+nP70J3ilqVCrbho2eWaeW8Ow==}
     dev: true
@@ -24869,27 +24934,27 @@ packages:
     resolution: {integrity: sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg==}
     engines: {node: '>= 0.4'}
 
-  /postcss-import@15.1.0(postcss@8.5.8):
+  /postcss-import@15.1.0(postcss@8.5.9):
     resolution: {integrity: sha512-hpr+J05B2FVYUAXHeK1YyI267J/dDDhMU6B6civm8hSY1jYJnBXxzKDKDswzJmtLHryrjhnDjqqp/49t8FALew==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       postcss: ^8.0.0
     dependencies:
-      postcss: 8.5.8
+      postcss: 8.5.9
       postcss-value-parser: 4.2.0
       read-cache: 1.0.0
       resolve: 1.22.11
 
-  /postcss-js@4.1.0(postcss@8.5.8):
+  /postcss-js@4.1.0(postcss@8.5.9):
     resolution: {integrity: sha512-oIAOTqgIo7q2EOwbhb8UalYePMvYoIeRY2YKntdpFQXNosSu3vLrniGgmH9OKs/qAkfoj5oB3le/7mINW1LCfw==}
     engines: {node: ^12 || ^14 || >= 16}
     peerDependencies:
       postcss: ^8.4.21
     dependencies:
       camelcase-css: 2.0.1
-      postcss: 8.5.8
+      postcss: 8.5.9
 
-  /postcss-load-config@6.0.1(jiti@1.21.7)(postcss@8.5.8):
+  /postcss-load-config@6.0.1(jiti@1.21.7)(postcss@8.5.9):
     resolution: {integrity: sha512-oPtTM4oerL+UXmx+93ytZVN82RrlY/wPUV8IeDxFrzIjXOLF1pN+EmKPLbubvKHT2HC20xXsCAH2Z+CKV6Oz/g==}
     engines: {node: '>= 18'}
     peerDependencies:
@@ -24909,7 +24974,29 @@ packages:
     dependencies:
       jiti: 1.21.7
       lilconfig: 3.1.3
+      postcss: 8.5.9
+
+  /postcss-load-config@6.0.1(postcss@8.5.8):
+    resolution: {integrity: sha512-oPtTM4oerL+UXmx+93ytZVN82RrlY/wPUV8IeDxFrzIjXOLF1pN+EmKPLbubvKHT2HC20xXsCAH2Z+CKV6Oz/g==}
+    engines: {node: '>= 18'}
+    peerDependencies:
+      jiti: '>=1.21.0'
+      postcss: '>=8.0.9'
+      tsx: ^4.8.1
+      yaml: '>=2.8.3'
+    peerDependenciesMeta:
+      jiti:
+        optional: true
+      postcss:
+        optional: true
+      tsx:
+        optional: true
+      yaml:
+        optional: true
+    dependencies:
+      lilconfig: 3.1.3
       postcss: 8.5.8
+    dev: true
 
   /postcss-load-config@6.0.1(postcss@8.5.9)(tsx@4.21.0):
     resolution: {integrity: sha512-oPtTM4oerL+UXmx+93ytZVN82RrlY/wPUV8IeDxFrzIjXOLF1pN+EmKPLbubvKHT2HC20xXsCAH2Z+CKV6Oz/g==}
@@ -24975,13 +25062,13 @@ packages:
       postcss: 8.5.9
     dev: false
 
-  /postcss-nested@6.2.0(postcss@8.5.8):
+  /postcss-nested@6.2.0(postcss@8.5.9):
     resolution: {integrity: sha512-HQbt28KulC5AJzG+cZtj9kvKB93CFCdLvog1WFLf1D+xmMvPGlBstkpTEZfK5+AN9hfJocyBFCNiqyS48bpgzQ==}
     engines: {node: '>=12.0'}
     peerDependencies:
       postcss: ^8.2.14
     dependencies:
-      postcss: 8.5.8
+      postcss: 8.5.9
       postcss-selector-parser: 6.1.2
 
   /postcss-selector-parser@6.1.2:
@@ -25056,6 +25143,7 @@ packages:
       nanoid: 5.1.7
       picocolors: 1.1.1
       source-map-js: 1.2.1
+    dev: true
 
   /postcss@8.5.9:
     resolution: {integrity: sha512-7a70Nsot+EMX9fFU3064K/kdHWZqGVY+BADLyXc8Dfv+mTLLVl6JzJpPaCZ2kQL9gIJvKXSLMHhqdRRjwQeFtw==}
@@ -27387,11 +27475,11 @@ packages:
       normalize-path: 3.0.0
       object-hash: 3.0.0
       picocolors: 1.1.1
-      postcss: 8.5.8
-      postcss-import: 15.1.0(postcss@8.5.8)
-      postcss-js: 4.1.0(postcss@8.5.8)
-      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.8)
-      postcss-nested: 6.2.0(postcss@8.5.8)
+      postcss: 8.5.9
+      postcss-import: 15.1.0(postcss@8.5.9)
+      postcss-js: 4.1.0(postcss@8.5.9)
+      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.9)
+      postcss-nested: 6.2.0(postcss@8.5.9)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.11
       sucrase: 3.35.1
@@ -28029,7 +28117,7 @@ packages:
       joycon: 3.1.1
       picocolors: 1.1.1
       postcss: 8.5.8
-      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.8)
+      postcss-load-config: 6.0.1(postcss@8.5.8)
       resolve-from: 5.0.0
       rollup: 4.60.1
       source-map: 0.7.6
@@ -28075,6 +28163,51 @@ packages:
       picocolors: 1.1.1
       postcss: 8.5.9
       postcss-load-config: 6.0.1(postcss@8.5.9)(tsx@4.21.0)
+      resolve-from: 5.0.0
+      rollup: 4.60.1
+      source-map: 0.7.6
+      sucrase: 3.35.1
+      tinyexec: 0.3.2
+      tinyglobby: 0.2.16
+      tree-kill: 1.2.2
+      typescript: 5.9.3
+    transitivePeerDependencies:
+      - jiti
+      - supports-color
+      - tsx
+      - yaml
+    dev: true
+
+  /tsup@8.5.1(postcss@8.5.9)(typescript@5.9.3):
+    resolution: {integrity: sha512-xtgkqwdhpKWr3tKPmCkvYmS9xnQK3m3XgxZHwSUjvfTjp7YfXe5tT3GgWi0F2N+ZSMsOeWeZFh7ZZFg5iPhing==}
+    engines: {node: '>=18'}
+    hasBin: true
+    peerDependencies:
+      '@microsoft/api-extractor': ^7.36.0
+      '@swc/core': ^1
+      postcss: ^8.4.12
+      typescript: '>=4.5.0'
+    peerDependenciesMeta:
+      '@microsoft/api-extractor':
+        optional: true
+      '@swc/core':
+        optional: true
+      postcss:
+        optional: true
+      typescript:
+        optional: true
+    dependencies:
+      bundle-require: 5.1.0(esbuild@0.27.3)
+      cac: 6.7.14
+      chokidar: 4.0.3
+      consola: 3.4.2
+      debug: 4.4.3
+      esbuild: 0.27.3
+      fix-dts-default-cjs-exports: 1.0.1
+      joycon: 3.1.1
+      picocolors: 1.1.1
+      postcss: 8.5.9
+      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.9)
       resolve-from: 5.0.0
       rollup: 4.60.1
       source-map: 0.7.6
@@ -28399,7 +28532,6 @@ packages:
 
   /undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
-    dev: false
 
   /undici-types@7.16.0:
     resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
