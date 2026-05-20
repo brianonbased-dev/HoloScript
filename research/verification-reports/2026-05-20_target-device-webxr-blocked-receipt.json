@@ -1,0 +1,124 @@
+{
+  "schemaVersion": "holoshell-target-device-proof-receipt/v1",
+  "id": "target_device_webxr_blocked_2026_05_20_codex",
+  "scenario": "two-agent-handoff-catch",
+  "generatedAt": "2026-05-20T05:43:23.347Z",
+  "target": {
+    "kind": "webxr-headset",
+    "label": "Quest/WebXR target device on Joseph Windows host",
+    "transport": "adb"
+  },
+  "status": "blocked",
+  "checks": [
+    {
+      "id": "webxr-compile",
+      "kind": "compile",
+      "status": "pass",
+      "command": "pnpm exec hs compile experiments/format-realism-gauntlet/two-agent-handoff-catch.holo --target webxr -o .bench-logs/format-stress/2026-05-20_codex-target-device-webxr-blocker/target-compiles/webxr",
+      "artifactPath": ".bench-logs/format-stress/2026-05-20_codex-target-device-webxr-blocker/target-compiles/webxr",
+      "detail": "WebXR compile artifact written (14779 bytes)."
+    },
+    {
+      "id": "chrome-webgpu-browser-probe",
+      "kind": "browser-acceleration",
+      "status": "pass",
+      "command": "node C:/Users/josep/.ai-ecosystem/scripts/codex-hardware-audit.mjs --probe-browser --browser chrome --agent codex-hardware",
+      "artifactPath": ".bench-logs/format-stress/2026-05-20_codex-target-device-webxr-blocker/browser-webgpu-probe.json",
+      "detail": "Chrome headless WebGPU probe reported navigator.gpu, adapter, and device."
+    },
+    {
+      "id": "adb-device-presence",
+      "kind": "device-presence",
+      "status": "blocked",
+      "command": "adb devices -l",
+      "artifactPath": ".bench-logs/format-stress/2026-05-20_codex-target-device-webxr-blocker/adb-devices.txt",
+      "detail": "ADB server is present, but no attached or authorized target device was listed."
+    },
+    {
+      "id": "quest-host-surface-inventory",
+      "kind": "device-presence",
+      "status": "pass",
+      "command": "Get-PnpDevice -PresentOnly | Where-Object { $_.FriendlyName -match 'Quest|Meta|Oculus|Android|XR|ADB' }",
+      "artifactPath": ".bench-logs/format-stress/2026-05-20_codex-target-device-webxr-blocker/pnp-xr-devices.json",
+      "detail": "Windows reports Quest/Oculus host surfaces, including Quest 3 Bluetooth and Oculus virtual devices; this is not equivalent to ADB frame-capture transport."
+    },
+    {
+      "id": "target-frame-capture",
+      "kind": "frame-capture",
+      "status": "blocked",
+      "artifactPath": ".bench-logs/format-stress/2026-05-20_codex-target-device-webxr-blocker/target-device-proof-receipt.json",
+      "detail": "No target-device stills were captured for 10 required handoff segments because ADB/WebXR target transport is absent. Existing local stills remain headless evidence only."
+    },
+    {
+      "id": "target-frame-timing",
+      "kind": "timing",
+      "status": "blocked",
+      "budgetMs": 11.1,
+      "detail": "No target WebXR frame timing can be sampled without an attached/authorized target runtime."
+    },
+    {
+      "id": "provenance-link",
+      "kind": "provenance",
+      "status": "pass",
+      "artifactPath": ".bench-logs/format-stress/2026-05-19_codex-format-realism-stress-pass/two-agent-handoff-catch/scorecard.json",
+      "detail": "Linked to existing local segmented capture scorecard with 10 local stills and 10 local timing receipts."
+    }
+  ],
+  "blockedReason": "No attached or authorized Quest/WebXR target appeared in adb devices -l; only host-side Quest/Oculus surfaces were present, so target-device frame and timing capture could not run.",
+  "summary": "WebXR compile and Chrome WebGPU readiness pass locally; Quest/WebXR target-device frame capture remains blocked on missing ADB/device-lab transport.",
+  "hash": "51c1bfecc558b1119cfe797490b85d7d989f2f08f692bbe2c02003f477620576",
+  "hashAlgorithm": "sha256",
+  "provenance": {
+    "artifactId": "format-stress-2026-05-20-target-device-webxr-blocker",
+    "sourcePath": ".bench-logs/format-stress/2026-05-20_codex-target-device-webxr-blocker/target-device-proof-receipt.json",
+    "parentArtifactIds": [
+      "format-stress-2026-05-19-stress-pass-scorecard",
+      "format-stress-2026-05-20-webxr-compile",
+      "codex-hardware-audit-2026-05-20-browser-webgpu"
+    ]
+  },
+  "verificationCommands": [
+    {
+      "command": "pnpm --dir C:/Users/josep/.ai-ecosystem check:codex-hardware",
+      "description": "Non-invasive host hardware baseline."
+    },
+    {
+      "command": "node C:/Users/josep/.ai-ecosystem/scripts/codex-hardware-audit.mjs --probe-browser --browser chrome --agent codex-hardware",
+      "description": "Browser WebGPU readiness probe."
+    },
+    {
+      "command": "adb devices -l",
+      "description": "Quest/WebXR target transport presence check."
+    },
+    {
+      "command": "pnpm exec hs compile experiments/format-realism-gauntlet/two-agent-handoff-catch.holo --target webxr -o .bench-logs/format-stress/2026-05-20_codex-target-device-webxr-blocker/target-compiles/webxr",
+      "description": "Fresh WebXR compile for the target scene."
+    }
+  ],
+  "metadata": {
+    "requiredSegments": [
+      "00_scene_loaded",
+      "01_agents_aligned",
+      "02_release_detach",
+      "03_ballistic_arc_early",
+      "04_ballistic_arc_mid",
+      "05_ballistic_arc_late",
+      "06_catch_volume",
+      "07_catch_constraint",
+      "08_ownership_transfer",
+      "09_receipt_panel"
+    ],
+    "localStillEvidence": ".bench-logs/format-stress/2026-05-19_codex-format-realism-stress-pass/two-agent-handoff-catch/stills",
+    "localScorecard": ".bench-logs/format-stress/2026-05-19_codex-format-realism-stress-pass/two-agent-handoff-catch/scorecard.json",
+    "browserWebgpuStatus": "available",
+    "hardwareGpuNames": [
+      "NVIDIA GeForce RTX 3060 Laptop GPU",
+      "Meta Virtual Monitor",
+      "overay-virtual-display Device",
+      "Intel(R) UHD Graphics"
+    ],
+    "adbDeviceLines": [],
+    "pnpSurfaceBytes": 1078,
+    "netListenerEvidence": "LocalAddress LocalPort OwningProcess\r\n------------ --------- -------------\r\n127.0.0.1         5037         43692"
+  }
+}
