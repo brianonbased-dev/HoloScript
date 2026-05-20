@@ -6,6 +6,8 @@ HoloScript compiles `.holo` compositions to VRChat SDK3 + UdonSharp automaticall
 
 > **対象読者 / Target audience**: VRChat world creators who already use Unity + VRChat SDK3. This tutorial assumes you can import a Unity package and run Play mode. No C# or UdonSharp knowledge required.
 
+> **日本語版**: [HoloScriptでVRChat物理ワールドを作る](./vrchat-physics-worlds-ja.md)
+
 ---
 
 ## Why HoloScript for VRChat Physics?
@@ -353,6 +355,26 @@ Common issues:
 
 ---
 
+## Wireless Quest Preview With HoloTunnel
+
+If you do not have a Link cable, keep the VRChat upload path in desktop Unity
+and use HoloTunnel for headset preview loops:
+
+```bash
+# Start your local Studio or WebXR preview first, then expose it.
+node packages/studio/scripts/holotunnel-client.mjs --port 3101
+```
+
+Open the printed `/live` URL in Quest Browser. This is a WebXR preview path for
+checking scale, readability, interaction intent, and target-device comfort
+before you package the VRChat world in Unity. It does not replace VRChat SDK
+`Build & Test`; it removes the need for a cable during iteration.
+
+Agents with MCP access can also call `holo_tunnel_create` for the same
+local-to-cloud bridge.
+
+---
+
 ## Publishing
 
 1. In Unity: **VRChat SDK → Build & Publish for Windows**
@@ -368,3 +390,6 @@ Common issues:
 - [Physics Solver Overview](../physics/) — Underlying solvers (cloth, fluid, structural)
 - [Tutorial 01: Multi-Agent Workflow](./01_MultiAgentWorkflow.md) — AI agents in HoloScript worlds
 - [USD/Omniverse Integration](../targets/usd-omniverse.md) — Export to NVIDIA simulation
+- [VRChat Creator Docs](https://creators.vrchat.com/worlds/) — Official VRChat world creation docs
+- [Current VRChat Unity Version](https://creators.vrchat.com/sdk/upgrade/current-unity-version/) — Official supported Unity version
+- [HoloLand Japan Outreach Brief](../marketing/vrchat-japan-hololand-physics-outreach.md) — Japanese community posting package
