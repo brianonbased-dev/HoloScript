@@ -209,13 +209,21 @@ export function startHoloTunnel(options: HoloTunnelOptions): Promise<HoloTunnelH
         let respBody = '';
 
         try {
+          // Defensive timeout for POST/PUT etc. (orchestrator relay has been observed to hang on some POST paths).
+          // 8s is generous for local dev but prevents a single bad request from stalling the entire tunnel.
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 8000);
+
           const resp = await (fetchImpl as typeof fetch)(localUrl, {
             method,
             headers: fwdHeaders,
             body: bodyBuf && bodyBuf.length > 0 ? bodyBuf : undefined,
             // @ts-expect-error — Node fetch accepts duplex
             duplex: 'half',
+            signal: controller.signal,
           });
+          clearTimeout(timeout);
+
           status = resp.status;
           resp.headers.forEach((v, k) => { respHeaders[k] = v; });
           // Drop content-encoding — fetch already decoded the body
