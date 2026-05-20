@@ -942,6 +942,16 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const options = parseArgs(args);
 
+  // Truthful CLI: unknown subcommands must exit nonzero (prevents false-green validation receipts).
+  const known = ['help','validate','parse','run','ast','repl','watch','compile','build','add','remove','list','traits','suggest','generate','templates','pack','unpack','inspect','diff','wot-export','headless','package','deploy','monitor','publish','login','logout','whoami','access','org','token','export','import','visualize','screenshot','prerender','pdf','absorb','graph-status','impact','impact-analysis','query','smoke','self-improve','daemon','setup-hooks','remove-hooks','setup-mcp','issue-key','quickstart','init','help','version'];
+  if (!known.includes(options.command)) {
+    cliError('E000', `Unknown subcommand: ${options.command}`, {
+      usage: 'holoscript <command> [options]',
+      hint: 'Run `holoscript help` (or `holoscript`) for the list of valid commands. Mistyped commands now fail loudly.',
+    });
+    process.exit(1);
+  }
+
   switch (options.command) {
     case 'help':
       printHelp();
