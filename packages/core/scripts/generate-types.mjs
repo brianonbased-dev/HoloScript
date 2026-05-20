@@ -5608,6 +5608,8 @@ export declare class DaemonFieldSeparationError extends Error { constructor(mess
 export declare function assertDaemonFieldSeparation(daemon: ConversationDaemon): void;
 export declare function makeDefaultConversationDaemon(daemonId: string, ownerId: string, displayName: string, careProfile: string): ConversationDaemon;
 export declare function makeEmptyContextDelta(): ContextDelta;
+export declare function generateROS2LaunchFile(packageName: string, urdfFilename: string, options?: { useSimTime?: boolean; rviz?: boolean; gazebo?: boolean; controllers?: string[]; }): string;
+export declare function generateControllersYaml(robotName: string, jointNames: string[], options?: { controllerType?: string; publishRate?: number; }): string;
 `;
 
 const finalMainDTS = mainDTS + holoLandTraitsDTS + careFieldDTS + conversationDaemonDTS;
