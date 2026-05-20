@@ -197,6 +197,35 @@ echo -e "  ├─ Complexity analysis... ${YELLOW}⚠ skipped${NC}"
 # Gate 7: Security audit — DISABLED for pre-commit
 echo -e "  ├─ Security audit... ${YELLOW}⚠ skipped (CI handles this)${NC}"
 
+# Gate 8: Brain (.hsplus) scope enforcement (prevents W.087 incidental drift)
+# Any staged change to compositions/*.hsplus must be explicitly called out
+# in the conventional commit scope. This stops load-bearing system prompts
+# (security-auditor-brain, codex-brain, antigravity-*, fleet-trust-*, etc.)
+# from being modified as side-effect noise inside unrelated NMOS/CI/paper commits.
+echo "  ├─ Brain (.hsplus) scope enforcement..."
+BRAIN_FILES=$(git diff --cached --name-only -- 'compositions/*.hsplus' 2>/dev/null || true)
+if [ -n "$BRAIN_FILES" ]; then
+    MSG_FILE=".git/COMMIT_EDITMSG"
+    if [ -f "$MSG_FILE" ]; then
+        MSG=$(cat "$MSG_FILE" 2>/dev/null || echo "")
+    else
+        MSG=$(git log -1 --pretty=%B 2>/dev/null || echo "")
+    fi
+    if ! echo "$MSG" | grep -qiE '\(compositions\)|\[compositions\]'; then
+        echo -e "  ${RED}❌ Brain file(s) staged without 'compositions' scope${NC}"
+        echo "     Staged brain files:"
+        echo "$BRAIN_FILES" | sed 's/^/       /'
+        echo "     Commit message must contain '(compositions)' or '[compositions]'."
+        echo "     Example: chore(compositions): codex-brain — document hardware ratchet"
+        echo "     This prevents load-bearing .hsplus prompts from landing as diff noise (see Anomaly 2/3 in fleet-trust-2026-05-19)."
+        FAILED=1
+    else
+        echo -e "  ${GREEN}✓${NC} Brain changes properly scoped"
+    fi
+else
+    echo -e "  ${GREEN}✓${NC} No brain files staged"
+fi
+
 # Final result
 if [ $FAILED -eq 1 ]; then
     echo ""
