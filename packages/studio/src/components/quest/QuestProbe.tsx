@@ -9,7 +9,15 @@
  * See plan: research/quest3-iphone-moment/a-quest3-feasibility-probe.md
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+import {
+  questHandReceiptKey,
+  startQuestHandTrackingReceiptObserver,
+  type QuestHandTrackingReceipt,
+  type QuestInputSourceLike,
+  type QuestXRSessionLike,
+} from '../../lib/xr/questHandTrackingReceipt';
 
 type Status = 'OK' | 'WARN' | 'FAIL';
 
@@ -20,18 +28,115 @@ interface Result {
   at: number;
 }
 
+const PROBE_TIMEOUT_MS = 12000;
+
+function proofRunId(): string {
+  if (typeof window === 'undefined') return new Date().toISOString().slice(0, 10);
+  const fromUrl = new URLSearchParams(window.location.search).get('runId');
+  if (fromUrl) return fromUrl;
+  return `${new Date().toISOString().slice(0, 10)}-quest-proof`;
+}
+
+async function withTimeout<T>(promise: Promise<T>, label: string, timeoutMs = PROBE_TIMEOUT_MS): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs = 3500
+): Promise<Response | null> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch {
+    return null;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+function proofContext() {
+  if (typeof window === 'undefined') return {};
+  return {
+    url: window.location.href,
+    userAgent: navigator.userAgent,
+    viewport: {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      devicePixelRatio: window.devicePixelRatio,
+      orientation: screen.orientation?.type ?? null,
+      crossOriginIsolated: self.crossOriginIsolated === true,
+    },
+    xr: {
+      hasNavigatorXr: getXR() !== null,
+    },
+  };
+}
+
+function proofApiPath(path: string): string {
+  if (typeof window === 'undefined') return path;
+  const tunnel = window.location.pathname.match(/^\/t\/[^/]+/);
+  if (tunnel) return `${tunnel[0]}${path}`;
+  if (window.location.pathname.startsWith('/live/')) return `/live${path}`;
+  return path;
+}
+
+async function postProofReceipt(label: string, status: Status, detail: string) {
+  if (typeof window === 'undefined') return;
+  const context = proofContext();
+  const payload = {
+    runId: proofRunId(),
+    pageId: 'quest-probe',
+    label,
+    status,
+    detail,
+    ...context,
+  };
+  const posted = await fetchWithTimeout(proofApiPath('/api/quest-proof'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).then((res) => res?.ok === true);
+  if (posted) return;
+  const query = new URLSearchParams({
+    record: '1',
+    runId: payload.runId,
+    pageId: payload.pageId,
+    label,
+    status,
+    detail,
+    url: context.url ?? '',
+    userAgent: context.userAgent ?? '',
+  });
+  await fetchWithTimeout(`${proofApiPath('/api/quest-proof')}?${query.toString()}`, {
+    cache: 'no-store',
+  });
+}
+
 // Minimal WebXR type polyfill — @types/webxr isn't always present.
 interface XRSystemLike {
   isSessionSupported(mode: string): Promise<boolean>;
   requestSession(
     mode: string,
-    opts?: { requiredFeatures?: string[]; optionalFeatures?: string[] }
+    opts?: { requiredFeatures?: string[]; optionalFeatures?: string[]; domOverlay?: { root: Element } }
   ): Promise<XRSessionLike>;
 }
-interface XRSessionLike {
+interface XRSessionLike extends QuestXRSessionLike {
   enabledFeatures?: string[];
-  inputSources: ReadonlyArray<{ hand?: unknown }>;
-  addEventListener(type: 'end', cb: () => void): void;
+  inputSources: ReadonlyArray<QuestInputSourceLike>;
+  addEventListener(type: string, cb: () => void): void;
   end(): Promise<void>;
 }
 
@@ -45,9 +150,7 @@ interface SpeechRecognitionLike {
   continuous: boolean;
   interimResults: boolean;
   onresult:
-    | ((e: {
-        results: ArrayLike<{ 0: { transcript: string; confidence: number } }>;
-      }) => void)
+    | ((e: { results: ArrayLike<{ 0: { transcript: string; confidence: number } }> }) => void)
     | null;
   onerror: ((e: { error: string }) => void) | null;
   start(): void;
@@ -67,10 +170,31 @@ export function QuestProbe() {
   const [results, setResults] = useState<Result[]>([]);
   const [log, setLog] = useState<string[]>([]);
   const [running, setRunning] = useState<string | null>(null);
+  const [handReceipt, setHandReceipt] = useState<QuestHandTrackingReceipt | null>(null);
+  const handOverlayRef = useRef<HTMLDivElement | null>(null);
+  const handObserverRef = useRef<(() => void) | null>(null);
+  const lastHandReceiptKeyRef = useRef<string | null>(null);
 
-  const push = (label: string, status: Status, detail: string) =>
+  useEffect(() => {
+    return () => {
+      handObserverRef.current?.();
+      handObserverRef.current = null;
+    };
+  }, []);
+
+  const push = (label: string, status: Status, detail: string) => {
     setResults((rs) => [...rs, { label, status, detail, at: Date.now() }]);
+    void postProofReceipt(label, status, detail);
+  };
   const say = (s: string) => setLog((l) => [...l, s]);
+
+  const recordHandReceipt = (receipt: QuestHandTrackingReceipt) => {
+    setHandReceipt(receipt);
+    const key = questHandReceiptKey(receipt);
+    if (key === lastHandReceiptKeyRef.current && receipt.event !== 'end') return;
+    lastHandReceiptKeyRef.current = key;
+    push(receipt.label, receipt.status, receipt.detail);
+  };
 
   const checkWebXR = async () => {
     setRunning('webxr');
@@ -78,8 +202,10 @@ export function QuestProbe() {
     if (!xr) {
       push('WebXR API', 'FAIL', 'navigator.xr missing — old browser');
     } else {
-      const vr = await xr.isSessionSupported('immersive-vr').catch(() => false);
-      const ar = await xr.isSessionSupported('immersive-ar').catch(() => false);
+      const vr = await withTimeout(xr.isSessionSupported('immersive-vr'), 'immersive-vr support')
+        .catch(() => false);
+      const ar = await withTimeout(xr.isSessionSupported('immersive-ar'), 'immersive-ar support')
+        .catch(() => false);
       push('WebXR immersive-vr', vr ? 'OK' : 'FAIL', vr ? 'supported' : 'not supported');
       push(
         'WebXR immersive-ar',
@@ -99,13 +225,27 @@ export function QuestProbe() {
       return;
     }
     try {
-      const session = await xr.requestSession('immersive-vr', {
-        optionalFeatures: ['hand-tracking', 'local-floor', 'bounded-floor'],
+      const domOverlayRoot = handOverlayRef.current ?? undefined;
+      const session = await withTimeout(
+        xr.requestSession('immersive-vr', {
+          optionalFeatures: ['hand-tracking', 'local-floor', 'bounded-floor', 'dom-overlay'],
+          ...(domOverlayRoot ? { domOverlay: { root: domOverlayRoot } } : {}),
+        }),
+        'VR session start',
+        15000
+      );
+      handObserverRef.current?.();
+      lastHandReceiptKeyRef.current = null;
+      setHandReceipt(null);
+      handObserverRef.current = startQuestHandTrackingReceiptObserver(session, {
+        onReceipt: recordHandReceipt,
       });
-      push('VR session start', 'OK', 'session created');
+      push('VR session start', 'OK', 'session created; exit with Quest browser/system controls');
       say('enabled features: ' + JSON.stringify(session.enabledFeatures ?? []));
-      session.addEventListener('end', () => say('VR session ended'));
-      setTimeout(() => void session.end(), 3000);
+      session.addEventListener('end', () => {
+        handObserverRef.current = null;
+        say('VR session ended');
+      });
     } catch (e) {
       push('VR session start', 'FAIL', e instanceof Error ? e.message : String(e));
     }
@@ -121,17 +261,20 @@ export function QuestProbe() {
       return;
     }
     try {
-      const session = await xr.requestSession('immersive-vr', {
-        requiredFeatures: ['hand-tracking'],
-      });
-      await new Promise((r) => setTimeout(r, 1500));
-      const hands = [...session.inputSources].filter((s) => s.hand);
+      const vr = await withTimeout(xr.isSessionSupported('immersive-vr'), 'immersive-vr support');
+      if (handReceipt) {
+        push('Hand tracking', handReceipt.status, `in-session receipt: ${handReceipt.detail}`);
+        setRunning(null);
+        return;
+      }
       push(
         'Hand tracking',
-        hands.length > 0 ? 'OK' : 'WARN',
-        `${hands.length} hands visible (raise hands for detection)`
+        vr ? 'WARN' : 'FAIL',
+        vr
+          ? 'readiness only; Enter VR now records visible hand receipts inside the active session'
+          : 'immersive-vr not supported, so hand tracking cannot be checked'
       );
-      void session.end();
+      say('Hand tracking check does not start or force-end a separate VR session.');
     } catch (e) {
       push('Hand tracking', 'FAIL', e instanceof Error ? e.message : String(e));
     }
@@ -147,11 +290,15 @@ export function QuestProbe() {
       return;
     }
     try {
-      const session = await xr.requestSession('immersive-ar', {
-        requiredFeatures: ['local-floor'],
-      });
-      push('Passthrough (AR)', 'OK', 'AR session started — you should see your room');
-      setTimeout(() => void session.end(), 3000);
+      const session = await withTimeout(
+        xr.requestSession('immersive-ar', {
+          requiredFeatures: ['local-floor'],
+        }),
+        'Passthrough session',
+        15000
+      );
+      push('Passthrough (AR)', 'OK', 'AR session started; exit with Quest browser/system controls');
+      session.addEventListener('end', () => say('Passthrough session ended'));
     } catch (e) {
       push('Passthrough (AR)', 'FAIL', e instanceof Error ? e.message : String(e));
     }
@@ -161,7 +308,16 @@ export function QuestProbe() {
   const checkMic = async () => {
     setRunning('mic');
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!navigator.mediaDevices?.getUserMedia) {
+        push('Microphone', 'FAIL', 'mediaDevices.getUserMedia missing');
+        setRunning(null);
+        return;
+      }
+      const stream = await withTimeout(
+        navigator.mediaDevices.getUserMedia({ audio: true }),
+        'Microphone permission',
+        15000
+      );
       const ctx = new AudioContext();
       const src = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
@@ -192,10 +348,15 @@ export function QuestProbe() {
     }
     try {
       const r = new Ctor();
+      const timeout = window.setTimeout(() => {
+        push('SpeechRecognition', 'WARN', 'no speech result before timeout');
+        setRunning(null);
+      }, 15000);
       r.lang = 'en-US';
       r.continuous = false;
       r.interimResults = false;
       r.onresult = (e) => {
+        window.clearTimeout(timeout);
         const res = e.results[0];
         push(
           'SpeechRecognition',
@@ -205,6 +366,7 @@ export function QuestProbe() {
         setRunning(null);
       };
       r.onerror = (e) => {
+        window.clearTimeout(timeout);
         push('SpeechRecognition', 'FAIL', e.error);
         setRunning(null);
       };
@@ -233,8 +395,12 @@ export function QuestProbe() {
   const checkFetch = async () => {
     setRunning('fetch');
     try {
-      const res = await fetch('/api/share', { method: 'GET' });
-      push('Fetch /api/share', res.ok ? 'OK' : 'WARN', `status ${res.status}`);
+      const res = await fetchWithTimeout(proofApiPath('/api/share'), { method: 'GET' });
+      push(
+        'Fetch /api/share',
+        res?.ok ? 'OK' : 'WARN',
+        res ? `status ${res.status}` : 'request timed out'
+      );
     } catch (e) {
       push('Fetch /api/share', 'FAIL', e instanceof Error ? e.message : String(e));
     }
@@ -296,10 +462,18 @@ export function QuestProbe() {
     s === 'OK' ? '#6fd36f' : s === 'WARN' ? '#f7c34b' : '#ef6b6b';
 
   return (
-    <div style={{ padding: 16, color: '#eee', background: '#111', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div
+      style={{
+        padding: 16,
+        color: '#eee',
+        background: '#111',
+        minHeight: '100vh',
+        fontFamily: 'system-ui, sans-serif',
+      }}
+    >
       <h1 style={{ fontSize: 22, margin: '0 0 12px' }}>HoloScript Quest 3 Probe</h1>
       <p style={{ color: '#9ca3af', fontSize: 14 }}>
-        Tap each button in order. When done, click <b>Export</b> to download observations.
+        Tap each button in order. Results also sync to the local proof log for this run.
       </p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: 12 }}>
@@ -313,8 +487,52 @@ export function QuestProbe() {
         {btn('fetch', '8. Fetch API', checkFetch)}
       </div>
 
+      <div
+        id="quest-probe-hand-overlay"
+        ref={handOverlayRef}
+        role="status"
+        aria-live="polite"
+        style={{
+          position: 'fixed',
+          top: 12,
+          right: 12,
+          zIndex: 1000,
+          maxWidth: 280,
+          border: '1px solid #2563eb',
+          borderRadius: 8,
+          background: 'rgba(0, 0, 0, 0.78)',
+          color: '#e5e7eb',
+          padding: '10px 12px',
+          fontSize: 13,
+          lineHeight: 1.35,
+          boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
+        }}
+      >
+        <div style={{ color: '#93c5fd', fontWeight: 700 }}>In-session hands</div>
+        <div>
+          {handReceipt
+            ? `${handReceipt.visibleHandCount}/${handReceipt.trackedHandCount} visible`
+            : 'waiting for active VR session'}
+        </div>
+        <div style={{ color: '#9ca3af' }}>
+          {handReceipt
+            ? `sources ${handReceipt.inputSourceCount} - frame ${handReceipt.frameCount}`
+            : 'autoEnd=false'}
+        </div>
+      </div>
+
       <div style={{ marginBottom: 12 }}>
-        <button onClick={reset} style={{ background: '#374151', color: 'white', border: 0, borderRadius: 6, padding: '8px 14px', marginRight: 6 }}>
+        <button
+          onClick={reset}
+          style={{
+            background: '#374151',
+            color: 'white',
+            border: 0,
+            borderRadius: 6,
+            padding: '8px 14px',
+            marginRight: 6,
+          }}
+        >
           Reset
         </button>
         <button
