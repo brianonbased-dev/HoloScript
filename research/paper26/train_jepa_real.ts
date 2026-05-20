@@ -98,7 +98,7 @@ function saveCheckpoint(
     baselineCurve,
     trainedCurve,
     metadata: {
-      latentDim: (predictor as any).latentDim || 8,
+      latentDim: (predictor as any).latentDim || LATENT_DIM,
       condDim: (predictor as any).condDim || 4,
       corpusEpisodes: metadata.corpusEpisodes || 30,
       totalSteps: metadata.totalSteps || 1361,
@@ -136,7 +136,11 @@ async function main() {
   const manifestPath = path.join(corpusDir, 'manifest.json');
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as Array<{id: string}>;
 
-  const predictor = new JEPAPredictor({ latentDim: 8, condDim: 4 }); // demo dimensions matching our synthetic corpus
+  // Scaled dimensions for this run (infrastructure now supports it via durable checkpoints)
+  const LATENT_DIM = 16;
+  const COND_DIM = 4;
+
+  const predictor = new JEPAPredictor({ latentDim: LATENT_DIM, condDim: COND_DIM });
   const results: any[] = [];
   let totalLoss = 0;
   let withinTol = 0;
@@ -205,7 +209,7 @@ async function main() {
   const lr = 0.02;
 
   // Create a fresh predictor for the baseline (frozen)
-  const baselinePredictor = new JEPAPredictor({ latentDim: 8, condDim: 4 });
+  const baselinePredictor = new JEPAPredictor({ latentDim: LATENT_DIM, condDim: COND_DIM });
 
   for (let epoch = 0; epoch < 5; epoch++) {
     let epochLoss = 0;
@@ -248,18 +252,23 @@ async function main() {
   let trainedCurve: number[] = [];
   const loadedCp = loadLatestCheckpoint(RUN_ID);
 
-  const trainedPredictor = new JEPAPredictor({ latentDim: 8, condDim: 4 });
+  const trainedPredictor = new JEPAPredictor({ latentDim: LATENT_DIM, condDim: COND_DIM });
 
   if (loadedCp) {
-    (trainedPredictor as any).setWeights({
-      W1: arrayToFloat32(loadedCp.weights.W1),
-      b1: arrayToFloat32(loadedCp.weights.b1),
-      W2: arrayToFloat32(loadedCp.weights.W2),
-      b2: arrayToFloat32(loadedCp.weights.b2),
-    });
-    trainedCurve = [...loadedCp.trainedCurve];
-    startEpoch = loadedCp.epoch + 1;
-    console.log(`[resume] continuing training from epoch ${startEpoch}`);
+    const loadedDim = loadedCp.metadata.latentDim || 8;
+    if (loadedDim !== LATENT_DIM) {
+      console.log(`[checkpoint] dimension mismatch (loaded ${loadedDim}, current ${LATENT_DIM}) — starting fresh run`);
+    } else {
+      (trainedPredictor as any).setWeights({
+        W1: arrayToFloat32(loadedCp.weights.W1),
+        b1: arrayToFloat32(loadedCp.weights.b1),
+        W2: arrayToFloat32(loadedCp.weights.W2),
+        b2: arrayToFloat32(loadedCp.weights.b2),
+      });
+      trainedCurve = [...loadedCp.trainedCurve];
+      startEpoch = loadedCp.epoch + 1;
+      console.log(`[resume] continuing training from epoch ${startEpoch}`);
+    }
   }
 
   function sgdStep(pred: JEPAPredictor, contextEmb: Float32Array, target: Float32Array, lr: number) {
@@ -331,9 +340,9 @@ async function main() {
         const gt = ep.ground_truth[i];
 
         const stateStr = JSON.stringify({ obs, act });
-        const contextEmb = new Float32Array((trainedPredictor as any).latentDim || 8);
+        const contextEmb = new Float32Array((trainedPredictor as any).latentDim || LATENT_DIM);
 
-        const gtHash = new Float32Array((trainedPredictor as any).latentDim || 8);
+        const gtHash = new Float32Array((trainedPredictor as any).latentDim || LATENT_DIM);
         for (let k = 0; k < gtHash.length; k++) {
           gtHash[k] = ((gt.x || 0) * 0.1 + k * 0.01) % 1.0;
         }
