@@ -216,6 +216,19 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
     tags: ['holoshell', 'readiness', 'verification'],
   },
   {
+    capability: 'local-codebase',
+    description:
+      'Local codebase snapshot receipts — prove sourceFiles bundles came from safe local filesystem state.',
+    receiptType: 'HoloShellLocalCodebaseSnapshotReceipt',
+    module: 'holoshell-local-codebase-snapshot-receipt',
+    exportName: 'HoloShellLocalCodebaseSnapshotReceipt',
+    validateFn: 'validateHoloShellLocalCodebaseSnapshotReceipt',
+    cloneFn: 'cloneHoloShellLocalCodebaseSnapshotReceipt',
+    isSupportedFn: 'isSupportedLocalCodebaseSnapshotStatus',
+    subjects: ['sourceFiles', 'graph', 'absorb', 'local-files', 'redaction', 'replay'],
+    tags: ['holoshell', 'codebase', 'absorb', 'readiness'],
+  },
+  {
     capability: 'workfile-custody',
     description:
       'Work-file custody receipts — prove file parsing, preview, export, and safety handling.',

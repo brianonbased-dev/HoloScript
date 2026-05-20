@@ -431,6 +431,29 @@ export {
 } from './holoshell-readiness-receipt';
 
 export {
+  // HoloShell Local Codebase Snapshot Receipt
+  LOCAL_CODEBASE_SNAPSHOT_STATUSES,
+  LOCAL_CODEBASE_REDACTION_STATUSES,
+  LOCAL_CODEBASE_PRIVACY_CLASSES,
+  LOCAL_CODEBASE_SKIP_REASONS,
+  type LocalCodebaseSnapshotStatus,
+  type LocalCodebaseRedactionStatus,
+  type LocalCodebasePrivacyClass,
+  type LocalCodebaseSkipReason,
+  type LocalCodebaseHashAlgorithm,
+  type LocalCodebaseSnapshotRoot,
+  type LocalCodebaseSnapshotFile,
+  type LocalCodebaseSkippedFile,
+  type LocalCodebaseSourceFilePayload,
+  type LocalCodebaseGraphReceipt,
+  type HoloShellLocalCodebaseSnapshotReceipt,
+  isSupportedLocalCodebaseSnapshotStatus,
+  isSupportedLocalCodebaseRedactionStatus,
+  validateHoloShellLocalCodebaseSnapshotReceipt,
+  cloneHoloShellLocalCodebaseSnapshotReceipt,
+} from './holoshell-local-codebase-snapshot-receipt';
+
+export {
   // HoloShell Work-File Custody Receipt (task_1778868513735_mv51)
   WORKFILE_KINDS,
   WORKFILE_PRIVACY_CLASSES,

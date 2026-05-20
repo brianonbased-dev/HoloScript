@@ -492,6 +492,29 @@ export {
   cloneHoloShellWorkFileCustodyReceipt,
 } from './board';
 
+// HoloShell Local Codebase Snapshot Receipt
+export {
+  LOCAL_CODEBASE_SNAPSHOT_STATUSES,
+  LOCAL_CODEBASE_REDACTION_STATUSES,
+  LOCAL_CODEBASE_PRIVACY_CLASSES,
+  LOCAL_CODEBASE_SKIP_REASONS,
+  type LocalCodebaseSnapshotStatus,
+  type LocalCodebaseRedactionStatus,
+  type LocalCodebasePrivacyClass,
+  type LocalCodebaseSkipReason,
+  type LocalCodebaseHashAlgorithm,
+  type LocalCodebaseSnapshotRoot,
+  type LocalCodebaseSnapshotFile,
+  type LocalCodebaseSkippedFile,
+  type LocalCodebaseSourceFilePayload,
+  type LocalCodebaseGraphReceipt,
+  type HoloShellLocalCodebaseSnapshotReceipt,
+  isSupportedLocalCodebaseSnapshotStatus,
+  isSupportedLocalCodebaseRedactionStatus,
+  validateHoloShellLocalCodebaseSnapshotReceipt,
+  cloneHoloShellLocalCodebaseSnapshotReceipt,
+} from './board';
+
 // HoloShell Asset Shard Receipts (task_1779092479438_6pk4)
 export {
   ASSET_SHARD_KINDS,
