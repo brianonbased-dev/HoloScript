@@ -77,6 +77,22 @@ Source seed: [HoloScript Autonomous Enhancements Summary](../../idea-seeds/archi
 | VRR validation, not VRR revival | `packages/core/src/compiler/VRRCompiler.ts` and `packages/runtime/src/VRRRuntime.ts` now contain implemented surfaces; the archive's stub claim is historical. | Completed 2026-05-20: [VRR validation receipt](../compilers/vr-reality-validation-receipt.md) records compiler/runtime/performance and CLI E2E passes; no missing runtime dependency was found. |
 | Dependency audit closure        | Root `health:deps` / `audit:security` scripts are the current entry points; do not copy archived vulnerability counts.                                         | A bounded audit run is attached to a follow-up task, with each actionable package decision split into update, replace, accept-risk, or no-op.          |
 
+### Roadmap v3.1-v5.0 Harvest
+
+Source seed: [HoloScript Roadmap v3.0.x v5.0 (Merged)](../../idea-seeds/archive-farm/2026-05-12_reports_holoscript-roadmap-v3-0-x-v5-0-merged.md), promoted on 2026-05-20 from the archived [merged roadmap](../archive/reports/ROADMAP_v3.1-v5.0_MERGED.md).
+
+The archive is historical input, not the active plan. Live reads this session:
+the seed says "preserve the idea only if it survives current source contracts";
+the archive itself points v5.0+ readers back to this roadmap; and
+[VISION_V5.md](./vision/VISION_V5.md) frames v5.0 as the autonomous/economic
+convergence layer. The useful residue is three board-sized tasks:
+
+| Priority | Harvested lane | Current check | Done when |
+| -------- | -------------- | ------------- | --------- |
+| P2 | Autonomous agent execution proof | The active 6.x criteria require an autonomous agent to spawn natively in a VR training simulation. | A Studio/HoloShell proof path shows an agent identity, HoloMesh task or room context, runtime seat, and replay receipt in one VR-safe surface. |
+| P2 | x402 economic contract proof | The active 6.x criteria require a sovereign economic contract through x402; the old v5.0 "economic primitives" line is only useful as provenance. | A replayable receipt proves contract creation, payer/payee identity, amount/unit, and non-secret verification command without copying wallet material into docs. |
+| P3 | Retire fixed roadmap coverage tables | [ROADMAP_STUDIO_AUDIT.md](../archive/ROADMAP_STUDIO_AUDIT.md) carries historical coverage tables, while this roadmap says metrics belong in [docs/NUMBERS.md](../NUMBERS.md). | The audit is marked historical-only or replaced by a generated check that links to source files and live metric commands instead of fixed percentages. |
+
 ---
 
 ## 6.x Verification Criteria
