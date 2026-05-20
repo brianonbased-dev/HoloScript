@@ -18,6 +18,10 @@
  */
 
 import { planAndAnchorNPCAction } from './jepa-predictor-adapter';
+import { JEPAPredictor } from '../../../core/src/traits/JEPAPredictor';
+
+// Real sovereign JEPAPredictor — latentDim=16, condDim=8
+const jepaPredictor = new JEPAPredictor({ latentDim: 16, condDim: 8 });
 
 function simulateNPCStep(step: number, currentState: string) {
   const candidates = ['move_forward', 'turn_left', 'turn_right', 'wait', 'interact'];
@@ -27,14 +31,8 @@ function simulateNPCStep(step: number, currentState: string) {
     candidateActions: candidates,
     worldId: 'world_demo_001',
   }, (state, actions) => {
-    // In a real system this would be the loaded JEPAPredictor instance
-    // Here we use a deterministic stub so the example is runnable without full weights
-    const idx = step % actions.length;
-    return {
-      action: actions[idx],
-      predicted: new Float32Array([0.1 * step, 0.2, 0.3]),
-      confidence: 0.8 + (step % 5) * 0.03,
-    };
+    // Real JEPAPredictor.plan — seeded weights produce deterministic output
+    return jepaPredictor.plan(state, actions);
   });
 
   console.log(`Step ${step}: state="${currentState}"`);
