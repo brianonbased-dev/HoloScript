@@ -985,3 +985,222 @@ export function cloneHoloShellTargetDeviceProofPack(
     ...(pack.provenance ? { provenance: { ...pack.provenance, parentArtifactIds: pack.provenance.parentArtifactIds ? [...pack.provenance.parentArtifactIds] : undefined } } : {}),
   };
 }
+
+// ── Physical Actuation Extension Receipts ─────────────────────────────────────
+// These 4 receipt types extend DeviceSafetyReceiptPack for physical actuation
+// workflows: deterministic simulation preview, sensor/approval freshness,
+// safe stop, and physical rollback limits.
+// task_1779224072780_t5pu
+
+export const ACTUATION_SIMULATION_RECEIPT_VERSION = 'holoscript-actuation-simulation-receipt/v1';
+
+/** Deterministic simulation preview receipt produced before any physical actuation. */
+export interface ActuationSimulationReceipt {
+  schemaVersion: typeof ACTUATION_SIMULATION_RECEIPT_VERSION;
+  /** Unique receipt ID. */
+  id: string;
+  /** The action that was simulated. */
+  actionId: string;
+  /** Device or robot target for the actuation. */
+  targetDeviceId: string;
+  /** Predicted outcome description. */
+  predictedOutcome: string;
+  /** Whether the simulation passed safety constraints. */
+  simulationPassed: boolean;
+  /** Max force/torque estimate from simulation (N or N·m). */
+  peakForceEstimate?: number;
+  /** Max displacement/travel estimate (mm). */
+  peakDisplacementMm?: number;
+  /** Duration of the simulated motion (ms). */
+  durationMs: number;
+  /** Simulation engine or solver used. */
+  simulationEngine: string;
+  /** ISO-8601 timestamp when simulation ran. */
+  simulatedAt: string;
+  /** Optional hash of the simulation state snapshot. */
+  stateSnapshotHash?: string;
+}
+
+export const SENSOR_FRESHNESS_RECEIPT_VERSION = 'holoscript-sensor-freshness-receipt/v1';
+
+/** Sensor and approval freshness receipt — proves sensor data and consent are not stale. */
+export interface SensorFreshnessReceipt {
+  schemaVersion: typeof SENSOR_FRESHNESS_RECEIPT_VERSION;
+  /** Unique receipt ID. */
+  id: string;
+  /** The action requiring fresh sensor/approval data. */
+  actionId: string;
+  /** Max sensor age that was allowed (ms). */
+  maxSensorAgeMs: number;
+  /** Actual sensor data age at execution time (ms). */
+  actualSensorAgeMs: number;
+  /** Whether sensor data was fresh enough. */
+  sensorFresh: boolean;
+  /** Max consent approval age allowed (ms). */
+  maxApprovalAgeMs: number;
+  /** Actual consent approval age at execution time (ms). */
+  actualApprovalAgeMs: number;
+  /** Whether consent approval was fresh enough. */
+  approvalFresh: boolean;
+  /** Overall freshness pass/fail. */
+  fresh: boolean;
+  /** ISO-8601 timestamp when freshness was checked. */
+  checkedAt: string;
+}
+
+export const SAFE_STOP_RECEIPT_VERSION = 'holoscript-safe-stop-receipt/v1';
+
+export const SAFE_STOP_TRIGGERS = [
+  'operator_request',
+  'sensor_limit_exceeded',
+  'consent_expired',
+  'simulation_divergence',
+  'hardware_fault',
+  'timeout',
+  'envelope_violation',
+] as const;
+export type SafeStopTrigger = (typeof SAFE_STOP_TRIGGERS)[number];
+
+/** Safe stop receipt — documents the halting of a physical actuation before or during execution. */
+export interface SafeStopReceipt {
+  schemaVersion: typeof SAFE_STOP_RECEIPT_VERSION;
+  /** Unique receipt ID. */
+  id: string;
+  /** The action that was stopped. */
+  actionId: string;
+  /** The device that was stopped. */
+  targetDeviceId: string;
+  /** What triggered the safe stop. */
+  trigger: SafeStopTrigger;
+  /** Human-readable reason for the stop. */
+  reason: string;
+  /** Whether the device reached a safe state after stop. */
+  safeCategoryReached: boolean;
+  /** Device state at the time of stop. */
+  deviceStateAtStop?: string;
+  /** ISO-8601 timestamp when stop was issued. */
+  stoppedAt: string;
+  /** Whether the action may be retried after resolving the trigger. */
+  retryEligible: boolean;
+}
+
+export const PHYSICAL_ROLLBACK_LIMIT_RECEIPT_VERSION = 'holoscript-physical-rollback-limit-receipt/v1';
+
+/** Physical rollback limit receipt — documents what physical changes can and cannot be undone. */
+export interface PhysicalRollbackLimitReceipt {
+  schemaVersion: typeof PHYSICAL_ROLLBACK_LIMIT_RECEIPT_VERSION;
+  /** Unique receipt ID. */
+  id: string;
+  /** The action whose rollback limits are described. */
+  actionId: string;
+  /** The device whose state may have changed. */
+  targetDeviceId: string;
+  /** Whether the physical action is reversible at all. */
+  reversible: boolean;
+  /** What can be rolled back (e.g. 'motor position returned to origin'). */
+  rollbackScope?: string;
+  /** What cannot be rolled back (e.g. 'ink deposited on substrate is permanent'). */
+  irreversibleScope?: string;
+  /** Max rollback window in milliseconds (0 = no rollback possible). */
+  rollbackWindowMs: number;
+  /** Whether rollback was attempted. */
+  rollbackAttempted: boolean;
+  /** Whether rollback succeeded (undefined if not attempted). */
+  rollbackSucceeded?: boolean;
+  /** ISO-8601 timestamp of the irreversible state transition, if applicable. */
+  irreversibleAt?: string;
+}
+
+// ── Pack Extension: Actuation Fields ──
+
+/**
+ * Optional extension to HoloShellDeviceSafetyReceiptPack for physical actuation workflows.
+ * Attach to the base pack via composition rather than mutation.
+ */
+export interface HoloShellActuationExtension {
+  /** Simulation preview receipt (required before physical actuation). */
+  simulation?: ActuationSimulationReceipt;
+  /** Sensor and approval freshness receipt. */
+  sensorFreshness?: SensorFreshnessReceipt;
+  /** Safe stop receipt, if the action was stopped. */
+  safeStop?: SafeStopReceipt;
+  /** Physical rollback limit receipt. */
+  rollbackLimit?: PhysicalRollbackLimitReceipt;
+}
+
+// ── Validators ──
+
+export function validateActuationSimulationReceipt(
+  receipt: ActuationSimulationReceipt
+): string[] {
+  const errors: string[] = [];
+  if (receipt.schemaVersion !== ACTUATION_SIMULATION_RECEIPT_VERSION)
+    errors.push(`ActuationSimulationReceipt.schemaVersion must be "${ACTUATION_SIMULATION_RECEIPT_VERSION}".`);
+  if (!receipt.id) errors.push('ActuationSimulationReceipt.id is required.');
+  if (!receipt.actionId) errors.push('ActuationSimulationReceipt.actionId is required.');
+  if (!receipt.targetDeviceId) errors.push('ActuationSimulationReceipt.targetDeviceId is required.');
+  if (!receipt.predictedOutcome) errors.push('ActuationSimulationReceipt.predictedOutcome is required.');
+  if (typeof receipt.simulationPassed !== 'boolean') errors.push('ActuationSimulationReceipt.simulationPassed must be boolean.');
+  if (typeof receipt.durationMs !== 'number' || receipt.durationMs < 0)
+    errors.push('ActuationSimulationReceipt.durationMs must be a non-negative number.');
+  if (!receipt.simulationEngine) errors.push('ActuationSimulationReceipt.simulationEngine is required.');
+  if (!receipt.simulatedAt) errors.push('ActuationSimulationReceipt.simulatedAt is required.');
+  return errors;
+}
+
+export function validateSensorFreshnessReceipt(receipt: SensorFreshnessReceipt): string[] {
+  const errors: string[] = [];
+  if (receipt.schemaVersion !== SENSOR_FRESHNESS_RECEIPT_VERSION)
+    errors.push(`SensorFreshnessReceipt.schemaVersion must be "${SENSOR_FRESHNESS_RECEIPT_VERSION}".`);
+  if (!receipt.id) errors.push('SensorFreshnessReceipt.id is required.');
+  if (!receipt.actionId) errors.push('SensorFreshnessReceipt.actionId is required.');
+  if (typeof receipt.maxSensorAgeMs !== 'number' || receipt.maxSensorAgeMs < 0)
+    errors.push('SensorFreshnessReceipt.maxSensorAgeMs must be a non-negative number.');
+  if (typeof receipt.actualSensorAgeMs !== 'number' || receipt.actualSensorAgeMs < 0)
+    errors.push('SensorFreshnessReceipt.actualSensorAgeMs must be a non-negative number.');
+  if (typeof receipt.sensorFresh !== 'boolean') errors.push('SensorFreshnessReceipt.sensorFresh must be boolean.');
+  if (typeof receipt.maxApprovalAgeMs !== 'number' || receipt.maxApprovalAgeMs < 0)
+    errors.push('SensorFreshnessReceipt.maxApprovalAgeMs must be a non-negative number.');
+  if (typeof receipt.actualApprovalAgeMs !== 'number' || receipt.actualApprovalAgeMs < 0)
+    errors.push('SensorFreshnessReceipt.actualApprovalAgeMs must be a non-negative number.');
+  if (typeof receipt.approvalFresh !== 'boolean') errors.push('SensorFreshnessReceipt.approvalFresh must be boolean.');
+  if (typeof receipt.fresh !== 'boolean') errors.push('SensorFreshnessReceipt.fresh must be boolean.');
+  if (!receipt.checkedAt) errors.push('SensorFreshnessReceipt.checkedAt is required.');
+  // Cross-field: fresh = sensorFresh && approvalFresh
+  if (receipt.fresh !== (receipt.sensorFresh && receipt.approvalFresh))
+    errors.push('SensorFreshnessReceipt.fresh must equal sensorFresh && approvalFresh.');
+  return errors;
+}
+
+export function validateSafeStopReceipt(receipt: SafeStopReceipt): string[] {
+  const errors: string[] = [];
+  if (receipt.schemaVersion !== SAFE_STOP_RECEIPT_VERSION)
+    errors.push(`SafeStopReceipt.schemaVersion must be "${SAFE_STOP_RECEIPT_VERSION}".`);
+  if (!receipt.id) errors.push('SafeStopReceipt.id is required.');
+  if (!receipt.actionId) errors.push('SafeStopReceipt.actionId is required.');
+  if (!receipt.targetDeviceId) errors.push('SafeStopReceipt.targetDeviceId is required.');
+  if (!SAFE_STOP_TRIGGERS.includes(receipt.trigger as SafeStopTrigger))
+    errors.push(`SafeStopReceipt.trigger must be one of: ${SAFE_STOP_TRIGGERS.join(', ')}.`);
+  if (!receipt.reason) errors.push('SafeStopReceipt.reason is required.');
+  if (typeof receipt.safeCategoryReached !== 'boolean') errors.push('SafeStopReceipt.safeCategoryReached must be boolean.');
+  if (!receipt.stoppedAt) errors.push('SafeStopReceipt.stoppedAt is required.');
+  if (typeof receipt.retryEligible !== 'boolean') errors.push('SafeStopReceipt.retryEligible must be boolean.');
+  return errors;
+}
+
+export function validatePhysicalRollbackLimitReceipt(receipt: PhysicalRollbackLimitReceipt): string[] {
+  const errors: string[] = [];
+  if (receipt.schemaVersion !== PHYSICAL_ROLLBACK_LIMIT_RECEIPT_VERSION)
+    errors.push(`PhysicalRollbackLimitReceipt.schemaVersion must be "${PHYSICAL_ROLLBACK_LIMIT_RECEIPT_VERSION}".`);
+  if (!receipt.id) errors.push('PhysicalRollbackLimitReceipt.id is required.');
+  if (!receipt.actionId) errors.push('PhysicalRollbackLimitReceipt.actionId is required.');
+  if (!receipt.targetDeviceId) errors.push('PhysicalRollbackLimitReceipt.targetDeviceId is required.');
+  if (typeof receipt.reversible !== 'boolean') errors.push('PhysicalRollbackLimitReceipt.reversible must be boolean.');
+  if (typeof receipt.rollbackWindowMs !== 'number' || receipt.rollbackWindowMs < 0)
+    errors.push('PhysicalRollbackLimitReceipt.rollbackWindowMs must be a non-negative number.');
+  if (typeof receipt.rollbackAttempted !== 'boolean') errors.push('PhysicalRollbackLimitReceipt.rollbackAttempted must be boolean.');
+  // Cross-field: rollbackSucceeded only meaningful if rollbackAttempted
+  if (!receipt.rollbackAttempted && receipt.rollbackSucceeded !== undefined)
+    errors.push('PhysicalRollbackLimitReceipt.rollbackSucceeded must be undefined when rollbackAttempted=false.');
+  return errors;
+}

@@ -50,6 +50,19 @@ import {
   type DeviceStateSnapshot,
   type PrivacyRedactionEntry,
   type ReplayLessonEntry,
+  ACTUATION_SIMULATION_RECEIPT_VERSION,
+  SENSOR_FRESHNESS_RECEIPT_VERSION,
+  SAFE_STOP_RECEIPT_VERSION,
+  PHYSICAL_ROLLBACK_LIMIT_RECEIPT_VERSION,
+  SAFE_STOP_TRIGGERS,
+  validateActuationSimulationReceipt,
+  validateSensorFreshnessReceipt,
+  validateSafeStopReceipt,
+  validatePhysicalRollbackLimitReceipt,
+  type ActuationSimulationReceipt,
+  type SensorFreshnessReceipt,
+  type SafeStopReceipt,
+  type PhysicalRollbackLimitReceipt,
 } from '../holoshell-device-safety-receipts';
 
 // ── Fixtures ──
@@ -705,5 +718,127 @@ describe('Device Safety Receipts — clone helpers', () => {
     expect(cloned.consent).not.toBe(pack.consent);
     expect(cloned.action).not.toBe(pack.action);
     expect(cloned.replay).not.toBe(pack.replay);
+  });
+});
+// ── Physical Actuation Extension Receipt Tests ───────────────────────────────
+
+describe('ActuationSimulationReceipt', () => {
+  const valid: ActuationSimulationReceipt = {
+    schemaVersion: ACTUATION_SIMULATION_RECEIPT_VERSION,
+    id: 'sim-001',
+    actionId: 'act-001',
+    targetDeviceId: 'robot-arm-01',
+    predictedOutcome: 'arm moves 45deg at 0.5 rad/s within safe range',
+    simulationPassed: true,
+    peakForceEstimate: 12.5,
+    peakDisplacementMm: 200,
+    durationMs: 2000,
+    simulationEngine: 'HoloScript-PhysicsSolver-v1',
+    simulatedAt: '2026-05-20T00:00:00.000Z',
+  };
+
+  it('passes validation for a valid receipt', () => {
+    expect(validateActuationSimulationReceipt(valid)).toHaveLength(0);
+  });
+
+  it('rejects wrong schemaVersion', () => {
+    const r = { ...valid, schemaVersion: 'wrong/v1' as typeof ACTUATION_SIMULATION_RECEIPT_VERSION };
+    expect(validateActuationSimulationReceipt(r).some(e => e.includes('schemaVersion'))).toBe(true);
+  });
+
+  it('rejects missing id', () => {
+    const r = { ...valid, id: '' };
+    expect(validateActuationSimulationReceipt(r).some(e => e.includes('.id'))).toBe(true);
+  });
+
+  it('rejects negative durationMs', () => {
+    const r = { ...valid, durationMs: -1 };
+    expect(validateActuationSimulationReceipt(r).some(e => e.includes('durationMs'))).toBe(true);
+  });
+});
+
+describe('SensorFreshnessReceipt', () => {
+  const valid: SensorFreshnessReceipt = {
+    schemaVersion: SENSOR_FRESHNESS_RECEIPT_VERSION,
+    id: 'fresh-001',
+    actionId: 'act-001',
+    maxSensorAgeMs: 5000,
+    actualSensorAgeMs: 1200,
+    sensorFresh: true,
+    maxApprovalAgeMs: 30000,
+    actualApprovalAgeMs: 8000,
+    approvalFresh: true,
+    fresh: true,
+    checkedAt: '2026-05-20T00:00:00.000Z',
+  };
+
+  it('passes validation for a valid receipt', () => {
+    expect(validateSensorFreshnessReceipt(valid)).toHaveLength(0);
+  });
+
+  it('rejects fresh=true when sensorFresh=false', () => {
+    const r = { ...valid, sensorFresh: false, fresh: true };
+    expect(validateSensorFreshnessReceipt(r).some(e => e.includes('fresh must equal'))).toBe(true);
+  });
+
+  it('accepts fresh=false when one sub-flag is false', () => {
+    const r = { ...valid, sensorFresh: false, fresh: false };
+    expect(validateSensorFreshnessReceipt(r)).toHaveLength(0);
+  });
+});
+
+describe('SafeStopReceipt', () => {
+  const valid: SafeStopReceipt = {
+    schemaVersion: SAFE_STOP_RECEIPT_VERSION,
+    id: 'stop-001',
+    actionId: 'act-001',
+    targetDeviceId: 'robot-arm-01',
+    trigger: 'operator_request',
+    reason: 'Operator pressed emergency stop',
+    safeCategoryReached: true,
+    stoppedAt: '2026-05-20T00:00:00.000Z',
+    retryEligible: false,
+  };
+
+  it('passes validation for a valid receipt', () => {
+    expect(validateSafeStopReceipt(valid)).toHaveLength(0);
+  });
+
+  it('rejects unknown trigger', () => {
+    const r = { ...valid, trigger: 'unknown_trigger' as SafeStopReceipt['trigger'] };
+    expect(validateSafeStopReceipt(r).some(e => e.includes('trigger'))).toBe(true);
+  });
+
+  it('SAFE_STOP_TRIGGERS covers all expected values', () => {
+    expect(SAFE_STOP_TRIGGERS).toContain('operator_request');
+    expect(SAFE_STOP_TRIGGERS).toContain('sensor_limit_exceeded');
+    expect(SAFE_STOP_TRIGGERS).toContain('envelope_violation');
+  });
+});
+
+describe('PhysicalRollbackLimitReceipt', () => {
+  const valid: PhysicalRollbackLimitReceipt = {
+    schemaVersion: PHYSICAL_ROLLBACK_LIMIT_RECEIPT_VERSION,
+    id: 'rollback-001',
+    actionId: 'act-001',
+    targetDeviceId: 'robot-arm-01',
+    reversible: true,
+    rollbackScope: 'motor position returned to origin',
+    rollbackWindowMs: 5000,
+    rollbackAttempted: false,
+  };
+
+  it('passes validation for a valid receipt', () => {
+    expect(validatePhysicalRollbackLimitReceipt(valid)).toHaveLength(0);
+  });
+
+  it('rejects rollbackSucceeded set when rollbackAttempted=false', () => {
+    const r = { ...valid, rollbackAttempted: false, rollbackSucceeded: true };
+    expect(validatePhysicalRollbackLimitReceipt(r).some(e => e.includes('rollbackSucceeded'))).toBe(true);
+  });
+
+  it('accepts rollbackSucceeded when rollbackAttempted=true', () => {
+    const r = { ...valid, rollbackAttempted: true, rollbackSucceeded: true };
+    expect(validatePhysicalRollbackLimitReceipt(r)).toHaveLength(0);
   });
 });
