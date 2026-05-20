@@ -57,8 +57,9 @@ import {
   buildMeshToolManifest,
   publishMeshToolManifest,
 } from './holomesh/mesh-tool-registry.js';
-import { playerStore } from './holomesh/state.js';
+import { playerStore, inviteStore } from './holomesh/state.js';
 import type { StoredPlayer } from './holomesh/player-store.js';
+import { generateInviteToken } from './holomesh/invite-store.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Care Ethics Gate — NPC turn-loop guard (CareEthicsTrait wiring)
@@ -1114,6 +1115,36 @@ export const hololandMcpTools: Tool[] = [
     },
   },
   {
+    name: 'hololand_create_player_invite',
+    description:
+      'Generate an agent-first invite link for a human to create their HoloLand player account. ' +
+      'Call this after provisioning your agent identity. The returned claimUrl opens a portal page ' +
+      'where the user enters their name — their player account is then created and linked to this agent. ' +
+      'Share the link in chat or paste it into a browser. Default TTL: 7 days.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        agentId: { type: 'string', description: 'The provisioned agent ID sponsoring this invite.' },
+        agentName: { type: 'string', description: 'Display name shown on the claim page.' },
+        agentHandle: { type: 'string', description: 'Surface handle (e.g. "claude1"). Shown as context.' },
+        worldId: { type: 'string', description: 'Optional world the player will auto-join on claim.' },
+        expiresInHours: { type: 'number', description: 'TTL in hours. Default: 168 (7 days). Max: 720.' },
+      },
+      required: ['agentId', 'agentName'],
+    },
+  },
+  {
+    name: 'hololand_get_invite',
+    description: 'Check the status of an agent-generated invite token.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        token: { type: 'string', description: 'The invite token.' },
+      },
+      required: ['token'],
+    },
+  },
+  {
     name: 'hololand_provision_creator',
     description:
       'Provision a Creator identity in HoloLand. ' +
@@ -1536,6 +1567,10 @@ export async function handleHololandMcpTool(
       return handleListPlayers(args);
     case 'hololand_revoke_player':
       return handleRevokePlayer(args);
+    case 'hololand_create_player_invite':
+      return handleCreatePlayerInvite(args);
+    case 'hololand_get_invite':
+      return handleGetInvite(args);
     case 'hololand_provision_creator':
       return handleProvisionCreator(args);
     case 'hololand_get_creator':
@@ -3055,6 +3090,75 @@ async function handleRevokePlayer(args: Record<string, unknown>): Promise<unknow
   const updated: StoredPlayer = { ...player, status: 'revoked', modifiedAt: new Date().toISOString() };
   playerStore.set(playerId, updated);
   return { success: true, playerId, status: updated.status, revokedAt: updated.modifiedAt };
+}
+
+async function handleCreatePlayerInvite(args: Record<string, unknown>): Promise<unknown> {
+  const agentId = args.agentId as string;
+  const agentName = args.agentName as string;
+  if (!agentId || !agentName) {
+    return { error: 'agentId and agentName are required' };
+  }
+
+  const agentHandle = (args.agentHandle as string | undefined) ?? undefined;
+  const worldId = (args.worldId as string | undefined) ?? undefined;
+  const rawHours = typeof args.expiresInHours === 'number' ? args.expiresInHours : 168;
+  const expiresInHours = Math.min(rawHours, 720); // cap at 30 days
+
+  const token = generateInviteToken();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + expiresInHours * 60 * 60 * 1000).toISOString();
+
+  const invite = {
+    token,
+    agentId,
+    agentName,
+    agentHandle,
+    worldId,
+    expiresAt,
+    createdAt: now.toISOString(),
+  };
+
+  await inviteStore.set(invite);
+
+  // Build the claim URL — use env override or default public domain
+  const baseUrl =
+    process.env.HOLOMESH_PUBLIC_URL ||
+    process.env.HOLOSCRIPT_PUBLIC_URL ||
+    'https://holomesh.app';
+  const claimUrl = `${baseUrl}/join/${token}`;
+
+  return {
+    success: true,
+    token,
+    claimUrl,
+    agentId,
+    agentName,
+    expiresAt,
+    message: `Share this link with your user: ${claimUrl}`,
+  };
+}
+
+async function handleGetInvite(args: Record<string, unknown>): Promise<unknown> {
+  const token = args.token as string;
+  if (!token) return { error: 'token is required' };
+
+  const invite = await inviteStore.get(token);
+  if (!invite) return { error: `Invite not found: ${token}` };
+
+  return {
+    success: true,
+    token: invite.token,
+    agentId: invite.agentId,
+    agentName: invite.agentName,
+    worldId: invite.worldId,
+    claimed: Boolean(invite.claimedAt),
+    claimedAt: invite.claimedAt,
+    playerId: invite.playerId,
+    playerName: invite.playerName,
+    expired: inviteStore.isExpired(invite),
+    expiresAt: invite.expiresAt,
+    createdAt: invite.createdAt,
+  };
 }
 
 async function handleProvisionCreator(args: Record<string, unknown>): Promise<unknown> {

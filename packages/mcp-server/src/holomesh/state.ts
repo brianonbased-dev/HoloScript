@@ -28,6 +28,7 @@ import { serializeLedger, deserializeLedger } from './identity/token-ledger';
 import { createTeamStore, type TeamStore } from './team-store';
 import { createStateStore, type StateStoreBackend } from './state-store';
 import { createPlayerStore, type PlayerStore, type StoredPlayer } from './player-store';
+import { createInviteStore, type InviteStore } from './invite-store';
 
 // ── Persistence Config ────────────────────────────────────────────────────────
 
@@ -75,6 +76,9 @@ export const teamStore: TeamStore = createTeamStore(); // teamId → Team
 
 // Players (HoloLand users — Postgres-backed so agents never see an empty list)
 export const playerStore: PlayerStore = createPlayerStore(); // playerId → StoredPlayer
+
+// Agent-first invite tokens — claimed by humans to create their player account
+export const inviteStore: InviteStore = createInviteStore(); // token → InviteRecord
 const stateStore: StateStoreBackend = createStateStore(); // audit/defense/dispatch backend
 export const teamPresenceStore: Map<string, Map<string, TeamPresenceEntry>> = new Map(); // teamId → (agentId → presence)
 export const teamMessageStore: Map<string, TeamMessage[]> = new Map(); // teamId → messages
