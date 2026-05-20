@@ -16,6 +16,11 @@
 
 import type { Trait } from './Trait';
 import { AIDriverTrait } from './AIDriverTrait';
+import {
+  dispatchCavemanAction,
+  mapVerbToClip,
+  type CavemanVerb,
+} from './CavemanActionAnimationBridge';
 
 export interface CavemanDriveState {
   hunger: number;     // 0..1 — rises on time, falls on eat
@@ -124,4 +129,26 @@ export class CavemanDriveTrait implements Trait {
       inspect: s.curiosity,
     };
   }
+
+  /**
+   * Called by the brain / AIDriver when the LLM returns one of the 9 allowed verbs.
+   * This is the LLM → animation bridge entry point (BUILD item 6).
+   */
+  onLLMAction(verb: string, target?: string, availableClips?: string[]) {
+    const result = dispatchCavemanAction(
+      /* entity/context */ this as any,
+      verb,
+      target,
+      { fear: this.state.fear },
+      availableClips
+    );
+
+    // Record that we acted (helps the drive gate)
+    this.recordLLMCall();
+
+    return result;
+  }
+
+  /** Pure mapper exposed for tests / scaffolder */
+  static mapVerbToClip = mapVerbToClip;
 }

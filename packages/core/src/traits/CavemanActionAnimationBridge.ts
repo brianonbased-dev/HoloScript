@@ -1,0 +1,155 @@
+/**
+ * CavemanActionAnimationBridge.ts
+ *
+ * LLM verb → NeuralAnimationTrait dispatch bridge for the sovereign caveman NPC.
+ *
+ * Part of the GLB → HoloScript caveman MVP (research/2026-05-16_glb-character-to-sovereign-caveman-agent-EVOLVED.md
+ * BUILD item 6).
+ *
+ * MVP strategy (per EVOLVED corrections):
+ * - Uses glTF clip dispatch / 'clip' fallback_mode (not motion-matching for the initial demo).
+ * - Maps the 9 allowed verbs to common glTF clip names (Mixamo / Ready Player Me / Quaternius conventions).
+ * - Feeds target_pose snapshots via `neural_animation_synthesize` event (or sets clip via the trait when direct API lands).
+ * - Drive state qualifiers (e.g. high fear → more frantic flee) can modulate speed/pose later.
+ * - Falls back gracefully to SyntheticWalkCycleEngine for locomotion verbs when no matching clip.
+ *
+ * This keeps the caveman brain composition declarative and the animation decision sovereign + testable.
+ */
+
+// Entity / context type is trait-runtime specific; we use any here for maximum compatibility
+// across core + runtime surfaces (the emit() call is the only usage).
+
+export type CavemanVerb =
+  | 'eat'
+  | 'drink'
+  | 'flee'
+  | 'inspect'
+  | 'rest'
+  | 'idle'
+  | 'grunt'
+  | 'gesture'
+  | 'attack';
+
+const VERB_TO_CLIP: Record<CavemanVerb, string> = {
+  eat: 'Eating',
+  drink: 'Drinking',
+  flee: 'Run',
+  inspect: 'Inspect',      // may fall back to idle + head turn
+  rest: 'Sit',
+  idle: 'Idle',
+  grunt: 'Gesture',
+  gesture: 'Wave',
+  attack: 'Attack',
+};
+
+export interface AnimationDispatchResult {
+  clipName: string;
+  fallbackUsed: boolean;
+  reason?: string;
+}
+
+/**
+ * Pure mapping (easy to unit test, no side effects).
+ */
+export function mapVerbToClip(
+  verb: string,
+  availableClips: string[] = [],
+  driveFear: number = 0
+): AnimationDispatchResult {
+  const normalized = verb.toLowerCase().trim().split(' ')[0] as CavemanVerb;
+
+  let clip = VERB_TO_CLIP[normalized] || 'Idle';
+  let fallback = false;
+  let reason: string | undefined;
+
+  if (availableClips.length > 0) {
+    // Try exact + common variants
+    const candidates = [
+      clip,
+      clip.toLowerCase(),
+      `${clip}_loop`,
+      `Armature|${clip}`,
+    ];
+    const match = candidates.find((c) => availableClips.includes(c));
+    if (!match) {
+      fallback = true;
+      reason = `No exact clip for "${verb}", falling back to Idle + locomotion engine`;
+      clip = 'Idle';
+    } else {
+      clip = match;
+    }
+  }
+
+  // Drive qualifier example (future: can emit richer target_pose)
+  if (normalized === 'flee' && driveFear > 0.7) {
+    clip = 'Run'; // or a panicked variant if present
+  }
+
+  return { clipName: clip, fallbackUsed: fallback, reason };
+}
+
+/**
+ * Runtime dispatch.
+ * Emits the event that NeuralAnimationTrait understands for clip-driven synthesis.
+ * In a fuller implementation this would also load the actual clip from the GLB and
+ * produce a SkeletonPose snapshot; for the MVP the trait's 'clip' fallback + existing
+ * HumanoidLoader glTF animation data does the heavy lifting.
+ */
+export function dispatchCavemanAction(
+  entity: any,                 // the HoloScript entity / node
+  verb: string,
+  target?: string,
+  driveState?: { fear?: number },
+  availableClips?: string[]
+): AnimationDispatchResult {
+  const fear = driveState?.fear ?? 0;
+  const result = mapVerbToClip(verb, availableClips ?? [], fear);
+
+  // The canonical way to drive the trait from external decision logic (LLM bridge)
+  // is the 'neural_animation_synthesize' event with a target_pose.
+  // For clip-based MVP we also set the intended clip name so the handler / loader can react.
+  const context = (entity as any).context ?? entity; // trait context or entity facade
+
+  context.emit?.('neural_animation_synthesize', {
+    node: entity,
+    target_pose: {
+      // Minimal pose descriptor the bridge can supply; real pose comes from clip sampling
+      // in the runtime handler + glTF data.
+      source: 'clip',
+      clip: result.clipName,
+      verb,
+      target,
+      fallback: result.fallbackUsed,
+    },
+    clipName: result.clipName,
+    verb,
+  });
+
+  // Also emit a higher-level "caveman_action" event so BehaviorTree / debug can observe
+  context.emit?.('caveman_action_dispatched', {
+    verb,
+    target,
+    clip: result.clipName,
+    fallback: result.fallbackUsed,
+    reason: result.reason,
+  });
+
+  return result;
+}
+
+/**
+ * Helper for the glb-to-holo scaffolder (BUILD item 7) and brain initialization.
+ * Given a loaded GLB's animation clip names, returns the wiring comment / config
+ * the brain can use.
+ */
+export function getClipWiringHint(availableClips: string[]): string {
+  const mapped = Object.entries(VERB_TO_CLIP).map(([verb, clip]) => {
+    const has = availableClips.some((c) => c.toLowerCase().includes(clip.toLowerCase()));
+    return `  ${verb.padEnd(8)} → ${clip}${has ? '' : ' (missing in GLB — will fallback)'}`;
+  });
+  return [
+    '// Caveman verb → glTF clip mapping (auto-generated by glb-to-holo scaffolder)',
+    '// Edit the VERB_TO_CLIP table in CavemanActionAnimationBridge.ts for new GLBs',
+    ...mapped,
+  ].join('\n');
+}
