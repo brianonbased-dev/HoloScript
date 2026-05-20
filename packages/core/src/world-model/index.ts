@@ -15,6 +15,12 @@ export {
 } from './AdversarialTrajectory';
 
 export {
+  HARDWARE_RECEIPT_METADATA_SCHEMA_VERSION,
+  validatePortableHardwareReceiptMetadata,
+  isPortableHardwareReceiptMetadata,
+} from './HardwareReceiptMetadata';
+
+export {
   buildAdversarialTrajectoryReport,
   serializeReport,
   isReportCountsConsistent,
@@ -114,3 +120,17 @@ export type {
   ScoreSummary,
   ReplaySummary,
 } from './AdversarialTrajectory';
+
+export type {
+  HardwareReceiptSchemaVersion,
+  HardwareReceiptTarget,
+  HardwareReceiptDevice,
+  HardwareReceiptRuntime,
+  HardwareReceiptConstraint,
+  HardwareReceiptMeasuredResult,
+  HardwareReceiptReplayInput,
+  HardwareReceiptProvenance,
+  HardwareReceiptOwner,
+  PortableHardwareReceiptMetadata,
+  HardwareReceiptMetadataValidation,
+} from './HardwareReceiptMetadata';
