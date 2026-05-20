@@ -1,13 +1,28 @@
 {
   "summary": {
     "run_id": "paper26-real-slice-001",
-    "timestamp": "2026-05-20T19:32:56.068Z",
+    "timestamp": "2026-05-20T20:36:04.979Z",
     "episodes": 30,
     "total_steps": 1361,
     "avg_loss": 0.127483,
     "pct_within_3pct": 12.3,
     "receipts_generated": 1361,
-    "notes": "First real forward pass using sovereign JEPAPredictor.plan on solver-pair corpus. Receipts are full WorldModelReceipt objects. Ready for actual JEPAObjective training loop + larger corpus."
+    "baseline_curve": [
+      0.127483,
+      0.127483,
+      0.127483,
+      0.127483,
+      0.127483
+    ],
+    "trained_curve": [
+      0.053064,
+      0.048106,
+      0.048107,
+      0.048107,
+      0.048107
+    ],
+    "improvement_first_epoch_pct": 58.4,
+    "notes": "Baseline (frozen) vs Trained (output-layer + partial hidden SGD) on sovereign JEPAPredictor. Baseline flat, trained drops on epoch 1. First real JEPA training vs baseline comparison for Paper 26 P1 publishability gate."
   },
   "sample_results": [
     {
