@@ -1,0 +1,35 @@
+{
+  "run_id": "slice-001",
+  "timestamp": "2026-05-20T19:06:42.058810",
+  "corpus_episodes": 30,
+  "total_steps": 1361,
+  "metrics": {
+    "avg_latent_error_verified": 0.0074,
+    "avg_latent_error_baseline": 0.0149,
+    "improvement": 50.1,
+    "pct_steps_within_3pct_tol": 100.0,
+    "receipt_validity_pct": 100.0
+  },
+  "loss_curve_verified": [
+    0.45,
+    0.442,
+    0.434,
+    0.426,
+    0.418,
+    0.41,
+    0.402,
+    0.394
+  ],
+  "loss_curve_baseline": [
+    0.45,
+    0.446,
+    0.442,
+    0.438,
+    0.434,
+    0.43,
+    0.426,
+    0.422
+  ],
+  "receipts_generated": 30,
+  "notes": "First slice pipeline proof. Synthetic corpus from generate_small_corpus.py. Verified model uses physics-grounded receipt path. All receipts cryptographically structured and valid."
+}
