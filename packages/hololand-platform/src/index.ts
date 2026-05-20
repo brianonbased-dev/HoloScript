@@ -53,6 +53,10 @@ export {
 // World Build Cockpit — codebase-trust gate (task_1779267196745_rhwb, HoloLand JEPA dogfooding slice 1)
 export { renderCodebaseTrustGate } from './cockpit/codebase-trust-gate';
 export type { CodebaseTrustGateProps, CodebaseTrustGateRender } from './cockpit/codebase-trust-gate';
+
+// HoloLand JEPA NPC control loop wiring (task_1779304511950_rqie)
+export { predictNextWorldStateForNPC } from './npc/jepa-predictor-adapter';
+export type { NPCIntent, NPCObservation, NPCPrediction } from './npc/jepa-predictor-adapter';
 } from './device-lab';
 
 export type {
