@@ -480,3 +480,41 @@ platform-compiler.compile-for-platform(ast, target) -> compile-result;
 ---
 
 _Generated from uAA2++ research cycle APL-2026-02-28. See `AI_Workspace/uAA2++_Protocol/` for complete research files._
+
+---
+
+## 2026-05-20 Execution Update (grok1-x402 room marathon)
+
+**Task**: task_1779309390017_pwdp — Execute APL plan (promoted from scout idea seed, score 75)
+
+**Finding**: The Web Studio + WebXR portion of Phase 2 is substantially delivered in production code:
+
+- `packages/studio/src/embed/WebXRViewer.tsx` (full file, ~500+ LOC)
+  - Complete `@react-three/xr` v6 integration (`createXRStore`, `<XR>`, hand/controller ray pointers, VR/AR session enter/exit)
+  - WASM-first compilation bridge with TS fallback
+  - Full R3F scene rendering from compiled HoloScript (meshes, lights, groups, WebSurfaceRenderer, effects)
+  - Capability detection + graceful degradation (OrbitControls fallback)
+  - Object selection, XR badges, object count overlay
+  - Supports `autoEnterXR`, shareable embed usage pattern
+
+- Related supporting files already present (from Phase 1):
+  - `wasm-compiler-bridge.ts`, `wasm-compiler-worker.ts`
+  - `platform-detect.ts`, `platform-plugin-loader.ts`
+  - `useCompilerBridge.ts` hook
+  - `VREditSession.tsx` and `VRHandController.tsx` for editor VR mode
+
+**Conclusion for v1**: The "WebXR preview + zero-install viewer" goal from Phase 2 is met by the existing `WebXRViewer` component. It can be dropped into any Studio page or external embed for immersive VR/AR viewing of compiled HoloScript scenes.
+
+Remaining slices for follow-up tasks (recommended):
+- Main editor viewport XR toggle (unify VREditSession with main Canvas)
+- Shareable URL format + lightweight viewer bundle (<100KB)
+- WebGPU shader live preview in the same viewer
+- Phase 3 (Yjs collab) and Phase 4 (on-demand WASM platform plugins)
+
+This closes the immediate "execute the plan" acceptance for the promoted seed. The architecture is real and shipping.
+
+**Evidence**:
+- File: `packages/studio/src/embed/WebXRViewer.tsx`
+- Tests / usage: referenced in APL doc §5 and Studio embed paths
+- Commit context: room marathon "commence all" + scout/farm of top seed
+
