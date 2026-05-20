@@ -90,8 +90,6 @@ export interface PersistentConfig {
   backend?: 'memory' | 'file';
 }
 
-const memoryStore = new Map<string, { value: unknown; expiresAt: number | null }>();
-
 function getPersistentSetPayload(
   event: TraitEvent
 ): { key: string; value: unknown; ttlMs?: number } | null {
