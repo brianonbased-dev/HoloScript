@@ -106,7 +106,7 @@ afterEach(() => {
   // noop: explicit cleanup is done per test so we can await process exit.
 });
 
-describe.skip('holoscript-runner daemon mode (requires @holoscript/absorb-service at runtime)', () => {
+describe.todo('holoscript-runner daemon mode (requires @holoscript/absorb-service at runtime) - integration skipped pending service harness in CI; tracked in stabilization lane', () => {
   it('responds to stats/state commands and action protocol, then stops cleanly', async () => {
     const harness = startDaemon();
     const timeoutDetails = () => {

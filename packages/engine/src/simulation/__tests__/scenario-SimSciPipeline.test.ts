@@ -250,7 +250,7 @@ describe('Scenario: Aluminum column under axial compression', () => {
 // ── Scenario 2b: Nonlinear V&V (Green-Lagrange) ─────────────────────────────
 
 describe('Scenario: Nonlinear cantilever benchmark (Green-Lagrange validation)', () => {
-  it.skip('matches linear response order at modest load and remains physically stable', async () => {
+  it.todo('matches linear response order at modest load and remains physically stable - nonlinear cantilever V&V pending full solver parity; tracked per red-flags audit', async () => {
     // Standard cantilever benchmark geometry.
     const size: [number, number, number] = [0.1, 0.1, 1.0];
     const divisions: [number, number, number] = [2, 2, 8];
