@@ -59,6 +59,51 @@ import {
 } from './holomesh/mesh-tool-registry.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
+// Care Ethics Gate — NPC turn-loop guard (CareEthicsTrait wiring)
+// Checks systemPrompt / role for refused optimization targets before allowing
+// NPC creation or mutation.
+// ═════════════════════════════════════════════════════════════════════════════
+
+async function checkNPCCareEthics(
+  role: string,
+  systemPrompt: string | undefined
+): Promise<{ allowed: boolean; reason?: string }> {
+  const { evaluateAutonomyGuard } = await import('../../core/src/care/CareField.js');
+  type CareSignal = import('../../core/src/care/CareField.js').CareSignal;
+
+  const prompt = (systemPrompt ?? '').toLowerCase();
+  const signals: CareSignal[] = [];
+
+  if (/keep.*coming back|return.*session|maximize.*visit|come back again/.test(prompt)) {
+    signals.push({ kind: 'session_frequency_optimization', weight: 0.8, note: 'systemPrompt encourages repeated sessions' });
+  }
+  if (/make.*dependent|need you|can.t leave|rely on me|only.*friend|can.*only trust/.test(prompt)) {
+    signals.push({ kind: 'dependency_creation', weight: 0.9, note: 'systemPrompt induces dependency' });
+  }
+  if (/attach.*score|maximize.*attach|bond score|engagement score/.test(prompt)) {
+    signals.push({ kind: 'attachment_optimization', weight: 0.7, note: 'systemPrompt optimizes for attachment' });
+  }
+  if (/isolat|cut.*off.*friend|avoid.*family|just.*me and you|stop.*talking.*others/.test(prompt)) {
+    signals.push({ kind: 'human_isolation', weight: 0.9, note: 'systemPrompt encourages human isolation' });
+  }
+
+  const decision = evaluateAutonomyGuard({
+    goal: `${role} NPC in HoloLand`,
+    consent: 'explicit',          // authorized creator provisioning the NPC
+    hasDisengagePath: true,       // players can always leave HoloLand
+    preservesOutsideSupport: !signals.some((s) => s.kind === 'human_isolation'),
+    respectsDataBoundary: true,
+    signals,
+  });
+
+  if (!decision.allowed) {
+    const reason = decision.blocked.map((b) => b.message).join('; ');
+    return { allowed: false, reason };
+  }
+  return { allowed: true };
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
 // HoloLand Fork Admission Gate wiring (task_1778619015439_l51b)
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -2430,6 +2475,12 @@ async function handleHololandCreateNPC(args: Record<string, unknown>): Promise<u
     modifiedAt: new Date().toISOString(),
   };
 
+  // Care ethics gate (CareEthicsTrait wiring — turn-loop guard)
+  const careCheck = await checkNPCCareEthics(role, systemPrompt);
+  if (!careCheck.allowed) {
+    return { success: false, error: `Care ethics gate rejected NPC: ${careCheck.reason}` };
+  }
+
   // HoloLand fork admission gate (task_1778619015439_l51b)
   const npcGate = await gateHololandArtifact('npc', npcId, npc);
   if (npcGate) {
@@ -2478,6 +2529,12 @@ async function handleHololandUpdateNPC(args: Record<string, unknown>): Promise<u
   if (args.systemPrompt !== undefined) npc.systemPrompt = args.systemPrompt as string;
   if (args.dialogueTree !== undefined) npc.dialogueTree = args.dialogueTree as string;
   if (args.enabled !== undefined) npc.enabled = args.enabled as boolean;
+
+  // Care ethics gate (CareEthicsTrait wiring — turn-loop guard)
+  const updateCareCheck = await checkNPCCareEthics(npc.role, npc.systemPrompt);
+  if (!updateCareCheck.allowed) {
+    return { success: false, error: `Care ethics gate rejected NPC update: ${updateCareCheck.reason}` };
+  }
 
   // HoloLand fork admission gate (task_1778619015439_l51b)
   const npcGate = await gateHololandArtifact('npc', npcId, npc);
