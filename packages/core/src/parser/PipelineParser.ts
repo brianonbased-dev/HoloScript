@@ -51,7 +51,7 @@ export interface PipelineOnError {
 export interface PipelineSource {
   kind: 'source';
   name: string;
-  type: 'rest' | 'webhook' | 'stream' | 'filesystem' | 'database' | 'mcp' | 'list' | 'stdout';
+  type: 'rest' | 'webhook' | 'stream' | 'filesystem' | 'database' | 'mcp' | 'list' | 'stdout' | 'user_input';
   endpoint?: string;
   path?: string;
   pattern?: string;
@@ -190,6 +190,9 @@ const VALID_SOURCE_TYPES = new Set<PipelineSource['type']>([
   'database',
   'mcp',
   'list',
+  'user_input',
+  'stdout',
+  'webhook',
 ]);
 
 const VALID_TRANSFORM_TYPES = new Set<NonNullable<PipelineTransform['type']>>([

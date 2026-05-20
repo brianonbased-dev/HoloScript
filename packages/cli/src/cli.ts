@@ -1000,18 +1000,41 @@ async function main(): Promise<void> {
           }));
         } else {
           if (options.verbose)
-            console.log(`\x1b[2m[TRACE] Importing HoloScriptCodeParser...\x1b[0m`);
-          const { HoloScriptCodeParser } = await import('@holoscript/core');
-          if (options.verbose)
-            console.log(`\x1b[2m[TRACE] Parser imported. Initializing...\x1b[0m`);
-          const parser = new HoloScriptCodeParser();
-          if (options.verbose) console.log(`\x1b[2m[TRACE] Starting parse...\x1b[0m`);
-          const result = parser.parse(content);
-          parseResult = result;
-          if (options.verbose)
-            console.log(`\x1b[2m[TRACE] Parse complete. Success: ${result.success}\x1b[0m`);
-          success = result.success ?? false;
-          errorList = result.errors;
+            console.log(`\x1b[2m[TRACE] Detecting .hs file type...\x1b[0m`);
+          const { parsePipeline, HoloScriptCodeParser } = await import('@holoscript/core');
+          // Stricter pipeline detection: check for `pipeline` keyword at the
+          // start of a non-comment line. isPipelineSource() uses a loose regex
+          // that matches "pipeline" inside comments (e.g. "// richer pipeline block").
+          const contentNoComments = content.replace(/\/\/[^\n]*/g, '');
+          const isPipeline = /^[ \t]*pipeline\s+["']?\w/m.test(contentNoComments);
+          if (isPipeline) {
+            // Delegate pipeline { source/transform/validate/filter/sink } files to PipelineParser
+            if (options.verbose)
+              console.log(`\x1b[2m[TRACE] Pipeline source detected — using PipelineParser...\x1b[0m`);
+            const result = parsePipeline(content);
+            parseResult = result;
+            if (options.verbose)
+              console.log(`\x1b[2m[TRACE] Pipeline parse complete. Success: ${result.success}\x1b[0m`);
+            success = result.success;
+            errorList = result.errors.map((e: { message: string; line?: number; block?: string }) => ({
+              line: e.line,
+              column: undefined,
+              message: e.block ? `[${e.block}] ${e.message}` : e.message,
+            }));
+          } else {
+            if (options.verbose)
+              console.log(`\x1b[2m[TRACE] Importing HoloScriptCodeParser...\x1b[0m`);
+            if (options.verbose)
+              console.log(`\x1b[2m[TRACE] Parser imported. Initializing...\x1b[0m`);
+            const parser = new HoloScriptCodeParser();
+            if (options.verbose) console.log(`\x1b[2m[TRACE] Starting parse...\x1b[0m`);
+            const result = parser.parse(content);
+            parseResult = result;
+            if (options.verbose)
+              console.log(`\x1b[2m[TRACE] Parse complete. Success: ${result.success}\x1b[0m`);
+            success = result.success ?? false;
+            errorList = result.errors;
+          }
         }
 
         // Custom Validations (Shared with LSP)
