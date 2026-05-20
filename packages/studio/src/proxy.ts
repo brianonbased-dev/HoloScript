@@ -1,6 +1,34 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+const QUEST_PROOF_GUARDS = new Map<string, string>([
+  ['/creator', 'Creator requires an authenticated desktop session before headset proof.'],
+  ['/create', 'Create loads the full editor workbench and is not stable enough for Quest proof sweeps yet.'],
+  [
+    '/playground/locomotion',
+    'Locomotion preview is not promoted for headset proof until its first viewport is deterministic.',
+  ],
+]);
+
+function hasQuestProofIntent(request: NextRequest): boolean {
+  const params = request.nextUrl.searchParams;
+  return params.has('visualSweep') || params.has('runId');
+}
+
+function applySecurityHeaders(
+  response: NextResponse,
+  cspHeader: string,
+  permissionsPolicy: string
+): NextResponse {
+  response.headers.set('Content-Security-Policy', cspHeader);
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', permissionsPolicy);
+  response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  return response;
+}
+
 export function proxy(request: NextRequest) {
   const isScanRoomMobile = request.nextUrl.pathname.startsWith('/scan-room/mobile/');
   const permissionsPolicy = isScanRoomMobile
@@ -29,21 +57,32 @@ export function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('Content-Security-Policy', cspHeader);
 
+  if (hasQuestProofIntent(request)) {
+    const guardedReason = QUEST_PROOF_GUARDS.get(request.nextUrl.pathname);
+    if (guardedReason) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/quest-proof/unavailable';
+      url.searchParams.set('target', request.nextUrl.pathname);
+      url.searchParams.set('reason', guardedReason);
+      return applySecurityHeaders(
+        NextResponse.rewrite(url, {
+          request: {
+            headers: requestHeaders,
+          },
+        }),
+        cspHeader,
+        permissionsPolicy
+      );
+    }
+  }
+
   const response = NextResponse.next({
     request: {
       headers: requestHeaders,
     },
   });
 
-  // Security Headers
-  response.headers.set('Content-Security-Policy', cspHeader);
-  response.headers.set('X-Frame-Options', 'DENY');
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  response.headers.set('Permissions-Policy', permissionsPolicy);
-  response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-
-  return response;
+  return applySecurityHeaders(response, cspHeader, permissionsPolicy);
 }
 
 export const config = {
