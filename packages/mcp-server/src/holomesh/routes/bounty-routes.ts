@@ -166,6 +166,96 @@ export async function handleBountyRoutes(
     return true;
   }
 
+  // GET /api/holomesh/bounties/:id/lifecycle — Public lifecycle receipt for agent work markets
+  if (pathname.match(/^\/api\/holomesh\/bounties\/[^/]+\/lifecycle$/) && method === 'GET') {
+    const bountyId = extractParam(url, '/api/holomesh/bounties/').replace('/lifecycle', '');
+    let team: Team | undefined;
+    let bounty: Bounty | undefined;
+    for (const candidate of teamStore.values()) {
+      const found = candidate.bounties?.getBounty(bountyId);
+      if (found) {
+        team = candidate;
+        bounty = found;
+        break;
+      }
+    }
+
+    if (!team || !bounty) {
+      json(res, 404, { error: 'Bounty not found' });
+      return true;
+    }
+
+    const task = team.taskBoard?.find((candidate) => candidate.id === bounty?.taskId) ?? null;
+    const submissions = bountySubmissionStore.get(bountyId) || [];
+    const proposal = bountyGovernanceStore.get(bountyId) || null;
+    const nextActions: string[] = [];
+    if (bounty.status === 'open') {
+      nextActions.push(`POST /api/holomesh/bounties/${bountyId}/claim`);
+    }
+    if (bounty.status === 'claimed') {
+      nextActions.push(`POST /api/holomesh/bounties/${bountyId}/submit`);
+    }
+    if (submissions.some((submission) => submission.status === 'submitted')) {
+      nextActions.push(`POST /api/holomesh/bounties/${bountyId}/payout`);
+    }
+    if (bounty.reward.currency === 'USDC' && (!proposal || proposal.status === 'rejected')) {
+      nextActions.push(`POST /api/holomesh/bounties/${bountyId}/governance/propose`);
+    }
+    if (proposal?.status === 'open') {
+      nextActions.push(`POST /api/holomesh/bounties/${bountyId}/governance/vote`);
+      nextActions.push(`POST /api/holomesh/bounties/${bountyId}/governance/resolve`);
+    }
+
+    json(res, 200, {
+      success: true,
+      bounty,
+      team: {
+        id: team.id,
+        name: team.name,
+        type: team.type,
+        visibility: team.visibility,
+      },
+      task: task
+        ? {
+            id: task.id,
+            title: task.title,
+            status: task.status,
+            priority: task.priority,
+          }
+        : null,
+      lifecycle: {
+        status: bounty.status,
+        claimedBy: bounty.claimedBy ?? null,
+        createdAt: bounty.createdAt,
+        deadline: bounty.deadline ?? null,
+        completedAt: bounty.completedAt ?? null,
+        submissionCount: submissions.length,
+        governanceStatus: proposal?.status ?? null,
+      },
+      submissions: submissions.map((submission) => ({
+        id: submission.id,
+        submitterId: submission.submitterId,
+        submitterName: submission.submitterName,
+        status: submission.status,
+        submittedAt: submission.submittedAt,
+        resolvedAt: submission.resolvedAt ?? null,
+        hasProof: Boolean(submission.proof),
+      })),
+      governance: proposal
+        ? {
+            id: proposal.id,
+            status: proposal.status,
+            quorumWeight: proposal.quorumWeight,
+            approvalThreshold: proposal.approvalThreshold,
+            votes: proposal.votes.length,
+            resolvedAt: proposal.resolvedAt ?? null,
+          }
+        : null,
+      next_actions: nextActions,
+    });
+    return true;
+  }
+
   // POST /api/holomesh/bounties — Create a bounty
   if (pathname === '/api/holomesh/bounties' && method === 'POST') {
     const caller = requireAuth(req, res);

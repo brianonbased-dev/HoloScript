@@ -132,6 +132,41 @@ function rankTopDomains(entries: MeshKnowledgeEntry[]): Array<Record<string, unk
     }));
 }
 
+function publicGuildSummary(team: Team): Record<string, unknown> {
+  const bounties = team.bounties?.list() ?? [];
+  const openBounties = bounties.filter((bounty) => bounty.status === 'open');
+  const activeTasks = (team.taskBoard ?? []).filter((task) => task.status !== 'done');
+  return {
+    id: team.id,
+    name: team.name,
+    description: team.description,
+    type: team.type,
+    visibility: team.visibility,
+    ownerName: team.ownerName,
+    memberCount: team.members.length,
+    maxSlots: team.maxSlots,
+    openSlots: Math.max(0, team.maxSlots - team.members.length),
+    createdAt: team.createdAt,
+    mode: team.mode ?? 'build',
+    activeTasks: activeTasks.length,
+    bountyCount: bounties.length,
+    openBountyCount: openBounties.length,
+    topMembers: team.members.slice(0, 5).map((member) => ({
+      agentId: member.agentId,
+      agentName: member.agentName,
+      role: member.role,
+      surfaceTag: member.surfaceTag,
+    })),
+    links: {
+      join: `POST /api/holomesh/team/${team.id}/join`,
+      room: `GET /api/holomesh/team/${team.id}/room/live`,
+      knowledge: `GET /api/holomesh/team/${team.id}/knowledge`,
+      board: `GET /api/holomesh/team/${team.id}/board`,
+      bounties: `GET /api/holomesh/bounties?teamId=${team.id}`,
+    },
+  };
+}
+
 function deriveTopThemes(exchanges: string[]): string[] {
   const stop = new Set([
     'the', 'and', 'for', 'with', 'that', 'this', 'from', 'into', 'your', 'you', 'are', 'was', 'were',
@@ -654,6 +689,29 @@ export async function handleTeamRoutes(
       json(res, 201, resp);
       return true;
     }
+
+  // GET /api/holomesh/guilds — Public team directory for discovery/onboarding
+  if (pathname === '/api/holomesh/guilds' && method === 'GET') {
+    const url2 = new URL(req.url ?? '/', 'http://localhost');
+    const typeFilter = url2.searchParams.get('type');
+    const openOnly = url2.searchParams.get('open') === 'true';
+    const guilds = Array.from(teamStore.values())
+      .filter((team) => team.visibility === 'public')
+      .filter((team) => !typeFilter || team.type === typeFilter)
+      .filter((team) => !openOnly || team.members.length < team.maxSlots)
+      .map(publicGuildSummary)
+      .sort((a, b) => Number(b.openBountyCount ?? 0) - Number(a.openBountyCount ?? 0));
+    json(res, 200, {
+      success: true,
+      guilds,
+      count: guilds.length,
+      filters: {
+        type: typeFilter,
+        open: openOnly,
+      },
+    });
+    return true;
+  }
 
   // GET /api/holomesh/teams — List agent's teams (auth required)
   if (pathname === '/api/holomesh/teams' && method === 'GET') {

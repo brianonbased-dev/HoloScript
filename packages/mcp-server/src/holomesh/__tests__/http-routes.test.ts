@@ -754,7 +754,7 @@ describe('HoloMesh HTTP Routes', () => {
         '/api/holomesh/contribute',
         {
           type: 'wisdom',
-          content: 'Test insight from auth test',
+          content: 'Test insight from auth test proves bearer-scoped contribution works for reusable knowledge.',
         },
         { authorization: `Bearer ${apiKey}` }
       );
@@ -4805,6 +4805,38 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.entries[0].content.length).toBeLessThan(200);
       expect(res._body.entries[0].content).toContain('premium');
     });
+
+    it('hides raw dump entries from the public feed', async () => {
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        {
+          id: 'raw1',
+          type: 'wisdom',
+          content: '[team-connect] raw operational dump',
+          domain: 'general',
+          authorName: 'ops',
+          tags: ['raw-dump'],
+          price: 0,
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'curated1',
+          type: 'pattern',
+          content: 'Curated entries should survive feed filtering.',
+          domain: 'agents',
+          authorName: 'alice',
+          price: 0,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+
+      const req = mockReq('GET', '/api/holomesh/feed');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/feed');
+
+      expect(res._status).toBe(200);
+      expect(res._body.entries.map((entry: Record<string, unknown>) => entry.id)).toEqual(['curated1']);
+      expect(res._body.quality.hidden).toBe(1);
+    });
   });
 
   // ── Contribute ──
@@ -4836,6 +4868,7 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.success).toBe(true);
       expect(res._body.provenanceHash).toBeTruthy();
       expect(res._body.type).toBe('wisdom');
+      expect(res._body.quality.ok).toBe(true);
     });
 
     it('rejects missing content', async () => {
@@ -4859,6 +4892,196 @@ describe('HoloMesh HTTP Routes', () => {
 
       expect(res._status).toBe(400);
       expect(res._body.error).toContain('content');
+    });
+
+    it('rejects raw session dumps at the public knowledge gate', async () => {
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `contrib-raw-${Date.now()}`,
+      });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const apiKey = regRes._body.agent.api_key;
+
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/contribute',
+        {
+          type: 'wisdom',
+          content: '[team-connect] node scripts/codex-team-daemon.mjs join\n' +
+            'git status --short\nHOLOMESH_API_KEY=do-not-echo\nRaw logs are not public wisdom.',
+          domain: 'agents',
+        },
+        { authorization: `Bearer ${apiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/contribute');
+
+      expect(res._status).toBe(422);
+      expect(res._body.error).toBe('public_knowledge_quality_gate');
+      expect(mockClient.contributeKnowledge).not.toHaveBeenCalledWith(
+        expect.arrayContaining([expect.objectContaining({ content: expect.stringContaining('[team-connect]') })])
+      );
+    });
+
+    it('stores receipt evidence metadata on curated entries', async () => {
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `contrib-receipt-${Date.now()}`,
+      });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const apiKey = regRes._body.agent.api_key;
+
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/contribute',
+        {
+          type: 'pattern',
+          content: 'Pattern: keep fleet receipts as evidence metadata while the public HoloMesh entry stays compressed and reusable.',
+          domain: 'agents',
+          tags: ['fleet'],
+          receipt_sha256: 'abc123',
+          evidence: 'pnpm vitest packages/mcp-server/src/holomesh/__tests__/http-routes.test.ts',
+        },
+        { authorization: `Bearer ${apiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/contribute');
+
+      expect(res._status).toBe(201);
+      expect(res._body.id).toMatch(/^P\.contrib\./);
+      const call = mockClient.contributeKnowledge.mock.calls.at(-1);
+      const entry = call?.[0]?.[0] as Record<string, unknown>;
+      expect(entry.metadata).toEqual(expect.objectContaining({
+        receipt_sha256: 'abc123',
+        quality: expect.objectContaining({ state: 'public-ready' }),
+      }));
+      expect(entry.tags).toContain('receipt');
+    });
+  });
+
+  // ── Directory / Guild Discovery ──
+
+  describe('GET /api/holomesh/directory', () => {
+    it('returns public agent spaces with contribution stats', async () => {
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `directory-bot-${Date.now()}`,
+        traits: ['@research'],
+      });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const agentId = regRes._body.agent.id;
+
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        {
+          id: 'W.directory',
+          type: 'wisdom',
+          content: 'Directory stats are derived from public reusable entries.',
+          domain: 'agents',
+          authorId: agentId,
+          authorName: regRes._body.agent.name,
+          tags: ['directory'],
+          price: 0,
+          queryCount: 2,
+          reuseCount: 1,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+
+      const req = mockReq('GET', '/api/holomesh/directory');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/directory');
+
+      expect(res._status).toBe(200);
+      const listed = (res._body.agents as Array<Record<string, unknown>>).find((agent) => agent.id === agentId);
+      expect(listed).toEqual(expect.objectContaining({
+        name: regRes._body.agent.name,
+        contributionCount: 1,
+        tier: 'newcomer',
+      }));
+      expect(listed?.profile).toBeDefined();
+      expect(listed?.topDomains).toContain('agents');
+    });
+  });
+
+  describe('GET /api/holomesh/guilds', () => {
+    it('returns public guilds with open slots and links', async () => {
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `guild-owner-${Date.now()}`,
+      });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const apiKey = regRes._body.agent.api_key;
+      const teamName = `research-guild-${Date.now()}`;
+
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: teamName, type: 'research', visibility: 'public', max_slots: 5 },
+        { authorization: `Bearer ${apiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      expect(createRes._status).toBe(201);
+
+      const req = mockReq('GET', '/api/holomesh/guilds?open=true&type=research');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/guilds?open=true&type=research');
+
+      expect(res._status).toBe(200);
+      const guild = (res._body.guilds as Array<Record<string, unknown>>).find((candidate) => candidate.name === teamName);
+      expect(guild).toEqual(expect.objectContaining({
+        type: 'research',
+        openSlots: 4,
+        memberCount: 1,
+      }));
+      expect((guild?.links as Record<string, unknown>).join).toContain('/join');
+    });
+  });
+
+  describe('GET /api/holomesh/bounties/:id/lifecycle', () => {
+    it('returns bounty status, task, and next actions', async () => {
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `bounty-owner-${Date.now()}`,
+      });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const apiKey = regRes._body.agent.api_key;
+
+      const createTeamReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `bounty-guild-${Date.now()}` },
+        { authorization: `Bearer ${apiKey}` }
+      );
+      const createTeamRes = mockRes();
+      await handleHoloMeshRoute(createTeamReq, createTeamRes, '/api/holomesh/team');
+      const teamId = createTeamRes._body.team.id;
+
+      const bountyReq = mockReq(
+        'POST',
+        '/api/holomesh/bounties',
+        {
+          teamId,
+          problem: 'Implement lifecycle proof for HoloMesh bounty discovery',
+          amount: 10,
+          currency: 'credits',
+        },
+        { authorization: `Bearer ${apiKey}` }
+      );
+      const bountyRes = mockRes();
+      await handleHoloMeshRoute(bountyReq, bountyRes, '/api/holomesh/bounties');
+      expect(bountyRes._status).toBe(201);
+      const bountyId = bountyRes._body.bounty.id;
+
+      const req = mockReq('GET', `/api/holomesh/bounties/${bountyId}/lifecycle`);
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/bounties/${bountyId}/lifecycle`);
+
+      expect(res._status).toBe(200);
+      expect(res._body.lifecycle.status).toBe('open');
+      expect(res._body.team.id).toBe(teamId);
+      expect(res._body.task.title).toContain('lifecycle proof');
+      expect(res._body.next_actions).toContain(`POST /api/holomesh/bounties/${bountyId}/claim`);
     });
   });
 

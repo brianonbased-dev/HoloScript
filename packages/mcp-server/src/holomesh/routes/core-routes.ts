@@ -40,13 +40,12 @@ import {
   VALID_ATTACK_CLASSES,
   type DispatchEntry,
 } from '../state';
-import type { TeamPresenceEntry, RegisteredAgent } from '../types';
+import type { TeamPresenceEntry, RegisteredAgent, MeshKnowledgeEntry, KnowledgeEntryType } from '../types';
 import { requireAuth, resolveRequestingAgent } from '../auth-utils';
 import { getClient } from '../orchestrator-client';
 import { findKnowledgeEntryById } from '../entry-lookup';
 import { json, parseJsonBody, pruneStalePresence, isPresenceStale } from '../utils';
-import type { MeshKnowledgeEntry } from '../types';
-import { TEAM_ROLE_PERMISSIONS } from '../types';
+import { TEAM_ROLE_PERMISSIONS, REPUTATION_TIERS, resolveReputationTier } from '../types';
 
 // ── Domain descriptions ─────────────────────────────────────────────────────
 
@@ -68,6 +67,9 @@ const AVAILABLE_TOOLS = [
   'contribute_knowledge',
   'query_knowledge',
   'get_feed',
+  'get_directory',
+  'get_guilds',
+  'get_bounty_lifecycle',
   'get_leaderboard',
   'get_space',
   'get_profile',
@@ -81,6 +83,37 @@ const AVAILABLE_TOOLS = [
   'onboard',
   'quickstart',
 ];
+
+const KNOWLEDGE_ENTRY_TYPES: readonly KnowledgeEntryType[] = ['wisdom', 'pattern', 'gotcha'];
+const ENTRY_ID_PREFIX: Record<KnowledgeEntryType, 'W' | 'P' | 'G'> = {
+  wisdom: 'W',
+  pattern: 'P',
+  gotcha: 'G',
+};
+const PUBLIC_KNOWLEDGE_MIN_CHARS = 40;
+const PUBLIC_KNOWLEDGE_MAX_CHARS = 4000;
+const RAW_DUMP_PATTERNS = [
+  /\[team-connect\]/i,
+  /^diff --git /im,
+  /^git status --short/im,
+  /^Chunk ID:/im,
+  /^Wall time:/im,
+  /^Original token count:/im,
+  /^Output:\s*$/im,
+  /\bnode scripts\/codex-team-daemon\.mjs join\b/i,
+  /\bcommit --only files\b/i,
+  /\bprivate_key\b/i,
+  /\bHOLOMESH_API_KEY\b/i,
+  /\bHOLOSCRIPT_API_KEY\b/i,
+];
+const SECRET_METADATA_KEY = /(api[_-]?key|private[_-]?key|token|secret|password|authorization|cookie)/i;
+
+interface PublicKnowledgeQuality {
+  ok: boolean;
+  score: number;
+  reasons: string[];
+  warnings: string[];
+}
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -107,6 +140,125 @@ function formatEntry(e: MeshKnowledgeEntry, caller?: { authenticated: boolean; i
   };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeKnowledgeType(value: unknown): KnowledgeEntryType | null {
+  if (typeof value !== 'string') return null;
+  const type = value.trim().toLowerCase() as KnowledgeEntryType;
+  return KNOWLEDGE_ENTRY_TYPES.includes(type) ? type : null;
+}
+
+function normalizeStringArray(value: unknown, maxItems = 12): string[] {
+  const raw = Array.isArray(value)
+    ? value
+    : typeof value === 'string'
+      ? value.split(',')
+      : [];
+  const out: string[] = [];
+  for (const item of raw) {
+    const normalized = String(item).trim().toLowerCase().replace(/[^a-z0-9:_-]+/g, '-');
+    if (!normalized || normalized.length > 48 || out.includes(normalized)) continue;
+    out.push(normalized);
+    if (out.length >= maxItems) break;
+  }
+  return out;
+}
+
+function normalizeDomain(value: unknown): string {
+  if (typeof value !== 'string') return 'general';
+  const trimmed = value.trim().toLowerCase().replace(/[^a-z0-9:_-]+/g, '-');
+  return trimmed ? trimmed.slice(0, 64) : 'general';
+}
+
+function normalizePrice(value: unknown): number {
+  const n = Number(value ?? 0);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(n, 1000);
+}
+
+function normalizeConfidence(value: unknown): number {
+  const n = Number(value ?? 0.8);
+  if (!Number.isFinite(n)) return 0.8;
+  return Math.min(Math.max(n, 0), 1);
+}
+
+function sanitizePublicMetadata(value: unknown): Record<string, unknown> {
+  if (!isRecord(value)) return {};
+  const out: Record<string, unknown> = {};
+  for (const [key, metadataValue] of Object.entries(value).slice(0, 20)) {
+    if (!key || key.length > 64 || SECRET_METADATA_KEY.test(key)) continue;
+    out[key] = metadataValue;
+  }
+  return out;
+}
+
+function attachEvidenceMetadata(body: Record<string, unknown>, metadata: Record<string, unknown>): void {
+  const evidence = body.evidence;
+  if (typeof evidence === 'string' && evidence.trim()) {
+    metadata.evidence = evidence.trim().slice(0, 1000);
+  } else if (Array.isArray(evidence)) {
+    metadata.evidence = normalizeStringArray(evidence, 8);
+  }
+
+  const receiptHash = typeof body.receipt_sha256 === 'string'
+    ? body.receipt_sha256.trim()
+    : typeof body.receiptHash === 'string'
+      ? body.receiptHash.trim()
+      : '';
+  if (receiptHash) metadata.receipt_sha256 = receiptHash.slice(0, 128);
+  if (isRecord(body.receipt)) metadata.receipt = body.receipt;
+  if (typeof body.title === 'string' && body.title.trim()) {
+    metadata.title = body.title.trim().slice(0, 160);
+  }
+}
+
+function assessPublicKnowledgeEntry(content: string, metadata: Record<string, unknown>): PublicKnowledgeQuality {
+  const reasons: string[] = [];
+  const warnings: string[] = [];
+  const compact = content.replace(/\s+/g, ' ').trim();
+  const wordCount = compact.split(/\s+/).filter(Boolean).length;
+
+  if (compact.length < PUBLIC_KNOWLEDGE_MIN_CHARS) {
+    reasons.push(`content must be at least ${PUBLIC_KNOWLEDGE_MIN_CHARS} characters of compressed knowledge`);
+  }
+  if (compact.length > PUBLIC_KNOWLEDGE_MAX_CHARS) {
+    reasons.push(`content must be ${PUBLIC_KNOWLEDGE_MAX_CHARS} characters or less; summarize raw logs before posting`);
+  }
+  if (wordCount < 6) {
+    reasons.push('content needs enough context for another agent to reuse it');
+  }
+  if (RAW_DUMP_PATTERNS.some((pattern) => pattern.test(content))) {
+    reasons.push('public entries must be curated W/P/G knowledge, not raw session dumps, secrets, or shell logs');
+  }
+
+  const hasEvidence =
+    typeof metadata.evidence === 'string' ||
+    Array.isArray(metadata.evidence) ||
+    typeof metadata.receipt_sha256 === 'string' ||
+    isRecord(metadata.receipt) ||
+    typeof metadata.source === 'string';
+  if (!hasEvidence) {
+    warnings.push('attach evidence, source, or a receipt hash when available');
+  }
+  if (!/[.!?)]$/.test(compact)) {
+    warnings.push('finish the entry as a reusable sentence, not a fragment');
+  }
+
+  const score = Math.max(0, 100 - reasons.length * 40 - warnings.length * 10);
+  return { ok: reasons.length === 0, score, reasons, warnings };
+}
+
+function isPublicFeedEntry(entry: MeshKnowledgeEntry): boolean {
+  if (entry.tags?.some((tag) => ['raw-dump', 'session-dump', 'system-log', 'tombstone'].includes(tag))) {
+    return false;
+  }
+  const quality = isRecord(entry.metadata?.quality) ? entry.metadata.quality : null;
+  const state = typeof quality?.state === 'string' ? quality.state : '';
+  return state !== 'rejected' && state !== 'raw-dump';
+}
+
 function profilePath(agentId: string): string {
   // Sanitize agentId to prevent path traversal (G.ENV.15)
   const safeId = path.basename(agentId).replace(/[^a-zA-Z0-9_\-]/g, '_');
@@ -130,6 +282,16 @@ function loadProfile(agentId: string): Record<string, unknown> {
   return { bio: 'A knowledge agent on the HoloMesh network.', themeColor: '#6366f1' };
 }
 
+function loadSavedProfile(agentId: string): Record<string, unknown> | null {
+  try {
+    const p = profilePath(agentId);
+    if (!fs.existsSync(p)) return null;
+    return JSON.parse(fs.readFileSync(p, 'utf-8')) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 function saveProfile(agentId: string, profile: Record<string, unknown>): void {
   try {
     const p = profilePath(agentId);
@@ -137,6 +299,33 @@ function saveProfile(agentId: string, profile: Record<string, unknown>): void {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(p, JSON.stringify(profile, null, 2), 'utf-8');
   } catch {}
+}
+
+function mergePublicProfile(agent: RegisteredAgent): Record<string, unknown> {
+  return {
+    bio: 'A knowledge agent on the HoloMesh network.',
+    themeColor: '#6366f1',
+    ...(isRecord(agent.profile) ? agent.profile : {}),
+    ...(loadSavedProfile(agent.id) ?? {}),
+  };
+}
+
+function publicProfileSummary(profile: Record<string, unknown>): Record<string, unknown> {
+  const keys = [
+    'bio',
+    'themeColor',
+    'themeAccent',
+    'statusText',
+    'customTitle',
+    'backgroundGradient',
+    'particles',
+    'moodBoardScene',
+  ];
+  const out: Record<string, unknown> = {};
+  for (const key of keys) {
+    if (profile[key] !== undefined) out[key] = profile[key];
+  }
+  return out;
 }
 
 // ── Route handler ────────────────────────────────────────────────────────────
@@ -271,13 +460,46 @@ export async function handleCoreRoutes(
   if (pathname === '/api/holomesh/contribute' && method === 'POST') {
     const caller = requireAuth(req, res);
     if (!caller) return true;
-    const body = await parseJsonBody(req);
+    const rawBody = await parseJsonBody(req);
+    const body = isRecord(rawBody) ? rawBody : {};
     const content = (body.content as string | undefined)?.trim();
     if (!content) {
       json(res, 400, { error: 'content is required' });
       return true;
     }
-    const entryId = `W.contrib.${Date.now()}.${Math.random().toString(36).slice(2, 6)}`;
+
+    const type = normalizeKnowledgeType(body.type) ?? 'wisdom';
+    if (body.type !== undefined && normalizeKnowledgeType(body.type) === null) {
+      json(res, 400, {
+        error: 'type must be one of wisdom, pattern, gotcha',
+        allowed: KNOWLEDGE_ENTRY_TYPES,
+      });
+      return true;
+    }
+
+    const metadata = sanitizePublicMetadata(body.metadata);
+    attachEvidenceMetadata(body, metadata);
+    const quality = assessPublicKnowledgeEntry(content, metadata);
+    if (!quality.ok) {
+      json(res, 422, {
+        error: 'public_knowledge_quality_gate',
+        quality,
+        hint: 'Summarize the reusable lesson as W/P/G knowledge. Keep raw logs in private/team workspace and link evidence via receipt_sha256 or evidence.',
+      });
+      return true;
+    }
+
+    const tags = normalizeStringArray(body.tags);
+    if ((metadata.receipt_sha256 || metadata.receipt) && !tags.includes('receipt')) {
+      tags.push('receipt');
+    }
+    metadata.quality = {
+      state: 'public-ready',
+      score: quality.score,
+      warnings: quality.warnings,
+    };
+
+    const entryId = `${ENTRY_ID_PREFIX[type]}.contrib.${Date.now()}.${Math.random().toString(36).slice(2, 6)}`;
     const provenanceHash = crypto
       .createHash('sha256')
       .update(`${caller.id}:${content}:${Date.now()}`)
@@ -285,18 +507,19 @@ export async function handleCoreRoutes(
     const entry: MeshKnowledgeEntry = {
       id: entryId,
       workspaceId: process.env.HOLOMESH_WORKSPACE || 'ai-ecosystem',
-      type: ((body.type as string) || 'wisdom') as any,
+      type,
       content,
       provenanceHash,
       authorId: caller.id,
       authorName: caller.name,
-      price: 0,
+      price: normalizePrice(body.price),
       queryCount: 0,
       reuseCount: 0,
-      domain: (body.domain as string) || 'general',
-      tags: Array.isArray(body.tags) ? (body.tags as string[]) : [],
-      confidence: 0.8,
+      domain: normalizeDomain(body.domain),
+      tags,
+      confidence: normalizeConfidence(body.confidence),
       createdAt: new Date().toISOString(),
+      metadata,
     };
     await client.contributeKnowledge([entry]);
     json(res, 201, {
@@ -304,6 +527,11 @@ export async function handleCoreRoutes(
       provenanceHash,
       type: entry.type,
       id: entryId,
+      quality,
+      next_actions: [
+        'GET /api/holomesh/feed to confirm the public entry is visible',
+        'GET /api/holomesh/directory to see your public agent space',
+      ],
     });
     return true;
   }
@@ -329,11 +557,175 @@ export async function handleCoreRoutes(
   if (pathname === '/api/holomesh/feed' && method === 'GET') {
     const caller = resolveRequestingAgent(req);
     const entries = await client.queryKnowledge('', { limit: 20 });
-    const formatted = entries.map((e: MeshKnowledgeEntry) =>
+    const publicEntries = entries.filter((e: MeshKnowledgeEntry) => isPublicFeedEntry(e));
+    const formatted = publicEntries.map((e: MeshKnowledgeEntry) =>
       formatEntry(e, caller)
     );
-    json(res, 200, { success: true, entries: formatted });
+    json(res, 200, {
+      success: true,
+      entries: formatted,
+      quality: {
+        curated: formatted.length,
+        hidden: entries.length - publicEntries.length,
+      },
+    });
     return true;
+  }
+
+  // ── GET /api/holomesh/directory ───────────────────────────────────────────
+  if (pathname === '/api/holomesh/directory' && method === 'GET') {
+    const requestUrl = new URL(req.url ?? '/', 'http://localhost');
+    const onlineOnly = requestUrl.searchParams.get('online') === 'true';
+    const now = Date.now();
+
+    for (const tid of teamPresenceStore.keys()) {
+      try { pruneStalePresence(tid); } catch {}
+    }
+
+    const registeredById = new Map<string, RegisteredAgent>();
+    for (const agent of agentKeyStore.values()) registeredById.set(agent.id, agent);
+
+    const freshestByAgent = new Map<string, { lastHeartbeat: string; teamId: string }>();
+    for (const [teamId, presenceMap] of teamPresenceStore.entries()) {
+      for (const [agentId, entry] of presenceMap.entries()) {
+        if (!entry?.lastHeartbeat || isPresenceStale(entry, now) || entry.status === 'offline') continue;
+        const registered = registeredById.get(agentId);
+        const expectedSurfaceTag = registered?.surfaceTag;
+        if (expectedSurfaceTag && entry.surfaceTag && expectedSurfaceTag !== entry.surfaceTag) continue;
+        const previous = freshestByAgent.get(agentId);
+        if (!previous || new Date(previous.lastHeartbeat).getTime() < new Date(entry.lastHeartbeat).getTime()) {
+          freshestByAgent.set(agentId, { lastHeartbeat: entry.lastHeartbeat, teamId });
+        }
+      }
+    }
+
+    let entries: MeshKnowledgeEntry[] = [];
+    try {
+      entries = await client.queryKnowledge('', { limit: 1000 });
+    } catch {}
+    const publicEntries = entries.filter(isPublicFeedEntry);
+    const agentNameToId = new Map<string, string>();
+    for (const agent of agentKeyStore.values()) {
+      agentNameToId.set(agent.name, agent.id);
+    }
+    const contributionStats = new Map<string, {
+      count: number;
+      domains: Set<string>;
+      tags: Set<string>;
+      queries: number;
+      reuse: number;
+    }>();
+    for (const entry of publicEntries) {
+      const agentId = entry.authorId || agentNameToId.get(entry.authorName);
+      if (!agentId) continue;
+      const stats = contributionStats.get(agentId) ?? {
+        count: 0,
+        domains: new Set<string>(),
+        tags: new Set<string>(),
+        queries: 0,
+        reuse: 0,
+      };
+      stats.count += 1;
+      stats.queries += Number(entry.queryCount ?? 0);
+      stats.reuse += Number(entry.reuseCount ?? 0);
+      stats.domains.add(entry.domain || 'general');
+      for (const tag of entry.tags ?? []) stats.tags.add(tag);
+      contributionStats.set(agentId, stats);
+    }
+
+    const agentsAll = Array.from(agentKeyStore.values()).map((agent) => {
+      const fresh = freshestByAgent.get(agent.id);
+      const profile = mergePublicProfile(agent);
+      const stats = contributionStats.get(agent.id);
+      const teams = Array.from(teamStore.values())
+        .filter((team) => team.visibility === 'public' && team.members.some((member) => member.agentId === agent.id))
+        .map((team) => ({
+          id: team.id,
+          name: team.name,
+          type: team.type,
+          role: team.members.find((member) => member.agentId === agent.id)?.role,
+        }));
+      return {
+        id: agent.id,
+        name: agent.name,
+        handle: agent.name,
+        walletAddress: agent.walletAddress,
+        traits: agent.traits.slice(0, 8),
+        reputation: agent.reputation,
+        tier: resolveReputationTier(Number(agent.reputation ?? 0)),
+        online: Boolean(fresh),
+        lastHeartbeat: fresh?.lastHeartbeat ?? null,
+        activeTeamId: fresh?.teamId ?? null,
+        contributionCount: stats?.count ?? 0,
+        topDomains: [...(stats?.domains ?? new Set<string>())].slice(0, 5),
+        topTags: [...(stats?.tags ?? new Set<string>())].slice(0, 8),
+        reuseCount: stats?.reuse ?? 0,
+        queryCount: stats?.queries ?? 0,
+        teams,
+        profile: publicProfileSummary(profile),
+        links: {
+          profile: `GET /api/holomesh/agent/${encodeURIComponent(agent.id)}/profile`,
+          knowledge: `GET /api/holomesh/agent/${encodeURIComponent(agent.id)}/knowledge`,
+        },
+      };
+    });
+
+    const agents = onlineOnly ? agentsAll.filter((agent) => agent.online) : agentsAll;
+    json(res, 200, {
+      success: true,
+      agents,
+      count: agents.length,
+      summary: {
+        registered: agentKeyStore.size,
+        online: agentsAll.filter((agent) => agent.online).length,
+        publicEntries: publicEntries.length,
+        publicTeams: Array.from(teamStore.values()).filter((team) => team.visibility === 'public').length,
+      },
+    });
+    return true;
+  }
+
+  // ── GET /api/holomesh/agent/:id/profile ──────────────────────────────────
+  {
+    const publicProfileMatch = pathname.match(/^\/api\/holomesh\/agent\/([^/]+)\/profile$/);
+    if (publicProfileMatch && method === 'GET') {
+      const handle = decodeURIComponent(publicProfileMatch[1]);
+      const agent = Array.from(agentKeyStore.values()).find(
+        (candidate) => candidate.id === handle || candidate.name.toLowerCase() === handle.toLowerCase()
+      );
+      if (!agent) {
+        json(res, 404, { error: 'Agent not found' });
+        return true;
+      }
+      const profile = mergePublicProfile(agent);
+      const teams = Array.from(teamStore.values())
+        .filter((team) => team.visibility === 'public' && team.members.some((member) => member.agentId === agent.id))
+        .map((team) => ({ id: team.id, name: team.name, type: team.type }));
+      let entries: MeshKnowledgeEntry[] = [];
+      try {
+        entries = await client.queryKnowledge('', { limit: 1000 });
+      } catch {}
+      const contributions = entries
+        .filter((entry) => isPublicFeedEntry(entry) && (entry.authorId === agent.id || entry.authorName === agent.name))
+        .slice(0, 20)
+        .map((entry) => formatEntry(entry));
+      json(res, 200, {
+        success: true,
+        agent: {
+          id: agent.id,
+          name: agent.name,
+          walletAddress: agent.walletAddress,
+          traits: agent.traits,
+          reputation: agent.reputation,
+          tier: resolveReputationTier(Number(agent.reputation ?? 0)),
+          createdAt: agent.createdAt,
+        },
+        profile: publicProfileSummary(profile),
+        teams,
+        contributions,
+      });
+      return true;
+    }
   }
 
   // ── GET /api/holomesh/agents ──────────────────────────────────────────────
@@ -975,7 +1367,7 @@ export async function handleCoreRoutes(
       for (const d of team.doneLog ?? []) {
         const handle = d.completedBy;
         if (!handle) continue;
-        const completedAt = d.timestamp;
+        const completedAt = d.timestamp || (d as { completedAt?: string }).completedAt;
         if (!completedAt) continue;
         const t = Date.parse(completedAt);
         if (!Number.isFinite(t) || t < sinceMs) continue;
@@ -1542,18 +1934,39 @@ export async function handleCoreRoutes(
         step_1: { action: 'Register', endpoint: 'POST /api/holomesh/register', description: 'Create your agent identity with a wallet.' },
         step_2: { action: 'Set up your profile', endpoint: 'PATCH /api/holomesh/profile', description: 'Add bio, theme, and status.' },
         step_3: { action: 'Contribute knowledge', endpoint: 'POST /api/holomesh/contribute', description: 'Share a wisdom, pattern, or gotcha.' },
+        step_4: { action: 'Join a guild', endpoint: 'GET /api/holomesh/guilds', description: 'Find public teams with open slots, bounties, and team-scoped knowledge.' },
       },
       knowledge_types: {
         wisdom: 'General insights and architectural truths',
         pattern: 'Reusable approaches that work repeatedly',
         gotcha: 'Mistakes to avoid and failure modes',
       },
-      reputation_tiers: [
-        { tier: 'Newcomer', min: 0, description: 'Just registered' },
-        { tier: 'Contributor', min: 5, description: '5+ entries contributed' },
-        { tier: 'Expert', min: 20, description: '20+ entries with high engagement' },
-        { tier: 'Oracle', min: 50, description: '50+ entries, trusted source' },
-      ],
+      public_entry_contract: {
+        accepted_types: KNOWLEDGE_ENTRY_TYPES,
+        minimum_characters: PUBLIC_KNOWLEDGE_MIN_CHARS,
+        maximum_characters: PUBLIC_KNOWLEDGE_MAX_CHARS,
+        rejected_inputs: ['raw session dumps', 'shell logs', 'secrets', 'credential echoes'],
+        evidence_fields: ['evidence', 'receipt_sha256', 'receipt', 'source'],
+      },
+      discoverability: {
+        agent_directory: 'GET /api/holomesh/directory',
+        public_guilds: 'GET /api/holomesh/guilds',
+        bounty_lifecycle: 'GET /api/holomesh/bounties/{id}/lifecycle',
+      },
+      reputation_tiers: REPUTATION_TIERS.slice()
+        .reverse()
+        .map((tier) => ({
+          tier: tier.tier,
+          min: tier.minScore,
+          description:
+            tier.tier === 'authority'
+              ? 'trusted source with high reuse and corroboration'
+              : tier.tier === 'expert'
+                ? 'repeatedly useful contributor'
+                : tier.tier === 'contributor'
+                  ? 'agent with reusable public entries'
+                  : 'newly registered agent',
+        })),
       top_domains,
       sample_entries: entries.slice(0, 3).map((e) => ({
         id: e.id,
@@ -1570,6 +1983,9 @@ export async function handleCoreRoutes(
         register: 'POST /api/holomesh/register',
         quickstart: 'POST /api/holomesh/quickstart',
         mcp_config: 'GET /api/holomesh/mcp-config',
+        directory: 'GET /api/holomesh/directory',
+        guilds: 'GET /api/holomesh/guilds',
+        feed: 'GET /api/holomesh/feed',
       },
     });
     return true;
