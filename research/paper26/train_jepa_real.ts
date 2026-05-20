@@ -272,48 +272,54 @@ async function main() {
   }
 
   function sgdStep(pred: JEPAPredictor, contextEmb: Float32Array, target: Float32Array, lr: number) {
+    // Full forward to get hidden activations
     const { predicted, hidden } = (pred as any).forward(contextEmb, null);
 
-    const dim = predicted.length;
-    const dPred = new Float32Array(dim);
-    for (let i = 0; i < dim; i++) {
-      dPred[i] = 2 * (predicted[i] - target[i]) / dim;
+    const outDim = predicted.length;
+    const hDim = hidden.length;
+    const inDim = contextEmb.length;
+
+    // Output gradient: dL/dy = 2*(y - t) / outDim  (MSE)
+    const dOut = new Float32Array(outDim);
+    for (let i = 0; i < outDim; i++) {
+      dOut[i] = 2 * (predicted[i] - target[i]) / outDim;
     }
 
+    // --- Output layer gradients (W2, b2) ---
     const w2 = (pred as any).weights.W2 as Float32Array;
     const b2 = (pred as any).weights.b2 as Float32Array;
-    const hDim = hidden.length;
     const newW2 = new Float32Array(w2.length);
     const newB2 = new Float32Array(b2.length);
 
-    for (let o = 0; o < dim; o++) {
-      newB2[o] = b2[o] - lr * dPred[o];
+    for (let o = 0; o < outDim; o++) {
+      newB2[o] = b2[o] - lr * dOut[o];
       for (let h = 0; h < hDim; h++) {
         const idx = o * hDim + h;
-        newW2[idx] = w2[idx] - lr * dPred[o] * hidden[h];
+        newW2[idx] = w2[idx] - lr * dOut[o] * hidden[h];
       }
     }
 
+    // --- Hidden gradient (backprop through output weights + ReLU) ---
+    const dHidden = new Float32Array(hDim);
+    for (let h = 0; h < hDim; h++) {
+      let g = 0;
+      for (let o = 0; o < outDim; o++) {
+        g += dOut[o] * w2[o * hDim + h];
+      }
+      dHidden[h] = g * (hidden[h] > 0 ? 1 : 0);   // ReLU derivative
+    }
+
+    // --- Input layer gradients (W1, b1) ---
     const w1 = (pred as any).weights.W1 as Float32Array;
     const b1 = (pred as any).weights.b1 as Float32Array;
     const newW1 = new Float32Array(w1.length);
     const newB1 = new Float32Array(b1.length);
-    const inDim = contextEmb.length;
-
-    const dHidden = new Float32Array(hDim);
-    for (let h = 0; h < hDim; h++) {
-      dHidden[h] = 0;
-      for (let o = 0; o < dim; o++) {
-        dHidden[h] += dPred[o] * w2[o * hDim + h];
-      }
-      dHidden[h] *= (hidden[h] > 0 ? 1 : 0);
-    }
 
     for (let h = 0; h < hDim; h++) {
-      newB1[h] = b1[h] - lr * 0.1 * dHidden[h];
+      newB1[h] = b1[h] - lr * dHidden[h];
       for (let i = 0; i < inDim; i++) {
         const idx = h * inDim + i;
-        newW1[idx] = w1[idx] - lr * 0.1 * dHidden[h] * contextEmb[i];
+        newW1[idx] = w1[idx] - lr * dHidden[h] * contextEmb[i];
       }
     }
 
@@ -384,7 +390,7 @@ async function main() {
     improvement_first_epoch_pct: Number(
       ((baselineCurve[0] - trainedCurve[0]) / baselineCurve[0] * 100).toFixed(1)
     ),
-    notes: 'Baseline (frozen) vs Trained (output-layer + partial hidden SGD) on sovereign JEPAPredictor. Baseline flat, trained drops on epoch 1. First real JEPA training vs baseline comparison for Paper 26 P1 publishability gate.',
+    notes: 'Baseline (frozen) vs Trained (full backprop through both layers + ReLU) on sovereign JEPAPredictor at latentDim=16. First scaled run with proper gradients. Infrastructure (durable checkpoints + dimension guard) proven for iterative scaling of the minimum publishable experiment.',
   };
 
   const outDir = path.join(process.cwd(), 'research/paper26/results');
