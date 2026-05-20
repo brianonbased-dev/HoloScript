@@ -3086,5 +3086,31 @@
         "compileHints": [],
         "composable": [],
         "conflicts": []
+    },
+    "jepa_objective": {
+        "id": "jepa_objective",
+        "namespace": "@holoscript/core",
+        "category": "ai",
+        "properties": [
+            "latent_space",
+            "world_model",
+            "sigreg",
+            "physics_grounded"
+        ],
+        "compileHints": [
+            "jepa",
+            "world_model",
+            "verifiable_prediction",
+            "simulation_contract"
+        ],
+        "composable": [
+            "embedding_trait",
+            "inference_trait",
+            "simulation_contract",
+            "cael"
+        ],
+        "conflicts": [],
+        "source": "holoscript",
+        "description": "JEPA (Joint Embedding Predictive Architecture) world-model training objective with SIGReg regularization (LeWM variant). Sovereign build-internal primitive per NMoS 2026-05-19. When composed with SimulationContract produces the first cryptographically verifiable WorldModelReceipts. Core of the HoloScript AI Lab positioning (D.054)."
     }
 }

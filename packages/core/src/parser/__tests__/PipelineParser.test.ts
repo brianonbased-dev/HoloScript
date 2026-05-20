@@ -83,6 +83,31 @@ describe('PipelineParser', () => {
       });
     });
 
+    it('parses dotted fields and array unwrap field mappings', () => {
+      const result = parsePipeline(`
+        pipeline "ReceiptFlatten" {
+          source In { type: "filesystem" path: "receipts.json" }
+
+          transform NormalizeReceipts {
+            entries[] -> entry
+            entry.segment -> segment
+            entry.status -> status
+          }
+
+          sink Out { type: "stdout" }
+        }
+      `);
+
+      expect(result.success).toBe(true);
+      const t = result.pipeline!.transforms[0];
+      expect(t.type).toBe('field_mapping');
+      expect(t.mappings).toEqual([
+        { from: 'entries[]', to: 'entry', transforms: [] },
+        { from: 'entry.segment', to: 'segment', transforms: [] },
+        { from: 'entry.status', to: 'status', transforms: [] },
+      ]);
+    });
+
     it('parses LLM transform', () => {
       const result = parsePipeline(`
         pipeline "Classify" {

@@ -92,6 +92,32 @@ describe('PipelineNodeCompiler', () => {
     expect(result.code).toContain("console.warn('[PipelineNodeCompiler] skipping empty webhook/rest sink endpoint')");
   });
 
+  it('compiles dotted path and array unwrap mappings for receipt pipelines', () => {
+    const result = compilePipelineSourceToNode(`
+      pipeline "ReceiptFlatten" {
+        source In {
+          type: "list"
+          items: [{ entries: [{ segment: "a", status: "partial" }] }]
+        }
+
+        transform NormalizeReceipts {
+          entries[] -> entry
+          entry.segment -> segment
+          entry.status -> status
+        }
+
+        sink Out {
+          type: "stdout"
+        }
+      }
+    `);
+
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('unwrapPathValues(item, "entries[]")');
+    expect(result.code).toContain('getPathValue(item, "entry.segment")');
+    expect(result.code).toContain('getPathValue(item, "entry.status")');
+  });
+
   it('returns parser errors for invalid pipeline source', () => {
     const result = compilePipelineSourceToNode('object "Cube" { }');
     expect(result.success).toBe(false);

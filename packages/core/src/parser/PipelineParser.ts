@@ -516,13 +516,17 @@ function parseNestedBlock(content: string, keyword: string): Record<string, unkn
 function parseFieldMappings(content: string): FieldMapping[] {
   const mappings: FieldMapping[] = [];
   const lines = content.split('\n');
+  const pathPattern = '[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*(?:\\[\\])?';
 
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('//')) continue;
 
     // Match: old_name -> new_name : func1() : func2()
-    const mapMatch = trimmed.match(/^(\w+)\s*->\s*(\w+)(?:\s*:\s*(.+))?$/);
+    // Paths may use dotted fields and one array unwrap suffix, e.g. entries[] -> entry.
+    const mapMatch = trimmed.match(
+      new RegExp(`^(${pathPattern})\\s*->\\s*(${pathPattern})(?:\\s*:\\s*(.+))?$`)
+    );
     if (mapMatch) {
       const transforms = mapMatch[3]
         ? mapMatch[3]
