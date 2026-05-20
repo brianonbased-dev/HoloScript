@@ -79,6 +79,7 @@ vi.mock('remotion', () => ({
 }));
 
 // ── Imports after mocks ─────────────────────────────────────────────────────
+// Note: vi.mock() is hoisted by Vitest so these static imports always see the mock.
 
 import { theme } from '../src/utils/theme';
 import {
@@ -215,7 +216,6 @@ describe('compiler walkthrough data', () => {
 
 // ── 4. Component Rendering ──────────────────────────────────────────────────
 
-// We import these after Remotion mock is in place
 import { TitleCard } from '../src/components/TitleCard';
 import { CodeStep } from '../src/components/CodeStep';
 import { CompilerWalkthroughTemplate } from '../src/components/CompilerWalkthroughTemplate';
@@ -402,9 +402,10 @@ describe('CompilerWalkthroughTemplate', () => {
 
 // ── 6. Root Composition Registry ────────────────────────────────────────────
 
+import { RemotionRoot } from '../src/Root';
+
 describe('RemotionRoot', () => {
-  it('should register all expected composition IDs', async () => {
-    const { RemotionRoot } = await import('../src/Root');
+  it('should register all expected composition IDs', () => {
     const html = renderToString(React.createElement(RemotionRoot));
 
     const expectedIds = [
@@ -431,8 +432,7 @@ describe('RemotionRoot', () => {
     }
   });
 
-  it('should set all compositions to 1920x1080 at 30fps', async () => {
-    const { RemotionRoot } = await import('../src/Root');
+  it('should set all compositions to 1920x1080 at 30fps', () => {
     const html = renderToString(React.createElement(RemotionRoot));
 
     // All compositions should have consistent dimensions

@@ -18,12 +18,11 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { parseArgs } from '../../args';
+import { SelfImproveCommand } from '@holoscript/absorb-service/self-improvement';
 
 const TASK_MARKER = String.fromCharCode(84, 79, 68, 79);
 
-// Type stubs replacing the direct absorb-service source import (rootDir fix).
-// The real SelfImproveCommand is loaded dynamically at runtime via the
-// '@holoscript/absorb-service/self-improvement' package export.
+// Loose type stubs for mock IO construction — the real types are in absorb-service.
 export interface SelfImproveIO { [key: string]: any; }
 export interface AbsorbResult { [key: string]: any; }
 export interface UntestedTarget { [key: string]: any; }
@@ -32,7 +31,6 @@ export interface VitestResult { [key: string]: any; }
 export interface VitestSuiteResult { [key: string]: any; }
 export interface LintResult { [key: string]: any; }
 export interface SelfImproveResult { [key: string]: any; }
-export class SelfImproveCommand { constructor(..._args: any[]) { /* stub */ } [key: string]: any; }
 
 // =============================================================================
 // TEST FIXTURES: Minimal HoloScript with a known task-marker stub
