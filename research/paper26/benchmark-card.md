@@ -57,14 +57,14 @@ Scale to 1,500–3,000 episodes across 2–3 robot morphologies + multi-physics 
 **Date**: 2026-05-20
 **Using**: Actual JEPAPredictor.plan() (latentDim=8, condDim=4) + real receipt generation
 
-**Results** (baseline vs trained — first real JEPA training experiment on solver pairs):
+**Results** (baseline vs trained + durable checkpoints):
 - Episodes: 30
 - Total steps: 1,361
 - Receipts generated: 1,361 (full WorldModelReceipt objects)
-- Baseline (frozen weights, 5 epochs): [0.127483, 0.127483, 0.127483, 0.127483, 0.127483]
-- Trained (output-layer + partial hidden SGD, 5 epochs): [0.053064, 0.048106, 0.048107, 0.048107, 0.048107]
-- Improvement on first gradient epoch: 58.4% relative reduction vs baseline
-- Notes: Baseline is flat (as required). Trained shows clear descent from real MSE gradients on the sovereign JEPAPredictor. This is the first living "JEPA trained on solver pairs beats frozen baseline" evidence for the Paper 26 P1 publishability gate.
+- Baseline (frozen): [0.127483 ×5]
+- Trained (SGD): [0.053064, 0.048106, ...] — 58.4% improvement on first gradient epoch
+- Durable checkpoints: `research/paper26/checkpoints/paper26-real-slice-001-epochN.json` + `-latest.json` pointer. Full weights + curves + metadata saved after every epoch. Supports resume, long runs, and reproducible publishable experiments.
+- Notes: First time the Paper 26 P1 benchmark infrastructure is resumable and durable (directly dogfooding the persistence farm). Ready for multi-hour training runs and ablation studies.
 
 **Loss curve file**: research/paper26/results/loss-curve-slice-001.json
 
@@ -73,7 +73,7 @@ Scale to 1,500–3,000 episodes across 2–3 robot morphologies + multi-physics 
 npx tsx research/paper26/train_jepa_real.ts
 ```
 
-This is the first real JEPA training vs baseline experiment on solver-pair data (sovereign JEPAPredictor + MSE gradient steps, 1,361 receipts). Baseline flat at 0.1275; trained drops 58.4% on the first gradient epoch. The minimum viable "trained beats baseline with anchored receipts" structure for Paper 26 P1 publishability is now live. Next: larger latentDim, full backprop, held-out verification %, and scaling the corpus.
+This is the first real JEPA training vs baseline experiment on solver-pair data with **durable resumable checkpoints** (sovereign JEPAPredictor + real gradients + 1,361 receipts). The benchmark harness can now survive restarts and support long publishable runs. This directly dogfoods the persistence surfaces we farmed earlier in the same marathon. Next: larger model, full backprop, held-out metrics, and scaling the corpus.
 
 **Related**: ROS 2 bridge (docs/integrations/ros2-holoscript-bridge.md), D.050, D.055, NMoS P2
 

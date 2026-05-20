@@ -1,14 +1,11 @@
 /**
- * Paper 26 — Real minimum-corpus JEPA training / inference slice
+ * Paper 26 — Real minimum-corpus JEPA training / inference slice (with durable checkpoints)
  *
- * Loads the solver-pair corpus we generated (from ROS 2 / Gazebo style trajectories via the D.007 bridge),
- * runs the actual sovereign JEPAPredictor on it, produces real WorldModelReceipts,
- * and computes loss / within-tolerance stats.
+ * Loads the solver-pair corpus (from D.007 ROS 2 bridge), runs sovereign JEPAPredictor,
+ * produces WorldModelReceipts, trains with real gradients, and supports resumable runs.
  *
- * This is the first executable slice of the P1 task "Paper 26: minimum-corpus JEPA benchmark —
- * train JEPAObjective on solver pairs".
- *
- * Next iterations will add actual gradient steps / JEPAObjective training loop.
+ * This is live infrastructure for the P1 "minimum-corpus JEPA benchmark" task.
+ * Checkpoints allow long experiments, restarts, and reproducible publishable runs.
  */
 
 import * as fs from 'fs';
@@ -37,6 +34,101 @@ interface Receipt {
   solver: string;
   ground_truth_hash: string;
   signature: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Durable Checkpoint Manager (dogfoods the persistence farm surfaces)
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface Paper26Checkpoint {
+  runId: string;
+  epoch: number;
+  weights: {
+    W1: number[];
+    b1: number[];
+    W2: number[];
+    b2: number[];
+  };
+  baselineCurve: number[];
+  trainedCurve: number[];
+  metadata: {
+    latentDim: number;
+    condDim: number;
+    corpusEpisodes: number;
+    totalSteps: number;
+    timestamp: string;
+  };
+}
+
+const CHECKPOINT_DIR = path.join(process.cwd(), 'research/paper26/checkpoints');
+
+function ensureCheckpointDir() {
+  if (!fs.existsSync(CHECKPOINT_DIR)) {
+    fs.mkdirSync(CHECKPOINT_DIR, { recursive: true });
+  }
+}
+
+function float32ToArray(arr: Float32Array): number[] {
+  return Array.from(arr);
+}
+
+function arrayToFloat32(arr: number[]): Float32Array {
+  return new Float32Array(arr);
+}
+
+function saveCheckpoint(
+  runId: string,
+  epoch: number,
+  predictor: JEPAPredictor,
+  baselineCurve: number[],
+  trainedCurve: number[],
+  metadata: Partial<Paper26Checkpoint['metadata']>
+) {
+  ensureCheckpointDir();
+  const weights = (predictor as any).getWeights();
+  const cp: Paper26Checkpoint = {
+    runId,
+    epoch,
+    weights: {
+      W1: float32ToArray(weights.W1),
+      b1: float32ToArray(weights.b1),
+      W2: float32ToArray(weights.W2),
+      b2: float32ToArray(weights.b2),
+    },
+    baselineCurve,
+    trainedCurve,
+    metadata: {
+      latentDim: (predictor as any).latentDim || 8,
+      condDim: (predictor as any).condDim || 4,
+      corpusEpisodes: metadata.corpusEpisodes || 30,
+      totalSteps: metadata.totalSteps || 1361,
+      timestamp: new Date().toISOString(),
+    },
+  };
+  const file = path.join(CHECKPOINT_DIR, `${runId}-epoch${epoch}.json`);
+  fs.writeFileSync(file, JSON.stringify(cp, null, 2), 'utf8');
+
+  // Also write a "latest" pointer
+  const latest = path.join(CHECKPOINT_DIR, `${runId}-latest.json`);
+  fs.writeFileSync(latest, JSON.stringify({ runId, latestEpoch: epoch, file }, null, 2), 'utf8');
+
+  console.log(`[checkpoint] saved epoch ${epoch} → ${file}`);
+}
+
+function loadLatestCheckpoint(runId: string): Paper26Checkpoint | null {
+  const latestPath = path.join(CHECKPOINT_DIR, `${runId}-latest.json`);
+  if (!fs.existsSync(latestPath)) return null;
+  try {
+    const pointer = JSON.parse(fs.readFileSync(latestPath, 'utf8'));
+    const cpPath = pointer.file;
+    if (!fs.existsSync(cpPath)) return null;
+    const raw = JSON.parse(fs.readFileSync(cpPath, 'utf8')) as Paper26Checkpoint;
+    console.log(`[checkpoint] resuming from epoch ${raw.epoch} (${cpPath})`);
+    return raw;
+  } catch (e) {
+    console.warn('[checkpoint] failed to load:', e);
+    return null;
+  }
 }
 
 async function main() {
@@ -110,7 +202,6 @@ async function main() {
   // Trained: 5 epochs with real output-layer + partial hidden-layer SGD (descending curve)
   // ─────────────────────────────────────────────────────────────────────────
   const baselineCurve: number[] = [];
-  const trainedCurve: number[] = [];
   const lr = 0.02;
 
   // Create a fresh predictor for the baseline (frozen)
@@ -151,8 +242,25 @@ async function main() {
     baselineCurve.push(Number((epochLoss / epochSteps).toFixed(6)));
   }
 
-  // Fresh predictor for the trained condition (starts from same random init)
+  // ── Trained run with durable checkpoint / resume support ───────────────────
+  const RUN_ID = 'paper26-real-slice-001';
+  let startEpoch = 0;
+  let trainedCurve: number[] = [];
+  const loadedCp = loadLatestCheckpoint(RUN_ID);
+
   const trainedPredictor = new JEPAPredictor({ latentDim: 8, condDim: 4 });
+
+  if (loadedCp) {
+    (trainedPredictor as any).setWeights({
+      W1: arrayToFloat32(loadedCp.weights.W1),
+      b1: arrayToFloat32(loadedCp.weights.b1),
+      W2: arrayToFloat32(loadedCp.weights.W2),
+      b2: arrayToFloat32(loadedCp.weights.b2),
+    });
+    trainedCurve = [...loadedCp.trainedCurve];
+    startEpoch = loadedCp.epoch + 1;
+    console.log(`[resume] continuing training from epoch ${startEpoch}`);
+  }
 
   function sgdStep(pred: JEPAPredictor, contextEmb: Float32Array, target: Float32Array, lr: number) {
     const { predicted, hidden } = (pred as any).forward(contextEmb, null);
@@ -208,8 +316,8 @@ async function main() {
     });
   }
 
-  // Trained run — real gradient steps on the sovereign predictor
-  for (let epoch = 0; epoch < 5; epoch++) {
+  // Trained run — real gradient steps on the sovereign predictor (resumable)
+  for (let epoch = startEpoch; epoch < 5; epoch++) {
     let epochLoss = 0;
     let epochSteps = 0;
 
@@ -244,7 +352,14 @@ async function main() {
       }
     }
 
-    trainedCurve.push(Number((epochLoss / epochSteps).toFixed(6)));
+    const thisEpochAvg = epochLoss / epochSteps;
+    trainedCurve.push(Number(thisEpochAvg.toFixed(6)));
+
+    // Save durable checkpoint after every epoch (enables resume + publishable reproducibility)
+    saveCheckpoint(RUN_ID, epoch, trainedPredictor, baselineCurve, trainedCurve, {
+      corpusEpisodes: manifest.length,
+      totalSteps: totalSteps,
+    });
   }
 
   const summary = {
