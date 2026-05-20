@@ -67,6 +67,16 @@ The missing work is not basic capability. It is making this path obvious, measur
 
 Active roadmaps must answer "what is true now?" in the first screen. Historical plans move to `docs/archive/`; active plans keep a dated refresh block, source links, and a drift guard in `pnpm docs:roadmap:drift`.
 
+### 5. Promoted Seed Backlog
+
+Source seed: [HoloScript Autonomous Enhancements Summary](../../idea-seeds/archive-farm/2026-05-12_archive_holoscript-autonomous-enhancements-summary.md), promoted on 2026-05-20 from the archived [Autonomous Enhancements Summary](../archive/AUTONOMOUS_ENHANCEMENTS_2026-02-26.md).
+
+| Roadmap item                    | Current check                                                                                                                                                  | Done when                                                                                                                                              |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Core test memory closure        | `package.json` test scripts and `packages/core/vitest.config.ts` quarantine/heap settings                                                                      | A commit either removes a current OOM quarantine or records a bounded, repeatable test command with exact failing suites and next owners.              |
+| VRR validation, not VRR revival | `packages/core/src/compiler/VRRCompiler.ts` and `packages/runtime/src/VRRRuntime.ts` now contain implemented surfaces; the archive's stub claim is historical. | A targeted VRR compiler/runtime test run plus an E2E or performance receipt lands, or a blocker is recorded with the exact missing runtime dependency. |
+| Dependency audit closure        | Root `health:deps` / `audit:security` scripts are the current entry points; do not copy archived vulnerability counts.                                         | A bounded audit run is attached to a follow-up task, with each actionable package decision split into update, replace, accept-risk, or no-op.          |
+
 ---
 
 ## 6.x Verification Criteria

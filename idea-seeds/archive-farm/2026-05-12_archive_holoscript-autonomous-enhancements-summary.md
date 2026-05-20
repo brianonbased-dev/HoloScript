@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-12
 **Class:** security-instinct
-**Status:** seed
+**Status:** promoted
 **Repository:** HoloScript
 **Source context:** docs/archive/AUTONOMOUS_ENHANCEMENTS_2026-02-26.md
 **Archive score:** 61
@@ -14,15 +14,22 @@ Following the autonomous administrator /holoscript find and complete needed enha
 
 ## Why Not Now
 
-This came from an archive. Treat it as historical, incomplete, or superseded until a current owner verifies the idea against today's HoloScript/HoloLand direction.
+This came from an archive. The useful parts are now represented by active roadmap rows, and the archive's VRR stub claim is historical against current source. Do not re-promote this seed as a broad enhancement bundle.
 
 ## Smallest Next Experiment
 
-Open the source archive, extract one current claim or feature idea, and decide whether it should become a build task, research artifact, paper row, or remain dormant.
+Done 2026-05-20: extracted the still-actionable test memory, VRR validation, and dependency audit themes into the active 6.x roadmap.
 
 ## Reopen Trigger
 
-Reopen when current roadmap, paper work, HoloLand product planning, runtime cleanup, or tool development touches the same theme.
+Promoted 2026-05-20 into docs/strategy/ROADMAP.md; already represented by active roadmap entries unless those rows are deleted or completed without closing the seed links.
+
+## Promotion
+
+- Room task: `task_1779308539469_qkkb`
+- Roadmap link: [Promoted Seed Backlog](../../docs/strategy/ROADMAP.md#5-promoted-seed-backlog)
+- Extracted rows: core test memory closure, VRR validation, dependency audit closure
+- Source archive: [docs/archive/AUTONOMOUS_ENHANCEMENTS_2026-02-26.md](../../docs/archive/AUTONOMOUS_ENHANCEMENTS_2026-02-26.md)
 
 ## Do Not Preserve
 
