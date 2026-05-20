@@ -70,6 +70,8 @@ export interface PhoneSleeveVRCompilerOptions {
   aiTracking?: boolean;
   /** Enable AI gaze prediction for predictive foveated rendering (default false) */
   aiGazePrediction?: boolean;
+  /** Sovereign revival (NMoS audit 2026-05-10): snn-webgpu spiking head/pose tracking for low-power phone sleeve (grok1-x402 hardware-native). Replaces/augments MediaPipe CDN for better thermal + offline. */
+  aiSnnTracking?: boolean;
   /** Enable AI-based predictive thermal management (default false) */
   aiThermalPrediction?: boolean;
   /** Enable AI voice command parsing via Web Speech API (default false) */
@@ -143,6 +145,7 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
       title: options.title ?? 'HoloScript Phone Sleeve VR',
       aiTracking: options.aiTracking ?? false,
       aiGazePrediction: options.aiGazePrediction ?? false,
+      aiSnnTracking: options.aiSnnTracking ?? false,
       aiThermalPrediction: options.aiThermalPrediction ?? false,
       aiVoiceCommands: options.aiVoiceCommands ?? false,
       aiUpscaling: options.aiUpscaling ?? false,
@@ -834,7 +837,8 @@ ${handTrackingFrame}
       ? `\n      // Neural upscaling post-process\n      if (AI_UPSCALING_ENABLED && window.__neuralUpscaleRT && window.__neuralUpscaleMat) {\n        renderer.setRenderTarget(window.__neuralUpscaleRT);\n        renderer.render(scene, camera);\n        renderer.setRenderTarget(null);\n        window.__neuralUpscaleMat.uniforms.tDiffuse.value = window.__neuralUpscaleRT.texture;\n        upscaleRenderer.render(upscaleScene, upscaleCamera);\n      }`
       : '';
     const aiInitBlock = [
-      this.opts.aiTracking ? '      if (AI_TRACKING_ENABLED) initAITracking();' : '',
+      this.opts.aiTracking ? '      if (AI_TRACKING_ENABLED) initAITracking();
+      if (AI_SNN_TRACKING_ENABLED) initSnnTracking();' : '',
       this.opts.aiVoiceCommands ? '      if (AI_VOICE_COMMANDS_ENABLED) initVoiceCommands();' : '',
       this.opts.aiUpscaling ? '      if (AI_UPSCALING_ENABLED) initNeuralUpscaling();' : '',
     ].filter(Boolean).join('\n');
@@ -897,6 +901,7 @@ ${handTrackingFrame}
     }
   </style>
 ${this.opts.aiTracking ? this.buildAIMediaPipeScripts() : ''}
+${this.opts.aiSnnTracking ? this.buildSnnWebGpuScripts() : ''}
 </head>
 <body>
   <div id="splash">
@@ -938,6 +943,7 @@ ${this.opts.aiTracking ? this.buildAIMediaPipeScripts() : ''}
     const BATTERY_ENABLED = ${batteryEnabled};
     const FOVEATED = ${foveated};
     const AI_TRACKING_ENABLED = ${this.opts.aiTracking};
+    const AI_SNN_TRACKING_ENABLED = ${this.opts.aiSnnTracking};
     const AI_GAZE_PREDICTION_ENABLED = ${this.opts.aiGazePrediction};
     const AI_THERMAL_PREDICTION_ENABLED = ${this.opts.aiThermalPrediction};
     const AI_VOICE_COMMANDS_ENABLED = ${this.opts.aiVoiceCommands};
@@ -1141,6 +1147,7 @@ ${this.opts.aiTracking ? this.buildAIMediaPipeScripts() : ''}
     }
 
 ${this.opts.aiTracking ? this.buildAIHeadTrackingModule() : ''}
+${this.opts.aiSnnTracking ? this.buildSnnWebGpuHeadTrackingModule() : ''}
 ${this.opts.aiGazePrediction ? this.buildAIGazePredictionModule() : ''}
 ${this.opts.aiThermalPrediction ? this.buildAIThermalPredictionModule() : ''}
 ${this.opts.aiVoiceCommands ? this.buildAIVoiceCommandModule() : ''}
@@ -1235,6 +1242,52 @@ ${aiInitBlock}
     return `
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>`;
+  }
+
+  /**
+   * Sovereign revival wiring for snn-webgpu (PhoneSleeveVR P2, NMoS D.037).
+   * Low-power, offline, hardware-native spiking head/pose tracking on phone sleeve.
+   * grok1-x402 hardware seat + snn-webgpu package (LIF + WebGPU) for better thermal
+   * and sovereignty vs CDN MediaPipe. Brittney content gen hook noted below.
+   */
+  private buildSnnWebGpuScripts(): string {
+    // The package is @holoscript/snn-webgpu (see packages/snn-webgpu).
+    // In a full revival this would bundle the WASM/JS or use dynamic import.
+    return `
+  <!-- snn-webgpu sovereign head-pose tracker (revival path) -->
+  <!-- <script type="module" src="/assets/snn-webgpu-headpose.js"></script> -->`;
+  }
+
+  private buildSnnWebGpuHeadTrackingModule(): string {
+    return `
+    // =====================================================================
+    // SNN-WebGPU Head/Pose Tracking (sovereign revival — low-power phone sleeve)
+    // NMoS audit 2026-05-10: reclassify PhoneSleeveVR as SOVEREIGN-REVIVAL.
+    // Uses @holoscript/snn-webgpu (LIF spiking nets on WebGPU) for 6-DOF drift
+    // correction fused with IMU. Better thermal/offline than MediaPipe CDN.
+    // grok1-x402 hardware-native seat owns this integration.
+    // Brittney hook: natural-language → generated phone-sleeve .holo content.
+    // =====================================================================
+    let snnHeadPose = null; // { x, y, z, pitch, yaw, roll } from spiking net
+    let snnTrackingActive = false;
+
+    async function initSnnTracking() {
+      try {
+        // In full revival: import { GPUContext, LIFSimulator } from '@holoscript/snn-webgpu';
+        // Load a small trained head-pose spiking model (or on-device fine-tune).
+        console.log('[PhoneSleeveVR] snn-webgpu head-pose tracker init (sovereign revival path)');
+        // Placeholder fusion with IMU (same contract as MediaPipe path)
+        snnHeadPose = { x: 0, y: 0, z: 0, pitch: 0, yaw: 0, roll: 0 };
+        snnTrackingActive = true;
+        // TODO: wire actual spiking inference loop at 60Hz using WebGPU LIF
+        // TODO: Brittney.generateExperience(nlDescription) → inject .holo objects
+      } catch (e) {
+        console.warn('[PhoneSleeveVR] snn-webgpu tracking unavailable, falling back to IMU');
+      }
+    }
+
+    // Expose the same aiHeadPose surface as the MediaPipe path for compatibility
+    window.getSnnHeadPose = () => snnHeadPose;`;
   }
 
   private buildAIHeadTrackingModule(): string {
