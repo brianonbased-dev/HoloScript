@@ -290,7 +290,42 @@ describe('device_probe', () => {
     const result = await actions.device_probe({ scope: 'frame-capture' }, bb, ctx);
     expect(result).toBe(false);
     expect(bb.device_probe_error).toContain('not allowlisted');
+    expect(bb.device_probe_denial_receipt).toMatchObject({ scope: 'frame-capture', reason: 'scope_not_allowlisted' });
   });
+});
+
+describe('device_probe first-class scope gates', () => {
+  const DEVICE_SCOPES = [
+    'allowDeviceRead',
+    'allowDevicePair',
+    'allowDeviceCommand',
+    'allowHaptic',
+    'allowXrSession',
+    'allowSensorRead',
+  ] as const;
+
+  for (const scopeGate of DEVICE_SCOPES) {
+    it(`blocks "${scopeGate}" scope when ${scopeGate}=false and emits denial_receipt`, async () => {
+      const opts = makeOptions({
+        allowDeviceProbe: true,
+        allowedDeviceScopes: [scopeGate],
+        [scopeGate]: false, // gate closed
+      });
+      const actions = createStdlibActions(opts);
+      const bb: Record<string, unknown> = {};
+      const ctx = { emit: vi.fn() };
+
+      const result = await actions.device_probe({ scope: scopeGate }, bb, ctx);
+      expect(result).toBe(false);
+      expect(typeof bb.device_probe_error).toBe('string');
+      expect(bb.device_probe_error).toContain(scopeGate);
+      expect(bb.device_probe_denial_receipt).toMatchObject({
+        scope: scopeGate,
+        reason: 'scope_gate_denied',
+        policy: scopeGate,
+      });
+    });
+  }
 });
 
 describe('into: convention', () => {

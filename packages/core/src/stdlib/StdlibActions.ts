@@ -40,6 +40,22 @@ export interface StdlibPolicy {
   allowedDeviceScopes?: string[];
   /** Max target-device probe timeout in milliseconds. Default: 10000 */
   deviceProbeTimeoutMs?: number;
+  // ── First-class device/haptic/XR/sensor scope gates ─────────────────────────
+  // These mirror framework DEVICE_CONSENT_SCOPES for AI-containment gating.
+  // A scope gate set to false emits a denial receipt; true is still subject to
+  // allowDeviceProbe=true and allowedDeviceScopes membership check.
+  /** Allow read-only device attribute queries. Default: false */
+  allowDeviceRead?: boolean;
+  /** Allow device pairing/discovery operations. Default: false */
+  allowDevicePair?: boolean;
+  /** Allow sending commands/actuations to a device. Default: false */
+  allowDeviceCommand?: boolean;
+  /** Allow haptic feedback actuations. Default: false */
+  allowHaptic?: boolean;
+  /** Allow creating/managing XR sessions. Default: false */
+  allowXrSession?: boolean;
+  /** Allow reading sensor streams (IMU, GPS, heart rate, etc.). Default: false */
+  allowSensorRead?: boolean;
   /** Max GIF frames to process. Default: 500 */
   maxGifFrames?: number;
   /** Max video duration in seconds. Default: 300 */
@@ -70,6 +86,12 @@ export const DEFAULT_STDLIB_POLICY: StdlibPolicy = {
   allowDeviceProbe: false,
   allowedDeviceScopes: [],
   deviceProbeTimeoutMs: 10_000,
+  allowDeviceRead: false,
+  allowDevicePair: false,
+  allowDeviceCommand: false,
+  allowHaptic: false,
+  allowXrSession: false,
+  allowSensorRead: false,
   maxGifFrames: 500,
   maxVideoDurationSec: 300,
   maxMediaResolution: 4096,
@@ -467,6 +489,32 @@ export function createStdlibActions(options: StdlibOptions): Record<string, Acti
       const allowedScopes = policy.allowedDeviceScopes ?? [];
       if (!allowedScopes.includes(scope)) {
         bb[`${prefix}_error`] = `device scope "${scope}" is not allowlisted`;
+        bb[`${prefix}_denial_receipt`] = {
+          scope,
+          reason: 'scope_not_allowlisted',
+          policy: 'allowedDeviceScopes',
+          deniedAt: new Date().toISOString(),
+        };
+        return false;
+      }
+
+      // ── First-class scope gates: emit denial receipt with exact policy field ──
+      const scopeGateMap: Record<string, boolean | undefined> = {
+        allowDeviceRead: policy.allowDeviceRead,
+        allowDevicePair: policy.allowDevicePair,
+        allowDeviceCommand: policy.allowDeviceCommand,
+        allowHaptic: policy.allowHaptic,
+        allowXrSession: policy.allowXrSession,
+        allowSensorRead: policy.allowSensorRead,
+      };
+      if (scope in scopeGateMap && !scopeGateMap[scope]) {
+        bb[`${prefix}_error`] = `device scope "${scope}" is denied by policy (${scope}=false)`;
+        bb[`${prefix}_denial_receipt`] = {
+          scope,
+          reason: 'scope_gate_denied',
+          policy: scope,
+          deniedAt: new Date().toISOString(),
+        };
         return false;
       }
 
