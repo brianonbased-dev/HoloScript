@@ -57,6 +57,10 @@ export type { CodebaseTrustGateProps, CodebaseTrustGateRender } from './cockpit/
 // HoloLand JEPA NPC control loop wiring (task_1779304511950_rqie)
 export { predictNextWorldStateForNPC } from './npc/jepa-predictor-adapter';
 export type { NPCIntent, NPCObservation, NPCPrediction } from './npc/jepa-predictor-adapter';
+
+// Production JEPANPCController (the actual wiring used by real HoloLand NPCs)
+export { JEPANPCController } from './npc/jepa-npc-controller';
+export type { JEPANPCStepResult, ReceiptEmitter } from './npc/jepa-npc-controller';
 } from './device-lab';
 
 export type {
