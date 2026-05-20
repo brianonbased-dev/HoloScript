@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { spawn, type ChildProcessWithoutNullStreams } from 'child_process';
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { readJson } from '../../errors/safeJsonParse';
@@ -47,9 +47,12 @@ function startDaemon(): DaemonHarness {
     'utf-8'
   );
 
-  // Prefer pre-built JS (CI path, fast startup). Fall back to tsx for local dev.
+  // Prefer fresh pre-built JS (CI path, fast startup). Fall back to tsx for local dev.
+  const sourceRunnerPath = path.resolve(__dirname, '../holoscript-runner.ts');
   const compiledRunnerPath = path.resolve(__dirname, '../../../dist/cli/holoscript-runner.js');
-  const useCompiled = existsSync(compiledRunnerPath);
+  const useCompiled =
+    existsSync(compiledRunnerPath) &&
+    statSync(compiledRunnerPath).mtimeMs >= statSync(sourceRunnerPath).mtimeMs;
 
   const spawnArgs = useCompiled
     ? [compiledRunnerPath, 'run', sourcePath, '--daemon']
@@ -58,7 +61,7 @@ function startDaemon(): DaemonHarness {
         const tsxCliPath = path.join(tsxPkgDir, 'dist', 'cli.mjs');
         return [
           tsxCliPath,
-          path.resolve(__dirname, '../holoscript-runner.ts'),
+          sourceRunnerPath,
           'run',
           sourcePath,
           '--daemon',
@@ -106,7 +109,7 @@ afterEach(() => {
   // noop: explicit cleanup is done per test so we can await process exit.
 });
 
-describe.todo('holoscript-runner daemon mode (requires @holoscript/absorb-service at runtime) - integration skipped pending service harness in CI; tracked in stabilization lane', () => {
+describe('holoscript-runner run --daemon protocol', () => {
   it('responds to stats/state commands and action protocol, then stops cleanly', async () => {
     const harness = startDaemon();
     const timeoutDetails = () => {
@@ -192,7 +195,7 @@ describe.todo('holoscript-runner daemon mode (requires @holoscript/absorb-servic
       expect(actionRequest).toBeDefined();
 
       sendCommand(harness.proc, {
-        op: 'action:resolve',
+        op: 'action:reply',
         actionRequestId: actionRequest?.actionRequestId,
         success: true,
       });

@@ -605,12 +605,47 @@ interface DaemonRuntime {
   on(event: string, handler: (payload: unknown) => void): () => void;
   stop(): void;
   registerAction(name: string, handler: ActionHandler): void;
+  get?(key: string): unknown;
+  set?(key: string, value: unknown): void;
   getState(key?: string): unknown;
   getAllState?(): unknown;
-  setState(key: string, value: unknown): void;
+  setState(keyOrPatch: string | Partial<Record<string, unknown>>, value?: unknown): void;
   getStats(): Record<string, unknown>;
   tick(): void;
   [key: string]: unknown;
+}
+
+function getDaemonState(runtime: DaemonRuntime, key?: unknown): unknown {
+  if (typeof key === 'string') {
+    if (typeof runtime.get === 'function') {
+      return runtime.get(key);
+    }
+
+    const value = runtime.getState(key);
+    if (value && typeof value === 'object' && key in (value as Record<string, unknown>)) {
+      return (value as Record<string, unknown>)[key];
+    }
+    return value;
+  }
+
+  if (typeof runtime.getAllState === 'function') {
+    return runtime.getAllState();
+  }
+  return runtime.getState();
+}
+
+function setDaemonState(runtime: DaemonRuntime, key: string, value: unknown): void {
+  if (typeof runtime.set === 'function') {
+    runtime.set(key, value);
+    return;
+  }
+
+  if (runtime.setState.length <= 1) {
+    runtime.setState({ [key]: value });
+    return;
+  }
+
+  runtime.setState(key, value);
 }
 
 async function runDaemon(runtime: DaemonRuntime, opts: CLIOptions): Promise<void> {
@@ -734,14 +769,14 @@ interface DaemonCommand {
       }
       case 'state:get': {
         const key = command?.key;
-        const value = typeof key === 'string' ? runtime.getState(key) : runtime.getAllState?.();
+        const value = getDaemonState(runtime, key);
         send({ type: 'daemon:ok', op, key, value });
         break;
       }
       case 'state:set': {
         const key = command?.key;
         if (typeof key === 'string') {
-          runtime.setState(key, command.value);
+          setDaemonState(runtime, key, command.value);
           send({ type: 'daemon:ok', op, key });
         } else {
           send({ type: 'daemon:error', op, error: 'state:set requires string key' });
