@@ -3,15 +3,15 @@
  *
  * LOCATION: packages/core/src/testing/PBRSchema.ts
  *
- * TODO-043 resolved: the canonical runtime schema now lives in
+ * Schema migration 043 resolved: the canonical runtime schema now lives in
  * `packages/engine/src/materials/UnifiedPBRSchema.ts`, exported via
  * `@holoscript/engine/materials`. This file remains in `testing/` as a
  * complementary test-surface type registry (validator fixtures + preset
  * definitions used in core tests). The originally planned materials/
  * directory migration was superseded by UnifiedPBRSchema.ts in engine.
  *
- * This module defines the single canonical set of PBR types shared across
- * all HoloScript subsystems:
+ * This module defines the test-facing PBR types mirrored across core
+ * validation surfaces:
  *   - rendering/MaterialLibrary  (runtime material registry)
  *   - tools/MaterialEditor       (live material editing UI)
  *   - parser/MaterialTypes       (AST -> material IR)
