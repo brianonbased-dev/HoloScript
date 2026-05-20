@@ -35,6 +35,8 @@ import {
   compileIoTBlock,
   compileEducationBlock,
   compileMusicBlock,
+  generateROS2LaunchFile,
+  generateControllersYaml,
 } from '@holoscript/core';
 import { handleMapSchema, handleMapCsvHeaders } from './schema-mapper';
 import { handleAuditNumbers, auditTools } from './audit-tools';
@@ -500,6 +502,26 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'urdf' });
     case 'compile_to_sdf':
       return handleCompileToTarget({ ...args, target: 'sdf' });
+    case 'compile_to_ros2_deploy': {
+      const { code, packageName = 'holoscript_robot', options = {} } = args as {
+        code: string;
+        packageName?: string;
+        options?: { useSimTime?: boolean; rviz?: boolean; gazebo?: boolean; controllers?: string[] };
+      };
+      const urdfResult = await handleCompileToTarget({ code, target: 'urdf', options });
+      const urdfContent = urdfResult.content?.[0]?.text ?? '';
+      const urdfFilename = `${packageName}.urdf`;
+      const launchFile = generateROS2LaunchFile(packageName, urdfFilename, options);
+      const controllersYaml = generateControllersYaml(packageName, options.controllers ?? []);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ urdf: urdfContent, launchFile, controllersYaml, packageName, urdfFilename }, null, 2),
+          },
+        ],
+      };
+    }
     case 'compile_to_webgpu':
       return handleCompileToTarget({ ...args, target: 'webgpu' });
     case 'compile_to_r3f':
@@ -1051,6 +1073,27 @@ export const compilerTools: Tool[] = [
       properties: {
         code: { type: 'string', description: 'HoloScript composition code' },
         options: { type: 'object' },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'compile_to_ros2_deploy',
+    description: 'Compile HoloScript to a ROS 2 deployment bundle: URDF + Python launch file + controllers YAML (MoveIt 2 / ros2_control)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        packageName: { type: 'string', description: 'ROS 2 package name (default: holoscript_robot)' },
+        options: {
+          type: 'object',
+          properties: {
+            useSimTime: { type: 'boolean' },
+            rviz: { type: 'boolean' },
+            gazebo: { type: 'boolean' },
+            controllers: { type: 'array', items: { type: 'string' } },
+          },
+        },
       },
       required: ['code'],
     },
