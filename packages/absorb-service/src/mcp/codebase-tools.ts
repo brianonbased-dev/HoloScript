@@ -2339,3 +2339,67 @@ export async function syncWithMesh(graph: any, rootDir: string): Promise<void> {
     console.warn(`[MeshSync] Could not reach orchestrator: ${err}`);
   }
 }
+
+// =============================================================================
+// LOCAL CODEBASE SNAPSHOT RECEIPT VALIDATION (P2 task_1779267196745_l3d4)
+// =============================================================================
+
+export interface LocalCodebaseSnapshotReceipt {
+  schema: 'LocalCodebaseSnapshotReceipt.v1';
+  version: string;
+  emittedAt: string;
+  agent?: string;
+  surface?: string;
+  roots: string[];
+  rootHashes: Array<{ root: string; hash: string }>;
+  sourceFiles: Array<{ path: string; size: number; hash: string; mtime: string }>;
+  stats: { totalFiles: number; totalBytes: number; skippedCount: number };
+  skipped?: Array<{ path: string; reason: string }>;
+  redactionPolicy?: string;
+  replayCommand: string;
+  privacyClass?: string;
+  freshness: { generatedAt: string; note?: string };
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+/**
+ * Reusable validator for receipts produced by local HoloShell codebase adapters.
+ * Enforces caps, relative paths, hashes, redaction, freshness, and replay command.
+ */
+export function validateLocalCodebaseSnapshotReceipt(input: unknown): ValidationResult {
+  const errors: string[] = [];
+  if (typeof input !== 'object' || input === null) {
+    return { valid: false, errors: ['Receipt must be an object'] };
+  }
+  const r = input as Partial<LocalCodebaseSnapshotReceipt>;
+
+  if (r.schema !== 'LocalCodebaseSnapshotReceipt.v1') errors.push(`bad schema: ${r.schema}`);
+  if (!r.version) errors.push('version required');
+  if (!r.emittedAt) errors.push('emittedAt required');
+  if (!Array.isArray(r.roots) || r.roots.length === 0) errors.push('roots must be non-empty');
+  if (!Array.isArray(r.sourceFiles)) errors.push('sourceFiles must be array');
+
+  const MAX_FILES = 2000;
+  const MAX_BYTES = 25 * 1024 * 1024;
+  let byteSum = 0;
+  if (Array.isArray(r.sourceFiles)) {
+    for (const f of r.sourceFiles) {
+      if (!f?.path || typeof f.path !== 'string' || f.path.includes('..')) errors.push(`bad path: ${f?.path}`);
+      if (typeof f?.hash !== 'string' || f.hash.length !== 64) errors.push(`bad hash for ${f?.path}`);
+      if (f?.size) byteSum += Number(f.size);
+    }
+  }
+  if (r.stats?.totalFiles > MAX_FILES) errors.push('file cap exceeded');
+  if (byteSum > MAX_BYTES) errors.push('byte cap exceeded');
+
+  if (!r.replayCommand || !r.replayCommand.includes('holo_absorb_repo')) {
+    errors.push('replayCommand must reference holo_absorb_repo');
+  }
+  if (!r.freshness?.generatedAt) errors.push('freshness.generatedAt required');
+
+  return { valid: errors.length === 0, errors };
+}

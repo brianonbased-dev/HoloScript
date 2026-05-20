@@ -4,7 +4,7 @@
 
 export { absorbServiceTools, handleAbsorbServiceTool } from './absorb-tools';
 export { absorbTypescriptTools, handleAbsorbTypescriptTool } from './absorb-typescript-tools';
-export { codebaseTools, handleCodebaseTool } from './codebase-tools';
+export { codebaseTools, handleCodebaseTool, validateLocalCodebaseSnapshotReceipt, type LocalCodebaseSnapshotReceipt, type ValidationResult } from './codebase-tools';
 export {
   ABSORB_CODEBASE_LOAD_ERROR,
   ABSORB_EMBEDDING_INDEX_ERROR,
