@@ -36,6 +36,27 @@ interface Receipt {
   signature: string;
 }
 
+/**
+ * Deterministic text → Float32Array embedding (same implementation used by
+ * JEPAPredictor and JEPAObjective for context / plan targets).
+ * This makes the training loss operate in the exact same latent space the
+ * sovereign stack uses at inference time.
+ */
+function textToEmbedding(text: string, dim: number): Float32Array {
+  const out = new Float32Array(dim);
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) {
+    h = Math.imul(h, 33) ^ text.charCodeAt(i);
+    h = h >>> 0;
+  }
+  for (let d = 0; d < dim; d++) {
+    h = Math.imul(h, 1664525) + 1013904223;
+    h = h >>> 0;
+    out[d] = (h / 0x100000000) * 2 - 1;
+  }
+  return out;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Durable Checkpoint Manager (dogfoods the persistence farm surfaces)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -162,14 +183,14 @@ async function main() {
       const stateStr = JSON.stringify({ obs, act });
       const { action: chosen, predicted, confidence } = predictor.plan(stateStr, [JSON.stringify(act)]);
 
-      // Simple loss proxy: distance from predicted to a hashed ground-truth embedding
-      const gtHash = new Float32Array(predicted.length);
-      for (let k = 0; k < predicted.length; k++) {
-        gtHash[k] = ((gt.x || 0) * 0.1 + k * 0.01) % 1.0;
-      }
+      // Proper latent target: embed the canonical next-state description using the
+      // exact same deterministic embedding the JEPA stack uses at inference time.
+      const gtString = `next_state:${JSON.stringify(gt)}`;
+      const target = textToEmbedding(gtString, predicted.length);
+
       let loss = 0;
       for (let k = 0; k < predicted.length; k++) {
-        loss += (predicted[k] - gtHash[k]) ** 2;
+        loss += (predicted[k] - target[k]) ** 2;
       }
       loss /= predicted.length;
 
@@ -227,14 +248,12 @@ async function main() {
         const stateStr = JSON.stringify({ obs, act });
         const { predicted } = baselinePredictor.plan(stateStr, [JSON.stringify(act)]);
 
-        const gtHash = new Float32Array(predicted.length);
-        for (let k = 0; k < predicted.length; k++) {
-          gtHash[k] = ((gt.x || 0) * 0.1 + k * 0.01) % 1.0;
-        }
+        const gtString = `next_state:${JSON.stringify(gt)}`;
+        const target = textToEmbedding(gtString, predicted.length);
 
         let loss = 0;
         for (let k = 0; k < predicted.length; k++) {
-          loss += (predicted[k] - gtHash[k]) ** 2;
+          loss += (predicted[k] - target[k]) ** 2;
         }
         loss /= predicted.length;
 
@@ -348,17 +367,16 @@ async function main() {
         const stateStr = JSON.stringify({ obs, act });
         const contextEmb = new Float32Array((trainedPredictor as any).latentDim || LATENT_DIM);
 
-        const gtHash = new Float32Array((trainedPredictor as any).latentDim || LATENT_DIM);
-        for (let k = 0; k < gtHash.length; k++) {
-          gtHash[k] = ((gt.x || 0) * 0.1 + k * 0.01) % 1.0;
-        }
+        const gtString = `next_state:${JSON.stringify(gt)}`;
+        const target = textToEmbedding(gtString, (trainedPredictor as any).latentDim || LATENT_DIM);
 
-        sgdStep(trainedPredictor, contextEmb, gtHash, lr);
+        // Train the predictor to output the embedding of the true next state
+        sgdStep(trainedPredictor, contextEmb, target, lr);
 
         const { predicted } = trainedPredictor.plan(stateStr, [JSON.stringify(act)]);
         let loss = 0;
         for (let k = 0; k < predicted.length; k++) {
-          loss += (predicted[k] - gtHash[k]) ** 2;
+          loss += (predicted[k] - target[k]) ** 2;
         }
         loss /= predicted.length;
 
@@ -390,7 +408,7 @@ async function main() {
     improvement_first_epoch_pct: Number(
       ((baselineCurve[0] - trainedCurve[0]) / baselineCurve[0] * 100).toFixed(1)
     ),
-    notes: 'Baseline (frozen) vs Trained (full backprop through both layers + ReLU) on sovereign JEPAPredictor at latentDim=16. First scaled run with proper gradients. Infrastructure (durable checkpoints + dimension guard) proven for iterative scaling of the minimum publishable experiment.',
+    notes: 'First run with real latent targets: textToEmbedding("next_state:" + JSON.stringify(gt)) as the training target. Full backprop on the sovereign predictor in the actual JEPA embedding space. This is the first honest "train to predict the next world-model embedding" slice on solver data.',
   };
 
   const outDir = path.join(process.cwd(), 'research/paper26/results');
