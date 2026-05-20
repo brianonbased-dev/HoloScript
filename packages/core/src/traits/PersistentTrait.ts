@@ -123,7 +123,7 @@ export const persistentHandler: TraitHandler<PersistentConfig> = {
     let entry = store.get(key);
     if (!entry || (entry.expiresAt && entry.expiresAt < Date.now())) {
       entry = { value: config.defaultValue ?? null, expiresAt };
-      store.set(key, entry);
+      store.set(key, entry.value, entry.expiresAt);
     }
 
     const state: PersistentState = {
