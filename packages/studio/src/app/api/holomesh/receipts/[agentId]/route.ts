@@ -1,7 +1,7 @@
 export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { corsHeaders } from '../../../../_lib/cors';
+import { corsHeaders } from '../../../_lib/cors';
 
 const BASE =
   process.env.HOLOMESH_API_URL || process.env.MCP_SERVER_URL || 'https://mcp.holoscript.net';
