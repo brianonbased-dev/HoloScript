@@ -27,6 +27,7 @@ import {
 import { serializeLedger, deserializeLedger } from './identity/token-ledger';
 import { createTeamStore, type TeamStore } from './team-store';
 import { createStateStore, type StateStoreBackend } from './state-store';
+import { createPlayerStore, type PlayerStore, type StoredPlayer } from './player-store';
 
 // ── Persistence Config ────────────────────────────────────────────────────────
 
@@ -71,6 +72,9 @@ export const paidAccessStore: Set<string> = new Set(); // "agentId:entryId" → 
 
 // Teams
 export const teamStore: TeamStore = createTeamStore(); // teamId → Team
+
+// Players (HoloLand users — Postgres-backed so agents never see an empty list)
+export const playerStore: PlayerStore = createPlayerStore(); // playerId → StoredPlayer
 const stateStore: StateStoreBackend = createStateStore(); // audit/defense/dispatch backend
 export const teamPresenceStore: Map<string, Map<string, TeamPresenceEntry>> = new Map(); // teamId → (agentId → presence)
 export const teamMessageStore: Map<string, TeamMessage[]> = new Map(); // teamId → messages
@@ -816,6 +820,33 @@ export async function initStores(): Promise<void> {
         }
       }
     }
+  }
+
+  // Load Players — Postgres first, then seed founder if empty
+  if (process.env.DATABASE_URL) {
+    try {
+      await playerStore.loadAll();
+      console.log(`[loadAllStores] players loaded from PostgreSQL: ${playerStore.size}`);
+    } catch (e) {
+      console.warn('[loadAllStores] PostgreSQL player load failed:', e);
+    }
+  }
+  // Seed the founder as a player on first boot (or after a wipe).
+  // Agents querying hololand_list_players will always see at least one real user.
+  if (playerStore.size === 0) {
+    const founderWallet =
+      process.env.HOLOSCRIPT_FOUNDER_WALLET ||
+      '0x0000000000000000000000000000000000000001';
+    const founderPlayer: StoredPlayer = {
+      id: 'player_founder',
+      name: 'Joseph',
+      walletAddress: founderWallet,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      modifiedAt: new Date().toISOString(),
+    };
+    playerStore.set('player_founder', founderPlayer);
+    console.info('[PlayerStore] Seeded founder player (player_founder → Joseph)');
   }
 
   const holoDoorData = readJSON(HOLODOOR_STORE_PATH);

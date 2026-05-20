@@ -57,6 +57,8 @@ import {
   buildMeshToolManifest,
   publishMeshToolManifest,
 } from './holomesh/mesh-tool-registry.js';
+import { playerStore } from './holomesh/state.js';
+import type { StoredPlayer } from './holomesh/player-store.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Care Ethics Gate — NPC turn-loop guard (CareEthicsTrait wiring)
@@ -1330,18 +1332,7 @@ export interface StoredNPC {
 }
 
 // Player / Creator / Agent Provisioning Registries (task_1778617298562_qdpb)
-
-interface StoredPlayer {
-  id: string;
-  name: string;
-  walletAddress?: string;
-  worldId?: string;
-  shardId?: string;
-  zoneId?: string;
-  status: 'active' | 'suspended' | 'revoked';
-  createdAt: string;
-  modifiedAt: string;
-}
+// StoredPlayer is imported at the top from ./holomesh/player-store.js
 
 interface StoredCreator {
   id: string;
@@ -1376,7 +1367,7 @@ const zoneRuntimeRegistry = new Map<string, StoredZoneRuntime>();
 const geoAnchorRegistry = new Map<string, StoredGeoAnchor>();
 const shardReceiptRegistry = new Map<string, StoredShardReceipt>();
 const npcRegistry = new Map<string, StoredNPC>();
-const playerRegistry = new Map<string, StoredPlayer>();
+// playerRegistry removed — playerStore (Postgres-backed) is imported from state
 const creatorRegistry = new Map<string, StoredCreator>();
 const agentRegistry = new Map<string, StoredProvisionedAgent>();
 
@@ -1395,7 +1386,7 @@ export function clearHololandRegistries(): void {
   geoAnchorRegistry.clear();
   shardReceiptRegistry.clear();
   npcRegistry.clear();
-  playerRegistry.clear();
+  playerStore.clear();
   creatorRegistry.clear();
   agentRegistry.clear();
   clearRobotAiRegistries();
@@ -3011,7 +3002,7 @@ async function handleProvisionPlayer(args: Record<string, unknown>): Promise<unk
     modifiedAt: new Date().toISOString(),
   };
 
-  playerRegistry.set(id, player);
+  playerStore.set(id, player);
 
   return {
     success: true,
@@ -3024,7 +3015,8 @@ async function handleProvisionPlayer(args: Record<string, unknown>): Promise<unk
 
 async function handleGetPlayer(args: Record<string, unknown>): Promise<unknown> {
   const playerId = args.playerId as string;
-  const player = playerRegistry.get(playerId);
+  // getFresh hits Postgres so cross-instance provisions are visible immediately
+  const player = await playerStore.getFresh(playerId);
   if (!player) {
     return { error: `Player not found: ${playerId}` };
   }
@@ -3039,7 +3031,10 @@ async function handleListPlayers(args: Record<string, unknown>): Promise<unknown
   const zoneId = args.zoneId as string | undefined;
   const status = args.status as string | undefined;
 
-  let items = Array.from(playerRegistry.values());
+  // Reload from Postgres so all Railway instances see the same player list
+  await playerStore.loadAll();
+
+  let items = Array.from(playerStore.values());
   if (worldId !== undefined) items = items.filter((p) => p.worldId === worldId);
   if (shardId !== undefined) items = items.filter((p) => p.shardId === shardId);
   if (zoneId !== undefined) items = items.filter((p) => p.zoneId === zoneId);
@@ -3053,13 +3048,13 @@ async function handleListPlayers(args: Record<string, unknown>): Promise<unknown
 
 async function handleRevokePlayer(args: Record<string, unknown>): Promise<unknown> {
   const playerId = args.playerId as string;
-  const player = playerRegistry.get(playerId);
+  const player = await playerStore.getFresh(playerId);
   if (!player) {
     return { error: `Player not found: ${playerId}` };
   }
-  player.status = 'revoked';
-  player.modifiedAt = new Date().toISOString();
-  return { success: true, playerId, status: player.status, revokedAt: player.modifiedAt };
+  const updated: StoredPlayer = { ...player, status: 'revoked', modifiedAt: new Date().toISOString() };
+  playerStore.set(playerId, updated);
+  return { success: true, playerId, status: updated.status, revokedAt: updated.modifiedAt };
 }
 
 async function handleProvisionCreator(args: Record<string, unknown>): Promise<unknown> {
