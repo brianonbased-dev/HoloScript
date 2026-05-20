@@ -4,6 +4,7 @@ export { advancedClothHandler } from './AdvancedClothTrait';
 export * from './AdvancedLightingTrait';
 export * from './AdvancedPBRTrait';
 export * from './AdvancedTexturingTrait';
+export { affinityHandler } from './AffinityTrait';
 export * from './AgentDiscoveryTrait';
 export * from './AgentMemoryTrait';
 export * from './AgentPortalTrait';

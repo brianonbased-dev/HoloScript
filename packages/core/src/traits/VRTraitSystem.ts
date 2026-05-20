@@ -168,6 +168,7 @@ import {
   // commit a9daad4d3 silently re-introduced them via stale-base auto-tool.
   scalarFieldOverlayHandler,
 } from './SimulationTraitHandlers';
+import { affinityHandler } from './AffinityTrait';
 import { ropeHandler } from './RopeTrait';
 import { chainHandler } from './ChainTrait';
 import { roadmapNodeHandler } from './RoadmapTrait';
@@ -1756,6 +1757,7 @@ export class VRTraitRegistry {
     this.register(structuralFEMHandler as TraitHandler);
     this.register(hydraulicPipeHandler as TraitHandler);
     this.register(scalarFieldOverlayHandler as TraitHandler);
+    this.register(affinityHandler as TraitHandler);
 
     this.register(userMonitorHandler as TraitHandler);
     this.register(emotionalVoiceHandler as TraitHandler);
