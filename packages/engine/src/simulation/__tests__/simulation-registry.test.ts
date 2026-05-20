@@ -26,6 +26,7 @@ describe('simulation-registry', () => {
     expect(types).toContain('molecular-dynamics');
     expect(types).toContain('mls-mpm-fluid');
     expect(types).toContain('reaction-diffusion');
+    expect(types).toContain('affinity-ode');
   });
 
   it('is idempotent — second call is a no-op', () => {
@@ -81,6 +82,36 @@ describe('simulation-registry', () => {
     initSimulationSolvers();
     const solver = SimulationSolverFactory.create('nonexistent_solver_type', {});
     expect(solver).toBeNull();
+  });
+
+  it('creates AffinityODESolver for affinity-ode type', () => {
+    initSimulationSolvers();
+    const solver = SimulationSolverFactory.create('affinity-ode', {
+      agents: [
+        { id: 'R', dampingRate: -0.2, couplingToPartner: 0.5 },
+        { id: 'J', dampingRate: -0.1, couplingToPartner: 0.8 },
+      ],
+      initialFeelings: [0.5, 0.3],
+      timeStep: 0.01,
+    });
+    expect(solver).not.toBeNull();
+    expect(typeof solver!.step).toBe('function');
+    expect(typeof solver!.dispose).toBe('function');
+
+    // Full step cycle — validates end-to-end runtime
+    const stateBefore = (solver as unknown as { getState(): { R: number; J: number; stepCount: number } }).getState();
+    expect(stateBefore.R).toBeCloseTo(0.5, 5);
+    expect(stateBefore.J).toBeCloseTo(0.3, 5);
+    expect(stateBefore.stepCount).toBe(0);
+
+    solver!.step(0.1);
+    solver!.step(0.1);
+    const stateAfter = (solver as unknown as { getState(): { R: number; J: number; stepCount: number } }).getState();
+    expect(stateAfter.stepCount).toBeGreaterThan(0);
+    // Feelings should have evolved (not identical to initial)
+    expect(stateAfter.R !== stateBefore.R || stateAfter.J !== stateBefore.J).toBe(true);
+
+    solver!.dispose();
   });
 
   it('can re-init after reset + clear', () => {
