@@ -57,6 +57,63 @@ function textToEmbedding(text: string, dim: number): Float32Array {
   return out;
 }
 
+/**
+ * SIGReg (Sketched Isotropic Gaussian Regularization) — exact copy from the
+ * sovereign JEPAObjective implementation so the training loss matches the real
+ * objective used at inference / deployment time.
+ */
+function computeSIGReg(z: Float32Array, numProjections: number, sigma: number): number {
+  const dim = z.length;
+  const sigmaSquared = sigma * sigma;
+  let total = 0;
+
+  let seed = 0xcafe1234;
+  const lcg = (): number => {
+    seed = Math.imul(seed, 1664525) + 1013904223;
+    return ((seed >>> 0) / 0x100000000) * 2 - 1;
+  };
+
+  const gaussianPair = (): [number, number] => {
+    const u1 = Math.max(1e-12, (lcg() + 1) / 2);
+    const u2 = (lcg() + 1) / 2;
+    const r = Math.sqrt(-2 * Math.log(u1));
+    const theta = 2 * Math.PI * u2;
+    return [r * Math.cos(theta), r * Math.sin(theta)];
+  };
+
+  for (let p = 0; p < numProjections; p++) {
+    let dot = 0;
+    for (let i = 0; i < dim; i += 2) {
+      const [g1, g2] = gaussianPair();
+      const scale = 1 / Math.sqrt(dim);
+      dot += z[i] * (g1 * scale);
+      if (i + 1 < dim) dot += z[i + 1] * (g2 * scale);
+    }
+
+    const proj2 = dot * dot;
+    const ratio = proj2 / sigmaSquared;
+    if (ratio > 0) {
+      total += ratio - 1 - Math.log(ratio);
+    } else {
+      total += 1;
+    }
+  }
+
+  return total / numProjections;
+}
+
+function computeTotalLoss(predicted: Float32Array, target: Float32Array, sigregWeight = 0.05): number {
+  let mse = 0;
+  const dim = predicted.length;
+  for (let k = 0; k < dim; k++) {
+    mse += (predicted[k] - target[k]) ** 2;
+  }
+  mse /= dim;
+
+  const sig = computeSIGReg(predicted, 64, 1.0);
+  return mse + sigregWeight * sig;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Durable Checkpoint Manager (dogfoods the persistence farm surfaces)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -193,11 +250,7 @@ async function main() {
       const gtString = `next_state:${JSON.stringify(gt)}`;
       const target = textToEmbedding(gtString, predicted.length);
 
-      let loss = 0;
-      for (let k = 0; k < predicted.length; k++) {
-        loss += (predicted[k] - target[k]) ** 2;
-      }
-      loss /= predicted.length;
+      const loss = computeTotalLoss(predicted, target);
 
       totalLoss += loss;
       totalSteps++;
@@ -256,11 +309,7 @@ async function main() {
         const gtString = `next_state:${JSON.stringify(gt)}`;
         const target = textToEmbedding(gtString, predicted.length);
 
-        let loss = 0;
-        for (let k = 0; k < predicted.length; k++) {
-          loss += (predicted[k] - target[k]) ** 2;
-        }
-        loss /= predicted.length;
+        const loss = computeTotalLoss(predicted, target);
 
         epochLoss += loss;
         epochSteps++;
@@ -379,11 +428,7 @@ async function main() {
         sgdStep(trainedPredictor, contextEmb, target, lr);
 
         const { predicted } = trainedPredictor.plan(stateStr, [JSON.stringify(act)]);
-        let loss = 0;
-        for (let k = 0; k < predicted.length; k++) {
-          loss += (predicted[k] - target[k]) ** 2;
-        }
-        loss /= predicted.length;
+        const loss = computeTotalLoss(predicted, target);
 
         epochLoss += loss;
         epochSteps++;
@@ -421,11 +466,8 @@ async function main() {
       const gtString = `next_state:${JSON.stringify(gt)}`;
       const target = textToEmbedding(gtString, predicted.length);
 
-      let err = 0;
-      for (let k = 0; k < predicted.length; k++) {
-        err += (predicted[k] - target[k]) ** 2;
-      }
-      err = Math.sqrt(err); // L2 distance in embedding space
+      const totalLoss = computeTotalLoss(predicted, target);
+      const err = Math.sqrt(totalLoss * predicted.length); // approximate L2 from combined loss
 
       verificationL2 += err;
       verificationSteps++;

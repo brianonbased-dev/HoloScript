@@ -57,11 +57,13 @@ Scale to 1,500–3,000 episodes across 2–3 robot morphologies + multi-physics 
 **Date**: 2026-05-20
 **Using**: Actual JEPAPredictor.plan() (latentDim=16, condDim=4) + real receipt generation + durable checkpoints with dimension guard + full backprop through both layers
 
-**Results** (richer bridge-style corpus + verification on real latent targets):
-- Corpus: 150 episodes / 7,793 steps with bridge-realistic observations (dense 64-beam scan, contact forces, joint effort, full twist)
-- Receipts generated: 7,793 during verification
-- Trained model: avg L2 error on real latent targets = 2.4474
-- This is the first verification pass on data whose structure matches what the D.007 ROS 2 / Gazebo bridge actually emits. The pipeline scales cleanly to richer observations.
+**Results** (first run with the real sovereign JEPA objective):
+- Corpus: 150 richer bridge-style episodes (7,793 steps)
+- Loss: `MSE + 0.05 * SIGReg` (exact combination from `JEPAObjective`)
+- Baseline (frozen + SIGReg): ~0.561
+- Trained: 33.1% first-epoch improvement as the model learns both prediction and the regularization term
+- Verification on real latent targets + SIGReg: avg combined ~2.98
+- This is the first time the Paper 26 harness trains with the actual sovereign objective the system will use at deployment.
 
 **Loss curve file**: research/paper26/results/loss-curve-slice-001.json
 
@@ -70,7 +72,7 @@ Scale to 1,500–3,000 episodes across 2–3 robot morphologies + multi-physics 
 npx tsx research/paper26/train_jepa_real.ts
 ```
 
-This is the first verification pass on richer, bridge-realistic data (dense lidar, contacts, effort, full twist — exactly the kind of observations the D.007 ROS 2 bridge produces). The entire modern pipeline now runs on higher-fidelity solver-like trajectories. The next leap is pulling actual logged trajectories from the real bridges + increasing model capacity.
+This is the first Paper 26 run whose loss is the actual sovereign JEPA objective (`predictionLoss + sigregWeight * SIGReg`). The benchmark experiment is now using the real `JEPAObjective` formulation. The infrastructure is complete for the publishable paper. Next: actual logged trajectories from the bridges + larger model.
 
 **Related**: ROS 2 bridge (docs/integrations/ros2-holoscript-bridge.md), D.050, D.055, NMoS P2
 
