@@ -10,6 +10,49 @@ The NFT marketplace compiler (`--target nft-marketplace`) generates the Web3 inf
 holoscript compile items.holo --target nft-marketplace --chain polygon --output ./web3/
 ```
 
+## Protocol vs Compiler
+
+HoloScript has two on-chain asset surfaces. They solve different jobs.
+
+Use **HoloScript Protocol** as the default for HoloLand-native creator economies:
+
+- Publishing HoloScript compositions, worlds, rooms, objects, and editions.
+- Collecting assets whose value depends on HoloScript provenance, receipts, and
+  runtime unlocks.
+- Creator revenue splits inside a HoloScript or HoloLand economy.
+- In-world use where ownership should unlock behavior, access, or replayable
+  provenance, not just an external token listing.
+
+Use **NFTMarketplaceCompiler** when the deliverable is EVM marketplace
+infrastructure:
+
+- ERC-1155 or ERC-721 compatible contracts.
+- OpenSea, Zora, Base, Polygon, or external wallet interoperability.
+- Export packages for a team that already operates an NFT marketplace stack.
+- Contract, metadata, deployment script, and marketplace UI scaffolding.
+
+The compiler is an interoperability bridge. The Protocol is the sovereign
+economy for HoloScript worlds. For HoloLand-native assets, prefer Protocol first
+and compile marketplace contracts only when a specific external marketplace,
+wallet, or chain deployment requires them.
+
+## What Survived The NFT Crash
+
+Treat speculative collectible drops as a warning label, not as the product
+center. The durable patterns are narrower:
+
+- **Game and world assets**: items with live utility in a running world.
+- **Tickets and access passes**: ownership unlocks an event, room, quest, or
+  capability.
+- **Verifiable provenance**: the token anchors authorship, source hashes,
+  edition history, and receipts.
+- **Creator revenue contracts**: splits and royalty policies that fund the world
+  or creator network directly.
+
+HoloScript's advantage is not "another NFT marketplace." It is that the asset
+can carry the source composition, compile receipts, SimulationContract evidence,
+and runtime behavior that make ownership meaningful inside the world.
+
 ## Output Structure
 
 ```
