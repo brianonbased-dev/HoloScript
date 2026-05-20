@@ -148,7 +148,11 @@ describe('WorldModelReceipt — ContractedSimulation.generateWorldModelReceipt()
     expect(receipt.solver_ground_truth.simTime).toBeGreaterThanOrEqual(0);
   });
 
-  it('generates receipt with custom JEPA predictor', async () => {
+  it('generates receipt with custom JEPA predictor (real JEPAPredictor from AI Lab stack)', async () => {
+    // Real AI Lab integration: use the sovereign JEPAPredictor (the predictor half of jepa_objective)
+    // This proves: jepa_objective logic + solver ground truth → WorldModelReceipt (Base-anchorable)
+    const { JEPAPredictor } = await import('@holoscript/core/traits/JEPAPredictor'); // source re-export in monorepo
+
     const config = buildConfig();
     const solver = new StructuralSolver(config as unknown as StructuralConfig);
     const contracted = new ContractedSimulation(
@@ -159,13 +163,25 @@ describe('WorldModelReceipt — ContractedSimulation.generateWorldModelReceipt()
 
     await contracted.solve();
 
-    // Custom predictor: always predicts a unit vector
-    const customPredictor = (state: PhysicsState): LatentVector => ({
-      values: new Float32Array(4).fill(0.25),
-      dim: 4,
-      encoderId: 'jepa-continuum-v1',
-      simTime: state.simTime,
-    });
+    // Real JEPAPredictor instance (as would be used inside jepa_objective handler)
+    const predictor = new JEPAPredictor({ latentDim: 4, condDim: 0 });
+
+    // Custom predictor callback that exercises the real AI Lab predictor
+    const customPredictor = (state: PhysicsState): LatentVector => {
+      // Synthetic context embedding derived from solver state (in real use this comes from EmbeddingTrait / JEPAObjective)
+      const ctx = new Float32Array(4);
+      const firstField = Object.values(state.fields)[0];
+      if (firstField) {
+        for (let i = 0; i < Math.min(4, firstField.length); i++) ctx[i] = firstField[i] * 0.01;
+      }
+      const { predicted } = predictor.forward(ctx, null);
+      return {
+        values: predicted,
+        dim: 4,
+        encoderId: 'jepa-continuum-v1',
+        simTime: state.simTime,
+      };
+    };
 
     // Custom encoder: project state to 4-dim by taking first 4 field values
     const customEncoder = (state: PhysicsState): Float32Array => {
