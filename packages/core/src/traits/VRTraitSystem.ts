@@ -169,6 +169,7 @@ import {
   scalarFieldOverlayHandler,
 } from './SimulationTraitHandlers';
 import { affinityHandler } from './AffinityTrait';
+import { careEthicsHandler } from './CareEthicsTrait';
 import { ropeHandler } from './RopeTrait';
 import { chainHandler } from './ChainTrait';
 import { roadmapNodeHandler } from './RoadmapTrait';
@@ -1758,6 +1759,7 @@ export class VRTraitRegistry {
     this.register(hydraulicPipeHandler as TraitHandler);
     this.register(scalarFieldOverlayHandler as TraitHandler);
     this.register(affinityHandler as TraitHandler);
+    this.register(careEthicsHandler as TraitHandler);
 
     this.register(userMonitorHandler as TraitHandler);
     this.register(emotionalVoiceHandler as TraitHandler);
