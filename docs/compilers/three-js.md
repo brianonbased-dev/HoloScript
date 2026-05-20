@@ -198,6 +198,32 @@ export function Scene() {
 - React Three Fiber output option
 - Hot-reload via `holoscript dev`
 
+## HoloScript for Three.js / R3F Developers
+
+If you already love Three.js or React Three Fiber, HoloScript is the **simulation + provenance layer** you have been missing.
+
+**Same .holo source** compiles to:
+- Three.js / R3F (your current stack)
+- Babylon.js
+- WebGPU (low-level)
+- Unity, Unreal, Godot, USD, VRChat, etc.
+
+**What you get that pure Three.js/R3F cannot provide today**:
+- **SimulationContract** — every object carries receipts, provenance, and causal history across compiles.
+- **Multi-target IR** — the same physics + traits scene works in R3F *and* a native Godot/Unreal build without rewriting.
+- **Agent-native MCP** — generate or modify the scene from Claude/Cursor/Grok without leaving your editor.
+- **CRDT collaboration** — real-time multi-user editing that survives export to any target.
+
+**Quick win for existing R3F projects**:
+1. Keep your Three.js / R3F frontend.
+2. Move the authoritative scene description to `.holo`.
+3. Use `compile_to_threejs` (or the R3F renderer) for the web view.
+4. Use the same `.holo` for Godot/Unreal exports when you need native performance.
+
+HoloScript does not replace Three.js/R3F — it gives it a semantic, simulatable, multi-target brain.
+
+---
+
 ## See Also
 
 - [Platform Overview](/compilers/)
@@ -205,3 +231,4 @@ export function Scene() {
 - [WebGPU Compiler](/compilers/webgpu)
 - [Quick Start](/guides/quick-start)
 - [Export Example](/examples/export)
+- [R3F Renderer](/r3f-renderer/) — first-class React Three Fiber integration
