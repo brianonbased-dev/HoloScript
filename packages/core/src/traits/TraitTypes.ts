@@ -131,6 +131,37 @@ export interface HostGpuComputeCapabilities {
   readonly available: boolean;
 }
 
+export type HostDeviceProbeScope =
+  | 'inventory'
+  | 'presence'
+  | 'frame-capture'
+  | 'input'
+  | 'actuation';
+
+export interface HostDeviceProbeRequest {
+  scope: HostDeviceProbeScope;
+  targetId?: string;
+  targetKind?: string;
+  timeoutMs?: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface HostDeviceProbeResult {
+  ok: boolean;
+  status: 'present' | 'missing' | 'unsupported' | 'denied';
+  deviceId?: string;
+  targetKind?: string;
+  detail?: string;
+  metrics?: Record<string, unknown>;
+  receipt?: unknown;
+}
+
+/** Local target-device probe capability, e.g. headset/phone/controller presence or frame receipts. */
+export interface HostDeviceProbeCapabilities {
+  probe: (request: HostDeviceProbeRequest) => Promise<HostDeviceProbeResult>;
+  readonly available: boolean;
+}
+
 export interface HostCapabilities {
   fileSystem?: HostFileSystemCapabilities;
   process?: HostProcessCapabilities;
@@ -141,6 +172,8 @@ export interface HostCapabilities {
   depthInference?: HostDepthInferenceCapabilities;
   /** GPU compute capability. */
   gpuCompute?: HostGpuComputeCapabilities;
+  /** Target-device probing capability gated by StdlibPolicy device scopes. */
+  deviceProbe?: HostDeviceProbeCapabilities;
 }
 
 export interface TraitContext {

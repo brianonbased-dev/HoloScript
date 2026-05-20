@@ -33,6 +33,18 @@ function makeMockCapabilities(files: Record<string, string> = {}): HostCapabilit
     network: {
       fetch: vi.fn(() => ({ status: 200, ok: true, text: '{"result":"ok"}' })),
     },
+    deviceProbe: {
+      available: true,
+      probe: vi.fn(() => ({
+        ok: true,
+        status: 'present',
+        deviceId: 'quest-local',
+        targetKind: 'webxr-headset',
+        detail: 'target device detected',
+        metrics: { frameMs: 11.1 },
+        receipt: { schemaVersion: 'target-device-proof/v1' },
+      })),
+    },
   };
 }
 
@@ -229,6 +241,58 @@ describe('net_fetch', () => {
   });
 });
 
+describe('device_probe', () => {
+  it('probes an allowlisted target-device scope and stores receipt fields', async () => {
+    const opts = makeOptions({
+      allowDeviceProbe: true,
+      allowedDeviceScopes: ['presence'],
+      deviceProbeTimeoutMs: 2_000,
+    });
+    const actions = createStdlibActions(opts);
+    const bb: Record<string, unknown> = {};
+    const ctx = { emit: vi.fn() };
+
+    const result = await actions.device_probe(
+      { scope: 'presence', targetKind: 'webxr-headset', timeoutMs: 99_999 },
+      bb,
+      ctx
+    );
+    expect(result).toBe(true);
+    expect(bb.device_probe_status).toBe('present');
+    expect(bb.device_probe_deviceId).toBe('quest-local');
+    expect(bb.device_probe_targetKind).toBe('webxr-headset');
+    expect(bb.device_probe_receipt).toEqual({ schemaVersion: 'target-device-proof/v1' });
+
+    const probeMock = opts.hostCapabilities!.deviceProbe!.probe as ReturnType<typeof vi.fn>;
+    expect(probeMock.mock.calls[0][0].timeoutMs).toBe(2_000);
+  });
+
+  it('blocks target-device probes unless policy enables them', async () => {
+    const opts = makeOptions({ allowDeviceProbe: false, allowedDeviceScopes: ['presence'] });
+    const actions = createStdlibActions(opts);
+    const bb: Record<string, unknown> = {};
+    const ctx = { emit: vi.fn() };
+
+    const result = await actions.device_probe({ scope: 'presence' }, bb, ctx);
+    expect(result).toBe(false);
+    expect(bb.device_probe_error).toContain('allowDeviceProbe=false');
+  });
+
+  it('blocks non-allowlisted target-device scopes', async () => {
+    const opts = makeOptions({
+      allowDeviceProbe: true,
+      allowedDeviceScopes: ['presence'],
+    });
+    const actions = createStdlibActions(opts);
+    const bb: Record<string, unknown> = {};
+    const ctx = { emit: vi.fn() };
+
+    const result = await actions.device_probe({ scope: 'frame-capture' }, bb, ctx);
+    expect(result).toBe(false);
+    expect(bb.device_probe_error).toContain('not allowlisted');
+  });
+});
+
 describe('into: convention', () => {
   it('uses custom prefix when into param is provided', async () => {
     const opts = makeOptions({ allowedPaths: ['src'] }, { 'src/file.txt': 'data' });
@@ -269,6 +333,7 @@ describe('registerStdlib', () => {
     expect(registered).toContain('fs_delete');
     expect(registered).toContain('process_exec');
     expect(registered).toContain('net_fetch');
+    expect(registered).toContain('device_probe');
     // Handler count may grow as new stdlib actions are added; verify the core set.
     expect(registered.length).toBeGreaterThanOrEqual(6);
   });

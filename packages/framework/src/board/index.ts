@@ -516,7 +516,6 @@ export {
   cloneAssetShardWorkflowReceipt,
 } from './holoshell-asset-shard-receipts';
 
-
 export {
   // Device Lab Warning Tokens (task_1778739828973_47f5)
   WARNING_SEVERITY,
@@ -853,6 +852,26 @@ export {
 } from './holoshell-permission-gate-receipts';
 
 export {
+  // HoloShell Target Device Proof Receipts (format-stress)
+  TARGET_DEVICE_PROOF_RECEIPT_VERSION,
+  TARGET_DEVICE_KINDS,
+  TARGET_DEVICE_PROOF_STATUSES,
+  TARGET_DEVICE_PROOF_CHECKS,
+  type TargetDeviceKind,
+  type TargetDeviceProofStatus,
+  type TargetDeviceProofCheckKind,
+  type TargetDeviceIdentity,
+  type TargetDeviceProofCheck,
+  type TargetDeviceFrameReceipt,
+  type HoloShellTargetDeviceProofReceipt,
+  isSupportedTargetDeviceKind,
+  isSupportedTargetDeviceProofStatus,
+  isSupportedTargetDeviceProofCheckKind,
+  validateHoloShellTargetDeviceProofReceipt,
+  cloneHoloShellTargetDeviceProofReceipt,
+} from './holoshell-target-device-proof-receipts';
+
+export {
   // Download / Import Shelf Receipts (generic) - task_1779150614671_37ao
   DOWNLOAD_SHELF_SOURCES,
   DOWNLOAD_QUARANTINE_MODES,
@@ -979,6 +998,7 @@ export {
   clonePhysicalRollbackLimitReceipt,
   cloneHoloShellPhysicalActuationReceiptPack,
 } from './holoshell-physical-actuation-receipts';
+
 export {
   BOARD_WEBHOOK_EVENT_TYPES,
   BOARD_WEBHOOK_ORDERING_GUARANTEE,

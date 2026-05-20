@@ -34,6 +34,12 @@ export interface StdlibPolicy {
   allowDepthInference?: boolean;
   /** Allow WebGPU compute shader access. Default: false */
   allowGpuCompute?: boolean;
+  /** Allow target-device probing. Default: false */
+  allowDeviceProbe?: boolean;
+  /** Allowed target-device probe scopes. Empty means no scopes allowed. */
+  allowedDeviceScopes?: string[];
+  /** Max target-device probe timeout in milliseconds. Default: 10000 */
+  deviceProbeTimeoutMs?: number;
   /** Max GIF frames to process. Default: 500 */
   maxGifFrames?: number;
   /** Max video duration in seconds. Default: 300 */
@@ -61,6 +67,9 @@ export const DEFAULT_STDLIB_POLICY: StdlibPolicy = {
   allowMediaDecode: false,
   allowDepthInference: false,
   allowGpuCompute: false,
+  allowDeviceProbe: false,
+  allowedDeviceScopes: [],
+  deviceProbeTimeoutMs: 10_000,
   maxGifFrames: 500,
   maxVideoDurationSec: 300,
   maxMediaResolution: 4096,
@@ -304,7 +313,6 @@ export function createStdlibActions(options: StdlibOptions): Record<string, Acti
 
     // ── Network ───────────────────────────────────────────────────────────
 
-
     // ── Media Decode ──────────────────────────────────────────────────────
 
     media_decode: async (params, bb) => {
@@ -330,8 +338,7 @@ export function createStdlibActions(options: StdlibOptions): Record<string, Acti
         typeof params.maxFrames === 'number'
           ? Math.min(params.maxFrames, policy.maxGifFrames ?? 500)
           : (policy.maxGifFrames ?? 500);
-      const mediaType =
-        params.type === 'video' ? ('video' as const) : ('gif' as const);
+      const mediaType = params.type === 'video' ? ('video' as const) : ('gif' as const);
 
       try {
         const frames = await caps.media.decodeFrames(source as string | ArrayBuffer, {
@@ -370,12 +377,10 @@ export function createStdlibActions(options: StdlibOptions): Record<string, Acti
       }
 
       const maxRes = policy.maxMediaResolution ?? 4096;
-      const width =
-        typeof params.width === 'number' ? Math.min(params.width, maxRes) : undefined;
+      const width = typeof params.width === 'number' ? Math.min(params.width, maxRes) : undefined;
       const height =
         typeof params.height === 'number' ? Math.min(params.height, maxRes) : undefined;
-      const modelId =
-        typeof params.modelId === 'string' ? params.modelId : undefined;
+      const modelId = typeof params.modelId === 'string' ? params.modelId : undefined;
 
       try {
         const depthMap = await caps.depthInference.estimateDepth(source as string | ArrayBuffer, {
@@ -388,7 +393,9 @@ export function createStdlibActions(options: StdlibOptions): Record<string, Acti
         bb[`${prefix}_height`] = depthMap.height;
         bb[`${prefix}_backend`] = depthMap.backend;
         bb[`${prefix}_inferenceMs`] = depthMap.inferenceMs;
-        log(`depth_inference: ${depthMap.width}×${depthMap.height} via ${depthMap.backend} (${depthMap.inferenceMs}ms)`);
+        log(
+          `depth_inference: ${depthMap.width}×${depthMap.height} via ${depthMap.backend} (${depthMap.inferenceMs}ms)`
+        );
         return true;
       } catch (error) {
         bb[`${prefix}_error`] = (error as Error).message;
@@ -435,6 +442,65 @@ export function createStdlibActions(options: StdlibOptions): Record<string, Acti
         bb[`${prefix}_dispatchMs`] = result.dispatchMs;
         log(`gpu_compute: dispatch completed in ${result.dispatchMs}ms`);
         return true;
+      } catch (error) {
+        bb[`${prefix}_error`] = (error as Error).message;
+        return false;
+      }
+    },
+
+    // ── Target Device Probe ───────────────────────────────────────────────
+
+    device_probe: async (params, bb) => {
+      const prefix = resolveInto(params, 'device_probe');
+
+      if (!policy.allowDeviceProbe) {
+        bb[`${prefix}_error`] = 'device_probe is disabled by policy (allowDeviceProbe=false)';
+        return false;
+      }
+
+      const scope = typeof params.scope === 'string' ? params.scope.trim() : '';
+      if (!scope) {
+        bb[`${prefix}_error`] = 'scope is required';
+        return false;
+      }
+
+      const allowedScopes = policy.allowedDeviceScopes ?? [];
+      if (!allowedScopes.includes(scope)) {
+        bb[`${prefix}_error`] = `device scope "${scope}" is not allowlisted`;
+        return false;
+      }
+
+      if (!caps?.deviceProbe?.probe || !caps.deviceProbe.available) {
+        bb[`${prefix}_error`] = 'deviceProbe capability not available';
+        return false;
+      }
+
+      const timeoutPolicyMs = policy.deviceProbeTimeoutMs ?? 10_000;
+      const timeoutMs =
+        typeof params.timeoutMs === 'number' && Number.isFinite(params.timeoutMs)
+          ? Math.max(250, Math.min(timeoutPolicyMs, Math.floor(params.timeoutMs)))
+          : timeoutPolicyMs;
+
+      try {
+        const result = await caps.deviceProbe.probe({
+          scope: scope as Parameters<typeof caps.deviceProbe.probe>[0]['scope'],
+          targetId: typeof params.targetId === 'string' ? params.targetId : undefined,
+          targetKind: typeof params.targetKind === 'string' ? params.targetKind : undefined,
+          timeoutMs,
+          metadata:
+            typeof params.metadata === 'object' && params.metadata !== null
+              ? (params.metadata as Record<string, unknown>)
+              : undefined,
+        });
+        bb[`${prefix}_ok`] = result.ok;
+        bb[`${prefix}_status`] = result.status;
+        bb[`${prefix}_deviceId`] = result.deviceId;
+        bb[`${prefix}_targetKind`] = result.targetKind;
+        bb[`${prefix}_detail`] = result.detail;
+        bb[`${prefix}_metrics`] = result.metrics;
+        bb[`${prefix}_receipt`] = result.receipt;
+        log(`device_probe: ${scope} → ${result.status}`);
+        return result.ok;
       } catch (error) {
         bb[`${prefix}_error`] = (error as Error).message;
         return false;

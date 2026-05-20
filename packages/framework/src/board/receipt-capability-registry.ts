@@ -43,14 +43,26 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
   // ── HoloLand Receipts ──
   {
     capability: 'hardware',
-    description: 'Hardware compilation and execution receipts — GPU, WASM, Qualcomm NIR, cross-hardware targets.',
+    description:
+      'Hardware compilation and execution receipts — GPU, WASM, Qualcomm NIR, cross-hardware targets.',
     receiptType: 'HardwareReceipt',
     module: 'hololand-receipts',
     exportName: 'HardwareReceipt',
     validateFn: 'validateHardwareReceipt',
     cloneFn: 'cloneHardwareReceipt',
     isSupportedFn: 'isSupportedHardwareReceiptKind',
-    subjects: ['gpu', 'wasm', 'nir', 'cross-compilation', 'cuda', 'webgpu', 'metal', 'vulkan', 'd3d12', 'opencl'],
+    subjects: [
+      'gpu',
+      'wasm',
+      'nir',
+      'cross-compilation',
+      'cuda',
+      'webgpu',
+      'metal',
+      'vulkan',
+      'd3d12',
+      'opencl',
+    ],
     tags: ['hololand', 'compilation', 'simulation'],
   },
   {
@@ -79,7 +91,8 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
   },
   {
     capability: 'cross-hardware',
-    description: 'Cross-hardware compilation receipts — prove a source was compiled to multiple targets.',
+    description:
+      'Cross-hardware compilation receipts — prove a source was compiled to multiple targets.',
     receiptType: 'CrossHardwareCompilationReceipt',
     module: 'hololand-receipts',
     exportName: 'CrossHardwareCompilationReceipt',
@@ -103,7 +116,8 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
   },
   {
     capability: 'package-provenance',
-    description: 'Package provenance receipts — trust tier, admission, and supply chain verification.',
+    description:
+      'Package provenance receipts — trust tier, admission, and supply chain verification.',
     receiptType: 'PackageProvenanceReceipt',
     module: 'hololand-receipts',
     exportName: 'PackageProvenanceReceipt',
@@ -117,7 +131,8 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
   // ── HoloShell Receipts ──
   {
     capability: 'browser',
-    description: 'Browser absorption receipts — prove browser automation actions with policy envelopes.',
+    description:
+      'Browser absorption receipts — prove browser automation actions with policy envelopes.',
     receiptType: 'BrowserAbsorptionReceipt',
     module: 'holoshell-browser-receipts',
     exportName: 'BrowserAbsorptionReceipt',
@@ -129,7 +144,8 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
   },
   {
     capability: 'account-export',
-    description: 'Account export receipts — prove data portability with provider, archive, and approval chains.',
+    description:
+      'Account export receipts — prove data portability with provider, archive, and approval chains.',
     receiptType: 'HoloShellAccountExportReceiptPack',
     module: 'holoshell-account-export-receipts',
     exportName: 'HoloShellAccountExportReceiptPack',
@@ -141,7 +157,8 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
   },
   {
     capability: 'provider-export-repair',
-    description: 'Provider export repair receipts — preserve failed exports, partial archives, retry plans, and replay lessons.',
+    description:
+      'Provider export repair receipts — preserve failed exports, partial archives, retry plans, and replay lessons.',
     receiptType: 'HoloShellProviderExportRepairReceiptPack',
     module: 'holoshell-provider-export-repair-receipts',
     exportName: 'HoloShellProviderExportRepairReceiptPack',
@@ -153,19 +170,29 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
   },
   {
     capability: 'brittney-action',
-    description: 'Brittney field action receipts — prove autonomous agent actions with repair paths.',
+    description:
+      'Brittney field action receipts — prove autonomous agent actions with repair paths.',
     receiptType: 'HoloShellBrittneyActionReceiptPack',
     module: 'holoshell-brittney-action-receipts',
     exportName: 'HoloShellBrittneyActionReceiptPack',
     validateFn: 'validateHoloShellBrittneyActionReceiptPack',
     cloneFn: 'cloneHoloShellBrittneyActionReceiptPack',
     isSupportedFn: 'isSupportedBrittneyFieldActionKind',
-    subjects: ['tool_call', 'claim_task', 'complete_task', 'send_message', 'knowledge_sync', 'file_write', 'session_handoff'],
+    subjects: [
+      'tool_call',
+      'claim_task',
+      'complete_task',
+      'send_message',
+      'knowledge_sync',
+      'file_write',
+      'session_handoff',
+    ],
     tags: ['holoshell', 'agent', 'autonomous', 'safety'],
   },
   {
     capability: 'cli',
-    description: 'CLI absorption receipts — prove local CLI command execution and policy enforcement.',
+    description:
+      'CLI absorption receipts — prove local CLI command execution and policy enforcement.',
     receiptType: 'LocalCliAbsorptionReceipt',
     module: 'holoshell-cli-receipts',
     exportName: 'LocalCliAbsorptionReceipt',
@@ -177,7 +204,8 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
   },
   {
     capability: 'readiness',
-    description: 'Source-native readiness receipts — prove a machine is ready to build HoloLand worlds.',
+    description:
+      'Source-native readiness receipts — prove a machine is ready to build HoloLand worlds.',
     receiptType: 'HoloShellReadinessReceipt',
     module: 'holoshell-readiness-receipt',
     exportName: 'HoloShellReadinessReceipt',
@@ -189,7 +217,8 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
   },
   {
     capability: 'workfile-custody',
-    description: 'Work-file custody receipts — prove file parsing, preview, export, and safety handling.',
+    description:
+      'Work-file custody receipts — prove file parsing, preview, export, and safety handling.',
     receiptType: 'HoloShellWorkFileCustodyReceipt',
     module: 'holoshell-workfile-custody-receipt',
     exportName: 'HoloShellWorkFileCustodyReceipt',
@@ -201,7 +230,8 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
   },
   {
     capability: 'asset-shard',
-    description: 'Asset shard receipts — prove asset import, conversion, preview, and rollback chains.',
+    description:
+      'Asset shard receipts — prove asset import, conversion, preview, and rollback chains.',
     receiptType: 'AssetShardWorkflowReceipt',
     module: 'holoshell-asset-shard-receipts',
     exportName: 'AssetShardWorkflowReceipt',
@@ -213,19 +243,52 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
   },
   {
     capability: 'device-safety',
-    description: 'Device safety envelope receipts — prove device identity, consent, and safe action execution.',
+    description:
+      'Device safety envelope receipts — prove device identity, consent, and safe action execution.',
     receiptType: 'HoloShellDeviceSafetyReceiptPack',
     module: 'holoshell-device-safety-receipts',
     exportName: 'HoloShellDeviceSafetyReceiptPack',
     validateFn: 'validateHoloShellDeviceSafetyReceiptPack',
     cloneFn: 'cloneHoloShellDeviceSafetyReceiptPack',
     isSupportedFn: 'isSupportedDeviceCategory',
-    subjects: ['headset', 'phone', 'webcam', 'gpu', 'robot', 'printer', 'wallet', 'consent', 'identity'],
+    subjects: [
+      'headset',
+      'phone',
+      'webcam',
+      'gpu',
+      'robot',
+      'printer',
+      'wallet',
+      'consent',
+      'identity',
+    ],
     tags: ['holoshell', 'device', 'safety', 'consent'],
   },
   {
+    capability: 'target-device-proof',
+    description:
+      'Target-device proof receipts — separate local compile/browser readiness from headset/device frame evidence.',
+    receiptType: 'HoloShellTargetDeviceProofReceipt',
+    module: 'holoshell-target-device-proof-receipts',
+    exportName: 'HoloShellTargetDeviceProofReceipt',
+    validateFn: 'validateHoloShellTargetDeviceProofReceipt',
+    cloneFn: 'cloneHoloShellTargetDeviceProofReceipt',
+    isSupportedFn: 'isSupportedTargetDeviceKind',
+    subjects: [
+      'webxr',
+      'openxr',
+      'headset',
+      'frame-capture',
+      'device-presence',
+      'adb',
+      'browser-acceleration',
+    ],
+    tags: ['holoshell', 'device', 'proof', 'format-stress', 'hololand'],
+  },
+  {
     capability: 'downloads-shelf',
-    description: 'Downloads shelf receipts — prove download inventory, quarantine, and deletion decisions.',
+    description:
+      'Downloads shelf receipts — prove download inventory, quarantine, and deletion decisions.',
     receiptType: 'HoloShellDownloadsShelfReceiptPack',
     module: 'holoshell-downloads-shelf-receipts',
     exportName: 'HoloShellDownloadsShelfReceiptPack',
@@ -237,52 +300,93 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
   },
   {
     capability: 'package-mutation',
-    description: 'Package install/update custody receipts — prove package identity, approval, rollback limits, and blocked ambient execution.',
+    description:
+      'Package install/update custody receipts — prove package identity, approval, rollback limits, and blocked ambient execution.',
     receiptType: 'HoloShellPackageMutationReceipt',
     module: 'holoshell-package-mutation-receipt',
     exportName: 'HoloShellPackageMutationReceipt',
     validateFn: 'validateHoloShellPackageMutationReceipt',
     cloneFn: 'cloneHoloShellPackageMutationReceipt',
     isSupportedFn: 'isSupportedPackageMutationKind',
-    subjects: ['install', 'update', 'upgrade', 'uninstall', 'package-manager', 'rollback', 'admin', 'winget', 'pnpm'],
+    subjects: [
+      'install',
+      'update',
+      'upgrade',
+      'uninstall',
+      'package-manager',
+      'rollback',
+      'admin',
+      'winget',
+      'pnpm',
+    ],
     tags: ['holoshell', 'package', 'install', 'safety', 'break-glass'],
   },
   {
     capability: 'permission-gate',
-    description: 'Provider, app, connector, and device permission gate receipts — prove minimum scope, grant verification, revocation, and redacted credential handling.',
+    description:
+      'Provider, app, connector, and device permission gate receipts — prove minimum scope, grant verification, revocation, and redacted credential handling.',
     receiptType: 'HoloShellPermissionGateReceiptPack',
     module: 'holoshell-permission-gate-receipts',
     exportName: 'HoloShellPermissionGateReceiptPack',
     validateFn: 'validateHoloShellPermissionGateReceiptPack',
     cloneFn: 'cloneHoloShellPermissionGateReceiptPack',
     isSupportedFn: 'isSupportedPermissionSubjectKind',
-    subjects: ['oauth', 'scope', 'grant', 'revoke', 'connector', 'provider-account', 'os-permission', 'device'],
+    subjects: [
+      'oauth',
+      'scope',
+      'grant',
+      'revoke',
+      'connector',
+      'provider-account',
+      'os-permission',
+      'device',
+    ],
     tags: ['holoshell', 'permissions', 'oauth', 'safety', 'privacy', 'hololand'],
   },
-
   {
     capability: 'physical-actuation',
-    description: 'Physical actuation receipts — prove simulation, freshness, safe stop, rollback limits, and replay before hardware mutation.',
+    description:
+      'Physical actuation receipts — prove simulation, freshness, safe stop, rollback limits, and replay before hardware mutation.',
     receiptType: 'HoloShellPhysicalActuationReceiptPack',
     module: 'holoshell-physical-actuation-receipts',
     exportName: 'HoloShellPhysicalActuationReceiptPack',
     validateFn: 'validateHoloShellPhysicalActuationReceiptPack',
     cloneFn: 'cloneHoloShellPhysicalActuationReceiptPack',
     isSupportedFn: 'isSupportedPhysicalActuationAction',
-    subjects: ['actuation', 'robot', 'headset', 'haptic', 'xr-session', 'safe-stop', 'freshness', 'rollback', 'simulation'],
+    subjects: [
+      'actuation',
+      'robot',
+      'headset',
+      'haptic',
+      'xr-session',
+      'safe-stop',
+      'freshness',
+      'rollback',
+      'simulation',
+    ],
     tags: ['holoshell', 'device', 'safety', 'physical-world', 'hololand', 'twin-earth'],
   },
+
   // ── Structural Receipts ──
   {
     capability: 'artifact',
-    description: 'Generic artifact receipts — prove a file/output was produced with hash provenance.',
+    description:
+      'Generic artifact receipts — prove a file/output was produced with hash provenance.',
     receiptType: 'ArtifactReceipt',
     module: 'board-types',
     exportName: 'ArtifactReceipt',
     validateFn: 'validateArtifactReceipt',
     cloneFn: 'cloneArtifactReceipt',
     isSupportedFn: 'isSupportedArtifactReceiptType',
-    subjects: ['docs', 'screenshot', 'benchmark', 'render', 'test-output', 'code-patch', 'hardware-compilation'],
+    subjects: [
+      'docs',
+      'screenshot',
+      'benchmark',
+      'render',
+      'test-output',
+      'code-patch',
+      'hardware-compilation',
+    ],
     tags: ['structural', 'provenance'],
   },
   {
@@ -294,12 +398,22 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
     validateFn: 'validateTaskEnvironmentReceipt',
     cloneFn: 'cloneTaskEnvironmentReceipt',
     isSupportedFn: 'isSupportedTaskEnvironmentProfileKind',
-    subjects: ['local', 'worktree', 'container', 'hardware-native', 'browser', 'simulation', 'gpu', 'wasm'],
+    subjects: [
+      'local',
+      'worktree',
+      'container',
+      'hardware-native',
+      'browser',
+      'simulation',
+      'gpu',
+      'wasm',
+    ],
     tags: ['structural', 'environment', 'fingerprint'],
   },
   {
     capability: 'steward-action',
-    description: 'Agent steward action receipts — prove world-issue triage, rollback, and proposal handling.',
+    description:
+      'Agent steward action receipts — prove world-issue triage, rollback, and proposal handling.',
     receiptType: 'StewardActionReceipt',
     module: 'agent-steward',
     exportName: 'StewardActionReceipt',
@@ -311,7 +425,8 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
   },
   {
     capability: 'shard',
-    description: 'Frontier shard receipts — prove shard creation, skill rarity, and quest completion.',
+    description:
+      'Frontier shard receipts — prove shard creation, skill rarity, and quest completion.',
     receiptType: 'ShardReceipt',
     module: 'frontier-shard',
     exportName: 'ShardReceipt',
@@ -323,7 +438,8 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
   },
   {
     capability: 'twin-earth',
-    description: 'Twin Earth substrate receipts — prove participation mode, identity, and actuation.',
+    description:
+      'Twin Earth substrate receipts — prove participation mode, identity, and actuation.',
     receiptType: 'TwinEarthReceipt',
     module: 'twin-earth-substrate',
     exportName: 'TwinEarthReceipt',
@@ -335,7 +451,8 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
   },
   {
     capability: 'holoweb-network',
-    description: 'HoloWeb network reality receipts — prove node, location, underlay, and health evidence.',
+    description:
+      'HoloWeb network reality receipts — prove node, location, underlay, and health evidence.',
     receiptType: 'HoloWebReceipt',
     module: 'holoweb-network-reality',
     exportName: 'HoloWebReceipt',
@@ -347,7 +464,8 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
   },
   {
     capability: 'legacy-app',
-    description: 'HoloShell legacy app reality receipts — prove process, window, and lane evidence.',
+    description:
+      'HoloShell legacy app reality receipts — prove process, window, and lane evidence.',
     receiptType: 'HoloShellLegacyReceipt',
     module: 'holoshell-legacy-app-reality',
     exportName: 'HoloShellLegacyAppRealitySnapshot',
@@ -376,7 +494,7 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
 /** Find receipt capability entries matching a capability keyword and/or subject. */
 export function queryReceiptCapabilities(
   capability?: string,
-  subject?: string,
+  subject?: string
 ): ReceiptCapabilityEntry[] {
   let results = RECEIPT_CAPABILITY_REGISTRY;
 
@@ -387,17 +505,14 @@ export function queryReceiptCapabilities(
         entry.capability === capLower ||
         entry.capability.includes(capLower) ||
         (entry.tags ?? []).some((tag) => tag.includes(capLower)) ||
-        entry.description.toLowerCase().includes(capLower),
+        entry.description.toLowerCase().includes(capLower)
     );
   }
 
   if (subject) {
     const subjLower = subject.toLowerCase();
     results = results.filter(
-      (entry) =>
-        entry.subjects?.some(
-          (s) => s === subjLower || s.includes(subjLower),
-        ) ?? false,
+      (entry) => entry.subjects?.some((s) => s === subjLower || s.includes(subjLower)) ?? false
     );
   }
 
@@ -405,12 +520,8 @@ export function queryReceiptCapabilities(
 }
 
 /** Get a single capability entry by exact capability name. */
-export function getReceiptCapability(
-  capability: string,
-): ReceiptCapabilityEntry | undefined {
-  return RECEIPT_CAPABILITY_REGISTRY.find(
-    (entry) => entry.capability === capability,
-  );
+export function getReceiptCapability(capability: string): ReceiptCapabilityEntry | undefined {
+  return RECEIPT_CAPABILITY_REGISTRY.find((entry) => entry.capability === capability);
 }
 
 /** List all registered capability keywords. */
