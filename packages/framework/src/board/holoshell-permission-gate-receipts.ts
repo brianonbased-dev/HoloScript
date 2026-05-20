@@ -8,6 +8,19 @@
  */
 
 import type { ArtifactHashAlgorithm } from './board-types';
+import {
+  buildStdlibPermissionScopeDiff,
+  evaluateStdlibPermissionScopePolicy,
+  findExtraPermissionScopes,
+  findMissingRequiredPermissionScopes,
+  normalizePermissionScopeName,
+  redactStdlibPermissionPreview,
+  stdlibPermissionPreviewHasPublicLeak,
+  type StdlibPermissionPreviewRedactionResult,
+  type StdlibPermissionScopeDiffInput,
+  type StdlibPermissionScopeDiffResult,
+  type StdlibPermissionScopePolicyEvaluation,
+} from '@holoscript/core';
 
 export const HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION =
   'hololand.holoshell.permission-gate.v0.1.0';
@@ -191,39 +204,18 @@ export interface HoloShellPermissionGateReceiptPack {
   hashAlgorithm: ArtifactHashAlgorithm;
 }
 
-export interface PermissionScopePolicyEvaluation {
-  scope: string;
-  normalizedScope: string;
-  allowed: boolean;
-  reason?: string;
-}
+export type PermissionScopePolicyEvaluation = StdlibPermissionScopePolicyEvaluation;
 
-export interface PermissionScopeDiffInput {
+export interface PermissionScopeDiffInput extends StdlibPermissionScopeDiffInput {
   requestedScopes: PermissionScopeGrant[];
   minimumRequiredScopes: PermissionScopeGrant[];
   grantedScopes?: PermissionScopeGrant[];
   neverScopes?: string[];
 }
 
-export interface PermissionScopeDiffResult {
-  requestedScopes: string[];
-  minimumRequiredScopes: string[];
-  grantedScopes: string[];
-  missingRequestedRequiredScopes: string[];
-  missingGrantedRequiredScopes: string[];
-  extraGrantedScopes: string[];
-  forbiddenRequestedScopes: PermissionScopePolicyEvaluation[];
-  forbiddenGrantedScopes: PermissionScopePolicyEvaluation[];
-  minimumScopeSatisfied: boolean;
-  excessScopesAbsent: boolean;
-}
+export type PermissionScopeDiffResult = StdlibPermissionScopeDiffResult;
 
-export interface PermissionPreviewRedactionResult {
-  preview: string;
-  redacted: boolean;
-  absolutePathRedacted: boolean;
-  credentialMaterialRedacted: boolean;
-}
+export type PermissionPreviewRedactionResult = StdlibPermissionPreviewRedactionResult;
 
 function isOneOf<T extends readonly string[]>(values: T, value: string): value is T[number] {
   return values.includes(value);
@@ -237,121 +229,41 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-export function normalizePermissionScopeName(scope: string): string {
-  return scope.trim().toLowerCase();
-}
-
-function scopeNames(scopes: PermissionScopeGrant[]): Set<string> {
-  return new Set(scopes.map((scope) => normalizePermissionScopeName(scope.scope)).filter(Boolean));
-}
-
-function forbiddenScopeReason(scope: string, neverScopes: string[]): string | undefined {
-  const normalized = normalizePermissionScopeName(scope);
-  const explicitNever = neverScopes.map(normalizePermissionScopeName);
-  if (explicitNever.includes(normalized)) return 'is listed in neverScopes';
-  if (normalized === '*' || normalized.includes('*')) return 'uses a wildcard';
-  if (/\b(admin|billing|owner|delete|full_access|write_all|manage_all)\b/.test(normalized)) {
-    return 'requests broad administrative authority';
-  }
-  return undefined;
-}
+export { normalizePermissionScopeName };
 
 export function evaluatePermissionScopePolicy(
   scope: string,
   neverScopes: string[] = []
 ): PermissionScopePolicyEvaluation {
-  const normalizedScope = normalizePermissionScopeName(scope);
-  const reason = forbiddenScopeReason(scope, neverScopes);
-  return {
-    scope,
-    normalizedScope,
-    allowed: !reason,
-    ...(reason ? { reason } : {}),
-  };
+  return evaluateStdlibPermissionScopePolicy(scope, neverScopes);
 }
 
-export function buildPermissionScopeDiff(input: PermissionScopeDiffInput): PermissionScopeDiffResult {
-  const requestedScopes = (input.requestedScopes ?? []).map((scope) => scope.scope);
-  const minimumRequiredScopes = (input.minimumRequiredScopes ?? []).map((scope) => scope.scope);
-  const grantedScopes = (input.grantedScopes ?? []).map((scope) => scope.scope);
-  const requestedNames = scopeNames(input.requestedScopes ?? []);
-  const grantedNames = scopeNames(input.grantedScopes ?? []);
-  const neverScopes = input.neverScopes ?? [];
-  const requiredMinimum = (input.minimumRequiredScopes ?? []).filter((scope) => scope.required);
-  const missingRequestedRequiredScopes = requiredMinimum
-    .map((scope) => scope.scope)
-    .filter((scope) => !requestedNames.has(normalizePermissionScopeName(scope)));
-  const missingGrantedRequiredScopes = requiredMinimum
-    .map((scope) => scope.scope)
-    .filter((scope) => !grantedNames.has(normalizePermissionScopeName(scope)));
-  const extraGrantedScopes = findExtraScopes(input.grantedScopes ?? [], input.minimumRequiredScopes ?? []);
-  const forbiddenRequestedScopes = (input.requestedScopes ?? [])
-    .map((scope) => evaluatePermissionScopePolicy(scope.scope, neverScopes))
-    .filter((scope) => !scope.allowed);
-  const forbiddenGrantedScopes = (input.grantedScopes ?? [])
-    .map((scope) => evaluatePermissionScopePolicy(scope.scope, neverScopes))
-    .filter((scope) => !scope.allowed);
-
-  return {
-    requestedScopes,
-    minimumRequiredScopes,
-    grantedScopes,
-    missingRequestedRequiredScopes,
-    missingGrantedRequiredScopes,
-    extraGrantedScopes,
-    forbiddenRequestedScopes,
-    forbiddenGrantedScopes,
-    minimumScopeSatisfied:
-      missingRequestedRequiredScopes.length === 0 &&
-      missingGrantedRequiredScopes.length === 0 &&
-      forbiddenRequestedScopes.length === 0 &&
-      forbiddenGrantedScopes.length === 0,
-    excessScopesAbsent: extraGrantedScopes.length === 0,
-  };
+export function buildPermissionScopeDiff(
+  input: PermissionScopeDiffInput
+): PermissionScopeDiffResult {
+  return buildStdlibPermissionScopeDiff(input);
 }
 
-export function redactPermissionGatePreview(value: string | undefined): PermissionPreviewRedactionResult {
-  const original = value ?? '';
-  let preview = original;
-  let absolutePathRedacted = false;
-  let credentialMaterialRedacted = false;
-
-  preview = preview.replace(/(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/g, (match, prefix: string) => {
-    absolutePathRedacted = true;
-    return `${prefix}<absolute-path-redacted>`;
-  });
-  preview = preview.replace(
-    /\b(access_token|refresh_token|id_token|client_secret|authorization|cookie|code)=([^&\s]+)/gi,
-    (_match, key: string, value: string) => {
-      if (value === '<redacted>') return `${key}=<redacted>`;
-      credentialMaterialRedacted = true;
-      return `${key}=<redacted>`;
-    }
-  );
-  preview = preview.replace(/\bBearer\s+([A-Za-z0-9._~+/=-]+|<redacted>)/gi, (_match, value: string) => {
-    if (value === '<redacted>') return 'Bearer <redacted>';
-    credentialMaterialRedacted = true;
-    return 'Bearer <redacted>';
-  });
-
-  return {
-    preview,
-    redacted: preview !== original,
-    absolutePathRedacted,
-    credentialMaterialRedacted,
-  };
+export function redactPermissionGatePreview(
+  value: string | undefined
+): PermissionPreviewRedactionResult {
+  return redactStdlibPermissionPreview(value);
 }
 
 export function permissionPreviewHasPublicLeak(value: string | undefined): boolean {
-  const redaction = redactPermissionGatePreview(value);
-  return redaction.absolutePathRedacted || redaction.credentialMaterialRedacted;
+  return stdlibPermissionPreviewHasPublicLeak(value);
 }
 
 function validateTimestamp(label: string, value: string | undefined, errors: string[]): void {
   if (!isIsoTimestamp(value)) errors.push(`${label} must be a valid ISO-8601 timestamp.`);
 }
 
-function validateHash(label: string, hash: string | undefined, algorithm: string | undefined, errors: string[]): void {
+function validateHash(
+  label: string,
+  hash: string | undefined,
+  algorithm: string | undefined,
+  errors: string[]
+): void {
   if (!isNonEmptyString(hash)) errors.push(`${label}.hash is required.`);
   if (algorithm !== 'sha256') errors.push(`${label}.hashAlgorithm must be sha256.`);
 }
@@ -366,23 +278,22 @@ function validateScopeGrant(
   if (!isNonEmptyString(grant.purpose)) errors.push(`${label}.purpose is required.`);
   if (typeof grant.required !== 'boolean') errors.push(`${label}.required must be a boolean.`);
   if (!isNonEmptyString(grant.riskLevel)) errors.push(`${label}.riskLevel is required.`);
-  const reason = forbiddenScopeReason(grant.scope, neverScopes);
-  if (reason) errors.push(`${label}.scope ${reason}: ${grant.scope}.`);
+  const policy = evaluatePermissionScopePolicy(grant.scope, neverScopes);
+  if (!policy.allowed) errors.push(`${label}.scope ${policy.reason}: ${grant.scope}.`);
 }
 
-function findMissingRequired(request: PermissionRequestReceipt, granted: PermissionScopeGrant[]): string[] {
-  const grantedNames = scopeNames(granted);
-  return request.minimumRequiredScopes
-    .filter((scope) => scope.required)
-    .map((scope) => scope.scope)
-    .filter((scope) => !grantedNames.has(normalizePermissionScopeName(scope)));
+function findMissingRequired(
+  request: PermissionRequestReceipt,
+  granted: PermissionScopeGrant[]
+): string[] {
+  return findMissingRequiredPermissionScopes(request.minimumRequiredScopes, granted);
 }
 
-function findExtraScopes(granted: PermissionScopeGrant[], minimum: PermissionScopeGrant[]): string[] {
-  const minimumNames = scopeNames(minimum);
-  return granted
-    .map((scope) => scope.scope)
-    .filter((scope) => !minimumNames.has(normalizePermissionScopeName(scope)));
+function findExtraScopes(
+  granted: PermissionScopeGrant[],
+  minimum: PermissionScopeGrant[]
+): string[] {
+  return findExtraPermissionScopes(granted, minimum);
 }
 
 export function isSupportedPermissionSubjectKind(value: string): value is PermissionSubjectKind {
@@ -409,13 +320,18 @@ export function validatePermissionSubjectReceipt(
   const errors: string[] = [];
   if (!receipt) return ['PermissionSubjectReceipt is required.'];
   if (receipt.schemaVersion !== HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION) {
-    errors.push(`PermissionSubjectReceipt.schemaVersion must be ${HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION}.`);
+    errors.push(
+      `PermissionSubjectReceipt.schemaVersion must be ${HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION}.`
+    );
   }
   if (!isNonEmptyString(receipt.id)) errors.push('PermissionSubjectReceipt.id is required.');
   if (!isSupportedPermissionSubjectKind(String(receipt.subjectKind))) {
-    errors.push(`PermissionSubjectReceipt.subjectKind is unsupported: ${String(receipt.subjectKind)}.`);
+    errors.push(
+      `PermissionSubjectReceipt.subjectKind is unsupported: ${String(receipt.subjectKind)}.`
+    );
   }
-  if (!isNonEmptyString(receipt.provider)) errors.push('PermissionSubjectReceipt.provider is required.');
+  if (!isNonEmptyString(receipt.provider))
+    errors.push('PermissionSubjectReceipt.provider is required.');
   if (!isNonEmptyString(receipt.redactedSubjectLabel)) {
     errors.push('PermissionSubjectReceipt.redactedSubjectLabel is required.');
   }
@@ -442,7 +358,9 @@ export function validatePermissionRequestReceipt(
   const errors: string[] = [];
   if (!receipt) return ['PermissionRequestReceipt is required.'];
   if (receipt.schemaVersion !== HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION) {
-    errors.push(`PermissionRequestReceipt.schemaVersion must be ${HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION}.`);
+    errors.push(
+      `PermissionRequestReceipt.schemaVersion must be ${HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION}.`
+    );
   }
   if (!isNonEmptyString(receipt.id)) errors.push('PermissionRequestReceipt.id is required.');
   if (!isNonEmptyString(receipt.subjectReceiptId)) {
@@ -456,33 +374,61 @@ export function validatePermissionRequestReceipt(
   }
   const neverScopes = Array.isArray(receipt.neverScopes) ? receipt.neverScopes : [];
   for (const [index, scope] of (receipt.requestedScopes ?? []).entries()) {
-    validateScopeGrant(`PermissionRequestReceipt.requestedScopes[${index}]`, scope, neverScopes, errors);
+    validateScopeGrant(
+      `PermissionRequestReceipt.requestedScopes[${index}]`,
+      scope,
+      neverScopes,
+      errors
+    );
   }
   for (const [index, scope] of (receipt.minimumRequiredScopes ?? []).entries()) {
-    validateScopeGrant(`PermissionRequestReceipt.minimumRequiredScopes[${index}]`, scope, neverScopes, errors);
+    validateScopeGrant(
+      `PermissionRequestReceipt.minimumRequiredScopes[${index}]`,
+      scope,
+      neverScopes,
+      errors
+    );
   }
-  const requestedNames = scopeNames(receipt.requestedScopes ?? []);
-  for (const required of receipt.minimumRequiredScopes ?? []) {
-    if (required.required && !requestedNames.has(normalizePermissionScopeName(required.scope))) {
-      errors.push(`PermissionRequestReceipt.requestedScopes is missing required scope: ${required.scope}.`);
-    }
+  const requestDiff = buildPermissionScopeDiff({
+    requestedScopes: receipt.requestedScopes ?? [],
+    minimumRequiredScopes: receipt.minimumRequiredScopes ?? [],
+    neverScopes,
+  });
+  for (const neverScope of requestDiff.invalidNeverScopes) {
+    errors.push(
+      `PermissionRequestReceipt.neverScopes contains an invalid scope name: ${neverScope}.`
+    );
   }
-  if (!isNonEmptyString(receipt.purpose)) errors.push('PermissionRequestReceipt.purpose is required.');
+  for (const requiredScope of requestDiff.missingRequestedRequiredScopes) {
+    errors.push(
+      `PermissionRequestReceipt.requestedScopes is missing required scope: ${requiredScope}.`
+    );
+  }
+  if (!isNonEmptyString(receipt.purpose))
+    errors.push('PermissionRequestReceipt.purpose is required.');
   if (!isSupportedPermissionGateEnvelope(String(receipt.permissionEnvelope))) {
-    errors.push(`PermissionRequestReceipt.permissionEnvelope is unsupported: ${String(receipt.permissionEnvelope)}.`);
+    errors.push(
+      `PermissionRequestReceipt.permissionEnvelope is unsupported: ${String(receipt.permissionEnvelope)}.`
+    );
   }
   if (receipt.permissionEnvelope !== 'read_only' && receipt.requiresFreshUserGesture !== true) {
-    errors.push('PermissionRequestReceipt.requiresFreshUserGesture must be true for permission grants.');
+    errors.push(
+      'PermissionRequestReceipt.requiresFreshUserGesture must be true for permission grants.'
+    );
   }
-  if (!isNonEmptyString(receipt.approvalId)) errors.push('PermissionRequestReceipt.approvalId is required.');
+  if (!isNonEmptyString(receipt.approvalId))
+    errors.push('PermissionRequestReceipt.approvalId is required.');
   if (receipt.commandPreviewContainsAbsolutePaths !== false) {
     errors.push('PermissionRequestReceipt.commandPreviewContainsAbsolutePaths must be false.');
   }
   if (permissionPreviewHasPublicLeak(receipt.commandOrUrlPreview)) {
-    errors.push('PermissionRequestReceipt.commandOrUrlPreview must be redacted before public receipts.');
+    errors.push(
+      'PermissionRequestReceipt.commandOrUrlPreview must be redacted before public receipts.'
+    );
   }
   validateTimestamp('PermissionRequestReceipt.requestedAt', receipt.requestedAt, errors);
-  if (receipt.expiresAt) validateTimestamp('PermissionRequestReceipt.expiresAt', receipt.expiresAt, errors);
+  if (receipt.expiresAt)
+    validateTimestamp('PermissionRequestReceipt.expiresAt', receipt.expiresAt, errors);
   validateHash('PermissionRequestReceipt', receipt.hash, receipt.hashAlgorithm, errors);
   return errors;
 }
@@ -494,26 +440,40 @@ export function validatePermissionGrantReceipt(
   const errors: string[] = [];
   if (!receipt) return ['PermissionGrantReceipt is required.'];
   if (receipt.schemaVersion !== HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION) {
-    errors.push(`PermissionGrantReceipt.schemaVersion must be ${HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION}.`);
+    errors.push(
+      `PermissionGrantReceipt.schemaVersion must be ${HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION}.`
+    );
   }
   if (!isNonEmptyString(receipt.id)) errors.push('PermissionGrantReceipt.id is required.');
-  if (!isNonEmptyString(receipt.requestReceiptId)) errors.push('PermissionGrantReceipt.requestReceiptId is required.');
+  if (!isNonEmptyString(receipt.requestReceiptId))
+    errors.push('PermissionGrantReceipt.requestReceiptId is required.');
   const neverScopes = request?.neverScopes ?? [];
   for (const [index, scope] of (receipt.grantedScopes ?? []).entries()) {
-    validateScopeGrant(`PermissionGrantReceipt.grantedScopes[${index}]`, scope, neverScopes, errors);
+    validateScopeGrant(
+      `PermissionGrantReceipt.grantedScopes[${index}]`,
+      scope,
+      neverScopes,
+      errors
+    );
   }
   if (request) {
     const missing = findMissingRequired(request, receipt.grantedScopes);
     const extras = findExtraScopes(receipt.grantedScopes, request.minimumRequiredScopes);
     if (missing.length > 0) {
-      errors.push(`PermissionGrantReceipt.grantedScopes is missing required scopes: ${missing.join(', ')}.`);
+      errors.push(
+        `PermissionGrantReceipt.grantedScopes is missing required scopes: ${missing.join(', ')}.`
+      );
     }
     if (extras.length > 0) {
-      errors.push(`PermissionGrantReceipt.grantedScopes includes scopes outside the minimum set: ${extras.join(', ')}.`);
+      errors.push(
+        `PermissionGrantReceipt.grantedScopes includes scopes outside the minimum set: ${extras.join(', ')}.`
+      );
     }
   }
   if ((receipt.missingRequiredScopes ?? []).length > 0) {
-    errors.push('PermissionGrantReceipt.missingRequiredScopes must be empty before a grant can be accepted.');
+    errors.push(
+      'PermissionGrantReceipt.missingRequiredScopes must be empty before a grant can be accepted.'
+    );
   }
   if ((receipt.extraScopes ?? []).length > 0) {
     errors.push('PermissionGrantReceipt.extraScopes must be empty before a grant can be accepted.');
@@ -531,7 +491,8 @@ export function validatePermissionGrantReceipt(
   if (!isNonEmptyString(receipt.revocationInstruction)) {
     errors.push('PermissionGrantReceipt.revocationInstruction is required.');
   }
-  if (receipt.expiresAt) validateTimestamp('PermissionGrantReceipt.expiresAt', receipt.expiresAt, errors);
+  if (receipt.expiresAt)
+    validateTimestamp('PermissionGrantReceipt.expiresAt', receipt.expiresAt, errors);
   validateHash('PermissionGrantReceipt', receipt.hash, receipt.hashAlgorithm, errors);
   return errors;
 }
@@ -542,7 +503,9 @@ export function validatePermissionVerificationReceipt(
   const errors: string[] = [];
   if (!receipt) return ['PermissionVerificationReceipt is required.'];
   if (receipt.schemaVersion !== HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION) {
-    errors.push(`PermissionVerificationReceipt.schemaVersion must be ${HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION}.`);
+    errors.push(
+      `PermissionVerificationReceipt.schemaVersion must be ${HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION}.`
+    );
   }
   if (!isNonEmptyString(receipt.id)) errors.push('PermissionVerificationReceipt.id is required.');
   if (!isNonEmptyString(receipt.grantReceiptId)) {
@@ -585,13 +548,16 @@ export function validatePermissionRevocationReceipt(
   const errors: string[] = [];
   if (!receipt) return ['PermissionRevocationReceipt is required.'];
   if (receipt.schemaVersion !== HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION) {
-    errors.push(`PermissionRevocationReceipt.schemaVersion must be ${HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION}.`);
+    errors.push(
+      `PermissionRevocationReceipt.schemaVersion must be ${HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION}.`
+    );
   }
   if (!isNonEmptyString(receipt.id)) errors.push('PermissionRevocationReceipt.id is required.');
   if (!isNonEmptyString(receipt.grantReceiptId)) {
     errors.push('PermissionRevocationReceipt.grantReceiptId is required.');
   }
-  if (receipt.revokedAt) validateTimestamp('PermissionRevocationReceipt.revokedAt', receipt.revokedAt, errors);
+  if (receipt.revokedAt)
+    validateTimestamp('PermissionRevocationReceipt.revokedAt', receipt.revokedAt, errors);
   if (typeof receipt.revokeVerified !== 'boolean') {
     errors.push('PermissionRevocationReceipt.revokeVerified must be a boolean.');
   }
@@ -611,11 +577,15 @@ export function validatePermissionRevocationReceipt(
   return errors;
 }
 
-export function validatePermissionReplayReceipt(receipt: PermissionReplayReceipt | undefined): string[] {
+export function validatePermissionReplayReceipt(
+  receipt: PermissionReplayReceipt | undefined
+): string[] {
   const errors: string[] = [];
   if (!receipt) return ['PermissionReplayReceipt is required.'];
   if (receipt.schemaVersion !== HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION) {
-    errors.push(`PermissionReplayReceipt.schemaVersion must be ${HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION}.`);
+    errors.push(
+      `PermissionReplayReceipt.schemaVersion must be ${HOLOSHELL_PERMISSION_GATE_RECEIPT_VERSION}.`
+    );
   }
   if (receipt.workflow !== PERMISSION_GATE_WORKFLOW) {
     errors.push(`PermissionReplayReceipt.workflow must be ${PERMISSION_GATE_WORKFLOW}.`);
@@ -623,9 +593,12 @@ export function validatePermissionReplayReceipt(receipt: PermissionReplayReceipt
   if (!isSupportedPermissionGateStatus(String(receipt.status))) {
     errors.push(`PermissionReplayReceipt.status is unsupported: ${String(receipt.status)}.`);
   }
-  if (!isNonEmptyString(receipt.subjectReceiptId)) errors.push('PermissionReplayReceipt.subjectReceiptId is required.');
-  if (!isNonEmptyString(receipt.requestReceiptId)) errors.push('PermissionReplayReceipt.requestReceiptId is required.');
-  if (!isNonEmptyString(receipt.replayKey)) errors.push('PermissionReplayReceipt.replayKey is required.');
+  if (!isNonEmptyString(receipt.subjectReceiptId))
+    errors.push('PermissionReplayReceipt.subjectReceiptId is required.');
+  if (!isNonEmptyString(receipt.requestReceiptId))
+    errors.push('PermissionReplayReceipt.requestReceiptId is required.');
+  if (!isNonEmptyString(receipt.replayKey))
+    errors.push('PermissionReplayReceipt.replayKey is required.');
   if (receipt.rawCredentialCaptured !== false) {
     errors.push('PermissionReplayReceipt.rawCredentialCaptured must be false.');
   }
@@ -657,7 +630,9 @@ export function validateHoloShellPermissionGateReceiptPack(
     errors.push(`HoloShellPermissionGateReceiptPack.workflow must be ${PERMISSION_GATE_WORKFLOW}.`);
   }
   if (!isSupportedPermissionGateStatus(String(pack.status))) {
-    errors.push(`HoloShellPermissionGateReceiptPack.status is unsupported: ${String(pack.status)}.`);
+    errors.push(
+      `HoloShellPermissionGateReceiptPack.status is unsupported: ${String(pack.status)}.`
+    );
   }
   validateHash('HoloShellPermissionGateReceiptPack', pack.hash, pack.hashAlgorithm, errors);
   errors.push(...validatePermissionSubjectReceipt(pack.subject));
@@ -667,11 +642,16 @@ export function validateHoloShellPermissionGateReceiptPack(
   if (pack.revocation) errors.push(...validatePermissionRevocationReceipt(pack.revocation));
   errors.push(...validatePermissionReplayReceipt(pack.replay));
 
-  if ((pack.status === 'granted' || pack.status === 'verified' || pack.status === 'revoked') && !pack.grant) {
+  if (
+    (pack.status === 'granted' || pack.status === 'verified' || pack.status === 'revoked') &&
+    !pack.grant
+  ) {
     errors.push('HoloShellPermissionGateReceiptPack.grant is required after granted status.');
   }
   if ((pack.status === 'verified' || pack.replay.readyForHoloLand) && !pack.verification) {
-    errors.push('HoloShellPermissionGateReceiptPack.verification is required before readyForHoloLand.');
+    errors.push(
+      'HoloShellPermissionGateReceiptPack.verification is required before readyForHoloLand.'
+    );
   }
   if (pack.status === 'revoked' && !pack.revocation) {
     errors.push('HoloShellPermissionGateReceiptPack.revocation is required for revoked status.');

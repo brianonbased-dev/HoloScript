@@ -39,8 +39,24 @@ export {
   parseHostFromUrl,
   truncateText,
   toStringArray,
+  normalizePermissionScopeName,
+  isValidPermissionScopeName,
+  evaluateStdlibPermissionScopePolicy,
+  findMissingRequiredPermissionScopes,
+  findExtraPermissionScopes,
+  buildStdlibPermissionScopeDiff,
+  redactStdlibPermissionPreview,
+  stdlibPermissionPreviewHasPublicLeak,
 } from '../stdlib';
-export type { StdlibPolicy, StdlibOptions } from '../stdlib';
+export type {
+  StdlibPolicy,
+  StdlibOptions,
+  StdlibPermissionScopeGrant,
+  StdlibPermissionScopePolicyEvaluation,
+  StdlibPermissionScopeDiffInput,
+  StdlibPermissionScopeDiffResult,
+  StdlibPermissionPreviewRedactionResult,
+} from '../stdlib';
 
 export type {
   DepthBackend,

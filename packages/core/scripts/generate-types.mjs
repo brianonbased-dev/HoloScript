@@ -2841,6 +2841,62 @@ export declare function parseHostFromUrl(url: string): string | null;
 export declare function truncateText(value: any, max: number): string;
 export declare function toStringArray(value: any): string[];
 
+export interface StdlibPermissionScopeGrant {
+  scope: string;
+  purpose?: string;
+  required?: boolean;
+  riskLevel?: string;
+  providerLabel?: string;
+}
+
+export interface StdlibPermissionScopePolicyEvaluation {
+  scope: string;
+  normalizedScope: string;
+  allowed: boolean;
+  reason?: string;
+}
+
+export interface StdlibPermissionScopeDiffInput {
+  requestedScopes: StdlibPermissionScopeGrant[];
+  minimumRequiredScopes: StdlibPermissionScopeGrant[];
+  grantedScopes?: StdlibPermissionScopeGrant[];
+  neverScopes?: string[];
+}
+
+export interface StdlibPermissionScopeDiffResult {
+  requestedScopes: string[];
+  minimumRequiredScopes: string[];
+  grantedScopes: string[];
+  invalidRequestedScopes: string[];
+  invalidMinimumRequiredScopes: string[];
+  invalidGrantedScopes: string[];
+  invalidNeverScopes: string[];
+  missingRequestedRequiredScopes: string[];
+  missingGrantedRequiredScopes: string[];
+  extraGrantedScopes: string[];
+  forbiddenRequestedScopes: StdlibPermissionScopePolicyEvaluation[];
+  forbiddenGrantedScopes: StdlibPermissionScopePolicyEvaluation[];
+  minimumScopeSatisfied: boolean;
+  excessScopesAbsent: boolean;
+  policyInputValid: boolean;
+}
+
+export interface StdlibPermissionPreviewRedactionResult {
+  preview: string;
+  redacted: boolean;
+  absolutePathRedacted: boolean;
+  credentialMaterialRedacted: boolean;
+}
+
+export declare function normalizePermissionScopeName(scope: string): string;
+export declare function isValidPermissionScopeName(scope: string | undefined): scope is string;
+export declare function evaluateStdlibPermissionScopePolicy(scope: string, neverScopes?: string[]): StdlibPermissionScopePolicyEvaluation;
+export declare function findMissingRequiredPermissionScopes(requiredScopes: StdlibPermissionScopeGrant[], candidateScopes: StdlibPermissionScopeGrant[]): string[];
+export declare function findExtraPermissionScopes(grantedScopes: StdlibPermissionScopeGrant[], minimumRequiredScopes: StdlibPermissionScopeGrant[]): string[];
+export declare function buildStdlibPermissionScopeDiff(input: StdlibPermissionScopeDiffInput): StdlibPermissionScopeDiffResult;
+export declare function redactStdlibPermissionPreview(value: string | undefined): StdlibPermissionPreviewRedactionResult;
+export declare function stdlibPermissionPreviewHasPublicLeak(value: string | undefined): boolean;
+
 // ============================================================================
 // HOLOGRAM MEDIA PIPELINE (2D-to-3D)
 // ============================================================================
