@@ -16,7 +16,9 @@
  * 2. Multiple Facilitators: Support Coinbase CDP, PayAI, Meridian, x402.rs
  * 3. Multi-Chain: Base L2 (primary), Ethereum, Solana
  * 4. Multi-Asset: USDC (primary), ETH, SOL, custom tokens
- * 5. Gasless Transactions: Coinbase subsidizes Base L2 gas (~$0.01/tx)
+ * 5. Gasless Transactions: Coinbase subsidizes Base L2 gas (~$0.0007/tx for
+ *    chain-anchor self-txs per F.050; ERC20 transfers ~$0.001-0.005/tx depending
+ *    on gas price — the prior estimate of $0.01/tx was off by ~15x)
  * 6. State Persistence: Payment receipts -> database, blockchain verification
  * 7. Layer Pricing: AR free -> VRR $5-20 -> VR $50-500
  * 8. AI Agent Support: AgentKit integration for autonomous payments

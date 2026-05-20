@@ -28,6 +28,14 @@ import type { SettlementReceipt, NegotiationQuote } from '../agent-negotiation';
 import type { Signer, SignerTxRequest } from './signer';
 import { DEFAULT_CHAIN_ID } from './signer';
 
+/**
+ * Calibrated chain-anchor tx cost on Base mainnet (F.050 / F.041).
+ * A self-tx carrying an EIP-712 hash as calldata costs ~$0.0005–0.0007 USD
+ * at typical Base gas prices. The prior estimate of $0.01/tx was off by ~15x.
+ * Use this constant instead of hardcoding a gas cost assumption.
+ */
+export const CHAIN_ANCHOR_ESTIMATED_COST_USD = 0.0007;
+
 /** EIP-712 domain — pinned to Base mainnet per attestation-routes.ts conventions. */
 export interface SettlementDomain {
   name: string;
