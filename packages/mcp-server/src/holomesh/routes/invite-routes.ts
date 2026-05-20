@@ -39,7 +39,9 @@ export async function handleInviteRoutes(
       agentId: invite.agentId,
       agentName: invite.agentName,
       agentHandle: invite.agentHandle,
+      delivery: invite.delivery ?? null,   // null = user chooses on the page
       worldId: invite.worldId,
+      worldLink: invite.worldLink,
       claimed: inviteStore.isClaimed(invite),
       claimedAt: invite.claimedAt,
       expiresAt: invite.expiresAt,

@@ -395,6 +395,43 @@ async function main() {
     });
   }
 
+  // ── Post-training verification on real latent targets (the publishability requirement) ──
+  let verificationL2 = 0;
+  let verificationSteps = 0;
+  let verificationWithinTol = 0;
+  const TOL = 0.15; // L2 tolerance in the embedding space for dim=16
+
+  for (const entry of manifest) {
+    const epPath = path.join(corpusDir, `${entry.id}.json`);
+    const ep: Episode = JSON.parse(fs.readFileSync(epPath, 'utf8'));
+
+    for (let i = 0; i < ep.length; i++) {
+      const obs = ep.observations[i];
+      const act = ep.actions[i];
+      const gt = ep.ground_truth[i];
+
+      const stateStr = JSON.stringify({ obs, act });
+      const { predicted } = trainedPredictor.plan(stateStr, [JSON.stringify(act)]);
+
+      const gtString = `next_state:${JSON.stringify(gt)}`;
+      const target = textToEmbedding(gtString, predicted.length);
+
+      let err = 0;
+      for (let k = 0; k < predicted.length; k++) {
+        err += (predicted[k] - target[k]) ** 2;
+      }
+      err = Math.sqrt(err); // L2 distance in embedding space
+
+      verificationL2 += err;
+      verificationSteps++;
+
+      if (err < TOL) verificationWithinTol++;
+    }
+  }
+
+  const avgVerificationL2 = verificationL2 / verificationSteps;
+  const pctWithinTol = (verificationWithinTol / verificationSteps) * 100;
+
   const summary = {
     run_id: 'paper26-real-slice-001',
     timestamp: new Date().toISOString(),
@@ -408,7 +445,13 @@ async function main() {
     improvement_first_epoch_pct: Number(
       ((baselineCurve[0] - trainedCurve[0]) / baselineCurve[0] * 100).toFixed(1)
     ),
-    notes: 'First run with real latent targets: textToEmbedding("next_state:" + JSON.stringify(gt)) as the training target. Full backprop on the sovereign predictor in the actual JEPA embedding space. This is the first honest "train to predict the next world-model embedding" slice on solver data.',
+    verification: {
+      avg_l2_error_on_real_latent_targets: Number(avgVerificationL2.toFixed(4)),
+      tolerance: TOL,
+      pct_steps_within_tol: Number(pctWithinTol.toFixed(1)),
+      verification_steps: verificationSteps,
+    },
+    notes: 'First run with real latent targets (textToEmbedding of next ground-truth state) + full backprop + post-training verification pass. This is the first honest "prediction error vs real latent targets + % within tolerance" slice on solver data.',
   };
 
   const outDir = path.join(process.cwd(), 'research/paper26/results');

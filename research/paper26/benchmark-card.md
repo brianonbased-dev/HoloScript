@@ -57,14 +57,13 @@ Scale to 1,500–3,000 episodes across 2–3 robot morphologies + multi-physics 
 **Date**: 2026-05-20
 **Using**: Actual JEPAPredictor.plan() (latentDim=16, condDim=4) + real receipt generation + durable checkpoints with dimension guard + full backprop through both layers
 
-**Results** (first run with real latent targets from the JEPA embedding space):
+**Results** (first verification pass on real latent targets):
 - Episodes: 30
 - Total steps: 1,361
 - Receipts generated: 1,361 (full WorldModelReceipt objects)
-- Baseline (frozen, dim=16): [0.388258 ×5]
-- Trained (full backprop on real textToEmbedding(next_state) targets): [0.375521, 0.37584, 0.375854, ...] — 3.3% first-epoch improvement, then stable fitting of the true latent targets
-- Durable checkpoints + dimension guard: proven across multiple scales and target types.
-- Notes: This is the first time the harness trains against the actual deterministic embeddings the sovereign JEPA stack uses at inference time (instead of a toy hash). The loss is now meaningful.
+- Trained model (full backprop on real textToEmbedding targets): avg L2 error on real latent targets = 2.4342
+- Tolerance test (L2 < 0.15 in embedding space): 0% of steps within tolerance
+- This is the first honest "prediction error vs real latent targets + % within tolerance on solver ground truth" data the harness has produced.
 
 **Loss curve file**: research/paper26/results/loss-curve-slice-001.json
 
@@ -73,7 +72,7 @@ Scale to 1,500–3,000 episodes across 2–3 robot morphologies + multi-physics 
 npx tsx research/paper26/train_jepa_real.ts
 ```
 
-This is the first Paper 26 run that trains the sovereign predictor against **real latent targets** (textToEmbedding of the true next ground-truth state) using full backprop and durable checkpoints. The loss is now in the actual embedding space the JEPA system uses. The minimum publishable benchmark experiment has taken its most important single step forward. Next: held-out verification, larger corpus, and direct use of JEPAObjective for the objective.
+This is the first Paper 26 run with a post-training verification pass on **real latent targets** (textToEmbedding of next ground-truth state). Avg L2 error = 2.43, 0% of steps within tight tolerance. The experiment now produces the exact class of numbers required for publishability (prediction error vs real latents + % within tolerance + anchored receipts). The next leap is larger corpus + better capacity (or direct JEPAObjective).
 
 **Related**: ROS 2 bridge (docs/integrations/ros2-holoscript-bridge.md), D.050, D.055, NMoS P2
 

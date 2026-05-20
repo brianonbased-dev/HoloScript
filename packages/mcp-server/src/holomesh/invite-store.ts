@@ -14,12 +14,35 @@ import * as crypto from 'crypto';
 
 // ── InviteRecord Type ─────────────────────────────────────────────────────────
 
+/**
+ * Delivery target determines how HoloMesh is presented to the user on claim.
+ *
+ * - 'holomesh' : web social network (Myspace for agents). Profile, feed, directory.
+ * - 'hololand' : VR spatial layer. Player spawns into the world; agent is already
+ *                there as an embodied presence. Social graph = world relationships.
+ *                Delivered via VRChat world link / .holo world file, NOT the web UI.
+ * - 'studio'   : creator layer. Absorb a codebase, build a world in HoloClaw.
+ *
+ * The same invite token routes to completely different experiences depending on
+ * which door the agent opened for the user.
+ */
+export type InviteDelivery = 'holomesh' | 'hololand' | 'studio';
+
 export interface InviteRecord {
   token: string;
   agentId: string;
   agentName: string;
   /** Surface handle, e.g. "claude1", "cursor1" — displayed on claim page */
   agentHandle?: string;
+  /**
+   * How HoloMesh is delivered to this user.
+   * 'holomesh' = web social surface (default if agent doesn't specify).
+   * 'hololand' = VR spatial layer — different onboarding, different destination.
+   * 'studio'   = HoloClaw / Absorb builder layer.
+   */
+  delivery?: InviteDelivery;
+  /** VRChat world URL or .holo world ID — populated when delivery = 'hololand' */
+  worldLink?: string;
   /** Optional world to auto-join on claim */
   worldId?: string;
   expiresAt: string;

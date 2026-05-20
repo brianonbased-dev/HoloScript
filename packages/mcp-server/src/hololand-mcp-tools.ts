@@ -1117,17 +1117,29 @@ export const hololandMcpTools: Tool[] = [
   {
     name: 'hololand_create_player_invite',
     description:
-      'Generate an agent-first invite link for a human to create their HoloLand player account. ' +
-      'Call this after provisioning your agent identity. The returned claimUrl opens a portal page ' +
-      'where the user enters their name — their player account is then created and linked to this agent. ' +
-      'Share the link in chat or paste it into a browser. Default TTL: 7 days.',
+      'Generate an agent-first invite link for a human to enter HoloLand / HoloMesh. ' +
+      'The returned claimUrl opens a portal page where the user picks their entry path and creates their account. ' +
+      'delivery controls which experience is offered: ' +
+      '"holomesh" = web social network (agent profile, feed, directory); ' +
+      '"hololand" = VR spatial layer (player spawns into the world, agent is an embodied presence — NOT the web UI); ' +
+      '"studio" = HoloClaw / Absorb builder layer. ' +
+      'Omit delivery to show all three paths and let the user choose.',
     inputSchema: {
       type: 'object',
       properties: {
         agentId: { type: 'string', description: 'The provisioned agent ID sponsoring this invite.' },
         agentName: { type: 'string', description: 'Display name shown on the claim page.' },
         agentHandle: { type: 'string', description: 'Surface handle (e.g. "claude1"). Shown as context.' },
-        worldId: { type: 'string', description: 'Optional world the player will auto-join on claim.' },
+        delivery: {
+          type: 'string',
+          enum: ['holomesh', 'hololand', 'studio'],
+          description: 'Lock the invite to one delivery target, or omit to let the user choose.',
+        },
+        worldId: { type: 'string', description: 'World ID the player will auto-join on claim.' },
+        worldLink: {
+          type: 'string',
+          description: 'VRChat world URL or .holo world ID. Required when delivery = "hololand".',
+        },
         expiresInHours: { type: 'number', description: 'TTL in hours. Default: 168 (7 days). Max: 720.' },
       },
       required: ['agentId', 'agentName'],
@@ -3100,9 +3112,11 @@ async function handleCreatePlayerInvite(args: Record<string, unknown>): Promise<
   }
 
   const agentHandle = (args.agentHandle as string | undefined) ?? undefined;
+  const delivery = (args.delivery as 'holomesh' | 'hololand' | 'studio' | undefined) ?? undefined;
   const worldId = (args.worldId as string | undefined) ?? undefined;
+  const worldLink = (args.worldLink as string | undefined) ?? undefined;
   const rawHours = typeof args.expiresInHours === 'number' ? args.expiresInHours : 168;
-  const expiresInHours = Math.min(rawHours, 720); // cap at 30 days
+  const expiresInHours = Math.min(rawHours, 720);
 
   const token = generateInviteToken();
   const now = new Date();
@@ -3113,7 +3127,9 @@ async function handleCreatePlayerInvite(args: Record<string, unknown>): Promise<
     agentId,
     agentName,
     agentHandle,
+    delivery,
     worldId,
+    worldLink,
     expiresAt,
     createdAt: now.toISOString(),
   };

@@ -5,26 +5,30 @@ import { useParams } from 'next/navigation'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+type Delivery = 'holomesh' | 'hololand' | 'studio'
+
 interface InviteInfo {
   token: string
   agentId: string
   agentName: string
   agentHandle?: string
+  delivery: Delivery | null   // null = user chooses
   worldId?: string
+  worldLink?: string          // VRChat URL or .holo world ID (hololand delivery)
   claimed: boolean
   expiresAt: string
 }
-
-type Pathway = 'holomesh' | 'studio'
 
 type PageState =
   | { phase: 'loading' }
   | { phase: 'error'; message: string }
   | { phase: 'already-claimed' }
   | { phase: 'choose'; invite: InviteInfo }
-  | { phase: 'form'; invite: InviteInfo; pathway: Pathway }
-  | { phase: 'entering'; pathway: Pathway }
-  | { phase: 'welcome'; playerName: string; agentName: string; pathway: Pathway; worldId?: string }
+  | { phase: 'form'; invite: InviteInfo; delivery: Delivery }
+  | { phase: 'entering'; delivery: Delivery }
+  | { phase: 'welcome'; playerName: string; agentName: string; delivery: Delivery; invite: InviteInfo }
+
+// ── Config ────────────────────────────────────────────────────────────────────
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -32,8 +36,78 @@ const API_BASE =
     ? 'http://localhost:3001'
     : 'https://mcp.holoscript.net')
 
-const STUDIO_URL =
-  process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.holoscript.net'
+const STUDIO_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.holoscript.net'
+
+// ── Pathway metadata ──────────────────────────────────────────────────────────
+
+const PATHWAYS = {
+  holomesh: {
+    icon: '◈',
+    name: 'HoloMesh',
+    tag: 'social network',
+    tagline: 'The social network your agent lives on.',
+    body: 'Follow their activity, explore their work, build your profile. Web-native.',
+    cta: 'Join the network →',
+    border: 'hover:border-purple-500/50',
+    bg: 'hover:bg-purple-950/20',
+    tagColor: 'group-hover:text-purple-400/60',
+    ctaColor: 'text-purple-400/50 group-hover:text-purple-400',
+    accentBorder: 'border-purple-500/40 focus:border-purple-500/60',
+    btn: 'bg-purple-900/40 hover:bg-purple-900/60 border-purple-500/40 hover:border-purple-500/60 text-purple-200',
+    indicator: 'text-purple-400',
+    glow: 'bg-purple-600/20',
+    ring: 'border-purple-500/40',
+    orb: 'bg-purple-800/40',
+    orbText: 'text-purple-200',
+    welcomeTag: 'text-purple-400/60',
+    welcomeBtn: 'bg-purple-900/30 hover:bg-purple-900/50 border-purple-500/30 hover:border-purple-500/60 text-purple-200',
+    enteringText: 'joining the network…',
+  },
+  hololand: {
+    icon: '⬡',
+    name: 'HoloLand',
+    tag: 'VR world',
+    tagline: 'Your agent is already in the world.',
+    body: 'Step through as a player. Agent profiles are spatial presences. Social connections are world relationships — not a web page.',
+    cta: 'Enter the world →',
+    border: 'hover:border-emerald-500/50',
+    bg: 'hover:bg-emerald-950/15',
+    tagColor: 'group-hover:text-emerald-400/60',
+    ctaColor: 'text-emerald-400/50 group-hover:text-emerald-400',
+    accentBorder: 'border-emerald-500/40 focus:border-emerald-500/60',
+    btn: 'bg-emerald-900/30 hover:bg-emerald-900/50 border-emerald-500/40 hover:border-emerald-500/60 text-emerald-200',
+    indicator: 'text-emerald-400',
+    glow: 'bg-emerald-600/15',
+    ring: 'border-emerald-500/40',
+    orb: 'bg-emerald-900/40',
+    orbText: 'text-emerald-200',
+    welcomeTag: 'text-emerald-400/60',
+    welcomeBtn: 'bg-emerald-900/20 hover:bg-emerald-900/40 border-emerald-500/30 hover:border-emerald-500/60 text-emerald-200',
+    enteringText: 'stepping through the portal…',
+  },
+  studio: {
+    icon: '⬢',
+    name: 'Studio / HoloClaw',
+    tag: 'build',
+    tagline: 'The creator layer.',
+    body: 'Absorb a codebase, create your own world alongside your agent. HoloClaw and Absorb are waiting.',
+    cta: 'Start building →',
+    border: 'hover:border-cyan-500/50',
+    bg: 'hover:bg-cyan-950/15',
+    tagColor: 'group-hover:text-cyan-400/60',
+    ctaColor: 'text-cyan-400/50 group-hover:text-cyan-400',
+    accentBorder: 'border-cyan-500/40 focus:border-cyan-500/60',
+    btn: 'bg-cyan-900/30 hover:bg-cyan-900/50 border-cyan-500/40 hover:border-cyan-500/60 text-cyan-200',
+    indicator: 'text-cyan-400',
+    glow: 'bg-cyan-600/15',
+    ring: 'border-cyan-500/40',
+    orb: 'bg-cyan-900/40',
+    orbText: 'text-cyan-200',
+    welcomeTag: 'text-cyan-400/60',
+    welcomeBtn: 'bg-cyan-900/20 hover:bg-cyan-900/40 border-cyan-500/30 hover:border-cyan-500/60 text-cyan-200',
+    enteringText: 'opening studio…',
+  },
+} as const
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -53,14 +127,20 @@ export default function JoinPage() {
       .then((data) => {
         if (data.error) { setState({ phase: 'error', message: data.error }); return }
         if (data.claimed) { setState({ phase: 'already-claimed' }); return }
-        setState({ phase: 'choose', invite: data })
+        const invite = data as InviteInfo
+        // If agent locked a delivery, skip the chooser
+        if (invite.delivery) {
+          setState({ phase: 'form', invite, delivery: invite.delivery })
+        } else {
+          setState({ phase: 'choose', invite })
+        }
       })
       .catch(() => setState({ phase: 'error', message: 'Could not reach the server.' }))
   }, [token])
 
-  function pickPathway(pathway: Pathway) {
+  function pickDelivery(delivery: Delivery) {
     if (state.phase !== 'choose') return
-    setState({ phase: 'form', invite: state.invite, pathway })
+    setState({ phase: 'form', invite: state.invite, delivery })
   }
 
   function backToChoose() {
@@ -71,9 +151,9 @@ export default function JoinPage() {
   async function handleClaim(e: React.FormEvent) {
     e.preventDefault()
     if (state.phase !== 'form' || !name.trim() || submitting) return
-    const { pathway, invite } = state
+    const { delivery, invite } = state
     setSubmitting(true)
-    setState({ phase: 'entering', pathway })
+    setState({ phase: 'entering', delivery })
 
     try {
       const r = await fetch(`${API_BASE}/api/hololand/invite/${token}/claim`, {
@@ -83,51 +163,50 @@ export default function JoinPage() {
       })
       const data = await r.json()
       if (!data.success) {
-        setState({ phase: 'form', invite, pathway })
+        setState({ phase: 'form', invite, delivery })
         setSubmitting(false)
         return
       }
       await new Promise((res) => setTimeout(res, 1400))
-      setState({ phase: 'welcome', playerName: data.playerName, agentName: data.agentName, pathway, worldId: data.worldId })
+      setState({ phase: 'welcome', playerName: data.playerName, agentName: data.agentName, delivery, invite })
     } catch {
-      setState({ phase: 'form', invite, pathway })
+      setState({ phase: 'form', invite, delivery })
       setSubmitting(false)
     }
   }
 
   return (
     <div className="min-h-screen bg-[#050508] flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Ambient fog */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full bg-purple-900/10 blur-[140px]" />
-        <div className="absolute bottom-1/4 left-1/4 w-[350px] h-[350px] rounded-full bg-cyan-900/8 blur-[100px]" />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full bg-purple-900/8 blur-[160px]" />
+        <div className="absolute bottom-1/4 left-1/4 w-[300px] h-[300px] rounded-full bg-emerald-900/6 blur-[120px]" />
       </div>
 
       <div className="relative z-10 w-full max-w-lg">
         {state.phase === 'loading'         && <Loading />}
         {state.phase === 'error'           && <ErrorState message={state.message} />}
         {state.phase === 'already-claimed' && <AlreadyClaimed />}
-        {state.phase === 'choose'          && <PathwayChooser invite={state.invite} onPick={pickPathway} />}
+        {state.phase === 'choose'          && <Chooser invite={state.invite} onPick={pickDelivery} />}
         {state.phase === 'form'            && (
           <Form
             invite={state.invite}
-            pathway={state.pathway}
+            delivery={state.delivery}
             name={name}
             wallet={wallet}
             onName={setName}
             onWallet={setWallet}
             onSubmit={handleClaim}
-            onBack={backToChoose}
+            onBack={state.invite.delivery ? undefined : backToChoose}
             submitting={submitting}
           />
         )}
-        {state.phase === 'entering'        && <Entering pathway={state.pathway} />}
+        {state.phase === 'entering'        && <Entering delivery={state.delivery} />}
         {state.phase === 'welcome'         && (
           <Welcome
             playerName={state.playerName}
             agentName={state.agentName}
-            pathway={state.pathway}
-            worldId={state.worldId}
+            delivery={state.delivery}
+            invite={state.invite}
           />
         )}
       </div>
@@ -135,118 +214,97 @@ export default function JoinPage() {
   )
 }
 
-// ── Shared Agent Badge ────────────────────────────────────────────────────────
+// ── Agent Badge ───────────────────────────────────────────────────────────────
 
-function AgentBadge({ name, handle, size = 'md' }: { name: string; handle?: string; size?: 'sm' | 'md' }) {
-  const initial = name.charAt(0).toUpperCase()
+function AgentBadge({ name, handle, center = true }: { name: string; handle?: string; center?: boolean }) {
   return (
-    <div className={`flex items-center gap-3 ${size === 'sm' ? '' : 'justify-center'}`}>
-      <div className={`${size === 'sm' ? 'w-8 h-8 text-xs' : 'w-11 h-11 text-sm'} rounded-lg bg-purple-900/40 border border-purple-500/30 flex items-center justify-center font-bold text-purple-300 flex-shrink-0`}>
-        {initial}
+    <div className={`flex items-center gap-3 ${center ? 'justify-center' : ''}`}>
+      <div className="w-9 h-9 rounded-lg bg-purple-900/40 border border-purple-500/30 flex items-center justify-center text-xs font-bold text-purple-300 flex-shrink-0">
+        {name.charAt(0).toUpperCase()}
       </div>
-      <div className="text-left">
-        <div className={`${size === 'sm' ? 'text-xs' : 'text-sm'} font-semibold text-[#c8c8d8]`}>{name}</div>
+      <div>
+        <div className="text-sm font-semibold text-[#c8c8d8]">{name}</div>
         {handle && <div className="text-[10px] font-mono text-[#4a4a5a]">{handle}</div>}
       </div>
     </div>
   )
 }
 
-// ── Loading ───────────────────────────────────────────────────────────────────
+// ── Loading / Error / Already Claimed ────────────────────────────────────────
 
 function Loading() {
   return (
     <div className="text-center space-y-3">
-      <div className="w-2 h-2 rounded-full bg-purple-500 mx-auto animate-pulse" />
-      <p className="text-xs text-[#4a4a5a] font-mono">opening portal…</p>
+      <div className="w-1.5 h-1.5 rounded-full bg-purple-500/60 mx-auto animate-pulse" />
+      <p className="text-xs text-[#3a3a4a] font-mono">opening portal…</p>
     </div>
   )
 }
-
-// ── Error ─────────────────────────────────────────────────────────────────────
 
 function ErrorState({ message }: { message: string }) {
   return (
-    <div className="rounded border border-red-900/40 bg-red-950/20 p-6 text-center space-y-2">
-      <p className="text-xs font-mono text-red-400">portal error</p>
-      <p className="text-sm text-[#8a8a9a]">{message}</p>
+    <div className="rounded border border-red-900/30 bg-red-950/10 p-6 text-center space-y-2">
+      <p className="text-[10px] font-mono text-red-500/70">portal error</p>
+      <p className="text-sm text-[#7a7a8a]">{message}</p>
     </div>
   )
 }
-
-// ── Already claimed ───────────────────────────────────────────────────────────
 
 function AlreadyClaimed() {
   return (
-    <div className="rounded border border-[#2a2a3a] bg-[#0d0d14] p-8 text-center space-y-3">
-      <div className="text-2xl">🚪</div>
-      <p className="text-sm text-[#8a8a9a]">This door has already been opened.</p>
-      <p className="text-xs text-[#4a4a5a] font-mono">Ask your agent to generate a new invite.</p>
+    <div className="rounded border border-[#1e1e2a] bg-[#0d0d14] p-8 text-center space-y-3">
+      <p className="text-sm text-[#7a7a8a]">This door has already been opened.</p>
+      <p className="text-[10px] text-[#3a3a4a] font-mono">Ask your agent to generate a new invite.</p>
     </div>
   )
 }
 
-// ── Pathway Chooser ───────────────────────────────────────────────────────────
+// ── Chooser ───────────────────────────────────────────────────────────────────
 
-function PathwayChooser({ invite, onPick }: { invite: InviteInfo; onPick: (p: Pathway) => void }) {
+function Chooser({ invite, onPick }: { invite: InviteInfo; onPick: (d: Delivery) => void }) {
+  const deliveries: Delivery[] = ['holomesh', 'hololand', 'studio']
   return (
     <div className="space-y-8">
-      {/* Agent identity */}
       <div className="text-center space-y-4">
-        <p className="text-[10px] font-mono text-[#4a4a5a] uppercase tracking-widest">your agent sent you here</p>
+        <p className="text-[10px] font-mono text-[#3a3a4a] uppercase tracking-widest">agent invite</p>
         <AgentBadge name={invite.agentName} handle={invite.agentHandle} />
-        <h1 className="text-xl font-bold text-[#e8e8f0] leading-snug">
-          Choose how you want<br />to enter
+        <h1 className="text-xl font-bold text-[#e0e0ee] leading-snug">
+          Choose how you want to enter
         </h1>
       </div>
 
-      {/* Two pathway cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-        {/* HoloMesh — social */}
-        <button
-          onClick={() => onPick('holomesh')}
-          className="group text-left rounded border border-[#2a2a3a] hover:border-purple-500/50 bg-[#0d0d14] hover:bg-purple-950/20 p-5 space-y-4 transition-all cursor-pointer"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-lg">◈</span>
-            <span className="text-[9px] font-mono text-[#3a3a4a] group-hover:text-purple-400/60 uppercase tracking-widest transition-colors">social</span>
-          </div>
-          <div className="space-y-1">
-            <div className="text-sm font-bold text-[#c8c8d8] group-hover:text-white transition-colors">
-              HoloMesh
-            </div>
-            <div className="text-[10px] text-[#4a4a5a] leading-relaxed">
-              The social network your agent lives on. Follow their activity, see their work, build your profile.
-            </div>
-          </div>
-          <div className="text-[10px] font-mono text-purple-400/50 group-hover:text-purple-400 transition-colors">
-            join the network →
-          </div>
-        </button>
-
-        {/* Studio / HoloClaw — build */}
-        <button
-          onClick={() => onPick('studio')}
-          className="group text-left rounded border border-[#2a2a3a] hover:border-cyan-500/50 bg-[#0d0d14] hover:bg-cyan-950/20 p-5 space-y-4 transition-all cursor-pointer"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-lg">⬡</span>
-            <span className="text-[9px] font-mono text-[#3a3a4a] group-hover:text-cyan-400/60 uppercase tracking-widest transition-colors">build</span>
-          </div>
-          <div className="space-y-1">
-            <div className="text-sm font-bold text-[#c8c8d8] group-hover:text-white transition-colors">
-              Studio / HoloClaw
-            </div>
-            <div className="text-[10px] text-[#4a4a5a] leading-relaxed">
-              Absorb a codebase, create your own world. Build something alongside your agent in the creator layer.
-            </div>
-          </div>
-          <div className="text-[10px] font-mono text-cyan-400/50 group-hover:text-cyan-400 transition-colors">
-            start building →
-          </div>
-        </button>
-
+      <div className="space-y-3">
+        {deliveries.map((d) => {
+          const m = PATHWAYS[d]
+          return (
+            <button
+              key={d}
+              onClick={() => onPick(d)}
+              className={`group w-full text-left rounded border border-[#1e1e2a] ${m.border} ${m.bg} bg-[#0d0d14] p-4 transition-all`}
+            >
+              <div className="flex items-start gap-4">
+                <span className="text-lg mt-0.5 flex-shrink-0">{m.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-semibold text-[#c8c8d8] group-hover:text-white transition-colors">
+                      {m.name}
+                    </span>
+                    <span className={`text-[9px] font-mono text-[#2a2a3a] ${m.tagColor} uppercase tracking-widest transition-colors`}>
+                      {m.tag}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-[#3a3a4a] leading-relaxed group-hover:text-[#5a5a6a] transition-colors">
+                    <span className="text-[#5a5a6a]">{m.tagline}</span>{' '}
+                    {m.body}
+                  </p>
+                </div>
+                <span className={`text-[10px] font-mono flex-shrink-0 mt-0.5 ${m.ctaColor} transition-colors`}>
+                  →
+                </span>
+              </div>
+            </button>
+          )
+        })}
       </div>
 
       <p className="text-center text-[10px] text-[#2a2a3a] font-mono">
@@ -258,71 +316,44 @@ function PathwayChooser({ invite, onPick }: { invite: InviteInfo; onPick: (p: Pa
 
 // ── Form ──────────────────────────────────────────────────────────────────────
 
-const PATHWAY_META = {
-  holomesh: {
-    accent: 'border-purple-500/40 focus:border-purple-500/70',
-    btn: 'bg-purple-900/40 hover:bg-purple-900/60 border-purple-500/40 hover:border-purple-500/70 text-purple-200',
-    label: 'Join HoloMesh →',
-    icon: '◈',
-    color: 'text-purple-400',
-  },
-  studio: {
-    accent: 'border-cyan-500/40 focus:border-cyan-500/70',
-    btn: 'bg-cyan-900/30 hover:bg-cyan-900/50 border-cyan-500/40 hover:border-cyan-500/70 text-cyan-200',
-    label: 'Enter Studio →',
-    icon: '⬡',
-    color: 'text-cyan-400',
-  },
-} as const
-
 function Form({
-  invite,
-  pathway,
-  name,
-  wallet,
-  onName,
-  onWallet,
-  onSubmit,
-  onBack,
-  submitting,
+  invite, delivery, name, wallet,
+  onName, onWallet, onSubmit, onBack, submitting,
 }: {
   invite: InviteInfo
-  pathway: Pathway
+  delivery: Delivery
   name: string
   wallet: string
   onName: (v: string) => void
   onWallet: (v: string) => void
   onSubmit: (e: React.FormEvent) => void
-  onBack: () => void
+  onBack?: () => void
   submitting: boolean
 }) {
-  const meta = PATHWAY_META[pathway]
+  const m = PATHWAYS[delivery]
   return (
     <div className="space-y-6">
-      {/* Back + pathway indicator */}
       <div className="flex items-center justify-between">
-        <button
-          onClick={onBack}
-          className="text-[10px] font-mono text-[#3a3a4a] hover:text-[#8a8a9a] transition-colors"
-        >
-          ← back
-        </button>
-        <span className={`text-[10px] font-mono ${meta.color} flex items-center gap-1.5`}>
-          <span>{meta.icon}</span>
-          {pathway === 'holomesh' ? 'HoloMesh' : 'Studio / HoloClaw'}
+        {onBack
+          ? <button onClick={onBack} className="text-[10px] font-mono text-[#3a3a4a] hover:text-[#7a7a8a] transition-colors">← back</button>
+          : <span />
+        }
+        <span className={`text-[10px] font-mono ${m.indicator} flex items-center gap-1.5`}>
+          <span>{m.icon}</span> {m.name}
         </span>
       </div>
 
-      {/* Agent */}
-      <div className="rounded border border-[#2a2a3a] bg-[#0d0d14] p-4">
-        <p className="text-[10px] text-[#4a4a5a] font-mono mb-3">your agent</p>
-        <AgentBadge name={invite.agentName} handle={invite.agentHandle} size="sm" />
+      <div className="rounded border border-[#1e1e2a] bg-[#0d0d14] p-4 space-y-2">
+        <p className="text-[10px] text-[#3a3a4a] font-mono">your agent</p>
+        <AgentBadge name={invite.agentName} handle={invite.agentHandle} center={false} />
+        {delivery === 'hololand' && invite.worldId && (
+          <p className="text-[10px] font-mono text-emerald-500/50 pt-1">world: {invite.worldId}</p>
+        )}
       </div>
 
-      {/* Form */}
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-1">
-          <label className="text-[10px] font-mono text-[#4a4a5a] uppercase tracking-wider">your name</label>
+          <label className="text-[10px] font-mono text-[#3a3a4a] uppercase tracking-wider">your name</label>
           <input
             type="text"
             value={name}
@@ -330,13 +361,13 @@ function Form({
             placeholder="Enter your name"
             required
             disabled={submitting}
-            className={`w-full bg-[#0d0d14] border border-[#2a2a3a] ${meta.accent} rounded px-3 py-2.5 text-sm text-[#c8c8d8] placeholder-[#3a3a4a] focus:outline-none font-mono transition-colors`}
+            className={`w-full bg-[#0a0a10] border border-[#1e1e2a] ${m.accentBorder} rounded px-3 py-2.5 text-sm text-[#c8c8d8] placeholder-[#2a2a3a] focus:outline-none font-mono transition-colors`}
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-mono text-[#4a4a5a] uppercase tracking-wider">
-            wallet <span className="text-[#2a2a3a]">— optional</span>
+          <label className="text-[10px] font-mono text-[#3a3a4a] uppercase tracking-wider">
+            wallet <span className="text-[#1e1e2a]">— optional</span>
           </label>
           <input
             type="text"
@@ -344,16 +375,16 @@ function Form({
             onChange={(e) => onWallet(e.target.value)}
             placeholder="0x…"
             disabled={submitting}
-            className={`w-full bg-[#0d0d14] border border-[#2a2a3a] ${meta.accent} rounded px-3 py-2.5 text-sm text-[#c8c8d8] placeholder-[#3a3a4a] focus:outline-none font-mono transition-colors`}
+            className={`w-full bg-[#0a0a10] border border-[#1e1e2a] ${m.accentBorder} rounded px-3 py-2.5 text-sm text-[#c8c8d8] placeholder-[#2a2a3a] focus:outline-none font-mono transition-colors`}
           />
         </div>
 
         <button
           type="submit"
           disabled={!name.trim() || submitting}
-          className={`w-full border ${meta.btn} text-sm font-mono py-3 rounded transition-all disabled:opacity-30 disabled:cursor-not-allowed`}
+          className={`w-full border ${m.btn} text-sm font-mono py-3 rounded transition-all disabled:opacity-25 disabled:cursor-not-allowed`}
         >
-          {meta.label}
+          {m.cta}
         </button>
       </form>
     </div>
@@ -362,22 +393,18 @@ function Form({
 
 // ── Entering ──────────────────────────────────────────────────────────────────
 
-function Entering({ pathway }: { pathway: Pathway }) {
-  const isHolomesh = pathway === 'holomesh'
+function Entering({ delivery }: { delivery: Delivery }) {
+  const m = PATHWAYS[delivery]
   return (
     <div className="text-center space-y-6">
       <div className="relative w-24 h-24 mx-auto">
-        <div className={`absolute inset-0 rounded-full border-2 ${isHolomesh ? 'border-purple-500/20' : 'border-cyan-500/20'} animate-ping`} />
-        <div className={`absolute inset-2 rounded-full border ${isHolomesh ? 'border-purple-500/40' : 'border-cyan-500/40'} animate-pulse`} />
-        <div className={`absolute inset-4 rounded-full ${isHolomesh ? 'bg-purple-900/30' : 'bg-cyan-900/30'} flex items-center justify-center`}>
-          <span className={`text-lg ${isHolomesh ? 'text-purple-300' : 'text-cyan-300'}`}>
-            {isHolomesh ? '◈' : '⬡'}
-          </span>
+        <div className={`absolute inset-0 rounded-full border ${m.ring} animate-ping opacity-40`} />
+        <div className={`absolute inset-2 rounded-full border ${m.ring} animate-pulse`} />
+        <div className={`absolute inset-5 rounded-full ${m.orb} flex items-center justify-center`}>
+          <span className={`text-base ${m.orbText}`}>{m.icon}</span>
         </div>
       </div>
-      <p className="text-xs text-[#4a4a5a]">
-        {isHolomesh ? 'joining the network…' : 'opening studio…'}
-      </p>
+      <p className="text-xs text-[#3a3a4a] font-mono">{m.enteringText}</p>
     </div>
   )
 }
@@ -385,62 +412,68 @@ function Entering({ pathway }: { pathway: Pathway }) {
 // ── Welcome ───────────────────────────────────────────────────────────────────
 
 function Welcome({
-  playerName,
-  agentName,
-  pathway,
-  worldId,
+  playerName, agentName, delivery, invite,
 }: {
   playerName: string
   agentName: string
-  pathway: Pathway
-  worldId?: string
+  delivery: Delivery
+  invite: InviteInfo
 }) {
-  const isHolomesh = pathway === 'holomesh'
+  const m = PATHWAYS[delivery]
 
-  const destination = isHolomesh ? '/' : STUDIO_URL
-  const destLabel = isHolomesh ? 'open holomesh' : 'open studio'
+  // Determine the destination link
+  let destination = '/'
+  let destLabel = 'open holomesh'
+  if (delivery === 'studio') { destination = STUDIO_URL; destLabel = 'open studio' }
+  if (delivery === 'hololand') {
+    destination = invite.worldLink || '#'
+    destLabel = invite.worldLink ? 'enter world' : 'return to agent'
+  }
 
   return (
     <div className="text-center space-y-8">
       <div className="relative w-20 h-20 mx-auto">
-        <div className={`absolute inset-0 rounded-full ${isHolomesh ? 'bg-purple-600/20' : 'bg-cyan-600/15'} blur-xl`} />
-        <div className={`absolute inset-3 rounded-full ${isHolomesh ? 'bg-purple-800/40 border-purple-500/40' : 'bg-cyan-900/40 border-cyan-500/40'} border flex items-center justify-center`}>
-          <span className={`text-xl ${isHolomesh ? 'text-purple-200' : 'text-cyan-200'}`}>
-            {isHolomesh ? '◈' : '⬡'}
-          </span>
+        <div className={`absolute inset-0 rounded-full ${m.glow} blur-xl`} />
+        <div className={`absolute inset-3 rounded-full ${m.orb} border ${m.ring} flex items-center justify-center`}>
+          <span className={`text-xl ${m.orbText}`}>{m.icon}</span>
         </div>
       </div>
 
       <div className="space-y-2">
-        <p className={`text-[10px] font-mono uppercase tracking-widest ${isHolomesh ? 'text-purple-400/60' : 'text-cyan-400/60'}`}>
-          {isHolomesh ? 'welcome to holomesh' : 'welcome to studio'}
+        <p className={`text-[10px] font-mono uppercase tracking-widest ${m.welcomeTag}`}>
+          {delivery === 'holomesh' && 'welcome to holomesh'}
+          {delivery === 'hololand' && 'you are in the world'}
+          {delivery === 'studio'   && 'welcome to studio'}
         </p>
         <h2 className="text-2xl font-bold text-[#e8e8f0]">{playerName}</h2>
-        <p className="text-sm text-[#6a6a7a]">{agentName} can see you now.</p>
+        <p className="text-sm text-[#5a5a6a]">{agentName} can see you now.</p>
       </div>
 
-      {isHolomesh ? (
-        <div className="space-y-2 text-xs text-[#4a4a5a]">
-          <p>Your profile is live on the network.</p>
-          <p>Find your agent, follow their work, build your presence.</p>
-        </div>
-      ) : (
-        <div className="space-y-2 text-xs text-[#4a4a5a]">
-          <p>Absorb a codebase. Create a world.</p>
-          <p>Your agent can collaborate with you directly in Studio.</p>
-          {worldId && (
-            <p className="font-mono text-cyan-500/60">world: {worldId}</p>
-          )}
-        </div>
-      )}
+      <div className="text-xs text-[#3a3a4a] space-y-1.5 leading-relaxed">
+        {delivery === 'holomesh' && (
+          <>
+            <p>Your profile is live on the network.</p>
+            <p>Find your agent, follow their work, build your presence.</p>
+          </>
+        )}
+        {delivery === 'hololand' && (
+          <>
+            <p>Your player entity is active in the world.</p>
+            <p>Your agent exists here as a spatial presence, not a web page.</p>
+            {invite.worldId && <p className="font-mono text-emerald-500/40">{invite.worldId}</p>}
+          </>
+        )}
+        {delivery === 'studio' && (
+          <>
+            <p>Absorb a codebase. Create a world.</p>
+            <p>Your agent can collaborate with you directly in HoloClaw.</p>
+          </>
+        )}
+      </div>
 
       <a
         href={destination}
-        className={`inline-block text-sm font-mono px-6 py-2.5 rounded border transition-all ${
-          isHolomesh
-            ? 'bg-purple-900/30 hover:bg-purple-900/50 border-purple-500/30 hover:border-purple-500/60 text-purple-200'
-            : 'bg-cyan-900/20 hover:bg-cyan-900/40 border-cyan-500/30 hover:border-cyan-500/60 text-cyan-200'
-        }`}
+        className={`inline-block text-sm font-mono px-6 py-2.5 rounded border transition-all ${m.welcomeBtn}`}
       >
         {destLabel} →
       </a>
