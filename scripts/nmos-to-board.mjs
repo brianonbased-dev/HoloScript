@@ -40,7 +40,7 @@
 
 import { readFileSync, writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 // ── Resolve paths ─────────────────────────────────────────────────────────────
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -199,14 +199,15 @@ const AI_ECO = resolve(process.env.HOME ?? process.env.USERPROFILE ?? '', '.ai-e
 
 let loadLocalEnv, getHolomeshRuntimeConfig, createHolomeshHttpClient, signingSeatIdFor, buildSignedEnvelope;
 try {
+  // Use pathToFileURL so Windows absolute paths work with ESM dynamic import
   ({ loadLocalEnv, getHolomeshRuntimeConfig } = await import(
-    resolve(AI_ECO, 'hooks', 'lib', 'holomesh-env.mjs')
+    pathToFileURL(resolve(AI_ECO, 'hooks', 'lib', 'holomesh-env.mjs')).href
   ));
   ({ createHolomeshHttpClient } = await import(
-    resolve(AI_ECO, 'hooks', 'lib', 'holomesh-http.mjs')
+    pathToFileURL(resolve(AI_ECO, 'hooks', 'lib', 'holomesh-http.mjs')).href
   ));
   ({ signingSeatIdFor, buildSignedEnvelope } = await import(
-    resolve(AI_ECO, 'hooks', 'lib', 'holomesh-signing.mjs')
+    pathToFileURL(resolve(AI_ECO, 'hooks', 'lib', 'holomesh-signing.mjs')).href
   ));
 } catch (err) {
   console.error(`[nmos-to-board] Failed to load HoloMesh hooks from ${AI_ECO}:`);

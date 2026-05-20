@@ -3,21 +3,34 @@
   "generatedAt": "2026-05-18T00:00:00Z",
   "nextReviewBy": "2026-06-18",
   "nmosLegend": {
-    "bars": ["massive-scale", "network-effect", "open-standard", "gated-distribution", "specialized-depth"],
+    "bars": [
+      "massive-scale",
+      "network-effect",
+      "open-standard",
+      "gated-distribution",
+      "specialized-depth"
+    ],
     "classifications": {
       "BRIDGE": "1+ bars pass — connect, do not replace",
       "WATCH": "fails F.045 vitality gate (3+ decline signals) — monitor, pattern-harvest",
       "BUILD-INTERNAL": "0 bars — sovereign primitive replaces it",
       "ABSORB": "special BRIDGE — HoloScript ingests their format, turning their data into our compositions"
     },
-    "references": ["F.045 vitality gate", "F.046 NMoS", "F.049 incumbent metrics inflate"]
+    "references": [
+      "F.045 vitality gate",
+      "F.046 NMoS",
+      "F.049 incumbent metrics inflate"
+    ]
   },
   "verticals": [
     {
       "vertical": "Game / 3D platform ecosystems",
       "competitor": "Unity",
       "nmos": {
-        "bars_passed": ["network-effect", "specialized-depth"],
+        "bars_passed": [
+          "network-effect",
+          "specialized-depth"
+        ],
         "score": "2/5",
         "classification": "BRIDGE",
         "vitality": "healthy — recovering from 2023 pricing disaster; runtime fee walked back"
@@ -57,7 +70,10 @@
       "vertical": "Game / 3D platform ecosystems",
       "competitor": "Unreal Engine (Epic Games)",
       "nmos": {
-        "bars_passed": ["open-standard", "specialized-depth"],
+        "bars_passed": [
+          "open-standard",
+          "specialized-depth"
+        ],
         "score": "2/5",
         "classification": "BRIDGE",
         "vitality": "healthy — UE5 Nanite/Lumen adoption growing; Fortnite ecosystem massive"
@@ -81,7 +97,7 @@
           "sources": [
             "packages/core/src/compiler/UnrealCompiler.ts"
           ],
-          "boardTaskId": null
+          "boardTaskId": "task_1779252073335_096i"
         }
       ]
     },
@@ -89,7 +105,10 @@
       "vertical": "Game / 3D platform ecosystems",
       "competitor": "Godot Engine",
       "nmos": {
-        "bars_passed": ["network-effect", "open-standard"],
+        "bars_passed": [
+          "network-effect",
+          "open-standard"
+        ],
         "score": "2/5",
         "classification": "BRIDGE",
         "vitality": "very healthy — post-Unity-pricing-drama migration; 100K+ GitHub stars; Godot 4.x gaining professional adoption rapidly"
@@ -120,7 +139,10 @@
       "vertical": "Web 3D engine ecosystem",
       "competitor": "Babylon.js (Microsoft)",
       "nmos": {
-        "bars_passed": ["open-standard", "specialized-depth"],
+        "bars_passed": [
+          "open-standard",
+          "specialized-depth"
+        ],
         "score": "2/5",
         "classification": "BRIDGE",
         "vitality": "healthy — Babylon 9.0 shipped March 2026; Microsoft distribution; community MCP server is the threat signal",
@@ -146,7 +168,7 @@
             "docs/strategy/battlecards/babylon-js-9.md",
             "packages/core/src/compiler/BabylonCompiler.ts"
           ],
-          "boardTaskId": null
+          "boardTaskId": "task_1779252073335_vua1"
         }
       ]
     },
@@ -154,7 +176,10 @@
       "vertical": "Web 3D engine ecosystem",
       "competitor": "Three.js / React Three Fiber",
       "nmos": {
-        "bars_passed": ["network-effect", "open-standard"],
+        "bars_passed": [
+          "network-effect",
+          "open-standard"
+        ],
         "score": "2/5",
         "classification": "BRIDGE",
         "vitality": "very healthy — Three.js is the dominant web 3D library; R3F is the dominant React binding; millions of developers"
@@ -187,7 +212,9 @@
       "vertical": "Web 3D engine ecosystem",
       "competitor": "PlayCanvas",
       "nmos": {
-        "bars_passed": ["open-standard"],
+        "bars_passed": [
+          "open-standard"
+        ],
         "score": "1/5",
         "classification": "WATCH",
         "vitality": "declining signals — ARM acquired 2023, growth trajectory unclear, niche web game engine market"
@@ -204,8 +231,12 @@
           "competitorAdvantage": "Cloud-first collaborative editor, real-time multi-user scene editing, PlayCanvas Engine open-source with asset CDN.",
           "holoscriptState": "PlayCanvasCompiler.ts exists as compile target.",
           "neededResponse": "Pattern harvest: cloud-first collaborative editor model for Studio roadmap. No active build required.",
-          "evidence": ["packages/core/src/compiler/PlayCanvasCompiler.ts"],
-          "sources": ["packages/core/src/compiler/PlayCanvasCompiler.ts"],
+          "evidence": [
+            "packages/core/src/compiler/PlayCanvasCompiler.ts"
+          ],
+          "sources": [
+            "packages/core/src/compiler/PlayCanvasCompiler.ts"
+          ],
           "boardTaskId": null
         }
       ]
@@ -214,7 +245,10 @@
       "vertical": "AI runtime architecture",
       "competitor": "Unity / Unreal / PyTorch / JAX",
       "nmos": {
-        "bars_passed": ["network-effect", "specialized-depth"],
+        "bars_passed": [
+          "network-effect",
+          "specialized-depth"
+        ],
         "score": "2/5",
         "classification": "BRIDGE",
         "vitality": "healthy"
@@ -257,7 +291,10 @@
       "vertical": "AI developer tools",
       "competitor": "Cursor",
       "nmos": {
-        "bars_passed": ["network-effect", "specialized-depth"],
+        "bars_passed": [
+          "network-effect",
+          "specialized-depth"
+        ],
         "score": "2/5",
         "classification": "BRIDGE",
         "vitality": "healthy — fastest-growing AI IDE; ~$300M ARR estimated; VS Code compatibility drives adoption",
@@ -292,7 +329,9 @@
       "vertical": "Hardware, edge AI, and embedded development",
       "competitor": "NVIDIA Jetson",
       "nmos": {
-        "bars_passed": ["specialized-depth"],
+        "bars_passed": [
+          "specialized-depth"
+        ],
         "score": "1/5",
         "classification": "BRIDGE",
         "vitality": "healthy — Jetson Orin is embedded AI standard; Isaac platform growing"
@@ -325,7 +364,11 @@
       "vertical": "NVIDIA simulation and digital twin",
       "competitor": "NVIDIA Omniverse / Isaac Sim",
       "nmos": {
-        "bars_passed": ["massive-scale", "open-standard", "specialized-depth"],
+        "bars_passed": [
+          "massive-scale",
+          "open-standard",
+          "specialized-depth"
+        ],
         "score": "3/5",
         "classification": "BRIDGE",
         "vitality": "healthy — $130.5B parent; 300K+ enterprise downloads; USD is becoming the spatial computing open standard"
@@ -352,7 +395,7 @@
             "docs/targets/usd-omniverse.md",
             "docs/strategy/battlecards/nvidia-omniverse.md"
           ],
-          "boardTaskId": null
+          "boardTaskId": "task_1779252073335_b620"
         }
       ]
     },
@@ -360,7 +403,10 @@
       "vertical": "Spatial computing platforms",
       "competitor": "Apple (Vision Pro / visionOS / iOS / USDZ)",
       "nmos": {
-        "bars_passed": ["gated-distribution", "specialized-depth"],
+        "bars_passed": [
+          "gated-distribution",
+          "specialized-depth"
+        ],
         "score": "2/5",
         "classification": "BRIDGE",
         "vitality": "tempered — Apple Vision Pro is ANNOUNCED-INNOVATION-TIER per F.049 (press outpaces real adoption); iOS platform itself is vital; USDZ is load-bearing standard"
@@ -383,7 +429,7 @@
           "sources": [
             "packages/core/src/compiler/__tests__/VisionOSCompiler.smoke.test.ts"
           ],
-          "boardTaskId": null
+          "boardTaskId": "task_1779252073335_592m"
         },
         {
           "id": "CG-044",
@@ -408,7 +454,13 @@
       "vertical": "Google platform ecosystem",
       "competitor": "Google (Android XR / Android / A2A Protocol / AI Glasses)",
       "nmos": {
-        "bars_passed": ["massive-scale", "network-effect", "open-standard", "gated-distribution", "specialized-depth"],
+        "bars_passed": [
+          "massive-scale",
+          "network-effect",
+          "open-standard",
+          "gated-distribution",
+          "specialized-depth"
+        ],
         "score": "5/5",
         "classification": "BRIDGE",
         "vitality": "healthy — Android XR launching 2026 with Samsung; A2A protocol published April 2025; AI Glasses hardware in development"
@@ -458,7 +510,12 @@
       "vertical": "Enterprise digital twin platforms",
       "competitor": "Microsoft Azure Digital Twins (DTDL)",
       "nmos": {
-        "bars_passed": ["massive-scale", "open-standard", "gated-distribution", "specialized-depth"],
+        "bars_passed": [
+          "massive-scale",
+          "open-standard",
+          "gated-distribution",
+          "specialized-depth"
+        ],
         "score": "4/5",
         "classification": "BRIDGE",
         "vitality": "healthy — Azure investing heavily in digital twins; DTDL v3 is published and enterprise-adopted"
@@ -481,7 +538,7 @@
           "sources": [
             "packages/core/src/compiler/DTDLCompiler.ts"
           ],
-          "boardTaskId": null
+          "boardTaskId": "task_1779252073335_xq7i"
         }
       ]
     },
@@ -489,7 +546,11 @@
       "vertical": "Enterprise digital twin platforms",
       "competitor": "Palantir AIP / Foundry",
       "nmos": {
-        "bars_passed": ["massive-scale", "gated-distribution", "specialized-depth"],
+        "bars_passed": [
+          "massive-scale",
+          "gated-distribution",
+          "specialized-depth"
+        ],
         "score": "3/5",
         "classification": "BRIDGE",
         "vitality": "healthy — $3.74B ARR +70% YoY; defense + enterprise growth"
@@ -520,7 +581,10 @@
       "vertical": "Enterprise digital twin platforms",
       "competitor": "Anduril (defense digital twin)",
       "nmos": {
-        "bars_passed": ["gated-distribution", "specialized-depth"],
+        "bars_passed": [
+          "gated-distribution",
+          "specialized-depth"
+        ],
         "score": "2/5",
         "classification": "BRIDGE",
         "vitality": "healthy — $30.5B valuation; $20B Army IVAS contract; Arsenal-1 platform growing"
@@ -552,7 +616,9 @@
       "vertical": "Simulation / FEA incumbents",
       "competitor": "ANSYS",
       "nmos": {
-        "bars_passed": ["specialized-depth"],
+        "bars_passed": [
+          "specialized-depth"
+        ],
         "score": "1/5",
         "classification": "BUILD-INTERNAL",
         "vitality": "healthy but incumbent — 40+ years of domain algorithms; industrial trust; offline batch, not real-time"
@@ -579,7 +645,7 @@
             "packages/core/src/compiler/URDFCompiler.ts",
             "packages/core/src/compiler/SDFCompiler.ts"
           ],
-          "boardTaskId": null
+          "boardTaskId": "task_1779252073335_3nyz"
         }
       ]
     },
@@ -587,7 +653,9 @@
       "vertical": "Social VR / virtual worlds",
       "competitor": "VRChat",
       "nmos": {
-        "bars_passed": ["network-effect"],
+        "bars_passed": [
+          "network-effect"
+        ],
         "score": "1/5",
         "classification": "BRIDGE",
         "vitality": "healthy — 149K CCU; Japan fastest-growing community (Shangri-La Frontier IP catalyst, not streamer); creator economy active"
@@ -613,7 +681,7 @@
             "packages/core/src/compiler/VRChatCompiler.ts",
             "docs/tutorials/vrchat-physics-worlds.md"
           ],
-          "boardTaskId": null
+          "boardTaskId": "task_1779252073335_1osp"
         }
       ]
     },
@@ -621,7 +689,10 @@
       "vertical": "Social VR / virtual worlds",
       "competitor": "Roblox",
       "nmos": {
-        "bars_passed": ["massive-scale", "network-effect"],
+        "bars_passed": [
+          "massive-scale",
+          "network-effect"
+        ],
         "score": "2/5",
         "classification": "WATCH",
         "vitality": "healthy but different market — 144M DAU; $4.9B revenue; creator economy ($1.5B paid to creators = 31% share)"
@@ -652,7 +723,11 @@
       "vertical": "3D capture / digital twin ingestion",
       "competitor": "Matterport",
       "nmos": {
-        "bars_passed": ["massive-scale", "network-effect", "specialized-depth"],
+        "bars_passed": [
+          "massive-scale",
+          "network-effect",
+          "specialized-depth"
+        ],
         "score": "3/5",
         "classification": "ABSORB",
         "vitality": "declining — acquired by CoStar 2023 for $2.9B; being absorbed into commercial real estate platform; F.045 signals: revenue growth slowing, team movement, strategic pivot away from platform independence",
@@ -684,7 +759,11 @@
       "vertical": "3D capture / digital twin ingestion",
       "competitor": "Luma AI / 3DGS ecosystem (Gaussian Splatting)",
       "nmos": {
-        "bars_passed": ["network-effect", "open-standard", "specialized-depth"],
+        "bars_passed": [
+          "network-effect",
+          "open-standard",
+          "specialized-depth"
+        ],
         "score": "3/5",
         "classification": "BRIDGE",
         "vitality": "healthy and growing — KHR_gaussian_splatting glTF extension being standardized by Khronos; Luma AI, Polycam, KIRI Engine all generating 3DGS captures"
@@ -715,7 +794,10 @@
       "vertical": "Robotics platform",
       "competitor": "ROS 2 / Gazebo (OSRF)",
       "nmos": {
-        "bars_passed": ["network-effect", "open-standard"],
+        "bars_passed": [
+          "network-effect",
+          "open-standard"
+        ],
         "score": "2/5",
         "classification": "BRIDGE",
         "vitality": "healthy — ROS 2 is the standard robot OS; Gazebo Harmonic active; nearly every robotics team uses URDF/SDF"
@@ -741,7 +823,7 @@
             "packages/core/src/compiler/URDFCompiler.ts",
             "packages/core/src/compiler/SDFCompiler.ts"
           ],
-          "boardTaskId": null
+          "boardTaskId": "task_1779252073335_kbyy"
         }
       ]
     },
@@ -749,7 +831,9 @@
       "vertical": "Hardware, edge AI, and embedded development",
       "competitor": "NVIDIA Jetson",
       "nmos": {
-        "bars_passed": ["specialized-depth"],
+        "bars_passed": [
+          "specialized-depth"
+        ],
         "score": "1/5",
         "classification": "BRIDGE",
         "vitality": "healthy — Jetson Orin is embedded AI standard; Isaac platform growing"
@@ -782,7 +866,9 @@
       "vertical": "Neuromorphic computing",
       "competitor": "Intel Loihi / SpiNNaker / SynSense",
       "nmos": {
-        "bars_passed": ["specialized-depth"],
+        "bars_passed": [
+          "specialized-depth"
+        ],
         "score": "1/5",
         "classification": "BRIDGE",
         "vitality": "healthy — neuromorphic hardware investment growing; NIR standard emerging"
@@ -816,7 +902,10 @@
       "vertical": "Causal ML / simulation-for-ML",
       "competitor": "DoWhy / CausalML (causal inference frameworks)",
       "nmos": {
-        "bars_passed": ["open-standard", "specialized-depth"],
+        "bars_passed": [
+          "open-standard",
+          "specialized-depth"
+        ],
         "score": "2/5",
         "classification": "BRIDGE",
         "vitality": "healthy niche — do-calculus and causal inference growing in ML research; Microsoft DoWhy + Uber CausalML are active"
@@ -847,7 +936,10 @@
       "vertical": "Creator economy / on-chain assets",
       "competitor": "OpenSea / NFT Marketplaces",
       "nmos": {
-        "bars_passed": ["network-effect", "open-standard"],
+        "bars_passed": [
+          "network-effect",
+          "open-standard"
+        ],
         "score": "2/5",
         "classification": "WATCH",
         "vitality": "declining — NFT market crashed 98%+ from 2021-2022 peak; OpenSea revenue collapsed; F.045: 4+ decline signals",
