@@ -252,6 +252,22 @@ function compileOutputFieldToFileName(field: string): string {
     manifestFile: 'AndroidManifest.xml',
     buildGradle: 'build.gradle.kts',
     glimmerComponentsFile: 'GlimmerComponents.kt',
+    headerFile: 'HoloScriptActor.h',
+    sourceFile: 'HoloScriptActor.cpp',
+    blueprintJson: 'Blueprint.json',
+    viewFile: 'ContentView.swift',
+    sceneFile: 'HoloScriptScene.swift',
+    infoPlist: 'Info.plist',
+    roomPlanFile: 'RoomPlanScanner.swift',
+    lidarScannerFile: 'LiDARScanner.swift',
+    npuSceneFile: 'NPUScene.swift',
+    portalARFile: 'PortalAR.swift',
+    handTrackingFile: 'HandTracking.swift',
+    objectCaptureFile: 'ObjectCapture.swift',
+    faceTrackingFile: 'FaceTracking.swift',
+    sharePlayFile: 'SharePlay.swift',
+    uwbPositioningFile: 'UWBPositioning.swift',
+    spatialAudioFile: 'SpatialAudio.swift',
   };
 
   if (knownFiles[field]) {
@@ -305,7 +321,8 @@ async function runWorldModelCommand(options: ReturnType<typeof parseArgs>): Prom
   const seed = Number(seedInput);
   if (!Number.isSafeInteger(seed)) {
     cliError('E003', `Invalid world-model seed: ${seedInput}`, {
-      usage: 'holoscript world-model replay --scene deterministic-contact-v1 --seed <integer> [--json]',
+      usage:
+        'holoscript world-model replay --scene deterministic-contact-v1 --seed <integer> [--json]',
       hint: 'Pass a deterministic integer seed, for example `--seed 1337`.',
     });
     process.exit(1);
@@ -380,7 +397,9 @@ async function runWorldModelCommand(options: ReturnType<typeof parseArgs>): Prom
   console.log('Predicate deltas:');
   for (const delta of payload.predicateDeltas) {
     const mark = delta.passed ? 'PASS' : 'FAIL';
-    console.log(`  ${mark} ${delta.name}: value=${delta.value.toFixed(4)} threshold=${delta.threshold.toFixed(4)}`);
+    console.log(
+      `  ${mark} ${delta.name}: value=${delta.value.toFixed(4)} threshold=${delta.threshold.toFixed(4)}`
+    );
   }
   if (options.output) {
     console.log(`Wrote JSON receipt: ${options.output}`);
@@ -394,7 +413,7 @@ async function runWorldModelCommand(options: ReturnType<typeof parseArgs>): Prom
  * machine consumers who expect the same schema as trajectory-replay.
  */
 function formatPredicateDeltas(
-  predicateScore: import('@holoscript/core/world-model').SemanticPredicateScore,
+  predicateScore: import('@holoscript/core/world-model').SemanticPredicateScore
 ): Array<{ name: string; value: number; threshold: number; passed: boolean; delta: number }> {
   const components: Array<[string, number]> = [
     ['violation', predicateScore.violation],
@@ -422,14 +441,11 @@ function formatPredicateDeltas(
 
 const ADVERSARIAL_TRAJECTORY_SCHEMA = 'world-model-trajectory-replay-v1';
 
-async function runWorldModelTrajectoryReplay(
-  options: ReturnType<typeof parseArgs>,
-): Promise<void> {
+async function runWorldModelTrajectoryReplay(options: ReturnType<typeof parseArgs>): Promise<void> {
   const trajectoryId = options.trajectoryId;
   if (!trajectoryId) {
     cliError('E003', 'trajectory-replay requires --trajectory <id>', {
-      usage:
-        'holoscript world-model trajectory-replay --trajectory <id> --report <path> [--json]',
+      usage: 'holoscript world-model trajectory-replay --trajectory <id> --report <path> [--json]',
       hint: 'Use the trajectory id from a generated report (see trajectory-generate).',
     });
     process.exit(1);
@@ -438,8 +454,7 @@ async function runWorldModelTrajectoryReplay(
   const reportPath = options.reportPath;
   if (!reportPath) {
     cliError('E003', 'trajectory-replay requires --report <path>', {
-      usage:
-        'holoscript world-model trajectory-replay --trajectory <id> --report <path> [--json]',
+      usage: 'holoscript world-model trajectory-replay --trajectory <id> --report <path> [--json]',
       hint: 'Provide the path to an adversarial trajectory report JSON file (generate one with trajectory-generate).',
     });
     process.exit(1);
@@ -451,17 +466,15 @@ async function runWorldModelTrajectoryReplay(
 
   if (!fs.existsSync(resolvedPath)) {
     cliError('E003', `Report file not found: ${resolvedPath}`, {
-      usage:
-        'holoscript world-model trajectory-replay --trajectory <id> --report <path> [--json]',
+      usage: 'holoscript world-model trajectory-replay --trajectory <id> --report <path> [--json]',
       hint: 'Generate a report first with: holoscript world-model trajectory-generate --out <path>',
     });
     process.exit(1);
   }
 
-  const { replayTrajectory } = await import(
-    '@holoscript/hololand-platform'
-  );
-  type AdversarialTrajectoryReport = import('@holoscript/hololand-platform').HololandAdversarialTrajectoryReport;
+  const { replayTrajectory } = await import('@holoscript/hololand-platform');
+  type AdversarialTrajectoryReport =
+    import('@holoscript/hololand-platform').HololandAdversarialTrajectoryReport;
 
   const reportJson = fs.readFileSync(resolvedPath, 'utf-8');
   const report = JSON.parse(reportJson) as AdversarialTrajectoryReport;
@@ -472,9 +485,11 @@ async function runWorldModelTrajectoryReplay(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     cliError('E003', `Trajectory replay failed: ${message}`, {
-      usage:
-        'holoscript world-model trajectory-replay --trajectory <id> --report <path> [--json]',
-      hint: `Use a trajectory id from the report. Available ids: ${report.trajectories.slice(0, 5).map((t: { id: string }) => t.id).join(', ')}${report.trajectories.length > 5 ? ', ...' : ''}`,
+      usage: 'holoscript world-model trajectory-replay --trajectory <id> --report <path> [--json]',
+      hint: `Use a trajectory id from the report. Available ids: ${report.trajectories
+        .slice(0, 5)
+        .map((t: { id: string }) => t.id)
+        .join(', ')}${report.trajectories.length > 5 ? ', ...' : ''}`,
     });
     process.exit(1);
   }
@@ -493,7 +508,9 @@ async function runWorldModelTrajectoryReplay(
   }
 
   console.log(`Trajectory replay: ${result.trajectoryId}`);
-  console.log(`Status: ${result.replayStatus.toUpperCase()} (expected=${result.expectedStatus} actual=${result.actualStatus})`);
+  console.log(
+    `Status: ${result.replayStatus.toUpperCase()} (expected=${result.expectedStatus} actual=${result.actualStatus})`
+  );
   console.log('Receipt hashes:');
   console.log(`  scene: ${result.receiptHashes.sceneHash}`);
   console.log(`  actions: ${result.receiptHashes.actionTraceHash}`);
@@ -505,19 +522,19 @@ async function runWorldModelTrajectoryReplay(
   for (const delta of result.predicateDeltas) {
     const mark = delta.stable ? 'PASS' : 'FAIL';
     console.log(
-      `  ${mark} ${delta.name}: expected=${delta.expected.toFixed(4)} actual=${delta.actual.toFixed(4)} delta=${delta.delta.toFixed(6)} threshold=${delta.threshold.toFixed(4)}`,
+      `  ${mark} ${delta.name}: expected=${delta.expected.toFixed(4)} actual=${delta.actual.toFixed(4)} delta=${delta.delta.toFixed(6)} threshold=${delta.threshold.toFixed(4)}`
     );
   }
 }
 
 async function runWorldModelTrajectoryGenerate(
-  options: ReturnType<typeof parseArgs>,
+  options: ReturnType<typeof parseArgs>
 ): Promise<void> {
-  const { createAdversarialTrajectoryReport } = await import(
-    '@holoscript/hololand-platform'
-  );
+  const { createAdversarialTrajectoryReport } = await import('@holoscript/hololand-platform');
 
-  const count = options.trajectoryCount ? Math.max(20, Math.trunc(Number(options.trajectoryCount))) : 20;
+  const count = options.trajectoryCount
+    ? Math.max(20, Math.trunc(Number(options.trajectoryCount)))
+    : 20;
   const seed = options.seed;
   const taskId = options.taskId;
 
@@ -539,7 +556,7 @@ async function runWorldModelTrajectoryGenerate(
 
   console.log(`Generated ${report.summary.total} trajectories`);
   console.log(
-    `  solved: ${report.summary.solved} | unresolved: ${report.summary.unresolved} | invalid: ${report.summary.invalid}`,
+    `  solved: ${report.summary.solved} | unresolved: ${report.summary.unresolved} | invalid: ${report.summary.invalid}`
   );
   console.log(`  report hash: ${report.reportHash}`);
   console.log(`  top priority: ${report.summary.topPriorityTrajectoryIds.join(', ')}`);
@@ -892,7 +909,11 @@ function printTwinEarthStatus(status: Record<string, unknown>): void {
   console.log('');
 }
 
-function getTwinEarthContract(version?: string): { contract: string; version: string; hash: string } {
+function getTwinEarthContract(version?: string): {
+  contract: string;
+  version: string;
+  hash: string;
+} {
   const fs = require('fs');
   const path = require('path');
   const contractPath = path.resolve(
@@ -905,7 +926,8 @@ function getTwinEarthContract(version?: string): { contract: string; version: st
     contract = fs.readFileSync(contractPath, 'utf-8');
   } catch {
     // Fallback when not run from repo root
-    contract = '[Contract document not found at research/2026-05-13_twin-earth-substrate-contract.md]';
+    contract =
+      '[Contract document not found at research/2026-05-13_twin-earth-substrate-contract.md]';
   }
   const resolvedVersion = version || '1.0.0';
   // Simple hash of version + contract length
@@ -999,8 +1021,7 @@ async function main(): Promise<void> {
             message: typeof e === 'string' ? e : e.message,
           }));
         } else {
-          if (options.verbose)
-            console.log(`\x1b[2m[TRACE] Detecting .hs file type...\x1b[0m`);
+          if (options.verbose) console.log(`\x1b[2m[TRACE] Detecting .hs file type...\x1b[0m`);
           const { parsePipeline, HoloScriptCodeParser } = await import('@holoscript/core');
           // Stricter pipeline detection: check for `pipeline` keyword at the
           // start of a non-comment line. isPipelineSource() uses a loose regex
@@ -1010,17 +1031,23 @@ async function main(): Promise<void> {
           if (isPipeline) {
             // Delegate pipeline { source/transform/validate/filter/sink } files to PipelineParser
             if (options.verbose)
-              console.log(`\x1b[2m[TRACE] Pipeline source detected — using PipelineParser...\x1b[0m`);
+              console.log(
+                `\x1b[2m[TRACE] Pipeline source detected — using PipelineParser...\x1b[0m`
+              );
             const result = parsePipeline(content);
             parseResult = result;
             if (options.verbose)
-              console.log(`\x1b[2m[TRACE] Pipeline parse complete. Success: ${result.success}\x1b[0m`);
+              console.log(
+                `\x1b[2m[TRACE] Pipeline parse complete. Success: ${result.success}\x1b[0m`
+              );
             success = result.success;
-            errorList = result.errors.map((e: { message: string; line?: number; block?: string }) => ({
-              line: e.line,
-              column: undefined,
-              message: e.block ? `[${e.block}] ${e.message}` : e.message,
-            }));
+            errorList = result.errors.map(
+              (e: { message: string; line?: number; block?: string }) => ({
+                line: e.line,
+                column: undefined,
+                message: e.block ? `[${e.block}] ${e.message}` : e.message,
+              })
+            );
           } else {
             if (options.verbose)
               console.log(`\x1b[2m[TRACE] Importing HoloScriptCodeParser...\x1b[0m`);
@@ -1137,7 +1164,12 @@ async function main(): Promise<void> {
     }
 
     case 'version': {
-      let info: { version: string; gitCommitSha?: string; buildTimestamp?: string; [key: string]: any };
+      let info: {
+        version: string;
+        gitCommitSha?: string;
+        buildTimestamp?: string;
+        [key: string]: any;
+      };
       let versionString = getCliVersionString();
 
       try {
@@ -1459,7 +1491,9 @@ async function main(): Promise<void> {
             .filter((template: { name?: unknown }) => typeof template.name === 'string')
             .map((template: { name: string }) => [template.name, template])
         );
-        const withTemplateInheritance = (node: Record<string, unknown>): Record<string, unknown> => {
+        const withTemplateInheritance = (
+          node: Record<string, unknown>
+        ): Record<string, unknown> => {
           const templateName = typeof node.template === 'string' ? node.template : undefined;
           const template = templateName ? templateMap.get(templateName) : undefined;
           const inherited =
@@ -1496,7 +1530,11 @@ async function main(): Promise<void> {
         const wotObjects = objects.map((object: Record<string, unknown>) =>
           withTemplateInheritance(object)
         );
-        const generatorOpts = { baseUrl: 'http://localhost:8080', defaultObservable: true, templates };
+        const generatorOpts = {
+          baseUrl: 'http://localhost:8080',
+          defaultObservable: true,
+          templates,
+        };
         const generator = new ThingDescriptionGenerator(generatorOpts);
 
         const thingDescriptions = generator.generateAll(wotObjects);
@@ -1952,15 +1990,22 @@ async function main(): Promise<void> {
       };
       const writeCompileOutputMap = (
         outputDir: string,
-        files: Record<string, string | undefined>
+        files: Record<string, unknown>,
+        fileNameOverrides: Record<string, string> = {}
       ): void => {
         fs.mkdirSync(outputDir, { recursive: true });
         for (const [field, contents] of Object.entries(files)) {
-          if (typeof contents !== 'string') {
+          if (contents === undefined || contents === null) {
             continue;
           }
-          const fileName = compileOutputFieldToFileName(field);
-          writeCompileOutputFile(path.join(outputDir, fileName), contents);
+          const serialized =
+            typeof contents === 'string'
+              ? contents
+              : contents instanceof Uint8Array
+                ? contents
+                : JSON.stringify(contents, null, 2);
+          const fileName = fileNameOverrides[field] ?? compileOutputFieldToFileName(field);
+          writeCompileOutputFile(path.join(outputDir, fileName), serialized);
           console.log(`\x1b[32m✓ Written ${fileName}\x1b[0m`);
         }
       };
@@ -2381,7 +2426,9 @@ async function main(): Promise<void> {
           }
 
           const wantsGltf = options.output?.endsWith('.gltf') ?? false;
-          console.log(`\x1b[2m[DEBUG] Compiling to KHR_gaussian_splatting ${wantsGltf ? 'glTF' : 'GLB'}...\x1b[0m`);
+          console.log(
+            `\x1b[2m[DEBUG] Compiling to KHR_gaussian_splatting ${wantsGltf ? 'glTF' : 'GLB'}...\x1b[0m`
+          );
           const compiler = new GaussianSplattingCompiler({ format: wantsGltf ? 'gltf' : 'glb' });
           const result = compiler.compile(parseResult.ast, '');
 
@@ -2543,6 +2590,65 @@ async function main(): Promise<void> {
           process.exit(0);
         }
 
+        // Special handling for AR target - use ARCompiler
+        if (target === 'ar') {
+          if (!isHolo) {
+            console.error(`\x1b[31mError: AR compilation requires .holo files.\x1b[0m`);
+            process.exit(1);
+          }
+
+          const { HoloCompositionParser } = await import('@holoscript/core');
+          const { ARCompiler } = await import('@holoscript/core/compiler');
+          const compositionParser = new HoloCompositionParser();
+          const parseResult = compositionParser.parse(content);
+
+          if (!parseResult.success || !parseResult.ast) {
+            console.error(`\x1b[31mError parsing for AR:\x1b[0m`);
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
+            process.exit(1);
+          }
+
+          console.log(`\x1b[2m[DEBUG] Compiling to WebXR AR JavaScript...\x1b[0m`);
+          const compiler = new ARCompiler({
+            target: 'webxr',
+            minify: false,
+            source_maps: false,
+            features: {
+              hit_test: true,
+              image_tracking: true,
+            },
+          });
+          const result = compiler.compile(parseResult.ast, '');
+
+          if (!result.success) {
+            console.error(`\x1b[31mAR compilation failed:\x1b[0m`);
+            for (const error of result.errors) {
+              console.error(`  - ${error}`);
+            }
+            process.exit(1);
+          }
+
+          console.log(`\x1b[32m✓ AR compilation successful!\x1b[0m`);
+          console.log(`\x1b[2m  Objects: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
+          if (result.warnings.length > 0) {
+            for (const warning of result.warnings) {
+              console.log(`\x1b[33m  Warning: ${warning}\x1b[0m`);
+            }
+          }
+
+          if (options.output) {
+            const outputPath = path.resolve(options.output);
+            const jsPath = outputPath.endsWith('.js') ? outputPath : outputPath + '.js';
+            writeCompileOutputFile(jsPath, result.code);
+            console.log(`\x1b[32m✓ AR JavaScript written to ${jsPath}\x1b[0m`);
+          } else {
+            console.log('\n--- AR JavaScript Output ---\n');
+            console.log(result.code);
+          }
+
+          process.exit(0);
+        }
+
         // V6 2D UI Revolution - Flat Semantic Target
         const isFlatSemantic =
           target === 'flat-semantic' ||
@@ -2583,6 +2689,48 @@ async function main(): Promise<void> {
           process.exit(0);
         }
 
+        // Special handling for PlayCanvas target
+        if (target === 'playcanvas') {
+          if (!isHolo) {
+            console.error(`\x1b[31mError: PlayCanvas compilation requires .holo files.\x1b[0m`);
+            process.exit(1);
+          }
+
+          const { HoloCompositionParser } = await import('@holoscript/core');
+          const { PlayCanvasCompiler } = await import('@holoscript/core/compiler');
+          const compositionParser = new HoloCompositionParser();
+          const parseResult = compositionParser.parse(content);
+
+          if (!parseResult.success || !parseResult.ast) {
+            console.error(`\x1b[31mError parsing for PlayCanvas:\x1b[0m`);
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
+            process.exit(1);
+          }
+
+          console.log(`\x1b[2m[DEBUG] Compiling to PlayCanvas TypeScript...\x1b[0m`);
+          const compiler = new PlayCanvasCompiler({
+            className: 'GeneratedScene',
+            enablePhysics: true,
+            enableXR: true,
+          });
+          const output = compiler.compile(parseResult.ast, '');
+
+          console.log(`\x1b[32m✓ PlayCanvas compilation successful!\x1b[0m`);
+          console.log(`\x1b[2m  Objects: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
+
+          if (options.output) {
+            const outputPath = path.resolve(options.output);
+            const tsPath = outputPath.endsWith('.ts') ? outputPath : outputPath + '.ts';
+            writeCompileOutputFile(tsPath, output);
+            console.log(`\x1b[32m✓ PlayCanvas TypeScript written to ${tsPath}\x1b[0m`);
+          } else {
+            console.log('\n--- PlayCanvas TypeScript Output ---\n');
+            console.log(output);
+          }
+
+          process.exit(0);
+        }
+
         // Special handling for Unreal target
         if (target === 'unreal') {
           if (!isHolo) {
@@ -2615,19 +2763,7 @@ async function main(): Promise<void> {
 
           if (options.output) {
             const outputDir = path.resolve(options.output);
-            if (!fs.existsSync(outputDir)) {
-              fs.mkdirSync(outputDir, { recursive: true });
-            }
-            // UnrealCompiler returns named fields (headerFile, sourceFile, optional blueprintJson)
-            const unrealFiles: Array<{filename: string, content: string}> = [];
-            if (result.headerFile) unrealFiles.push({ filename: 'HoloScriptActor.h', content: result.headerFile });
-            if (result.sourceFile) unrealFiles.push({ filename: 'HoloScriptActor.cpp', content: result.sourceFile });
-            if (result.blueprintJson) unrealFiles.push({ filename: 'Blueprint.json', content: typeof result.blueprintJson === 'string' ? result.blueprintJson : JSON.stringify(result.blueprintJson, null, 2) });
-            for (const f of unrealFiles) {
-              const filePath = path.join(outputDir, f.filename);
-              fs.writeFileSync(filePath, f.content);
-              console.log(`\x1b[32m✓ Written ${f.filename}\x1b[0m`);
-            }
+            writeCompileOutputMap(outputDir, result);
           } else {
             console.log('\n--- Unreal Output ---\n');
             if (result.headerFile) console.log('// HoloScriptActor.h\n' + result.headerFile);
@@ -2664,27 +2800,19 @@ async function main(): Promise<void> {
           const result = compiler.compile(parseResult.ast);
 
           console.log(`\x1b[32m✓ iOS compilation successful!\x1b[0m`);
-          console.log(`\x1b[2m  Generated Swift + SwiftUI sources (plus optional RealityKit entities)\x1b[0m`);
+          console.log(
+            `\x1b[2m  Generated Swift + SwiftUI sources (plus optional RealityKit entities)\x1b[0m`
+          );
           console.log(`\x1b[2m  Scenes: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
 
           if (options.output) {
             const outputDir = path.resolve(options.output);
-            if (!fs.existsSync(outputDir)) {
-              fs.mkdirSync(outputDir, { recursive: true });
-            }
-            // IOSCompiler returns named fields; normalize for -o
-            const iosFiles: Array<{filename: string, content: string}> = [];
-            if (result.swiftFile) iosFiles.push({ filename: 'HoloScriptApp.swift', content: result.swiftFile });
-            if (result.uiFile) iosFiles.push({ filename: 'ContentView.swift', content: result.uiFile });
-            if (result.realityKitEntities) iosFiles.push({ filename: 'Entities.swift', content: typeof result.realityKitEntities === 'string' ? result.realityKitEntities : JSON.stringify(result.realityKitEntities, null, 2) });
-            for (const f of iosFiles) {
-              const filePath = path.join(outputDir, f.filename);
-              fs.writeFileSync(filePath, f.content);
-              console.log(`\x1b[32m✓ Written ${f.filename}\x1b[0m`);
-            }
+            writeCompileOutputMap(outputDir, result, {
+              stateFile: 'HoloScriptState.swift',
+            });
           } else {
             console.log('\n--- iOS Output ---\n');
-            if (result.swiftFile) console.log('// HoloScriptApp.swift\n' + result.swiftFile);
+            if (result.viewFile) console.log('// ContentView.swift\n' + result.viewFile);
           }
 
           process.exit(0);
@@ -2722,20 +2850,14 @@ async function main(): Promise<void> {
 
           if (options.output) {
             const outputDir = path.resolve(options.output);
-            if (!fs.existsSync(outputDir)) {
-              fs.mkdirSync(outputDir, { recursive: true });
-            }
-            const androidFiles: Array<{filename: string, content: string}> = [];
-            if (result.kotlinFile) androidFiles.push({ filename: 'MainActivity.kt', content: result.kotlinFile });
-            if (result.composeFile) androidFiles.push({ filename: 'HoloScriptView.kt', content: result.composeFile });
-            for (const f of androidFiles) {
-              const filePath = path.join(outputDir, f.filename);
-              fs.writeFileSync(filePath, f.content);
-              console.log(`\x1b[32m✓ Written ${f.filename}\x1b[0m`);
-            }
+            writeCompileOutputMap(outputDir, result);
           } else {
             console.log('\n--- Android Output ---\n');
-            if (result.kotlinFile) console.log('// MainActivity.kt\n' + result.kotlinFile);
+            for (const [field, fileContents] of Object.entries(result)) {
+              if (typeof fileContents === 'string') {
+                console.log(`// ${compileOutputFieldToFileName(field)}\n${fileContents}\n`);
+              }
+            }
           }
 
           process.exit(0);
@@ -2845,7 +2967,7 @@ async function main(): Promise<void> {
           const compiler = new SCMCompiler({
             modelName: parseResult.ast.name || 'HoloScript_SCM_DAG',
           });
-          
+
           const output = compiler.compile(parseResult.ast, 'SYSTEM_OVERRIDE');
 
           console.log(`\x1b[32m✓ SCM-DAG compilation successful!\x1b[0m`);
@@ -3788,7 +3910,8 @@ async function main(): Promise<void> {
     case 'screenshot': {
       if (!options.input) {
         cliError('E001', 'No input file specified.', {
-          usage: 'holoscript screenshot <file.holo> [--output out.png] [--width 1920] [--height 1080]',
+          usage:
+            'holoscript screenshot <file.holo> [--output out.png] [--width 1920] [--height 1080]',
           hint: 'Captures a PNG/JPEG/WebP of your scene via headless Chrome. Requires Puppeteer.',
         });
         process.exit(1);
@@ -4315,7 +4438,8 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
     case 'absorb': {
       if (!options.input) {
         cliError('E001', 'No input directory specified.', {
-          usage: 'holoscript absorb <directory> [-o <out.holo>] [--for-agent] [--depth shallow|medium|deep]',
+          usage:
+            'holoscript absorb <directory> [-o <out.holo>] [--for-agent] [--depth shallow|medium|deep]',
           hint: 'Try `holoscript absorb .` to scan the current directory. Use `--depth shallow` for a fast manifest-only pass.',
         });
         process.exit(1);
@@ -4517,7 +4641,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
                 .filter((f) => fs.existsSync(f));
               if (changedFiles.length > 0) {
                 const impactSet = graph.getImpactSet(changedFiles);
-                changeImpact = (Array.from(impactSet) as string[]).filter((f) => !changedFiles!.includes(f));
+                changeImpact = (Array.from(impactSet) as string[]).filter(
+                  (f) => !changedFiles!.includes(f)
+                );
                 console.log(
                   `  \x1b[36m→\x1b[0m Since ${sinceRef}: ${changedFiles.length} changed, ${changeImpact!.length} transitively affected`
                 );
@@ -4717,7 +4843,8 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
     case 'query': {
       if (!options.input) {
         cliError('E001', 'No question specified.', {
-          usage: 'holoscript query "<question>" [--provider openai|xenova|ollama] [--with-llm] [--top-k <n>]',
+          usage:
+            'holoscript query "<question>" [--provider openai|xenova|ollama] [--with-llm] [--top-k <n>]',
           hint: 'Wrap the question in quotes. Example: `holoscript query "what calls buildIndex"`. Add `--with-llm --llm openai` for a synthesised answer. Default provider is openai (bm25 is deprecated).',
         });
         process.exit(1);
@@ -5254,7 +5381,8 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
       const input = options.input ?? options.args?.[0];
       if (!input) {
         cliError('E001', 'hologram requires an input file.', {
-          usage: 'holoscript hologram <input> [--out <dir>] [--targets quilt,mvhevc,parallax] [--name <n>]',
+          usage:
+            'holoscript hologram <input> [--out <dir>] [--targets quilt,mvhevc,parallax] [--name <n>]',
           hint: 'Pass a 2D image (png/jpg/gif/mp4) — hologram converts it to depth-enriched formats.',
         });
         process.exit(1);
@@ -5288,7 +5416,8 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
     case 'smoke': {
       if (!options.input) {
         cliError('E001', 'No input file or directory specified.', {
-          usage: 'holoscript smoke <file.holo|dir> [--target <target>] [-o <receipt.json>] [--json]',
+          usage:
+            'holoscript smoke <file.holo|dir> [--target <target>] [-o <receipt.json>] [--json]',
           hint: 'Pass a .holo file or a directory containing .holo physics demos.',
         });
         process.exit(1);
@@ -5306,9 +5435,12 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         const files: string[] = [];
         const stat = fs.statSync(inputPath);
         if (stat.isDirectory()) {
-          files.push(...fs.readdirSync(inputPath)
-            .filter((f: string) => f.endsWith('.holo'))
-            .map((f: string) => path.join(inputPath, f)));
+          files.push(
+            ...fs
+              .readdirSync(inputPath)
+              .filter((f: string) => f.endsWith('.holo'))
+              .map((f: string) => path.join(inputPath, f))
+          );
         } else {
           files.push(inputPath);
         }
