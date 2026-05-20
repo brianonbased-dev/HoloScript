@@ -53,6 +53,10 @@ import {
   safetyEnvelopeRegistry,
   twinEarthReceiptRegistry,
 } from './robot-ai-mcp-tools.js';
+import {
+  buildMeshToolManifest,
+  publishMeshToolManifest,
+} from './holomesh/mesh-tool-registry.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // HoloLand Fork Admission Gate wiring (task_1778619015439_l51b)
@@ -3086,6 +3090,38 @@ async function handleProvisionAgent(args: Record<string, unknown>): Promise<unkn
   };
 
   agentRegistry.set(id, agent);
+
+  // HoloMesh bridge (P4): publish the provisioned HoloLand agent as a discoverable
+  // mesh tool so HoloMesh agents can invoke it by agentId without knowing HoloLand
+  // internals. Fire-and-forget — registration failure must not block provisioning.
+  try {
+    const meshPublisher = {
+      agentId: process.env.HOLOMESH_AGENT_ID ?? 'did:agent:hololand',
+      name: process.env.HOLOMESH_AGENT_NAME ?? 'hololand-server',
+    };
+    const manifest = buildMeshToolManifest(
+      {
+        tool_name: `hololand_agent:${id}`,
+        description: `HoloLand ${agent.kind} agent "${agent.name}" (id: ${id})${agent.worldId ? ` in world ${agent.worldId}` : ''}`,
+        capability_tags: [
+          '@hololand',
+          `@kind:${agent.kind}`,
+          ...(agent.worldId ? [`@world:${agent.worldId}`] : []),
+          ...(agent.shardId ? [`@shard:${agent.shardId}`] : []),
+        ],
+        allow_transitive_invocation: true,
+        service_version: '1.0.0',
+        actor_session_handoff: false,
+        cross_mcp_receipt_envelope: false,
+        rollback_metadata: false,
+        source_artifact_hash: `hololand:agent:${id}`,
+      },
+      meshPublisher
+    );
+    publishMeshToolManifest(manifest);
+  } catch {
+    // Non-fatal: HoloMesh registry may not be initialized in all deployment modes.
+  }
 
   return {
     success: true,
