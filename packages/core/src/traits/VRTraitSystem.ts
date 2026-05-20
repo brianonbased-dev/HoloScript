@@ -242,6 +242,7 @@ import { sseHandler } from './SseTrait';
 import { modelLoadHandler } from './ModelLoadTrait';
 import { inferenceHandler } from './InferenceTrait';
 import { embeddingHandler } from './EmbeddingTrait';
+import { jepObjectiveHandler } from './JEPAObjective';
 import { fineTuneHandler } from './FineTuneTrait';
 import { vectorSearchHandler } from './VectorSearchTrait';
 import { promptTemplateHandler } from './PromptTemplateTrait';
@@ -1832,6 +1833,7 @@ export class VRTraitRegistry {
     this.register(modelLoadHandler as TraitHandler);
     this.register(inferenceHandler as TraitHandler);
     this.register(embeddingHandler as TraitHandler);
+    this.register(jepObjectiveHandler as TraitHandler);
     this.register(fineTuneHandler as TraitHandler);
     this.register(vectorSearchHandler as TraitHandler);
     this.register(promptTemplateHandler as TraitHandler);
@@ -1950,6 +1952,7 @@ export class VRTraitRegistry {
     this.register(modelLoadHandler as TraitHandler);
     this.register(inferenceHandler as TraitHandler);
     this.register(embeddingHandler as TraitHandler);
+    this.register(jepObjectiveHandler as TraitHandler);
 
     // Database / Persistence
     this.register(sqlQueryHandler as TraitHandler);

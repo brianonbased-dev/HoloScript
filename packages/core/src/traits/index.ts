@@ -111,6 +111,8 @@ export * from './HSMIntegrationTrait';
 export * from './HungarianAssignmentTrait';
 export { iKHandler } from './IKTrait';
 export * from './InteractiveGraphTrait';
+export * from './JEPAObjective';
+export * from './JEPAPredictor';
 export { jointHandler } from './JointTrait';
 export * from './LayerAwareTrait';
 export * from './LightEstimationTrait';
