@@ -21,6 +21,12 @@ import {
   weatherToR3F,
   simulationToR3F,
 } from './DomainBlockCompilerMixin';
+
+import {
+  PlatformConditionalCompilerMixin,
+  createPlatformTarget,
+  type CompilePlatformTarget,
+} from './PlatformConditionalCompilerMixin';
 import { getRBAC, ResourceType } from './identity/AgentRBAC';
 import { UnauthorizedCompilerAccessError, escapeStringValue } from './CompilerBase';
 import { WorkflowStep } from './identity/AgentIdentity';
@@ -1884,6 +1890,8 @@ export interface R3FCompilerOptions {
   defaultLighting?: boolean;
   /** Optional HoloMap reconstruction samples (MCP export / ingest). */
   holomapPointCloud?: HolomapPointCloudPayload;
+  /** Target platform for @platform() conditional compilation (Adaptive Platform Layers). */
+  platformTarget?: CompilePlatformTarget | string;
 }
 
 /** Scale factors per quality tier for runtime tuning. */
@@ -1934,12 +1942,18 @@ export class R3FCompiler {
   public readonly tierScales: (typeof QUALITY_TIER_SCALES)[QualityTier];
   private readonly _defaultLighting: boolean;
   private readonly _holomapPointCloud?: HolomapPointCloudPayload;
+  private readonly _platformTarget?: CompilePlatformTarget;
 
   constructor(options: R3FCompilerOptions = {}) {
     this.qualityTier = options.qualityTier ?? 'high';
     this.tierScales = QUALITY_TIER_SCALES[this.qualityTier];
     this._defaultLighting = options.defaultLighting ?? true;
     this._holomapPointCloud = options.holomapPointCloud;
+    if (options.platformTarget) {
+      this._platformTarget = typeof options.platformTarget === 'string'
+        ? createPlatformTarget(options.platformTarget as any)
+        : options.platformTarget;
+    }
   }
 
   // ─── RBAC Enforcement ─────────────────────────────────────────────────
@@ -2458,6 +2472,13 @@ export class R3FCompiler {
     outputPath?: string
   ): R3FNode {
     this.validateCompilerAccess(agentToken, outputPath);
+
+    // Apply @platform() conditional filtering (second compiler slice for
+    // Adaptive Platform Layers seed 75 + @platform() RFC implementation).
+    if (this._platformTarget) {
+      const platformMixin = new PlatformConditionalCompilerMixin();
+      composition = platformMixin.filterForPlatform(composition, this._platformTarget);
+    }
 
     const root = r3fNodePool.acquire();
     root.type = 'group';
