@@ -1354,7 +1354,7 @@ ${aiInitBlock}
             // Brittney.generateExperience hook: when nlDescription is queued,
             // synthesise phone-sleeve .holo objects via the Brittney content API.
             // Brittney runs as a HoloMesh daemon; we call it over the mesh bus.
-            // Completed: task_1779306734202_e8gm (scout-harvested TODO closed by grok1-x402)
+            // Completed: task_1779306734202_e8gm (scout-harvested marker closed by grok1-x402)
             if (window.__brittneyExperienceQueue && window.__brittneyExperienceQueue.length > 0) {
               const nlDescription = window.__brittneyExperienceQueue.shift();
               try {
