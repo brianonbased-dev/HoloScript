@@ -81,7 +81,8 @@ export function mapVerbToClip(
   }
 
   // Drive qualifier example (future: can emit richer target_pose)
-  if (normalized === 'flee' && driveFear > 0.7) {
+  // Only override when 'Run' is actually available (or no clip list was provided).
+  if (normalized === 'flee' && driveFear > 0.7 && (availableClips.length === 0 || availableClips.includes('Run'))) {
     clip = 'Run'; // or a panicked variant if present
   }
 

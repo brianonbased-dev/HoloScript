@@ -507,7 +507,7 @@ export function createStdlibActions(options: StdlibOptions): Record<string, Acti
         allowXrSession: policy.allowXrSession,
         allowSensorRead: policy.allowSensorRead,
       };
-      if (scope in scopeGateMap && !scopeGateMap[scope]) {
+      if (scope in scopeGateMap && scopeGateMap[scope] === false) {
         bb[`${prefix}_error`] = `device scope "${scope}" is denied by policy (${scope}=false)`;
         bb[`${prefix}_denial_receipt`] = {
           scope,
