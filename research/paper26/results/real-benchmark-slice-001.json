@@ -1,27 +1,27 @@
 {
   "summary": {
     "run_id": "paper26-real-slice-001",
-    "timestamp": "2026-05-20T20:36:04.979Z",
+    "timestamp": "2026-05-20T21:01:40.881Z",
     "episodes": 30,
     "total_steps": 1361,
-    "avg_loss": 0.127483,
-    "pct_within_3pct": 12.3,
+    "avg_loss": 0.147841,
+    "pct_within_3pct": 2.7,
     "receipts_generated": 1361,
     "baseline_curve": [
-      0.127483,
-      0.127483,
-      0.127483,
-      0.127483,
-      0.127483
+      0.147841,
+      0.147841,
+      0.147841,
+      0.147841,
+      0.147841
     ],
     "trained_curve": [
-      0.053064,
-      0.048106,
-      0.048107,
-      0.048107,
-      0.048107
+      0.074733,
+      0.068487,
+      0.068754,
+      0.068764,
+      0.068764
     ],
-    "improvement_first_epoch_pct": 58.4,
+    "improvement_first_epoch_pct": 49.5,
     "notes": "Baseline (frozen) vs Trained (output-layer + partial hidden SGD) on sovereign JEPAPredictor. Baseline flat, trained drops on epoch 1. First real JEPA training vs baseline comparison for Paper 26 P1 publishability gate."
   },
   "sample_results": [
@@ -29,160 +29,160 @@
       "episode": "ep_0000_ur5_arm",
       "step": 0,
       "chosenAction": "{\"vx\":-0.35676522436359315,\"vy\":-0.17401220025244413,\"w\":-0.38976554082176196}",
-      "confidence": -0.4360620713850939,
-      "loss": 0.028939089438321575,
+      "confidence": -0.8540883495530229,
+      "loss": 0.035265503315281055,
       "receiptId": "generated"
     },
     {
       "episode": "ep_0000_ur5_arm",
       "step": 1,
       "chosenAction": "{\"vx\":0.1471512898515619,\"vy\":-0.1772190358664901,\"w\":-0.9513427788487632}",
-      "confidence": -0.10427754897485017,
-      "loss": 0.0024909688362394957,
+      "confidence": -0.9041681015837119,
+      "loss": 0.04859086866036636,
       "receiptId": "generated"
     },
     {
       "episode": "ep_0000_ur5_arm",
       "step": 2,
       "chosenAction": "{\"vx\":-0.4995397581705626,\"vy\":0.18788983890043254,\"w\":0.48301729562493545}",
-      "confidence": 0,
-      "loss": 0.003861098982810649,
+      "confidence": -0.9616937002800331,
+      "loss": 0.07146621124502982,
       "receiptId": "generated"
     },
     {
       "episode": "ep_0000_ur5_arm",
       "step": 3,
       "chosenAction": "{\"vx\":0.43553439166003505,\"vy\":0.10021681520924658,\"w\":-0.34470767598689545}",
-      "confidence": -0.17676034156853193,
-      "loss": 0.009189555487713354,
+      "confidence": -0.8266834814797667,
+      "loss": 0.04054852876014828,
       "receiptId": "generated"
     },
     {
       "episode": "ep_0000_ur5_arm",
       "step": 4,
       "chosenAction": "{\"vx\":0.021413094930391563,\"vy\":0.030257775406794696,\"w\":0.5391577931865925}",
-      "confidence": -0.1425429385469019,
-      "loss": 0.006996801207799705,
+      "confidence": -0.9116856573706851,
+      "loss": 0.04796197534468089,
       "receiptId": "generated"
     },
     {
       "episode": "ep_0000_ur5_arm",
       "step": 5,
       "chosenAction": "{\"vx\":0.007423890428867708,\"vy\":-0.261903175413028,\"w\":-0.2468417071941016}",
-      "confidence": -0.19296460027934684,
-      "loss": 0.010454234471510695,
+      "confidence": -0.5798023951458108,
+      "loss": 0.02757019916162322,
       "receiptId": "generated"
     },
     {
       "episode": "ep_0000_ur5_arm",
       "step": 6,
       "chosenAction": "{\"vx\":-0.3357037016929677,\"vy\":-0.17922990399928745,\"w\":0.794773215345554}",
-      "confidence": -0.5142263417509847,
-      "loss": 0.03960707662919106,
+      "confidence": -0.7969028459346545,
+      "loss": 0.05453645249209026,
       "receiptId": "generated"
     },
     {
       "episode": "ep_0000_ur5_arm",
       "step": 7,
       "chosenAction": "{\"vx\":0.15610848489227558,\"vy\":0.16395243221179429,\"w\":-0.18274840763139277}",
-      "confidence": -0.7424108827970197,
-      "loss": 0.05124761042935516,
+      "confidence": -0.783396239285801,
+      "loss": 0.05881631313139636,
       "receiptId": "generated"
     },
     {
       "episode": "ep_0000_ur5_arm",
       "step": 8,
       "chosenAction": "{\"vx\":0.20226510645005769,\"vy\":0.11629303945780078,\"w\":0.6010696592778517}",
-      "confidence": -0.11265802401284779,
-      "loss": 0.017395154136854184,
+      "confidence": -0.8992526478548755,
+      "loss": 0.06399976406288913,
       "receiptId": "generated"
     },
     {
       "episode": "ep_0000_ur5_arm",
       "step": 9,
       "chosenAction": "{\"vx\":-0.11144239993338478,\"vy\":-0.17369019995679658,\"w\":0.7653826350924771}",
-      "confidence": -0.8426591701589081,
-      "loss": 0.07177760448907755,
+      "confidence": -1.0087998649096306,
+      "loss": 0.08031166596770703,
       "receiptId": "generated"
     },
     {
       "episode": "ep_0000_ur5_arm",
       "step": 10,
       "chosenAction": "{\"vx\":-0.044095403532360855,\"vy\":-0.11197588658526317,\"w\":0.8668804919303343}",
-      "confidence": 0,
-      "loss": 0.019240427484227926,
+      "confidence": -0.8290623399039777,
+      "loss": 0.04513238730155375,
       "receiptId": "generated"
     },
     {
       "episode": "ep_0000_ur5_arm",
       "step": 11,
       "chosenAction": "{\"vx\":-0.2663736551781061,\"vy\":0.26584356674652493,\"w\":-0.09340140821445742}",
-      "confidence": -0.0002531917351849982,
-      "loss": 0.022325320680356663,
+      "confidence": -0.7591182402753444,
+      "loss": 0.02210775573410014,
       "receiptId": "generated"
     },
     {
       "episode": "ep_0000_ur5_arm",
       "step": 12,
       "chosenAction": "{\"vx\":-0.45231954612164293,\"vy\":0.0908256996577701,\"w\":0.6472388192148193}",
-      "confidence": -0.33129842758920325,
-      "loss": 0.04576574142596321,
+      "confidence": -0.8306286599318554,
+      "loss": 0.03219152364065892,
       "receiptId": "generated"
     },
     {
       "episode": "ep_0000_ur5_arm",
       "step": 13,
       "chosenAction": "{\"vx\":-0.395246205795065,\"vy\":0.17926425669023077,\"w\":-0.6575088769788402}",
-      "confidence": -0.14883389440669614,
-      "loss": 0.023467639339824937,
+      "confidence": -1.1843076633705012,
+      "loss": 0.09724369949303306,
       "receiptId": "generated"
     },
     {
       "episode": "ep_0000_ur5_arm",
       "step": 14,
       "chosenAction": "{\"vx\":-0.0994366769589321,\"vy\":0.02909397366522959,\"w\":0.040998988996745256}",
-      "confidence": -0.17090390197368274,
-      "loss": 0.03566075137628305,
+      "confidence": -1.2432568902076448,
+      "loss": 0.11719769657854094,
       "receiptId": "generated"
     },
     {
       "episode": "ep_0000_ur5_arm",
       "step": 15,
       "chosenAction": "{\"vx\":0.0008452136434279334,\"vy\":0.286761474393262,\"w\":0.5365310038034334}",
-      "confidence": -0.6519094078525487,
-      "loss": 0.10963637228245848,
+      "confidence": -1.0164946606708776,
+      "loss": 0.07369788620163356,
       "receiptId": "generated"
     },
     {
       "episode": "ep_0000_ur5_arm",
       "step": 16,
       "chosenAction": "{\"vx\":0.14120863123666672,\"vy\":-0.23170633823383419,\"w\":-0.7020419770591944}",
-      "confidence": -0.25927164845210954,
-      "loss": 0.030863296044649824,
+      "confidence": -0.5117630429783349,
+      "loss": 0.08501593798637783,
       "receiptId": "generated"
     },
     {
       "episode": "ep_0000_ur5_arm",
       "step": 17,
       "chosenAction": "{\"vx\":0.16786081975719502,\"vy\":-0.006984238094355777,\"w\":0.047284297904462314}",
-      "confidence": -0.19125040833286,
-      "loss": 0.051981929801405806,
+      "confidence": -0.7449028635690439,
+      "loss": 0.04523020330254507,
       "receiptId": "generated"
     },
     {
       "episode": "ep_0000_ur5_arm",
       "step": 18,
       "chosenAction": "{\"vx\":0.22466898661616308,\"vy\":0.09650211283489701,\"w\":0.3865192852300441}",
-      "confidence": -0.5341329987748917,
-      "loss": 0.10237961046679926,
+      "confidence": -0.6443966947908104,
+      "loss": 0.06337414678754155,
       "receiptId": "generated"
     },
     {
       "episode": "ep_0000_ur5_arm",
       "step": 19,
       "chosenAction": "{\"vx\":-0.1754725535591637,\"vy\":0.1534087597269424,\"w\":0.6550097765441136}",
-      "confidence": -1.2740061038938357,
-      "loss": 0.2155138420300395,
+      "confidence": -0.8979163980973828,
+      "loss": 0.08473647451781613,
       "receiptId": "generated"
     }
   ]

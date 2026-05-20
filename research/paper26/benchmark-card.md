@@ -55,16 +55,16 @@ Scale to 1,500–3,000 episodes across 2–3 robot morphologies + multi-physics 
 
 **Run**: research/paper26/train_jepa_real.ts on the same 30-episode solver corpus
 **Date**: 2026-05-20
-**Using**: Actual JEPAPredictor.plan() (latentDim=8, condDim=4) + real receipt generation
+**Using**: Actual JEPAPredictor.plan() (latentDim=16, condDim=4) + real receipt generation + durable checkpoints with dimension guard
 
-**Results** (baseline vs trained + durable checkpoints):
+**Results** (first scaled dim=16 run):
 - Episodes: 30
 - Total steps: 1,361
 - Receipts generated: 1,361 (full WorldModelReceipt objects)
-- Baseline (frozen): [0.127483 ×5]
-- Trained (SGD): [0.053064, 0.048106, ...] — 58.4% improvement on first gradient epoch
-- Durable checkpoints: `research/paper26/checkpoints/paper26-real-slice-001-epochN.json` + `-latest.json` pointer. Full weights + curves + metadata saved after every epoch. Supports resume, long runs, and reproducible publishable experiments.
-- Notes: First time the Paper 26 P1 benchmark infrastructure is resumable and durable (directly dogfooding the persistence farm). Ready for multi-hour training runs and ablation studies.
+- Baseline (frozen, dim=16): [0.147841 ×5]
+- Trained (SGD, dim=16): [0.074733, 0.068487, 0.068754, 0.068764, 0.068764] — 49.5% improvement on first gradient epoch
+- Durable checkpoints: New lineage created for dim=16 (guard correctly rejected old dim=8 checkpoints). Full weights + curves saved after every epoch.
+- Notes: First scaled run. Clear descent preserved at larger latent dimension. Infrastructure proven for safe iterative scaling.
 
 **Loss curve file**: research/paper26/results/loss-curve-slice-001.json
 
@@ -73,7 +73,7 @@ Scale to 1,500–3,000 episodes across 2–3 robot morphologies + multi-physics 
 npx tsx research/paper26/train_jepa_real.ts
 ```
 
-This is the first real JEPA training vs baseline experiment on solver-pair data with **durable resumable checkpoints** (sovereign JEPAPredictor + real gradients + 1,361 receipts). The benchmark harness can now survive restarts and support long publishable runs. This directly dogfoods the persistence surfaces we farmed earlier in the same marathon. Next: larger model, full backprop, held-out metrics, and scaling the corpus.
+This is the first scaled (latentDim=16) real JEPA training vs baseline experiment on solver-pair data with durable checkpoints and dimension guard. Descent remains strong (49.5% first-epoch improvement). The P1 minimum publishable benchmark now has safe scaling infrastructure. Next: full backprop through both layers, held-out verification %, and larger corpus.
 
 **Related**: ROS 2 bridge (docs/integrations/ros2-holoscript-bridge.md), D.050, D.055, NMoS P2
 
