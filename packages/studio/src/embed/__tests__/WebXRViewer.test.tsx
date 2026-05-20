@@ -134,6 +134,7 @@ describe('WebXRViewer', () => {
     const onObjectSelect = vi.fn();
     const onXRSessionStart = vi.fn();
     const onXRSessionEnd = vi.fn();
+    const onPlatformReceipt = vi.fn();
 
     const props: WebXRViewerProps = {
       code: 'template "T" { geometry: "sphere" }',
@@ -141,12 +142,14 @@ describe('WebXRViewer', () => {
       onObjectSelect,
       onXRSessionStart,
       onXRSessionEnd,
+      onPlatformReceipt,
     };
 
     expect(props.onErrors).toBe(onErrors);
     expect(props.onObjectSelect).toBe(onObjectSelect);
     expect(props.onXRSessionStart).toBe(onXRSessionStart);
     expect(props.onXRSessionEnd).toBe(onXRSessionEnd);
+    expect(props.onPlatformReceipt).toBe(onPlatformReceipt);
   });
 
   it('should accept backgroundColor prop', () => {
@@ -165,5 +168,13 @@ describe('WebXRViewer', () => {
     };
     expect(props.className).toBe('my-viewer');
     expect(props.style).toEqual({ width: 800, height: 600 });
+  });
+
+  it('should accept adaptive platform receipt visibility prop', () => {
+    const props: WebXRViewerProps = {
+      code: '',
+      showPlatformReceipt: false,
+    };
+    expect(props.showPlatformReceipt).toBe(false);
   });
 });

@@ -30,7 +30,12 @@ import { MATERIAL_PRESETS } from '@holoscript/core';
 import type { R3FNode } from '@holoscript/core';
 import { WebSurfaceRenderer, resolveWebSurfaceConfig } from '@holoscript/r3f-renderer';
 import { useScenePipeline } from '@/hooks/useScenePipeline';
+import {
+  buildAdaptivePlatformLayerReceipt,
+  type AdaptivePlatformLayerReceipt,
+} from '@/lib/adaptive-platform-layers';
 import { logger } from '@/lib/logger';
+import { detectPlatform } from '@/lib/platform-detect';
 
 // ═══════════════════════════════════════════════════════════════════
 // Types
@@ -69,6 +74,10 @@ export interface WebXRViewerProps {
   autoEnterXR?: boolean;
   /** Reference space type (default: 'local-floor') */
   referenceSpace?: XRReferenceSpaceType;
+  /** Show the Adaptive Platform Layer receipt badge */
+  showPlatformReceipt?: boolean;
+  /** Called when the viewer resolves Web/Desktop/Mobile + WIT delivery */
+  onPlatformReceipt?: (receipt: AdaptivePlatformLayerReceipt) => void;
 }
 
 interface XRCapabilities {
@@ -534,10 +543,13 @@ export function WebXRViewer({
   onXRSessionEnd,
   autoEnterXR = false,
   referenceSpace: _referenceSpace = 'local-floor',
+  showPlatformReceipt = true,
+  onPlatformReceipt,
 }: WebXRViewerProps) {
   const { r3fTree, errors } = useScenePipeline(code);
   const xrCaps = useXRCapabilities();
   const [xrActive, setXrActive] = useState(false);
+  const [platformReceipt, setPlatformReceipt] = useState<AdaptivePlatformLayerReceipt | null>(null);
 
   // Create XR store for this viewer instance (isolated from editor's store)
   const xrStore = useMemo(
@@ -563,6 +575,24 @@ export function WebXRViewer({
       onErrors(errors);
     }
   }, [errors, onErrors]);
+
+  useEffect(() => {
+    let cancelled = false;
+    detectPlatform()
+      .then((caps) => {
+        if (cancelled) return;
+        const receipt = buildAdaptivePlatformLayerReceipt(caps);
+        setPlatformReceipt(receipt);
+        onPlatformReceipt?.(receipt);
+      })
+      .catch((err: unknown) => {
+        logger.warn('[WebXRViewer] Failed to resolve adaptive platform receipt:', err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [onPlatformReceipt]);
 
   // Track XR session state
   useEffect(() => {
@@ -754,6 +784,27 @@ export function WebXRViewer({
           }}
         >
           {[xrCaps.vr && 'VR', xrCaps.ar && 'AR'].filter(Boolean).join(' + ')} ready
+        </div>
+      )}
+
+      {showPlatformReceipt && platformReceipt && !xrActive && (
+        <div
+          aria-label="Adaptive platform receipt"
+          style={{
+            position: 'absolute',
+            top: xrCaps.vr || xrCaps.ar ? 40 : 12,
+            left: 12,
+            background: 'rgba(13,13,20,0.8)',
+            color: '#7dd3fc',
+            fontSize: 10,
+            padding: '3px 8px',
+            borderRadius: 4,
+            backdropFilter: 'blur(4px)',
+            letterSpacing: 1,
+            textTransform: 'uppercase',
+          }}
+        >
+          {platformReceipt.tier} | {platformReceipt.witWorld} | {platformReceipt.engineDelivery}
         </div>
       )}
     </div>

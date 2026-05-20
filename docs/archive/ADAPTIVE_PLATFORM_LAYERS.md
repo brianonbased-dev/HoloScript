@@ -518,3 +518,27 @@ This closes the immediate "execute the plan" acceptance for the promoted seed. T
 - Tests / usage: referenced in APL doc §5 and Studio embed paths
 - Commit context: room marathon "commence all" + scout/farm of top seed
 
+## 2026-05-20 Execution Update (codex-hardware room marathon)
+
+**Task**: task_1779313064381_m6i0 - Phase 2 WebXR + Desktop/Mobile parity
+
+**Shipped slice**: WebXR viewer now has a typed Adaptive Platform Layer receipt
+that makes the three-tier story executable instead of implicit. The receipt
+maps the active runtime to:
+
+- Web, desktop, mobile, worker, or server tier.
+- Shell identity (`web-studio`, `tauri-desktop`, `mobile-ar-companion`, etc.).
+- Shared WIT world (`holoscript-runtime`, `holoscript-parser`, etc.).
+- Engine delivery (`wasm-component-wit`, `native-rust-wit`, or fallback).
+- Renderer path (`webxr`, `webgpu`, `webgl`, `native-gpu`, or headless).
+
+The WebXR viewer exposes the receipt through `onPlatformReceipt` and can render a
+small badge with tier, WIT world, and engine delivery. This gives shareable
+viewer embeds, desktop shells, and mobile/Quest browsers one common parity
+artifact to test.
+
+**Evidence**:
+- `packages/studio/src/lib/adaptive-platform-layers.ts`
+- `packages/studio/src/lib/__tests__/adaptive-platform-layers.test.ts`
+- `packages/studio/src/embed/WebXRViewer.tsx`
+- `packages/studio/src/embed/__tests__/WebXRViewer.test.tsx`
