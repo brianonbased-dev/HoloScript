@@ -40,7 +40,7 @@ class SimpleJEPAPredictor {
   private ctxAlpha = 0.3;
   private predWeights: number[];
 
-  constructor(private horizon: number) {
+  constructor(private horizon: number, private ctxLen: number = 4) {
     // Small learned predictor weights (will be updated by the objective)
     this.predWeights = Array.from({ length: 4 }, () => (Math.random() - 0.5) * 0.1);
   }
@@ -72,12 +72,12 @@ class SimpleJEPAPredictor {
     ];
   }
 
-  /** Target encoder (no gradient in real JEPA; here we just compute). */
+  /** Target encoder: same architecture as context encoder (stop-gradient semantics).
+   *  Both context and target are in the same representation space — required for
+   *  JEPA to have a learnable prediction task. */
   targetEncode(trajectory: number[], t: number): number[] {
-    const v = trajectory[t] ?? 0;
-    const v2 = trajectory[t + 1] ?? v;
-    const norm = Math.sqrt(v * v + v2 * v2) + 1e-8;
-    return [v / norm, v2 / norm, Math.sin(v), Math.cos(v2)];
+    // Encode at the future time step using the same EMA+features encoder
+    return this.encodeContext(trajectory, t, this.ctxLen);
   }
 
   /** SGD step on the predictor weights (the only trainable part in this min demo). */
@@ -151,7 +151,7 @@ async function runPaper26MinimumCorpusBenchmark() {
 
   console.log('[Paper 26] Training complete. Final loss:', lossCurve[lossCurve.length - 1].toFixed(5));
 
-  const baselines = await runNonVerifiedBaseline(corpus);
+  const baselines = await runNonVerifiedBaseline(corpus, predictor);
   const finalLoss = lossCurve[lossCurve.length - 1];
   const improvementVsWeak = ((baselines.weak - finalLoss) / baselines.weak) * 100;
 
@@ -174,23 +174,37 @@ async function runPaper26MinimumCorpusBenchmark() {
   return { lossCurve, improvement: improvementVsWeak, receipt, baselines };
 }
 
-async function runNonVerifiedBaseline(corpus: Trajectory[]): Promise<{ strong: number; weak: number }> {
-  // Strong baseline = last-value (very hard to beat on smooth spring data)
-  // Weak baseline = mean of the context window (classic non-predictive)
+async function runNonVerifiedBaseline(
+  corpus: Trajectory[],
+  predictor: SimpleJEPAPredictor
+): Promise<{ strong: number; weak: number }> {
+  // Both baselines measured in the same representation space as JEPA.
+  // Strong baseline: pass the context encoding through with identity weights (ctxRep itself).
+  // Weak baseline: pass zero representation (predict nothing from context).
   let totalStrong = 0, totalWeak = 0, count = 0;
+  const ctxLen = 4;
+
   for (const traj of corpus) {
     const t = traj.trajectory;
-    for (let i = 4; i < t.length - 1; i++) {
-      const last = t[i - 1];
-      const meanCtx = (t[i-1] + t[i-2] + t[i-3] + t[i-4]) / 4;
-      totalStrong += (t[i] - last) ** 2;
-      totalWeak += (t[i] - meanCtx) ** 2;
+    for (let i = ctxLen; i < t.length - 1; i++) {
+      const ctx = predictor.encodeContext(t, i - 1, ctxLen);
+      const target = predictor.targetEncode(t, i);
+
+      // Strong baseline: predict ctx itself (identity — no transformation)
+      let strongLoss = 0, weakLoss = 0;
+      for (let k = 0; k < 4; k++) {
+        strongLoss += (ctx[k] - target[k]) ** 2;
+        // Weak baseline: predict all zeros
+        weakLoss += target[k] ** 2;
+      }
+      totalStrong += strongLoss;
+      totalWeak += weakLoss;
       count++;
     }
   }
   return {
     strong: count > 0 ? totalStrong / count : 1.0,
-    weak: count > 0 ? totalWeak / count : 1.0
+    weak: count > 0 ? totalWeak / count : 1.0,
   };
 }
 
