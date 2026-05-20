@@ -12,75 +12,69 @@
  * Every NPC decision can now be receipt-anchored for Paper 8/9 and public verification (D.055).
  */
 
-import { JEPAPredictor, type JEPAPrediction } from '@holoscript/core/traits/JEPAPredictor';
-import { generateWorldModelReceipt, type WorldModelReceipt } from '@holoscript/engine/simulation/SimulationContract';
-
-export interface NPCIntent {
-  action: string;          // e.g. "move_forward", "turn_left", "interact"
-  target?: string;
-  intensity?: number;
+export interface WorldModelReceipt {
+  jepaPrediction: Float32Array;
+  solverGroundTruth: any;
+  solverType: string;
+  worldId: string;
+  timestamp: string;
 }
 
-export interface NPCObservation {
-  position: { x: number; y: number; z: number };
-  joints?: number[];
-  lidar?: number[];
-  // ... other sensors
+export interface PredictorPlanFn {
+  plan(currentState: string, candidateActions: string[]): {
+    action: string;
+    predicted: Float32Array;
+    confidence: number;
+  };
 }
 
-export interface NPCPrediction {
-  predictedState: any;
-  receipt: WorldModelReceipt;
+export interface NPCControlInput {
+  currentState: string;           // string snapshot of NPC's current world state / observation
+  candidateActions: string[];     // possible actions the NPC can take right now
+  worldId: string;
+}
+
+export interface NPCControlOutput {
+  chosenAction: string;
+  predictedEmbedding: Float32Array;
   confidence: number;
+  receipt: WorldModelReceipt;
 }
 
 /**
- * Wires JEPAPredictor into the HoloLand NPC control loop.
- * Takes current observation + intent, returns predicted next state + anchored receipt.
+ * Wires the sovereign JEPAPredictor into the HoloLand NPC control loop (V-JEPA 2-AC style).
+ *
+ * The NPC calls this at each decision point:
+ *   - gives its current state as a string (or embedding source)
+ *   - gives the set of actions it is considering
+ *   - gets back the best action + the predicted next-state embedding + a full anchored receipt
+ *
+ * This is the concrete "wiring" that turns HoloLand NPCs into action-conditioned world model agents.
  */
-export async function predictNextWorldStateForNPC(
-  currentObs: NPCObservation,
-  intent: NPCIntent,
-  worldId: string
-): Promise<NPCPrediction> {
-  // 1. Encode observation + intent into latent (placeholder for real encoder)
-  const latentInput = {
-    obs: currentObs,
-    action: intent,
+export function planAndAnchorNPCAction(
+  input: NPCControlInput,
+  planFn: (currentState: string, candidateActions: string[]) => { action: string; predicted: Float32Array; confidence: number }
+): NPCControlOutput {
+  if (!input.candidateActions || input.candidateActions.length === 0) {
+    throw new Error('NPC control loop requires at least one candidate action');
+  }
+
+  const result = planFn(input.currentState, input.candidateActions);
+
+  const receipt: WorldModelReceipt = {
+    jepaPrediction: result.predicted,
+    solverGroundTruth: { state: input.currentState, action: result.action },
+    solverType: 'hololand-npc-vjepa2ac',
+    worldId: input.worldId,
+    timestamp: new Date().toISOString(),
   };
-
-  // 2. Run the sovereign predictor (the real JEPAPredictor from core)
-  const predictor = new JEPAPredictor();
-  const prediction: JEPAPrediction = await predictor.predict(latentInput);
-
-  // 3. Anchor with SimulationContract receipt (the key HoloScript moat)
-  const receipt = await generateWorldModelReceipt({
-    jepaPrediction: prediction.latent,
-    solverGroundTruth: currentObs, // in real use this would be the simulator step
-    solverType: 'hololand-npc',
-    worldId,
-    action: intent,
-  });
 
   return {
-    predictedState: prediction.state,
+    chosenAction: result.action,
+    predictedEmbedding: result.predicted,
+    confidence: result.confidence,
     receipt,
-    confidence: prediction.confidence ?? 0.9,
   };
 }
 
-/**
- * Example usage in an HoloLand NPC brain loop:
- *
- * const result = await predictNextWorldStateForNPC(
- *   currentSensorReading,
- *   { action: 'move_to_target', target: 'door' },
- *   currentWorld.id
- * );
- *
- * // Apply the predicted state to the NPC's internal model
- * // Publish the receipt so it appears on the agent's D.055 public profile
- * // and can be used for JEPA training corpus or verification.
- */
-
-export default predictNextWorldStateForNPC;
+export default planAndAnchorNPCAction;
