@@ -674,13 +674,14 @@ export async function handleTool(
     return handleEconomyTool(name, args);
   }
 
-  // Developer tools (v5.9)
+  // Developer tools (v5.9 + holo_generate_bindings)
   if (
     name === 'get_api_reference' ||
     name === 'serve_preview' ||
     name === 'get_workspace_info' ||
     name === 'inspect_trace_waterfall' ||
-    name === 'get_dev_dashboard_state'
+    name === 'get_dev_dashboard_state' ||
+    name === 'holo_generate_bindings'
   ) {
     const { handleDeveloperTool } = await import('./developer-tools');
     return handleDeveloperTool(name, args);

@@ -1,15 +1,20 @@
 /**
  * MCP Developer Tools — v5.9 "Developer Portal"
  *
- * 5 tools: get_api_reference, serve_preview, get_workspace_info,
- * inspect_trace_waterfall, get_dev_dashboard_state
+ * 6 tools: get_api_reference, serve_preview, get_workspace_info,
+ * inspect_trace_waterfall, get_dev_dashboard_state,
+ * holo_generate_bindings
  *
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { APIDocsGenerator } from './api-docs-generator';
 import { TraceWaterfallRenderer } from '@holoscript/core';
+import {
+  InteropBindingGenerator,
+  type GeneratedBinding,
+} from '../../core/src/interop/InteropBindingGenerator.js';
 import type { TraceSpan } from '@holoscript/core';
 
 // =============================================================================
@@ -29,9 +34,17 @@ function getWaterfallRenderer(): TraceWaterfallRenderer {
   return waterfallRenderer;
 }
 
+let bindingGenerator: InteropBindingGenerator | null = null;
+
+function getBindingGenerator(): InteropBindingGenerator {
+  if (!bindingGenerator) bindingGenerator = new InteropBindingGenerator();
+  return bindingGenerator;
+}
+
 export function resetDeveloperSingletons(): void {
   docsGenerator = null;
   waterfallRenderer = null;
+  bindingGenerator = null;
 }
 
 // =============================================================================
@@ -128,6 +141,35 @@ export const developerTools: Tool[] = [
     },
   },
   {
+    name: 'holo_generate_bindings',
+    description:
+      'Generate Python or JavaScript/TypeScript bindings for a HoloScript (.hsplus) module. ' +
+      'Returns generated binding code that lets external Python or JS callers import and invoke ' +
+      'HoloScript compositions without knowing the TypeScript internals. ' +
+      'Supports D.038 developer-enabled revival — any developer can reinnovate on HoloScript from their native language.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        modulePath: {
+          type: 'string',
+          description: 'Path to the .hsplus source file to generate bindings for (absolute or workspace-relative)',
+        },
+        targetLang: {
+          type: 'string',
+          description: 'Target language for the generated bindings',
+          enum: ['python', 'javascript', 'typescript'],
+        },
+        sourceCode: {
+          type: 'string',
+          description:
+            'HoloScript+ source code as a string (alternative to modulePath — provide one or the other). ' +
+            'Useful when the caller already has the source in memory.',
+        },
+      },
+      required: ['targetLang'],
+    },
+  },
+  {
     name: 'get_dev_dashboard_state',
     description: 'Get comprehensive developer dashboard state including composition status, trace summaries, agent registry, plugin status, and budget/usage info.',
     inputSchema: {
@@ -166,6 +208,8 @@ export async function handleDeveloperTool(
       return handleInspectTraceWaterfall(args);
     case 'get_dev_dashboard_state':
       return handleGetDevDashboardState(args);
+    case 'holo_generate_bindings':
+      return handleGenerateBindings(args);
     default:
       throw new Error(`Unknown developer tool: ${name}`);
   }
@@ -412,4 +456,79 @@ async function handleGetDevDashboardState(args: Record<string, unknown>): Promis
   }
 
   return { dashboard: state, sections, timestamp: new Date().toISOString() };
+}
+
+// =============================================================================
+// holo_generate_bindings
+// =============================================================================
+
+async function handleGenerateBindings(args: Record<string, unknown>): Promise<unknown> {
+  const targetLang = (args.targetLang as string | undefined) ?? 'python';
+  const modulePath = (args.modulePath as string | undefined) ?? '';
+  const sourceCode = (args.sourceCode as string | undefined) ?? '';
+
+  if (!modulePath && !sourceCode) {
+    return {
+      error: 'Provide either modulePath (path to .hsplus file) or sourceCode (raw source string)',
+    };
+  }
+
+  // Parse the source — use provided code or read from disk
+  let rawSource = sourceCode;
+  if (!rawSource && modulePath) {
+    try {
+      const fs = await import('node:fs/promises');
+      rawSource = await fs.readFile(modulePath, 'utf-8');
+    } catch (err) {
+      return { error: `Could not read ${modulePath}: ${(err as Error).message}` };
+    }
+  }
+
+  // Parse with @holoscript/core parser
+  // We import HSPlusAST from the same source path as InteropBindingGenerator to
+  // avoid type-identity mismatches between dist/index and src/types.
+  type SrcAST = import('../../core/src/types/HoloScriptPlus.js').HSPlusAST;
+  let ast: SrcAST;
+  try {
+    const { parse } = await import('@holoscript/core/parser');
+    const result = parse(rawSource) as { success: boolean; errors: Array<{ line: number; column: number; message: string }>; ast?: unknown };
+    if (!result.success) {
+      const msgs = result.errors.map((e: { line: number; column: number; message: string }) => `${e.line}:${e.column} ${e.message}`).join('; ');
+      return { error: `Parse errors: ${msgs}` };
+    }
+    ast = (result.ast ?? { body: [] }) as SrcAST;
+  } catch (err) {
+    return { error: `Parse failed: ${(err as Error).message}`, source: rawSource.slice(0, 200) };
+  }
+
+  const generator = getBindingGenerator();
+  const sourceLabel = modulePath || '<inline>';
+
+  try {
+    let binding: GeneratedBinding;
+    if (targetLang === 'python') {
+      binding = generator.generatePythonBindings(ast, sourceLabel);
+    } else {
+      // javascript and typescript both go through generateJSBindings;
+      // the generator honours language: 'typescript' in its metadata
+      binding = generator.generateJSBindings(ast, sourceLabel);
+      if (targetLang === 'typescript') {
+        binding = { ...binding, language: 'typescript' as const };
+      }
+    }
+
+    return {
+      language: binding.language,
+      code: binding.code,
+      exports: binding.exports,
+      exportCount: binding.exports.length,
+      metadata: binding.metadata,
+      usage:
+        targetLang === 'python'
+          ? `# Save as <module>.py, then: from <module> import *`
+          : `// Save as <module>.mjs, then: import * from './<module>.mjs'`,
+    };
+  } catch (err) {
+    return { error: `Binding generation failed: ${(err as Error).message}` };
+  }
 }
