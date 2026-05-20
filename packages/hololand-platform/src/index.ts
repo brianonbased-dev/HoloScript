@@ -38,45 +38,18 @@ export {
 
 export type { CompileOptions, KioskSlice, KioskCard, KioskGrid } from './creator';
 
-// Device Lab — hardware-native readiness probes and receipt CLI
-export {
-  DEFAULT_DEVICE_LAB_OUTPUT_DIR,
-  collectRuntimeInventory,
-  defaultReceiptPath,
-  deriveDeviceGotchas,
-  detectWasmSimd,
-  parseQuestProbeMarkdown,
-  runDeviceLabProbe,
-  writeDeviceLabReceipt,
-};
-
 // World Build Cockpit — codebase-trust gate (task_1779267196745_rhwb, HoloLand JEPA dogfooding slice 1)
 export { renderCodebaseTrustGate } from './cockpit/codebase-trust-gate';
 export type { CodebaseTrustGateProps, CodebaseTrustGateRender } from './cockpit/codebase-trust-gate';
 
-// HoloLand JEPA NPC control loop wiring (task_1779304511950_rqie)
-export { predictNextWorldStateForNPC } from './npc/jepa-predictor-adapter';
-export type { NPCIntent, NPCObservation, NPCPrediction } from './npc/jepa-predictor-adapter';
+// Device Lab (hardware probes & receipts) — consumed directly from the barrel by consumers that need the full surface
+export * from './device-lab';
 
-// Production JEPANPCController (the actual wiring used by real HoloLand NPCs)
+// Production JEPANPCController (the actual wiring used by real HoloLand NPCs).
+// The older jepa-predictor-adapter named exports are intentionally not re-exported here
+// (stale per format-stress audit; superseded by the controller).
 export { JEPANPCController } from './npc/jepa-npc-controller';
 export type { JEPANPCStepResult, ReceiptEmitter } from './npc/jepa-npc-controller';
-} from './device-lab';
-
-export type {
-  ArtifactReceipt,
-  CommandResult,
-  CommandRunner,
-  CommandRunnerOptions,
-  DeviceGotcha,
-  DeviceLabOptions,
-  DeviceLabReceipt,
-  GpuController,
-  ProbeCheck,
-  ProbeStatus,
-  RuntimeInventory,
-  WebGpuProbeCommand,
-} from './device-lab';
 
 // Evidence — reviewer-safe CAEL/user-study trace corpus export
 export {
