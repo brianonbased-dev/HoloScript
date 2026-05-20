@@ -153,7 +153,12 @@ function loadLatestCheckpoint(runId: string): Paper26Checkpoint | null {
 }
 
 async function main() {
-  const corpusDir = path.join(process.cwd(), 'research/paper26/corpus/slice-001');
+  // Allow overriding the corpus for scaling experiments (Paper 26 P1)
+  const corpusArg = process.argv.find(a => a.startsWith('--corpus='));
+  const corpusDir = corpusArg
+    ? corpusArg.split('=')[1]
+    : path.join(process.cwd(), 'research/paper26/corpus/slice-001');
+
   const manifestPath = path.join(corpusDir, 'manifest.json');
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as Array<{id: string}>;
 
