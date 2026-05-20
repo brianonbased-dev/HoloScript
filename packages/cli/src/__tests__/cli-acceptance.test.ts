@@ -58,10 +58,10 @@ describe('parseArgs â€” command parsing', () => {
     expect(opts.command).toBe('version');
   });
 
-  it('defaults to help for unknown command', () => {
+  it('records an unknown first positional command for nonzero CLI failure', () => {
     const opts = parseArgs(['unknown-xyz']);
-    // Unknown positional args are treated as input, command stays 'help'
     expect(opts.command).toBe('help');
+    expect(opts.unknownCommand).toBe('unknown-xyz');
     expect(opts.input).toBe('unknown-xyz');
   });
 

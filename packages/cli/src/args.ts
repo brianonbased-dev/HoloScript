@@ -99,6 +99,8 @@ export interface CLIOptions {
   scaffoldOnly?: boolean;
   /** Skip auto-opening browser — for quickstart command */
   noOpen?: boolean;
+  /** First positional command token that did not match a known CLI command */
+  unknownCommand?: string;
   input?: string;
   output?: string;
   verbose: boolean;
@@ -342,6 +344,9 @@ export function parseArgs(args: string[]): CLIOptions {
           'twin-earth-status',
           'twin-earth-contract',
           'init',
+          'serve',
+          'rebuild-index',
+          'hologram',
           'help',
           'version',
         ].includes(arg)
@@ -359,6 +364,9 @@ export function parseArgs(args: string[]): CLIOptions {
       } else if (['suggest', 'generate'].includes(options.command) && !options.description) {
         // Collect description for suggest/generate commands
         options.description = arg;
+      } else if (options.command === 'help' && !options.input) {
+        options.unknownCommand = arg;
+        options.input = arg;
       } else if (!options.input) {
         options.input = arg;
       }
