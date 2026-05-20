@@ -169,8 +169,7 @@ export class BuiltinRegistry {
       backends: ['cpu', 'gpu'],
       create: async (config) => {
         if (config.backend === 'gpu') {
-          // @ts-ignore
-          const { FlowFieldCompute } = await import('@hololand/gpu');
+          const { FlowFieldCompute } = await import('../gpu/index.js');
           const ff = new FlowFieldCompute({
             width: (config.width as number) || 64,
             height: (config.height as number) || 64,
@@ -179,8 +178,10 @@ export class BuiltinRegistry {
           await ff.initialize();
           return ff;
         } else {
-          // @ts-ignore
-          const { FlowFieldGenerator } = await import('@hololand/navigation');
+          // @ts-ignore — @hololand/navigation CPU fallback (optional peer dep)
+          const { FlowFieldGenerator } = await import('@hololand/navigation').catch(() =>
+            import('../gpu/index.js')
+          );
           return new FlowFieldGenerator({
             width: (config.width as number) || 64,
             height: (config.height as number) || 64,
@@ -208,8 +209,7 @@ export class BuiltinRegistry {
       description: 'WebGPU compute context',
       backends: ['webgpu'],
       create: async (config) => {
-        // @ts-ignore
-        const { GPUContext } = await import('@hololand/gpu');
+        const { GPUContext } = await import('../gpu/index.js');
         const ctx = new GPUContext({
           powerPreference:
             (config.powerPreference as 'low-power' | 'high-performance') || 'high-performance',

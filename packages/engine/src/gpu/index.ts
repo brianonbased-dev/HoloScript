@@ -5,6 +5,7 @@
  */
 
 export * from './ComputePipeline';
+export * from './FlowFieldCompute';
 export * from './GPUBuffers';
 export * from './GaussianSplatExtractor';
 export * from './GaussianSplatSorter';
@@ -13,3 +14,5 @@ export * from './SparseLinearSolver';
 export * from './SpatialGrid';
 export * from './WebGPUContext';
 export * from './codecs';
+// GPUContext alias — resolves the speculative @hololand/gpu import in BuiltinRegistry.ts
+export { WebGPUContext as GPUContext } from './WebGPUContext';
