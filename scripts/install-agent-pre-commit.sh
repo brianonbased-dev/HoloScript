@@ -280,10 +280,49 @@ if [ -n "$PRE_GATE_TREE" ]; then
     fi
 fi
 
+# --- Gate: compositions/*.hsplus scope check (A-008 / task_1779305365663_wbr2) ---
+# Commits that touch compositions/*.hsplus must include 'compositions' in the
+# conventional-commit scope. This prevents incidental brain changes from
+# landing silently inside unrelated fix/feat commits (W.087-class bundling,
+# observed in commits f3ba1b1 and 35824ea).
+STAGED_HSPLUS=\$(git diff --cached --name-only | grep "^compositions/.*\\.hsplus\$")
+if [ -n "\$STAGED_HSPLUS" ]; then
+    COMMIT_MSG_FILE="\${GIT_DIR:-\$(git rev-parse --git-dir)}/COMMIT_EDITMSG"
+    if [ -f "\$COMMIT_MSG_FILE" ]; then
+        COMMIT_FIRST_LINE=\$(head -1 "\$COMMIT_MSG_FILE")
+    else
+        COMMIT_FIRST_LINE=""
+    fi
+    SCOPE_MATCH=\$(echo "\$COMMIT_FIRST_LINE" | sed -n 's/^[a-z!]*(\([^)]*\)):.*/\1/p')
+    if echo "\$SCOPE_MATCH" | grep -q "compositions"; then
+        echo -e "\${GREEN}compositions scope check\${NC} OK — scope includes 'compositions'"
+    else
+        echo ""
+        echo -e "\${RED}COMPOSITIONS SCOPE GATE (A-008)\${NC}"
+        echo "  Staged .hsplus files:"
+        for f in \$STAGED_HSPLUS; do echo "    \$f"; done
+        echo ""
+        echo "  This commit touches compositions/*.hsplus but the conventional-commit"
+        echo "  scope does not include 'compositions'."
+        echo ""
+        echo "  Detected scope: '\${SCOPE_MATCH:-<none>}'"
+        echo "  Commit message: \${COMMIT_FIRST_LINE:0:80}"
+        echo ""
+        echo -e "  \${YELLOW}FIX:\${NC}"
+        echo "    Include 'compositions' in the scope, e.g.:"
+        echo "      chore(compositions): security-auditor-brain — add @caching block"
+        echo "      feat(nmos,compositions): resolve render + add grok brains"
+        echo ""
+        echo "  Bypass (only when intentional bundling is truly unavoidable):"
+        echo "    SKIP_HOOKS=1 git commit ..."
+        FAILED=1
+    fi
+fi
+
 # --- Result ---
 if [ $FAILED -eq 1 ]; then
     echo ""
-    echo -e "${RED}Commit blocked.${NC} Fix above, or: git commit --no-verify"
+    echo -e "\${RED}Commit blocked.\${NC} Fix above, or: git commit --no-verify"
     exit 1
 fi
 
