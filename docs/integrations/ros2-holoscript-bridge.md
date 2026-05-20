@@ -143,6 +143,39 @@ You now have a verifiable, semantic, multi-target robotics asset instead of silo
 - **D.055**: The resulting agent (your ROS 2 robot controller) gets a public profile with the receipts visible.
 - **Future CG- bridges**: Same pattern (receipt + semantic .holo layer) applies to DTDL, RealityKit scenes, VRChat avatars, etc.
 
+## compile_to_ros2_deploy — One-Shot Deployment Bundle (2026-05-20)
+
+The `compile_to_ros2_deploy` MCP tool wraps URDF + launch file + controllers YAML into a
+single deployable bundle:
+
+```json
+{
+  "tool": "compile_to_ros2_deploy",
+  "code": "<holo composition>",
+  "packageName": "my_robot",
+  "options": { "gazebo": true, "rviz": true, "controllers": ["arm_controller"] }
+}
+```
+
+Returns:
+```json
+{
+  "urdf": "...",
+  "launchFile": "...",
+  "controllersYaml": "...",
+  "packageName": "my_robot",
+  "urdfFilename": "my_robot.urdf"
+}
+```
+
+Save each field to the corresponding file in your ROS 2 package and run:
+```bash
+ros2 launch my_robot robot.launch.py
+```
+
+The `launchFile` includes `joint_state_publisher_gui`, `robot_state_publisher`, optional Gazebo
+spawn, and optional RViz — all generated from the `.holo` composition.
+
 ## Open Questions / Next Polish
 
 - Full open-source ROS 2 bridge node (thin wrapper) — can be contributed under the robotics-plugin.
