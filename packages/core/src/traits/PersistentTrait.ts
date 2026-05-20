@@ -1,16 +1,21 @@
 /**
- * Persistent Trait (starter for State & Persistence category, p3 board task)
+ * Persistent Trait (State & Persistence category)
  *
- * High-value missing from 2026-03 audit (0% coverage for state/persistence traits).
- * Provides basic declarative persistence attachment for nodes (keyed store + TTL demo).
- * Pairs with constants/state-persistence.ts declarations.
+ * Provides declarative persistence for nodes with pluggable backends.
+ * Pairs with STATE_PERSISTENCE_TRAITS in constants/state-persistence.ts.
  *
- * Simple in-memory backing for starter; real impl would bridge to Loro CRDT / host FS.
+ * Backends:
+ * - 'memory' (default): fast in-process Map (good for tests / ephemeral agents)
+ * - 'file': simple JSON file store under .holo-persist/ (durable across restarts)
  *
- * @version 1.0.0-starter
+ * Future: Loro CRDT backend for distributed / conflict-free agent state (see @holoscript/crdt).
+ *
+ * Addresses the state/persistence gap identified in 2026-03 audit.
  */
 
 import type { TraitEvent, TraitHandler } from './TraitTypes';
+import * as fs from 'fs';
+import * as path from 'path';
 
 interface PersistentState {
   key: string;
@@ -18,10 +23,71 @@ interface PersistentState {
   expiresAt: number | null;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Pluggable backing stores
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface IPersistentStore {
+  get(key: string): { value: unknown; expiresAt: number | null } | undefined;
+  set(key: string, value: unknown, expiresAt: number | null): void;
+}
+
+class MemoryPersistentStore implements IPersistentStore {
+  private store = new Map<string, { value: unknown; expiresAt: number | null }>();
+
+  get(key: string) {
+    return this.store.get(key);
+  }
+
+  set(key: string, value: unknown, expiresAt: number | null) {
+    this.store.set(key, { value, expiresAt });
+  }
+}
+
+class FilePersistentStore implements IPersistentStore {
+  private baseDir: string;
+
+  constructor(baseDir = path.join(process.cwd(), '.holo-persist')) {
+    this.baseDir = baseDir;
+    if (!fs.existsSync(this.baseDir)) {
+      fs.mkdirSync(this.baseDir, { recursive: true });
+    }
+  }
+
+  private filePath(key: string): string {
+    // Safe key for filesystem
+    const safe = key.replace(/[^a-zA-Z0-9_-]/g, '_');
+    return path.join(this.baseDir, `${safe}.json`);
+  }
+
+  get(key: string) {
+    const fp = this.filePath(key);
+    if (!fs.existsSync(fp)) return undefined;
+    try {
+      const raw = JSON.parse(fs.readFileSync(fp, 'utf8'));
+      return { value: raw.value, expiresAt: raw.expiresAt ?? null };
+    } catch {
+      return undefined;
+    }
+  }
+
+  set(key: string, value: unknown, expiresAt: number | null) {
+    const fp = this.filePath(key);
+    const payload = { value, expiresAt, updatedAt: new Date().toISOString() };
+    fs.writeFileSync(fp, JSON.stringify(payload, null, 2), 'utf8');
+  }
+}
+
+// Default shared stores (can be replaced per-trait instance if needed)
+const memoryStore: IPersistentStore = new MemoryPersistentStore();
+const fileStore: IPersistentStore = new FilePersistentStore();
+
 export interface PersistentConfig {
   key?: string;
   defaultValue?: unknown;
   ttlMs?: number;
+  /** Persistence backend. 'memory' (default) or 'file' for durable restart. */
+  backend?: 'memory' | 'file';
 }
 
 const memoryStore = new Map<string, { value: unknown; expiresAt: number | null }>();
@@ -53,11 +119,13 @@ export const persistentHandler: TraitHandler<PersistentConfig> = {
     const key = config.key || 'default';
     const ttl = config.ttlMs || 0;
     const expiresAt = ttl > 0 ? Date.now() + ttl : null;
+    const backend = config.backend || 'memory';
+    const store = backend === 'file' ? fileStore : memoryStore;
 
-    let entry = memoryStore.get(key);
+    let entry = store.get(key);
     if (!entry || (entry.expiresAt && entry.expiresAt < Date.now())) {
       entry = { value: config.defaultValue ?? null, expiresAt };
-      memoryStore.set(key, entry);
+      store.set(key, entry);
     }
 
     const state: PersistentState = {
@@ -67,7 +135,7 @@ export const persistentHandler: TraitHandler<PersistentConfig> = {
     };
     node.__persistentState = state;
 
-    context.emit?.('persistent_attached', { node, key, value: state.value });
+    context.emit?.('persistent_attached', { node, key, value: state.value, backend });
   },
 
   onDetach(node, _config, context) {
@@ -75,33 +143,41 @@ export const persistentHandler: TraitHandler<PersistentConfig> = {
     delete node.__persistentState;
   },
 
-  onUpdate(node, _config, context, _delta) {
+  onUpdate(node, config, context, _delta) {
     const state = node.__persistentState as PersistentState | undefined;
     if (!state) return;
 
-    const entry = memoryStore.get(state.key);
+    const backend = config.backend || 'memory';
+    const store = backend === 'file' ? fileStore : memoryStore;
+
+    const entry = store.get(state.key);
     if (entry && entry.expiresAt && entry.expiresAt < Date.now()) {
       state.value = null;
-      entry.value = null;
+      // Also persist the cleared value for file backend
+      store.set(state.key, null, null);
       context.emit?.('persistent_expired', { node, key: state.key });
     }
   },
 
-  onEvent(node, _config, context, event) {
+  onEvent(node, config, context, event) {
     const payload = getPersistentSetPayload(event);
     if (!payload) return;
+
+    const backend = config.backend || 'memory';
+    const store = backend === 'file' ? fileStore : memoryStore;
 
     const entry = {
       value: payload.value,
       expiresAt: payload.ttlMs && payload.ttlMs > 0 ? Date.now() + payload.ttlMs : null,
     };
-    memoryStore.set(payload.key, entry);
+    store.set(payload.key, entry.value, entry.expiresAt);
+
     const state = node.__persistentState as PersistentState | undefined;
     if (state && state.key === payload.key) {
       state.value = entry.value;
       state.expiresAt = entry.expiresAt;
     }
-    context.emit?.('persistent_updated', { node, key: payload.key, value: entry.value });
+    context.emit?.('persistent_updated', { node, key: payload.key, value: entry.value, backend });
   },
 };
 
