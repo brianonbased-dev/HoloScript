@@ -163,10 +163,12 @@ describe('CONTRACT: talkinghead-plugin adapter', () => {
     expect(Array.isArray(result)).toBe(true);
   });
 
-  it('WebAudioVisemeExtractor.extractFromURI throws in Node.js (no WebAudio API)', async () => {
+  it('WebAudioVisemeExtractor.extractFromURI throws on HTTP fetch failure', async () => {
+    // In Node.js with no Web Audio API, the implementation fetches bytes first then
+    // falls back to PCM heuristic. A 404 should throw a fetch-failed error.
     const ext = new WebAudioVisemeExtractor();
     await expect(ext.extractFromURI('https://example.com/audio.wav')).rejects.toThrow(
-      /Web Audio API not available/
+      /fetch failed|HTTP 404|ENOTFOUND|getaddrinfo/i
     );
   });
 });
