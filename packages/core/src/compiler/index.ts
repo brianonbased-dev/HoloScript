@@ -69,6 +69,13 @@ export { WASMCompiler } from './WASMCompiler';
 export { WebGPUCompiler } from './WebGPUCompiler';
 export type { WebGPUCompilerOptions } from './WebGPUCompiler';
 
+// Platform-conditional compilation (public facade for Adaptive Platform Layers)
+export {
+  PlatformConditionalCompilerMixin,
+  createPlatformTarget,
+} from './PlatformConditionalCompilerMixin';
+export type { CompilePlatformTarget } from './PlatformConditionalCompilerMixin';
+
 // Specialized compilers
 export { SDFCompiler } from './SDFCompiler';
 export type { SDFCompilerOptions } from './SDFCompiler';
