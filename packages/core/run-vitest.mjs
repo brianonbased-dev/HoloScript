@@ -1,17 +1,31 @@
 /**
- * Wrapper that splits vitest into 4 shards so each run handles ~500 test
- * files, preventing a single fork from accumulating enough live objects to
- * exhaust the V8 heap before GC can reclaim them.
- * The smaller shard size also keeps Windows hardware-local runs below the
- * process-custody cliff where Vitest can print a green summary and still exit
- * with 0xffffffff after a long shard.
+ * Core test runner with memory hygiene.
  *
- * NODE_OPTIONS is also propagated so every forked worker inherits 16 GB.
- * Worker concurrency is capped to avoid Windows fork-custody failures where
- * Vitest reports passing tests but one worker exits unexpectedly under load.
+ * Shards into 4 by default (each ~500 test files) to keep V8 heap reasonable.
+ * On coverage or explicit targets: single run + --maxWorkers=50%.
+ * NODE_OPTIONS + execArgv always pass 16 GB (local hardware) or respect CI override.
  *
- * Usage: node --max-old-space-size=16384 run-vitest.mjs [extra vitest args]
- *   e.g. node run-vitest.mjs --coverage
+ * === Bounded, repeatable test commands (closes the OOM quarantine item) ===
+ * Local full (hardware, 32 GB+):          node --max-old-space-size=16384 run-vitest.mjs
+ * Local coverage (full, no CI quarantine): pnpm --filter @holoscript/core test:coverage
+ * CI-like (quarantine active):             CI=true pnpm --filter @holoscript/core test:coverage
+ * Single heavy suite (for owners):         pnpm --filter @holoscript/core exec vitest run <file>
+ *
+ * Known memory-heavy suites (the ones previously quarantined on coverage):
+ *   - StressTests.comprehensive.test.ts          (owner: core/perf team)
+ *   - RuntimeOptimization.test.ts                (owner: runtime)
+ *   - trait-commutativity.test.ts                (owner: traits)
+ *   - SynthEngine.test.ts + EmbeddingTrait.test.ts (owner: audio/synth)
+ *   - HoloMapPerformanceBenchmark.test.ts        (owner: holomap)
+ *   - paper-4-sandbox-bench.test.ts              (owner: paper-4)
+ *   - hsplus-files.test.ts (always excluded — parser stress, run manually)
+ *
+ * If any of the above still OOM on a 8 GB CI runner, the owner must either:
+ *   - split the suite, or
+ *   - mark it "local-hardware-only" in docs, or
+ *   - add a dedicated high-mem CI job.
+ *
+ * See also: docs/strategy/ROADMAP.md §5 Promoted Seed Backlog (Core test memory closure)
  */
 import { spawnSync } from 'child_process';
 import { resolve, dirname } from 'path';
