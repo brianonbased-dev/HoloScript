@@ -4,10 +4,10 @@ Compiles HoloScript agent definitions to [Google A2A (Agent-to-Agent)](https://g
 
 ## Overview
 
-The A2A compiler (`--target a2a`) generates standardized Agent Card JSON files that are served at `/.well-known/agent-card.json`. Any A2A-compatible agent runtime (Google, Anthropic, Microsoft, custom) can discover and call your HoloScript agents through this standard interface.
+The A2A compiler (`--target a2a-agent-card`, exposed to agents as `compile_to_a2a_agent_card`) generates standardized Agent Card JSON files that are served at `/.well-known/agent-card.json`. Any A2A-compatible agent runtime (Google, Anthropic, Microsoft, custom) can discover and call your HoloScript agents through this standard interface.
 
 ```bash
-holoscript compile agents.holo --target a2a --output ./public/.well-known/
+holoscript compile agents.holo --target a2a-agent-card --output ./public/.well-known/
 ```
 
 ## What is A2A?
@@ -83,10 +83,84 @@ composition "AgentDemo" {
 ```
 
 ```bash
-holoscript compile agent.holo --target a2a
+holoscript compile agent.holo --target a2a-agent-card
 # → .well-known/agent-card.json
 # → agents/spatial-guide/manifest.json
 ```
+
+## Copy-Paste Workflow
+
+Use this path when a `.holo` composition should become both an A2A-discoverable agent and a HoloMesh-discoverable peer.
+
+```powershell
+$code = @'
+composition "HoloTunnelGuide" {
+  metadata {
+    title: "HoloTunnel Guide"
+    description: "Guides remote agents through a Quest-visible HoloTunnel room"
+    version: "1.0.0"
+    tags: ["holotunnel", "quest", "spatial-guide"]
+  }
+
+  object "GuideBeacon" {
+    @pointable
+    geometry: "sphere"
+    position: [0, 1.6, -2]
+    scale: [0.25, 0.25, 0.25]
+    material: { baseColor: "#22c55e", emissive: "#22c55e", emissive_intensity: 0.4 }
+  }
+
+  npc "TunnelGuide" {
+    npc_type: "guide"
+    dialogue_tree: "room_marathon"
+  }
+}
+'@
+
+$body = @{
+  jsonrpc = "2.0"
+  id = "holotunnel-a2a-card"
+  method = "tools/call"
+  params = @{
+    name = "compile_to_a2a_agent_card"
+    arguments = @{
+      code = $code
+      options = @{
+        serviceUrl = "https://agents.example.com/a2a/holotunnel-guide"
+        providerOrganization = "HoloScript"
+        providerUrl = "https://holoscript.net"
+        enableStreaming = $true
+        authSchemes = @("bearer")
+      }
+    }
+  }
+} | ConvertTo-Json -Depth 16
+
+Invoke-RestMethod `
+  -Uri "https://mcp.holoscript.net/mcp" `
+  -Method Post `
+  -ContentType "application/json" `
+  -Body $body |
+  ConvertTo-Json -Depth 16
+```
+
+Publish the compiled `output` as `https://agents.example.com/.well-known/agent-card.json`, then register or submit that public card URL wherever your A2A directory expects agent-card links. Keep private bearer tokens out of the Agent Card; the card declares the auth scheme, not the secret.
+
+Once hosted, seed HoloMesh discovery with the card URL:
+
+```json
+{
+  "name": "discover_agents",
+  "arguments": {
+    "domain": "spatial",
+    "tags": ["holotunnel", "spatial-guide"],
+    "seedUrls": ["https://agents.example.com/.well-known/agent-card.json"],
+    "limit": 5
+  }
+}
+```
+
+That gives the complete local slice: `.holo` composition -> `compile_to_a2a_agent_card` -> public `/.well-known/agent-card.json` -> HoloMesh `discover_agents` seed URL. External registry posting and demo hosting are separate release steps because they require live infrastructure ownership.
 
 ## Multi-Agent Compositions
 
