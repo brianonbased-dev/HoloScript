@@ -428,6 +428,38 @@ export interface HoloShellDeviceSafetyReceiptPack {
   hashAlgorithm: ArtifactHashAlgorithm;
 }
 
+// ── Target Device Proof Pack (frontier composite, requires real target witness) ──
+
+export interface TargetDeviceWitness {
+  /** Real target frame, WebXR session timing, or headset capture hash (not local screenshot). */
+  witnessHash?: string;
+  /** Explicit blocker when real target capture was impossible (still a valid receipt). */
+  blocker?: string;
+  /** When the witness or blocker was produced. */
+  witnessedAt: string;
+  /** Source of the witness (webxr, quest_capture, adb_screencap, explicit_blocker, ...). */
+  witnessSource: string;
+}
+
+export interface HoloShellTargetDeviceProofPack {
+  /** Unique pack identifier. */
+  id: string;
+  /** The lower-level device safety pack (inventory + envelope + consent + action + replay). */
+  safetyPack: HoloShellDeviceSafetyReceiptPack;
+  /** The target-device-specific witness (the key differentiator from local-only readiness). */
+  targetWitness: TargetDeviceWitness;
+  /** Whether this pack is ready to unlock HoloLand world operations (requires real target witness, not blocker-only). */
+  targetProofReadyForHoloLand: boolean;
+  /** Overall status for the target-proof workflow. */
+  status: 'local_ready' | 'device_identified' | 'witness_planned' | 'witness_captured' | 'approved' | 'executed' | 'target_proven' | 'blocked';
+  /** Hash of the full target proof pack for integrity. */
+  hash: string;
+  /** Hash algorithm used. */
+  hashAlgorithm: ArtifactHashAlgorithm;
+  /** Provenance for the pack. */
+  provenance?: ArtifactProvenanceLink;
+}
+
 // ── Validation Helpers ──
 
 function isIsoTimestamp(value: string | undefined): boolean {
@@ -835,6 +867,41 @@ export function validateHoloShellDeviceSafetyReceiptPack(
   return errors;
 }
 
+export function validateHoloShellTargetDeviceProofPack(
+  pack: HoloShellTargetDeviceProofPack
+): string[] {
+  const errors: string[] = [];
+  if (!pack.id) errors.push('HoloShellTargetDeviceProofPack.id is required.');
+  if (!pack.safetyPack) {
+    errors.push('HoloShellTargetDeviceProofPack.safetyPack is required.');
+  } else {
+    errors.push(...validateHoloShellDeviceSafetyReceiptPack(pack.safetyPack));
+  }
+  if (!pack.targetWitness) {
+    errors.push('HoloShellTargetDeviceProofPack.targetWitness is required (real target frame or explicit blocker).');
+  } else {
+    if (!pack.targetWitness.witnessedAt) errors.push('TargetDeviceWitness.witnessedAt is required.');
+    if (!pack.targetWitness.witnessSource) errors.push('TargetDeviceWitness.witnessSource is required.');
+    const hasRealWitness = !!pack.targetWitness.witnessHash;
+    const hasBlocker = !!pack.targetWitness.blocker;
+    if (!hasRealWitness && !hasBlocker) {
+      errors.push('TargetDeviceWitness must provide either witnessHash (real target) or blocker.');
+    }
+  }
+  if (typeof pack.targetProofReadyForHoloLand !== 'boolean') {
+    errors.push('HoloShellTargetDeviceProofPack.targetProofReadyForHoloLand must be boolean.');
+  }
+  // ready_for_hololand requires a real (non-blocker) witness
+  if (pack.targetProofReadyForHoloLand && !pack.targetWitness?.witnessHash) {
+    errors.push('targetProofReadyForHoloLand=true requires a real targetWitness.witnessHash (not blocker-only).');
+  }
+  if (!isOneOf(['local_ready', 'device_identified', 'witness_planned', 'witness_captured', 'approved', 'executed', 'target_proven', 'blocked'] as const, String(pack.status))) {
+    errors.push(`HoloShellTargetDeviceProofPack.status is unsupported: ${String(pack.status)}.`);
+  }
+  validateHashFields('HoloShellTargetDeviceProofPack', pack.hash, pack.hashAlgorithm, errors);
+  return errors;
+}
+
 // ── Clone Helpers ──
 
 export function cloneDeviceIdentityEntry(entry: DeviceIdentityEntry): DeviceIdentityEntry {
@@ -901,5 +968,20 @@ export function cloneHoloShellDeviceSafetyReceiptPack(
     consent: cloneConsentReceipt(pack.consent),
     ...(pack.action ? { action: cloneDeviceActionReceipt(pack.action) } : {}),
     ...(pack.replay ? { replay: cloneReplayLessonReceipt(pack.replay) } : {}),
+  };
+}
+
+export function cloneTargetDeviceWitness(witness: TargetDeviceWitness): TargetDeviceWitness {
+  return { ...witness };
+}
+
+export function cloneHoloShellTargetDeviceProofPack(
+  pack: HoloShellTargetDeviceProofPack
+): HoloShellTargetDeviceProofPack {
+  return {
+    ...pack,
+    safetyPack: cloneHoloShellDeviceSafetyReceiptPack(pack.safetyPack),
+    targetWitness: cloneTargetDeviceWitness(pack.targetWitness),
+    ...(pack.provenance ? { provenance: { ...pack.provenance, parentArtifactIds: pack.provenance.parentArtifactIds ? [...pack.provenance.parentArtifactIds] : undefined } } : {}),
   };
 }
