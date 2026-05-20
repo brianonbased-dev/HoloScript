@@ -2608,7 +2608,7 @@ async function main(): Promise<void> {
           const result = compiler.compile(parseResult.ast);
 
           console.log(`\x1b[32m✓ Unreal compilation successful!\x1b[0m`);
-          console.log(`\x1b[2m  Generated ${result.files.length} files\x1b[0m`);
+          console.log(`\x1b[2m  Generated header + source (plus optional blueprints)\x1b[0m`);
           console.log(`\x1b[2m  Actors: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
 
           if (options.output) {
@@ -2616,14 +2616,20 @@ async function main(): Promise<void> {
             if (!fs.existsSync(outputDir)) {
               fs.mkdirSync(outputDir, { recursive: true });
             }
-            for (const file of result.files) {
-              const filePath = path.join(outputDir, file.filename);
-              fs.writeFileSync(filePath, file.content);
-              console.log(`\x1b[32m✓ Written ${file.filename}\x1b[0m`);
+            // UnrealCompiler returns named fields (headerFile, sourceFile, optional blueprintJson)
+            const unrealFiles: Array<{filename: string, content: string}> = [];
+            if (result.headerFile) unrealFiles.push({ filename: 'HoloScriptActor.h', content: result.headerFile });
+            if (result.sourceFile) unrealFiles.push({ filename: 'HoloScriptActor.cpp', content: result.sourceFile });
+            if (result.blueprintJson) unrealFiles.push({ filename: 'Blueprint.json', content: typeof result.blueprintJson === 'string' ? result.blueprintJson : JSON.stringify(result.blueprintJson, null, 2) });
+            for (const f of unrealFiles) {
+              const filePath = path.join(outputDir, f.filename);
+              fs.writeFileSync(filePath, f.content);
+              console.log(`\x1b[32m✓ Written ${f.filename}\x1b[0m`);
             }
           } else {
             console.log('\n--- Unreal Output ---\n');
-            console.log(result.files.map((f: any) => `// ${f.filename}\n${f.content}`).join('\n\n'));
+            if (result.headerFile) console.log('// HoloScriptActor.h\n' + result.headerFile);
+            if (result.sourceFile) console.log('\n// HoloScriptActor.cpp\n' + result.sourceFile);
           }
 
           process.exit(0);
@@ -2656,7 +2662,7 @@ async function main(): Promise<void> {
           const result = compiler.compile(parseResult.ast);
 
           console.log(`\x1b[32m✓ iOS compilation successful!\x1b[0m`);
-          console.log(`\x1b[2m  Generated ${result.files.length} files\x1b[0m`);
+          console.log(`\x1b[2m  Generated Swift + SwiftUI sources (plus optional RealityKit entities)\x1b[0m`);
           console.log(`\x1b[2m  Scenes: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
 
           if (options.output) {
@@ -2664,14 +2670,19 @@ async function main(): Promise<void> {
             if (!fs.existsSync(outputDir)) {
               fs.mkdirSync(outputDir, { recursive: true });
             }
-            for (const file of result.files) {
-              const filePath = path.join(outputDir, file.filename);
-              fs.writeFileSync(filePath, file.content);
-              console.log(`\x1b[32m✓ Written ${file.filename}\x1b[0m`);
+            // IOSCompiler returns named fields; normalize for -o
+            const iosFiles: Array<{filename: string, content: string}> = [];
+            if (result.swiftFile) iosFiles.push({ filename: 'HoloScriptApp.swift', content: result.swiftFile });
+            if (result.uiFile) iosFiles.push({ filename: 'ContentView.swift', content: result.uiFile });
+            if (result.realityKitEntities) iosFiles.push({ filename: 'Entities.swift', content: typeof result.realityKitEntities === 'string' ? result.realityKitEntities : JSON.stringify(result.realityKitEntities, null, 2) });
+            for (const f of iosFiles) {
+              const filePath = path.join(outputDir, f.filename);
+              fs.writeFileSync(filePath, f.content);
+              console.log(`\x1b[32m✓ Written ${f.filename}\x1b[0m`);
             }
           } else {
             console.log('\n--- iOS Output ---\n');
-            console.log(result.files.map((f: any) => `// ${f.filename}\n${f.content}`).join('\n\n'));
+            if (result.swiftFile) console.log('// HoloScriptApp.swift\n' + result.swiftFile);
           }
 
           process.exit(0);
@@ -2704,7 +2715,7 @@ async function main(): Promise<void> {
           const result = compiler.compile(parseResult.ast);
 
           console.log(`\x1b[32m✓ Android compilation successful!\x1b[0m`);
-          console.log(`\x1b[2m  Generated ${result.files.length} files\x1b[0m`);
+          console.log(`\x1b[2m  Generated Kotlin + Compose sources (plus optional ARCore)\x1b[0m`);
           console.log(`\x1b[2m  Scenes: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
 
           if (options.output) {
@@ -2712,14 +2723,17 @@ async function main(): Promise<void> {
             if (!fs.existsSync(outputDir)) {
               fs.mkdirSync(outputDir, { recursive: true });
             }
-            for (const file of result.files) {
-              const filePath = path.join(outputDir, file.filename);
-              fs.writeFileSync(filePath, file.content);
-              console.log(`\x1b[32m✓ Written ${file.filename}\x1b[0m`);
+            const androidFiles: Array<{filename: string, content: string}> = [];
+            if (result.kotlinFile) androidFiles.push({ filename: 'MainActivity.kt', content: result.kotlinFile });
+            if (result.composeFile) androidFiles.push({ filename: 'HoloScriptView.kt', content: result.composeFile });
+            for (const f of androidFiles) {
+              const filePath = path.join(outputDir, f.filename);
+              fs.writeFileSync(filePath, f.content);
+              console.log(`\x1b[32m✓ Written ${f.filename}\x1b[0m`);
             }
           } else {
             console.log('\n--- Android Output ---\n');
-            console.log(result.files.map((f: any) => `// ${f.filename}\n${f.content}`).join('\n\n'));
+            if (result.kotlinFile) console.log('// MainActivity.kt\n' + result.kotlinFile);
           }
 
           process.exit(0);
