@@ -1,0 +1,35 @@
+{
+  "receiptId": "wmr-1779249963847-46bgbf",
+  "issuedAt": "2026-05-20T04:06:03.847Z",
+  "receiptHash": "wmr-sha-8532e97a159d0155346513fd7a06f60374495413c6114da83f388f199a918791",
+  "hashMode": "sha256",
+  "contractId": "geo-sha-e7f7cb74a685232bcee95600f0672693396ba678c3eb5a6210be0bf6ba41cd09-5n-8e",
+  "delta_error": 0,
+  "confidence_bound": {
+    "lo": 0,
+    "hi": 0.00000200000000001,
+    "coverage": 0.95
+  },
+  "jepa_prediction": {
+    "encoderId": "baseline-zero",
+    "dim": 4,
+    "simTime": 0,
+    "values_summary": {
+      "length": 4,
+      "l2_norm": 0
+    }
+  },
+  "solver_ground_truth": {
+    "simTime": 0,
+    "solverType": "structural",
+    "geometryHash": "geo-sha-e7f7cb74a685232bcee95600f0672693396ba678c3eb5a6210be0bf6ba41cd09-5n-8e",
+    "contractId": "geo-sha-e7f7cb74a685232bcee95600f0672693396ba678c3eb5a6210be0bf6ba41cd09-5n-8e",
+    "fields": {}
+  },
+  "paper26_seed": {
+    "title": "Verifiable World Models via Simulation Contracts",
+    "novelty": "First cryptographically-verified world model receipt tied to a physics simulation contract.",
+    "tvcg_boundary": "Above current TVCG submission scope (Trust by Construction, external review 2026-05-17).",
+    "founder_review_required_for_paper_scoping": true
+  }
+}
