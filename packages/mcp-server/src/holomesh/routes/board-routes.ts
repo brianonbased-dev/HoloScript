@@ -58,11 +58,25 @@ import { mergeTeamKnowledgeWithOrchestrator } from '../entry-lookup';
 import { getBoardModeFields } from '../mode-provenance';
 
 const MAX_FEED_QUERY = 100;
+const CLAIM_HEARTBEAT_GRACE_MS = Number(process.env.HOLOMESH_CLAIM_HEARTBEAT_GRACE_MS || 2 * 60 * 1000);
 
 function normalizeVerificationEvidence(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
   const trimmed = value.trim();
   return trimmed ? trimmed.slice(0, 2000) : undefined;
+}
+
+function getFreshPresence(teamId: string, agentId: string): TeamPresenceEntry | null {
+  pruneStalePresence(teamId);
+  const entry = teamPresenceStore.get(teamId)?.get(agentId);
+  if (!entry || entry.status === 'offline') return null;
+  const lastHeartbeatMs = Date.parse(entry.lastHeartbeat);
+  if (!Number.isFinite(lastHeartbeatMs)) return null;
+  const expiresAtMs = entry.expiresAt ? Date.parse(entry.expiresAt) : Number.NaN;
+  const effectiveExpiry = Number.isFinite(expiresAtMs)
+    ? expiresAtMs
+    : lastHeartbeatMs + (entry.ttlMs || CLAIM_HEARTBEAT_GRACE_MS);
+  return Date.now() <= effectiveExpiry ? entry : null;
 }
 
 function validateHologramFeedInput(hash: string, shareUrl: string): string | null {
@@ -695,6 +709,18 @@ export async function handleBoardRoutes(
             capabilities: caller.capabilities || [],
           });
           return true;
+        }
+        if (caller.id !== team.ownerId) {
+          const presence = getFreshPresence(teamId, caller.id);
+          if (!presence) {
+            json(res, 403, {
+              error: 'Fresh heartbeat required before claiming a board task',
+              code: 'heartbeat_required',
+              required_endpoint: `/api/holomesh/team/${teamId}/presence`,
+              grace_ms: CLAIM_HEARTBEAT_GRACE_MS,
+            });
+            return true;
+          }
         }
         result = claimTask(team.taskBoard, taskId, caller.id, caller.name, claimedByTag);
         eventType = 'board:claimed';

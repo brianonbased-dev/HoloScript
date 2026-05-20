@@ -3380,6 +3380,76 @@ describe('HoloMesh HTTP Routes', () => {
       expect(claimRes._body.error).toContain('Definition-of-Done required');
     });
 
+    it('PATCH /board/:taskId requires a fresh member heartbeat before claim', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `claim-heartbeat-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const joinReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
+        { invite_code: createRes._body.team.invite_code },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const joinRes = mockRes();
+      await handleHoloMeshRoute(joinReq, joinRes, `/api/holomesh/team/${tid}/join`);
+      expect(joinRes._status).toBe(200);
+
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        {
+          tasks: [{
+            title: 'heartbeat-gated claim',
+            description: 'Members must prove they are alive before claiming.\n\n## Done when:\n- Claim guard rejects missing heartbeat and accepts fresh heartbeat.',
+            priority: 1,
+          }],
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      const taskId = addRes._body.tasks[0].id;
+
+      const missingBeatReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'claim' },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const missingBeatRes = mockRes();
+      await handleHoloMeshRoute(missingBeatReq, missingBeatRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(missingBeatRes._status).toBe(403);
+      expect(missingBeatRes._body.code).toBe('heartbeat_required');
+
+      const beatReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/presence`,
+        { ide_type: 'codex', status: 'active' },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const beatRes = mockRes();
+      await handleHoloMeshRoute(beatReq, beatRes, `/api/holomesh/team/${tid}/presence`);
+      expect(beatRes._status).toBe(200);
+
+      const claimReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'claim' },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const claimRes = mockRes();
+      await handleHoloMeshRoute(claimReq, claimRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(claimRes._status).toBe(200);
+      expect(claimRes._body.claimedAs.id).toBe(memberAgentId);
+    });
+
     it('PATCH /board/:taskId update preserves Definition-of-Done criteria', async () => {
       const createReq = mockReq(
         'POST',
