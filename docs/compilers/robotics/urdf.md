@@ -28,6 +28,7 @@ The artifact includes:
 
 ## See Also
 
+- [HoloScript for ROS 2 Developers](./ros2.md) - End-to-end URDF, SDF, Gazebo, ros2_control, and Isaac Sim workflow
 - [Robotics Guide](/ecosystem/ROBOTICS_GUIDE.md) — Full robotics workflow, ROS 2 integration, and safety patterns
 - [SDF Compiler](/compilers/robotics/sdf)
 - [IoT Traits](/traits/iot)

@@ -189,6 +189,10 @@ const urdf = compileForIsaacSim(composition, {
 
 ## Integration with Isaac Sim Workflow
 
+For the full ROS 2 package path around this URDF flow, including
+`robot_description`, RViz2, Gazebo SDF, and ros2_control validation, see
+[`HoloScript for ROS 2 Developers`](../compilers/robotics/ros2.md).
+
 ### 1. Compile URDF
 
 ```bash
@@ -357,7 +361,9 @@ generateControllersYaml(
 ## References
 
 - [Isaac Sim URDF Importer Documentation](https://docs.isaacsim.omniverse.nvidia.com/latest/importer_exporter/ext_isaacsim_asset_importer_urdf.html)
+- [Isaac Sim ROS 2 URDF Importer Extension](https://docs.isaacsim.omniverse.nvidia.com/4.5.0/py/source/extensions/isaacsim.ros2.urdf/docs/index.html)
 - [Isaac Sim Physics Simulation Fundamentals](https://docs.isaacsim.omniverse.nvidia.com/latest/physics/simulation_fundamentals.html)
+- [HoloScript for ROS 2 Developers](../compilers/robotics/ros2.md)
 - [HoloScript URDF/SDF Optimization Guide](../URDF_SDF_ISAAC_SIM_OPTIMIZATION.md)
 - [Example Robot Composition](../../examples/robotics/isaac-sim-robot-arm.holo)
 

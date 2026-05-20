@@ -18,6 +18,7 @@ A validated SDF generated from the canonical `TwoDoFRobotArm` composition:
 
 ## See Also
 
+- [HoloScript for ROS 2 Developers](./ros2.md) - End-to-end URDF, SDF, Gazebo, ros2_control, and Isaac Sim workflow
 - [Robotics Guide](/ecosystem/ROBOTICS_GUIDE.md) — Full robotics workflow documentation
 - [URDF Compiler](/compilers/robotics/urdf)
 - [IoT Traits](/traits/iot)
