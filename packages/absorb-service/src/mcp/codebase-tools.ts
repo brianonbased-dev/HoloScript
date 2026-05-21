@@ -2407,7 +2407,7 @@ export function validateLocalCodebaseSnapshotReceipt(input: unknown): Validation
       if (f?.size) byteSum += Number(f.size);
     }
   }
-  if (r.stats?.totalFiles > MAX_FILES) errors.push('file cap exceeded');
+  if ((r.stats?.totalFiles ?? 0) > MAX_FILES) errors.push('file cap exceeded');
   if (byteSum > MAX_BYTES) errors.push('byte cap exceeded');
 
   if (!r.replayCommand || !r.replayCommand.includes('holo_absorb_repo')) {

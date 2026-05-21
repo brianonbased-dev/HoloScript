@@ -194,6 +194,7 @@ export class SyntheticGraphFactory {
           visibility: 'public',
           filePath: fp,
           line: s * 10 + 1,
+          column: 0,
           isExported: s === 0,
           signature: `function fn${s}(x: number): void`,
         });

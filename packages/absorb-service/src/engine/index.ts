@@ -111,6 +111,7 @@ export { XenovaEmbeddingProvider } from './providers/XenovaEmbeddingProvider';
 export { OllamaEmbeddingProvider } from './providers/OllamaEmbeddingProvider';
 export { OpenAIEmbeddingProvider } from './providers/OpenAIEmbeddingProvider';
 export { StructuralEmbeddingProvider } from './providers/StructuralEmbeddingProvider';
+export { HoloEmbedProvider } from './providers/HoloEmbedProvider';
 
 // HoloGraph: semantic community detection + brain-coord spatial routing (Phase 1 + 2)
 export { TraitCommunityDetector } from './TraitCommunityDetector';

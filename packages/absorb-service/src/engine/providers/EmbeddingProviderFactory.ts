@@ -26,6 +26,9 @@ import type {
  * // Default (HoloGraph structural — recommended for graph queries):
  * const p = await createEmbeddingProvider();
  *
+ * // NL semantic search — subword trigrams, no API, best offline NL recall:
+ * const p = await createEmbeddingProvider({ provider: 'holoembed' });
+ *
  * // NL semantic search (requires running Ollama server):
  * const p = await createEmbeddingProvider({ provider: 'ollama', ollamaUrl: '...' });
  *
@@ -47,6 +50,13 @@ export async function createEmbeddingProvider(
       // environments, and Paper 26 benchmarks. 384-dim, L2-normalized.
       const { StructuralEmbeddingProvider } = await import('./StructuralEmbeddingProvider');
       return new StructuralEmbeddingProvider();
+    }
+    case 'holoembed': {
+      // 768-dim: structural base + char-trigram subword blocks.
+      // Best offline NL→code recall. No API, no model download.
+      // Use when NL queries need to match symbol names without an LLM.
+      const { HoloEmbedProvider } = await import('./HoloEmbedProvider');
+      return new HoloEmbedProvider();
     }
     case 'xenova': {
       const { XenovaEmbeddingProvider } = await import('./XenovaEmbeddingProvider');

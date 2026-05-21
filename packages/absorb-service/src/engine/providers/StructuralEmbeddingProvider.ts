@@ -123,7 +123,15 @@ export class StructuralEmbeddingProvider implements EmbeddingProvider {
    * use `embedSymbol()` directly with the full ExternalSymbolDefinition.
    */
   async getEmbeddings(texts: string[]): Promise<number[][]> {
-    return texts.map(t => this._embedFromText(t));
+    return texts.map(t => Array.from(this.embedText(t)));
+  }
+
+  /**
+   * Synchronous text→vector (public) for use by HoloEmbedProvider and tests.
+   * Returns a 384-dim Float32Array (L2-normalized).
+   */
+  embedText(text: string): Float32Array {
+    return this._embedFromText(text);
   }
 
   /**
@@ -198,7 +206,7 @@ export class StructuralEmbeddingProvider implements EmbeddingProvider {
    * Embed from a text string (used by EmbeddingIndex via getEmbeddings).
    * Parses the text to extract as many structural signals as possible.
    */
-  private _embedFromText(text: string): number[] {
+  private _embedFromText(text: string): Float32Array {
     const vec = new Float32Array(DIM);
 
     // Extract file path if text contains one (EmbeddingIndex serializes as "name: signature\nfile: path")
@@ -224,7 +232,7 @@ export class StructuralEmbeddingProvider implements EmbeddingProvider {
     spreadHash(hashString(text + fp), vec, 320, 64);
 
     l2Normalize(vec);
-    return Array.from(vec);
+    return vec;
   }
 }
 

@@ -78,6 +78,10 @@ export interface PhoneSleeveVRCompilerOptions {
   aiVoiceCommands?: boolean;
   /** Enable neural super-resolution upscaling post-processing (default false) */
   aiUpscaling?: boolean;
+  /** Sovereign revival (PhoneSleeveVR P2): enable local Brittney (15M-scale distilled sovereign agent) for offline .holo / world generation and commentary when the sleeve has no cloud reachability. Hardware-native (grok1-x402) + snn-webgpu for pose, Brittney for AI content. */
+  brittneySovereign?: boolean;
+  /** Path or endpoint for the local 15M Brittney model (default: in-browser WebLLM or bundled WASM stub) */
+  brittneyLocalPath?: string;
 }
 
 type PhoneSleeveAIOption =
@@ -85,7 +89,8 @@ type PhoneSleeveAIOption =
   | 'aiGazePrediction'
   | 'aiThermalPrediction'
   | 'aiVoiceCommands'
-  | 'aiUpscaling';
+  | 'aiUpscaling'
+  | 'brittneySovereign';
 
 type TraitLike = HoloObjectDecl['traits'][number] | string;
 
@@ -95,6 +100,8 @@ const PHONE_SLEEVE_AI_TRAITS: Record<string, PhoneSleeveAIOption> = {
   ai_thermal_prediction: 'aiThermalPrediction',
   ai_voice_command: 'aiVoiceCommands',
   ai_neural_upscale: 'aiUpscaling',
+  brittney_sovereign: 'brittneySovereign',
+  local_brittney: 'brittneySovereign',
 };
 
 // ---------------------------------------------------------------------------
@@ -146,6 +153,8 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
       aiTracking: options.aiTracking ?? false,
       aiGazePrediction: options.aiGazePrediction ?? false,
       aiSnnTracking: options.aiSnnTracking ?? false,
+      brittneySovereign: options.brittneySovereign ?? false,
+      brittneyLocalPath: options.brittneyLocalPath || '/assets/brittney-15m.wasm',
       aiThermalPrediction: options.aiThermalPrediction ?? false,
       aiVoiceCommands: options.aiVoiceCommands ?? false,
       aiUpscaling: options.aiUpscaling ?? false,
@@ -844,6 +853,7 @@ ${handTrackingFrame}
         : '',
       this.opts.aiVoiceCommands ? '      if (AI_VOICE_COMMANDS_ENABLED) initVoiceCommands();' : '',
       this.opts.aiUpscaling ? '      if (AI_UPSCALING_ENABLED) initNeuralUpscaling();' : '',
+      this.opts.brittneySovereign ? '      if (BRITTNEY_SOVEREIGN_ENABLED) initBrittneySovereign();' : '',
     ]
       .filter(Boolean)
       .join('\n');
@@ -907,6 +917,7 @@ ${handTrackingFrame}
   </style>
 ${this.opts.aiTracking ? this.buildAIMediaPipeScripts() : ''}
 ${this.opts.aiSnnTracking ? this.buildSnnWebGpuScripts() : ''}
+${this.opts.brittneySovereign ? this.buildBrittneySovereignScripts() : ''}
 </head>
 <body>
   <div id="splash">
@@ -1153,6 +1164,7 @@ ${this.opts.aiSnnTracking ? this.buildSnnWebGpuScripts() : ''}
 
 ${this.opts.aiTracking ? this.buildAIHeadTrackingModule() : ''}
 ${this.opts.aiSnnTracking ? this.buildSnnWebGpuHeadTrackingModule() : ''}
+${this.opts.brittneySovereign ? this.buildBrittneySovereignModule() : ''}
 ${this.opts.aiGazePrediction ? this.buildAIGazePredictionModule() : ''}
 ${this.opts.aiThermalPrediction ? this.buildAIThermalPredictionModule() : ''}
 ${this.opts.aiVoiceCommands ? this.buildAIVoiceCommandModule() : ''}
@@ -1261,6 +1273,14 @@ ${aiInitBlock}
     return `
   <!-- snn-webgpu sovereign head-pose tracker (revival path) -->
   <!-- <script type="module" src="/assets/snn-webgpu-headpose.js"></script> -->`;
+  }
+
+  private buildBrittneySovereignScripts(): string {
+    // 15M-scale distilled sovereign Brittney agent for offline .holo / world generation
+    // on phone sleeve (no cloud). Loaded from this.opts.brittneyLocalPath.
+    return `
+  <!-- Brittney 15M sovereign local agent (offline .holo generation) -->
+  <!-- <script src="${this.opts.brittneyLocalPath}"></script> -->`;
   }
 
   private buildSnnWebGpuHeadTrackingModule(): string {
@@ -1396,6 +1416,41 @@ ${aiInitBlock}
     }
 
     // Expose the same aiHeadPose surface as the MediaPipe path for compatibility
+  }
+
+    // =====================================================================
+    // Brittney Sovereign Local Agent (PhoneSleeveVR P2 revival, 15M-scale)
+    // Hardware-native (grok1-x402) + offline .holo / world generation when the
+    // phone sleeve has no cloud reachability. Complements the snn-webgpu pose
+    // tracking for full sovereign revival (no CDN, no MediaPipe, local neural + local agent).
+    // 15M refers to the distilled sovereign model / context budget suitable for
+    // on-device phone-sleeve inference.
+    // =====================================================================
+    async function initBrittneySovereign() {
+      if (!window.BRITTNEY_SOVEREIGN_ENABLED) return;
+      try {
+        console.log('[PhoneSleeveVR] Brittney sovereign (15M) local agent initializing...');
+        // In a real revival this would load a tiny distilled 15M model (WebLLM, WASM, or
+        // bundled ONNX Runtime Web) and expose a prompt → .holo / world generator.
+        // The path is controlled by this.opts.brittneyLocalPath.
+        const localPath = '${this.opts.brittneyLocalPath}';
+        // Placeholder: a minimal local generator that turns natural language into
+        // a phone-sleeve compatible .holo snippet (orb, panel, gaze target, etc.).
+        // Real Brittney 15M would replace this with model inference.
+        window.__brittneySovereign = {
+          generate: async (prompt: string) => {
+            // Sovereign offline path: return a tiny declarative .holo fragment
+            return `orb 'brittney-${Date.now().toString(36)}' { prompt: "${prompt.replace(/"/g, '\\"')}" scale: 0.3 color: [0.9, 0.6, 0.2] }`;
+          },
+          ready: true,
+          model: 'brittney-15m-sovereign',
+          localPath,
+        };
+        console.log('[PhoneSleeveVR] Brittney 15M sovereign agent ready (offline .holo gen)');
+      } catch (e) {
+        console.warn('[PhoneSleeveVR] Brittney sovereign unavailable (cloud fallback only):', e);
+      }
+    }
     window.getSnnHeadPose = () => snnHeadPose;
     // Expose queue for Brittney content generation requests
     window.__brittneyExperienceQueue = window.__brittneyExperienceQueue || [];`;

@@ -3,6 +3,7 @@
  *
  * Decouples EmbeddingIndex from any backend. Priority order:
  *   - structural (DEFAULT — HoloGraph native, zero-dep, zero-latency, no API key)
+ *   - holoembed  (768-dim: structural + char-trigram subword, best NL recall, no API)
  *   - ollama     (local server, semantic NL search, requires OLLAMA_URL)
  *   - xenova     (WASM local semantics, optional dep)
  *   - openai     (API, best NL quality, requires OPENAI_API_KEY)
@@ -31,7 +32,7 @@ export interface EmbeddingProvider {
 // FACTORY OPTIONS
 // =============================================================================
 
-export type EmbeddingProviderName = 'xenova' | 'openai' | 'ollama' | 'structural';
+export type EmbeddingProviderName = 'xenova' | 'openai' | 'ollama' | 'structural' | 'holoembed';
 
 export interface EmbeddingProviderOptions {
   /**
