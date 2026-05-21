@@ -1440,7 +1440,7 @@ ${aiInitBlock}
         window.__brittneySovereign = {
           generate: async (prompt: string) => {
             // Sovereign offline path: return a tiny declarative .holo fragment
-            return `orb 'brittney-${Date.now().toString(36)}' { prompt: "${prompt.replace(/"/g, '\\"')}" scale: 0.3 color: [0.9, 0.6, 0.2] }`;
+            return \`orb 'brittney-${Date.now().toString(36)}' { prompt: "${prompt.replace(/"/g, '\\"')}" scale: 0.3 color: [0.9, 0.6, 0.2] }\`;
           },
           ready: true,
           model: 'brittney-15m-sovereign',
