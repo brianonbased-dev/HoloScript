@@ -15,6 +15,7 @@
  *   - StressTests.comprehensive.test.ts          (owner: core/perf team)
  *   - RuntimeOptimization.test.ts                (owner: runtime)
  *   - trait-commutativity.test.ts                (owner: traits)
+ *   - mockadapter-static-properties.test.ts      (owner: traits)
  *   - SynthEngine.test.ts + EmbeddingTrait.test.ts (owner: audio/synth)
  *   - HoloMapPerformanceBenchmark.test.ts        (owner: holomap)
  *   - paper-4-sandbox-bench.test.ts              (owner: paper-4)
