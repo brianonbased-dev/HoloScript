@@ -1,0 +1,28 @@
+{
+  "name": "@holoscript/aerospace-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Aerospace simulation plugin with orbital trajectory, propulsion, re-entry thermal, structural-load harnesses, and CAEL receipts.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "holoscript",
+    "plugin",
+    "aerospace",
+    "orbital",
+    "reentry",
+    "thermal",
+    "structural"
+  ],
+  "author": "brianonbased-dev",
+  "license": "MIT",
+  "dependencies": {
+    "@holoscript/core": "workspace:*",
+    "@holoscript/engine": "workspace:*"
+  }
+}
