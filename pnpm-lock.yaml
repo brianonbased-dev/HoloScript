@@ -1225,6 +1225,31 @@ importers:
         specifier: ^4.1.5
         version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@7.3.2)
 
+  packages/holoembed:
+    dependencies:
+      '@holoscript/config':
+        specifier: workspace:*
+        version: link:../config
+      '@holoscript/snn-webgpu':
+        specifier: workspace:^
+        version: link:../snn-webgpu
+    devDependencies:
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.10.13
+      '@webgpu/types':
+        specifier: '>=0.1.40'
+        version: 0.1.69
+      tsup:
+        specifier: ^8.0.1
+        version: 8.5.1(postcss@8.5.9)(typescript@5.9.3)
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@7.3.2)
+
   packages/hologram-worker:
     dependencies:
       '@ffmpeg-installer/ffmpeg':
