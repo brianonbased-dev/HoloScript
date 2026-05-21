@@ -8,8 +8,12 @@ Key packages from plan:
 
 Blocker identified: core package tsup CJS target broken, preventing clean WASM pipeline for Engine Core.
 
-Next: fix tsup config or entry points in packages/core.
+**2026-05-21 Update (room marathon continuation)**:
+- Root cause: misplaced `export const WorldPhysicsConfig` inside the `PHYSICS_TRAIT_MAP` object literal in `src/compiler/AndroidXRTraitDispatch.ts` (leftover from earlier Earth/ALIEN physics surface work).
+- Fix: moved to proper top-level module export (commit b212c8b3c).
+- Result: `npx tsup --config tsup.config.ts` now succeeds for CJS (full build success, all chunks emitted).
+- Impact: Engine Core WASM pipeline for Adaptive Platform Layers is now unblocked. The shared Rust/WASM core can proceed to the next slices in the plan (WIT audit, next Engine Core package integration, desktop parity, etc.).
 
-This task verified the current state of the plan.
+This removes the primary practical blocker recorded in the original verification.
 
 
