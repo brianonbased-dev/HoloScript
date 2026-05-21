@@ -415,6 +415,32 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
     ],
     tags: ['holoshell', 'device', 'safety', 'physical-world', 'hololand', 'twin-earth'],
   },
+  {
+    capability: 'build-custody',
+    description:
+      'Build custody receipts — prove who built what, from which source, under what hardware/MCP conditions, with what authority.',
+    receiptType: 'HoloShellBuildCustodyReceipt',
+    module: 'holoshell-build-custody-receipt',
+    exportName: 'HoloShellBuildCustodyReceipt',
+    validateFn: 'validateHoloShellBuildCustodyReceipt',
+    cloneFn: 'cloneHoloShellBuildCustodyReceipt',
+    isSupportedFn: undefined,
+    subjects: ['build', 'custody', 'authority', 'mcp-health', 'hardware-context'],
+    tags: ['holoshell', 'build', 'custody', 'hololand'],
+  },
+  {
+    capability: 'world-build-ready',
+    description:
+      'World build ready tokens — prove all gates passed before a non-developer or agent is authorized to build and publish a HoloLand world.',
+    receiptType: 'HoloShellWorldBuildReadyToken',
+    module: 'holoshell-world-build-ready-token',
+    exportName: 'HoloShellWorldBuildReadyToken',
+    validateFn: 'validateHoloShellWorldBuildReadyToken',
+    cloneFn: 'cloneHoloShellWorldBuildReadyToken',
+    isSupportedFn: undefined,
+    subjects: ['local-source', 'hardware-reality', 'build-custody', 'visual-witness', 'codebase-graph-trust'],
+    tags: ['holoshell', 'build', 'ready', 'hololand', 'gates'],
+  },
 
   // ── Structural Receipts ──
   {
@@ -530,9 +556,9 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
     receiptType: 'BoardWebhookEnvelope',
     module: 'webhooks',
     exportName: 'BoardWebhookEnvelope',
-    validateFn: 'validateBoardWebhookSubscription',
-    cloneFn: undefined,
-    isSupportedFn: undefined,
+    validateFn: 'validateBoardWebhookEnvelope',
+    cloneFn: 'cloneBoardWebhookEnvelope',
+    isSupportedFn: 'isSupportedBoardWebhookEventType',
     subjects: ['delivery', 'signing', 'retry'],
     tags: ['webhook', 'notification'],
   },

@@ -419,6 +419,10 @@ export function isSupportedHoloShellLegacyLaneColor(value: string): value is Hol
   return isOneOf(HOLOSHELL_LEGACY_LANE_COLORS, value);
 }
 
+export function isSupportedHoloShellLegacyReceiptAction(value: string): value is HoloShellLegacyReceiptAction {
+  return isOneOf(HOLOSHELL_LEGACY_RECEIPT_ACTIONS, value);
+}
+
 export function validateHoloShellLegacyAppRealitySnapshot(
   snapshot: HoloShellLegacyAppRealitySnapshot
 ): string[] {

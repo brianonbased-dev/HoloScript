@@ -281,6 +281,35 @@ export function nextBoardWebhookRetry(
   };
 }
 
+export function validateBoardWebhookEnvelope(envelope: BoardWebhookEnvelope): string[] {
+  const errors: string[] = [];
+  if (!envelope.id) errors.push('BoardWebhookEnvelope.id is required.');
+  if (!envelope.type) errors.push('BoardWebhookEnvelope.type is required.');
+  if (!envelope.timestamp) errors.push('BoardWebhookEnvelope.timestamp is required.');
+  if (!envelope.teamId) errors.push('BoardWebhookEnvelope.teamId is required.');
+  if (!(BOARD_WEBHOOK_EVENT_TYPES as readonly string[]).includes(envelope.type)) {
+    errors.push(`BoardWebhookEnvelope.type is unsupported: ${String(envelope.type)}.`);
+  }
+  return errors;
+}
+
+export function cloneBoardWebhookEnvelope<TPayload = Record<string, unknown>>(
+  envelope: BoardWebhookEnvelope<TPayload>
+): BoardWebhookEnvelope<TPayload> {
+  return {
+    ...envelope,
+    payload:
+      envelope.payload && typeof envelope.payload === 'object' && !Array.isArray(envelope.payload)
+        ? { ...envelope.payload } as TPayload
+        : envelope.payload,
+    fetchById: envelope.fetchById ? { ...envelope.fetchById } : undefined,
+  };
+}
+
+export function isSupportedBoardWebhookEventType(value: string): value is BoardWebhookEventType {
+  return (BOARD_WEBHOOK_EVENT_TYPES as readonly string[]).includes(value);
+}
+
 export function recordBoardWebhookDeliveryFailure(
   delivery: BoardWebhookDelivery,
   subscription: BoardWebhookSubscription,

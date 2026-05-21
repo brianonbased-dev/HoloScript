@@ -250,6 +250,7 @@ export {
   type HoloShellLegacyAppRealitySnapshot,
   isSupportedHoloShellLegacyProcessRole,
   isSupportedHoloShellLegacyLaneColor,
+  isSupportedHoloShellLegacyReceiptAction,
   validateHoloShellLegacyAppRealitySnapshot,
   cloneHoloShellLegacyAppRealitySnapshot,
 } from './holoshell-legacy-app-reality';
@@ -413,6 +414,52 @@ export {
 } from './holoshell-cli-receipts';
 
 export {
+  // HoloShell Brittney Action Receipts
+  BRITTNEY_FIELD_ACTION_KINDS,
+  type BrittneyFieldActionKind,
+  BRITTNEY_FIELD_PERMISSION_ENVELOPES,
+  type BrittneyFieldPermissionEnvelope,
+  BRITTNEY_FIELD_OUTCOMES,
+  type BrittneyFieldOutcome,
+  BRITTNEY_FIELD_REPAIR_KINDS,
+  type BrittneyFieldRepairKind,
+  BRITTNEY_FIELD_SOURCE_KINDS,
+  type BrittneyFieldSourceKind,
+  BRITTNEY_TIMELINE_VISIBILITIES,
+  type BrittneyTimelineVisibility,
+  BRITTNEY_FIELD_CHECK_KINDS,
+  type BrittneyFieldCheckKind,
+  type BrittneyFieldSourceContext,
+  type BrittneyFieldPermissionEnvelopeData,
+  type BrittneyFieldTimelineEntry,
+  type BrittneyFieldCheck,
+  type BrittneyFieldRepairPath,
+  type BrittneyFieldActionReceipt,
+  type BrittneyFieldReplayReceipt,
+  type HoloShellBrittneyActionReceiptPack,
+  isSupportedBrittneyFieldActionKind,
+  isSupportedBrittneyFieldPermissionEnvelope,
+  isSupportedBrittneyFieldOutcome,
+  isSupportedBrittneyFieldRepairKind,
+  isSupportedBrittneyFieldSourceKind,
+  isSupportedBrittneyTimelineVisibility,
+  validateBrittneyFieldSourceContext,
+  validateBrittneyFieldPermissionEnvelopeData,
+  validateBrittneyFieldTimelineEntry,
+  validateBrittneyFieldRepairPath,
+  validateBrittneyFieldActionReceipt,
+  validateBrittneyFieldReplayReceipt,
+  validateHoloShellBrittneyActionReceiptPack,
+  cloneBrittneyFieldSourceContext,
+  cloneBrittneyFieldPermissionEnvelopeData,
+  cloneBrittneyFieldTimelineEntry,
+  cloneBrittneyFieldRepairPath,
+  cloneBrittneyFieldActionReceipt,
+  cloneBrittneyFieldReplayReceipt,
+  cloneHoloShellBrittneyActionReceiptPack,
+} from './holoshell-brittney-action-receipts';
+
+export {
   // HoloShell Source-Native Readiness Receipt (task_1778739828973_uirq)
   READINESS_OUTCOMES,
   type ReadinessOutcome,
@@ -429,6 +476,32 @@ export {
   isSupportedReadinessStatus,
   cloneHoloShellReadinessReceipt,
 } from './holoshell-readiness-receipt';
+
+export {
+  // HoloShell Build Custody Receipt
+  HOLOSHELL_BUILD_CUSTODY_RECEIPT_VERSION,
+  CUSTODY_SOURCES,
+  type CustodySource,
+  type BuildCustodyRecord,
+  type HoloShellBuildCustodyReceipt,
+  type BuildCustodyInput,
+  validateHoloShellBuildCustodyReceipt,
+  cloneHoloShellBuildCustodyReceipt,
+  createHoloShellBuildCustodyReceipt,
+} from './holoshell-build-custody-receipt';
+
+export {
+  // HoloShell World Build Ready Token
+  HOLOSHELL_WORLD_BUILD_READY_TOKEN_VERSION,
+  WORLD_BUILD_GATE_IDS,
+  type WorldBuildGateId,
+  type WorldBuildGateResult,
+  type HoloShellWorldBuildReadyToken,
+  type BuildWorldReadyTokenInput,
+  validateHoloShellWorldBuildReadyToken,
+  cloneHoloShellWorldBuildReadyToken,
+  createHoloShellWorldBuildReadyToken,
+} from './holoshell-world-build-ready-token';
 
 export {
   // HoloShell Local Codebase Snapshot Receipt
@@ -1087,6 +1160,9 @@ export {
   type BoardWebhookRequest,
   type BoardWebhookDelivery,
   validateBoardWebhookSubscription,
+  validateBoardWebhookEnvelope,
+  cloneBoardWebhookEnvelope,
+  isSupportedBoardWebhookEventType,
   createBoardWebhookEnvelope,
   canonicalBoardWebhookBody,
   shouldDeliverBoardWebhook,
