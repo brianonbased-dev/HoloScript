@@ -187,6 +187,44 @@ scripts/archive/**/*.d.ts
 # Generated validation/tm report (run-time output)
 scripts/tm-traits-validation-report.json
 
+# More root debris not covered by /prefix patterns above
+/full-test-results*.txt
+/full_framework_test*.txt
+/git_status*.txt
+/holomesh-board*.json
+/mesh-*.txt
+/out.json
+/nul
+/get_task.mjs
+/mark_task_done.mjs
+/mcp-test-client.mjs
+/mcp_config.json
+/migration_map.json
+/migrate_*.py
+/ls-files.txt
+
+# tsup bundler temp files (generated on every build, hash in name)
+packages/*/tsup.config.bundled_*.mjs
+packages/*/tsup.config.d.ts
+
+# Generated package declaration files
+packages/cli/src/holoscript-subpaths.d.ts
+packages/cli/src/sdk-schema.d.ts
+packages/ai-validator/tsup.config.d.ts
+
+# Package-level error/build dumps
+packages/absorb-service/*.txt
+packages/absorb-service/err.txt
+packages/core/nul
+packages/core/scripts/archive/*.js
+packages/core/scripts/merge-enhanced-datasets.d.ts
+packages/core/scripts/merge-enhanced-datasets.js
+packages/core/scripts/regenerate-mcp-jsonl.d.ts
+packages/core/scripts/regenerate-mcp-jsonl.js
+packages/core/scripts/validate-dataset.d.ts
+packages/core/scripts/validate-dataset.js
+packages/adapter-postgres/tsup.config.bundled_*.mjs
+
 # Editor directories and files
 .idea
 .vscode
