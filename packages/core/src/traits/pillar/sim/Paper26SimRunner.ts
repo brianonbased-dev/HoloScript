@@ -49,6 +49,9 @@
  *   --knowledge-push    Push snapshots to MCP knowledge store (default: false)
  *   --knowledge-url URL MCP orchestrator base URL
  *   --knowledge-key KEY API key for MCP orchestrator
+ *   --holomesh-push     Push metrics to HoloMesh dashboard (default: false)
+ *   --holomesh-url URL  HoloMesh base URL (default: https://sim.holoscript.studio)
+ *   --holomesh-key KEY  Bearer token matching SIM_PUSH_TOKEN (falls back to SIM_PUSH_TOKEN / HOLOSCRIPT_API_KEY env)
  *
  * @module
  */
@@ -84,6 +87,9 @@ const { values: args } = parseArgs({
     'knowledge-push':  { type: 'boolean', default: false },
     'knowledge-url':   { type: 'string', default: 'https://mcp-orchestrator-production-45f9.up.railway.app' },
     'knowledge-key':   { type: 'string', default: '' },
+    'holomesh-push':   { type: 'boolean', default: false },
+    'holomesh-url':    { type: 'string', default: 'https://sim.holoscript.studio' },
+    'holomesh-key':    { type: 'string', default: '' },
   },
 });
 
@@ -99,6 +105,9 @@ const RUN_LABEL        = args['label']!;
 const KNOWLEDGE_PUSH   = args['knowledge-push']!;
 const KNOWLEDGE_URL    = args['knowledge-url']!;
 const KNOWLEDGE_KEY    = args['knowledge-key'] || process.env['HOLOSCRIPT_API_KEY'] || '';
+const HOLOMESH_PUSH    = args['holomesh-push']!;
+const HOLOMESH_URL     = args['holomesh-url']!;
+const HOLOMESH_KEY     = args['holomesh-key'] || process.env['SIM_PUSH_TOKEN'] || process.env['HOLOSCRIPT_API_KEY'] || '';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -356,6 +365,46 @@ async function pushToKnowledge(tick: number): Promise<void> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// HoloMesh dashboard push  (POST /sim/paper26/api/push)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function pushToHoloMesh(tick: number, running: boolean): Promise<void> {
+  if (!HOLOMESH_PUSH) return;
+  const pm = POPULATION_METRICS.at(-1);
+  if (!pm) return;
+  try {
+    const body = JSON.stringify({
+      metrics:     pm,
+      label:       RUN_LABEL,
+      agents:      NUM_AGENTS,
+      targetTicks: OUTER_TICKS,
+      running,
+      elapsedMs:   Date.now() - START_TIME_MS,
+      config: {
+        innerFreq:      INNER_FREQ,
+        latentDim:      LATENT_DIM,
+        sycophancyFrac: SYCO_FRAC,
+      },
+    });
+    const resp = await fetch(`${HOLOMESH_URL}/sim/paper26/api/push`, {
+      method:  'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(HOLOMESH_KEY ? { 'Authorization': `Bearer ${HOLOMESH_KEY}` } : {}),
+      },
+      body,
+    });
+    if (!resp.ok) {
+      console.warn(`[holomesh] push failed: ${resp.status} ${resp.statusText}`);
+    } else {
+      console.log(`[holomesh] tick=${tick} pushed → ${HOLOMESH_URL}`);
+    }
+  } catch (e) {
+    console.warn('[holomesh] push error (non-fatal):', (e as Error).message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SSE broadcast
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -553,6 +602,7 @@ async function runSimulation(): Promise<void> {
     if (outerTick % CHECKPOINT_EVERY === 0) {
       writeCheckpoint('auto');
       await pushToKnowledge(outerTick);
+      await pushToHoloMesh(outerTick, true);
     }
 
     // Yield to event loop every 10 ticks so HTTP stays responsive
@@ -564,6 +614,7 @@ async function runSimulation(): Promise<void> {
   SIM_RUNNING = false;
   writeCheckpoint('final');
   await pushToKnowledge(OUTER_TICKS);
+  await pushToHoloMesh(OUTER_TICKS, false);
 
   console.log('[sim] COMPLETE');
   const final = POPULATION_METRICS.at(-1)!;

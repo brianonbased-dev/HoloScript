@@ -26,7 +26,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/teams" className="hover:text-mesh-purple-bright transition-colors">
                 Teams
               </Link>
-              <a
+              <Link href="/families" className="hover:text-mesh-purple-bright transition-colors">
+                Families
+              </Link>
+              <Link href="/sim/paper26" className="flex items-center gap-1.5 hover:text-mesh-green-bright transition-colors">
+                <span className="text-mesh-green-bright text-[8px] leading-none">●</span>
+                <span>Sim</span>
+              </Link>
+              <
                 href="https://holoscript.net"
                 target="_blank"
                 rel="noopener noreferrer"

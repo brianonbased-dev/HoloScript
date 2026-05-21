@@ -239,12 +239,18 @@ Write-Host "`nStarting simulation (nohup)..." -ForegroundColor Cyan
 $envPrefix  = if ($AblationEnv) { "$AblationEnv " } else { '' }
 $apiKey     = (Get-Content "$repoRoot\.env" -ErrorAction SilentlyContinue | Select-String 'HOLOSCRIPT_API_KEY').ToString() -replace '.*=',''
 $apiKey     = $apiKey.Trim()
+$simPushToken = (Get-Content "$repoRoot\.env" -ErrorAction SilentlyContinue | Select-String 'SIM_PUSH_TOKEN').ToString() -replace '.*=',''
+$simPushToken = $simPushToken.Trim()
+# Prefer SIM_PUSH_TOKEN for the HoloMesh push; fall back to HOLOSCRIPT_API_KEY
+$holoMeshKey = if ($simPushToken) { $simPushToken } else { $apiKey }
 
 $remoteCmd = @(
     "cd /root/holoscript-core",
     "nohup $($envPrefix)npx tsx src/traits/pillar/sim/Paper26SimRunner.ts",
     "$SimArgs --port $MetricsPort --label `"$Label`" --checkpoint-dir /root/sim-checkpoints",
     $(if ($apiKey) { "--knowledge-push --knowledge-key `"$apiKey`"" } else { '' }),
+    "--holomesh-push --holomesh-url https://sim.holoscript.studio",
+    $(if ($holoMeshKey) { "--holomesh-key `"$holoMeshKey`"" } else { '' }),
     "> /root/sim.log 2>&1 &",
     "echo `$!" # print PID
 ) -join ' '
