@@ -86,6 +86,7 @@
     "docs:api:watch": "typedoc --watch",
     "docs:api:json": "typedoc --json docs/api/api.json",
     "audit:red-flags": "node scripts/check-red-flags.mjs",
+    "audit:domain-plugin-receipts": "node scripts/audit-domain-plugin-receipts.mjs",
     "docs:roadmap:drift": "node scripts/check-roadmap-drift.mjs",
     "docs:counts:drift": "node scripts/check-doc-count-drift.mjs",
     "check:tropical-mentions": "node scripts/check-tropical-mentions.mjs",
