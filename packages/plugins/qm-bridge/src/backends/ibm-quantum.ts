@@ -447,8 +447,16 @@ export class IBMQuantumBackend implements QmSolver {
       this.config.scriptPath ??
       new URL('../../../../../../scripts/quantum_execute.py', import.meta.url).pathname;
 
+    // Prefer an explicit QISKIT_PYTHON env override; fall back to platform
+    // defaults. On Windows, Qiskit 2.x installs under Python 3.14 at
+    // C:\Python314\python.exe while the system `python3` alias may point
+    // to a different (older) installation that lacks qiskit.
+    const pythonExe =
+      process.env.QISKIT_PYTHON ??
+      (process.platform === 'win32' ? 'C:\\Python314\\python.exe' : 'python3');
+
     const { stdout, stderr } = await execFileAsync(
-      'python3',
+      pythonExe,
       [scriptPath, JSON.stringify(input)],
       { maxBuffer: 10 * 1024 * 1024 },
     );

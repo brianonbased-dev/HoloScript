@@ -94,12 +94,15 @@ def run_vqe(params: dict[str, Any]) -> dict[str, Any]:
     # -----------------------------------------------------------------------
     # Hamiltonian
     # -----------------------------------------------------------------------
-    # H₂ STO-3G Hamiltonian (exact, 4 qubits).
+    # H₂ STO-3G Hamiltonian (Kandala 2017 two-qubit symmetry-reduced form).
     # Reference: Kandala et al. Nature 549, 242–246 (2017).
     is_h2 = len(atoms) == 2 and all(a["symbol"] == "H" for a in atoms)
 
     if is_h2:
-        num_qubits = 4
+        # Two-qubit Z2-reduced H2/STO-3G at 0.735 Å bond distance.
+        # Exact minimum eigenvalue: −1.8573 Ha (verified numerically 2026-05-21).
+        # Note: the full 4-qubit STO-3G FCI value is −1.1372 Ha (different basis).
+        num_qubits = 2
         hamiltonian = SparsePauliOp.from_list([
             ("II", -1.0523732),
             ("IZ",  0.3979374),
@@ -123,40 +126,55 @@ def run_vqe(params: dict[str, Any]) -> dict[str, Any]:
     estimator = StatevectorEstimator()
 
     num_params: int = ansatz.num_parameters
-    theta: np.ndarray = np.random.uniform(-np.pi, np.pi, num_params)
     best_energy = float("inf")
     converged = False
 
-    # SPSA hyper-parameters (Spall, 1998)
-    a_coeff, c_coeff = 0.1, 0.1
-    iterations = min(max_iterations, 100)  # cap for prototype speed
-
     t0 = time.monotonic()
 
-    for k in range(iterations):
-        ck = c_coeff / (k + 1) ** 0.16
-        delta: np.ndarray = np.random.choice([-1, 1], size=num_params).astype(float)
+    def _energy(theta_vec: np.ndarray) -> float:
+        pub = (ansatz, [hamiltonian], [theta_vec])
+        return float(estimator.run([pub]).result()[0].data.evs)
 
-        theta_plus = theta + ck * delta
-        theta_minus = theta - ck * delta
+    if execution_mode == "aer":
+        # Noiseless simulator: COBYLA converges in ~100 evals (no shot noise).
+        from scipy.optimize import minimize as _minimize  # type: ignore[import-untyped]
+        theta0 = np.zeros(num_params)
+        res = _minimize(
+            _energy,
+            theta0,
+            method="COBYLA",
+            options={"maxiter": min(max_iterations, 500), "rhobeg": 0.5},
+        )
+        best_energy = float(res.fun)
+        converged = bool(res.success)
+        iterations = int(res.nfev)
+    else:
+        # Real hardware / shot-based: SPSA handles measurement noise.
+        a_coeff, c_coeff = 0.1, 0.1
+        iterations = min(max_iterations, 300)
+        theta: np.ndarray = np.random.uniform(-np.pi, np.pi, num_params)
 
-        pub_plus = (ansatz, [hamiltonian], [theta_plus])
-        pub_minus = (ansatz, [hamiltonian], [theta_minus])
+        for k in range(iterations):
+            ck = c_coeff / (k + 1) ** 0.16
+            delta: np.ndarray = np.random.choice([-1, 1], size=num_params).astype(float)
 
-        e_plus = float(estimator.run([pub_plus]).result()[0].data.evs)
-        e_minus = float(estimator.run([pub_minus]).result()[0].data.evs)
+            theta_plus = theta + ck * delta
+            theta_minus = theta - ck * delta
 
-        gradient = (e_plus - e_minus) / (2 * ck)
-        ak = a_coeff / (k + 1 + 10) ** 0.6
-        theta -= ak * gradient * delta
+            e_plus = _energy(theta_plus)
+            e_minus = _energy(theta_minus)
 
-        current_energy = min(e_plus, e_minus)
-        if current_energy < best_energy:
-            best_energy = current_energy
+            gradient = (e_plus - e_minus) / (2 * ck)
+            ak = a_coeff / (k + 1 + 10) ** 0.6
+            theta -= ak * gradient * delta
 
-        if abs(gradient) < 1e-4:
-            converged = True
-            break
+            current_energy = min(e_plus, e_minus)
+            if current_energy < best_energy:
+                best_energy = current_energy
+
+            if abs(gradient) < 1e-4:
+                converged = True
+                break
 
     wall_time = time.monotonic() - t0
 
