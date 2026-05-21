@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { parseHolo, parseHoloStrict } from './HoloCompositionParser';
 import { generateHoloSource } from './HoloCompositionGenerator';
 
@@ -621,6 +622,23 @@ describe('HoloCompositionParser', () => {
       expect(result.ast?.templates).toHaveLength(1);
       expect(result.ast?.spatialGroups).toHaveLength(1);
       expect(result.ast?.logic).toBeDefined();
+    });
+
+    it('parses WebGPU rigid-body example', () => {
+      const source = readFileSync(
+        new URL(
+          '../../../../examples/webgpu-compute/gpu-physics-rigid-body.holo',
+          import.meta.url
+        ),
+        'utf8'
+      );
+
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      expect(result.ast?.name).toBe('GPURigidBodyPhysics');
+      expect(result.ast?.domainBlocks?.some((block) => block.keyword === 'shader')).toBe(true);
+      expect(result.ast?.domainBlocks?.some((block) => block.keyword === 'buffer')).toBe(true);
     });
   });
 
