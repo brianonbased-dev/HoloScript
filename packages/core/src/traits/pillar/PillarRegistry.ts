@@ -383,3 +383,28 @@ export const pillarRegistryHandler: TraitHandler<PillarRegistryConfig> = {
     }
   },
 };
+
+/**
+ * Live stats from a node with pillarRegistryHandler attached.
+ * Provides the slice-count + diversity data required by Paper 26 §5–6
+ * (and the pillar-slice-scope memo) for GRPO / WorldModelReceipt experiments.
+ */
+export function getPillarSliceStats(node: HSPlusNode): {
+  totalSlices: number;
+  uniqueSlices: number;
+  diversityRatio: number;
+} {
+  const state = (node as any).__pillarRegistryState as
+    | { slice_count?: number; unique_fingerprints?: Set<string> }
+    | undefined;
+
+  if (!state) {
+    return { totalSlices: 0, uniqueSlices: 0, diversityRatio: 0 };
+  }
+
+  const total = state.slice_count ?? 0;
+  const unique = state.unique_fingerprints ? state.unique_fingerprints.size : 0;
+  const ratio = total > 0 ? unique / total : 0;
+
+  return { totalSlices: total, uniqueSlices: unique, diversityRatio: ratio };
+}
