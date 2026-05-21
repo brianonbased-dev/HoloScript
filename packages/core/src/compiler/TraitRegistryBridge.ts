@@ -27,7 +27,8 @@ import {
 import {
   getTraitMapping as getVisionOSTrait,
   generateTraitCode as generateVisionOSCode,
-} from './VisionOSTraitMap'; // may not exist yet — stub for now
+  listAllTraits as listVisionOSTraits,
+} from './VisionOSTraitMap';
 
 // Future: import from core trait registry when it is unified
 // import { getCoreTrait, listCoreTraits } from '../traits/registry';
@@ -65,14 +66,19 @@ export function queryTrait(name: string, opts: TraitQueryOptions = {}): TraitInf
     }
   }
 
-  // VisionOS path (partial — we are closing gaps in this audit cycle)
+  // VisionOS path (real map wired; closes CG-005 / scout TODO o17q)
   if (target === 'visionos') {
-    // TODO: wire the real VisionOSTraitMap once the remaining gaps (hand/eye, usdz, etc.) are closed
-    return {
-      name,
-      exists: false,
-      sourceMap: 'VisionOSTraitMap (stub — see CG-005 closure work)',
-    };
+    const map = getVisionOSTrait(name);
+    if (map) {
+      return {
+        name,
+        exists: true,
+        level: map.level,
+        codegen: opts.includeCodegen ? map.generate?.(name, {}) : undefined,
+        sourceMap: 'VisionOSTraitMap',
+      };
+    }
+    return { name, exists: false, sourceMap: 'VisionOSTraitMap' };
   }
 
   // Core / generic path (future unified registry)
@@ -101,8 +107,10 @@ export function generateTraitForTarget(
   }
 
   if (target === 'visionos') {
-    // TODO: real implementation once VisionOSTraitMap is complete
-    return [`// @${name} — visionos mapping in progress (CG-005)`];
+    // real implementation wired (closes scout TODO 8zl5)
+    return generateVisionOSCode(name, name, config) ?? [
+      `// @${name} not yet mapped for visionos (see VisionOSTraitMap)`,
+    ];
   }
 
   return [`// @${name} — no codegen path registered for target "${target}" yet`];
@@ -122,6 +130,10 @@ export function listTraitsForTarget(target: string): string[] {
     ];
   }
 
+  if (target === 'visionos') {
+    return listVisionOSTraits ? listVisionOSTraits() : [];
+  }
+
   return [];
 }
 
@@ -130,4 +142,7 @@ export function listTraitsForTarget(target: string): string[] {
 export {
   getAndroidXRTrait,
   generateAndroidXRCode,
+  getVisionOSTrait,
+  generateVisionOSCode,
+  listVisionOSTraits,
 };
