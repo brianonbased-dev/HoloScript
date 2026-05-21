@@ -48,6 +48,7 @@ export type PanelTab =
   | 'bus'
   | 'presets'
   | 'agent'
+  | 'board'
   | 'character'
   | 'models'
   | 'templates'

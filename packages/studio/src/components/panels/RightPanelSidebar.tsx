@@ -64,6 +64,7 @@ import { AbsorbPanel } from './AbsorbPanel';
 import { BountiesPanel } from './BountiesPanel';
 import { InboxPanel } from './InboxPanel';
 import { ModePanel } from './ModePanel';
+import { BoardPanel } from './BoardPanel';
 import { useDomainFilter, type DomainProfile } from '../../hooks/useDomainFilter';
 import type { EffectASTNode } from '@holoscript/core';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
@@ -208,6 +209,7 @@ const TAB_CATEGORIES: TabCategory[] = [
     tabs: [
       { id: 'fleet', icon: '🚀', label: 'Fleet', title: 'Agents + GPUs + full compute estate (presence + hardware telemetry)' },
       { id: 'inbox', icon: '📬', label: 'Inbox', title: 'DMs, handoffs, mentions with claim buttons' },
+      { id: 'board', icon: '📋', label: 'Board', title: 'Team task board — claimed, open, blocked, done with claim/done/unclaim actions (HoloMesh data, Studio surface)' },
       { id: 'mode', icon: '🔄', label: 'Mode', title: 'Team mode switcher (BUILD / AUDIT / RESEARCH / REVIEW)' },
       { id: 'identity', icon: '🪪', label: 'Identity', title: 'Wallet, tier, reputation, active seat — always visible trust surface' },
       { id: 'knowledge', icon: '📚', label: 'Knowledge', title: 'Search the team knowledge store — content, domains, confidence, pinned entries' },
@@ -386,6 +388,7 @@ export function RightPanelSidebar({
             {activeTab === 'runtimeTier' && <RuntimeTierPanel />}
             {activeTab === 'fleet' && <FleetPanel />}
             {activeTab === 'inbox' && <InboxPanel />}
+            {activeTab === 'board' && <BoardPanel />}
             {activeTab === 'mode' && <ModePanel />}
             {activeTab === 'identity' && <IdentityPanel />}
             {activeTab === 'knowledge' && <KnowledgePanel />}
