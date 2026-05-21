@@ -18,6 +18,7 @@
 
 import type { TraitHandler, TraitContext, TraitEvent, HSPlusNode } from './TraitTypes';
 import { extractPayload } from './TraitTypes';
+import type { Pillar, PillarContext, PillarSlice } from './pillar/PillarRegistry';
 
 // =============================================================================
 // TYPES
@@ -113,6 +114,25 @@ export const autonomousAgendaHandler: TraitHandler<AutonomousAgendaConfig> = {
       dailyBudgetUsd: config.daily_budget_usd,
       tickIntervalMs: config.tick_interval_ms,
     });
+
+    // PSF-3 WIRE (D.040): register AutonomousAgenda as Pillar axis (behavioral + structural)
+    const autonomousAgendaPillar: Pillar = {
+      id: 'autonomous_agenda',
+      domain: 'agent',
+      axis_vocabulary: ['action_priority', 'budget_pressure'] as const,
+      generate(ctx: PillarContext): PillarSlice {
+        const meta = (ctx.metadata || {}) as Record<string, number>;
+        return {
+          axis_1_id: 'action_priority',
+          axis_2_id: 'budget_pressure',
+          pos_1: meta.action_priority ?? 0.6,
+          pos_2: meta.budget_pressure ?? 0.3,
+          pillar_id: this.id,
+          pillar_domain: this.domain,
+        };
+      },
+    };
+    context.emit?.('pillar:register', { pillar: autonomousAgendaPillar });
   },
 
   onDetach(node) {

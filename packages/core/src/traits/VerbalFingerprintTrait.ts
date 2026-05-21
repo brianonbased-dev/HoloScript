@@ -20,6 +20,7 @@
 
 import type { TraitHandler, TraitContext, TraitEvent, HSPlusNode } from './TraitTypes';
 import { extractPayload } from './TraitTypes';
+import type { Pillar, PillarContext, PillarSlice } from './pillar/PillarRegistry';
 
 // =============================================================================
 // TYPES
@@ -157,6 +158,27 @@ export const verbalFingerprintHandler: TraitHandler<VerbalFingerprintConfig> = {
       enforce: config.enforce,
       rollingWindow: config.rolling_window,
     });
+
+    // PSF-3 WIRE (D.040): register VerbalFingerprint as Pillar axis (behavioral + structural)
+    // Dual-value: stylistic constraint now also generates coordinate slices for training corpus.
+    const verbalFingerprintPillar: Pillar = {
+      id: 'verbal_fingerprint',
+      domain: 'language',
+      axis_vocabulary: ['style_consistency', 'fingerprint_stability'] as const,
+      generate(ctx: PillarContext): PillarSlice {
+        const meta = (ctx.metadata || {}) as Record<string, number>;
+        // Default high consistency for skeleton; production reads rollingAccuracy / last verify match
+        return {
+          axis_1_id: 'style_consistency',
+          axis_2_id: 'fingerprint_stability',
+          pos_1: meta.style_consistency ?? 0.82,
+          pos_2: meta.fingerprint_stability ?? 0.91,
+          pillar_id: this.id,
+          pillar_domain: this.domain,
+        };
+      },
+    };
+    context.emit?.('pillar:register', { pillar: verbalFingerprintPillar });
   },
 
   onDetach(node) {
