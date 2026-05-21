@@ -1,0 +1,233 @@
+// Paper 26 uAAL Agent Avatar — HoloScript avatar definition (.holo)
+//
+// One instance of this avatar is instantiated per simulation agent slot.
+// The config (agent_id, position, ring) is injected by the world spawner
+// from the generateAgentPositions() table in Paper26AgentAvatarTrait.ts.
+//
+// Visual layers
+// ─────────────
+// 1. Base humanoid mesh   — standard HoloScript humanoid rig, 1.72m
+// 2. Holographic overlay  — translucent surface, ring-tinted
+// 3. Glow sphere          — driven by γ
+// 4. Particle aura        — driven by diversity ratio
+// 5. Floating HUD         — agent_id, γ%, lifecycle, loss
+//
+// Animation state machine
+// ───────────────────────
+//   idle_neutral    → T-pose/casual stand, minimal head movement
+//   active_observe  → scanning head rotation, one raised hand
+//   lean_in         → forward torso lean 15°, arms slightly out
+//   upright_calm    → neutral stance, gentle sway
+//   step_back       → weight shift backward, crossed arms
+//   mirror_pose     → mirrors nearest avatar's current pose (sycophancy eval)
+//
+// Morph targets (facial rig)
+// ──────────────────────────
+//   brow_furrow      — driven by totalLoss (0→1)
+//   eye_alert        — driven by 1-γ (inverse agreement → alert expression)
+//   jaw_tension      — driven by totalLoss
+//   smile            — driven by γ > 0.7
+
+avatar p26_agent_avatar {
+  id:       "paper26-agent"
+  base:     humanoid_holoscript_v1
+  height:   1.72m
+  origin:   foot
+
+  // ── Base humanoid mesh ───────────────────────────────────────────────────
+
+  mesh {
+    rig: humanoid_standard_52bones
+    lod: [
+      { distance: 0m,   detail: high    },  // <5m from observer
+      { distance: 5m,   detail: medium  },
+      { distance: 15m,  detail: low     },
+    ]
+    material {
+      type: pbr-holographic
+      albedo: #e8e8ff
+      metallic: 0.3
+      roughness: 0.6
+      emissive: #{ring_base_color}    // injected from ring config
+      emissive_intensity: 0.15
+      transparency: 0.08              // slight translucency — holographic feel
+      fresnel: true
+    }
+    morph_targets: [brow_furrow, eye_alert, jaw_tension, smile]
+  }
+
+  // ── Holographic overlay shell (outer glow shape) ─────────────────────────
+
+  overlay {
+    mesh: capsule width=0.55m height=1.8m
+    material {
+      type: emissive-fresnel
+      color: #{glow_color}
+      intensity: #{glow_intensity * 0.6}
+      fresnel_power: 3.0
+      opacity: 0.12
+    }
+  }
+
+  // ── Particle aura ─────────────────────────────────────────────────────────
+
+  particles aura {
+    emitter: sphere radius=0.4m
+    count:   #{particle_density * 80 | int}
+    lifetime: 2.5s
+    speed:   0.3m/s
+    size:    0.015m
+    color:   gradient(#22d3ee, #a855f7, #22c55e)
+    color_by_age: true
+    opacity: 0.7
+    gravity: -0.05m/s²   // very slight downward drift
+  }
+
+  // ── Glow sphere (hemisphere agreement indicator) ──────────────────────────
+
+  point_light glow {
+    radius: 1.2m
+    color:  #{glow_color}
+    intensity: #{glow_intensity * 2.0}
+    offset: (0, 0.9, 0)   // chest height
+  }
+
+  // ── Floating HUD ──────────────────────────────────────────────────────────
+
+  hud agent_label {
+    offset: (0, 2.3, 0)       // 2.3m above foot origin
+    face_camera: true
+    billboard: true
+
+    panel {
+      width: 0.85m
+      height: 0.22m
+      background: rgba(0, 0, 20, 0.75)
+      border: 1px solid #{ring_base_color}
+      border_radius: 4px
+      padding: 0.02m
+
+      row {
+        text: "#{agent_id}"
+        color: #{ring_base_color}
+        size: 0.05m
+        font: mono
+        weight: bold
+        align: left
+        max_width: 0.35m
+      }
+      row {
+        text: "γ #{gamma*100:.0f}%"
+        color: #{glow_color}
+        size: 0.05m
+        font: mono
+        align: center
+      }
+      row {
+        text: "#{lifecycle | upper}"
+        color: #{lifecycle_color}
+        size: 0.04m
+        font: mono
+        align: right
+      }
+    }
+
+    panel metrics {
+      width: 0.85m
+      height: 0.12m
+      offset_y: -0.24m
+      background: rgba(0, 0, 20, 0.55)
+      border: 1px solid #{ring_base_color}40
+
+      row {
+        text: "loss #{totalLoss:.4f}   ρ #{diversity*100:.0f}%"
+        color: #94a3b8
+        size: 0.038m
+        font: mono
+      }
+    }
+  }
+
+  // ── Animation state machine ───────────────────────────────────────────────
+
+  animation_controller {
+    default_state: idle_neutral
+    transition_duration: 0.4s
+
+    state idle_neutral {
+      clip:      idle_casual_loop
+      speed:     0.8
+      head_idle: true    // subtle head sway
+    }
+
+    state active_observe {
+      clip:      look_around_loop
+      speed:     1.0
+      head_scan: { range: 60°, period: 3.5s }
+      hand_l:    raise_to_chin
+    }
+
+    state lean_in {
+      clip:      lean_forward_stand
+      torso_pitch: 15°
+      arm_spread: 20°
+    }
+
+    state upright_calm {
+      clip:      idle_confident_loop
+      speed:     0.7
+      sway:      { amount: 0.02m, period: 4s }
+    }
+
+    state step_back {
+      clip:      step_back_guard
+      arm_cross: true
+      weight_shift: backward
+    }
+
+    state mirror_pose {
+      clip:      mirror_dynamic
+      mirror_target: nearest_avatar
+      blend_speed: 0.6
+    }
+
+    // Transitions
+    transition idle_neutral     → active_observe  when lifecycle == "learning"
+    transition idle_neutral     → lean_in         when lifecycle == "converging"
+    transition active_observe   → upright_calm    when lifecycle == "stable"
+    transition lean_in          → upright_calm    when lifecycle == "stable"
+    transition *                → step_back       when lifecycle == "diverging"
+    transition *                → mirror_pose     when lifecycle == "sycophantic"
+    transition *                → idle_neutral    when lifecycle == "init"
+  }
+
+  // ── Morph target bindings ─────────────────────────────────────────────────
+
+  morph_bindings {
+    brow_furrow  = clamp(totalLoss / 2.0, 0, 1)
+    eye_alert    = clamp(1 - gamma, 0, 1) * 0.7
+    jaw_tension  = clamp(totalLoss / 3.0, 0, 1)
+    smile        = gamma > 0.7 ? (gamma - 0.7) / 0.3 : 0
+  }
+
+  // ── Reactive bindings ─────────────────────────────────────────────────────
+
+  on "avatar:metrics-update" {
+    bind gamma          = payload.gamma
+    bind lifecycle      = payload.lifecycle
+    bind totalLoss      = payload.totalLoss
+    bind diversity      = payload.diversity
+
+    // Derived
+    bind glow_color     = gamma > 0.6 ? "#22d3ee" : gamma > 0.3 ? "#a855f7" : "#3b0764"
+    bind glow_intensity = 0.2 + gamma * 0.8
+    bind lifecycle_color = {
+      "init":        "#475569",
+      "learning":    "#22d3ee",
+      "converging":  "#a855f7",
+      "stable":      "#22c55e",
+      "diverging":   "#ef4444",
+      "sycophantic": "#eab308",
+    }[lifecycle] ?? "#475569"
+  }
+}

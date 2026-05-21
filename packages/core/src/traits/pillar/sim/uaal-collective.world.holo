@@ -1,0 +1,208 @@
+// uAAL Collective — Paper 26 live simulation world
+// HoloScript world definition (.holo)
+//
+// Target: HoloLand / Quest 3 / VisionOS
+// Compile: mcp compile_to_openxr | compile_to_visionos | compile_to_r3f
+//
+// World ID:  uaal-collective
+// Category:  simulation
+// Max users: 16 (observers; agents are NPCs driven by live sim data)
+//
+// Layout
+// ──────
+// A 40m-diameter neural chamber with domed ceiling (12m height).
+// 100 humanoid agent avatars in concentric rings at foot level (y=0).
+// Central population-level HUD pillar at origin.
+// Observer spawn points evenly distributed between rings 2 and 3.
+//
+//   Ring 0 (r=4m):  12 agents  — inner council
+//   Ring 1 (r=8m):  24 agents  — primary ring
+//   Ring 2 (r=12m): 36 agents  — secondary ring
+//   Ring 3 (r=16m): 28 agents  — outer ring
+//
+// Data source
+// ───────────
+// SSE stream: https://sim.holoscript.studio/sim/paper26/api/stream
+// Each SSE tick drives agent avatar updates via the p26_avatar_sse_bridge.
+
+world uaal_collective {
+  id: "uaal-collective"
+  name: "uAAL Collective"
+  category: simulation
+  max_users: 16
+
+  // ── Environment ─────────────────────────────────────────────────────────
+
+  atmosphere {
+    sky_color: #020210
+    fog_color: #06061a
+    fog_density: 0.04
+    ambient_light: #1a1a4a intensity=0.3
+    directional_light: #4040ff intensity=0.5 direction=(0, -1, 0.3)
+  }
+
+  // Domed ceiling — neural synapse visualisation (particle + line mesh)
+  object ceiling_dome {
+    mesh: dome
+    radius: 20m
+    height: 12m
+    material {
+      type: emissive-particle-mesh
+      color: #0d0d40
+      particle_density: 0.6
+      particle_color: #22d3ee
+      particle_size: 0.03m
+      connection_color: #7c3aed
+      connection_threshold: 2m
+      pulse_speed: 1.2   // matches heartbeat cadence
+    }
+  }
+
+  // Floor — polished obsidian with bioluminescent vein patterns
+  object arena_floor {
+    mesh: cylinder-flat
+    radius: 22m
+    material {
+      type: pbr
+      albedo: #06060f
+      metallic: 0.9
+      roughness: 0.1
+      emissive_map: textures/neural-veins.png
+      emissive_color: #1a0040
+      emissive_intensity: 0.4
+    }
+  }
+
+  // Outer boundary wall (low, translucent)
+  object boundary_ring {
+    mesh: torus
+    inner_radius: 19m
+    outer_radius: 20m
+    height: 1.5m
+    y: 0
+    material {
+      type: glass
+      color: #0d1040
+      opacity: 0.4
+      emissive: #2233ff
+      emissive_intensity: 0.3
+    }
+  }
+
+  // ── Central population-level HUD pillar ─────────────────────────────────
+
+  object population_hud {
+    mesh: cylinder
+    radius: 0.5m
+    height: 3m
+    y: 0
+    material {
+      type: holographic
+      color: #22d3ee
+      opacity: 0.15
+      grid_lines: true
+    }
+
+    // Live data panel — top face, 1.8m × 1.8m floating at y=3.5m
+    hud_panel at (0, 3.5, 0) {
+      width: 1.8m
+      height: 1.0m
+      data_source: sse("https://sim.holoscript.studio/sim/paper26/api/stream")
+      refresh_mode: stream
+
+      layout {
+        row {
+          label "PAPER 26  ·  uAAL COLLECTIVE"
+          style: header color=#a855f7 font=mono size=0.08m
+        }
+        row {
+          metric "γ median" key=medianGamma format="XX.X%" color=#22d3ee
+          metric "γ p90"    key=p90Gamma    format="XX.X%" color=#6366f1
+          metric "loss"     key=meanTotalLoss format="X.XXXX" color=#ef4444
+          metric "ρ"        key=meanDiversity format="XX%" color=#22c55e
+        }
+        row {
+          label "tick" key=tick format="XXXXX / " append_key=targetTicks
+          label "agents" key=agents
+          status_badge running=true color=#22c55e
+        }
+      }
+    }
+
+    // Vertical rings of light that pulse on each SSE tick
+    light_ring at (0, 1.5, 0) {
+      radius: 0.55m
+      color: #22d3ee
+      intensity: 0.8
+      pulse_on: "sse:tick"
+    }
+  }
+
+  // ── Ring pedestals ───────────────────────────────────────────────────────
+  // Each pedestal is a low-glow disc beneath the agent's feet
+
+  object pedestal_ring0 {
+    instances: 12
+    layout: circle radius=4m y=0.01
+    mesh: disc radius=0.4m height=0.04m
+    material { type: emissive color=#22d3ee intensity=0.5 }
+  }
+
+  object pedestal_ring1 {
+    instances: 24
+    layout: circle radius=8m y=0.01
+    mesh: disc radius=0.4m height=0.04m
+    material { type: emissive color=#a855f7 intensity=0.4 }
+  }
+
+  object pedestal_ring2 {
+    instances: 36
+    layout: circle radius=12m y=0.01
+    mesh: disc radius=0.4m height=0.04m
+    material { type: emissive color=#6366f1 intensity=0.35 }
+  }
+
+  object pedestal_ring3 {
+    instances: 28
+    layout: circle radius=16m y=0.01
+    mesh: disc radius=0.4m height=0.04m
+    material { type: emissive color=#818cf8 intensity=0.3 }
+  }
+
+  // ── Observer areas ───────────────────────────────────────────────────────
+
+  // 4 observer platforms between rings 2 and 3, at cardinal points
+  object observer_platform_n { mesh: disc radius=1.2m height=0.1m at=(0,0,14) material { type: emissive color=#ffffff intensity=0.15 } }
+  object observer_platform_s { mesh: disc radius=1.2m height=0.1m at=(0,0,-14) material { type: emissive color=#ffffff intensity=0.15 } }
+  object observer_platform_e { mesh: disc radius=1.2m height=0.1m at=(14,0,0) material { type: emissive color=#ffffff intensity=0.15 } }
+  object observer_platform_w { mesh: disc radius=1.2m height=0.1m at=(-14,0,0) material { type: emissive color=#ffffff intensity=0.15 } }
+
+  spawn_points: [
+    (0, 0, 14),    // north observer
+    (0, 0, -14),   // south
+    (14, 0, 0),    // east
+    (-14, 0, 0),   // west
+  ]
+
+  navmesh {
+    include: arena_floor observer_platform_n observer_platform_s
+             observer_platform_e observer_platform_w
+    agent_height: 1.8m
+    agent_radius: 0.35m
+  }
+
+  // ── Live data bridge ─────────────────────────────────────────────────────
+
+  sse_bridge p26_avatar_sse_bridge {
+    url: "https://sim.holoscript.studio/sim/paper26/api/stream"
+    reconnect_interval: 5000ms
+    heartbeat_timeout: 35000ms   // > 25s server heartbeat
+
+    on_message: {
+      // Route population tick → per-agent avatar updates
+      // Runtime calls derivePerAgentUpdates() from Paper26AgentAvatarTrait.ts
+      dispatch: "avatar:metrics-update"
+      router: "paper26_agent_id_router"
+    }
+  }
+}

@@ -1,0 +1,724 @@
+composition "uAAL Collective" {
+
+  // ── Environment — neural chamber ────────────────────────────────────────
+
+  environment {
+    skybox: "neural_void"
+    ambient_light: 0.3
+    fog_color: "#06061a"
+    fog_density: 0.04
+    directional_light: 0.5
+  }
+
+  // ── Avatar template ──────────────────────────────────────────────────────
+
+  template "P26HumanoidAvatar" {
+    geometry: "model/humanoid_holoscript_v1.glb"
+
+    state {
+      agent_id: "sim_agent_000"
+      ring: 0
+      ring_accent: "#22d3ee"
+      gamma: 0.0
+      lifecycle: "init"
+      totalLoss: 0.0
+      diversity: 1.0
+    }
+
+    action updateMetrics(gamma, lifecycle, totalLoss, diversity) {
+      state.gamma = gamma
+      state.lifecycle = lifecycle
+      state.totalLoss = totalLoss
+      state.diversity = diversity
+    }
+
+    action onSSETick(tick) {
+      emit("avatar:metrics-update", { agent_id: state.agent_id, tick: tick })
+    }
+  }
+
+  // ── Central HUD pillar template ──────────────────────────────────────────
+
+  template "PopulationHUD" {
+    geometry: "primitive/cylinder"
+
+    state {
+      medianGamma: 0.0
+      p90Gamma: 0.0
+      meanTotalLoss: 0.0
+      meanDiversity: 1.0
+      tick: 0
+      agents: 100
+      targetTicks: 1000
+    }
+
+    action onSSETick(metrics) {
+      state.medianGamma   = metrics.medianGamma
+      state.p90Gamma      = metrics.p90Gamma
+      state.meanTotalLoss = metrics.meanTotalLoss
+      state.meanDiversity = metrics.meanDiversity
+      state.tick          = metrics.tick
+    }
+  }
+
+  // ── Central HUD ──────────────────────────────────────────────────────────
+
+  spatial_group "Central" {
+    object "HUD_Pillar" using "PopulationHUD" {
+      position: [0, 0, 0]
+    }
+    object "Arena_Floor" {
+      geometry: "primitive/cylinder"
+      position: [0, -0.05, 0]
+    }
+  }
+
+  // ── Agent avatars (100 total across 4 concentric rings) ──────────────────
+
+  spatial_group "Inner Council" {
+    object "sim_agent_000" using "P26HumanoidAvatar" {
+      position: [4, 0, 0]
+      state.agent_id: "sim_agent_000"
+      state.ring: 0
+      state.ring_accent: "#22d3ee"
+    }
+    object "sim_agent_001" using "P26HumanoidAvatar" {
+      position: [3.464, 0, 2]
+      state.agent_id: "sim_agent_001"
+      state.ring: 0
+      state.ring_accent: "#22d3ee"
+    }
+    object "sim_agent_002" using "P26HumanoidAvatar" {
+      position: [2, 0, 3.464]
+      state.agent_id: "sim_agent_002"
+      state.ring: 0
+      state.ring_accent: "#22d3ee"
+    }
+    object "sim_agent_003" using "P26HumanoidAvatar" {
+      position: [0, 0, 4]
+      state.agent_id: "sim_agent_003"
+      state.ring: 0
+      state.ring_accent: "#22d3ee"
+    }
+    object "sim_agent_004" using "P26HumanoidAvatar" {
+      position: [-2, 0, 3.464]
+      state.agent_id: "sim_agent_004"
+      state.ring: 0
+      state.ring_accent: "#22d3ee"
+    }
+    object "sim_agent_005" using "P26HumanoidAvatar" {
+      position: [-3.464, 0, 2]
+      state.agent_id: "sim_agent_005"
+      state.ring: 0
+      state.ring_accent: "#22d3ee"
+    }
+    object "sim_agent_006" using "P26HumanoidAvatar" {
+      position: [-4, 0, 0]
+      state.agent_id: "sim_agent_006"
+      state.ring: 0
+      state.ring_accent: "#22d3ee"
+    }
+    object "sim_agent_007" using "P26HumanoidAvatar" {
+      position: [-3.464, 0, -2]
+      state.agent_id: "sim_agent_007"
+      state.ring: 0
+      state.ring_accent: "#22d3ee"
+    }
+    object "sim_agent_008" using "P26HumanoidAvatar" {
+      position: [-2, 0, -3.464]
+      state.agent_id: "sim_agent_008"
+      state.ring: 0
+      state.ring_accent: "#22d3ee"
+    }
+    object "sim_agent_009" using "P26HumanoidAvatar" {
+      position: [0, 0, -4]
+      state.agent_id: "sim_agent_009"
+      state.ring: 0
+      state.ring_accent: "#22d3ee"
+    }
+    object "sim_agent_010" using "P26HumanoidAvatar" {
+      position: [2, 0, -3.464]
+      state.agent_id: "sim_agent_010"
+      state.ring: 0
+      state.ring_accent: "#22d3ee"
+    }
+    object "sim_agent_011" using "P26HumanoidAvatar" {
+      position: [3.464, 0, -2]
+      state.agent_id: "sim_agent_011"
+      state.ring: 0
+      state.ring_accent: "#22d3ee"
+    }
+  }
+
+  spatial_group "Primary Ring" {
+    object "sim_agent_012" using "P26HumanoidAvatar" {
+      position: [7.983, 0, 0.523]
+      state.agent_id: "sim_agent_012"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_013" using "P26HumanoidAvatar" {
+      position: [7.575, 0, 2.572]
+      state.agent_id: "sim_agent_013"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_014" using "P26HumanoidAvatar" {
+      position: [6.652, 0, 4.445]
+      state.agent_id: "sim_agent_014"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_015" using "P26HumanoidAvatar" {
+      position: [5.275, 0, 6.015]
+      state.agent_id: "sim_agent_015"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_016" using "P26HumanoidAvatar" {
+      position: [3.538, 0, 7.175]
+      state.agent_id: "sim_agent_016"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_017" using "P26HumanoidAvatar" {
+      position: [1.561, 0, 7.846]
+      state.agent_id: "sim_agent_017"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_018" using "P26HumanoidAvatar" {
+      position: [-0.523, 0, 7.983]
+      state.agent_id: "sim_agent_018"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_019" using "P26HumanoidAvatar" {
+      position: [-2.572, 0, 7.575]
+      state.agent_id: "sim_agent_019"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_020" using "P26HumanoidAvatar" {
+      position: [-4.445, 0, 6.652]
+      state.agent_id: "sim_agent_020"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_021" using "P26HumanoidAvatar" {
+      position: [-6.015, 0, 5.275]
+      state.agent_id: "sim_agent_021"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_022" using "P26HumanoidAvatar" {
+      position: [-7.175, 0, 3.538]
+      state.agent_id: "sim_agent_022"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_023" using "P26HumanoidAvatar" {
+      position: [-7.846, 0, 1.561]
+      state.agent_id: "sim_agent_023"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_024" using "P26HumanoidAvatar" {
+      position: [-7.983, 0, -0.523]
+      state.agent_id: "sim_agent_024"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_025" using "P26HumanoidAvatar" {
+      position: [-7.575, 0, -2.572]
+      state.agent_id: "sim_agent_025"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_026" using "P26HumanoidAvatar" {
+      position: [-6.652, 0, -4.445]
+      state.agent_id: "sim_agent_026"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_027" using "P26HumanoidAvatar" {
+      position: [-5.275, 0, -6.015]
+      state.agent_id: "sim_agent_027"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_028" using "P26HumanoidAvatar" {
+      position: [-3.538, 0, -7.175]
+      state.agent_id: "sim_agent_028"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_029" using "P26HumanoidAvatar" {
+      position: [-1.561, 0, -7.846]
+      state.agent_id: "sim_agent_029"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_030" using "P26HumanoidAvatar" {
+      position: [0.523, 0, -7.983]
+      state.agent_id: "sim_agent_030"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_031" using "P26HumanoidAvatar" {
+      position: [2.572, 0, -7.575]
+      state.agent_id: "sim_agent_031"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_032" using "P26HumanoidAvatar" {
+      position: [4.445, 0, -6.652]
+      state.agent_id: "sim_agent_032"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_033" using "P26HumanoidAvatar" {
+      position: [6.015, 0, -5.275]
+      state.agent_id: "sim_agent_033"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_034" using "P26HumanoidAvatar" {
+      position: [7.175, 0, -3.538]
+      state.agent_id: "sim_agent_034"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+    object "sim_agent_035" using "P26HumanoidAvatar" {
+      position: [7.846, 0, -1.561]
+      state.agent_id: "sim_agent_035"
+      state.ring: 1
+      state.ring_accent: "#a855f7"
+    }
+  }
+
+  spatial_group "Secondary Ring" {
+    object "sim_agent_036" using "P26HumanoidAvatar" {
+      position: [11.954, 0, 1.046]
+      state.agent_id: "sim_agent_036"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_037" using "P26HumanoidAvatar" {
+      position: [11.591, 0, 3.106]
+      state.agent_id: "sim_agent_037"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_038" using "P26HumanoidAvatar" {
+      position: [10.876, 0, 5.071]
+      state.agent_id: "sim_agent_038"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_039" using "P26HumanoidAvatar" {
+      position: [9.83, 0, 6.883]
+      state.agent_id: "sim_agent_039"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_040" using "P26HumanoidAvatar" {
+      position: [8.485, 0, 8.485]
+      state.agent_id: "sim_agent_040"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_041" using "P26HumanoidAvatar" {
+      position: [6.883, 0, 9.83]
+      state.agent_id: "sim_agent_041"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_042" using "P26HumanoidAvatar" {
+      position: [5.071, 0, 10.876]
+      state.agent_id: "sim_agent_042"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_043" using "P26HumanoidAvatar" {
+      position: [3.106, 0, 11.591]
+      state.agent_id: "sim_agent_043"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_044" using "P26HumanoidAvatar" {
+      position: [1.046, 0, 11.954]
+      state.agent_id: "sim_agent_044"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_045" using "P26HumanoidAvatar" {
+      position: [-1.046, 0, 11.954]
+      state.agent_id: "sim_agent_045"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_046" using "P26HumanoidAvatar" {
+      position: [-3.106, 0, 11.591]
+      state.agent_id: "sim_agent_046"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_047" using "P26HumanoidAvatar" {
+      position: [-5.071, 0, 10.876]
+      state.agent_id: "sim_agent_047"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_048" using "P26HumanoidAvatar" {
+      position: [-6.883, 0, 9.83]
+      state.agent_id: "sim_agent_048"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_049" using "P26HumanoidAvatar" {
+      position: [-8.485, 0, 8.485]
+      state.agent_id: "sim_agent_049"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_050" using "P26HumanoidAvatar" {
+      position: [-9.83, 0, 6.883]
+      state.agent_id: "sim_agent_050"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_051" using "P26HumanoidAvatar" {
+      position: [-10.876, 0, 5.071]
+      state.agent_id: "sim_agent_051"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_052" using "P26HumanoidAvatar" {
+      position: [-11.591, 0, 3.106]
+      state.agent_id: "sim_agent_052"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_053" using "P26HumanoidAvatar" {
+      position: [-11.954, 0, 1.046]
+      state.agent_id: "sim_agent_053"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_054" using "P26HumanoidAvatar" {
+      position: [-11.954, 0, -1.046]
+      state.agent_id: "sim_agent_054"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_055" using "P26HumanoidAvatar" {
+      position: [-11.591, 0, -3.106]
+      state.agent_id: "sim_agent_055"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_056" using "P26HumanoidAvatar" {
+      position: [-10.876, 0, -5.071]
+      state.agent_id: "sim_agent_056"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_057" using "P26HumanoidAvatar" {
+      position: [-9.83, 0, -6.883]
+      state.agent_id: "sim_agent_057"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_058" using "P26HumanoidAvatar" {
+      position: [-8.485, 0, -8.485]
+      state.agent_id: "sim_agent_058"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_059" using "P26HumanoidAvatar" {
+      position: [-6.883, 0, -9.83]
+      state.agent_id: "sim_agent_059"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_060" using "P26HumanoidAvatar" {
+      position: [-5.071, 0, -10.876]
+      state.agent_id: "sim_agent_060"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_061" using "P26HumanoidAvatar" {
+      position: [-3.106, 0, -11.591]
+      state.agent_id: "sim_agent_061"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_062" using "P26HumanoidAvatar" {
+      position: [-1.046, 0, -11.954]
+      state.agent_id: "sim_agent_062"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_063" using "P26HumanoidAvatar" {
+      position: [1.046, 0, -11.954]
+      state.agent_id: "sim_agent_063"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_064" using "P26HumanoidAvatar" {
+      position: [3.106, 0, -11.591]
+      state.agent_id: "sim_agent_064"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_065" using "P26HumanoidAvatar" {
+      position: [5.071, 0, -10.876]
+      state.agent_id: "sim_agent_065"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_066" using "P26HumanoidAvatar" {
+      position: [6.883, 0, -9.83]
+      state.agent_id: "sim_agent_066"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_067" using "P26HumanoidAvatar" {
+      position: [8.485, 0, -8.485]
+      state.agent_id: "sim_agent_067"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_068" using "P26HumanoidAvatar" {
+      position: [9.83, 0, -6.883]
+      state.agent_id: "sim_agent_068"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_069" using "P26HumanoidAvatar" {
+      position: [10.876, 0, -5.071]
+      state.agent_id: "sim_agent_069"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_070" using "P26HumanoidAvatar" {
+      position: [11.591, 0, -3.106]
+      state.agent_id: "sim_agent_070"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+    object "sim_agent_071" using "P26HumanoidAvatar" {
+      position: [11.954, 0, -1.046]
+      state.agent_id: "sim_agent_071"
+      state.ring: 2
+      state.ring_accent: "#6366f1"
+    }
+  }
+
+  spatial_group "Outer Ring" {
+    object "sim_agent_072" using "P26HumanoidAvatar" {
+      position: [15.774, 0, 2.68]
+      state.agent_id: "sim_agent_072"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_073" using "P26HumanoidAvatar" {
+      position: [14.782, 0, 6.123]
+      state.agent_id: "sim_agent_073"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_074" using "P26HumanoidAvatar" {
+      position: [13.049, 0, 9.259]
+      state.agent_id: "sim_agent_074"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_075" using "P26HumanoidAvatar" {
+      position: [10.662, 0, 11.93]
+      state.agent_id: "sim_agent_075"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_076" using "P26HumanoidAvatar" {
+      position: [7.74, 0, 14.004]
+      state.agent_id: "sim_agent_076"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_077" using "P26HumanoidAvatar" {
+      position: [4.429, 0, 15.375]
+      state.agent_id: "sim_agent_077"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_078" using "P26HumanoidAvatar" {
+      position: [0.897, 0, 15.975]
+      state.agent_id: "sim_agent_078"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_079" using "P26HumanoidAvatar" {
+      position: [-2.68, 0, 15.774]
+      state.agent_id: "sim_agent_079"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_080" using "P26HumanoidAvatar" {
+      position: [-6.123, 0, 14.782]
+      state.agent_id: "sim_agent_080"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_081" using "P26HumanoidAvatar" {
+      position: [-9.259, 0, 13.049]
+      state.agent_id: "sim_agent_081"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_082" using "P26HumanoidAvatar" {
+      position: [-11.93, 0, 10.662]
+      state.agent_id: "sim_agent_082"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_083" using "P26HumanoidAvatar" {
+      position: [-14.004, 0, 7.74]
+      state.agent_id: "sim_agent_083"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_084" using "P26HumanoidAvatar" {
+      position: [-15.375, 0, 4.429]
+      state.agent_id: "sim_agent_084"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_085" using "P26HumanoidAvatar" {
+      position: [-15.975, 0, 0.897]
+      state.agent_id: "sim_agent_085"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_086" using "P26HumanoidAvatar" {
+      position: [-15.774, 0, -2.68]
+      state.agent_id: "sim_agent_086"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_087" using "P26HumanoidAvatar" {
+      position: [-14.782, 0, -6.123]
+      state.agent_id: "sim_agent_087"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_088" using "P26HumanoidAvatar" {
+      position: [-13.049, 0, -9.259]
+      state.agent_id: "sim_agent_088"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_089" using "P26HumanoidAvatar" {
+      position: [-10.662, 0, -11.93]
+      state.agent_id: "sim_agent_089"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_090" using "P26HumanoidAvatar" {
+      position: [-7.74, 0, -14.004]
+      state.agent_id: "sim_agent_090"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_091" using "P26HumanoidAvatar" {
+      position: [-4.429, 0, -15.375]
+      state.agent_id: "sim_agent_091"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_092" using "P26HumanoidAvatar" {
+      position: [-0.897, 0, -15.975]
+      state.agent_id: "sim_agent_092"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_093" using "P26HumanoidAvatar" {
+      position: [2.68, 0, -15.774]
+      state.agent_id: "sim_agent_093"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_094" using "P26HumanoidAvatar" {
+      position: [6.123, 0, -14.782]
+      state.agent_id: "sim_agent_094"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_095" using "P26HumanoidAvatar" {
+      position: [9.259, 0, -13.049]
+      state.agent_id: "sim_agent_095"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_096" using "P26HumanoidAvatar" {
+      position: [11.93, 0, -10.662]
+      state.agent_id: "sim_agent_096"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_097" using "P26HumanoidAvatar" {
+      position: [14.004, 0, -7.74]
+      state.agent_id: "sim_agent_097"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_098" using "P26HumanoidAvatar" {
+      position: [15.375, 0, -4.429]
+      state.agent_id: "sim_agent_098"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+    object "sim_agent_099" using "P26HumanoidAvatar" {
+      position: [15.975, 0, -0.897]
+      state.agent_id: "sim_agent_099"
+      state.ring: 3
+      state.ring_accent: "#818cf8"
+    }
+  }
+
+  // ── Observer platforms ───────────────────────────────────────────────────
+
+  spatial_group "Observer Platforms" {
+    object "Platform_N" { geometry: "primitive/cylinder" position: [0, 0, 14] }
+    object "Platform_S" { geometry: "primitive/cylinder" position: [0, 0, -14] }
+    object "Platform_E" { geometry: "primitive/cylinder" position: [14, 0, 0] }
+    object "Platform_W" { geometry: "primitive/cylinder" position: [-14, 0, 0] }
+  }
+
+  // ── Logic — SSE bridge + avatar routing ─────────────────────────────────
+
+  logic {
+    on_ready() {
+      sse.connect("https://sim.holoscript.studio/sim/paper26/api/stream")
+    }
+
+    on_sse_message(data) {
+      // Update central HUD
+      HUD_Pillar.onSSETick(data.metrics)
+
+      // Derive per-agent updates and dispatch to each avatar
+      var updates = paper26.derivePerAgentUpdates(data)
+      for (var u of updates) {
+        var avatar = scene.find(u.agent_id)
+        if (avatar) {
+          avatar.updateMetrics(u.gamma, u.lifecycle, u.totalLoss, u.diversity)
+        }
+      }
+    }
+
+    on_sse_disconnect() {
+      schedule(5000, function() { sse.connect("https://sim.holoscript.studio/sim/paper26/api/stream") })
+    }
+  }
+}
