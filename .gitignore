@@ -234,6 +234,79 @@ packages/core/scripts/validate-dataset.d.ts
 packages/core/scripts/validate-dataset.js
 packages/adapter-postgres/tsup.config.bundled_*.mjs
 
+# Per-package Next.js builds and generated env files
+packages/*/.next/
+packages/*/next-env.d.ts
+
+# Per-package error/test dumps (txt/json scratch files at package root)
+packages/engine/*.txt
+packages/engine/*.js
+packages/mcp-server/*.txt
+packages/mcp-server/*.js
+packages/studio/*.txt
+packages/studio/*.json
+packages/studio/e2e/*.d.ts
+packages/studio/e2e/*.js
+packages/studio/scripts/archive/*.js
+packages/studio/scripts/patch-core-dts.js
+packages/studio/scripts/replace_loggers.js
+packages/studio/scripts/testGen.js
+packages/studio/.holo_audits/
+packages/studio/playwright-report/
+packages/studio/playwright-results.xml
+packages/formatter/*.txt
+packages/lsp/*.txt
+packages/lsp/*.js
+packages/marketplace-api/*.txt
+packages/crdt/*.txt
+packages/vscode-extension/*.txt
+
+# VSCode extension build + packaged extension binaries
+packages/vscode-extension/out/
+packages/vscode-extension/*.vsix
+
+# Video tutorial render outputs and narration audio (large binaries)
+packages/video-tutorials/out/
+packages/video-tutorials/public/narration/
+packages/video-tutorials/scripts/*.d.ts
+packages/video-tutorials/scripts/*.js
+packages/video-tutorials/remotion.config.d.ts
+
+# Tree-sitter generated Web bindings
+packages/tree-sitter-holoscript/bindings/web/
+
+# Playwright + smoke build artifacts
+packages/studio/playwright.config.d.ts
+packages/platform/dist-smoke/
+
+# Temp type stubs and LLM provider scratch
+packages/llm-provider/temp-dts/
+
+# Windows nul device artifacts at any package depth
+packages/*/nul
+packages/*/src/nul
+packages/*/src/traits/nul
+
+# Miscellaneous package-level debris not caught by patterns above
+/packages/core_tsc_errors.txt
+/patch.mjs
+/scripts/fix-source-files.d.ts
+packages/core/scripts/archive/*.d.ts
+packages/core/test/*.d.ts
+packages/create-holoscript/templates/**/*.js
+packages/holoscript/tests/*.d.ts
+packages/holoscript/tests/*.js
+packages/linter/verify-linter.d.ts
+packages/linter/verify-linter.js
+packages/plugins/web-preview/src/*.d.ts
+packages/studio-plugin-sdk/bin/create-plugin.js
+packages/studio/public/browser-benchmark.js
+packages/studio/public/browser-benchmark.test.js
+packages/tree-sitter-holoscript/test_error.txt
+packages/video-tutorials/tsc_video_errors.txt
+packages/visual/vite.config.d.ts
+packages/visualizer-client/vite.config.d.ts
+
 # Editor directories and files
 .idea
 .vscode
