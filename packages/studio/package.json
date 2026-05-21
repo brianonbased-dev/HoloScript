@@ -9,7 +9,7 @@
     "./mock-generator": "./src/lib/mock-generator.ts"
   },
   "scripts": {
-    "predev": "pnpm run holo:build",
+    "predev": "pnpm --filter @holoscript/core run build "predev": "pnpm run holo:build""predev": "pnpm run holo:build" pnpm run holo:build",
     "dev": "next dev --webpack --port 3101",
     "holo:build": "tsx scripts/compile-holo-pages.ts",
     "holo:watch": "tsx scripts/compile-holo-pages.ts --watch",
