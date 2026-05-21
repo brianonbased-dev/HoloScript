@@ -7,9 +7,14 @@
  */
 
 import type { FieldData, SimSolver, SolverMode } from '@holoscript/engine/simulation';
+import {
+  DOMAIN_SIMULATION_RECEIPT_SCHEMA,
+  buildDomainSimulationReceipt,
+  type DomainSimulationReceipt,
+} from '@holoscript/core';
 
 export const ENERGY_GRID_PLUGIN_ID = 'energy-grid' as const;
-export const ENERGY_GRID_RECEIPT_SCHEMA = 'holoscript.energy-grid.receipt.v0.1.0' as const;
+export const ENERGY_GRID_RECEIPT_SCHEMA = DOMAIN_SIMULATION_RECEIPT_SCHEMA;
 
 export const ENERGY_GRID_OBJECT_TYPES = [
   'grid_bus',
@@ -175,12 +180,12 @@ export interface DerDispatchQubo {
 }
 
 export interface EnergyGridReceipt {
-  schema: typeof ENERGY_GRID_RECEIPT_SCHEMA;
-  plugin: typeof ENERGY_GRID_PLUGIN_ID;
-  pluginVersion: string;
-  runId: string;
-  createdAt: string;
-  modelId: string;
+  schema: DomainSimulationReceipt['schema'];
+  plugin: DomainSimulationReceipt['plugin'];
+  pluginVersion: DomainSimulationReceipt['pluginVersion'];
+  runId: DomainSimulationReceipt['runId'];
+  createdAt: DomainSimulationReceipt['createdAt'];
+  modelId: NonNullable<DomainSimulationReceipt['modelId']>;
   solverConfig: {
     solverType: 'dc-power-flow';
     baseMva: number;
@@ -202,10 +207,9 @@ export interface EnergyGridReceipt {
     event: 'energy_grid.power_flow';
     solverType: 'energy-grid.dc-power-flow';
   };
-  acceptance: {
-    accepted: boolean;
-    violations: Array<{ criterion: string; message: string }>;
-  };
+  acceptance: DomainSimulationReceipt['acceptance'];
+  payloadHash: DomainSimulationReceipt['payloadHash'];
+  hashAlgorithm: DomainSimulationReceipt['hashAlgorithm'];
 }
 
 export interface EnergyGridReceiptOptions {
@@ -593,12 +597,11 @@ export function buildEnergyGridReceipt(
 ): EnergyGridReceipt {
   const normalizedOptions = typeof options === 'string' ? { runId: options } : options;
   const acceptance = verifyPowerFlowAcceptance(model, result);
-  return {
-    schema: ENERGY_GRID_RECEIPT_SCHEMA,
+  const receipt = buildDomainSimulationReceipt({
     plugin: ENERGY_GRID_PLUGIN_ID,
     pluginVersion: PLUGIN_DESCRIPTOR.version,
     runId: normalizedOptions.runId ?? `energy-grid-${Date.now().toString(36)}`,
-    createdAt: normalizedOptions.createdAt ?? new Date().toISOString(),
+    createdAt: normalizedOptions.createdAt,
     modelId: model.id,
     solverConfig: {
       solverType: 'dc-power-flow',
@@ -622,7 +625,9 @@ export function buildEnergyGridReceipt(
       solverType: 'energy-grid.dc-power-flow',
     },
     acceptance,
-  };
+  });
+
+  return receipt as EnergyGridReceipt;
 }
 
 export function verifyPowerFlowAcceptance(

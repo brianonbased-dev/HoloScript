@@ -85,6 +85,9 @@ export type {
 // Trust primitives (ADR-2026-05-14)
 export * from '../trust';
 
+// Domain simulation receipts (F.058 receipt-is-the-moat pattern)
+export * from '../receipts/DomainSimulationReceipt';
+
 // Care-field primitives (D.052 universal love doctrine)
 export * from '../care';
 

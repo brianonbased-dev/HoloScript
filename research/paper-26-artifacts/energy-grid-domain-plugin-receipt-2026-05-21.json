@@ -1,5 +1,5 @@
 {
-  "schema": "holoscript.energy-grid.receipt.v0.1.0",
+  "schema": "holoscript.domain-simulation-receipt.v0.1.0",
   "plugin": "energy-grid",
   "pluginVersion": "0.1.0",
   "runId": "paper26-energy-grid-dc-001",
@@ -29,5 +29,7 @@
   "acceptance": {
     "accepted": true,
     "violations": []
-  }
+  },
+  "payloadHash": "fnv1a32:7526acb4",
+  "hashAlgorithm": "fnv1a32"
 }

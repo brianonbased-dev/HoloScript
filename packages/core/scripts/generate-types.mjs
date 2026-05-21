@@ -89,6 +89,80 @@ export interface ReconstructionManifest {
 
 export function assertHoloMapManifestContract(m: ReconstructionManifest): void;
 
+export const DOMAIN_SIMULATION_RECEIPT_SCHEMA: 'holoscript.domain-simulation-receipt.v0.1.0';
+export type DomainSimulationReceiptSchema = typeof DOMAIN_SIMULATION_RECEIPT_SCHEMA;
+export type DomainSimulationReceiptHashAlgorithm = 'fnv1a32';
+export type DomainReceiptJson =
+  | string
+  | number
+  | boolean
+  | null
+  | DomainReceiptJson[]
+  | { [key: string]: DomainReceiptJson };
+export interface DomainSimulationReceiptAcceptance {
+  accepted: boolean;
+  violations: Array<{ criterion: string; message: string }>;
+}
+export interface DomainSimulationReceiptInput {
+  plugin: string;
+  pluginVersion: string;
+  runId: string;
+  createdAt?: string;
+  modelId?: string;
+  solverConfig: {
+    solverType: string;
+    scale: string;
+    [key: string]: DomainReceiptJson;
+  };
+  resultSummary: { [key: string]: DomainReceiptJson };
+  acceptance: DomainSimulationReceiptAcceptance;
+  cael?: {
+    version?: 'cael.v1';
+    event?: string;
+    solverType?: string;
+  };
+  artifacts?: Array<{
+    kind: string;
+    path?: string;
+    hash?: string;
+  }>;
+}
+export interface DomainSimulationReceipt {
+  schema: DomainSimulationReceiptSchema;
+  plugin: string;
+  pluginVersion: string;
+  runId: string;
+  createdAt: string;
+  modelId?: string;
+  solverConfig: {
+    solverType: string;
+    scale: string;
+    [key: string]: DomainReceiptJson;
+  };
+  resultSummary: { [key: string]: DomainReceiptJson };
+  cael: {
+    version: 'cael.v1';
+    event: string;
+    solverType: string;
+  };
+  acceptance: DomainSimulationReceiptAcceptance;
+  artifacts?: Array<{
+    kind: string;
+    path?: string;
+    hash?: string;
+  }>;
+  payloadHash: string;
+  hashAlgorithm: DomainSimulationReceiptHashAlgorithm;
+}
+export interface DomainSimulationReceiptVerification {
+  valid: boolean;
+  errors: string[];
+}
+export function buildDomainSimulationReceipt(input: DomainSimulationReceiptInput): DomainSimulationReceipt;
+export function verifyDomainSimulationReceipt(receipt: DomainSimulationReceipt): DomainSimulationReceiptVerification;
+export function stableDomainReceiptHash(payload: unknown): string;
+export function canonicalizeDomainReceiptPayload(payload: unknown): string;
+
 // ============================================================================
 // PARSERS
 // ============================================================================
