@@ -4,7 +4,8 @@
  * ## WebGPU / CI note
  *
  * SnnAccelerator uses WebGPU (WGSL compute shader). WebGPU is unavailable in
- * Node.js unless >= 22 with --experimental-webgpu is active. In CI these tests
+ * Node.js unless the `webgpu` npm binding is installed and ensureNodeWebGpuSync()
+ * activates it. In CI these tests
  * run entirely on the CPU fallback path (CpuFallbackAccelerator / sigmoid) —
  * `accelerator.available` will always be false in this environment.
  *

@@ -14,8 +14,8 @@
  *
  * The SnnAccelerator implements this via a WGSL compute shader (128 LIF
  * neurons, workgroup size 64, configurable timesteps) running on
- * WebGPU. When WebGPU is unavailable (CI, Node.js < 22 without
- * --experimental-webgpu), the accelerator transparently passes the input
+ * WebGPU. When WebGPU is unavailable (CI, Node.js without the `webgpu`
+ * binding), the accelerator transparently passes the input
  * histogram through unchanged so the trait is always runnable.
  *
  * ## Usage in .hs scenes

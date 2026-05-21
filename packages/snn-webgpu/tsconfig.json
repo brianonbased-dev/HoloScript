@@ -5,7 +5,7 @@
     "moduleResolution": "bundler",
     "lib": ["ES2020", "DOM"],
     "jsx": "react-jsx",
-    "types": ["@webgpu/types", "react"],
+    "types": ["@webgpu/types", "react", "node"],
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,

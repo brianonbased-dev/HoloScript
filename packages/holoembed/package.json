@@ -27,16 +27,13 @@
     "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "dependencies": {
-    "@holoscript/config": "workspace:*"
+    "@holoscript/config": "workspace:*",
+    "@holoscript/snn-webgpu": "workspace:*"
   },
   "peerDependencies": {
-    "@holoscript/snn-webgpu": "workspace:^",
     "webgpu": "^0.3.8"
   },
   "peerDependenciesMeta": {
-    "@holoscript/snn-webgpu": {
-      "optional": true
-    },
     "webgpu": {
       "optional": true
     }

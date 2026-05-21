@@ -25,7 +25,7 @@
  *
  * WebGPU is available in:
  *   - Chrome 113+ / Edge 113+ (desktop)
- *   - Node.js >= 22 with `--experimental-webgpu` flag
+ *   - Node.js with the `webgpu` npm binding installed (auto-activated via ensureNodeWebGpu)
  *
  * In CI / Node.js without WebGPU, the accelerator reports `available = false`
  * and returns the input histogram unchanged (CPU passthrough). No behavior
@@ -38,6 +38,7 @@
  */
 
 import type { EncoderOptions } from './types.js';
+import { ensureNodeWebGpu } from '@holoscript/snn-webgpu';
 
 // =============================================================================
 // WGSL SHADER
@@ -173,49 +174,6 @@ function normalizeTimeSteps(value: number): number {
  * const spikeRates = await accel.encode(trigramHistogram);
  * ```
  */
-/**
- * Node-only WebGPU bootstrap. In a browser/worker `navigator.gpu` is already
- * present. In Node there is no global `navigator.gpu` unless we activate the
- * installed Dawn binding (`webgpu` npm package). This populates
- * `globalThis.navigator.gpu` so the detection path below finds a real adapter
- * instead of silently falling back to CPU. Safe no-op if the binding is absent
- * (caller then keeps CPU passthrough) or if running in a browser.
- *
- * NOTE: the `--experimental-webgpu` Node flag does NOT exist in Node >= 24;
- * the binding route below is the supported path.
- */
-async function ensureNodeWebGpu(): Promise<void> {
-  const g = globalThis as { window?: unknown; navigator?: { gpu?: unknown } };
-  if (typeof g.window !== 'undefined') return;       // browser / worker: native gpu
-  if (g.navigator?.gpu) return;                       // already activated
-  try {
-    const mod = (await import('webgpu')) as {
-      create?: (flags: string[]) => unknown;
-      globals?: Record<string, unknown>;
-    };
-    const gpu = typeof mod.create === 'function' ? mod.create([]) : undefined;
-    if (gpu && typeof (gpu as { requestAdapter?: unknown }).requestAdapter === 'function') {
-      g.navigator ??= {} as { gpu?: unknown };
-      g.navigator.gpu = gpu;
-      installMissingWebGpuGlobals(mod.globals ?? {});
-    }
-  } catch {
-    // `webgpu` binding not installed in this environment: leave navigator.gpu
-    // absent; the caller falls back to CPU passthrough.
-  }
-}
-
-function installMissingWebGpuGlobals(globals: Record<string, unknown>): void {
-  const target = globalThis as unknown as Record<string, unknown>;
-  for (const [key, value] of Object.entries(globals)) {
-    if (target[key] != null) continue;
-    Object.defineProperty(globalThis, key, {
-      value,
-      writable: true,
-      configurable: true,
-    });
-  }
-}
 
 export class SnnAccelerator {
   private _available = false;

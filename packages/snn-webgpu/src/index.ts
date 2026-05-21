@@ -8,6 +8,9 @@
  * @packageDocumentation
  */
 
+// Node WebGPU bootstrap — call before feature-detecting navigator.gpu
+export { ensureNodeWebGpu, ensureNodeWebGpuSync } from './ensure-node-webgpu.js';
+
 // Core types and constants
 export type {
   LIFParams,

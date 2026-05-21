@@ -5,6 +5,8 @@
  * and context lifecycle management.
  */
 
+import { ensureNodeWebGpu } from './ensure-node-webgpu.js';
+
 /** Options for initializing the GPU context. */
 export interface GPUContextOptions {
   /** Preferred power preference. Default: 'high-performance' */
@@ -93,11 +95,14 @@ export class GPUContext {
       return; // Already initialized
     }
 
+    // Activate the Node WebGPU binding if present (no-op in browser).
+    await ensureNodeWebGpu();
+
     // Check for WebGPU support
     if (typeof navigator === 'undefined' || !navigator.gpu) {
       throw new Error(
         'WebGPU is not supported in this environment. ' +
-          'Ensure you are running in a WebGPU-capable browser or Node.js with WebGPU bindings.'
+          'Ensure you are running in a WebGPU-capable browser or Node.js with the `webgpu` binding installed.'
       );
     }
 
