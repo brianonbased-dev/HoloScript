@@ -118,6 +118,7 @@ export function DesktopViewer({
           </div>
         </div>
       )}
+      {/* parity note: full 3D via SceneViewer; receipts match web shape exactly */}
     </div>
   );
 }
