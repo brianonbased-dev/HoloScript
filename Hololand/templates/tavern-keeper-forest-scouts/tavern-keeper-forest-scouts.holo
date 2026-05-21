@@ -1,0 +1,142 @@
+world "The Drunken Oak & The Two Scouts" {
+  description: "A cozy forest tavern run by a wise TavernKeeper and guarded by two drive-reactive Forest Scouts. Reference example for Hololand AI NPCs (v1 memo)."
+
+  // === TavernKeeper (high-level conversational @ai_npc_brain) ===
+  npc TavernKeeper {
+    position: [0, 0, 0]
+    rotation: [0, 0, 0]
+    scale: 1.0
+
+    traits: [
+      @ai_npc_brain {
+        personality: "wise"
+        dialogue_range: 6.0
+        voice_enabled: true
+        memory_size: 24
+        player_relationship: "friendly"
+        idle_behavior: "polish_glass"
+      },
+      @spatial_voice {
+        range: 8.0
+        falloff: "linear"
+      }
+    ]
+
+    // Lightweight placeholder (creator replaces with real GLB)
+    geometry: sphere { radius: 0.6 }
+    material: "tavern_keeper_cloak"
+
+    // Tavern counter (static)
+    prop counter {
+      position: [0.8, 0, 0]
+      geometry: box { size: [1.2, 0.9, 0.4] }
+      material: "wood_dark"
+    }
+
+    prop tavern_sign {
+      position: [-1.5, 1.8, 0]
+      geometry: panel { width: 1.0, height: 0.4 }
+      material: "wood_light"
+      text: "The Drunken Oak"
+    }
+  }
+
+  // === ForestScout-Alpha (embodied @caveman_drive + caveman-npc-brain) ===
+  npc ForestScoutAlpha {
+    position: [-4.0, 0, 3.0]
+    rotation: [0, 45, 0]
+    scale: 0.95
+
+    traits: [
+      @caveman_drive {
+        hunger: 0.65
+        thirst: 0.40
+        fatigue: 0.25
+        fear: 0.15
+        curiosity: 0.70
+      },
+      @caveman_brain {
+        brain: "caveman-npc-brain"
+        llm_gate_ratio: 0.08   // 92% pure drive-reactive
+        vocab_size: 200
+        max_planning_steps: 2
+      },
+      @neural_animation {
+        rig: "mixamo"
+        clips: ["idle", "walk", "inspect", "grunt", "flee"]
+      }
+    ]
+
+    // Lightweight placeholder
+    geometry: sphere { radius: 0.55 }
+    material: "forest_scout_leather"
+  }
+
+  // === ForestScout-Beta (same brain family, different drive bias) ===
+  npc ForestScoutBeta {
+    position: [4.0, 0, -2.0]
+    rotation: [0, -30, 0]
+    scale: 0.92
+
+    traits: [
+      @caveman_drive {
+        hunger: 0.35
+        thirst: 0.55
+        fatigue: 0.45
+        fear: 0.30
+        curiosity: 0.55
+      },
+      @caveman_brain {
+        brain: "caveman-npc-brain"
+        llm_gate_ratio: 0.10
+        vocab_size: 200
+        max_planning_steps: 2
+      },
+      @neural_animation {
+        rig: "mixamo"
+        clips: ["idle", "walk", "inspect", "grunt", "flee"]
+      }
+    ]
+
+    geometry: sphere { radius: 0.52 }
+    material: "forest_scout_leather"
+  }
+
+  // Ambient forest + tavern audio (spatial)
+  audio campfire {
+    position: [-2.5, 0.5, 1.0]
+    clip: "forest_ambience_low"
+    range: 12.0
+    volume: 0.6
+  }
+
+  audio tavern_chatter {
+    position: [0, 1.2, 0]
+    clip: "soft_tavern_ambience"
+    range: 7.0
+    volume: 0.45
+  }
+
+  // Lighting (warm tavern + cool forest moonlight)
+  light tavern_lantern {
+    type: point
+    position: [0.5, 2.2, 0]
+    color: [1.0, 0.85, 0.6]
+    intensity: 0.8
+    range: 5.0
+  }
+
+  light forest_moon {
+    type: directional
+    direction: [-0.3, -0.8, 0.4]
+    color: [0.6, 0.7, 0.9]
+    intensity: 0.35
+  }
+
+  // Ground plane (forest floor)
+  ground forest_floor {
+    geometry: plane { size: 20 }
+    material: "forest_ground"
+    position: [0, -0.01, 0]
+  }
+}

@@ -1,0 +1,128 @@
+// TavernKeeper + Forest Scouts — Hololand NPC Reference World (v1 AI NPC memo)
+// Lightweight reference for creators. Uses @ai_npc_brain (conversational) + @caveman_drive + caveman-npc-brain (embodied).
+// All assets are explicit placeholders (sphere/box/orb/panel). Swap for real GLB when ready.
+
+composition "TavernKeeperAndScouts" {
+  metadata {
+    title: "The Drunken Oak & The Two Scouts"
+    description: "Reference Hololand world demonstrating both high-level conversational NPC (@ai_npc_brain) and low-cost embodied drive-reactive NPCs (@caveman_drive + caveman-npc-brain)."
+    version: "1.0.0"
+    tags: ["npc", "example", "hololand", "ai-npc-v1", "tavern", "forest"]
+  }
+
+  // TavernKeeper — wise conversational personality
+  object TavernKeeper {
+    traits: [
+      @ai_npc_brain {
+        personality: "wise"
+        dialogue_range: 6.0
+        voice_enabled: true
+        memory_size: 24
+        player_relationship: "friendly"
+        idle_behavior: "polish_glass"
+      },
+      @spatial_voice { range: 8.0, falloff: "linear" }
+    ]
+    position: [0, 0, 0]
+    geometry: sphere { radius: 0.6 }
+    material: "tavern_keeper_cloak"
+  }
+
+  prop TavernCounter {
+    position: [0.8, 0, 0]
+    geometry: box { size: [1.2, 0.9, 0.4] }
+    material: "wood_dark"
+  }
+
+  prop TavernSign {
+    position: [-1.5, 1.8, 0]
+    geometry: panel { width: 1.0, height: 0.4 }
+    material: "wood_light"
+    text: "The Drunken Oak"
+  }
+
+  // ForestScout-Alpha — drive-reactive caveman (higher curiosity)
+  object ForestScoutAlpha {
+    traits: [
+      @caveman_drive {
+        hunger: 0.65
+        thirst: 0.40
+        fatigue: 0.25
+        fear: 0.15
+        curiosity: 0.70
+      },
+      @caveman_brain {
+        brain: "caveman-npc-brain"
+        llm_gate_ratio: 0.08
+      },
+      @neural_animation {
+        rig: "mixamo"
+        clips: ["idle", "walk", "inspect", "grunt", "flee"]
+      }
+    ]
+    position: [-4.0, 0, 3.0]
+    geometry: sphere { radius: 0.55 }
+    material: "forest_scout_leather"
+  }
+
+  // ForestScout-Beta — drive-reactive caveman (more cautious)
+  object ForestScoutBeta {
+    traits: [
+      @caveman_drive {
+        hunger: 0.35
+        thirst: 0.55
+        fatigue: 0.45
+        fear: 0.30
+        curiosity: 0.55
+      },
+      @caveman_brain {
+        brain: "caveman-npc-brain"
+        llm_gate_ratio: 0.10
+      },
+      @neural_animation {
+        rig: "mixamo"
+        clips: ["idle", "walk", "inspect", "grunt", "flee"]
+      }
+    ]
+    position: [4.0, 0, -2.0]
+    geometry: sphere { radius: 0.52 }
+    material: "forest_scout_leather"
+  }
+
+  // Ambient audio (spatial)
+  audio Campfire {
+    position: [-2.5, 0.5, 1.0]
+    clip: "forest_ambience_low"
+    range: 12.0
+    volume: 0.6
+  }
+
+  audio TavernChatter {
+    position: [0, 1.2, 0]
+    clip: "soft_tavern_ambience"
+    range: 7.0
+    volume: 0.45
+  }
+
+  // Lighting
+  light TavernLantern {
+    type: point
+    position: [0.5, 2.2, 0]
+    color: [1.0, 0.85, 0.6]
+    intensity: 0.8
+    range: 5.0
+  }
+
+  light ForestMoon {
+    type: directional
+    direction: [-0.3, -0.8, 0.4]
+    color: [0.6, 0.7, 0.9]
+    intensity: 0.35
+  }
+
+  ground ForestFloor {
+    geometry: plane { size: 20 }
+    material: "forest_ground"
+    position: [0, -0.01, 0]
+  }
+}
