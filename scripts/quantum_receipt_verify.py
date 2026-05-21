@@ -42,7 +42,13 @@ ENV_FILE = REPO_ROOT / ".env"
 
 
 def is_ibm_receipt(r: dict) -> bool:
-    return r.get("execution_mode") == "ibm-quantum" or str(r.get("backend", "")).startswith("ibm_")
+    hardware_result = r.get("hardware_result")
+    hardware_backend = hardware_result.get("backend") if isinstance(hardware_result, dict) else ""
+    return (
+        r.get("execution_mode") == "ibm-quantum"
+        or str(r.get("backend", "")).startswith("ibm_")
+        or str(hardware_backend).startswith("ibm_")
+    )
 
 
 def certified_value(r: dict):
@@ -53,6 +59,44 @@ def certified_value(r: dict):
     if "optimal_value" in r:
         return "optimal_value", r["optimal_value"], False
     return None, None, False
+
+
+def certified_entries(r: dict) -> list[dict]:
+    """Return normalized receipt entries with job IDs and payload hashes.
+
+    The bridge emits flat receipts. The first ibm_kingston ratchet receipt stores
+    a COBYLA optimization trace under hardware_result.optimization_trace; each
+    trace step is independently hash-certified and should be verified.
+    """
+    hardware_result = r.get("hardware_result")
+    if isinstance(hardware_result, dict):
+        trace = hardware_result.get("optimization_trace")
+        if isinstance(trace, list):
+            entries = []
+            for item in trace:
+                if not isinstance(item, dict):
+                    continue
+                entries.append({
+                    "label": f"step {item.get('step', '?')}",
+                    "key": "energy_ha",
+                    "value": item.get("energy_ha"),
+                    "job_id": item.get("job_id"),
+                    "backend": hardware_result.get("backend"),
+                    "payload_hash": item.get("payload_hash"),
+                    "is_energy": True,
+                })
+            return entries
+
+    key, value, is_energy = certified_value(r)
+    return [{
+        "label": key or "receipt",
+        "key": key,
+        "value": value,
+        "job_id": r.get("job_id"),
+        "backend": r.get("backend"),
+        "payload_hash": r.get("payload_hash"),
+        "is_energy": is_energy,
+    }]
 
 
 def expected_hash(value: float, job_id: str) -> str:
@@ -77,7 +121,7 @@ def load_ibm_key() -> str | None:
 
 def find_receipts() -> list[pathlib.Path]:
     paths = set()
-    for pat in ("quantum_receipts/*_receipt.json", "quantum*_receipt.json"):
+    for pat in ("quantum_receipts/*.json", "quantum*_receipt.json"):
         paths.update(REPO_ROOT.glob(pat))
     return sorted(paths)
 
@@ -112,45 +156,56 @@ def main() -> int:
             print(f"SKIP  {name}  (not an IBM-backend receipt)")
             continue
 
-        key, value, is_energy = certified_value(r)
-        job_id = r.get("job_id")
-        backend = r.get("backend")
-        stored = r.get("payload_hash")
-        if value is None or not job_id:
-            print(f"FAIL  {name}  missing certified value or job_id")
+        entries = certified_entries(r)
+        if not entries:
+            print(f"FAIL  {name}  no certified receipt entries")
             failures += 1
             continue
 
-        want = expected_hash(value, job_id)
-        if stored is None:
-            print(f"FAIL  {name}  no payload_hash (not self-certifying)")
-            failures += 1
-        elif stored != want:
-            print(f"FAIL  {name}  payload_hash mismatch over {key}={value}+job_id")
-            failures += 1
-        else:
-            print(f"OK    {name}  hash verifies ({key}={value}, job={job_id})")
+        for entry in entries:
+            key = entry["key"]
+            value = entry["value"]
+            job_id = entry["job_id"]
+            backend = entry["backend"]
+            stored = entry["payload_hash"]
+            is_energy = entry["is_energy"]
+            label = entry["label"]
 
-        if svc is not None:
-            try:
-                j = svc.job(job_id)
-                jbackend = j.backend().name
-                ok_be = (jbackend == backend)
-                if is_energy:
-                    ev = float(np.asarray(j.result()[0].data.evs))
-                    ok_ev = abs(ev - value) <= args.tol
-                    ok = ok_be and ok_ev
-                    print(f"  {'OK   ' if ok else 'FAIL '}IBM {job_id}: backend={jbackend} "
-                          f"(match={ok_be}) evs={ev:+.12f} vs {value:+.12f} (match={ok_ev})")
-                else:
-                    ok = ok_be and str(j.status()) in ("DONE", "JobStatus.DONE")
-                    print(f"  {'OK   ' if ok else 'FAIL '}IBM {job_id}: backend={jbackend} "
-                          f"(match={ok_be}) status={j.status()} [QAOA: existence-checked only]")
-                if not ok:
-                    failures += 1
-            except Exception as e:
-                print(f"  FAIL IBM {job_id} not retrievable: {type(e).__name__}: {str(e)[:140]}")
+            if value is None or not job_id:
+                print(f"FAIL  {name}  {label}: missing certified value or job_id")
                 failures += 1
+                continue
+
+            want = expected_hash(value, job_id)
+            if stored is None:
+                print(f"FAIL  {name}  {label}: no payload_hash (not self-certifying)")
+                failures += 1
+            elif stored != want:
+                print(f"FAIL  {name}  {label}: payload_hash mismatch over {key}={value}+job_id")
+                failures += 1
+            else:
+                print(f"OK    {name}  {label}: hash verifies ({key}={value}, job={job_id})")
+
+            if svc is not None:
+                try:
+                    j = svc.job(job_id)
+                    jbackend = j.backend().name
+                    ok_be = (jbackend == backend)
+                    if is_energy:
+                        ev = float(np.asarray(j.result()[0].data.evs).reshape(-1)[0])
+                        ok_ev = abs(ev - value) <= args.tol
+                        ok = ok_be and ok_ev
+                        print(f"  {'OK   ' if ok else 'FAIL '}IBM {job_id}: backend={jbackend} "
+                              f"(match={ok_be}) evs={ev:+.12f} vs {value:+.12f} (match={ok_ev})")
+                    else:
+                        ok = ok_be and str(j.status()) in ("DONE", "JobStatus.DONE")
+                        print(f"  {'OK   ' if ok else 'FAIL '}IBM {job_id}: backend={jbackend} "
+                              f"(match={ok_be}) status={j.status()} [QAOA: existence-checked only]")
+                    if not ok:
+                        failures += 1
+                except Exception as e:
+                    print(f"  FAIL IBM {job_id} not retrievable: {type(e).__name__}: {str(e)[:140]}")
+                    failures += 1
 
     print()
     print(f"{'PASS' if failures == 0 else 'FAIL'}: {len(receipts)} receipt(s) scanned, {failures} failure(s)")
