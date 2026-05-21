@@ -1,0 +1,38 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "HoloScript placeholder for MNI152 pial (TASK-1 run-16)",
+    "extras": {
+      "note": "MINIMAL PLACEHOLDER. Real MNI152 pial surface from HCP openneuro ds000031 (FreeSurfer .surf -> GLTF via freesurfer-to-gltf or Blender). CC0 license. Replace when conversion env available. Sufficient for GyriSulciPartitioner barycentric classify + HoloLand VR prototype.",
+      "source": "https://openneuro.org/datasets/ds000031",
+      "when_real": "pip install nilearn nibabel; use freesurfer or https://github.com/sct-pipeline/freesurfer-to-gltf"
+    }
+  },
+  "scenes": [{ "nodes": [0] }],
+  "nodes": [{ "mesh": 0, "name": "brain-placeholder" }],
+  "meshes": [{
+    "primitives": [{
+      "attributes": { "POSITION": 0 },
+      "indices": 1,
+      "mode": 4
+    }]
+  }],
+  "buffers": [{
+    "uri": "data:application/octet-stream;base64,AAABAAIAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAACAPwAAAAA=",
+    "byteLength": 44
+  }],
+  "bufferViews": [
+    { "buffer": 0, "byteOffset": 0, "byteLength": 20, "target": 34962 },
+    { "buffer": 0, "byteOffset": 20, "byteLength": 6, "target": 34963 }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0, "byteOffset": 0, "componentType": 5126, "count": 3,
+      "type": "VEC3", "max": [1,1,0], "min": [0,0,0]
+    },
+    {
+      "bufferView": 1, "byteOffset": 0, "componentType": 5123, "count": 3,
+      "type": "SCALAR", "max": [2], "min": [0]
+    }
+  ]
+}
