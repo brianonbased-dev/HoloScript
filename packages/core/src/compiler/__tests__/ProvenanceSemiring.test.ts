@@ -542,4 +542,36 @@ describe('ProvenanceSemiring v2 (L3 Batch 1)', () => {
       expect(AuthorityTier.FOUNDER).toBe(100);
     });
   });
+
+  // =========================================================================
+  // CRDT-01: Deterministic authority-weighted merge (paper-gap closure)
+  // =========================================================================
+  describe('CRDT-01: deterministic tie-break on equal authority/reputation (1000 shuffles)', () => {
+    it('authority-weighted merge is order-independent even when effective weights tie', () => {
+      const semiring = new ProvenanceSemiring();
+
+      // Two conflicting values with identical authority + reputation
+      const base = {
+        name: 'style',
+        config: { color: 'red' },
+        context: { authorityLevel: 50, reputationScore: 10, agentId: 'agent-a', opId: 'op-1' },
+      };
+      const other = {
+        name: 'style',
+        config: { color: 'blue' },
+        context: { authorityLevel: 50, reputationScore: 10, agentId: 'agent-b', opId: 'op-2' },
+      };
+
+      const results: any[] = [];
+      for (let i = 0; i < 1000; i++) {
+        const shuffled = Math.random() < 0.5 ? [base, other] : [other, base];
+        const r = semiring.add(shuffled as any);
+        results.push(JSON.stringify(r.config));
+      }
+
+      // All 1000 merges must produce the identical deterministic result
+      const first = results[0];
+      expect(results.every(r => r === first)).toBe(true);
+    });
+  });
 });
