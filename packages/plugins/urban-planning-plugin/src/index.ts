@@ -15,5 +15,7 @@ import { createTrafficFlowHandler } from './traits/TrafficFlowTrait';
 import { createPopulationDensityHandler } from './traits/PopulationDensityTrait';
 import { createGeospatialClimateHandler } from './traits/GeospatialClimateTrait';
 
-export const pluginMeta = { name: '@holoscript/plugin-urban-planning', version: '1.0.0', traits: ['zoning', 'traffic_flow', 'population_density', 'geospatial_climate'] };
+export * from './trafficflow';
+
+export const pluginMeta = { name: '@holoscript/plugin-urban-planning', version: '1.0.0', traits: ['zoning', 'traffic_flow', 'population_density', 'geospatial_climate', 'bpr_traffic_solver'] };
 export const traitHandlers = [createZoningHandler(), createTrafficFlowHandler(), createPopulationDensityHandler(), createGeospatialClimateHandler()];

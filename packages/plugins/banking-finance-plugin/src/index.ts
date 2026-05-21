@@ -11,5 +11,7 @@ import { createKYCHandler } from './traits/KYCTrait';
 import { createPortfolioHandler } from './traits/PortfolioTrait';
 import { createRiskModelHandler } from './traits/RiskModelTrait';
 
-export const pluginMeta = { name: '@holoscript/plugin-banking-finance', version: '1.0.0', traits: ['account', 'transaction', 'kyc', 'portfolio', 'risk_model'] };
+export * from './fixedincome';
+
+export const pluginMeta = { name: '@holoscript/plugin-banking-finance', version: '1.0.0', traits: ['account', 'transaction', 'kyc', 'portfolio', 'risk_model', 'fixed_income_solver'] };
 export const traitHandlers = [createAccountHandler(), createTransactionHandler(), createKYCHandler(), createPortfolioHandler(), createRiskModelHandler()];
