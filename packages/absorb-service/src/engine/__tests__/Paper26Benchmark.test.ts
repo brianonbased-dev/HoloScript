@@ -385,17 +385,23 @@ describe('Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D)', () => {
 // a real semantic model. The result shows:
 //
 //   1. HoloGraph is still faster (O(1) hash-map vs O(N·D) scan regardless of
-//      the embedding quality).
-//   2. Xenova recall is higher than StructuralEmbeddingProvider — but still
-//      well below 100%, because event-name lookup is a structural task that
-//      semantic embeddings only approximate.
+//      the embedding quality). This is the primary claim of the ablation.
+//   2. Xenova recall = StructuralEmbeddingProvider recall (both 12.5% measured).
+//      This is NOT because semantic training is useless — it is because the
+//      synthetic corpus has NO semantic signal: symbols are named fn0/fn1/fn2/fn3.
+//      No embedding model can link "handler for event snn:spike" to a symbol
+//      called "fn0" without external context. Both models are near-random.
 //
-// This differentiates our claim: we are not cherry-picking a weak baseline.
-// Even a real semantic model trained on natural language fails at this task.
+// SCOPE: This ablation proves only that the O(1) latency advantage holds
+// regardless of embedding quality. For NL→code recall capability comparison,
+// see Paper26Table2NLRecall.test.ts (corpus with semantically named symbols).
+//
+// CLAIM CORRECTION: do NOT state "Xenova recall > Structural" — measured data
+// shows they are equal on this corpus (12.5% each, both near-random).
 
 describe('Paper 26 Ablation: Xenova semantic baseline vs HoloGraph', () => {
   it(
-    'Xenova recall is higher than structural but still < HoloGraph (semantic models cannot match O(1) lookup)',
+    'Xenova O(N·D) latency > HoloGraph O(1) latency regardless of embedding quality (latency ablation)',
     async () => {
       // ── Probe Xenova availability ────────────────────────────────────────
       let xenovaProvider: EmbeddingProvider;
@@ -416,8 +422,10 @@ describe('Paper 26 Ablation: Xenova semantic baseline vs HoloGraph', () => {
       expect(r.holoGraphRecall).toBe(1.0);
       // HoloGraph must still win on latency (O(1) < O(N·D) regardless of embedding quality)
       expect(r.holoGraphQueryUs).toBeLessThan(r.embeddingQueryUs);
-      // Xenova recall should be >= structural (it has semantic training)
-      // (not a hard assertion — model may vary — but log for the paper)
+      // NOTE: Xenova recall ≈ Structural recall on this corpus (both ~12.5%, near-random).
+      // Reason: synthetic symbols are named fn0/fn1/fn2/fn3 — no semantic signal.
+      // Do NOT assert Xenova > Structural here; the data does not support it.
+      // NL→code recall comparison lives in Paper26Table2NLRecall.test.ts.
 
       // ── Paper 26 Table 1 Ablation row ───────────────────────────────────
       console.log('\n% Paper 26 Table 1 — Ablation: Xenova/all-MiniLM-L6-v2 semantic baseline');
@@ -433,8 +441,11 @@ describe('Paper 26 Ablation: Xenova semantic baseline vs HoloGraph', () => {
       );
       console.log('%');
       console.log('% Xenova is a real semantic model (384-dim, trained on natural language).');
-      console.log('% Higher recall than StructuralEmbeddingProvider; still < 100% HoloGraph.');
-      console.log('% Confirms: even semantic embeddings cannot match O(1) structural lookup.');
+      console.log('% Measured: Xenova recall = StructuralEmbeddingProvider recall (both ~12.5%).');
+      console.log('% Cause: synthetic corpus uses generic symbol names (fn0/fn1/fn2/fn3) with');
+      console.log('%   no semantic link to event names — both models are near-random on this corpus.');
+      console.log('% Ablation claim: O(1) latency advantage holds regardless of embedding quality.');
+      console.log('% NL→code recall comparison: see Paper26Table2NLRecall.test.ts (named symbols).');
       console.log('% Latency: Xenova includes model-inference time per query.\n');
     },
     180_000, // Allow 3 min for model download + inference

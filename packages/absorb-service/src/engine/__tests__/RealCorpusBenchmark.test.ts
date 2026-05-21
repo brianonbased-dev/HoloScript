@@ -116,27 +116,41 @@ async function benchmarkRealCorpus(
     }
   }, 500) / queryTargets.length;
 
-  // ── 4. Recall for real events ─────────────────────────────────────────────
-  // For each event, the ground truth is the set of files that appear in the
-  // EventEdge chain. Since HoloGraph builds from the same scan (no external
-  // ground truth), recall is 1.0 by construction — we verify this.
+  // ── 4. Structural integrity check ────────────────────────────────────────
+  // There is no external ground truth for real corpus — HoloGraph is built
+  // from the same scan data. Real corpora may have unmatched emit sites (no
+  // corresponding listener) or listen sites (no corresponding emitter); these
+  // produce 0 EventEdges but still appear in allEventNames(). We verify
+  // integrity only for events that HAVE actual EventEdges (edges.length > 0).
+  // For unpaired emit/listen sites, getEventChain() returns an empty chain,
+  // which is correct behaviour — not a bug.
   let holoGraphRecall: number | null = null;
   if (distinctEvents.length > 0) {
-    let perfectCount = 0;
-    for (const ev of queryTargets) {
+    // Filter to events with real edges (paired emit + listen)
+    const pairedEvents = queryTargets.filter(ev => {
       const chain = graph.getEventChain(ev);
-      // Every file that participates (emit or listen) must appear in the result
-      const resultFiles = new Set([
-        ...chain.emitters.map(e => e.filePath),
-        ...chain.listeners.map(l => l.filePath),
-      ]);
-      // Ground truth: the same files (by construction — EventEdge is exact)
-      // Perfect recall means: result contains all participants
-      const expectedFiles = resultFiles; // tautological but proves no phantom drops
-      const allPresent = [...expectedFiles].every(f => resultFiles.has(f));
-      if (allPresent) perfectCount++;
+      return chain.edges.length > 0;
+    });
+
+    if (pairedEvents.length > 0) {
+      let integrityOk = true;
+      for (const ev of pairedEvents) {
+        const chain = graph.getEventChain(ev);
+        // Every emitter must be tagged with this event (no cross-bucket leak)
+        for (const emitter of chain.emitters) {
+          if (emitter.eventName !== ev) { integrityOk = false; break; }
+        }
+        // Every listener must be tagged with this event
+        for (const listener of chain.listeners) {
+          if (listener.eventName !== ev) { integrityOk = false; break; }
+        }
+        if (!integrityOk) break;
+      }
+      // 1.0 = all paired chains pass the eventName invariant
+      holoGraphRecall = integrityOk ? 1.0 : 0.0;
     }
-    holoGraphRecall = perfectCount / queryTargets.length;
+    // pairedEvents.length === 0: all scanned events are unpaired emit/listen
+    // sites — holoGraphRecall stays null (no EventEdges to verify).
   }
 
   // ── 5. Embedding latency (O(N·D) scan baseline) ───────────────────────────
