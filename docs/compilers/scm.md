@@ -55,27 +55,28 @@ composition "TreatmentEffect" {
 }
 ```
 
-**Output** (`causal/model.scm.json`):
+**Output** (`causal/model.scm.json` — actual SCMDAG from SCMCompiler):
 
 ```json
 {
-  "variables": [
-    { "name": "Treatment", "type": "binary", "exogenous": false },
-    { "name": "Outcome", "type": "binary", "exogenous": false },
-    { "name": "Confounder", "type": "continuous", "exogenous": true }
+  "metadata": {
+    "model_name": "TreatmentEffect",
+    "generated_at": "2026-05-21T...",
+    "affective_context": { "valence": 0, "arousal": 0, "dominantEmotion": "calm" }
+  },
+  "nodes": [
+    { "id": "Treatment", "type": "mechanism_variable", "do_capable": true, "properties": { "context_group": "global", "assigned": false } },
+    { "id": "Outcome", "type": "mechanism_variable", "do_capable": true, "properties": { "context_group": "global", "recovered": false } },
+    { "id": "Confounder", "type": "static_variable", "do_capable": false, "properties": { "context_group": "global", "severity": 0.5 } }
   ],
   "edges": [
-    { "from": "Confounder", "to": "Treatment", "weight": 1.0 },
-    { "from": "Confounder", "to": "Outcome", "weight": 1.0 },
-    { "from": "Treatment", "to": "Outcome", "weight": 1.0 }
-  ],
-  "structural_equations": {
-    "Treatment": "f(Confounder)",
-    "Outcome": "f(Treatment, Confounder)"
-  },
-  "do_calculus_compatible": true
+    { "source": "global", "target": "Treatment", "relation": "dictates_context", "weight": 1.0 },
+    ...
+  ]
 }
 ```
+
+(Note: `do_capable` flags identify intervention targets for `do(X)`; `type` distinguishes mechanisms vs. static/background variables.)
 
 ## Integration with Causal ML Libraries
 
@@ -119,8 +120,48 @@ identified = causal_model.identify_effect()
 - **Education** — teach causal inference by building models in VR
 - **Digital twins** — causal layer for IoT/VRR digital twin data flows
 
+## Causal Training Data Generation (farm/CG-056)
+
+HoloScript positions as an **undocumented causal training data generator** for the DoWhy / CausalML niche:
+
+- **Visual authoring surface**: Researchers build 3D spatial causal graphs (objects + traits + logic = mechanisms/variables + edges) instead of editing text GML or JSON by hand.
+- **Physically grounded provenance**: SCM DAGs inherit verifiable simulation history (rigid-body steps, trait firings, spatial constraints) from the HoloScript runtime — unlike purely statistical causal graphs.
+- **Simulation → SCM → Causal Inference handoff**:
+  1. Author/run a HoloScript rigid-body or multi-agent simulation (e.g., treatment/confounder/outcome scene with physics).
+  2. `holoscript compile scene.holo --target scm-dag --output causal/scene.scm.json`
+  3. Load the resulting `SCMDAG` (nodes with `do_capable`, edges, metadata + affective_context for provenance) into Python:
+     ```python
+     import json, dowhy
+     from dowhy import CausalModel
+     with open("causal/scene.scm.json") as f:
+         dag = json.load(f)
+     # nodes -> variables; edges -> graph; do_capable flags identify intervention targets
+     model = CausalModel(
+         data=observed_df,  # from simulation traces or real observations
+         graph=dag,         # or convert nodes/edges to GML
+         treatment="Treatment",
+         outcome="Outcome"
+     )
+     identified_estimand = model.identify_effect()
+     estimate = model.estimate_effect(identified_estimand, method_name="backdoor.linear_regression")
+     ```
+- **Paper candidate**: Pairs with Papers 17-20 (ML experiments / trait inference) — "Physically grounded causal training data with verifiable provenance from executable simulations."
+
+This fills the gap where pure causal-inference libs lack authoring UX and sim-grounded data generation.
+
+## Use Cases
+
+- **Epidemiology** — model treatment effects with confounders, visualize in 3D
+- **Economics** — causal inference for policy analysis
+- **AI safety** — visual authoring of causal world models for alignment research
+- **Education** — teach causal inference by building models in VR
+- **Digital twins** — causal layer for IoT/VRR digital twin data flows
+- **ML training data farms** — generate large batches of SCM DAGs + labeled intervention traces from varied HoloScript sim seeds (CG-056)
+
 ## See Also
 
 - [VR Reality Compiler](/compilers/vr-reality) — Digital twin output target
 - [AI & Behavior Traits](/traits/ai-behavior) — Agent behavior in spatial scenes
 - [Agents Overview](/agents/) — Multi-agent causal systems
+- Compiler source: `packages/core/src/compiler/SCMCompiler.ts`
+- Test: `packages/core/src/compiler/__tests__/SCMCompiler.test.ts`
