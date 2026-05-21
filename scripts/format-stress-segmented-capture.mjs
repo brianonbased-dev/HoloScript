@@ -19,6 +19,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
 const DEFAULT_MANIFEST = 'experiments/format-realism-gauntlet/manifest.json';
 const DEFAULT_DATE = new Date().toISOString().slice(0, 10);
+const LIVE_SEGMENT_SCREENSHOT_MODE = 'live-segment-screenshot';
 const SEGMENT_REPLAY_MODE = 'segment-replay-kinematic';
 const WORLD_MODEL_REPLAY_MODE = 'world-model-event-replay';
 const WORLD_MODEL_PIXEL_REPLAY_MODE = 'world-model-pixel-replay';
@@ -38,6 +39,8 @@ Options:
   --wait-for <ms>      Screenshot stabilization wait. Default: 1000.
   --base-still <png>   Use an existing scene still, then emit segment replay stills.
   --no-replay-stills   Preserve historical static-copy still behavior.
+  --skip-live-segment-screenshots
+                        Do not render per-segment HoloScript screenshots.
   --dry-run            Emit receipts without running parse/compile/headless/screenshot.
   --skip-screenshot    Do not invoke screenshot; write placeholder stills.
   --skip-headless      Do not invoke headless runtime.
@@ -56,6 +59,7 @@ export function parseRunnerArgs(argv = process.argv.slice(2)) {
     waitFor: 1000,
     baseStill: undefined,
     replayStills: true,
+    liveSegmentScreenshots: true,
     dryRun: false,
     skipScreenshot: false,
     skipHeadless: false,
@@ -82,6 +86,8 @@ export function parseRunnerArgs(argv = process.argv.slice(2)) {
       options.baseStill = argv[++i];
     } else if (arg === '--no-replay-stills') {
       options.replayStills = false;
+    } else if (arg === '--skip-live-segment-screenshots') {
+      options.liveSegmentScreenshots = false;
     } else if (arg === '--dry-run') {
       options.dryRun = true;
     } else if (arg === '--skip-screenshot') {
@@ -395,6 +401,161 @@ export function renderSegmentReplayStill({
   }
 
   return encodeRgbaPng(safeWidth, safeHeight, canvas.pixels);
+}
+
+function fmtNumber(value) {
+  return Number(Number(value || 0).toFixed(3));
+}
+
+function fmtVec(vector) {
+  return `[${vector.map((value) => fmtNumber(value)).join(', ')}]`;
+}
+
+function cleanLabel(value) {
+  return String(value || '')
+    .replace(/[\\"]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80);
+}
+
+function liveSegmentSceneObject({ name, geometry, color, position, scale, rotation, label }) {
+  const lines = [
+    `  object "${name}" {`,
+    `    geometry: "${geometry}"`,
+    `    color: "${color}"`,
+    `    position: ${fmtVec(position)}`,
+    `    scale: ${fmtVec(scale)}`,
+  ];
+  if (rotation) lines.push(`    rotation: ${fmtVec(rotation)}`);
+  if (label) lines.push(`    label: "${cleanLabel(label)}"`);
+  lines.push('  }');
+  return lines.join('\n');
+}
+
+export function renderLiveSegmentSceneSource({
+  segment,
+  index,
+  total,
+  sceneSnapshot,
+  worldModelReplay,
+}) {
+  const pose = posePhysicsFor(segment, index, total, sceneSnapshot, worldModelReplay);
+  const avatar = pose.bodies.avatar.position;
+  const hand = pose.bodies.rightHand.position;
+  const rock = pose.bodies.rock.position;
+  const target = pose.bodies.target.position;
+  const z = -2;
+  const progress = total <= 1 ? 1 : index / Math.max(1, total - 1);
+  const cameraX = Number((-4.5 + progress * 2.2).toFixed(3));
+  const segmentLabel = `${segment.id} ${segment.title || ''}`.trim();
+  const objects = [
+    liveSegmentSceneObject({
+      name: 'LiveSegmentFloor',
+      geometry: 'cube',
+      color: '#202733',
+      position: [0, -0.08, z],
+      scale: [8.5, 0.06, 4.2],
+      label: `live segment ${index + 1} of ${total}`,
+    }),
+    liveSegmentSceneObject({
+      name: 'AvatarTorso',
+      geometry: 'capsule',
+      color: '#7aa2f7',
+      position: [avatar[0], avatar[1], z],
+      scale: [0.72, 1.25, 0.72],
+      rotation: [0, 0, index >= 5 ? -10 : 0],
+      label: 'animated avatar pose',
+    }),
+    liveSegmentSceneObject({
+      name: 'AvatarHead',
+      geometry: 'sphere',
+      color: '#d8e2ff',
+      position: [avatar[0], avatar[1] + 0.78, z],
+      scale: [0.42, 0.42, 0.42],
+    }),
+    liveSegmentSceneObject({
+      name: 'LeftLeg',
+      geometry: 'capsule',
+      color: '#5c7aea',
+      position: [avatar[0] - 0.22, 0.48, z],
+      scale: [0.36, 0.88, 0.36],
+      rotation: [0, 0, index <= 2 ? -8 : 0],
+    }),
+    liveSegmentSceneObject({
+      name: 'RightLeg',
+      geometry: 'capsule',
+      color: '#5c7aea',
+      position: [avatar[0] + 0.22, 0.48, z],
+      scale: [0.36, 0.88, 0.36],
+      rotation: [0, 0, index <= 2 ? 8 : 0],
+    }),
+    liveSegmentSceneObject({
+      name: 'RightHand',
+      geometry: 'sphere',
+      color: '#9ece6a',
+      position: [hand[0], hand[1], z],
+      scale: [0.26, 0.26, 0.26],
+      label: pose.bodies.rightHand.contact ? 'hand-rock contact' : 'right hand',
+    }),
+    liveSegmentSceneObject({
+      name: 'ThrowRock',
+      geometry: 'sphere',
+      color: pose.bodies.rock.attachedToHand ? '#e0af68' : '#9a8775',
+      position: [rock[0], rock[1], z],
+      scale: [0.34, 0.34, 0.34],
+      rotation: [0, index * 18, index * 11],
+      label: pose.bodies.rock.released ? 'released rock transform' : 'rock transform',
+    }),
+    liveSegmentSceneObject({
+      name: 'ImpactTarget',
+      geometry: 'cylinder',
+      color: pose.bodies.target.impacted ? '#f7768e' : '#7dcfff',
+      position: [target[0], target[1], z],
+      scale: [0.42, 1.85, 0.42],
+      label: pose.bodies.target.impacted ? 'impact contact' : 'target',
+    }),
+    liveSegmentSceneObject({
+      name: 'ProvenancePanel',
+      geometry: 'plane',
+      color: '#d5f5e3',
+      position: [0.4, 2.85, z - 0.42],
+      scale: [4.8, 0.64, 1],
+      label: `receipt ${segmentLabel}`,
+    }),
+  ];
+
+  pose.physics.arcSamples.forEach((sample, sampleIndex) => {
+    objects.push(
+      liveSegmentSceneObject({
+        name: `ArcSample${sampleIndex}`,
+        geometry: 'sphere',
+        color: '#ffd76a',
+        position: [sample[0], sample[1], z],
+        scale: [0.16, 0.16, 0.16],
+      })
+    );
+  });
+
+  return `composition "Live Segment ${cleanLabel(segmentLabel)}" {
+  environment {
+    backgroundColor: "#0b0f14"
+    ambient_light: 0.45
+    shadows: true
+  }
+
+${objects.join('\n\n')}
+
+  camera perspective {
+    position: ${fmtVec([cameraX, 2.4, 5.5])}
+    look_at: ${fmtVec([0.8, 1.0, z])}
+    fov: 42
+    near: 0.1
+    far: 50
+    label: "live segment capture camera"
+  }
+}
+`;
 }
 
 function resolveRepoPath(path) {
@@ -733,6 +894,9 @@ export function summarizeVisualEvidence(stillEvidence) {
   const worldModelPixelReplaySegments = existing.filter(
     (entry) => entry.mode === WORLD_MODEL_PIXEL_REPLAY_MODE
   ).length;
+  const liveSegmentScreenshotSegments = existing.filter(
+    (entry) => entry.mode === LIVE_SEGMENT_SCREENSHOT_MODE
+  ).length;
   const staticCopySegments = existing.filter((entry) => entry.mode === 'static-scene-copy').length;
   const placeholderSegments = existing.filter((entry) => entry.mode === 'placeholder').length;
   const falseGreenRisk =
@@ -749,6 +913,7 @@ export function summarizeVisualEvidence(stillEvidence) {
     replayDistinctSegments: replayDistinct.length,
     capturedReplaySegments: replayDistinct.length,
     replayDistinctSegmentIds: replayDistinct.map((entry) => entry.segment),
+    liveSegmentScreenshotSegments,
     worldModelPixelReplaySegments,
     staticCopySegments,
     placeholderSegments,
@@ -1198,30 +1363,39 @@ export function buildSegmentReceipt({
   taskSeedPath,
   sceneSnapshot,
   worldModelReplay,
+  liveSegmentScene,
+  liveSegmentCommand,
 }) {
   const headless = commandResults.find((command) => command.id === 'headless-holo');
   const screenshot = commandResults.find((command) => command.id === 'screenshot-base');
+  const liveScreenshot = liveSegmentCommand
+    ? commandResults.find((command) => command.id === liveSegmentCommand)
+    : null;
   const dynamicSegment = index > 0;
   const replayStill =
     dynamicSegment &&
-    (stillMode === SEGMENT_REPLAY_MODE || stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE);
+    (stillMode === SEGMENT_REPLAY_MODE ||
+      stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE ||
+      stillMode === LIVE_SEGMENT_SCREENSHOT_MODE);
   const worldModelEvents = worldModelEventsForSegment(worldModelReplay, segment.id);
   const hasWorldModelEvidence = worldModelEvents.length > 0;
+  const hasLiveSegmentScreenshot = stillMode === LIVE_SEGMENT_SCREENSHOT_MODE;
   const hasWorldModelPixelReplay =
     hasWorldModelEvidence && stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE;
   const status =
-    hasWorldModelPixelReplay
-      ? WORLD_MODEL_PIXEL_REPLAY_MODE
-      : hasWorldModelEvidence
-      ? WORLD_MODEL_REPLAY_MODE
-      :
-    screenshot?.success && !dynamicSegment && headless?.success
-      ? 'partial-pass'
-      : replayStill
-        ? 'segment-replay-receipt'
-        : dynamicSegment
-          ? 'blocked-dynamic-replay'
-          : 'partial-pass';
+    hasLiveSegmentScreenshot
+      ? LIVE_SEGMENT_SCREENSHOT_MODE
+      : hasWorldModelPixelReplay
+        ? WORLD_MODEL_PIXEL_REPLAY_MODE
+        : hasWorldModelEvidence
+          ? WORLD_MODEL_REPLAY_MODE
+          : screenshot?.success && !dynamicSegment && headless?.success
+            ? 'partial-pass'
+            : replayStill
+              ? 'segment-replay-receipt'
+              : dynamicSegment
+                ? 'blocked-dynamic-replay'
+                : 'partial-pass';
   const owner = ownerForSegment(segment.id);
 
   return {
@@ -1231,6 +1405,7 @@ export function buildSegmentReceipt({
     checks: segment.checks || [],
     still: rel(outputDir, stillPath),
     stillMode,
+    liveSegmentScene: liveSegmentScene || null,
     eventLog: rel(outputDir, eventLogPath),
     posePhysicsJson: rel(outputDir, posePhysicsPath),
     runtimeScene: sceneRuntimeSummary(sceneSnapshot),
@@ -1239,7 +1414,13 @@ export function buildSegmentReceipt({
       status,
       owningSurface: owner,
       findings: dynamicSegment
-        ? hasWorldModelPixelReplay
+        ? hasLiveSegmentScreenshot
+          ? [
+              'Segment-specific HoloScript scene rendered through the live screenshot pipeline.',
+              'Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene.',
+              `Next owner: ${owner}.`,
+            ]
+          : hasWorldModelPixelReplay
           ? [
               'World-model replay emitted semantic events for this segment.',
               'The still renderer consumed the replay event payload for rock position and trajectory.',
@@ -1255,12 +1436,12 @@ export function buildSegmentReceipt({
             ? [
                 'Segment replay still generated from the segment pose/state payload.',
                 'The still is visual replay evidence, not a full engine physics proof yet.',
-              `Next owner: ${owner}.`,
-            ]
-          : [
-              'Static still exists, but segment-specific camera/pose playback is not implemented yet.',
-              `Next owner: ${owner}.`,
-            ]
+                `Next owner: ${owner}.`,
+              ]
+            : [
+                'Static still exists, but segment-specific camera/pose playback is not implemented yet.',
+                `Next owner: ${owner}.`,
+              ]
         : [
             'Scene-loaded still and command evidence exist; visual realism remains a separate quality ratchet.',
           ],
@@ -1272,9 +1453,15 @@ export function buildSegmentReceipt({
       frameBudget: {
         targetHz: 60,
         budgetMs: 16.67,
-          observedMs: headless?.success ? headless.durationMs : null,
-          note: dynamicSegment
-          ? hasWorldModelPixelReplay
+        observedMs: liveScreenshot?.success
+          ? liveScreenshot.durationMs
+          : headless?.success
+            ? headless.durationMs
+            : null,
+        note: dynamicSegment
+          ? hasLiveSegmentScreenshot
+            ? 'Live segment scene rendered through CLI screenshot; timing is per-segment capture duration.'
+            : hasWorldModelPixelReplay
             ? 'World-model event payload drives this still; frame timing is still command-level evidence.'
             : hasWorldModelEvidence
             ? 'World-model event replay exists for this segment; frame timing is still command-level evidence.'
@@ -1302,6 +1489,75 @@ function buildTaskSeed(segment, receipt) {
       'Acceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence.',
     ].join('\n'),
   };
+}
+
+async function runLiveSegmentScreenshots({
+  options,
+  manifest,
+  outputDir,
+  sceneSnapshot,
+  worldModelReplay,
+  logDir,
+}) {
+  const liveSegmentStills = {};
+  if (
+    !options.liveSegmentScreenshots ||
+    !options.replayStills ||
+    options.dryRun ||
+    options.skipScreenshot
+  ) {
+    return { results: [], liveSegmentStills };
+  }
+
+  const sceneDir = join(outputDir, 'segment-scenes');
+  const stillsDir = join(outputDir, 'stills');
+  mkdirSync(sceneDir, { recursive: true });
+  mkdirSync(stillsDir, { recursive: true });
+
+  const results = [];
+  for (let index = 1; index < manifest.segments.length; index++) {
+    const segment = manifest.segments[index];
+    const scenePath = join(sceneDir, `${segment.id}.holo`);
+    const stillPath = join(stillsDir, segment.expectedStill || `${segment.id}.png`);
+    const commandId = `screenshot-segment-${segment.id}`;
+    writeFileSync(
+      scenePath,
+      renderLiveSegmentSceneSource({
+        segment,
+        index,
+        total: manifest.segments.length,
+        sceneSnapshot,
+        worldModelReplay,
+      }),
+      'utf8'
+    );
+    const commandResult = await runCommand({
+      id: commandId,
+      args: [
+        'screenshot',
+        scenePath,
+        '-o',
+        stillPath,
+        '--width',
+        String(options.width),
+        '--height',
+        String(options.height),
+        '--wait-for',
+        String(options.waitFor),
+      ],
+      logDir,
+      dryRun: false,
+    });
+    results.push(commandResult);
+    liveSegmentStills[segment.id] = {
+      commandId,
+      scene: rel(REPO_ROOT, scenePath),
+      stillPath,
+      success: commandResult.success && existsSync(stillPath),
+    };
+  }
+
+  return { results, liveSegmentStills };
 }
 
 async function runEvidenceCommands({ options, manifestPath, manifest, outputDir }) {
@@ -1430,8 +1686,23 @@ async function runEvidenceCommands({ options, manifestPath, manifest, outputDir 
       )
     )
   );
+  const liveSegmentResult = await runLiveSegmentScreenshots({
+    options,
+    manifest,
+    outputDir,
+    sceneSnapshot,
+    worldModelReplay,
+    logDir,
+  });
+  results.push(...liveSegmentResult.results);
 
-  return { results, screenshotPath, sceneSnapshot, worldModelReplay };
+  return {
+    results,
+    screenshotPath,
+    sceneSnapshot,
+    worldModelReplay,
+    liveSegmentStills: liveSegmentResult.liveSegmentStills,
+  };
 }
 
 function ensureSegmentStills({
@@ -1441,6 +1712,7 @@ function ensureSegmentStills({
   screenshotCommand,
   sceneSnapshot,
   worldModelReplay,
+  liveSegmentStills,
   replayStills,
   width,
   height,
@@ -1454,6 +1726,17 @@ function ensureSegmentStills({
 
   return manifest.segments.map((segment, index) => {
     const stillPath = join(stillsDir, segment.expectedStill || `${segment.id}.png`);
+    const liveStill = liveSegmentStills?.[segment.id];
+    if (index > 0 && liveStill?.success && existsSync(liveStill.stillPath)) {
+      return {
+        segment,
+        stillPath: liveStill.stillPath,
+        stillMode: LIVE_SEGMENT_SCREENSHOT_MODE,
+        liveSegmentScene: liveStill.scene,
+        liveSegmentCommand: liveStill.commandId,
+      };
+    }
+
     let stillMode = stillModeFor(index, screenshotCommand, baseExists, replayStills);
     if (
       stillMode === SEGMENT_REPLAY_MODE &&
@@ -1518,6 +1801,7 @@ export async function runSegmentedCapture(rawOptions = {}) {
     screenshotPath,
     sceneSnapshot,
     worldModelReplay,
+    liveSegmentStills,
   } = await runEvidenceCommands({
     options,
     manifestPath,
@@ -1533,6 +1817,7 @@ export async function runSegmentedCapture(rawOptions = {}) {
     screenshotCommand,
     sceneSnapshot,
     worldModelReplay,
+    liveSegmentStills,
     replayStills: options.replayStills,
     width: options.width,
     height: options.height,
@@ -1549,7 +1834,7 @@ export async function runSegmentedCapture(rawOptions = {}) {
   const seeds = [];
 
   for (let index = 0; index < stills.length; index++) {
-    const { segment, stillPath, stillMode } = stills[index];
+    const { segment, stillPath, stillMode, liveSegmentScene, liveSegmentCommand } = stills[index];
     const eventLogPath = join(eventDir, `${segment.id}.json`);
     const posePhysicsPath = join(poseDir, `${segment.id}.json`);
     const taskSeedPath = join(seedDir, `${segment.id}.json`);
@@ -1572,7 +1857,9 @@ export async function runSegmentedCapture(rawOptions = {}) {
         },
         {
           type:
-            stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE
+            stillMode === LIVE_SEGMENT_SCREENSHOT_MODE
+              ? 'live_segment_screenshot_emitted'
+              : stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE
               ? 'world_model_pixel_replay_still_emitted'
               : stillMode === SEGMENT_REPLAY_MODE
               ? 'segment_replay_still_emitted'
@@ -1616,6 +1903,8 @@ export async function runSegmentedCapture(rawOptions = {}) {
       taskSeedPath,
       sceneSnapshot,
       worldModelReplay,
+      liveSegmentScene,
+      liveSegmentCommand,
     });
     receipt.timing.runnerMs = Date.now() - startedAt;
 
@@ -1663,6 +1952,9 @@ export async function runSegmentedCapture(rawOptions = {}) {
     segmentsWithHeadlessSceneObjects: sceneSnapshot.objectCount > 0 ? receipts.length : 0,
     segmentsWithWorldModelEvents: receipts.filter((receipt) => receipt.worldModelEvents.length > 0)
       .length,
+    segmentsWithLiveSegmentScreenshot: receipts.filter(
+      (receipt) => receipt.stillMode === LIVE_SEGMENT_SCREENSHOT_MODE
+    ).length,
     segmentsWithWorldModelPixelReplay: receipts.filter(
       (receipt) => receipt.stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE
     ).length,

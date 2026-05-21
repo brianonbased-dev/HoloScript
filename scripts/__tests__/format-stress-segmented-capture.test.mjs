@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  renderLiveSegmentSceneSource,
   renderSegmentReplayStill,
   runSegmentedCapture,
   summarizeVisualEvidence,
@@ -383,6 +384,20 @@ try {
     sha256(kinematicImpact) !== sha256(worldModelImpact),
     'world-model impact payload changes still pixels'
   );
+
+  console.log('Test 4c: live segment scene source carries pose, camera, and provenance');
+  const liveScene = renderLiveSegmentSceneSource({
+    segment: { id: '06_release', title: 'Release Frame', expectedStill: '06_release.png' },
+    index: 6,
+    total: 10,
+    sceneSnapshot,
+    worldModelReplay,
+  });
+  assertOk(liveScene.includes('composition "Live Segment 06_release Release Frame"'), 'live scene names segment');
+  assertOk(liveScene.includes('object "ThrowRock"'), 'live scene includes rock transform object');
+  assertOk(liveScene.includes('released rock transform'), 'live scene labels released rock');
+  assertOk(liveScene.includes('object "ProvenancePanel"'), 'live scene includes provenance panel');
+  assertOk(liveScene.includes('camera perspective'), 'live scene includes camera pose');
 
   console.log('Test 5: base still plus replay mode clears duplicate-still false green');
   const replayOutDir = join(tmp, 'out-replay');
