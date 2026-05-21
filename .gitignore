@@ -99,6 +99,94 @@ audit-results/
 /dep-audit*.json
 /todos.txt
 
+# Training datasets — large binary/JSONL files, never commit
+datasets/
+
+# Rust build output
+target/
+
+# Next.js build caches in services
+services/studio-api/.next/
+services/studio-api/next-env.d.ts
+
+# Service error logs and scratch dumps
+services/absorb-service/*.txt
+services/holoscript-net/archive/
+services/llm-service/*.err
+services/render-service/*.txt
+
+# Compiled JS/TS declaration outputs from TypeScript source scripts
+# (the .ts sources are tracked; the compiled outputs are not)
+examples/**/*.js
+examples/**/*.d.ts
+scripts/training/*.js
+scripts/training/*.d.ts
+docs/tour/*.js
+docs/tour/*.d.ts
+
+# Agent IDE workspace (Claude/Cursor skill drafts, heap monitors)
+.claude/
+
+# Scratch test files at repo root
+/test-wasm.ts
+/test_ast.mjs
+/test_db.ts
+/test_tools.mjs
+/send_api.mjs
+/sync_wpg.js
+
+# Temp and test-result directories
+temp_ts_morph/
+test-results/
+tmp/
+
+# Root-level error/fail dumps not caught by the pattern block above
+/engine-fail*.txt
+/engine-physics-fail.txt
+/errors.txt
+/fail*.txt
+/final-fail.txt
+/final_board.json
+/scratch_board.json
+/payload.json
+/payload_deployments.json
+/pipeline-output.json
+/railway_logs*.txt
+/replay_test_output.txt
+/format_build_log.txt
+/framework*.txt
+/framework*.json
+/framework_*.txt
+/run_test*.ts
+/run_test*.js
+/patch_parser.mjs
+/railway_fix.mjs
+/scratch.js
+/fix-physics.js
+
+# bio-demo compiled output
+bio-demo/*.js
+
+# benchmarks compiled outputs
+benchmarks/tools/*.js
+benchmarks/tools/*.d.ts
+
+# samples compiled outputs
+samples/**/*.js
+samples/**/*.d.ts
+
+# scratch directories
+scratch/
+scripts/mesh-deploy/mesh-deploy-logs/
+
+# Compiled declaration files in script subdirectories
+scripts/analysis/**/*.d.ts
+scripts/debug/**/*.d.ts
+scripts/archive/**/*.d.ts
+
+# Generated validation/tm report (run-time output)
+scripts/tm-traits-validation-report.json
+
 # Editor directories and files
 .idea
 .vscode
