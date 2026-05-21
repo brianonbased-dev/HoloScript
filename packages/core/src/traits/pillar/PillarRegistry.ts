@@ -54,6 +54,13 @@ export interface PillarContext {
   layer: string;
   /** Requesting agent surface ID (e.g. 'claude1', 'cursor1') */
   agent_id: string;
+  /**
+   * Unified participant identity spine (wallet-level) shared across D.040 populations.
+   * HoloMesh agents and HoloLand NPCs that belong to the same logical participant
+   * MUST share this (derived from wallet). This is the smallest contract to close
+   * the current npcId vs agentId gap while keeping the shared trait stack.
+   */
+  participant_id?: string;
   /** Unix timestamp of the request */
   timestamp_ms: number;
   /** Arbitrary additional metadata */
