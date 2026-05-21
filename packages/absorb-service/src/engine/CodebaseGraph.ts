@@ -17,6 +17,7 @@ import type {
   EmitSite,
   ListenSite,
   EventEdge,
+  ProvenanceEdge,
   SupportedLanguage,
 } from './types';
 import { CommunityDetector } from './CommunityDetector';
@@ -124,6 +125,11 @@ export class CodebaseGraph {
   private eventEmitIndex: Map<string, EventEdge[]> = new Map();
   /** eventName → edges where that event is listened to (HoloGraph) */
   private eventListenIndex: Map<string, EventEdge[]> = new Map();
+
+  /** HoloGraph Phase 2: SimulationContract receipt edges keyed by filePath */
+  private provenanceByFile: Map<string, ProvenanceEdge[]> = new Map();
+  /** All provenance edges registered */
+  private allProvenanceEdges: ProvenanceEdge[] = [];
 
   /** 3D Node positions for spatial persistence (makeObjectId(sym) -> [x,y,z]) */
   public nodePositions: Map<string, [number, number, number]> = new Map();
@@ -621,47 +627,6 @@ export class CodebaseGraph {
     };
   }
 
-  // ── Incremental Patching ─────────────────────────────────────────────────
-
-  /**
-   * Remove a file and all its associated symbols, imports, and calls.
-   * Call `buildIndexes()` after all add/remove operations are complete.
-   * Returns true if the file existed and was removed.
-   */
-  removeFile(filePath: string): boolean {
-    const file = this.files.get(filePath);
-    if (!file) return false;
-
-    this.files.delete(filePath);
-
-    // Remove symbols belonging to this file
-    for (const sym of file.symbols) {
-      const id = this.makeSymbolId(sym);
-      this.symbols.delete(id);
-    }
-
-    // Filter out imports and calls originating from this file
-    this.imports = this.imports.filter((imp) => imp.fromFile !== filePath);
-    this.calls = this.calls.filter((call) => call.filePath !== filePath);
-
-    this._communities = null;
-    return true;
-  }
-
-  /**
-   * Patch the graph by removing stale files and adding fresh ones.
-   * Rebuilds indexes once after all mutations.
-   */
-  patchFiles(removed: string[], added: ScannedFile[]): void {
-    for (const filePath of removed) {
-      this.removeFile(filePath);
-    }
-    for (const file of added) {
-      this.addFile(file);
-    }
-    this.buildIndexes();
-  }
-
   // ── Community Detection ──────────────────────────────────────────────────
 
   /**
@@ -831,6 +796,128 @@ export class CodebaseGraph {
     return undefined;
   }
 
+  // ── HoloGraph Phase 2: Incremental update ────────────────────────────────
+
+  /**
+   * Remove a file and all its symbols, imports, calls, and event sites from the
+   * graph. Callers must call buildIndexes() afterward to refresh all indexes.
+   *
+   * This enables incremental absorb: on a git commit that touches N files,
+   * call removeFile() + addFile() for each changed file, then buildIndexes()
+   * once — instead of a full re-scan of the entire codebase.
+   *
+   * O(S + E) where S = symbols in file, E = total edges (filtered by filePath).
+   */
+  removeFile(filePath: string): boolean {
+    const file = this.files.get(filePath);
+    if (!file) return false;
+
+    // Remove symbols using the file's own symbol list (safe even before buildIndexes)
+    for (const sym of file.symbols) {
+      const id = this.makeSymbolId(sym);
+      this.symbols.delete(id);
+      this.nodePositions.delete(id);
+    }
+
+    // Remove all edges that touch this file
+    this.imports        = this.imports.filter(e => e.fromFile !== filePath);
+    this.calls          = this.calls.filter(e => e.filePath !== filePath);
+    this.allEmitSites   = this.allEmitSites.filter(e => e.filePath !== filePath);
+    this.allListenSites = this.allListenSites.filter(e => e.filePath !== filePath);
+
+    this.files.delete(filePath);
+    this._communities = null; // invalidate
+    return true;
+  }
+
+  /**
+   * Replace a file in the graph with an updated version.
+   * Equivalent to removeFile() + addFile(), without a full index rebuild.
+   * Callers must call buildIndexes() afterward.
+   */
+  updateFile(newFile: ScannedFile): void {
+    this.removeFile(newFile.path);
+    this.addFile(newFile);
+  }
+
+  /**
+   * Apply a batch of changes (added / modified / removed files) in one pass.
+   * Rebuilds indexes exactly once at the end — efficient for post-commit hooks.
+   *
+   * @param added    New ScannedFile objects for newly created files.
+   * @param modified Updated ScannedFile objects for modified files.
+   * @param removed  File paths that were deleted.
+   */
+  patchFromChanges(
+    added: ScannedFile[],
+    modified: ScannedFile[],
+    removed: string[],
+  ): void {
+    for (const p of removed)  this.removeFile(p);
+    for (const f of modified) this.updateFile(f);
+    for (const f of added)    this.addFile(f);
+    this.buildIndexes();
+  }
+
+  // ── HoloGraph Phase 2: Provenance edges ──────────────────────────────────
+
+  /**
+   * Register a SimulationContract receipt as a provenance edge.
+   *
+   * Records that the given file (and optionally a specific symbol within it)
+   * has been validated by a simulation run identified by contractHash.
+   *
+   * Multiple receipts for the same file accumulate — slice diversity is the
+   * count of distinct contractHashes for a given path (Paper 32 §5).
+   */
+  registerProvenance(edge: ProvenanceEdge): void {
+    if (!this.provenanceByFile.has(edge.filePath)) {
+      this.provenanceByFile.set(edge.filePath, []);
+    }
+    this.provenanceByFile.get(edge.filePath)!.push(edge);
+    this.allProvenanceEdges.push(edge);
+  }
+
+  /**
+   * Get all provenance receipts for a given file path.
+   * Returns [] if no receipts have been registered.
+   */
+  getProvenanceForFile(filePath: string): ProvenanceEdge[] {
+    return this.provenanceByFile.get(filePath) ?? [];
+  }
+
+  /**
+   * All registered provenance edges across the entire graph.
+   */
+  getAllProvenanceEdges(): ProvenanceEdge[] {
+    return this.allProvenanceEdges;
+  }
+
+  /**
+   * Get all file paths that have at least one simulation receipt.
+   * These are the "validated paths" — the proven-correct subset of the codebase.
+   */
+  getValidatedFilePaths(): string[] {
+    return Array.from(this.provenanceByFile.keys());
+  }
+
+  /**
+   * Slice diversity for a file: the number of distinct simulation receipts
+   * (distinct contractHashes) that have validated this file.
+   * Paper 32 §5: higher diversity = higher confidence in the validated path.
+   */
+  sliceDiversity(filePath: string): number {
+    const edges = this.provenanceByFile.get(filePath) ?? [];
+    return new Set(edges.map(e => e.contractHash)).size;
+  }
+
+  /**
+   * Whether a file has been validated by any simulation receipt.
+   */
+  isValidated(filePath: string): boolean {
+    return this.provenanceByFile.has(filePath);
+  }
+
   // ── Stats ────────────────────────────────────────────────────────────────
 
   /**
@@ -886,6 +973,9 @@ export class CodebaseGraph {
     this.calleeIndex.clear();
     this.eventEmitIndex.clear();
     this.eventListenIndex.clear();
+    this.provenanceByFile.clear();
+    this.allProvenanceEdges = [];
+    this.nodePositions.clear();
     this._communities = null;
   }
 }

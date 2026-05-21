@@ -16,6 +16,10 @@ export type {
   ExternalSymbolDefinition,
   ImportEdge,
   CallEdge,
+  EmitSite,
+  ListenSite,
+  EventEdge,
+  ProvenanceEdge,
   LanguageAdapter,
   SyntaxNode,
   ParseTree,
@@ -106,6 +110,19 @@ export { createEmbeddingProvider } from './providers/EmbeddingProviderFactory';
 export { XenovaEmbeddingProvider } from './providers/XenovaEmbeddingProvider';
 export { OllamaEmbeddingProvider } from './providers/OllamaEmbeddingProvider';
 export { OpenAIEmbeddingProvider } from './providers/OpenAIEmbeddingProvider';
+export { StructuralEmbeddingProvider } from './providers/StructuralEmbeddingProvider';
+
+// HoloGraph: semantic community detection + brain-coord spatial routing (Phase 1 + 2)
+export { TraitCommunityDetector } from './TraitCommunityDetector';
+export type { TraitCommunityOptions } from './TraitCommunityDetector';
+export { BrainCoordNodeMapper } from './BrainCoordNodeMapper';
+export type {
+  DomainBrainCoord,
+  NodeBrainCoord,
+  PopulateResult,
+  BrainCoordSurfaceType,
+  CacheTier,
+} from './BrainCoordNodeMapper';
 
 // Interactive Visualization
 export { InteractiveSceneEnricher } from './visualization/InteractiveSceneEnricher';

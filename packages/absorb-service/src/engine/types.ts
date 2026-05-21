@@ -180,6 +180,41 @@ export interface EventEdge {
 }
 
 // =============================================================================
+// PROVENANCE EDGES — HoloGraph Phase 2
+// =============================================================================
+
+/**
+ * A SimulationContract receipt that validates one or more code paths.
+ *
+ * When a PillarSlice or SemanticCollaborationMessage carries a ReceiptAnchor,
+ * the absorb pipeline can record which file/symbol was validated by which
+ * simulation run. This makes validated vs. unvalidated code paths queryable
+ * without re-running the simulation.
+ *
+ * Paper 32 §5: "slice diversity" is enriched by provenance — we can answer
+ * "how many distinct simulation receipts cover this code path?"
+ */
+export interface ProvenanceEdge {
+  /** The validated file path */
+  filePath: string;
+  /**
+   * Symbol name within the file (optional — file-level provenance if absent).
+   * When present, only this symbol is considered validated.
+   */
+  symbolName?: string;
+  /** SHA-256 of the SimulationContract JSON payload (from ReceiptAnchor) */
+  contractHash: string;
+  /** Unix ms timestamp of the simulation run */
+  simTimestampMs: number;
+  /** Optional on-chain anchor tx hash (Base mainnet) */
+  onchainTx?: string;
+  /** The solver that produced the receipt (e.g. 'thermal', 'structural', 'snn') */
+  solver?: string;
+  /** The PillarDomain of the slice that carried this receipt */
+  domain?: string;
+}
+
+// =============================================================================
 // LANGUAGE ADAPTER INTERFACE
 // =============================================================================
 

@@ -130,7 +130,7 @@ describe('CodebaseGraph - Incremental Patching', () => {
         sizeBytes: 50,
       };
 
-      graph.patchFiles(['src/foo.ts'], [newFile]);
+      graph.patchFromChanges([newFile], [], ['src/foo.ts']);
 
       expect(graph.getFile('src/foo.ts')).toBeUndefined();
       expect(graph.getFile('src/baz.ts')).toBeDefined();
@@ -156,7 +156,7 @@ describe('CodebaseGraph - Incremental Patching', () => {
         sizeBytes: 50,
       };
 
-      graph.patchFiles(['src/foo.ts'], [newFile]);
+      graph.patchFromChanges([newFile], [], ['src/foo.ts']);
 
       const bazSymbols = graph.findSymbolsByName('baz');
       expect(bazSymbols.length).toBe(1);
@@ -182,7 +182,7 @@ describe('CodebaseGraph - Incremental Patching', () => {
         sizeBytes: 50,
       };
 
-      graph.patchFiles(['src/foo.ts'], [newFile]);
+      graph.patchFromChanges([newFile], [], ['src/foo.ts']);
 
       const stats = graph.getStats();
       expect(stats.totalFiles).toBe(2); // bar + baz (foo removed)
