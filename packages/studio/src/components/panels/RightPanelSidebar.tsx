@@ -57,6 +57,7 @@ import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { AssetPipelinePanel } from './AssetPipelinePanel';
 import { LODMetricsPanel } from './LODMetricsPanel';
 import { RuntimeTierPanel } from './RuntimeTierPanel';
+import { FleetPanel } from './FleetPanel';
 import { useDomainFilter, type DomainProfile } from '../../hooks/useDomainFilter';
 import type { EffectASTNode } from '@holoscript/core';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
@@ -193,6 +194,14 @@ const TAB_CATEGORIES: TabCategory[] = [
         label: 'Tier',
         title: 'NN-primary inversion runtime tier telemetry',
       },
+    ],
+  },
+  {
+    header: 'HoloMesh',
+    headerIcon: '🌐',
+    tabs: [
+      { id: 'fleet', icon: '🚀', label: 'Fleet', title: 'Agents + GPUs + full compute estate (presence + hardware telemetry)' },
+      // Future: board, inbox, identity, knowledge, mode, absorb, bounties (other open sidebar tasks)
     ],
   },
   {
@@ -364,6 +373,7 @@ export function RightPanelSidebar({
             {activeTab === 'diagnostics' && <DiagnosticsPanel />}
             {activeTab === 'pipeline' && <AssetPipelinePanel />}
             {activeTab === 'runtimeTier' && <RuntimeTierPanel />}
+            {activeTab === 'fleet' && <FleetPanel />}
           </div>
         </div>
       )}
