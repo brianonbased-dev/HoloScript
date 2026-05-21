@@ -186,6 +186,30 @@ export const speechAwareEncounterHandler: TraitHandler<SpeechAwareEncounterConfi
         channel,
         confidence: attribution.confidence,
       });
+
+      // PSF-3 WIRE (D.040) — live Pillar-Slice from real encounter state (replaces skeleton).
+      // Feeds speaker_confidence (avg attribution confidence) + reid_match rate into the
+      // Pillar-Slice Framework / SliceEmitter / GRPO training path every turn.
+      // This makes SpeechAwareEncounter a first-class trait-native runtime primitive.
+      const avgConf = state.turns.length
+        ? state.turns.reduce((s, t) => s + t.attribution.confidence, 0) / state.turns.length
+        : 0.5;
+      const reidRate = state.turns.length
+        ? state.turns.filter((t) => !!t.attribution.reidEmbeddingId).length / state.turns.length
+        : 0.5;
+      context.emit?.('pillar:slice', {
+        slice: {
+          axis_1_id: 'speaker_confidence',
+          axis_2_id: 'reid_match',
+          pos_1: avgConf,
+          pos_2: reidRate,
+          pillar_id: 'speech_aware_encounter',
+          pillar_domain: 'agent' as const,
+        },
+        agent_id: (context as any).agentId ?? 'local',
+        sim_step: Date.now(),
+      });
+
       return;
     }
 
