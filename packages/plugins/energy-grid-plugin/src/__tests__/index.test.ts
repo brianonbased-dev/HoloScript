@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import {
   ENERGY_GRID_OBJECT_TYPES,
   ENERGY_GRID_RECEIPT_SCHEMA,
@@ -135,6 +137,24 @@ describe('@holoscript/energy-grid-plugin', () => {
     expect(receipt.cael.solverType).toBe('energy-grid.dc-power-flow');
     expect(receipt.acceptance.accepted).toBe(false);
     expect(receipt.acceptance.violations.map((v) => v.criterion)).toContain('line_capacity');
+  });
+
+  it('matches the committed Paper 26 domain-plugin receipt fixture', () => {
+    const grid = sampleGrid();
+    const result = solveDCPowerFlow(grid);
+    const receipt = buildEnergyGridReceipt(grid, result, {
+      runId: 'paper26-energy-grid-dc-001',
+      createdAt: '2026-05-21T00:00:00.000Z',
+    });
+    const fixturePath = fileURLToPath(
+      new URL(
+        '../../../../../research/paper-26-artifacts/energy-grid-domain-plugin-receipt-2026-05-21.json',
+        import.meta.url,
+      ),
+    );
+    const fixture = JSON.parse(readFileSync(fixturePath, 'utf8'));
+
+    expect(fixture).toEqual(receipt);
   });
 
   it('estimates solar output with clipping and weather derate', () => {

@@ -208,6 +208,11 @@ export interface EnergyGridReceipt {
   };
 }
 
+export interface EnergyGridReceiptOptions {
+  runId?: string;
+  createdAt?: string;
+}
+
 export interface EnergyGridValidation {
   valid: boolean;
   errors: string[];
@@ -584,15 +589,16 @@ export function buildDerDispatchQubo(
 export function buildEnergyGridReceipt(
   model: EnergyGridModel,
   result: DCPowerFlowResult,
-  runId = `energy-grid-${Date.now().toString(36)}`,
+  options: string | EnergyGridReceiptOptions = {},
 ): EnergyGridReceipt {
+  const normalizedOptions = typeof options === 'string' ? { runId: options } : options;
   const acceptance = verifyPowerFlowAcceptance(model, result);
   return {
     schema: ENERGY_GRID_RECEIPT_SCHEMA,
     plugin: ENERGY_GRID_PLUGIN_ID,
     pluginVersion: PLUGIN_DESCRIPTOR.version,
-    runId,
-    createdAt: new Date().toISOString(),
+    runId: normalizedOptions.runId ?? `energy-grid-${Date.now().toString(36)}`,
+    createdAt: normalizedOptions.createdAt ?? new Date().toISOString(),
     modelId: model.id,
     solverConfig: {
       solverType: 'dc-power-flow',

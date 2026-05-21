@@ -1,0 +1,33 @@
+{
+  "schema": "holoscript.energy-grid.receipt.v0.1.0",
+  "plugin": "energy-grid",
+  "pluginVersion": "0.1.0",
+  "runId": "paper26-energy-grid-dc-001",
+  "createdAt": "2026-05-21T00:00:00.000Z",
+  "modelId": "microgrid-three-bus",
+  "solverConfig": {
+    "solverType": "dc-power-flow",
+    "baseMva": 100,
+    "busCount": 3,
+    "lineCount": 3,
+    "slackBusId": "A",
+    "scale": "grid"
+  },
+  "resultSummary": {
+    "converged": true,
+    "maxLineLoadingRatio": 0.5545454545454545,
+    "overloadedLineIds": [],
+    "estimatedLossMw": 0.42983471074380153,
+    "totalDemandMw": 90,
+    "totalGenerationMw": 90
+  },
+  "cael": {
+    "version": "cael.v1",
+    "event": "energy_grid.power_flow",
+    "solverType": "energy-grid.dc-power-flow"
+  },
+  "acceptance": {
+    "accepted": true,
+    "violations": []
+  }
+}
