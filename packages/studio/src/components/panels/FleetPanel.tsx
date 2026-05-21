@@ -155,7 +155,31 @@ export function FleetPanel() {
               {a.current_task && <div className="text-[9px] text-studio-accent truncate">→ {a.current_task}</div>}
               <div className="flex gap-1 mt-0.5">
                 <button className="text-[8px] underline hover:text-studio-accent" onClick={() => window.open(`https://holomesh.net/room/${data.team_id}?agent=${a.handle}`, '_blank')}>HoloRoom</button>
-                <button className="text-[8px] underline hover:text-studio-accent" onClick={() => alert(`DM to ${a.handle} (inbox stub)`)}>Ping</button>
+                <button
+                  className="text-[8px] underline hover:text-studio-accent"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(`/api/holomesh/team/${data.team_id}/message`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          type: 'dm',
+                          content: `Ping from Studio Fleet panel at ${new Date().toISOString()} — please check current board / claimed work.`,
+                          to: a.handle,
+                        }),
+                      });
+                      if (res.ok) {
+                        alert(`Ping sent to ${a.handle} (check their inbox)`);
+                      } else {
+                        alert(`Ping failed: ${res.status}`);
+                      }
+                    } catch (e: any) {
+                      alert(`Ping error: ${e.message}`);
+                    }
+                  }}
+                >
+                  Ping
+                </button>
               </div>
             </div>
           ))}
