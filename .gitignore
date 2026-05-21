@@ -49,6 +49,21 @@ yarn-error.log*
 # Local holoscript graph cache — written by holo_absorb_repo, expires in 24h
 .holoscript/
 
+# Agent workspace artifacts — written by AI agents, not source
+.agents/
+.canary/
+.holomesh/
+.performance-reports/
+.tmp/
+.ai-context-stream.jsonl
+.ai-workspace/
+.cursor-queue-temp.json
+.git_commit_msg.txt
+.lint-main.txt
+.local-worker-key
+.preflight-result.json
+audit-results/
+
 # Editor directories and files
 .idea
 .vscode
@@ -102,3 +117,46 @@ pids
 !.bench-logs/todo-r2-*
 !.bench-logs/paper-7-ik-latency*
 !.bench-logs/*paper-10*
+
+# Local agent worker key — never commit (F.001: keys leaked twice)
+.local-worker-key
+
+# Root-only agent/run debris (anchored with leading / so tracked board.json,
+# packages/**/test-output.js, research/**/audit-*.json are NOT caught)
+/core-fail*.txt
+/core-errors.txt
+/core-test-results.txt
+/clean-check.txt
+/.lint-main.txt
+/test-output*.txt
+/test-output-*-utf8.txt
+/test-results.txt
+/test-full-run*.txt
+/test-run-*.txt
+/test_output.txt
+/test_results.json
+/ts-test-output*.txt
+/ts-test-verify.txt
+/tsc_errors_*.txt
+/studio_tsc*.txt
+/shortlog*.txt
+/stat.txt
+/wavee-*.txt
+/vitest-engine.json
+/vitest-result.json
+/board-utf8.json
+/board2.json
+/board_utf8.json
+/board_output.json
+/board_close_*.json
+/clean_board.json
+/temp_board.json
+/claim_*.json
+/audit-current.json
+/audit-after-overrides.json
+/dep-audit*.json
+/.preflight-result.json
+/.git_commit_msg.txt
+/.cursor-queue-temp.json
+/.canary/
+/todos.txt
