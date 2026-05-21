@@ -34,6 +34,118 @@ const ZenGardenScene: React.FC<ZenGardenSceneProps> = ({
     camera.lookAt(-0.8, -0.25, -2.35);
   }, [camera]);
 
+  // HoloShell audio bridge — Zen Garden contemplative ambients
+  // "very soft wind chimes" + "distant temple bell" + "gravel underfoot"
+  // Procedural Web Audio (zero assets). Starts on mount, very quiet.
+  // Registered on __holoShellAudio so external systems (Brittney, haptics, phenomena) can react.
+  React.useEffect(() => {
+    let ctx: AudioContext | null = null;
+    const stops: Array<() => void> = [];
+    try {
+      ctx = new ((window as any).AudioContext || (window as any).webkitAudioContext)();
+      const master = ctx.createGain();
+      master.gain.value = 0.035; // extremely quiet, contemplative
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 1800;
+      master.connect(lp);
+      lp.connect(ctx.destination);
+
+      // Gravel underfoot — subtle continuous low noise with occasional soft steps
+      const gravel = ctx.createBufferSource();
+      const gravelBuffer = ctx.createBuffer(1, ctx.sampleRate * 4, ctx.sampleRate);
+      const gravelData = gravelBuffer.getChannelData(0);
+      for (let i = 0; i < gravelData.length; i++) {
+        gravelData[i] = (Math.random() - 0.5) * 0.6;
+      }
+      gravel.buffer = gravelBuffer;
+      const gravelGain = ctx.createGain();
+      gravelGain.gain.value = 0.022;
+      const gravelLP = ctx.createBiquadFilter();
+      gravelLP.type = 'lowpass';
+      gravelLP.frequency.value = 650;
+      const gravelEnv = ctx.createGain();
+      gravel.connect(gravelLP);
+      gravelLP.connect(gravelGain);
+      gravelGain.connect(gravelEnv);
+      gravelEnv.connect(master);
+      gravel.start();
+      stops.push(() => gravel.stop());
+
+      // Very soft wind chimes — sparse random high chimes with short decay
+      const chimeOsc = ctx.createOscillator();
+      chimeOsc.type = 'sine';
+      chimeOsc.frequency.value = 1240;
+      const chimeGain = ctx.createGain();
+      chimeGain.gain.value = 0.0;
+      const chimeLP = ctx.createBiquadFilter();
+      chimeLP.type = 'lowpass';
+      chimeLP.frequency.value = 2100;
+      const chimeDelay = ctx.createDelay(0.4);
+      chimeDelay.delayTime.value = 0.28;
+      const chimeFeedback = ctx.createGain();
+      chimeFeedback.gain.value = 0.22;
+      chimeOsc.connect(chimeLP);
+      chimeLP.connect(chimeGain);
+      chimeGain.connect(chimeDelay);
+      chimeDelay.connect(chimeFeedback);
+      chimeFeedback.connect(chimeDelay);
+      chimeDelay.connect(master);
+      chimeOsc.start();
+      stops.push(() => chimeOsc.stop());
+
+      // Distant temple bell — very infrequent low strike with long decay
+      const bellOsc = ctx.createOscillator();
+      bellOsc.type = 'sine';
+      bellOsc.frequency.value = 178;
+      const bellGain = ctx.createGain();
+      bellGain.gain.value = 0.0;
+      const bellLP = ctx.createBiquadFilter();
+      bellLP.type = 'lowpass';
+      bellLP.frequency.value = 420;
+      bellOsc.connect(bellLP);
+      bellLP.connect(bellGain);
+      bellGain.connect(master);
+      bellOsc.start();
+      stops.push(() => bellOsc.stop());
+
+      // Gentle random triggers for chimes and bell (contemplative, not rhythmic)
+      const trigger = () => {
+        // Wind chime
+        const chimeVol = 0.012 + Math.random() * 0.018;
+        chimeGain.gain.cancelScheduledValues(ctx!.currentTime);
+        chimeGain.gain.setValueAtTime(chimeVol, ctx!.currentTime);
+        chimeGain.gain.linearRampToValueAtTime(0.0001, ctx!.currentTime + 0.9 + Math.random() * 0.6);
+
+        // Occasional distant bell (low probability)
+        if (Math.random() < 0.18) {
+          const bellVol = 0.008 + Math.random() * 0.011;
+          bellGain.gain.cancelScheduledValues(ctx!.currentTime);
+          bellGain.gain.setValueAtTime(bellVol, ctx!.currentTime);
+          bellGain.gain.linearRampToValueAtTime(0.0001, ctx!.currentTime + 4.5 + Math.random() * 2.5);
+        }
+
+        // Schedule next trigger
+        setTimeout(trigger, 1400 + Math.random() * 2200);
+      };
+      trigger();
+
+      // Register on HoloShell audio bridge (same pattern as UnderwaterScene)
+      (window as any).__holoShellAudio = {
+        scene: 'zen-garden',
+        tracks: ['wind_chimes', 'temple_bell', 'gravel_underfoot'],
+        stop: () => stops.forEach(f => f()),
+      };
+
+      // Notify phenomena bus
+      onInteraction?.('audio_bridge_ready', { scene: 'zen-garden' });
+    } catch {
+      // Web Audio unavailable or blocked — graceful no-op (common on first load)
+    }
+
+    return () => stops.forEach(f => f());
+  }, [onInteraction]);
+
   const handleNavigate = (id: string) => {
     onNavigateRequest?.(id as any);
     onInteraction?.('door_opened', { destination: id });
@@ -221,7 +333,7 @@ const ZenGardenScene: React.FC<ZenGardenSceneProps> = ({
         <meshStandardMaterial color="#3a3a2f" roughness={0.94} transparent opacity={0.6} side={2} />
       </mesh>
 
-      {/* TODO: very soft wind chimes + distant temple bell + gravel underfoot (audio) */}
+      {/* Ambient audio (wind chimes, distant temple bell, gravel) wired via HoloShell bridge — see useEffect above */}
     </group>
   );
 };
