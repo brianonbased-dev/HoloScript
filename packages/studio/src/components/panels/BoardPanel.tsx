@@ -88,6 +88,15 @@ export function BoardPanel() {
     load();
   };
 
+  const unclaim = async (id: string) => {
+    try {
+      await fetch(`${BOARD_URL}/${id}/unclaim`, { method: 'POST' });
+    } catch {
+      // demo: local reload will reflect
+    }
+    load();
+  };
+
   const filtered = filterRole
     ? tasks.filter(t => (t.role || '').toLowerCase().includes(filterRole.toLowerCase()))
     : tasks;
@@ -139,6 +148,7 @@ export function BoardPanel() {
                     )}
                     {status === 'claimed' && (
                       <>
+                        <button onClick={() => unclaim(task.id)} className="underline text-rose-400">Unclaim</button>
                         <button onClick={() => markDone(task.id)} className="underline text-emerald-400">Done</button>
                         <button onClick={() => markBlocked(task.id)} className="underline text-amber-400">Block</button>
                       </>
