@@ -61,3 +61,102 @@ export function calculateArc(
 
   return [vx, vy, vz];
 }
+
+// ---------------------------------------------------------------------------
+// Romantic dynamics / affective bonding solver (Strogatz–Rinaldi style + 5D extension)
+// Used by the social simulation & affective bonding domain (Paper 26+ / HoloLand track).
+// Pure math — no runtime side effects. Matches the physics-math module contract.
+// States: [R, J, I, P, C] — Responsiveness, Jealousy, Idealization, Passion, Commitment
+// ---------------------------------------------------------------------------
+
+export interface LoveParams {
+  a?: number; // responsiveness to partner feeling
+  b?: number; // jealousy / insecurity gain
+  c?: number; // idealization decay
+  d?: number; // passion saturation
+  k?: number; // commitment reinforcement from rhythm
+}
+
+export type LoveState = [number, number, number, number, number]; // [R, J, I, P, C]
+
+const DEFAULT_LOVE_PARAMS: Required<LoveParams> = {
+  a: 0.8,
+  b: 0.3,
+  c: 0.2,
+  d: 0.6,
+  k: 0.4,
+};
+
+/**
+ * Derivative of the 5D romantic state (R, J, I, P, C).
+ * Based on classic Strogatz–Rinaldi romantic dynamics extended with
+ * the R,J,I,P,C taxonomy from the integrating-love research.
+ */
+function loveDeriv(state: LoveState, params: Required<LoveParams>): LoveState {
+  const [R, J, I, P, C] = state;
+  const { a, b, c, d, k } = params;
+
+  // Responsiveness grows with partner feeling, damped by jealousy and commitment load
+  const dR = a * (1 - J) * P - 0.1 * C;
+
+  // Jealousy increases when responsiveness is high but reciprocity feels low
+  const dJ = b * Math.max(0, R - P) - 0.05 * I;
+
+  // Idealization decays over time unless fed by passion and positive rhythm
+  const dI = -c * I + 0.3 * P * (1 - J);
+
+  // Passion saturates and is modulated by idealization and commitment
+  const dP = d * (I * (1 - J) - P) + 0.2 * C;
+
+  // Commitment integrates positive rhythm (passion + low jealousy) over time
+  const dC = k * Math.max(0, P - J) - 0.02 * C;
+
+  return [dR, dJ, dI, dP, dC];
+}
+
+/**
+ * One RK4 step of the romantic dynamics ODE.
+ * Returns the new state after time dt (seconds or abstract steps).
+ */
+export function stepLoveRK4(
+  state: LoveState,
+  dt: number,
+  params: LoveParams = {}
+): LoveState {
+  const p = { ...DEFAULT_LOVE_PARAMS, ...params };
+
+  const k1 = loveDeriv(state, p);
+  const k2 = loveDeriv(
+    state.map((v, i) => v + (dt / 2) * k1[i]) as LoveState,
+    p
+  );
+  const k3 = loveDeriv(
+    state.map((v, i) => v + (dt / 2) * k2[i]) as LoveState,
+    p
+  );
+  const k4 = loveDeriv(
+    state.map((v, i) => v + dt * k3[i]) as LoveState,
+    p
+  );
+
+  return state.map((v, i) => v + (dt / 6) * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i])) as LoveState;
+}
+
+/**
+ * Convenience: run N steps and return the final state + a simple bond score
+ * (useful for traits and runtime tracking).
+ */
+export function integrateLove(
+  initial: LoveState,
+  steps: number,
+  dt = 0.1,
+  params: LoveParams = {}
+): { final: LoveState; bondScore: number } {
+  let s = [...initial] as LoveState;
+  for (let i = 0; i < steps; i++) {
+    s = stepLoveRK4(s, dt, params);
+  }
+  const [R, J, I, P, C] = s;
+  const bondScore = Math.max(0, Math.min(1, (R + I + P + C) / 4 - J * 0.5));
+  return { final: s, bondScore };
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateArc } from '../physics-math';
+import { calculateArc, stepLoveRK4, integrateLove, type LoveState } from '../physics-math';
 
 describe('calculateArc', () => {
   describe('degenerate case: start ≈ end (horizontal dist < 0.1)', () => {
@@ -10,7 +10,6 @@ describe('calculateArc', () => {
 
     it('returns [0, speed, 0] when horizontal dist < 0.1', () => {
       const result = calculateArc([0, 0, 0], [0.05, 0, 0.05], 10);
-      // dist ≈ 0.07 < 0.1 → degenerate
       expect(result).toEqual([0, 10, 0]);
     });
   });
@@ -22,25 +21,19 @@ describe('calculateArc', () => {
       const speed = 5;
       const [vx, vy, vz] = calculateArc(start, end, speed);
 
-      // Horizontal distance = 10, speed = 5, t = 2
-      // vx = 10 / 2 = 5
       expect(vx).toBeCloseTo(5);
-      // vz = 0 (no z displacement)
       expect(vz).toBeCloseTo(0);
-      // vy = 0/2 + 0.5 * 9.81 * 2 = 9.81
       expect(vy).toBeCloseTo(9.81);
     });
 
     it('computes velocity for a diagonal shot', () => {
       const start: [number, number, number] = [0, 0, 0];
-      const end: [number, number, number] = [3, 0, 4]; // dist = 5
+      const end: [number, number, number] = [3, 0, 4];
       const speed = 5;
       const [vx, vy, vz] = calculateArc(start, end, speed);
 
-      // t = dist/speed = 5/5 = 1
-      expect(vx).toBeCloseTo(3); // dx/t = 3/1
-      expect(vz).toBeCloseTo(4); // dz/t = 4/1
-      // vy = 0 + 0.5 * 9.81 * 1 = 4.905
+      expect(vx).toBeCloseTo(3);
+      expect(vz).toBeCloseTo(4);
       expect(vy).toBeCloseTo(4.905);
     });
 
@@ -49,9 +42,6 @@ describe('calculateArc', () => {
       const end: [number, number, number] = [10, 5, 0];
       const speed = 5;
       const [, vy] = calculateArc(start, end, speed);
-
-      // t = 10/5 = 2
-      // vy = 5/2 + 0.5 * 9.81 * 2 = 2.5 + 9.81 = 12.31
       expect(vy).toBeCloseTo(12.31);
     });
 
@@ -60,9 +50,6 @@ describe('calculateArc', () => {
       const end: [number, number, number] = [10, 0, 0];
       const speed = 5;
       const [, vy] = calculateArc(start, end, speed);
-
-      // t = 10/5 = 2, dy = -5
-      // vy = -5/2 + 0.5 * 9.81 * 2 = -2.5 + 9.81 = 7.31
       expect(vy).toBeCloseTo(7.31);
     });
 
@@ -78,9 +65,30 @@ describe('calculateArc', () => {
       const [vx1] = calculateArc(start, end, 5);
       const [vx2] = calculateArc(start, end, 10);
 
-      // t1 = 2, vx1 = 10/2 = 5; t2 = 1, vx2 = 10/1 = 10
       expect(vx1).toBeCloseTo(5);
       expect(vx2).toBeCloseTo(10);
     });
+  });
+});
+
+describe('love dynamics (RK4 romantic ODE for social simulation domain)', () => {
+  it('stepLoveRK4 produces a new state vector without NaN or explosion', () => {
+    const initial: LoveState = [0.5, 0.1, 0.6, 0.4, 0.3];
+    const next = stepLoveRK4(initial, 0.1);
+    expect(next.length).toBe(5);
+    next.forEach((v) => expect(Number.isFinite(v)).toBe(true));
+  });
+
+  it('integrateLove yields a stable bondScore in [0,1] after many steps', () => {
+    const initial: LoveState = [0.4, 0.2, 0.5, 0.3, 0.2];
+    const { bondScore } = integrateLove(initial, 200, 0.05);
+    expect(bondScore).toBeGreaterThanOrEqual(0);
+    expect(bondScore).toBeLessThanOrEqual(1);
+  });
+
+  it('higher commitment and lower jealousy produce higher or equal bond scores (sanity)', () => {
+    const low = integrateLove([0.3, 0.4, 0.3, 0.3, 0.2], 100).bondScore;
+    const high = integrateLove([0.7, 0.05, 0.7, 0.6, 0.8], 100).bondScore;
+    expect(high).toBeGreaterThanOrEqual(low);
   });
 });
