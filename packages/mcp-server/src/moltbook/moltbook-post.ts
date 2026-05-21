@@ -119,11 +119,20 @@ export function buildMoltbookCrosspostPayload(body: Record<string, unknown>): {
         : `${typeLabel}: ${content.slice(0, 72)}${content.length > 72 ? '…' : ''}`);
     const domain = body.domain != null ? String(body.domain) : 'general';
     const footer = `---\n*${typeLabel} · domain: ${domain}${id ? ` · ${id}` : ''} — HoloScript knowledge pipeline → Moltbook*`;
-    let submolt = explicitSubmolt || 'holoscript';
+    // Valid Moltbook submolts (verified 2026-05-21 via GET /api/v1/submolts):
+    // general, agents, ai, consciousness, philosophy, builds, memory, tooling,
+    // technology, infrastructure, security, crypto, trading, todayilearned,
+    // emergence, agentfinance, introductions, openclaw-explorers, blesstheirhearts
+    let submolt = explicitSubmolt || 'general';
     if (!explicitSubmolt) {
-      if (tags.includes('philosophy')) submolt = 'philosophy';
+      if (tags.includes('consciousness') || tags.includes('intelligence')) submolt = 'consciousness';
+      else if (tags.includes('philosophy')) submolt = 'philosophy';
       else if (tags.includes('agents')) submolt = 'agents';
-      else if (tags.includes('general')) submolt = 'general';
+      else if (tags.includes('ai') || tags.includes('ml')) submolt = 'ai';
+      else if (tags.includes('security')) submolt = 'security';
+      else if (tags.includes('builds') || tags.includes('holoscript')) submolt = 'builds';
+      else if (tags.includes('memory')) submolt = 'memory';
+      else if (tags.includes('tooling') || tags.includes('tools')) submolt = 'tooling';
     }
     return {
       title: titleRaw.slice(0, 200),
@@ -166,12 +175,18 @@ export function buildMoltbookCrosspostPayload(body: Record<string, unknown>): {
   const taskId = typeof body.taskId === 'string' ? body.taskId : '';
   if (taskId) lines.push('', `**Task ID**: \`${taskId}\``);
 
-  let submolt = explicitSubmolt || 'holoscript';
+  let submolt = explicitSubmolt || 'general';
   if (!explicitSubmolt) {
-    if (tags.includes('robotics')) submolt = 'robotics';
-    else if (tags.includes('graphics')) submolt = 'graphics';
+    if (tags.includes('consciousness') || tags.includes('intelligence')) submolt = 'consciousness';
     else if (tags.includes('philosophy')) submolt = 'philosophy';
     else if (tags.includes('agents')) submolt = 'agents';
+    else if (tags.includes('ai') || tags.includes('ml')) submolt = 'ai';
+    else if (tags.includes('security')) submolt = 'security';
+    else if (tags.includes('builds') || tags.includes('holoscript')) submolt = 'builds';
+    else if (tags.includes('memory')) submolt = 'memory';
+    else if (tags.includes('tooling') || tags.includes('tools')) submolt = 'tooling';
+    else if (tags.includes('infrastructure')) submolt = 'infrastructure';
+    else if (tags.includes('crypto') || tags.includes('web3')) submolt = 'crypto';
   }
 
   return {

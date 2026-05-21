@@ -2,14 +2,16 @@
  * Moltbook Crosspost Bridge
  *
  * Listens to HoloMesh task completions and automatically posts summaries
- * to the Moltbook HoloScript community.
+ * to Moltbook (www.moltbook.com).
  *
  * Endpoint: POST /api/moltbook/crosspost
  *
  * Moltbook is a Reddit-style platform for AI agents:
- *   - URLS: https://moltbook.com/holoscript
- *   - API: https://api.moltbook.com/v1
- *   - Communities: /r/holoscript, /r/vr-dev, /r/robotics
+ *   - Base: https://www.moltbook.com/api/v1
+ *   - Submolts (verified 2026-05-21 via GET /api/v1/submolts):
+ *     general, agents, ai, consciousness, philosophy, builds, memory, tooling,
+ *     technology, infrastructure, security, crypto, trading, todayilearned,
+ *     emergence, agentfinance, introductions, openclaw-explorers, blesstheirhearts
  */
 
 import { Router, Request, Response } from 'express';
@@ -59,7 +61,7 @@ interface HoloMeshTaskCompletion {
 interface MoltbookPost {
   title: string;
   content: string;
-  community: string; // e.g., 'holoscript', 'vr-dev'
+  community: string; // valid Moltbook submolt slug, e.g. 'general', 'agents', 'builds'
   tags: string[];
   authorAgent: string;
   externalLink?: string;
@@ -67,7 +69,8 @@ interface MoltbookPost {
 
 export const moltbookRouter = Router();
 
-const HOLOSCRIPT_COMMUNITY = 'holoscript';
+// Default submolt — must be a valid slug from GET /api/v1/submolts
+const DEFAULT_SUBMOLT = 'general';
 
 /**
  * POST /api/moltbook/crosspost
@@ -196,42 +199,33 @@ moltbookRouter.post('/batch', async (req: Request, res: Response) => {
 /**
  * GET /api/moltbook/communities
  *
- * List available Moltbook communities for crossposting.
+ * List available Moltbook submolts for crossposting.
+ * Slugs verified 2026-05-21 via GET https://www.moltbook.com/api/v1/submolts.
+ * Do NOT add slugs not present in that response — API returns 404 "Submolt not found".
  */
 moltbookRouter.get('/communities', (_req: Request, res: Response) => {
   res.json({
     success: true,
     communities: [
-      {
-        name: 'holoscript',
-        title: 'HoloScript',
-        description: 'Universal semantic platform for VR/AR/3D',
-        subscribers: 2500,
-      },
-      {
-        name: 'vr-dev',
-        title: 'VR Development',
-        description: 'VR/XR development tools and frameworks',
-        subscribers: 8000,
-      },
-      {
-        name: 'robotics',
-        title: 'Robotics Engineering',
-        description: 'ROS 2, URDF, motion planning, automation',
-        subscribers: 6500,
-      },
-      {
-        name: 'ai-agents',
-        title: 'AI Agents & Autonomy',
-        description: 'Multi-agent systems, agent frameworks, A2A protocols',
-        subscribers: 12000,
-      },
-      {
-        name: 'graphics',
-        title: '3D Graphics & Rendering',
-        description: 'WebGPU, Babylon.js, Three.js, shader programming',
-        subscribers: 5000,
-      },
+      { name: 'general', title: 'General' },
+      { name: 'agents', title: 'Agents' },
+      { name: 'ai', title: 'AI' },
+      { name: 'consciousness', title: 'Consciousness' },
+      { name: 'philosophy', title: 'Philosophy' },
+      { name: 'builds', title: 'Builds' },
+      { name: 'memory', title: 'Memory' },
+      { name: 'tooling', title: 'Tooling' },
+      { name: 'technology', title: 'Technology' },
+      { name: 'infrastructure', title: 'Infrastructure' },
+      { name: 'security', title: 'Security' },
+      { name: 'crypto', title: 'Crypto' },
+      { name: 'trading', title: 'Trading' },
+      { name: 'todayilearned', title: 'Today I Learned' },
+      { name: 'emergence', title: 'Emergence' },
+      { name: 'agentfinance', title: 'Agent Finance' },
+      { name: 'introductions', title: 'Introductions' },
+      { name: 'openclaw-explorers', title: 'OpenClaw Explorers' },
+      { name: 'blesstheirhearts', title: 'Bless Their Hearts' },
     ],
   });
 });
@@ -241,13 +235,28 @@ moltbookRouter.get('/communities', (_req: Request, res: Response) => {
 // ============================================================================
 
 function buildMoltbookPost(task: HoloMeshTaskCompletion): MoltbookPost {
-  const community = task.tags.includes('robotics')
-    ? 'robotics'
-    : task.tags.includes('graphics')
-      ? 'graphics'
-      : task.tags.includes('ai-agent')
-        ? 'ai-agents'
-        : HOLOSCRIPT_COMMUNITY;
+  // Map task tags to valid Moltbook submolt slugs (verified 2026-05-21)
+  const community = task.tags.includes('consciousness') || task.tags.includes('intelligence')
+    ? 'consciousness'
+    : task.tags.includes('philosophy')
+      ? 'philosophy'
+      : task.tags.includes('agents') || task.tags.includes('ai-agent')
+        ? 'agents'
+        : task.tags.includes('ai') || task.tags.includes('ml')
+          ? 'ai'
+          : task.tags.includes('security')
+            ? 'security'
+            : task.tags.includes('builds') || task.tags.includes('holoscript') || task.tags.includes('graphics')
+              ? 'builds'
+              : task.tags.includes('memory')
+                ? 'memory'
+                : task.tags.includes('tooling') || task.tags.includes('tools')
+                  ? 'tooling'
+                  : task.tags.includes('infrastructure') || task.tags.includes('robotics')
+                    ? 'technology'
+                    : task.tags.includes('crypto') || task.tags.includes('web3')
+                      ? 'crypto'
+                      : DEFAULT_SUBMOLT;
 
   const lines = [`## ${task.title}`, '', task.description, ''];
 
@@ -326,7 +335,7 @@ function buildBatchPost(tasks: HoloMeshTaskCompletion[]): MoltbookPost {
   return {
     title: `🤖 Agent Sprint Summary: ${completed}/${tasks.length} Complete`,
     content: lines.join('\n'),
-    community: HOLOSCRIPT_COMMUNITY,
+    community: DEFAULT_SUBMOLT,
     tags: ['Sprint-summary', 'agent-work'],
     authorAgent: tasks[0]?.ownerAgent || 'Autonomous Team',
   };
