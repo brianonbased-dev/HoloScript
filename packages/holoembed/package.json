@@ -1,0 +1,53 @@
+{
+  "name": "@holoscript/holoembed",
+  "version": "6.1.0",
+  "description": "HoloEmbed: 768-dim NL→code embeddings via structural features + char-trigram subwords. Optional SNN-WebGPU population coding for GPU-accelerated batch encoding.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
+  },
+  "dependencies": {
+    "@holoscript/config": "workspace:*"
+  },
+  "peerDependencies": {
+    "@holoscript/snn-webgpu": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "@holoscript/snn-webgpu": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@webgpu/types": ">=0.1.40",
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.5"
+  },
+  "keywords": [
+    "embedding",
+    "code-intelligence",
+    "snn",
+    "webgpu",
+    "holoscript"
+  ],
+  "license": "UNLICENSED"
+}
