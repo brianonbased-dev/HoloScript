@@ -169,9 +169,12 @@ let cachedProviderName: string | null = null;
 export async function detectBestEmbeddingProvider(): Promise<string> {
   if (cachedProviderName) return cachedProviderName;
 
-  // 1. Explicit env override
+  // 1. Explicit env override. Normalize case/whitespace — the factory switch is
+  // lowercase ('holoembed', 'openai', ...) and its default case THROWS, so a
+  // mixed-case value like 'HoloEmbed' would crash provider creation. Normalizing
+  // here makes EMBEDDING_PROVIDER robust to casing (HoloEmbed/HOLOEMBED/holoembed).
   if (process.env.EMBEDDING_PROVIDER) {
-    cachedProviderName = process.env.EMBEDDING_PROVIDER;
+    cachedProviderName = process.env.EMBEDDING_PROVIDER.trim().toLowerCase();
     console.error(`[EmbeddingProvider] Using explicit env: ${cachedProviderName}`);
     return cachedProviderName;
   }
@@ -405,7 +408,7 @@ interface AbsorbDiagnostics {
   hints: string[];
 }
 
-type GraphUnavailableReason = 'rootDir_unavailable' | 'cache_stale' | 'cache_missing';
+type GraphUnavailableReason = 'rootDir_unavailable' | 'cache_stale' | 'cache_missing' | 'cache_root_mismatch';
 
 interface GraphUnavailableReceipt {
   schemaVersion: typeof GRAPH_UNAVAILABLE_RECEIPT_SCHEMA;
@@ -2167,12 +2170,34 @@ async function handleGraphStatus(): Promise<unknown> {
     cachedGraph !== null && cacheTimestamp ? Date.now() - cacheTimestamp : undefined;
   const activeAgeMs = inMemoryAgeMs ?? cacheAgeMs;
   const activeStale = activeAgeMs !== undefined && activeAgeMs >= CACHE_MAX_AGE_MS;
-  const graphAuthoritative = cachedGraph !== null ? !activeStale : cache.exists && isFresh;
-  const requestedPath = cachedRootDir || cache.rootDir || null;
+
+  // Scope freshness to the current repo root. A cache that was created for a
+  // different directory (e.g. a temp absorb scratch dir) is NOT authoritative
+  // for the workspace the agent is actually working in.
+  const cacheRootDir = cachedRootDir || cache.rootDir || null;
+  const currentCwd = path.resolve(process.cwd());
+  const cacheMatchesCwd =
+    cacheRootDir !== null && path.resolve(cacheRootDir) === currentCwd;
+
+  const graphAuthoritative = cacheMatchesCwd
+    ? cachedGraph !== null
+      ? !activeStale
+      : cache.exists && isFresh
+    : false;
+
+  const freshForCurrentRepo = cacheMatchesCwd
+    ? isFresh
+    : false;
+
+  const requestedPath = cacheRootDir;
   const graphUnavailableReceipt = graphAuthoritative
     ? undefined
     : buildGraphUnavailableReceipt({
-        reason: cache.exists || cachedGraph !== null ? 'cache_stale' : 'cache_missing',
+        reason: !cacheMatchesCwd && (cache.exists || cachedGraph !== null)
+          ? 'cache_root_mismatch'
+          : cache.exists || cachedGraph !== null
+            ? 'cache_stale'
+            : 'cache_missing',
         requestedPath,
         runtimePath: requestedPath ? path.resolve(requestedPath) : null,
         cacheAgeMs: activeAgeMs,
@@ -2183,6 +2208,8 @@ async function handleGraphStatus(): Promise<unknown> {
     rootDir: cachedRootDir || null,
     graphRAGReady: isGraphRAGReady(),
     graphAuthoritative,
+    freshForCurrentRepo,
+    currentCwd,
     ...(graphUnavailableReceipt && { graphUnavailableReceipt }),
     sessionProvenance: cacheProvenance ?? null,
     diskCache: cache.exists
@@ -2193,11 +2220,14 @@ async function handleGraphStatus(): Promise<unknown> {
           fresh: isFresh,
           stale: !isFresh,
           authoritative: isFresh,
+          freshForCurrentRepo,
           rootDir: cache.rootDir,
           stats: cache.stats,
-          hint: isFresh
-            ? 'Cache is fresh — query tools will auto-load it without re-scanning.'
-            : 'Cache is older than 24h — call holo_absorb_repo to refresh.',
+          hint: !cacheMatchesCwd
+            ? `Cache rootDir (${cache.rootDir}) does not match current working directory (${currentCwd}). Call holo_absorb_repo for this workspace.`
+            : isFresh
+              ? 'Cache is fresh — query tools will auto-load it without re-scanning.'
+              : 'Cache is older than 24h — call holo_absorb_repo to refresh.',
         }
       : {
           exists: false,

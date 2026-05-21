@@ -853,16 +853,22 @@ function printGraphStatus(status: unknown): void {
   const stats = asRecord(diskCache.stats);
 
   console.log('\n\x1b[36mAbsorb graph status\x1b[0m\n');
-  console.log(`  In memory:       ${payload.inMemory ? 'yes' : 'no'}`);
-  console.log(`  Graph RAG ready: ${payload.graphRAGReady ? 'yes' : 'no'}`);
-  console.log(`  Root dir:        ${String(payload.rootDir ?? diskCache.rootDir ?? 'n/a')}`);
-  console.log(`  Disk cache:      ${diskCache.exists ? 'yes' : 'no'}`);
+  console.log(`  In memory:              ${payload.inMemory ? 'yes' : 'no'}`);
+  console.log(`  Graph RAG ready:        ${payload.graphRAGReady ? 'yes' : 'no'}`);
+  console.log(`  Authoritative:          ${payload.graphAuthoritative ? 'yes' : 'no'}`);
+  console.log(`  Fresh for current repo: ${payload.freshForCurrentRepo ? 'yes' : 'no'}`);
+  console.log(`  Current cwd:            ${String(payload.currentCwd ?? 'n/a')}`);
+  console.log(`  Root dir:               ${String(payload.rootDir ?? diskCache.rootDir ?? 'n/a')}`);
+  console.log(`  Disk cache:             ${diskCache.exists ? 'yes' : 'no'}`);
   if (diskCache.exists) {
-    console.log(`  Cache age:       ${String(diskCache.ageHuman ?? 'n/a')}`);
-    console.log(`  Fresh:           ${diskCache.fresh ? 'yes' : 'no'}`);
+    console.log(`  Cache age:              ${String(diskCache.ageHuman ?? 'n/a')}`);
+    console.log(`  Fresh:                  ${diskCache.fresh ? 'yes' : 'no'}`);
+    if (diskCache.freshForCurrentRepo !== undefined) {
+      console.log(`  Fresh for current repo: ${diskCache.freshForCurrentRepo ? 'yes' : 'no'}`);
+    }
     if (Object.keys(stats).length > 0) {
-      console.log(`  Files:           ${String(stats.totalFiles ?? 'n/a')}`);
-      console.log(`  Symbols:         ${String(stats.totalSymbols ?? 'n/a')}`);
+      console.log(`  Files:                  ${String(stats.totalFiles ?? 'n/a')}`);
+      console.log(`  Symbols:                ${String(stats.totalSymbols ?? 'n/a')}`);
     }
   }
   if (diskCache.hint) {

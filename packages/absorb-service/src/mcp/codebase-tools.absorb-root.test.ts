@@ -98,7 +98,8 @@ describe('holo_absorb_repo root validation', () => {
   it('returns a graph unavailable receipt when the disk cache is stale', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-stale-graph-cache-'));
-    const requestedRoot = 'C:\\Users\\josep\\Documents\\GitHub\\HoloScript';
+    // Use process.cwd() as rootDir so cacheMatchesCwd is true, testing actual staleness
+    const requestedRoot = process.cwd();
     process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
     writeGraphCache(cacheDir, requestedRoot, Date.now() - 27 * 60 * 60 * 1000);
 
@@ -122,23 +123,59 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.graphUnavailableReceipt?.staleByMs).toBeGreaterThan(0);
   });
 
-  it('does not emit a graph unavailable receipt for a fresh disk cache', async () => {
+  it('does not emit a graph unavailable receipt for a fresh disk cache matching cwd', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-fresh-graph-cache-'));
-    const requestedRoot = path.join(os.tmpdir(), 'fresh-holoscript-root');
+    // Use process.cwd() as rootDir so the cache matches the current workspace
+    const requestedRoot = process.cwd();
     process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
     writeGraphCache(cacheDir, requestedRoot, Date.now() - 5 * 60 * 1000);
 
     const status = (await handleCodebaseTool('holo_graph_status', {})) as {
       graphAuthoritative?: boolean;
+      freshForCurrentRepo?: boolean;
+      currentCwd?: string;
       graphUnavailableReceipt?: GraphUnavailableReceipt;
-      diskCache?: { fresh?: boolean; authoritative?: boolean };
+      diskCache?: { fresh?: boolean; authoritative?: boolean; freshForCurrentRepo?: boolean; rootDir?: string };
     };
 
     expect(status.graphAuthoritative).toBe(true);
+    expect(status.freshForCurrentRepo).toBe(true);
+    expect(status.currentCwd).toBe(path.resolve(process.cwd()));
     expect(status.diskCache?.fresh).toBe(true);
     expect(status.diskCache?.authoritative).toBe(true);
+    expect(status.diskCache?.freshForCurrentRepo).toBe(true);
     expect(status.graphUnavailableReceipt).toBeUndefined();
+  });
+
+  it('reports freshForCurrentRepo=false when cache rootDir differs from cwd', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-mismatch-graph-cache-'));
+    // Cache was created for a temp dir (e.g. format-stress scratch), NOT for cwd
+    const mismatchedRoot = path.join(os.tmpdir(), 'holoscript-absorb-QpPEqg');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    writeGraphCache(cacheDir, mismatchedRoot, Date.now() - 5 * 60 * 1000);
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphAuthoritative?: boolean;
+      freshForCurrentRepo?: boolean;
+      currentCwd?: string;
+      graphUnavailableReceipt?: GraphUnavailableReceipt;
+      diskCache?: { fresh?: boolean; authoritative?: boolean; freshForCurrentRepo?: boolean; rootDir?: string };
+    };
+
+    // Cache is fresh by age but NOT authoritative for the current repo
+    expect(status.graphAuthoritative).toBe(false);
+    expect(status.freshForCurrentRepo).toBe(false);
+    expect(status.currentCwd).toBe(path.resolve(process.cwd()));
+    expect(status.diskCache?.fresh).toBe(true);
+    expect(status.diskCache?.freshForCurrentRepo).toBe(false);
+    // Receipt should explain the mismatch
+    expect(status.graphUnavailableReceipt).toMatchObject({
+      kind: 'GraphUnavailableReceipt',
+      reason: 'cache_root_mismatch',
+      authoritative: false,
+    });
   });
 });
 
