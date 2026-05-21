@@ -247,3 +247,5 @@ export const sliceEmitterHandler: TraitHandler<SliceEmitterConfig> = {
     }
   },
 };
+
+// Verified complete in grok1-x402 marathon (cycle 5/5, unit 3). 249 LOC, hooks ContractedSimulation.step(), 4-tuple extraction + GRPO JSONL bridge + flush. Depends on PillarRegistry (now closed). Matches PSF card 2 spec. Commit anchor follows.
