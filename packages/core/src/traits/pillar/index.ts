@@ -114,3 +114,17 @@ export type {
 } from './RecursiveLinkTrait';
 
 export { recursiveLinkHandler } from './RecursiveLinkTrait';
+
+// ── CognitiveVMTrait — uAAL runtime ───────────────────────────────────────────
+export type {
+  LifecycleState,
+  CognitiveVMBehaviour,
+  CognitiveVMConfig,
+  CognitiveVMSnapshot,
+  DispatchHandler,
+} from './CognitiveVMTrait';
+
+export {
+  cognitiveVMHandler,
+  getCognitiveVMSnapshot,
+} from './CognitiveVMTrait';
