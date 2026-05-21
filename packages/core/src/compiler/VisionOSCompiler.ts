@@ -302,6 +302,18 @@ export class VisionOSCompiler extends CompilerBase {
         );
       } else if (prop.key === 'ambient_light') {
         this.emit(`// Ambient light: ${prop.value} — handled via IBL intensity`);
+      } else if (prop.key === 'style') {
+        // Fidelity gap closure for CG-005 (environment.style)
+        const style = String(prop.value).toLowerCase();
+        if (style.includes('immersive')) {
+          this.emit('root.components.set(ImmersionStyleComponent(style: .full))');
+        } else if (style.includes('mixed')) {
+          this.emit('root.components.set(ImmersionStyleComponent(style: .mixed))');
+        } else if (style.includes('progressive')) {
+          this.emit('root.components.set(ImmersionStyleComponent(style: .progressive))');
+        } else {
+          this.emit(`// Environment style: "${prop.value}"`);
+        }
       }
     }
   }
