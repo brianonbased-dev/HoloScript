@@ -20,9 +20,8 @@
  *   SemanticCollaborationContract — for the message envelope + receipt + Two-Axis integrity
  */
 
-import type { TraitHandler, TraitContext, TraitEvent } from '../TraitTypes';
-import type { PillarSlice, PillarDomain } from './SemanticCollaborationContract';
-import { PillarRegistry, pillarRegistryHandler } from './PillarRegistry';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from '../TraitTypes';
+import type { PillarSlice } from './SemanticCollaborationContract';
 
 // --- Types -------------------------------------------------------------------
 
@@ -45,6 +44,18 @@ export interface RecursiveLinkConfig {
 
 // --- Trait Implementation ----------------------------------------------------
 
+// Internal per-node state
+interface RecursiveLinkState {
+  sentCount: number;
+  receivedCount: number;
+}
+
+function extractField<T>(event: TraitEvent, key: string): T | undefined {
+  const direct = (event as Record<string, unknown>)[key];
+  if (direct !== undefined) return direct as T;
+  return (event.payload as Record<string, unknown> | undefined)?.[key] as T | undefined;
+}
+
 export const recursiveLinkHandler: TraitHandler<RecursiveLinkConfig> = {
   name: 'recursive_link',
 
@@ -53,70 +64,88 @@ export const recursiveLinkHandler: TraitHandler<RecursiveLinkConfig> = {
     default_loop: 'inner',
   },
 
-  onEvent(context: TraitContext, event: TraitEvent, config: RecursiveLinkConfig) {
-    switch (event.type) {
-      case 'recursive_link:send': {
-        const msg = event.payload as Partial<RecursiveLinkMessage>;
-        if (!msg.slice || !msg.to) {
-          return { type: 'recursive_link:error', payload: { code: 'INVALID_MESSAGE' } };
-        }
+  onAttach(node: HSPlusNode, _config: RecursiveLinkConfig, _context: TraitContext): void {
+    const state: RecursiveLinkState = { sentCount: 0, receivedCount: 0 };
+    node.__recursiveLinkState = state;
+  },
 
-        const fullMsg: RecursiveLinkMessage = {
-          from: context.agentId,
-          to: msg.to,
-          loop: msg.loop ?? config.default_loop,
-          slice: msg.slice,
-          receipt: msg.receipt,
-          timestamp_ms: Date.now(),
-          metadata: msg.metadata,
-        };
+  onDetach(node: HSPlusNode, _config: RecursiveLinkConfig, _context: TraitContext): void {
+    delete node.__recursiveLinkState;
+  },
 
-        // In a full implementation this would dispatch via the mesh transport
-        // (SemanticCollaborationContract or RecursiveLink transport) and
-        // attach a fresh SimulationContract receipt when required.
-        if (config.require_receipt && !fullMsg.receipt) {
-          // Placeholder: real impl would call into SimulationContract
-          fullMsg.receipt = `receipt_${Date.now()}_${context.agentId.slice(0, 8)}`;
-        }
+  onUpdate(): void {},
 
-        return {
-          type: 'recursive_link:sent',
-          payload: fullMsg,
-        };
+  onEvent(
+    node: HSPlusNode,
+    config: RecursiveLinkConfig,
+    context: TraitContext,
+    event: TraitEvent,
+  ): void {
+    const state = node.__recursiveLinkState as RecursiveLinkState | undefined;
+    if (!state) return;
+
+    // ── recursive_link:send ───────────────────────────────────────────────────
+    if (event.type === 'recursive_link:send') {
+      const to = extractField<string>(event, 'to');
+      const slice = extractField<PillarSlice>(event, 'slice');
+      const loop = extractField<'inner' | 'outer'>(event, 'loop') ?? config.default_loop;
+      const receipt = extractField<string>(event, 'receipt');
+      const metadata = extractField<Record<string, unknown>>(event, 'metadata');
+
+      if (!slice || !to) {
+        context.emit?.('recursive_link:error', { code: 'INVALID_MESSAGE', message: 'slice and to are required' });
+        return;
       }
 
-      case 'recursive_link:receive': {
-        const incoming = event.payload as RecursiveLinkMessage;
-        // Integrity hook: the caller (usually SemanticCollaborationContract)
-        // is expected to have already run the Two-Axis checks (cosine_anomaly +
-        // centroid_drift on truth_approval). We just forward the slice.
-        return {
-          type: 'recursive_link:received',
-          payload: incoming,
-        };
-      }
+      const fullMsg: RecursiveLinkMessage = {
+        from: extractField<string>(event, 'from') ?? 'unknown',
+        to,
+        loop,
+        slice,
+        receipt: config.require_receipt && !receipt
+          ? `receipt_${Date.now()}`
+          : receipt,
+        timestamp_ms: Date.now(),
+        metadata,
+      };
 
-      case 'pillar:slice': {
-        // When a Pillar produces a slice, RecursiveLink can opportunistically
-        // forward it on the appropriate loop (inner for Domain/Layer, outer
-        // for Intent/Temporal).
-        const slice = event.payload as PillarSlice;
-        const loop = (['physics', 'rendering', 'solver', 'trait'].includes(slice.pillar_domain))
-          ? 'inner'
-          : 'outer';
+      state.sentCount++;
+      context.emit?.('recursive_link:sent', fullMsg);
+      return;
+    }
 
-        return {
-          type: 'recursive_link:send',
-          payload: {
-            to: '*', // broadcast within current Pillar context or explicit target
-            loop,
-            slice,
-          },
-        };
-      }
+    // ── recursive_link:receive ────────────────────────────────────────────────
+    if (event.type === 'recursive_link:receive') {
+      const incoming = extractField<RecursiveLinkMessage>(event, 'message')
+        ?? (event as unknown as RecursiveLinkMessage);
 
-      default:
-        return null;
+      // Integrity hook: Two-Axis checks (cosine_anomaly + centroid_drift)
+      // are expected to have been run upstream by SemanticCollaborationContract.
+      state.receivedCount++;
+      context.emit?.('recursive_link:received', incoming);
+      return;
+    }
+
+    // ── pillar:slice — opportunistic forwarding ───────────────────────────────
+    if (event.type === 'pillar:slice') {
+      const slicePayload = extractField<{ slice: PillarSlice }>(event, 'slice')
+        ?? (event.payload as { slice: PillarSlice } | undefined);
+      const slice: PillarSlice | undefined = (slicePayload as unknown as PillarSlice)?.pillar_id
+        ? (slicePayload as unknown as PillarSlice)
+        : (slicePayload as { slice: PillarSlice } | undefined)?.slice;
+
+      if (!slice) return;
+
+      const innerDomains: PillarSlice['pillar_domain'][] = ['physics', 'rendering', 'solver', 'trait'];
+      const loop: 'inner' | 'outer' = innerDomains.includes(slice.pillar_domain) ? 'inner' : 'outer';
+
+      context.emit?.('recursive_link:send', {
+        to: '*',
+        loop,
+        slice,
+        from: 'pillar_registry',
+      });
+      return;
     }
   },
 };

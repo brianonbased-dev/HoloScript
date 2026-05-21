@@ -38,6 +38,9 @@
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from '../TraitTypes';
 import type { PillarDomain, PillarSlice } from './SemanticCollaborationContract';
 
+// Re-export for consumers that import PillarSlice / PillarDomain from PillarRegistry
+export type { PillarDomain, PillarSlice };
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Core domain types
 // ─────────────────────────────────────────────────────────────────────────────

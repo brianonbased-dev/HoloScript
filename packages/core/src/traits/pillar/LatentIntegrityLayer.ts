@@ -129,7 +129,7 @@ export class LatentSycophancyProbe {
   observe(msg: RecursiveLinkMessage): void {
     const s = msg.slice;
     // Heuristic: truth_approval or intent domains carry the approval pressure in pos_2
-    if (s.pillar_domain === 'truth_approval' || s.pillar_domain === 'intent') {
+    if (s.pillar_domain === 'truth_approval' || s.pillar_domain === 'coordination') {
       const n = this.n;
       this.centroid[0] = (this.centroid[0] * n + s.pos_1) / (n + 1);
       this.centroid[1] = (this.centroid[1] * n + s.pos_2) / (n + 1);
