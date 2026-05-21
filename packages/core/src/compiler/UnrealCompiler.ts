@@ -92,6 +92,7 @@ export class UnrealCompiler extends CompilerBase {
       useEnhancedInput: options.useEnhancedInput ?? true,
       generateBlueprints: options.generateBlueprints ?? false,
       provenanceHash: options.provenanceHash ?? '',
+      platformTarget: options.platformTarget ?? '',
     };
     if (options.platformTarget) {
       this._platformTarget = typeof options.platformTarget === 'string'

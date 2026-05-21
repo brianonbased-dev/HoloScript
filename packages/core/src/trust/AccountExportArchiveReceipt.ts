@@ -47,6 +47,7 @@ export type ArchivePartStatus =
   | 'present_size_mismatch';
 
 export type SensitivityLevel =
+  | 'general'
   | 'public'
   | 'internal'
   | 'personal'
@@ -443,7 +444,7 @@ export function classifyFileSensitivity(
   const categories = new Set<SensitivityCategory>();
   const flags = new Set<FileSensitivityFlag>();
 
-  const levelOrder: SensitivityLevel[] = ['public', 'internal', 'personal', 'sensitive', 'restricted'];
+  const levelOrder: SensitivityLevel[] = ['general', 'public', 'internal', 'personal', 'sensitive', 'restricted'];
   const levelIndex = (l: SensitivityLevel) => levelOrder.indexOf(l);
 
   for (const pattern of patterns) {

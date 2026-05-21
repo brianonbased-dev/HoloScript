@@ -104,6 +104,7 @@ export class BabylonCompiler extends CompilerBase {
       enableXR: options.enableXR ?? false,
       indent: options.indent || '  ',
       provenanceHash: options.provenanceHash ?? '',
+      platformTarget: options.platformTarget ?? '',
     };
   }
 

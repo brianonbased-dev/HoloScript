@@ -74,7 +74,7 @@ export {
 } from '../plugins/PluginSignatureVerifier';
 export type {
   TrustedKey,
-  VerificationResult,
+  VerificationResult as PluginSignatureVerificationResult,
   SignatureVerifierConfig,
 } from '../plugins/PluginSignatureVerifier';
 

@@ -330,13 +330,22 @@ export class HoloScriptAgentRuntime {
    */
   private ensureJepaObjectiveAttached(): void {
     if (!this.jepaObjectiveAttached) {
-      jepObjectiveHandler.onAttach(
+      const config = this.getJepaObjectiveConfig();
+      jepObjectiveHandler.onAttach?.(
         this.jepaObjectiveNode,
-        jepObjectiveHandler.defaultConfig,
+        config,
         this.buildJepaTraitContext()
       );
       this.jepaObjectiveAttached = true;
     }
+  }
+
+  private getJepaObjectiveConfig() {
+    const config = jepObjectiveHandler.defaultConfig;
+    if (!config) {
+      throw new Error('JEPAObjective handler defaultConfig is required for offline training');
+    }
+    return config;
   }
 
   /**
@@ -386,15 +395,16 @@ export class HoloScriptAgentRuntime {
     const contextStr = JSON.stringify({ state: stateBefore, action });
 
     // Deterministic outcome → target vector (same DJB2 scatter as plan())
-    const latentDim = jepObjectiveHandler.defaultConfig.latentDim;
+    const config = this.getJepaObjectiveConfig();
+    const latentDim = config.latentDim;
     const outcomeStr = outcome.success
       ? `success:${String(outcome.output ?? '')}`
       : `failure:${String(outcome.error ?? '')}`;
     const targetVec = textToEmbeddingFloat32(outcomeStr, latentDim);
 
-    jepObjectiveHandler.onEvent(
+    jepObjectiveHandler.onEvent?.(
       this.jepaObjectiveNode,
-      jepObjectiveHandler.defaultConfig,
+      config,
       this.buildJepaTraitContext(),
       {
         type: 'jepa:encode_pair',

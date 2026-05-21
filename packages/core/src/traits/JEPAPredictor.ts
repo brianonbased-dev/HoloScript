@@ -154,8 +154,8 @@ export class JEPAPredictor {
 
     const contextEmb = textToEmbedding(currentState, this.latentDim);
 
-    let bestAction = candidateActions[0];
-    let bestPredicted = new Float32Array(this.latentDim);
+    let bestAction = candidateActions[0]!;
+    let bestPredicted: Float32Array = new Float32Array(this.latentDim);
     let bestConfidence = -Infinity;
 
     for (const action of candidateActions) {
