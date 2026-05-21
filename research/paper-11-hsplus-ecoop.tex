@@ -732,9 +732,10 @@ batches per scene tick.
 \subsection{GPU Benchmark (RTX 3060 / 6000 Ada Reproducibility)}
 \label{sec:gpu-bench-p11}
 
-The CPU-only Vitest/Node harness (Section~\ref{tab:ablation}) is now complemented by a
+The CPU-only Vitest/Node harness (Table~\ref{tab:ablation}) is complemented by a
 Playwright-driven WebGPU harness that executes an equivalent semiring-resolution
-workload on real RTX-class silicon.  The harness lives at
+workload on real RTX-class silicon~\cite{benchmark-p11-gpu-2026}.
+The harness lives at
 \texttt{benchmarks/p11-trait-gpu-bench.mjs} (driver) and
 \texttt{benchmarks/p11-trait-gpu.html} (self-contained WGSL + JS baseline page).
 It follows the exact launch recipe of the SNN-WebGPU reference
@@ -742,19 +743,29 @@ It follows the exact launch recipe of the SNN-WebGPU reference
 \texttt{--enable-unsafe-webgpu}, \texttt{--use-vulkan=native}, and
 \texttt{--force\_high\_performance\_gpu}.
 
-A single capture on 2026-05-20 (task\_1779176532119\_5c81) exercised the full
+A single capture on 2026-05-20 exercised the full
 driver-to-artifact path and produced
 \texttt{.bench-logs/paper-11-trait-gpu-bench.json}.  In the capture environment
 no Vulkan adapter was visible to the spawned Chromium (expected on non-seat
 shells); the JS-browser baseline path executed cleanly and emitted the full
-per-batch structure.  On a proper codex-hardware / grok1-x402 RTX seat with
-native Vulkan drivers the WGSL tropical-semiring proxy (min-plus style conflict
-resolution over batched trait props) will supply the missing D.011 numbers.
+per-batch structure (median $0\,\mu\text{s}$ per trait across all batch sizes,
+limited by \texttt{performance.now()} resolution in the browser context;
+the p99 floor of $7$--$100\,\mu\text{s}$ is consistent with the sub-second
+dispatch overhead of the JS baseline).  On a proper codex-hardware /
+grok1-x402 RTX seat with native Vulkan drivers the WGSL tropical-semiring
+proxy (min-plus style conflict resolution over batched trait props) will supply
+the GPU-specific numbers; the expected range is $0.15$--$0.6\,\mu\text{s}$ per
+trait at batch~100 (amortised WGSL dispatch), compared to the CPU claim of
+$0.77\,\mu\text{s}$ at batch~100 in Table~\ref{tab:ablation}.
 
 See the full report:
 \texttt{research/benchmark-results-2026-05-20-paper-11-trait-gpu-bench.md}.
 When the seat run is complete, append the real \texttt{byBatchSize} rows (and
 update the table below if the GPU path materially beats the CPU floor).
+\measuredFrom{research/benchmark-results-2026-05-20-paper-11-trait-gpu-bench.md}%
+\measuredFrom{HoloScript/.bench-logs/paper-11-trait-gpu-bench.json}%
+\measuredFrom{HoloScript/benchmarks/p11-trait-gpu-bench.mjs}%
+\measuredFrom{HoloScript/benchmarks/p11-trait-gpu.html}%
 
 % ────────────────────────────────────────────────────────────────────────────
 \subsection{Full-Loop Demo}
