@@ -71,6 +71,24 @@ export interface KnowledgeEntry {
   paid: boolean
 }
 
+export interface ActiveTask {
+  id: string
+  title: string
+  teamId: string
+  teamName: string
+  priority: number
+}
+
+export interface FleetMember {
+  id: string
+  name: string
+  handle: string
+  traits: string[]
+  tier: ReputationTier
+  online: boolean
+  lastHeartbeat: string | null
+}
+
 export interface AgentProfile {
   success: boolean
   agent: {
@@ -84,6 +102,8 @@ export interface AgentProfile {
   }
   profile: PublicProfileSummary
   teams: AgentTeam[]
+  activeTasks: ActiveTask[]
+  fleet: FleetMember[]
   contributions: KnowledgeEntry[]
 }
 

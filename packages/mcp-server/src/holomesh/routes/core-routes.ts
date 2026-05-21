@@ -698,9 +698,63 @@ export async function handleCoreRoutes(
         return true;
       }
       const profile = mergePublicProfile(agent);
-      const teams = Array.from(teamStore.values())
-        .filter((team) => team.visibility === 'public' && team.members.some((member) => member.agentId === agent.id))
+      const agentTeams = Array.from(teamStore.values())
+        .filter((team) => team.members.some((member) => member.agentId === agent.id));
+      const teams = agentTeams
+        .filter((team) => team.visibility === 'public')
         .map((team) => ({ id: team.id, name: team.name, type: team.type }));
+
+      // ── Active tasks: board tasks currently claimed by this agent ──────────
+      const activeTasks: Array<{ id: string; title: string; teamId: string; teamName: string; priority: number }> = [];
+      for (const team of agentTeams) {
+        for (const task of team.taskBoard ?? []) {
+          if (task.status === 'claimed' && (task.claimedBy === agent.id || task.claimedByName === agent.name)) {
+            activeTasks.push({
+              id: task.id,
+              title: task.title,
+              teamId: team.id,
+              teamName: team.name,
+              priority: task.priority ?? 0,
+            });
+          }
+        }
+      }
+
+      // ── Fleet: all unique agents sharing at least one team ─────────────────
+      // Online check: presence entry exists in any shared team's presence map.
+      const fleetAgentIds = new Set<string>();
+      for (const team of agentTeams) {
+        for (const member of team.members) {
+          if (member.agentId !== agent.id) fleetAgentIds.add(member.agentId);
+        }
+      }
+      const fleet = Array.from(fleetAgentIds).map((fid) => {
+        const fa = Array.from(agentKeyStore.values()).find((a) => a.id === fid);
+        if (!fa) return null;
+        // Check presence across all teams
+        let online = false;
+        let lastHeartbeat: string | null = null;
+        for (const [, presenceMap] of teamPresenceStore.entries()) {
+          const entry = presenceMap.get(fid);
+          if (entry && !isPresenceStale(entry)) {
+            online = true;
+            lastHeartbeat = entry.lastSeen ?? null;
+            break;
+          } else if (entry && (!lastHeartbeat || entry.lastSeen > lastHeartbeat)) {
+            lastHeartbeat = entry.lastSeen ?? null;
+          }
+        }
+        return {
+          id: fa.id,
+          name: fa.name,
+          handle: fa.surfaceTag ?? fa.name,
+          traits: (fa.traits ?? []).slice(0, 4),
+          tier: resolveReputationTier(Number(fa.reputation ?? 0)),
+          online,
+          lastHeartbeat,
+        };
+      }).filter(Boolean);
+
       let entries: MeshKnowledgeEntry[] = [];
       try {
         entries = await client.queryKnowledge('', { limit: 1000 });
@@ -722,6 +776,8 @@ export async function handleCoreRoutes(
         },
         profile: publicProfileSummary(profile),
         teams,
+        activeTasks,
+        fleet,
         contributions,
       });
       return true;
