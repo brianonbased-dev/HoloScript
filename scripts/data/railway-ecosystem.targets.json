@@ -1,0 +1,38 @@
+{
+  "_comment": "IDs cached from Railway GraphQL. projectId/environmentId/serviceId skip GQL resolution at runtime.",
+  "targets": [
+    {
+      "name": "mcp-orchestrator",
+      "project": "MCP Mesh",
+      "projectId": "24e0f2df-dfb7-4350-9a30-f9077a350b0d",
+      "environment": "production",
+      "environmentId": "5af0c608-654c-40ae-acf9-0e6e7a6345ca",
+      "service": "mcp-orchestrator",
+      "serviceId": "80cfb8ef-ad9b-4604-899c-6cae63aa2fff",
+      "healthUrl": "https://mcp-orchestrator-production-45f9.up.railway.app/health",
+      "healthAuthHeader": null
+    },
+    {
+      "name": "mcp-server",
+      "project": "HoloScript",
+      "projectId": "45da3535-e14d-4022-a57e-1e5a96ee48d0",
+      "environment": "production",
+      "environmentId": "9cccd9a6-12e3-483f-b382-dba1efbb229d",
+      "service": "mcp-server",
+      "serviceId": "098119b1-7832-4788-9ab2-3ced6c1cd2ab",
+      "healthUrl": "https://mcp.holoscript.net/health",
+      "healthAuthHeader": null
+    },
+    {
+      "name": "absorb-service",
+      "project": "HoloScript",
+      "projectId": "45da3535-e14d-4022-a57e-1e5a96ee48d0",
+      "environment": "production",
+      "environmentId": "9cccd9a6-12e3-483f-b382-dba1efbb229d",
+      "service": "absorb-service",
+      "serviceId": "50555ebe-0d62-463b-a080-13abdadbdad9",
+      "healthUrl": "https://absorb.holoscript.net/health",
+      "healthAuthHeader": null
+    }
+  ]
+}
