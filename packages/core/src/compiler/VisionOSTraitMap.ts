@@ -857,6 +857,22 @@ export const UI_TRAIT_MAP: Record<string, TraitMapping> = {
     },
   },
 
+  palm_menu: {
+    trait: 'palm_menu',
+    components: ['AnchoringComponent'],
+    level: 'partial',
+    generate: (varName, config) => {
+      const when = config.visible_when || 'palm_up';
+      const layout = config.layout || 'radial';
+      const attach = config.attach_to || 'left_palm';
+      return [
+        `// @palm_menu — palm-attached radial menu (visible_when: ${when}, attach: ${attach}, layout: ${layout})`,
+        `${varName}.components.set(AnchoringComponent(.hand(.left, location: .palm)))`,
+        `// UI: radial items rendered via SwiftUI overlay or Entity HUD; gestures wired to on_pinch etc.`,
+      ];
+    },
+  },
+
   ui_billboard: {
     trait: 'ui_billboard',
     components: ['BillboardComponent'],

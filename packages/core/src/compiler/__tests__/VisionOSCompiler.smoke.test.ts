@@ -160,8 +160,8 @@ describe('VisionOSCompiler — Smoke Suite (CG-005)', () => {
       expect(swiftOutput).not.toContain('transition: zoom');
     });
 
-    it('GAP: @palm_menu has no mapping', () => {
-      expect(swiftOutput).toMatch(/@palm_menu\s*—\s*no mapping defined/);
+    it('@palm_menu emits anchoring + palm menu comment (partial support)', () => {
+      expect(swiftOutput).toContain('@palm_menu — palm-attached radial menu');
     });
 
     it('GAP: visible_when, radial layout, and menu items are not generated', () => {
