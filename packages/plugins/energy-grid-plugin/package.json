@@ -1,0 +1,31 @@
+{
+  "name": "@holoscript/energy-grid-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Energy-grid simulation plugin with DC power flow, solar, battery degradation, DER QUBO hooks, and CAEL-ready receipts.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "holoscript",
+    "plugin",
+    "energy-grid",
+    "power-flow",
+    "renewables",
+    "battery",
+    "qubo",
+    "qaoa"
+  ],
+  "author": "brianonbased-dev",
+  "license": "MIT",
+  "dependencies": {
+    "@holoscript/engine": "workspace:*"
+  },
+  "peerDependencies": {
+    "@holoscript/core": "workspace:*"
+  }
+}
