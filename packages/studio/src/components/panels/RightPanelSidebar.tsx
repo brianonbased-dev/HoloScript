@@ -59,6 +59,7 @@ import { LODMetricsPanel } from './LODMetricsPanel';
 import { RuntimeTierPanel } from './RuntimeTierPanel';
 import { FleetPanel } from './FleetPanel';
 import { IdentityPanel } from './IdentityPanel';
+import { KnowledgePanel } from './KnowledgePanel';
 import { InboxPanel } from './InboxPanel';
 import { ModePanel } from './ModePanel';
 import { useDomainFilter, type DomainProfile } from '../../hooks/useDomainFilter';
@@ -207,7 +208,8 @@ const TAB_CATEGORIES: TabCategory[] = [
       { id: 'inbox', icon: '📬', label: 'Inbox', title: 'DMs, handoffs, mentions with claim buttons' },
       { id: 'mode', icon: '🔄', label: 'Mode', title: 'Team mode switcher (BUILD / AUDIT / RESEARCH / REVIEW)' },
       { id: 'identity', icon: '🪪', label: 'Identity', title: 'Wallet, tier, reputation, active seat — always visible trust surface' },
-      // board, knowledge, absorb, bounties remain for the last P3/P4 sidebar tasks
+      { id: 'knowledge', icon: '📚', label: 'Knowledge', title: 'Search the team knowledge store — content, domains, confidence, pinned entries' },
+      // absorb, bounties remain
     ],
   },
   {
@@ -383,6 +385,7 @@ export function RightPanelSidebar({
             {activeTab === 'inbox' && <InboxPanel />}
             {activeTab === 'mode' && <ModePanel />}
             {activeTab === 'identity' && <IdentityPanel />}
+            {activeTab === 'knowledge' && <KnowledgePanel />}
           </div>
         </div>
       )}
