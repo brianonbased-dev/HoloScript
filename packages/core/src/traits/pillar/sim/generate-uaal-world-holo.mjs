@@ -67,7 +67,7 @@ function generateComposition() {
   // ── Avatar template ──────────────────────────────────────────────────────
 
   template "P26HumanoidAvatar" {
-    geometry: "model/humanoid_holoscript_v1.glb"
+    geometry: "/models/humanoid_holoscript_v1.glb"
 
     state {
       agent_id: "sim_agent_000"

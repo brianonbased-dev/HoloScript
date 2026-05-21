@@ -31,6 +31,7 @@
 avatar p26_agent_avatar {
   id:       "paper26-agent"
   base:     humanoid_holoscript_v1
+  geometry: "/models/humanoid_holoscript_v1.glb"
   height:   1.72m
   origin:   foot
 
