@@ -16,6 +16,7 @@
 
 import type { TraitHandler, TraitContext, TraitEvent, HSPlusNode } from './TraitTypes';
 import { extractPayload } from './TraitTypes';
+import type { Pillar, PillarContext, PillarSlice } from './pillar/PillarRegistry';
 
 // =============================================================================
 // TYPES
@@ -92,6 +93,26 @@ export const speechAwareEncounterHandler: TraitHandler<SpeechAwareEncounterConfi
       fallbackToText: config.fallback_to_text,
       reidBackend: config.reid_backend,
     });
+
+    // PSF-3 WIRE (D.040): register SpeechAwareEncounter as Pillar axis (behavioral + structural)
+    // Note: per task, needs ReID adapter; this wiring is the coordinate skeleton.
+    const speechAwareEncounterPillar: Pillar = {
+      id: 'speech_aware_encounter',
+      domain: 'agent',
+      axis_vocabulary: ['speaker_confidence', 'reid_match'] as const,
+      generate(ctx: PillarContext): PillarSlice {
+        const meta = (ctx.metadata || {}) as Record<string, number>;
+        return {
+          axis_1_id: 'speaker_confidence',
+          axis_2_id: 'reid_match',
+          pos_1: meta.speaker_confidence ?? 0.78,
+          pos_2: meta.reid_match ?? 0.55,
+          pillar_id: this.id,
+          pillar_domain: this.domain,
+        };
+      },
+    };
+    context.emit?.('pillar:register', { pillar: speechAwareEncounterPillar });
   },
 
   onDetach(node) {

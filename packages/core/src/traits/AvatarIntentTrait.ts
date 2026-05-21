@@ -18,6 +18,7 @@
 
 import type { TraitHandler, TraitContext, TraitEvent, HSPlusNode } from './TraitTypes';
 import { extractPayload } from './TraitTypes';
+import type { Pillar, PillarContext, PillarSlice } from './pillar/PillarRegistry';
 
 // =============================================================================
 // TYPES
@@ -179,6 +180,26 @@ export const avatarIntentHandler: TraitHandler<AvatarIntentConfig> = {
       smoothingWindowMs: config.smoothing_window_ms,
       deadZone: config.dead_zone,
     });
+
+    // PSF-3 WIRE (D.040): register AvatarIntent as Pillar axis (behavioral + structural)
+    // Note: per task, needs multi-modal fusion; this is the coordinate skeleton.
+    const avatarIntentPillar: Pillar = {
+      id: 'avatar_intent',
+      domain: 'agent',
+      axis_vocabulary: ['intent_clarity', 'multi_modal_fusion'] as const,
+      generate(ctx: PillarContext): PillarSlice {
+        const meta = (ctx.metadata || {}) as Record<string, number>;
+        return {
+          axis_1_id: 'intent_clarity',
+          axis_2_id: 'multi_modal_fusion',
+          pos_1: meta.intent_clarity ?? 0.8,
+          pos_2: meta.multi_modal_fusion ?? 0.5,
+          pillar_id: this.id,
+          pillar_domain: this.domain,
+        };
+      },
+    };
+    context.emit?.('pillar:register', { pillar: avatarIntentPillar });
   },
 
   onDetach(node) {
