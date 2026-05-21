@@ -61,6 +61,7 @@ import { FleetPanel } from './FleetPanel';
 import { IdentityPanel } from './IdentityPanel';
 import { KnowledgePanel } from './KnowledgePanel';
 import { AbsorbPanel } from './AbsorbPanel';
+import { BountiesPanel } from './BountiesPanel';
 import { InboxPanel } from './InboxPanel';
 import { ModePanel } from './ModePanel';
 import { useDomainFilter, type DomainProfile } from '../../hooks/useDomainFilter';
@@ -211,7 +212,7 @@ const TAB_CATEGORIES: TabCategory[] = [
       { id: 'identity', icon: '🪪', label: 'Identity', title: 'Wallet, tier, reputation, active seat — always visible trust surface' },
       { id: 'knowledge', icon: '📚', label: 'Knowledge', title: 'Search the team knowledge store — content, domains, confidence, pinned entries' },
       { id: 'absorb', icon: '🧬', label: 'Absorb', title: 'Codebase absorb projects — status, progress, re-run, query, diff' },
-      // bounties remain (last item)
+      { id: 'bounties', icon: '💰', label: 'Bounties', title: 'Available + Mine bounties — claim, post, complete (wallet attestation required)' },
     ],
   },
   {
@@ -389,6 +390,7 @@ export function RightPanelSidebar({
             {activeTab === 'identity' && <IdentityPanel />}
             {activeTab === 'knowledge' && <KnowledgePanel />}
             {activeTab === 'absorb' && <AbsorbPanel />}
+            {activeTab === 'bounties' && <BountiesPanel />}
           </div>
         </div>
       )}
