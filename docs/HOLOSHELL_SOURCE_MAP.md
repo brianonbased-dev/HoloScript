@@ -131,6 +131,52 @@ HoloShellPhysicalActuationReceiptPack
 
 ---
 
+### Legacy App Reconstruction Room
+
+| Field | Value |
+|---|---|
+| Room source | `experiments/holoshell-human-os-frontier/legacy-app-reconstruction-room.holo` |
+| Pipeline | `experiments/holoshell-human-os-frontier/legacy-app-reconstruction-pipeline.hs` |
+| Policy | `experiments/holoshell-human-os-frontier/legacy-app-reconstruction-policy.hsplus` |
+| Receipt contracts | `holoshell-legacy-app-reconstruction.ts` |
+| Human job | Convert a captured legacy window into 1000+ inspectable geometry nodes where the shell can inspect controls without raw screenshots as the primary model |
+| Stations | Source reality · Reconstruction engine · Dense geometry · Control groups · Low-confidence blocks · Witness anchors · Receipt trail |
+| HoloLand target | Legacy app spatial reconstruction control room |
+| Task | `task_1779358599518_1rwr` |
+
+**Key invariant**: `screenshotIsPrimaryModel: false`. Screenshots are evidence anchors only; the primary model is `geometry_nodes_with_semantics`.
+
+**Pack hierarchy**
+
+```
+HoloShellLegacyAppReconstruction
+  ├── sourceAnchors          HoloShellReconstructionSourceAnchors
+  ├── summary                HoloShellReconstructionSummary (confidence distribution)
+  ├── geometryNodes          HoloShellGeometryNode[1000+]
+  │     ├── nodeId, type, label, bounds
+  │     ├── confidence       high | medium | low | inferred | unresolved
+  │     ├── controlGroupId   links to ControlGroup
+  │     ├── contested         bool — multiple interpretations exist
+  │     ├── alternatives[]   alternative type/label/confidence
+  │     └── screenshotIsPrimary  always false
+  ├── controlGroups          HoloShellControlGroup[10]
+  │     ├── groupId, semantic, label
+  │     ├── nodeIds[]        references into geometryNodes
+  │     └── confidence
+  ├── witnessPlaceholders    HoloShellWitnessPlaceholder[8]
+  │     ├── type             screenshot_before | screenshot_after | ocr_text_extract | ...
+  │     ├── contentHash, contentRef
+  │     └── coversNodeIds[]  which nodes this witness covers
+  ├── lowConfidenceBlocks    HoloShellLowConfidenceBlock[]
+  │     ├── nodeIds[]        low/inferred/unresolved nodes
+  │     ├── reason, suggestedAction
+  │     └── blocking         true for unresolved (blocks full reconstruction)
+  ├── redaction              screenshotRole: evidence_anchor, primaryModel: geometry_nodes_with_semantics
+  └── receipt                HoloShellReconstructionReceipt
+```
+
+---
+
 ## Receipt Contract Index
 
 Verification: `pnpm --filter @holoscript/framework test`
@@ -151,6 +197,7 @@ Verification: `pnpm --filter @holoscript/framework test`
 | `holoshell-download-shelf-receipts.ts` | `HoloShellDownloadShelfReceipt` |
 | `holoshell-downloads-shelf-receipts.ts` | `HoloShellDownloadsShelfReceipt` |
 | `holoshell-legacy-app-reality.ts` | `HoloShellLegacyAppRealityReceipt` |
+| `holoshell-legacy-app-reconstruction.ts` | `HoloShellLegacyAppReconstruction` · `HoloShellGeometryNode` · `HoloShellControlGroup` · `HoloShellWitnessPlaceholder` · `HoloShellLowConfidenceBlock` |
 | `holoshell-account-export-receipts.ts` | `HoloShellAccountExportReceipt` |
 | `holoshell-target-device-proof-receipts.ts` | `HoloShellTargetDeviceProofReceipt` |
 

@@ -1,0 +1,171 @@
+// HoloShell Legacy App Reconstruction policy and state machine.
+// Controls the reconstruction of a captured legacy window into a dense
+// HoloScript geometry scene. Screenshots are evidence anchors, never the
+// primary model. Low-confidence blocks are visible and blockable.
+
+composition "HoloShellLegacyAppReconstructionPolicy" {
+  state ReconstructionState {
+    selectedWorkflow: "legacy-window-to-geometry-nodes"
+    sourceWindowId: ""
+    sourceRealitySnapshotId: ""
+    totalGeometryNodes: 0
+    totalControlGroups: 0
+    highConfidenceNodeCount: 0
+    mediumConfidenceNodeCount: 0
+    lowConfidenceNodeCount: 0
+    inferredNodeCount: 0
+    unresolvedNodeCount: 0
+    contestedNodeCount: 0
+    totalWitnessPlaceholders: 0
+    totalLowConfidenceBlocks: 0
+    screenshotIsPrimaryModel: false
+    primaryModel: "geometry_nodes_with_semantics"
+    reconstructionId: ""
+    validationStatus: "unknown"
+    receiptCount: 0
+    currentLane: "claude-code"
+  }
+
+  template "ReconstructionEnvelope" {
+    readOnly: true
+    guardedExecute: true
+    breakGlass: false
+    receiptRequired: true
+  }
+
+  template "ReconstructionReceipt" {
+    schemaVersion: "hololand.holoshell.legacy-app-reconstruction.v0.1.0"
+    deterministic: true
+    screenshotIsPrimaryModel: false
+    primaryModel: "geometry_nodes_with_semantics"
+    replayable: true
+  }
+
+  policy "SilentSourceRead" using "ReconstructionEnvelope" {
+    readOnly: true
+    guardedExecute: false
+    breakGlass: false
+    appliesTo: [
+      "read_reality_snapshot",
+      "read_accessibility_tree",
+      "read_ocr_capture",
+      "classify_nodes",
+      "group_by_semantic",
+      "compute_confidence"
+    ]
+  }
+
+  policy "GuardedReconstruction" using "ReconstructionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    breakGlass: false
+    appliesTo: [
+      "generate_geometry_nodes",
+      "assign_control_groups",
+      "attach_witness_placeholders",
+      "build_low_confidence_blocks",
+      "write_reconstruction_source",
+      "write_evidence_pack"
+    ]
+  }
+
+  policy "HumanReviewGate" using "ReconstructionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    breakGlass: true
+    appliesTo: [
+      "accept_unresolved_blocks",
+      "override_confidence",
+      "expose_raw_screenshot_as_primary",
+      "delete_source_reality"
+    ]
+  }
+
+  role "ClaudeCode" {
+    laneId: "claude-code"
+    owns: ["accessibility_parse", "ocr_cross_reference", "grouping", "confidence", "witness_attach", "reconstruction_assembly"]
+  }
+
+  role "CodexHardware" {
+    laneId: "codex-hardware"
+    owns: ["source_capture", "hash_verification", "hardware_evidence"]
+  }
+
+  role "BrowserVision" {
+    laneId: "browser-vision"
+    owns: ["screenshot_capture", "ocr_extraction", "bounding_box_overlay"]
+  }
+
+  role "HoloMesh" {
+    laneId: "holomesh"
+    owns: ["task_seeding", "gap_tracking", "reconstruction_diff"]
+  }
+
+  action classify_confidence(operation) {
+    if (operation.confidence == "high") {
+      ReconstructionState.highConfidenceNodeCount = ReconstructionState.highConfidenceNodeCount + 1
+      return "proceed"
+    }
+    if (operation.confidence == "medium") {
+      ReconstructionState.mediumConfidenceNodeCount = ReconstructionState.mediumConfidenceNodeCount + 1
+      return "proceed"
+    }
+    if (operation.confidence == "low") {
+      ReconstructionState.lowConfidenceNodeCount = ReconstructionState.lowConfidenceNodeCount + 1
+      return "proceed_with_low_confidence_block"
+    }
+    if (operation.confidence == "inferred") {
+      ReconstructionState.inferredNodeCount = ReconstructionState.inferredNodeCount + 1
+      return "proceed_with_inferred_block"
+    }
+    if (operation.confidence == "unresolved") {
+      ReconstructionState.unresolvedNodeCount = ReconstructionState.unresolvedNodeCount + 1
+      return "block_for_human_review"
+    }
+    return "proceed"
+  }
+
+  action apply_reconstruction_receipt(receipt) {
+    ReconstructionState.reconstructionId = receipt.reconstructionId
+    ReconstructionState.sourceWindowId = receipt.sourceWindowId
+    ReconstructionState.totalGeometryNodes = receipt.totalGeometryNodes
+    ReconstructionState.totalControlGroups = receipt.totalControlGroups
+    ReconstructionState.totalWitnessPlaceholders = receipt.totalWitnessPlaceholders
+    ReconstructionState.totalLowConfidenceBlocks = receipt.totalLowConfidenceBlocks
+    ReconstructionState.receiptCount = ReconstructionState.receiptCount + 1
+    ReconstructionState.validationStatus = receipt.mutationPerformed ? "invalid" : "validated"
+    emit("holoshell:reconstruction:complete", {
+      reconstruction_id: ReconstructionState.reconstructionId,
+      source_window: ReconstructionState.sourceWindowId,
+      total_nodes: ReconstructionState.totalGeometryNodes,
+      screenshot_is_primary_model: false,
+      primary_model: "geometry_nodes_with_semantics",
+      receipt_required: true
+    })
+  }
+
+  action apply_witness_receipt(receipt) {
+    ReconstructionState.totalWitnessPlaceholders = receipt.totalWitnessPlaceholders
+    ReconstructionState.receiptCount = ReconstructionState.receiptCount + 1
+    emit("holoshell:reconstruction:witness-verified", {
+      reconstruction_id: ReconstructionState.reconstructionId,
+      total_witnesses: ReconstructionState.totalWitnessPlaceholders,
+      screenshot_role: "evidence_anchor",
+      receipt_required: true
+    })
+  }
+
+  // Invariant enforcement: screenshots are NEVER the primary model.
+  // This policy action fires on any attempt to set screenshotIsPrimaryModel = true.
+  action enforce_no_screenshot_primary(operation) {
+    if (operation.screenshotIsPrimaryModel == true) {
+      emit("holoshell:reconstruction:policy-violation", {
+        violation: "screenshot_is_primary_model",
+        rule: "screenshots_are_evidence_anchors_not_primary_model",
+        blocked: true
+      })
+      return "blocked"
+    }
+    return "proceed"
+  }
+}

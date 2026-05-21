@@ -1,0 +1,375 @@
+/**
+ * HoloShell Legacy App Reconstruction Room
+ *
+ * Visible room concept for:
+ * "Convert a captured legacy application window into a dense HoloScript scene
+ * of 1000+ geometry nodes with semantic control groups, screenshot/OCR witness
+ * placeholders, confidence metadata, and low-confidence execution blocks — where
+ * the shell can inspect controls without exposing raw screenshots as the primary model."
+ *
+ * The reconstruction replaces the opaque pixel surface of a legacy app with a
+ * navigable, inspectable, semantically rich HoloScript geometry. Raw screenshots
+ * are evidence anchors (available on demand), never the primary model.
+ *
+ * Created: task_1779358599518_1rwr
+ */
+
+composition "HoloShell Legacy App Reconstruction Room" {
+  environment {
+    backgroundColor: "#0d1117"
+    ambient_light: 0.48
+    shadows: true
+    fog: { near: 8, far: 50, color: "#0d1117" }
+  }
+
+  // ── Templates ──
+
+  template "ReconstructionPanel" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    scale: [2.4, 1.2, 0.04]
+    material: {
+      color: "#161b22"
+      emissive: "#1f6feb"
+      emissiveIntensity: 0.12
+      transparent: true
+      opacity: 0.92
+    }
+  }
+
+  template "ControlGroupNode" {
+    @grabbable
+    @collidable
+    geometry: "roundedBox"
+    scale: [0.28, 0.14, 0.06]
+    material: {
+      color: "#238636"
+      emissive: "#2ea043"
+      emissiveIntensity: 0.15
+      transparent: true
+      opacity: 0.88
+    }
+  }
+
+  template "LowConfidenceBlock" {
+    @grabbable
+    @collidable
+    geometry: "roundedBox"
+    scale: [0.28, 0.14, 0.06]
+    material: {
+      color: "#d29922"
+      emissive: "#e3b341"
+      emissiveIntensity: 0.2
+      transparent: true
+      opacity: 0.85
+    }
+  }
+
+  template "UnresolvedBlock" {
+    @grabbable
+    @collidable
+    geometry: "roundedBox"
+    scale: [0.28, 0.14, 0.06]
+    material: {
+      color: "#f85149"
+      emissive: "#ff7b72"
+      emissiveIntensity: 0.25
+      transparent: true
+      opacity: 0.85
+    }
+  }
+
+  template "WitnessAnchor" {
+    @grabbable
+    @collidable
+    geometry: "octahedron"
+    scale: [0.1, 0.1, 0.1]
+    material: { color: "#58a6ff" }
+  }
+
+  template "ReceiptToken" {
+    @grabbable
+    @collidable
+    geometry: "sphere"
+    scale: [0.12, 0.12, 0.12]
+    material: { color: "#7ee787" }
+  }
+
+  // ── Scene structure ──
+
+  // Row 1: Input — Source Reality
+  object "SourceRealityPanel" using "ReconstructionPanel" {
+    position: [-3.2, 3.6, -3.0]
+    label: "Source: legacy app reality snapshot (process, window, lane evidence)"
+    properties: {
+      consumes: "HoloShellLegacyAppRealitySnapshot"
+      sourceType: "legacy_app_reality_snapshot"
+      sourceWindowId: "window-legacy-app-001"
+      nodeCount: "source — not primary model"
+    }
+  }
+
+  object "BeforeScreenshotWitness" using "WitnessAnchor" {
+    position: [-1.4, 3.6, -3.0]
+    label: "Before screenshot (evidence anchor, not primary model)"
+    properties: {
+      witnessType: "screenshot_before"
+      witnessRole: "evidence_anchor"
+      primaryModel: "geometry_nodes_with_semantics"
+      available: true
+    }
+  }
+
+  // Row 2: Reconstruction engine
+  object "ReconstructionEnginePanel" using "ReconstructionPanel" {
+    position: [0, 3.6, -3.0]
+    label: "Reconstruction: accessibility tree + OCR → 1000+ geometry nodes"
+    properties: {
+      engineSteps: ["accessibility_tree_parse", "ocr_text_extract", "layout_heuristic", "confidence_classify", "control_group_assign", "witness_anchor_attach"]
+      inputSchema: "HoloShellLegacyAppRealitySnapshot"
+      outputSchema: "HoloShellLegacyAppReconstruction"
+      confidenceThreshold: "medium"
+    }
+  }
+
+  // Row 3: Output — Dense geometry scene
+  object "DenseGeometryPanel" using "ReconstructionPanel" {
+    position: [3.2, 3.6, -3.0]
+    label: "Output: 1000+ geometry nodes with semantic control groups"
+    properties: {
+      produces: "HoloShellLegacyAppReconstruction"
+      totalGeometryNodes: 1000
+      totalControlGroups: 10
+      screenshotIsPrimaryModel: false
+      primaryModel: "geometry_nodes_with_semantics"
+    }
+  }
+
+  // ── Control groups (semantic grouping) ──
+
+  object "NavigationGroup" using "ControlGroupNode" {
+    position: [-3.2, 2.2, -1.8]
+    label: "Navigation: menu bar, tabs, breadcrumbs, address bar"
+    properties: {
+      semantic: "navigation"
+      confidence: "high"
+      evidence: ["accessibility_tree", "ocr_text"]
+      nodeIds: "group-navigation"
+    }
+  }
+
+  object "ToolbarGroup" using "ControlGroupNode" {
+    position: [-1.6, 2.2, -1.8]
+    label: "Toolbar: action buttons, formatting controls"
+    properties: {
+      semantic: "toolbar"
+      confidence: "high"
+      evidence: ["accessibility_tree", "ocr_text"]
+      nodeIds: "group-toolbar"
+    }
+  }
+
+  object "SidebarGroup" using "ControlGroupNode" {
+    position: [0, 2.2, -1.8]
+    label: "Sidebar: navigation tree, file explorer, panels"
+    properties: {
+      semantic: "sidebar"
+      confidence: "medium"
+      evidence: ["accessibility_tree", "layout_analysis"]
+      nodeIds: "group-sidebar"
+    }
+  }
+
+  object "ContentGroup" using "ControlGroupNode" {
+    position: [1.6, 2.2, -1.8]
+    label: "Content: main viewport, editor, canvas (40% of nodes)"
+    properties: {
+      semantic: "content"
+      confidence: "medium"
+      evidence: ["accessibility_tree", "ocr_text"]
+      nodeIds: "group-content"
+    }
+  }
+
+  object "StatusGroup" using "ControlGroupNode" {
+    position: [3.2, 2.2, -1.8]
+    label: "Status: status bar, progress, notifications"
+    properties: {
+      semantic: "status"
+      confidence: "high"
+      evidence: ["accessibility_tree"]
+      nodeIds: "group-status"
+    }
+  }
+
+  // ── Low-confidence blocks ──
+
+  object "LowConfidenceOCRBlock" using "LowConfidenceBlock" {
+    position: [-1.6, 1.0, -1.2]
+    label: "Low confidence: OCR-only elements (re_capture suggested)"
+    properties: {
+      minConfidence: "low"
+      reason: "OCR-only identification without accessibility tree corroboration"
+      suggestedAction: "re_capture"
+      blocking: false
+      nodeCount: "variable"
+    }
+  }
+
+  object "LowConfidenceInferredBlock" using "LowConfidenceBlock" {
+    position: [0, 1.0, -1.2]
+    label: "Inferred: layout heuristic only (re_parse suggested)"
+    properties: {
+      minConfidence: "inferred"
+      reason: "Layout heuristic only — no direct evidence for this element"
+      suggestedAction: "re_parse"
+      blocking: false
+      nodeCount: "variable"
+    }
+  }
+
+  object "UnresolvedBlock" using "UnresolvedBlock" {
+    position: [1.6, 1.0, -1.2]
+    label: "Unresolved: conflicting interpretations (human_review required)"
+    properties: {
+      minConfidence: "unresolved"
+      reason: "Multiple conflicting interpretations — human review needed"
+      suggestedAction: "human_review"
+      blocking: true
+      nodeCount: "variable"
+    }
+  }
+
+  // ── Witness anchors ──
+
+  object "ScreenshotAfterWitness" using "WitnessAnchor" {
+    position: [-3.2, 1.0, -1.2]
+    label: "After screenshot (evidence anchor)"
+    properties: {
+      witnessType: "screenshot_after"
+      witnessRole: "evidence_anchor"
+      primaryModel: "geometry_nodes_with_semantics"
+      available: true
+    }
+  }
+
+  object "AccessibilityTreeWitness" using "WitnessAnchor" {
+    position: [3.2, 1.0, -1.2]
+    label: "Accessibility tree capture (structured evidence)"
+    properties: {
+      witnessType: "accessibility_tree"
+      witnessRole: "structured_evidence"
+      available: true
+    }
+  }
+
+  object "OCRTextWitness" using "WitnessAnchor" {
+    position: [3.2, 0.2, -0.8]
+    label: "OCR text extraction (corroborating evidence)"
+    properties: {
+      witnessType: "ocr_text_extract"
+      witnessRole: "corroborating_evidence"
+      available: true
+    }
+  }
+
+  object "BoundingBoxOverlayWitness" using "WitnessAnchor" {
+    position: [-3.2, 0.2, -0.8]
+    label: "Bounding box overlay (visual verification)"
+    properties: {
+      witnessType: "bounding_box_overlay"
+      witnessRole: "visual_verification"
+      available: true
+    }
+  }
+
+  object "SemanticLabelOverlayWitness" using "WitnessAnchor" {
+    position: [-1.6, 0.2, -0.8]
+    label: "Semantic label overlay (human-readable names)"
+    properties: {
+      witnessType: "semantic_label_overlay"
+      witnessRole: "human_readable_labeling"
+      available: true
+    }
+  }
+
+  object "ControlInspectorSnapshotWitness" using "WitnessAnchor" {
+    position: [0, 0.2, -0.8]
+    label: "Control inspector snapshot (deep inspect data)"
+    properties: {
+      witnessType: "control_inspector_snapshot"
+      witnessRole: "deep_inspect_data"
+      available: true
+    }
+  }
+
+  object "ReconstructionDiffWitness" using "WitnessAnchor" {
+    position: [1.6, 0.2, -0.8]
+    label: "Reconstruction diff (before vs after)"
+    properties: {
+      witnessType: "reconstruction_diff"
+      witnessRole: "change_verification"
+      available: true
+    }
+  }
+
+  // ── Receipt trail ──
+
+  object "RealitySnapshotReceipt" using "ReceiptToken" {
+    position: [-2.4, -0.6, 0.4]
+    label: "Reality snapshot receipt (source provenance)"
+    properties: {
+      receiptKind: "legacy_app_reality_snapshot"
+      receiptType: "HoloShellLegacyAppRealitySnapshot"
+      mutationPerformed: false
+    }
+  }
+
+  object "ReconstructionReceipt" using "ReceiptToken" {
+    position: [0, -0.6, 0.4]
+    label: "Reconstruction receipt (geometry nodes provenance)"
+    properties: {
+      receiptKind: "legacy_app_reconstruction"
+      receiptType: "HoloShellLegacyAppReconstruction"
+      mutationPerformed: false
+      totalGeometryNodes: 1000
+      screenshotIsPrimaryModel: false
+      primaryModel: "geometry_nodes_with_semantics"
+    }
+  }
+
+  object "WitnessVerificationReceipt" using "ReceiptToken" {
+    position: [2.4, -0.6, 0.4]
+    label: "Witness verification receipt (evidence chain)"
+    properties: {
+      receiptKind: "witness_verification"
+      totalWitnessPlaceholders: 8
+      allAvailable: true
+      screenshotRole: "evidence_anchor"
+    }
+  }
+
+  // ── Timeline ──
+
+  object "ReconstructionTimeline" {
+    @anchor
+    geometry: "cube"
+    position: [0, -1.2, 0.4]
+    scale: [7.0, 0.06, 0.1]
+    color: "#30363d"
+    label: "timeline: capture → parse → classify → group → attach witnesses → verify → inspect"
+  }
+
+  // ── Rollback drawer ──
+
+  object "RollbackDrawer" using "ReconstructionPanel" {
+    position: [0, -1.9, 1.8]
+    label: "Rollback: reconstruction is read-only; original screenshots preserved as evidence anchors"
+    properties: {
+      rollback: "delete reconstruction output; original source reality snapshot untouched"
+      mutationPerformed: false
+      screenshotPreservation: "evidence_anchors_always_preserved"
+    }
+  }
+}

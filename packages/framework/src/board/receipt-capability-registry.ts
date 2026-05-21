@@ -551,6 +551,19 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
     tags: ['holoshell', 'legacy', 'reality'],
   },
   {
+    capability: 'legacy-app-reconstruction',
+    description:
+      'HoloShell legacy app reconstruction receipts — prove geometry node, control group, witness, and confidence evidence for dense legacy UI reconstruction.',
+    receiptType: 'HoloShellLegacyAppReconstruction',
+    module: 'holoshell-legacy-app-reconstruction',
+    exportName: 'HoloShellLegacyAppReconstruction',
+    validateFn: 'validateHoloShellLegacyAppReconstruction',
+    cloneFn: 'cloneHoloShellLegacyAppReconstruction',
+    isSupportedFn: 'isSupportedHoloShellReconstructionAction',
+    subjects: ['geometry-node', 'control-group', 'witness', 'confidence', 'low-confidence-block', 'reconstruction'],
+    tags: ['holoshell', 'legacy', 'reconstruction', 'geometry'],
+  },
+  {
     capability: 'webhook',
     description: 'Board webhook receipts — prove webhook delivery, signing, and retry handling.',
     receiptType: 'BoardWebhookEnvelope',

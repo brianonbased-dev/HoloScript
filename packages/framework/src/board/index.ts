@@ -256,6 +256,38 @@ export {
 } from './holoshell-legacy-app-reality';
 
 export {
+  // HoloShell legacy app reconstruction types (task_1779358599518_1rwr)
+  HOLOSHELL_LEGACY_APP_RECONSTRUCTION_SCHEMA_VERSION,
+  HOLOSHELL_GEOMETRY_NODE_TYPES,
+  HOLOSHELL_CONFIDENCE_LEVELS,
+  HOLOSHELL_WITNESS_TYPES,
+  HOLOSHELL_CONTROL_GROUP_SEMANTICS,
+  type HoloShellLegacyAppReconstructionSchemaVersion,
+  type HoloShellGeometryNodeType,
+  type HoloShellConfidenceLevel,
+  type HoloShellWitnessType,
+  type HoloShellControlGroupSemantic,
+  type HoloShellGeometryNode,
+  type HoloShellGeometryNodeAlternative,
+  type HoloShellControlGroup,
+  type HoloShellWitnessPlaceholder,
+  type HoloShellLowConfidenceBlock,
+  type HoloShellReconstructionReceipt,
+  type HoloShellLegacyAppReconstruction,
+  type HoloShellReconstructionSourceAnchors,
+  type HoloShellReconstructionSummary,
+  type HoloShellReconstructionRedaction,
+  isSupportedHoloShellGeometryNodeType,
+  isSupportedHoloShellConfidenceLevel,
+  isSupportedHoloShellControlGroupSemantic,
+  isSupportedHoloShellWitnessType,
+  isSupportedHoloShellReconstructionAction,
+  validateHoloShellLegacyAppReconstruction,
+  cloneHoloShellLegacyAppReconstruction,
+  generateDenseReconstructionFixture,
+} from './holoshell-legacy-app-reconstruction';
+
+export {
   // HoloLand receipt types (task_1778186605462_4z0o)
   HARDWARE_RECEIPT_KINDS,
   AGENT_ACTION_KINDS,
