@@ -212,6 +212,24 @@ export const verbalFingerprintHandler: TraitHandler<VerbalFingerprintConfig> = {
       state.rollingAccuracy = updateRollingAccuracy(state.records);
       state.lastGenerationId = generationId;
 
+      // PSF-3 WIRE (D.040) — live Pillar-Slice from real verbal fingerprint state (replaces skeleton).
+      // style_consistency from rollingAccuracy (or fallback on current match); fingerprint_stability from match outcome.
+      // Complements the static pillar:register in onAttach; feeds GRPO/RecursiveMAS with runtime coords.
+      const consistency = state.rollingAccuracy ?? (matched ? 0.95 : 0.6);
+      const stability = matched ? 0.97 : 0.65;
+      context.emit?.('pillar:slice', {
+        slice: {
+          axis_1_id: 'style_consistency',
+          axis_2_id: 'fingerprint_stability',
+          pos_1: consistency,
+          pos_2: stability,
+          pillar_id: 'verbal_fingerprint',
+          pillar_domain: 'language' as const,
+        },
+        agent_id: (context as any).agentId ?? 'local',
+        sim_step: Date.now(),
+      });
+
       if (!matched && config.enforce) {
         context.emit?.('verbal_fingerprint_rejected', {
           node,

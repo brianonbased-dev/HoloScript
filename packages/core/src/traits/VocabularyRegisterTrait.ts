@@ -244,6 +244,25 @@ export const vocabularyRegisterHandler: TraitHandler<VocabularyRegisterConfig> =
         payload,
         injectedCount: state.injectedCount,
       });
+
+      // PSF-3 WIRE (D.040) — live Pillar-Slice from real vocabulary register state (replaces skeleton).
+      // register_diversity scaled from active entry count; injection_rate from cumulative injectedCount.
+      // Complements the static pillar:register in onAttach for the D.040 three-population stack.
+      const activeReg = state.registers.get(state.activeName);
+      const diversity = Math.min(1, (activeReg?.entries.length ?? 2) / 12);
+      const rate = Math.min(1, state.injectedCount / 50);
+      context.emit?.('pillar:slice', {
+        slice: {
+          axis_1_id: 'register_diversity',
+          axis_2_id: 'injection_rate',
+          pos_1: diversity,
+          pos_2: rate,
+          pillar_id: 'vocabulary_register',
+          pillar_domain: 'language' as const,
+        },
+        agent_id: (context as any).agentId ?? 'local',
+        sim_step: Date.now(),
+      });
       return;
     }
 
