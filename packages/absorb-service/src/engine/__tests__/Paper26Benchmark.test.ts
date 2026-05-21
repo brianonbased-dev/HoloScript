@@ -325,7 +325,7 @@ describe('Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D)', () => {
     const results: BenchResult[] = [];
 
     // Run three graph sizes for Table 1
-    for (const [numFiles, numEvents] of [[50, 10], [500, 50]] as const) {
+    for (const [numFiles, numEvents] of [[50, 10], [500, 50], [2000, 100]] as const) {
       const r = await runScenario(numFiles, numEvents);
       results.push(r);
     }

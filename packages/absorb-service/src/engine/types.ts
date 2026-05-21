@@ -261,6 +261,20 @@ export interface LanguageAdapter {
 
   /** Extract call edges from a parsed tree */
   extractCalls(tree: ParseTree, filePath: string): CallEdge[];
+
+  /**
+   * Extract emit sites (handler.emit('event:name', ...)) from a parsed tree.
+   * Optional — only adapters that support event-bus patterns implement this.
+   * Default: not present (scanner skips gracefully via optional chaining).
+   */
+  extractEmitSites?(tree: ParseTree, filePath: string): EmitSite[];
+
+  /**
+   * Extract listen sites (handler.on('event:name', cb)) from a parsed tree.
+   * Optional — only adapters that support event-bus patterns implement this.
+   * Default: not present (scanner skips gracefully via optional chaining).
+   */
+  extractListenSites?(tree: ParseTree, filePath: string): ListenSite[];
 }
 
 // =============================================================================

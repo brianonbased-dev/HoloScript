@@ -350,11 +350,14 @@ export class CodebaseScanner {
           continue;
         }
 
-        // Extract symbols, imports, calls
+        // Extract symbols, imports, calls, and HoloGraph event sites
         try {
           const symbols = adapter.extractSymbols(tree, relPath);
           const imports = adapter.extractImports(tree, relPath);
           const calls = adapter.extractCalls(tree, relPath);
+          // Optional: extractEmitSites / extractListenSites (HoloGraph Phase 1)
+          const emitSites = adapter.extractEmitSites?.(tree, relPath);
+          const listenSites = adapter.extractListenSites?.(tree, relPath);
           const loc = content.split('\n').length;
           const docComment = extractFileDocComment(tree.rootNode);
 
@@ -364,6 +367,8 @@ export class CodebaseScanner {
             symbols,
             imports,
             calls,
+            ...(emitSites  && emitSites.length  > 0 ? { emitSites }  : {}),
+            ...(listenSites && listenSites.length > 0 ? { listenSites } : {}),
             loc,
             sizeBytes,
             docComment,

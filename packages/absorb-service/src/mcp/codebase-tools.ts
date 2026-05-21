@@ -56,6 +56,8 @@ interface CodebaseModule {
   GraphRAGEngine: DynamicCtor;
   EmbeddingIndex: DynamicCtor;
   createEmbeddingProvider: DynamicFn;
+  /** HoloGraph Phase 2 — maps symbols to MNI152 brain coordinates */
+  BrainCoordNodeMapper: DynamicCtor;
 }
 
 const CACHE_WARM_GRAPH_RAG_TIMEOUT_MS = readPositiveEnvMs('ABSORB_CACHE_WARM_TIMEOUT_MS', 30_000);
@@ -205,13 +207,16 @@ async function detectBestEmbeddingProvider(): Promise<string> {
     // Ollama not running or unreachable
   }
 
-  // 4. Fallback — OpenAI without key will fail gracefully; warn user
-  cachedProviderName = 'openai';
+  // 4. Fallback — HoloGraph structural embeddings: zero-dependency, zero-latency,
+  //    no API key, no network, no model download. For NL→code queries, combine
+  //    with HoloEmbed (Phase 2) once available. Structural alone gives 100% recall
+  //    for graph-topology queries (see Paper 26 Table 1).
+  cachedProviderName = 'structural';
   console.error(
-    `[EmbeddingProvider] WARNING: No OPENAI_API_KEY or Ollama found. Defaulting to 'openai' which will fail without a key.`
+    `[EmbeddingProvider] No OPENAI_API_KEY or Ollama found. Using HoloGraph structural embeddings (zero-dep, 384-dim, local).`
   );
   console.error(
-    `[EmbeddingProvider] Set OPENAI_API_KEY in your environment for best quality semantic search.`
+    `[EmbeddingProvider] For NL semantic search over large corpora, set OPENAI_API_KEY or OLLAMA_URL.`
   );
   return cachedProviderName;
 }
@@ -804,14 +809,14 @@ export const codebaseTools: Tool[] = [
         },
         embeddingProvider: {
           type: 'string',
-          enum: ['openai', 'ollama', 'xenova'],
+          enum: ['structural', 'openai', 'ollama', 'xenova'],
           description:
-            'Embedding provider for semantic search (default: openai). "openai" uses OpenAI embeddings (best quality, requires API key), "ollama" uses local Ollama server, "xenova" uses local WASM model.',
+            'Embedding provider for semantic search (default: structural). "structural" uses HoloGraph native embeddings — zero-dep, zero-latency, 100% recall for graph-topology queries (Paper 26 Table 1). "openai" uses OpenAI embeddings for NL→code queries (requires API key). "ollama" uses local Ollama server. "xenova" uses local WASM model.',
         },
         embeddingApiKey: {
           type: 'string',
           description:
-            'API key for embedding provider (required for openai, not needed for ollama/xenova). Falls back to OPENAI_API_KEY environment variable if not provided.',
+            'API key for embedding provider (required for openai, not needed for structural/ollama/xenova). Falls back to OPENAI_API_KEY environment variable if not provided.',
         },
         embeddingModel: {
           type: 'string',
@@ -1142,7 +1147,7 @@ async function runFullScan(
   embeddingApiKey?: string,
   embeddingModel?: string
 ): Promise<unknown> {
-  const { CodebaseScanner, CodebaseGraph, HoloEmitter, CodebaseSceneCompiler, GitChangeDetector } =
+  const { CodebaseScanner, CodebaseGraph, HoloEmitter, CodebaseSceneCompiler, GitChangeDetector, BrainCoordNodeMapper } =
     mod;
 
   const rootDirs = rootDirsRaw && rootDirsRaw.length > 0 ? rootDirsRaw : [];
@@ -1203,6 +1208,13 @@ async function runFullScan(
 
   const graph = new CodebaseGraph();
   graph.buildFromScanResult(scanResult);
+
+  // HoloGraph Phase 2: map every symbol to its MNI152 brain coordinate.
+  // Populates graph.nodePositions for spatial visualisation + hot/cold routing.
+  if (jobId) trackAbsorbProgress(jobId, 'Mapping brain coordinates', 68);
+  const brainMapper = new BrainCoordNodeMapper();
+  brainMapper.populate(graph);
+
   const stats = graph.getStats();
   const diagnostics =
     stats.totalFiles === 0
@@ -2045,6 +2057,8 @@ async function handleDetectChanges(args: Record<string, unknown>): Promise<unkno
   const scanResult = await scanner.scan({ rootDir });
   const currentGraph = new CodebaseGraph();
   currentGraph.buildFromScanResult(scanResult);
+  // HoloGraph Phase 2: populate brain-coord positions on the diff graph too
+  new mod.BrainCoordNodeMapper().populate(currentGraph);
   const currentStats = currentGraph.getStats();
   const currentFiles = new Set<string>(currentGraph.getFilePaths());
 

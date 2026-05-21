@@ -1,10 +1,14 @@
 /**
  * Embedding Provider Abstraction
  *
- * Decouples EmbeddingIndex from Ollama so any backend can be used:
- *   - OpenAI (API, RECOMMENDED — best quality)
- *   - Ollama (local server, good quality)
- *   - Xenova/Transformers (WASM local semantics, optional dep)
+ * Decouples EmbeddingIndex from any backend. Priority order:
+ *   - structural (DEFAULT — HoloGraph native, zero-dep, zero-latency, no API key)
+ *   - ollama     (local server, semantic NL search, requires OLLAMA_URL)
+ *   - xenova     (WASM local semantics, optional dep)
+ *   - openai     (API, best NL quality, requires OPENAI_API_KEY)
+ *
+ * See Paper 26 Table 1: structural achieves 100% recall for graph-topology
+ * queries at 364-583× speedup over embedding-based approaches.
  */
 
 // =============================================================================
@@ -32,7 +36,8 @@ export type EmbeddingProviderName = 'xenova' | 'openai' | 'ollama' | 'structural
 export interface EmbeddingProviderOptions {
   /**
    * Which provider to use.
-   * Defaults to 'openai' (best quality). BM25 is deprecated.
+   * Defaults to 'structural' — HoloGraph native, zero-dependency, no API key.
+   * Use 'openai' or 'ollama' for NL→code semantic search over large corpora.
    */
   provider?: EmbeddingProviderName;
 

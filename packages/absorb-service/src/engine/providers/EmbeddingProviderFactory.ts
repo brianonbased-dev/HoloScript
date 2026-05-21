@@ -18,23 +18,27 @@ import type {
 /**
  * Create an EmbeddingProvider from options.
  *
+ * Default provider is 'structural' — HoloGraph native embeddings.
+ * Zero-dependency, zero-latency, no API key, no model download.
+ * Achieves 100% recall for graph-topology queries (Paper 26 Table 1).
+ *
  * @example
- * // Best quality (recommended):
- * const p = await createEmbeddingProvider({ provider: 'openai' });
+ * // Default (HoloGraph structural — recommended for graph queries):
+ * const p = await createEmbeddingProvider();
+ *
+ * // NL semantic search (requires running Ollama server):
+ * const p = await createEmbeddingProvider({ provider: 'ollama', ollamaUrl: '...' });
+ *
+ * // NL semantic search (requires OPENAI_API_KEY):
+ * const p = await createEmbeddingProvider({ provider: 'openai', openaiApiKey: '...' });
  *
  * // Local WASM semantics (requires: pnpm add @huggingface/transformers):
  * const p = await createEmbeddingProvider({ provider: 'xenova' });
- *
- * // OpenAI API (requires: pnpm add openai):
- * const p = await createEmbeddingProvider({ provider: 'openai', openaiApiKey: '...' });
- *
- * // Original Ollama behaviour:
- * const p = await createEmbeddingProvider({ provider: 'ollama', ollamaUrl: '...' });
  */
 export async function createEmbeddingProvider(
   opts: EmbeddingProviderOptions = {}
 ): Promise<EmbeddingProvider> {
-  const name: EmbeddingProviderName = opts.provider ?? 'openai';
+  const name: EmbeddingProviderName = opts.provider ?? 'structural';
 
   switch (name) {
     case 'structural': {

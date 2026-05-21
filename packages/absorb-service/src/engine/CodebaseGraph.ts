@@ -661,6 +661,10 @@ export class CodebaseGraph {
       communities: this._communities ? Object.fromEntries(this._communities) : {},
       gitCommitHash: this.gitCommitHash,
       fileHashes: this.fileHashes,
+      // Persist brain-coordinate node positions (HoloGraph Phase 2)
+      nodePositions: this.nodePositions.size > 0
+        ? Object.fromEntries(this.nodePositions)
+        : undefined,
     };
     return JSON.stringify(data);
   }
