@@ -1,0 +1,20 @@
+{
+  "paperId": "paper-12",
+  "generatedAt": "2026-04-21T21:29:25.386Z",
+  "holo": {
+    "sourceLines": 6,
+    "approxTraitShardLines": 12,
+    "coldParseMeanMs": 0.04634587581091471,
+    "warmParseMeanMs": 0.021034730790817937,
+    "warmVsColdMeanRatio": 0.45386413403075965
+  },
+  "openUsdEquivalent": {
+    "schemaAndPayloadLines": 18,
+    "pluginInitProxyMs": 2.2581000000027416
+  },
+  "notes": [
+    "Cold path varies the root identifier so the parser cannot reuse a single memoized key; warm path repeats identical source.",
+    "OpenUSD line count is a static proxy stage — swap for pxr usdc/usda export from the same graph for camera-ready numbers.",
+    "TTFF and RSS deltas vs Unity require host measurements; paste into JSON `externalSamples` when available."
+  ]
+}
