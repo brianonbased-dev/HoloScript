@@ -203,6 +203,15 @@ scripts/tm-traits-validation-report.json
 /migrate_*.py
 /ls-files.txt
 
+# TypeScript declaration files and source maps generated next to source files.
+# (Real declarations are emitted to dist/ or hand-crafted via generate-types.mjs;
+#  these .d.ts/.d.ts.map files scattered inside src/ are compiler debris.)
+packages/*/src/**/*.d.ts
+packages/*/src/**/*.d.ts.map
+# A few packages emit declarations at the package root level
+packages/*/src/*.d.ts
+packages/*/src/*.d.ts.map
+
 # tsup bundler temp files (generated on every build, hash in name)
 packages/*/tsup.config.bundled_*.mjs
 packages/*/tsup.config.d.ts
