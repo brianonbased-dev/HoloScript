@@ -1,35 +1,39 @@
 'use client';
 
 /**
- * DesktopViewer — Embeddable HoloScript 3D viewer for desktop/Tauri shells.
+ * DesktopViewer — Embeddable HoloScript 3D viewer for desktop/Tauri shells (APL parity).
  *
- * Companion to WebXRViewer for the Adaptive Platform Layers three-tier story.
- * Uses the same compilation bridge and AdaptivePlatformLayerReceipt so
- * desktop, web, and mobile experiences report unified parity metadata.
+ * Full parity with WebXRViewer:
+ * - Same `code` prop + useScenePipeline / usePipeline compilation bridge (via SceneViewer)
+ * - Orbit + selection controls (non-XR desktop / Tauri context)
+ * - Emits identical AdaptivePlatformLayerReceipt shape (tier=desktop when in Tauri)
+ * - Reuses all scene pipeline, node renderers, materials, WebSurfaceRenderer support
  *
- * For Tauri 2 + wgpu / native three.js (or a webgl2 fallback inside the shell).
+ * Drop-in for Tauri 2 desktop shells or any React desktop container.
  *
- * Usage (in tauri-app or desktop shell):
+ * Usage:
  *   import { DesktopViewer } from '@holoscript/studio/embed/DesktopViewer';
- *   <DesktopViewer code={holoScriptSource} />
+ *   <DesktopViewer code={holoScriptSource} onPlatformReceipt={...} />
  *
- * @see ADAPTIVE_PLATFORM_LAYERS.md (APL 75 desktop parity slice)
+ * @see research/2026-05-20-adaptive-platform-layers-desktop-parity-slice.md
+ * @see ADAPTIVE_PLATFORM_LAYERS.md
  */
 
-import { useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import {
   buildAdaptivePlatformLayerReceipt,
   type AdaptivePlatformLayerReceipt,
 } from '@/lib/adaptive-platform-layers';
 import { detectPlatform } from '@/lib/platform-detect';
 import { logger } from '@/lib/logger';
+import { SceneViewer, type SceneViewerProps } from './SceneViewer';
 
-export interface DesktopViewerProps {
-  code: string;
-  className?: string;
-  style?: React.CSSProperties;
+export interface DesktopViewerProps extends Omit<SceneViewerProps, 'onErrors'> {
+  /** Show the Adaptive Platform Layer receipt badge */
   showPlatformReceipt?: boolean;
+  /** Called with desktop-tier receipt (auto-inferred via detectPlatform + Tauri caps) */
   onPlatformReceipt?: (receipt: AdaptivePlatformLayerReceipt) => void;
+  /** Error callback (parse/compile) */
   onErrors?: (errors: Array<{ message: string }>) => void;
 }
 
@@ -37,53 +41,83 @@ export function DesktopViewer({
   code,
   className,
   style,
+  showGrid = true,
+  showStars = true,
+  showObjectCount = true,
+  backgroundColor = '#0a0a12',
+  selectedObjectId,
+  onObjectSelect,
+  onErrors,
   showPlatformReceipt = true,
   onPlatformReceipt,
-  onErrors,
+  ...sceneViewerRest
 }: DesktopViewerProps) {
-  const receipt = useMemo(() => {
-    try {
-      const caps = detectPlatform();
-      const r = buildAdaptivePlatformLayerReceipt(caps, {
-        tier: 'desktop',
-        shell: 'tauri-desktop',
-        renderer: 'native-gpu',
-        codeLength: code.length,
-      });
-      if (onPlatformReceipt) onPlatformReceipt(r);
-      return r;
-    } catch (e: any) {
-      logger.error('[DesktopViewer] Failed to build platform receipt', e);
-      if (onErrors) onErrors([{ message: e?.message || String(e) }]);
-      return null;
-    }
-  }, [code, onPlatformReceipt, onErrors]);
+  const [platformReceipt, setPlatformReceipt] = useState<AdaptivePlatformLayerReceipt | null>(null);
 
-  // Placeholder renderer — in a real desktop shell this would be the native
-  // wgpu / three.js / Bevy view. For now we render a minimal status panel
-  // so the component is drop-in usable and the receipt is exercised.
+  // Async platform detection + receipt (matches WebXRViewer contract exactly)
+  useEffect(() => {
+    let cancelled = false;
+    detectPlatform()
+      .then((caps) => {
+        if (cancelled) return;
+        const r = buildAdaptivePlatformLayerReceipt(caps);
+        setPlatformReceipt(r);
+        onPlatformReceipt?.(r);
+      })
+      .catch((err: unknown) => {
+        logger.warn('[DesktopViewer] Failed to resolve adaptive platform receipt:', err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [onPlatformReceipt]);
+
+  // Forward errors from SceneViewer (which uses the pipeline)
+  const handleErrors = (errors: Array<{ message: string }>) => {
+    if (onErrors) onErrors(errors);
+  };
+
   return (
-    <div className={className} style={{ ...style, position: 'relative' }}>
-      <div
-        style={{
-          padding: 12,
-          borderRadius: 6,
-          background: 'rgba(0,0,0,0.6)',
-          color: '#ddd',
-          fontFamily: 'monospace',
-          fontSize: 12,
-        }}
-      >
-        Desktop HoloScript Viewer (Tauri / native-gpu path)
-        {receipt && showPlatformReceipt && (
-          <div style={{ marginTop: 8, fontSize: 11, opacity: 0.9 }}>
-            tier: {receipt.tier} | shell: {receipt.shell} | engine: {receipt.engineDelivery} | renderer: {receipt.renderer}
+    <div
+      className={className}
+      style={{ position: 'relative', width: '100%', height: '100%', ...style }}
+    >
+      <SceneViewer
+        code={code}
+        showGrid={showGrid}
+        showStars={showStars}
+        showObjectCount={showObjectCount}
+        backgroundColor={backgroundColor}
+        selectedObjectId={selectedObjectId}
+        onObjectSelect={onObjectSelect}
+        onErrors={handleErrors}
+        {...sceneViewerRest}
+      />
+
+      {/* APL receipt badge — parity with WebXRViewer */}
+      {platformReceipt && showPlatformReceipt && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 12,
+            right: 12,
+            zIndex: 20,
+            padding: '4px 8px',
+            borderRadius: 4,
+            background: 'rgba(0,0,0,0.75)',
+            color: '#ddd',
+            fontFamily: 'monospace',
+            fontSize: 10,
+            pointerEvents: 'none',
+          }}
+          aria-label="Adaptive platform receipt"
+        >
+          APL: {platformReceipt.tier} | {platformReceipt.shell} | {platformReceipt.renderer}
+          <div style={{ fontSize: 9, opacity: 0.7 }}>
+            {platformReceipt.engineDelivery} • {platformReceipt.witWorld}
           </div>
-        )}
-        <div style={{ marginTop: 6, fontSize: 10, opacity: 0.7 }}>
-          (Real 3D canvas + wgpu/Bevy integration goes here — reuses same bridge + receipt as WebXRViewer)
         </div>
-      </div>
+      )}
     </div>
   );
 }
