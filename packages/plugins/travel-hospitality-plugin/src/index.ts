@@ -7,5 +7,7 @@ import { createReservationHandler } from './traits/ReservationTrait';
 import { createItineraryHandler } from './traits/ItineraryTrait';
 import { createRateManagementHandler } from './traits/RateManagementTrait';
 
-export const pluginMeta = { name: '@holoscript/plugin-travel-hospitality', version: '1.0.0', traits: ['reservation', 'itinerary', 'rate_management'] };
+export * from './revenuemanagement';
+
+export const pluginMeta = { name: '@holoscript/plugin-travel-hospitality', version: '1.0.0', traits: ['reservation', 'itinerary', 'rate_management', 'emsr_yield', 'revpar', 'overbooking', 'group_displacement', 'demand_forecast'] };
 export const traitHandlers = [createReservationHandler(), createItineraryHandler(), createRateManagementHandler()];

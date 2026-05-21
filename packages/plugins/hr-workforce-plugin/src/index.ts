@@ -9,5 +9,7 @@ import { createPayrollHandler } from './traits/PayrollTrait';
 import { createOnboardingHandler } from './traits/OnboardingTrait';
 import { createPerformanceReviewHandler } from './traits/PerformanceReviewTrait';
 
-export const pluginMeta = { name: '@holoscript/plugin-hr-workforce', version: '1.0.0', traits: ['employee', 'payroll', 'onboarding', 'performance_review'] };
+export * from './workforce';
+
+export const pluginMeta = { name: '@holoscript/plugin-hr-workforce', version: '1.0.0', traits: ['employee', 'payroll', 'onboarding', 'performance_review', 'pay_equity', 'merit_budget', 'workforce_forecast', 'attrition_risk', 'headcount_plan'] };
 export const traitHandlers = [createEmployeeHandler(), createPayrollHandler(), createOnboardingHandler(), createPerformanceReviewHandler()];
