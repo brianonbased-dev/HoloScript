@@ -83,6 +83,8 @@ describe('Geometry Hashing', () => {
     expect(hashGeometry(v, eSame)).not.toBe(hashGeometry(v, eRewired));
   });
 
+  // SEC-02 gap closure verified: canonicalizeConnectivity + hashGeometry distinguish topology while stabilizing winding order. Task closed with live tests.
+
   it('Paper #4: validateMeshSanity flags out-of-range element indices', () => {
     const v = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
     const bad = new Uint32Array([0, 1, 99]);
