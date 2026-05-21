@@ -421,11 +421,14 @@ def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
         opts = SamplerOptions()
         opts.default_shots = 4096
         hw_sampler = IBMSampler(mode=backend, options=opts)
+        qaoa_backend_name = backend.name
+        qaoa_job_ids: list[str] = []
 
         def _sample(params_vals: list[float]) -> dict[str, int]:
             pub = (isa_ansatz, params_vals)
-            result = hw_sampler.run([pub]).result()[0]
-            return result.data.meas.get_counts()
+            job = hw_sampler.run([pub])
+            qaoa_job_ids.append(job.job_id())
+            return job.result()[0].data.meas.get_counts()
     else:
         sampler = StatevectorSampler()
 
@@ -494,7 +497,7 @@ def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
     approx_ratio = best_value / classical_opt if classical_opt > 0 else 1.0
     wall_time = time.monotonic() - t0
 
-    return {
+    result_out: dict[str, Any] = {
         "optimal_bitstring": best_bitstring,
         "optimal_value": float(best_value),
         "approximation_ratio": float(approx_ratio),
@@ -503,6 +506,32 @@ def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
         "execution_backend": execution_mode,
         "wall_time_seconds": wall_time,
     }
+
+    if execution_mode == "ibm-quantum" and qaoa_job_ids:
+        cert_job_id = qaoa_job_ids[-1]
+        receipt = {
+            "schema": "cael-quantum-v1",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "script": "scripts/quantum_execute.py",
+            "task": "qaoa",
+            "method": f"QAOA-Maxcut-p{p}",
+            "execution_mode": "ibm-quantum",
+            "backend": qaoa_backend_name,
+            "shots": 4096,
+            "job_id": cert_job_id,
+            "all_job_ids": qaoa_job_ids,
+            "optimal_value": float(best_value),
+            "optimal_bitstring": best_bitstring,
+            "approximation_ratio": float(approx_ratio),
+            "wall_time_s": round(wall_time, 1),
+            "payload_hash": _payload_hash(float(best_value), cert_job_id),
+        }
+        result_out["receipt"] = receipt
+        receipt_path = _write_receipt(receipt)
+        if receipt_path:
+            result_out["receipt_path"] = receipt_path
+
+    return result_out
 
 
 # ---------------------------------------------------------------------------
