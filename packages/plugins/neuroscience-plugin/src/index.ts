@@ -7,5 +7,7 @@ import { createBrainRegionHandler } from './traits/BrainRegionTrait';
 import { createConnectomeHandler } from './traits/ConnectomeTrait';
 import { createEEGStreamHandler } from './traits/EEGStreamTrait';
 
-export const pluginMeta = { name: '@holoscript/plugin-neuroscience', version: '1.0.0', traits: ['brain_region', 'connectome', 'eeg_stream'] };
+export * from './neurosolver';
+
+export const pluginMeta = { name: '@holoscript/plugin-neuroscience', version: '1.0.0', traits: ['brain_region', 'connectome', 'eeg_stream', 'hh_neuron_solver', 'wilson_cowan_solver', 'lif_neuron', 'eeg_band_power', 'connectivity_metrics'] };
 export const traitHandlers = [createBrainRegionHandler(), createConnectomeHandler(), createEEGStreamHandler()];

@@ -44,4 +44,6 @@ export const FORENSICS_KEYWORDS = [
   { term: 'forensics', traits: ['evidence_chain', 'scene_reconstruction', 'chain_of_custody'], spatialRole: 'analysis' },
 ];
 
+export * from './forensicssolver';
+
 export const VERSION = '1.0.0';
