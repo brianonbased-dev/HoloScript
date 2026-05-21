@@ -1,0 +1,20 @@
+% Shared notation for HoloScript multi-paper program
+% Usage in each paper preamble: \input{notation} (path-adjusted)
+% CRDT-02 / notation consistency — single source for symbols reused across 0b,1,2,3,5,capstone
+
+\providecommand{\holoscript}{\textsc{HoloScript}}
+\providecommand{\cael}{\textsc{CAEL}}
+\providecommand{\fnvhash}{\textsc{FNV-1a}}
+
+% Tropical / semiring (Paper 0b, 2, 3, capstone)
+\providecommand{\tropplus}{\oplus}
+\providecommand{\tropmult}{\otimes}
+
+% Evidence / provenance (Paper 1, 5, GraphRAG)
+\providecommand{\evidenceHash}{\texttt{evidenceHash}}
+\providecommand{\graphSnapshotId}{\texttt{graphSnapshotId}}
+
+% Lotus petal data contract — annotation marker for which \result{} / table values come from a runnable artifact.
+% Renders nothing in the PDF; grep target for scripts/build-lotus.mjs (research/2026-04-26_lotus-petal-data-contract.md §3 + §4).
+% Usage: \measuredFrom{packages/snn-webgpu/bench/lif.bench.ts}
+\providecommand{\measuredFrom}[1]{}

@@ -1,0 +1,1004 @@
+% HoloScript Core: A Contracted Compilation IR for Spatial Computing
+% Target: ACM SIGPLAN PLDI 2027 (submit Nov '26)
+% Backup venue: OOPSLA 2027 (submit Apr '27)
+% Format: ACM sigconf (PLDI proceedings)
+% Status: Draft — benchmark-backed; novelty validated by survey (2026-04-17).
+% Paper ID: P3-S1 (first in Program 3: The Stalk and the Center)
+% Subsystem proven: packages/core/src/ (parser, AST, $N$ compile targets — see docs/NUMBERS.md)
+% Draft: April 2026
+
+\documentclass[sigconf,nonacm]{acmart}
+
+% ── Packages ─────────────────────────────────────────────────────────────────
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,calc,
+  decorations.pathreplacing,backgrounds}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{subcaption}
+\usepackage{balance}
+\usepackage{stmaryrd}
+
+% ── Draft annotations ────────────────────────────────────────────────────────
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+\newcommand{\stub}[1]{\textcolor{gray}{\textit{[stub: #1]}}}
+
+% Lotus petal data contract — \measuredFrom{<artifact>} marks values that come
+% from a runnable artifact in the repo. Renders nothing in the PDF; grep target
+% for scripts/build-lotus.mjs (research/2026-04-26_lotus-petal-data-contract.md §3+§4).
+\providecommand{\measuredFrom}[1]{}
+
+% ── Convenience macros ──────────────────────────────────────────────────────
+\newcommand{\holoscript}{\textsc{HoloScript}}
+\newcommand{\hscore}{\texttt{.hs}}
+\newcommand{\hsplus}{\texttt{.hsplus}}
+\newcommand{\holo}{\texttt{.holo}}
+\newcommand{\hsmd}{\texttt{.hs.md}}
+\newcommand{\hashfn}{\mathcal{H}}
+\newcommand{\tropplus}{\oplus}
+\newcommand{\tropmult}{\otimes}
+\newcommand{\compilefn}{\mathsf{compile}}
+\newcommand{\provsemiring}{\mathcal{S}}
+
+% ── Theorem environments ────────────────────────────────────────────────────
+\newtheorem{definition}{Definition}
+\newtheorem{property}{Property}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+
+% ════════════════════════════════════════════════════════════════════════════
+\title{HoloScript Core: A Contracted Compilation IR\\
+for Spatial Computing}
+
+\subtitle{Provenance Semirings as a First-Class Semantic Feature\\
+of a Multi-Target Compiler}
+
+\author{Joseph Krzywoszyja}
+\affiliation{%
+  \institution{Infinitus Systems}
+  \country{USA}
+}
+\email{brianonbased@gmail.com}
+
+% ════════════════════════════════════════════════════════════════════════════
+\begin{document}
+
+\begin{abstract}
+Spatial computing demands compilation from a single source language
+to heterogeneous targets: WebGPU, Unity, Unreal, OpenUSD, VRChat,
+glTF, and beyond. Existing multi-target compilation
+frameworks---MLIR, SPIR-V, DXIL---optimize for performance and
+portability but treat provenance as an afterthought: the compiled
+output cannot be traced back to its source semantics with
+algebraic certainty. We present \holoscript{} Core (\hscore{}),
+an intermediate representation whose operational semantics embed
+Green et al.'s provenance semiring as a first-class feature.
+For any source program $s$ and targets $T_1$, $T_2$, the compiled
+outputs $\compilefn(s, T_1)$ and $\compilefn(s, T_2)$ carry
+hash chains that are algebraically related through the source
+hash $\hashfn(s)$---not merely ``functionally equivalent'' but
+\emph{provenance-composable}. Each compiled target $T_i$ is an
+independent implementation of the same source state machine; the
+multi-target compilation theorem we prove below is a $k$-way
+generalization of the two-implementation agreement that W.315 names
+for the binary case, with the cross-target hash relationship serving
+as the wire-format equivalent projection. Under the same-adapter regime
+(targets sharing a host hardware fingerprint) the compiled outputs
+witness deterministic replay via identical hash chains across targets;
+the Route~2b per-step canonical projection pattern handles the
+cross-vendor case where target outputs run on different hardware than
+their reference implementation~\cite{paper-0c-twin-test-2026-05-11}. We prove the multi-target
+compilation theorem and ship a reference implementation spanning
+the full shipped target list ($k$ targets where $k$ is the current shipped count;
+see \texttt{docs/NUMBERS.md} and \texttt{research/REPRODUCIBILITY.md};
+$k=54$ at time of writing, 2026-04-20). Timed provenance overhead is
+reported on a \emph{representative} two-target microbench (WebGPU,
+VRChat; \S\ref{sec:eval}) and an \emph{eleven-target} Vitest harness
+(\texttt{packages/core/src/compiler/\_\_tests\_\_/paper-targets-overhead-bench.test.ts})
+with frozen logs (\texttt{research/benchmark-results-2026-04-17-paper-targets-overhead.md}
+in the \texttt{.ai-ecosystem} tree; mirror under \texttt{HoloScript/.bench-logs/}).
+A wall-clock percent sweep across \emph{all $k$} shipped targets
+is now triaged by W.067 in commit \texttt{6d4d1186d}: an additional 18 CompilerBase
+targets are benchmarked and classified as \emph{below percent-overhead floor}
+(base median $<100$\,ms), so matrix-wide \% claims are reported only where measurable
+(currently glTF in the timed harness).
+This is the first paper in
+Program 3 of a 16-paper research program establishing
+trust-by-construction across the full spatial computing
+stack~\cite{trustbyconstruction2026,capstone-uist2027}.
+\end{abstract}
+
+\keywords{intermediate representation, compilation, provenance,
+  semiring, spatial computing, multi-target, formal semantics,
+  WebGPU, OpenUSD, digital twins}
+
+\maketitle
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{Introduction}
+\label{sec:intro}
+
+Modern spatial computing requires compiling a single source
+program to dozens of heterogeneous targets: WebGPU shaders for
+browser rendering, Unity C\# MonoBehaviours, Unreal Blueprints,
+OpenUSD scene descriptions, VRChat worlds, glTF assets, NVIDIA
+Isaac Sim configurations, and more. Existing multi-target IRs---
+MLIR~\cite{mlir-lattner2020}, SPIR-V (Khronos), DXIL (Microsoft),
+AIR (Apple)---are engineered for \emph{optimization}: they lower
+high-level constructs to efficient target-specific code. But they
+treat provenance as an afterthought. Debug symbols and source maps
+provide \emph{best-effort} traceability; they do not guarantee
+that a compiled fragment can be algebraically traced to its source
+semantics.
+
+In regulated domains---medical device UIs (IEC 62304), industrial
+control panels (IEC 61131), autonomous vehicle digital twins
+(ISO 21448/SOTIF)---the inability to trace a rendered widget back
+to its source declaration is not merely inconvenient; it is a
+compliance hazard. Auditors cannot verify that the compiled output
+faithfully represents the source intent without re-compiling and
+diffing---a process that is fragile, non-algebraic, and
+unscalable across all $k$ shipped targets.
+
+We propose that provenance is not a debugging tool to bolt on
+after compilation. It is a \emph{semantic feature of the IR
+itself}. The \hscore{} intermediate representation embeds Green
+et al.'s provenance semiring~\cite{green-semiring2007} as a
+first-class denotational target, ensuring that every compiled
+output carries an algebraically verifiable hash chain from its
+source.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+  \item Formal operational semantics for \hscore{}, with
+    Green et al.'s provenance semiring~\cite{green-semiring2007}
+    as the denotational target.
+  \item Multi-target compilation theorem: for all targets
+    $T_1, T_2$ in the supported set, if
+    $\compilefn(s, T_1) = h_1$ and $\compilefn(s, T_2) = h_2$,
+    then $h_1 \tropmult h_2$ is bounded by $\hashfn(s)$.
+  \item Reference implementation: $k$ compile targets in shipped
+    \holoscript{} code
+    (\texttt{packages/core/src/compiler/*.ts}).
+  \item The \hsmd{} knowledge format as a documentation-layer
+    extension of the core IR (folded from a standalone paper;
+    see \S\ref{sec:hsmd}).
+  \item Compile-time overhead: sub-millisecond median compile times with
+    provenance on instrumented targets (WebGPU, VRChat; \S\ref{sec:eval});
+    plus an eleven-target timed harness (Phase 2) with archived results
+    (\texttt{benchmark-results-2026-04-17-paper-targets-overhead.md});
+    plus a Phase 3 W.067 noise-floor extension (commit \texttt{6d4d1186d}) adding 18
+    CompilerBase targets as below-floor exclusions, yielding 29 benchmarked targets total.
+\end{enumerate}
+
+\paragraph{Novelty.}
+\hscore{} is the first intermediate representation to adopt Green et al.'s
+provenance semiring~\cite{green-semiring2007} as a \emph{denotational target}
+rather than a post-hoc debugging annotation.  Prior multi-target IRs
+(MLIR~\cite{mlir-lattner2020}, SPIR-V, DXIL, AIR) track provenance as
+best-effort source maps; none provide algebraic guarantees on the
+relationship between compiled hashes across targets.  The
+multi-target compilation theorem (Theorem~\ref{thm:compilation}) is the
+first parametric proof that, for any pair of compilation targets $T_1, T_2$,
+the composed output hash $\hashfn(\compilefn(s,T_1))\tropmult\hashfn(\compilefn(s,T_2))$
+is bounded by the source hash $\hashfn(s)$ in the tropical semiring.
+Provenance-chain tractability (structural depth $\leq 8{+}p{+}2t$ hops,
+\S\ref{sec:eval}) eliminates the audit-space blowup present in
+full-provenance database systems~\cite{green-semiring2007}.
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{Background and Related Work}
+\label{sec:related}
+
+\subsection{Multi-Target Compilation IRs}
+MLIR~\cite{mlir-lattner2020} introduced a dialect-based IR
+architecture that enables reusable compiler infrastructure
+across heterogeneous targets. Its contribution is
+\emph{structural}: dialects define operations, types, and
+lowering passes. MLIR does not define a provenance model;
+compiled output traces to source only through optional
+\texttt{Location} attributes that carry file/line metadata
+but no algebraic relationship to the source semantics.
+SPIR-V (Khronos) and DXIL (Microsoft) serve as shader IRs
+for GPU compilation. Both support \texttt{OpLine}/debug
+instructions for source mapping, but these are stripped
+during optimization and carry no hash-verifiable chain.
+AIR (Apple Metal) follows the same pattern.
+
+The common gap across all four: provenance is metadata
+(debug info), not semantics (algebraic invariant). Stripping
+debug info from a SPIR-V module does not change its
+semantics; stripping provenance from an \hscore{} program
+changes its denotation.
+
+\subsection{Provenance Semirings}
+Green, Karvounarakis, and Tannen~\cite{green-semiring2007}
+introduced provenance semirings for database query lineage:
+a tuple in the output of a query carries an algebraic
+annotation recording \emph{how} it was derived from source
+tuples. Amsterdamer et al.~\cite{amsterdamer-2011} extended
+the framework to aggregate queries; Senellart et
+al.~\cite{senellart-2018} provided a comprehensive survey
+of semiring provenance in databases. All prior applications
+operate in the database domain. We are, to our knowledge,
+the first to lift the semiring framework from query
+evaluation to compiler semantics.
+
+\subsection{Scientific Workflow Provenance}
+PROV-DM~\cite{prov-dm-w3c} (W3C, 2013) defines a generic
+data model for provenance: entities, activities, and agents.
+ProvONE extends PROV-DM for scientific workflows. VisTrails
+(Bavoil et al.) tracks visualization pipeline evolution.
+These systems record \emph{which steps ran in which order}
+but do not embed provenance into the semantics of the
+compiled artifact. The gap is granularity: PROV-DM tracks
+activities; \hscore{} tracks \emph{every syntactic node}
+in the AST through compilation to its target representation.
+
+\subsection{Modal Decomposition as a Universal IR}
+\label{sec:modal-ir}
+
+The provenance-semiring framing is not the only algebraic regularity
+that runs through the \hscore{} stack. A second, structurally
+independent regularity is that \emph{modal decomposition}---the
+spectral solution of an eigenvalue problem on a manifold---is the
+common interface across subsystems whose surface languages look
+unrelated: FEM structural analysis solves
+$(K-\omega^2 M)\phi = 0$~\cite{bathe2014fem}; acoustic simulation
+solves the Helmholtz eigenproblem on the same mesh geometry; SNN
+firing-pattern analysis decomposes spike trains into oscillatory
+components; the CRDT operation DAG (\S\ref{sec:related}
+and~\cite{paper-3-crdt-ecoop2027}) exposes propagation eigenmodes
+as graph-Laplacian spectra. In every case the mathematical object
+is the same: a countable spectrum of modes on a manifold that
+characterizes the system more compactly than its pointwise state.
+The physics lineage is canonical: in bosonic string theory the
+identity of a particle is its Fock-space excitation pattern---a
+countable basis of vibrational modes on a 1D
+worldsheet~\cite[Ch.~1--2]{polchinski1998vol1}, the foundational
+precedent for treating modal-spectrum equivalence as identity.
+Tropicalization (the classical / Maslov-dequantization limit of a
+semiring---see~\cite{mikhalkin2005tropical,
+arkani-hamed-bai-lam2017positive}) then collapses the modal
+amplitude structure into a min-plus cost lattice, which is the
+algebraic home of \hscore{}'s contract overhead and merge-resolution
+costs. For the IR, this yields one concrete design claim:
+\emph{modal decomposition is the natural common interface across
+structural / acoustic / neural / CRDT solvers precisely because
+the underlying eigenvalue problem is the same object on different
+manifolds}. The IR does not need to invent an abstraction to unify
+these solvers; it needs to surface the modal projection each
+already computes.
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{Formal Semantics of \hscore{}}
+\label{sec:semantics}
+
+\subsection{Abstract Syntax}
+
+The \hscore{} abstract syntax is defined by six syntactic forms:
+
+\begin{definition}[\hscore{} Syntactic Forms]
+\begin{align*}
+  e ::=\; & \texttt{object}\;\mathit{id}\;\{\overline{p}\}
+           & \text{(typed spatial entity)} \\
+        | & \texttt{template}\;\mathit{id}\;(\overline{x})\;\{\overline{p}\}
+           & \text{(parameterized blueprint)} \\
+        | & \texttt{group}\;\mathit{id}\;\{\overline{e}\}
+           & \text{(spatial hierarchy)} \\
+        | & \texttt{trait}\;\mathit{id}\;:\;\mathit{category}\;\{\overline{p}\}
+           & \text{(behavioral annotation)} \\
+        | & e_1 \triangleright \mathit{trait}
+           & \text{(trait application)} \\
+        | & \texttt{metadata}\;\{\overline{k{:}v}\}
+           & \text{(provenance annotation)}
+\end{align*}
+where $\overline{p}$ denotes a sequence of typed properties and
+$\overline{e}$ denotes nested expressions.
+\end{definition}
+
+The grammar is implemented in
+\texttt{HoloCompositionParser.ts} ($\sim$200K lines) with error
+recovery via \texttt{ErrorRecovery.ts}. The six forms are
+immutable: domain-specific vocabulary enters through the plugin
+interface~\cite{paper-12-holo-i3d2027}, not through grammar
+extension. Concretely, spatial coordinates surface in the core
+as strict position tuples
+(\texttt{[number,~number,~number]}) rather than the
+named-component object form (\texttt{\{x,\,y,\,z\}}) that older
+revisions carried: an April 2026 migration across
+\texttt{SlidableTrait}, \texttt{NetworkedTrait}, and the
+associated \texttt{NetworkedTraitHandler} moved the remaining
+trait surfaces onto the tuple representation, removing an
+ambient vocabulary that would otherwise have required grammar
+or core-type support. This is the expected direction of drift
+for the design: pressure to leak vocabulary into the core is
+consistently redirected into plugin data rather than language
+extension.
+
+\subsection{Operational Semantics}
+
+We define a small-step operational semantics
+$\langle e, \sigma, h \rangle \to \langle e', \sigma', h' \rangle$
+where $e$ is the current expression, $\sigma$ is the environment
+(binding map), and $h \in \provsemiring$ is the accumulated
+provenance hash.
+
+The key rule is the \textsc{Compose} rule for hierarchical
+nesting:
+$$\frac{\langle e_i, \sigma, h_i \rangle \to^*
+  \langle v_i, \sigma', h_i' \rangle \quad \forall\, i \in 1..n}
+  {\langle \texttt{group}\;g\;\{e_1, \ldots, e_n\}, \sigma,
+  h_g \rangle \to \langle v_g, \sigma',
+  h_g \tropmult h_1' \tropmult \cdots \tropmult h_n' \rangle}$$
+
+Every evaluation step \emph{threads} the provenance hash.
+A step that does not modify the expression still produces a
+hash contribution (the identity $\mathbf{1}$), ensuring the
+chain is never broken.
+
+\subsection{Denotational Target: The Provenance Semiring}
+
+Following Green et al.~\cite{green-semiring2007}, we define:
+
+\begin{definition}[Provenance Semiring]
+$\provsemiring = (K, \tropplus, \tropmult, \mathbf{0}, \mathbf{1})$
+where:
+\begin{itemize}
+  \item $K$ is the set of SHA-256 hash values extended with
+    $\mathbf{0}$ (untraceable) and $\mathbf{1}$ (identity).
+  \item $\tropplus$ is the alternative operator: $a \tropplus b$
+    records that the output was derived from $a$ \emph{or} $b$.
+  \item $\tropmult$ is the composition operator: $a \tropmult b$
+    records that the output was derived from $a$ \emph{and} $b$
+    jointly.
+  \item $\mathbf{0} \tropmult a = \mathbf{0}$: composition with
+    an untraceable element poisons the chain.
+  \item $\mathbf{1} \tropmult a = a$: identity preserves the chain.
+\end{itemize}
+\end{definition}
+
+Each syntactic form maps to a semiring element:
+$\llbracket \texttt{object}\;id\;\{\overline{p}\} \rrbracket
+ = \hashfn(\textit{id} \| \overline{p})$. The composition law
+for hierarchical nesting is:
+$$\hashfn(\texttt{parent} \circ \texttt{child})
+  = \hashfn(\texttt{parent}) \tropmult \hashfn(\texttt{child})$$
+
+\subsection{Soundness}
+\begin{theorem}[Semantic Soundness]
+For every well-typed \hscore{} program $s$, the provenance
+hash $h$ produced by operational evaluation is a valid element
+of $\provsemiring$: $h \neq \mathbf{0}$ (the chain is never
+poisoned) and $h$ decomposes into the hashes of $s$'s
+constituent syntactic forms via $\tropmult$.
+\end{theorem}
+
+\begin{proof}[Proof sketch.]
+By structural induction over the AST depth. Base case:
+leaf nodes (properties, literals) produce atomic hashes
+$\hashfn(v) \in K \setminus \{\mathbf{0}\}$. Inductive
+step: a compound form $e = f(e_1, \ldots, e_n)$ produces
+$h = h_f \tropmult h_1 \tropmult \cdots \tropmult h_n$
+where each $h_i \neq \mathbf{0}$ by induction hypothesis.
+Since $\tropmult$ is closed on $K \setminus \{\mathbf{0}\}$
+(no well-typed subexpression produces $\mathbf{0}$),
+$h \neq \mathbf{0}$.
+\end{proof}
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{Multi-Target Compilation}
+\label{sec:compilation}
+
+\subsection{Target Algebra}
+
+The compile targets form a set $\mathcal{T} = \{T_1, \ldots,
+T_k\}$ where $k$ is the current shipped count (see
+\texttt{docs/NUMBERS.md}; $k=54$ at time of writing, 2026-04-20).
+Each target $T_i$ defines a lowering function
+$\ell_{T_i}: \text{AST} \to \text{Output}_{T_i}$ that maps the
+\hscore{} AST to target-specific code. Each lowering function
+has a \emph{provenance-preservation obligation}: for every AST
+node $n$, $\ell_{T_i}(n)$ must produce an output fragment
+whose hash is algebraically related to $\hashfn(n)$.
+
+Formally, the lowering contract is:
+$$\hashfn(\ell_{T_i}(n)) = \hashfn(n) \tropmult \hashfn(T_i)$$
+where $\hashfn(T_i)$ is the target's identity hash (a constant
+for each target that encodes the lowering function's version).
+This ensures that the same source node lowered to different
+targets produces hashes that are \emph{related through the
+source hash}, not merely coincidentally similar.
+
+\subsection{The Compilation Theorem}
+\begin{theorem}[Multi-Target Provenance Preservation]
+For all $T_1, T_2 \in \mathcal{T}$ and well-typed source $s$:
+$$\hashfn(\compilefn(s, T_1)) \tropmult
+  \hashfn(\compilefn(s, T_2))$$
+is bounded by $\hashfn(s)$ under the semiring ordering:
+$$\hashfn(s) \preceq
+  \hashfn(\compilefn(s, T_1)) \tropmult
+  \hashfn(\compilefn(s, T_2))$$
+where $a \preceq b$ iff $\exists\, c: a \tropmult c = b$.
+\end{theorem}
+
+\begin{proof}[Proof sketch.]
+By induction over AST depth. At each node $n$:
+$\hashfn(\compilefn(n, T_i)) = \hashfn(n) \tropmult \hashfn(T_i)$
+by the lowering contract. For the composition of two targets:
+\begin{align*}
+  &\hashfn(\compilefn(n, T_1)) \tropmult
+   \hashfn(\compilefn(n, T_2)) \\
+  &= (\hashfn(n) \tropmult \hashfn(T_1)) \tropmult
+     (\hashfn(n) \tropmult \hashfn(T_2)) \\
+  &= \hashfn(n) \tropmult \hashfn(n) \tropmult
+     \hashfn(T_1) \tropmult \hashfn(T_2)
+\end{align*}
+Since $\hashfn(n) \tropmult \hashfn(n) \succeq \hashfn(n)$ by
+semiring idempotence for the lineage semiring, the bound holds.
+The inductive step composes over child nodes using the
+associativity of $\tropmult$.
+\end{proof}
+
+\subsection{Implementation: $k$ Targets}
+
+Table~\ref{tab:targets} summarizes the target categories.
+Each lowering function is implemented as a TypeScript class
+in \texttt{packages/core/src/compiler/}.
+
+\begin{table}[t]
+\centering
+\caption{Compile target categories (product-target taxonomy frozen at draft time; the shipped set has since grown to $k=54$ as of 2026-04-20 --- see \texttt{docs/NUMBERS.md} for current $k$).}
+\label{tab:targets}
+\begin{tabular}{@{}llr@{}}
+\toprule
+Category & Representative targets & Count \\
+\midrule
+Web/Browser      & R3F, WebGPU, Babylon, PlayCanvas & 6 \\
+Game engines     & Unity, Unreal, Godot, VRChat     & 5 \\
+3D interchange   & glTF, USDZ, URDF, DTDL          & 5 \\
+XR platforms     & OpenXR, VisionOS, AndroidXR      & 4 \\
+Mobile           & iOS (ARKit), Android (ARCore)    & 3 \\
+Shader/GPU       & TSL, WGSL, SDF, NIR              & 5 \\
+Robotics/Sim     & Isaac Sim, USD Physics           & 3 \\
+AI/Agent         & A2A, Agent Inference, COCO       & 4 \\
+Specialized      & VRR, AI Glasses, Remotion, etc.  & 12 \\
+\midrule
+\textbf{Total}   &                                  & \textbf{47} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Target count vs.\ codebase.}
+The HoloScript tree ships $m$ concrete \texttt{*Compiler.ts} modules under
+\texttt{packages/core/src/compiler/} ($m=54$ verified 2026-04-20 via
+\texttt{find packages -name "*Compiler.ts" -not -path "*/node_modules/*" -not -path "*/dist/*" | wc -l};
+see \texttt{docs/NUMBERS.md}); the target taxonomy in
+Table~\ref{tab:targets} aggregates \emph{product targets} (some backends
+share a compiler). Reconcile the Total row against the canonical
+target list in \texttt{research/REPRODUCIBILITY.md} before camera-ready.
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{The \hscore{} Format Family}
+\label{sec:family}
+
+\subsection{\hsplus{}: Reactive State and Traits}
+The \hsplus{} format extends \hscore{} with reactive state
+bindings and a trait system for behavioral composition.
+Traits are typed behavioral annotations that compose under
+a conflict-resolution algebra; the full treatment including
+the trait conflict theorem is presented in the companion
+paper~\cite{paper-11-hsplus-ecoop2027}. For this paper,
+the relevant property is that \hsplus{} trait applications
+preserve the provenance semiring: applying a trait $\tau$
+to an object $o$ produces hash
+$h = \hashfn(o) \tropmult \hashfn(\tau)$.
+
+\subsection{\holo{}: Scene Composition}
+The \holo{} format provides scene-level composition: spatial
+hierarchies, cross-file references, and plugin-based domain
+extension. The core grammar recognizes five structural forms
+and is immutable across all domain applications; domain
+vocabulary enters as plugins. The full treatment including
+the provenance-preservation theorem at the plugin boundary
+is in~\cite{paper-12-holo-i3d2027}. The relevant property
+for this paper is that \holo{} plugin contributions enter
+the hash chain as semiring factors, ensuring domain
+extensions are algebraically visible.
+
+\subsection{\hsmd{}: Machine-Readable Knowledge Documents}
+\label{sec:hsmd}
+The \hsmd{} format is a literate extension of \hscore{}:
+Markdown documents with embedded \hscore{} code blocks
+that are parseable by the \holoscript{} toolchain
+(\texttt{HSKnowledgeParser.ts}). Unlike documentation
+generators that extract comments from code, \hsmd{}
+anchors documentation \emph{in} the IR: the code blocks
+carry provenance hashes, and the surrounding prose is
+metadata that the compiler can reference during lowering.
+This enables documentation-as-specification: a regulatory
+compliance document written in \hsmd{} is not a description
+of the system but a \emph{component} of the system,
+with its code blocks participating in the provenance chain.
+
+\section{Pillar-Slice as a Trait-Native Runtime Primitive}
+\label{sec:pillar-slice}
+
+The trait system is not merely a static annotation layer.  At runtime it becomes
+a first-class coordinate system for the uAAL Cognitive VM.  The canonical
+demonstration is the \emph{Pillar-Slice} pipeline, implemented entirely through
+ordinary trait handlers and events:
+
+\begin{itemize}
+\item \texttt{PillarRegistry} (the registry trait) dispatches on a
+  \texttt{PillarContext} (layer, agent\_id, optional \texttt{participant\_id}
+  for D.040 unification across HoloMesh agents and HoloLand NPCs) and
+  returns a 4-tuple \texttt{PillarSlice}:
+  \texttt{(axis\_1\_id, axis\_2\_id, pos\_1, pos\_2, pillar\_id, pillar\_domain)}.
+\item \texttt{SliceEmitter} consumes those slices, wraps them as
+  \texttt{TrainingSlice} records for the GRPO alignment pipeline, and
+  maintains a rolling diversity fingerprint.  When the unique-to-total ratio
+  drops, an \texttt{emitter:diversity\_stats} event fires—exactly analogous
+  to the two-axis sycophancy detector (W.617, P.620.02).
+\item \texttt{SemanticCollaborationContract} uses the slice as the primary
+  payload of inter-agent messages, together with a brain coordinate, a
+  \texttt{SimulationContract} receipt, and a Loro CRDT scene delta.  All
+  higher-level coordination (board tasks, provenance, integrity checks) rides
+  on top of this single trait-native datum.
+\end{itemize}
+
+No special runtime case analysis is required; the entire mechanism is ordinary
+trait registration and event emission.  This is, to our knowledge, the only
+published spatial-computing language in which \emph{runtime-variable axis
+identities} are first-class language constructs rather than external lookup
+tables.
+
+A minimal example (from \texttt{PillarRegistry.ts}):
+
+\begin{lstlisting}[language=TypeScript, basicstyle=\ttfamily\small]
+export const INTENT_TRUTH_APPROVAL_PILLAR: Pillar = {
+  id: 'intent_truth_approval',
+  domain: 'truth_approval',
+  axis_vocabulary: ['truth_seeking', 'approval_seeking'],
+  generate(ctx: PillarContext): PillarSlice {
+    const m = ctx.metadata as Record<string, number> | undefined;
+    return {
+      axis_1_id: 'truth_seeking',
+      axis_2_id: 'approval_seeking',
+      pos_1: m?.truth ?? 0.9,
+      pos_2: m?.approval ?? 0.1,
+      pillar_id: this.id,
+      pillar_domain: this.domain,
+    };
+  }
+};
+\end{lstlisting}
+
+The coordinate space itself has a deep geometric interpretation.  A Pillar
+defines a tropical variety (arxiv:1805.07091); each \texttt{generate} call
+returns a point in one cell of the tropical classification fan
+(arxiv:2403.11871).  The trait dispatch engine therefore \emph{is} a tropical
+classifier—something no other spatial IR currently exposes as a language
+primitive.
+
+Because every slice carries a \texttt{SimulationContract} receipt and a
+\emph{participant\_id} (the D.040 wallet-level spine), the same mechanism
+simultaneously serves HoloMesh agents, HoloLand NPCs, and uaa2-orchestrated
+services.  \texttt{SemanticCollaborationContract} is the resulting inter-agent
+IPC primitive; all higher-level protocols (board task routing, GRPO training
+samples, cross-family capability comparison) are derived from it.
+
+This single trait-native pipeline—Registry $\to$ Slice $\to$ Contract—replaces
+what would otherwise be an ad-hoc collection of special-purpose runtime
+tables, schedulers, and coordination buses.  It is the clearest illustration
+yet that HoloScript traits are not annotations \emph{on} a runtime; they
+\emph{are} the runtime.
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{Evaluation}
+\label{sec:eval}
+
+\subsection{Compile-Time Overhead}
+
+We compile 100 representative \hscore{} programs (ranging from
+10-node single-object scenes to 1{,}000-node multi-group
+hierarchies) with and without provenance tracking enabled on
+\textbf{two instrumented targets} (WebGPU, VRChat). We additionally freeze
+wall-clock provenance overhead for \textbf{eleven} representative backends
+(WebGPU, VRChat, Babylon, Unity, Godot, USD Physics, Unreal, PlayCanvas, Android XR, VRR, glTF) in
+\texttt{paper-targets-overhead-bench.test.ts}, with logs under
+\texttt{HoloScript/.bench-logs/} and a dated summary in
+\texttt{.ai-ecosystem/research/benchmark-results-2026-04-17-paper-targets-overhead.md}.
+The full $k$-target inventory remains in the shipped compiler; extending this timed harness
+to additional targets is operationalized by the Phase 3 W.067 extension
+(commit \texttt{6d4d1186d}; 18 additional CompilerBase targets benchmarked as below-floor),
+with detailed results in
+\texttt{.ai-ecosystem/research/benchmark-results-2026-04-17-phase3-noise-floor.md}.
+Wall-clock overhead
+when generalizing to further targets is defined as:
+$$\text{overhead}(\%) = \frac{t_{\text{prov}} - t_{\text{base}}}
+  {t_{\text{base}}} \times 100$$
+
+\paragraph{Benchmark results.}
+Empirical measurements across a 200-iteration benchmark confirm ultra-low
+compile latencies with full provenance preservation on these two targets:
+median compile times are 0.04\,ms (2.06\,ms p99) for WebGPU, and 0.02\,ms (0.24\,ms p99) for VRChat
+(measured on Node 22 + V8, Windows 11, consumer workstation). Medians are
+stable run-to-run; p99 varies with V8 JIT warmup and async scheduling noise.
+Provenance hashes are successfully embedded into and retrieved from target
+outputs, verifying end-to-end lineage. The Phase 2 harness (including
+glTF via \texttt{GLTFPipeline}) reports publication-shaped positive $\Sigma$-run provenance overhead on glTF in frozen logs (e.g.\ $\sim$+8--17\% across captured runs; host-dependent---see the dated benchmark markdown for per-target medians and methodology).
+
+\subsection{Provenance Chain Depth}
+
+For each compiled output, we measure the provenance chain depth:
+the number of $\tropmult$ compositions from the source hash
+to the final output hash. This validates that chains remain
+tractable for auditing.
+
+\paragraph{Depth statistics.}
+The provenance-chain depth is bounded by construction from the pipeline
+structure: source $\rightarrow$ parse $\rightarrow$ AST $\rightarrow$
+optimize ($p$ passes, currently $p{=}3$) $\rightarrow$ lower (2 hops)
+$\rightarrow$ target passes (1--2 hops per target) $\rightarrow$ output.
+This gives a structural bound of $8{+}p{+}2t$ hops where $t$ is the number
+of target-specific passes. For the configuration in this paper
+($p{=}3$, $t\in\{1,2\}$), the depth is structurally bounded at 13--15 hops
+per compile.
+
+\paragraph{Empirical 50$\times k$-job harness.}
+We instrument the depth-distribution over a deterministic 50-source
+$\times$ $k{=}2$ target matrix (WebGPU, VRChat $\Rightarrow$ 100 jobs).
+Sources are seeded synthetically with 1--20 objects per source and 1--4
+traits per object drawn from a fixed 16-element pool. For each
+(source, target) cell we record (i) the \emph{pipeline pass depth}
+$8{+}p{+}2t$ with $t$ observed empirically from the compiler's
+return-shape contract (WebGPU emits one phase, $t{=}1$; VRChat emits two
+distinct phases---scripts and scene/world descriptors---so $t{=}2$), and
+(ii) the \emph{trait-composition chain depth}, measured by composing
+each object's traits via \texttt{ProvenanceSemiring} under an explicit
+\texttt{tropical-min-plus} rule on a shared numeric property and
+counting $\tropmult$ operators in the resulting source string. The
+per-cell trait-composition value is the maximum across objects in that
+source; the total per-cell chain depth is the sum of the two
+components.
+\measuredFrom{HoloScript/packages/core/src/compiler/__tests__/paper-10-depth-distribution-50xk.bench.test.ts}%
+\measuredFrom{HoloScript/.bench-logs/2026-04-27-paper-10-depth-distribution-50xk.md}
+
+Across the 100-cell matrix the pipeline pass depth falls within the
+structural bound for every cell (min/median/p95/max\,=\,13/15/15/15;
+WebGPU cells are exactly 13, VRChat cells are exactly 15, confirming
+$8{+}p{+}2t$ pointwise). The trait-composition chain depth is
+1/3/3/3 (min/median/p95/max), and the \emph{total} provenance chain
+depth---pipeline plus trait composition---is 14/16/18/18 across the
+matrix (16/18 for the WebGPU/VRChat sub-populations respectively).
+All chains remain tractable for offline auditing: even the
+worst-case 18-hop total is $O(p{+}t{+}n_{\text{traits}})$ in the source
+size and admits a bounded-depth attestation in $O(\text{depth})$ hash
+operations. The harness wall-clock is 22.6\,ms on the same workstation
+configuration as Section~\ref{sec:multi-target}.
+\subsection{Cross-Target Hash Relationship}
+
+\textbf{Release goal:} for a qualifying cross-target matrix (50 source programs
+$\times$ $k$ targets = $50 k$ compile jobs), verify empirically that for every
+pair of targets $T_1, T_2$ and source $s$, the composed hash
+$\hashfn(\compilefn(s, T_1)) \tropmult \hashfn(\compilefn(s, T_2))$
+is bounded by $\hashfn(s)$.
+
+\paragraph{Verification.}
+The full cross-target sweep must report zero violations of
+the multi-target compilation theorem; any nonzero count blocks
+release until the offending lowering pass is fixed. The currently archived
+reproducibility baseline is commit \texttt{6d4d1186d} with frozen logs in
+\texttt{HoloScript/.bench-logs/2026-04-17-phase3-overhead.txt}; full
+full $k$-target theorem-matrix automation remains a camera-ready CI expansion.
+
+\subsection{Reproducibility Pipeline and Scalability Envelope}
+\label{sec:repro-scaling}
+
+Reviewers can rerun the compiler calibration path directly from
+\texttt{packages/core}. The CI-sized matrix is
+\texttt{pnpm --filter @holoscript/core run benchmark:paper10:compile-matrix};
+the camera-ready grid is
+\texttt{pnpm --filter @holoscript/core run benchmark:paper10:compile-matrix:full}.
+The independent depth-distribution harness is
+\texttt{pnpm --filter @holoscript/core run benchmark:paper10:depth-distribution},
+which regenerates
+\texttt{HoloScript/.bench-logs/2026-04-27-paper-10-depth-distribution-50xk.md}
+from \texttt{packages/core/src/compiler/\_\_tests\_\_/paper-10-depth-distribution-50xk.bench.test.ts}.
+
+The scaling model is linear in the number of source--target compile cells and
+bounded in the audit chain depth. The reduced CI grid covers 27 cells; the
+camera-ready grid covers $20 \times 7 \times 7 = 980$ depth/width/seed cells,
+and the depth-distribution sweep covers $50k=100$ source--target jobs for
+$k=2$. A million-scale compile audit ($10^6$ cells) therefore shards by source
+partition and target family while preserving the same per-cell bound:
+pipeline depth remains $8{+}p{+}2t$, trait-chain depth remains bounded by the
+maximum traits on a source object, and verification remains
+$O(\text{cells} \cdot \text{depth})$ hash operations rather than an
+all-pairs target comparison.
+
+% ────────────────────────────────────────────────────────────────────────────
+
+\subsection{User Study Protocol (Preregistered)}
+\label{sec:user-study}
+
+To evaluate the operational utility and cognitive ergonomics of the system, we have preregistered a user study ($N=12$) targeting human participants interacting with the framework. A preliminary pilot study ($N=3$) was conducted to validate the experimental harness and confirm the feasibility of the survey instrument. The full study measures task completion time, error recovery rates, and qualitative cognitive load against a baseline. The study protocol, along with the IRB waiver and preregistration packet, is maintained in the supplementary materials to satisfy reproducibility requirements (D.011).
+
+% ────────────────────────────────────────────────────────────────────────────
+\subsection{GPU Benchmark and Ablation: Provenance Component Contributions}
+\label{sec:ablation}
+
+To isolate the cost and semantic value of each provenance component, we
+ablate the tropical semiring pipeline across five configurations on an
+\textbf{NVIDIA RTX 6000 Ada} instance (Vast.ai \#35547628, 2026-04-24;
+artifact \texttt{benchmark-results-2026-04-24-core-rtx6000ada.md},
+sha256 prefix \texttt{65d6bb21}).  Table~\ref{tab:ablation} reports
+tropical SpMV throughput over three graph topologies representative of
+real \hscore{} provenance graphs, plus the semantic guarantees each
+configuration preserves.
+
+\begin{table}[t]
+\centering
+\caption{Ablation of provenance components.  Tropical SpMV throughput
+(hz/s) on RTX 6000 Ada, Vitest bench mode; higher is faster.
+$\leq$-bound = cross-target hash theorem holds;
+depth = audit-chain depth is tractably bounded.
+$-$variants measured on same instance; $(\dagger)$ structural estimate.}
+\label{tab:ablation}
+\small
+\measuredFrom{HoloScript/packages/core/src/compiler/__tests__/paper-10-multitarget-bench.test.ts}%
+\measuredFrom{HoloScript/packages/core/src/compiler/__tests__/paper-10-compile-matrix-depth.bench.test.ts}%
+\measuredFrom{research/benchmark-results-2026-04-24-core-rtx6000ada.md}%
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Variant} & \textbf{BA m=4} & \textbf{ER p=0.02} & \textbf{Layered} & $\leq$\textbf{-bound} & \textbf{Depth} \\
+                 & (hz/s)          & (hz/s)              & (hz/s)           & \textbf{holds}        & \textbf{bounded} \\
+\midrule
+Full (tropical semiring)   & 159{,}340 & 77{,}092 & 9{,}764 & \ding{51} & \ding{51} \\
+$-$audit-log write         & 159{,}400 & 77{,}140 & 9{,}771 & \ding{51} & \ding{51} \\
+$-$chain depth check       & 160{,}100 & 77{,}500 & 9{,}820 & \ding{51} & \ding{55} \\
+Flat SHA-256 only$^\dagger$ & {---}    & {---}    & {---}   & \ding{55} & N/A \\
+No provenance$^\dagger$    & {---}     & {---}    & {---}   & \ding{55} & N/A \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The full configuration dominates semantically: it is the only variant
+that jointly satisfies the cross-target bound and audit-chain tractability.
+Removing the audit-log write yields negligible throughput improvement
+($<$1\%) while losing the complete chain record.  Removing the depth
+check permits unbounded audit graphs.  Flat SHA-256 and no-provenance
+baselines break the multi-target compilation theorem entirely.  The
+throughput gap between BA m=4 (sparse structured, 159{,}340\,hz/s) and
+layered-dense (9{,}764\,hz/s) reflects the expected sparsity-versus-density
+tradeoff in the $\tropmult$ kernel; real \hscore{} provenance graphs are
+BA-class by construction (each compiled fragment references a small bounded
+fanout of source nodes), placing the practical operating point near the
+159K\,hz/s end of the range.
+
+% ────────────────────────────────────────────────────────────────────────────
+\subsection{Full-Loop Demo}
+\label{sec:demo}
+
+We walk through an end-to-end instance of the provenance pipeline on a
+representative \hscore{} scene: a 12-node spatial analytics dashboard
+compiled to two targets (WebGPU, Unity), with the cross-target hash
+relationship verified and the output anchored to OpenTimestamps.
+
+\begin{enumerate}[leftmargin=*,topsep=2pt]
+  \item \textbf{Source.}  A 12-node \hscore{} program declares three
+    \texttt{DataPanel} objects in \holo{} composition format, each
+    annotated with \texttt{@animated} and \texttt{@networked}.
+    The source hash $\hashfn(s)$ is frozen at commit entry time.
+  \item \textbf{Compilation with provenance.}
+    \texttt{compilefn($s$, WebGPU)} $\to h_{\text{gpu}}$;
+    \texttt{compilefn($s$, Unity)} $\to h_{\text{unity}}$.
+    Each output embeds its hash as a metadata header verified by
+    the \texttt{AnchorVerify} toolchain.
+  \item \textbf{Theorem check.}  We verify
+    $h_{\text{gpu}} \tropmult h_{\text{unity}} \leq \hashfn(s)$
+    using the tropical CSR SpMV kernel
+    (Table~\ref{tab:ablation}, BA m=4 topology).
+    The check passes in \textbf{0.0063\,\textmu{}s} on RTX 6000 Ada.
+  \item \textbf{Scene instantiation.}  The WebGPU output is loaded into
+    a live \texttt{.holo} composition rendered in HoloScript Studio;
+    the Unity output is imported as a MonoBehaviour prefab.  Both
+    are linked to the source hash through embedded \texttt{@audit\_log}
+    metadata.
+  \item \textbf{Reproducibility anchor.}  The compiled outputs, source
+    program, and proof certificates are anchored to three OpenTimestamps
+    calendars (alice.btc, bob.btc, finney.eternitywall), producing an
+    \texttt{.ots} receipt co-located with the source artifact.
+\end{enumerate}
+
+The complete demo script, artifact files, and \texttt{.ots} receipt are
+included in the supplementary materials under
+\texttt{research/paper-10-demo/} (D.011 full-loop evidence).
+
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Limitations}
+
+\paragraph{Compile-time overhead.}
+Provenance tracking adds bounded but nonzero overhead to
+compilation. For extremely large scenes ($>$10{,}000 nodes)
+compiled to all $k$ targets simultaneously, the cumulative
+hashing cost may become significant. Batched hashing and
+incremental compilation (below) are mitigation strategies.
+
+\paragraph{Compilation-only guarantee.}
+The semiring annotation verifies the compilation mapping:
+that the output was derived from the declared source through
+the declared lowering function. It does \emph{not} verify
+runtime behavior---a correctly compiled program may still
+exhibit runtime bugs. Runtime verification is handled by
+the simulation contracts of
+Program~1~\cite{trustbyconstruction2026}.
+
+\paragraph{Opaque third-party lowering.}
+Third-party plugins may implement lowering functions whose
+internal logic is opaque. The \hscore{} compilation theorem
+requires that every lowering function satisfies the
+provenance-preservation obligation. For opaque functions,
+we can verify the \emph{output} hash relationship
+empirically but cannot provide an inductive proof. The
+\holo{} paper~\cite{paper-12-holo-i3d2027} addresses this
+through the plugin provenance-preservation theorem.
+
+\subsection{Future Work}
+
+\begin{itemize}
+  \item \textbf{Differentiable provenance.} Make the semiring
+    operations differentiable to enable gradient-based
+    optimization of compiled spatial scenes (e.g., optimizing
+    material parameters while preserving provenance).
+  \item \textbf{Differentiable incremental caching.}
+    \texttt{BuildCache.ts} and \texttt{IncrementalCompiler.ts}
+    are wired into the provenance chain (commit
+    \texttt{16c117c5c}, validated by
+    \texttt{paper-10-provenance-cache.test.ts}, 10/10 passing
+    on \today): compiled outputs are stored under the same
+    SHA-256 source hash recorded in
+    \texttt{ProvenanceBlock.hash} via
+    \texttt{BuildCache.setByProvenanceHash}, and a fresh
+    \texttt{IncrementalCompiler} instance backed by the same
+    \texttt{BuildCache} serves cross-session hits without
+    recompilation.  Open work: extend the cache key with the
+    semiring transcript so that incremental hits also
+    short-circuit audit-chain re-emission, and make the
+    per-node hash differentiable for gradient-based
+    scene-parameter updates.
+  \item \textbf{Rendering-stage integration.} Bridge the
+    compilation provenance chain to the rendering contract
+    (P3-CENTER~\cite{paper-13-dumbglass-siggraph2028}),
+    closing the loop from source notation to rendered pixel.
+\end{itemize}
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{Conclusion}
+\label{sec:conclusion}
+
+The \hscore{} IR demonstrates that provenance is not a post-hoc
+debugging tool---it is a semantic feature that can be embedded
+in a compilation intermediate representation at production cost.
+The provenance semiring, lifted from database query lineage to
+compiler semantics, provides a single algebraic framework that
+unifies source tracing, cross-target hash relationships, and
+audit-grade compilation verification.
+
+Forty-seven compile targets. One algebra. Every compiled output
+carries a hash chain algebraically related to its source through
+the semiring composition law. The first stalk of the lotus.
+
+% ────────────────────────────────────────────────────────────────────────────
+% Bibliography migrated 2026-04-24 from inline \begin{thebibliography} block
+% to shared research/holoscript.bib per founder /founder ruling Decision 2
+% (research/paper-audit-matrix.md §2026-04-24 Refresh — Founder Ruling).
+% Pattern documented in docs/paper-bibliography-migration.md.
+% Inline block preserved below inside `\iffalse` guard for reviewer audit;
+% remove at submission bundle time after holoscript.bib has been validated
+% to resolve every \cite key this paper uses.
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{holoscript}
+
+\iffalse
+% === LEGACY INLINE BIBLIOGRAPHY (pre-2026-04-24 migration) ===
+% Kept behind \iffalse for audit trail only; bibtex ignores it.
+% Remove entirely at submission-bundle time after:
+%   pdflatex paper-10-hs-core-pldi && bibtex paper-10-hs-core-pldi
+% resolves 0 missing keys against research/holoscript.bib.
+\begin{thebibliography}{30}
+
+\bibitem{green-semiring2007}
+T.~J.~Green, G.~Karvounarakis, and V.~Tannen.
+\newblock Provenance semirings.
+\newblock In \emph{PODS}, 2007.
+
+\bibitem{trustbyconstruction2026}
+J.~Krzywoszyja.
+\newblock Trust by Construction: Provenance-Native Simulation Contracts.
+\newblock \emph{IEEE TVCG}, 2026 (submitted).
+
+\bibitem{capstone-uist2027}
+J.~Krzywoszyja.
+\newblock From Notation to Cognition: A Provenance-Native Architecture.
+\newblock In \emph{UIST}, 2027 (forthcoming).
+
+\bibitem{paper-11-hsplus-ecoop2027}
+J.~Krzywoszyja.
+\newblock Reactive Traits Under Contract: Interaction Semantics for Spatial Languages.
+\newblock In \emph{ECOOP}, 2027.
+
+\bibitem{paper-12-holo-i3d2027}
+J.~Krzywoszyja.
+\newblock Scene Composition Without Grammar Extension: Plugin-Based Domain Vocabulary.
+\newblock In \emph{I3D}, 2027.
+
+\bibitem{paper-13-dumbglass-siggraph2028}
+J.~Krzywoszyja.
+\newblock Dumb Glass: Rendering as Contracted Synthesis of All Projections.
+\newblock In \emph{SIGGRAPH}, 2028 (forthcoming).
+
+\bibitem{mlir-lattner2020}
+C.~Lattner, M.~Amini, U.~Bondhugula, A.~Cohen, A.~Davis,
+J.~Pienaar, R.~Riddle, T.~Shpeisman, N.~Vasilache, and
+O.~Zinenko.
+\newblock MLIR: Scaling Compiler Infrastructure for Domain Specific
+Computation.
+\newblock In \emph{CGO}, 2021.
+
+\bibitem{amsterdamer-2011}
+Y.~Amsterdamer, D.~Deutch, and V.~Tannen.
+\newblock Provenance for Aggregate Queries.
+\newblock In \emph{PODS}, 2011.
+
+\bibitem{senellart-2018}
+P.~Senellart, L.~Jachiet, S.~Maniu, and Y.~Ramusat.
+\newblock Provenance and Probabilities in Relational Databases.
+\newblock \emph{SIGMOD Record}, 47(3):5--15, 2018.
+
+\bibitem{prov-dm-w3c}
+W3C Provenance Working Group.
+\newblock PROV-DM: The PROV Data Model.
+\newblock W3C Recommendation, April 30, 2013.
+\newblock \url{https://www.w3.org/TR/prov-dm/}
+
+\bibitem{spirv-khronos}
+Khronos Group.
+\newblock SPIR-V Specification.
+\newblock \url{https://registry.khronos.org/SPIR-V/}
+
+\bibitem{dxil-msft}
+Microsoft.
+\newblock DirectX Shader Compiler / DXIL documentation.
+\newblock \url{https://github.com/microsoft/DirectXShaderCompiler}
+
+\bibitem{provone2014}
+V.~Cuevas-Vicenttin et al.
+\newblock ProvONE: A PROV extension for scientific workflow provenance.
+\newblock \emph{Future Generation Computer Systems}, 2015.
+
+\bibitem{vistrails-aosa}
+J.~Freire, D.~Koop, E.~Santos, C.~Scheidegger, S.~Callahan, and C.~T.~Silva.
+\newblock VisTrails: Enabling visualization and data analysis through provenance.
+\newblock In \emph{The Architecture of Open Source Applications}, Volume~2, 2012.
+
+\bibitem{leroy-formally-verified2009}
+X.~Leroy.
+\newblock Formal verification of a realistic compiler.
+\newblock \emph{Communications of the ACM}, 52(7):107--115, 2009.
+
+\end{thebibliography}
+\fi
+
+
+\end{document}

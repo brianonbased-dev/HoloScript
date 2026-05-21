@@ -1,0 +1,482 @@
+[
+  {
+    "id": "real_0000_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "real_0000_ur5_arm",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:39677cbca456f859",
+      "signature": "sig:5d264b1b6593b659172e8c6882aa5c46",
+      "created": "2026-05-20T22:13:14.453261",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0001_mobile_manip",
+    "robot": "mobile_manip",
+    "receipt": {
+      "episode_id": "real_0001_mobile_manip",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:2eb283dd61e2c1aa",
+      "signature": "sig:9ba743428b5c4f1c02ba9638f44ce641",
+      "created": "2026-05-20T22:13:14.460429",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0002_mobile_manip",
+    "robot": "mobile_manip",
+    "receipt": {
+      "episode_id": "real_0002_mobile_manip",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:531625c7ec9021ba",
+      "signature": "sig:da081888d3d69a67ad9cf399d537bb89",
+      "created": "2026-05-20T22:13:14.475611",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0003_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "real_0003_ur5_arm",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:70521e7d4660ab87",
+      "signature": "sig:857143b3b22aecc7db01ef376491086b",
+      "created": "2026-05-20T22:13:14.494238",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0004_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "real_0004_ur5_arm",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:3dcdee91162c5e9",
+      "signature": "sig:799c23a1c709189c18763a6956fb20f5",
+      "created": "2026-05-20T22:13:14.507056",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0005_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "real_0005_ur5_arm",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:10add878e294936f",
+      "signature": "sig:3e7735cd185d1b0e294a3c6383db1241",
+      "created": "2026-05-20T22:13:14.518844",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0006_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "real_0006_turtlebot3",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:591debe02e5cbf8a",
+      "signature": "sig:d7d31a183c6af3051dec69858fec42b9",
+      "created": "2026-05-20T22:13:14.531505",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0007_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "real_0007_turtlebot3",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:x7dc29a7db38414dc",
+      "signature": "sig:dcdbb8ad7a8377977d626794212d25e",
+      "created": "2026-05-20T22:13:14.546074",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0008_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "real_0008_ur5_arm",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:214d13b2a7f6f924",
+      "signature": "sig:7b1f206e97fc97f96ea66d6dd11cdb12",
+      "created": "2026-05-20T22:13:14.559919",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0009_mobile_manip",
+    "robot": "mobile_manip",
+    "receipt": {
+      "episode_id": "real_0009_mobile_manip",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:59232ec3271f862e",
+      "signature": "sig:667bc41b9ab819a82e9ca83cbddb7b61",
+      "created": "2026-05-20T22:13:14.569528",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0010_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "real_0010_ur5_arm",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:301ce480ff80da0e",
+      "signature": "sig:e08220634ce60c01636cc3d40705a6c",
+      "created": "2026-05-20T22:13:14.582487",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0011_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "real_0011_ur5_arm",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:5c2f273778b218ce",
+      "signature": "sig:256cd3468c1bb1fe430501027ae017a7",
+      "created": "2026-05-20T22:13:14.593058",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0012_mobile_manip",
+    "robot": "mobile_manip",
+    "receipt": {
+      "episode_id": "real_0012_mobile_manip",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:c945d19dcc341ca",
+      "signature": "sig:afd411be3061e005147aae4b8f22819d",
+      "created": "2026-05-20T22:13:14.603120",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0013_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "real_0013_ur5_arm",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:343e029355dbb549",
+      "signature": "sig:d1dd8f14cf7926a0a517901ee93c416f",
+      "created": "2026-05-20T22:13:14.613240",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0014_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "real_0014_turtlebot3",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:x3c73da122494ce63",
+      "signature": "sig:4a44a70ab364f42ea89ff6676ee2ee0f",
+      "created": "2026-05-20T22:13:14.624758",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0015_mobile_manip",
+    "robot": "mobile_manip",
+    "receipt": {
+      "episode_id": "real_0015_mobile_manip",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:x7cb1c0d9de4387e5",
+      "signature": "sig:75fbe22e92ad53658ea8e9e9fdf83ab3",
+      "created": "2026-05-20T22:13:14.637690",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0016_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "real_0016_turtlebot3",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:x6303dedfc19fadca",
+      "signature": "sig:a65b1c3daa2e420bfc110e84030d245e",
+      "created": "2026-05-20T22:13:14.651655",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0017_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "real_0017_ur5_arm",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:x81e21d69883e25",
+      "signature": "sig:bc42105d26b1431b409ae92a88357ad7",
+      "created": "2026-05-20T22:13:14.663440",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0018_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "real_0018_ur5_arm",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:6bc45a4e18b05cac",
+      "signature": "sig:eef037e06cf992c1bcf538eeb1051d1b",
+      "created": "2026-05-20T22:13:14.674260",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0019_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "real_0019_turtlebot3",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:73d091ca2e9f26ae",
+      "signature": "sig:b3934550a3dd5535b76aa50804e7afa3",
+      "created": "2026-05-20T22:13:14.685710",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0020_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "real_0020_turtlebot3",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:x3f9b8d82bb7b221c",
+      "signature": "sig:c675cd88bda6882a51c880b914263209",
+      "created": "2026-05-20T22:13:14.697586",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0021_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "real_0021_ur5_arm",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:x54f622aeaf0d7437",
+      "signature": "sig:2a32c32837c3314e7d4ed33b6d10de6c",
+      "created": "2026-05-20T22:13:14.708103",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0022_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "real_0022_ur5_arm",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:x3326a4537bd154ab",
+      "signature": "sig:be00a168699da82d2d97ab06961c1631",
+      "created": "2026-05-20T22:13:14.718442",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0023_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "real_0023_turtlebot3",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:708eee2094741be8",
+      "signature": "sig:d11331e97f2a0e7777072c2f730d5350",
+      "created": "2026-05-20T22:13:14.728903",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0024_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "real_0024_ur5_arm",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:xa2a9e90704543fe",
+      "signature": "sig:39b565f10443fc54406fdc687f26810e",
+      "created": "2026-05-20T22:13:14.739919",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0025_mobile_manip",
+    "robot": "mobile_manip",
+    "receipt": {
+      "episode_id": "real_0025_mobile_manip",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:117e5b218702c61c",
+      "signature": "sig:fc84a4440b5811c1580fd6b61db0506f",
+      "created": "2026-05-20T22:13:14.750182",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0026_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "real_0026_turtlebot3",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:x41161e34f8d1e18f",
+      "signature": "sig:3d7a6b1b19b117258c28362ec836d69a",
+      "created": "2026-05-20T22:13:14.759864",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0027_mobile_manip",
+    "robot": "mobile_manip",
+    "receipt": {
+      "episode_id": "real_0027_mobile_manip",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:x1a3b229eb68734cf",
+      "signature": "sig:74deca359878e2a58478f239db385fbf",
+      "created": "2026-05-20T22:13:14.771226",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0028_mobile_manip",
+    "robot": "mobile_manip",
+    "receipt": {
+      "episode_id": "real_0028_mobile_manip",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:x5a5c8405ad9a4a6e",
+      "signature": "sig:e9c2fe51af11b92bc5a1ba3e8abe1995",
+      "created": "2026-05-20T22:13:14.782035",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0029_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "real_0029_turtlebot3",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:4e2ed535ece7b404",
+      "signature": "sig:f2f833ab30bd8ef5095fac1c862f52fd",
+      "created": "2026-05-20T22:13:14.794558",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0030_mobile_manip",
+    "robot": "mobile_manip",
+    "receipt": {
+      "episode_id": "real_0030_mobile_manip",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:31e695e098ebe944",
+      "signature": "sig:f294a8029a09802cada6ce99db3bd53e",
+      "created": "2026-05-20T22:13:14.809353",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0031_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "real_0031_turtlebot3",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:x6cda897cdbe5c881",
+      "signature": "sig:e88e7230970941a441ecb4d15bae9559",
+      "created": "2026-05-20T22:13:14.821831",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0032_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "real_0032_turtlebot3",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:4b912e8c08fe1401",
+      "signature": "sig:dccbcaed70a57e83e73d120e09a84bdd",
+      "created": "2026-05-20T22:13:14.832827",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0033_mobile_manip",
+    "robot": "mobile_manip",
+    "receipt": {
+      "episode_id": "real_0033_mobile_manip",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:x7bd26602a6ded4dc",
+      "signature": "sig:b948b55325896b4ea07e100dbe4844d",
+      "created": "2026-05-20T22:13:14.845937",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0034_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "real_0034_turtlebot3",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:x376931f15e49cd90",
+      "signature": "sig:f3a273fb962e0062aa7c4f42489f813",
+      "created": "2026-05-20T22:13:14.858714",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0035_mobile_manip",
+    "robot": "mobile_manip",
+    "receipt": {
+      "episode_id": "real_0035_mobile_manip",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:x4269ca32a24847b",
+      "signature": "sig:4c7f3955d7fd96617babfdc38e85c0ed",
+      "created": "2026-05-20T22:13:14.870618",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0036_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "real_0036_ur5_arm",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:73c06f4d49d6f6f7",
+      "signature": "sig:aa5fb67609daf9c28cbdba382821f226",
+      "created": "2026-05-20T22:13:14.881997",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0037_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "real_0037_ur5_arm",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:x4aecbc3a9ebb7ff5",
+      "signature": "sig:55f75c1b1916e992ee637267471c8c6",
+      "created": "2026-05-20T22:13:14.892506",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0038_mobile_manip",
+    "robot": "mobile_manip",
+    "receipt": {
+      "episode_id": "real_0038_mobile_manip",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:19a200e648b9c9b4",
+      "signature": "sig:e6ee65c7d46c4325f305e2889e544919",
+      "created": "2026-05-20T22:13:14.903182",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "real_0039_mobile_manip",
+    "robot": "mobile_manip",
+    "receipt": {
+      "episode_id": "real_0039_mobile_manip",
+      "solver": "gazebo-real-bridge",
+      "ground_truth_hash": "sha256:x437752355cc03a74",
+      "signature": "sig:b1246cb315b5cec814bd4464a9bb93ec",
+      "created": "2026-05-20T22:13:14.912370",
+      "tolerance": "0.03"
+    }
+  }
+]

@@ -1,0 +1,8 @@
+{
+  "episode_id": "real_0005_ur5_arm",
+  "solver": "gazebo-real-bridge",
+  "ground_truth_hash": "sha256:10add878e294936f",
+  "signature": "sig:3e7735cd185d1b0e294a3c6383db1241",
+  "created": "2026-05-20T22:13:14.518844",
+  "tolerance": "0.03"
+}

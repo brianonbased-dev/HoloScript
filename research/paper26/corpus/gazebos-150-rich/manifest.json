@@ -1,0 +1,1802 @@
+[
+  {
+    "id": "ep_0000_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0000_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x431f1054a4188d98",
+      "signature": "sig:e7626cf949e8fd3428280b54ddae0fe8",
+      "created": "2026-05-20T22:01:40.985513",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0001_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0001_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x125476dacdc956da",
+      "signature": "sig:a17a72abc8e7ed8ad1db7bd730428eeb",
+      "created": "2026-05-20T22:01:40.993270",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0002_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0002_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:7e9327a2b91ba76e",
+      "signature": "sig:46babd339892598bbd08a5278e9ecf52",
+      "created": "2026-05-20T22:01:41.000081",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0003_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0003_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x1564a51f487eff3a",
+      "signature": "sig:9889e1961f4a01d0a20080ece4c786bb",
+      "created": "2026-05-20T22:01:41.007381",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0004_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0004_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:114d1e84431ebd82",
+      "signature": "sig:f1de7a533ba742129a8f87ff668c7db4",
+      "created": "2026-05-20T22:01:41.016040",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0005_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0005_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:5a26d327fe3e5baa",
+      "signature": "sig:2f57d31c66b52d477d09f3bca3fa2b5f",
+      "created": "2026-05-20T22:01:41.025868",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0006_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0006_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x74448745fe0565b3",
+      "signature": "sig:808066a795fc4a8f5789c6ecd3f0ed59",
+      "created": "2026-05-20T22:01:41.033906",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0007_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0007_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:45227f5bb7476fc9",
+      "signature": "sig:34cbbc5b2cf2486d7d6826885637b5a1",
+      "created": "2026-05-20T22:01:41.040788",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0008_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0008_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x7dbfac60af43508f",
+      "signature": "sig:817ae2a43185eee3f9855252a0e3edc5",
+      "created": "2026-05-20T22:01:41.048109",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0009_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0009_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x4d4c6e28defcef87",
+      "signature": "sig:a670ddc98ff188a998ae8ec597f2f259",
+      "created": "2026-05-20T22:01:41.055234",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0010_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0010_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:7af23dd2b0c4570c",
+      "signature": "sig:3051fd9e8ab5ed550a52c6a9187f07fa",
+      "created": "2026-05-20T22:01:41.061889",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0011_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0011_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x6875c8de104a1060",
+      "signature": "sig:601d8106faf26d25414eb3d2f4dcab45",
+      "created": "2026-05-20T22:01:41.068125",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0012_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0012_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x3c4d2a28216af788",
+      "signature": "sig:c90d9498a90b0a89823df132b392bedc",
+      "created": "2026-05-20T22:01:41.077016",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0013_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0013_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x2ba98dbf3373aa41",
+      "signature": "sig:456d34442b4150e9998fc5131a588383",
+      "created": "2026-05-20T22:01:41.085164",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0014_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0014_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:79937440ebcdd258",
+      "signature": "sig:d30a7338ec4180b3a0208ff624fc904",
+      "created": "2026-05-20T22:01:41.094864",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0015_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0015_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:de547096d38678c",
+      "signature": "sig:36e3a145cc64b7a42c47a44d0aad8521",
+      "created": "2026-05-20T22:01:41.102649",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0016_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0016_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:6dec620f18d07e95",
+      "signature": "sig:1402c697fa80fdf20cc9e85085559a57",
+      "created": "2026-05-20T22:01:41.110318",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0017_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0017_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x44179353b04a48dd",
+      "signature": "sig:73a5e3ac4e94d5d611605dd1e3f1939f",
+      "created": "2026-05-20T22:01:41.119059",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0018_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0018_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x711debe7cb77e57a",
+      "signature": "sig:9c963b314b5edc3e60c0a77ca46accb5",
+      "created": "2026-05-20T22:01:41.130416",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0019_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0019_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x71bbee25fd654fcb",
+      "signature": "sig:81d7fdc9a46dc1a9285494682a009006",
+      "created": "2026-05-20T22:01:41.139496",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0020_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0020_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x6fc98fd69630f090",
+      "signature": "sig:f065925654bb964456dd9878eb66caa8",
+      "created": "2026-05-20T22:01:41.148047",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0021_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0021_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x13113b8aa576435",
+      "signature": "sig:b8b57c8c602f937b0baa6c6159ab0f8e",
+      "created": "2026-05-20T22:01:41.157021",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0022_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0022_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:4dea85014b0d1b0e",
+      "signature": "sig:d78d6d73413c82d2a9de539f3b9d308e",
+      "created": "2026-05-20T22:01:41.163782",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0023_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0023_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x2570456ede1a9bad",
+      "signature": "sig:689ae23ba0fcdfcf5f96e125c535030b",
+      "created": "2026-05-20T22:01:41.171600",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0024_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0024_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:1e5ec3eda3be2596",
+      "signature": "sig:f90cd1162aedfc0787597f216bc1847f",
+      "created": "2026-05-20T22:01:41.179186",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0025_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0025_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x5d3916bd46d03a7a",
+      "signature": "sig:2d36af32e2b63e03f0569d134559f180",
+      "created": "2026-05-20T22:01:41.189656",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0026_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0026_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:44c3c1adf5cdf8fd",
+      "signature": "sig:e44efe899e005797e006dcfb79db2535",
+      "created": "2026-05-20T22:01:41.200473",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0027_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0027_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x3fec2cdc0b48ba3a",
+      "signature": "sig:52c64fcd48481ad5d5aa715d1fbc0c0f",
+      "created": "2026-05-20T22:01:41.208595",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0028_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0028_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x5f71a6171e447f06",
+      "signature": "sig:23d506253d607e4dbae3fc16f889ea04",
+      "created": "2026-05-20T22:01:41.217118",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0029_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0029_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:74efca234e09a607",
+      "signature": "sig:79dad406450429792445f1975f82282",
+      "created": "2026-05-20T22:01:41.224969",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0030_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0030_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:539f2dc44e10ca94",
+      "signature": "sig:500737acded74a6b7d86f639925f7c02",
+      "created": "2026-05-20T22:01:41.232352",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0031_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0031_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x77ef1bbac900a22d",
+      "signature": "sig:f000a3415cdd8ec5771fe1cb56fb457",
+      "created": "2026-05-20T22:01:41.245543",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0032_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0032_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:13e3ac376561a935",
+      "signature": "sig:e3764d28b62f5909afda65a3809808e5",
+      "created": "2026-05-20T22:01:41.253632",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0033_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0033_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:4bbefdd77e5ec8c3",
+      "signature": "sig:81d3f59d7a87e9be5a4b0139e57e1c1f",
+      "created": "2026-05-20T22:01:41.263047",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0034_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0034_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x106226974d2702a0",
+      "signature": "sig:2222c3b78d82a010f691ebfeff99a3ac",
+      "created": "2026-05-20T22:01:41.271377",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0035_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0035_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:98e7e1b243eda01",
+      "signature": "sig:bf6959da31b38eb6371f8e64ac275d5d",
+      "created": "2026-05-20T22:01:41.277487",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0036_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0036_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x10d05b77b967d554",
+      "signature": "sig:e99156209036f086af862b9114856a10",
+      "created": "2026-05-20T22:01:41.285014",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0037_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0037_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x635c2199f1ac2bb5",
+      "signature": "sig:e2ee803816862979bf660d781cb35a76",
+      "created": "2026-05-20T22:01:41.293899",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0038_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0038_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:77d4e1db722ac8f",
+      "signature": "sig:d02ab61591e66084387da9269c184b11",
+      "created": "2026-05-20T22:01:41.301880",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0039_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0039_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x5004c97a1975379d",
+      "signature": "sig:54a967d6ab84a41f7b1b9a24c62b97f9",
+      "created": "2026-05-20T22:01:41.310502",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0040_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0040_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x184d034a1c7134b7",
+      "signature": "sig:e0d452813cefdbe427fdfbce78f53da",
+      "created": "2026-05-20T22:01:41.317848",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0041_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0041_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x5ce83e4f0c6304f3",
+      "signature": "sig:6c47b8fe790143dfef24b9b5e0d3bd34",
+      "created": "2026-05-20T22:01:41.328328",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0042_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0042_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:7572a80221b5f9f8",
+      "signature": "sig:b056938efb2d217cace9fbb1a694b7d6",
+      "created": "2026-05-20T22:01:41.335181",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0043_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0043_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x1ce55b6ee6a59cc",
+      "signature": "sig:acc109daf4251500eb2db0d99288ce87",
+      "created": "2026-05-20T22:01:41.340348",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0044_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0044_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:6ec5dd759ce81421",
+      "signature": "sig:fb6cac05c704e4147b43912eb4c9404",
+      "created": "2026-05-20T22:01:41.347464",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0045_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0045_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x19dbed9ae2ac135b",
+      "signature": "sig:307a83867849749d487ff2bf35b7c23c",
+      "created": "2026-05-20T22:01:41.354515",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0046_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0046_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:37a5042b05d92380",
+      "signature": "sig:98293cea7f7df5be3c9753cde4ac3a60",
+      "created": "2026-05-20T22:01:41.361396",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0047_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0047_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x3620da4afc5be0a8",
+      "signature": "sig:64ab683ce2a3310fa399444727d6062d",
+      "created": "2026-05-20T22:01:41.366024",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0048_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0048_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:7155f0571681a791",
+      "signature": "sig:ec8298d1ea305c6534e7ecbefd72447e",
+      "created": "2026-05-20T22:01:41.372484",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0049_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0049_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x2989979086b8c88a",
+      "signature": "sig:72cd6db83a00ee16b003398c0d9574e6",
+      "created": "2026-05-20T22:01:41.379174",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0050_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0050_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:5c3c54791c904d81",
+      "signature": "sig:76935b864b557f47f012c2dabec9c671",
+      "created": "2026-05-20T22:01:41.389068",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0051_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0051_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:59391ada2d1d84d",
+      "signature": "sig:38fa05f35486aadee1de92800b2a33e1",
+      "created": "2026-05-20T22:01:41.400322",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0052_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0052_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x6120ccbd7b325799",
+      "signature": "sig:7bf118e78077c0cc7ad089385565899c",
+      "created": "2026-05-20T22:01:41.411311",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0053_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0053_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:7ac8adc953f72878",
+      "signature": "sig:15cb44561eef01f46e3c8658c412b9b8",
+      "created": "2026-05-20T22:01:41.425002",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0054_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0054_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:xeca825b9d262038",
+      "signature": "sig:de7ae7abbd932e0c24687b6109a9f874",
+      "created": "2026-05-20T22:01:41.436860",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0055_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0055_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:2f1850375ed8585c",
+      "signature": "sig:ee9b6c3bb7edab883fc4c812030bb1bd",
+      "created": "2026-05-20T22:01:41.448306",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0056_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0056_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:7a71fbe10eb01718",
+      "signature": "sig:7f75a9b425c5983e3b1a8c368bbb1c67",
+      "created": "2026-05-20T22:01:41.462103",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0057_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0057_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:684e61bf48cf4513",
+      "signature": "sig:14f01f3c5afdeec742e1459140187ea7",
+      "created": "2026-05-20T22:01:41.471286",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0058_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0058_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x83f5bbf77cebb5",
+      "signature": "sig:980ef60714d87a5422fb735869ee47e4",
+      "created": "2026-05-20T22:01:41.481106",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0059_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0059_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x5f0f03e33babe842",
+      "signature": "sig:52dc2c3fef5bf528ca0972b3571da734",
+      "created": "2026-05-20T22:01:41.489257",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0060_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0060_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x2d143d09e4228ad8",
+      "signature": "sig:49b5da103ac0e1ba669f26788d564274",
+      "created": "2026-05-20T22:01:41.496997",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0061_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0061_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x6747ff4b3f78dc83",
+      "signature": "sig:ae46dc66473d9023206dd6df1c6c5f89",
+      "created": "2026-05-20T22:01:41.504467",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0062_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0062_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:24279837da18fd28",
+      "signature": "sig:b8f4a461e2d9fc3a22bd99a7c105c7c0",
+      "created": "2026-05-20T22:01:41.511637",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0063_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0063_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x236042628176c77a",
+      "signature": "sig:bd82d8e1fad5fd71a07ad3fc9121b0f7",
+      "created": "2026-05-20T22:01:41.517050",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0064_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0064_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x5b5ef19c8854b436",
+      "signature": "sig:dcc23b7f55c0363f4e4fa4371fa0a5f0",
+      "created": "2026-05-20T22:01:41.525483",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0065_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0065_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x23b2c399581bfa0d",
+      "signature": "sig:df27a3a90b496bc3bc7eb31faf92cf33",
+      "created": "2026-05-20T22:01:41.531535",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0066_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0066_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:40055114f035125",
+      "signature": "sig:bdf50da4413ce72692bb437e209e78da",
+      "created": "2026-05-20T22:01:41.539925",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0067_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0067_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:29389de8203e9f94",
+      "signature": "sig:fde9d9a39f783932cdf6e8824b679d87",
+      "created": "2026-05-20T22:01:41.547603",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0068_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0068_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:xa14e308458f0e05",
+      "signature": "sig:f3342362ceac16f54a1623d794bdfa8e",
+      "created": "2026-05-20T22:01:41.553908",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0069_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0069_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:27222564c96ae535",
+      "signature": "sig:30322b666362172ea7a9dde48d44696a",
+      "created": "2026-05-20T22:01:41.561483",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0070_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0070_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x6e7e910af313b7ff",
+      "signature": "sig:5d047e55efb787df95854261064d95",
+      "created": "2026-05-20T22:01:41.566887",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0071_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0071_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x76750aa3ba028b3e",
+      "signature": "sig:434bbbe63f81ec7e99cf3e47177a774d",
+      "created": "2026-05-20T22:01:41.573264",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0072_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0072_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x1fc4525c1574c63c",
+      "signature": "sig:a6ba635f0f227bffdb7312733a6a51fd",
+      "created": "2026-05-20T22:01:41.581485",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0073_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0073_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:719ee8211d92c23c",
+      "signature": "sig:354d4b71d4954696959c56eb9095bcd6",
+      "created": "2026-05-20T22:01:41.588934",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0074_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0074_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x76e162e710cf8d97",
+      "signature": "sig:a677b6ba920d6bc5fa7d9f73247facc0",
+      "created": "2026-05-20T22:01:41.597116",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0075_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0075_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:7cd40a9b3c3ebd2b",
+      "signature": "sig:e3a64fb82a022f19bfd830a800713e37",
+      "created": "2026-05-20T22:01:41.606081",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0076_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0076_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x35f1182086bfde92",
+      "signature": "sig:1894a7c59828838c96a096d3c45f5f9e",
+      "created": "2026-05-20T22:01:41.616222",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0077_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0077_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:5a86cfaee6745734",
+      "signature": "sig:4dfcc8711e30a39e01db9c9145560c1a",
+      "created": "2026-05-20T22:01:41.625352",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0078_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0078_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x3541edf96ceeb976",
+      "signature": "sig:e0e2175fad1ebced41b3623969f36d6e",
+      "created": "2026-05-20T22:01:41.632211",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0079_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0079_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x428327a0e7dc37f0",
+      "signature": "sig:dab7a52cd617fa1b89fed68637ba28d3",
+      "created": "2026-05-20T22:01:41.640272",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0080_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0080_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x7f2ea7f69d8e102a",
+      "signature": "sig:d31faf2c6daa3bf9a8ff169ed7015ba0",
+      "created": "2026-05-20T22:01:41.649967",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0081_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0081_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x6d6622c242fbf00e",
+      "signature": "sig:af9885125c499271e61228468038005d",
+      "created": "2026-05-20T22:01:41.660108",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0082_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0082_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:742b86cb6c7d1612",
+      "signature": "sig:f61ea2605dd29e71b9b0362fbba4356b",
+      "created": "2026-05-20T22:01:41.668326",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0083_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0083_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x2eff3e302a52ba64",
+      "signature": "sig:945787e872e13484ad37dfdf6554612a",
+      "created": "2026-05-20T22:01:41.676023",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0084_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0084_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x592022678b15c18d",
+      "signature": "sig:f553a730eb454579bc957dae56f52eee",
+      "created": "2026-05-20T22:01:41.684770",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0085_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0085_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:488d06dd830d84e6",
+      "signature": "sig:9627177e6285c6deeded34c154d6f0ec",
+      "created": "2026-05-20T22:01:41.691933",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0086_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0086_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:70f2a00408d63b48",
+      "signature": "sig:a1ac091d7ddca1c078bfca90eee8ad1e",
+      "created": "2026-05-20T22:01:41.701379",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0087_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0087_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:7c46cdab86a1e596",
+      "signature": "sig:86e4d0f6bce0f865683e51864bab26bb",
+      "created": "2026-05-20T22:01:41.709655",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0088_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0088_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x74138dd60c4d93b8",
+      "signature": "sig:e87c72a417475df767302a2aab8032c5",
+      "created": "2026-05-20T22:01:41.715316",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0089_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0089_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x1954fc063d73a6da",
+      "signature": "sig:43b0e09e229029cf7e82e8411a7e5796",
+      "created": "2026-05-20T22:01:41.721459",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0090_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0090_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x3677082dce1367e2",
+      "signature": "sig:7d7822008ba866968fa22376c1b9c4fb",
+      "created": "2026-05-20T22:01:41.726830",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0091_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0091_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:369c78aadfcb04df",
+      "signature": "sig:b9e9f70b4d087c4965a40b494db62af6",
+      "created": "2026-05-20T22:01:41.734405",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0092_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0092_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x70cfa0d4552467bd",
+      "signature": "sig:fb3f0f1ab6e37dd0796fdadc52c855a1",
+      "created": "2026-05-20T22:01:41.743022",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0093_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0093_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x5b0edf0af7cb1acd",
+      "signature": "sig:2bc67841c489163edf66f27fb1cf151d",
+      "created": "2026-05-20T22:01:41.749705",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0094_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0094_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x4afe59346ac7ef30",
+      "signature": "sig:308c729e2af40430659450e278cf038",
+      "created": "2026-05-20T22:01:41.758658",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0095_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0095_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:7262062aea7b53d3",
+      "signature": "sig:9f39d040517b19bcfbb6e1579466e9e9",
+      "created": "2026-05-20T22:01:41.764046",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0096_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0096_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:49d6f7441e13caa3",
+      "signature": "sig:f7f98c39b826c7a712181fd6307d3de0",
+      "created": "2026-05-20T22:01:41.769126",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0097_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0097_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:3c3f1cb9cb109c25",
+      "signature": "sig:729a14c26dcc623de38f0bbe652013d5",
+      "created": "2026-05-20T22:01:41.777754",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0098_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0098_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:7c5db48f29147f80",
+      "signature": "sig:ff2253c75826d04d201f824825104ee5",
+      "created": "2026-05-20T22:01:41.786466",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0099_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0099_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x117c3e74ead14cc7",
+      "signature": "sig:2df00bc1b3fb5e328cfefa6f9ed218d",
+      "created": "2026-05-20T22:01:41.793512",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0100_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0100_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:75ada0c5990d1728",
+      "signature": "sig:b240e19044fbcc6cfb90c06922424bbb",
+      "created": "2026-05-20T22:01:41.800149",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0101_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0101_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x18f80e58f73a5fd2",
+      "signature": "sig:fb0d8ac28413ff8b6e1dfa9160beeceb",
+      "created": "2026-05-20T22:01:41.807002",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0102_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0102_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x539dcc6121559aa1",
+      "signature": "sig:6a6a38a760c4ef37a5758fa51b5872b1",
+      "created": "2026-05-20T22:01:41.813868",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0103_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0103_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x49af98fedd203590",
+      "signature": "sig:2dfaa93cbf3612c700dcef2c8a357c6f",
+      "created": "2026-05-20T22:01:41.821152",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0104_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0104_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x76bd7813b47f576c",
+      "signature": "sig:df86bb53cdd64054b928da962c308556",
+      "created": "2026-05-20T22:01:41.831377",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0105_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0105_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x5245b0bb9f25b209",
+      "signature": "sig:eb2ba52681d9b9a121c6efa510e2718f",
+      "created": "2026-05-20T22:01:41.838615",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0106_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0106_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:3285c8fc27403f87",
+      "signature": "sig:2c9f192c4edb8c9e4f555be7732879f1",
+      "created": "2026-05-20T22:01:41.844943",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0107_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0107_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:30e63c47db14664",
+      "signature": "sig:df915e54fc293a06494696a5a6aa56e8",
+      "created": "2026-05-20T22:01:41.853214",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0108_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0108_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:31d1308804ce123c",
+      "signature": "sig:b4777ae0619d5e1e144da6d61e2ae445",
+      "created": "2026-05-20T22:01:41.860311",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0109_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0109_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x3271668e64e9b791",
+      "signature": "sig:9625c71b4833c15701de5416b0961738",
+      "created": "2026-05-20T22:01:41.871960",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0110_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0110_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x53a60f009213c6ae",
+      "signature": "sig:33176ed03e19119ecfe7b071c7771d7c",
+      "created": "2026-05-20T22:01:41.877463",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0111_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0111_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x4281501ff540aa44",
+      "signature": "sig:d685f40ddffb87e361867b247b701007",
+      "created": "2026-05-20T22:01:41.885542",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0112_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0112_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:604fefd5f034652b",
+      "signature": "sig:1889fea8efeb3b462d14ed05f3b207bd",
+      "created": "2026-05-20T22:01:41.898326",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0113_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0113_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x571ea1b9b312a3d3",
+      "signature": "sig:69ac8f42999b02923cdf90e41cfa509e",
+      "created": "2026-05-20T22:01:41.905854",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0114_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0114_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x1470805488848a45",
+      "signature": "sig:c1773fc314c740f97acb624cf1a67417",
+      "created": "2026-05-20T22:01:41.913053",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0115_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0115_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:76e494fe3f4fca03",
+      "signature": "sig:5e4083bf6beca0a5817468683de21126",
+      "created": "2026-05-20T22:01:41.919267",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0116_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0116_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x57272bcfcfad7a9d",
+      "signature": "sig:51b44397b23500c7c3eb51f729a26e5e",
+      "created": "2026-05-20T22:01:41.927127",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0117_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0117_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:4ccb94b1f4e11527",
+      "signature": "sig:6a23ee69f0379b84911e0b15b07972c0",
+      "created": "2026-05-20T22:01:41.937004",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0118_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0118_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x2396e5380b2d9e6e",
+      "signature": "sig:86271aa11fa98323dd5215d1a2f34073",
+      "created": "2026-05-20T22:01:41.947079",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0119_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0119_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x2b4b4269702f2287",
+      "signature": "sig:d5f61439cd7697db72f0eba83a37455a",
+      "created": "2026-05-20T22:01:41.958597",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0120_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0120_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x2e836ade2a5b2cbc",
+      "signature": "sig:b55a72ef593627f3a8f9804323e4ad9a",
+      "created": "2026-05-20T22:01:41.967713",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0121_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0121_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x7759deeac406a722",
+      "signature": "sig:36f97dc8d852c87a604496b98d8606e7",
+      "created": "2026-05-20T22:01:41.976798",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0122_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0122_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:xf710d75781142b7",
+      "signature": "sig:f1c2ed6fa4ea6ef1c8dde23bead8d012",
+      "created": "2026-05-20T22:01:41.983522",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0123_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0123_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x6e3adbe64493510c",
+      "signature": "sig:87241b199930614451dfedf735d68a78",
+      "created": "2026-05-20T22:01:41.989848",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0124_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0124_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:3df566e83ac808d3",
+      "signature": "sig:a3a247eb794b58bd67e46850d9f0b76a",
+      "created": "2026-05-20T22:01:41.998691",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0125_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0125_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:1af7bbc2e2245b1",
+      "signature": "sig:ff6e98572492d28d7b3f947b9f709bcd",
+      "created": "2026-05-20T22:01:42.004028",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0126_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0126_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x617b6c48ee98ccc5",
+      "signature": "sig:63bf9c6515f8af3e2dfcba9e461755b7",
+      "created": "2026-05-20T22:01:42.010580",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0127_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0127_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:17692f5ea7c79ac7",
+      "signature": "sig:1d85fa38409c3c994fb1443cf89e28e",
+      "created": "2026-05-20T22:01:42.017977",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0128_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0128_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:xf223338d7d09f77",
+      "signature": "sig:b312b319d428a90cbdacded00e9a3255",
+      "created": "2026-05-20T22:01:42.025707",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0129_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0129_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:635ff3015b47dc0c",
+      "signature": "sig:4b617b7496efe0af9269f017f977e6ca",
+      "created": "2026-05-20T22:01:42.030846",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0130_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0130_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:55de7fbe5a53c9cb",
+      "signature": "sig:d9371403aaac9f60f033e4275cbd2a3b",
+      "created": "2026-05-20T22:01:42.038657",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0131_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0131_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x20e2f8808844169a",
+      "signature": "sig:ac4ee958502b42a1a88d093072373a31",
+      "created": "2026-05-20T22:01:42.045231",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0132_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0132_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:5bcfae3acc920934",
+      "signature": "sig:7fa2e10ab4a738ec6db996368403a64",
+      "created": "2026-05-20T22:01:42.050733",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0133_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0133_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x735979bc17399e03",
+      "signature": "sig:21ed160d46a942babd5f7ec3318f341c",
+      "created": "2026-05-20T22:01:42.057148",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0134_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0134_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:50a67ff6553d8d7",
+      "signature": "sig:9aff7e73dc020ecfcde5a323dfebd407",
+      "created": "2026-05-20T22:01:42.062431",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0135_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0135_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:6e71ba703962db42",
+      "signature": "sig:e102c12d84a47f8eec82d9d6fc10fbde",
+      "created": "2026-05-20T22:01:42.069599",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0136_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0136_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:3b2bcc8f9f924fc3",
+      "signature": "sig:cc6f4694387b9a8e9d1b616fa26e3b1a",
+      "created": "2026-05-20T22:01:42.077098",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0137_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0137_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x61370099584b1c9d",
+      "signature": "sig:8c50d0c4441cd7e84fc2affcdf4b7201",
+      "created": "2026-05-20T22:01:42.085252",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0138_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0138_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:6a8a5a7c702600f6",
+      "signature": "sig:5c532d40af0e73c0c843b72de11b0e42",
+      "created": "2026-05-20T22:01:42.090202",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0139_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0139_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:xd75c390e4e0fbc9",
+      "signature": "sig:9741c26f93cb9bf6706dc7bda7e3475b",
+      "created": "2026-05-20T22:01:42.096888",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0140_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0140_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:29de17871cc55075",
+      "signature": "sig:86be754e565faa0f7676de58e05b35e5",
+      "created": "2026-05-20T22:01:42.105856",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0141_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0141_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:74b37a767c8de0cd",
+      "signature": "sig:4040bd458fcdcfb9f8916be2ffef0111",
+      "created": "2026-05-20T22:01:42.114750",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0142_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0142_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:31e40abb15066f80",
+      "signature": "sig:df744a28154f214c3883e3c79dfbdb66",
+      "created": "2026-05-20T22:01:42.120333",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0143_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0143_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x665cb5bdbc94dbcd",
+      "signature": "sig:b362adfe77c454c7ec1321577cb2fb7b",
+      "created": "2026-05-20T22:01:42.128301",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0144_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0144_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:2ea3f3ae0ce900a7",
+      "signature": "sig:3fe25b99b31576cfc58a078d20f8ece5",
+      "created": "2026-05-20T22:01:42.133723",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0145_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0145_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:xf528aeb06aa4df",
+      "signature": "sig:7fa2c8b1b0cfebb480f7436050ea63e",
+      "created": "2026-05-20T22:01:42.140442",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0146_ur5_arm",
+    "robot": "ur5_arm",
+    "receipt": {
+      "episode_id": "ep_0146_ur5_arm",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:5eefaf1955a851b9",
+      "signature": "sig:87318c7a8c6ae0f3e7b4c4d068531773",
+      "created": "2026-05-20T22:01:42.148812",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0147_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0147_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:x1697005bc6479cec",
+      "signature": "sig:4827c6fe3578efe0e487b5cb632c03f4",
+      "created": "2026-05-20T22:01:42.157652",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0148_turtlebot3",
+    "robot": "turtlebot3",
+    "receipt": {
+      "episode_id": "ep_0148_turtlebot3",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:5aff1bc09c09a74f",
+      "signature": "sig:a5d170c6b1ac3fb3cd47e5aaab29eea",
+      "created": "2026-05-20T22:01:42.163357",
+      "tolerance": "0.03"
+    }
+  },
+  {
+    "id": "ep_0149_simple_leg",
+    "robot": "simple_leg",
+    "receipt": {
+      "episode_id": "ep_0149_simple_leg",
+      "solver": "gazebo-synthetic",
+      "ground_truth_hash": "sha256:64688962ea8a09d1",
+      "signature": "sig:d7afb93dc216bdc20a2ef79a6902a57d",
+      "created": "2026-05-20T22:01:42.168947",
+      "tolerance": "0.03"
+    }
+  }
+]

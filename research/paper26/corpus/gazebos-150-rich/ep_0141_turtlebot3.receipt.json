@@ -1,0 +1,8 @@
+{
+  "episode_id": "ep_0141_turtlebot3",
+  "solver": "gazebo-synthetic",
+  "ground_truth_hash": "sha256:74b37a767c8de0cd",
+  "signature": "sig:4040bd458fcdcfb9f8916be2ffef0111",
+  "created": "2026-05-20T22:01:42.114750",
+  "tolerance": "0.03"
+}

@@ -1,0 +1,8 @@
+{
+  "episode_id": "ep_0062_ur5_arm",
+  "solver": "gazebo-synthetic",
+  "ground_truth_hash": "sha256:24279837da18fd28",
+  "signature": "sig:b8f4a461e2d9fc3a22bd99a7c105c7c0",
+  "created": "2026-05-20T22:01:41.511637",
+  "tolerance": "0.03"
+}

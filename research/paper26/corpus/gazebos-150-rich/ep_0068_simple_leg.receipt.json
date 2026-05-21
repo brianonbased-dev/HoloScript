@@ -1,0 +1,8 @@
+{
+  "episode_id": "ep_0068_simple_leg",
+  "solver": "gazebo-synthetic",
+  "ground_truth_hash": "sha256:xa14e308458f0e05",
+  "signature": "sig:f3342362ceac16f54a1623d794bdfa8e",
+  "created": "2026-05-20T22:01:41.553908",
+  "tolerance": "0.03"
+}

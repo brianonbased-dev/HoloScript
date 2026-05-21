@@ -1,0 +1,8 @@
+{
+  "episode_id": "real_0034_turtlebot3",
+  "solver": "gazebo-real-bridge",
+  "ground_truth_hash": "sha256:x376931f15e49cd90",
+  "signature": "sig:f3a273fb962e0062aa7c4f42489f813",
+  "created": "2026-05-20T22:13:14.858714",
+  "tolerance": "0.03"
+}

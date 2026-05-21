@@ -1,0 +1,8 @@
+{
+  "episode_id": "real_0030_mobile_manip",
+  "solver": "gazebo-real-bridge",
+  "ground_truth_hash": "sha256:31e695e098ebe944",
+  "signature": "sig:f294a8029a09802cada6ce99db3bd53e",
+  "created": "2026-05-20T22:13:14.809353",
+  "tolerance": "0.03"
+}
