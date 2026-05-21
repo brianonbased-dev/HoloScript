@@ -461,6 +461,11 @@ export interface TeamMember {
   /** Wallet address of the member (snapshot from RegisteredAgent at join time). */
   walletAddress?: string;
   /**
+   * Fleet member type. 'agent' for software/IDE seats, 'hardware' for GPU/WASM
+   * workers that auto-joined via job execution. Enables the dynamic "usage = membership" model.
+   */
+  type?: 'agent' | 'hardware';
+  /**
    * True when the member's registration completed the x402 challenge-verified
    * flow (EIP-712 proof-of-ownership on /register). False or undefined for
    * legacy path / server-generated wallets.

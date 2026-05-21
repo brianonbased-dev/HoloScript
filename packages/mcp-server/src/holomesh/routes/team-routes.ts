@@ -878,6 +878,7 @@ export async function handleTeamRoutes(
     const joinSurfaceTag = caller.surfaceTag
       ?? (typeof body.surface_tag === 'string' ? (body.surface_tag as string) : undefined)
       ?? (typeof body.ide_type === 'string' ? (body.ide_type as string) : undefined);
+    const joinType = (caller.surface && caller.surface.includes('hardware')) || caller.ideType === 'hardware' ? 'hardware' : 'agent';
     team.members.push({
       agentId: caller.id,
       agentName: caller.name,
@@ -886,6 +887,7 @@ export async function handleTeamRoutes(
       walletAddress: caller.walletAddress,
       x402Verified: caller.x402Verified === true,
       surfaceTag: joinSurfaceTag,
+      type: joinType,
     });
     persistTeamStore();
 

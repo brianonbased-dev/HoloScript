@@ -722,6 +722,27 @@ export async function handleBoardRoutes(
             return true;
           }
         }
+
+        // Fleet auto-join (task_1779315733346_9e0g): usage (claim) ⇒ team membership.
+        // Dynamic roster: whoever actually claims/dispatches/hardware-runs for the team is on the team.
+        const existingMember = team.members.find((m) => m.agentId === caller.id);
+        if (!existingMember) {
+          const memberType = (caller.surface && caller.surface.includes('hardware')) || caller.ideType === 'hardware' ? 'hardware' : 'agent';
+          team.members.push({
+            agentId: caller.id,
+            agentName: caller.name,
+            role: 'member',
+            joinedAt: new Date().toISOString(),
+            surfaceTag: caller.surfaceTag || caller.surface,
+            walletAddress: caller.walletAddress,
+            x402Verified: caller.x402Verified,
+            type: memberType,
+          });
+        } else if (!existingMember.type) {
+          // Backfill type for legacy members
+          existingMember.type = (caller.surface && caller.surface.includes('hardware')) || caller.ideType === 'hardware' ? 'hardware' : 'agent';
+        }
+
         result = claimTask(team.taskBoard, taskId, caller.id, caller.name, claimedByTag);
         eventType = 'board:claimed';
         break;
