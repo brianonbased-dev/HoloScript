@@ -180,6 +180,13 @@ Never call `holo_absorb_repo` with `force: true` unless `holo_graph_status` repo
 - Large batches (10+ files): split into sectioned commits by topic
 - Docs must use lowercase filenames
 
+## Scratch Output
+
+- Put one-off command, test, lint, tsc, vitest, API-board, and local investigation output under `/.scratch/<YYYY-MM-DD>-<agent-or-task>/`.
+- Do not add new root-level ignore patterns for transient logs, dumps, board exports, or ad hoc scripts. Redirect the command output or fix the script to write into `/.scratch/`.
+- Treat `/.scratch/` as ignored, disposable local output. Do not use it for source files, durable fixtures, or evidence that must survive another checkout.
+- Promote durable evidence into the right tracked home, such as `docs/`, `research/`, `.bench-logs/`, package fixtures, or service-specific artifact directories.
+
 ## Security
 
 ### StdlibPolicy

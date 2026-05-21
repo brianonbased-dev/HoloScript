@@ -63,41 +63,7 @@ yarn-error.log*
 .local-worker-key
 .preflight-result.json
 audit-results/
-
-# Root-only agent run-debris: test/tsc/lint dumps + board/audit JSON scratch.
-# Leading / anchors to repo root so tracked board.json, packages/**/test-output.js,
-# packages/framework/ALL-test-results.json, research/**/audit-*.json are NOT caught.
-/core-fail*.txt
-/core-errors.txt
-/core-test-results.txt
-/clean-check.txt
-/test-output*.txt
-/test-results.txt
-/test-full-run*.txt
-/test-run-*.txt
-/test_output.txt
-/test_results.json
-/ts-test-output*.txt
-/ts-test-verify.txt
-/tsc_errors_*.txt
-/studio_tsc*.txt
-/shortlog*.txt
-/stat.txt
-/wavee-*.txt
-/vitest-engine.json
-/vitest-result.json
-/board-utf8.json
-/board2.json
-/board_utf8.json
-/board_output.json
-/board_close_*.json
-/clean_board.json
-/temp_board.json
-/claim_*.json
-/audit-current.json
-/audit-after-overrides.json
-/dep-audit*.json
-/todos.txt
+/.scratch/
 
 # Training datasets — large binary/JSONL files, never commit
 datasets/
@@ -140,30 +106,6 @@ temp_ts_morph/
 test-results/
 tmp/
 
-# Root-level error/fail dumps not caught by the pattern block above
-/engine-fail*.txt
-/engine-physics-fail.txt
-/errors.txt
-/fail*.txt
-/final-fail.txt
-/final_board.json
-/scratch_board.json
-/payload.json
-/payload_deployments.json
-/pipeline-output.json
-/railway_logs*.txt
-/replay_test_output.txt
-/format_build_log.txt
-/framework*.txt
-/framework*.json
-/framework_*.txt
-/run_test*.ts
-/run_test*.js
-/patch_parser.mjs
-/railway_fix.mjs
-/scratch.js
-/fix-physics.js
-
 # bio-demo compiled output
 bio-demo/*.js
 
@@ -175,8 +117,7 @@ benchmarks/tools/*.d.ts
 samples/**/*.js
 samples/**/*.d.ts
 
-# scratch directories
-scratch/
+# Deployment scratch directories
 scripts/mesh-deploy/mesh-deploy-logs/
 
 # Compiled declaration files in script subdirectories
@@ -186,22 +127,6 @@ scripts/archive/**/*.d.ts
 
 # Generated validation/tm report (run-time output)
 scripts/tm-traits-validation-report.json
-
-# More root debris not covered by /prefix patterns above
-/full-test-results*.txt
-/full_framework_test*.txt
-/git_status*.txt
-/holomesh-board*.json
-/mesh-*.txt
-/out.json
-/nul
-/get_task.mjs
-/mark_task_done.mjs
-/mcp-test-client.mjs
-/mcp_config.json
-/migration_map.json
-/migrate_*.py
-/ls-files.txt
 
 # TypeScript declaration files and source maps generated next to source files.
 # (Real declarations are emitted to dist/ or hand-crafted via generate-types.mjs;
@@ -360,46 +285,3 @@ pids
 !.bench-logs/todo-r2-*
 !.bench-logs/paper-7-ik-latency*
 !.bench-logs/*paper-10*
-
-# Local agent worker key — never commit (F.001: keys leaked twice)
-.local-worker-key
-
-# Root-only agent/run debris (anchored with leading / so tracked board.json,
-# packages/**/test-output.js, research/**/audit-*.json are NOT caught)
-/core-fail*.txt
-/core-errors.txt
-/core-test-results.txt
-/clean-check.txt
-/.lint-main.txt
-/test-output*.txt
-/test-output-*-utf8.txt
-/test-results.txt
-/test-full-run*.txt
-/test-run-*.txt
-/test_output.txt
-/test_results.json
-/ts-test-output*.txt
-/ts-test-verify.txt
-/tsc_errors_*.txt
-/studio_tsc*.txt
-/shortlog*.txt
-/stat.txt
-/wavee-*.txt
-/vitest-engine.json
-/vitest-result.json
-/board-utf8.json
-/board2.json
-/board_utf8.json
-/board_output.json
-/board_close_*.json
-/clean_board.json
-/temp_board.json
-/claim_*.json
-/audit-current.json
-/audit-after-overrides.json
-/dep-audit*.json
-/.preflight-result.json
-/.git_commit_msg.txt
-/.cursor-queue-temp.json
-/.canary/
-/todos.txt
