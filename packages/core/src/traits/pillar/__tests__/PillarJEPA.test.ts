@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { pillarJepaHandler, type PillarJEPAConfig } from '../PillarJEPA';
+import { pillarJepaHandler, type PillarJEPAConfig, type PillarJEPALoss } from '../PillarJEPA';
 import type { HSPlusNode, TraitContext } from '../../TraitTypes';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -51,6 +51,7 @@ const DEFAULT_CONFIG: PillarJEPAConfig = {
   embeddingModel: 'jepa-context-encoder',
   emitToGrpo: true,
   physicsPillarId: 'physics_conservation',
+  temporalGating: true,
 };
 
 function step(
@@ -254,5 +255,118 @@ describe('PillarJEPA', () => {
     expect(loss).toBeDefined();
     expect((loss!.payload as { totalLoss: number }).totalLoss).toBeGreaterThanOrEqual(0);
     pillarJepaHandler.onDetach?.(node2, config, ctx2);
+  });
+
+  // ── Temporal gating tests ────────────────────────────────────────────────
+
+  it('loss payload includes temporalConvergence when gating is enabled', () => {
+    step(node, DEFAULT_CONFIG, ctx);
+
+    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    expect(typeof loss.temporalConvergence).toBe('number');
+    expect(loss.temporalConvergence).toBeGreaterThanOrEqual(0);
+    expect(loss.temporalConvergence).toBeLessThanOrEqual(1);
+    expect(typeof loss.effectiveConservationWeight).toBe('number');
+    expect(loss.effectiveConservationWeight).toBeGreaterThanOrEqual(0);
+    expect(loss.effectiveConservationWeight).toBeLessThanOrEqual(DEFAULT_CONFIG.conservationWeight + 1e-9);
+  });
+
+  it('temporalConvergence = NaN when gating is disabled', () => {
+    const config: PillarJEPAConfig = { ...DEFAULT_CONFIG, temporalGating: false };
+    const node2 = makeNode();
+    const { ctx: ctx2, events: events2 } = makeCtx();
+    pillarJepaHandler.onAttach?.(node2, config, ctx2);
+    events2.length = 0;
+
+    step(node2, config, ctx2);
+    const loss = (events2.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    expect(Number.isNaN(loss.temporalConvergence)).toBe(true);
+    // Without gating, effectiveConservationWeight = config.conservationWeight
+    expect(loss.effectiveConservationWeight).toBeCloseTo(config.conservationWeight);
+    pillarJepaHandler.onDetach?.(node2, config, ctx2);
+  });
+
+  it('effectiveConservationWeight = 0 when temporal override is fully converged', () => {
+    // convergence = 1.0 (steady state) → λ_c_eff = λ_c × (1 - 1) = 0
+    const steadyStateSlice = {
+      axis_1_id: 'steady_state',
+      axis_2_id: 'convergence',
+      pos_1: 1.0,
+      pos_2: 1.0,    // ← fully converged
+      pillar_id: 'temporal_lifecycle',
+      pillar_domain: 'steady_state',
+    };
+
+    pillarJepaHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, {
+      type: 'pillarjepa:step',
+      context: 'steady state simulation tick',
+      targetVec: new Float32Array(DEFAULT_CONFIG.latentDim).fill(0.1),
+      temporal_slice: steadyStateSlice,
+    });
+
+    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    expect(loss.effectiveConservationWeight).toBeCloseTo(0);
+    expect(loss.temporalConvergence).toBeCloseTo(1.0);
+  });
+
+  it('effectiveConservationWeight = conservationWeight when fully transient', () => {
+    // convergence = 0.0 (new domain, fully transient) → λ_c_eff = λ_c × (1 - 0) = λ_c
+    const transientSlice = {
+      axis_1_id: 'init',
+      axis_2_id: 'convergence',
+      pos_1: 0.0,
+      pos_2: 0.0,    // ← fully transient
+      pillar_id: 'temporal_lifecycle',
+      pillar_domain: 'steady_state',
+    };
+
+    pillarJepaHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, {
+      type: 'pillarjepa:step',
+      context: 'brand new simulation domain',
+      targetVec: new Float32Array(DEFAULT_CONFIG.latentDim).fill(0.1),
+      temporal_slice: transientSlice,
+    });
+
+    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    expect(loss.effectiveConservationWeight).toBeCloseTo(DEFAULT_CONFIG.conservationWeight);
+    expect(loss.temporalConvergence).toBeCloseTo(0.0);
+  });
+
+  it('totalLoss is lower in steady state than transient (same conservation violation)', () => {
+    // Same physics violation (pos_1 = 1.0, guaranteed violation scenario),
+    // but different temporal convergence. Steady state should have lower total loss
+    // because the conservation penalty is gated down to near-zero.
+    const physicsSlice = {
+      axis_1_id: 'energy',
+      axis_2_id: 'momentum',
+      pos_1: 1.0,
+      pos_2: 1.0,
+      pillar_id: 'physics_conservation',
+      pillar_domain: 'physics',
+    };
+
+    // Transient step
+    pillarJepaHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, {
+      type: 'pillarjepa:step',
+      context: 'physics tick transient',
+      targetVec: new Float32Array(DEFAULT_CONFIG.latentDim).fill(0.1),
+      pillar_slice: physicsSlice,
+      temporal_slice: { ...physicsSlice, pillar_id: 'temporal_lifecycle', pillar_domain: 'steady_state', axis_1_id: 'init', axis_2_id: 'convergence', pos_1: 0.0, pos_2: 0.0 },
+    });
+    const transientLoss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    events.length = 0;
+
+    // Steady-state step
+    pillarJepaHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, {
+      type: 'pillarjepa:step',
+      context: 'physics tick steady',
+      targetVec: new Float32Array(DEFAULT_CONFIG.latentDim).fill(0.1),
+      pillar_slice: physicsSlice,
+      temporal_slice: { ...physicsSlice, pillar_id: 'temporal_lifecycle', pillar_domain: 'steady_state', axis_1_id: 'steady_state', axis_2_id: 'convergence', pos_1: 1.0, pos_2: 1.0 },
+    });
+    const steadyLoss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+
+    // Steady-state total loss ≤ transient total loss (conservation gate reduces penalty)
+    expect(steadyLoss.totalLoss).toBeLessThanOrEqual(transientLoss.totalLoss + 1e-9);
   });
 });

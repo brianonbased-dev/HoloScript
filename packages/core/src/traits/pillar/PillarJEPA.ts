@@ -1,5 +1,5 @@
 /**
- * PillarJEPA — v1.0
+ * PillarJEPA — v1.1
  *
  * Physics-domain inductive-bias augmentation for the JEPA world-model
  * objective.  Wires JEPAObjective + PillarRegistry to enforce conservation-law
@@ -28,18 +28,36 @@
  *                    embedding, the predictor output should shift by ≈ δ.
  *                    Penalty: ||predict(z + δ) − predict(z) − δ||² / latentDim
  *
- * Total:
+ * Total (static weights):
  *   L_total = L_jepa + λ_c · L_conservation + λ_s · L_symmetry
+ *
+ * Temporal gating (v1.1, temporalGating = true):
+ *   Queries TEMPORAL_PILLAR each step for (maturity, convergence).
+ *   Scales conservationWeight by (1 − convergence):
+ *
+ *     λ_c_eff = λ_c × (1 − convergence)
+ *
+ *   When convergence ≈ 1 (steady state): λ_c_eff ≈ 0 — trust the embedding.
+ *   When convergence ≈ 0 (transient / new domain): λ_c_eff = λ_c — full pressure.
+ *
+ *   This is the "simulation depth dial" that prevents VLDL-style scope escalation:
+ *   conservation verification fires hard when the simulation is exploring a new
+ *   domain, and backs off once the simulation has converged.  The depth is
+ *   on-demand, not constant — avoiding the 1-FPS failure mode.
+ *
+ *   Temporal convergence value is reported in the pillarjepa:loss payload as
+ *   temporalConvergence, and the effective weight as effectiveConservationWeight.
  *
  * Events consumed:
  *   pillarjepa:step   { context: string, targetVec: Float32Array | number[],
- *                       pillar_slice?: PillarSlice,   // optional override
- *                       conditioning?: Float32Array | number[] }
+ *                       pillar_slice?: PillarSlice,   // physics override
+ *                       temporal_slice?: PillarSlice  // temporal override }
  *   pillarjepa:update_weights  { W1, b1, W2, b2 }    (forwarded to JEPAObjective)
  *
  * Events emitted:
  *   pillarjepa:loss   { jepaTotalLoss, conservationLoss, symmetryLoss,
- *                       totalLoss, step, pillar_domain, axis_1_id }
+ *                       totalLoss, step, pillar_domain, axis_1_id,
+ *                       temporalConvergence, effectiveConservationWeight }
  *   pillarjepa:error  { code, message, step }
  *
  * Integration with SliceEmitter (GRPO training curve):
@@ -54,9 +72,13 @@
  *     JEPA world models predict in abstract representation space
  *   RecursiveMAS (arxiv:2604.25917, 2026-04-28):
  *     latent inter-agent communication; Pillar-Slice slices ARE latent vectors
+ *   VLDL "AAA tech demo showcase" (2026):
+ *     satirical escalation from skin texture → sentient NPCs at 1 FPS;
+ *     temporal gating is the architectural response to that failure mode.
  *   PillarRegistry   — packages/core/src/traits/pillar/PillarRegistry.ts
  *   JEPAObjective    — packages/core/src/traits/JEPAObjective.ts
  *   SliceEmitter     — packages/core/src/traits/pillar/SliceEmitter.ts
+ *   Paper 26 §5      — Dynamic fidelity gating contribution claim
  *   Paper 26 §6      — GRPO improvement curve target metric
  *   Paper 8 §4       — physics world model section
  */
@@ -68,6 +90,7 @@ import {
   type PillarRegistryConfig,
   type PillarContext,
   PHYSICS_CONSERVATION_PILLAR,
+  TEMPORAL_PILLAR,
 } from './PillarRegistry';
 import type { PillarSlice } from './SemanticCollaborationContract';
 
@@ -133,16 +156,27 @@ export interface PillarJEPAConfig {
    * Default: 'physics_conservation' (seed Pillar).
    */
   physicsPillarId: string;
+
+  /**
+   * When true, queries TEMPORAL_PILLAR each step and scales conservationWeight
+   * by (1 − convergence).  High convergence (steady state) → ease off fidelity
+   * pressure; low convergence (transient / new domain) → full pressure.
+   *
+   * This is the "simulation depth dial" that prevents scope escalation at
+   * stable simulation regions while enforcing conservation verification at
+   * domain boundaries.  Default: true.
+   */
+  temporalGating: boolean;
 }
 
 export interface PillarJEPALoss {
   /** Combined JEPA loss from JEPAObjective (MSE + SIGReg). */
   jepaTotalLoss: number;
-  /** Physics conservation regularisation penalty. */
+  /** Physics conservation regularisation penalty (pre-gating). */
   conservationLoss: number;
   /** Symmetry equivariance penalty. */
   symmetryLoss: number;
-  /** Full loss: jepaTotalLoss + λ_c·conservationLoss + λ_s·symmetryLoss */
+  /** Full loss: jepaTotalLoss + λ_c_eff·conservationLoss + λ_s·symmetryLoss */
   totalLoss: number;
   /** Monotonically increasing step counter. */
   step: number;
@@ -150,6 +184,19 @@ export interface PillarJEPALoss {
   pillar_domain: string;
   /** Axis being tested for conservation. */
   axis_1_id: string;
+  /**
+   * Convergence value from TEMPORAL_PILLAR this step (pos_2 ∈ [0,1]).
+   * 0 = fully transient (new domain, full conservation pressure).
+   * 1 = fully converged (steady state, conservation pressure eased off).
+   * NaN when temporalGating is disabled.
+   */
+  temporalConvergence: number;
+  /**
+   * Effective conservation weight after temporal gating:
+   *   λ_c_eff = config.conservationWeight × (1 − temporalConvergence)
+   * Equals config.conservationWeight when gating is disabled.
+   */
+  effectiveConservationWeight: number;
 }
 
 export type PillarJEPAErrorCode =
@@ -197,6 +244,7 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
     embeddingModel: 'jepa-context-encoder',
     emitToGrpo: true,
     physicsPillarId: 'physics_conservation',
+    temporalGating: true,
   },
 
   onAttach(node: HSPlusNode, config: PillarJEPAConfig, context: TraitContext): void {
@@ -207,12 +255,19 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
     jepObjectiveHandler.onAttach?.(jepaNode, toJepaConfig(config), context);
     pillarRegistryHandler.onAttach?.(registryNode, toRegistryConfig(), context);
 
-    // Register the physics conservation Pillar (it's a seed, but explicit for clarity)
+    // Register seed Pillars (both are seeds but explicit registration ensures
+    // they are available even if a custom registry config excludes them)
     pillarRegistryHandler.onEvent?.(
       registryNode,
       toRegistryConfig(),
       silentContext(),
       { type: 'pillar:register', pillar: PHYSICS_CONSERVATION_PILLAR }
+    );
+    pillarRegistryHandler.onEvent?.(
+      registryNode,
+      toRegistryConfig(),
+      silentContext(),
+      { type: 'pillar:register', pillar: TEMPORAL_PILLAR }
     );
 
     const initialState: PillarJEPAState = {
@@ -325,12 +380,32 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
       return;
     }
 
-    // 5. Physics conservation regulariser
-    //    Penalise embeddings that score below pos_1 − ε_c on the conservation axis.
-    //    We proxy "embedding score on conservation axis" via the conditioning alignment:
-    //    conservationScore = (conditioning · conservation_direction) / ||conditioning||
-    //    where conservation_direction is deterministically derived from axis_1_id.
-    const conservationLoss = config.conservationWeight > 0
+    // 5. Temporal gating — query TEMPORAL_PILLAR for convergence and scale
+    //    conservationWeight accordingly.
+    //
+    //    convergence ∈ [0, 1]: 0 = transient (new domain), 1 = steady state.
+    //    λ_c_eff = λ_c × (1 − convergence)
+    //
+    //    This is the "simulation depth dial": conservation pressure fires hard
+    //    when the simulation is exploring a new domain (convergence ≈ 0) and
+    //    backs off once the state is stable (convergence ≈ 1).  Prevents the
+    //    VLDL failure mode — uncontrolled domain escalation at full fidelity.
+    let temporalConvergence = NaN;
+    let effectiveConservationWeight = config.conservationWeight;
+
+    if (config.temporalGating) {
+      // Allow per-step override of the temporal slice (useful for testing / external control)
+      const temporalSlice: PillarSlice = event.temporal_slice
+        ? (event.temporal_slice as PillarSlice)
+        : generateTemporalSlice(state);
+
+      // pos_2 = convergence (see TEMPORAL_PILLAR definition in PillarRegistry.ts)
+      temporalConvergence = temporalSlice.pos_2;
+      effectiveConservationWeight = config.conservationWeight * (1 - temporalConvergence);
+    }
+
+    // 6. Physics conservation regulariser (using effective weight)
+    const conservationLoss = effectiveConservationWeight > 0
       ? computeConservationLoss(
           conditioning,
           physicsSlice.pos_1,
@@ -339,22 +414,18 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
         )
       : 0;
 
-    // 6. Symmetry equivariance regulariser
-    //    Δz = δ · uniform unit vector (seeded by step number for reproducibility)
-    //    penalty = ||predict(z + Δz) − predict(z) − Δz||² / latentDim
-    //    We approximate this without re-running EmbeddingTrait by applying the
-    //    shift to the conditioning vector and measuring predictor sensitivity.
+    // 7. Symmetry equivariance regulariser
     const symmetryLoss = config.symmetryWeight > 0
       ? computeSymmetryLoss(conditioning, config.symmetryDelta, step)
       : 0;
 
-    // 7. Total loss
+    // 8. Total loss — note conservationLoss scaled by effectiveConservationWeight
     const totalLoss =
       jepaLoss.totalLoss +
-      conservationLoss * config.conservationWeight +
+      conservationLoss * effectiveConservationWeight +
       symmetryLoss * config.symmetryWeight;
 
-    // 8. Emit PillarJEPA loss
+    // 9. Emit PillarJEPA loss
     const lossPayload: PillarJEPALoss = {
       jepaTotalLoss: jepaLoss.totalLoss,
       conservationLoss,
@@ -363,11 +434,13 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
       step,
       pillar_domain: physicsSlice.pillar_domain,
       axis_1_id: physicsSlice.axis_1_id,
+      temporalConvergence,
+      effectiveConservationWeight,
     };
     context.emit?.('pillarjepa:loss', lossPayload);
 
-    // 9. Emit to SliceEmitter / GRPO if enabled
-    //    reward_signal = −totalLoss (lower loss = better policy)
+    // 10. Emit to SliceEmitter / GRPO if enabled
+    //     reward_signal = −totalLoss (lower loss = better policy)
     if (config.emitToGrpo) {
       context.emit?.('sliceemitter:emit', {
         slice: physicsSlice,
@@ -434,6 +507,61 @@ function generatePhysicsSlice(
     pos_2: 0.0,
     pillar_id: config.physicsPillarId,
     pillar_domain: 'physics',
+  };
+}
+
+/**
+ * Query TEMPORAL_PILLAR for the current convergence state.
+ * Returns a PillarSlice where pos_2 = convergence ∈ [0, 1].
+ * Fallback: returns a steady-state slice (convergence = 1.0) to avoid
+ * spurious conservation pressure when the temporal registry is cold.
+ */
+function generateTemporalSlice(state: PillarJEPAState): PillarSlice {
+  let capturedSlice: PillarSlice | null = null;
+
+  const captureCtx = {
+    emit(eventName: string, payload: unknown) {
+      if (eventName === 'pillar:slice') {
+        capturedSlice = (payload as { slice: PillarSlice }).slice;
+      }
+    },
+    getState: () => ({}),
+    setState: () => {},
+    getScaleMultiplier: () => 1,
+    setScaleContext: () => {},
+    vr: null,
+    physics: null,
+    audio: null,
+    haptics: null,
+  } as unknown as TraitContext;
+
+  const pillarCtx: PillarContext = {
+    layer: 'temporal_gate',
+    agent_id: 'pillar_jepa',
+    timestamp_ms: Date.now(),
+  };
+
+  pillarRegistryHandler.onEvent?.(
+    state.registryNode,
+    toRegistryConfig(),
+    captureCtx,
+    {
+      type: 'pillar:generate',
+      pillar_id: TEMPORAL_PILLAR.id,
+      context: pillarCtx,
+    }
+  );
+
+  // Fallback: steady-state (convergence = 1.0) → conservation pressure = 0.
+  // This is the safe default: don't add spurious pressure when temporal state
+  // is unknown (e.g. first step before any metadata is available).
+  return capturedSlice ?? {
+    axis_1_id: 'steady_state',
+    axis_2_id: 'convergence',
+    pos_1: 1.0,
+    pos_2: 1.0,          // fully converged → effective conservation weight = 0
+    pillar_id: TEMPORAL_PILLAR.id,
+    pillar_domain: 'steady_state',
   };
 }
 
