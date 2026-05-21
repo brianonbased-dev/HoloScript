@@ -33,6 +33,8 @@
     "bench:perf-regression": "node scripts/perf-regression-check.mjs",
     "bench:perf-regression-update": "node scripts/perf-regression-check.mjs --update-baseline",
     "bench:perf-regression-test": "node scripts/__tests__/perf-regression-check.test.mjs",
+    "bench:paper26:section7": "node scripts/run-paper26-section7-harness.mjs",
+    "bench:paper26:section7-test": "node scripts/__tests__/paper26-section7-harness.test.mjs",
     "bench:p043:sku-matrix": "node scripts/p043-sku-matrix.mjs",
     "bench:p043:sku-matrix-test": "node scripts/__tests__/p043-sku-matrix.test.mjs",
     "eval:brain-intent": "node scripts/evaluate-brain-intent-loop.mjs",

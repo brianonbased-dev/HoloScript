@@ -1,0 +1,187 @@
+{
+  "schema": "holoscript.paper26.section7.harness.v0.1.0",
+  "generatedAt": "2026-05-21T14:54:31.864Z",
+  "generatedBy": "scripts/run-paper26-section7-harness.mjs",
+  "gitHead": "2e8daae9c70c0dd3575fb4ee682ad46d07918a55",
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v24.15.0",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz"
+  },
+  "durationMs": 5959,
+  "codeBench": {
+    "command": "cmd.exe /d /s /c pnpm --filter @holoscript/absorb-service exec vitest run src/engine/__tests__/Paper26Table2NLRecall.test.ts src/engine/__tests__/Paper26Benchmark.test.ts --reporter=verbose",
+    "exitCode": 0,
+    "durationMs": 4942,
+    "tables": {
+      "holographLookup": [
+        {
+          "provider": "StructuralEmbeddingProvider",
+          "files": 50,
+          "symbols": 200,
+          "events": 10,
+          "holoGraphQueryUs": 0.95,
+          "embeddingQueryUs": 302.3,
+          "holoGraphRecall": 1,
+          "embeddingRecallAt10": 0.125,
+          "speedupRatio": 318.2
+        },
+        {
+          "provider": "StructuralEmbeddingProvider",
+          "files": 500,
+          "symbols": 2000,
+          "events": 50,
+          "holoGraphQueryUs": 4.145,
+          "embeddingQueryUs": 2365.1,
+          "holoGraphRecall": 1,
+          "embeddingRecallAt10": 0.025,
+          "speedupRatio": 570.6
+        },
+        {
+          "provider": "StructuralEmbeddingProvider",
+          "files": 2000,
+          "symbols": 8000,
+          "events": 100,
+          "holoGraphQueryUs": 7.96,
+          "embeddingQueryUs": 12416.8,
+          "holoGraphRecall": 1,
+          "embeddingRecallAt10": 0.025,
+          "speedupRatio": 1559.9
+        },
+        {
+          "provider": "Xenova/all-MiniLM-L6-v2",
+          "files": 50,
+          "symbols": 200,
+          "events": 10,
+          "holoGraphQueryUs": 1.65,
+          "embeddingQueryUs": 3880.8,
+          "holoGraphRecall": 1,
+          "embeddingRecallAt10": 0.125,
+          "speedupRatio": 2352
+        }
+      ],
+      "holoembedRecall": [
+        {
+          "provider": "structural",
+          "recallAt10": 0,
+          "notes": "topology only, no name encoding"
+        },
+        {
+          "provider": "holoembed",
+          "recallAt10": 0.9,
+          "notes": "structural + char-trigram subwords"
+        }
+      ]
+    },
+    "outputDigest": "fnv1a32:d7267a9d",
+    "outputTail": "\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 100% (2/2 batches, 200 symbols)\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 5% (1/20 batches, 100 symbols)\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 25% (5/20 batches, 500 symbols)\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 50% (10/20 batches, 1000 symbols)\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 75% (15/20 batches, 1500 symbols)\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 100% (20/20 batches, 2000 symbols)\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 1% (1/80 batches, 100 symbols)\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 6% (5/80 batches, 500 symbols) ETA: 0m 1s\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 13% (10/80 batches, 1000 symbols) ETA: 0m 1s\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 19% (15/80 batches, 1500 symbols) ETA: 0m 1s\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 25% (20/80 batches, 2000 symbols) ETA: 0m 1s\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 31% (25/80 batches, 2500 symbols) ETA: 0m 1s\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 38% (30/80 batches, 3000 symbols)\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 44% (35/80 batches, 3500 symbols)\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 50% (40/80 batches, 4000 symbols)\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 56% (45/80 batches, 4500 symbols)\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 63% (50/80 batches, 5000 symbols)\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 69% (55/80 batches, 5500 symbols)\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 75% (60/80 batches, 6000 symbols)\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 81% (65/80 batches, 6500 symbols)\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 88% (70/80 batches, 7000 symbols)\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 94% (75/80 batches, 7500 symbols)\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D) > Paper 26 Table 1: HoloGraph is faster and more accurate than embedding search\n[EmbeddingIndex] 100% (80/80 batches, 8000 symbols)\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26 Ablation: Xenova semantic baseline vs HoloGraph > Xenova O(N·D) latency > HoloGraph O(1) latency regardless of embedding quality (latency ablation)\ndtype not specified for \"model\". Using the default dtype (fp32) for this device (cpu).\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26 Ablation: Xenova semantic baseline vs HoloGraph > Xenova O(N·D) latency > HoloGraph O(1) latency regardless of embedding quality (latency ablation)\n[EmbeddingIndex] 50% (1/2 batches, 100 symbols) ETA: 0m 1s\n\nstderr | src/engine/__tests__/Paper26Benchmark.test.ts > Paper 26 Ablation: Xenova semantic baseline vs HoloGraph > Xenova O(N·D) latency > HoloGraph O(1) latency regardless of embedding quality (latency ablation)\n[EmbeddingIndex] 100% (2/2 batches, 200 symbols)\n\n"
+  },
+  "coordination": {
+    "mode": "live-holomesh",
+    "protocol": "GET /api/holomesh/team/:teamId/board",
+    "apiBase": "https://mcp.holoscript.net/api/holomesh",
+    "teamId": "team_1777834718247_unr35n",
+    "iterations": 8,
+    "concurrency": 6,
+    "sequential": {
+      "requested": 8,
+      "ok": 8,
+      "minMs": 49.842,
+      "p50Ms": 53.159,
+      "p95Ms": 222.387,
+      "maxMs": 222.387,
+      "meanMs": 83.063,
+      "throughputRps": 12.039
+    },
+    "burst": {
+      "requests": 6,
+      "ok": 6,
+      "wallMs": 303.946,
+      "throughputRps": 19.74,
+      "p50Ms": 208.255,
+      "p95Ms": 302.379
+    },
+    "sample": {
+      "totalTasks": 8,
+      "open": 1,
+      "claimed": 4,
+      "blocked": 3
+    },
+    "errors": [],
+    "gate": {
+      "pass": true,
+      "successRate": 1,
+      "burstSuccessRate": 1,
+      "p95Ms": 222.387
+    }
+  },
+  "tables": {
+    "7.3_holograph_lookup": [
+      {
+        "provider": "StructuralEmbeddingProvider",
+        "files": 50,
+        "symbols": 200,
+        "events": 10,
+        "holoGraphQueryUs": 0.95,
+        "embeddingQueryUs": 302.3,
+        "holoGraphRecall": 1,
+        "embeddingRecallAt10": 0.125,
+        "speedupRatio": 318.2
+      },
+      {
+        "provider": "StructuralEmbeddingProvider",
+        "files": 500,
+        "symbols": 2000,
+        "events": 50,
+        "holoGraphQueryUs": 4.145,
+        "embeddingQueryUs": 2365.1,
+        "holoGraphRecall": 1,
+        "embeddingRecallAt10": 0.025,
+        "speedupRatio": 570.6
+      },
+      {
+        "provider": "StructuralEmbeddingProvider",
+        "files": 2000,
+        "symbols": 8000,
+        "events": 100,
+        "holoGraphQueryUs": 7.96,
+        "embeddingQueryUs": 12416.8,
+        "holoGraphRecall": 1,
+        "embeddingRecallAt10": 0.025,
+        "speedupRatio": 1559.9
+      },
+      {
+        "provider": "Xenova/all-MiniLM-L6-v2",
+        "files": 50,
+        "symbols": 200,
+        "events": 10,
+        "holoGraphQueryUs": 1.65,
+        "embeddingQueryUs": 3880.8,
+        "holoGraphRecall": 1,
+        "embeddingRecallAt10": 0.125,
+        "speedupRatio": 2352
+      }
+    ],
+    "7.4_holoembed_recall": [
+      {
+        "provider": "structural",
+        "recallAt10": 0,
+        "notes": "topology only, no name encoding"
+      },
+      {
+        "provider": "holoembed",
+        "recallAt10": 0.9,
+        "notes": "structural + char-trigram subwords"
+      }
+    ],
+    "7.5_holomesh_coordination": {
+      "mode": "live-holomesh",
+      "sequentialP50Ms": 53.159,
+      "sequentialP95Ms": 222.387,
+      "sequentialThroughputRps": 12.039,
+      "burstThroughputRps": 19.74,
+      "successRate": 1
+    }
+  }
+}

@@ -5,8 +5,10 @@
 %   Paper26Benchmark.test.ts       -- Table 1 (event-chain lookup)
 %   Paper26Table2NLRecall.test.ts  -- Table 2 (NL→code recall)
 %   RealCorpusBenchmark.test.ts    -- Table 3 (real corpus generalization)
+%   run-paper26-section7-harness   -- Table 4 (HoloMesh coordination)
 %
-% To regenerate: pnpm --filter absorb-service test -- --reporter=verbose 2>&1 | grep "^%"
+% To regenerate:
+%   pnpm run bench:paper26:section7
 
 \section{Evaluation}
 \label{sec:evaluation}
@@ -195,12 +197,36 @@ This confirms that HoloGraph generalizes beyond synthetic fixtures without
 code changes.
 
 % ─────────────────────────────────────────────────────────────────────────────
-\subsection{Pending: Simulation Track (M1--M4)}
-\label{sec:eval-simulation-pending}
+\subsection{HoloMesh Multi-Agent Coordination}
+\label{sec:eval-holomesh-coordination}
 % ─────────────────────────────────────────────────────────────────────────────
 
-The sovereign JEPA evaluation (1,500--3,000 episodes, 2--3 robot morphologies,
-multi-physics coupling) is measured separately and will appear in the final
-version of this section. The code intelligence evaluation above (Sections
-\ref{sec:eval-holograph}--\ref{sec:eval-real-corpus}) is complete and
-independently reproducible via \texttt{pnpm~test}.
+\paragraph{Setup.}
+The Section~7 harness joins the existing HoloGraph and HoloEmbed tests with a
+read-only HoloMesh team-protocol probe. The coordination leg measures the live
+team board endpoint used by room agents:
+\texttt{GET /api/holomesh/team/:teamId/board}. This avoids adding synthetic
+messages to the team feed while still measuring the coordination path that
+agents use for claim, review, and completion context.
+
+\paragraph{Results -- Table~\ref{tab:holomesh-coordination}.}
+
+\begin{table}[h]
+\centering
+\caption{HoloMesh team-protocol coordination latency and throughput. The
+sequential path performs 8 authenticated board reads; the burst path performs
+6 concurrent board reads. Both paths succeeded on the live Railway deployment.}
+\label{tab:holomesh-coordination}
+\begin{tabular}{lrrrrr}
+\toprule
+Mode & p50 ms & p95 ms & seq req/s & burst req/s & success \\
+\midrule
+live-holomesh & 53.159 & 222.387 & 12.039 & 19.740 & 100.0\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The full evidence artifact is
+\texttt{research/paper-26-artifacts/section7-harness-2026-05-21.json}; the
+human-readable table extract is
+\texttt{research/paper-26-artifacts/section7-harness-2026-05-21.md}.
