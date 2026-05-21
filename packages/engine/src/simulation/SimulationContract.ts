@@ -894,6 +894,58 @@ export function validateMeshSanity(
     });
   }
 
+  // SEC-03 extension: call the semantic physics layer (Jacobian sign etc.)
+  const physicsViolations = checkJacobianSign(vertices, elements, inferElementType({} as any, vertices, elements));
+  out.push(...physicsViolations);
+
+  return out;
+}
+
+/**
+ * SEC-03 / Paper #4 semantic physics sanity beyond geometry hash.
+ * Catches hash-identical meshes that are physically invalid (inverted elements, bad Jacobian).
+ * Called from validateMeshSanity as the optional stage.
+ */
+export function checkJacobianSign(
+  vertices: Float64Array | Float32Array | undefined,
+  elements: Uint32Array | undefined,
+  elementType: 'tet4' | 'tri3' | 'unknown' = 'unknown'
+): ContractViolation[] {
+  if (!vertices || !elements) return [];
+  const out: ContractViolation[] = [];
+  if (elementType === 'unknown') return out;
+
+  const n = Math.floor(vertices.length / 3);
+  const stride = elementType === 'tet4' ? 4 : 3;
+
+  for (let e = 0; e + stride <= elements.length; e += stride) {
+    const i0 = elements[e];
+    const i1 = elements[e + 1];
+    const i2 = elements[e + 2];
+    if (i0 >= n || i1 >= n || i2 >= n) continue;
+
+    // For tri3/tet4 first three nodes give two edges; for tet we use the fourth for volume sign
+    const x0 = vertices[i0 * 3], y0 = vertices[i0 * 3 + 1], z0 = vertices[i0 * 3 + 2];
+    const dx1 = vertices[i1 * 3] - x0, dy1 = vertices[i1 * 3 + 1] - y0, dz1 = vertices[i1 * 3 + 2] - z0;
+    const dx2 = vertices[i2 * 3] - x0, dy2 = vertices[i2 * 3 + 1] - y0, dz2 = vertices[i2 * 3 + 2] - z0;
+
+    // 2D cross for tri, 3D scalar triple for tet volume sign
+    let sign = dx1 * dy2 - dy1 * dx2; // default 2D
+    if (elementType === 'tet4' && e + 3 < elements.length) {
+      const i3 = elements[e + 3];
+      if (i3 < n) {
+        const dx3 = vertices[i3 * 3] - x0, dy3 = vertices[i3 * 3 + 1] - y0, dz3 = vertices[i3 * 3 + 2] - z0;
+        sign = dx1 * (dy2 * dz3 - dz2 * dy3) - dy1 * (dx2 * dz3 - dz2 * dx3) + dz1 * (dx2 * dy3 - dy2 * dx3);
+      }
+    }
+    if (sign < 0) {
+      out.push({
+        rule: 'jacobian-sign',
+        message: `Element at offset ${e} has negative Jacobian (inverted / left-handed)`,
+        severity: 'error',
+      });
+    }
+  }
   return out;
 }
 
