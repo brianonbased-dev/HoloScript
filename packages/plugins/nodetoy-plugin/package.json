@@ -1,14 +1,17 @@
 {
   "name": "@holoscript/nodetoy-plugin",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "private": true,
-  "description": "NodeToy shader-graph bridge stub — maps NodeToy node graphs to @shader .holo material traits.",
+  "description": "NodeToy shader-graph bridge — compiles NodeToy node graphs to GLSL/WGSL @shader traits via @holoscript/core compiler.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@holoscript/core": "workspace:*"
   },
   "keywords": [
     "holoscript",
