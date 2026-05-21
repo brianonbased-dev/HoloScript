@@ -1,8 +1,8 @@
 {
   "name": "@holoscript/structural-biology-plugin",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "private": true,
-  "description": "Structural-biology domain plugin: protein/ligand/chain object types + foldable/helix/sheet annotation traits + residue-level provenance hooks. Authored for paper-12 §RemainingWork item 2 (USD schema-plugin comparison).",
+  "description": "Structural-biology domain plugin: protein/ligand/chain + docking (AutoDock-GPU/Vina/GNINA) + ADMET prediction (RDKit/ADMETlab/local-ML). Bridge from AlphaFold structure to binding affinity and drug-likeness.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -16,6 +16,11 @@
     "structural-biology",
     "protein",
     "alphafold",
+    "autodock",
+    "docking",
+    "binding-affinity",
+    "admet",
+    "drug-discovery",
     "paper-12"
   ],
   "author": "brianonbased-dev",

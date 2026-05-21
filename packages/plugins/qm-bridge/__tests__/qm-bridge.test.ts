@@ -482,3 +482,220 @@ describe('QM_ACCEPTANCE_CRITERIA', () => {
     expect(QM_ACCEPTANCE_CRITERIA.gradientNormTolerance).toBeLessThan(1e-3);
   });
 });
+
+// ── PySCF Backend tests (Stage 2) ──────────────────────────────────────────────
+
+import { PySCFBackend } from '../src/backends/pyscf';
+import type { PySCFConfig } from '../src/backends/pyscf';
+
+const pyscfConfig: PySCFConfig = {
+  backend: 'pyscf',
+  method: 'pbe',
+  basis: 'sto-3g',
+  pythonPath: '__mock__',
+  kMesh: [4, 4, 4],
+  pseudo: 'gth-pade',
+  ecutwfc: 100,
+};
+
+const srtio3Crystal = {
+  atoms: [
+    { symbol: 'Sr', fx: 0, fy: 0, fz: 0 },
+    { symbol: 'Ti', fx: 0.5, fy: 0.5, fz: 0.5 },
+    { symbol: 'O', fx: 0.5, fy: 0.5, fz: 0 },
+    { symbol: 'O', fx: 0.5, fy: 0, fz: 0.5 },
+    { symbol: 'O', fx: 0, fy: 0.5, fz: 0.5 },
+  ],
+  latticeVectors: [[3.905, 0, 0], [0, 3.905, 0], [0, 0, 3.905]] as Array<[number, number, number]>,
+};
+
+const siliconCrystal = {
+  atoms: [
+    { symbol: 'Si', fx: 0, fy: 0, fz: 0 },
+    { symbol: 'Si', fx: 0.25, fy: 0.25, fz: 0.25 },
+  ],
+  latticeVectors: [[5.43, 0, 0], [0, 5.43, 0], [0, 0, 5.43]] as Array<[number, number, number]>,
+};
+
+describe('PySCFBackend', () => {
+  it('creates a PySCF backend via factory', () => {
+    const solver = createQmSolver(pyscfConfig);
+    expect(solver.backend).toBe('pyscf');
+    expect(solver.scale).toBe('quantum');
+    expect(solver.mode).toBe('steady-state');
+  });
+
+  it('supports molecular capability', () => {
+    expect(QM_BACKEND_CAPABILITIES.pyscf.molecular).toBe(true);
+  });
+
+  it('supports periodic capability', () => {
+    expect(QM_BACKEND_CAPABILITIES.pyscf.periodic).toBe(true);
+  });
+
+  it('supports post-HF and TD-DFT', () => {
+    expect(QM_BACKEND_CAPABILITIES.pyscf.postHf).toBe(true);
+    expect(QM_BACKEND_CAPABILITIES.pyscf.tdDft).toBe(true);
+  });
+
+  it('does not support semi-empirical or NMR', () => {
+    expect(QM_BACKEND_CAPABILITIES.pyscf.semiEmpirical).toBe(false);
+    expect(QM_BACKEND_CAPABILITIES.pyscf.nmrGiao).toBe(false);
+  });
+
+  it('computes molecular energy', async () => {
+    const solver = new PySCFBackend(pyscfConfig);
+    const result = await solver.computeEnergy(waterMolecule);
+    expect(result.converged).toBe(true);
+    expect(result.totalEnergy).toBeLessThan(0);
+    expect(result.solverConfig.backend).toBe('pyscf');
+    expect(result.wallTimeSeconds).toBeGreaterThanOrEqual(0);
+    solver.dispose();
+  });
+
+  it('computes band structure for SrTiO3', async () => {
+    const solver = new PySCFBackend(pyscfConfig);
+    const result = await solver.computeBandStructure(srtio3Crystal);
+    expect(result.bandGap).toBeGreaterThan(0);
+    expect(result.fermiEnergy).toBeDefined();
+    expect(result.isMetallic).toBe(false);
+    solver.dispose();
+  });
+
+  it('computes DFT materials properties', async () => {
+    const solver = new PySCFBackend(pyscfConfig);
+    const result = await solver.computeDftMaterials(srtio3Crystal);
+    expect(result.energy).toBeDefined();
+    expect(result.bandStructure).toBeDefined();
+    expect(result.bandStructure.bandGap).toBeGreaterThan(0);
+    solver.dispose();
+  });
+
+  it('computes phonon frequencies', async () => {
+    const solver = new PySCFBackend(pyscfConfig);
+    const result = await solver.computePhonons!(srtio3Crystal);
+    expect(result.frequencies).toBeDefined();
+    expect(result.frequencies.length).toBeGreaterThan(0);
+    expect(result.zeroPointEnergy).toBeGreaterThan(0);
+    expect(result.numDisplacements).toBeGreaterThan(0);
+    solver.dispose();
+  });
+
+  it('computes density of states', async () => {
+    const solver = new PySCFBackend(pyscfConfig);
+    const result = await solver.computeDensityOfStates!(srtio3Crystal);
+    expect(result.energies).toBeDefined();
+    expect(result.totalDos).toBeDefined();
+    expect(result.energies.length).toBe(result.totalDos.length);
+    expect(result.energies.length).toBeGreaterThan(0);
+    expect(result.fermiEnergy).toBeDefined();
+    solver.dispose();
+  });
+
+  it('exports PBC Hamiltonian', async () => {
+    const solver = new PySCFBackend(pyscfConfig);
+    const result = await solver.computePyscfHamiltonian!(siliconCrystal);
+    expect(result.numQubits).toBeGreaterThan(0);
+    expect(result.numTerms).toBeGreaterThan(0);
+    expect(result.numKpoints).toBeGreaterThan(0);
+    expect(result.computedLocally).toBeDefined();
+    solver.dispose();
+  });
+
+  it('throws for unsupported capabilities', async () => {
+    const solver = new PySCFBackend(pyscfConfig);
+    await expect(solver.computeNmrSpectrum()).rejects.toThrow(/not a primary target/i);
+    await expect(solver.computeSemiEmpiricalEnergy()).rejects.toThrow(/semi-empirical/i);
+    await expect(solver.computeQmMm()).rejects.toThrow(/not yet implemented/i);
+    solver.dispose();
+  });
+
+  it('implements SimSolver interface', () => {
+    const solver = new PySCFBackend(pyscfConfig);
+    expect(solver.mode).toBe('steady-state');
+    expect(solver.fieldNames).toContain('total_energy');
+    expect(typeof solver.step).toBe('function');
+    expect(typeof solver.solve).toBe('function');
+    expect(typeof solver.getField).toBe('function');
+    expect(typeof solver.getStats).toBe('function');
+    expect(typeof solver.dispose).toBe('function');
+    solver.dispose();
+  });
+
+  it('dispose clears internal state', async () => {
+    const solver = new PySCFBackend(pyscfConfig);
+    await solver.computeEnergy(waterMolecule);
+    const energy = solver.getField('total_energy');
+    expect(energy).not.toBeNull();
+
+    solver.dispose();
+    expect(solver.getField('total_energy')).toBeNull();
+  });
+});
+
+// ── Backend routing with PySCF ──────────────────────────────────────────────────
+
+describe('selectQmBackend with PySCF', () => {
+  it('routes PBC/phonon queries to PySCF', () => {
+    expect(selectQmBackend('phonon frequencies of silicon')).toBe('pyscf');
+    expect(selectQmBackend('pyscf calculation')).toBe('pyscf');
+    expect(selectQmBackend('periodic boundary conditions')).toBe('pyscf');
+  });
+
+  it('routes hamiltonian export to PySCF', () => {
+    expect(selectQmBackend('qubit hamiltonian for this crystal')).toBe('pyscf');
+    expect(selectQmBackend('openfermion export')).toBe('pyscf');
+    expect(selectQmBackend('materials hamiltonian')).toBe('pyscf');
+  });
+
+  it('returns correct defaults for PySCF', () => {
+    const molecular = getDefaultQmConfig('pyscf', 'optimize this molecule');
+    expect(molecular.method).toBe('b3lyp');
+    expect(molecular.basis).toBe('6-31g*');
+
+    const periodic = getDefaultQmConfig('pyscf', 'phonon frequencies');
+    expect(periodic.method).toBe('pbe');
+
+    const hamiltonian = getDefaultQmConfig('pyscf', 'qubit hamiltonian');
+    expect(hamiltonian.method).toBe('pbe');
+  });
+});
+
+// ── PySCF CAEL integration ────────────────────────────────────────────────────
+
+describe('PySCF CAEL mapping', () => {
+  it('maps PySCF config to CAEL format', () => {
+    const config: QmSolverConfig = {
+      backend: 'pyscf',
+      method: 'pbe',
+      basis: 'sto-3g',
+      convergenceThreshold: 1e-8,
+      maxScfIterations: 200,
+    };
+    const cael = qmConfigToCael(config);
+    expect(cael.backend).toBe('pyscf');
+    expect(cael.method).toBe('pbe');
+    expect(cael.solverType).toBe('qm-pyscf');
+    expect(cael.scale).toBe('quantum');
+  });
+
+  it('maps PySCF energy result to CAEL summary', () => {
+    const summary = qmResultToCaelSummary(
+      {
+        converged: true,
+        totalEnergy: -340.5,
+        scfIterations: 12,
+        wallTimeSeconds: 5.0,
+        solverConfig: {
+          backend: 'pyscf',
+          method: 'pbe',
+          basis: 'sto-3g',
+        },
+      },
+      5, // SrTiO3 = 5 atoms
+    );
+    expect(summary.backend).toBe('pyscf');
+    expect(summary.total_energy_hartree).toBe(-340.5);
+    expect(summary.num_atoms).toBe(5);
+  });
+});

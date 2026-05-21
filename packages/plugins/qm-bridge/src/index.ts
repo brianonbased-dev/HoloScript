@@ -54,6 +54,9 @@ export type {
   QmBandStructureResult,
   QmNmrResult,
   QmTransitionStateResult,
+  QmPhononResult,
+  QmDensityOfStatesResult,
+  QmPyscfHamiltonianResult,
   QmBackendCapabilities,
   VQEResult,
   QAOAResult,
@@ -92,6 +95,9 @@ export type { TBLiteConfig } from './backends/tblite';
 export { IBMQuantumBackend } from './backends/ibm-quantum';
 export type { IBMQuantumConfig } from './backends/ibm-quantum';
 
+export { PySCFBackend } from './backends/pyscf';
+export type { PySCFConfig } from './backends/pyscf';
+
 // ── Factory ────────────────────────────────────────────────────────────────────
 
 import type { QmBackend, QmSolverConfig } from './QmSolver';
@@ -99,10 +105,12 @@ import type { Psi4Config } from './backends/psi4';
 import type { QuantumEspressoConfig } from './backends/quantum-espresso';
 import type { TBLiteConfig } from './backends/tblite';
 import type { IBMQuantumConfig } from './backends/ibm-quantum';
+import type { PySCFConfig } from './backends/pyscf';
 import { Psi4Backend } from './backends/psi4';
 import { QuantumEspressoBackend } from './backends/quantum-espresso';
 import { TBLiteBackend } from './backends/tblite';
 import { IBMQuantumBackend } from './backends/ibm-quantum';
+import { PySCFBackend } from './backends/pyscf';
 import type { QmSolver } from './QmSolver';
 
 /**
@@ -144,10 +152,12 @@ export function createQmSolver(config: QmSolverConfig): QmSolver {
       return new TBLiteBackend(config as TBLiteConfig);
     case 'ibm-quantum':
       return new IBMQuantumBackend(config as IBMQuantumConfig);
+    case 'pyscf':
+      return new PySCFBackend(config as PySCFConfig);
     default:
       throw new Error(
         `[qm-bridge] Unknown backend: '${config.backend}'. ` +
-        `Supported: psi4, quantum-espresso, tblite, ibm-quantum`,
+        `Supported: psi4, quantum-espresso, tblite, ibm-quantum, pyscf`,
       );
   }
 }
@@ -182,7 +192,24 @@ export function selectQmBackend(questionType: string): QmBackend {
     return 'ibm-quantum';
   }
 
-  // Periodic / materials questions
+  // PySCF-specific questions: PBC, phonon, DOS, hamiltonian export
+  // Must come BEFORE generic QE routing because "qubit hamiltonian crystal"
+  // contains "crystal" but should route to PySCF (OpenFermion bridge).
+  if (
+    q.includes('pyscf') ||
+    q.includes('pbc') ||
+    q.includes('periodic boundary') ||
+    q.includes('phonon') ||
+    q.includes('density of states') ||
+    q.includes('dos ') ||
+    q.includes('qubit hamiltonian') ||
+    q.includes('openfermion') ||
+    q.includes('materials hamiltonian')
+  ) {
+    return 'pyscf';
+  }
+
+  // Periodic / materials questions (generic — routes to QE unless PySCF-specific)
   if (
     q.includes('bandgap') ||
     q.includes('band gap') ||
@@ -254,6 +281,20 @@ export function getDefaultQmConfig(
     }
     case 'ibm-quantum': {
       return { backend: 'ibm-quantum', method: 'vqe', basis: 'sto-3g' };
+    }
+    case 'pyscf': {
+      // PBC / materials questions default to PBE/sto-3g
+      if (q.includes('phonon') || q.includes('dos') || q.includes('density of states')) {
+        return { backend: 'pyscf', method: 'pbe', basis: 'sto-3g' } as QmSolverConfig;
+      }
+      if (q.includes('hamiltonian') || q.includes('openfermion') || q.includes('qubit')) {
+        return { backend: 'pyscf', method: 'pbe', basis: 'sto-3g' } as QmSolverConfig;
+      }
+      // Default PySCF: PBE/sto-3g for periodic, B3LYP/6-31g* for molecular
+      if (q.includes('periodic') || q.includes('crystal') || q.includes('pbc')) {
+        return { backend: 'pyscf', method: 'pbe', basis: 'sto-3g' } as QmSolverConfig;
+      }
+      return { backend: 'pyscf', method: 'b3lyp', basis: '6-31g*' };
     }
     default:
       return { backend, method: 'dft', basis: '6-31g*' };

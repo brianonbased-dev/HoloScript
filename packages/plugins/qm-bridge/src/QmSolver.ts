@@ -54,7 +54,7 @@ export type QmBasis =
   | 'minimal';      // For semi-empirical (TBLite)
 
 /** QM backend identifiers. */
-export type QmBackend = 'psi4' | 'quantum-espresso' | 'tblite' | 'ibm-quantum';
+export type QmBackend = 'psi4' | 'quantum-espresso' | 'tblite' | 'ibm-quantum' | 'pyscf';
 
 /** Molecular system representation. */
 export interface MoleculeSpec {
@@ -240,6 +240,68 @@ export interface QmTransitionStateResult {
   wallTimeSeconds: number;
 }
 
+/** Result from a phonon calculation (PySCF PBC + finite displacement). */
+export interface QmPhononResult {
+  /** Phonon frequencies in cm^-1. Shape: [n_modes]. */
+  frequencies: number[];
+  /** Phonon eigenvectors (displacement patterns). Shape: [n_modes][n_atoms][3]. */
+  eigenvectors?: number[][][];
+  /** Zero-point energy in Hartree. */
+  zeroPointEnergy: number;
+  /** Free energy correction at 298.15 K in Hartree. */
+  freeEnergyCorrection?: number;
+  /** Whether the phonon calculation converged. */
+  converged: boolean;
+  /** Number of displacements computed. */
+  numDisplacements: number;
+  /** Solver config that produced this result. */
+  solverConfig: QmSolverConfig;
+  /** Wall time in seconds. */
+  wallTimeSeconds: number;
+}
+
+/** Result from a density-of-states calculation (PySCF PBC). */
+export interface QmDensityOfStatesResult {
+  /** Energy values in eV. */
+  energies: number[];
+  /** Total DOS at each energy in states/eV. */
+  totalDos: number[];
+  /** Projected DOS per atom type in states/eV. */
+  projectedDos?: Record<string, number[]>;
+  /** Fermi energy in eV. */
+  fermiEnergy: number;
+  /** Integration range [min, max] in eV. */
+  energyRange: [number, number];
+  /** Number of energy points sampled. */
+  numPoints: number;
+  /** Solver config that produced this result. */
+  solverConfig: QmSolverConfig;
+  /** Wall time in seconds. */
+  wallTimeSeconds: number;
+}
+
+/** Result from a PySCF PBC Hamiltonian export (Stage 2 bridge). */
+export interface QmPyscfHamiltonianResult {
+  /** Number of qubits after Jordan-Wigner mapping. */
+  numQubits: number;
+  /** Number of terms in the qubit Hamiltonian. */
+  numTerms: number;
+  /** Number of k-points used in the PBC calculation. */
+  numKpoints: number;
+  /** Whether the PySCF SCF converged. */
+  scfConverged: boolean;
+  /** Total PBC energy in Hartree. */
+  totalEnergy: number;
+  /** OpenFermion QubitOperator representation (serialized string). */
+  hamiltonianOperator?: string;
+  /** Whether this was a mock/result from local computation. */
+  computedLocally: boolean;
+  /** Solver config that produced this result. */
+  solverConfig: QmSolverConfig;
+  /** Wall time in seconds. */
+  wallTimeSeconds: number;
+}
+
 // ── QmSolver Interface ────────────────────────────────────────────────────────
 
 /**
@@ -362,6 +424,28 @@ export interface QmSolver extends SimSolver {
    * Optional: only IBM Quantum backend implements this.
    */
   runQAOA?(weightMatrix: number[][], circuitDepthP?: number): Promise<QAOAResult>;
+
+  /**
+   * Compute phonon frequencies via finite displacement (PySCF PBC + force constants).
+   * "What are the phonon modes of this crystal?"
+   * (PySCF PBC only; throws for molecular backends.)
+   */
+  computePhonons?(crystal: CrystalSpec): Promise<QmPhononResult>;
+
+  /**
+   * Compute density of states (DOS) for a periodic system.
+   * "What is the DOS of this material?"
+   * (PySCF PBC only; throws for molecular backends.)
+   */
+  computeDensityOfStates?(crystal: CrystalSpec): Promise<QmDensityOfStatesResult>;
+
+  /**
+   * Export a PBC Hamiltonian via PySCF -> OpenFermion qubit operator.
+   * Stage 2 bridge: materials-science Hamiltonians for VQE verification.
+   * "Build the qubit Hamiltonian for this crystal cell."
+   * (PySCF only; throws for other backends.)
+   */
+  computePyscfHamiltonian?(crystal: CrystalSpec): Promise<QmPyscfHamiltonianResult>;
 }
 
 // ── IBM Quantum result types ───────────────────────────────────────────────────
@@ -481,6 +565,17 @@ export const QM_BACKEND_CAPABILITIES: Record<QmBackend, QmBackendCapabilities> =
     transitionStates: false,
     qmMm: false,
     maxAtoms: 12,              // ~4 qubits/atom with sto-3g; 50-qubit horizon
+  },
+  pyscf: {
+    molecular: true,           // PySCF molecular SCF/post-HF
+    periodic: true,            // PySCF PBC module for crystals
+    semiEmpirical: false,
+    nmrGiao: false,            // Not a primary target
+    tdDft: true,               // PySCF TD-DFT
+    postHf: true,              // CCSD, MP2 via PySCF
+    transitionStates: true,    // TS optimisation via PySCF
+    qmMm: false,               // Stage 3
+    maxAtoms: 200,
   },
 };
 
