@@ -20,6 +20,8 @@ import {
   matchesPlatformConstraint,
   createPlatformTarget,
 } from '../PlatformConditionalCompilerMixin';
+import { BabylonCompiler } from '../BabylonCompiler';
+import { createTestCompilerToken } from '../CompilerBase';
 
 // =============================================================================
 // HELPERS
@@ -603,5 +605,44 @@ describe('createPlatformTarget', () => {
     const target = createPlatformTarget('androidxr');
     expect(target.platform).toBe('android-xr');
     expect(target.formFactor).toBe('vr');
+  });
+});
+
+// =============================================================================
+// END-TO-END COMPILER EMISSION TESTS
+// =============================================================================
+
+describe('End-to-end @platform() emission through real compilers', () => {
+  it('BabylonCompiler with quest3 target emits only quest3 blocks', () => {
+    const composition = parseTolerant(`
+      composition "MultiPlatformScene" {
+        @platform(quest3) object "VRPanel" {
+          width: 100
+        }
+        @platform(ios) object "PhoneUI" {
+          width: 200
+        }
+        object "SharedWidget" {
+          universal: true
+        }
+      }
+    `);
+
+    const quest3Compiler = new BabylonCompiler({ platformTarget: 'quest3' });
+    const iosCompiler = new BabylonCompiler({ platformTarget: 'ios' });
+
+    const token = createTestCompilerToken();
+    const quest3Code = quest3Compiler.compile(composition, token);
+    const iosCode = iosCompiler.compile(composition, token);
+
+    // quest3 build should contain VRPanel and SharedWidget, but not PhoneUI
+    expect(quest3Code).toContain('VRPanel');
+    expect(quest3Code).toContain('SharedWidget');
+    expect(quest3Code).not.toContain('PhoneUI');
+
+    // ios build should contain PhoneUI and SharedWidget, but not VRPanel
+    expect(iosCode).toContain('PhoneUI');
+    expect(iosCode).toContain('SharedWidget');
+    expect(iosCode).not.toContain('VRPanel');
   });
 });

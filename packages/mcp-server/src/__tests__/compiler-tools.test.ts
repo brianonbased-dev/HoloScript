@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { handleCompilerTool } from '../compiler-tools';
+import { compilerTools, handleCompilerTool } from '../compiler-tools';
 
 const robotComposition = `composition "Robot" {
   object "base_link" {
@@ -23,6 +23,50 @@ function firstTextContent(result: unknown): TextContent {
 }
 
 describe('compiler tools', () => {
+  it('publishes convenience tools for every listed export target', async () => {
+    const result = (await handleCompilerTool('list_export_targets', {})) as {
+      targets?: string[];
+    };
+    const toolNames = new Set(compilerTools.map((tool) => tool.name));
+    const targetToolName = (target: string): string => {
+      if (target === 'android-xr') return 'compile_to_android_xr';
+      if (target === 'multi-layer') return 'compile_to_multi_layer';
+      if (target === '3dgs') return 'compile_to_3dgs';
+      return `compile_to_${target}`;
+    };
+
+    expect(Array.isArray(result.targets)).toBe(true);
+    const missing = result.targets
+      ?.map((target) => targetToolName(target))
+      .filter((toolName) => !toolNames.has(toolName));
+
+    expect(missing).toEqual([]);
+
+    for (const target of result.targets ?? []) {
+      const toolName = targetToolName(target);
+      try {
+        const dispatchResult = await handleCompilerTool(toolName, {});
+        expect(dispatchResult).not.toBeNull();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        expect(message).not.toMatch(/^Unknown tool:/);
+      }
+    }
+  });
+
+  it('compiles USD through its convenience tool', async () => {
+    const result = (await handleCompilerTool('compile_to_usd', {
+      code: robotComposition,
+    })) as {
+      success?: boolean;
+      output?: string;
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.output).toContain('#usda');
+    expect(result.output).toContain('base_link');
+  });
+
   it('returns a non-empty ROS 2 deployment bundle', async () => {
     const result = await handleCompilerTool('compile_to_ros2_deploy', {
       code: robotComposition,
