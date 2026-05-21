@@ -279,6 +279,24 @@ export const avatarIntentHandler: TraitHandler<AvatarIntentConfig> = {
         params: {},
       });
     }
+
+    // PSF-3 WIRE (D.040) — live Pillar-Slice from real avatar intent state (replaces skeleton).
+    // intent_clarity from resolved confidence; multi_modal_fusion from active device count (fusion signal).
+    // Feeds the Pillar-Slice runtime primitive for training and dispatch.
+    const clarity = state.lastResolved ? state.lastResolved.confidence : 0.5;
+    const fusion = Math.min(1, Math.max(0.2, (state.activeDevices.size || 1) / 3));
+    context.emit?.('pillar:slice', {
+      slice: {
+        axis_1_id: 'intent_clarity',
+        axis_2_id: 'multi_modal_fusion',
+        pos_1: clarity,
+        pos_2: fusion,
+        pillar_id: 'avatar_intent',
+        pillar_domain: 'agent' as const,
+      },
+      agent_id: (context as any).agentId ?? 'local',
+      sim_step: Date.now(),
+    });
   },
 
   onEvent(node, config, context, event) {
