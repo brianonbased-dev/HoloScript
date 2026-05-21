@@ -14,6 +14,9 @@ import type {
   ExternalSymbolDefinition,
   ImportEdge,
   CallEdge,
+  EmitSite,
+  ListenSite,
+  EventEdge,
   SupportedLanguage,
 } from './types';
 import { CommunityDetector } from './CommunityDetector';
@@ -27,6 +30,8 @@ export interface CodebaseGraphStats {
   totalSymbols: number;
   totalImports: number;
   totalCalls: number;
+  /** Number of resolved EventEdges (HoloGraph Phase 1) */
+  totalEventEdges: number;
   totalLoc: number;
   filesByLanguage: Record<string, number>;
   symbolsByType: Record<string, number>;
@@ -102,6 +107,12 @@ export class CodebaseGraph {
   private imports: ImportEdge[] = [];
   private calls: CallEdge[] = [];
 
+  // HoloGraph: event sites collected during addFile(), resolved in buildEventEdges()
+  private allEmitSites: EmitSite[] = [];
+  private allListenSites: ListenSite[] = [];
+  /** Resolved EventEdges: built by buildEventEdges() after all files are loaded */
+  private eventEdges: EventEdge[] = [];
+
   // Indexes
   private symbolsByFile: Map<string, string[]> = new Map();
   private symbolsByName: Map<string, string[]> = new Map();
@@ -109,6 +120,10 @@ export class CodebaseGraph {
   private importedByFile: Map<string, Set<string>> = new Map();
   private callerIndex: Map<string, CallEdge[]> = new Map(); // calleeName -> edges
   private calleeIndex: Map<string, CallEdge[]> = new Map(); // callerId -> edges
+  /** eventName → edges where that event is emitted (HoloGraph) */
+  private eventEmitIndex: Map<string, EventEdge[]> = new Map();
+  /** eventName → edges where that event is listened to (HoloGraph) */
+  private eventListenIndex: Map<string, EventEdge[]> = new Map();
 
   /** 3D Node positions for spatial persistence (makeObjectId(sym) -> [x,y,z]) */
   public nodePositions: Map<string, [number, number, number]> = new Map();
@@ -146,6 +161,10 @@ export class CodebaseGraph {
     // Collect edges
     this.imports.push(...file.imports);
     this.calls.push(...file.calls);
+
+    // HoloGraph: collect event sites for later cross-file resolution
+    if (file.emitSites)  this.allEmitSites.push(...file.emitSites);
+    if (file.listenSites) this.allListenSites.push(...file.listenSites);
   }
 
   /**
@@ -203,6 +222,69 @@ export class CodebaseGraph {
         this.callerIndex.set(key, []);
       }
       this.callerIndex.get(key)!.push(call);
+    }
+
+    // HoloGraph: resolve emit/listen sites into cross-file EventEdges
+    this.buildEventEdges();
+  }
+
+  /**
+   * Resolve all EmitSites and ListenSites into EventEdges by matching eventName.
+   *
+   * Cross-file resolution: for every emit site of eventName X, find all listen
+   * sites of X in any file and create an EventEdge. This is O(E·L) where E =
+   * distinct event names and L = avg listeners — typically small.
+   */
+  private buildEventEdges(): void {
+    this.eventEdges = [];
+    this.eventEmitIndex.clear();
+    this.eventListenIndex.clear();
+
+    // Group listen sites by eventName for O(1) lookup
+    const listenByEvent = new Map<string, ListenSite[]>();
+    for (const ls of this.allListenSites) {
+      if (!listenByEvent.has(ls.eventName)) listenByEvent.set(ls.eventName, []);
+      listenByEvent.get(ls.eventName)!.push(ls);
+    }
+
+    for (const es of this.allEmitSites) {
+      const listeners = listenByEvent.get(es.eventName) ?? [];
+      for (const ls of listeners) {
+        const edge: EventEdge = {
+          eventName:      es.eventName,
+          emitterFile:    es.filePath,
+          emitterSymbol:  es.callerId,
+          emitLine:       es.line,
+          listenerFile:   ls.filePath,
+          listenerSymbol: ls.callerId,
+          listenLine:     ls.line,
+        };
+        this.eventEdges.push(edge);
+
+        // Index by emitter side
+        if (!this.eventEmitIndex.has(es.eventName)) this.eventEmitIndex.set(es.eventName, []);
+        this.eventEmitIndex.get(es.eventName)!.push(edge);
+
+        // Index by listener side
+        if (!this.eventListenIndex.has(ls.eventName)) this.eventListenIndex.set(ls.eventName, []);
+        this.eventListenIndex.get(ls.eventName)!.push(edge);
+      }
+
+      // Even if no listeners yet, index the emit side for allEventNames()
+      if (listeners.length === 0 && !this.eventEmitIndex.has(es.eventName)) {
+        this.eventEmitIndex.set(es.eventName, []);
+      }
+    }
+
+    // Index listen-only events (no emitter found in scanned scope)
+    for (const [name, sites] of listenByEvent) {
+      if (!this.eventListenIndex.has(name)) {
+        this.eventListenIndex.set(name, []);
+      }
+      // Edges already added above; this ensures allEventNames() includes listen-only
+      if (!this.eventEmitIndex.has(name)) {
+        this.eventEmitIndex.set(name, []);
+      }
     }
   }
 
@@ -645,6 +727,89 @@ export class CodebaseGraph {
     return graph;
   }
 
+  // ── HoloGraph: Event-Chain Queries ──────────────────────────────────────
+
+  /**
+   * Get all EventEdges where the given event name is emitted.
+   * O(1) lookup — no embedding search required.
+   *
+   * Example: getEventEmitters('pillar:slice') → all emit sites for that event.
+   */
+  getEventEmitters(eventName: string): EventEdge[] {
+    return this.eventEmitIndex.get(eventName) ?? [];
+  }
+
+  /**
+   * Get all EventEdges where the given event name is listened to.
+   * O(1) lookup.
+   */
+  getEventListeners(eventName: string): EventEdge[] {
+    return this.eventListenIndex.get(eventName) ?? [];
+  }
+
+  /**
+   * Get the full producer→consumer chain for an event name:
+   * all emit sites and all listener registrations, plus resolved edges.
+   */
+  getEventChain(eventName: string): {
+    eventName: string;
+    emitters: EmitSite[];
+    listeners: ListenSite[];
+    edges: EventEdge[];
+  } {
+    return {
+      eventName,
+      emitters: this.allEmitSites.filter(s => s.eventName === eventName),
+      listeners: this.allListenSites.filter(s => s.eventName === eventName),
+      edges: this.eventEdges.filter(e => e.eventName === eventName),
+    };
+  }
+
+  /**
+   * All distinct event names found across the codebase (emit or listen side).
+   * Useful for: "what events does this codebase use?" queries.
+   */
+  allEventNames(): string[] {
+    const names = new Set<string>([
+      ...this.eventEmitIndex.keys(),
+      ...this.eventListenIndex.keys(),
+    ]);
+    return Array.from(names).sort();
+  }
+
+  /**
+   * All event namespaces (prefix before ':') — e.g. 'pillar', 'cortical', 'snn'.
+   */
+  allEventNamespaces(): string[] {
+    const ns = new Set<string>();
+    for (const name of this.allEventNames()) {
+      const colon = name.indexOf(':');
+      if (colon > 0) ns.add(name.slice(0, colon));
+    }
+    return Array.from(ns).sort();
+  }
+
+  /**
+   * Raw EmitSites collected across all files (pre-resolution).
+   */
+  getAllEmitSites(): EmitSite[] {
+    return this.allEmitSites;
+  }
+
+  /**
+   * Raw ListenSites collected across all files (pre-resolution).
+   */
+  getAllListenSites(): ListenSite[] {
+    return this.allListenSites;
+  }
+
+  /**
+   * All resolved EventEdges in the graph.
+   */
+  getAllEventEdges(): EventEdge[] {
+    return this.eventEdges;
+  }
+
   // ── Bulk Access ────────────────────────────────────────────────────────
 
   /**
@@ -690,6 +855,7 @@ export class CodebaseGraph {
       totalSymbols: this.symbols.size,
       totalImports: this.imports.length,
       totalCalls: this.calls.length,
+      totalEventEdges: this.eventEdges.length,
       totalLoc,
       filesByLanguage,
       symbolsByType,
@@ -709,12 +875,17 @@ export class CodebaseGraph {
     this.symbols.clear();
     this.imports = [];
     this.calls = [];
+    this.allEmitSites = [];
+    this.allListenSites = [];
+    this.eventEdges = [];
     this.symbolsByFile.clear();
     this.symbolsByName.clear();
     this.importsByFile.clear();
     this.importedByFile.clear();
     this.callerIndex.clear();
     this.calleeIndex.clear();
+    this.eventEmitIndex.clear();
+    this.eventListenIndex.clear();
     this._communities = null;
   }
 }

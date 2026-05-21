@@ -121,6 +121,65 @@ export interface CallEdge {
 }
 
 // =============================================================================
+// EVENT EDGES — HoloGraph innovation
+// =============================================================================
+
+/**
+ * A site where handler.emit('event:name', ...) is called.
+ * Extracted by the TypeScript adapter; resolved cross-file into EventEdge
+ * by CodebaseGraph.buildEventEdges().
+ */
+export interface EmitSite {
+  /** Enclosing function/method symbol ID */
+  callerId: string;
+  /** Event name literal, e.g. 'pillar:slice', 'cortical:routed', 'snn:spike' */
+  eventName: string;
+  /** Absolute file path */
+  filePath: string;
+  line: number;
+  column: number;
+}
+
+/**
+ * A site where handler.on('event:name', callback) is registered.
+ * Symmetric to EmitSite; resolved cross-file into EventEdge.
+ */
+export interface ListenSite {
+  /** Enclosing function/method symbol ID */
+  callerId: string;
+  /** Event name literal */
+  eventName: string;
+  /** Absolute file path */
+  filePath: string;
+  line: number;
+  column: number;
+}
+
+/**
+ * A resolved producer→consumer relationship via a named event bus.
+ * Connects an EmitSite in one file to all ListenSites in any file that
+ * register the same eventName. Created by CodebaseGraph.buildEventEdges().
+ *
+ * This is the key HoloGraph primitive: two call-edges that text-embedding
+ * GraphRAG treats as unrelated are here explicitly linked by eventName,
+ * enabling O(1) event-chain queries instead of O(K·D) similarity search.
+ */
+export interface EventEdge {
+  /** Event name that links producer to consumer */
+  eventName: string;
+  /** File containing the emit() call */
+  emitterFile: string;
+  /** Function/method that calls emit() */
+  emitterSymbol: string;
+  emitLine: number;
+  /** File containing the on() / subscribe() registration */
+  listenerFile: string;
+  /** Function/method that registers the listener */
+  listenerSymbol: string;
+  listenLine: number;
+}
+
+// =============================================================================
 // LANGUAGE ADAPTER INTERFACE
 // =============================================================================
 
@@ -207,6 +266,10 @@ export interface ScannedFile {
   symbols: ExternalSymbolDefinition[];
   imports: ImportEdge[];
   calls: CallEdge[];
+  /** emit() call sites extracted from this file (HoloGraph Phase 1) */
+  emitSites?: EmitSite[];
+  /** on() / subscribe() registration sites extracted from this file (HoloGraph Phase 1) */
+  listenSites?: ListenSite[];
   loc: number;
   sizeBytes: number;
   /** File-level module doc comment (e.g. the top-of-file /** ... *\/ block) */

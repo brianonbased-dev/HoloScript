@@ -12,6 +12,8 @@ import type {
   ExternalSymbolDefinition,
   ImportEdge,
   CallEdge,
+  EmitSite,
+  ListenSite,
   ExtendedSymbolType,
 } from '../types';
 import { walkTree, nodeToSymbol, getFieldText, extractVisibility } from './BaseAdapter';
@@ -373,5 +375,104 @@ export class TypeScriptAdapter implements LanguageAdapter {
     const params = node.childForFieldName('parameters');
     if (params) return `const ${name} = (${params.text}) => ...`;
     return `const ${name} = (...) => ...`;
+  }
+
+  // ── HoloGraph: event-chain extraction ───────────────────────────────────
+
+  /**
+   * Extract emit() call sites from a parsed tree.
+   *
+   * Matches patterns:
+   *   handler.emit('event:name', payload)
+   *   this.emit('event:name', payload)
+   *   emitter.emit('event:name', payload)
+   *
+   * The first string-literal argument is taken as the event name.
+   * Non-literal first arguments (variables, computed names) are skipped.
+   */
+  extractEmitSites(tree: ParseTree, filePath: string): EmitSite[] {
+    return this._extractEventSites(tree, filePath, new Set(['emit']));
+  }
+
+  /**
+   * Extract on() / subscribe() registration sites from a parsed tree.
+   *
+   * Matches patterns:
+   *   handler.on('event:name', callback)
+   *   this.on('event:name', callback)
+   *   handler.subscribe('event:name', callback)
+   */
+  extractListenSites(tree: ParseTree, filePath: string): ListenSite[] {
+    return this._extractEventSites(tree, filePath, new Set(['on', 'subscribe', 'addListener']));
+  }
+
+  private _extractEventSites(
+    tree: ParseTree,
+    filePath: string,
+    methodNames: Set<string>,
+  ): EmitSite[] {
+    const sites: EmitSite[] = [];
+    const contextStack: string[] = [];
+
+    walkTree(tree.rootNode, (node) => {
+      // Track enclosing scope (mirrors extractCalls context tracking)
+      if (
+        node.type === 'function_declaration' ||
+        node.type === 'method_definition' ||
+        node.type === 'arrow_function'
+      ) {
+        const name = getFieldText(node, 'name') || '<anonymous>';
+        contextStack.push(name);
+      }
+
+      if (node.type === 'call_expression') {
+        const fn = node.childForFieldName('function');
+        if (fn?.type === 'member_expression') {
+          const prop = fn.childForFieldName('property');
+          if (prop && methodNames.has(prop.text)) {
+            // Resolve first argument: must be a string literal
+            const args = node.childForFieldName('arguments');
+            const firstArg = args?.namedChildren[0];
+            const eventName = this._stringLiteralValue(firstArg);
+            if (eventName) {
+              sites.push({
+                callerId: contextStack[contextStack.length - 1] ?? '<module>',
+                eventName,
+                filePath,
+                line: node.startPosition.row + 1,
+                column: node.startPosition.column,
+              });
+            }
+          }
+        }
+      }
+    });
+
+    return sites;
+  }
+
+  /**
+   * Extract the string value from a tree-sitter string node.
+   * Returns null for non-literal nodes (variables, template strings, etc.).
+   */
+  private _stringLiteralValue(node: SyntaxNode | undefined): string | null {
+    if (!node) return null;
+    // tree-sitter-typescript: string → '"' string_fragment '"'
+    if (node.type === 'string') {
+      const fragment = node.namedChildren.find(c => c.type === 'string_fragment');
+      if (fragment) return fragment.text;
+      // fallback: strip quotes from raw text
+      const raw = node.text;
+      if ((raw.startsWith('"') && raw.endsWith('"')) ||
+          (raw.startsWith("'") && raw.endsWith("'"))) {
+        return raw.slice(1, -1);
+      }
+    }
+    // template_string without interpolation: `event:name`
+    if (node.type === 'template_string') {
+      const parts = node.namedChildren.filter(c => c.type === 'string_fragment' || c.type === 'template_chars');
+      if (parts.length === 1 && parts[0]) return parts[0].text;
+    }
+    return null;
   }
 }

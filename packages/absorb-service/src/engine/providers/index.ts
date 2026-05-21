@@ -16,3 +16,5 @@ export { createEmbeddingProvider } from './EmbeddingProviderFactory';
 export { XenovaEmbeddingProvider } from './XenovaEmbeddingProvider';
 export { OllamaEmbeddingProvider } from './OllamaEmbeddingProvider';
 export { OpenAIEmbeddingProvider } from './OpenAIEmbeddingProvider';
+/** HoloGraph Phase 1: deterministic structural embeddings — zero API/model dep */
+export { StructuralEmbeddingProvider } from './StructuralEmbeddingProvider';
