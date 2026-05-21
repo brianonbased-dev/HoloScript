@@ -1,0 +1,174 @@
+// HoloShell cloud-drive permission cleanup policy and state machine.
+
+composition "HoloShellCloudDrivePermissionCleanupPolicy" {
+  state CleanupState {
+    workflow: "cloud-drive-permission-cleanup"
+    providers: ["google", "microsoft"]
+    activeProvider: "unknown"
+    redactedAccountLabel: "unknown"
+    status: "idle"
+    connectedAppCount: 0
+    staleGrantCount: 0
+    minimumScopeCount: 0
+    overbroadScopeCount: 0
+    revokedGrantCount: 0
+    revokeUnverifiedCount: 0
+    archiveVerified: false
+    previewImportReady: false
+    rawCredentialCaptured: false
+    privateDataPublished: false
+    sourceCloudDataMutated: false
+    currentLane: "codex-hardware"
+    blockers: []
+  }
+
+  template "CleanupEnvelope" {
+    readOnlyInventory: true
+    guardedRevoke: true
+    guardedDownload: true
+    previewOnlyImport: true
+    credentialExtrusionAllowed: false
+    receiptRequired: true
+    humanVisible: true
+  }
+
+  template "CleanupReceiptContract" {
+    workflow: "cloud-drive-permission-cleanup"
+    accountBoundaryRequired: true
+    permissionGatePackRequired: true
+    revocationReceiptRequiredForRemovedAccess: true
+    accountExportReceiptRequiredForArchive: true
+    localDownloadQuarantineRequired: true
+    previewOnlyImportRequired: true
+    replayable: true
+  }
+
+  policy "ReadOnlyInventory" using "CleanupEnvelope" {
+    readOnlyInventory: true
+    guardedRevoke: false
+    guardedDownload: false
+    previewOnlyImport: false
+    appliesTo: [
+      "detect_browser_profile",
+      "list_connected_apps",
+      "read_provider_scope_labels",
+      "calculate_scope_diff",
+      "stage_revoke_plan",
+      "stage_archive_plan"
+    ]
+  }
+
+  policy "GuardedRevoke" using "CleanupEnvelope" {
+    readOnlyInventory: false
+    guardedRevoke: true
+    guardedDownload: false
+    previewOnlyImport: false
+    appliesTo: [
+      "open_provider_permissions",
+      "revoke_selected_app",
+      "verify_revoked",
+      "write_revocation_receipt"
+    ]
+  }
+
+  policy "GuardedDownload" using "CleanupEnvelope" {
+    readOnlyInventory: false
+    guardedRevoke: false
+    guardedDownload: true
+    previewOnlyImport: false
+    appliesTo: [
+      "request_provider_export",
+      "download_archive_to_quarantine",
+      "hash_archive_parts",
+      "scan_sensitive_files",
+      "build_archive_manifest"
+    ]
+  }
+
+  policy "PreviewOnlyImport" using "CleanupEnvelope" {
+    readOnlyInventory: false
+    guardedRevoke: false
+    guardedDownload: false
+    previewOnlyImport: true
+    appliesTo: [
+      "render_hololand_preview",
+      "create_task_file",
+      "replay_archive_verification",
+      "delete_local_preview_copy"
+    ]
+  }
+
+  state_machine "CloudDriveCleanupWorkflow" {
+    initial: "idle"
+    states: [
+      "idle",
+      "account_mapped",
+      "scopes_scored",
+      "revoke_plan_ready",
+      "revoking",
+      "revoked_verified",
+      "archive_planned",
+      "archive_verified",
+      "preview_ready",
+      "blocked"
+    ]
+    transition "map_account" { from: "idle", to: "account_mapped" }
+    transition "score_scopes" { from: "account_mapped", to: "scopes_scored" }
+    transition "stage_revoke_plan" { from: "scopes_scored", to: "revoke_plan_ready" }
+    transition "revoke_selected" { from: "revoke_plan_ready", to: "revoking" }
+    transition "verify_revoked" { from: "revoking", to: "revoked_verified" }
+    transition "plan_archive" { from: "revoked_verified", to: "archive_planned" }
+    transition "verify_archive" { from: "archive_planned", to: "archive_verified" }
+    transition "preview_import" { from: "archive_verified", to: "preview_ready" }
+    transition "block" { from: "*", to: "blocked" }
+  }
+
+  role "CodexHardware" {
+    laneId: "codex-hardware"
+    owns: ["local_browser_profile_witness", "downloads_quarantine", "hashing", "hardware_baseline"]
+  }
+
+  role "ProviderAccountAgent" {
+    laneId: "provider-account"
+    owns: ["provider_permission_screen", "scope_label_mapping", "revocation_witness", "export_ready_witness"]
+  }
+
+  role "HoloShellPolicyAgent" {
+    laneId: "holoshell-policy"
+    owns: ["minimum_scope_policy", "never_scope_blocker", "fresh_approval", "residual_access_warning"]
+  }
+
+  role "HoloScriptSubstrateAgent" {
+    laneId: "holoscript-substrate"
+    owns: ["permission_gate_receipts", "account_export_receipts", "validator_gap", "stdlib_policy_gap"]
+  }
+
+  role "HoloLandProductAgent" {
+    laneId: "hololand-product"
+    owns: ["cloud_cleanup_room", "creator_import_preview", "Brittney_receipt_narration", "Twin_Earth_file_task_surface"]
+  }
+
+  action consumeCleanupReceipts(permissionPack, exportPack) {
+    CleanupState.activeProvider = permissionPack.subject.provider
+    CleanupState.redactedAccountLabel = permissionPack.subject.redactedSubjectLabel
+    CleanupState.minimumScopeCount = permissionPack.request.minimumRequiredScopes.length
+    CleanupState.overbroadScopeCount = permissionPack.grant.extraScopes.length
+    CleanupState.rawCredentialCaptured = permissionPack.replay.rawCredentialCaptured
+    CleanupState.archiveVerified = exportPack.status == "verified"
+    CleanupState.previewImportReady = exportPack.archive.importAllowed == true
+    CleanupState.privateDataPublished = exportPack.replay.sourceCloudDataMutated != false
+    CleanupState.sourceCloudDataMutated = exportPack.replay.sourceCloudDataMutated
+
+    emit("holoshell:cloud_drive_cleanup:receipt", {
+      workflow: CleanupState.workflow,
+      provider: CleanupState.activeProvider,
+      minimum_scope_count: CleanupState.minimumScopeCount,
+      overbroad_scope_count: CleanupState.overbroadScopeCount,
+      revoked_grant_count: CleanupState.revokedGrantCount,
+      archive_verified: CleanupState.archiveVerified,
+      preview_import_ready: CleanupState.previewImportReady,
+      raw_credential_captured: CleanupState.rawCredentialCaptured,
+      source_cloud_data_mutated: CleanupState.sourceCloudDataMutated
+    })
+  }
+}

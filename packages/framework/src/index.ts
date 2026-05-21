@@ -621,6 +621,35 @@ export {
   cloneHoloShellAccountExportReceiptPack,
 } from './board';
 
+// HoloShell Cloud Drive Cleanup Receipts (holoshell-human-os-frontier)
+export {
+  HOLOSHELL_CLOUD_DRIVE_CLEANUP_RECEIPT_VERSION,
+  CLOUD_DRIVE_CLEANUP_WORKFLOW,
+  CLOUD_DRIVE_PROVIDERS,
+  CLOUD_DRIVE_CLEANUP_STATUSES,
+  CLOUD_DRIVE_APP_STATES,
+  CLOUD_DRIVE_SCOPE_RISK_LEVELS,
+  type CloudDriveProvider,
+  type CloudDriveCleanupStatus,
+  type CloudDriveConnectedAppState,
+  type CloudDriveScopeRiskLevel,
+  type CloudDriveScopeRecord,
+  type CloudDriveConnectedAppRecord,
+  type CloudDriveConnectedAppInventoryReceipt,
+  type CloudDriveCleanupReplayReceipt,
+  type HoloShellCloudDriveCleanupReceiptPack,
+  isSupportedCloudDriveProvider,
+  isSupportedCloudDriveCleanupStatus,
+  isSupportedCloudDriveConnectedAppState,
+  validateCloudDriveScopeRecord,
+  validateCloudDriveConnectedAppRecord,
+  validateCloudDriveConnectedAppInventoryReceipt,
+  validateCloudDriveCleanupReplayReceipt,
+  validateHoloShellCloudDriveCleanupReceiptPack,
+  cloneCloudDriveConnectedAppInventoryReceipt,
+  cloneHoloShellCloudDriveCleanupReceiptPack,
+} from './board';
+
 // HoloShell Package Mutation Receipts (holoshell-human-os-frontier)
 export {
   HOLOSHELL_PACKAGE_MUTATION_RECEIPT_VERSION,

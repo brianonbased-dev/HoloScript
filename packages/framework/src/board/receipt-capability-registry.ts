@@ -156,6 +156,28 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
     tags: ['holoshell', 'data-portability', 'privacy'],
   },
   {
+    capability: 'cloud-drive-cleanup',
+    description:
+      'Cloud drive cleanup receipts — prove connected-app inventory, minimum-scope cleanup, revocation, local archive quarantine, and preview-only HoloLand import.',
+    receiptType: 'HoloShellCloudDriveCleanupReceiptPack',
+    module: 'holoshell-cloud-drive-cleanup-receipts',
+    exportName: 'HoloShellCloudDriveCleanupReceiptPack',
+    validateFn: 'validateHoloShellCloudDriveCleanupReceiptPack',
+    cloneFn: 'cloneHoloShellCloudDriveCleanupReceiptPack',
+    isSupportedFn: 'isSupportedCloudDriveProvider',
+    subjects: [
+      'cloud-drive',
+      'connected-app',
+      'google-drive',
+      'onedrive',
+      'scope-cleanup',
+      'revoke',
+      'quarantine',
+      'preview-import',
+    ],
+    tags: ['holoshell', 'cloud-drive', 'permissions', 'privacy', 'hololand'],
+  },
+  {
     capability: 'provider-export-repair',
     description:
       'Provider export repair receipts — preserve failed exports, partial archives, retry plans, and replay lessons.',

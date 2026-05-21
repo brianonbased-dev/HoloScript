@@ -1,0 +1,149 @@
+/**
+ * HoloShell Cloud Drive Permission Cleanup Room
+ *
+ * Visible deterministic wrapper for:
+ * "Show which cloud-drive permissions can affect my HoloLand work, clean up
+ * stale access, verify minimum scopes, archive what matters locally, and prove
+ * what changed without exposing private files or credentials."
+ */
+
+composition "HoloShell Cloud Drive Permission Cleanup Room" {
+  environment {
+    backgroundColor: "#101820"
+    ambient_light: 0.56
+    shadows: true
+  }
+
+  template "CleanupPanel" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    scale: [1.36, 0.56, 0.08]
+    material: {
+      color: "#17212b"
+      emissive: "#22313f"
+      emissiveIntensity: 0.18
+      transparent: true
+      opacity: 0.94
+    }
+  }
+
+  template "ReceiptToken" {
+    @glowing
+    @collidable
+    geometry: "sphere"
+    scale: [0.13, 0.13, 0.13]
+    material: { color: "#80cbc4" }
+  }
+
+  object "HumanJob" using "CleanupPanel" {
+    position: [0, 2.35, -2.85]
+    label: "Clean cloud-drive access without losing control"
+    properties: {
+      plainLanguageJob: "see Drive or OneDrive access, remove stale apps, keep only the scopes HoloLand needs, and archive selected files locally"
+      deterministicPromise: "visible scope inventory, revoke plan, fresh approvals, redacted receipts, local quarantine, replay, and rollback notes"
+      sourceBoundary: "HoloScript validates receipts and policies; HoloLand renders the cleanup room and import preview"
+    }
+  }
+
+  object "AccountMap" using "CleanupPanel" {
+    position: [-4.35, 1.45, -1.12]
+    label: "Account map"
+    properties: {
+      reads: ["provider", "redacted_account", "browser_profile", "connected_apps", "cloud_destinations"]
+      blocks: ["wrong_account", "managed_account_unknown", "raw_account_label", "cookie_export"]
+      receipt: "BrowserAccountBoundaryReceipt"
+    }
+  }
+
+  object "ScopeDiff" using "CleanupPanel" {
+    position: [-2.18, 1.45, -1.12]
+    label: "Scope diff"
+    properties: {
+      reads: ["requestedScopes", "grantedScopes", "minimumRequiredScopes", "neverScopes"]
+      blocks: ["drive_full", "admin", "billing", "delete", "wildcard", "unknown_extra_scope"]
+      receipt: "HoloShellPermissionGateReceiptPack"
+    }
+  }
+
+  object "RevokeQueue" using "CleanupPanel" {
+    position: [0, 1.45, -1.12]
+    label: "Revoke queue"
+    properties: {
+      visibleControls: ["open_provider_permissions", "revoke_selected", "skip_with_reason", "verify_revoked"]
+      failureStates: ["provider_delay", "revoke_unverified", "residual_session_access", "app_owner_unknown"]
+      receipt: "PermissionRevocationReceipt"
+    }
+  }
+
+  object "ArchiveDock" using "CleanupPanel" {
+    position: [2.18, 1.45, -1.12]
+    label: "Archive dock"
+    properties: {
+      reads: ["selected_products", "delivery_method", "download_link_hash", "archive_hash", "manifest_hash"]
+      blocks: ["partial_download", "unexpected_executable", "sensitive_share", "absolute_path_leak"]
+      receipt: "HoloShellAccountExportReceiptPack"
+    }
+  }
+
+  object "HoloLandPreview" using "CleanupPanel" {
+    position: [4.35, 1.45, -1.12]
+    label: "World preview"
+    properties: {
+      visibleControls: ["preview_only_import", "show_receipts", "rollback_local_copy", "file_task"]
+      publishLockedUntil: ["archive_verified", "sensitivity_scan_passed", "minimum_scope_verified"]
+      receipt: "AccountExportReplayReceipt"
+    }
+  }
+
+  object "SubjectToken" using "ReceiptToken" {
+    position: [-3.25, 0.7, 0.08]
+    label: "redacted account"
+    properties: {
+      publicReceiptMayContainAbsolutePath: false
+      credentialExtrusionAllowed: false
+      accountMutationAllowedWithoutApproval: false
+    }
+  }
+
+  object "ScopeToken" using "ReceiptToken" {
+    position: [-1.08, 0.7, 0.08]
+    material: { color: "#ffd166" }
+    label: "minimum scope"
+    properties: {
+      allowedExamples: ["drive.file", "Files.Read.Selected"]
+      blockedExamples: ["drive", "Files.ReadWrite.All", "admin", "billing", "delete"]
+    }
+  }
+
+  object "RevokeToken" using "ReceiptToken" {
+    position: [1.08, 0.7, 0.08]
+    material: { color: "#ef476f" }
+    label: "verified revoke"
+    properties: {
+      readyForHoloLandAfterRevoke: false
+      residualAccessWarningVisible: true
+    }
+  }
+
+  object "ArchiveToken" using "ReceiptToken" {
+    position: [3.25, 0.7, 0.08]
+    material: { color: "#06d6a0" }
+    label: "local archive"
+    properties: {
+      importMode: "preview_only"
+      downloadedArchiveExecuted: false
+      rawPrivateDataPublished: false
+      sourceCloudDataMutated: false
+    }
+  }
+
+  object "CleanupTimeline" {
+    @anchor
+    geometry: "cube"
+    position: [0, 0.16, 0.1]
+    scale: [7.7, 0.08, 0.14]
+    color: "#607080"
+    label: "account boundary -> scope diff -> revoke stale apps -> verify minimum access -> quarantine archive -> preview import -> replay"
+  }
+}
