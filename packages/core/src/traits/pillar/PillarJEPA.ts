@@ -48,14 +48,27 @@
  *   Temporal convergence value is reported in the pillarjepa:loss payload as
  *   temporalConvergence, and the effective weight as effectiveConservationWeight.
  *
+ * Bilateral hemisphere upgrade (v1.2):
+ *   When a `parallel_slice: ParallelPillarSlice` is included in pillarjepa:step:
+ *     - Left hemisphere slice → context conditioning (analytical, sequential)
+ *     - Right hemisphere slice → bilateral JEPA target (spatial, holistic)
+ *     - bilateralLoss = MSE(left_cond, right_cond) / condDim
+ *       (drives left-conditioned predictor to predict the right-hemisphere view)
+ *     - symmetryLoss = (1 − hemisphere_agreement)  [replaces LCG perturbation]
+ *       Agreement = 1 → box degenerates to a point → symmetryLoss = 0
+ *     - hemisphereAgreement reported in loss payload
+ *   bilateralWeight (config) scales bilateralLoss in totalLoss.
+ *
  * Events consumed:
  *   pillarjepa:step   { context: string, targetVec: Float32Array | number[],
- *                       pillar_slice?: PillarSlice,   // physics override
- *                       temporal_slice?: PillarSlice  // temporal override }
+ *                       pillar_slice?: PillarSlice,        // physics override
+ *                       temporal_slice?: PillarSlice,      // temporal override
+ *                       parallel_slice?: ParallelPillarSlice } // bilateral
  *   pillarjepa:update_weights  { W1, b1, W2, b2 }    (forwarded to JEPAObjective)
  *
  * Events emitted:
  *   pillarjepa:loss   { jepaTotalLoss, conservationLoss, symmetryLoss,
+ *                       bilateralLoss, hemisphereAgreement,
  *                       totalLoss, step, pillar_domain, axis_1_id,
  *                       temporalConvergence, effectiveConservationWeight }
  *   pillarjepa:error  { code, message, step }
@@ -93,6 +106,7 @@ import {
   TEMPORAL_PILLAR,
 } from './PillarRegistry';
 import type { PillarSlice } from './SemanticCollaborationContract';
+import type { ParallelPillarSlice } from './ParallelPillar';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public types
@@ -167,6 +181,16 @@ export interface PillarJEPAConfig {
    * domain boundaries.  Default: true.
    */
   temporalGating: boolean;
+
+  /**
+   * Weight of the bilateral hemisphere loss L_bilateral.
+   * Only fires when a parallel_slice is provided in pillarjepa:step.
+   * L_bilateral = MSE(left_conditioning, right_conditioning) / condDim
+   * — penalises disagreement between the left and right hemisphere views.
+   * Set to 0 to disable.  Typical: 0.05–0.15.
+   * Default: 0.1.
+   */
+  bilateralWeight: number;
 }
 
 export interface PillarJEPALoss {
@@ -197,6 +221,21 @@ export interface PillarJEPALoss {
    * Equals config.conservationWeight when gating is disabled.
    */
   effectiveConservationWeight: number;
+
+  /**
+   * Bilateral hemisphere loss L_bilateral (optional — only present when a
+   * parallel_slice was provided in the step event).
+   * MSE between left and right hemisphere conditioning vectors in latent space.
+   * Zero when both hemispheres agree perfectly.
+   */
+  bilateralLoss?: number;
+
+  /**
+   * Hemisphere agreement from the ParallelPillarSlice (optional).
+   * 1 = perfect agreement (bounding box degenerates to a point).
+   * 0 = maximal divergence.
+   */
+  hemisphereAgreement?: number;
 }
 
 export type PillarJEPAErrorCode =
@@ -245,6 +284,7 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
     emitToGrpo: true,
     physicsPillarId: 'physics_conservation',
     temporalGating: true,
+    bilateralWeight: 0.1,
   },
 
   onAttach(node: HSPlusNode, config: PillarJEPAConfig, context: TraitContext): void {
@@ -332,9 +372,14 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
     }
 
     // 2. Get physics-conservation slice (override or generate fresh)
-    const physicsSlice: PillarSlice = event.pillar_slice
-      ? (event.pillar_slice as PillarSlice)
-      : generatePhysicsSlice(state, config);
+    //    When a parallel_slice is provided, the LEFT hemisphere slice takes
+    //    precedence as the physics conditioning source (analytical hemisphere).
+    const parallelSlice = event.parallel_slice as ParallelPillarSlice | undefined;
+    const physicsSlice: PillarSlice = parallelSlice
+      ? parallelSlice.left
+      : event.pillar_slice
+        ? (event.pillar_slice as PillarSlice)
+        : generatePhysicsSlice(state, config);
 
     // 3. Build conditioning vector from the slice
     const conditioning = sliceToConditioning(physicsSlice, config.condDim);
@@ -415,15 +460,38 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
       : 0;
 
     // 7. Symmetry equivariance regulariser
-    const symmetryLoss = config.symmetryWeight > 0
-      ? computeSymmetryLoss(conditioning, config.symmetryDelta, step)
-      : 0;
+    //    When a parallel_slice is available, symmetry = 1 − hemisphere_agreement:
+    //    the predictor is symmetric when left and right hemispheres agree (box = point).
+    //    When no parallel slice: fall back to LCG perturbation proxy.
+    let symmetryLoss = 0;
+    let hemisphereAgreement: number | undefined;
+    let bilateralLoss: number | undefined;
 
-    // 8. Total loss — note conservationLoss scaled by effectiveConservationWeight
+    if (parallelSlice) {
+      hemisphereAgreement = parallelSlice.hemisphere_agreement;
+      // Symmetry loss = disagreement between hemispheres
+      symmetryLoss = config.symmetryWeight > 0
+        ? (1 - hemisphereAgreement)
+        : 0;
+
+      // Bilateral loss — MSE between left and right conditioning vectors
+      if (config.bilateralWeight > 0 && config.condDim > 0) {
+        const rightConditioning = sliceToConditioning(parallelSlice.right, config.condDim);
+        bilateralLoss = computeBilateralLoss(conditioning, rightConditioning);
+      }
+    } else {
+      symmetryLoss = config.symmetryWeight > 0
+        ? computeSymmetryLoss(conditioning, config.symmetryDelta, step)
+        : 0;
+    }
+
+    // 8. Total loss
+    //    L_total = L_jepa + λ_c_eff·L_conservation + λ_s·L_symmetry + λ_b·L_bilateral
     const totalLoss =
       jepaLoss.totalLoss +
       conservationLoss * effectiveConservationWeight +
-      symmetryLoss * config.symmetryWeight;
+      symmetryLoss * config.symmetryWeight +
+      (bilateralLoss !== undefined ? bilateralLoss * config.bilateralWeight : 0);
 
     // 9. Emit PillarJEPA loss
     const lossPayload: PillarJEPALoss = {
@@ -436,6 +504,8 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
       axis_1_id: physicsSlice.axis_1_id,
       temporalConvergence,
       effectiveConservationWeight,
+      ...(hemisphereAgreement !== undefined && { hemisphereAgreement }),
+      ...(bilateralLoss      !== undefined && { bilateralLoss }),
     };
     context.emit?.('pillarjepa:loss', lossPayload);
 
@@ -634,6 +704,34 @@ function axisIdToDirection(axisId: string, dim: number): Float32Array {
   norm = Math.sqrt(norm) || 1;
   for (let d = 0; d < dim; d++) dir[d] /= norm;
   return dir;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bilateral hemisphere loss
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Mean-squared error between two conditioning vectors in latent space.
+ *
+ * L_bilateral = Σ(left_i − right_i)² / dim
+ *
+ * When left (analytical) and right (spatial) hemisphere conditionings are
+ * identical the loss is zero — both hemispheres encode the same physical state
+ * from their different processing angles, which is the converged case.
+ * Gradient descent on this loss drives the predictor to find a common
+ * representation that satisfies both hemispheres simultaneously.
+ */
+function computeBilateralLoss(
+  leftCond: Float32Array,
+  rightCond: Float32Array,
+): number {
+  if (leftCond.length === 0 || rightCond.length !== leftCond.length) return 0;
+  let sum = 0;
+  for (let i = 0; i < leftCond.length; i++) {
+    const d = leftCond[i] - rightCond[i];
+    sum += d * d;
+  }
+  return sum / leftCond.length;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

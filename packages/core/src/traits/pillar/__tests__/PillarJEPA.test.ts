@@ -14,6 +14,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { pillarJepaHandler, type PillarJEPAConfig, type PillarJEPALoss } from '../PillarJEPA';
+import { makeParallelPillar, LEFT_PHYSICS_PILLAR, RIGHT_PHYSICS_PILLAR, TRUTH_PHYSICS_PARALLEL } from '../ParallelPillar';
 import type { HSPlusNode, TraitContext } from '../../TraitTypes';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -52,6 +53,7 @@ const DEFAULT_CONFIG: PillarJEPAConfig = {
   emitToGrpo: true,
   physicsPillarId: 'physics_conservation',
   temporalGating: true,
+  bilateralWeight: 0.1,
 };
 
 function step(
@@ -330,6 +332,114 @@ describe('PillarJEPA', () => {
     const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
     expect(loss.effectiveConservationWeight).toBeCloseTo(DEFAULT_CONFIG.conservationWeight);
     expect(loss.temporalConvergence).toBeCloseTo(0.0);
+  });
+
+  // ── Bilateral hemisphere tests ────────────────────────────────────────────
+
+  it('bilateral: hemisphereAgreement reported when parallel_slice provided', () => {
+    const parallelSlice = TRUTH_PHYSICS_PARALLEL.generateParallel({
+      layer: 'test',
+      agent_id: 'test',
+      timestamp_ms: 0,
+    });
+
+    pillarJepaHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, {
+      type: 'pillarjepa:step',
+      context: 'bilateral test step',
+      targetVec: new Float32Array(DEFAULT_CONFIG.latentDim).fill(0.1),
+      parallel_slice: parallelSlice,
+    });
+
+    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    expect(typeof loss.hemisphereAgreement).toBe('number');
+    expect(loss.hemisphereAgreement!).toBeGreaterThanOrEqual(0);
+    expect(loss.hemisphereAgreement!).toBeLessThanOrEqual(1);
+  });
+
+  it('bilateral: bilateralLoss reported when bilateralWeight > 0 and condDim > 0', () => {
+    const parallelSlice = TRUTH_PHYSICS_PARALLEL.generateParallel({
+      layer: 'test',
+      agent_id: 'test',
+      timestamp_ms: 0,
+    });
+
+    pillarJepaHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, {
+      type: 'pillarjepa:step',
+      context: 'bilateral loss test',
+      targetVec: new Float32Array(DEFAULT_CONFIG.latentDim).fill(0.1),
+      parallel_slice: parallelSlice,
+    });
+
+    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    expect(typeof loss.bilateralLoss).toBe('number');
+    expect(loss.bilateralLoss!).toBeGreaterThanOrEqual(0);
+  });
+
+  it('bilateral: bilateralLoss = 0 when both hemispheres are identical slices', () => {
+    // Use a parallel where both left and right are the same pillar
+    const mirrorParallel = makeParallelPillar(
+      'mirror_test',
+      LEFT_PHYSICS_PILLAR,
+      LEFT_PHYSICS_PILLAR, // same pillar on both sides
+    );
+    const parallelSlice = mirrorParallel.generateParallel({
+      layer: 'test',
+      agent_id: 'test',
+      timestamp_ms: 0,
+    });
+    // Both hemispheres produce identical slices → conditioning vectors identical → loss = 0
+
+    pillarJepaHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, {
+      type: 'pillarjepa:step',
+      context: 'mirror hemisphere test',
+      targetVec: new Float32Array(DEFAULT_CONFIG.latentDim).fill(0.1),
+      parallel_slice: parallelSlice,
+    });
+
+    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    expect(loss.bilateralLoss).toBeCloseTo(0);
+    expect(loss.hemisphereAgreement).toBeCloseTo(1);
+  });
+
+  it('bilateral: symmetryLoss uses hemisphere agreement (not LCG) when parallel_slice provided', () => {
+    // Agreement = 1 → symmetryLoss = 0 (regardless of symmetryDelta)
+    const mirrorParallel = makeParallelPillar('mirror_sym', LEFT_PHYSICS_PILLAR, LEFT_PHYSICS_PILLAR);
+    const parallelSlice = mirrorParallel.generateParallel({ layer: 'test', agent_id: 'test', timestamp_ms: 0 });
+
+    pillarJepaHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, {
+      type: 'pillarjepa:step',
+      context: 'symmetry agreement test',
+      targetVec: new Float32Array(DEFAULT_CONFIG.latentDim).fill(0.1),
+      parallel_slice: parallelSlice,
+    });
+
+    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    // When hemispheres agree perfectly: symmetryLoss = (1 - 1.0) = 0
+    expect(loss.symmetryLoss).toBeCloseTo(0);
+  });
+
+  it('bilateral: hemisphereAgreement / bilateralLoss absent when no parallel_slice', () => {
+    step(node, DEFAULT_CONFIG, ctx);
+    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    expect(loss.hemisphereAgreement).toBeUndefined();
+    expect(loss.bilateralLoss).toBeUndefined();
+  });
+
+  it('bilateral: left hemisphere slice used for physicsSlice when parallel_slice provided', () => {
+    const physicsSlice_left = LEFT_PHYSICS_PILLAR.generate({ layer: 'test', agent_id: 'test', timestamp_ms: 0 });
+    const parallelSlice = TRUTH_PHYSICS_PARALLEL.generateParallel({ layer: 'test', agent_id: 'test', timestamp_ms: 0 });
+
+    pillarJepaHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, {
+      type: 'pillarjepa:step',
+      context: 'left hemisphere physics test',
+      targetVec: new Float32Array(DEFAULT_CONFIG.latentDim).fill(0.1),
+      parallel_slice: parallelSlice,
+    });
+
+    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    // TRUTH_PHYSICS_PARALLEL.left = INTENT_TRUTH_APPROVAL_PILLAR (truth_approval domain)
+    expect(loss.pillar_domain).toBe('truth_approval');
+    expect(loss.axis_1_id).toBe('truth_seeking');
   });
 
   it('totalLoss is lower in steady state than transient (same conservation violation)', () => {

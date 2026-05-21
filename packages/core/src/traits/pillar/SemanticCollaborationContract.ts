@@ -57,6 +57,7 @@
  */
 
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from '../TraitTypes';
+import type { ParallelPillarSlice } from './ParallelPillar';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Core types
@@ -268,6 +269,22 @@ export interface SemanticCollaborationMessage {
    * Keep small — bulk data belongs in scene_delta or the knowledge store.
    */
   payload?: Record<string, unknown>;
+
+  /**
+   * Bilateral hemisphere slice (optional).
+   * When present, carries both the left (analytical) and right (spatial)
+   * hemisphere interpretations of the current context, plus the tropical
+   * geometry bounding box that frames their disagreement.
+   *
+   * Receivers use this for:
+   *   - Integrity check: large box_area → hemispheres disagree → flag for review
+   *   - JEPA bilateral loss: left_cond → right_cond prediction target
+   *   - MNI routing: left.brain_coord.mni_x > 0, right.brain_coord.mni_x < 0
+   *
+   * The parallel_pillar_id in this slice identifies which ParallelPillar
+   * generated the pair — allows receivers to verify the source registry.
+   */
+  parallel_slice?: ParallelPillarSlice;
 
   /**
    * Text summary — BOUNDARY OUTPUT ONLY.

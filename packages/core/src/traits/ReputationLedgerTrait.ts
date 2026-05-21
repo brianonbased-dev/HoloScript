@@ -454,6 +454,27 @@ export const reputationLedgerHandler: TraitHandler<ReputationLedgerConfig> = {
     const state = getState(node);
     if (!state) return;
     pruneExpiredFacts(state, node, config, context);
+
+    // PSF-3 WIRE (D.040) — live Pillar-Slice from real reputation state (replaces skeleton).
+    // trust_level averaged from observers; fact_retention = total facts vs max cap.
+    // Feeds Pillar-Slice for agent social layer dispatch and training.
+    const allFacts = Array.from(state.factsByObserver.values()).flat();
+    const avgTrust = allFacts.length > 0
+      ? allFacts.reduce((s, f) => s + (f.trustDelta || 0), 0) / allFacts.length
+      : (state.trustByObserver.size > 0 ? Array.from(state.trustByObserver.values()).reduce((a,b)=>a+b,0) / state.trustByObserver.size : 0.5);
+    const retention = Math.min(1, allFacts.length / Math.max(1, effectiveMaxFacts(config)));
+    context.emit?.('pillar:slice', {
+      slice: {
+        axis_1_id: 'trust_level',
+        axis_2_id: 'fact_retention',
+        pos_1: Math.max(0, Math.min(1, avgTrust)),
+        pos_2: retention,
+        pillar_id: 'reputation_ledger',
+        pillar_domain: 'agent' as const,
+      },
+      agent_id: (context as any).agentId ?? 'local',
+      sim_step: Date.now(),
+    });
   },
 
   onEvent(node, config, context, event) {
