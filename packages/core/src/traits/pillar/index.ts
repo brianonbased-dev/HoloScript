@@ -126,6 +126,28 @@ export {
   getUAALAgentSnapshot,
 } from './uAALComposedAgent';
 
+// ── BrainCoordMapper — MNI152 coordinate lookup ───────────────────────────────
+export type { DomainCoordEntry } from './BrainCoordMapper';
+
+export {
+  lookup as brainCoordLookup,
+  resolve as brainCoordResolve,
+  registerDomainCoord,
+  getAllEntries as getAllBrainCoordEntries,
+  validateCoord as validateBrainCoord,
+  mniDistance,
+} from './BrainCoordMapper';
+
+// ── CorticalDepthRouter — processing stage → cortical depth ───────────────────
+export type { SliceStage, CorticalDepth, CorticalDepthRouterConfig } from './CorticalDepthRouter';
+
+export {
+  routeDepth,
+  enrichCoord,
+  inferStage,
+  corticalDepthRouterHandler,
+} from './CorticalDepthRouter';
+
 // ── CognitiveVMTrait — uAAL runtime ───────────────────────────────────────────
 export type {
   LifecycleState,
