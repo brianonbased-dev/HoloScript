@@ -574,8 +574,16 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'ar' });
     case 'compile_to_wasm':
       return handleCompileToTarget({ ...args, target: 'wasm' });
+    case 'compile_to_usd':
+      return handleCompileToTarget({ ...args, target: 'usd' });
+    case 'compile_to_usdz':
+      return handleCompileToTarget({ ...args, target: 'usdz' });
     case 'compile_to_dtdl':
       return handleCompileToTarget({ ...args, target: 'dtdl' });
+    case 'compile_to_vrr':
+      return handleCompileToTarget({ ...args, target: 'vrr' });
+    case 'compile_to_multi_layer':
+      return handleCompileToTarget({ ...args, target: 'multi-layer' });
     case 'compile_to_nir':
       return handleCompileToTarget({ ...args, target: 'nir' });
     case 'compile_to_native_2d':
@@ -1100,9 +1108,57 @@ export const compilerTools: Tool[] = [
     },
   },
   {
+    name: 'compile_to_usd',
+    description: 'Compile HoloScript to USD / USDA physics scene format',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'compile_to_usdz',
+    description: 'Compile HoloScript to USDZ package data for AR viewers',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
+  },
+  {
     name: 'compile_to_sdf',
     description:
       'Compile HoloScript to SDF (Simulation Description Format) for Gazebo environments',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'compile_to_vrr',
+    description: 'Compile HoloScript to VRR reality-mirror JavaScript output',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'compile_to_multi_layer',
+    description: 'Compile HoloScript to a multi-layer VR / VRR / AR bundle',
     inputSchema: {
       type: 'object',
       properties: {
