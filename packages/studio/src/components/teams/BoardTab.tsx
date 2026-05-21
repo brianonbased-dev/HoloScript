@@ -41,7 +41,7 @@ interface BoardData {
 }
 
 interface Column {
-  key: 'open' | 'claimed' | 'done';
+  key: 'open' | 'claimed' | 'blocked' | 'done';
   label: string;
   color: string;
   dot: string;
@@ -51,6 +51,7 @@ interface Column {
 const COLUMNS: Column[] = [
   { key: 'open', label: 'Open', color: 'border-blue-500/30', dot: 'bg-blue-400', emptyText: 'No open tasks' },
   { key: 'claimed', label: 'In Progress', color: 'border-yellow-500/30', dot: 'bg-yellow-400', emptyText: 'Nothing in progress' },
+  { key: 'blocked', label: 'Blocked', color: 'border-red-500/30', dot: 'bg-red-400', emptyText: 'No blocked tasks' },
   { key: 'done', label: 'Done', color: 'border-green-500/30', dot: 'bg-green-400', emptyText: 'Nothing completed yet' },
 ];
 
@@ -145,6 +146,7 @@ export function BoardTab({ teamId }: { teamId: string }) {
   const columns = {
     open: data.board.open,
     claimed: data.board.claimed,
+    blocked: data.board.blocked || [],
     done: data.done.recent,
   };
 
