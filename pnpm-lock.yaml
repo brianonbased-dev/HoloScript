@@ -1231,7 +1231,7 @@ importers:
         specifier: workspace:*
         version: link:../config
       '@holoscript/snn-webgpu':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../snn-webgpu
     devDependencies:
       '@types/node':
@@ -2577,7 +2577,11 @@ importers:
 
   packages/plugins/niantic-lgm-plugin: {}
 
-  packages/plugins/nodetoy-plugin: {}
+  packages/plugins/nodetoy-plugin:
+    dependencies:
+      '@holoscript/core':
+        specifier: workspace:*
+        version: link:../../core
 
   packages/plugins/openusd-plugin: {}
 
