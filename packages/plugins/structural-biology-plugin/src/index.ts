@@ -226,6 +226,26 @@ export {
   compileAdmet,
 } from './admet';
 
+// ── SimulationContract receipt bridge (v0.2.0) ─────────────────────────────────
+
+export {
+  // Types
+  type DrugDiscoveryScale,
+  type DockingReceipt,
+  type AdmetReceipt,
+  type DrugDiscoveryReceipt,
+  type DrugLikenessAssessment,
+  // Factory functions
+  createDockingReceipt,
+  createAdmetReceipt,
+  createDrugDiscoveryReceipt,
+  runDrugDiscoveryPipeline,
+  // Compile targets
+  compileDockingReceiptToHolo,
+  compileAdmetReceiptToHolo,
+  compileDrugDiscoveryReceiptToHolo,
+} from './receipt';
+
 // ── Version ────────────────────────────────────────────────────────────────────
 
 export const VERSION = '0.2.0';
