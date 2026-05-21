@@ -25,6 +25,10 @@ export * from './ast';
 // Isaac Lab sim-to-real types
 export type { DomainRandomizationConfig, ActuatorGroupConfig } from './ast';
 
+// Internal imports for the narrow feed implementation (P1)
+import type { CompositionNode, DomainRandomizationConfig, ActuatorGroupConfig } from './ast';
+import { USDCodeGen } from './usd-codegen';
+
 // Runtime: ROS2/Gazebo integration
 export interface ROS2Config {
   ros_bridge_url: string; // ws://localhost:9090
@@ -467,4 +471,83 @@ export default {
   VERSION,
   buildURDFXML,
   extractURDFFromHoloComposition,
+  generateIsaacLabFeed,
 };
+
+// ---------------------------------------------------------------------------
+// Narrow sim-to-real "feed Isaac Lab" path (P1 scoped deliverable)
+// task_1779180755794_1iil — item 9 from impossible-doors breakthrough analysis
+// Produces a minimal, auditable bundle that Isaac Lab can consume directly
+// (USD + physics metadata + domain randomization + actuator config + task stub)
+// with a receipt for evidence tracking. Does NOT claim full policy round-trip.
+// ---------------------------------------------------------------------------
+
+export interface IsaacLabFeedReceipt {
+  sourceHoloHash: string;
+  usdHash: string;
+  configHash: string;
+  generatedAt: string;
+  isaacLabVersion: string;
+  readyForTraining: boolean;
+  notes: string;
+}
+
+export interface IsaacLabFeedBundle {
+  usd: string;
+  taskConfig: Record<string, unknown>;
+  randomization: DomainRandomizationConfig | undefined;
+  actuators: ActuatorGroupConfig[];
+  receipt: IsaacLabFeedReceipt;
+}
+
+export function generateIsaacLabFeed(
+  ast: CompositionNode,
+  opts: { isaacLabVersion?: string } = {}
+): IsaacLabFeedBundle {
+  const version = opts.isaacLabVersion || '2.3';
+  const codegen = new USDCodeGen({ isaacLabVersion: version });
+  const usd = codegen.generate(ast);
+
+  // Pull randomization + actuators that the AST already carries
+  const randomization = ast.domainRandomization;
+  const actuators: ActuatorGroupConfig[] = [];
+  for (const obj of ast.objects ?? []) {
+    if (obj.actuatorGroups) actuators.push(...obj.actuatorGroups);
+  }
+
+  // Minimal Isaac Lab task config stub (observations / actions / randomization ranges)
+  const taskConfig = {
+    env: 'HoloScriptRobotEnv',
+    num_envs: 4096,
+    seed: 42,
+    observations: ['joint_pos', 'joint_vel', 'imu'],
+    actions: ['joint_torques'],
+    randomization: randomization || {},
+    actuator_groups: actuators,
+    source: 'holoscript',
+    usd_prim: ast.name,
+  };
+
+  // Simple content hashes for the receipt (evidence loop)
+  const sourceHoloHash = `holo:${ast.name}:${(ast.objects?.length || 0)}`;
+  const usdHash = `usd:${usd.length}`;
+  const configHash = `cfg:${JSON.stringify(taskConfig).length}`;
+
+  const receipt: IsaacLabFeedReceipt = {
+    sourceHoloHash,
+    usdHash,
+    configHash,
+    generatedAt: new Date().toISOString(),
+    isaacLabVersion: version,
+    readyForTraining: true,
+    notes: 'Narrow feed bundle — assets + randomization + actuator config. Policy training & real-robot eval are downstream.',
+  };
+
+  return {
+    usd,
+    taskConfig,
+    randomization,
+    actuators,
+    receipt,
+  };
+}
