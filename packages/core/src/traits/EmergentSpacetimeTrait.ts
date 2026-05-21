@@ -14,7 +14,11 @@
  * - Hubble correction from provenance loop density
  *
  * @physics trait for the HoloScript 6.x line and later
- * SimulationContract enforced: |computed_Ricci - GR_Ricci| < 1e-5
+ * SimulationContract enforced: |computed_Ricci| < 1e-5 — the emergent curvature
+ * stays within 1e-5 of the flat-space (vacuum) GR limit Ric=0, which the network
+ * approaches in the large-N, unit-provenance regime. This is a flatness/convergence
+ * guarantee, NOT validation against an analytic GR solution for a non-trivial
+ * mass-energy distribution (grRicci is the constant 0; see computeRicci usage).
  */
 
 import type { TraitHandler, HSPlusNode } from './TraitTypes';
