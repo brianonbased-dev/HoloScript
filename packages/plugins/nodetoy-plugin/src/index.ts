@@ -57,3 +57,34 @@ export function mapNodeToyToShader(g: NodeToyGraph): HoloShaderEmission {
     validation_errors,
   };
 }
+
+// =============================================================================
+// HoloScript-native Shader Graph IR (BUILD-INTERNAL per NMOS Phase 2)
+// NodeToy remains ONLY import/taxonomy evidence; native path owns the IR.
+// =============================================================================
+
+export interface NativeShaderGraph {
+  id: string;
+  name: string;
+  nodes: Array<{
+    id: string;
+    kind: string;
+    params?: Record<string, unknown>;
+  }>;
+  outputNodeId: string;
+  provenance: 'native' | 'imported:NodeToy';
+}
+
+export function nodeToyToNativeShaderGraph(g: NodeToyGraph): NativeShaderGraph {
+  return {
+    id: `sg_${g.name.toLowerCase().replace(/\s+/g, '_')}`,
+    name: g.name,
+    nodes: g.nodes.map((n) => ({
+      id: n.id,
+      kind: n.family,
+      params: n.params,
+    })),
+    outputNodeId: g.output_node_id,
+    provenance: 'imported:NodeToy',
+  };
+}

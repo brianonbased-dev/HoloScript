@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mapNodeToyToShader } from '../index';
+import { mapNodeToyToShader, nodeToyToNativeShaderGraph } from '../index';
 
 describe('nodetoy-plugin stub', () => {
   it('tallies family counts', () => {
@@ -35,5 +35,20 @@ describe('nodetoy-plugin stub', () => {
       output_node_id: 'n1',
     });
     expect(r.validation_errors.some((e) => e.includes('missing'))).toBe(true);
+  });
+
+  it('produces HoloScript-native ShaderGraph IR from NodeToy (Phase 2 native path)', () => {
+    const native = nodeToyToNativeShaderGraph({
+      name: 'test-graph',
+      nodes: [
+        { id: 'a', family: 'pbr' },
+        { id: 'b', family: 'output', inputs: { color: 'a' } },
+      ],
+      output_node_id: 'b',
+    });
+    expect(native.id).toBe('sg_test-graph');
+    expect(native.provenance).toBe('imported:NodeToy');
+    expect(native.nodes.length).toBe(2);
+    expect(native.outputNodeId).toBe('b');
   });
 });
