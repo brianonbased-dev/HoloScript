@@ -226,8 +226,20 @@ export function startHoloTunnel(options: HoloTunnelOptions): Promise<HoloTunnelH
 
           status = resp.status;
           resp.headers.forEach((v, k) => { respHeaders[k] = v; });
-          // Drop content-encoding — fetch already decoded the body
-          delete respHeaders['content-encoding'];
+          // Drop body framing and encoding headers. The WebSocket relay
+          // reconstructs the HTTP response from base64 bytes, and stale
+          // chunk/content headers can make compressed browser requests render
+          // as zero-byte HTML even though the local response body is present.
+          for (const h of [
+            'content-encoding',
+            'content-length',
+            'connection',
+            'keep-alive',
+            'transfer-encoding',
+            'upgrade',
+          ]) {
+            delete respHeaders[h];
+          }
           const buf = await resp.arrayBuffer();
           respBody = Buffer.from(buf).toString('base64');
         } catch (err) {
