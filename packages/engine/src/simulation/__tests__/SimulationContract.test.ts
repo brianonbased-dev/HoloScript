@@ -68,11 +68,19 @@ describe('Geometry Hashing', () => {
     expect(hashGeometry(undefined, undefined)).toBe('no-geometry');
   });
 
-  it('SEC-02: same vertices but different connectivity produce different hashes', () => {
+  it('SEC-02: equivalent element ordering (same connectivity, different listing/winding) yields stable hash after canonicalization', () => {
     const v = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
     const e1 = new Uint32Array([0, 1, 2]);
     const e2 = new Uint32Array([0, 2, 1]);
-    expect(hashGeometry(v, e1)).not.toBe(hashGeometry(v, e2));
+    // Same logical triangle → identical hash (order-invariant topology)
+    expect(hashGeometry(v, e1)).toBe(hashGeometry(v, e2));
+  });
+
+  it('SEC-02: actually rewired connectivity (different indices) still produces different hashes', () => {
+    const v = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]); // 4 verts
+    const eSame = new Uint32Array([0, 1, 2, 0, 1, 3]);
+    const eRewired = new Uint32Array([0, 1, 2, 1, 2, 3]); // different edge set
+    expect(hashGeometry(v, eSame)).not.toBe(hashGeometry(v, eRewired));
   });
 
   it('Paper #4: validateMeshSanity flags out-of-range element indices', () => {

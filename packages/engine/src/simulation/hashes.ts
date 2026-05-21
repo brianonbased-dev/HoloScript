@@ -19,6 +19,43 @@ import { toCanonical } from './cael-canon';
 // Re-export for callers that want a single `hashes` import surface
 export { HASH_MODE_DEFAULT, type HashMode } from './sha256';
 
+/**
+ * Canonicalize element connectivity buffer for stable topology hashing.
+ * Groups flat indices into primitives using common arities (tet4, tri3, edge2),
+ * normalizes vertex order within each primitive, then sorts primitives
+ * lexicographically. This makes hashGeometry(order-insensitive for equivalent
+ * mesh topology) while still distinguishing rewired connectivity.
+ * Unknown strides fall back to raw (compat).
+ */
+function canonicalizeConnectivity(elements: Uint32Array): Uint32Array {
+  if (!elements || elements.length === 0) return elements || new Uint32Array(0);
+  const n = elements.length;
+  let arity = 0;
+  if (n % 4 === 0) arity = 4;
+  else if (n % 3 === 0) arity = 3;
+  else if (n % 2 === 0) arity = 2;
+  else return elements; // exotic / mixed / unknown stride → raw for compat
+
+  const groups: number[][] = [];
+  for (let i = 0; i < n; i += arity) {
+    const g = Array.prototype.slice.call(elements, i, i + arity);
+    g.sort((a: number, b: number) => a - b);
+    groups.push(g);
+  }
+  groups.sort((a, b) => {
+    for (let j = 0; j < arity; j++) {
+      if (a[j] !== b[j]) return a[j] - b[j];
+    }
+    return 0;
+  });
+  const out = new Uint32Array(n);
+  let pos = 0;
+  for (const g of groups) {
+    for (const x of g) out[pos++] = x >>> 0;
+  }
+  return out;
+}
+
 // ── Geometry + GPU (from SimulationContract) ────────────────────────────────
 
 export function hashGeometry(
@@ -30,6 +67,7 @@ export function hashGeometry(
 
   const nCoord = vertices.length;
   const nIdx = elements.length;
+  const canon = canonicalizeConnectivity(elements);
 
   if (mode === 'sha256') {
     const totalBytes = 4 + nCoord * 4 + 4 + 4 + nIdx * 4;
@@ -43,7 +81,7 @@ export function hashGeometry(
     view.setUint32(off, 0x9e3779b9, true); off += 4;
     view.setUint32(off, nIdx >>> 0, true); off += 4;
     for (let i = 0; i < nIdx; i++) {
-      view.setUint32(off, elements[i] >>> 0, true); off += 4;
+      view.setUint32(off, canon[i] >>> 0, true); off += 4;
     }
     return `geo-sha-${hashBytes(buf, 'sha256')}-${nCoord / 3}n-${nIdx}e`;
   }
@@ -74,7 +112,7 @@ export function hashGeometry(
     h = Math.imul(h, 16777619);
   }
   for (let i = 0; i < nIdx; i++) {
-    const v = elements[i];
+    const v = canon[i];
     h ^= v & 0xff;
     h = Math.imul(h, 16777619);
     h ^= (v >> 8) & 0xff;
