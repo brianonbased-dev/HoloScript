@@ -1,38 +1,79 @@
 {
   "asset": {
     "version": "2.0",
-    "generator": "HoloScript placeholder for MNI152 pial (TASK-1 run-16)",
-    "extras": {
-      "note": "MINIMAL PLACEHOLDER. Real MNI152 pial surface from HCP openneuro ds000031 (FreeSurfer .surf -> GLTF via freesurfer-to-gltf or Blender). CC0 license. Replace when conversion env available. Sufficient for GyriSulciPartitioner barycentric classify + HoloLand VR prototype.",
-      "source": "https://openneuro.org/datasets/ds000031",
-      "when_real": "pip install nilearn nibabel; use freesurfer or https://github.com/sct-pipeline/freesurfer-to-gltf"
-    }
+    "generator": "HoloScript procedural MNI152 pial v1 (ellipsoid + gyri modulation)"
   },
-  "scenes": [{ "nodes": [0] }],
-  "nodes": [{ "mesh": 0, "name": "brain-placeholder" }],
-  "meshes": [{
-    "primitives": [{
-      "attributes": { "POSITION": 0 },
-      "indices": 1,
-      "mode": 4
-    }]
-  }],
-  "buffers": [{
-    "uri": "data:application/octet-stream;base64,AAABAAIAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAACAPwAAAAA=",
-    "byteLength": 44
-  }],
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0,
+      "name": "MNI152-pial-v1"
+    }
+  ],
+  "meshes": [
+    {
+      "name": "pial",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0
+          },
+          "indices": 1,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "data:application/octet-stream;base64,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sgQhpwAAuMLU2xqosgQhJwAAuMLU2xqo6ZThJwAAuMLDX/inzPwiKAAAuMJU1omnAAAOAAEAAQAOAA8AAQAPAAIAAgAPABAAAgAQAAMAAwAQABEAAwARAAQABAARABIABAASAAUABQASABMABQATAAYABgATABQABgAUAAcABwAUABUABwAVAAgACAAVABYACAAWAAkACQAWABcACQAXAAoACgAXABgACgAYAAsACwAYABkACwAZAAwADAAZABoADAAaAA0ADQAaABsADQAbAAAAAAAbAA4ADgAcAA8ADwAcAB0ADwAdABAAEAAdAB4AEAAeABEAEQAeAB8AEQAfABIAEgAfACAAEgAgABMAEwAgACEAEwAhABQAFAAhACIAFAAiABUAFQAiACMAFQAjABYAFgAjACQAFgAkABcAFwAkACUAFwAlABgAGAAlACYAGAAmABkAGQAmACcAGQAnABoAGgAnACgAGgAoABsAGwAoACkAGwApAA4ADgApABwAHAAqAB0AHQAqACsAHQArAB4AHgArACwAHgAsAB8AHwAsAC0AHwAtACAAIAAtAC4AIAAuACEAIQAuAC8AIQAvACIAIgAvADAAIgAwACMAIwAwADEAIwAxACQAJAAxADIAJAAyACUAJQAyADMAJQAzACYAJgAzADQAJgA0ACcAJwA0ADUAJwA1ACgAKAA1ADYAKAA2ACkAKQA2ADcAKQA3ABwAHAA3ACoAKgA4ACsAKwA4ADkAKwA5ACwALAA5ADoALAA6AC0ALQA6ADsALQA7AC4ALgA7ADwALgA8AC8ALwA8AD0ALwA9ADAAMAA9AD4AMAA+ADEAMQA+AD8AMQA/ADIAMgA/AEAAMgBAADMAMwBAAEEAMwBBADQANABBAEIANABCADUANQBCAEMANQBDADYANgBDAEQANgBEADcANwBEAEUANwBFACoAKgBFADgAOABGADkAOQBGAEcAOQBHADoAOgBHAEgAOgBIADsAOwBIAEkAOwBJADwAPABJAEoAPABKAD0APQBKAEsAPQBLAD4APgBLAEwAPgBMAD8APwBMAE0APwBNAEAAQABNAE4AQABOAEEAQQBOAE8AQQBPAEIAQgBPAFAAQgBQAEMAQwBQAFEAQwBRAEQARABRAFIARABSAEUARQBSAFMARQBTADgAOABTAEYARgBUAEcARwBUAFUARwBVAEgASABVAFYASABWAEkASQBWAFcASQBXAEoASgBXAFgASgBYAEsASwBYAFkASwBZAEwATABZAFoATABaAE0ATQBaAFsATQBbAE4ATgBbAFwATgBcAE8ATwBcAF0ATwBdAFAAUABdAF4AUABeAFEAUQBeAF8AUQBfAFIAUgBfAGAAUgBgAFMAUwBgAGEAUwBhAEYARgBhAFQAVABiAFUAVQBiAGMAVQBjAFYAVgBjAGQAVgBkAFcAVwBkAGUAVwBlAFgAWABlAGYAWABmAFkAWQBmAGcAWQBnAFoAWgBnAGgAWgBoAFsAWwBoAGkAWwBpAFwAXABpAGoAXABqAF0AXQBqAGsAXQBrAF4AXgBrAGwAXgBsAF8AXwBsAG0AXwBtAGAAYABtAG4AYABuAGEAYQBuAG8AYQBvAFQAVABvAGIAYgBwAGMAYwBwAHEAYwBxAGQAZABxAHIAZAByAGUAZQByAHMAZQBzAGYAZgBzAHQAZgB0AGcAZwB0AHUAZwB1AGgAaAB1AHYAaAB2AGkAaQB2AHcAaQB3AGoAagB3AHgAagB4AGsAawB4AHkAawB5AGwAbAB5AHoAbAB6AG0AbQB6AHsAbQB7AG4AbgB7AHwAbgB8AG8AbwB8AH0AbwB9AGIAYgB9AHAAcAB+AHEAcQB+AH8AcQB/AHIAcgB/AIAAcgCAAHMAcwCAAIEAcwCBAHQAdACBAIIAdACCAHUAdQCCAIMAdQCDAHYAdgCDAIQAdgCEAHcAdwCEAIUAdwCFAHgAeACFAIYAeACGAHkAeQCGAIcAeQCHAHoAegCHAIgAegCIAHsAewCIAIkAewCJAHwAfACJAIoAfACKAH0AfQCKAIsAfQCLAHAAcACLAH4AfgCMAH8AfwCMAI0AfwCNAIAAgACNAI4AgACOAIEAgQCOAI8AgQCPAIIAggCPAJAAggCQAIMAgwCQAJEAgwCRAIQAhACRAJIAhACSAIUAhQCSAJMAhQCTAIYAhgCTAJQAhgCUAIcAhwCUAJUAhwCVAIgAiACVAJYAiACWAIkAiQCWAJcAiQCXAIoAigCXAJgAigCYAIsAiwCYAJkAiwCZAH4AfgCZAIwA",
+      "byteLength": 3528
+    }
+  ],
   "bufferViews": [
-    { "buffer": 0, "byteOffset": 0, "byteLength": 20, "target": 34962 },
-    { "buffer": 0, "byteOffset": 20, "byteLength": 6, "target": 34963 }
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 1848,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 1848,
+      "byteLength": 1680,
+      "target": 34963
+    }
   ],
   "accessors": [
     {
-      "bufferView": 0, "byteOffset": 0, "componentType": 5126, "count": 3,
-      "type": "VEC3", "max": [1,1,0], "min": [0,0,0]
+      "bufferView": 0,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 154,
+      "type": "VEC3",
+      "min": [
+        -82,
+        -92,
+        -72
+      ],
+      "max": [
+        82,
+        92,
+        72
+      ]
     },
     {
-      "bufferView": 1, "byteOffset": 0, "componentType": 5123, "count": 3,
-      "type": "SCALAR", "max": [2], "min": [0]
+      "bufferView": 1,
+      "byteOffset": 0,
+      "componentType": 5123,
+      "count": 840,
+      "type": "SCALAR"
     }
   ]
 }

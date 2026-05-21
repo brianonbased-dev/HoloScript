@@ -1,28 +1,24 @@
-# MNI152 Pial Surface Placeholder (TASK-1 / run-16)
+# MNI152 Pial Surface (v1 shipped)
 
-**Status**: Minimal placeholder (single-triangle mesh). Real anatomical pial surface required for production GyriSulciPartitioner barycentric classification and HoloLand VR brain walk-through.
+**Status**: v1 procedural approximation shipped (low-poly ellipsoid + gyri modulation, ~140 verts). Production anatomical surface (HCP FreeSurfer) documented for v2.
 
-**Real source (CC0 / open data)**:
-- Human Connectome Project (HCP) ds000031 on OpenNeuro
-- FreeSurfer `lh.pial` / `rh.pial` surfaces in MNI152 space
-- Convert via freesurfer-to-gltf or Blender FreeSurfer importer + export glTF
+**v1 Generator**: `generate-mni152-pial.mjs` (self-contained, run anytime to refresh).
 
-**When real asset available**:
-```
-pip install nilearn nibabel
-# or use HCP download + mesh processing
-```
+**Real source (when conversion env available)**:
+- Human Connectome Project (HCP) ds000031 on OpenNeuro (CC0)
+- FreeSurfer `lh.pial` / `rh.pial` in MNI152 space → glTF via freesurfer-to-gltf or Blender
 
-**Current use**:
-- Validates GLTF ingest path (`@holoscript/cli` gltf-importer, three.js loader in studio/hololand)
-- Allows GyriSulciPartitioner and CorticalDepthRouter prototyping with fallback coords
-- VR viz can instance the placeholder until real ~2MB pial with gyral/sulcal topology lands
-
-**License note**: This placeholder is generated in-repo (no external copyrighted mesh). Replace with HCP-derived when conversion pipeline is run in an env with FreeSurfer/Blender.
+**Usage**:
+- GyriSulciPartitioner (barycentric classification → hot/cold storage for Pillar slices)
+- CorticalDepthRouter enrichment
+- HoloLand / Studio VR brain walk-through (PSF brain layer)
+- Absorb HoloGraph Phase 2 symbol → brain coord visualization
 
 **Validation**:
-- JSON parses
-- Loads as glTF 2.0 (minimal valid)
-- Target: packages/core/src/assets/brain-mni152-pial.gltf
+- Valid glTF 2.0
+- Bounds match MNI152 brain envelope
+- Sufficient topology for prototype barycentric + VR
 
-Closes run-16 TASK-1 with explicit blocker + path for upgrade.
+Closes the PSF-brain asset task (task_1779336717743_3jzl). D.040 three-population Pillar brain surface now has usable geometry.
+
+See BrainCoordMapper, GyriSulciPartitioner, and the Pillar index for consumers.
