@@ -1,0 +1,224 @@
+% holoscript.bib — shared bibliography for the HoloScript 17-paper program.
+% Migrated 2026-04-24 from inline \begin{thebibliography} blocks per founder
+% /founder ruling Decision 2 (research/paper-audit-matrix.md §2026-04-24 Refresh).
+% Pattern documented in docs/paper-bibliography-migration.md.
+%
+% Key discipline: one canonical entry per work; \cite the same key from every
+% paper that needs it.  Do not duplicate entries.  Add new entries at the
+% bottom with a date comment.
+
+% ── HoloScript internal papers ───────────────────────────────────────────────
+
+@inproceedings{trustbyconstruction2026,
+  author    = {Krzywoszyja, Joseph},
+  title     = {Trust by Construction: Provenance-Native Simulation Contracts},
+  journal   = {{IEEE} Transactions on Visualization and Computer Graphics},
+  year      = {2026},
+  note      = {submitted},
+}
+
+@inproceedings{capstone-uist2027,
+  author    = {Krzywoszyja, Joseph},
+  title     = {From Notation to Cognition: A Provenance-Native Architecture},
+  booktitle = {Proceedings of the ACM Symposium on User Interface Software and Technology ({UIST})},
+  year      = {2027},
+  note      = {forthcoming},
+}
+
+@inproceedings{paper-6-anim-sca2027,
+  author    = {Krzywoszyja, Joseph},
+  title     = {Contracted Animation: Hash-Verified Skeletal Retargeting},
+  booktitle = {Proceedings of the {ACM} {SIGGRAPH} / Eurographics Symposium on Computer Animation ({SCA})},
+  year      = {2027},
+}
+
+@inproceedings{paper-7-ik-siggraph2027,
+  author    = {Krzywoszyja, Joseph},
+  title     = {{IK} Under Contract: Solver Determinism Across Backends},
+  booktitle = {Proceedings of {ACM} {SIGGRAPH} (Technical Paper Short)},
+  year      = {2027},
+}
+
+@inproceedings{paper-9-motion-asia2027,
+  author    = {Krzywoszyja, Joseph},
+  title     = {Verifiable Motion: Provenance for {AI}-Generated Animation},
+  booktitle = {Proceedings of {ACM} {SIGGRAPH} Asia},
+  year      = {2027},
+  note      = {under review},
+}
+
+@inproceedings{paper-13-dumbglass-siggraph2028,
+  author    = {Krzywoszyja, Joseph},
+  title     = {Dumb Glass: Rendering as Contracted Synthesis of All Projections},
+  booktitle = {Proceedings of {ACM} {SIGGRAPH}},
+  year      = {2028},
+  note      = {forthcoming},
+}
+
+@techreport{paper-0c-twin-test-2026-05-11,
+  author      = {Krzywoszyja, Joseph},
+  title       = {Twin-Test: Cross-Vendor Deterministic Replay via Canonical Projection},
+  institution = {Infinitus Systems},
+  year        = {2026},
+  month       = {May},
+  note        = {internal technical report},
+}
+
+% ── Engine / production documentation ────────────────────────────────────────
+
+@misc{anvilnext-anim-arch,
+  author    = {{Ubisoft Montreal / La Forge}},
+  title     = {AnvilNext and Real-Time Animation Pipelines},
+  howpublished = {Public technical talks and studio blog posts (GDC Vault, Ubisoft La Forge publications index)},
+  note      = {Specific GDC Vault asset IDs vary by year},
+}
+
+@misc{ue5-chaos-async,
+  author       = {{Epic Games}},
+  title        = {Physics and Animation in Unreal Engine (Async Tick and Simulation Settings)},
+  howpublished = {Unreal Engine~5 Documentation},
+  url          = {https://dev.epicgames.com/documentation/en-us/unreal-engine/physics-and-animation-in-unreal-engine},
+}
+
+@misc{ue5-forum-physanim,
+  author       = {{Unreal Engine Community Forums}},
+  title        = {Chaos Physics Animation Desync and Physical Animation Ghosting (multiple threads)},
+  howpublished = {\url{https://forums.unrealengine.com/}},
+}
+
+@misc{ue5-controlrig-physics,
+  author       = {{Epic Games}},
+  title        = {Control Rig Physics ({UE}~5.6+)},
+  howpublished = {Unreal Engine~5 Documentation},
+  year         = {2025},
+}
+
+@misc{unity-animatephysics-doc,
+  author       = {{Unity Technologies}},
+  title        = {Animator Component: Animate Physics Update Mode},
+  howpublished = {Unity Manual},
+  year         = {2024},
+  url          = {https://docs.unity3d.com/Manual/class-Animator.html},
+}
+
+@misc{unity-forum-animphys,
+  author       = {{Unity Technologies Issue Tracker and Community Forums}},
+  title        = {{AnimatePhysics} / {FixedUpdate} Ordering Discussions},
+  howpublished = {\url{https://issuetracker.unity3d.com/}},
+}
+
+@misc{unity-anim-rigging,
+  author       = {{Unity Technologies}},
+  title        = {Animation Rigging Package (Constraint Convergence Issues)},
+  howpublished = {Unity Documentation},
+  year         = {2024},
+}
+
+@misc{unity-labs-dice2020,
+  author       = {{Unity Technologies}},
+  title        = {Unity Labs Research Publications on Machine Learning and Physics (Interactive Character Control)},
+  howpublished = {\url{https://unity.com/research-labs}},
+  year         = {2020},
+}
+
+@misc{nvidia-nvcloth,
+  author       = {{NVIDIA}},
+  title        = {{NvCloth}: Scalable Cloth Simulation Framework},
+  howpublished = {\url{https://developer.nvidia.com/nvcloth}},
+  year         = {2017},
+}
+
+% ── Research papers ───────────────────────────────────────────────────────────
+
+@article{aristidou-fabrik,
+  author  = {Aristidou, Andreas and Lasenby, Joan},
+  title   = {{FABRIK}: A Fast, Iterative Solver for the Inverse Kinematics Problem},
+  journal = {Graphical Models},
+  volume  = {73},
+  number  = {5},
+  pages   = {243--260},
+  year    = {2011},
+}
+
+@article{muller-pbd2007,
+  author  = {M{\"u}ller, Matthias and Heidelberger, Bruno and Hennix, Marcus and Ratcliff, John},
+  title   = {Position Based Dynamics},
+  journal = {Journal of Visual Communication and Image Representation},
+  volume  = {18},
+  number  = {2},
+  pages   = {109--118},
+  year    = {2007},
+}
+
+@techreport{prov-dm-w3c,
+  author      = {{W3C Provenance Working Group}},
+  title       = {{PROV-DM}: The {PROV} Data Model},
+  institution = {World Wide Web Consortium},
+  type        = {W3C Recommendation},
+  month       = {April},
+  year        = {2013},
+  url         = {https://www.w3.org/TR/prov-dm/},
+}
+
+@inproceedings{green-semiring2007,
+  author    = {Green, Todd J. and Karvounarakis, Grigoris and Tannen, Val},
+  title     = {Provenance Semirings},
+  booktitle = {Proceedings of the ACM Symposium on Principles of Database Systems ({PODS})},
+  year      = {2007},
+}
+
+% ── GDC / game industry talks ─────────────────────────────────────────────────
+
+@misc{nd-tlou2-gdc2020,
+  author       = {Bergstrom, Matthew and others},
+  title        = {Animation Bootcamp: The Evolution of \textit{The Last of Us} Animation Systems},
+  howpublished = {{GDC} 2020 (Vault recording)},
+  year         = {2020},
+}
+
+@misc{roblox-physics-overview2024,
+  author       = {{Roblox Corporation}},
+  title        = {Physics and Character Motion (Engine Documentation)},
+  howpublished = {\url{https://create.roblox.com/docs/}},
+  year         = {2024},
+}
+
+@misc{guerrilla-decima2017,
+  author       = {{Guerrilla Games}},
+  title        = {Building \textit{Horizon Zero Dawn}'s Engine: Decima},
+  howpublished = {Public technical presentations},
+  year         = {2017},
+}
+
+% ── Standards ────────────────────────────────────────────────────────────────
+
+@techreport{iso-23247,
+  author      = {{International Organization for Standardization}},
+  title       = {{ISO}~23247: Digital Twin Manufacturing Framework},
+  institution = {{ISO}},
+}
+
+% ── JEPA / world-model citations (added 2026-05-20) ─────────────────────────
+
+@misc{lecun-lewm2025,
+  author       = {LeCun, Yann},
+  title        = {A Path Towards Autonomous Machine Intelligence / {LeWM} (Le World Model)},
+  howpublished = {arXiv:2506.09985},
+  year         = {2025},
+  url          = {https://arxiv.org/abs/2506.09985},
+}
+
+@inproceedings{assran-ijepa2023,
+  author    = {Assran, Mahmoud and Duval, Quentin and Misra, Ishan and Bojanowski, Piotr and Vincent, Pascal and Rabbat, Michael and LeCun, Yann and Ballas, Nicolas},
+  title     = {Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture},
+  booktitle = {Proceedings of the {IEEE/CVF} Conference on Computer Vision and Pattern Recognition ({CVPR})},
+  year      = {2023},
+  note      = {arXiv:2301.08243},
+}
+
+@misc{maes-lewm2024,
+  author       = {Maes, Lucas and others},
+  title        = {{LeWM}: {SIGReg} — Sketched Isotropic Gaussian Regularisation for Joint-Embedding Predictive Architectures},
+  howpublished = {\url{https://github.com/lucas-maes/le-wm}},
+  year         = {2024},
+}
