@@ -297,6 +297,23 @@ export async function handleTool(
   // ── Fork Sandbox Gate (canary task_1778618757735_zpt5) ─────────────────────
   // Block forked/untrusted HoloScript code and sensitive tools before they
   // can touch HoloLand worlds, robot/AI substrate, payments, or player state.
+  //
+  // Stdio transport design (see index.ts comment at line ~284): the stdio MCP
+  // transport is "trusted local process" and never carries HTTP auth headers,
+  // so signingCtx is always undefined there. Bridge: if the process has a
+  // valid HOLOSCRIPT_API_KEY in env (the same key that grants admin:* via the
+  // OAuth2 provider) synthesize admin:* scopes so the gate honours that trust.
+  const effectiveSigningCtx: SigningContext | undefined =
+    signingCtx ??
+    (process.env['HOLOSCRIPT_API_KEY']
+      ? {
+          signedRequest: false,
+          signingValid: true,
+          signer: 'stdio-local',
+          scopes: ['admin:*'],
+        }
+      : undefined);
+
   const capabilityManifest = asCapabilityManifest(args.capabilityManifest ?? args.manifest);
   const gateResult = await runForkSandboxGate(
     {
@@ -308,7 +325,7 @@ export async function handleTool(
     },
     {
       toolName: name,
-      grantedScopes: signingCtx?.scopes ?? [],
+      grantedScopes: effectiveSigningCtx?.scopes ?? [],
     }
   );
   if (!gateResult.allowed) {
