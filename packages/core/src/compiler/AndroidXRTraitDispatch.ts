@@ -7,6 +7,28 @@ export const WorldPhysicsConfig = {
 };
 
 /**
+ * APL Platform Capability surface (initial hook for WIT / shared trait parity).
+ *
+ * Per 2026-05-21 APL WIT initial audit + desktop-parity plan:
+ * This provides the runtime/tier reporting that the Rust/WASM WIT side
+ * can eventually mirror via a host function, so buildAdaptivePlatformLayerReceipt
+ * and tier inference work consistently across Web / Desktop / Android XR / VisionOS.
+ *
+ * Used by Android XR compiler target for receipt emission and platform gating.
+ */
+export const PlatformCapabilities = {
+  runtime: 'android-xr',
+  isTauri: false,
+  isMobile: true,
+  recommendedBackend: 'native',
+  recommendedWorld: 'holoscript-spatial',
+  hasWebXRImmersive: false,
+  hasWebGPU: false,
+  hasWebGL2: false,
+  // Future: populated from device capabilities at runtime for APL receipts
+};
+
+/**
  * Android XR Trait Dispatch Maps
  *
  * Trait maps for physics, interaction, audio, AR, accessibility,
