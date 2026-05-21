@@ -46,4 +46,26 @@ describe('PuppeteerRenderer', () => {
     expect(html).toContain("extractBlocks(code, 'object')");
     expect(html).toContain("extractVector(body, 'position')");
   });
+
+  it('generates readable label sprites for object labels', () => {
+    const renderer = new PuppeteerRenderer();
+    const generateRenderHTML = (renderer as unknown as {
+      generateRenderHTML: (code: string) => string;
+    }).generateRenderHTML.bind(renderer);
+
+    const html = generateRenderHTML(`
+      object "MCP Trace Overlay" {
+        geometry: "plane"
+        label: "MCP health: healthy"
+        position: { x: 0, y: 1.5, z: -2 }
+        scale: { x: 2, y: 1, z: 1 }
+      }
+    `);
+
+    expect(html).toContain("extractProperty(body, 'label')");
+    expect(html).toContain('createLabelSprite(label, color)');
+    expect(html).toContain('THREE.CanvasTexture');
+    expect(html).toContain("name + '_label'");
+    expect(html).toContain('depthTest: false');
+  });
 });

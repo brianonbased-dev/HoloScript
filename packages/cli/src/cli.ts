@@ -1078,7 +1078,6 @@ async function main(): Promise<void> {
         // 1. Common Typos
         const typos: Record<string, string> = {
           sper: 'sphere',
-          box: 'cube',
           'rotate.y': 'rotation.y',
           'rotate.x': 'rotation.x',
           'rotate.z': 'rotation.z',
@@ -1086,9 +1085,6 @@ async function main(): Promise<void> {
 
         lines.forEach((line, i) => {
           for (const [typo, fix] of Object.entries(typos)) {
-            // Avoid false positives for skybox
-            if (typo === 'box' && line.includes('skybox')) continue;
-
             if (line.includes(typo)) {
               errorList.push({
                 line: i + 1,

@@ -833,6 +833,7 @@ export class PuppeteerRenderer {
         const position = extractVector(body, 'position') || [0, 1, 0];
         const scale = extractVector(body, 'scale') || dimensionsFor(geometry, body);
         const rotation = extractVector(body, 'rotation') || [0, 0, 0];
+        const label = extractProperty(body, 'label');
         const opacity = extractNumber(body, 'opacity') ?? 1;
         const emissive = toColor(extractProperty(body, 'emissive') || color);
         const emissiveIntensity = extractNumber(body, 'emissiveIntensity') ?? 0.2;
@@ -856,11 +857,80 @@ export class PuppeteerRenderer {
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         threeScene.add(mesh);
+
+        if (label) {
+          const labelSprite = createLabelSprite(label, color);
+          labelSprite.name = name + '_label';
+          labelSprite.position.set(
+            position[0],
+            position[1] + Math.max(scale[1] * 0.72, 0.32),
+            position[2]
+          );
+          threeScene.add(labelSprite);
+        }
       }
 
       // Add grid
       const grid = new THREE.GridHelper(20, 20, 0x444444, 0x222222);
       threeScene.add(grid);
+    }
+
+    function createLabelSprite(text, accentColor) {
+      const cleanText = String(text).replace(/\\s+/g, ' ').trim();
+      const displayText = cleanText.length > 64 ? cleanText.slice(0, 61) + '...' : cleanText;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const width = 1024;
+      const height = 224;
+      const radius = 38;
+      canvas.width = width;
+      canvas.height = height;
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = 'rgba(3, 7, 18, 0.86)';
+      ctx.strokeStyle = accentColor || '#66fff2';
+      ctx.lineWidth = 8;
+      roundedRect(ctx, 16, 16, width - 32, height - 32, radius);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.font = '600 54px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#f8fafc';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+      ctx.shadowBlur = 12;
+      ctx.fillText(displayText, width / 2, height / 2);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      if ('colorSpace' in texture) texture.colorSpace = THREE.SRGBColorSpace;
+      texture.needsUpdate = true;
+
+      const material = new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        depthTest: false,
+        depthWrite: false,
+      });
+      const sprite = new THREE.Sprite(material);
+      const labelWidth = Math.min(3.8, Math.max(1.35, displayText.length * 0.07));
+      sprite.scale.set(labelWidth, labelWidth * 0.22, 1);
+      sprite.renderOrder = 1000;
+      return sprite;
+    }
+
+    function roundedRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
     }
 
     function extractBlocks(code, keyword) {
