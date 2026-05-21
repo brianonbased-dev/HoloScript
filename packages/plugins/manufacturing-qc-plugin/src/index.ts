@@ -9,5 +9,7 @@ import { createQualityGateHandler } from './traits/QualityGateTrait';
 import { createDefectTrackingHandler } from './traits/DefectTrackingTrait';
 import { createBOMHandler } from './traits/BOMTrait';
 
-export const pluginMeta = { name: '@holoscript/plugin-manufacturing-qc', version: '1.0.0', traits: ['production_line', 'quality_gate', 'defect_tracking', 'bom'] };
+export * from './spc';
+
+export const pluginMeta = { name: '@holoscript/plugin-manufacturing-qc', version: '1.0.0', traits: ['production_line', 'quality_gate', 'defect_tracking', 'bom', 'spc'] };
 export const traitHandlers = [createProductionLineHandler(), createQualityGateHandler(), createDefectTrackingHandler(), createBOMHandler()];
