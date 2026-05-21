@@ -536,6 +536,30 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
     subjects: ['delivery', 'signing', 'retry'],
     tags: ['webhook', 'notification'],
   },
+  {
+    capability: 'startup-gate',
+    description:
+      'OS startup registration gate receipts — prove registration state, approval, verification, rollback, and redacted command handling for login-item, autostart, and startup-shortcut flows.',
+    receiptType: 'HoloShellStartupGateReceiptPack',
+    module: 'holoshell-startup-gate-receipt',
+    exportName: 'HoloShellStartupGateReceiptPack',
+    validateFn: 'validateHoloShellStartupGateReceiptPack',
+    cloneFn: 'cloneHoloShellStartupGateReceiptPack',
+    isSupportedFn: 'isSupportedStartupPlatform',
+    subjects: [
+      'windows-startup-folder',
+      'macos-login-item',
+      'linux-xdg-autostart',
+      'windows-task-scheduler',
+      'macos-launchd',
+      'linux-systemd-user',
+      'registration',
+      'approval',
+      'unregistration',
+      'rollback',
+    ],
+    tags: ['holoshell', 'startup', 'autostart', 'login-item', 'safety', 'hololand'],
+  },
 ];
 
 // ── Lookup functions ──
