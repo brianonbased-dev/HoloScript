@@ -1,0 +1,593 @@
+// ============================================================================
+// Stress-Test: Maker's Night Watch — Shared XR Fabrication Atelier
+// A-009 Phase 3 — 2026-05-20
+//
+// Trait combo (fabrication-devices category: ZERO prior coverage in any example):
+//
+//   @sculpt_volume       (0 prior) — central design preview: the bracket being
+//                        manufactured floats above the workbench as a translucent
+//                        voxel mesh, 128-voxel resolution, rotating slowly so all
+//                        angles are inspectable without touching anything.
+//
+//   @printability_feedback (0 prior) — overlaid on the sculpt_volume preview.
+//                        Overhang > 45° lights orange. Unsupported islands glow
+//                        red. Bridge spans > 60 mm pulse yellow. Real-time update
+//                        when the design changes; dormant otherwise.
+//
+//   @fdm_target          (0 prior) — FDM printer head + in-progress print object.
+//                        Red PETG, 0.2 mm layers, gyroid infill. Gcode-driven
+//                        head movement animates in realtime. Current layer counter
+//                        drives the partial mesh visibility.
+//
+//   @resin_target        (0 prior) — MSLA resin VAT printer growing a translucent
+//                        architectural model. 405 nm UV, 50 µm layers. UV backlight
+//                        glows blue-violet through the FEP film; the platform
+//                        lifts by one layer every ~3.2 seconds.
+//
+//   @laser_cuttable      (0 prior) — acrylic panel inside the laser cutter.
+//                        55 % power, engraving circuit traces from an SVG.
+//                        The laser dot animates along the vector path; the engraved
+//                        traces emit a faint green glow (acrylic edge-light effect).
+//
+//   @fabrication_ready   (0 prior) — the finished PETG bracket resting on the
+//                        bench beside a caliper. Verified: true, dimensional
+//                        tolerance 0.3 mm. A subtle certification-blue pulse
+//                        distinguishes it from the in-progress prints.
+//
+// Well-exercised anchors (pull zero-coverage traits into proven context):
+//   @animated    (271 prior) — FDM head gcode path; resin platform lift;
+//                              laser dot SVG trace; sculpt mesh rotation
+//   @glowing     (726 prior) — nozzle hot-end heat; resin UV bed;
+//                              laser dot; acrylic trace edge-light;
+//                              fabrication_ready certification pulse
+//   @collidable  (664 prior) — workbench, floor, printer bodies, finished part
+//   @spatial_audio (77 prior)— per-machine audio emitters: FDM stepper hum,
+//                              resin lift peel, laser servo traversal, shop ambience
+//   @reactive    (62 prior)  — printability_feedback updates when design changes
+//
+// Visual story:
+//   03:22 AM. You are standing in a 60 m² basement maker-space. Three machines
+//   are running. The air smells of hot PETG and UV resin.
+//
+//   To your left: an FDM printer is 26 % through a red bracket — layer 47 of 180.
+//   The nozzle traces a gyroid infill pattern, the orange-red glow of the hot end
+//   visible as it sweeps. You watch a layer complete. The print is deliberate,
+//   accumulative. No drama, just process.
+//
+//   To your right: a resin MSLA printer. The VAT bottom glows blue-violet. Every
+//   3 seconds, the build platform lifts one layer — a faint peeling sound as the
+//   cured layer releases from the FEP film. A translucent architectural model is
+//   half-formed, suspended upside-down from the platform: delicate arches and
+//   columns in clear resin, each layer 50 µm, each one invisible from the last.
+//
+//   Behind you: a laser cutter traces circuit traces onto a green acrylic panel.
+//   The dot moves fast — 180 mm/s — along conductor paths. The engraved channels
+//   edge-light in neon green: acrylic carries the laser's wake.
+//
+//   Above the central workbench, a holographic mesh preview rotates: the bracket
+//   in progress, 128-voxel resolution, semi-transparent. Orange zones mark the
+//   two 50° overhangs the designer hasn't resolved yet. One island glows red —
+//   it will detach mid-print if left unsupported. The designer is asleep. You
+//   make a note.
+//
+//   On the bench near the caliper: a finished bracket from the last batch.
+//   Black PETG, already sanded. It pulses once, slowly — a soft blue — confirming
+//   it passed the dimensional check this afternoon: ±0.28 mm on all faces.
+//
+//   The only human sound in the room is the FDM stepper motor — a quiet,
+//   rhythmic chitter — and the resin printer's occasional peel.
+// ============================================================================
+
+composition "MakersNightWatch" {
+
+  version: "1.0"
+  target: "xr"
+  xr_mode: "vr_and_flat"
+
+  // ── Environment ──────────────────────────────────────────────────────────
+
+  environment {
+    skybox: "none"
+    background_color: "#090908"
+    ambient_light: 0.06
+    ambient_color: "#1a1810"
+    shadows: true
+    shadow_resolution: 1024
+    fog: { density: 0.0012, color: "#0d0c0a" }
+  }
+
+  // ── Design preview: sculpt_volume + printability_feedback (never exercised) ─
+
+  object "DesignPreviewMesh" {
+    type: "mesh_preview"
+    position: [0, 1.55, 0]
+    mesh: "assets/design-bracket-v7.obj"
+    scale: 0.9
+    color: "#80c8ff"
+    opacity: 0.32
+
+    @sculpt_volume(
+      editable: false,
+      display_mode: "wireframe_overlay",
+      resolution_voxels: 128,
+      show_normals: false,
+      preview_only: true,
+      surface_tension: 0.0
+    )
+
+    @printability_feedback(
+      overhang_threshold_deg: 45,
+      overhang_color: "#ff6622",
+      bridge_span_limit_mm: 60,
+      bridge_color: "#ffdd22",
+      island_color: "#ff2222",
+      support_required_color: "#ff8844",
+      realtime: false,
+      update_on_event: "design_update",
+      pulse_warnings: true,
+      pulse_rate_hz: 0.6
+    )
+
+    @animated(
+      property: "rotation_y",
+      start: 0,
+      end: 360,
+      duration: 22,
+      loop: true,
+      easing: "linear"
+    )
+
+    @reactive(
+      on_event: "design_update",
+      property: "mesh",
+      action: "reload_asset"
+    )
+  }
+
+  // ── FDM printer — structural bracket in red PETG (never exercised) ────────
+
+  object "FDMPrinterBody" {
+    type: "cube"
+    position: [-1.4, 0.6, 0.8]
+    width: 0.42
+    height: 0.55
+    depth: 0.44
+    material: "powder_coat_black"
+    color: "#181818"
+    roughness: 0.72
+    metalness: 0.4
+
+    @collidable
+  }
+
+  object "FDMPrintBed" {
+    type: "plane"
+    position: [-1.4, 0.88, 0.8]
+    width: 0.22
+    height: 0.22
+    material: "pei_spring_steel"
+    color: "#3a3a3a"
+    roughness: 0.55
+    metalness: 0.6
+
+    @collidable
+  }
+
+  object "FDMPrintHead" {
+    type: "cube"
+    position: [-1.4, 1.14, 0.8]
+    width: 0.04
+    height: 0.06
+    depth: 0.04
+    material: "aluminium_anodised"
+    color: "#888888"
+    metalness: 0.8
+    roughness: 0.3
+
+    @fdm_target(
+      material_filament: "PETG",
+      color_filament: "#cc2211",
+      layer_height_mm: 0.2,
+      nozzle_diameter_mm: 0.4,
+      print_speed_mms: 65,
+      bed_temp_c: 85,
+      nozzle_temp_c: 240,
+      infill_percent: 40,
+      infill_pattern: "gyroid",
+      support: false,
+      current_layer: 47,
+      total_layers: 180,
+      estimated_remaining_min: 94
+    )
+
+    @animated(
+      property: "position",
+      driver: "fdm_gcode_path",
+      speed: 65,
+      loop: false,
+      axis_range: {
+        x: [-1.51, -1.29],
+        y: [1.14, 1.14],
+        z: [0.69, 0.91]
+      }
+    )
+
+    @glowing(
+      color: "#ff4400",
+      intensity: 0.14,
+      radius: 0.07,
+      emits_from: "nozzle_tip",
+      pulsing: false
+    )
+  }
+
+  object "FDMPartInProgress" {
+    type: "mesh"
+    position: [-1.4, 0.92, 0.8]
+    mesh: "assets/bracket-partial-47-of-180.obj"
+    material: "fdm_petg_red"
+    color: "#cc2211"
+    roughness: 0.5
+    metalness: 0.0
+
+    @fdm_target(
+      material_filament: "PETG",
+      is_printed_object: true,
+      layer_visibility: 47
+    )
+
+    @animated(
+      property: "layer_visibility",
+      driver: "fdm_layer_counter",
+      increment: 1,
+      interval_sec: 3.2
+    )
+  }
+
+  // ── Resin VAT printer — architectural model (never exercised) ─────────────
+
+  object "ResinPrinterBody" {
+    type: "cube"
+    position: [1.3, 0.5, 0.6]
+    width: 0.22
+    height: 0.48
+    depth: 0.18
+    material: "abs_plastic"
+    color: "#efefef"
+    roughness: 0.6
+    metalness: 0.0
+
+    @collidable
+  }
+
+  object "ResinVATBed" {
+    type: "plane"
+    position: [1.3, 0.74, 0.6]
+    width: 0.14
+    height: 0.08
+    material: "glass_fep_film"
+    color: "#88aaff"
+    opacity: 0.52
+    roughness: 0.08
+    metalness: 0.0
+
+    @glowing(
+      color: "#4444cc",
+      intensity: 0.7,
+      radius: 0.22,
+      emits_from: "bottom_surface",
+      pulsing: true,
+      pulse_rate_hz: 0.31,
+      pulse_min: 0.45,
+      pulse_max: 0.7
+    )
+  }
+
+  object "ResinBuildPlatform" {
+    type: "plane"
+    position: [1.3, 0.9, 0.6]
+    width: 0.13
+    height: 0.07
+    material: "anodised_aluminium"
+    color: "#666677"
+    metalness: 0.7
+    roughness: 0.3
+
+    @resin_target(
+      resin_type: "standard_clear",
+      layer_height_mm: 0.05,
+      uv_wavelength_nm: 405,
+      exposure_time_ms: 2500,
+      lift_speed_mms: 3.0,
+      retract_speed_mms: 150,
+      current_layer: 310,
+      total_layers: 640,
+      estimated_remaining_min: 55,
+      model_color: "#ccddff",
+      model_opacity: 0.72
+    )
+
+    @animated(
+      property: "position_y",
+      driver: "resin_lift_cycle",
+      lift_delta: 0.00005,
+      loop: false,
+      total_distance: 0.032
+    )
+  }
+
+  object "ResinModelGrowing" {
+    type: "mesh"
+    position: [1.3, 0.82, 0.6]
+    mesh: "assets/arch-model-partial-310-of-640.obj"
+    material: "resin_cured_clear"
+    color: "#c0d0ee"
+    opacity: 0.72
+    roughness: 0.1
+    metalness: 0.0
+
+    @resin_target(
+      is_printed_object: true,
+      resin_type: "standard_clear",
+      layer_visibility: 310
+    )
+
+    @glowing(
+      color: "#88aaff",
+      intensity: 0.09,
+      radius: 0.05,
+      emits_from: "current_layer_edge"
+    )
+
+    @animated(
+      property: "layer_visibility",
+      driver: "resin_layer_counter",
+      increment: 1,
+      interval_sec: 3.2
+    )
+  }
+
+  // ── Laser cutter — circuit trace engraving on acrylic (never exercised) ───
+
+  object "LaserCutterBody" {
+    type: "cube"
+    position: [0, 0.62, 1.45]
+    width: 0.62
+    height: 0.18
+    depth: 0.52
+    material: "powder_coat_black"
+    color: "#111111"
+    roughness: 0.7
+    metalness: 0.5
+
+    @collidable
+
+    @spatial_audio(
+      source: "audio/laser-cutter-servo.wav",
+      loop: true,
+      volume: 0.36,
+      min_distance: 0.3,
+      max_distance: 5,
+      rolloff: "linear"
+    )
+  }
+
+  object "LaserAcrylicPanel" {
+    type: "plane"
+    position: [0, 0.72, 1.45]
+    width: 0.44
+    height: 0.34
+    material: "acrylic_green_3mm"
+    color: "#44cc88"
+    opacity: 0.8
+    roughness: 0.06
+    metalness: 0.0
+
+    @laser_cuttable(
+      material: "acrylic_3mm",
+      kerf_mm: 0.18,
+      power_percent: 55,
+      speed_mms: 180,
+      passes: 1,
+      cut_mode: "engrave",
+      design_file: "assets/circuit-traces-v3.svg",
+      burn_depth_mm: 0.4,
+      fume_extraction: true,
+      progress_percent: 62
+    )
+
+    @glowing(
+      color: "#00ff88",
+      intensity: 0.24,
+      radius: 0.16,
+      emits_from: "engraved_traces",
+      pulsing: false
+    )
+  }
+
+  object "LaserDot" {
+    type: "point_light"
+    position: [0, 0.74, 1.45]
+    intensity: 3.8
+    color: "#00ff22"
+    radius: 0.003
+    cast_shadows: false
+
+    @animated(
+      property: "position",
+      driver: "laser_svg_path",
+      path_file: "assets/circuit-traces-v3.svg",
+      speed_mms: 180,
+      loop: true
+    )
+
+    @glowing(
+      color: "#00ff22",
+      intensity: 3.8,
+      radius: 0.004
+    )
+  }
+
+  // ── Central workbench ─────────────────────────────────────────────────────
+
+  object "WorkbenchTop" {
+    type: "cube"
+    position: [0, 0.5, 0]
+    width: 1.82
+    height: 0.04
+    depth: 0.92
+    material: "butcher_block_maple"
+    color: "#d4a870"
+    roughness: 0.8
+    metalness: 0.0
+
+    @collidable
+  }
+
+  object "WorkbenchLegs" {
+    type: "cube"
+    position: [0, 0.25, 0]
+    width: 1.76
+    height: 0.5
+    depth: 0.06
+    material: "steel_welded"
+    color: "#282828"
+    roughness: 0.6
+    metalness: 0.8
+
+    @collidable
+  }
+
+  // ── Finished bracket: fabrication_ready (never exercised) ─────────────────
+
+  object "FinishedBracket" {
+    type: "mesh"
+    position: [-0.38, 0.54, 0.08]
+    mesh: "assets/bracket-finished.obj"
+    material: "fdm_petg_black"
+    color: "#222222"
+    roughness: 0.5
+    metalness: 0.0
+    scale: 0.95
+
+    @fabrication_ready(
+      process: "fdm",
+      material: "PETG",
+      post_process: ["support_removal", "light_sanding"],
+      dimensional_tolerance_mm: 0.28,
+      verified: true,
+      verified_at: "2026-05-20T14:32:00Z",
+      batch_id: "batch-2026-05-20-03",
+      units: 1
+    )
+
+    @collidable
+
+    @glowing(
+      color: "#4488ff",
+      intensity: 0.07,
+      radius: 0.14,
+      emits_from: "surface",
+      pulsing: true,
+      pulse_rate_hz: 0.08,
+      pulse_min: 0.04,
+      pulse_max: 0.07
+    )
+  }
+
+  object "Caliper" {
+    type: "mesh"
+    position: [-0.18, 0.52, 0.1]
+    mesh: "assets/vernier-caliper.obj"
+    material: "stainless_steel"
+    color: "#c8c8c8"
+    roughness: 0.25
+    metalness: 0.95
+
+    @collidable
+  }
+
+  // ── Desk lamp ─────────────────────────────────────────────────────────────
+
+  object "DeskLampHead" {
+    type: "cube"
+    position: [0.7, 1.26, -0.15]
+    width: 0.12
+    height: 0.06
+    depth: 0.1
+    material: "aluminium_anodised"
+    color: "#666666"
+    roughness: 0.4
+    metalness: 0.75
+  }
+
+  object "DeskLampLight" {
+    type: "point_light"
+    position: [0.7, 1.22, -0.1]
+    intensity: 1.85
+    color: "#ffe0a0"
+    radius: 3.2
+    cast_shadows: true
+  }
+
+  // ── Per-machine audio emitters ────────────────────────────────────────────
+
+  object "WorkshopAmbience" {
+    type: "audio_volume"
+    position: [0, 1.2, 0]
+    radius: 9
+
+    @spatial_audio(
+      source: "audio/workshop-night-ambience.wav",
+      loop: true,
+      volume: 0.25,
+      min_distance: 0,
+      max_distance: 9,
+      rolloff: "linear"
+    )
+  }
+
+  object "FDMPrinterSound" {
+    type: "audio_emitter"
+    position: [-1.4, 0.85, 0.8]
+
+    @spatial_audio(
+      source: "audio/fdm-stepper-running.wav",
+      loop: true,
+      volume: 0.5,
+      min_distance: 0.2,
+      max_distance: 4,
+      rolloff: "inverse"
+    )
+  }
+
+  object "ResinPrinterPeel" {
+    type: "audio_emitter"
+    position: [1.3, 0.7, 0.6]
+
+    @spatial_audio(
+      source: "audio/resin-fep-peel.wav",
+      loop: true,
+      volume: 0.3,
+      min_distance: 0.2,
+      max_distance: 3,
+      rolloff: "inverse"
+    )
+  }
+
+  // ── Floor ─────────────────────────────────────────────────────────────────
+
+  object "ConcreteFloor" {
+    type: "plane"
+    position: [0, 0, 0]
+    width: 9
+    height: 9
+    material: "concrete_industrial"
+    roughness: 0.94
+    metalness: 0.0
+    color: "#484440"
+
+    @collidable
+  }
+
+}
