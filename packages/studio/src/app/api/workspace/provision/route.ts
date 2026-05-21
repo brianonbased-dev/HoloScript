@@ -87,6 +87,10 @@ export async function POST(request: NextRequest) {
       accountWorkspace: result.user?.accountWorkspace,
       scaffolded: result.user?.scaffolded,
       daemonStarted: result.user?.daemonStarted,
+      // HoloMesh agent identity — display once to user so they can store in .env
+      holomeshAgentId: result.user?.holomeshAgentId,
+      holomeshApiKey: result.user?.holomeshApiKey,
+      holomeshWalletAddress: result.user?.holomeshWalletAddress,
     },
     steps: result.steps,
   });

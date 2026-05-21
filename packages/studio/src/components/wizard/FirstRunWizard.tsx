@@ -63,6 +63,14 @@ const STARTER_COMPOSITIONS: Composition[] = [
 
 type WizardStep = 'github' | 'composition' | 'deploy' | 'success';
 
+interface ProvisionedIdentity {
+  workspaceId?: string;
+  repoUrl?: string;
+  holomeshAgentId?: string;
+  holomeshApiKey?: string;
+  holomeshWalletAddress?: string;
+}
+
 interface FirstRunWizardProps {
   onComplete?: (data: { githubConnected: boolean; compositionId: string; liveUrl: string }) => void;
 }
@@ -74,10 +82,36 @@ export default function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
   const [deploymentUrl, setDeploymentUrl] = useState<string>('');
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployError, setDeployError] = useState<string>('');
+  const [isProvisioning, setIsProvisioning] = useState(false);
+  const [provisionedIdentity, setProvisionedIdentity] = useState<ProvisionedIdentity | null>(null);
 
   const handleGitHubSuccess = () => {
     setGithubConnected(true);
     setStep('composition');
+
+    // Fire workspace provisioning async — runs in background while user picks composition.
+    // Non-fatal: a failure here does not block deploy; user can re-provision later.
+    setIsProvisioning(true);
+    fetch('/api/workspace/provision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        consent: {
+          scaffold: true,
+          absorb: true,
+          daemon: true,
+          publishKnowledge: false,
+        },
+      }),
+    })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`${res.status}`))))
+      .then((data: { user?: ProvisionedIdentity }) => {
+        if (data.user) setProvisionedIdentity(data.user);
+      })
+      .catch(() => {
+        // Provision failed — workspace can be re-provisioned on next login
+      })
+      .finally(() => setIsProvisioning(false));
   };
 
   const handleCompositionSelect = (compositionId: string) => {
@@ -331,6 +365,40 @@ export default function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
                 </a>
               </div>
 
+              {/* Agent Identity — shown once, user must save these */}
+              {isProvisioning && (
+                <div className="flex items-center gap-2 rounded-lg border border-studio-border bg-studio-panel/40 p-4">
+                  <Loader2 className="h-4 w-4 animate-spin text-studio-muted" />
+                  <p className="text-sm text-studio-muted">Setting up your agent workspace…</p>
+                </div>
+              )}
+              {provisionedIdentity?.holomeshAgentId && (
+                <div className="rounded-xl border border-studio-accent/20 bg-studio-accent/5 p-4">
+                  <p className="mb-3 text-xs font-semibold text-studio-accent">
+                    AGENT IDENTITY — SAVE THESE NOW
+                  </p>
+                  <p className="mb-3 text-xs text-studio-muted">
+                    Copy these into your <code className="text-studio-text">.env</code> file. The
+                    API key and wallet address are shown once — they are already pushed to your
+                    repo&apos;s <code className="text-studio-text">.env.example</code>.
+                  </p>
+                  <div className="space-y-2">
+                    {[
+                      ['HOLOMESH_AGENT_ID', provisionedIdentity.holomeshAgentId],
+                      ['HOLOMESH_API_KEY', provisionedIdentity.holomeshApiKey ?? ''],
+                      ['HOLOMESH_WALLET_ADDRESS', provisionedIdentity.holomeshWalletAddress ?? ''],
+                    ].map(([key, value]) =>
+                      value ? (
+                        <div key={key} className="rounded bg-black/40 px-3 py-2 font-mono text-xs">
+                          <span className="text-studio-muted">{key}=</span>
+                          <span className="break-all text-studio-text">{value}</span>
+                        </div>
+                      ) : null
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Next Actions */}
               <div className="space-y-2">
                 <button
@@ -354,6 +422,7 @@ export default function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
                   <li>• Customize your composition in the editor</li>
                   <li>• Deploy updates with git push</li>
                   <li>• Share your live URL with collaborators</li>
+                  <li>• Install Claude Code and run: npx holoscript-agent</li>
                 </ul>
               </div>
             </div>

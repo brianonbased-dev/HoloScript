@@ -543,6 +543,11 @@ Type=simple
 WorkingDirectory=$WORKDIR
 EnvironmentFile=$ENV_FILE
 ExecStart=$NODE_BIN dist/index.js run
+# Preemption checkpoint: send SIGTERM early so gpu-runner.mjs can write
+# checkpoint to R2 before the SIGKILL deadline. The runner's SIGTERM handler
+# writes checkpoint and exits with code 143. KillMode=mixed ensures children
+# are also signaled. TimeoutStopSec gives 15s for checkpoint before SIGKILL.
+ExecStopPost=/bin/sh -c 'echo "[systemd] agent stopped at $(date -u +%FT%TZ)" >> $LOG_DIR/agent.log 2>/dev/null || true'
 StandardOutput=append:$LOG_DIR/agent.log
 StandardError=append:$LOG_DIR/agent.log
 # Self-heal on crash. RestartSec=10s gives time for a vLLM bounce.
@@ -554,7 +559,9 @@ RestartSec=10s
 StartLimitBurst=5
 StartLimitIntervalSec=60
 # Process management. Kill children too on stop.
+# TimeoutStopSec=15s gives the runner time to checkpoint before SIGKILL.
 KillMode=mixed
+TimeoutStopSec=15
 
 [Install]
 WantedBy=multi-user.target

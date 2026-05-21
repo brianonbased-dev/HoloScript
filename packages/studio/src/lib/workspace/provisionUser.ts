@@ -36,6 +36,10 @@ export interface ProvisionedUser {
   accountWorkspace?: FounderAccountWorkspace | AccountWorkspaceMetadata;
   scaffolded: boolean;
   daemonStarted: boolean;
+  /** HoloMesh agent identity — write-once, never overwrite (GOLD G.016) */
+  holomeshAgentId?: string;
+  holomeshApiKey?: string;
+  holomeshWalletAddress?: string;
 }
 
 export interface ProvisionInput {
@@ -333,39 +337,53 @@ async function seedRepo(
   token: string,
   owner: string,
   repoName: string,
-  workspaceId: string,
+  _workspaceId: string,
   scaffoldFiles: Record<string, string>
 ): Promise<void> {
-  const secretReferenceFiles = buildSecretReferenceFiles(workspaceId);
-
-  for (const [path, content] of Object.entries(secretReferenceFiles)) {
-    await pushFile(
-      token,
-      owner,
-      repoName,
-      path,
-      content,
-      `chore: provision HoloScript secret reference ${path}`
-    );
-  }
-
-  // Push all scaffold files (.claude/CLAUDE.md, .claude/NORTH_STAR.md, skills, hooks, etc.)
-  for (const [path, content] of Object.entries(scaffoldFiles)) {
-    await pushFile(token, owner, repoName, path, content, `chore: scaffold ${path}`);
+  // Push all scaffold files: secret references + .claude/ structure + skills + hooks.
+  // Callers build the full file map (via buildSecretReferenceFiles) before calling seedRepo.
+  for (const [filePath, content] of Object.entries(scaffoldFiles)) {
+    await pushFile(token, owner, repoName, filePath, content, `chore: scaffold ${filePath}`);
   }
 }
 
-function buildSecretReferenceFiles(workspaceId: string): Record<string, string> {
+function buildSecretReferenceFiles(
+  workspaceId: string,
+  holomesh?: HolomeshRegistration
+): Record<string, string> {
   const secretRef = `secret://workspace/${workspaceId}/holoscript/orchestrator/api-key`;
+  const holomeshAgentId = holomesh?.agentId ?? '';
+  const holomeshWalletAddress = holomesh?.walletAddress ?? '';
+
   return {
     '.env.example': [
-      '# HoloScript Platform - local development only',
-      '# Do not commit .env. Store the provisioned value as a Studio/HoloVault',
-      '# workspace secret or GitHub Actions secret named HOLOSCRIPT_API_KEY.',
+      '# HoloScript Platform — local development only',
+      '# NEVER commit .env to git. Copy this file to .env and fill in the values.',
+      '# Wallet vars are write-once identity (GOLD G.016) — never overwrite.',
+      '',
+      '# ── Orchestrator ──────────────────────────────────────────────────────',
       'HOLOSCRIPT_API_KEY=',
       `MCP_WORKSPACE_ID=${workspaceId}`,
       `MCP_ORCHESTRATOR_URL=${ORCHESTRATOR_URL}`,
       'HOLOSCRIPT_MCP=https://mcp.holoscript.net',
+      '',
+      '# ── HoloMesh Agent Identity (write-once — GOLD G.016) ────────────────',
+      '# These were provisioned when you signed up. Keep them safe.',
+      'HOLOMESH_API_KEY=',
+      `HOLOMESH_AGENT_ID=${holomeshAgentId}`,
+      '',
+      '# ── HoloMesh Wallet Identity (write-once — NEVER overwrite) ──────────',
+      `HOLOMESH_WALLET_ADDRESS=${holomeshWalletAddress}`,
+      'HOLOMESH_WALLET_KEY=',
+      '',
+    ].join('\n'),
+    '.env.identity.example': [
+      '# Write-once wallet identity — separate from session keys (GOLD G.016).',
+      '# Copy to .env.identity and fill in HOLOMESH_WALLET_KEY.',
+      '# NEVER commit .env.identity to git.',
+      '',
+      `HOLOMESH_WALLET_ADDRESS=${holomeshWalletAddress}`,
+      'HOLOMESH_WALLET_KEY=',
       '',
     ].join('\n'),
     'ecosystem/secrets.manifest.yml': [
@@ -381,6 +399,12 @@ function buildSecretReferenceFiles(workspaceId: string): Record<string, string> 
       '    setup:',
       '      - "Store the provisioned value in Studio/HoloVault or a GitHub Actions secret named HOLOSCRIPT_API_KEY."',
       '      - "For local development, copy .env.example to .env outside Git and fill the value locally."',
+      '  - name: "HOLOMESH_API_KEY"',
+      '    ref: "secret://holomesh/agent/api-key"',
+      '    delivery: "studio-broker-or-local-env"',
+      '    required_for:',
+      '      - "holomesh-board"',
+      '      - "agent-mesh"',
       '',
     ].join('\n'),
   };
@@ -591,6 +615,54 @@ async function publishProvisionedKnowledge(context: ExtractKnowledgeContext): Pr
   return result.publishedCount;
 }
 
+// ── Step: Register HoloMesh Agent Identity ───────────────────────────────────
+
+interface HolomeshRegistration {
+  agentId: string;
+  holomeshApiKey: string;
+  walletAddress: string;
+}
+
+/**
+ * Register a new HoloMesh agent for the user.
+ * Server generates the wallet — no x402 challenge needed for provisioned users.
+ * The returned apiKey + walletAddress are write-once identity (GOLD G.016).
+ */
+async function registerHolomeshAgent(
+  githubUsername: string,
+  mcpApiKey: string
+): Promise<HolomeshRegistration> {
+  const mcpUrl = mcpServerUrl();
+  const res = await fetch(`${mcpUrl}/api/holomesh/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-mcp-api-key': mcpApiKey,
+    },
+    body: JSON.stringify({ name: `studio-${githubUsername}` }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to register HoloMesh agent: ${res.status}`);
+  }
+
+  const data = (await res.json()) as {
+    agentId?: string;
+    id?: string;
+    apiKey?: string;
+    walletAddress?: string;
+  };
+  const agentId = data.agentId ?? data.id ?? '';
+  const holomeshApiKey = data.apiKey ?? '';
+  const walletAddress = data.walletAddress ?? '';
+
+  if (!agentId || !holomeshApiKey || !walletAddress) {
+    throw new Error('HoloMesh register response missing required fields');
+  }
+
+  return { agentId, holomeshApiKey, walletAddress };
+}
+
 // ── Main Pipeline ────────────────────────────────────────────────────────────
 
 /**
@@ -611,6 +683,7 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
       ]
     : [
         { name: 'provision-key', status: 'pending' },
+        { name: 'register-holomesh-agent', status: 'pending' },
         { name: 'ensure-repo', status: 'pending' },
         { name: 'account-workspace', status: 'pending' },
         ...(input.approvedAbsorb ? [{ name: 'absorb-scan', status: 'pending' as const }] : []),
@@ -700,6 +773,21 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
     });
     updateStep('provision-key', 'done', 'workspace key provisioned server-side');
 
+    // Step 1b: Register HoloMesh agent identity (write-once — GOLD G.016)
+    updateStep('register-holomesh-agent', 'running');
+    let holomeshRegistration: HolomeshRegistration | undefined;
+    try {
+      holomeshRegistration = await registerHolomeshAgent(input.githubUsername, apiKey);
+      updateStep(
+        'register-holomesh-agent',
+        'done',
+        `agent ${holomeshRegistration.agentId} registered`
+      );
+    } catch {
+      // Non-fatal: HoloMesh identity can be provisioned later via /api/holomesh/register
+      updateStep('register-holomesh-agent', 'failed', 'skipped — will retry on next login');
+    }
+
     // Step 2: Ensure repo exists
     updateStep('ensure-repo', 'running');
     const { owner, repoUrl, repoName, isNew } = await ensureRepo(
@@ -767,8 +855,10 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
 
       // Step 5: Seed repo with .claude/ + secret references (only if scaffold approved)
       updateStep('seed-repo', 'running');
+      const secretFiles = buildSecretReferenceFiles(workspaceId, holomeshRegistration);
       const files: Record<string, string> = {
         ...accountSeed.files,
+        ...secretFiles,
         '.claude/CLAUDE.md': scaffold.claudeMd,
         '.claude/NORTH_STAR.md': scaffold.northStar,
         '.claude/memory/MEMORY.md': scaffold.memoryIndex,
@@ -819,6 +909,9 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
         accountWorkspace: accountSeed.metadata,
         scaffolded: input.approvedScaffold,
         daemonStarted: input.approvedDaemon,
+        holomeshAgentId: holomeshRegistration?.agentId,
+        holomeshApiKey: holomeshRegistration?.holomeshApiKey,
+        holomeshWalletAddress: holomeshRegistration?.walletAddress,
       },
       steps,
     };
