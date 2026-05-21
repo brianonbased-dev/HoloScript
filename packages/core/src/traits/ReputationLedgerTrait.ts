@@ -15,6 +15,7 @@
 import type { AlertRule } from './ServiceObservabilityTrait';
 import type { HSPlusNode, TraitContext, TraitEvent, TraitHandler } from './TraitTypes';
 import { extractPayload } from './TraitTypes';
+import type { Pillar, PillarContext, PillarSlice } from './pillar/PillarRegistry';
 
 export const DEFAULT_REPUTATION_LEDGER_MAX_FACTS = 20;
 export const DEFAULT_REPUTATION_LEDGER_TTL_DAYS = 90;
@@ -424,6 +425,25 @@ export const reputationLedgerHandler: TraitHandler<ReputationLedgerConfig> = {
         config.ttl_breach_alert_rule
       ),
     });
+
+    // PSF-3 WIRE (D.040): register ReputationLedger as Pillar axis (behavioral + structural)
+    const reputationLedgerPillar: Pillar = {
+      id: 'reputation_ledger',
+      domain: 'agent',
+      axis_vocabulary: ['trust_level', 'fact_retention'] as const,
+      generate(ctx: PillarContext): PillarSlice {
+        const meta = (ctx.metadata || {}) as Record<string, number>;
+        return {
+          axis_1_id: 'trust_level',
+          axis_2_id: 'fact_retention',
+          pos_1: meta.trust_level ?? 0.75,
+          pos_2: meta.fact_retention ?? 0.65,
+          pillar_id: this.id,
+          pillar_domain: this.domain,
+        };
+      },
+    };
+    context.emit?.('pillar:register', { pillar: reputationLedgerPillar });
   },
 
   onDetach(node) {

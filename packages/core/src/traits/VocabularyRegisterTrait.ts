@@ -21,6 +21,7 @@
 
 import type { TraitHandler, TraitContext, TraitEvent, HSPlusNode } from './TraitTypes';
 import { extractPayload } from './TraitTypes';
+import type { Pillar, PillarContext, PillarSlice } from './pillar/PillarRegistry';
 
 // =============================================================================
 // TYPES
@@ -177,6 +178,25 @@ export const vocabularyRegisterHandler: TraitHandler<VocabularyRegisterConfig> =
       available: Array.from(state.registers.keys()),
       activeEntryCount: active?.entries.length ?? 0,
     });
+
+    // PSF-3 WIRE (D.040): register VocabularyRegister as Pillar axis (behavioral + structural)
+    const vocabularyRegisterPillar: Pillar = {
+      id: 'vocabulary_register',
+      domain: 'language',
+      axis_vocabulary: ['register_diversity', 'injection_rate'] as const,
+      generate(ctx: PillarContext): PillarSlice {
+        const meta = (ctx.metadata || {}) as Record<string, number>;
+        return {
+          axis_1_id: 'register_diversity',
+          axis_2_id: 'injection_rate',
+          pos_1: meta.register_diversity ?? 0.7,
+          pos_2: meta.injection_rate ?? 0.4,
+          pillar_id: this.id,
+          pillar_domain: this.domain,
+        };
+      },
+    };
+    context.emit?.('pillar:register', { pillar: vocabularyRegisterPillar });
   },
 
   onDetach(node) {
