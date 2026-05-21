@@ -302,6 +302,29 @@ export interface SSEMetricsTick {
  *   • loss and diversity are shared (mean values) — per-agent tracking is
  *     only available when the runner is connected in real time.
  */
+/**
+ * Ring-tier cognitive budget.
+ *
+ * Purpose-relative intelligence: inner rings carry the most observational
+ * signal and are rendered at highest fidelity → spend more compute on
+ * deriving their individual state from population metrics.
+ *
+ * Ring 0 — full spread: normal distribution around median with full σ.
+ *           Lifecycle sampled from complete distribution.
+ * Ring 1 — standard: same algorithm as ring 0 (default prior behaviour).
+ * Ring 2 — reduced: σ halved, lifecycle uses majority class only.
+ * Ring 3 — billboard: γ = medianGamma (no spread), lifecycle = majority class.
+ *
+ * This mirrors the fractal LOD policy in uaal-collective.world.holo and keeps
+ * total per-tick CPU proportional to visual importance rather than flat.
+ */
+const RING_SIGMA_SCALE: Record<number, number> = {
+  0: 1.0,   // full σ spread
+  1: 1.0,   // standard (default)
+  2: 0.5,   // halved σ
+  3: 0.0,   // median only — no spread
+};
+
 export function derivePerAgentUpdates(
   tick: SSEMetricsTick,
   agentPositions: Array<Paper26AvatarConfig & { index: number }>,
@@ -309,22 +332,35 @@ export function derivePerAgentUpdates(
   const { metrics } = tick;
   const lifecycleEntries = Object.entries(metrics.lifecycleDistrib);
 
-  return agentPositions.map(({ agent_id, index }) => {
+  // Majority lifecycle class — used for ring 2+3 to skip CDF sampling
+  const majorityLifecycle = lifecycleEntries.reduce(
+    (best, [lc, frac]) => (frac > best[1] ? [lc, frac] : best),
+    ['init', 0] as [string, number],
+  )[0];
+
+  return agentPositions.map(({ agent_id, index, ring }) => {
+    const sigmaScale = RING_SIGMA_SCALE[ring] ?? 1.0;
+
     // Deterministic pseudo-random from agent index + tick
     const seed  = (index * 2654435761 + metrics.tick * 40503) >>> 0;
     const rng01 = ((seed ^ (seed >>> 16)) * 0x45d9f3b >>> 0) / 0xffffffff;
 
-    // γ: normal-ish spread around median
-    const sigma = (metrics.p90Gamma - metrics.medianGamma) / 1.28; // ≈ σ from p90
+    // γ: spread scaled by ring tier
+    const sigma = ((metrics.p90Gamma - metrics.medianGamma) / 1.28) * sigmaScale;
     const gamma = Math.max(0, Math.min(1, metrics.medianGamma + (rng01 - 0.5) * 2.5 * sigma));
 
-    // lifecycle: sample by cumulative proportion
-    let cumulative = 0;
-    const rng2 = ((seed ^ (seed >>> 8)) * 0x9e3779b9 >>> 0) / 0xffffffff;
-    let lifecycle = lifecycleEntries[0]?.[0] ?? 'init';
-    for (const [lc, frac] of lifecycleEntries) {
-      cumulative += frac;
-      if (rng2 <= cumulative) { lifecycle = lc; break; }
+    // lifecycle: full CDF sampling for rings 0+1; majority class for rings 2+3
+    let lifecycle: string;
+    if (sigmaScale > 0.5) {
+      let cumulative = 0;
+      const rng2 = ((seed ^ (seed >>> 8)) * 0x9e3779b9 >>> 0) / 0xffffffff;
+      lifecycle = lifecycleEntries[0]?.[0] ?? 'init';
+      for (const [lc, frac] of lifecycleEntries) {
+        cumulative += frac;
+        if (rng2 <= cumulative) { lifecycle = lc; break; }
+      }
+    } else {
+      lifecycle = majorityLifecycle;
     }
 
     return {

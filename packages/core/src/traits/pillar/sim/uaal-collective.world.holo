@@ -191,6 +191,33 @@ world uaal_collective {
     agent_radius: 0.35m
   }
 
+  // ── Ring-tier LOD + cognitive budget policy ──────────────────────────────
+  //
+  // Purpose-relative intelligence: inner-council agents carry the most signal
+  // and are visually closest to the observer → more compute per agent.
+  // Outer ring agents are numerous and distant → budget accordingly.
+  //
+  //   Ring 0 (r=4m,  12 agents)  — HIGH   detail, 8m LOD break, full NPC budget
+  //   Ring 1 (r=8m,  24 agents)  — HIGH   detail, 6m LOD break, standard budget
+  //   Ring 2 (r=12m, 36 agents)  — MEDIUM detail, 4m LOD break, reduced budget
+  //   Ring 3 (r=16m, 28 agents)  — LOW    detail, 2m LOD break, billboard budget
+  //
+  // The fractal decay mirrors ring geometry: compute halves every ring tier.
+
+  performance_policy {
+    ring_lod {
+      ring 0 { lod_distance_break: 8m   detail: high   particle_density: 1.0  shadow: true  }
+      ring 1 { lod_distance_break: 6m   detail: high   particle_density: 0.75 shadow: true  }
+      ring 2 { lod_distance_break: 4m   detail: medium particle_density: 0.4  shadow: false }
+      ring 3 { lod_distance_break: 2m   detail: low    particle_density: 0.15 shadow: false }
+    }
+    budget_ceiling {
+      max_active_particles: 4000   // 100 agents × avg 40 particles at mixed density
+      max_point_lights:     40     // ring 0+1 glow lights; ring 2+3 use emissive only
+      occlusion_culling:    true
+    }
+  }
+
   // ── Live data bridge ─────────────────────────────────────────────────────
 
   sse_bridge p26_avatar_sse_bridge {
