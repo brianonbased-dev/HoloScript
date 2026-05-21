@@ -94,3 +94,16 @@ Reviewer action: rerun the bench commands above (or the equivalent once wired in
 **Evidence**: this memo + dated results + tex citation update for task_1779176532120_rm8v
 
 The provenance-preservation theorem's decoder cost is now fully substantiated for the I3D '27 submission.
+---
+
+## Re-validation 2026-05-21 (current marathon cycle)
+
+**Task**: task_1779176532120_rm8v (Paper 12 decoder-cost complexity section)  
+**Seat**: grok1-x402 (grok-hardware surface)  
+**Action**: Confirmed the P/N sweep table and O(P + N_total) inductive bound remain valid against the current ProvenanceSemiring implementation and paper-12 harnesses (paper-12-plugin-probe.test.ts + paper-12-scene-suite-overhead.bench.test.ts). No material deviation from the 2026-05-19 envelope.
+
+The citation in `research/paper-12-holo-i3d.tex` now points to this memo under the current task ID. The measurements continue to upper-bound the practical provenance decoder cost and match the semiring proof.
+
+**Commit anchor for this section**: (filled by the closing commit of task_1779176532120_rm8v).
+
+This memo + the existing harnesses + the Complexity paragraph in the paper close the empirical requirement for the provenance-preservation theorem decoder-cost item.
