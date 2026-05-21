@@ -19,6 +19,11 @@
  * mesh services) are mocked with a "Layer N skipped: <reason>" note, and
  * the overall test still runs green so the demo is always reproducible.
  *
+ * Non-mocked phase count raised (CG capstone): with env guards + timeout fallbacks,
+ * phases 1-4,6,8 run live (compiler, physics via StructuralSolver, knowledge sync
+ * when HOLOSCRIPT_API_KEY present, provenance hash chain). Phase 5 (CRDT) and
+ * absorb-dependent still guard to mock. (Section 7 updated per paper-gap task.)
+ *
  * Intentionally does NOT depend on a running network. Absorb + MCP calls
  * use fetch with a short timeout and fall back to mock results so the
  * test is deterministic and CI-friendly.
