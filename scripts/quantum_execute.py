@@ -77,6 +77,8 @@ def run_vqe(params: dict[str, Any]) -> dict[str, Any]:
     execution_mode: str = params.get("execution_mode", "aer")
     max_iterations: int = int(params.get("max_iterations", 300))
     ansatz_layers: int = int(params.get("ansatz_layers", 2))
+    ibm_backend_name: str = params.get("ibm_backend", "ibm_fez")
+    api_token: str | None = params.get("api_token") or __import__("os").environ.get("IBM_QUANTUM_API_KEY")
 
     # sto-3g orbital → qubit count (Jordan-Wigner)
     orbital_map: dict[str, int] = {"H": 1, "C": 5, "N": 5, "O": 5, "F": 5}
@@ -149,20 +151,50 @@ def run_vqe(params: dict[str, Any]) -> dict[str, Any]:
         converged = bool(res.success)
         iterations = int(res.nfev)
     else:
-        # Real hardware / shot-based: SPSA handles measurement noise.
-        a_coeff, c_coeff = 0.1, 0.1
-        iterations = min(max_iterations, 300)
-        theta: np.ndarray = np.random.uniform(-np.pi, np.pi, num_params)
+        # Real IBM Quantum hardware via QiskitRuntimeService EstimatorV2.
+        # SPSA handles shot noise. Circuit is transpiled to backend native gates.
+        if not api_token:
+            return {"error": "IBM_QUANTUM_API_KEY not set. Export it or pass api_token in the payload."}
+
+        try:
+            from qiskit_ibm_runtime import QiskitRuntimeService, EstimatorV2 as IBMEstimator
+            from qiskit_ibm_runtime import EstimatorOptions
+            from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+        except ImportError as exc:
+            return {"error": f"qiskit-ibm-runtime not installed: {exc}. Run: pip install qiskit-ibm-runtime"}
+
+        svc = QiskitRuntimeService(channel="ibm_quantum_platform", token=api_token)
+        backend = svc.backend(ibm_backend_name)
+
+        # Transpile ansatz to backend native gate set (optimization_level=1 for speed)
+        pm = generate_preset_pass_manager(backend=backend, optimization_level=1)
+        isa_ansatz = pm.run(ansatz)
+        isa_hamiltonian = hamiltonian.apply_layout(isa_ansatz.layout)
+
+        opts = EstimatorOptions()
+        opts.default_shots = 4096
+
+        estimator_hw = IBMEstimator(mode=backend, options=opts)
+
+        def _energy_hw(theta_vec: np.ndarray) -> float:
+            pub = (isa_ansatz, [isa_hamiltonian], [theta_vec])
+            job = estimator_hw.run([pub])
+            result = job.result()
+            return float(result[0].data.evs)
+
+        a_coeff, c_coeff = 0.2, 0.1
+        iterations = min(max_iterations, 50)  # 50 shots-per-call × 4096 = 204k samples
+        theta = np.zeros(num_params)  # zero init: lower variance on real hw
 
         for k in range(iterations):
             ck = c_coeff / (k + 1) ** 0.16
-            delta: np.ndarray = np.random.choice([-1, 1], size=num_params).astype(float)
+            delta = np.random.choice([-1, 1], size=num_params).astype(float)
 
             theta_plus = theta + ck * delta
             theta_minus = theta - ck * delta
 
-            e_plus = _energy(theta_plus)
-            e_minus = _energy(theta_minus)
+            e_plus = _energy_hw(theta_plus)
+            e_minus = _energy_hw(theta_minus)
 
             gradient = (e_plus - e_minus) / (2 * ck)
             ak = a_coeff / (k + 1 + 10) ** 0.6
@@ -263,18 +295,57 @@ def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
     )
 
     ansatz = QAOAAnsatz(cost_op, reps=p, mixer_operator=mixer_op)
-    sampler = StatevectorSampler()
+
+    execution_mode: str = params.get("execution_mode", "aer")
+    ibm_backend_name: str = params.get("ibm_backend", "ibm_fez")
+    api_token: str | None = params.get("api_token") or __import__("os").environ.get("IBM_QUANTUM_API_KEY")
+
+    # Build sampler — Aer (local) vs IBM hardware
+    if execution_mode == "ibm-quantum":
+        if not api_token:
+            return {"error": "IBM_QUANTUM_API_KEY not set for QAOA hardware run."}
+        try:
+            from qiskit_ibm_runtime import QiskitRuntimeService, SamplerV2 as IBMSampler
+            from qiskit_ibm_runtime import SamplerOptions
+            from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+        except ImportError as exc:
+            return {"error": f"qiskit-ibm-runtime not installed: {exc}"}
+        svc = QiskitRuntimeService(channel="ibm_quantum_platform", token=api_token)
+        backend = svc.backend(ibm_backend_name)
+        pm = generate_preset_pass_manager(backend=backend, optimization_level=1)
+        isa_ansatz = pm.run(ansatz)
+        opts = SamplerOptions()
+        opts.default_shots = 4096
+        hw_sampler = IBMSampler(mode=backend, options=opts)
+
+        def _sample(params_vals: list[float]) -> dict[str, int]:
+            pub = (isa_ansatz, params_vals)
+            result = hw_sampler.run([pub]).result()[0]
+            return result.data.meas.get_counts()
+    else:
+        sampler = StatevectorSampler()
+
+        def _sample(params_vals: list[float]) -> dict[str, int]:  # type: ignore[misc]
+            pub = (ansatz, params_vals)
+            result = sampler.run([pub]).result()[0]
+            return result.data.meas.get_counts()
 
     t0 = time.monotonic()
 
     best_bitstring = "0" * n
     best_value = 0.0
 
-    # Grid search over (gamma, beta) for p == 1; random for p > 1
+    # Grid search over (gamma, beta) for p == 1; random for p > 1.
+    # On real hardware, collapse to a single best-guess point to save QPU time.
     import numpy as np
 
-    gamma_vals = np.linspace(0, np.pi, 8)
-    beta_vals = np.linspace(0, np.pi / 2, 8)
+    if execution_mode == "ibm-quantum":
+        # Use π/4, π/8 as a single warm-start point (Farhi et al. p=1 optimum approx)
+        gamma_vals = [np.pi / 4]
+        beta_vals = [np.pi / 8]
+    else:
+        gamma_vals = np.linspace(0, np.pi, 8)
+        beta_vals = np.linspace(0, np.pi / 2, 8)
 
     for gamma in gamma_vals:
         for beta in beta_vals:
@@ -289,9 +360,7 @@ def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
                     0, np.pi, ansatz.num_parameters
                 ).tolist()
 
-            pub = (ansatz, params_vals)
-            result = sampler.run([pub]).result()[0]
-            counts: dict[str, int] = result.data.meas.get_counts()
+            counts: dict[str, int] = _sample(params_vals)
 
             for bitstring, _count in counts.items():
                 # Evaluate Max-Cut objective for this bitstring
