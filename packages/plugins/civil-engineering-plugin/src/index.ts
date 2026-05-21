@@ -7,5 +7,7 @@ import { createStructuralAnalysisHandler } from './traits/StructuralAnalysisTrai
 import { createLoadBearingHandler } from './traits/LoadBearingTrait';
 import { createMaterialFatigueHandler } from './traits/MaterialFatigueTrait';
 
-export const pluginMeta = { name: '@holoscript/plugin-civil-engineering', version: '1.0.0', traits: ['structural_analysis', 'load_bearing', 'material_fatigue'] };
+export * from './frame2d';
+
+export const pluginMeta = { name: '@holoscript/plugin-civil-engineering', version: '1.0.0', traits: ['structural_analysis', 'load_bearing', 'material_fatigue', 'dsm_frame_2d'] };
 export const traitHandlers = [createStructuralAnalysisHandler(), createLoadBearingHandler(), createMaterialFatigueHandler()];

@@ -12,6 +12,11 @@ export default defineConfig({
   clean: true,
   target: 'es2020',
   outDir: 'dist',
+  // webgpu is a native Node addon (Dawn) — must NOT be bundled inline.
+  // Inline bundling replaces import.meta.url with {} which breaks the
+  // native .node binary path resolution (dawnNodePath). External ensures
+  // the package resolves its own __dirname at runtime.
+  external: ['webgpu'],
   loader: {
     '.wgsl': 'text',
   },
