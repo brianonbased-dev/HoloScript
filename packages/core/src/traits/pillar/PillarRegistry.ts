@@ -219,11 +219,389 @@ export const TEMPORAL_PILLAR: Pillar = {
   },
 };
 
+/**
+ * RENDERING_LOD_PILLAR
+ *
+ * Level-of-detail rendering axes. Maps the current scene rendering state to
+ * a coordinate pair describing LOD quality and detail budget utilisation.
+ *
+ * axis_1 = lod_level   — pos_1 ∈ [0, 1]: 0 = lowest quality, 1 = highest quality
+ * axis_2 = detail_budget — pos_2 ∈ [0, 1]: 0 = budget empty, 1 = full budget available
+ */
+export const RENDERING_LOD_PILLAR: Pillar = {
+  id: 'rendering_lod',
+  domain: 'rendering',
+  axis_vocabulary: ['lod_level', 'detail_budget'] as const,
+  generate(context: PillarContext): PillarSlice {
+    const metadata = context.metadata as Record<string, number> | undefined;
+    return {
+      axis_1_id: 'lod_level',
+      axis_2_id: 'detail_budget',
+      pos_1: metadata?.lod_level ?? 0.5,
+      pos_2: metadata?.detail_budget ?? 0.5,
+      pillar_id: this.id,
+      pillar_domain: this.domain,
+    };
+  },
+};
+
+/**
+ * AGENT_GOAL_PILLAR
+ *
+ * Agent goal priority axes. Maps the agent's current goal state to a coordinate
+ * pair describing urgency and autonomy level.
+ *
+ * axis_1 = goal_priority  — pos_1 ∈ [0, 1]: 0 = low urgency, 1 = critical urgency
+ * axis_2 = autonomy_level — pos_2 ∈ [0, 1]: 0 = fully supervised, 1 = fully autonomous
+ */
+export const AGENT_GOAL_PILLAR: Pillar = {
+  id: 'agent_goal',
+  domain: 'agent',
+  axis_vocabulary: ['goal_priority', 'autonomy_level'] as const,
+  generate(context: PillarContext): PillarSlice {
+    const metadata = context.metadata as Record<string, number> | undefined;
+    return {
+      axis_1_id: 'goal_priority',
+      axis_2_id: 'autonomy_level',
+      pos_1: metadata?.goal_priority ?? 0.5,
+      pos_2: metadata?.autonomy_level ?? 0.5,
+      pillar_id: this.id,
+      pillar_domain: this.domain,
+    };
+  },
+};
+
+/**
+ * LANGUAGE_CONTEXT_PILLAR
+ *
+ * Language context axes. Maps the current LLM session state to a coordinate
+ * pair describing context window fullness and token budget utilisation.
+ *
+ * axis_1 = context_window — pos_1 ∈ [0, 1]: 0 = empty context, 1 = context full
+ * axis_2 = token_budget   — pos_2 ∈ [0, 1]: 0 = budget exhausted, 1 = full budget
+ */
+export const LANGUAGE_CONTEXT_PILLAR: Pillar = {
+  id: 'language_context',
+  domain: 'language',
+  axis_vocabulary: ['context_window', 'token_budget'] as const,
+  generate(context: PillarContext): PillarSlice {
+    const metadata = context.metadata as Record<string, number> | undefined;
+    return {
+      axis_1_id: 'context_window',
+      axis_2_id: 'token_budget',
+      pos_1: metadata?.context_window ?? 0.5,
+      pos_2: metadata?.token_budget ?? 0.5,
+      pillar_id: this.id,
+      pillar_domain: this.domain,
+    };
+  },
+};
+
+/**
+ * ECONOMICS_BUDGET_PILLAR
+ *
+ * Economics budget axes. Maps the current economic state to a coordinate pair
+ * describing cost efficiency and reward pressure.
+ *
+ * axis_1 = cost_efficiency  — pos_1 ∈ [0, 1]: 0 = highly inefficient, 1 = maximally efficient
+ * axis_2 = reward_pressure  — pos_2 ∈ [0, 1]: 0 = no pressure, 1 = maximum pressure
+ */
+export const ECONOMICS_BUDGET_PILLAR: Pillar = {
+  id: 'economics_budget',
+  domain: 'economics',
+  axis_vocabulary: ['cost_efficiency', 'reward_pressure'] as const,
+  generate(context: PillarContext): PillarSlice {
+    const metadata = context.metadata as Record<string, number> | undefined;
+    return {
+      axis_1_id: 'cost_efficiency',
+      axis_2_id: 'reward_pressure',
+      pos_1: metadata?.cost_efficiency ?? 0.5,
+      pos_2: metadata?.reward_pressure ?? 0.5,
+      pillar_id: this.id,
+      pillar_domain: this.domain,
+    };
+  },
+};
+
+/**
+ * COMPILER_PIPELINE_PILLAR
+ *
+ * Compiler pipeline axes. Maps the current compilation state to a coordinate
+ * pair describing optimisation level and target fidelity.
+ *
+ * axis_1 = optimization_level — pos_1 ∈ [0, 1]: 0 = no optimisation, 1 = maximum
+ * axis_2 = target_fidelity    — pos_2 ∈ [0, 1]: 0 = lossy output, 1 = exact fidelity
+ */
+export const COMPILER_PIPELINE_PILLAR: Pillar = {
+  id: 'compiler_pipeline',
+  domain: 'compiler',
+  axis_vocabulary: ['optimization_level', 'target_fidelity'] as const,
+  generate(context: PillarContext): PillarSlice {
+    const metadata = context.metadata as Record<string, number> | undefined;
+    return {
+      axis_1_id: 'optimization_level',
+      axis_2_id: 'target_fidelity',
+      pos_1: metadata?.optimization_level ?? 0.5,
+      pos_2: metadata?.target_fidelity ?? 1.0,
+      pillar_id: this.id,
+      pillar_domain: this.domain,
+    };
+  },
+};
+
+/**
+ * SOLVER_PRECISION_PILLAR
+ *
+ * Solver precision axes. Maps the current solver state to a coordinate pair
+ * describing numerical precision and iteration budget.
+ *
+ * axis_1 = precision_level   — pos_1 ∈ [0, 1]: 0 = coarse, 1 = maximum precision
+ * axis_2 = iteration_budget  — pos_2 ∈ [0, 1]: 0 = budget exhausted, 1 = full budget
+ */
+export const SOLVER_PRECISION_PILLAR: Pillar = {
+  id: 'solver_precision',
+  domain: 'solver',
+  axis_vocabulary: ['precision_level', 'iteration_budget'] as const,
+  generate(context: PillarContext): PillarSlice {
+    const metadata = context.metadata as Record<string, number> | undefined;
+    return {
+      axis_1_id: 'precision_level',
+      axis_2_id: 'iteration_budget',
+      pos_1: metadata?.precision_level ?? 0.5,
+      pos_2: metadata?.iteration_budget ?? 1.0,
+      pillar_id: this.id,
+      pillar_domain: this.domain,
+    };
+  },
+};
+
+/**
+ * TRAIT_COMPOSITION_PILLAR
+ *
+ * Trait composition axes. Maps the current trait load to a coordinate pair
+ * describing trait density (normalised count) and memory pressure.
+ *
+ * axis_1 = trait_density    — pos_1 ∈ [0, 1]: 0 = no traits loaded, 1 = at capacity
+ * axis_2 = memory_pressure  — pos_2 ∈ [0, 1]: 0 = no memory pressure, 1 = critical
+ */
+export const TRAIT_COMPOSITION_PILLAR: Pillar = {
+  id: 'trait_composition',
+  domain: 'trait',
+  axis_vocabulary: ['trait_density', 'memory_pressure'] as const,
+  generate(context: PillarContext): PillarSlice {
+    const metadata = context.metadata as Record<string, number> | undefined;
+    return {
+      axis_1_id: 'trait_density',
+      axis_2_id: 'memory_pressure',
+      pos_1: metadata?.trait_density ?? 0.5,
+      pos_2: metadata?.memory_pressure ?? 0.5,
+      pillar_id: this.id,
+      pillar_domain: this.domain,
+    };
+  },
+};
+
+/**
+ * COORDINATION_SYNC_PILLAR
+ *
+ * Coordination synchronisation axes. Maps the current multi-agent sync state
+ * to a coordinate pair describing sync strength and latency normalised value.
+ *
+ * axis_1 = sync_strength   — pos_1 ∈ [0, 1]: 0 = fully desynchronised, 1 = tight sync
+ * axis_2 = latency_budget  — pos_2 ∈ [0, 1]: 0 = latency exceeded, 1 = within budget
+ */
+export const COORDINATION_SYNC_PILLAR: Pillar = {
+  id: 'coordination_sync',
+  domain: 'coordination',
+  axis_vocabulary: ['sync_strength', 'latency_budget'] as const,
+  generate(context: PillarContext): PillarSlice {
+    const metadata = context.metadata as Record<string, number> | undefined;
+    return {
+      axis_1_id: 'sync_strength',
+      axis_2_id: 'latency_budget',
+      pos_1: metadata?.sync_strength ?? 1.0,
+      pos_2: metadata?.latency_budget ?? 1.0,
+      pillar_id: this.id,
+      pillar_domain: this.domain,
+    };
+  },
+};
+
+/**
+ * STORAGE_CAPACITY_PILLAR
+ *
+ * Storage capacity axes. Maps the current storage state to a coordinate pair
+ * describing capacity fraction used and retrieval speed.
+ *
+ * axis_1 = capacity_used    — pos_1 ∈ [0, 1]: 0 = empty, 1 = full
+ * axis_2 = retrieval_speed  — pos_2 ∈ [0, 1]: 0 = slowest, 1 = fastest
+ */
+export const STORAGE_CAPACITY_PILLAR: Pillar = {
+  id: 'storage_capacity',
+  domain: 'storage',
+  axis_vocabulary: ['capacity_used', 'retrieval_speed'] as const,
+  generate(context: PillarContext): PillarSlice {
+    const metadata = context.metadata as Record<string, number> | undefined;
+    return {
+      axis_1_id: 'capacity_used',
+      axis_2_id: 'retrieval_speed',
+      pos_1: metadata?.capacity_used ?? 0.5,
+      pos_2: metadata?.retrieval_speed ?? 0.5,
+      pillar_id: this.id,
+      pillar_domain: this.domain,
+    };
+  },
+};
+
+/**
+ * ACCURACY_SPEED_PILLAR
+ *
+ * Accuracy-speed tradeoff axes. Maps the current inference regime to a
+ * coordinate pair describing accuracy level and speed pressure.
+ *
+ * axis_1 = accuracy_level  — pos_1 ∈ [0, 1]: 0 = approximate, 1 = exact
+ * axis_2 = speed_pressure  — pos_2 ∈ [0, 1]: 0 = no latency constraint, 1 = hard deadline
+ */
+export const ACCURACY_SPEED_PILLAR: Pillar = {
+  id: 'accuracy_speed_tradeoff',
+  domain: 'accuracy_speed',
+  axis_vocabulary: ['accuracy_level', 'speed_pressure'] as const,
+  generate(context: PillarContext): PillarSlice {
+    const metadata = context.metadata as Record<string, number> | undefined;
+    return {
+      axis_1_id: 'accuracy_level',
+      axis_2_id: 'speed_pressure',
+      pos_1: metadata?.accuracy_level ?? 0.5,
+      pos_2: metadata?.speed_pressure ?? 0.5,
+      pillar_id: this.id,
+      pillar_domain: this.domain,
+    };
+  },
+};
+
+/**
+ * SAFETY_EXPLORATION_PILLAR
+ *
+ * Safety-exploration balance axes. Maps the current exploration policy to a
+ * coordinate pair describing safety level and exploration rate.
+ *
+ * axis_1 = safety_level      — pos_1 ∈ [0, 1]: 0 = unsafe, 1 = maximally safe
+ * axis_2 = exploration_rate  — pos_2 ∈ [0, 1]: 0 = pure exploitation, 1 = pure exploration
+ */
+export const SAFETY_EXPLORATION_PILLAR: Pillar = {
+  id: 'safety_exploration_balance',
+  domain: 'safety_exploration',
+  axis_vocabulary: ['safety_level', 'exploration_rate'] as const,
+  generate(context: PillarContext): PillarSlice {
+    const metadata = context.metadata as Record<string, number> | undefined;
+    return {
+      axis_1_id: 'safety_level',
+      axis_2_id: 'exploration_rate',
+      pos_1: metadata?.safety_level ?? 1.0,
+      pos_2: metadata?.exploration_rate ?? 0.5,
+      pillar_id: this.id,
+      pillar_domain: this.domain,
+    };
+  },
+};
+
+/**
+ * INIT_BOOTSTRAP_PILLAR
+ *
+ * Initialisation bootstrap axes. Maps the current startup phase to a coordinate
+ * pair describing bootstrap progress and domain novelty.
+ *
+ * axis_1 = bootstrap_progress — pos_1 ∈ [0, 1]: 0 = not started, 1 = complete
+ * axis_2 = domain_novelty     — pos_2 ∈ [0, 1]: 0 = fully familiar, 1 = entirely new
+ */
+export const INIT_BOOTSTRAP_PILLAR: Pillar = {
+  id: 'init_bootstrap',
+  domain: 'init',
+  axis_vocabulary: ['bootstrap_progress', 'domain_novelty'] as const,
+  generate(context: PillarContext): PillarSlice {
+    const metadata = context.metadata as Record<string, number> | undefined;
+    return {
+      axis_1_id: 'bootstrap_progress',
+      axis_2_id: 'domain_novelty',
+      pos_1: metadata?.bootstrap_progress ?? 0.0,
+      pos_2: metadata?.domain_novelty ?? 1.0,
+      pillar_id: this.id,
+      pillar_domain: this.domain,
+    };
+  },
+};
+
+/**
+ * EDGE_CASE_HANDLER_PILLAR
+ *
+ * Edge case handler axes. Maps the current anomaly detection state to a
+ * coordinate pair describing anomaly score and recovery pressure.
+ *
+ * axis_1 = anomaly_score      — pos_1 ∈ [0, 1]: 0 = nominal, 1 = severe anomaly
+ * axis_2 = recovery_pressure  — pos_2 ∈ [0, 1]: 0 = no recovery needed, 1 = urgent recovery
+ */
+export const EDGE_CASE_HANDLER_PILLAR: Pillar = {
+  id: 'edge_case_handler',
+  domain: 'edge_case',
+  axis_vocabulary: ['anomaly_score', 'recovery_pressure'] as const,
+  generate(context: PillarContext): PillarSlice {
+    const metadata = context.metadata as Record<string, number> | undefined;
+    return {
+      axis_1_id: 'anomaly_score',
+      axis_2_id: 'recovery_pressure',
+      pos_1: metadata?.anomaly_score ?? 0.0,
+      pos_2: metadata?.recovery_pressure ?? 0.5,
+      pillar_id: this.id,
+      pillar_domain: this.domain,
+    };
+  },
+};
+
+/**
+ * SHUTDOWN_SIGNAL_PILLAR
+ *
+ * Shutdown signal axes. Maps the current shutdown phase to a coordinate pair
+ * describing urgency and drain progress.
+ *
+ * axis_1 = shutdown_urgency — pos_1 ∈ [0, 1]: 0 = not shutting down, 1 = immediate halt
+ * axis_2 = drain_progress   — pos_2 ∈ [0, 1]: 0 = drain not started, 1 = fully drained
+ */
+export const SHUTDOWN_SIGNAL_PILLAR: Pillar = {
+  id: 'shutdown_signal',
+  domain: 'shutdown',
+  axis_vocabulary: ['shutdown_urgency', 'drain_progress'] as const,
+  generate(context: PillarContext): PillarSlice {
+    const metadata = context.metadata as Record<string, number> | undefined;
+    return {
+      axis_1_id: 'shutdown_urgency',
+      axis_2_id: 'drain_progress',
+      pos_1: metadata?.shutdown_urgency ?? 0.0,
+      pos_2: metadata?.drain_progress ?? 0.0,
+      pillar_id: this.id,
+      pillar_domain: this.domain,
+    };
+  },
+};
+
 /** All seed Pillars, registered by default when the trait attaches */
 export const SEED_PILLARS: readonly Pillar[] = [
   PHYSICS_CONSERVATION_PILLAR,
   INTENT_TRUTH_APPROVAL_PILLAR,
   TEMPORAL_PILLAR,
+  RENDERING_LOD_PILLAR,
+  AGENT_GOAL_PILLAR,
+  LANGUAGE_CONTEXT_PILLAR,
+  ECONOMICS_BUDGET_PILLAR,
+  COMPILER_PIPELINE_PILLAR,
+  SOLVER_PRECISION_PILLAR,
+  TRAIT_COMPOSITION_PILLAR,
+  COORDINATION_SYNC_PILLAR,
+  STORAGE_CAPACITY_PILLAR,
+  ACCURACY_SPEED_PILLAR,
+  SAFETY_EXPLORATION_PILLAR,
+  INIT_BOOTSTRAP_PILLAR,
+  EDGE_CASE_HANDLER_PILLAR,
+  SHUTDOWN_SIGNAL_PILLAR,
 ] as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
