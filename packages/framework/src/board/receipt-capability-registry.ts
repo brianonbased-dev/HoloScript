@@ -255,6 +255,19 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
     tags: ['holoshell', 'asset', '3d'],
   },
   {
+    capability: 'photo-backup',
+    description:
+      'Family photo backup custody receipts — prove duplicate detection, privacy redaction, restore proof, and delete blocking.',
+    receiptType: 'PhotoBackupCustodyReceipt',
+    module: 'holoshell-photo-backup-receipts',
+    exportName: 'PhotoBackupCustodyReceipt',
+    validateFn: 'validatePhotoBackupCustodyReceipt',
+    cloneFn: 'clonePhotoBackupCustodyReceipt',
+    isSupportedFn: 'isSupportedPhotoBackupMediaKind',
+    subjects: ['photos', 'backup', 'restore', 'duplicate', 'privacy', 'encryption', 'cloud', 'delete-blocker'],
+    tags: ['holoshell', 'photos', 'backup', 'privacy', 'safety'],
+  },
+  {
     capability: 'device-safety',
     description:
       'Device safety envelope receipts — prove device identity, consent, and safe action execution.',

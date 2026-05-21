@@ -540,6 +540,29 @@ export {
 } from './holoshell-asset-shard-receipts';
 
 export {
+  // HoloShell Photo Backup Receipts (task_1779354052399_cyf3)
+  PHOTO_BACKUP_CUSTODY_RECEIPT_VERSION,
+  PHOTO_BACKUP_VERIFICATION_RECEIPT_VERSION,
+  PHOTO_BACKUP_MEDIA_KINDS,
+  PHOTO_BACKUP_STATUSES,
+  PHOTO_BACKUP_TARGET_KINDS,
+  PHOTO_BACKUP_METADATA_POLICIES,
+  type PhotoBackupMediaKind,
+  type PhotoBackupStatus,
+  type PhotoBackupTargetKind,
+  type PhotoBackupMetadataPolicy,
+  type PhotoBackupFileProxy,
+  type PhotoBackupCustodyReceipt,
+  type PhotoBackupVerificationReceipt,
+  isSupportedPhotoBackupMediaKind,
+  isSupportedPhotoBackupStatus,
+  validatePhotoBackupCustodyReceipt,
+  validatePhotoBackupVerificationReceipt,
+  clonePhotoBackupCustodyReceipt,
+  clonePhotoBackupVerificationReceipt,
+} from './holoshell-photo-backup-receipts';
+
+export {
   // Device Lab Warning Tokens (task_1778739828973_47f5)
   WARNING_SEVERITY,
   WARNING_ACTION_TYPE,
