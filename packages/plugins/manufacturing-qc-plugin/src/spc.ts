@@ -2,7 +2,7 @@
  * Statistical Process Control (SPC) solver for @holoscript/plugin-manufacturing-qc
  *
  * Provides:
- *  - Shewhart control charts: X̄-R, X̄-s, p-chart, np-chart, c-chart, u-chart
+ *  - Shewhart control charts: X̅-R, X̅-s, p-chart, np-chart, c-chart, u-chart
  *  - Process capability indices: Cp, Cpk, Pp, Ppk, Cpm (taguchi)
  *  - Western Electric / Nelson rules for out-of-control detection
  *  - CAEL-ready receipt builder
@@ -19,7 +19,7 @@ import {
   type DomainSimulationReceipt,
 } from '@holoscript/core';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ─────────────────────────────────────────────────────────────────────────────
 
 export type ChartType = 'xbar_r' | 'xbar_s' | 'p' | 'np' | 'c' | 'u';
 
@@ -58,7 +58,7 @@ export interface SPCChartResult {
   chartType: ChartType;
   subgroupCount: number;
   totalObservations: number;
-  primaryChart: ControlLimits;      // X̄ or p or c/u
+  primaryChart: ControlLimits;      // X̅ or p or c/u
   secondaryChart?: ControlLimits;   // R or s (only for variables charts)
   subgroupStats: SubgroupStat[];
   outOfControlCount: number;
@@ -85,8 +85,8 @@ export interface ProcessCapability {
   /** Taguchi index (penalises deviation from target) */
   Cpm?: number;
   /** Estimated fraction nonconforming (normal approximation) */
-  ppmAboveLSL: number;
-  ppmBelowUSL: number;
+  ppmAboveUSL: number;
+  ppmBelowLSL: number;
   ppmTotal: number;
   /** Pass if Cpk >= 1.33 (four-sigma quality level) */
   capable: boolean;
@@ -127,7 +127,7 @@ export interface SPCReceipt {
   hashAlgorithm: DomainSimulationReceipt['hashAlgorithm'];
 }
 
-// ─── Control chart constants (ASTM / Montgomery Table VI) ─────────────────────
+// ─── Control chart constants (ASTM / Montgomery Table VI) ──────────────────────────────────
 
 /** d2 unbiasing constants for range → σ̂ */
 const D2: Record<number, number> = {
@@ -153,13 +153,13 @@ const C4: Record<number, number> = {
   6: 0.9515, 7: 0.9594, 8: 0.9650, 9: 0.9693, 10: 0.9727,
 };
 
-/** A2 constants for X̄-R chart (3σ limits via R̄) */
+/** A2 constants for X̅-R chart (3σ limits via R̅) */
 const A2: Record<number, number> = {
   2: 1.880, 3: 1.023, 4: 0.729, 5: 0.577,
   6: 0.483, 7: 0.419, 8: 0.373, 9: 0.337, 10: 0.308,
 };
 
-/** A3 constants for X̄-s chart (3σ limits via s̄) */
+/** A3 constants for X̅-s chart (3σ limits via s̅) */
 const A3: Record<number, number> = {
   2: 2.659, 3: 1.954, 4: 1.628, 5: 1.427,
   6: 1.287, 7: 1.182, 8: 1.099, 9: 1.032, 10: 0.975,
@@ -175,7 +175,7 @@ const B4: Record<number, number> = {
   6: 1.970, 7: 1.882, 8: 1.815, 9: 1.761, 10: 1.716,
 };
 
-// ─── Statistics helpers ───────────────────────────────────────────────────────
+// ─── Statistics helpers ────────────────────────────────────────────────────────────────────
 
 function mean(values: number[]): number {
   if (values.length === 0) return 0;
@@ -214,7 +214,7 @@ function ppm(z: number): number {
   return (1 - normalCDF(z)) * 1_000_000;
 }
 
-// ─── Western Electric / Nelson rules ─────────────────────────────────────────
+// ─── Western Electric / Nelson rules ─────────────────────────────────────────────────────
 
 /**
  * Applies the eight Western Electric rules to a series of standardised
@@ -284,12 +284,14 @@ function westernElectricViolations(zScores: number[]): string[][] {
     if (i >= 13) {
       const window = zScores.slice(i - 13, i + 1);
       let alternating = true;
-      for (let j = 1; j < window.length; j++) {
-        const prev = window[j - 1];
-        const curr = window[j];
-        if ((curr > prev) === (window[j - 1] > (j >= 2 ? window[j - 2] : prev - 1))) {
-          alternating = false; break;
-        }
+      // Start at j=2: need two consecutive pairs to compare directions.
+      // At j=1 there is no prior direction to compare against, so checking
+      // there produced a spurious always-true reference (window[0] > window[0]-1)
+      // that caused any up-starting alternating sequence to be missed.
+      for (let j = 2; j < window.length; j++) {
+        const prevDir = window[j - 1] > window[j - 2];
+        const currDir = window[j] > window[j - 1];
+        if (currDir === prevDir) { alternating = false; break; }
       }
       if (alternating) violations[i].push('WE7:alternating14');
     }
@@ -304,12 +306,12 @@ function westernElectricViolations(zScores: number[]): string[][] {
   return violations;
 }
 
-// ─── X̄-R chart ───────────────────────────────────────────────────────────────
+// ─── X̅-R chart ────────────────────────────────────────────────────────────────────────────
 
 function buildXbarRChart(subgroups: Subgroup[]): SPCChartResult {
-  if (subgroups.length < 2) throw new Error('[spc] X̄-R chart requires ≥ 2 subgroups');
+  if (subgroups.length < 2) throw new Error('[spc] X̅-R chart requires ≥ 2 subgroups');
   const n = subgroups[0].values.length;
-  if (n < 2 || n > 10) throw new Error('[spc] X̄-R chart subgroup size must be 2–10');
+  if (n < 2 || n > 10) throw new Error('[spc] X̅-R chart subgroup size must be 2–10');
 
   const a2 = A2[n] ?? 0.577;
   const d3 = D3[n] ?? 0;
@@ -365,12 +367,12 @@ function buildXbarRChart(subgroups: Subgroup[]): SPCChartResult {
   };
 }
 
-// ─── X̄-s chart ───────────────────────────────────────────────────────────────
+// ─── X̅-s chart ────────────────────────────────────────────────────────────────────────────
 
 function buildXbarSChart(subgroups: Subgroup[]): SPCChartResult {
-  if (subgroups.length < 2) throw new Error('[spc] X̄-s chart requires ≥ 2 subgroups');
+  if (subgroups.length < 2) throw new Error('[spc] X̅-s chart requires ≥ 2 subgroups');
   const n = subgroups[0].values.length;
-  if (n < 2 || n > 10) throw new Error('[spc] X̄-s chart subgroup size must be 2–10');
+  if (n < 2 || n > 10) throw new Error('[spc] X̅-s chart subgroup size must be 2–10');
 
   const a3 = A3[n] ?? 1.427;
   const b3 = B3[n] ?? 0;
@@ -425,7 +427,7 @@ function buildXbarSChart(subgroups: Subgroup[]): SPCChartResult {
   };
 }
 
-// ─── p-chart (fraction nonconforming) ────────────────────────────────────────
+// ─── p-chart (fraction nonconforming) ────────────────────────────────────────────────────────────────
 
 function buildPChart(subgroups: Subgroup[]): SPCChartResult {
   if (subgroups.length < 2) throw new Error('[spc] p-chart requires ≥ 2 subgroups');
@@ -478,7 +480,7 @@ function buildPChart(subgroups: Subgroup[]): SPCChartResult {
   };
 }
 
-// ─── c-chart (count of defects, constant n) ───────────────────────────────────
+// ─── c-chart (count of defects, constant n) ──────────────────────────────────────────────────────────
 
 function buildCChart(subgroups: Subgroup[]): SPCChartResult {
   if (subgroups.length < 2) throw new Error('[spc] c-chart requires ≥ 2 subgroups');
@@ -520,7 +522,7 @@ function buildCChart(subgroups: Subgroup[]): SPCChartResult {
   };
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
+// ─── Public API ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Build a Shewhart control chart from subgroup data.
@@ -600,7 +602,7 @@ export function buildSPCChart(type: ChartType, subgroups: Subgroup[]): SPCChartR
  * Compute process capability indices from variables data.
  *
  * @param allValues  All individual measurements (flattened across subgroups)
- * @param subgroups  Original subgroups (used for within-subgroup σ̂ via R̄/d₂)
+ * @param subgroups  Original subgroups (used for within-subgroup σ̂ via R̅/d₂)
  * @param lsl        Lower specification limit
  * @param usl        Upper specification limit
  * @param target     Nominal target (optional; used for Cpm)
@@ -619,7 +621,7 @@ export function computeCapability(
   // Overall (long-term) σ
   const overallSigma = sampleStdDev(allValues);
 
-  // Within-subgroup (short-term) σ̂ via R̄/d₂ if all subgroups same size
+  // Within-subgroup (short-term) σ̂ via R̅/d₂ if all subgroups same size
   let withinSigma = overallSigma;
   const n = subgroups[0]?.values.length ?? 0;
   const sameSize = subgroups.every((sg) => sg.values.length === n);
@@ -650,8 +652,8 @@ export function computeCapability(
 
   const zAboveUSL = overallSigma > 0 ? (usl - processMean) / overallSigma : Infinity;
   const zBelowLSL = overallSigma > 0 ? (processMean - lsl) / overallSigma : Infinity;
-  const ppmAboveLSL = ppm(zAboveUSL);
-  const ppmBelowUSL = ppm(zBelowLSL);
+  const ppmAboveUSL = ppm(zAboveUSL);
+  const ppmBelowLSL = ppm(zBelowLSL);
 
   return {
     lsl, usl, target,
@@ -660,9 +662,9 @@ export function computeCapability(
     Cp, Cpk, CpkLower, CpkUpper,
     Pp, Ppk,
     Cpm,
-    ppmAboveLSL,
-    ppmBelowUSL,
-    ppmTotal: ppmAboveLSL + ppmBelowUSL,
+    ppmAboveUSL,
+    ppmBelowLSL,
+    ppmTotal: ppmAboveUSL + ppmBelowLSL,
     capable: Cpk >= 1.33,
   };
 }
