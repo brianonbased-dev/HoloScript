@@ -76,15 +76,12 @@ import type { PillarContext } from './PillarRegistry';
 import type { ParallelPillarSlice } from './ParallelPillar';
 import {
   pillarRegistryHandler,
-  PHYSICS_CONSERVATION_PILLAR,
-  INTENT_TRUTH_APPROVAL_PILLAR,
+  SEED_PILLARS,
   TEMPORAL_PILLAR,
 } from './PillarRegistry';
 import {
   parallelPillarHandler,
-  TRUTH_PHYSICS_PARALLEL,
-  TEMPORAL_LATERAL_PARALLEL,
-  ENERGY_ENTROPY_PARALLEL,
+  SEED_PARALLEL_PILLARS,
   type ParallelPillarConfig,
 } from './ParallelPillar';
 import type { PillarRegistryConfig } from './PillarRegistry';
@@ -427,13 +424,14 @@ export const cognitiveVMHandler: TraitHandler<CognitiveVMConfig> = {
     pillarRegistryHandler.onAttach?.(registryNode, registryCfg(), silentCtx());
     parallelPillarHandler.onAttach?.(parallelNode, parallelCfg(), silentCtx());
 
-    // Ensure seed pillars are registered (they are seeds, but be explicit)
-    for (const p of [PHYSICS_CONSERVATION_PILLAR, INTENT_TRUTH_APPROVAL_PILLAR, TEMPORAL_PILLAR]) {
+    // Register all seed pillars covering every PillarDomain
+    for (const p of SEED_PILLARS) {
       pillarRegistryHandler.onEvent?.(registryNode, registryCfg(), silentCtx(), {
         type: 'pillar:register', pillar: p,
       });
     }
-    for (const pp of [ENERGY_ENTROPY_PARALLEL, TRUTH_PHYSICS_PARALLEL, TEMPORAL_LATERAL_PARALLEL]) {
+    // Register all seed parallel pillar pairs
+    for (const pp of SEED_PARALLEL_PILLARS) {
       parallelPillarHandler.onEvent?.(parallelNode, parallelCfg(), silentCtx(), {
         type: 'pillar:register_parallel', parallel: pp,
       });
