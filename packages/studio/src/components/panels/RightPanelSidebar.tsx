@@ -60,6 +60,7 @@ import { RuntimeTierPanel } from './RuntimeTierPanel';
 import { FleetPanel } from './FleetPanel';
 import { IdentityPanel } from './IdentityPanel';
 import { KnowledgePanel } from './KnowledgePanel';
+import { AbsorbPanel } from './AbsorbPanel';
 import { InboxPanel } from './InboxPanel';
 import { ModePanel } from './ModePanel';
 import { useDomainFilter, type DomainProfile } from '../../hooks/useDomainFilter';
@@ -209,7 +210,8 @@ const TAB_CATEGORIES: TabCategory[] = [
       { id: 'mode', icon: '🔄', label: 'Mode', title: 'Team mode switcher (BUILD / AUDIT / RESEARCH / REVIEW)' },
       { id: 'identity', icon: '🪪', label: 'Identity', title: 'Wallet, tier, reputation, active seat — always visible trust surface' },
       { id: 'knowledge', icon: '📚', label: 'Knowledge', title: 'Search the team knowledge store — content, domains, confidence, pinned entries' },
-      // absorb, bounties remain
+      { id: 'absorb', icon: '🧬', label: 'Absorb', title: 'Codebase absorb projects — status, progress, re-run, query, diff' },
+      // bounties remain (last item)
     ],
   },
   {
@@ -386,6 +388,7 @@ export function RightPanelSidebar({
             {activeTab === 'mode' && <ModePanel />}
             {activeTab === 'identity' && <IdentityPanel />}
             {activeTab === 'knowledge' && <KnowledgePanel />}
+            {activeTab === 'absorb' && <AbsorbPanel />}
           </div>
         </div>
       )}
