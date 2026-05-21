@@ -1,0 +1,104 @@
+{
+  "schemaVersion": "holoembed-snn-accelerator-bench/v0.1.0",
+  "generatedAt": "2026-05-21T14:10:47.201Z",
+  "status": "passed",
+  "runtime": {
+    "node": "v24.15.0",
+    "platform": "win32",
+    "arch": "x64",
+    "webgpu": {
+      "available": true,
+      "info": {
+        "subgroupMatrixConfigs": []
+      },
+      "features": [
+        "bgra8unorm-storage",
+        "clip-distances",
+        "core-features-and-limits",
+        "depth-clip-control",
+        "depth32float-stencil8",
+        "dual-source-blending",
+        "float32-blendable",
+        "float32-filterable",
+        "indirect-first-instance",
+        "primitive-index",
+        "rg11b10ufloat-renderable",
+        "texture-compression-bc",
+        "texture-compression-bc-sliced-3d",
+        "timestamp-query"
+      ],
+      "limits": {
+        "maxBufferSize": 2147483648,
+        "maxComputeInvocationsPerWorkgroup": 1024,
+        "maxStorageBufferBindingSize": 2147483648
+      }
+    }
+  },
+  "parameters": {
+    "iterations": 8,
+    "warmups": 2,
+    "batchSize": 96,
+    "timeSteps": 64,
+    "lifParams": {
+      "currentScale": 240
+    },
+    "workload": "HoloEmbed char-trigram 128-bin blocks"
+  },
+  "latency": {
+    "cpuLifReference": {
+      "name": "cpu-lif-reference",
+      "samples": [
+        5.194199999999967,
+        5.40749999999997,
+        5.6433999999999855,
+        5.996600000000001,
+        6.0552000000000135,
+        6.441399999999987,
+        6.642699999999991,
+        6.960700000000031
+      ],
+      "meanMs": 6.042712499999993,
+      "p50Ms": 5.996600000000001,
+      "p95Ms": 6.960700000000031,
+      "checksum": 18.75
+    },
+    "webgpuLifShader": {
+      "name": "webgpu-lif-shader",
+      "samples": [
+        0.5155000000000314,
+        0.5892999999999802,
+        0.5926000000000045,
+        0.6069999999999709,
+        0.6349999999999909,
+        0.6461000000000467,
+        0.6893999999999778,
+        0.7139999999999986
+      ],
+      "meanMs": 0.6236125000000001,
+      "p50Ms": 0.6069999999999709,
+      "p95Ms": 0.7139999999999986,
+      "checksum": 18.75
+    },
+    "speedupMean": 9.689851470263973
+  },
+  "parity": {
+    "maxAbsDiff": 0,
+    "meanAbsDiff": 0,
+    "comparedValues": 12288
+  },
+  "recall": {
+    "queryCount": 8,
+    "cpuAt1": 0.875,
+    "gpuAt1": 0.875,
+    "deltaAt1": 0,
+    "cpuAt3": 1,
+    "gpuAt3": 1,
+    "deltaAt3": 0
+  },
+  "verdict": {
+    "shaderParityPass": true,
+    "recallEquivalent": true,
+    "speedupObserved": true,
+    "speedupClaim": "WebGPU faster than CPU LIF reference on this measured run."
+  }
+}

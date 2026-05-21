@@ -34,21 +34,20 @@
  * With SNN GPU active, each trigram block is transformed through 128 LIF neurons
  * (50ms simulated at dt=1ms) → spike-rate population code.
  *
- * ## Paper 26 claim
+ * ## Evidence posture
  *
- * HoloEmbed Phase 1 (CPU, no deps):  ~50–70% recall@10 for name-matched NL queries
- * HoloEmbed Phase 2 (SNN GPU active): ~65–80% recall@10 (sparser, threshold-coded)
- * StructuralEmbeddingProvider:          ~3–12% recall@10 (topology only, no names)
- * Xenova all-MiniLM-L6-v2:           ~60–80% recall@10 (full NL semantic training)
+ * Do not claim SNN acceleration is faster on a machine until
+ * `pnpm --filter @holoscript/holoembed run bench:snn` records CPU-reference
+ * versus WebGPU latency and recall for that machine.
  *
  * @module
  */
 
 export { HoloEmbedEncoder } from './HoloEmbedEncoder.js';
-export { SnnAccelerator } from './SnnAccelerator.js';
+export { SnnAccelerator, encodeLifPopulationCpu } from './SnnAccelerator.js';
 export { camelSplit, trigramHistogram, hashString, spreadHash, l2Normalize } from './charTrigram.js';
 export type { SymbolInput, GraphEnrichment, EncoderOptions } from './types.js';
-export type { LIFPopulationParams } from './SnnAccelerator.js';
+export type { LIFPopulationParams, LIFPopulationCpuOptions } from './SnnAccelerator.js';
 export {
   HOLOEMBED_DIM,
   STRUCTURAL_DIM,

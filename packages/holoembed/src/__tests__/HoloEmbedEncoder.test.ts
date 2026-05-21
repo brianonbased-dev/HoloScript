@@ -12,7 +12,7 @@
 
 import { describe, it, expect, beforeAll } from 'vitest';
 import { HoloEmbedEncoder } from '../HoloEmbedEncoder.js';
-import { SnnAccelerator } from '../SnnAccelerator.js';
+import { SnnAccelerator, encodeLifPopulationCpu } from '../SnnAccelerator.js';
 import { camelSplit, trigramHistogram } from '../charTrigram.js';
 import { HOLOEMBED_DIM, STRUCTURAL_DIM, SUBWORD_BINS } from '../types.js';
 import type { SymbolInput } from '../types.js';
@@ -248,11 +248,11 @@ describe('HoloEmbedEncoder', () => {
 // =============================================================================
 
 describe('SnnAccelerator', () => {
-  it('available is false in Node.js (no WebGPU)', async () => {
+  it('initialize() reports a boolean WebGPU availability state', async () => {
     const accel = new SnnAccelerator();
     await accel.initialize({ enableSnn: true });
-    // Node.js test environment has no navigator.gpu
-    expect(accel.available).toBe(false);
+    expect(typeof accel.available).toBe('boolean');
+    accel.dispose();
   });
 
   it('encode() CPU passthrough returns input histogram unchanged', async () => {
@@ -268,5 +268,60 @@ describe('SnnAccelerator', () => {
     const inputs = [new Float32Array(128), new Float32Array(128)];
     const out = await accel.encodeBatch(inputs);
     expect(out).toBe(inputs); // same reference
+  });
+
+  it('CPU LIF reference is deterministic and does not mutate input', () => {
+    const hist = Float32Array.from({ length: 128 }, (_, i) => (i % 11 === 0 ? 1 : 0));
+    const before = new Float32Array(hist);
+    const out1 = encodeLifPopulationCpu(hist, {
+      timeSteps: 64,
+      lifParams: { currentScale: 80 },
+    });
+    const out2 = encodeLifPopulationCpu(hist, {
+      timeSteps: 64,
+      lifParams: { currentScale: 80 },
+    });
+
+    expect(out1).not.toBe(hist);
+    expect(out1.length).toBe(hist.length);
+    expect(Array.from(hist)).toEqual(Array.from(before));
+    expect(Array.from(out1)).toEqual(Array.from(out2));
+    expect(out1.some(v => v > 0)).toBe(true);
+  });
+
+  it('WebGPU path matches the CPU LIF reference when a device is available', async () => {
+    const accel = new SnnAccelerator();
+    await accel.initialize(
+      { enableSnn: true, snnTimesteps: 64 },
+      { currentScale: 80 },
+    );
+
+    if (!accel.available) {
+      console.warn('[SnnAccelerator] WebGPU unavailable; shader parity test skipped.');
+      accel.dispose();
+      return;
+    }
+
+    const hist = Float32Array.from({ length: 128 }, (_, i) => {
+      if (i % 17 === 0) return 1.0;
+      if (i % 13 === 0) return 0.75;
+      if (i % 7 === 0) return 0.5;
+      return 0;
+    });
+
+    const gpu = await accel.encode(hist);
+    const cpu = encodeLifPopulationCpu(hist, {
+      timeSteps: 64,
+      lifParams: { currentScale: 80 },
+    });
+
+    let maxAbsDiff = 0;
+    for (let i = 0; i < gpu.length; i++) {
+      maxAbsDiff = Math.max(maxAbsDiff, Math.abs((gpu[i] ?? 0) - (cpu[i] ?? 0)));
+    }
+
+    expect(gpu.some(v => v > 0)).toBe(true);
+    expect(maxAbsDiff).toBeLessThanOrEqual(1e-6);
+    accel.dispose();
   });
 });

@@ -20,7 +20,9 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "test": "vitest run --passWithNoTests",
+    "bench:snn": "pnpm run build && node scripts/bench-snn-accelerator.mjs",
+    "test": "vitest run --config vitest.config.ts --passWithNoTests",
+    "test:webgpu": "pnpm run build && vitest run --config vitest.config.ts src/__tests__/HoloEmbedEncoder.test.ts -t \"WebGPU path matches\"",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --passWithNoTests"
   },
@@ -28,10 +30,14 @@
     "@holoscript/config": "workspace:*"
   },
   "peerDependencies": {
-    "@holoscript/snn-webgpu": "workspace:^"
+    "@holoscript/snn-webgpu": "workspace:^",
+    "webgpu": "^0.3.8"
   },
   "peerDependenciesMeta": {
     "@holoscript/snn-webgpu": {
+      "optional": true
+    },
+    "webgpu": {
       "optional": true
     }
   },
@@ -40,7 +46,8 @@
     "@webgpu/types": ">=0.1.40",
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.5",
+    "webgpu": "^0.3.8"
   },
   "keywords": [
     "embedding",

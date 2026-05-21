@@ -53,7 +53,7 @@ struct LIFParams {
   dt        : f32,    // timestep (ms). Default 1.0
   timeSteps : u32,    // number of LIF iterations. Default 50
   neuronCount: u32,   // number of neurons (= input dims)
-  currentScale: f32,  // scale factor for current injection. Default 20.0
+  currentScale: f32,  // scale factor for current injection. Default 240.0
 };
 
 @group(0) @binding(0) var<uniform>          params  : LIFParams;
@@ -93,7 +93,7 @@ const DEFAULT_LIF: Required<LIFPopulationParams> = {
   vReset:      -75.0,
   vRest:       -65.0,
   dt:            1.0,
-  currentScale: 20.0,
+  currentScale: 240.0,
 };
 
 export interface LIFPopulationParams {
@@ -102,8 +102,59 @@ export interface LIFPopulationParams {
   vReset?: number;
   vRest?: number;
   dt?: number;
-  /** Scale factor applied to [0,1] histogram values to produce mV-equivalent injection. */
+  /** Scale factor applied to normalized trigram histogram values to produce mV-equivalent injection. */
   currentScale?: number;
+}
+
+export interface LIFPopulationCpuOptions {
+  /** Number of LIF timesteps. Matches EncoderOptions.snnTimesteps. */
+  timeSteps?: number;
+  /** Optional LIF parameter overrides. */
+  lifParams?: LIFPopulationParams;
+}
+
+/**
+ * CPU reference implementation of the LIF population coder.
+ *
+ * Production fallback remains identity passthrough so no CPU-only runtime pays
+ * for LIF simulation accidentally. Tests and benchmarks use this function as
+ * the apples-to-apples reference for the WebGPU shader.
+ */
+export function encodeLifPopulationCpu(
+  histogram: Float32Array,
+  options: LIFPopulationCpuOptions = {},
+): Float32Array {
+  const timeSteps = normalizeTimeSteps(options.timeSteps ?? 50);
+  const lif = resolveLifPopulationParams(options.lifParams);
+  const rates = new Float32Array(histogram.length);
+
+  for (let i = 0; i < histogram.length; i++) {
+    const input = histogram[i] ?? 0;
+    const current = input * lif.currentScale;
+    let voltage = lif.vRest;
+    let spikes = 0;
+
+    for (let t = 0; t < timeSteps; t++) {
+      voltage += lif.dt * (lif.vRest - voltage + current) / lif.tau;
+      if (voltage >= lif.vThreshold) {
+        voltage = lif.vReset;
+        spikes++;
+      }
+    }
+
+    rates[i] = spikes / timeSteps;
+  }
+
+  return rates;
+}
+
+function resolveLifPopulationParams(lifParams: LIFPopulationParams = {}): Required<LIFPopulationParams> {
+  return { ...DEFAULT_LIF, ...lifParams };
+}
+
+function normalizeTimeSteps(value: number): number {
+  if (!Number.isFinite(value) || value < 1) return 1;
+  return Math.floor(value);
 }
 
 // =============================================================================
@@ -122,6 +173,50 @@ export interface LIFPopulationParams {
  * const spikeRates = await accel.encode(trigramHistogram);
  * ```
  */
+/**
+ * Node-only WebGPU bootstrap. In a browser/worker `navigator.gpu` is already
+ * present. In Node there is no global `navigator.gpu` unless we activate the
+ * installed Dawn binding (`webgpu` npm package). This populates
+ * `globalThis.navigator.gpu` so the detection path below finds a real adapter
+ * instead of silently falling back to CPU. Safe no-op if the binding is absent
+ * (caller then keeps CPU passthrough) or if running in a browser.
+ *
+ * NOTE: the `--experimental-webgpu` Node flag does NOT exist in Node >= 24;
+ * the binding route below is the supported path.
+ */
+async function ensureNodeWebGpu(): Promise<void> {
+  const g = globalThis as { window?: unknown; navigator?: { gpu?: unknown } };
+  if (typeof g.window !== 'undefined') return;       // browser / worker: native gpu
+  if (g.navigator?.gpu) return;                       // already activated
+  try {
+    const mod = (await import('webgpu')) as {
+      create?: (flags: string[]) => unknown;
+      globals?: Record<string, unknown>;
+    };
+    const gpu = typeof mod.create === 'function' ? mod.create([]) : undefined;
+    if (gpu && typeof (gpu as { requestAdapter?: unknown }).requestAdapter === 'function') {
+      g.navigator ??= {} as { gpu?: unknown };
+      g.navigator.gpu = gpu;
+      installMissingWebGpuGlobals(mod.globals ?? {});
+    }
+  } catch {
+    // `webgpu` binding not installed in this environment: leave navigator.gpu
+    // absent; the caller falls back to CPU passthrough.
+  }
+}
+
+function installMissingWebGpuGlobals(globals: Record<string, unknown>): void {
+  const target = globalThis as unknown as Record<string, unknown>;
+  for (const [key, value] of Object.entries(globals)) {
+    if (target[key] != null) continue;
+    Object.defineProperty(globalThis, key, {
+      value,
+      writable: true,
+      configurable: true,
+    });
+  }
+}
+
 export class SnnAccelerator {
   private _available = false;
   private _timeSteps = 50;
@@ -134,7 +229,7 @@ export class SnnAccelerator {
 
   // ── Public ─────────────────────────────────────────────────────────────
 
-  /** Whether the GPU path is active. Always false in Node.js without --experimental-webgpu. */
+  /** Whether the GPU path is active. In Node, requires the `webgpu` binding (auto-activated via ensureNodeWebGpu). */
   get available(): boolean { return this._available; }
 
   /**
@@ -145,13 +240,16 @@ export class SnnAccelerator {
   async initialize(opts: EncoderOptions = {}, lifParams: LIFPopulationParams = {}): Promise<void> {
     if (this._available) return; // already up
 
-    this._timeSteps = opts.snnTimesteps ?? 50;
-    this._lif = { ...DEFAULT_LIF, ...lifParams };
+    this._timeSteps = normalizeTimeSteps(opts.snnTimesteps ?? 50);
+    this._lif = resolveLifPopulationParams(lifParams);
 
     const enabled = opts.enableSnn !== false;
     if (!enabled) return;
 
-    // Feature-detect WebGPU (browser + Node >= 22 with flag)
+    // Activate the Node WebGPU binding if present (no-op in browser).
+    await ensureNodeWebGpu();
+
+    // Feature-detect WebGPU (browser native, or Node via the `webgpu` binding)
     const gpu = (globalThis as { navigator?: { gpu?: unknown } }).navigator?.gpu
              ?? (globalThis as { GPU?: unknown }).GPU;
     if (!gpu) return;
@@ -190,7 +288,15 @@ export class SnnAccelerator {
     if (!this._available || !this._device) {
       return histograms; // CPU passthrough
     }
-    // GPU batch: encode sequentially for now (Phase 2.1: fuse into one dispatch)
+    if (histograms.length === 0) return [];
+    // Fused batch path: all histograms must share one length (the 128-bin trigram
+    // block invariant). LIF is per-element independent, so we flatten M x N into one
+    // storage buffer and run a single dispatch + single readback, eliminating the
+    // per-histogram buffer-create/map-read round-trip that dominated the old path.
+    const n = histograms[0]!.length;
+    const uniform = histograms.every(h => h.length === n);
+    if (uniform) return this._gpuEncodeBatch(histograms, n);
+    // Mixed lengths (rare) — fall back to per-item.
     return Promise.all(histograms.map(h => this._gpuEncode(h)));
   }
 
@@ -298,5 +404,75 @@ export class SnnAccelerator {
     stagingBuffer.destroy();
 
     return result;
+  }
+
+  /**
+   * Fused batch encode: M histograms of equal length N processed in a SINGLE
+   * dispatch + single readback. Because the LIF update is per-element independent,
+   * the existing shader runs unchanged over a flattened (M*N) array; each thread
+   * encodes one (histogram, neuron) pair. This removes the M x buffer-create and
+   * M x mapAsync round-trips that made the per-item path slower than CPU.
+   */
+  private async _gpuEncodeBatch(histograms: Float32Array[], n: number): Promise<Float32Array[]> {
+    const device = this._device!;
+    const pipeline = this._pipeline!;
+    const paramsBuffer = this._paramsBuffer!;
+    const m = histograms.length;
+    const total = m * n;
+
+    // neuronCount uniform = total flattened elements (per-element bounds check)
+    device.queue.writeBuffer(paramsBuffer, 24, new Uint32Array([total]));
+
+    // Flatten M x N into one contiguous input buffer
+    const flat = new Float32Array(total);
+    for (let j = 0; j < m; j++) flat.set(histograms[j]!, j * n);
+
+    const inputBuffer = device.createBuffer({
+      size: total * 4,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      mappedAtCreation: true,
+    });
+    new Float32Array(inputBuffer.getMappedRange()).set(flat);
+    inputBuffer.unmap();
+
+    const outputBuffer = device.createBuffer({
+      size: total * 4,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+    });
+    const stagingBuffer = device.createBuffer({
+      size: total * 4,
+      usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+    });
+
+    const bindGroup = device.createBindGroup({
+      layout: pipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: { buffer: paramsBuffer } },
+        { binding: 1, resource: { buffer: inputBuffer } },
+        { binding: 2, resource: { buffer: outputBuffer } },
+      ],
+    });
+
+    const encoder = device.createCommandEncoder();
+    const pass = encoder.beginComputePass();
+    pass.setPipeline(pipeline);
+    pass.setBindGroup(0, bindGroup);
+    pass.dispatchWorkgroups(Math.ceil(total / 64));
+    pass.end();
+    encoder.copyBufferToBuffer(outputBuffer, 0, stagingBuffer, 0, total * 4);
+    device.queue.submit([encoder.finish()]);
+
+    await stagingBuffer.mapAsync(GPUMapMode.READ);
+    const all = new Float32Array(stagingBuffer.getMappedRange().slice(0));
+    stagingBuffer.unmap();
+
+    inputBuffer.destroy();
+    outputBuffer.destroy();
+    stagingBuffer.destroy();
+
+    // Slice the flat result back into M per-histogram vectors
+    const out: Float32Array[] = new Array(m);
+    for (let j = 0; j < m; j++) out[j] = all.slice(j * n, j * n + n);
+    return out;
   }
 }
