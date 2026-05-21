@@ -175,6 +175,25 @@ export const autonomousAgendaHandler: TraitHandler<AutonomousAgendaConfig> = {
       spentToday: state.spentToday,
       remainingBudget: Math.max(0, config.daily_budget_usd - state.spentToday),
     });
+
+    // PSF-3 WIRE (D.040) — live Pillar-Slice from real agenda state (replaces skeleton).
+    // action_priority derived from pending items + recency pressure; budget_pressure from spend vs daily ceiling.
+    // Feeds the Pillar-Slice Framework / GRPO / RecursiveMAS with authentic runtime coordinates.
+    const pending = state.items.filter((i) => !i.completedAt).length;
+    const actionPriority = Math.min(1, (pending * 0.15) + (state.actionsToday / Math.max(1, config.max_actions_per_day)) * 0.5);
+    const budgetPressure = Math.min(1, state.spentToday / Math.max(1, config.daily_budget_usd));
+    context.emit?.('pillar:slice', {
+      slice: {
+        axis_1_id: 'action_priority',
+        axis_2_id: 'budget_pressure',
+        pos_1: actionPriority,
+        pos_2: budgetPressure,
+        pillar_id: 'autonomous_agenda',
+        pillar_domain: 'agent' as const,
+      },
+      agent_id: (context as any).agentId ?? 'local',
+      sim_step: Date.now(),
+    });
   },
 
   onEvent(node, config, context, event) {
