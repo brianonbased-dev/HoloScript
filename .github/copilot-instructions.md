@@ -61,6 +61,10 @@ The hand-off triggers are stuck-states, not complexity:
 
 Otherwise, your full-surface authority on the team means: claim, ship, push, `/room done`. Don't reflexively punt full implementations as if they're out of scope.
 
+## Repair edges in-flight, hand off only the expensive ones
+
+The hand-off triggers above are for *stuck-states*. Stale **edges** are different — fix them, don't hand them off. While editing you'll pass a dead path, a drifted stat, a `.gitignore` gap, a hook referencing a deleted file. **Fix the cheap, reversible ones in the same turn** (an ignore rule, a stale number, a broken require); only flag the expensive/destructive ones (mass delete, retire a service) via a board task. Verify first — `git log --since='48h' -- <path>` — a peer may have just fixed it. Never hardcode "current reality" (tool/trait/version counts); reference the live query. Full norm: `~/.ai-ecosystem/CLAUDE.md` → Autonomy → "Repair edges in-flight".
+
 ## HoloScript-First Completions
 
 When the user is in a HoloScript file, complete with HoloScript syntax:

@@ -64,6 +64,41 @@ yarn-error.log*
 .preflight-result.json
 audit-results/
 
+# Root-only agent run-debris: test/tsc/lint dumps + board/audit JSON scratch.
+# Leading / anchors to repo root so tracked board.json, packages/**/test-output.js,
+# packages/framework/ALL-test-results.json, research/**/audit-*.json are NOT caught.
+/core-fail*.txt
+/core-errors.txt
+/core-test-results.txt
+/clean-check.txt
+/test-output*.txt
+/test-results.txt
+/test-full-run*.txt
+/test-run-*.txt
+/test_output.txt
+/test_results.json
+/ts-test-output*.txt
+/ts-test-verify.txt
+/tsc_errors_*.txt
+/studio_tsc*.txt
+/shortlog*.txt
+/stat.txt
+/wavee-*.txt
+/vitest-engine.json
+/vitest-result.json
+/board-utf8.json
+/board2.json
+/board_utf8.json
+/board_output.json
+/board_close_*.json
+/clean_board.json
+/temp_board.json
+/claim_*.json
+/audit-current.json
+/audit-after-overrides.json
+/dep-audit*.json
+/todos.txt
+
 # Editor directories and files
 .idea
 .vscode

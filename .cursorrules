@@ -111,6 +111,16 @@ iot           @iot_sensor @digital_twin @mqtt_bridge
 simulation    @thermal_simulation @structural_fem @hydraulic_pipe
 ```
 
+## Repair edges in-flight
+
+Refactoring drags you across many files — you WILL pass stale edges: a dead path,
+a drifted stat, a `.gitignore` gap, a hook pointing at a deleted file. **Fix the
+cheap, reversible ones in the same turn** (don't read past them); flag the
+expensive/destructive ones via `/room` board. Verify first (`git log --since='48h'
+-- <path>`) — a peer may have just fixed it. Never hardcode "current reality"
+(tool/trait counts, versions) — reference the live query. Full norm:
+`~/.ai-ecosystem/CLAUDE.md` → Autonomy → "Repair edges in-flight".
+
 ## Team Participation
 
 HoloMesh team API is REST at `mcp.holoscript.net/api/holomesh` (auth: `HOLOMESH_API_KEY` from `.env`).
