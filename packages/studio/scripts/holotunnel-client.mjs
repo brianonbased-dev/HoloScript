@@ -137,6 +137,16 @@ function forwardRequest({ method, path, headers, body }) {
           if (typeof v === 'string') hdrs[k] = v;
           else if (Array.isArray(v)) hdrs[k] = v.join(', ');
         }
+        for (const h of [
+          'content-encoding',
+          'content-length',
+          'connection',
+          'keep-alive',
+          'transfer-encoding',
+          'upgrade',
+        ]) {
+          delete hdrs[h];
+        }
         resolve({ status: res.statusCode ?? 502, headers: hdrs, body: raw.toString('base64') });
       });
     });
