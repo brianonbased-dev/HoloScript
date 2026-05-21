@@ -13,6 +13,10 @@
 export { SceneViewer } from './SceneViewer';
 export type { SceneViewerProps } from './SceneViewer';
 
+// APL parity desktop viewer (reuses SceneViewer + receipt emission)
+export { DesktopViewer } from './DesktopViewer';
+export type { DesktopViewerProps } from './DesktopViewer';
+
 // Full studio widget — prompt bar + 3D viewer + mock AI
 export { StudioWidget } from './StudioWidget';
 export type { StudioWidgetProps } from './StudioWidget';
