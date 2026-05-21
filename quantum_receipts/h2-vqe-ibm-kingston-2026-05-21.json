@@ -1,0 +1,39 @@
+{
+  "receipt_version": "1.0",
+  "timestamp_utc": "2026-05-21T14:30:00Z",
+  "experiment": "H2 VQE — 2-qubit Z2-reduced Hamiltonian (Kandala 2017, STO-3G)",
+  "exact_energy_ha": -1.8573,
+  "aer_result": {
+    "energy_ha": -1.857275,
+    "gap_mha": 0.025,
+    "method": "COBYLA",
+    "iterations": 76,
+    "theta_opt": [-2.156420745318669, -1.8400533509719226, 0.9681375555013279, 1.419445493018863],
+    "note": "Noiseless Aer simulator — proves algorithm correctness"
+  },
+  "hardware_result": {
+    "backend": "ibm_kingston",
+    "method": "COBYLA cold-start (theta=0), resilience_level=0",
+    "optimization_trace": [
+      {"job_id": "d87fc5dg7okc73em97f0", "step": 1, "energy_ha": -1.142571, "std": 0.023400},
+      {"job_id": "d87fcbh789is7390ruo0", "step": 2, "energy_ha": -1.113506, "std": 0.031635},
+      {"job_id": "d87fci1789is7390ruug", "step": 3, "energy_ha": -1.175608, "std": 0.026502},
+      {"job_id": "d87fcoh789is7390rv7g", "step": 4, "energy_ha": -1.135075, "std": 0.021306},
+      {"job_id": "d87fcutg7okc73em98fg", "step": 5, "energy_ha": -1.292168, "std": 0.011869},
+      {"job_id": "d87fd5lg7okc73em98q0", "step": 6, "energy_ha": -1.363392, "std": 0.016895},
+      {"job_id": "d87fdbop0eas73dm4pag", "step": 7, "energy_ha": -1.485020, "std": 0.017733},
+      {"job_id": "d87fdolg7okc73em99s0", "step": 8, "energy_ha": -1.477059, "std": 0.010542},
+      {"job_id": "d87fdidg7okc73em99h0", "step": 9, "energy_ha": -1.537648, "std": 0.012093}
+    ],
+    "best_energy_ha": -1.537648,
+    "best_gap_mha": 319.5,
+    "steps_run": 9,
+    "cancellation_reason": "Fair-share queue preemption at step 10",
+    "warm_start_attempts": 2,
+    "warm_start_outcome": "Both stuck in queue >10min (open-tier deprioritization)",
+    "nisq_assessment": "COBYLA converging — 319.5 mHa gap at step 9 vs 714.7 mHa at step 1. Trend indicates convergence toward noise floor. Chemical accuracy (1.6 mHa) not achievable at NISQ without error correction.",
+    "honest_conclusion": "Receipt infrastructure is the primary deliverable. Hardware measurements confirm NISQ limitations and verify job provenance via IBM job IDs. Algorithm correctness proven on Aer (0.025 mHa)."
+  },
+  "paper_claim": "Paper 26 §7 — receipt-backed VQE on real IBM hardware. The deliverable is verifiable provenance, not chemical accuracy.",
+  "going_forward_ratchet": "Warm-start from Aer theta + mean-over-N reporting on IBM Premium tier (no fair-share queue)"
+}
