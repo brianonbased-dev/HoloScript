@@ -115,6 +115,17 @@ export type {
 
 export { recursiveLinkHandler } from './RecursiveLinkTrait';
 
+// ── uAALComposedAgent — full stack in one handler ─────────────────────────────
+export type {
+  UAALAgentConfig,
+  UAALAgentSnapshot,
+} from './uAALComposedAgent';
+
+export {
+  uAALComposedAgentHandler,
+  getUAALAgentSnapshot,
+} from './uAALComposedAgent';
+
 // ── CognitiveVMTrait — uAAL runtime ───────────────────────────────────────────
 export type {
   LifecycleState,
