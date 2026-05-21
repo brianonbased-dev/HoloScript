@@ -29,7 +29,10 @@ export type QmMethod =
   | 'pbe'          // PBE generalized gradient approximation
   | 'b3lyp'        // B3LYP hybrid functional
   | 'hse06'        // HSE06 screened hybrid functional
-  | 'pbe0';        // PBE0 hybrid functional
+  | 'pbe0'         // PBE0 hybrid functional
+  | 'vqe'          // Variational Quantum Eigensolver
+  | 'qaoa'         // Quantum Approximate Optimization Algorithm
+  | 'vqe-adapt';   // Adaptive VQE (ADAPT-VQE)
 
 /** Supported basis sets. */
 export type QmBasis =
@@ -51,7 +54,7 @@ export type QmBasis =
   | 'minimal';      // For semi-empirical (TBLite)
 
 /** QM backend identifiers. */
-export type QmBackend = 'psi4' | 'quantum-espresso' | 'tblite';
+export type QmBackend = 'psi4' | 'quantum-espresso' | 'tblite' | 'ibm-quantum';
 
 /** Molecular system representation. */
 export interface MoleculeSpec {
@@ -345,6 +348,68 @@ export interface QmSolver extends SimSolver {
     mmRegion: MoleculeSpec,
     mmForceField?: string,
   ): Promise<QmEnergyResult>;
+
+  /**
+   * Run VQE to estimate ground-state energy on quantum hardware.
+   * Primary IBM Quantum capability — molecules up to ~12 atoms (sto-3g basis).
+   * Optional: only IBM Quantum backend implements this.
+   */
+  runVQE?(molecule: MoleculeSpec, ansatzLayers?: number): Promise<VQEResult>;
+
+  /**
+   * Run QAOA for combinatorial optimization (Max-Cut / QUBO).
+   * Accepts a weight matrix W where W[i][j] = edge weight between nodes i and j.
+   * Optional: only IBM Quantum backend implements this.
+   */
+  runQAOA?(weightMatrix: number[][], circuitDepthP?: number): Promise<QAOAResult>;
+}
+
+// ── IBM Quantum result types ───────────────────────────────────────────────────
+
+/** VQE result — quantum hardware energy estimation. */
+export interface VQEResult {
+  /** Ground state energy in Hartree. */
+  groundStateEnergy: number;
+  /** VQE converged within energy tolerance. */
+  converged: boolean;
+  /** Number of optimizer iterations. */
+  optimizerIterations: number;
+  /** Final cost function value. */
+  finalCost: number;
+  /** Number of qubits used. */
+  numQubits: number;
+  /** Circuit depth (number of gate layers). */
+  circuitDepth: number;
+  /** Backend used: 'aer' (local simulator) or 'ibm-quantum' (real hardware). */
+  executionBackend: 'aer' | 'ibm-quantum';
+  /** IBM job ID (when executionBackend === 'ibm-quantum'). */
+  jobId?: string;
+  /** Wall time in seconds. */
+  wallTimeSeconds: number;
+  /** Solver config that produced this result. */
+  solverConfig: QmSolverConfig;
+}
+
+/** QAOA result — quantum combinatorial optimization. */
+export interface QAOAResult {
+  /** Optimal bitstring solution. */
+  optimalBitstring: string;
+  /** Optimal objective value. */
+  optimalValue: number;
+  /** Approximation ratio (achieved / optimal classical). */
+  approximationRatio: number;
+  /** QAOA circuit depth parameter p. */
+  circuitDepthP: number;
+  /** Number of qubits. */
+  numQubits: number;
+  /** Backend used. */
+  executionBackend: 'aer' | 'ibm-quantum';
+  /** IBM job ID. */
+  jobId?: string;
+  /** Wall time in seconds. */
+  wallTimeSeconds: number;
+  /** Solver config. */
+  solverConfig: QmSolverConfig;
 }
 
 // ── Backend capability matrix ──────────────────────────────────────────────────
@@ -405,6 +470,17 @@ export const QM_BACKEND_CAPABILITIES: Record<QmBackend, QmBackendCapabilities> =
     transitionStates: false,
     qmMm: false,
     maxAtoms: 1000,
+  },
+  'ibm-quantum': {
+    molecular: true,           // VQE for small molecules (≤50 qubits)
+    periodic: false,
+    semiEmpirical: false,
+    nmrGiao: false,
+    tdDft: false,
+    postHf: false,
+    transitionStates: false,
+    qmMm: false,
+    maxAtoms: 12,              // ~4 qubits/atom with sto-3g; 50-qubit horizon
   },
 };
 

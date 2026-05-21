@@ -1,9 +1,9 @@
 /**
  * @holoscript/qm-bridge — Quantum mechanics bridge plugin for HoloScript.
  *
- * Wraps Psi4 (CCSD molecular), Quantum ESPRESSO (DFT solid-state), and
- * TBLite (semi-empirical/large-system) under unified SimulationContract
- * scale-tag dispatch. The first stage of D.026 two-stage QM absorption.
+ * Wraps Psi4 (CCSD molecular), Quantum ESPRESSO (DFT solid-state),
+ * TBLite (semi-empirical/large-system), and IBM Quantum (VQE/QAOA circuits)
+ * under unified SimulationContract scale-tag dispatch.
  *
  * ## What this enables (GROW §7, EVOLVED §7.1)
  *
@@ -16,7 +16,7 @@
  * 7. NMR / IR spectrum prediction (Psi4 GIAO)
  * 8. Catalyst screening surrogate (TBLite)
  * 9. Reaction mechanism inference (SESL, stage 2)
- * 10. Quantum-circuit chemistry (Qiskit, stage 2)
+ * 10. Quantum-circuit chemistry — VQE + QAOA (IBM Quantum, stage 2 ✓)
  *
  * ## Architecture
  *
@@ -55,6 +55,8 @@ export type {
   QmNmrResult,
   QmTransitionStateResult,
   QmBackendCapabilities,
+  VQEResult,
+  QAOAResult,
 } from './QmSolver';
 
 export {
@@ -87,15 +89,20 @@ export type { QuantumEspressoConfig } from './backends/quantum-espresso';
 export { TBLiteBackend } from './backends/tblite';
 export type { TBLiteConfig } from './backends/tblite';
 
+export { IBMQuantumBackend } from './backends/ibm-quantum';
+export type { IBMQuantumConfig } from './backends/ibm-quantum';
+
 // ── Factory ────────────────────────────────────────────────────────────────────
 
 import type { QmBackend, QmSolverConfig } from './QmSolver';
 import type { Psi4Config } from './backends/psi4';
 import type { QuantumEspressoConfig } from './backends/quantum-espresso';
 import type { TBLiteConfig } from './backends/tblite';
+import type { IBMQuantumConfig } from './backends/ibm-quantum';
 import { Psi4Backend } from './backends/psi4';
 import { QuantumEspressoBackend } from './backends/quantum-espresso';
 import { TBLiteBackend } from './backends/tblite';
+import { IBMQuantumBackend } from './backends/ibm-quantum';
 import type { QmSolver } from './QmSolver';
 
 /**
@@ -135,10 +142,12 @@ export function createQmSolver(config: QmSolverConfig): QmSolver {
       return new QuantumEspressoBackend(config as QuantumEspressoConfig);
     case 'tblite':
       return new TBLiteBackend(config as TBLiteConfig);
+    case 'ibm-quantum':
+      return new IBMQuantumBackend(config as IBMQuantumConfig);
     default:
       throw new Error(
         `[qm-bridge] Unknown backend: '${config.backend}'. ` +
-        `Supported: psi4, quantum-espresso, tblite`,
+        `Supported: psi4, quantum-espresso, tblite, ibm-quantum`,
       );
   }
 }
@@ -159,6 +168,19 @@ export function createQmSolver(config: QmSolverConfig): QmSolver {
  */
 export function selectQmBackend(questionType: string): QmBackend {
   const q = questionType.toLowerCase();
+
+  // Quantum circuit / VQE / QAOA questions
+  if (
+    q.includes('vqe') ||
+    q.includes('variational quantum') ||
+    q.includes('quantum circuit') ||
+    q.includes('qaoa') ||
+    q.includes('qubo') ||
+    q.includes('ibm quantum') ||
+    q.includes('quantum hardware')
+  ) {
+    return 'ibm-quantum';
+  }
 
   // Periodic / materials questions
   if (
@@ -229,6 +251,9 @@ export function getDefaultQmConfig(
     }
     case 'tblite': {
       return { backend: 'tblite', method: 'gfN-xTB', basis: 'minimal' };
+    }
+    case 'ibm-quantum': {
+      return { backend: 'ibm-quantum', method: 'vqe', basis: 'sto-3g' };
     }
     default:
       return { backend, method: 'dft', basis: '6-31g*' };

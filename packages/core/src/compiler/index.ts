@@ -204,6 +204,10 @@ export type { ModalitySelection, ModalitySelectorOptions } from './platform/Moda
 export { USDZPipeline } from './USDZPipeline';
 export type { USDZPipelineOptions } from './USDZPipeline';
 
+// Quantum circuit compiler (OpenQASM 3.0 / IBM Quantum bridge)
+export { QuantumCircuitCompiler } from './QuantumCircuitCompiler';
+export type { QASMOutput, QuantumAtom } from './QuantumCircuitCompiler';
+
 // Compiler bridge
 export { CompilerBridge } from './CompilerBridge';
 export { Native2DCompiler } from './Native2DCompiler';
