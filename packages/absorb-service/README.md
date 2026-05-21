@@ -588,9 +588,9 @@ tracking.
 | Variable                | Required         | Description                                                    |
 | ----------------------- | ---------------- | -------------------------------------------------------------- |
 | `ABSORB_API_KEY`        | For paid tools   | API key for Studio authentication                              |
-| `OPENAI_API_KEY`        | Recommended      | OpenAI API key for embeddings (best quality)                   |
+| `OPENAI_API_KEY`        | Optional         | OpenAI API key for explicit `EMBEDDING_PROVIDER=openai` usage  |
 | `OLLAMA_URL`            | Optional         | Ollama base URL (default: `http://localhost:11434`)            |
-| `EMBEDDING_PROVIDER`    | Optional         | Override auto-detection: `openai`, `ollama`, or `xenova`       |
+| `EMBEDDING_PROVIDER`    | Optional         | Override auto-detection: `holoembed`, `openai`, `ollama`, `xenova`, or `structural` |
 | `HOLOSCRIPT_STUDIO_URL` | Optional         | Studio URL override (default: `https://studio.holoscript.net`) |
 | `HOLOSCRIPT_API_KEY`    | For orchestrator | MCP orchestrator API key                                       |
 | `ANTHROPIC_API_KEY`     | Optional         | Anthropic API key for LLM-powered queries                      |
@@ -600,9 +600,10 @@ tracking.
 
 When `EMBEDDING_PROVIDER` is not set, the system auto-detects:
 
-1. `OPENAI_API_KEY` present -- use OpenAI (preferred, best quality)
-2. Ollama running locally -- use Ollama (probed with 2s timeout)
-3. Fallback -- OpenAI (will fail without key; warns in stderr)
+1. HoloEmbed local provider -- use HoloScript-native NL-to-code embeddings
+2. `OPENAI_API_KEY` present -- use OpenAI only if HoloEmbed cannot load
+3. Ollama running locally -- use Ollama only if HoloEmbed cannot load
+4. Fallback -- HoloGraph structural embeddings
 
 ### Database
 

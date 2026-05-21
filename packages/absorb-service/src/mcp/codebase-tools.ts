@@ -161,11 +161,12 @@ let cachedProviderName: string | null = null;
  *
  * Priority:
  * 1. Explicit EMBEDDING_PROVIDER env var (user override)
- * 2. OPENAI_API_KEY set → 'openai' (PREFERRED — best quality)
- * 3. Ollama running (probe with 2s timeout) ��� 'ollama'
- * 4. Fallback → 'openai' with warning (BM25 deprecated)
+ * 2. HoloEmbed local provider (dogfood default; no API key/model download)
+ * 3. OPENAI_API_KEY set -> 'openai' (fallback if HoloEmbed cannot load)
+ * 4. Ollama running (probe with 2s timeout) -> 'ollama'
+ * 5. Fallback -> HoloGraph structural embeddings
  */
-async function detectBestEmbeddingProvider(): Promise<string> {
+export async function detectBestEmbeddingProvider(): Promise<string> {
   if (cachedProviderName) return cachedProviderName;
 
   // 1. Explicit env override
@@ -175,14 +176,35 @@ async function detectBestEmbeddingProvider(): Promise<string> {
     return cachedProviderName;
   }
 
-  // 2. OpenAI API key available
+  // 2. HoloEmbed is the HoloScript-native NL->code provider. Prefer it by
+  // default so local/live code search dogfoods the package unless the operator
+  // explicitly requests a different provider through EMBEDDING_PROVIDER.
+  try {
+    const { createEmbeddingProvider } = await import('../engine/providers/EmbeddingProviderFactory');
+    const provider = await createEmbeddingProvider({ provider: 'holoembed' });
+    if (provider.name === 'holoembed') {
+      cachedProviderName = 'holoembed';
+      console.error(
+        `[EmbeddingProvider] Auto-detected: ${cachedProviderName} (HoloScript-native, local, no API key)`
+      );
+      return cachedProviderName;
+    }
+  } catch (err) {
+    console.error(
+      `[EmbeddingProvider] HoloEmbed unavailable; falling back to external/provider probes: ${
+        err instanceof Error ? err.message : String(err)
+      }`
+    );
+  }
+
+  // 3. OpenAI API key available
   if (process.env.OPENAI_API_KEY) {
     cachedProviderName = 'openai';
     console.error(`[EmbeddingProvider] Auto-detected: ${cachedProviderName} (API key found)`);
     return cachedProviderName;
   }
 
-  // 3. Probe Ollama (only if OLLAMA_URL is configured)
+  // 4. Probe Ollama (only if OLLAMA_URL is configured)
   try {
     const ollamaUrl = process.env.OLLAMA_URL;
     if (!ollamaUrl) throw new Error('OLLAMA_URL not set');
@@ -207,18 +229,21 @@ async function detectBestEmbeddingProvider(): Promise<string> {
     // Ollama not running or unreachable
   }
 
-  // 4. Fallback — HoloGraph structural embeddings: zero-dependency, zero-latency,
-  //    no API key, no network, no model download. For NL→code queries, combine
-  //    with HoloEmbed (Phase 2) once available. Structural alone gives 100% recall
-  //    for graph-topology queries (see Paper 26 Table 1).
+  // 5. Fallback: HoloGraph structural embeddings: zero-dependency, zero-latency,
+  //    no API key, no network, no model download. Structural alone gives 100%
+  //    recall for graph-topology queries (see Paper 26 Table 1).
   cachedProviderName = 'structural';
   console.error(
     `[EmbeddingProvider] No OPENAI_API_KEY or Ollama found. Using HoloGraph structural embeddings (zero-dep, 384-dim, local).`
   );
   console.error(
-    `[EmbeddingProvider] For NL semantic search over large corpora, set OPENAI_API_KEY or OLLAMA_URL.`
+    `[EmbeddingProvider] For NL semantic search over large corpora, fix HoloEmbed loading or set EMBEDDING_PROVIDER explicitly.`
   );
   return cachedProviderName;
+}
+
+export function resetDetectedEmbeddingProviderForTests(): void {
+  cachedProviderName = null;
 }
 
 /**
