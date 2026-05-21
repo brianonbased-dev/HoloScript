@@ -58,6 +58,7 @@ import { AssetPipelinePanel } from './AssetPipelinePanel';
 import { LODMetricsPanel } from './LODMetricsPanel';
 import { RuntimeTierPanel } from './RuntimeTierPanel';
 import { FleetPanel } from './FleetPanel';
+import { InboxPanel } from './InboxPanel';
 import { useDomainFilter, type DomainProfile } from '../../hooks/useDomainFilter';
 import type { EffectASTNode } from '@holoscript/core';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
@@ -201,7 +202,8 @@ const TAB_CATEGORIES: TabCategory[] = [
     headerIcon: '🌐',
     tabs: [
       { id: 'fleet', icon: '🚀', label: 'Fleet', title: 'Agents + GPUs + full compute estate (presence + hardware telemetry)' },
-      // Future: board, inbox, identity, knowledge, mode, absorb, bounties (other open sidebar tasks)
+      { id: 'inbox', icon: '📬', label: 'Inbox', title: 'DMs, handoffs, mentions with claim buttons' },
+      // Future: board, identity, knowledge, mode, absorb, bounties (other open sidebar tasks)
     ],
   },
   {
@@ -374,6 +376,7 @@ export function RightPanelSidebar({
             {activeTab === 'pipeline' && <AssetPipelinePanel />}
             {activeTab === 'runtimeTier' && <RuntimeTierPanel />}
             {activeTab === 'fleet' && <FleetPanel />}
+            {activeTab === 'inbox' && <InboxPanel />}
           </div>
         </div>
       )}
