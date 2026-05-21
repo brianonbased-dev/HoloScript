@@ -590,6 +590,39 @@ export const SHUTDOWN_SIGNAL_PILLAR: Pillar = {
   },
 };
 
+/**
+ * D040_THREE_POPULATION_PILLAR
+ *
+ * First-class Pillar axis for D.040 (Three-Population Trait Library).
+ * Wires the 6 sovereign D.040 traits (@verbalFingerprint, @autonomousAgenda,
+ * @reputationLedger, @vocabularyRegister, @speechAwareEncounter, @avatarIntent)
+ * into the Pillar-Slice Framework under a shared participant_id spine.
+ *
+ * Populations: HoloMesh agents, HoloLand NPCs, uaa2-orchestrated services.
+ * This axis lets any layer query "which population + how faithfully are the
+ * shared traits executing for this participant".
+ */
+export const D040_THREE_POPULATION_PILLAR: Pillar = {
+  id: 'd040_three_population',
+  domain: 'd040' as PillarDomain,
+  axis_vocabulary: ['population_type', 'trait_fidelity', 'participant_alignment'] as const,
+  generate(context: PillarContext): PillarSlice {
+    const meta = (context.metadata || {}) as Record<string, string | number>;
+    const pop = String(meta.population_type || meta.population || 'agent');
+    const fidelity = Number(meta.trait_fidelity ?? 0.92);
+    const alignment = Number(meta.participant_alignment ?? 0.95);
+
+    return {
+      axis_1_id: 'population_type',
+      axis_2_id: 'trait_fidelity',
+      pos_1: pop === 'agent' ? 0.95 : pop === 'npc' ? 0.88 : 0.90,
+      pos_2: fidelity,
+      pillar_id: this.id,
+      pillar_domain: this.domain,
+    };
+  },
+};
+
 /** All seed Pillars, registered by default when the trait attaches */
 export const SEED_PILLARS: readonly Pillar[] = [
   PHYSICS_CONSERVATION_PILLAR,
@@ -609,6 +642,7 @@ export const SEED_PILLARS: readonly Pillar[] = [
   INIT_BOOTSTRAP_PILLAR,
   EDGE_CASE_HANDLER_PILLAR,
   SHUTDOWN_SIGNAL_PILLAR,
+  D040_THREE_POPULATION_PILLAR,
 ] as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
