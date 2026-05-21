@@ -856,7 +856,7 @@ export async function handleTeamRoutes(
     // mutating routes (a follow-up task wires the remaining 4 broadcast
     // sites — kept minimal here to ship the integration proof first).
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -1178,7 +1178,7 @@ export async function handleTeamRoutes(
     if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
     if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
     const rawMessageBody = await parseJsonBody(req);
-    const { effectiveBody: messageBody, ctx: messageSigningCtx } = await extractAndVerifySigning(rawMessageBody);
+    const { effectiveBody: messageBody, ctx: messageSigningCtx } = await extractAndVerifySigning(rawMessageBody, { bypassSigning: caller?.isFounder ?? false });
     if (!messageSigningCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: messageSigningCtx.signingReason });
       return true;
@@ -1671,7 +1671,7 @@ export async function handleTeamRoutes(
     }
 
     const rawDmBody = await parseJsonBody(req);
-    const { effectiveBody: dmBody, ctx: dmSigningCtx } = await extractAndVerifySigning(rawDmBody);
+    const { effectiveBody: dmBody, ctx: dmSigningCtx } = await extractAndVerifySigning(rawDmBody, { bypassSigning: caller?.isFounder ?? false });
     if (!dmSigningCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: dmSigningCtx.signingReason });
       return true;
@@ -1811,7 +1811,7 @@ export async function handleTeamRoutes(
     }
 
     const rawRecruitBody = await parseJsonBody(req);
-    const { effectiveBody: recruitBody, ctx: recruitSigningCtx } = await extractAndVerifySigning(rawRecruitBody);
+    const { effectiveBody: recruitBody, ctx: recruitSigningCtx } = await extractAndVerifySigning(rawRecruitBody, { bypassSigning: caller?.isFounder ?? false });
     if (!recruitSigningCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: recruitSigningCtx.signingReason });
       return true;

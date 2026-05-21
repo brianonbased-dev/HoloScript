@@ -126,6 +126,13 @@ export interface ExtractAndVerifyOptions {
   /** Inject the capability-token registry for the capability auth path
    *  (default: module singleton). Tests pass a fresh registry. */
   capabilityRegistry?: CapabilityTokenRegistry;
+  /**
+   * When true, skip ALL signing requirements and return signingValid=true.
+   * Use for founder/admin callers whose identity is already established via
+   * the key registry — they can write without a signed envelope until
+   * client-side signing is rolled out to all agent surfaces.
+   */
+  bypassSigning?: boolean;
 }
 
 // ── Capability-token registry singleton ───────────────────────────────
@@ -416,6 +423,21 @@ export async function extractAndVerifySigning(
   reqBody: unknown,
   options: ExtractAndVerifyOptions = {}
 ): Promise<ExtractAndVerifyResult> {
+  // Founder/admin bypass: identity already established via key registry.
+  // Unsigned requests from founder callers are accepted during the transition
+  // period until all agent surfaces implement client-side signing.
+  if (options.bypassSigning) {
+    return {
+      effectiveBody: reqBody,
+      ctx: {
+        signedRequest: false,
+        signingValid: true,
+        signer: null,
+        signingReason: 'founder-bypass',
+      },
+    };
+  }
+
   const strict = options.strictMode ?? isStrictMode(options.env, options.nowMs);
 
   // ── Capability-token envelope path (Bearer-style, mobile/headless) ──

@@ -70,7 +70,7 @@ import type { TokenStoreBackend } from './auth/token-store';
 import { PostgresTokenStore } from './auth/postgres-token-store';
 import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './holomesh/index';
 import { applyEdgeSafeSseHeaders } from './holomesh/sse-edge-headers';
-import { initStores, teamStore } from './holomesh/state';
+import { initStores, teamStore, keyRegistry } from './holomesh/state';
 import { getConsolidationBridge } from './holomesh/consolidation-bridge';
 import { queryAdminOperationsAudit } from './holomesh/admin-operations-audit';
 import { loadNativeAgentCompositions } from './holomesh/agent/loader';
@@ -365,6 +365,28 @@ async function authenticateRequest(req: http.IncomingMessage): Promise<TokenIntr
 async function checkAuth(req: http.IncomingMessage): Promise<boolean> {
   const auth = await authenticateRequest(req);
   return auth.active;
+}
+
+/**
+ * Check if the request carries a founder-level key from the HoloMesh key
+ * registry. Founders bypass credit gates — their operations are always
+ * authorized regardless of credit_accounts balance.
+ *
+ * Uses the HoloMesh keyRegistry (same store as resolveRequestingAgent) so
+ * founder status is consistent with the REST auth layer.
+ */
+function isFounderRequest(req: http.IncomingMessage): boolean {
+  const auth = req.headers['authorization'];
+  const mcpKey = req.headers['x-mcp-api-key'];
+  let token: string | undefined;
+  if (typeof auth === 'string' && auth.startsWith('Bearer ')) {
+    token = auth.slice(7).trim();
+  } else if (typeof mcpKey === 'string' && mcpKey.length > 0) {
+    token = mcpKey.trim();
+  }
+  if (!token) return false;
+  const record = keyRegistry.get(token);
+  return record?.isFounder === true;
 }
 
 /**
@@ -2041,6 +2063,12 @@ const httpServer = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ error: 'Authentication required' }));
       return;
     }
+    // Founder bypass: key-registry founders always pass the credit gate.
+    if (isFounderRequest(req)) {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: true, balance: 999_999_999, required: 0, founderBypass: true }));
+      return;
+    }
     try {
       const body = await parseJsonBody(req);
       const userId = body.userId as string;
@@ -2095,6 +2123,12 @@ const httpServer = http.createServer(async (req, res) => {
     if (!authed) {
       res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Authentication required' }));
+      return;
+    }
+    // Founder bypass: no credit deduction for key-registry founders.
+    if (isFounderRequest(req)) {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: true, cost: 0, founderBypass: true }));
       return;
     }
     try {
