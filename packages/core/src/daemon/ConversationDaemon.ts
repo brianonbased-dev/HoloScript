@@ -215,6 +215,33 @@ export function assertDaemonFieldSeparation(daemon: ConversationDaemon): void {
   }
 }
 
+// ─── Caller identity assertion (D1 from 2026-05-19 daemon rehydration audit) ──
+
+export class UnauthorizedDaemonAccessError extends Error {
+  constructor(message: string) {
+    super(`[ConversationDaemon] ${message}`);
+    this.name = 'UnauthorizedDaemonAccessError';
+  }
+}
+
+/**
+ * Asserts caller identity against daemon ownership before any rehydration
+ * channel access, memory read, or delta emission.
+ *
+ * This is the root-cause fix for the 4 attack vectors (A1–A4) in the
+ * security-audit-daemon-rehydration-2026-05-19 threat model.
+ * Every future `holo_*_daemon` MCP tool and Brittney rehydration endpoint
+ * MUST call this (or an equivalent) before returning `ContextDelta` or
+ * `ConversationDaemon` structs.
+ */
+export function assertCallerOwnsDaemon(daemon: ConversationDaemon, callerAgentId: string): void {
+  if (!callerAgentId || daemon.ownerId !== callerAgentId) {
+    throw new UnauthorizedDaemonAccessError(
+      `Unauthorized daemon access: caller ${callerAgentId || 'anonymous'} does not match owner ${daemon.ownerId} for daemon ${daemon.daemonId}`
+    );
+  }
+}
+
 // ─── Factory ─────────────────────────────────────────────────────────────────
 
 export function makeDefaultConversationDaemon(

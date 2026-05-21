@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   assertDaemonFieldSeparation,
+  assertCallerOwnsDaemon,
+  UnauthorizedDaemonAccessError,
   DaemonFieldSeparationError,
   makeDefaultConversationDaemon,
   makeEmptyContextDelta,
@@ -123,5 +125,23 @@ describe('ConversationDaemonTurn structural contract', () => {
     expect(turn.contextDelta.significanceScore).toBe(0);
     // Raw utterance is NOT the durable memory — contextDelta is
     expect(turn.contextDelta).toBeDefined();
+  });
+});
+
+describe('assertCallerOwnsDaemon (D1 security gate)', () => {
+  it('passes when callerAgentId exactly matches daemon.ownerId', () => {
+    const d = baseValidDaemon();
+    expect(() => assertCallerOwnsDaemon(d, 'owner1')).not.toThrow();
+  });
+
+  it('throws UnauthorizedDaemonAccessError when caller does not own the daemon', () => {
+    const d = baseValidDaemon();
+    expect(() => assertCallerOwnsDaemon(d, 'attacker-uuid')).toThrow(UnauthorizedDaemonAccessError);
+    expect(() => assertCallerOwnsDaemon(d, 'attacker-uuid')).toThrow('does not match owner');
+  });
+
+  it('throws when caller is empty or falsy', () => {
+    const d = baseValidDaemon();
+    expect(() => assertCallerOwnsDaemon(d, '')).toThrow(UnauthorizedDaemonAccessError);
   });
 });
