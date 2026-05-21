@@ -148,6 +148,21 @@ export {
   corticalDepthRouterHandler,
 } from './CorticalDepthRouter';
 
+// ── Paper26QuantumAssignmentTrait — QAOA-based agent task assignment ──────────
+export type {
+  QAOARunner,
+  Paper26QuantumAssignmentConfig,
+  Paper26QuantumAssignmentState,
+} from './sim/Paper26QuantumAssignmentTrait';
+
+export {
+  buildGammaWeightMatrix,
+  classicalGreedyBisection,
+  createQuantumAssignmentTrait,
+  stubQAOARunner,
+  paper26QuantumAssignmentHandler,
+} from './sim/Paper26QuantumAssignmentTrait';
+
 // ── CognitiveVMTrait — uAAL runtime ───────────────────────────────────────────
 export type {
   LifecycleState,

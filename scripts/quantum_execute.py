@@ -28,10 +28,44 @@ Usage
 
 from __future__ import annotations
 
+import hashlib
 import json
+import pathlib
 import sys
 import time
+from datetime import datetime, timezone
 from typing import Any
+
+
+# ---------------------------------------------------------------------------
+# Receipt provenance
+# ---------------------------------------------------------------------------
+# Any run on a real IBM backend must leave a self-certifying artifact: the
+# job_id that produced the certified value, plus a payload_hash over
+# {"energy"|"value", "job_id"} using the same scheme as the ai-ecosystem
+# quantum receipts (scripts/quantum_vqe_h2_pec.py). Without a persisted job_id
+# a hardware claim cannot be re-verified against IBM Runtime after the fact.
+
+def _payload_hash(value: float, job_id: str) -> str:
+    return hashlib.sha256(
+        json.dumps({"energy": value, "job_id": job_id}, sort_keys=True).encode()
+    ).hexdigest()
+
+
+def _write_receipt(receipt: dict[str, Any]) -> str | None:
+    """Best-effort write of a committable receipt file. Never breaks the
+    stdout JSON contract the TypeScript bridge relies on."""
+    try:
+        out_dir = pathlib.Path(__file__).resolve().parent.parent / "quantum_receipts"
+        out_dir.mkdir(exist_ok=True)
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        backend = str(receipt.get("backend", "ibm")).replace("/", "_")
+        task = str(receipt.get("task", receipt.get("method", "run"))).replace("/", "_")
+        path = out_dir / f"quantum_{task}_{backend}_{stamp}_receipt.json"
+        path.write_text(json.dumps(receipt, indent=2), encoding="utf-8")
+        return str(path)
+    except Exception:
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -79,6 +113,8 @@ def run_vqe(params: dict[str, Any]) -> dict[str, Any]:
     ansatz_layers: int = int(params.get("ansatz_layers", 2))
     ibm_backend_name: str = params.get("ibm_backend", "ibm_fez")
     api_token: str | None = params.get("api_token") or __import__("os").environ.get("IBM_QUANTUM_API_KEY")
+    hw_optimizer: str = params.get("hw_optimizer", "spsa")       # "spsa" | "cobyla"
+    resilience_level: int = min(int(params.get("resilience_level", 1)), 2)  # cap at 2 (≥0.28 max)
 
     # sto-3g orbital → qubit count (Jordan-Wigner)
     orbital_map: dict[str, int] = {"H": 1, "C": 5, "N": 5, "O": 5, "F": 5}
@@ -173,44 +209,79 @@ def run_vqe(params: dict[str, Any]) -> dict[str, Any]:
 
         opts = EstimatorOptions()
         opts.default_shots = 4096
+        opts.resilience_level = resilience_level  # 1=twirling, 2=ZNE (max in ≥0.28)
 
         estimator_hw = IBMEstimator(mode=backend, options=opts)
+        hw_backend_name = backend.name
 
-        def _energy_hw(theta_vec: np.ndarray) -> float:
+        def _energy_hw(theta_vec: np.ndarray) -> tuple[float, str]:
             pub = (isa_ansatz, [isa_hamiltonian], [theta_vec])
             job = estimator_hw.run([pub])
             result = job.result()
-            return float(result[0].data.evs)
+            return float(result[0].data.evs), job.job_id()
 
-        a_coeff, c_coeff = 0.2, 0.1
-        iterations = min(max_iterations, 50)  # 50 shots-per-call × 4096 = 204k samples
-        theta = np.zeros(num_params)  # zero init: lower variance on real hw
+        best_job_id: str | None = None
 
-        for k in range(iterations):
-            ck = c_coeff / (k + 1) ** 0.16
-            delta = np.random.choice([-1, 1], size=num_params).astype(float)
+        if hw_optimizer == "cobyla":
+            # Hardware COBYLA + ZNE: each eval = one IBM job (noise-mitigated).
+            # Warm-start at π/4 — empirically stable for EfficientSU2 on real HW.
+            # Cap at 30 evals (~25 min wall time on ibm_kingston with ZNE).
+            from scipy.optimize import minimize as _minimize  # type: ignore[import-untyped]
+            theta0 = np.full(num_params, np.pi / 4)
+            cobyla_cap = min(max_iterations, 30)
 
-            theta_plus = theta + ck * delta
-            theta_minus = theta - ck * delta
+            def _cobyla_obj(tv: np.ndarray) -> float:
+                e, jid = _energy_hw(tv)
+                nonlocal best_energy, best_job_id
+                if e < best_energy:
+                    best_energy = e
+                    best_job_id = jid
+                return e
 
-            e_plus = _energy_hw(theta_plus)
-            e_minus = _energy_hw(theta_minus)
+            res = _minimize(
+                _cobyla_obj,
+                theta0,
+                method="COBYLA",
+                options={"maxiter": cobyla_cap, "rhobeg": 0.3},
+            )
+            converged = bool(res.success)
+            iterations = int(res.nfev)
+        else:
+            # SPSA — default for shot-noise resilience on variable-quality hardware.
+            a_coeff, c_coeff = 0.2, 0.1
+            iterations = min(max_iterations, 50)
+            theta = np.zeros(num_params)  # zero init: lower variance on real hw
 
-            gradient = (e_plus - e_minus) / (2 * ck)
-            ak = a_coeff / (k + 1 + 10) ** 0.6
-            theta -= ak * gradient * delta
+            for k in range(iterations):
+                ck = c_coeff / (k + 1) ** 0.16
+                delta = np.random.choice([-1, 1], size=num_params).astype(float)
 
-            current_energy = min(e_plus, e_minus)
-            if current_energy < best_energy:
-                best_energy = current_energy
+                theta_plus = theta + ck * delta
+                theta_minus = theta - ck * delta
 
-            if abs(gradient) < 1e-4:
-                converged = True
-                break
+                e_plus, jid_plus = _energy_hw(theta_plus)
+                e_minus, jid_minus = _energy_hw(theta_minus)
+
+                gradient = (e_plus - e_minus) / (2 * ck)
+                ak = a_coeff / (k + 1 + 10) ** 0.6
+                theta -= ak * gradient * delta
+
+                # Track energy + job for receipt traceability
+                if e_plus <= e_minus:
+                    current_energy, current_jid = e_plus, jid_plus
+                else:
+                    current_energy, current_jid = e_minus, jid_minus
+                if current_energy < best_energy:
+                    best_energy = current_energy
+                    best_job_id = current_jid
+
+                if abs(gradient) < 1e-4:
+                    converged = True
+                    break
 
     wall_time = time.monotonic() - t0
 
-    return {
+    result_out: dict[str, Any] = {
         "ground_state_energy": float(best_energy),
         "converged": converged,
         "optimizer_iterations": iterations,
@@ -220,6 +291,39 @@ def run_vqe(params: dict[str, Any]) -> dict[str, Any]:
         "execution_backend": execution_mode,
         "wall_time_seconds": wall_time,
     }
+
+    # Exact ground state via diagonalization — cheap only for small systems.
+    exact_gs: float | None = None
+    if num_qubits <= 12:
+        exact_gs = float(np.linalg.eigvalsh(hamiltonian.to_matrix())[0])
+
+    if execution_mode == "ibm-quantum" and best_job_id:
+        receipt = {
+            "schema": "cael-quantum-v1",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "script": "scripts/quantum_execute.py",
+            "task": "vqe",
+            "molecule": "H2" if is_h2 else f"{num_qubits}q-generic",
+            "method": f"VQE+{hw_optimizer.upper()}",
+            "resilience_level": resilience_level,
+            "ansatz": f"EfficientSU2-{num_qubits}q-{ansatz_layers}reps",
+            "execution_mode": "ibm-quantum",
+            "backend": hw_backend_name,
+            "shots": 4096,
+            "job_id": best_job_id,
+            "ibm_energy_Ha": float(best_energy),
+            "exact_gs_Ha": exact_gs,
+            "error_vs_exact_Ha": (abs(best_energy - exact_gs) if exact_gs is not None else None),
+            "optimizer_iterations": iterations,
+            "wall_time_s": round(wall_time, 1),
+            "payload_hash": _payload_hash(float(best_energy), best_job_id),
+        }
+        result_out["receipt"] = receipt
+        receipt_path = _write_receipt(receipt)
+        if receipt_path:
+            result_out["receipt_path"] = receipt_path
+
+    return result_out
 
 
 # ---------------------------------------------------------------------------

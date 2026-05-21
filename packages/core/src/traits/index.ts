@@ -124,6 +124,7 @@ export * from './LobbyTrait';
 export * from './LocalLLMTrait';
 export * from './LuckTrait';
 export * from './KalmanFilterTrait';
+export * from './QuantumInspiredTrait';
 export * from './MagnifiableTrait';
 export * from './MarketplaceIntegrationTrait';
 export * from './MarketplaceTrait';
