@@ -410,6 +410,53 @@ export function QuestProbe() {
   const reset = () => {
     setResults([]);
     setLog([]);
+    setNpcEvents([]);
+  };
+
+  // ── NPC Observability (quest-proof receipts for @ai_npc_brain + @caveman_drive)
+  // Per task_1779337565759_yfa7 + research/2026-05-20-hololand-ai-npc-quest-proof-integration.md
+  interface NPCObservabilityReceipt {
+    id: string;
+    trait: 'ai_npc_brain' | 'caveman_drive';
+    personality?: string;
+    action?: string;
+    distance?: number;
+    relationshipDelta?: number;
+  }
+  const [npcEvents, setNpcEvents] = useState<NPCObservabilityReceipt[]>([]);
+
+  const recordNPC = (r: NPCObservabilityReceipt) => {
+    setNpcEvents((es) => [r, ...es].slice(0, 8));
+    const label = r.trait === 'ai_npc_brain' ? 'AI NPC Dialogue Received' : 'Caveman Drive Action';
+    const detail = r.trait === 'ai_npc_brain'
+      ? `${r.id} (${r.personality ?? 'neutral'}) responded at ${r.distance?.toFixed(1) ?? '?'}m; relationship ${r.relationshipDelta ?? 0 >= 0 ? '+' : ''}${r.relationshipDelta ?? 0}`
+      : `${r.id} executed drive verb: ${r.action ?? 'unknown'}`;
+    push(label, 'OK', detail);
+    // posts the exact envelope the spec requires (runId, pageId, label, status, detail + npc sub-object via context)
+    void postProofReceipt(label, 'OK', detail);
+  };
+
+  // Listen for real NPC events dispatched by Hololand runtime / traits when under tunnel
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as NPCObservabilityReceipt | undefined;
+      if (detail?.id && detail.trait) recordNPC(detail);
+    };
+    window.addEventListener('holoscript:npc-observability', handler as EventListener);
+    return () => window.removeEventListener('holoscript:npc-observability', handler as EventListener);
+  }, []);
+
+  // Demo trigger (immediate proof that the receipt path works on Quest hardware)
+  const simulateNPC = () => {
+    const demo: NPCObservabilityReceipt = {
+      id: 'tavern-keeper-01',
+      trait: 'ai_npc_brain',
+      personality: 'wise',
+      distance: 6.2,
+      relationshipDelta: 0.1,
+    };
+    recordNPC(demo);
+    say('NPC observability demo receipt posted (mirrors real @ai_npc_brain spatial voice)');
   };
 
   const exportReport = () => {
@@ -485,6 +532,21 @@ export function QuestProbe() {
         {btn('speech', '6. Speech', checkSpeech)}
         {btn('wasm', '7. WASM + SAB', checkWasm)}
         {btn('fetch', '8. Fetch API', checkFetch)}
+        {btn('npc', '9. AI NPC Observability (quest-proof)', simulateNPC)}
+      </div>
+
+      {/* Live NPC Observability panel — receipts flow to the same /api/quest-proof tunnel path */}
+      <div style={{ margin: '8px 0 12px', padding: '8px 10px', border: '1px solid #334155', borderRadius: 6, background: '#0b0f14' }}>
+        <div style={{ color: '#93c5fd', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>AI NPCs (Quest-proof receipts)</div>
+        {npcEvents.length === 0 ? (
+          <div style={{ color: '#64748b', fontSize: 12 }}>No NPC events yet — tap button 9 for demo, or real @ai_npc_brain / @caveman_drive events will appear here during Hololand Quest sessions.</div>
+        ) : (
+          npcEvents.map((e, i) => (
+            <div key={i} style={{ fontSize: 12, color: '#cbd5e1', margin: '2px 0' }}>
+              {e.trait === 'ai_npc_brain' ? '🗣️' : '🐾'} {e.id} — {e.trait === 'ai_npc_brain' ? e.personality : e.action} {e.distance != null ? `@ ${e.distance.toFixed(1)}m` : ''}
+            </div>
+          ))
+        )}
       </div>
 
       <div
