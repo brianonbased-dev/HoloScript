@@ -107,6 +107,12 @@ This skill operates as a **CEO-level project administrator** with authority to:
 
 ## Use When
 
+## Stage Contract
+
+| inputs | process | outputs |
+|--------|---------|---------|
+| strategic HoloScript directive + current repo state | autonomous assessment, build routing, validation, and HoloMesh coordination | HoloScript commit, validated artifact, knowledge entry, or exact blocker |
+
 **Use this skill when:**
 
 - Need autonomous project assessment ("status" command)
