@@ -31,9 +31,16 @@ function applySecurityHeaders(
 
 export function proxy(request: NextRequest) {
   const isScanRoomMobile = request.nextUrl.pathname.startsWith('/scan-room/mobile/');
+  const isHeadsetProof =
+    hasQuestProofIntent(request) ||
+    request.nextUrl.pathname.startsWith('/quest-probe') ||
+    request.nextUrl.pathname.startsWith('/examples/no-app-webxr') ||
+    request.nextUrl.pathname.startsWith('/webcam-gaze-demo');
   const permissionsPolicy = isScanRoomMobile
-    ? 'camera=(self), microphone=(), geolocation=(), accelerometer=(self), gyroscope=(self), magnetometer=(self)'
-    : 'camera=(), microphone=(), geolocation=()';
+    ? 'xr-spatial-tracking=*, camera=(self), microphone=(), geolocation=(), accelerometer=(self), gyroscope=(self), magnetometer=(self)'
+    : isHeadsetProof
+      ? 'xr-spatial-tracking=*, camera=(self), microphone=(self), geolocation=()'
+      : 'xr-spatial-tracking=*, camera=(), microphone=(), geolocation=()';
 
   // Keep this aligned with next.config.js. The app router emits inline RSC
   // bootstrap scripts in production; until nonce propagation covers those

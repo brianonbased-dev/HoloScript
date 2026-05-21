@@ -30,7 +30,6 @@ interface ImmersiveViewerProps {
   name?: string;
 }
 
-
 type ParsedObject = {
   name: string;
   type: string;
@@ -41,7 +40,11 @@ type ParsedObject = {
 };
 
 /** Minimal AST -> ParsedObject extraction for the viewer. */
-function extractObjects(source: string): { objects: ParsedObject[]; parseOk: boolean; error?: string } {
+function extractObjects(source: string): {
+  objects: ParsedObject[];
+  parseOk: boolean;
+  error?: string;
+} {
   try {
     const parser = new HoloCompositionParser();
     const result = parser.parse(source);
@@ -68,12 +71,14 @@ function extractObjects(source: string): { objects: ParsedObject[]; parseOk: boo
       const pos = props.get('position');
       const scale = props.get('scale');
       const color = String(props.get('color') ?? '#ffffff');
-      const position: [number, number, number] = Array.isArray(pos) && pos.length >= 3
-        ? [Number(pos[0]) || 0, Number(pos[1]) || 0, Number(pos[2]) || 0]
-        : [0, 1, 0];
-      const scl: [number, number, number] = Array.isArray(scale) && scale.length >= 3
-        ? [Number(scale[0]) || 1, Number(scale[1]) || 1, Number(scale[2]) || 1]
-        : [1, 1, 1];
+      const position: [number, number, number] =
+        Array.isArray(pos) && pos.length >= 3
+          ? [Number(pos[0]) || 0, Number(pos[1]) || 0, Number(pos[2]) || 0]
+          : [0, 1, 0];
+      const scl: [number, number, number] =
+        Array.isArray(scale) && scale.length >= 3
+          ? [Number(scale[0]) || 1, Number(scale[1]) || 1, Number(scale[2]) || 1]
+          : [1, 1, 1];
 
       out.push({
         name: String(o.name ?? 'object'),
@@ -134,6 +139,86 @@ function isQuestBrowser(): boolean {
   return /OculusBrowser|Quest\s*\d/i.test(navigator.userAgent);
 }
 
+function questProofRunId(): string {
+  if (typeof window === 'undefined') return new Date().toISOString().slice(0, 10);
+  return (
+    new URLSearchParams(window.location.search).get('runId') ??
+    `${new Date().toISOString().slice(0, 10)}-quest-proof`
+  );
+}
+
+function questProofPageId(): string {
+  if (typeof window === 'undefined') return 'immersive-viewer';
+  const path = window.location.pathname.replace(/^\/live/, '');
+  if (path.includes('/examples/no-app-webxr')) return 'examples/no-app-webxr';
+  if (path.includes('/shared/')) return 'shared/immersive-viewer';
+  if (path.includes('/w/')) return 'w/immersive-viewer';
+  return path.replace(/^\/+/, '') || 'immersive-viewer';
+}
+
+function questProofApiPath(path: string): string {
+  if (typeof window === 'undefined') return path;
+  const tunnel = window.location.pathname.match(/^\/t\/[^/]+/);
+  if (tunnel) return `${tunnel[0]}${path}`;
+  if (window.location.pathname.startsWith('/live/')) return `/live${path}`;
+  return path;
+}
+
+async function postQuestProof(
+  label: string,
+  status: 'OK' | 'WARN' | 'FAIL' | 'INFO',
+  detail: string,
+  checks?: Record<string, unknown>
+) {
+  if (typeof window === 'undefined') return;
+  const payload = {
+    runId: questProofRunId(),
+    pageId: questProofPageId(),
+    label,
+    status,
+    detail,
+    url: window.location.href,
+    userAgent: navigator.userAgent,
+    viewport: {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      devicePixelRatio: window.devicePixelRatio,
+      orientation: screen.orientation?.type ?? null,
+      crossOriginIsolated: self.crossOriginIsolated === true,
+    },
+    xr: {
+      questBrowser: isQuestBrowser(),
+      hasNavigatorXr: Boolean((navigator as unknown as { xr?: unknown }).xr),
+    },
+    checks,
+  };
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 3500);
+  const posted = await fetch(questProofApiPath('/api/quest-proof'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal: controller.signal,
+  })
+    .then((res) => res.ok)
+    .catch(() => false)
+    .finally(() => window.clearTimeout(timeout));
+  if (posted) return;
+  const query = new URLSearchParams({
+    record: '1',
+    runId: payload.runId,
+    pageId: payload.pageId,
+    label,
+    status,
+    detail,
+    url: payload.url,
+    userAgent: payload.userAgent,
+  });
+  await fetch(`${questProofApiPath('/api/quest-proof')}?${query.toString()}`).catch(
+    () => undefined
+  );
+}
+
 export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -146,7 +231,9 @@ export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
   const [xrSupported, setXrSupported] = useState(false);
   const [xrActive, setXrActive] = useState(false);
   const [xrError, setXrError] = useState<string | null>(null);
-  const [publishState, setPublishState] = useState<'idle' | 'publishing' | 'ready' | 'error'>('idle');
+  const [publishState, setPublishState] = useState<'idle' | 'publishing' | 'ready' | 'error'>(
+    'idle'
+  );
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
 
   // Set up three.js scene + animation loop
@@ -170,7 +257,12 @@ export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
     for (const o of parsed.objects) scene.add(makeMesh(o));
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(60, canvas.clientWidth / canvas.clientHeight, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(
+      60,
+      canvas.clientWidth / canvas.clientHeight,
+      0.1,
+      100
+    );
     camera.position.set(0, 1.6, 4);
     camera.lookAt(0, 1, 0);
     cameraRef.current = camera;
@@ -208,15 +300,35 @@ export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
   // enable the button optimistically whenever navigator.xr exists and rely on
   // the requestSession error path in enterVR() to surface real failures.
   useEffect(() => {
-    const xr = (navigator as unknown as { xr?: { isSessionSupported: (m: string) => Promise<boolean> } }).xr;
-    if (!xr) return;
+    const xr = (
+      navigator as unknown as { xr?: { isSessionSupported: (m: string) => Promise<boolean> } }
+    ).xr;
+    if (!xr) {
+      void postQuestProof('WebXR API', 'FAIL', 'navigator.xr missing', {
+        parseOk: parsed.parseOk,
+        objectCount: parsed.objects.length,
+      });
+      return;
+    }
     // Optimistically enable for any browser that has the XR API.
     setXrSupported(true);
     // Refine: if the browser explicitly reports no support, disable.
-    xr.isSessionSupported('immersive-vr').then((supported) => {
-      if (!supported) setXrSupported(false);
-    }).catch(() => { /* leave optimistic true */ });
-  }, []);
+    xr.isSessionSupported('immersive-vr')
+      .then((supported) => {
+        if (!supported) setXrSupported(false);
+        void postQuestProof(
+          'WebXR immersive-vr support',
+          supported ? 'OK' : 'WARN',
+          supported
+            ? 'isSessionSupported returned true'
+            : 'isSessionSupported returned false; requestSession may still work on Quest panel mode',
+          { parseOk: parsed.parseOk, objectCount: parsed.objects.length }
+        );
+      })
+      .catch(() => {
+        /* leave optimistic true */
+      });
+  }, [parsed.objects.length, parsed.parseOk]);
 
   const enterVR = async () => {
     setXrError(null);
@@ -225,14 +337,13 @@ export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
       setXrError('renderer not ready');
       return;
     }
-    const xr = (navigator as unknown as {
-      xr?: {
-        requestSession: (
-          m: string,
-          o?: { optionalFeatures?: string[] }
-        ) => Promise<XRSession>;
-      };
-    }).xr;
+    const xr = (
+      navigator as unknown as {
+        xr?: {
+          requestSession: (m: string, o?: { optionalFeatures?: string[] }) => Promise<XRSession>;
+        };
+      }
+    ).xr;
     if (!xr) {
       setXrError('WebXR not available');
       return;
@@ -242,10 +353,25 @@ export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
         optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking'],
       });
       setXrActive(true);
-      session.addEventListener('end', () => setXrActive(false));
+      void postQuestProof('VR session start', 'OK', 'immersive-vr session created', {
+        objectCount: parsed.objects.length,
+        sceneName: name ?? null,
+      });
+      session.addEventListener('end', () => {
+        setXrActive(false);
+        void postQuestProof('VR session end', 'INFO', 'immersive-vr session ended', {
+          objectCount: parsed.objects.length,
+          sceneName: name ?? null,
+        });
+      });
       await renderer.xr.setSession(session as unknown as XRSession);
     } catch (e) {
-      setXrError(e instanceof Error ? e.message : 'failed to enter VR');
+      const detail = e instanceof Error ? e.message : 'failed to enter VR';
+      setXrError(detail);
+      void postQuestProof('VR session start', 'FAIL', detail, {
+        objectCount: parsed.objects.length,
+        sceneName: name ?? null,
+      });
     }
   };
 
@@ -333,7 +459,11 @@ export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
     // Spawn a small purple cube as the publish button, to the user's right.
     const btn = new THREE.Mesh(
       new THREE.BoxGeometry(0.2, 0.2, 0.2),
-      new THREE.MeshStandardMaterial({ color: 0x7c3aed, emissive: 0x2e1065, emissiveIntensity: 0.4 })
+      new THREE.MeshStandardMaterial({
+        color: 0x7c3aed,
+        emissive: 0x2e1065,
+        emissiveIntensity: 0.4,
+      })
     );
     btn.position.set(0.5, 1.4, -0.8);
     btn.userData.isPublishButton = true;
@@ -394,13 +524,13 @@ export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
         borderRadius: 12,
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+      <div
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}
+      >
         <div style={{ color: '#e2e8f0', fontSize: 13, fontWeight: 500 }}>
           3D Preview — {parsed.objects.length} object{parsed.objects.length === 1 ? '' : 's'}
           {!parsed.parseOk && (
-            <span style={{ color: '#f97316', marginLeft: 8 }}>
-              (parse failed: {parsed.error})
-            </span>
+            <span style={{ color: '#f97316', marginLeft: 8 }}>(parse failed: {parsed.error})</span>
           )}
         </div>
         <button
@@ -451,7 +581,9 @@ export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
       {/* Publish status — visible whether or not user is in VR.
           In-VR the cube button publishes; out-of-VR this button does.
           See G6 in research/quest3-iphone-moment/c-studio-share-path-map.md */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: '#94a3b8' }}>
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: '#94a3b8' }}
+      >
         <button
           onClick={() => void publishInVR()}
           disabled={publishState === 'publishing' || !parsed.parseOk}
