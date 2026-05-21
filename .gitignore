@@ -23,6 +23,10 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+# Split env files — all secret; only *.example variants are committed
+.env.identity
+.env.mcp-server
+.env.studio
 
 # vercel
 .vercel
