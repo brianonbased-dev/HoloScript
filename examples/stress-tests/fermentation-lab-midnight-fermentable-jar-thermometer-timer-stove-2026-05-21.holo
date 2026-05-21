@@ -1,0 +1,549 @@
+/**
+ * The Fermentation Lab at 3 AM  (A-009 stress-test 2026-05-21)
+ *
+ * Exercises five zero-coverage trait combinations in one coherent scene:
+ *   @fermentable     — every culture vessel carries living biological state:
+ *                      strain name, pH, temperature, days active.
+ *   @jar             — glass fermentation vessels; cork-sealed, cork-capped.
+ *   @thermometer_food — precision temperature probes wired to each shelf station.
+ *   @timer_kitchen   — count-up timers showing elapsed days since inoculation.
+ *   @stove           — warming shelf (repurposed sous-vide station) at 28 °C.
+ *
+ * Well-exercised traits also present:
+ *   @glowing     (726 prior) — backlit shelf LEDs, probe indicator lights, Ida's
+ *                              brief bioluminescent episode at 03:07:11.
+ *   @collidable  (664 prior) — flagstone floor, oak shelves, glass jars.
+ *   @animated    (271 prior) — slow culture convection currents, CO₂ bubble streams,
+ *                              swirling airlock water columns.
+ *   @spatial_audio (77 prior)— each culture station emits its own characteristic
+ *                              sound: dense blorp of sourdough, thin hiss of kombucha,
+ *                              percussive pop of kimchi releasing pressure.
+ *   @reactive    (62 prior)  — temperature probes update colour when ambient shifts;
+ *                              Ida's @glowing pulses when her bioluminescent state
+ *                              transitions from dormant → active → dormant.
+ *
+ * Scene story:
+ *   A converted Victorian glasshouse in a university botanical garden, 3 AM.
+ *   The microbiologist went home at 10:40. Inside: eight oak shelves bearing
+ *   thirty-two fermentation jars — sourdough starters, kimchi crocks, kombucha
+ *   SCOBYs, wild yeast captures. Each jar has a silicone airlock, a thermistor
+ *   probe showing temperature in amber digits, and a handwritten label backed
+ *   by a digital count-up timer.
+ *
+ *   Jar #14 — "Ida" — is on day 108. Ida is a sourdough starter cultured
+ *   from a 1912 wheat variety. At 03:07:11 tonight, Ida exhibits her first
+ *   bioluminescent episode: a faint blue-green pulse, 4.3 seconds, then dark.
+ *   The lab camera recorded it. No one is there to see it.
+ *
+ *   The warming shelf hums at 28 °C. The glass roof fogs slightly.
+ *   Outside: a spring drizzle. Temperature: 8 °C.
+ */
+
+composition "FermentationLab_3AM" {
+
+  environment {
+    skybox: "hdri/overcast_night_botanical.hdr"
+    ambient_light: 0.06
+    ambient_color: "#1a2a1a"
+    fog: {
+      type: "exponential"
+      density: 0.018
+      color: "#0d1a10"
+    }
+    gravity: [0, -9.81, 0]
+    background_audio: "audio/spring_drizzle_on_glass.ogg"
+    background_audio_volume: 0.18
+  }
+
+  // ── Glass roof and structural frame ─────────────────────────────────────
+
+  object "glasshouse_frame" {
+    geometry: "custom_mesh"
+    mesh: "meshes/victorian_glasshouse_ironwork.glb"
+    material: "cast_iron"
+    color: "#2a2a2a"
+    position: [0, 0, 0]
+    scale: [1, 1, 1]
+    @collidable
+  }
+
+  object "glass_panels" {
+    geometry: "custom_mesh"
+    mesh: "meshes/glasshouse_panels.glb"
+    material: "glass"
+    color: "#aaccaa"
+    opacity: 0.18
+    metallic: 0.0
+    roughness: 0.05
+    position: [0, 0, 0]
+  }
+
+  // ── Flagstone floor ───────────────────────────────────────────────────
+
+  object "flagstone_floor" {
+    geometry: "plane"
+    color: "#4a4040"
+    material: "stone"
+    roughness: 0.88
+    metallic: 0.0
+    position: [0, 0, 0]
+    scale: [12, 1, 8]
+    @collidable
+  }
+
+  // ── Warming shelf — sous-vide repurposed ─────────────────────────────
+  //   The @stove trait governs the heating element, target temperature,
+  //   and power draw telemetry. This is the first @stove use in examples.
+
+  object "warming_shelf_unit" {
+    geometry: "cube"
+    color: "#1c1c1c"
+    material: "steel_brushed"
+    roughness: 0.35
+    metallic: 0.7
+    position: [0, 0.6, -3.2]
+    scale: [2.4, 0.08, 0.6]
+    @collidable
+    @stove {
+      target_temperature_c: 28.0
+      tolerance_c: 0.5
+      heating_zone: "shelf_surface"
+      power_draw_watts: 180
+      safety_shutoff_c: 45.0
+    }
+    @glowing {
+      color: "#ff4400"
+      intensity: 0.12
+      emissive_map: "textures/heating_coil_glow.png"
+    }
+    @spatial_audio {
+      clip: "audio/sous_vide_hum_28c.ogg"
+      loop: true
+      volume: 0.08
+      rolloff: "linear"
+      max_distance: 3.0
+    }
+  }
+
+  // ── Shelf rack A — sourdough row ────────────────────────────────────
+
+  object "shelf_A" {
+    geometry: "cube"
+    color: "#5c3c1e"
+    material: "oak_aged"
+    roughness: 0.75
+    metallic: 0.0
+    position: [-3.6, 1.2, -2.4]
+    scale: [2.8, 0.06, 0.55]
+    @collidable
+    @glowing {
+      color: "#ff9944"
+      intensity: 0.08
+      source: "led_strip_under_shelf"
+    }
+  }
+
+  // ── Jar: Ida — sourdough day 108 (the star of this scene) ───────────
+
+  object "jar_ida" {
+    geometry: "cylinder"
+    color: "#d4e8d4"
+    material: "glass_borosilicate"
+    roughness: 0.04
+    metallic: 0.0
+    opacity: 0.72
+    position: [-3.0, 1.42, -2.4]
+    scale: [0.09, 0.22, 0.09]
+
+    // @jar establishes the vessel's physical form — borosilicate, 500ml, cork seal
+    @jar {
+      capacity_ml: 500
+      seal_type: "cork_airlock"
+      material: "borosilicate"
+      label: "Ida / Emmer 1912 / 2025-01-03"
+      airlock_fluid_color: "#c8d8c8"
+    }
+
+    // @fermentable carries the biological soul of the culture
+    @fermentable {
+      strain: "Triticum_dicoccum_wild_1912"
+      culture_type: "sourdough_starter"
+      days_active: 108
+      ph: 3.85
+      temperature_c: 27.8
+      hydration_pct: 100
+      peak_activity_hour: 6
+      last_fed: "2026-05-20T18:00:00Z"
+      bioluminescent: true
+      bioluminescent_state: "dormant"    // transitions to "active" at 03:07:11
+    }
+
+    @collidable
+
+    // At 03:07:11 — Ida's bioluminescent episode. 4.3 seconds.
+    @glowing {
+      color: "#00ddaa"
+      intensity: 0.0
+      pulse: {
+        enabled: true
+        trigger: "fermentable:bioluminescent_active"
+        peak_intensity: 0.82
+        duration_s: 4.3
+        curve: "bell"
+      }
+    }
+
+    @animated {
+      type: "convection_swirl"
+      speed: 0.04
+      color_shift: "#c8e8c0"
+      loop: true
+    }
+
+    @spatial_audio {
+      clip: "audio/sourdough_dense_blorp.ogg"
+      loop: true
+      volume: 0.22
+      interval_s: 14.0
+      interval_variance_s: 6.0
+      rolloff: "inverse"
+      max_distance: 2.0
+    }
+
+    @reactive {
+      trigger: "environment:temperature_change"
+      property: "fermentable.temperature_c"
+      response: "track_ambient"
+    }
+  }
+
+  // @thermometer_food probe for Ida
+  object "probe_ida" {
+    geometry: "cylinder"
+    color: "#e0e0e0"
+    material: "steel"
+    roughness: 0.2
+    metallic: 0.9
+    position: [-3.0, 1.65, -2.33]
+    scale: [0.008, 0.14, 0.008]
+
+    @thermometer_food {
+      target: "jar_ida"
+      display_units: "celsius"
+      reading: 27.8
+      precision_decimals: 1
+      alert_above_c: 32.0
+      alert_below_c: 20.0
+      update_hz: 0.1
+    }
+
+    @glowing {
+      color: "#ff9900"
+      intensity: 0.35
+      condition: "thermometer_food.reading > 20 && thermometer_food.reading < 32"
+      condition_failed_color: "#ff0000"
+    }
+  }
+
+  // @timer_kitchen for Ida — 108 days, 2:07:11 into day 109 at scene open
+  object "timer_ida" {
+    geometry: "plane"
+    color: "#001100"
+    material: "lcd_display"
+    emissive: "#00cc44"
+    emissive_intensity: 0.6
+    position: [-3.0, 1.68, -2.2]
+    scale: [0.07, 0.03, 0.001]
+
+    @timer_kitchen {
+      mode: "count_up"
+      start_epoch: "2025-01-03T10:00:00Z"
+      display_format: "ddd:hh:mm:ss"
+      label: "Ida"
+      color: "#00cc44"
+    }
+  }
+
+  // ── Jar: Borja — kimchi crock, day 21 ──────────────────────────────
+
+  object "jar_borja" {
+    geometry: "cylinder"
+    color: "#cc6644"
+    material: "ceramic_glazed"
+    roughness: 0.55
+    metallic: 0.0
+    opacity: 0.92
+    position: [-2.5, 1.42, -2.4]
+    scale: [0.11, 0.20, 0.11]
+
+    @jar {
+      capacity_ml: 750
+      seal_type: "ceramic_lid_weighted"
+      material: "earthenware"
+      label: "Borja / napa + gochugaru / 2026-04-30"
+      color: "#cc6644"
+    }
+
+    @fermentable {
+      strain: "Leuconostoc_mesenteroides"
+      culture_type: "kimchi_lactic"
+      days_active: 21
+      ph: 4.20
+      temperature_c: 18.2
+      salinity_pct: 2.1
+      peak_activity_hour: 12
+      last_fed: null
+    }
+
+    @collidable
+
+    @animated {
+      type: "pressure_seep"
+      speed: 0.02
+      color: "#d45030"
+      loop: true
+    }
+
+    @spatial_audio {
+      clip: "audio/kimchi_pressure_pop.ogg"
+      loop: false
+      volume: 0.35
+      interval_s: 38.0
+      interval_variance_s: 22.0
+      rolloff: "inverse"
+      max_distance: 1.8
+    }
+  }
+
+  object "probe_borja" {
+    geometry: "cylinder"
+    color: "#e0e0e0"
+    material: "steel"
+    roughness: 0.2
+    metallic: 0.9
+    position: [-2.5, 1.62, -2.32]
+    scale: [0.008, 0.12, 0.008]
+
+    @thermometer_food {
+      target: "jar_borja"
+      display_units: "celsius"
+      reading: 18.2
+      precision_decimals: 1
+      alert_above_c: 25.0
+      alert_below_c: 10.0
+      update_hz: 0.1
+    }
+
+    @glowing {
+      color: "#4499ff"
+      intensity: 0.28
+    }
+  }
+
+  object "timer_borja" {
+    geometry: "plane"
+    color: "#001100"
+    material: "lcd_display"
+    emissive: "#00cc44"
+    emissive_intensity: 0.6
+    position: [-2.5, 1.65, -2.22]
+    scale: [0.065, 0.028, 0.001]
+
+    @timer_kitchen {
+      mode: "count_up"
+      start_epoch: "2026-04-30T14:00:00Z"
+      display_format: "ddd:hh:mm:ss"
+      label: "Borja"
+      color: "#00cc44"
+    }
+  }
+
+  // ── Jar: Vesna — kombucha SCOBY, day 14 ────────────────────────────
+
+  object "jar_vesna" {
+    geometry: "cylinder"
+    color: "#d4b870"
+    material: "glass_borosilicate"
+    roughness: 0.04
+    metallic: 0.0
+    opacity: 0.68
+    position: [-2.0, 1.42, -2.4]
+    scale: [0.13, 0.28, 0.13]
+
+    @jar {
+      capacity_ml: 2000
+      seal_type: "cloth_rubber_band"
+      material: "borosilicate"
+      label: "Vesna / jun black tea / 2026-05-07"
+      airlock_fluid_color: null
+    }
+
+    @fermentable {
+      strain: "Acetobacter_Gluconobacter_symbiosis"
+      culture_type: "kombucha_scoby"
+      days_active: 14
+      ph: 3.4
+      temperature_c: 26.1
+      sugar_brix: 6.8
+      peak_activity_hour: 14
+      last_fed: "2026-05-14T09:00:00Z"
+    }
+
+    @collidable
+
+    @animated {
+      type: "slow_float"
+      speed: 0.008
+      amplitude_y: 0.003
+      loop: true
+    }
+
+    @spatial_audio {
+      clip: "audio/kombucha_thin_hiss.ogg"
+      loop: true
+      volume: 0.12
+      rolloff: "linear"
+      max_distance: 1.5
+    }
+  }
+
+  object "probe_vesna" {
+    geometry: "cylinder"
+    color: "#e0e0e0"
+    material: "steel"
+    roughness: 0.2
+    metallic: 0.9
+    position: [-2.0, 1.72, -2.32]
+    scale: [0.008, 0.18, 0.008]
+
+    @thermometer_food {
+      target: "jar_vesna"
+      display_units: "celsius"
+      reading: 26.1
+      precision_decimals: 1
+      alert_above_c: 30.0
+      alert_below_c: 22.0
+      update_hz: 0.1
+    }
+
+    @glowing {
+      color: "#ffcc44"
+      intensity: 0.22
+    }
+  }
+
+  object "timer_vesna" {
+    geometry: "plane"
+    color: "#001100"
+    material: "lcd_display"
+    emissive: "#00cc44"
+    emissive_intensity: 0.6
+    position: [-2.0, 1.75, -2.22]
+    scale: [0.065, 0.028, 0.001]
+
+    @timer_kitchen {
+      mode: "count_up"
+      start_epoch: "2026-05-07T09:00:00Z"
+      display_format: "ddd:hh:mm:ss"
+      label: "Vesna"
+      color: "#00cc44"
+    }
+  }
+
+  // ── Shelf rack B — ambient temperature row ──────────────────────────
+
+  object "shelf_B" {
+    geometry: "cube"
+    color: "#5c3c1e"
+    material: "oak_aged"
+    roughness: 0.75
+    metallic: 0.0
+    position: [2.8, 1.4, -2.4]
+    scale: [2.8, 0.06, 0.55]
+    @collidable
+    @glowing {
+      color: "#ff9944"
+      intensity: 0.07
+      source: "led_strip_under_shelf"
+    }
+  }
+
+  // Four ambient-row jars (sourdough reserve starters, ~4°C fridge row —
+  // these are the "sleeping" cultures on the unheated shelf, covered with cloth)
+  object "jar_reserve_A" {
+    geometry: "cylinder"
+    color: "#d8d0b8"
+    material: "glass_borosilicate"
+    roughness: 0.04
+    opacity: 0.75
+    position: [1.8, 1.62, -2.4]
+    scale: [0.09, 0.20, 0.09]
+
+    @jar {
+      capacity_ml: 500
+      seal_type: "cloth_wax_sealed"
+      material: "borosilicate"
+      label: "Reserve-A / Einkorn 2024 / dormant"
+    }
+
+    @fermentable {
+      strain: "Lactobacillus_sanfranciscensis"
+      culture_type: "sourdough_starter"
+      days_active: 312
+      ph: 4.10
+      temperature_c: 6.0
+      hydration_pct: 65
+      peak_activity_hour: null
+      dormant: true
+    }
+
+    @collidable
+  }
+
+  // ── Ambient-wide LED strip (overhead structure) ─────────────────────
+
+  object "overhead_led_warm" {
+    geometry: "cylinder"
+    color: "#ffffff"
+    position: [0, 2.9, -2.4]
+    scale: [0.012, 6.0, 0.012]
+
+    @glowing {
+      color: "#ffd080"
+      intensity: 0.18
+      flicker: {
+        enabled: true
+        frequency_hz: 0.008
+        amplitude: 0.03
+      }
+    }
+  }
+
+  // ── Notebook on the workbench ───────────────────────────────────────
+  // The microbiologist's log — open to the Ida observation page
+
+  object "lab_notebook" {
+    geometry: "cube"
+    color: "#e8e0cc"
+    material: "paper_bound"
+    roughness: 0.82
+    metallic: 0.0
+    position: [1.2, 1.02, 0.4]
+    scale: [0.21, 0.01, 0.28]
+    @collidable
+  }
+
+  // ── Workbench ──────────────────────────────────────────────────────
+
+  object "workbench" {
+    geometry: "cube"
+    color: "#5a3c1a"
+    material: "oak_weathered"
+    roughness: 0.8
+    metallic: 0.0
+    position: [1.0, 0.9, 0.2]
+    scale: [2.4, 0.07, 1.0]
+    @collidable
+  }
+
+}
