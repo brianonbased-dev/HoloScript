@@ -58,6 +58,7 @@ import { AssetPipelinePanel } from './AssetPipelinePanel';
 import { LODMetricsPanel } from './LODMetricsPanel';
 import { RuntimeTierPanel } from './RuntimeTierPanel';
 import { FleetPanel } from './FleetPanel';
+import { IdentityPanel } from './IdentityPanel';
 import { InboxPanel } from './InboxPanel';
 import { useDomainFilter, type DomainProfile } from '../../hooks/useDomainFilter';
 import type { EffectASTNode } from '@holoscript/core';
@@ -203,7 +204,8 @@ const TAB_CATEGORIES: TabCategory[] = [
     tabs: [
       { id: 'fleet', icon: '🚀', label: 'Fleet', title: 'Agents + GPUs + full compute estate (presence + hardware telemetry)' },
       { id: 'inbox', icon: '📬', label: 'Inbox', title: 'DMs, handoffs, mentions with claim buttons' },
-      // Future: board, identity, knowledge, mode, absorb, bounties (other open sidebar tasks)
+      { id: 'identity', icon: '🪪', label: 'Identity', title: 'Wallet, tier, reputation, active seat — always visible trust surface' },
+      // board, knowledge, mode, absorb, bounties remain for the last P3/P4 sidebar tasks
     ],
   },
   {
@@ -377,6 +379,7 @@ export function RightPanelSidebar({
             {activeTab === 'runtimeTier' && <RuntimeTierPanel />}
             {activeTab === 'fleet' && <FleetPanel />}
             {activeTab === 'inbox' && <InboxPanel />}
+            {activeTab === 'identity' && <IdentityPanel />}
           </div>
         </div>
       )}
