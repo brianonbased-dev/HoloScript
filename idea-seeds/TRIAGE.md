@@ -62,5 +62,5 @@
 Regenerate with:
 
 ```powershell
-node C:/Users/josep/.ai-ecosystem/scripts/triage-idea-seeds.mjs --root C:\Users\josep\Documents\GitHub\HoloScript
+node C:/Users/josep/.ai-ecosystem/scripts/triage-idea-seeds.mjs --root C:\Users\Josep\Documents\GitHub\HoloScript
 ```

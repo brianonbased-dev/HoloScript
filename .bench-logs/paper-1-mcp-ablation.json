@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T03:34:35.827Z",
+  "generatedAt": "2026-05-21T02:11:34.725Z",
   "harness": "packages/engine/src/simulation/__tests__/paper-cael-replay-benchmark.test.ts",
   "host": {
     "platform": "win32",
@@ -9,25 +9,25 @@
   },
   "representativeTrace": {
     "entries": 1003,
-    "bytes": 279880,
-    "timingRuns": 200
+    "bytes": 279879,
+    "timingRuns": 80
   },
   "variants": {
     "full": {
-      "medianUs": 4463.350000000048,
-      "p99Us": 6533.399999999915,
+      "medianUs": 4195.750000000033,
+      "p99Us": 8400.499999999965,
       "tpRate": 1,
       "falsePositiveRate": 0
     },
     "minusVerify": {
       "medianUs": 0.09999999997489795,
-      "p99Us": 8.900000000039654,
+      "p99Us": 17.49999999992724,
       "tpRate": 0,
       "falsePositiveRate": 0
     },
     "baseline": {
       "medianUs": 0.09999999997489795,
-      "p99Us": 0.7000000000516593,
+      "p99Us": 8.600000000001273,
       "tpRate": 0,
       "falsePositiveRate": 0
     }
