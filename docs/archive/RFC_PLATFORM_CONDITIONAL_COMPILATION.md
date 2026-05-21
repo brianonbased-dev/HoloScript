@@ -4,7 +4,7 @@
 | ----------- | ------------------------------------------ |
 | **RFC**     | RFC-0012                                   |
 | **Title**   | Platform Conditional Compilation           |
-| **Status**  | Draft                                      |
+| **Status**  | Implemented (2026-05)                      |
 | **Author**  | HoloScript Core Team                       |
 | **Created** | 2026-03-06                                 |
 | **Updated** | 2026-03-06                                 |
@@ -1122,3 +1122,16 @@ _This RFC documents the design and specification of HoloScript's `@platform()`
 conditional compilation system. The core infrastructure is implemented; this
 document serves as the authoritative reference for extending and stabilizing the
 feature across the compiler, LSP, and editor tooling._
+
+## Implementation Evidence (P2 closure)
+
+- Parser: `HoloCompositionParser.ts` + `parsePlatformConstraint()` (supports `include`, `exclude`, `not:` syntax). Attaches `platformConstraint: PlatformConstraint` to objects, templates, spatial groups, norms, lights.
+- Types: `HoloCompositionTypes.ts` — `PlatformConstraint { include, exclude }`.
+- Core engine: `packages/core/src/compiler/platform/` (`PlatformConditional.ts`, `PlatformConditionalCompiler.ts`, `ModalitySelector.ts`, `CrossRealityTraitRegistry.ts`).
+- Mixin integration: `PlatformConditionalCompilerMixin` + `BabylonCompiler` (uses `platformTarget` option to call `filterForPlatform`).
+- Validation: `CrossRealityValidator.ts` enforces VR-only traits require `@platform` constraint.
+- Tests: 73+ passing tests across `PlatformConditional.test.ts`, `PlatformConditionalCompiler.test.ts`, negative cases (parser syntax, unknown platforms, negation).
+- Task: task_1779183224900_xpo5 (from RFC idea-seed score 55 / Adaptive Platform Layers track).
+- Commit: ee46915d8 (related foundational math) + prior platform work.
+
+The feature is shipping: single-source `.holo` files can use `@platform(...)` blocks and decorators; non-matching content is stripped at compile time with zero runtime cost.
