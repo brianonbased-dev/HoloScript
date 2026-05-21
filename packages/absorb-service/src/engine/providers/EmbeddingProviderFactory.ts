@@ -37,6 +37,13 @@ export async function createEmbeddingProvider(
   const name: EmbeddingProviderName = opts.provider ?? 'openai';
 
   switch (name) {
+    case 'structural': {
+      // Zero-dependency, zero-latency deterministic structural embeddings.
+      // No API key, no network, no model download. Suitable for CI, offline
+      // environments, and Paper 26 benchmarks. 384-dim, L2-normalized.
+      const { StructuralEmbeddingProvider } = await import('./StructuralEmbeddingProvider');
+      return new StructuralEmbeddingProvider();
+    }
     case 'xenova': {
       const { XenovaEmbeddingProvider } = await import('./XenovaEmbeddingProvider');
       return new XenovaEmbeddingProvider(opts.xenovaModel);

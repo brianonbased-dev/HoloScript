@@ -27,7 +27,7 @@ export interface EmbeddingProvider {
 // FACTORY OPTIONS
 // =============================================================================
 
-export type EmbeddingProviderName = 'xenova' | 'openai' | 'ollama';
+export type EmbeddingProviderName = 'xenova' | 'openai' | 'ollama' | 'structural';
 
 export interface EmbeddingProviderOptions {
   /**
