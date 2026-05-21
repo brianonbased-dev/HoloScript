@@ -1,0 +1,43 @@
+# Minimal @platform() Conditional Compilation Example
+# Source: RFC_PLATFORM_CONDITIONAL_COMPILATION.md (task_1779183224900_xpo5)
+# Purpose: Demonstrate compile-time platform targeting for a single object.
+
+composition "PlatformAdaptiveUI" {
+
+  # Shared (no @platform = all targets)
+  object "BasePanel" {
+    position: [0, 1.5, -2]
+    size: [1, 0.6]
+  }
+
+  # VisionOS only (ornament + volumetric)
+  @platform(visionos)
+  object "VisionOSOrnament" {
+    type: ui_panel
+    position: [0, -0.2, -0.5]
+    @ui_docked { position: "bottom" }
+    children: [
+      { type: ui_button, text: "SharePlay", action: emit("shareplay:start") }
+    ]
+  }
+
+  # Quest3 + PCVR (hand + controller)
+  @platform(quest3, pcvr)
+  object "VRHandMenu" @hand_tracking @controller_input {
+    hand: left
+    trigger: palm_up
+    children: [
+      { type: ui_button, text: "Pen", action: emit("tool:pen") }
+    ]
+  }
+
+  # Desktop / Web fallback (flat UI)
+  @platform(desktop, web)
+  object "DesktopToolbar" {
+    type: ui_panel
+    layout: "top-bar"
+    children: [
+      { type: ui_button, text: "Pen (P)", hotkey: "p", action: emit("tool:pen") }
+    ]
+  }
+}
