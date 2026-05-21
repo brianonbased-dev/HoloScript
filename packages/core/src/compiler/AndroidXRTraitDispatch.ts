@@ -1,5 +1,11 @@
 import type { AndroidXRTraitMapping } from './AndroidXRComponentTypes';
 
+export const WorldPhysicsConfig = {
+  EARTH: { gravity: -9.81 },
+  // Alien presets (expand as needed for low-g, exotic atmospheres, radiation, etc.)
+  ALIEN: { gravity: -3.71 },
+};
+
 /**
  * Android XR Trait Dispatch Maps
  *
@@ -23,11 +29,6 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
         `}`,
         `${varName}.addComponent(${varName}Interactable)`,
       ];
-export const WorldPhysicsConfig = {
-  EARTH: { gravity: -9.81 },
-  // Alien presets (expand as needed for low-g, exotic atmospheres, radiation, etc.)
-  ALIEN: { gravity: -3.71 },
-};
     },
   },
 
