@@ -23,6 +23,11 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
         `}`,
         `${varName}.addComponent(${varName}Interactable)`,
       ];
+export const WorldPhysicsConfig = {
+  EARTH: { gravity: -9.81 },
+  // Alien presets (expand as needed for low-g, exotic atmospheres, radiation, etc.)
+  ALIEN: { gravity: -3.71 },
+};
     },
   },
 
@@ -227,7 +232,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     imports: ['android.opengl.GLES31'],
     generate: (varName, config) => {
       const substeps = config.substeps ?? 8;
-      const gravity = config.gravity ?? -9.81;
+      const gravity = WorldPhysicsConfig.EARTH.gravity;
       const maxParticles = config.max_particles ?? 50000;
       return [
         `// @xpbd_solver -- Extended Position-Based Dynamics solver`,
