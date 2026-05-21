@@ -299,7 +299,7 @@ function runTET10WithRollers(nr: number, nt: number) {
   const result = solver.solveCPU();
   const solveMs = performance.now() - start;
 
-  // Extract σ_yy (component 1)
+  // Extract σ_yy (component 1) — element-average path (baseline for this revision)
   const cauchy = solver.getCauchyStress();
   const sigmaYY = extractCauchyComponentNearPoint(tet10Mesh.vertices, tet10Mesh.tetrahedra, cauchy, 10, 1, INNER_AX, 0, 0.5);
 
