@@ -35,6 +35,7 @@ struct SolverArgs {
 // ── Group 2: Solver Arguments ────────────────────────────────────────
 
 @group(2) @binding(0) var<uniform> args: SolverArgs;
+@group(2) @binding(1) var<storage, read> dot_vec_b: array<f32>;
 
 // ── Group 3: Reduction Workspace ─────────────────────────────────────
 
@@ -60,16 +61,14 @@ fn spmv_vector(
     let row = gid / threads_per_row;
     let lane = gid % threads_per_row;
 
-    if (row >= args.num_rows) {
-        return;
-    }
-
-    let row_start = csr_row[row];
-    let row_end = csr_row[row + 1];
-
     var sum: f32 = 0.0;
-    for (var i = row_start + lane; i < row_end; i = i + threads_per_row) {
-        sum += csr_val[i] * vec_in[csr_col[i]];
+    if (row < args.num_rows) {
+        let row_start = csr_row[row];
+        let row_end = csr_row[row + 1];
+
+        for (var i = row_start + lane; i < row_end; i = i + threads_per_row) {
+            sum += csr_val[i] * vec_in[csr_col[i]];
+        }
     }
 
     spmv_shared[tid] = sum;
@@ -82,7 +81,7 @@ fn spmv_vector(
         workgroupBarrier();
     }
 
-    if (lane == 0u) {
+    if (row < args.num_rows && lane == 0u) {
         vec_out[row] = spmv_shared[tid];
     }
 }
@@ -182,7 +181,7 @@ fn dot_product(
     let tid = local_id.x;
 
     if (idx < args.n) {
-        dot_shared[tid] = vec_in[idx] * vec_out[idx];
+        dot_shared[tid] = vec_in[idx] * dot_vec_b[idx];
     } else {
         dot_shared[tid] = 0.0;
     }

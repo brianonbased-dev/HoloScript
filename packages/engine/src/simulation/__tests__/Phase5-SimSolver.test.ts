@@ -7,9 +7,11 @@ import { describe, it, expect } from 'vitest';
 
 // 5A: SimSolver + Adapters
 import type { SimSolver } from '../SimSolver';
-import { ThermalSolverAdapter, StructuralSolverAdapter, HydraulicSolverAdapter } from '../adapters/SolverAdapters';
+import { isGpuBackedSolver } from '../SimSolver';
+import { ThermalSolverAdapter, StructuralSolverAdapter, TET10SolverAdapter, HydraulicSolverAdapter } from '../adapters/SolverAdapters';
 import { ThermalSolver, ThermalConfig } from '../ThermalSolver';
 import { StructuralSolver, StructuralConfig } from '../StructuralSolver';
+import { StructuralSolverTET10, tet4ToTet10 } from '../StructuralSolverTET10';
 import { HydraulicSolver } from '../HydraulicSolver';
 import { CouplingManagerV2 } from '../CouplingManagerV2';
 
@@ -80,6 +82,29 @@ describe('5A: SimSolver Adapters', () => {
 
     const stress = adapter.getField('von_mises_stress');
     expect(stress).toBeInstanceOf(Float32Array);
+
+    adapter.dispose();
+  });
+
+  it('TET10SolverAdapter exposes GPU-backed readback contract', async () => {
+    const tet10 = tet4ToTet10(
+      new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+      new Uint32Array([0, 1, 2, 3]),
+    );
+    const solver = new StructuralSolverTET10({
+      vertices: tet10.vertices,
+      tetrahedra: tet10.tetrahedra,
+      material: 'steel_a36',
+      constraints: [{ id: 'fix', type: 'fixed', nodes: [0] }],
+      loads: [],
+      useGPU: true,
+    });
+    const adapter = new TET10SolverAdapter(solver);
+
+    expect(isGpuBackedSolver(adapter)).toBe(true);
+    const output = await adapter.readbackOutput();
+    expect(output).toBeInstanceOf(Float32Array);
+    expect(output.length).toBe(30);
 
     adapter.dispose();
   });

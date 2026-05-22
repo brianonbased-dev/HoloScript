@@ -21,9 +21,7 @@
  */
 
 import type { WebGPUContext } from './WebGPUContext.ts';
-
-// @ts-ignore — Vite raw import for WGSL shader source
-import cgKernelsWGSL from './shaders/cg_kernels.wgsl?raw';
+import { cgKernelsWGSL } from './shaders/cg_kernels';
 
 /** Compressed Sparse Row matrix on the CPU side */
 export interface CSRMatrix {
@@ -349,6 +347,8 @@ export class SparseLinearSolver {
     options: { maxIterations?: number; toleranceSq?: number; xExtraUsage?: GPUBufferUsageFlags } = {}
   ): Promise<DirectSolverResult> {
     const n = A.num_rows;
+    const vectorWidth = 16;
+    const numWgSpmvVec = Math.ceil((n * vectorWidth) / WG_SIZE);
     const maxIterations = options.maxIterations ?? 1000;
     const toleranceSq = options.toleranceSq ?? 1e-10;
     const xExtraUsage = options.xExtraUsage ?? 0;
@@ -374,9 +374,10 @@ export class SparseLinearSolver {
 
     // 2. Initial residual: r = b - A*x
     {
+      this.writeArgs(bufArgs, n, vectorWidth, n, 0);
       const enc = this.device.createCommandEncoder();
       this.dispatchVecCopy(enc, bBuffer, rBuffer, bufArgs, numWgVec);
-      this.dispatchSpmv(enc, valBuffer, colIndBuffer, rowPtrBuffer, xBuffer, ApBuffer, bufArgs, numWgVec, true);
+      this.dispatchSpmv(enc, valBuffer, colIndBuffer, rowPtrBuffer, xBuffer, ApBuffer, bufArgs, numWgSpmvVec, true);
       this.device.queue.submit([enc.finish()]);
     }
     {
@@ -406,8 +407,9 @@ export class SparseLinearSolver {
 
       // Ap = A * p
       {
+        this.writeArgs(bufArgs, n, vectorWidth, n, 0);
         const enc = this.device.createCommandEncoder();
-        this.dispatchSpmv(enc, valBuffer, colIndBuffer, rowPtrBuffer, pBuffer, ApBuffer, bufArgs, numWgVec, true);
+        this.dispatchSpmv(enc, valBuffer, colIndBuffer, rowPtrBuffer, pBuffer, ApBuffer, bufArgs, numWgSpmvVec, true);
         this.device.queue.submit([enc.finish()]);
       }
 
@@ -447,7 +449,8 @@ export class SparseLinearSolver {
     // Cleanup ephemeral buffers
     this.cleanup([
       valBuffer, colIndBuffer, rowPtrBuffer, bBuffer,
-      rBuffer, pBuffer, ApBuffer, rDotRBuffer, rDotRStagingBuffer
+      rBuffer, pBuffer, ApBuffer, rDotRBuffer, rDotRStagingBuffer,
+      partials, bufArgs,
     ]);
 
     return { xBuffer, iterations: iteration, residualNormSq: rDotR, converged };
@@ -578,14 +581,14 @@ export class SparseLinearSolver {
       pass.setPipeline(this.dotPipeline);
       pass.setBindGroup(1, this.device.createBindGroup({
         layout: this.dotPipeline.getBindGroupLayout(1),
-        entries: [
-          { binding: 0, resource: { buffer: v1 } },
-          { binding: 1, resource: { buffer: v2 } },
-        ],
+        entries: [{ binding: 0, resource: { buffer: v1 } }],
       }));
       pass.setBindGroup(2, this.device.createBindGroup({
         layout: this.dotPipeline.getBindGroupLayout(2),
-        entries: [{ binding: 0, resource: { buffer: args } }],
+        entries: [
+          { binding: 0, resource: { buffer: args } },
+          { binding: 1, resource: { buffer: v2 } },
+        ],
       }));
       pass.setBindGroup(3, this.device.createBindGroup({
         layout: this.dotPipeline.getBindGroupLayout(3),

@@ -160,6 +160,17 @@ function parseTET10Config(raw: Record<string, unknown>): TET10Config {
   };
 }
 
+function parseStructuralGpuCgConfig(raw: Record<string, unknown>): TET10Config {
+  const isTET10 = raw.isTET10 as boolean | undefined;
+  const nodesPerElement = raw.nodesPerElement as number | undefined;
+  return parseTET10Config({
+    ...raw,
+    isTET10: isTET10 ?? nodesPerElement === 10,
+    nodesPerElement: nodesPerElement ?? (isTET10 ? 10 : 4),
+    useGPU: (raw.useGPU as boolean) ?? true,
+  });
+}
+
 function parseHydraulicConfig(raw: Record<string, unknown>): HydraulicConfig {
   return {
     pipes: (raw.pipes as HydraulicConfig['pipes']) ?? [],
@@ -214,6 +225,8 @@ export function initSimulationSolvers(): void {
   SimulationSolverFactory.register('thermal', (raw) => new ThermalSolver(parseThermalConfig(raw)) as unknown as SimulationSolver);
   SimulationSolverFactory.register('structural', (raw) => new StructuralSolver(parseStructuralConfig(raw)) as unknown as SimulationSolver);
   SimulationSolverFactory.register('structural-tet10', (raw) => new StructuralSolverTET10(parseTET10Config(raw)) as unknown as SimulationSolver);
+  SimulationSolverFactory.register('structural-gpu-cg', (raw) => new StructuralSolverTET10(parseStructuralGpuCgConfig(raw)) as unknown as SimulationSolver);
+  SimulationSolverFactory.register('structural-tet4-gpu-cg', (raw) => new StructuralSolverTET10(parseStructuralGpuCgConfig(raw)) as unknown as SimulationSolver);
   SimulationSolverFactory.register('hydraulic', (raw) => new HydraulicSolver(parseHydraulicConfig(raw)) as unknown as SimulationSolver);
   SimulationSolverFactory.register('acoustic', (raw) => new AcousticSolver(raw as unknown as AcousticConfig) as unknown as SimulationSolver);
   SimulationSolverFactory.register('fdtd', (raw) => new FDTDSolver(raw as unknown as FDTDConfig) as unknown as SimulationSolver);

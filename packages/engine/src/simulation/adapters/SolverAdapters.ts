@@ -2,7 +2,7 @@
  * SolverAdapters — Thin wrappers that implement SimSolver around concrete solvers.
  */
 
-import type { SimSolver, SolverMode, FieldData } from '../SimSolver';
+import type { SimSolver, SolverMode, FieldData, GpuBackedSolver } from '../SimSolver';
 import type { ThermalSolver } from '../ThermalSolver';
 import type { StructuralSolver } from '../StructuralSolver';
 import type { StructuralSolverTET10 } from '../StructuralSolverTET10';
@@ -48,7 +48,7 @@ export class StructuralSolverAdapter implements SimSolver {
   dispose(): void { this.s.dispose(); }
 }
 
-export class TET10SolverAdapter implements SimSolver {
+export class TET10SolverAdapter implements GpuBackedSolver {
   readonly mode: SolverMode = 'steady-state';
   readonly fieldNames = ['von_mises_stress', 'safety_factor', 'displacements'] as const;
   constructor(private s: StructuralSolverTET10) {}
@@ -61,6 +61,7 @@ export class TET10SolverAdapter implements SimSolver {
     return null;
   }
   getStats() { return stats(this.s); }
+  readbackOutput(): Promise<Float32Array> { return this.s.readbackOutput(); }
   dispose(): void { this.s.dispose(); }
 }
 

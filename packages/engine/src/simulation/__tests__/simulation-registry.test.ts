@@ -18,6 +18,8 @@ describe('simulation-registry', () => {
     expect(types).toContain('thermal');
     expect(types).toContain('structural');
     expect(types).toContain('structural-tet10');
+    expect(types).toContain('structural-gpu-cg');
+    expect(types).toContain('structural-tet4-gpu-cg');
     expect(types).toContain('hydraulic');
     expect(types).toContain('acoustic');
     expect(types).toContain('fdtd');
@@ -75,6 +77,26 @@ describe('simulation-registry', () => {
     });
     expect(solver).not.toBeNull();
     expect(typeof solver!.dispose).toBe('function');
+    solver!.dispose();
+  });
+
+  it('creates GPU-CG structural aliases with contract readback', async () => {
+    initSimulationSolvers();
+    const solver = SimulationSolverFactory.create('structural-gpu-cg', {
+      vertices: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+      tetrahedra: new Uint32Array([0, 1, 2, 3]),
+      material: 'steel_a36',
+      constraints: [{ id: 'fix', type: 'fixed', nodes: [0] }],
+      loads: [],
+    });
+
+    expect(solver).not.toBeNull();
+    expect(typeof (solver as { readbackOutput?: unknown }).readbackOutput).toBe('function');
+
+    const output = await (solver as { readbackOutput(): Promise<Float32Array> }).readbackOutput();
+    expect(output).toBeInstanceOf(Float32Array);
+    expect(output.length).toBe(30);
+
     solver!.dispose();
   });
 

@@ -1767,8 +1767,21 @@ export class StructuralSolverTET10 {
   getDisplacementBuffer(): GPUBuffer | null {
     return this.gpuDisplacementBuffer;
   }
+
+  async readbackOutput(): Promise<Float32Array> {
+    if (this.useGPU && this.gpuDisplacementBuffer && this.gpuSolver) {
+      return this.gpuSolver.readback(this.gpuDisplacementBuffer, this.dofCount);
+    }
+    return new Float32Array(this.displacements);
+  }
  
   dispose(): void {
+    if (this.gpuDisplacementBuffer) {
+      this.gpuDisplacementBuffer.destroy();
+      this.gpuDisplacementBuffer = null;
+    }
+    this.gpuSolver?.destroy();
+    this.gpuSolver = null;
     this.csrVal = new Float64Array(0);
     this.dofToCSR.clear();
   }

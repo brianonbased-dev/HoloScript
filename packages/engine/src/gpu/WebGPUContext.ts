@@ -21,6 +21,58 @@ export interface WebGPUContextOptions {
   fallbackToCPU?: boolean;
 }
 
+type WebGpuBindingModule = {
+  create?: (flags: string[]) => unknown;
+  globals?: Record<string, unknown>;
+};
+
+let nodeWebGpuBootstrapAttempted = false;
+let nodeWebGpuBootstrapResult = false;
+
+async function ensureNodeWebGpu(): Promise<boolean> {
+  if (typeof globalThis.window !== 'undefined') return false;
+
+  const existingNavigator = (globalThis as { navigator?: { gpu?: unknown } }).navigator;
+  if (existingNavigator?.gpu) return true;
+  if (nodeWebGpuBootstrapAttempted) return nodeWebGpuBootstrapResult;
+  nodeWebGpuBootstrapAttempted = true;
+
+  try {
+    const dynamicImport = new Function('specifier', 'return import(specifier)') as (
+      specifier: string,
+    ) => Promise<unknown>;
+    const mod = (await dynamicImport('webgpu')) as WebGpuBindingModule;
+    const gpu = typeof mod.create === 'function' ? mod.create([]) : undefined;
+    if (!gpu || typeof (gpu as { requestAdapter?: unknown }).requestAdapter !== 'function') {
+      return false;
+    }
+
+    const globals = globalThis as unknown as Record<string, unknown>;
+    for (const [key, value] of Object.entries(mod.globals ?? {})) {
+      if (globals[key] != null) continue;
+      Object.defineProperty(globalThis, key, {
+        value,
+        writable: true,
+        configurable: true,
+      });
+    }
+
+    const globalWithNavigator = globalThis as { navigator?: { gpu?: GPU } };
+    if (!globalWithNavigator.navigator) {
+      Object.defineProperty(globalThis, 'navigator', {
+        value: {},
+        writable: true,
+        configurable: true,
+      });
+    }
+    (globalThis as { navigator: { gpu?: GPU } }).navigator.gpu = gpu as GPU;
+    nodeWebGpuBootstrapResult = true;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * WebGPU Context Manager
  *
@@ -75,15 +127,18 @@ export class WebGPUContext {
       return;
     }
 
+    await ensureNodeWebGpu();
+    const nav = globalThis.navigator as (Navigator & { gpu?: GPU }) | undefined;
+
     // Check for WebGPU support
-    if (!('gpu' in navigator)) {
+    if (!nav?.gpu) {
       this.handleUnsupported('WebGPU not supported in this browser');
       return;
     }
 
     try {
       // Request adapter
-      this.adapter = await (navigator as unknown as { gpu: GPU }).gpu.requestAdapter({
+      this.adapter = await nav.gpu.requestAdapter({
         powerPreference: this.options.powerPreference,
       });
 
