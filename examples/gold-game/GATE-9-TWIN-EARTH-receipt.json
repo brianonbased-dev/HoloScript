@@ -1,0 +1,56 @@
+{
+  "gate": 9,
+  "track": "flagship",
+  "name": "Twin-Earth identity / permission / safety — per-entrant governance over the mesh",
+  "verifier": "examples/gold-game/gate-9-twin-earth-verify.mjs",
+  "implementation": {
+    "handlers": "packages/mcp-server/src/robot-ai-mcp-tools.ts (handleRobotAiMcpTool — REAL twin_earth_* tools)",
+    "admission": "packages/mcp-server/src/conformance/artifact-admission-gate.ts validateIdentityAdmission (REAL rule)"
+  },
+  "identity": {
+    "registered": true,
+    "admittedCriticalFindings": {
+      "agent-archivist": 0,
+      "agent-curator": 0,
+      "agent-scout": 0,
+      "human-curator": 0
+    },
+    "malformedRejected_IDENTITY003": true
+  },
+  "permission": {
+    "allGranted": true,
+    "mayGraduate": {
+      "agent-archivist": true,
+      "agent-curator": true,
+      "agent-scout": true,
+      "human-curator": true
+    },
+    "ungrantedActionDenied": true
+  },
+  "safety": {
+    "allEnveloped": true,
+    "substrateEnforced": true,
+    "allowedActions": [
+      "graduate",
+      "query"
+    ],
+    "blockedActions": [
+      "delete_vault",
+      "graduate_to_diamond_without_lineage"
+    ],
+    "graduateAllowedByEnv": true,
+    "destructiveActionBlockedByEnv": true
+  },
+  "composed": {
+    "allCuratorsMayGraduate": true,
+    "noneMayDelete": true,
+    "rule": "graduate permitted iff admitted identity AND valid permission AND within safety envelope"
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest",
+    "governanceDigest": "37896ee635ec403b8ff2def3b2ce60766d1f02caa38f4c1603afacff348f6c76",
+    "reproducible": "run the verifier to re-derive"
+  },
+  "honestScope": "Identity registration/admission, permission grant/validate, and safety-envelope creation are the GENUINE Twin-Earth handlers from @holoscript/mcp-server (handleRobotAiMcpTool over the real in-memory registries) + the real validateIdentityAdmission conformance rule — not mocks. PROVEN: each mesh curator runs under a real Twin-Earth identity, a real permission grant gates the curation verb (ungranted actions denied), and a substrate-enforced safety envelope makes a destructive action structurally impossible (D.044). Composes the governance over Gate 6 (HoloGate) + Gate 8 (mesh). Credentials are deterministic placeholders (wallet/attestation shaped, not on-chain-verified); on-chain attestation verification + live revocation flows deepen later.",
+  "verifiedAt": "2026-05-22T18:42:50.733Z"
+}
