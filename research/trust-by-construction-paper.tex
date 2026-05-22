@@ -532,6 +532,28 @@ Cross-adapter replay relaxes the bitwise equivalence in
 \Cref{eq:replay}; the boundary is treated explicitly in
 \Cref{sec:model:boundary}.
 
+SimulationContract operationalizes abduction as a first-class verification
+primitive. In Griffiths' D/I/A taxonomy~\cite{griffiths2026lawsofthought},
+abduction is inference to the best explanation: given observations, the
+reasoner generates and ranks hypotheses that would, if true, account for
+the data. Traditional tool-use interfaces collapse this step---the agent
+receives a result and must either accept it or perform expensive external
+re-computation. SimulationContract inverts the burden. Every solver step
+emits a cryptographically chained receipt (geometry hash, energy balance,
+unit validation, interaction provenance, auto-provenance, and deterministic
+replay). The agent (or downstream auditor) can now perform the abductive
+work explicitly: it must generate the hypothesis ``this stress field is
+the correct consequence of the given mesh, loads, and material under the
+stated contract'' and then test it by replaying the CAEL trace inside an
+independent instance of the same ContractedSimulation. A mismatch
+falsifies the hypothesis at the exact step where the explanation broke.
+Deductive consistency (type and range checks) and inductive generalization
+(the poverty-of-stimulus benchmark) remain necessary, but they are
+insufficient without this abductive verification layer. By making the cost
+of generating a verifiable explanation lower than the cost of undetected
+error, SimulationContract supplies the missing formal mechanism that lets
+both agents and humans treat simulation results as abductively licensed
+rather than merely asserted.
 
 \subsection{Adversary Model and Guarantee Boundary}
 \label{sec:model:adversary}
@@ -1720,6 +1742,11 @@ durable than discipline-based approaches.
   IEEE,
   ``IEEE Standard for Floating-Point Arithmetic,''
   IEEE Std 754-2019, 2019.
+
+\bibitem{griffiths2026lawsofthought}
+  A.~Griffiths,
+  \emph{Laws of Thought},
+  Macmillan, 2026.
 
 \end{thebibliography}
   \fi
