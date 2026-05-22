@@ -201,7 +201,7 @@ function deltaValue(previous, current) {
   return `${previous} -> ${current}`;
 }
 
-function compareScorecards(previous, current) {
+function compareScorecards(previous, current, { dryRun = false } = {}) {
   const prevMetrics = previous ? metricSet(previous.scorecard) : {};
   const currentMetrics = metricSet(current);
   return METRIC_LABELS.map(([key, label]) => ({
@@ -210,6 +210,7 @@ function compareScorecards(previous, current) {
     previous: prevMetrics[key] ?? null,
     current: currentMetrics[key] ?? null,
     delta: previous ? deltaValue(prevMetrics[key], currentMetrics[key]) : 'no previous run',
+    evidenceQuality: dryRun ? 'non-quality' : 'quality',
   }));
 }
 
@@ -440,8 +441,11 @@ function openArtifact(path) {
   return spawnSync('xdg-open', [absolute], { encoding: 'utf8' });
 }
 
-function writeDashboardReport({ receipt, previous, deltas, contactSheetPath, boardTasksPath, dedupePath, filing }) {
+function writeDashboardReport({ receipt, previous, deltas, contactSheetPath, boardTasksPath, dedupePath, filing, dryRun = false }) {
   const outputDir = repoPath(receipt.outputDir);
+  const evidenceBanner = dryRun
+    ? '> **Evidence quality: non-quality / command-surface.** This was a dry-run. Dashboard deltas compare placeholder evidence against the previous real scorecard. Do not treat these as visual regressions.'
+    : '';
   const lines = [
     `# HoloShell Format Gauntlet Dashboard - ${receipt.scenario}`,
     '',
@@ -450,10 +454,15 @@ function writeDashboardReport({ receipt, previous, deltas, contactSheetPath, boa
     `Contact sheet: [contact-sheet.md](${relFrom(outputDir, contactSheetPath)})`,
     `Board tasks: [board-tasks.json](${relFrom(outputDir, boardTasksPath)})`,
     `Deduped tasks: [board-tasks-dedupe.json](${relFrom(outputDir, dedupePath)})`,
+    dryRun ? `Run mode: **dry-run** (non-quality evidence)` : '',
     '',
     '## Previous Run Delta',
     '',
   ];
+
+  if (evidenceBanner) {
+    lines.push(evidenceBanner, '');
+  }
 
   if (previous) {
     lines.push(`Previous scorecard: \`${relRepo(previous.path)}\``);
@@ -461,10 +470,10 @@ function writeDashboardReport({ receipt, previous, deltas, contactSheetPath, boa
     lines.push('Previous scorecard: none found');
   }
 
-  lines.push('', '| Metric | Previous | Current | Delta |', '| --- | --- | --- | --- |');
+  lines.push('', '| Metric | Previous | Current | Delta | Evidence |', '| --- | --- | --- | --- | --- |');
   for (const row of deltas) {
     lines.push(
-      `| ${row.label} | ${row.previous ?? 'n/a'} | ${row.current ?? 'n/a'} | ${row.delta} |`
+      `| ${row.label} | ${row.previous ?? 'n/a'} | ${row.current ?? 'n/a'} | ${row.delta} | ${row.evidenceQuality} |`
     );
   }
 
@@ -512,7 +521,7 @@ export async function runHoloShellFormatGauntlet(rawOptions = {}) {
     currentScorecard.scenario,
     currentScorecardPath
   )[0] || null;
-  const deltas = compareScorecards(previous, currentScorecard);
+  const deltas = compareScorecards(previous, currentScorecard, { dryRun: options.dryRun });
   const contactSheetPath = buildContactSheet(receipt, outputDir);
   const boardTasks = buildBoardTasks(receipt);
   const boardTasksPath = join(outputDir, 'board-tasks.json');
@@ -543,6 +552,7 @@ export async function runHoloShellFormatGauntlet(rawOptions = {}) {
     boardTasksPath,
     dedupePath,
     filing,
+    dryRun: options.dryRun,
   });
 
   if (options.open) {
@@ -555,6 +565,8 @@ export async function runHoloShellFormatGauntlet(rawOptions = {}) {
     generatedAt: new Date().toISOString(),
     scenario: receipt.scenario,
     outputDir: receipt.outputDir,
+    dryRun: options.dryRun,
+    evidenceQuality: options.dryRun ? 'non-quality' : 'quality',
     artifacts: {
       scorecard: receipt.artifacts.scorecard,
       contactSheet: relRepo(contactSheetPath),

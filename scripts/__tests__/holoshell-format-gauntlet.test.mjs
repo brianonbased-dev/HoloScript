@@ -56,6 +56,12 @@ try {
   assertEq(summary.taskCounts.generated, 10, 'generated task count');
   assertEq(summary.taskCounts.deduped, 10, 'deduped task count');
   assertOk(summary.previousScorecard, 'previous scorecard detected');
+  assertEq(summary.dryRun, true, 'dryRun flag set');
+  assertEq(summary.evidenceQuality, 'non-quality', 'evidenceQuality is non-quality for dry-run');
+  assertOk(
+    summary.deltas.every((row) => row.evidenceQuality === 'non-quality'),
+    'all delta rows marked non-quality in dry-run'
+  );
 
   const artifactPaths = [
     summary.artifacts.scorecard,
@@ -72,6 +78,11 @@ try {
   const contactSheet = readFileSync(resolve(REPO_ROOT, summary.artifacts.contactSheet), 'utf8');
   assertOk(contactSheet.includes('Format Gauntlet Contact Sheet'), 'contact sheet has title');
   assertOk(contactSheet.includes('00_scene_loaded'), 'contact sheet lists segments');
+
+  const dashboardReport = readFileSync(resolve(REPO_ROOT, summary.artifacts.dashboardReport), 'utf8');
+  assertOk(dashboardReport.includes('non-quality'), 'dashboard report mentions non-quality evidence');
+  assertOk(dashboardReport.includes('dry-run'), 'dashboard report mentions dry-run mode');
+  assertOk(dashboardReport.includes('Evidence'), 'dashboard report has Evidence column in delta table');
 
   const taskBundle = JSON.parse(
     readFileSync(resolve(REPO_ROOT, summary.artifacts.dedupedBoardTasks), 'utf8')
