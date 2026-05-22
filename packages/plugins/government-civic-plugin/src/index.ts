@@ -1,3 +1,4 @@
+export * from './civicsolver';
 export { createPermitHandler, type PermitConfig, type PermitState, type PermitType, type PermitStatus } from './traits/PermitTrait';
 export { createPublicMeetingHandler, type PublicMeetingConfig, type PublicMeetingState, type MeetingType, type MeetingStatus, type AgendaItem } from './traits/PublicMeetingTrait';
 export { createServiceRequestHandler, type ServiceRequestConfig, type ServiceRequestState, type ServiceCategory, type RequestStatus, type PriorityLevel } from './traits/ServiceRequestTrait';

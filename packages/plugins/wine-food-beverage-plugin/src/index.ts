@@ -1,3 +1,4 @@
+export * from './winesolver';
 export { createTastingProfileHandler, type TastingProfileConfig, type TastingNote } from './traits/TastingProfileTrait';
 export { createPairingEngineHandler, type PairingEngineConfig, type PairingRule } from './traits/PairingEngineTrait';
 export { createInventoryAgingHandler, type InventoryAgingConfig, type AgingItem } from './traits/InventoryAgingTrait';

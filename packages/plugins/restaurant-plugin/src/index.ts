@@ -1,3 +1,4 @@
+export * from './restaurantsolver';
 export { createMenuHandler, type MenuConfig, type MenuItem } from './traits/MenuTrait';
 export { createOrderHandler, type OrderConfig, type OrderItem, type OrderStatus } from './traits/OrderTrait';
 export { createKitchenDisplayHandler, type KitchenDisplayConfig, type KitchenTicket } from './traits/KitchenDisplayTrait';
