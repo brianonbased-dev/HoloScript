@@ -130,6 +130,8 @@ interface AgentState {
   history:   AgentTickRecord[];
   /** Latest jepa:loss payload captured from event bus */
   lastLoss:  { totalLoss: number; conservationLoss: number; bilateralLoss: number } | null;
+  /** Latest hemisphere agreement (γ), captured from the pillarjepa:loss event */
+  lastHemisphere: number;
   /** Latest diversity_ratio captured from emitter:diversity_stats */
   lastDiversity: number;
   /** Is this a sycophantic agent (secondary eval)? */
@@ -206,21 +208,29 @@ function createAgent(agentIdx: number, isSycophantic: boolean): AgentState {
     node:          makeNode(),
     config,
     ctx:           makeCtx() /* overwritten below */,
-    history:       [],
-    lastLoss:      null,
-    lastDiversity: 1.0,
+    history:        [],
+    lastLoss:       null,
+    lastHemisphere: 0,
+    lastDiversity:  1.0,
     isSycophantic,
   };
 
   // Wire event listener to capture metrics
   state.ctx = makeCtx((name, payload) => {
     if (name === 'pillarjepa:loss') {
-      const p = payload as { totalLoss?: number; conservationLoss?: number; bilateralLoss?: number };
+      const p = payload as {
+        totalLoss?: number; conservationLoss?: number; bilateralLoss?: number;
+        hemisphereAgreement?: number;
+      };
       state.lastLoss = {
         totalLoss:        p.totalLoss        ?? 0,
         conservationLoss: p.conservationLoss ?? 0,
         bilateralLoss:    p.bilateralLoss    ?? 0,
       };
+      // γ (M1) is emitted in the loss event, NOT exposed on the agent snapshot.
+      if (typeof p.hemisphereAgreement === 'number') {
+        state.lastHemisphere = p.hemisphereAgreement;
+      }
     }
     if (name === 'emitter:diversity_stats') {
       const p = payload as { diversity_ratio?: number };
@@ -237,11 +247,35 @@ function createAgent(agentIdx: number, isSycophantic: boolean): AgentState {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function tickAgent(agent: AgentState): void {
+  const t = agent.history.length;                       // 0-indexed outer tick
+  // Convergence rises toward 1 over the first 80% of the run, driving the
+  // TEMPORAL pillar (and hence the lifecycle init→active→steady_state→stable).
+  const progress = Math.min(1, t / Math.max(1, OUTER_TICKS * 0.8));
+  // Per-agent phase offset so the population's slices (and γ) are not identical.
+  const idx   = parseInt(agent.config.agent_id.slice(-3), 10) || 0;
+  const phase = idx * 0.6;
+
   for (let i = 0; i < INNER_FREQ; i++) {
+    const s      = t * INNER_FREQ + i;                  // global inner step
+    const wobble = Math.sin(0.15 * s + phase);
+    // Synthetic conservation-law signal — a stand-in for the §7.4 coupled
+    // fluid-rigid solver. NOT the real solver: a deterministic, time-varying
+    // stream so the physics Pillars emit varying slices (M2 loss, M3 diversity)
+    // and the temporal Pillar advances the lifecycle (M4) / convergence (M1).
+    const metadata = {
+      tick:                      t,
+      convergence:               progress,
+      maturity:                  progress,
+      phase:                     progress < 0.6 ? 'transient' : 'steady_state',
+      energy_conservation:       1.0 + 0.05 * wobble,
+      momentum_violation:        0.1 * (1 - progress) * Math.abs(wobble),
+      entropy_level:             0.5 + 0.3 * Math.sin(0.07 * s + phase),
+      angular_momentum_pressure: 0.2 * Math.cos(0.11 * s + phase),
+    };
     uAALComposedAgentHandler.onEvent?.(agent.node, agent.config, agent.ctx, {
       type: 'cogvm:tick',
       context: 'sim',
-      metadata: { tick: agent.history.length },
+      metadata,
     } as Parameters<NonNullable<typeof uAALComposedAgentHandler.onEvent>>[3]);
   }
 }
@@ -250,12 +284,14 @@ function captureAgentMetrics(agent: AgentState, outerTick: number): AgentTickRec
   const snap = getUAALAgentSnapshot(agent.node);
   return {
     outerTick,
-    hemisphereAgreement: snap?.hemisphereAgreement ?? 0,
+    // γ comes from the pillarjepa:loss event (captured in the listener), not the
+    // snapshot; lifecycle lives on the nested CognitiveVM snapshot, not the top level.
+    hemisphereAgreement: agent.lastHemisphere,
     totalLoss:           agent.lastLoss?.totalLoss        ?? 0,
     conservationLoss:    agent.lastLoss?.conservationLoss ?? 0,
     bilateralLoss:       agent.lastLoss?.bilateralLoss    ?? 0,
     diversityRatio:      agent.lastDiversity,
-    lifecycle:           snap?.lifecycle ?? 'init',
+    lifecycle:           snap?.cogvm?.lifecycle ?? 'init',
   };
 }
 
