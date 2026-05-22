@@ -1,0 +1,90 @@
+[
+  {
+    "id": "target-device-proof-still-blocked",
+    "severity": "P2",
+    "classification": [
+      "product gap",
+      "rendering/visual-realness gap",
+      "HoloLand adoption opportunity",
+      "HoloShell adoption opportunity"
+    ],
+    "targetFormat": "WebXR/OpenXR target-device receipts",
+    "observed": "Local browser WebGPU and WebXR/OpenXR compiles pass, but adb devices -l returned no attached device, so no physical Quest/WebXR frame receipt was produced. No change from previous run.",
+    "expected": "A target-device frame receipt with captureTransport, frame timing, device identity, and still evidence.",
+    "evidence": [
+      ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-webxr.txt",
+      ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-openxr.txt"
+    ],
+    "taskFiled": "not filed; prior tasks already cover target-device ownership",
+    "deltaFromPrevious": "unchanged"
+  },
+  {
+    "id": "graph-status-freshness-scoped-to-temp",
+    "severity": "P2",
+    "classification": [
+      "compiler/target gap",
+      "format ergonomics gap",
+      "underrepresented capability needing a surface"
+    ],
+    "targetFormat": "CLI/codebase intelligence graph status",
+    "observed": "graph-status --json reports a fresh authoritative cache rooted in C:\Users\josep\AppData\Local\Temp\holoscript-absorb-JYGFDM with only 3 files and 2 symbols. The cache is fresh but not representative of the monorepo.",
+    "expected": "Graph status should scope freshness to the active repo root or explicitly report that the fresh cache is not for the current workspace.",
+    "evidence": [
+      ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/graph-status.json"
+    ],
+    "taskFiled": "task_1779375799312_3xyf (filed in previous run)",
+    "deltaFromPrevious": "unchanged"
+  },
+  {
+    "id": "example-parse-failures-domain-blocks",
+    "severity": "P3",
+    "classification": [
+      "compiler/target gap",
+      "format ergonomics gap",
+      "parser coverage gap"
+    ],
+    "targetFormat": ".holo parser — domain-postfx, CAMERA keyword, @traits in domain blocks",
+    "observed": "9 out of 20 sampled example files fail to parse. Error patterns: (1) domain-postfx blocks use LBRACE instead of COLON, (2) CAMERA treated as keyword instead of object identifier, (3) @traits inside domain blocks trigger AT/identifier errors, (4) multi-agent pipeline uses comma-separated ports that the parser rejects.",
+    "expected": "All shipped example files parse successfully.",
+    "evidence": [
+      ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/webgpu-rigid-threejs.txt",
+      "Parse errors captured in cross-format-failures.json"
+    ],
+    "taskFiled": "not filed in this run; parser coverage gap requires design decision",
+    "deltaFromPrevious": "new gap identified"
+  },
+  {
+    "id": "webgpu-rigid-body-fixed",
+    "severity": "RESOLVED",
+    "classification": [
+      "compiler/target gap",
+      "format ergonomics gap"
+    ],
+    "targetFormat": "WebGPU rigid-body .holo parsing",
+    "observed": "gpu-physics-rigid-body.holo now parses and compiles to all 11 tested targets (threejs, r3f, webgpu, openxr, dtdl, webxr, babylon, unity, unreal, godot, playcanvas). Previously P1 — now resolved.",
+    "expected": "Pass.",
+    "evidence": [
+      ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/webgpu-rigid-body-threejs.txt",
+      ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/webgpu-rigid-body-webgpu.txt"
+    ],
+    "taskFiled": "closed — commit 763ccb5ad fixed the parser",
+    "deltaFromPrevious": "RESOLVED — was P1, now passes"
+  },
+  {
+    "id": "live-segment-screenshots-upgrade",
+    "severity": "IMPROVED",
+    "classification": [
+      "product gap",
+      "rendering/visual-realness gap"
+    ],
+    "targetFormat": "Segment capture pipeline",
+    "observed": "worldModelPixelReplay dropped from 9 to 0 segments; liveSegmentScreenshot now covers 9 of 10 segments. The flagship two-agent-handoff-catch scenario now renders live screenshots instead of world-model pixel replay.",
+    "expected": "All 10 segments with live rendered evidence.",
+    "evidence": [
+      ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/scorecard.json",
+      ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/visual-uniqueness-audit.json"
+    ],
+    "taskFiled": "not filed — improvement, not a gap",
+    "deltaFromPrevious": "IMPROVED — worldModelPixelReplay 9→0, liveSegmentScreenshot N/A→9"
+  }
+]

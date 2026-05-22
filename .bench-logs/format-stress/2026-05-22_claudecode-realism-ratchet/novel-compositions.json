@@ -1,0 +1,26 @@
+[
+  {
+    "composition": "slow-computer-clinic-room",
+    "status": "works",
+    "whyItMatters": "Combines the new slow-computer-clinic receipt substrate with spatial dashboard, WoT sensors, and grabbable remediation stations. Tests receipt_panel keyword, @wot_thing integration, and @accessible traits in a unified room.",
+    "formats": {
+      ".holo": { "parse": "pass", "compile_threejs": "pass", "compile_r3f": "pass", "compile_webgpu": "pass", "compile_openxr": "pass", "wot_export": "pass" }
+    }
+  },
+  {
+    "composition": "two-agent-handoff-catch (flagship)",
+    "status": "improved",
+    "whyItMatters": "Flagship scenario now shows live segment screenshots (9/10) instead of world-model pixel replay. All 11 target compiles pass. WoT export produces three handoff sensor TDs.",
+    "formats": {
+      ".holo": { "parse": "pass", "compile_threejs": "pass", "compile_r3f": "pass", "compile_webgpu": "pass", "compile_openxr": "pass", "compile_dtdl": "pass", "compile_webxr": "pass" }
+    }
+  },
+  {
+    "composition": "gpu-physics-rigid-body",
+    "status": "RESOLVED (was P1 gap, now passes)",
+    "whyItMatters": "Previously the most severe gap — WebGPU rigid-body example could not parse. Now parses and compiles to all 11 tested targets. Tests high-body-count physics simulation in .holo format.",
+    "formats": {
+      ".holo": { "parse": "pass", "compile_all_11_targets": "pass" }
+    }
+  }
+]

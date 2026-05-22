@@ -1,0 +1,81 @@
+
+[36mCompiling .bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/novel/slow-computer-clinic-room.holo → r3f[0m
+
+[2m[DEBUG] Compiling to React Three Fiber scene graph...[0m
+[32m✓ R3F compilation successful![0m
+[2m  Objects: 1[0m
+
+--- R3F Scene Graph ---
+
+{
+  "type": "group",
+  "props": {},
+  "id": "SlowComputerClinicRoom",
+  "children": [
+    {
+      "type": "ambientLight",
+      "props": {
+        "intensity": 0.4,
+        "color": "#ffffff"
+      },
+      "children": [],
+      "traits": {},
+      "directives": []
+    },
+    {
+      "type": "directionalLight",
+      "props": {
+        "intensity": 1,
+        "position": [
+          5,
+          10,
+          5
+        ],
+        "castShadow": true,
+        "shadow-mapSize": [
+          2048,
+          2048
+        ],
+        "color": "#ffffff"
+      },
+      "children": [],
+      "traits": {},
+      "directives": []
+    },
+    {
+      "type": "mesh",
+      "props": {
+        "position": true,
+        "x": 0,
+        "y": 1.6,
+        "z": -2,
+        "accessible": {
+          "label": "Clinic Dashboard"
+        },
+        "wot_thing": {
+          "thingId": "clinic-health-monitor"
+        },
+        "__unrecognizedTraits": [
+          "wot_thing"
+        ],
+        "materialProps": {
+          "roughness": 0.4,
+          "emissive": "#4488FF",
+          "emissiveIntensity": 0.1
+        },
+        "hsType": "cube",
+        "args": [
+          1,
+          1,
+          1
+        ]
+      },
+      "id": "clinic-dashboard",
+      "children": [],
+      "traits": {},
+      "directives": []
+    }
+  ],
+  "traits": {},
+  "directives": []
+}

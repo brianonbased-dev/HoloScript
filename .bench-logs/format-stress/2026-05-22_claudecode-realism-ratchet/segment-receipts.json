@@ -1,0 +1,4716 @@
+{
+  "schema": "format-stress-segmented-capture-v1",
+  "scenario": "two-agent-handoff-catch",
+  "generatedAt": "2026-05-22T02:06:12.635Z",
+  "manifest": ".bench-logs/format-stress/task_1779027507934_fjsg_completion/two-agent-handoff-catch-manifest.json",
+  "outputDir": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments",
+  "command": "node scripts/format-stress-segmented-capture.mjs .bench-logs/format-stress/task_1779027507934_fjsg_completion/two-agent-handoff-catch-manifest.json",
+  "commands": [
+    {
+      "id": "parse-holo",
+      "command": "tsx packages/cli/src/cli.ts parse C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\two-agent-handoff-catch.holo --json",
+      "args": [
+        "parse",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\two-agent-handoff-catch.holo",
+        "--json"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 1815,
+      "stdout": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/parse-holo.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/parse-holo.stderr.txt"
+    },
+    {
+      "id": "parse-hsplus",
+      "command": "tsx packages/cli/src/cli.ts parse C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\two-agent-handoff-catch.hsplus --json",
+      "args": [
+        "parse",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\two-agent-handoff-catch.hsplus",
+        "--json"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 1768,
+      "stdout": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/parse-hsplus.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/parse-hsplus.stderr.txt"
+    },
+    {
+      "id": "parse-hs",
+      "command": "tsx packages/cli/src/cli.ts parse C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\two-agent-handoff-catch.hs --json",
+      "args": [
+        "parse",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\two-agent-handoff-catch.hs",
+        "--json"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 1599,
+      "stdout": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/parse-hs.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/parse-hs.stderr.txt"
+    },
+    {
+      "id": "compile-holo-threejs",
+      "command": "tsx packages/cli/src/cli.ts compile C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\two-agent-handoff-catch.holo --target threejs -o C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\compiled\\holo-threejs",
+      "args": [
+        "compile",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\two-agent-handoff-catch.holo",
+        "--target",
+        "threejs",
+        "-o",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\compiled\\holo-threejs"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 2769,
+      "stdout": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/compile-holo-threejs.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/compile-holo-threejs.stderr.txt"
+    },
+    {
+      "id": "compile-hsplus-threejs",
+      "command": "tsx packages/cli/src/cli.ts compile C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\two-agent-handoff-catch.hsplus --target threejs -o C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\compiled\\hsplus-threejs",
+      "args": [
+        "compile",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\two-agent-handoff-catch.hsplus",
+        "--target",
+        "threejs",
+        "-o",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\compiled\\hsplus-threejs"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 2810,
+      "stdout": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/compile-hsplus-threejs.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/compile-hsplus-threejs.stderr.txt"
+    },
+    {
+      "id": "compile-hs-node",
+      "command": "tsx packages/cli/src/cli.ts compile C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\two-agent-handoff-catch.hs --target node -o C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\compiled\\hs-node.mjs",
+      "args": [
+        "compile",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\two-agent-handoff-catch.hs",
+        "--target",
+        "node",
+        "-o",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\compiled\\hs-node.mjs"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 1695,
+      "stdout": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/compile-hs-node.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/compile-hs-node.stderr.txt"
+    },
+    {
+      "id": "headless-holo",
+      "command": "tsx packages/cli/src/cli.ts headless C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\two-agent-handoff-catch.holo --duration 250 --json",
+      "args": [
+        "headless",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\two-agent-handoff-catch.holo",
+        "--duration",
+        "250",
+        "--json"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 2001,
+      "stdout": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/headless-holo.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/headless-holo.stderr.txt"
+    },
+    {
+      "id": "screenshot-base",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\two-agent-handoff-catch.holo -o C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\00_scene_loaded.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\experiments\\format-realism-gauntlet\\two-agent-handoff-catch.holo",
+        "-o",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\00_scene_loaded.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 4553,
+      "stdout": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-base.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-base.stderr.txt"
+    },
+    {
+      "id": "world-model-two-agent-handoff-catch",
+      "command": "tsx packages/cli/src/cli.ts world-model replay --scene two-agent-handoff-catch-v1 --seed 5151 --json",
+      "args": [
+        "world-model",
+        "replay",
+        "--scene",
+        "two-agent-handoff-catch-v1",
+        "--seed",
+        "5151",
+        "--json"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 410,
+      "stdout": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/world-model-two-agent-handoff-catch.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/world-model-two-agent-handoff-catch.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-01_agents_aligned",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\segment-scenes\\01_agents_aligned.holo -o C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\01_agents_aligned.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\segment-scenes\\01_agents_aligned.holo",
+        "-o",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\01_agents_aligned.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 3088,
+      "stdout": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-segment-01_agents_aligned.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-segment-01_agents_aligned.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-02_release_detach",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\segment-scenes\\02_release_detach.holo -o C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\02_release_detach.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\segment-scenes\\02_release_detach.holo",
+        "-o",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\02_release_detach.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 3103,
+      "stdout": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-segment-02_release_detach.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-segment-02_release_detach.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-03_ballistic_arc_early",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\segment-scenes\\03_ballistic_arc_early.holo -o C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\03_ballistic_arc_early.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\segment-scenes\\03_ballistic_arc_early.holo",
+        "-o",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\03_ballistic_arc_early.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 3050,
+      "stdout": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-segment-03_ballistic_arc_early.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-segment-03_ballistic_arc_early.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-04_ballistic_arc_mid",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\segment-scenes\\04_ballistic_arc_mid.holo -o C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\04_ballistic_arc_mid.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\segment-scenes\\04_ballistic_arc_mid.holo",
+        "-o",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\04_ballistic_arc_mid.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 2874,
+      "stdout": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-segment-04_ballistic_arc_mid.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-segment-04_ballistic_arc_mid.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-05_ballistic_arc_late",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\segment-scenes\\05_ballistic_arc_late.holo -o C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\05_ballistic_arc_late.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\segment-scenes\\05_ballistic_arc_late.holo",
+        "-o",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\05_ballistic_arc_late.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 3088,
+      "stdout": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-segment-05_ballistic_arc_late.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-segment-05_ballistic_arc_late.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-06_catch_volume",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\segment-scenes\\06_catch_volume.holo -o C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\06_catch_volume.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\segment-scenes\\06_catch_volume.holo",
+        "-o",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\06_catch_volume.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 3061,
+      "stdout": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-segment-06_catch_volume.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-segment-06_catch_volume.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-07_catch_constraint",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\segment-scenes\\07_catch_constraint.holo -o C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\07_catch_constraint.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\segment-scenes\\07_catch_constraint.holo",
+        "-o",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\07_catch_constraint.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 2938,
+      "stdout": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-segment-07_catch_constraint.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-segment-07_catch_constraint.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-08_ownership_transfer",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\segment-scenes\\08_ownership_transfer.holo -o C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\08_ownership_transfer.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\segment-scenes\\08_ownership_transfer.holo",
+        "-o",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\08_ownership_transfer.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 2925,
+      "stdout": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-segment-08_ownership_transfer.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-segment-08_ownership_transfer.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-09_receipt_panel",
+      "command": "tsx packages/cli/src/cli.ts screenshot C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\segment-scenes\\09_receipt_panel.holo -o C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\09_receipt_panel.png --width 1280 --height 720 --wait-for 1000",
+      "args": [
+        "screenshot",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\segment-scenes\\09_receipt_panel.holo",
+        "-o",
+        "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\.bench-logs\\format-stress\\2026-05-22_claudecode-realism-ratchet\\flagship-segments\\stills\\09_receipt_panel.png",
+        "--width",
+        "1280",
+        "--height",
+        "720",
+        "--wait-for",
+        "1000"
+      ],
+      "success": true,
+      "exitCode": 0,
+      "durationMs": 3062,
+      "stdout": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-segment-09_receipt_panel.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/commands/screenshot-segment-09_receipt_panel.stderr.txt"
+    }
+  ],
+  "headlessScene": {
+    "schema": "format-stress-headless-scene-snapshot-v1",
+    "source": "hs-headless-json",
+    "runtimeSchema": "holoscript-headless-scene-receipt-v1",
+    "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+    "objectCount": 63,
+    "templateCount": 15,
+    "runtimeStats": {
+      "instanceCount": 64,
+      "peakInstanceCount": 64,
+      "memoryEstimate": 32004,
+      "updateCount": 2,
+      "eventCount": 4,
+      "uptime": 263,
+      "avgTickDuration": 0
+    },
+    "objects": [
+      {
+        "id": "Floor",
+        "type": "object",
+        "name": "Floor",
+        "template": null,
+        "parentId": null,
+        "path": [
+          "Floor"
+        ],
+        "groupPath": [],
+        "traits": [
+          "collidable",
+          "static"
+        ],
+        "properties": {
+          "geometry": "plane",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            -90,
+            0,
+            0
+          ],
+          "scale": [
+            9,
+            5,
+            1
+          ],
+          "color": "#242b36",
+          "material": {
+            "color": "#242b36",
+            "roughness": 0.9,
+            "metallic": 0.03
+          },
+          "roughness": 0.9
+        },
+        "transform": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            -90,
+            0,
+            0
+          ],
+          "scale": [
+            9,
+            5,
+            1
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": true,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ThrowerTorso",
+        "type": "object",
+        "name": "ThrowerTorso",
+        "template": "AgentBody",
+        "parentId": null,
+        "path": [
+          "ThrowerTorso"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated",
+          "collidable"
+        ],
+        "properties": {
+          "geometry": "capsule",
+          "color": "#7aa2f7",
+          "material": {
+            "color": "#7aa2f7",
+            "roughness": 0.48,
+            "metallic": 0.08
+          },
+          "position": [
+            -2.2,
+            1.1,
+            0
+          ],
+          "scale": [
+            0.32,
+            0.82,
+            0.28
+          ],
+          "label": "thrower agent",
+          "roughness": 0.48
+        },
+        "transform": {
+          "position": [
+            -2.2,
+            1.1,
+            0
+          ],
+          "rotation": null,
+          "scale": [
+            0.32,
+            0.82,
+            0.28
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "CatcherTorso",
+        "type": "object",
+        "name": "CatcherTorso",
+        "template": "AgentBody",
+        "parentId": null,
+        "path": [
+          "CatcherTorso"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated",
+          "collidable"
+        ],
+        "properties": {
+          "geometry": "capsule",
+          "color": "#bb9af7",
+          "material": {
+            "color": "#7aa2f7",
+            "roughness": 0.48,
+            "metallic": 0.08
+          },
+          "position": [
+            2.2,
+            1.1,
+            0
+          ],
+          "scale": [
+            0.32,
+            0.82,
+            0.28
+          ],
+          "label": "catcher agent",
+          "roughness": 0.48
+        },
+        "transform": {
+          "position": [
+            2.2,
+            1.1,
+            0
+          ],
+          "rotation": null,
+          "scale": [
+            0.32,
+            0.82,
+            0.28
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ThrowerHand",
+        "type": "object",
+        "name": "ThrowerHand",
+        "template": "Hand",
+        "parentId": null,
+        "path": [
+          "ThrowerHand"
+        ],
+        "groupPath": [],
+        "traits": [
+          "collidable",
+          "grabbable"
+        ],
+        "properties": {
+          "geometry": "sphere",
+          "color": "#9ece6a",
+          "material": {
+            "color": "#9ece6a",
+            "roughness": 0.35,
+            "metallic": 0.04
+          },
+          "position": [
+            -1.72,
+            1.32,
+            0.08
+          ],
+          "scale": [
+            0.11,
+            0.11,
+            0.11
+          ],
+          "label": "handoff release hand",
+          "roughness": 0.35
+        },
+        "transform": {
+          "position": [
+            -1.72,
+            1.32,
+            0.08
+          ],
+          "rotation": null,
+          "scale": [
+            0.11,
+            0.11,
+            0.11
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "CatcherHand",
+        "type": "object",
+        "name": "CatcherHand",
+        "template": "Hand",
+        "parentId": null,
+        "path": [
+          "CatcherHand"
+        ],
+        "groupPath": [],
+        "traits": [
+          "collidable",
+          "grabbable"
+        ],
+        "properties": {
+          "geometry": "sphere",
+          "color": "#9ece6a",
+          "material": {
+            "color": "#9ece6a",
+            "roughness": 0.35,
+            "metallic": 0.04
+          },
+          "position": [
+            1.74,
+            1.28,
+            0.08
+          ],
+          "scale": [
+            0.11,
+            0.11,
+            0.11
+          ],
+          "label": "handoff catch hand",
+          "roughness": 0.35
+        },
+        "transform": {
+          "position": [
+            1.74,
+            1.28,
+            0.08
+          ],
+          "rotation": null,
+          "scale": [
+            0.11,
+            0.11,
+            0.11
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "SharedTool",
+        "type": "object",
+        "name": "SharedTool",
+        "template": "ToolProp",
+        "parentId": null,
+        "path": [
+          "SharedTool"
+        ],
+        "groupPath": [],
+        "traits": [
+          "collidable",
+          "grabbable",
+          "physics",
+          "throwable"
+        ],
+        "properties": {
+          "geometry": "capsule",
+          "color": "#e0af68",
+          "material": {
+            "color": "#e0af68",
+            "roughness": 0.72,
+            "metallic": 0.12
+          },
+          "position": [
+            -1.48,
+            1.32,
+            0.08
+          ],
+          "rotation": [
+            0,
+            0,
+            88
+          ],
+          "scale": [
+            0.14,
+            0.44,
+            0.14
+          ],
+          "label": "shared tool baton",
+          "roughness": 0.72
+        },
+        "transform": {
+          "position": [
+            -1.48,
+            1.32,
+            0.08
+          ],
+          "rotation": [
+            0,
+            0,
+            88
+          ],
+          "scale": [
+            0.14,
+            0.44,
+            0.14
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": 0.65
+        }
+      },
+      {
+        "id": "HandoffArc",
+        "type": "object",
+        "name": "HandoffArc",
+        "template": null,
+        "parentId": null,
+        "path": [
+          "HandoffArc"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "cylinder",
+          "position": [
+            0,
+            1.72,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            84
+          ],
+          "scale": [
+            0.018,
+            3.35,
+            0.018
+          ],
+          "color": "#e0af68",
+          "material": {
+            "color": "#e0af68",
+            "emissive": "#e0af68",
+            "emissiveIntensity": 0.35,
+            "transparent": true,
+            "opacity": 0.72
+          },
+          "label": "handoff arc preview",
+          "opacity": 0.72,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            0,
+            1.72,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            84
+          ],
+          "scale": [
+            0.018,
+            3.35,
+            0.018
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ReceiptPanel",
+        "type": "object",
+        "name": "ReceiptPanel",
+        "template": null,
+        "parentId": null,
+        "path": [
+          "ReceiptPanel"
+        ],
+        "groupPath": [],
+        "traits": [
+          "billboard"
+        ],
+        "properties": {
+          "geometry": "plane",
+          "position": [
+            0,
+            2.55,
+            -1.4
+          ],
+          "scale": [
+            3.6,
+            0.52,
+            0.05
+          ],
+          "color": "#d5f5e3",
+          "material": {
+            "color": "#d5f5e3",
+            "emissive": "#1a3a2a",
+            "emissiveIntensity": 0.2,
+            "transparent": true,
+            "opacity": 0.92
+          },
+          "label": "receipts: release catch ownership transfer",
+          "opacity": 0.92,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            0,
+            2.55,
+            -1.4
+          ],
+          "rotation": null,
+          "scale": [
+            3.6,
+            0.52,
+            0.05
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ThrowerHeadMesh",
+        "type": "object",
+        "name": "ThrowerHeadMesh",
+        "template": "RiggedSuitMesh",
+        "parentId": null,
+        "path": [
+          "ThrowerHeadMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated",
+          "collidable"
+        ],
+        "properties": {
+          "geometry": "skinned_mesh",
+          "material": {
+            "color": "#8fb9ff",
+            "roughness": 0.34,
+            "metallic": 0.12,
+            "normal": "helmet-normal",
+            "detail": "visor-decal-detail"
+          },
+          "position": [
+            -2.2,
+            1.92,
+            0.02
+          ],
+          "scale": [
+            0.2,
+            0.24,
+            0.18
+          ],
+          "label": "skinned thrower head gaze line",
+          "color": "#8fb9ff",
+          "roughness": 0.34
+        },
+        "transform": {
+          "position": [
+            -2.2,
+            1.92,
+            0.02
+          ],
+          "rotation": null,
+          "scale": [
+            0.2,
+            0.24,
+            0.18
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ThrowerSpineMesh",
+        "type": "object",
+        "name": "ThrowerSpineMesh",
+        "template": "RiggedSuitMesh",
+        "parentId": null,
+        "path": [
+          "ThrowerSpineMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated",
+          "collidable"
+        ],
+        "properties": {
+          "geometry": "skinned_mesh",
+          "material": {
+            "color": "#6aa7ff",
+            "roughness": 0.36,
+            "metallic": 0.18,
+            "normal": "woven-fabric-normal",
+            "detail": "stitched-panel-detail",
+            "ao": "suit-ambient-occlusion"
+          },
+          "position": [
+            -2.2,
+            1.38,
+            0
+          ],
+          "scale": [
+            0.28,
+            0.42,
+            0.18
+          ],
+          "label": "rigged thrower spine twist",
+          "color": "#6aa7ff",
+          "roughness": 0.36
+        },
+        "transform": {
+          "position": [
+            -2.2,
+            1.38,
+            0
+          ],
+          "rotation": null,
+          "scale": [
+            0.28,
+            0.42,
+            0.18
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ThrowerLeftArmMesh",
+        "type": "object",
+        "name": "ThrowerLeftArmMesh",
+        "template": "IKArmMesh",
+        "parentId": null,
+        "path": [
+          "ThrowerLeftArmMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated"
+        ],
+        "properties": {
+          "geometry": "rigged_mesh",
+          "material": {
+            "color": "#8fd3ff",
+            "roughness": 0.32,
+            "metallic": 0.12,
+            "normal": "forearm-normal",
+            "detail": "muscle-line-detail"
+          },
+          "position": [
+            -2.45,
+            1.38,
+            -0.04
+          ],
+          "rotation": [
+            0,
+            0,
+            -20
+          ],
+          "scale": [
+            0.11,
+            0.46,
+            0.11
+          ],
+          "label": "thrower left arm counterbalance",
+          "color": "#8fd3ff",
+          "roughness": 0.32
+        },
+        "transform": {
+          "position": [
+            -2.45,
+            1.38,
+            -0.04
+          ],
+          "rotation": [
+            0,
+            0,
+            -20
+          ],
+          "scale": [
+            0.11,
+            0.46,
+            0.11
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ThrowerRightArmMesh",
+        "type": "object",
+        "name": "ThrowerRightArmMesh",
+        "template": "IKArmMesh",
+        "parentId": null,
+        "path": [
+          "ThrowerRightArmMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated"
+        ],
+        "properties": {
+          "geometry": "rigged_mesh",
+          "material": {
+            "color": "#8fd3ff",
+            "roughness": 0.32,
+            "metallic": 0.12,
+            "normal": "forearm-normal",
+            "detail": "muscle-line-detail"
+          },
+          "position": [
+            -1.86,
+            1.36,
+            0.06
+          ],
+          "rotation": [
+            0,
+            0,
+            58
+          ],
+          "scale": [
+            0.11,
+            0.54,
+            0.11
+          ],
+          "label": "thrower right arm release ik",
+          "color": "#8fd3ff",
+          "roughness": 0.32
+        },
+        "transform": {
+          "position": [
+            -1.86,
+            1.36,
+            0.06
+          ],
+          "rotation": [
+            0,
+            0,
+            58
+          ],
+          "scale": [
+            0.11,
+            0.54,
+            0.11
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ThrowerRightGloveMesh",
+        "type": "object",
+        "name": "ThrowerRightGloveMesh",
+        "template": "GloveMesh",
+        "parentId": null,
+        "path": [
+          "ThrowerRightGloveMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "grabbable"
+        ],
+        "properties": {
+          "geometry": "skinned_mesh",
+          "material": {
+            "color": "#b7f28b",
+            "roughness": 0.28,
+            "metallic": 0.06,
+            "normal": "glove-grip-normal",
+            "detail": "finger-pad-detail",
+            "wear": "knuckle-wear"
+          },
+          "position": [
+            -1.62,
+            1.34,
+            0.08
+          ],
+          "scale": [
+            0.12,
+            0.12,
+            0.1
+          ],
+          "label": "thrower release glove detail",
+          "color": "#b7f28b",
+          "roughness": 0.28
+        },
+        "transform": {
+          "position": [
+            -1.62,
+            1.34,
+            0.08
+          ],
+          "rotation": null,
+          "scale": [
+            0.12,
+            0.12,
+            0.1
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ThrowerLeftGloveMesh",
+        "type": "object",
+        "name": "ThrowerLeftGloveMesh",
+        "template": "GloveMesh",
+        "parentId": null,
+        "path": [
+          "ThrowerLeftGloveMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "grabbable"
+        ],
+        "properties": {
+          "geometry": "skinned_mesh",
+          "material": {
+            "color": "#b7f28b",
+            "roughness": 0.28,
+            "metallic": 0.06,
+            "normal": "glove-grip-normal",
+            "detail": "finger-pad-detail",
+            "wear": "knuckle-wear"
+          },
+          "position": [
+            -2.58,
+            1.22,
+            -0.05
+          ],
+          "scale": [
+            0.1,
+            0.1,
+            0.09
+          ],
+          "label": "thrower balance glove detail",
+          "color": "#b7f28b",
+          "roughness": 0.28
+        },
+        "transform": {
+          "position": [
+            -2.58,
+            1.22,
+            -0.05
+          ],
+          "rotation": null,
+          "scale": [
+            0.1,
+            0.1,
+            0.09
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ThrowerLeftBootMesh",
+        "type": "object",
+        "name": "ThrowerLeftBootMesh",
+        "template": "BootMesh",
+        "parentId": null,
+        "path": [
+          "ThrowerLeftBootMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "collidable"
+        ],
+        "properties": {
+          "geometry": "gltf_mesh",
+          "material": {
+            "color": "#263241",
+            "roughness": 0.58,
+            "metallic": 0.1,
+            "normal": "boot-tread-normal",
+            "detail": "sole-detail",
+            "contact_shadow": true
+          },
+          "position": [
+            -2.42,
+            0.28,
+            0.16
+          ],
+          "scale": [
+            0.16,
+            0.12,
+            0.28
+          ],
+          "label": "thrower planted boot contact shadow",
+          "color": "#263241",
+          "roughness": 0.58
+        },
+        "transform": {
+          "position": [
+            -2.42,
+            0.28,
+            0.16
+          ],
+          "rotation": null,
+          "scale": [
+            0.16,
+            0.12,
+            0.28
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ThrowerRightBootMesh",
+        "type": "object",
+        "name": "ThrowerRightBootMesh",
+        "template": "BootMesh",
+        "parentId": null,
+        "path": [
+          "ThrowerRightBootMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "collidable"
+        ],
+        "properties": {
+          "geometry": "gltf_mesh",
+          "material": {
+            "color": "#263241",
+            "roughness": 0.58,
+            "metallic": 0.1,
+            "normal": "boot-tread-normal",
+            "detail": "sole-detail",
+            "contact_shadow": true
+          },
+          "position": [
+            -2.02,
+            0.28,
+            -0.12
+          ],
+          "scale": [
+            0.16,
+            0.12,
+            0.28
+          ],
+          "label": "thrower pivot boot contact shadow",
+          "color": "#263241",
+          "roughness": 0.58
+        },
+        "transform": {
+          "position": [
+            -2.02,
+            0.28,
+            -0.12
+          ],
+          "rotation": null,
+          "scale": [
+            0.16,
+            0.12,
+            0.28
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "CatcherHeadMesh",
+        "type": "object",
+        "name": "CatcherHeadMesh",
+        "template": "RiggedSuitMesh",
+        "parentId": null,
+        "path": [
+          "CatcherHeadMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated",
+          "collidable"
+        ],
+        "properties": {
+          "geometry": "skinned_mesh",
+          "material": {
+            "color": "#c9adff",
+            "roughness": 0.34,
+            "metallic": 0.12,
+            "normal": "helmet-normal",
+            "detail": "catcher-visor-decal-detail"
+          },
+          "position": [
+            2.2,
+            1.92,
+            0.02
+          ],
+          "scale": [
+            0.2,
+            0.24,
+            0.18
+          ],
+          "label": "skinned catcher head tracks baton",
+          "color": "#c9adff",
+          "roughness": 0.34
+        },
+        "transform": {
+          "position": [
+            2.2,
+            1.92,
+            0.02
+          ],
+          "rotation": null,
+          "scale": [
+            0.2,
+            0.24,
+            0.18
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "CatcherSpineMesh",
+        "type": "object",
+        "name": "CatcherSpineMesh",
+        "template": "RiggedSuitMesh",
+        "parentId": null,
+        "path": [
+          "CatcherSpineMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated",
+          "collidable"
+        ],
+        "properties": {
+          "geometry": "skinned_mesh",
+          "material": {
+            "color": "#bb9af7",
+            "roughness": 0.34,
+            "metallic": 0.12,
+            "normal": "suit-panel-normal",
+            "detail": "catcher-rib-detail"
+          },
+          "position": [
+            2.2,
+            1.38,
+            0
+          ],
+          "scale": [
+            0.28,
+            0.42,
+            0.18
+          ],
+          "label": "rigged catcher spine brace",
+          "color": "#bb9af7",
+          "roughness": 0.34
+        },
+        "transform": {
+          "position": [
+            2.2,
+            1.38,
+            0
+          ],
+          "rotation": null,
+          "scale": [
+            0.28,
+            0.42,
+            0.18
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "CatcherLeftArmMesh",
+        "type": "object",
+        "name": "CatcherLeftArmMesh",
+        "template": "IKArmMesh",
+        "parentId": null,
+        "path": [
+          "CatcherLeftArmMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated"
+        ],
+        "properties": {
+          "geometry": "rigged_mesh",
+          "material": {
+            "color": "#c4b5fd",
+            "roughness": 0.3,
+            "metallic": 0.1,
+            "normal": "forearm-normal",
+            "detail": "catcher-reach-detail"
+          },
+          "position": [
+            1.86,
+            1.34,
+            0.08
+          ],
+          "rotation": [
+            0,
+            0,
+            -58
+          ],
+          "scale": [
+            0.11,
+            0.54,
+            0.11
+          ],
+          "label": "catcher left arm receive ik",
+          "color": "#c4b5fd",
+          "roughness": 0.3
+        },
+        "transform": {
+          "position": [
+            1.86,
+            1.34,
+            0.08
+          ],
+          "rotation": [
+            0,
+            0,
+            -58
+          ],
+          "scale": [
+            0.11,
+            0.54,
+            0.11
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "CatcherRightArmMesh",
+        "type": "object",
+        "name": "CatcherRightArmMesh",
+        "template": "IKArmMesh",
+        "parentId": null,
+        "path": [
+          "CatcherRightArmMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "animated"
+        ],
+        "properties": {
+          "geometry": "rigged_mesh",
+          "material": {
+            "color": "#c4b5fd",
+            "roughness": 0.32,
+            "metallic": 0.1,
+            "normal": "forearm-normal",
+            "detail": "catcher-balance-detail"
+          },
+          "position": [
+            2.47,
+            1.34,
+            -0.04
+          ],
+          "rotation": [
+            0,
+            0,
+            20
+          ],
+          "scale": [
+            0.11,
+            0.46,
+            0.11
+          ],
+          "label": "catcher right arm stabilizer",
+          "color": "#c4b5fd",
+          "roughness": 0.32
+        },
+        "transform": {
+          "position": [
+            2.47,
+            1.34,
+            -0.04
+          ],
+          "rotation": [
+            0,
+            0,
+            20
+          ],
+          "scale": [
+            0.11,
+            0.46,
+            0.11
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "CatcherLeftGloveMesh",
+        "type": "object",
+        "name": "CatcherLeftGloveMesh",
+        "template": "GloveMesh",
+        "parentId": null,
+        "path": [
+          "CatcherLeftGloveMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "grabbable"
+        ],
+        "properties": {
+          "geometry": "skinned_mesh",
+          "material": {
+            "color": "#f0abfc",
+            "roughness": 0.26,
+            "metallic": 0.06,
+            "normal": "glove-grip-normal",
+            "detail": "catch-pad-detail",
+            "wear": "palm-wear"
+          },
+          "position": [
+            1.62,
+            1.3,
+            0.08
+          ],
+          "scale": [
+            0.12,
+            0.12,
+            0.1
+          ],
+          "label": "catcher catch glove detail",
+          "color": "#f0abfc",
+          "roughness": 0.26
+        },
+        "transform": {
+          "position": [
+            1.62,
+            1.3,
+            0.08
+          ],
+          "rotation": null,
+          "scale": [
+            0.12,
+            0.12,
+            0.1
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "CatcherRightGloveMesh",
+        "type": "object",
+        "name": "CatcherRightGloveMesh",
+        "template": "GloveMesh",
+        "parentId": null,
+        "path": [
+          "CatcherRightGloveMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "grabbable"
+        ],
+        "properties": {
+          "geometry": "skinned_mesh",
+          "material": {
+            "color": "#f0abfc",
+            "roughness": 0.28,
+            "metallic": 0.06,
+            "normal": "glove-grip-normal",
+            "detail": "brace-pad-detail"
+          },
+          "position": [
+            2.58,
+            1.2,
+            -0.05
+          ],
+          "scale": [
+            0.1,
+            0.1,
+            0.09
+          ],
+          "label": "catcher brace glove detail",
+          "color": "#f0abfc",
+          "roughness": 0.28
+        },
+        "transform": {
+          "position": [
+            2.58,
+            1.2,
+            -0.05
+          ],
+          "rotation": null,
+          "scale": [
+            0.1,
+            0.1,
+            0.09
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "CatcherLeftBootMesh",
+        "type": "object",
+        "name": "CatcherLeftBootMesh",
+        "template": "BootMesh",
+        "parentId": null,
+        "path": [
+          "CatcherLeftBootMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "collidable"
+        ],
+        "properties": {
+          "geometry": "gltf_mesh",
+          "material": {
+            "color": "#263241",
+            "roughness": 0.58,
+            "metallic": 0.1,
+            "normal": "boot-tread-normal",
+            "detail": "sole-detail",
+            "contact_shadow": true
+          },
+          "position": [
+            2,
+            0.28,
+            0.16
+          ],
+          "scale": [
+            0.16,
+            0.12,
+            0.28
+          ],
+          "label": "catcher lead boot contact shadow",
+          "color": "#263241",
+          "roughness": 0.58
+        },
+        "transform": {
+          "position": [
+            2,
+            0.28,
+            0.16
+          ],
+          "rotation": null,
+          "scale": [
+            0.16,
+            0.12,
+            0.28
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "CatcherRightBootMesh",
+        "type": "object",
+        "name": "CatcherRightBootMesh",
+        "template": "BootMesh",
+        "parentId": null,
+        "path": [
+          "CatcherRightBootMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "collidable"
+        ],
+        "properties": {
+          "geometry": "gltf_mesh",
+          "material": {
+            "color": "#263241",
+            "roughness": 0.58,
+            "metallic": 0.1,
+            "normal": "boot-tread-normal",
+            "detail": "sole-detail",
+            "contact_shadow": true
+          },
+          "position": [
+            2.42,
+            0.28,
+            -0.12
+          ],
+          "scale": [
+            0.16,
+            0.12,
+            0.28
+          ],
+          "label": "catcher rear boot contact shadow",
+          "color": "#263241",
+          "roughness": 0.58
+        },
+        "transform": {
+          "position": [
+            2.42,
+            0.28,
+            -0.12
+          ],
+          "rotation": null,
+          "scale": [
+            0.16,
+            0.12,
+            0.28
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "CatchVolumeOuterMesh",
+        "type": "object",
+        "name": "CatchVolumeOuterMesh",
+        "template": "CatchVolumeMesh",
+        "parentId": null,
+        "path": [
+          "CatchVolumeOuterMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "collidable"
+        ],
+        "properties": {
+          "geometry": "gltf_mesh",
+          "material": {
+            "color": "#bb9af7",
+            "roughness": 0.22,
+            "metallic": 0.04,
+            "transparent": true,
+            "opacity": 0.24,
+            "normal": "catch-volume-normal",
+            "detail": "proximity-grid-detail"
+          },
+          "position": [
+            1.68,
+            1.3,
+            0.08
+          ],
+          "scale": [
+            0.44,
+            0.34,
+            0.34
+          ],
+          "label": "transparent catch volume foreground",
+          "color": "#bb9af7",
+          "roughness": 0.22,
+          "opacity": 0.24,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            1.68,
+            1.3,
+            0.08
+          ],
+          "rotation": null,
+          "scale": [
+            0.44,
+            0.34,
+            0.34
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "CatchVolumeInnerMesh",
+        "type": "object",
+        "name": "CatchVolumeInnerMesh",
+        "template": "CatchVolumeMesh",
+        "parentId": null,
+        "path": [
+          "CatchVolumeInnerMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "collidable"
+        ],
+        "properties": {
+          "geometry": "gltf_mesh",
+          "material": {
+            "color": "#9ece6a",
+            "roughness": 0.18,
+            "metallic": 0.04,
+            "transparent": true,
+            "opacity": 0.34,
+            "normal": "inner-volume-normal",
+            "detail": "catch-threshold-detail"
+          },
+          "position": [
+            1.62,
+            1.3,
+            0.08
+          ],
+          "scale": [
+            0.24,
+            0.18,
+            0.18
+          ],
+          "label": "inner catch threshold marker",
+          "color": "#9ece6a",
+          "roughness": 0.18,
+          "opacity": 0.34,
+          "transparent": true
+        },
+        "transform": {
+          "position": [
+            1.62,
+            1.3,
+            0.08
+          ],
+          "rotation": null,
+          "scale": [
+            0.24,
+            0.18,
+            0.18
+          ]
+        },
+        "physics": {
+          "collidable": true,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "OwnershipThreadMesh",
+        "type": "object",
+        "name": "OwnershipThreadMesh",
+        "template": "TrajectorySampleMesh",
+        "parentId": null,
+        "path": [
+          "OwnershipThreadMesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "sdf_mesh",
+          "material": {
+            "color": "#f9c86a",
+            "roughness": 0.18,
+            "metallic": 0.05,
+            "emissive": "#e0af68",
+            "emissiveIntensity": 0.45,
+            "normal": "trajectory-spark-normal",
+            "detail": "motion-sample-detail"
+          },
+          "position": [
+            0.15,
+            1.42,
+            0.11
+          ],
+          "rotation": [
+            0,
+            0,
+            84
+          ],
+          "scale": [
+            0.04,
+            0.34,
+            0.04
+          ],
+          "label": "ownership transfer line from thrower to catcher",
+          "color": "#f9c86a",
+          "roughness": 0.18
+        },
+        "transform": {
+          "position": [
+            0.15,
+            1.42,
+            0.11
+          ],
+          "rotation": [
+            0,
+            0,
+            84
+          ],
+          "scale": [
+            0.04,
+            0.34,
+            0.04
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "TrajectorySample00Mesh",
+        "type": "object",
+        "name": "TrajectorySample00Mesh",
+        "template": "TrajectorySampleMesh",
+        "parentId": null,
+        "path": [
+          "TrajectorySample00Mesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "sdf_mesh",
+          "material": {
+            "color": "#f9c86a",
+            "roughness": 0.18,
+            "metallic": 0.05,
+            "emissive": "#e0af68",
+            "emissiveIntensity": 0.45,
+            "normal": "trajectory-spark-normal",
+            "detail": "motion-sample-detail"
+          },
+          "position": [
+            -1.26,
+            1.35,
+            0.08
+          ],
+          "scale": [
+            0.05,
+            0.05,
+            0.05
+          ],
+          "label": "trajectory foreground release sample",
+          "color": "#f9c86a",
+          "roughness": 0.18
+        },
+        "transform": {
+          "position": [
+            -1.26,
+            1.35,
+            0.08
+          ],
+          "rotation": null,
+          "scale": [
+            0.05,
+            0.05,
+            0.05
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "TrajectorySample01Mesh",
+        "type": "object",
+        "name": "TrajectorySample01Mesh",
+        "template": "TrajectorySampleMesh",
+        "parentId": null,
+        "path": [
+          "TrajectorySample01Mesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "sdf_mesh",
+          "material": {
+            "color": "#f9c86a",
+            "roughness": 0.18,
+            "metallic": 0.05,
+            "emissive": "#e0af68",
+            "emissiveIntensity": 0.45,
+            "normal": "trajectory-spark-normal",
+            "detail": "motion-sample-detail"
+          },
+          "position": [
+            -0.82,
+            1.54,
+            0.1
+          ],
+          "scale": [
+            0.055,
+            0.055,
+            0.055
+          ],
+          "label": "trajectory early arc sample",
+          "color": "#f9c86a",
+          "roughness": 0.18
+        },
+        "transform": {
+          "position": [
+            -0.82,
+            1.54,
+            0.1
+          ],
+          "rotation": null,
+          "scale": [
+            0.055,
+            0.055,
+            0.055
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "TrajectorySample02Mesh",
+        "type": "object",
+        "name": "TrajectorySample02Mesh",
+        "template": "TrajectorySampleMesh",
+        "parentId": null,
+        "path": [
+          "TrajectorySample02Mesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "sdf_mesh",
+          "material": {
+            "color": "#f9c86a",
+            "roughness": 0.18,
+            "metallic": 0.05,
+            "emissive": "#e0af68",
+            "emissiveIntensity": 0.45,
+            "normal": "trajectory-spark-normal",
+            "detail": "motion-sample-detail"
+          },
+          "position": [
+            -0.38,
+            1.7,
+            0.12
+          ],
+          "scale": [
+            0.06,
+            0.06,
+            0.06
+          ],
+          "label": "trajectory midground arc sample",
+          "color": "#f9c86a",
+          "roughness": 0.18
+        },
+        "transform": {
+          "position": [
+            -0.38,
+            1.7,
+            0.12
+          ],
+          "rotation": null,
+          "scale": [
+            0.06,
+            0.06,
+            0.06
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "TrajectorySample03Mesh",
+        "type": "object",
+        "name": "TrajectorySample03Mesh",
+        "template": "TrajectorySampleMesh",
+        "parentId": null,
+        "path": [
+          "TrajectorySample03Mesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "sdf_mesh",
+          "material": {
+            "color": "#f9c86a",
+            "roughness": 0.18,
+            "metallic": 0.05,
+            "emissive": "#e0af68",
+            "emissiveIntensity": 0.45,
+            "normal": "trajectory-spark-normal",
+            "detail": "motion-sample-detail"
+          },
+          "position": [
+            0.08,
+            1.82,
+            0.14
+          ],
+          "scale": [
+            0.065,
+            0.065,
+            0.065
+          ],
+          "label": "trajectory apex arc sample",
+          "color": "#f9c86a",
+          "roughness": 0.18
+        },
+        "transform": {
+          "position": [
+            0.08,
+            1.82,
+            0.14
+          ],
+          "rotation": null,
+          "scale": [
+            0.065,
+            0.065,
+            0.065
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "TrajectorySample04Mesh",
+        "type": "object",
+        "name": "TrajectorySample04Mesh",
+        "template": "TrajectorySampleMesh",
+        "parentId": null,
+        "path": [
+          "TrajectorySample04Mesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "sdf_mesh",
+          "material": {
+            "color": "#f9c86a",
+            "roughness": 0.18,
+            "metallic": 0.05,
+            "emissive": "#e0af68",
+            "emissiveIntensity": 0.45,
+            "normal": "trajectory-spark-normal",
+            "detail": "motion-sample-detail"
+          },
+          "position": [
+            0.56,
+            1.74,
+            0.12
+          ],
+          "scale": [
+            0.06,
+            0.06,
+            0.06
+          ],
+          "label": "trajectory late arc sample",
+          "color": "#f9c86a",
+          "roughness": 0.18
+        },
+        "transform": {
+          "position": [
+            0.56,
+            1.74,
+            0.12
+          ],
+          "rotation": null,
+          "scale": [
+            0.06,
+            0.06,
+            0.06
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "TrajectorySample05Mesh",
+        "type": "object",
+        "name": "TrajectorySample05Mesh",
+        "template": "TrajectorySampleMesh",
+        "parentId": null,
+        "path": [
+          "TrajectorySample05Mesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "sdf_mesh",
+          "material": {
+            "color": "#f9c86a",
+            "roughness": 0.18,
+            "metallic": 0.05,
+            "emissive": "#e0af68",
+            "emissiveIntensity": 0.45,
+            "normal": "trajectory-spark-normal",
+            "detail": "motion-sample-detail"
+          },
+          "position": [
+            1.04,
+            1.55,
+            0.1
+          ],
+          "scale": [
+            0.055,
+            0.055,
+            0.055
+          ],
+          "label": "trajectory catch approach sample",
+          "color": "#f9c86a",
+          "roughness": 0.18
+        },
+        "transform": {
+          "position": [
+            1.04,
+            1.55,
+            0.1
+          ],
+          "rotation": null,
+          "scale": [
+            0.055,
+            0.055,
+            0.055
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "TrajectorySample06Mesh",
+        "type": "object",
+        "name": "TrajectorySample06Mesh",
+        "template": "TrajectorySampleMesh",
+        "parentId": null,
+        "path": [
+          "TrajectorySample06Mesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "sdf_mesh",
+          "material": {
+            "color": "#f9c86a",
+            "roughness": 0.18,
+            "metallic": 0.05,
+            "emissive": "#e0af68",
+            "emissiveIntensity": 0.45,
+            "normal": "trajectory-spark-normal",
+            "detail": "motion-sample-detail"
+          },
+          "position": [
+            1.48,
+            1.34,
+            0.08
+          ],
+          "scale": [
+            0.05,
+            0.05,
+            0.05
+          ],
+          "label": "trajectory catch volume sample",
+          "color": "#f9c86a",
+          "roughness": 0.18
+        },
+        "transform": {
+          "position": [
+            1.48,
+            1.34,
+            0.08
+          ],
+          "rotation": null,
+          "scale": [
+            0.05,
+            0.05,
+            0.05
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "KeyAreaLightMesh",
+        "type": "object",
+        "name": "KeyAreaLightMesh",
+        "template": "LightingProbeMesh",
+        "parentId": null,
+        "path": [
+          "KeyAreaLightMesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "environment-map-mesh",
+          "material": {
+            "color": "#fff2c5",
+            "roughness": 0.2,
+            "metallic": 0.02,
+            "emissive": "#fff2c5",
+            "emissiveIntensity": 0.55,
+            "hdr": true,
+            "exposure": 1.05,
+            "detail": "softbox-diffuser-detail"
+          },
+          "position": [
+            -1.2,
+            3.2,
+            1.7
+          ],
+          "scale": [
+            0.18,
+            0.18,
+            0.06
+          ],
+          "label": "area_light key softbox hdr exposure",
+          "color": "#fff2c5",
+          "roughness": 0.2
+        },
+        "transform": {
+          "position": [
+            -1.2,
+            3.2,
+            1.7
+          ],
+          "rotation": null,
+          "scale": [
+            0.18,
+            0.18,
+            0.06
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "RimPointLightMesh",
+        "type": "object",
+        "name": "RimPointLightMesh",
+        "template": "LightingProbeMesh",
+        "parentId": null,
+        "path": [
+          "RimPointLightMesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "environment-map-mesh",
+          "material": {
+            "color": "#fff2c5",
+            "roughness": 0.2,
+            "metallic": 0.02,
+            "emissive": "#fff2c5",
+            "emissiveIntensity": 0.55,
+            "hdr": true,
+            "exposure": 1.05,
+            "detail": "softbox-diffuser-detail"
+          },
+          "position": [
+            2.7,
+            2.45,
+            1.2
+          ],
+          "scale": [
+            0.14,
+            0.14,
+            0.06
+          ],
+          "label": "point_light rim highlight hdr",
+          "color": "#fff2c5",
+          "roughness": 0.2
+        },
+        "transform": {
+          "position": [
+            2.7,
+            2.45,
+            1.2
+          ],
+          "rotation": null,
+          "scale": [
+            0.14,
+            0.14,
+            0.06
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "FillDirectionalLightMesh",
+        "type": "object",
+        "name": "FillDirectionalLightMesh",
+        "template": "LightingProbeMesh",
+        "parentId": null,
+        "path": [
+          "FillDirectionalLightMesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "environment-map-mesh",
+          "material": {
+            "color": "#fff2c5",
+            "roughness": 0.2,
+            "metallic": 0.02,
+            "emissive": "#fff2c5",
+            "emissiveIntensity": 0.55,
+            "hdr": true,
+            "exposure": 1.05,
+            "detail": "softbox-diffuser-detail"
+          },
+          "position": [
+            0,
+            2.9,
+            -1.7
+          ],
+          "scale": [
+            0.2,
+            0.08,
+            0.08
+          ],
+          "label": "directional_light fill color_management aces tonemapping",
+          "color": "#fff2c5",
+          "roughness": 0.2
+        },
+        "transform": {
+          "position": [
+            0,
+            2.9,
+            -1.7
+          ],
+          "rotation": null,
+          "scale": [
+            0.2,
+            0.08,
+            0.08
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ExposureReferenceTileMesh",
+        "type": "object",
+        "name": "ExposureReferenceTileMesh",
+        "template": "ReceiptTileMesh",
+        "parentId": null,
+        "path": [
+          "ExposureReferenceTileMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "billboard"
+        ],
+        "properties": {
+          "geometry": "ui_mesh",
+          "material": {
+            "color": "#d5f5e3",
+            "roughness": 0.18,
+            "metallic": 0,
+            "emissive": "#153426",
+            "emissiveIntensity": 0.28,
+            "detail": "receipt-text-glyph-detail",
+            "decal": "verified-stamp-decal"
+          },
+          "position": [
+            -3.1,
+            2.05,
+            -1.2
+          ],
+          "scale": [
+            0.7,
+            0.2,
+            0.04
+          ],
+          "label": "hdr exposure reference tile",
+          "color": "#d5f5e3",
+          "roughness": 0.18
+        },
+        "transform": {
+          "position": [
+            -3.1,
+            2.05,
+            -1.2
+          ],
+          "rotation": null,
+          "scale": [
+            0.7,
+            0.2,
+            0.04
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "CameraRailForegroundMesh",
+        "type": "object",
+        "name": "CameraRailForegroundMesh",
+        "template": "CameraRailMesh",
+        "parentId": null,
+        "path": [
+          "CameraRailForegroundMesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "gltf_mesh",
+          "material": {
+            "color": "#4b5563",
+            "roughness": 0.46,
+            "metallic": 0.22,
+            "normal": "rail-brushed-normal",
+            "detail": "dolly-marker-detail"
+          },
+          "position": [
+            -1.6,
+            0.08,
+            1.25
+          ],
+          "rotation": [
+            0,
+            18,
+            0
+          ],
+          "scale": [
+            0.12,
+            0.12,
+            0.9
+          ],
+          "label": "foreground camera rail shot marker",
+          "color": "#4b5563",
+          "roughness": 0.46
+        },
+        "transform": {
+          "position": [
+            -1.6,
+            0.08,
+            1.25
+          ],
+          "rotation": [
+            0,
+            18,
+            0
+          ],
+          "scale": [
+            0.12,
+            0.12,
+            0.9
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "CameraRailMidgroundMesh",
+        "type": "object",
+        "name": "CameraRailMidgroundMesh",
+        "template": "CameraRailMesh",
+        "parentId": null,
+        "path": [
+          "CameraRailMidgroundMesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "gltf_mesh",
+          "material": {
+            "color": "#4b5563",
+            "roughness": 0.46,
+            "metallic": 0.22,
+            "normal": "rail-brushed-normal",
+            "detail": "dolly-marker-detail"
+          },
+          "position": [
+            0,
+            0.08,
+            1.35
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.12,
+            0.12,
+            1.1
+          ],
+          "label": "midground dolly rail framing marker",
+          "color": "#4b5563",
+          "roughness": 0.46
+        },
+        "transform": {
+          "position": [
+            0,
+            0.08,
+            1.35
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.12,
+            0.12,
+            1.1
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "CameraRailBackgroundMesh",
+        "type": "object",
+        "name": "CameraRailBackgroundMesh",
+        "template": "CameraRailMesh",
+        "parentId": null,
+        "path": [
+          "CameraRailBackgroundMesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "gltf_mesh",
+          "material": {
+            "color": "#4b5563",
+            "roughness": 0.46,
+            "metallic": 0.22,
+            "normal": "rail-brushed-normal",
+            "detail": "dolly-marker-detail"
+          },
+          "position": [
+            1.6,
+            0.08,
+            1.25
+          ],
+          "rotation": [
+            0,
+            -18,
+            0
+          ],
+          "scale": [
+            0.12,
+            0.12,
+            0.9
+          ],
+          "label": "background camera rail occlusion marker",
+          "color": "#4b5563",
+          "roughness": 0.46
+        },
+        "transform": {
+          "position": [
+            1.6,
+            0.08,
+            1.25
+          ],
+          "rotation": [
+            0,
+            -18,
+            0
+          ],
+          "scale": [
+            0.12,
+            0.12,
+            0.9
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "FloorMatForegroundMesh",
+        "type": "object",
+        "name": "FloorMatForegroundMesh",
+        "template": "SetDressingMesh",
+        "parentId": null,
+        "path": [
+          "FloorMatForegroundMesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "photogrammetry_mesh",
+          "material": {
+            "color": "#314155",
+            "roughness": 0.82,
+            "metallic": 0.04,
+            "normal": "floor-scuff-normal",
+            "displacement": "rubber-mat-displacement",
+            "detail": "dust-scratch-decal"
+          },
+          "position": [
+            -1.7,
+            0.02,
+            0.5
+          ],
+          "scale": [
+            0.7,
+            0.04,
+            0.5
+          ],
+          "label": "foreground rubber mat scuff decal",
+          "color": "#314155",
+          "roughness": 0.82
+        },
+        "transform": {
+          "position": [
+            -1.7,
+            0.02,
+            0.5
+          ],
+          "rotation": null,
+          "scale": [
+            0.7,
+            0.04,
+            0.5
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "FloorMatMidgroundMesh",
+        "type": "object",
+        "name": "FloorMatMidgroundMesh",
+        "template": "SetDressingMesh",
+        "parentId": null,
+        "path": [
+          "FloorMatMidgroundMesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "photogrammetry_mesh",
+          "material": {
+            "color": "#314155",
+            "roughness": 0.82,
+            "metallic": 0.04,
+            "normal": "floor-scuff-normal",
+            "displacement": "rubber-mat-displacement",
+            "detail": "dust-scratch-decal"
+          },
+          "position": [
+            0,
+            0.02,
+            0.48
+          ],
+          "scale": [
+            0.9,
+            0.04,
+            0.52
+          ],
+          "label": "midground floor mat dust scratch decal",
+          "color": "#314155",
+          "roughness": 0.82
+        },
+        "transform": {
+          "position": [
+            0,
+            0.02,
+            0.48
+          ],
+          "rotation": null,
+          "scale": [
+            0.9,
+            0.04,
+            0.52
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "FloorMatBackgroundMesh",
+        "type": "object",
+        "name": "FloorMatBackgroundMesh",
+        "template": "SetDressingMesh",
+        "parentId": null,
+        "path": [
+          "FloorMatBackgroundMesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "photogrammetry_mesh",
+          "material": {
+            "color": "#314155",
+            "roughness": 0.82,
+            "metallic": 0.04,
+            "normal": "floor-scuff-normal",
+            "displacement": "rubber-mat-displacement",
+            "detail": "dust-scratch-decal"
+          },
+          "position": [
+            1.7,
+            0.02,
+            0.5
+          ],
+          "scale": [
+            0.7,
+            0.04,
+            0.5
+          ],
+          "label": "background floor mat contact shadow",
+          "color": "#314155",
+          "roughness": 0.82
+        },
+        "transform": {
+          "position": [
+            1.7,
+            0.02,
+            0.5
+          ],
+          "rotation": null,
+          "scale": [
+            0.7,
+            0.04,
+            0.5
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "OcclusionStandLeftMesh",
+        "type": "object",
+        "name": "OcclusionStandLeftMesh",
+        "template": "SetDressingMesh",
+        "parentId": null,
+        "path": [
+          "OcclusionStandLeftMesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "photogrammetry_mesh",
+          "material": {
+            "color": "#314155",
+            "roughness": 0.82,
+            "metallic": 0.04,
+            "normal": "floor-scuff-normal",
+            "displacement": "rubber-mat-displacement",
+            "detail": "dust-scratch-decal"
+          },
+          "position": [
+            -2.95,
+            0.78,
+            -0.42
+          ],
+          "scale": [
+            0.16,
+            0.92,
+            0.16
+          ],
+          "label": "left occlusion stand prop",
+          "color": "#314155",
+          "roughness": 0.82
+        },
+        "transform": {
+          "position": [
+            -2.95,
+            0.78,
+            -0.42
+          ],
+          "rotation": null,
+          "scale": [
+            0.16,
+            0.92,
+            0.16
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "OcclusionStandRightMesh",
+        "type": "object",
+        "name": "OcclusionStandRightMesh",
+        "template": "SetDressingMesh",
+        "parentId": null,
+        "path": [
+          "OcclusionStandRightMesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "photogrammetry_mesh",
+          "material": {
+            "color": "#314155",
+            "roughness": 0.82,
+            "metallic": 0.04,
+            "normal": "floor-scuff-normal",
+            "displacement": "rubber-mat-displacement",
+            "detail": "dust-scratch-decal"
+          },
+          "position": [
+            2.95,
+            0.78,
+            -0.42
+          ],
+          "scale": [
+            0.16,
+            0.92,
+            0.16
+          ],
+          "label": "right occlusion stand prop",
+          "color": "#314155",
+          "roughness": 0.82
+        },
+        "transform": {
+          "position": [
+            2.95,
+            0.78,
+            -0.42
+          ],
+          "rotation": null,
+          "scale": [
+            0.16,
+            0.92,
+            0.16
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "WindSensorNodeMesh",
+        "type": "object",
+        "name": "WindSensorNodeMesh",
+        "template": "SensorNodeMesh",
+        "parentId": null,
+        "path": [
+          "WindSensorNodeMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "wot_thing"
+        ],
+        "properties": {
+          "geometry": "detail_mesh",
+          "material": {
+            "color": "#89ddff",
+            "roughness": 0.24,
+            "metallic": 0.22,
+            "emissive": "#17475a",
+            "emissiveIntensity": 0.38,
+            "normal": "sensor-housing-normal",
+            "detail": "indicator-led-detail"
+          },
+          "position": [
+            0,
+            2.1,
+            -1.05
+          ],
+          "scale": [
+            0.22,
+            0.14,
+            0.1
+          ],
+          "properties": {
+            "thingId": "urn:holoscript:format-stress:handoff-wind",
+            "base": "hololand://handoff/wind",
+            "observedProperty": "crosswind"
+          },
+          "label": "WoT sensor node affects catch risk",
+          "color": "#89ddff",
+          "roughness": 0.24
+        },
+        "transform": {
+          "position": [
+            0,
+            2.1,
+            -1.05
+          ],
+          "rotation": null,
+          "scale": [
+            0.22,
+            0.14,
+            0.1
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "LatencySensorNodeMesh",
+        "type": "object",
+        "name": "LatencySensorNodeMesh",
+        "template": "SensorNodeMesh",
+        "parentId": null,
+        "path": [
+          "LatencySensorNodeMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "wot_thing"
+        ],
+        "properties": {
+          "geometry": "detail_mesh",
+          "material": {
+            "color": "#89ddff",
+            "roughness": 0.24,
+            "metallic": 0.22,
+            "emissive": "#17475a",
+            "emissiveIntensity": 0.38,
+            "normal": "sensor-housing-normal",
+            "detail": "indicator-led-detail"
+          },
+          "position": [
+            -0.52,
+            2.02,
+            -1.08
+          ],
+          "scale": [
+            0.18,
+            0.12,
+            0.08
+          ],
+          "properties": {
+            "thingId": "urn:holoscript:format-stress:handoff-latency",
+            "base": "holoshell://handoff/latency",
+            "observedProperty": "handoff_latency_ms"
+          },
+          "label": "HoloShell latency sensor node",
+          "color": "#89ddff",
+          "roughness": 0.24
+        },
+        "transform": {
+          "position": [
+            -0.52,
+            2.02,
+            -1.08
+          ],
+          "rotation": null,
+          "scale": [
+            0.18,
+            0.12,
+            0.08
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "OwnershipSensorNodeMesh",
+        "type": "object",
+        "name": "OwnershipSensorNodeMesh",
+        "template": "SensorNodeMesh",
+        "parentId": null,
+        "path": [
+          "OwnershipSensorNodeMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "wot_thing"
+        ],
+        "properties": {
+          "geometry": "detail_mesh",
+          "material": {
+            "color": "#89ddff",
+            "roughness": 0.24,
+            "metallic": 0.22,
+            "emissive": "#17475a",
+            "emissiveIntensity": 0.38,
+            "normal": "sensor-housing-normal",
+            "detail": "indicator-led-detail"
+          },
+          "position": [
+            0.52,
+            2.02,
+            -1.08
+          ],
+          "scale": [
+            0.18,
+            0.12,
+            0.08
+          ],
+          "properties": {
+            "thingId": "urn:holoscript:format-stress:ownership",
+            "base": "holomesh://handoff/ownership",
+            "observedProperty": "semantic_owner"
+          },
+          "label": "HoloMesh ownership sensor node",
+          "color": "#89ddff",
+          "roughness": 0.24
+        },
+        "transform": {
+          "position": [
+            0.52,
+            2.02,
+            -1.08
+          ],
+          "rotation": null,
+          "scale": [
+            0.18,
+            0.12,
+            0.08
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ReleaseReceiptTileMesh",
+        "type": "object",
+        "name": "ReleaseReceiptTileMesh",
+        "template": "ReceiptTileMesh",
+        "parentId": null,
+        "path": [
+          "ReleaseReceiptTileMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "billboard"
+        ],
+        "properties": {
+          "geometry": "ui_mesh",
+          "material": {
+            "color": "#d5f5e3",
+            "roughness": 0.18,
+            "metallic": 0,
+            "emissive": "#153426",
+            "emissiveIntensity": 0.28,
+            "detail": "receipt-text-glyph-detail",
+            "decal": "verified-stamp-decal"
+          },
+          "position": [
+            -1.65,
+            2.45,
+            -1.26
+          ],
+          "scale": [
+            0.72,
+            0.18,
+            0.04
+          ],
+          "label": "receipt release detached verified stamp",
+          "color": "#d5f5e3",
+          "roughness": 0.18
+        },
+        "transform": {
+          "position": [
+            -1.65,
+            2.45,
+            -1.26
+          ],
+          "rotation": null,
+          "scale": [
+            0.72,
+            0.18,
+            0.04
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ArcReceiptTileMesh",
+        "type": "object",
+        "name": "ArcReceiptTileMesh",
+        "template": "ReceiptTileMesh",
+        "parentId": null,
+        "path": [
+          "ArcReceiptTileMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "billboard"
+        ],
+        "properties": {
+          "geometry": "ui_mesh",
+          "material": {
+            "color": "#d5f5e3",
+            "roughness": 0.18,
+            "metallic": 0,
+            "emissive": "#153426",
+            "emissiveIntensity": 0.28,
+            "detail": "receipt-text-glyph-detail",
+            "decal": "verified-stamp-decal"
+          },
+          "position": [
+            -0.55,
+            2.53,
+            -1.28
+          ],
+          "scale": [
+            0.72,
+            0.18,
+            0.04
+          ],
+          "label": "receipt ballistic arc sample verified stamp",
+          "color": "#d5f5e3",
+          "roughness": 0.18
+        },
+        "transform": {
+          "position": [
+            -0.55,
+            2.53,
+            -1.28
+          ],
+          "rotation": null,
+          "scale": [
+            0.72,
+            0.18,
+            0.04
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "CatchReceiptTileMesh",
+        "type": "object",
+        "name": "CatchReceiptTileMesh",
+        "template": "ReceiptTileMesh",
+        "parentId": null,
+        "path": [
+          "CatchReceiptTileMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "billboard"
+        ],
+        "properties": {
+          "geometry": "ui_mesh",
+          "material": {
+            "color": "#d5f5e3",
+            "roughness": 0.18,
+            "metallic": 0,
+            "emissive": "#153426",
+            "emissiveIntensity": 0.28,
+            "detail": "receipt-text-glyph-detail",
+            "decal": "verified-stamp-decal"
+          },
+          "position": [
+            0.55,
+            2.53,
+            -1.28
+          ],
+          "scale": [
+            0.72,
+            0.18,
+            0.04
+          ],
+          "label": "receipt catch constraint verified stamp",
+          "color": "#d5f5e3",
+          "roughness": 0.18
+        },
+        "transform": {
+          "position": [
+            0.55,
+            2.53,
+            -1.28
+          ],
+          "rotation": null,
+          "scale": [
+            0.72,
+            0.18,
+            0.04
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "TransferReceiptTileMesh",
+        "type": "object",
+        "name": "TransferReceiptTileMesh",
+        "template": "ReceiptTileMesh",
+        "parentId": null,
+        "path": [
+          "TransferReceiptTileMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "billboard"
+        ],
+        "properties": {
+          "geometry": "ui_mesh",
+          "material": {
+            "color": "#d5f5e3",
+            "roughness": 0.18,
+            "metallic": 0,
+            "emissive": "#153426",
+            "emissiveIntensity": 0.28,
+            "detail": "receipt-text-glyph-detail",
+            "decal": "verified-stamp-decal"
+          },
+          "position": [
+            1.65,
+            2.45,
+            -1.26
+          ],
+          "scale": [
+            0.72,
+            0.18,
+            0.04
+          ],
+          "label": "receipt ownership transfer verified stamp",
+          "color": "#d5f5e3",
+          "roughness": 0.18
+        },
+        "transform": {
+          "position": [
+            1.65,
+            2.45,
+            -1.26
+          ],
+          "rotation": null,
+          "scale": [
+            0.72,
+            0.18,
+            0.04
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "ProvenancePanelMesh",
+        "type": "object",
+        "name": "ProvenancePanelMesh",
+        "template": "ReceiptTileMesh",
+        "parentId": null,
+        "path": [
+          "ProvenancePanelMesh"
+        ],
+        "groupPath": [],
+        "traits": [
+          "billboard"
+        ],
+        "properties": {
+          "geometry": "ui_mesh",
+          "material": {
+            "color": "#d5f5e3",
+            "roughness": 0.18,
+            "metallic": 0,
+            "emissive": "#153426",
+            "emissiveIntensity": 0.28,
+            "detail": "receipt-text-glyph-detail",
+            "decal": "verified-stamp-decal"
+          },
+          "position": [
+            0,
+            2.85,
+            -1.34
+          ],
+          "scale": [
+            1.6,
+            0.22,
+            0.04
+          ],
+          "label": "provenance panel deterministic replay event hash",
+          "color": "#d5f5e3",
+          "roughness": 0.18
+        },
+        "transform": {
+          "position": [
+            0,
+            2.85,
+            -1.34
+          ],
+          "rotation": null,
+          "scale": [
+            1.6,
+            0.22,
+            0.04
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "DebrisScatter00Mesh",
+        "type": "object",
+        "name": "DebrisScatter00Mesh",
+        "template": "MicroDebrisMesh",
+        "parentId": null,
+        "path": [
+          "DebrisScatter00Mesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "scan_mesh",
+          "material": {
+            "color": "#64748b",
+            "roughness": 0.88,
+            "metallic": 0.02,
+            "normal": "debris-normal",
+            "detail": "scatter-dust-detail",
+            "ao": "ground-contact-ao"
+          },
+          "position": [
+            -2.65,
+            0.06,
+            0.78
+          ],
+          "scale": [
+            0.06,
+            0.035,
+            0.05
+          ],
+          "label": "foreground scatter debris contact shadow",
+          "color": "#64748b",
+          "roughness": 0.88
+        },
+        "transform": {
+          "position": [
+            -2.65,
+            0.06,
+            0.78
+          ],
+          "rotation": null,
+          "scale": [
+            0.06,
+            0.035,
+            0.05
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "DebrisScatter01Mesh",
+        "type": "object",
+        "name": "DebrisScatter01Mesh",
+        "template": "MicroDebrisMesh",
+        "parentId": null,
+        "path": [
+          "DebrisScatter01Mesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "scan_mesh",
+          "material": {
+            "color": "#64748b",
+            "roughness": 0.88,
+            "metallic": 0.02,
+            "normal": "debris-normal",
+            "detail": "scatter-dust-detail",
+            "ao": "ground-contact-ao"
+          },
+          "position": [
+            -2.1,
+            0.06,
+            0.92
+          ],
+          "scale": [
+            0.05,
+            0.03,
+            0.04
+          ],
+          "label": "foreground dust scatter",
+          "color": "#64748b",
+          "roughness": 0.88
+        },
+        "transform": {
+          "position": [
+            -2.1,
+            0.06,
+            0.92
+          ],
+          "rotation": null,
+          "scale": [
+            0.05,
+            0.03,
+            0.04
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "DebrisScatter02Mesh",
+        "type": "object",
+        "name": "DebrisScatter02Mesh",
+        "template": "MicroDebrisMesh",
+        "parentId": null,
+        "path": [
+          "DebrisScatter02Mesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "scan_mesh",
+          "material": {
+            "color": "#64748b",
+            "roughness": 0.88,
+            "metallic": 0.02,
+            "normal": "debris-normal",
+            "detail": "scatter-dust-detail",
+            "ao": "ground-contact-ao"
+          },
+          "position": [
+            -1.45,
+            0.06,
+            0.86
+          ],
+          "scale": [
+            0.05,
+            0.032,
+            0.045
+          ],
+          "label": "release foot debris scatter",
+          "color": "#64748b",
+          "roughness": 0.88
+        },
+        "transform": {
+          "position": [
+            -1.45,
+            0.06,
+            0.86
+          ],
+          "rotation": null,
+          "scale": [
+            0.05,
+            0.032,
+            0.045
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "DebrisScatter03Mesh",
+        "type": "object",
+        "name": "DebrisScatter03Mesh",
+        "template": "MicroDebrisMesh",
+        "parentId": null,
+        "path": [
+          "DebrisScatter03Mesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "scan_mesh",
+          "material": {
+            "color": "#64748b",
+            "roughness": 0.88,
+            "metallic": 0.02,
+            "normal": "debris-normal",
+            "detail": "scatter-dust-detail",
+            "ao": "ground-contact-ao"
+          },
+          "position": [
+            -0.72,
+            0.06,
+            0.72
+          ],
+          "scale": [
+            0.052,
+            0.03,
+            0.042
+          ],
+          "label": "midground debris scatter",
+          "color": "#64748b",
+          "roughness": 0.88
+        },
+        "transform": {
+          "position": [
+            -0.72,
+            0.06,
+            0.72
+          ],
+          "rotation": null,
+          "scale": [
+            0.052,
+            0.03,
+            0.042
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "DebrisScatter04Mesh",
+        "type": "object",
+        "name": "DebrisScatter04Mesh",
+        "template": "MicroDebrisMesh",
+        "parentId": null,
+        "path": [
+          "DebrisScatter04Mesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "scan_mesh",
+          "material": {
+            "color": "#64748b",
+            "roughness": 0.88,
+            "metallic": 0.02,
+            "normal": "debris-normal",
+            "detail": "scatter-dust-detail",
+            "ao": "ground-contact-ao"
+          },
+          "position": [
+            0.18,
+            0.06,
+            0.88
+          ],
+          "scale": [
+            0.048,
+            0.03,
+            0.04
+          ],
+          "label": "arc shadow dust scatter",
+          "color": "#64748b",
+          "roughness": 0.88
+        },
+        "transform": {
+          "position": [
+            0.18,
+            0.06,
+            0.88
+          ],
+          "rotation": null,
+          "scale": [
+            0.048,
+            0.03,
+            0.04
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "DebrisScatter05Mesh",
+        "type": "object",
+        "name": "DebrisScatter05Mesh",
+        "template": "MicroDebrisMesh",
+        "parentId": null,
+        "path": [
+          "DebrisScatter05Mesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "scan_mesh",
+          "material": {
+            "color": "#64748b",
+            "roughness": 0.88,
+            "metallic": 0.02,
+            "normal": "debris-normal",
+            "detail": "scatter-dust-detail",
+            "ao": "ground-contact-ao"
+          },
+          "position": [
+            0.92,
+            0.06,
+            0.74
+          ],
+          "scale": [
+            0.056,
+            0.034,
+            0.046
+          ],
+          "label": "catch approach debris scatter",
+          "color": "#64748b",
+          "roughness": 0.88
+        },
+        "transform": {
+          "position": [
+            0.92,
+            0.06,
+            0.74
+          ],
+          "rotation": null,
+          "scale": [
+            0.056,
+            0.034,
+            0.046
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "DebrisScatter06Mesh",
+        "type": "object",
+        "name": "DebrisScatter06Mesh",
+        "template": "MicroDebrisMesh",
+        "parentId": null,
+        "path": [
+          "DebrisScatter06Mesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "scan_mesh",
+          "material": {
+            "color": "#64748b",
+            "roughness": 0.88,
+            "metallic": 0.02,
+            "normal": "debris-normal",
+            "detail": "scatter-dust-detail",
+            "ao": "ground-contact-ao"
+          },
+          "position": [
+            1.6,
+            0.06,
+            0.9
+          ],
+          "scale": [
+            0.05,
+            0.03,
+            0.04
+          ],
+          "label": "catch boot debris scatter",
+          "color": "#64748b",
+          "roughness": 0.88
+        },
+        "transform": {
+          "position": [
+            1.6,
+            0.06,
+            0.9
+          ],
+          "rotation": null,
+          "scale": [
+            0.05,
+            0.03,
+            0.04
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "DebrisScatter07Mesh",
+        "type": "object",
+        "name": "DebrisScatter07Mesh",
+        "template": "MicroDebrisMesh",
+        "parentId": null,
+        "path": [
+          "DebrisScatter07Mesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "scan_mesh",
+          "material": {
+            "color": "#64748b",
+            "roughness": 0.88,
+            "metallic": 0.02,
+            "normal": "debris-normal",
+            "detail": "scatter-dust-detail",
+            "ao": "ground-contact-ao"
+          },
+          "position": [
+            2.25,
+            0.06,
+            0.82
+          ],
+          "scale": [
+            0.054,
+            0.034,
+            0.046
+          ],
+          "label": "catcher stance debris scatter",
+          "color": "#64748b",
+          "roughness": 0.88
+        },
+        "transform": {
+          "position": [
+            2.25,
+            0.06,
+            0.82
+          ],
+          "rotation": null,
+          "scale": [
+            0.054,
+            0.034,
+            0.046
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      },
+      {
+        "id": "DebrisScatter08Mesh",
+        "type": "object",
+        "name": "DebrisScatter08Mesh",
+        "template": "MicroDebrisMesh",
+        "parentId": null,
+        "path": [
+          "DebrisScatter08Mesh"
+        ],
+        "groupPath": [],
+        "traits": [],
+        "properties": {
+          "geometry": "scan_mesh",
+          "material": {
+            "color": "#64748b",
+            "roughness": 0.88,
+            "metallic": 0.02,
+            "normal": "debris-normal",
+            "detail": "scatter-dust-detail",
+            "ao": "ground-contact-ao"
+          },
+          "position": [
+            2.78,
+            0.06,
+            0.68
+          ],
+          "scale": [
+            0.045,
+            0.03,
+            0.04
+          ],
+          "label": "background debris scatter",
+          "color": "#64748b",
+          "roughness": 0.88
+        },
+        "transform": {
+          "position": [
+            2.78,
+            0.06,
+            0.68
+          ],
+          "rotation": null,
+          "scale": [
+            0.045,
+            0.03,
+            0.04
+          ]
+        },
+        "physics": {
+          "collidable": false,
+          "kinematic": false,
+          "massKg": null
+        }
+      }
+    ]
+  },
+  "worldModelReplay": {
+    "schema": "world-model-replay-v1",
+    "sceneId": "two-agent-handoff-catch-v1",
+    "sceneHash": "fnv1a-3975b949",
+    "eventLogHash": "fnv1a-671a7579",
+    "trajectoryId": "fnv1a-c0550c85",
+    "trajectoryStatus": "open",
+    "contactCount": 1,
+    "predicateViolationCount": 0
+  },
+  "replayInputs": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/segment-replay-inputs.json",
+  "segments": [
+    {
+      "id": "00_scene_loaded",
+      "title": "Scene Loaded",
+      "expectedStill": "00_scene_loaded.png",
+      "checks": [
+        "thrower_visible",
+        "catcher_visible",
+        "shared_tool_visible",
+        "arc_visible",
+        "receipt_panel_visible"
+      ],
+      "still": "stills/00_scene_loaded.png",
+      "stillMode": "captured-scene-loaded",
+      "liveSegmentScene": null,
+      "eventLog": "events/00_scene_loaded.json",
+      "posePhysicsJson": "pose-physics/00_scene_loaded.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 0,
+          "timestampMs": 0,
+          "type": "scene_loaded",
+          "payload": {
+            "throwerId": "thrower",
+            "catcherId": "catcher",
+            "toolId": "shared-tool",
+            "ownerId": "thrower"
+          }
+        }
+      ],
+      "oracle": {
+        "status": "world-model-event-replay",
+        "owningSurface": "CLI screenshot and HoloLand visual debugger",
+        "findings": [
+          "Scene-loaded still and command evidence exist; visual realism remains a separate quality ratchet."
+        ]
+      },
+      "timing": {
+        "runnerMs": 46633,
+        "screenshotMs": 4553,
+        "headlessMs": 2001,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 2001,
+          "note": "Scene load command-level timing, not a render-frame profiler."
+        }
+      },
+      "taskSeed": "task-seeds/00_scene_loaded.json"
+    },
+    {
+      "id": "01_agents_aligned",
+      "title": "Agents Aligned",
+      "expectedStill": "01_agents_aligned.png",
+      "checks": [
+        "thrower_ready_pose",
+        "catcher_ready_pose",
+        "handoff_lane_clear"
+      ],
+      "still": "stills/01_agents_aligned.png",
+      "stillMode": "live-segment-screenshot",
+      "liveSegmentScene": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/segment-scenes/01_agents_aligned.holo",
+      "eventLog": "events/01_agents_aligned.json",
+      "posePhysicsJson": "pose-physics/01_agents_aligned.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 1,
+          "timestampMs": 100,
+          "type": "agents_aligned",
+          "payload": {
+            "throwerHandId": "thrower-hand",
+            "catcherHandId": "catcher-hand",
+            "toolId": "shared-tool",
+            "facing": true
+          }
+        }
+      ],
+      "oracle": {
+        "status": "live-segment-screenshot",
+        "owningSurface": "HoloLand segmented camera choreography",
+        "findings": [
+          "Segment-specific HoloScript scene rendered through the live screenshot pipeline.",
+          "Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene.",
+          "Next owner: HoloLand segmented camera choreography."
+        ]
+      },
+      "timing": {
+        "runnerMs": 46635,
+        "screenshotMs": 4553,
+        "headlessMs": 2001,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 3088,
+          "note": "Live segment scene rendered through CLI screenshot; timing is per-segment capture duration."
+        }
+      },
+      "taskSeed": "task-seeds/01_agents_aligned.json"
+    },
+    {
+      "id": "02_release_detach",
+      "title": "Release Detach",
+      "expectedStill": "02_release_detach.png",
+      "checks": [
+        "tool_released",
+        "owner_thrower_until_release",
+        "release_velocity_recorded"
+      ],
+      "still": "stills/02_release_detach.png",
+      "stillMode": "live-segment-screenshot",
+      "liveSegmentScene": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/segment-scenes/02_release_detach.holo",
+      "eventLog": "events/02_release_detach.json",
+      "posePhysicsJson": "pose-physics/02_release_detach.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 2,
+          "timestampMs": 200,
+          "type": "release_constraint_detached",
+          "payload": {
+            "toolId": "shared-tool",
+            "fromHandId": "thrower-hand",
+            "previousOwnerId": "thrower",
+            "ownerId": null,
+            "releasePosition": {
+              "x": -1.48,
+              "y": 1.32,
+              "z": 0.08
+            },
+            "releaseVelocity": {
+              "x": 4.4,
+              "y": 1.5,
+              "z": 0
+            }
+          }
+        }
+      ],
+      "oracle": {
+        "status": "live-segment-screenshot",
+        "owningSurface": "engine headless event playback and physics runtime",
+        "findings": [
+          "Segment-specific HoloScript scene rendered through the live screenshot pipeline.",
+          "Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene.",
+          "Next owner: engine headless event playback and physics runtime."
+        ]
+      },
+      "timing": {
+        "runnerMs": 46637,
+        "screenshotMs": 4553,
+        "headlessMs": 2001,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 3103,
+          "note": "Live segment scene rendered through CLI screenshot; timing is per-segment capture duration."
+        }
+      },
+      "taskSeed": "task-seeds/02_release_detach.json"
+    },
+    {
+      "id": "03_ballistic_arc_early",
+      "title": "Ballistic Arc Early",
+      "expectedStill": "03_ballistic_arc_early.png",
+      "checks": [
+        "tool_in_flight",
+        "arc_samples_recorded",
+        "trajectory_visible"
+      ],
+      "still": "stills/03_ballistic_arc_early.png",
+      "stillMode": "live-segment-screenshot",
+      "liveSegmentScene": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/segment-scenes/03_ballistic_arc_early.holo",
+      "eventLog": "events/03_ballistic_arc_early.json",
+      "posePhysicsJson": "pose-physics/03_ballistic_arc_early.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 3,
+          "timestampMs": 300,
+          "type": "ballistic_sample",
+          "payload": {
+            "toolId": "shared-tool",
+            "timeSeconds": 0.18,
+            "toolPosition": {
+              "x": -0.688,
+              "y": 1.431078,
+              "z": 0.08
+            },
+            "gravity": -9.81,
+            "ownerId": null
+          }
+        },
+        {
+          "stepIndex": 4,
+          "timestampMs": 400,
+          "type": "ballistic_sample",
+          "payload": {
+            "toolId": "shared-tool",
+            "timeSeconds": 0.36,
+            "toolPosition": {
+              "x": 0.10400000000000009,
+              "y": 1.224312,
+              "z": 0.08
+            },
+            "gravity": -9.81,
+            "ownerId": null
+          }
+        },
+        {
+          "stepIndex": 5,
+          "timestampMs": 500,
+          "type": "ballistic_sample",
+          "payload": {
+            "toolId": "shared-tool",
+            "timeSeconds": 0.54,
+            "toolPosition": {
+              "x": 0.8960000000000004,
+              "y": 0.6997019999999996,
+              "z": 0.08
+            },
+            "gravity": -9.81,
+            "ownerId": null
+          }
+        }
+      ],
+      "oracle": {
+        "status": "live-segment-screenshot",
+        "owningSurface": "physics trajectory solver and deterministic replay",
+        "findings": [
+          "Segment-specific HoloScript scene rendered through the live screenshot pipeline.",
+          "Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene.",
+          "Next owner: physics trajectory solver and deterministic replay."
+        ]
+      },
+      "timing": {
+        "runnerMs": 46640,
+        "screenshotMs": 4553,
+        "headlessMs": 2001,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 3050,
+          "note": "Live segment scene rendered through CLI screenshot; timing is per-segment capture duration."
+        }
+      },
+      "taskSeed": "task-seeds/03_ballistic_arc_early.json"
+    },
+    {
+      "id": "04_ballistic_arc_mid",
+      "title": "Ballistic Arc Mid",
+      "expectedStill": "04_ballistic_arc_mid.png",
+      "checks": [
+        "midflight_pose_readable",
+        "gravity_plausible",
+        "catcher_tracking_tool"
+      ],
+      "still": "stills/04_ballistic_arc_mid.png",
+      "stillMode": "live-segment-screenshot",
+      "liveSegmentScene": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/segment-scenes/04_ballistic_arc_mid.holo",
+      "eventLog": "events/04_ballistic_arc_mid.json",
+      "posePhysicsJson": "pose-physics/04_ballistic_arc_mid.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 3,
+          "timestampMs": 300,
+          "type": "ballistic_sample",
+          "payload": {
+            "toolId": "shared-tool",
+            "timeSeconds": 0.18,
+            "toolPosition": {
+              "x": -0.688,
+              "y": 1.431078,
+              "z": 0.08
+            },
+            "gravity": -9.81,
+            "ownerId": null
+          }
+        },
+        {
+          "stepIndex": 4,
+          "timestampMs": 400,
+          "type": "ballistic_sample",
+          "payload": {
+            "toolId": "shared-tool",
+            "timeSeconds": 0.36,
+            "toolPosition": {
+              "x": 0.10400000000000009,
+              "y": 1.224312,
+              "z": 0.08
+            },
+            "gravity": -9.81,
+            "ownerId": null
+          }
+        },
+        {
+          "stepIndex": 5,
+          "timestampMs": 500,
+          "type": "ballistic_sample",
+          "payload": {
+            "toolId": "shared-tool",
+            "timeSeconds": 0.54,
+            "toolPosition": {
+              "x": 0.8960000000000004,
+              "y": 0.6997019999999996,
+              "z": 0.08
+            },
+            "gravity": -9.81,
+            "ownerId": null
+          }
+        }
+      ],
+      "oracle": {
+        "status": "live-segment-screenshot",
+        "owningSurface": "physics trajectory solver and deterministic replay",
+        "findings": [
+          "Segment-specific HoloScript scene rendered through the live screenshot pipeline.",
+          "Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene.",
+          "Next owner: physics trajectory solver and deterministic replay."
+        ]
+      },
+      "timing": {
+        "runnerMs": 46641,
+        "screenshotMs": 4553,
+        "headlessMs": 2001,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 2874,
+          "note": "Live segment scene rendered through CLI screenshot; timing is per-segment capture duration."
+        }
+      },
+      "taskSeed": "task-seeds/04_ballistic_arc_mid.json"
+    },
+    {
+      "id": "05_ballistic_arc_late",
+      "title": "Ballistic Arc Late",
+      "expectedStill": "05_ballistic_arc_late.png",
+      "checks": [
+        "tool_near_catch_volume",
+        "catcher_hand_aligned",
+        "clearance_recorded"
+      ],
+      "still": "stills/05_ballistic_arc_late.png",
+      "stillMode": "live-segment-screenshot",
+      "liveSegmentScene": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/segment-scenes/05_ballistic_arc_late.holo",
+      "eventLog": "events/05_ballistic_arc_late.json",
+      "posePhysicsJson": "pose-physics/05_ballistic_arc_late.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 3,
+          "timestampMs": 300,
+          "type": "ballistic_sample",
+          "payload": {
+            "toolId": "shared-tool",
+            "timeSeconds": 0.18,
+            "toolPosition": {
+              "x": -0.688,
+              "y": 1.431078,
+              "z": 0.08
+            },
+            "gravity": -9.81,
+            "ownerId": null
+          }
+        },
+        {
+          "stepIndex": 4,
+          "timestampMs": 400,
+          "type": "ballistic_sample",
+          "payload": {
+            "toolId": "shared-tool",
+            "timeSeconds": 0.36,
+            "toolPosition": {
+              "x": 0.10400000000000009,
+              "y": 1.224312,
+              "z": 0.08
+            },
+            "gravity": -9.81,
+            "ownerId": null
+          }
+        },
+        {
+          "stepIndex": 5,
+          "timestampMs": 500,
+          "type": "ballistic_sample",
+          "payload": {
+            "toolId": "shared-tool",
+            "timeSeconds": 0.54,
+            "toolPosition": {
+              "x": 0.8960000000000004,
+              "y": 0.6997019999999996,
+              "z": 0.08
+            },
+            "gravity": -9.81,
+            "ownerId": null
+          }
+        }
+      ],
+      "oracle": {
+        "status": "live-segment-screenshot",
+        "owningSurface": "physics trajectory solver and deterministic replay",
+        "findings": [
+          "Segment-specific HoloScript scene rendered through the live screenshot pipeline.",
+          "Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene.",
+          "Next owner: physics trajectory solver and deterministic replay."
+        ]
+      },
+      "timing": {
+        "runnerMs": 46643,
+        "screenshotMs": 4553,
+        "headlessMs": 2001,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 3088,
+          "note": "Live segment scene rendered through CLI screenshot; timing is per-segment capture duration."
+        }
+      },
+      "taskSeed": "task-seeds/05_ballistic_arc_late.json"
+    },
+    {
+      "id": "06_catch_volume",
+      "title": "Catch Volume Entered",
+      "expectedStill": "06_catch_volume.png",
+      "checks": [
+        "catch_volume_entered",
+        "clearance_recorded",
+        "catcher_ready_pose_visible"
+      ],
+      "still": "stills/06_catch_volume.png",
+      "stillMode": "live-segment-screenshot",
+      "liveSegmentScene": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/segment-scenes/06_catch_volume.holo",
+      "eventLog": "events/06_catch_volume.json",
+      "posePhysicsJson": "pose-physics/06_catch_volume.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 6,
+          "timestampMs": 600,
+          "type": "catch_volume_entered",
+          "payload": {
+            "toolId": "shared-tool",
+            "catchVolumeId": "catch-volume",
+            "toolPosition": {
+              "x": 1.74,
+              "y": 1.28,
+              "z": 0.08
+            },
+            "clearanceM": 0.04
+          }
+        }
+      ],
+      "oracle": {
+        "status": "live-segment-screenshot",
+        "owningSurface": "HoloLand segmented camera choreography",
+        "findings": [
+          "Segment-specific HoloScript scene rendered through the live screenshot pipeline.",
+          "Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene.",
+          "Next owner: HoloLand segmented camera choreography."
+        ]
+      },
+      "timing": {
+        "runnerMs": 46645,
+        "screenshotMs": 4553,
+        "headlessMs": 2001,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 3061,
+          "note": "Live segment scene rendered through CLI screenshot; timing is per-segment capture duration."
+        }
+      },
+      "taskSeed": "task-seeds/06_catch_volume.json"
+    },
+    {
+      "id": "07_catch_constraint",
+      "title": "Catch Constraint Attached",
+      "expectedStill": "07_catch_constraint.png",
+      "checks": [
+        "catch_constraint_attached",
+        "tool_attached_to_catcher",
+        "owner_catcher"
+      ],
+      "still": "stills/07_catch_constraint.png",
+      "stillMode": "live-segment-screenshot",
+      "liveSegmentScene": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/segment-scenes/07_catch_constraint.holo",
+      "eventLog": "events/07_catch_constraint.json",
+      "posePhysicsJson": "pose-physics/07_catch_constraint.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 7,
+          "timestampMs": 700,
+          "type": "catch_constraint_attached",
+          "payload": {
+            "toolId": "shared-tool",
+            "handId": "catcher-hand",
+            "constraint": "hand-tool-fixed",
+            "ownerId": "catcher"
+          }
+        }
+      ],
+      "oracle": {
+        "status": "live-segment-screenshot",
+        "owningSurface": "HoloLand segmented camera choreography",
+        "findings": [
+          "Segment-specific HoloScript scene rendered through the live screenshot pipeline.",
+          "Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene.",
+          "Next owner: HoloLand segmented camera choreography."
+        ]
+      },
+      "timing": {
+        "runnerMs": 46647,
+        "screenshotMs": 4553,
+        "headlessMs": 2001,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 2938,
+          "note": "Live segment scene rendered through CLI screenshot; timing is per-segment capture duration."
+        }
+      },
+      "taskSeed": "task-seeds/07_catch_constraint.json"
+    },
+    {
+      "id": "08_ownership_transfer",
+      "title": "Ownership Transfer",
+      "expectedStill": "08_ownership_transfer.png",
+      "checks": [
+        "transfer_event_recorded",
+        "from_thrower_to_catcher",
+        "semantic_owner_changed"
+      ],
+      "still": "stills/08_ownership_transfer.png",
+      "stillMode": "live-segment-screenshot",
+      "liveSegmentScene": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/segment-scenes/08_ownership_transfer.holo",
+      "eventLog": "events/08_ownership_transfer.json",
+      "posePhysicsJson": "pose-physics/08_ownership_transfer.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 8,
+          "timestampMs": 800,
+          "type": "ownership_transferred",
+          "payload": {
+            "objectId": "shared-tool",
+            "from": "thrower",
+            "to": "catcher",
+            "transferMode": "release-flight-catch"
+          }
+        }
+      ],
+      "oracle": {
+        "status": "live-segment-screenshot",
+        "owningSurface": "HoloLand segmented camera choreography",
+        "findings": [
+          "Segment-specific HoloScript scene rendered through the live screenshot pipeline.",
+          "Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene.",
+          "Next owner: HoloLand segmented camera choreography."
+        ]
+      },
+      "timing": {
+        "runnerMs": 46648,
+        "screenshotMs": 4553,
+        "headlessMs": 2001,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 2925,
+          "note": "Live segment scene rendered through CLI screenshot; timing is per-segment capture duration."
+        }
+      },
+      "taskSeed": "task-seeds/08_ownership_transfer.json"
+    },
+    {
+      "id": "09_receipt_panel",
+      "title": "Receipt Panel",
+      "expectedStill": "09_receipt_panel.png",
+      "checks": [
+        "transfer_receipt_visible",
+        "release_and_catch_confirmed",
+        "provenance_panel_visible"
+      ],
+      "still": "stills/09_receipt_panel.png",
+      "stillMode": "live-segment-screenshot",
+      "liveSegmentScene": ".bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/flagship-segments/segment-scenes/09_receipt_panel.holo",
+      "eventLog": "events/09_receipt_panel.json",
+      "posePhysicsJson": "pose-physics/09_receipt_panel.json",
+      "runtimeScene": {
+        "schema": "format-stress-headless-scene-snapshot-v1",
+        "source": "hs-headless-json",
+        "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+        "objectCount": 63,
+        "templateCount": 15,
+        "status": "instantiated"
+      },
+      "worldModelEvents": [
+        {
+          "stepIndex": 9,
+          "timestampMs": 900,
+          "type": "receipt_emitted",
+          "payload": {
+            "objectId": "shared-tool",
+            "ownerId": "catcher",
+            "releaseConfirmed": true,
+            "catchConfirmed": true,
+            "provenancePanel": true
+          }
+        }
+      ],
+      "oracle": {
+        "status": "live-segment-screenshot",
+        "owningSurface": "HoloLand segmented camera choreography",
+        "findings": [
+          "Segment-specific HoloScript scene rendered through the live screenshot pipeline.",
+          "Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene.",
+          "Next owner: HoloLand segmented camera choreography."
+        ]
+      },
+      "timing": {
+        "runnerMs": 46650,
+        "screenshotMs": 4553,
+        "headlessMs": 2001,
+        "frameBudget": {
+          "targetHz": 60,
+          "budgetMs": 16.67,
+          "observedMs": 3062,
+          "note": "Live segment scene rendered through CLI screenshot; timing is per-segment capture duration."
+        }
+      },
+      "taskSeed": "task-seeds/09_receipt_panel.json"
+    }
+  ],
+  "visualEvidence": {
+    "stillFilesPresent": 10,
+    "uniqueStillHashes": 10,
+    "replayCandidateSegments": 10,
+    "replayDistinctSegments": 10,
+    "capturedReplaySegments": 10,
+    "replayDistinctSegmentIds": [
+      "00_scene_loaded",
+      "01_agents_aligned",
+      "02_release_detach",
+      "03_ballistic_arc_early",
+      "04_ballistic_arc_mid",
+      "05_ballistic_arc_late",
+      "06_catch_volume",
+      "07_catch_constraint",
+      "08_ownership_transfer",
+      "09_receipt_panel"
+    ],
+    "liveSegmentScreenshotSegments": 9,
+    "worldModelPixelReplaySegments": 0,
+    "staticCopySegments": 0,
+    "placeholderSegments": 0,
+    "staticCopyCoverageBlocked": false,
+    "dynamicReplayBlockedSegments": 0,
+    "falseGreenRisk": "none-detected",
+    "visualCoverageStatus": "replay-distinct"
+  },
+  "coverage": {
+    "segmentsRequested": 10,
+    "segmentsWithStill": 10,
+    "qualityAdjustedSegmentsWithStill": 10,
+    "uniqueStillHashes": 10,
+    "staticCopySegments": 0,
+    "placeholderStillSegments": 0,
+    "dynamicReplayBlockedSegments": 0,
+    "falseGreenRisk": "none-detected",
+    "segmentsWithRuntimeEventLog": 10,
+    "segmentsWithPosePhysicsJson": 10,
+    "segmentsWithTiming": 10,
+    "headlessRuntimeSceneObjects": 63,
+    "headlessRuntimeTemplates": 15,
+    "segmentsWithHeadlessSceneObjects": 10,
+    "segmentsWithWorldModelEvents": 10,
+    "segmentsWithLiveSegmentScreenshot": 9,
+    "segmentsWithWorldModelPixelReplay": 0
+  }
+}

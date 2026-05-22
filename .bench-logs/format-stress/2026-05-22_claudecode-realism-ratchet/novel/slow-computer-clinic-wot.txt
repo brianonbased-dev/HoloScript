@@ -1,0 +1,10 @@
+
+[36mGenerating W3C Thing Descriptions from .bench-logs/format-stress/2026-05-22_claudecode-realism-ratchet/novel/slow-computer-clinic-room.holo...[0m
+
+[1mclinic-dashboard[0m
+  [32m✓ Valid Thing Description[0m
+  Properties: 0, Actions: 0, Events: 0
+
+[36mGenerated 1 Thing Description(s)[0m
+[2mUse --json for full output or -o <path> to write files.[0m
+

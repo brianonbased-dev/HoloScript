@@ -1,0 +1,70 @@
+// Slow Computer Clinic — spatial room for hardware remediation visualization
+// Novel composition: combines clinic receipts, spatial dashboard, and WoT sensors
+// Stress test: receipt substrate + spatial room + WoT integration
+
+composition "SlowComputerClinicRoom" {
+  // Domain-specific state from the receipt substrate
+  state {
+    PATIENT_COUNT: 4
+    REMEDIATION_TIMEOUT: 30
+    REFRESH_INTERVAL: 5
+  }
+
+  // Clinic dashboard showing process health
+  object "clinic-dashboard" {
+    @accessible(label: "Clinic Dashboard")
+    @wot_thing(thingId: "clinic-health-monitor")
+    
+    position { x: 0, y: 1.6, z: -2 }
+    
+    material "screen" {
+      emissive: "#00ff88"
+      emissive_intensity: 0.8
+    }
+    
+    // Process health receipts displayed as spatial panels
+    receipt_panel "process-health" {
+      status: "monitoring"
+      refresh_interval: REFRESH_INTERVAL
+    }
+  }
+
+  // Remediation verification station
+  object "remediation-station" {
+    @accessible(label: "Remediation Verification")
+    @grabbable
+    
+    position { x: -1.5, y: 0.9, z: -1.5 }
+    rotation { x: 0, y: 30, z: 0 }
+    
+    material "station" {
+      color: "#3366ff"
+      roughness: 0.3
+      metalness: 0.7
+    }
+  }
+
+  // Hardware audit display
+  object "hardware-audit" {
+    @accessible(label: "Hardware Audit")
+    
+    position { x: 1.5, y: 1.2, z: -1.5 }
+    
+    material "audit-screen" {
+      emissive: "#ff6633"
+      emissive_intensity: 0.5
+    }
+    
+    receipt_panel "hardware-audit" {
+      status: "auditing"
+    }
+  }
+
+  // Ambient lighting for clinical environment
+  light "clinic-overhead" {
+    type: "point"
+    intensity: 0.8
+    color: "#ffffff"
+    position { x: 0, y: 3, z: 0 }
+  }
+}

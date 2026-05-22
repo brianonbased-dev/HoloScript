@@ -1,0 +1,34 @@
+{
+  "inMemory": false,
+  "rootDir": null,
+  "graphRAGReady": false,
+  "graphAuthoritative": true,
+  "sessionProvenance": null,
+  "diskCache": {
+    "exists": true,
+    "ageMs": 39115513,
+    "ageHuman": "10.9h ago",
+    "fresh": true,
+    "stale": false,
+    "authoritative": true,
+    "rootDir": "C:\\Users\\josep\\AppData\\Local\\Temp\\holoscript-absorb-JYGFDM",
+    "stats": {
+      "totalFiles": 3,
+      "totalSymbols": 2,
+      "totalImports": 0,
+      "totalCalls": 0,
+      "totalEventEdges": 0,
+      "totalLoc": 5,
+      "filesByLanguage": {
+        "plaintext": 1,
+        "typescript": 2
+      },
+      "symbolsByType": {
+        "function": 1,
+        "constant": 1
+      },
+      "communities": 0
+    },
+    "hint": "Cache is fresh — query tools will auto-load it without re-scanning."
+  }
+}
