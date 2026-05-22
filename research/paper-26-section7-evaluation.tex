@@ -56,20 +56,22 @@ Recall@$K$ is the fraction of ground-truth files appearing in the top-$K$ result
 \toprule
 Files & Syms & Events & HG $\mu$s & Emb $\mu$s & HG recall & Emb recall@10 \\
 \midrule
-   50 &  200 &     10 & 0.79 & 287.7 & 1.000 & 0.125 \\
-  500 & 2000 &     50 & 3.63 & 2114  & 1.000 & 0.025 \\
+   50 &  200 &     10 &  2.060 &   567.1 & 1.000 & 0.125 \\
+  500 & 2000 &     50 &  6.770 &  4360.2 & 1.000 & 0.025 \\
+ 2000 & 8000 &    100 &  8.975 & 19486.4 & 1.000 & 0.025 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-HoloGraph achieves 100\% recall at sub-microsecond latency across all graph
+HoloGraph achieves 100\% recall at single-digit-microsecond latency across all graph
 sizes. Embedding scan recall degrades from 12.5\% to 2.5\% as graph size grows
 (from 50 to 500 files), because the query \texttt{"handler for event X"} has no
 semantic link to the generic symbol names (\texttt{fn0}, \texttt{fn1}, \ldots)
 in the synthetic corpus -- exposing the fundamental limitation of embedding search
 for structured code relationships.
-The speedup ratio grows from 364$\times$ (50 files) to 583$\times$ (500 files),
-consistent with O($N \cdot D$) scaling of the embedding path.
+The speedup ratio grows from 275$\times$ (50 files) to 644$\times$ (500 files)
+to 2171$\times$ (2000 files), consistent with O($N \cdot D$) scaling of the
+embedding path.
 
 \paragraph{Ablation: semantic model vs structural baseline.}
 \label{sec:ablation-xenova}
@@ -90,8 +92,8 @@ because it uses no semantic training. We address this with a Xenova
 \toprule
 Provider & HG $\mu$s & Emb $\mu$s & Speedup & HG recall & Emb recall@10 \\
 \midrule
-StructuralEmbeddingProvider & 0.79  & 287.7  &  364$\times$ & 1.000 & 0.125 \\
-Xenova/all-MiniLM-L6-v2    & 1.08  & 3197   & 2961$\times$ & 1.000 & 0.125 \\
+StructuralEmbeddingProvider &  2.060 &   567.1 &   275$\times$ & 1.000 & 0.125 \\
+Xenova/all-MiniLM-L6-v2    &  1.250 &  9968.0 &  7974$\times$ & 1.000 & 0.125 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -101,8 +103,8 @@ is expected: the synthetic symbols are named \texttt{fn0}--\texttt{fn3} with no
 lexical connection to event names such as \texttt{snn:spike}. Neither a structural
 hash nor a semantic language model can recover that connection. The ablation
 establishes one claim and one claim only: \emph{the O(1) latency advantage holds
-regardless of embedding quality}. Xenova's inference time makes it $8\times$
-slower than the structural baseline and 2961$\times$ slower than HoloGraph.
+regardless of embedding quality}. Xenova's inference time makes it $18\times$
+slower than the structural baseline and 7974$\times$ slower than HoloGraph.
 
 For NL$\to$code recall comparisons on semantically meaningful symbol names, see
 Section~\ref{sec:eval-holoembed} and Table~\ref{tab:holoembed-recall}.
