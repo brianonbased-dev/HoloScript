@@ -13,6 +13,8 @@
 
 export interface StreamableAsset {
   id: string;
+  /** World-space position of the asset for distance-based LOD selection. */
+  position: [number, number, number];
   lodLevels: number[]; // Distance thresholds (ascending)
   currentLOD: number; // Current LOD index (-1 = unloaded)
   priority: number;
@@ -53,14 +55,17 @@ export class LODStreamer {
   // Update
   // ---------------------------------------------------------------------------
 
-  update(_cameraX: number, _cameraY: number, _cameraZ: number): void {
+  update(cameraX: number, cameraY: number, cameraZ: number): void {
     this.loadQueue = [];
     this.unloadQueue = [];
 
     for (const asset of this.assets.values()) {
-      // Calculate distance (assume asset position is encoded in id for simplicity)
-      // In real use, asset would store position
-      const targetLOD = this.selectLOD(asset, 0); // Using distance 0 for simplicity
+      // Euclidean distance from camera to asset position
+      const dx = asset.position[0] - cameraX;
+      const dy = asset.position[1] - cameraY;
+      const dz = asset.position[2] - cameraZ;
+      const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      const targetLOD = this.selectLOD(asset, distance);
 
       if (targetLOD !== asset.currentLOD) {
         if (targetLOD >= 0) {
@@ -143,6 +148,9 @@ export class LODStreamer {
   }
   getLoadQueueSize(): number {
     return this.loadQueue.length;
+  }
+  getUnloadQueueSize(): number {
+    return this.unloadQueue.length;
   }
   getCurrentLOD(id: string): number {
     return this.assets.get(id)?.currentLOD ?? -1;

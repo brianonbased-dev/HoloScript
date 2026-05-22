@@ -249,3 +249,32 @@ export {
   // Bridge: SpatialPartitionResult → ObjectInstance[]
   spatialAnchorsToObjectInstances,
 } from './GPUCullingSystem';
+
+// ============================================================================
+// LOD Streaming (distance-based load/unload, memory budget, hysteresis)
+// ============================================================================
+
+export {
+  // Types
+  type StreamableAsset,
+
+  // Streamer class
+  LODStreamer,
+} from './LODStreamer';
+
+export {
+  // Streaming manager
+  LODStreamingManager,
+  createStreamingManager,
+  createMobileStreamingManager,
+  createDesktopStreamingManager,
+} from './LODStreamingManager';
+
+export {
+  // Cache
+  LODCache,
+  createLODCache,
+  createMobileLODCache,
+  createDesktopLODCache,
+  formatBytes,
+} from './LODCache';
