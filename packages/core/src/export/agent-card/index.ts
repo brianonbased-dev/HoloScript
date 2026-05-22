@@ -23,3 +23,17 @@ export {
   type ContentMode,
   type HoloScriptExtension,
 } from './AgentCardExporter';
+
+export {
+  validateA2AAgentCard,
+  deriveScopesFromCard,
+  negotiateRepresentation,
+  executeA2AHandshake,
+  handshakeToRequestEntryPayload,
+  type SpatialScope as A2AHandshakeSpatialScope,
+  type PortalRepresentation as A2AHandshakePortalRepresentation,
+  type CardValidationResult,
+  type ScopeDerivationResult,
+  type A2AHandshakeResult,
+  type A2AHandshakeOptions,
+} from './A2AHandshake';
