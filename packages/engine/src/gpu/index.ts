@@ -10,6 +10,7 @@ export * from './GPUBuffers';
 export * from './GaussianSplatExtractor';
 export * from './GaussianSplatSorter';
 export * from './InstancedRenderer';
+export * from './RegularGridStencilSolver';
 export * from './SparseLinearSolver';
 export * from './SpatialGrid';
 export * from './WebGPUContext';

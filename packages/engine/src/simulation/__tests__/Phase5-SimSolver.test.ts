@@ -8,11 +8,20 @@ import { describe, it, expect } from 'vitest';
 // 5A: SimSolver + Adapters
 import type { SimSolver } from '../SimSolver';
 import { isGpuBackedSolver } from '../SimSolver';
-import { ThermalSolverAdapter, StructuralSolverAdapter, TET10SolverAdapter, HydraulicSolverAdapter } from '../adapters/SolverAdapters';
+import {
+  AcousticGpuStencilSolverAdapter,
+  ThermalGpuStencilSolverAdapter,
+  ThermalSolverAdapter,
+  StructuralGpuCgSolverAdapter,
+  StructuralSolverAdapter,
+  TET10SolverAdapter,
+  HydraulicSolverAdapter,
+} from '../adapters/SolverAdapters';
 import { ThermalSolver, ThermalConfig } from '../ThermalSolver';
 import { StructuralSolver, StructuralConfig } from '../StructuralSolver';
 import { StructuralSolverTET10, tet4ToTet10 } from '../StructuralSolverTET10';
 import { HydraulicSolver } from '../HydraulicSolver';
+import { AcousticSolver } from '../AcousticSolver';
 import { CouplingManagerV2 } from '../CouplingManagerV2';
 
 // 5C: Experiment
@@ -86,6 +95,24 @@ describe('5A: SimSolver Adapters', () => {
     adapter.dispose();
   });
 
+  it('StructuralGpuCgSolverAdapter exposes TET4 CSR GPU-backed readback contract', async () => {
+    const config: StructuralConfig = {
+      vertices: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+      tetrahedra: new Uint32Array([0, 1, 2, 3]),
+      material: { density: 1000, youngs_modulus: 1e6, poisson_ratio: 0.3, yield_strength: 1e8 },
+      constraints: [{ id: 'fix', type: 'fixed', nodes: [0] }],
+      loads: [],
+      useGPU: true,
+    };
+
+    const adapter = new StructuralGpuCgSolverAdapter(new StructuralSolver(config));
+    expect(isGpuBackedSolver(adapter)).toBe(true);
+    const output = await adapter.readbackOutput();
+    expect(output).toBeInstanceOf(Float32Array);
+    expect(output.length).toBe(12);
+    adapter.dispose();
+  });
+
   it('TET10SolverAdapter exposes GPU-backed readback contract', async () => {
     const tet10 = tet4ToTet10(
       new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
@@ -107,6 +134,36 @@ describe('5A: SimSolver Adapters', () => {
     expect(output.length).toBe(30);
 
     adapter.dispose();
+  });
+
+  it('RegularGrid GPU stencil adapters expose readback contracts', async () => {
+    const thermalConfig: ThermalConfig = {
+      gridResolution: [4, 4, 4],
+      domainSize: [1, 1, 1],
+      timeStep: 0.01,
+      materials: { air: { conductivity: 0.026, density: 1.225, specific_heat: 1005 } },
+      defaultMaterial: 'air',
+      boundaryConditions: [],
+      sources: [],
+      initialTemperature: 20,
+      useGPU: true,
+    };
+
+    const thermal = new ThermalGpuStencilSolverAdapter(new ThermalSolver(thermalConfig));
+    const acoustic = new AcousticGpuStencilSolverAdapter(new AcousticSolver({
+      gridResolution: [4, 4, 4],
+      domainSize: [1, 1, 1],
+      sources: [],
+      useGPU: true,
+    }));
+
+    expect(isGpuBackedSolver(thermal)).toBe(true);
+    expect(isGpuBackedSolver(acoustic)).toBe(true);
+    expect(await thermal.readbackOutput()).toHaveLength(64);
+    expect(await acoustic.readbackOutput()).toHaveLength(64);
+
+    thermal.dispose();
+    acoustic.dispose();
   });
 
   it('HydraulicSolverAdapter wraps hydraulic solver', () => {

@@ -34,6 +34,7 @@
  */
 
 import { RegularGrid3D } from './RegularGrid3D';
+import { RegularGridStencilSolver } from '../gpu/RegularGridStencilSolver';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -83,6 +84,8 @@ export interface AcousticConfig {
   timeStep?: number;
   /** CFL safety factor (default: 0.9) */
   cflSafety?: number;
+  /** Use WebGPU stencil kernel for the interior leapfrog update when available. */
+  useGPU?: boolean;
 }
 
 export interface AcousticStats {
@@ -92,6 +95,7 @@ export interface AcousticStats {
   cflLimit: number;
   maxPressure: number;
   rmsEnergy: number;
+  usedGPU: boolean;
 }
 
 // ── Solver ────────────────────────────────────────────────────────────────────
@@ -108,6 +112,9 @@ export class AcousticSolver {
   private pressureCurr: RegularGrid3D;
   private pressurePrev: RegularGrid3D;
   private pressureNext: RegularGrid3D;
+  private useGPU = false;
+  private lastStepUsedGPU = false;
+  private gpuStencil: RegularGridStencilSolver | null = null;
 
   private currentTime = 0;
   private stepCount = 0;
@@ -119,6 +126,7 @@ export class AcousticSolver {
     this.config = config;
     this.speedOfSound = config.speedOfSound ?? 343;
     this.velocityField = config.velocityField ?? null;
+    this.useGPU = config.useGPU ?? false;
 
     const [nx, ny, nz] = config.gridResolution;
     const [lx, ly, lz] = config.domainSize;
@@ -207,6 +215,80 @@ export class AcousticSolver {
 
     this.currentTime += actualDt;
     this.stepCount++;
+    this.lastStepUsedGPU = false;
+  }
+
+  /**
+   * Advance one timestep, using the WebGPU stencil path for the interior update
+   * when enabled. Sources and boundary conditions remain on CPU to preserve the
+   * existing boundary contracts.
+   */
+  async stepAsync(dt?: number): Promise<void> {
+    const actualDt = dt ?? this.dt;
+
+    let usedGPU = false;
+    if (this.useGPU) {
+      usedGPU = await this.stepInteriorGPU(actualDt);
+    }
+
+    if (!usedGPU) {
+      this.step(actualDt);
+      return;
+    }
+
+    const next = this.pressureNext;
+    const curr = this.pressureCurr;
+    const { nx, ny, nz } = curr;
+    const dt2 = actualDt * actualDt;
+
+    for (const src of this.config.sources) {
+      if (src.active === false) continue;
+      const [si, sj, sk] = src.position;
+      if (si < 0 || si >= nx || sj < 0 || sj >= ny || sk < 0 || sk >= nz) continue;
+
+      const srcVal = this.evaluateSource(src, this.currentTime);
+      next.set(si, sj, sk, next.get(si, sj, sk) + dt2 * srcVal);
+    }
+
+    this.applyBoundaryConditions(next, curr, actualDt);
+
+    const temp = this.pressurePrev;
+    this.pressurePrev = this.pressureCurr;
+    this.pressureCurr = this.pressureNext;
+    this.pressureNext = temp;
+
+    this.currentTime += actualDt;
+    this.stepCount++;
+    this.lastStepUsedGPU = true;
+  }
+
+  private async stepInteriorGPU(dt: number): Promise<boolean> {
+    try {
+      this.gpuStencil ??= new RegularGridStencilSolver();
+      const out = await this.gpuStencil.stepAcousticLeapfrog(
+        this.pressureCurr.data,
+        this.pressurePrev.data,
+        this.velocityField?.data ?? null,
+        {
+          nx: this.pressureCurr.nx,
+          ny: this.pressureCurr.ny,
+          nz: this.pressureCurr.nz,
+          dx: this.pressureCurr.dx,
+          dy: this.pressureCurr.dy,
+          dz: this.pressureCurr.dz,
+          dt,
+          cUniform: this.speedOfSound,
+          hasVelocity: this.velocityField !== null,
+        },
+      );
+
+      if (!out) return false;
+      this.pressureNext.data.set(out);
+      return true;
+    } catch (error) {
+      console.error('Acoustic GPU stencil step failed:', error);
+      return false;
+    }
   }
 
   /**
@@ -325,6 +407,7 @@ export class AcousticSolver {
       cflLimit: this.cflLimit,
       maxPressure: maxP,
       rmsEnergy: Math.sqrt(sumP2 / data.length),
+      usedGPU: this.lastStepUsedGPU,
     };
   }
 
@@ -343,7 +426,8 @@ export class AcousticSolver {
   }
 
   dispose(): void {
-    // No external resources to clean up
+    this.gpuStencil?.destroy();
+    this.gpuStencil = null;
   }
 }
 

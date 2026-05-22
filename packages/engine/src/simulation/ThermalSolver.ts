@@ -78,6 +78,7 @@ import {
   type ThermalMaterial,
 } from './MaterialDatabase';
 import { jacobiIteration } from './ConvergenceControl';
+import { RegularGridStencilSolver } from '../gpu/RegularGridStencilSolver';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -110,6 +111,8 @@ export interface ThermalConfig {
   maxImplicitIterations?: number;
   /** Implicit solver convergence tolerance */
   implicitTolerance?: number;
+  /** Use WebGPU explicit stencil kernel when available. Implicit Jacobi stays CPU. */
+  useGPU?: boolean;
 }
 
 export interface ThermalStats {
@@ -119,6 +122,7 @@ export interface ThermalStats {
   simulationTime: number;
   stepCount: number;
   isImplicit: boolean;
+  usedGPU: boolean;
   lastStepMs: number;
 }
 
@@ -134,7 +138,10 @@ export class ThermalSolver {
   private simulationTime = 0;
   private stepCount = 0;
   private useImplicit = false;
+  private useGPU = false;
+  private lastStepUsedGPU = false;
   private lastStepMs = 0;
+  private gpuStencil: RegularGridStencilSolver | null = null;
 
   constructor(config: ThermalConfig) {
     this.config = config;
@@ -145,6 +152,7 @@ export class ThermalSolver {
     const matBase = getMaterial(matName);
     this.material = { ...matBase, ...matOverride } as ThermalMaterial;
     this.alpha = thermalDiffusivity(this.material);
+    this.useGPU = config.useGPU ?? false;
 
     // Initialize grids
     this.temperature = new RegularGrid3D(config.gridResolution, config.domainSize);
@@ -177,17 +185,7 @@ export class ThermalSolver {
     const t0 = performance.now();
     const effectiveDt = dt > 0 ? dt : this.config.timeStep;
 
-    // Set boundary conditions, ensuring convection BCs receive actual thermal conductivity for Biot number
-    for (const bc of this.config.boundaryConditions) {
-      if (bc.type === 'convection') {
-        bc.k = this.material.conductivity;
-      }
-    }
-    applyBoundaryConditions(
-      this.temperature,
-      this.config.boundaryConditions,
-      effectiveDt
-    );
+    this.applyThermalBoundaryConditions(effectiveDt);
 
     if (this.useImplicit) {
       this.stepImplicit(effectiveDt);
@@ -195,6 +193,36 @@ export class ThermalSolver {
       this.stepExplicit(effectiveDt);
     }
 
+    this.lastStepUsedGPU = false;
+    this.simulationTime += effectiveDt;
+    this.stepCount++;
+    this.lastStepMs = performance.now() - t0;
+  }
+
+  /**
+   * Advance the solver, using the WebGPU explicit stencil path when enabled.
+   * Existing synchronous callers keep using step(); GPU aliases call this.
+   */
+  async stepAsync(dt: number): Promise<void> {
+    const t0 = performance.now();
+    const effectiveDt = dt > 0 ? dt : this.config.timeStep;
+
+    this.applyThermalBoundaryConditions(effectiveDt);
+
+    let usedGPU = false;
+    if (!this.useImplicit && this.useGPU) {
+      usedGPU = await this.stepExplicitGPU(effectiveDt);
+    }
+
+    if (!usedGPU) {
+      if (this.useImplicit) {
+        this.stepImplicit(effectiveDt);
+      } else {
+        this.stepExplicit(effectiveDt);
+      }
+    }
+
+    this.lastStepUsedGPU = usedGPU;
     this.simulationTime += effectiveDt;
     this.stepCount++;
     this.lastStepMs = performance.now() - t0;
@@ -223,6 +251,52 @@ export class ThermalSolver {
         }
       }
     }
+  }
+
+  private async stepExplicitGPU(dt: number): Promise<boolean> {
+    try {
+      const rhoCp = this.material.density * this.material.specific_heat;
+
+      this.tempPrev.copy(this.temperature);
+      this.gpuStencil ??= new RegularGridStencilSolver();
+
+      const out = await this.gpuStencil.stepThermalExplicit(
+        this.tempPrev.data,
+        this.sourceField.data,
+        {
+          nx: this.temperature.nx,
+          ny: this.temperature.ny,
+          nz: this.temperature.nz,
+          dx: this.temperature.dx,
+          dy: this.temperature.dy,
+          dz: this.temperature.dz,
+          dt,
+          alpha: this.alpha,
+          rhoCp,
+        },
+      );
+
+      if (!out) return false;
+      this.temperature.data.set(out);
+      return true;
+    } catch (error) {
+      console.error('Thermal GPU stencil step failed:', error);
+      return false;
+    }
+  }
+
+  private applyThermalBoundaryConditions(dt: number): void {
+    // Set boundary conditions, ensuring convection BCs receive actual thermal conductivity for Biot number
+    for (const bc of this.config.boundaryConditions) {
+      if (bc.type === 'convection') {
+        bc.k = this.material.conductivity;
+      }
+    }
+    applyBoundaryConditions(
+      this.temperature,
+      this.config.boundaryConditions,
+      dt
+    );
   }
 
   /**
@@ -383,11 +457,13 @@ export class ThermalSolver {
       simulationTime: this.simulationTime,
       stepCount: this.stepCount,
       isImplicit: this.useImplicit,
+      usedGPU: this.lastStepUsedGPU,
       lastStepMs: this.lastStepMs,
     };
   }
 
   dispose(): void {
-    // Float32Arrays will be GC'd — no GPU resources to release (CPU solver)
+    this.gpuStencil?.destroy();
+    this.gpuStencil = null;
   }
 }

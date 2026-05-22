@@ -16,12 +16,15 @@ describe('simulation-registry', () => {
 
     const types = SimulationSolverFactory.types();
     expect(types).toContain('thermal');
+    expect(types).toContain('thermal-gpu-stencil');
     expect(types).toContain('structural');
     expect(types).toContain('structural-tet10');
+    expect(types).toContain('structural-tet10-gpu-cg');
     expect(types).toContain('structural-gpu-cg');
     expect(types).toContain('structural-tet4-gpu-cg');
     expect(types).toContain('hydraulic');
     expect(types).toContain('acoustic');
+    expect(types).toContain('acoustic-gpu-stencil');
     expect(types).toContain('fdtd');
     expect(types).toContain('navier-stokes');
     expect(types).toContain('multiphase');
@@ -80,7 +83,7 @@ describe('simulation-registry', () => {
     solver!.dispose();
   });
 
-  it('creates GPU-CG structural aliases with contract readback', async () => {
+  it('creates TET4 GPU-CG structural aliases with contract readback', async () => {
     initSimulationSolvers();
     const solver = SimulationSolverFactory.create('structural-gpu-cg', {
       vertices: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
@@ -95,9 +98,61 @@ describe('simulation-registry', () => {
 
     const output = await (solver as { readbackOutput(): Promise<Float32Array> }).readbackOutput();
     expect(output).toBeInstanceOf(Float32Array);
+    expect(output.length).toBe(12);
+
+    solver!.dispose();
+  });
+
+  it('creates TET10 GPU-CG alias with contract readback', async () => {
+    initSimulationSolvers();
+    const solver = SimulationSolverFactory.create('structural-tet10-gpu-cg', {
+      vertices: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+      tetrahedra: new Uint32Array([0, 1, 2, 3]),
+      material: 'steel_a36',
+      constraints: [{ id: 'fix', type: 'fixed', nodes: [0] }],
+      loads: [],
+      isTET10: false,
+      nodesPerElement: 4,
+    });
+
+    expect(solver).not.toBeNull();
+    expect(typeof (solver as { readbackOutput?: unknown }).readbackOutput).toBe('function');
+
+    const output = await (solver as { readbackOutput(): Promise<Float32Array> }).readbackOutput();
+    expect(output).toBeInstanceOf(Float32Array);
     expect(output.length).toBe(30);
 
     solver!.dispose();
+  });
+
+  it('creates GPU stencil aliases with contract readback', async () => {
+    initSimulationSolvers();
+    const thermal = SimulationSolverFactory.create('thermal-gpu-stencil', {
+      grid_resolution: [4, 4, 4],
+      domain_size: [1, 1, 1],
+      time_step: 0.01,
+      default_material: 'air',
+      initial_temperature: 20,
+    });
+    const acoustic = SimulationSolverFactory.create('acoustic-gpu-stencil', {
+      gridResolution: [4, 4, 4],
+      domainSize: [1, 1, 1],
+      sources: [],
+    });
+
+    expect(thermal).not.toBeNull();
+    expect(acoustic).not.toBeNull();
+    expect(typeof (thermal as { readbackOutput?: unknown }).readbackOutput).toBe('function');
+    expect(typeof (acoustic as { readbackOutput?: unknown }).readbackOutput).toBe('function');
+
+    await thermal!.step(0.01);
+    await acoustic!.step(0.0001);
+
+    expect(await (thermal as { readbackOutput(): Promise<Float32Array> }).readbackOutput()).toHaveLength(64);
+    expect(await (acoustic as { readbackOutput(): Promise<Float32Array> }).readbackOutput()).toHaveLength(64);
+
+    thermal!.dispose();
+    acoustic!.dispose();
   });
 
   it('returns null for unknown solver type even after init', () => {

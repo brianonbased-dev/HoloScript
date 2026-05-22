@@ -19,6 +19,7 @@
 | Packages | `ls -d packages/*/ \| wc -l` | Workspace packages |
 | Tests | `pnpm test` → summary line | Expensive — cache CI output |
 | TET10 GPU-CG vs CPU-CG | `pnpm exec tsx scripts/tet10-gpu-cg-benchmark.ts --out .bench-logs/tet10-gpu-cg-benchmark.json` | Hardware-specific; cite the artifact path and adapter info before using the speedup |
+| GPU solver paths | `pnpm exec tsx scripts/gpu-solver-benchmark.ts --out .bench-logs/gpu-solver-benchmark.json` | Covers TET4 CSR GPU-CG plus thermal/acoustic RegularGrid3D stencil kernels; cite artifact path before using speedups |
 | Knowledge entries | `curl mcp-orchestrator-production-45f9.up.railway.app/health` → `knowledge_entries` | Orchestrator |
 | R3F renderers | `ls packages/r3f-renderer/src/components/ \| wc -l` | Production components |
 | Absorb tools | `curl absorb.holoscript.net/health` → `tools` | May be down — check first |

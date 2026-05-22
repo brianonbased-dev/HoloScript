@@ -74,6 +74,8 @@
 
 import { conjugateGradient, type ConvergenceResult } from './ConvergenceControl';
 import { getMaterial, type StructuralMaterial } from './MaterialDatabase';
+import { SparseLinearSolver, type CSRMatrix } from '../gpu/SparseLinearSolver';
+import { getGlobalWebGPUContext } from '../gpu/WebGPUContext';
 import {
   type Force,
   type Pressure,
@@ -133,6 +135,8 @@ export interface StructuralConfig {
   maxIterations?: number;
   /** CG convergence tolerance (default 1e-8) */
   tolerance?: number;
+  /** Use explicit CSR assembly + WebGPU CG when solveAsync() is called. */
+  useGPU?: boolean;
 }
 
 export interface StructuralStats {
@@ -142,6 +146,61 @@ export interface StructuralStats {
   minSafetyFactor: number;
   solveResult: ConvergenceResult | null;
   solveTimeMs: number;
+  dofCount?: number;
+  nnz?: number;
+  useGPU?: boolean;
+}
+
+function buildTET4CSRPattern(
+  nodeCount: number,
+  elementCount: number,
+  tetrahedra: Uint32Array,
+): { rowPtr: Uint32Array; colInd: Uint32Array; dofToCSR: Map<number, Map<number, number>> } {
+  const dofCount = nodeCount * 3;
+  const nodeAdj = new Array<Set<number>>(nodeCount);
+  for (let i = 0; i < nodeCount; i++) nodeAdj[i] = new Set();
+
+  for (let e = 0; e < elementCount; e++) {
+    const base = e * 4;
+    for (let a = 0; a < 4; a++) {
+      const na = tetrahedra[base + a];
+      for (let b = 0; b < 4; b++) {
+        nodeAdj[na].add(tetrahedra[base + b]);
+      }
+    }
+  }
+
+  const rowPtr = new Uint32Array(dofCount + 1);
+  for (let node = 0; node < nodeCount; node++) {
+    const adjCount = nodeAdj[node].size;
+    for (let d = 0; d < 3; d++) {
+      rowPtr[node * 3 + d + 1] = adjCount * 3;
+    }
+  }
+  for (let i = 1; i <= dofCount; i++) rowPtr[i] += rowPtr[i - 1];
+
+  const colInd = new Uint32Array(rowPtr[dofCount]);
+  const dofToCSR = new Map<number, Map<number, number>>();
+
+  for (let node = 0; node < nodeCount; node++) {
+    const adjNodes = Array.from(nodeAdj[node]).sort((a, b) => a - b);
+    for (let d = 0; d < 3; d++) {
+      const row = node * 3 + d;
+      const rowMap = new Map<number, number>();
+      let offset = rowPtr[row];
+      for (const adjNode of adjNodes) {
+        for (let dd = 0; dd < 3; dd++) {
+          const col = adjNode * 3 + dd;
+          colInd[offset] = col;
+          rowMap.set(col, offset);
+          offset++;
+        }
+      }
+      dofToCSR.set(row, rowMap);
+    }
+  }
+
+  return { rowPtr, colInd, dofToCSR };
 }
 
 // ── Solver ────────────────────────────────────────────────────────────────────
@@ -159,9 +218,16 @@ export class StructuralSolver {
   private cauchyStress: Float32Array; // per-element, 6 components: [sxx,syy,szz,txy,tyz,txz]
   private safetyFactors: Float32Array; // per-element
   private constrainedDofs: Set<number>;
+  private useGPU: boolean;
 
   // Sparse stiffness: CSR-like via element assembly
   private elementStiffness: Float64Array[]; // 12×12 per element
+  private csrRowPtr: Uint32Array | null = null;
+  private csrColInd: Uint32Array | null = null;
+  private csrVal: Float64Array | null = null;
+  private dofToCSR: Map<number, Map<number, number>> | null = null;
+  private gpuDisplacementBuffer: GPUBuffer | null = null;
+  private gpuSolver: SparseLinearSolver | null = null;
 
   private solveResult: ConvergenceResult | null = null;
   private solveTimeMs = 0;
@@ -178,6 +244,7 @@ export class StructuralSolver {
     this.nodeCount = config.vertices.length / 3;
     this.elementCount = config.tetrahedra.length / 4;
     this.dofCount = this.nodeCount * 3;
+    this.useGPU = config.useGPU ?? false;
 
     this.displacements = new Float32Array(this.dofCount);
     this.forces = new Float32Array(this.dofCount);
@@ -298,6 +365,132 @@ export class StructuralSolver {
 
     this.solveTimeMs = performance.now() - t0;
     return this.solveResult;
+  }
+
+  async solveAsync(): Promise<ConvergenceResult> {
+    if (!this.useGPU) {
+      return this.solve();
+    }
+
+    const t0 = performance.now();
+    const gpuResult = await this.solveGPUCG();
+    if (gpuResult) {
+      this.solveResult = gpuResult;
+      this.useGPU = true;
+      for (const dof of this.constrainedDofs) {
+        this.displacements[dof] = 0;
+      }
+      this.recoverStress();
+      this.solveTimeMs = performance.now() - t0;
+      return this.solveResult;
+    }
+
+    this.useGPU = false;
+    return this.solve();
+  }
+
+  private async solveGPUCG(): Promise<ConvergenceResult | null> {
+    try {
+      this.assembleCSRStiffness();
+      this.applyConstraintsToCSR();
+
+      const rhs = new Float32Array(this.forces);
+      for (const dof of this.constrainedDofs) rhs[dof] = 0;
+      this.displacements.fill(0);
+
+      const context = getGlobalWebGPUContext();
+      await context.initialize();
+      if (!context.isSupported()) return null;
+
+      this.gpuSolver ??= new SparseLinearSolver(context);
+      await this.gpuSolver.initialize();
+
+      const result = await this.gpuSolver.solveCGDirect(
+        this.getCSRMatrix(),
+        rhs,
+        this.displacements,
+        {
+          maxIterations: this.config.maxIterations ?? 1000,
+          toleranceSq: (this.config.tolerance ?? 1e-8) ** 2,
+          xExtraUsage: GPUBufferUsage.VERTEX,
+        },
+      );
+
+      if (this.gpuDisplacementBuffer) this.gpuDisplacementBuffer.destroy();
+      this.gpuDisplacementBuffer = result.xBuffer;
+
+      const f32 = await this.gpuSolver.readback(this.gpuDisplacementBuffer, this.dofCount);
+      this.displacements.set(f32);
+
+      return {
+        converged: result.converged,
+        iterations: result.iterations,
+        residual: Math.sqrt(result.residualNormSq),
+        maxChange: 0,
+      };
+    } catch (error) {
+      console.error('TET4 GPU CG solve failed:', error);
+      return null;
+    }
+  }
+
+  private assembleCSRStiffness(): void {
+    const { rowPtr, colInd, dofToCSR } = buildTET4CSRPattern(
+      this.nodeCount,
+      this.elementCount,
+      this.config.tetrahedra,
+    );
+
+    const val = new Float64Array(rowPtr[this.dofCount]);
+    const tets = this.config.tetrahedra;
+
+    for (let e = 0; e < this.elementCount; e++) {
+      const ke = this.elementStiffness[e];
+      const nodes = [tets[e * 4], tets[e * 4 + 1], tets[e * 4 + 2], tets[e * 4 + 3]];
+
+      for (let a = 0; a < 4; a++) {
+        for (let ai = 0; ai < 3; ai++) {
+          const globalI = nodes[a] * 3 + ai;
+          const localI = a * 3 + ai;
+          const rowMap = dofToCSR.get(globalI)!;
+
+          for (let b = 0; b < 4; b++) {
+            for (let bi = 0; bi < 3; bi++) {
+              const globalJ = nodes[b] * 3 + bi;
+              const localJ = b * 3 + bi;
+              const csrIdx = rowMap.get(globalJ)!;
+              val[csrIdx] += ke[localI * 12 + localJ];
+            }
+          }
+        }
+      }
+    }
+
+    this.csrRowPtr = rowPtr;
+    this.csrColInd = colInd;
+    this.csrVal = val;
+    this.dofToCSR = dofToCSR;
+  }
+
+  private applyConstraintsToCSR(): void {
+    if (!this.csrRowPtr || !this.csrColInd || !this.csrVal || !this.dofToCSR) {
+      throw new Error('TET4 CSR matrix is not assembled');
+    }
+
+    for (const dof of this.constrainedDofs) {
+      const start = this.csrRowPtr[dof];
+      const end = this.csrRowPtr[dof + 1];
+      for (let idx = start; idx < end; idx++) {
+        this.csrVal[idx] = this.csrColInd[idx] === dof ? 1.0 : 0.0;
+      }
+
+      for (let row = 0; row < this.dofCount; row++) {
+        if (this.constrainedDofs.has(row)) continue;
+        const rowMap = this.dofToCSR.get(row);
+        const idx = rowMap?.get(dof);
+        if (idx !== undefined) this.csrVal[idx] = 0.0;
+      }
+    }
   }
 
   /**
@@ -609,6 +802,30 @@ export class StructuralSolver {
     return this.displacements;
   }
 
+  getCSRMatrix(): CSRMatrix {
+    if (!this.csrRowPtr || !this.csrColInd || !this.csrVal) {
+      this.assembleCSRStiffness();
+    }
+
+    return {
+      row_ptr: this.csrRowPtr!,
+      col_ind: this.csrColInd!,
+      val: new Float32Array(this.csrVal!),
+      num_rows: this.dofCount,
+    };
+  }
+
+  getDisplacementBuffer(): GPUBuffer | null {
+    return this.gpuDisplacementBuffer;
+  }
+
+  async readbackOutput(): Promise<Float32Array> {
+    if (this.gpuDisplacementBuffer && this.gpuSolver) {
+      return this.gpuSolver.readback(this.gpuDisplacementBuffer, this.dofCount);
+    }
+    return new Float32Array(this.displacements);
+  }
+
   /** Update a load and re-solve */
   updateLoad(id: string, force: [Force, Force, Force]): void {
     const load = this.config.loads.find((l) => l.id === id);
@@ -631,10 +848,23 @@ export class StructuralSolver {
       minSafetyFactor: minSF,
       solveResult: this.solveResult,
       solveTimeMs: this.solveTimeMs,
+      dofCount: this.dofCount,
+      nnz: this.csrRowPtr ? this.csrRowPtr[this.dofCount] : undefined,
+      useGPU: this.useGPU && this.gpuDisplacementBuffer !== null,
     };
   }
 
   dispose(): void {
     this.elementStiffness = [];
+    if (this.gpuDisplacementBuffer) {
+      this.gpuDisplacementBuffer.destroy();
+      this.gpuDisplacementBuffer = null;
+    }
+    this.gpuSolver?.destroy();
+    this.gpuSolver = null;
+    this.csrRowPtr = null;
+    this.csrColInd = null;
+    this.csrVal = null;
+    this.dofToCSR = null;
   }
 }

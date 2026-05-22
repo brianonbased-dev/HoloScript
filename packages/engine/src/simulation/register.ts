@@ -19,6 +19,12 @@ import { registerWasmMesher } from './AutoMesher';
 import { TetGenWasmMesher } from './wasm/TetGenWasmMesher';
 import type { BoundaryCondition, BCFace } from './BoundaryConditions';
 import { MLSMPMFluid, type MLSMPMConfig } from '../physics/MLSMPMFluid';
+import {
+  AcousticGpuStencilSolverAdapter,
+  StructuralGpuCgSolverAdapter,
+  TET10SolverAdapter,
+  ThermalGpuStencilSolverAdapter,
+} from './adapters/SolverAdapters';
 
 // ── Config parsers ───────────────────────────────────────────────────────────
 // Convert raw .hsplus parsed config objects into typed solver configs.
@@ -84,6 +90,7 @@ function parseThermalConfig(raw: Record<string, unknown>): ThermalConfig {
     ),
     sources: parseThermalSources(raw.sources as Record<string, unknown> | undefined),
     initialTemperature: (raw.initial_temperature as number) ?? 20,
+    useGPU: (raw.useGPU as boolean) ?? (raw.use_gpu as boolean) ?? false,
   };
 }
 
@@ -97,6 +104,7 @@ function parseStructuralConfig(raw: Record<string, unknown>): StructuralConfig {
     loads: (raw.loads as StructuralConfig['loads']) ?? [],
     maxIterations: (raw.max_iterations as number) ?? 1000,
     tolerance: (raw.tolerance as number) ?? 1e-8,
+    useGPU: (raw.useGPU as boolean) ?? (raw.use_gpu as boolean) ?? false,
   };
 }
 
@@ -134,6 +142,21 @@ function parseStructuralGpuCgConfig(raw: Record<string, unknown>): TET10Config {
     nodesPerElement: nodesPerElement ?? (isTET10 ? 10 : 4),
     useGPU: (raw.useGPU as boolean) ?? true,
   });
+}
+
+function parseStructuralTet4GpuCgConfig(raw: Record<string, unknown>): StructuralConfig {
+  return {
+    ...parseStructuralConfig(raw),
+    useGPU: (raw.useGPU as boolean) ?? (raw.use_gpu as boolean) ?? true,
+  };
+}
+
+function createStructuralGpuCgSolver(raw: Record<string, unknown>): unknown {
+  const isTET10 = raw.isTET10 === true || raw.nodesPerElement === 10;
+  if (isTET10) {
+    return new TET10SolverAdapter(new StructuralSolverTET10(parseStructuralGpuCgConfig(raw)));
+  }
+  return new StructuralGpuCgSolverAdapter(new StructuralSolver(parseStructuralTet4GpuCgConfig(raw)));
 }
 
 function parseHydraulicConfig(raw: Record<string, unknown>): HydraulicConfig {
@@ -176,12 +199,21 @@ interface SolverFactoryRegistry {
  */
 export function registerSimulationSolvers(factory: SolverFactoryRegistry): void {
   factory.register('thermal', (raw) => new ThermalSolver(parseThermalConfig(raw)));
+  factory.register('thermal-gpu-stencil', (raw) => new ThermalGpuStencilSolverAdapter(new ThermalSolver({
+    ...parseThermalConfig(raw),
+    useGPU: true,
+  })));
   factory.register('structural', (raw) => new StructuralSolver(parseStructuralConfig(raw)));
   factory.register('structural-tet10', (raw) => new StructuralSolverTET10(parseTET10Config(raw)));
-  factory.register('structural-gpu-cg', (raw) => new StructuralSolverTET10(parseStructuralGpuCgConfig(raw)));
-  factory.register('structural-tet4-gpu-cg', (raw) => new StructuralSolverTET10(parseStructuralGpuCgConfig(raw)));
+  factory.register('structural-tet10-gpu-cg', (raw) => new TET10SolverAdapter(new StructuralSolverTET10(parseStructuralGpuCgConfig(raw))));
+  factory.register('structural-gpu-cg', createStructuralGpuCgSolver);
+  factory.register('structural-tet4-gpu-cg', (raw) => new StructuralGpuCgSolverAdapter(new StructuralSolver(parseStructuralTet4GpuCgConfig(raw))));
   factory.register('hydraulic', (raw) => new HydraulicSolver(parseHydraulicConfig(raw)));
   factory.register('acoustic', (raw) => new AcousticSolver(raw as unknown as AcousticConfig));
+  factory.register('acoustic-gpu-stencil', (raw) => new AcousticGpuStencilSolverAdapter(new AcousticSolver({
+    ...(raw as unknown as AcousticConfig),
+    useGPU: true,
+  })));
   factory.register('fdtd', (raw) => new FDTDSolver(raw as unknown as FDTDConfig));
   factory.register('navier-stokes', (raw) => new NavierStokesSolver(raw as unknown as NavierStokesConfig));
   factory.register('multiphase', (raw) => new MultiphaseNSSolver(raw as unknown as MultiphaseConfig));
