@@ -188,6 +188,7 @@ export { PIDControllerTrait } from './PIDControllerTrait';
 export * from './PlaneDetectionTrait';
 export * from './PointCloudTrait';
 export * from './POITrait';
+export * from './PortalPresenceTrait';
 export * from './PortableTrait';
 export * from './PoseEstimationTrait';
 export * from './PressableTrait';
