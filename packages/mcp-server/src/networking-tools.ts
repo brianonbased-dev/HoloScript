@@ -164,16 +164,18 @@ export async function enableWebRTCTransport(config?: WebRTCTransportConfig): Pro
     return webrtcProvider;
   }
   try {
+    // @ts-ignore -- @holoscript/crdt-spatial is an optional runtime dep with no devDep types
     const { LoroWebRTCProvider } = await import('@holoscript/crdt-spatial');
     const room = config?.room ?? 'holoport-default';
-    webrtcProvider = new LoroWebRTCProvider(loroDoc, room, {
+    const provider = new LoroWebRTCProvider(loroDoc, room, {
       signalingServerUrl: config?.signalingServerUrl,
       iceServers: config?.iceServers,
       syncIntervalMs: config?.syncIntervalMs,
-    });
-    webrtcProvider.connect();
+    }) as LoroWebRTCProviderLike;
+    webrtcProvider = provider;
+    provider.connect();
     console.info(`[networking] WebRTC peer transport enabled for room '${room}'.`);
-    return webrtcProvider;
+    return provider;
   } catch (err) {
     throw new Error(
       `Failed to enable WebRTC transport: ${err instanceof Error ? err.message : String(err)}. ` +

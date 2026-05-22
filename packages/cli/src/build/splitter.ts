@@ -65,7 +65,7 @@ export class SceneSplitter {
     for (const zone of zones) {
       const boundsProp = zone.properties.find((p: any) => p.key === 'bounds');
       if (boundsProp && Array.isArray(boundsProp.value)) {
-        boundsMap.set(zone.name, boundsProp.value as number[][]);
+        boundsMap.set(zone.name ?? '', boundsProp.value as number[][]);
       }
     }
     return boundsMap;

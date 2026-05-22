@@ -172,7 +172,7 @@ export class SceneInspector {
 
     // Add entities from composition
     for (const obj of this.composition.objects || []) {
-      const getProp = (key: string) => obj.properties?.find((p) => p.key === key)?.value;
+      const getProp = (key: string) => obj.properties?.find((p: any) => p.key === key)?.value;
       const pos = getProp('position') as number[] | undefined;
       const rot = getProp('rotation') as number[] | undefined;
       const scl = getProp('scale') as number[] | undefined;

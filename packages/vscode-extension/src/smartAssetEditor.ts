@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import AdmZip = require('adm-zip');
+import AdmZip from 'adm-zip';
 
 export class SmartAssetEditorProvider implements vscode.CustomReadonlyEditorProvider {
   public static readonly viewType = 'holoscript.smartAssetViewer';

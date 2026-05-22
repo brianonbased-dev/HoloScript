@@ -304,6 +304,8 @@ export interface PluginPackageManifest {
   updatedAt?: Date;
   /** When this version was published */
   publishedAt?: Date;
+  /** Cryptographic signature of the plugin bundle (base64-encoded). */
+  signature?: string;
 }
 
 // =============================================================================

@@ -427,8 +427,8 @@ export class ShaderGraph implements IShaderGraph {
       inputs: original.inputs.map((i) => ({ ...i, connected: undefined })),
       outputs: original.outputs.map((o) => ({ ...o })),
       position: {
-        x: original.position.x + offset[0],
-        y: original.position.y + offset[1],
+        x: original.position.x + offset.x,
+        y: original.position.y + offset.y,
       },
       properties: original.properties ? { ...original.properties } : undefined,
       preview: original.preview,

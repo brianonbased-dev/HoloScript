@@ -50,6 +50,7 @@ export interface ASTNode {
 }
 
 export interface ParseResult {
+  success?: boolean;
   ast: any;
   errors: any[];
   warnings: any[];
@@ -855,7 +856,27 @@ export interface RaycastHit {
 }
 
 export class HoloScriptRuntime {
+  constructor(importLoader?: any, customFunctions?: any);
   execute(ast: any, context?: any): Promise<any>;
+  executeProgram(nodes: any[], depth?: number): Promise<any[]>;
+  executeHoloProgram(statements: any[], scopeOverride?: any): Promise<any[]>;
+  getContext(): any;
+  reset(): void;
+  startVisualizationServer(port?: number): void;
+  broadcast(type: string, payload: unknown): void;
+  on(event: string, handler: (...args: any[]) => any): void;
+  off(event: string, handler?: (...args: any[]) => any): void;
+  emit(event: string, data?: unknown): Promise<void>;
+  setVariable(name: string, value: any, scopeOverride?: any): void;
+  getVariable(name: string, scopeOverride?: any): any;
+  callFunction(name: string, args?: any[]): Promise<any>;
+  registerFunction(name: string, handler: (...args: any[]) => any): void;
+  registerTrait(name: string, handler: any): void;
+  getState(): Record<string, any>;
+  getRootScope(): any;
+  getExecutionHistory(): any[];
+  getCallStack(): string[];
+  [key: string]: any;
 }
 
 export interface RuntimeOptions {
@@ -878,6 +899,10 @@ export interface ExecutionResult {
   error?: string;
   duration?: number;
   memoryUsed?: number;
+  executionTime?: number;
+  hologram?: { shape?: string; color?: string; [key: string]: any };
+  spatialPosition?: { x: number; y: number; z: number; [key: string]: any };
+  output?: any;
 }
 
 export interface SpatialPosition {
@@ -1703,11 +1728,11 @@ export declare class AIDriverTrait {
 // CROSS-PLATFORM COMPILERS (re-exported from compiler subpaths)
 // ============================================================================
 
-export class UnityCompiler { compile(ast: any, options?: any): any; [key: string]: any; }
-export class GodotCompiler { compile(ast: any, options?: any): any; [key: string]: any; }
-export class VisionOSCompiler { compile(ast: any, options?: any): any; [key: string]: any; }
-export class VRChatCompiler { compile(ast: any, options?: any): any; [key: string]: any; }
-export class UnrealCompiler { compile(ast: any, options?: any): any; [key: string]: any; }
+export class UnityCompiler { constructor(options?: any); compile(ast: any, options?: any): any; [key: string]: any; }
+export class GodotCompiler { constructor(options?: any); compile(ast: any, options?: any): any; [key: string]: any; }
+export class VisionOSCompiler { constructor(options?: any); compile(ast: any, options?: any): any; [key: string]: any; }
+export class VRChatCompiler { constructor(options?: any); compile(ast: any, options?: any): any; [key: string]: any; }
+export class UnrealCompiler { constructor(options?: any); compile(ast: any, options?: any): any; [key: string]: any; }
 
 // ============================================================================
 // REACTIVE STATE SYSTEM
@@ -3174,20 +3199,20 @@ export declare function calculateRevenueDistribution(priceWei: string|bigint, au
 export declare function formatRevenueDistribution(dist: any): any;
 export declare function ethToWei(eth: string): string;
 export declare const PROTOCOL_CONSTANTS: any;
-export class URDFCompiler { [key: string]: any; }
-export class SDFCompiler { [key: string]: any; }
-export class OpenXRCompiler { [key: string]: any; }
-export class AndroidCompiler { [key: string]: any; }
-export class AndroidXRCompiler { [key: string]: any; }
-export class IOSCompiler { [key: string]: any; }
-export class ARCompiler { [key: string]: any; }
-export class BabylonCompiler { [key: string]: any; }
-export class WebGPUCompiler { [key: string]: any; }
-export class WASMCompiler { [key: string]: any; }
-export class PlayCanvasCompiler { [key: string]: any; }
-export class DTDLCompiler { [key: string]: any; }
-export class VRRCompiler { [key: string]: any; }
-export class MultiLayerCompiler { [key: string]: any; }
+export class URDFCompiler { constructor(options?: any); [key: string]: any; }
+export class SDFCompiler { constructor(options?: any); [key: string]: any; }
+export class OpenXRCompiler { constructor(options?: any); [key: string]: any; }
+export class AndroidCompiler { constructor(options?: any); [key: string]: any; }
+export class AndroidXRCompiler { constructor(options?: any); [key: string]: any; }
+export class IOSCompiler { constructor(options?: any); [key: string]: any; }
+export class ARCompiler { constructor(options?: any); [key: string]: any; }
+export class BabylonCompiler { constructor(options?: any); [key: string]: any; }
+export class WebGPUCompiler { constructor(options?: any); [key: string]: any; }
+export class WASMCompiler { constructor(options?: any); [key: string]: any; }
+export class PlayCanvasCompiler { constructor(options?: any); [key: string]: any; }
+export class DTDLCompiler { constructor(options?: any); [key: string]: any; }
+export class VRRCompiler { constructor(options?: any); [key: string]: any; }
+export class MultiLayerCompiler { constructor(options?: any); [key: string]: any; }
 
 export declare const VR_TRAITS: any;
 export declare const BUILTIN_CONSTRAINTS: any;
@@ -4746,32 +4771,33 @@ export class R3FCompiler extends CompilerBase {
 
 export declare const ENVIRONMENT_PRESETS: Record<string, any>;
 
-export class UnityCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
-export class GodotCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
-export class BabylonCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
-export class PlayCanvasCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
-export class ARCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
-export class OpenXRCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
-export class VRChatCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
-export class VisionOSCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
-export class AndroidCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
-export class AndroidXRCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
-export class IOSCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
-export class WASMCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
-export class WebGPUCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
-export class SDFCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
-export class DTDLCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
-export class URDFCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
-export class USDPhysicsCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
-export class StateCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
-export class TraitCompositionCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class UnityCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class GodotCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class BabylonCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class PlayCanvasCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class ARCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class OpenXRCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class VRChatCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class VisionOSCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class AndroidCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class AndroidXRCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class IOSCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class WASMCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class WebGPUCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class SDFCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class DTDLCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class URDFCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class USDPhysicsCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class StateCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
+export class TraitCompositionCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
 export class IncrementalCompiler extends CompilerBase {
+  constructor(options?: any);
   static deserialize(json: string): IncrementalCompiler;
   compile(ast: any, compileObject: (obj: any) => string, options?: any): Promise<any>;
   [key: string]: any;
 }
 export function createIncrementalCompiler(config?: any): IncrementalCompiler;
-export class MultiLayerCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class MultiLayerCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
 export class COCOExporter { [key: string]: any; }
 export class GLTFPipelineMCPTool { [key: string]: any; }
 export const BUSINESS_QUEST_TOOLS: any[];
@@ -5098,6 +5124,23 @@ export function runCompilerWasmSnnEmulator(
   op: DispatchableOperation,
   runtime: Tier1WasmRuntimeProbeResult
 ): Tier1WasmEmulatorResult;
+
+// Additional compilers (GaussianSplatting, VRR, FlatSemantic) for compiler subpath consumers
+export class GaussianSplattingCompiler extends CompilerBase {
+  constructor(options?: { format?: 'gltf' | 'glb'; [key: string]: any });
+  compile(ast: any, token?: any, ...args: any[]): any;
+  [key: string]: any;
+}
+export class VRRCompiler extends CompilerBase {
+  constructor(options?: any);
+  compile(composition: any, agentToken?: any, outputPath?: string): any;
+  [key: string]: any;
+}
+export class FlatSemanticCompiler extends CompilerBase {
+  constructor(options?: any);
+  compile(ast: any, ...args: any[]): any;
+  [key: string]: any;
+}
 `;
 
 const r3fDTS = `export interface R3FNode {
@@ -5722,7 +5765,82 @@ export declare function generateROS2LaunchFile(packageName: string, urdfFilename
 export declare function generateControllersYaml(robotName: string, jointNames: string[], options?: { controllerType?: string; publishRate?: number; }): string;
 `;
 
-const finalMainDTS = mainDTS + holoLandTraitsDTS + careFieldDTS + conversationDaemonDTS;
+// ============================================================================
+// DAEMON CUSTOMIZATION PROFILE (D.052 extended — per exports-core.ts re-exports)
+// ============================================================================
+const daemonCustomizationDTS = `
+
+// Daemon Customization Profile (D.052 Brittney field / user daemon model extended)
+// Matches packages/core/src/daemon/DaemonCustomizationProfile.ts source types
+export interface DaemonRitual { name: string; trigger: string; description: string; enabled: boolean; }
+export interface DaemonFavoriteWorkflow { name: string; workflowId: string; description: string; }
+export interface DaemonStyleProfile { displayName: string; appearance: DaemonAppearanceProfile; voice: DaemonVoiceProfile; tone: DaemonToneProfile; careProfile: string; rituals: DaemonRitual[]; favoriteWorkflows: DaemonFavoriteWorkflow[]; visualTheme: string; personalNotes?: string; }
+export interface DaemonPermissionConfig { readOnly: boolean; proposeMutations: boolean; autonomousMutations: boolean; breakGlassAllowed: boolean; custodyScope: string[]; permissionEnvelope: 'read_only' | 'guarded_execute' | 'break_glass'; }
+export interface DaemonCustomizationProfile { profileId: string; ownerId: string; version: number; createdAt: string; updatedAt: string; style: DaemonStyleProfile; permissions: DaemonPermissionConfig; }
+export type DaemonCareProfile = 'attentive' | 'steady' | 'minimal' | 'intensive';
+export type DaemonVisualTheme = 'classic' | 'compact' | 'expanded' | 'terminal' | 'narrative';
+
+export const DAEMON_VISUAL_THEMES: Record<string, DaemonVisualTheme>;
+export const DAEMON_CARE_PROFILES: Record<string, DaemonCareProfile>;
+
+export class DaemonCustomizationSeparationError extends Error { constructor(message: string); }
+
+export declare function assertCustomizationSeparation(profile: DaemonCustomizationProfile): void;
+export declare function validateCustomizationProfile(profile: DaemonCustomizationProfile): string[];
+export declare function makeDefaultStyleProfile(displayName?: string, careProfile?: string): DaemonStyleProfile;
+export declare function makeDefaultPermissionConfig(): DaemonPermissionConfig;
+export declare function makeDefaultCustomizationProfile(profileId: string, ownerId: string, displayName?: string, careProfile?: string): DaemonCustomizationProfile;
+export declare function customizationProfileToDaemon(profile: DaemonCustomizationProfile): ConversationDaemon;
+export declare function daemonToCustomizationProfile(daemon: ConversationDaemon): DaemonCustomizationProfile;
+export declare function mergeStyleUpdates(profile: DaemonCustomizationProfile, styleUpdates: Partial<DaemonStyleProfile>): DaemonCustomizationProfile;
+export declare function mergePermissionUpdates(base: DaemonPermissionConfig, updates: Partial<DaemonPermissionConfig>): DaemonPermissionConfig;
+export declare function makePresetProfile(preset: 'companion' | 'professional' | 'creative' | 'minimal' | 'guardian', profileId: string, ownerId: string): DaemonCustomizationProfile;
+`;
+
+// ============================================================================
+// MISSING BARREL EXPORTS (cli, lsp, and build consumers need these from main barrel)
+// ============================================================================
+const missingBarrelExportsDTS = `
+
+// Pipeline parser (barrel/material-io-pipeline re-export)
+export function parsePipeline(source: string): { success: boolean; errors: any[]; ast?: any; [key: string]: any };
+export function isPipelineSource(source: string): boolean;
+
+// Version utilities
+export function getVersionInfo(): { version: string; [key: string]: any };
+export function getVersionString(): string;
+
+// Semantic diff
+export interface SemanticDiffResult { [key: string]: any; }
+export class SemanticDiffEngine { constructor(options?: any); diff(a: any, b: any, ...args: any[]): SemanticDiffResult; [key: string]: any; }
+export function formatDiffResult(result: any): string;
+
+// Pipeline compilation helpers
+export function compilePipelineSourceToNode(source: string, options?: any): any;
+export function parseHoloPartial(source: string, options?: any): any;
+
+// WASM compilation
+export function compileToWASM(ast: any, options?: any): any;
+
+// Compilers re-exported to main barrel for dynamic import callers
+export class FlatSemanticCompiler { constructor(options?: any); compile(ast: any, ...args: any[]): any; [key: string]: any; }
+export class SCMCompiler { constructor(options?: any); compile(ast: any, token?: any): any; [key: string]: any; }
+export class GaussianSplattingCompiler { constructor(options?: { format?: 'gltf' | 'glb'; [key: string]: any }); compile(ast: any, token?: any, ...args: any[]): any; [key: string]: any; }
+
+// Worker proxy for LSP
+export class CompilerWorkerProxy { [key: string]: any; }
+
+// HoloZone for build tools
+export interface HoloZone { name?: string; [key: string]: any; }
+
+// LSP completions data
+export const ErrorRecovery: any;
+export const HOLOSCHEMA_KEYWORDS: string[];
+export const HOLOSCHEMA_GEOMETRIES: string[];
+export const HOLOSCHEMA_PROPERTIES: string[];
+`;
+
+const finalMainDTS = mainDTS + holoLandTraitsDTS + careFieldDTS + conversationDaemonDTS + daemonCustomizationDTS + missingBarrelExportsDTS;
 
 // Write type declaration files
 const files = [

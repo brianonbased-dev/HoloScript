@@ -551,7 +551,7 @@ function handleUpdateDaemonRitual(args: Record<string, unknown>): {
       updatedRituals = [
         ...profile.style.rituals,
         ...parsedRituals.filter(
-          (nr) => !profile.style.rituals.some((er) => er.name === nr.name)
+          (nr) => !profile.style.rituals.some((er: DaemonRitual) => er.name === nr.name)
         ),
       ];
       break;
@@ -560,8 +560,8 @@ function handleUpdateDaemonRitual(args: Record<string, unknown>): {
       break;
     case 'remove':
       // Remove rituals whose names match
-      const namesToRemove = new Set(parsedRituals.map((r) => r.name));
-      updatedRituals = profile.style.rituals.filter((r) => !namesToRemove.has(r.name));
+      const namesToRemove = new Set(parsedRituals.map((r: DaemonRitual) => r.name));
+      updatedRituals = profile.style.rituals.filter((r: DaemonRitual) => !namesToRemove.has(r.name));
       break;
     default:
       updatedRituals = profile.style.rituals;

@@ -558,6 +558,8 @@ export interface TeamPresenceEntry {
   ideType: string;
   status: 'active' | 'idle' | 'busy' | 'offline';
   lastHeartbeat: string;
+  /** Alias for lastHeartbeat — used by some route handlers for presence staleness checks. */
+  lastSeen?: string;
   /**
    * Coarse runtime surface for aliveness policy. `surface_tag` remains the
    * attribution/seat label; this field is the device class such as "mobile".
@@ -754,6 +756,8 @@ export interface RegisteredAgent {
   capabilities?: HoloMeshBearerCapability[];
   /** Raw scope grants copied from the key record when available. */
   scopes?: string[];
+  /** IDE/surface type of the agent (e.g. 'hardware', 'cloud', 'mobile'). */
+  ideType?: string;
 }
 
 // --- Social Metadata ---

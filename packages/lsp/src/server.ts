@@ -339,9 +339,9 @@ connection.onInitialize(async (_params: InitializeParams): Promise<InitializeRes
         useGemini({ apiKey });
         const adapter = getDefaultAIAdapter();
         if (adapter) {
-          semanticCompletion = new SemanticCompletionProvider(adapter);
+          semanticCompletion = new SemanticCompletionProvider(adapter as any);
           await semanticCompletion.initialize();
-          aiCompletion = new AICompletionProvider(adapter);
+          aiCompletion = new AICompletionProvider(adapter as any);
           aiInitialized = true;
         }
       } catch {
@@ -359,9 +359,9 @@ connection.onInitialize(async (_params: InitializeParams): Promise<InitializeRes
       if (await ollamaAdapter.isReady()) {
         const adapter = getDefaultAIAdapter();
         if (adapter) {
-          semanticCompletion = new SemanticCompletionProvider(adapter);
+          semanticCompletion = new SemanticCompletionProvider(adapter as any);
           await semanticCompletion.initialize();
-          aiCompletion = new AICompletionProvider(adapter);
+          aiCompletion = new AICompletionProvider(adapter as any);
           aiInitialized = true;
         }
       }

@@ -740,7 +740,7 @@ export async function handleCoreRoutes(
             online = true;
             lastHeartbeat = entry.lastSeen ?? null;
             break;
-          } else if (entry && (!lastHeartbeat || entry.lastSeen > lastHeartbeat)) {
+          } else if (entry && (!lastHeartbeat || (entry.lastSeen ?? '') > lastHeartbeat)) {
             lastHeartbeat = entry.lastSeen ?? null;
           }
         }

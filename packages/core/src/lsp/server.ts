@@ -77,7 +77,7 @@ connection.onInitialized(() => {
 // ── Completion Provider ─────────────────────────────────────────────────────
 
 // Pre-build completion items for performance (cached at startup)
-const traitCompletions: CompletionItem[] = VR_TRAITS.map((trait, i) => ({
+const traitCompletions: CompletionItem[] = VR_TRAITS.map((trait: string, i: number) => ({
   label: `@${trait}`,
   kind: CompletionItemKind.Property,
   detail: `HoloScript trait`,

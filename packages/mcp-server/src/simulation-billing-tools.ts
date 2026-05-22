@@ -434,7 +434,7 @@ async function handleSimRunPaid(
     }
   }
 
-  return result;
+  return result as unknown as Record<string, unknown>;
 }
 
 async function handleSimFleetStatus(
