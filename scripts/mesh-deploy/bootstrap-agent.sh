@@ -4,6 +4,10 @@
 # Installs node, clones HoloScript, builds @holoscript/holoscript-agent,
 # and starts the headless multi-LLM agent runtime as a daemon.
 #
+# NOTE: For GPU compute-worker instances (not mesh agents), use
+# gpu-worker-bootstrap.sh instead — it installs the compute lane and polls
+# the orchestrator GPU queue without the full agent runtime stack.
+#
 # Invoked via SSH or vastai exec from the local Deploy-MeshAgents.ps1.
 # Reads its identity from env vars set BEFORE invocation.
 #

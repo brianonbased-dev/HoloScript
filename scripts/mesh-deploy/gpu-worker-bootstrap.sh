@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# gpu-worker-bootstrap.sh -- CANONICAL vast.ai GPU worker supervisor for the HoloScript fleet.
+#
+# This is the standard vast.ai fleet onboarding script. It turns a rented vast.ai
+# GPU box into a fleet worker: install a compute lane (default: cuQuantum simulation),
+# then poll the orchestrator GPU queue, run claimed job commands, and report results.
+#
+# Replaces the previously-referenced-but-missing bootstrap-agent.sh for the GPU worker
+# role. bootstrap-agent.sh remains the full mesh-agent onboarding (node, repo, agent
+# daemon, vLLM, sidecars, systemd); this script is the lightweight compute-worker
+# counterpart that only needs Python + the orchestrator API.
+#
+# Worker contract (mcp-orchestrator src/routes/gpuRoutes.ts), all role=agent:
+#   GET  /gpu/next?seat=<seat>     -> 200 {id, command, tier, ...}  or  204 (empty)
+#   POST /gpu/job/:id/heartbeat    -> keep-alive while running
+#   POST /gpu/job/:id/done         -> {artifact_path?, artifact_sha256?, error?, paper_id?}
+#                                      error=null => success; error set => failure
+#
+# CUQUANTUM GOTCHAS (encoded in fleet-cuquantum-setup.sh):
+#   1. Pin qiskit==1.4.4 — qiskit 2.x removed convert_to_target, breaking qiskit-aer-gpu.
+#   2. CUDA-13 pip wheels (nvidia-*-cu13) are unbuildable stubs — fetch runtime .so from
+#      NVIDIA redist tarballs instead.
+#   3. Persist LD_LIBRARY_PATH to /etc/profile.d — the worker runs jobs via bash -lc
+#      (a login shell), so without this the job process can't find libcublas.so.13 even
+#      when the install process could.
+#
+# Use as a vast.ai onstart command (after cloning the repo):
+#   ORCHESTRATOR_URL=... HOLOSCRIPT_API_KEY=... REPO_URL=... bash scripts/mesh-deploy/gpu-worker-bootstrap.sh
+#
+# SECURITY (F.001 — keys leaked twice): pass HOLOSCRIPT_API_KEY via the environment only.
+# Never bake it into the image, the onstart string in plaintext logs, or a committed file.
+set -uo pipefail
+
+ORCH="${ORCHESTRATOR_URL:-https://mcp-orchestrator-production-45f9.up.railway.app}"
+: "${HOLOSCRIPT_API_KEY:?HOLOSCRIPT_API_KEY required (agent role) — pass via env, never hardcode}"
+SEAT="${GPU_SEAT:-vast-$(hostname 2>/dev/null || echo node)-$$}"
+REPO_DIR="${REPO_DIR:-$HOME/.ai-ecosystem}"
+POLL_INTERVAL="${POLL_INTERVAL:-15}"
+IDLE_EXIT_AFTER="${IDLE_EXIT_AFTER:-0}"   # seconds of empty queue before self-exit (0 = never)
+LOG="[gpu-worker:$SEAT]"
+
+# Resolve script directory for relative paths to sibling scripts (e.g. fleet-cuquantum-setup.sh)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+api() { # method path [json-body]
+  local method="$1" path="$2" body="${3:-}"
+  if [ -n "$body" ]; then
+    curl -fsS -X "$method" "$ORCH$path" -H "x-mcp-api-key: $HOLOSCRIPT_API_KEY" \
+         -H "Content-Type: application/json" -d "$body"
+  else
+    curl -sS -X "$method" "$ORCH$path" -H "x-mcp-api-key: $HOLOSCRIPT_API_KEY" -w '\n%{http_code}'
+  fi
+}
+
+# 1. ensure repo present + compute lane installed ----------------------------------------
+if [ ! -d "$REPO_DIR/.git" ]; then
+  [ -n "${REPO_URL:-}" ] || { echo "$LOG FATAL: REPO_URL required to clone (or pre-place $REPO_DIR)"; exit 2; }
+  echo "$LOG cloning $REPO_DIR"; git clone --depth 1 "$REPO_URL" "$REPO_DIR" || exit 2
+fi
+cd "$REPO_DIR" || exit 2
+
+# Install the cuQuantum simulation lane.
+# Other compute lanes (ML, solvers, rendering) supply their own setup step.
+CUQUANTUM_SETUP="${CUQUANTUM_SETUP:-$SCRIPT_DIR/fleet-cuquantum-setup.sh}"
+if [ -f "$CUQUANTUM_SETUP" ]; then
+  echo "$LOG installing cuQuantum sim lane ..."
+  bash "$CUQUANTUM_SETUP" || echo "$LOG WARN: fleet-cuquantum-setup.sh returned non-zero"
+else
+  echo "$LOG WARN: $CUQUANTUM_SETUP not found — cuQuantum install skipped (worker will only run non-GPU jobs)"
+fi
+
+# 2. poll loop ----------------------------------------------------------------------------
+echo "$LOG polling $ORCH/gpu/next (seat=$SEAT, every ${POLL_INTERVAL}s)"
+idle=0
+while true; do
+  resp="$(api GET "/gpu/next?seat=$SEAT")"
+  code="$(printf '%s' "$resp" | tail -1)"
+  body="$(printf '%s' "$resp" | sed '$d')"
+  if [ "$code" = "204" ]; then
+    idle=$((idle + POLL_INTERVAL))
+    if [ "$IDLE_EXIT_AFTER" -gt 0 ] && [ "$idle" -ge "$IDLE_EXIT_AFTER" ]; then
+      echo "$LOG idle ${idle}s >= IDLE_EXIT_AFTER; exiting (worker can be torn down)"; exit 0
+    fi
+    sleep "$POLL_INTERVAL"; continue
+  fi
+  if [ "$code" != "200" ]; then
+    echo "$LOG poll HTTP $code: $body"; sleep "$POLL_INTERVAL"; continue
+  fi
+  idle=0
+  jid="$(printf '%s' "$body" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("id",""))')"
+  cmd="$(printf '%s' "$body" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("command",""))')"
+  [ -n "$jid" ] || { echo "$LOG claimed job with no id; skipping"; continue; }
+  echo "$LOG claimed $jid: $cmd"
+
+  # heartbeat in background while the job runs
+  ( while true; do api POST "/gpu/job/$jid/heartbeat" '{}' >/dev/null 2>&1 || true; sleep 20; done ) &
+  hb=$!
+
+  out_log="/tmp/job-$jid.log"
+  if bash -lc "$cmd" >"$out_log" 2>&1; then
+    err="null"
+  else
+    rc=$?
+    err="$(python3 -c 'import json,sys;print(json.dumps(f"exit {sys.argv[1]}: "+open(sys.argv[2]).read()[-800:]))' "$rc" "$out_log")"
+  fi
+  kill "$hb" 2>/dev/null || true
+
+  done_body="$(python3 -c 'import json,sys;e=sys.argv[1];print(json.dumps({"error":None if e=="null" else json.loads(e)}))' "$err")"
+  api POST "/gpu/job/$jid/done" "$done_body" >/dev/null 2>&1 \
+    && echo "$LOG reported done $jid (error=$([ "$err" = null ] && echo none || echo yes))" \
+    || echo "$LOG WARN: failed to report done for $jid"
+done
