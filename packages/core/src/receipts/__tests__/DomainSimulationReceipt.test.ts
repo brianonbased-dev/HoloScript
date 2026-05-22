@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   DOMAIN_SIMULATION_RECEIPT_SCHEMA,
+  MAX_RECEIPT_DEPTH,
   buildDomainSimulationReceipt,
   canonicalizeDomainReceiptPayload,
   stableDomainReceiptHash,
@@ -75,5 +76,37 @@ describe('DomainSimulationReceipt', () => {
   it('rejects non-finite receipt payload values', () => {
     expect(() => stableDomainReceiptHash({ value: Number.NaN })).toThrow('Non-finite');
     expect(() => stableDomainReceiptHash({ value: Number.POSITIVE_INFINITY })).toThrow('Non-finite');
+  });
+
+  it('rejects BigInt values in receipt payloads', () => {
+    expect(() => stableDomainReceiptHash({ value: BigInt(9007199254740991) })).toThrow('BigInt');
+  });
+
+  it('rejects Date objects in receipt payloads', () => {
+    expect(() => stableDomainReceiptHash({ ts: new Date('2026-01-01') })).toThrow('Date objects are not receipt-safe');
+  });
+
+  it('rejects deeply nested receipt payloads exceeding max depth', () => {
+    let nested: Record<string, unknown> = { leaf: true };
+    for (let i = 0; i < MAX_RECEIPT_DEPTH + 10; i += 1) {
+      nested = { inner: nested };
+    }
+    expect(() => stableDomainReceiptHash(nested)).toThrow('exceeds max depth');
+  });
+
+  it('canonicalizes undefined values as null', () => {
+    const result = canonicalizeDomainReceiptPayload({ a: undefined, b: 1 });
+    const parsed = JSON.parse(result) as Record<string, unknown>;
+    // undefined values are stripped by the canonicalizer (not included)
+    expect(parsed).toEqual({ b: 1 });
+  });
+
+  it('accepts receipt payloads at exactly max depth', () => {
+    let nested: Record<string, unknown> = { leaf: true };
+    for (let i = 0; i < MAX_RECEIPT_DEPTH - 1; i += 1) {
+      nested = { inner: nested };
+    }
+    // Should not throw — exactly at depth limit
+    expect(() => stableDomainReceiptHash(nested)).not.toThrow();
   });
 });

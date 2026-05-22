@@ -130,16 +130,23 @@ export function verifyDomainSimulationReceipt(
   return { valid: errors.length === 0, errors };
 }
 
+/** Maximum nesting depth for receipt payload canonicalization. Prevents stack overflow from circular or deeply nested structures. */
+export const MAX_RECEIPT_DEPTH = 64;
+
 export function stableDomainReceiptHash(payload: unknown): string {
   return `fnv1a32:${fnv1a32(canonicalizeDomainReceiptPayload(payload))}`;
 }
 
 export function canonicalizeDomainReceiptPayload(payload: unknown): string {
-  return JSON.stringify(toDomainReceiptJson(payload));
+  return JSON.stringify(toDomainReceiptJson(payload, 0));
 }
 
-function toDomainReceiptJson(value: unknown): DomainReceiptJson {
+function toDomainReceiptJson(value: unknown, depth: number): DomainReceiptJson {
+  if (depth > MAX_RECEIPT_DEPTH) {
+    throw new Error(`[domain-receipt] Receipt payload exceeds max depth (${MAX_RECEIPT_DEPTH}). Possible circular reference or excessively nested structure.`);
+  }
   if (value === null) return null;
+  if (value === undefined) return null;
   if (typeof value === 'string' || typeof value === 'boolean') return value;
   if (typeof value === 'number') {
     if (!Number.isFinite(value)) {
@@ -147,15 +154,21 @@ function toDomainReceiptJson(value: unknown): DomainReceiptJson {
     }
     return value;
   }
+  if (typeof value === 'bigint') {
+    throw new Error('[domain-receipt] BigInt values are not receipt-safe; convert to string or number before hashing');
+  }
+  if (value instanceof Date) {
+    throw new Error(`[domain-receipt] Date objects are not receipt-safe; serialize to ISO string before hashing (got ${value.toISOString()})`);
+  }
   if (Array.isArray(value)) {
-    return value.map((item) => toDomainReceiptJson(item));
+    return value.map((item) => toDomainReceiptJson(item, depth + 1));
   }
   if (typeof value === 'object') {
     const out: { [key: string]: DomainReceiptJson } = {};
     for (const key of Object.keys(value as Record<string, unknown>).sort()) {
       const entry = (value as Record<string, unknown>)[key];
       if (entry !== undefined) {
-        out[key] = toDomainReceiptJson(entry);
+        out[key] = toDomainReceiptJson(entry, depth + 1);
       }
     }
     return out;
