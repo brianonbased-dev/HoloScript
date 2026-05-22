@@ -24,7 +24,6 @@ import type {
   QmSolver,
   QmBackend,
   QmSolverConfig,
-  QmMethod,
   MoleculeSpec,
   CrystalSpec,
   QmEnergyResult,
@@ -765,7 +764,7 @@ export class PySCFBackend implements QmSolver {
         scf_iterations: 12,
         hamiltonian_num_qubits: numQubits,
         hamiltonian_num_terms: numQubits * (numQubits + 1) / 2 + numQubits,
-        hamiltonian_operator: null,
+        hamiltonian_operator: undefined,
         computed_locally: false,
         wall_time_seconds: 0.01,
       };

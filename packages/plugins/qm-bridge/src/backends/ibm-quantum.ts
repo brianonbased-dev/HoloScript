@@ -277,7 +277,6 @@ export class IBMQuantumBackend implements QmSolver {
       max_iterations: this.config.maxOptimizerIterations ?? 300,
       execution_mode: this.config.executionMode ?? 'aer',
       ibm_backend: this.config.ibmBackend ?? null,
-      api_token: this._resolveApiToken(),
     };
 
     const raw = await this._runPythonBridge(input) as RawVQEResponse;
@@ -347,7 +346,6 @@ export class IBMQuantumBackend implements QmSolver {
       p: circuitDepthP,
       execution_mode: this.config.executionMode ?? 'aer',
       ibm_backend: this.config.ibmBackend ?? null,
-      api_token: this._resolveApiToken(),
     };
 
     const raw = await this._runPythonBridge(input) as RawQAOAResponse;
@@ -455,10 +453,19 @@ export class IBMQuantumBackend implements QmSolver {
       process.env.QISKIT_PYTHON ??
       (process.platform === 'win32' ? 'C:\\Python314\\python.exe' : 'python3');
 
+    const bridgeInput = { ...input };
+    delete bridgeInput['api_token'];
+    delete bridgeInput['apiToken'];
+
+    const apiToken = this._resolveApiToken();
+    const childEnv = apiToken
+      ? { ...process.env, IBM_QUANTUM_API_KEY: apiToken }
+      : process.env;
+
     const { stdout, stderr } = await execFileAsync(
       pythonExe,
-      [scriptPath, JSON.stringify(input)],
-      { maxBuffer: 10 * 1024 * 1024 },
+      [scriptPath, JSON.stringify(bridgeInput)],
+      { maxBuffer: 10 * 1024 * 1024, env: childEnv },
     );
 
     // Qiskit emits deprecation and UserWarning messages to stderr — filter them.

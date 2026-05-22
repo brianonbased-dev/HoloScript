@@ -349,7 +349,7 @@ def run_vqe(params: dict[str, Any]) -> dict[str, Any]:
     max_iterations: int = int(params.get("max_iterations", 300))
     ansatz_layers: int = int(params.get("ansatz_layers", 2))
     ibm_backend_name: str = params.get("ibm_backend", "ibm_fez")
-    api_token: str | None = params.get("api_token") or _secret_value(
+    api_token: str | None = _secret_value(
         "IBM_QUANTUM_API_KEY",
         "QISKIT_IBM_TOKEN",
         "IBM_QUANTUM_TOKEN",
@@ -449,7 +449,7 @@ def run_vqe(params: dict[str, Any]) -> dict[str, Any]:
         # Real IBM Quantum hardware via QiskitRuntimeService EstimatorV2.
         # SPSA handles shot noise. Circuit is transpiled to backend native gates.
         if not api_token:
-            return {"error": "IBM_QUANTUM_API_KEY not set. Export it or pass api_token in the payload."}
+            return {"error": "IBM_QUANTUM_API_KEY not set. Export it in the child process environment."}
 
         try:
             from qiskit_ibm_runtime import QiskitRuntimeService, EstimatorV2 as IBMEstimator
@@ -786,7 +786,7 @@ def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
 
     execution_mode: str = params.get("execution_mode", "aer")
     ibm_backend_name: str = params.get("ibm_backend", "ibm_fez")
-    api_token: str | None = params.get("api_token") or _secret_value(
+    api_token: str | None = _secret_value(
         "IBM_QUANTUM_API_KEY",
         "QISKIT_IBM_TOKEN",
         "IBM_QUANTUM_TOKEN",
