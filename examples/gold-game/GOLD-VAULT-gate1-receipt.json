@@ -31,11 +31,19 @@
     "player_rig": true,
     "note": "bloom dropped inside XR session (EffectComposer not XR-aware)"
   },
+  "gate6_holoGate": {
+    "enabled": true,
+    "module": "packages/mcp-server/src/holo-portal-intent.ts (real, bundled by esbuild)",
+    "entry_portal_menu": "world-space panel; pull trigger to ENTER then to graduate",
+    "interaction": "controller raycast -> PortalIntent{kind:grab} -> validatePortalIntent(intent, HoloDoorPolicy, \"drive-avatar\") -> graduate gem rises a tier",
+    "scope": "drive-avatar",
+    "note": "a grab MUTATES only after HoloGate validates it against the spatial scope; read-only/mutate-zone-without-glob are rejected"
+  },
   "sceneDigest": "208645323846a6dfc8596b3f3e9e1749f09ac1b3aa3d4d1bdffd32e19774c568",
-  "htmlBytes": 547958,
+  "htmlBytes": 555698,
   "selfContained": true,
   "offline": true,
   "three": "0.182.0 (bundled IIFE)",
   "core": "6.1.0",
-  "verifiedAt": "2026-05-22T09:04:42.728Z"
+  "verifiedAt": "2026-05-22T09:35:39.555Z"
 }

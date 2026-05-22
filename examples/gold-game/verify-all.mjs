@@ -30,7 +30,7 @@ const GATES = [
   { track: 'flagship', gate: '5a', name: 'trained curation policy (beats hand-authored heuristic)', kind: 'script', runner: 'tsx', file: 'gate-5a-trained-policy-verify.mjs' },
   { track: 'flagship', gate: '5b', name: 'live human-operator session (Quest 3 immersive-vr capture)', kind: 'artifact', file: 'GATE-5BC-immersive-session.json', note: 'real device receipt; full session is hardware-in-the-loop' },
   { track: 'flagship', gate: '5c', name: 'Quest projection via /embodied (immersive-vr on device)', kind: 'artifact', file: 'GATE-5BC-immersive-session.json', note: 'real device receipt' },
-  { track: 'flagship', gate: 6, name: 'interactive VR via HoloGate (entry portal/menu + grab/say intents; multi-entrant)', kind: 'open' },
+  { track: 'flagship', gate: 6, name: 'interactive VR via REAL HoloGate (entry portal/menu + grab/say intent gating)', kind: 'script', runner: 'tsx', file: 'gate-6-hologate-verify.mjs' },
   { track: 'oasis (fixture)', gate: 3, name: 'connection-mechanics proof (compass co-session)', kind: 'script', runner: 'tsx', file: 'connection-mechanics-proof/gate-3-verify.mjs' },
   { track: 'modalities', gate: '2D+3D', name: 'one .holo -> retro 2D + 3D (shared source scene)', kind: 'script', runner: 'tsx', file: 'modality-verify.mjs' },
 ];

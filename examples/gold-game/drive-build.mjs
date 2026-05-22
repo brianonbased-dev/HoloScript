@@ -70,6 +70,8 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
+// Gate 6: the REAL HoloGate intent validator (pure module, bundled by esbuild).
+import { validatePortalIntent } from '../../../packages/mcp-server/src/holo-portal-intent.ts';
 const SCENE = ${sceneJson};
 const C = (h) => new THREE.Color(h);
 
@@ -136,6 +138,7 @@ for (const reg of SCENE.regions) {
 }
 
 const glow = [];
+const grabbables = []; // Gate 6: knowledge-entry gems the player can grab to graduate
 const gem = (geo, hex) => {
   const grp = new THREE.Group();
   const shell = new THREE.Mesh(geo, glassMat(hex));
@@ -154,6 +157,8 @@ for (const m of SCENE.meshes) {
     const big = m.tier === 'diamond';
     const g = big ? new THREE.DodecahedronGeometry(4.2, 0) : new THREE.OctahedronGeometry(1.9 * s[0], 0);
     obj = gem(g, m.color);
+    obj.userData = { kind: 'entry', name: m.name, tier: m.tier, graduated: false };
+    grabbables.push(obj);
     if (big) focus.set(m.position[0], m.position[1] + 0.5, m.position[2]);
   } else if (m.geometry === 'tetrahedron') {  // vault collision — dark red crystal
     obj = gem(new THREE.TetrahedronGeometry(0.8 * s[0], 0), '#7a1f1f');
@@ -178,6 +183,64 @@ composer.addPass(new OutputPass());
 const rig = new THREE.Group();
 rig.position.set(focus.x, 1.6, focus.z + 12);   // eye height, just in front of the peak
 rig.add(camera); scene.add(rig);
+
+// ── Gate 6: HoloGate entry portal (menu) + controller interaction ─────────────
+// A grab is NOT a raw mutation — it's a typed HoloGate PortalIntent validated
+// against a HoloDoor spatial scope BEFORE it changes the world. drive-avatar =
+// the player may drive their avatar and grab zone entities (curate in-headset).
+const HOLODOOR_POLICY = { defaultScope: 'drive-avatar', allowedScopes: ['read-only', 'mutate-zone', 'drive-avatar'],
+  mutableZoneGlobs: ['*'], driveAvatar: { allow: true, maxEntities: 16 }, enforcement: { onScopeViolation: 'reject' } };
+const SCOPE = 'drive-avatar';
+let graduatedCount = 0;
+let started = false;
+
+// world-space panel = the in-VR start menu / instruction HUD (fixes "no menu")
+const panelMat = new THREE.MeshBasicMaterial({ transparent: true });
+function panelTexture(lines, accent) {
+  const cv = document.createElement('canvas'); cv.width = 512; cv.height = 256;
+  const g = cv.getContext('2d');
+  g.fillStyle = 'rgba(6,7,10,0.93)'; g.fillRect(0, 0, 512, 256);
+  g.strokeStyle = accent || '#d4af37'; g.lineWidth = 6; g.strokeRect(7, 7, 498, 242);
+  g.textAlign = 'center'; g.fillStyle = '#ffe9a0'; g.font = 'bold 34px sans-serif';
+  g.fillText('THE GOLD GAME', 256, 54);
+  g.fillStyle = '#d8c590'; g.font = '21px sans-serif';
+  lines.forEach((t, i) => g.fillText(t, 256, 100 + i * 33));
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; return tex;
+}
+function setPanel(lines, accent) { if (panelMat.map) panelMat.map.dispose(); panelMat.map = panelTexture(lines, accent); panelMat.needsUpdate = true; }
+const panel = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.3), panelMat);
+panel.position.set(focus.x, 2.5, focus.z + 9.2); panel.lookAt(focus.x, 2.5, focus.z + 12); scene.add(panel);
+setPanel(['THE VAULT', 'Pull the trigger to ENTER', '(then point at a gem + trigger', 'to graduate it via HoloGate)']);
+
+// controllers + targeting ray
+const raycaster = new THREE.Raycaster();
+const tmpM = new THREE.Matrix4();
+for (let i = 0; i < 2; i++) {
+  const ctrl = renderer.xr.getController(i);
+  ctrl.addEventListener('selectstart', () => onTrigger(ctrl));
+  const beam = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -8)]),
+    new THREE.LineBasicMaterial({ color: 0xffe9a0 }));
+  ctrl.add(beam); rig.add(ctrl);
+}
+function onTrigger(ctrl) {
+  if (!started) { started = true; setPanel(['ENTERED — drive-avatar scope', 'Point at a glowing gem', 'and pull the trigger', 'Graduated: 0']); return; }
+  tmpM.identity().extractRotation(ctrl.matrixWorld);
+  raycaster.ray.origin.setFromMatrixPosition(ctrl.matrixWorld);
+  raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tmpM);
+  const hits = raycaster.intersectObjects(grabbables, true);
+  if (!hits.length) return;
+  let g = hits[0].object; while (g && !(g.userData && g.userData.kind === 'entry')) g = g.parent;
+  if (!g || g.userData.graduated) return;
+  // REAL HoloGate: validate the grab intent against the HoloDoor scope first.
+  const intent = { kind: 'grab', entityId: 'curator-avatar', targetId: g.userData.name };
+  const verdict = validatePortalIntent(intent, HOLODOOR_POLICY, SCOPE);
+  if (!verdict.allowed) { setPanel(['DENIED by HoloGate', verdict.reason || 'scope', 'Graduated: ' + graduatedCount], '#8a2a2a'); return; }
+  g.userData.graduated = true; graduatedCount++;
+  const startY = g.position.y, endY = g.position.y + 4, t0 = performance.now();
+  (function rise() { const k = Math.min(1, (performance.now() - t0) / 900); g.position.y = startY + (endY - startY) * k; if (k < 1) requestAnimationFrame(rise); })();
+  setPanel(['GRADUATED via HoloGate', g.userData.name.replace(/_/g, '.'), 'grab intent -> validated (' + SCOPE + ')', 'Graduated: ' + graduatedCount], '#d4af37');
+}
 
 let t = 0.6;
 function frame() {
@@ -206,7 +269,9 @@ addEventListener('resize', () => {
 `;
 
 // ── 4. Bundle to one classic IIFE (three inlined → works on file://) ─────────
-rmSync(OUT, { recursive: true, force: true });
+// Resilient clean: if the dir is locked (e.g. being served by a live tunnel),
+// skip the wipe and overwrite in place — we only emit index.html + START-HERE.txt.
+try { rmSync(OUT, { recursive: true, force: true }); } catch (e) { /* dir in use — overwrite in place */ }
 mkdirSync(OUT, { recursive: true });
 const entryPath = join(OUT, '_entry.mjs');
 writeFileSync(entryPath, entry);
@@ -229,6 +294,7 @@ const html = '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
 '</style></head><body><div id="hud"><h1>THE GOLD GAME · The Vault</h1>' +
 '<p>The real GOLD curation system as a world. Bronze valley rises to the Diamond peak; glass gems with glowing cores are real vault entries you graduate.</p>' +
 '<p>Photoreal from minimal geometric shapes. Backend stays real AI work; the human plays.</p>' +
+'<p><b>In VR:</b> pull the trigger to ENTER, then point a controller at a glowing gem and pull the trigger to graduate it — each grab is a HoloGate intent validated against your HoloDoor scope.</p>' +
 '<p id="live">vault: open via the launcher for the live count (embedded snapshot on file://)</p>' +
 '<ul>' + tierList + '</ul></div>' +
 '<script>' + bundle + '</script>' +
@@ -252,6 +318,10 @@ const receipt = {
     golden_terraces: true, pmrem_environment: true, bloom: true, tone_mapping: 'ACESFilmic' },
   webxr: { enabled: true, entry: 'VRButton', loop: 'setAnimationLoop',
     immersive_mode: 'immersive-vr', player_rig: true, note: 'bloom dropped inside XR session (EffectComposer not XR-aware)' },
+  gate6_holoGate: { enabled: true, module: 'packages/mcp-server/src/holo-portal-intent.ts (real, bundled by esbuild)',
+    entry_portal_menu: 'world-space panel; pull trigger to ENTER then to graduate',
+    interaction: 'controller raycast -> PortalIntent{kind:grab} -> validatePortalIntent(intent, HoloDoorPolicy, "drive-avatar") -> graduate gem rises a tier',
+    scope: 'drive-avatar', note: 'a grab MUTATES only after HoloGate validates it against the spatial scope; read-only/mutate-zone-without-glob are rejected' },
   sceneDigest: sha256(sceneJson), htmlBytes: html.length,
   selfContained: true, offline: true, three: '0.182.0 (bundled IIFE)', core: '6.1.0',
   verifiedAt: new Date().toISOString(),
