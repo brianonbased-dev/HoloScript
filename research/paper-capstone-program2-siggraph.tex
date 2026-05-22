@@ -594,6 +594,21 @@ engineering target). Empirical-claim class \textbf{(E2)} for the
 end-to-end timing; (E1) promotion gated on the URDF/ROS Pass C
 landing alongside the existing WebGPU + Unity passes.
 
+\subsection{Computational Complexity}
+\label{sec:p2:complexity}
+
+Each motion-contract layer runs in $O(J \cdot K_{\max})$ time and $O(J)$
+space, where $J$ is the number of joints (skeleton size) and $K_{\max}$ is
+the solver iteration cap enforced by the \ikcontract{} (Theorem~2 in the
+Appendix). The \transformgraph{} semiring compose is embarrassingly parallel
+across nodes: each node's output depends only on its own physics and animation
+operands, so the $O(N)$ co-hash step scales linearly with scene size $N$ and
+maps directly to GPU wave occupancy, as the $4.7\times$ H1$\to$H3 speedup for
+$N{=}10{,}000$ nodes (Table~\ref{tab:p2-gpu-bench}) empirically confirms.
+Hash-chain decoding for a single motion tick is $O(4)$---one
+$\tropmult$ operation per contract layer---giving a verifier constant-time
+audit of any tick regardless of $J$ or $N$.
+
 \section{Roadmap}
 
 Near-term work concentrates on expanding the P2-0/P2-1 probes into the

@@ -1658,6 +1658,25 @@ of the broader programme; only the first is on the record here.
 
 To evaluate the operational utility and cognitive ergonomics of the system, we have preregistered a user study ($N=12$) targeting human participants interacting with the framework. A preliminary pilot study ($N=3$) was conducted to validate the experimental harness and confirm the feasibility of the survey instrument. The full study measures task completion time, error recovery rates, and qualitative cognitive load against a baseline. The study protocol, along with the IRB waiver and preregistration packet, is maintained in the supplementary materials to satisfy reproducibility requirements (D.011).
 
+\subsection{Computational Complexity}
+\label{sec:eval:complexity}
+
+The seven-layer pipeline scales linearly in the primary workload parameter at
+each layer: parsing and compilation are $O(n)$ in AST nodes; the physics solver
+is $O(n_{\text{mesh}} \cdot I)$ where $I$ is the conjugate-gradient iteration
+count (247 for the bridge benchmark, \S\ref{sec:demo}); the SNN forward pass is
+$O(N_{\text{neurons}} \cdot T_{\text{ticks}})$; and CRDT merge is $O(\log m)$
+in the number of concurrent edits $m$. Memory is $O(n_{\text{mesh}})$ for the
+physics state and $O(N_{\text{neurons}})$ for SNN buffers---both held in GPU
+VRAM and not replicated per provenance entry. Cross-layer hash-chain
+\emph{decoding} costs $O(7)$ hash verifications (one per boundary), independent
+of scene size; the full-loop demo confirms this at a total verify cost of
+2.32\,ms for a 14-entry, 16{,}941-byte CAEL trace
+(Table~\ref{tab:full-loop-timings}). Provenance storage scales as $O(I)$ trace
+entries for the physics layer and $O(T_{\text{ticks}})$ for the agency layer,
+consistent with the 0.8\% end-to-end overhead reported in
+Table~\ref{tab:overhead}.
+
 \section{Related Work}
 \label{sec:related}
 

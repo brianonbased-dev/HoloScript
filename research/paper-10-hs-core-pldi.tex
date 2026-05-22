@@ -823,6 +823,25 @@ The complete demo script, artifact files, and \texttt{.ots} receipt are
 included in the supplementary materials under
 \texttt{research/paper-10-demo/} (D.011 full-loop evidence).
 
+\subsection{Computational Complexity}
+\label{sec:complexity}
+
+The provenance semiring compiler operates in $O(n \cdot k)$ time and $O(n)$
+space where $n$ is the number of AST nodes and $k$ is the number of compile
+targets: each node is visited once per lowering pass and each lowering function
+is $O(1)$ (a single hash composition per node). Memory is linear in the AST
+size because the provenance chain is accumulated in a fixed-width semiring
+element per node rather than a growing log. Audit-chain \emph{decoding}---the
+operation a verifier performs to check a compiled output against its source
+hash---is $O(\text{depth})$ hash operations where depth is bounded at
+$8{+}p{+}2t$ by construction (\S\ref{sec:eval}); for the benchmarked
+configuration ($p{=}3$, $t{\leq}2$) this is at most 15 hash lookups per
+target, independent of scene size $n$. The tropical SpMV kernel used for
+cross-target verification (Table~\ref{tab:ablation}) runs at 159{,}340\,hz/s
+on BA-class provenance graphs, confirming that the $O(\text{depth})$ decoding
+budget is not the practical bottleneck---scene parsing dominates for large $n$.
+
+% ────────────────────────────────────────────────────────────────────────────
 \section{Discussion}
 \label{sec:discussion}
 
