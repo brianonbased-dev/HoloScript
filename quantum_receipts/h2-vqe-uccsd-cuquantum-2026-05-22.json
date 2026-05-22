@@ -1,0 +1,32 @@
+{
+  "schema": "cael-quantum-v1.sim",
+  "kind": "quantum_simulate_receipt",
+  "created_at": "2026-05-22T06:23:43.929724+00:00",
+  "tier": "simulate",
+  "backend": "cuquantum-gpu",
+  "claim_boundary": "CUDA-backed quantum simulation on classical GPUs, not quantum-native hardware execution.",
+  "execution": {
+    "actual_device": "GPU",
+    "requested_device": "GPU",
+    "available_devices": [
+      "CPU",
+      "GPU"
+    ],
+    "gpu": "NVIDIA GeForce RTX 3060 Laptop GPU",
+    "num_qubits": 5,
+    "shots": 2048,
+    "billable_gpu_wall_seconds": 0.44218
+  },
+  "versions": {
+    "qiskit": "1.4.4",
+    "qiskit_aer": "0.14.2",
+    "cuquantum_python_cu13": "26.3.2",
+    "cupy_cuda13x": "14.0.1"
+  },
+  "result": {
+    "counts": {
+      "11111": 1026,
+      "00000": 1022
+    }
+  }
+}
