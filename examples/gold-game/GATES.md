@@ -25,8 +25,11 @@ flagship Gate-N.** They are different games. Only the **flagship** counts as "th
 | 3 | curation co-session (AI↔human, real graduate verb) | **PASS** | `tsx gate-3-curation-verify.mjs` (15/15) | `GATE-3-CURATION-cosession-receipt.json` | `62024addc` |
 | 4 | content / world evolution (CausalWorldModel do-calculus unlock + NPC memory across sessions) | **PASS** | `tsx gate-4-causal-memory-verify.mjs` (14/14) | `GATE-4-CAUSAL-MEMORY-receipt.json` | _this commit_ |
 | 5a | trained curation policy (learned, beats hand-authored heuristic) | **PASS** | `tsx gate-5a-trained-policy-verify.mjs` (8/8; top-1 1.00 vs heuristic 0.65 vs random 0.25) | `GATE-5A-TRAINED-POLICY-receipt.json` | _this commit_ |
-| 5b | live human-operator session | **OPEN** (needs headset/operator) | — | — | — |
-| 5c | Quest projection via `/embodied` | **OPEN** (needs device) | — | — | — |
+| 5b | live human-operator session | **PASS** | real device capture (Quest 3 OculusBrowser, immersive-vr, controller tracked, 180 frames; operator code JIEH-IVBH confirmed) | `GATE-5BC-immersive-session.json` | _this commit_ |
+| 5c | Quest projection via `/embodied` | **PASS** | immersive-vr session on Quest 3 over WebXR (https tunnel); flat render `GATE-5C-quest-projection.png` | `GATE-5BC-immersive-session.json` + `GATE-5BC-DEVICE-SESSION-receipt.json` | _this commit_ |
+| 6 | interactive VR via HoloGate (entry portal/menu + push_portal_intent grab/say = curate in-headset; multi-entrant) | **OPEN** | — | — | — |
+
+> Honest scope on 5b/5c: proven = a real human operated a true immersive-vr session of the projected GOLD game on a Quest 3. NOT yet proven (now Gate 6): in-headset *interaction* — there is no start menu and no way to act on the world yet, because the build is a passive WebXR render that does not go through **HoloGate** (the multi-entrant portal/intent layer). Gate 6 wires HoloGate so the headset session becomes playable.
 
 `*` Gate 1 is artifact/receipt-backed; the full WebGL render is headless/manual (needs a browser), so the runner checks the committed artifact exists rather than re-rendering.
 
