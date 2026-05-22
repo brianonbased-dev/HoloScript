@@ -1,8 +1,9 @@
 {
   "gate": 3,
   "name": "AI<->human connection — co-session, mutual effect, genuine policy divergence",
-  "artifact": "examples/gold-game/oasis-shard-zero.holo",
-  "verifier": "examples/gold-game/gate-3-verify.mjs",
+  "artifact": "examples/gold-game/connection-mechanics-proof/oasis-shard-zero.holo",
+  "verifier": "examples/gold-game/connection-mechanics-proof/gate-3-verify.mjs",
+  "fixtureNote": "connection-mechanics proof fixture (retired Oasis track) — NOT the flagship; cited by W.GOLD.537",
   "target": "r3f",
   "session": {
     "kind": "single shared deterministic session (one fixed-dt loop, one world solver)",
@@ -115,5 +116,5 @@
     "honestScope": "The human input is a RECORDED/scripted trace (deterministic stand-in for live ControllerInput) and the agent value-model is a hand-authored two-action policy (compass vs greet) — NOT a learned JEPA network or a live headset. What is PROVEN here: two genuinely different decision policies, in one shared deterministic session, affecting each other through a shared resource, with the agent re-planning in response and emitting WorldModelReceipts, all under the real contract digest. What is NOT yet proven: a live human headset session and a trained V-JEPA policy (those compose at Gate 5 via /embodied + JEPANPCController). This gate proves the CONNECTION mechanics are real and reproducible, not that the agent cognition is a trained model."
   },
   "core": "6.1.0",
-  "verifiedAt": "2026-05-22T06:56:28.637Z"
+  "verifiedAt": "2026-05-22T08:12:51.383Z"
 }

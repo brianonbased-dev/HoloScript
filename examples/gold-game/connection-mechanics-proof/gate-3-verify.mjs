@@ -1,7 +1,14 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// GOLD GAME — Gate 3 verifier (REPRODUCIBLE; committed so digests re-run)
+// CONNECTION-MECHANICS PROOF FIXTURE (NOT a flagship gate).
 //
-// Gate 3 = THE AI<->HUMAN CONNECTION PROOF: an AI agent and a human in the
+// This is the retired ABSTRACT "Oasis Shard Zero" track's compass co-session. It
+// is preserved ONLY as the cited proof that the AI<->human connection MECHANICS
+// are real and reproducible (cited by GOLD entry W.GOLD.537). It is NOT the GOLD
+// game flagship — the canonical flagship is gold-vault-game.holo, whose gates
+// live one level up in examples/gold-game/. An "Oasis Gate N" PASS NEVER
+// satisfies a flagship Gate N. See examples/gold-game/GATES.md for the ledger.
+//
+// Oasis compass Gate 3 = THE AI<->HUMAN CONNECTION PROOF: an AI agent and a human in the
 // SAME session actually AFFECTING EACH OTHER, with GENUINELY DIFFERENT decision
 // policies, AI actions emitting WorldModelReceipts — closing the two gaps the
 // honest Gate-2 receipt named in its `honestScope`:
@@ -60,7 +67,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const repoRoot = join(here, '..', '..');
+const repoRoot = join(here, '..', '..', '..'); // fixtures live one level deeper (connection-mechanics-proof/)
 const holoPath = join(here, 'oasis-shard-zero.holo');
 const receiptPath = join(here, 'GATE-3-cosession-receipt.json');
 const imp = (p) => import(pathToFileURL(p).href);
@@ -280,8 +287,9 @@ const humanTookCompass = world._f.compass_taken_by[0] === 1;
 const receipt = {
   gate: 3,
   name: 'AI<->human connection — co-session, mutual effect, genuine policy divergence',
-  artifact: 'examples/gold-game/oasis-shard-zero.holo',
-  verifier: 'examples/gold-game/gate-3-verify.mjs',
+  artifact: 'examples/gold-game/connection-mechanics-proof/oasis-shard-zero.holo',
+  verifier: 'examples/gold-game/connection-mechanics-proof/gate-3-verify.mjs',
+  fixtureNote: 'connection-mechanics proof fixture (retired Oasis track) — NOT the flagship; cited by W.GOLD.537',
   target: 'r3f',
   session: {
     kind: 'single shared deterministic session (one fixed-dt loop, one world solver)',
