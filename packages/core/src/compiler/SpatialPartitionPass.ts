@@ -88,12 +88,16 @@ const MIN_SCALE = 1e-9;
  * can consume this directly without a translation layer:
  *   import type { GaussianAnchor } from '@holoscript/engine';
  *   const anchors: GaussianAnchor[] = result.anchors; // valid by structural typing
+ *
+ * NOTE: position is a [x, y, z] tuple to match engine's Vector3 / OctreeEntry
+ * shape (OctreeSystem.insert({ position: [x,y,z] })). Do NOT change to {x,y,z}.
  */
 export interface SpatialAnchor {
   /** Stable deterministic ID: `spa_<objectName>_<lodLevel>` */
   id: string;
-  /** World-space position (x, y, z in metres). Defaults to origin if not declared. */
-  position: { x: number; y: number; z: number };
+  /** World-space position [x, y, z] in metres. Defaults to [0,0,0] if not declared.
+   * Tuple form matches engine's Vector3 / OctreeEntry — required for OctreeLODSystem.bulkInsert(). */
+  position: [number, number, number];
   /** Effective scale of this anchor's Gaussian cloud (max axis radius). */
   scale: number;
   /** LOD level (0 = coarsest/root, MAX_DEPTH-1 = finest/leaf). */
@@ -381,13 +385,37 @@ export class SpatialPartitionPass {
         ? Math.max(0, Math.min(1, config.importance))
         : 0.5;
 
-    const pos = obj.position;
+    // Bug fix: the parser stores position in obj.properties[], not obj.position.
+    // obj.position is only populated when constructing AST nodes directly (tests,
+    // hand-built compositions). In parsed output, position lives in properties[].
+    // We try obj.position first (for direct-set nodes) then fall back to
+    // properties[] using the canonical findObjProp pattern
+    // (see AndroidKotlinHelpers.ts:181 / AndroidXRGenerators.ts:220,298).
+    let posArr: [number, number, number] | null = null;
+
+    // Path A: top-level obj.position (HoloPosition = {x,y,z})
+    if (obj.position && typeof obj.position.x === 'number') {
+      posArr = [obj.position.x, obj.position.y, obj.position.z];
+    } else {
+      // Path B: obj.properties[] — value may be number[] or {x,y,z}
+      const posProp = obj.properties?.find((p) => p.key === 'position')?.value;
+      if (Array.isArray(posProp) && posProp.length >= 3) {
+        posArr = [Number(posProp[0]), Number(posProp[1]), Number(posProp[2])];
+      } else if (
+        posProp !== null &&
+        typeof posProp === 'object' &&
+        !Array.isArray(posProp) &&
+        typeof (posProp as Record<string, unknown>)['x'] === 'number'
+      ) {
+        const pobj = posProp as { x: number; y: number; z: number };
+        posArr = [pobj.x, pobj.y, pobj.z];
+      }
+    }
+
     return {
       objectName: obj.name ?? `unnamed_${Math.random().toString(36).slice(2, 7)}`,
-      position: pos
-        ? { x: pos.x, y: pos.y, z: pos.z }
-        : { x: 0, y: 0, z: 0 },
-      hasPosition: !!pos,
+      position: posArr ?? [0, 0, 0],
+      hasPosition: posArr !== null,
       maxSplats,
       sourceFile,
       importance,
@@ -427,7 +455,7 @@ export class SpatialPartitionPass {
 
 interface RawGaussianSource {
   objectName: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   hasPosition: boolean;
   maxSplats: number;
   sourceFile?: string;
@@ -504,12 +532,12 @@ function computeBounds(anchors: SpatialAnchor[]): SpatialBounds {
 
   for (const a of anchors) {
     const r = a.scale; // use scale as radius contribution
-    minX = Math.min(minX, a.position.x - r);
-    minY = Math.min(minY, a.position.y - r);
-    minZ = Math.min(minZ, a.position.z - r);
-    maxX = Math.max(maxX, a.position.x + r);
-    maxY = Math.max(maxY, a.position.y + r);
-    maxZ = Math.max(maxZ, a.position.z + r);
+    minX = Math.min(minX, a.position[0] - r);
+    minY = Math.min(minY, a.position[1] - r);
+    minZ = Math.min(minZ, a.position[2] - r);
+    maxX = Math.max(maxX, a.position[0] + r);
+    maxY = Math.max(maxY, a.position[1] + r);
+    maxZ = Math.max(maxZ, a.position[2] + r);
   }
 
   const cx = (minX + maxX) / 2;

@@ -70,11 +70,17 @@ function gaussianObject(
   pos?: { x: number; y: number; z: number },
   srcFile?: string
 ): HoloObjectDecl {
+  // Include position both in the top-level field (for direct-set callers)
+  // AND in properties[] (matching real parser output where the parser stores
+  // all properties in the properties array, not top-level fields).
+  const posProperties = pos
+    ? [{ type: 'ObjectProperty' as const, key: 'position', value: [pos.x, pos.y, pos.z] as unknown as import('../../parser/HoloCompositionTypes').HoloValue }]
+    : [];
   return {
     type: 'ObjectDecl',
     name,
     objectType: 'object',
-    properties: [],
+    properties: posProperties,
     traits: [
       {
         type: 'Trait',
@@ -223,14 +229,37 @@ describe('SpatialPartitionPass', () => {
       const comp = emptyComposition();
       comp.objects = [gaussianObject('G', 1_000, { x: 3, y: 7, z: -2 })];
       const result = spatialPartition(comp);
-      expect(result.anchors[0]!.position).toEqual({ x: 3, y: 7, z: -2 });
+      // position is [x,y,z] tuple matching engine Vector3 / OctreeEntry shape
+      expect(result.anchors[0]!.position).toEqual([3, 7, -2]);
+    });
+
+    it('uses position from properties[] (parser-output path)', () => {
+      // Simulate parser output: position only in properties[], not obj.position
+      const comp = emptyComposition();
+      const obj: HoloObjectDecl = {
+        type: 'ObjectDecl',
+        name: 'ParserObj',
+        objectType: 'object',
+        properties: [
+          { type: 'ObjectProperty', key: 'position', value: [5, 10, -3] as any },
+        ],
+        traits: [
+          { type: 'Trait', name: 'gaussian_splat', config: { max_splats: 1_000 } as any },
+        ],
+        children: [],
+        handlers: [],
+        // no top-level position field — matches real parser output
+      };
+      comp.objects = [obj];
+      const result = spatialPartition(comp);
+      expect(result.anchors[0]!.position).toEqual([5, 10, -3]);
     });
 
     it('defaults to origin when position is missing', () => {
       const comp = emptyComposition();
       comp.objects = [gaussianObject('G', 1_000)]; // no position
       const result = spatialPartition(comp);
-      expect(result.anchors[0]!.position).toEqual({ x: 0, y: 0, z: 0 });
+      expect(result.anchors[0]!.position).toEqual([0, 0, 0]);
     });
   });
 
@@ -270,10 +299,11 @@ describe('SpatialPartitionPass', () => {
       ];
       const result = spatialPartition(comp);
       for (const a of result.anchors) {
-        expect(a.position.x).toBeGreaterThanOrEqual(result.bounds.min.x - a.scale);
-        expect(a.position.x).toBeLessThanOrEqual(result.bounds.max.x + a.scale);
-        expect(a.position.y).toBeGreaterThanOrEqual(result.bounds.min.y - a.scale);
-        expect(a.position.y).toBeLessThanOrEqual(result.bounds.max.y + a.scale);
+        // position is [x,y,z] tuple
+        expect(a.position[0]).toBeGreaterThanOrEqual(result.bounds.min.x - a.scale);
+        expect(a.position[0]).toBeLessThanOrEqual(result.bounds.max.x + a.scale);
+        expect(a.position[1]).toBeGreaterThanOrEqual(result.bounds.min.y - a.scale);
+        expect(a.position[1]).toBeLessThanOrEqual(result.bounds.max.y + a.scale);
       }
     });
 
