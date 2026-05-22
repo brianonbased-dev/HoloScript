@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * TET10 GPU vs CPU Crossover Sweep — RTX 3060 baseline
+ * TET10 GPU vs CPU Crossover Sweep — GPU auto-detected via nvidia-smi
  *
  * Runs StructuralSolverTET10 at four DOF targets covering the crossover range
- * (sub-crossover → crossover → super-crossover) on the local RTX 3060.
+ * (sub-crossover → crossover → super-crossover). GPU name is detected at runtime.
  *
- * Produces: .bench-logs/tet10-gpu-crossover-rtx3060-YYYY-MM-DD.json
+ * Produces: .bench-logs/tet10-gpu-crossover-<GPU_TAG>-YYYY-MM-DD.json
  *
  * Audit matrix gate (Refresh C note):
  *   "no committed receipt JSON — .bench-logs/ holds only small-DOF runs (1035–1359 DOF)"
@@ -27,6 +27,21 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { performance } from 'node:perf_hooks';
 import os from 'node:os';
+import { execSync } from 'node:child_process';
+
+/** Detect GPU name via nvidia-smi (available in CUDA containers and local NVIDIA drivers). */
+function detectGpuName() {
+  try {
+    const out = execSync('nvidia-smi --query-gpu=name --format=csv,noheader,nounits', {
+      timeout: 5000, stdio: ['ignore', 'pipe', 'ignore'],
+    }).toString().trim();
+    return out.split('\n')[0].trim() || 'unknown-gpu';
+  } catch {
+    return 'unknown-gpu';
+  }
+}
+const DETECTED_GPU = detectGpuName();
+console.log(`[sweep] Detected GPU: ${DETECTED_GPU}`);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -209,8 +224,7 @@ const receipt = {
     cpus: os.cpus().length,
     cpuModel: os.cpus()[0]?.model ?? 'unknown',
     ramGb: +(os.totalmem() / 1e9).toFixed(1),
-    // GPU name comes from adapter info — not available without WebGPU probe here
-    gpuNote: 'RTX 3060 Laptop GPU (dev-grade; paper-grade requires RTX 6000 Ada per audit matrix)',
+    gpuName: DETECTED_GPU,
   },
   enginePath: ENGINE_SIM,
   material: 'steel_a36',
@@ -222,14 +236,15 @@ const receipt = {
     return `Crossover between ${sweepResults[crossoverIdx - 1]?.label ?? 'below sweep start'} and ${sweepResults[crossoverIdx].label} (speedup crossed 1.0×)`;
   })(),
   auditNote: [
-    'Dev-grade receipt (RTX 3060 Laptop). Per paper-audit-matrix.md Refresh C:',
-    'No structural-GPU-speedup claim may enter any .tex until RTX 6000 Ada run completes',
-    'AND receipt is dual-anchored (OTS + Base). This file closes the "no committed receipt" gap.',
+    `Receipt from ${DETECTED_GPU}. Per paper-audit-matrix.md Refresh C:`,
+    'No structural-GPU-speedup claim may enter any .tex until paper-grade (RTX 6000 Ada class) run',
+    'completes AND receipt is dual-anchored (OTS + Base).',
   ].join(' '),
 };
 
 mkdirSync(join(REPO_ROOT, '.bench-logs'), { recursive: true });
-const outPath = join(REPO_ROOT, '.bench-logs', `tet10-gpu-crossover-rtx3060-${today}.json`);
+const gpuTag = DETECTED_GPU.replace(/\s+/g, '_').replace(/[^A-Za-z0-9_]/g, '');
+const outPath = join(REPO_ROOT, '.bench-logs', `tet10-gpu-crossover-${gpuTag}-${today}.json`);
 writeFileSync(outPath, JSON.stringify(receipt, null, 2));
 console.log(`Receipt written: ${outPath}`);
 console.log('\nCrossover:', receipt.crossoverObservation);
