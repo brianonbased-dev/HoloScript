@@ -10,11 +10,24 @@ const MAX_EVENTS_PER_TEAM = 5000;
 
 function defaultPolicy(): Record<string, unknown> {
   return {
-    schemaVersion: '1.0.0',
+    schemaVersion: '1.1.0',
     mcpServers: { allowlist: [], blocklist: [], matchBy: 'id' },
     tools: { allowlist: [], blocklist: [], blockedCommandPatterns: [] },
     guardrails: [],
     repoRules: { pathGlobs: [] },
+    // Spatial admission scopes for entities entering a HoloGate portal
+    // (HoloDoor is the policy axis of HoloGate; HoloPortal consults this at
+    // the threshold). Default-deny: an entrant gets read-only and no mutable
+    // zones until the team policy grants more. Scope ladder is read-only <
+    // mutate-zone < drive-avatar. push_state_delta intents are validated
+    // against the entrant's granted scope (closes the W.204 injection surface).
+    spatial: {
+      defaultScope: 'read-only', // 'read-only' | 'mutate-zone' | 'drive-avatar'
+      allowedScopes: ['read-only'], // scopes a portal may grant to entrants
+      mutableZoneGlobs: [], // zone-id globs an entrant may mutate under 'mutate-zone'
+      driveAvatar: { allow: false, maxEntities: 0 }, // 'drive-avatar' lane gate
+      enforcement: { onScopeViolation: 'reject' }, // 'reject' | 'warn'
+    },
     telemetry: { mode: 'local', redact: 'strict' },
     enforcement: { onViolation: 'warn', postSessionAlertOnBlock: false },
   };
