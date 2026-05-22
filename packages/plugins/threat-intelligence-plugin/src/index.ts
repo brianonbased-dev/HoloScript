@@ -1,3 +1,4 @@
+export * from './threatsolver';
 export { threatFeedHandler, THREAT_FEED_TRAIT } from './traits/ThreatFeedTrait';
 export type { ThreatFeedConfig } from './traits/ThreatFeedTrait';
 

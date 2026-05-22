@@ -1,3 +1,4 @@
+export * from './frame2d';
 export { createStructuralAnalysisHandler, type StructuralAnalysisConfig, type StructureType, type MaterialType } from './traits/StructuralAnalysisTrait';
 export { createLoadBearingHandler, type LoadBearingConfig, type LoadCase, type LoadType } from './traits/LoadBearingTrait';
 export { createMaterialFatigueHandler, type MaterialFatigueConfig } from './traits/MaterialFatigueTrait';

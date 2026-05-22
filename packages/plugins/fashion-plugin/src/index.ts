@@ -1,3 +1,4 @@
+export * from './fashionsolver';
 export { createGarmentHandler, type GarmentConfig, type GarmentCategory } from './traits/GarmentTrait';
 export { createFabricSimulationHandler, type FabricSimulationConfig, type FabricType } from './traits/FabricSimulationTrait';
 export { createRunwayChoreographyHandler, type RunwayChoreographyConfig, type RunwaySegment } from './traits/RunwayChoreographyTrait';
