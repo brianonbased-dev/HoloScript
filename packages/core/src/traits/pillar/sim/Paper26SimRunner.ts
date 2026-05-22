@@ -250,6 +250,10 @@ function tickAgent(agent: AgentState): void {
   const t = agent.history.length;                       // 0-indexed outer tick
   // Convergence rises toward 1 over the first 80% of the run, driving the
   // TEMPORAL pillar (and hence the lifecycle init→active→steady_state→stable).
+  // maturity starts at 0.5 (agent already knows its trait vocabulary) while
+  // convergence starts at 0 (system not yet settled).  The gap creates initial
+  // hemisphere divergence (γ ≈ 0.75 at t=0) that closes as both approach 1
+  // (γ → 1.0 by end) — producing the rising convergence curve §7.3 expects.
   const progress = Math.min(1, t / Math.max(1, OUTER_TICKS * 0.8));
   // Per-agent phase offset so the population's slices (and γ) are not identical.
   const idx   = parseInt(agent.config.agent_id.slice(-3), 10) || 0;
@@ -265,7 +269,7 @@ function tickAgent(agent: AgentState): void {
     const metadata = {
       tick:                      t,
       convergence:               progress,
-      maturity:                  progress,
+      maturity:                  0.5 + 0.5 * progress,
       phase:                     progress < 0.6 ? 'transient' : 'steady_state',
       energy_conservation:       1.0 + 0.05 * wobble,
       momentum_violation:        0.1 * (1 - progress) * Math.abs(wobble),
