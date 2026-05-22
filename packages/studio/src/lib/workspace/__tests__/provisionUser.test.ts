@@ -106,6 +106,13 @@ describe('provisionUser founder bootstrap', () => {
         if (href.includes('/contents/')) {
           return new Response(JSON.stringify({ message: 'not found' }), { status: 404 });
         }
+        // Pre-flight check for existing workspace repo — returns 404 so creation proceeds
+        if (
+          href === 'https://api.github.com/repos/octocat/ai-workspace-octocat' &&
+          method === 'GET'
+        ) {
+          return new Response(JSON.stringify({ message: 'Not Found' }), { status: 404 });
+        }
         if (href.includes('/repos/octocat/')) {
           return new Response(JSON.stringify({ name: href.split('/').pop() }), { status: 200 });
         }
@@ -709,6 +716,14 @@ describe('E2E smoke: provision → HoloMesh identity → display', () => {
           return new Response(JSON.stringify({ message: 'not found' }), { status: 404 });
         }
 
+        // Pre-flight check for existing workspace repo — returns 404 so creation proceeds
+        if (
+          href === 'https://api.github.com/repos/octocat/ai-workspace-octocat' &&
+          method === 'GET'
+        ) {
+          return new Response(JSON.stringify({ message: 'Not Found' }), { status: 404 });
+        }
+
         // GitHub repo access check
         if (href.includes('/repos/octocat/')) {
           return new Response(JSON.stringify({ name: href.split('/').pop() }), { status: 200 });
@@ -932,5 +947,402 @@ describe('E2E smoke: provision → HoloMesh identity → display', () => {
       })
       .join('\n');
     expect(pushedContent).not.toContain('gho_customer_secret_token');
+  });
+});
+
+// ── Idempotency Tests: provisionUser must not create duplicate repos ──────────
+//
+// Verifies that when provisionUser is called a second time (e.g. import-repo
+// wizard after first-run wizard), it detects the existing workspace repo and
+// skips scaffold+seed rather than overwriting it.
+
+describe('provisionUser idempotency — no duplicate workspace on multi-wizard paths', () => {
+  const savedFounderUsers = process.env.STUDIO_FOUNDER_GITHUB_USERS;
+  const savedMasterKey = process.env.HOLOSCRIPT_API_KEY;
+  const savedHoloMeshKey = process.env.HOLOMESH_API_KEY;
+  const savedMcpServerUrl = process.env.MCP_SERVER_URL;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.STUDIO_FOUNDER_GITHUB_USERS = 'brianonbased-dev';
+    process.env.HOLOSCRIPT_API_KEY = 'master-key';
+    process.env.HOLOMESH_API_KEY = 'holomesh-publish-key';
+    process.env.MCP_SERVER_URL = 'https://mcp.test';
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+        const href = String(url);
+        const method = init?.method ?? 'GET';
+
+        // Orchestrator API key provisioning
+        if (href.includes('/admin/keys')) {
+          return new Response(JSON.stringify({ key: 'mcp-provisioned-secret-key' }), {
+            status: 200,
+          });
+        }
+
+        // HoloMesh agent registration
+        if (href.includes('/api/holomesh/register') && method === 'POST') {
+          return new Response(
+            JSON.stringify({
+              agentId: 'agent_studio_octocat_ws_octocat',
+              apiKey: 'hs_sk_test_octocat_identity_key_abc123',
+              walletAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18',
+            }),
+            { status: 200 }
+          );
+        }
+
+        // HoloMesh contribute (knowledge publish)
+        if (href === 'https://mcp.test/api/holomesh/contribute' && method === 'POST') {
+          return new Response(JSON.stringify({ id: 'entry_1' }), { status: 200 });
+        }
+
+        // GitHub: pre-flight check for existing ai-workspace-<username> repo
+        // This simulates the repo already existing from a prior wizard run.
+        if (
+          href === 'https://api.github.com/repos/octocat/ai-workspace-octocat' &&
+          method === 'GET'
+        ) {
+          return new Response(
+            JSON.stringify({
+              html_url: 'https://github.com/octocat/ai-workspace-octocat',
+              name: 'ai-workspace-octocat',
+            }),
+            { status: 200 }
+          );
+        }
+
+        // GitHub: create repo endpoint — should NOT be called when repo exists
+        if (href === 'https://api.github.com/user/repos' && method === 'POST') {
+          return new Response(JSON.stringify({ message: 'Validation Failed' }), { status: 422 });
+        }
+
+        // GitHub file push — should NOT be called when repo already exists
+        if (href.includes('/contents/') && method === 'PUT') {
+          return new Response(JSON.stringify({ ok: true }), { status: 200 });
+        }
+
+        // GitHub: other repo lookups (for access checks)
+        if (href.includes('/repos/octocat/') && method === 'GET') {
+          return new Response(JSON.stringify({ name: href.split('/').pop() }), { status: 200 });
+        }
+
+        // Absorb tool calls
+        if (href.includes('/tools/call')) {
+          const payload = JSON.parse(String(init?.body ?? '{}')) as { tool?: string };
+          if (payload.tool === 'absorb_run_absorb') {
+            return new Response(JSON.stringify({ success: true }), { status: 200 });
+          }
+          if (payload.tool === 'absorb_extract_knowledge') {
+            return new Response(JSON.stringify({ entries: [] }), { status: 200 });
+          }
+        }
+
+        return new Response(JSON.stringify({ error: `unexpected fetch ${href}` }), {
+          status: 500,
+        });
+      })
+    );
+  });
+
+  afterEach(() => {
+    if (savedFounderUsers === undefined) {
+      delete process.env.STUDIO_FOUNDER_GITHUB_USERS;
+    } else {
+      process.env.STUDIO_FOUNDER_GITHUB_USERS = savedFounderUsers;
+    }
+    if (savedMasterKey === undefined) {
+      delete process.env.HOLOSCRIPT_API_KEY;
+    } else {
+      process.env.HOLOSCRIPT_API_KEY = savedMasterKey;
+    }
+    if (savedHoloMeshKey === undefined) {
+      delete process.env.HOLOMESH_API_KEY;
+    } else {
+      process.env.HOLOMESH_API_KEY = savedHoloMeshKey;
+    }
+    if (savedMcpServerUrl === undefined) {
+      delete process.env.MCP_SERVER_URL;
+    } else {
+      process.env.MCP_SERVER_URL = savedMcpServerUrl;
+    }
+    vi.unstubAllGlobals();
+  });
+
+  it('skips scaffold and seed when workspace repo already exists', async () => {
+    const result = await provisionUser({
+      githubAccessToken: 'gho_customer_secret_token',
+      githubUsername: 'octocat',
+      email: 'octocat@example.com',
+      approvedRepos: [],
+      approvedScaffold: true,
+      approvedAbsorb: false,
+      approvedPublishKnowledge: false,
+      approvedDaemon: false,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.user).toMatchObject({
+      workspaceId: 'ws_octocat',
+      repoUrl: 'https://github.com/octocat/ai-workspace-octocat',
+      repoName: 'ai-workspace-octocat',
+      scaffolded: false,
+    });
+
+    // scaffold and seed-repo steps should be marked as skipped
+    expect(result.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'ensure-repo',
+          status: 'done',
+          detail: expect.stringContaining('connected'),
+        }),
+        expect.objectContaining({
+          name: 'scaffold',
+          status: 'done',
+          detail: expect.stringContaining('skipped'),
+        }),
+        expect.objectContaining({
+          name: 'seed-repo',
+          status: 'done',
+          detail: expect.stringContaining('skipped'),
+        }),
+      ])
+    );
+
+    // Must NOT have called POST /user/repos — the pre-flight check found the repo
+    const fetchMock = vi.mocked(fetch);
+    const createRepoCalls = fetchMock.mock.calls.filter(
+      ([url, init]) => String(url).includes('/user/repos') && init?.method === 'POST'
+    );
+    expect(createRepoCalls).toHaveLength(0);
+
+    // Must NOT have pushed any files — no scaffold/seed
+    const pushCalls = fetchMock.mock.calls.filter(
+      ([url, init]) => String(url).includes('/contents/') && init?.method === 'PUT'
+    );
+    expect(pushCalls).toHaveLength(0);
+  });
+
+  it('detects existing repo via pre-flight check before attempting creation', async () => {
+    const result = await provisionUser({
+      githubAccessToken: 'gho_customer_secret_token',
+      githubUsername: 'octocat',
+      email: 'octocat@example.com',
+      approvedRepos: [],
+      approvedScaffold: true,
+      approvedAbsorb: true,
+      approvedPublishKnowledge: true,
+      approvedDaemon: false,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.user?.scaffolded).toBe(false);
+
+    // The pre-flight GET to check repo existence must have been made
+    const fetchMock = vi.mocked(fetch);
+    const preFlightCall = fetchMock.mock.calls.find(
+      ([url, init]) =>
+        String(url) === 'https://api.github.com/repos/octocat/ai-workspace-octocat' &&
+        init?.method !== 'POST'
+    );
+    expect(preFlightCall).toBeDefined();
+
+    // Knowledge steps should still run (they are not blocked by existing repo)
+    expect(result.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'absorb-scan', status: 'done' }),
+        expect.objectContaining({ name: 'publish-knowledge', status: 'done' }),
+      ])
+    );
+  });
+
+  it('handles 422 race condition gracefully when repo is created concurrently', async () => {
+    // Simulate: pre-flight check returns 404 (repo not found), but by the time
+    // creation happens, another process created it (422). The code should re-check
+    // and return the existing repo.
+    let preFlightCount = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+        const href = String(url);
+        const method = init?.method ?? 'GET';
+
+        if (href.includes('/admin/keys')) {
+          return new Response(JSON.stringify({ key: 'mcp-key' }), { status: 200 });
+        }
+        if (href.includes('/api/holomesh/register') && method === 'POST') {
+          return new Response(
+            JSON.stringify({
+              agentId: 'agent_race_test',
+              apiKey: 'hs_sk_race_test',
+              walletAddress: '0xRaceTestWallet',
+            }),
+            { status: 200 }
+          );
+        }
+
+        // Pre-flight check returns 404 first time, 200 second time
+        if (
+          href === 'https://api.github.com/repos/octocat/ai-workspace-octocat' &&
+          method === 'GET'
+        ) {
+          preFlightCount += 1;
+          if (preFlightCount === 1) {
+            return new Response(JSON.stringify({ message: 'Not Found' }), { status: 404 });
+          }
+          return new Response(
+            JSON.stringify({
+              html_url: 'https://github.com/octocat/ai-workspace-octocat',
+              name: 'ai-workspace-octocat',
+            }),
+            { status: 200 }
+          );
+        }
+
+        // Create repo returns 422 (race condition: another process created it)
+        if (href === 'https://api.github.com/user/repos' && method === 'POST') {
+          return new Response(JSON.stringify({ message: 'Validation Failed' }), { status: 422 });
+        }
+
+        // Other repo lookups
+        if (href.includes('/repos/octocat/') && method === 'GET') {
+          return new Response(JSON.stringify({ name: href.split('/').pop() }), { status: 200 });
+        }
+
+        if (href.includes('/contents/')) {
+          return new Response(JSON.stringify({ message: 'not found' }), { status: 404 });
+        }
+        if (href === 'https://mcp.test/api/holomesh/contribute' && method === 'POST') {
+          return new Response(JSON.stringify({ id: 'entry_1' }), { status: 200 });
+        }
+        if (href.includes('/tools/call')) {
+          return new Response(JSON.stringify({ success: true }), { status: 200 });
+        }
+
+        return new Response(JSON.stringify({ error: `unexpected fetch ${href}` }), {
+          status: 500,
+        });
+      })
+    );
+
+    const result = await provisionUser({
+      githubAccessToken: 'gho_race_test_token',
+      githubUsername: 'octocat',
+      email: 'octocat@example.com',
+      approvedRepos: [],
+      approvedScaffold: true,
+      approvedAbsorb: false,
+      approvedPublishKnowledge: false,
+      approvedDaemon: false,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.user).toMatchObject({
+      repoUrl: 'https://github.com/octocat/ai-workspace-octocat',
+      repoName: 'ai-workspace-octocat',
+      scaffolded: false,
+    });
+
+    // Pre-flight was called twice: once for initial check (404), once for 422 race fallback (200)
+    expect(preFlightCount).toBeGreaterThanOrEqual(2);
+  });
+
+  it('creates a new repo when no existing workspace repo is found', async () => {
+    // Simulate: pre-flight check returns 404, creation succeeds
+    let preFlightCalled = false;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+        const href = String(url);
+        const method = init?.method ?? 'GET';
+
+        if (href.includes('/admin/keys')) {
+          return new Response(JSON.stringify({ key: 'mcp-key-new-repo' }), { status: 200 });
+        }
+        if (href.includes('/api/holomesh/register') && method === 'POST') {
+          return new Response(
+            JSON.stringify({
+              agentId: 'agent_new_user',
+              apiKey: 'hs_sk_new_user',
+              walletAddress: '0xNewUserWallet',
+            }),
+            { status: 200 }
+          );
+        }
+
+        // Pre-flight check: repo not found
+        if (
+          href === 'https://api.github.com/repos/newuser/ai-workspace-newuser' &&
+          method === 'GET'
+        ) {
+          preFlightCalled = true;
+          return new Response(JSON.stringify({ message: 'Not Found' }), { status: 404 });
+        }
+
+        // Create repo: success
+        if (href === 'https://api.github.com/user/repos' && method === 'POST') {
+          return new Response(
+            JSON.stringify({
+              html_url: 'https://github.com/newuser/ai-workspace-newuser',
+              name: 'ai-workspace-newuser',
+            }),
+            { status: 201 }
+          );
+        }
+
+        // File push
+        if (href.includes('/contents/') && method === 'PUT') {
+          return new Response(JSON.stringify({ ok: true }), { status: 200 });
+        }
+        if (href.includes('/contents/')) {
+          return new Response(JSON.stringify({ message: 'not found' }), { status: 404 });
+        }
+
+        // Other repo lookups
+        if (href.includes('/repos/newuser/') && method === 'GET') {
+          return new Response(JSON.stringify({ name: href.split('/').pop() }), { status: 200 });
+        }
+        if (href === 'https://mcp.test/api/holomesh/contribute' && method === 'POST') {
+          return new Response(JSON.stringify({ id: 'entry_1' }), { status: 200 });
+        }
+        if (href.includes('/tools/call')) {
+          return new Response(JSON.stringify({ success: true }), { status: 200 });
+        }
+
+        return new Response(JSON.stringify({ error: `unexpected fetch ${href}` }), {
+          status: 500,
+        });
+      })
+    );
+
+    const result = await provisionUser({
+      githubAccessToken: 'gho_new_user_token',
+      githubUsername: 'newuser',
+      email: 'newuser@example.com',
+      approvedRepos: [],
+      approvedScaffold: true,
+      approvedAbsorb: false,
+      approvedPublishKnowledge: false,
+      approvedDaemon: false,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.user).toMatchObject({
+      repoUrl: 'https://github.com/newuser/ai-workspace-newuser',
+      repoName: 'ai-workspace-newuser',
+      scaffolded: true,
+    });
+    expect(preFlightCalled).toBe(true);
+
+    // Scaffold and seed steps should show as done (not skipped)
+    expect(result.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'scaffold', status: 'done' }),
+        expect.objectContaining({ name: 'seed-repo', status: 'done' }),
+      ])
+    );
   });
 });

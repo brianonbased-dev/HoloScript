@@ -261,7 +261,36 @@ async function buildFounderAccountWorkspace(): Promise<FounderAccountWorkspace> 
 // ── Step 2: Create or Connect Repo ───────────────────────────────────────────
 
 /**
+ * Check whether a repo already exists for the user on GitHub.
+ * Returns repo info if found, or null if it doesn't exist.
+ */
+async function checkExistingRepo(
+  token: string,
+  username: string,
+  repoName: string
+): Promise<{ owner: string; repoUrl: string; repoName: string } | null> {
+  const res = await fetch(`https://api.github.com/repos/${username}/${repoName}`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json' },
+  });
+  if (res.ok) {
+    const repo = (await res.json()) as { html_url: string; name: string };
+    return {
+      owner: username,
+      repoUrl: repo.html_url ?? `https://github.com/${username}/${repoName}`,
+      repoName: repo.name ?? repoName,
+    };
+  }
+  // 404 means not found; other errors are unexpected but we treat them as "not found"
+  // and let the creation step surface the real problem.
+  return null;
+}
+
+/**
  * Create a new GitHub repo for the user, or verify access to an existing one.
+ *
+ * Idempotent: checks for an existing repo BEFORE attempting to create one.
+ * If the workspace repo already exists (e.g. from a prior wizard run),
+ * returns it without re-running scaffold or seed.
  */
 async function ensureRepo(
   token: string,
@@ -286,10 +315,20 @@ async function ensureRepo(
     };
   }
 
-  // Create new repo
+  // Determine the target repo name
   const repoName = (projectName || `ai-workspace-${username}`)
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, '-');
+
+  // ── Idempotency pre-flight: check if the repo already exists ──
+  // This prevents duplicate repos when provisionUser is called multiple times
+  // (e.g. first-run wizard followed by import-repo wizard).
+  const existing = await checkExistingRepo(token, username, repoName);
+  if (existing) {
+    return { ...existing, isNew: false };
+  }
+
+  // Create new repo
   const res = await fetch('https://api.github.com/user/repos', {
     method: 'POST',
     headers: {
@@ -307,16 +346,11 @@ async function ensureRepo(
 
   if (!res.ok) {
     if (res.status === 422) {
-      const existing = await fetch(`https://api.github.com/repos/${username}/${repoName}`, {
-        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json' },
-      });
-      if (existing.ok) {
-        return {
-          owner: username,
-          repoUrl: `https://github.com/${username}/${repoName}`,
-          repoName,
-          isNew: false,
-        };
+      // Race condition: another wizard created the repo between our check and creation.
+      // Re-check for the repo and return it if found.
+      const racedExisting = await checkExistingRepo(token, username, repoName);
+      if (racedExisting) {
+        return { ...racedExisting, isNew: false };
       }
     }
     const err = await res.text();
@@ -831,11 +865,15 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
       updateStep('absorb-scan', 'done');
     }
 
-    // Step 4: Scaffold .claude/ structure (if approved)
+    // Step 4: Scaffold .claude/ structure (if approved AND repo is new)
+    // Idempotency: skip scaffold+seed when the workspace repo already existed
+    // (e.g. a previous wizard run already created and seeded it). Re-scaffolding
+    // an existing repo would overwrite user customizations.
+    const shouldScaffold = input.approvedScaffold && isNew;
     let scaffold:
       | Awaited<ReturnType<typeof import('./scaffolder').scaffoldProjectWorkspace>>
       | undefined;
-    if (input.approvedScaffold) {
+    if (shouldScaffold) {
       updateStep('scaffold', 'running');
       const { scaffoldProjectWorkspace } = await import('./scaffolder');
       const dna = {
@@ -871,6 +909,10 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
       }
       await seedRepo(input.githubAccessToken, owner, repoName, workspaceId, files);
       updateStep('seed-repo', 'done');
+    } else if (input.approvedScaffold && !isNew) {
+      // User approved scaffold but repo already exists — mark steps as skipped
+      updateStep('scaffold', 'done', 'skipped — workspace repo already exists');
+      updateStep('seed-repo', 'done', 'skipped — workspace repo already exists');
     }
 
     // Step 6: Publish knowledge to HoloMesh (if approved)
@@ -907,7 +949,7 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
         tier: accountSeed.metadata.tier,
         capabilities: accountSeed.metadata.capabilities,
         accountWorkspace: accountSeed.metadata,
-        scaffolded: input.approvedScaffold,
+        scaffolded: shouldScaffold,
         daemonStarted: input.approvedDaemon,
         holomeshAgentId: holomeshRegistration?.agentId,
         holomeshApiKey: holomeshRegistration?.holomeshApiKey,
