@@ -1,0 +1,32 @@
+{
+  "gate": 1,
+  "name": "Vertical slice — composition compiles to R3F scene tree",
+  "artifact": "examples/gold-game/oasis-shard-zero.holo",
+  "target": "r3f",
+  "acceptance": "parses clean AND compileComposition produces a populated R3F scene node tree",
+  "parse": {
+    "success": true,
+    "errors": 0,
+    "warnings": 0
+  },
+  "compile": {
+    "success": true,
+    "target": "r3f",
+    "rootType": "group",
+    "childCount": 5,
+    "meshes": 4,
+    "groups": 2,
+    "lights": 2,
+    "environmentNodes": 1
+  },
+  "contract": {
+    "spine": "SimulationContract (computeStateDigest analog: deterministic SHA-256 over canonical state)",
+    "algorithm": "sha256",
+    "astStateDigest": "3362722940d5383b7a54f338355e0323ca5062c7b5fd34d2e2c8fce43fdac2fc",
+    "sceneStateDigest": "74f8b4ccda337f8b35876b138dbed3b436728db73b0edb2d36ca1b3512da5443",
+    "deterministic": true,
+    "replayNote": "re-running parseHolo+compileComposition on the same .holo yields identical digests"
+  },
+  "core": "6.1.0",
+  "verifiedAt": "2026-05-22T02:19:43.369Z"
+}

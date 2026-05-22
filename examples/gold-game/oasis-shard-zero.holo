@@ -1,0 +1,128 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// GOLD GAME — Gate 0 canonical skeleton (WORKING CONCEPT, NOT A BRAND NAME)
+//
+// "Oasis Shard Zero": a persistent shared world where people and REAL agents
+// play together. Built on the existing frontier-shard-zero seam
+// (packages/hololand-platform/src/world/frontier-shard-zero.ts) — the Oasis
+// Market square. NPCs are real agents (JEPA-driven, $0.50/day-budgeted,
+// memory- and reputation-bearing); humans inhabit the same kind of entity.
+//
+// AI<->HUMAN CONNECTION (load-bearing, not bolted on):
+//   - One shared entity kind, two inhabitation paths:
+//       * human  -> @controllable (ControllerInput / Voice projection)
+//       * agent  -> @ai_agent     (AINPCBrain + JEPA loop + 6 sovereign traits)
+//   - Shared world state (this composition's environment + zones)
+//   - Shared relational mechanics (the Oasis Steward NPC tracks reputation)
+//   - Common receipt spine (every action -> SimulationContract; AI actions also
+//     emit WorldModelReceipt). Receipt wiring is proven at later gates; this
+//     gate proves the .holo PARSES clean against @holoscript/core.
+//
+// Naming/branding the flagship is a FOUNDER call — "Oasis Shard Zero" here is a
+// working concept derived from the existing shard, not a ratified product name.
+//
+// Compile loop (fastest): R3F or Babylon. Gate 0 acceptance = parses clean.
+// ═══════════════════════════════════════════════════════════════════════════
+
+composition "Oasis Shard Zero" {
+  metadata {
+    name: 'Oasis Shard Zero — GOLD Game Gate 0 skeleton'
+    category: 'gaming'
+    concept: 'shared world; people and real agents play together'
+    seam: 'frontier-shard-zero (zone_oasis_market)'
+    platforms: ['r3f', 'babylonjs', 'godot', 'unity']
+  }
+
+  environment {
+    skybox: "desert_dawn"
+    ambient_light: 0.45
+    physics_engine: "bullet"
+    gravity: [0, -9.81, 0]
+    fog_density: 0.015
+    fog_color: "#caa472"
+  }
+
+  // ── Shared entity kind: a STEWARD. Either a human or an agent inhabits it. ──
+  // The two inhabitation paths are expressed as distinct templates over the
+  // same geometry/state so a later gate can swap one for the other in-session.
+
+  // Human-inhabited steward: driven by controller/voice input.
+  template "HumanSteward" {
+    @controllable
+    @physics
+    @collidable
+    @health_system
+    geometry: "humanoid"
+    scale: [0.5, 1.8, 0.5]
+    state { hp: 100, breath: 100, reputation: 0, inhabited_by: "human" }
+  }
+
+  // Agent-inhabited steward: real-agent NPC (JEPA + sovereign traits).
+  // Same kind of entity, sized differently (D.040 one trait library).
+  template "AgentSteward" {
+    @ai_agent
+    @physics
+    @collidable
+    @health_system
+    geometry: "humanoid"
+    scale: [0.5, 1.8, 0.5]
+    state {
+      hp: 100,
+      breath: 100,
+      reputation: 0,
+      inhabited_by: "agent",
+      daily_budget_usd: 0.5,
+      memory_bearing: true
+    }
+  }
+
+  // ── The Oasis Market square (zone_oasis_market from frontier-shard-zero). ──
+  spatial_group "OasisMarket" {
+    origin: [0, 0, 0]
+
+    // Human player spawn.
+    object "Player" using "HumanSteward" {
+      position: [0, 1, 0]
+      color: "#3a6ea5"
+    }
+
+    // A real-agent companion sharing the world with the human.
+    object "Companion" using "AgentSteward" {
+      position: [2, 1, 0]
+      color: "#a55a3a"
+    }
+
+    // The brass compass — first quest reward (item_compass_brass).
+    object "BrassCompass" {
+      @grabbable
+      @interactive
+      geometry: "sphere"
+      position: [0, 0.5, 3]
+      scale: [0.2, 0.2, 0.2]
+      color: "#b08d57"
+      state { picked_up: false, quest_reward: true }
+    }
+  }
+
+  // ── The Oasis Steward — questgiver, a real-agent NPC. ──
+  // Authored as an object over an AgentSteward-kind template so it parses on
+  // the accepted grammar (the `npc` keyword does not take inline @traits).
+  template "StewardNPC" {
+    @ai_agent
+    @dialogue
+    @collidable
+    geometry: "humanoid"
+    state { reputation_tracking: true, quest: "first_breath", inhabited_by: "agent" }
+  }
+
+  object "OasisSteward" using "StewardNPC" {
+    position: [-2, 0, 2]
+    color: "#7a5a8a"
+  }
+
+  light "DawnSun" {
+    type: "directional"
+    intensity: 1.3
+    rotation: [-30, 45, 0]
+    color: "#ffd9a0"
+  }
+}

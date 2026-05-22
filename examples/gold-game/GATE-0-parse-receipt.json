@@ -1,0 +1,17 @@
+{
+  "gate": 0,
+  "artifact": "examples/gold-game/oasis-shard-zero.holo",
+  "command": "node -e parseHolo(...)",
+  "parse": {
+    "success": true,
+    "errors": 0,
+    "warnings": 0
+  },
+  "templates": [
+    "HumanSteward",
+    "AgentSteward",
+    "StewardNPC"
+  ],
+  "verifiedAt": "2026-05-22T02:11:14.201Z",
+  "core": "6.1.0"
+}
