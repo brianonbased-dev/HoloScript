@@ -24,6 +24,10 @@
  * - Browser control (3), Training data (1) [included in Core tools above]
  */
 
+// !! MUST be first import — populates process.env from .env before any module-level
+// `const X = process.env.X || ''` constants are evaluated. No-op on Railway.
+import './utils/load-env';
+
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema, type Tool } from '@modelcontextprotocol/sdk/types.js';

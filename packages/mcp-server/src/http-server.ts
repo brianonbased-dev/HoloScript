@@ -15,6 +15,10 @@
  * - Backwards-compatible with legacy API key during migration period
  */
 
+// !! MUST be first import — populates process.env from .env before any module-level
+// `const X = process.env.X || ''` constants are evaluated. No-op on Railway.
+import './utils/load-env';
+
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
