@@ -1,3 +1,4 @@
+export * from './hardwaresolver';
 export { createPCBLayoutHandler } from './traits/PCBLayoutTrait';
 export { createComponentLibraryHandler } from './traits/ComponentLibraryTrait';
 export { createFirmwareFlashHandler } from './traits/FirmwareFlashTrait';

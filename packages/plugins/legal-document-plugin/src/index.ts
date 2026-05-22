@@ -1,3 +1,4 @@
+export * from './legalsolver';
 export { createContractDraftHandler, type ContractDraftConfig, type ContractType, type Clause } from './traits/ContractDraftTrait';
 export { createESignatureHandler, type ESignatureConfig, type Signer } from './traits/ESignatureTrait';
 export { createCaseManagementHandler, type CaseManagementConfig, type CaseStatus } from './traits/CaseManagementTrait';

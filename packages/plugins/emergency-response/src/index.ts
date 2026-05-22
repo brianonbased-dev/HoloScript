@@ -19,6 +19,8 @@
  * @module @holoscript/plugin-emergency-response
  */
 
+export * from './emergencysolver';
+
 // ─── Trait Handlers ────────────────────────────────────────────────────────────
 
 export { triageHandler, TRIAGE_TRAIT } from './traits/TriageTrait';

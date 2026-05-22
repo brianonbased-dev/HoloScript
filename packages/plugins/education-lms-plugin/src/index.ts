@@ -1,3 +1,4 @@
+export * from './educationsolver';
 export { createCourseHandler, type CourseConfig, type CourseState, type Difficulty } from './traits/CourseTrait';
 export { createLessonHandler, type LessonConfig, type ContentType } from './traits/LessonTrait';
 export { createGradeHandler, type GradeConfig, type GradingScale } from './traits/GradeTrait';
