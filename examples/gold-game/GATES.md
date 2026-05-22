@@ -24,7 +24,9 @@ flagship Gate-N.** They are different games. Only the **flagship** counts as "th
 | 2 | curation graduate verb | **PASS** | `node gate-2-graduate-verify.cjs` (10/10) | `GATE-2-graduate-receipt.json` | `6b281ecdd` |
 | 3 | curation co-session (AI↔human, real graduate verb) | **PASS** | `tsx gate-3-curation-verify.mjs` (15/15) | `GATE-3-CURATION-cosession-receipt.json` | `62024addc` |
 | 4 | content / world evolution (CausalWorldModel do-calculus unlock + NPC memory across sessions) | **PASS** | `tsx gate-4-causal-memory-verify.mjs` (14/14) | `GATE-4-CAUSAL-MEMORY-receipt.json` | _this commit_ |
-| 5 | live operator + trained policy + Quest projection | **OPEN** | — | — | — |
+| 5a | trained curation policy (learned, beats hand-authored heuristic) | **PASS** | `tsx gate-5a-trained-policy-verify.mjs` (8/8; top-1 1.00 vs heuristic 0.65 vs random 0.25) | `GATE-5A-TRAINED-POLICY-receipt.json` | _this commit_ |
+| 5b | live human-operator session | **OPEN** (needs headset/operator) | — | — | — |
+| 5c | Quest projection via `/embodied` | **OPEN** (needs device) | — | — | — |
 
 `*` Gate 1 is artifact/receipt-backed; the full WebGL render is headless/manual (needs a browser), so the runner checks the committed artifact exists rather than re-rendering.
 

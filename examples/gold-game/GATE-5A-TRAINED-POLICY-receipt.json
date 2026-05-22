@@ -1,0 +1,41 @@
+{
+  "gate": "5a",
+  "track": "flagship (sub-gate of Gate 5)",
+  "name": "trained curation policy — learned value model beats the hand-authored heuristic",
+  "verifier": "examples/gold-game/gate-5a-trained-policy-verify.mjs",
+  "task": "pick which knowledge entry to graduate next from a pool; features [lineage L, downstream-links D, tier-inverse Tinv]",
+  "training": {
+    "method": "batch gradient descent, linear value model, zero-init — fully deterministic (seeded mulberry32, no wall-clock/Math.random)",
+    "seed": 20260522,
+    "episodes": 400,
+    "trainEpisodes": 280,
+    "testEpisodes": 120,
+    "epochs": 600,
+    "learningRate": 0.4,
+    "learnedWeights": {
+      "L": 0.499999,
+      "D": 0.333333,
+      "Tinv": 0.166666,
+      "bias": 0.000001
+    },
+    "note": "the model recovers weights approximating the hidden true value (3L+2D+1Tinv normalized) WITHOUT being told them — it learns that downstream-links and tier matter, which the lineage-only heuristic ignores."
+  },
+  "evaluation": {
+    "metric": "top-1 next-graduation selection accuracy on HELD-OUT episodes",
+    "trained": 1,
+    "heuristic_argmaxLineage": 0.65,
+    "random_baseline": 0.247083,
+    "trainedBeatsHeuristic": true,
+    "trainedBeatsRandom": true
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest from packages/engine/src/simulation/hashes.ts",
+    "function": "computeStateDigest(policySolver, hashMode)",
+    "algorithm": "sha256",
+    "policyDigest": "09fc78cbcf9eb52918730c15ac172958a103c819123e9963d7a5be99e81e82db",
+    "reproducible": "run `node_modules/.bin/tsx examples/gold-game/gate-5a-trained-policy-verify.mjs` to re-derive"
+  },
+  "honestScope": "A small LINEAR value model trained by gradient descent on SYNTHETIC curation episodes (a faithful model of the real \"graduate the highest-value entry\" task: value = lineage + downstream-links + tier). What is PROVEN: a genuinely LEARNED policy (weights fit from data, not hand-set) beats the hand-authored lineage-only heuristic on held-out data — closing the Gates 3-4 \"hand-authored, not trained\" caveat. What is NOT yet proven (remaining Gate 5 sub-gates): 5b a live human-operator session (needs a headset/operator), 5c Quest projection via /embodied (needs the device). This is a classical ML baseline on synthetic data, not a deep model on real operator traces.",
+  "core": "6.1.0",
+  "verifiedAt": "2026-05-22T08:52:56.068Z"
+}

@@ -27,7 +27,9 @@ const GATES = [
   { track: 'flagship', gate: 2, name: 'curation graduate verb', kind: 'script',   runner: 'node', file: 'gate-2-graduate-verify.cjs' },
   { track: 'flagship', gate: 3, name: 'curation co-session',    kind: 'script',   runner: 'tsx',  file: 'gate-3-curation-verify.mjs' },
   { track: 'flagship', gate: 4, name: 'content/world evolution (causal + cross-session NPC memory)', kind: 'script', runner: 'tsx', file: 'gate-4-causal-memory-verify.mjs' },
-  { track: 'flagship', gate: 5, name: 'live operator + trained policy + Quest', kind: 'open' },
+  { track: 'flagship', gate: '5a', name: 'trained curation policy (beats hand-authored heuristic)', kind: 'script', runner: 'tsx', file: 'gate-5a-trained-policy-verify.mjs' },
+  { track: 'flagship', gate: '5b', name: 'live human-operator session (needs headset/operator)', kind: 'open' },
+  { track: 'flagship', gate: '5c', name: 'Quest projection via /embodied (needs device)', kind: 'open' },
   { track: 'oasis (fixture)', gate: 3, name: 'connection-mechanics proof (compass co-session)', kind: 'script', runner: 'tsx', file: 'connection-mechanics-proof/gate-3-verify.mjs' },
   { track: 'modalities', gate: '2D+3D', name: 'one .holo -> retro 2D + 3D (shared source scene)', kind: 'script', runner: 'tsx', file: 'modality-verify.mjs' },
 ];
