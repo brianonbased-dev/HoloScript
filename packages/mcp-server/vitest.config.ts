@@ -24,6 +24,10 @@ export default defineConfig({
         find: '@holoscript/agent-protocol',
         replacement: path.resolve(__dirname, '../agent-protocol/src/index.ts'),
       },
+      {
+        find: '@holoscript/hololand-platform',
+        replacement: path.resolve(__dirname, '../hololand-platform/src/index.ts'),
+      },
     ],
   },
   test: {
