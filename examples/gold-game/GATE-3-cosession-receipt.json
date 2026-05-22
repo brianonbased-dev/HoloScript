@@ -1,0 +1,119 @@
+{
+  "gate": 3,
+  "name": "AI<->human connection — co-session, mutual effect, genuine policy divergence",
+  "artifact": "examples/gold-game/oasis-shard-zero.holo",
+  "verifier": "examples/gold-game/gate-3-verify.mjs",
+  "target": "r3f",
+  "session": {
+    "kind": "single shared deterministic session (one fixed-dt loop, one world solver)",
+    "integrator": "fixed-dt semi-implicit (ground-plane held)",
+    "fixedDt": 0.016666666666666666,
+    "hz": 60,
+    "ticks": 300,
+    "deterministic": true,
+    "note": "no wall-clock, no RNG; scripted human input trace + deterministic agent value-selection → reproduces byte-for-byte"
+  },
+  "policies": {
+    "human": {
+      "driver": "ControllerInput path — scripted thumbstick input trace (recorded human input), NOT a beeline",
+      "trace": [
+        {
+          "untilTick": 12,
+          "stick": [
+            1,
+            0
+          ]
+        },
+        {
+          "untilTick": 20,
+          "stick": [
+            -1,
+            0.2
+          ]
+        },
+        {
+          "untilTick": 300,
+          "stick": null
+        }
+      ]
+    },
+    "agent": {
+      "driver": "AINPCBrain / JEPA value-selection — no script; senses shared world each tick, picks highest-value action",
+      "valueModel": "grab compass while available; once taken, value(compass)=0 → re-plan to approach/follow the human (the prize-holder)",
+      "moveSpeed": 1.5,
+      "speedNote": "both bodies move at the same MOVE_SPEED (fair). The proof of genuine re-plan is the agent HEADING TURN (compass -> human), not a speed advantage."
+    },
+    "genuinelyDifferent": true
+  },
+  "mutualEffect": {
+    "sharedResource": "item_compass_brass — single shared compass; first to grab range claims it, denying the other",
+    "humanTookCompass": true,
+    "humanGrabbedTick": 114,
+    "agentGrabbedTick": -1,
+    "proof": "each body's choice set depends on the other's live state: human motion can deny the agent the compass; the agent re-targets the human in response. Neither is a scripted dummy to the other."
+  },
+  "agentReplan": {
+    "replanned": true,
+    "replanTick": 115,
+    "actionTypesObserved": [
+      "move_toward:compass",
+      "approach:human"
+    ],
+    "followedHumanTick": 115,
+    "followRange": 1.2,
+    "headingPreReplan": [
+      -0.5547,
+      0.832
+    ],
+    "headingPostReplan": [
+      -0.9984,
+      0.0557
+    ],
+    "headingTurnDeg": 53.12,
+    "note": "the agent's action stream switches target in-session (compass -> human) BECAUSE the shared resource was taken. The human carries the compass toward a deposit (a MOVING target), so the agent's post-replan heading genuinely DIFFERS from its pre-replan compass heading (headingTurnDeg) — proof the re-plan turned the agent toward a new goal, not a no-op — and it then follows the moving prize-holder within followRange."
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest from packages/engine/src/simulation/hashes.ts (imported via tsx) — same fn SimulationContract pushes on solve()",
+    "function": "computeStateDigest(solver, hashMode)",
+    "algorithm": "sha256",
+    "sharedWorldDigest": "a4c1072b55f745d90870afcacdea40488998ceac638ed76010e04a2e7f01d661",
+    "sharedWorldFields": [
+      "h_pos_x",
+      "h_pos_y",
+      "h_pos_z",
+      "a_pos_x",
+      "a_pos_y",
+      "a_pos_z",
+      "compass_taken",
+      "compass_taken_by"
+    ],
+    "finalHumanPos": [
+      -3.869673,
+      1,
+      4.916147
+    ],
+    "finalAgentPos": [
+      -3.565469,
+      1,
+      4.720419
+    ],
+    "reproducible": "run `node_modules/.bin/tsx examples/gold-game/gate-3-verify.mjs` to re-derive"
+  },
+  "worldModelReceipts": {
+    "count": 300,
+    "digest": "d7ee5d31629ec792eda2ee7a3819371e20dbe0ac9e3920d6dd92e8852f9e75e3",
+    "schema": "cael-jepa-wmr-v1 (tick, sensed{compassTaken,humanX,humanZ}, action{type,target}, predictedDelta)",
+    "note": "one WorldModelReceipt per agent action; the AI population emits provenance the human population does not — both hashed by the contract fn."
+  },
+  "aiHumanConnection": {
+    "sameSession": true,
+    "sameWorld": true,
+    "sameReceiptSpine": true,
+    "genuinePolicyDivergence": true,
+    "mutualEffect": true,
+    "proof": "one shared contracted session: human (scripted input) and agent (JEPA value-selection) act on ONE compass; whoever reaches it first denies the other; the agent re-plans toward the human in response. The relationship is real (mutual, reactive) and not faked (single solver, real contract digest, agent WorldModelReceipts).",
+    "honestScope": "The human input is a RECORDED/scripted trace (deterministic stand-in for live ControllerInput) and the agent value-model is a hand-authored two-action policy (compass vs greet) — NOT a learned JEPA network or a live headset. What is PROVEN here: two genuinely different decision policies, in one shared deterministic session, affecting each other through a shared resource, with the agent re-planning in response and emitting WorldModelReceipts, all under the real contract digest. What is NOT yet proven: a live human headset session and a trained V-JEPA policy (those compose at Gate 5 via /embodied + JEPANPCController). This gate proves the CONNECTION mechanics are real and reproducible, not that the agent cognition is a trained model."
+  },
+  "core": "6.1.0",
+  "verifiedAt": "2026-05-22T06:56:28.637Z"
+}
