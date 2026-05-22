@@ -4412,6 +4412,37 @@ export * as TravelHospitalityPlugin from '@holoscript/plugin-travel-hospitality'
 export * as UrbanPlanningPlugin from '@holoscript/plugin-urban-planning';
 export * as WineFoodBeveragePlugin from '@holoscript/plugin-wine-food-beverage';
 export * as WisdomGotchaPlugin from '@holoscript/plugin-wisdom-gotcha';
+
+// ── Quantum-Inspired optimization trait ──────────────────────────────────────
+// (packages/core/src/traits/QuantumInspiredTrait.ts)
+
+/** Minimal subset of SnnAccelerator the trait depends on. */
+export interface SnnAcceleratorLike {
+  readonly available: boolean;
+  initialize(opts?: { enableSnn?: boolean; snnTimesteps?: number }): Promise<void>;
+  encode(histogram: Float32Array): Promise<Float32Array>;
+  dispose(): void;
+}
+
+/** Factory that constructs an SnnAcceleratorLike instance on demand. */
+export type SnnAcceleratorProvider = () => SnnAcceleratorLike;
+
+export interface QuantumInspiredConfig {
+  /** Number of LIF neurons for population coding. Default: 128. */
+  numNeurons: number;
+  /** Scalar learning-rate exposed to .hs authors. Default: 0.01. */
+  learningRate: number;
+  /** LIF simulation timesteps per encode call. Default: 50. */
+  snnTimesteps: number;
+  /**
+   * Optional factory for a concrete SnnAcceleratorLike.
+   * Inject () => new SnnAccelerator() from @holoscript/holoembed for GPU.
+   * Omit for pure-CPU sigmoid fallback.
+   */
+  acceleratorProvider?: SnnAcceleratorProvider;
+}
+
+export declare const quantumInspiredHandler: TraitHandler<QuantumInspiredConfig>;
 `;
 
 const botanicalLotusDTS = `/**
