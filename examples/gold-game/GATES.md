@@ -27,7 +27,8 @@ flagship Gate-N.** They are different games. Only the **flagship** counts as "th
 | 5a | trained curation policy (learned, beats hand-authored heuristic) | **PASS** | `tsx gate-5a-trained-policy-verify.mjs` (8/8; top-1 1.00 vs heuristic 0.65 vs random 0.25) | `GATE-5A-TRAINED-POLICY-receipt.json` | _this commit_ |
 | 5b | live human-operator session | **PASS** | real device capture (Quest 3 OculusBrowser, immersive-vr, controller tracked, 180 frames; operator code JIEH-IVBH confirmed) | `GATE-5BC-immersive-session.json` | _this commit_ |
 | 5c | Quest projection via `/embodied` | **PASS** | immersive-vr session on Quest 3 over WebXR (https tunnel); flat render `GATE-5C-quest-projection.png` | `GATE-5BC-immersive-session.json` + `GATE-5BC-DEVICE-SESSION-receipt.json` | _this commit_ |
-| 6 | interactive VR via REAL HoloGate (entry portal/menu + grab/say intents validated against HoloDoor scope = curate in-headset) | **PASS** | `tsx gate-6-hologate-verify.mjs` (10/10; genuine validatePortalIntent gates grab across drive-avatar/read-only/mutate-zone) | `GATE-6-HOLOGATE-receipt.json` | _this commit_ |
+| 6 | interactive VR via REAL HoloGate (entry portal/menu + grab/say intents validated against HoloDoor scope = curate in-headset) | **PASS** | `tsx gate-6-hologate-verify.mjs` (10/10; genuine validatePortalIntent gates grab across drive-avatar/read-only/mutate-zone) | `GATE-6-HOLOGATE-receipt.json` | `8677bea54`+ |
+| 7 | whole-stack conformance sweep (the kitchen sink — one .holo through HoloScript's real compilers/surfaces) | **PASS** | `tsx gate-7-conformance-verify.mjs` (8/8; 15/24 compilers REAL, no fake green) | `GATE-7-CONFORMANCE-receipt.json` | _this commit_ |
 
 > Honest scope on 5b/5c: proven = a real human operated a true immersive-vr session of the projected GOLD game on a Quest 3. NOT yet proven (now Gate 6): in-headset *interaction* — there is no start menu and no way to act on the world yet, because the build is a passive WebXR render that does not go through **HoloGate** (the multi-entrant portal/intent layer). Gate 6 wires HoloGate so the headset session becomes playable.
 
@@ -47,6 +48,18 @@ Cross-modality proof: `tsx modality-verify.mjs` (10/10) — same `.holo` → one
 (`b1cb9df0…` via the real `computeStateDigest`); both builds exist and embed that scene; 2D is
 a pixel canvas (no WebGL), 3D is WebGL. Full pixel render verified by opening `index.html`
 (2D headless render captured at `2d-build/GOLD-2D-render.png`, 0 console errors).
+
+## Conformance sweep — the kitchen sink (micro-HoloLand)
+
+Gate 7 throws HoloScript's whole stack at the ONE `gold-vault-game.holo` and records honestly
+what works (`tsx gate-7-conformance-verify.mjs`; receipt `GATE-7-CONFORMANCE-receipt.json`).
+Snapshot: **33 surfaces — 17 REAL, 4 FAIL, 12 SKIP; 15/24 compilers REAL.**
+
+- **REAL compilers (one `.holo` → these targets):** ThreeJS, Babylon, Godot, Unity, Unreal, OpenXR, VisionOS, iOS, Android, AndroidXR, USDPhysics, SDF, TSL, URDF, DTDL — plus parse, trait-lib reachability, and the SimulationContract digest.
+- **FAIL (harness/dep gaps — backlog):** ARCompiler + MultiLayerCompiler (need a config arg), HolobCompiler (needs `@holoscript/holo-vm`), TraitComposition (decl-shape) — quick fixes for a future cycle.
+- **SKIP → the deepening tracks (each becomes its own gate):** multi-physics solvers · HoloMesh multi-agent · Twin-Earth identity/safety · quantum (`@quantumInspired`) · holograms (MV-HEVC/quilt) · HoloGraph/HoloEmbed; plus compilers not in the published dist (GaussianSplatting, USDZExport, PlayCanvas, NIR, PhoneSleeveVR, A2AAgentCard).
+
+This is breadth-first by design: it proves how much of HoloScript one artifact already flows through, and the FAIL/SKIP rows ARE the kitchen-sink roadmap.
 
 ## Deployment (movable Drive build — founder-ratified)
 
