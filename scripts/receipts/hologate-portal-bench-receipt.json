@@ -1,0 +1,114 @@
+{
+  "schemaVersion": "holoscript.bench.hologate-portal.v1",
+  "benchmarkId": "hgbench_mpgp6dt3",
+  "generatedAt": "2026-05-22T09:08:35.559Z",
+  "generatedBy": "scripts/hologate-portal-bench.mjs",
+  "host": {
+    "hostname": "Work",
+    "arch": "x64",
+    "cpuCount": 16,
+    "cpuModel": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "nodeVersion": "v24.15.0"
+  },
+  "commit": "21da7eb86",
+  "totalBenchDurationMs": 1272,
+  "paperTarget": "Paper 35 — HoloGate agent+human co-presence (EuroSys 2027 candidate)",
+  "researchFile": "research/2026-05-22_hologate-copresence-systems-paper-evaluation.md",
+  "boardTask": "task_1779439734598_y1gk",
+  "measurements": {
+    "intentValidation": {
+      "N": 10000,
+      "totalWallMs": 7.7,
+      "avgPerIntentNs": 772.3,
+      "throughputIntentsPerSec": 1294850,
+      "breakdown": {
+        "read-only": {
+          "avgNs": 448.7,
+          "p50Ns": 200,
+          "p99Ns": 2500,
+          "opsPerSec": 2228661
+        },
+        "mutate-zone": {
+          "avgNs": 1875.1,
+          "p50Ns": 1200,
+          "p99Ns": 6400,
+          "opsPerSec": 533305
+        },
+        "drive-avatar": {
+          "avgNs": 297.4,
+          "p50Ns": 200,
+          "p99Ns": 1600,
+          "opsPerSec": 3361910
+        }
+      }
+    },
+    "deltaFanout": {
+      "nSubscribers": 50,
+      "broadcastRounds": 1000,
+      "deltasPerBroadcast": 3,
+      "totalWallMs": 2.16,
+      "avgPerBroadcastNs": 2164.3,
+      "avgPerSubscriberDeliveryNs": 43.3,
+      "allSubscribersReceived": true,
+      "fanoutScaling": {
+        "n1": {
+          "avgNs": 518.8
+        },
+        "n10": {
+          "avgNs": 447.9
+        },
+        "n50": {
+          "avgNs": 838.2
+        }
+      }
+    },
+    "thresholdNegotiation": {
+      "N": 5000,
+      "avgNs": 1560.2,
+      "p50Ns": 1400,
+      "p99Ns": 4000,
+      "throughputPerSec": 640960,
+      "stepsModelled": [
+        "lane-selection",
+        "scope-resolution",
+        "receipt-header",
+        "entrant-arrived-event"
+      ]
+    },
+    "worldStateHash": {
+      "entityCount": 1000,
+      "avgNs": 2004113.5,
+      "p50Ns": 1801800,
+      "p99Ns": 3824200,
+      "opsPerSec": 499,
+      "scaling": {
+        "n100": {
+          "avgNs": 158065,
+          "p99Ns": 923900
+        },
+        "n500": {
+          "avgNs": 786962,
+          "p99Ns": 2297100
+        },
+        "n1000": {
+          "avgNs": 1884863,
+          "p99Ns": 3938700
+        },
+        "n2000": {
+          "avgNs": 3990564,
+          "p99Ns": 7413200
+        }
+      },
+      "sampleHash": "96bd93722060441f…"
+    }
+  },
+  "summary": {
+    "intentValidation_avgNs": 772.3,
+    "intentValidation_opsPerSec": 1294850,
+    "broadcastFanout_n50_avgNs": 2164.3,
+    "thresholdNeg_avgNs": 1560.2,
+    "thresholdNeg_p99Ns": 4000,
+    "worldHash_1K_avgNs": 2004113.5,
+    "worldHash_1K_opsPerSec": 499
+  }
+}
