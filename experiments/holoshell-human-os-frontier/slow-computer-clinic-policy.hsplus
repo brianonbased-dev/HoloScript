@@ -1,0 +1,210 @@
+// HoloShell slow-computer clinic policy and state machine.
+
+composition "HoloShellSlowComputerClinicPolicy" {
+  state ClinicState {
+    selectedWorkflow: "slow-computer-clinic"
+    riskState: "warn"
+    processCount: 503
+    shellRunCount: 47
+    staleRunCount: 25
+    highMemoryCount: 0
+    ownerUnknownReviewCount: 4
+    ownerHandoffPlanCount: 21
+    cleanupCandidateCount: 4
+    stopPlanCount: 4
+    processTerminationPerformed: false
+    afterActionVerificationCount: 0
+    productionStopReadinessCount: 0
+    receiptsCaptured: 2
+    blockers: []
+    currentLane: "codex-hardware"
+  }
+
+  template "PermissionEnvelope" {
+    readOnly: true
+    guardedExecute: false
+    breakGlass: false
+    receiptRequired: true
+    humanVisible: true
+  }
+
+  template "SlowComputerReceipt" {
+    receiptType: "slow_computer_clinic_receipt"
+    sourceNative: true
+    localOnly: true
+    replayable: true
+    rawCommandLinesHiddenByDefault: true
+    processTerminationPerformed: false
+  }
+
+  template "RemediationVerificationReceipt" using "SlowComputerReceipt" {
+    receiptType: "slow_computer_remediation_verification_receipt"
+    exactPidRequired: true
+    approvalCaptured: true
+    beforePidVisible: true
+    afterPidVisible: false
+    fixtureOnly: true
+    externalProcessTerminationAllowed: false
+  }
+
+  template "ProductionStopReadinessReceipt" using "SlowComputerReceipt" {
+    receiptType: "slow_computer_production_stop_readiness_receipt"
+    exactPidRechecked: true
+    approvalCaptured: true
+    dryRunOnly: true
+    terminationPerformed: false
+    externalProcessTerminationAllowed: false
+    requiresFreshHumanGestureBeforeExecution: true
+  }
+
+  policy "ReadOnlyDiagnosis" using "PermissionEnvelope" {
+    readOnly: true
+    guardedExecute: false
+    breakGlass: false
+    appliesTo: [
+      "collect_process_health",
+      "collect_hardware_audit",
+      "read_run_registry",
+      "classify_processes",
+      "attribute_owner_lanes",
+      "summarize_slowness"
+    ]
+  }
+
+  policy "GuardedClinicPlan" using "PermissionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    breakGlass: false
+    appliesTo: [
+      "stage_stop_plan",
+      "ask_owner_lane",
+      "mark_run_stale",
+      "write_clinic_report",
+      "file_holomesh_task"
+    ]
+  }
+
+  policy "BreakGlassTermination" using "PermissionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    breakGlass: true
+    appliesTo: [
+      "stop_process",
+      "kill_process",
+      "kill_process_tree",
+      "close_unsaved_app",
+      "delete_temp_tree"
+    ]
+  }
+
+  state_machine "ClinicWorkflow" {
+    initial: "idle"
+    states: [
+      "idle",
+      "scanned",
+      "classified",
+      "explained",
+      "handoff_requested",
+      "stop_plan_staged",
+      "approved",
+      "remediated",
+      "verified",
+      "blocked"
+    ]
+    transition "scan" { from: "idle", to: "scanned" }
+    transition "classify" { from: "scanned", to: "classified" }
+    transition "explain" { from: "classified", to: "explained" }
+    transition "ask_owner" { from: "explained", to: "handoff_requested" }
+    transition "stage_stop" { from: "explained", to: "stop_plan_staged" }
+    transition "approve" { from: "stop_plan_staged", to: "approved" }
+    transition "remediate" { from: "approved", to: "remediated" }
+    transition "verify" { from: "remediated", to: "verified" }
+    transition "block" { from: "*", to: "blocked" }
+  }
+
+  role "CodexHardware" {
+    laneId: "codex-hardware"
+    owns: ["process_scan", "hardware_audit", "receipt_hashing", "source_validation"]
+  }
+
+  role "OwnerLaneAgent" {
+    laneId: "owner-lane"
+    owns: ["extend_run", "close_run", "justify_stale_process", "acknowledge_handoff"]
+  }
+
+  role "BrowserWitnessAgent" {
+    laneId: "browser-witness"
+    owns: ["visible_browser_health", "webgpu_webxr_probe", "screenshot_receipt"]
+  }
+
+  role "HoloLandProductAgent" {
+    laneId: "hololand-product"
+    owns: ["clinic_room", "brittney_explanation", "quest_or_lesson_surface"]
+  }
+
+  action classifyOperation(operation) {
+    if (operation.kind in BreakGlassTermination.appliesTo) {
+      return "break_glass"
+    }
+    if (operation.kind in GuardedClinicPlan.appliesTo) {
+      return "guarded_execute"
+    }
+    return "read_only"
+  }
+
+  action recordReceipt(receipt) {
+    ClinicState.receiptsCaptured = ClinicState.receiptsCaptured + 1
+    emit("holoshell:slow_computer:receipt", {
+      workflow: ClinicState.selectedWorkflow,
+      lane: ClinicState.currentLane,
+      receipt: receipt,
+      count: ClinicState.receiptsCaptured,
+      processTerminationPerformed: ClinicState.processTerminationPerformed
+    })
+  }
+
+  action recordRemediationVerification(receipt) {
+    ClinicState.afterActionVerificationCount = ClinicState.afterActionVerificationCount + 1
+    ClinicState.processTerminationPerformed = receipt.summary.terminationPerformed
+    emit("holoshell:slow_computer:remediation_verified", {
+      workflow: ClinicState.selectedWorkflow,
+      lane: ClinicState.currentLane,
+      targetPid: receipt.summary.targetPid,
+      status: receipt.summary.status,
+      approvalCaptured: receipt.summary.approvalCaptured,
+      terminationPerformed: receipt.summary.terminationPerformed,
+      afterVisible: receipt.summary.afterVisible,
+      receiptHash: receipt.witness.receiptHash
+    })
+  }
+
+  action recordProductionStopReadiness(receipt) {
+    ClinicState.productionStopReadinessCount = ClinicState.productionStopReadinessCount + 1
+    emit("holoshell:slow_computer:production_stop_ready", {
+      workflow: ClinicState.selectedWorkflow,
+      lane: ClinicState.currentLane,
+      targetPid: receipt.summary.targetPid,
+      status: receipt.summary.status,
+      exactPidRechecked: receipt.summary.exactPidRechecked,
+      approvalCaptured: receipt.summary.approvalCaptured,
+      ownerAckCaptured: receipt.summary.ownerAckCaptured,
+      dryRunOnly: receipt.summary.dryRunOnly,
+      terminationPerformed: false,
+      receiptHash: receipt.witness.receiptHash
+    })
+  }
+
+  action blockOn(reason, evidencePath, ownerSurface) {
+    ClinicWorkflow.transition("block")
+    ClinicState.blockers.push({
+      reason: reason,
+      evidencePath: evidencePath,
+      ownerSurface: ownerSurface
+    })
+    emit("holoshell:slow_computer:blocker", {
+      reason: reason,
+      evidencePath: evidencePath,
+      ownerSurface: ownerSurface
+    })
+  }
+}

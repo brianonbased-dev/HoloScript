@@ -1,0 +1,146 @@
+/**
+ * HoloShell Slow Computer Clinic Room
+ *
+ * Visible room concept for:
+ * "My computer feels slow. Show what is using hardware, what is safe to do,
+ * and what would change before anything is stopped."
+ */
+
+composition "HoloShell Slow Computer Clinic Room" {
+  environment {
+    backgroundColor: "#101318"
+    ambient_light: 0.58
+    shadows: true
+  }
+
+  template "ClinicPanel" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    scale: [1.48, 0.58, 0.08]
+    material: {
+      color: "#17202a"
+      emissive: "#24303d"
+      emissiveIntensity: 0.2
+      transparent: true
+      opacity: 0.96
+    }
+  }
+
+  template "ReceiptMarker" {
+    @grabbable
+    @collidable
+    geometry: "sphere"
+    scale: [0.15, 0.15, 0.15]
+    material: { color: "#7dcfff" }
+  }
+
+  object "HumanQuestion" using "ClinicPanel" {
+    position: [0, 2.3, -2.8]
+    label: "Why is this computer slow?"
+    properties: {
+      humanJob: "diagnose local slowness without forcing the user to understand Task Manager, shells, GPU flags, or hidden agent runs"
+      defaultPromise: "read first, explain plainly, stop nothing without approval"
+      sourceContract: "HoloScript owns receipts, policy, replay keys, and stop envelopes; HoloLand renders the clinic room"
+    }
+  }
+
+  object "HardwareVitals" using "ClinicPanel" {
+    position: [-4.4, 1.45, -1.2]
+    label: "Hardware vitals"
+    properties: {
+      reads: "CPU, memory, GPU/browser capability, process count, shell run count"
+      currentEvidence: "risk warn; 503 processes; 47 shell/dev runs; 0 high-memory processes"
+      failureState: "collector unavailable, stale receipt, browser hardware probe warning"
+    }
+  }
+
+  object "RunCustody" using "ClinicPanel" {
+    position: [-2.2, 1.45, -1.2]
+    label: "Run custody"
+    properties: {
+      reads: "registered run registry, process table, owner lanes, ancestor PIDs"
+      currentEvidence: "32 registered runs; 21 lane-owned handoff plans; 4 owner-unknown cleanup candidates"
+      rule: "lane-owned findings ask the owning agent before stop planning"
+    }
+  }
+
+  object "CleanupCandidates" using "ClinicPanel" {
+    position: [0, 1.45, -1.2]
+    label: "Cleanup candidates"
+    properties: {
+      reads: "owner-unknown stale shell/dev runs and orphan-like processes"
+      currentEvidence: "25 stale runs; 4 owner-unknown stale runs; 4 guarded stop plans"
+      rule: "plan is visible and replayable; termination remains break-glass"
+    }
+  }
+
+  object "OwnerHandoff" using "ClinicPanel" {
+    position: [2.2, 1.45, -1.2]
+    label: "Owner handoff"
+    properties: {
+      reads: "Codex, Claude, Gemini, Copilot, local shell, browser, and HoloMesh lanes"
+      currentEvidence: "21 lane-owned stale processes require owner handoff"
+      rule: "ask owner to close, extend, or justify before cleanup"
+    }
+  }
+
+  object "ActionPreview" using "ClinicPanel" {
+    position: [4.4, 1.45, -1.2]
+    label: "Action preview"
+    properties: {
+      controls: ["refresh_scan", "ask_owner", "stage_stop_plan", "approve_stop", "replay_scan"]
+      blockedByDefault: ["kill_process", "kill_process_tree", "delete_files", "close_unsaved_app"]
+      rollback: "record before/after receipts and compensating note when external state changed"
+    }
+  }
+
+  object "ReadOnlyReceipt" using "ReceiptMarker" {
+    position: [-3.3, 0.78, 0.1]
+    label: "read-only health receipt"
+    properties: {
+      receiptKind: "process_health_receipt"
+      evidencePath: ".bench-logs/holoshell-human-os-frontier/2026-05-16/slow-computer-process-health.json"
+    }
+  }
+
+  object "HardwareReceipt" using "ReceiptMarker" {
+    position: [-1.1, 0.78, 0.1]
+    material: { color: "#9ece6a" }
+    label: "hardware audit receipt"
+    properties: {
+      receiptKind: "hardware_receipt"
+      evidencePath: ".bench-logs/holoshell-human-os-frontier/2026-05-16/slow-computer-hardware-audit.json"
+    }
+  }
+
+  object "StopPlanReceipt" using "ReceiptMarker" {
+    position: [1.1, 0.78, 0.1]
+    material: { color: "#e0af68" }
+    label: "guarded stop plans"
+    properties: {
+      receiptKind: "guarded_stop_plan_receipt"
+      stopPlanCount: 4
+      terminationPerformed: false
+    }
+  }
+
+  object "ReplayReceipt" using "ReceiptMarker" {
+    position: [3.3, 0.78, 0.1]
+    material: { color: "#f7768e" }
+    label: "replayable lesson"
+    properties: {
+      receiptKind: "slow_computer_clinic_replay_receipt"
+      replayInputs: ["processHealthHash", "hardwareAuditHash", "thresholds", "ownerLaneMap"]
+    }
+  }
+
+  object "ClinicTimeline" {
+    @anchor
+    geometry: "cube"
+    position: [0, 0.24, 0.12]
+    scale: [7.5, 0.08, 0.14]
+    color: "#626d7f"
+    label: "timeline: scan -> classify -> attribute owner -> explain -> ask owner -> stage stop plan -> approve -> verify -> replay"
+  }
+}

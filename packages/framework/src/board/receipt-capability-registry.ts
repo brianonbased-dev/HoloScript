@@ -643,6 +643,30 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
     ],
     tags: ['holoshell', 'startup', 'autostart', 'login-item', 'safety', 'hololand'],
   },
+  {
+    capability: 'slow-computer-clinic',
+    description:
+      'Slow computer clinic receipts — prove process health, hardware vitals, ownership attribution, guarded stop plans, remediation verification, and production stop readiness for diagnosing and safely remediating local slowness.',
+    receiptType: 'HoloShellSlowComputerClinicReceiptPack',
+    module: 'holoshell-slow-computer-clinic-receipts',
+    exportName: 'HoloShellSlowComputerClinicReceiptPack',
+    validateFn: 'validateHoloShellSlowComputerClinicReceiptPack',
+    cloneFn: 'cloneHoloShellSlowComputerClinicReceiptPack',
+    isSupportedFn: 'isSupportedRiskState',
+    subjects: [
+      'process-health',
+      'hardware-audit',
+      'ownership',
+      'stop-plan',
+      'remediation',
+      'production-stop',
+      'break-glass',
+      'dry-run',
+      'owner-handoff',
+      'replay',
+    ],
+    tags: ['holoshell', 'diagnostics', 'process', 'safety', 'hololand'],
+  },
 ];
 
 // ── Lookup functions ──
