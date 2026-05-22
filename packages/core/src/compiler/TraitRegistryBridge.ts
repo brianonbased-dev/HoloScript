@@ -53,7 +53,7 @@ export function queryTrait(name: string, opts: TraitQueryOptions = {}): TraitInf
   const target = opts.target || 'core';
 
   // Android XR / PhoneSleeveVR path (real implementation exists)
-  if (target === 'android-xr' || target === 'android') {
+  if (target === 'android-xr') {
     const map = getAndroidXRTrait(name);
     if (map) {
       return {

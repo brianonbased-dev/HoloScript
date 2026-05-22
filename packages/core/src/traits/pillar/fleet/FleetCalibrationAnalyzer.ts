@@ -39,7 +39,7 @@ function loadRecords(filePath: string): CalibrationRecord[] {
       const obj = JSON.parse(line) as Record<string, unknown>;
       // Skip header and checkpoint records
       if (obj['_type']) continue;
-      records.push(obj as CalibrationRecord);
+      records.push(obj as unknown as CalibrationRecord);
     } catch {
       // malformed line — skip
     }

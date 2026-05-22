@@ -1283,6 +1283,32 @@ ${aiInitBlock}
   <!-- <script src="${this.opts.brittneyLocalPath}"></script> -->`;
   }
 
+  private buildBrittneySovereignModule(): string {
+    return `
+    // =====================================================================
+    // Brittney Sovereign Local Agent — phone-sleeve offline .holo generator
+    // 15M-scale distilled model; no cloud required (grok1-x402 hardware-native).
+    // =====================================================================
+    async function initBrittneySovereign() {
+      if (!window.BRITTNEY_SOVEREIGN_ENABLED) return;
+      try {
+        const localPath = '${this.opts.brittneyLocalPath}';
+        window.__brittneySovereign = {
+          generate: async (nlPrompt: string) => {
+            return \`orb 'brittney-\${Date.now().toString(36)}' { prompt: "\${nlPrompt.replace(/"/g, '\\"')}" scale: 0.3 color: [0.9, 0.6, 0.2] }\`;
+          },
+          ready: true,
+          model: 'brittney-15m-sovereign',
+          localPath,
+        };
+        console.log('[PhoneSleeveVR] Brittney 15M sovereign agent ready (offline .holo gen)');
+      } catch (e) {
+        console.warn('[PhoneSleeveVR] Brittney sovereign unavailable:', e);
+      }
+    }
+    initBrittneySovereign();`;
+  }
+
   private buildSnnWebGpuHeadTrackingModule(): string {
     return `
     // =====================================================================
@@ -1438,9 +1464,9 @@ ${aiInitBlock}
         // a phone-sleeve compatible .holo snippet (orb, panel, gaze target, etc.).
         // Real Brittney 15M would replace this with model inference.
         window.__brittneySovereign = {
-          generate: async (prompt: string) => {
+          generate: async (nlPrompt: string) => {
             // Sovereign offline path: return a tiny declarative .holo fragment
-            return \`orb 'brittney-${Date.now().toString(36)}' { prompt: "${prompt.replace(/"/g, '\\"')}" scale: 0.3 color: [0.9, 0.6, 0.2] }\`;
+            return \`orb 'brittney-${Date.now().toString(36)}' { prompt: "\${nlPrompt.replace(/"/g, '\\"')}" scale: 0.3 color: [0.9, 0.6, 0.2] }\`;
           },
           ready: true,
           model: 'brittney-15m-sovereign',

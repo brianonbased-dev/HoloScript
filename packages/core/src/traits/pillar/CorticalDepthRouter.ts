@@ -139,7 +139,7 @@ export interface CorticalDepthRouterConfig {
  *   cortical:routed { brain_coord: BrainCoord, stage: SliceStage, depth: CorticalDepth }
  */
 export const corticalDepthRouterHandler: TraitHandler = {
-  id: 'CorticalDepthRouter',
+  name: 'CorticalDepthRouter',
 
   defaultConfig(): CorticalDepthRouterConfig {
     return { emit_events: true };
@@ -147,7 +147,7 @@ export const corticalDepthRouterHandler: TraitHandler = {
 
   onEvent(
     _node: HSPlusNode,
-    config: CorticalDepthRouterConfig,
+    config: unknown,
     context: TraitContext,
     event: TraitEvent,
   ): void {
@@ -164,7 +164,7 @@ export const corticalDepthRouterHandler: TraitHandler = {
     const routed = enrichCoord(brain_coord, stage);
     const depth = routed.cortical_depth;
 
-    if (config.emit_events) {
+    if ((config as CorticalDepthRouterConfig).emit_events) {
       context.emit?.('cortical:routed', { brain_coord: routed, stage, depth });
     }
   },

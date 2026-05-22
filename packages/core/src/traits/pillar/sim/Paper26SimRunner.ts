@@ -447,10 +447,10 @@ function percentile(sorted: number[], p: number): number {
 }
 
 function computePopulationMetrics(agents: AgentState[], tick: number): PopulationMetrics {
-  const gammas        = agents.map(a => a.history.at(-1)?.hemisphereAgreement ?? 0).sort((a, b) => a - b);
-  const losses        = agents.map(a => a.history.at(-1)?.totalLoss ?? 0);
-  const diversities   = agents.map(a => a.history.at(-1)?.diversityRatio ?? 1);
-  const lifecycles    = agents.map(a => a.history.at(-1)?.lifecycle ?? 'init');
+  const gammas        = agents.map(a => a.history[a.history.length - 1]?.hemisphereAgreement ?? 0).sort((a, b) => a - b);
+  const losses        = agents.map(a => a.history[a.history.length - 1]?.totalLoss ?? 0);
+  const diversities   = agents.map(a => a.history[a.history.length - 1]?.diversityRatio ?? 1);
+  const lifecycles    = agents.map(a => a.history[a.history.length - 1]?.lifecycle ?? 'init');
 
   const meanLoss = losses.reduce((s, v) => s + v, 0) / losses.length;
   const varLoss  = losses.reduce((s, v) => s + (v - meanLoss) ** 2, 0) / losses.length;
@@ -493,7 +493,7 @@ function buildSnapshot(): SimSnapshot {
     currentTick:     CURRENT_TICK,
     elapsedMs:       Date.now() - START_TIME_MS,
     population:      POPULATION_METRICS,
-    finalPopulation: POPULATION_METRICS.at(-1) ?? null,
+    finalPopulation: POPULATION_METRICS[POPULATION_METRICS.length - 1] ?? null,
     config: {
       innerFreq:       INNER_FREQ,
       latentDim:       LATENT_DIM,
@@ -524,7 +524,7 @@ function writeCheckpoint(tag: string): void {
 
 async function pushToKnowledge(tick: number): Promise<void> {
   if (!KNOWLEDGE_PUSH || !KNOWLEDGE_KEY) return;
-  const pm = POPULATION_METRICS.at(-1);
+  const pm = POPULATION_METRICS[POPULATION_METRICS.length - 1];
   if (!pm) return;
   try {
     const body = JSON.stringify({
@@ -551,7 +551,7 @@ async function pushToKnowledge(tick: number): Promise<void> {
 
 async function pushToHoloMesh(tick: number, running: boolean): Promise<void> {
   if (!HOLOMESH_PUSH) return;
-  const pm = POPULATION_METRICS.at(-1);
+  const pm = POPULATION_METRICS[POPULATION_METRICS.length - 1];
   if (!pm) return;
   try {
     const body = JSON.stringify({
@@ -805,7 +805,7 @@ async function runSimulation(): Promise<void> {
   await pushToHoloMesh(OUTER_TICKS, false);
 
   console.log('[sim] COMPLETE');
-  const final = POPULATION_METRICS.at(-1)!;
+  const final = POPULATION_METRICS[POPULATION_METRICS.length - 1]!;
   console.log(`[sim] Final γ_med=${(final.medianGamma*100).toFixed(1)}% γ_p90=${(final.p90Gamma*100).toFixed(1)}%`);
   console.log(`[sim] Final loss=${final.meanTotalLoss.toFixed(4)} ρ=${(final.meanDiversity*100).toFixed(1)}%`);
   console.log('[sim] Lifecycle distribution:', JSON.stringify(final.lifecycleDistrib, null, 2));

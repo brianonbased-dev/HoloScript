@@ -246,7 +246,8 @@ function processMessage(msg: GossipMessage): CalibrationRecord | null {
   if (history.length > 100) history.shift();
 
   // Scores
-  const B_score = byzResult.isAnomalous ? byzResult.zScore ?? 1.0 : byzResult.zScore ?? 0.0;
+  const byzZScore = (byzResult as unknown as Record<string, number | undefined>)['zScore'];
+  const B_score = byzResult.isAnomalous ? byzZScore ?? 1.0 : byzZScore ?? 0.0;
   const S_score = sycoResult.driftScore ?? 0.0;
   const is_byzantine    = byzResult.isAnomalous;
   const is_sycophantic  = sycoResult.isDrifting;

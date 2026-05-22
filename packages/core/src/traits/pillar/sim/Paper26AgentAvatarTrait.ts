@@ -180,12 +180,12 @@ const DEFAULT_AVATAR_STATE: Paper26AvatarState = {
 };
 
 function getAvatarState(node: HSPlusNode): Paper26AvatarState {
-  return (node as Record<string, unknown>)['__p26avatar_state__'] as Paper26AvatarState
+  return (node as unknown as Record<string, unknown>)['__p26avatar_state__'] as Paper26AvatarState
     ?? { ...DEFAULT_AVATAR_STATE };
 }
 
 function setAvatarState(node: HSPlusNode, state: Paper26AvatarState): void {
-  (node as Record<string, unknown>)['__p26avatar_state__'] = state;
+  (node as unknown as Record<string, unknown>)['__p26avatar_state__'] = state;
 }
 
 export const paper26AvatarHandler: TraitHandler<Paper26AvatarConfig> = {
