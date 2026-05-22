@@ -234,11 +234,23 @@ export function useStudioSetupWizard(onClose: () => void) {
     );
     StudioEvents.presetApplied(selectedPresetId, 'wizard');
     setCreated(true);
+    // Fire provision in the background so the user gets a HoloMesh agent identity.
+    // scaffold/absorb disabled — no GitHub repo connected in this flow.
+    // The register-holomesh-agent step (step 2) succeeds even if ensure-repo later fails.
+    fetch('/api/workspace/provision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        consent: { scaffold: false, absorb: false, daemon: false, publishKnowledge: false },
+      }),
+    }).catch(() => {
+      // Non-fatal — user can re-run /onboard later if GitHub is not yet connected
+    });
     setTimeout(() => {
       onClose();
       // Route users to their appropriate standalone workspace based on category
       const industryCategories = [
-        'healthcare', 'architecture', 'agriculture', 'iot', 
+        'healthcare', 'architecture', 'agriculture', 'iot',
         'robotics', 'science', 'creator', 'hologram'
       ];
       if (category && industryCategories.includes(category)) {
@@ -247,7 +259,7 @@ export function useStudioSetupWizard(onClose: () => void) {
         router.push('/create');
       }
     }, 800);
-  }, [selectedPresetId, specifics, experienceLevel, applyPreset, onClose, wizardTemplate, setCode, router, category]);
+  }, [selectedPresetId, specifics, experienceLevel, applyPreset, onClose, wizardTemplate, setCode, router, category, subCategory]);
 
   return {
     step,

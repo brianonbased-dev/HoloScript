@@ -6,9 +6,9 @@ export interface SeededFile {
 }
 
 /**
- * Generates the uAA2++ agentic ecosystem files for a newly imported repository.
+ * Generates agent workspace configuration files for a newly imported repository.
  * This ensures any local agents (Claude/Cursor) acting on the repo follow
- * strict HoloMesh orchestration rules and context limits.
+ * HoloMesh orchestration rules and context limits.
  */
 export function generateWorkspaceSeed(repoName: string, dna: ProjectDNA): SeededFile[] {
   const files: SeededFile[] = [];
@@ -19,13 +19,13 @@ export function generateWorkspaceSeed(repoName: string, dna: ProjectDNA): Seeded
     content: `# NORTH_STAR - ${repoName}
 
 ## Primary Objective
-Maintain production stability and act as the local node for the HoloScript uAA2++ Mesh.
+Maintain production stability and act as the local node for the HoloScript mesh.
 
 ## Core Directives
 1. **GraphRAG-First:** Always execute \`holo_query_codebase\` before making architectural modifications.
 2. **Explicit Staging:** NEVER use \`git add -A\`. Stage files explicitly.
-3. **Sovereignty Boundary:** Do not modify the underlying engine physics unless authorized via Sovereign Approval.
-4. **Context Loop:** You must COMPRESS and GROW your local \`MEMORY.md\` upon completing isolated tasks.
+3. **Engine Boundary:** Do not modify the underlying engine physics without explicit authorization from the project owner.
+4. **Context Loop:** You must COMPRESS and GROW your local \`.claude/memory/MEMORY.md\` upon completing isolated tasks.
 
 ## Local Daemon Profile
 Assigned Daemon: **${dna.recommendedProfile}**
@@ -36,7 +36,7 @@ Repository DNA: ${dna.kind.toUpperCase()} (${dna.languages.join(', ')})
 
   // 2. MEMORY.md
   files.push({
-    path: 'MEMORY.md',
+    path: '.claude/memory/MEMORY.md',
     content: `# Workspace Memory Ledger
 
 > This file acts as the persistent storage for local AI agents executing in this workspace.
@@ -86,10 +86,10 @@ description: Ensure local mesh telemetry and safe job execution
 ---
 # Absorb & Orchestrator Funnel
 
-1. Run \`bolo_graph_status\` to verify local knowledge cache.
-2. Claim task from Holomesh board (if remote).
+1. Run \`holo_graph_status\` to verify local knowledge cache.
+2. Claim task from HoloMesh board (if remote).
 3. Execute localized code changes.
-4. Summarize changes into \`MEMORY.md\` and run GraphRAG sync.
+4. Summarize changes into \`.claude/memory/MEMORY.md\` and run GraphRAG sync.
 `
   });
 

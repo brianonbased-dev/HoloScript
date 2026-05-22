@@ -372,6 +372,18 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
       setActiveWorkspace(workspaceId);
     }
     onClose();
+    // Fire provision in the background so the user gets a HoloMesh agent identity
+    // and their ai-workspace config repo is seeded. Non-blocking — failures are silent.
+    // The import flow already has GitHub auth, so provision can run the full pipeline.
+    fetch('/api/workspace/provision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        consent: { scaffold: true, absorb: false, daemon: true, publishKnowledge: false },
+      }),
+    }).catch(() => {
+      // Non-fatal — user can re-run /onboard later
+    });
   }, [workspaceId, setActiveWorkspace, onClose]);
 
   const retryImport = useCallback(() => {
