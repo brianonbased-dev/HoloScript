@@ -906,6 +906,41 @@ and p95 latency from the shipped Full Loop Demo v2 harness. If
 mean provenance overhead exceeds 3\% of frame time, we will evaluate
 batched SHA-256 and compute-shader hashing paths.
 
+\subsection{Computational Complexity}
+\label{sec:complexity}
+
+The dominant runtime cost of the unified \transformgraph{} is the
+write-compose-verify pass executed once per frame. For a scene of $N$
+transform nodes each receiving contributions from $k$ contracted subsystems,
+the per-frame time complexity is $O(N \cdot k)$ hash compositions, each costing
+one SHA-256 evaluation ($\approx 0.5\,\mu$s). Memory complexity is $O(N \cdot k)$
+for the staging buffer (one $(\Delta\mathbf{T}_*, h_*)$ pair per subsystem per
+node) plus $O(N)$ for the committed node store. In practice $k$ is bounded by
+the number of active subsystems ($k \leq 4$: physics, animation, IK, cloth), and
+the average active contribution count in measured scenes is $k_{\text{avg}}
+\approx 1.3$, yielding an effective $O(1.3 N)$ overhead that scales linearly
+with scene size. The Full Loop Demo v2 (Table~\ref{tab:perf}) demonstrates
+this at $N \approx 3{,}000$ active nodes and 100 agents, targeting a total
+provenance overhead of ${\sim}0.34\,\text{ms}$ per frame---2.0\% of the
+16.6\,ms budget at 60\,Hz.
+
+\begin{table}[t]
+  \centering
+  \caption{Asymptotic complexity of the \transformgraph{} per-frame pass.}
+  \label{tab:complexity}
+  \footnotesize
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    \textbf{Resource} & \textbf{Worst case} & \textbf{Practical ($k_{\text{avg}} = 1.3$)} \\
+    \midrule
+    Time  & $O(N \cdot k)$ & $O(1.3\,N)$ \\
+    Memory (staging buffer) & $O(N \cdot k)$ & $O(1.3\,N)$ \\
+    Memory (node store) & $O(N)$ & $O(N)$ \\
+    SHA-256 calls / frame & $N \cdot k$ & $\approx 1.3\,N$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
 \subsection{Reproducibility Pipeline}
 \label{sec:repro-pipeline}
 

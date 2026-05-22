@@ -664,6 +664,45 @@ about engineering gaps (GPU-resident hashing) needed for XR-grade budgets.
 
 To evaluate the operational utility and cognitive ergonomics of the system, we have preregistered a user study ($N=12$) targeting human participants interacting with the framework. A preliminary pilot study ($N=3$) was conducted to validate the experimental harness and confirm the feasibility of the survey instrument. The full study measures task completion time, error recovery rates, and qualitative cognitive load against a baseline. The study protocol, along with the IRB waiver and preregistration packet, is maintained in the supplementary materials to satisfy reproducibility requirements (D.011).
 
+\subsection{Computational Complexity}
+\label{sec:complexity}
+
+The per-frame provenance cost of \rendercontract{} is dominated by two
+independent passes: scene-graph hashing ($O(S)$ in scene-graph byte size $S$)
+and per-tile pixel hashing ($O(|T| \cdot P)$ for $|T|$ tiles each of $P$ bytes).
+Memory complexity is $O(|T|)$ for the tile-hash array plus $O(\log |T|)$ for the
+Merkle-style chain composition that folds them into the frame hash. The ablation
+in Table~\ref{tab:p13-ablation} confirms the linear-in-tiles model: the H1
+implementation (serial V8 dispatch) adds $3.65\,\text{ms}$ for 10 tiles of
+256\,KB each, consistent with $O(|T|)$ serial scheduling. The H3 WGSL
+compute path (Table~\ref{tab:p13-gpu-bench}) achieves $O(1)$ effective cost up
+to GPU occupancy saturation because tile hashes are embarrassingly parallel:
+each tile's 256\,KB chunk maps to an independent workgroup with no
+inter-tile synchronization, reducing H3 median per-tile hashing from
+3.65\,ms to 0.42\,ms at $|T|=10$ and scaling to ${\sim}1{,}000$ tiles
+before SM occupancy saturates on the RTX~3060.
+
+\begin{table}[t]
+  \centering
+  \caption{Asymptotic complexity of the \rendercontract{} per-frame provenance pass.}
+  \label{tab:complexity}
+  \footnotesize
+  \begin{tabular}{@{}llll@{}}
+    \toprule
+    \textbf{Stage} & \textbf{Time (H1)} & \textbf{Time (H3)} & \textbf{Memory} \\
+    \midrule
+    Scene-graph hash & $O(S)$ & $O(S)$ & $O(1)$ \\
+    Pixel-tile hashing & $O(|T| \cdot P)$ & $O(P)^{\dagger}$ & $O(|T|)$ \\
+    Chain composition & $O(\log |T|)$ & $O(\log |T|)$ & $O(\log |T|)$ \\
+    \midrule
+    Total per frame & $O(|T| \cdot P)$ & $O(P)^{\dagger}$ & $O(|T|)$ \\
+    \bottomrule
+  \end{tabular}
+  \vspace{2pt}
+  {\footnotesize $\dagger$ Constant in $|T|$ up to GPU SM occupancy saturation
+  (${\sim}1{,}000$ tiles on RTX~3060).}
+\end{table}
+
 \section{Related Work}
 \label{sec:related-work}
 

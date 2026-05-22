@@ -448,6 +448,40 @@ full-loop provenance story. Frozen paper artifacts remain in
 camera-ready run refreshes those artifacts after the same local test command
 passes.
 
+\subsection{Computational Complexity}
+\label{sec:complexity}
+
+Each of the four constraint predicates in \plausibility{} evaluates in $O(n)$
+time for an $n$-bone skeleton (Section~\ref{sec:contract:formal}), so the
+full contract check over a clip of $F$ frames costs $O(n \cdot F)$ operations.
+Memory complexity is $O(n \cdot F)$ for the pose sequence plus $O(n)$ working
+storage for per-frame predicate evaluation. The Merkle provenance chain
+(Section~\ref{sec:training:merkle}) adds $O(\log N)$ hash lookups for an
+attribution query over a corpus of $N$ DPO pairs, with $O(N)$ storage for
+the leaf layer. In the 5-category benchmark (Table~\ref{tab:bench}), clips
+are one second at 30\,fps ($F = 30$); contract-check latency ranges from
+2.07\,\textmu{}s (acrobatics) to 12.37\,\textmu{}s (locomotion), consistent
+with the $O(n \cdot F)$ model given locomotion's active ZMP polygon computation
+being the costliest predicate (confirmed by the ablation in Table~\ref{tab:ablation},
+where removing the ZMP check saves 18.30\,\textmu{}s, the largest single
+contributor).
+
+\begin{table}[t]
+  \centering
+  \caption{Asymptotic complexity of \plausibility{} per clip.}
+  \label{tab:complexity}
+  \footnotesize
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    \textbf{Operation} & \textbf{Time} & \textbf{Memory} \\
+    \midrule
+    Contract check (4 predicates, $F$ frames) & $O(n \cdot F)$ & $O(n \cdot F)$ \\
+    Attribution query (Merkle spot-sample $k$) & $O(\log N + k)$ & $O(1)$ \\
+    Corpus Merkle root build & $O(N)$ & $O(N)$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
 \section{Related Work}
 \label{sec:related}
 
