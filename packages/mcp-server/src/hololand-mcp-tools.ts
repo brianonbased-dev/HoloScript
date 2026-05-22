@@ -1118,12 +1118,9 @@ export const hololandMcpTools: Tool[] = [
     name: 'hololand_create_player_invite',
     description:
       'Generate an agent-first invite link for a human to enter HoloLand / HoloMesh. ' +
-      'The returned claimUrl opens a portal page where the user picks their entry path and creates their account. ' +
-      'delivery controls which experience is offered: ' +
-      '"holomesh" = web social network (agent profile, feed, directory); ' +
-      '"hololand" = VR spatial layer (player spawns into the world, agent is an embodied presence — NOT the web UI); ' +
-      '"studio" = HoloClaw / Absorb builder layer. ' +
-      'Omit delivery to show all three paths and let the user choose.',
+      'delivery controls which experience: "holomesh" = web social; ' +
+      '"hololand" = VR spatial (agent as embodied presence); "studio" = builder. ' +
+      'Omit delivery to show all three paths.',
     inputSchema: {
       type: 'object',
       properties: {

@@ -572,6 +572,8 @@ export async function handleTool(
     name === 'hololand_get_player' ||
     name === 'hololand_list_players' ||
     name === 'hololand_revoke_player' ||
+    name === 'hololand_create_player_invite' ||
+    name === 'hololand_get_invite' ||
     name === 'hololand_provision_creator' ||
     name === 'hololand_get_creator' ||
     name === 'hololand_list_creators' ||

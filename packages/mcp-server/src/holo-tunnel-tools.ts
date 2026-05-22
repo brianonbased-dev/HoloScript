@@ -81,21 +81,7 @@ export function __resetHoloTunnelToolsForTests(): void {
 export const holoTunnelTools: Tool[] = [
   {
     name: 'holo_tunnel_create',
-    description: `Open a local-to-cloud tunnel via the HoloMesh relay.
-
-Given a local port, opens a WebSocket tunnel to the MCP relay and returns a
-public HTTPS URL that forwards traffic to localhost:<port>. This is the
-sovereign replacement for ngrok — no third-party dependency, no CLI knowledge
-required.
-
-Use cases:
-- Share a local dev server with Quest 3 / mobile devices
-- Preview Studio builds on external devices
-- Dogfood D.012 lights-out preview flows
-
-Returns: { url: string, liveUrl: string, tunnelId: string, sharePacket: object }
-— the developer URL, stable /live URL, handle for closing the tunnel, and a
-product-safe packet HoloLand can consume.`,
+    description: `Open a local-to-cloud tunnel via the HoloMesh relay. Given a local port, opens a WebSocket tunnel and returns a public HTTPS URL forwarding to localhost:<port>. Sovereign ngrok replacement — no third-party dependency. Returns { url, liveUrl, tunnelId, sharePacket }.`,
     inputSchema: {
       type: 'object' as const,
       properties: {
