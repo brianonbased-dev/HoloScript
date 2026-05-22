@@ -23,11 +23,19 @@
     "bloom": true,
     "tone_mapping": "ACESFilmic"
   },
+  "webxr": {
+    "enabled": true,
+    "entry": "VRButton",
+    "loop": "setAnimationLoop",
+    "immersive_mode": "immersive-vr",
+    "player_rig": true,
+    "note": "bloom dropped inside XR session (EffectComposer not XR-aware)"
+  },
   "sceneDigest": "208645323846a6dfc8596b3f3e9e1749f09ac1b3aa3d4d1bdffd32e19774c568",
-  "htmlBytes": 545359,
+  "htmlBytes": 547958,
   "selfContained": true,
   "offline": true,
   "three": "0.182.0 (bundled IIFE)",
   "core": "6.1.0",
-  "verifiedAt": "2026-05-22T08:39:34.476Z"
+  "verifiedAt": "2026-05-22T09:04:42.728Z"
 }

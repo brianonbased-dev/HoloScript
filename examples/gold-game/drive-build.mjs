@@ -69,6 +69,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 const SCENE = ${sceneJson};
 const C = (h) => new THREE.Color(h);
 
@@ -78,7 +79,10 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.xr.enabled = true;            // WebXR: inhabitable on Quest 3 (Gate 5c)
 document.body.appendChild(renderer.domElement);
+// "Enter VR" button — routes into the headset via the Oculus OpenXR runtime.
+document.body.appendChild(VRButton.createButton(renderer));
 
 const scene = new THREE.Scene();
 // gradient sky (no shader — a 1x256 canvas gradient)
@@ -168,23 +172,37 @@ const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
+// In VR, the player stands inside the vault: place them on the path facing the
+// Diamond peak, so the world surrounds them. A 'rig' carries the XR camera so we
+// can position the human in the scene without fighting head-tracking.
+const rig = new THREE.Group();
+rig.position.set(focus.x, 1.6, focus.z + 12);   // eye height, just in front of the peak
+rig.add(camera); scene.add(rig);
+
 let t = 0.6;
 function frame() {
-  t += 0.0025;
-  const rad = 17;
-  camera.position.set(Math.cos(t) * rad, 6 + Math.sin(t * 0.5) * 3, Math.sin(t) * rad - 4);
-  camera.lookAt(focus);
+  const inVR = renderer.xr.isPresenting;
   for (const g of glow) g.rotation.y += 0.012;
-  composer.render();
-  requestAnimationFrame(frame);
+  if (inVR) {
+    // Headset drives the camera pose; render per-eye directly (EffectComposer is
+    // not XR-aware, so bloom is dropped inside the session — correctness over polish).
+    renderer.render(scene, camera);
+  } else {
+    t += 0.0025;
+    const rad = 17;
+    camera.position.set(Math.cos(t) * rad, 6 + Math.sin(t * 0.5) * 3, Math.sin(t) * rad - 4);
+    camera.lookAt(focus);
+    composer.render();
+  }
 }
+renderer.setAnimationLoop(frame);   // XR-compatible loop (replaces requestAnimationFrame)
 addEventListener('resize', () => {
+  if (renderer.xr.isPresenting) return;
   renderer.setSize(innerWidth, innerHeight);
   composer.setSize(innerWidth, innerHeight);
   bloom.setSize(innerWidth, innerHeight);
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
 });
-frame();
 `;
 
 // ── 4. Bundle to one classic IIFE (three inlined → works on file://) ─────────
@@ -232,6 +250,8 @@ const receipt = {
     entries: meshes.filter((m) => m.geometry === 'octahedron').length },
   render: { primitives_only: true, glass_transmission: true, emissive_cores: true,
     golden_terraces: true, pmrem_environment: true, bloom: true, tone_mapping: 'ACESFilmic' },
+  webxr: { enabled: true, entry: 'VRButton', loop: 'setAnimationLoop',
+    immersive_mode: 'immersive-vr', player_rig: true, note: 'bloom dropped inside XR session (EffectComposer not XR-aware)' },
   sceneDigest: sha256(sceneJson), htmlBytes: html.length,
   selfContained: true, offline: true, three: '0.182.0 (bundled IIFE)', core: '6.1.0',
   verifiedAt: new Date().toISOString(),
