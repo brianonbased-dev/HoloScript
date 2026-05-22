@@ -224,3 +224,28 @@ export {
   createMeshletLODBuilder,
   buildMeshletHierarchy,
 } from './MeshletLODBuilder';
+
+// ============================================================================
+// GPU Culling System (WebGPU compute-driven frustum + Hi-Z occlusion)
+// ============================================================================
+
+export {
+  // Types
+  type GPUCullingOptions,
+  type CullingStats,
+  type ObjectInstance,
+  type CullingResult,
+
+  // Constants
+  DEFAULT_GPU_CULLING_OPTIONS,
+
+  // Class
+  GPUCullingSystem,
+
+  // Factory functions
+  createGPUCullingSystem,
+  extractFrustumPlanes,
+
+  // Bridge: SpatialPartitionResult → ObjectInstance[]
+  spatialAnchorsToObjectInstances,
+} from './GPUCullingSystem';

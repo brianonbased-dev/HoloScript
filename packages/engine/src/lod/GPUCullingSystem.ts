@@ -774,6 +774,35 @@ export function createGPUCullingSystem(options?: Partial<GPUCullingOptions>): GP
 }
 
 /**
+ * Bridge: Convert SpatialPartitionResult anchors (from core's SpatialPartitionPass)
+ * into ObjectInstance[] for GPU culling.
+ *
+ * SpatialAnchor.position is [x, y, z] (same tuple shape as ObjectInstance.position).
+ * SpatialAnchor.scale maps to ObjectInstance.radius (both represent the effective
+ * size of the anchor's Gaussian cloud). SpatialAnchor.lodLevel maps directly.
+ * SpatialAnchor.importance is used as a visibility boost: anchors above a threshold
+ * are never culled (treated as infinite radius for the frustum test).
+ *
+ * @param anchors - Anchor array from SpatialPartitionResult.anchors
+ * @param defaultDistances - LOD distance thresholds [d0, d1, d2, d3]. Defaults to
+ *   [50, 150, 400, 1200] matching OctreeLODSystem's power-law thresholds.
+ * @returns ObjectInstance[] ready for GPUCullingSystem.cull()
+ */
+export function spatialAnchorsToObjectInstances(
+  anchors: Array<{ position: [number, number, number]; scale: number; lodLevel: number; importance: number; id?: string }>,
+  defaultDistances: [number, number, number, number] = [50, 150, 400, 1200],
+): ObjectInstance[] {
+  return anchors.map((anchor, index): ObjectInstance => ({
+    position: anchor.position,
+    // High-importance anchors get inflated radius so they survive frustum culling
+    radius: anchor.importance >= 0.8 ? 1e6 : anchor.scale,
+    lodLevel: anchor.lodLevel,
+    lodDistances: defaultDistances,
+    objectId: index,
+  }));
+}
+
+/**
  * Calculate frustum planes from view-projection matrix
  */
 export function extractFrustumPlanes(viewProj: Float32Array): Float32Array {
