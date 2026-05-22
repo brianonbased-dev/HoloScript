@@ -1,0 +1,344 @@
+// Ghost Signal Studio — Refreshed Music Domain Starter
+//
+// A late-night XR electronic music studio. The room smells of ozone and
+// old synthesizers. Outside the rain-streaked windows, the city hums.
+// Inside: a producer hunched over a mixing board, eight spatial speakers
+// painting the room with 3rd-order ambisonics, frequency bars pulsing
+// emerald against the dark ceiling, every beat cue firing a scan of
+// ring-modulated light across the floor.
+//
+// What's new vs music-starter.holo (Phase-2 A-009 refresh, 2026-05-22):
+//   @ambisonics     — 3rd-order B-format decode over studio monitors
+//   @beatmap        — deterministic cue timeline: intro → verse → drop
+//   @audio_occlusion — sound bleeds through the isolation booth glass
+//   @audio_material — per-surface absorption: foam panels vs bare concrete
+//
+// Compile targets:
+//   holoscript compile music-starter.refreshed.holo --target r3f
+//   holoscript compile music-starter.refreshed.holo --target openxr
+//   holoscript compile music-starter.refreshed.holo --target godot
+
+composition "Ghost Signal Studio" {
+
+  metadata {
+    name: 'Ghost Signal Studio'
+    description: 'Late-night XR music production space. Spatial ambisonics, beat-cue timeline, acoustic occlusion, and material absorption — the science of sound made visible.'
+    version: '2.0.0'
+    author: 'A-009 Example Refresh'
+    category: 'music'
+    tags: ['music', 'audio', 'ambisonics', 'beatmap', 'spatial-audio', 'occlusion', 'studio', 'xr']
+    platforms: ['r3f', 'openxr', 'godot', 'unity']
+    minPlayers: 1
+    maxPlayers: 4
+  }
+
+  // ── Environment ─────────────────────────────────────────────────────────────
+
+  environment {
+    skybox: {
+      type: "solid"
+      color: "#050508"
+    }
+    ambient: 0.08
+    shadows: true
+    fog: {
+      enabled: true
+      color: "#050510"
+      density: 0.04
+    }
+    post_processing: {
+      bloom:       { intensity: 1.1, threshold: 0.45 }
+      chromatic_aberration: { intensity: 0.012 }
+      vignette:    { intensity: 0.55, smoothness: 0.4 }
+      tone_mapping: { type: "aces", exposure: 0.85 }
+    }
+  }
+
+  // Overhead: a single warm tungsten key-light, the kind that sits above a
+  // vintage SSL desk and never quite reaches the corners.
+  light "KeyDesk" {
+    type: "point"
+    color: "#ffd4a0"
+    intensity: 2.2
+    position: [0, 2.8, -1]
+    range: 6
+    cast_shadows: true
+  }
+
+  // VU-meter glow from the rack — green when the track breathes, amber at peaks.
+  light "RackGlow" {
+    type: "point"
+    color: "#22ff88"
+    intensity: 0.6
+    position: [2.5, 1.4, -2]
+    range: 4
+    animate: {
+      property: "intensity"
+      from: 0.6
+      to: 1.7
+      duration: 0.5
+      loop: true
+      easing: "linear"
+    }
+  }
+
+  // ── State ───────────────────────────────────────────────────────────────────
+
+  state StudioState {
+    bpm:            128
+    masterVolume:   0.8
+    section:        "intro"          // "intro" | "verse" | "drop" | "outro"
+    beatCount:      0
+    isolationOpen:  false            // isolation booth door
+    ambisRotation:  [0.0, 0.0, 0.0] // yaw/pitch/roll of ambisonics field
+  }
+
+  // ── Ambisonics Field ────────────────────────────────────────────────────────
+
+  entity StudioAmbisonics {
+    @ambisonics {
+      order:            3
+      normalization:    "sn3d"
+      channel_ordering: "acn"
+      decoder:          "binaural"
+      source:           "audio/studio-room-tone-3oa.wav"
+      loop:             true
+      volume:           0.35
+      scene_rotation_lock: false
+    }
+    transform: { position: [0, 1.5, 0] }
+  }
+
+  // ── Beat Cue Timeline ────────────────────────────────────────────────────────
+
+  entity BeatController {
+    @beatmap {
+      bpm:     128
+      sync_to: "AudioAnalysis"
+      loop:    true
+      cues: [
+        { beat: 0,   event: "intro_start" },
+        { beat: 16,  event: "rack_scan_1" },
+        { beat: 32,  event: "verse_start" },
+        { beat: 48,  event: "rack_scan_2" },
+        { beat: 64,  event: "drop_start" },
+        { beat: 80,  event: "drop_peak" },
+        { beat: 96,  event: "outro_start" },
+        { beat: 112, event: "fade_out" },
+      ]
+    }
+    transform: { position: [0, 0, 0] }
+  }
+
+  // ── Acoustic Materials ───────────────────────────────────────────────────────
+
+  entity FoamPanelNorth {
+    @audio_material {
+      preset: "fabric"
+      absorption: { 125: 0.15, 250: 0.35, 500: 0.55, 1000: 0.70, 2000: 0.75, 4000: 0.78 }
+      reflection: 0.12
+      transmission: 0.08
+      scattering:   0.6
+    }
+    mesh: { type: "plane", width: 8.0, height: 3.0 }
+    material: { base_color: "#2a1a0e", roughness: 1.0 }
+    transform: { position: [0, 1.5, -4], rotation: [0, 0, 0] }
+  }
+
+  entity ConcreteFloor {
+    @audio_material {
+      preset: "concrete"
+      absorption: { 125: 0.02, 250: 0.02, 500: 0.03, 1000: 0.03, 2000: 0.04, 4000: 0.05 }
+      reflection: 0.90
+      transmission: 0.02
+      scattering:   0.05
+    }
+    mesh: { type: "plane", width: 12.0, height: 10.0 }
+    material: { base_color: "#111114", roughness: 0.85, metallic: 0.05 }
+    transform: { position: [0, 0, 0], rotation: [-90, 0, 0] }
+  }
+
+  entity IsolationGlass {
+    @audio_occlusion {
+      mode:               "raycast"
+      frequency_dependent: true
+      low_pass_filter:     true
+      attenuation_factor:  0.45
+      transmission_factor: 0.55
+      update_rate:         30
+      max_occlusion_db:    12
+      low_pass_min_freq:   800
+      low_pass_max_freq:   8000
+    }
+    @audio_material {
+      preset:    "glass"
+      absorption: { 125: 0.04, 250: 0.04, 500: 0.03, 1000: 0.03, 2000: 0.02, 4000: 0.02 }
+      reflection: 0.65
+      transmission: 0.30
+    }
+    mesh: { type: "plane", width: 2.4, height: 2.0 }
+    material: {
+      base_color:  "#aaccff"
+      roughness:   0.05
+      metallic:    0.0
+      transparent: true
+      opacity:     0.25
+    }
+    transform: { position: [-3, 1.0, -1.5], rotation: [0, 90, 0] }
+  }
+
+  // ── Speaker Array ─────────────────────────────────────────────────────────
+
+  template "Monitor" {
+    @spatial_audio {
+      rolloff:     "logarithmic"
+      maxDistance: 20
+      refDistance: 1
+    }
+    @collidable
+    mesh: { type: "box", width: 0.22, height: 0.35, depth: 0.28 }
+    material: { base_color: "#1a1a1a", roughness: 0.6, metallic: 0.3 }
+  }
+
+  entity MonitorL using "Monitor" {
+    transform: { position: [-0.9, 1.55, -2.8], rotation: [0, 12, 0] }
+  }
+  entity MonitorR using "Monitor" {
+    transform: { position: [0.9,  1.55, -2.8], rotation: [0, -12, 0] }
+  }
+
+  // ── Mixing Desk ──────────────────────────────────────────────────────────
+
+  entity MixingDesk {
+    @collidable
+    @interactable { action: "grab", haptic: true }
+    mesh:     { type: "box", width: 1.6, height: 0.1, depth: 0.8 }
+    material: { base_color: "#0d0d11", metallic: 0.4, roughness: 0.55 }
+    transform: { position: [0, 0.9, -2] }
+  }
+
+  // ── Frequency Visualizer ──────────────────────────────────────────────────
+
+  group "Spectrum" {
+    position: { x: 0, y: 1.6, z: -3.8 }
+    @frequency_analyzer {
+      fftSize:   1024
+      smoothing: 0.82
+      source:    "master"
+    }
+
+    object "B00" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x: -1.84, y: 0, z: 0 }, material: { emissive: "#00ff88", emissiveIntensity: 1.2 } }
+    object "B01" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x: -1.68, y: 0, z: 0 }, material: { emissive: "#00ff88", emissiveIntensity: 1.2 } }
+    object "B02" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x: -1.52, y: 0, z: 0 }, material: { emissive: "#00ff88", emissiveIntensity: 1.2 } }
+    object "B03" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x: -1.36, y: 0, z: 0 }, material: { emissive: "#00ff88", emissiveIntensity: 1.2 } }
+    object "B04" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x: -1.20, y: 0, z: 0 }, material: { emissive: "#00ff88", emissiveIntensity: 1.2 } }
+    object "B05" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x: -1.04, y: 0, z: 0 }, material: { emissive: "#22ddff", emissiveIntensity: 1.2 } }
+    object "B06" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x: -0.88, y: 0, z: 0 }, material: { emissive: "#22ddff", emissiveIntensity: 1.2 } }
+    object "B07" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x: -0.72, y: 0, z: 0 }, material: { emissive: "#22ddff", emissiveIntensity: 1.2 } }
+    object "B08" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x: -0.56, y: 0, z: 0 }, material: { emissive: "#22ddff", emissiveIntensity: 1.2 } }
+    object "B09" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x: -0.40, y: 0, z: 0 }, material: { emissive: "#44aaff", emissiveIntensity: 1.2 } }
+    object "B10" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x: -0.24, y: 0, z: 0 }, material: { emissive: "#44aaff", emissiveIntensity: 1.2 } }
+    object "B11" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x: -0.08, y: 0, z: 0 }, material: { emissive: "#44aaff", emissiveIntensity: 1.2 } }
+    object "B12" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x:  0.08, y: 0, z: 0 }, material: { emissive: "#aa44ff", emissiveIntensity: 1.2 } }
+    object "B13" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x:  0.24, y: 0, z: 0 }, material: { emissive: "#aa44ff", emissiveIntensity: 1.2 } }
+    object "B14" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x:  0.40, y: 0, z: 0 }, material: { emissive: "#aa44ff", emissiveIntensity: 1.2 } }
+    object "B15" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x:  0.56, y: 0, z: 0 }, material: { emissive: "#ff4488", emissiveIntensity: 1.2 } }
+    object "B16" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x:  0.72, y: 0, z: 0 }, material: { emissive: "#ff4488", emissiveIntensity: 1.2 } }
+    object "B17" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x:  0.88, y: 0, z: 0 }, material: { emissive: "#ff4488", emissiveIntensity: 1.2 } }
+    object "B18" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x:  1.04, y: 0, z: 0 }, material: { emissive: "#ffaa22", emissiveIntensity: 1.2 } }
+    object "B19" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x:  1.20, y: 0, z: 0 }, material: { emissive: "#ffaa22", emissiveIntensity: 1.2 } }
+    object "B20" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x:  1.36, y: 0, z: 0 }, material: { emissive: "#ffaa22", emissiveIntensity: 1.2 } }
+    object "B21" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x:  1.52, y: 0, z: 0 }, material: { emissive: "#ff6622", emissiveIntensity: 1.2 } }
+    object "B22" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x:  1.68, y: 0, z: 0 }, material: { emissive: "#ff6622", emissiveIntensity: 1.2 } }
+    object "B23" { geometry: "box", scale: [0.03, 0.5, 0.03], position: { x:  1.84, y: 0, z: 0 }, material: { emissive: "#ff6622", emissiveIntensity: 1.2 } }
+  }
+
+  // ── Drum Pads ───────────────────────────────────────────────────────────
+
+  template "Pad" {
+    @interactable { action: "press", haptic: true }
+    @audio_source   { loop: false, spatialize: true }
+    @collidable
+    mesh:     { type: "box", width: 0.12, height: 0.015, depth: 0.12 }
+  }
+
+  group "DrumGrid" {
+    position: { x: -0.6, y: 0.96, z: -1.4 }
+
+    entity Kick  using "Pad" { transform: { position: [0.00, 0, 0] }, material: { emissive: "#ff2222", emissiveIntensity: 0.7 }, audio: { src: "samples/kick.wav" } }
+    entity Snare using "Pad" { transform: { position: [0.18, 0, 0] }, material: { emissive: "#ffaa22", emissiveIntensity: 0.7 }, audio: { src: "samples/snare.wav" } }
+    entity HiHat using "Pad" { transform: { position: [0.36, 0, 0] }, material: { emissive: "#22ffaa", emissiveIntensity: 0.7 }, audio: { src: "samples/hihat.wav" } }
+    entity Clap  using "Pad" { transform: { position: [0.54, 0, 0] }, material: { emissive: "#aa22ff", emissiveIntensity: 0.7 }, audio: { src: "samples/clap.wav" } }
+  }
+
+  // ── Systems ──────────────────────────────────────────────────────────────
+
+  system "AudioAnalysis" {
+    type:       "audio-analysis"
+    fftSize:    2048
+    updateRate: 60
+    output:     "Spectrum"
+  }
+
+  system "MIDIBridge" {
+    type:     "midi"
+    protocol: "webmidi"
+    channels: [1, 2, 10]
+    mapping: { noteOn: "triggerInstrument", controlChange: "adjustParameter" }
+  }
+
+  // ── Beat Cue Handlers ─────────────────────────────────────────────────────
+
+  on "beatmap.cue_fired"(event) {
+    if (event.event === "intro_start") {
+      StudioState.section = "intro"
+      KeyDesk.intensity = 1.0
+    }
+    if (event.event === "verse_start") {
+      StudioState.section = "verse"
+      KeyDesk.intensity = 1.8
+    }
+    if (event.event === "drop_start") {
+      StudioState.section = "drop"
+      KeyDesk.intensity = 2.8
+      RackGlow.color = "#ff4422"
+    }
+    if (event.event === "drop_peak") {
+      StudioAmbisonics.rotation_y = 45.0
+    }
+    if (event.event === "outro_start") {
+      StudioState.section = "outro"
+    }
+    if (event.event === "fade_out") {
+      StudioState.masterVolume = 0.0
+    }
+    StudioState.beatCount = StudioState.beatCount + 1
+  }
+
+  // ── Actions ──────────────────────────────────────────────────────────────
+
+  action toggleIsolationBooth() {
+    StudioState.isolationOpen = !StudioState.isolationOpen
+    IsolationGlass.audio_occlusion.transmission_factor =
+      StudioState.isolationOpen ? 0.85 : 0.55
+  }
+
+  action rotateAmbisonicsField(yaw) {
+    StudioState.ambisRotation[1] = yaw
+    StudioAmbisonics.ambisonics.scene_rotation_lock = false
+  }
+
+  action setMasterVolume(v) {
+    StudioState.masterVolume = clamp(v, 0.0, 1.0)
+    emit("audio:volume", { channel: "master", volume: v })
+  }
+
+  action triggerInstrument(note, velocity) {
+    emit("instrument:trigger", {
+      instrument: "synth",
+      note:       note,
+      velocity:   velocity
+    })
+    StudioState.beatCount = StudioState.beatCount + 1
+  }
+}

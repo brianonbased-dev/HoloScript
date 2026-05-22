@@ -1,0 +1,17 @@
+{
+  "routine_id": "trig_012VRZzHoo268yWEnwaa14Ep",
+  "routine_name": "A-009 Example freshness + artist stress-test",
+  "fired_at": "2026-05-22T22:31:34Z",
+  "gaps": [
+    {
+      "type": "missing-trait",
+      "title": "Add TraitNeuralExpression for EEG-to-blendshape mapping (A-009 example-driven request)",
+      "description": "While refreshing examples/emotion/03-emotion-regulation.refreshed.holo ('Empathy Architecture'), the scene wanted to drive NPC facial blendshapes directly from live EEG alpha/theta power ratios. No Trait*.ts implements this. Proposed API: @neural_expression { sources: ['eeg_alpha', 'eeg_theta'], blendshape_map: { eeg_alpha: { browDown: '-0.6x', jawOpen: '-0.4x' }, eeg_theta: { cheekPuff: '0.3x' } }, smoothing_hz: 10 }. Would complement @biofeedback by providing a continuous sub-frame-latency blendshape layer driven by biometric state.",
+      "priority": "low",
+      "tags": ["auto-filed-by-A-009", "example-driven", "feature-request", "trait-extension"],
+      "dedup_key": "a009-trait-NeuralExpression",
+      "source_example": "examples/emotion/03-emotion-regulation.refreshed.holo",
+      "phase": "Phase-2 missing-trait wish"
+    }
+  ]
+}

@@ -1,0 +1,271 @@
+// Ghost Arcade — Stress-Test
+// A-009 Phase-3 | 2026-05-22
+//
+// Scene: abandoned XR arcade. Game cabinets project holographic sprite ghosts
+// of their attract screens (SAM-2 segmented, depth-displaced). GPU particle
+// emitters fill the space with phosphor drift, neon sparks, and CRT beam.
+// Voice proximity zones carve the floor into social acoustic regions.
+//
+// Never-exercised traits under test:
+//   @holographic_sprite  — 2D video -> 3D hologram (segmentation + depth)
+//   @gpu_particle        — compute-shader particle system
+//   @voice_proximity     — HRTF spatial voice with zone falloff
+
+composition "GhostArcade" {
+
+  metadata {
+    name: 'Ghost Arcade'
+    version: '1.0.0'
+    author: 'A-009 stress-test 2026-05-22'
+    category: 'social-xr'
+    tags: ['arcade', 'holographic', 'gpu-particles', 'voice-proximity', 'networked', 'stress-test']
+    platforms: ['r3f', 'openxr', 'webgpu']
+    minPlayers: 1
+    maxPlayers: 12
+  }
+
+  environment {
+    skybox: { type: "solid", color: "#040408" }
+    ambient: 0.06
+    shadows: true
+    fog: { enabled: true, color: "#040410", density: 0.05 }
+    post_processing: {
+      bloom:                { intensity: 1.4, threshold: 0.3 }
+      chromatic_aberration: { intensity: 0.022 }
+      vignette:             { intensity: 0.65 }
+      tone_mapping:         { type: "aces", exposure: 0.7 }
+    }
+  }
+
+  object "NeonOverhead" {
+    type: "point_light"
+    position: [0, 4, 0]
+    color: "#ff44aa"
+    intensity: 1.2
+    range: 18
+    cast_shadows: true
+  }
+
+  object "CRTGlow" {
+    type: "point_light"
+    position: [-4, 1.5, -3]
+    color: "#22ffaa"
+    intensity: 0.7
+    range: 8
+  }
+
+  object "ArcadeFloor" {
+    geometry: "plane"
+    width: 20
+    height: 16
+    position: [0, 0, 0]
+    rotation: [-90, 0, 0]
+    material: { base_color: "#080810", roughness: 0.7, metallic: 0.05, emissive: "#0a0a20", emissiveIntensity: 0.08 }
+    @collidable
+  }
+
+  template "Cabinet" {
+    @collidable
+    @networked { sync_properties: ["position", "power_state"] }
+    geometry: "box"
+    width: 0.65
+    height: 1.8
+    depth: 0.75
+    material: { base_color: "#111118", roughness: 0.6, metallic: 0.25 }
+  }
+
+  // Cabinet A — Vector Blitz
+  object "CabinetVectorBlitz" using "Cabinet" {
+    position: { x: -5, y: 0.9, z: -6 }
+    @spatial_audio { src: "audio/vector-blitz-attract.ogg", loop: true, rolloff: "logarithmic", maxDistance: 8, refDistance: 1 }
+  }
+
+  object "HologramVectorBlitz" {
+    @holographic_sprite {
+      mode: "scene"
+      imageSourceProp: "video_src"
+      video_src: "video/vector-blitz-attract-480p.mp4"
+      segment_method: "sam2"
+      depth_mode: "continuous"
+      displacement_scale: 1.2
+      billboard_type: "spherical"
+      parallax_strength: 0.35
+      chromatic_shift: 0.008
+    }
+    @billboard
+    @networked { sync_properties: ["video_src", "visible"] }
+    position: { x: -5, y: 2.6, z: -6 }
+    scale: [1.0, 1.0, 1.0]
+  }
+
+  // Cabinet B — Star Marauder
+  object "CabinetStarMarauder" using "Cabinet" {
+    position: { x: 0, y: 0.9, z: -7 }
+    @spatial_audio { src: "audio/star-marauder-attract.ogg", loop: true, rolloff: "logarithmic", maxDistance: 9, refDistance: 1 }
+  }
+
+  object "HologramStarMarauder" {
+    @holographic_sprite {
+      mode: "portrait"
+      imageSourceProp: "video_src"
+      video_src: "video/star-marauder-attract-480p.mp4"
+      segment_method: "background-removal"
+      depth_mode: "single"
+      displacement_scale: 0.9
+      billboard_type: "cylindrical"
+      parallax_strength: 0.22
+    }
+    @billboard
+    @networked { sync_properties: ["video_src", "visible"] }
+    position: { x: 0, y: 2.7, z: -7 }
+    scale: [0.9, 0.9, 0.9]
+  }
+
+  // Cabinet C — Neon Racer
+  object "CabinetNeonRacer" using "Cabinet" {
+    position: { x: 5, y: 0.9, z: -6 }
+    @spatial_audio { src: "audio/neon-racer-attract.ogg", loop: true, rolloff: "logarithmic", maxDistance: 8, refDistance: 1 }
+  }
+
+  object "HologramNeonRacer" {
+    @holographic_sprite {
+      mode: "product"
+      imageSourceProp: "video_src"
+      video_src: "video/neon-racer-attract-480p.mp4"
+      segment_method: "background-removal"
+      depth_mode: "continuous"
+      displacement_scale: 1.4
+      billboard_type: "planar"
+      parallax_strength: 0.28
+      chromatic_shift: 0.012
+    }
+    @billboard
+    @networked { sync_properties: ["video_src", "visible"] }
+    position: { x: 5, y: 2.8, z: -6 }
+    scale: [1.1, 1.1, 1.1]
+  }
+
+  // Phosphor drift — slow warm motes
+  object "PhosphorDrift" {
+    @gpu_particle {
+      count: 8000
+      emission_rate: 120
+      lifetime: 6.0
+      lifetime_variance: 2.0
+      initial_velocity: [0.0, 0.12, 0.0]
+      velocity_variance: [0.15, 0.08, 0.15]
+      spread_angle: 180
+      forces: [
+        { type: "turbulence", strength: 0.04 },
+        { type: "gravity",    strength: 0.005, direction: [0, -1, 0] },
+      ]
+      color_over_life: [
+        { time: 0.0, color: [1.0,  0.85, 0.3,  0.0] },
+        { time: 0.2, color: [1.0,  0.85, 0.3,  0.6] },
+        { time: 0.8, color: [0.85, 0.55, 0.1,  0.4] },
+        { time: 1.0, color: [0.85, 0.55, 0.1,  0.0] },
+      ]
+      size_over_life: [
+        { time: 0.0, size: 0.012 },
+        { time: 0.5, size: 0.018 },
+        { time: 1.0, size: 0.004 },
+      ]
+      collision: false
+      spatial_hash: false
+      sprite: "textures/softdot.png"
+    }
+    position: [0, 0.5, -3]
+  }
+
+  // Neon sparks — fast bursts from overloaded wiring
+  object "NeonSparks" {
+    @gpu_particle {
+      count: 2500
+      emission_rate: 40
+      lifetime: 0.9
+      lifetime_variance: 0.4
+      initial_velocity: [0.0, 1.8, 0.0]
+      velocity_variance: [1.2, 0.6, 1.2]
+      spread_angle: 30
+      forces: [
+        { type: "gravity", strength: 0.8, direction: [0, -1, 0] },
+        { type: "vortex",  strength: 0.15, position: [-4, 3, -4] },
+      ]
+      color_over_life: [
+        { time: 0.0, color: [0.2, 1.0,  0.7,  0.0] },
+        { time: 0.1, color: [0.2, 1.0,  0.7,  1.0] },
+        { time: 0.6, color: [1.0, 0.35, 0.85, 0.7] },
+        { time: 1.0, color: [1.0, 0.35, 0.85, 0.0] },
+      ]
+      size_over_life: [
+        { time: 0.0, size: 0.025 },
+        { time: 0.3, size: 0.010 },
+        { time: 1.0, size: 0.003 },
+      ]
+      collision: false
+      spatial_hash: false
+      sprite: "textures/spark.png"
+    }
+    position: [-4, 2.2, -4]
+  }
+
+  // CRT beam — tight vertical scan-line particles
+  object "CRTBeam" {
+    @gpu_particle {
+      count: 1200
+      emission_rate: 300
+      lifetime: 0.25
+      lifetime_variance: 0.05
+      initial_velocity: [0.0, -3.5, 0.0]
+      velocity_variance: [0.02, 0.1, 0.02]
+      spread_angle: 2
+      forces: []
+      color_over_life: [
+        { time: 0.0,  color: [0.6, 0.9, 1.0, 0.0] },
+        { time: 0.15, color: [0.6, 0.9, 1.0, 0.9] },
+        { time: 0.85, color: [0.3, 0.6, 1.0, 0.6] },
+        { time: 1.0,  color: [0.3, 0.6, 1.0, 0.0] },
+      ]
+      size_over_life: [
+        { time: 0.0, size: 0.008 },
+        { time: 1.0, size: 0.002 },
+      ]
+      collision: false
+      spatial_hash: false
+      sprite: "textures/beam.png"
+    }
+    position: [0, 4.5, -7]
+  }
+
+  // Voice proximity — social acoustic zones
+  entity PlayerVoiceSystem {
+    @voice_proximity {
+      min_distance: 0.4
+      max_distance: 14.0
+      falloff: "logarithmic"
+      directional: true
+      cone_inner_angle: 120
+      cone_outer_angle: 220
+      cone_outer_gain: 0.15
+      enable_hrtf: true
+      voice_activity_detection: true
+      zones: [
+        { id: "floor",            type: "public",  bounds: { center: [0, 1, 0],   radius: 14.0 }, volumeMultiplier: 1.0 },
+        { id: "cabinet-blitz",    type: "team",    bounds: { center: [-5, 1, -6], radius: 2.0  }, volumeMultiplier: 1.4 },
+        { id: "cabinet-marauder", type: "team",    bounds: { center: [0, 1, -7],  radius: 2.0  }, volumeMultiplier: 1.4 },
+        { id: "cabinet-racer",    type: "team",    bounds: { center: [5, 1, -6],  radius: 2.0  }, volumeMultiplier: 1.4 },
+        { id: "back-room",        type: "private", bounds: { center: [0, 1, -9],  radius: 3.0  }, volumeMultiplier: 0.6 },
+      ]
+    }
+    @networked { sync_properties: ["zones"] }
+    transform: { position: [0, 0, 0] }
+
+    on voice_proximity_zone_entered(event) {
+      emit("ui:zone_label", { zone: event.zone, player: event.playerId })
+    }
+  }
+
+  object "Camera" {
+    camera: { fov: 72, near: 0.1, far: 200, position: [0, 2.5, 4], target: [0, 1.5, -3] }
+  }
+}

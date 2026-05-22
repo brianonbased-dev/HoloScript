@@ -1,0 +1,232 @@
+// Empathy Architecture — Refreshed Emotion Regulation Showcase
+//
+// A floating research pod suspended in violet fog. Three embodied NPC
+// researchers stand inside it, each instrumented with biofeedback sensors
+// that pulse visible auras matching their physiological state.
+//
+// What's new vs 03-emotion-regulation.holo (Phase-2 A-009 refresh, 2026-05-22):
+//   @biofeedback    — live heart-rate / GSR / breath-rate drives aura color
+//   @animated       — each NPC has idle/react/regulate animation state machine
+//   @avatar_embodiment — NPC meshes tracked to BVH capture, not float-in-space
+//   Spatial layout  — NPCs placed in a triangle; camera sees all three
+//
+// Missing-trait wish (queued for Phase-4 emission):
+//   @neural_expression — a trait mapping EEG alpha/theta ratios to facial
+//   blendshapes in real time. No Trait*.ts implements it yet.
+
+composition "EmpathyArchitecture" {
+
+  environment {
+    skybox: { type: "gradient", top: "#0d0120", bottom: "#2a0a4a" }
+    ambient_light: 0.18
+    shadows: true
+    fog: { enabled: true, density: 0.010, color: "#1e0840" }
+  }
+
+  object "PodLight" {
+    type: "directional_light"
+    direction: [-0.4, -1.0, -0.6]
+    color: "#dde8ff"
+    intensity: 0.55
+    cast_shadows: true
+  }
+
+  object "PodFill" {
+    type: "point_light"
+    position: [0, -0.5, 0]
+    color: "#6622cc"
+    intensity: 0.45
+    range: 12
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.55, threshold: 0.6 }
+    tone_mapping: { type: "aces", exposure: 0.9 }
+  }
+
+  object "PodFloor" {
+    geometry: "cylinder"
+    radius: 4.5
+    height: 0.08
+    segments: 48
+    position: [0, 0, 0]
+    material: {
+      base_color: "#1a1030"
+      roughness: 0.7
+      metallic: 0.15
+      emissive: "#220a50"
+      emissiveIntensity: 0.2
+    }
+    @collidable
+  }
+
+  object "PodRing" {
+    geometry: "torus"
+    radius: 4.5
+    tube: 0.04
+    position: [0, 0.04, 0]
+    material: { emissive: "#8833ff", emissiveIntensity: 1.8 }
+  }
+
+  // Dr Asha — Suppressor. GSR elevated, face neutral.
+  entity DrAsha {
+    @avatar_embodiment {
+      rig_type: "humanoid"
+      source: "avatars/researcher-f.glb"
+      motion_source: "bvh://idle-stand-professional.bvh"
+      blend_expressions: true
+      height: 1.72
+    }
+    @animated {
+      clips: [
+        { name: "idle",     file: "anim/idle-professional.glb", loop: true },
+        { name: "react",    file: "anim/micro-suppress.glb",     loop: false },
+        { name: "regulate", file: "anim/reappraise-breath.glb",  loop: false },
+      ]
+      initial: "idle"
+      transition_duration: 0.4
+    }
+    @biofeedback {
+      sources: ["heart_rate", "gsr", "breath_rate"]
+      sample_rate_hz: 30
+      normalize: true
+      emit_on_threshold: true
+      thresholds: {
+        heart_rate:  { low: 0.3, high: 0.7 }
+        gsr:         { low: 0.2, high: 0.65 }
+        breath_rate: { low: 0.25, high: 0.6 }
+      }
+      ranges: {
+        heart_rate:  { min: 50, max: 120 }
+        gsr:         { min: 0,  max: 20 }
+        breath_rate: { min: 8,  max: 28 }
+      }
+    }
+    transform: { position: [-2.2, 0.08, -1.5], rotation: [0, 30, 0] }
+
+    on biofeedback_threshold_crossed(event) {
+      if (event.source === "gsr" && event.edge === "high") {
+        this.animated.play("react")
+      }
+      if (event.source === "gsr" && event.edge === "low") {
+        this.animated.play("regulate")
+      }
+    }
+  }
+
+  object "AshaAura" {
+    geometry: "sphere"
+    radius: 0.85
+    position: [-2.2, 0.95, -1.5]
+    material: { emissive: "#cc6611", emissiveIntensity: 0.55, transparent: true, opacity: 0.18, side: "double" }
+  }
+
+  // Dr Ben — High EI. Calm. Aura deep blue-green, barely moves.
+  entity DrBen {
+    @avatar_embodiment {
+      rig_type: "humanoid"
+      source: "avatars/researcher-m.glb"
+      motion_source: "bvh://idle-stand-open.bvh"
+      blend_expressions: true
+      height: 1.80
+    }
+    @animated {
+      clips: [
+        { name: "idle",     file: "anim/idle-open.glb",      loop: true },
+        { name: "react",    file: "anim/nod-acknowledge.glb", loop: false },
+        { name: "regulate", file: "anim/regulate-assist.glb", loop: false },
+      ]
+      initial: "idle"
+      transition_duration: 0.35
+    }
+    @biofeedback {
+      sources: ["heart_rate", "gsr", "breath_rate"]
+      sample_rate_hz: 30
+      normalize: true
+      emit_on_threshold: true
+      thresholds: {
+        heart_rate:  { low: 0.2, high: 0.55 }
+        gsr:         { low: 0.1, high: 0.40 }
+        breath_rate: { low: 0.15, high: 0.45 }
+      }
+      ranges: {
+        heart_rate:  { min: 50, max: 120 }
+        gsr:         { min: 0,  max: 20 }
+        breath_rate: { min: 8,  max: 28 }
+      }
+    }
+    transform: { position: [2.5, 0.08, -1.2], rotation: [0, -20, 0] }
+  }
+
+  object "BenAura" {
+    geometry: "sphere"
+    radius: 0.9
+    position: [2.5, 0.98, -1.2]
+    material: { emissive: "#1155aa", emissiveIntensity: 0.38, transparent: true, opacity: 0.14, side: "double" }
+  }
+
+  // Dr Cira — Ambivalent. Bittersweet. Aura shifts rose <-> blue.
+  entity DrCira {
+    @avatar_embodiment {
+      rig_type: "humanoid"
+      source: "avatars/researcher-f2.glb"
+      motion_source: "bvh://idle-stand-pensive.bvh"
+      blend_expressions: true
+      height: 1.68
+    }
+    @animated {
+      clips: [
+        { name: "idle",     file: "anim/idle-pensive.glb",     loop: true },
+        { name: "react",    file: "anim/bittersweet-look.glb",  loop: false },
+        { name: "regulate", file: "anim/acceptance-breath.glb", loop: false },
+      ]
+      initial: "idle"
+      transition_duration: 0.5
+    }
+    @biofeedback {
+      sources: ["heart_rate", "gsr", "breath_rate", "eeg_alpha"]
+      sample_rate_hz: 30
+      normalize: true
+      emit_on_threshold: true
+      thresholds: {
+        heart_rate: { low: 0.28, high: 0.60 }
+        gsr:        { low: 0.2,  high: 0.55 }
+        eeg_alpha:  { low: 0.3,  high: 0.75 }
+      }
+      ranges: {
+        heart_rate: { min: 50,  max: 120 }
+        gsr:        { min: 0,   max: 20 }
+        eeg_alpha:  { min: 8.0, max: 13.0 }
+      }
+    }
+    emotion_blending: {
+      active_emotions: [
+        { emotion: "happiness", intensity: 0.55, source: "research_progress" },
+        { emotion: "sadness",   intensity: 0.42, source: "personal_loss" },
+      ]
+      blended_expression: { dominant_emotion: "happiness", undertone_emotion: "sadness", facial_expression: "complex" }
+      mixed_feelings: { ambivalence: 0.45, emotional_conflict: false, resolution_strategy: "accept_both" }
+    }
+    transform: { position: [0, 0.08, 2.4], rotation: [0, 180, 0] }
+
+    on biofeedback_threshold_crossed(event) {
+      if (event.source === "eeg_alpha" && event.edge === "high") {
+        this.animated.play("regulate")
+      }
+      if (event.source === "eeg_alpha" && event.edge === "low") {
+        this.animated.play("react")
+      }
+    }
+  }
+
+  object "CiraAura" {
+    geometry: "sphere"
+    radius: 0.80
+    position: [0, 0.92, 2.4]
+    material: { emissive: "#cc55aa", emissiveIntensity: 0.50, transparent: true, opacity: 0.20, side: "double" }
+  }
+
+  object "Camera" {
+    camera: { fov: 68, near: 0.1, far: 200, position: [0, 2.1, 6.5], target: [0, 1.0, 0] }
+  }
+}
