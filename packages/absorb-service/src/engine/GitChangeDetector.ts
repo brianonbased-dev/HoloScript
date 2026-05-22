@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { createHash } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -54,7 +54,7 @@ export class GitChangeDetector {
    */
   isGitRepo(): boolean {
     try {
-      const result = execSync('git rev-parse --is-inside-work-tree', {
+      const result = execFileSync('git', ['rev-parse', '--is-inside-work-tree'], {
         cwd: this.rootDir,
         encoding: 'utf-8',
         windowsHide: true,
@@ -71,7 +71,7 @@ export class GitChangeDetector {
    */
   getHeadCommit(): string | null {
     try {
-      return execSync('git rev-parse HEAD', {
+      return execFileSync('git', ['rev-parse', 'HEAD'], {
         cwd: this.rootDir,
         encoding: 'utf-8',
         windowsHide: true,
@@ -88,7 +88,7 @@ export class GitChangeDetector {
    */
   getUntrackedFiles(): string[] {
     try {
-      const output = execSync('git ls-files --others --exclude-standard', {
+      const output = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], {
         cwd: this.rootDir,
         encoding: 'utf-8',
         windowsHide: true,
@@ -142,9 +142,9 @@ export class GitChangeDetector {
       return { ...empty, added: untracked };
     }
 
-    // Verify stored commit exists
+    // Verify stored commit exists (execFileSync — no shell interpolation)
     try {
-      execSync(`git cat-file -t ${storedCommit}`, {
+      execFileSync('git', ['cat-file', '-t', storedCommit], {
         cwd: this.rootDir,
         encoding: 'utf-8',
         windowsHide: true,
@@ -154,9 +154,9 @@ export class GitChangeDetector {
       return { ...empty, storedCommitMissing: true };
     }
 
-    // Get diff
+    // Get diff (execFileSync — no shell interpolation)
     try {
-      const output = execSync(`git diff --name-status ${storedCommit} ${headCommit}`, {
+      const output = execFileSync('git', ['diff', '--name-status', storedCommit, headCommit], {
         cwd: this.rootDir,
         encoding: 'utf-8',
         windowsHide: true,

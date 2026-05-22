@@ -24,7 +24,7 @@
  *   npx pm2 start packages/mcp-server/scripts/ecosystem.scout.cjs --only holoscout
  */
 
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -125,14 +125,15 @@ function auth() {
   return { Authorization: `Bearer ${AGENT_KEY}` };
 }
 
-function shell(cmd: string): string {
+function shell(args: string[]): string {
   try {
-    return execSync(cmd, {
+    return execFileSync('git', args, {
       encoding: 'utf8',
       timeout: 10_000,
       cwd: ROOT,
-      shell: true,
-    } as any).trim();
+      windowsHide: true,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
   } catch {
     return '';
   }
@@ -188,14 +189,19 @@ function findMatchingFiles(keyword: string, limit = 5): string[] {
 }
 
 function gitCommitExists(commitHash: string): boolean {
+  // Validate commitHash format before passing to git — defense in depth.
+  // Git commit hashes are hex strings of 7-40 characters.
+  if (!/^[0-9a-f]{7,40}$/.test(commitHash)) {
+    return false;
+  }
   try {
-    execSync(`git rev-parse --verify ${commitHash}^{commit}`, {
+    execFileSync('git', ['rev-parse', '--verify', `${commitHash}^{commit}`], {
       encoding: 'utf8',
       timeout: 10_000,
       cwd: ROOT,
-      shell: true,
-      stdio: 'pipe',
-    } as any);
+      windowsHide: true,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
     return true;
   } catch {
     return false;
@@ -475,7 +481,7 @@ async function auditDoneLog() {
 // ── 3. WATCH — detect new commits related to open tasks ──
 
 async function watchGit() {
-  const currentHash = shell('git rev-parse HEAD');
+  const currentHash = shell(['rev-parse', 'HEAD']);
   if (!currentHash || currentHash === memory.lastGitHash) return;
 
   const isFirst = !memory.lastGitHash;
@@ -483,8 +489,8 @@ async function watchGit() {
   if (isFirst) return; // skip first cycle
 
   // New commit detected — check what changed
-  const newCommits = shell('git log --oneline -3');
-  const changedFilesRaw = shell('git diff --name-only HEAD~1 HEAD');
+  const newCommits = shell(['log', '--oneline', '-3']);
+  const changedFilesRaw = shell(['diff', '--name-only', 'HEAD~1', 'HEAD']);
   const changedFiles = changedFilesRaw
     .split('\n')
     .map((s) => s.trim())
@@ -607,7 +613,7 @@ async function main() {
   if (!(await registerAgent())) process.exit(1);
   await joinTeam();
   await heartbeat();
-  memory.lastGitHash = shell('git rev-parse HEAD');
+  memory.lastGitHash = shell(['rev-parse', 'HEAD']);
 
   console.log(`[scout] ${AGENT_NAME} online. Watching.\n`);
 
