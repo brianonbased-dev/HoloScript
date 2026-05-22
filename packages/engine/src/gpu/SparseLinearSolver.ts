@@ -386,7 +386,15 @@ export class SparseLinearSolver {
     A: CSRMatrix,
     b: Float32Array,
     x0: Float32Array,
-    options: { maxIterations?: number; toleranceSq?: number; xExtraUsage?: GPUBufferUsageFlags; convergenceCheckInterval?: number } = {}
+    options: {
+      maxIterations?: number;
+      toleranceSq?: number;
+      xExtraUsage?: GPUBufferUsageFlags;
+      convergenceCheckInterval?: number;
+      /** When true (default), converge on the RELATIVE residual ‖r‖² < tol²·‖b‖²
+       *  (standard CG; matches the CPU PCG path). Set false for absolute ‖r‖² < tol². */
+      relativeTolerance?: boolean;
+    } = {}
   ): Promise<DirectSolverResult> {
     const n = A.num_rows;
     const vectorWidth = 16;
@@ -394,6 +402,16 @@ export class SparseLinearSolver {
     const maxIterations = options.maxIterations ?? 1000;
     const toleranceSq = options.toleranceSq ?? 1e-10;
     const xExtraUsage = options.xExtraUsage ?? 0;
+
+    // Relative convergence threshold = tol²·‖b‖² (matches CPU CG: ‖r‖ < tol·‖b‖).
+    // ‖b‖² is computed once on the CPU from the input RHS — no extra GPU work.
+    // The old absolute ‖r‖²<tol² over-iterates when ‖b‖>1 (the W.GPU-04 follow-up).
+    const useRelative = options.relativeTolerance ?? true;
+    let bNormSq = 0;
+    if (useRelative) {
+      for (let i = 0; i < b.length; i++) bNormSq += b[i] * b[i];
+    }
+    const effectiveTol = useRelative ? toleranceSq * Math.max(bNormSq, 1e-30) : toleranceSq;
 
     // On-device Jacobi-preconditioned CG (PCG).
     //   - alpha/beta computed on the GPU (divide_scalar) — no per-iteration CPU readback
@@ -458,7 +476,7 @@ export class SparseLinearSolver {
 
     let rDotR = await this.readMappedScalar(rrStaging);
     let iteration = 0;
-    let converged = rDotR < toleranceSq;
+    let converged = rDotR < effectiveTol;
 
     // 3. Iteration loop — fully on-device. `checkInterval` iterations are recorded
     //    into a SINGLE command encoder and submitted once, so the GPU runs the whole
@@ -495,7 +513,7 @@ export class SparseLinearSolver {
       this.device.queue.submit([enc.finish()]);
 
       rDotR = await this.readMappedScalar(rrStaging);
-      if (rDotR < toleranceSq) {
+      if (rDotR < effectiveTol) {
         converged = true;
         break;
       }
