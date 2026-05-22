@@ -119,6 +119,88 @@ function broadcastDeltas(deltas: StateDelta[]): void {
   }
 }
 
+// ---------------------------------------------------------------------------
+// WebRTC peer transport — low-latency peer-to-peer Loro CRDT sync.
+// Board task: task_1779438040591_uj7g.
+// When enabled, Loro doc changes are synced directly between peers via WebRTC
+// data channels (bypassing the server-relayed WS subscriber path for latency-
+// sensitive multi-party presence). The WS fan-out (subscribeToStateDeltas)
+// remains the local/relay path; WebRTC is the peer-to-peer complement.
+//
+// Uses dynamic import of @holoscript/crdt-spatial (not a static dep of
+// mcp-server) so the module loads even when crdt-spatial is absent.
+// ---------------------------------------------------------------------------
+
+// Minimal type for the provider — avoids static import.
+interface LoroWebRTCProviderLike {
+  connect(): void;
+  disconnect(): void;
+}
+
+let webrtcProvider: LoroWebRTCProviderLike | null = null;
+
+export interface WebRTCTransportConfig {
+  /** Room identifier for the WebRTC signaling channel. Default: 'holoport-default'. */
+  room?: string;
+  /** WebSocket URL of the WebRTC signaling server. */
+  signalingServerUrl?: string;
+  /** ICE servers for NAT traversal. */
+  iceServers?: Array<{ urls: string }>;
+  /** Interval in ms between Loro CRDT syncs over WebRTC. Default: 50. */
+  syncIntervalMs?: number;
+}
+
+/**
+ * Enable WebRTC peer transport for the Loro CRDT doc. After calling this,
+ * local Loro changes are automatically synced to connected peers via WebRTC
+ * data channels. Call once at server startup or when a HoloPortal is opened.
+ *
+ * @param config WebRTC configuration (signaling server URL, ICE servers, room).
+ * @returns the active LoroWebRTCProvider instance.
+ */
+export async function enableWebRTCTransport(config?: WebRTCTransportConfig): Promise<LoroWebRTCProviderLike> {
+  if (webrtcProvider) {
+    console.warn('[networking] WebRTC transport already enabled — returning existing provider.');
+    return webrtcProvider;
+  }
+  try {
+    const { LoroWebRTCProvider } = await import('@holoscript/crdt-spatial');
+    const room = config?.room ?? 'holoport-default';
+    webrtcProvider = new LoroWebRTCProvider(loroDoc, room, {
+      signalingServerUrl: config?.signalingServerUrl,
+      iceServers: config?.iceServers,
+      syncIntervalMs: config?.syncIntervalMs,
+    });
+    webrtcProvider.connect();
+    console.info(`[networking] WebRTC peer transport enabled for room '${room}'.`);
+    return webrtcProvider;
+  } catch (err) {
+    throw new Error(
+      `Failed to enable WebRTC transport: ${err instanceof Error ? err.message : String(err)}. ` +
+      `Ensure @holoscript/crdt-spatial is installed.`
+    );
+  }
+}
+
+/**
+ * Disable WebRTC peer transport. Disconnects from signaling server and
+ * closes all peer connections.
+ */
+export function disableWebRTCTransport(): void {
+  if (webrtcProvider) {
+    webrtcProvider.disconnect();
+    webrtcProvider = null;
+    console.info('[networking] WebRTC peer transport disabled.');
+  }
+}
+
+/**
+ * Check whether WebRTC peer transport is currently active.
+ */
+export function isWebRTCTransportEnabled(): boolean {
+  return webrtcProvider !== null;
+}
+
 /**
  * Commit a payload into the authoritative Loro CRDT state, persist, and
  * broadcast the resulting deltas. Shared by push_state_delta and

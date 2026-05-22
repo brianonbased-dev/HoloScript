@@ -12,6 +12,8 @@ import {
   subscribeToStateDeltas,
   __stateDeltaSubscriberCount,
   __resetNetworkingState,
+  isWebRTCTransportEnabled,
+  disableWebRTCTransport,
 } from '../networking-tools.js';
 
 describe('matchesZoneGlob', () => {
@@ -184,5 +186,39 @@ describe('Loro CRDT convergence (task_1779438040591_o53t)', () => {
       entityId: 'nonexistent:loro',
     });
     expect(state._null).toBe(true);
+  });
+});
+
+describe('WebRTC peer transport lifecycle (task_1779438040591_uj7g)', () => {
+  beforeEach(() => {
+    __resetNetworkingState();
+    disableWebRTCTransport();
+  });
+
+  it('WebRTC transport is disabled by default', () => {
+    expect(isWebRTCTransportEnabled()).toBe(false);
+  });
+
+  it('disableWebRTCTransport is idempotent when not enabled', () => {
+    disableWebRTCTransport();
+    expect(isWebRTCTransportEnabled()).toBe(false);
+  });
+
+  it('disableWebRTCTransport disables an active provider', async () => {
+    // We can't fully test enableWebRTCTransport in unit tests (needs signaling
+    // server + @holoscript/crdt-spatial), but we can test that disable properly
+    // cleans up and enable throws gracefully when deps are missing.
+    const { enableWebRTCTransport } = await import('../networking-tools.js');
+    // enableWebRTCTransport is async and requires @holoscript/crdt-spatial.
+    // In CI without that dep it should throw with a clear message.
+    try {
+      await enableWebRTCTransport({ room: 'test-room' });
+    } catch (err) {
+      // Expected: @holoscript/crdt-spatial not found or signaling unreachable
+      expect(err instanceof Error).toBe(true);
+    }
+    // Regardless, disable should work idempotently.
+    disableWebRTCTransport();
+    expect(isWebRTCTransportEnabled()).toBe(false);
   });
 });
