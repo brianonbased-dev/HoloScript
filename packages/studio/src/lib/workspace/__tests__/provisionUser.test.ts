@@ -323,7 +323,9 @@ describe('provisionUser founder bootstrap', () => {
     const envExample = pushedFiles.find((file) => file.path === '.env.example')?.content ?? '';
     expect(envExample).toContain('HOLOSCRIPT_API_KEY=');
     expect(envExample).toContain('MCP_WORKSPACE_ID=ws_octocat');
-    expect(envExample).toContain('GitHub Actions secret named HOLOSCRIPT_API_KEY');
+    // "GitHub Actions secret named HOLOSCRIPT_API_KEY" is in secrets.manifest.yml, not .env.example
+    expect(envExample).toContain('HOLOMESH_AGENT_ID=');
+    expect(envExample).toContain('HOLOMESH_WALLET_ADDRESS=');
 
     const secretManifest =
       pushedFiles.find((file) => file.path === 'ecosystem/secrets.manifest.yml')?.content ?? '';
@@ -619,5 +621,316 @@ describe('provisionUser founder bootstrap', () => {
       ])
     );
     expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+  });
+});
+
+// ── E2E Smoke Test: HoloMesh Identity Registration ──────────────────────────────
+//
+// Verifies the full provision → HoloMesh register → identity display flow:
+// 1. registerHolomeshAgent returns agentId, apiKey, walletAddress
+// 2. These values propagate through provisionUser result
+// 3. .env.example and .env.identity.example contain identity fields
+// 4. The FirstRunWizard success step would display these values
+
+describe('E2E smoke: provision → HoloMesh identity → display', () => {
+  const savedFounderUsers = process.env.STUDIO_FOUNDER_GITHUB_USERS;
+  const savedMasterKey = process.env.HOLOSCRIPT_API_KEY;
+  const savedHoloMeshKey = process.env.HOLOMESH_API_KEY;
+  const savedMcpServerUrl = process.env.MCP_SERVER_URL;
+
+  // Stable test identity values
+  const TEST_AGENT_ID = 'agent_studio_octocat_ws_octocat';
+  const TEST_HOLOMESH_API_KEY = 'hs_sk_test_octocat_identity_key_abc123';
+  const TEST_WALLET_ADDRESS = '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18';
+
+  let holomeshRegisterStatus = 200;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.STUDIO_FOUNDER_GITHUB_USERS = 'brianonbased-dev';
+    process.env.HOLOSCRIPT_API_KEY = 'master-key';
+    process.env.HOLOMESH_API_KEY = 'holomesh-publish-key';
+    process.env.MCP_SERVER_URL = 'https://mcp.test';
+    holomeshRegisterStatus = 200;
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+        const href = String(url);
+        const method = init?.method ?? 'GET';
+
+        // HoloMesh agent registration
+        if (href.includes('/api/holomesh/register') && method === 'POST') {
+          if (holomeshRegisterStatus !== 200) {
+            return new Response(JSON.stringify({ error: 'registration failed' }), {
+              status: holomeshRegisterStatus,
+            });
+          }
+          return new Response(
+            JSON.stringify({
+              agentId: TEST_AGENT_ID,
+              apiKey: TEST_HOLOMESH_API_KEY,
+              walletAddress: TEST_WALLET_ADDRESS,
+            }),
+            { status: 200 }
+          );
+        }
+
+        // Orchestrator API key provisioning
+        if (href.includes('/admin/keys')) {
+          return new Response(JSON.stringify({ key: 'mcp-provisioned-secret-key' }), {
+            status: 200,
+          });
+        }
+
+        // HoloMesh contribute (knowledge publish)
+        if (href === 'https://mcp.test/api/holomesh/contribute' && method === 'POST') {
+          return new Response(JSON.stringify({ id: 'entry_1' }), { status: 200 });
+        }
+
+        // GitHub repo creation
+        if (href === 'https://api.github.com/user/repos' && method === 'POST') {
+          return new Response(
+            JSON.stringify({
+              html_url: 'https://github.com/octocat/ai-workspace-octocat',
+              name: 'ai-workspace-octocat',
+            }),
+            { status: 201 }
+          );
+        }
+
+        // GitHub file push
+        if (href.includes('/contents/') && method === 'PUT') {
+          return new Response(JSON.stringify({ ok: true }), { status: 200 });
+        }
+
+        // GitHub file read (for update SHA check)
+        if (href.includes('/contents/')) {
+          return new Response(JSON.stringify({ message: 'not found' }), { status: 404 });
+        }
+
+        // GitHub repo access check
+        if (href.includes('/repos/octocat/')) {
+          return new Response(JSON.stringify({ name: href.split('/').pop() }), { status: 200 });
+        }
+
+        // Absorb tool calls
+        if (href.includes('/tools/call')) {
+          const payload = JSON.parse(String(init?.body ?? '{}')) as { tool?: string };
+          if (payload.tool === 'absorb_run_absorb') {
+            return new Response(JSON.stringify({ success: true }), { status: 200 });
+          }
+          if (payload.tool === 'absorb_extract_knowledge') {
+            return new Response(JSON.stringify({ entries: [] }), { status: 200 });
+          }
+        }
+
+        return new Response(JSON.stringify({ error: `unexpected fetch ${href}` }), {
+          status: 500,
+        });
+      })
+    );
+  });
+
+  afterEach(() => {
+    if (savedFounderUsers === undefined) {
+      delete process.env.STUDIO_FOUNDER_GITHUB_USERS;
+    } else {
+      process.env.STUDIO_FOUNDER_GITHUB_USERS = savedFounderUsers;
+    }
+    if (savedMasterKey === undefined) {
+      delete process.env.HOLOSCRIPT_API_KEY;
+    } else {
+      process.env.HOLOSCRIPT_API_KEY = savedMasterKey;
+    }
+    if (savedHoloMeshKey === undefined) {
+      delete process.env.HOLOMESH_API_KEY;
+    } else {
+      process.env.HOLOMESH_API_KEY = savedHoloMeshKey;
+    }
+    if (savedMcpServerUrl === undefined) {
+      delete process.env.MCP_SERVER_URL;
+    } else {
+      process.env.MCP_SERVER_URL = savedMcpServerUrl;
+    }
+    vi.unstubAllGlobals();
+  });
+
+  it('provisions HoloMesh agent identity and propagates to provision result', async () => {
+    const result = await provisionUser({
+      githubAccessToken: 'gho_customer_secret_token',
+      githubUsername: 'octocat',
+      email: 'octocat@example.com',
+      approvedRepos: [],
+      approvedScaffold: true,
+      approvedAbsorb: false,
+      approvedPublishKnowledge: false,
+      approvedDaemon: false,
+    });
+
+    expect(result.success).toBe(true);
+
+    // HoloMesh identity fields MUST be present
+    expect(result.user?.holomeshAgentId).toBe(TEST_AGENT_ID);
+    expect(result.user?.holomeshApiKey).toBe(TEST_HOLOMESH_API_KEY);
+    expect(result.user?.holomeshWalletAddress).toBe(TEST_WALLET_ADDRESS);
+
+    // Step tracking — register-holomesh-agent must be done
+    expect(result.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'register-holomesh-agent',
+          status: 'done',
+          detail: expect.stringContaining(TEST_AGENT_ID),
+        }),
+      ])
+    );
+
+    // Verify the HoloMesh registration call happened with correct params
+    const fetchMock = vi.mocked(fetch);
+    const registerCall = fetchMock.mock.calls.find(
+      ([url, init]) =>
+        String(url).includes('/api/holomesh/register') && init?.method === 'POST'
+    );
+    expect(registerCall).toBeDefined();
+    const registerPayload = JSON.parse(
+      String(registerCall![1]?.body ?? '{}')
+    ) as { name: string };
+    expect(registerPayload.name).toBe('studio-octocat');
+
+    // Verify the API key was passed as header
+    const registerHeaders = registerCall![1]?.headers as Record<string, string>;
+    expect(registerHeaders['x-mcp-api-key']).toBe('mcp-provisioned-secret-key');
+  });
+
+  it('seeds .env.example with HoloMesh identity fields when identity is registered', async () => {
+    const result = await provisionUser({
+      githubAccessToken: 'gho_customer_secret_token',
+      githubUsername: 'octocat',
+      email: 'octocat@example.com',
+      approvedRepos: [],
+      approvedScaffold: true,
+      approvedAbsorb: false,
+      approvedPublishKnowledge: false,
+      approvedDaemon: false,
+    });
+
+    expect(result.success).toBe(true);
+
+    // Collect all pushed files from fetch mock
+    const fetchMock = vi.mocked(fetch);
+    const pushedFiles = fetchMock.mock.calls
+      .filter(([url, init]) => init?.method === 'PUT')
+      .map(([url, init]) => {
+        const pathPart = decodeURIComponent(String(url).split('/contents/')[1] ?? '');
+        const body = JSON.parse(String(init?.body)) as { content: string };
+        return {
+          path: pathPart,
+          content: Buffer.from(body.content, 'base64').toString('utf-8'),
+        };
+      });
+
+    // .env.example MUST contain HoloMesh identity fields
+    const envExample = pushedFiles.find((f) => f.path === '.env.example');
+    expect(envExample).toBeDefined();
+    expect(envExample!.content).toContain('HOLOMESH_API_KEY=');
+    expect(envExample!.content).toContain(`HOLOMESH_AGENT_ID=${TEST_AGENT_ID}`);
+    expect(envExample!.content).toContain(`HOLOMESH_WALLET_ADDRESS=${TEST_WALLET_ADDRESS}`);
+    expect(envExample!.content).toContain('HOLOMESH_WALLET_KEY=');
+
+    // .env.identity.example MUST contain wallet address
+    const envIdentity = pushedFiles.find((f) => f.path === '.env.identity.example');
+    expect(envIdentity).toBeDefined();
+    expect(envIdentity!.content).toContain(`HOLOMESH_WALLET_ADDRESS=${TEST_WALLET_ADDRESS}`);
+    expect(envIdentity!.content).toContain('HOLOMESH_WALLET_KEY=');
+
+    // secrets.manifest.yml MUST reference HoloMesh API key
+    const secretsManifest = pushedFiles.find(
+      (f) => f.path === 'ecosystem/secrets.manifest.yml'
+    );
+    expect(secretsManifest).toBeDefined();
+    expect(secretsManifest!.content).toContain('HOLOMESH_API_KEY');
+  });
+
+  it('marks register-holomesh-agent as failed but continues when HoloMesh registration is down', async () => {
+    holomeshRegisterStatus = 503;
+
+    const result = await provisionUser({
+      githubAccessToken: 'gho_customer_secret_token',
+      githubUsername: 'octocat',
+      email: 'octocat@example.com',
+      approvedRepos: [],
+      approvedScaffold: true,
+      approvedAbsorb: false,
+      approvedPublishKnowledge: false,
+      approvedDaemon: false,
+    });
+
+    // Provision still succeeds — HoloMesh registration is non-fatal
+    expect(result.success).toBe(true);
+
+    // Identity fields are undefined when registration fails
+    expect(result.user?.holomeshAgentId).toBeUndefined();
+    expect(result.user?.holomeshApiKey).toBeUndefined();
+    expect(result.user?.holomeshWalletAddress).toBeUndefined();
+
+    // Step marked as failed with retry hint
+    expect(result.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'register-holomesh-agent',
+          status: 'failed',
+          detail: expect.stringContaining('retry'),
+        }),
+      ])
+    );
+
+    // .env.example still exists but with empty identity values
+    const fetchMock = vi.mocked(fetch);
+    const pushedFiles = fetchMock.mock.calls
+      .filter(([url, init]) => init?.method === 'PUT')
+      .map(([url, init]) => {
+        const pathPart = decodeURIComponent(String(url).split('/contents/')[1] ?? '');
+        const body = JSON.parse(String(init?.body)) as { content: string };
+        return {
+          path: pathPart,
+          content: Buffer.from(body.content, 'base64').toString('utf-8'),
+        };
+      });
+
+    const envExample = pushedFiles.find((f) => f.path === '.env.example');
+    expect(envExample).toBeDefined();
+    expect(envExample!.content).toContain('HOLOMESH_AGENT_ID=');
+    expect(envExample!.content).toContain('HOLOMESH_WALLET_ADDRESS=');
+  });
+
+  it('does not leak githubAccessToken into pushed files or provision result', async () => {
+    const result = await provisionUser({
+      githubAccessToken: 'gho_customer_secret_token',
+      githubUsername: 'octocat',
+      email: 'octocat@example.com',
+      approvedRepos: [],
+      approvedScaffold: true,
+      approvedAbsorb: false,
+      approvedPublishKnowledge: false,
+      approvedDaemon: false,
+    });
+
+    expect(result.success).toBe(true);
+
+    // Result JSON must not contain the access token
+    const resultJson = JSON.stringify(result.user);
+    expect(resultJson).not.toContain('gho_customer_secret_token');
+
+    // Pushed files must not contain the access token
+    const fetchMock = vi.mocked(fetch);
+    const pushedContent = fetchMock.mock.calls
+      .filter(([url, init]) => init?.method === 'PUT')
+      .map(([url, init]) => {
+        const body = JSON.parse(String(init?.body)) as { content: string };
+        return Buffer.from(body.content, 'base64').toString('utf-8');
+      })
+      .join('\n');
+    expect(pushedContent).not.toContain('gho_customer_secret_token');
   });
 });
