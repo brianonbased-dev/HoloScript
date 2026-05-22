@@ -1,12 +1,12 @@
 /**
  * ScenarioReplayService.ts — Experience Replay for Scenario Interactions
  *
- * TypeScript port of the spatial-engine's Rust ExperienceReplay pattern.
+ * TypeScript implementation of the ExperienceReplay pattern.
+ * (Originally mirrored spatial-engine/src/learning/replay.rs, which was
+ * retired in c5887f4e7 as a ghost package with zero TS source.)
  * Records user interactions across all scenario panels (slider changes,
  * selections, answers) and enables playback for demos, tutorials, and
  * social sharing.
- *
- * Mirrors: spatial-engine/src/learning/replay.rs
  */
 
 // ─── Types ───────────────────────────────────────────────────────

@@ -1,10 +1,10 @@
 /**
  * SpatialEngineBridge.ts
  *
- * TypeScript bridge to the spatial-engine WASM module.
- * Loads the .wasm binary, provides ergonomic TS wrappers around
- * hot-path functions (collision, pathfinding, noise), and falls
- * back to pure-TS implementations when WASM is unavailable.
+ * Pure-TypeScript spatial math bridge.
+ * Originally wrapping the spatial-engine WASM module (retired c5887f4e7);
+ * now provides ergonomic TS implementations of collision detection,
+ * A* pathfinding, and Perlin/fBm noise as the sole backend.
  *
  * @module wasm
  */

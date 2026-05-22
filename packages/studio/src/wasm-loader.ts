@@ -5,13 +5,15 @@ import { logger } from '@/lib/logger';
  * Loads and initializes the compiled Rust WASM component that provides
  * parser, validator, compiler, and other language services.
  *
- * The WASM module exports multiple interfaces defined in wit/holoscript.wit:
+ * The WASM module exported multiple interfaces defined in wit/holoscript.wit.
+ * Note: spatial-engine WASM interface retired in c5887f4e7. Spatial math is
+ * now served by the pure-TS SpatialEngineBridge fallback in studio.
+ * Remaining live interfaces (all via @holoscript/core TypeScript API):
  * - parser: Parse HoloScript/HSPlus into AST
  * - validator: Type checking and validation
  * - compiler: Generate target language (Unity, Unreal, etc.)
  * - type-checker: Advanced type analysis
  * - generator: Code generation utilities
- * - spatial-engine: 3D spatial calculations
  * - formatter: Code formatting
  */
 
