@@ -289,3 +289,4 @@ pids
 !.bench-logs/todo-r2-*
 !.bench-logs/paper-7-ik-latency*
 !.bench-logs/*paper-10*
+!.bench-logs/tet10-gpu-crossover-*

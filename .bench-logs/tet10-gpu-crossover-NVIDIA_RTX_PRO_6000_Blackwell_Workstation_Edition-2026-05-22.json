@@ -1,0 +1,211 @@
+{
+  "schemaVersion": "tet10-gpu-crossover-sweep/v1",
+  "generatedAt": "2026-05-22T08:07:26.579Z",
+  "harness": "scripts/tet10-gpu-crossover-sweep.mjs",
+  "hardware": {
+    "hostname": "1555e57e1a48",
+    "platform": "linux",
+    "cpus": 128,
+    "cpuModel": "AMD EPYC 7V13 64-Core Processor",
+    "ramGb": 540.9,
+    "gpuName": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition"
+  },
+  "enginePath": "/workspace/packages/engine/dist/simulation/index.js",
+  "material": "steel_a36",
+  "solverSettings": {
+    "maxIterations": 2000,
+    "tolerance": 1e-8
+  },
+  "sweep": [
+    {
+      "label": "~1.4k DOF",
+      "mesh": {
+        "nx": 2,
+        "ny": 2,
+        "nz": 8,
+        "dofCount": 1359,
+        "nNodes": 453
+      },
+      "repeats": 2,
+      "cpu": {
+        "medianMs": 125.09,
+        "timings": [
+          {
+            "elapsedMs": 110.73,
+            "converged": true,
+            "iterations": 332,
+            "residual": 1.9932622544719818e-7
+          },
+          {
+            "elapsedMs": 125.09,
+            "converged": true,
+            "iterations": 332,
+            "residual": 1.9932622544719818e-7
+          }
+        ]
+      },
+      "gpu": {
+        "medianMs": 1070.59,
+        "timings": [
+          {
+            "elapsedMs": 1070.59,
+            "converged": true,
+            "iterations": 525,
+            "residual": 1.4489001099628286e-7
+          },
+          {
+            "elapsedMs": 941.92,
+            "converged": true,
+            "iterations": 525,
+            "residual": 1.4489001099628286e-7
+          }
+        ]
+      },
+      "speedupGpuOverCpu": 0.117,
+      "maxAbsDisplacementDiff": 2.3135271476348862e-10
+    },
+    {
+      "label": "~9k DOF",
+      "mesh": {
+        "nx": 4,
+        "ny": 4,
+        "nz": 16,
+        "dofCount": 9123,
+        "nNodes": 3041
+      },
+      "repeats": 2,
+      "cpu": {
+        "medianMs": 2022.18,
+        "timings": [
+          {
+            "elapsedMs": 2022.07,
+            "converged": true,
+            "iterations": 602,
+            "residual": 9.87254813651569e-8
+          },
+          {
+            "elapsedMs": 2022.18,
+            "converged": true,
+            "iterations": 602,
+            "residual": 9.87254813651569e-8
+          }
+        ]
+      },
+      "gpu": {
+        "medianMs": 5741.15,
+        "timings": [
+          {
+            "elapsedMs": 4669.5,
+            "converged": true,
+            "iterations": 1125,
+            "residual": 1.4375354375808928e-8
+          },
+          {
+            "elapsedMs": 5741.15,
+            "converged": true,
+            "iterations": 1125,
+            "residual": 1.4375354375808928e-8
+          }
+        ]
+      },
+      "speedupGpuOverCpu": 0.352,
+      "maxAbsDisplacementDiff": 1.1254996934439987e-9
+    },
+    {
+      "label": "~29k DOF",
+      "mesh": {
+        "nx": 6,
+        "ny": 6,
+        "nz": 24,
+        "dofCount": 29055,
+        "nNodes": 9685
+      },
+      "repeats": 2,
+      "cpu": {
+        "medianMs": 13418.43,
+        "timings": [
+          {
+            "elapsedMs": 13418.43,
+            "converged": true,
+            "iterations": 1187,
+            "residual": 7.201886719165008e-8
+          },
+          {
+            "elapsedMs": 12615.94,
+            "converged": true,
+            "iterations": 1187,
+            "residual": 7.201886719165008e-8
+          }
+        ]
+      },
+      "gpu": {
+        "medianMs": 20221.04,
+        "timings": [
+          {
+            "elapsedMs": 17182.29,
+            "converged": true,
+            "iterations": 1400,
+            "residual": 6.971912946309759e-8
+          },
+          {
+            "elapsedMs": 20221.04,
+            "converged": true,
+            "iterations": 1400,
+            "residual": 6.971912946309759e-8
+          }
+        ]
+      },
+      "speedupGpuOverCpu": 0.664,
+      "maxAbsDisplacementDiff": 1.4986767382652033e-9
+    },
+    {
+      "label": "~67k DOF",
+      "mesh": {
+        "nx": 8,
+        "ny": 8,
+        "nz": 32,
+        "dofCount": 66915,
+        "nNodes": 22305
+      },
+      "repeats": 2,
+      "cpu": {
+        "medianMs": 42351.83,
+        "timings": [
+          {
+            "elapsedMs": 42351.83,
+            "converged": true,
+            "iterations": 1582,
+            "residual": 5.738370371962093e-8
+          },
+          {
+            "elapsedMs": 42051.8,
+            "converged": true,
+            "iterations": 1582,
+            "residual": 5.738370371962093e-8
+          }
+        ]
+      },
+      "gpu": {
+        "medianMs": 39761.88,
+        "timings": [
+          {
+            "elapsedMs": 39761.88,
+            "converged": true,
+            "iterations": 1750,
+            "residual": 5.8274490418713274e-8
+          },
+          {
+            "elapsedMs": 39391.28,
+            "converged": true,
+            "iterations": 1750,
+            "residual": 5.8274490418713274e-8
+          }
+        ]
+      },
+      "speedupGpuOverCpu": 1.065,
+      "maxAbsDisplacementDiff": 4.726842917079921e-9
+    }
+  ],
+  "crossoverObservation": "Crossover between ~29k DOF and ~67k DOF (speedup crossed 1.0×)",
+  "auditNote": "Receipt from NVIDIA RTX PRO 6000 Blackwell Workstation Edition. Per paper-audit-matrix.md Refresh C: No structural-GPU-speedup claim may enter any .tex until paper-grade (RTX 6000 Ada class) run completes AND receipt is dual-anchored (OTS + Base)."
+}
