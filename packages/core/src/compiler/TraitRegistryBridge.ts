@@ -14,8 +14,10 @@
  * This turns the documented WIT interfaces into a working reality without
  * pulling the full runtime into every lightweight world.
  *
- * Status: Initial surface (query + dispatch). Compiler integration and WIT
- * host-function wiring are the immediate follow-ups.
+ * v2 (2026-05-22): Wired core target path to the real VRTraitRegistry and
+ * traitDocs catalog. The WIT validator can now resolve traits against the
+ * full catalog instead of returning a conservative `exists: true` for
+ * every unknown trait name.
  */
 
 import type { AndroidXRTraitMapping } from './AndroidXRComponentTypes';
@@ -30,8 +32,8 @@ import {
   listAllTraits as listVisionOSTraits,
 } from './VisionOSTraitMap';
 
-// Future: import from core trait registry when it is unified
-// import { getCoreTrait, listCoreTraits } from '../traits/registry';
+import { vrTraitRegistry } from '../traits/VRTraitSystem';
+import { getTraitDoc, getAllTraitNames as getAllTraitDocNames } from '../traitDocs/traitDocs';
 
 export interface TraitQueryOptions {
   target?: 'android-xr' | 'visionos' | 'webgpu' | 'threejs' | 'core';
@@ -44,10 +46,45 @@ export interface TraitInfo {
   level?: string;
   codegen?: string[];
   sourceMap?: string;
+  /** Human-readable description from the trait docs catalog, if available. */
+  description?: string;
+  /** Category from the trait docs catalog, if available. */
+  category?: string;
+  /** The annotation (e.g. `@physics`) from the trait docs catalog. */
+  annotation?: string;
+}
+
+/**
+ * Normalise a trait name for lookup.
+ *
+ * Trait names come in various forms across the ecosystem:
+ *   - `physics` (bare name)
+ *   - `@physics` (annotation form)
+ *   - `PhysicsTrait` (class form)
+ *   - `physics-trait` (slug form)
+ *
+ * The registry stores handler names in bare kebab-case
+ * (e.g. `grabbable`, `hand-tracking`), while traitDocs uses annotation
+ * form (`@physics`). We normalise to the most permissive match by
+ * stripping `@`, `Trait` suffix, and converting `_`/`-` freely.
+ */
+function normaliseTraitName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/^@/, '')
+    .replace(/trait$/i, '')
+    .replace(/_/g, '-')
+    .trim();
 }
 
 /**
  * Unified trait query — the surface the WIT validator will call.
+ *
+ * Resolution order:
+ *   1. Platform-specific maps (android-xr, visionos) — concrete codegen.
+ *   2. VRTraitRegistry handler — runtime dispatch exists.
+ *   3. traitDocs catalog — documentation-level entry.
+ *   4. Not found.
  */
 export function queryTrait(name: string, opts: TraitQueryOptions = {}): TraitInfo {
   const target = opts.target || 'core';
@@ -81,13 +118,43 @@ export function queryTrait(name: string, opts: TraitQueryOptions = {}): TraitInf
     return { name, exists: false, sourceMap: 'VisionOSTraitMap' };
   }
 
-  // Core / generic path (future unified registry)
-  // For now we fall back to a conservative "we know it exists in the TS trait catalog"
-  // This is the exact gap the audit identified: the WIT validator needs this to be real.
+  // Core / generic path: check the real registries in order.
+  // 1. VRTraitRegistry (runtime handler dispatch)
+  const normalised = normaliseTraitName(name);
+  if (vrTraitRegistry.has(normalised)) {
+    const handler = vrTraitRegistry.getHandler(normalised as never);
+    const doc = getTraitDoc(name);
+    return {
+      name,
+      exists: true,
+      sourceMap: 'VRTraitRegistry',
+      level: (handler?.defaultConfig as Record<string, unknown> | undefined)
+        ? String((handler!.defaultConfig as Record<string, unknown>).level ?? 'core')
+        : 'core',
+      description: doc?.description,
+      category: doc?.category,
+      annotation: doc?.annotation,
+    };
+  }
+
+  // 2. traitDocs catalog (documentation-level entry, no runtime handler)
+  const doc = getTraitDoc(name);
+  if (doc) {
+    return {
+      name,
+      exists: true,
+      sourceMap: 'traitDocs',
+      description: doc.description,
+      category: doc.category,
+      annotation: doc.annotation,
+    };
+  }
+
+  // 3. Not found anywhere
   return {
     name,
-    exists: true, // conservative until the core registry is lifted
-    sourceMap: 'core-traits (conservative until unified registry is wired)',
+    exists: false,
+    sourceMap: 'core-traits (not found in any registry)',
   };
 }
 
@@ -113,15 +180,29 @@ export function generateTraitForTarget(
     ];
   }
 
+  // Core target: no platform-specific codegen, but we can return a
+  // descriptive stub that the WIT world can use for validation.
+  const info = queryTrait(name, { target: 'core' });
+  if (info.exists) {
+    return [
+      `// @${name} — core trait (registered in ${info.sourceMap}), no platform-specific codegen for "${target}"`,
+      `// trait level: ${info.level ?? 'unknown'}, category: ${info.category ?? 'unknown'}`,
+    ];
+  }
+
   return [`// @${name} — no codegen path registered for target "${target}" yet`];
 }
 
 /**
  * List known traits for a target (supports the WIT `list-traits` function).
+ *
+ * Resolution order:
+ *   - android-xr: enumerates the AndroidXRTraitDispatch composed maps.
+ *   - visionos: delegates to VisionOSTraitMap.listAllTraits.
+ *   - core: merges VRTraitRegistry handler names + traitDocs annotations.
+ *   - webgpu / threejs: currently empty (future compiler targets).
  */
 export function listTraitsForTarget(target: string): string[] {
-  // In a full implementation this would enumerate the composed registry.
-  // For the initial bridge we return a conservative set that we know is real.
   if (target === 'android-xr') {
     return [
       'collidable', 'physics', 'static', 'kinematic', 'cloth',
@@ -134,7 +215,80 @@ export function listTraitsForTarget(target: string): string[] {
     return listVisionOSTraits ? listVisionOSTraits() : [];
   }
 
+  if (target === 'core') {
+    // Merge VRTraitRegistry handler names with traitDocs annotations,
+    // deduplicating by normalised name.
+    const seen = new Set<string>();
+    const result: string[] = [];
+
+    // VRTraitRegistry handler names (runtime dispatch)
+    for (const name of vrTraitRegistry.getRegisteredTraits()) {
+      const norm = normaliseTraitName(name);
+      if (!seen.has(norm)) {
+        seen.add(norm);
+        result.push(name);
+      }
+    }
+
+    // traitDocs annotations (documentation catalog)
+    for (const annotation of getAllTraitDocNames()) {
+      const norm = normaliseTraitName(annotation);
+      if (!seen.has(norm)) {
+        seen.add(norm);
+        result.push(annotation);
+      }
+    }
+
+    return result;
+  }
+
+  // Future targets (webgpu, threejs) — return empty until compilers ship
   return [];
+}
+
+/**
+ * Check whether a trait exists in any registry (WIT `trait-exists` function).
+ *
+ * This is the lightweight validation entry point that the `holoscript-parser`
+ * WASM world calls to validate trait references without pulling the full
+ * runtime. It checks VRTraitRegistry + traitDocs + platform maps.
+ */
+export function traitExists(name: string): boolean {
+  const normalised = normaliseTraitName(name);
+
+  // 1. VRTraitRegistry (fast path — handler already loaded)
+  if (vrTraitRegistry.has(normalised)) {
+    return true;
+  }
+
+  // 2. traitDocs (documentation catalog — slower but exhaustive)
+  const doc = getTraitDoc(name);
+  if (doc) {
+    return true;
+  }
+
+  // 3. Android XR map
+  if (getAndroidXRTrait(name)) {
+    return true;
+  }
+
+  // 4. VisionOS map
+  if (getVisionOSTrait(name)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Get a trait's documentation, category, and annotation (WIT `get-trait` function).
+ *
+ * Returns `undefined` if the trait is not found in any catalog.
+ */
+export function getTraitInfo(name: string): TraitInfo | undefined {
+  const info = queryTrait(name, { target: 'core' });
+  if (!info.exists) return undefined;
+  return info;
 }
 
 // Re-export the raw maps for consumers that need deeper access

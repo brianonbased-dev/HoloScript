@@ -2103,6 +2103,21 @@ export class VRTraitRegistry {
     return this.handlers.get(name);
   }
 
+  /** Check whether a trait is registered by name. */
+  has(name: string): boolean {
+    return this.handlers.has(name as VRTraitName);
+  }
+
+  /** Return all registered trait names (for WIT validator / list-traits). */
+  getRegisteredTraits(): string[] {
+    return Array.from(this.handlers.keys());
+  }
+
+  /** Return total count of registered traits. */
+  get size(): number {
+    return this.handlers.size;
+  }
+
   attachTrait(
     node: HSPlusNode,
     traitName: VRTraitName,
