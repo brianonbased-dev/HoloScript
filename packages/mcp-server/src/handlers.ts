@@ -638,6 +638,12 @@ export async function handleTool(
     return handleSimulationTool(name, args);
   }
 
+  // Simulation billing tools (paid, capped solver execution via fleet)
+  if (name === 'sim_quote' || name === 'sim_run_paid' || name === 'sim_fleet_status') {
+    const { handleSimulationBillingTool } = await import('./simulation-billing-tools');
+    return handleSimulationBillingTool(name, args);
+  }
+
   // TypeScript absorb tools
   if (name === 'absorb_typescript' || name === 'absorb_suggest_holoscript_transform') {
     const { handleAbsorbTypescriptTool } = await import('@holoscript/absorb-service/mcp');
