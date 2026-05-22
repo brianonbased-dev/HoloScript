@@ -230,3 +230,34 @@ The full evidence artifact is
 \texttt{research/paper-26-artifacts/section7-harness-2026-05-21.json}; the
 human-readable table extract is
 \texttt{research/paper-26-artifacts/section7-harness-2026-05-21.md}.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Threats to Validity and External Validation}
+\label{sec:eval-threats}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\paragraph{Internal validity.}
+All four evaluation subsections measure on codebases we maintain
+(HoloScript core, absorb-service, and the live HoloMesh deployment).
+Synthetic corpora use controlled topologies with known ground truth,
+which may not reflect the event-chain distributions of unfamiliar
+codebases.  Real-corpus generalization (\S\ref{sec:eval-real-corpus})
+partially addresses this by testing on production TypeScript, but
+broader cross-project evaluation remains future work.
+
+\paragraph{External validation of the filesystem-as-ground-truth design.}
+The core design choice underlying \HoloGraph\ (\S\ref{sec:holograph})
+--- that plain, version-controlled files serve as the agent's
+authoritative context store rather than opaque in-memory state or
+framework-managed DAGs --- has received independent practitioner
+validation.  Van Clief's Interpretable Context Methodology
+(ICM)~\cite{vanclief2026icm}, which applies the same principle to
+workflow pipelines, reports adoption by over 7,000 practitioners in
+its first 12 days of community launch~\cite{cliefnotes2026}.  ICM's
+numbered-folder stage contracts (\texttt{01-research/},
+\texttt{02-script/}, \dots) and \texttt{CONTEXT.md} interface tables
+mirror HoloScript's \texttt{CLAUDE.md} + \texttt{skills/} +
+\texttt{MEMORY.md} + hook architecture, confirming that
+filesystem-grounded agent coordination is not an isolated design
+choice but a convergent practice across independent practitioner
+communities.
