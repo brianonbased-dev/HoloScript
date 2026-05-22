@@ -32,6 +32,7 @@ const GATES = [
   { track: 'flagship', gate: '5c', name: 'Quest projection via /embodied (immersive-vr on device)', kind: 'artifact', file: 'GATE-5BC-immersive-session.json', note: 'real device receipt' },
   { track: 'flagship', gate: 6, name: 'interactive VR via REAL HoloGate (entry portal/menu + grab/say intent gating)', kind: 'script', runner: 'tsx', file: 'gate-6-hologate-verify.mjs' },
   { track: 'flagship', gate: 7, name: 'whole-stack conformance sweep (kitchen sink: 17/24 real compilers, 0 FAIL)', kind: 'script', runner: 'tsx', file: 'gate-7-conformance-verify.mjs' },
+  { track: 'flagship', gate: 8, name: 'multi-agent mesh + economy (3 AI curators + human; real D.040 sovereign traits)', kind: 'script', runner: 'tsx', file: 'gate-8-mesh-economy-verify.mjs' },
   { track: 'oasis (fixture)', gate: 3, name: 'connection-mechanics proof (compass co-session)', kind: 'script', runner: 'tsx', file: 'connection-mechanics-proof/gate-3-verify.mjs' },
   { track: 'modalities', gate: '2D+3D', name: 'one .holo -> retro 2D + 3D (shared source scene)', kind: 'script', runner: 'tsx', file: 'modality-verify.mjs' },
 ];
