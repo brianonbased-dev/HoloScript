@@ -112,6 +112,7 @@ export type WizardAction =
   | { type: 'SET_TARGETS'; targets: string[] }
   | { type: 'SET_GENERATED_CODE'; code: string }
   | { type: 'ADD_MESSAGE'; message: BrittneyMessage }
+  | { type: 'UPDATE_LAST_ASSISTANT'; content: string }
   | { type: 'SET_ABSORB_PROGRESS'; progress: Partial<AbsorbProgress> }
   | { type: 'SET_DOMAIN_KEYWORDS'; keywords: string[] }
   | { type: 'SET_CONSENT'; consent: Partial<ConsentGates> }
@@ -175,6 +176,17 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
 
     case 'ADD_MESSAGE':
       return { ...base, messages: [...base.messages, action.message] };
+
+    case 'UPDATE_LAST_ASSISTANT': {
+      const msgs = [...base.messages];
+      const lastIdx = msgs.length - 1;
+      if (lastIdx >= 0 && msgs[lastIdx].role === 'assistant') {
+        msgs[lastIdx] = { ...msgs[lastIdx], content: action.content };
+      } else {
+        msgs.push({ role: 'assistant', content: action.content });
+      }
+      return { ...base, messages: msgs };
+    }
 
     case 'SET_ABSORB_PROGRESS':
       return {

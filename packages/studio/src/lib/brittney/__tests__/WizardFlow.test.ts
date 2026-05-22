@@ -81,6 +81,40 @@ describe('WizardFlow', () => {
       expect(next.messages[0].content).toBe('hello');
     });
 
+    it('UPDATE_LAST_ASSISTANT updates last assistant message', () => {
+      const state = reduce(
+        createInitialWizardState(),
+        { type: 'ADD_MESSAGE', message: { role: 'user', content: 'hello' } },
+        { type: 'ADD_MESSAGE', message: { role: 'assistant', content: 'Hi' } }
+      );
+      expect(state.messages).toHaveLength(2);
+      expect(state.messages[1].content).toBe('Hi');
+
+      const updated = wizardReducer(state, {
+        type: 'UPDATE_LAST_ASSISTANT',
+        content: 'Hi there!',
+      });
+      expect(updated.messages).toHaveLength(2);
+      expect(updated.messages[1].content).toBe('Hi there!');
+    });
+
+    it('UPDATE_LAST_ASSISTANT creates assistant message when none exists', () => {
+      const state = reduce(
+        createInitialWizardState(),
+        { type: 'ADD_MESSAGE', message: { role: 'user', content: 'hello' } }
+      );
+      expect(state.messages).toHaveLength(1);
+      expect(state.messages[0].role).toBe('user');
+
+      const updated = wizardReducer(state, {
+        type: 'UPDATE_LAST_ASSISTANT',
+        content: 'Hi there!',
+      });
+      expect(updated.messages).toHaveLength(2);
+      expect(updated.messages[1].role).toBe('assistant');
+      expect(updated.messages[1].content).toBe('Hi there!');
+    });
+
     it('SET_TARGETS updates compilation targets', () => {
       const state = createInitialWizardState();
       const next = wizardReducer(state, {

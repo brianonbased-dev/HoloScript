@@ -27,6 +27,7 @@ import {
   ChevronRight,
   RefreshCw,
   Check,
+  Loader2,
 } from 'lucide-react';
 import { ConsentStep } from './ConsentStep';
 import { useWizardFlow } from '@/hooks/useWizardFlow';
@@ -34,9 +35,14 @@ import {
   WIZARD_STAGES,
   STAGE_META,
   type WizardStage,
+  type WizardState,
 } from '@/lib/brittney/WizardFlow';
-import type { BrittneyMessage } from '@/lib/brittney/BrittneySession';
-import type { ScenarioMatch } from '@/lib/brittney/ScenarioMatcher';
+import {
+  streamBrittney,
+  type BrittneyMessage,
+  type ToolCallPayload,
+} from '@/lib/brittney/BrittneySession';
+import type { MatchResult, ScenarioMatch } from '@/lib/brittney/ScenarioMatcher';
 
 // ─── Stage icons ─────────────────────────────────────────────────────────────
 
@@ -72,6 +78,122 @@ const GREETING_SUGGESTIONS = [
   'I need a music production tool with MIDI support',
   'Build me a climate monitoring dashboard',
 ];
+
+const GITHUB_REPO_PATTERN = /https?:\/\/github\.com\/[\w.-]+\/[\w.-]+/;
+
+interface ProvisionRequestBody {
+  repoUrl?: string;
+  projectName?: string;
+  intent?: string;
+  consent: {
+    repos: string[];
+    scaffold: boolean;
+    absorb: boolean;
+    publishKnowledge: boolean;
+    daemon: boolean;
+  };
+}
+
+interface ProvisionResponseBody {
+  success?: boolean;
+  error?: string;
+  user?: {
+    workspaceId?: string;
+    repoUrl?: string;
+    repoName?: string;
+    holomeshAgentId?: string;
+    holomeshWalletAddress?: string;
+  };
+}
+
+export function buildWizardProvisionBody(state: WizardState): ProvisionRequestBody {
+  const approvedRepos = new Set(
+    state.consent.repos.map((repo) => repo.trim()).filter(Boolean)
+  );
+  if (state.repoUrl) {
+    approvedRepos.add(state.repoUrl);
+  }
+
+  return {
+    repoUrl: state.repoUrl ?? undefined,
+    projectName: state.projectDNA?.name || undefined,
+    intent: state.userIntent || undefined,
+    consent: {
+      repos: [...approvedRepos],
+      scaffold: state.consent.scaffold,
+      absorb: state.consent.absorb,
+      publishKnowledge: state.consent.publishKnowledge,
+      daemon: state.consent.daemon,
+    },
+  };
+}
+
+function buildWizardSceneContext(state: WizardState, scenarioMatch: MatchResult): string {
+  const lines = [
+    `Wizard stage: ${STAGE_META[state.stage].label}`,
+    `User intent: ${state.userIntent || 'not set'}`,
+    `Existing code: ${state.hasExistingCode ? 'yes' : 'no'}`,
+    state.repoUrl ? `Repository: ${state.repoUrl}` : 'Repository: not connected',
+    `Consent: scaffold=${state.consent.scaffold}, absorb=${state.consent.absorb}, publishKnowledge=${state.consent.publishKnowledge}, daemon=${state.consent.daemon}`,
+  ];
+
+  if (state.projectDNA) {
+    lines.push(
+      `Project DNA: ${state.projectDNA.name} (${state.projectDNA.languages.join(', ') || 'unknown language'})`
+    );
+  }
+
+  if (scenarioMatch.best) {
+    lines.push(
+      `Best scenario match: ${scenarioMatch.best.scenario.name} (score ${scenarioMatch.best.score})`
+    );
+  }
+
+  return lines.join('\n');
+}
+
+function isToolCallPayload(payload: unknown): payload is ToolCallPayload {
+  if (!payload || typeof payload !== 'object') return false;
+  const record = payload as Record<string, unknown>;
+  return (
+    typeof record.name === 'string' &&
+    !!record.arguments &&
+    typeof record.arguments === 'object' &&
+    !Array.isArray(record.arguments)
+  );
+}
+
+function payloadMessage(payload: unknown, fallback: string): string {
+  if (typeof payload === 'string') return payload;
+  if (payload && typeof payload === 'object') {
+    const record = payload as Record<string, unknown>;
+    if (typeof record.detail === 'string') return record.detail;
+    if (typeof record.message === 'string') return record.message;
+    if (typeof record.error === 'string') return record.error;
+    if (typeof record.action === 'string') return record.action;
+  }
+  return fallback;
+}
+
+function buildEmptyStreamFallback(
+  text: string,
+  state: WizardState,
+  scenarioMatch: MatchResult
+): string {
+  if (state.stage === 'greeting' || state.stage === 'intake') {
+    if (GITHUB_REPO_PATTERN.test(text)) {
+      return 'I see you have a GitHub repo. Let me scan it to understand your codebase.';
+    }
+
+    if (scenarioMatch.best && scenarioMatch.best.score >= 4) {
+      return `I found a strong template match: ${scenarioMatch.best.scenario.name}. Want me to load it, or would you prefer to start from scratch?`;
+    }
+
+    return `That sounds exciting. Do you have existing code on GitHub, or should we start with a new workspace?`;
+  }
+
+  return "I'm here to help. What would you like to do next?";
+}
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
@@ -301,8 +423,12 @@ export function BrittneyWizard({
   const { state, scenarioMatch } = wizard;
   const [inputValue, setInputValue] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingText, setStreamingText] = useState('');
+  const [isProvisioning, setIsProvisioning] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const provisionFiredRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   // Auto-scroll chat
   useEffect(() => {
@@ -314,68 +440,167 @@ export function BrittneyWizard({
     inputRef.current?.focus();
   }, [state.stage]);
 
+  const runProvision = useCallback(async () => {
+    setIsProvisioning(true);
+    try {
+      const response = await fetch('/api/workspace/provision', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildWizardProvisionBody(state)),
+      });
+      const data = (await response.json().catch(() => ({}))) as ProvisionResponseBody;
+
+      if (!response.ok || data.success === false) {
+        throw new Error(data.error ?? `Provision failed with HTTP ${response.status}`);
+      }
+
+      const workspaceText = data.user?.workspaceId ? ` for ${data.user.workspaceId}` : '';
+      const agentText = data.user?.holomeshAgentId
+        ? ` HoloMesh agent ${data.user.holomeshAgentId} is ready.`
+        : '';
+      wizard.addMessage({
+        role: 'assistant',
+        content: `Workspace provisioned${workspaceText}.${agentText}`,
+      });
+    } catch (err) {
+      wizard.addMessage({
+        role: 'assistant',
+        content: `Provision did not finish: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    } finally {
+      setIsProvisioning(false);
+    }
+  }, [state, wizard]);
+
+  // ── Background provision after consent gate ──────────────────────────
+  // Fires once when the wizard advances past consent. This keeps the UI moving
+  // while still calling the same endpoint used by the OAuth and import wizards.
+  useEffect(() => {
+    if (state.stage === 'greeting' && state.messages.length === 0) {
+      provisionFiredRef.current = false;
+    }
+
+    const stageIndex = WIZARD_STAGES.indexOf(state.stage);
+    const consentIndex = WIZARD_STAGES.indexOf('consent');
+    if (stageIndex > consentIndex && !provisionFiredRef.current) {
+      provisionFiredRef.current = true;
+      void runProvision();
+    }
+  }, [runProvision, state.messages.length, state.stage]);
+
+  // Cleanup: abort any in-flight stream on unmount
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
+
   // ── Handlers ─────────────────────────────────────────────────────
 
-  const handleSend = useCallback(() => {
-    const text = inputValue.trim();
-    if (!text || isStreaming) return;
+  const runBrittneyStream = useCallback(
+    async (text: string) => {
+      abortRef.current?.abort();
+      setIsStreaming(true);
+      setStreamingText('');
+      const abortController = new AbortController();
+      abortRef.current = abortController;
 
-    setInputValue('');
-    wizard.handleUserMessage(text);
+      const messages: BrittneyMessage[] = state.messages.concat({ role: 'user', content: text });
+      const sceneContext = buildWizardSceneContext(state, scenarioMatch);
+      let assistantText = '';
 
-    // Simulate Brittney's response (actual integration uses streamBrittney)
-    setIsStreaming(true);
-    setTimeout(() => {
-      const stage = state.stage;
-      let response = '';
+      try {
+        for await (const event of streamBrittney(messages, sceneContext, abortController.signal)) {
+          if (abortController.signal.aborted) return;
 
-      if (stage === 'greeting' || stage === 'intake') {
-        const hasRepo = text.match(/github\.com/);
-        if (hasRepo) {
-          response = `I see you have a GitHub repo. Let me scan it to understand your codebase. This will take a moment...`;
-          wizard.setHasCode(true, text.match(/https?:\/\/github\.com\/[\w.-]+\/[\w.-]+/)?.[0]);
-        } else {
-          response = `Great, I understand you want to build something related to "${text}". Let me find the best templates for you. Do you have any existing code on GitHub?`;
-          wizard.setIntent(text);
+          if (event.type === 'text') {
+            const chunk = typeof event.payload === 'string' ? event.payload : '';
+            assistantText += chunk;
+            setStreamingText(assistantText);
+          } else if (event.type === 'tool_call') {
+            if (isToolCallPayload(event.payload)) {
+              wizard.handleToolCall(event.payload.name, event.payload.arguments);
+            }
+          } else if (event.type === 'tool_result') {
+            // Tool results feed into the conversation but do not need a separate message.
+          } else if (event.type === 'operator_receipt') {
+            const receiptText = payloadMessage(event.payload, 'Action completed.');
+            assistantText = assistantText ? `${assistantText}\n\n${receiptText}` : receiptText;
+            setStreamingText(assistantText);
+          } else if (event.type === 'error') {
+            const errorText = `Error: ${payloadMessage(
+              event.payload,
+              'Something went wrong. Please try again.'
+            )}`;
+            assistantText = assistantText ? `${assistantText}\n\n${errorText}` : errorText;
+            setStreamingText(assistantText);
+          } else if (event.type === 'done') {
+            break;
+          }
+        }
+
+        if (abortController.signal.aborted) return;
+
+        if (!assistantText.trim()) {
+          assistantText = buildEmptyStreamFallback(text, state, scenarioMatch);
+          const repoUrl = text.match(GITHUB_REPO_PATTERN)?.[0];
+          if (repoUrl) {
+            wizard.setHasCode(true, repoUrl);
+          } else if (scenarioMatch.best && scenarioMatch.best.score >= 4) {
+            wizard.selectScenario(scenarioMatch.best.scenario.id);
+            wizard.setStage('scenario');
+          }
+          setStreamingText(assistantText);
+        }
+
+        if (assistantText.trim()) {
+          wizard.addMessage({ role: 'assistant', content: assistantText.trim() });
+        }
+      } catch (err) {
+        if (!abortController.signal.aborted) {
+          wizard.addMessage({
+            role: 'assistant',
+            content: `I had trouble connecting: ${err instanceof Error ? err.message : String(err)}`,
+          });
+        }
+      } finally {
+        setIsStreaming(false);
+        setStreamingText('');
+        if (abortRef.current === abortController) {
+          abortRef.current = null;
         }
       }
+    },
+    [scenarioMatch, state, wizard]
+  );
 
-      if (response) {
-        wizard.addMessage({ role: 'assistant', content: response });
+  const sendUserText = useCallback(
+    (rawText: string) => {
+      const text = rawText.trim();
+      if (!text || isStreaming) return;
+
+      setInputValue('');
+      wizard.handleUserMessage(text);
+      const repoUrl = text.match(GITHUB_REPO_PATTERN)?.[0];
+      if (repoUrl) {
+        wizard.setHasCode(true, repoUrl);
+      } else if (state.stage === 'greeting' || state.stage === 'intake') {
+        wizard.setIntent(text);
       }
+      void runBrittneyStream(text);
+    },
+    [isStreaming, runBrittneyStream, state.stage, wizard]
+  );
 
-      setIsStreaming(false);
-    }, 800);
-  }, [inputValue, isStreaming, wizard, state.stage]);
+  const handleSend = useCallback(() => {
+    sendUserText(inputValue);
+  }, [inputValue, sendUserText]);
 
   const handleSuggestionClick = useCallback(
     (text: string) => {
-      setInputValue('');
-      wizard.handleUserMessage(text);
-      wizard.setIntent(text);
-
-      // Auto-advance to intake after greeting suggestion
-      setTimeout(() => {
-        wizard.addMessage({
-          role: 'assistant',
-          content: `That sounds exciting! I can help you build that. Let me check if we have a matching template...`,
-        });
-
-        // If we found a good match, advance to scenario
-        const match = scenarioMatch;
-        if (match.best && match.best.score >= 4) {
-          wizard.selectScenario(match.best.scenario.id);
-          setTimeout(() => {
-            wizard.addMessage({
-              role: 'assistant',
-              content: `I found a great match: ${match.best!.scenario.emoji} **${match.best!.scenario.name}** — ${match.best!.scenario.description}. Want me to load this template, or would you prefer to start from scratch?`,
-            });
-            wizard.setStage('scenario');
-          }, 600);
-        }
-      }, 500);
+      sendUserText(text);
     },
-    [wizard, scenarioMatch]
+    [sendUserText]
   );
 
   const handleScenarioSelect = useCallback(
@@ -439,6 +664,12 @@ export function BrittneyWizard({
               <h2 className="text-sm font-semibold text-white">Brittney Wizard</h2>
               <p className="text-[10px] text-studio-muted">
                 {STAGE_META[state.stage].description}
+                {isProvisioning && (
+                  <span className="ml-2 inline-flex items-center gap-1 text-amber-400">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Provisioning...
+                  </span>
+                )}
               </p>
             </div>
           </div>

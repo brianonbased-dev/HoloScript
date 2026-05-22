@@ -72,6 +72,8 @@ export interface UseWizardFlowResult {
   setGeneratedCode: (code: string) => void;
   /** Add a message to the conversation */
   addMessage: (message: BrittneyMessage) => void;
+  /** Update the last assistant message content (for streaming) */
+  updateLastAssistant: (content: string) => void;
   /** Update absorb progress */
   updateAbsorbProgress: (progress: Partial<AbsorbProgress>) => void;
   /** Update consent gates */
@@ -204,6 +206,10 @@ export function useWizardFlow(): UseWizardFlowResult {
     dispatch({ type: 'ADD_MESSAGE', message });
   }, []);
 
+  const updateLastAssistant = useCallback((content: string) => {
+    dispatch({ type: 'UPDATE_LAST_ASSISTANT', content });
+  }, []);
+
   const updateAbsorbProgress = useCallback((progress: Partial<AbsorbProgress>) => {
     dispatch({ type: 'SET_ABSORB_PROGRESS', progress });
   }, []);
@@ -286,6 +292,7 @@ export function useWizardFlow(): UseWizardFlowResult {
     setTargets,
     setGeneratedCode,
     addMessage,
+    updateLastAssistant,
     updateAbsorbProgress,
     updateConsent,
     handleToolCall,
