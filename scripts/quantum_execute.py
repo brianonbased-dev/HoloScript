@@ -552,17 +552,20 @@ def main() -> None:
 
     task: str = task_params.get("task", "")
 
-    if task == "vqe":
-        result = run_vqe(task_params)
-    elif task == "qaoa":
-        result = run_qaoa(task_params)
-    else:
-        result = {
-            "error": (
-                f"Unknown task: '{task}'. "
-                "Supported tasks: vqe, qaoa"
-            )
-        }
+    try:
+        if task == "vqe":
+            result = run_vqe(task_params)
+        elif task == "qaoa":
+            result = run_qaoa(task_params)
+        else:
+            result = {
+                "error": (
+                    f"Unknown task: '{task}'. "
+                    "Supported tasks: vqe, qaoa"
+                )
+            }
+    except Exception as exc:
+        result = {"error": f"{type(exc).__name__}: {exc}"}
 
     print(json.dumps(result))
 
