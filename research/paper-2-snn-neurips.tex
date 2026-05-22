@@ -1629,6 +1629,25 @@ ONNX Runtime Web uses WebGPU for standard neural network inference.
 Neither provides spike encoding/decoding, STDP, or LIF neuron models.
 To our knowledge, \snnwebgpu{} is the first SNN implementation targeting WebGPU.
 
+\paragraph{Browser-Native SNN Prior Work and Comparison Scope.}
+The throughput figures reported in this paper (peak $1.48 \times 10^9$ and
+$5.89 \times 10^9$ neuron-timesteps/s on integrated and discrete WebGPU,
+respectively) are scoped to \emph{browser-native, zero-installation deployment}
+and should not be compared directly against CUDA-backed frameworks such as
+SpikingJelly~\cite{fang2023spikingjelly} or BrainCog~\cite{tang2024braincog},
+which exploit dedicated GPU driver paths unavailable in the browser sandbox.
+The meaningful comparison class for \snnwebgpu{} is prior browser-accessible SNN work.
+The closest precursor in this class is the WebGL-based SNN-P systems
+simulator of \citeauthor{cabarle2022webgl}~\cite{cabarle2022webgl}, which runs
+spiking neural P systems in web browsers using the WebGL rasterization pipeline.
+That approach is limited to WebGL's compute-hostile rasterization model and does
+not support STDP, multi-layer LIF dynamics, or hash-chain provenance.
+\snnwebgpu{} replaces the WebGL rasterization pipeline with WebGPU compute
+shaders---providing true compute parallelism, read/write storage buffers, and
+workgroup-local shared memory---enabling biologically realistic LIF neurons,
+Hebbian plasticity, and cryptographic audit trails, all within the browser
+sandbox with no CUDA driver required.
+
 \paragraph{Neuromorphic Hardware.}
 Intel Loihi 2~\cite{davies2018loihi} and IBM TrueNorth~\cite{merolla2014truenorth}
 implement SNNs in custom silicon with $>10^6$ neurons and $< 1$W power.
