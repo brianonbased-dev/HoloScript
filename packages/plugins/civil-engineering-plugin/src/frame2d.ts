@@ -612,6 +612,7 @@ export function buildFrame2DReceipt(
     modelId: model.id,
     solverConfig: {
       solverType: 'dsm-2d-frame',
+      scale: 'building',
       nodeCount: model.nodes.length,
       elementCount: model.elements.length,
       dofCount: model.nodes.length * 3,
