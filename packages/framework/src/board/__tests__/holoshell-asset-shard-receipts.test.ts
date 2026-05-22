@@ -24,6 +24,7 @@ import {
   cloneAssetConversionReceipt,
   clonePreviewShardSourceReceipt,
   cloneAssetShardRollbackContract,
+  redactAssetShardImportCommandPreview,
   isSupportedAssetIntakeKind,
   isSupportedAssetIntakeStatus,
   isSupportedAssetConversionKind,
@@ -442,6 +443,64 @@ describe('HoloShell asset shard receipts', () => {
         'AssetShardImportApprovalReceipt.execution.commandPreview must not expose absolute local paths.',
       ])
     );
+  });
+
+  it('redacts recorded import approval command paths into artifact aliases', () => {
+    const recordedCommand = [
+      'node',
+      'scripts\\holoshell-shard-import-approval.mjs',
+      '--execute',
+      '--approval-bundle',
+      '../HoloScript/.bench-logs/holoshell-human-os-frontier/2026-05-21/asset-shard-visual-witness/approval-bundles/hsia-mpf9c4k2-32ab2eb8c5.json',
+      '--approval-id',
+      'hsia-mpf9c4k2-32ab2eb8c5',
+      '--approval-nonce',
+      '4dc355cf0330807527b6118f520580ec',
+      '--confirm',
+      'import',
+      '--import-dir',
+      'C:/Users/josep/Documents/GitHub/HoloScript/.bench-logs/holoshell-human-os-frontier/2026-05-21/asset-shard-visual-witness/imported-shards',
+      '--import-output',
+      'C:/Users/josep/Documents/GitHub/HoloScript/.bench-logs/holoshell-human-os-frontier/2026-05-21/asset-shard-visual-witness/asset-shard-import.json',
+      '--import-js-output',
+      'C:/Users/josep/Documents/GitHub/HoloScript/.bench-logs/holoshell-human-os-frontier/2026-05-21/asset-shard-visual-witness/asset-shard-import.js',
+    ];
+    const commandPreview = redactAssetShardImportCommandPreview(recordedCommand);
+    const receipt = makeApproval({
+      approvalId: 'hsia-mpf9c4k2-32ab2eb8c5',
+      nonce: '4dc355cf0330807527b6118f520580ec',
+      status: 'pending_user_approval',
+      execution: {
+        allowed: true,
+        commandPreview,
+      },
+      summary: {
+        ...makeApproval().summary,
+        status: 'pending_user_approval',
+        shardId: 'shard.sample-assets.8929194721',
+      },
+      witness: {
+        ...makeApproval().witness,
+        workflowHash: '283cb60f988b8d089dcad30f3cdcdf48733f9e79440bc41ad5d6f3098158c72e',
+      },
+    });
+
+    expect(commandPreview).toContain('<artifact:approval-bundle>');
+    expect(commandPreview).toContain('<artifact:import-dir>');
+    expect(commandPreview).toContain('<artifact:import-receipt>');
+    expect(commandPreview).toContain('<artifact:import-bootstrap>');
+    expect(commandPreview).not.toContain('C:/Users/josep');
+    expect(validateAssetShardImportApprovalReceipt(receipt)).toEqual([]);
+  });
+
+  it('redacts unflagged absolute command preview tokens', () => {
+    const commandPreview = redactAssetShardImportCommandPreview([
+      'node',
+      'C:\\Users\\josep\\Documents\\GitHub\\HoloLand\\scripts\\holoshell-shard-import-approval.mjs',
+      '--execute',
+    ]);
+
+    expect(commandPreview).toBe('node "<absolute-path-redacted>" --execute');
   });
 
   it('clones workflow receipts without retaining mutable references', () => {

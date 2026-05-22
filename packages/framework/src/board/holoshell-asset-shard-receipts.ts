@@ -27,6 +27,15 @@ export const ASSET_SHARD_PERMISSION_ENVELOPES = [
 ] as const;
 export type AssetShardPermissionEnvelope = (typeof ASSET_SHARD_PERMISSION_ENVELOPES)[number];
 
+export const ASSET_SHARD_IMPORT_COMMAND_PREVIEW_ARTIFACT_FLAGS = {
+  '--approval-bundle': 'approval-bundle',
+  '--import-dir': 'import-dir',
+  '--import-output': 'import-receipt',
+  '--import-js-output': 'import-bootstrap',
+} as const;
+export type AssetShardImportCommandPreviewArtifactFlag =
+  keyof typeof ASSET_SHARD_IMPORT_COMMAND_PREVIEW_ARTIFACT_FLAGS;
+
 export interface AssetShardFileProxy {
   id: string;
   name: string;
@@ -188,8 +197,39 @@ function isOneOf<T extends readonly string[]>(values: T, value: string): value i
 function hasAbsolutePath(value: string | undefined): boolean {
   return (
     typeof value === 'string' &&
-    /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
+    /(^|[\s"'`=])(?:file:\/\/\/(?:[A-Za-z]:[\\/]|(?!\/)[^\s"'`]+)|[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/i.test(value)
   );
+}
+
+function commandPreviewArtifactAlias(flag: string): string | undefined {
+  if (Object.prototype.hasOwnProperty.call(ASSET_SHARD_IMPORT_COMMAND_PREVIEW_ARTIFACT_FLAGS, flag)) {
+    return ASSET_SHARD_IMPORT_COMMAND_PREVIEW_ARTIFACT_FLAGS[
+      flag as AssetShardImportCommandPreviewArtifactFlag
+    ];
+  }
+  return undefined;
+}
+
+function shellPreviewToken(value: string): string {
+  if (/^[A-Za-z0-9_./:=@\\-]+$/.test(value)) return value;
+  return `"${value.replace(/"/g, '\\"')}"`;
+}
+
+function redactAssetShardImportCommandPreviewToken(
+  command: readonly string[],
+  index: number
+): string {
+  const previous = command[index - 1];
+  const alias = previous ? commandPreviewArtifactAlias(previous) : undefined;
+  if (alias) return `<artifact:${alias}>`;
+  if (hasAbsolutePath(command[index])) return '<absolute-path-redacted>';
+  return command[index];
+}
+
+export function redactAssetShardImportCommandPreview(command: readonly string[]): string {
+  return command
+    .map((token, index) => shellPreviewToken(redactAssetShardImportCommandPreviewToken(command, index)))
+    .join(' ');
 }
 
 function pushPathErrors(label: string, value: string | undefined, errors: string[]): void {
