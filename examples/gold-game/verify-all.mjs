@@ -26,9 +26,10 @@ const GATES = [
   { track: 'flagship', gate: 1, name: 'R3F Drive render',       kind: 'artifact', file: 'drive-build/index.html', receipt: 'GOLD-VAULT-gate1-receipt.json', note: 'full render is headless/manual; artifact + receipt committed' },
   { track: 'flagship', gate: 2, name: 'curation graduate verb', kind: 'script',   runner: 'node', file: 'gate-2-graduate-verify.cjs' },
   { track: 'flagship', gate: 3, name: 'curation co-session',    kind: 'script',   runner: 'tsx',  file: 'gate-3-curation-verify.mjs' },
-  { track: 'flagship', gate: 4, name: 'content/world evolution',kind: 'open' },
+  { track: 'flagship', gate: 4, name: 'content/world evolution (causal + cross-session NPC memory)', kind: 'script', runner: 'tsx', file: 'gate-4-causal-memory-verify.mjs' },
   { track: 'flagship', gate: 5, name: 'live operator + trained policy + Quest', kind: 'open' },
   { track: 'oasis (fixture)', gate: 3, name: 'connection-mechanics proof (compass co-session)', kind: 'script', runner: 'tsx', file: 'connection-mechanics-proof/gate-3-verify.mjs' },
+  { track: 'modalities', gate: '2D+3D', name: 'one .holo -> retro 2D + 3D (shared source scene)', kind: 'script', runner: 'tsx', file: 'modality-verify.mjs' },
 ];
 
 async function parseHoloClean(rel) {
@@ -66,10 +67,10 @@ for (const g of GATES) {
 
 const pad = (s, n) => String(s).padEnd(n);
 console.log('\nTHE GOLD GAME — gate ledger (re-derived live)\n');
-console.log(pad('TRACK', 18) + pad('GATE', 6) + pad('STATUS', 8) + 'NAME');
+console.log(pad('TRACK', 18) + pad('GATE', 8) + pad('STATUS', 8) + 'NAME');
 console.log('-'.repeat(78));
 for (const r of rows) {
-  console.log(pad(r.track, 18) + pad('G' + r.gate, 6) + pad(r.status, 8) + r.name + (r.note ? '  (' + r.note + ')' : ''));
+  console.log(pad(r.track, 18) + pad(typeof r.gate === 'number' ? 'G' + r.gate : r.gate, 8) + pad(r.status, 8) + r.name + (r.note ? '  (' + r.note + ')' : ''));
 }
 console.log('\n* = artifact/receipt-backed (full re-render is manual). OPEN = not yet built.');
 console.log(anyFail ? '\n=> SOME GATES FAILED' : '\n=> all runnable gates PASS');

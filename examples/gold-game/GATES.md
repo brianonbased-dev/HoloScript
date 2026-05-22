@@ -23,10 +23,25 @@ flagship Gate-N.** They are different games. Only the **flagship** counts as "th
 | 1 | R3F Drive render | **PASS\*** | artifact `drive-build/index.html` + headless render (manual) | `GOLD-VAULT-gate1-receipt.json` + `GATE-1-drive-render.png` | `6b281ecdd` |
 | 2 | curation graduate verb | **PASS** | `node gate-2-graduate-verify.cjs` (10/10) | `GATE-2-graduate-receipt.json` | `6b281ecdd` |
 | 3 | curation co-session (AI↔human, real graduate verb) | **PASS** | `tsx gate-3-curation-verify.mjs` (15/15) | `GATE-3-CURATION-cosession-receipt.json` | `62024addc` |
-| 4 | content / world evolution (CausalWorldModel, NPC memory across sessions) | **OPEN** | — | — | — |
+| 4 | content / world evolution (CausalWorldModel do-calculus unlock + NPC memory across sessions) | **PASS** | `tsx gate-4-causal-memory-verify.mjs` (14/14) | `GATE-4-CAUSAL-MEMORY-receipt.json` | _this commit_ |
 | 5 | live operator + trained policy + Quest projection | **OPEN** | — | — | — |
 
 `*` Gate 1 is artifact/receipt-backed; the full WebGL render is headless/manual (needs a browser), so the runner checks the committed artifact exists rather than re-rendering.
+
+## Modalities (one `.holo` → many devices — D.007)
+
+The flagship `gold-vault-game.holo` is the single source; it renders in multiple modalities,
+each built by walking the *identical* parsed scene (proven by a shared `sceneDigest`).
+
+| Modality | Status | Builder | Artifact | Receipt |
+|----------|--------|---------|----------|---------|
+| 3D (R3F / three.js Drive build) | **PASS** | `node drive-build.mjs` | `drive-build/index.html` | `GOLD-VAULT-gate1-receipt.json` |
+| retro 2D (HTML5 canvas, pixel/scanline) | **PASS** | `tsx gold-2d-build.mjs` | `2d-build/index.html` + `2d-build/GOLD-2D-render.png` | `GOLD-VAULT-2D-receipt.json` |
+
+Cross-modality proof: `tsx modality-verify.mjs` (10/10) — same `.holo` → one `sceneDigest`
+(`b1cb9df0…` via the real `computeStateDigest`); both builds exist and embed that scene; 2D is
+a pixel canvas (no WebGL), 3D is WebGL. Full pixel render verified by opening `index.html`
+(2D headless render captured at `2d-build/GOLD-2D-render.png`, 0 console errors).
 
 ## Oasis fixture (retired — connection-mechanics proof only)
 

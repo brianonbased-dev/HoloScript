@@ -1,0 +1,76 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>THE GOLD GAME — 2D</title>
+<style>
+  html,body{margin:0;height:100%;background:#06060c;overflow:hidden;
+    image-rendering:pixelated;image-rendering:crisp-edges;}
+  #c{position:absolute;inset:0;margin:auto;image-rendering:pixelated;
+    width:100vmin;height:90vmin;background:#06060c;}
+  #t{position:absolute;top:6px;width:100%;text-align:center;color:#ffe9a0;
+    font:bold 13px/1.2 monospace;letter-spacing:2px;text-shadow:2px 2px 0 #000;}
+</style></head><body>
+<div id="t">THE GOLD GAME &mdash; THE VAULT &nbsp;(retro 2D)</div>
+<canvas id="c" width="320" height="288"></canvas>
+<script>
+const SCENE = {"title":"GOLD — The Vault","meshes":[{"name":"Player","region":"BronzeValley","geometry":"humanoid","position":[0,1,0],"scale":[0.5,1.8,0.5],"color":"#3a6ea5","tier":null,"title":null,"inhabited_by":null},{"name":"AgentCompanion","region":"BronzeValley","geometry":"humanoid","position":[2,1,0],"scale":[0.5,1.8,0.5],"color":"#a55a3a","tier":null,"title":null,"inhabited_by":null},{"name":"B_GRADUATE_001","region":"BronzeValley","geometry":"octahedron","position":[-1,0.5,1],"scale":[0.3,0.3,0.3],"color":"#cd7f32","tier":null,"title":null,"inhabited_by":null},{"name":"GuardianCollision","region":"BronzeValley","geometry":"tetrahedron","position":[1,0.5,2],"scale":[0.5,0.5,0.5],"color":"#8a2a2a","tier":null,"title":null,"inhabited_by":null},{"name":"W_GOLD_535","region":"GoldTerrace","geometry":"octahedron","position":[-1,4.5,-8],"scale":[0.3,0.3,0.3],"color":"#d4af37","tier":null,"title":null,"inhabited_by":null},{"name":"W_GOLD_534","region":"GoldTerrace","geometry":"octahedron","position":[1,4.5,-8],"scale":[0.3,0.3,0.3],"color":"#d4af37","tier":null,"title":null,"inhabited_by":null},{"name":"P_GOLD_001","region":"DiamondPeak","geometry":"octahedron","position":[0,9.5,-16],"scale":[0.5,0.5,0.5],"color":"#b9f2ff","tier":null,"title":null,"inhabited_by":null},{"name":"TheArchivist","region":"DiamondPeak","geometry":"humanoid","position":[-2,9,-15],"scale":[1,1,1],"color":"#7a5a8a","tier":null,"title":null,"inhabited_by":null}],"regions":[{"name":"BronzeValley","origin":[0,0,0]},{"name":"GoldTerrace","origin":[0,4,-8]},{"name":"DiamondPeak","origin":[0,9,-16]}]};
+const cv = document.getElementById('c'), x = cv.getContext('2d');
+x.imageSmoothingEnabled = false;
+const W = cv.width, H = cv.height;
+// 16-color retro palette; scene colors snap to nearest for authenticity.
+const PAL = ['#06060c','#1a1a2e','#3a2e38','#5e7496','#3a6ea5','#a55a3a','#8a2a2a',
+  '#cd7f32','#d4af37','#ffe9a0','#b9f2ff','#7a5a8a','#2e5e3a','#caa472','#ffffff','#9aa0b0'];
+const hx = (h)=>{h=h.replace('#','');return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];};
+const PALr = PAL.map(hx);
+function snap(c){const [r,g,b]=hx(c);let bi=0,bd=1e9;for(let i=0;i<PALr.length;i++){const [R,G,B]=PALr[i];const d=(r-R)**2+(g-G)**2+(b-B)**2;if(d<bd){bd=d;bi=i;}}return PAL[bi];}
+// world -> screen (side-elevation: ascend the tiers; higher tier = higher on screen)
+const SX=34, SY=15, CX=W/2, GY=H-26;
+const sx=(m)=> CX + m.position[0]*SX - (m.position[2]*2);          // x + slight z parallax
+const sy=(m)=> GY - m.position[1]*SY;                              // elevation up
+// pixel helpers
+const px=(px_,py_,w,h,c)=>{x.fillStyle=c;x.fillRect(px_|0,py_|0,w,h);};
+const txt=(s,px_,py_,c)=>{x.fillStyle=c;x.font='6px monospace';x.fillText(s,px_|0,py_|0);};
+// region label bands (BRONZE / GOLD / DIAMOND ground platforms)
+const bandColor={BronzeValley:'#cd7f32',GoldTerrace:'#d4af37',DiamondPeak:'#b9f2ff'};
+const bandName={BronzeValley:'BRONZE VALLEY',GoldTerrace:'GOLD TERRACE',DiamondPeak:'DIAMOND PEAK'};
+// sprites (chunky pixel art per entity kind)
+function gem(m,t){const s=snap(m.color),X=sx(m),Y=sy(m)+Math.sin(t/20+m.position[0])*2;
+  px(X-4,Y,8,2,s);px(X-2,Y-3,4,3,s);px(X-2,Y+2,4,3,s);px(X-3,Y+5,6,1,s);
+  px(X-1,Y-2,2,1,'#ffffff'); // glint
+  if(m.tier)txt(m.tier[0].toUpperCase(),X-2,Y-5,'#ffe9a0');}
+function curator(m){const s=snap(m.color),X=sx(m),Y=sy(m);
+  px(X-3,Y-10,6,5,'#f0c890'); // head
+  px(X-4,Y-5,8,8,s);          // body
+  px(X-4,Y+3,3,4,s);px(X+1,Y+3,3,4,s); // legs
+  txt(m.inhabited_by==='agent'?'AI':'YOU',X-6,Y-12,m.inhabited_by==='agent'?'#a55a3a':'#5e7496');}
+function monster(m){const s=snap(m.color),X=sx(m),Y=sy(m);
+  px(X-5,Y+2,10,4,s);px(X-3,Y-2,6,4,s);px(X-1,Y-6,2,4,s); // spiky tetra
+  px(X-3,Y+1,2,2,'#ffe9a0');px(X+1,Y+1,2,2,'#ffe9a0');}   // eyes
+function archivist(m){const s=snap(m.color),X=sx(m),Y=sy(m);
+  px(X-3,Y-11,6,5,'#d8c8e8');px(X-5,Y-6,10,11,s);px(X-1,Y-9,2,2,'#000'); // robed NPC
+  txt('ARCHIVIST',X-14,Y+10,'#7a5a8a');}
+
+function draw(t){
+  x.fillStyle='#06060c';x.fillRect(0,0,W,H);
+  // sky gradient (banded, retro)
+  const sky=['#1a1a2e','#3a2e38','#5e7496'];
+  for(let i=0;i<sky.length;i++)px(0,i*10,W,10,sky[sky.length-1-i]);
+  // tier platforms + labels, drawn back(top) to front(bottom)
+  const ordered=[...SCENE.regions].sort((a,b)=>b.origin[1]-a.origin[1]);
+  for(const rg of ordered){const Y=GY - rg.origin[1]*SY + 8;
+    px(0,Y,W,3,bandColor[rg.name]||'#caa472');
+    px(0,Y+3,W,2,'#3a2e38');
+    txt(bandName[rg.name]||rg.name,4,Y-2,bandColor[rg.name]||'#fff');}
+  // entities
+  for(const m of SCENE.meshes){
+    if(m.geometry==='octahedron')gem(m,t);
+    else if(m.geometry==='tetrahedron')monster(m);
+    else if(m.name==='TheArchivist')archivist(m);
+    else if(m.geometry==='humanoid')curator(m);
+  }
+  // blinking prompt
+  if((t>>5)&1)txt('▲ GRADUATE',CX-22,H-6,'#ffe9a0');
+  // scanline overlay (retro CRT)
+  x.fillStyle='rgba(0,0,0,0.18)';for(let y=0;y<H;y+=2)x.fillRect(0,y,W,1);
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+</script></body></html>

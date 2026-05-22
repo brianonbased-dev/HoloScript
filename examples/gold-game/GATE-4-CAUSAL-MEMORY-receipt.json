@@ -1,0 +1,109 @@
+{
+  "gate": 4,
+  "track": "flagship (gold-vault-game) — causal world evolution + cross-session NPC memory",
+  "name": "content/world evolution — CausalWorldModel-driven graduatability + NPC memory across sessions",
+  "artifact": "examples/gold-game/gold-vault-game.holo",
+  "verb": "examples/gold-game/vault-ops.cjs graduate() (real bronze->gold move + sealed receipt) under CausalWorldModel do-calculus (SANDBOX vault)",
+  "verifier": "examples/gold-game/gate-4-causal-memory-verify.mjs",
+  "target": "r3f",
+  "causalModel": {
+    "impl": "REAL CausalWorldModel from packages/hololand-platform/src/world/causal.ts (Pearl do-calculus SCM)",
+    "variables": [
+      {
+        "id": "E.HUB.001",
+        "lineage": 4
+      },
+      {
+        "id": "E.HUB.002",
+        "lineage": 3
+      },
+      {
+        "id": "E.LINK.002",
+        "lineage": 1
+      },
+      {
+        "id": "E.LINK.004",
+        "lineage": 1
+      },
+      {
+        "id": "E.LOCKED.003",
+        "lineage": 0
+      }
+    ],
+    "edges": [
+      {
+        "from": "E.HUB.001",
+        "to": "E.LINK.002",
+        "coefficient": 0.6
+      },
+      {
+        "from": "E.HUB.001",
+        "to": "E.LOCKED.003",
+        "coefficient": 0.6
+      },
+      {
+        "from": "E.HUB.002",
+        "to": "E.LINK.004",
+        "coefficient": 0.5
+      }
+    ],
+    "semantics": "graduating a hub = do(hubLineage=9); linear structural eqs propagate a lineage boost to linked entries; a sub-threshold entry (lineage 0) crosses into graduatable as a downstream causal effect",
+    "worldEvolution": {
+      "seedGraduatable": [
+        "E.HUB.001",
+        "E.HUB.002",
+        "B.GRADUATE.001",
+        "E.LINK.002",
+        "E.LINK.004"
+      ],
+      "afterSession1Graduatable": [
+        "E.LINK.002",
+        "E.HUB.002",
+        "E.LOCKED.003",
+        "B.GRADUATE.001",
+        "E.LINK.004"
+      ],
+      "lockedEntryUnlockedByCausalEffect": true,
+      "proof": "E.LOCKED.003 (lineage 0) is NOT graduatable at seed; graduating E.HUB.001 runs a real do-calculus intervention that boosts its lineage past the threshold — the graduatable set GREW because of a causal intervention, not a flat tier move."
+    }
+  },
+  "crossSessionMemory": {
+    "persistedTo": "examples/gold-game/vault-sandbox-g4/npc-memory.json (real file across process boundary)",
+    "session1MemoryEmpty": true,
+    "session2LoadedNonEmptyMemory": true,
+    "session2GraduatedTargets": [
+      "E.LINK.002",
+      "E.HUB.002",
+      "E.LINK.004",
+      "E.LOCKED.003"
+    ],
+    "session2RepeatedASession1Graduation": false,
+    "learnedPayoffRecorded": true,
+    "proof": "Session 2 loads session 1's persisted memory from disk: it does NOT re-graduate the entry session 1 already moved (remembered prior action) and prioritises the intervention memory recorded as highest causal payoff. A cold NPC (no memory) would re-evaluate from scratch and could repeat. Memory causally changes the plan."
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest from packages/engine/src/simulation/hashes.ts (imported via tsx) — same fn SimulationContract pushes on solve()",
+    "algorithm": "sha256",
+    "seedDigest": "097b27bb3cea12751c1f5337d94552550ab42cac78ac1c02fd6cb666a0fe8503",
+    "causalEffectDigest": "44482e11da92e0ee2a9fdeeeb790497c2855fdf8dcdda62ad60b84471bf28e5b",
+    "npcMemoryDigest": "cd2807277e3baf632fa68e19d1f5602c43d150deebf47d155c12cad87afd87d8",
+    "finalTiers": {
+      "gold": [
+        "E.HUB.001",
+        "E.HUB.002",
+        "E.LINK.002",
+        "E.LINK.004",
+        "E.LOCKED.003",
+        "W.GOLD.534",
+        "W.GOLD.535"
+      ],
+      "bronze": [
+        "B.GRADUATE.001"
+      ]
+    },
+    "reproducible": "run `node_modules/.bin/tsx examples/gold-game/gate-4-causal-memory-verify.mjs` to re-derive"
+  },
+  "honestScope": "The causal edges and the graded-influence value are hand-authored (a faithful model of the real auto_link \"graduating a hub strengthens its constellation\" consequence), and the NPC memory/value policy is a hand-authored payoff-preferring heuristic — NOT a learned model or a live operator. Graduations write to a SANDBOX vault; promotion to the governed D:/GOLD stays founder-gated. What is PROVEN: the vault world evolves via a REAL Pearl do-calculus intervention (a sub-threshold entry is unlocked as a downstream causal effect, not a lookup), and an NPC curator carries memory ACROSS process-separated sessions (persisted to disk) that causally changes its plan. What is NOT yet proven: a trained causal/curation policy and a live human operator (Gate 5 scope).",
+  "core": "6.1.0",
+  "verifiedAt": "2026-05-22T08:30:01.706Z"
+}
