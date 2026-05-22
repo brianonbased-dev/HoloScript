@@ -1932,11 +1932,15 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
 
     case 'find': {
       const name = symbolName ?? extractSymbolFromQuery(query);
-      const found = cachedGraph.findSymbolsByName(name);
+      const { matchMode, truncated, results: found } = cachedGraph.searchSymbolsByName(name, {
+        limit: 50,
+      });
       return {
         query: `find ${name}`,
+        matchMode,
         results: found,
         count: found.length,
+        ...(truncated && { truncated: true, note: 'Result set capped at 50; refine the query for more.' }),
         ...(cacheNote && { cacheNote }),
       };
     }
@@ -2247,8 +2251,16 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
 
 function inferQueryType(query: string): string {
   const q = query.toLowerCase();
-  if (q.includes('call') && (q.includes('who') || q.includes('what calls'))) return 'callers';
-  if (q.includes('call') && (q.includes('does') || q.includes('what does'))) return 'callees';
+  // Callees first so "callee"/"what does X call" wins before the looser caller check.
+  if (q.includes('callee') || (q.includes('call') && (q.includes('does') || q.includes('what does'))))
+    return 'callees';
+  if (
+    q.includes('caller') ||
+    q.includes('who calls') ||
+    q.includes('what calls') ||
+    q.includes('called by')
+  )
+    return 'callers';
   if (q.includes('import') && q.includes('by')) return 'imported_by';
   if (q.includes('import')) return 'imports';
   if (q.includes('symbol') || q.includes('in file')) return 'symbols';
@@ -2290,48 +2302,90 @@ function extractFileFromQuery(query: string): string {
  * Handle federated symbol resolution via MCP Orchestrator.
  */
 async function handleResolveSymbol(args: Record<string, unknown>): Promise<unknown> {
-  const symbolName = args.symbolName as string;
+  // Accept `symbolName` (schema) or `symbol` (common shorthand).
+  const symbolName = (args.symbolName as string) ?? (args.symbol as string);
   const limit = (args.limit as number) ?? 5;
+
+  if (!symbolName) {
+    return { error: 'Provide a symbol name via "symbolName".' };
+  }
+
+  // 1. LOCAL FIRST: resolve against the loaded graph. This works offline and is
+  //    exact-by-construction — federated lookup is augmentation, not the only path.
+  //    Previously this handler was federated-only, so a transient orchestrator
+  //    outage ("fetch failed") returned zero results despite a fully loaded graph.
+  const localResults: Array<Record<string, unknown>> = [];
+  try {
+    const graphState = await ensureCachedGraph();
+    if (graphState.loaded && cachedGraph) {
+      const { matchMode, results } = cachedGraph.searchSymbolsByName(symbolName, { limit });
+      for (const sym of results) {
+        localResults.push({
+          repo: graphState.rootDir ?? 'local',
+          filePath: sym.filePath,
+          type: sym.type,
+          name: sym.name,
+          line: sym.line,
+          signature: sym.signature,
+          matchMode,
+          source: 'local-graph',
+        });
+      }
+    }
+  } catch {
+    // Local resolution best-effort; fall through to federated.
+  }
+
+  // 2. FEDERATED: augment with cross-repo matches from the orchestrator (best-effort).
   const orchestratorUrl = process.env.MCP_ORCHESTRATOR_URL || 'http://localhost:5566';
   const apiKey = process.env.HOLOSCRIPT_API_KEY;
-
+  const federatedResults: Array<Record<string, unknown>> = [];
+  let federatedError: string | undefined;
   try {
     const response = await fetchWithTimeout(
       `${orchestratorUrl}/knowledge/query`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-mcp-api-key': apiKey || '',
-        },
-        body: JSON.stringify({
-          search: symbolName,
-          type: 'symbol',
-          limit,
-        }),
+        headers: { 'Content-Type': 'application/json', 'x-mcp-api-key': apiKey || '' },
+        body: JSON.stringify({ search: symbolName, type: 'symbol', limit }),
       },
       MESH_SYNC_TIMEOUT_MS,
       'federated symbol lookup'
     );
-
-    if (!response.ok) {
-      throw new Error(`Orchestrator error: ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`Orchestrator error: ${response.status}`);
     const data = (await response.json()) as { results: any[] };
-    return {
-      symbolName,
-      results: (data.results || []).map((r: any) => ({
+    for (const r of data.results || []) {
+      federatedResults.push({
         repo: r.workspace_id,
         filePath: r.metadata?.filePath,
         type: r.metadata?.symbolType,
         content: r.content,
         relevance: r.relevance,
-      })),
-    };
+        source: 'federated',
+      });
+    }
   } catch (err) {
-    return { error: `Federated lookup failed: ${err}` };
+    federatedError = `${err}`;
   }
+
+  const results = [...localResults, ...federatedResults];
+
+  // Only surface an error when BOTH paths produced nothing.
+  if (results.length === 0) {
+    return {
+      symbolName,
+      results: [],
+      ...(federatedError && { federatedError }),
+      hint: 'No local match; ensure the graph is absorbed (holo_graph_status) or the symbol name is correct.',
+    };
+  }
+
+  return {
+    symbolName,
+    results,
+    counts: { local: localResults.length, federated: federatedResults.length },
+    ...(federatedError && { federatedError }),
+  };
 }
 
 /**

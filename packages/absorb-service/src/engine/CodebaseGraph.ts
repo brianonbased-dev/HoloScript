@@ -320,6 +320,68 @@ export class CodebaseGraph {
   }
 
   /**
+   * Discovery-friendly symbol search. Exact match wins (precision), but when no
+   * symbol is named exactly `name`, fall back to a ranked case-insensitive search
+   * (exact-ci > prefix > substring) so partial/discovery queries like "compile"
+   * return `compileToUnity`, `compileScene`, etc. instead of an empty result.
+   *
+   * Returns `{ matchMode, results }` so callers know whether the hit was exact or fuzzy.
+   * Capped at `limit` (default 50) to avoid token blowups on common substrings.
+   */
+  searchSymbolsByName(
+    name: string,
+    opts?: { limit?: number }
+  ): { matchMode: 'exact' | 'fuzzy' | 'none'; truncated: boolean; results: ExternalSymbolDefinition[] } {
+    const limit = Math.max(1, opts?.limit ?? 50);
+
+    // 1. Exact match — preserve precise behavior when the symbol name is known.
+    const exact = this.findSymbolsByName(name);
+    if (exact.length > 0) {
+      return { matchMode: 'exact', truncated: exact.length > limit, results: exact.slice(0, limit) };
+    }
+
+    // 2. Ranked case-insensitive fallback: exact-ci(0) > prefix(1) > substring(2).
+    const needle = name.toLowerCase();
+    if (needle.length === 0) return { matchMode: 'none', truncated: false, results: [] };
+
+    const scored: Array<{ sym: ExternalSymbolDefinition; rank: number }> = [];
+    const seen = new Set<string>();
+    for (const [symName, ids] of this.symbolsByName.entries()) {
+      const lower = symName.toLowerCase();
+      let rank = -1;
+      if (lower === needle) rank = 0;
+      else if (lower.startsWith(needle)) rank = 1;
+      else if (lower.includes(needle)) rank = 2;
+      if (rank < 0) continue;
+      for (const id of ids) {
+        if (seen.has(id)) continue;
+        const sym = this.symbols.get(id);
+        if (sym) {
+          scored.push({ sym, rank });
+          seen.add(id);
+        }
+      }
+    }
+
+    if (scored.length === 0) return { matchMode: 'none', truncated: false, results: [] };
+
+    // Rank, then prefer shorter names (closer to the query) and public symbols.
+    scored.sort((a, b) => {
+      if (a.rank !== b.rank) return a.rank - b.rank;
+      const aPub = a.sym.visibility === 'public' ? 0 : 1;
+      const bPub = b.sym.visibility === 'public' ? 0 : 1;
+      if (aPub !== bPub) return aPub - bPub;
+      return a.sym.name.length - b.sym.name.length;
+    });
+
+    return {
+      matchMode: 'fuzzy',
+      truncated: scored.length > limit,
+      results: scored.slice(0, limit).map((s) => s.sym),
+    };
+  }
+
+  /**
    * Query symbols with filters.
    */
   querySymbols(query: SymbolQuery): ExternalSymbolDefinition[] {
