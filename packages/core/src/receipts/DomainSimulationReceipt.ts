@@ -78,6 +78,16 @@ export interface DomainSimulationReceiptVerification {
 export function buildDomainSimulationReceipt(
   input: DomainSimulationReceiptInput,
 ): DomainSimulationReceipt {
+  if (!input.plugin?.trim()) {
+    throw new Error('[domain-receipt] plugin is required and must be a non-empty string');
+  }
+  if (!input.pluginVersion?.trim()) {
+    throw new Error('[domain-receipt] pluginVersion is required and must be a non-empty string');
+  }
+  if (!input.runId?.trim()) {
+    throw new Error('[domain-receipt] runId is required and must be a non-empty string');
+  }
+
   const receiptWithoutHash = {
     schema: DOMAIN_SIMULATION_RECEIPT_SCHEMA,
     plugin: input.plugin,
@@ -125,6 +135,20 @@ export function verifyDomainSimulationReceipt(
   }
   if (!receipt.solverConfig.scale.trim()) {
     errors.push('solverConfig.scale is required');
+  }
+  if (!receipt.plugin?.trim()) {
+    errors.push('plugin is required and must be a non-empty string');
+  }
+  if (!receipt.pluginVersion?.trim()) {
+    errors.push('pluginVersion is required and must be a non-empty string');
+  }
+  if (!receipt.runId?.trim()) {
+    errors.push('runId is required and must be a non-empty string');
+  }
+  if (!receipt.createdAt?.trim()) {
+    errors.push('createdAt is required and must be a non-empty string');
+  } else if (isNaN(Date.parse(receipt.createdAt))) {
+    errors.push(`createdAt is not a valid ISO timestamp: ${receipt.createdAt}`);
   }
 
   return { valid: errors.length === 0, errors };
@@ -179,8 +203,8 @@ function toDomainReceiptJson(value: unknown, depth: number): DomainReceiptJson {
 
 function fnv1a32(value: string): string {
   let hash = 0x811c9dc5;
-  for (let i = 0; i < value.length; i += 1) {
-    hash ^= value.charCodeAt(i);
+  for (const codePoint of value) {
+    hash ^= codePoint.codePointAt(0)!;
     hash = Math.imul(hash, 0x01000193) >>> 0;
   }
   return hash.toString(16).padStart(8, '0');

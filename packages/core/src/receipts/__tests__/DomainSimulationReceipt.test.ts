@@ -109,4 +109,84 @@ describe('DomainSimulationReceipt', () => {
     // Should not throw — exactly at depth limit
     expect(() => stableDomainReceiptHash(nested)).not.toThrow();
   });
+
+  it('rejects empty plugin in buildDomainSimulationReceipt', () => {
+    expect(() =>
+      buildDomainSimulationReceipt({
+        plugin: '',
+        pluginVersion: '1.0.0',
+        runId: 'test',
+        solverConfig: { solverType: 'test', scale: 'object' },
+        resultSummary: {},
+        acceptance: { accepted: true, violations: [] },
+      }),
+    ).toThrow('plugin is required');
+  });
+
+  it('rejects empty pluginVersion in buildDomainSimulationReceipt', () => {
+    expect(() =>
+      buildDomainSimulationReceipt({
+        plugin: 'test',
+        pluginVersion: '   ',
+        runId: 'test',
+        solverConfig: { solverType: 'test', scale: 'object' },
+        resultSummary: {},
+        acceptance: { accepted: true, violations: [] },
+      }),
+    ).toThrow('pluginVersion is required');
+  });
+
+  it('rejects empty runId in buildDomainSimulationReceipt', () => {
+    expect(() =>
+      buildDomainSimulationReceipt({
+        plugin: 'test',
+        pluginVersion: '1.0.0',
+        runId: '',
+        solverConfig: { solverType: 'test', scale: 'object' },
+        resultSummary: {},
+        acceptance: { accepted: true, violations: [] },
+      }),
+    ).toThrow('runId is required');
+  });
+
+  it('verifies required string fields and rejects empty plugin/pluginVersion/runId/createdAt', () => {
+    const receipt = buildDomainSimulationReceipt({
+      plugin: 'test-plugin',
+      pluginVersion: '1.0.0',
+      runId: 'run-123',
+      createdAt: '2026-05-21T00:00:00.000Z',
+      solverConfig: { solverType: 'sim', scale: 'object' },
+      resultSummary: {},
+      acceptance: { accepted: true, violations: [] },
+    });
+    expect(verifyDomainSimulationReceipt(receipt)).toEqual({ valid: true, errors: [] });
+
+    const missingPlugin = { ...receipt, plugin: '' };
+    expect(verifyDomainSimulationReceipt(missingPlugin).valid).toBe(false);
+    expect(verifyDomainSimulationReceipt(missingPlugin).errors.join('\n')).toContain('plugin is required');
+
+    const missingVersion = { ...receipt, pluginVersion: '  ' };
+    expect(verifyDomainSimulationReceipt(missingVersion).valid).toBe(false);
+
+    const missingRunId = { ...receipt, runId: '' };
+    expect(verifyDomainSimulationReceipt(missingRunId).valid).toBe(false);
+
+    const badTimestamp = { ...receipt, createdAt: 'not-a-date' };
+    expect(verifyDomainSimulationReceipt(badTimestamp).valid).toBe(false);
+    expect(verifyDomainSimulationReceipt(badTimestamp).errors.join('\n')).toContain('not a valid ISO timestamp');
+  });
+
+  it('produces consistent hashes for non-BMP Unicode characters (emoji)', () => {
+    const withEmoji = canonicalizeDomainReceiptPayload({ label: 'test🔬rocket' });
+    const withEmoji2 = canonicalizeDomainReceiptPayload({ label: 'test🔬rocket' });
+    expect(withEmoji).toBe(withEmoji2);
+
+    // Hashing should not throw for non-BMP characters
+    expect(() => stableDomainReceiptHash({ label: '🔬emoji🧪test' })).not.toThrow();
+
+    // Emoji-containing payloads should produce a stable hash
+    const hash1 = stableDomainReceiptHash({ name: '🧬dna' });
+    const hash2 = stableDomainReceiptHash({ name: '🧬dna' });
+    expect(hash1).toBe(hash2);
+  });
 });
