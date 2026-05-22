@@ -583,7 +583,7 @@ export function buildNeuroReceipt(
     }
   }
 
-  const resultSummary: Record<string, unknown> = {
+  const resultSummary = {
     hhSpikes: result.hh?.spikeTimes.length,
     hhPeakMv: result.hh?.peakVoltageMv,
     hhFiringRateHz: result.hh?.firingRateHz,
@@ -593,7 +593,7 @@ export function buildNeuroReceipt(
     eegDominantBand: result.eeg?.dominantBand,
     connectivityCluster: result.connectivity?.clusteringCoefficient,
     smallWorldIndex: result.connectivity?.smallWorldIndex,
-  };
+  } as unknown as { [key: string]: import('@holoscript/core').DomainReceiptJson };
 
   return buildDomainSimulationReceipt({
     plugin: 'neuroscience',

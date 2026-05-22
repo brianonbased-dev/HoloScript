@@ -701,6 +701,7 @@ export function buildSPCReceipt(
     modelId,
     solverConfig: {
       solverType: 'spc',
+      scale: 'production',
       chartType: chartResult.chartType,
       subgroupCount: chartResult.subgroupCount,
       totalObservations: chartResult.totalObservations,
@@ -708,9 +709,9 @@ export function buildSPCReceipt(
     resultSummary: {
       processInControl: chartResult.processInControl,
       outOfControlCount: chartResult.outOfControlCount,
-      capable: capability?.capable,
-      Cpk: capability?.Cpk,
-      Ppk: capability?.Ppk,
+      capable: capability?.capable ?? null,
+      Cpk: capability?.Cpk ?? null,
+      Ppk: capability?.Ppk ?? null,
     },
     cael: {
       version: 'cael.v1',
@@ -720,7 +721,7 @@ export function buildSPCReceipt(
     acceptance: { accepted: violations.length === 0, violations },
   });
 
-  return receipt as SPCReceipt;
+  return receipt as unknown as SPCReceipt;
 }
 
 export const SPC_PLUGIN_VERSION = '1.0.0';

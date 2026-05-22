@@ -631,7 +631,7 @@ export function buildFrame2DReceipt(
     acceptance: { accepted: violations.length === 0, violations },
   });
 
-  return receipt as Frame2DReceipt;
+  return receipt as unknown as Frame2DReceipt;
 }
 
 export const CIVIL_ENGINEERING_PLUGIN_VERSION = '1.0.0';

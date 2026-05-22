@@ -446,8 +446,8 @@ export function buildWorkforceReceipt(
     resultSummary: {
       employeeCount: result.attritionRisk.scores.length,
       avgAttritionRisk: result.attritionRisk.avgRisk,
-      payEquityGapPct: result.payEquity?.adjustedGapPct,
-      payEquitySignificant: result.payEquity?.significant,
+      payEquityGapPct: result.payEquity?.adjustedGapPct ?? null,
+      payEquitySignificant: result.payEquity?.significant ?? null,
     },
     cael: { version: 'cael.v1', event: 'hr_workforce.workforce_analysis', solverType: 'hr-workforce.analytics' },
     acceptance: { accepted: violations.length === 0, violations },
