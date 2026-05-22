@@ -35,9 +35,11 @@ export { IncrementalParser, createIncrementalParser } from '../IncrementalParser
 // HoloScript+ Incremental Parsing
 export {
   ChunkBasedIncrementalParser,
+  parseIncrementalChunks,
   type IncrementalParseResult,
 } from '../parser/IncrementalParser';
-export { globalParseCache, type ParseCache } from '../parser/ParseCache';
+export { globalParseCache, ParseCache } from '../parser/ParseCache';
+export type { CachedNode, ParseCacheStats } from '../parser/ParseCache';
 
 // Tree Shaking
 export {

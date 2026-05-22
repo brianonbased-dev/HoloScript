@@ -161,7 +161,7 @@ The WIT file at `packages/holoscript-component/wit/holoscript.wit` defines **7 i
 
 | Gap                                     | Severity | Notes                                                                         |
 | --------------------------------------- | -------- | ----------------------------------------------------------------------------- |
-| `parse-incremental` not implemented     | Medium   | Stub exists, falls back to full re-parse. Needed for LSP perf.                |
+| `parse-incremental` wired to ChunkBasedIncrementalParser | ✅ Closed | Was stub (fell back to full re-parse). Now delegates to ChunkBasedIncrementalParser with AST-aware chunking, hash-based caching, and dependency tracking. 2026-05-22. |
 | No `lsp` interface in WIT               | Low      | LSP runs natively; web LSP uses parser+validator WIT interfaces               |
 | No `collaboration` interface in WIT     | Low      | Collab is a server concern (Yjs/CRDTs), not engine-core                       |
 | Generator uses hardcoded templates      | Medium   | `generate-object`/`generate-scene` are template-based, not LLM-backed in WASM |

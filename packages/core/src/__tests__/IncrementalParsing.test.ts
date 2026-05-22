@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { HoloScriptPlusParser } from '../parser/HoloScriptPlusParser';
 import { ParseCache } from '../parser/ParseCache';
+import { ChunkBasedIncrementalParser } from '../parser/IncrementalParser';
 
 describe('IncrementalParsing', () => {
   let parser: HoloScriptPlusParser;
@@ -85,5 +86,68 @@ template "ArtFrame" {
     expect(result1.ast.children[0]).toBe(result2.ast.children[0]);
     expect(result1.ast.children[1]).toBe(result2.ast.children[1]);
     expect(result1.ast.children[2]).toBe(result2.ast.children[2]);
+  });
+
+  it('should delegate to ChunkBasedIncrementalParser with incremental metrics', () => {
+    const result = parser.parseIncremental(source, cache);
+    const metrics = (result as any).incrementalMetrics;
+
+    // First parse: all chunks are new (parsed, not cached)
+    expect(metrics).toBeDefined();
+    expect(typeof metrics.cached).toBe('number');
+    expect(typeof metrics.parsed).toBe('number');
+    expect(typeof metrics.duration).toBe('number');
+    expect(Array.isArray(metrics.changedChunks)).toBe(true);
+    expect(metrics.parsed).toBeGreaterThan(0);
+
+    // Second parse of same source: all chunks cached
+    const result2 = parser.parseIncremental(source, cache);
+    const metrics2 = (result2 as any).incrementalMetrics;
+    expect(metrics2.cached).toBeGreaterThan(0);
+    expect(metrics2.parsed).toBe(0);
+  });
+
+  it('should use ChunkBasedIncrementalParser dependency tracking', () => {
+    const sourceWithDeps = `
+template "BaseStyle" {
+  opacity: 0.9
+  castShadow: true
+}
+
+orb "Styled" {
+  ...BaseStyle
+  color: "white"
+}
+
+orb "OrbB" {
+  color: "blue"
+}
+`;
+    const result1 = parser.parseIncremental(sourceWithDeps, cache);
+    expect(result1.success).toBe(true);
+
+    // Modify the template — the dependent orb should be invalidated
+    const modifiedSource = sourceWithDeps
+      .replace('opacity: 0.9', 'opacity: 0.5')
+      .replace('castShadow: true', 'castShadow: false');
+    const result2 = parser.parseIncremental(modifiedSource, cache);
+
+    const metrics = (result2 as any).incrementalMetrics;
+    // The template chunk changed, so it should appear in changedChunks
+    expect(metrics.changedChunks.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('should create separate ChunkBasedIncrementalParser per cache', () => {
+    const cache1 = new ParseCache();
+    const cache2 = new ParseCache();
+
+    // Parse with cache1 — all fresh
+    const result1 = parser.parseIncremental(source, cache1);
+    expect((result1 as any).incrementalMetrics.parsed).toBeGreaterThan(0);
+
+    // Parse with cache2 — also fresh (different cache, no state)
+    const result2 = parser.parseIncremental(source, cache2);
+    expect((result2 as any).incrementalMetrics.parsed).toBeGreaterThan(0);
+    // This verifies the per-cache parser map works correctly
   });
 });

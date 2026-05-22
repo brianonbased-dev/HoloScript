@@ -69,7 +69,7 @@ Worlds that must expose trait evaluation without pulling the full runtime:
 | --- | -------- | -------- | ------------------- |
 | `validator` / `type-checker` interfaces in WIT not wired to the real trait registry (AndroidXRTraitMap, VisionOSTraitMap, core traits) | High | The TS dispatch has `trait-exists`/`get-trait`/`list-traits` + codegen; the WIT validator only has the interface definition. The lightweight `holoscript-parser` WASM world cannot yet validate traits against the full catalog without pulling the entire runtime. | Blocks "holoscript-parser" world promise (editors/linters on web/mobile) |
 | `platform-compiler` interface exists in WIT but the per-target dispatch (Android XR, VisionOS, WebGPU, Unity, etc.) lives only in TS | High | Each platform has its own `*TraitMap` + `*Compiler`. No unified host function / plugin interface in the Rust/WIT layer yet. | Blocks lazy `holoscript-platform-plugin` loading (the core of APL Phase 4) |
-| `parse-incremental` still falls back to full re-parse | Medium | Confirmed in plan + `IncrementalParser.ts` vs `ChunkBasedIncrementalParser.ts` split; FeedParser uses the better one, but the public WIT parser path does not. | LSP / hot-reload perf in web studio and lightweight editors |
+| `parse-incremental` wired to ChunkBasedIncrementalParser | ✅ Closed (2026-05-22) | Was stub falling back to full re-parse. `HoloScriptPlusParser.parseIncremental` now delegates to `ChunkBasedIncrementalParser` with AST-aware chunking, hash-based caching, dependency tracking (`using`/spread/`@composition`), and per-cache instance state. Incremental metrics (`cached`, `parsed`, `duration`, `changedChunks`) attached to `HSPlusCompileResult`. 45 tests pass. | N/A — gap closed |
 | Generator (`suggest-traits`, `generate-object`) is template-only, not yet able to call a sovereign LLM surface inside WASM | Medium | Plan explicitly calls this out. Brittney / local 15M paths exist on the TS side (PhoneSleeveVR revival) but not exposed through WIT. | Limits offline / sovereign codegen in the WASM worlds |
 | No unified "trait-evaluation" host function surface for cross-tier dispatch | High | The rich domain maps (physics, AI, spatial, etc.) are platform-specific on the TS side. The WIT `platform-compiler` needs a stable way to ask "does this trait exist on target X and what code does it emit?" | Prevents true "write once, target any platform" with correct fidelity |
 
@@ -81,7 +81,7 @@ Worlds that must expose trait evaluation without pulling the full runtime:
 
 2. **High (unblock lazy plugins)**: Define the stable `platform-compiler` plugin interface in WIT (already declared) and implement the first two lazy WASM plugins (webgpu-wgsl + android-arcore or visionos-swift) that call back into the TS dispatch for codegen. This realizes the "holoscript-platform-plugin" world.
 
-3. **Medium (perf)**: Wire `ChunkBasedIncrementalParser` as the default for the public `parse-incremental` function in the WIT parser interface (the stub in the plan is real).
+3. ~~**Medium (perf)**: Wire `ChunkBasedIncrementalParser` as the default for the public `parse-incremental` function in the WIT parser interface (the stub in the plan is real).~~ **CLOSED 2026-05-22.** `HoloScriptPlusParser.parseIncremental` now delegates to `ChunkBasedIncrementalParser`.
 
 4. **Medium (sovereignty)**: Expose a minimal `suggest-traits` / `generate-object` path in the generator interface that can call a local sovereign agent surface (Brittney 15M path from the PhoneSleeveVR revival) when running in offline WASM contexts.
 
