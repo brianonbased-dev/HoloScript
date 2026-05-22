@@ -43,6 +43,7 @@ Usage flow (Paper 22 kernel-check example):
 from __future__ import annotations
 
 import argparse
+import base64
 import importlib.util
 import json
 import os
@@ -203,9 +204,15 @@ def check_cap_before_rent(estimated_cost: float, cap: float) -> tuple[bool, dict
     return True, state
 
 
-def rent_instance(offer_id: int, ssh_key_path: Path) -> dict | None:
+def rent_instance(offer_id: int, ssh_key_path: Path, *,
+                  onstart_cmd: str = "", env_str: str = "") -> dict | None:
     """vastai create instance <offer_id> with the bootstrap image. Returns
-    {success, new_contract, ...} or None on failure."""
+    {success, new_contract, ...} or None on failure.
+
+    When onstart_cmd and env_str are provided, the instance self-bootstraps
+    on start — no SCP+SSH provisioning needed (T6 fix for "onstart silently
+    never fired"). Secrets go via --env, never in the onstart string (F.001).
+    """
     # `vastai create instance` requires --image; use a known-public
     # Docker Hub tag. Verified 2026-04-26: `vastai/pytorch:2.4.0-cuda-12.4.1`
     # returns "manifest unknown" on Docker pull. PyTorch official tag works.
@@ -214,8 +221,13 @@ def rent_instance(offer_id: int, ssh_key_path: Path) -> dict | None:
         "vastai", "create", "instance", str(offer_id),
         "--image", "pytorch/pytorch:2.4.0-cuda12.4-cudnn9-devel",
         "--disk", "80",
+        "--ssh",
         "--raw",
     ]
+    if onstart_cmd:
+        cmd.extend(["--onstart-cmd", onstart_cmd])
+    if env_str:
+        cmd.extend(["--env", env_str])
     rc, out, err = run_subprocess(cmd, timeout=60)
     if rc != 0:
         print(f"vastai create failed: rc={rc}\n  stdout={out[:400]}\n  stderr={err[:400]}",
@@ -413,6 +425,90 @@ def _build_env_lines(handle: str, gate: dict, wallet: str, bearer: str, team_id:
     return lines
 
 
+def _build_onstart_cmd() -> str:
+    """Build the --onstart-cmd string for hands-off fleet provisioning (T6).
+
+    The onstart script is the base64-encoded content of
+    scripts/vast-onstart-bootstrap.sh, which:
+      1. Installs git (if absent)
+      2. Clones the HoloScript repo (from REPO_URL env)
+      3. Runs gpu-worker-bootstrap.sh (which polls /gpu/next)
+
+    ALL secrets are passed via --env (F.001 — keys leaked twice).
+    The onstart string contains NO secrets.
+    """
+    onstart_script_path = SCRIPT_DIR / "vast-onstart-bootstrap.sh"
+    # Fallback: check ai-ecosystem mirror path
+    if not onstart_script_path.exists():
+        onstart_script_path = Path.home() / ".ai-ecosystem" / "scripts" / "vast-onstart-bootstrap.sh"
+    if not onstart_script_path.exists():
+        # Inline minimal onstart as last resort
+        print("[onstart] WARN: vast-onstart-bootstrap.sh not found — using inline minimal script",
+              file=sys.stderr)
+        return (
+            "apt-get update -qq && apt-get install -y -qq git 2>/dev/null; "
+            "git clone --depth 1 $REPO_URL $REPO_DIR && "
+            "cd $REPO_DIR && "
+            "bash scripts/gpu-worker-bootstrap.sh"
+        )
+    script_bytes = onstart_script_path.read_bytes()
+    encoded = base64.b64encode(script_bytes).decode("ascii")
+    return f"echo {encoded} | base64 -d | bash"
+
+
+def _build_vast_env_str(handle: str, gate: dict, wallet: str, bearer: str, team_id: str) -> str:
+    """Build the --env string for vastai create instance.
+
+    Format: '-e KEY=VALUE -e KEY=VALUE ...'
+    Also opens port 8081 (local-llm vLLM) if provider is local-llm.
+
+    Secrets go ONLY via --env — never in --onstart-cmd (F.001).
+    """
+    env_lines = _build_env_lines(handle, gate, wallet, bearer, team_id)
+    parts = []
+    for line in env_lines:
+        # Each line is KEY=VALUE — prefix with -e for vastai --env syntax
+        parts.append(f"-e {line}")
+
+    # REPO_URL: the onstart script (vast-onstart-bootstrap.sh) clones the repo
+    # before gpu-worker-bootstrap.sh runs. If _build_env_lines included
+    # HOLOSCRIPT_REPO_URL (with a GitHub PAT), use that; otherwise derive one.
+    repo_url_set = any(line.startswith("HOLOSCRIPT_REPO_URL=") for line in env_lines)
+    if not repo_url_set:
+        # Provide a public clone URL for the onstart script
+        parts.append("-e REPO_URL=https://github.com/brianonbased-dev/HoloScript.git")
+    else:
+        # HOLOSCRIPT_REPO_URL is set (with PAT) — also export as REPO_URL
+        # so vast-onstart-bootstrap.sh can use it for the initial clone
+        for line in env_lines:
+            if line.startswith("HOLOSCRIPT_REPO_URL="):
+                url = line.split("=", 1)[1]
+                parts.append(f"-e REPO_URL={url}")
+                break
+
+    # HOLOSCRIPT_API_KEY: required by gpu-worker-bootstrap.sh for the /gpu/next
+    # poll loop. _build_env_lines doesn't include it (it's used for the agent
+    # runtime, not for the fleet queue). Pass it via --env for onstart.
+    api_key = os.environ.get("HOLOSCRIPT_API_KEY", "")
+    if api_key:
+        parts.append(f"-e HOLOSCRIPT_API_KEY={api_key}")
+
+    # ORCHESTRATOR_URL: defaults in the onstart script, but explicit is better
+    orch_url = os.environ.get("ORCHESTRATOR_URL",
+                              "https://mcp-orchestrator-production-45f9.up.railway.app")
+    parts.append(f"-e ORCHESTRATOR_URL={orch_url}")
+
+    # GPU_SEAT: identify this worker in the GPU queue
+    parts.append(f"-e GPU_SEAT={handle}")
+
+    # Open port 8081 for local-llm vLLM if applicable
+    provider = gate.get("provider", "local-llm")
+    if provider == "local-llm":
+        parts.append("-p 8081:8081")
+
+    return " ".join(parts)
+
+
 def _wait_for_ssh(host: str, port: int, ssh_key: Path | None = None, *,
                   max_wait_s: int = 300, poll_s: int = 15) -> bool:
     """Poll until SSH auth succeeds (not just TCP open) or max_wait_s elapsed.
@@ -602,7 +698,26 @@ def cmd_rent(args: argparse.Namespace) -> int:
     handle = f"paper-gate-exec-{args.gate_id}"
     print(f"[rent] gate={args.gate_id} offer={offer['id']} dph={offer['dph_total']:.2f} est_cost={estimated_cost:.2f}", file=sys.stderr)
 
-    rented = rent_instance(int(offer["id"]), Path.home() / ".ssh" / "id_rsa")
+    # --- T6: Hands-off provisioning via --onstart-cmd + --env ---
+    # Prefer the onstart path (no SCP+SSH needed). Falls back to SCP+SSH
+    # only if identity material is missing or the onstart script is absent.
+    wallet = os.environ.get(args.wallet_env_key, "")
+    bearer = os.environ.get(args.bearer_env_key, "")
+    team_id = args.team_id or os.environ.get("HOLOMESH_TEAM_ID", "")
+
+    if wallet and bearer:
+        # Build onstart-cmd and env string for hands-off provisioning
+        onstart_cmd = _build_onstart_cmd()
+        env_str = _build_vast_env_str(handle, gate, wallet, bearer, team_id)
+        print(f"[rent] using --onstart-cmd (hands-off, no SCP+SSH needed)", file=sys.stderr)
+    else:
+        onstart_cmd = ""
+        env_str = ""
+        print(f"WARN: identity missing ({args.wallet_env_key} / {args.bearer_env_key}) — "
+              f"onstart bootstrap disabled, will attempt SCP+SSH fallback", file=sys.stderr)
+
+    rented = rent_instance(int(offer["id"]), Path.home() / ".ssh" / "id_rsa",
+                           onstart_cmd=onstart_cmd, env_str=env_str)
     if not rented:
         return 4
 
@@ -618,16 +733,22 @@ def cmd_rent(args: argparse.Namespace) -> int:
     # Label for W.111 idempotency
     label_instance(int(instance_id), handle)
 
-    # Bootstrap: SCP + SSH dispatch (fire-and-forget, runs in background on instance)
-    wallet = os.environ.get(args.wallet_env_key, "")
-    bearer = os.environ.get(args.bearer_env_key, "")
-    if not wallet or not bearer:
+    # Bootstrap result: onstart means the instance self-bootstraps.
+    # SCP+SSH is a fallback when onstart wasn't used (missing identity).
+    if onstart_cmd:
+        bootstrap_result = {
+            "ok": True,
+            "method": "onstart-cmd",
+            "note": "instance self-bootstraps on start via --onstart-cmd + --env",
+        }
+    elif not wallet or not bearer:
         bootstrap_result = {"ok": False, "error": f"identity missing: {args.wallet_env_key} / {args.bearer_env_key}"}
         print(f"WARN: bootstrap identity missing. Instance rented but NOT bootstrapped.", file=sys.stderr)
     else:
+        # SCP+SSH fallback — onstart was not available
+        print(f"[rent] falling back to SCP+SSH bootstrap (onstart not used)", file=sys.stderr)
         bootstrap_result = _scp_and_bootstrap(
-            int(instance_id), handle, gate, wallet, bearer,
-            args.team_id or os.environ.get("HOLOMESH_TEAM_ID", ""),
+            int(instance_id), handle, gate, wallet, bearer, team_id,
             Path.home() / ".ssh" / "id_rsa",
         )
         if not bootstrap_result.get("ok"):
@@ -815,7 +936,13 @@ def cmd_self_test(args: argparse.Namespace) -> int:
     assert PICKER.exists(), PICKER
     assert LEDGER.exists(), LEDGER
     assert SCHEDULER.exists(), SCHEDULER
-    print("self-tests PASS (5 assertions)")
+    # Onstart bootstrap script present (T6 — hands-off provisioning)
+    onstart_path = SCRIPT_DIR / "vast-onstart-bootstrap.sh"
+    alt_onstart = Path.home() / ".ai-ecosystem" / "scripts" / "vast-onstart-bootstrap.sh"
+    assert onstart_path.exists() or alt_onstart.exists(), (
+        f"vast-onstart-bootstrap.sh not found at {onstart_path} or {alt_onstart}"
+    )
+    print("self-tests PASS (6 assertions)")
     return 0
 
 
