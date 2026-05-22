@@ -6,10 +6,10 @@
   "verifier": "examples/gold-game/gate-7-conformance-verify.mjs",
   "summary": {
     "surfaces": 33,
-    "REAL": 17,
-    "FAIL": 4,
-    "SKIP": 12,
-    "compilersReal": "15/24"
+    "REAL": 20,
+    "FAIL": 0,
+    "SKIP": 13,
+    "compilersReal": "17/24"
   },
   "matrix": {
     "compile:ThreeJSCompiler": {
@@ -65,8 +65,9 @@
       "length": 4918
     },
     "compile:ARCompiler": {
-      "status": "FAIL",
-      "error": "Cannot read properties of undefined (reading 'target')"
+      "status": "REAL",
+      "outputType": "object",
+      "length": 826
     },
     "compile:AndroidCompiler": {
       "status": "REAL",
@@ -103,8 +104,9 @@
       "length": 6629
     },
     "compile:MultiLayerCompiler": {
-      "status": "FAIL",
-      "error": "Cannot read properties of undefined (reading 'targets')"
+      "status": "REAL",
+      "outputType": "object",
+      "length": 8896
     },
     "compile:URDFCompiler": {
       "status": "REAL",
@@ -112,8 +114,8 @@
       "length": 5877
     },
     "compile:HolobCompiler": {
-      "status": "FAIL",
-      "error": "HolobCompiler requires @holoscript/holo-vm. Install it: pnpm add @holoscript/holo-vm"
+      "status": "SKIP",
+      "reason": "needs optional dep (HolobCompiler requires @holoscript/holo-vm. Install it: pnpm add @holoscript/hol)"
     },
     "compile:PhoneSleeveVRCompiler": {
       "status": "SKIP",
@@ -129,8 +131,9 @@
       "length": 10758
     },
     "traits:TraitComposition": {
-      "status": "FAIL",
-      "error": "Cannot read properties of undefined (reading 'map')"
+      "status": "REAL",
+      "outputType": "object",
+      "length": 92
     },
     "receipt:computeStateDigest": {
       "status": "REAL",
@@ -164,10 +167,10 @@
   },
   "contract": {
     "spine": "REAL computeStateDigest",
-    "statusDigest": "fff33f1d8c9ee4995872d052221e2d1569b889d1c6256c927b9126f0f6e4611a",
+    "statusDigest": "5aaa9e3e2b87f9ddc2c01c82264c3b468d59c1d76219e94e9f4bee50a4b3dedf",
     "sceneDigest": "043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89",
     "reproducible": "run the verifier to re-derive"
   },
   "honestScope": "Each compiler is EMPIRICALLY run against the parsed gold-vault-game.holo via @holoscript/core dist — REAL means it produced >40 chars of real output without throwing; FAIL captures the error; SKIP means not exported in dist or needs a separate harness/service/hardware (solvers, mesh, Twin-Earth, quantum, holograms, HoloGraph are honestly SKIPped here and become their own deepening gates). No surface is marked REAL without captured output evidence. This is breadth-first: it proves how much of HoloScript one .holo already flows through, and turns the SKIP rows into the kitchen-sink backlog.",
-  "verifiedAt": "2026-05-22T17:51:39.395Z"
+  "verifiedAt": "2026-05-22T18:03:52.297Z"
 }

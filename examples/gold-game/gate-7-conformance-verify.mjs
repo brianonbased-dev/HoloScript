@@ -39,13 +39,19 @@ const COMPILERS = [
   'URDFCompiler', 'HolobCompiler', 'PhoneSleeveVRCompiler', 'AAgentCardCompiler',
 ];
 
+// Some compilers require constructor options (the same shapes the MCP handlers use).
+const CTOR_ARGS = {
+  ARCompiler: [{ target: 'webxr', minify: false, source_maps: false, features: { hit_test: false, image_tracking: false } }],
+  MultiLayerCompiler: [{ targets: ['vr', 'vrr', 'ar'] }],
+};
 async function tryCompile(name) {
   const Cls = core[name];
   if (typeof Cls !== 'function') return { status: 'SKIP', reason: 'not exported in core dist' };
   let inst;
-  try { inst = new Cls(); } catch (e) { return { status: 'FAIL', error: 'ctor: ' + (e.message || e) }; }
+  try { inst = new Cls(...(CTOR_ARGS[name] || [])); } catch (e) { return { status: 'FAIL', error: 'ctor: ' + (e.message || e) }; }
   if (typeof inst.compile !== 'function') return { status: 'SKIP', reason: 'no compile() method' };
-  const shapes = [[composition], [composition, {}], [composition, 'gold-game'], [objects], [composition.metadata ? composition : { ...composition }]];
+  // compile signature is (composition, agentToken?, outputPath?) for most; try arg shapes.
+  const shapes = [[composition, 'gold-game'], [composition], [composition, {}], [objects]];
   let lastErr = '';
   for (const args of shapes) {
     try {
@@ -57,6 +63,8 @@ async function tryCompile(name) {
       lastErr = 'output too small (' + (text ? text.length : 0) + ')';
     } catch (e) { lastErr = (e && e.message) || String(e); }
   }
+  // An unbuilt optional dependency is an honest SKIP, not a FAIL.
+  if (/holo-vm|requires @holoscript\//i.test(lastErr)) return { status: 'SKIP', reason: 'needs optional dep (' + lastErr.slice(0, 80) + ')' };
   return { status: 'FAIL', error: lastErr.slice(0, 160) };
 }
 
@@ -73,7 +81,8 @@ matrix['parse:@holoscript/core'] = (parsed.errors || []).length === 0
   const TC = core.TraitCompositionCompiler;
   if (typeof TC !== 'function') { matrix['traits:TraitComposition'] = { status: 'SKIP', reason: 'not exported' }; return; }
   try {
-    const decls = ['controllable', 'physics', 'collidable'].map((t) => ({ trait: t, config: {} }));
+    // TraitCompositionDecl = { name, components: string[], overrides? }
+    const decls = [{ name: 'Curator', components: ['controllable', 'physics', 'collidable'] }];
     const out = new TC().compile(decls, () => ({ defaultConfig: {}, conflicts: [] }));
     matrix['traits:TraitComposition'] = out ? { status: 'REAL', outputType: typeof out, length: JSON.stringify(out).length } : { status: 'FAIL', error: 'no output' };
   } catch (e) { matrix['traits:TraitComposition'] = { status: 'FAIL', error: (e.message || String(e)).slice(0, 160) }; }
