@@ -3,6 +3,8 @@
  * DICOM medical imaging and surgical simulation for HoloScript
  */
 
+export * from './medicalsolver';
+
 // ============================================================================
 // DICOM Viewer (@dicom_viewer trait)
 // ============================================================================
