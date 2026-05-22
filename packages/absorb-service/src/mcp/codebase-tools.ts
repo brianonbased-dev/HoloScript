@@ -154,95 +154,61 @@ async function fetchWithTimeout(
 // =============================================================================
 
 let cachedProviderName: string | null = null;
+const NATIVE_GRAPH_RAG_PROVIDER = 'holoembed';
+
+function requireNativeGraphRAGProvider(providerName: string, source: string): 'holoembed' {
+  const normalized = providerName.trim().toLowerCase();
+  if (normalized === 'structural') {
+    console.error(
+      `[EmbeddingProvider] ${source}=structural is a legacy alias; using ${NATIVE_GRAPH_RAG_PROVIDER}`
+    );
+    return NATIVE_GRAPH_RAG_PROVIDER;
+  }
+  if (normalized !== NATIVE_GRAPH_RAG_PROVIDER) {
+    throw new Error(
+      `GraphRAG embedding provider must be ${NATIVE_GRAPH_RAG_PROVIDER}; ${source} requested ${normalized}. Fix HoloEmbed instead of falling back.`
+    );
+  }
+  return NATIVE_GRAPH_RAG_PROVIDER;
+}
 
 /**
- * Auto-detect the best available embedding provider.
+ * Select the native GraphRAG embedding provider.
  * Cached for the session (only probes once).
  *
- * Priority:
- * 1. Explicit EMBEDDING_PROVIDER env var (user override)
- * 2. HoloEmbed local provider (dogfood default; no API key/model download)
- * 3. OPENAI_API_KEY set -> 'openai' (fallback if HoloEmbed cannot load)
- * 4. Ollama running (probe with 2s timeout) -> 'ollama'
- * 5. Fallback -> HoloGraph structural embeddings
+ * Product rule: GraphRAG uses HoloGraph + HoloEmbed only. No external or weaker
+ * fallback is allowed because fallback hides native breakage.
  */
 export async function detectBestEmbeddingProvider(): Promise<string> {
   if (cachedProviderName) return cachedProviderName;
 
-  // 1. Explicit env override. Normalize case/whitespace — the factory switch is
-  // lowercase ('holoembed', 'openai', ...) and its default case THROWS, so a
-  // mixed-case value like 'HoloEmbed' would crash provider creation. Normalizing
-  // here makes EMBEDDING_PROVIDER robust to casing (HoloEmbed/HOLOEMBED/holoembed).
   if (process.env.EMBEDDING_PROVIDER) {
-    cachedProviderName = process.env.EMBEDDING_PROVIDER.trim().toLowerCase();
+    cachedProviderName = requireNativeGraphRAGProvider(
+      process.env.EMBEDDING_PROVIDER,
+      'EMBEDDING_PROVIDER'
+    );
     console.error(`[EmbeddingProvider] Using explicit env: ${cachedProviderName}`);
     return cachedProviderName;
   }
 
-  // 2. HoloEmbed is the HoloScript-native NL->code provider. Prefer it by
-  // default so local/live code search dogfoods the package unless the operator
-  // explicitly requests a different provider through EMBEDDING_PROVIDER.
   try {
     const { createEmbeddingProvider } = await import('../engine/providers/EmbeddingProviderFactory');
-    const provider = await createEmbeddingProvider({ provider: 'holoembed' });
-    if (provider.name === 'holoembed') {
-      cachedProviderName = 'holoembed';
-      console.error(
-        `[EmbeddingProvider] Auto-detected: ${cachedProviderName} (HoloScript-native, local, no API key)`
-      );
-      return cachedProviderName;
+    const provider = await createEmbeddingProvider({ provider: NATIVE_GRAPH_RAG_PROVIDER });
+    if (provider.name !== NATIVE_GRAPH_RAG_PROVIDER) {
+      throw new Error(`factory returned ${provider.name}`);
     }
-  } catch (err) {
+    cachedProviderName = NATIVE_GRAPH_RAG_PROVIDER;
     console.error(
-      `[EmbeddingProvider] HoloEmbed unavailable; falling back to external/provider probes: ${
+      `[EmbeddingProvider] Native GraphRAG provider: ${cachedProviderName} (HoloGraph + HoloEmbed, no fallback)`
+    );
+    return cachedProviderName;
+  } catch (err) {
+    throw new Error(
+      `Native GraphRAG provider HoloEmbed is unavailable: ${
         err instanceof Error ? err.message : String(err)
-      }`
+      }. Fix HoloEmbed; fallback providers are disabled.`
     );
   }
-
-  // 3. OpenAI API key available
-  if (process.env.OPENAI_API_KEY) {
-    cachedProviderName = 'openai';
-    console.error(`[EmbeddingProvider] Auto-detected: ${cachedProviderName} (API key found)`);
-    return cachedProviderName;
-  }
-
-  // 4. Probe Ollama (only if OLLAMA_URL is configured)
-  try {
-    const ollamaUrl = process.env.OLLAMA_URL;
-    if (!ollamaUrl) throw new Error('OLLAMA_URL not set');
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 2000);
-    unrefTimer(timeout);
-
-    const response = await fetch(`${ollamaUrl}/api/tags`, {
-      signal: controller.signal,
-      method: 'GET',
-    });
-    clearTimeout(timeout);
-
-    if (response.ok) {
-      cachedProviderName = 'ollama';
-      console.error(
-        `[EmbeddingProvider] Auto-detected: ${cachedProviderName} (running at ${ollamaUrl})`
-      );
-      return cachedProviderName;
-    }
-  } catch {
-    // Ollama not running or unreachable
-  }
-
-  // 5. Fallback: HoloGraph structural embeddings: zero-dependency, zero-latency,
-  //    no API key, no network, no model download. Structural alone gives 100%
-  //    recall for graph-topology queries (see Paper 26 Table 1).
-  cachedProviderName = 'structural';
-  console.error(
-    `[EmbeddingProvider] No OPENAI_API_KEY or Ollama found. Using HoloGraph structural embeddings (zero-dep, 384-dim, local).`
-  );
-  console.error(
-    `[EmbeddingProvider] For NL semantic search over large corpora, fix HoloEmbed loading or set EMBEDDING_PROVIDER explicitly.`
-  );
-  return cachedProviderName;
 }
 
 export function resetDetectedEmbeddingProviderForTests(): void {
@@ -262,7 +228,9 @@ async function createDynamicEmbeddingIndex(
   embeddingModel?: string
 ): Promise<any> {
   const { EmbeddingIndex, createEmbeddingProvider } = mod;
-  const providerName = embeddingProvider || (await detectBestEmbeddingProvider());
+  const providerName = embeddingProvider
+    ? requireNativeGraphRAGProvider(embeddingProvider, 'embeddingProvider argument')
+    : await detectBestEmbeddingProvider();
 
   const provider = await createEmbeddingProvider({
     provider: providerName as EmbeddingProviderName,
@@ -837,19 +805,19 @@ export const codebaseTools: Tool[] = [
         },
         embeddingProvider: {
           type: 'string',
-          enum: ['structural', 'openai', 'ollama', 'xenova'],
+          enum: ['holoembed', 'structural'],
           description:
-            'Embedding provider for semantic search (default: structural). "structural" uses HoloGraph native embeddings — zero-dep, zero-latency, 100% recall for graph-topology queries (Paper 26 Table 1). "openai" uses OpenAI embeddings for NL→code queries (requires API key). "ollama" uses local Ollama server. "xenova" uses local WASM model.',
+            'Native GraphRAG embedding provider. Use "holoembed": HoloGraph structural features plus HoloEmbed subword blocks. "structural" is accepted as a legacy alias and maps to "holoembed"; external fallback providers are disabled so native failures are fixed immediately.',
         },
         embeddingApiKey: {
           type: 'string',
           description:
-            'API key for embedding provider (required for openai, not needed for structural/ollama/xenova). Falls back to OPENAI_API_KEY environment variable if not provided.',
+            'Ignored for native HoloEmbed. Kept only for backward-compatible request shapes.',
         },
         embeddingModel: {
           type: 'string',
           description:
-            'Model name for embeddings (e.g., "text-embedding-3-small" for OpenAI). Uses provider defaults if not specified.',
+            'Ignored for native HoloEmbed. Kept only for backward-compatible request shapes.',
         },
       },
       required: [],
@@ -1285,7 +1253,9 @@ async function runFullScan(
   cacheTimestamp = Date.now();
 
   // Persist graph to disk
-  const detectedProvider = embeddingProvider || (await detectBestEmbeddingProvider());
+  const detectedProvider = embeddingProvider
+    ? requireNativeGraphRAGProvider(embeddingProvider, 'embeddingProvider argument')
+    : await detectBestEmbeddingProvider();
   saveGraphCache(graph, primaryRootDir, stats, gitCommitHash, fileHashes, detectedProvider);
 
   if (jobId) trackAbsorbProgress(jobId, 'Creating embeddings', 80);
@@ -1476,8 +1446,10 @@ async function runIncrementalPatch(
 
   if (jobId) trackAbsorbProgress(jobId, 'Patching graph', 65);
 
-  // Patch graph
-  graph.patchFiles(filesToRemove, rescanResult.files);
+  // Patch graph. `patchFromChanges` removes stale entries first, then applies
+  // rescanned files; passing rescanned added files as "modified" is safe because
+  // updateFile() falls through to addFile() when the file is not already present.
+  graph.patchFromChanges([], rescanResult.files, filesToRemove);
 
   // Update git metadata
   graph.gitCommitHash = changes.headCommit;
@@ -1495,7 +1467,9 @@ async function runIncrementalPatch(
     if (cachedGraph && cachedGraph === graph && false) {
       // In-memory cache hit (planned: global cached index not implemented)
     } else {
-      const providerName = embeddingProvider || (await detectBestEmbeddingProvider());
+      const providerName = embeddingProvider
+        ? requireNativeGraphRAGProvider(embeddingProvider, 'embeddingProvider argument')
+        : await detectBestEmbeddingProvider();
       const providerObj = await mod.createEmbeddingProvider({
         provider: providerName as EmbeddingProviderName,
         ollamaUrl: process.env.OLLAMA_URL,
@@ -1551,7 +1525,9 @@ async function runIncrementalPatch(
   cacheTimestamp = Date.now();
 
   const graphStats = graph.getStats();
-  const detectedProvider = embeddingProvider || (await detectBestEmbeddingProvider());
+  const detectedProvider = embeddingProvider
+    ? requireNativeGraphRAGProvider(embeddingProvider, 'embeddingProvider argument')
+    : await detectBestEmbeddingProvider();
 
   // Layout and Emission (Phase 8: Incremental Spatial)
   let holoSource = '';
