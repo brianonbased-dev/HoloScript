@@ -1,0 +1,174 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// THE GOLD GAME — Gate 0 canonical skeleton (FOUNDER-RATIFIED CONCEPT 2026-05-22)
+//
+// The flagship is the REAL GOLD knowledge-curation system (D:/GOLD) turned into
+// a GAME the founder plays, while the SAME system is enhanced for the agents/AI
+// who use it. Professional-system-as-game (the HoloLand/HoloShell pattern):
+// the human plays; the AI runs the real vault underneath.
+//
+// REAL BACKEND  ⇄  GAME FACE (human)        ⇄  AGENT ENHANCEMENT
+//   tiers bronze→diamond  →  ascending regions you climb   →  visible progression
+//   graduate.py           →  THE CORE VERB: shepherd an     →  cleaner graduation
+//                            entry up the tiers                workflow
+//   auto_link / lineage   →  forge the constellation of     →  richer retrieval
+//                            links between entries             graph
+//   vault_collision_guard →  conflicts to resolve (monsters)→  de-duped vault
+//   agents curating       →  real-agent co-players          →  game-shaped curation
+//
+// HONEST MAPPING IS THE PRODUCT: a play-action IS a real vault op (graduating an
+// entry in-game graduates it for real). Reads the REAL vault as content; never
+// fakes vault state. Writing back to D:/GOLD stays governance-gated.
+//
+// Seeded with real vault entries (INDEX.md): P.GOLD.001 (Diamond), W.GOLD.535,
+// W.GOLD.534, B.GRADUATE.001 (Bronze). Tier reality per `farm.py status`.
+//
+// DEPLOYMENT (founder-ratified): compiles to a self-contained static web build
+// (R3F → index.html) destined for the D: Drive so it opens on any machine with
+// no install. Engine target = r3f; packaging target = portable Drive build.
+//
+// AI<->HUMAN CONNECTION (load-bearing): one CURATOR entity kind, two inhabitation
+// paths (human @controllable / agent @ai_agent) acting on the SAME real vault.
+//
+// Gate 0 acceptance = parses clean against @holoscript/core. Branding is a
+// FOUNDER call — "The Vault" here is a working concept, not a ratified name.
+// ═══════════════════════════════════════════════════════════════════════════
+
+composition "GOLD — The Vault" {
+  metadata {
+    name: 'The GOLD Game — vault-curation as a playable world (Gate 0)'
+    category: 'gaming'
+    concept: 'the real GOLD curation system, turned into a game for the human and enhanced for agents'
+    backend: 'D:/GOLD (bronze/silver/gold/platinum/diamond; graduate.py; auto_link; collision_guard)'
+    pattern: 'professional-system-as-game (HoloLand/HoloShell)'
+    platforms: ['r3f', 'babylonjs']
+    packaging: 'self-contained static web build for the D: Drive (open index.html, no install)'
+  }
+
+  environment {
+    skybox: "vault_archive"
+    ambient_light: 0.4
+    physics_engine: "bullet"
+    gravity: [0, -9.81, 0]
+    fog_density: 0.012
+    fog_color: "#d4af37"
+  }
+
+  // ── Shared entity kind: a CURATOR. A human OR a real agent inhabits it. ──
+  // Same geometry/state, two inhabitation paths (D.040 one trait library), so a
+  // later gate can swap or co-present them in one session over the same vault.
+
+  template "HumanCurator" {
+    @controllable
+    @physics
+    @collidable
+    geometry: "humanoid"
+    scale: [0.5, 1.8, 0.5]
+    state { reputation: 0, entries_graduated: 0, inhabited_by: "human" }
+  }
+
+  template "AgentCurator" {
+    @ai_agent
+    @physics
+    @collidable
+    geometry: "humanoid"
+    scale: [0.5, 1.8, 0.5]
+    state {
+      reputation: 0,
+      entries_graduated: 0,
+      inhabited_by: "agent",
+      daily_budget_usd: 0.5,
+      memory_bearing: true
+    }
+  }
+
+  // ── A KNOWLEDGE ENTRY: the thing you grab and shepherd up the tiers. ──
+  // The core verb (graduate.py) acts on these. State mirrors a real vault entry.
+  template "KnowledgeEntry" {
+    @grabbable
+    @interactive
+    @physics
+    geometry: "octahedron"
+    scale: [0.3, 0.3, 0.3]
+    state { tier: "bronze", sha256_anchored: true, lineage_links: 0, graduated: false }
+  }
+
+  // ── The Archivist: a real-agent NPC — graduate.py / review.py embodied. ──
+  template "Archivist" {
+    @ai_agent
+    @dialogue
+    @collidable
+    geometry: "humanoid"
+    state { role: "graduation_review", reputation_tracking: true, inhabited_by: "agent" }
+  }
+
+  // ── A vault collision: the "monster" — what vault_collision_guard.py blocks. ──
+  template "VaultCollision" {
+    @interactive
+    @collidable
+    geometry: "tetrahedron"
+    scale: [0.5, 0.5, 0.5]
+    state { conflict: "same_slot_write", resolvable: true, guard: "vault_collision_guard" }
+  }
+
+  // ── TIER REGIONS as ascending elevation (bronze valley → diamond peak). ──
+  // graduating an entry = carrying it from a lower region to a higher one.
+
+  spatial_group "BronzeValley" {
+    origin: [0, 0, 0]
+    object "Player" using "HumanCurator" {
+      position: [0, 1, 0]
+      color: "#3a6ea5"
+    }
+    object "AgentCompanion" using "AgentCurator" {
+      position: [2, 1, 0]
+      color: "#a55a3a"
+    }
+    // Real Bronze entry — the agent on-ramp (B.GRADUATE.001).
+    object "B_GRADUATE_001" using "KnowledgeEntry" {
+      position: [-1, 0.5, 1]
+      color: "#cd7f32"
+      state { tier: "bronze", title: "graduate-incident-response", graduated: false }
+    }
+    object "GuardianCollision" using "VaultCollision" {
+      position: [1, 0.5, 2]
+      color: "#8a2a2a"
+    }
+  }
+
+  spatial_group "GoldTerrace" {
+    origin: [0, 4, -8]
+    // Real GOLD entries seeded from INDEX.md.
+    object "W_GOLD_535" using "KnowledgeEntry" {
+      position: [-1, 0.5, 0]
+      color: "#d4af37"
+      state { tier: "gold", title: "secrets-broker-sovereign-primitive", lineage_links: 3, graduated: true }
+    }
+    object "W_GOLD_534" using "KnowledgeEntry" {
+      position: [1, 0.5, 0]
+      color: "#d4af37"
+      state { tier: "gold", title: "audit-as-calibration-self-application", lineage_links: 2, graduated: true }
+    }
+  }
+
+  spatial_group "DiamondPeak" {
+    origin: [0, 9, -16]
+    // Real Diamond entry — the deepest ratified wisdom.
+    object "P_GOLD_001" using "KnowledgeEntry" {
+      position: [0, 0.5, 0]
+      color: "#b9f2ff"
+      scale: [0.5, 0.5, 0.5]
+      state { tier: "diamond", title: "failure-knowledge-decays-slower", lineage_links: 9, graduated: true }
+    }
+    object "TheArchivist" using "Archivist" {
+      position: [-2, 0, 1]
+      color: "#7a5a8a"
+    }
+  }
+
+  light "VaultGlow" {
+    type: "directional"
+    intensity: 1.2
+    rotation: [-35, 40, 0]
+    color: "#ffe9a0"
+  }
+}

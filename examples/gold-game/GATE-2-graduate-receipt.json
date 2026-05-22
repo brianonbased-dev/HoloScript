@@ -1,0 +1,16 @@
+{
+  "gate": 2,
+  "name": "the graduate verb — a play-action is a real vault operation",
+  "verb": "graduate (bronze->gold->platinum->diamond; silver skipped, per farm.py promote)",
+  "mechanism": "carry/submit a knowledge entry up a tier -> real file move in the sandbox vault + sealed receipt",
+  "receipt_schema": "cael-graduation-v1 (entry, fromTier, toTier, lineage_links, stateDigest, payloadHash)",
+  "verified": {
+    "unit": "gate-2-graduate-verify.cjs — 10/10 pass (move, receipt, deterministic stateDigest, false-cases)",
+    "end_to_end": "POST /api/graduate via server.cjs — bronze->gold confirmed; GET /api/vault-game reflects it; stateDigest matches receipt"
+  },
+  "governance": "operates ONLY on examples/gold-game/vault-sandbox; D:/GOLD is read-only and was confirmed untouched (bronze still 4 entries); promotion of the sandbox into the real GOLD vault is founder-gated and NOT done",
+  "honest_mapping": "play-action == real (sandbox) vault op, no fake state; the real-vault write is the gated step",
+  "artifacts": ["vault-ops.cjs", "gate-2-graduate-verify.cjs", "server.cjs (/api/graduate, /api/vault-game)"],
+  "core": "node built-ins only",
+  "verifiedAt": "2026-05-22T04:39:30Z"
+}

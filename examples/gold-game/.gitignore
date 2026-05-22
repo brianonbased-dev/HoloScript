@@ -1,0 +1,4 @@
+# Regenerable test fixture — rebuilt by vault-ops.cjs buildSandbox() on every verifier run.
+vault-sandbox/
+# Transient review screenshot (not the verified-render proof).
+current-look.png

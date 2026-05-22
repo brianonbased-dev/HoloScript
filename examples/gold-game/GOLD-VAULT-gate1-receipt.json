@@ -1,0 +1,33 @@
+{
+  "gate": 1,
+  "name": "Drive build — photoreal self-contained web build",
+  "artifact": "examples/gold-game/drive-build/index.html",
+  "source_holo": "examples/gold-game/gold-vault-game.holo",
+  "parse": {
+    "success": true,
+    "errors": 0,
+    "warnings": 0
+  },
+  "scene": {
+    "meshes": 8,
+    "lights": 1,
+    "regions": 3,
+    "entries": 4
+  },
+  "render": {
+    "primitives_only": true,
+    "glass_transmission": true,
+    "emissive_cores": true,
+    "golden_terraces": true,
+    "pmrem_environment": true,
+    "bloom": true,
+    "tone_mapping": "ACESFilmic"
+  },
+  "sceneDigest": "208645323846a6dfc8596b3f3e9e1749f09ac1b3aa3d4d1bdffd32e19774c568",
+  "htmlBytes": 545359,
+  "selfContained": true,
+  "offline": true,
+  "three": "0.182.0 (bundled IIFE)",
+  "core": "6.1.0",
+  "verifiedAt": "2026-05-22T04:24:58.783Z"
+}
