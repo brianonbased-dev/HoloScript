@@ -155,3 +155,32 @@ export {
 } from './holo-tunnel';
 
 export type { HoloTunnelOptions, HoloTunnelHandle, HoloTunnelSharePacket } from './holo-tunnel';
+
+// Portal Entry — receipt for entities entering a HoloScript world through a portal
+// Extends holotunnel.share-packet.v1 with entrant identity, representation lane,
+// scopes granted, and world-state rewind anchors (F.058, W.701).
+export {
+  PORTAL_ENTRY_RECEIPT_SCHEMA_VERSION,
+  buildPortalEntryReceipt,
+  validatePortalEntryReceipt,
+  isPortalEntryReceipt,
+  generatePortalEntryId,
+  defaultRepresentationLaneFor,
+  defaultAcceptedFormatsFor,
+} from './portal-entry';
+
+export type {
+  PortalEntryReceiptSchemaVersion,
+  PortalEntrantKind,
+  PortalEntrant,
+  PortalRepresentationLane,
+  PortalRepresentation,
+  PortalSpatialPermission,
+  PortalScopesGranted,
+  PortalWorldStateAnchors,
+  PortalEntryProvenance,
+  PortalEntryStatus,
+  PortalEntryReceipt,
+  PortalEntryReceiptValidation,
+  PortalEntryReceiptBuildOptions,
+} from './portal-entry';
