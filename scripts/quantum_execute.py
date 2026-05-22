@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import pathlib
 import sys
 import time
@@ -66,6 +67,242 @@ def _write_receipt(receipt: dict[str, Any]) -> str | None:
         return str(path)
     except Exception:
         return None
+
+
+def _parse_env_file(path: pathlib.Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError:
+        return values
+    for line in raw.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, value = stripped.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key:
+            values[key] = value
+    return values
+
+
+def _secret_value(*names: str) -> str | None:
+    """Read a local secret by name without echoing it into logs or stdout."""
+    for name in names:
+        if os.environ.get(name):
+            return os.environ[name]
+
+    repo_root = pathlib.Path(__file__).resolve().parent.parent
+    env_paths = [
+        repo_root / ".env",
+        pathlib.Path.home() / ".ai-ecosystem" / ".env",
+    ]
+    for env_path in env_paths:
+        env_values = _parse_env_file(env_path)
+        for name in names:
+            if env_values.get(name):
+                return env_values[name]
+    return None
+
+
+def _as_bool(value: Any, default: bool) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    return str(value).strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _as_positive_float(value: Any, default: float | None) -> float | None:
+    if value is None or value == "":
+        return default
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return default
+    return parsed if parsed > 0 else default
+
+
+def _vector_hash(theta_vec: Any) -> str:
+    try:
+        values = theta_vec.tolist()
+    except AttributeError:
+        values = list(theta_vec)
+    rounded = [round(float(v), 12) for v in values]
+    return hashlib.sha256(json.dumps(rounded, sort_keys=True).encode()).hexdigest()
+
+
+class HardwareJobTimeoutError(TimeoutError):
+    """Raised when an IBM Runtime job exceeds its per-job or overall budget."""
+
+
+class _ProgressReceiptWriter:
+    def __init__(
+        self,
+        *,
+        task: str,
+        backend: str,
+        enabled: bool,
+        path_override: str | None = None,
+    ) -> None:
+        self.enabled = enabled
+        self.run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        self.path: pathlib.Path | None = None
+        if not enabled:
+            return
+
+        repo_root = pathlib.Path(__file__).resolve().parent.parent
+        if path_override:
+            path = pathlib.Path(path_override)
+            self.path = path if path.is_absolute() else repo_root / path
+        else:
+            safe_backend = backend.replace("/", "_")
+            self.path = (
+                repo_root
+                / ".scratch"
+                / "quantum-progress"
+                / f"quantum_{task}_{safe_backend}_{self.run_id}_progress.jsonl"
+            )
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+
+    @property
+    def path_str(self) -> str | None:
+        return str(self.path) if self.path else None
+
+    def write(self, event: str, **fields: Any) -> None:
+        if not self.enabled or not self.path:
+            return
+        record = {
+            "schema": "cael-quantum-progress-v1",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "run_id": self.run_id,
+            "event": event,
+            **fields,
+        }
+        with self.path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record, sort_keys=True) + "\n")
+
+
+def _runtime_job_id(job: Any) -> str:
+    try:
+        return str(job.job_id())
+    except Exception:
+        return "unknown"
+
+
+def _runtime_job_status(job: Any) -> str:
+    try:
+        status = job.status()
+    except Exception as exc:
+        return f"STATUS_ERROR:{type(exc).__name__}"
+    return str(getattr(status, "name", status))
+
+
+def _cancel_runtime_job(
+    job: Any,
+    progress: _ProgressReceiptWriter,
+    context: dict[str, Any],
+    reason: str,
+) -> None:
+    job_id = _runtime_job_id(job)
+    try:
+        cancel_response = job.cancel()
+    except Exception as exc:
+        progress.write(
+            "job_cancel_failed",
+            job_id=job_id,
+            reason=reason,
+            error_type=type(exc).__name__,
+            error=str(exc),
+            **context,
+        )
+        return
+    post_status = _runtime_job_status(job)
+    cancelled = bool(cancel_response) or "cancel" in post_status.lower()
+    progress.write(
+        "job_cancelled",
+        job_id=job_id,
+        reason=reason,
+        cancelled=cancelled,
+        cancel_response=cancel_response,
+        post_status=post_status,
+        **context,
+    )
+
+
+def _wait_for_runtime_job(
+    job: Any,
+    *,
+    progress: _ProgressReceiptWriter,
+    context: dict[str, Any],
+    timeout_seconds: float | None,
+    poll_interval_seconds: float,
+) -> Any:
+    """Poll IBM Runtime explicitly so long queues leave progress evidence."""
+    job_id = _runtime_job_id(job)
+    started = time.monotonic()
+    progress.write("job_submitted", job_id=job_id, **context)
+    last_status = ""
+    poll_count = 0
+    poll_interval_seconds = max(1.0, poll_interval_seconds)
+
+    while True:
+        poll_count += 1
+        elapsed = time.monotonic() - started
+        status = _runtime_job_status(job)
+        status_changed = status != last_status
+        progress.write(
+            "job_status",
+            job_id=job_id,
+            status=status,
+            status_changed=status_changed,
+            poll_count=poll_count,
+            elapsed_seconds=round(elapsed, 1),
+            **context,
+        )
+        last_status = status
+
+        normalized = status.lower()
+        if "done" in normalized or "complete" in normalized:
+            break
+        if "cancel" in normalized or "error" in normalized or "fail" in normalized:
+            break
+        if timeout_seconds is not None and elapsed >= timeout_seconds:
+            _cancel_runtime_job(job, progress, context, f"timeout_after_{timeout_seconds:.1f}s")
+            raise HardwareJobTimeoutError(
+                f"IBM Runtime job {job_id} timed out after {timeout_seconds:.1f}s"
+            )
+
+        sleep_for = poll_interval_seconds
+        if timeout_seconds is not None:
+            sleep_for = min(sleep_for, max(1.0, timeout_seconds - elapsed))
+        time.sleep(sleep_for)
+
+    try:
+        result = job.result()
+    except Exception as exc:
+        progress.write(
+            "job_failed",
+            job_id=job_id,
+            status=last_status,
+            error_type=type(exc).__name__,
+            error=str(exc),
+            elapsed_seconds=round(time.monotonic() - started, 1),
+            **context,
+        )
+        raise
+
+    progress.write(
+        "job_result",
+        job_id=job_id,
+        status=last_status,
+        elapsed_seconds=round(time.monotonic() - started, 1),
+        **context,
+    )
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -112,9 +349,31 @@ def run_vqe(params: dict[str, Any]) -> dict[str, Any]:
     max_iterations: int = int(params.get("max_iterations", 300))
     ansatz_layers: int = int(params.get("ansatz_layers", 2))
     ibm_backend_name: str = params.get("ibm_backend", "ibm_fez")
-    api_token: str | None = params.get("api_token") or __import__("os").environ.get("IBM_QUANTUM_API_KEY")
+    api_token: str | None = params.get("api_token") or _secret_value(
+        "IBM_QUANTUM_API_KEY",
+        "QISKIT_IBM_TOKEN",
+        "IBM_QUANTUM_TOKEN",
+    )
     hw_optimizer: str = params.get("hw_optimizer", "spsa")       # "spsa" | "cobyla"
     resilience_level: int = min(int(params.get("resilience_level", 1)), 2)  # cap at 2 (≥0.28 max)
+    job_timeout_seconds = _as_positive_float(
+        params.get("job_timeout_seconds")
+        or params.get("ibm_job_timeout_seconds")
+        or os.environ.get("HOLOSCRIPT_QUANTUM_JOB_TIMEOUT_SECONDS"),
+        900.0,
+    )
+    overall_timeout_seconds = _as_positive_float(
+        params.get("overall_timeout_seconds")
+        or os.environ.get("HOLOSCRIPT_QUANTUM_OVERALL_TIMEOUT_SECONDS"),
+        None,
+    )
+    poll_interval_seconds = _as_positive_float(
+        params.get("poll_interval_seconds")
+        or os.environ.get("HOLOSCRIPT_QUANTUM_POLL_INTERVAL_SECONDS"),
+        30.0,
+    ) or 30.0
+    progress_receipts = _as_bool(params.get("progress_receipts"), execution_mode == "ibm-quantum")
+    progress_receipt_path = params.get("progress_receipt_path")
 
     # sto-3g orbital → qubit count (Jordan-Wigner)
     orbital_map: dict[str, int] = {"H": 1, "C": 5, "N": 5, "O": 5, "F": 5}
@@ -213,71 +472,191 @@ def run_vqe(params: dict[str, Any]) -> dict[str, Any]:
 
         estimator_hw = IBMEstimator(mode=backend, options=opts)
         hw_backend_name = backend.name
+        progress = _ProgressReceiptWriter(
+            task="vqe",
+            backend=hw_backend_name,
+            enabled=progress_receipts,
+            path_override=str(progress_receipt_path) if progress_receipt_path else None,
+        )
+        progress.write(
+            "run_started",
+            task="vqe",
+            backend=hw_backend_name,
+            optimizer=hw_optimizer,
+            resilience_level=resilience_level,
+            ansatz_layers=ansatz_layers,
+            max_iterations=max_iterations,
+            job_timeout_seconds=job_timeout_seconds,
+            overall_timeout_seconds=overall_timeout_seconds,
+        )
 
-        def _energy_hw(theta_vec: np.ndarray) -> tuple[float, str]:
+        overall_deadline = (
+            time.monotonic() + overall_timeout_seconds
+            if overall_timeout_seconds is not None
+            else None
+        )
+
+        def _remaining_job_timeout() -> float | None:
+            timeout = job_timeout_seconds
+            if overall_deadline is None:
+                return timeout
+            remaining = overall_deadline - time.monotonic()
+            if remaining <= 0:
+                raise HardwareJobTimeoutError(
+                    f"IBM Runtime run exceeded overall timeout of {overall_timeout_seconds:.1f}s"
+                )
+            return min(timeout, remaining) if timeout is not None else remaining
+
+        def _energy_hw(theta_vec: np.ndarray, context: dict[str, Any]) -> tuple[float, str]:
             pub = (isa_ansatz, [isa_hamiltonian], [theta_vec])
+            progress.write("eval_started", theta_hash=_vector_hash(theta_vec), **context)
             job = estimator_hw.run([pub])
-            result = job.result()
-            return float(result[0].data.evs), job.job_id()
+            job_id = _runtime_job_id(job)
+            result = _wait_for_runtime_job(
+                job,
+                progress=progress,
+                context={**context, "theta_hash": _vector_hash(theta_vec)},
+                timeout_seconds=_remaining_job_timeout(),
+                poll_interval_seconds=poll_interval_seconds,
+            )
+            energy = float(result[0].data.evs)
+            progress.write(
+                "eval_completed",
+                job_id=job_id,
+                energy=energy,
+                theta_hash=_vector_hash(theta_vec),
+                **context,
+            )
+            return energy, job_id
 
         best_job_id: str | None = None
+        hardware_eval_count = 0
 
-        if hw_optimizer == "cobyla":
-            # Hardware COBYLA + ZNE: each eval = one IBM job (noise-mitigated).
-            # Warm-start at π/4 — empirically stable for EfficientSU2 on real HW.
-            # Cap at 30 evals (~25 min wall time on ibm_kingston with ZNE).
-            from scipy.optimize import minimize as _minimize  # type: ignore[import-untyped]
-            theta0 = np.full(num_params, np.pi / 4)
-            cobyla_cap = min(max_iterations, 30)
+        try:
+            if hw_optimizer == "cobyla":
+                # Hardware COBYLA + ZNE: each eval = one IBM job (noise-mitigated).
+                # Warm-start at π/4 — empirically stable for EfficientSU2 on real HW.
+                # Cap at 30 evals (~25 min wall time on ibm_kingston with ZNE).
+                from scipy.optimize import minimize as _minimize  # type: ignore[import-untyped]
+                theta0 = np.full(num_params, np.pi / 4)
+                cobyla_cap = min(max_iterations, 30)
 
-            def _cobyla_obj(tv: np.ndarray) -> float:
-                e, jid = _energy_hw(tv)
-                nonlocal best_energy, best_job_id
-                if e < best_energy:
-                    best_energy = e
-                    best_job_id = jid
-                return e
+                def _cobyla_obj(tv: np.ndarray) -> float:
+                    nonlocal best_energy, best_job_id, hardware_eval_count
+                    hardware_eval_count += 1
+                    e, jid = _energy_hw(
+                        tv,
+                        {
+                            "optimizer": "COBYLA",
+                            "evaluation": hardware_eval_count,
+                            "iteration": hardware_eval_count,
+                        },
+                    )
+                    if e < best_energy:
+                        best_energy = e
+                        best_job_id = jid
+                        progress.write(
+                            "best_energy_updated",
+                            job_id=jid,
+                            energy=float(best_energy),
+                            evaluation=hardware_eval_count,
+                            optimizer="COBYLA",
+                        )
+                    return e
 
-            res = _minimize(
-                _cobyla_obj,
-                theta0,
-                method="COBYLA",
-                options={"maxiter": cobyla_cap, "rhobeg": 0.3},
+                res = _minimize(
+                    _cobyla_obj,
+                    theta0,
+                    method="COBYLA",
+                    options={"maxiter": cobyla_cap, "rhobeg": 0.3},
+                )
+                converged = bool(res.success)
+                iterations = int(res.nfev)
+            else:
+                # SPSA — default for shot-noise resilience on variable-quality hardware.
+                a_coeff, c_coeff = 0.2, 0.1
+                iterations = min(max_iterations, 50)
+                theta = np.zeros(num_params)  # zero init: lower variance on real hw
+
+                for k in range(iterations):
+                    ck = c_coeff / (k + 1) ** 0.16
+                    delta = np.random.choice([-1, 1], size=num_params).astype(float)
+
+                    theta_plus = theta + ck * delta
+                    theta_minus = theta - ck * delta
+
+                    hardware_eval_count += 1
+                    e_plus, jid_plus = _energy_hw(
+                        theta_plus,
+                        {
+                            "optimizer": "SPSA",
+                            "iteration": k + 1,
+                            "evaluation": hardware_eval_count,
+                            "side": "plus",
+                        },
+                    )
+                    hardware_eval_count += 1
+                    e_minus, jid_minus = _energy_hw(
+                        theta_minus,
+                        {
+                            "optimizer": "SPSA",
+                            "iteration": k + 1,
+                            "evaluation": hardware_eval_count,
+                            "side": "minus",
+                        },
+                    )
+
+                    gradient = (e_plus - e_minus) / (2 * ck)
+                    ak = a_coeff / (k + 1 + 10) ** 0.6
+                    theta -= ak * gradient * delta
+
+                    # Track energy + job for receipt traceability
+                    if e_plus <= e_minus:
+                        current_energy, current_jid = e_plus, jid_plus
+                    else:
+                        current_energy, current_jid = e_minus, jid_minus
+                    if current_energy < best_energy:
+                        best_energy = current_energy
+                        best_job_id = current_jid
+                        progress.write(
+                            "best_energy_updated",
+                            job_id=current_jid,
+                            energy=float(best_energy),
+                            iteration=k + 1,
+                            optimizer="SPSA",
+                        )
+
+                    if abs(gradient) < 1e-4:
+                        converged = True
+                        break
+        except Exception as exc:
+            progress.write(
+                "run_failed",
+                error_type=type(exc).__name__,
+                error=str(exc),
+                best_energy=None if best_energy == float("inf") else float(best_energy),
+                best_job_id=best_job_id,
+                evaluations=hardware_eval_count,
             )
-            converged = bool(res.success)
-            iterations = int(res.nfev)
-        else:
-            # SPSA — default for shot-noise resilience on variable-quality hardware.
-            a_coeff, c_coeff = 0.2, 0.1
-            iterations = min(max_iterations, 50)
-            theta = np.zeros(num_params)  # zero init: lower variance on real hw
+            return {
+                "error": f"{type(exc).__name__}: {exc}",
+                "execution_backend": execution_mode,
+                "backend": hw_backend_name,
+                "optimizer": hw_optimizer,
+                "optimizer_evaluations": hardware_eval_count,
+                "best_energy": None if best_energy == float("inf") else float(best_energy),
+                "best_job_id": best_job_id,
+                "progress_receipt_path": progress.path_str,
+            }
 
-            for k in range(iterations):
-                ck = c_coeff / (k + 1) ** 0.16
-                delta = np.random.choice([-1, 1], size=num_params).astype(float)
-
-                theta_plus = theta + ck * delta
-                theta_minus = theta - ck * delta
-
-                e_plus, jid_plus = _energy_hw(theta_plus)
-                e_minus, jid_minus = _energy_hw(theta_minus)
-
-                gradient = (e_plus - e_minus) / (2 * ck)
-                ak = a_coeff / (k + 1 + 10) ** 0.6
-                theta -= ak * gradient * delta
-
-                # Track energy + job for receipt traceability
-                if e_plus <= e_minus:
-                    current_energy, current_jid = e_plus, jid_plus
-                else:
-                    current_energy, current_jid = e_minus, jid_minus
-                if current_energy < best_energy:
-                    best_energy = current_energy
-                    best_job_id = current_jid
-
-                if abs(gradient) < 1e-4:
-                    converged = True
-                    break
+        progress.write(
+            "run_completed",
+            best_energy=float(best_energy),
+            best_job_id=best_job_id,
+            optimizer_iterations=iterations,
+            evaluations=hardware_eval_count,
+            converged=converged,
+        )
 
     wall_time = time.monotonic() - t0
 
@@ -291,6 +670,9 @@ def run_vqe(params: dict[str, Any]) -> dict[str, Any]:
         "execution_backend": execution_mode,
         "wall_time_seconds": wall_time,
     }
+
+    if execution_mode == "ibm-quantum":
+        result_out["progress_receipt_path"] = progress.path_str
 
     # Exact ground state via diagonalization — cheap only for small systems.
     exact_gs: float | None = None
@@ -399,10 +781,29 @@ def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
     )
 
     ansatz = QAOAAnsatz(cost_op, reps=p, mixer_operator=mixer_op)
+    sampler_ansatz = ansatz.copy()
+    sampler_ansatz.measure_all()
 
     execution_mode: str = params.get("execution_mode", "aer")
     ibm_backend_name: str = params.get("ibm_backend", "ibm_fez")
-    api_token: str | None = params.get("api_token") or __import__("os").environ.get("IBM_QUANTUM_API_KEY")
+    api_token: str | None = params.get("api_token") or _secret_value(
+        "IBM_QUANTUM_API_KEY",
+        "QISKIT_IBM_TOKEN",
+        "IBM_QUANTUM_TOKEN",
+    )
+    job_timeout_seconds = _as_positive_float(
+        params.get("job_timeout_seconds")
+        or params.get("ibm_job_timeout_seconds")
+        or os.environ.get("HOLOSCRIPT_QUANTUM_JOB_TIMEOUT_SECONDS"),
+        900.0,
+    )
+    poll_interval_seconds = _as_positive_float(
+        params.get("poll_interval_seconds")
+        or os.environ.get("HOLOSCRIPT_QUANTUM_POLL_INTERVAL_SECONDS"),
+        30.0,
+    ) or 30.0
+    progress_receipts = _as_bool(params.get("progress_receipts"), execution_mode == "ibm-quantum")
+    progress_receipt_path = params.get("progress_receipt_path")
 
     # Build sampler — Aer (local) vs IBM hardware
     if execution_mode == "ibm-quantum":
@@ -417,23 +818,64 @@ def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
         svc = QiskitRuntimeService(channel="ibm_quantum_platform", token=api_token)
         backend = svc.backend(ibm_backend_name)
         pm = generate_preset_pass_manager(backend=backend, optimization_level=1)
-        isa_ansatz = pm.run(ansatz)
+        isa_ansatz = pm.run(sampler_ansatz)
         opts = SamplerOptions()
         opts.default_shots = 4096
         hw_sampler = IBMSampler(mode=backend, options=opts)
         qaoa_backend_name = backend.name
         qaoa_job_ids: list[str] = []
+        qaoa_eval_count = 0
+        qaoa_progress = _ProgressReceiptWriter(
+            task="qaoa",
+            backend=qaoa_backend_name,
+            enabled=progress_receipts,
+            path_override=str(progress_receipt_path) if progress_receipt_path else None,
+        )
+        qaoa_progress.write(
+            "run_started",
+            task="qaoa",
+            backend=qaoa_backend_name,
+            p=p,
+            job_timeout_seconds=job_timeout_seconds,
+        )
 
         def _sample(params_vals: list[float]) -> dict[str, int]:
+            nonlocal qaoa_eval_count
+            qaoa_eval_count += 1
             pub = (isa_ansatz, params_vals)
+            qaoa_progress.write(
+                "eval_started",
+                optimizer="grid" if p == 1 else "random",
+                evaluation=qaoa_eval_count,
+                parameter_count=len(params_vals),
+            )
             job = hw_sampler.run([pub])
-            qaoa_job_ids.append(job.job_id())
-            return job.result()[0].data.meas.get_counts()
+            job_id = _runtime_job_id(job)
+            qaoa_job_ids.append(job_id)
+            result = _wait_for_runtime_job(
+                job,
+                progress=qaoa_progress,
+                context={
+                    "optimizer": "grid" if p == 1 else "random",
+                    "evaluation": qaoa_eval_count,
+                    "parameter_count": len(params_vals),
+                },
+                timeout_seconds=job_timeout_seconds,
+                poll_interval_seconds=poll_interval_seconds,
+            )
+            counts = result[0].data.meas.get_counts()
+            qaoa_progress.write(
+                "eval_completed",
+                job_id=job_id,
+                evaluation=qaoa_eval_count,
+                bitstring_count=len(counts),
+            )
+            return counts
     else:
         sampler = StatevectorSampler()
 
         def _sample(params_vals: list[float]) -> dict[str, int]:  # type: ignore[misc]
-            pub = (ansatz, params_vals)
+            pub = (sampler_ansatz, params_vals)
             result = sampler.run([pub]).result()[0]
             return result.data.meas.get_counts()
 
@@ -454,32 +896,53 @@ def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
         gamma_vals = np.linspace(0, np.pi, 8)
         beta_vals = np.linspace(0, np.pi / 2, 8)
 
-    for gamma in gamma_vals:
-        for beta in beta_vals:
-            if p == 1:
-                params_vals = [float(gamma), float(beta)]
-            else:
-                params_vals = np.random.uniform(0, np.pi, ansatz.num_parameters).tolist()
+    try:
+        for gamma in gamma_vals:
+            for beta in beta_vals:
+                if p == 1:
+                    params_vals = [float(gamma), float(beta)]
+                else:
+                    params_vals = np.random.uniform(0, np.pi, ansatz.num_parameters).tolist()
 
-            # Pad / trim to match actual parameter count
-            if len(params_vals) != ansatz.num_parameters:
-                params_vals = np.random.uniform(
-                    0, np.pi, ansatz.num_parameters
-                ).tolist()
+                # Pad / trim to match actual parameter count
+                if len(params_vals) != ansatz.num_parameters:
+                    params_vals = np.random.uniform(
+                        0, np.pi, ansatz.num_parameters
+                    ).tolist()
 
-            counts: dict[str, int] = _sample(params_vals)
+                counts: dict[str, int] = _sample(params_vals)
 
-            for bitstring, _count in counts.items():
-                # Evaluate Max-Cut objective for this bitstring
-                cut_value = sum(
-                    weight_matrix[i][j]
-                    for i in range(n)
-                    for j in range(i + 1, n)
-                    if int(bitstring[i]) != int(bitstring[j])
-                )
-                if cut_value > best_value:
-                    best_value = cut_value
-                    best_bitstring = bitstring
+                for bitstring, _count in counts.items():
+                    # Evaluate Max-Cut objective for this bitstring
+                    cut_value = sum(
+                        weight_matrix[i][j]
+                        for i in range(n)
+                        for j in range(i + 1, n)
+                        if int(bitstring[i]) != int(bitstring[j])
+                    )
+                    if cut_value > best_value:
+                        best_value = cut_value
+                        best_bitstring = bitstring
+    except Exception as exc:
+        if execution_mode == "ibm-quantum":
+            qaoa_progress.write(
+                "run_failed",
+                error_type=type(exc).__name__,
+                error=str(exc),
+                best_bitstring=best_bitstring,
+                best_value=float(best_value),
+                evaluations=len(qaoa_job_ids),
+            )
+            return {
+                "error": f"{type(exc).__name__}: {exc}",
+                "execution_backend": execution_mode,
+                "backend": qaoa_backend_name,
+                "optimizer_evaluations": len(qaoa_job_ids),
+                "best_bitstring": best_bitstring,
+                "best_value": float(best_value),
+                "progress_receipt_path": qaoa_progress.path_str,
+            }
+        raise
 
     # -----------------------------------------------------------------------
     # Classical optimum (brute-force, feasible for n ≤ 20)
@@ -509,6 +972,13 @@ def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
 
     if execution_mode == "ibm-quantum" and qaoa_job_ids:
         cert_job_id = qaoa_job_ids[-1]
+        qaoa_progress.write(
+            "run_completed",
+            best_bitstring=best_bitstring,
+            best_value=float(best_value),
+            job_id=cert_job_id,
+            evaluations=len(qaoa_job_ids),
+        )
         receipt = {
             "schema": "cael-quantum-v1",
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -530,6 +1000,7 @@ def run_qaoa(params: dict[str, Any]) -> dict[str, Any]:
         receipt_path = _write_receipt(receipt)
         if receipt_path:
             result_out["receipt_path"] = receipt_path
+        result_out["progress_receipt_path"] = qaoa_progress.path_str
 
     return result_out
 

@@ -39,6 +39,7 @@ import os
 import subprocess
 import sys
 import time
+from argparse import ArgumentParser
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -68,7 +69,18 @@ ENERGY_TOLERANCE: float = 0.10
 
 def main() -> None:
     """Entry point: run VQE H₂ and report pass/fail."""
-    use_real_hardware: bool = "--ibm-quantum" in sys.argv
+    parser = ArgumentParser(description="Run the HoloScript VQE H2 validation harness.")
+    parser.add_argument("--ibm-quantum", action="store_true", help="Run on IBM Quantum hardware.")
+    parser.add_argument("--ibm-backend", default=None, help="IBM backend name, e.g. ibm_kingston.")
+    parser.add_argument("--hw-optimizer", choices=["spsa", "cobyla"], default=None)
+    parser.add_argument("--max-iterations", type=int, default=150)
+    parser.add_argument("--job-timeout-seconds", type=float, default=None)
+    parser.add_argument("--overall-timeout-seconds", type=float, default=None)
+    parser.add_argument("--poll-interval-seconds", type=float, default=None)
+    parser.add_argument("--resilience-level", type=int, default=None)
+    args = parser.parse_args()
+
+    use_real_hardware: bool = args.ibm_quantum
 
     print("=" * 60)
     print("HoloScript VQE H₂ Prototype")
@@ -82,13 +94,6 @@ def main() -> None:
         f"{'IBM Quantum (real hardware)' if use_real_hardware else 'Aer (local simulator)'}"
     )
     print()
-
-    if use_real_hardware and not os.environ.get("IBM_QUANTUM_API_KEY"):
-        print(
-            "ERROR: --ibm-quantum requires the IBM_QUANTUM_API_KEY environment variable. "
-            "Export it before running this script."
-        )
-        sys.exit(1)
 
     # Locate quantum_execute.py relative to this script
     script_dir: str = os.path.dirname(os.path.abspath(__file__))
@@ -110,10 +115,22 @@ def main() -> None:
         },
         "method": "sto-3g",
         "ansatz": "hardware-efficient",
-        "max_iterations": 150,
+        "max_iterations": args.max_iterations,
         "ansatz_layers": 2,
         "execution_mode": "ibm-quantum" if use_real_hardware else "aer",
     }
+    if args.ibm_backend:
+        task_params["ibm_backend"] = args.ibm_backend
+    if args.hw_optimizer:
+        task_params["hw_optimizer"] = args.hw_optimizer
+    if args.job_timeout_seconds is not None:
+        task_params["job_timeout_seconds"] = args.job_timeout_seconds
+    if args.overall_timeout_seconds is not None:
+        task_params["overall_timeout_seconds"] = args.overall_timeout_seconds
+    if args.poll_interval_seconds is not None:
+        task_params["poll_interval_seconds"] = args.poll_interval_seconds
+    if args.resilience_level is not None:
+        task_params["resilience_level"] = args.resilience_level
 
     # -----------------------------------------------------------------------
     # Invoke quantum_execute.py
