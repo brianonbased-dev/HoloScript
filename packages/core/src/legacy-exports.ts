@@ -458,6 +458,15 @@ export {
 } from './compiler/GaussianBudgetAnalyzer';
 
 export {
+  SpatialPartitionPass,
+  spatialPartition,
+  type SpatialAnchor,
+  type SpatialBounds,
+  type SpatialPartitionResult,
+  type SpatialPartitionPassOptions,
+} from './compiler/SpatialPartitionPass';
+
+export {
   CircuitBreakerMonitor,
   formatHealthReport,
   type HealthStatus,
