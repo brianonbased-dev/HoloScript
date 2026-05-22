@@ -63,11 +63,18 @@ export async function handleHoloDoorRoutes(
     const { teamId } = access;
     const body = await parseJsonBody(req);
     const next = body?.policy;
-    if (!next || typeof next !== 'object') {
+    if (!next || typeof next !== 'object' || Array.isArray(next)) {
       json(res, 400, { error: 'Expected { policy: object }' });
       return true;
     }
-    holoDoorPolicyByTeam.set(teamId, next as Record<string, unknown>);
+    // Prototype pollution guard: strip dangerous keys before storage.
+    const dangerousKeys = new Set(['__proto__', 'constructor', 'prototype']);
+    const sanitized: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(next)) {
+      if (dangerousKeys.has(key)) continue;
+      sanitized[key] = value;
+    }
+    holoDoorPolicyByTeam.set(teamId, sanitized);
     persistHoloDoorStore();
     json(res, 200, { success: true, teamId });
     return true;
