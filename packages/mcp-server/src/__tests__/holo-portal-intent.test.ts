@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   validatePortalIntent,
   intentToDelta,
@@ -11,6 +11,7 @@ import {
   handleNetworkingTool,
   subscribeToStateDeltas,
   __stateDeltaSubscriberCount,
+  __resetNetworkingState,
 } from '../networking-tools.js';
 
 describe('matchesZoneGlob', () => {
@@ -103,6 +104,10 @@ describe('deepMerge (concurrency non-clobber)', () => {
 });
 
 describe('push_portal_intent end-to-end via handler', () => {
+  beforeEach(() => {
+    __resetNetworkingState();
+  });
+
   it('rejects an out-of-scope intent without mutating, then applies an in-scope one and broadcasts', async () => {
     const received: unknown[] = [];
     const unsub = subscribeToStateDeltas((d) => received.push(d));
@@ -128,5 +133,56 @@ describe('push_portal_intent end-to-end via handler', () => {
 
     unsub();
     expect(__stateDeltaSubscriberCount()).toBe(0);
+  });
+});
+
+describe('Loro CRDT convergence (task_1779438040591_o53t)', () => {
+  beforeEach(() => {
+    __resetNetworkingState();
+  });
+
+  it('push_state_delta reads back from Loro CRDT', async () => {
+    const eid = `entity:loro:${Date.now()}`;
+    const result = await handleNetworkingTool('push_state_delta', {
+      entityId: eid,
+      payload: { x: 10, y: 20 },
+    });
+    expect(result.status).toBe('success');
+
+    const state = await handleNetworkingTool('fetch_authoritative_state', { entityId: eid });
+    expect(state.x).toBe(10);
+    expect(state.y).toBe(20);
+  });
+
+  it('concurrent field writes converge without clobbering', async () => {
+    const eid = `entity:loro:concurrent:${Date.now()}`;
+    // Write x field
+    await handleNetworkingTool('push_state_delta', { entityId: eid, payload: { x: 1 } });
+    // Write y field — should not clobber x
+    await handleNetworkingTool('push_state_delta', { entityId: eid, payload: { y: 2 } });
+
+    const state = await handleNetworkingTool('fetch_authoritative_state', { entityId: eid });
+    expect(state.x).toBe(1);
+    expect(state.y).toBe(2);
+  });
+
+  it('push_portal_intent persists to Loro CRDT', async () => {
+    const eid = `avatar:loro:${Date.now()}`;
+    const result = await handleNetworkingTool('push_portal_intent', {
+      intent: { kind: 'move', entityId: eid, position: { x: 5, y: 0, z: 0 } },
+      requestedScope: 'mutate-zone',
+      spatialPolicy: { defaultScope: 'mutate-zone', mutableZoneGlobs: ['avatar:*'] },
+    });
+    expect(result.status).toBe('success');
+
+    const state = await handleNetworkingTool('fetch_authoritative_state', { entityId: eid });
+    expect(state.transform.position.x).toBe(5);
+  });
+
+  it('fetch returns _null for nonexistent entity', async () => {
+    const state = await handleNetworkingTool('fetch_authoritative_state', {
+      entityId: 'nonexistent:loro',
+    });
+    expect(state._null).toBe(true);
   });
 });

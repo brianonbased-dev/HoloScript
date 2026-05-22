@@ -2,10 +2,10 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { Loro, LoroMap } from 'loro-crdt';
 import {
   validatePortalIntent,
   intentToDelta,
-  deepMerge,
   type PortalIntent,
   type SpatialPolicy,
   type SpatialScope,
@@ -13,60 +13,76 @@ import {
 
 const HOLO_DIR = process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript');
 const STATE_AUTHORITY_FILE = path.join(HOLO_DIR, 'state-authority.json');
+const STATE_AUTHORITY_LORO_FILE = path.join(HOLO_DIR, 'state-authority.loro');
 
 // ---------------------------------------------------------------------------
-// Persistent in-process authority cache (backed by disk)
+// Loro CRDT authoritative state (replaces LWW deep-merge globalStateAuthority).
+// Board task: task_1779438040591_o53t — true multi-agent concurrent presence
+// convergence via Loro instead of last-writer-wins deep-merge.
 // ---------------------------------------------------------------------------
-function loadStateFromDisk(): Record<string, any> {
+
+const loroDoc = new Loro();
+loroDoc.setPeerId(BigInt(Date.now() % Number.MAX_SAFE_INTEGER));
+
+/** Top-level LoroMap keyed by entityId — each value is a nested LoroMap of fields. */
+const entitiesMap = loroDoc.getMap('entities');
+
+// ---------------------------------------------------------------------------
+// Legacy disk migration: load old JSON state into Loro on first startup.
+// After migration, the .loro binary file is the source of truth.
+// ---------------------------------------------------------------------------
+function migrateLegacyJsonToLoro(): void {
   try {
-    if (fs.existsSync(STATE_AUTHORITY_FILE)) {
+    if (fs.existsSync(STATE_AUTHORITY_FILE) && !fs.existsSync(STATE_AUTHORITY_LORO_FILE)) {
       const raw = fs.readFileSync(STATE_AUTHORITY_FILE, 'utf-8');
-      const parsed = JSON.parse(raw);
-      return parsed;
+      const legacy = JSON.parse(raw) as Record<string, Record<string, unknown>>;
+      for (const [entityId, fields] of Object.entries(legacy)) {
+        if (!fields || typeof fields !== 'object') continue;
+        const entityMap = entitiesMap.setContainer(entityId, new LoroMap());
+        for (const [key, value] of Object.entries(fields)) {
+          entityMap.set(key, JSON.stringify(value));
+        }
+      }
+      loroDoc.commit();
+      // Persist the Loro snapshot and remove the legacy JSON file
+      persistLoroToDisk();
+      try { fs.renameSync(STATE_AUTHORITY_FILE, STATE_AUTHORITY_FILE + '.migrated'); } catch { /* best-effort */ }
+      console.info('[networking] Migrated legacy state-authority.json → Loro CRDT');
     }
-  } catch {
-    // Corrupt file — start fresh
-    console.warn(
-      `[CacheDebug][networking] load miss path=${STATE_AUTHORITY_FILE} reason=parse-or-io-error`
-    );
+  } catch (err) {
+    console.warn(`[networking] Legacy JSON migration failed: ${err instanceof Error ? err.message : String(err)}`);
   }
-  return {};
 }
 
-function saveStateToDisk(state: Record<string, any>): void {
+/** Load Loro snapshot from disk (or fall back to legacy JSON migration). */
+function loadLoroFromDisk(): void {
+  try {
+    if (fs.existsSync(STATE_AUTHORITY_LORO_FILE)) {
+      const data = fs.readFileSync(STATE_AUTHORITY_LORO_FILE);
+      loroDoc.import(data);
+      return;
+    }
+  } catch (err) {
+    console.warn(`[CacheDebug][networking] Loro load miss: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  // No .loro file → try legacy JSON migration
+  migrateLegacyJsonToLoro();
+}
+
+function persistLoroToDisk(): void {
   try {
     if (!fs.existsSync(HOLO_DIR)) {
       fs.mkdirSync(HOLO_DIR, { recursive: true });
     }
-    fs.writeFileSync(STATE_AUTHORITY_FILE, JSON.stringify(state), 'utf-8');
+    const snapshot = loroDoc.export({ mode: 'snapshot' });
+    fs.writeFileSync(STATE_AUTHORITY_LORO_FILE, snapshot);
   } catch {
-    // Best-effort
-    console.warn(`[CacheDebug][networking] save miss path=${STATE_AUTHORITY_FILE}`);
+    console.warn(`[CacheDebug][networking] Loro persist miss path=${STATE_AUTHORITY_LORO_FILE}`);
   }
 }
 
-// In-memory authority cache simulating a backend database — loaded from disk on startup
-const globalStateAuthority: Record<string, any> = loadStateFromDisk();
-
-// ---------------------------------------------------------------------------
-// Minimal inline implementations — the core/src/networking/ module was never
-// built, so we self-contain the logic here.
-// ---------------------------------------------------------------------------
-
-/** Compute field-level deltas between two plain objects */
-function computeDeltas(
-  entityId: string,
-  oldState: Record<string, unknown>,
-  newState: Record<string, unknown>
-): Array<{ entityId: string; field: string; oldValue: unknown; newValue: unknown }> {
-  const deltas = [];
-  for (const key of Object.keys(newState)) {
-    if (oldState[key] !== newState[key]) {
-      deltas.push({ entityId, field: key, oldValue: oldState[key], newValue: newState[key] });
-    }
-  }
-  return deltas;
-}
+// Load on startup
+loadLoroFromDisk();
 
 // ---------------------------------------------------------------------------
 // Delta broadcast — real subscriber-registry fan-out (replaces the prior no-op).
@@ -76,7 +92,7 @@ function computeDeltas(
 // fan-out seam (WebRTC peer transport is a later perf upgrade).
 // Board task: task_1779436414662_8b0d (transport edge).
 // ---------------------------------------------------------------------------
-type StateDelta = ReturnType<typeof computeDeltas>[number];
+interface StateDelta { entityId: string; field: string; oldValue: unknown; newValue: unknown }
 type DeltaSubscriber = (deltas: StateDelta[]) => void;
 const deltaSubscribers = new Set<DeltaSubscriber>();
 
@@ -104,23 +120,67 @@ function broadcastDeltas(deltas: StateDelta[]): void {
 }
 
 /**
- * Commit a payload into the authoritative state via deep-merge, persist, and
+ * Commit a payload into the authoritative Loro CRDT state, persist, and
  * broadcast the resulting deltas. Shared by push_state_delta and
- * push_portal_intent. Deep-merge (not shallow spread) so two entrants editing
- * different sub-fields of the same nested object no longer clobber each other.
+ * push_portal_intent. Loro CRDT converges concurrent writes without clobbering
+ * (unlike the prior deep-merge LWW path). Board task: task_1779438040591_o53t.
  */
 function commitState(entityId: string, payload: Record<string, unknown>): {
   status: 'success' | 'skipped';
   deltaCount: number;
 } {
-  const oldState = globalStateAuthority[entityId] || {};
-  const newState = deepMerge(oldState as Record<string, unknown>, payload);
+  // Read current state from Loro
+  const oldState = readEntityFromLoro(entityId);
+
+  // Write each field into the entity's LoroMap (CRDT merge)
+  let entityMap = entitiesMap.get(entityId) as LoroMap | undefined;
+  if (!entityMap) {
+    entityMap = entitiesMap.setContainer(entityId, new LoroMap());
+  }
+  for (const [key, value] of Object.entries(payload)) {
+    entityMap.set(key, JSON.stringify(value));
+  }
+  loroDoc.commit();
+
+  // Read new state and compute deltas for broadcast
+  const newState = readEntityFromLoro(entityId);
   const deltas = computeDeltas(entityId, oldState, newState);
   if (deltas.length === 0) return { status: 'skipped', deltaCount: 0 };
-  globalStateAuthority[entityId] = newState;
-  saveStateToDisk(globalStateAuthority);
+
+  persistLoroToDisk();
   broadcastDeltas(deltas);
   return { status: 'success', deltaCount: deltas.length };
+}
+
+/** Read all fields of an entity from Loro as a plain object. */
+function readEntityFromLoro(entityId: string): Record<string, unknown> {
+  const entityMap = entitiesMap.get(entityId) as LoroMap | undefined;
+  if (!entityMap) return {};
+  const raw = entityMap.toJSON() as Record<string, string>;
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    try {
+      result[key] = JSON.parse(value);
+    } catch {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+/** Compute field-level deltas between two plain objects */
+function computeDeltas(
+  entityId: string,
+  oldState: Record<string, unknown>,
+  newState: Record<string, unknown>
+): Array<{ entityId: string; field: string; oldValue: unknown; newValue: unknown }> {
+  const deltas: StateDelta[] = [];
+  for (const key of Object.keys(newState)) {
+    if (oldState[key] !== newState[key]) {
+      deltas.push({ entityId, field: key, oldValue: oldState[key], newValue: newState[key] });
+    }
+  }
+  return deltas;
 }
 
 /**
@@ -247,10 +307,23 @@ export async function handleNetworkingTool(name: string, args: any): Promise<any
       const { entityId } = args;
       if (!entityId || typeof entityId !== 'string')
         throw new Error("Missing or invalid 'entityId'");
-      const state = globalStateAuthority[entityId];
-      return state || { _null: true };
+      const state = readEntityFromLoro(entityId);
+      return Object.keys(state).length > 0 ? state : { _null: true };
     }
     default:
       return null;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Test helpers
+// ---------------------------------------------------------------------------
+
+/** Reset Loro CRDT state for tests. Clears all entities from the doc. */
+export function __resetNetworkingState(): void {
+  const entities = loroDoc.getMap('entities');
+  for (const key of Object.keys(entities.toJSON() as Record<string, unknown>)) {
+    entities.delete(key);
+  }
+  loroDoc.commit();
 }
