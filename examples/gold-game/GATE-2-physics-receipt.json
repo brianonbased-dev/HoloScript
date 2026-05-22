@@ -1,0 +1,73 @@
+{
+  "gate": 2,
+  "name": "Core loop — grab-the-compass verb under deterministic physics, both inhabitation paths",
+  "artifact": "examples/gold-game/oasis-shard-zero.holo",
+  "verifier": "examples/gold-game/gate-2-verify.mjs",
+  "target": "r3f",
+  "verb": {
+    "name": "grab_brass_compass",
+    "object": "item_compass_brass (@grabbable @interactive)",
+    "effect": "picked_up := true (shared world state)",
+    "range_m": 0.6
+  },
+  "sim": {
+    "integrator": "fixed-dt semi-implicit Euler",
+    "fixedDt": 0.016666666666666666,
+    "hz": 60,
+    "maxTicks": 180,
+    "gravity": -9.81,
+    "deterministic": true,
+    "note": "no wall-clock, no RNG — field buffers reproduce byte-for-byte"
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest from packages/engine/src/simulation/hashes.ts (imported via tsx) — the same fn SimulationContract pushes on solve()",
+    "function": "computeStateDigest(solver, hashMode)",
+    "algorithm": "sha256",
+    "domain": "live solver field buffers (pos_/vel_/grabbed Float32Array)",
+    "fields": [
+      "pos_x",
+      "pos_y",
+      "pos_z",
+      "vel_x",
+      "vel_y",
+      "vel_z",
+      "grabbed"
+    ],
+    "reproducible": "run `node_modules/.bin/tsx examples/gold-game/gate-2-verify.mjs` to re-derive"
+  },
+  "human": {
+    "driver": "input-vector (ControllerInput path) → move_toward(compass)",
+    "grabbed": true,
+    "grabTick": 106,
+    "finalPos": [
+      0,
+      1,
+      2.675001
+    ],
+    "stateDigest": "ace12c9cec494e9a88041e8b43ab52dbc9e79d4cba5223088bbc9585cd3ec662"
+  },
+  "agent": {
+    "driver": "JEPA action selection (AINPCBrain path) → move_toward(highest-value target)",
+    "grabbed": true,
+    "grabTick": 130,
+    "finalPos": [
+      0.183356,
+      1,
+      2.724967
+    ],
+    "stateDigest": "9cff7071eb8c946818700b3f61e164d548a534174cea9ac9eb77c35c3377da19",
+    "worldModelReceiptCount": 131,
+    "worldModelReceiptDigest": "4d36c1b1c3d1ac2467343f993ff17ec0228b2817bafe9e80fd7cac3ed32b402c",
+    "note": "AI path emits a WorldModelReceipt-shaped record per action (the JEPA loop output), additionally hashed by the contract fn."
+  },
+  "aiHumanConnection": {
+    "sameWorld": true,
+    "sameVerb": true,
+    "sameSolverShape": true,
+    "sameReceiptSpine": true,
+    "proof": "both paths perform the SAME verb on the SAME world via the SAME contract digest fn; agent additionally emits WorldModelReceipts. Different spawns → different live-state digests (honest: the digest is over real position state, which differs by start point), same verb outcome (both grab).",
+    "honestScope": "At Gate 2 both paths use the SAME steering policy (aim-at-compass), so the human/agent distinction here is STRUCTURAL (same world/solver/verb/contract spine; agent-only WorldModelReceipts) — NOT yet a divergence in decision-making. Genuine policy divergence (player stick input vs. JEPA value-selection yielding different paths) AND the two acting in the SAME session affecting each other is Gate 3 by the ladder. This gate proves the verb runs under the real contract for both inhabitation paths; it does not claim emergent agent autonomy yet."
+  },
+  "core": "6.1.0",
+  "verifiedAt": "2026-05-22T02:38:21.350Z"
+}
