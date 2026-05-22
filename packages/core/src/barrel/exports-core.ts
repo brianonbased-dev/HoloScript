@@ -111,3 +111,46 @@ export {
 // Performance — LOD definitions shared with R3F LODMeshNode
 export type { LODConfig, LODLevel, LODResult } from '../performance/LODSystem';
 export { LODSystem } from '../performance/LODSystem';
+
+// Conversation Daemon & Customization Profile (D.052)
+export type {
+  DaemonOwnerPolicy,
+  DaemonAppearanceProfile,
+  DaemonVoiceProfile,
+  DaemonToneProfile,
+  DaemonPermissionProfile,
+  DaemonMemoryPolicy,
+  DaemonContextSourceKind,
+  DaemonDispatchPolicy,
+  DaemonReceiptSink,
+  DaemonBrittneyRehydrationChannel,
+} from '../daemon/ConversationDaemon';
+export {
+  makeDefaultConversationDaemon,
+  assertDaemonFieldSeparation,
+  type ConversationDaemon,
+  type ConversationDaemonTurn,
+  type ContextDelta,
+} from '../daemon/ConversationDaemon';
+export {
+  type DaemonRitual,
+  type DaemonFavoriteWorkflow,
+  type DaemonStyleProfile,
+  type DaemonPermissionConfig,
+  type DaemonCustomizationProfile,
+  type DaemonCareProfile,
+  type DaemonVisualTheme,
+  DAEMON_VISUAL_THEMES,
+  DAEMON_CARE_PROFILES,
+  DaemonCustomizationSeparationError,
+  assertCustomizationSeparation,
+  validateCustomizationProfile,
+  makeDefaultStyleProfile,
+  makeDefaultPermissionConfig,
+  makeDefaultCustomizationProfile,
+  customizationProfileToDaemon,
+  daemonToCustomizationProfile,
+  mergeStyleUpdates,
+  mergePermissionUpdates,
+  makePresetProfile,
+} from '../daemon/DaemonCustomizationProfile';

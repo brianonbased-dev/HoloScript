@@ -7,6 +7,14 @@ import { AcousticSolver } from '../packages/engine/src/simulation/AcousticSolver
 import { StructuralSolver, type StructuralConfig } from '../packages/engine/src/simulation/StructuralSolver';
 import { ThermalSolver, type ThermalConfig } from '../packages/engine/src/simulation/ThermalSolver';
 import type { Force } from '../packages/engine/src/simulation/units/PhysicalQuantity';
+import {
+  thermalConductivity,
+  density as densityQ,
+  specificHeat,
+  youngsModulus,
+  poissonRatio,
+  yieldStrength,
+} from '../packages/engine/src/simulation/units/PhysicalQuantity';
 
 type Args = {
   repeats: number;
@@ -77,7 +85,7 @@ function buildTET4CantileverConfig(useGPU: boolean): StructuralConfig {
   return {
     vertices,
     tetrahedra,
-    material: { density: 1000, youngs_modulus: 1e6, poisson_ratio: 0.3, yield_strength: 1e8 },
+    material: { density: densityQ(1000), youngs_modulus: youngsModulus(1e6), poisson_ratio: poissonRatio(0.3), yield_strength: yieldStrength(1e8) },
     constraints: [{ id: 'fixed-root', type: 'fixed', nodes: [0] }],
     loads: [{ id: 'tip-load', type: 'point', nodeIndex: 4, force: [0, 0, 100] as [Force, Force, Force] }],
     maxIterations: 1000,
@@ -114,7 +122,7 @@ function buildThermalConfig(useGPU: boolean): ThermalConfig {
     gridResolution: [18, 18, 18],
     domainSize: [1, 1, 1],
     timeStep: 0.0005,
-    materials: { air: { conductivity: 0.026, density: 1.225, specific_heat: 1005 } },
+    materials: { air: { conductivity: thermalConductivity(0.026), density: densityQ(1.225), specific_heat: specificHeat(1005) } },
     defaultMaterial: 'air',
     boundaryConditions: [
       { type: 'dirichlet', faces: ['x-'], value: 100 },

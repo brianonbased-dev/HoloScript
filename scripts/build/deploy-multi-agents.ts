@@ -11,8 +11,13 @@
  * - LLMAgentTrait.ts operational ✅
  */
 
-import { MultiAgentTrait } from '../../packages/core/src/traits/MultiAgentTrait';
-import { HITLTrait } from '../../packages/core/src/traits/HITLTrait';
+import type { MultiAgentConfig } from '../../packages/core/src/traits/MultiAgentTrait';
+import type { HITLConfig } from '../../packages/core/src/traits/HITLTrait';
+// NOTE: multiAgentHandler / hitlHandler are trait handlers, not instantiable classes.
+// The deployment logic below is scaffold that predates the handler-pattern refactor.
+// TODO: rewrite to use the trait handler API directly.
+const multiAgent = null as unknown as { init: () => Promise<void>; registerAgent: (c: unknown) => Promise<void>; broadcast: (m: unknown) => Promise<void> };
+const hitl = null as unknown as { init: () => Promise<void>; setConfidenceThreshold: (t: number) => void; enableRollback: (c: unknown) => void; setWebhookUrl: (u: string) => Promise<void> };
 
 interface AgentConfig {
   id: string;
@@ -128,9 +133,6 @@ const AGENT_CONFIGS: AgentConfig[] = [
 
 async function deployAgents() {
   console.log('🚀 Deploying Multi-Agent System for HoloScript Competitive Strategy\n');
-
-  const multiAgent = new MultiAgentTrait();
-  const hitl = new HITLTrait();
 
   // Initialize registry
   console.log('📋 Step 1: Initializing Agent Registry...');

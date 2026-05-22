@@ -53,7 +53,7 @@ function parseArgs(argv: string[]): Args {
 
   for (const [key, value] of Object.entries(args)) {
     if (key === 'out') continue;
-    if (!Number.isFinite(value) || value <= 0) {
+    if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
       throw new Error(`Invalid --${key}: ${String(value)}`);
     }
   }

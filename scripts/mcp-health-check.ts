@@ -156,7 +156,7 @@ async function probeServer(server: RegisteredServer): Promise<HealthResult> {
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
-async function main() {
+async function run() {
   console.log('╔══════════════════════════════════════════════════════════╗');
   console.log('║           MCP Mesh Health Check                        ║');
   console.log('╚══════════════════════════════════════════════════════════╝');
@@ -312,7 +312,7 @@ async function main() {
 
 const args = process.argv.slice(2);
 
-main().catch((err) => {
+run().catch((err) => {
   console.error('Fatal error:', err);
   process.exit(1);
 });

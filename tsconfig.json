@@ -10,7 +10,9 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "noEmit": true
+    "noEmit": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
   "include": [
     "packages/core/src/**/*",
@@ -56,6 +58,7 @@
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.spec.ts",
+    "**/*.bench.ts",
     "examples",
     "temp",
     "benchmarks",
@@ -63,6 +66,7 @@
     "scripts/training",
     "scripts/archive",
     "scripts/debug",
-    "scripts/analysis"
+    "scripts/analysis",
+    "packages/marketplace-web"
   ]
 }

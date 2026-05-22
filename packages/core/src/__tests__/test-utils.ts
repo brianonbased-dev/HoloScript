@@ -81,6 +81,7 @@ export function createTestParser(): HoloScriptPlusParser {
 export function parseWithContext(source: string) {
   const parser = createTestParser();
   const result = parser.parse(source);
+  const ast = result.ast as { root?: { children?: any[] } } | undefined;
 
   return {
     ...result,
@@ -88,13 +89,13 @@ export function parseWithContext(source: string) {
     parser,
     // Helper to get a specific node by id
     getNode: (id: string) => {
-      if (!result.ast?.root?.children) return null;
-      return result.ast.root.children.find((n: any) => n.id === id);
+      if (!ast?.root?.children) return null;
+      return ast.root.children.find((n: any) => n.id === id);
     },
     // Helper to get all nodes with a specific trait
     getNodesWithTrait: (trait: VRTraitName) => {
-      if (!result.ast?.root?.children) return [];
-      return result.ast.root.children.filter((n: any) => n.traits?.has?.(trait));
+      if (!ast?.root?.children) return [];
+      return ast.root.children.filter((n: any) => n.traits?.has?.(trait));
     },
   };
 }

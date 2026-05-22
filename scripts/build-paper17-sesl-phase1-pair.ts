@@ -13,17 +13,17 @@ import path from 'node:path';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 
-import { CAELRecorder } from '../packages/engine/src/simulation/CAELRecorder.ts';
+import { CAELRecorder } from '../packages/engine/src/simulation/CAELRecorder';
 import {
   hashCAELEntry,
   verifyCAELHashChain,
   type CAELTrace,
   type CAELTraceEntry,
-} from '../packages/engine/src/simulation/CAELTrace.ts';
+} from '../packages/engine/src/simulation/CAELTrace';
 import {
   type FieldData,
   type SimSolver,
-} from '../packages/engine/src/simulation/SimSolver.ts';
+} from '../packages/engine/src/simulation/SimSolver';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..');
@@ -378,7 +378,7 @@ function buildPair(record: JsonRecord, createdAt: string): { pair: HarnessPair; 
   const trace = normalizeTrace(recorder.getTrace(), sourcePairId, createdAt);
   const verification = verifyCAELHashChain(trace);
   const traceHash = sha256Hex(stableJson(trace));
-  const finalHash = trace.at(-1)?.hash ?? 'cael.nohash';
+  const finalHash = trace[trace.length - 1]?.hash ?? 'cael.nohash';
   const simContractPassed = gate.passed && violations === 0 && verification.valid;
   const components = {
     simContract: simContractPassed ? 1 : 0,

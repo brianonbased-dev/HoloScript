@@ -64,8 +64,8 @@ async function runFixer() {
         console.log(`Fixed: ${path.basename(file)}`);
         fixedCount++;
       }
-    } catch (e) {
-      console.log(`Error processing ${file}: ${e.message}`);
+    } catch (e: unknown) {
+      console.log(`Error processing ${file}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
   console.log(`Fixer complete. Modified ${fixedCount} files.`);

@@ -341,7 +341,7 @@ export function deriveScopesFromCard(
   const maxScope = (Object.entries(SCOPE_RANK).find(([, r]) => r === maxRank)?.[0] ?? 'read-only') as SpatialScope;
 
   // Build scopes array (all levels up to max)
-  const allScopes: SpatialScope[] = ['read-only', 'mutate-zone', 'drive-avatar']
+  const allScopes: SpatialScope[] = (['read-only', 'mutate-zone', 'drive-avatar'] as SpatialScope[])
     .filter((s) => SCOPE_RANK[s] <= maxRank);
 
   // Clamp to portal's maxScopes

@@ -32,10 +32,11 @@ import { randomUUID } from 'crypto';
 // ─── HoloScript Runtime Imports ──────────────────────────────────────────────
 // These are the REAL HoloScript primitives. The treatment arm uses them natively.
 import {
-  _HeadlessRuntime,
   createHeadlessRuntime,
-} from '../packages/core/src/runtime/profiles/HeadlessRuntime';
-import { HEADLESS_PROFILE } from '../packages/core/src/runtime/profiles/RuntimeProfile';
+  HEADLESS_PROFILE,
+} from '../packages/core/src/runtime/HeadlessRuntime';
+import type { HeadlessRuntime as BaseHeadlessRuntime } from '../packages/engine/src/runtime/HeadlessRuntime';
+import type { HeadlessRuntime as ProfiledHeadlessRuntime } from '../packages/engine/src/runtime/profiles/HeadlessRuntime';
 import { parse } from '../packages/core/src/parser/HoloScriptPlusParser';
 
 // ─── .env Loading ─────────────────────────────────────────────────────────────
@@ -1556,7 +1557,7 @@ async function runBridgeCycle(
     hostCapabilities,
     tickRate: 0, // Manual ticking only — we control the loop
     debug: config.verbose,
-  });
+  }) as unknown as ProfiledHeadlessRuntime;
 
   // ── @feedback_loop + @economy: create event emitter bound to this runtime ──
   // Events emitted here flow through HeadlessRuntime's event bus, reaching any

@@ -5,8 +5,8 @@
  * Validates all packages are ready for 3.0 release.
  */
 
-import { _execSync } from 'child_process';
-import { existsSync, readFileSync, _readdirSync } from 'fs';
+import { execSync } from 'child_process';
+import { existsSync, readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 
 interface PackageJson {
