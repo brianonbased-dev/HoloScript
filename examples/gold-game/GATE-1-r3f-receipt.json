@@ -2,8 +2,9 @@
   "gate": 1,
   "name": "Vertical slice — composition compiles to R3F scene tree",
   "artifact": "examples/gold-game/oasis-shard-zero.holo",
+  "verifier": "examples/gold-game/gate-1-verify.mjs",
   "target": "r3f",
-  "acceptance": "parses clean AND compileComposition produces a populated R3F scene node tree",
+  "acceptance": "parses clean AND compileComposition produces a populated R3F scene node tree; digests reproduce from this repo",
   "parse": {
     "success": true,
     "errors": 0,
@@ -20,13 +21,25 @@
     "environmentNodes": 1
   },
   "contract": {
-    "spine": "SimulationContract (computeStateDigest analog: deterministic SHA-256 over canonical state)",
+    "spine": "SimulationContract hash primitive (sha256Bytes — same fn hashBytes(...,\"sha256\") routes through; packages/engine/src/simulation/sha256.ts)",
     "algorithm": "sha256",
+    "domain": "scene-structure (UTF-8 canonical JSON of compiled R3F node tree)",
     "astStateDigest": "3362722940d5383b7a54f338355e0323ca5062c7b5fd34d2e2c8fce43fdac2fc",
     "sceneStateDigest": "74f8b4ccda337f8b35876b138dbed3b436728db73b0edb2d36ca1b3512da5443",
     "deterministic": true,
-    "replayNote": "re-running parseHolo+compileComposition on the same .holo yields identical digests"
+    "reproducible": "run `node examples/gold-game/gate-1-verify.mjs` to re-derive these digests from the committed repo",
+    "gate2Note": "computeStateDigest() hashes solver FIELD buffers; live field state appears at Gate 2 (GPUPhysics tick). Gate 1 hashes the static scene structure."
+  },
+  "inertTraitsAtGate1": {
+    "note": "parsed but NOT yet compiled into behavior by R3FCompiler at Gate 1 (inert tags). @ai_agent/@controllable are the two-inhabitation-paths claim — wired at Gate 1.5/2, not here.",
+    "traits": [
+      "ai_agent",
+      "controllable",
+      "dialogue",
+      "health_system",
+      "interactive"
+    ]
   },
   "core": "6.1.0",
-  "verifiedAt": "2026-05-22T02:19:43.369Z"
+  "verifiedAt": "2026-05-22T02:25:08.534Z"
 }
