@@ -1,0 +1,29 @@
+{
+  "name": "@holoscript/game-security-plugin",
+  "version": "0.1.0",
+  "description": "HoloScript game-security plugin for authoritative action validation, replay evidence, and AI-watchdog quarantine decisions.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "peerDependencies": {
+    "@holoscript/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
