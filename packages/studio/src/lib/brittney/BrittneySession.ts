@@ -112,11 +112,13 @@ export function buildRichContext(
  */
 export async function* streamAssistant(
   messages: AssistantMessage[],
-  sceneContext: string
+  sceneContext: string,
+  signal?: AbortSignal
 ): AsyncGenerator<AssistantStreamEvent> {
   const response = await fetch('/api/brittney', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    signal,
     body: JSON.stringify({ messages, sceneContext }),
   });
 
