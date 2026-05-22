@@ -415,6 +415,28 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
     tags: ['holoshell', 'permissions', 'oauth', 'safety', 'privacy', 'hololand'],
   },
   {
+    capability: 'cloud-permission-cleanup',
+    description:
+      'Cloud-drive sharing cleanup receipts — prove provider inventory, exposure diff, itemized revocation, residual access, and replay-safe clean claims.',
+    receiptType: 'HoloShellCloudPermissionCleanupReceiptPack',
+    module: 'holoshell-cloud-permission-cleanup-receipts',
+    exportName: 'HoloShellCloudPermissionCleanupReceiptPack',
+    validateFn: 'validateHoloShellCloudPermissionCleanupReceiptPack',
+    cloneFn: 'cloneHoloShellCloudPermissionCleanupReceiptPack',
+    isSupportedFn: 'isSupportedCloudPermissionProvider',
+    subjects: [
+      'cloud-drive',
+      'shared-folder',
+      'public-link',
+      'external-editor',
+      'inherited-access',
+      'provider-account',
+      'revoke',
+      'residual-access',
+    ],
+    tags: ['holoshell', 'cloud', 'permissions', 'sharing', 'privacy', 'hololand'],
+  },
+  {
     capability: 'physical-actuation',
     description:
       'Physical actuation receipts — prove simulation, freshness, safe stop, rollback limits, and replay before hardware mutation.',

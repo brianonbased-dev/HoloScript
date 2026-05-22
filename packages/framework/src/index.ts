@@ -650,6 +650,54 @@ export {
   cloneHoloShellCloudDriveCleanupReceiptPack,
 } from './board';
 
+// HoloShell Cloud Permission Cleanup Receipts (holoshell-human-os-frontier)
+export {
+  HOLOSHELL_CLOUD_PERMISSION_CLEANUP_RECEIPT_VERSION,
+  CLOUD_PERMISSION_CLEANUP_WORKFLOW,
+  CLOUD_PERMISSION_PROVIDERS,
+  CLOUD_PERMISSION_CLEANUP_STATUSES,
+  CLOUD_LINK_VISIBILITIES,
+  CLOUD_SHARE_ROLES,
+  CLOUD_SHARE_SUBJECT_BOUNDARIES,
+  CLOUD_PERMISSION_RISK_LEVELS,
+  PROVIDER_METADATA_INPUT_FORMATS,
+  PROVIDER_METADATA_SOURCE_KINDS,
+  type CloudPermissionProvider,
+  type CloudPermissionCleanupStatus,
+  type CloudLinkVisibility,
+  type CloudShareRole,
+  type CloudShareSubjectBoundary,
+  type CloudPermissionRiskLevel,
+  type ProviderMetadataInputFormat,
+  type ProviderMetadataSourceKind,
+  type ProviderMetadataInventoryWitnessReceipt,
+  type CloudShareSubject,
+  type CloudSharedItemExposure,
+  type CloudShareInventoryReceipt,
+  type CloudExposureDiffReceipt,
+  type CloudPermissionRevokePlanReceipt,
+  type CloudPermissionCleanupVerificationReceipt,
+  type CloudPermissionCleanupReplayReceipt,
+  type HoloShellCloudPermissionCleanupReceiptPack,
+  isSupportedCloudPermissionProvider,
+  isSupportedCloudPermissionCleanupStatus,
+  isSupportedCloudLinkVisibility,
+  isSupportedCloudShareRole,
+  isSupportedCloudShareSubjectBoundary,
+  isSupportedProviderMetadataInputFormat,
+  isSupportedProviderMetadataSourceKind,
+  cloudExposureRisk,
+  summarizeCloudExposure,
+  validateProviderMetadataInventoryWitnessReceipt,
+  validateCloudShareInventoryReceipt,
+  validateCloudExposureDiffReceipt,
+  validateCloudPermissionRevokePlanReceipt,
+  validateCloudPermissionCleanupVerificationReceipt,
+  validateCloudPermissionCleanupReplayReceipt,
+  validateHoloShellCloudPermissionCleanupReceiptPack,
+  cloneHoloShellCloudPermissionCleanupReceiptPack,
+} from './board';
+
 // HoloShell Package Mutation Receipts (holoshell-human-os-frontier)
 export {
   HOLOSHELL_PACKAGE_MUTATION_RECEIPT_VERSION,
@@ -838,7 +886,6 @@ export {
   formatWarningForHoloShell,
   summarizeWarningTokens,
 } from './board';
-
 
 // Frontier Shard 0 primitives (task_1778186605462_2mlp)
 export {
