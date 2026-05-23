@@ -1,7 +1,7 @@
 # Competitive Monitoring Plan
 
 **Last updated**: 2026-04-17
-**Owner**: Marketing / founder
+**Owner**: Scheduled agent `refresh-competitive-monitoring-cadence` / Marketing
 **Cadence**: Weekly scan + monthly deep review + quarterly refresh of full brief
 
 ---
@@ -172,7 +172,7 @@ Some signals need immediate response, not weekly scan.
 ### DIY via our stack
 - **Absorb** — run quarterly scans on competitor open-source repos to surface architectural changes
 - **HoloMesh** — cross-agent knowledge store for competitive intel graduated to team memory
-- **Scheduled agents** — set up `/schedule` jobs to scan RSS feeds weekly and digest to `docs/daily-digests/`
+- **Scheduled agents** — Codex automation `refresh-competitive-monitoring-cadence` runs Mondays at 9am Phoenix time to scan official sources, refresh matrix rows, and digest to `docs/daily-digests/`
 
 ---
 
@@ -180,12 +180,12 @@ Some signals need immediate response, not weekly scan.
 
 | Activity | Owner | Cadence | Duration |
 |---|---|---|---|
-| Tier 1 daily social scan | Founder | Daily | 2 min |
-| Tier 1 weekly release scan | Founder | Weekly | 5 min |
-| Tier 2 weekly pricing/jobs | Founder | Weekly | 10 min |
-| Tier 3 monthly deep review | Founder | Monthly | 30-45 min |
-| Tier 4 quarterly full refresh | Founder + strategy | Quarterly | Half-day |
-| Red alert response | Founder | As triggered | 4-8 hours |
+| Tier 1 daily social scan | Scheduled agent `refresh-competitive-monitoring-cadence` | Weekly Monday batch | 2 min |
+| Tier 1 weekly release scan | Scheduled agent `refresh-competitive-monitoring-cadence` | Weekly | 5 min |
+| Tier 2 weekly pricing/jobs | Scheduled agent `refresh-competitive-monitoring-cadence` | Weekly | 10 min |
+| Tier 3 monthly deep review | Scheduled agent `refresh-competitive-monitoring-cadence` + strategy | Monthly | 30-45 min |
+| Tier 4 quarterly full refresh | Scheduled agent `refresh-competitive-monitoring-cadence` + strategy | Quarterly | Half-day |
+| Red alert response | Scheduled agent + strategy | As triggered | 4-8 hours |
 
 **Time budget**: ~30 min/week normal; 4-8 hours per quarterly refresh; as-needed for red alerts.
 
