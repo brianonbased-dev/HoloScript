@@ -278,3 +278,25 @@ export {
   createDesktopLODCache,
   formatBytes,
 } from './LODCache';
+
+// ============================================================================
+// Splat Chunk Store (Fleet-Rail Chunk Addressing for Splat Streaming)
+// ============================================================================
+
+export {
+  // Types
+  type ChunkEntry,
+  type SplatChunkStoreOptions,
+  type ChunkQueryResult,
+  type FleetRailURL,
+  type SpatialAnchorLike,
+  type SpatialPartitionResultLike,
+
+  // Store class
+  SplatChunkStore,
+
+  // Factory functions
+  createSplatChunkStore,
+  createVRSplatChunkStore,
+  createDesktopSplatChunkStore,
+} from './SplatChunkStore';

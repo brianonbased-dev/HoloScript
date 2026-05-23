@@ -326,6 +326,16 @@ export type {
   PointCloud,
 } from './MatterpakCompiler';
 
+// Spatial Partition Pass — compile-time octree-of-GaussianAnchors (WIRE-1)
+// Bridges core/compiler output to engine's OctreeLODSystem and SplatChunkStore (WIRE-3)
+export { SpatialPartitionPass, spatialPartition } from './SpatialPartitionPass';
+export type {
+  SpatialAnchor,
+  SpatialBounds,
+  SpatialPartitionResult,
+  SpatialPartitionPassOptions,
+} from './SpatialPartitionPass';
+
 // Gaussian Splatting compiler — KHR_gaussian_splatting glTF extension
 export {
   GaussianSplattingCompiler,
