@@ -399,7 +399,7 @@ function buildStages(
     {
       phase: 'CLASSIFY',
       status: 'completed',
-      summary: 'Classified each receipt as survived, falsified, or inconclusive.',
+      summary: 'Classified each receipt as survived, rediscovered, falsified, or inconclusive.',
       evidence: classifications.map(
         (classification) => `${classification.scenarioId}:${classification.status}`
       ),
@@ -445,7 +445,12 @@ function runScenarioCycle(
   const graduation = Array.from(
     new Set(
       scenarios
-        .filter((scenario) => scenario.role === 'survivor' || scenario.role === 'boundary')
+        .filter(
+          (scenario, index) =>
+            (scenario.role === 'survivor' || scenario.role === 'boundary') &&
+            (receipts[index]?.status === 'survived' ||
+              receipts[index]?.status === 'rediscovered')
+        )
         .map((scenario) => scenario.graduationTarget)
     )
   );

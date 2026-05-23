@@ -5,6 +5,7 @@
  * propose -> test -> preserve survivors and failures as evidence.
  */
 
+import { HoloEmbedEncoder } from '@holoscript/holoembed';
 import { stableStringify } from './equivalenceRecord';
 import { HASH_MODE_DEFAULT, hashGeometry, type HashMode } from './hashes';
 import { sha256Bytes } from './sha256';
@@ -15,11 +16,48 @@ export type ConjectureV1SolverType = typeof CONJECTURE_V1;
 
 export type ConjectureKind = 'geometry.invariant' | 'algebraic.trait' | 'impossibility.boundary';
 
-export type ConjectureStatus = 'survived' | 'falsified' | 'inconclusive';
+export type ConjectureStatus = 'survived' | 'falsified' | 'inconclusive' | 'rediscovered';
 
 export type ProbeStatus = 'pass' | 'fail' | 'inconclusive';
 
 export type ConjectureParameterValue = string | number | boolean | null;
+
+export const CONJECTURE_NOVELTY_THRESHOLD = 0.995;
+
+export interface ConjecturePriorArtEntry {
+  id: string;
+  statement: string;
+  source: string;
+  title?: string;
+}
+
+export interface ConjectureNoveltyMatch {
+  priorArtId: string;
+  source: string;
+  title?: string;
+  statement: string;
+  similarity: number;
+  threshold: number;
+}
+
+export interface ConjectureNoveltyAssessment {
+  provider: 'holoembed';
+  status: 'novel' | 'near-duplicate' | 'not-checked';
+  threshold: number;
+  corpusSize: number;
+  query: string;
+  nearest: ConjectureNoveltyMatch | null;
+}
+
+export const DEFAULT_CONJECTURE_PRIOR_ART_CORPUS: ReadonlyArray<ConjecturePriorArtEntry> = [
+  {
+    id: 'prior.generated-geometry.regular-polygon-sheet-family',
+    title: 'Generated regular polygon sheet invariant',
+    source: '.ai-ecosystem/research/2026-05-23_erdos-equations-EVOLVED.md',
+    statement:
+      'Every machine-generated regular polygon sheet (sides 3..8) is non-degenerate, edge-manifold, and has Euler characteristic 1.',
+  },
+];
 
 export interface ConjectureClaim {
   id: string;
@@ -74,6 +112,7 @@ export interface CandidateEvaluation {
   parameters: Readonly<Record<string, ConjectureParameterValue>>;
   facts: MeshFacts;
   probeResults: ReadonlyArray<ProbeResult>;
+  novelty: ConjectureNoveltyAssessment;
   status: ConjectureStatus;
 }
 
@@ -96,6 +135,7 @@ export interface ConjectureReceipt {
 }
 
 const TEXT_ENCODER = new TextEncoder();
+let noveltyEncoder: HoloEmbedEncoder | null = null;
 
 export function buildConjectureStableKey(prefix: string, snapshot: unknown): string {
   if (!/^[a-z0-9][a-z0-9.-]*$/u.test(prefix)) {
@@ -106,6 +146,135 @@ export function buildConjectureStableKey(prefix: string, snapshot: unknown): str
 
 function nonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0;
+}
+
+function getNoveltyEncoder(): HoloEmbedEncoder {
+  noveltyEncoder ??= new HoloEmbedEncoder();
+  return noveltyEncoder;
+}
+
+function roundedSimilarity(value: number): number {
+  return Math.round(value * 1_000_000_000_000) / 1_000_000_000_000;
+}
+
+function cosineSimilarity(left: Float32Array, right: Float32Array): number {
+  if (left.length !== right.length) {
+    throw new Error('conjecture.v1: HoloEmbed vectors must have matching dimensions');
+  }
+
+  let dot = 0;
+  let leftMagnitude = 0;
+  let rightMagnitude = 0;
+  for (let i = 0; i < left.length; i++) {
+    const l = left[i];
+    const r = right[i];
+    dot += l * r;
+    leftMagnitude += l * l;
+    rightMagnitude += r * r;
+  }
+  if (leftMagnitude === 0 || rightMagnitude === 0) return 0;
+  return Math.max(-1, Math.min(1, dot / Math.sqrt(leftMagnitude * rightMagnitude)));
+}
+
+function assertNoveltyThreshold(threshold: number): void {
+  if (!Number.isFinite(threshold) || threshold < 0 || threshold > 1) {
+    throw new Error('conjecture.v1: noveltyThreshold must be finite and between 0 and 1');
+  }
+}
+
+function assertPriorArtCorpus(corpus: ReadonlyArray<ConjecturePriorArtEntry>): void {
+  for (const entry of corpus) {
+    if (!nonEmptyString(entry.id)) {
+      throw new Error('conjecture.v1: prior-art entries require a non-empty id');
+    }
+    if (!nonEmptyString(entry.statement)) {
+      throw new Error('conjecture.v1: prior-art entries require a non-empty statement');
+    }
+    if (!nonEmptyString(entry.source)) {
+      throw new Error('conjecture.v1: prior-art entries require a non-empty source');
+    }
+  }
+}
+
+export function assessConjectureNovelty(
+  query: string,
+  corpus: ReadonlyArray<ConjecturePriorArtEntry> = DEFAULT_CONJECTURE_PRIOR_ART_CORPUS,
+  threshold = CONJECTURE_NOVELTY_THRESHOLD
+): ConjectureNoveltyAssessment {
+  if (!nonEmptyString(query)) {
+    throw new Error('conjecture.v1: novelty query must be non-empty');
+  }
+  assertNoveltyThreshold(threshold);
+  assertPriorArtCorpus(corpus);
+
+  if (corpus.length === 0) {
+    return {
+      provider: 'holoembed',
+      status: 'not-checked',
+      threshold,
+      corpusSize: 0,
+      query,
+      nearest: null,
+    };
+  }
+
+  const encoder = getNoveltyEncoder();
+  const queryVector = encoder.encodeText(query);
+  let nearest: ConjectureNoveltyMatch | null = null;
+  for (const entry of corpus) {
+    const similarity = roundedSimilarity(
+      cosineSimilarity(queryVector, encoder.encodeText(entry.statement))
+    );
+    const match: ConjectureNoveltyMatch = {
+      priorArtId: entry.id,
+      source: entry.source,
+      ...(entry.title ? { title: entry.title } : {}),
+      statement: entry.statement,
+      similarity,
+      threshold,
+    };
+    if (
+      nearest === null ||
+      match.similarity > nearest.similarity ||
+      (match.similarity === nearest.similarity && match.priorArtId < nearest.priorArtId)
+    ) {
+      nearest = match;
+    }
+  }
+
+  return {
+    provider: 'holoembed',
+    status: nearest && nearest.similarity >= threshold ? 'near-duplicate' : 'novel',
+    threshold,
+    corpusSize: corpus.length,
+    query,
+    nearest,
+  };
+}
+
+function uncheckedNovelty(
+  query: string,
+  corpusSize: number,
+  threshold: number
+): ConjectureNoveltyAssessment {
+  return {
+    provider: 'holoembed',
+    status: 'not-checked',
+    threshold,
+    corpusSize,
+    query,
+    nearest: null,
+  };
+}
+
+function applyNoveltyGate(
+  probeStatus: ConjectureStatus,
+  novelty: ConjectureNoveltyAssessment
+): ConjectureStatus {
+  if (probeStatus === 'survived' && novelty.status === 'near-duplicate') {
+    return 'rediscovered';
+  }
+  return probeStatus;
 }
 
 function inferElementArity(elements: Uint32Array, explicit?: 3 | 4): 3 | 4 | null {
@@ -794,6 +963,7 @@ function statusFromProbeResults(results: ReadonlyArray<ProbeResult>): Conjecture
 function overallStatus(evaluations: ReadonlyArray<CandidateEvaluation>): ConjectureStatus {
   if (evaluations.some((e) => e.status === 'falsified')) return 'falsified';
   if (evaluations.some((e) => e.status === 'inconclusive')) return 'inconclusive';
+  if (evaluations.some((e) => e.status === 'rediscovered')) return 'rediscovered';
   return 'survived';
 }
 
@@ -824,6 +994,8 @@ export function buildConjectureV1Receipt(input: {
   candidates: ReadonlyArray<GeometryConjectureCandidate>;
   probes: ReadonlyArray<ConjectureProbe>;
   hashMode?: HashMode;
+  priorArtCorpus?: ReadonlyArray<ConjecturePriorArtEntry>;
+  noveltyThreshold?: number;
 }): ConjectureReceipt {
   assertClaim(input.claim);
   if (input.candidates.length === 0) {
@@ -834,10 +1006,20 @@ export function buildConjectureV1Receipt(input: {
   }
 
   const hashMode = input.hashMode ?? HASH_MODE_DEFAULT;
+  const priorArtCorpus = input.priorArtCorpus ?? DEFAULT_CONJECTURE_PRIOR_ART_CORPUS;
+  const noveltyThreshold = input.noveltyThreshold ?? CONJECTURE_NOVELTY_THRESHOLD;
+  assertNoveltyThreshold(noveltyThreshold);
+  assertPriorArtCorpus(priorArtCorpus);
+
   const evaluations = input.candidates.map((candidate): CandidateEvaluation => {
     assertCandidate(candidate);
     const facts = computeMeshFacts(candidate, hashMode);
     const probeResults = input.probes.map((probe) => probe.evaluate(candidate, facts));
+    const probeStatus = statusFromProbeResults(probeResults);
+    const novelty =
+      probeStatus === 'survived'
+        ? assessConjectureNovelty(input.claim.statement, priorArtCorpus, noveltyThreshold)
+        : uncheckedNovelty(input.claim.statement, priorArtCorpus.length, noveltyThreshold);
     return {
       candidateId: candidate.id,
       family: candidate.family,
@@ -845,7 +1027,8 @@ export function buildConjectureV1Receipt(input: {
       parameters: candidateParameters(candidate),
       facts,
       probeResults,
-      status: statusFromProbeResults(probeResults),
+      novelty,
+      status: applyNoveltyGate(probeStatus, novelty),
     };
   });
 

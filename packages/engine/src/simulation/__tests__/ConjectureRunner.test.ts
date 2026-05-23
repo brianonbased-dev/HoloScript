@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CONJECTURE_RUNNER_V1,
+  GENERATED_GEOMETRY_FAMILY_SUITE,
   PROOF_CARRYING_GEOMETRY_SMOKE_SUITE,
   runConjectureRunner,
   type ConjectureRunnerInput,
@@ -71,6 +72,35 @@ describe('ConjectureRunner (conjecture.runner.v1)', () => {
       'survivor',
       'falsifier',
     ]);
+  });
+
+  it('classifies prior-art generated family survivors as rediscovered', () => {
+    const result = runConjectureRunner({
+      suite: GENERATED_GEOMETRY_FAMILY_SUITE,
+      proposedBy: 'codex-test',
+    });
+
+    const rediscovered = result.receipts.find((receipt) => receipt.status === 'rediscovered');
+
+    expect(result.status).toBe('completed');
+    expect(result.gate.passed).toBe(true);
+    expect(result.receipts.some((receipt) => receipt.status === 'survived')).toBe(true);
+    expect(rediscovered).toBeDefined();
+    expect(rediscovered?.claim.id).toBe('C.GEOM.RUNNER.GENERATED_SURVIVOR');
+    expect(
+      rediscovered?.evaluations.every((evaluation) => evaluation.status === 'rediscovered'),
+    ).toBe(true);
+    expect(rediscovered?.evaluations[0].novelty.provider).toBe('holoembed');
+    expect(rediscovered?.evaluations[0].novelty.status).toBe('near-duplicate');
+    expect(result.graduation).toContain('trait-invariant.candidate');
+    expect(result.graduation).toContain('receipt-carrying.geometry');
+    expect(
+      result.classifications.some(
+        (classification) =>
+          classification.scenarioId === 'generated-geometry.regular-polygon-sheet-family' &&
+          classification.status === 'rediscovered',
+      ),
+    ).toBe(true);
   });
 
   it('rejects unknown suites before minting receipts', () => {

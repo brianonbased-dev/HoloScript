@@ -236,7 +236,10 @@ export {
 // A conjecture receipt evaluates candidate geometries with invariant probes,
 // preserves counterexamples, and gives survivors deterministic receipt keys.
 export {
+  CONJECTURE_NOVELTY_THRESHOLD,
   CONJECTURE_V1,
+  DEFAULT_CONJECTURE_PRIOR_ART_CORPUS,
+  assessConjectureNovelty,
   buildConjectureStableKey,
   buildConjectureV1Receipt,
   computeMeshFacts,
@@ -253,8 +256,11 @@ export {
   type ConjectureClaim,
   type ConjectureCounterexample,
   type ConjectureKind,
+  type ConjectureNoveltyAssessment,
+  type ConjectureNoveltyMatch,
   type ConjectureParameterValue,
   type ConjectureProbe,
+  type ConjecturePriorArtEntry,
   type ConjectureReceipt,
   type ConjectureStatus,
   type ConjectureV1SolverType,

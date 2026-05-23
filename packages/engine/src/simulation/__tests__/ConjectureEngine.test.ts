@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CONJECTURE_NOVELTY_THRESHOLD,
   CONJECTURE_V1,
   buildConjectureV1Receipt,
   computeMeshFacts,
@@ -56,7 +57,72 @@ describe('ConjectureEngine (conjecture.v1)', () => {
     expect(receipt.status).toBe('survived');
     expect(receipt.counterexamples).toEqual([]);
     expect(receipt.evaluations[0].status).toBe('survived');
+    expect(receipt.evaluations[0].novelty.provider).toBe('holoembed');
+    expect(receipt.evaluations[0].novelty.status).toBe('novel');
     expect(receipt.receiptKey).toMatch(/^conjecture\.v1-sha-[0-9a-f]{64}$/);
+  });
+
+  it('reclassifies probe survivors as rediscovered when HoloEmbed matches prior art', () => {
+    const statement = 'Every generated square sheet is non-degenerate.';
+    const receipt = buildConjectureV1Receipt({
+      claim: {
+        ...CLAIM,
+        id: 'C.GEOM.REDISCOVERED',
+        statement,
+      },
+      candidates: [createSquareSheetCandidate()],
+      probes: [nonDegenerateGeometryProbe()],
+      hashMode: 'sha256',
+      priorArtCorpus: [
+        {
+          id: 'prior.square-sheet.non-degenerate',
+          title: 'Square sheet non-degeneracy',
+          source: 'research/prior-art/square-sheet.md',
+          statement,
+        },
+      ],
+      noveltyThreshold: CONJECTURE_NOVELTY_THRESHOLD,
+    });
+
+    expect(receipt.status).toBe('rediscovered');
+    expect(receipt.counterexamples).toEqual([]);
+    expect(receipt.evaluations[0].status).toBe('rediscovered');
+    expect(receipt.evaluations[0].novelty.status).toBe('near-duplicate');
+    expect(receipt.evaluations[0].novelty.nearest?.priorArtId).toBe(
+      'prior.square-sheet.non-degenerate',
+    );
+    expect(receipt.evaluations[0].novelty.nearest?.similarity).toBeGreaterThanOrEqual(
+      CONJECTURE_NOVELTY_THRESHOLD,
+    );
+  });
+
+  it('keeps HoloEmbed-novel probe survivors as survived', () => {
+    const receipt = buildConjectureV1Receipt({
+      claim: {
+        ...CLAIM,
+        id: 'C.GEOM.NOVEL',
+        statement: 'A square sheet receipt can preserve a local hash-order invariant.',
+      },
+      candidates: [createSquareSheetCandidate()],
+      probes: [nonDegenerateGeometryProbe(), geometryHashOrderInvariantProbe('sha256')],
+      hashMode: 'sha256',
+      priorArtCorpus: [
+        {
+          id: 'prior.collision-proxy',
+          source: 'research/prior-art/collision-proxy.md',
+          statement:
+            'An axis-aligned generated quad has equivalent convex-hull and AABB collision proxies.',
+        },
+      ],
+      noveltyThreshold: CONJECTURE_NOVELTY_THRESHOLD,
+    });
+
+    expect(receipt.status).toBe('survived');
+    expect(receipt.evaluations[0].status).toBe('survived');
+    expect(receipt.evaluations[0].novelty.status).toBe('novel');
+    expect(receipt.evaluations[0].novelty.nearest?.similarity).toBeLessThan(
+      CONJECTURE_NOVELTY_THRESHOLD,
+    );
   });
 
   it('preserves hash-arity ambiguity as a counterexample', () => {

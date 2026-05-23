@@ -825,6 +825,7 @@
     "@holoscript/core": "workspace:*",
     "@holoscript/framework": "workspace:*",
     "@holoscript/crdt-spatial": "workspace:*",
+    "@holoscript/holoembed": "workspace:*",
     "@holoscript/snn-webgpu": "workspace:*",
     "three": "^0.182.0"
   },

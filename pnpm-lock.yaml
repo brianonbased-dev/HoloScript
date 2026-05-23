@@ -1040,6 +1040,9 @@ importers:
       '@holoscript/framework':
         specifier: workspace:*
         version: link:../framework
+      '@holoscript/holoembed':
+        specifier: workspace:*
+        version: link:../holoembed
       '@holoscript/snn-webgpu':
         specifier: workspace:*
         version: link:../snn-webgpu

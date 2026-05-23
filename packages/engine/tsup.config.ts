@@ -63,6 +63,7 @@ export default defineConfig({
     '@holoscript/core',
     '@holoscript/framework',
     '@holoscript/core-types',
+    '@holoscript/holoembed',
     'react',
     'react-dom',
     'puppeteer',
