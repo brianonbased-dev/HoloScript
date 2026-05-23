@@ -107,7 +107,8 @@ export type PillarDomain =
   | 'init'           // temporal
   | 'steady_state'
   | 'edge_case'
-  | 'shutdown';
+  | 'shutdown'
+  | 'd040';            // three-population trait fidelity / sovereign alignment
 
 /**
  * MNI152 standard-space brain coordinate.

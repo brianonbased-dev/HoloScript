@@ -432,12 +432,19 @@ export const reputationLedgerHandler: TraitHandler<ReputationLedgerConfig> = {
       domain: 'agent',
       axis_vocabulary: ['trust_level', 'fact_retention'] as const,
       generate(ctx: PillarContext): PillarSlice {
-        const meta = (ctx.metadata || {}) as Record<string, number>;
+        const state = (node as any).__reputationLedgerState as ReputationLedgerState | undefined;
+        const allFacts = state ? Array.from(state.factsByObserver.values()).flat() : [];
+        const avgTrust = state && state.trustByObserver.size > 0
+          ? Array.from(state.trustByObserver.values()).reduce((a, b) => a + b, 0) / state.trustByObserver.size
+          : ((ctx.metadata as Record<string, number> | undefined)?.trust_level ?? 0.75);
+        const retention = allFacts.length > 0
+          ? Math.min(1, allFacts.length / 20)
+          : ((ctx.metadata as Record<string, number> | undefined)?.fact_retention ?? 0.65);
         return {
           axis_1_id: 'trust_level',
           axis_2_id: 'fact_retention',
-          pos_1: meta.trust_level ?? 0.75,
-          pos_2: meta.fact_retention ?? 0.65,
+          pos_1: Math.max(0, Math.min(1, avgTrust)),
+          pos_2: retention,
           pillar_id: this.id,
           pillar_domain: this.domain,
         };

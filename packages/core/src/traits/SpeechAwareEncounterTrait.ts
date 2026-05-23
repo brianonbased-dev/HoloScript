@@ -101,12 +101,18 @@ export const speechAwareEncounterHandler: TraitHandler<SpeechAwareEncounterConfi
       domain: 'agent',
       axis_vocabulary: ['speaker_confidence', 'reid_match'] as const,
       generate(ctx: PillarContext): PillarSlice {
-        const meta = (ctx.metadata || {}) as Record<string, number>;
+        const state = (node as any).__speechAwareEncounterState as SpeechAwareEncounterState | undefined;
+        const avgConf = state?.turns?.length
+          ? state.turns.reduce((s: number, t: any) => s + t.attribution.confidence, 0) / state.turns.length
+          : ((ctx.metadata as Record<string, number> | undefined)?.speaker_confidence ?? 0.5);
+        const reidRate = state?.turns?.length
+          ? state.turns.filter((t: any) => !!t.attribution.reidEmbeddingId).length / state.turns.length
+          : ((ctx.metadata as Record<string, number> | undefined)?.reid_match ?? 0.55);
         return {
           axis_1_id: 'speaker_confidence',
           axis_2_id: 'reid_match',
-          pos_1: meta.speaker_confidence ?? 0.78,
-          pos_2: meta.reid_match ?? 0.55,
+          pos_1: avgConf,
+          pos_2: reidRate,
           pillar_id: this.id,
           pillar_domain: this.domain,
         };

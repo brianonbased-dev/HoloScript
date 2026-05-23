@@ -121,12 +121,17 @@ export const autonomousAgendaHandler: TraitHandler<AutonomousAgendaConfig> = {
       domain: 'agent',
       axis_vocabulary: ['action_priority', 'budget_pressure'] as const,
       generate(ctx: PillarContext): PillarSlice {
-        const meta = (ctx.metadata || {}) as Record<string, number>;
+        const state = (node as any).__autonomousAgendaState as AutonomousAgendaState | undefined;
+        const pending = state?.items?.filter((i: any) => !i.completedAt).length ?? 0;
+        const actionsToday = state?.actionsToday ?? 0;
+        const spentToday = state?.spentToday ?? 0;
+        const actionPriority = Math.min(1, (pending * 0.15) + (actionsToday / Math.max(1, config.max_actions_per_day)) * 0.5);
+        const budgetPressure = Math.min(1, spentToday / Math.max(1, config.daily_budget_usd));
         return {
           axis_1_id: 'action_priority',
           axis_2_id: 'budget_pressure',
-          pos_1: meta.action_priority ?? 0.6,
-          pos_2: meta.budget_pressure ?? 0.3,
+          pos_1: actionPriority || ((ctx.metadata as Record<string, number> | undefined)?.action_priority ?? 0.6),
+          pos_2: budgetPressure || ((ctx.metadata as Record<string, number> | undefined)?.budget_pressure ?? 0.3),
           pillar_id: this.id,
           pillar_domain: this.domain,
         };

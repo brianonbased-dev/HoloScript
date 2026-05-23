@@ -185,12 +185,15 @@ export const vocabularyRegisterHandler: TraitHandler<VocabularyRegisterConfig> =
       domain: 'language',
       axis_vocabulary: ['register_diversity', 'injection_rate'] as const,
       generate(ctx: PillarContext): PillarSlice {
-        const meta = (ctx.metadata || {}) as Record<string, number>;
+        const state = (node as any).__vocabularyRegisterState as VocabularyRegisterState | undefined;
+        const activeReg = state?.registers?.get(state.activeName ?? '');
+        const diversity = activeReg ? Math.min(1, (activeReg.entries?.length ?? 2) / 12) : ((ctx.metadata as Record<string, number> | undefined)?.register_diversity ?? 0.7);
+        const rate = state ? Math.min(1, (state.injectedCount ?? 0) / 50) : ((ctx.metadata as Record<string, number> | undefined)?.injection_rate ?? 0.4);
         return {
           axis_1_id: 'register_diversity',
           axis_2_id: 'injection_rate',
-          pos_1: meta.register_diversity ?? 0.7,
-          pos_2: meta.injection_rate ?? 0.4,
+          pos_1: diversity,
+          pos_2: rate,
           pillar_id: this.id,
           pillar_domain: this.domain,
         };

@@ -188,12 +188,14 @@ export const avatarIntentHandler: TraitHandler<AvatarIntentConfig> = {
       domain: 'agent',
       axis_vocabulary: ['intent_clarity', 'multi_modal_fusion'] as const,
       generate(ctx: PillarContext): PillarSlice {
-        const meta = (ctx.metadata || {}) as Record<string, number>;
+        const state = (node as any).__avatarIntentState as AvatarIntentState | undefined;
+        const clarity = state?.lastResolved ? state.lastResolved.confidence : ((ctx.metadata as Record<string, number> | undefined)?.intent_clarity ?? 0.5);
+        const fusion = state ? Math.min(1, Math.max(0.2, (state.activeDevices?.size || 1) / 3)) : ((ctx.metadata as Record<string, number> | undefined)?.multi_modal_fusion ?? 0.5);
         return {
           axis_1_id: 'intent_clarity',
           axis_2_id: 'multi_modal_fusion',
-          pos_1: meta.intent_clarity ?? 0.8,
-          pos_2: meta.multi_modal_fusion ?? 0.5,
+          pos_1: clarity,
+          pos_2: fusion,
           pillar_id: this.id,
           pillar_domain: this.domain,
         };

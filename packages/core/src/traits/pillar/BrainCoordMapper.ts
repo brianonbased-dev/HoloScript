@@ -203,6 +203,14 @@ const SEED_TABLE: Record<PillarDomain, DomainCoordEntry> = {
     surface_type: 'sulcus',
     source_note: 'PAG (periaqueductal gray) — shutdown / autonomic cessation signals',
   },
+  d040: {
+    mni_x: 0, mni_y: -4, mni_z: 40,
+    cortical_depth: 4,
+    brodmann_area: 8,
+    aal_region: 'Frontal_Sup_Medial_L',
+    surface_type: 'gyrus',
+    source_note: 'Medial SFG BA8/9 — three-population coordination, sovereign alignment (D.040)',
+  },
 };
 
 // ─── Runtime override registry ────────────────────────────────────────────────

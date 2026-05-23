@@ -604,7 +604,7 @@ export const SHUTDOWN_SIGNAL_PILLAR: Pillar = {
  */
 export const D040_THREE_POPULATION_PILLAR: Pillar = {
   id: 'd040_three_population',
-  domain: 'd040' as PillarDomain,
+  domain: 'd040',
   axis_vocabulary: ['population_type', 'trait_fidelity', 'participant_alignment'] as const,
   generate(context: PillarContext): PillarSlice {
     const meta = (context.metadata || {}) as Record<string, string | number>;

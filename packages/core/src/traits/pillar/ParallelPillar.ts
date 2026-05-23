@@ -98,6 +98,7 @@ export const HEMISPHERE_MAP: Readonly<Record<PillarDomain, Hemisphere>> = {
   init:             'bilateral',
   edge_case:        'bilateral',
   shutdown:         'bilateral',
+  d040:             'bilateral',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
