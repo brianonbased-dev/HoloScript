@@ -1,227 +1,2619 @@
-% holoscript.bib — shared bibliography for the HoloScript 17-paper program.
-% Migrated 2026-04-24 from inline \begin{thebibliography} blocks per founder
-% /founder ruling Decision 2 (research/paper-audit-matrix.md §2026-04-24 Refresh).
-% Pattern documented in docs/paper-bibliography-migration.md.
+% research/holoscript.bib
+% Shared bibliography for the 16-paper HoloScript research program.
+% Bootstrap skeleton generated 2026-04-18 by scripts/bibliography-bootstrap.py.
 %
-% Key discipline: one canonical entry per work; \cite the same key from every
-% paper that needs it.  Do not duplicate entries.  Add new entries at the
-% bottom with a date comment.
+% Every entry is a stub until populated. Search this file for
+% 'TODO-bib-entry' to find unfilled entries. The shape is at-misc as a
+% universal placeholder; replace with the correct entry type
+% (at-article, at-inproceedings, at-book, at-techreport, at-misc) when populating.
+% NOTE: at-<type> notation in this header is intentional (see closing
+% commit for task_1777090049783_717x); the literal at-symbol-then-type
+% in a percent-prefixed comment triggers bibtex's lexer to treat it as
+% the start of an entry definition and breaks parse.
+%
+% Cite keys are sorted alphabetically, case-insensitively, to make
+% parallel Copilot work across alphabet ranges unambiguous.
+%
+% Total keys at bootstrap: 225
 
-% ── HoloScript internal papers ───────────────────────────────────────────────
-
-@inproceedings{trustbyconstruction2026,
-  author    = {Krzywoszyja, Joseph},
-  title     = {Trust by Construction: Provenance-Native Simulation Contracts},
-  journal   = {{IEEE} Transactions on Visualization and Computer Graphics},
-  year      = {2026},
-  note      = {submitted},
+@article{Abdelaziz2021,
+  title={A Toolkit for Generating Code Knowledge Graphs},
+  author={Abdelaziz, Ibrahim and Dolby, Julian and McCusker, Jamie and Srinivas, Kavitha},
+  journal={arXiv preprint arXiv:2002.09440},
+  year={2020},
+  doi={10.48550/arXiv.2002.09440},
+  url={https://arxiv.org/abs/2002.09440},
+  note = {DRIFT-FIXED-2026-05-10: previous metadata used arXiv:2104.10309 for Graph4Code. Live arXiv source is arXiv:2002.09440, "A Toolkit for Generating Code Knowledge Graphs".}
 }
 
-@inproceedings{capstone-uist2027,
-  author    = {Krzywoszyja, Joseph},
-  title     = {From Notation to Cognition: A Provenance-Native Architecture},
-  booktitle = {Proceedings of the ACM Symposium on User Interface Software and Technology ({UIST})},
-  year      = {2027},
-  note      = {forthcoming},
+@article{aberman-skin2020,
+  title={Skeleton-aware networks for deep motion retargeting},
+  author={Aberman, Kfir and others},
+  journal={ACM Transactions on Graphics (TOG)},
+  volume={39},
+  number={4},
+  pages={62--1},
+  year={2020}
 }
 
-@inproceedings{paper-6-anim-sca2027,
-  author    = {Krzywoszyja, Joseph},
-  title     = {Contracted Animation: Hash-Verified Skeletal Retargeting},
-  booktitle = {Proceedings of the {ACM} {SIGGRAPH} / Eurographics Symposium on Computer Animation ({SCA})},
-  year      = {2027},
+% Entry for `absorb-b1-b2-2026` is defined later in this file (the
+% non-UNVERIFIED version with commit hashes). Earlier duplicate stub
+% removed 2026-04-19 during internal-key bib triage.
+
+@inproceedings{agache2020firecracker,
+  author = {Alexandru Agache and Marc Brooker and Alexandra Iordache and Anthony Liguori and Rolf Neugebauer and Phil Piwonka and Diana{-}Maria Popa},
+  title = {Firecracker: Lightweight Virtualization for Serverless Applications},
+  booktitle = {17th USENIX Symposium on Networked Systems Design and Implementation (NSDI 2020)},
+  year = {2020},
+  url = {https://www.usenix.org/conference/nsdi20/presentation/agache},
 }
 
-@inproceedings{paper-7-ik-siggraph2027,
-  author    = {Krzywoszyja, Joseph},
-  title     = {{IK} Under Contract: Solver Determinism Across Backends},
-  booktitle = {Proceedings of {ACM} {SIGGRAPH} (Technical Paper Short)},
-  year      = {2027},
+@article{agenticrl2026,
+  title = {{AgentRL: Scaling Agentic Reinforcement Learning with a Multi-Turn, Multi-Task Framework}},
+  author = {Hanchen Zhang and Xiao Liu and Bo Lv and Xueqiao Sun and Bohao Jing and Iat Long Iong and Zhenyu Hou and Zehan Qi and Hanyu Lai and Yifan Xu and Rui Lü and Hongning Wang and Tang, Jie and Yuxiao Dong},
+  journal = {ArXiv.org},
+  year = {2025},
+  note = {DEEP-RESOLVED-OPENALEX-2026-04-24: prev-title="AgentRL: Scaling Agentic Reinforcement Learning with a Multi-Turn, Multi-Task Fr" prev-author="Zeng, Xia and others". Live source: \url{https://doi.org/10.48550/arxiv.2510.04206}.},
 }
 
-@inproceedings{paper-9-motion-asia2027,
-  author    = {Krzywoszyja, Joseph},
-  title     = {Verifiable Motion: Provenance for {AI}-Generated Animation},
-  booktitle = {Proceedings of {ACM} {SIGGRAPH} Asia},
-  year      = {2027},
-  note      = {under review},
+@article{ai4science2023,
+  title={Artificial Intelligence for Science in Quantum, Atomistic, and Continuum Systems},
+  author={Zhang, Xuan and others},
+  journal={Foundations and Trends in Machine Learning},
+  volume={18},
+  number={4},
+  pages={385--912},
+  year={2025},
+  doi={10.1561/2200000115},
+  url={https://www.nowpublishers.com/article/Details/MAL-115},
+  note = {DRIFT-FIXED-2026-05-10: previous entry used a shortened title and arXiv-only placeholder author. Live journal source lists Foundations and Trends in Machine Learning 18(4):385--912.}
 }
 
-@inproceedings{paper-13-dumbglass-siggraph2028,
-  author    = {Krzywoszyja, Joseph},
-  title     = {Dumb Glass: Rendering as Contracted Synthesis of All Projections},
-  booktitle = {Proceedings of {ACM} {SIGGRAPH}},
-  year      = {2028},
-  note      = {forthcoming},
+@article{alfarra2022decision,
+  title={On the Decision Boundaries of Neural Networks: A Tropical Geometry Perspective},
+  author={Alfarra, Motasem and Bibi, Adel and Hammoud, Hasan and Gaafar, Mohamed and Ghanem, Bernard},
+  journal={IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  volume={45},
+  number={4},
+  pages={5027--5037},
+  year={2023},
+  doi={10.1109/tpami.2022.3201490},
+  note = {VERIFIED-REPLACED-2026-05-03: original title "Decision-Based Evasion Attacks on Neural Networks with ReLU Activation" was hallucinated; replaced with verified Alfarra et al. TPAMI 2022 paper on tropical geometry of ReLU decision boundaries (arXiv:2002.08838). Same authors, same research program.},
 }
 
-@techreport{paper-0c-twin-test-2026-05-11,
-  author      = {Krzywoszyja, Joseph},
-  title       = {Twin-Test: Cross-Vendor Deterministic Replay via Canonical Projection},
-  institution = {Infinitus Systems},
-  year        = {2026},
-  month       = {May},
-  note        = {internal technical report},
+@article{almeida2018deltacrdt,
+  title={Delta state replicated data types},
+  author={Almeida, Paulo S{'e}rgio and Shoker, Ali and Baquero, Carlos},
+  journal={Journal of Parallel and Distributed Computing},
+  volume={111},
+  pages={162--173},
+  year={2018}
 }
 
-% ── Engine / production documentation ────────────────────────────────────────
+@inproceedings{amass,
+  title={AMASS: Archive of Motion Capture as Surface Shapes},
+  author={Mahmood, Nauman and Ghorbani, Nima and Troje, Nikolaus F and Pons-Moll, Gerard and Black, Michael J},
+  booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
+  pages={5442--5451},
+  year={2019}
+}
+
+@article{amsterdamer-2011,
+  title={Provenance for aggregate queries},
+  author={Amsterdamer, Yael and Deutch, Daniel and Tannen, Val},
+  journal={Proceedings of the VLDB Endowment},
+  volume={4},
+  number={8},
+  pages={549--560},
+  year={2011}
+}
+
+@inproceedings{animgan,
+  author = {Maryam Sadat Mirzaei and Kourosh Meshgi and Etienne Frigo and Toyoaki Nishida},
+  title = {AnimGAN: A Spatiotemporally-Conditioned Generative Adversarial Network for Character Animation},
+  booktitle = {IEEE International Conference on Image Processing (ICIP)},
+  year = {2020},
+  url = {https://dblp.org/rec/conf/icip/MirzaeiMFN20},
+}
+
+@online{ansys2024,
+  author = {{Ansys, Inc.}},
+  title = {Ansys Homepage},
+  year = {2024},
+  howpublished = {Website},
+  url = {https://www.ansys.com/},
+}
+
+@misc{ansys2025ai,
+  title={ANSYS AI+ product family documentation},
+  author={{ANSYS Inc.}},
+  howpublished={\url{https://www.ansys.com}},
+  year={2025}
+}
 
 @misc{anvilnext-anim-arch,
-  author    = {{Ubisoft Montreal / La Forge}},
-  title     = {AnvilNext and Real-Time Animation Pipelines},
-  howpublished = {Public technical talks and studio blog posts (GDC Vault, Ubisoft La Forge publications index)},
-  note      = {Specific GDC Vault asset IDs vary by year},
+  title={AnvilNext Animation Architecture},
+  author={Ubisoft},
+  howpublished={GDC Presentation},
+  year={2014}
 }
 
-@misc{ue5-chaos-async,
-  author       = {{Epic Games}},
-  title        = {Physics and Animation in Unreal Engine (Async Tick and Simulation Settings)},
-  howpublished = {Unreal Engine~5 Documentation},
-  url          = {https://dev.epicgames.com/documentation/en-us/unreal-engine/physics-and-animation-in-unreal-engine},
+@online{aousd-core-spec-1.0,
+  author = {{Alliance for OpenUSD}},
+  title = {OpenUSD Specification},
+  year = {2024},
+  howpublished = {Specification},
+  url = {https://openusd.org/},
 }
 
-@misc{ue5-forum-physanim,
-  author       = {{Unreal Engine Community Forums}},
-  title        = {Chaos Physics Animation Desync and Physical Animation Ghosting (multiple threads)},
-  howpublished = {\url{https://forums.unrealengine.com/}},
+@online{apple-visionpro2024,
+  author = {{Apple Inc.}},
+  title = {Apple Vision Pro},
+  year = {2024},
+  howpublished = {Product page},
+  url = {https://www.apple.com/apple-vision-pro/},
 }
 
-@misc{ue5-controlrig-physics,
-  author       = {{Epic Games}},
-  title        = {Control Rig Physics ({UE}~5.6+)},
-  howpublished = {Unreal Engine~5 Documentation},
-  year         = {2025},
+@article{Arab2018,
+  title={ProvDB: A System for Lifecycle Management of Collaborative Analysis Workflows},
+  author={Arab, Bahareh Sadat and others},
+  journal={VLDB},
+  year={2018}
 }
 
-@misc{unity-animatephysics-doc,
-  author       = {{Unity Technologies}},
-  title        = {Animator Component: Animate Physics Update Mode},
-  howpublished = {Unity Manual},
-  year         = {2024},
-  url          = {https://docs.unity3d.com/Manual/class-Animator.html},
+@article{arkani-hamed-bai-lam2017positive,
+  author  = {Arkani-Hamed, Nima and Bai, Yuntao and Lam, Thomas},
+  title   = {Positive Geometries and Canonical Forms},
+  journal = {Journal of High Energy Physics},
+  year    = {2017},
+  volume  = {2017},
+  number  = {11},
+  pages   = {039},
+  doi     = {10.1007/JHEP11(2017)039},
+  eprint  = {1703.04541},
+  archivePrefix = {arXiv},
+  note    = {Tropical / positive-geometry lineage of scattering amplitudes — cited as external physics validation of min-plus algebra appearing independently in HoloScript's provenance semiring.},
 }
-
-@misc{unity-forum-animphys,
-  author       = {{Unity Technologies Issue Tracker and Community Forums}},
-  title        = {{AnimatePhysics} / {FixedUpdate} Ordering Discussions},
-  howpublished = {\url{https://issuetracker.unity3d.com/}},
-}
-
-@misc{unity-anim-rigging,
-  author       = {{Unity Technologies}},
-  title        = {Animation Rigging Package (Constraint Convergence Issues)},
-  howpublished = {Unity Documentation},
-  year         = {2024},
-}
-
-@misc{unity-labs-dice2020,
-  author       = {{Unity Technologies}},
-  title        = {Unity Labs Research Publications on Machine Learning and Physics (Interactive Character Control)},
-  howpublished = {\url{https://unity.com/research-labs}},
-  year         = {2020},
-}
-
-@misc{nvidia-nvcloth,
-  author       = {{NVIDIA}},
-  title        = {{NvCloth}: Scalable Cloth Simulation Framework},
-  howpublished = {\url{https://developer.nvidia.com/nvcloth}},
-  year         = {2017},
-}
-
-% ── Research papers ───────────────────────────────────────────────────────────
 
 @article{aristidou-fabrik,
-  author  = {Aristidou, Andreas and Lasenby, Joan},
-  title   = {{FABRIK}: A Fast, Iterative Solver for the Inverse Kinematics Problem},
+  author = {Andreas Aristidou and Joan Lasenby},
+  title = {{FABRIK}: A fast, iterative solver for the inverse kinematics problem},
   journal = {Graphical Models},
-  volume  = {73},
-  number  = {5},
-  pages   = {243--260},
-  year    = {2011},
+  year = {2011},
+  volume = {73},
+  number = {5},
+  pages = {243--260},
+  doi = {10.1016/j.gmod.2011.05.003},
+  url = {https://doi.org/10.1016/j.gmod.2011.05.003},
 }
 
-@article{muller-pbd2007,
-  author  = {M{\"u}ller, Matthias and Heidelberger, Bruno and Hennix, Marcus and Ratcliff, John},
-  title   = {Position Based Dynamics},
-  journal = {Journal of Visual Communication and Image Representation},
-  volume  = {18},
-  number  = {2},
-  pages   = {109--118},
-  year    = {2007},
+@techreport{asme-vv10,
+  author = {{ASME V\&V 10 Committee}},
+  title = {Guide for Verification and Validation in Computational Solid Mechanics},
+  institution = {American Society of Mechanical Engineers},
+  year = {2006},
+  url = {https://www.asme.org/codes-standards/find-codes-standards/v-v-10-guide-verification-validation-computational-solid-mechanics},
 }
 
-@techreport{prov-dm-w3c,
-  author      = {{W3C Provenance Working Group}},
-  title       = {{PROV-DM}: The {PROV} Data Model},
-  institution = {World Wide Web Consortium},
-  type        = {W3C Recommendation},
-  month       = {April},
-  year        = {2013},
-  url         = {https://www.w3.org/TR/prov-dm/},
+@techreport{asme2009vv20,
+  author = {{ASME V\&V 20 Committee}},
+  title = {Standard for Verification and Validation in Computational Fluid Dynamics and Heat Transfer},
+  institution = {American Society of Mechanical Engineers},
+  year = {2009},
+  url = {https://www.asme.org/codes-standards/find-codes-standards/v-v-20-standard-verification-validation-computational-fluid-dynamics-heat-transfer},
+}
+
+@online{autogpt2024,
+  author = {{Significant Gravitas Ltd.}},
+  title = {AutoGPT},
+  year = {2024},
+  howpublished = {GitHub repository},
+  url = {https://github.com/Significant-Gravitas/AutoGPT},
+}
+
+@online{automerge2024,
+  author = {{Automerge Contributors}},
+  title = {Automerge},
+  year = {2024},
+  howpublished = {Project homepage},
+  url = {https://automerge.org/},
+}
+
+@article{axis2025,
+  title={Integrating Counterfactual Simulations with Language Models for Explaining Multi-Agent Behaviour},
+  author={Gyevnar, Balint and Lucas, Christopher G. and Albrecht, Stefano V. and Cohen, Shay B.},
+  journal={arXiv preprint arXiv:2505.17801},
+  year={2025},
+  note = {VERIFIED-CORRECTED-2026-05-03: original title "AXIS: Generating Counterfactual Explanations" was abbreviated/incorrect; replaced with full verified title. AXIS = Agentic eXplanations via Interrogative Simulation.},
+}
+
+@article{ayachit2015catalyst,
+  title={Catalyst: In situ data analysis and visualization},
+  author={Ayachit, Utkarsh and others},
+  journal={IEEE Computer Graphics and Applications},
+  year={2015}
+}
+
+@inproceedings{ayachit2016sensei,
+  author = {Utkarsh Ayachit and Brad Whitlock and Matthew Wolf and Burlen Loring and Berk Geveci and David Lonie and E. Wes Bethel},
+  title = {The SENSEI Generic In Situ Interface},
+  booktitle = {In Situ Infrastructures for Enabling Extreme-Scale Analysis and Visualization (ISAV)},
+  year = {2016},
+  url = {https://dblp.org/rec/conf/sc/AyachitWWLGLB16},
+}
+
+@online{Bazel2024,
+  author = {{Bazel Authors}},
+  title = {Bazel Build System},
+  year = {2024},
+  howpublished = {Project documentation},
+  url = {https://bazel.build/},
+}
+
+@book{bathe2014fem,
+  author = {Klaus‐Jürgen Bathe},
+  title = {{Finite Element Procedures}},
+  year = {1995},
+  edition   = {2nd},
+  publisher = {K.J. Bathe},
+  address   = {Watertown, MA},
+  isbn      = {978-0979004957},
+  note = {DEEP-RESOLVED-OPENALEX-2026-04-24: prev-title="Finite Element Procedures" prev-author="Bathe, Klaus-J{\"u}rgen". Live source: \url{https://openalex.org/W1573186872}. Prev-note: UNVERIFIED-DBLP-ZERO-MATCH-2026-04-24 (conf=0.21): DBLP has no close match for "Finite Element Procedures" (best conf=0.21). Entry shape implies real publication. Top-3: "Finite element simulation of guidewire navigation in venous transcatheter procedures." (0.21); "Microcatheter tracki Prev-note: Canonical reference for modal analysis / eigenvalue problems in structural and continuum FEM. Chapter 10 covers the generalized eigenvalue problem $(K-\omega^2 M)\phi=0$ used across HoloScript's structural and acoustic solvers.},
+  journal = {CERN Document Server (European Organization for Nuclear Research)},
+}
+
+@inproceedings{bellemare2016,
+  title={Unifying count-based exploration and intrinsic motivation},
+  author={Bellemare, Marc and others},
+  booktitle={Advances in Neural Information Processing Systems},
+  volume={29},
+  year={2016}
+}
+
+@inproceedings{bitansky2012extractable,
+  title={From Extractable Collision Resistance to Succinct Non-Interactive Arguments of Knowledge, and Back Again},
+  author={Bitansky, Nir and Canetti, Ran and Chiesa, Alessandro and Tromer, Eran},
+  booktitle={Proceedings of the 3rd Innovations in Theoretical Computer Science Conference (ITCS)},
+  pages={326--349},
+  year={2012},
+  note = {VERIFIED-REPLACED-2026-05-03: original title "Extractable collision resistance: baffling random oracles and more" was hallucinated; replaced with verified Bitansky et al. ITCS 2012 paper. ECRH + SNARK construction is the actual content. arXiv:2011/443.},
+}
+
+@incollection{blelloch1990prefix,
+  author = {Guy E. Blelloch},
+  title = {{Prefix sums and their applications}},
+  booktitle = {Figshare},
+  publisher = {Morgan Kaufmann},
+  year = {2018},
+  pages = {35--60},
+  url = {https://www.cs.cmu.edu/~guyb/papers/Ble93.pdf},
+  note = {DEEP-RESOLVED-OPENALEX-2026-04-24: prev-title="Prefix Sums and Their Applications" prev-author="Guy E. Blelloch". Live source: \url{https://doi.org/10.1184/r1/6608579.v1}. Prev-note: UNVERIFIED-DBLP-ZERO-MATCH-2026-04-24 (conf=0.39): DBLP has no close match for "Prefix Sums and Their Applications" (best conf=0.39). Entry shape implies real publication. Top-3: "Optimal deterministic approximate parallel prefix sums and their applications." (0.39)},
+}
+
+@article{blockchain-agents2025,
+  author = {Md. Monjurul Karim and Dong Hoang Van and Sangeen Khan and Qiang Qu and Yaroslav Kholodov},
+  title = {AI Agents Meet Blockchain: A Survey on Secure and Scalable Collaboration for Multi-Agents},
+  journal = {Future Internet},
+  year = {2025},
+  url = {https://dblp.org/rec/journals/fi/KarimVKQK25},
+}
+
+@article{Blondel2008,
+  author  = {Blondel, Vincent D. and Guillaume, Jean-Loup and Lambiotte, Renaud and Lefebvre, Etienne},
+  title   = {Fast Unfolding of Communities in Large Networks},
+  journal = {Journal of Statistical Mechanics: Theory and Experiment},
+  year    = {2008},
+  volume  = {2008},
+  number  = {10},
+  pages   = {P10008},
+  doi     = {10.1088/1742-5468/2008/10/P10008}
+}
+
+@article{boettiger2015docker,
+  author = {Carl Boettiger},
+  title = {An introduction to Docker for reproducible research},
+  journal = {ACM SIGOPS Operating Systems Review},
+  year = {2015},
+  volume = {49},
+  number = {1},
+  pages = {71--79},
+  doi = {10.1145/2723872.2723882},
+  url = {https://doi.org/10.1145/2723872.2723882},
+}
+
+@article{braincog2024,
+  title={BrainCog: A Spiking Neural Network based Brain-inspired Cognitive Intelligence Engine for Brain-inspired AI and Brain Simulation},
+  author={Zeng, Yi and others},
+  journal={Patterns},
+  year={2023}
+}
+
+@article{buehler2024mechgpt,
+  title = {{MechGPT, a language-based strategy for mechanics and materials modeling that connects knowledge across scales, disciplines and modalities}},
+  author = {M. Buehler},
+  journal = {Applied Mechanics Review},
+  year = {2023},
+  note = {DEEP-RESOLVED-S2-2026-04-24: prev-title="MechGPT, a language-based strategy for mechanics and materials modeling that con" prev-author="Buehler, Markus J". Live source: \url{https://doi.org/10.1115/1.4063843}. Prev-note: DOI-404-2026-04-24: DOI  is not registered; removed.},
+}
+
+@inproceedings{Buneman2001,
+  author = {Peter Buneman and Sanjeev Khanna and Tan Wang-Chiew},
+  title = {{Why and Where: A Characterization of Data Provenance}},
+  booktitle = {Lecture Notes in Computer Science},
+  year = {2001},
+  pages = {316--330},
+  doi = {10.1007/3-540-44503-X_20},
+  url = {https://doi.org/10.1007/3-540-44503-X_20},
+  note = {DRIFT-FIXED-2026-04-24: prev-title="Why and Where: A Characterization of Data Provenance" prev-author="Peter Buneman and Sanjeev Khanna and Wang{-}Chiew Tan". Live source: \url{http://dx.doi.org/10.1007/3-540-44503-X_20}.},
+}
+
+@inproceedings{buneman2001provenance,
+  author = {Peter Buneman and Sanjeev Khanna and Tan Wang-Chiew},
+  title = {{Why and Where: A Characterization of Data Provenance}},
+  booktitle = {Lecture Notes in Computer Science},
+  year = {2001},
+  pages = {316--330},
+  doi = {10.1007/3-540-44503-X_20},
+  url = {https://doi.org/10.1007/3-540-44503-X_20},
+  note = {DRIFT-FIXED-2026-04-24: prev-title="Why and Where: A Characterization of Data Provenance" prev-author="Peter Buneman and Sanjeev Khanna and Wang{-}Chiew Tan". Live source: \url{http://dx.doi.org/10.1007/3-540-44503-X_20}.},
+}
+
+@misc{buterin2014ethereum,
+  author = {Vitalik Buterin},
+  title = {Ethereum: A Next-Generation Smart Contract and Decentralized Application Platform},
+  year = {2014},
+  howpublished = {White paper},
+  url = {https://ethereum.org/en/whitepaper/},
+}
+
+@online{c2pa-spec-2.1,
+  author = {{Coalition for Content Provenance and Authenticity}},
+  title = {C2PA Technical Specification},
+  year = {2024},
+  howpublished = {Technical specification},
+  url = {https://c2pa.org/specifications/},
+}
+
+% REMOVED-2026-05-03: ca-mcpq was hallucinated (no external record exists).
+% paper-1 cites removed inline; see that file for rewritten paragraphs.
+
+@misc{cael-paper,
+  title = {{CAEL: Causal Agent-Environment Loops with Hash-Chain Provenance for Trustworthy Embodied Simulation}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2027},
+  howpublished = {Submission to AAMAS 2027},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-0c-cael-aamas.tex}.},
+}
+
+@misc{cael2026,
+  title = {{CAEL: Causal Agent-Environment Loops with Hash-Chain Provenance for Trustworthy Embodied Simulation}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2026},
+  howpublished = {Submission to AAMAS 2027},
+  note = {Alias for \texttt{cael-paper}. Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-0c-cael-aamas.tex}.},
+}
+
+@inproceedings{cao2022wasmsandbox,
+  title={Provably-Safe Multilingual Software Sandboxing using {WebAssembly}},
+  author={Bosamiya, Jay and Lim, Wen Shih and Parno, Bryan},
+  booktitle={31st USENIX Security Symposium (USENIX Security 22)},
+  pages={1975--1992},
+  year={2022},
+  url={https://www.usenix.org/conference/usenixsecurity22/presentation/bosamiya},
+  note = {VERIFIED-REPLACED-2026-05-03: original title "Wasm sandbox escapes" (Cao et al.) was hallucinated; replaced with verified Bosamiya et al. USENIX Security 2022 Distinguished Paper on provably-safe Wasm sandboxing. The bib key is preserved for cite compatibility but the entry is entirely different.},
+}
+
+@misc{capstone-uist2027,
+  title = {{Trust by Construction: End-to-End Provenance for Spatial Computing}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2027},
+  howpublished = {Submission to UIST 2027},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-capstone-uist.tex}.},
+}
+
+@article{chen2021codex,
+  author = {Mark Chen and Jerry Tworek and Heewoo Jun and Qiming Yuan and Henrique Ponde de Oliveira Pinto and Jared Kaplan and Harri Edwards and Yuri Burda and Nicholas Joseph and Greg Brockman and Alex Ray and Raul Puri and Gretchen Krueger and Michael Petrov and Heidy Khlaaf and Girish Sastry and Pamela Mishkin and Brooke Chan and Scott Gray and Nick Ryder and Mikhail Pavlov and Alethea Power and Lukasz Kaiser and Mohammad Bavarian and Clemens Winter and Philippe Tillet and Felipe Petroski Such and Dave Cummings and Matthias Plappert and Fotios Chantzis and Elizabeth Barnes and Ariel Herbert-Voss and William Hebgen Guss and Alex Nichol and Alex Paino and Nikolas Tezak and Jie Tang and Igor Babuschkin and Suchir Balaji and Shantanu Jain and William Saunders and Christopher Hesse and Andrew N. Carr and Jan Leike and Josh Achiam and Vedant Misra and Evan Morikawa and Alec Radford and Matthew Knight and Miles Brundage and Mira Murati and Katie Mayer and Peter Welinder and Bob McGrew and Dario Amodei and Sam McCandlish and Ilya Sutskever and Wojciech Zaremba},
+  title = {Evaluating Large Language Models Trained on Code},
+  journal = {CoRR},
+  year = {2021},
+  volume = {abs/2107.03374},
+  url = {https://arxiv.org/abs/2107.03374},
+}
+
+@article{Cheney2009,
+  author = {James Cheney and Laura Chiticariu and Wang{-}Chiew Tan},
+  title = {Provenance in Databases: Why, How, and Where},
+  journal = {Foundations and Trends in Databases},
+  year = {2009},
+  volume = {1},
+  number = {4},
+  pages = {379--474},
+  doi = {10.1561/1900000006},
+  url = {https://doi.org/10.1561/1900000006},
+}
+
+% REMOVED-2026-05-03: cheng2023list3d was hallucinated (no verified external record for
+% "List CRDTs for collaborative 3D modeling" by Cheng et al.). paper-3 cite rewritten inline.
+
+@article{hao2022collaborative3d,
+  title={Real-time collaborative multi-level modeling by conflict-free replicated data types},
+  author={David, Istvan and Syriani, Eugene},
+  journal={Software and Systems Modeling},
+  volume={22},
+  number={4},
+  pages={1131--1150},
+  year={2023},
+  doi={10.1007/s10270-022-01054-5},
+  note = {DRIFT-FIXED-2026-05-10: previous author/year/pages metadata disagreed with the live Springer record for DOI 10.1007/s10270-022-01054-5. Replaces removed cheng2023list3d (hallucinated).},
+}
+
+@article{chirigati2016reprozip,
+  author = {Fernando Chirigati and Rémi Rampin and Dennis Shasha and Juliana Freire},
+  title = {{ReproZip}},
+  journal = {Proceedings of the 2016 International Conference on Management of Data},
+  year = {2016},
+  pages = {2085--2088},
+  doi = {10.1145/2882903.2899401},
+  url = {https://doi.org/10.1145/2882903.2899401},
+  note = {DRIFT-FIXED-2026-04-24: prev-title="ReproZip: Computational Reproducibility With Ease" prev-author="Fernando Chirigati and Remi Rampin and Dennis Shasha and Juliana Freire". Live source: \url{http://dx.doi.org/10.1145/2882903.2899401}.},
+}
+
+@article{CodeGraph2025,
+  title={RepoGraph: Enhancing {AI} Software Engineering with Repository-level Code Graph},
+  author={Ouyang, Siru and Yu, Wenhao and Ma, Kaixin and Zhang, Xin and Han, Jiawei and Xiong, Hui},
+  journal={arXiv preprint arXiv:2410.14684},
+  year={2024},
+  note = {VERIFIED-REPLACED-2026-05-03: original "CodeGraph: Repository-level Knowledge Graphs" by FalkorDB was hallucinated (FalkorDB CodeGraph is an open-source tool, not a published paper). Replaced with verified RepoGraph paper by Ouyang et al. The bib key CodeGraph2025 is preserved for cite compatibility but the entry is entirely different.},
+}
+
+@article{codeintelligence2024,
+  title={Deep Learning for Code Intelligence: Survey, Benchmark and Toolkit},
+  author={Wan, Yao and He, Yang and Bi, Zhangqian and Zhang, Jianguo and Zhang, Hongyu and Sui, Yulei and Xu, Guandong and Jin, Hai and Yu, Philip S.},
+  journal={ACM Computing Surveys},
+  volume={56},
+  number={12},
+  pages={309:1--309:41},
+  year={2024},
+  doi={10.1145/3664597},
+  url={https://dblp.org/rec/journals/csur/WanBHZZSXJY24},
+  note = {DOI-FIXED-2026-05-10: previous DOI 10.1145/3703655 was unregistered; DBLP live record gives DOI 10.1145/3664597. Original "Code Intelligence: A systematic literature review" by Anonymous was hallucinated; bib key preserved for cite compatibility.},
+}
+
+@article{CodeRAG2024,
+  title={CodeRAG: Finding Relevant and Necessary Knowledge for Retrieval-Augmented Repository-Level Code Completion},
+  author={Anonymous},
+  journal={arXiv},
+  year={2024}
+}
+
+@article{Collberg2016,
+  title={Repeatability in computer systems research},
+  author={Collberg, Christian and Proebsting, Todd A},
+  journal={Communications of the ACM},
+  volume={59},
+  number={3},
+  pages={62--71},
+  year={2016}
+}
+
+@online{CopilotWorkspace2024,
+  author = {{GitHub}},
+  title = {GitHub Copilot Workspace},
+  year = {2024},
+  howpublished = {Product documentation},
+  url = {https://github.com/features/copilot/copilot-workspace},
+}
+
+@techreport{costan2016sgx,
+  author = {Victor Costan and Srinivas Devadas},
+  title = {Intel SGX Explained},
+  institution = {IACR Cryptology ePrint Archive},
+  year = {2016},
+  number = {2016/086},
+  url = {https://eprint.iacr.org/2016/086},
+}
+
+@article{Cox2005,
+  title={Metacognition in computation: A selected research review},
+  author={Cox, Michael T},
+  journal={Artificial intelligence},
+  volume={169},
+  number={2},
+  pages={104--141},
+  year={2005}
+}
+
+@misc{crdt-paper,
+  title = {{Spatial CRDTs: Provenance-Annotated Conflict Resolution as a Semiring Algebra}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2027},
+  howpublished = {Submission to ECOOP 2027},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-3-crdt-ecoop.tex}.},
+}
+
+@online{crewai2024,
+  author = {{CrewAI, Inc.}},
+  title = {CrewAI},
+  year = {2024},
+  howpublished = {Project homepage},
+  url = {https://www.crewai.com/},
+}
+
+@article{crosby2009efficient,
+  author = {Isaac Z. Wu and X.‐Y. Li and M. Song and C.‐M. Liu},
+  title = {{Security in <i>ad hoc</i> networks and pervasive computing}},
+  journal = {Security and Communication Networks},
+  year = {2010},
+  volume = {2},
+  number = {3},
+  pages = {317--334},
+  doi = {10.1002/sec.202},
+  url = {https://doi.org/10.1002/sec.202},
+  note = {DRIFT-FIXED-2026-04-24: prev-title="Efficient Data Structures for Tamper-Evident Logging" prev-author="Scott A. Crosby and Dan S. Wallach". Live source: \url{http://dx.doi.org/10.1002/sec.202}.},
+}
+
+@article{cure2024,
+  title={From {FAIR} to {CURE}: Guidelines for Computational Models of Biological Systems},
+  author={Sauro, Herbert M. and Agmon, Eran and Blinov, Michael L. and Gennari, John H. and Hellerstein, Joseph L. and others},
+  journal={arXiv preprint arXiv:2502.15597},
+  year={2025},
+  note = {VERIFIED-REPLACED-2026-05-03: original "The CURE Principles for Reliable AI" was hallucinated. The real CURE paper is about computational models in biology (Credible, Understandable, Reproducible, Extensible), accepted to Nature Systems Biology 2025. Citing papers should note this is about model credibility, not AI reliability per se. The bib key cure2024 is preserved for cite compatibility; cure2026 merged into this entry.},
+}
+
+% REMOVED-2026-05-03: cure2026 was a duplicate of cure2024 (same hallucinated title, different year).
+% All \cite{cure2026} references should be changed to \cite{cure2024}.
+
+@article{davies2018loihi,
+  author = {Mike Davies and Narayan Srinivasa and Tsung-Han Lin and Gautham Chinya and Yongqiang Cao and Sri Harsha Choday and Georgios Dimou and Prasad Joshi and Nabil Imam and Shweta Jain and Yashi Liao and Chit-Kwan Lin and Andrew Lines and Rui Liu and Deepak Mathaikutty and Steve McCoy and Amrul Paul and Jonathan Tse and Guruguhan Venkataramanan and Yi-Hsin Weng and Andreas Wild and Yoonsoo Yang and Hong Wang},
+  title = {Loihi: A Neuromorphic Manycore Processor with On-Chip Learning},
+  journal = {IEEE Micro},
+  year = {2018},
+  volume = {38},
+  number = {1},
+  pages = {82--99},
+  doi = {10.1109/MM.2018.112130359},
+  url = {https://doi.org/10.1109/MM.2018.112130359},
+}
+
+@article{davison2012sumatra,
+  title={Automated capture of experiment context for easier reproducibility in computational research},
+  author={Davison, Andrew P},
+  journal={Computing in Science \& Engineering},
+  volume={14},
+  number={4},
+  pages={48--56},
+  year={2012}
+}
+
+@online{DevinAI2024,
+  author = {{Cognition Labs}},
+  title = {Devin},
+  year = {2024},
+  howpublished = {Product page},
+  url = {https://www.cognition.ai/},
+}
+
+@article{dtaf2025,
+  author = {Ibrahim, Ahmed Abdelrahman and Lim, Hak-Kyu},
+  title = {A Deterministic Assurance Framework for Licensable Explainable {AI} Grid-Interactive Nuclear Control},
+  journal = {Energies},
+  volume = {18},
+  number = {23},
+  pages = {6268},
+  year = {2025},
+  doi = {10.3390/en18236268},
+  url = {https://doi.org/10.3390/en18236268},
+}
+
+@article{Edge2024,
+  title={From Local to Global: A Graph RAG Approach to Query-Focused Summarization},
+  author={Edge, Darren and others},
+  journal={arXiv preprint arXiv:2404.16130},
+  year={2024}
+}
+
+@article{edge2024graphrag,
+  title={From Local to Global: A Graph RAG Approach to Query-Focused Summarization},
+  author={Edge, Darren and others},
+  journal={arXiv preprint arXiv:2404.16130},
+  year={2024}
+}
+
+@article{eshraghian2023training,
+  author = {Eshraghian, Jason K. and Ward, Max and Neftci, Emre and Wang, Xinxin and Lenz, Gregor and Dwivedi, Girish and Bennamoun, Mohammed and Jeong, Doo Seok and Lu, Wei D.},
+  title = {{Training Spiking Neural Networks Using Lessons From Deep Learning}},
+  journal = {Proceedings of the IEEE},
+  year = {2023},
+  volume = {111},
+  number = {9},
+  pages = {1016--1054},
+  doi = {10.1109/JPROC.2023.3308088},
+  url = {https://doi.org/10.1109/JPROC.2023.3308088},
+  note = {DOI-FIXED-2026-05-10: previous URL still pointed at unregistered DOI 10.1109/JPROC.2023.3287847. Live IEEE/arXiv metadata gives DOI 10.1109/JPROC.2023.3308088.},
+}
+
+@article{fang2023spikingjelly,
+  author = {Wei Fang and Zhao Rui and Yufei Ma and Zhengyu Yu and Ding Chen and Timothy J. Masquelier and Tiejun Huang and Yonghong Tian},
+  title = {SpikingJelly: An Open-Source Machine Learning Infrastructure Platform for Spiking Neural Networks},
+  journal = {Science Advances},
+  year = {2023},
+  volume = {9},
+  number = {40},
+  pages = {eadi1480},
+  doi = {10.1126/sciadv.adi1480},
+  url = {https://doi.org/10.1126/sciadv.adi1480},
+}
+
+@misc{feascript2024,
+  author = {{FEAScript Contributors}},
+  title = {{FEAScript}: Browser-Based Finite Element Analysis},
+  howpublished = {Software repository},
+  year = {2024},
+  url = {https://github.com/FEAScript/FEAScript-core},
+}
+
+@misc{feascript2025,
+  author = {{FEAScript Contributors}},
+  title = {{FEAScript}: A JavaScript Finite Element Simulation Library},
+  howpublished = {Project documentation},
+  year = {2025},
+  url = {https://feascript.com/},
+}
+
+@online{fenics2024,
+  author = {{FEniCS Project}},
+  title = {FEniCS Project},
+  year = {2024},
+  howpublished = {Project homepage},
+  url = {https://fenicsproject.org/},
+}
+
+@online{figma2019crdt,
+  author = {Evan Wallace},
+  title = {How Figma's multiplayer technology works},
+  year = {2019},
+  howpublished = {Engineering blog post},
+  url = {https://www.figma.com/blog/how-figmas-multiplayer-technology-works/},
+}
+
+@book{Fowler2005,
+  author    = {Martin Fowler},
+  title     = {Patterns of Enterprise Application Architecture},
+  publisher = {Addison-Wesley},
+  year      = {2002},
+  isbn      = {978-0321127426},
+  url       = {https://martinfowler.com/books/eaa.html},
+  note      = {Cited as Fowler2005 in bibliography; primary publication 2002.},
+}
+
+@article{furber2014spinnaker,
+  author    = {Steve B. Furber and Francesco Galluppi and Steve Temple and Luis A. Plana},
+  title     = {The {SpiNNaker} Project},
+  journal   = {Proceedings of the IEEE},
+  year      = {2014},
+  volume    = {102},
+  number    = {5},
+  pages     = {652--665},
+  doi       = {10.1109/JPROC.2014.2304638},
+}
+
+@inproceedings{gennaro2010,
+  author = {Rosario Gennaro and Craig Gentry and Bryan Parno},
+  title = {{Non-interactive Verifiable Computing: Outsourcing Computation to Untrusted Workers}},
+  booktitle = {Lecture Notes in Computer Science},
+  year = {2010},
+  pages     = {465--482},
+  publisher = {Springer},
+  doi       = {10.1007/978-3-642-14623-7_25},
+  note = {DRIFT-FIXED-2026-04-24: prev-title="Non-interactive Verifiable Computing: Outsourcing Computation to Untrusted Worke" prev-author="Rosario Gennaro and Craig Gentry and Bryan Parno and Mariana Raykova". Live source: \url{http://dx.doi.org/10.1007/978-3-642-14623-7_25}.},
+}
+
+@book{gerstner2002spiking,
+  author = {Wulfram Gerstner and Werner M. Kistler},
+  title = {{Spiking Neuron Models}},
+  publisher = {Cambridge University Press},
+  year = {2002},
+  doi       = {10.1017/CBO9780511815706},
+  url       = {https://neuronaldynamics.epfl.ch/},
+  journal = {Cambridge University Press},
+  note = {DRIFT-FIXED-2026-04-24: prev-title="Spiking Neuron Models: Single Neurons, Populations, Plasticity" prev-author="Wulfram Gerstner and Werner M. Kistler". Live source: \url{http://dx.doi.org/10.1017/CBO9780511815706}.},
+}
+
+@article{gewaltig2007nest,
+  author    = {Marc-Oliver Gewaltig and Markus Diesmann},
+  title     = {{NEST} ({NE}ural {S}imulation {T}ool)},
+  journal   = {Scholarpedia},
+  year      = {2007},
+  volume    = {2},
+  number    = {4},
+  pages     = {1430},
+  doi       = {10.4249/scholarpedia.1430},
+}
+
+@online{GitHubCodeNav2023,
+  author    = {{GitHub, Inc.}},
+  title     = {GitHub Code Navigation},
+  year      = {2023},
+  url       = {https://docs.github.com/en/repositories/working-with-files/using-files/navigating-code-on-github},
+  urldate   = {2024-01-01},
+}
+
+@misc{GitNexus2026,
+  author = {{GitNexus Contributors}},
+  title = {{GitNexus}: Turn any codebase into a knowledge graph you can query},
+  howpublished = {Software overview},
+  year = {2026},
+  url = {https://www.virge.io/en/blog/gitnexus-code-knowledge-graph/},
+}
+
+@inproceedings{gleicher-retargeting1998,
+  author = {Michael Gleicher},
+  title = {{Retargetting motion to new characters}},
+  booktitle = {Proceedings of the 25th annual conference on Computer graphics and interactive techniques  - SIGGRAPH '98},
+  year = {1998},
+  pages     = {33--42},
+  publisher = {ACM},
+  doi       = {10.1145/280814.280820},
+  note = {DRIFT-FIXED-2026-04-24: prev-title="Retargetting Motion to New Characters" prev-author="Michael Gleicher". Live source: \url{http://dx.doi.org/10.1145/280814.280820}.},
+}
+
+@inproceedings{glorot2011deep,
+  author    = {Xavier Glorot and Antoine Bordes and Yoshua Bengio},
+  title     = {Deep Sparse Rectifier Neural Networks},
+  booktitle = {Proceedings of the 14th International Conference on Artificial Intelligence and Statistics (AISTATS)},
+  year      = {2011},
+  pages     = {315--323},
+  volume    = {15},
+  series    = {JMLR Workshop and Conference Proceedings},
+  url       = {http://proceedings.mlr.press/v15/glorot11a.html},
+}
+
+@article{godoy2020adios,
+  author    = {William F. Godoy and Norbert Podhorszki and Ruonan Wang and Chuck Atkins and Greg Eisenhauer and Junmin Gu and Philip Davis and Jong Choi and Kesheng Wu and Brad Klasky},
+  title     = {{ADIOS} 2: The Adaptable Input Output System. {A} framework for high-performance data management},
+  journal   = {SoftwareX},
+  year      = {2020},
+  volume    = {12},
+  pages     = {100561},
+  doi       = {10.1016/j.softx.2020.100561},
+}
+
+@article{goldwasser1989,
+  author    = {Shafi Goldwasser and Silvio Micali and Charles Rackoff},
+  title     = {The Knowledge Complexity of Interactive Proof Systems},
+  journal   = {SIAM Journal on Computing},
+  year      = {1989},
+  volume    = {18},
+  number    = {1},
+  pages     = {186--208},
+  doi       = {10.1137/0218012},
+}
+
+@article{graphrag-paper,
+  author    = {Darren Edge and Ha Trinh and Newman Cheng and Joshua Bradley and Alex Chao and Apurva Mody and Steven Truitt and Jonathan Larson},
+  title     = {From Local to Global: {A} Graph {RAG} Approach to Query-Focused Summarization},
+  journal   = {arXiv preprint arXiv:2404.16130},
+  year      = {2024},
+  url       = {https://arxiv.org/abs/2404.16130},
 }
 
 @inproceedings{green-semiring2007,
-  author    = {Green, Todd J. and Karvounarakis, Grigoris and Tannen, Val},
+  author    = {Todd J. Green and Grigoris Karvounarakis and Val Tannen},
   title     = {Provenance Semirings},
-  booktitle = {Proceedings of the ACM Symposium on Principles of Database Systems ({PODS})},
+  booktitle = {Proceedings of the 26th ACM SIGMOD-SIGACT-SIGART Symposium on Principles of Database Systems (PODS)},
   year      = {2007},
+  pages     = {31--40},
+  publisher = {ACM},
+  doi       = {10.1145/1265530.1265535},
 }
 
-% ── GDC / game industry talks ─────────────────────────────────────────────────
+@inproceedings{green2007provenance,
+  author    = {Todd J. Green and Grigoris Karvounarakis and Val Tannen},
+  title     = {Provenance Semirings},
+  booktitle = {Proceedings of the 26th ACM SIGMOD-SIGACT-SIGART Symposium on Principles of Database Systems (PODS)},
+  year      = {2007},
+  pages     = {31--40},
+  publisher = {ACM},
+  doi       = {10.1145/1265530.1265535},
+}
+
+@inproceedings{greshake2023,
+  author    = {Kai Greshake and Sahar Abdelnabi and Shailesh Mishra and Christoph Endres and Thorsten Holz and Mario Fritz},
+  title     = {Not What You've Signed Up For: Compromising Real-World {LLM}-Integrated Applications with Indirect Prompt Injections},
+  booktitle = {Proceedings of the 16th ACM Workshop on Artificial Intelligence and Security (AISec)},
+  year      = {2023},
+  pages     = {79--90},
+  publisher = {ACM},
+  doi       = {10.1145/3605764.3623985},
+}
+
+@online{guerrilla-decima2017,
+  author    = {{Guerrilla Games}},
+  title     = {Decima Engine: Nuts and Bolts},
+  year      = {2017},
+  url       = {https://www.gdcvault.com/play/1024296/Decima-Engine-Advances-in-Lighting},
+  note      = {GDC 2017 talk},
+}
+
+@online{gvisor2019,
+  author    = {{Google LLC}},
+  title     = {{gVisor}: Container Security Sandbox},
+  year      = {2019},
+  url       = {https://github.com/google/gvisor},
+}
+
+@article{gym2016,
+  author    = {Greg Brockman and Vicki Cheung and Ludwig Pettersson and Jonas Schneider and John Schulman and Jie Tang and Wojciech Zaremba},
+  title     = {{OpenAI} Gym},
+  journal   = {arXiv preprint arXiv:1606.01540},
+  year      = {2016},
+  url       = {https://arxiv.org/abs/1606.01540},
+}
+
+@inproceedings{haas2017wasm,
+  author    = {Andreas Haas and Andreas Rossberg and Derek L. Schuff and Ben L. Titzer and Michael Holman and Dan Gohman and Luke Wagner and Alon Zakai and J. F. Bastien},
+  title     = {Bringing the Web up to Speed with {WebAssembly}},
+  booktitle = {Proceedings of the 38th ACM SIGPLAN Conference on Programming Language Design and Implementation (PLDI)},
+  year      = {2017},
+  pages     = {185--200},
+  publisher = {ACM},
+  doi       = {10.1145/3062341.3062363},
+}
+
+@article{Herschel2017,
+  author    = {Melanie Herschel and Ralf Diestelkämper and Houssem Ben Lahmar},
+  title     = {A survey on provenance: What for? What form? What from?},
+  journal   = {The VLDB Journal},
+  year      = {2017},
+  volume    = {26},
+  number    = {6},
+  pages     = {881--906},
+  doi       = {10.1007/s00778-017-0486-1},
+}
+
+@article{holden-pfnn2017,
+  author    = {Daniel Holden and Taku Komura and Jun Saito},
+  title     = {Phase-Functioned Neural Networks for Character Control},
+  journal   = {ACM Transactions on Graphics},
+  year      = {2017},
+  volume    = {36},
+  number    = {4},
+  pages     = {42:1--42:13},
+  doi       = {10.1145/3072959.3073663},
+}
+
+@misc{holoscript2026,
+  title = {{HoloScript: A Simulation-First Domain-Bridge Language for Spatial Computing}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2026},
+  howpublished = {HoloScript ecosystem v6.0.4, \url{https://holoscript.net}},
+  note = {Canonical citation for the HoloScript language and runtime. Source repository: \url{https://github.com/brianonbased-dev/HoloScript}; see the PLDI draft \texttt{research/paper-10-hs-core-pldi.tex} for the formal semantics.},
+}
+
+@misc{holoscript2026cael,
+  title = {{CAEL: Causal Agent-Environment Loops with Hash-Chain Provenance for Trustworthy Embodied Simulation}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2026},
+  howpublished = {Submission to AAMAS 2027},
+  note = {Alias for \texttt{cael-paper}. Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-0c-cael-aamas.tex}.},
+}
+
+@inproceedings{holt2006logcrypt,
+  author    = {Jason E. Holt},
+  title     = {{LogCrypt}: Forward Security and Public Verification for Secure Audit Logs},
+  booktitle = {Proceedings of the 2006 Australasian Workshops on Grid Computing and e-Research (ACSW)},
+  year      = {2006},
+  pages     = {203--211},
+  url       = {https://eprint.iacr.org/2006/052},
+}
+
+@article{Horwitz1990,
+  author    = {Susan Horwitz and Thomas Reps and David Binkley},
+  title     = {Interprocedural Slicing Using Dependence Graphs},
+  journal   = {ACM Transactions on Programming Languages and Systems},
+  year      = {1990},
+  volume    = {12},
+  number    = {1},
+  pages     = {26--60},
+  doi       = {10.1145/77606.77608},
+}
+
+@article{hou2025mcp,
+  author       = {Hou, Xinyi and Zhao, Yanjie and Wang, Shenao and Wang, Haoyu},
+  title        = {{Model Context Protocol (MCP): Landscape, Security Threats, and Future Research Directions}},
+  journal      = {arXiv preprint arXiv:2503.23278},
+  year         = {2025},
+  eprint       = {2503.23278},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CR},
+  url          = {https://arxiv.org/abs/2503.23278},
+}
+
+@inproceedings{humanml3d,
+  author    = {Chuan Guo and Shihao Zou and Xinxin Zuo and Sen Wang and Wei Ji and Xingyu Li and Li Cheng},
+  title     = {Generating Diverse and Natural 3D Human Motions from Text},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year      = {2022},
+  pages     = {5152--5161},
+  doi       = {10.1109/CVPR52688.2022.00509},
+}
+
+@techreport{impossibilities2026,
+  title = {{The HoloScript Three-Format Impossibility Map: 28 Computational and Domain Problems, Rated SOLVES / PARTIALLY ADDRESSES / MERELY REFRAMES}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2026},
+  month = {March},
+  institution = {HoloScript Core},
+  type = {Internal research note},
+  note = {Source: \texttt{research/2026-03-09\_holoscript-three-format-impossibility-map.md}. 3 SOLVES, 9 PARTIALLY ADDRESSES, 16 MERELY REFRAMES. The foundational behavioral-determinism reframing used by CAEL.},
+}
+
+@online{invariantlabs2025,
+  author    = {{Invariant Labs}},
+  title     = {Invariant Labs: {MCP} Security Scanner},
+  year      = {2025},
+  url       = {https://invariantlabs.ai/},
+}
+
+@inproceedings{kleppmann2019yjs,
+  author    = {Martin Kleppmann and Adam Wiggins and Peter van Hardenberg and Mark McGranaghan},
+  title     = {Local-First Software: You Own Your Data, in Spite of the Cloud},
+  booktitle = {Proceedings of the 2019 ACM SIGPLAN International Symposium on New Ideas, New Paradigms, and Reflections on Programming and Software (Onward!)},
+  year      = {2019},
+  pages     = {154--178},
+  publisher = {ACM},
+  doi       = {10.1145/3359591.3359737},
+}
+
+@book{Kounev2017,
+  author = {Samuel Kounev and Klaus-Dieter Lange and Jóakim von Kistowski},
+  title = {{Systems Benchmarking}},
+  publisher = {Springer},
+  year = {2020},
+  doi       = {10.1007/978-3-030-41705-5},
+  note = {DRIFT-FIXED-2026-04-24: prev-title="Systems Benchmarking for Scientists and Engineers" prev-author="Samuel Kounev and Klaus-Dieter Lange and Jóakim von Kistowski". Live source: \url{http://dx.doi.org/10.1007/978-3-030-41705-5}. Prev-note: Cited as Kounev2017; primary publication 2020.},
+  journal = {Springer International Publishing},
+}
+
+@article{kovar-gleicher2004,
+  author    = {Lucas Kovar and Michael Gleicher},
+  title     = {Automated Extraction and Parameterization of Motions in Large Data Sets},
+  journal   = {ACM Transactions on Graphics},
+  year      = {2004},
+  volume    = {23},
+  number    = {3},
+  pages     = {559--568},
+  doi       = {10.1145/1015706.1015760},
+}
+
+@misc{Krzywoszyja2026CAEL,
+  title = {{CAEL: Causal Agent-Environment Loops with Hash-Chain Provenance for Trustworthy Embodied Simulation}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2026},
+  howpublished = {Submission to AAMAS 2027},
+  note = {Author-year-form alias for \texttt{cael-paper}. Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-0c-cael-aamas.tex}.},
+}
+
+@misc{Krzywoszyja2026TBC,
+  title = {{Trust by Construction: End-to-End Provenance for Spatial Computing}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2026},
+  howpublished = {IEEE Transactions on Visualization and Computer Graphics (TVCG)},
+  note = {Author-year-form alias for \texttt{trust-by-construction}. Paper in the HoloScript 16-paper research program; source: \texttt{research/trust-by-construction-paper.tex}.},
+}
+
+@online{langchain2024,
+  author    = {{LangChain, Inc.}},
+  title     = {{LangChain}: Building applications with {LLMs} through composability},
+  year      = {2024},
+  url       = {https://github.com/langchain-ai/langchain},
+}
+
+@online{LangChain2024,
+  author    = {{LangChain, Inc.}},
+  title     = {{LangChain}: Building applications with {LLMs} through composability},
+  year      = {2024},
+  url       = {https://github.com/langchain-ai/langchain},
+  note      = {Case-preserving alias for IEEEtran auxiliary-file stability.},
+}
+
+@techreport{laurie2013ct,
+  author      = {Ben Laurie and Adam Langley and Emilia Kasper},
+  title       = {Certificate Transparency},
+  institution = {IETF},
+  year        = {2013},
+  number      = {RFC 6962},
+  doi         = {10.17487/RFC6962},
+  url         = {https://www.rfc-editor.org/rfc/rfc6962},
+}
+
+@techreport{laurie2014certificate,
+  author      = {Ben Laurie},
+  title       = {Certificate Transparency},
+  institution = {IETF},
+  year        = {2014},
+  number      = {RFC 6962},
+  doi         = {10.17487/RFC6962},
+  url         = {https://www.rfc-editor.org/rfc/rfc6962},
+}
+
+@techreport{laurie2014ct,
+  author      = {Ben Laurie and Adam Langley and Emilia Kasper and E. Messeri},
+  title       = {Certificate Transparency},
+  institution = {IETF},
+  year        = {2014},
+  number      = {RFC 6962},
+  doi         = {10.17487/RFC6962},
+  url         = {https://www.rfc-editor.org/rfc/rfc6962},
+}
+
+@inproceedings{Lewis2020,
+  author    = {Patrick Lewis and Ethan Perez and Aleksandra Piktus and Fabio Petroni and Vladimir Karpukhin and Naman Goyal and Heinrich Küttler and Mike Lewis and Wen-tau Yih and Tim Rocktäschel and Sebastian Riedel and Douwe Kiela},
+  title     = {Retrieval-Augmented Generation for Knowledge-Intensive {NLP} Tasks},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2020},
+  volume    = {33},
+  pages     = {9459--9474},
+  url       = {https://proceedings.neurips.cc/paper/2020/hash/6b493230205f780e1bc26945df7481e5-Abstract.html},
+}
+
+@inproceedings{lewis2020rag,
+  author    = {Patrick Lewis and Ethan Perez and Aleksandra Piktus and Fabio Petroni and Vladimir Karpukhin and Naman Goyal and Heinrich Küttler and Mike Lewis and Wen-tau Yih and Tim Rocktäschel and Sebastian Riedel and Douwe Kiela},
+  title     = {Retrieval-Augmented Generation for Knowledge-Intensive {NLP} Tasks},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2020},
+  volume    = {33},
+  pages     = {9459--9474},
+  url       = {https://proceedings.neurips.cc/paper/2020/hash/6b493230205f780e1bc26945df7481e5-Abstract.html},
+}
+
+@article{li2023codegeneration,
+  author    = {Yujia Li and David Choi and Junyoung Chung and Nate Kushman and Julian Schrittwieser and Rémi Leblond and Tom Eccles and James Keeling and Felix Gimeno and Agustin Dal Lago and Thomas Hubert and Peter Choy and Cyprien de Masson d'Autume and Igor Babuschkin and Xinyun Chen and Po-Sen Huang and Johannes Welbl and Sven Gowal and Alexey Cherepanov and James Molloy and Daniel J. Mankowitz and Esme Sutherland Robson and Pushmeet Kohli and Nando de Freitas and Koray Kavukcuoglu and Oriol Vinyals},
+  title     = {Competition-Level Code Generation with {AlphaCode}},
+  journal   = {Science},
+  year      = {2022},
+  volume    = {378},
+  number    = {6624},
+  pages     = {1092--1097},
+  doi       = {10.1126/science.abq1158},
+}
+
+@online{lockstep2001,
+  author    = {Mark Terrano and Paul Bettner},
+  title     = {1500 Archers on a 28.8: Network Programming in Age of Empires and Beyond},
+  year      = {2001},
+  url       = {https://www.gamedeveloper.com/programming/1500-archers-on-a-28-8-network-programming-in-age-of-empires-and-beyond},
+  note      = {Game Developer Magazine / GDC 2001},
+}
+
+@online{loro2024,
+  author    = {{Loro Contributors}},
+  title     = {Loro: Peritext-inspired {CRDT} for Rich Text Editing},
+  year      = {2024},
+  url       = {https://loro.dev/},
+}
+
+@inproceedings{lowe2017multiagent,
+  author    = {Ryan Lowe and Yi Wu and Aviv Tamar and Jean Harb and Pieter Abbeel and Igor Mordatch},
+  title     = {Multi-Agent Actor-Critic for Mixed Cooperative-Competitive Environments},
+  booktitle = {Advances in Neural Information Processing Systems (NIPS)},
+  year      = {2017},
+  pages     = {6379--6390},
+  url       = {https://proceedings.neurips.cc/paper/2017/hash/68a9750337a418a86fe06c1991a1d64f-Abstract.html},
+}
+
+@article{luke2005mason,
+  author    = {Sean Luke and Claudio Cioffi-Revilla and Liviu Panait and Keith Sullivan and Gabriel Balan},
+  title     = {{MASON}: A Multiagent Simulation Environment},
+  journal   = {Simulation},
+  year      = {2005},
+  volume    = {81},
+  number    = {7},
+  pages     = {517--527},
+  doi       = {10.1177/0037549705058073},
+}
+
+@article{maass1997networks,
+  author    = {Wolfgang Maass},
+  title     = {Networks of Spiking Neurons: The Third Generation of Neural Network Models},
+  journal   = {Neural Networks},
+  year      = {1997},
+  volume    = {10},
+  number    = {9},
+  pages     = {1659--1671},
+  doi       = {10.1016/S0893-6080(97)00011-7},
+}
+
+@article{maass1997snn,
+  author    = {Wolfgang Maass},
+  title     = {Networks of Spiking Neurons: The Third Generation of Neural Network Models},
+  journal   = {Neural Networks},
+  year      = {1997},
+  volume    = {10},
+  number    = {9},
+  pages     = {1659--1671},
+  doi       = {10.1016/S0893-6080(97)00011-7},
+}
+
+@book{maclagan2015introduction,
+  author = {Diane Maclagan and Bernd Sturmfels},
+  title = {{Introduction to Tropical Geometry}},
+  publisher = {American Mathematical Society},
+  year = {2015},
+  series    = {Graduate Studies in Mathematics},
+  volume    = {161},
+  doi       = {10.1090/gsm/161},
+  journal = {Graduate Studies in Mathematics},
+  note = {DRIFT-FIXED-2026-04-24: prev-title="Introduction to Tropical Geometry" prev-author="Diane Maclagan and Bernd Sturmfels". Live source: \url{http://dx.doi.org/10.1090/gsm/161}.},
+}
+
+@book{maclagan2015tropical,
+  author = {Diane Maclagan and Bernd Sturmfels},
+  title = {{Introduction to Tropical Geometry}},
+  publisher = {American Mathematical Society},
+  year = {2015},
+  series    = {Graduate Studies in Mathematics},
+  volume    = {161},
+  doi       = {10.1090/gsm/161},
+  journal = {Graduate Studies in Mathematics},
+  note = {DRIFT-FIXED-2026-04-24: prev-title="Introduction to Tropical Geometry" prev-author="Diane Maclagan and Bernd Sturmfels". Live source: \url{http://dx.doi.org/10.1090/gsm/161}.},
+}
+
+@article{maragos2021tropical,
+  author    = {Petros Maragos and Vasileios Charisopoulos and Emmanouil Theodosis},
+  title     = {Tropical Geometry and Machine Learning},
+  journal   = {Proceedings of the IEEE},
+  year      = {2021},
+  volume    = {109},
+  number    = {5},
+  pages     = {728--755},
+  doi       = {10.1109/JPROC.2021.3065238},
+}
+
+@online{mcp-spec,
+  author    = {{Anthropic}},
+  title     = {Model Context Protocol Specification},
+  year      = {2024},
+  url       = {https://modelcontextprotocol.io/specification},
+}
+
+@misc{mcp-trust-paper,
+  title = {{MCP Trust: Provenance-Bound Model Context Protocol for Adversarial Environments}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2027},
+  howpublished = {Submission to USENIX Security 2027},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-1-mcp-trust-usenix.tex}.},
+}
+
+@online{MCP2024,
+  author    = {{Anthropic}},
+  title     = {Introducing the Model Context Protocol},
+  year      = {2024},
+  url       = {https://www.anthropic.com/news/model-context-protocol},
+}
+
+@article{merkel2014docker,
+  author    = {Dirk Merkel},
+  title     = {Docker: Lightweight {Linux} Containers for Consistent Development and Deployment},
+  journal   = {Linux Journal},
+  year      = {2014},
+  volume    = {2014},
+  number    = {239},
+  pages     = {2},
+  url       = {https://www.linuxjournal.com/content/docker-lightweight-linux-containers-consistent-development-and-deployment},
+}
+
+@inproceedings{merkle1987,
+  author = {Ralph C. Merkle},
+  title = {{A Digital Signature Based on a Conventional Encryption Function}},
+  booktitle = {Lecture Notes in Computer Science},
+  year = {1988},
+  pages     = {369--378},
+  publisher = {Springer},
+  doi       = {10.1007/3-540-48184-2_32},
+  note = {DRIFT-FIXED-2026-04-24: prev-title="A Digital Signature Based on a Conventional Encryption Function" prev-author="Ralph C. Merkle". Live source: \url{http://dx.doi.org/10.1007/3-540-48184-2_32}.},
+}
+
+@article{mikhalkin2005tropical,
+  author  = {Mikhalkin, Grigory},
+  title   = {Enumerative Tropical Algebraic Geometry in {$\mathbb{R}^2$}},
+  journal = {Journal of the American Mathematical Society},
+  year    = {2005},
+  volume  = {18},
+  number  = {2},
+  pages   = {313--377},
+  doi     = {10.1090/S0894-0347-05-00477-7},
+  eprint  = {math/0312530},
+  archivePrefix = {arXiv},
+  note    = {Foundational reference for tropical curves / Maslov dequantization — cited as external validation that min-plus algebra (used in HoloScript's provenance semiring) is a load-bearing structure in pure mathematics, not a HoloScript coinage.},
+}
+
+@article{merolla2014truenorth,
+  author    = {Paul A. Merolla and John V. Arthur and Rodrigo Alvarez-Icaza and Andrew S. Cassidy and Jun Sawada and Filipp Akopyan and Bryan L. Jackson and Nabil Imam and Chen Guo and Yutaka Nakamura and Bernard Brezzo and Ivan Vo and Steven K. Esser and Rathinakumar Appuswamy and Brian Taba and Arnon Amir and Myron D. Flickner and William P. Risk and Rajit Manohar and Dharmendra S. Modha},
+  title     = {A Million Spiking-Neuron Integrated Circuit with a Scalable Communication Network and Interface},
+  journal   = {Science},
+  year      = {2014},
+  volume    = {345},
+  number    = {6197},
+  pages     = {668--673},
+  doi       = {10.1126/science.1254642},
+}
+
+@online{meta-spatial2025,
+  author    = {{Meta Platforms, Inc.}},
+  title     = {Meta Spatial {SDK} for {Android}},
+  year      = {2025},
+  url       = {https://developer.meta.com/horizon/documentation/spatial-sdk/spatial-sdk-overview/},
+}
+
+@inproceedings{mlir-lattner2020,
+  author    = {Chris Lattner and Mehdi Amini and Uday Bondhugula and Albert Cohen and Andy Davis and Jacques Pienaar and River Riddle and Tatiana Shpeisman and Nicolas Vasilache and Oleksandr Zinenko},
+  title     = {{MLIR}: Scaling Compiler Infrastructure for Domain Specific Computation},
+  booktitle = {Proceedings of the 2021 IEEE/ACM International Symposium on Code Generation and Optimization (CGO)},
+  year      = {2021},
+  pages     = {2--14},
+  doi       = {10.1109/CGO51591.2021.9370308},
+}
+
+@article{mohri2002semiring,
+  author    = {Mehryar Mohri},
+  title     = {Semiring Frameworks and Algorithms for Shortest-Distance Problems},
+  journal   = {Journal of Automata, Languages and Combinatorics},
+  year      = {2002},
+  volume    = {7},
+  number    = {3},
+  pages     = {321--350},
+  url       = {https://cs.nyu.edu/~mohri/pub/jalc.pdf},
+}
+
+@book{Moreau2013,
+  author = {Luc Moreau and Paul Groth},
+  title = {{Provenance: An Introduction to PROV}},
+  publisher = {Morgan \& Claypool},
+  year = {2013},
+  series    = {Synthesis Lectures on the Semantic Web: Theory and Technology},
+  doi       = {10.2200/S00528ED1V01Y201308WBE007},
+  journal = {Synthesis Lectures on Data, Semantics, and Knowledge},
+  note = {DRIFT-FIXED-2026-04-24: prev-title=Provenance-An-Introduction-to-PROV prev-author=Luc-Moreau-and-Paul-Groth. Live source: \url{http://dx.doi.org/10.1007/978-3-031-79450-6}.},
+}
+
+@book{moreau2013prov,
+  author = {L. Moreau and Paul Groth},
+  title = {{Provenance: An Introduction to PROV}},
+  publisher = {Morgan \& Claypool},
+  year = {2013},
+  journal = {Synthesis Lectures on Data, Semantics, and Knowledge},
+  series    = {Synthesis Lectures on Data, Semantics, and Knowledge},
+  doi       = {10.2200/S00528ED1V01Y201308WBE007},
+  note = {VENUE-FIXED-2026-05-10: aligned series/container with live DOI metadata while preserving Morgan \& Claypool as publisher.},
+}
+
+@inproceedings{motion-x,
+  author = {Jing-de Lin and Ailing Zeng and Shunlin Lu and Yuan-Yuan Cai and Ruimao Zhang and Haoqian Wang and L. Zhang},
+  title = {{Motion-X: A Large-scale 3D Expressive Whole-body Human Motion Dataset}},
+  booktitle = {Neural Information Processing Systems},
+  year = {2023},
+  url       = {https://arxiv.org/abs/2307.00818},
+  note = {DEEP-RESOLVED-S2-2026-04-24: prev-title="Motion-X: A large-scale 3D expressive whole-body human motion dataset" prev-author="Luo, Z. and others". Live source: \url{https://doi.org/10.48550/arXiv.2307.00818}.},
+}
+
+@article{motiondiffuse,
+  author = {Mingyuan Zhang and Zhongang Cai and Liang Pan and Fangzhou Hong and Xinying Guo and Lei Yang and Ziwei Liu},
+  title = {{MotionDiffuse: Text-Driven Human Motion Generation With Diffusion Model}},
+  journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  year = {2022},
+  volume    = {46},
+  number    = {6},
+  pages     = {4115--4128},
+  note = {DEEP-RESOLVED-S2-2026-04-24: prev-title="MotionDiffuse: Text-driven human motion generation with diffusion models" prev-author="Zhang, J. and Zhang, Y. and Cui, X. and Pang, J. and Liu, Z.". Live source: \url{https://doi.org/10.1109/TPAMI.2024.3355414}. Prev-note: DOI-404-2026-04-24: DOI  is not registered; removed.},
+}
+
+@inproceedings{motionvae,
+  author = {Hung Yu Ling and F. Zinno and George Cheng and M. V. D. Panne},
+  title = {{Character controllers using motion VAEs}},
+  booktitle = {ACM Transactions on Graphics},
+  year = {2020},
+  pages     = {40:1--40:12},
+  doi       = {10.1145/3386569.3392422},
+  note = {DRIFT-FIXED-2026-04-24: prev-title=Character-Controllers-Using-Motion-VAEs prev-author=Hung-Yu-Ling-et-al. Live source: \url{http://dx.doi.org/10.1145/3386569.3392422}.},
+}
+
+@inproceedings{mujoco2012,
+  author = {E. Todorov and Tom Erez and Yuval Tassa},
+  title = {{MuJoCo: A physics engine for model-based control}},
+  booktitle = {2012 IEEE/RSJ International Conference on Intelligent Robots and Systems},
+  year = {2012},
+  pages     = {5026--5033},
+  doi       = {10.1109/IROS.2012.6386109},
+  note = {DEEP-RESOLVED-S2-2026-04-24: prev-title="MuJoCo: A physics engine for model-based control" prev-author="Emanuel Todorov and Tom Erez and Yuval Tassa". Live source: \url{https://doi.org/10.1109/IROS.2012.6386109}.},
+}
+
+@article{muller-pbd2007,
+  author = {Matthias Müller and Bruno Heidelberger and Marcus Hennix and John Ratcliff},
+  title = {{Position based dynamics}},
+  journal = {Journal of Visual Communication and Image Representation},
+  year = {2007},
+  volume    = {18},
+  number    = {2},
+  pages     = {109--118},
+  doi       = {10.1016/j.jvcir.2007.01.005},
+  note = {DEEP-RESOLVED-OPENALEX-2026-04-24: prev-title="Position Based Dynamics" prev-author="Matthias Müller and Bruno Heidelberger and Marcus Hennix and John Ratcliff". Live source: \url{https://doi.org/10.1016/j.jvcir.2007.01.005}.},
+}
+
+@misc{nakamoto2008,
+  author = {Satoshi Nakamoto},
+  title = {{Bitcoin: A Peer-to-Peer Electronic Cash System}},
+  year = {2008},
+  url    = {https://bitcoin.org/bitcoin.pdf},
+  note = {MANUAL-FLIP-2026-04-24: S2 short-circuited on title-Jaccard=1.0 and returned "Anthony Dewayne Hunt" from an SSRN redistribution (ssrn.3440802). Canonical author restored; original Bitcoin whitepaper (bitcoin.org) attribution is Satoshi Nakamoto.},
+}
+
+@misc{nakamoto2008bitcoin,
+  author = {Satoshi Nakamoto},
+  title = {{Bitcoin: A Peer-to-Peer Electronic Cash System}},
+  year = {2008},
+  url    = {https://bitcoin.org/bitcoin.pdf},
+  note = {MANUAL-FLIP-2026-04-24: S2 short-circuited on title-Jaccard=1.0 and returned "Anthony Dewayne Hunt" from an SSRN redistribution (ssrn.3440802). Canonical author restored; original Bitcoin whitepaper (bitcoin.org) attribution is Satoshi Nakamoto.},
+}
 
 @misc{nd-tlou2-gdc2020,
-  author       = {Bergstrom, Matthew and others},
-  title        = {Animation Bootcamp: The Evolution of \textit{The Last of Us} Animation Systems},
-  howpublished = {{GDC} 2020 (Vault recording)},
+  author       = {{Naughty Dog}},
+  title        = {Deformable Snow and Grass Simulation in {The Last of Us Part II}},
+  howpublished = {Game Developers Conference (GDC) Presentation},
   year         = {2020},
+  url          = {https://www.gdcvault.com/play/1027088/}
+}
+
+@article{nest2014,
+  author = {Susanne Kunkel and Maximilian Schmidt and Jochen M. Eppler and H. Plesser and Gen Masumoto and J. Igarashi and Shin Ishii and T. Fukai and A. Morrison and M. Diesmann and M. Helias},
+  title = {{Spiking network simulation code for petascale computers}},
+  journal = {Frontiers in Neuroinformatics},
+  year = {2014},
+  volume  = {8},
+  pages   = {78},
+  doi     = {10.3389/fninf.2014.00078},
+  note = {DEEP-RESOLVED-S2-2026-04-24: prev-title="Spiking Network Simulation Code for Petascale Computers" prev-author="Kunkel, Susanne and Schmidt, Maximilian and Eppler, Jochen M. and Plesser, Hans ". Live source: \url{https://doi.org/10.3389/fninf.2014.00078}.},
+}
+
+@article{neuralbrain2025,
+  title={Neural Brain: A Framework for Brain-inspired Artificial Intelligence},
+  author={Anonymous},
+  journal={arXiv preprint},
+  year={2025}
+}
+
+@inproceedings{ng1999reward,
+  author = {Andrew Y. Ng and Daishi Harada and Stuart Russell},
+  title = {{Policy Invariance Under Reward Transformations: Theory and Application to Reward Shaping}},
+  booktitle = {Proceedings of the 16th International Conference on Machine Learning (ICML)},
+  year = {1999},
+  pages     = {278--287},
+  publisher = {Morgan Kaufmann},
+  note = {DEEP-RESOLVED-OPENALEX-2026-04-24: prev-title="Policy Invariance Under Reward Transformations: Theory and Application to Reward" prev-author="Ng, Andrew Y. and Harada, Daishi and Russell, Stuart J.". Live source: \url{https://openalex.org/W1777239053}.},
+}
+
+@misc{nickel2020isolate,
+  title={V8 Isolates and Sandboxing},
+  author={Nickel, J. and others},
+  howpublished={V8 Developer Blog},
+  year={2020}
+}
+
+@misc{nvidia-nvcloth,
+  author       = {{NVIDIA Corporation}},
+  title        = {{NvCloth} Cloth Simulation Library},
+  howpublished = {NVIDIA Developer Documentation},
+  year         = {2020},
+  url          = {https://developer.nvidia.com/nvcloth}
+}
+
+@book{oberkampf2010verification,
+  author = {W. Oberkampf and Christopher J. Roy},
+  title = {{Verification and Validation in Scientific Computing}},
+  year = {2010},
+  publisher = {Cambridge University Press},
+  address   = {Cambridge, UK},
+  isbn      = {9780521113601},
+  note = {DEEP-RESOLVED-S2-2026-04-24: prev-title="Verification and Validation in Scientific Computing" prev-author="Oberkampf, William L. and Roy, Christopher J.". Live source: \url{https://doi.org/10.1017/CBO9780511760396.024}. Prev-note: UNVERIFIED-DBLP-ZERO-MATCH-2026-04-24 (conf=0.00): DBLP 0 matches for title "Verification and Validation in Scientific Computing"; entry has the shape of a real publication but no external record},
+}
+
+@misc{openfoam2024,
+  author       = {{OpenFOAM Foundation}},
+  title        = {{OpenFOAM} -- Open-Source Computational Fluid Dynamics},
+  howpublished = {Online},
+  year         = {2024},
+  url          = {https://openfoam.org}
+}
+
+@misc{openreview2025,
+  author = {Tan, Xin and Liu, Bangwei and Bao, Yicheng and Tian, Qijian and Gao, Zhenkun and Wu, Xiongbin and Luo, Zhihao and Wang, Sen and Zhang, Yuqi and Wang, Xuhong and Lu, Chaochao and Zhou, Bowen},
+  title = {Towards Safe and Trustworthy Embodied {AI}: Foundations, Status, and Prospects},
+  howpublished = {OpenReview archive direct upload},
+  year = {2025},
+  url = {https://openreview.net/pdf/a3b0eb5349f3c0dd92e21b43b04037add70c669a.pdf},
+}
+
+@misc{paper-0c-cael-aamas2027,
+  title = {{CAEL: Causal Agent-Environment Loops with Hash-Chain Provenance for Trustworthy Embodied Simulation}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2027},
+  howpublished = {Submission to AAMAS 2027},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-0c-cael-aamas.tex}.},
+}
+
+@misc{paper-1-mcp-usenix2027,
+  title = {{MCP Trust: Provenance-Bound Model Context Protocol for Adversarial Environments}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2027},
+  howpublished = {Submission to USENIX Security 2027},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-1-mcp-trust-usenix.tex}.},
+}
+
+@misc{paper-10-hs-core-pldi2027,
+  title = {{HoloScript Core: A Contracted Compilation IR for Spatial Computing}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2027},
+  howpublished = {Submission to ACM SIGPLAN PLDI 2027},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-10-hs-core-pldi.tex}.},
+}
+
+@misc{paper-11-hsplus-ecoop2027,
+  title = {{HSPlus: Trait Composition and Commutativity Under Provenance Semirings}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2027},
+  howpublished = {Submission to ECOOP 2027},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-11-hsplus-ecoop.tex}.},
+}
+
+@misc{paper-12-holo-i3d2027,
+  title = {{Scene Composition Without Grammar Extension: Plugin-Based Domain Vocabulary for Spatial Languages}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2027},
+  howpublished = {Submission to ACM I3D 2027},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-12-holo-i3d.tex}.},
+}
+
+@misc{paper-13-dumbglass-siggraph2028,
+  title = {{Dumb Glass: Rendering as Contracted Synthesis of All Projections}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2028},
+  howpublished = {Submission to ACM SIGGRAPH 2028 technical paper},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-13-dumbglass-siggraph.tex}.},
+}
+
+@misc{paper-2-snn-neurips2026,
+  title = {{SNN Acceleration: WebGPU Spiking Networks with Deterministic Replay}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2026},
+  howpublished = {Submission to NeurIPS 2026},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-2-snn-neurips.tex}.},
+}
+
+@misc{paper-3-crdt-ecoop2027,
+  title = {{Spatial CRDTs: Provenance-Annotated Conflict Resolution as a Semiring Algebra}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2027},
+  howpublished = {Submission to ECOOP 2027},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-3-crdt-ecoop.tex}.},
+}
+
+@misc{paper-4-sandbox-usenix,
+  title = {{The Sandbox Contract: Formal Determinism Verification for Contracted Simulation}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2027},
+  howpublished = {Submission to USENIX Security 2027},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-4-sandbox-usenix.tex}.},
+}
+
+@misc{paper-5-graphrag-icse,
+  title = {{GraphRAG for Code: Retrieval-Augmented Software Engineering with Provenance Chains}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2027},
+  howpublished = {Submission to ICSE 2027},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-5-graphrag-icse.tex}.},
+}
+
+@misc{paper-6-anim-sca2027,
+  title = {{Contracted Animation: Hash-Verified Skeletal Retargeting Across Heterogeneous WebGPU Backends}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2027},
+  howpublished = {Submission to ACM SIGGRAPH Symposium on Computer Animation (SCA 2027)},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-6-animation-sca.tex}.},
+}
+
+@misc{paper-7-ik-siggraph2027,
+  title = {{Verifiable IK: Deterministic Inverse Kinematics Under the Contract Model}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2027},
+  howpublished = {Submission to SIGGRAPH / I3D 2027},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-7-ik-siggraph.tex}.},
+}
+
+@misc{paper-8-unified-siggraph2027,
+  title = {{Unified Physics and Animation: One Transform Graph Under Provenance}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2027},
+  howpublished = {Submission to ACM SIGGRAPH 2027 technical paper},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-8-unified-siggraph.tex}.},
+}
+
+@misc{paper-9-motion-asia2027,
+  title = {{Verifiable AI Motion: Determinism Probes for Learned Motion Synthesis}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2027},
+  howpublished = {Submission to SIGGRAPH Asia 2027 or NeurIPS 2027 (Datasets and Benchmarks)},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-9-verifiable-motion-siggraphasia.tex}.},
+}
+
+@inproceedings{parno2012pinocchio,
+  title = {{Pinocchio: Nearly Practical Verifiable Computation}},
+  author = {Bryan Parno and Jon Howell and Craig Gentry and Mariana Raykova},
+  booktitle = {IEEE Symposium on Security and Privacy},
+  pages={238--252},
+  year = {2013},
+  organization={IEEE},
+  note = {DEEP-RESOLVED-S2-2026-04-24: prev-title="Pinocchio: Nearly practical verifiable computation" prev-author="Parno, Bryan and Howell, Jon and Gentry, Craig and Raykova, Mariana". Live source: \url{https://doi.org/10.1145/2856449}.},
+}
+
+@inproceedings{parno2013pinocchio,
+  author = {Bryan Parno and Jon Howell and Craig Gentry and Mariana Raykova},
+  title = {{Pinocchio: Nearly Practical Verifiable Computation}},
+  booktitle = {IEEE Symposium on Security and Privacy},
+  year = {2013},
+  pages     = {238--252},
+  publisher = {{IEEE}},
+  doi       = {10.1109/SP.2013.47},
+  note = {DEEP-RESOLVED-S2-2026-04-24: prev-title="Pinocchio: Nearly Practical Verifiable Computation" prev-author="Parno, Bryan and Howell, Jon and Gentry, Craig and Raykova, Mariana". Live source: \url{https://doi.org/10.1145/2856449}.},
+}
+
+@article{peng2011,
+  title = {{Reproducible Research in Computational Science}},
+  author = {Roger D. Peng},
+  journal = {Science},
+  volume={334},
+  number={6060},
+  pages={1226--1227},
+  year = {2011},
+  publisher={American Association for the Advancement of Science},
+  note = {DEEP-RESOLVED-OPENALEX-2026-04-24: prev-title="Reproducible research in computational science" prev-author="Peng, Roger D". Live source: \url{https://doi.org/10.1126/science.1213847}. Prev-note: UNVERIFIED-DBLP-ZERO-MATCH-2026-04-24 (conf=0.17): DBLP has no close match for "Reproducible research in computational science" (best conf=0.17). Entry shape implies real publication. Top-3: "Search for Computational Workflow Synergies in Reproducible Research Data Analyses in Particle },
+}
+
+@inproceedings{physdiff,
+  author = {Yuan, Ye and Song, Jiaming and Iqbal, Umar and Kitani, Kris and Kautz, Jan},
+  title = {{PhysDiff: Physics-Guided Human Motion Diffusion Model}},
+  booktitle = {IEEE/CVF International Conference on Computer Vision (ICCV)},
+  year = {2023},
+  url = {https://arxiv.org/abs/2212.02500},
+  note = {MANUAL-FIX-2026-04-24: prior verify/deep passes resolved the arXiv DOI prefix 10.48550/arXiv.2308.09281 (and the 10.1109/ICCV51070.2023.01471 cross-resolution) to "Diverse Cotraining Makes Strong Semi-Supervised Segmentor" by Li et al — a completely different ICCV 2023 paper. That was a cross-resolution bug: the bib carried a wrong DOI, the deep pass trusted it, and the drift note got mangled by an earlier regex bug. Real PhysDiff is arxiv.org/abs/2212.02500 by Yuan/Song/Iqbal/Kitani/Kautz. Canonical attribution restored.},
+}
+
+@book{polchinski1998vol1,
+  author = {Joseph Polchinski},
+  title = {{String Theory}},
+  publisher = {Cambridge University Press},
+  year = {1998},
+  series    = {Cambridge Monographs on Mathematical Physics},
+  isbn      = {978-0521672276},
+  doi       = {10.1017/CBO9780511816079},
+  note = {DRIFT-FIXED-2026-04-24: prev-title="String Theory, Vol.~1: An Introduction to the Bosonic String" prev-author="Polchinski, Joseph". Live source: \url{http://dx.doi.org/10.1017/CBO9780511816079}. Prev-note: Chapters 1--2 develop the quantization of the bosonic string, where a particle is characterized by its vibrational-mode spectrum on the string worldsheet; the Fock-space basis is the countable set of excitation levels. Cited here as the canonical physics precedent for treating modal decomposition as an identity-defining decomposition of a system.},
+  journal = {Cambridge University Press},
+}
+
+@article{pijeira2017cad,
+  author = {Lv, Xiao and He, Fazhi and Cheng, Yuan and Wu, Yiqi},
+  title = {A novel {CRDT}-based synchronization method for real-time collaborative {CAD} systems},
+  journal = {Advanced Engineering Informatics},
+  volume = {38},
+  pages = {381--391},
+  year = {2018},
+  doi = {10.1016/j.aei.2018.08.008},
+  url = {https://doi.org/10.1016/j.aei.2018.08.008},
+  note = {Key name preserved for paper compatibility; previous Pijeira-Diaz/CSCW metadata had no external record.},
+}
+
+@misc{prov-dm-w3c,
+  author = {Khalid Belhajjame and Reza B'Far and James Cheney and Sam Coppens and Stephen Cresswell and Yolanda Gil and Paul Groth and Graham Klyne and Timothy Lebo and Jamie P. McCusker and Simon Miles and James D. Myers and Satya S. Sahoo and Curt Tilmes},
+  title = {{PROV-DM: The PROV Data Model}},
+  howpublished = {{W3C} Recommendation},
+  year = {2013},
+  url          = {https://www.w3.org/TR/prov-dm/},
+  journal = {ePrints Soton (University of Southampton)},
+  note = {DEEP-RESOLVED-OPENALEX-2026-04-24: prev-title="PROV-DM: The {PROV} Data Model" prev-author="Moreau, Luc and Missier, Paolo". Live source: \url{https://openalex.org/W2604713509}.},
+}
+
+@misc{provone2014,
+  author       = {Cuevas-Vicentt{\'{i}}n, V{\'{i}}ctor and Dey, Saumen and
+                  K{\"{o}}hler, Sven and Belhajjame, Khalid and
+                  Kianmajd, Parisa and Lud{\"{a}}scher, Bertram},
+  title        = {{ProvONE}: A {PROV} Extension Data Model for Scientific Workflow Provenance},
+  howpublished = {Manuscript, University of California, Davis / DataONE},
+  year         = {2014},
+  url          = {http://homepages.cs.ncl.ac.uk/paolo.missier/doc/dataone-prov-d3.1.pdf}
+}
+
+@misc{provone2015,
+  author       = {{DataONE}},
+  title        = {{ProvONE}: A Standard Provenance Model for Scientific Workflows},
+  howpublished = {DataONE Technical Report},
+  year         = {2015},
+  url          = {https://purl.dataone.org/provone-v1-dev}
+}
+
+@inproceedings{RepoCoder2023,
+  author = {Fengji Zhang and Bei Chen and Yue Zhang and Jacky Keung and Jin Liu and Daoguang Zan and Yi Mao and Jian–Guang Lou and Weizhu Chen},
+  title = {{RepoCoder: Repository-Level Code Completion Through Iterative Retrieval and Generation}},
+  booktitle = {Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing (EMNLP)},
+  year = {2023},
+  pages     = {2471--2484},
+  publisher = {Association for Computational Linguistics},
+  doi       = {10.18653/v1/2023.emnlp-main.151},
+  note = {DEEP-RESOLVED-OPENALEX-2026-04-24: prev-title="RepoCoder: Repository-Level Code Completion Through Iterative Retrieval and Gen" prev-author="Zhang, Fengji and Chen, Bei and Zhang, Yue and Liu, Jinyu and
+               Zan". Live source: \url{https://doi.org/10.18653/v1/2023.emnlp-main.151}.},
+}
+
+@misc{RepoGraph2024,
+  author = {Siru Ouyang and Wenhao Yu and Kaixin Ma and Zilin Xiao and Zhihan Zhang and Mengzhao Jia and Jiawei Han and Hongming Zhang and Dong Yu},
+  title = {{RepoGraph: Enhancing AI Software Engineering with Repository-level Code Graph}},
+  howpublished = {arXiv preprint arXiv:2410.14684},
+  year = {2024},
+  url          = {https://arxiv.org/abs/2410.14684},
+  journal = {arXiv (Cornell University)},
+  note = {DEEP-RESOLVED-OPENALEX-2026-04-24: prev-title="RepoGraph: Enhancing {AI} Software Engineering with Repository-level Code Graph" prev-author="Ouyang, Siru and Zheng, Runzhe and Peng, Hao and Liu, Junxian". Live source: \url{https://doi.org/10.48550/arxiv.2410.14684}.},
+}
+
+@book{roache1998verification,
+  author = {Patrick J. Roache},
+  title = {{Verification and Validation in Computational Science and Engineering}},
+  year = {1998},
+  publisher = {Hermosa Publishers},
+  address   = {Albuquerque, New Mexico},
+  isbn      = {0913478083},
+  note = {DEEP-RESOLVED-OPENALEX-2026-04-24: prev-title="Verification and Validation in Computational Science and Engineering" prev-author="Roache, Patrick J.". Live source: \url{https://openalex.org/W2149493559}.},
 }
 
 @misc{roblox-physics-overview2024,
   author       = {{Roblox Corporation}},
-  title        = {Physics and Character Motion (Engine Documentation)},
-  howpublished = {\url{https://create.roblox.com/docs/}},
+  title        = {Roblox Physics Overview},
+  howpublished = {Roblox Developer Documentation},
   year         = {2024},
+  url          = {https://create.roblox.com/docs/physics/physics-introduction}
 }
 
-@misc{guerrilla-decima2017,
-  author       = {{Guerrilla Games}},
-  title        = {Building \textit{Horizon Zero Dawn}'s Engine: Decima},
-  howpublished = {Public technical presentations},
-  year         = {2017},
+@article{Ryder1979,
+  author = {B. Ryder},
+  title = {{Constructing the Call Graph of a Program}},
+  journal = {IEEE Transactions on Software Engineering},
+  year = {1979},
+  volume  = {5},
+  number  = {3},
+  pages   = {216--226},
+  doi     = {10.1109/TSE.1979.234183},
+  note = {DEEP-RESOLVED-S2-2026-04-24: prev-title="Constructing the Call Graph of a Program" prev-author="Ryder, Barbara G.". Live source: \url{https://doi.org/10.1109/TSE.1979.234183}.},
 }
 
-% ── Standards ────────────────────────────────────────────────────────────────
-
-@techreport{iso-23247,
-  author      = {{International Organization for Standardization}},
-  title       = {{ISO}~23247: Digital Twin Manufacturing Framework},
-  institution = {{ISO}},
+@misc{sandbox-paper,
+  title = {{The Sandbox Contract: Formal Determinism Verification for Contracted Simulation}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2027},
+  howpublished = {Submission to USENIX Security 2027},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-4-sandbox-usenix.tex}.},
 }
 
-% ── JEPA / world-model citations (added 2026-05-20) ─────────────────────────
+@inproceedings{schaul2016per,
+  author = {T. Schaul and John Quan and Ioannis Antonoglou and David Silver},
+  title = {{Prioritized Experience Replay}},
+  booktitle = {International Conference on Learning Representations},
+  year = {2015},
+  url       = {https://arxiv.org/abs/1511.05952},
+  note = {DEEP-RESOLVED-S2-2026-04-24: prev-title="Prioritized Experience Replay" prev-author="Schaul, Tom and Quan, John and Antonoglou, Ioannis and Silver, David". Live source: \url{https://arxiv.org/abs/1511.05952}.},
+}
 
-@misc{lecun-lewm2025,
-  author       = {LeCun, Yann},
-  title        = {A Path Towards Autonomous Machine Intelligence / {LeWM} (Le World Model)},
-  howpublished = {arXiv:2506.09985},
+@inproceedings{schneier1998cryptographic,
+  author = {Bruce Schneier and John Kelsey},
+  title = {{Cryptographic support for secure logs on untrusted machines}},
+  booktitle = {Proceedings of the 7th {USENIX} Security Symposium},
+  year = {1998},
+  pages     = {53--62},
+  publisher = {{USENIX} Association},
+  note = {DEEP-RESOLVED-OPENALEX-2026-04-24: prev-title="Cryptographic Support for Secure Logs on Untrusted Machines" prev-author="Schneier, Bruce and Kelsey, John". Live source: \url{https://openalex.org/W2098721736}.},
+}
+
+@article{senellart-2018,
+  author = {Wang Chiew Tan},
+  title = {{Provenance in Databases: Past, Current, and Future}},
+  journal = {{IEEE} Data Engineering Bulletin},
+  year = {2007},
+  volume  = {41},
+  number  = {1},
+  pages   = {3--22},
+  note = {DEEP-RESOLVED-OPENALEX-2026-04-24: prev-title="Provenance in Databases: Past, Current, and Future" prev-author="Senellart, Pierre". Live source: \url{https://openalex.org/W2099636580}.},
+}
+
+@inproceedings{shapiro2011crdt,
+  author = {Marc Shapiro and Nuno Preguiça and Carlos Baquero and Marek Zawirski},
+  title = {{Conflict-Free Replicated Data Types}},
+  booktitle = {Lecture notes in computer science},
+  year = {2011},
+  pages     = {386--400},
+  series    = {LNCS},
+  volume    = {6976},
+  publisher = {Springer},
+  doi       = {10.1007/978-3-642-24550-3_29},
+  note = {DRIFT-FIXED-2026-04-24: prev-title="Conflict-Free Replicated Data Types" prev-author="Shapiro, Marc and Pregui{\c{c}}a, Nuno and Baquero, Carlos and Zawirski, Marek". Live source: \url{http://dx.doi.org/10.1007/978-3-642-24550-3_29}.},
+}
+
+@misc{sigstore2022,
+  author       = {{Sigstore}},
+  title        = {Sigstore: A Solution to Software Supply Chain Security},
+  howpublished = {Online},
+  year         = {2022},
+  url          = {https://www.sigstore.dev}
+}
+
+@article{simmhan2005survey,
+  author = {Yogesh L. Simmhan and Beth Plale and Dennis Gannon},
+  title = {{A survey of data provenance in e-science}},
+  journal = {ACM SIGMOD Record},
+  year = {2005},
+  volume  = {34},
+  number  = {3},
+  pages   = {31--36},
+  doi     = {10.1145/1084805.1084812},
+  note = {DEEP-RESOLVED-S2-2026-04-24: prev-title="A Survey of Data Provenance in e-Science" prev-author="Simmhan, Yogesh L. and Plale, Beth and Gannon, Dennis". Live source: \url{https://doi.org/10.1145/1084805.1084812}.},
+}
+
+@misc{simscale2024,
+  author       = {{SimScale GmbH}},
+  title        = {{SimScale} {CFD} and {FEA} Simulation Platform},
+  howpublished = {Online},
+  year         = {2024},
+  url          = {https://www.simscale.com}
+}
+
+@misc{simscale2025,
+  author       = {{SimScale GmbH}},
+  title        = {{SimScale} Documentation and Validation Reports},
+  howpublished = {Online},
   year         = {2025},
-  url          = {https://arxiv.org/abs/2506.09985},
+  url          = {https://www.simscale.com/docs/}
 }
 
-@inproceedings{assran-ijepa2023,
-  author    = {Assran, Mahmoud and Duval, Quentin and Misra, Ishan and Bojanowski, Piotr and Vincent, Pascal and Rabbat, Michael and LeCun, Yann and Ballas, Nicolas},
-  title     = {Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture},
-  booktitle = {Proceedings of the {IEEE/CVF} Conference on Computer Vision and Pattern Recognition ({CVPR})},
-  year      = {2023},
-  note      = {arXiv:2301.08243},
+@misc{SLSA2023,
+  author       = {{SLSA Contributors}},
+  title        = {Supply-Chain Levels for Software Artifacts ({SLSA}) v1.0},
+  howpublished = {Online},
+  year         = {2023},
+  url          = {https://slsa.dev/spec/v1.0/}
 }
 
-@misc{maes-lewm2024,
-  author       = {Maes, Lucas and others},
-  title        = {{LeWM}: {SIGReg} — Sketched Isotropic Gaussian Regularisation for Joint-Embedding Predictive Architectures},
-  howpublished = {\url{https://github.com/lucas-maes/le-wm}},
+@misc{smilkov2019tensorflow,
+  author       = {Smilkov, Daniel and Thorat, Nikhil and Assogba, Yannick and
+                  Yuan, Ann and Kreeger, Nick and Yu, Ping and Zhang, Kangyi and
+                  Cai, Shanqing and Nielsen, Eric and Soegel, David and
+                  Bileschi, Stan and Terry, Michael},
+  title        = {{TensorFlow.js}: Machine Learning for the Web and Beyond},
+  howpublished = {arXiv preprint arXiv:1901.05350},
+  year         = {2019},
+  url          = {https://arxiv.org/abs/1901.05350}
+}
+
+@misc{crdt-test-suite-2026,
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  title = {{CRDT Test Suite: Spatial Merges, World-State Merges, Hash-Chain Integrity, Multi-Peer Traceability, Deterministic Tie-Breaking, Dispute-Resolution-by-Replay}},
+  howpublished = {HoloScript: \texttt{packages/engine/src/simulation/\_\_tests\_\_/paper-multi-agent-crdt.test.ts} plus \texttt{crdt-spatial} and \texttt{CRDTCAELBridge} suites; run host class Intel i7-11800H / 32 GB / Node 22 / Vitest 4.1},
+  year = {2026},
+  month = {April},
+  note = {Test count at time of writing (2026-04-19 handoff from gemini-holoscript agent): 27 passing CRDT tests (multi-agent + spatial + world-state + hash-chain + tie-breaking) + 12 passing \texttt{CRDTCAELBridge} tests (counted separately in the paper conclusion) + 2 passing \texttt{SpatialCRDTBridge} package tests. Exact enumeration is in HoloScript, not this repo; the citation points to the test-file path so a reviewer can re-count at any commit. Cross-paper canonical benchmark run artifact: \texttt{research/benchmark-paper-3-crdt-canonical-run.md}.},
+}
+
+@misc{snn-webgpu-harness-2026,
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  title = {{SNN-WebGPU Browser Benchmark Harness: Playwright-Automated Reproduction of Paper 2 Throughput Tables}},
+  howpublished = {HoloScript commit eeddf35ec (\texttt{packages/snn-webgpu/scripts/run-benchmark.mjs}); Playwright-driven, environment-configured (local + strict CI modes), with deterministic JSON artifact logging to \texttt{.bench-logs/}},
+  year = {2026},
+  month = {April},
+  note = {Automation around the manual \texttt{benchmark-gpu.html} workflow already described in Section~\ref{sec:lif-throughput}. Captures GPU adapter, driver, and workload identity in structured output so third-party rerun diffs are mechanical rather than interpretive.},
+}
+
+@misc{snn-paper,
+  title = {{SNN Acceleration: WebGPU Spiking Networks with Deterministic Replay}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2026},
+  howpublished = {Submission to NeurIPS 2026},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/paper-2-snn-neurips.tex}.},
+}
+
+@article{spiking-world2025,
+  author = {Sun, Yinqian and Zhao, Feifei and Lyu, Mingyang and Zeng, Yi},
+  title = {Spiking world model with multicompartment neurons for model-based reinforcement learning},
+  journal = {Proceedings of the National Academy of Sciences of the United States of America},
+  volume = {122},
+  number = {50},
+  pages = {e2513319122},
+  year = {2025},
+  doi = {10.1073/pnas.2513319122},
+  url = {https://pnas.org/doi/10.1073/pnas.2513319122},
+}
+
+@article{stodden2014,
+  author = {Victoria Stodden and Sheila Fernández Míguez},
+  title = {{Best Practices for Computational Science: Software Infrastructure and Environments for Reproducible and Extensible Research}},
+  journal = {Journal of Open Research Software},
+  year = {2014},
+  volume  = {2},
+  number  = {1},
+  pages   = {e21},
+  doi     = {10.5334/jors.ay},
+  note = {VENUE-FIXED-2026-05-10: DOI live metadata resolves to Journal of Open Research Software 2(1):e21, 2014.},
+}
+
+@book{sutton2018rl,
+  author = {R. S. Sutton and A. Barto},
+  title = {{Reinforcement Learning: An Introduction}},
+  edition   = {2nd},
+  year = {1998},
+  publisher = {MIT Press},
+  address   = {Cambridge, Massachusetts},
+  isbn      = {9780262039246},
+  journal = {IEEE Trans. Neural Networks},
+  note = {DEEP-RESOLVED-S2-2026-04-24: prev-title="Reinforcement Learning: An Introduction" prev-author="Sutton, Richard S. and Barto, Andrew G.". Live source: \url{https://doi.org/10.1109/TNN.1998.712192}.},
+}
+
+@article{tang2024braincog,
+  title={BrainCog: A Spiking Neural Network based Brain-inspired Cognitive Intelligence Engine},
+  author={Tang, Y and others},
+  journal={Patterns},
+  year={2024}
+}
+
+@article{tao2019digital,
+  author = {F. Tao and He Zhang and Ang Liu and A. Nee},
+  title = {{Digital Twin in Industry: State-of-the-Art}},
+  journal = {IEEE Transactions on Industrial Informatics},
+  year = {2019},
+  volume  = {15},
+  number  = {4},
+  pages   = {2405--2415},
+  doi     = {10.1109/TII.2018.2873186},
+  note = {DEEP-RESOLVED-S2-2026-04-24: prev-title="Digital Twin in Industry: State-of-the-Art" prev-author="Tao, Fei and Zhang, He and Liu, Ang and Nee, Andrew Y. C.". Live source: \url{https://doi.org/10.1109/TII.2018.2873186}.},
+}
+
+@article{tavanaei2019snn,
+  author = {A. Tavanaei and M. Ghodrati and S. R. Kheradpisheh and T. Masquelier and A. Maida},
+  title = {{Deep Learning in Spiking Neural Networks}},
+  journal = {Neural Networks},
+  year = {2018},
+  volume  = {111},
+  pages   = {47--63},
+  doi     = {10.1016/j.neunet.2018.12.002},
+  note = {DEEP-RESOLVED-S2-2026-04-24: prev-title="Deep Learning in Spiking Neural Networks" prev-author="Tavanaei, Amirhossein and Ghodrati, Masoud and Kheradpisheh, Saeed Reza
+        ". Live source: \url{https://doi.org/10.1016/j.neunet.2018.12.002}.},
+}
+
+@misc{teutsch2017truebit,
+  author = {Jason Teutsch and Christian Reitwießner},
+  title = {{A Scalable Verification Solution for Blockchains}},
+  howpublished = {Whitepaper},
+  year = {2023},
+  url          = {https://people.cs.uchicago.edu/~teutsch/papers/truebit.pdf},
+  journal = {Lecture notes series, Institute For Mathematical Sciences},
+  note = {DEEP-RESOLVED-OPENALEX-2026-04-24: prev-title="A Scalable Verification Solution for Blockchains ({TrueBit})" prev-author="Teutsch, Jason and Reitwiessner, Christian". Live source: \url{https://doi.org/10.1142/9789811278631_0015}.},
+}
+
+@misc{trust-by-construction,
+  title = {{Trust by Construction: End-to-End Provenance for Spatial Computing}},
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  year = {2026},
+  howpublished = {IEEE Transactions on Visualization and Computer Graphics (TVCG)},
+  note = {Paper in the HoloScript 16-paper research program; source: \texttt{research/trust-by-construction-paper.tex}.},
+}
+
+% Duplicate-key entry removed 2026-04-26 closing task_1777090049783_717x:
+% the at-misc trustbyconstruction2026 stub here was the bootstrap form;
+% canonical entry is the at-article trustbyconstruction2026 later in this
+% file (line ~2128 area), which has the journal field set to "IEEE TVCG"
+% and matches the cite-form "(submitted)" used across the program.
+
+@misc{trustgraph2025,
+  author = {{TrustGraph Contributors}},
+  title = {{TrustGraph}: Open-source agent intelligence platform with knowledge graphs and {GraphRAG}},
+  howpublished = {Project documentation},
+  year = {2025},
+  url = {https://docs.trustgraph.ai/},
+}
+
+@misc{ue5-chaos-async,
+  author       = {{Epic Games}},
+  title        = {Chaos Physics --- Asynchronous Physics in {Unreal Engine 5}},
+  howpublished = {Unreal Engine Documentation},
+  year         = {2023},
+  url          = {https://dev.epicgames.com/documentation/en-us/unreal-engine/chaos-physics-overview-in-unreal-engine}
+}
+
+@misc{ue5-controlrig-physics,
+  author       = {{Epic Games}},
+  title        = {Control Rig Physics in {Unreal Engine 5}},
+  howpublished = {Unreal Engine Documentation},
+  year         = {2023},
+  url          = {https://dev.epicgames.com/documentation/en-us/unreal-engine/control-rig-in-unreal-engine}
+}
+
+@misc{ue5-forum-physanim,
+  author       = {{Epic Games Developer Community}},
+  title        = {Physics Animation in {Unreal Engine 5} --- Community Discussion},
+  howpublished = {Unreal Engine Developer Community Forums},
+  year         = {2022},
+  url          = {https://forums.unrealengine.com}
+}
+
+@misc{unity-anim-rigging,
+  author       = {{Unity Technologies}},
+  title        = {Animation Rigging Package Documentation},
+  howpublished = {Unity Manual},
+  year         = {2023},
+  url          = {https://docs.unity3d.com/Packages/com.unity.animation.rigging@1.3/manual/index.html}
+}
+
+@misc{unity-animatephysics-doc,
+  author       = {{Unity Technologies}},
+  title        = {Animate Physics --- {Unity} Scripting {API}},
+  howpublished = {Unity Manual},
+  year         = {2023},
+  url          = {https://docs.unity3d.com/ScriptReference/Rigidbody-animatePhysics.html}
+}
+
+@misc{unity-forum-animphys,
+  author       = {{Unity Technologies}},
+  title        = {Physics-Based Animation --- Community Discussions},
+  howpublished = {Unity Discussions Forum},
+  year         = {2023},
+  url          = {https://discussions.unity.com}
+}
+
+@misc{unity-labs-dice2020,
+  author       = {{Unity Technologies}},
+  title        = {Physics Animation in Games},
+  howpublished = {{DICE} Summit Presentation, Unity Labs},
+  year         = {2020},
+  url          = {https://unity.com/resources}
+}
+
+@misc{unity2024,
+  author       = {{Unity Technologies}},
+  title        = {Unity Real-Time Development Platform},
+  howpublished = {Online},
+  year         = {2024},
+  url          = {https://unity.com}
+}
+
+@misc{unreal2024,
+  author       = {{Epic Games}},
+  title        = {Unreal Engine 5},
+  howpublished = {Online},
+  year         = {2024},
+  url          = {https://www.unrealengine.com}
+}
+
+@inproceedings{van2018foreshadow,
+  author = {Jo Van Bulck and Marina Minkin and Ofir Weisse and Daniel Genkin and Baris Kasikci and Frank Piessens and Mark Silberstein and Thomas F. Wenisch and Yuval Yarom and Raoul Strackx},
+  title = {{Foreshadow: extracting the keys to the intel SGX kingdom with transient out-of-order execution}},
+  booktitle = {Lirias (KU Leuven)},
+  year = {2018},
+  pages     = {991--1008},
+  publisher = {{USENIX} Association},
+  note = {DEEP-RESOLVED-OPENALEX-2026-04-24: prev-title="Foreshadow: Extracting the Keys to the {Intel SGX} Kingdom with
+               T" prev-author="Van Bulck, Jo and Minkin, Marina and Weisse, Ofir and Genkin, Daniel and
+       ". Live source: \url{https://openalex.org/W2888798936}.},
+}
+
+@misc{vistrails-aosa,
+  author    = {Freire, Juliana and Koop, David and Santos, Emanuele and
+               Scheidegger, Carlos and Callahan, Steven and Silva, Cl{\'{a}}udio T.},
+  title     = {{VisTrails}: Enabling Visualization and Data Analysis Through Provenance},
+  howpublished = {Chapter in \emph{The Architecture of Open Source Applications}, Volume {II}},
+  year      = {2012},
+  url       = {https://aosabook.org/en/v2/vistrails.html},
+}
+
+@misc{vmware2023wasmsec,
+  author       = {{VMware}},
+  title        = {{WebAssembly} Security: Beyond the {VM} Boundary},
+  howpublished = {VMware Security Blog},
+  year         = {2023},
+  url          = {https://blogs.vmware.com/opensource/}
+}
+
+@misc{w3c-prov,
+  author       = {Groth, Paul and Moreau, Luc},
+  title        = {{PROV-Overview}: An Introduction to {PROV}},
+  howpublished = {{W3C} Note},
+  year         = {2013},
+  url          = {https://www.w3.org/TR/prov-overview/}
+}
+
+@inproceedings{wahbe1993efficient,
+  author = {Robert Wahbe and Steven Lucco and Thomas E. Anderson and Susan L. Graham},
+  title = {{Efficient software-based fault isolation}},
+  booktitle = {Proceedings of the 14th {ACM} Symposium on Operating Systems Principles (SOSP)},
+  year = {1993},
+  pages     = {203--216},
+  publisher = {{ACM}},
+  doi       = {10.1145/168619.168635},
+  note = {DEEP-RESOLVED-OPENALEX-2026-04-24: prev-title="Efficient Software-Based Fault Isolation" prev-author="Wahbe, Robert and Lucco, Steven and Anderson, Thomas E. and Graham, Susan L.". Live source: \url{https://doi.org/10.1145/168619.168635}.},
+}
+
+@article{wang-chen-ccd1991,
+  title = {{A combined optimization method for solving the inverse kinematics problems of mechanical manipulators}},
+  author = {L.-C.T. Wang and C.C. Chen},
+  journal = {IEEE Transactions on Robotics and Automation},
+  volume={7},
+  number={4},
+  pages={489--499},
+  year = {1991},
+  publisher={IEEE},
+  note = {DEEP-RESOLVED-OPENALEX-2026-04-24: prev-title="A combined optimization method for solving the inverse kinematics problem of mec" prev-author="Wang, Li-Chun T and Chen, Chih-Hsin". Live source: \url{https://doi.org/10.1109/70.86079}.},
+}
+
+@misc{webgpu2024spec,
+  author       = {{W3C GPU for the Web Working Group}},
+  title        = {{WebGPU} Specification},
+  howpublished = {{W3C} Candidate Recommendation},
+  year         = {2024},
+  url          = {https://www.w3.org/TR/webgpu/}
+}
+
+@mastersthesis{welman-ik1993,
+  author = {C. Welman},
+  title = {{INVERSE KINEMATICS AND GEOMETRIC CONSTRAINTS FOR ARTICULATED FIGURE MANIPULATION}},
+  school  = {Simon Fraser University},
+  year = {1993},
+  address = {Burnaby, British Columbia, Canada},
+  note = {DEEP-RESOLVED-OPENALEX-2026-04-24: prev-title="Inverse Kinematics and Geometric Constraints for Articulated Figure Manipulation" prev-author="Welman, Chris". Live source: \url{https://openalex.org/W1534424366}. Prev-note: UNVERIFIED-DBLP-ZERO-MATCH-2026-04-24 (conf=0.00): DBLP 0 matches for title "Inverse Kinematics and Geometric Constraints for Articulated Figure Manipulation"; entry has the shape of a real publication but no external record},
+  journal = {Summit (Simon Fraser University)},
+}
+
+@misc{wilensky1999netlogo,
+  author = {Tim Gooding},
+  title = {{Netlogo}},
+  howpublished = {Center for Connected Learning and Computer-Based Modeling,
+                  Northwestern University, Evanston, IL},
+  year = {2019},
+  url          = {https://ccl.northwestern.edu/netlogo/},
+  journal = {Economics for a Fairer Society},
+  note = {DEEP-RESOLVED-S2-2026-04-24: prev-title="NetLogo" prev-author="Wilensky, Uri". Live source: \url{https://doi.org/10.1007/978-3-030-17020-2_5}.},
+}
+
+@misc{wu2024,
+  author = {Wu, Qingyun and Bansal, Gagan and Zhang, Jieyu and Wu, Yiran and Li, Beibin and Zhu, Erkang and Jiang, Li and Zhang, Xiaoyun and Zhang, Shaokun and Liu, Jiale and Awadallah, Ahmed Hassan and White, Ryen W. and Burger, Doug and Wang, Chi},
+  title = {{AutoGen}: Enabling Next-Gen {LLM} Applications via Multi-Agent Conversation},
+  howpublished = {arXiv preprint arXiv:2308.08155},
+  year = {2023},
+  doi = {10.48550/arXiv.2308.08155},
+  url = {https://arxiv.org/abs/2308.08155},
+}
+
+@article{Yang2024,
+  title = {{SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering}},
+  author = {John Yang and Carlos E. Jimenez and Alexander Wettig and Kilian Adriano Lieret and Shunyu Yao and Karthik Narasimhan and Ofir Press},
+  journal = {Neural Information Processing Systems},
+  year = {2024},
+  note = {DEEP-RESOLVED-S2-2026-04-24: prev-title="SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering" prev-author="Yang, John and Jimenez, Carlos E and Wettig, Alexander and Luan, Kilian and othe". Live source: \url{https://doi.org/10.48550/arXiv.2405.15793}.},
+}
+
+@inproceedings{yee2009native,
+  author = {Bennet Yee and David Sehr and Gregory Dardyk and J. Bradley Chen and Robert Muth and Tavis Ormandy and Shiki Okasaka and Neha Narula and Nicholas Fullagar},
+  title = {{Native Client: A Sandbox for Portable, Untrusted x86 Native Code}},
+  booktitle = {Proceedings of the 30th {IEEE} Symposium on Security and Privacy (S{\&}P)},
+  year = {2009},
+  pages     = {79--93},
+  publisher = {{IEEE}},
+  doi       = {10.1109/SP.2009.25},
+  note = {DEEP-RESOLVED-OPENALEX-2026-04-24: prev-title="Native Client: A Sandbox for Portable, Untrusted x86 Native Code" prev-author="Yee, Bennet and Sehr, David and Dardyk, Gregory and Chen, J. Bradley and
+       ". Live source: \url{https://doi.org/10.1109/sp.2009.25}.},
+}
+
+@misc{yjs2024,
+  author       = {Jahns, Kevin},
+  title        = {{Yjs}: A {CRDT} Framework for Building Collaborative Applications},
+  howpublished = {Online},
+  year         = {2024},
+  url          = {https://yjs.dev}
+}
+
+@inproceedings{zhan2024,
+  author = {Zhan, Qiusi and Liang, Zhixiang and Ying, Zifan and Kang, Daniel},
+  title = {{InjecAgent}: Benchmarking Indirect Prompt Injections in Tool-Integrated Large Language Model Agents},
+  booktitle = {Findings of the Association for Computational Linguistics: ACL 2024},
+  pages = {10471--10506},
+  publisher = {Association for Computational Linguistics},
+  year = {2024},
+  doi = {10.18653/v1/2024.findings-acl.624},
+  url = {https://aclanthology.org/2024.findings-acl.624/},
+}
+
+@inproceedings{zhang2018tropical,
+  title={Tropical Geometry of Deep Neural Networks},
+  author={Zhang, Liwen and Naitzat, Gregory and Lim, Lek-Heng},
+  booktitle={Proceedings of the 35th International Conference on Machine Learning},
+  series={Proceedings of Machine Learning Research},
+  volume={80},
+  pages={5824--5832},
+  publisher={PMLR},
+  year={2018},
+  url={https://proceedings.mlr.press/v80/zhang18i.html},
+  note = {DRIFT-FIXED-2026-05-10: previous title "Tropical neural networks" and truncated verification note were stale; PMLR live record gives "Tropical Geometry of Deep Neural Networks".},
+}
+
+@article{capone2024dreaming,
+  title = {Towards biologically plausible model-based reinforcement learning in recurrent spiking networks by dreaming new experiences},
+  author = {Capone, Cristiano and Paolucci, Pier Stanislao},
+  journal = {Scientific Reports},
+  volume = {14},
+  number = {1},
+  pages = {14656},
+  year = {2024},
+  publisher = {Nature Publishing Group},
+  doi = {10.1038/s41598-024-65631-y},
+  url = {https://doi.org/10.1038/s41598-024-65631-y},
+  note = {REPLACES-HALLUCINATED-2026-05-11: prior key was `zhang2025spiking` claiming a 2025 PNAS paper (DOI 10.1073/pnas.2418274122 returned 404 on Crossref + OpenAlex; peer 2026-05-10 deep-lookup flagged LIKELY_HALLUCINATED). Replaced with verified Capone et al. 2024 Sci.\ Rep.\ Vol 14 Art 14656 — closest real paper on SNN world-models for RL; cite-site recast to honestly describe their dreaming-based model-based RL contribution.},
+}
+
+@inproceedings{zinkevich2007cfr,
+  author = {Michael Bowling and Michael Johanson and Martin Zinkevich and Carmelo Piccione},
+  title = {{Regret Minimization in Games with Incomplete Information}},
+  booktitle = {Advances in Neural Information Processing Systems 20 (NIPS)},
+  year = {2007},
+  pages     = {1729--1736},
+  publisher = {Curran Associates},
+  note = {DEEP-RESOLVED-OPENALEX-2026-04-24: prev-title="Regret Minimization in Games with Incomplete Information" prev-author="Zinkevich, Martin and Johanson, Michael and Bowling, Michael and Piccione, Carme". Live source: \url{https://doi.org/10.7939/r3q23r282}.},
+}
+@article{trustbyconstruction2026,
+  author = {Krzywoszyja, Joseph},
+  title = {Trust by Construction: Provenance-Native Simulation Contracts},
+  journal = {IEEE TVCG},
+  year = {2026},
+  note = {(submitted)}
+}
+
+@misc{absorb-b1-b2-2026,
+  author = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  title = {Absorb-Service AST Migration (B1-B6): From String Templates to \texttt{holoFactory}-Constructed HoloComposition Nodes},
+  howpublished = {HoloScript commits 2e7bfd88 / f14dc4f3 / f268b764 (B1/B2 landing), plus subsequent B4-B6 gate-elimination pass},
+  year = {2026},
+  month = {April},
+  note = {B1/B2 introduced AST-node construction in \texttt{absorb-typescript-tools.ts} and \texttt{codebase-tools.ts}. The B4-B6 string-validation gates (including \texttt{absorb-holo-validation-gates.b4-b6.test.ts}) were subsequently eliminated because syntactic correctness is guaranteed by compiler construction, not after-the-fact regex validation. The citation key is retained for backwards compatibility with earlier drafts.}
+}
+
+@article{animgan,
+  author = {Aberman, K. and Li, P. and Lischinski, D. and Sorkine-Hornung, O. and Cohen-Or, D. and Chen, B.},
+  title = {Skeleton-aware networks for deep motion retargeting},
+  journal = {ACM TOG},
+  volume = {39},
+  number = {4},
+  year = {2020}
+}
+
+% Duplicate at-article motionvae removed 2026-04-24: canonical entry is the
+% at-inproceedings motionvae form earlier in this file (has DOI 10.1145/3386569.3392422).
+% This Copilot-generated duplicate was blocking fix-bib-drift.py from seeing
+% the DOI field on parse.
+% NOTE: at-<type> notation is intentional; the literal at-symbol-then-type-then-brace
+% pattern in a percent-prefixed comment triggers bibtex's lexer to start a phantom
+% entry and breaks parse (see fix commit closing task_1777090049783_717x).
+
+% Duplicate at-misc motiondiffuse removed 2026-04-24: canonical entry is the
+% at-article motiondiffuse earlier in this file (DEEP-RESOLVED via S2 to
+% TPAMI 2024 paper, authoritative metadata). This Copilot-generated stub
+% with wrong initials-only authors was shadowing the parse.
+
+@article{mdm,
+  author = {Tevet, Guy and Raab, Sigal and Gordon, Brian and Shafir, Yonatan and Cohen-Or, Daniel and Bermano, Amit H.},
+  title = {Human Motion Diffusion Model},
+  journal = {arXiv},
+  year = {2022},
+  doi = {10.48550/arXiv.2209.14916},
+  url = {https://arxiv.org/abs/2209.14916},
+  note = {Presented at ICLR 2023; DOI metadata resolves through arXiv.},
+}
+
+% Duplicate at-inproceedings physdiff removed 2026-04-24: canonical entry is the
+% at-inproceedings physdiff form earlier in this file (has DOI 10.1109/ICCV51070.2023.01471).
+% This Copilot-generated duplicate was blocking fix-bib-drift.py from seeing
+% the DOI field on parse.
+
+@inproceedings{humanml3d,
+  author = {Guo, C. and Zou, S. and Zuo, X. and Wang, S. and Ji, W. and Li, X. and Cheng, L.},
+  title = {Generating diverse and natural 3D human motions from text},
+  booktitle = {CVPR},
+  year = {2022}
+}
+
+@inproceedings{amass,
+  author = {Mahmood, N. and others},
+  title = {AMASS: Archive of motion capture as surface shapes},
+  booktitle = {ICCV},
+  year = {2019}
+}
+
+% Duplicate at-inproceedings motion-x removed 2026-04-24: canonical entry is
+% the at-inproceedings motion-x earlier in this file (DEEP-RESOLVED via S2 to
+% the full author list and arxiv 2307.00818). This Copilot-generated stub
+% with "Luo, Z. and others" was shadowing the parse.
+
+% ==========================================================================
+% Bibliography sweep additions, 2026-04-24 — keys cited by papers 3/5/0c/6
+% but not present pre-sweep. Added per docs/paper-bibliography-migration.md
+% Step "if missing keys, add them in separate commit BEFORE migrating".
+% Each entry mirrors the content of its inline-bib origin in the citing paper.
+% ==========================================================================
+
+@techreport{IEEE7542019,
+  author       = {{IEEE}},
+  title        = {{IEEE} Standard for Floating-Point Arithmetic},
+  number       = {{IEEE Std} 754-2019},
+  year         = {2019},
+  institution  = {{IEEE}},
+}
+
+@misc{WebGPUSpec,
+  author       = {{W3C}},
+  title        = {{WebGPU} Specification},
+  howpublished = {{W3C} Working Draft},
+  year         = {2024},
+  note         = {Cited as WebGPUSpec in paper-3-crdt-ecoop; semantically duplicates webgpu2024spec earlier in this file. Keep both keys until paper-3 cite-sites are reconciled at submission-bundle time.},
+}
+
+@comment{LangChain2024 alias restored 2026-05-11: Paper 5's IEEEtran compile
+  writes the LangChain citation into the aux file as LangChain2024, so the
+  shared bibliography intentionally keeps both langchain2024 and LangChain2024
+  until the paper bundle migrates to a bibliography backend with stable
+  case handling.}
+
+@article{architects2026,
+  author       = {Rey, M. and others},
+  title        = {{ARCHITECTS~I}: impact of subgrid physics on the simulated properties of the circumgalactic medium},
+  journal      = {Mon. Not. R. Astron. Soc.},
+  volume       = {543},
+  pages        = {12--27},
+  year         = {2025},
+}
+
+@article{sbi2022,
+  author       = {Cranmer, K. and Brehmer, J. and Louppe, G.},
+  title        = {The frontier of simulation-based inference},
+  journal      = {Proc. Natl. Acad. Sci. USA},
+  volume       = {117},
+  number       = {48},
+  pages        = {30055--30062},
+  year         = {2020},
+  note         = {Cite-key sbi2022 originates from paper-0c-cael-aamas inline bib; underlying publication year is 2020 per the original PNAS issue.},
+}
+
+@misc{unity-mecanim-manual,
+  author       = {{Unity Technologies}},
+  title        = {Animator Controller and blend trees},
+  howpublished = {Unity Manual},
+  year         = {2024},
+  url          = {https://docs.unity3d.com/Manual/class-AnimatorController.html},
+}
+
+@misc{unreal-animation-blueprints,
+  author       = {{Epic Games}},
+  title        = {Animation Blueprints},
+  howpublished = {Unreal Engine 5 Documentation},
+  year         = {2024},
+  url          = {https://dev.epicgames.com/documentation/en-us/unreal-engine/animation-blueprints-in-unreal-engine},
+}
+
+@misc{unreal-control-rig-doc,
+  author       = {{Epic Games}},
+  title        = {Control Rig},
+  howpublished = {Unreal Engine 5 Documentation},
+  year         = {2024},
+  url          = {https://dev.epicgames.com/documentation/en-us/unreal-engine/control-rig-in-unreal-engine},
+}
+
+@inproceedings{ungar1987self,
+  author    = {Ungar, David and Smith, Randall B.},
+  title     = {Self: The Power of Simplicity},
+  booktitle = {OOPSLA},
+  year      = {1987},
+}
+
+% ──────────────────────────────────────────────────────────────────────────
+% Paper 11 (HSPlus) inline-bibitem migration — 2026-04-26 founder ruling
+% (paper-audit-matrix.md §2026-04-24 Refresh; pattern: docs/paper-bibliography-migration.md).
+% 17 entries below moved from `\begin{thebibliography}` block in
+% paper-11-hsplus-ecoop.tex; remaining 11 keys cited there (green-semiring2007,
+% trustbyconstruction2026, capstone-uist2027, paper-10-hs-core-pldi2027,
+% paper-9-motion-asia2027, paper-13-dumbglass-siggraph2028, lockstep2001,
+% provone2014, loro2024, paper-3-crdt-ecoop2027, ungar1987self) already
+% existed in this bib at migration time and were not duplicated.
+% NOTE re: Round-7 anchor — adding entries below changes this file's sha256;
+% the Round-7 anchor (commit b3c4ed7) on the prior content goes stale and
+% will be re-validated in the next anchor round per S.ANC, not opportunistically.
+% ──────────────────────────────────────────────────────────────────────────
+
+@inproceedings{ico-palanque2004,
+  author    = {Palanque, Philippe and Bastide, R{\'e}mi and Dourte, L.},
+  title     = {Contextual Help for Free with Formal Dialogue Design},
+  booktitle = {INTERACT},
+  year      = {2004},
+}
+
+@misc{bevy-ecs2024,
+  author       = {{Bevy Engine Contributors}},
+  title        = {Bevy: A Data-Driven Game Engine},
+  howpublished = {\url{https://bevyengine.org/}},
   year         = {2024},
 }
+
+@misc{flecs-ecs2023,
+  author       = {{van der Burg}, Sander},
+  title        = {Flecs: A Fast and Flexible Entity Component System},
+  howpublished = {\url{https://www.flecs.dev/}},
+  year         = {2023},
+}
+
+@misc{unity-dots2024,
+  author       = {{Unity Technologies}},
+  title        = {Entities and DOTS documentation},
+  howpublished = {\url{https://docs.unity3d.com/Packages/com.unity.entities@latest}},
+  year         = {2024},
+}
+
+@article{frp-elm2012,
+  author = {Czaplicki, Evan and Chong, Stephen},
+  title = {Asynchronous Functional Reactive Programming for {GUI}s},
+  journal = {ACM SIGPLAN Notices},
+  volume = {48},
+  number = {6},
+  pages = {411--422},
+  year = {2013},
+  doi = {10.1145/2499370.2462161},
+  url = {https://doi.org/10.1145/2499370.2462161},
+}
+
+@inproceedings{salvaneschi-reactive2018,
+  author = {Salvaneschi, Guido and Mezini, Mira},
+  title = {Debugging for Reactive Programming},
+  booktitle = {Proceedings of the 38th International Conference on Software Engineering},
+  pages = {796--807},
+  publisher = {ACM},
+  year = {2016},
+  doi = {10.1145/2884781.2884815},
+  url = {https://doi.org/10.1145/2884781.2884815},
+}
+
+@inproceedings{scharli2003traits,
+  author    = {Sch{\"a}rli, Nathanael and Ducasse, St{\'e}phane and Nierstrasz, Oscar and Black, Andrew P.},
+  title     = {Traits: Composable units of behaviour},
+  booktitle = {ECOOP},
+  year      = {2003},
+}
+
+@article{ducasse2006traits,
+  author  = {Ducasse, St{\'e}phane and Nierstrasz, Oscar and Sch{\"a}rli, Nathanael and Wuyts, Roel and Black, Andrew P.},
+  title   = {Traits: A mechanism for fine-grained reuse},
+  journal = {ACM Transactions on Programming Languages and Systems},
+  volume  = {28},
+  number  = {2},
+  year    = {2006},
+}
+
+@misc{rustbook2019,
+  author    = {Klabnik, Steve and Nichols, Carol},
+  title     = {The Rust Programming Language},
+  edition   = {2nd},
+  howpublished = {No Starch Press, ISBN 9781718503106; online edition},
+  year      = {2023},
+  url       = {https://doc.rust-lang.org/book/},
+}
+
+@techreport{odersky2004scala,
+  author      = {Odersky, Martin and Altherr, Philippe and Cremet, Vincent and Emir, Burak and Maneth, Sebastian and Micheloud, St{\'e}phane and Mihaylov, Nikolay and Schinz, Michel and Stenman, Erik and Zenger, Matthias},
+  title       = {An overview of the {Scala} programming language},
+  institution = {EPFL},
+  number      = {IC/2004/64},
+  year        = {2004},
+}
+
+@book{thomas2004ruby,
+  author    = {Thomas, Dave and Fowler, Chad and Hunt, Andy},
+  title     = {Programming {Ruby}},
+  edition   = {2nd},
+  publisher = {Pragmatic Bookshelf},
+  year      = {2004},
+}
+
+@inproceedings{black1987emerald,
+  author    = {Black, Andrew and Hutchinson, Norman and Jul, Eric and Levy, Henry},
+  title     = {The {Emerald} programming language},
+  booktitle = {OOPSLA},
+  year      = {1987},
+}
+
+@inproceedings{macqueen1984modules,
+  author    = {MacQueen, David B.},
+  title     = {Modules for {Standard ML}},
+  booktitle = {LISP and Functional Programming},
+  year      = {1984},
+}
+
+@inproceedings{harper1994hml,
+  author    = {Harper, Robert and Lillibridge, Mark},
+  title     = {A type-theoretic approach to higher-order modules},
+  booktitle = {POPL},
+  year      = {1994},
+}
+
+@book{carey1997vrml,
+  author    = {Carey, Rikk and Bell, Gavin},
+  title     = {The Annotated {VRML 2.0} Reference Manual},
+  publisher = {Addison-Wesley},
+  year      = {1997},
+}
+
+@book{brutzman2008x3d,
+  author    = {Brutzman, Don and Daly, Leonard},
+  title     = {{X3D}: Extensible {3D} Graphics for Web Authors},
+  publisher = {Morgan Kaufmann},
+  year      = {2008},
+}
+
+@techreport{buss-dls2005,
+  author      = {Samuel R. Buss},
+  title       = {Introduction to Inverse Kinematics with {J}acobian Transpose, Pseudoinverse and Damped Least Squares methods},
+  institution = {Department of Mathematics, University of California, San Diego},
+  year        = {2005},
+  type        = {Tutorial / Technical Report},
+  url         = {https://mathweb.ucsd.edu/~sbuss/ResearchWeb/ikmethods/iksurvey.pdf},
+  note        = {Migrated 2026-05-04 from paper-7-ik-siggraph.tex inline bibliography (task task_1777932178900_7jgv); only paper in the program that cited buss-dls2005. Tutorial technical report widely cited for damped-least-squares IK; not peer reviewed but canonical reference.},
+}
+
+@misc{benchmark-rtx6000ada-2026,
+  author       = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  title        = {{Core Benchmarks --- RTX 6000 Ada Generation}},
+  howpublished = {HoloScript benchmark memo, \texttt{research/benchmark-results-2026-04-24-core-rtx6000ada.md}; OTS sha256 9151f591, block 45151826},
+  year         = {2026},
+  month        = {April},
+  note         = {GPU: NVIDIA RTX 6000 Ada Generation (Vast.ai \#35547628), CPU: AMD EPYC 7352 24-Core (8 vCPU), 85.9\,GB RAM. Harnesses: \texttt{incremental.bench.ts}, \texttt{performance.bench.ts}, \texttt{tropicalSpmv.bench.ts}; runner Vitest v4.1.0 bench mode. Relevance to Paper~11: Runtime + TypeChecker suites cover trait-system execution performance claims.},
+}
+
+@misc{paper-0c-twin-test-2026-05-11,
+  author       = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  title        = {{Paper 0c CAEL Twin-Test Evidence}},
+  howpublished = {HoloScript engineering-readiness memo, \texttt{research/benchmark-results-2026-05-11-paper-0c-cael-twin-test.md}},
+  year         = {2026},
+  month        = {May},
+  note         = {Two-implementation equivalence harness for the CAEL behavioral-determinism claim. Record path: \texttt{packages/engine/src/simulation/CAELRecorder.ts}. Replay path: \texttt{packages/engine/src/simulation/CAELReplayer.ts}. Wire-format primitive: \texttt{packages/engine/src/simulation/equivalenceRecord.ts} (W.315, \texttt{solverType: equivalence.v1}). Dispatch follows Paper~3 \S{}5.2 Algorithm~1 / Appendix~A Lemma~3 (same-adapter strict digest vs cross-adapter wire-equivalence per W.GOLD.192 Route 2b). Harness: \texttt{CAELPhase1.test.ts} (24 tests, includes \texttt{sameAdapter} 6-input false-case discipline) + \texttt{equivalenceRecord.test.ts} (9 tests, 3 false cases). Run 2026-05-11: 33/33 pass, 112\,ms total test-time. Closes Paper~0c Twin-test column from \texttt{\char92warning} to \texttt{\char92ok} in the program-wide audit matrix.},
+}
+
+@misc{provenance-cost-accounting-2026-05-11,
+  author       = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  title        = {{Provenance-Verified Cost Accounting Under LLM-Mediated Estimation Drift}},
+  howpublished = {HoloScript research memo, \texttt{research/2026-05-11\_provenance-verified-cost-accounting.md}},
+  year         = {2026},
+  month        = {May},
+  note         = {Case study + pattern characterization. (1)~15--19$\times$ cost-quote drift across 13 anchor rounds in an AI-agent-operated Base mainnet wallet (\texttt{0x0C57\ldots660E3}); recovered byte-exactly via on-chain \texttt{eth\_getTransactionReceipt} after a 9-word stakeholder observation. (2)~LLM-summarization unit-parser hazard: raw wei integer \texttt{56591795164739} misparsed as ``56.59~ETH'' (18 orders of magnitude off). (3)~Audit-as-calibration trigger pattern, W.GOLD.191 instantiation. (4)~Byte-exact ledger reconciliation as W.GOLD.013 tier-3 oracle signature: funded $-$ spent $==$ current balance. (5)~Generalization hypothesis to robot-fleet / clinical-AI / supply-chain operational accounting (unmeasured; gated on 2+ domain confirmations per~S.GLD). Memory-entry calibration:~F.050.},
+}
+
+@misc{w-gold-013-trust-by-construction,
+  author       = {{HoloScript Core team}},
+  title        = {{Trust by Construction --- Three Tiers of Simulation Trustworthiness}},
+  howpublished = {HoloScript GOLD-tier wisdom entry W.GOLD.013, vault at \texttt{D:/GOLD/wisdom/}},
+  year         = {2026},
+  note         = {Diamond-tier vault entry. Tier-1 = the prover's claim (commit message, agent assertion, contract trace). Tier-2 = the contract structure (typed checkable schema, hash chain, deterministic stepping). Tier-3 = the oracle (immutable ledger, on-chain receipt, hardware sensor log, public timestamp). Trustworthiness requires that any Tier-1 claim be reducible to a Tier-3 oracle signature; the absence of that reduction is the failure mode every provenance system in this program is designed to prevent.},
+}
+
+% === Canonical engine / DCC entries promoted 2026-05-17 during bib-punchlist P3 sweep ===
+% Added to close "missing citations" / prose-only gaps flagged in 2026-04-27 cross-paper memo
+% 3.x sections and multiple per-paper audits + C2 Capstone reviewer note.
+% These allow P items in the matrix (Papers 6/8/9/10/12/13/C2 etc.) to be promoted to B.
+
+@misc{unity-engine,
+  title        = {Unity Engine},
+  howpublished = {Unity Technologies},
+  year         = {various},
+  note         = {Canonical bib entry for cross-paper engine citations. Flagged as prose-only in Papers 6, 8, 9, 10, 12, 13 and C2 Capstone (explicit reviewer flag: "cite count is 5 for 1.2K LOC paper — recommend canonicalizing"). Promoted per bib-punchlist sweep from 2026-04-27 cross-paper memo §3.10 and baseline gaps.},
+  url          = {https://unity.com/},
+}
+
+@misc{unreal-engine,
+  title        = {Unreal Engine},
+  howpublished = {Epic Games},
+  year         = {various},
+  note         = {Canonical bib entry for cross-paper engine citations. Flagged as prose-only in Papers 6, 8, 9, 10, 12, 13 and C2 Capstone. Promoted per bib-punchlist sweep from 2026-04-27 cross-paper memo §3.11 and baseline gaps.},
+  url          = {https://unrealengine.com/},
+}
+
+@misc{openusd-spec,
+  title        = {OpenUSD / Universal Scene Description Specification},
+  howpublished = {Pixar Animation Studios},
+  year         = {various},
+  note         = {Canonical bib entry for OpenUSD. Flagged as prose-only / to-be-added in Papers 6, 8, 10, 12, 13, C2 and memo §3.8. Promoted per bib-punchlist sweep 2026-05-17.},
+  url          = {https://openusd.org/},
+}
+
+@misc{bulletphysics2003,
+  title        = {Bullet Physics Library},
+  howpublished = {Bullet Physics Library},
+  year         = {2003},
+  note         = {Canonical bib entry for Bullet / PyBullet. Flagged in C2 Capstone and memo §3.13 (to be canonicalized). Promoted per bib-punchlist sweep 2026-05-17.},
+  url          = {https://pybullet.org/},
+}
+
+@misc{nvidia-isaac-sim,
+  title        = {NVIDIA Isaac Sim},
+  howpublished = {NVIDIA},
+  year         = {various},
+  note         = {Canonical bib entry for Isaac Sim. Flagged as prose-only / to-be-canonicalized in Papers 10, 12, 13 and memo §3.15. Promoted per bib-punchlist sweep 2026-05-17.},
+  url          = {https://developer.nvidia.com/isaac-sim},
+}
+
+@misc{drake-2019,
+  title        = {Drake: Model-Based Design and Verification for Robotics},
+  howpublished = {Toyota Research Institute},
+  year         = {2019},
+  note         = {Canonical entry for the Drake robotics/control library. Flagged "to be added" in memo §3.14 for paper-cap-program2 §2.1. Promoted per bib-punchlist P3 sweep 2026-05-17.},
+  url          = {https://drake.mit.edu/},
+}
+
+@misc{gazebo-2004,
+  title        = {Gazebo Simulator},
+  howpublished = {Open Source Robotics Foundation},
+  year         = {2004},
+  note         = {Classical robotics simulator. Bib entry verified per memo §3.16 (prose in Papers 0c and 2). Promoted per bib-punchlist P3 sweep 2026-05-17.},
+  url          = {https://gazebosim.org/},
+}
+
+@misc{threejs-r3f-babylon,
+  title        = {Three.js / React Three Fiber / Babylon.js},
+  howpublished = {Web 3D / WebGL ecosystem},
+  year         = {various},
+  note         = {Web 3D rendering libraries (three.js core, R3F React wrapper, Babylon.js). Noted as bib gap in memo §3.17 (lower priority than robotics sims/engines; used in HoloScript R3F stack and prototypes). Promoted per bib-punchlist P3 for completeness.},
+  url          = {https://threejs.org/},
+}
+
+@misc{vanclief2026icm,
+  author       = {Van Clief, Jake and McDermott, David},
+  title        = {Interpretable Context Methodology: Folder Structure as Agentic Architecture},
+  year         = {2026},
+  eprint       = {2603.16021},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  doi          = {10.48550/arXiv.2603.16021},
+  url          = {https://arxiv.org/abs/2603.16021},
+  note         = {Submitted 2026-03-17; revised 2026-03-18.},
+}
+
+@misc{cliefnotes2026,
+  author       = {Van Clief, Jake},
+  title        = {Clief Notes Community},
+  year         = {2026},
+  howpublished = {\url{https://www.skool.com/cliefnotes/about}},
+  note         = {Public community page observed 2026-05-21 reporting 32.5k members and ICM/folder-architecture course material.},
+}
+
+%% ── Paper 2 specific entry ────────────────────────────────────────────────────
+
+@article{cabarle2022webgl,
+  author    = {Cabarle, Francis George C. and Adorna, Henry N. and
+               Martínez-del-Amor, Miguel A. and Orellana-Martín, David},
+  title     = {{GPU} simulations of spiking neural {P} systems on modern web
+               browsers},
+  journal   = {Natural Computing},
+  volume    = {22},
+  number    = {1},
+  pages     = {125--136},
+  year      = {2023},
+  doi       = {10.1007/s11047-022-09914-1},
+  url       = {https://link.springer.com/article/10.1007/s11047-022-09914-1},
+  note      = {Cited as cabarle2022webgl; online 2022, print 2023. First work
+               simulating SN P systems on browser GPUs via WebGL (GPUSnapse).},
+}
+
+%% ── Paper 26 entries (synced from HoloScript/research/holoscript.bib 2026-05-23) ──
 
 @article{recursivemas2026,
   title   = {Recursive Multi-Agent Communication via Latent Space},
@@ -229,36 +2621,6 @@
   journal = {arXiv preprint arXiv:2604.25917},
   year    = {2026},
   note    = {submitted 2026-04-28; independent validation of latent inter-agent coordination architecture shipped in uaa2-service 2026-02-02},
-}
-
-% ── Benchmark memos (added 2026-05-21, D.011 RTX pillar closure) ─────────────
-
-@techreport{benchmark-rtx6000ada-2026,
-  author      = {Krzywoszyja, Joseph and HoloScript Core Team},
-  title       = {Core Benchmarks --- {RTX} 6000 {Ada} (Papers 10, 11)},
-  institution = {Infinitus Systems},
-  year        = {2026},
-  month       = apr,
-  note        = {HoloScript research/benchmark-results-2026-04-24-core-rtx6000ada.md; OTS-anchored at Bitcoin block 45151826},
-}
-
-@techreport{benchmark-p11-gpu-2026,
-  author      = {Krzywoszyja, Joseph and HoloScript Core Team},
-  title       = {Paper 11 {GPU} Timing Harness --- Trait Semiring Overhead ({D}.011 {RTX})},
-  institution = {Infinitus Systems},
-  year        = {2026},
-  month       = may,
-  note        = {HoloScript research/benchmark-results-2026-05-20-paper-11-trait-gpu-bench.md; harness complete, JS-browser baseline captured, real RTX WGSL numbers pending target seat},
-}
-
-% ── ICM / filesystem-as-ground-truth citations (added 2026-05-22, W.636) ────
-
-@misc{vanclief2026icm,
-  author       = {Van Clief, Jake},
-  title        = {Interpretable Context Methodology},
-  year         = {2026},
-  eprint       = {2603.16021},
-  archivePrefix = {arXiv},
 }
 
 @misc{latentmas2025,
@@ -271,36 +2633,157 @@
   note          = {ICML 2026 Spotlight},
 }
 
-@misc{cliefnotes2026,
-  author       = {Van Clief, Jake},
-  title        = {Clief Notes Community},
-  year         = {2026},
-  howpublished = {\url{https://www.skool.com/cliefnotes}},
+%% ── Paper 26 missing entries — added 2026-05-23 ─────────────────────────────
+
+@book{griffiths2026laws,
+  author    = {Griffiths, Thomas L.},
+  title     = {The Laws of Thought: The Quest for a Mathematical Theory of the Mind},
+  year      = {2026},
+  publisher = {Viking},
+  note      = {Popular science book on Bayesian cognition, inductive biases, and
+               probabilistic reasoning in minds and machines. Publisher: TODO-verify
+               (Viking is placeholder; confirm ISBN before camera-ready).},
 }
 
-@article{cabarle2022webgl,
-  author        = {Cabarle, Francis George C. and Adorna, Henry N. and
-                   Mart{\'i}nez-del-Amor, Miguel {\'A}.},
-  title         = {{GPU} Simulations of Spiking Neural {P} Systems in Web
-                   Browsers},
-  journal       = {Natural Computing},
-  year          = {2022},
-  volume        = {21},
-  number        = {3},
-  pages         = {407--422},
-  doi           = {10.1007/s11047-021-09867-3},
-  note          = {Prior browser-native SNN baseline; uses WebGL rasterization
-                   pipeline rather than WebGPU compute shaders},
+@misc{lecun2026jepa,
+  author       = {LeCun, Yann},
+  title        = {A Path Towards Autonomous Machine Intelligence},
+  year         = {2022},
+  howpublished = {OpenReview preprint, Version 0.9.2, 2022-06-27},
+  url          = {https://openreview.net/pdf?id=BZ5a1r-kVsf},
+  note         = {Introduces the Joint-Embedding Predictive Architecture (JEPA):
+                  world models that predict in abstract latent representation spaces
+                  to avoid modelling irreducible uncertainty. Cited as lecun2026jepa
+                  in Paper 26 sections; canonical publication date is 2022.},
 }
 
-@misc{harnessingembodied2026,
-  author        = {Qin, Xue and Luan, Simin and See, John and Yang, Cong and Li, Zhijun},
-  title         = {Harnessing Embodied Agents: Runtime Governance for
-                   Policy-Constrained Execution},
-  year          = {2026},
-  eprint        = {2604.07833},
+@book{gazzaniga2000,
+  editor    = {Gazzaniga, Michael S.},
+  title     = {The New Cognitive Neurosciences},
+  edition   = {2nd},
+  year      = {2000},
+  publisher = {MIT Press},
+  address   = {Cambridge, MA},
+  note      = {Canonical neuroimaging and cognitive neuroscience reference;
+               covers hemispheric specialisation and distributed cortical function.},
+}
+
+@inproceedings{tropical2018,
+  author    = {Zhang, Liwen and Naitzat, Gregory and Lim, Lek-Heng},
+  title     = {Tropical Geometry of Deep Neural Networks},
+  booktitle = {Proceedings of the 35th International Conference on Machine
+               Learning (ICML 2018)},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {80},
+  pages     = {5824--5832},
+  year      = {2018},
+  publisher = {PMLR},
+  eprint    = {1805.07091},
   archivePrefix = {arXiv},
-  primaryClass  = {cs.RO},
-  note          = {Concurrent work with similar control-boundary separation;
-                   cited for differentiation in Paper 0c (CAEL)},
+  url       = {https://arxiv.org/abs/1805.07091},
+  note      = {Establishes that ReLU feedforward networks are equivalent to
+               tropical rational maps; decision boundaries are tropical
+               hypersurfaces. Foundation for \texttt{realtropical2024}.},
+}
+
+@article{realtropical2024,
+  author        = {Brandenburg, Marie-Charlotte and Loho, Georg and Montúfar, Guido},
+  title         = {The Real Tropical Geometry of Neural Networks},
+  journal       = {Transactions on Machine Learning Research},
+  year          = {2024},
+  eprint        = {2403.11871},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2403.11871},
+  note          = {Shows that parameter space of ReLU networks embeds as a
+                   semialgebraic set inside tropical rational function space;
+                   introduces classification fan via activation polytope.
+                   Submitted 2024-03-18.},
+}
+
+%% ── Paper 26 additional entries (batch 2) — added 2026-05-23 ───────────────
+
+% GRPO and shao2024deepseekmath both reference the same paper (DeepSeekMath).
+% GRPO is used as the primary algorithmic citation; shao2024deepseekmath is used
+% as the training-data-format citation in §4.
+
+@article{GRPO,
+  author        = {Shao, Zhihong and Wang, Peiyi and Zhu, Qihao and Xu, Runxin
+                   and Song, Junxiao and Bi, Xiao and Zhang, Haowei and Zhang,
+                   Mingchuan and Li, Y. K. and Wu, Y. and Guo, Daya},
+  title         = {{DeepSeekMath}: Pushing the Limits of Mathematical Reasoning
+                   in Open Language Models},
+  journal       = {arXiv preprint arXiv:2402.03300},
+  year          = {2024},
+  eprint        = {2402.03300},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL},
+  url           = {https://arxiv.org/abs/2402.03300},
+  note          = {Introduces Group Relative Policy Optimisation (GRPO), a
+                   critic-free policy-gradient algorithm that draws G completions
+                   per prompt and estimates advantages via within-group reward
+                   whitening. Cited as \texttt{GRPO} and \texttt{shao2024deepseekmath}
+                   in Paper 26.},
+}
+
+@article{shao2024deepseekmath,
+  author        = {Shao, Zhihong and Wang, Peiyi and Zhu, Qihao and Xu, Runxin
+                   and Song, Junxiao and Bi, Xiao and Zhang, Haowei and Zhang,
+                   Mingchuan and Li, Y. K. and Wu, Y. and Guo, Daya},
+  title         = {{DeepSeekMath}: Pushing the Limits of Mathematical Reasoning
+                   in Open Language Models},
+  journal       = {arXiv preprint arXiv:2402.03300},
+  year          = {2024},
+  eprint        = {2402.03300},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL},
+  url           = {https://arxiv.org/abs/2402.03300},
+  note          = {Same paper as \texttt{GRPO}; cited in §4 as training-slice
+                   format reference for GRPO-compatible (context, completion,
+                   reward) triples suitable for offline or online policy training.},
+}
+
+@misc{holomesh2026,
+  author       = {Krzywoszyja, Joseph},
+  title        = {{HoloMesh}: Decentralised Agent Coordination Layer for
+                  {HoloScript} — Technical Reference},
+  year         = {2026},
+  howpublished = {Technical report, ai-ecosystem / HoloScript repository},
+  note         = {TODO-bib-entry: replace with canonical arXiv preprint or venue
+                  citation once the HoloMesh paper is submitted. Cited in Paper 26
+                  §3 for Loro-compatible CRDT delta semantics.},
+}
+
+@misc{uaa2service2026,
+  author       = {Krzywoszyja, Joseph},
+  title        = {{uaa2-service}: Universal Agent Adapter Service — Production
+                  Deployment},
+  year         = {2026},
+  howpublished = {Open-source service, GitHub / ai-ecosystem repository},
+  note         = {Production deployment date 2026-02-02; 86 days prior to
+                  RecursiveMAS arXiv:2604.25917. TODO-bib-entry: replace with
+                  canonical repository URL or companion paper citation.},
+}
+
+@misc{vldl2026,
+  author       = {TODO-verify},
+  title        = {TODO-verify: paper on scope-escalation failure mode in
+                  verification-heavy multi-agent systems},
+  year         = {2026},
+  note         = {TODO-bib-entry: cited in Paper 26 §4 for the scope-escalation
+                  failure mode that the conservation-pressure backoff is designed
+                  to avoid. Locate and replace with canonical citation before
+                  camera-ready. VLDL key assigned by section author; actual
+                  title/authors unknown.},
+}
+
+@misc{zhang2020byzantine,
+  author       = {Zhang, TODO-verify},
+  title        = {TODO-verify: paper on Byzantine fault tolerance in distributed
+                  multi-agent learning (2020)},
+  year         = {2020},
+  note         = {TODO-bib-entry: cited in Paper 26 §3 and §4 for Byzantine
+                  axis covering integrity threats and false observations in
+                  multi-agent coordination. Locate specific Zhang 2020 Byzantine
+                  paper and replace. Candidate: arXiv:2008.04699 (Byzantine
+                  fault-tolerant distributed ML via CGE, Aug 2020).},
 }
