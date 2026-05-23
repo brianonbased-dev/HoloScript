@@ -11,6 +11,7 @@ import {
   geometryHashOrderInvariantProbe,
   nonDegenerateGeometryProbe,
   type ConjectureClaim,
+  type ConjectureProbe,
 } from '../ConjectureEngine';
 
 const CLAIM: ConjectureClaim = {
@@ -75,6 +76,114 @@ describe('ConjectureEngine (conjecture.v1)', () => {
       measurementKeys: ['expected', 'actual'],
     });
     expect(receipt.receiptKey).toMatch(/^conjecture\.v1-sha-[0-9a-f]{64}$/);
+  });
+
+  it('marks unfalsifiable intake claims as out-of-scope without probing', () => {
+    const throwingProbe: ConjectureProbe = {
+      id: 'never.executes',
+      description: 'Must not run for out-of-scope intake.',
+      predicate: {
+        id: 'never.executes',
+        statement: 'This probe should never execute.',
+        passCriteria: 'not evaluated',
+        failMeaning: 'intake failed to stop probing',
+        measurementKeys: [],
+      },
+      evaluate() {
+        throw new Error('out-of-scope claim was probed');
+      },
+    };
+
+    const receipt = buildConjectureV1Receipt({
+      claim: {
+        ...CLAIM,
+        id: 'C.PHYSICS.OUT_OF_SCOPE',
+        kind: 'impossibility.boundary',
+        statement: 'String theory is the final physical theory with no accessible predictions.',
+        falsifiability: {
+          status: 'out-of-scope',
+          reason: 'No accessible prediction or finite probe budget was supplied at intake.',
+          evidenceRefs: [
+            '.ai-ecosystem/research/2026-05-23_string-theory-conjecture-engine-EVOLVED.md',
+          ],
+        },
+      },
+      candidates: [createSquareSheetCandidate()],
+      probes: [throwingProbe],
+      hashMode: 'sha256',
+    });
+
+    expect(receipt.status).toBe('out-of-scope');
+    expect(receipt.intake).toMatchObject({
+      stage: 'INTAKE',
+      status: 'out-of-scope',
+      reason: 'No accessible prediction or finite probe budget was supplied at intake.',
+    });
+    expect(receipt.evaluations).toEqual([]);
+    expect(receipt.counterexamples).toEqual([]);
+  });
+
+  it('allows out-of-scope intake receipts with no candidates or probes', () => {
+    const receipt = buildConjectureV1Receipt({
+      claim: {
+        ...CLAIM,
+        id: 'C.PHYSICS.OUT_OF_SCOPE.EMPTY',
+        kind: 'impossibility.boundary',
+        statement: 'A physics claim with no accessible observations is not a receipt-tier conjecture.',
+        falsifiability: {
+          status: 'out-of-scope',
+          reason: 'No accessible observations were supplied.',
+        },
+      },
+      candidates: [],
+      probes: [],
+      hashMode: 'sha256',
+    });
+
+    expect(receipt.status).toBe('out-of-scope');
+    expect(receipt.receiptKey).toMatch(/^conjecture\.v1-sha-[0-9a-f]{64}$/);
+  });
+
+  it('maps falsifiable but unresolved probes to undecided', () => {
+    const undecidedProbe: ConjectureProbe = {
+      id: 'geometry.budget_limited',
+      description: 'A bounded probe that cannot decide within its search budget.',
+      predicate: {
+        id: 'geometry.budget_limited',
+        statement: 'The candidate satisfies a budget-limited predicate.',
+        passCriteria: 'bounded search resolves the predicate',
+        failMeaning: 'bounded search found a counterexample',
+        measurementKeys: ['budget'],
+      },
+      evaluate() {
+        return {
+          probeId: 'geometry.budget_limited',
+          status: 'inconclusive',
+          message: 'bounded search exhausted before proof or counterexample',
+          measurements: { budget: 1 },
+        };
+      },
+    };
+
+    const receipt = buildConjectureV1Receipt({
+      claim: {
+        ...CLAIM,
+        id: 'C.GEOM.UNDECIDED',
+        falsifiability: {
+          status: 'falsifiable-in-principle',
+          reason: 'The predicate can be refuted by a finite counterexample, but this run is budget-limited.',
+          accessiblePredictions: ['geometry.budget_limited'],
+        },
+      },
+      candidates: [createSquareSheetCandidate()],
+      probes: [undecidedProbe],
+      hashMode: 'sha256',
+    });
+
+    expect(receipt.status).toBe('undecided');
+    expect(receipt.intake.status).toBe('falsifiable-in-principle');
+    expect(receipt.evaluations[0].status).toBe('undecided');
+    expect(receipt.evaluations[0].novelty.status).toBe('not-checked');
   });
 
   it('reclassifies probe survivors as rediscovered when HoloEmbed matches prior art', () => {

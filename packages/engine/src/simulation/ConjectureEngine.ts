@@ -16,7 +16,12 @@ export type ConjectureV1SolverType = typeof CONJECTURE_V1;
 
 export type ConjectureKind = 'geometry.invariant' | 'algebraic.trait' | 'impossibility.boundary';
 
-export type ConjectureStatus = 'survived' | 'falsified' | 'inconclusive' | 'rediscovered';
+export type ConjectureStatus =
+  | 'out-of-scope'
+  | 'undecided'
+  | 'survived'
+  | 'falsified'
+  | 'rediscovered';
 
 export type ProbeStatus = 'pass' | 'fail' | 'inconclusive';
 
@@ -66,6 +71,20 @@ export interface ConjectureClaim {
   assumptions: ReadonlyArray<string>;
   evidenceRefs: ReadonlyArray<string>;
   proposedBy: string;
+  falsifiability?: ConjectureFalsifiabilityGate;
+}
+
+export type ConjectureFalsifiabilityStatus = 'falsifiable-in-principle' | 'out-of-scope';
+
+export interface ConjectureFalsifiabilityGate {
+  status: ConjectureFalsifiabilityStatus;
+  reason: string;
+  accessiblePredictions?: ReadonlyArray<string>;
+  evidenceRefs?: ReadonlyArray<string>;
+}
+
+export interface ConjectureIntakeAssessment extends ConjectureFalsifiabilityGate {
+  stage: 'INTAKE';
 }
 
 export interface GeometryConjectureCandidate {
@@ -140,6 +159,7 @@ export interface ConjectureReceipt {
   solverType: ConjectureV1SolverType;
   specVersion: 1;
   claim: ConjectureClaim;
+  intake: ConjectureIntakeAssessment;
   status: ConjectureStatus;
   receiptKey: string;
   hashMode: HashMode;
@@ -319,6 +339,52 @@ function assertClaim(claim: ConjectureClaim): void {
       throw new Error('conjecture.v1: claim.evidenceRefs entries must be non-empty strings');
     }
   }
+  if (claim.falsifiability !== undefined) {
+    assertFalsifiabilityGate(claim.falsifiability);
+  }
+}
+
+function assertStringArray(values: unknown, label: string): asserts values is ReadonlyArray<string> {
+  if (!Array.isArray(values)) {
+    throw new Error(`conjecture.v1: ${label} must be an array`);
+  }
+  for (const value of values) {
+    if (!nonEmptyString(value)) {
+      throw new Error(`conjecture.v1: ${label} entries must be non-empty strings`);
+    }
+  }
+}
+
+function assertFalsifiabilityGate(gate: ConjectureFalsifiabilityGate): void {
+  if (!['falsifiable-in-principle', 'out-of-scope'].includes(gate.status)) {
+    throw new Error('conjecture.v1: falsifiability.status is not supported');
+  }
+  if (!nonEmptyString(gate.reason)) {
+    throw new Error('conjecture.v1: falsifiability.reason must be non-empty');
+  }
+  if (gate.accessiblePredictions !== undefined) {
+    assertStringArray(gate.accessiblePredictions, 'falsifiability.accessiblePredictions');
+  }
+  if (gate.evidenceRefs !== undefined) {
+    assertStringArray(gate.evidenceRefs, 'falsifiability.evidenceRefs');
+  }
+}
+
+function intakeAssessment(claim: ConjectureClaim): ConjectureIntakeAssessment {
+  const gate = claim.falsifiability ?? {
+    status: 'falsifiable-in-principle',
+    reason: 'Claim admitted by executable candidates and probes supplied to conjecture.v1.',
+    accessiblePredictions: [],
+    evidenceRefs: [],
+  };
+
+  return {
+    stage: 'INTAKE',
+    status: gate.status,
+    reason: gate.reason,
+    accessiblePredictions: [...(gate.accessiblePredictions ?? [])].sort(),
+    evidenceRefs: [...(gate.evidenceRefs ?? [])].sort(),
+  };
 }
 
 function assertCandidate(candidate: GeometryConjectureCandidate): void {
@@ -1072,13 +1138,13 @@ export function manifoldEdgeProbe(): ConjectureProbe {
 
 function statusFromProbeResults(results: ReadonlyArray<ProbeResult>): ConjectureStatus {
   if (results.some((r) => r.status === 'fail')) return 'falsified';
-  if (results.some((r) => r.status === 'inconclusive')) return 'inconclusive';
+  if (results.some((r) => r.status === 'inconclusive')) return 'undecided';
   return 'survived';
 }
 
 function overallStatus(evaluations: ReadonlyArray<CandidateEvaluation>): ConjectureStatus {
   if (evaluations.some((e) => e.status === 'falsified')) return 'falsified';
-  if (evaluations.some((e) => e.status === 'inconclusive')) return 'inconclusive';
+  if (evaluations.some((e) => e.status === 'undecided')) return 'undecided';
   if (evaluations.some((e) => e.status === 'rediscovered')) return 'rediscovered';
   return 'survived';
 }
@@ -1098,6 +1164,7 @@ function receiptSnapshot(receipt: Omit<ConjectureReceipt, 'receiptKey'>): Record
       assumptions: [...receipt.claim.assumptions].sort(),
       evidenceRefs: [...receipt.claim.evidenceRefs].sort(),
     },
+    intake: receipt.intake,
     status: receipt.status,
     hashMode: receipt.hashMode,
     evaluations: receipt.evaluations,
@@ -1114,6 +1181,30 @@ export function buildConjectureV1Receipt(input: {
   noveltyThreshold?: number;
 }): ConjectureReceipt {
   assertClaim(input.claim);
+  const hashMode = input.hashMode ?? HASH_MODE_DEFAULT;
+  const intake = intakeAssessment(input.claim);
+  if (intake.status === 'out-of-scope') {
+    const withoutKey: Omit<ConjectureReceipt, 'receiptKey'> = {
+      solverType: CONJECTURE_V1,
+      specVersion: 1,
+      claim: {
+        ...input.claim,
+        assumptions: [...input.claim.assumptions],
+        evidenceRefs: [...input.claim.evidenceRefs],
+      },
+      intake,
+      status: 'out-of-scope',
+      hashMode,
+      evaluations: [],
+      counterexamples: [],
+    };
+
+    return {
+      ...withoutKey,
+      receiptKey: buildConjectureStableKey(CONJECTURE_V1, receiptSnapshot(withoutKey)),
+    };
+  }
+
   if (input.candidates.length === 0) {
     throw new Error('conjecture.v1: candidates must be non-empty');
   }
@@ -1121,7 +1212,6 @@ export function buildConjectureV1Receipt(input: {
     throw new Error('conjecture.v1: probes must be non-empty');
   }
 
-  const hashMode = input.hashMode ?? HASH_MODE_DEFAULT;
   const priorArtCorpus = input.priorArtCorpus ?? DEFAULT_CONJECTURE_PRIOR_ART_CORPUS;
   const noveltyThreshold = input.noveltyThreshold ?? CONJECTURE_NOVELTY_THRESHOLD;
   assertNoveltyThreshold(noveltyThreshold);
@@ -1170,6 +1260,7 @@ export function buildConjectureV1Receipt(input: {
       assumptions: [...input.claim.assumptions],
       evidenceRefs: [...input.claim.evidenceRefs],
     },
+    intake,
     status: overallStatus(evaluations),
     hashMode,
     evaluations,

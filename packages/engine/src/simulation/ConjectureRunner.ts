@@ -416,7 +416,7 @@ function buildStages(
     {
       phase: 'CLASSIFY',
       status: 'completed',
-      summary: 'Classified each receipt as survived, rediscovered, falsified, or inconclusive.',
+      summary: 'Classified each receipt as out-of-scope, undecided, survived, rediscovered, or falsified.',
       evidence: classifications.map(
         (classification) => `${classification.scenarioId}:${classification.status}`
       ),
