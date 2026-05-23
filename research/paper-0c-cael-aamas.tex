@@ -1032,63 +1032,25 @@ dominated by solver re-execution: each branch replays the trace
 prefix at hash-verify speed ($\sim$70\,$\mu$s for 50-tick prefix)
 then diverges with one solver step ($\sim$50\,ms for TET4 at 270 DOF).
 
-\subsection{Scenario 3: Multi-Agent Dispute Resolution}
+\subsection{Additional Evaluation}
 
+\paragraph{Dispute resolution and dreaming.}
 In a 3-agent structural simulation (100 trials), CAEL-based adjudication achieves
-100\% agent and action attribution accuracy vs.\ 34\% (last-action baseline) and 41\%
-(reputation baseline), at 48.3\,ms adjudication cost dominated by solver re-execution.
-Full protocol, metrics, and results table are in Appendix~\ref{app:dispute}.
+100\% agent and action attribution accuracy vs.\ 34\% (last-action baseline) and
+41\% (reputation baseline), at 48.3\,ms adjudication cost dominated by solver
+re-execution. All 10 dream episodes complete within the $\pm10\%$ perturbation
+budget (mean 8.7\%), with valid hash chains linked to the waking run ID;
+dream overhead is 61.2\,ms/episode, dominated by SNN re-evaluation.
 
-\subsection{Dreaming Evaluation}
-
-All 10 dream episodes complete within $\pm10\%$ perturbation budget (mean 8.7\%),
-hash chains valid, all traces linked to waking run ID. Dream overhead is 61.2\,ms/episode,
-dominated by SNN re-evaluation; hash-chain construction adds $<$0.4\,ms/episode.
-Full metrics table in Appendix~\ref{app:dream}.
-
-% ══════════════════════════════════════════════════════════════════════════════
-%  D.011 GATE — GPU BENCHMARK
-% ══════════════════════════════════════════════════════════════════════════════
-\subsection{GPU Benchmark: Hash-Chain Throughput (H1 vs.\ H3)}
-\label{sec:gpu-bench}
-
+\paragraph{Hardware throughput and ablation.}
 Across two hardware tiers, CAEL achieves 294K entries/s on H1 (Intel i7 / UHD 770,
-2.8\% overhead) and 649K entries/s on H3 (RTX 6000 Ada, 1.3\% overhead)---both far
-exceeding the 240 entries/s production rate at 60\,Hz, confirming that CAEL is
-compute-bound by the solver, not the hash chain (see Appendix~\ref{app:gpu-bench}
-for full protocol, hardware specification, and per-tier table).
-
-% ══════════════════════════════════════════════════════════════════════════════
-%  D.011 GATE — FULL-LOOP DEMO
-% ══════════════════════════════════════════════════════════════════════════════
-\subsection{Full-Loop Demo: End-to-End Latency}
-\label{sec:full-loop-demo}
-
-Both H1 (Intel UHD 770, $16.2 \pm 2.4$\,ms median) and H3 (RTX 6000 Ada,
-$7.4 \pm 0.9$\,ms) sustain 60\,Hz with margin; the hash-chain append contributes
-$<0.025\%$ of total loop latency at both tiers, confirming that provenance is
-effectively free at production tick rates (see Appendix~\ref{app:full-loop-demo}
-for full protocol and per-tier breakdown).
-
-% ══════════════════════════════════════════════════════════════════════════════
-%  D.011 GATE — USER STUDY (still under \section{Evaluation})
-% ══════════════════════════════════════════════════════════════════════════════
-\subsection{User Study Protocol (Preregistered)}
-\label{sec:user-study}
-
-To evaluate the operational utility and cognitive ergonomics of the system, we have preregistered a user study ($N=12$) targeting human participants interacting with the framework. A preliminary pilot study ($N=3$) was conducted to validate the experimental harness and confirm the feasibility of the survey instrument. The full study measures task completion time, error recovery rates, and qualitative cognitive load against a baseline. The study protocol, along with the IRB waiver and preregistration packet, is maintained in the supplementary materials to satisfy reproducibility requirements (D.011).
-
-% ══════════════════════════════════════════════════════════════════════════════
-%  D.011 GATE — ABLATION STUDY (still under \section{Evaluation})
-% ══════════════════════════════════════════════════════════════════════════════
-\subsection{Ablation Study}
-\label{sec:ablation}
-
-We ablate the \texttt{appendCaelTrace} audit-write call while holding all other
-loop phases constant.  The incremental CAEL overhead is $+60.6\,\mu$s/tick
-(0.36\% of a 16.67\,ms budget); removing it recovers the 2.0\,$\mu$s baseline
-but loses replay-determinism and dispute-resolvability.  The full ablation table
-and extended analysis are in Appendix~\ref{app:ablation}.
+2.8\% overhead) and 649K entries/s on H3 (RTX 6000 Ada, 1.3\% overhead), far
+exceeding the 240 entries/s production rate at 60\,Hz. Both H1
+($16.2 \pm 2.4$\,ms median) and H3 ($7.4 \pm 0.9$\,ms) sustain 60\,Hz with
+margin; hash-chain append contributes $<0.025\%$ of loop latency. Ablating
+\texttt{appendCaelTrace} recovers the 2.0\,$\mu$s baseline but removes
+replay-determinism and dispute-resolvability. Full protocols, tables, and the
+preregistered user-study packet are in the supplemental material.
 
 % ══════════════════════════════════════════════════════════════════════════════
 %  D.011 GATE — COMPUTATIONAL COMPLEXITY
@@ -1101,7 +1063,7 @@ that appends one hash-chain entry per agent.  For a simulation with $N$ agents
 running at $F$\,Hz, the time complexity of the provenance layer is $O(N)$ hash
 operations per tick---each a single SHA-256 evaluation ($\approx$\,1.5\,$\mu$s).
 The measured rate at H1 (Intel i7\,/\,UHD\,770) is 294K entries/s and at H3
-(RTX\,6000\,Ada) is 649K entries/s (Section~\ref{sec:gpu-bench}), both exceeding
+(RTX\,6000\,Ada) is 649K entries/s, both exceeding
 the 240 entries/s production rate at 60\,Hz by $>$1,000$\times$.  Aggregate
 memory complexity is $O(N \cdot T)$ for a replay buffer of $T$ ticks; with a
 rolling window of $W$ ticks (default $W = 600$ at 60\,Hz), this reduces to
@@ -1259,11 +1221,11 @@ impossible bit-exact determinism to achievable behavioral
 determinism---follows our prior analysis of 28 computational
 impossibilities~\cite{impossibilities2026}.
 
-Behavioral determinism is given mechanical force by an explicit digital-twin agreement
-harness: two independent implementations of the same state machine (a record path and a
-replay path) agree on a canonical wire-format projection, verified by 33 assertions
-(including explicit false cases) that pass in 112\,ms~\cite{paper-0c-twin-test-2026-05-11}.
-Full protocol detail in Appendix~\ref{app:twin-harness}.
+Behavioral determinism is given mechanical force by an explicit digital-twin
+agreement harness: independent record and replay implementations agree on a
+canonical wire-format projection, verified by 33 assertions (including explicit
+false cases) that pass in 112\,ms~\cite{paper-0c-twin-test-2026-05-11}. Full
+protocol detail is in the supplemental material.
 
 \paragraph{Hash function choice.}
 FNV-1a (32-bit) suffices for non-adversarial traces ($\leq 10^6$ entries, collision
