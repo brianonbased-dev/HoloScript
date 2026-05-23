@@ -1,0 +1,141 @@
+{
+  "gate": 13,
+  "track": "flagship",
+  "name": "hologram — real multiview quilt light-field of the vault world (QuiltCompiler)",
+  "verifier": "examples/gold-game/gate-13-hologram-verify.mjs",
+  "format": "Looking Glass QUILT (multiview light-field)",
+  "implementation": {
+    "quiltCompiler": "packages/engine/src/hologram/QuiltCompiler.ts (SHIPPED — the real Looking Glass quilt compiler)",
+    "sceneSource": "examples/gold-game/gold-vault-game.holo (parsed via @holoscript/core parseHolo)",
+    "contractSpine": "packages/engine/src/simulation/hashes.ts computeStateDigest"
+  },
+  "scene": {
+    "parseClean": true,
+    "groups": [
+      "BronzeValley",
+      "GoldTerrace",
+      "DiamondPeak"
+    ],
+    "objectCount": 8,
+    "objects": [
+      {
+        "name": "AgentCompanion",
+        "group": "BronzeValley",
+        "color": "#a55a3a",
+        "world": [
+          2,
+          1,
+          0
+        ]
+      },
+      {
+        "name": "B_GRADUATE_001",
+        "group": "BronzeValley",
+        "color": "#cd7f32",
+        "world": [
+          -1,
+          0.5,
+          1
+        ]
+      },
+      {
+        "name": "GuardianCollision",
+        "group": "BronzeValley",
+        "color": "#8a2a2a",
+        "world": [
+          1,
+          0.5,
+          2
+        ]
+      },
+      {
+        "name": "Player",
+        "group": "BronzeValley",
+        "color": "#3a6ea5",
+        "world": [
+          0,
+          1,
+          0
+        ]
+      },
+      {
+        "name": "P_GOLD_001",
+        "group": "DiamondPeak",
+        "color": "#b9f2ff",
+        "world": [
+          0,
+          9.5,
+          -16
+        ]
+      },
+      {
+        "name": "TheArchivist",
+        "group": "DiamondPeak",
+        "color": "#7a5a8a",
+        "world": [
+          -2,
+          9,
+          -15
+        ]
+      },
+      {
+        "name": "W_GOLD_534",
+        "group": "GoldTerrace",
+        "color": "#d4af37",
+        "world": [
+          1,
+          4.5,
+          -8
+        ]
+      },
+      {
+        "name": "W_GOLD_535",
+        "group": "GoldTerrace",
+        "color": "#d4af37",
+        "world": [
+          -1,
+          4.5,
+          -8
+        ]
+      }
+    ]
+  },
+  "quilt": {
+    "device": "16inch",
+    "views": 48,
+    "grid": "8x6",
+    "resolution": [
+      3360,
+      3360
+    ],
+    "baseline": 0.06,
+    "focusDistance": 2,
+    "tileWidth": 420,
+    "tileHeight": 560,
+    "numViews": 48,
+    "leftmostCameraOffset": -0.03,
+    "rightmostCameraOffset": 0.03,
+    "baselineSpread": 0.06
+  },
+  "lightField": {
+    "pointsPerView": 8,
+    "totalProjectedPoints": 384,
+    "fovDeg": 14,
+    "parallaxDisparityFirstObject": 0.111443,
+    "hasLightFieldParallax": true
+  },
+  "checks": {
+    "parseClean": true,
+    "realQuiltSurface": true,
+    "hasParallaxRig": true,
+    "hasLightFieldParallax": true,
+    "deterministic": true
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest(field-bag, sha256)",
+    "quiltDigest": "0633c389ffb9fc4530b6354170bcf8bcb071ed54711031c4c74359666d039a35",
+    "reproducible": "run the verifier to re-derive"
+  },
+  "honestScope": "Runs the GENUINE shipped QuiltCompiler (packages/engine/src/hologram/QuiltCompiler.ts — the Looking Glass quilt compiler, D.019 hologram product line) over the REAL parsed vault scene. PROVEN: the real .holo vault world compiles to a genuine 48-view multiview light-field quilt (8x6 tile grid for the 16inch Looking Glass) with a real view-sheared camera rig, every vault object is projected into all 48 views, the gems exhibit real cross-view parallax (the disparity that IS a light field), and the quilt geometry digest reproduces deterministically via the real computeStateDigest. NOT proven here (out of scope, requires non-deterministic / non-committable inputs): (a) RASTERIZED pixels — the actual quilt.png is rendered by the headless-Chromium hologram-worker (packages/hologram-worker, Playwright + WebGL) or browser BrowserQuiltRenderer, not in this pure-geometry verifier; (b) the createHologram media path (depth-from-2D-media) needs the hologram-worker depth provider (HOLOGRAM_WORKER_URL) — a live service, skipped by design; (c) MV-HEVC encode needs ffmpeg in the worker; (d) display on real Looking Glass / Vision Pro hardware. This gate proves the deterministic LIGHT-FIELD GEOMETRY of the vault hologram (camera rig + per-view projection), which is the compiler-side artifact; the pixel raster + media-depth + hardware display are the service/hardware-in-the-loop deepening, the same pattern as Gate 1 (R3F render is artifact/manual) and Gate 5b/5c (device-in-the-loop).",
+  "verifiedAt": "2026-05-23T02:57:53.449Z"
+}

@@ -37,6 +37,7 @@ const GATES = [
   { track: 'flagship', gate: 10, name: 'HoloGraph + HoloEmbed (real vault constellation as playable structure)', kind: 'script', runner: 'tsx', file: 'gate-10-holograph-verify.mjs' },
   { track: 'flagship', gate: 11, name: 'quantum-inspired curation (real QuantumInspiredTrait, CPU-inspired fallback)', kind: 'script', runner: 'tsx', file: 'gate-11-quantum-verify.mjs' },
   { track: 'flagship', gate: 12, name: 'multi-physics solver (real StructuralSolver TET4 FEM over the vault keystone)', kind: 'script', runner: 'tsx', file: 'gate-12-solvers-verify.mjs' },
+  { track: 'flagship', gate: 13, name: 'hologram (real QuiltCompiler 48-view multiview quilt of the vault world)', kind: 'script', runner: 'tsx', file: 'gate-13-hologram-verify.mjs' },
   { track: 'oasis (fixture)', gate: 3, name: 'connection-mechanics proof (compass co-session)', kind: 'script', runner: 'tsx', file: 'connection-mechanics-proof/gate-3-verify.mjs' },
   { track: 'modalities', gate: '2D+3D', name: 'one .holo -> retro 2D + 3D (shared source scene)', kind: 'script', runner: 'tsx', file: 'modality-verify.mjs' },
 ];
