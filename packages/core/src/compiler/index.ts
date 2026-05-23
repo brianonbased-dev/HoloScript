@@ -357,3 +357,13 @@ export type {
   HoloGramMLSBundle,
   MLSPhoto,
 } from './HoloGramMLSCompiler';
+
+// APL WIT / trait-evaluation surface — unified bridge for WASM worlds
+export {
+  queryTrait,
+  generateTraitForTarget,
+  listTraitsForTarget,
+  traitExists,
+  getTraitInfo,
+} from './TraitRegistryBridge';
+export type { TraitQueryOptions, TraitInfo } from './TraitRegistryBridge';

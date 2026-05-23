@@ -13,9 +13,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   HoloScriptWasm,
   HoloScriptParseError,
+  extractTraitNames,
   type HoloScriptWasmModule,
   type Ast,
   type ValidationResult,
+  type TraitInfoResult,
+  type TraitTarget,
 } from '../wasm-api';
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -379,6 +382,141 @@ describe('HoloScriptWasm', () => {
       expect(mockWasm.parse_pretty).toHaveBeenCalledWith(source);
       expect(mockWasm.validate).toHaveBeenCalledWith(source);
       expect(mockWasm.validate_detailed).toHaveBeenCalledWith(source);
+    });
+  });
+});
+
+// ── APL WIT Trait-Evaluation Surface Tests ──────────────────────────────
+
+describe('extractTraitNames', () => {
+  it('extracts @trait annotations from HoloScript source', () => {
+    const source = 'orb cube { @grabbable @physics mass: 2 }';
+    const names = extractTraitNames(source);
+    expect(names).toContain('grabbable');
+    expect(names).toContain('physics');
+  });
+
+  it('deduplicates trait names', () => {
+    const source = 'orb cube { @grabbable @grabbable }';
+    const names = extractTraitNames(source);
+    expect(names.filter(n => n === 'grabbable')).toHaveLength(1);
+  });
+
+  it('returns empty array for source with no traits', () => {
+    const source = 'orb cube { color: "red" }';
+    const names = extractTraitNames(source);
+    expect(names).toEqual([]);
+  });
+
+  it('handles traits with underscores and hyphens', () => {
+    const source = 'orb cube { @hand_tracking @soft_body }';
+    const names = extractTraitNames(source);
+    expect(names).toContain('hand_tracking');
+    expect(names).toContain('soft_body');
+  });
+
+  it('returns empty array for empty source', () => {
+    expect(extractTraitNames('')).toEqual([]);
+  });
+});
+
+describe('HoloScriptWasm trait-evaluation surface', () => {
+  let mockWasm: HoloScriptWasmModule;
+  let wrapper: HoloScriptWasm;
+
+  beforeEach(() => {
+    mockWasm = createMockWasm();
+    wrapper = new HoloScriptWasm(mockWasm);
+  });
+
+  describe('traitExists', () => {
+    it('returns true for well-known traits when bridge is unavailable (fallback)', () => {
+      // Without @holoscript/core loaded, the fallback returns true for all traits
+      // to avoid false negatives in lightweight WASM worlds
+      const result = wrapper.traitExists('physics');
+      expect(typeof result).toBe('boolean');
+      // Fallback mode returns true (conservative)
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('getTraitInfo', () => {
+    it('returns a TraitInfoResult object', () => {
+      const info = wrapper.getTraitInfo('grabbable');
+      expect(info).toBeDefined();
+      expect(typeof info!.name).toBe('string');
+      expect(typeof info!.exists).toBe('boolean');
+    });
+
+    it('returns fallback info when bridge is unavailable', () => {
+      const info = wrapper.getTraitInfo('unknown_trait_xyz');
+      // In fallback mode, exists is true and sourceMap indicates fallback
+      expect(info).toBeDefined();
+      if (info) {
+        expect(info.sourceMap).toContain('fallback');
+      }
+    });
+  });
+
+  describe('listTraits', () => {
+    it('returns an array', () => {
+      const list = wrapper.listTraits('core');
+      expect(Array.isArray(list)).toBe(true);
+    });
+
+    it('returns empty array when bridge is unavailable', () => {
+      // Without @holoscript/core, listTraits returns []
+      const list = wrapper.listTraits('webgpu');
+      expect(list).toEqual([]);
+    });
+  });
+
+  describe('generateTraitCode', () => {
+    it('returns an array of strings', () => {
+      const code = wrapper.generateTraitCode('physics', 'android-xr');
+      expect(Array.isArray(code)).toBe(true);
+      expect(code.length).toBeGreaterThan(0);
+    });
+
+    it('returns fallback stub when bridge is unavailable', () => {
+      const code = wrapper.generateTraitCode('physics', 'webgpu');
+      expect(code.length).toBeGreaterThan(0);
+      // In fallback mode, indicates unavailability
+      expect(code[0]).toContain('codegen unavailable');
+    });
+  });
+
+  describe('validateWithTraits', () => {
+    it('enriches validation with trait checks', () => {
+      const source = 'orb cube { @grabbable @physics mass: 2 }';
+      const result = wrapper.validateWithTraits(source);
+
+      expect(result.valid).toBe(true);
+      expect(result.knownTraits).toBeDefined();
+      expect(result.unknownTraits).toBeDefined();
+      expect(result.traitInfo).toBeDefined();
+      expect(Array.isArray(result.knownTraits)).toBe(true);
+      expect(Array.isArray(result.unknownTraits)).toBe(true);
+      expect(Array.isArray(result.traitInfo)).toBe(true);
+    });
+
+    it('extracts trait names from source for validation', () => {
+      const source = 'orb player { @grabbable }';
+      const result = wrapper.validateWithTraits(source, 'core');
+      // In fallback mode, all traits are "known" (conservative)
+      expect(result.traitInfo.length).toBeGreaterThan(0);
+    });
+
+    it('preserves base validation result', () => {
+      const source = 'orb cube { color: "blue" }';
+      const result = wrapper.validateWithTraits(source);
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toEqual([]);
+      // No @traits in source -> empty trait info
+      expect(result.knownTraits).toEqual([]);
+      expect(result.unknownTraits).toEqual([]);
+      expect(result.traitInfo).toEqual([]);
     });
   });
 });

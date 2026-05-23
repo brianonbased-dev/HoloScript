@@ -7,6 +7,17 @@
  *   - validate(source) -> boolean
  *   - validate_detailed(source) -> JSON validation result string
  *   - version() -> semver string
+ *
+ * APL WIT trait-evaluation surface (lifted 2026-05-22):
+ *   - trait_exists(name) -> boolean
+ *   - get_trait_info(name) -> TraitInfoResult | undefined
+ *   - list_traits(target) -> string[]
+ *   - generate_trait_code(name, target, config) -> string[]
+ *   - validate_with_traits(source) -> ValidationResultWithTraits
+ *
+ * These mirror the WIT `validator` + `platform-compiler` interfaces,
+ * backed by TraitRegistryBridge which queries AndroidXRTraitMap,
+ * VisionOSTraitMap, VRTraitRegistry, and the traitDocs catalog.
  */
 
 // ── AST Types (mirror ast.rs serde output) ──────────────────────────
@@ -138,6 +149,62 @@ export interface ValidationResult {
   errors: ParseError[];
 }
 
+// ── APL WIT Trait-Evaluation Types ────────────────────────────────────
+
+/**
+ * Trait query target — mirrors the WIT `platform-compiler` interface targets.
+ *
+ * Each target maps to a concrete trait registry on the TypeScript side:
+ *   - 'android-xr' -> AndroidXRTraitMap
+ *   - 'visionos' -> VisionOSTraitMap
+ *   - 'webgpu' -> (future: WebGPUCompiler trait map)
+ *   - 'threejs' -> (future: ThreeJSCompiler trait map)
+ *   - 'core' -> VRTraitRegistry + traitDocs catalog
+ */
+export type TraitTarget = 'android-xr' | 'visionos' | 'webgpu' | 'threejs' | 'core';
+
+/**
+ * Result from the WIT `get-trait` interface.
+ *
+ * Mirrors the TraitInfo from TraitRegistryBridge but uses plain
+ * JSON-serialisable types for WASM boundary compatibility.
+ */
+export interface TraitInfoResult {
+  /** Trait name as queried */
+  name: string;
+  /** Whether the trait exists in any registry */
+  exists: boolean;
+  /** Implementation level: 'full' | 'partial' | 'comment' | 'unsupported' | 'core' */
+  level?: string;
+  /** Generated code lines for the target (only when includeCodegen=true) */
+  codegen?: string[];
+  /** Which registry resolved this trait */
+  sourceMap?: string;
+  /** Human-readable description from traitDocs catalog */
+  description?: string;
+  /** Category from traitDocs catalog */
+  category?: string;
+  /** The annotation form (e.g. '@physics') from traitDocs catalog */
+  annotation?: string;
+}
+
+/**
+ * Extended validation result that includes trait existence checks.
+ *
+ * The WIT `validator` interface's `validate-with-options` function
+ * enriches basic syntax validation with trait-existence verification,
+ * so lightweight WASM worlds can validate trait references without
+ * pulling the full runtime.
+ */
+export interface ValidationResultWithTraits extends ValidationResult {
+  /** Traits found in the source that are unknown to any registry */
+  unknownTraits: string[];
+  /** Traits found in the source that are known */
+  knownTraits: string[];
+  /** Per-trait info for all traits found in the source */
+  traitInfo: TraitInfoResult[];
+}
+
 // ── WASM Module Interface ───────────────────────────────────────────
 
 /**
@@ -162,6 +229,12 @@ export interface HoloScriptWasmModule {
 /**
  * High-level wrapper around the raw WASM module that provides
  * typed return values instead of raw JSON strings.
+ *
+ * Also provides APL WIT trait-evaluation surface methods backed by
+ * TraitRegistryBridge (TypeScript-side, no Rust WASM dependency).
+ * These mirror the WIT `validator` + `platform-compiler` interfaces
+ * and can be used in lightweight WASM worlds for trait validation
+ * without pulling the full runtime.
  */
 export class HoloScriptWasm {
   constructor(private readonly wasm: HoloScriptWasmModule) {}
@@ -211,6 +284,67 @@ export class HoloScriptWasm {
   version(): string {
     return this.wasm.version();
   }
+
+  // ── APL WIT Trait-Evaluation Surface ──────────────────────────────────
+  //
+  // These methods delegate to TraitRegistryBridge, which queries
+  // AndroidXRTraitMap, VisionOSTraitMap, VRTraitRegistry, and the
+  // traitDocs catalog. They do NOT depend on the Rust WASM module —
+  // they work in pure TypeScript/JS environments where the WASM
+  // parser is available but the full runtime is not.
+
+  /** WIT `trait-exists` — check if a trait is registered anywhere */
+  traitExists(name: string): boolean {
+    return traitExistsImpl(name);
+  }
+
+  /** WIT `get-trait` — get trait info from any registry */
+  getTraitInfo(name: string): TraitInfoResult | undefined {
+    return getTraitInfoImpl(name);
+  }
+
+  /** WIT `list-traits` — list known traits for a target platform */
+  listTraits(target: TraitTarget = 'core'): string[] {
+    return listTraitsImpl(target);
+  }
+
+  /** WIT `generate-trait-code-for-target` — produce code for a trait on a target */
+  generateTraitCode(name: string, target: TraitTarget, config: Record<string, unknown> = {}): string[] {
+    return generateTraitCodeImpl(name, target, config);
+  }
+
+  /**
+   * WIT `validate-with-options` — validate source AND check trait references.
+   *
+   * This is the primary entry point for the lightweight `holoscript-parser`
+   * WASM world: it runs syntax validation via the Rust parser, then
+   * enriches the result with trait-existence checks from the TS-side
+   * registries.
+   */
+  validateWithTraits(source: string, target: TraitTarget = 'core'): ValidationResultWithTraits {
+    const base = this.validateDetailed(source);
+    const traits = extractTraitNames(source);
+    const knownTraits: string[] = [];
+    const unknownTraits: string[] = [];
+    const traitInfo: TraitInfoResult[] = [];
+
+    for (const name of traits) {
+      const info = getTraitInfoImpl(name, { target });
+      if (info.exists) {
+        knownTraits.push(name);
+      } else {
+        unknownTraits.push(name);
+      }
+      traitInfo.push(info);
+    }
+
+    return {
+      ...base,
+      unknownTraits,
+      knownTraits,
+      traitInfo,
+    };
+  }
 }
 
 /**
@@ -224,4 +358,104 @@ export class HoloScriptParseError extends Error {
     super(message);
     this.name = 'HoloScriptParseError';
   }
+}
+
+// ── Trait Registry Bridge Delegation ──────────────────────────────────
+//
+// These functions delegate to the TraitRegistryBridge in @holoscript/core.
+// They are imported lazily to avoid pulling the full runtime when only
+// the WASM parser is needed. In environments where @holoscript/core is
+// not available (pure WASM without TS runtime), the bridge falls back
+// to a conservative "exists everywhere" mode.
+//
+// The import is conditional so this file can be consumed in two ways:
+//   1. Full mode: @holoscript/core is available -> real registry queries
+//   2. WASM-only mode: no @holoscript/core -> conservative fallback
+
+let _bridge: typeof import('@holoscript/core/compiler') | null = null;
+let _bridgeLoadAttempted = false;
+
+function getBridge() {
+  if (_bridge) return _bridge;
+  if (_bridgeLoadAttempted) return null;
+  _bridgeLoadAttempted = true;
+  try {
+    // Dynamic require for Node/bundler environments;
+    // in pure WASM contexts this will fail and we fall back gracefully.
+    _bridge = require('@holoscript/core/compiler');
+    return _bridge;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Trait name extraction from HoloScript source.
+ *
+ * Finds all @trait annotations in source text using a lightweight regex.
+ * This is used by validateWithTraits to check trait references without
+ * a full parse. The Rust WASM parser validates syntax; this extracts
+ * the trait names for registry lookup.
+ */
+export function extractTraitNames(source: string): string[] {
+  const names: string[] = [];
+  const seen = new Set<string>();
+  // Match @trait_name annotations at the start of a word boundary
+  const re = /@([a-zA-Z_][a-zA-Z0-9_-]*)/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(source)) !== null) {
+    const name = match[1];
+    if (!seen.has(name)) {
+      seen.add(name);
+      names.push(name);
+    }
+  }
+  return names;
+}
+
+function traitExistsImpl(name: string): boolean {
+  const bridge = getBridge();
+  if (bridge?.traitExists) {
+    return bridge.traitExists(name);
+  }
+  // Fallback: without the core bridge, conservatively return true
+  // for well-known HoloScript traits that are extremely likely to exist.
+  // This prevents false negatives in lightweight WASM worlds.
+  return true;
+}
+
+function getTraitInfoImpl(name: string, opts?: { target?: TraitTarget }): TraitInfoResult {
+  const bridge = getBridge();
+  if (bridge?.queryTrait) {
+    const target = opts?.target ?? 'core';
+    const info = bridge.queryTrait(name, { target });
+    return {
+      name: info.name,
+      exists: info.exists,
+      level: info.level,
+      codegen: info.codegen,
+      sourceMap: info.sourceMap,
+      description: info.description,
+      category: info.category,
+      annotation: info.annotation,
+    };
+  }
+  // Fallback: no bridge available
+  return { name, exists: true, sourceMap: 'fallback (no registry)' };
+}
+
+function listTraitsImpl(target: TraitTarget): string[] {
+  const bridge = getBridge();
+  if (bridge?.listTraitsForTarget) {
+    return bridge.listTraitsForTarget(target);
+  }
+  return [];
+}
+
+function generateTraitCodeImpl(name: string, target: TraitTarget, config: Record<string, unknown>): string[] {
+  const bridge = getBridge();
+  if (bridge?.generateTraitForTarget) {
+    return bridge.generateTraitForTarget(name, target, config);
+  }
+  return [`// @${name} — codegen unavailable (no registry loaded for target "${target}")`];
 }

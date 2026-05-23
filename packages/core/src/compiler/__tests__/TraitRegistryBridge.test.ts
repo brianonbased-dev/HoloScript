@@ -22,10 +22,14 @@ describe('TraitRegistryBridge (APL WIT audit — wired to real registries)', () 
     expect(code.some(line => line.includes('PhysicsComponent'))).toBe(true);
   });
 
-  it('listTraitsForTarget returns a conservative but real set for android-xr', () => {
+  it('listTraitsForTarget returns the full Android XR trait map for android-xr', () => {
     const list = listTraitsForTarget('android-xr');
     expect(list).toContain('physics');
-    expect(list).toContain('hand_tracked');
+    // The real AndroidXRTraitMap uses snake_case keys; verify some known ones
+    expect(list).toContain('collidable');
+    expect(list).toContain('eye_hand_fusion');
+    // Verify the list is not a stub — it comes from the real composed map
+    expect(list.length).toBeGreaterThan(20);
   });
 
   // ── VisionOS path (uses hand_tracking key, not hand_tracked) ──

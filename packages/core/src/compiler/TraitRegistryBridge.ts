@@ -22,6 +22,7 @@
 
 import type { AndroidXRTraitMapping } from './AndroidXRComponentTypes';
 import {
+  ANDROIDXR_TRAIT_MAP,
   getTraitMapping as getAndroidXRTrait,
   generateTraitCode as generateAndroidXRCode,
 } from './AndroidXRTraitMap';
@@ -204,11 +205,10 @@ export function generateTraitForTarget(
  */
 export function listTraitsForTarget(target: string): string[] {
   if (target === 'android-xr') {
-    return [
-      'collidable', 'physics', 'static', 'kinematic', 'cloth',
-      'hand_tracked', 'eye_tracked', 'portal', 'ornament',
-      // ... (the full maps in AndroidXRTraitDispatch + AndroidXRCodeTemplates)
-    ];
+    // Use the real composed ANDROIDXR_TRAIT_MAP keys instead of a hardcoded
+    // incomplete list. This ensures the WIT list-traits surface returns
+    // every trait actually available on the android-xr target.
+    return Object.keys(ANDROIDXR_TRAIT_MAP);
   }
 
   if (target === 'visionos') {
