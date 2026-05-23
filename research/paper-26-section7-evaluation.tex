@@ -14,9 +14,9 @@
 \label{sec:evaluation}
 
 We evaluate two sovereign primitives introduced in this paper:
-\textbf{HoloGraph} for structured event-chain retrieval (Section~\ref{sec:holograph}),
+\textbf{HoloGraph} for structured event-chain retrieval (Section~\ref{sec:eval-holograph}),
 and \textbf{HoloEmbed} for natural-language-to-code recall without an external API
-(Section~\ref{sec:holoembed}).
+(Section~\ref{sec:eval-holoembed}).
 All measurements run on the same machine with no GPU acceleration for embedding
 paths and no network calls; HoloGraph uses only in-process hash-map lookup.
 
@@ -284,7 +284,7 @@ partially addresses this by testing on production TypeScript, but
 broader cross-project evaluation remains future work.
 
 \paragraph{External validation of the filesystem-as-ground-truth design.}
-The core design choice underlying \HoloGraph\ (\S\ref{sec:holograph})
+The core design choice underlying \HoloGraph\ (\S\ref{sec:eval-holograph})
 --- that plain, version-controlled files serve as the agent's
 authoritative context store rather than opaque in-memory state or
 framework-managed DAGs --- has received independent practitioner
