@@ -317,6 +317,19 @@ export {
   type CurvatureConeFamilyOptions,
 } from './ConjectureGenerator';
 
+// SDF point evaluation — JS-side signed-distance sampling for future
+// proof-carrying SDF conjecture candidates.
+export {
+  SDFPointEvaluator,
+  evaluateSDFNode,
+  type SDFCSGOperation,
+  type SDFDomainOperation,
+  type SDFEvaluation,
+  type SDFNode,
+  type SDFPoint,
+  type SDFPrimitive,
+} from './SDFPointEvaluator';
+
 // Number-theory conjecture sub-class (`conjecture.numbertheory.erdos-straus.v1`)
 // — the first NON-geometry Conjecture Engine target. Reuses the generic receipt
 // key primitive; survivor-by-construction with honest `undecided` on the open case.
