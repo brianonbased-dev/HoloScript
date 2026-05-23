@@ -1133,46 +1133,11 @@ per episode (203 entries at $\sim$3.40\,$\mu$s median each).
 \subsection{GPU Benchmark: Hash-Chain Throughput (H1 vs.\ H3)}
 \label{sec:gpu-bench}
 
-We benchmark CAEL's hash-chain construction throughput on two hardware
-tiers to characterise the deployment envelope.
-
-\paragraph{Hardware.}
-\textbf{H1} (baseline): Intel Core i7-12th gen, Intel UHD Graphics 770
-(96 EU, 16\,GB shared RAM), Windows 11, Node.js v20, Chrome 126 WebGPU.
-\textbf{H3} (high-end): NVIDIA RTX 6000 Ada (18,176 CUDA cores, 48\,GB
-GDDR6 ECC), Ubuntu 22.04, Node.js v20, Chrome 126 WebGPU.
-
-\paragraph{Protocol.}
-We time the construction of 10,000-entry CAEL traces (4 entry types:
-perception, cognition, action, physics delta) using the canonical
-TypeScript implementation. Each benchmark reports median and P99
-latency per entry and total throughput (entries/s).
-
-\begin{table}[t]
-\caption{CAEL hash-chain throughput by hardware tier}
-\label{tab:gpu-bench}
-\small
-\measuredFrom{HoloScript/packages/engine/src/simulation/__tests__/paper-cael-replay-benchmark.test.ts}%
-\measuredFrom{HoloScript/.bench-logs/2026-04-18T07-20-56-134Z/cael-replay.log}%
-\measuredFrom{research/benchmark-results-2026-04-18-paper-1-cael-tab-verify.md}%
-\begin{tabular}{@{}lrrrr@{}}
-\toprule
-\textbf{Tier} & \textbf{Median} & \textbf{P99} & \textbf{Throughput} & \textbf{Overhead} \\
- & (\textmu{}s/entry) & (\textmu{}s/entry) & (entries/s) & vs.~uninstr. \\
-\midrule
-H1 (i7 / UHD 770) & 3.40 & 28.1 & 294,118 & 2.8\% \\
-H3 (RTX 6000 Ada) & 1.54 & 7.8  & 649,351 & 1.3\% \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-At H1, the 294K entries/s throughput far exceeds the 60\,Hz $\times$ 4
-entries/tick = 240 entries/s production rate, confirming that
-CAEL is compute-bound by the solver, not the hash chain.
-At H3, throughput doubles and overhead halves, demonstrating
-that higher-tier deployments achieve sub-1.5\% provenance cost.
-The 2.8\% H1 overhead reported in the abstract is empirically
-backed by this benchmark (Table~\ref{tab:overhead}).
+Across two hardware tiers, CAEL achieves 294K entries/s on H1 (Intel i7 / UHD 770,
+2.8\% overhead) and 649K entries/s on H3 (RTX 6000 Ada, 1.3\% overhead)---both far
+exceeding the 240 entries/s production rate at 60\,Hz, confirming that CAEL is
+compute-bound by the solver, not the hash chain (see Appendix~\ref{app:gpu-bench}
+for full protocol, hardware specification, and per-tier table).
 
 % ══════════════════════════════════════════════════════════════════════════════
 %  D.011 GATE — FULL-LOOP DEMO
@@ -1180,29 +1145,11 @@ backed by this benchmark (Table~\ref{tab:overhead}).
 \subsection{Full-Loop Demo: End-to-End Latency}
 \label{sec:full-loop-demo}
 
-We measure the end-to-end latency of a complete CAEL interaction
-cycle: from environment tick trigger to committed trace entry
-(perception \textrightarrow{} cognition \textrightarrow{} action
-\textrightarrow{} physics \textrightarrow{} hash append).
-
-\paragraph{Protocol.}
-Single-agent structural scenario (128-neuron SNN, 6-point field
-sensor, mock TET10 solver), 1,000 timed full-loop iterations,
-warm cache.
-
-\paragraph{Results.}
-\begin{itemize}
-  \item \textbf{H1} (Intel UHD 770): $16.2 \pm 2.4$\,ms median full-loop;
-    P99 $34.8$\,ms. Hash append: $3.4$\,\textmu{}s (0.021\% of loop time).
-  \item \textbf{H3} (RTX 6000 Ada): $7.4 \pm 0.9$\,ms median full-loop;
-    P99 $12.1$\,ms. Hash append: $1.5$\,\textmu{}s (0.020\% of loop time).
-\end{itemize}
-
-Both tiers sustain 60\,Hz ($\leq 16.67$\,ms) with margin: H1 median
-fits in the frame budget and H3 has $>$2$\times$ headroom.
-The hash-chain component contributes $<$0.025\% of total loop
-latency at both tiers, confirming that provenance is effectively
-free at production tick rates.
+Both H1 (Intel UHD 770, $16.2 \pm 2.4$\,ms median) and H3 (RTX 6000 Ada,
+$7.4 \pm 0.9$\,ms) sustain 60\,Hz with margin; the hash-chain append contributes
+$<0.025\%$ of total loop latency at both tiers, confirming that provenance is
+effectively free at production tick rates (see Appendix~\ref{app:full-loop-demo}
+for full protocol and per-tier breakdown).
 
 % ══════════════════════════════════════════════════════════════════════════════
 %  D.011 GATE — USER STUDY (still under \section{Evaluation})
@@ -1218,57 +1165,34 @@ To evaluate the operational utility and cognitive ergonomics of the system, we h
 \subsection{Ablation Study}
 \label{sec:ablation}
 
-To isolate the contribution of CAEL's hash-chained audit step, we ablate
-the audit-write phase of the agent loop while holding every other phase
-(perception encode, policy step, environment step, hash-chain anchor) at
-the values measured in \S\ref{sec:evaluation}.  The held-out factor is the
-\texttt{appendCaelTrace} call inside the agent loop's per-tick critical
-section: in the full configuration it canonicalises the post-step world
-state, hashes it under SHA-256, and appends the entry to the chain; in
-the ablated configuration that call is replaced with a no-op while the
-surrounding loop, dreaming pipeline, and counterfactual fork still
-execute.  This is the right ablation for an agent-environment-loop
-paper because the audit step is what distinguishes CAEL from a vanilla
-embodied loop --- removing it should recover the un-audited baseline up
-to the irreducible cost of the rest of the pipeline, and removing it
-should also break replay-determinism for the multi-agent
-dispute-resolution scenario (\S Scenario~3, \S\ref{sec:evaluation}).
+We ablate the \texttt{appendCaelTrace} audit-write call while holding all other
+loop phases constant.  The incremental CAEL overhead is $+60.6\,\mu$s/tick
+(0.36\% of a 16.67\,ms budget); removing it recovers the 2.0\,$\mu$s baseline
+but loses replay-determinism and dispute-resolvability.  The full ablation table
+and extended analysis are in Appendix~\ref{app:ablation}.
 
-\begin{table}[t]
-\centering
-\caption{Ablation of the CAEL audit step.  Per-tick wall-clock cost
-(median over 10 runs of 10,000 ticks) and replay-determinism status.
-Full = audit-write enabled through \texttt{CAELRecorder}; baseline =
-the same contracted simulation loop with no CAEL recorder.  The
-incremental overhead row is the measured full-minus-baseline delta from
-the local HoloScript benchmark run on 2026-05-10.}
-\label{tab:ablation-cael}
-\small
-\measuredFrom{HoloScript/packages/engine/src/simulation/__tests__/CAELPhase1.test.ts}%
-\measuredFrom{HoloScript/packages/engine/src/simulation/__tests__/CAELPhase3ForkDream.test.ts}%
-\begin{tabular}{lccc}
-\toprule
-\textbf{Variant} & \textbf{Per-tick (\textmu{}s)} & \textbf{Replay-det.} & \textbf{Dispute-resolvable} \\
-\midrule
-Full (audit-write on)        & 62.6 & Yes & Yes \\
-Baseline (no CAEL)           & 2.0  & No  & No  \\
-Incremental CAEL overhead    & +60.6 & Yes & Yes \\
-\bottomrule
-\end{tabular}
-\end{table}
+% ══════════════════════════════════════════════════════════════════════════════
+%  D.011 GATE — COMPUTATIONAL COMPLEXITY
+% ══════════════════════════════════════════════════════════════════════════════
+\subsection{Computational Complexity}
+\label{sec:complexity}
 
-The measured incremental cost is 60.6\,\textmu{}s per tick, or 0.36\%
-of a 16.67\,ms 60\,Hz frame budget.  The same run produced a
-20.49\,MB median JSONL trace and verified the hash chain in
-359.75\,ms median / 478.73\,ms p99.  Removing the audit-write phase
-recovers the un-audited baseline cost but loses replay-determinism on
-the multi-agent dispute scenario: without the chained hash, two
-replicas that diverge under network reordering have no algebraic
-witness to reconcile against, which is consistent with the hash-chain
-integrity argument in \S\ref{sec:architecture:hash}.  The interpretation
-mirrors the design contract --- the audit step is not free, but the
-cost it buys is precisely the property the paper claims
-(provenance-sealed counterfactual replay).
+The dominant per-tick cost of CAEL is the \texttt{appendCaelTrace} audit-write
+that appends one hash-chain entry per agent.  For a simulation with $N$ agents
+running at $F$\,Hz, the time complexity of the provenance layer is $O(N)$ hash
+operations per tick---each a single SHA-256 evaluation ($\approx$\,1.5\,$\mu$s).
+The measured rate at H1 (Intel i7\,/\,UHD\,770) is 294K entries/s and at H3
+(RTX\,6000\,Ada) is 649K entries/s (Section~\ref{sec:gpu-bench}), both exceeding
+the 240 entries/s production rate at 60\,Hz by $>$1,000$\times$.  Aggregate
+memory complexity is $O(N \cdot T)$ for a replay buffer of $T$ ticks; with a
+rolling window of $W$ ticks (default $W = 600$ at 60\,Hz), this reduces to
+$O(N \cdot W)$---approximately 2.4\,MB per 100 agents at 64-byte entries.
+Dispute-resolution queries scan at most $O(T)$ entries for a single-agent replay;
+multi-agent cross-causal queries are $O(N \cdot T)$ in the worst case but
+bounded in practice by the causal-fan-out depth (typically $\leq$\,3 hops in
+measured scenes).  The net overhead of $+60.6\,\mu$s/tick (0.36\% of 16.67\,ms)
+confirms that CAEL's provenance budget is dominated by solver physics, not
+hash-chain bookkeeping.
 
 % ══════════════════════════════════════════════════════════════════════════════
 %  SECTION 7: RELATED WORK
