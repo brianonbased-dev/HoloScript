@@ -188,6 +188,29 @@ export {
   type ProbeStatus,
 } from './ConjectureEngine';
 
+// Conjecture runner (`conjecture.runner.v1`) — the operator-facing MVP loop.
+// Encodes GENERATE -> EXECUTE -> FALSIFY -> CLASSIFY -> GRADUATE as a
+// deterministic receipt over `conjecture.v1` claim receipts.
+export {
+  CONJECTURE_RUNNER_V1,
+  PROOF_CARRYING_GEOMETRY_SMOKE_SUITE,
+  ConjectureRunner,
+  runConjectureRunner,
+  runProofCarryingGeometryConjectureCycle,
+  type ConjectureGraduationTarget,
+  type ConjectureRunnerClassification,
+  type ConjectureRunnerGate,
+  type ConjectureRunnerInput,
+  type ConjectureRunnerPhase,
+  type ConjectureRunnerReplay,
+  type ConjectureRunnerResult,
+  type ConjectureRunnerStage,
+  type ConjectureRunnerStatus,
+  type ConjectureRunnerSuite,
+  type ConjectureRunnerV1SolverType,
+  type ConjectureScenarioRole,
+} from './ConjectureRunner';
+
 // CAEL (Contracted Agent-Environment Loop) — hash-chain artifact standard
 export {
   type CAELTrace,
