@@ -309,6 +309,25 @@ export {
   type CurvatureConeFamilyOptions,
 } from './ConjectureGenerator';
 
+// Number-theory conjecture sub-class (`conjecture.numbertheory.erdos-straus.v1`)
+// — the first NON-geometry Conjecture Engine target. Reuses the generic receipt
+// key primitive; survivor-by-construction with honest `undecided` on the open case.
+export {
+  ERDOS_STRAUS_V1,
+  verifyErdosStraus,
+  findErdosStrausDecomposition,
+  findEqualUnitFraction,
+  runErdosStrausConjecture,
+  type ErdosStrausReceipt,
+  type ErdosStrausOptions,
+  type ErdosStrausSolverType,
+  type NumberConjectureStatus,
+  type NumberConjectureScenario,
+  type NumberConjectureEvaluation,
+  type NumberConjectureCounterexample,
+  type UnitFractionDecomposition,
+} from './NumberTheoryConjecture';
+
 // CAEL (Contracted Agent-Environment Loop) — hash-chain artifact standard
 export {
   type CAELTrace,
