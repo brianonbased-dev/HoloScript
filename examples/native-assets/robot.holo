@@ -1,7 +1,32 @@
 composition "HoloBot" {
   // ── HoloScript Native Asset ──────────────────────────────────────────────
-  // A robot built entirely from geometric primitives — no external models.
-  // Each "pixel" is a colored shape; density creates detail.
+  // A hard-surface robot built from layered native geometry — no external models.
+  // Each part uses reference-backed proportions, silhouette, and surface detail.
+  //
+  // ── Visual References ──────────────────────────────────────────────────────
+  // REF-1: Boston Dynamics Atlas (2024) — broad-shouldered torso tapering to
+  //        narrow waist, cylindrical upper arms with visible joint rings,
+  //        flat-panel chest housing with recessed sensor apertures.
+  //        Silhouette: inverted trapezoid torso, ball-joint hips.
+  //        URL: https://bostondynamics.com/atlas
+  //
+  // REF-2: Sony AIBO ERS-7 — head with curved brow plate, dual LED eye visor
+  //        recessed into a brow overhang, antenna nub centered on cranial dome,
+  //        contrasting gloss/matte zones on adjacent panels.
+  //        Silhouette: wedge head tapering forward, ear-like sensor pods.
+  //        URL: https://www.sony.com/aibo
+  //
+  // ── Hard-surface design principles applied ─────────────────────────────────
+  // - Silhouette: recognizable robot profile from 50m — broad shoulders,
+  //   narrow waist, two-tone head vs body contrast.
+  // - Bevels: every major panel uses a slightly smaller overlay (3-5mm inset)
+  //   in contrasting finish to simulate chamfered edges without true bevels.
+  // - Panel lines: thin dark strips (0.02-0.04 scale) between sub-assemblies
+  //   simulate real panel gaps.
+  // - Material wear: high-metalness cockpit glass, matte-rubber joints,
+  //   brushed-metal body panels with subtle roughness variation.
+  // - Surface detail: greeble strips (small cubes/cylinders on flat panels),
+  //   recessed sensor apertures (dark inset geometry), vent grilles.
 
   environment {
     skybox: "hdr_studio"
@@ -13,220 +38,531 @@ composition "HoloBot" {
   post_processing {
     bloom { intensity: 0.3, threshold: 0.8 }
     tone_mapping { mode: "aces" }
-    ambient_occlusion { intensity: 0.3, radius: 0.4 }
+    ambient_occlusion { intensity: 0.35, radius: 0.5 }
   }
 
-  template "MetalJoint" {
-    geometry: "sphere"
-    material: { preset: "chrome", metalness: 0.9, roughness: 0.1 }
+  // ── Shared Materials ──────────────────────────────────────────────────────
+  template "BrushedSteel" {
+    material: { metalness: 0.85, roughness: 0.25 }
+  }
+  template "DarkArmor" {
+    material: { metalness: 0.75, roughness: 0.35 }
+  }
+  template "RubberJoint" {
+    material: { metalness: 0.1, roughness: 0.9 }
+  }
+  template "ReactorGlow" {
+    material: { emissive: "#00e5ff", emissiveIntensity: 3.0 }
+  }
+  template "SensorLED" {
+    material: { emissive: "#00ffff", emissiveIntensity: 2.5 }
   }
 
   object "Robot" @physics @animation {
     position: [0, 0, 0]
 
     // ── Head ──────────────────────────────────────────────────────────────
+    // REF-2 (AIBO brow): curved brow overhang with recessed visor underneath.
+    // Silhouette: wedge-shaped head, wider at brow, tapering to chin.
     object "Head" {
-      geometry: "sphere"
-      position: [0, 2.2, 0]
-      scale: [0.45, 0.5, 0.45]
+      geometry: "dodecahedron"
+      position: [0, 2.25, 0]
+      scale: [0.48, 0.42, 0.46]
       color: "#c0c0c0"
-      material: { metalness: 0.8, roughness: 0.2 }
+      material: { metalness: 0.85, roughness: 0.2 }
 
-      object "LeftEye" {
-        geometry: "sphere"
-        position: [-0.12, 0.08, 0.38]
-        scale: [0.09, 0.09, 0.04]
-        color: "#00ffff"
-        material: { emissive: "#00ffff", emissiveIntensity: 2.0 }
+      // Brow overhang — wider plate above eyes (AIBO brow silhouette)
+      object "BrowPlate" {
+        geometry: "cube"
+        position: [0, 0.1, 0.18]
+        scale: [0.52, 0.06, 0.18]
+        color: "#999999"
+        material: { metalness: 0.9, roughness: 0.15 }
       }
-      object "RightEye" {
-        geometry: "sphere"
-        position: [0.12, 0.08, 0.38]
-        scale: [0.09, 0.09, 0.04]
-        color: "#00ffff"
-        material: { emissive: "#00ffff", emissiveIntensity: 2.0 }
+
+      // Recessed visor slot — dark inset behind eyes
+      object "VisorHousing" {
+        geometry: "cube"
+        position: [0, 0.02, 0.22]
+        scale: [0.42, 0.1, 0.06]
+        color: "#1a1a1a"
+        material: { metalness: 0.3, roughness: 0.8 }
+
+        // Left eye — emissive LED strip
+        object "LeftEye" using "SensorLED" {
+          geometry: "capsule"
+          position: [-0.12, 0, 0.03]
+          scale: [0.09, 0.04, 0.04]
+          color: "#00ffff"
+        }
+        // Right eye — emissive LED strip
+        object "RightEye" using "SensorLED" {
+          geometry: "capsule"
+          position: [0.12, 0, 0.03]
+          scale: [0.09, 0.04, 0.04]
+          color: "#00ffff"
+        }
       }
+
+      // Chin plate — narrows the lower head (inverted trapezoid REF-1)
+      object "ChinPlate" {
+        geometry: "cube"
+        position: [0, -0.16, 0.14]
+        scale: [0.26, 0.08, 0.14]
+        color: "#a0a0a0"
+        material: { metalness: 0.85, roughness: 0.2 }
+      }
+
+      // Antenna mast — tapered cylinder
       object "Antenna" {
-        geometry: "cylinder"
-        position: [0, 0.45, 0]
-        scale: [0.02, 0.25, 0.02]
-        color: "#ff4444"
+        geometry: "cone"
+        position: [0, 0.42, 0]
+        scale: [0.03, 0.25, 0.03]
+        color: "#888888"
+        material: { metalness: 0.8, roughness: 0.3 }
       }
+      // Antenna tip — emissive beacon
       object "AntennaOrb" {
-        geometry: "sphere"
-        position: [0, 0.72, 0]
-        scale: [0.06, 0.06, 0.06]
+        geometry: "icosahedron"
+        position: [0, 0.58, 0]
+        scale: [0.05, 0.05, 0.05]
         color: "#ff4444"
-        material: { emissive: "#ff4444", emissiveIntensity: 1.5 }
+        material: { emissive: "#ff4444", emissiveIntensity: 2.0 }
+      }
+
+      // Ear sensors — lateral pods (AIBO ear-like protrusions)
+      object "LeftEarSensor" {
+        geometry: "capsule"
+        position: [-0.28, 0.05, 0]
+        rotation: [0, 0, 90]
+        scale: [0.06, 0.12, 0.06]
+        color: "#707070"
+        material: { metalness: 0.8, roughness: 0.25 }
+      }
+      object "RightEarSensor" {
+        geometry: "capsule"
+        position: [0.28, 0.05, 0]
+        rotation: [0, 0, 90]
+        scale: [0.06, 0.12, 0.06]
+        color: "#707070"
+        material: { metalness: 0.8, roughness: 0.25 }
       }
     }
 
     // ── Neck ──────────────────────────────────────────────────────────────
-    object "Neck" using "MetalJoint" {
-      position: [0, 1.85, 0]
-      scale: [0.12, 0.12, 0.12]
+    // REF-1 (Atlas): compact ball-joint neck with visible rubber gasket
+    object "Neck" using "RubberJoint" {
+      geometry: "cylinder"
+      position: [0, 1.9, 0]
+      scale: [0.1, 0.15, 0.1]
+      color: "#333333"
+    }
+    object "NeckRing" {
+      geometry: "ring"
+      position: [0, 1.92, 0]
+      scale: [0.14, 0.14, 0.03]
+      color: "#555555"
+      material: { metalness: 0.9, roughness: 0.1 }
     }
 
     // ── Torso ─────────────────────────────────────────────────────────────
-    object "Torso" {
+    // REF-1 (Atlas): broad-shouldered inverted trapezoid, recessed chest panel.
+    // Panel-line gaps between sub-assemblies simulate real robot construction.
+    object "Torso" using "BrushedSteel" {
       geometry: "cube"
-      position: [0, 1.2, 0]
-      scale: [0.7, 0.9, 0.35]
+      position: [0, 1.25, 0]
+      scale: [0.8, 0.95, 0.38]
       color: "#888888"
-      material: { metalness: 0.7, roughness: 0.3 }
 
+      // Panel-line gap strip — top horizontal (simulates weld line)
+      object "TopPanelLine" {
+        geometry: "cube"
+        position: [0, 0.32, 0.19]
+        scale: [0.78, 0.02, 0.02]
+        color: "#222222"
+        material: { metalness: 0.3, roughness: 0.9 }
+      }
+      // Panel-line gap strip — bottom horizontal
+      object "BottomPanelLine" {
+        geometry: "cube"
+        position: [0, -0.32, 0.19]
+        scale: [0.78, 0.02, 0.02]
+        color: "#222222"
+        material: { metalness: 0.3, roughness: 0.9 }
+      }
+
+      // Recessed chest plate — darker inset panel (bevel simulation)
       object "ChestPlate" {
         geometry: "cube"
-        position: [0, 0.05, 0.18]
-        scale: [0.5, 0.6, 0.02]
+        position: [0, 0.05, 0.17]
+        scale: [0.52, 0.58, 0.04]
         color: "#555555"
+        material: { metalness: 0.8, roughness: 0.3 }
       }
-      object "ReactorCore" {
-        geometry: "sphere"
+
+      // Chest vertical detail strips — greeble lines
+      object "ChestGreeble1" {
+        geometry: "cube"
+        position: [-0.18, 0.05, 0.2]
+        scale: [0.02, 0.45, 0.02]
+        color: "#3a3a3a"
+        material: { metalness: 0.7, roughness: 0.4 }
+      }
+      object "ChestGreeble2" {
+        geometry: "cube"
+        position: [0.18, 0.05, 0.2]
+        scale: [0.02, 0.45, 0.02]
+        color: "#3a3a3a"
+        material: { metalness: 0.7, roughness: 0.4 }
+      }
+
+      // Reactor core — glowing primary visual focal point
+      object "ReactorCore" using "ReactorGlow" {
+        geometry: "octahedron"
         position: [0, 0.0, 0.2]
-        scale: [0.12, 0.12, 0.12]
-        color: "#00ffff"
-        material: { emissive: "#00ffff", emissiveIntensity: 3.0 }
+        scale: [0.1, 0.1, 0.1]
+        color: "#00e5ff"
       }
+      // Reactor housing ring — mechanical detail around core
       object "ReactorRing" {
         geometry: "torus"
         position: [0, 0.0, 0.2]
-        scale: [0.18, 0.18, 0.18]
+        scale: [0.16, 0.16, 0.04]
         color: "#00aacc"
-        material: { emissive: "#00aacc", emissiveIntensity: 1.0 }
+        material: { emissive: "#00aacc", emissiveIntensity: 1.0, metalness: 0.9 }
+      }
+      // Reactor recess — dark inset surrounding the core
+      object "ReactorRecess" {
+        geometry: "cube"
+        position: [0, 0.0, 0.175]
+        scale: [0.22, 0.22, 0.02]
+        color: "#1a1a1a"
+        material: { metalness: 0.3, roughness: 0.85 }
+      }
+
+      // Shoulder hardpoints — mechanical mount pads (REF-1 Atlas shoulders)
+      object "LeftShoulderMount" {
+        geometry: "dodecahedron"
+        position: [-0.44, 0.35, 0]
+        scale: [0.12, 0.12, 0.12]
+        color: "#606060"
+        material: { metalness: 0.85, roughness: 0.2 }
+      }
+      object "RightShoulderMount" {
+        geometry: "dodecahedron"
+        position: [0.44, 0.35, 0]
+        scale: [0.12, 0.12, 0.12]
+        color: "#606060"
+        material: { metalness: 0.85, roughness: 0.2 }
+      }
+
+      // Rear vent grilles — heat dissipation detail
+      object "VentLeft" {
+        geometry: "cube"
+        position: [-0.2, 0.1, -0.19]
+        scale: [0.15, 0.04, 0.02]
+        color: "#333333"
+        material: { metalness: 0.5, roughness: 0.7 }
+      }
+      object "VentRight" {
+        geometry: "cube"
+        position: [0.2, 0.1, -0.19]
+        scale: [0.15, 0.04, 0.02]
+        color: "#333333"
+        material: { metalness: 0.5, roughness: 0.7 }
       }
     }
 
-    // ── Left Arm ──────────────────────────────────────────────────────────
-    object "LeftShoulder" using "MetalJoint" {
-      position: [-0.5, 1.55, 0]
-      scale: [0.14, 0.14, 0.14]
-    }
-    object "LeftUpperArm" {
-      geometry: "cylinder"
-      position: [-0.55, 1.2, 0]
-      scale: [0.08, 0.35, 0.08]
-      color: "#777777"
-    }
-    object "LeftElbow" using "MetalJoint" {
-      position: [-0.55, 0.85, 0]
-      scale: [0.1, 0.1, 0.1]
-    }
-    object "LeftForearm" {
-      geometry: "cylinder"
-      position: [-0.55, 0.55, 0]
-      scale: [0.07, 0.3, 0.07]
-      color: "#777777"
-    }
-    object "LeftHand" {
-      geometry: "cube"
-      position: [-0.55, 0.25, 0]
-      scale: [0.12, 0.08, 0.12]
-      color: "#999999"
-    }
-
-    // ── Right Arm ─────────────────────────────────────────────────────────
-    object "RightShoulder" using "MetalJoint" {
-      position: [0.5, 1.55, 0]
-      scale: [0.14, 0.14, 0.14]
-    }
-    object "RightUpperArm" {
-      geometry: "cylinder"
-      position: [0.55, 1.2, 0]
-      scale: [0.08, 0.35, 0.08]
-      color: "#777777"
-    }
-    object "RightElbow" using "MetalJoint" {
-      position: [0.55, 0.85, 0]
-      scale: [0.1, 0.1, 0.1]
-    }
-    object "RightForearm" {
-      geometry: "cylinder"
-      position: [0.55, 0.55, 0]
-      scale: [0.07, 0.3, 0.07]
-      color: "#777777"
-    }
-    object "RightHand" {
-      geometry: "cube"
-      position: [0.55, 0.25, 0]
-      scale: [0.12, 0.08, 0.12]
-      color: "#999999"
-    }
-
     // ── Waist ─────────────────────────────────────────────────────────────
-    object "Waist" {
+    // REF-1: Narrow waist (Atlas taper) with mechanical coupling ring
+    object "Waist" using "RubberJoint" {
       geometry: "cylinder"
-      position: [0, 0.65, 0]
-      scale: [0.25, 0.1, 0.25]
+      position: [0, 0.68, 0]
+      scale: [0.28, 0.12, 0.28]
+      color: "#444444"
+    }
+    object "WaistRing" {
+      geometry: "ring"
+      position: [0, 0.68, 0]
+      scale: [0.22, 0.22, 0.03]
       color: "#666666"
+      material: { metalness: 0.9, roughness: 0.15 }
+    }
+
+    // ── Left Arm ──────────────────────────────────────────────────────────
+    // REF-1: Cylindrical limb segments with visible joint rings and rubber gaskets
+    object "LeftShoulder" {
+      geometry: "sphere"
+      position: [-0.52, 1.6, 0]
+      scale: [0.16, 0.16, 0.16]
+      color: "#999999"
+      material: { preset: "chrome" }
+    }
+    object "LeftShoulderGasket" using "RubberJoint" {
+      geometry: "ring"
+      position: [-0.52, 1.55, 0]
+      scale: [0.14, 0.14, 0.03]
+      color: "#333333"
+    }
+    object "LeftUpperArm" using "BrushedSteel" {
+      geometry: "capsule"
+      position: [-0.52, 1.25, 0]
+      rotation: [0, 0, 0]
+      scale: [0.09, 0.32, 0.09]
+      color: "#777777"
+    }
+    // Upper arm detail strip — panel line
+    object "LeftArmPanelLine" {
+      geometry: "cube"
+      position: [-0.52, 1.25, 0.05]
+      scale: [0.02, 0.28, 0.02]
+      color: "#333333"
+      material: { metalness: 0.3, roughness: 0.9 }
+    }
+    object "LeftElbow" {
+      geometry: "sphere"
+      position: [-0.52, 0.92, 0]
+      scale: [0.12, 0.12, 0.12]
+      color: "#888888"
+      material: { preset: "chrome" }
+    }
+    object "LeftElbowGasket" using "RubberJoint" {
+      geometry: "ring"
+      position: [-0.52, 0.92, 0]
+      scale: [0.1, 0.1, 0.02]
+      color: "#333333"
+    }
+    object "LeftForearm" using "BrushedSteel" {
+      geometry: "capsule"
+      position: [-0.52, 0.6, 0]
+      scale: [0.08, 0.28, 0.08]
+      color: "#777777"
+    }
+    object "LeftWrist" using "RubberJoint" {
+      geometry: "ring"
+      position: [-0.52, 0.32, 0]
+      scale: [0.09, 0.09, 0.02]
+      color: "#333333"
+    }
+    // Hand — beveled cube with inset palm detail
+    object "LeftHand" using "DarkArmor" {
+      geometry: "cube"
+      position: [-0.52, 0.22, 0]
+      scale: [0.13, 0.08, 0.13]
+      color: "#999999"
+    }
+    object "LeftPalmDetail" {
+      geometry: "cube"
+      position: [-0.52, 0.22, 0.065]
+      scale: [0.08, 0.04, 0.02]
+      color: "#222222"
+      material: { metalness: 0.3, roughness: 0.9 }
+    }
+
+    // ── Right Arm ────────────────────────────────────────────────────────
+    object "RightShoulder" {
+      geometry: "sphere"
+      position: [0.52, 1.6, 0]
+      scale: [0.16, 0.16, 0.16]
+      color: "#999999"
+      material: { preset: "chrome" }
+    }
+    object "RightShoulderGasket" using "RubberJoint" {
+      geometry: "ring"
+      position: [0.52, 1.55, 0]
+      scale: [0.14, 0.14, 0.03]
+      color: "#333333"
+    }
+    object "RightUpperArm" using "BrushedSteel" {
+      geometry: "capsule"
+      position: [0.52, 1.25, 0]
+      scale: [0.09, 0.32, 0.09]
+      color: "#777777"
+    }
+    object "RightArmPanelLine" {
+      geometry: "cube"
+      position: [0.52, 1.25, 0.05]
+      scale: [0.02, 0.28, 0.02]
+      color: "#333333"
+      material: { metalness: 0.3, roughness: 0.9 }
+    }
+    object "RightElbow" {
+      geometry: "sphere"
+      position: [0.52, 0.92, 0]
+      scale: [0.12, 0.12, 0.12]
+      color: "#888888"
+      material: { preset: "chrome" }
+    }
+    object "RightElbowGasket" using "RubberJoint" {
+      geometry: "ring"
+      position: [0.52, 0.92, 0]
+      scale: [0.1, 0.1, 0.02]
+      color: "#333333"
+    }
+    object "RightForearm" using "BrushedSteel" {
+      geometry: "capsule"
+      position: [0.52, 0.6, 0]
+      scale: [0.08, 0.28, 0.08]
+      color: "#777777"
+    }
+    object "RightWrist" using "RubberJoint" {
+      geometry: "ring"
+      position: [0.52, 0.32, 0]
+      scale: [0.09, 0.09, 0.02]
+      color: "#333333"
+    }
+    object "RightHand" using "DarkArmor" {
+      geometry: "cube"
+      position: [0.52, 0.22, 0]
+      scale: [0.13, 0.08, 0.13]
+      color: "#999999"
+    }
+    object "RightPalmDetail" {
+      geometry: "cube"
+      position: [0.52, 0.22, 0.065]
+      scale: [0.08, 0.04, 0.02]
+      color: "#222222"
+      material: { metalness: 0.3, roughness: 0.9 }
     }
 
     // ── Left Leg ──────────────────────────────────────────────────────────
-    object "LeftHip" using "MetalJoint" {
-      position: [-0.2, 0.55, 0]
-      scale: [0.12, 0.12, 0.12]
+    object "LeftHip" using "RubberJoint" {
+      geometry: "sphere"
+      position: [-0.22, 0.55, 0]
+      scale: [0.14, 0.14, 0.14]
+      color: "#444444"
     }
-    object "LeftThigh" {
-      geometry: "cylinder"
-      position: [-0.2, 0.25, 0]
-      scale: [0.1, 0.35, 0.1]
+    object "LeftHipRing" {
+      geometry: "ring"
+      position: [-0.22, 0.52, 0]
+      scale: [0.12, 0.12, 0.02]
+      color: "#666666"
+      material: { metalness: 0.9, roughness: 0.15 }
+    }
+    object "LeftThigh" using "BrushedSteel" {
+      geometry: "capsule"
+      position: [-0.22, 0.25, 0]
+      scale: [0.1, 0.32, 0.1]
       color: "#777777"
     }
-    object "LeftKnee" using "MetalJoint" {
-      position: [-0.2, -0.1, 0]
-      scale: [0.11, 0.11, 0.11]
+    object "LeftKnee" {
+      geometry: "sphere"
+      position: [-0.22, -0.05, 0]
+      scale: [0.13, 0.13, 0.13]
+      color: "#888888"
+      material: { preset: "chrome" }
     }
-    object "LeftShin" {
-      geometry: "cylinder"
-      position: [-0.2, -0.4, 0]
-      scale: [0.09, 0.35, 0.09]
+    object "LeftKneeGasket" using "RubberJoint" {
+      geometry: "ring"
+      position: [-0.22, -0.05, 0]
+      scale: [0.11, 0.11, 0.02]
+      color: "#333333"
+    }
+    object "LeftShin" using "BrushedSteel" {
+      geometry: "capsule"
+      position: [-0.22, -0.35, 0]
+      scale: [0.08, 0.32, 0.08]
       color: "#777777"
     }
-    object "LeftFoot" {
+    // Shin guard plate — protective overlay detail
+    object "LeftShinGuard" using "DarkArmor" {
       geometry: "cube"
-      position: [-0.2, -0.75, 0.05]
-      scale: [0.14, 0.06, 0.2]
+      position: [-0.22, -0.3, 0.06]
+      scale: [0.09, 0.2, 0.03]
       color: "#555555"
+    }
+    // Foot — widened stance plate with toe detail
+    object "LeftFoot" using "DarkArmor" {
+      geometry: "cube"
+      position: [-0.22, -0.72, 0.04]
+      scale: [0.16, 0.07, 0.24]
+      color: "#555555"
+    }
+    object "LeftToeDetail" {
+      geometry: "cube"
+      position: [-0.22, -0.72, 0.15]
+      scale: [0.12, 0.04, 0.04]
+      color: "#333333"
+      material: { metalness: 0.3, roughness: 0.9 }
     }
 
     // ── Right Leg ─────────────────────────────────────────────────────────
-    object "RightHip" using "MetalJoint" {
-      position: [0.2, 0.55, 0]
-      scale: [0.12, 0.12, 0.12]
+    object "RightHip" using "RubberJoint" {
+      geometry: "sphere"
+      position: [0.22, 0.55, 0]
+      scale: [0.14, 0.14, 0.14]
+      color: "#444444"
     }
-    object "RightThigh" {
-      geometry: "cylinder"
-      position: [0.2, 0.25, 0]
-      scale: [0.1, 0.35, 0.1]
+    object "RightHipRing" {
+      geometry: "ring"
+      position: [0.22, 0.52, 0]
+      scale: [0.12, 0.12, 0.02]
+      color: "#666666"
+      material: { metalness: 0.9, roughness: 0.15 }
+    }
+    object "RightThigh" using "BrushedSteel" {
+      geometry: "capsule"
+      position: [0.22, 0.25, 0]
+      scale: [0.1, 0.32, 0.1]
       color: "#777777"
     }
-    object "RightKnee" using "MetalJoint" {
-      position: [0.2, -0.1, 0]
-      scale: [0.11, 0.11, 0.11]
+    object "RightKnee" {
+      geometry: "sphere"
+      position: [0.22, -0.05, 0]
+      scale: [0.13, 0.13, 0.13]
+      color: "#888888"
+      material: { preset: "chrome" }
     }
-    object "RightShin" {
-      geometry: "cylinder"
-      position: [0.2, -0.4, 0]
-      scale: [0.09, 0.35, 0.09]
+    object "RightKneeGasket" using "RubberJoint" {
+      geometry: "ring"
+      position: [0.22, -0.05, 0]
+      scale: [0.11, 0.11, 0.02]
+      color: "#333333"
+    }
+    object "RightShin" using "BrushedSteel" {
+      geometry: "capsule"
+      position: [0.22, -0.35, 0]
+      scale: [0.08, 0.32, 0.08]
       color: "#777777"
     }
-    object "RightFoot" {
+    object "RightShinGuard" using "DarkArmor" {
       geometry: "cube"
-      position: [0.2, -0.75, 0.05]
-      scale: [0.14, 0.06, 0.2]
+      position: [0.22, -0.3, 0.06]
+      scale: [0.09, 0.2, 0.03]
       color: "#555555"
+    }
+    object "RightFoot" using "DarkArmor" {
+      geometry: "cube"
+      position: [0.22, -0.72, 0.04]
+      scale: [0.16, 0.07, 0.24]
+      color: "#555555"
+    }
+    object "RightToeDetail" {
+      geometry: "cube"
+      position: [0.22, -0.72, 0.15]
+      scale: [0.12, 0.04, 0.04]
+      color: "#333333"
+      material: { metalness: 0.3, roughness: 0.9 }
     }
   }
 
   // ── Lighting ──────────────────────────────────────────────────────────────
+  // Key light — overhead-right for hard-surface shadow definition
   directional_light "KeyLight" {
     color: "#ffffff"
     intensity: 1.2
     position: [5, 10, 5]
     shadows: true
   }
+  // Fill light — cool-toned left fill for material contrast
   ambient_light "FillLight" {
     color: "#e0e8ff"
     intensity: 0.4
+  }
+  // Rim light — behind/above for silhouette edge separation
+  directional_light "RimLight" {
+    color: "#b0c4ff"
+    intensity: 0.6
+    position: [-3, 8, -5]
   }
 }
