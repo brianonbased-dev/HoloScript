@@ -349,6 +349,28 @@ export {
   type UnitFractionDecomposition,
 } from './NumberTheoryConjecture';
 
+// String-math conjecture sub-class (`conjecture.stringmath.tropical-bezout.v1`) —
+// verifies BKK / tropical Bézout (mixed volume of Newton polytopes == classical
+// intersection number) by a real Minkowski-sum + convex-hull + shoelace pipeline.
+// Receipt-tier instance verification, NOT a mirror-symmetry proof (Lean-tier).
+export {
+  TROPICAL_BEZOUT_V1,
+  degreeTriangle,
+  twiceArea,
+  convexHull,
+  minkowskiSum,
+  mixedVolume2D,
+  runTropicalBezoutConjecture,
+  type LatticePoint,
+  type TropicalBezoutReceipt,
+  type TropicalBezoutOptions,
+  type TropicalBezoutSolverType,
+  type TropicalConjectureStatus,
+  type TropicalScenario,
+  type MixedVolumeEvaluation,
+  type TropicalCounterexample,
+} from './TropicalBezoutConjecture';
+
 // CAEL (Contracted Agent-Environment Loop) — hash-chain artifact standard
 export {
   type CAELTrace,
