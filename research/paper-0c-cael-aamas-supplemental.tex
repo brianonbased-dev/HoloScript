@@ -1,0 +1,150 @@
+% CAEL Supplemental Material
+% Moved from main paper 2026-05-23 for AAMAS 8-page main-text budget.
+% Not counted in the 8-page limit; submit as separate supplemental PDF.
+\documentclass[sigconf,nonacm]{acmart}
+\usepackage{amsmath}
+\let\Bbbk\relax
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+
+\newcommand{\cmark}{\textcolor{green!60!black}{\checkmark}}
+\newcommand{\xmark}{\textcolor{red!70!black}{$\times$}}
+\newcommand{\measuredFrom}[1]{\footnote{Measured from \texttt{#1}.}}
+
+\begin{document}
+\title{CAEL: Supplemental Material}
+\maketitle
+
+\appendix
+
+\section{Scenario 3: Multi-Agent Dispute Resolution}
+\label{app:dispute}
+
+\paragraph{Protocol.}
+Three agents ($A$, $B$, $C$) share a structural simulation.
+Each agent can apply loads to different regions. In each trial:
+\begin{enumerate}
+  \item Agents take turns applying loads for 50 ticks.
+  \item At tick 50, the structure fails (stress exceeds yield).
+  \item An automated adjudicator replays all three agents' CAEL
+    traces, identifies which agent's action at which timestep
+    caused the failure, and produces an attribution report.
+\end{enumerate}
+
+We compare CAEL-based adjudication against two baselines:
+\begin{itemize}
+  \item \textbf{Last-action}: Blame the agent whose most recent
+    action preceded the failure.
+  \item \textbf{Reputation}: Blame the agent with the lowest
+    historical success rate.
+\end{itemize}
+
+\paragraph{Metrics.}
+\begin{itemize}
+  \item \textbf{Attribution accuracy}: Fraction of trials where
+    the adjudicator correctly identifies the causal agent.
+  \item \textbf{Causal specificity}: Whether the adjudicator
+    identifies the specific action (not just the agent) that
+    caused the failure.
+  \item \textbf{Adjudication time}: Wall-clock time from failure
+    detection to attribution.
+\end{itemize}
+
+\paragraph{Results.}
+\begin{table}[t]
+\caption{Multi-agent dispute resolution (100 trials)}
+\label{tab:dispute}
+\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Metric} & \textbf{Last-Action} & \textbf{Reputation} & \textbf{CAEL} \\
+\midrule
+Agent accuracy (\%) & 34 & 41 & 100 \\
+Action accuracy (\%) & 0 & 0 & 100 \\
+Adjudication (ms) & $<$\,1 & 2.1 & 48.3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+CAEL-based adjudication achieves 100\% attribution
+accuracy because it replays the exact sequence of
+perception--action--physics events. The replay identifies not
+just \emph{which} agent but \emph{which specific action at which
+timestep} caused the stress to exceed yield. The last-action
+baseline fails when the causal action was several ticks before
+the failure (accumulated stress). The reputation baseline fails
+when a historically reliable agent happens to make the harmful
+action in a specific trial. Adjudication cost for CAEL (48.3\,ms)
+reflects replaying 3 agents $\times$ 50 ticks of trace, dominated
+by solver re-execution. Hash-chain verification of the traces
+themselves adds only $\sim$0.5\,ms (150 entries at $\sim$3.40\,$\mu$s
+median each; see \texttt{research/benchmark-canonical-run.md}).
+
+\section{Dreaming Evaluation}
+\label{app:dream}
+
+We evaluate the dream mechanism's overhead and perturbation coverage.
+
+\begin{table}[t]
+\caption{Dream session characteristics (10 episodes, $\pm 10\%$ perturbation)}
+\label{tab:dream}
+\small
+\begin{tabular}{@{}lr@{}}
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+Episodes requested & 10 \\
+Episodes completed & 10/10 \\
+Mean perturbation magnitude & 8.7\% \\
+Dream trace entries (per episode) & 253 \\
+Total dream time (ms) & 612 \\
+All traces valid (hash chain) & \cmark \\
+All traces link to waking run ID & \cmark \\
+Perturbation reproducibility (re-seed) & \cmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All 10 dream episodes completed successfully within the $\pm 10\%$
+perturbation budget (mean realized perturbation 8.7\%). Each episode
+generates 203 trace entries (50 ticks $\times$ 4 entries + 3 bookkeeping),
+consistent with the waking agent trace structure. Total dream time
+of 612\,ms for 10 episodes (61.2\,ms/episode) is dominated by SNN
+cognition re-evaluation; hash-chain construction adds $<$0.4\,ms
+per episode (203 entries at $\sim$3.40\,$\mu$s median each).
+
+\section{Digital Twin Agreement Harness}
+\label{app:twin-harness}
+
+The behavioral-determinism claim is given mechanical force by an
+explicit digital-twin agreement harness implementing the W.315
+wire-format equivalent predicate. The CAEL stack ships \textbf{two
+independent implementations of the same state machine}: a record path
+(\texttt{CAELRecorder}, wrapping a \texttt{SimSolver} and emitting a
+hash-chained JSONL trace) and a replay path (\texttt{CAELReplayer},
+consuming JSONL and re-executing the recorded interactions against a
+freshly-instantiated solver). These are not the same code path. The
+equivalence wire format (\texttt{equivalenceRecord.ts}, with
+\texttt{solverType: equivalence.v1}) projects out non-semantic fields
+($runId$, $wallTimeMs$, interaction $id$/$timestamp$) and the
+\texttt{wireFormatEquivalent(a,b)} predicate asserts equality on the
+canonical projection $(config,$ $solverType,$ $geometryHash,$
+$contractId,$ $fixedDt,$ $totalSteps,$ $interactions,$
+$subgridAttestation)$. Two implementations agreement is therefore
+mechanically witnessed by \texttt{wire-format equivalent} returning
+\texttt{true} across the record/replay pair. The dispatch follows
+the same-adapter / cross-adapter pattern: matching adapter fingerprints
+enforce strict per-step digest identity (byte-identical replay across
+the hash chain); differing or absent fingerprints fall through to
+cross-adapter equivalence, where deterministic replay is established
+at the wire-format projection rather than the byte level. The
+harness exercises both regimes with explicit false cases for the
+\texttt{sameAdapter} predicate---empty fingerprints, mismatched
+fingerprints, and one-sided \texttt{null} are all rejected---so the
+assertion can fail loudly rather than silently broaden into trivial
+acceptance. The full harness (33 assertions across recorder/replayer
+round-trip and wire-equivalence primitive) executes in 112\,ms total
+test-time and passes 33/33.
+
+\end{document}
