@@ -333,6 +333,31 @@ export {
   type SDFPrimitive,
 } from './SDFPointEvaluator';
 
+// Proof-carrying SDF conjecture sub-class (`conjecture.geometry.proof-carrying-sdf.v1`)
+// — carries the 1-Lipschitz invariant as receipt evidence via adversarial sampling
+// of evaluateSDFNode. Falsification is sound (a sampled ratio > 1 is a real
+// counterexample); survival is evidence, not proof (W.511). Sphere survives, gyroid
+// is the discovering falsifier.
+export {
+  PROOF_CARRYING_SDF_V1,
+  LIPSCHITZ_TOLERANCE,
+  empiricalLipschitzRatio,
+  sphereCandidate,
+  gyroidCandidate,
+  generateSphereFamily,
+  generateGyroidFamily,
+  runProofCarryingSdfConjecture,
+  type SdfConjectureCandidate,
+  type SdfConjectureStatus,
+  type ProofCarryingSdfReceipt,
+  type ProofCarryingSdfOptions,
+  type LipschitzWitness,
+  type LipschitzResult,
+  type SdfScenario,
+  type SdfEvaluation,
+  type SdfCounterexample,
+} from './SdfConjecture';
+
 // Number-theory conjecture sub-class (`conjecture.numbertheory.erdos-straus.v1`)
 // — the first NON-geometry Conjecture Engine target. Reuses the generic receipt
 // key primitive; survivor-by-construction with honest `undecided` on the open case.
