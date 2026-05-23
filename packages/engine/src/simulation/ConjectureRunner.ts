@@ -18,14 +18,21 @@ import {
   type ConjectureStatus,
   type GeometryConjectureCandidate,
 } from './ConjectureEngine';
+import {
+  generateCollapsingTriangleFamily,
+  generateRegularPolygonSheetFamily,
+} from './ConjectureGenerator';
 import { stableStringify } from './equivalenceRecord';
 import type { HashMode } from './hashes';
 
 export const CONJECTURE_RUNNER_V1 = 'conjecture.runner.v1' as const;
 export const PROOF_CARRYING_GEOMETRY_SMOKE_SUITE = 'proof-carrying-geometry-smoke' as const;
+export const GENERATED_GEOMETRY_FAMILY_SUITE = 'generated-geometry-family' as const;
 
 export type ConjectureRunnerV1SolverType = typeof CONJECTURE_RUNNER_V1;
-export type ConjectureRunnerSuite = typeof PROOF_CARRYING_GEOMETRY_SMOKE_SUITE;
+export type ConjectureRunnerSuite =
+  | typeof PROOF_CARRYING_GEOMETRY_SMOKE_SUITE
+  | typeof GENERATED_GEOMETRY_FAMILY_SUITE;
 export type ConjectureRunnerStatus = 'completed' | 'failed';
 export type ConjectureRunnerPhase =
   | 'GENERATE'
@@ -177,6 +184,43 @@ function buildProofCarryingGeometrySmokeScenarios(
   return scenarios;
 }
 
+function buildGeneratedGeometryFamilyScenarios(
+  proposedBy: string,
+): ReadonlyArray<ConjectureScenario> {
+  const base = claimBase(proposedBy);
+  const survivorFamily = generateRegularPolygonSheetFamily({ minSides: 3, maxSides: 8 });
+  const falsifierFamily = generateCollapsingTriangleFamily({ steps: 6, startHeight: 1, endHeight: 0 });
+
+  return [
+    {
+      id: 'generated-geometry.regular-polygon-sheet-family',
+      role: 'survivor',
+      claim: {
+        ...base,
+        id: 'C.GEOM.RUNNER.GENERATED_SURVIVOR',
+        statement:
+          'Every machine-generated regular polygon sheet (sides 3..8) is non-degenerate and has Euler characteristic 1.',
+      },
+      candidates: survivorFamily,
+      probes: [nonDegenerateGeometryProbe(), eulerCharacteristicProbe(1)],
+      graduationTarget: 'receipt-carrying.geometry',
+    },
+    {
+      id: 'generated-geometry.collapsing-triangle-sweep',
+      role: 'falsifier',
+      claim: {
+        ...base,
+        id: 'C.GEOM.RUNNER.GENERATED_FALSIFIER',
+        statement:
+          'Every triangle in a machine-generated apex-height sweep (1 -> 0) is non-degenerate.',
+      },
+      candidates: falsifierFamily,
+      probes: [nonDegenerateGeometryProbe()],
+      graduationTarget: 'trait-invariant.candidate',
+    },
+  ];
+}
+
 function runScenario(scenario: ConjectureScenario, hashMode: HashMode): ConjectureReceipt {
   return buildConjectureV1Receipt({
     claim: scenario.claim,
@@ -314,14 +358,11 @@ function resultSnapshot(result: Omit<ConjectureRunnerResult, 'receiptKey'>): Rec
   };
 }
 
-export function runProofCarryingGeometryConjectureCycle(
-  input: ConjectureRunnerInput = {},
+function runScenarioCycle(
+  scenarios: ReadonlyArray<ConjectureScenario>,
+  suite: ConjectureRunnerSuite,
+  hashMode: HashMode,
 ): ConjectureRunnerResult {
-  const hashMode = input.hashMode ?? 'sha256';
-  const scenarios = buildProofCarryingGeometrySmokeScenarios(
-    input.proposedBy ?? DEFAULT_PROPOSED_BY,
-    input.includeHashBoundary ?? true,
-  );
   const receipts = scenarios.map((scenario) => runScenario(scenario, hashMode));
   const replay = replayScenarios(scenarios, receipts, hashMode);
   const classifications = classifyReceipts(scenarios, receipts);
@@ -337,7 +378,7 @@ export function runProofCarryingGeometryConjectureCycle(
   const withoutKey: Omit<ConjectureRunnerResult, 'receiptKey'> = {
     solverType: CONJECTURE_RUNNER_V1,
     specVersion: 1,
-    suite: PROOF_CARRYING_GEOMETRY_SMOKE_SUITE,
+    suite,
     status: gate.passed ? 'completed' : 'failed',
     stages: [],
     receipts,
@@ -355,13 +396,42 @@ export function runProofCarryingGeometryConjectureCycle(
   };
 }
 
+export function runProofCarryingGeometryConjectureCycle(
+  input: ConjectureRunnerInput = {},
+): ConjectureRunnerResult {
+  const hashMode = input.hashMode ?? 'sha256';
+  const scenarios = buildProofCarryingGeometrySmokeScenarios(
+    input.proposedBy ?? DEFAULT_PROPOSED_BY,
+    input.includeHashBoundary ?? true,
+  );
+  return runScenarioCycle(scenarios, PROOF_CARRYING_GEOMETRY_SMOKE_SUITE, hashMode);
+}
+
+/**
+ * GENERATE leg: build a conjecture over machine-generated candidate *families*
+ * (a swept parameter), not hand-coded one-offs. The survivor family is a sweep
+ * of regular polygon sheets; the falsifier family is an apex-height sweep that
+ * discovers the degenerate (collinear) member. Survivors and the replayable
+ * falsifier graduate exactly as in the smoke suite.
+ */
+export function runGeneratedGeometryConjectureCycle(
+  input: ConjectureRunnerInput = {},
+): ConjectureRunnerResult {
+  const hashMode = input.hashMode ?? 'sha256';
+  const scenarios = buildGeneratedGeometryFamilyScenarios(input.proposedBy ?? DEFAULT_PROPOSED_BY);
+  return runScenarioCycle(scenarios, GENERATED_GEOMETRY_FAMILY_SUITE, hashMode);
+}
+
 export class ConjectureRunner {
   run(input: ConjectureRunnerInput = {}): ConjectureRunnerResult {
     const suite = input.suite ?? PROOF_CARRYING_GEOMETRY_SMOKE_SUITE;
-    if (suite !== PROOF_CARRYING_GEOMETRY_SMOKE_SUITE) {
-      throw new Error(`conjecture.runner.v1: unsupported suite ${suite}`);
+    if (suite === PROOF_CARRYING_GEOMETRY_SMOKE_SUITE) {
+      return runProofCarryingGeometryConjectureCycle(input);
     }
-    return runProofCarryingGeometryConjectureCycle(input);
+    if (suite === GENERATED_GEOMETRY_FAMILY_SUITE) {
+      return runGeneratedGeometryConjectureCycle(input);
+    }
+    throw new Error(`conjecture.runner.v1: unsupported suite ${suite}`);
   }
 }
 

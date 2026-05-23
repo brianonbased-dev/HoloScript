@@ -194,9 +194,11 @@ export {
 export {
   CONJECTURE_RUNNER_V1,
   PROOF_CARRYING_GEOMETRY_SMOKE_SUITE,
+  GENERATED_GEOMETRY_FAMILY_SUITE,
   ConjectureRunner,
   runConjectureRunner,
   runProofCarryingGeometryConjectureCycle,
+  runGeneratedGeometryConjectureCycle,
   type ConjectureGraduationTarget,
   type ConjectureRunnerClassification,
   type ConjectureRunnerGate,
@@ -210,6 +212,17 @@ export {
   type ConjectureRunnerV1SolverType,
   type ConjectureScenarioRole,
 } from './ConjectureRunner';
+
+// Conjecture GENERATE leg — parametric candidate-family generators that feed
+// the runner machine-generated worlds (the "discover" leg).
+export {
+  regularPolygonSheetCandidate,
+  generateRegularPolygonSheetFamily,
+  collapsingTriangleCandidate,
+  generateCollapsingTriangleFamily,
+  type RegularPolygonSheetFamilyOptions,
+  type CollapsingTriangleFamilyOptions,
+} from './ConjectureGenerator';
 
 // CAEL (Contracted Agent-Environment Loop) — hash-chain artifact standard
 export {
