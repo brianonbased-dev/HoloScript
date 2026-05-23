@@ -60,7 +60,11 @@ interface CodebaseModule {
   BrainCoordNodeMapper: DynamicCtor;
 }
 
-const CACHE_WARM_GRAPH_RAG_TIMEOUT_MS = readPositiveEnvMs('ABSORB_CACHE_WARM_TIMEOUT_MS', 30_000);
+// Disk-cache GraphRAG warm now runs in the BACKGROUND (see ensureCachedGraph), so a
+// generous cap is safe — it no longer blocks the first tool call. 30s was far too low
+// for a ~13k-symbol repo (~130 OpenAI batches), so the warm always timed out and
+// semantic_search stayed permanently empty on the deployed server.
+const CACHE_WARM_GRAPH_RAG_TIMEOUT_MS = readPositiveEnvMs('ABSORB_CACHE_WARM_TIMEOUT_MS', 600_000);
 // 90s was too low for real repos: a ~13k-symbol codebase is ~130 OpenAI batches
 // (batchSize 100) ≈ 65–130s, so the embedding build silently timed out and the
 // graph was cached WITHOUT a HoloEmbed index (semantic_search → "no index").
@@ -985,6 +989,9 @@ let cachedRootDir = '';
 let cacheAutoLoaded = false;
 let cacheProvenance: 'fresh-scan' | 'disk-cache' | 'incremental-patch' | null = null;
 let cacheTimestamp = 0;
+// Guards the background GraphRAG embedding warm so concurrent cold loads don't
+// kick off duplicate builds (the build is fired-and-forgotten in ensureCachedGraph).
+let graphRAGWarmInProgress = false;
 
 export function resetCodebaseToolStateForTests(skipDiskAutoload = true): void {
   cachedGraph = null;
@@ -1028,7 +1035,15 @@ async function ensureCachedGraph(): Promise<{
       cachedRootDir = envelope.rootDir;
       cacheProvenance = 'disk-cache';
       cacheTimestamp = envelope.timestamp;
-      // Rebuild GraphRAG (best-effort)
+      // Warm GraphRAG. If embeddings are already persisted on disk, load them
+      // inline (fast). Otherwise build them in the BACKGROUND: building ~13k
+      // embeddings inline would block this first tool call past the client
+      // timeout, leaving find/query/impact unavailable. Backgrounding keeps the
+      // structural graph instant and lets semantic_search light up once the
+      // build completes + persists (survives restart via embeddings-cache.bin).
+      // Search remains correct after disposeEmbeddingIndex: dispose only ends the
+      // worker pool; entries stay intact and query embedding falls back to the
+      // provider directly (EmbeddingIndex.getEmbeddings).
       try {
         const { GraphRAGEngine } = mod;
         const providerName = await detectBestEmbeddingProvider();
@@ -1041,24 +1056,33 @@ async function ensureCachedGraph(): Promise<{
           xenovaModel: process.env.XENOVA_MODEL,
         });
 
-        let idx = await loadEmbeddingsCache(mod, providerObj);
-        if (!idx) {
-          idx = await createDynamicEmbeddingIndex(mod);
-          try {
-            await withPhaseTimeout(
-              idx.buildIndex(cachedGraph),
-              CACHE_WARM_GRAPH_RAG_TIMEOUT_MS,
-              'disk-cache GraphRAG embedding rebuild',
-              () => disposeEmbeddingIndex(idx)
-            );
-          } finally {
-            await disposeEmbeddingIndex(idx);
-          }
-          saveEmbeddingsCache(idx, cachedRootDir);
-        } else {
-          await disposeEmbeddingIndex(idx);
+        const cachedIndex = await loadEmbeddingsCache(mod, providerObj);
+        if (cachedIndex) {
+          setGraphRAGState(cachedIndex, new GraphRAGEngine(cachedGraph, cachedIndex));
+        } else if (!graphRAGWarmInProgress) {
+          graphRAGWarmInProgress = true;
+          const graphForWarm = cachedGraph;
+          const rootForWarm = cachedRootDir;
+          // Fire-and-forget — do not block graph availability on the build.
+          void (async () => {
+            const idx = await createDynamicEmbeddingIndex(mod);
+            try {
+              await withPhaseTimeout(
+                idx.buildIndex(graphForWarm),
+                CACHE_WARM_GRAPH_RAG_TIMEOUT_MS,
+                'disk-cache GraphRAG embedding rebuild (background)',
+                () => disposeEmbeddingIndex(idx)
+              );
+              saveEmbeddingsCache(idx, rootForWarm);
+              setGraphRAGState(idx, new GraphRAGEngine(graphForWarm, idx));
+            } catch (err) {
+              console.warn(`[AbsorbCacheWarm] background GraphRAG build failed: ${String(err)}`);
+            } finally {
+              await disposeEmbeddingIndex(idx);
+              graphRAGWarmInProgress = false;
+            }
+          })();
         }
-        setGraphRAGState(idx, new GraphRAGEngine(cachedGraph, idx));
       } catch (err) {
         console.warn(`[AbsorbCacheWarm] GraphRAG warmup skipped: ${String(err)}`);
       }
