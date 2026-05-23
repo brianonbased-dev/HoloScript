@@ -160,6 +160,34 @@ export {
   type RatingDirection,
 } from './impossibilityEvidence';
 
+// Conjecture evidence (`conjecture.v1`) — executable math/geometry claims.
+// A conjecture receipt evaluates candidate geometries with invariant probes,
+// preserves counterexamples, and gives survivors deterministic receipt keys.
+export {
+  CONJECTURE_V1,
+  buildConjectureV1Receipt,
+  computeMeshFacts,
+  createDegenerateTriangleCandidate,
+  createSquareSheetCandidate,
+  createTetrahedronSurfaceCandidate,
+  eulerCharacteristicProbe,
+  geometryHashOrderInvariantProbe,
+  nonDegenerateGeometryProbe,
+  type CandidateEvaluation,
+  type ConjectureClaim,
+  type ConjectureCounterexample,
+  type ConjectureKind,
+  type ConjectureParameterValue,
+  type ConjectureProbe,
+  type ConjectureReceipt,
+  type ConjectureStatus,
+  type ConjectureV1SolverType,
+  type GeometryConjectureCandidate,
+  type MeshFacts,
+  type ProbeResult,
+  type ProbeStatus,
+} from './ConjectureEngine';
+
 // CAEL (Contracted Agent-Environment Loop) — hash-chain artifact standard
 export {
   type CAELTrace,
