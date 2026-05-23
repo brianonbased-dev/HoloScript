@@ -126,6 +126,7 @@ export * from './LuckTrait';
 export * from './KalmanFilterTrait';
 export * from './QuantumInspiredTrait';
 export * from './QuantumCircuitTrait';
+export * from './VQERunnerTrait';
 export * from './MagnifiableTrait';
 export * from './MarketplaceIntegrationTrait';
 export * from './MarketplaceTrait';
