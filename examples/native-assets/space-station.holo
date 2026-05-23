@@ -1,7 +1,28 @@
 composition "SpaceStation" {
   // ── HoloScript Native Asset ──────────────────────────────────────────────
-  // An orbital space station built from geometric primitives.
-  // Demonstrates: torus rings, radial symmetry, emissive lighting.
+  // An orbital space station built from layered native geometry.
+  // Each section uses reference-backed proportions, silhouette, and surface detail.
+  //
+  // ── Visual References ──────────────────────────────────────────────────────
+  // REF-1: International Space Station (ISS) — cylindrical habitat modules
+  //        connected by truss spokes, radial symmetry, solar array wings,
+  //        docking ports with beacon lights, thermal radiator panels.
+  //        Silhouette: central hub + ring + spoke cross + extended panels.
+  //        URL: https://nasa.gov/mission-pages/station/main
+  //
+  // REF-2: Stanford Torus (1975 NASA study) — large rotating ring habitat
+  //        with central hub, spoke corridors, exterior docking ring,
+  //        ribbed ring interior, mirror-focused lighting ribs on the ring.
+  //        Silhouette: torus dominant, hub secondary, spokes as thin connectors.
+  //        URL: https://en.wikipedia.org/wiki/Stanford_torus
+  //
+  // ── Hard-surface design principles applied ─────────────────────────────────
+  // - Silhouette: recognizable station from any angle — hub + ring + spokes + panels.
+  // - Bevels: every major module has a slightly inset panel overlay for chamfer.
+  // - Panel lines: thin dark strips between habitat ring segments (6 ribs).
+  // - Material zones: brushed metal hub, ribbed habitat ring, matte solar panels,
+  //   emissive docking beacons, chrome antenna dish.
+  // - Surface detail: viewport inset rings, spoke cross-sections, radiator fins.
 
   environment {
     background: "#000011"
@@ -17,179 +38,489 @@ composition "SpaceStation" {
     ambient_occlusion { intensity: 0.3, radius: 0.5 }
   }
 
+  // ── Shared Materials ──────────────────────────────────────────────────────
+  template "HullMetal" {
+    material: { metalness: 0.9, roughness: 0.15 }
+  }
+  template "RingSurface" {
+    material: { metalness: 0.85, roughness: 0.2 }
+  }
+  template "SolarMatte" {
+    material: { metalness: 0.3, roughness: 0.5 }
+  }
+  template "BeaconRed" {
+    material: { emissive: "#ff3300", emissiveIntensity: 3.0 }
+  }
+  template "BeaconBlue" {
+    material: { emissive: "#00ccff", emissiveIntensity: 2.0 }
+  }
+
   object "Station" @physics @networked {
     position: [0, 0, 0]
 
     // ── Central Hub ───────────────────────────────────────────────────────
-    object "CoreHub" {
-      geometry: "sphere"
+    // REF-1 (ISS): spherical pressure vessel with viewports, docking collar
+    object "CoreHub" using "HullMetal" {
+      geometry: "icosahedron"
       scale: [2.0, 2.0, 2.0]
       color: "#b0b0b0"
-      material: { metalness: 0.9, roughness: 0.15 }
 
+      // Hub equator band — rib detail
+      object "HubBand" {
+        geometry: "ring"
+        position: [0, 0, 0]
+        scale: [2.1, 2.1, 0.15]
+        color: "#909090"
+        material: { metalness: 0.95, roughness: 0.1 }
+      }
+
+      // Docking collar — cylindrical skirt around equator
+      object "DockingCollar" {
+        geometry: "cylinder"
+        position: [0, -0.3, 0]
+        scale: [2.3, 0.4, 2.3]
+        color: "#808080"
+        material: { metalness: 0.85, roughness: 0.25 }
+      }
+
+      // Viewport 1 — front (recessed inset for bevel simulation)
+      object "Viewport1Recess" {
+        geometry: "cube"
+        position: [0, 0, 2.0]
+        scale: [0.6, 0.6, 0.05]
+        color: "#1a1a2a"
+        material: { metalness: 0.3, roughness: 0.8 }
+      }
       object "Viewport1" {
         geometry: "sphere"
-        position: [0, 0, 1.95]
+        position: [0, 0, 2.05]
         scale: [0.5, 0.5, 0.1]
         color: "#113355"
         material: { emissive: "#113355", emissiveIntensity: 0.5, metalness: 0.1, roughness: 0.0 }
       }
+
+      // Viewport 2 — rear
+      object "Viewport2Recess" {
+        geometry: "cube"
+        position: [0, 0, -2.0]
+        scale: [0.6, 0.6, 0.05]
+        color: "#1a1a2a"
+        material: { metalness: 0.3, roughness: 0.8 }
+      }
       object "Viewport2" {
         geometry: "sphere"
-        position: [0, 0, -1.95]
+        position: [0, 0, -2.05]
         scale: [0.5, 0.5, 0.1]
         color: "#113355"
         material: { emissive: "#113355", emissiveIntensity: 0.5 }
       }
+
+      // Viewport 3 — right
+      object "Viewport3Recess" {
+        geometry: "cube"
+        position: [2.0, 0, 0]
+        scale: [0.05, 0.6, 0.6]
+        color: "#1a1a2a"
+        material: { metalness: 0.3, roughness: 0.8 }
+      }
       object "Viewport3" {
         geometry: "sphere"
-        position: [1.95, 0, 0]
+        position: [2.05, 0, 0]
         scale: [0.1, 0.5, 0.5]
         color: "#113355"
         material: { emissive: "#113355", emissiveIntensity: 0.5 }
       }
+
+      // Viewport 4 — left
+      object "Viewport4Recess" {
+        geometry: "cube"
+        position: [-2.0, 0, 0]
+        scale: [0.05, 0.6, 0.6]
+        color: "#1a1a2a"
+        material: { metalness: 0.3, roughness: 0.8 }
+      }
       object "Viewport4" {
         geometry: "sphere"
-        position: [-1.95, 0, 0]
+        position: [-2.05, 0, 0]
         scale: [0.1, 0.5, 0.5]
         color: "#113355"
         material: { emissive: "#113355", emissiveIntensity: 0.5 }
+      }
+
+      // Top viewport dome
+      object "TopDome" {
+        geometry: "sphere"
+        position: [0, 1.95, 0]
+        scale: [0.4, 0.2, 0.4]
+        color: "#113355"
+        material: { emissive: "#113355", emissiveIntensity: 0.3, metalness: 0.2 }
       }
     }
 
     // ── Habitat Ring ──────────────────────────────────────────────────────
-    object "HabitatRing" {
+    // REF-2 (Stanford Torus): thick habitat ring with rib segments
+    object "HabitatRing" using "RingSurface" {
       geometry: "torus"
       scale: [6.0, 6.0, 1.2]
       color: "#808080"
-      material: { metalness: 0.85, roughness: 0.2 }
     }
-    object "RingGlow" {
+
+    // Ring glow strip — atmospheric running light
+    object "RingGlow" using "BeaconBlue" {
       geometry: "torus"
       scale: [6.0, 6.0, 0.3]
-      position: [0, 0.6, 0]
+      position: [0, 0.65, 0]
       color: "#00ccff"
-      material: { emissive: "#00ccff", emissiveIntensity: 1.5, opacity: 0.6 }
+    }
+
+    // Ring panel-line ribs (6 segments, REF-2 ribbed torus)
+    object "Rib1" {
+      geometry: "cube"
+      position: [6.0, 0, 0]
+      rotation: [0, 0, 90]
+      scale: [0.04, 1.25, 0.04]
+      color: "#555555"
+      material: { metalness: 0.9, roughness: 0.2 }
+    }
+    object "Rib2" {
+      geometry: "cube"
+      position: [-6.0, 0, 0]
+      rotation: [0, 0, 90]
+      scale: [0.04, 1.25, 0.04]
+      color: "#555555"
+      material: { metalness: 0.9, roughness: 0.2 }
+    }
+    object "Rib3" {
+      geometry: "cube"
+      position: [0, 0, 6.0]
+      rotation: [0, 0, 90]
+      scale: [0.04, 1.25, 0.04]
+      color: "#555555"
+      material: { metalness: 0.9, roughness: 0.2 }
+    }
+    object "Rib4" {
+      geometry: "cube"
+      position: [0, 0, -6.0]
+      rotation: [0, 0, 90]
+      scale: [0.04, 1.25, 0.04]
+      color: "#555555"
+      material: { metalness: 0.9, roughness: 0.2 }
+    }
+    // Diagonal ribs for 6-segment ring
+    object "Rib5" {
+      geometry: "cube"
+      position: [4.24, 0, 4.24]
+      rotation: [0, 45, 90]
+      scale: [0.04, 1.25, 0.04]
+      color: "#555555"
+      material: { metalness: 0.9, roughness: 0.2 }
+    }
+    object "Rib6" {
+      geometry: "cube"
+      position: [-4.24, 0, -4.24]
+      rotation: [0, 45, 90]
+      scale: [0.04, 1.25, 0.04]
+      color: "#555555"
+      material: { metalness: 0.9, roughness: 0.2 }
     }
 
     // ── Spokes (connecting hub to ring) ───────────────────────────────────
+    // REF-1 (ISS): truss-style spokes with cross-section detail
     object "Spoke1" {
-      geometry: "cylinder"
+      geometry: "capsule"
       position: [4.0, 0, 0]
       rotation: [0, 0, 90]
-      scale: [0.15, 4.0, 0.15]
+      scale: [0.12, 4.0, 0.12]
       color: "#999999"
-      material: { metalness: 0.8 }
+      material: { metalness: 0.8, roughness: 0.2 }
     }
+    // Spoke cross-strut (structural detail)
+    object "Spoke1Strut" {
+      geometry: "cube"
+      position: [4.0, 0, 0]
+      rotation: [0, 0, 90]
+      scale: [0.03, 3.5, 0.15]
+      color: "#777777"
+      material: { metalness: 0.7, roughness: 0.3 }
+    }
+
     object "Spoke2" {
-      geometry: "cylinder"
+      geometry: "capsule"
       position: [-4.0, 0, 0]
       rotation: [0, 0, 90]
-      scale: [0.15, 4.0, 0.15]
+      scale: [0.12, 4.0, 0.12]
       color: "#999999"
-      material: { metalness: 0.8 }
+      material: { metalness: 0.8, roughness: 0.2 }
     }
+    object "Spoke2Strut" {
+      geometry: "cube"
+      position: [-4.0, 0, 0]
+      rotation: [0, 0, 90]
+      scale: [0.03, 3.5, 0.15]
+      color: "#777777"
+      material: { metalness: 0.7, roughness: 0.3 }
+    }
+
     object "Spoke3" {
-      geometry: "cylinder"
+      geometry: "capsule"
       position: [0, 0, 4.0]
       rotation: [90, 0, 0]
-      scale: [0.15, 4.0, 0.15]
+      scale: [0.12, 4.0, 0.12]
       color: "#999999"
-      material: { metalness: 0.8 }
+      material: { metalness: 0.8, roughness: 0.2 }
     }
+    object "Spoke3Strut" {
+      geometry: "cube"
+      position: [0, 0, 4.0]
+      rotation: [90, 0, 0]
+      scale: [0.03, 3.5, 0.15]
+      color: "#777777"
+      material: { metalness: 0.7, roughness: 0.3 }
+    }
+
     object "Spoke4" {
-      geometry: "cylinder"
+      geometry: "capsule"
       position: [0, 0, -4.0]
       rotation: [90, 0, 0]
-      scale: [0.15, 4.0, 0.15]
+      scale: [0.12, 4.0, 0.12]
       color: "#999999"
-      material: { metalness: 0.8 }
+      material: { metalness: 0.8, roughness: 0.2 }
+    }
+    object "Spoke4Strut" {
+      geometry: "cube"
+      position: [0, 0, -4.0]
+      rotation: [90, 0, 0]
+      scale: [0.03, 3.5, 0.15]
+      color: "#777777"
+      material: { metalness: 0.7, roughness: 0.3 }
     }
 
     // ── Solar Panels ─────────────────────────────────────────────────────
-    object "SolarArmLeft" {
-      geometry: "cylinder"
+    // REF-1 (ISS): extended panel wings with matte dark surface
+    object "SolarArmUp" {
+      geometry: "capsule"
       position: [0, 3.5, 0]
-      scale: [0.08, 3.0, 0.08]
+      scale: [0.06, 3.0, 0.06]
       color: "#aaaaaa"
+      material: { metalness: 0.7, roughness: 0.3 }
 
-      object "PanelL1" {
+      object "PanelU1" using "SolarMatte" {
         geometry: "cube"
         position: [0, 2.8, 0]
         scale: [3.0, 0.05, 1.2]
         color: "#1a2744"
-        material: { metalness: 0.3, roughness: 0.5 }
       }
-      object "PanelL2" {
+      // Panel grid detail lines
+      object "PanelU1Grid1" {
+        geometry: "cube"
+        position: [0, 2.8, 0.3]
+        scale: [2.8, 0.06, 0.02]
+        color: "#0e1a30"
+      }
+      object "PanelU1Grid2" {
+        geometry: "cube"
+        position: [0, 2.8, -0.3]
+        scale: [2.8, 0.06, 0.02]
+        color: "#0e1a30"
+      }
+      object "PanelU1Grid3" {
+        geometry: "cube"
+        position: [0, 2.8, 0]
+        scale: [0.02, 0.06, 1.1]
+        color: "#0e1a30"
+      }
+
+      object "PanelU2" using "SolarMatte" {
         geometry: "cube"
         position: [0, 4.2, 0]
         scale: [3.0, 0.05, 1.2]
         color: "#1a2744"
-        material: { metalness: 0.3, roughness: 0.5 }
+      }
+      object "PanelU2Grid1" {
+        geometry: "cube"
+        position: [0, 4.2, 0.3]
+        scale: [2.8, 0.06, 0.02]
+        color: "#0e1a30"
+      }
+      object "PanelU2Grid2" {
+        geometry: "cube"
+        position: [0, 4.2, -0.3]
+        scale: [2.8, 0.06, 0.02]
+        color: "#0e1a30"
       }
     }
-    object "SolarArmRight" {
-      geometry: "cylinder"
-      position: [0, -3.5, 0]
-      scale: [0.08, 3.0, 0.08]
-      color: "#aaaaaa"
 
-      object "PanelR1" {
+    object "SolarArmDown" {
+      geometry: "capsule"
+      position: [0, -3.5, 0]
+      scale: [0.06, 3.0, 0.06]
+      color: "#aaaaaa"
+      material: { metalness: 0.7, roughness: 0.3 }
+
+      object "PanelD1" using "SolarMatte" {
         geometry: "cube"
         position: [0, -2.8, 0]
         scale: [3.0, 0.05, 1.2]
         color: "#1a2744"
-        material: { metalness: 0.3, roughness: 0.5 }
       }
-      object "PanelR2" {
+      object "PanelD1Grid1" {
+        geometry: "cube"
+        position: [0, -2.8, 0.3]
+        scale: [2.8, 0.06, 0.02]
+        color: "#0e1a30"
+      }
+      object "PanelD1Grid2" {
+        geometry: "cube"
+        position: [0, -2.8, -0.3]
+        scale: [2.8, 0.06, 0.02]
+        color: "#0e1a30"
+      }
+
+      object "PanelD2" using "SolarMatte" {
         geometry: "cube"
         position: [0, -4.2, 0]
         scale: [3.0, 0.05, 1.2]
         color: "#1a2744"
-        material: { metalness: 0.3, roughness: 0.5 }
+      }
+      object "PanelD2Grid1" {
+        geometry: "cube"
+        position: [0, -4.2, 0.3]
+        scale: [2.8, 0.06, 0.02]
+        color: "#0e1a30"
+      }
+      object "PanelD2Grid2" {
+        geometry: "cube"
+        position: [0, -4.2, -0.3]
+        scale: [2.8, 0.06, 0.02]
+        color: "#0e1a30"
       }
     }
 
     // ── Docking Bay ──────────────────────────────────────────────────────
+    // REF-1 (ISS): cylindrical docking port with approach beacon
     object "DockingBay" {
       geometry: "cylinder"
       position: [0, 0, -3.0]
       rotation: [90, 0, 0]
       scale: [0.8, 1.5, 0.8]
       color: "#707070"
-      material: { metalness: 0.85 }
+      material: { metalness: 0.85, roughness: 0.2 }
 
-      object "DockingLight" {
-        geometry: "sphere"
+      // Docking collar ring
+      object "DockingCollarOuter" {
+        geometry: "ring"
         position: [0, 1.5, 0]
-        scale: [0.2, 0.2, 0.2]
+        scale: [0.85, 0.85, 0.08]
+        color: "#555555"
+        material: { metalness: 0.9, roughness: 0.1 }
+      }
+
+      // Docking guide lights (red beacons)
+      object "DockingLight" using "BeaconRed" {
+        geometry: "icosahedron"
+        position: [0, 1.5, 0]
+        scale: [0.15, 0.15, 0.15]
         color: "#ff3300"
-        material: { emissive: "#ff3300", emissiveIntensity: 3.0 }
+      }
+
+      // Docking alignment stripes
+      object "DockStripe1" {
+        geometry: "cube"
+        position: [0.35, 0, 0]
+        scale: [0.04, 0.3, 0.04]
+        color: "#ccaa00"
+        material: { emissive: "#ccaa00", emissiveIntensity: 0.8 }
+      }
+      object "DockStripe2" {
+        geometry: "cube"
+        position: [-0.35, 0, 0]
+        scale: [0.04, 0.3, 0.04]
+        color: "#ccaa00"
+        material: { emissive: "#ccaa00", emissiveIntensity: 0.8 }
       }
     }
 
     // ── Antenna Array ────────────────────────────────────────────────────
-    object "AntennaBase" {
-      geometry: "cylinder"
+    // REF-2 (Stanford Torus): mast with parabolic dish
+    object "AntennaMast" {
+      geometry: "capsule"
       position: [0, 2.2, 0]
-      scale: [0.05, 0.8, 0.05]
+      scale: [0.04, 0.8, 0.04]
       color: "#cccccc"
+      material: { metalness: 0.85, roughness: 0.15 }
+    }
+    object "AntennaDish" {
+      geometry: "sphere"
+      position: [0, 2.7, 0]
+      scale: [0.6, 0.15, 0.6]
+      color: "#dddddd"
+      material: { metalness: 0.95, roughness: 0.05 }
+    }
+    object "AntennaFeed" {
+      geometry: "cylinder"
+      position: [0, 2.6, 0]
+      scale: [0.04, 0.12, 0.04]
+      color: "#bbbbbb"
+      material: { metalness: 0.9 }
+    }
 
-      object "AntennaDish" {
-        geometry: "sphere"
-        position: [0, 0.8, 0]
-        scale: [0.6, 0.15, 0.6]
-        color: "#dddddd"
-        material: { metalness: 0.95 }
-      }
+    // ── Radiator Fins ─────────────────────────────────────────────────────
+    // REF-1 (ISS): thermal radiator panels on the hub sides
+    object "RadiatorLeft" {
+      geometry: "cube"
+      position: [-2.5, 0.3, 0]
+      scale: [0.04, 1.2, 1.5]
+      color: "#c0c0c0"
+      material: { metalness: 0.6, roughness: 0.4 }
+    }
+    object "RadiatorRight" {
+      geometry: "cube"
+      position: [2.5, 0.3, 0]
+      scale: [0.04, 1.2, 1.5]
+      color: "#c0c0c0"
+      material: { metalness: 0.6, roughness: 0.4 }
+    }
+
+    // ── Running Lights (navigation beacons around the ring) ──────────────
+    object "NavLight1" using "BeaconBlue" {
+      geometry: "icosahedron"
+      position: [6.0, 0.65, 0]
+      scale: [0.1, 0.1, 0.1]
+      color: "#00ccff"
+    }
+    object "NavLight2" using "BeaconBlue" {
+      geometry: "icosahedron"
+      position: [-6.0, 0.65, 0]
+      scale: [0.1, 0.1, 0.1]
+      color: "#00ccff"
+    }
+    object "NavLight3" using "BeaconRed" {
+      geometry: "icosahedron"
+      position: [0, 0.65, 6.0]
+      scale: [0.1, 0.1, 0.1]
+      color: "#ff3300"
+    }
+    object "NavLight4" using "BeaconRed" {
+      geometry: "icosahedron"
+      position: [0, 0.65, -6.0]
+      scale: [0.1, 0.1, 0.1]
+      color: "#ff3300"
     }
   }
 
   // ── Lighting ──────────────────────────────────────────────────────────────
+  // Key light — sun-side
   directional_light "Sunlight" {
     color: "#ffffee"
     intensity: 1.5
     position: [10, 5, 8]
+    shadows: true
+  }
+  // Fill — earthshine bounce
+  directional_light "EarthShine" {
+    color: "#4488cc"
+    intensity: 0.3
+    position: [-5, -3, -8]
   }
   ambient_light "SpaceAmbient" {
     color: "#0a0a20"
