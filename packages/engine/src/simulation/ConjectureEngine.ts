@@ -331,6 +331,32 @@ function pointInsideAabb2d(
   );
 }
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function angleAtTriangleVertex(
+  vertices: Float32Array | Float64Array,
+  center: number,
+  left: number,
+  right: number
+): number {
+  const cv = xyz(vertices, center);
+  const lv = xyz(vertices, left);
+  const rv = xyz(vertices, right);
+  const lax = lv[0] - cv[0];
+  const lay = lv[1] - cv[1];
+  const laz = lv[2] - cv[2];
+  const rax = rv[0] - cv[0];
+  const ray = rv[1] - cv[1];
+  const raz = rv[2] - cv[2];
+  const leftLength = Math.hypot(lax, lay, laz);
+  const rightLength = Math.hypot(rax, ray, raz);
+  if (leftLength === 0 || rightLength === 0) return Number.NaN;
+  const dot = lax * rax + lay * ray + laz * raz;
+  return Math.acos(clamp(dot / (leftLength * rightLength), -1, 1));
+}
+
 export function computeMeshFacts(
   candidate: GeometryConjectureCandidate,
   hashMode: HashMode = HASH_MODE_DEFAULT
@@ -619,6 +645,86 @@ export function collisionEquivalenceProbe(
           hullVertexCount: hull.length,
           hullArea,
           aabbArea,
+        },
+      };
+    },
+  };
+}
+
+/**
+ * Curvature-bound probe: discrete Gaussian curvature is represented as vertex
+ * angle deficit (`2*pi - sum(incident face angles)`). The probe preserves the
+ * first vertex whose positive curvature exceeds the supplied receipt-tier bound.
+ */
+export function curvatureBoundProbe(maxAngleDeficit: number): ConjectureProbe {
+  if (!Number.isFinite(maxAngleDeficit) || maxAngleDeficit < 0) {
+    throw new Error('conjecture.v1: curvature-bound maxAngleDeficit must be finite and >= 0');
+  }
+
+  return {
+    id: 'geometry.curvature_bound',
+    description: 'Every vertex angle deficit stays within the configured curvature bound.',
+    evaluate(candidate, facts): ProbeResult {
+      if (facts.elementArity !== 3) {
+        return {
+          probeId: 'geometry.curvature_bound',
+          status: 'inconclusive',
+          message: 'curvature-bound probe currently supports triangle surfaces',
+        };
+      }
+      if (facts.hasNonFiniteVertex) {
+        return {
+          probeId: 'geometry.curvature_bound',
+          status: 'fail',
+          message: 'candidate contains non-finite vertex coordinates',
+        };
+      }
+
+      const angleSums = new Float64Array(facts.vertexCount);
+      const elements = candidate.elements;
+      for (let i = 0; i < elements.length; i += 3) {
+        const a = elements[i];
+        const b = elements[i + 1];
+        const c = elements[i + 2];
+        const angleA = angleAtTriangleVertex(candidate.vertices, a, b, c);
+        const angleB = angleAtTriangleVertex(candidate.vertices, b, c, a);
+        const angleC = angleAtTriangleVertex(candidate.vertices, c, a, b);
+        if (!Number.isFinite(angleA) || !Number.isFinite(angleB) || !Number.isFinite(angleC)) {
+          return {
+            probeId: 'geometry.curvature_bound',
+            status: 'inconclusive',
+            message: 'curvature-bound probe encountered a degenerate face angle',
+          };
+        }
+        angleSums[a] += angleA;
+        angleSums[b] += angleB;
+        angleSums[c] += angleC;
+      }
+
+      let observedMaxAngleDeficit = Number.NEGATIVE_INFINITY;
+      let violatingVertex: number | null = null;
+      for (let vertex = 0; vertex < angleSums.length; vertex++) {
+        const angleDeficit = 2 * Math.PI - angleSums[vertex];
+        if (angleDeficit > observedMaxAngleDeficit) {
+          observedMaxAngleDeficit = angleDeficit;
+        }
+        if (violatingVertex === null && angleDeficit > maxAngleDeficit) {
+          violatingVertex = vertex;
+        }
+      }
+
+      const pass = violatingVertex === null;
+      return {
+        probeId: 'geometry.curvature_bound',
+        status: pass ? 'pass' : 'fail',
+        message: pass
+          ? 'all vertex angle deficits stayed within the curvature bound'
+          : 'at least one vertex angle deficit exceeded the curvature bound',
+        measurements: {
+          maxAngleDeficit,
+          observedMaxAngleDeficit,
+          violatingVertex,
+          vertexCount: facts.vertexCount,
         },
       };
     },

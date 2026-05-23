@@ -244,6 +244,7 @@ export {
   createSquareSheetCandidate,
   createTetrahedronSurfaceCandidate,
   collisionEquivalenceProbe,
+  curvatureBoundProbe,
   eulerCharacteristicProbe,
   geometryHashOrderInvariantProbe,
   manifoldEdgeProbe,
@@ -299,10 +300,13 @@ export {
   generateSharedEdgeFanFamily,
   collisionEquivalenceQuadCandidate,
   generateCollisionEquivalenceFamily,
+  curvatureConeCandidate,
+  generateCurvatureConeFamily,
   type RegularPolygonSheetFamilyOptions,
   type CollapsingTriangleFamilyOptions,
   type SharedEdgeFanFamilyOptions,
   type CollisionEquivalenceFamilyOptions,
+  type CurvatureConeFamilyOptions,
 } from './ConjectureGenerator';
 
 // CAEL (Contracted Agent-Environment Loop) — hash-chain artifact standard

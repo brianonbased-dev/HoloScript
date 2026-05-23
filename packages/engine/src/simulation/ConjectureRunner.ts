@@ -11,6 +11,7 @@ import {
   createSquareSheetCandidate,
   createTetrahedronSurfaceCandidate,
   collisionEquivalenceProbe,
+  curvatureBoundProbe,
   eulerCharacteristicProbe,
   geometryHashOrderInvariantProbe,
   manifoldEdgeProbe,
@@ -24,6 +25,7 @@ import {
 import {
   generateCollisionEquivalenceFamily,
   generateCollapsingTriangleFamily,
+  generateCurvatureConeFamily,
   generateRegularPolygonSheetFamily,
   generateSharedEdgeFanFamily,
 } from './ConjectureGenerator';
@@ -198,6 +200,8 @@ function buildGeneratedGeometryFamilyScenarios(
   const collisionFalsifierFamily = generateCollisionEquivalenceFamily({
     rotationsDegrees: [0, 45],
   });
+  const curvatureSurvivorFamily = generateCurvatureConeFamily({ apexHeights: [0.5] });
+  const curvatureFalsifierFamily = generateCurvatureConeFamily({ apexHeights: [0.5, 2] });
 
   return [
     {
@@ -262,6 +266,32 @@ function buildGeneratedGeometryFamilyScenarios(
       },
       candidates: collisionFalsifierFamily,
       probes: [collisionEquivalenceProbe()],
+      graduationTarget: 'compiler-check.candidate',
+    },
+    {
+      id: 'generated-geometry.curvature-bound-survivor',
+      role: 'survivor',
+      claim: {
+        ...base,
+        id: 'C.GEOM.RUNNER.CURVATURE_BOUND_SURVIVOR',
+        statement:
+          'A gentle generated cone/bipyramid stays within the receipt-tier curvature bound.',
+      },
+      candidates: curvatureSurvivorFamily,
+      probes: [curvatureBoundProbe(2.5)],
+      graduationTarget: 'trait-invariant.candidate',
+    },
+    {
+      id: 'generated-geometry.curvature-bound-sweep',
+      role: 'falsifier',
+      claim: {
+        ...base,
+        id: 'C.GEOM.RUNNER.CURVATURE_BOUND_FALSIFIER',
+        statement:
+          'Every generated cone/bipyramid sharpness stays within the receipt-tier curvature bound.',
+      },
+      candidates: curvatureFalsifierFamily,
+      probes: [curvatureBoundProbe(2.5)],
       graduationTarget: 'compiler-check.candidate',
     },
   ];

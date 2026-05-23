@@ -3,6 +3,7 @@ import {
   buildConjectureV1Receipt,
   collisionEquivalenceProbe,
   computeMeshFacts,
+  curvatureBoundProbe,
   eulerCharacteristicProbe,
   manifoldEdgeProbe,
   nonDegenerateGeometryProbe,
@@ -10,8 +11,10 @@ import {
 import {
   collisionEquivalenceQuadCandidate,
   collapsingTriangleCandidate,
+  curvatureConeCandidate,
   generateCollisionEquivalenceFamily,
   generateCollapsingTriangleFamily,
+  generateCurvatureConeFamily,
   generateRegularPolygonSheetFamily,
   generateSharedEdgeFanFamily,
   regularPolygonSheetCandidate,
@@ -212,6 +215,66 @@ describe('collisionEquivalenceProbe + collision-equivalence quad family', () => 
   });
 });
 
+describe('curvatureBoundProbe + curvature cone family', () => {
+  it('passes for a gentle cone and fails for a sharp curvature bound violation', () => {
+    const probe = curvatureBoundProbe(2.5);
+    const gentle = curvatureConeCandidate(0.5);
+    const sharp = curvatureConeCandidate(2);
+
+    const gentleResult = probe.evaluate(gentle, computeMeshFacts(gentle, 'sha256'));
+    expect(gentleResult.status).toBe('pass');
+    expect(gentleResult.measurements?.violatingVertex).toBeNull();
+
+    const sharpResult = probe.evaluate(sharp, computeMeshFacts(sharp, 'sha256'));
+    expect(sharpResult.status).toBe('fail');
+    expect(sharpResult.measurements?.violatingVertex).not.toBeNull();
+    expect(sharpResult.measurements?.observedMaxAngleDeficit).toBeGreaterThan(2.5);
+  });
+
+  it('discovers the cone sharpness that falsifies the curvature bound', () => {
+    const survivorFamily = generateCurvatureConeFamily({ apexHeights: [0.5] });
+    const sweptFamily = generateCurvatureConeFamily({ apexHeights: [0.5, 2] });
+
+    const claim = {
+      kind: 'geometry.invariant' as const,
+      id: 'C.TEST.CURVATURE_BOUND',
+      statement: 'every generated cone sharpness stays within the curvature bound',
+      assumptions: ['receipt-carrying curvature evidence is not a Lean proof'],
+      evidenceRefs: ['packages/engine/src/simulation/ConjectureGenerator.ts'],
+      proposedBy: 'generator-test',
+    };
+
+    const survivorReceipt = buildConjectureV1Receipt({
+      claim: { ...claim, id: 'C.TEST.CURVATURE_BOUND_SURVIVOR' },
+      candidates: survivorFamily,
+      probes: [curvatureBoundProbe(2.5)],
+      hashMode: 'sha256',
+    });
+    expect(survivorReceipt.status).toBe('survived');
+    expect(survivorReceipt.counterexamples).toHaveLength(0);
+
+    const falsifiedReceipt = buildConjectureV1Receipt({
+      claim,
+      candidates: sweptFamily,
+      probes: [curvatureBoundProbe(2.5)],
+      hashMode: 'sha256',
+    });
+
+    expect(falsifiedReceipt.status).toBe('falsified');
+    expect(falsifiedReceipt.counterexamples.length).toBeGreaterThanOrEqual(1);
+    expect(
+      falsifiedReceipt.evaluations.some(
+        (evaluation) =>
+          evaluation.status === 'falsified' && evaluation.parameters.apexHeight === 2
+      )
+    ).toBe(true);
+  });
+
+  it('rejects a curvature family without a height sweep', () => {
+    expect(() => generateCurvatureConeFamily({ apexHeights: [] })).toThrow();
+  });
+});
+
 describe('runGeneratedGeometryConjectureCycle — generated-family suite', () => {
   it('passes the MVP gate over machine-generated families', () => {
     const result = runGeneratedGeometryConjectureCycle({ proposedBy: 'generator-test' });
@@ -225,6 +288,9 @@ describe('runGeneratedGeometryConjectureCycle — generated-family suite', () =>
     expect(result.graduation).toContain('receipt-carrying.geometry');
     expect(result.classifications.map((classification) => classification.scenarioId)).toContain(
       'generated-geometry.collision-equivalence-sweep'
+    );
+    expect(result.classifications.map((classification) => classification.scenarioId)).toContain(
+      'generated-geometry.curvature-bound-sweep'
     );
   });
 

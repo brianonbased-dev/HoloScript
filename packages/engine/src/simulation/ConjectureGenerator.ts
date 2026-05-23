@@ -42,6 +42,15 @@ export interface CollisionEquivalenceFamilyOptions {
   halfExtent?: number;
 }
 
+export interface CurvatureConeFamilyOptions {
+  /** Cone/bipyramid apex-height sweep. Default [0.5, 2]. */
+  apexHeights?: ReadonlyArray<number>;
+  /** Number of vertices around the equator. Must be >= 3. Default 8. */
+  sides?: number;
+  /** Equator radius. Default 1. */
+  radius?: number;
+}
+
 const TWO_PI = Math.PI * 2;
 
 function isAxisAlignedRotation(rotationDegrees: number): boolean {
@@ -299,6 +308,88 @@ export function generateCollisionEquivalenceFamily(
     collisionEquivalenceQuadCandidate(rotationDegrees, {
       halfExtent: options.halfExtent,
       id: `collision-equivalence-quad-${rotationDegrees}`,
+    })
+  );
+}
+
+/**
+ * A closed triangular bipyramid whose apex height controls discrete Gaussian
+ * curvature. Low height spreads vertex angle around the apices and survives a
+ * modest bound; high height sharpens the apices and becomes the falsifier.
+ */
+export function curvatureConeCandidate(
+  apexHeight: number,
+  options: { id?: string; sides?: number; radius?: number } = {}
+): GeometryConjectureCandidate {
+  if (!Number.isFinite(apexHeight) || apexHeight <= 0) {
+    throw new Error('ConjectureGenerator: curvature cone apexHeight must be > 0');
+  }
+  const sides = options.sides ?? 8;
+  const radius = options.radius ?? 1;
+  if (!Number.isInteger(sides) || sides < 3) {
+    throw new Error('ConjectureGenerator: curvature cone requires integer sides >= 3');
+  }
+  if (!Number.isFinite(radius) || radius <= 0) {
+    throw new Error('ConjectureGenerator: curvature cone radius must be > 0');
+  }
+
+  const id = options.id ?? `curvature-cone-${apexHeight}`;
+  const vertices: number[] = [
+    0,
+    0,
+    apexHeight,
+    0,
+    0,
+    -apexHeight,
+  ];
+  for (let i = 0; i < sides; i++) {
+    const angle = (TWO_PI * i) / sides;
+    vertices.push(radius * Math.cos(angle), radius * Math.sin(angle), 0);
+  }
+
+  const topIndex = 0;
+  const bottomIndex = 1;
+  const ringStart = 2;
+  const elements: number[] = [];
+  for (let i = 0; i < sides; i++) {
+    const current = ringStart + i;
+    const next = ringStart + ((i + 1) % sides);
+    elements.push(topIndex, current, next);
+    elements.push(bottomIndex, next, current);
+  }
+
+  return {
+    id,
+    family: 'curvature-cone',
+    elementArity: 3,
+    semanticTags: ['geometry', 'generated', apexHeight > 1 ? 'counterexample' : 'candidate'],
+    parameters: {
+      apexHeight,
+      sides,
+      radius,
+      curvatureShape: 'closed-bipyramid',
+    },
+    vertices: new Float64Array(vertices),
+    elements: new Uint32Array(elements),
+  };
+}
+
+/**
+ * Generate a cone sharpness sweep for the curvature-bound invariant. The
+ * default pair intentionally gives one gentle survivor and one sharp falsifier.
+ */
+export function generateCurvatureConeFamily(
+  options: CurvatureConeFamilyOptions = {}
+): ReadonlyArray<GeometryConjectureCandidate> {
+  const apexHeights = options.apexHeights ?? [0.5, 2];
+  if (apexHeights.length === 0) {
+    throw new Error('ConjectureGenerator: curvature cone family requires at least one apex height');
+  }
+  return apexHeights.map((apexHeight) =>
+    curvatureConeCandidate(apexHeight, {
+      sides: options.sides,
+      radius: options.radius,
+      id: `curvature-cone-${apexHeight}`,
     })
   );
 }
