@@ -375,6 +375,53 @@ export async function handleGetCompilationStatus(
   };
 }
 
+// =============================================================================
+// QASM HANDLER
+// =============================================================================
+
+/**
+ * compile_to_qasm — HoloScript → OpenQASM 3.0
+ *
+ * Parses the provided HoloScript source, finds the first @quantumCircuit
+ * (or @quantum_circuit) trait node, and returns a QASMOutput JSON object.
+ *
+ * Uses a dynamic import of @holoscript/core/compiler (matching the pattern of
+ * handleCompileMCPConfig) so this file can be type-checked before the core
+ * dist is rebuilt.
+ */
+export async function handleCompileToQasm(
+  args: Record<string, unknown>
+): Promise<unknown> {
+  const { source } = args as { source?: string };
+
+  if (!source || typeof source !== 'string' || source.trim().length === 0) {
+    return { error: 'Missing required field: source (HoloScript source string)' };
+  }
+
+  try {
+    const parseResult = parseHolo(source);
+    if (!parseResult.success || !parseResult.ast) {
+      const errors =
+        (parseResult.errors as Array<{ message: string }> | undefined)
+          ?.map((e) => e.message)
+          .join(', ') ?? 'Unknown parse error';
+      return { error: `Failed to parse HoloScript source: ${errors}` };
+    }
+
+    const composition = parseResult.ast as HoloComposition;
+
+    const { QuantumCircuitCompiler } = await import('@holoscript/core/compiler');
+    const compiler = new QuantumCircuitCompiler();
+    const output = compiler.compile(composition);
+
+    return output;
+  } catch (err: unknown) {
+    return {
+      error: `compile_to_qasm failed: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+}
+
 /** Generic handler for domain block compilation */
 async function handleDomainBlock(
   args: Record<string, unknown>,
@@ -629,6 +676,10 @@ export async function handleCompilerTool(
     // AlphaFold — drug-discovery flagship Stage 5 (see docs/strategy/drug-discovery-flagship.md)
     case 'alphafold_fetch_structure':
       return handleFetchStructure(args);
+
+    // Quantum circuit compilation — HoloScript → OpenQASM 3.0
+    case 'compile_to_qasm':
+      return handleCompileToQasm(args);
 
     // Status and metadata tools
     case 'get_compilation_status':
@@ -1356,6 +1407,32 @@ export const compilerTools: Tool[] = [
         },
       },
       required: ['code'],
+    },
+  },
+
+  // Quantum Circuit Compilation — HoloScript → OpenQASM 3.0 (D.056 BUILD step)
+  {
+    name: 'compile_to_qasm',
+    description:
+      'Compile HoloScript source to OpenQASM 3.0 quantum circuit. ' +
+      'Walks the composition for the first @quantumCircuit (or @quantum_circuit) trait node and ' +
+      'emits a fully-formed OpenQASM 3.0 string plus rich metadata (numQubits, numClbits, ' +
+      'estimatedDepth, circuitType, recommendedBackend, warnings, molecule, weightMatrix). ' +
+      'Supported circuit families: vqe (hardware-efficient VQE ansatz), qaoa (Max-Cut QAOA), ' +
+      'stub (1-qubit when no quantum trait is found). ' +
+      'Jordan-Wigner / sto-3g qubit mapping: H→2q, C/N/O/F→10q, others→18q.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        source: {
+          type: 'string',
+          description:
+            'HoloScript source code containing a @quantumCircuit or @quantum_circuit trait. ' +
+            'Example: ' +
+            'object N2 { @quantumCircuit(molecule: [{symbol:"N",x:0,y:0,z:0},{symbol:"N",x:0,y:0,z:1.0975}], circuitType: "vqe", ansatzDepth: 2) }',
+        },
+      },
+      required: ['source'],
     },
   },
 
