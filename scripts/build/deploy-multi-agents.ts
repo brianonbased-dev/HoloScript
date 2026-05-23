@@ -12,12 +12,15 @@
  */
 
 import type { MultiAgentConfig } from '../../packages/core/src/traits/MultiAgentTrait';
+import { multiAgentHandler } from '../../packages/core/src/traits/MultiAgentTrait';
 import type { HITLConfig } from '../../packages/core/src/traits/HITLTrait';
-// NOTE: multiAgentHandler / hitlHandler are trait handlers, not instantiable classes.
-// The deployment logic below is scaffold that predates the handler-pattern refactor.
-// TODO: rewrite to use the trait handler API directly.
-const multiAgent = null as unknown as { init: () => Promise<void>; registerAgent: (c: unknown) => Promise<void>; broadcast: (m: unknown) => Promise<void> };
-const hitl = null as unknown as { init: () => Promise<void>; setConfidenceThreshold: (t: number) => void; enableRollback: (c: unknown) => void; setWebhookUrl: (u: string) => Promise<void> };
+import { hitlHandler } from '../../packages/core/src/traits/HITLTrait';
+import type {
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitHandler,
+} from '../../packages/core/src/traits/TraitTypes';
 
 interface AgentConfig {
   id: string;
@@ -131,15 +134,197 @@ const AGENT_CONFIGS: AgentConfig[] = [
   },
 ];
 
+interface EmittedTraitEvent {
+  event: string;
+  payload?: unknown;
+}
+
+const HEARTBEAT_INTERVAL_MS = 30_000;
+const DEPLOYMENT_MESSAGE_TTL_MS = 60 * 60 * 1000;
+const ROLLBACK_RETENTION_MS = 24 * 60 * 60 * 1000;
+
+function createNode(id: string, name: string): HSPlusNode {
+  return {
+    type: 'agent',
+    id,
+    name,
+    properties: {},
+  };
+}
+
+function createTraitContext(events: EmittedTraitEvent[]): TraitContext {
+  const state: Record<string, unknown> = {};
+  const origin: [number, number, number] = [0, 0, 0];
+
+  return {
+    vr: {
+      hands: { left: null, right: null },
+      headset: { position: origin, rotation: origin },
+      getPointerRay: () => null,
+      getDominantHand: () => null,
+    },
+    physics: {
+      applyVelocity: () => undefined,
+      applyAngularVelocity: () => undefined,
+      setKinematic: () => undefined,
+      raycast: () => null,
+      getBodyPosition: () => null,
+      getBodyVelocity: () => null,
+    },
+    audio: {
+      playSound: () => undefined,
+    },
+    haptics: {
+      pulse: () => undefined,
+      rumble: () => undefined,
+    },
+    emit: (event, payload) => events.push({ event, payload }),
+    getState: () => ({ ...state }),
+    setState: (updates) => Object.assign(state, updates),
+    getScaleMultiplier: () => 1,
+    setScaleContext: () => undefined,
+  };
+}
+
+function requireDefaultConfig<TConfig>(handler: TraitHandler<TConfig>): TConfig {
+  if (!handler.defaultConfig) {
+    throw new Error(`${handler.name} trait handler is missing defaultConfig`);
+  }
+  return handler.defaultConfig;
+}
+
+function attachTrait<TConfig>(
+  handler: TraitHandler<TConfig>,
+  node: HSPlusNode,
+  config: TConfig,
+  context: TraitContext
+): void {
+  if (!handler.onAttach) {
+    throw new Error(`${handler.name} trait handler is missing onAttach`);
+  }
+  handler.onAttach(node, config, context);
+}
+
+function sendTraitEvent<TConfig>(
+  handler: TraitHandler<TConfig>,
+  node: HSPlusNode,
+  config: TConfig,
+  context: TraitContext,
+  event: TraitEvent
+): void {
+  if (!handler.onEvent) {
+    throw new Error(`${handler.name} trait handler is missing onEvent`);
+  }
+  handler.onEvent(node, config, context, event);
+}
+
+function registerDeploymentAgents(
+  node: HSPlusNode,
+  config: MultiAgentConfig,
+  context: TraitContext
+): void {
+  for (const agent of AGENT_CONFIGS) {
+    sendTraitEvent(multiAgentHandler, node, config, context, {
+      type: 'agent_discovered',
+      payload: {
+        agentId: agent.id,
+        name: agent.id,
+        capabilities: agent.capabilities,
+        metadata: {
+          heartbeatInterval: HEARTBEAT_INTERVAL_MS,
+          task: agent.task,
+          priority: agent.priority,
+          estimatedHours: agent.estimatedHours,
+          autoApprove: agent.autoApprove,
+          deliverables: agent.deliverables,
+        },
+      },
+    });
+  }
+}
+
+function broadcastDeploymentStart(
+  node: HSPlusNode,
+  config: MultiAgentConfig,
+  context: TraitContext
+): void {
+  sendTraitEvent(multiAgentHandler, node, config, context, {
+    type: 'send_agent_message',
+    payload: {
+      type: 'DEPLOYMENT_START',
+      priority: 'high',
+      payload: {
+        mission: 'Execute HoloScript vs Unity / HoloLand vs Roblox competitive strategy',
+        totalAgents: AGENT_CONFIGS.length,
+        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        coordination: 'MultiAgentTrait v3.1',
+        safety: 'HITLTrait with rollback enabled',
+        researchSource: 'uAA2++ Protocol - Phase 7 Autonomous TODOs',
+        budget: {
+          time: '7 days',
+          compute: '$500',
+          humanReview: '8 hours',
+        },
+      },
+    },
+  });
+}
+
+function configureHitlOversight(context: TraitContext): { node: HSPlusNode; config: HITLConfig } {
+  const node = createNode('competitive-strategy-hitl', 'Competitive Strategy HITL');
+  const config: HITLConfig = {
+    ...requireDefaultConfig(hitlHandler),
+    mode: 'autonomous',
+    confidence_threshold: 0.8,
+    enable_rollback: true,
+    rollback_retention: ROLLBACK_RETENTION_MS,
+    notification_webhook: '',
+  };
+
+  attachTrait(hitlHandler, node, config, context);
+  sendTraitEvent(hitlHandler, node, config, context, {
+    type: 'agent_action_request',
+    payload: {
+      action: 'broadcast_deployment_start',
+      category: 'write',
+      confidence: 0.92,
+      riskScore: 0.2,
+      description: 'Broadcast multi-agent deployment start inside the local trait runtime.',
+      metadata: {
+        stateBefore: { deploymentStarted: false },
+      },
+    },
+  });
+
+  return { node, config };
+}
+
 async function deployAgents() {
   console.log('🚀 Deploying Multi-Agent System for HoloScript Competitive Strategy\n');
 
+  const emittedEvents: EmittedTraitEvent[] = [];
+  const traitContext = createTraitContext(emittedEvents);
+  const coordinatorNode = createNode(
+    'competitive-strategy-coordinator',
+    'Competitive Strategy Coordinator'
+  );
+  const multiAgentConfig: MultiAgentConfig = {
+    ...requireDefaultConfig(multiAgentHandler),
+    agent_id: 'competitive-strategy-coordinator',
+    agent_name: 'Competitive Strategy Coordinator',
+    capabilities: ['coordination', 'broadcast', 'deployment'],
+    heartbeat_interval: HEARTBEAT_INTERVAL_MS,
+    default_message_ttl: DEPLOYMENT_MESSAGE_TTL_MS,
+  };
+
   // Initialize registry
   console.log('📋 Step 1: Initializing Agent Registry...');
-  await multiAgent.init();
+  attachTrait(multiAgentHandler, coordinatorNode, multiAgentConfig, traitContext);
 
   // Register all agents
   console.log('🤖 Step 2: Registering 7 Specialized Agents...\n');
+
+  registerDeploymentAgents(coordinatorNode, multiAgentConfig, traitContext);
 
   for (const config of AGENT_CONFIGS) {
     console.log(`  ├─ Registering ${config.id}`);
@@ -148,67 +333,23 @@ async function deployAgents() {
     console.log(`  │  Estimated: ${config.estimatedHours}h`);
     console.log(`  │  Auto-Approve: ${config.autoApprove ? '✅' : '❌ (needs HITL)'}`);
 
-    await multiAgent.registerAgent({
-      id: config.id,
-      capabilities: config.capabilities,
-      heartbeatInterval: 30000, // 30 seconds
-      metadata: {
-        task: config.task,
-        priority: config.priority,
-        estimatedHours: config.estimatedHours,
-        autoApprove: config.autoApprove,
-        deliverables: config.deliverables,
-      },
-    });
-
     console.log(`  └─ ✅ Registered\n`);
   }
 
   // Broadcast deployment start
   console.log('📢 Step 3: Broadcasting DEPLOYMENT_START...\n');
-
-  await multiAgent.broadcast({
-    type: 'DEPLOYMENT_START',
-    payload: {
-      mission: 'Execute HoloScript vs Unity / HoloLand vs Roblox competitive strategy',
-      totalAgents: AGENT_CONFIGS.length,
-      deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-      coordination: 'MultiAgentTrait v3.1',
-      safety: 'HITLTrait with rollback enabled',
-      researchSource: 'uAA2++ Protocol - Phase 7 Autonomous TODOs',
-      budget: {
-        time: '7 days',
-        compute: '$500',
-        humanReview: '8 hours',
-      },
-    },
-    priority: 'high',
-    ttl: 3600000, // 1 hour
-  });
+  broadcastDeploymentStart(coordinatorNode, multiAgentConfig, traitContext);
 
   console.log('✅ DEPLOYMENT_START broadcast sent\n');
 
   // Initialize HITL oversight
   console.log('🛡️ Step 4: Configuring HITL Safety...\n');
-
-  await hitl.init();
-
-  // Set confidence thresholds
-  hitl.setConfidenceThreshold(0.8); // Auto-approve if >80% confidence
-
-  // Configure rollback
-  hitl.enableRollback({
-    maxRollbacks: 3,
-    expiry: 24 * 60 * 60 * 1000, // 24 hours
-  });
-
-  // Set up notification webhook (example)
-  await hitl.setWebhookUrl('https://hooks.slack.com/services/YOUR_WEBHOOK_HERE');
+  const hitl = configureHitlOversight(traitContext);
 
   console.log('  ├─ Confidence threshold: 0.8 (80%)');
-  console.log('  ├─ Max rollbacks: 3 per agent');
-  console.log('  ├─ Rollback expiry: 24 hours');
-  console.log('  └─ Webhook notifications: Enabled\n');
+  console.log(`  ├─ Mode: ${hitl.config.mode}`);
+  console.log('  ├─ Rollback retention: 24 hours');
+  console.log('  └─ Webhook notifications: Disabled until a real endpoint is configured\n');
 
   // Display deployment summary
   console.log('═══════════════════════════════════════════════════════════════');
@@ -217,6 +358,18 @@ async function deployAgents() {
 
   console.log('📊 Agent Breakdown:');
   console.log(`  - Total Agents: ${AGENT_CONFIGS.length}`);
+  console.log(
+    `  - Registered in trait registry: ${
+      (
+        coordinatorNode.__multiAgentState as { registry?: { size: number } } | undefined
+      )?.registry?.size ?? 0
+    }`
+  );
+  console.log(
+    `  - Trait events emitted: ${emittedEvents.length} (${[
+      ...new Set(emittedEvents.map(({ event }) => event)),
+    ].join(', ')})`
+  );
   console.log(
     `  - Critical Priority: ${AGENT_CONFIGS.filter((a) => a.priority === 'CRITICAL').length}`
   );
@@ -244,9 +397,9 @@ async function deployAgents() {
   console.log('═══════════════════════════════════════════════════════════════\n');
 
   console.log('📊 Monitor Progress:');
-  console.log('  - Real-time status: npm run agents:status');
+  console.log('  - Real-time status: pnpm agents:status');
   console.log('  - Audit logs: tail -f agent_logs/2026-02-23_*.jsonl');
-  console.log('  - HITL approvals: Check Slack webhook notifications\n');
+  console.log('  - HITL approvals: Inspect emitted HITL trait events\n');
 
   console.log('🔗 Integration:');
   console.log('  - Findings auto-merge to: C:/Users/josep/Documents/GitHub/AI_Workspace/');
