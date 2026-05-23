@@ -9,6 +9,38 @@
 export const PHOTO_BACKUP_CUSTODY_RECEIPT_VERSION = 'hololand.holoshell.photo-backup-custody.v0.1.0';
 export const PHOTO_BACKUP_VERIFICATION_RECEIPT_VERSION = 'hololand.holoshell.photo-backup-verification.v0.1.0';
 
+export const PHOTO_BACKUP_DELETE_BLOCKER_RECEIPT_VERSION =
+  'hololand.holoshell.photo-backup-delete-blocker.v0.1.0';
+
+export const PHOTO_BACKUP_DELETE_APPROVAL_TEXT =
+  'I understand that the originals will be permanently deleted from this device';
+
+export interface PhotoBackupDeleteBlockerReceipt {
+  schemaVersion: typeof PHOTO_BACKUP_DELETE_BLOCKER_RECEIPT_VERSION;
+  blockerId: string;
+  generatedAt: string;
+  sourceCustodyReceipt: string;
+  sourceVerificationReceipt: string;
+  deleteBlocker: {
+    blocked: true;
+    reason: 'restore_proof_not_passed' | 'human_approval_not_given' | 'never_approved';
+  };
+  deletionApproval: {
+    approved: boolean;
+    approvalText?: string;
+    approvedAt?: string;
+  };
+  summary: {
+    originalsDeleted: boolean;
+    deleteBlocked: boolean;
+    restoreVerified: boolean;
+  };
+  rollback: {
+    plan: string;
+    originalsRemainOnDevice: true;
+  };
+}
+
 export const PHOTO_BACKUP_MEDIA_KINDS = ['photo', 'video', 'raw', 'sidecar', 'unknown'] as const;
 export type PhotoBackupMediaKind = (typeof PHOTO_BACKUP_MEDIA_KINDS)[number];
 
@@ -318,6 +350,102 @@ export function validatePhotoBackupVerificationReceipt(receipt: PhotoBackupVerif
   return errors;
 }
 
+export function validatePhotoBackupDeleteBlockerReceipt(
+  receipt: PhotoBackupDeleteBlockerReceipt
+): string[] {
+  const errors: string[] = [];
+
+  if (receipt.schemaVersion !== PHOTO_BACKUP_DELETE_BLOCKER_RECEIPT_VERSION) {
+    errors.push('PhotoBackupDeleteBlockerReceipt.schemaVersion is unsupported.');
+  }
+  if (!receipt.blockerId) errors.push('PhotoBackupDeleteBlockerReceipt.blockerId is required.');
+  if (!isIsoTimestamp(receipt.generatedAt)) {
+    errors.push('PhotoBackupDeleteBlockerReceipt.generatedAt must be a valid ISO-8601 timestamp.');
+  }
+  if (!receipt.sourceCustodyReceipt) {
+    errors.push('PhotoBackupDeleteBlockerReceipt.sourceCustodyReceipt is required.');
+  }
+  if (!receipt.sourceVerificationReceipt) {
+    errors.push('PhotoBackupDeleteBlockerReceipt.sourceVerificationReceipt is required.');
+  }
+  // When deletion is not approved, the blocker must remain active (blocked=true).
+  // When deletion is approved, the blocker is released (blocked=false).
+  if (!receipt.deletionApproval?.approved && receipt.deleteBlocker?.blocked !== true) {
+    errors.push('PhotoBackupDeleteBlockerReceipt.deleteBlocker.blocked must be true when deletion is not approved.');
+  }
+  if (receipt.deletionApproval?.approved && receipt.deleteBlocker?.blocked !== false) {
+    errors.push('PhotoBackupDeleteBlockerReceipt.deleteBlocker.blocked must be false when deletion is approved.');
+  }
+  if (
+    !isOneOf(
+      ['restore_proof_not_passed', 'human_approval_not_given', 'never_approved'] as const,
+      String(receipt.deleteBlocker?.reason)
+    )
+  ) {
+    errors.push(
+      `PhotoBackupDeleteBlockerReceipt.deleteBlocker.reason is unsupported: ${String(receipt.deleteBlocker?.reason)}.`
+    );
+  }
+  if (typeof receipt.deletionApproval?.approved !== 'boolean') {
+    errors.push('PhotoBackupDeleteBlockerReceipt.deletionApproval.approved must be a boolean.');
+  }
+  if (
+    receipt.deletionApproval?.approved &&
+    receipt.deletionApproval.approvalText !== PHOTO_BACKUP_DELETE_APPROVAL_TEXT
+  ) {
+    errors.push(
+      `PhotoBackupDeleteBlockerReceipt.deletionApproval.approvalText must match the canonical approval text.`
+    );
+  }
+  if (typeof receipt.summary?.originalsDeleted !== 'boolean') {
+    errors.push('PhotoBackupDeleteBlockerReceipt.summary.originalsDeleted must be a boolean.');
+  }
+  if (typeof receipt.summary?.deleteBlocked !== 'boolean') {
+    errors.push('PhotoBackupDeleteBlockerReceipt.summary.deleteBlocked must be a boolean.');
+  }
+  if (typeof receipt.summary?.restoreVerified !== 'boolean') {
+    errors.push('PhotoBackupDeleteBlockerReceipt.summary.restoreVerified must be a boolean.');
+  }
+  // If deletion is approved, originals must be marked deleted and deleteBlocked must be false.
+  if (receipt.deletionApproval?.approved) {
+    if (receipt.summary.originalsDeleted !== true) {
+      errors.push(
+        'PhotoBackupDeleteBlockerReceipt.summary.originalsDeleted must be true when deletion is approved.'
+      );
+    }
+    if (receipt.summary.deleteBlocked !== false) {
+      errors.push(
+        'PhotoBackupDeleteBlockerReceipt.summary.deleteBlocked must be false when deletion is approved.'
+      );
+    }
+    if (receipt.summary.restoreVerified !== true) {
+      errors.push(
+        'PhotoBackupDeleteBlockerReceipt.summary.restoreVerified must be true when deletion is approved.'
+      );
+    }
+  } else {
+    // If deletion is NOT approved, originals must NOT be deleted and deleteBlocked must be true.
+    if (receipt.summary.originalsDeleted === true) {
+      errors.push(
+        'PhotoBackupDeleteBlockerReceipt.summary.originalsDeleted must be false when deletion is not approved.'
+      );
+    }
+    if (receipt.summary.deleteBlocked !== true) {
+      errors.push(
+        'PhotoBackupDeleteBlockerReceipt.summary.deleteBlocked must be true when deletion is not approved.'
+      );
+    }
+  }
+  if (receipt.rollback?.originalsRemainOnDevice !== true) {
+    errors.push('PhotoBackupDeleteBlockerReceipt.rollback.originalsRemainOnDevice must be true.');
+  }
+  if (!receipt.rollback?.plan) {
+    errors.push('PhotoBackupDeleteBlockerReceipt.rollback.plan is required.');
+  }
+
+  return errors;
+}
+
 export function clonePhotoBackupCustodyReceipt(receipt: PhotoBackupCustodyReceipt): PhotoBackupCustodyReceipt {
   return JSON.parse(JSON.stringify(receipt)) as PhotoBackupCustodyReceipt;
 }
@@ -326,4 +454,10 @@ export function clonePhotoBackupVerificationReceipt(
   receipt: PhotoBackupVerificationReceipt
 ): PhotoBackupVerificationReceipt {
   return JSON.parse(JSON.stringify(receipt)) as PhotoBackupVerificationReceipt;
+}
+
+export function clonePhotoBackupDeleteBlockerReceipt(
+  receipt: PhotoBackupDeleteBlockerReceipt
+): PhotoBackupDeleteBlockerReceipt {
+  return JSON.parse(JSON.stringify(receipt)) as PhotoBackupDeleteBlockerReceipt;
 }

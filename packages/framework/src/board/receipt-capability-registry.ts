@@ -290,6 +290,18 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
     tags: ['holoshell', 'photos', 'backup', 'privacy', 'safety'],
   },
   {
+    capability: 'photo-backup-delete-blocker',
+    description:
+      'Photo backup delete blocker receipts — prove that original deletion is blocked until restore proof passes and a separate human approval is given.',
+    receiptType: 'PhotoBackupDeleteBlockerReceipt',
+    module: 'holoshell-photo-backup-receipts',
+    exportName: 'PhotoBackupDeleteBlockerReceipt',
+    validateFn: 'validatePhotoBackupDeleteBlockerReceipt',
+    cloneFn: 'clonePhotoBackupDeleteBlockerReceipt',
+    subjects: ['deletion', 'delete-blocker', 'break-glass', 'human-approval', 'restore-proof-gate'],
+    tags: ['holoshell', 'photos', 'backup', 'safety', 'deletion-blocker'],
+  },
+  {
     capability: 'device-safety',
     description:
       'Device safety envelope receipts — prove device identity, consent, and safe action execution.',

@@ -684,6 +684,8 @@ export {
   PHOTO_BACKUP_STATUSES,
   PHOTO_BACKUP_TARGET_KINDS,
   PHOTO_BACKUP_METADATA_POLICIES,
+  PHOTO_BACKUP_DELETE_BLOCKER_RECEIPT_VERSION,
+  PHOTO_BACKUP_DELETE_APPROVAL_TEXT,
   type PhotoBackupMediaKind,
   type PhotoBackupStatus,
   type PhotoBackupTargetKind,
@@ -691,12 +693,15 @@ export {
   type PhotoBackupFileProxy,
   type PhotoBackupCustodyReceipt,
   type PhotoBackupVerificationReceipt,
+  type PhotoBackupDeleteBlockerReceipt,
   isSupportedPhotoBackupMediaKind,
   isSupportedPhotoBackupStatus,
   validatePhotoBackupCustodyReceipt,
   validatePhotoBackupVerificationReceipt,
+  validatePhotoBackupDeleteBlockerReceipt,
   clonePhotoBackupCustodyReceipt,
   clonePhotoBackupVerificationReceipt,
+  clonePhotoBackupDeleteBlockerReceipt,
 } from './holoshell-photo-backup-receipts';
 
 export {

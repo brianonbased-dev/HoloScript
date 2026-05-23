@@ -1,0 +1,242 @@
+// HoloShell family photo backup custody policy and state machine.
+// Enforces: originals read-only, duplicate detection, privacy redaction,
+// target boundary, restore proof before deletion, and break-glass deletion.
+
+composition "HoloShellFamilyPhotoBackupCustodyPolicy" {
+  state CustodyState {
+    selectedWorkflow: "family-photo-backup-custody"
+    albumLabel: "unknown"
+    mediaKinds: ["photo", "video", "raw", "sidecar", "unknown"]
+    approvalsRequired: 0
+    receiptsCaptured: 0
+    blockers: []
+    taskSeeds: []
+    currentLane: "holoshell-human-os"
+    originalsDeleted: false
+    deleteBlocked: true
+    restoreVerified: false
+    targetKind: "not_chosen"
+    metadataPolicy: "not_chosen"
+    duplicateGroupCount: 0
+  }
+
+  template "PermissionEnvelope" {
+    readOnly: true
+    guardedExecute: false
+    breakGlass: false
+    receiptRequired: true
+  }
+
+  // ── Silent read: album discovery, hashing, duplicate detection ────────────
+  // No writes, no deletions, no external calls.
+
+  policy "SilentRead" using "PermissionEnvelope" {
+    readOnly: true
+    guardedExecute: false
+    breakGlass: false
+    appliesTo: [
+      "scan_album",
+      "fingerprint_file",
+      "hash_file_sha256",
+      "detect_media_kind",
+      "group_duplicates",
+      "count_unique_files",
+      "read_metadata",
+      "detect_unreadable",
+      "generate_album_fingerprint",
+      "verify_privacy_redaction"
+    ]
+  }
+
+  // ── Guarded execute: backup copy, privacy strip, target write ─────────────
+  // Writes to the backup target, not the originals. Requires receipts.
+
+  policy "GuardedExecute" using "PermissionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    breakGlass: false
+    appliesTo: [
+      "copy_to_target",
+      "strip_gps_metadata",
+      "strip_face_labels",
+      "strip_camera_serial",
+      "encrypt_for_cloud",
+      "verify_copy_integrity",
+      "sample_restore_check",
+      "write_private_receipt",
+      "write_public_receipt",
+      "file_holomesh_task"
+    ]
+  }
+
+  // ── Break glass: original deletion ────────────────────────────────────────
+  // ONLY after restore proof passes AND a separate fresh human approval.
+  // This is the DeleteBlockerToken in the room.
+
+  policy "BreakGlass" using "PermissionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    breakGlass: true
+    appliesTo: [
+      "delete_original_photos",
+      "delete_original_videos",
+      "empty_trash",
+      "cloud_account_access",
+      "share_link_creation"
+    ]
+  }
+
+  // ── State machine ──────────────────────────────────────────────────────────
+
+  state_machine "BackupCustodyWorkflow" {
+    initial: "idle"
+    states: [
+      "idle",
+      "album_scanned",
+      "duplicates_detected",
+      "privacy_stripped",
+      "target_chosen",
+      "copy_executed",
+      "restore_verified",
+      "receipt_filed",
+      "deletion_approved",
+      "blocked"
+    ]
+
+    // Forward flow: every transition produces a receipt.
+    transition "scan_album"       { from: "idle",                to: "album_scanned" }
+    transition "detect_duplicates" { from: "album_scanned",      to: "duplicates_detected" }
+    transition "strip_privacy"    { from: "duplicates_detected", to: "privacy_stripped" }
+    transition "choose_target"    { from: "privacy_stripped",   to: "target_chosen" }
+    transition "copy_backup"      { from: "target_chosen",      to: "copy_executed" }
+    transition "verify_restore"   { from: "copy_executed",      to: "restore_verified" }
+    transition "file_receipts"    { from: "restore_verified",    to: "receipt_filed" }
+
+    // Break-glass deletion: only from receipt_filed, only after restore_verified.
+    transition "approve_deletion" { from: "receipt_filed",      to: "deletion_approved" }
+
+    // Block from any state.
+    transition "block"            { from: "*",                   to: "blocked" }
+  }
+
+  // ── Roles ──────────────────────────────────────────────────────────────────
+
+  role "AlbumScannerAgent" {
+    laneId: "album-scanner"
+    owns: ["album_fingerprint", "file_hashes", "media_kind_detection", "unreadable_detection"]
+  }
+
+  role "DuplicateDetectorAgent" {
+    laneId: "duplicate-detector"
+    owns: ["duplicate_grouping", "unique_count", "hash_collision_check"]
+  }
+
+  role "PrivacyStripAgent" {
+    laneId: "privacy-strip"
+    owns: ["gps_redaction", "face_label_redaction", "camera_serial_redaction", "metadata_policy_enforcement"]
+  }
+
+  role "BackupCopyAgent" {
+    laneId: "backup-copy"
+    owns: ["target_write", "copy_manifest", "quota_check", "provider_resolution"]
+  }
+
+  role "RestoreVerifierAgent" {
+    laneId: "restore-verifier"
+    owns: ["sample_restore", "hash_comparison", "count_comparison", "privacy_mode_check"]
+  }
+
+  role "HoloLandProductAgent" {
+    laneId: "hololand-product"
+    owns: ["room_embodiment", "brittney_operator_brief", "hololand_work_card"]
+  }
+
+  // ── Actions ────────────────────────────────────────────────────────────────
+
+  action classifyOperation(operation) {
+    if (operation.kind in BreakGlass.appliesTo) {
+      // Original deletion requires break-glass ONLY after restore proof.
+      if (CustodyState.restoreVerified != true) {
+        blockOn("deletion_before_restore_proof", operation.evidencePath, operation.surface)
+        return "blocked"
+      }
+      CustodyState.approvalsRequired = CustodyState.approvalsRequired + 1
+      return "break_glass"
+    }
+    if (operation.kind in GuardedExecute.appliesTo) {
+      return "guarded_execute"
+    }
+    return "silent_read"
+  }
+
+  action recordReceipt(receipt) {
+    CustodyState.receiptsCaptured = CustodyState.receiptsCaptured + 1
+    emit("holoshell:photo_backup_custody:receipt", {
+      workflow: CustodyState.selectedWorkflow,
+      lane: CustodyState.currentLane,
+      receipt: receipt,
+      count: CustodyState.receiptsCaptured,
+      originalsDeleted: CustodyState.originalsDeleted,
+      deleteBlocked: CustodyState.deleteBlocked,
+      restoreVerified: CustodyState.restoreVerified
+    })
+  }
+
+  action blockOn(reason, evidencePath, ownerSurface) {
+    BackupCustodyWorkflow.transition("block")
+    CustodyState.blockers.push({
+      reason: reason,
+      evidencePath: evidencePath,
+      ownerSurface: ownerSurface
+    })
+    emit("holoshell:photo_backup_custody:blocker", {
+      reason: reason,
+      evidencePath: evidencePath,
+      ownerSurface: ownerSurface
+    })
+  }
+
+  action seedTask(title, category, evidencePath, expectedBehavior) {
+    CustodyState.taskSeeds.push({
+      title: title,
+      category: category,
+      evidencePath: evidencePath,
+      expectedBehavior: expectedBehavior
+    })
+    emit("holomesh:task_seed", {
+      title: title,
+      category: category,
+      evidencePath: evidencePath,
+      expectedBehavior: expectedBehavior
+    })
+  }
+
+  // ── Delete blocker enforcement ────────────────────────────────────────────
+  // The delete blocker is the core safety property of photo backup custody.
+  // originalsDeleted must remain false and deleteBlocked must remain true
+  // until ALL of:
+  //   1. Restore proof has passed (restoreVerified == true)
+  //   2. A separate fresh human approval has been given
+  //   3. The approval text is "I understand that the originals will be
+  //      permanently deleted from this device"
+  // This matches PhotoBackupCustodyReceipt.summary.deleteBlocked == true
+  // and PhotoBackupVerificationReceipt.summary.originalsDeleted == false.
+
+  action approveDeletion(humanApprovalText) {
+    if (CustodyState.restoreVerified != true) {
+      blockOn("deletion_before_restore_proof", "restore_verification_missing", "holoshell-human-os")
+      return
+    }
+    if (humanApprovalText != "I understand that the originals will be permanently deleted from this device") {
+      blockOn("deletion_approval_text_mismatch", "approval_text_invalid", "holoshell-human-os")
+      return
+    }
+    CustodyState.deleteBlocked = false
+    CustodyState.originalsDeleted = true
+    emit("holoshell:photo_backup_custody:deletion_approved", {
+      workflow: CustodyState.selectedWorkflow,
+      restoreVerified: true,
+      humanApprovalText: humanApprovalText
+    })
+  }
+}
