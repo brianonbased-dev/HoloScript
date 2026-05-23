@@ -1,0 +1,152 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// THE GOLD GAME — Gate 16: the Vault soundscape (REAL Godot audio path).
+//
+// The audio layer for the vault, authored on the REAL HoloScript audio
+// substrate (physics-upward: model the acoustics, don't just attach clips).
+// This .holo is the source the REAL GodotCompiler turns into Godot audio nodes:
+//   - top-level `audio "Name" { spatial: true ... }`  → AudioStreamPlayer3D
+//   - top-level `audio "Name" { ... }`                 → AudioStreamPlayer (2D)
+//   - `@audio_material` / `@audio_occlusion` / `@audio_portal` on surfaces
+//     → acoustic traits emitted into the GDScript (config preserved).
+//
+// Sources + acoustics are exactly the AUDIO-vault.md design:
+//   ambient bed (2D), per-tier music (2D), graduation cue (spatial 3D — THE
+//   signature SFX), crystal-spire shimmer (3D), collision clang (3D),
+//   Archivist presence (3D). Gold terraces = metal acoustics; gems = glass;
+//   tier portals route sound zone-to-zone as you ascend.
+//
+// HONEST: Godot is the one shipped audio compiler target — these nodes are
+// real. The web/R3F Drive build is silent (no audio compiler path); a small
+// WebAudio layer is the build target. No TTS/voiced lines; no adaptive
+// @MusicLayer — tier music is static per-tier sources, flagged not faked.
+// ═══════════════════════════════════════════════════════════════════════════
+
+composition "GOLD — The Vault (Audio)" {
+  metadata {
+    name: 'The GOLD Game — vault soundscape (Gate 16)'
+    category: 'gaming'
+    concept: 'the vault soundscape on the real Godot audio path'
+    target: 'godot'
+  }
+
+  environment {
+    skybox: "vault_archive"
+    ambient_light: 0.4
+  }
+
+  // ── ACOUSTIC SURFACES — model the space (the analogue of look-dev geometry) ──
+  // Gold terraces ring metallically; crystal gems sparkle; tier gaps route sound.
+
+  object "GoldTerrace" {
+    @audio_material(preset: "metal", absorption_low: 0.01, absorption_mid: 0.02, absorption_high: 0.04, scattering: 0.2)
+    @collidable
+    geometry: "box"
+    position: [0, 4, -8]
+    scale: [12, 0.2, 8]
+  }
+
+  object "DiamondPeakFloor" {
+    @audio_material(preset: "metal", absorption_low: 0.01, absorption_mid: 0.02, absorption_high: 0.03, scattering: 0.15)
+    @collidable
+    geometry: "box"
+    position: [0, 9, -16]
+    scale: [10, 0.2, 8]
+  }
+
+  object "CrystalGem" {
+    @audio_material(preset: "glass", absorption_low: 0.03, absorption_mid: 0.04, absorption_high: 0.06, scattering: 0.6)
+    @audio_occlusion(transmission_loss: 12, frequency_dependent: true)
+    geometry: "octahedron"
+    position: [0, 0.5, 0]
+    scale: [0.5, 0.5, 0.5]
+  }
+
+  // Tier-to-tier opening: bronze hum bleeds up into the gold terrace as you climb.
+  object "TierPortal_BronzeToGold" {
+    @audio_portal(source_zone: "BronzeValley", target_zone: "GoldTerrace", opening_factor: 0.4, frequency_filter: "low_pass", cutoff_hz: 600, falloff: "inverse_square")
+    @audio_occlusion(transmission_loss: 14)
+    geometry: "box"
+    position: [0, 2, -4]
+    scale: [3, 2.4, 0.2]
+  }
+
+  object "TierPortal_GoldToDiamond" {
+    @audio_portal(source_zone: "GoldTerrace", target_zone: "DiamondPeak", opening_factor: 0.5, frequency_filter: "low_pass", cutoff_hz: 800, falloff: "inverse_square")
+    @audio_occlusion(transmission_loss: 10)
+    geometry: "box"
+    position: [0, 6.5, -12]
+    scale: [3, 2.4, 0.2]
+  }
+
+  // ── SOURCES — non-diegetic 2D (ambience bed + per-tier music) ──
+
+  audio "VaultAmbientBed" {
+    src: "vault_ambient_bed.ogg"
+    volume: 0.30
+    loop: true
+  }
+
+  audio "TierMusic_Bronze" {
+    src: "tier_music_bronze.ogg"
+    volume: 0.45
+    loop: true
+  }
+
+  audio "TierMusic_Gold" {
+    src: "tier_music_gold.ogg"
+    volume: 0.50
+    loop: true
+  }
+
+  audio "TierMusic_Diamond" {
+    src: "tier_music_diamond.ogg"
+    volume: 0.55
+    loop: true
+  }
+
+  // ── SOURCES — diegetic spatial 3D ──
+
+  // THE signature SFX: a rising crystalline chord at the graduating entry's spot.
+  audio "GraduationCue" {
+    spatial: true
+    src: "graduation_cue.ogg"
+    volume: 0.90
+    position: [0, 9, -16]
+    distance: 35
+  }
+
+  // Per-spire shimmer — faint high-freq glints give the skyline presence.
+  audio "CrystalSpireShimmer" {
+    spatial: true
+    src: "crystal_spire_shimmer.ogg"
+    volume: 0.35
+    position: [0, 0.5, 0]
+    distance: 14
+    loop: true
+  }
+
+  // The "monster": dissonant clang at colliding entries (resolves when fixed).
+  audio "CollisionClang" {
+    spatial: true
+    src: "collision_clang.ogg"
+    volume: 0.70
+    position: [1, 0.5, 2]
+    distance: 20
+  }
+
+  // The Archivist's spatial presence near the Diamond peak (lines are text today).
+  audio "ArchivistPresence" {
+    spatial: true
+    src: "archivist_presence.ogg"
+    volume: 0.40
+    position: [-2, 9, -15]
+    distance: 12
+    loop: true
+  }
+
+  light "VaultGlow" {
+    type: "directional"
+    intensity: 1.2
+    color: "#ffe9a0"
+  }
+}
