@@ -35,6 +35,7 @@ const GATES = [
   { track: 'flagship', gate: 8, name: 'multi-agent mesh + economy (3 AI curators + human; real D.040 sovereign traits)', kind: 'script', runner: 'tsx', file: 'gate-8-mesh-economy-verify.mjs' },
   { track: 'flagship', gate: 9, name: 'Twin-Earth identity/permission/safety (per-entrant governance over the mesh)', kind: 'script', runner: 'tsx', file: 'gate-9-twin-earth-verify.mjs' },
   { track: 'flagship', gate: 10, name: 'HoloGraph + HoloEmbed (real vault constellation as playable structure)', kind: 'script', runner: 'tsx', file: 'gate-10-holograph-verify.mjs' },
+  { track: 'flagship', gate: 11, name: 'quantum-inspired curation (real QuantumInspiredTrait, CPU-inspired fallback)', kind: 'script', runner: 'tsx', file: 'gate-11-quantum-verify.mjs' },
   { track: 'oasis (fixture)', gate: 3, name: 'connection-mechanics proof (compass co-session)', kind: 'script', runner: 'tsx', file: 'connection-mechanics-proof/gate-3-verify.mjs' },
   { track: 'modalities', gate: '2D+3D', name: 'one .holo -> retro 2D + 3D (shared source scene)', kind: 'script', runner: 'tsx', file: 'modality-verify.mjs' },
 ];

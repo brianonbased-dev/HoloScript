@@ -1,0 +1,107 @@
+{
+  "gate": 11,
+  "track": "flagship",
+  "name": "quantum-inspired curation — real QuantumInspiredTrait sharpens graduate/defer decisions",
+  "verifier": "examples/gold-game/gate-11-quantum-verify.mjs",
+  "implementation": "packages/core/src/traits/QuantumInspiredTrait.ts (quantumInspiredHandler — REAL; CpuFallbackAccelerator on a CPU-only host)",
+  "problem": {
+    "candidates": [
+      "C.001",
+      "C.002",
+      "C.003",
+      "C.004",
+      "C.005",
+      "C.006",
+      "C.007",
+      "C.008"
+    ],
+    "rawPriority": [
+      0.92,
+      0.71,
+      0.55,
+      0.49,
+      0.3,
+      0.12,
+      0.63,
+      0.41
+    ],
+    "numNeurons": 8,
+    "event": "qi:optimize"
+  },
+  "result": {
+    "attached": true,
+    "emittedResult": true,
+    "optimizeCount": 1,
+    "acceleratorAvailable": false,
+    "activation": [
+      0.985226,
+      0.890903,
+      0.622459,
+      0.475021,
+      0.119203,
+      0.021881,
+      0.785835,
+      0.28905
+    ],
+    "decisions": [
+      {
+        "id": "C.001",
+        "priority": 0.92,
+        "activation": 0.985226,
+        "decision": "graduate"
+      },
+      {
+        "id": "C.002",
+        "priority": 0.71,
+        "activation": 0.890903,
+        "decision": "graduate"
+      },
+      {
+        "id": "C.003",
+        "priority": 0.55,
+        "activation": 0.622459,
+        "decision": "graduate"
+      },
+      {
+        "id": "C.004",
+        "priority": 0.49,
+        "activation": 0.475021,
+        "decision": "defer"
+      },
+      {
+        "id": "C.005",
+        "priority": 0.3,
+        "activation": 0.119203,
+        "decision": "defer"
+      },
+      {
+        "id": "C.006",
+        "priority": 0.12,
+        "activation": 0.021881,
+        "decision": "defer"
+      },
+      {
+        "id": "C.007",
+        "priority": 0.63,
+        "activation": 0.785835,
+        "decision": "graduate"
+      },
+      {
+        "id": "C.008",
+        "priority": 0.41,
+        "activation": 0.28905,
+        "decision": "defer"
+      }
+    ],
+    "graduateCount": 4,
+    "expectedGraduate": 4,
+    "deterministic": true
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest",
+    "activationDigest": "f0d55009d4e2099c3f0967abbc178301f6fa67c2c3419f9b6d506de12b29768a",
+    "reproducible": "run the verifier to re-derive"
+  },
+  "honestScope": "The optimization is run by the GENUINE QuantumInspiredTrait handler from @holoscript/core via the qi:optimize event — not a mock. On this CPU-only host it uses the trait's CpuFallbackAccelerator (acceleratorAvailable === false): a sigmoid activation surrogate for LIF/quantum-annealing population coding (the trait transparently uses the GPU/SNN path when an acceleratorProvider + GPU are present). PROVEN: the real quantum-INSPIRED trait deterministically transforms candidate priorities into coherent, threshold-preserving graduate/defer decisions. NOT proven here: real quantum HARDWARE — that is the separate /quantum-lab VQE track (S.VQE, IBM QPU), not this gate.",
+  "verifiedAt": "2026-05-23T01:56:46.332Z"
+}
