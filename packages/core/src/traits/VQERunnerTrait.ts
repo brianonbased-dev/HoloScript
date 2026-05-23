@@ -325,12 +325,9 @@ export const vqeRunnerHandler: TraitHandler<VQERunnerConfig> = {
 
     // ── vqe:status ────────────────────────────────────────────────────────
     if (event.type === 'vqe:status') {
-      context.emitEvent(node, {
-        type: 'vqe:status:reply',
-        payload: {
-          status: state.status,
-          lastResult: state.lastResult,
-        },
+      context.emit?.('vqe:status:reply', {
+        status: state.status,
+        lastResult: state.lastResult,
       });
       return;
     }
@@ -344,9 +341,9 @@ export const vqeRunnerHandler: TraitHandler<VQERunnerConfig> = {
     // ── vqe:run ───────────────────────────────────────────────────────────
     if (event.type === 'vqe:run') {
       if (state.status === 'running') {
-        context.emitEvent(node, {
-          type: 'vqe:error',
-          payload: { code: 'ALREADY_RUNNING', message: 'VQE job already in progress' },
+        context.emit?.('vqe:error', {
+          code: 'ALREADY_RUNNING',
+          message: 'VQE job already in progress',
         });
         return;
       }
@@ -367,10 +364,7 @@ export const vqeRunnerHandler: TraitHandler<VQERunnerConfig> = {
       state.status = 'running';
       state.cancelRequested = false;
 
-      context.emitEvent(node, {
-        type: 'vqe:started',
-        payload: { backend: merged.backend, method: merged.method },
-      });
+      context.emit?.('vqe:started', { backend: merged.backend, method: merged.method });
 
       // Async execution — fire and forget from the sync event handler
       void (async () => {
@@ -380,10 +374,7 @@ export const vqeRunnerHandler: TraitHandler<VQERunnerConfig> = {
             moleculeAtoms,
             (iteration, energy) => {
               if (state.cancelRequested) return;
-              context.emitEvent(node, {
-                type: 'vqe:energy',
-                payload: { iteration, energy, unit: 'Ha' },
-              });
+              context.emit?.('vqe:energy', { iteration, energy, unit: 'Ha' });
             },
           );
 
@@ -395,20 +386,17 @@ export const vqeRunnerHandler: TraitHandler<VQERunnerConfig> = {
           state.status = 'done';
           state.lastResult = result;
 
-          context.emitEvent(node, { type: 'vqe:converged', payload: result });
+          context.emit?.('vqe:converged', result);
 
           if (merged.writeReceipt) {
             const receipt = await buildReceipt(result, merged, moleculeLabel);
             state.lastReceipt = receipt;
-            context.emitEvent(node, { type: 'vqe:receipt', payload: receipt });
+            context.emit?.('vqe:receipt', receipt);
           }
         } catch (err: unknown) {
           state.status = 'error';
           const message = err instanceof Error ? err.message : String(err);
-          context.emitEvent(node, {
-            type: 'vqe:error',
-            payload: { code: 'EXECUTION_FAILED', message },
-          });
+          context.emit?.('vqe:error', { code: 'EXECUTION_FAILED', message });
         }
       })();
     }

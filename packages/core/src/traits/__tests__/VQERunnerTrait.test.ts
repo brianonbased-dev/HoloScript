@@ -35,11 +35,13 @@ function makeNode(): HSPlusNode {
 function makeContext() {
   const emitted: TraitEvent[] = [];
   const ctx: TraitContext = {
-    emitEvent: (_node: HSPlusNode, event: TraitEvent) => { emitted.push(event); },
+    // TraitContext uses emit(eventType, payload) — matches QuantumCircuitTrait/QuantumInspiredTrait pattern
+    emit: (type: string, payload?: unknown) => { emitted.push({ type, payload } as TraitEvent); },
     // Minimal stubs for other TraitContext fields
-    getDelta: () => 0,
-    getTime: () => 0,
-    log: () => undefined,
+    getState: () => ({}),
+    setState: () => undefined,
+    getScaleMultiplier: () => 1,
+    setScaleContext: () => undefined,
   } as unknown as TraitContext;
   return { ctx, emitted };
 }
