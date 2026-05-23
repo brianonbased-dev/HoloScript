@@ -6,21 +6,14 @@
  */
 
 import { stableStringify } from './equivalenceRecord';
-import {
-  HASH_MODE_DEFAULT,
-  hashGeometry,
-  type HashMode,
-} from './hashes';
+import { HASH_MODE_DEFAULT, hashGeometry, type HashMode } from './hashes';
 import { sha256Bytes } from './sha256';
 
 export const CONJECTURE_V1 = 'conjecture.v1' as const;
 
 export type ConjectureV1SolverType = typeof CONJECTURE_V1;
 
-export type ConjectureKind =
-  | 'geometry.invariant'
-  | 'algebraic.trait'
-  | 'impossibility.boundary';
+export type ConjectureKind = 'geometry.invariant' | 'algebraic.trait' | 'impossibility.boundary';
 
 export type ConjectureStatus = 'survived' | 'falsified' | 'inconclusive';
 
@@ -168,16 +161,15 @@ function assertCandidate(candidate: GeometryConjectureCandidate): void {
   }
 }
 
-function xyz(vertices: Float32Array | Float64Array, index: number): readonly [number, number, number] {
+function xyz(
+  vertices: Float32Array | Float64Array,
+  index: number
+): readonly [number, number, number] {
   const offset = index * 3;
   return [vertices[offset], vertices[offset + 1], vertices[offset + 2]];
 }
 
-function edgeLength(
-  vertices: Float32Array | Float64Array,
-  a: number,
-  b: number,
-): number {
+function edgeLength(vertices: Float32Array | Float64Array, a: number, b: number): number {
   const av = xyz(vertices, a);
   const bv = xyz(vertices, b);
   return Math.hypot(av[0] - bv[0], av[1] - bv[1], av[2] - bv[2]);
@@ -187,7 +179,7 @@ function triangleArea(
   vertices: Float32Array | Float64Array,
   a: number,
   b: number,
-  c: number,
+  c: number
 ): number {
   const av = xyz(vertices, a);
   const bv = xyz(vertices, b);
@@ -209,7 +201,7 @@ function tetVolume(
   a: number,
   b: number,
   c: number,
-  d: number,
+  d: number
 ): number {
   const av = xyz(vertices, a);
   const bv = xyz(vertices, b);
@@ -240,9 +232,108 @@ function addTriEdges(edges: Set<string>, a: number, b: number, c: number): void 
   edges.add(edgeKey(c, a));
 }
 
+type Point2 = readonly [number, number];
+
+function xyPoint(vertices: Float32Array | Float64Array, index: number): Point2 {
+  const offset = index * 3;
+  return [vertices[offset], vertices[offset + 1]];
+}
+
+function cross2d(origin: Point2, a: Point2, b: Point2): number {
+  return (a[0] - origin[0]) * (b[1] - origin[1]) - (a[1] - origin[1]) * (b[0] - origin[0]);
+}
+
+function convexHull2d(points: ReadonlyArray<Point2>, epsilon: number): Point2[] {
+  const sorted = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const unique: Point2[] = [];
+  for (const point of sorted) {
+    const previous = unique[unique.length - 1];
+    if (
+      !previous ||
+      Math.abs(previous[0] - point[0]) > epsilon ||
+      Math.abs(previous[1] - point[1]) > epsilon
+    ) {
+      unique.push(point);
+    }
+  }
+  if (unique.length <= 2) return unique;
+
+  const lower: Point2[] = [];
+  for (const point of unique) {
+    while (
+      lower.length >= 2 &&
+      cross2d(lower[lower.length - 2], lower[lower.length - 1], point) <= epsilon
+    ) {
+      lower.pop();
+    }
+    lower.push(point);
+  }
+
+  const upper: Point2[] = [];
+  for (let i = unique.length - 1; i >= 0; i--) {
+    const point = unique[i];
+    while (
+      upper.length >= 2 &&
+      cross2d(upper[upper.length - 2], upper[upper.length - 1], point) <= epsilon
+    ) {
+      upper.pop();
+    }
+    upper.push(point);
+  }
+
+  lower.pop();
+  upper.pop();
+  return [...lower, ...upper];
+}
+
+function polygonArea2d(points: ReadonlyArray<Point2>): number {
+  let area = 0;
+  for (let i = 0; i < points.length; i++) {
+    const a = points[i];
+    const b = points[(i + 1) % points.length];
+    area += a[0] * b[1] - b[0] * a[1];
+  }
+  return Math.abs(area) / 2;
+}
+
+function pointInsideConvexPolygon(
+  point: Point2,
+  hull: ReadonlyArray<Point2>,
+  epsilon: number
+): boolean {
+  if (hull.length < 3) return false;
+  let sign = 0;
+  for (let i = 0; i < hull.length; i++) {
+    const a = hull[i];
+    const b = hull[(i + 1) % hull.length];
+    const cross = cross2d(a, b, point);
+    if (Math.abs(cross) <= epsilon) continue;
+    const currentSign = cross > 0 ? 1 : -1;
+    if (sign === 0) {
+      sign = currentSign;
+    } else if (sign !== currentSign) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function pointInsideAabb2d(
+  point: Point2,
+  bounds: { minX: number; maxX: number; minY: number; maxY: number },
+  epsilon: number
+): boolean {
+  return (
+    point[0] >= bounds.minX - epsilon &&
+    point[0] <= bounds.maxX + epsilon &&
+    point[1] >= bounds.minY - epsilon &&
+    point[1] <= bounds.maxY + epsilon
+  );
+}
+
 export function computeMeshFacts(
   candidate: GeometryConjectureCandidate,
-  hashMode: HashMode = HASH_MODE_DEFAULT,
+  hashMode: HashMode = HASH_MODE_DEFAULT
 ): MeshFacts {
   assertCandidate(candidate);
 
@@ -287,7 +378,14 @@ export function computeMeshFacts(
       const b = elements[i + 1];
       const c = elements[i + 2];
       const d = elements[i + 3];
-      for (const [u, v] of [[a, b], [a, c], [a, d], [b, c], [b, d], [c, d]] as const) {
+      for (const [u, v] of [
+        [a, b],
+        [a, c],
+        [a, d],
+        [b, c],
+        [b, d],
+        [c, d],
+      ] as const) {
         edges.add(edgeKey(u, v));
         const len = edgeLength(vertices, u, v);
         minEdgeLength = Math.min(minEdgeLength, len);
@@ -300,9 +398,7 @@ export function computeMeshFacts(
 
   const finiteMinEdge = Number.isFinite(minEdgeLength) ? minEdgeLength : null;
   const finiteMaxEdge = maxEdgeLength > 0 ? maxEdgeLength : null;
-  const eulerCharacteristic = arity === 3
-    ? vertexCount - edges.size + elementCount
-    : null;
+  const eulerCharacteristic = arity === 3 ? vertexCount - edges.size + elementCount : null;
 
   return {
     geometryHash: hashGeometry(vertices, elements, hashMode),
@@ -320,7 +416,7 @@ export function computeMeshFacts(
 }
 
 export function nonDegenerateGeometryProbe(
-  options: { minArea?: number; minVolume?: number } = {},
+  options: { minArea?: number; minVolume?: number } = {}
 ): ConjectureProbe {
   const minArea = options.minArea ?? 1e-12;
   const minVolume = options.minVolume ?? 1e-12;
@@ -369,7 +465,7 @@ export function nonDegenerateGeometryProbe(
 }
 
 export function geometryHashOrderInvariantProbe(
-  hashMode: HashMode = HASH_MODE_DEFAULT,
+  hashMode: HashMode = HASH_MODE_DEFAULT
 ): ConjectureProbe {
   return {
     id: 'geometry.hash_order_invariant',
@@ -431,6 +527,105 @@ export function eulerCharacteristicProbe(expected: number): ConjectureProbe {
 }
 
 /**
+ * Collision-equivalence probe: compare a candidate's exact convex-hull proxy
+ * with its axis-aligned bounding box over a deterministic point sweep. It is
+ * receipt-carrying collision evidence: aligned boxes survive; transforms that
+ * make the AABB over-approximate the hull preserve a concrete counterexample.
+ */
+export function collisionEquivalenceProbe(
+  options: { sampleCountPerAxis?: number; epsilon?: number } = {}
+): ConjectureProbe {
+  const sampleCountPerAxis = options.sampleCountPerAxis ?? 5;
+  const epsilon = options.epsilon ?? 1e-9;
+  if (!Number.isInteger(sampleCountPerAxis) || sampleCountPerAxis < 2) {
+    throw new Error(
+      'conjecture.v1: collision-equivalence sampleCountPerAxis must be an integer >= 2'
+    );
+  }
+
+  return {
+    id: 'geometry.collision_equivalence',
+    description: 'Convex-hull and AABB collision proxies agree over a swept point set.',
+    evaluate(candidate, facts): ProbeResult {
+      if (facts.hasNonFiniteVertex) {
+        return {
+          probeId: 'geometry.collision_equivalence',
+          status: 'fail',
+          message: 'candidate contains non-finite vertex coordinates',
+        };
+      }
+      if (facts.elementArity !== 3) {
+        return {
+          probeId: 'geometry.collision_equivalence',
+          status: 'inconclusive',
+          message: 'collision-equivalence proxy check currently supports triangle surfaces',
+        };
+      }
+
+      const points: Point2[] = [];
+      for (let i = 0; i < facts.vertexCount; i++) points.push(xyPoint(candidate.vertices, i));
+      const hull = convexHull2d(points, epsilon);
+      const hullArea = polygonArea2d(hull);
+      const minX = Math.min(...points.map((point) => point[0]));
+      const maxX = Math.max(...points.map((point) => point[0]));
+      const minY = Math.min(...points.map((point) => point[1]));
+      const maxY = Math.max(...points.map((point) => point[1]));
+      const aabbArea = (maxX - minX) * (maxY - minY);
+
+      if (hull.length < 3 || hullArea <= epsilon || aabbArea <= epsilon) {
+        return {
+          probeId: 'geometry.collision_equivalence',
+          status: 'inconclusive',
+          message: 'collision proxy equivalence needs a non-degenerate 2D hull and AABB',
+          measurements: { hullVertexCount: hull.length, hullArea, aabbArea },
+        };
+      }
+
+      let sampleCount = 0;
+      let mismatchCount = 0;
+      let firstMismatchX: number | null = null;
+      let firstMismatchY: number | null = null;
+      const bounds = { minX, maxX, minY, maxY };
+
+      for (let ix = 0; ix < sampleCountPerAxis; ix++) {
+        const x = minX + ((maxX - minX) * ix) / (sampleCountPerAxis - 1);
+        for (let iy = 0; iy < sampleCountPerAxis; iy++) {
+          const y = minY + ((maxY - minY) * iy) / (sampleCountPerAxis - 1);
+          const point: Point2 = [x, y];
+          const aabbContains = pointInsideAabb2d(point, bounds, epsilon);
+          const hullContains = pointInsideConvexPolygon(point, hull, epsilon);
+          sampleCount += 1;
+          if (aabbContains !== hullContains) {
+            mismatchCount += 1;
+            firstMismatchX ??= x;
+            firstMismatchY ??= y;
+          }
+        }
+      }
+
+      const pass = mismatchCount === 0;
+      return {
+        probeId: 'geometry.collision_equivalence',
+        status: pass ? 'pass' : 'fail',
+        message: pass
+          ? 'convex-hull and AABB proxies agreed for every swept point'
+          : 'AABB and convex-hull proxies disagreed for at least one swept point',
+        measurements: {
+          sampleCount,
+          sampleCountPerAxis,
+          mismatchCount,
+          firstMismatchX,
+          firstMismatchY,
+          hullVertexCount: hull.length,
+          hullArea,
+          aabbArea,
+        },
+      };
+    },
+  };
+}
+
+/**
  * Edge-manifoldness probe: a triangle surface is edge-manifold when no edge is
  * shared by three or more triangles (interior edges have incidence 2, boundary
  * edges incidence 1). Manifoldness is a named proof-carrying-geometry invariant;
@@ -454,7 +649,11 @@ export function manifoldEdgeProbe(): ConjectureProbe {
         const a = elements[i];
         const b = elements[i + 1];
         const c = elements[i + 2];
-        for (const [u, v] of [[a, b], [b, c], [c, a]] as const) {
+        for (const [u, v] of [
+          [a, b],
+          [b, c],
+          [c, a],
+        ] as const) {
           const key = edgeKey(u, v);
           incidence.set(key, (incidence.get(key) ?? 0) + 1);
         }
@@ -493,7 +692,7 @@ function overallStatus(evaluations: ReadonlyArray<CandidateEvaluation>): Conject
 }
 
 function candidateParameters(
-  candidate: GeometryConjectureCandidate,
+  candidate: GeometryConjectureCandidate
 ): Readonly<Record<string, ConjectureParameterValue>> {
   return candidate.parameters ?? {};
 }
@@ -546,12 +745,14 @@ export function buildConjectureV1Receipt(input: {
 
   const counterexamples = evaluations
     .filter((evaluation) => evaluation.status === 'falsified')
-    .map((evaluation): ConjectureCounterexample => ({
-      candidateId: evaluation.candidateId,
-      family: evaluation.family,
-      failedProbes: evaluation.probeResults.filter((result) => result.status === 'fail'),
-      geometryHash: evaluation.facts.geometryHash,
-    }));
+    .map(
+      (evaluation): ConjectureCounterexample => ({
+        candidateId: evaluation.candidateId,
+        family: evaluation.family,
+        failedProbes: evaluation.probeResults.filter((result) => result.status === 'fail'),
+        geometryHash: evaluation.facts.geometryHash,
+      })
+    );
 
   const withoutKey: Omit<ConjectureReceipt, 'receiptKey'> = {
     solverType: CONJECTURE_V1,
@@ -573,25 +774,17 @@ export function buildConjectureV1Receipt(input: {
   };
 }
 
-export function createTetrahedronSurfaceCandidate(id = 'tetrahedron-surface'): GeometryConjectureCandidate {
+export function createTetrahedronSurfaceCandidate(
+  id = 'tetrahedron-surface'
+): GeometryConjectureCandidate {
   return {
     id,
     family: 'tetrahedron-surface',
     elementArity: 3,
     semanticTags: ['geometry', 'proof-carrying', 'closed-surface'],
     parameters: { expectedEulerCharacteristic: 2 },
-    vertices: new Float64Array([
-      0, 0, 0,
-      1, 0, 0,
-      0, 1, 0,
-      0, 0, 1,
-    ]),
-    elements: new Uint32Array([
-      0, 2, 1,
-      0, 1, 3,
-      1, 2, 3,
-      2, 0, 3,
-    ]),
+    vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+    elements: new Uint32Array([0, 2, 1, 0, 1, 3, 1, 2, 3, 2, 0, 3]),
   };
 }
 
@@ -602,31 +795,21 @@ export function createSquareSheetCandidate(id = 'square-sheet'): GeometryConject
     elementArity: 3,
     semanticTags: ['geometry', 'proof-carrying', 'open-surface'],
     parameters: { expectedEulerCharacteristic: 1 },
-    vertices: new Float64Array([
-      0, 0, 0,
-      1, 0, 0,
-      1, 1, 0,
-      0, 1, 0,
-    ]),
-    elements: new Uint32Array([
-      0, 1, 2,
-      0, 2, 3,
-    ]),
+    vertices: new Float64Array([0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0]),
+    elements: new Uint32Array([0, 1, 2, 0, 2, 3]),
   };
 }
 
-export function createDegenerateTriangleCandidate(id = 'degenerate-triangle'): GeometryConjectureCandidate {
+export function createDegenerateTriangleCandidate(
+  id = 'degenerate-triangle'
+): GeometryConjectureCandidate {
   return {
     id,
     family: 'degenerate-triangle',
     elementArity: 3,
     semanticTags: ['geometry', 'counterexample'],
     parameters: { collapse: 'collinear' },
-    vertices: new Float64Array([
-      0, 0, 0,
-      1, 0, 0,
-      2, 0, 0,
-    ]),
+    vertices: new Float64Array([0, 0, 0, 1, 0, 0, 2, 0, 0]),
     elements: new Uint32Array([0, 1, 2]),
   };
 }

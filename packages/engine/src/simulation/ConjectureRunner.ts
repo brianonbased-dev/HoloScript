@@ -10,6 +10,7 @@ import {
   createDegenerateTriangleCandidate,
   createSquareSheetCandidate,
   createTetrahedronSurfaceCandidate,
+  collisionEquivalenceProbe,
   eulerCharacteristicProbe,
   geometryHashOrderInvariantProbe,
   manifoldEdgeProbe,
@@ -21,6 +22,7 @@ import {
   type GeometryConjectureCandidate,
 } from './ConjectureEngine';
 import {
+  generateCollisionEquivalenceFamily,
   generateCollapsingTriangleFamily,
   generateRegularPolygonSheetFamily,
   generateSharedEdgeFanFamily,
@@ -37,12 +39,7 @@ export type ConjectureRunnerSuite =
   | typeof PROOF_CARRYING_GEOMETRY_SMOKE_SUITE
   | typeof GENERATED_GEOMETRY_FAMILY_SUITE;
 export type ConjectureRunnerStatus = 'completed' | 'failed';
-export type ConjectureRunnerPhase =
-  | 'GENERATE'
-  | 'EXECUTE'
-  | 'FALSIFY'
-  | 'CLASSIFY'
-  | 'GRADUATE';
+export type ConjectureRunnerPhase = 'GENERATE' | 'EXECUTE' | 'FALSIFY' | 'CLASSIFY' | 'GRADUATE';
 export type ConjectureScenarioRole = 'survivor' | 'falsifier' | 'boundary';
 export type ConjectureGraduationTarget =
   | 'receipt-carrying.geometry'
@@ -111,10 +108,9 @@ interface ConjectureScenario {
 
 const DEFAULT_PROPOSED_BY = 'codex-hardware';
 
-function claimBase(proposedBy: string): Pick<
-  ConjectureClaim,
-  'kind' | 'assumptions' | 'evidenceRefs' | 'proposedBy'
-> {
+function claimBase(
+  proposedBy: string
+): Pick<ConjectureClaim, 'kind' | 'assumptions' | 'evidenceRefs' | 'proposedBy'> {
   return {
     kind: 'geometry.invariant',
     assumptions: [
@@ -132,7 +128,7 @@ function claimBase(proposedBy: string): Pick<
 
 function buildProofCarryingGeometrySmokeScenarios(
   proposedBy: string,
-  includeHashBoundary: boolean,
+  includeHashBoundary: boolean
 ): ReadonlyArray<ConjectureScenario> {
   const base = claimBase(proposedBy);
   const scenarios: ConjectureScenario[] = [
@@ -188,12 +184,20 @@ function buildProofCarryingGeometrySmokeScenarios(
 }
 
 function buildGeneratedGeometryFamilyScenarios(
-  proposedBy: string,
+  proposedBy: string
 ): ReadonlyArray<ConjectureScenario> {
   const base = claimBase(proposedBy);
   const survivorFamily = generateRegularPolygonSheetFamily({ minSides: 3, maxSides: 8 });
-  const falsifierFamily = generateCollapsingTriangleFamily({ steps: 6, startHeight: 1, endHeight: 0 });
+  const falsifierFamily = generateCollapsingTriangleFamily({
+    steps: 6,
+    startHeight: 1,
+    endHeight: 0,
+  });
   const manifoldFalsifierFamily = generateSharedEdgeFanFamily({ maxBlades: 4 });
+  const collisionSurvivorFamily = generateCollisionEquivalenceFamily({ rotationsDegrees: [0] });
+  const collisionFalsifierFamily = generateCollisionEquivalenceFamily({
+    rotationsDegrees: [0, 45],
+  });
 
   return [
     {
@@ -228,11 +232,36 @@ function buildGeneratedGeometryFamilyScenarios(
       claim: {
         ...base,
         id: 'C.GEOM.RUNNER.GENERATED_MANIFOLD_FALSIFIER',
-        statement:
-          'Every machine-generated shared-edge fan (1..4 blades) is edge-manifold.',
+        statement: 'Every machine-generated shared-edge fan (1..4 blades) is edge-manifold.',
       },
       candidates: manifoldFalsifierFamily,
       probes: [manifoldEdgeProbe()],
+      graduationTarget: 'compiler-check.candidate',
+    },
+    {
+      id: 'generated-geometry.collision-equivalence-survivor',
+      role: 'survivor',
+      claim: {
+        ...base,
+        id: 'C.GEOM.RUNNER.COLLISION_EQUIVALENCE_SURVIVOR',
+        statement:
+          'An axis-aligned generated quad has equivalent convex-hull and AABB collision proxies.',
+      },
+      candidates: collisionSurvivorFamily,
+      probes: [collisionEquivalenceProbe()],
+      graduationTarget: 'trait-invariant.candidate',
+    },
+    {
+      id: 'generated-geometry.collision-equivalence-sweep',
+      role: 'falsifier',
+      claim: {
+        ...base,
+        id: 'C.GEOM.RUNNER.COLLISION_EQUIVALENCE_FALSIFIER',
+        statement:
+          'Every generated quad rotation preserves collision equivalence between convex-hull and AABB proxies.',
+      },
+      candidates: collisionFalsifierFamily,
+      probes: [collisionEquivalenceProbe()],
       graduationTarget: 'compiler-check.candidate',
     },
   ];
@@ -253,14 +282,14 @@ function counterexampleSignature(receipt: ConjectureReceipt): string {
       candidateId: counterexample.candidateId,
       failedProbeIds: counterexample.failedProbes.map((probe) => probe.probeId).sort(),
       geometryHash: counterexample.geometryHash,
-    })),
+    }))
   );
 }
 
 function replayScenarios(
   scenarios: ReadonlyArray<ConjectureScenario>,
   receipts: ReadonlyArray<ConjectureReceipt>,
-  hashMode: HashMode,
+  hashMode: HashMode
 ): ReadonlyArray<ConjectureRunnerReplay> {
   return scenarios.map((scenario, index) => {
     const replayReceipt = runScenario(scenario, hashMode);
@@ -277,7 +306,7 @@ function replayScenarios(
 
 function classifyReceipts(
   scenarios: ReadonlyArray<ConjectureScenario>,
-  receipts: ReadonlyArray<ConjectureReceipt>,
+  receipts: ReadonlyArray<ConjectureReceipt>
 ): ReadonlyArray<ConjectureRunnerClassification> {
   return receipts.map((receipt, index) => ({
     scenarioId: scenarios[index].id,
@@ -290,17 +319,15 @@ function classifyReceipts(
 
 function buildGate(
   receipts: ReadonlyArray<ConjectureReceipt>,
-  replay: ReadonlyArray<ConjectureRunnerReplay>,
+  replay: ReadonlyArray<ConjectureRunnerReplay>
 ): ConjectureRunnerGate {
   const survivor = receipts.find((receipt) => receipt.status === 'survived');
   const falsified = receipts.find(
-    (receipt) => receipt.status === 'falsified' && receipt.counterexamples.length > 0,
+    (receipt) => receipt.status === 'falsified' && receipt.counterexamples.length > 0
   );
   const replayCounterexampleMatched = replay.some(
     (result) =>
-      result.status === 'falsified' &&
-      result.receiptKeyMatched &&
-      result.counterexampleMatched,
+      result.status === 'falsified' && result.receiptKeyMatched && result.counterexampleMatched
   );
 
   return {
@@ -316,7 +343,7 @@ function buildStages(
   receipts: ReadonlyArray<ConjectureReceipt>,
   classifications: ReadonlyArray<ConjectureRunnerClassification>,
   replay: ReadonlyArray<ConjectureRunnerReplay>,
-  gate: ConjectureRunnerGate,
+  gate: ConjectureRunnerGate
 ): ReadonlyArray<ConjectureRunnerStage> {
   return [
     {
@@ -344,23 +371,24 @@ function buildStages(
       status: 'completed',
       summary: 'Classified each receipt as survived, falsified, or inconclusive.',
       evidence: classifications.map(
-        (classification) => `${classification.scenarioId}:${classification.status}`,
+        (classification) => `${classification.scenarioId}:${classification.status}`
       ),
     },
     {
       phase: 'GRADUATE',
       status: gate.passed ? 'completed' : 'failed',
-      summary:
-        'Graduated the suite only when a survivor and replayable falsifier both exist.',
+      summary: 'Graduated the suite only when a survivor and replayable falsifier both exist.',
       evidence: replay.map(
         (result) =>
-          `${result.scenarioId}:receipt=${result.receiptKeyMatched}:counterexample=${result.counterexampleMatched}`,
+          `${result.scenarioId}:receipt=${result.receiptKeyMatched}:counterexample=${result.counterexampleMatched}`
       ),
     },
   ];
 }
 
-function resultSnapshot(result: Omit<ConjectureRunnerResult, 'receiptKey'>): Record<string, unknown> {
+function resultSnapshot(
+  result: Omit<ConjectureRunnerResult, 'receiptKey'>
+): Record<string, unknown> {
   return {
     solverType: result.solverType,
     specVersion: result.specVersion,
@@ -378,7 +406,7 @@ function resultSnapshot(result: Omit<ConjectureRunnerResult, 'receiptKey'>): Rec
 function runScenarioCycle(
   scenarios: ReadonlyArray<ConjectureScenario>,
   suite: ConjectureRunnerSuite,
-  hashMode: HashMode,
+  hashMode: HashMode
 ): ConjectureRunnerResult {
   const receipts = scenarios.map((scenario) => runScenario(scenario, hashMode));
   const replay = replayScenarios(scenarios, receipts, hashMode);
@@ -388,8 +416,8 @@ function runScenarioCycle(
     new Set(
       scenarios
         .filter((scenario) => scenario.role === 'survivor' || scenario.role === 'boundary')
-        .map((scenario) => scenario.graduationTarget),
-    ),
+        .map((scenario) => scenario.graduationTarget)
+    )
   );
 
   const withoutKey: Omit<ConjectureRunnerResult, 'receiptKey'> = {
@@ -409,20 +437,17 @@ function runScenarioCycle(
 
   return {
     ...withStages,
-    receiptKey: buildConjectureStableKey(
-      CONJECTURE_RUNNER_V1,
-      resultSnapshot(withStages),
-    ),
+    receiptKey: buildConjectureStableKey(CONJECTURE_RUNNER_V1, resultSnapshot(withStages)),
   };
 }
 
 export function runProofCarryingGeometryConjectureCycle(
-  input: ConjectureRunnerInput = {},
+  input: ConjectureRunnerInput = {}
 ): ConjectureRunnerResult {
   const hashMode = input.hashMode ?? 'sha256';
   const scenarios = buildProofCarryingGeometrySmokeScenarios(
     input.proposedBy ?? DEFAULT_PROPOSED_BY,
-    input.includeHashBoundary ?? true,
+    input.includeHashBoundary ?? true
   );
   return runScenarioCycle(scenarios, PROOF_CARRYING_GEOMETRY_SMOKE_SUITE, hashMode);
 }
@@ -435,7 +460,7 @@ export function runProofCarryingGeometryConjectureCycle(
  * falsifier graduate exactly as in the smoke suite.
  */
 export function runGeneratedGeometryConjectureCycle(
-  input: ConjectureRunnerInput = {},
+  input: ConjectureRunnerInput = {}
 ): ConjectureRunnerResult {
   const hashMode = input.hashMode ?? 'sha256';
   const scenarios = buildGeneratedGeometryFamilyScenarios(input.proposedBy ?? DEFAULT_PROPOSED_BY);
@@ -455,8 +480,6 @@ export class ConjectureRunner {
   }
 }
 
-export function runConjectureRunner(
-  input: ConjectureRunnerInput = {},
-): ConjectureRunnerResult {
+export function runConjectureRunner(input: ConjectureRunnerInput = {}): ConjectureRunnerResult {
   return new ConjectureRunner().run(input);
 }

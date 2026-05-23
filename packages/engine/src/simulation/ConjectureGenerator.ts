@@ -35,7 +35,26 @@ export interface SharedEdgeFanFamilyOptions {
   maxBlades?: number;
 }
 
+export interface CollisionEquivalenceFamilyOptions {
+  /** Rotation sweep in degrees. Default [0, 45]. */
+  rotationsDegrees?: ReadonlyArray<number>;
+  /** Half-width/half-height of the generated quad before rotation. Default 1. */
+  halfExtent?: number;
+}
+
 const TWO_PI = Math.PI * 2;
+
+function isAxisAlignedRotation(rotationDegrees: number): boolean {
+  const normalized = ((rotationDegrees % 90) + 90) % 90;
+  return Math.min(normalized, 90 - normalized) <= 1e-9;
+}
+
+function rotate2d(x: number, y: number, rotationDegrees: number): readonly [number, number] {
+  const radians = (rotationDegrees * Math.PI) / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  return [x * cos - y * sin, x * sin + y * cos];
+}
 
 /**
  * Fan-triangulated regular polygon disk (one center vertex + `sides` boundary
@@ -44,7 +63,7 @@ const TWO_PI = Math.PI * 2;
  */
 export function regularPolygonSheetCandidate(
   sides: number,
-  options: { id?: string; radius?: number } = {},
+  options: { id?: string; radius?: number } = {}
 ): GeometryConjectureCandidate {
   if (!Number.isInteger(sides) || sides < 3) {
     throw new Error('ConjectureGenerator: regular polygon requires an integer sides >= 3');
@@ -91,12 +110,17 @@ export function regularPolygonSheetCandidate(
  * sheet is non-degenerate and has Euler characteristic 1."
  */
 export function generateRegularPolygonSheetFamily(
-  options: RegularPolygonSheetFamilyOptions = {},
+  options: RegularPolygonSheetFamilyOptions = {}
 ): ReadonlyArray<GeometryConjectureCandidate> {
   const minSides = options.minSides ?? 3;
   const maxSides = options.maxSides ?? 8;
   const radius = options.radius ?? 1;
-  if (!Number.isInteger(minSides) || !Number.isInteger(maxSides) || minSides < 3 || maxSides < minSides) {
+  if (
+    !Number.isInteger(minSides) ||
+    !Number.isInteger(maxSides) ||
+    minSides < 3 ||
+    maxSides < minSides
+  ) {
     throw new Error('ConjectureGenerator: require integers 3 <= minSides <= maxSides');
   }
   const candidates: GeometryConjectureCandidate[] = [];
@@ -112,7 +136,7 @@ export function generateRegularPolygonSheetFamily(
  */
 export function collapsingTriangleCandidate(
   apexHeight: number,
-  options: { id?: string } = {},
+  options: { id?: string } = {}
 ): GeometryConjectureCandidate {
   const id = options.id ?? `collapsing-triangle-${apexHeight}`;
   return {
@@ -121,11 +145,7 @@ export function collapsingTriangleCandidate(
     elementArity: 3,
     semanticTags: ['geometry', 'generated', apexHeight <= 0 ? 'counterexample' : 'candidate'],
     parameters: { apexHeight },
-    vertices: new Float64Array([
-      0, 0, 0,
-      1, 0, 0,
-      0.5, apexHeight, 0,
-    ]),
+    vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0.5, apexHeight, 0]),
     elements: new Uint32Array([0, 1, 2]),
   };
 }
@@ -138,7 +158,7 @@ export function collapsingTriangleCandidate(
  * the exact parameter that broke the invariant.
  */
 export function generateCollapsingTriangleFamily(
-  options: CollapsingTriangleFamilyOptions = {},
+  options: CollapsingTriangleFamilyOptions = {}
 ): ReadonlyArray<GeometryConjectureCandidate> {
   const steps = options.steps ?? 6;
   const startHeight = options.startHeight ?? 1;
@@ -150,7 +170,9 @@ export function generateCollapsingTriangleFamily(
   for (let i = 0; i < steps; i++) {
     const t = i / (steps - 1);
     const apexHeight = startHeight + (endHeight - startHeight) * t;
-    candidates.push(collapsingTriangleCandidate(apexHeight, { id: `collapsing-triangle-step-${i}` }));
+    candidates.push(
+      collapsingTriangleCandidate(apexHeight, { id: `collapsing-triangle-step-${i}` })
+    );
   }
   return candidates;
 }
@@ -164,7 +186,7 @@ export function generateCollapsingTriangleFamily(
  */
 export function sharedEdgeFanCandidate(
   blades: number,
-  options: { id?: string } = {},
+  options: { id?: string } = {}
 ): GeometryConjectureCandidate {
   if (!Number.isInteger(blades) || blades < 1) {
     throw new Error('ConjectureGenerator: shared-edge fan requires an integer blades >= 1');
@@ -199,7 +221,7 @@ export function sharedEdgeFanCandidate(
  * broke the invariant.
  */
 export function generateSharedEdgeFanFamily(
-  options: SharedEdgeFanFamilyOptions = {},
+  options: SharedEdgeFanFamilyOptions = {}
 ): ReadonlyArray<GeometryConjectureCandidate> {
   const maxBlades = options.maxBlades ?? 4;
   if (!Number.isInteger(maxBlades) || maxBlades < 1) {
@@ -210,4 +232,73 @@ export function generateSharedEdgeFanFamily(
     candidates.push(sharedEdgeFanCandidate(blades, { id: `shared-edge-fan-${blades}` }));
   }
   return candidates;
+}
+
+/**
+ * A quad whose rotation parameter determines whether its exact convex hull is
+ * equivalent to its AABB collision proxy. At 0/90 degree rotations the proxies
+ * agree; at 45 degrees the AABB over-approximates the hull, so swept points in
+ * the AABB corners become deterministic counterexamples.
+ */
+export function collisionEquivalenceQuadCandidate(
+  rotationDegrees: number,
+  options: { id?: string; halfExtent?: number } = {}
+): GeometryConjectureCandidate {
+  if (!Number.isFinite(rotationDegrees)) {
+    throw new Error('ConjectureGenerator: collision-equivalence rotation must be finite');
+  }
+  const halfExtent = options.halfExtent ?? 1;
+  if (!Number.isFinite(halfExtent) || halfExtent <= 0) {
+    throw new Error('ConjectureGenerator: collision-equivalence halfExtent must be > 0');
+  }
+
+  const aligned = isAxisAlignedRotation(rotationDegrees);
+  const id = options.id ?? `collision-equivalence-quad-${rotationDegrees}`;
+  const base = [
+    [-halfExtent, -halfExtent],
+    [halfExtent, -halfExtent],
+    [halfExtent, halfExtent],
+    [-halfExtent, halfExtent],
+  ] as const;
+  const vertices: number[] = [];
+  for (const [x, y] of base) {
+    const [rx, ry] = rotate2d(x, y, rotationDegrees);
+    vertices.push(rx, ry, 0);
+  }
+
+  return {
+    id,
+    family: 'collision-equivalence-quad',
+    elementArity: 3,
+    semanticTags: ['geometry', 'generated', aligned ? 'candidate' : 'counterexample'],
+    parameters: {
+      rotationDegrees,
+      expectedCollisionEquivalent: aligned,
+      proxyPair: 'convex-hull:aabb',
+    },
+    vertices: new Float64Array(vertices),
+    elements: new Uint32Array([0, 1, 2, 0, 2, 3]),
+  };
+}
+
+/**
+ * Generate a rotation sweep for the collision-equivalence invariant. The
+ * default sweep intentionally includes one survivor (0 degrees) and one
+ * falsifier (45 degrees) so the receipt preserves the discovered transform.
+ */
+export function generateCollisionEquivalenceFamily(
+  options: CollisionEquivalenceFamilyOptions = {}
+): ReadonlyArray<GeometryConjectureCandidate> {
+  const rotationsDegrees = options.rotationsDegrees ?? [0, 45];
+  if (rotationsDegrees.length === 0) {
+    throw new Error(
+      'ConjectureGenerator: collision-equivalence family requires at least one rotation'
+    );
+  }
+  return rotationsDegrees.map((rotationDegrees) =>
+    collisionEquivalenceQuadCandidate(rotationDegrees, {
+      halfExtent: options.halfExtent,
+      id: `collision-equivalence-quad-${rotationDegrees}`,
+    })
+  );
 }

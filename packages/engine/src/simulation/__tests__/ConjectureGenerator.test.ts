@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildConjectureV1Receipt,
+  collisionEquivalenceProbe,
   computeMeshFacts,
   eulerCharacteristicProbe,
   manifoldEdgeProbe,
   nonDegenerateGeometryProbe,
 } from '../ConjectureEngine';
 import {
+  collisionEquivalenceQuadCandidate,
   collapsingTriangleCandidate,
+  generateCollisionEquivalenceFamily,
   generateCollapsingTriangleFamily,
   generateRegularPolygonSheetFamily,
   generateSharedEdgeFanFamily,
@@ -71,7 +74,7 @@ describe('ConjectureGenerator — GENERATE leg', () => {
     expect(receipt.status).toBe('falsified');
     expect(receipt.counterexamples.length).toBeGreaterThanOrEqual(1);
     const degenerateEval = receipt.evaluations.find(
-      (evaluation) => evaluation.parameters.apexHeight === 0,
+      (evaluation) => evaluation.parameters.apexHeight === 0
     );
     expect(degenerateEval?.status).toBe('falsified');
   });
@@ -148,6 +151,67 @@ describe('manifoldEdgeProbe + shared-edge fan family', () => {
   });
 });
 
+describe('collisionEquivalenceProbe + collision-equivalence quad family', () => {
+  it('passes for an axis-aligned quad and fails for a rotated AABB over-approximation', () => {
+    const probe = collisionEquivalenceProbe({ sampleCountPerAxis: 5 });
+    const aligned = collisionEquivalenceQuadCandidate(0);
+    const rotated = collisionEquivalenceQuadCandidate(45);
+
+    const alignedResult = probe.evaluate(aligned, computeMeshFacts(aligned, 'sha256'));
+    expect(alignedResult.status).toBe('pass');
+    expect(alignedResult.measurements?.mismatchCount).toBe(0);
+
+    const rotatedResult = probe.evaluate(rotated, computeMeshFacts(rotated, 'sha256'));
+    expect(rotatedResult.status).toBe('fail');
+    expect(rotatedResult.measurements?.mismatchCount).toBeGreaterThan(0);
+    expect(rotatedResult.measurements?.firstMismatchX).not.toBeNull();
+    expect(rotatedResult.measurements?.firstMismatchY).not.toBeNull();
+  });
+
+  it('discovers the transform that falsifies convex-hull/AABB collision equivalence', () => {
+    const survivorFamily = generateCollisionEquivalenceFamily({ rotationsDegrees: [0] });
+    const sweptFamily = generateCollisionEquivalenceFamily({ rotationsDegrees: [0, 45] });
+
+    const claim = {
+      kind: 'geometry.invariant' as const,
+      id: 'C.TEST.COLLISION_EQUIVALENCE',
+      statement: 'every generated quad rotation preserves convex-hull/AABB collision equivalence',
+      assumptions: ['receipt-carrying collision evidence is not a Lean proof'],
+      evidenceRefs: ['packages/engine/src/simulation/ConjectureGenerator.ts'],
+      proposedBy: 'generator-test',
+    };
+
+    const survivorReceipt = buildConjectureV1Receipt({
+      claim: { ...claim, id: 'C.TEST.COLLISION_EQUIVALENCE_SURVIVOR' },
+      candidates: survivorFamily,
+      probes: [collisionEquivalenceProbe()],
+      hashMode: 'sha256',
+    });
+    expect(survivorReceipt.status).toBe('survived');
+    expect(survivorReceipt.counterexamples).toHaveLength(0);
+
+    const falsifiedReceipt = buildConjectureV1Receipt({
+      claim,
+      candidates: sweptFamily,
+      probes: [collisionEquivalenceProbe()],
+      hashMode: 'sha256',
+    });
+
+    expect(falsifiedReceipt.status).toBe('falsified');
+    expect(falsifiedReceipt.counterexamples.length).toBeGreaterThanOrEqual(1);
+    expect(
+      falsifiedReceipt.evaluations.some(
+        (evaluation) =>
+          evaluation.status === 'falsified' && evaluation.parameters.rotationDegrees === 45
+      )
+    ).toBe(true);
+  });
+
+  it('rejects a collision-equivalence family without a rotation sweep', () => {
+    expect(() => generateCollisionEquivalenceFamily({ rotationsDegrees: [] })).toThrow();
+  });
+});
+
 describe('runGeneratedGeometryConjectureCycle — generated-family suite', () => {
   it('passes the MVP gate over machine-generated families', () => {
     const result = runGeneratedGeometryConjectureCycle({ proposedBy: 'generator-test' });
@@ -159,6 +223,9 @@ describe('runGeneratedGeometryConjectureCycle — generated-family suite', () =>
     expect(result.gate.falsifiedReceiptKey).toBeTruthy();
     expect(result.gate.replayCounterexampleMatched).toBe(true);
     expect(result.graduation).toContain('receipt-carrying.geometry');
+    expect(result.classifications.map((classification) => classification.scenarioId)).toContain(
+      'generated-geometry.collision-equivalence-sweep'
+    );
   });
 
   it('is deterministic — identical receipt key across runs', () => {

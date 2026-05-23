@@ -29,47 +29,107 @@ export {
   type HydraulicMaterial,
   type SimulationMaterial,
 } from './MaterialDatabase';
-export {
-  conjugateGradient,
-  jacobiIteration,
-  type ConvergenceResult,
-} from './ConvergenceControl';
+export { conjugateGradient, jacobiIteration, type ConvergenceResult } from './ConvergenceControl';
 
 // Layer 1 — Domain Solvers
 export { ThermalSolver, type ThermalConfig, type ThermalSource } from './ThermalSolver';
-export { StructuralSolver, type StructuralConfig, type StructuralConstraint, type StructuralLoad } from './StructuralSolver';
-export { StructuralSolverTET10, tet4ToTet10, type TET10Config, type TET10Constraint, type TET10Load, type TET10Stats } from './StructuralSolverTET10';
-export { HydraulicSolver, type HydraulicConfig, type HydraulicPipe, type HydraulicNode, type HydraulicValve } from './HydraulicSolver';
-export { SaturationManager, type SaturationConfig, type SaturationEvent } from './SaturationManager';
-export { AcousticSolver, buildLayeredVelocity, type AcousticConfig, type AcousticSource, type AcousticBC, type AcousticStats } from './AcousticSolver';
+export {
+  StructuralSolver,
+  type StructuralConfig,
+  type StructuralConstraint,
+  type StructuralLoad,
+} from './StructuralSolver';
+export {
+  StructuralSolverTET10,
+  tet4ToTet10,
+  type TET10Config,
+  type TET10Constraint,
+  type TET10Load,
+  type TET10Stats,
+} from './StructuralSolverTET10';
+export {
+  HydraulicSolver,
+  type HydraulicConfig,
+  type HydraulicPipe,
+  type HydraulicNode,
+  type HydraulicValve,
+} from './HydraulicSolver';
+export {
+  SaturationManager,
+  type SaturationConfig,
+  type SaturationEvent,
+} from './SaturationManager';
+export {
+  AcousticSolver,
+  buildLayeredVelocity,
+  type AcousticConfig,
+  type AcousticSource,
+  type AcousticBC,
+  type AcousticStats,
+} from './AcousticSolver';
 export { FDTDSolver, type FDTDConfig, type EMSource, type FDTDStats } from './FDTDSolver';
-export { NavierStokesSolver, type NavierStokesConfig, type CFDBC, type NavierStokesStats } from './NavierStokesSolver';
-export { MultiphaseNSSolver, type MultiphaseConfig, type MultiphaseStats } from './MultiphaseNSSolver';
+export {
+  NavierStokesSolver,
+  type NavierStokesConfig,
+  type CFDBC,
+  type NavierStokesStats,
+} from './NavierStokesSolver';
+export {
+  MultiphaseNSSolver,
+  type MultiphaseConfig,
+  type MultiphaseStats,
+} from './MultiphaseNSSolver';
 export { MolecularDynamicsSolver, type MDConfig, type MDStats } from './MolecularDynamicsSolver';
-export { ReactionDiffusionSolver, type ReactionDiffusionConfig, type ReactionDiffusionStats, type Species, type Reaction } from './ReactionDiffusionSolver';
-export { AffinityODESolver, type AffinityConfig, type AffinityState, type AffinityStats, type AgentParams, type PersonalityArchetype, type SternbergParams, type NashEffortParams } from './AffinityODESolver';
+export {
+  ReactionDiffusionSolver,
+  type ReactionDiffusionConfig,
+  type ReactionDiffusionStats,
+  type Species,
+  type Reaction,
+} from './ReactionDiffusionSolver';
+export {
+  AffinityODESolver,
+  type AffinityConfig,
+  type AffinityState,
+  type AffinityStats,
+  type AgentParams,
+  type PersonalityArchetype,
+  type SternbergParams,
+  type NashEffortParams,
+} from './AffinityODESolver';
 
 // Meshing — Surface-to-volume tet mesh generation
 export {
-  meshBox, meshSurface, meshQuality,
-  findNodesOnFace, findNodesInSphere,
+  meshBox,
+  meshSurface,
+  meshQuality,
+  findNodesOnFace,
+  findNodesInSphere,
   registerWasmMesher,
-  type TetMesh, type BoxMeshOptions, type SurfaceMesh, type SurfaceMeshOptions, type WasmMesher,
+  type TetMesh,
+  type BoxMeshOptions,
+  type SurfaceMesh,
+  type SurfaceMeshOptions,
+  type WasmMesher,
 } from './AutoMesher';
 export { TetGenWasmMesher } from './wasm/TetGenWasmMesher';
 
 // Data Import — Universal file format parsers
 export {
-  parseSTL, buildSTL,
+  parseSTL,
+  buildSTL,
   parseOBJ,
-  importScalarFieldCSV, importTableCSV,
-  importStructuredPoints, importUnstructuredGrid,
+  importScalarFieldCSV,
+  importTableCSV,
+  importStructuredPoints,
+  importUnstructuredGrid,
   parseGmsh,
   MeshImportError,
   importMesh,
   importMeshSync,
   detectFormat,
-  type VTKStructuredResult, type VTKUnstructuredResult,
+  type VTKStructuredResult,
+  type VTKUnstructuredResult,
   type MeshFormat,
   type ImportOptions,
   type ImportedMesh,
@@ -77,12 +137,24 @@ export {
 
 // Simulation Contract — Enforced guarantees for scientific reliability
 export {
-  ContractedSimulation, DeterministicStepper,
-  hashGeometry, validateUnits, validateMeshSanity, validatePhysicsSanity,
-  acceptsCrossScale, coarsestCommonScale,
-  SCALE_ALIASES, SCALE_FROM_ALIAS, SCALE_ORDER, DEFAULT_SCALE_ENVELOPES,
-  type SimulationProvenance, type InteractionEvent, type ContractViolation, type ContractConfig,
-  type SimulationScale, type ScaleEnvelope,
+  ContractedSimulation,
+  DeterministicStepper,
+  hashGeometry,
+  validateUnits,
+  validateMeshSanity,
+  validatePhysicsSanity,
+  acceptsCrossScale,
+  coarsestCommonScale,
+  SCALE_ALIASES,
+  SCALE_FROM_ALIAS,
+  SCALE_ORDER,
+  DEFAULT_SCALE_ENVELOPES,
+  type SimulationProvenance,
+  type InteractionEvent,
+  type ContractViolation,
+  type ContractConfig,
+  type SimulationScale,
+  type ScaleEnvelope,
 } from './SimulationContract';
 
 // Wire equivalence (W.315) — compare two contract / replay records (twin vs device)
@@ -171,6 +243,7 @@ export {
   createDegenerateTriangleCandidate,
   createSquareSheetCandidate,
   createTetrahedronSurfaceCandidate,
+  collisionEquivalenceProbe,
   eulerCharacteristicProbe,
   geometryHashOrderInvariantProbe,
   manifoldEdgeProbe,
@@ -224,9 +297,12 @@ export {
   generateCollapsingTriangleFamily,
   sharedEdgeFanCandidate,
   generateSharedEdgeFanFamily,
+  collisionEquivalenceQuadCandidate,
+  generateCollisionEquivalenceFamily,
   type RegularPolygonSheetFamilyOptions,
   type CollapsingTriangleFamilyOptions,
   type SharedEdgeFanFamilyOptions,
+  type CollisionEquivalenceFamilyOptions,
 } from './ConjectureGenerator';
 
 // CAEL (Contracted Agent-Environment Loop) — hash-chain artifact standard
@@ -276,15 +352,9 @@ export {
   type SimpleActionSelectorConfig,
   type StructuralActionMapperConfig,
 } from './CAELAgent';
-export {
-  SNNCognitionEngine,
-  type SNNCognitionEngineConfig,
-} from './SNNCognitionEngine';
+export { SNNCognitionEngine, type SNNCognitionEngineConfig } from './SNNCognitionEngine';
 
-export {
-  CRDTCAELBridge,
-  type CRDTCAELBridgeConfig,
-} from './CRDTCAELBridge';
+export { CRDTCAELBridge, type CRDTCAELBridgeConfig } from './CRDTCAELBridge';
 
 // Simulation Recording & Playback — Animate time-evolving simulations
 export { SimulationRecorder, type RecorderConfig, type FieldSnapshot } from './SimulationRecorder';
@@ -294,15 +364,22 @@ export { initSimulationSolvers, resetSimulationRegistry } from './simulation-reg
 
 // Simulation Serialization — Shareable simulation configs
 export {
-  serializeSimulation, deserializeSimulation,
-  simulationToBase64, base64ToSimulation, estimateURLSize,
+  serializeSimulation,
+  deserializeSimulation,
+  simulationToBase64,
+  base64ToSimulation,
+  estimateURLSize,
   type SerializedSimulation,
 } from './SimulationSerializer';
 
 // Intelligence — Result interpretation and natural language queries
 export {
-  interpretResults, querySimulation, generateAutoReport,
-  type SimulationInsight, type InsightSeverity, type InsightCategory,
+  interpretResults,
+  querySimulation,
+  generateAutoReport,
+  type SimulationInsight,
+  type InsightSeverity,
+  type InsightCategory,
 } from './intelligence/index';
 
 // Layer 4 — Multi-Physics Coupling
@@ -312,20 +389,34 @@ export { CouplingManagerV2, type FieldCouplingV2, type CouplingStatsV2 } from '.
 // Generic Solver Interface
 export { type SimSolver, type SolverMode, type FieldData } from './SimSolver';
 export {
-  ThermalSolverAdapter, StructuralSolverAdapter,
-  TET10SolverAdapter, HydraulicSolverAdapter, AcousticSolverAdapter,
-  FDTDSolverAdapter, ReactionDiffusionSolverAdapter,
+  ThermalSolverAdapter,
+  StructuralSolverAdapter,
+  TET10SolverAdapter,
+  HydraulicSolverAdapter,
+  AcousticSolverAdapter,
+  FDTDSolverAdapter,
+  ReactionDiffusionSolverAdapter,
   AffinityODESolverAdapter,
 } from './adapters/SolverAdapters';
 
 // Experiment Orchestration
 export {
-  ParameterSpace, applyOverrides,
+  ParameterSpace,
+  applyOverrides,
   ExperimentOrchestrator,
-  summarize, sensitivity, paretoFront, exportSweepCSV,
-  type ParameterRange, type ParameterSample,
-  type ExperimentConfig, type ExperimentResult, type ExperimentRunResult, type SolverHandle,
-  type SweepSummary, type SensitivityResult, type ParetoPoint,
+  summarize,
+  sensitivity,
+  paretoFront,
+  exportSweepCSV,
+  type ParameterRange,
+  type ParameterSample,
+  type ExperimentConfig,
+  type ExperimentResult,
+  type ExperimentRunResult,
+  type SolverHandle,
+  type SweepSummary,
+  type SensitivityResult,
+  type ParetoPoint,
 } from './experiment/index';
 
 // Uncertainty Quantification — Stochastic analysis via LHS ensembles
