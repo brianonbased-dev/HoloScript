@@ -1,0 +1,68 @@
+{
+  "gate": 20,
+  "track": "flagship",
+  "name": "economy balance — stake-on-submit kills the spam-farm degenerate strategy; reputation is the progression currency",
+  "verifier": "examples/gold-game/gate-20-economy-balance-verify.mjs",
+  "implementation": "real economyPrimitivesHandler (economy:spend stake + economy:earn reward) + reputationLedgerHandler + real graduate verb deciding success",
+  "params": {
+    "episodes": 20,
+    "reward": 25,
+    "stake": 25,
+    "initialBalance": 100
+  },
+  "honest": {
+    "graduations": 20,
+    "finalBalance": 110,
+    "finalTrust": 90,
+    "netCreditsPerGraduation": 0
+  },
+  "spam": {
+    "spends": 4,
+    "insufficientFundsHits": 16,
+    "finalBalance": 10,
+    "balanceArc": [
+      85,
+      60,
+      35,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10
+    ]
+  },
+  "noSinkBaseline": {
+    "finalBalance": 610
+  },
+  "metrics": {
+    "inflationWithSink": 10,
+    "inflationNoSink": 510,
+    "sinkAbsorbedFraction": 0.9804,
+    "honestStayedBounded": true,
+    "sinkAbsorbsMostInflation": true,
+    "noSinkInflatesSignificantly": true,
+    "spamUnprofitable": true,
+    "spamSelfLimited": true,
+    "archivistEarnable": true,
+    "repIndependentOfCredits": true
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest",
+    "balanceDigest": "b38cbecea4a7b17f3dfef18b13e81cb0cfb99e0888f22474359e8d7c72ef8340",
+    "reproducible": "run the verifier to re-derive"
+  },
+  "honestScope": "Uses the GENUINE economyPrimitivesHandler (real economy:spend/earn + insufficient_funds) and the real graduate verb to decide success, over N=20 deterministic episodes. PROVEN (DESIGN-core-loop.md economy claim): with stake-on-submit (stake==reward), an HONEST curator stays BOUNDED (the stake sink absorbs ~98% of the credit inflation earn-only play would cause — residual drift is the handler's per-period spend cap, not runaway inflation) while accruing reputation; a SPAMMER who stakes on colliding/invalid entries LOSES the stake every time (no reward), drains, and is SELF-LIMITED by insufficient_funds; the no-sink baseline inflates by N×reward, proving the sink is load-bearing; and the Archivist stays earnable because REPUTATION (not credits) is the progression currency. STILL-FAKED, labeled: curator/spammer policies are scripted archetypes (not learned agents); two players, not a population; the stake==reward calibration is the simplest balance point — a fuller sweep (varied stakes, mixed strategies, N-agent contention) is a deeper experiment.",
+  "verifiedAt": "2026-05-23T06:02:40.391Z"
+}
