@@ -43,6 +43,7 @@ const GATES = [
   { track: 'flagship', gate: 16, name: 'audio layer (real GodotCompiler: AudioStreamPlayer3D per spatial source + acoustic traits)', kind: 'script', runner: 'tsx', file: 'gate-16-audio-verify.mjs' },
   { track: 'flagship', gate: 17, name: 'NETCODE co-presence (two-participant agreement on shared vault state; real @holoscript/mesh EntityAuthority + ReplicationManager)', kind: 'script', runner: 'tsx', file: 'gate-17-netcode-verify.mjs' },
   { track: 'flagship', gate: 18, name: 'true Loro CRDT convergence (real loro-crdt; concurrent vault edits merge commutatively)', kind: 'script', runner: 'tsx', file: 'gate-18-loro-crdt-verify.mjs' },
+  { track: 'flagship', gate: 19, name: 'The Played Slice (One Climb) — coherent played loop; observable T0-T6 trace (reuses Gates 2/8/14)', kind: 'script', runner: 'tsx', file: 'gate-19-played-slice-verify.mjs' },
   { track: 'oasis (fixture)', gate: 3, name: 'connection-mechanics proof (compass co-session)', kind: 'script', runner: 'tsx', file: 'connection-mechanics-proof/gate-3-verify.mjs' },
   { track: 'modalities', gate: '2D+3D', name: 'one .holo -> retro 2D + 3D (shared source scene)', kind: 'script', runner: 'tsx', file: 'modality-verify.mjs' },
 ];
