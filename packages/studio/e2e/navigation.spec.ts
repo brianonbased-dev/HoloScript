@@ -35,14 +35,14 @@ test.describe('Studio Navigation Smoke', () => {
     await expect(page.getByRole('link', { name: /Vibe Coding Mode/i })).toBeVisible();
   });
 
-  // FIXME: Client-side redirect via router.replace in useEffect is flaky in
-  // Playwright — the redirect sometimes doesn't fire before the test timeout.
-  test.fixme('root page redirects first-time users to /start', async ({ page, context }) => {
+  test('root page redirects first-time users to /start', async ({ page, context }) => {
     // Use a fresh page without returning-user localStorage
     const freshPage = await context.newPage();
     await freshPage.goto('/');
-    // Client-side redirect via useEffect can take a moment after hydration
-    await expect(freshPage).toHaveURL(/\/start/, { timeout: 15_000 });
+    // The redirect fires in a useEffect after React hydration, so we must
+    // waitForURL rather than asserting toHaveURL immediately. waitForURL polls
+    // until the URL matches, tolerating the hydration delay deterministically.
+    await freshPage.waitForURL(/\/start/, { timeout: 15_000 });
     await freshPage.close();
   });
 

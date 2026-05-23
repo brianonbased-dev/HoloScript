@@ -35,19 +35,19 @@ test.describe('Avatar Authoring page', () => {
     await expect(page.getByTestId('composer-part-grid')).toBeVisible();
   });
 
-  // FIXME: Tab switching via React onClick doesn't fire in Playwright headless
-  // with the current Next.js dev server / webpack HMR setup. The buttons are
-  // clickable (native click events fire) but React synthetic events are not
-  // dispatched. Compose tab works because it's the default render path.
-  test.fixme('can switch to Preview tab', async ({ page }) => {
+  test('can switch to Preview tab', async ({ page }) => {
     const tabs = page.getByTestId('avatar-tabs');
-    await tabs.getByRole('button', { name: /Preview/i }).click();
+    // Use dispatchEvent instead of .click() — Next.js + webpack HMR in headless
+    // mode can swallow native click events before React hydration is complete.
+    // dispatchEvent fires directly on the DOM node, guaranteeing React's
+    // synthetic event listener picks it up regardless of HMR timing.
+    await tabs.getByRole('button', { name: /Preview/i }).dispatchEvent('click');
     await expect(page.getByTestId('avatar-preview-canvas')).toBeVisible();
   });
 
-  test.fixme('can switch to Export tab', async ({ page }) => {
+  test('can switch to Export tab', async ({ page }) => {
     const tabs = page.getByTestId('avatar-tabs');
-    await tabs.getByRole('button', { name: /Export/i }).click();
+    await tabs.getByRole('button', { name: /Export/i }).dispatchEvent('click');
     await expect(page.getByTestId('avatar-export-panel')).toBeVisible();
     await expect(page.getByText(/Export Avatar/i)).toBeVisible();
   });
