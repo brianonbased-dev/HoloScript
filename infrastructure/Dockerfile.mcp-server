@@ -179,7 +179,11 @@ RUN chmod +x /app/packages/mcp-server/scripts/docker-entrypoint.sh
 ENV NODE_ENV=production
 ENV HOLOSCRIPT_CACHE_DIR=/app/.holoscript
 ENV HOLOMESH_DATA_DIR=/app/.holoscript/holomesh
-ENV EMBEDDING_PROVIDER=openai
+# GraphRAG is HoloEmbed-only by product rule (requireNativeGraphRAGProvider throws on
+# anything else), so this MUST be holoembed. It was 'openai', which made every embedding
+# warm throw and get swallowed -> semantic_search permanently empty. HoloEmbed is local /
+# deterministic (no external API, no cost). Do NOT set this to openai.
+ENV EMBEDDING_PROVIDER=holoembed
 
 # Expose port
 EXPOSE 3000
