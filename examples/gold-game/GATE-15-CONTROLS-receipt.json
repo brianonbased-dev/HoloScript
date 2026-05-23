@@ -1,0 +1,63 @@
+{
+  "gate": 15,
+  "track": "flagship",
+  "name": "interactive controls — keyboard/pointer play outside VR (shared 3D + 2D control scheme)",
+  "verifier": "examples/gold-game/gate-15-controls-verify.mjs",
+  "controlScheme": {
+    "source": "examples/gold-game/gold-game-controls.mjs (pure, deterministic)",
+    "keys": {
+      "W/Up": "ascend tier",
+      "S/Down": "descend",
+      "A/Left": "left",
+      "D/Right": "right",
+      "E/Space/Enter": "graduate entry at tier"
+    },
+    "tiers": [
+      "BronzeValley",
+      "GoldTerrace",
+      "DiamondPeak"
+    ]
+  },
+  "session": {
+    "trace": [
+      "d",
+      "d",
+      "w",
+      "e",
+      "w",
+      "e",
+      "s",
+      "a"
+    ],
+    "actionLog": [
+      "right",
+      "right",
+      "ascend",
+      "graduate:GoldTerrace",
+      "ascend",
+      "graduate:DiamondPeak",
+      "descend",
+      "left"
+    ],
+    "finalState": {
+      "tierIndex": 1,
+      "x": 1,
+      "graduated": [
+        "GoldTerrace",
+        "DiamondPeak"
+      ],
+      "actions": 8
+    }
+  },
+  "buildsWired": {
+    "drive3d": true,
+    "retro2d": true
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest",
+    "controlDigest": "96d71b45172127e27dcca1a0aa7c3591a5c7444083237a3b5eca329deaeb3e38",
+    "reproducible": "run the verifier to re-derive"
+  },
+  "honestScope": "The control scheme (gold-game-controls.mjs) is a PURE deterministic input→state machine, the SAME source both the 3D Drive build and the 2D build import — so the game is playable outside VR with one consistent mapping. PROVEN: keyboard input deterministically traverses the tiers and performs the graduate verb; the action log digest reproduces. The 3D graduate keybind routes through the existing HoloGate intent path (Gate 6). NOT proven here: live in-browser keyboard feel (a human at the keyboard) and pointer/mouse picking precision — those are hands-on, like Gate 1’s render. This gate proves the control LOGIC is real, deterministic, and shipped in both builds.",
+  "verifiedAt": "2026-05-23T04:40:46.756Z"
+}

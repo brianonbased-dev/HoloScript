@@ -72,5 +72,8 @@ function draw(t){
   x.fillStyle='rgba(0,0,0,0.18)';for(let y=0;y<H;y+=2)x.fillRect(0,y,W,1);
   requestAnimationFrame(draw);
 }
+// Gate 15: keyboard controls — shared scheme (W/S tier, A/D lateral, E/Space graduate)
+let kbTier=0,kbX=0;const kbGrad=[];
+addEventListener('keydown',function(e){var k=e.key;var verb=(k==='w'||k==='W'||k==='ArrowUp')?'ascend':(k==='s'||k==='S'||k==='ArrowDown')?'descend':(k==='a'||k==='ArrowLeft')?'left':(k==='d'||k==='ArrowRight')?'right':(k==='e'||k==='E'||k===' ')?'graduate':null;if(!verb)return;if(verb==='ascend')kbTier=Math.min(2,kbTier+1);else if(verb==='descend')kbTier=Math.max(0,kbTier-1);else if(verb==='left')kbX-=1;else if(verb==='right')kbX+=1;else if(verb==='graduate'){var n=['BronzeValley','GoldTerrace','DiamondPeak'][kbTier];if(kbGrad.indexOf(n)<0)kbGrad.push(n);}});
 requestAnimationFrame(draw);
 </script></body></html>
