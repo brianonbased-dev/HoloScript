@@ -27,8 +27,8 @@ import {
   generateCollisionEquivalenceFamily,
   generateCollapsingTriangleFamily,
   generateCurvatureConeFamily,
-  generateRegularPolygonSheetFamily,
   generateSharedEdgeFanFamily,
+  generateTraitSumGeometryFamily,
 } from './ConjectureGenerator';
 import { stableStringify } from './equivalenceRecord';
 import type { HashMode } from './hashes';
@@ -191,7 +191,7 @@ function buildGeneratedGeometryFamilyScenarios(
   proposedBy: string
 ): ReadonlyArray<ConjectureScenario> {
   const base = claimBase(proposedBy);
-  const survivorFamily = generateRegularPolygonSheetFamily({ minSides: 3, maxSides: 8 });
+  const survivorFamily = generateTraitSumGeometryFamily();
   const falsifierFamily = generateCollapsingTriangleFamily({
     steps: 6,
     startHeight: 1,

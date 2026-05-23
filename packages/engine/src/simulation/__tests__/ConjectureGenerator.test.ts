@@ -17,6 +17,7 @@ import {
   generateCurvatureConeFamily,
   generateRegularPolygonSheetFamily,
   generateSharedEdgeFanFamily,
+  generateTraitSumGeometryFamily,
   regularPolygonSheetCandidate,
   sharedEdgeFanCandidate,
 } from '../ConjectureGenerator';
@@ -52,6 +53,36 @@ describe('ConjectureGenerator — GENERATE leg', () => {
 
   it('rejects an invalid polygon (sides < 3)', () => {
     expect(() => regularPolygonSheetCandidate(2)).toThrow();
+  });
+
+  it('lowers .hsplus trait-sum alternatives into generated candidates', () => {
+    const family = generateTraitSumGeometryFamily({
+      source:
+        'object#candidate @regular_polygon_sheet(sides: 3) + @regular_polygon_sheet(sides: 4) { }',
+    });
+
+    expect(family).toHaveLength(2);
+    expect(family.map((candidate) => candidate.parameters?.sides)).toEqual([3, 4]);
+    expect(
+      family.every((candidate) => candidate.semanticTags.includes('trait-sum-alternative'))
+    ).toBe(true);
+
+    const receipt = buildConjectureV1Receipt({
+      claim: {
+        kind: 'geometry.invariant',
+        id: 'C.TEST.TRAIT_SUM_LANGUAGE_SURFACE',
+        statement: 'trait-sum alternatives lower into receipt-carrying geometry candidates',
+        assumptions: ['trait-level + represents unresolved alternatives at intake'],
+        evidenceRefs: ['packages/core/src/parser/HoloScriptPlusParser.ts'],
+        proposedBy: 'generator-test',
+      },
+      candidates: family,
+      probes: [nonDegenerateGeometryProbe(), eulerCharacteristicProbe(1)],
+      hashMode: 'sha256',
+    });
+
+    expect(receipt.status).toBe('survived');
+    expect(receipt.evaluations).toHaveLength(2);
   });
 
   it('discovers the degenerate apex height in a swept triangle family', () => {

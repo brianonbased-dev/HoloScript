@@ -10,6 +10,7 @@
  * Receipt-carrying geometry (deterministic invariant probes), NOT a Lean proof.
  */
 
+import { HoloScriptPlusParser } from '@holoscript/core';
 import type { GeometryConjectureCandidate } from './ConjectureEngine';
 
 export interface RegularPolygonSheetFamilyOptions {
@@ -51,7 +52,114 @@ export interface CurvatureConeFamilyOptions {
   radius?: number;
 }
 
+export interface TraitSumGeometryFamilyOptions {
+  source?: string;
+}
+
+interface TraitSumAtom {
+  type: 'trait_atom';
+  name: string;
+  config: Record<string, unknown>;
+}
+
+interface TraitSumDirective {
+  type: 'trait_sum';
+  operation: 'additive';
+  alternatives: TraitSumAtom[];
+}
+
+const DEFAULT_TRAIT_SUM_GEOMETRY_SOURCE =
+  'object#regular_polygon_discover ' +
+  '@regular_polygon_sheet(sides: 3) + ' +
+  '@regular_polygon_sheet(sides: 4) + ' +
+  '@regular_polygon_sheet(sides: 5) + ' +
+  '@regular_polygon_sheet(sides: 6) + ' +
+  '@regular_polygon_sheet(sides: 7) + ' +
+  '@regular_polygon_sheet(sides: 8) { }';
+
 const TWO_PI = Math.PI * 2;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isTraitSumDirective(value: unknown): value is TraitSumDirective {
+  return (
+    isRecord(value) &&
+    value.type === 'trait_sum' &&
+    value.operation === 'additive' &&
+    Array.isArray(value.alternatives)
+  );
+}
+
+function collectTraitSums(
+  node: unknown,
+  sums: TraitSumDirective[] = [],
+  seen: Set<object> = new Set()
+): TraitSumDirective[] {
+  if (!isRecord(node)) return sums;
+  if (seen.has(node)) return sums;
+  seen.add(node);
+  const directives = node.directives;
+  if (Array.isArray(directives)) {
+    for (const directive of directives) {
+      if (isTraitSumDirective(directive)) sums.push(directive);
+    }
+  }
+  const children = node.children;
+  if (Array.isArray(children)) {
+    for (const child of children) collectTraitSums(child, sums, seen);
+  }
+  const body = node.body;
+  if (Array.isArray(body)) {
+    for (const child of body) collectTraitSums(child, sums, seen);
+  }
+  return sums;
+}
+
+function uniqueTraitSums(
+  sums: ReadonlyArray<TraitSumDirective>
+): ReadonlyArray<TraitSumDirective> {
+  const byKey = new Map<string, TraitSumDirective>();
+  for (const sum of sums) {
+    byKey.set(JSON.stringify(sum.alternatives), sum);
+  }
+  return [...byKey.values()];
+}
+
+function numericConfig(
+  config: Record<string, unknown>,
+  key: string,
+  fallback: number
+): number {
+  const value = config[key] ?? fallback;
+  const numeric = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(numeric)) {
+    throw new Error(`ConjectureGenerator: trait-sum ${key} must be finite`);
+  }
+  return numeric;
+}
+
+function candidateFromTraitAtom(
+  atom: TraitSumAtom,
+  branchIndex: number
+): GeometryConjectureCandidate {
+  if (atom.name !== 'regular_polygon_sheet') {
+    throw new Error(`ConjectureGenerator: unsupported trait-sum alternative @${atom.name}`);
+  }
+  const sides = numericConfig(atom.config, 'sides', 3);
+  const radius = numericConfig(atom.config, 'radius', 1);
+  const candidate = regularPolygonSheetCandidate(sides, { radius });
+  return {
+    ...candidate,
+    semanticTags: [...(candidate.semanticTags ?? []), 'trait-sum-alternative'],
+    parameters: {
+      ...candidate.parameters,
+      traitSumBranch: branchIndex,
+      traitSumTrait: atom.name,
+    },
+  };
+}
 
 function isAxisAlignedRotation(rotationDegrees: number): boolean {
   const normalized = ((rotationDegrees % 90) + 90) % 90;
@@ -137,6 +245,34 @@ export function generateRegularPolygonSheetFamily(
     candidates.push(regularPolygonSheetCandidate(sides, { radius }));
   }
   return candidates;
+}
+
+/**
+ * Lower language-level additive trait sums from .hsplus into candidate
+ * alternatives. This is the Conjecture Engine "discover" bridge: alternatives
+ * come from the parsed AST instead of a hand-written parametric loop.
+ */
+export function generateTraitSumGeometryFamily(
+  options: TraitSumGeometryFamilyOptions = {}
+): ReadonlyArray<GeometryConjectureCandidate> {
+  const source = options.source ?? DEFAULT_TRAIT_SUM_GEOMETRY_SOURCE;
+  const parser = new HoloScriptPlusParser();
+  const result = parser.parse(source);
+  if (!result.success) {
+    const errors = (result.errors ?? []).map((error) => error.message).join('; ');
+    throw new Error(`ConjectureGenerator: failed to parse trait-sum .hsplus source: ${errors}`);
+  }
+
+  const sums = uniqueTraitSums(collectTraitSums(result.ast));
+  if (sums.length === 0) {
+    throw new Error('ConjectureGenerator: .hsplus source did not contain a trait-sum alternative');
+  }
+
+  return sums.flatMap((sum) =>
+    sum.alternatives.map((alternative, branchIndex) =>
+      candidateFromTraitAtom(alternative, branchIndex)
+    )
+  );
 }
 
 /**

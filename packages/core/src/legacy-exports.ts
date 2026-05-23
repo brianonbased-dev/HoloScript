@@ -170,6 +170,9 @@ export type {
   HSPlusDirective,
   HSPlusCompileResult,
   HSPlusParserOptions,
+  HSPlusTraitAtom,
+  HSPlusTraitDirective,
+  HSPlusTraitSumDirective,
   HSPlusNode as HSPlusASTNode,
 } from './parser/HoloScriptPlusParser';
 

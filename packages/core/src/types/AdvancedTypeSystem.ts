@@ -396,6 +396,7 @@ export type HSPlusAST = ASTProgram;
 export type HSPlusDirective =
   | HSPlusBaseDirective
   | HSPlusTraitDirective
+  | HSPlusTraitSumDirective
   | HSPlusLifecycleDirective
   | HSPlusStateDirective
   | HSPlusForDirective
@@ -431,6 +432,18 @@ export interface HSPlusTraitDirective {
   name: string;
   args?: unknown[];
   config?: Record<string, unknown>;
+}
+
+export interface HSPlusTraitAtom {
+  type: 'trait_atom';
+  name: string;
+  config: Record<string, unknown>;
+}
+
+export interface HSPlusTraitSumDirective {
+  type: 'trait_sum';
+  operation: 'additive';
+  alternatives: HSPlusTraitAtom[];
 }
 
 export interface HSPlusLifecycleDirective {

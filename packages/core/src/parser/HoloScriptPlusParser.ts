@@ -15,6 +15,9 @@ import type {
   HSPlusDirective,
   HSPlusCompileResult,
   HSPlusParserOptions,
+  HSPlusTraitAtom,
+  HSPlusTraitDirective,
+  HSPlusTraitSumDirective,
 } from '../types/AdvancedTypeSystem';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 import type { VRTraitName } from '../types';
@@ -25,6 +28,9 @@ export type {
   HSPlusDirective,
   HSPlusCompileResult,
   HSPlusParserOptions,
+  HSPlusTraitAtom,
+  HSPlusTraitDirective,
+  HSPlusTraitSumDirective,
   VRTraitName,
 };
 
@@ -1937,7 +1943,7 @@ export class HoloScriptPlusParser {
       } else if (this.check('LBRACE')) {
         config = this.parseBlockContent();
       }
-      return { type: 'trait' as const, name: name as VRTraitName, config } as HSPlusDirective;
+      return this.parseTraitSumTail({ type: 'trait', name: name as VRTraitName, config });
     }
 
     // =========================================================================
@@ -2415,7 +2421,40 @@ export class HoloScriptPlusParser {
     }
 
     // Return as a generic trait so it appears in AST
-    return { type: 'trait' as const, name, config } as HSPlusDirective;
+    return this.parseTraitSumTail({ type: 'trait', name, config });
+  }
+
+  private parseTraitSumTail(first: HSPlusTraitDirective): HSPlusDirective {
+    if (!this.check('PLUS')) {
+      return first;
+    }
+
+    const alternatives: HSPlusTraitAtom[] = [
+      { type: 'trait_atom', name: first.name, config: first.config ?? {} },
+    ];
+
+    while (this.check('PLUS')) {
+      this.advance();
+      alternatives.push(this.parseTraitAtom());
+    }
+
+    return {
+      type: 'trait_sum',
+      operation: 'additive',
+      alternatives,
+    } satisfies HSPlusTraitSumDirective;
+  }
+
+  private parseTraitAtom(): HSPlusTraitAtom {
+    this.expect('AT', 'Expected @ in trait sum alternative');
+    const name = this.expect('IDENTIFIER', 'Expected trait name in trait sum alternative').value;
+    let config: Record<string, unknown> = {};
+    if (this.check('LPAREN')) {
+      config = this.parseTraitConfig();
+    } else if (this.check('LBRACE')) {
+      config = this.parseBlockContent();
+    }
+    return { type: 'trait_atom', name, config };
   }
 
   /**

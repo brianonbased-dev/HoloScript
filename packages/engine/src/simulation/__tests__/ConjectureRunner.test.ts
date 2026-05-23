@@ -103,6 +103,9 @@ describe('ConjectureRunner (conjecture.runner.v1)', () => {
     ).toBe(true);
     expect(rediscovered?.evaluations[0].novelty.provider).toBe('holoembed');
     expect(rediscovered?.evaluations[0].novelty.status).toBe('near-duplicate');
+    expect(
+      rediscovered?.evaluations.map((evaluation) => evaluation.parameters.traitSumBranch)
+    ).toEqual([0, 1, 2, 3, 4, 5]);
     expect(result.graduation).toContain('trait-invariant.candidate');
     expect(result.graduation).toContain('receipt-carrying.geometry');
     expect(

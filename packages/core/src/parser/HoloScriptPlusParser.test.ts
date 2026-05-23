@@ -34,6 +34,24 @@ describe('HoloScriptPlusParser - Extended Features', () => {
     expect(node.traits.has('grabbable')).toBe(true);
   });
 
+  it('parses trait-level additive sums as unresolved semiring alternatives', () => {
+    const source = `object#candidate @regular_polygon_sheet(sides: 3) + @regular_polygon_sheet(sides: 4) { label: "discover" }`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+
+    const node = result.ast.root;
+    const sum = node.directives.find((directive) => directive.type === 'trait_sum');
+    expect(sum).toMatchObject({
+      type: 'trait_sum',
+      operation: 'additive',
+      alternatives: [
+        { type: 'trait_atom', name: 'regular_polygon_sheet', config: { sides: 3 } },
+        { type: 'trait_atom', name: 'regular_polygon_sheet', config: { sides: 4 } },
+      ],
+    });
+    expect(node.traits.has('regular_polygon_sheet')).toBe(false);
+  });
+
   it('Parses VFX particle subtype traits as first-class VR traits', () => {
     const source = `object#fx_ball @vfx_particle_sparks(color: "#ffaa22", intensity: 2) @vfx_particle_smoke(density: 0.7, drift: [0.1, 0.4, 0]) @vfx_particle_fire(count: 320, lifetime: 0.4) { position: [0, 1, 0] }`;
     const result = parser.parse(source);
