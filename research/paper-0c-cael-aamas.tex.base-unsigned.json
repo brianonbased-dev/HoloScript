@@ -1,0 +1,19 @@
+{
+  "status": "unsigned",
+  "file": "research/paper-0c-cael-aamas.tex",
+  "sha256": "44dcf12b174972233c20aca24836e89649e4537fe2df00cfe8b4c65780e1fa18",
+  "generatedAt": "2026-05-23T15:20:00Z",
+  "note": "Broadcast via Trezor/Rabby/Frame, then run: python scripts/anchor_base.py --record research/paper-0c-cael-aamas.tex --tx-hash 0x<hash>",
+  "unsignedTx": {
+    "chainId": 8453,
+    "from": "0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3",
+    "to": "0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3",
+    "value": 0,
+    "nonce": 217,
+    "data": "0x44dcf12b174972233c20aca24836e89649e4537fe2df00cfe8b4c65780e1fa18",
+    "maxPriorityFeePerGas": 1000000,
+    "maxFeePerGas": 50000000,
+    "type": 2,
+    "gas": 24843
+  }
+}
