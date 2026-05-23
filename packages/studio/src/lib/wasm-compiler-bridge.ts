@@ -1,4 +1,8 @@
 import { logger } from '@/lib/logger';
+import {
+  SovereignGeneratorAdapter,
+  type SovereignGeneratorAdapterOptions,
+} from '@holoscript/core/world';
 /**
  * wasm-compiler-bridge.ts — WASM Component Bridge for HoloScript Compiler
  *
@@ -216,6 +220,18 @@ export class CompilerBridge {
   private initPromise: Promise<void> | null = null;
 
   /**
+   * APL-WIT-3 (Gap #4): Sovereign generator adapter for offline WASM contexts.
+   * Falls back through local Brittney 15M → cloud Brittney → keyword matching.
+   * When WASM is available, the WASM generator takes priority; this adapter
+   * is only used in TypeScript fallback mode or when explicitly requested.
+   */
+  private sovereignGenerator: SovereignGeneratorAdapter;
+
+  constructor(generatorOptions?: SovereignGeneratorAdapterOptions) {
+    this.sovereignGenerator = new SovereignGeneratorAdapter(generatorOptions);
+  }
+
+  /**
    * Initialize the compiler bridge.
    * Attempts to load WASM component in a Web Worker.
    * Falls back to TypeScript @holoscript/core if WASM is unavailable.
@@ -396,6 +412,18 @@ export class CompilerBridge {
   /** Get bridge status */
   getStatus(): CompilerBridgeStatus {
     return { ...this.status };
+  }
+
+  /**
+   * APL-WIT-3: Access the sovereign generator adapter for direct use.
+   * Allows calling suggestTraits / generateObject / generateScene
+   * without going through the WASM worker, which is useful for:
+   *   - Offline WASM contexts (PhoneSleeveVR, Quest 3)
+   *   - Studio UI components that need trait suggestions
+   *   - HoloShell local generation
+   */
+  getSovereignGenerator(): SovereignGeneratorAdapter {
+    return this.sovereignGenerator;
   }
 
   /** Terminate the worker and free resources */
@@ -599,57 +627,63 @@ export class CompilerBridge {
   }
 
   private async _fallbackGenerateObject(description: string): Promise<string> {
-    // Simple template-based generation (WASM generator does the same)
-    return `object "Generated" {\n  // Generated from: ${description}\n  geometry: "cube"\n  position: [0, 1, 0]\n}`;
+    // APL-WIT-3: delegate to SovereignGeneratorAdapter which falls through
+    // local Brittney → cloud Brittney → keyword/template fallback
+    try {
+      const result = await this.sovereignGenerator.generateObject(description);
+      return result.code;
+    } catch {
+      // Ultimate fallback: simple template (sovereign generator keyword fallback
+      // should handle offline, but catch any unexpected errors)
+      return `object "Generated" {\n  // Generated from: ${description}\n  geometry: "cube"\n  position: [0, 1, 0]\n}`;
+    }
   }
 
   private async _fallbackGenerateScene(description: string): Promise<string> {
-    return `composition "Generated Scene" {\n  // Generated from: ${description}\n  environment {\n    skybox: "default"\n    ambient_light: 0.5\n  }\n\n  object "Object1" {\n    geometry: "cube"\n    position: [0, 1, 0]\n  }\n}`;
+    // APL-WIT-3: delegate to SovereignGeneratorAdapter
+    try {
+      const result = await this.sovereignGenerator.generateScene(description);
+      return result.code;
+    } catch {
+      return `composition "Generated Scene" {\n  // Generated from: ${description}\n  environment {\n    skybox: "default"\n    ambient_light: 0.5\n  }\n\n  object "Object1" {\n    geometry: "cube"\n    position: [0, 1, 0]\n  }\n}`;
+    }
   }
 
   private async _fallbackSuggestTraits(description: string): Promise<TraitDef[]> {
-    // Basic keyword matching
+    // APL-WIT-3: delegate to SovereignGeneratorAdapter for sovereign LLM-backed
+    // trait suggestions (local Brittney → cloud → keyword fallback)
+    try {
+      const result = await this.sovereignGenerator.suggestTraits(description);
+      return result.traits.map((traitName: string) => ({
+        name: traitName.replace(/^@/, ''), // Strip @ prefix for TraitDef
+        category: categorizeTrait(traitName),
+        description: result.reasoning[traitName] || `Suggested trait: ${traitName}`,
+      }));
+    } catch {
+      // Ultimate fallback: basic keyword matching
+      return this._basicKeywordSuggestTraits(description);
+    }
+  }
+
+  /** Basic keyword matching — used when sovereign generator is completely unavailable */
+  private _basicKeywordSuggestTraits(description: string): TraitDef[] {
     const traits: TraitDef[] = [];
     const desc = description.toLowerCase();
     if (desc.includes('grab') || desc.includes('pick up') || desc.includes('interact')) {
-      traits.push({
-        name: 'grabbable',
-        category: 'interaction',
-        description: 'Object can be grabbed by user',
-      });
+      traits.push({ name: 'grabbable', category: 'interaction', description: 'Object can be grabbed by user' });
     }
     if (desc.includes('throw') || desc.includes('toss')) {
-      traits.push({
-        name: 'throwable',
-        category: 'interaction',
-        description: 'Object can be thrown after grabbing',
-      });
+      traits.push({ name: 'throwable', category: 'interaction', description: 'Object can be thrown after grabbing' });
     }
     if (desc.includes('physics') || desc.includes('fall') || desc.includes('bounce')) {
-      traits.push({
-        name: 'physics',
-        category: 'physics',
-        description: 'Object has physics simulation',
-      });
-      traits.push({
-        name: 'collidable',
-        category: 'physics',
-        description: 'Object participates in collision detection',
-      });
+      traits.push({ name: 'physics', category: 'physics', description: 'Object has physics simulation' });
+      traits.push({ name: 'collidable', category: 'physics', description: 'Object participates in collision detection' });
     }
     if (desc.includes('glow') || desc.includes('light') || desc.includes('emit')) {
-      traits.push({
-        name: 'glowing',
-        category: 'visual',
-        description: 'Object emits a glow effect',
-      });
+      traits.push({ name: 'glowing', category: 'visual', description: 'Object emits a glow effect' });
     }
     if (desc.includes('network') || desc.includes('multiplayer') || desc.includes('sync')) {
-      traits.push({
-        name: 'networked',
-        category: 'networking',
-        description: 'Object state synced across network',
-      });
+      traits.push({ name: 'networked', category: 'networking', description: 'Object state synced across network' });
     }
     return traits;
   }
@@ -683,6 +717,30 @@ export class CompilerBridge {
     const result = await this._fallbackValidate(source);
     return result.diagnostics;
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Trait categorization helper (APL-WIT-3)
+// ═══════════════════════════════════════════════════════════════════
+
+/** Map @trait names to their category for TraitDef output */
+function categorizeTrait(traitName: string): string {
+  const name = traitName.replace(/^@/, '');
+  const categories: Record<string, string[]> = {
+    interaction: ['grabbable', 'throwable', 'clickable', 'hoverable', 'draggable', 'scalable', 'pointable', 'holdable'],
+    physics: ['physics', 'collidable', 'gravity', 'trigger'],
+    visual: ['glowing', 'emissive', 'transparent', 'reflective', 'animated', 'billboard'],
+    networking: ['networked', 'synced', 'persistent', 'owned', 'host_only'],
+    behavior: ['stackable', 'attachable', 'equippable', 'consumable', 'destructible'],
+    spatial: ['anchor', 'tracked', 'world_locked', 'hand_tracked', 'eye_tracked'],
+    audio: ['spatial_audio', 'ambient', 'voice_activated'],
+    state: ['state', 'reactive', 'observable', 'computed'],
+    social: ['shareable', 'collaborative', 'tweetable'],
+  };
+  for (const [category, traits] of Object.entries(categories)) {
+    if (traits.includes(name)) return category;
+  }
+  return 'general';
 }
 
 // ═══════════════════════════════════════════════════════════════════

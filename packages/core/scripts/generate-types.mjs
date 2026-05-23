@@ -6142,6 +6142,52 @@ export declare class Sovereign3DAdapter implements WorldGeneratorAdapter {
   generate(req: WorldGenerationRequest): Promise<WorldGenerationResult>;
   getProgress(generationId: string): Promise<number>;
 }
+export type GeneratorSource = 'sovereign-local' | 'sovereign-cloud' | 'keyword-fallback' | 'mock';
+export interface TraitSuggestionResult {
+  traits: string[];
+  reasoning: Record<string, string>;
+  confidence: number;
+  metadata: { source: GeneratorSource };
+}
+export interface ObjectGenerationResult {
+  code: string;
+  metadata: {
+    description: string;
+    traits: string[];
+    geometry: string;
+    generationMs?: number;
+    source: GeneratorSource;
+  };
+}
+export interface SceneGenerationResult {
+  code: string;
+  metadata: {
+    description: string;
+    objectCount: number;
+    traits: string[];
+    generationMs?: number;
+    source: GeneratorSource;
+  };
+}
+export interface SovereignGeneratorAdapterOptions {
+  localEndpoint?: string;
+  cloudEndpoint?: string;
+  cloudApiKey?: string;
+  localModel?: string;
+  cloudModel?: string;
+  maxTokens?: number;
+  timeoutMs?: number;
+  offlineOnly?: boolean;
+  mockMode?: boolean;
+  mockLatencyMs?: number;
+}
+export declare class SovereignGeneratorAdapter {
+  readonly id: string;
+  constructor(options?: SovereignGeneratorAdapterOptions);
+  suggestTraits(description: string, context?: string): Promise<TraitSuggestionResult>;
+  generateObject(description: string): Promise<ObjectGenerationResult>;
+  generateScene(description: string): Promise<SceneGenerationResult>;
+}
 export interface WorldGenerateEvent extends WorldGenerationRequest {
   nodeId: string;
   engine: string;

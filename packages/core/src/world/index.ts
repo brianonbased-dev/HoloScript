@@ -13,6 +13,14 @@ export {
 
 export { SovereignWorldAdapter, type SovereignWorldAdapterOptions } from './adapters/SovereignWorldAdapter';
 export { Sovereign3DAdapter, type Sovereign3DAdapterOptions } from './adapters/Sovereign3DAdapter';
+export {
+  SovereignGeneratorAdapter,
+  type SovereignGeneratorAdapterOptions,
+  type TraitSuggestionResult,
+  type ObjectGenerationResult,
+  type SceneGenerationResult,
+  type GeneratorSource,
+} from './adapters/SovereignGeneratorAdapter';
 
 export {
   WorldGeneratorService,
