@@ -925,3 +925,52 @@ object "EmbodiedProjections" {
     notes: "Use still spatial captures for decisive status and reviewable outputs when live Quest 3 interaction is unnecessary."
   )
 }
+
+// =============================================================================
+// Domain dispatch + corpus mutability (vocabulary v4 - 2026-05-22)
+//
+// Closes the founder-skill cutover parity gap: the live SKILL.md carried a
+// "## Domain → execution skill dispatch" table and a "## Corpus mutability"
+// section with no .hs primitive. Now expressible + emitted via
+// @domain_dispatch / @corpus_mutability (ContextCompiler vocabulary v4).
+// =============================================================================
+
+object "FounderDispatch" {
+  @domain_dispatch(
+    domain: "Legal / NDA / contract / IP",
+    skills: ["/legal:triage-nda", "/legal:review-contract", "/legal:legal-risk-assessment", "/legal:legal-response", "/legal:compliance-check", "/legal:vendor-check"]
+  )
+  @domain_dispatch(
+    domain: "Brand voice / naming / taste",
+    skills: ["/brand-voice:enforce-voice", "/brand-voice:generate-guidelines", "/marketer", "/critic", "/marketing:brand-review"]
+  )
+  @domain_dispatch(
+    domain: "Capital / spend / treasury (within $5 ceiling)",
+    skills: ["/finance:*"]
+  )
+  @domain_dispatch(
+    domain: "Customer / vendor",
+    skills: ["/operations:vendor-review", "/customer-support:draft-response", "/customer-support:customer-escalation"]
+  )
+  @domain_dispatch(
+    domain: "Strategic governance — doctrine, pillars, ceiling adjustments, authority rewrites",
+    skills: []
+  )
+  @domain_dispatch(
+    domain: "Public representation — interviews, podcasts, posting",
+    skills: ["/marketer"]
+  )
+
+  @corpus_mutability(
+    policy: "Mutable via Track B",
+    description: "maintenance edits to corpus/defaults.md, corpus/domains.md, corpus/papers.md, corpus/production.md, and corpus/discipline.md when backed by a ratified source or explicit task"
+  )
+  @corpus_mutability(
+    policy: "Founder-ratification-required",
+    description: "corpus/vision.md (pillar mutations), authority-order rewrites, escalation-boundary changes, doctrine/runtime strategy changes, and tier triggers"
+  )
+  @corpus_mutability(
+    policy: "Read-only reference",
+    description: "corpus/authority-sources.md (defines the layers; the actual content of each layer lives in its canonical location outside this skill)"
+  )
+}

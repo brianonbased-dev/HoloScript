@@ -2594,3 +2594,76 @@ describe('compile() - vocabulary v3 -> identity.command_template', () => {
     }
   });
 });
+
+// --- vocabulary v4: @domain_dispatch + @corpus_mutability (2026-05-22) -------
+// Closes the founder-skill cutover parity gap: the live skill carried a
+// "## Domain → execution skill dispatch" table and a "## Corpus mutability"
+// section with no .hs primitive. G.GOLD.013 false-case discipline: each
+// "should render" has a paired "must NOT render when absent".
+describe('compile() - vocabulary v4 -> skill_md (domain_dispatch + corpus_mutability)', () => {
+  function makeIdentityOnly(): HoloComposition {
+    return makeComposition({
+      name: 'V4Context',
+      objects: [
+        {
+          type: 'Object',
+          name: 'V4Agent',
+          properties: [],
+          traits: [
+            {
+              type: 'ObjectTrait',
+              name: 'identity',
+              config: { name: 'v4-agent', role: 'r', domain: 'd', surface: 'claude', description: 'v4 test agent' },
+            },
+          ],
+        },
+      ],
+    });
+  }
+
+  function makeV4Composition(): HoloComposition {
+    const comp = makeIdentityOnly();
+    comp.objects[0].traits.push(
+      {
+        type: 'ObjectTrait',
+        name: 'domain_dispatch',
+        config: {
+          domain: 'Legal / NDA / contract',
+          skills: ['/legal:triage-nda', '/legal:review-contract'],
+        },
+      },
+      {
+        type: 'ObjectTrait',
+        name: 'corpus_mutability',
+        config: {
+          policy: 'Mutable via Track B',
+          description: 'maintenance edits to corpus/defaults.md when backed by a ratified source',
+        },
+      }
+    );
+    return comp;
+  }
+
+  it('renders the domain → execution skill dispatch table', () => {
+    const compiler = new ContextCompiler({ formats: ['skill_md'] });
+    const md = compiler.compile(makeV4Composition(), '').files['SKILL.md'];
+    expect(md).toContain('## Domain → execution skill dispatch');
+    expect(md).toContain('| Legal / NDA / contract |');
+    expect(md).toContain('`/legal:triage-nda`');
+    // false-case: no dispatch section when the trait is absent
+    const empty = compiler.compile(makeIdentityOnly(), '').files['SKILL.md'];
+    expect(empty).not.toContain('## Domain → execution skill dispatch');
+  });
+
+  it('renders the corpus mutability section', () => {
+    const compiler = new ContextCompiler({ formats: ['skill_md'] });
+    const md = compiler.compile(makeV4Composition(), '').files['SKILL.md'];
+    expect(md).toContain('## Corpus mutability');
+    expect(md).toContain(
+      '- **Mutable via Track B**: maintenance edits to corpus/defaults.md'
+    );
+    // false-case: no corpus section when the trait is absent
+    const empty = compiler.compile(makeIdentityOnly(), '').files['SKILL.md'];
+    expect(empty).not.toContain('## Corpus mutability');
+  });
+});
