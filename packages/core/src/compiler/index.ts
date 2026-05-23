@@ -367,3 +367,17 @@ export {
   getTraitInfo,
 } from './TraitRegistryBridge';
 export type { TraitQueryOptions, TraitInfo } from './TraitRegistryBridge';
+
+// APL WIT-2 — Stable platform-compiler plugin interface + lazy WASM plugins
+export {
+  type PlatformCompilerPlugin,
+  type PlatformPluginMetadata,
+  type TraitCompileContext,
+  type TraitCompileOutput,
+  type PluginManifest,
+  platformPluginRegistry,
+  manifestFromPlugin,
+  getAllManifests,
+} from './platform/PlatformCompilerPlugin';
+export { WebGPUWGSLPlugin } from './platform/plugins/WebGPUWGSLPlugin';
+export { AndroidARCorePlugin } from './platform/plugins/AndroidARCorePlugin';
