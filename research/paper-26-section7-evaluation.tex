@@ -240,20 +240,23 @@ receipt.
 
 \paragraph{Comparison with prior work on multi-agent token efficiency.}
 \label{sec:eval-latentmas-comparison}
+\PillarSlice{} targets a fundamentally different task regime from general
+multi-agent token-efficiency systems: every coordination event is gated on a
+live TET10 FEM solver output and anchored by a cryptographic
+\texttt{SimulationContract} receipt.
+Figures across these regimes are not directly comparable --- they represent
+distinct operating points on different trade-off frontiers (verifiability and
+physics grounding vs.\ raw token compression on natural-language tasks).
 LatentMAS~\cite{latentmas2025} (Hu et al., ICML 2026 Spotlight) achieves
-83.7\% token reduction on general natural-language tasks by routing agent
-communication through a shared latent space rather than explicit message
-passing.
-Our 70.5\% figure is lower, but the regimes differ materially: HoloMesh
-coordination is physics-solver-coupled (each PillarSlice event is gated on a
-TET10 FEM result) and every coordination event is anchored by a cryptographic
-\texttt{SimulationContract} receipt that provides post-hoc verifiability ---
-a guarantee LatentMAS does not offer.
-We trade some token efficiency for verifiability and physics grounding:
-the receipt allows any downstream agent or auditor to replay the causal chain
-from solver state to coordination decision, making the system suitable for
-safety-critical simulation pipelines where latent-space routing alone is
-insufficient.
+83.7\% token reduction on general natural-language multi-agent tasks;
+our 70.5\% on physics-solver-coupled tasks reflects the overhead of
+coupling each delta to a verified FEM result --- a precision cost absent from
+NLP-domain baselines.
+\PillarSlice{} does not offer a competing result on LatentMAS's task class;
+it offers a complementary capability: every coordination event is post-hoc
+verifiable from solver state to decision via cryptographic receipt replay ---
+a guarantee LatentMAS does not provide and that is necessary for
+safety-critical simulation pipelines.
 HoloScript is also fully open-source under a permissive license, whereas
 LatentMAS does not release a production runtime.
 
