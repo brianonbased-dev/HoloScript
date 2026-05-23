@@ -112,6 +112,16 @@ export type {
   OctreeLODMetrics,
 } from './OctreeLODSystem';
 
+// WIRE-1: SpatialPartitionResult → OctreeLODSystem.bulkInsert() + GPUCullingSystem
+export { loadSpatialPartition, SpatialSceneBridge } from './SpatialSceneBridge';
+export type {
+  SpatialAnchorLike,
+  SpatialBoundsLike,
+  SpatialPartitionResultLike,
+  SpatialLoadResult,
+  SpatialFrameResult,
+} from './SpatialSceneBridge';
+
 // Graph and Culling systems
 export { TransformGraph } from './TransformGraph';
 export type { Transform3D, Vec3 } from './TransformGraph';
