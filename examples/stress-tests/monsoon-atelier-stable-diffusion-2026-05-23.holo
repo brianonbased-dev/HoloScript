@@ -1,0 +1,433 @@
+// Monsoon Atelier — Stress-Test
+// A-009 Phase-3 | 2026-05-23
+//
+// Scene: a painter's hillside studio, mid-monsoon. The artist left hours ago;
+// three stretched canvases remain on easels beside open tall windows. The AI
+// (@stable_diffusion) is the absent painter — continuously regenerating storm
+// compositions onto each canvas in real time. Rain falls in thick curtains
+// outside. A bare filament lamp sways on its cord. Lightning strobes every
+// 8-12 seconds, silhouetting the easels before the studio goes dark again.
+// Spatially routed thunder and rain give the room its full acoustic texture.
+//
+// Never-exercised traits under test:
+//   @stable_diffusion — SDXL + LCM real-time AI texture generation on canvas geometry
+
+composition "MonsoonAtelier" {
+
+  metadata {
+    name: 'Monsoon Atelier'
+    version: '1.0.0'
+    author: 'A-009 stress-test 2026-05-23'
+    category: 'spatial-art'
+    tags: ['stable-diffusion', 'ai-texture', 'storm', 'atelier', 'spatial-audio', 'stress-test']
+    platforms: ['r3f', 'openxr', 'webgpu']
+    minPlayers: 1
+    maxPlayers: 4
+  }
+
+  environment {
+    skybox: { type: "solid", color: "#0a0c10" }
+    ambient: 0.08
+    shadows: true
+    fog: { enabled: true, color: "#0c0e14", density: 0.018 }
+    post_processing: {
+      bloom:       { intensity: 0.9,  threshold: 0.55 }
+      vignette:    { intensity: 0.55 }
+      tone_mapping: { type: "aces", exposure: 0.65 }
+      ssao:        { radius: 0.4, intensity: 0.7 }
+    }
+  }
+
+  // ============================================================
+  // LIGHTING — ambient tungsten + lightning strobe
+  // ============================================================
+
+  object "FilamentBulb" {
+    type: "point_light"
+    position: [0, 2.9, 0]
+    color: "#ffeaaa"
+    intensity: 1.4
+    range: 9
+    cast_shadows: true
+  }
+
+  object "LightningFlash" @emissive @animated {
+    type: "point_light"
+    position: [0, 3.0, -5]
+    color: "#c8d8ff"
+    intensity: 0.0
+    range: 22
+    @emissive { intensity: 0.0, color: "#c8d8ff" }
+    @animated {
+      property: "intensity"
+      keyframes: [
+        { time: 0.0,  value: 0.0 },
+        { time: 8.0,  value: 0.0 },
+        { time: 8.05, value: 18.0 },
+        { time: 8.12, value: 0.0 },
+        { time: 8.2,  value: 6.0 },
+        { time: 8.26, value: 0.0 },
+        { time: 20.0, value: 0.0 }
+      ]
+      loop: true
+    }
+  }
+
+  // ============================================================
+  // ARCHITECTURE — stone floor, plaster walls, beamed ceiling
+  // ============================================================
+
+  object "StudioFloor" @collidable {
+    geometry: "plane"
+    width: 9
+    height: 11
+    position: [0, 0, 0]
+    material: {
+      baseColor: "#3a3228"
+      roughness: 0.85
+      metallic: 0.0
+      normalMap: "builtin://stone_floor_normal"
+    }
+  }
+
+  object "NorthWall" {
+    geometry: "plane"
+    width: 9
+    height: 4
+    position: [0, 2, -5.5]
+    rotation: [90, 0, 0]
+    material: { baseColor: "#d4c9b4", roughness: 0.92, metallic: 0.0 }
+  }
+
+  object "EastWall" {
+    geometry: "plane"
+    width: 11
+    height: 4
+    position: [4.5, 2, 0]
+    rotation: [90, 0, 90]
+    material: { baseColor: "#cdc2ae", roughness: 0.9, metallic: 0.0 }
+  }
+
+  object "WestWall" {
+    geometry: "plane"
+    width: 11
+    height: 4
+    position: [-4.5, 2, 0]
+    rotation: [90, 0, -90]
+    material: { baseColor: "#cdc2ae", roughness: 0.9, metallic: 0.0 }
+  }
+
+  // South wall = tall windows — rain streams against them from outside.
+  object "WindowGlass_L" {
+    geometry: "plane"
+    width: 2.4
+    height: 3.2
+    position: [-2, 1.8, 5.4]
+    rotation: [90, 0, 0]
+    material: {
+      baseColor: "#8fa8b8"
+      roughness: 0.05
+      metallic: 0.0
+      opacity: 0.28
+      transparent: true
+    }
+  }
+
+  object "WindowGlass_R" {
+    geometry: "plane"
+    width: 2.4
+    height: 3.2
+    position: [2, 1.8, 5.4]
+    rotation: [90, 0, 0]
+    material: {
+      baseColor: "#8fa8b8"
+      roughness: 0.05
+      metallic: 0.0
+      opacity: 0.28
+      transparent: true
+    }
+  }
+
+  // ============================================================
+  // CANVAS A — centre easel: storm over coastal headland
+  // @stable_diffusion drives the primary never-exercised path.
+  // ============================================================
+
+  object "EaselCenter" @collidable {
+    geometry: "mesh"
+    mesh_uri: "builtin://easel_wood"
+    position: [0, 0, -2]
+    scale: [1, 1, 1]
+    material: { baseColor: "#5c3d1e", roughness: 0.8, metallic: 0.0 }
+  }
+
+  object "CanvasCenter" @stable_diffusion @glowing {
+    geometry: "plane"
+    width: 1.8
+    height: 1.2
+    position: [0, 1.55, -2.05]
+    rotation: [4, 0, 0]
+    @stable_diffusion {
+      diffusion_model: "lcm"
+      prompt: "dramatic monsoon storm over rocky coastal headland, waves crashing, indigo thunderclouds veined with lightning, oil painting impasto texture, wet paint, dark sublime"
+      negative_prompt: "blurry, low quality, artifacts, anime, cartoon, flat"
+      resolution: 1024
+      steps: 12
+      cfg_scale: 1.8
+      realtime: true
+      streaming: true
+      seed: 4419
+    }
+    @glowing {
+      intensity: 0.15
+      color: "#b0c0e0"
+      pulse: false
+    }
+  }
+
+  // ============================================================
+  // CANVAS B — left easel: abstract monsoon — ink and wash
+  // ============================================================
+
+  object "EaselLeft" @collidable {
+    geometry: "mesh"
+    mesh_uri: "builtin://easel_wood"
+    position: [-2.8, 0, -1.2]
+    rotation: [0, 18, 0]
+    material: { baseColor: "#5c3d1e", roughness: 0.8, metallic: 0.0 }
+  }
+
+  object "CanvasLeft" @stable_diffusion @glowing {
+    geometry: "plane"
+    width: 1.4
+    height: 1.8
+    position: [-2.85, 1.55, -1.3]
+    rotation: [3, 18, 0]
+    @stable_diffusion {
+      diffusion_model: "sdxl"
+      prompt: "abstract monsoon, Chinese ink wash, black and deep indigo watercolour on wet paper, rain streaks, pooling ink, poetic desolation"
+      negative_prompt: "blurry, low quality, photorealistic, western, oil"
+      resolution: 1024
+      steps: 22
+      cfg_scale: 7.0
+      seed: 8832
+    }
+    @glowing {
+      intensity: 0.08
+      color: "#6080c0"
+      pulse: false
+    }
+  }
+
+  // ============================================================
+  // CANVAS C — right easel: storm portrait — the absent painter
+  // ============================================================
+
+  object "EaselRight" @collidable {
+    geometry: "mesh"
+    mesh_uri: "builtin://easel_wood"
+    position: [2.6, 0, -0.8]
+    rotation: [0, -14, 0]
+    material: { baseColor: "#5c3d1e", roughness: 0.8, metallic: 0.0 }
+  }
+
+  object "CanvasRight" @stable_diffusion @animated {
+    geometry: "plane"
+    width: 1.1
+    height: 1.4
+    position: [2.65, 1.5, -0.9]
+    rotation: [3, -14, 0]
+    @stable_diffusion {
+      diffusion_model: "sdxl"
+      prompt: "figure of a painter walking away into monsoon rain on a hilltop, silhouette, dramatic back light, expressionist strokes, oil on linen, saturated teal-grey palette"
+      negative_prompt: "blurry, low quality, artifacts, anime, smiling"
+      resolution: 1024
+      steps: 28
+      cfg_scale: 8.5
+      seed: 2271
+    }
+    // The canvas slowly brightens when the lightning fires, then dims again —
+    // as if the storm is illuminating the subject from outside.
+    @animated {
+      property: "material.emissive_intensity"
+      keyframes: [
+        { time: 0.0,  value: 0.02 },
+        { time: 8.05, value: 0.85 },
+        { time: 8.3,  value: 0.02 },
+        { time: 20.0, value: 0.02 }
+      ]
+      loop: true
+    }
+  }
+
+  // ============================================================
+  // ARTIST'S TABLE — palette, rags, brushes
+  // ============================================================
+
+  object "PaintingTable" @collidable {
+    geometry: "box"
+    width: 1.2
+    height: 0.82
+    depth: 0.6
+    position: [1.8, 0.41, 1.5]
+    material: { baseColor: "#6b4a2a", roughness: 0.75, metallic: 0.0 }
+  }
+
+  object "Palette" @glowing {
+    geometry: "mesh"
+    mesh_uri: "builtin://palette_oval"
+    position: [1.9, 0.83, 1.4]
+    scale: [0.35, 0.35, 0.35]
+    material: { baseColor: "#2a1a0a", roughness: 0.6, metallic: 0.0 }
+    @glowing {
+      // Palette catches and scatters canvas glow — warm ochre tones
+      intensity: 0.3
+      color: "#c8902a"
+      pulse: false
+    }
+  }
+
+  // ============================================================
+  // RAIN — streaming particles against south windows
+  // ============================================================
+
+  object "RainEmitter_Inner" @particle_system {
+    position: [0, 3.8, 4.8]
+    @particle_system {
+      preset: "rain"
+      count: 320
+      size: 0.018
+      color: "#a8c4d8"
+      speed: 4.2
+      spread: 5.0
+      direction: [0.12, -1, -0.1]
+      lifetime: 0.9
+      opacity: 0.38
+      blend_mode: "additive"
+    }
+  }
+
+  object "RainSplatter_Floor" @particle_system {
+    position: [0, 0.02, 4.6]
+    @particle_system {
+      preset: "splash"
+      count: 60
+      size: 0.04
+      color: "#8aaccc"
+      speed: 0.4
+      spread: 3.5
+      lifetime: 0.35
+      opacity: 0.55
+      blend_mode: "normal"
+    }
+  }
+
+  // ============================================================
+  // LAMP — filament bulb swaying in the draft
+  // ============================================================
+
+  object "LampCord" @animated {
+    geometry: "cylinder"
+    radius: 0.006
+    height: 1.1
+    position: [0, 3.45, 0]
+    material: { baseColor: "#1a1a1a", roughness: 0.9, metallic: 0.0 }
+    @animated {
+      property: "rotation"
+      keyframes: [
+        { time: 0.0, value: [0, 0,  0] },
+        { time: 1.4, value: [2, 0,  3] },
+        { time: 2.8, value: [0, 0,  0] },
+        { time: 4.2, value: [-2, 0, -3] },
+        { time: 5.6, value: [0, 0,  0] }
+      ]
+      loop: true
+      easing: "sine_in_out"
+    }
+  }
+
+  object "LampBulb" @emissive @glowing {
+    geometry: "sphere"
+    radius: 0.055
+    position: [0, 2.9, 0]
+    @emissive {
+      intensity: 3.5
+      color: "#ffeaaa"
+    }
+    @glowing {
+      intensity: 1.8
+      color: "#ffeaaa"
+      pulse: false
+    }
+  }
+
+  // ============================================================
+  // SPATIAL AUDIO — thunder, rain on glass, studio quiet
+  // ============================================================
+
+  object "ThunderTrack" @spatial_audio {
+    position: [0, 2, -8]
+    @spatial_audio {
+      src: "builtin://thunder_distant_loop"
+      volume: 0.55
+      loop: true
+      rolloff: 0.08
+      max_distance: 40
+    }
+  }
+
+  object "RainOnGlass_L" @spatial_audio {
+    position: [-2, 2, 5.5]
+    @spatial_audio {
+      src: "builtin://rain_heavy_window"
+      volume: 0.7
+      loop: true
+      rolloff: 0.6
+      max_distance: 8
+    }
+  }
+
+  object "RainOnGlass_R" @spatial_audio {
+    position: [2, 2, 5.5]
+    @spatial_audio {
+      src: "builtin://rain_heavy_window"
+      volume: 0.7
+      loop: true
+      rolloff: 0.6
+      max_distance: 8
+    }
+  }
+
+  object "StudioAmbience" @spatial_audio {
+    position: [0, 1.5, 0]
+    @spatial_audio {
+      src: "builtin://studio_room_tone"
+      volume: 0.18
+      loop: true
+      rolloff: 0.0
+      max_distance: 999
+    }
+  }
+
+  object "ThunderCrack" @spatial_audio @animated {
+    position: [0, 2, -8]
+    @spatial_audio {
+      src: "builtin://thunder_close_crack"
+      volume: 0.0
+      loop: false
+      rolloff: 0.04
+      max_distance: 80
+    }
+    // Fires in sync with the lightning strobe at t=8.05
+    @animated {
+      property: "audio.volume"
+      keyframes: [
+        { time: 0.0,  value: 0.0 },
+        { time: 8.05, value: 1.0 },
+        { time: 8.6,  value: 0.0 },
+        { time: 20.0, value: 0.0 }
+      ]
+      loop: true
+    }
+  }
+}
