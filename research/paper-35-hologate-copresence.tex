@@ -1,0 +1,525 @@
+% HoloGate: Verifiable Agent+Human Co-Presence Through
+%            Content-Negotiated Spatial Portals
+% Target:    EuroSys 2027 (full) or SOSP 2027 Workshop (short)
+% Format:    ACM sigconf
+% Paper ID:  P35 (HoloGate co-presence layer; Program: Spatial Trust Infrastructure)
+% Draft:     2026-05-23  — SKELETON: abstract + claims + measurements + section stubs
+%
+% Dependencies: Paper 26 (pillar-slice latent token MAS), Paper 29 (algebraic trust),
+%               Paper 32 (CRDT spatial state)
+% Evidence:     HoloScript commits b111b6c2b, 3e82a2eb5, af53937c1, 73dcaad51,
+%               e3876de57, b2da5af09, af2b2a18e,
+%               9246bae47af19ffc8eed696221d8fa885416c90a (benchmark receipt hgbench_mpgp6dt3),
+%               7856085db (Loro 2-agent), cd8396c20 (20-entrant), 2b973eaaf (scope+receipt)
+%
+% CLAIM-MAP NOTE: every quantitative value tagged with \measuredFrom{<artifact>}.
+%                 Run: pnpm check:paper-claim-map before submission.
+% TERMINOLOGY GATE: "submitted" = portal upload event only.
+%                   "green-lit" = explicit founder/editorial approval only.
+%                   Neither appears without an actual event reference in this file.
+
+\IfFileExists{acmart.cls}
+  {\documentclass[sigconf,nonacm]{acmart}}
+  {\documentclass[a4paper]{article}
+   \typeout{acmart.cls absent — local compile uses article class fallback}}
+
+% ── Packages ─────────────────────────────────────────────────────────────────
+\usepackage{amsmath}
+\let\Bbbk\relax
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{subcaption}
+\usepackage{microtype}
+
+% ── Draft annotations ────────────────────────────────────────────────────────
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+\newcommand{\draftnote}[1]{\textcolor{blue!60!black}{\textit{[#1]}}}
+
+% Lotus petal data contract — \measuredFrom{<artifact>} marks values that come
+% from a runnable artifact in the repo.  Renders nothing in the PDF; grep target
+% for scripts/build-lotus.mjs (research/2026-04-26_lotus-petal-data-contract.md §3+§4).
+\providecommand{\measuredFrom}[1]{}
+
+% ── Notation ─────────────────────────────────────────────────────────────────
+\newcommand{\hg}{\textsc{HoloGate}}
+\newcommand{\hp}{\textsc{HoloPortal}}
+\newcommand{\hd}{\textsc{HoloDoor}}
+\newcommand{\scope}[1]{\texttt{#1}}
+\newcommand{\receiptid}[1]{\texttt{\small #1}}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\begin{document}
+
+\title{HoloGate: Verifiable Agent+Human Co-Presence Through
+       Content-Negotiated Spatial Portals}
+
+\author{Joseph Krzywoszyja}
+\email{brianonbased@gmail.com}
+\affiliation{%
+  \institution{Independent Researcher}
+  \country{Australia}
+}
+
+% ── Abstract ─────────────────────────────────────────────────────────────────
+\begin{abstract}
+Shared spatial worlds that admit both human users and autonomous agents face a
+fundamental trust gap: existing co-presence protocols treat every participant
+identically, conflating the unbounded action space of an agent with the
+intent-bounded behavior expected at a spatial threshold.  The result is either
+over-restriction (agents cannot act) or under-restriction (agents can mutate
+shared state without auditability).
+
+We present \hg{}, a spatial co-presence system in which every portal crossing is
+governed by content-negotiated scope ladders, A2A agent-card handshakes, and an
+audit receipt chain that ties world-state hashes to provenance across entry,
+mutation, and exit.  \hg{} uses Loro CRDT as its conflict-free state substrate,
+WebRTC as its delta transport, and HoloScript \texttt{.hsplus} policies as its
+scope enforcement layer.  An intent validator gate rejects out-of-scope actions
+at
+\measuredFrom{scripts/receipts/hologate-portal-bench-receipt.json}%
+772\,ns average latency (1.3\,M validations/sec), while portal threshold
+negotiation adds only
+\measuredFrom{scripts/receipts/hologate-portal-bench-receipt.json}%
+1.6\,µs average overhead (p99: 4.0\,µs) per crossing.  Delta broadcast to 50
+subscribers costs
+\measuredFrom{scripts/receipts/hologate-portal-bench-receipt.json}%
+2.2\,µs per event; world-state SHA-256 over 1\,K entities completes in
+\measuredFrom{scripts/receipts/hologate-portal-bench-receipt.json}%
+2.0\,ms.  Two-agent Loro CRDT convergence under concurrent writes stays below
+\measuredFrom{scripts/benchmarks/hologate-crdt-convergence.json}%
+10\,ms round-trip, and the harness scales to
+\measuredFrom{scripts/benchmarks/hologate-scale-20.json}%
+20 concurrent entrants with 32/32 adversarial tests passing.  Scope violation
+rejection is verified across a 34-test matrix covering scope$\times$intent
+product, \texttt{allowedScopes} gate, glob specificity, and warn mode; audit
+receipt chain integrity is verified across 8 tests covering chain-link
+correctness, canonical hash, rewind provenance, and multi-agent isolation.
+
+\hg{} contributes: (1)~a content-negotiated portal protocol that binds
+capability to spatial context; (2)~a scope-ladder policy model with glob
+specificity and incremental trust elevation; (3)~a world-state audit receipt
+chain enabling tamper-evident rewind; and (4)~an open-source implementation
+in TypeScript with 91+ tests across 8 modules.
+\end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+  <concept>
+    <concept_id>10010147.10010178.10010179</concept_id>
+    <concept_desc>Computing methodologies~Multi-agent systems</concept_desc>
+    <concept_significance>500</concept_significance>
+  </concept>
+  <concept>
+    <concept_id>10002978.10003006.10003009</concept_id>
+    <concept_desc>Security and privacy~Access control</concept_desc>
+    <concept_significance>500</concept_significance>
+  </concept>
+  <concept>
+    <concept_id>10003033.10003083.10003095</concept_id>
+    <concept_desc>Networks~Network protocols</concept_desc>
+    <concept_significance>300</concept_significance>
+  </concept>
+  <concept>
+    <concept_id>10010405.10010455</concept_id>
+    <concept_desc>Applied computing~Computer games</concept_desc>
+    <concept_significance>100</concept_significance>
+  </concept>
+</ccs2012>
+\end{CCSXML}
+\ccsdesc[500]{Computing methodologies~Multi-agent systems}
+\ccsdesc[500]{Security and privacy~Access control}
+\ccsdesc[300]{Networks~Network protocols}
+
+\keywords{spatial co-presence, agent portals, scope ladder, CRDT, audit receipts,
+          content negotiation, A2A handshake, WebRTC}
+
+\maketitle
+
+% ── §1 Introduction ──────────────────────────────────────────────────────────
+\section{Introduction}
+\label{sec:intro}
+
+Spatial shared worlds are the next multi-agent coordination layer.
+Avatar-based virtual environments, XR co-working spaces, and simulation
+sandboxes already host both human users and autonomous agents.  Yet the
+admission protocol at every spatial boundary---what \hg{} calls a
+\emph{portal threshold}---is almost universally identity-only: a bearer token
+or session cookie authenticates the participant, but carries no binding on what
+the participant is \emph{allowed to do inside}.
+
+This creates an unbounded action-space problem.  An agent that has been admitted
+through a portal can in principle mutate any shared state that its session
+credentials allow.  This is too broad for human co-presence contexts (users
+expect bounded, predictable agent behavior) and too narrow for agent-only
+contexts (agents need the ability to express capability bids and negotiate
+scope).
+
+We identify three missing primitives:
+\begin{enumerate}
+\item \textbf{Content-negotiated scope.}  The portal threshold should be a
+  two-party protocol in which the agent presents a capability card and the
+  world replies with an admitted scope ladder, not a binary allow/deny.
+\item \textbf{Conflict-free state.}  Multiple agents and humans writing
+  concurrently to shared world state need a convergence guarantee, not a
+  last-write-wins merge that silently drops updates.
+\item \textbf{Audit receipts.}  Every entry, mutation, and exit should
+  produce a hash-chain receipt that allows tamper detection and exact rewind
+  to any prior world state.
+\end{enumerate}
+
+\hg{} provides all three.  The system is built on HoloScript \texttt{.hsplus}
+policy contracts (scope enforcement), the Loro CRDT library (conflict-free
+state), WebRTC (delta transport), and a world-state SHA-256 receipt chain.
+The A2A agent-card handshake protocol draws on the agent identity layer
+described in~\cite{paper29algebraictrust} \todo{confirm cite key};
+the CRDT state model is compatible with the spatial CRDT architecture
+of~\cite{paper32crdtspatial} \todo{confirm cite key}; the pillar-slice
+token compression of HoloGate intent tokens relates
+to~\cite{paper26latenttoken} \todo{confirm cite key}.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+\item \textsc{HoloPortal}: a content-negotiated portal protocol in which agents
+  present A2A agent cards and receive scope-ladder admissions
+  (\S\ref{sec:portal}).
+\item \textsc{HoloDoor}: a policy enforcement gate that validates intents
+  against admitted scopes using glob specificity ranking and warn/deny modes
+  (\S\ref{sec:scope}).
+\item A world-state audit receipt chain that hashes per-entity state at every
+  mutation boundary and supports deterministic rewind (\S\ref{sec:receipts}).
+\item An evaluation showing sub-microsecond intent validation, sub-2-µs
+  threshold negotiation, Loro CRDT convergence below 10\,ms, and correct
+  behavior under 34 scope-violation and 8 receipt-chain adversarial tests
+  (\S\ref{sec:eval}).
+\end{enumerate}
+
+\todo{SKELETON: expand intro with 1-2 paragraphs of motivating example and
+related-work contrast before contributions paragraph.}
+
+% ── §2 Background and Related Work ───────────────────────────────────────────
+\section{Background and Related Work}
+\label{sec:related}
+
+\subsection{Spatial Co-Presence Protocols}
+\todo{Survey existing VR/AR co-presence protocols (OpenXR social layer, VRChat
+world scripts, Roblox Luau, Horizon Worlds APIs). All admit by identity only;
+none provide capability-scoped negotiation at threshold.}
+
+\subsection{CRDT-Based Shared State}
+The Yjs~\cite{yjs2022} \todo{add bib} and Automerge~\cite{automerge2019}
+\todo{add bib} libraries provide CRDT-based shared editing for documents.
+Loro~\cite{loro2024} \todo{add bib} extends this model with a tree container
+suited to hierarchical spatial state.  \hg{} uses Loro as its state substrate
+without modification (\S\ref{sec:arch}).
+
+\subsection{Agent Authorization Models}
+The A2A agent card protocol~\cite{a2agooglespec2025} \todo{add bib} defines a
+bearer-token handshake for agent-to-agent task delegation.  \hg{} extends this
+at the spatial portal layer: the handshake is not merely bearer-to-bearer but
+scope-bid to scope-grant.
+
+\subsection{Audit and Provenance}
+Hash-chain provenance for agent-environment loops is formalized in
+CAEL~\cite{cael2026} \todo{confirm cite key}, which applies the chain to
+physics simulation steps.  \hg{} applies an analogous chain to world-state
+mutations at co-presence boundaries.  The scope-based trust model builds on the
+algebraic trust lattice of~\cite{paper29algebraictrust} \todo{confirm cite key}.
+
+% ── §3 System Architecture ───────────────────────────────────────────────────
+\section{System Architecture}
+\label{sec:arch}
+
+\todo{SKELETON: full architecture section.  Current stubs below name the modules
+shipped in HoloScript commits b111b6c2b–2b973eaaf.}
+
+\begin{figure}[t]
+  \centering
+  \todo{Architecture diagram: HoloDoor→HoloPortal→Loro-CRDT-store,
+        A2A Handshake→scope-ladder, delta-broadcast→WebRTC,
+        receipt-chain→SHA-256}
+  \caption{HoloGate system overview.  Portal threshold crossing triggers
+    A2A handshake; admitted scope is enforced by HoloDoor at every subsequent
+    intent; mutations propagate via WebRTC delta broadcast and hash into the
+    receipt chain.}
+  \label{fig:arch}
+\end{figure}
+
+\subsection{HoloPortal: Content-Negotiated Portal Protocol}
+\label{sec:portal}
+
+A \emph{portal} is a typed spatial boundary with an admission policy
+expressed in a \texttt{.hsplus} contract.  When an agent (or human session)
+requests entry, the portal initiates a two-phase threshold negotiation:
+
+\begin{enumerate}
+\item \textbf{Capability presentation.}  The entrant presents an A2A agent
+  card listing its claimed capability set.  \todo{TypeScript listing: agent
+  card structure + bid envelope from holo-portal-intent.ts}
+\item \textbf{Scope grant.}  The portal policy evaluates the bid against the
+  world's trust policy and returns an admitted scope ladder.  Scope entries
+  use glob patterns; specificity ranking determines which entry wins when
+  multiple patterns match.
+\end{enumerate}
+
+Threshold negotiation is encoded in the \texttt{portal-entry.v1} receipt
+format, extending the \texttt{holotunnel.share-packet.v1} receipt schema
+(commit~\texttt{b2da5af09}).
+
+The \texttt{@portalPresence} trait (\texttt{af2b2a18e}) exposes the portal
+protocol to any HoloScript entity, making co-presence a first-class trait
+rather than a hard-wired runtime hook.
+
+\subsection{HoloDoor: Scope-Ladder Policy Enforcement}
+\label{sec:scope}
+
+\todo{Expand: allowedScopes gate, glob specificity algorithm, warn vs deny
+modes, integration with holoscript-mcp-custody-contract.hsplus.}
+
+\hd{} intercepts every intent emitted by an admitted participant and validates
+it against the scope ladder granted at entry.  Validation is purely
+in-process; no round-trip to an external policy service.
+
+Scope matching uses a three-tier specificity ranking: (1)~exact path match,
+(2)~single-segment glob, (3)~multi-segment glob.  Conflicts are resolved by
+most-specific wins.  An intent that matches no scope entry is rejected in
+\texttt{deny} mode or flagged in \texttt{warn} mode.
+
+\subsection{Loro CRDT State Layer}
+\label{sec:crdt}
+
+Shared world state is stored in a Loro tree container.  Each entity occupies
+a node; properties are Loro map entries.  Concurrent writes from multiple
+participants converge deterministically (commit \texttt{af53937c1}: Loro CRDT
+replaces prior LWW deepMerge).  Delta encoding of Loro changesets is the unit
+of WebRTC broadcast (commit~\texttt{3e82a2eb5}).
+
+\subsection{Audit Receipt Chain}
+\label{sec:receipts}
+
+At every mutation boundary the world-state SHA-256 is computed over all entity
+properties in canonical JSON order (commit~\texttt{2b973eaaf}).  The hash is
+appended to a receipt chain; each link records:
+\begin{itemize}
+\item mutation type (entry/field-write/exit),
+\item agent identity (from A2A card),
+\item admitted scope at time of mutation,
+\item SHA-256 of state before and after,
+\item ISO-8601 timestamp.
+\end{itemize}
+
+Rewind restores any prior state by replaying the chain to the target link.
+Multi-agent receipt isolation ensures that concurrent participants produce
+non-interfering receipt sub-chains that merge via Loro without aliasing.
+
+% ── §4 Implementation ────────────────────────────────────────────────────────
+\section{Implementation}
+\label{sec:impl}
+
+\hg{} is implemented in TypeScript (strict mode, ES2020) as 8 modules totalling
+91+ tests.  The modules correspond to the shipped commits:
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Module & Commit & Purpose \\
+\midrule
+\texttt{holo-portal-intent.ts} & \texttt{b111b6c2b} & Intent envelope + delta broadcast \\
+\texttt{networking-tools.ts}   & \texttt{b111b6c2b} & Delta broadcast source \\
+WebRTC peer transport          & \texttt{3e82a2eb5} & Loro CRDT sync transport \\
+Loro CRDT integration          & \texttt{af53937c1} & Replaces LWW deepMerge \\
+Threshold negotiation          & \texttt{73dcaad51} & Scope ladder + \texttt{portal-entry.v1} \\
+A2A handshake                  & \texttt{e3876de57} & Agent card at portal threshold \\
+Receipt extension              & \texttt{b2da5af09} & \texttt{portal-entry.v1} receipt \\
+\texttt{@portalPresence} trait & \texttt{af2b2a18e} & Shared trait library (71/71 tests) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Scope violation rejection and receipt chain integrity are implemented in
+commit~\texttt{2b973eaaf}, which contributes the \texttt{allowedScopes} gate,
+glob specificity, warn mode, chain-link correctness, canonical hash,
+rewind provenance, and multi-agent isolation suites.
+
+\todo{SKELETON: add package placement note (packages/studio src/lib/ or
+packages/core?), API surface overview, and HoloScript .hsplus policy snippet
+showing a portal admission contract.}
+
+% ── §5 Evaluation ────────────────────────────────────────────────────────────
+\section{Evaluation}
+\label{sec:eval}
+
+All measurements are from HoloScript commit
+\texttt{9246bae47af19ffc8eed696221d8fa885416c90a}
+(benchmark receipt \receiptid{hgbench\_mpgp6dt3},
+artifact \texttt{scripts/receipts/hologate-portal-bench-receipt.json})
+unless noted otherwise.  Hardware: 11th Gen Intel Core i7-11800H @ 2.30\,GHz (16 logical cores),
+Node.js v24.15.0; from benchmark receipt \receiptid{hgbench\_mpgp6dt3}.
+
+\subsection{Micro-Benchmarks}
+\label{sec:microbench}
+
+\paragraph{Intent validation throughput.}
+\measuredFrom{scripts/receipts/hologate-portal-bench-receipt.json}
+The intent validator processes
+\textbf{772\,ns} average per validation
+(\textbf{1.3\,M validations/sec}),
+confirming that scope enforcement is not on the hot path for any plausible
+spatial interaction rate.
+
+\paragraph{Portal threshold negotiation overhead.}
+\measuredFrom{scripts/receipts/hologate-portal-bench-receipt.json}
+Threshold negotiation (capability presentation + scope grant) adds
+\textbf{1.6\,µs average} (p99: \textbf{4.0\,µs})
+per portal crossing.
+This is a one-time cost at entry; subsequent intent validation uses only the
+in-memory scope ladder.
+
+\paragraph{Delta broadcast fan-out.}
+\measuredFrom{scripts/receipts/hologate-portal-bench-receipt.json}
+Broadcasting a Loro CRDT delta to \textbf{50 subscribers} costs
+\textbf{2.2\,µs per broadcast event}.
+The broadcast is synchronous within the worker; async delivery to WebRTC peers
+is not included in this measurement \todo{clarify if fire-and-forget or
+await-all in benchmark}.
+
+\paragraph{World-state SHA-256 cost.}
+\measuredFrom{scripts/receipts/hologate-portal-bench-receipt.json}
+SHA-256 over \textbf{1\,000 entities} in canonical JSON order completes in
+\textbf{2.0\,ms}.
+This is the worst-case receipt cost per mutation; incremental hashing (entity-level
+accumulation) is a future optimization.
+
+\subsection{Loro CRDT Convergence}
+\label{sec:crdt-eval}
+
+\measuredFrom{packages/mcp-server/src/__tests__/holo-portal-intent.test.ts}
+Two agents writing concurrently to shared state converge in
+\textbf{less than 10\,ms} round-trip
+(5-test suite, commit~\texttt{7856085db}).
+\todo{Report individual test latencies and max observed value from test output.}
+
+\subsection{Scalability Under Concurrent Entrants}
+\label{sec:scale}
+
+\measuredFrom{packages/mcp-server/src/__tests__/hologate-multi-entrant.test.ts}
+The 20-entrant harness (commit~\texttt{cd8396c20}) passes \textbf{32/32}
+adversarial tests under concurrent agent+human load.
+\todo{Report: total wall time, per-agent median latency, and whether any scope
+violation was detected during the concurrent run.}
+
+\subsection{Correctness: Scope Violation Rejection}
+\label{sec:scope-eval}
+
+The scope violation suite (commit~\texttt{2b973eaaf}) covers a
+\textbf{34-test} matrix:
+\begin{itemize}
+\item Full scope$\times$intent Cartesian product (\textit{all admitted/denied combinations})
+\item \texttt{allowedScopes} gate bypass attempts
+\item Glob specificity: single-segment vs multi-segment winner selection
+\item Warn mode: correct flag-without-reject behavior
+\end{itemize}
+All 34 tests pass.  \todo{Report false-positive rate (denied valid intents)
+and false-negative rate (admitted invalid intents) if tracked separately.}
+
+\subsection{Correctness: Audit Receipt Chain Integrity}
+\label{sec:receipt-eval}
+
+The receipt chain suite (commit~\texttt{2b973eaaf}) covers \textbf{8 tests}:
+chain-link correctness (each link's prev-hash equals the prior link's hash),
+canonical hash determinism (same state always produces same hash), rewind
+provenance (rewinding to link $k$ produces state matching link $k$'s before-hash),
+and multi-agent isolation (concurrent agent chains do not alias).
+All 8 tests pass.
+
+% ── §6 Discussion ────────────────────────────────────────────────────────────
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Threat Model and Limitations}
+\label{sec:threats}
+
+\paragraph{Malicious scope inflation.}
+An agent that obtains a broader scope than its card warrants can violate
+world policies silently.  The current model trusts the portal policy to
+evaluate bids correctly but does not enforce cryptographic binding between
+the card and the bid.  Future work: extend A2A cards with hardware-attested
+signatures (compatible with the EIP-712 anchor layer described
+in~\cite{eip712anchor2026} \todo{confirm cite key}).
+
+\paragraph{Receipt chain forgery.}
+SHA-256 is collision-resistant but not authenticated: a malicious participant
+with write access to the receipt store can substitute a fabricated chain.
+The current model stores receipts in process memory; production deployment
+should anchor chain roots to an external immutable log (e.g., the Base
+mainnet anchor used by the broader HoloScript provenance system).
+
+\paragraph{CRDT divergence under network partition.}
+Loro's CRDT guarantees convergence only after all deltas are delivered.
+Under indefinite partition, local state diverges.  The current model has no
+partition-detection or explicit merge-conflict surfacing for human users.
+
+\paragraph{Scale ceiling.}
+The 20-entrant benchmark is the largest validated harness.
+\todo{Characterize expected scaling behavior as N grows; does broadcast cost
+grow linearly with subscriber count or does the 50-subscriber micro-bench
+represent the real fan-out bound?}
+
+\paragraph{Quest 3 validation.}
+The evaluation is browser-native (TypeScript/WebGPU).  Quest 3 headset
+validation is an open gate: the QuestProofPanel
+(\texttt{packages/studio/src/components/quest/QuestProofPanel.tsx},
+commit~\texttt{cbe4e77f3}) is ready but no device receipt has been recorded
+in \texttt{.bench-logs/} at time of writing.
+
+\todo{SKELETON: add subsection on applicability beyond spatial worlds
+(document co-editing with agent participants, workflow co-execution).}
+
+% ── §7 Conclusion ────────────────────────────────────────────────────────────
+\section{Conclusion}
+\label{sec:conclusion}
+
+\hg{} demonstrates that spatial portal crossings can carry first-class
+capability negotiation without imposing overhead on the hot path.
+Intent validation at \measuredFrom{scripts/receipts/hologate-portal-bench-receipt.json}772\,ns
+and threshold negotiation at \measuredFrom{scripts/receipts/hologate-portal-bench-receipt.json}1.6\,µs
+average leave ample budget for game-loop and simulation-loop integration.
+The Loro CRDT substrate provides convergence guarantees that LWW merges
+cannot, and the audit receipt chain enables tamper detection and deterministic
+rewind at world-state granularity.
+
+Together, these contributions reduce agent+human co-presence from a binary
+identity-admit problem to a structured capability negotiation, provably auditable
+after the fact.
+
+\todo{SKELETON: Expand conclusion with 2--3 sentences on open questions
+(Quest device validation, partition handling, cryptographic card binding)
+and connection to the broader HoloScript provenance program.}
+
+% ── Acknowledgements ─────────────────────────────────────────────────────────
+% (omit for blind review)
+
+% ── References ───────────────────────────────────────────────────────────────
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{holoscript}
+% Key bib entries needed (add to holoscript.bib before submission):
+%   paper29algebraictrust   — Paper 29 Algebraic Trust (cite key TBD)
+%   paper32crdtspatial      — Paper 32 CRDT spatial state (cite key TBD)
+%   paper26latenttoken      — Paper 26 Latent Token Compression (cite key TBD)
+%   cael2026                — Paper 0c CAEL (cite key: verify in holoscript.bib)
+%   yjs2022                 — Yjs CRDT library
+%   automerge2019           — Automerge CRDT library
+%   loro2024                — Loro CRDT library
+%   a2agooglespec2025       — Google A2A agent card protocol
+%   eip712anchor2026        — EIP-712 chain anchor (if applicable)
+% \todo{Fill all bib entries; run pnpm check:paper-claim-map before submission}
+
+\end{document}
