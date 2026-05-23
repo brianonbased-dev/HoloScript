@@ -250,22 +250,32 @@ function frame() {
     // Headset drives the camera pose; render per-eye directly (EffectComposer is
     // not XR-aware, so bloom is dropped inside the session — correctness over polish).
     renderer.render(scene, camera);
-  } else {
+  } else if (!kbActive) {
+    // auto-orbit ONLY until the player takes control with the keyboard (Gate 19 fix)
     t += 0.0025;
     const rad = 17;
     camera.position.set(Math.cos(t) * rad, 6 + Math.sin(t * 0.5) * 3, Math.sin(t) * rad - 4);
     camera.lookAt(focus);
     composer.render();
+  } else {
+    // keyboard-driven flat view: camera sits at the chosen tier looking at it.
+    // camera is a child of the rig, so set its position in WORLD by subtracting the rig offset.
+    const o = (SCENE.regions[kbTier] && SCENE.regions[kbTier].origin) || [0, 0, 0];
+    const wx = (o[0] || 0), wy = (o[1] || 0) + 3.5, wz = (o[2] || 0) + 13;
+    camera.position.set(wx - rig.position.x, wy - rig.position.y, wz - rig.position.z);
+    camera.lookAt((o[0] || 0), (o[1] || 0) + 1, (o[2] || 0));
+    composer.render();
   }
 }
 // ── Gate 15: keyboard controls — playable OUTSIDE VR (shared scheme: W/S tier, E/Space graduate) ──
-let kbTier = 0;
+let kbTier = 0, kbActive = false;
 addEventListener('keydown', (e) => {
   const k = e.key;
   const verb = (k==='w'||k==='W'||k==='ArrowUp') ? 'ascend'
     : (k==='s'||k==='S'||k==='ArrowDown') ? 'descend'
     : (k==='e'||k==='E'||k===' '||k==='Enter') ? 'graduate' : null;
   if (!verb) return;
+  kbActive = true; // player has taken control — frame() stops the auto-orbit and follows the keyboard
   if (verb === 'ascend') kbTier = Math.min(SCENE.regions.length - 1, kbTier + 1);
   else if (verb === 'descend') kbTier = Math.max(0, kbTier - 1);
   else if (verb === 'graduate') {
@@ -281,8 +291,7 @@ addEventListener('keydown', (e) => {
       }
     }
   }
-  // move the rig to the chosen tier when not in an immersive session
-  if (!renderer.xr.isPresenting) { const o = SCENE.regions[kbTier] && SCENE.regions[kbTier].origin; if (o) rig.position.set(o[0] || focus.x, 1.6, (o[2] || focus.z) + 10); }
+  // (camera tier-follow is handled in frame() when kbActive — no rig override here, which the auto-orbit used to discard)
 });
 
 renderer.setAnimationLoop(frame);   // XR-compatible loop (replaces requestAnimationFrame)

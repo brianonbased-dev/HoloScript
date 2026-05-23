@@ -66,8 +66,15 @@ function draw(t){
     else if(m.name==='TheArchivist')archivist(m);
     else if(m.geometry==='humanoid')curator(m);
   }
+  // Gate 19 fix: the YOU-curator is DRIVEN by the keyboard (reads kbTier/kbX/kbGrad — observable, not dead)
+  const tierNames=['BronzeValley','GoldTerrace','DiamondPeak'];
+  const myRg=SCENE.regions.find(r=>r.name===tierNames[kbTier])||SCENE.regions[0];
+  const myY=GY-((myRg&&myRg.origin[1])||0)*SY+8, myX=CX+kbX*10;
+  px(myX-4,myY-15,8,5,'#f0c890');px(myX-5,myY-10,10,9,'#3a6ea5');px(myX-5,myY-1,3,4,'#3a6ea5');px(myX+2,myY-1,3,4,'#3a6ea5');
+  txt('YOU',myX-7,myY-17,'#5e7496');
+  txt('TIER '+tierNames[kbTier].toUpperCase()+'   GRADUATED '+kbGrad.length,4,12,'#ffe9a0');
   // blinking prompt
-  if((t>>5)&1)txt('▲ GRADUATE',CX-22,H-6,'#ffe9a0');
+  if((t>>5)&1)txt('W/S move tier · E graduate',CX-58,H-6,'#ffe9a0');
   // scanline overlay (retro CRT)
   x.fillStyle='rgba(0,0,0,0.18)';for(let y=0;y<H;y+=2)x.fillRect(0,y,W,1);
   requestAnimationFrame(draw);
