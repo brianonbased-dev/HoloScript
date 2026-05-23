@@ -1,105 +1,460 @@
 composition "PineTree" {
-  // ── HoloScript Native Asset ──────────────────────────────────────────────
-  // A stylized pine tree using layered cones and cylinder trunk.
-  // Demonstrates: organic shapes, layered geometry, LOD-friendly design.
+  // HoloScript Native Asset
+  // Reference-backed ponderosa-style pine, built from native geometry.
+  //
+  // Image references used for silhouette/material decisions:
+  // - Full form/needles: https://commons.wikimedia.org/wiki/File:Pinus_ponderosa_var._ponderosa_(6299105318).jpg
+  // - Branches/cones: https://commons.wikimedia.org/wiki/File:Pinus_ponderosa_branch_cones.jpg
+  // - Needle detail: https://commons.wikimedia.org/wiki/File:Pinus_ponderosa_Needle_Detail.jpg
+  // - Bark category: https://commons.wikimedia.org/wiki/Category:Pinus_ponderosa_(bark)
+  //
+  // Visual target: recognizably pine from silhouette alone. The tree uses a
+  // tapered trunk, exposed branch tiers, radial needle sprays, bark ridges, root
+  // flare, and asymmetric snow loads instead of stacked cone placeholders.
 
   environment {
     skybox: "hdr_studio"
-    ambient_light: 0.35
+    ambient_light: 0.38
     shadows: true
     tone_mapping: "aces"
+    background_color: "#d8e6ef"
   }
 
   post_processing {
-    bloom { intensity: 0.15, threshold: 0.9 }
+    bloom { intensity: 0.08, threshold: 0.9 }
     tone_mapping { mode: "aces" }
-    ambient_occlusion { intensity: 0.3, radius: 0.5 }
+    ambient_occlusion { intensity: 0.55, radius: 0.8 }
+    depth_of_field { focal_distance: 6.0, aperture: 7.1 }
   }
 
-  object "Tree" @physics {
-    position: [0, 0, 0]
+  material "BarkWarm" {
+    baseColor: "#6b4525"
+    roughness: 0.96
+    metalness: 0.0
+  }
 
-    // ── Trunk ─────────────────────────────────────────────────────────────
-    object "Trunk" {
+  material "BarkDarkFissure" {
+    baseColor: "#2f1d12"
+    roughness: 1.0
+    metalness: 0.0
+  }
+
+  material "NeedleDeep" {
+    baseColor: "#173a25"
+    roughness: 0.78
+    metalness: 0.0
+    subsurface: 0.18
+  }
+
+  material "NeedleSunlit" {
+    baseColor: "#2f6b3d"
+    roughness: 0.72
+    metalness: 0.0
+    subsurface: 0.22
+  }
+
+  material "SnowPowder" {
+    baseColor: "#f2f7ff"
+    roughness: 0.42
+    metalness: 0.0
+    opacity: 0.92
+  }
+
+  material "ConeScale" {
+    baseColor: "#7a5130"
+    roughness: 0.88
+    metalness: 0.0
+  }
+
+    // Ground contact gives the trunk weight and stops the asset looking like it
+    // is floating on a pole.
+    object "NeedleLitter" {
       geometry: "cylinder"
-      position: [0, 0.8, 0]
-      scale: [0.25, 1.6, 0.25]
-      color: "#5C3A1E"
-      material: { roughness: 0.9, metalness: 0.0 }
-
-      object "Root1" {
-        geometry: "cylinder"
-        position: [0.2, -0.8, 0.1]
-        rotation: [0, 0, 25]
-        scale: [0.1, 0.4, 0.1]
-        color: "#4A2E15"
-      }
-      object "Root2" {
-        geometry: "cylinder"
-        position: [-0.15, -0.8, -0.12]
-        rotation: [0, 0, -20]
-        scale: [0.08, 0.35, 0.08]
-        color: "#4A2E15"
-      }
+      position: [0, 0.015, 0]
+      scale: [2.4, 0.03, 2.0]
+      rotation: [0, 0.244, 0]
+      color: "#3b2a18"
+      material: { roughness: 1.0, metalness: 0.0, opacity: 0.62 }
     }
 
-    // ── Foliage Layers (bottom to top, getting smaller) ───────────────────
-    object "Foliage1" {
-      geometry: "cone"
-      position: [0, 2.0, 0]
-      scale: [1.8, 1.2, 1.8]
-      color: "#1B5E20"
-      material: { roughness: 0.85, metalness: 0.0 }
-    }
-    object "Foliage2" {
-      geometry: "cone"
-      position: [0, 2.8, 0]
-      scale: [1.5, 1.2, 1.5]
-      color: "#2E7D32"
-      material: { roughness: 0.85, metalness: 0.0 }
-    }
-    object "Foliage3" {
-      geometry: "cone"
-      position: [0, 3.5, 0]
-      scale: [1.1, 1.1, 1.1]
-      color: "#388E3C"
-      material: { roughness: 0.85, metalness: 0.0 }
-    }
-    object "Foliage4" {
-      geometry: "cone"
-      position: [0, 4.1, 0]
-      scale: [0.7, 0.9, 0.7]
-      color: "#43A047"
-      material: { roughness: 0.85, metalness: 0.0 }
-    }
-    object "Tip" {
-      geometry: "cone"
-      position: [0, 4.6, 0]
-      scale: [0.35, 0.6, 0.35]
-      color: "#4CAF50"
+    // Tapered segmented trunk. Ponderosa bark reads as vertical plates with
+    // dark cracks, so ridges are layered on top instead of one smooth cylinder.
+    object "TrunkLower" {
+      geometry: "cylinder"
+      position: [0, 0.82, 0]
+      scale: [0.31, 1.6, 0.31]
+      rotation: [0, 0, -0.035]
+      color: "#6b4525"
+      material: "BarkWarm"
     }
 
-    // ── Snow Caps ─────────────────────────────────────────────────────────
-    object "Snow1" {
-      geometry: "cone"
-      position: [0, 2.5, 0]
-      scale: [1.3, 0.15, 1.3]
-      color: "#f0f5ff"
-      material: { roughness: 0.4, metalness: 0.0, opacity: 0.85 }
+    object "TrunkMiddle" {
+      geometry: "cylinder"
+      position: [0.04, 2.23, -0.02]
+      scale: [0.23, 1.34, 0.23]
+      rotation: [0, 0, 0.026]
+      color: "#6b4525"
+      material: "BarkWarm"
     }
-    object "Snow2" {
-      geometry: "cone"
-      position: [0, 3.3, 0]
-      scale: [1.0, 0.12, 1.0]
-      color: "#f0f5ff"
-      material: { roughness: 0.4, opacity: 0.85 }
+
+    object "TrunkTop" {
+      geometry: "cylinder"
+      position: [0.02, 3.42, -0.04]
+      scale: [0.14, 1.1, 0.14]
+      rotation: [0, 0, -0.052]
+      color: "#6b4525"
+      material: "BarkWarm"
     }
-    object "Snow3" {
+
+    object "LeaderTip" {
       geometry: "cone"
-      position: [0, 3.9, 0]
-      scale: [0.6, 0.1, 0.6]
-      color: "#ffffff"
-      material: { roughness: 0.3, opacity: 0.9 }
+      position: [0, 4.65, -0.05]
+      scale: [0.16, 0.75, 0.16]
+      rotation: [0, 0, -0.052]
+      color: "#2f6b3d"
+      material: "NeedleSunlit"
     }
-  }
+
+    object "BarkFissureFront" {
+      geometry: "cube"
+      position: [0.03, 1.25, 0.315]
+      scale: [0.035, 1.28, 0.018]
+      rotation: [0, 0.105, 0.035]
+      color: "#2f1d12"
+      material: "BarkDarkFissure"
+    }
+
+    object "BarkPlateLeft" {
+      geometry: "cube"
+      position: [-0.245, 1.04, 0.16]
+      scale: [0.032, 1.05, 0.026]
+      rotation: [0, -0.489, -0.087]
+      color: "#2f1d12"
+      material: "BarkDarkFissure"
+    }
+
+    object "BarkPlateRight" {
+      geometry: "cube"
+      position: [0.26, 1.55, -0.07]
+      scale: [0.03, 1.18, 0.024]
+      rotation: [0, 1.292, 0.07]
+      color: "#2f1d12"
+      material: "BarkDarkFissure"
+    }
+
+    object "BarkPlateBack" {
+      geometry: "cube"
+      position: [-0.03, 2.58, -0.235]
+      scale: [0.024, 0.92, 0.022]
+      rotation: [0, 3.159, -0.035]
+      color: "#2f1d12"
+      material: "BarkDarkFissure"
+    }
+
+    // Root flare: asymmetry matters. Real pines do not emerge from the ground
+    // as a perfect cylinder.
+    object "RootNorth" {
+      geometry: "cylinder"
+      position: [0.05, 0.11, 0.57]
+      rotation: [1.152, 0.14, 0.07]
+      scale: [0.075, 0.72, 0.07]
+      color: "#6b4525"
+      material: "BarkWarm"
+    }
+
+    object "RootEast" {
+      geometry: "cylinder"
+      position: [0.58, 0.1, -0.04]
+      rotation: [1.257, 0, -1.292]
+      scale: [0.065, 0.64, 0.06]
+      color: "#6b4525"
+      material: "BarkWarm"
+    }
+
+    object "RootSouthWest" {
+      geometry: "cylinder"
+      position: [-0.47, 0.1, -0.35]
+      rotation: [1.187, -0.698, 0.838]
+      scale: [0.07, 0.66, 0.06]
+      color: "#6b4525"
+      material: "BarkWarm"
+    }
+
+    object "RootFine" {
+      geometry: "cylinder"
+      position: [-0.7, 0.07, 0.24]
+      rotation: [1.361, 0.262, 1.187]
+      scale: [0.035, 0.55, 0.035]
+      color: "#2f1d12"
+      material: "BarkDarkFissure"
+    }
+
+    // Lower branch whorl: long, slightly drooping limbs with separated sprays.
+    object "LowerBranchA" {
+      geometry: "cylinder"
+      position: [-0.82, 1.85, 0.18]
+      rotation: [0, 0, 1.239]
+      scale: [0.055, 1.18, 0.055]
+      color: "#6b4525"
+      material: "BarkWarm"
+    }
+    object "LowerSprayA1" {
+      geometry: "capsule"
+      position: [-1.62, 1.72, 0.2]
+      rotation: [0.14, 0, 1.361]
+      scale: [0.22, 0.78, 0.13]
+      color: "#173a25"
+      material: "NeedleDeep"
+    }
+    object "LowerSprayA2" {
+      geometry: "capsule"
+      position: [-1.18, 2.0, 0.34]
+      rotation: [-0.14, 0.314, 1.082]
+      scale: [0.17, 0.58, 0.1]
+      color: "#2f6b3d"
+      material: "NeedleSunlit"
+    }
+    object "SnowLowerA" {
+      geometry: "sphere"
+      position: [-1.45, 1.96, 0.24]
+      scale: [0.42, 0.09, 0.2]
+      color: "#f2f7ff"
+      material: "SnowPowder"
+    }
+
+    object "LowerBranchB" {
+      geometry: "cylinder"
+      position: [0.82, 1.72, -0.18]
+      rotation: [0, 0, -1.257]
+      scale: [0.052, 1.05, 0.052]
+      color: "#6b4525"
+      material: "BarkWarm"
+    }
+    object "LowerSprayB1" {
+      geometry: "capsule"
+      position: [1.52, 1.57, -0.25]
+      rotation: [-0.105, 0, -1.326]
+      scale: [0.2, 0.68, 0.12]
+      color: "#173a25"
+      material: "NeedleDeep"
+    }
+    object "LowerSprayB2" {
+      geometry: "capsule"
+      position: [1.08, 1.93, -0.48]
+      rotation: [0.122, -0.419, -1.082]
+      scale: [0.15, 0.5, 0.1]
+      color: "#2f6b3d"
+      material: "NeedleSunlit"
+    }
+
+    object "LowerBranchC" {
+      geometry: "cylinder"
+      position: [0.08, 1.66, 0.92]
+      rotation: [1.257, 0, 0]
+      scale: [0.05, 0.98, 0.05]
+      color: "#6b4525"
+      material: "BarkWarm"
+    }
+    object "LowerSprayC1" {
+      geometry: "capsule"
+      position: [0.02, 1.48, 1.55]
+      rotation: [1.361, 0, 0.14]
+      scale: [0.18, 0.62, 0.1]
+      color: "#173a25"
+      material: "NeedleDeep"
+    }
+    object "SnowLowerC" {
+      geometry: "sphere"
+      position: [0.02, 1.72, 1.38]
+      scale: [0.34, 0.08, 0.19]
+      color: "#f2f7ff"
+      material: "SnowPowder"
+    }
+
+    // Middle whorl: shorter branches, denser needles, open windows to the
+    // trunk. This is the visible anti-cone silhouette.
+    object "MidBranchA" {
+      geometry: "cylinder"
+      position: [-0.62, 2.62, -0.08]
+      rotation: [0, 0, 1.169]
+      scale: [0.042, 0.85, 0.042]
+      color: "#6b4525"
+      material: "BarkWarm"
+    }
+    object "MidSprayA1" {
+      geometry: "capsule"
+      position: [-1.15, 2.54, -0.13]
+      rotation: [0, 0.105, 1.292]
+      scale: [0.16, 0.54, 0.1]
+      color: "#173a25"
+      material: "NeedleDeep"
+    }
+    object "MidNeedleFanA" {
+      geometry: "cone"
+      position: [-1.32, 2.78, -0.06]
+      rotation: [0, 0, 1.431]
+      scale: [0.16, 0.42, 0.16]
+      color: "#2f6b3d"
+      material: "NeedleSunlit"
+    }
+
+    object "MidBranchB" {
+      geometry: "cylinder"
+      position: [0.52, 2.48, 0.24]
+      rotation: [0, 0.454, -1.117]
+      scale: [0.04, 0.75, 0.04]
+      color: "#6b4525"
+      material: "BarkWarm"
+    }
+    object "MidSprayB1" {
+      geometry: "capsule"
+      position: [1.0, 2.4, 0.45]
+      rotation: [0.035, 0.419, -1.292]
+      scale: [0.15, 0.48, 0.1]
+      color: "#173a25"
+      material: "NeedleDeep"
+    }
+    object "SnowMidB" {
+      geometry: "sphere"
+      position: [0.92, 2.63, 0.39]
+      scale: [0.28, 0.065, 0.16]
+      color: "#f2f7ff"
+      material: "SnowPowder"
+    }
+
+    object "MidBranchC" {
+      geometry: "cylinder"
+      position: [0.02, 2.58, -0.62]
+      rotation: [-1.187, 0, 0]
+      scale: [0.04, 0.78, 0.04]
+      color: "#6b4525"
+      material: "BarkWarm"
+    }
+    object "MidSprayC1" {
+      geometry: "capsule"
+      position: [-0.03, 2.5, -1.1]
+      rotation: [-1.292, 0, -0.07]
+      scale: [0.15, 0.5, 0.1]
+      color: "#173a25"
+      material: "NeedleDeep"
+    }
+    object "MidNeedleFanC" {
+      geometry: "cone"
+      position: [0.13, 2.74, -1.0]
+      rotation: [-1.431, 0, 0.175]
+      scale: [0.13, 0.34, 0.13]
+      color: "#2f6b3d"
+      material: "NeedleSunlit"
+    }
+
+    // Upper crown: small off-axis clusters, not a single cone.
+    object "UpperBranchA" {
+      geometry: "cylinder"
+      position: [-0.35, 3.32, 0.1]
+      rotation: [0, 0, 1.065]
+      scale: [0.032, 0.54, 0.032]
+      color: "#6b4525"
+      material: "BarkWarm"
+    }
+    object "UpperSprayA" {
+      geometry: "capsule"
+      position: [-0.72, 3.34, 0.13]
+      rotation: [0, 0.07, 1.187]
+      scale: [0.12, 0.38, 0.085]
+      color: "#2f6b3d"
+      material: "NeedleSunlit"
+    }
+    object "UpperSnowA" {
+      geometry: "sphere"
+      position: [-0.64, 3.52, 0.11]
+      scale: [0.22, 0.05, 0.12]
+      color: "#f2f7ff"
+      material: "SnowPowder"
+    }
+
+    object "UpperBranchB" {
+      geometry: "cylinder"
+      position: [0.31, 3.18, -0.18]
+      rotation: [0, -0.314, -1.012]
+      scale: [0.032, 0.48, 0.032]
+      color: "#6b4525"
+      material: "BarkWarm"
+    }
+    object "UpperSprayB" {
+      geometry: "capsule"
+      position: [0.62, 3.18, -0.32]
+      rotation: [0, -0.384, -1.152]
+      scale: [0.12, 0.34, 0.08]
+      color: "#173a25"
+      material: "NeedleDeep"
+    }
+
+    object "UpperBranchC" {
+      geometry: "cylinder"
+      position: [0.02, 3.62, 0.34]
+      rotation: [1.082, 0, 0]
+      scale: [0.027, 0.42, 0.027]
+      color: "#6b4525"
+      material: "BarkWarm"
+    }
+    object "UpperSprayC" {
+      geometry: "capsule"
+      position: [0.03, 3.63, 0.63]
+      rotation: [1.222, 0, 0]
+      scale: [0.1, 0.3, 0.075]
+      color: "#2f6b3d"
+      material: "NeedleSunlit"
+    }
+
+    object "TopSprayLeft" {
+      geometry: "cone"
+      position: [-0.2, 4.02, 0.04]
+      rotation: [0, 0, 0.628]
+      scale: [0.12, 0.5, 0.12]
+      color: "#173a25"
+      material: "NeedleDeep"
+    }
+    object "TopSprayRight" {
+      geometry: "cone"
+      position: [0.22, 4.08, -0.04]
+      rotation: [0, 0, -0.541]
+      scale: [0.1, 0.46, 0.1]
+      color: "#2f6b3d"
+      material: "NeedleSunlit"
+    }
+    object "TopSnowPocket" {
+      geometry: "sphere"
+      position: [0.02, 4.18, -0.02]
+      scale: [0.22, 0.055, 0.18]
+      color: "#f2f7ff"
+      material: "SnowPowder"
+    }
+
+    // Cones hang from branches rather than acting as the tree silhouette.
+    object "PineConeA" {
+      geometry: "cone"
+      position: [-1.0, 1.88, 0.31]
+      rotation: [3.142, 0, 0.209]
+      scale: [0.075, 0.22, 0.075]
+      color: "#7a5130"
+      material: "ConeScale"
+    }
+
+    object "PineConeB" {
+      geometry: "cone"
+      position: [0.82, 2.18, -0.52]
+      rotation: [3.142, 0, -0.14]
+      scale: [0.06, 0.18, 0.06]
+      color: "#7a5130"
+      material: "ConeScale"
+    }
+
+    object "PineConeC" {
+      geometry: "cone"
+      position: [-0.55, 3.02, -0.06]
+      rotation: [3.142, 0, 0.314]
+      scale: [0.052, 0.15, 0.052]
+      color: "#7a5130"
+      material: "ConeScale"
+    }
 }
