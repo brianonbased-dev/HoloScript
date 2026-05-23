@@ -520,6 +520,12 @@ export interface ContextCompilerOptions {
  * Banned patterns a `@default` trait MUST NOT recommend. Source-of-truth
  * per founder skill section Known founder defaults + multiple F.* feedback rules.
  * Compiler BLOCKS at emit time.
+ *
+ * MIRRORED (manual sync): `~/.ai-ecosystem/scripts/skill-surface-lint.mjs` carries
+ * a copy of these regexes for its markdown-surface check. A direct import is
+ * infeasible — that linter lives in a separate repo with no @holoscript/core
+ * dependency, and a cross-repo import in a pre-commit hook would be brittle.
+ * When this array changes, update the linter's copy too (it cites this line).
  */
 const BANNED_DEFAULT_PATTERNS: ReadonlyArray<{ pattern: RegExp; rule: string }> = [
   { pattern: /\bgit\s+add\s+(?:-A|--all|\.)(?=\s|$)/i, rule: 'F.001/F.011 - git add -A leaked .env twice' },
