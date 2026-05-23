@@ -721,40 +721,7 @@ LIF simulation, spike codecs, SNN graph wiring, tropical kernels (including APSP
 benchmarks), GPU buffer/pipeline paths, and integration scenarios.
 A full-package \texttt{vitest run} on 2026-04-17 reported \textbf{205} passing tests
 (Windows/Node; some suites exercise native WebGPU when available, others use mocks).
-Table~\ref{tab:test-suites} lists the per-suite breakdown regenerated via
-\texttt{vitest run --reporter=json} on 2026-04-18 (HoloScript v6.0.3, Windows/Node 22.x;
-205 tests, 0 failures).
-
-\begin{table}[h]
-\centering
-\caption{Per-suite test counts for \texttt{@holoscript/snn-webgpu} (2026-04-18, 205 total).}
-\label{tab:test-suites}
-\small
-\measuredFrom{HoloScript/.bench-logs/snn-vitest-suite-counts.json}%
-\begin{tabular}{lr}
-\toprule
-\textbf{Suite} & \textbf{Passed} \\
-\midrule
-\texttt{snn-vs-backprop-experiment} & 57 \\
-\texttt{snn-network} & 26 \\
-\texttt{spike-codec} & 19 \\
-\texttt{gpu-context} & 18 \\
-\texttt{lif-simulator} & 16 \\
-\texttt{buffer-manager} & 15 \\
-\texttt{types} & 14 \\
-\texttt{pipeline-factory} & 12 \\
-\texttt{integration} & 5 \\
-\texttt{tropical-activation} & 3 \\
-\texttt{tropical-core-consistency} & 3 \\
-\texttt{tropical-shortest-paths.benchmark} & 3 \\
-\texttt{tropical-graph-utils} & 4 \\
-\texttt{tropical-shortest-paths} & 4 \\
-\texttt{LIFDeterminismProbe} & 6 \\
-\midrule
-\textbf{Total} & \textbf{205} \\
-\bottomrule
-\end{tabular}
-\end{table}
+\textit{(See Appendix~\ref{app:test-suites} for per-suite breakdown.)}
 
 % ============================================================================
 \section{Evaluation}
@@ -1051,34 +1018,12 @@ harness (pure-JS FIPS~180-4 implementation; Node-native
 \texttt{crypto} reduces this to $\sim$3--8$\times$ where available, but
 the pure-JS path preserves universal browser compatibility).
 
-\subsection{Twin Test Equivalence}
-\label{sec:twin-test}
-
-To satisfy the digital-twin reproducibility envelope (W.315), we maintain a bit-exact CPU reference implementation of the LIF neuron model (\texttt{src/poc/cpu-reference.ts}) and assert cross-platform parity against the WebGPU compute shader on every commit.
-The reference uses the identical mathematical model---exponential decay, threshold-and-reset, and a $2\,$ms refractory period---implemented in plain TypeScript with deterministic xorshift32 stimulus generation so the same seed produces the same synaptic-current pattern on every backend.
-
-\begin{table}[t]
-\centering
-\caption{Twin-test parity: CPU reference vs. WebGPU LIF kernel.
-  Measured 2026-05-04 on NVIDIA Ampere (RTX 3060 Laptop, driver 591.74) via \texttt{vitest} with the Dawn-native WebGPU backend.
-  Tolerance: $5\times10^{-5}$ absolute / $10^{-4}$ relative on membrane potentials; spike masks exact ($0$ vs. $1$).}
-\label{tab:twin-test}
-\small
-\measuredFrom{HoloScript/packages/snn-webgpu/src/paper/__tests__/LIFTwinTest.test.ts}%
-\begin{tabular}{@{}rrrr@{}}
-\toprule
-\textbf{Neurons} & \textbf{Ticks} & \textbf{Max abs. diff.} & \textbf{Spike parity} \\
-\midrule
-1{,}024   & 100 & $\!<\!5\times10^{-5}$ & 1{,}024 / 1{,}024 \\
-65{,}536  & 10  & $\!<\!5\times10^{-5}$ & 65{,}536 / 65{,}536 \\
-2{,}048   & 20  & $\!<\!5\times10^{-5}$ & 2{,}048 / 2{,}048 (custom $\tau{=}10$, $v_{\text{thresh}}{=}{-}50$) \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Table~\ref{tab:twin-test} reports the assertion outcomes for three canonical configurations.
-The residual floating-point divergence ($\sim$10$^{-5}$) is bounded by IEEE-754 f32 \texttt{exp()} differences between the WGSL shader and the JS host; spike masks remain exact because the threshold comparison is a discrete predicate that is insensitive to sub-ulp variation.
-This twin-test assertion is the empirical substrate for the cross-backend determinism claim in \S\ref{sec:evaluation}: if CPU and GPU agree at the f32 level, observed cross-GPU hash mismatches (if any) point to driver or compiler bugs, not model drift. The twin-test is the program's W.315 wire-format equivalent primitive specialized to spike data: the WGSL shader (one implementation) and the JS host (a second implementation) constitute a two-implementation agreement asserted by deterministic replay through the SNN shadow-replay harness at \texttt{packages/core/src/paper-0c-spike/stage-c-shadow-replay.ts}, which compares the runtime spike digest against the canonical JSONL spike digest per step (the \texttt{digest\_match} bit-identity check) and falls through to bounded-loss tolerance ($q_f/2$ for $\geq 99.99\%$ of steps) when the cross-backend regime would relax bit-identity at sub-ulp scale---the Route~2b per-step canonical projection pattern shared across the program~\cite{paper-0c-twin-test-2026-05-11}.
+% Twin Test Equivalence moved to supplemental (2026-05-23) for NeurIPS 9-page budget.
+% Full bit-exact parity table and discussion: paper-2-snn-neurips-supplemental.tex §A.
+% Summary: CPU (TypeScript) and WebGPU (WGSL) LIF implementations agree to
+% <5×10⁻⁵ absolute on membrane potentials; spike masks are bit-exact across all
+% tested configurations (1024/65536/2048 neurons). See Supplemental §A for
+% full data~\cite{paper-0c-twin-test-2026-05-11}.
 
 \subsection{Decoder Cost}
 \label{sec:decoder-cost}
