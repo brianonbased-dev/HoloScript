@@ -61,7 +61,11 @@ interface CodebaseModule {
 }
 
 const CACHE_WARM_GRAPH_RAG_TIMEOUT_MS = readPositiveEnvMs('ABSORB_CACHE_WARM_TIMEOUT_MS', 30_000);
-const EMBEDDING_BUILD_TIMEOUT_MS = readPositiveEnvMs('ABSORB_EMBEDDING_BUILD_TIMEOUT_MS', 90_000);
+// 90s was too low for real repos: a ~13k-symbol codebase is ~130 OpenAI batches
+// (batchSize 100) ≈ 65–130s, so the embedding build silently timed out and the
+// graph was cached WITHOUT a HoloEmbed index (semantic_search → "no index").
+// 600s caps indefinite hangs while letting large repos finish; override via env.
+const EMBEDDING_BUILD_TIMEOUT_MS = readPositiveEnvMs('ABSORB_EMBEDDING_BUILD_TIMEOUT_MS', 600_000);
 const INCREMENTAL_EMBEDDING_TIMEOUT_MS = readPositiveEnvMs(
   'ABSORB_INCREMENTAL_EMBEDDING_TIMEOUT_MS',
   60_000
@@ -2337,7 +2341,8 @@ async function handleResolveSymbol(args: Record<string, unknown>): Promise<unkno
   }
 
   // 2. FEDERATED: augment with cross-repo matches from the orchestrator (best-effort).
-  const orchestratorUrl = process.env.MCP_ORCHESTRATOR_URL || 'http://localhost:5566';
+  const orchestratorUrl =
+    process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app';
   const apiKey = process.env.HOLOSCRIPT_API_KEY;
   const federatedResults: Array<Record<string, unknown>> = [];
   let federatedError: string | undefined;
@@ -2392,7 +2397,8 @@ async function handleResolveSymbol(args: Record<string, unknown>): Promise<unkno
  * Sync codebase symbols with the MCP Orchestrator for federated discovery.
  */
 export async function syncWithMesh(graph: any, rootDir: string): Promise<void> {
-  const orchestratorUrl = process.env.MCP_ORCHESTRATOR_URL || 'http://localhost:5566';
+  const orchestratorUrl =
+    process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app';
   const apiKey = process.env.HOLOSCRIPT_API_KEY;
   const workspaceId = rootDir.split(/[/\\]/).pop() || 'unknown';
 
