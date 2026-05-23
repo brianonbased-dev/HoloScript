@@ -30,6 +30,11 @@ export interface CollapsingTriangleFamilyOptions {
   endHeight?: number;
 }
 
+export interface SharedEdgeFanFamilyOptions {
+  /** Largest blade count (inclusive). Must be >= 1. Default 4. */
+  maxBlades?: number;
+}
+
 const TWO_PI = Math.PI * 2;
 
 /**
@@ -146,6 +151,63 @@ export function generateCollapsingTriangleFamily(
     const t = i / (steps - 1);
     const apexHeight = startHeight + (endHeight - startHeight) * t;
     candidates.push(collapsingTriangleCandidate(apexHeight, { id: `collapsing-triangle-step-${i}` }));
+  }
+  return candidates;
+}
+
+/**
+ * `blades` triangles all sharing one common edge (v0,v1), each with its own
+ * apex placed around that edge. The shared edge has incidence == blades:
+ * for blades <= 2 the surface is edge-manifold; for blades >= 3 it is NOT
+ * (an edge shared by 3+ triangles is the canonical non-manifold defect).
+ * Every triangle is non-degenerate, so the manifold probe is the only signal.
+ */
+export function sharedEdgeFanCandidate(
+  blades: number,
+  options: { id?: string } = {},
+): GeometryConjectureCandidate {
+  if (!Number.isInteger(blades) || blades < 1) {
+    throw new Error('ConjectureGenerator: shared-edge fan requires an integer blades >= 1');
+  }
+  const id = options.id ?? `shared-edge-fan-${blades}`;
+  // v0, v1 form the shared edge along x; each blade adds an apex at distance 1
+  // from the edge, fanned through the y-z plane so triangles never coincide.
+  const vertices: number[] = [0, 0, 0, 1, 0, 0];
+  const elements: number[] = [];
+  for (let i = 0; i < blades; i++) {
+    const apexIndex = 2 + i;
+    const angle = (Math.PI * (i + 1)) / (blades + 1);
+    vertices.push(0.5, Math.cos(angle), Math.sin(angle));
+    elements.push(0, 1, apexIndex);
+  }
+  return {
+    id,
+    family: 'shared-edge-fan',
+    elementArity: 3,
+    semanticTags: ['geometry', 'generated', blades >= 3 ? 'counterexample' : 'candidate'],
+    parameters: { blades, manifold: blades <= 2 },
+    vertices: new Float64Array(vertices),
+    elements: new Uint32Array(elements),
+  };
+}
+
+/**
+ * Generate a swept family of shared-edge fans for blade counts 1..maxBlades.
+ * Conjecture under test: "every generated shared-edge fan is edge-manifold."
+ * The sweep DISCOVERS the manifoldness boundary — the first non-manifold member
+ * is the 3-blade fan — so the counterexample carries the exact blade count that
+ * broke the invariant.
+ */
+export function generateSharedEdgeFanFamily(
+  options: SharedEdgeFanFamilyOptions = {},
+): ReadonlyArray<GeometryConjectureCandidate> {
+  const maxBlades = options.maxBlades ?? 4;
+  if (!Number.isInteger(maxBlades) || maxBlades < 1) {
+    throw new Error('ConjectureGenerator: shared-edge fan family requires maxBlades >= 1');
+  }
+  const candidates: GeometryConjectureCandidate[] = [];
+  for (let blades = 1; blades <= maxBlades; blades++) {
+    candidates.push(sharedEdgeFanCandidate(blades, { id: `shared-edge-fan-${blades}` }));
   }
   return candidates;
 }

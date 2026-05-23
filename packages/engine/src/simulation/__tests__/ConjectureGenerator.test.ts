@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { buildConjectureV1Receipt, eulerCharacteristicProbe, nonDegenerateGeometryProbe } from '../ConjectureEngine';
+import {
+  buildConjectureV1Receipt,
+  computeMeshFacts,
+  eulerCharacteristicProbe,
+  manifoldEdgeProbe,
+  nonDegenerateGeometryProbe,
+} from '../ConjectureEngine';
 import {
   collapsingTriangleCandidate,
   generateCollapsingTriangleFamily,
   generateRegularPolygonSheetFamily,
+  generateSharedEdgeFanFamily,
   regularPolygonSheetCandidate,
+  sharedEdgeFanCandidate,
 } from '../ConjectureGenerator';
 import {
   GENERATED_GEOMETRY_FAMILY_SUITE,
@@ -72,6 +80,71 @@ describe('ConjectureGenerator — GENERATE leg', () => {
     const candidate = collapsingTriangleCandidate(0);
     expect(candidate.parameters?.apexHeight).toBe(0);
     expect(candidate.semanticTags).toContain('counterexample');
+  });
+});
+
+describe('manifoldEdgeProbe + shared-edge fan family', () => {
+  it('passes for 1- and 2-blade fans (edge-manifold)', () => {
+    for (const blades of [1, 2]) {
+      const candidate = sharedEdgeFanCandidate(blades);
+      const facts = computeMeshFacts(candidate, 'sha256');
+      const result = manifoldEdgeProbe().evaluate(candidate, facts);
+      expect(result.status).toBe('pass');
+      expect(result.measurements?.maxEdgeIncidence).toBe(blades);
+    }
+  });
+
+  it('fails for 3+ blade fans (edge shared by 3+ triangles is non-manifold)', () => {
+    for (const blades of [3, 4, 5]) {
+      const candidate = sharedEdgeFanCandidate(blades);
+      const facts = computeMeshFacts(candidate, 'sha256');
+      const result = manifoldEdgeProbe().evaluate(candidate, facts);
+      expect(result.status).toBe('fail');
+      expect(result.measurements?.maxEdgeIncidence).toBe(blades);
+      expect(result.measurements?.nonManifoldEdges).toBe(1);
+    }
+  });
+
+  it('regular polygon sheets are edge-manifold (max incidence 2)', () => {
+    for (const sides of [3, 5, 8]) {
+      const candidate = regularPolygonSheetCandidate(sides);
+      const facts = computeMeshFacts(candidate, 'sha256');
+      const result = manifoldEdgeProbe().evaluate(candidate, facts);
+      expect(result.status).toBe('pass');
+      expect(result.measurements?.maxEdgeIncidence).toBe(2);
+    }
+  });
+
+  it('discovers the manifoldness boundary in a generated fan sweep', () => {
+    const family = generateSharedEdgeFanFamily({ maxBlades: 4 });
+    expect(family).toHaveLength(4);
+
+    const claim = {
+      kind: 'geometry.invariant' as const,
+      id: 'C.TEST.SHARED_EDGE_FAN',
+      statement: 'every generated shared-edge fan is edge-manifold',
+      assumptions: ['falsifiers carry the discovered blade count'],
+      evidenceRefs: ['packages/engine/src/simulation/ConjectureGenerator.ts'],
+      proposedBy: 'generator-test',
+    };
+    const receipt = buildConjectureV1Receipt({
+      claim,
+      candidates: family,
+      probes: [manifoldEdgeProbe()],
+      hashMode: 'sha256',
+    });
+
+    expect(receipt.status).toBe('falsified');
+    // blades 3 and 4 are the discovered non-manifold members.
+    const falsifiedBlades = receipt.evaluations
+      .filter((evaluation) => evaluation.status === 'falsified')
+      .map((evaluation) => evaluation.parameters.blades)
+      .sort();
+    expect(falsifiedBlades).toEqual([3, 4]);
+  });
+
+  it('rejects an invalid fan (blades < 1)', () => {
+    expect(() => sharedEdgeFanCandidate(0)).toThrow();
   });
 });
 

@@ -430,6 +430,56 @@ export function eulerCharacteristicProbe(expected: number): ConjectureProbe {
   };
 }
 
+/**
+ * Edge-manifoldness probe: a triangle surface is edge-manifold when no edge is
+ * shared by three or more triangles (interior edges have incidence 2, boundary
+ * edges incidence 1). Manifoldness is a named proof-carrying-geometry invariant;
+ * this carries it as deterministic receipt evidence (not a Lean proof, W.511).
+ */
+export function manifoldEdgeProbe(): ConjectureProbe {
+  return {
+    id: 'geometry.manifold_edges',
+    description: 'No edge is shared by three or more triangles (edge-manifold surface).',
+    evaluate(candidate, facts): ProbeResult {
+      if (facts.elementArity !== 3) {
+        return {
+          probeId: 'geometry.manifold_edges',
+          status: 'inconclusive',
+          message: 'edge-manifoldness is only computed for triangle surfaces',
+        };
+      }
+      const incidence = new Map<string, number>();
+      const elements = candidate.elements;
+      for (let i = 0; i < elements.length; i += 3) {
+        const a = elements[i];
+        const b = elements[i + 1];
+        const c = elements[i + 2];
+        for (const [u, v] of [[a, b], [b, c], [c, a]] as const) {
+          const key = edgeKey(u, v);
+          incidence.set(key, (incidence.get(key) ?? 0) + 1);
+        }
+      }
+      let maxEdgeIncidence = 0;
+      let nonManifoldEdges = 0;
+      let boundaryEdges = 0;
+      for (const count of incidence.values()) {
+        if (count > maxEdgeIncidence) maxEdgeIncidence = count;
+        if (count >= 3) nonManifoldEdges += 1;
+        if (count === 1) boundaryEdges += 1;
+      }
+      const pass = nonManifoldEdges === 0;
+      return {
+        probeId: 'geometry.manifold_edges',
+        status: pass ? 'pass' : 'fail',
+        message: pass
+          ? 'every edge is shared by at most two triangles'
+          : 'found edge(s) shared by three or more triangles (non-manifold)',
+        measurements: { maxEdgeIncidence, nonManifoldEdges, boundaryEdges },
+      };
+    },
+  };
+}
+
 function statusFromProbeResults(results: ReadonlyArray<ProbeResult>): ConjectureStatus {
   if (results.some((r) => r.status === 'fail')) return 'falsified';
   if (results.some((r) => r.status === 'inconclusive')) return 'inconclusive';

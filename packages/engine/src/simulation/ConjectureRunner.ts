@@ -12,6 +12,7 @@ import {
   createTetrahedronSurfaceCandidate,
   eulerCharacteristicProbe,
   geometryHashOrderInvariantProbe,
+  manifoldEdgeProbe,
   nonDegenerateGeometryProbe,
   type ConjectureClaim,
   type ConjectureProbe,
@@ -22,6 +23,7 @@ import {
 import {
   generateCollapsingTriangleFamily,
   generateRegularPolygonSheetFamily,
+  generateSharedEdgeFanFamily,
 } from './ConjectureGenerator';
 import { stableStringify } from './equivalenceRecord';
 import type { HashMode } from './hashes';
@@ -191,6 +193,7 @@ function buildGeneratedGeometryFamilyScenarios(
   const base = claimBase(proposedBy);
   const survivorFamily = generateRegularPolygonSheetFamily({ minSides: 3, maxSides: 8 });
   const falsifierFamily = generateCollapsingTriangleFamily({ steps: 6, startHeight: 1, endHeight: 0 });
+  const manifoldFalsifierFamily = generateSharedEdgeFanFamily({ maxBlades: 4 });
 
   return [
     {
@@ -200,10 +203,10 @@ function buildGeneratedGeometryFamilyScenarios(
         ...base,
         id: 'C.GEOM.RUNNER.GENERATED_SURVIVOR',
         statement:
-          'Every machine-generated regular polygon sheet (sides 3..8) is non-degenerate and has Euler characteristic 1.',
+          'Every machine-generated regular polygon sheet (sides 3..8) is non-degenerate, edge-manifold, and has Euler characteristic 1.',
       },
       candidates: survivorFamily,
-      probes: [nonDegenerateGeometryProbe(), eulerCharacteristicProbe(1)],
+      probes: [nonDegenerateGeometryProbe(), manifoldEdgeProbe(), eulerCharacteristicProbe(1)],
       graduationTarget: 'receipt-carrying.geometry',
     },
     {
@@ -218,6 +221,19 @@ function buildGeneratedGeometryFamilyScenarios(
       candidates: falsifierFamily,
       probes: [nonDegenerateGeometryProbe()],
       graduationTarget: 'trait-invariant.candidate',
+    },
+    {
+      id: 'generated-geometry.shared-edge-fan-sweep',
+      role: 'falsifier',
+      claim: {
+        ...base,
+        id: 'C.GEOM.RUNNER.GENERATED_MANIFOLD_FALSIFIER',
+        statement:
+          'Every machine-generated shared-edge fan (1..4 blades) is edge-manifold.',
+      },
+      candidates: manifoldFalsifierFamily,
+      probes: [manifoldEdgeProbe()],
+      graduationTarget: 'compiler-check.candidate',
     },
   ];
 }

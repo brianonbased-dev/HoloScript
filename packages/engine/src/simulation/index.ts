@@ -173,6 +173,7 @@ export {
   createTetrahedronSurfaceCandidate,
   eulerCharacteristicProbe,
   geometryHashOrderInvariantProbe,
+  manifoldEdgeProbe,
   nonDegenerateGeometryProbe,
   type CandidateEvaluation,
   type ConjectureClaim,
@@ -221,8 +222,11 @@ export {
   generateRegularPolygonSheetFamily,
   collapsingTriangleCandidate,
   generateCollapsingTriangleFamily,
+  sharedEdgeFanCandidate,
+  generateSharedEdgeFanFamily,
   type RegularPolygonSheetFamilyOptions,
   type CollapsingTriangleFamilyOptions,
+  type SharedEdgeFanFamilyOptions,
 } from './ConjectureGenerator';
 
 // CAEL (Contracted Agent-Environment Loop) — hash-chain artifact standard
