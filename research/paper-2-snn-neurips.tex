@@ -721,7 +721,6 @@ LIF simulation, spike codecs, SNN graph wiring, tropical kernels (including APSP
 benchmarks), GPU buffer/pipeline paths, and integration scenarios.
 A full-package \texttt{vitest run} on 2026-04-17 reported \textbf{205} passing tests
 (Windows/Node; some suites exercise native WebGPU when available, others use mocks).
-\textit{(See Appendix~\ref{app:test-suites} for per-suite breakdown.)}
 
 % ============================================================================
 \section{Evaluation}
@@ -1970,7 +1969,7 @@ Both are dispatched as a single GPU kernel with a variant flag.
 
 This work accelerates embodied spiking neural networks (SNNs) in consumer browsers via WebGPU, lowering the barrier to entry for neuromorphic research and edge-based agent cognition. While democratizing access to neuro-symbolic simulation is broadly positive (enabling decentralized robotics research and privacy-preserving local computation), there are potential risks. The deterministic provenance chains (\cael{}) provide auditability, which mitigates adversarial manipulation, but open-source GPU-accelerated neuromorphic agents could be deployed in autonomous systems lacking adequate physical safeguards. We encourage the continued pairing of contracted physics (which enforce safety bounds at inference) with any downstream usage of this acceleration framework.
 
-\bibliographystyle{plain}
+\bibliographystyle{plainnat}
 \bibliography{holoscript}
 
 \end{document}
