@@ -1,7 +1,12 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "infrastructure/Dockerfile.mcp-server"
-watchPatterns = ["packages/mcp-server/**", "packages/core/**"]
+# mcp-server bundles workspace deps at build time (e.g. `@holoscript/absorb-service/mcp`
+# in handlers.ts) — those bundled deps MUST be watched, or a fix in them silently never
+# redeploys mcp.holoscript.net. absorb-service provides the holo_* codebase/graph tools.
+# Broader bundled set (engine/mesh/holomap/framework/llm-provider/secrets-broker/config)
+# left unwatched for now to avoid rebuild storms; revisit as a deploy-cadence call.
+watchPatterns = ["packages/mcp-server/**", "packages/core/**", "packages/absorb-service/**"]
 
 [deploy]
 healthcheckPath = "/health"
