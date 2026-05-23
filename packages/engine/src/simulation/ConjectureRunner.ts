@@ -5,6 +5,7 @@
  */
 
 import {
+  buildConjectureStableKey,
   buildConjectureV1Receipt,
   createDegenerateTriangleCandidate,
   createSquareSheetCandidate,
@@ -392,7 +393,10 @@ function runScenarioCycle(
 
   return {
     ...withStages,
-    receiptKey: stableStringify(resultSnapshot(withStages)),
+    receiptKey: buildConjectureStableKey(
+      CONJECTURE_RUNNER_V1,
+      resultSnapshot(withStages),
+    ),
   };
 }
 

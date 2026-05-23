@@ -11,6 +11,7 @@ import {
   hashGeometry,
   type HashMode,
 } from './hashes';
+import { sha256Bytes } from './sha256';
 
 export const CONJECTURE_V1 = 'conjecture.v1' as const;
 
@@ -99,6 +100,15 @@ export interface ConjectureReceipt {
   hashMode: HashMode;
   evaluations: ReadonlyArray<CandidateEvaluation>;
   counterexamples: ReadonlyArray<ConjectureCounterexample>;
+}
+
+const TEXT_ENCODER = new TextEncoder();
+
+export function buildConjectureStableKey(prefix: string, snapshot: unknown): string {
+  if (!/^[a-z0-9][a-z0-9.-]*$/u.test(prefix)) {
+    throw new Error('conjecture.v1: receipt key prefix must be lowercase dotted text');
+  }
+  return `${prefix}-sha-${sha256Bytes(TEXT_ENCODER.encode(stableStringify(snapshot)))}`;
 }
 
 function nonEmptyString(value: unknown): value is string {
@@ -509,7 +519,7 @@ export function buildConjectureV1Receipt(input: {
 
   return {
     ...withoutKey,
-    receiptKey: stableStringify(receiptSnapshot(withoutKey)),
+    receiptKey: buildConjectureStableKey(CONJECTURE_V1, receiptSnapshot(withoutKey)),
   };
 }
 

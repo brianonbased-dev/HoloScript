@@ -56,7 +56,7 @@ describe('ConjectureEngine (conjecture.v1)', () => {
     expect(receipt.status).toBe('survived');
     expect(receipt.counterexamples).toEqual([]);
     expect(receipt.evaluations[0].status).toBe('survived');
-    expect(receipt.receiptKey.length).toBeGreaterThan(100);
+    expect(receipt.receiptKey).toMatch(/^conjecture\.v1-sha-[0-9a-f]{64}$/);
   });
 
   it('preserves hash-arity ambiguity as a counterexample', () => {

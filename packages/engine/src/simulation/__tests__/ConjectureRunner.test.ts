@@ -16,9 +16,10 @@ describe('ConjectureRunner (conjecture.runner.v1)', () => {
     expect(result.solverType).toBe(CONJECTURE_RUNNER_V1);
     expect(result.suite).toBe(PROOF_CARRYING_GEOMETRY_SMOKE_SUITE);
     expect(result.status).toBe('completed');
+    expect(result.receiptKey).toMatch(/^conjecture\.runner\.v1-sha-[0-9a-f]{64}$/);
     expect(result.gate.passed).toBe(true);
-    expect(result.gate.survivorReceiptKey).toBeTruthy();
-    expect(result.gate.falsifiedReceiptKey).toBeTruthy();
+    expect(result.gate.survivorReceiptKey).toMatch(/^conjecture\.v1-sha-[0-9a-f]{64}$/);
+    expect(result.gate.falsifiedReceiptKey).toMatch(/^conjecture\.v1-sha-[0-9a-f]{64}$/);
     expect(result.gate.replayCounterexampleMatched).toBe(true);
 
     expect(result.receipts.some((receipt) => receipt.status === 'survived')).toBe(true);

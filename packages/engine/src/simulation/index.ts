@@ -165,6 +165,7 @@ export {
 // preserves counterexamples, and gives survivors deterministic receipt keys.
 export {
   CONJECTURE_V1,
+  buildConjectureStableKey,
   buildConjectureV1Receipt,
   computeMeshFacts,
   createDegenerateTriangleCandidate,

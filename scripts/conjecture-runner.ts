@@ -4,12 +4,17 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  GENERATED_GEOMETRY_FAMILY_SUITE,
   PROOF_CARRYING_GEOMETRY_SMOKE_SUITE,
   runConjectureRunner,
   type ConjectureRunnerSuite,
 } from '../packages/engine/src/simulation/ConjectureRunner';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const SUPPORTED_SUITES = [
+  PROOF_CARRYING_GEOMETRY_SMOKE_SUITE,
+  GENERATED_GEOMETRY_FAMILY_SUITE,
+] as const;
 
 interface CliOptions {
   suite: ConjectureRunnerSuite;
@@ -19,9 +24,8 @@ interface CliOptions {
 }
 
 function parseArgs(argv: ReadonlyArray<string>): CliOptions {
-  const options: CliOptions = {
+  const options: Omit<CliOptions, 'out'> & { out?: string } = {
     suite: PROOF_CARRYING_GEOMETRY_SMOKE_SUITE,
-    out: resolve(REPO_ROOT, '.scratch', 'conjecture', 'proof-carrying-geometry-smoke.json'),
     proposedBy: 'codex-hardware',
     includeHashBoundary: true,
   };
@@ -39,7 +43,7 @@ function parseArgs(argv: ReadonlyArray<string>): CliOptions {
     } else if (arg === '--help' || arg === '-h') {
       console.log(
         [
-          'Usage: pnpm conjecture:runner [--suite proof-carrying-geometry-smoke] [--out .scratch/conjecture/receipt.json]',
+          `Usage: pnpm conjecture:runner [--suite ${SUPPORTED_SUITES.join('|')}] [--out .scratch/conjecture/receipt.json]`,
           '',
           'Runs the HoloScript Conjecture Engine MVP gate: >=1 survivor green receipt',
           'and >=1 falsified counterexample world that re-fails on replay.',
@@ -51,7 +55,14 @@ function parseArgs(argv: ReadonlyArray<string>): CliOptions {
     }
   }
 
-  return options;
+  if (!SUPPORTED_SUITES.includes(options.suite)) {
+    throw new Error(`Unsupported suite: ${options.suite}`);
+  }
+
+  return {
+    ...options,
+    out: options.out ?? resolve(REPO_ROOT, '.scratch', 'conjecture', `${options.suite}.json`),
+  };
 }
 
 const options = parseArgs(process.argv.slice(2));
