@@ -44,6 +44,17 @@ describe('ConjectureRunner (conjecture.runner.v1)', () => {
       'GRADUATE',
     ]);
     expect(result.stages.every((stage) => stage.status === 'completed')).toBe(true);
+    const executeStage = result.stages.find((stage) => stage.phase === 'EXECUTE');
+    expect(executeStage?.predicates?.map((predicate) => predicate.id)).toEqual([
+      'geometry.euler_characteristic',
+      'geometry.hash_order_invariant',
+      'geometry.non_degenerate',
+    ]);
+    expect(
+      executeStage?.predicates?.find(
+        (predicate) => predicate.id === 'geometry.hash_order_invariant',
+      )?.passCriteria,
+    ).toContain('hashGeometry');
   });
 
   it('emits deterministic runner receipts across repeated runs', () => {

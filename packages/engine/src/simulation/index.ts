@@ -260,6 +260,8 @@ export {
   type ConjectureNoveltyMatch,
   type ConjectureParameterValue,
   type ConjectureProbe,
+  type ConjectureProbeEvaluationResult,
+  type ConjectureProbePredicate,
   type ConjecturePriorArtEntry,
   type ConjectureReceipt,
   type ConjectureStatus,

@@ -59,6 +59,21 @@ describe('ConjectureEngine (conjecture.v1)', () => {
     expect(receipt.evaluations[0].status).toBe('survived');
     expect(receipt.evaluations[0].novelty.provider).toBe('holoembed');
     expect(receipt.evaluations[0].novelty.status).toBe('novel');
+    expect(receipt.evaluations[0].probeResults[0].predicate).toMatchObject({
+      id: 'geometry.non_degenerate',
+      statement: 'Every primitive has non-zero area or volume under the configured tolerance.',
+      measurementKeys: ['minTriangleArea', 'minArea', 'minTetVolume', 'minVolume'],
+    });
+    expect(receipt.evaluations[0].probeResults[1].predicate).toMatchObject({
+      id: 'geometry.hash_order_invariant',
+      statement: 'Reordering same-arity primitives preserves the geometry hash.',
+      measurementKeys: ['originalHash', 'reorderedHash'],
+    });
+    expect(receipt.evaluations[0].probeResults[2].predicate).toMatchObject({
+      id: 'geometry.euler_characteristic',
+      statement: 'Triangle-surface Euler characteristic equals 1.',
+      measurementKeys: ['expected', 'actual'],
+    });
     expect(receipt.receiptKey).toMatch(/^conjecture\.v1-sha-[0-9a-f]{64}$/);
   });
 
@@ -164,6 +179,9 @@ describe('ConjectureEngine (conjecture.v1)', () => {
     expect(receipt.counterexamples).toHaveLength(1);
     expect(receipt.counterexamples[0].candidateId).toBe('degenerate-triangle');
     expect(receipt.counterexamples[0].failedProbes[0].probeId).toBe('geometry.non_degenerate');
+    expect(receipt.counterexamples[0].failedProbes[0].predicate.failMeaning).toContain(
+      'collapsed below tolerance',
+    );
   });
 
   it('treats topology mismatch as a falsifying geometry counterexample', () => {

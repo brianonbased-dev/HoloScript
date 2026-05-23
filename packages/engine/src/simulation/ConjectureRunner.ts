@@ -18,6 +18,7 @@ import {
   nonDegenerateGeometryProbe,
   type ConjectureClaim,
   type ConjectureProbe,
+  type ConjectureProbePredicate,
   type ConjectureReceipt,
   type ConjectureStatus,
   type GeometryConjectureCandidate,
@@ -61,6 +62,7 @@ export interface ConjectureRunnerStage {
   status: ConjectureRunnerStatus;
   summary: string;
   evidence: ReadonlyArray<string>;
+  predicates?: ReadonlyArray<ConjectureProbePredicate>;
 }
 
 export interface ConjectureRunnerReplay {
@@ -368,6 +370,20 @@ function buildGate(
   };
 }
 
+function uniqueProbePredicates(
+  receipts: ReadonlyArray<ConjectureReceipt>
+): ReadonlyArray<ConjectureProbePredicate> {
+  const byId = new Map<string, ConjectureProbePredicate>();
+  for (const receipt of receipts) {
+    for (const evaluation of receipt.evaluations) {
+      for (const result of evaluation.probeResults) {
+        byId.set(result.predicate.id, result.predicate);
+      }
+    }
+  }
+  return [...byId.values()].sort((a, b) => a.id.localeCompare(b.id));
+}
+
 function buildStages(
   scenarios: ReadonlyArray<ConjectureScenario>,
   receipts: ReadonlyArray<ConjectureReceipt>,
@@ -387,6 +403,7 @@ function buildStages(
       status: 'completed',
       summary: 'Executed invariant probes and minted conjecture.v1 receipts.',
       evidence: receipts.map((receipt) => receipt.receiptKey),
+      predicates: uniqueProbePredicates(receipts),
     },
     {
       phase: 'FALSIFY',

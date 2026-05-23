@@ -92,17 +92,30 @@ export interface MeshFacts {
   eulerCharacteristic: number | null;
 }
 
-export interface ProbeResult {
+export interface ConjectureProbePredicate {
+  id: string;
+  statement: string;
+  passCriteria: string;
+  failMeaning: string;
+  measurementKeys: ReadonlyArray<string>;
+}
+
+export interface ConjectureProbeEvaluationResult {
   probeId: string;
   status: ProbeStatus;
   message: string;
   measurements?: Readonly<Record<string, ConjectureParameterValue>>;
 }
 
+export interface ProbeResult extends ConjectureProbeEvaluationResult {
+  predicate: ConjectureProbePredicate;
+}
+
 export interface ConjectureProbe {
   id: string;
   description: string;
-  evaluate(candidate: GeometryConjectureCandidate, facts: MeshFacts): ProbeResult;
+  predicate: ConjectureProbePredicate;
+  evaluate(candidate: GeometryConjectureCandidate, facts: MeshFacts): ConjectureProbeEvaluationResult;
 }
 
 export interface CandidateEvaluation {
@@ -328,6 +341,50 @@ function assertCandidate(candidate: GeometryConjectureCandidate): void {
       throw new Error(`conjecture.v1: candidate.elements contains out-of-range index ${index}`);
     }
   }
+}
+
+function assertProbe(probe: ConjectureProbe): void {
+  if (!nonEmptyString(probe.id)) {
+    throw new Error('conjecture.v1: probe.id must be non-empty');
+  }
+  if (!nonEmptyString(probe.description)) {
+    throw new Error('conjecture.v1: probe.description must be non-empty');
+  }
+  if (probe.predicate.id !== probe.id) {
+    throw new Error('conjecture.v1: probe.predicate.id must match probe.id');
+  }
+  if (!nonEmptyString(probe.predicate.statement)) {
+    throw new Error('conjecture.v1: probe.predicate.statement must be non-empty');
+  }
+  if (!nonEmptyString(probe.predicate.passCriteria)) {
+    throw new Error('conjecture.v1: probe.predicate.passCriteria must be non-empty');
+  }
+  if (!nonEmptyString(probe.predicate.failMeaning)) {
+    throw new Error('conjecture.v1: probe.predicate.failMeaning must be non-empty');
+  }
+  if (!Array.isArray(probe.predicate.measurementKeys)) {
+    throw new Error('conjecture.v1: probe.predicate.measurementKeys must be an array');
+  }
+  for (const key of probe.predicate.measurementKeys) {
+    if (!nonEmptyString(key)) {
+      throw new Error(
+        'conjecture.v1: probe.predicate.measurementKeys entries must be non-empty strings'
+      );
+    }
+  }
+}
+
+function withProbePredicate(
+  probe: ConjectureProbe,
+  result: ConjectureProbeEvaluationResult
+): ProbeResult {
+  if (result.probeId !== probe.id) {
+    throw new Error('conjecture.v1: probe result id must match the executing probe id');
+  }
+  return {
+    ...result,
+    predicate: probe.predicate,
+  };
 }
 
 function xyz(
@@ -618,7 +675,15 @@ export function nonDegenerateGeometryProbe(
   return {
     id: 'geometry.non_degenerate',
     description: 'Every primitive has non-zero area or volume under the configured tolerance.',
-    evaluate(_candidate, facts): ProbeResult {
+    predicate: {
+      id: 'geometry.non_degenerate',
+      statement: 'Every primitive has non-zero area or volume under the configured tolerance.',
+      passCriteria:
+        'all vertices are finite and the minimum triangle area or tetrahedron volume meets the configured threshold',
+      failMeaning: 'a primitive collapsed below tolerance or contains non-finite coordinates',
+      measurementKeys: ['minTriangleArea', 'minArea', 'minTetVolume', 'minVolume'],
+    },
+    evaluate(_candidate, facts): ConjectureProbeEvaluationResult {
       if (facts.hasNonFiniteVertex) {
         return {
           probeId: 'geometry.non_degenerate',
@@ -665,7 +730,15 @@ export function geometryHashOrderInvariantProbe(
   return {
     id: 'geometry.hash_order_invariant',
     description: 'Reordering same-arity primitives preserves the geometry hash.',
-    evaluate(candidate, facts): ProbeResult {
+    predicate: {
+      id: 'geometry.hash_order_invariant',
+      statement: 'Reordering same-arity primitives preserves the geometry hash.',
+      passCriteria:
+        'hashGeometry(vertices, reversedElements, hashMode) equals the original geometry hash',
+      failMeaning: 'the same candidate geometry hashes differently after primitive reordering',
+      measurementKeys: ['originalHash', 'reorderedHash'],
+    },
+    evaluate(candidate, facts): ConjectureProbeEvaluationResult {
       const arity = facts.elementArity;
       if (arity === null) {
         return {
@@ -700,7 +773,14 @@ export function eulerCharacteristicProbe(expected: number): ConjectureProbe {
   return {
     id: 'geometry.euler_characteristic',
     description: 'Triangle-surface Euler characteristic matches the expected invariant.',
-    evaluate(_candidate, facts): ProbeResult {
+    predicate: {
+      id: 'geometry.euler_characteristic',
+      statement: `Triangle-surface Euler characteristic equals ${expected}.`,
+      passCriteria: 'computed Euler characteristic equals the configured expected value',
+      failMeaning: 'computed Euler characteristic differs from the expected invariant',
+      measurementKeys: ['expected', 'actual'],
+    },
+    evaluate(_candidate, facts): ConjectureProbeEvaluationResult {
       if (facts.eulerCharacteristic === null) {
         return {
           probeId: 'geometry.euler_characteristic',
@@ -741,7 +821,24 @@ export function collisionEquivalenceProbe(
   return {
     id: 'geometry.collision_equivalence',
     description: 'Convex-hull and AABB collision proxies agree over a swept point set.',
-    evaluate(candidate, facts): ProbeResult {
+    predicate: {
+      id: 'geometry.collision_equivalence',
+      statement:
+        'Convex-hull and AABB collision proxies agree over deterministic swept point samples.',
+      passCriteria: 'every sampled point has identical containment under both collision proxies',
+      failMeaning: 'at least one sample point is contained by one proxy and not the other',
+      measurementKeys: [
+        'sampleCount',
+        'sampleCountPerAxis',
+        'mismatchCount',
+        'firstMismatchX',
+        'firstMismatchY',
+        'hullVertexCount',
+        'hullArea',
+        'aabbArea',
+      ],
+    },
+    evaluate(candidate, facts): ConjectureProbeEvaluationResult {
       if (facts.hasNonFiniteVertex) {
         return {
           probeId: 'geometry.collision_equivalence',
@@ -833,7 +930,19 @@ export function curvatureBoundProbe(maxAngleDeficit: number): ConjectureProbe {
   return {
     id: 'geometry.curvature_bound',
     description: 'Every vertex angle deficit stays within the configured curvature bound.',
-    evaluate(candidate, facts): ProbeResult {
+    predicate: {
+      id: 'geometry.curvature_bound',
+      statement: `Every vertex angle deficit is at most ${maxAngleDeficit}.`,
+      passCriteria: 'no vertex angle deficit exceeds the configured curvature bound',
+      failMeaning: 'at least one vertex positive curvature exceeds the bound',
+      measurementKeys: [
+        'maxAngleDeficit',
+        'observedMaxAngleDeficit',
+        'violatingVertex',
+        'vertexCount',
+      ],
+    },
+    evaluate(candidate, facts): ConjectureProbeEvaluationResult {
       if (facts.elementArity !== 3) {
         return {
           probeId: 'geometry.curvature_bound',
@@ -910,7 +1019,14 @@ export function manifoldEdgeProbe(): ConjectureProbe {
   return {
     id: 'geometry.manifold_edges',
     description: 'No edge is shared by three or more triangles (edge-manifold surface).',
-    evaluate(candidate, facts): ProbeResult {
+    predicate: {
+      id: 'geometry.manifold_edges',
+      statement: 'No edge in the triangle surface is shared by three or more triangles.',
+      passCriteria: 'every edge has incidence at most 2',
+      failMeaning: 'one or more edges have incidence 3 or greater',
+      measurementKeys: ['maxEdgeIncidence', 'nonManifoldEdges', 'boundaryEdges'],
+    },
+    evaluate(candidate, facts): ConjectureProbeEvaluationResult {
       if (facts.elementArity !== 3) {
         return {
           probeId: 'geometry.manifold_edges',
@@ -1014,7 +1130,10 @@ export function buildConjectureV1Receipt(input: {
   const evaluations = input.candidates.map((candidate): CandidateEvaluation => {
     assertCandidate(candidate);
     const facts = computeMeshFacts(candidate, hashMode);
-    const probeResults = input.probes.map((probe) => probe.evaluate(candidate, facts));
+    const probeResults = input.probes.map((probe) => {
+      assertProbe(probe);
+      return withProbePredicate(probe, probe.evaluate(candidate, facts));
+    });
     const probeStatus = statusFromProbeResults(probeResults);
     const novelty =
       probeStatus === 'survived'
