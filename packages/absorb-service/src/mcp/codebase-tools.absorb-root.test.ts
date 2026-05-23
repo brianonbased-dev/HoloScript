@@ -136,13 +136,21 @@ describe('holo_absorb_repo root validation', () => {
       freshForCurrentRepo?: boolean;
       currentCwd?: string;
       graphUnavailableReceipt?: GraphUnavailableReceipt;
-      diskCache?: { fresh?: boolean; authoritative?: boolean; freshForCurrentRepo?: boolean; rootDir?: string };
+      diskCache?: {
+        fresh?: boolean;
+        stale?: boolean;
+        freshByAge?: boolean;
+        authoritative?: boolean;
+        freshForCurrentRepo?: boolean;
+        rootDir?: string;
+      };
     };
 
     expect(status.graphAuthoritative).toBe(true);
     expect(status.freshForCurrentRepo).toBe(true);
     expect(status.currentCwd).toBe(path.resolve(process.cwd()));
     expect(status.diskCache?.fresh).toBe(true);
+    expect(status.diskCache?.freshByAge).toBe(true);
     expect(status.diskCache?.authoritative).toBe(true);
     expect(status.diskCache?.freshForCurrentRepo).toBe(true);
     expect(status.graphUnavailableReceipt).toBeUndefined();
@@ -161,14 +169,24 @@ describe('holo_absorb_repo root validation', () => {
       freshForCurrentRepo?: boolean;
       currentCwd?: string;
       graphUnavailableReceipt?: GraphUnavailableReceipt;
-      diskCache?: { fresh?: boolean; authoritative?: boolean; freshForCurrentRepo?: boolean; rootDir?: string };
+      diskCache?: {
+        fresh?: boolean;
+        stale?: boolean;
+        freshByAge?: boolean;
+        authoritative?: boolean;
+        freshForCurrentRepo?: boolean;
+        rootDir?: string;
+      };
     };
 
     // Cache is fresh by age but NOT authoritative for the current repo
     expect(status.graphAuthoritative).toBe(false);
     expect(status.freshForCurrentRepo).toBe(false);
     expect(status.currentCwd).toBe(path.resolve(process.cwd()));
-    expect(status.diskCache?.fresh).toBe(true);
+    expect(status.diskCache?.fresh).toBe(false);
+    expect(status.diskCache?.stale).toBe(true);
+    expect(status.diskCache?.freshByAge).toBe(true);
+    expect(status.diskCache?.authoritative).toBe(false);
     expect(status.diskCache?.freshForCurrentRepo).toBe(false);
     // Receipt should explain the mismatch
     expect(status.graphUnavailableReceipt).toMatchObject({

@@ -421,6 +421,19 @@ function formatCacheAge(ageMs: number | undefined): string | null {
   return `${(ageMs / 3_600_000).toFixed(1)}h ago`;
 }
 
+function normalizeRootForComparison(rootDir: string): string {
+  const normalized = path.normalize(path.resolve(rootDir)).replace(/[\\\/]+$/, '');
+  return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+}
+
+function rootMatchesCurrentRepo(
+  rootDir: string | null | undefined,
+  currentRepoRoot: string
+): boolean {
+  if (!rootDir) return false;
+  return normalizeRootForComparison(rootDir) === normalizeRootForComparison(currentRepoRoot);
+}
+
 function buildGraphUnavailableReceipt(options: {
   reason: GraphUnavailableReason;
   requestedPath?: string | null;
@@ -2173,39 +2186,37 @@ async function handleGraphStatus(): Promise<unknown> {
   const cache = getCacheAge();
   const { isGraphRAGReady } = await import('./graph-rag-tools');
   const cacheAgeMs = cache.ageMs;
-  const isFresh = cacheAgeMs !== undefined && cacheAgeMs < CACHE_MAX_AGE_MS;
+  const diskCacheFreshByAge = cacheAgeMs !== undefined && cacheAgeMs < CACHE_MAX_AGE_MS;
   const inMemoryAgeMs =
     cachedGraph !== null && cacheTimestamp ? Date.now() - cacheTimestamp : undefined;
   const activeAgeMs = inMemoryAgeMs ?? cacheAgeMs;
-  const activeStale = activeAgeMs !== undefined && activeAgeMs >= CACHE_MAX_AGE_MS;
+  const activeFreshByAge =
+    activeAgeMs === undefined ? cachedGraph !== null : activeAgeMs < CACHE_MAX_AGE_MS;
 
   // Scope freshness to the current repo root. A cache that was created for a
   // different directory (e.g. a temp absorb scratch dir) is NOT authoritative
   // for the workspace the agent is actually working in.
   const cacheRootDir = cachedRootDir || cache.rootDir || null;
   const currentCwd = path.resolve(process.cwd());
-  const cacheMatchesCwd =
-    cacheRootDir !== null && path.resolve(cacheRootDir) === currentCwd;
+  const cacheMatchesCwd = rootMatchesCurrentRepo(cacheRootDir, currentCwd);
+  const diskCacheMatchesCwd = rootMatchesCurrentRepo(cache.rootDir, currentCwd);
 
-  const graphAuthoritative = cacheMatchesCwd
-    ? cachedGraph !== null
-      ? !activeStale
-      : cache.exists && isFresh
-    : false;
+  const graphAuthoritative =
+    cacheMatchesCwd && (cachedGraph !== null || cache.exists) && activeFreshByAge;
 
-  const freshForCurrentRepo = cacheMatchesCwd
-    ? isFresh
-    : false;
+  const freshForCurrentRepo = graphAuthoritative;
+  const diskCacheFreshForCurrentRepo = diskCacheMatchesCwd && diskCacheFreshByAge;
 
   const requestedPath = cacheRootDir;
   const graphUnavailableReceipt = graphAuthoritative
     ? undefined
     : buildGraphUnavailableReceipt({
-        reason: !cacheMatchesCwd && (cache.exists || cachedGraph !== null)
-          ? 'cache_root_mismatch'
-          : cache.exists || cachedGraph !== null
-            ? 'cache_stale'
-            : 'cache_missing',
+        reason:
+          !cacheMatchesCwd && (cache.exists || cachedGraph !== null)
+            ? 'cache_root_mismatch'
+            : cache.exists || cachedGraph !== null
+              ? 'cache_stale'
+              : 'cache_missing',
         requestedPath,
         runtimePath: requestedPath ? path.resolve(requestedPath) : null,
         cacheAgeMs: activeAgeMs,
@@ -2225,15 +2236,17 @@ async function handleGraphStatus(): Promise<unknown> {
           exists: true,
           ageMs: cacheAgeMs,
           ageHuman: formatCacheAge(cacheAgeMs),
-          fresh: isFresh,
-          stale: !isFresh,
-          authoritative: isFresh,
-          freshForCurrentRepo,
+          fresh: diskCacheFreshForCurrentRepo,
+          stale: !diskCacheFreshForCurrentRepo,
+          freshByAge: diskCacheFreshByAge,
+          staleByAge: !diskCacheFreshByAge,
+          authoritative: diskCacheFreshForCurrentRepo,
+          freshForCurrentRepo: diskCacheFreshForCurrentRepo,
           rootDir: cache.rootDir,
           stats: cache.stats,
-          hint: !cacheMatchesCwd
+          hint: !diskCacheMatchesCwd
             ? `Cache rootDir (${cache.rootDir}) does not match current working directory (${currentCwd}). Call holo_absorb_repo for this workspace.`
-            : isFresh
+            : diskCacheFreshByAge
               ? 'Cache is fresh — query tools will auto-load it without re-scanning.'
               : 'Cache is older than 24h — call holo_absorb_repo to refresh.',
         }
