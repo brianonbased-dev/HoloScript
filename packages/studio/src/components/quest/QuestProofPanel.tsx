@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
+import { questProofGuardReason } from '../../lib/questProofGuards';
 
 type Status = 'OK' | 'WARN' | 'FAIL';
 
@@ -8,19 +10,54 @@ interface ProofPage {
   id: string;
   label: string;
   path: string;
-  fallbackPath?: string;
   focus: string;
   group: 'Core XR' | 'Creation' | 'Simulation' | 'Capture';
   visualStatus: 'Ready' | 'Caution' | 'Skip';
   visualNote: string;
 }
 
-interface ReceiptSummary {
+export interface ReceiptSummary {
   receivedAt: string;
   pageId: string;
   status: Status | 'INFO';
   label: string;
   detail: string;
+  url?: string | null;
+}
+
+interface ReceiptApiResponse {
+  count?: number;
+  path?: string;
+  receipts?: ReceiptSummary[];
+}
+
+type ReceiptCounts = Record<ReceiptSummary['status'], number>;
+
+const EMPTY_COUNTS: ReceiptCounts = {
+  OK: 0,
+  WARN: 0,
+  FAIL: 0,
+  INFO: 0,
+};
+
+export function countReceipts(receipts: ReceiptSummary[]): ReceiptCounts {
+  return receipts.reduce<ReceiptCounts>(
+    (counts, receipt) => ({
+      ...counts,
+      [receipt.status]: counts[receipt.status] + 1,
+    }),
+    { ...EMPTY_COUNTS }
+  );
+}
+
+export function latestReceiptsByPage(receipts: ReceiptSummary[]): Record<string, ReceiptSummary> {
+  return receipts.reduce<Record<string, ReceiptSummary>>((latest, receipt) => {
+    const previous = latest[receipt.pageId];
+    if (!previous || Date.parse(receipt.receivedAt) >= Date.parse(previous.receivedAt)) {
+      latest[receipt.pageId] = receipt;
+    }
+    return latest;
+  }, {});
 }
 
 const PROOF_PAGES: ProofPage[] = [
@@ -48,19 +85,17 @@ const PROOF_PAGES: ProofPage[] = [
     path: '/creator',
     focus: 'Authoring layout, mobile/headset controls',
     group: 'Creation',
-    visualStatus: 'Ready',
-    visualNote: 'Renders a sign-in-required surface when unauthenticated.',
+    visualStatus: 'Caution',
+    visualNote: 'Guarded by proxy until authenticated desktop state is available.',
   },
   {
     id: 'create',
     label: 'Create',
     path: '/create',
-    fallbackPath:
-      '/quest-proof/unavailable?target=create&reason=Create%20is%20not%20stable%20enough%20for%20headset%20proof%20yet.',
     focus: 'Scene creation flow and input ergonomics',
     group: 'Creation',
     visualStatus: 'Caution',
-    visualNote: 'Launches to an explicit unavailable page until the editor stabilizes.',
+    visualNote: 'Guarded by proxy until the editor first viewport stabilizes.',
   },
   {
     id: 'playground',
@@ -75,12 +110,10 @@ const PROOF_PAGES: ProofPage[] = [
     id: 'playground/locomotion',
     label: 'Locomotion',
     path: '/playground/locomotion',
-    fallbackPath:
-      '/quest-proof/unavailable?target=playground%2Flocomotion&reason=Locomotion%20preview%20timed%20out%20in%20visual%20preflight.',
     focus: 'Movement controls and comfort hints',
     group: 'Simulation',
     visualStatus: 'Caution',
-    visualNote: 'Launches to an explicit unavailable page until the preview stabilizes.',
+    visualNote: 'Guarded by proxy until the locomotion first viewport is deterministic.',
   },
   {
     id: 'avatar',
@@ -139,10 +172,21 @@ function pathPrefix(): string {
   return '';
 }
 
+export function proofPathWithRunId(path: string, runId: string, prefix = ''): string {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const separator = normalizedPath.includes('?') ? '&' : '?';
+  return `${prefix}${normalizedPath}${separator}runId=${encodeURIComponent(runId)}`;
+}
+
 function withRunId(path: string, runId: string): string {
-  const prefix = pathPrefix();
-  const separator = path.includes('?') ? '&' : '?';
-  return `${prefix}${path}${separator}runId=${encodeURIComponent(runId)}`;
+  return proofPathWithRunId(path, runId, pathPrefix());
+}
+
+function explicitFallbackPath(page: ProofPage): string | null {
+  const reason = questProofGuardReason(page.path);
+  if (!reason) return null;
+  const query = new URLSearchParams({ target: page.path, reason });
+  return `/quest-proof/unavailable?${query.toString()}`;
 }
 
 function viewport() {
@@ -154,6 +198,12 @@ function viewport() {
     orientation: screen.orientation?.type ?? null,
     crossOriginIsolated: self.crossOriginIsolated === true,
   };
+}
+
+function receiptTime(value: string): string {
+  const time = Date.parse(value);
+  if (!Number.isFinite(time)) return value;
+  return new Date(time).toISOString().replace('T', ' ').slice(0, 19);
 }
 
 async function fetchWithTimeout(
@@ -173,9 +223,15 @@ async function fetchWithTimeout(
 }
 
 export function QuestProofPanel() {
-  const [runId, setRunId] = useState(currentRunId);
+  const [runId, setRunId] = useState(defaultRunId);
+  const [clientReady, setClientReady] = useState(false);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [receipts, setReceipts] = useState<ReceiptSummary[]>([]);
+  const [receiptCount, setReceiptCount] = useState(0);
+  const [receiptPath, setReceiptPath] = useState<string | null>(null);
+  const [receiptLoadState, setReceiptLoadState] = useState<'loading' | 'ready' | 'unavailable'>(
+    'loading'
+  );
   const [saving, setSaving] = useState<string | null>(null);
   const [lastOpened, setLastOpened] = useState<string | null>(null);
   const [taskMessage, setTaskMessage] = useState('');
@@ -184,17 +240,40 @@ export function QuestProofPanel() {
   const apiPath = useMemo(() => `${pathPrefix()}/api/quest-proof`, []);
   const taskApiPath = useMemo(() => `${pathPrefix()}/api/quest-proof/task`, []);
 
-  const loadReceipts = async () => {
+  useEffect(() => {
+    setRunId(currentRunId());
+    setClientReady(true);
+  }, []);
+
+  const loadReceipts = useCallback(async () => {
+    if (!clientReady) return;
     const res = await fetchWithTimeout(`${apiPath}?runId=${encodeURIComponent(runId)}`, {}, 2500);
-    if (!res?.ok) return;
-    const data = (await res.json()) as { receipts?: ReceiptSummary[] };
-    setReceipts(data.receipts ?? []);
-  };
+    if (!res?.ok) {
+      setReceiptLoadState('unavailable');
+      return;
+    }
+    const data = (await res.json()) as ReceiptApiResponse;
+    const nextReceipts = data.receipts ?? [];
+    setReceipts(nextReceipts);
+    setReceiptCount(data.count ?? nextReceipts.length);
+    setReceiptPath(data.path ?? null);
+    setReceiptLoadState('ready');
+  }, [apiPath, clientReady, runId]);
 
   useEffect(() => {
+    if (!clientReady) return undefined;
     void loadReceipts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runId]);
+    const interval = window.setInterval(() => void loadReceipts(), 6000);
+    return () => window.clearInterval(interval);
+  }, [clientReady, loadReceipts]);
+
+  const counts = useMemo(() => countReceipts(receipts), [receipts]);
+  const latestByPage = useMemo(() => latestReceiptsByPage(receipts), [receipts]);
+  const latestReceipt = receipts[receipts.length - 1];
+  const guardedPageCount = useMemo(
+    () => PROOF_PAGES.filter((page) => questProofGuardReason(page.path)).length,
+    []
+  );
 
   const mark = async (page: ProofPage, status: Status) => {
     setSaving(page.id);
@@ -233,17 +312,24 @@ export function QuestProofPanel() {
 
   const recordLaunch = (page: ProofPage, target: string) => {
     setLastOpened(page.id);
+    const guardReason = questProofGuardReason(page.path);
     const query = new URLSearchParams({
       record: '1',
       runId,
       pageId: page.id,
       status: 'INFO',
-      label: `${page.label} launched from dashboard`,
-      detail: page.focus,
+      label: guardReason
+        ? `${page.label} guarded fallback opened from dashboard`
+        : `${page.label} launched from dashboard`,
+      detail: guardReason ? `${page.focus}; unavailable fallback: ${guardReason}` : page.focus,
       url: target,
       userAgent: navigator.userAgent,
     });
-    void fetchWithTimeout(`${apiPath}?${query.toString()}`, { cache: 'no-store', keepalive: true }, 1200);
+    void fetchWithTimeout(
+      `${apiPath}?${query.toString()}`,
+      { cache: 'no-store', keepalive: true },
+      1200
+    ).then(() => void loadReceipts());
   };
 
   const fileMessageTask = async () => {
@@ -262,11 +348,15 @@ export function QuestProofPanel() {
       userAgent: navigator.userAgent,
       viewport: viewport(),
     };
-    const postResult = await fetchWithTimeout(taskApiPath, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    }, 20000).then((res) =>
+    const postResult = await fetchWithTimeout(
+      taskApiPath,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      },
+      20000
+    ).then((res) =>
       res?.ok ? (res.json() as Promise<{ taskId?: string; title?: string }>) : null
     );
     let result = postResult;
@@ -361,42 +451,136 @@ export function QuestProofPanel() {
           }}
         >
           {PROOF_PAGES.slice(0, 2).map((page) => {
-            const target = withRunId(page.fallbackPath ?? page.path, runId);
+            const target = withRunId(page.path, runId);
             return (
-            <a
-              key={`quick-${page.id}`}
-              href={target}
-              onClick={() => recordLaunch(page, target)}
-              style={{
-                display: 'block',
-                minHeight: 74,
-                border: '1px solid #334155',
-                borderRadius: 8,
-                background: lastOpened === page.id ? '#1d4ed8' : '#172554',
-                color: 'white',
-                padding: 14,
-                textAlign: 'left',
-                textDecoration: 'none',
-                fontWeight: 800,
-                fontSize: 16,
-              }}
-            >
-              Open {page.label}
-              <span
+              <a
+                key={`quick-${page.id}`}
+                href={target}
+                onClick={() => recordLaunch(page, target)}
                 style={{
                   display: 'block',
-                  color: '#bfdbfe',
-                  fontSize: 13,
-                  fontWeight: 500,
-                  marginTop: 4,
+                  minHeight: 74,
+                  border: '1px solid #334155',
+                  borderRadius: 8,
+                  background: lastOpened === page.id ? '#1d4ed8' : '#172554',
+                  color: 'white',
+                  padding: 14,
+                  textAlign: 'left',
+                  textDecoration: 'none',
+                  fontWeight: 800,
+                  fontSize: 16,
                 }}
               >
-                {page.focus}
-              </span>
-            </a>
+                Open {page.label}
+                <span
+                  style={{
+                    display: 'block',
+                    color: '#bfdbfe',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    marginTop: 4,
+                  }}
+                >
+                  {page.focus}
+                </span>
+              </a>
             );
           })}
         </div>
+
+        <section
+          aria-label="Current receipt summary"
+          style={{
+            marginTop: 16,
+            border: '1px solid #243044',
+            background: '#0f172a',
+            borderRadius: 8,
+            padding: 12,
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 10,
+              flexWrap: 'wrap',
+            }}
+          >
+            <div>
+              <h2 style={{ fontSize: 17, margin: 0 }}>Current Receipts</h2>
+              <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: 13 }}>
+                {receiptLoadState === 'unavailable'
+                  ? 'Receipt API is unavailable from this headset route; manual marks will still try the GET fallback.'
+                  : latestReceipt
+                    ? `Latest ${latestReceipt.status} from ${latestReceipt.pageId} at ${receiptTime(
+                        latestReceipt.receivedAt
+                      )}.`
+                    : 'No live receipts have landed for this run yet.'}
+              </p>
+            </div>
+            <button
+              onClick={() => void loadReceipts()}
+              style={{
+                minHeight: 40,
+                background: '#334155',
+                color: 'white',
+                border: 0,
+                borderRadius: 6,
+                padding: '8px 12px',
+                fontWeight: 700,
+              }}
+            >
+              Refresh
+            </button>
+          </div>
+          <div
+            style={{
+              marginTop: 12,
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(128px, 1fr))',
+              gap: 8,
+            }}
+          >
+            {[
+              ['Total', receiptCount, '#e2e8f0'],
+              ['OK', counts.OK, statusColor('OK')],
+              ['WARN', counts.WARN, statusColor('WARN')],
+              ['FAIL', counts.FAIL, statusColor('FAIL')],
+              ['INFO', counts.INFO, statusColor('INFO')],
+              ['Guarded', guardedPageCount, '#67e8f9'],
+            ].map(([label, value, color]) => (
+              <div
+                key={label}
+                style={{
+                  minHeight: 64,
+                  border: '1px solid #1f2937',
+                  borderRadius: 8,
+                  background: '#111827',
+                  padding: 10,
+                }}
+              >
+                <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700 }}>{label}</div>
+                <div style={{ color: String(color), fontSize: 22, fontWeight: 900 }}>
+                  {String(value)}
+                </div>
+              </div>
+            ))}
+          </div>
+          {receiptPath && (
+            <code
+              style={{
+                display: 'block',
+                marginTop: 10,
+                color: '#64748b',
+                fontSize: 11,
+                wordBreak: 'break-word',
+              }}
+            >
+              {receiptPath}
+            </code>
+          )}
+        </section>
 
         <section
           style={{
@@ -458,131 +642,205 @@ export function QuestProofPanel() {
             <h2 style={{ fontSize: 16, margin: '0 0 8px', color: '#cbd5e1' }}>{group}</h2>
             <div style={{ display: 'grid', gap: 10 }}>
               {PROOF_PAGES.filter((page) => page.group === group).map((page) => {
-                const target = withRunId(page.fallbackPath ?? page.path, runId);
+                const target = withRunId(page.path, runId);
+                const guardReason = questProofGuardReason(page.path);
+                const fallbackPath = explicitFallbackPath(page);
+                const fallbackTarget = fallbackPath ? withRunId(fallbackPath, runId) : null;
+                const latest = latestByPage[page.id];
                 return (
-                <article
-                  key={page.id}
-                  style={{
-                    border: '1px solid #243044',
-                    background: '#111827',
-                    borderRadius: 8,
-                    padding: 12,
-                  }}
-                >
-                  <div
+                  <article
+                    key={page.id}
                     style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'minmax(180px, 1fr) minmax(120px, 170px) auto',
-                      gap: 10,
-                      alignItems: 'center',
+                      border: '1px solid #243044',
+                      background: '#111827',
+                      borderRadius: 8,
+                      padding: 12,
                     }}
                   >
-                    <div>
-                      <div style={{ color: '#e5e7eb', fontWeight: 800, fontSize: 16 }}>
-                        {page.label}
-                      </div>
-                      <div
-                        style={{
-                          display: 'inline-flex',
-                          marginTop: 5,
-                          padding: '3px 8px',
-                          borderRadius: 999,
-                          background: '#020617',
-                          color: visualStatusColor(page.visualStatus),
-                          fontSize: 12,
-                          fontWeight: 800,
-                        }}
-                      >
-                        {page.visualStatus}
-                      </div>
-                      <div style={{ color: '#9ca3af', fontSize: 13, marginTop: 2 }}>
-                        {page.focus}
-                      </div>
-                      <div style={{ color: '#cbd5e1', fontSize: 12, marginTop: 4 }}>
-                        {page.visualNote}
-                      </div>
-                      <code
-                        style={{
-                          display: 'block',
-                          color: '#64748b',
-                          fontSize: 11,
-                          marginTop: 5,
-                          wordBreak: 'break-word',
-                        }}
-                      >
-                        {withRunId(page.path, runId)}
-                      </code>
-                    </div>
-                    <a
-                      href={target}
-                      onClick={() => recordLaunch(page, target)}
-                      style={{
-                        display: 'grid',
-                        placeItems: 'center',
-                        minHeight: 48,
-                        border: 0,
-                        borderRadius: 8,
-                        color: 'white',
-                        textDecoration: 'none',
-                        background:
-                          page.visualStatus === 'Skip'
-                            ? '#475569'
-                            : lastOpened === page.id
-                              ? '#1d4ed8'
-                              : '#2563eb',
-                        fontWeight: 800,
-                        fontSize: 15,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {page.fallbackPath ? 'Open Note' : 'Open'}
-                    </a>
                     <div
                       style={{
-                        display: 'flex',
-                        gap: 6,
-                        flexWrap: 'wrap',
-                        justifyContent: 'flex-end',
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+                        gap: 10,
+                        alignItems: 'center',
                       }}
                     >
-                      {(['OK', 'WARN', 'FAIL'] as Status[]).map((status) => (
-                        <button
-                          key={status}
-                          onClick={() => void mark(page, status)}
-                          disabled={saving !== null}
+                      <div>
+                        <div style={{ color: '#e5e7eb', fontWeight: 800, fontSize: 16 }}>
+                          {page.label}
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 5 }}>
+                          <div
+                            style={{
+                              display: 'inline-flex',
+                              padding: '3px 8px',
+                              borderRadius: 999,
+                              background: '#020617',
+                              color: visualStatusColor(page.visualStatus),
+                              fontSize: 12,
+                              fontWeight: 800,
+                            }}
+                          >
+                            {page.visualStatus}
+                          </div>
+                          {guardReason && (
+                            <div
+                              style={{
+                                display: 'inline-flex',
+                                padding: '3px 8px',
+                                borderRadius: 999,
+                                background: '#083344',
+                                color: '#67e8f9',
+                                fontSize: 12,
+                                fontWeight: 800,
+                              }}
+                            >
+                              Guarded fallback
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ color: '#9ca3af', fontSize: 13, marginTop: 4 }}>
+                          {page.focus}
+                        </div>
+                        <div style={{ color: '#cbd5e1', fontSize: 12, marginTop: 4 }}>
+                          {page.visualNote}
+                        </div>
+                        {guardReason && (
+                          <div
+                            style={{
+                              color: '#bae6fd',
+                              fontSize: 12,
+                              marginTop: 6,
+                              lineHeight: 1.45,
+                            }}
+                          >
+                            Proxy fallback: {guardReason}
+                            {fallbackTarget && (
+                              <>
+                                {' '}
+                                <a
+                                  href={fallbackTarget}
+                                  onClick={() => recordLaunch(page, fallbackTarget)}
+                                  style={{ color: '#67e8f9', fontWeight: 800 }}
+                                >
+                                  Open explicit fallback
+                                </a>
+                              </>
+                            )}
+                          </div>
+                        )}
+                        <div
                           style={{
-                            width: 64,
-                            minHeight: 40,
-                            border: 0,
-                            borderRadius: 6,
-                            color: 'white',
-                            background: statusColor(status),
+                            color: latest ? statusColor(latest.status) : '#64748b',
+                            fontSize: 12,
                             fontWeight: 700,
-                            opacity: saving !== null && saving !== page.id ? 0.55 : 1,
+                            marginTop: 6,
                           }}
                         >
-                          {saving === page.id ? '...' : status}
-                        </button>
-                      ))}
+                          {latest
+                            ? `Latest receipt: ${latest.status} - ${latest.label}: ${latest.detail}`
+                            : 'No current-run receipt yet.'}
+                        </div>
+                        <code
+                          style={{
+                            display: 'block',
+                            color: '#64748b',
+                            fontSize: 11,
+                            marginTop: 5,
+                            wordBreak: 'break-word',
+                          }}
+                        >
+                          {target}
+                        </code>
+                        {fallbackTarget && (
+                          <code
+                            style={{
+                              display: 'block',
+                              color: '#64748b',
+                              fontSize: 11,
+                              marginTop: 3,
+                              wordBreak: 'break-word',
+                            }}
+                          >
+                            Fallback {fallbackTarget}
+                          </code>
+                        )}
+                      </div>
+                      <a
+                        href={target}
+                        onClick={() => recordLaunch(page, target)}
+                        aria-label={
+                          guardReason
+                            ? `Open guarded fallback for ${page.label}`
+                            : `Open ${page.label}`
+                        }
+                        style={{
+                          display: 'grid',
+                          placeItems: 'center',
+                          minHeight: 48,
+                          border: 0,
+                          borderRadius: 8,
+                          color: 'white',
+                          textDecoration: 'none',
+                          background:
+                            page.visualStatus === 'Skip'
+                              ? '#475569'
+                              : lastOpened === page.id
+                                ? '#1d4ed8'
+                                : '#2563eb',
+                          fontWeight: 800,
+                          fontSize: 15,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {guardReason ? 'Open Fallback' : 'Open'}
+                      </a>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 6,
+                          flexWrap: 'wrap',
+                          justifyContent: 'flex-end',
+                        }}
+                      >
+                        {(['OK', 'WARN', 'FAIL'] as Status[]).map((status) => (
+                          <button
+                            key={status}
+                            onClick={() => void mark(page, status)}
+                            disabled={saving !== null}
+                            style={{
+                              width: 64,
+                              minHeight: 40,
+                              border: 0,
+                              borderRadius: 6,
+                              color: 'white',
+                              background: statusColor(status),
+                              fontWeight: 700,
+                              opacity: saving !== null && saving !== page.id ? 0.55 : 1,
+                            }}
+                          >
+                            {saving === page.id ? '...' : status}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                  <textarea
-                    value={notes[page.id] ?? ''}
-                    onChange={(e) => setNotes((prev) => ({ ...prev, [page.id]: e.target.value }))}
-                    placeholder="Observed issue, pass note, or repro detail"
-                    style={{
-                      marginTop: 10,
-                      width: '100%',
-                      minHeight: 54,
-                      resize: 'vertical',
-                      borderRadius: 6,
-                      border: '1px solid #334155',
-                      background: '#0f172a',
-                      color: '#e5e7eb',
-                      padding: 8,
-                    }}
-                  />
-                </article>
+                    <textarea
+                      value={notes[page.id] ?? ''}
+                      onChange={(e) => setNotes((prev) => ({ ...prev, [page.id]: e.target.value }))}
+                      placeholder="Observed issue, pass note, or repro detail"
+                      style={{
+                        marginTop: 10,
+                        width: '100%',
+                        minHeight: 54,
+                        resize: 'vertical',
+                        borderRadius: 6,
+                        border: '1px solid #334155',
+                        background: '#0f172a',
+                        color: '#e5e7eb',
+                        padding: 8,
+                      }}
+                    />
+                  </article>
                 );
               })}
             </div>
