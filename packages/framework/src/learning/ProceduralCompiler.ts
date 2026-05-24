@@ -2,21 +2,24 @@ export interface ProceduralSkill {
   id: string;
   name: string;
   description?: string;
+  /** Raw LLM-authored pseudo-code or HoloScript-like lines to scaffold. */
   code?: string;
 }
 
 /**
- * ProceduralCompiler
+ * ProceduralCompiler - raw LLM-code safety-wrapper scaffold.
  *
- * Takes JSON-based AI logic trees extracted from temporal LLM generation natively
- * and compiles them strictly down into raw executable `.holo` syntax bounds.
+ * This MVP does not expand grammars, noise fields, L-systems, rules, or
+ * procedural parameters. It preserves `skill.code` lines inside an agent
+ * behavior block and wraps potentially risky primitives with ensure_safety().
  */
 export class ProceduralCompiler {
   /**
-   * Translates an Abstract Skill representation into native text executing within the VM.
+   * Translates a raw skill-code string into a safety-wrapped agent scaffold.
    */
   static compile(skill: ProceduralSkill): string {
-    let compiled = `// Auto-generated skill: ${skill.name}\n`;
+    let compiled = `// Auto-generated safety-wrapped skill scaffold: ${skill.name}\n`;
+    compiled += `// Source: raw skill.code lines; no procedural grammar expansion\n`;
     compiled += `// Desc: ${(skill as unknown as { description?: string }).description || 'N/A'}\n\n`;
 
     compiled += `agent ${skill.id.replace(/-/g, '_')} {\n`;
@@ -26,8 +29,9 @@ export class ProceduralCompiler {
 
     const codeBlock = (skill as unknown as { code?: string }).code || '';
 
-    // MVP: The LLM outputs pseudo-code or raw JS/HoloScript lines directly in string
-    // The procedural compiler validates and formats the raw string cleanly
+    // MVP: The LLM outputs pseudo-code or raw JS/HoloScript lines directly in string.
+    // This scaffold preserves those lines and adds safety wrappers; it is not
+    // a rule/grammar/noise/parameter procedural generator.
     const parsedLines = codeBlock.split('\n');
 
     for (let line of parsedLines) {
