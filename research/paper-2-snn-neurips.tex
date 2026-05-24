@@ -247,68 +247,33 @@ within the \holoscript{} ecosystem.
 
 \subsection{Leaky Integrate-and-Fire Neurons}
 
-The LIF model~\cite{gerstner2002spiking} is the workhorse of computational neuroscience.
-The membrane potential $V(t)$ of neuron $i$ evolves as:
+The LIF model~\cite{gerstner2002spiking} evolves membrane potential as $V_i(t+\Delta t) = V_\mathrm{rest} + (V_i(t)-V_\mathrm{rest})\,e^{-\Delta t/\tau} + I_\mathrm{syn}^{(i)}(t)$, where $I_\mathrm{syn}^{(j)}(t) = \sum_i W_{ji} s_i(t)$ is the weighted spike sum (equations \eqref{eq:lif}--\eqref{eq:synaptic}; full derivation in Supplemental~\S{F}).
+When $V_i \geq V_\theta$, the neuron fires, resets to $V_\mathrm{reset}$, and enters a $t_\mathrm{ref}$ refractory period.
 \begin{equation}
 \label{eq:lif}
 V_i(t + \Delta t) = V_\mathrm{rest} + \bigl(V_i(t) - V_\mathrm{rest}\bigr) \cdot e^{-\Delta t / \tau} + I_\mathrm{syn}^{(i)}(t)
 \end{equation}
-where $\tau$ is the membrane time constant, $V_\mathrm{rest}$ is the resting potential,
-and $I_\mathrm{syn}^{(i)}(t)$ is the total synaptic input current.
-When $V_i(t + \Delta t) \geq V_\theta$ (the spike threshold), the neuron emits a spike,
-resets to $V_\mathrm{reset}$, and enters a refractory period $t_\mathrm{ref}$.
-
-The synaptic current for post-synaptic neuron $j$ is:
 \begin{equation}
 \label{eq:synaptic}
 I_\mathrm{syn}^{(j)}(t) = \sum_{i} W_{ji} \cdot s_i(t)
 \end{equation}
-where $W_{ji}$ is the synaptic weight from neuron $i$ to $j$, and $s_i(t) \in \{0, 1\}$
-is the spike indicator.
 
 \subsection{WebGPU Compute Model}
 
-WebGPU~\cite{webgpu2024spec} is a W3C standard providing low-level GPU access from
-web browsers.
-Its compute shader stage allows dispatching WGSL (WebGPU Shading Language) kernels
-across configurable workgroups without rendering a frame.
-Unlike WebGL, WebGPU provides:
-(a) read/write storage buffers,
-(b) compute-only pipelines (no rasterization overhead),
-(c) async buffer readback via \texttt{mapAsync}, and
-(d) workgroup-local shared memory.
-
-This makes WebGPU the first browser API with sufficient computational expressiveness
-for SNN simulation---previous browser ML frameworks (TensorFlow.js~\cite{smilkov2019tensorflow})
-could leverage WebGPU for dense tensor operations but not for the
-event-driven, sparse spike processing characteristic of SNNs.
+WebGPU~\cite{webgpu2024spec} is a W3C standard providing low-level GPU access from web browsers via WGSL compute shaders dispatched across configurable workgroups.
+Unlike WebGL, it provides read/write storage buffers, compute-only pipelines, async \texttt{mapAsync} readback, and workgroup-local shared memory---the first browser API with sufficient expressiveness for event-driven, sparse SNN simulation.
 
 \subsection{Tropical Semirings}
 
-A \emph{tropical semiring}~\cite{maclagan2015introduction} replaces the standard
-$(\mathbb{R}, +, \times)$ arithmetic with alternative operations.
-The \emph{max-plus semiring} $(\mathbb{R} \cup \{-\infty\}, \max, +)$ defines:
+A tropical semiring~\cite{maclagan2015introduction} replaces standard arithmetic: the max-plus semiring $(\mathbb{R}\cup\{-\infty\}, \max, +)$ defines $a\tropplus b=\max(a,b)$, $a\tropmult b=a+b$ (equations \eqref{eq:trop-add}--\eqref{eq:trop-mul} retained for cross-reference); the min-plus semiring uses $\min$ and encodes all-pairs shortest paths via $C_{ij}=\min_k(A_{ik}+B_{kj})$.
 \begin{align}
 a \tropplus b &= \max(a, b) \label{eq:trop-add} \\
 a \tropmult b &= a + b \label{eq:trop-mul}
 \end{align}
-and the \emph{min-plus semiring} $(\mathbb{R} \cup \{+\infty\}, \min, +)$ defines
-$a \tropplus b = \min(a, b)$.
-Crucially, tropical matrix multiplication in the min-plus semiring computes
-all-pairs shortest paths: $C_{ij} = \min_k (A_{ik} + B_{kj})$.
 
 \subsection{CAEL Provenance System}
 
-The Causal Agent-Environment Loop (\cael{})~\cite{holoscript2026cael} is a provenance
-framework for simulation-embedded agents.
-Each timestep produces a trace entry:
-\begin{equation}
-E_t = H\bigl(E_{t-1},\; O_t,\; C_t,\; A_t,\; P_t,\; \Delta W_t\bigr)
-\end{equation}
-where $O_t$ is perception (sensor readings), $C_t$ is cognition (spike train + goals),
-$A_t$ is the selected action, $P_t$ is the physics step, $\Delta W_t$ is the world delta,
-and $H$ is a hash function (FNV-1a in our implementation).
-The hash chain ensures any modification to a past entry invalidates all subsequent hashes.
+The Causal Agent-Environment Loop (\cael{})~\cite{holoscript2026cael} hash-chains each timestep as $E_t = H(E_{t-1}, O_t, C_t, A_t, P_t, \Delta W_t)$ using FNV-1a, so any modification to a past entry invalidates all subsequent hashes and is detectable on replay.
 
 % ============================================================================
 \section{System Architecture}
@@ -602,125 +567,15 @@ directly on the same device running the simulation.
 \section{Implementation Details}
 \label{sec:implementation}
 
-\subsection{Software Stack}
+\snnwebgpu{} is implemented in TypeScript (strict ES2020) with WGSL compute shaders, built with \texttt{tsup} and tested with \texttt{vitest}.
+The core modules are: \texttt{gpu-context.ts} (WebGPU adapter/device lifecycle), \texttt{buffer-manager.ts} (GPU buffer allocation with staging pools), \texttt{pipeline-factory.ts} (shader module caching for 6 modules $\times$ 16 entry points), \texttt{lif-simulator.ts} (single-population LIF; 5 GPU buffers), \texttt{snn-network.ts} (multi-layer orchestrator with optional STDP), \texttt{spike-codec.ts} (rate/temporal/delta encode/decode), \texttt{TropicalActivationTrait.ts} (SNN--ReLU bridge, CPU+GPU paths), and \texttt{TropicalShortestPaths.ts} (APSP/SSSP with automatic CPU/GPU routing).
 
-\snnwebgpu{} is implemented in TypeScript (strict ES2020) with WGSL compute
-shaders, built with \texttt{tsup} and tested with \texttt{vitest}.
-The package structure:
-
-\begin{itemize}
-\item \texttt{gpu-context.ts} --- WebGPU adapter/device lifecycle, capability detection,
-  maximum buffer size negotiation (default 256MB).
-\item \texttt{buffer-manager.ts} --- GPU buffer allocation with staging pools for
-  async readback, 4-byte alignment enforcement.
-\item \texttt{pipeline-factory.ts} --- Shader module compilation and pipeline caching;
-  6 shader modules $\times$ 16 entry points.
-\item \texttt{lif-simulator.ts} --- Single-population LIF simulator; manages
-  5 GPU buffers (params, membrane, synaptic input, spikes, refractory).
-\item \texttt{snn-network.ts} --- Multi-layer network orchestrator with named layers,
-  configurable connections, and optional STDP per connection.
-\item \texttt{spike-codec.ts} --- \texttt{SpikeEncoder} and \texttt{SpikeDecoder}
-  classes mapping continuous data $\leftrightarrow$ spike trains.
-\item \texttt{traits/TropicalActivationTrait.ts} --- SNN--ReLU bridge (CPU path);
-  GPU path via \texttt{tropical-activation.wgsl}.
-\item \texttt{graph/TropicalShortestPaths.ts} --- APSP and SSSP via tropical
-  GEMM and SpMV, with automatic CPU/GPU routing based on problem size.
-\end{itemize}
-
-\subsection{The SNNCognitionEngine}
-
-The \texttt{SNNCognitionEngine} in the engine package bridges \snnwebgpu{} to
-the \cael{} agent loop.
-It implements the \texttt{CAELCognitionEngine} interface:
-
-\begin{enumerate}
-\item \textbf{Sensor-to-current mapping}: Physical sensor readings (Pa, K, m/s$^2$)
-  are normalized to $[0, 1]$ per batch, then scaled to $[0, I_\mathrm{scale}]$ mV
-  (default: 20mV).
-  This injection range drives neurons from $V_\mathrm{rest} = -65$ mV toward
-  $V_\theta = -55$ mV: 20\% input yields light spiking; 100\% yields near-saturation.
-
-\item \textbf{Multi-step LIF}: Each \texttt{think()} call runs
-  $\lceil \Delta t \cdot 1000 / \Delta t_\mathrm{LIF} \rceil$ LIF steps,
-  collecting all spikes with millisecond-resolution timestamps.
-
-\item \textbf{Goal derivation}: Aggregate firing rate drives a simple GOAP goal stack:
-  $>30\%$ firing $\Rightarrow$ ``stabilize'',
-  $>5\%$ $\Rightarrow$ ``monitor'',
-  else $\Rightarrow$ ``idle''.
-
-\item \textbf{GPU/CPU fallback}: The engine attempts WebGPU initialization; if
-  unavailable, it falls back to a bit-exact \texttt{CPUReferenceSimulator}
-  implementing the same LIF equations on the CPU.
-\end{enumerate}
-
-\subsection{The LIF Kernel in Detail}
-
-The core LIF compute shader (Listing~\ref{lst:lif}) processes one neuron per thread:
-
-\begin{lstlisting}[caption={Core LIF neuron update kernel (\texttt{lif-neuron.wgsl}).}, label=lst:lif]
-@compute @workgroup_size(256)
-fn lif_step(@builtin(global_invocation_id) gid: vec3<u32>) {
-  let i = gid.x;
-  if (i >= params.neuron_count) { return; }
-  var v = membrane_v[i];
-  let i_syn = synaptic_input[i];
-  var ref_timer = refractory[i];
-  let decay = exp(-params.dt / params.tau);
-  if (ref_timer > 0.0) {
-    refractory[i] = max(ref_timer - params.dt, 0.0);
-    membrane_v[i] = params.v_reset;
-    spikes[i] = 0.0;
-    return;
-  }
-  v = params.v_rest + (v - params.v_rest) * decay + i_syn;
-  if (v >= params.v_threshold) {
-    spikes[i] = 1.0;
-    membrane_v[i] = params.v_reset;
-    refractory[i] = 2.0; // 2ms refractory
-  } else {
-    spikes[i] = 0.0;
-    membrane_v[i] = v;
-  }
-}
-\end{lstlisting}
-
-A batch variant (\texttt{lif\_step\_batch}) processes 4 sub-steps per dispatch
-for higher temporal resolution when latency is less critical than throughput.
-
-\subsection{STDP Learning}
-
-The STDP kernel implements soft-bounded Hebbian plasticity:
-\begin{equation}
-\Delta W_{ji} = \begin{cases}
-\eta (1 - W_{ji}) & \text{if } s_i = 1 \text{ and } s_j = 1 \quad \text{(LTP)} \\
--0.5\eta W_{ji}  & \text{if } s_i = 1 \text{ and } s_j = 0 \quad \text{(LTD)} \\
-0                 & \text{otherwise}
-\end{cases}
-\end{equation}
-Weights are clamped to $[0, 1]$ after each update.
-The soft bounds prevent weight explosion (LTP pushes toward 1 with diminishing force)
-and ensure weight decay (LTD pulls toward 0).
-
-\subsection{Wait-Free Parallel Sorting}
-
-For spike train processing requiring sorted order, we implement a wait-free
-Blelloch prefix-sum radix sort~\cite{blelloch1990prefix} in WGSL
-(\texttt{blelloch-scan-sort.wgsl}).
-The algorithm avoids spin-waits that deadlock on Apple/Intel GPUs:
-Phase 1 computes local histograms per workgroup (shared memory atomics);
-Phase 2 runs a Blelloch up-sweep/down-sweep scan for global prefix sums;
-Phase 3 scatters elements to sorted positions.
-A single-block fast path handles arrays $\leq 256$ elements entirely in
-shared memory.
-
-\subsection{Test Coverage}
-
-The \texttt{@holoscript/snn-webgpu} package is validated by Vitest suites covering
-LIF simulation, spike codecs, SNN graph wiring, tropical kernels (including APSP
-benchmarks), GPU buffer/pipeline paths, and integration scenarios.
-A full-package \texttt{vitest run} on 2026-04-17 reported \textbf{205} passing tests
-(Windows/Node; some suites exercise native WebGPU when available, others use mocks).
+The \texttt{SNNCognitionEngine} bridges \snnwebgpu{} to the \cael{} agent loop by normalizing physical sensor readings (Pa, K, m/s$^2$) to $[0,1]$, scaling to $[0, I_\mathrm{scale}]$ mV injection current, running $\lceil \Delta t \cdot 1000 / \Delta t_\mathrm{LIF} \rceil$ LIF steps per \texttt{think()} call, and mapping aggregate firing rate to a GOAP goal stack (\textgreater30\% $\Rightarrow$ ``stabilize'', \textgreater5\% $\Rightarrow$ ``monitor'', else ``idle'').
+GPU/CPU fallback to a bit-exact \texttt{CPUReferenceSimulator} is automatic when WebGPU is unavailable.
+The STDP kernel uses soft-bounded Hebbian plasticity: LTP $\Delta W = \eta(1-W)$ on co-firings; LTD $\Delta W = -0.5\eta W$ when only pre fires; weights clamped to $[0,1]$.
+For spike-sorted order, a wait-free Blelloch prefix-sum radix sort~\cite{blelloch1990prefix} in WGSL avoids spin-waits that deadlock on Apple/Intel GPUs.
+The package is validated by 205 Vitest tests covering LIF simulation, spike codecs, SNN graph wiring, tropical kernels, GPU buffer/pipeline paths, and integration scenarios (full-package run 2026-04-17).
+Full software stack details, annotated shader listings, and test coverage breakdown are in Supplemental~\S{D}.
 
 % ============================================================================
 \section{Evaluation}
@@ -1222,132 +1077,12 @@ Hardware: Windows workstation, CPU SNN reference path (as in the Vitest harness)
 \subsection{User Study Protocol (Preregistered)}
 \label{sec:user-study}
 
-To evaluate the operational utility and cognitive ergonomics of the
-\snnwebgpu{} framework, we have prepared a pre-data protocol bundle for
-a within-subjects developer-diagnostic study ($N=12$ replication, pilot
-$N=3$).  The study asks whether access to integrated CAEL provenance
-traces and tropical-activation explanatory mappings improves a
-developer's ability to diagnose, verify, and trust neuromorphic-agent
-behaviour relative to a conventional raw-spike baseline.
-
-\paragraph{Design.}
-The experiment uses a within-subjects (repeated-measures) design with
-two tool conditions:
-\begin{itemize}[leftmargin=*,topsep=2pt]
-  \item \textbf{Condition A} — the \snnwebgpu{} Studio viewer with
-    embodied-navigation replay, per-tick CAEL-trace inspection, and
-    a toggleable tropical-activation overlay that maps each SNN
-    neuron's rate-coded output to its ReLU-equivalent value
-    (Theorem~\ref{thm:bridge}).
-  \item \textbf{Condition B} — baseline: raw spike-raster CSV, a
-    PyTorch CPU reference script, and standard matplotlib
-    visualisation of agent trajectory.  No provenance trace or
-    formal-bridge overlay is available.
-\end{itemize}
-Order is counterbalanced with a Latin square; scenario difficulty is
-fixed (easy $\to$ medium $\to$ hard) within each condition block to
-preserve construct validity.
-
-\paragraph{Participants.}
-Target sample: pilot $N=3$ (descriptive only), replication $N=12$
-(inferential).  Recruitment is from the HoloScript community Discord,
-the neuromorphic-computing sub-reddit, and a local university CS/NEU
-mailing list.  Inclusion criteria: age $\geq 18$, self-rated neural-network
-familiarity $\geq 3$ on a 1--5 scale, prior use of a Python ML
-framework, and a WebGPU-capable browser.  Exclusions: authors or
-direct collaborators on \snnwebgpu{}, participants who have previously
-seen the stimulus scenarios, and individuals with colour-blindness that
-impedes reading the navigation-world colour coding (red=obstacle,
-green=goal).  Compensation is a \$30 USD gift card.  IRB approval is
-pending; this preregistration is committed to the repository before any
-external recruitment (D.011 reproducibility gate).
-
-\paragraph{Materials and apparatus.}
-The three diagnostic scenarios are drawn from the embodied navigation
-task described in \S\ref{sec:embodied}.  Each scenario presents a failed
-$128$-neuron LIF run in a $20 \times 20$ room with $6$ obstacles:
-\begin{enumerate}[leftmargin=*,topsep=2pt]
-  \item \emph{Obstacle overshoot} (easy): the agent collides with an
-    obstacle near $(10,10)$ and never recovers.  The correct diagnosis
-    is an under-inhibited east-direction sensor population.
-  \item \emph{Goal miss} (medium): the agent reaches the goal
-    neighbourhood ($(16.8,17.9)$) but circles without touching the
-    target at $(18,18)$.  The correct diagnosis is insufficient goal
-    excitation relative to residual obstacle inhibition.
-  \item \emph{Sensor-noise drift} (hard): Gaussian noise
-    ($\sigma=0.3$) on a single diagonal distance sensor causes a
-    compounding drift into a side wall over $80$ ticks.  The correct
-    diagnosis requires identifying the noisy sensor from anomalous
-    spike-rate patterns.
-\end{enumerate}
-In Condition A the participant clicks through the replay, inspects CAEL
-trace entries (cf.\ \S\ref{sec:demo}), and optionally toggles the
-tropical overlay to see which directional population was
-under-inhibited.  In Condition B the participant scrolls the CSV and
-cross-references the trajectory plot against the reference script's
-encoding logic.
-
-\paragraph{Measures.}
-\begin{itemize}[leftmargin=*,topsep=2pt]
-  \item \textbf{Diagnosis accuracy} — binary, coded against a rubric
-    by two independent researchers (Cohen's $\kappa$ reported).
-  \item \textbf{Time to diagnosis} — seconds from stimulus onset to
-    confidence-submit, auto-timestamped by the instrument.
-  \item \textbf{Confidence} — 7-point Likert ("How confident are you
-    that your diagnosis is correct?"); primary continuous DV for
-    inferential testing.
-  \item \textbf{Cognitive load} — single-item NASA-TLX mental-demand
-    rating (1--7), chosen for brevity at small $N$.
-  \item \textbf{Perceived usefulness} — 7-point Likert ("How useful
-    would this tool be for your own neuromorphic research?"),
-    collected once per condition block.
-  \item \textbf{SUS} — 10-item System Usability Scale, applied to
-    each tool condition separately.
-  \item \textbf{CAEL-specific trust} (Condition A only) — 7-point
-    Likert: "How confident are you that the CAEL trace would detect
-    tampering if someone altered a spike-rate vector mid-run?"
-\end{itemize}
-
-\paragraph{Procedure.}
-Each participant attends a single $35$--$45$ minute session.  After
-informed consent and demographics ($3$ min), the participant completes
-the three scenarios in Condition A or B ($15$ min), answers the
-post-condition SUS and free-response debrief ($2$ min), switches to the
-second condition and repeats the three scenarios ($15$ min), and
-concludes with a preference question, open-ended comparison, and
-demographics recap ($3$ min).  The debrief script discloses the study's
-purpose and offers a summary of findings on request.
-
-\paragraph{Analysis plan.}
-The primary hypothesis ($H_1$) states that Condition A increases
-diagnosis confidence relative to Condition B.  Because the data are
-ordinal Likert scores and $N \leq 12$, we use the Wilcoxon
-signed-rank test (paired by participant) at $\alpha = 0.05$
-(two-tailed).  Effect size is reported as rank-biserial correlation
-$r$ with Cliff's delta as a robustness check.  Secondary DVs (time,
-cognitive load, usefulness) are corrected with Holm-Bonferroni.  Pilot
-($N=3$) results are descriptive only (means/medians with 95\% CI,
-explicit "not inferential" disclaimer).  Exclusions: participants who
-complete fewer than four of six trials; response-set participants
-(flagged and discussed before dropping).  Stopping rule is fixed $N$;
-no interim peeking.
-
-\paragraph{Expected outcomes and claim rung.}
-We expect Condition A to outperform Condition B on confidence and
-accuracy, with the largest effect on the hard (sensor-noise) scenario
-where CAEL anomaly indicators and tropical overlays provide the most
-leverage over raw CSV inspection.  This submission does not claim
-participant outcomes: the D.011 evidence surface is the committed
-pre-data bundle, and the paper upgrades to \emph{rung 2} only after the
-pilot is executed under IRB approval with the preregistered replication
-pending.  It upgrades to \emph{rung 3} if the replication completes
-before camera-ready.  The preregistration, task script, analysis
-template, and raw-data specification are committed to
-\texttt{research/user-study-data/paper-2/}.
+We have prepared a pre-data protocol bundle for a within-subjects developer-diagnostic study ($N=12$ replication, pilot $N=3$) asking whether access to integrated \cael{} provenance traces and tropical-activation overlays improves a developer's ability to diagnose, verify, and trust neuromorphic-agent behaviour relative to a conventional raw-spike-raster baseline (Condition A: \snnwebgpu{} Studio viewer with CAEL trace inspection and tropical overlay; Condition B: raw spike-raster CSV + matplotlib trajectory).
+Three diagnostic scenarios (obstacle overshoot, goal miss, sensor-noise drift) are drawn from the navigation task (\S\ref{sec:embodied}); order is counterbalanced with a Latin square.
+Primary DV is diagnosis confidence (7-point Likert); analysis uses Wilcoxon signed-rank at $\alpha=0.05$.
+This submission contributes the committed pre-data bundle only (D.011 evidence surface); it upgrades to rung~2 after IRB-approved pilot execution.
+Full protocol, measures, procedure, analysis plan, and preregistration materials are in Supplemental~\S\ref{supp:user-study}.
 \measuredFrom{research/user-study-data/paper-2/preregistration.md}%
-\measuredFrom{research/user-study-data/paper-2/task-script.md}%
-\measuredFrom{research/user-study-data/paper-2/analysis-stub.md}%
-\measuredFrom{research/user-study-data/paper-2/responses-spec.csv}%
 
 % ────────────────────────────────────────────────────────────────────────────
 \subsection{Ablation Study}
@@ -1410,73 +1145,12 @@ LIF kernel only (no encoding/decoding)$^\dagger$
 \end{tabular}
 \end{table}
 
-The full configuration is the only variant that jointly satisfies all
-three contributions stated in the abstract: the formal tropical bridge
-(Theorem~\ref{thm:bridge}), STDP-learned goal-directed navigation
-(\S\ref{sec:stdp-nav}, $39$-tick optimal in $\leq 8$ episodes), and
-auditable provenance (\S\ref{sec:demo} reproduction protocol).
-
-\paragraph{Removing the tropical activation} ($-$Tropical) replaces the
-\texttt{TropicalActivationTrait} (\S\ref{sec:tropical}, Implementation
-subsection) with the plain steady-state rate readout, recovering
-$\sim\!0.6\%$ throughput
-(the trait's per-neuron op is dominated by the LIF kernel's membrane
-update). The bridge to ReLU activation is then no longer recoverable
-from the per-timestep output; \texttt{tropical-core-consistency.test.ts}
-fails on the \texttt{max-plus activation agrees with semiring additive
-projection} assertion. STDP-learned navigation continues to function
-because plasticity operates on raw spike timing and is independent of
-the readout transform.
-
-\paragraph{Disabling STDP} ($-$STDP) freezes synaptic weights at their
-random initialisation; the agent recovers the
-$\approx\!20\%$ random-walk baseline reported in
-\S\ref{sec:stdp-nav}, never reaching the $39$-tick optimal path even at
-$10\times$ the episode budget. Throughput rises to $1481.0$~M
-neuron-timesteps/s because the STDP weight-update kernel is the second
-dispatch in the per-timestep pipeline; this is the same number the
-LIF-kernel-only baseline produces, since the soft-bounded Hebbian
-update has the same dispatch cost whether it commits a delta or not in
-the frozen-weight variant. The tropical bridge and CAEL chain are
-unaffected.
-
-\paragraph{Removing CAEL provenance} ($-$CAEL$^\dagger$) drops the
-hash-chain emission step at end-of-timestep. Throughput is statistically
-indistinguishable from the full pipeline ($<\!0.5\%$, within the noise
-floor of the 5-run median) because CAEL writes one FNV-1a digest per
-timestep and the digest is computed on the host after the GPU readback
-of the spike-rate vector; the readback dominates wall time. We mark this
-variant $\dagger$ rather than benchmarking it explicitly because the
-benchmark harness measures GPU-side throughput which is unchanged.
-The reproducibility property is destroyed: an independent auditor
-cannot verify $h_T' = h_T$ because $h_T$ is no longer emitted, breaking
-the $\S$\ref{sec:demo} reproduction protocol step (c). Tampering with a
-spike-rate vector $\mathbf{s}_t$ during the run is then undetectable on
-replay.
-
-\paragraph{LIF kernel only} (final row, $\dagger$) is the irreducible
-GPU-side cost floor: the membrane update + threshold reset compute
-shader dispatched without spike encoding
-(\S\ref{sec:architecture}, Phase~1) or spike decoding
-(\S\ref{sec:architecture}, Phase~3), or any post-processing. At
-$N = 262{,}144$ this runs at $1481.0$~M neuron-timesteps/s; the full
-pipeline runs at $1.06\%$ overhead vs.\ this floor in the canonical
-configuration. The variant is not benchmarked as a distinct row in
-the throughput table because no spike output is produced (every
-``Yes/No'' column in Table~\ref{tab:ablation-snn} collapses to ---);
-it is reported alongside as the baseline against which the
-$<\!7$~M~neuron-timesteps/s spread of the other variants should be
-read.
-
-The decomposition shows that each contribution stated in the abstract
-maps to exactly one component whose removal kills the contribution
-without proportional throughput recovery: the tropical bridge costs
-$\sim\!0.6\%$ throughput, STDP costs $\sim\!6\%$, and CAEL costs
-$<\!0.5\%$. The full pipeline therefore runs at $1.06\times$ the
-LIF-only floor while preserving all three formal guarantees, which is
-the practical operating point because the system's value comes from the
-\emph{joint} cognitive--reproducibility property rather than any single
-component in isolation.
+The full configuration is the only variant that jointly satisfies all three contributions: tropical bridge (Theorem~\ref{thm:bridge}), STDP navigation ($39$-tick optimal in $\leq 8$ episodes), and auditable provenance.
+Removing tropical activation recovers $\sim\!0.6\%$ throughput but breaks \texttt{tropical-core-consistency.test.ts}.
+Disabling STDP reverts the agent to $\approx\!20\%$ random-walk baseline; throughput rises to $1481.0$ M neuron-ts/s (the LIF-only floor) since the Hebbian kernel has uniform dispatch cost regardless of weight updates.
+Removing CAEL has $<\!0.5\%$ throughput impact (host-side digest after GPU readback) but destroys reproducibility: tampering with any $\mathbf{s}_t$ is then undetectable on replay.
+Each contribution maps to exactly one component; the full pipeline runs at $1.06\times$ the LIF-only floor while preserving all three guarantees.
+Full per-variant analysis is in Supplemental~\S{D}.
 
 % ────────────────────────────────────────────────────────────────────────────
 \subsection{Full-Loop Demo}
@@ -1520,176 +1194,35 @@ asserts the goal, trace, and hash-chain facts used here.
     the evidence memos cited in \S\ref{sec:evaluation}.
 \end{enumerate}
 
-\paragraph{Provenance chain composition.}
-The CAEL chain is not hand-waved hashing; it has a fixed inductive
-structure. Let $h_{-1} = \text{FNV-1a}(\text{SHA-256}(\text{compiled
-scene}))$ be the genesis link. For each timestep $t \in [0, T)$:
-\[
-  h_t = \text{FNV-1a}\!\left(h_{t-1} \,\Vert\, \mathbf{s}_t \,\Vert\, \mathbf{a}_t \,\Vert\, \ell_t\right)
-\]
-where $\mathbf{s}_t$ is the spike-rate vector emitted by the LIF
-kernel, $\mathbf{a}_t$ is the tropical-activation output passed to
-the policy head, $\ell_t$ is the action label, and $\Vert$ is byte
-concatenation in canonical little-endian. The terminal head $h_{T}$
-at episode end ($T = 200$ ticks in the canonical demo harness) is what
-the verifier recomputes. Tampering with any single
-$\mathbf{s}_t$, $\mathbf{a}_t$, or $\ell_t$ in the log invalidates
-$h_T$ and is detected on replay.
-
-\paragraph{Reproduction protocol.}
-An independent auditor verifies the run as follows:
-(a)~obtain the supplementary bundle under
-\texttt{research/paper-2-demo/};
-(b)~run \texttt{node reproduce.mjs -{}-check}, which re-executes
-\texttt{packages/engine/src/simulation/\_\_tests\_\_/paper-snn-navigation.test.ts};
-(c)~assert that the verifier reports goal reached at tick~38, 800 CAEL
-entries, hash-chain validity, and a passing Vitest file.  A divergence
-localises either to the HoloScript harness output or to the verifier's
-pattern checks, both of which are visible in the command output.
-
-The complete verifier and a local hardware verification memo are included
-in \texttt{research/paper-2-demo/} (D.011 full-loop evidence).
+\paragraph{Provenance chain.}
+$h_t = \text{FNV-1a}(h_{t-1} \Vert \mathbf{s}_t \Vert \mathbf{a}_t \Vert \ell_t)$, where $h_{-1}$ is seeded from SHA-256 of the compiled scene; tampering with any spike-rate vector, tropical-activation output, or action label in the 800-entry log invalidates $h_T$ and is detected on replay.
+An independent auditor reproduces the run via \texttt{node reproduce.mjs~-{}-check} in \texttt{research/paper-2-demo/} (D.011 full-loop evidence): goal at tick~38, 800 CAEL entries, hash-chain validity.
 \measuredFrom{research/paper-2-demo/reproduce.mjs}%
 \measuredFrom{research/paper-2-demo/FULL_LOOP_VERIFICATION_2026-05-10.md}%
 
 \section{Related Work}
 \label{sec:related}
 
-\paragraph{SNN Simulation Frameworks.}
-NEST~\cite{gewaltig2007nest} is the gold standard for large-scale SNN simulation
-($>10^6$ neurons) but requires a Linux cluster.
-BrainCog~\cite{tang2024braincog} provides a PyTorch-based SNN framework with
-embodied AI integration (iCub, Robosim) but requires CUDA GPUs.
-snnTorch~\cite{eshraghian2023training} focuses on training SNNs with surrogate
-gradients---a complementary concern to our GPU inference focus.
-SpikingJelly~\cite{fang2023spikingjelly} offers CUDA-accelerated SNN simulation
-with neuromorphic dataset support.
-None of these run in a web browser.
-
-\paragraph{Web-Based Neural Networks.}
-TensorFlow.js~\cite{smilkov2019tensorflow} supports DNNs on WebGPU but does
-not implement spiking dynamics.
-ONNX Runtime Web uses WebGPU for standard neural network inference.
-Neither provides spike encoding/decoding, STDP, or LIF neuron models.
-To our knowledge, \snnwebgpu{} is the first SNN implementation targeting WebGPU.
-
-\paragraph{Browser-Native SNN Prior Work and Comparison Scope.}
-The throughput figures reported in this paper (peak $1.48 \times 10^9$ and
-$5.89 \times 10^9$ neuron-timesteps/s on integrated and discrete WebGPU,
-respectively) are scoped to \emph{browser-native, zero-installation deployment}
-and should not be compared directly against CUDA-backed frameworks such as
-SpikingJelly~\cite{fang2023spikingjelly} or BrainCog~\cite{tang2024braincog},
-which exploit dedicated GPU driver paths unavailable in the browser sandbox.
-The meaningful comparison class for \snnwebgpu{} is prior browser-accessible SNN work.
-The closest precursor in this class is the WebGL-based SNN-P systems
-simulator of \citeauthor{cabarle2022webgl}~\cite{cabarle2022webgl}, which runs
-spiking neural P systems in web browsers using the WebGL rasterization pipeline.
-That approach is limited to WebGL's compute-hostile rasterization model and does
-not support STDP, multi-layer LIF dynamics, or hash-chain provenance.
-\snnwebgpu{} replaces the WebGL rasterization pipeline with WebGPU compute
-shaders---providing true compute parallelism, read/write storage buffers, and
-workgroup-local shared memory---enabling biologically realistic LIF neurons,
-Hebbian plasticity, and cryptographic audit trails, all within the browser
-sandbox with no CUDA driver required.
-
-\paragraph{Neuromorphic Hardware.}
-Intel Loihi 2~\cite{davies2018loihi} and IBM TrueNorth~\cite{merolla2014truenorth}
-implement SNNs in custom silicon with $>10^6$ neurons and $< 1$W power.
-SpiNNaker~\cite{furber2014spinnaker} uses ARM cores for flexible neuron models.
-These provide superior energy efficiency but require specialized hardware
-procurement and toolchains---the antithesis of our zero-installation approach.
-
-\paragraph{Spiking World Models.}
-Capone and Paolucci~\cite{capone2024dreaming} (Sci.\ Rep.\ 2024) demonstrate
-biologically plausible model-based reinforcement learning in recurrent spiking
-networks, where ``dreaming''---generating simulated experiences inside a
-spike-based world model---accelerates skill acquisition without offline replay
-buffers.
-Our work complements this by showing that spike-based world-model execution can
-run end-to-end in a browser with provenance over every spike, rather than
-requiring HPC infrastructure or specialized neuromorphic hardware.
-
-\paragraph{Tropical Algebra in Neural Networks.}
-The connection between tropical geometry and neural networks has been explored
-theoretically~\cite{zhang2018tropical, alfarra2022decision}, showing that ReLU
-networks partition input space into tropical hypersurfaces.
-Maragos et al.~\cite{maragos2021tropical} provide a comprehensive survey of
-tropical algebra in signal processing and machine learning.
-Our contribution is the \emph{implementation}: a GPU-accelerated tropical bridge
-that connects SNN rate codes to ReLU activations in a working system with
-empirical benchmarks.
-
-\paragraph{Provenance in Simulation.}
-Simulation provenance has been explored in scientific workflows~\cite{simmhan2005survey}
-and digital twins~\cite{tao2019digital}, but always at the simulation level---not
-at the individual neural decision level.
-Our \cael{} system provides per-spike-train, per-action hash-chain provenance,
-enabling counterfactual analysis (``what if the agent had chosen differently?'')
-with cryptographic integrity guarantees.
+Established SNN simulation frameworks (NEST~\cite{gewaltig2007nest}, BrainCog~\cite{tang2024braincog}, snnTorch~\cite{eshraghian2023training}, SpikingJelly~\cite{fang2023spikingjelly}) require Linux clusters, CUDA GPUs, or Python ecosystems---none run in a web browser.
+Browser-side neural inference via TensorFlow.js~\cite{smilkov2019tensorflow} and ONNX Runtime Web targets dense tensor operations, not spiking dynamics; the closest browser-native SNN predecessor is the WebGL-based SNN-P systems simulator of \citeauthor{cabarle2022webgl}~\cite{cabarle2022webgl}, which is limited to WebGL's compute-hostile rasterization model and does not support STDP, multi-layer LIF dynamics, or hash-chain provenance.
+Neuromorphic hardware (Loihi~\cite{davies2018loihi}, TrueNorth~\cite{merolla2014truenorth}, SpiNNaker~\cite{furber2014spinnaker}) achieves superior energy efficiency but requires specialized procurement and toolchains.
+The connection between tropical geometry and ReLU networks has been explored theoretically~\cite{zhang2018tropical, alfarra2022decision, maragos2021tropical}; our contribution is the first GPU-accelerated implementation that connects SNN rate codes to ReLU activations in a working system with empirical benchmarks.
+Simulation provenance in scientific workflows~\cite{simmhan2005survey} and digital twins~\cite{tao2019digital} operates at the simulation level; \cael{} provides per-spike-train, per-action hash-chain provenance---a finer granularity not previously achieved.
+An expanded treatment of each prior-work family is in Supplemental~\S\ref{supp:related}.
 
 % ============================================================================
 \section{Discussion}
 \label{sec:discussion}
 
 \paragraph{Limitations.}
-Our LIF model does not capture the full richness of biological neurons
-(e.g., dendritic computation, neuromodulation, short-term plasticity).
-The STDP rule is a simplified Hebbian variant; biologically accurate STDP
-requires pre/post spike timing windows that our current implementation
-does not track across timesteps.
-WebGPU is not yet universally available---Safari support arrived in 2024,
-but older browsers and some mobile devices lack support.
-The max-plus tropical bridge (Theorem~\ref{thm:bridge}) holds in the
-suprathreshold steady-state regime; transient dynamics and
-sub-threshold oscillations break the linear approximation.
-
-\paragraph{Broader Impact.}
-Browser-native neuromorphic cognition democratizes access to embodied AI
-research.
-A student can open a URL and run an SNN-driven agent in a physics simulation
-without installing Python, CUDA, or requesting cluster time.
-The \cael{} provenance system provides a foundation for auditable AI
-decision-making, which is increasingly important as autonomous systems
-enter safety-critical domains.
-The tropical bridge offers a theoretical unification that could inform
-curriculum design for teaching both biological and artificial neural
-computation.
+The LIF model omits dendritic computation, neuromodulation, and short-term plasticity; the STDP rule is a simplified Hebbian variant lacking exponential pre/post timing windows.
+WebGPU availability remains incomplete on older mobile browsers, and the tropical bridge (Theorem~\ref{thm:bridge}) holds only in the suprathreshold steady-state regime.
 
 \paragraph{Future Work.}
 \label{sec:future}
-Item~(1) below was originally listed as future work but is now closed:
-the STDP-learned navigation result is reported in
-Section~\ref{sec:stdp-nav} (Table~\ref{tab:stdp-nav-experiment}).
-Remaining next steps:
-(1) [\emph{closed; see Section~\ref{sec:stdp-nav}}] enabling STDP learning
-in the navigation task to optimize path efficiency beyond the baseline
-20\%; the soft-bounded Hebbian rule with a supervised teacher trains a
-random network to a near-optimal $39$-tick / $29.97$-unit path in 8
-episodes (CPU reference, deterministic, $60$\,ms wall);
-(2) implementing biologically accurate STDP with exponential timing windows;
-(3) multi-agent \cael{} traces with causal ordering across agents;
-(4) integration with neuromorphic hardware (Loihi 2) for power efficiency
-comparisons;
-(5) scaling to $10^6$ neurons via hierarchical workgroup decomposition
-and shared memory tiling;
-(6) connecting the tropical graph algorithms to network architecture
-search---finding optimal SNN topologies via shortest-path analysis
-of information flow.
-
-\subsection{Remaining Work for Camera-Ready}
-\label{sec:remaining-work}
-\begin{itemize}
-  \item In-repo SHA-256 vs FNV-1a microbenchmark on the canonical host:
-    \emph{shipped} as
-    \texttt{packages/engine/src/simulation/\_\_tests\_\_/fnv1a-vs-sha256.bench.test.ts}
-    (HoloScript). Pure-JS SHA-256 measured at $\sim$9--24$\times$
-    per-hash cost vs FNV-1a across paper-3 §7.5 scale ladder
-    (60/300/1{,}200/6{,}000 floats plus 500\,B--500\,KB payloads);
-    validated against RFC~6234 §B.1--2 test vectors and cross-checked
-    against Node native \texttt{crypto.createHash('sha256')} on 9
-    random-input sizes spanning single-block / block-boundary /
-    multi-block cases.
-\end{itemize}
+STDP-learned navigation (item 1) is now closed---see Section~\ref{sec:stdp-nav}.
+Remaining: (2) biologically accurate STDP with exponential timing windows; (3) multi-agent \cael{} traces with causal ordering; (4) Loihi~2 integration for power efficiency comparisons; (5) scaling to $10^6$ neurons via hierarchical workgroup decomposition; (6) tropical graph algorithms for SNN topology search.
+Broader impact is discussed in Appendix~\ref{app:broader-impact}.
 
 % ============================================================================
 \section{Conclusion}
@@ -1764,210 +1297,8 @@ We thank the W3C WebGPU Community Group for the compute shader specification
 that made this work possible.
 
 % ============================================================================
-\iffalse
-% Legacy inline bibliography preserved for audit trail.
-% Wrapped 2026-05-04 per bib-migration ruling.
-% Active bibliography: \bibliography{holoscript} at end of document.
-\bibliographystyle{plain}
-
-\begin{thebibliography}{20}
-
-\bibitem{maass1997networks}
-W.~Maass.
-\newblock Networks of spiking neurons: The third generation of neural network
-  models.
-\newblock {\em Neural Networks}, 10(9):1659--1671, 1997.
-
-\bibitem{gerstner2002spiking}
-W.~Gerstner and W.~M. Kistler.
-\newblock {\em Spiking Neuron Models: Single Neurons, Populations, Plasticity}.
-\newblock Cambridge University Press, 2002.
-
-\bibitem{tang2024braincog}
-H.~Tang, Y.~Zeng, et~al.
-\newblock BrainCog: A spiking neural network based brain-inspired cognitive
-  intelligence engine for brain-inspired AI and brain simulation.
-\newblock {\em Patterns}, 4(8):100789, 2023.
-
-\bibitem{gewaltig2007nest}
-M.-O. Gewaltig and M.~Diesmann.
-\newblock NEST (NEural Simulation Tool).
-\newblock {\em Scholarpedia}, 2(4):1430, 2007.
-
-\bibitem{davies2018loihi}
-M.~Davies, N.~Srinivasa, et~al.
-\newblock Loihi: A neuromorphic manycore processor with on-chip learning.
-\newblock {\em IEEE Micro}, 38(1):82--99, 2018.
-
-\bibitem{merolla2014truenorth}
-P.~A. Merolla, J.~V. Arthur, et~al.
-\newblock A million spiking-neuron integrated circuit with a scalable
-  communication network and interface.
-\newblock {\em Science}, 345(6197):668--673, 2014.
-
-\bibitem{webgpu2024spec}
-W3C.
-\newblock {WebGPU} specification.
-\newblock W3C Working Draft, 2024.
-\newblock \url{https://www.w3.org/TR/webgpu/}.
-
-\bibitem{smilkov2019tensorflow}
-D.~Smilkov, N.~Thorat, et~al.
-\newblock TensorFlow.js: Machine learning for the web and beyond.
-\newblock In {\em Proceedings of Machine Learning and Systems (MLSys)}, 2019.
-
-\bibitem{maclagan2015introduction}
-D.~Maclagan and B.~Sturmfels.
-\newblock {\em Introduction to Tropical Geometry}.
-\newblock American Mathematical Society, 2015.
-
-\bibitem{holoscript2026cael}
-J.~Krzywoszyja.
-\newblock {CAEL}: Causal Agent-Environment Loop with hash-chain provenance.
-\newblock Technical report, Infinitus Systems, 2026.
-
-\bibitem{glorot2011deep}
-X.~Glorot, A.~Bordes, and Y.~Bengio.
-\newblock Deep sparse rectifier neural networks.
-\newblock In {\em Proceedings of AISTATS}, pages 315--323, 2011.
-
-\bibitem{blelloch1990prefix}
-G.~E. Blelloch.
-\newblock Prefix sums and their applications.
-\newblock Technical Report CMU-CS-90-190, Carnegie Mellon University, 1990.
-
-\bibitem{capone2024dreaming}
-C.~Capone and P.~S. Paolucci.
-\newblock Towards biologically plausible model-based reinforcement learning in
-  recurrent spiking networks by dreaming new experiences.
-\newblock {\em Scientific Reports}, 14(1):14656, 2024.
-\newblock DOI: 10.1038/s41598-024-65631-y. Replaces hallucinated
-  \texttt{zhang2025spiking} stub (2026-05-11).
-
-\bibitem{zhang2018tropical}
-L.~Zhang, G.~Naitzat, and L.~H. Lim.
-\newblock Tropical geometry of deep neural networks.
-\newblock In {\em Proceedings of ICML}, pages 5824--5832, 2018.
-
-\bibitem{alfarra2022decision}
-M.~Alfarra, A.~Bibi, et~al.
-\newblock On the decision boundaries of neural networks: A tropical geometry
-  perspective.
-\newblock {\em IEEE Transactions on Pattern Analysis and Machine Intelligence},
-  45(10):12312--12324, 2022.
-
-\bibitem{maragos2021tropical}
-P.~Maragos, V.~Charisopoulos, and E.~Theodosis.
-\newblock Tropical geometry and machine learning.
-\newblock {\em Proceedings of the IEEE}, 109(5):728--755, 2021.
-
-\bibitem{simmhan2005survey}
-Y.~L. Simmhan, B.~Plale, and D.~Gannon.
-\newblock A survey of data provenance in e-science.
-\newblock {\em ACM SIGMOD Record}, 34(3):31--36, 2005.
-
-\bibitem{tao2019digital}
-F.~Tao, H.~Zhang, et~al.
-\newblock Digital twin in industry: State-of-the-art.
-\newblock {\em IEEE Transactions on Industrial Informatics}, 15(4):2405--2415,
-  2019.
-
-\bibitem{eshraghian2023training}
-J.~K. Eshraghian, M.~Ward, et~al.
-\newblock Training spiking neural networks using lessons from deep learning.
-\newblock {\em Proceedings of the IEEE}, 111(9):1016--1054, 2023.
-
-\bibitem{fang2023spikingjelly}
-W.~Fang, Y.~Chen, et~al.
-\newblock SpikingJelly: An open-source machine learning infrastructure platform
-  for spike-based intelligence.
-\newblock {\em Proceedings of the IEEE}, 111(9):1055--1078, 2023.
-
-\bibitem{furber2014spinnaker}
-S.~B. Furber, F.~Galluppi, S.~Temple, and L.~A. Plana.
-\newblock The {SpiNNaker} project.
-\newblock {\em Proceedings of the IEEE}, 102(5):652--665, 2014.
-
-\end{thebibliography}
-\fi
-
-% ============================================================================
-\appendix
-
-\section{Default LIF Parameters}
-\label{app:lif-params}
-
-\begin{table}[h]
-\centering
-\caption{Default LIF parameters used throughout experiments, based on standard
-  cortical neuron models~\cite{gerstner2002spiking}.}
-\label{tab:lif-params}
-\small
-\begin{tabular}{@{}llrl@{}}
-\toprule
-\textbf{Parameter} & \textbf{Symbol} & \textbf{Value} & \textbf{Unit} \\
-\midrule
-Membrane time constant   & $\tau$           & 20.0  & ms \\
-Spike threshold          & $V_\theta$       & $-55.0$ & mV \\
-Reset voltage            & $V_\mathrm{reset}$  & $-75.0$ & mV \\
-Resting potential        & $V_\mathrm{rest}$   & $-65.0$ & mV \\
-Timestep                 & $\Delta t$       & 1.0   & ms \\
-Refractory period        & $t_\mathrm{ref}$ & 2.0   & ms \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\section{Full WGSL Shader Listing}
-\label{app:shaders}
-
-The complete WGSL sources for all 7 shader modules (comprising 16 compute entry points)
-are provided in the supplementary materials.
-Key characteristics:
-\begin{itemize}
-\item All kernels use workgroup size 256 (1D) except \texttt{tropical\_min\_plus\_gemm}
-  which uses $16 \times 16$ (2D).
-\item Infinity is encoded as \texttt{1e30} (the \texttt{TROPICAL\_INF} sentinel),
-  safely below the IEEE 754 float32 infinity to avoid NaN propagation in
-  \texttt{min}/\texttt{max} operations.
-\item The PCG hash function in \texttt{spike-encode.wgsl} (period $2^{32}$) provides
-  uniform random numbers for rate coding without requiring a global RNG state buffer.
-\item The Blelloch scan (\texttt{blelloch-scan-sort.wgsl}) uses only
-  \texttt{workgroupBarrier()} for synchronization---no atomics on global memory---ensuring
-  compatibility with Apple M-series and Intel Arc GPUs where global atomics can deadlock.
-\end{itemize}
-
-\section{Tropical Semiring Properties}
-\label{app:tropical}
-
-For completeness, we state the semiring axioms satisfied by our implementation:
-
-\begin{itemize}
-\item \textbf{Max-plus} $(\mathbb{R} \cup \{-\infty\}, \tropplus = \max, \tropmult = +)$:
-  \begin{itemize}
-    \item Identity for $\tropplus$: $-\infty$ (tropical zero)
-    \item Identity for $\tropmult$: $0$ (tropical one)
-    \item $\tropplus$ is commutative, associative, idempotent
-    \item $\tropmult$ distributes over $\tropplus$: $a + \max(b,c) = \max(a+b, a+c)$
-  \end{itemize}
-
-\item \textbf{Min-plus} $(\mathbb{R} \cup \{+\infty\}, \tropplus = \min, \tropmult = +)$:
-  \begin{itemize}
-    \item Identity for $\tropplus$: $+\infty$ (tropical zero, encoded as \texttt{1e30})
-    \item Identity for $\tropmult$: $0$ (tropical one)
-    \item Tropical matrix product: $(A \tropmult B)_{ij} = \min_k (A_{ik} + B_{kj})$
-    \item Repeated squaring $A^{\tropmult \lceil \log_2 N \rceil}$ yields APSP distances
-  \end{itemize}
-\end{itemize}
-
-The \texttt{TropicalActivationTrait} bridges the two semirings:
-max-plus variant computes $\alpha \cdot \max(0, x - \theta)$ (ReLU);
-min-plus variant computes $\alpha \cdot \min(0, x - \theta)$ (cost dual).
-Both are dispatched as a single GPU kernel with a variant flag.
-
-\section{Broader Impact}
-\label{app:broader-impact}
-
-This work accelerates embodied spiking neural networks (SNNs) in consumer browsers via WebGPU, lowering the barrier to entry for neuromorphic research and edge-based agent cognition. While democratizing access to neuro-symbolic simulation is broadly positive (enabling decentralized robotics research and privacy-preserving local computation), there are potential risks. The deterministic provenance chains (\cael{}) provide auditability, which mitigates adversarial manipulation, but open-source GPU-accelerated neuromorphic agents could be deployed in autonomous systems lacking adequate physical safeguards. We encourage the continued pairing of contracted physics (which enforce safety bounds at inference) with any downstream usage of this acceleration framework.
+% Appendix content (LIF parameters, WGSL shader listing, tropical semiring axioms,
+% broader impact) is provided in the supplementary material (paper-2-snn-neurips-supplemental.tex).
 
 \bibliographystyle{plainnat}
 \bibliography{holoscript}
