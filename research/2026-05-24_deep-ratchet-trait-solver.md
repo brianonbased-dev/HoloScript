@@ -300,5 +300,23 @@ Remaining **~13 compilers** are pure infra/niche (FlatSemantic/Context/Holob/SCM
 Matterpak/LLMProviderCapabilities/CodebaseScene/PlatformConditional/studio useCompiler+
 nodeGraphCompiler) — low leverage, on the board as breadth-2. The **~88 POTENTIAL trait stubs +
 Tier-4 integration traits** also remain on the board. All deep-ratchet findings (19 board tasks)
-are filed and reference this doc. Next highest-value move is BUILDING the bounded fixes, not
-more breadth.
+are filed and reference this doc.
+
+## Reconciliation landed / in-flight (2026-05-24)
+
+- **TensorOpTrait** (mine, `7bec450b7`), **NavmeshSolverTrait** (mine, `ba7712a76`),
+  **ARCompiler C-AR** (mine, `911e12619` — per-beacon + overlay registries, fidelity-tested).
+- **ConstraintSolver E1** (`0c88c4bbb`) + **AstarTrait E6** (`73cb47de5`) — landed by a Codex peer
+  off the board tasks.
+
+## Founder direction — VRChat target = compile to bytecode ("Byte")
+
+Founder 2026-05-24: VRChatCompiler's plan is to **compile to Udon bytecode** (Udon Assembly /
+"Byte"), NOT keep emitting UdonSharp C# *source*. Today it emits UdonSharp `.cs` scripts
+(`useUdonSharp: true`) that still need the external UdonSharp compiler to reach Udon bytecode;
+the plan is to lower HoloScript → Udon bytecode directly. **Consequence:** the bounded C#-path
+gaps flagged above (transform/geometry props, timeline `animate`) are **NOT worth patching** —
+they'd be superseded by the bytecode target. Tracked as a new build task (C-VRCHAT-BYTECODE).
+NOTE: the stale "VRChatCompiler = known test fail" caveat lives only in the global
+`~/.claude/CLAUDE.md` (not the repo) — founder to retire it (VRChat tests are green,
+`381b7ea05`).
