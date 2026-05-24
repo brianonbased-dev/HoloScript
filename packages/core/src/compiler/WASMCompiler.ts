@@ -52,8 +52,14 @@ type WASMRuntimeOptions = Omit<
 >;
 
 export interface WASMCompileResult {
+  /** Truthful artifact class for this compiler result */
+  artifactKind: 'wat-scaffold' | 'wasm-binary';
+  /** Requested output format */
+  format: 'wat' | 'wasm';
   /** WebAssembly Text Format output */
   wat: string;
+  /** Instantiable WebAssembly binary bytes when format === 'wasm' */
+  wasm?: Uint8Array;
   /** JavaScript bindings code */
   bindings: string;
   /** Memory layout information */
@@ -62,6 +68,8 @@ export interface WASMCompileResult {
   exports: WASMExport[];
   /** Import requirements */
   imports: WASMImport[];
+  /** Explicit limits of the generated artifact */
+  limitations: string[];
 }
 
 export interface MemoryLayout {
@@ -110,6 +118,25 @@ interface ObjectInstance {
 }
 
 type WASMValueType = 'i32' | 'i64' | 'f32' | 'f64';
+
+type WASMFunctionValueType = 0x7f | 0x7e | 0x7d | 0x7c;
+
+interface LoweredObjectUpdate {
+  label: string;
+  eventId: number;
+}
+
+const WASM_WAT_LIMITATIONS = [
+  'Emits WebAssembly Text Format scaffolding only.',
+  'Does not return instantiable bytes unless format is set to "wasm".',
+  'Lowers trait/lifecycle/event hooks to deterministic host event calls, not arbitrary user code.',
+];
+
+const WASM_BINARY_LIMITATIONS = [
+  'Returns an instantiable WebAssembly binary for the compiler-supported runtime subset.',
+  'Lowers trait/lifecycle/event hooks to deterministic host event calls, not arbitrary user code.',
+  'Does not run a general-purpose WAT parser for unsupported custom WAT extensions.',
+];
 
 // =============================================================================
 // WASM COMPILER
@@ -180,9 +207,6 @@ export class WASMCompiler extends CompilerBase {
     this.validateCompilerAccess(agentToken, outputPath);
     this.reset();
 
-    this.validateCompilerAccess(agentToken, outputPath);
-    this.reset();
-
     // Analyze composition
     this.analyzeState(composition.state);
     this.analyzeObjects(composition.objects || []);
@@ -221,19 +245,25 @@ export class WASMCompiler extends CompilerBase {
 
     // Generate JS bindings
     const bindings = this.options.generateBindings ? this.generateBindings(composition) : '';
+    const wasm =
+      this.options.format === 'wasm'
+        ? this.emitWASMBytes(this.lowerCompositionObjectUpdates(composition.objects || []))
+        : undefined;
 
     const result: WASMCompileResult = {
+      artifactKind: wasm ? 'wasm-binary' : 'wat-scaffold',
+      format: this.options.format,
       wat: this.lines.join('\n'),
+      ...(wasm ? { wasm } : {}),
       bindings,
       memoryLayout: this.memoryLayout,
       exports: this.exports,
       imports: this.imports,
+      limitations: wasm ? [...WASM_BINARY_LIMITATIONS] : [...WASM_WAT_LIMITATIONS],
     };
-    return this.withTripleOutputIfRequested(
-      composition,
-      result,
-      this.docGenerationOptions
-    ) as WASMCompileResult | CompilationResult;
+    return this.withTripleOutputIfRequested(composition, result, this.docGenerationOptions) as
+      | WASMCompileResult
+      | CompilationResult;
   }
 
   /**
@@ -252,13 +282,21 @@ export class WASMCompiler extends CompilerBase {
 
     // Generate JS bindings
     const bindings = this.options.generateBindings ? this.generateBindingsFromAST(ast) : '';
+    const wasm =
+      this.options.format === 'wasm'
+        ? this.emitWASMBytes(this.lowerASTObjectUpdates(ast.root.children || []))
+        : undefined;
 
     return {
+      artifactKind: wasm ? 'wasm-binary' : 'wat-scaffold',
+      format: this.options.format,
       wat: this.lines.join('\n'),
+      ...(wasm ? { wasm } : {}),
       bindings,
       memoryLayout: this.memoryLayout,
       exports: this.exports,
       imports: this.imports,
+      limitations: wasm ? [...WASM_BINARY_LIMITATIONS] : [...WASM_WAT_LIMITATIONS],
     };
   }
 
@@ -650,6 +688,15 @@ export class WASMCompiler extends CompilerBase {
       });
     }
 
+    this.emit('(func $get_frame_count (export "get_frame_count") (result i32)');
+    this.emit('  (global.get $frame_count)');
+    this.emit(')');
+    this.exports.push({
+      name: 'get_frame_count',
+      kind: 'function',
+      signature: '() -> i32',
+    });
+
     this.emit('');
   }
 
@@ -714,7 +761,9 @@ export class WASMCompiler extends CompilerBase {
     this.emit('');
   }
 
-  private emitUpdateFunction(_composition: HoloComposition): void {
+  private emitUpdateFunction(composition: HoloComposition): void {
+    const objectUpdates = this.lowerCompositionObjectUpdates(composition.objects || []);
+
     this.emit(';; Main update function');
     this.emit('(func $update (export "update") (param $dt f32)');
     this.indent();
@@ -749,7 +798,7 @@ export class WASMCompiler extends CompilerBase {
       const safeName = this.sanitizeName(obj.id);
       this.emit(`(func $update_object_${i} (param $dt f32)`);
       this.emit(`  ;; Update logic for ${safeName}`);
-      this.emit('  ;; (custom logic would be generated here based on traits/lifecycle)');
+      this.emitLoweredObjectUpdateBody(objectUpdates[i] || [], i);
       this.emit(')');
     }
 
@@ -757,7 +806,9 @@ export class WASMCompiler extends CompilerBase {
     this.emit('');
   }
 
-  private emitUpdateFunctionFromAST(_ast: HSPlusAST): void {
+  private emitUpdateFunctionFromAST(ast: HSPlusAST): void {
+    const objectUpdates = this.lowerASTObjectUpdates(ast.root.children || []);
+
     this.emit(';; Main update function');
     this.emit('(func $update (export "update") (param $dt f32)');
     this.indent();
@@ -787,11 +838,101 @@ export class WASMCompiler extends CompilerBase {
       const safeName = this.sanitizeName(obj.id);
       this.emit(`(func $update_object_${i} (param $dt f32)`);
       this.emit(`  ;; Update logic for ${safeName}`);
+      this.emitLoweredObjectUpdateBody(objectUpdates[i] || [], i);
       this.emit(')');
     }
 
     this.exports.push({ name: 'update', kind: 'function', signature: '(f32) -> void' });
     this.emit('');
+  }
+
+  private emitLoweredObjectUpdateBody(updates: LoweredObjectUpdate[], objectIndex: number): void {
+    if (updates.length === 0) {
+      this.emit('  ;; No WASM-lowerable trait/lifecycle/event hooks for this object');
+      return;
+    }
+
+    for (const update of updates) {
+      this.emit(`  ;; ${this.escapeStringValue(update.label, 'TypeScript')}`);
+      this.emit(`  (call $emit_event (i32.const ${update.eventId}) (i32.const ${objectIndex}))`);
+    }
+  }
+
+  private lowerCompositionObjectUpdates(objects: HoloObjectDecl[]): LoweredObjectUpdate[][] {
+    return objects.map((obj) => {
+      const events: LoweredObjectUpdate[] = [];
+
+      for (const trait of obj.traits || []) {
+        events.push(this.createLoweredUpdate(`trait:${trait.name}`));
+      }
+
+      for (const eventHandler of this.getUnknownArray(obj, 'eventHandlers')) {
+        const event = this.getUnknownString(eventHandler, 'event');
+        if (event) events.push(this.createLoweredUpdate(`event:${event}`));
+      }
+
+      for (const directive of this.getUnknownArray(obj, 'directives')) {
+        const directiveType = this.getUnknownString(directive, 'type');
+        const hook =
+          this.getUnknownString(directive, 'hook') || this.getUnknownString(directive, 'name');
+        if (directiveType === 'lifecycle' && hook) {
+          events.push(this.createLoweredUpdate(`lifecycle:${hook}`));
+        }
+      }
+
+      return events;
+    });
+  }
+
+  private lowerASTObjectUpdates(nodes: HSPlusNode[]): LoweredObjectUpdate[][] {
+    return nodes.map((node) => {
+      const events: LoweredObjectUpdate[] = [];
+
+      for (const directive of node.directives || []) {
+        const directiveType = this.getUnknownString(directive, 'type');
+        const name =
+          this.getUnknownString(directive, 'name') || this.getUnknownString(directive, 'hook');
+        if (directiveType === 'trait' && name) {
+          events.push(this.createLoweredUpdate(`trait:${name}`));
+        } else if (directiveType === 'lifecycle' && name) {
+          events.push(this.createLoweredUpdate(`lifecycle:${name}`));
+        }
+      }
+
+      for (const [key] of Object.entries(node.properties || {})) {
+        if (key.startsWith('on_')) events.push(this.createLoweredUpdate(`event:${key}`));
+      }
+
+      return events;
+    });
+  }
+
+  private createLoweredUpdate(label: string): LoweredObjectUpdate {
+    return {
+      label,
+      eventId: this.stableEventId(label),
+    };
+  }
+
+  private stableEventId(label: string): number {
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < label.length; i++) {
+      hash ^= label.charCodeAt(i);
+      hash = Math.imul(hash, 0x01000193);
+    }
+    return hash >>> 1;
+  }
+
+  private getUnknownArray(source: unknown, key: string): unknown[] {
+    if (!source || typeof source !== 'object') return [];
+    const value = (source as Record<string, unknown>)[key];
+    return Array.isArray(value) ? value : [];
+  }
+
+  private getUnknownString(source: unknown, key: string): string | undefined {
+    if (!source || typeof source !== 'object') return undefined;
+    const value = (source as Record<string, unknown>)[key];
+    return typeof value === 'string' ? value : undefined;
   }
 
   private emitDataSections(): void {
@@ -989,6 +1130,377 @@ export class WASMCompiler extends CompilerBase {
       shapes: [],
     };
     return this.generateBindings(minimalComposition as HoloComposition);
+  }
+
+  // ===========================================================================
+  // WASM BINARY GENERATION
+  // ===========================================================================
+
+  private emitWASMBytes(objectUpdates: LoweredObjectUpdate[][]): Uint8Array {
+    type FunctionType = { params: WASMValueType[]; results: WASMValueType[] };
+    type ImportDef = { module: string; name: string; typeIndex: number };
+    type FunctionDef = {
+      name: string;
+      typeIndex: number;
+      body: () => number[];
+    };
+
+    const types: FunctionType[] = [];
+    const typeIndexes = new Map<string, number>();
+    const typeIndex = (params: WASMValueType[], results: WASMValueType[] = []): number => {
+      const key = `${params.join(',')}->${results.join(',')}`;
+      const existing = typeIndexes.get(key);
+      if (existing !== undefined) return existing;
+      const next = types.length;
+      types.push({ params, results });
+      typeIndexes.set(key, next);
+      return next;
+    };
+
+    const imports: ImportDef[] = [
+      { module: 'env', name: 'log_i32', typeIndex: typeIndex(['i32']) },
+      { module: 'env', name: 'log_f32', typeIndex: typeIndex(['f32']) },
+      { module: 'env', name: 'log_str', typeIndex: typeIndex(['i32', 'i32']) },
+      { module: 'env', name: 'emit_event', typeIndex: typeIndex(['i32', 'i32']) },
+      { module: 'env', name: 'get_time', typeIndex: typeIndex([], ['f64']) },
+    ];
+
+    const functions: FunctionDef[] = [];
+    const functionIndexes = new Map<string, number>();
+    const addFunction = (
+      name: string,
+      params: WASMValueType[],
+      results: WASMValueType[],
+      body: () => number[]
+    ): void => {
+      functionIndexes.set(name, imports.length + functions.length);
+      functions.push({ name, typeIndex: typeIndex(params, results), body });
+    };
+
+    addFunction('init', [], [], () => this.binaryInitBody());
+
+    for (const stateVar of this.stateVars) {
+      const safeName = this.sanitizeName(stateVar.name);
+      addFunction(`get_${safeName}`, [], [stateVar.type], () =>
+        this.binaryStateGetterBody(stateVar)
+      );
+      addFunction(`set_${safeName}`, [stateVar.type], [], () =>
+        this.binaryStateSetterBody(stateVar)
+      );
+    }
+
+    addFunction('get_frame_count', [], ['i32'], () => [0x00, 0x23, ...this.encodeULEB(0), 0x0b]);
+
+    addFunction('get_object_count', [], ['i32'], () => [0x00, 0x23, ...this.encodeULEB(3), 0x0b]);
+
+    addFunction('is_object_active', ['i32'], ['i32'], () => this.binaryIsObjectActiveBody());
+    addFunction('set_object_active', ['i32', 'i32'], [], () => this.binarySetObjectActiveBody());
+    addFunction('update', ['f32'], [], () =>
+      this.binaryUpdateBody(functionIndexes, objectUpdates.length)
+    );
+
+    for (let i = 0; i < this.objects.length; i++) {
+      addFunction(`update_object_${i}`, ['f32'], [], () =>
+        this.binaryUpdateObjectBody(objectUpdates[i] || [], i)
+      );
+    }
+
+    const bytes: number[] = [
+      0x00,
+      0x61,
+      0x73,
+      0x6d,
+      0x01,
+      0x00,
+      0x00,
+      0x00,
+      ...this.binarySection(1, this.binaryTypeSection(types)),
+      ...this.binarySection(2, this.binaryImportSection(imports)),
+      ...this.binarySection(3, this.binaryFunctionSection(functions)),
+      ...this.binarySection(5, this.binaryMemorySection()),
+      ...this.binarySection(6, this.binaryGlobalSection()),
+      ...this.binarySection(7, this.binaryExportSection(functions, imports.length)),
+      ...this.binarySection(10, this.binaryCodeSection(functions)),
+    ];
+
+    return new Uint8Array(bytes);
+  }
+
+  private binaryTypeSection(
+    types: Array<{ params: WASMValueType[]; results: WASMValueType[] }>
+  ): number[] {
+    return this.binaryVector(
+      types.map((type) => [
+        0x60,
+        ...this.binaryVector(type.params.map((param) => [this.wasmBinaryValueType(param)])),
+        ...this.binaryVector(type.results.map((result) => [this.wasmBinaryValueType(result)])),
+      ])
+    );
+  }
+
+  private binaryImportSection(
+    imports: Array<{ module: string; name: string; typeIndex: number }>
+  ): number[] {
+    return this.binaryVector(
+      imports.map((entry) => [
+        ...this.encodeString(entry.module),
+        ...this.encodeString(entry.name),
+        0x00,
+        ...this.encodeULEB(entry.typeIndex),
+      ])
+    );
+  }
+
+  private binaryFunctionSection(functions: Array<{ typeIndex: number }>): number[] {
+    return this.binaryVector(functions.map((fn) => this.encodeULEB(fn.typeIndex)));
+  }
+
+  private binaryMemorySection(): number[] {
+    if (this.options.threads) {
+      return this.binaryVector([
+        [
+          0x03,
+          ...this.encodeULEB(this.options.memoryPages),
+          ...this.encodeULEB(this.options.memoryPages * 2),
+        ],
+      ]);
+    }
+    return this.binaryVector([[0x00, ...this.encodeULEB(this.options.memoryPages)]]);
+  }
+
+  private binaryGlobalSection(): number[] {
+    return this.binaryVector([
+      [0x7f, 0x01, 0x41, ...this.encodeSLEB(0), 0x0b],
+      [0x7d, 0x01, 0x43, ...this.f32Bytes(0), 0x0b],
+      [0x7c, 0x01, 0x44, ...this.f64Bytes(0), 0x0b],
+      [0x7f, 0x00, 0x41, ...this.encodeSLEB(this.objects.length), 0x0b],
+    ]);
+  }
+
+  private binaryExportSection(
+    functions: Array<{ name: string }>,
+    importedFunctionCount: number
+  ): number[] {
+    const exports: number[][] = [
+      [...this.encodeString('memory'), 0x02, ...this.encodeULEB(0)],
+      ...functions
+        .filter((fn) => !fn.name.startsWith('update_object_'))
+        .map((fn, index) => [
+          ...this.encodeString(fn.name),
+          0x00,
+          ...this.encodeULEB(importedFunctionCount + index),
+        ]),
+    ];
+
+    return this.binaryVector(exports);
+  }
+
+  private binaryCodeSection(functions: Array<{ body: () => number[] }>): number[] {
+    return this.binaryVector(
+      functions.map((fn) => {
+        const body = fn.body();
+        return [...this.encodeULEB(body.length), ...body];
+      })
+    );
+  }
+
+  private binaryInitBody(): number[] {
+    const body: number[] = [0x00];
+
+    for (const stateVar of this.stateVars) {
+      const offset = this.memoryLayout.stateOffset + stateVar.offset;
+      body.push(0x41, ...this.encodeSLEB(offset));
+      this.pushWASMConst(body, stateVar.type, stateVar.initialValue);
+      this.pushWASMStore(body, stateVar.type);
+    }
+
+    for (const obj of this.objects) {
+      const baseOffset = this.memoryLayout.objectsOffset + obj.offset;
+      this.pushI32StoreConst(body, baseOffset, obj.typeIndex);
+      this.pushI32StoreConst(body, baseOffset + 4, 1);
+      this.pushI32StoreConst(body, baseOffset + 8, -1);
+    }
+
+    body.push(0x0b);
+    return body;
+  }
+
+  private binaryStateGetterBody(stateVar: StateVariable): number[] {
+    const offset = this.memoryLayout.stateOffset + stateVar.offset;
+    const body: number[] = [0x00, 0x41, ...this.encodeSLEB(offset)];
+    this.pushWASMLoad(body, stateVar.type);
+    body.push(0x0b);
+    return body;
+  }
+
+  private binaryStateSetterBody(stateVar: StateVariable): number[] {
+    const offset = this.memoryLayout.stateOffset + stateVar.offset;
+    const body: number[] = [0x00, 0x41, ...this.encodeSLEB(offset), 0x20, 0x00];
+    this.pushWASMStore(body, stateVar.type);
+    body.push(0x0b);
+    return body;
+  }
+
+  private binaryIsObjectActiveBody(): number[] {
+    const body: number[] = [0x00];
+    this.pushObjectActiveAddress(body, 0);
+    body.push(0x28, 0x02, 0x00, 0x0b);
+    return body;
+  }
+
+  private binarySetObjectActiveBody(): number[] {
+    const body: number[] = [0x00];
+    this.pushObjectActiveAddress(body, 0);
+    body.push(0x20, 0x01, 0x36, 0x02, 0x00, 0x0b);
+    return body;
+  }
+
+  private binaryUpdateBody(
+    functionIndexes: Map<string, number>,
+    loweredObjectCount: number
+  ): number[] {
+    const body: number[] = [0x00];
+
+    body.push(0x20, 0x00, 0x24, ...this.encodeULEB(1));
+    body.push(0x23, ...this.encodeULEB(0), 0x41, ...this.encodeSLEB(1), 0x6a);
+    body.push(0x24, ...this.encodeULEB(0));
+
+    const isActiveIndex = functionIndexes.get('is_object_active');
+    if (isActiveIndex === undefined) throw new Error('missing is_object_active function index');
+
+    for (let i = 0; i < loweredObjectCount; i++) {
+      const updateObjectIndex = functionIndexes.get(`update_object_${i}`);
+      if (updateObjectIndex === undefined) continue;
+      body.push(0x41, ...this.encodeSLEB(i), 0x10, ...this.encodeULEB(isActiveIndex));
+      body.push(0x04, 0x40);
+      body.push(0x20, 0x00, 0x10, ...this.encodeULEB(updateObjectIndex));
+      body.push(0x0b);
+    }
+
+    body.push(0x0b);
+    return body;
+  }
+
+  private binaryUpdateObjectBody(updates: LoweredObjectUpdate[], objectIndex: number): number[] {
+    const body: number[] = [0x00];
+    for (const update of updates) {
+      body.push(
+        0x41,
+        ...this.encodeSLEB(update.eventId),
+        0x41,
+        ...this.encodeSLEB(objectIndex),
+        0x10,
+        ...this.encodeULEB(3)
+      );
+    }
+    body.push(0x0b);
+    return body;
+  }
+
+  private pushObjectActiveAddress(body: number[], localIndex: number): void {
+    body.push(0x41, ...this.encodeSLEB(this.memoryLayout.objectsOffset));
+    body.push(0x20, ...this.encodeULEB(localIndex));
+    body.push(0x41, ...this.encodeSLEB(64), 0x6c);
+    body.push(0x41, ...this.encodeSLEB(4), 0x6a);
+    body.push(0x6a);
+  }
+
+  private pushI32StoreConst(body: number[], offset: number, value: number): void {
+    body.push(0x41, ...this.encodeSLEB(offset), 0x41, ...this.encodeSLEB(value), 0x36, 0x02, 0x00);
+  }
+
+  private pushWASMConst(body: number[], type: WASMValueType, value: number | bigint): void {
+    switch (type) {
+      case 'i32':
+        body.push(0x41, ...this.encodeSLEB(Number(value)));
+        break;
+      case 'i64':
+        body.push(0x42, ...this.encodeSLEB(value));
+        break;
+      case 'f32':
+        body.push(0x43, ...this.f32Bytes(Number(value)));
+        break;
+      case 'f64':
+        body.push(0x44, ...this.f64Bytes(Number(value)));
+        break;
+    }
+  }
+
+  private pushWASMLoad(body: number[], type: WASMValueType): void {
+    const opcode = { i32: 0x28, i64: 0x29, f32: 0x2a, f64: 0x2b }[type];
+    const align = type === 'i64' || type === 'f64' ? 3 : 2;
+    body.push(opcode, align, 0x00);
+  }
+
+  private pushWASMStore(body: number[], type: WASMValueType): void {
+    const opcode = { i32: 0x36, i64: 0x37, f32: 0x38, f64: 0x39 }[type];
+    const align = type === 'i64' || type === 'f64' ? 3 : 2;
+    body.push(opcode, align, 0x00);
+  }
+
+  private binarySection(id: number, payload: number[]): number[] {
+    return [id, ...this.encodeULEB(payload.length), ...payload];
+  }
+
+  private binaryVector(items: number[][]): number[] {
+    return [...this.encodeULEB(items.length), ...items.flat()];
+  }
+
+  private encodeString(value: string): number[] {
+    const bytes = Array.from(new TextEncoder().encode(value));
+    return [...this.encodeULEB(bytes.length), ...bytes];
+  }
+
+  private encodeULEB(value: number): number[] {
+    const bytes: number[] = [];
+    let next = value >>> 0;
+    do {
+      let byte = next & 0x7f;
+      next >>>= 7;
+      if (next !== 0) byte |= 0x80;
+      bytes.push(byte);
+    } while (next !== 0);
+    return bytes;
+  }
+
+  private encodeSLEB(value: number | bigint): number[] {
+    const bytes: number[] = [];
+    let next = BigInt(value);
+    let more = true;
+    while (more) {
+      let byte = Number(next & 0x7fn);
+      next >>= 7n;
+      const signBitSet = (byte & 0x40) !== 0;
+      more = !((next === 0n && !signBitSet) || (next === -1n && signBitSet));
+      if (more) byte |= 0x80;
+      bytes.push(byte);
+    }
+    return bytes;
+  }
+
+  private f32Bytes(value: number): number[] {
+    const bytes = new Uint8Array(4);
+    new DataView(bytes.buffer).setFloat32(0, value, true);
+    return Array.from(bytes);
+  }
+
+  private f64Bytes(value: number): number[] {
+    const bytes = new Uint8Array(8);
+    new DataView(bytes.buffer).setFloat64(0, value, true);
+    return Array.from(bytes);
+  }
+
+  private wasmBinaryValueType(type: WASMValueType): WASMFunctionValueType {
+    switch (type) {
+      case 'i32':
+        return 0x7f;
+      case 'i64':
+        return 0x7e;
+      case 'f32':
+        return 0x7d;
+      case 'f64':
+        return 0x7c;
+    }
   }
 
   // ===========================================================================
