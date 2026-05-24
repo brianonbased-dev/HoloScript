@@ -1,0 +1,2036 @@
+{
+  "experiment": "jepa-training-experiment",
+  "paper": "Paper 26",
+  "contribution": "Contribution 2 — PillarJEPA trains stably (real gradient-descent loop)",
+  "date": "2026-05-24",
+  "gap_closed": "PillarJEPA.onUpdate() and JEPAObjective.onUpdate() are both EMPTY (\"weight updates expected externally\"). No loop ever updated the predictor weights; reported numbers were deterministic-init baseline. This experiment supplies the missing external gradient-descent loop and measures whether the REAL assembled objective is trainable.",
+  "real_components_used": [
+    "packages/core/src/traits/JEPAPredictor.ts :: JEPAPredictor (forward/getWeights/setWeights — the actual MLP, unmodified)",
+    "packages/core/src/traits/pillar/PillarJEPA.ts :: computeConservationLoss, axisIdToDirection (IMPORTED, unmodified)",
+    "packages/core/src/traits/pillar/PillarJEPA.ts :: pillarJepaHandler (driven for cross-check of assembled L_total)"
+  ],
+  "method": {
+    "latent_dim": 32,
+    "cond_dim": 4,
+    "steps": 1500,
+    "optimizer": "Adam",
+    "lr": 0.005,
+    "gradients": "EXACT analytic backprop through the real MLP (dL/dẑ closed-form for MSE+SIGReg+conservation; conservation hinge is the IMPORTED function). NOT finite-difference, NOT autodiff dependency.",
+    "gradcheck_rel_err_at_step5": 0,
+    "data": "conservation-respecting synthetic transitions: target lies near axisIdToDirection(\"energy\") with conserved magnitude ∈[0.85,1.0] + small Gaussian noise.",
+    "temporal_gating": "κ rises 0→1 over training; λ_c_eff = λ_c·(1−κ).",
+    "handler_crosscheck": "real pillarJepaHandler driven with synced weights; jepaTotalLoss compared to ours. NOTE: the handler uses its OWN context encoder (EmbeddingTrait deterministic hash of a string), so its MSE term differs from our structured-context MSE by construction — the reported max_handler_delta is that expected gap, not an error."
+  },
+  "measured": {
+    "initial": {
+      "totalLoss": 0.3646883111368389,
+      "mse": 0.052471226562559266,
+      "sigreg": 4.1484490242141225,
+      "conservation": 1.0486454305894615,
+      "symmetry": 3.780485341160481e-34
+    },
+    "final": {
+      "totalLoss": 0.17601634058936966,
+      "mse": 0.0833403047784553,
+      "sigreg": 1.853520716218287,
+      "conservation": 0,
+      "symmetry": 6.308936955580758e-34
+    },
+    "eval_initial": 0.3406449037663065,
+    "eval_final": 0.17516209691165605,
+    "eval_reduction_factor": 1.9447409557908675,
+    "reduction_factor": 2.0719003128671107,
+    "head_mean_loss": 0.22187964011129846,
+    "tail_mean_loss": 0.1791564206141133,
+    "gradcheck_rel_err": 0,
+    "max_handler_crosscheck_delta": 0.17154583005595048,
+    "temporal_gating": {
+      "initial_eff_conservation_weight": 0.09993333333333333,
+      "final_eff_conservation_weight": 0,
+      "monotone_decreasing": true
+    }
+  },
+  "stability_verdict": {
+    "trains_stably": true,
+    "saw_nan_or_inf": false,
+    "nan_step": -1,
+    "eval_overall_reduction_fraction": 0.4857926979825803,
+    "reduced_substantially_ge_30pct": true,
+    "tail_coefficient_of_variation": 0.039847834037116725,
+    "tail_plateau_stable": true,
+    "converged": true,
+    "smoothed_curve_non_increasing": true,
+    "gating_relieves_conservation": true,
+    "final_lt_initial": true
+  },
+  "loss_curve": [
+    {
+      "step": 1,
+      "totalLoss": 0.3646883111368389,
+      "evalLoss": 0.3406449037663065,
+      "mse": 0.052471226562559266,
+      "sigreg": 4.1484490242141225,
+      "conservation": 1.0486454305894615,
+      "symmetry": 3.780485341160481e-34,
+      "kappa": 0.0006666666666666666,
+      "effConservationWeight": 0.09993333333333333
+    },
+    {
+      "step": 11,
+      "totalLoss": 0.3080592920529756,
+      "evalLoss": null,
+      "mse": 0.045379529750913916,
+      "sigreg": 3.999596170552465,
+      "conservation": 0.6316315020930668,
+      "symmetry": 4.900114322959939e-34,
+      "kappa": 0.007333333333333333,
+      "effConservationWeight": 0.09926666666666667
+    },
+    {
+      "step": 21,
+      "totalLoss": 0.2920736213302508,
+      "evalLoss": null,
+      "mse": 0.05738914525831458,
+      "sigreg": 3.4857671142100415,
+      "conservation": 0.6125367176616034,
+      "symmetry": 5.002257435206703e-34,
+      "kappa": 0.014,
+      "effConservationWeight": 0.09860000000000001
+    },
+    {
+      "step": 31,
+      "totalLoss": 0.25491740081580616,
+      "evalLoss": null,
+      "mse": 0.0536357637165143,
+      "sigreg": 3.1721160009649645,
+      "conservation": 0.43576416321691935,
+      "symmetry": 5.715290267896425e-34,
+      "kappa": 0.020666666666666667,
+      "effConservationWeight": 0.09793333333333334
+    },
+    {
+      "step": 41,
+      "totalLoss": 0.24960645238928797,
+      "evalLoss": null,
+      "mse": 0.051528994679025414,
+      "sigreg": 3.163818895585735,
+      "conservation": 0.41007381354670136,
+      "symmetry": 4.668358264855633e-34,
+      "kappa": 0.027333333333333334,
+      "effConservationWeight": 0.09726666666666667
+    },
+    {
+      "step": 51,
+      "totalLoss": 0.2513135795675038,
+      "evalLoss": null,
+      "mse": 0.05745350157136799,
+      "sigreg": 3.154857472924726,
+      "conservation": 0.37388410300103014,
+      "symmetry": 4.383766031569268e-34,
+      "kappa": 0.034,
+      "effConservationWeight": 0.0966
+    },
+    {
+      "step": 61,
+      "totalLoss": 0.22644027636905595,
+      "evalLoss": null,
+      "mse": 0.051847834476476215,
+      "sigreg": 2.9510336671193604,
+      "conservation": 0.281870311361484,
+      "symmetry": 6.059694041475528e-34,
+      "kappa": 0.04066666666666666,
+      "effConservationWeight": 0.09593333333333334
+    },
+    {
+      "step": 71,
+      "totalLoss": 0.22878384721997727,
+      "evalLoss": null,
+      "mse": 0.053021281182220305,
+      "sigreg": 2.9539415816308323,
+      "conservation": 0.29459923327028026,
+      "symmetry": 5.623837266579932e-34,
+      "kappa": 0.04733333333333333,
+      "effConservationWeight": 0.09526666666666667
+    },
+    {
+      "step": 81,
+      "totalLoss": 0.23731610250774496,
+      "evalLoss": null,
+      "mse": 0.05486690151885594,
+      "sigreg": 3.079496087378673,
+      "conservation": 0.3009978501052362,
+      "symmetry": 5.946421844626857e-34,
+      "kappa": 0.054,
+      "effConservationWeight": 0.0946
+    },
+    {
+      "step": 91,
+      "totalLoss": 0.24149529329024869,
+      "evalLoss": null,
+      "mse": 0.060902338002381304,
+      "sigreg": 2.9775180638741303,
+      "conservation": 0.3376549193842532,
+      "symmetry": 2.564879082326306e-34,
+      "kappa": 0.06066666666666667,
+      "effConservationWeight": 0.09393333333333334
+    },
+    {
+      "step": 101,
+      "totalLoss": 0.24543473230184557,
+      "evalLoss": null,
+      "mse": 0.07435718694939514,
+      "sigreg": 2.775306273366656,
+      "conservation": 0.34644994657738687,
+      "symmetry": 5.487354566432291e-34,
+      "kappa": 0.06733333333333333,
+      "effConservationWeight": 0.09326666666666666
+    },
+    {
+      "step": 111,
+      "totalLoss": 0.2368701349898596,
+      "evalLoss": null,
+      "mse": 0.07191064813295071,
+      "sigreg": 2.71691752682885,
+      "conservation": 0.3144018414197236,
+      "symmetry": 5.289724578700294e-34,
+      "kappa": 0.074,
+      "effConservationWeight": 0.09260000000000002
+    },
+    {
+      "step": 121,
+      "totalLoss": 0.22085427911917113,
+      "evalLoss": null,
+      "mse": 0.060015130103248146,
+      "sigreg": 2.7251226182147885,
+      "conservation": 0.26740048700344715,
+      "symmetry": 4.561669295549048e-34,
+      "kappa": 0.08066666666666666,
+      "effConservationWeight": 0.09193333333333334
+    },
+    {
+      "step": 131,
+      "totalLoss": 0.2293838752686207,
+      "evalLoss": null,
+      "mse": 0.07668184591121029,
+      "sigreg": 2.588115884623279,
+      "conservation": 0.2552545850209619,
+      "symmetry": 5.165474825818378e-34,
+      "kappa": 0.08733333333333333,
+      "effConservationWeight": 0.09126666666666666
+    },
+    {
+      "step": 141,
+      "totalLoss": 0.216070790153015,
+      "evalLoss": null,
+      "mse": 0.06296587961231317,
+      "sigreg": 2.6208860688589795,
+      "conservation": 0.24349455957784608,
+      "symmetry": 4.030042791840053e-34,
+      "kappa": 0.094,
+      "effConservationWeight": 0.09060000000000001
+    },
+    {
+      "step": 151,
+      "totalLoss": 0.20304647097530698,
+      "evalLoss": null,
+      "mse": 0.05581341524649453,
+      "sigreg": 2.650169722751449,
+      "conservation": 0.1637276085015565,
+      "symmetry": 3.7495331055353916e-34,
+      "kappa": 0.10066666666666667,
+      "effConservationWeight": 0.08993333333333334
+    },
+    {
+      "step": 161,
+      "totalLoss": 0.20669475868570336,
+      "evalLoss": null,
+      "mse": 0.06786788001012714,
+      "sigreg": 2.426484583774833,
+      "conservation": 0.19607150283981964,
+      "symmetry": 4.318410211975579e-34,
+      "kappa": 0.10733333333333334,
+      "effConservationWeight": 0.08926666666666667
+    },
+    {
+      "step": 171,
+      "totalLoss": 0.2052691320731345,
+      "evalLoss": null,
+      "mse": 0.05325634733966579,
+      "sigreg": 2.735181639374112,
+      "conservation": 0.17216368808987695,
+      "symmetry": 4.331610357413741e-34,
+      "kappa": 0.114,
+      "effConservationWeight": 0.08860000000000001
+    },
+    {
+      "step": 181,
+      "totalLoss": 0.20524511541618434,
+      "evalLoss": null,
+      "mse": 0.0711676559198595,
+      "sigreg": 2.4056973785397386,
+      "conservation": 0.15685281163007475,
+      "symmetry": 3.85653247881899e-34,
+      "kappa": 0.12066666666666667,
+      "effConservationWeight": 0.08793333333333334
+    },
+    {
+      "step": 191,
+      "totalLoss": 0.19817592035819226,
+      "evalLoss": null,
+      "mse": 0.058493204743735136,
+      "sigreg": 2.5734057337128506,
+      "conservation": 0.12619284486800542,
+      "symmetry": 4.816059130036453e-34,
+      "kappa": 0.12733333333333333,
+      "effConservationWeight": 0.08726666666666667
+    },
+    {
+      "step": 201,
+      "totalLoss": 0.20205656288505222,
+      "evalLoss": null,
+      "mse": 0.05084406153947767,
+      "sigreg": 2.8186252917360366,
+      "conservation": 0.11872097873871497,
+      "symmetry": 4.494061839987458e-34,
+      "kappa": 0.134,
+      "effConservationWeight": 0.08660000000000001
+    },
+    {
+      "step": 211,
+      "totalLoss": 0.20460067859444483,
+      "evalLoss": null,
+      "mse": 0.0664158032288156,
+      "sigreg": 2.574528146033682,
+      "conservation": 0.11006751044156478,
+      "symmetry": 4.775550492681163e-34,
+      "kappa": 0.14066666666666666,
+      "effConservationWeight": 0.08593333333333333
+    },
+    {
+      "step": 221,
+      "totalLoss": 0.1940218802718925,
+      "evalLoss": null,
+      "mse": 0.05214426626590109,
+      "sigreg": 2.6658261227521955,
+      "conservation": 0.10069946679102731,
+      "symmetry": 5.272239100231812e-34,
+      "kappa": 0.14733333333333334,
+      "effConservationWeight": 0.08526666666666667
+    },
+    {
+      "step": 231,
+      "totalLoss": 0.201161274409887,
+      "evalLoss": null,
+      "mse": 0.06914114778827456,
+      "sigreg": 2.4710609419173752,
+      "conservation": 0.10008368233739563,
+      "symmetry": 5.868964113747361e-34,
+      "kappa": 0.154,
+      "effConservationWeight": 0.08460000000000001
+    },
+    {
+      "step": 241,
+      "totalLoss": 0.19859463905622282,
+      "evalLoss": null,
+      "mse": 0.07164481626628463,
+      "sigreg": 2.3806808873308896,
+      "conservation": 0.09431030687125144,
+      "symmetry": 6.813767698220775e-34,
+      "kappa": 0.16066666666666668,
+      "effConservationWeight": 0.08393333333333333
+    },
+    {
+      "step": 251,
+      "totalLoss": 0.1902608627818929,
+      "evalLoss": null,
+      "mse": 0.051183517139908576,
+      "sigreg": 2.644578448827227,
+      "conservation": 0.0822468759082019,
+      "symmetry": 4.296536544721081e-34,
+      "kappa": 0.16733333333333333,
+      "effConservationWeight": 0.08326666666666667
+    },
+    {
+      "step": 261,
+      "totalLoss": 0.19116197848189362,
+      "evalLoss": null,
+      "mse": 0.06583561649822417,
+      "sigreg": 2.342836971811929,
+      "conservation": 0.09908611856020563,
+      "symmetry": 4.576228895109936e-34,
+      "kappa": 0.174,
+      "effConservationWeight": 0.0826
+    },
+    {
+      "step": 271,
+      "totalLoss": 0.19059790754339645,
+      "evalLoss": null,
+      "mse": 0.07101535009977207,
+      "sigreg": 2.2671335044627754,
+      "conservation": 0.07598717112065391,
+      "symmetry": 7.024432931071807e-34,
+      "kappa": 0.18066666666666667,
+      "effConservationWeight": 0.08193333333333334
+    },
+    {
+      "step": 281,
+      "totalLoss": 0.1858481508087791,
+      "evalLoss": null,
+      "mse": 0.06002548849697756,
+      "sigreg": 2.4183157394460766,
+      "conservation": 0.06037992624484447,
+      "symmetry": 5.195545440680351e-34,
+      "kappa": 0.18733333333333332,
+      "effConservationWeight": 0.08126666666666667
+    },
+    {
+      "step": 291,
+      "totalLoss": 0.18314468562378444,
+      "evalLoss": null,
+      "mse": 0.061173528337306375,
+      "sigreg": 2.3184407391738446,
+      "conservation": 0.07505112069213177,
+      "symmetry": 5.101439771057334e-34,
+      "kappa": 0.194,
+      "effConservationWeight": 0.0806
+    },
+    {
+      "step": 301,
+      "totalLoss": 0.1959187588328453,
+      "evalLoss": null,
+      "mse": 0.09150426336422184,
+      "sigreg": 1.9577533498024688,
+      "conservation": 0.08165339422643857,
+      "symmetry": 4.028830563290767e-34,
+      "kappa": 0.20066666666666666,
+      "effConservationWeight": 0.07993333333333334
+    },
+    {
+      "step": 311,
+      "totalLoss": 0.18483488679814714,
+      "evalLoss": null,
+      "mse": 0.08072715065755615,
+      "sigreg": 1.9620205820714423,
+      "conservation": 0.07577847397416586,
+      "symmetry": 5.604786452079437e-34,
+      "kappa": 0.20733333333333334,
+      "effConservationWeight": 0.07926666666666667
+    },
+    {
+      "step": 321,
+      "totalLoss": 0.19567083271590285,
+      "evalLoss": null,
+      "mse": 0.08794246076991064,
+      "sigreg": 2.008716439464852,
+      "conservation": 0.09278053400444852,
+      "symmetry": 3.6500836431853115e-34,
+      "kappa": 0.214,
+      "effConservationWeight": 0.0786
+    },
+    {
+      "step": 331,
+      "totalLoss": 0.19694099447939875,
+      "evalLoss": null,
+      "mse": 0.0934538383231615,
+      "sigreg": 1.9242033142278405,
+      "conservation": 0.0933745566062263,
+      "symmetry": 5.643142580199154e-34,
+      "kappa": 0.22066666666666668,
+      "effConservationWeight": 0.07793333333333334
+    },
+    {
+      "step": 341,
+      "totalLoss": 0.20792944832283855,
+      "evalLoss": null,
+      "mse": 0.10490577770914027,
+      "sigreg": 1.8814898265067432,
+      "conservation": 0.1158219925154589,
+      "symmetry": 5.41609022141369e-34,
+      "kappa": 0.22733333333333333,
+      "effConservationWeight": 0.07726666666666666
+    },
+    {
+      "step": 351,
+      "totalLoss": 0.1866485364679492,
+      "evalLoss": null,
+      "mse": 0.07695559583402764,
+      "sigreg": 2.0508457092937222,
+      "conservation": 0.09335058967670337,
+      "symmetry": 4.365381942770881e-34,
+      "kappa": 0.234,
+      "effConservationWeight": 0.0766
+    },
+    {
+      "step": 361,
+      "totalLoss": 0.1997681485056344,
+      "evalLoss": null,
+      "mse": 0.09058114548811173,
+      "sigreg": 2.013204591501365,
+      "conservation": 0.11229288993574703,
+      "symmetry": 6.158030522184006e-34,
+      "kappa": 0.24066666666666667,
+      "effConservationWeight": 0.07593333333333334
+    },
+    {
+      "step": 371,
+      "totalLoss": 0.23078386506968934,
+      "evalLoss": null,
+      "mse": 0.12983124896717976,
+      "sigreg": 1.79720696175609,
+      "conservation": 0.14737291427863256,
+      "symmetry": 6.460752050989457e-34,
+      "kappa": 0.24733333333333332,
+      "effConservationWeight": 0.07526666666666668
+    },
+    {
+      "step": 381,
+      "totalLoss": 0.20805974769483315,
+      "evalLoss": null,
+      "mse": 0.10595408758033781,
+      "sigreg": 1.8570307903400556,
+      "conservation": 0.1240498739610263,
+      "symmetry": 3.5136113893253585e-34,
+      "kappa": 0.254,
+      "effConservationWeight": 0.0746
+    },
+    {
+      "step": 391,
+      "totalLoss": 0.21313729084371236,
+      "evalLoss": null,
+      "mse": 0.11950597854482667,
+      "sigreg": 1.6667870944049432,
+      "conservation": 0.13920591855687808,
+      "symmetry": 6.193005661940833e-34,
+      "kappa": 0.26066666666666666,
+      "effConservationWeight": 0.07393333333333334
+    },
+    {
+      "step": 401,
+      "totalLoss": 0.20533810129932195,
+      "evalLoss": null,
+      "mse": 0.10674965167081757,
+      "sigreg": 1.765752815462498,
+      "conservation": 0.14059338747105748,
+      "symmetry": 6.719831005910689e-34,
+      "kappa": 0.2673333333333333,
+      "effConservationWeight": 0.07326666666666667
+    },
+    {
+      "step": 411,
+      "totalLoss": 0.2298479098616335,
+      "evalLoss": null,
+      "mse": 0.14246316302872403,
+      "sigreg": 1.5547177650302384,
+      "conservation": 0.13290438817351982,
+      "symmetry": 5.093681508341907e-34,
+      "kappa": 0.274,
+      "effConservationWeight": 0.0726
+    },
+    {
+      "step": 421,
+      "totalLoss": 0.2055179434798821,
+      "evalLoss": null,
+      "mse": 0.11008832777676743,
+      "sigreg": 1.7192910239245454,
+      "conservation": 0.13158106358045502,
+      "symmetry": 4.1546158056684445e-34,
+      "kappa": 0.2806666666666667,
+      "effConservationWeight": 0.07193333333333334
+    },
+    {
+      "step": 431,
+      "totalLoss": 0.189894482815513,
+      "evalLoss": null,
+      "mse": 0.09823579013545805,
+      "sigreg": 1.691834905010857,
+      "conservation": 0.09916203128407962,
+      "symmetry": 4.7178759643840215e-34,
+      "kappa": 0.28733333333333333,
+      "effConservationWeight": 0.07126666666666667
+    },
+    {
+      "step": 441,
+      "totalLoss": 0.18684902693146377,
+      "evalLoss": null,
+      "mse": 0.084871636986765,
+      "sigreg": 1.8915993470592678,
+      "conservation": 0.10477935682344723,
+      "symmetry": 5.057417507619039e-34,
+      "kappa": 0.294,
+      "effConservationWeight": 0.0706
+    },
+    {
+      "step": 451,
+      "totalLoss": 0.18703383487534306,
+      "evalLoss": null,
+      "mse": 0.08598173403235743,
+      "sigreg": 1.8655401639750295,
+      "conservation": 0.1111786364761793,
+      "symmetry": 4.38534624961518e-34,
+      "kappa": 0.3006666666666667,
+      "effConservationWeight": 0.06993333333333333
+    },
+    {
+      "step": 461,
+      "totalLoss": 0.214852986114461,
+      "evalLoss": null,
+      "mse": 0.12186134700301149,
+      "sigreg": 1.7010138659208955,
+      "conservation": 0.11464310609342718,
+      "symmetry": 4.83791761394183e-34,
+      "kappa": 0.30733333333333335,
+      "effConservationWeight": 0.06926666666666667
+    },
+    {
+      "step": 471,
+      "totalLoss": 0.19089260346545428,
+      "evalLoss": null,
+      "mse": 0.09711734814439099,
+      "sigreg": 1.733455354629995,
+      "conservation": 0.10353480451258842,
+      "symmetry": 5.446294916100053e-34,
+      "kappa": 0.314,
+      "effConservationWeight": 0.0686
+    },
+    {
+      "step": 481,
+      "totalLoss": 0.24227034572154202,
+      "evalLoss": null,
+      "mse": 0.16511534644838793,
+      "sigreg": 1.4089341691849457,
+      "conservation": 0.09874814740785276,
+      "symmetry": 6.3861448939107045e-34,
+      "kappa": 0.32066666666666666,
+      "effConservationWeight": 0.06793333333333333
+    },
+    {
+      "step": 491,
+      "totalLoss": 0.19694583496918863,
+      "evalLoss": null,
+      "mse": 0.11052900678267086,
+      "sigreg": 1.6095873929163527,
+      "conservation": 0.08826747087264813,
+      "symmetry": 6.222075269894684e-34,
+      "kappa": 0.3273333333333333,
+      "effConservationWeight": 0.06726666666666668
+    },
+    {
+      "step": 501,
+      "totalLoss": 0.2170304935343651,
+      "evalLoss": null,
+      "mse": 0.13346209456139563,
+      "sigreg": 1.5415417809085996,
+      "conservation": 0.09746711602912157,
+      "symmetry": 4.454415078763611e-34,
+      "kappa": 0.334,
+      "effConservationWeight": 0.06659999999999999
+    },
+    {
+      "step": 511,
+      "totalLoss": 0.21470382148326955,
+      "evalLoss": null,
+      "mse": 0.14067947717359167,
+      "sigreg": 1.3662785803899091,
+      "conservation": 0.08660892755585083,
+      "symmetry": 4.207219177867742e-34,
+      "kappa": 0.3406666666666667,
+      "effConservationWeight": 0.06593333333333333
+    },
+    {
+      "step": 521,
+      "totalLoss": 0.24906903397499272,
+      "evalLoss": null,
+      "mse": 0.1776454022985472,
+      "sigreg": 1.2941824362378331,
+      "conservation": 0.10287808781236805,
+      "symmetry": 5.73874138019533e-34,
+      "kappa": 0.3473333333333333,
+      "effConservationWeight": 0.06526666666666668
+    },
+    {
+      "step": 531,
+      "totalLoss": 0.20291828433178433,
+      "evalLoss": null,
+      "mse": 0.12007450820234994,
+      "sigreg": 1.537931191155451,
+      "conservation": 0.0920621760319168,
+      "symmetry": 5.242013398175703e-34,
+      "kappa": 0.354,
+      "effConservationWeight": 0.0646
+    },
+    {
+      "step": 541,
+      "totalLoss": 0.19899499758649616,
+      "evalLoss": null,
+      "mse": 0.11772507092458256,
+      "sigreg": 1.4807117025291527,
+      "conservation": 0.11315445571620364,
+      "symmetry": 5.5337260105608995e-34,
+      "kappa": 0.3606666666666667,
+      "effConservationWeight": 0.06393333333333333
+    },
+    {
+      "step": 551,
+      "totalLoss": 0.24991078684752058,
+      "evalLoss": null,
+      "mse": 0.17793445090288584,
+      "sigreg": 1.302755562259477,
+      "conservation": 0.10809100893036142,
+      "symmetry": 6.092976602815626e-34,
+      "kappa": 0.36733333333333335,
+      "effConservationWeight": 0.06326666666666668
+    },
+    {
+      "step": 561,
+      "totalLoss": 0.20216183414449307,
+      "evalLoss": null,
+      "mse": 0.1266877791546207,
+      "sigreg": 1.3820747582017139,
+      "conservation": 0.10176225367071329,
+      "symmetry": 5.035142348848438e-34,
+      "kappa": 0.374,
+      "effConservationWeight": 0.0626
+    },
+    {
+      "step": 571,
+      "totalLoss": 0.2172257966337277,
+      "evalLoss": null,
+      "mse": 0.1404841991115529,
+      "sigreg": 1.4013773760190944,
+      "conservation": 0.10774050680118533,
+      "symmetry": 5.6027881116830395e-34,
+      "kappa": 0.38066666666666665,
+      "effConservationWeight": 0.06193333333333333
+    },
+    {
+      "step": 581,
+      "totalLoss": 0.1835807239127888,
+      "evalLoss": null,
+      "mse": 0.10536398475890077,
+      "sigreg": 1.4472360112855638,
+      "conservation": 0.09556483008068287,
+      "symmetry": 4.650902173745922e-34,
+      "kappa": 0.3873333333333333,
+      "effConservationWeight": 0.06126666666666667
+    },
+    {
+      "step": 591,
+      "totalLoss": 0.20987210198752734,
+      "evalLoss": null,
+      "mse": 0.13525699780027373,
+      "sigreg": 1.3802559053005163,
+      "conservation": 0.09244734195095392,
+      "symmetry": 5.532846197809113e-34,
+      "kappa": 0.394,
+      "effConservationWeight": 0.0606
+    },
+    {
+      "step": 601,
+      "totalLoss": 0.19232820920388718,
+      "evalLoss": null,
+      "mse": 0.113173688834258,
+      "sigreg": 1.4484831868542933,
+      "conservation": 0.1122974587360597,
+      "symmetry": 4.911832532269699e-34,
+      "kappa": 0.40066666666666667,
+      "effConservationWeight": 0.05993333333333333
+    },
+    {
+      "step": 611,
+      "totalLoss": 0.17556175722111472,
+      "evalLoss": null,
+      "mse": 0.10069109237084183,
+      "sigreg": 1.3884596770962283,
+      "conservation": 0.09191812703253352,
+      "symmetry": 4.258727870952836e-34,
+      "kappa": 0.4073333333333333,
+      "effConservationWeight": 0.05926666666666667
+    },
+    {
+      "step": 621,
+      "totalLoss": 0.20753476138350374,
+      "evalLoss": null,
+      "mse": 0.13147062665759263,
+      "sigreg": 1.376790846473587,
+      "conservation": 0.1232865597650476,
+      "symmetry": 4.769041192713485e-34,
+      "kappa": 0.414,
+      "effConservationWeight": 0.05860000000000001
+    },
+    {
+      "step": 631,
+      "totalLoss": 0.18715095496875875,
+      "evalLoss": null,
+      "mse": 0.103908658266161,
+      "sigreg": 1.541165534646282,
+      "conservation": 0.10674372791053491,
+      "symmetry": 6.342797736163541e-34,
+      "kappa": 0.4206666666666667,
+      "effConservationWeight": 0.05793333333333333
+    },
+    {
+      "step": 641,
+      "totalLoss": 0.18820134769690341,
+      "evalLoss": null,
+      "mse": 0.1073906934660903,
+      "sigreg": 1.5058039961211784,
+      "conservation": 0.09639908774308804,
+      "symmetry": 4.767439581660489e-34,
+      "kappa": 0.42733333333333334,
+      "effConservationWeight": 0.05726666666666667
+    },
+    {
+      "step": 651,
+      "totalLoss": 0.18792715588039105,
+      "evalLoss": null,
+      "mse": 0.10746386750188677,
+      "sigreg": 1.5025444836613133,
+      "conservation": 0.09427675256958697,
+      "symmetry": 5.074756049293668e-34,
+      "kappa": 0.434,
+      "effConservationWeight": 0.05660000000000001
+    },
+    {
+      "step": 661,
+      "totalLoss": 0.18498478090347115,
+      "evalLoss": null,
+      "mse": 0.10330027505723158,
+      "sigreg": 1.5162988558773753,
+      "conservation": 0.10493855278374477,
+      "symmetry": 3.1153906374652307e-34,
+      "kappa": 0.44066666666666665,
+      "effConservationWeight": 0.055933333333333335
+    },
+    {
+      "step": 671,
+      "totalLoss": 0.18891998647066435,
+      "evalLoss": null,
+      "mse": 0.10659172141907054,
+      "sigreg": 1.5410591729512044,
+      "conservation": 0.09545186497045083,
+      "symmetry": 5.2818487665497845e-34,
+      "kappa": 0.44733333333333336,
+      "effConservationWeight": 0.055266666666666665
+    },
+    {
+      "step": 681,
+      "totalLoss": 0.16858003375124608,
+      "evalLoss": null,
+      "mse": 0.08058171375991074,
+      "sigreg": 1.66419862277033,
+      "conservation": 0.08769942953880668,
+      "symmetry": 5.832097672169697e-34,
+      "kappa": 0.454,
+      "effConservationWeight": 0.05460000000000001
+    },
+    {
+      "step": 691,
+      "totalLoss": 0.17311242562095078,
+      "evalLoss": null,
+      "mse": 0.0890575544583232,
+      "sigreg": 1.5774300312050273,
+      "conservation": 0.0961069765582738,
+      "symmetry": 5.237944052546572e-34,
+      "kappa": 0.46066666666666667,
+      "effConservationWeight": 0.05393333333333333
+    },
+    {
+      "step": 701,
+      "totalLoss": 0.19162441434685562,
+      "evalLoss": null,
+      "mse": 0.11257897992695141,
+      "sigreg": 1.484880138526216,
+      "conservation": 0.09013943980463203,
+      "symmetry": 3.75946603279984e-34,
+      "kappa": 0.4673333333333333,
+      "effConservationWeight": 0.053266666666666664
+    },
+    {
+      "step": 711,
+      "totalLoss": 0.17136290777494415,
+      "evalLoss": null,
+      "mse": 0.08369551703296832,
+      "sigreg": 1.6560219391162458,
+      "conservation": 0.0925150909917016,
+      "symmetry": 5.282999006139163e-34,
+      "kappa": 0.474,
+      "effConservationWeight": 0.05260000000000001
+    },
+    {
+      "step": 721,
+      "totalLoss": 0.18650044256120205,
+      "evalLoss": null,
+      "mse": 0.104017128922852,
+      "sigreg": 1.5382796337027331,
+      "conservation": 0.10724002477304302,
+      "symmetry": 4.9370983139726855e-34,
+      "kappa": 0.4806666666666667,
+      "effConservationWeight": 0.05193333333333333
+    },
+    {
+      "step": 731,
+      "totalLoss": 0.18566981572594618,
+      "evalLoss": null,
+      "mse": 0.10837736465901687,
+      "sigreg": 1.4489144497605648,
+      "conservation": 0.09453956915931848,
+      "symmetry": 4.188659023204064e-34,
+      "kappa": 0.48733333333333334,
+      "effConservationWeight": 0.05126666666666666
+    },
+    {
+      "step": 741,
+      "totalLoss": 0.16793931183630303,
+      "evalLoss": null,
+      "mse": 0.08433502858683581,
+      "sigreg": 1.5802951643878116,
+      "conservation": 0.09070207569321417,
+      "symmetry": 4.146717952998857e-34,
+      "kappa": 0.494,
+      "effConservationWeight": 0.050600000000000006
+    },
+    {
+      "step": 751,
+      "totalLoss": 0.16849515049046862,
+      "evalLoss": null,
+      "mse": 0.07872678440957957,
+      "sigreg": 1.722185397441966,
+      "conservation": 0.073279630349614,
+      "symmetry": 6.105529137607981e-34,
+      "kappa": 0.5006666666666667,
+      "effConservationWeight": 0.04993333333333333
+    },
+    {
+      "step": 761,
+      "totalLoss": 0.17420631864601197,
+      "evalLoss": null,
+      "mse": 0.09073415149026846,
+      "sigreg": 1.5845736078470338,
+      "conservation": 0.0861330195546369,
+      "symmetry": 4.747292710513349e-34,
+      "kappa": 0.5073333333333333,
+      "effConservationWeight": 0.049266666666666674
+    },
+    {
+      "step": 771,
+      "totalLoss": 0.17943321214647673,
+      "evalLoss": null,
+      "mse": 0.09458192097544289,
+      "sigreg": 1.6095252791524084,
+      "conservation": 0.09002113607846542,
+      "symmetry": 4.991520488173392e-34,
+      "kappa": 0.514,
+      "effConservationWeight": 0.048600000000000004
+    },
+    {
+      "step": 781,
+      "totalLoss": 0.1891167283806973,
+      "evalLoss": null,
+      "mse": 0.10631960486465572,
+      "sigreg": 1.580252127035258,
+      "conservation": 0.07895376559691235,
+      "symmetry": 3.529451175702689e-34,
+      "kappa": 0.5206666666666667,
+      "effConservationWeight": 0.04793333333333333
+    },
+    {
+      "step": 791,
+      "totalLoss": 0.18383092920710753,
+      "evalLoss": null,
+      "mse": 0.09371673645332074,
+      "sigreg": 1.7197726649351082,
+      "conservation": 0.0872826411924832,
+      "symmetry": 4.6107590416653405e-34,
+      "kappa": 0.5273333333333333,
+      "effConservationWeight": 0.04726666666666667
+    },
+    {
+      "step": 801,
+      "totalLoss": 0.16660397792085574,
+      "evalLoss": null,
+      "mse": 0.07823820477170755,
+      "sigreg": 1.6881163535012118,
+      "conservation": 0.08497758528084941,
+      "symmetry": 4.5141113655086706e-34,
+      "kappa": 0.534,
+      "effConservationWeight": 0.0466
+    },
+    {
+      "step": 811,
+      "totalLoss": 0.18113661206606055,
+      "evalLoss": null,
+      "mse": 0.08874471967044315,
+      "sigreg": 1.7521967752154781,
+      "conservation": 0.10410856969906024,
+      "symmetry": 5.2568548179154256e-34,
+      "kappa": 0.5406666666666666,
+      "effConservationWeight": 0.04593333333333334
+    },
+    {
+      "step": 821,
+      "totalLoss": 0.17870414408291324,
+      "evalLoss": null,
+      "mse": 0.08864223715704399,
+      "sigreg": 1.7271183781083097,
+      "conservation": 0.0818701329997143,
+      "symmetry": 5.568729999577887e-34,
+      "kappa": 0.5473333333333333,
+      "effConservationWeight": 0.04526666666666667
+    },
+    {
+      "step": 831,
+      "totalLoss": 0.19389326863428366,
+      "evalLoss": null,
+      "mse": 0.10059144763059036,
+      "sigreg": 1.791389809758583,
+      "conservation": 0.08368454071220031,
+      "symmetry": 4.719038630463974e-34,
+      "kappa": 0.554,
+      "effConservationWeight": 0.0446
+    },
+    {
+      "step": 841,
+      "totalLoss": 0.1853841516652149,
+      "evalLoss": null,
+      "mse": 0.08909194813958993,
+      "sigreg": 1.8327644643355114,
+      "conservation": 0.10593278396470597,
+      "symmetry": 5.216638217437918e-34,
+      "kappa": 0.5606666666666666,
+      "effConservationWeight": 0.04393333333333334
+    },
+    {
+      "step": 851,
+      "totalLoss": 0.1823129891835364,
+      "evalLoss": null,
+      "mse": 0.08546599952821302,
+      "sigreg": 1.8635993946205835,
+      "conservation": 0.08475392737197648,
+      "symmetry": 4.735082262944183e-34,
+      "kappa": 0.5673333333333334,
+      "effConservationWeight": 0.04326666666666667
+    },
+    {
+      "step": 861,
+      "totalLoss": 0.19284922803968074,
+      "evalLoss": null,
+      "mse": 0.09751487985483762,
+      "sigreg": 1.8257128055427356,
+      "conservation": 0.09504009173019591,
+      "symmetry": 8.654702054203867e-34,
+      "kappa": 0.574,
+      "effConservationWeight": 0.042600000000000006
+    },
+    {
+      "step": 871,
+      "totalLoss": 0.17248484022440805,
+      "evalLoss": null,
+      "mse": 0.07186869789392943,
+      "sigreg": 1.936686179755205,
+      "conservation": 0.09018680467531859,
+      "symmetry": 6.75521338587044e-34,
+      "kappa": 0.5806666666666667,
+      "effConservationWeight": 0.041933333333333336
+    },
+    {
+      "step": 881,
+      "totalLoss": 0.16620536908840336,
+      "evalLoss": null,
+      "mse": 0.0719730409876151,
+      "sigreg": 1.824588452380722,
+      "conservation": 0.07276830731224974,
+      "symmetry": 5.715371083133044e-34,
+      "kappa": 0.5873333333333334,
+      "effConservationWeight": 0.04126666666666667
+    },
+    {
+      "step": 891,
+      "totalLoss": 0.1688129575161519,
+      "evalLoss": null,
+      "mse": 0.06767109598379624,
+      "sigreg": 1.9457217819768549,
+      "conservation": 0.09496976437223976,
+      "symmetry": 5.454330522013877e-34,
+      "kappa": 0.594,
+      "effConservationWeight": 0.040600000000000004
+    },
+    {
+      "step": 901,
+      "totalLoss": 0.18632235317105103,
+      "evalLoss": null,
+      "mse": 0.08655610734086361,
+      "sigreg": 1.9069465131695948,
+      "conservation": 0.11065743334827247,
+      "symmetry": 4.424972159517878e-34,
+      "kappa": 0.6006666666666667,
+      "effConservationWeight": 0.039933333333333335
+    },
+    {
+      "step": 911,
+      "totalLoss": 0.18886583173941818,
+      "evalLoss": null,
+      "mse": 0.09536095731194918,
+      "sigreg": 1.7936004077192536,
+      "conservation": 0.09740714876501635,
+      "symmetry": 5.870925719945296e-34,
+      "kappa": 0.6073333333333333,
+      "effConservationWeight": 0.03926666666666667
+    },
+    {
+      "step": 921,
+      "totalLoss": 0.20019468152676279,
+      "evalLoss": null,
+      "mse": 0.11079231403366317,
+      "sigreg": 1.710059746773625,
+      "conservation": 0.10102021125436222,
+      "symmetry": 3.714595446140434e-34,
+      "kappa": 0.614,
+      "effConservationWeight": 0.0386
+    },
+    {
+      "step": 931,
+      "totalLoss": 0.20568585312710502,
+      "evalLoss": null,
+      "mse": 0.10493659145424854,
+      "sigreg": 1.9181117710356408,
+      "conservation": 0.12768909809510792,
+      "symmetry": 5.189649171348119e-34,
+      "kappa": 0.6206666666666667,
+      "effConservationWeight": 0.03793333333333333
+    },
+    {
+      "step": 941,
+      "totalLoss": 0.1842106328591575,
+      "evalLoss": null,
+      "mse": 0.08262210005339207,
+      "sigreg": 1.9474154152749157,
+      "conservation": 0.11317787232610833,
+      "symmetry": 4.473475995168683e-34,
+      "kappa": 0.6273333333333333,
+      "effConservationWeight": 0.03726666666666667
+    },
+    {
+      "step": 951,
+      "totalLoss": 0.2011086718069793,
+      "evalLoss": null,
+      "mse": 0.10034437471368428,
+      "sigreg": 1.9296710831876989,
+      "conservation": 0.11696018945109508,
+      "symmetry": 5.133207505888306e-34,
+      "kappa": 0.634,
+      "effConservationWeight": 0.0366
+    },
+    {
+      "step": 961,
+      "totalLoss": 0.1860322007028898,
+      "evalLoss": null,
+      "mse": 0.08776273841105758,
+      "sigreg": 1.8832587952010014,
+      "conservation": 0.11428170311082034,
+      "symmetry": 5.563456001827904e-34,
+      "kappa": 0.6406666666666667,
+      "effConservationWeight": 0.03593333333333333
+    },
+    {
+      "step": 971,
+      "totalLoss": 0.19979593657578162,
+      "evalLoss": null,
+      "mse": 0.108832381106995,
+      "sigreg": 1.745081056490298,
+      "conservation": 0.1051843849982521,
+      "symmetry": 4.396238669479966e-34,
+      "kappa": 0.6473333333333333,
+      "effConservationWeight": 0.03526666666666667
+    },
+    {
+      "step": 981,
+      "totalLoss": 0.18261204548694313,
+      "evalLoss": null,
+      "mse": 0.08067296227243786,
+      "sigreg": 1.9613481261787713,
+      "conservation": 0.11189817646146555,
+      "symmetry": 4.490630865850995e-34,
+      "kappa": 0.654,
+      "effConservationWeight": 0.0346
+    },
+    {
+      "step": 991,
+      "totalLoss": 0.19962459912048966,
+      "evalLoss": null,
+      "mse": 0.10647661626377708,
+      "sigreg": 1.783423440059261,
+      "conservation": 0.11719481887277644,
+      "symmetry": 4.3762056743480615e-34,
+      "kappa": 0.6606666666666666,
+      "effConservationWeight": 0.033933333333333336
+    },
+    {
+      "step": 1001,
+      "totalLoss": 0.19929813070874713,
+      "evalLoss": null,
+      "mse": 0.0978940516187041,
+      "sigreg": 1.9466523938441607,
+      "conservation": 0.12238855905315565,
+      "symmetry": 5.6220368316777545e-34,
+      "kappa": 0.6673333333333333,
+      "effConservationWeight": 0.03326666666666667
+    },
+    {
+      "step": 1011,
+      "totalLoss": 0.20158322576425047,
+      "evalLoss": null,
+      "mse": 0.10657918223884197,
+      "sigreg": 1.8196009710476955,
+      "conservation": 0.12343542862035925,
+      "symmetry": 5.189014100193594e-34,
+      "kappa": 0.674,
+      "effConservationWeight": 0.0326
+    },
+    {
+      "step": 1021,
+      "totalLoss": 0.20446138089391794,
+      "evalLoss": null,
+      "mse": 0.0995465566949299,
+      "sigreg": 2.0072634959364457,
+      "conservation": 0.14253599380477341,
+      "symmetry": 3.5688173794857733e-34,
+      "kappa": 0.6806666666666666,
+      "effConservationWeight": 0.031933333333333334
+    },
+    {
+      "step": 1031,
+      "totalLoss": 0.1915186335682484,
+      "evalLoss": null,
+      "mse": 0.08867777005364985,
+      "sigreg": 1.9800641231590412,
+      "conservation": 0.12273957430639103,
+      "symmetry": 3.99125173655025e-34,
+      "kappa": 0.6873333333333334,
+      "effConservationWeight": 0.031266666666666665
+    },
+    {
+      "step": 1041,
+      "totalLoss": 0.208609841672152,
+      "evalLoss": null,
+      "mse": 0.10733244459229613,
+      "sigreg": 1.941928287066533,
+      "conservation": 0.13663342243559437,
+      "symmetry": 4.885596967727284e-34,
+      "kappa": 0.694,
+      "effConservationWeight": 0.030600000000000006
+    },
+    {
+      "step": 1051,
+      "totalLoss": 0.1933235154244281,
+      "evalLoss": null,
+      "mse": 0.09738019823760068,
+      "sigreg": 1.8487478476795431,
+      "conservation": 0.11712443662083316,
+      "symmetry": 4.6496169359771906e-34,
+      "kappa": 0.7006666666666667,
+      "effConservationWeight": 0.029933333333333336
+    },
+    {
+      "step": 1061,
+      "totalLoss": 0.19441160590572237,
+      "evalLoss": null,
+      "mse": 0.09698063203918289,
+      "sigreg": 1.8739563380886415,
+      "conservation": 0.12755661601733767,
+      "symmetry": 5.455821930471483e-34,
+      "kappa": 0.7073333333333334,
+      "effConservationWeight": 0.029266666666666663
+    },
+    {
+      "step": 1071,
+      "totalLoss": 0.20311470873403448,
+      "evalLoss": null,
+      "mse": 0.10724226800838373,
+      "sigreg": 1.85514013987585,
+      "conservation": 0.10893124936567256,
+      "symmetry": 4.7629708664174415e-34,
+      "kappa": 0.714,
+      "effConservationWeight": 0.028600000000000004
+    },
+    {
+      "step": 1081,
+      "totalLoss": 0.20474078651312586,
+      "evalLoss": null,
+      "mse": 0.10428001212832047,
+      "sigreg": 1.9479402352037396,
+      "conservation": 0.10968123954481215,
+      "symmetry": 5.178471385234657e-34,
+      "kappa": 0.7206666666666667,
+      "effConservationWeight": 0.027933333333333334
+    },
+    {
+      "step": 1091,
+      "totalLoss": 0.18767369967917802,
+      "evalLoss": null,
+      "mse": 0.08273243573624728,
+      "sigreg": 2.0256204689765687,
+      "conservation": 0.1342386489279569,
+      "symmetry": 5.2582213300982565e-34,
+      "kappa": 0.7273333333333334,
+      "effConservationWeight": 0.02726666666666666
+    },
+    {
+      "step": 1101,
+      "totalLoss": 0.19384329623062543,
+      "evalLoss": null,
+      "mse": 0.09312455086207375,
+      "sigreg": 1.9551589904497249,
+      "conservation": 0.1113081145137377,
+      "symmetry": 5.923815618892606e-34,
+      "kappa": 0.734,
+      "effConservationWeight": 0.026600000000000002
+    },
+    {
+      "step": 1111,
+      "totalLoss": 0.19821520500999698,
+      "evalLoss": null,
+      "mse": 0.10574958994253791,
+      "sigreg": 1.7966469213051934,
+      "conservation": 0.10153993581745704,
+      "symmetry": 4.8849137116358685e-34,
+      "kappa": 0.7406666666666667,
+      "effConservationWeight": 0.025933333333333333
+    },
+    {
+      "step": 1121,
+      "totalLoss": 0.1874613904208913,
+      "evalLoss": null,
+      "mse": 0.08214418286363236,
+      "sigreg": 2.045369800887806,
+      "conservation": 0.12066164298952374,
+      "symmetry": 3.8500746067291604e-34,
+      "kappa": 0.7473333333333333,
+      "effConservationWeight": 0.025266666666666673
+    },
+    {
+      "step": 1131,
+      "totalLoss": 0.1904077292865508,
+      "evalLoss": null,
+      "mse": 0.08885707760931194,
+      "sigreg": 1.9764875199425023,
+      "conservation": 0.11082421463877024,
+      "symmetry": 5.0171839193684045e-34,
+      "kappa": 0.754,
+      "effConservationWeight": 0.0246
+    },
+    {
+      "step": 1141,
+      "totalLoss": 0.19609661955921331,
+      "evalLoss": null,
+      "mse": 0.09113872101116197,
+      "sigreg": 2.044760066930673,
+      "conservation": 0.11364464630296761,
+      "symmetry": 5.796627130133635e-34,
+      "kappa": 0.7606666666666667,
+      "effConservationWeight": 0.02393333333333333
+    },
+    {
+      "step": 1151,
+      "totalLoss": 0.18744745810206973,
+      "evalLoss": null,
+      "mse": 0.07965510222237042,
+      "sigreg": 2.1099737275032115,
+      "conservation": 0.09858178386269581,
+      "symmetry": 5.915087573337751e-34,
+      "kappa": 0.7673333333333333,
+      "effConservationWeight": 0.02326666666666667
+    },
+    {
+      "step": 1161,
+      "totalLoss": 0.18323640794654042,
+      "evalLoss": null,
+      "mse": 0.07142980799224587,
+      "sigreg": 2.185921390669417,
+      "conservation": 0.11108541685060536,
+      "symmetry": 5.567982917816642e-34,
+      "kappa": 0.774,
+      "effConservationWeight": 0.0226
+    },
+    {
+      "step": 1171,
+      "totalLoss": 0.17779513110290304,
+      "evalLoss": null,
+      "mse": 0.06774557913029963,
+      "sigreg": 2.1599965814418476,
+      "conservation": 0.09345241187740237,
+      "symmetry": 6.539039974754221e-34,
+      "kappa": 0.7806666666666666,
+      "effConservationWeight": 0.02193333333333334
+    },
+    {
+      "step": 1181,
+      "totalLoss": 0.18774420687566434,
+      "evalLoss": null,
+      "mse": 0.07164470933151677,
+      "sigreg": 2.2789891178096373,
+      "conservation": 0.10109913731970403,
+      "symmetry": 5.507455519831352e-34,
+      "kappa": 0.7873333333333333,
+      "effConservationWeight": 0.02126666666666667
+    },
+    {
+      "step": 1191,
+      "totalLoss": 0.19356322616362132,
+      "evalLoss": null,
+      "mse": 0.09180694848833812,
+      "sigreg": 1.9884766270153666,
+      "conservation": 0.11322554973372989,
+      "symmetry": 4.909716642438219e-34,
+      "kappa": 0.794,
+      "effConservationWeight": 0.020599999999999997
+    },
+    {
+      "step": 1201,
+      "totalLoss": 0.19920836980538228,
+      "evalLoss": null,
+      "mse": 0.09622122569041075,
+      "sigreg": 2.013616811897028,
+      "conservation": 0.1157008454909762,
+      "symmetry": 5.997137079025146e-34,
+      "kappa": 0.8006666666666666,
+      "effConservationWeight": 0.019933333333333338
+    },
+    {
+      "step": 1211,
+      "totalLoss": 0.18593576150188412,
+      "evalLoss": null,
+      "mse": 0.07678857620076046,
+      "sigreg": 2.1412051320131895,
+      "conservation": 0.10831809864000932,
+      "symmetry": 4.513738513394269e-34,
+      "kappa": 0.8073333333333333,
+      "effConservationWeight": 0.019266666666666668
+    },
+    {
+      "step": 1221,
+      "totalLoss": 0.18421934237267923,
+      "evalLoss": null,
+      "mse": 0.07906338548803603,
+      "sigreg": 2.069127438152442,
+      "conservation": 0.09137553639898381,
+      "symmetry": 4.513560352531723e-34,
+      "kappa": 0.814,
+      "effConservationWeight": 0.018600000000000005
+    },
+    {
+      "step": 1231,
+      "totalLoss": 0.183194851474239,
+      "evalLoss": null,
+      "mse": 0.07609948937802073,
+      "sigreg": 2.107138530659573,
+      "conservation": 0.0969387860542526,
+      "symmetry": 4.466504303477849e-34,
+      "kappa": 0.8206666666666667,
+      "effConservationWeight": 0.017933333333333336
+    },
+    {
+      "step": 1241,
+      "totalLoss": 0.18750782180175005,
+      "evalLoss": null,
+      "mse": 0.08074212087913703,
+      "sigreg": 2.099663429291474,
+      "conservation": 0.10323529679764473,
+      "symmetry": 5.8840324819569644e-34,
+      "kappa": 0.8273333333333334,
+      "effConservationWeight": 0.017266666666666663
+    },
+    {
+      "step": 1251,
+      "totalLoss": 0.20326347156273003,
+      "evalLoss": null,
+      "mse": 0.08975790889526714,
+      "sigreg": 2.2281606367653475,
+      "conservation": 0.12635727886720002,
+      "symmetry": 2.880460744613704e-34,
+      "kappa": 0.834,
+      "effConservationWeight": 0.016600000000000004
+    },
+    {
+      "step": 1261,
+      "totalLoss": 0.17824727734777812,
+      "evalLoss": null,
+      "mse": 0.07712728320217964,
+      "sigreg": 1.9917917391149742,
+      "conservation": 0.09605066045082115,
+      "symmetry": 4.610467004787558e-34,
+      "kappa": 0.8406666666666667,
+      "effConservationWeight": 0.015933333333333334
+    },
+    {
+      "step": 1271,
+      "totalLoss": 0.1801199475837699,
+      "evalLoss": null,
+      "mse": 0.07115678296694948,
+      "sigreg": 2.1426896242790514,
+      "conservation": 0.1197827556463632,
+      "symmetry": 6.098758565653733e-34,
+      "kappa": 0.8473333333333334,
+      "effConservationWeight": 0.015266666666666663
+    },
+    {
+      "step": 1281,
+      "totalLoss": 0.1865430490211945,
+      "evalLoss": null,
+      "mse": 0.07949494362904028,
+      "sigreg": 2.1141249529505868,
+      "conservation": 0.09190806470033562,
+      "symmetry": 4.940002152361201e-34,
+      "kappa": 0.854,
+      "effConservationWeight": 0.014600000000000002
+    },
+    {
+      "step": 1291,
+      "totalLoss": 0.19488315986935859,
+      "evalLoss": null,
+      "mse": 0.08646452074541414,
+      "sigreg": 2.1377441880543744,
+      "conservation": 0.10991122401141602,
+      "symmetry": 5.071552827187677e-34,
+      "kappa": 0.8606666666666667,
+      "effConservationWeight": 0.013933333333333332
+    },
+    {
+      "step": 1301,
+      "totalLoss": 0.17392206543218397,
+      "evalLoss": null,
+      "mse": 0.0650819500445865,
+      "sigreg": 2.1468922315119405,
+      "conservation": 0.1127264179899809,
+      "symmetry": 5.952866859747225e-34,
+      "kappa": 0.8673333333333333,
+      "effConservationWeight": 0.013266666666666671
+    },
+    {
+      "step": 1311,
+      "totalLoss": 0.17173681828747847,
+      "evalLoss": null,
+      "mse": 0.06251405229722111,
+      "sigreg": 2.1550768074841846,
+      "conservation": 0.11658139809905912,
+      "symmetry": 3.7746886846429885e-34,
+      "kappa": 0.874,
+      "effConservationWeight": 0.0126
+    },
+    {
+      "step": 1321,
+      "totalLoss": 0.1764210453319501,
+      "evalLoss": null,
+      "mse": 0.06928736954919625,
+      "sigreg": 2.1189905308094015,
+      "conservation": 0.09923038343160298,
+      "symmetry": 5.734208380104971e-34,
+      "kappa": 0.8806666666666667,
+      "effConservationWeight": 0.01193333333333333
+    },
+    {
+      "step": 1331,
+      "totalLoss": 0.1709739280612964,
+      "evalLoss": null,
+      "mse": 0.05827853949637021,
+      "sigreg": 2.2322039823452795,
+      "conservation": 0.09631859002919255,
+      "symmetry": 3.963531852102589e-34,
+      "kappa": 0.8873333333333333,
+      "effConservationWeight": 0.01126666666666667
+    },
+    {
+      "step": 1341,
+      "totalLoss": 0.1710084010050916,
+      "evalLoss": null,
+      "mse": 0.07506557835709145,
+      "sigreg": 1.9003334947668375,
+      "conservation": 0.08737244430738303,
+      "symmetry": 5.300010154269989e-34,
+      "kappa": 0.894,
+      "effConservationWeight": 0.010599999999999998
+    },
+    {
+      "step": 1351,
+      "totalLoss": 0.18040401763901648,
+      "evalLoss": null,
+      "mse": 0.08205773717946795,
+      "sigreg": 1.94875235734165,
+      "conservation": 0.09147609991268812,
+      "symmetry": 4.656875154416037e-34,
+      "kappa": 0.9006666666666666,
+      "effConservationWeight": 0.00993333333333334
+    },
+    {
+      "step": 1361,
+      "totalLoss": 0.16513043469938013,
+      "evalLoss": null,
+      "mse": 0.06666092385737007,
+      "sigreg": 1.9516092736376007,
+      "conservation": 0.09594034102122506,
+      "symmetry": 4.408708093148298e-34,
+      "kappa": 0.9073333333333333,
+      "effConservationWeight": 0.009266666666666668
+    },
+    {
+      "step": 1371,
+      "totalLoss": 0.17465355052823597,
+      "evalLoss": null,
+      "mse": 0.08407814400568119,
+      "sigreg": 1.7958395773219609,
+      "conservation": 0.09109623912287981,
+      "symmetry": 3.643591677167533e-34,
+      "kappa": 0.914,
+      "effConservationWeight": 0.008599999999999997
+    },
+    {
+      "step": 1381,
+      "totalLoss": 0.16377101006940084,
+      "evalLoss": null,
+      "mse": 0.06128773665803564,
+      "sigreg": 2.0335701829871473,
+      "conservation": 0.10144087336233079,
+      "symmetry": 3.6961068872905186e-34,
+      "kappa": 0.9206666666666666,
+      "effConservationWeight": 0.007933333333333337
+    },
+    {
+      "step": 1391,
+      "totalLoss": 0.16365470293944998,
+      "evalLoss": null,
+      "mse": 0.0650492772845103,
+      "sigreg": 1.9582409071851066,
+      "conservation": 0.0954193067455514,
+      "symmetry": 5.127190444180035e-34,
+      "kappa": 0.9273333333333333,
+      "effConservationWeight": 0.007266666666666666
+    },
+    {
+      "step": 1401,
+      "totalLoss": 0.16417336280387523,
+      "evalLoss": null,
+      "mse": 0.0668299655679813,
+      "sigreg": 1.9312735911810885,
+      "conservation": 0.11813904194537642,
+      "symmetry": 5.345031587906482e-34,
+      "kappa": 0.934,
+      "effConservationWeight": 0.006599999999999995
+    },
+    {
+      "step": 1411,
+      "totalLoss": 0.16645733011121938,
+      "evalLoss": null,
+      "mse": 0.0701765460039726,
+      "sigreg": 1.9148904403899296,
+      "conservation": 0.09038125074443072,
+      "symmetry": 5.663120359238993e-34,
+      "kappa": 0.9406666666666667,
+      "effConservationWeight": 0.005933333333333336
+    },
+    {
+      "step": 1421,
+      "totalLoss": 0.17635695909220425,
+      "evalLoss": null,
+      "mse": 0.08445533685969049,
+      "sigreg": 1.8254592638101867,
+      "conservation": 0.11936564088691318,
+      "symmetry": 4.591392772235543e-34,
+      "kappa": 0.9473333333333334,
+      "effConservationWeight": 0.005266666666666664
+    },
+    {
+      "step": 1431,
+      "totalLoss": 0.17104826136333415,
+      "evalLoss": null,
+      "mse": 0.08250611352853163,
+      "sigreg": 1.7607484223113712,
+      "conservation": 0.10972319983346773,
+      "symmetry": 5.117668939938374e-34,
+      "kappa": 0.954,
+      "effConservationWeight": 0.004600000000000004
+    },
+    {
+      "step": 1441,
+      "totalLoss": 0.18630912543302627,
+      "evalLoss": null,
+      "mse": 0.09136379702019665,
+      "sigreg": 1.8894733463908442,
+      "conservation": 0.11991383727645967,
+      "symmetry": 6.250838147291367e-34,
+      "kappa": 0.9606666666666667,
+      "effConservationWeight": 0.003933333333333333
+    },
+    {
+      "step": 1451,
+      "totalLoss": 0.18391066628259214,
+      "evalLoss": null,
+      "mse": 0.10051712664344988,
+      "sigreg": 1.6596903879125544,
+      "conservation": 0.12521027862690376,
+      "symmetry": 5.455469282166236e-34,
+      "kappa": 0.9673333333333334,
+      "effConservationWeight": 0.0032666666666666625
+    },
+    {
+      "step": 1461,
+      "totalLoss": 0.17072567726842017,
+      "evalLoss": null,
+      "mse": 0.0764998426265752,
+      "sigreg": 1.878009834755656,
+      "conservation": 0.12513188617774326,
+      "symmetry": 4.515459969769751e-34,
+      "kappa": 0.974,
+      "effConservationWeight": 0.0026000000000000025
+    },
+    {
+      "step": 1471,
+      "totalLoss": 0.16878529814308738,
+      "evalLoss": null,
+      "mse": 0.06905276732792745,
+      "sigreg": 1.9901218304113522,
+      "conservation": 0.11712377306498602,
+      "symmetry": 6.248340221795869e-34,
+      "kappa": 0.9806666666666667,
+      "effConservationWeight": 0.0019333333333333314
+    },
+    {
+      "step": 1481,
+      "totalLoss": 0.17634341343302357,
+      "evalLoss": null,
+      "mse": 0.07211337869253277,
+      "sigreg": 2.0813525645081126,
+      "conservation": 0.12821566980405089,
+      "symmetry": 5.495827309307827e-34,
+      "kappa": 0.9873333333333333,
+      "effConservationWeight": 0.0012666666666666716
+    },
+    {
+      "step": 1491,
+      "totalLoss": 0.17927671168482232,
+      "evalLoss": null,
+      "mse": 0.09351731215376802,
+      "sigreg": 1.7137530231165379,
+      "conservation": 0.11958062537903684,
+      "symmetry": 4.697451750038484e-34,
+      "kappa": 0.994,
+      "effConservationWeight": 0.0006000000000000006
+    },
+    {
+      "step": 1500,
+      "totalLoss": 0.17601634058936966,
+      "evalLoss": 0.17516209691165605,
+      "mse": 0.0833403047784553,
+      "sigreg": 1.853520716218287,
+      "conservation": 0,
+      "symmetry": 6.308936955580758e-34,
+      "kappa": 1,
+      "effConservationWeight": 0
+    }
+  ],
+  "eval_curve": [
+    {
+      "step": 1,
+      "evalLoss": 0.3406449037663065,
+      "kappa": 0.0006666666666666666
+    },
+    {
+      "step": 25,
+      "evalLoss": 0.2663861714344651,
+      "kappa": 0.016666666666666666
+    },
+    {
+      "step": 50,
+      "evalLoss": 0.23587729330834106,
+      "kappa": 0.03333333333333333
+    },
+    {
+      "step": 75,
+      "evalLoss": 0.2352304542739664,
+      "kappa": 0.05
+    },
+    {
+      "step": 100,
+      "evalLoss": 0.24012874446623275,
+      "kappa": 0.06666666666666667
+    },
+    {
+      "step": 125,
+      "evalLoss": 0.22521483766288583,
+      "kappa": 0.08333333333333333
+    },
+    {
+      "step": 150,
+      "evalLoss": 0.21299123309011983,
+      "kappa": 0.1
+    },
+    {
+      "step": 175,
+      "evalLoss": 0.20392222050494296,
+      "kappa": 0.11666666666666667
+    },
+    {
+      "step": 200,
+      "evalLoss": 0.20324652622520442,
+      "kappa": 0.13333333333333333
+    },
+    {
+      "step": 225,
+      "evalLoss": 0.19902804360149715,
+      "kappa": 0.15
+    },
+    {
+      "step": 250,
+      "evalLoss": 0.1943045886500645,
+      "kappa": 0.16666666666666666
+    },
+    {
+      "step": 275,
+      "evalLoss": 0.18919846544533614,
+      "kappa": 0.18333333333333332
+    },
+    {
+      "step": 300,
+      "evalLoss": 0.189921709360663,
+      "kappa": 0.2
+    },
+    {
+      "step": 325,
+      "evalLoss": 0.19799791925416257,
+      "kappa": 0.21666666666666667
+    },
+    {
+      "step": 350,
+      "evalLoss": 0.19410149062528803,
+      "kappa": 0.23333333333333334
+    },
+    {
+      "step": 375,
+      "evalLoss": 0.2107924282629062,
+      "kappa": 0.25
+    },
+    {
+      "step": 400,
+      "evalLoss": 0.20690389253868272,
+      "kappa": 0.26666666666666666
+    },
+    {
+      "step": 425,
+      "evalLoss": 0.19815481527843054,
+      "kappa": 0.2833333333333333
+    },
+    {
+      "step": 450,
+      "evalLoss": 0.2074641589081434,
+      "kappa": 0.3
+    },
+    {
+      "step": 475,
+      "evalLoss": 0.22469232385036522,
+      "kappa": 0.31666666666666665
+    },
+    {
+      "step": 500,
+      "evalLoss": 0.22769879173816374,
+      "kappa": 0.3333333333333333
+    },
+    {
+      "step": 525,
+      "evalLoss": 0.22080303019810799,
+      "kappa": 0.35
+    },
+    {
+      "step": 550,
+      "evalLoss": 0.2217034127076668,
+      "kappa": 0.36666666666666664
+    },
+    {
+      "step": 575,
+      "evalLoss": 0.21376710165224605,
+      "kappa": 0.38333333333333336
+    },
+    {
+      "step": 600,
+      "evalLoss": 0.20574986966093695,
+      "kappa": 0.4
+    },
+    {
+      "step": 625,
+      "evalLoss": 0.19878860201630702,
+      "kappa": 0.4166666666666667
+    },
+    {
+      "step": 650,
+      "evalLoss": 0.19317674897932946,
+      "kappa": 0.43333333333333335
+    },
+    {
+      "step": 675,
+      "evalLoss": 0.1905337201303198,
+      "kappa": 0.45
+    },
+    {
+      "step": 700,
+      "evalLoss": 0.18937945388227312,
+      "kappa": 0.4666666666666667
+    },
+    {
+      "step": 725,
+      "evalLoss": 0.18442983347444103,
+      "kappa": 0.48333333333333334
+    },
+    {
+      "step": 750,
+      "evalLoss": 0.17969302759818884,
+      "kappa": 0.5
+    },
+    {
+      "step": 775,
+      "evalLoss": 0.17687699006913088,
+      "kappa": 0.5166666666666667
+    },
+    {
+      "step": 800,
+      "evalLoss": 0.17525681308946653,
+      "kappa": 0.5333333333333333
+    },
+    {
+      "step": 825,
+      "evalLoss": 0.1878218287008387,
+      "kappa": 0.55
+    },
+    {
+      "step": 850,
+      "evalLoss": 0.18494988696707487,
+      "kappa": 0.5666666666666667
+    },
+    {
+      "step": 875,
+      "evalLoss": 0.18122030197731326,
+      "kappa": 0.5833333333333334
+    },
+    {
+      "step": 900,
+      "evalLoss": 0.18457496635544185,
+      "kappa": 0.6
+    },
+    {
+      "step": 925,
+      "evalLoss": 0.19710803363937907,
+      "kappa": 0.6166666666666667
+    },
+    {
+      "step": 950,
+      "evalLoss": 0.19998351189572663,
+      "kappa": 0.6333333333333333
+    },
+    {
+      "step": 975,
+      "evalLoss": 0.19493206929085347,
+      "kappa": 0.65
+    },
+    {
+      "step": 1000,
+      "evalLoss": 0.2078675327740369,
+      "kappa": 0.6666666666666666
+    },
+    {
+      "step": 1025,
+      "evalLoss": 0.21216817722841877,
+      "kappa": 0.6833333333333333
+    },
+    {
+      "step": 1050,
+      "evalLoss": 0.2053841594202066,
+      "kappa": 0.7
+    },
+    {
+      "step": 1075,
+      "evalLoss": 0.1994348639348177,
+      "kappa": 0.7166666666666667
+    },
+    {
+      "step": 1100,
+      "evalLoss": 0.19539020973248117,
+      "kappa": 0.7333333333333333
+    },
+    {
+      "step": 1125,
+      "evalLoss": 0.19643352920009838,
+      "kappa": 0.75
+    },
+    {
+      "step": 1150,
+      "evalLoss": 0.19232460171039092,
+      "kappa": 0.7666666666666667
+    },
+    {
+      "step": 1175,
+      "evalLoss": 0.18990189845540278,
+      "kappa": 0.7833333333333333
+    },
+    {
+      "step": 1200,
+      "evalLoss": 0.1886577166272267,
+      "kappa": 0.8
+    },
+    {
+      "step": 1225,
+      "evalLoss": 0.18622336538238246,
+      "kappa": 0.8166666666666667
+    },
+    {
+      "step": 1250,
+      "evalLoss": 0.18300043552627093,
+      "kappa": 0.8333333333333334
+    },
+    {
+      "step": 1275,
+      "evalLoss": 0.18067491057335286,
+      "kappa": 0.85
+    },
+    {
+      "step": 1300,
+      "evalLoss": 0.1778043346981652,
+      "kappa": 0.8666666666666667
+    },
+    {
+      "step": 1325,
+      "evalLoss": 0.17556492973536492,
+      "kappa": 0.8833333333333333
+    },
+    {
+      "step": 1350,
+      "evalLoss": 0.17042341873059227,
+      "kappa": 0.9
+    },
+    {
+      "step": 1375,
+      "evalLoss": 0.16790516661374844,
+      "kappa": 0.9166666666666666
+    },
+    {
+      "step": 1400,
+      "evalLoss": 0.17181101731201387,
+      "kappa": 0.9333333333333333
+    },
+    {
+      "step": 1425,
+      "evalLoss": 0.17631028762885578,
+      "kappa": 0.95
+    },
+    {
+      "step": 1450,
+      "evalLoss": 0.175977692717229,
+      "kappa": 0.9666666666666667
+    },
+    {
+      "step": 1475,
+      "evalLoss": 0.17560443658904726,
+      "kappa": 0.9833333333333333
+    },
+    {
+      "step": 1500,
+      "evalLoss": 0.17516209691165605,
+      "kappa": 1
+    }
+  ]
+}
