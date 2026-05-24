@@ -501,6 +501,9 @@ export interface Team {
   /** Local mirror of team-scoped knowledge (orchestrator GET may lag or omit workspace-scoped rows). */
   knowledge?: MeshKnowledgeEntry[];
 
+  /** Latest locally-published GPU/Vast fleet snapshot for deployed Studio and agents. */
+  fleetSnapshot?: TeamFleetSnapshotRecord;
+
   // Bounty data (V7 Expansion)
   bounties?: BountyManager;
   submissions?: StoredBountySubmission[];
@@ -550,6 +553,48 @@ export interface Team {
   };
   treasuryWallet?: string;
   treasuryBalance?: number;
+}
+
+export type TeamFleetSnapshotHealthStatus = 'missing' | 'ok' | 'degraded' | 'stale' | 'down';
+
+export interface TeamFleetSnapshotSummary {
+  captured_at?: string;
+  running_count?: number;
+  declared_count?: number;
+  orphan_count?: number;
+  no_instance_count?: number;
+  total_cost_so_far_usd?: number;
+  total_dph_usd?: number;
+  projected_24h_cost_usd?: number;
+  gpu_tier_distribution?: Record<string, number>;
+  [key: string]: unknown;
+}
+
+export interface TeamFleetSnapshotPayload {
+  captured_at?: string;
+  error?: string;
+  warning?: string;
+  summary?: TeamFleetSnapshotSummary;
+  matched?: unknown[];
+  orphans?: unknown[];
+  global_budget_usd_per_day?: number;
+  [key: string]: unknown;
+}
+
+export interface TeamFleetSnapshotHealth {
+  status: TeamFleetSnapshotHealthStatus;
+  reasons: string[];
+  ageMs: number | null;
+  staleAfterMs: number;
+}
+
+export interface TeamFleetSnapshotRecord {
+  source: string;
+  publishedAt: string;
+  publishedByAgentId: string;
+  publishedByName: string;
+  snapshot: TeamFleetSnapshotPayload;
+  health: TeamFleetSnapshotHealth;
 }
 
 export interface TeamPresenceEntry {

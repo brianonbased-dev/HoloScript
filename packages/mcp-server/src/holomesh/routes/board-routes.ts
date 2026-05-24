@@ -52,13 +52,24 @@ import {
   type TaskOrchestrationAgentRef,
   type TaskPolicyEvent,
 } from '@holoscript/framework';
-import type { Team, TeamPresenceEntry, TeamMessage, TeamHologramFeedItem, RegisteredAgent, MeshKnowledgeEntry } from '../types';
+import type {
+  Team,
+  TeamPresenceEntry,
+  TeamMessage,
+  TeamHologramFeedItem,
+  RegisteredAgent,
+  MeshKnowledgeEntry,
+  TeamFleetSnapshotHealth,
+  TeamFleetSnapshotPayload,
+  TeamFleetSnapshotRecord,
+} from '../types';
 import { getClient } from '../orchestrator-client';
 import { mergeTeamKnowledgeWithOrchestrator } from '../entry-lookup';
 import { getBoardModeFields } from '../mode-provenance';
 
 const MAX_FEED_QUERY = 100;
 const CLAIM_HEARTBEAT_GRACE_MS = Number(process.env.HOLOMESH_CLAIM_HEARTBEAT_GRACE_MS || 2 * 60 * 1000);
+const DEFAULT_FLEET_SNAPSHOT_STALE_AFTER_MS = 2 * 60 * 60 * 1000;
 
 function normalizeVerificationEvidence(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
@@ -77,6 +88,107 @@ function getFreshPresence(teamId: string, agentId: string): TeamPresenceEntry | 
     ? expiresAtMs
     : lastHeartbeatMs + (entry.ttlMs || CLAIM_HEARTBEAT_GRACE_MS);
   return Date.now() <= effectiveExpiry ? entry : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function numericCount(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function getFleetSnapshotStaleAfterMs(): number {
+  const raw = Number(process.env.HOLOMESH_FLEET_STALE_THRESHOLD_MS || process.env.STALE_THRESHOLD_MS);
+  return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_FLEET_SNAPSHOT_STALE_AFTER_MS;
+}
+
+function normalizeFleetSource(value: unknown): string {
+  if (typeof value !== 'string') return 'fleet-status-live.mjs';
+  const source = value.trim();
+  return source ? source.slice(0, 120) : 'fleet-status-live.mjs';
+}
+
+function normalizeFleetSnapshotPayload(body: Record<string, unknown>): TeamFleetSnapshotPayload | null {
+  const candidate = isRecord(body.snapshot) ? body.snapshot : body;
+  if (!isRecord(candidate)) return null;
+  return { ...candidate } as TeamFleetSnapshotPayload;
+}
+
+function evaluateFleetSnapshotHealth(
+  snapshot: TeamFleetSnapshotPayload,
+  publishedAt: string,
+  nowMs = Date.now()
+): TeamFleetSnapshotHealth {
+  const staleAfterMs = getFleetSnapshotStaleAfterMs();
+  const reasons: string[] = [];
+  const publishedMs = Date.parse(publishedAt);
+  const ageMs = Number.isFinite(publishedMs) ? Math.max(0, nowMs - publishedMs) : null;
+
+  if (ageMs === null) {
+    reasons.push('invalid_publishedAt');
+  } else if (ageMs > staleAfterMs) {
+    reasons.push(`snapshot_age_ms>${staleAfterMs}`);
+  }
+
+  if (typeof snapshot.error === 'string' && snapshot.error.trim()) {
+    reasons.push('snapshot_error');
+  }
+  if (typeof snapshot.warning === 'string' && snapshot.warning.trim()) {
+    reasons.push('snapshot_warning');
+  }
+
+  const summary = isRecord(snapshot.summary) ? snapshot.summary : {};
+  const orphanCount = numericCount(summary.orphan_count);
+  const noInstanceCount = numericCount(summary.no_instance_count);
+  if (orphanCount > 0) reasons.push(`orphan_count=${orphanCount}`);
+  if (noInstanceCount > 0) reasons.push(`no_instance_count=${noInstanceCount}`);
+
+  let status: TeamFleetSnapshotHealth['status'] = 'ok';
+  if (reasons.includes('invalid_publishedAt') || reasons.includes('snapshot_error')) {
+    status = 'down';
+  } else if (ageMs !== null && ageMs > staleAfterMs) {
+    status = 'stale';
+  } else if (reasons.length > 0) {
+    status = 'degraded';
+  }
+
+  return { status, reasons, ageMs, staleAfterMs };
+}
+
+function fleetSnapshotResponse(teamId: string, record?: TeamFleetSnapshotRecord): Record<string, unknown> {
+  if (!record) {
+    return {
+      success: true,
+      teamId,
+      snapshot: null,
+      fleet: null,
+      source: null,
+      publishedAt: null,
+      publishedBy: null,
+      health: {
+        status: 'missing',
+        reasons: ['no_snapshot_published'],
+        ageMs: null,
+        staleAfterMs: getFleetSnapshotStaleAfterMs(),
+      } satisfies TeamFleetSnapshotHealth,
+    };
+  }
+
+  const health = evaluateFleetSnapshotHealth(record.snapshot, record.publishedAt);
+  return {
+    success: true,
+    teamId,
+    snapshot: record.snapshot,
+    fleet: record.snapshot,
+    source: record.source,
+    publishedAt: record.publishedAt,
+    publishedBy: {
+      agentId: record.publishedByAgentId,
+      name: record.publishedByName,
+    },
+    health,
+  };
 }
 
 function validateHologramFeedInput(hash: string, shareUrl: string): string | null {
@@ -138,6 +250,71 @@ export async function handleBoardRoutes(
       objective: team.roomConfig?.objective || '',
       communicationStyle: team.roomConfig?.communicationStyle || 'task_first',
       ...getBoardModeFields(team),
+    });
+    return true;
+  }
+
+  // GET /api/holomesh/team/:id/fleet — latest locally-published fleet snapshot
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/fleet$/) && method === 'GET') {
+    const access = await requireTeamAccessFresh(req, res, url, 'board:read');
+    if (!access) return true;
+    const { teamId } = access;
+    const team = teamStore.get(teamId)!;
+    json(res, 200, fleetSnapshotResponse(teamId, team.fleetSnapshot));
+    return true;
+  }
+
+  // POST /api/holomesh/team/:id/fleet — publish local GPU/Vast fleet data
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/fleet$/) && method === 'POST') {
+    const access = await requireTeamAccessFresh(req, res, url, 'board:write');
+    if (!access) return true;
+    const { caller, teamId } = access;
+    const team = teamStore.get(teamId)!;
+
+    const rawBody = await parseJsonBody(req);
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
+    if (!signingCtx.signingValid) {
+      json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
+      return true;
+    }
+    if (!isRecord(effectiveBody)) {
+      json(res, 400, { error: 'JSON object body required' });
+      return true;
+    }
+
+    const snapshot = normalizeFleetSnapshotPayload(effectiveBody);
+    if (!snapshot) {
+      json(res, 400, { error: 'fleet snapshot object required (body or body.snapshot)' });
+      return true;
+    }
+
+    const publishedAt = new Date().toISOString();
+    const record: TeamFleetSnapshotRecord = {
+      source: normalizeFleetSource(effectiveBody.source),
+      publishedAt,
+      publishedByAgentId: caller.id,
+      publishedByName: caller.name,
+      snapshot,
+      health: evaluateFleetSnapshotHealth(snapshot, publishedAt),
+    };
+    team.fleetSnapshot = record;
+    persistTeamStore();
+
+    broadcastToTeam(teamId, {
+      type: 'fleet:snapshot' as any,
+      agent: caller.name,
+      data: {
+        source: record.source,
+        publishedAt: record.publishedAt,
+        health: record.health.status,
+      },
+    });
+
+    json(res, 200, {
+      ...fleetSnapshotResponse(teamId, record),
+      stored: true,
     });
     return true;
   }

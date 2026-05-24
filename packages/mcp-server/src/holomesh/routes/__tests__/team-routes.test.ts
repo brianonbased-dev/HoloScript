@@ -516,3 +516,112 @@ describe('Board Routes — Mobile Brief (capability-token auth)', () => {
     expect(res._body.error).toContain('Not a member');
   });
 });
+
+describe('Board Routes — Fleet Snapshot', () => {
+  it('returns an explicit missing health state before any fleet snapshot is published', async () => {
+    const res = await callBoard(
+      'GET',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      undefined,
+      PARENT_KEY
+    );
+
+    expect(res._status).toBe(200);
+    expect(res._body.success).toBe(true);
+    expect(res._body.teamId).toBe('team_test_mobile');
+    expect(res._body.snapshot).toBeNull();
+    expect(res._body.fleet).toBeNull();
+    expect(res._body.health.status).toBe('missing');
+    expect(res._body.health.reasons).toContain('no_snapshot_published');
+  });
+
+  it('stores and serves the latest local fleet-status-live snapshot', async () => {
+    const snapshot = {
+      captured_at: '2026-05-24T00:10:00.000Z',
+      summary: {
+        running_count: 1,
+        declared_count: 2,
+        orphan_count: 0,
+        no_instance_count: 0,
+        total_cost_so_far_usd: 1.25,
+        total_dph_usd: 0.5,
+        projected_24h_cost_usd: 12,
+        gpu_tier_distribution: { '70+ GB (72b-tier)': 1 },
+      },
+      matched: [
+        {
+          handle: 'mesh-worker-01',
+          actual_status: 'running',
+          gpu_name: 'H100',
+          vram_gb: 80,
+        },
+      ],
+      orphans: [],
+    };
+
+    const post = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      { source: 'fleet-status-live.mjs', snapshot },
+      PARENT_KEY
+    );
+
+    expect(post._status).toBe(200);
+    expect(post._body.stored).toBe(true);
+    expect(post._body.source).toBe('fleet-status-live.mjs');
+    expect(post._body.health.status).toBe('ok');
+    expect(post._body.snapshot.summary.running_count).toBe(1);
+
+    const get = await callBoard(
+      'GET',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      undefined,
+      PARENT_KEY
+    );
+
+    expect(get._status).toBe(200);
+    expect(get._body.source).toBe('fleet-status-live.mjs');
+    expect(get._body.publishedBy.name).toBe('ParentAgent');
+    expect(get._body.snapshot.summary.running_count).toBe(1);
+    expect(get._body.fleet.summary.projected_24h_cost_usd).toBe(12);
+    expect(get._body.health.status).toBe('ok');
+  });
+
+  it('flags published snapshots with orphaned or missing declared workers as degraded', async () => {
+    const degradedSnapshot = {
+      captured_at: '2026-05-24T00:11:00.000Z',
+      summary: {
+        running_count: 1,
+        declared_count: 3,
+        orphan_count: 1,
+        no_instance_count: 1,
+      },
+      matched: [
+        {
+          handle: 'mesh-worker-02',
+          status: 'NO_INSTANCE',
+          instance_id: null,
+        },
+      ],
+      orphans: [
+        {
+          instance_id: 123,
+          status: 'ORPHAN',
+          gpu_name: 'RTX 4090',
+        },
+      ],
+    };
+
+    const res = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      { source: 'fleet-status-live.mjs', snapshot: degradedSnapshot },
+      PARENT_KEY
+    );
+
+    expect(res._status).toBe(200);
+    expect(res._body.health.status).toBe('degraded');
+    expect(res._body.health.reasons).toContain('orphan_count=1');
+    expect(res._body.health.reasons).toContain('no_instance_count=1');
+  });
+});
