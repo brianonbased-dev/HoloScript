@@ -174,8 +174,11 @@ function powershellJson(script) {
       exitCode: result.status,
     };
   }
+  const jsonStart = text.indexOf('{');
+  const jsonEnd = text.lastIndexOf('}');
+  const jsonText = jsonStart >= 0 && jsonEnd > jsonStart ? text.slice(jsonStart, jsonEnd + 1) : text;
   try {
-    return JSON.parse(text);
+    return JSON.parse(jsonText);
   } catch (error) {
     return {
       status: 'failed',
