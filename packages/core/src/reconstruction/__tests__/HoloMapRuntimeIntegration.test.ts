@@ -72,6 +72,26 @@ describe('HoloMapRuntime — 8-kernel integration on 32×32 fixture', () => {
     await runtime.dispose();
   });
 
+  it('tileGrid config increases per-frame reconstruction density', async () => {
+    const runtime = createHoloMapRuntime();
+    await runtime.init({
+      ...HOLOMAP_DEFAULTS,
+      seed: 7,
+      modelHash: 'integration-32x32-dense',
+      videoHash: 'fixture-gradient',
+      targetFPS: 10000,
+      tileGrid: 8,
+    });
+
+    const step = await runtime.step(buildGradientFrame(0));
+    const pointCount = step.points.positions.length / 3;
+    expect(pointCount).toBe(64);
+    expect(step.points.colors.length).toBe(pointCount * 3);
+    expect(step.points.confidence.length).toBe(pointCount);
+
+    await runtime.dispose();
+  });
+
   it('point cloud has non-trivial spatial spread (transformer is firing)', async () => {
     const runtime = createHoloMapRuntime();
     await runtime.init({

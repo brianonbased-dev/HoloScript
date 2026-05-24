@@ -25,6 +25,8 @@ export function computeHoloMapReplayFingerprint(parts: {
   seed: number;
   weightStrategy: string;
   videoHash?: string;
+  /** Optional tile-grid density. Omitted or 4 preserves pre-density-ratchet fingerprints. */
+  tileGrid?: number;
   /** Optional content-addressed weights id (IPFS CID, OCI digest, …). Omitted → same fingerprint as pre-CID builds. */
   weightCid?: string;
   /**
@@ -36,6 +38,10 @@ export function computeHoloMapReplayFingerprint(parts: {
   const video = parts.videoHash ?? 'no-video';
   const base = `${parts.modelHash}|${parts.seed}|${parts.weightStrategy}|${video}`;
   let payload = parts.weightCid ? `${base}|cid:${parts.weightCid}` : base;
+  const tileGrid = parts.tileGrid;
+  if (tileGrid !== undefined && Number.isFinite(tileGrid) && Math.floor(tileGrid) !== 4) {
+    payload += `|grid:${Math.floor(tileGrid)}`;
+  }
   const vert = parts.verticalProfile;
   if (vert && vert !== 'generalist') {
     payload += `|vert:${vert}`;

@@ -21,8 +21,8 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const VERSION = '0.2.0';
-export const RECEIPT_VERSION = 'holoshell-hologram-bridge-renderer/v2';
+export const VERSION = '0.3.0';
+export const RECEIPT_VERSION = 'holoshell-hologram-bridge-renderer/v3';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
@@ -159,8 +159,11 @@ function computeRenderStyle({ points, tileWidth, tileHeight, args }) {
   const avgLum = mean(points.map(luminance));
   const autoGain = args.autoExposure ? Math.max(1, Math.min(6, 0.42 / Math.max(0.05, avgLum))) : 1;
   const exposure = args.exposure ?? autoGain;
-  const baseRadius = args.pointRadius ?? Math.max(2, Math.round(Math.min(tileWidth, tileHeight) / 36));
-  const glowRadius = args.glowRadius ?? Math.max(baseRadius + 2, Math.round(baseRadius * 2.6));
+  const spacing = Math.sqrt((tileWidth * tileHeight) / Math.max(1, points.length));
+  const resolutionRadius = Math.max(2, Math.round(Math.min(tileWidth, tileHeight) / 36));
+  const densityRadius = Math.max(1, Math.round(spacing * 0.35));
+  const baseRadius = args.pointRadius ?? Math.max(1, Math.min(resolutionRadius, densityRadius));
+  const glowRadius = args.glowRadius ?? Math.max(baseRadius + 1, Math.round(baseRadius * 2.2));
   return {
     exposure,
     autoExposure: args.autoExposure,
@@ -168,6 +171,7 @@ function computeRenderStyle({ points, tileWidth, tileHeight, args }) {
     pointRadius: baseRadius,
     glowRadius,
     averageSourceLuminance: Number(avgLum.toFixed(4)),
+    averagePointSpacingPx: Number(spacing.toFixed(3)),
   };
 }
 

@@ -28,14 +28,16 @@ import {
   createHoloMapRuntime,
 } from '../packages/core/dist/reconstruction/index.js';
 
-export const VERSION = '0.3.0';
-export const RECEIPT_VERSION = 'holoshell-camera-scan-receipt/v3';
+export const VERSION = '0.4.0';
+export const RECEIPT_VERSION = 'holoshell-camera-scan-receipt/v4';
 const DEFAULT_DATE = new Date().toISOString().slice(0, 10);
 const DEFAULT_WIDTH = 96;
 const DEFAULT_HEIGHT = 72;
 const DEFAULT_FRAMES = 1;
 const DEFAULT_INTERVAL_MS = 250;
 const DEFAULT_SESSION_FPS = 5;
+const DEFAULT_TILE_GRID = 8;
+const MAX_TILE_GRID = 16;
 const MAX_FRAMES = 120;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -54,6 +56,7 @@ function parseArgs(argv) {
     intervalMs: DEFAULT_INTERVAL_MS,
     durationSec: undefined,
     fps: undefined,
+    tileGrid: DEFAULT_TILE_GRID,
     keepFrame: false,
     requireCapture: false,
     selfTest: false,
@@ -82,6 +85,7 @@ function parseArgs(argv) {
     }
     else if (arg === '--duration-sec') args.durationSec = Number.parseFloat(argv[++i]);
     else if (arg === '--fps') args.fps = Number.parseFloat(argv[++i]);
+    else if (arg === '--tile-grid') args.tileGrid = Number.parseInt(argv[++i], 10);
     else if (arg === '--keep-frame') args.keepFrame = true;
     else if (arg === '--require-capture') args.requireCapture = true;
     else if (arg === '--help' || arg === '-h' || arg === 'help') args.command = 'help';
@@ -102,6 +106,9 @@ function parseArgs(argv) {
   }
   if (args.durationSec !== undefined && (!Number.isFinite(args.durationSec) || args.durationSec <= 0 || args.durationSec > 60)) {
     throw new Error('--duration-sec must be a number greater than 0 and at most 60');
+  }
+  if (!Number.isInteger(args.tileGrid) || args.tileGrid < 1 || args.tileGrid > MAX_TILE_GRID) {
+    throw new Error(`--tile-grid must be an integer from 1 to ${MAX_TILE_GRID}`);
   }
   if (args.durationSec !== undefined) {
     const fps = args.fps ?? DEFAULT_SESSION_FPS;
@@ -127,8 +134,8 @@ function printHelp() {
 
 Usage:
   node scripts/holoshell-camera-scan-adapter.mjs list
-  node scripts/holoshell-camera-scan-adapter.mjs capture [--frames 5] [--interval-ms 250] [--require-capture] [--out receipt.json]
-  node scripts/holoshell-camera-scan-adapter.mjs capture --duration-sec 3 --fps 5 [--require-capture]
+  node scripts/holoshell-camera-scan-adapter.mjs capture [--frames 5] [--interval-ms 250] [--tile-grid 8] [--require-capture] [--out receipt.json]
+  node scripts/holoshell-camera-scan-adapter.mjs capture --duration-sec 3 --fps 5 [--tile-grid 8] [--require-capture]
   node scripts/holoshell-camera-scan-adapter.mjs --self-test
 
 Notes:
@@ -202,6 +209,7 @@ function capturePlan(args) {
     intervalMs: args.intervalMs,
     requestedDurationSec: args.durationSec,
     requestedFps: args.fps,
+    tileGrid: args.tileGrid,
     effectiveFps: fps ? round(fps, 3) : undefined,
     expectedDurationMs: args.frames > 1 ? (args.frames - 1) * args.intervalMs : 0,
   };
@@ -497,7 +505,7 @@ function summarizeQuality(frames) {
   };
 }
 
-async function runHoloMap(frames, videoHash, intervalMs) {
+async function runHoloMap(frames, videoHash, intervalMs, tileGrid) {
   const runtime = createHoloMapRuntime();
   const firstFrame = frames[0];
   if (!firstFrame) throw new Error('runHoloMap requires at least one frame');
@@ -513,8 +521,9 @@ async function runHoloMap(frames, videoHash, intervalMs) {
       targetFPS: 5,
       maxSequenceLength: Math.max(30, frames.length),
       seed: 0,
-      modelHash: 'holoshell-native-camera-scan-v1',
+      modelHash: 'holoshell-native-camera-scan-v2',
       videoHash,
+      tileGrid,
       cpuOffload: false,
       weightStrategy: 'distill',
       verticalProfile: 'indoor',
@@ -558,6 +567,7 @@ async function runHoloMap(frames, videoHash, intervalMs) {
       manifest,
       steps,
       pointCloud,
+      tileGrid,
     };
   } finally {
     await runtime.dispose().catch(() => undefined);
@@ -618,7 +628,7 @@ function buildHoloSource({ manifest, assets }) {
 `;
 }
 
-function buildHologramBridge({ manifest, assets, pointCloudHash }) {
+function buildHologramBridge({ manifest, assets, pointCloudHash, tileGrid }) {
   return {
     schemaVersion: 'hologram-bridge/holomap-pointcloud/v1',
     status: 'geometry-ready',
@@ -628,6 +638,7 @@ function buildHologramBridge({ manifest, assets, pointCloudHash }) {
       pointCloudHash,
       pointCount: manifest.pointCount,
       frameCount: manifest.frameCount,
+      tileGrid,
       bounds: manifest.bounds,
       assets,
     },
@@ -682,7 +693,7 @@ function writeScanArtifacts({ outPath, holoMap }) {
     hologramBridge: assets.hologramBridge,
   };
   writeJson(manifestPath, holoMap.manifest);
-  const bridge = buildHologramBridge({ manifest: holoMap.manifest, assets, pointCloudHash });
+  const bridge = buildHologramBridge({ manifest: holoMap.manifest, assets, pointCloudHash, tileGrid: holoMap.tileGrid });
   writeJson(bridgePath, bridge);
   writeFileSync(holoPath, buildHoloSource({ manifest: holoMap.manifest, assets }), 'utf8');
 
@@ -822,7 +833,7 @@ async function buildCaptureReceipt(args) {
   const videoHash = `holoshell-native-camera:${sha256Text(
     receiptFrames.map((frame) => `${frame.index}:${frame.jpegHash}:${frame.rgbHash}`).join('|')
   )}`;
-  const holoMap = await runHoloMap(frames, videoHash, args.intervalMs);
+  const holoMap = await runHoloMap(frames, videoHash, args.intervalMs, args.tileGrid);
   const artifacts = writeScanArtifacts({ outPath, holoMap });
   const firstCapturedMs = Date.parse(receiptFrames[0]?.capturedAt ?? '');
   const lastCapturedMs = Date.parse(receiptFrames[receiptFrames.length - 1]?.capturedAt ?? '');
@@ -854,6 +865,7 @@ async function buildCaptureReceipt(args) {
     scanQuality: summarizeQuality(receiptFrames),
     holomap: {
       displayName: holoMap.manifest.displayName,
+      tileGrid: args.tileGrid,
       frameCount: holoMap.manifest.frameCount,
       pointCount: holoMap.manifest.pointCount,
       replayFingerprint: holoMap.manifest.simulationContract.replayFingerprint,

@@ -15,6 +15,7 @@ import {
   runHoloMapMicroEncoderCpu,
   tryCreateHoloMapEncoderDevice,
   type HoloMapMicroEncoder,
+  type HoloMapMicroConfig,
   type HoloMapMicroFrame,
 } from './holoMapMicroEncoder';
 import { computeHoloMapReplayFingerprint } from './replayFingerprint';
@@ -91,6 +92,8 @@ export interface HoloMapConfig {
   modelHash: string;
   /** Optional hash of source video / media (included in replay fingerprint) */
   videoHash?: string;
+  /** Tiles per axis sampled from each accepted frame. points/frame = tileGrid^2. */
+  tileGrid?: number;
   /** Optional content-addressed weights reference (changes replay fingerprint when set) */
   weightCid?: string;
   /** URL for weight blob fetch (pair with weightCid for digest verify). See RFC §5.1. */
@@ -124,6 +127,7 @@ export const HOLOMAP_DEFAULTS: HoloMapConfig = {
   maxSequenceLength: 10_000,
   seed: 0,
   modelHash: 'unset',
+  tileGrid: 4,
   cpuOffload: false,
   weightStrategy: 'distill',
   allowCpuFallback: true,
@@ -143,7 +147,7 @@ export interface HoloMapRuntime {
   /** Finalize and export the full reconstruction as a .holo trait composition */
   finalize(): Promise<ReconstructionManifest>;
 
-  /** Hash of (videoHash || modelHash || seed) — deterministic replay key */
+  /** Hash of replay-defining config and source identity — deterministic replay key */
   replayHash(): string;
 
   /** Release GPU resources */
@@ -302,6 +306,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
 
   async init(config: HoloMapConfig): Promise<void> {
     this.config = { ...config };
+    this.config.tileGrid = HoloMapRuntimeImpl.normalizeTileGrid(this.config.tileGrid);
     const allowCpu = this.config.allowCpuFallback !== false;
     if (!allowCpu && !isWebGpuEnvironmentPresent()) {
       const err =
@@ -326,6 +331,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       seed: this.config.seed,
       weightStrategy: this.config.weightStrategy ?? 'distill',
       videoHash: this.config.videoHash,
+      tileGrid: this.config.tileGrid,
       weightCid: this.config.weightCid,
       verticalProfile: this.config.verticalProfile,
     });
@@ -349,23 +355,39 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       allowCpuFallback: allowCpu,
       webgpu: isWebGpuEnvironmentPresent(),
       microEncoder: this.microEncoder ? 'webgpu' : 'cpu',
+      tileGrid: this.config.tileGrid,
       weightLoadedBytes: this.weightBytes?.byteLength ?? 0,
       replayFingerprint: this.replayKey,
     });
   }
 
   /**
-   * Number of tiles per axis used to fan the encoder across the frame.
-   * Total points emitted = HOLOMAP_GRID_N * HOLOMAP_GRID_N (one per tile).
+   * Default number of tiles per axis used to fan the encoder across the frame.
+   * Total points emitted = tileGrid * tileGrid (one per tile).
    * Each tile runs the full 8-kernel transformer chain via the micro encoder
    * (imagePatchEmbed → layerNorm → gemm Q/K/V → rope → fusedMHA →
    * layerNorm → gelu → gemm xyz). pagedKV append/lookup remains available
    * for future streaming kLen>1 paths.
    */
   private static readonly GRID_N = 4;
+  private static readonly MAX_GRID_N = 16;
+
+  private static normalizeTileGrid(value: number | undefined): number {
+    const raw = value ?? HoloMapRuntimeImpl.GRID_N;
+    if (!Number.isFinite(raw)) {
+      throw new Error(`HoloMapRuntime.init invalid tileGrid: ${String(value)}`);
+    }
+    const tileGrid = Math.floor(raw);
+    if (tileGrid < 1 || tileGrid > HoloMapRuntimeImpl.MAX_GRID_N) {
+      throw new Error(
+        `HoloMapRuntime.init tileGrid must be an integer from 1 to ${HoloMapRuntimeImpl.MAX_GRID_N}`
+      );
+    }
+    return tileGrid;
+  }
 
   /**
-   * Carve `frame` into GRID_N×GRID_N tiles. Each tile carries its own
+   * Carve `frame` into gridN×gridN tiles. Each tile carries its own
    * (rgb, width, height, stride, index) and the mean RGB color over its
    * pixels (used to color the corresponding output point).
    *
@@ -438,6 +460,27 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     return out;
   }
 
+  private async encodeTile(tile: HoloMapMicroFrame, microCfg: HoloMapMicroConfig): Promise<Float32Array> {
+    if (!this.microEncoder) {
+      return runHoloMapMicroEncoderCpu(tile, microCfg);
+    }
+
+    try {
+      return await this.microEncoder.run(tile, microCfg);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (this.config.allowCpuFallback === false) {
+        throw new Error(`HoloMap WebGPU micro-encoder failed: ${message}`);
+      }
+      logHoloMapEvent(this.runId, 'micro_encoder_fallback', {
+        frameIndex: tile.index,
+        reason: message,
+      });
+      this.microEncoder = null;
+      return runHoloMapMicroEncoderCpu(tile, microCfg);
+    }
+  }
+
   async step(frame: ReconstructionFrame): Promise<ReconstructionStep | null> {
     if (!this.initialized) {
       throw new Error('HoloMapRuntime not initialized. Call init(config) before step(frame).');
@@ -503,7 +546,8 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     //
     // Cap grid by frame extent so tiny test fixtures (e.g. 2×2) still produce
     // a non-degenerate cloud: gridN cannot exceed min(width, height).
-    const gridN = Math.max(1, Math.min(HoloMapRuntimeImpl.GRID_N, frame.width, frame.height));
+    const configuredGrid = this.config.tileGrid ?? HoloMapRuntimeImpl.GRID_N;
+    const gridN = Math.max(1, Math.min(configuredGrid, frame.width, frame.height));
     const tiles = HoloMapRuntimeImpl.tileFrame(frame, gridN);
     const numPoints = tiles.length;
 
@@ -517,9 +561,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
 
     for (let t = 0; t < numPoints; t += 1) {
       const { tile, meanColor } = tiles[t]!;
-      const xyz = this.microEncoder
-        ? await this.microEncoder.run(tile, microCfg)
-        : await runHoloMapMicroEncoderCpu(tile, microCfg);
+      const xyz = await this.encodeTile(tile, microCfg);
 
       const px = xyz[0] ?? 0;
       const py = xyz[1] ?? 0;

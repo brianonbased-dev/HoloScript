@@ -90,6 +90,27 @@ describe('HoloMap SimulationContract binding', () => {
     expect(indoor).not.toBe(baseline);
   });
 
+  it('tileGrid changes the replay fingerprint when density changes', async () => {
+    async function fp(tileGrid: number | undefined) {
+      const rt = createHoloMapRuntime();
+      await rt.init({
+        ...HOLOMAP_DEFAULTS,
+        seed: 6,
+        modelHash: 'm-grid',
+        videoHash: 'same',
+        tileGrid,
+      });
+      await rt.step(baseFrame());
+      const m = await rt.finalize();
+      await rt.dispose();
+      return m.replayHash;
+    }
+
+    const baseline = await fp(undefined);
+    const dense = await fp(8);
+    expect(dense).not.toBe(baseline);
+  });
+
   it('video hash changes the replay fingerprint', async () => {
     async function fingerprintForVideo(videoHash: string) {
       const rt = createHoloMapRuntime();

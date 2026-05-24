@@ -6050,6 +6050,7 @@ export interface HoloMapConfig {
   seed: number;
   modelHash: string;
   videoHash?: string;
+  tileGrid?: number;
   weightCid?: string;
   weightUrl?: string;
   weightUrls?: string[];
@@ -6095,6 +6096,9 @@ export declare function computeHoloMapReplayFingerprint(parts: {
   seed: number;
   weightStrategy: string;
   videoHash?: string;
+  tileGrid?: number;
+  weightCid?: string;
+  verticalProfile?: 'generalist' | 'indoor' | 'outdoor' | 'object';
 }): string;
 export declare function fnv1a32Hex(input: string): string;
 export declare function assertHoloMapManifestContract(m: ReconstructionManifest): void;
