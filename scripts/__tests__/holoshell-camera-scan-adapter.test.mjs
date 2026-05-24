@@ -12,6 +12,7 @@ import {
   selfTest,
   validateReceipt,
 } from '../holoshell-camera-scan-adapter.mjs';
+import { chainReceipt, stageReceipt } from '../holoshell/chain/receipts.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..');
@@ -139,7 +140,26 @@ assertEq(correspondence?.frameMatches?.[0]?.shiftTiles?.[0], 1, 'horizontal tile
 assertEq(correspondence?.frameMatches?.[0]?.shiftTiles?.[1], 0, 'vertical tile shift stable');
 assertOk((correspondence?.meanMatchScore ?? 0) > 0.5, 'shift score is load-bearing');
 
-console.log('Test 4: CLI self-test runs without touching hardware');
+console.log('Test 4: chain receipts hash ordered stage fragments');
+const firstStage = stageReceipt({
+  name: 'capture',
+  input: { device: 'redacted' },
+  output: { frames: 2 },
+  metrics: { acceptedFrameCount: 2 },
+});
+const secondStage = stageReceipt({
+  name: 'track',
+  input: { frames: 2 },
+  output: { trackCount: 4 },
+  metrics: { meanScore: 0.9 },
+});
+const forwardChain = chainReceipt({ name: 'camera-scan', stages: [firstStage, secondStage] });
+const reversedChain = chainReceipt({ name: 'camera-scan', stages: [secondStage, firstStage] });
+assertEq(forwardChain.stageCount, 2, 'chain stage count');
+assertOk(forwardChain.hash.startsWith('sha256:'), 'chain receipt is hashed');
+assertOk(forwardChain.hash !== reversedChain.hash, 'chain hash is order-sensitive');
+
+console.log('Test 5: CLI self-test runs without touching hardware');
 const cli = spawnSync(process.execPath, [SCRIPT, '--self-test'], {
   cwd: REPO_ROOT,
   encoding: 'utf8',
