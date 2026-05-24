@@ -386,6 +386,28 @@ export {
   type ThresholdCalibration,
 } from './SemanticNoveltyEncoder';
 
+// Semantic determinism gate (scope 2026-05-23, P1) — the cross-fleet reproducibility
+// harness that decides advisory → receipt-binding promotion. A single machine is always
+// `insufficient-evidence`; only ≥2 distinct machines producing byte-identical fingerprints
+// are eligible. The honest fallback (stays advisory if the fleet can't reproduce) is structural.
+export {
+  DETERMINISM_MANIFEST_VERSION,
+  DETERMINISM_DEFAULT_PRECISION,
+  DETERMINISM_DEFAULT_REPEATS,
+  DETERMINISM_PROBE_TEXTS,
+  quantizeToken,
+  vectorFingerprint,
+  buildDeterminismManifest,
+  compareDeterminismManifests,
+  assessDeterminismGate,
+  type DeterminismProbeEntry,
+  type DeterminismManifest,
+  type BuildDeterminismManifestOptions,
+  type ManifestComparison,
+  type DeterminismVerdict,
+  type DeterminismGateAssessment,
+} from './SemanticDeterminismGate';
+
 // Verdict ledger (`conjecture.verdict-ledger.v1`) — temporal, assumption-bound
 // conjecture verdicts ("knowledge is fluid", D.060). A verdict holds "as of T under
 // assumptions A"; overturning a depended-on assumption RE-OPENS it (falsified →
