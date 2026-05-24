@@ -21,7 +21,7 @@ const checks = [
   ['server resolves a real GOLD file by ID', entry.found === true && /wisdom\/w_gold_535\.md/.test(entry.relativePath || '')],
   ['server returns full markdown content, not metadata only', /CapabilityToken/.test(entry.content || '') && Buffer.byteLength(entry.content || '') > 1000],
   ['drive build embeds static full-entry data for offline mode', /entryData/.test(source) && /readVaultEntry/.test(source)],
-  ['generated build contains a full-data panel body', /entryBody/.test(html) && /No full entry body/.test(html)],
+  ['generated build contains a full-data panel body', /id="entryBody"/.test(html) && /Body not embedded for this entry/.test(html)],
   ['generated build can request live full data by ID', /api\/vault-entry\?id=/.test(html)],
 ];
 

@@ -102,16 +102,28 @@ function vaultEntry(id) {
   if (!file) return { connected: fs.existsSync(VAULT), id: normalized, found: false };
   const content = fs.readFileSync(file, 'utf8');
   const rel = path.relative(VAULT, file).replace(/\\/g, '/');
+  const metadata = parseFrontmatter(content);
   return {
     connected: true,
     found: true,
     id: normalized,
     vaultPath: VAULT,
     relativePath: rel,
-    metadata: parseFrontmatter(content),
+    metadata,
+    // Gate 28: lineage links + provenance/receipt history surfaced for the browser.
+    lineage: vaultOps ? vaultOps.lineageOf(metadata) : [],
+    provenance: vaultOps ? vaultOps.provenanceOf(metadata) : {},
     bytes: Buffer.byteLength(content),
     content,
   };
+}
+
+// Gate 28: full-vault catalog (every real entry) + server-side search/filter.
+let _catalogCache = null;
+function vaultCatalog() {
+  if (!vaultOps) return { connected: fs.existsSync(VAULT), count: 0, entries: [], facets: {} };
+  if (!_catalogCache) _catalogCache = vaultOps.readVaultCatalog(VAULT);
+  return { connected: fs.existsSync(VAULT), vaultPath: VAULT, ..._catalogCache };
 }
 
 const server = http.createServer((req, res) => {
@@ -125,6 +137,19 @@ const server = http.createServer((req, res) => {
     const data = vaultEntry(reqUrl.searchParams.get('id'));
     res.writeHead(data.found ? 200 : 404, { 'content-type': 'application/json' });
     res.end(JSON.stringify(data)); return;
+  }
+  if (url === '/api/vault-list') { // Gate 28: enumerate + search/filter every entry
+    const cat = vaultCatalog();
+    const q = reqUrl.searchParams.get('q');
+    const tier = reqUrl.searchParams.get('tier');
+    const type = reqUrl.searchParams.get('type');
+    const domain = reqUrl.searchParams.get('domain');
+    const filtered = (q || tier || type || domain) && vaultOps
+      ? vaultOps.filterCatalog(cat, { q, tier, type, domain }) : cat.entries;
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ connected: cat.connected, vaultPath: cat.vaultPath,
+      count: cat.count, matched: filtered.length, facets: cat.facets, entries: filtered }));
+    return;
   }
   if (url === '/api/vault-game') { // the playable sandbox vault state
     if (!vaultOps) { res.writeHead(503); res.end('{"error":"vault-ops unavailable"}'); return; }
@@ -169,7 +194,7 @@ function listen(port, tries) {
 
 if (require.main === module && process.argv.includes('--help')) {
   console.log('Usage: node server.cjs  # serves THE GOLD GAME on 127.0.0.1:8787');
-  console.log('APIs: /api/vault, /api/vault-entry?id=W.GOLD.535, /api/vault-game, POST /api/graduate');
+  console.log('APIs: /api/vault, /api/vault-list?q=&tier=&type=&domain=, /api/vault-entry?id=W.GOLD.535, /api/vault-game, POST /api/graduate');
 } else if (require.main === module) listen(8787, 12);
 
-module.exports = { vaultState, vaultEntry, findEntryFile, normalizeEntryId };
+module.exports = { vaultState, vaultEntry, vaultCatalog, findEntryFile, normalizeEntryId };

@@ -14,8 +14,11 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, readdirSync
 import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
+import { createRequire } from 'node:module';
 
 const here = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+const vaultOps = require('./vault-ops.cjs'); // Gate 28: shared catalog/lineage reader
 const repo = join(here, '..', '..');
 const core = await import(pathToFileURL(join(repo, 'packages/core/dist/index.js')).href);
 const parseHolo = core.parseHolo;
@@ -130,6 +133,20 @@ const readVaultEntry = (id) => {
   const content = readFileSync(file, 'utf8');
   return { id, found: true, relativePath: file.replace(VAULT_ROOT, '').replace(/^[/\\]/, '').replace(/\\/g, '/'), metadata: parseFrontmatter(content), content };
 };
+// Gate 28: enumerate the WHOLE vault for the offline full-vault browser. We reuse
+// the SAME catalog reader the live server uses (vault-ops.cjs) so the offline
+// embedded catalog is identical to the live /api/vault-list. Bodies are NOT
+// embedded (912 entries would bloat the build); the browser fetches a body live
+// via /api/vault-entry, and falls back to the seeded full bodies on file://.
+const readVaultCatalog = () => {
+  if (!existsSync(VAULT_ROOT)) return { count: 0, entries: [], facets: { tiers: {}, types: {}, domains: {} }, found: false };
+  try {
+    const cat = vaultOps.readVaultCatalog(VAULT_ROOT);
+    return { ...cat, found: true };
+  } catch (e) {
+    return { count: 0, entries: [], facets: { tiers: {}, types: {}, domains: {} }, found: false, error: String(e && e.message || e) };
+  }
+};
 const readPlayableHoloGraph = () => {
   if (!existsSync(HOLOGRAPH_RECEIPT)) {
     return { gate: 31, found: false, nodes: [], edges: [], source: 'missing GATE-10-HOLOGRAPH-receipt.json' };
@@ -168,6 +185,7 @@ const readPlayableHoloGraph = () => {
   };
 };
 const playableHoloGraph = readPlayableHoloGraph();
+const vaultCatalog = readVaultCatalog(); // Gate 28: every real GOLD entry (summaries)
 
 // ── 1. Parse the real .holo (Gate 0 artifact) ───────────────────────────────
 const src = readFileSync(HOLO, 'utf8');
@@ -212,7 +230,16 @@ const scene = { title: ast.name, ambient, fog, meshes, lights, regions,
   holoGraph: playableHoloGraph,
   toolset: { gate: holoscriptToolset.gate, systems: holoscriptToolset.systems.map((s) => ({
     dir: s.dir, name: s.name || s.dir, role: s.role, consumes: s.consumes, found: s.found,
-  })) } };
+  })) },
+  // Gate 28: the full-vault catalog (summaries only — bodies fetched live or
+  // from the seeded full-body gems). Keeps the offline build searchable across
+  // every entry without embedding hundreds of full markdown bodies.
+  vaultCatalog: { gate: 28, found: vaultCatalog.found, count: vaultCatalog.count,
+    facets: vaultCatalog.facets,
+    entries: vaultCatalog.entries.map((e) => ({
+      id: e.id, title: e.title, tier: e.tier, type: e.type, domain: e.domain,
+      relativePath: e.relativePath, lineage: e.lineage, provenance: e.provenance,
+    })) } };
 const sceneJson = JSON.stringify(scene);
 
 // ── 3. App entry — photoreal renderer from minimal primitives ────────────────
@@ -629,13 +656,17 @@ const goldDataScript = `<script>
 (function(){
   var scene = window.__GOLD_GAME_SCENE__ || { meshes: [] };
   var entries = (scene.meshes || []).filter(function(m){ return m.entryId; });
+  var catalog = (scene.vaultCatalog && scene.vaultCatalog.entries) || [];
+  var catalogById = {};
+  catalog.forEach(function(e){ catalogById[e.id] = e; });
   var panel = document.getElementById('entryPanel');
   var list = document.getElementById('entryList');
   var title = document.getElementById('entryTitle');
   var meta = document.getElementById('entryMeta');
   var body = document.getElementById('entryBody');
+  var lineageEl = document.getElementById('entryLineage');
+  var receiptsEl = document.getElementById('entryReceipts');
   var close = document.getElementById('entryClose');
-  function safeText(value){ return value == null ? '' : String(value); }
   function entryLabel(entry){
     var md = (entry && entry.entryData && entry.entryData.metadata) || {};
     return md.id || entry.entryId || entry.name;
@@ -650,16 +681,51 @@ const goldDataScript = `<script>
       list.appendChild(button);
     });
   }
+  // Gate 28: lineage links the player can click to walk the knowledge graph.
+  function renderLineage(id, data){
+    if (!lineageEl) return;
+    lineageEl.innerHTML = '';
+    var md = (data && data.metadata) || {};
+    var links = (data && data.lineage) || (catalogById[id] && catalogById[id].lineage) || [];
+    if (!links.length) { lineageEl.textContent = 'lineage: (no links)'; return; }
+    var label = document.createElement('span');
+    label.textContent = 'lineage: ';
+    lineageEl.appendChild(label);
+    links.forEach(function(linkId){
+      var a = document.createElement('button');
+      a.type = 'button'; a.className = 'lineageLink';
+      a.textContent = linkId;
+      a.disabled = !catalogById[linkId]; // dim links that aren't browsable entries
+      a.addEventListener('click', function(){ showEntry(linkId, null); });
+      lineageEl.appendChild(a);
+    });
+  }
+  // Gate 28: the receipt/provenance history each graduated entry carries.
+  function renderReceipts(id, data){
+    if (!receiptsEl) return;
+    var prov = (data && data.provenance) || (catalogById[id] && catalogById[id].provenance) || {};
+    var rows = [
+      prov.status ? 'status: ' + prov.status : '',
+      prov.tier ? 'tier: ' + prov.tier : '',
+      prov.graduated ? 'graduated: ' + prov.graduated : '',
+      prov.sha256 ? 'sha256: ' + String(prov.sha256).slice(0, 24) + '…' : '',
+      (prov.sourceIds && prov.sourceIds.length) ? 'source_ids: ' + prov.sourceIds.length : ''
+    ].filter(Boolean);
+    receiptsEl.textContent = rows.length ? 'receipts — ' + rows.join('  ·  ') : 'receipts: (none recorded)';
+  }
   function renderEntry(data, fallbackId){
     var md = (data && data.metadata) || {};
-    title.textContent = md.title || fallbackId || 'GOLD entry';
+    var id = md.id || fallbackId || '';
+    title.textContent = md.title || (catalogById[id] && catalogById[id].title) || fallbackId || 'GOLD entry';
     meta.textContent = [
-      md.id || fallbackId || '',
+      id,
       md.type ? 'type: ' + md.type : '',
       md.domain ? 'domain: ' + md.domain : '',
-      data && data.relativePath ? data.relativePath : ''
+      data && data.relativePath ? data.relativePath : (catalogById[id] && catalogById[id].relativePath) || ''
     ].filter(Boolean).join('  |  ');
-    body.textContent = (data && data.content) || 'No full entry body is available in this build. Launch GOLD-GAME-Server.exe for live vault reads.';
+    body.textContent = (data && data.content) || 'Body not embedded for this entry. Launch the Node launcher (live server) to read the full markdown of every entry; seeded gems carry their full body offline.';
+    renderLineage(id, data);
+    renderReceipts(id, data);
     panel.dataset.open = 'true';
   }
   async function showEntry(id, embedded){
@@ -677,6 +743,81 @@ const goldDataScript = `<script>
   renderButtons();
   var initial = entries.find(function(entry){ return entry.entryData && entry.entryData.content; }) || entries[0];
   if (initial) renderEntry(initial.entryData, initial.entryId);
+})();
+</script>`;
+// Gate 28: the FULL-VAULT BROWSER — search/filter/open EVERY entry in the vault.
+const vaultBrowserScript = `<script>
+(function(){
+  var scene = window.__GOLD_GAME_SCENE__ || {};
+  var cat = scene.vaultCatalog || { entries: [], facets: {}, count: 0 };
+  var all = cat.entries || [];
+  var panel = document.getElementById('vaultBrowser');
+  var toggle = document.getElementById('vaultToggle');
+  var close = document.getElementById('vaultClose');
+  var search = document.getElementById('vaultSearch');
+  var tierSel = document.getElementById('vaultTier');
+  var typeSel = document.getElementById('vaultType');
+  var listEl = document.getElementById('vaultResults');
+  var countEl = document.getElementById('vaultCount');
+  if (!panel || !listEl) return;
+  // Pure filter — identical shape to vault-ops.filterCatalog so offline == live.
+  function applyFilter(){
+    var q = (search && search.value || '').trim().toLowerCase();
+    var tier = (tierSel && tierSel.value) || '';
+    var type = (typeSel && typeSel.value) || '';
+    var rows = all.filter(function(e){
+      if (tier && e.tier !== tier) return false;
+      if (type && e.type !== type) return false;
+      if (q){
+        var hay = (e.id + ' ' + e.title + ' ' + e.domain + ' ' + e.type).toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+    render(rows);
+  }
+  function render(rows){
+    if (countEl) countEl.textContent = rows.length + ' / ' + all.length + ' entries';
+    listEl.innerHTML = '';
+    // cap DOM rows for responsiveness; full set still searchable/filterable
+    rows.slice(0, 400).forEach(function(e){
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'vaultRow'; b.dataset.id = e.id; b.dataset.tier = e.tier || '';
+      b.innerHTML = '<span class="vid"></span><span class="vtt"></span><span class="vtier"></span>';
+      b.querySelector('.vid').textContent = e.id;
+      b.querySelector('.vtt').textContent = e.title || '';
+      b.querySelector('.vtier').textContent = (e.tier || '') + (e.lineage && e.lineage.length ? ' · ' + e.lineage.length + ' links' : '');
+      b.addEventListener('click', function(){
+        // open the entry in the inspector (live body fetch happens there)
+        window.dispatchEvent(new CustomEvent('gold-entry-selected', { detail: { id: e.id, entry: null } }));
+      });
+      listEl.appendChild(b);
+    });
+    if (rows.length > 400){
+      var more = document.createElement('div'); more.className = 'vaultMore';
+      more.textContent = '… ' + (rows.length - 400) + ' more — narrow with search/filter';
+      listEl.appendChild(more);
+    }
+  }
+  // populate facet dropdowns from the embedded catalog facets
+  function fillSelect(sel, facet, label){
+    if (!sel) return;
+    sel.innerHTML = '<option value="">' + label + '</option>';
+    Object.keys(facet || {}).sort().forEach(function(k){
+      var o = document.createElement('option'); o.value = k;
+      o.textContent = k + ' (' + facet[k] + ')'; sel.appendChild(o);
+    });
+  }
+  fillSelect(tierSel, cat.facets && cat.facets.tiers, 'all tiers');
+  fillSelect(typeSel, cat.facets && cat.facets.types, 'all types');
+  search && search.addEventListener('input', applyFilter);
+  tierSel && tierSel.addEventListener('change', applyFilter);
+  typeSel && typeSel.addEventListener('change', applyFilter);
+  function setOpen(v){ panel.dataset.open = v ? 'true' : 'false'; if (v) applyFilter(); }
+  toggle && toggle.addEventListener('click', function(){ setOpen(panel.dataset.open !== 'true'); });
+  close && close.addEventListener('click', function(){ setOpen(false); });
+  window.addEventListener('keydown', function(e){ if ((e.key === 'v' || e.key === 'V') && !/input|textarea/i.test((e.target||{}).tagName||'')) setOpen(panel.dataset.open !== 'true'); });
+  applyFilter();
 })();
 </script>`;
 const conceptArtBoot = '<script>window.__GOLD_GAME_CONCEPT_ART__=' + JSON.stringify(conceptArt ? conceptArt.dataUrl : '') +
@@ -976,7 +1117,11 @@ toolsetBoot +
 '<p><b>In VR:</b> pull the trigger to ENTER, then point a controller at a glowing gem and pull the trigger to graduate it — each grab is a HoloGate intent validated against your HoloDoor scope.</p>' +
 '<p id="live">vault: open via the launcher for the live count (embedded snapshot on file://)</p>' +
 '<ul>' + tierList + '</ul></div><div id="crosshair">+</div>' +
-'<aside id="entryPanel" data-open="true"><button id="entryClose" type="button">Close</button><div id="entryList"></div><h2 id="entryTitle">GOLD entry</h2><div id="entryMeta"></div><pre id="entryBody"></pre></aside>' +
+'<aside id="entryPanel" data-open="true"><button id="entryClose" type="button">Close</button><div id="entryList"></div><h2 id="entryTitle">GOLD entry</h2><div id="entryMeta"></div><div id="entryLineage" data-gate28="lineage"></div><div id="entryReceipts" data-gate28="receipts"></div><pre id="entryBody"></pre></aside>' +
+'<button id="vaultToggle" type="button" data-gate28="vault-browser">Browse Vault</button>' +
+'<aside id="vaultBrowser" data-open="false" data-gate28="full-vault-browser"><button id="vaultClose" type="button">Close</button><h2>Browse the GOLD Vault</h2>' +
+'<div id="vaultControls"><input id="vaultSearch" type="search" placeholder="search id / title / domain…" autocomplete="off"><select id="vaultTier"></select><select id="vaultType"></select></div>' +
+'<div id="vaultCount">entries</div><div id="vaultResults"></div></aside>' +
 '<script>' + bundle + '</script>' +
 '<script>if(location.protocol!=="file:"){fetch("./api/vault").then(function(r){return r.json()}).then(function(v){var el=document.getElementById("live");if(!el)return;' +
  'el.textContent=v.connected?("LIVE vault: "+(v.total||"?")+" entries · as of "+(v.asOf||"?")):"vault not detected — embedded snapshot"}).catch(function(){});}</script>' +
@@ -984,6 +1129,7 @@ startOnboardingScript +
 toolsetScript +
 holoGraphScript +
 goldDataScript +
+vaultBrowserScript +
 campaignScript +
 '</body></html>';
 writeFileSync(join(OUT, 'index.html'), html);

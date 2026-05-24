@@ -243,7 +243,144 @@ function listProposals(dir) {
   return fs.readdirSync(d).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(fs.readFileSync(path.join(d, f), 'utf8')));
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// GATE 28 — FULL-VAULT BROWSER (catalog over the REAL governed D:/GOLD).
+//
+// The seeded gems (4 SEED entries) and the HoloGraph constellation (Gate 31)
+// only surface a handful of entries. A real curation game must let the player
+// search/filter/open EVERY entry in the vault, follow lineage links, read raw
+// markdown, and see the provenance/receipt history each entry carries.
+//
+// This is READ-ONLY over the real vault (no writes — graduate/mutate stay on
+// the sandbox). The "receipt history" for a graduated entry is the provenance
+// it carries in its own frontmatter — graduated date, sha256 seal, source_ids,
+// status, parent — which IS the cael-graduation record of record. We surface
+// that, plus any matching sandbox graduation receipts when present.
+// ───────────────────────────────────────────────────────────────────────────
+
+const CATALOG_ROOTS = [
+  'wisdom', 'patterns', 'gotchas', 'architectures', 'protocols',
+  'bronze', 'silver', 'gold', 'platinum', 'diamond', 'graduated',
+];
+
+// Minimal frontmatter parser (vault entries use a YAML-ish `key: value` block).
+function parseFrontmatterBlock(markdown) {
+  const lines = String(markdown || '').split(/\r?\n/);
+  if (lines[0] !== '---') return {};
+  const out = {};
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i] === '---') break;
+    const idx = lines[i].indexOf(':');
+    if (idx > 0) out[lines[i].slice(0, idx).trim()] = lines[i].slice(idx + 1).trim();
+  }
+  return out;
+}
+
+// Pull entry IDs out of a frontmatter value like "[W.GOLD.001, F.020]" or "W.GOLD.002".
+function extractRefs(value) {
+  if (!value) return [];
+  const ids = String(value).match(/\b[A-Z]+(?:\.[A-Z0-9]+)+\b/g) || [];
+  return Array.from(new Set(ids));
+}
+
+// Build the lineage (links out) for an entry from its frontmatter.
+function lineageOf(meta) {
+  const out = [];
+  if (meta.parent) out.push(...extractRefs(meta.parent));
+  if (meta.references) out.push(...extractRefs(meta.references));
+  if (meta.source_ids) {
+    // source_ids holds GOLD IDs too (e.g. W.GOLD.x), keep only entry-shaped ones.
+    out.push(...extractRefs(meta.source_ids).filter((id) => /\.(GOLD|TEAM)\./i.test(id) || /^[WPFBG]\.[A-Z]+\./.test(id)));
+  }
+  return Array.from(new Set(out));
+}
+
+// The provenance "receipt history" an entry carries in its own record.
+function provenanceOf(meta) {
+  return {
+    graduated: meta.graduated || null,
+    sha256: meta.sha256 || null,
+    status: meta.status || null,
+    tier: meta.tier || null,
+    type: meta.type || null,
+    domain: meta.domain || null,
+    parent: meta.parent ? extractRefs(meta.parent) : [],
+    sourceIds: meta.source_ids ? String(meta.source_ids).replace(/^\[|\]$/g, '').split(',').map((s) => s.trim()).filter(Boolean) : [],
+  };
+}
+
+// Enumerate the WHOLE vault. Returns one summary row per entry (no full body —
+// bodies are fetched on demand via vaultEntry). Drive-letter independent: the
+// caller passes the resolved vault root.
+function readVaultCatalog(vaultRoot) {
+  const entries = [];
+  const seenIds = new Set();
+  const walk = (dir) => {
+    let items = [];
+    try { items = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+    for (const item of items) {
+      if (item.name === '.git') continue;
+      const p = path.join(dir, item.name);
+      if (item.isDirectory()) { walk(p); continue; }
+      if (!item.name.toLowerCase().endsWith('.md')) continue;
+      let content = '';
+      try { content = fs.readFileSync(p, 'utf8'); } catch (_) { continue; }
+      const meta = parseFrontmatterBlock(content);
+      const id = meta.id;
+      if (!id || !/^[A-Z]+(\.[A-Z0-9]+)+$/.test(id)) continue; // only real, ID-bearing entries
+      if (seenIds.has(id)) continue;
+      seenIds.add(id);
+      entries.push({
+        id,
+        title: meta.title || id,
+        tier: (meta.tier || '').toLowerCase() || inferTierFromDir(vaultRoot, p),
+        type: meta.type || '',
+        domain: meta.domain || '',
+        relativePath: path.relative(vaultRoot, p).replace(/\\/g, '/'),
+        lineage: lineageOf(meta),
+        provenance: provenanceOf(meta),
+      });
+    }
+  };
+  for (const root of CATALOG_ROOTS) {
+    const dir = path.join(vaultRoot, root);
+    if (fs.existsSync(dir)) walk(dir);
+  }
+  entries.sort((a, b) => a.id.localeCompare(b.id));
+  // facet counts for filter UI
+  const tiers = {}, types = {}, domains = {};
+  for (const e of entries) {
+    if (e.tier) tiers[e.tier] = (tiers[e.tier] || 0) + 1;
+    if (e.type) types[e.type] = (types[e.type] || 0) + 1;
+    if (e.domain) domains[e.domain] = (domains[e.domain] || 0) + 1;
+  }
+  return { count: entries.length, entries, facets: { tiers, types, domains } };
+}
+
+function inferTierFromDir(vaultRoot, filePath) {
+  const rel = path.relative(vaultRoot, filePath).replace(/\\/g, '/');
+  const seg = rel.split('/')[0];
+  return ALL_TIERS.includes(seg) ? seg : '';
+}
+
+// Pure search/filter over a catalog (shared by server + offline build + verifier,
+// so the offline embedded catalog behaves identically to the live endpoint).
+function filterCatalog(catalog, { q, tier, type, domain } = {}) {
+  const needle = String(q || '').trim().toLowerCase();
+  return (catalog.entries || []).filter((e) => {
+    if (tier && e.tier !== tier) return false;
+    if (type && e.type !== type) return false;
+    if (domain && e.domain !== domain) return false;
+    if (needle) {
+      const hay = (e.id + ' ' + e.title + ' ' + e.domain + ' ' + e.type).toLowerCase();
+      if (!hay.includes(needle)) return false;
+    }
+    return true;
+  });
+}
+
 module.exports = {
   nextTier, ALL_TIERS, SEED, stateDigest, buildSandbox, findEntry, graduate, readState,
   snapshotVault, restoreSnapshot, proposeMutation, applyMutation, rollbackMutation, listProposals,
+  readVaultCatalog, filterCatalog, lineageOf, provenanceOf, extractRefs, parseFrontmatterBlock,
 };

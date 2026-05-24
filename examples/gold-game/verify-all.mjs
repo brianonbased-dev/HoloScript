@@ -52,7 +52,7 @@ const GATES = [
   { track: 'flagship', gate: 25, name: 'continuous campaign — save/resume, quest log, and post-win continuation beyond One Climb', kind: 'script', runner: 'node', file: 'gate-25-campaign-verify.mjs' },
   { track: 'flagship', gate: 26, name: 'MMO answer gate — shard lobby + named entrants + durable presence + host migration + authority handoff + persistent world (classified: shared-world co-op, NOT MMO)', kind: 'script', runner: 'tsx', file: 'gate-26-mmo-answer-verify.mjs' },
   { track: 'flagship', gate: 27, name: 'live-vault safe mutation flow — AI proposes, founder-gated apply, reversible rollback to exact pre-state (real computeStateDigest); D:/GOLD never written silently', kind: 'script', runner: 'tsx', file: 'gate-27-safe-mutation-verify.mjs' },
-  { track: 'flagship', gate: 28, name: 'full-vault browser — search/filter/open every GOLD entry, lineage links, raw markdown, and receipt history', kind: 'open' },
+  { track: 'flagship', gate: 28, name: 'full-vault browser — search/filter/open every GOLD entry, lineage links, raw markdown, and receipt history', kind: 'script', runner: 'node', file: 'gate-28-fullvault-verify.mjs' },
   { track: 'flagship', gate: 29, name: 'agent party AI — visible companions choose entries, explain choices, and remember the player across sessions', kind: 'open' },
   { track: 'flagship', gate: 30, name: 'ship packaging — portable launcher updates source build, live server, docs, and Drive copy in one verified command', kind: 'open' },
   { track: 'flagship', gate: 31, name: 'playable HoloGraph — knowledge lineage constellation becomes navigation, not only a verifier', kind: 'script', runner: 'node', file: 'gate-31-playable-holograph-verify.mjs' },
