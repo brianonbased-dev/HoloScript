@@ -4,10 +4,13 @@
  */
 
 import { spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   RECEIPT_VERSION,
+  renderBridge,
   selfTest,
   validateReceipt,
 } from '../holoshell-hologram-bridge-renderer.mjs';
@@ -48,7 +51,79 @@ assertOk(receipt.quilt.path.includes(receipt.quilt.variant), 'quilt path include
 assertOk(receipt.quilt.style.exposure >= 1, 'receipt records exposure');
 assertOk(receipt.quilt.style.pointRadius >= 1, 'receipt records point radius');
 
-console.log('Test 2: CLI self-test runs without touching hardware');
+console.log('Test 2: multi-frame bridges default to the latest frame');
+const dir = mkdtempSync(join(tmpdir(), 'holoshell-hologram-bridge-renderer-test-'));
+try {
+  const plyPath = join(dir, 'scan.ply');
+  const bridgePath = join(dir, 'scan.hologram-bridge.json');
+  const outPath = join(dir, 'receipt.json');
+  writeFileSync(
+    plyPath,
+    [
+      'ply',
+      'format ascii 1.0',
+      'element vertex 8',
+      'property float x',
+      'property float y',
+      'property float z',
+      'property uchar red',
+      'property uchar green',
+      'property uchar blue',
+      'property float confidence',
+      'end_header',
+      '-0.4 -0.4 0.1 255 0 0 0.7',
+      '0.4 -0.4 0.1 255 0 0 0.7',
+      '-0.4 0.4 0.1 255 0 0 0.7',
+      '0.4 0.4 0.1 255 0 0 0.7',
+      '-0.4 -0.4 0.2 0 255 0 0.9',
+      '0.4 -0.4 0.2 0 255 0 0.9',
+      '-0.4 0.4 0.2 0 255 0 0.9',
+      '0.4 0.4 0.2 0 255 0 0.9',
+    ].join('\n') + '\n',
+    'utf8'
+  );
+  writeFileSync(
+    bridgePath,
+    `${JSON.stringify(
+      {
+        schemaVersion: 'hologram-bridge/holomap-pointcloud/v1',
+        status: 'geometry-ready',
+        source: {
+          kind: 'holomap-pointcloud',
+          replayFingerprint: 'temporal-test',
+          pointCloudHash: 'sha256:test',
+          pointCount: 8,
+          frameCount: 2,
+          tileGrid: 2,
+          bounds: { min: [-0.4, -0.4, 0.1], max: [0.4, 0.4, 0.2] },
+          assets: { ply: plyPath },
+        },
+        targets: {
+          quilt: { status: 'ready-for-render', views: 4, columns: 2, rows: 2, sourceAsset: 'ply' },
+        },
+      },
+      null,
+      2
+    )}\n`,
+    'utf8'
+  );
+  const temporalReceipt = await renderBridge({
+    bridge: bridgePath,
+    out: outPath,
+    tileWidth: 32,
+    tileHeight: 24,
+  });
+  assertEq(temporalReceipt.source.temporalMode, 'latest', 'default temporal mode');
+  assertEq(temporalReceipt.source.pointCount, 4, 'latest frame point count');
+  assertEq(temporalReceipt.source.originalPointCount, 8, 'original point count retained');
+  assertEq(temporalReceipt.source.temporalSelection.selectedFrameIndex, 1, 'latest frame selected');
+  const png = readFileSync(resolve(REPO_ROOT, temporalReceipt.quilt.path));
+  assertOk(png[0] === 0x89 && png[1] === 0x50, 'temporal quilt is PNG');
+} finally {
+  rmSync(dir, { recursive: true, force: true });
+}
+
+console.log('Test 3: CLI self-test runs without touching hardware');
 const cli = spawnSync(process.execPath, [SCRIPT, '--self-test'], {
   cwd: REPO_ROOT,
   encoding: 'utf8',

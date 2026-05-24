@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 
 export const VERSION = '0.3.0';
 export const RECEIPT_VERSION = 'holoshell-hologram-bridge-renderer/v3';
+const TEMPORAL_MODES = new Set(['all', 'latest', 'fuse']);
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
@@ -40,6 +41,7 @@ function parseArgs(argv) {
     autoExposure: true,
     pointRadius: undefined,
     glowRadius: undefined,
+    temporalMode: undefined,
     selfTest: false,
   };
 
@@ -58,6 +60,7 @@ function parseArgs(argv) {
     else if (arg === '--auto-exposure') args.autoExposure = true;
     else if (arg === '--point-radius') args.pointRadius = Number.parseInt(argv[++i], 10);
     else if (arg === '--glow-radius') args.glowRadius = Number.parseInt(argv[++i], 10);
+    else if (arg === '--temporal-mode') args.temporalMode = argv[++i];
     else if (arg === '--self-test' || arg === 'self-test') args.selfTest = true;
     else if (arg === '--help' || arg === '-h' || arg === 'help') args.help = true;
     else throw new Error(`Unknown argument: ${arg}`);
@@ -89,6 +92,9 @@ function parseArgs(argv) {
   if (args.glowRadius !== undefined && (!Number.isInteger(args.glowRadius) || args.glowRadius < 0 || args.glowRadius > 64)) {
     throw new Error('--glow-radius must be an integer from 0 to 64');
   }
+  if (args.temporalMode !== undefined && !TEMPORAL_MODES.has(args.temporalMode)) {
+    throw new Error('--temporal-mode must be one of: all, latest, fuse');
+  }
   return args;
 }
 
@@ -98,11 +104,13 @@ function printHelp() {
 Usage:
   node scripts/holoshell-hologram-bridge-renderer.mjs --bridge scan.hologram-bridge.json [--out receipt.json]
   node scripts/holoshell-hologram-bridge-renderer.mjs --bridge scan.hologram-bridge.json --exposure 2.5 --point-radius 5
+  node scripts/holoshell-hologram-bridge-renderer.mjs --bridge scan.hologram-bridge.json --temporal-mode all
   node scripts/holoshell-hologram-bridge-renderer.mjs --self-test
 
 Notes:
   - Reads HoloMap point-cloud bridge JSON emitted by holoshell:camera-scan.
   - Emits a deterministic quilt preview PNG and receipt.
+  - Multi-frame point clouds default to --temporal-mode latest until pose-aligned fusion lands.
   - Auto-exposes dim point clouds by default; pass --no-auto-exposure to disable.
   - Does not claim MV-HEVC or parallax video encoding.
 `);
@@ -155,27 +163,46 @@ function mean(values) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function computeRenderStyle({ points, tileWidth, tileHeight, args, tileGrid }) {
+function computeRenderStyle({ points, tileWidth, tileHeight, args, tileGrid, temporal }) {
   const avgLum = mean(points.map(luminance));
   const autoGain = args.autoExposure ? Math.max(1, Math.min(6, 0.42 / Math.max(0.05, avgLum))) : 1;
-  const exposure = args.exposure ?? autoGain;
+  const temporalCollapsed =
+    temporal?.temporalMode !== 'all' &&
+    temporal?.originalPointCount > temporal?.renderedPointCount &&
+    temporal?.renderedPointCount > 0;
+  const useSurfaceFill =
+    temporalCollapsed &&
+    Number.isInteger(tileGrid) &&
+    tileGrid > 1 &&
+    points.length === tileGrid * tileGrid;
+  const temporalCoverageGain = temporalCollapsed
+    ? 1 + Math.min(useSurfaceFill ? 0.15 : 0.8, Math.log2(temporal.originalPointCount / temporal.renderedPointCount) / 4)
+    : 1;
+  const exposure = args.exposure ?? Math.max(autoGain, temporalCoverageGain);
   const spacing = Math.sqrt((tileWidth * tileHeight) / Math.max(1, points.length));
   const resolutionRadius = Math.max(2, Math.round(Math.min(tileWidth, tileHeight) / 36));
   const densityRadius = Math.max(1, Math.round(spacing * 0.35));
+  const gridDivisor = temporalCollapsed ? 0.95 : 1.4;
   const gridRadius =
     Number.isInteger(tileGrid) && tileGrid > 0
-      ? Math.max(2, Math.min(10, Math.round(Math.min(tileWidth, tileHeight) / (tileGrid * 1.4))))
+      ? Math.max(2, Math.min(12, Math.round(Math.min(tileWidth, tileHeight) / (tileGrid * gridDivisor))))
       : Math.max(1, Math.min(resolutionRadius, densityRadius));
   const baseRadius = args.pointRadius ?? gridRadius;
   const glowRadius = args.glowRadius ?? Math.max(baseRadius + 2, Math.round(baseRadius * 1.25));
+  const surfaceCellWidth = useSurfaceFill ? Math.ceil((tileWidth * 0.8 * 1.35) / tileGrid) : undefined;
+  const surfaceCellHeight = useSurfaceFill ? Math.ceil((tileHeight * 0.8 * 1.35) / tileGrid) : undefined;
   return {
     exposure,
     autoExposure: args.autoExposure,
     autoExposureGain: autoGain,
     pointRadius: baseRadius,
     glowRadius,
+    surfaceFill: useSurfaceFill,
+    surfaceCellWidth,
+    surfaceCellHeight,
     averageSourceLuminance: Number(avgLum.toFixed(4)),
     averagePointSpacingPx: Number(spacing.toFixed(3)),
+    temporalCoverageGain: Number(temporalCoverageGain.toFixed(3)),
     sourceTileGrid: Number.isInteger(tileGrid) && tileGrid > 0 ? tileGrid : undefined,
   };
 }
@@ -255,6 +282,107 @@ function boundsFor(points) {
   return bounds;
 }
 
+function inferFrameLayout(points, source) {
+  const frameCount = Number.isInteger(source?.frameCount) ? source.frameCount : undefined;
+  if (!frameCount || frameCount < 2 || points.length % frameCount !== 0) return undefined;
+  const pointsPerFrame = points.length / frameCount;
+  if (!Number.isInteger(pointsPerFrame) || pointsPerFrame < 1) return undefined;
+  const expectedGridPoints =
+    Number.isInteger(source?.tileGrid) && source.tileGrid > 0 ? source.tileGrid * source.tileGrid : undefined;
+  return {
+    frameCount,
+    pointsPerFrame,
+    layoutMatchesTileGrid: expectedGridPoints === undefined || expectedGridPoints === pointsPerFrame,
+  };
+}
+
+function fuseTemporalFrames(points, layout) {
+  const fused = [];
+  for (let i = 0; i < layout.pointsPerFrame; i += 1) {
+    let weightSum = 0;
+    let x = 0;
+    let y = 0;
+    let z = 0;
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    let confidence = 0;
+    for (let frame = 0; frame < layout.frameCount; frame += 1) {
+      const point = points[frame * layout.pointsPerFrame + i];
+      if (!point) continue;
+      const weight = Math.max(0.05, Number.isFinite(point.confidence) ? point.confidence : 1);
+      weightSum += weight;
+      x += point.x * weight;
+      y += point.y * weight;
+      z += point.z * weight;
+      r += point.r * weight;
+      g += point.g * weight;
+      b += point.b * weight;
+      confidence += Math.max(0, Math.min(1, point.confidence)) * weight;
+    }
+    if (weightSum <= 0) continue;
+    fused.push({
+      x: x / weightSum,
+      y: y / weightSum,
+      z: z / weightSum,
+      r: clampByte(r / weightSum),
+      g: clampByte(g / weightSum),
+      b: clampByte(b / weightSum),
+      confidence: confidence / weightSum,
+    });
+  }
+  return fused;
+}
+
+function selectTemporalPoints(points, source, requestedMode) {
+  const layout = inferFrameLayout(points, source);
+  const defaultMode = layout ? 'latest' : 'all';
+  const mode = requestedMode ?? defaultMode;
+  const base = {
+    requestedMode: requestedMode ?? 'auto',
+    temporalMode: mode,
+    frameCount: layout?.frameCount ?? source?.frameCount,
+    pointsPerFrame: layout?.pointsPerFrame,
+    originalPointCount: points.length,
+    layoutMatchesTileGrid: layout?.layoutMatchesTileGrid,
+  };
+
+  if (!layout || mode === 'all') {
+    return {
+      points,
+      info: {
+        ...base,
+        temporalMode: !layout && mode !== 'all' ? 'all' : mode,
+        renderedPointCount: points.length,
+        fallbackReason: !layout && mode !== 'all' ? 'frame layout could not be inferred from bridge metadata' : undefined,
+      },
+    };
+  }
+
+  if (mode === 'latest') {
+    const selectedFrameIndex = layout.frameCount - 1;
+    const start = selectedFrameIndex * layout.pointsPerFrame;
+    const selected = points.slice(start, start + layout.pointsPerFrame);
+    return {
+      points: selected,
+      info: {
+        ...base,
+        selectedFrameIndex,
+        renderedPointCount: selected.length,
+      },
+    };
+  }
+
+  const fused = fuseTemporalFrames(points, layout);
+  return {
+    points: fused,
+    info: {
+      ...base,
+      renderedPointCount: fused.length,
+    },
+  };
+}
+
 function normalize(value, min, max) {
   const span = max - min;
   if (!Number.isFinite(span) || Math.abs(span) < 1e-9) return 0.5;
@@ -285,6 +413,20 @@ function plotPoint(rgba, quiltWidth, quiltHeight, x, y, radius, color, alpha, so
       if (distSq > radiusSq) continue;
       const falloff = softness > 0 ? Math.max(0, 1 - Math.sqrt(distSq) / Math.max(1, radius)) : 1;
       blendPixel(rgba, quiltWidth, px, py, color[0], color[1], color[2], alpha * (softness > 0 ? falloff : 1));
+    }
+  }
+}
+
+function plotRect(rgba, quiltWidth, quiltHeight, x, y, width, height, color, alpha) {
+  const left = Math.round(x - width / 2);
+  const right = Math.round(x + width / 2);
+  const top = Math.round(y - height / 2);
+  const bottom = Math.round(y + height / 2);
+  for (let py = top; py <= bottom; py += 1) {
+    if (py < 0 || py >= quiltHeight) continue;
+    for (let px = left; px <= right; px += 1) {
+      if (px < 0 || px >= quiltWidth) continue;
+      blendPixel(rgba, quiltWidth, px, py, color[0], color[1], color[2], alpha);
     }
   }
 }
@@ -329,6 +471,19 @@ async function renderQuiltPreview({ points, bounds, tileWidth, tileHeight, views
       const py = tileY + (0.9 - ny * 0.8) * tileHeight;
       const confidence = Math.max(0.2, Math.min(1, point.confidence));
       const color = applyExposure(point, style);
+      if (style.surfaceFill && style.surfaceCellWidth > 0 && style.surfaceCellHeight > 0) {
+        plotRect(
+          rgba,
+          quiltWidth,
+          quiltHeight,
+          px,
+          py,
+          style.surfaceCellWidth,
+          style.surfaceCellHeight,
+          color,
+          0.34 + confidence * 0.2
+        );
+      }
       if (style.glowRadius > style.pointRadius) {
         plotPoint(rgba, quiltWidth, quiltHeight, px, py, style.glowRadius, color, 0.12 + confidence * 0.1, 1);
       }
@@ -355,17 +510,20 @@ export async function renderBridge(args) {
   const plyPath = resolveInputPath(sourceAssets.ply, dirname(bridgePath));
   if (!plyPath || !existsSync(plyPath)) throw new Error(`PLY asset not found: ${sourceAssets.ply ?? 'missing'}`);
   const points = parseAsciiPly(plyPath);
-  const bounds = bridge.source?.bounds ?? boundsFor(points);
+  const temporal = selectTemporalPoints(points, bridge.source, args.temporalMode);
+  const renderPoints = temporal.points;
+  const bounds = boundsFor(renderPoints);
   const columns = args.columns ?? bridge.targets?.quilt?.columns ?? 8;
   const rows = args.rows ?? bridge.targets?.quilt?.rows ?? 6;
   const views = args.views ?? bridge.targets?.quilt?.views ?? columns * rows;
   if (views > columns * rows) throw new Error(`views (${views}) cannot exceed columns*rows (${columns * rows})`);
   const style = computeRenderStyle({
-    points,
+    points: renderPoints,
     tileWidth: args.tileWidth,
     tileHeight: args.tileHeight,
     args,
     tileGrid: bridge.source?.tileGrid,
+    temporal: temporal.info,
   });
 
   const outPath = resolve(args.out ?? defaultOutputForBridge(bridgePath));
@@ -377,12 +535,13 @@ export async function renderBridge(args) {
     columns,
     rows,
     style,
+    temporal: temporal.info,
   }))).slice(0, 8);
   const pngPath = resolve(dirname(outPath), `holoshell-quilt-${String(replay).slice(0, 12)}-${variant}.png`);
   mkdirSync(dirname(outPath), { recursive: true });
 
   const quilt = await renderQuiltPreview({
-    points,
+    points: renderPoints,
     bounds,
     tileWidth: args.tileWidth,
     tileHeight: args.tileHeight,
@@ -405,7 +564,19 @@ export async function renderBridge(args) {
       kind: bridge.source.kind,
       replayFingerprint: bridge.source.replayFingerprint,
       pointCloudHash: bridge.source.pointCloudHash,
-      pointCount: points.length,
+      pointCount: renderPoints.length,
+      originalPointCount: points.length,
+      frameCount: temporal.info.frameCount,
+      pointsPerFrame: temporal.info.pointsPerFrame,
+      temporalMode: temporal.info.temporalMode,
+      temporalSelection: {
+        requestedMode: temporal.info.requestedMode,
+        selectedFrameIndex: temporal.info.selectedFrameIndex,
+        renderedPointCount: temporal.info.renderedPointCount,
+        originalPointCount: temporal.info.originalPointCount,
+        layoutMatchesTileGrid: temporal.info.layoutMatchesTileGrid,
+        fallbackReason: temporal.info.fallbackReason,
+      },
       plyPath: rel(plyPath),
     },
     quilt: {
@@ -422,7 +593,7 @@ export async function renderBridge(args) {
       variant,
     },
     honestScope:
-      'Rendered a deterministic quilt preview from HoloMap point-cloud geometry. This is not MV-HEVC or parallax video encoding.',
+      'Rendered a deterministic quilt preview from HoloMap point-cloud geometry. Multi-frame previews use temporal selection without pose-aligned fusion unless --temporal-mode all/fuse is requested. This is not MV-HEVC or parallax video encoding.',
     outputPath: rel(outPath),
   });
   writeJson(outPath, receipt);
