@@ -23,6 +23,8 @@ describe('MVHEVCCompiler', () => {
     expect(result.views[1].eye).toBe('right');
     expect(result.views[0].cameraOffset).toBeLessThan(0);
     expect(result.views[1].cameraOffset).toBeGreaterThan(0);
+    expect(result.artifactKind).toBe('mvhevc-plan');
+    expect(result.limitations.join('\n')).toContain('Does not return encoded MV-HEVC bytes');
     expect(result.metadata.stereoMode).toBe('multiview-hevc');
     expect(result.config.fps).toBe(24);
     expect(result.config.ipd).toBeCloseTo(0.064);
@@ -30,6 +32,7 @@ describe('MVHEVCCompiler', () => {
     expect(result.muxCommand).toContain('ffmpeg');
     expect(result.muxCommand).toContain('multiview_hevc');
     expect(result.swiftCode).toContain('MVHEVCCompiler output');
+    expect(result.swiftCode).toContain('planner/scaffold');
     expect(result.swiftCode).toContain('DemoSpatial');
   });
 
