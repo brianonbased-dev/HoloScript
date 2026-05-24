@@ -311,11 +311,12 @@ const goldRoom = {
   },
   proves: {
     importPath: 'RGB device-capture frames feed the shipped HoloMap session API, not a mocked room JSON.',
-    anchor: 'mcpReconstructAnchor returns a pose/revision that the GOLD room uses as its placement anchor.',
+    anchor: 'mcpReconstructAnchor returns a frame-driven revision at a FIXED origin pose (position [0,0,0]); the revision is scan-derived but the pose and drift are not yet computed from the scan (placement stub — see anchorScope).',
     export: 'mcpReconstructExport compiles the reconstruction manifest to an r3f target and emits sidecars.',
     loadBearing: 'negative control flips one byte of capture data and changes capture, replay, and room digests.',
   },
-  honestScope: 'Offline data-integrity proof for the HoloMap import/export path using a deterministic room-shaped capture fixture. A live physical-room scan video was not present locally, so this gate does not claim new physical capture; it proves that captured frames become an anchored GOLD space/portal artifact through the real HoloMap session/runtime/export code.',
+  honestScope: 'Offline data-integrity proof for the HoloMap import/export path using a deterministic room-shaped capture fixture. A live physical-room scan video was not present locally, so this gate does not claim new physical capture; it proves that captured frames become an exported GOLD space/portal artifact through the real HoloMap session/runtime/export code.',
+  anchorScope: 'The reconstructed POINTS are genuinely per-pixel scan-derived (HoloMapRuntime micro-encoder), but the ANCHOR pose and drift-correction are NOT: HoloMapRuntime sets anchorPose.position=[0,0,0], descriptor=[1,0,0,1], estimatedDriftMeters=0, lastLoopClosureFrame=-1 as constants. The named holomap_anchor_context / holomap_drift_correction traits are not runtime-active here. Scan-derived anchor/drift is a buildable enhancement (see QUEST_PROOF_ENHANCEMENTS.md E4), not proven by this gate.',
   contract: clean.stable.contract,
 };
 

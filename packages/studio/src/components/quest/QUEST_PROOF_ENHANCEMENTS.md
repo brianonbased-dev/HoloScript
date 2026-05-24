@@ -84,3 +84,40 @@ be called a "fallback."
 **PATH.** Button text "Open Fallback" → "Open Anyway"; aria-label "Open guarded
 fallback for X" → "Open X anyway (guarded)"; update the matching test assertion.
 Bounded, no founder gate. Deferred per the peer-work note above.
+
+## E4 — HoloMap (D.018): anchor + drift are constants, not scan-derived (OVERCLAIM, claim tightened)
+
+**CONTEXT.** Deep-ratchet 2026-05-24 of the HoloMap product line (gold-game gate-33
+`gate-33-holomap-scan-verify.mjs`). The reconstruction is REAL and falsifiable: the
+HoloMapRuntime micro-encoder derives 3D points per-pixel from the capture frames
+(`packages/core/src/reconstruction/holoMapMicroEncoder.ts:273-328`), and the gate's
+negative control (one-byte capture tamper) genuinely changes capture/replay/room
+digests. BUT the **anchor pose and drift-correction are hardcoded constants**:
+`HoloMapRuntime.step` sets `anchorPose.position=[0,0,0]`, `anchorDescriptor=[1,0,0,1]`,
+`estimatedDriftMeters=0`, `lastLoopClosureFrame=-1`
+(`packages/core/src/reconstruction/HoloMapRuntime.ts:635-644`). Only `revision`
+(=frame.index+1) varies. The named `holomap_anchor_context` /
+`holomap_drift_correction` traits are not runtime-active in this path. The gate-33
+`proves.anchor` previously read "the pose/revision the GOLD room uses as its placement
+anchor" — implying scan-derived placement. **Claim tightened in the same commit**:
+gate-33 now discloses the fixed-origin pose + adds an `anchorScope` field. The points
+ARE scan-derived; the anchor/drift are NOT. (Device-capture side note: HoloMap capture
+is `getUserMedia` camera, NOT WebXR, so it does NOT inherit the quest-proof tunnel
+`isSessionSupported` spoof — E1 is WebXR-scoped only.)
+
+**INTENT.** Derive the anchor pose from the reconstructed geometry (e.g. centroid /
+bounds / dominant-plane of the scan points) and produce a real drift estimate +
+loop-closure signal, so `holomap_anchor_context` / `holomap_drift_correction` are
+genuinely runtime-active and the GOLD room placement is scan-grounded.
+
+**PATH.** In `HoloMapRuntime.step`, replace the constant `anchorPose` with a pose
+computed from the aggregated runtime points (already available — the export reads
+them); compute `estimatedDriftMeters` from inter-frame trajectory delta; wire the two
+named traits into the step. Add a gate-33 assertion that the anchor pose VARIES with
+the capture (a second negative control over anchor position), so the leg becomes
+falsifiable rather than constant.
+
+**RISK / OWNER.** Touches `@holoscript/core` reconstruction runtime (shared engine
+consumed by the GOLD game per D.063). Real algorithm work, not a one-liner; bounded to
+HoloMapRuntime + gate-33. No spend, no public posture — agent-ownable, but coordinate
+if another agent holds the reconstruction runtime.
