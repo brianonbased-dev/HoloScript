@@ -73,7 +73,7 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--') continue;
-    if (arg === 'capture' || arg === 'fixture' || arg === 'probe' || arg === 'list' || arg === 'self-test') args.command = arg;
+    if (arg === 'capture' || arg === 'fixture' || arg === 'sweep' || arg === 'probe' || arg === 'list' || arg === 'self-test') args.command = arg;
     else if (arg === '--self-test') args.command = 'self-test';
     else if (arg === '--out') args.out = argv[++i];
     else if (arg === '--date') args.date = argv[++i];
@@ -127,7 +127,7 @@ function parseArgs(argv) {
   } else if (args.fps !== undefined && !intervalProvided) {
     args.intervalMs = Math.round(1000 / args.fps);
   }
-  if (args.command === 'fixture') {
+  if (args.command === 'fixture' || args.command === 'sweep') {
     if (!framesProvided && args.durationSec === undefined) args.frames = 15;
     if (!intervalProvided && args.fps === undefined) args.intervalMs = 200;
   }
@@ -150,6 +150,7 @@ Usage:
   node scripts/holoshell-camera-scan-adapter.mjs list
   node scripts/holoshell-camera-scan-adapter.mjs capture [--frames 5] [--interval-ms 250] [--tile-grid 32] [--preprocess raw] [--require-capture] [--out receipt.json]
   node scripts/holoshell-camera-scan-adapter.mjs fixture [--frames 15] [--interval-ms 200] [--preprocess raw] [--require-capture]
+  node scripts/holoshell-camera-scan-adapter.mjs sweep [--frames 15] [--interval-ms 200] [--require-capture]
   node scripts/holoshell-camera-scan-adapter.mjs capture --duration-sec 3 --fps 5 [--tile-grid 32] [--require-capture]
   node scripts/holoshell-camera-scan-adapter.mjs --self-test
 
@@ -172,6 +173,9 @@ function nowIso(args) {
 function defaultOutput(date, command = 'capture') {
   if (command === 'fixture') {
     return join('.scratch', 'holoshell-low-camera-fixture', date, 'camera-scan-receipt.json');
+  }
+  if (command === 'sweep') {
+    return join('.scratch', 'holoshell-low-camera-fixture', date, 'preprocess-sweep-receipt.json');
   }
   return join('.bench-logs', 'holoshell-camera-scan', date, 'camera-scan-receipt.json');
 }
@@ -324,6 +328,19 @@ function buildBridgeStage({ artifacts }) {
     honestScope:
       'HoloGram bridge metadata stage. Pixel quilt, parallax, and MV-HEVC rendering are downstream steps.',
   });
+}
+
+function scoreSweepMode(result) {
+  if (result.status !== 'pass') return Number.NEGATIVE_INFINITY;
+  const quality = Number(result.scanQuality?.averageScore ?? 0);
+  const pointCount = Number(result.holomap?.pointCount ?? 0);
+  const changedPenalty = Number(result.preprocess?.changedPixelRatioAverage ?? 0) * 0.02;
+  return round(quality + Math.min(0.08, pointCount / 50000) - changedPenalty, 6);
+}
+
+function decodedSourceBlocked(args, at, capture, outPath, frameDir) {
+  rmSync(frameDir, { recursive: true, force: true });
+  return blockedReceipt(args, at, capture, outPath);
 }
 
 function redactDevice(device) {
@@ -817,6 +834,353 @@ function blockedReceipt(args, at, capture, outputPath) {
   });
 }
 
+function capturedFrameList(capture) {
+  return Array.isArray(capture.frames)
+    ? capture.frames
+    : capture.framePath
+      ? [{ index: 0, path: capture.framePath, bytes: capture.frameBytes }]
+      : [];
+}
+
+async function decodeCapturedFrames({ args, at, capture, outPath, frameDir }) {
+  const capturedFrames = capturedFrameList(capture);
+  if (capturedFrames.length < 1) {
+    return {
+      blocked: decodedSourceBlocked(
+        args,
+        at,
+        {
+          ...capture,
+          status: 'blocked',
+          blockedReason: 'camera-frame-empty',
+          error: 'WinRT capture returned no image frames.',
+        },
+        outPath,
+        frameDir
+      ),
+    };
+  }
+
+  const decodedFrames = [];
+  for (let i = 0; i < capturedFrames.length; i += 1) {
+    const captured = capturedFrames[i];
+    const sourcePath = resolve(captured.path);
+    if (!existsSync(sourcePath) || statSync(sourcePath).size <= 0) {
+      return {
+        blocked: decodedSourceBlocked(
+          args,
+          at,
+          {
+            ...capture,
+            status: 'blocked',
+            blockedReason: 'camera-frame-empty',
+            error: `WinRT capture returned no image bytes for frame ${i}.`,
+          },
+          outPath,
+          frameDir
+        ),
+      };
+    }
+    const jpeg = readFileSync(sourcePath);
+    const jpegHash = sha256Bytes(jpeg);
+    const decoded = await decodeImageToRgb(sourcePath, args.width, args.height);
+    const frameIndex = Number.isInteger(captured.index) ? captured.index : i;
+    decodedFrames.push({
+      captured,
+      frameIndex,
+      sourcePath,
+      jpegBytes: jpeg.byteLength,
+      jpegHash,
+      decoded,
+      rawFrameHash: sha256Bytes(decoded.rgb),
+      rawQuality: analyzeFrameQuality(decoded),
+    });
+  }
+
+  return {
+    capturedFrames,
+    decodedFrames,
+  };
+}
+
+async function runProcessedMode({ args, mode, capture, outPath, decodedFrames, plan, actualCapturedDurationMs }) {
+  const modeArgs = { ...args, preprocess: mode };
+  const frames = [];
+  const receiptFrames = [];
+
+  for (const decodedFrame of decodedFrames) {
+    const preprocessed = preprocessFrame(decodedFrame.decoded, mode);
+    const processed = preprocessed.frame;
+    const frameHash = sha256Bytes(processed.rgb);
+    const quality = analyzeFrameQuality(processed);
+    const keptFramePath = args.keepFrame
+      ? rel(resolve(dirname(outPath), `camera-frame-${decodedFrame.frameIndex.toString().padStart(3, '0')}-${decodedFrame.jpegHash.slice(0, 12)}.jpg`))
+      : undefined;
+
+    frames.push({
+      index: decodedFrame.frameIndex,
+      timestampMs: decodedFrame.frameIndex * args.intervalMs,
+      rgb: processed.rgb,
+      width: processed.width,
+      height: processed.height,
+      stride: processed.stride,
+    });
+    receiptFrames.push({
+      index: decodedFrame.frameIndex,
+      source: 'windows-winrt-mediacapture',
+      capturedAt: decodedFrame.captured.capturedAtIso,
+      jpegBytes: decodedFrame.jpegBytes,
+      jpegHash: `sha256:${decodedFrame.jpegHash}`,
+      rgbWidth: processed.width,
+      rgbHeight: processed.height,
+      rgbStride: processed.stride,
+      rawRgbHash: `sha256:${decodedFrame.rawFrameHash}`,
+      rgbHash: `sha256:${frameHash}`,
+      rawQuality: decodedFrame.rawQuality,
+      quality,
+      preprocess: preprocessed.summary,
+      keptFramePath,
+    });
+  }
+
+  const videoHash = `holoshell-native-camera:${sha256Text(
+    receiptFrames.map((frame) => `${frame.index}:${frame.jpegHash}:${frame.rgbHash}`).join('|')
+  )}`;
+  const holoMap = await runHoloMap(frames, videoHash, args.intervalMs, args.tileGrid);
+  const artifacts = writeScanArtifacts({ outPath, holoMap, frames });
+  const scanQuality = summarizeQuality(receiptFrames);
+  const captureStage = buildCaptureStage({
+    args: modeArgs,
+    plan: { ...plan, preprocess: mode },
+    capture,
+    outputPath: outPath,
+    receiptFrames,
+    videoHash,
+    actualCapturedDurationMs,
+  });
+  const preprocessStage = buildPreprocessStage(modeArgs, receiptFrames);
+  const qualityStage = buildQualityStage(receiptFrames, scanQuality);
+  const holoMapStage = buildHoloMapStage({ args: modeArgs, holoMap, artifacts, videoHash });
+  const bridgeStage = buildBridgeStage({ artifacts });
+  const changedPixelRatioAverage = round(
+    receiptFrames.reduce((sum, frame) => sum + (frame.preprocess?.changedPixelRatio ?? 0), 0) /
+      Math.max(1, receiptFrames.length),
+    6
+  );
+  const chain = buildStageChain({
+    name: 'holoshell-camera-scan',
+    stages: [captureStage, preprocessStage, qualityStage, holoMapStage, bridgeStage],
+    metrics: {
+      status: 'pass',
+      capturedFrameCount: receiptFrames.length,
+      acceptedFrameCount: holoMap.manifest.frameCount,
+      pointCount: holoMap.manifest.pointCount,
+      preprocess: mode,
+    },
+    honestScope:
+      'Native capture, local quality scoring, HoloMap runtime reconstruction, and HoloGram bridge creation were executed as an ordered local chain.',
+  });
+
+  return {
+    status: 'pass',
+    preprocess: {
+      mode,
+      changedPixelRatioAverage,
+    },
+    capture: {
+      ...plan,
+      preprocess: mode,
+      capturedFrameCount: receiptFrames.length,
+      acceptedFrameCount: holoMap.manifest.frameCount,
+      droppedFrameCount: Math.max(0, plan.requestedFrameCount - receiptFrames.length),
+      actualCapturedDurationMs,
+      videoHash,
+    },
+    frame: receiptFrames[0],
+    frames: receiptFrames,
+    scanQuality,
+    holomap: {
+      displayName: holoMap.manifest.displayName,
+      tileGrid: args.tileGrid,
+      frameCount: holoMap.manifest.frameCount,
+      pointCount: holoMap.manifest.pointCount,
+      replayFingerprint: holoMap.manifest.simulationContract.replayFingerprint,
+      steps: holoMap.steps,
+      assets: artifacts.assets,
+      pointCloudHash: artifacts.pointCloudHash,
+    },
+    hologramBridge: {
+      status: artifacts.bridge.status,
+      artifactPath: artifacts.assets.hologramBridge,
+      sourceKind: artifacts.bridge.source.kind,
+      targets: artifacts.bridge.targets,
+      honestScope: artifacts.bridge.honestScope,
+      nextCommand: artifacts.bridge.nextCommand,
+    },
+    chain,
+  };
+}
+
+async function buildSweepReceipt(args) {
+  const at = nowIso(args);
+  const outPath = resolve(REPO_ROOT, args.out ?? defaultOutput(args.date, args.command));
+  const frameDir = join(tmpdir(), `holoshell-camera-scan-${process.pid}-${Date.now()}`);
+  const modes = [...PREPROCESS_MODES];
+  const plan = {
+    ...capturePlan(args),
+    preprocess: 'sweep',
+    modes,
+  };
+
+  const capture = captureViaWindowsWinRt(args, frameDir);
+  if (capture.status !== 'pass') {
+    rmSync(frameDir, { recursive: true, force: true });
+    return blockedReceipt(args, at, capture, outPath);
+  }
+
+  const decoded = await decodeCapturedFrames({ args, at, capture, outPath, frameDir });
+  if (decoded.blocked) return decoded.blocked;
+
+  const { decodedFrames } = decoded;
+  const firstCapturedMs = Date.parse(decodedFrames[0]?.captured?.capturedAtIso ?? '');
+  const lastCapturedMs = Date.parse(decodedFrames[decodedFrames.length - 1]?.captured?.capturedAtIso ?? '');
+  const actualCapturedDurationMs =
+    Number.isFinite(firstCapturedMs) && Number.isFinite(lastCapturedMs)
+      ? Math.max(0, lastCapturedMs - firstCapturedMs)
+      : undefined;
+  const rawVideoHash = `holoshell-native-camera-raw:${sha256Text(
+    decodedFrames.map((frame) => `${frame.frameIndex}:sha256:${frame.jpegHash}:sha256:${frame.rawFrameHash}`).join('|')
+  )}`;
+  const rawReceiptFrames = decodedFrames.map((frame) => ({
+    index: frame.frameIndex,
+    jpegHash: `sha256:${frame.jpegHash}`,
+    rgbHash: `sha256:${frame.rawFrameHash}`,
+    rawRgbHash: `sha256:${frame.rawFrameHash}`,
+  }));
+  const results = [];
+  for (const mode of modes) {
+    const result = await runProcessedMode({
+      args,
+      mode,
+      capture,
+      outPath,
+      decodedFrames,
+      plan,
+      actualCapturedDurationMs,
+    });
+    results.push({
+      ...result,
+      score: scoreSweepMode(result),
+    });
+  }
+
+  const ranking = results
+    .map((result) => ({
+      mode: result.preprocess.mode,
+      score: result.score,
+      status: result.status,
+      averageScore: result.scanQuality?.averageScore,
+      warningCount: result.scanQuality?.warnings?.length ?? 0,
+      pointCount: result.holomap?.pointCount,
+      changedPixelRatioAverage: result.preprocess.changedPixelRatioAverage,
+      replayFingerprint: result.holomap?.replayFingerprint,
+      hologramBridgeArtifactPath: result.hologramBridge?.artifactPath,
+    }))
+    .sort((a, b) => b.score - a.score || String(a.mode).localeCompare(String(b.mode)));
+  const winner = results.find((result) => result.preprocess.mode === ranking[0]?.mode) ?? results[0];
+  const captureStage = buildCaptureStage({
+    args,
+    plan,
+    capture,
+    outputPath: outPath,
+    receiptFrames: rawReceiptFrames,
+    videoHash: rawVideoHash,
+    actualCapturedDurationMs,
+  });
+  const sweepStage = stageReceipt({
+    name: 'image.preprocess-sweep',
+    input: {
+      modes,
+      rawFrameHashes: rawReceiptFrames.map((frame) => frame.rawRgbHash),
+      rawVideoHash,
+    },
+    output: {
+      winner: ranking[0],
+      ranking,
+    },
+    metrics: {
+      modeCount: modes.length,
+      capturedFrameCount: decodedFrames.length,
+      winningMode: ranking[0]?.mode,
+      winningScore: ranking[0]?.score,
+    },
+    honestScope:
+      'Fair preprocess comparison: one native camera capture is decoded once, then every mode replays the same raw RGB frames.',
+  });
+  const chain = buildStageChain({
+    name: 'holoshell-preprocess-sweep',
+    stages: [captureStage, sweepStage],
+    metrics: {
+      status: 'pass',
+      modeCount: modes.length,
+      capturedFrameCount: decodedFrames.length,
+      winningMode: ranking[0]?.mode,
+      winningScore: ranking[0]?.score,
+    },
+    honestScope:
+      'Top-level sweep receipt proves the comparison used a single native capture source; each mode result carries its own HoloMap and HoloGram bridge chain.',
+  });
+
+  if (args.keepFrame) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    for (const decodedFrame of decodedFrames) {
+      const target = resolve(
+        dirname(outPath),
+        `camera-frame-${decodedFrame.frameIndex.toString().padStart(3, '0')}-${decodedFrame.jpegHash.slice(0, 12)}.jpg`
+      );
+      copyFileSync(decodedFrame.sourcePath, target);
+    }
+  }
+  rmSync(frameDir, { recursive: true, force: true });
+
+  return withHash({
+    id: `holoshell-preprocess-sweep-${winner.holomap.replayFingerprint.slice(0, 12)}`,
+    schemaVersion: RECEIPT_VERSION,
+    adapterVersion: VERSION,
+    status: 'pass',
+    capturedAt: at,
+    provider: capture.provider,
+    selectedDeviceIndex: args.deviceIndex,
+    device: redactDevice(capture.device ?? {}),
+    action: 'direct-native-camera-preprocess-sweep',
+    capture: {
+      ...plan,
+      capturedFrameCount: decodedFrames.length,
+      acceptedFrameCount: winner.capture.acceptedFrameCount,
+      droppedFrameCount: Math.max(0, plan.requestedFrameCount - decodedFrames.length),
+      actualCapturedDurationMs,
+      rawVideoHash,
+      winningPreprocess: winner.preprocess.mode,
+    },
+    frame: winner.frame,
+    frames: winner.frames,
+    scanQuality: winner.scanQuality,
+    holomap: winner.holomap,
+    hologramBridge: winner.hologramBridge,
+    sweep: {
+      modes,
+      winner: ranking[0],
+      ranking,
+      results,
+      rawVideoHash,
+      honestScope:
+        'Offline evidence for low-quality cameras: all preprocessing modes were evaluated from the exact same decoded capture frames.',
+    },
+    chain,
+    outputPath: rel(outPath),
+  });
+}
+
 async function buildCaptureReceipt(args) {
   const at = nowIso(args);
   const outPath = resolve(REPO_ROOT, args.out ?? defaultOutput(args.date, args.command));
@@ -1066,6 +1430,15 @@ export function validateReceipt(receipt) {
     if (!(receipt.holomap?.pointCount > 0)) errors.push('pass receipt missing point count');
     if (!receipt.holomap?.assets?.ply) errors.push('pass receipt missing HoloMap PLY asset');
     if (receipt.hologramBridge?.status !== 'geometry-ready') errors.push('pass receipt missing HoloGram bridge');
+    if (receipt.action === 'direct-native-camera-preprocess-sweep') {
+      if (!receipt.sweep?.winner?.mode) errors.push('sweep receipt missing winning preprocess mode');
+      if (!Array.isArray(receipt.sweep?.ranking) || receipt.sweep.ranking.length < 1) {
+        errors.push('sweep receipt missing ranking');
+      }
+      if (!Array.isArray(receipt.sweep?.results) || receipt.sweep.results.length !== receipt.sweep.ranking?.length) {
+        errors.push('sweep receipt missing per-mode results');
+      }
+    }
   }
   if (receipt.status === 'blocked') {
     if (!receipt.blockedReason) errors.push('blocked receipt missing blockedReason');
@@ -1103,11 +1476,17 @@ async function main() {
     return;
   }
 
-  const receipt = await buildCaptureReceipt(args);
+  const receipt = args.command === 'sweep' ? await buildSweepReceipt(args) : await buildCaptureReceipt(args);
   const errors = validateReceipt(receipt);
   if (errors.length > 0) throw new Error(`Invalid receipt: ${errors.join('; ')}`);
   const out = writeJson(args.out ?? defaultOutput(args.date, args.command), receipt);
-  process.stdout.write(`${JSON.stringify({ receiptPath: rel(out), status: receipt.status, blockedReason: receipt.blockedReason, holomap: receipt.holomap }, null, 2)}\n`);
+  process.stdout.write(`${JSON.stringify({
+    receiptPath: rel(out),
+    status: receipt.status,
+    blockedReason: receipt.blockedReason,
+    holomap: receipt.holomap,
+    sweep: receipt.sweep ? { winner: receipt.sweep.winner, ranking: receipt.sweep.ranking } : undefined,
+  }, null, 2)}\n`);
   if (args.requireCapture && receipt.status !== 'pass') {
     process.exitCode = 2;
   }

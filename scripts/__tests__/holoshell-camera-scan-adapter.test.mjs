@@ -115,6 +115,28 @@ const pass = {
   },
 };
 assertEq(validateReceipt(pass).length, 0, 'minimal pass receipt validates');
+const sweepPass = {
+  ...pass,
+  action: 'direct-native-camera-preprocess-sweep',
+  sweep: {
+    modes: ['raw', 'luma-clahe'],
+    winner: { mode: 'raw', score: 0.93 },
+    ranking: [
+      { mode: 'raw', score: 0.93 },
+      { mode: 'luma-clahe', score: 0.91 },
+    ],
+    results: [
+      { preprocess: { mode: 'raw' } },
+      { preprocess: { mode: 'luma-clahe' } },
+    ],
+  },
+};
+assertEq(validateReceipt(sweepPass).length, 0, 'minimal sweep receipt validates');
+const badSweep = { ...sweepPass, sweep: { ...sweepPass.sweep, winner: undefined } };
+assertOk(
+  validateReceipt(badSweep).includes('sweep receipt missing winning preprocess mode'),
+  'sweep receipt requires winner'
+);
 
 console.log('Test 3: native tile-flow correspondence detects shifted low-res tiles');
 function makeFrame(index, tiles) {
@@ -199,6 +221,7 @@ const help = spawnSync(process.execPath, [SCRIPT, '--help'], {
 });
 assertEq(help.status, 0, 'CLI help exits 0');
 assertOk(help.stdout.includes('fixture'), 'CLI help names fixture command');
+assertOk(help.stdout.includes('sweep'), 'CLI help names sweep command');
 assertOk(help.stdout.includes('.scratch/holoshell-low-camera-fixture'), 'fixture default is scratch-scoped');
 assertOk(help.stdout.includes('luma-clahe'), 'CLI help names preprocess modes');
 
