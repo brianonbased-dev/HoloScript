@@ -182,9 +182,29 @@ Cross-cutting: most compiler verifiers assert token presence, not faithful struc
 — they would not catch the silent-degradation cases above. Filed to the board:
 C-WASM (P3), C-FIDELITY (P4), breadth-2 (P5).
 
+### Batches 3-4 — 12 more (24 of 61 total): 22 REAL, 1 THIN, 1 OVERCLAIMED-vs-claim
+
+| Compiler | Verdict | Note |
+|---|---|---|
+| ThreeJSCompiler | REAL | full AST traversal, strong fidelity verifier; honest comment-degradation (gltf/text/unknown-trait) |
+| BabylonCompiler | REAL | golden-snapshot verifier; ~7 AI/XR traits comment-stubs |
+| GodotCompiler | REAL | 50+ fidelity assertions; **claim wording: ".tscn/GDScript" but only runtime-building GDScript emitted, no .tscn** |
+| IOSCompiler | REAL | genuine scene translation BUT **no verifier exists AND no dispatch path wired** in checkout; mesh dims hardcoded, placeObject non-deterministic |
+| AndroidCompiler | REAL | scene→Kotlin real BUT **per-object factories never wired — `placeObject` only creates one default node → multi-object scenes collapse to one node**; verifier is SHA hash-lock (stability, not fidelity) |
+| VisionOSCompiler | REAL | 75 trait mappings, faithful; **no verifier exists**; cylinder/cone/torus→box |
+| PlayCanvasCompiler | REAL | faithful; **docstring overclaims "Animation via Anim component" — not delivered** (timelines comments only); verifier thin (toContain only) |
+| DTDLCompiler | REAL | faithful DTDL v3, fidelity verifier asserts schema inference; bounded silent env-key/trait drop |
+| A2AAgentCardCompiler | REAL | 11 skill compilers, strong 1148-line fidelity verifier |
+| USDZExportCompiler | REAL | spec-correct CRC-32 + 64-byte-aligned ZIP, fidelity verifier; rotation degrees→radians **unit bug** (label says convert, value passed through) |
+| OpenXRCompiler | REAL | scene→C++ real; **action-sets fixed boilerplate (not input-derived)**, unhandled traits silently dropped, domain blocks comment-only; thin verifier |
+| MCPConfigCompiler | **OVERCLAIMED-vs-claim** | emits MCP *client* connection config (`mcpServers` block), NOT a server config with tools/input-schemas/resources as `compile_to_mcp_config` implies; zero tool/resource emission; no fidelity verifier. REAL against its own docstring, OVERCLAIMED against the tool framing. |
+
+New cross-cutting findings (filed to board): (a) **native-platform compilers lack fidelity verifiers** — iOS/VisionOS have none, Android only a SHA hash-lock; iOS has no wired dispatch path. (b) **AndroidCompiler functional defect** — emitted per-object code is dead (placeObject ignores it). (c) **claim-wording drift** — MCPConfig (client vs server), PlayCanvas (animation), Godot (.tscn). (d) USDZ rotation unit bug.
+
 ## Next breadth pass
 
-Un-ratcheted: **~49 remaining compilers** (cross-engine Three/Babylon/Godot/PlayCanvas;
-platform AR/iOS/Android/VisionOS/OpenXR; format USD/USDZ/TSL/DTDL/A2A/MCP; niche incl. the
-known-failing VRChatCompiler) and the **~88 POTENTIAL trait stubs + Tier-4 integration
-traits**. All filed to the board (deep-ratchet straggler tasks, 2026-05-24).
+Un-ratcheted: **~37 remaining compilers** (AR/AndroidXR/AIGlasses/PhoneSleeveVR; TSL/SDF/
+MultiLayer/Native2D/State/FlatSemantic/Context/Incremental; NodeGraph/Pipeline/Graph/
+TraitComposition; niche NFT/HoloGramMLS/Holob/SCM/NextJS/NodeService/MVHEVC/Quilt/Procedural/
+ShaderGraph; known-failing VRChatCompiler) and the **~88 POTENTIAL trait stubs + Tier-4
+integration traits**. All on the board (deep-ratchet straggler + breadth-2 tasks, 2026-05-24).
