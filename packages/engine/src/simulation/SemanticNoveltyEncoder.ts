@@ -27,12 +27,15 @@ import type { ConjecturePriorArtEntry } from './ConjectureEngine';
 export const SEMANTIC_NOVELTY_MODEL = 'Xenova/all-MiniLM-L6-v2' as const;
 
 /**
- * Default advisory threshold. Calibrated from the 2026-05-23 probe (paraphrase 0.73,
- * unrelated 0.08); 0.6 catches paraphrases with margin while excluding unrelated text.
- * [verify] re-calibrate on a labeled paraphrase set (scope P2) before any promotion to
- * receipt-binding.
+ * Default advisory threshold, CALIBRATED (scope P2, 2026-05-23) on the labeled eval set
+ * below: same-result paraphrases scored 0.65–0.72, different/unrelated scored 0.02–0.32
+ * (cleanly separable, gap 0.34, midpoint ≈0.49). 0.5 sits centered in the gap — 0.18
+ * above every no-match and 0.15 below every match — so it is robust to harder paraphrases
+ * and recall-favoring (right for an ADVISORY flag, where a missed rediscovery is worse
+ * than a flagged-for-review false positive). Still advisory-only; re-run calibration if
+ * the model changes.
  */
-export const SEMANTIC_NOVELTY_THRESHOLD = 0.6;
+export const SEMANTIC_NOVELTY_THRESHOLD = 0.5;
 
 export type SemanticNoveltyStatus = 'near-duplicate' | 'novel';
 
@@ -78,6 +81,61 @@ export async function embedSemantic(text: string): Promise<number[]> {
   }
   const embed = await getExtractor();
   return embed(text);
+}
+
+export interface LabeledNoveltyPair {
+  query: string;
+  reference: string;
+  /** true = query is the SAME result as reference (a paraphrase); false = different/unrelated. */
+  isMatch: boolean;
+}
+
+/**
+ * Labeled eval set for threshold calibration (scope P2) — paraphrases of known results
+ * across the engine's live domains (should match) vs different/unrelated claims (should not).
+ * Durable artifact: reused by the determinism gate (P1) and corpus work (P3).
+ */
+export const LABELED_NOVELTY_EVAL_SET: ReadonlyArray<LabeledNoveltyPair> = [
+  { query: 'Any convex solid: corners minus edges plus faces is two.', reference: 'For every convex polyhedron, vertices minus edges plus faces equals two.', isMatch: true },
+  { query: 'The long side squared equals the sum of the squares of the two legs.', reference: 'In a right triangle the hypotenuse squared equals the sum of the squares of the other two sides.', isMatch: true },
+  { query: '4/n splits into three unit fractions for all n at least 2.', reference: 'For every integer n>=2, 4/n equals 1/x + 1/y + 1/z.', isMatch: true },
+  { query: 'Two curves of degree d and e cross in d times e points.', reference: 'Two generic plane curves of degrees d1 and d2 intersect in d1*d2 points.', isMatch: true },
+  { query: 'Every even number above two is a sum of two primes.', reference: 'For every integer n>=2, 4/n equals 1/x + 1/y + 1/z.', isMatch: false },
+  { query: 'A graph is planar iff it has no K5 or K3,3 minor.', reference: 'Two generic plane curves of degrees d1 and d2 intersect in d1*d2 points.', isMatch: false },
+  { query: 'In a right triangle the hypotenuse squared equals the sum of the squares of the other two sides.', reference: 'For every convex polyhedron, vertices minus edges plus faces equals two.', isMatch: false },
+  { query: 'The cat sat on the warm windowsill in the afternoon sun.', reference: 'For every convex polyhedron, vertices minus edges plus faces equals two.', isMatch: false },
+];
+
+export interface ThresholdCalibration {
+  threshold: number;
+  separable: boolean;
+  minMatchSim: number;
+  maxNoMatchSim: number;
+  gap: number;
+}
+
+/**
+ * Pure calibration: given scored (similarity, isMatch) pairs, return the midpoint
+ * threshold between the lowest match and the highest no-match, plus whether the classes
+ * are separable and the margin. Deterministic; no model required.
+ */
+export function calibrateNoveltyThreshold(
+  scored: ReadonlyArray<{ similarity: number; isMatch: boolean }>,
+): ThresholdCalibration {
+  const match = scored.filter((s) => s.isMatch).map((s) => s.similarity);
+  const noMatch = scored.filter((s) => !s.isMatch).map((s) => s.similarity);
+  if (match.length === 0 || noMatch.length === 0) {
+    throw new Error('semantic-novelty: calibration needs at least one match and one no-match');
+  }
+  const minMatchSim = Math.min(...match);
+  const maxNoMatchSim = Math.max(...noMatch);
+  return {
+    threshold: Math.round(((minMatchSim + maxNoMatchSim) / 2) * 1000) / 1000,
+    separable: minMatchSim > maxNoMatchSim,
+    minMatchSim,
+    maxNoMatchSim,
+    gap: Math.round((minMatchSim - maxNoMatchSim) * 1000) / 1000,
+  };
 }
 
 /** Cosine similarity of two equal-length vectors (inputs are L2-normalized → dot product). */

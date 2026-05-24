@@ -1,7 +1,10 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
+  LABELED_NOVELTY_EVAL_SET,
   SEMANTIC_NOVELTY_MODEL,
+  SEMANTIC_NOVELTY_THRESHOLD,
   assessSemanticNovelty,
+  calibrateNoveltyThreshold,
   cosineSimilarity,
   embedSemantic,
 } from '../SemanticNoveltyEncoder';
@@ -16,6 +19,32 @@ describe('SemanticNoveltyEncoder — pure helpers (always run)', () => {
   });
   it('rejects mismatched lengths', () => {
     expect(() => cosineSimilarity([1, 0], [1, 0, 0])).toThrow();
+  });
+
+  it('calibrateNoveltyThreshold finds the gap midpoint + separability (pure)', () => {
+    const c = calibrateNoveltyThreshold([
+      { similarity: 0.7, isMatch: true },
+      { similarity: 0.65, isMatch: true },
+      { similarity: 0.3, isMatch: false },
+      { similarity: 0.1, isMatch: false },
+    ]);
+    expect(c.separable).toBe(true);
+    expect(c.minMatchSim).toBe(0.65);
+    expect(c.maxNoMatchSim).toBe(0.3);
+    expect(c.threshold).toBeCloseTo(0.475, 3);
+    expect(c.gap).toBeCloseTo(0.35, 3);
+  });
+
+  it('flags non-separable classes honestly', () => {
+    const c = calibrateNoveltyThreshold([
+      { similarity: 0.5, isMatch: true },
+      { similarity: 0.6, isMatch: false }, // overlap
+    ]);
+    expect(c.separable).toBe(false);
+  });
+
+  it('requires at least one match and one no-match', () => {
+    expect(() => calibrateNoveltyThreshold([{ similarity: 0.9, isMatch: true }])).toThrow();
   });
 });
 
@@ -83,5 +112,22 @@ describe(`SemanticNoveltyEncoder — learned model (${SEMANTIC_NOVELTY_MODEL})`,
       corpus,
     );
     expect(b.status).toBe('novel');
+  });
+
+  it('the labeled eval set is separable, and the shipped threshold classifies all pairs (P2 calibration)', async (ctx) => {
+    if (!available) return ctx.skip();
+    const scored = [];
+    for (const p of LABELED_NOVELTY_EVAL_SET) {
+      const sim = cosineSimilarity(await embedSemantic(p.query), await embedSemantic(p.reference));
+      scored.push({ similarity: sim, isMatch: p.isMatch });
+    }
+    const calib = calibrateNoveltyThreshold(scored);
+    expect(calib.separable).toBe(true); // the two classes do not overlap
+    // the shipped threshold sits inside the gap → classifies every labeled pair correctly
+    expect(SEMANTIC_NOVELTY_THRESHOLD).toBeGreaterThan(calib.maxNoMatchSim);
+    expect(SEMANTIC_NOVELTY_THRESHOLD).toBeLessThan(calib.minMatchSim);
+    for (const s of scored) {
+      expect(s.similarity >= SEMANTIC_NOVELTY_THRESHOLD).toBe(s.isMatch);
+    }
   });
 });

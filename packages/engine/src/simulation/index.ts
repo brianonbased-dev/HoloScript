@@ -377,9 +377,13 @@ export {
   embedSemantic,
   cosineSimilarity as semanticCosineSimilarity,
   assessSemanticNovelty,
+  calibrateNoveltyThreshold,
+  LABELED_NOVELTY_EVAL_SET,
   type SemanticNoveltyStatus,
   type SemanticNoveltyMatch,
   type SemanticNoveltyAssessment,
+  type LabeledNoveltyPair,
+  type ThresholdCalibration,
 } from './SemanticNoveltyEncoder';
 
 // Verdict ledger (`conjecture.verdict-ledger.v1`) — temporal, assumption-bound
