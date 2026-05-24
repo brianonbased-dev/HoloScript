@@ -1,0 +1,94 @@
+{
+  "kind": "hologram-image-to-world",
+  "source_image": "examples/gold-game/assets/gold-vault-vista-wlNgg.jpg",
+  "source_holo": "examples/gold-game/gold-vault-game.holo",
+  "generated_group": {
+    "spatial_group": "VaultVistaBackdrop",
+    "origin": [
+      0,
+      6,
+      -24
+    ],
+    "geometry": "depth_displaced_grid",
+    "grid": {
+      "width": 48,
+      "height": 32
+    },
+    "vertexCount": 1536,
+    "sampleVertices": [
+      {
+        "grid": [
+          0,
+          0
+        ],
+        "world": [
+          -12,
+          14,
+          -25.2877
+        ],
+        "depth": 0.839
+      },
+      {
+        "grid": [
+          1,
+          0
+        ],
+        "world": [
+          -11.4894,
+          14,
+          -25.4446
+        ],
+        "depth": 0.8194
+      },
+      {
+        "grid": [
+          2,
+          0
+        ],
+        "world": [
+          -10.9787,
+          14,
+          -25.5607
+        ],
+        "depth": 0.8049
+      },
+      {
+        "grid": [
+          3,
+          0
+        ],
+        "world": [
+          -10.4681,
+          14,
+          -25.714
+        ],
+        "depth": 0.7857
+      },
+      {
+        "grid": [
+          4,
+          0
+        ],
+        "world": [
+          -9.9574,
+          14,
+          -25.7826
+        ],
+        "depth": 0.7772
+      },
+      {
+        "grid": [
+          5,
+          0
+        ],
+        "world": [
+          -9.4468,
+          14,
+          -25.8139
+        ],
+        "depth": 0.7733
+      }
+    ]
+  },
+  "feedsBackInto": "the playable vault scene as the depth-backed vista world behind DiamondPeak"
+}

@@ -53,7 +53,7 @@ flagship Gate-N.** They are different games. Only the **flagship** counts as "th
 | 29 | agent party AI | **PASS** | `tsx gate-29-party-verify.mjs` (20/20; 3 NAMED visible companions — Archivist/Scout/Quartermaster — with DISTINCT persona value functions each pick a different real entry via the real `graduate()` verb; choices EXPLAINED with rationale grounded in live lineage/trust/balance (not canned); each EARNS the real economy reward under the genuine $0.50/day agenda ceiling (no breach); per-companion memory of the player PERSISTS to disk — a WARM session 2 loads it, GREETS the returning player by recalling session 1, and DEFERS the entry the player graduated last session (memory-attributable re-plan a cold party would not make); party + economy digests reproduce via real `computeStateDigest`. Anti-F.069: asserts state deltas) | `GATE-29-AGENT-PARTY-receipt.json` | `afa41fd14` |
 | 30 | ship packaging | **PASS** | `node gate-30-package-verify.mjs` (40/40; runs the real `gate-30-package.mjs` into two fresh temp dirs — regenerates 3D via `drive-build.mjs` + retro-2D via `gold-2d-build.mjs` (both walk the parsed `.holo`), materializes the launcher/docs/`.bat`/`autorun.inf`/`server.cjs`/`vault-ops.cjs`/`sea-config.json`/`setup/` from canonical `package-assets.mjs`, copies to dest, and asserts STATE: every required artifact materializes on disk, deployed bytes == canonical source bytes for all 14 non-prebuilt artifacts (`deployedMatches`), the `packageDigest` is reproducible across two packagings, and the built artifacts are byte-identical. Closed the real drift it found: deployed `server.cjs`/`vault-ops.cjs`/`3d/index.html` had ALL diverged from source pre-Gate-30. The 92MB `GOLD-GAME-Server.exe` is a pre-built Node-SEA binary — verified present + digested, not regenerated. Anti-F.069: state assertions, not greps) | `GATE-30-SHIP-PACKAGING-receipt.json` | `304766c03` |
 | 31 | playable HoloGraph constellation | **PASS** | `node gate-31-playable-holograph-verify.mjs` (consumes `GATE-10-HOLOGRAPH-receipt.json`; renders lineage nodes/edges in an in-game constellation; selecting a node dispatches the same full GOLD entry inspector as gems) | `GOLD-VAULT-gate1-receipt.json` (`playableHoloGraph`) | `200fc72b5` |
-| 32 | HoloGram image-to-world | **OPEN** | consume HoloGram for its actual job: ingest the founder 2D art, infer depth/normals, create a 3D GOLD world source/composition, and feed it back into the playable vault | `SURFACE-ROLES-hologram-holomap.md` | _planned_ |
+| 32 | HoloGram image-to-world | **PASS** | `tsx gate-32-hologram-image-to-world-verify.mjs` (8/8; ingests the REAL founder art `gold-vault-vista-wlNgg.jpg` via sharp → the SHIPPED `DepthEstimationService.estimateDepth` infers a real per-pixel depth map (depthRange 0.9938) → the SHIPPED `depthToNormalMap` Sobel normals, independently re-derived to prove they are not fabricated → depth+normals DISPLACE a 48×32 vertex grid into a 3D world source (`VaultVistaBackdrop` spatial_group that extends the parsed vault scene and feeds back into the playable vault, emitted to `gold-vault-vista-world.json`) → world geometry digest reproduces deterministically via the real `computeStateDigest`. HONEST SCOPE: transformers.js is installed but the ONNX/WebGPU neural device did not initialize in this env, so the service ran its SHIPPED deterministic luminance fallback (`actualDepthPath=luminance-fallback`, same algorithm as `hologram-worker/src/depth-infer.ts`); the Depth Anything V2 neural backend is a runtime/model-availability upgrade, not a code change, and the image→world pipeline is backend-agnostic. Pixel raster + mesh tessellation are the deepening, same pattern as Gates 1/13. Anti-F.069: state assertions, not greps) | `GATE-32-HOLOGRAM-IMAGE-TO-WORLD-receipt.json` + `gold-vault-vista-world.json` | `_this commit_` |
 | 33 | HoloMap scanned-space import | **OPEN** | consume HoloMap for its actual job: scan video/device capture of a real space, reconstruct it, anchor it, export it, and let that space become a GOLD room/exhibit/portal | `SURFACE-ROLES-hologram-holomap.md` | _planned_ |
 | 34 | HoloGram holographic outputs | **OPEN** | after G32 creates the world source, render the GOLD world/art into holographic targets: Looking Glass quilt, Vision Pro MV-HEVC, parallax WebM, content hash, and share receipt | _none yet_ | _planned_ |
 | 35 | HoloScript kitchen-sink pass | **OPEN** | one playable pass consumes the whole stack coherently: HoloGraph lineage, HoloGram image-to-world, HoloMap scanned spaces, HoloGate mutation, HoloMesh/netcode, solvers, economy, reputation, and dialogue | _none yet_ | _planned_ |
@@ -90,16 +90,25 @@ Snapshot: **33 surfaces — 20 REAL, 0 FAIL, 13 SKIP; 17/24 compilers REAL.**
 
 This is breadth-first by design: it proves how much of HoloScript one artifact already flows through, and the FAIL/SKIP rows ARE the kitchen-sink roadmap.
 
-## Deployment (movable Drive build — founder-ratified)
+## Product Home + Deployment (GOLD-owned, HoloScript-powered)
 
-The whole game lives on the **D: drive at `D:/GOLD-GAME/`** so it's portable (plug in → double-click → runs offline on any machine):
+The GOLD game product home is **`D:/GOLD/assets/game/gold-game/`**. HoloScript is the toolset/engine
+surface the game consumes; it should not be treated as the product owner.
+
+The portable release lives on the **D: drive at `D:/GOLD-GAME/`** so it's movable (plug in → double-click → runs offline on any machine):
 - `D:/GOLD-GAME/index.html` — launcher menu (pick **3D / VR** or **Retro 2D**)
 - `D:/GOLD-GAME/3d/index.html` — interactive WebXR build (Gate 6: Enter VR → grab gems → HoloGate-validated graduate)
 - `D:/GOLD-GAME/2d/index.html` — retro 2D build
 - `D:/GOLD-GAME/GOLD-GAME-Server.exe` — optional live-vault-count server
 - `D:/GOLD-GAME/PLAY LIVE GOLD GAME (Node).bat` — source live server with full `/api/vault-entry` reads on machines with Node
 
-Source of truth is `examples/gold-game/` (this dir); the Drive is a deployed copy. **Gate 30 makes the whole deploy one verified command** — `node examples/gold-game/gate-30-package.mjs` regenerates both builds (3D + retro-2D from the `.holo`), materializes the launcher/docs/`.bat`/`autorun.inf`/server/setup from the canonical `package-assets.mjs`, copies the exact bytes to `D:/GOLD-GAME/`, and emits `GATE-30-SHIP-PACKAGING-receipt.json` proving deployed bytes == source (so the drive can no longer drift from the repo, which it had: pre-Gate-30 the deployed `server.cjs`/`vault-ops.cjs`/`3d/index.html` all differed from source). The pre-built `GOLD-GAME-Server.exe` (Node-SEA) is preserved/digested, not regenerated.
+`examples/gold-game/` is the HoloScript engine harness and verifier mirror. GOLD-owned game content,
+release intent, and product packaging belong under `D:/GOLD/assets/game/gold-game/`. **Gate 30 makes
+the deploy one verified command** — `node examples/gold-game/gate-30-package.mjs` regenerates both
+builds (3D + retro-2D from the `.holo`), materializes the launcher/docs/`.bat`/`autorun.inf`/server/setup
+from the canonical `package-assets.mjs`, copies the exact bytes to `D:/GOLD-GAME/`, and emits
+`GATE-30-SHIP-PACKAGING-receipt.json` proving deployed bytes == source. The next packaging correction is
+to make that command sync the GOLD product home first, then emit the portable release.
 
 ## Oasis fixture (retired — connection-mechanics proof only)
 

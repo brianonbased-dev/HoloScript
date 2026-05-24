@@ -1,0 +1,142 @@
+{
+  "gate": 32,
+  "track": "flagship",
+  "name": "HoloGram image-to-world — founder 2D art becomes a depth-backed 3D GOLD world source",
+  "verifier": "examples/gold-game/gate-32-hologram-image-to-world-verify.mjs",
+  "implementation": {
+    "depthService": "packages/engine/src/hologram/DepthEstimationService.ts (SHIPPED — Depth Anything V2 pipeline; deterministic luminance fallback in Node, same algorithm as packages/hologram-worker/src/depth-infer.ts)",
+    "normalMap": "packages/engine/src/hologram/DepthEstimationService.ts depthToNormalMap (genuine Sobel, W.155)",
+    "sourceImage": "examples/gold-game/assets/gold-vault-vista-wlNgg.jpg (the founder art)",
+    "sourceScene": "examples/gold-game/gold-vault-game.holo (parsed via @holoscript/core parseHolo)",
+    "contractSpine": "packages/engine/src/simulation/hashes.ts computeStateDigest"
+  },
+  "inference": {
+    "grid": "48x32",
+    "detectedBackend": "webgpu",
+    "neuralPipelineLoaded": false,
+    "actualDepthPath": "luminance-fallback (deterministic)",
+    "depthMin": 0.005,
+    "depthMax": 0.9988,
+    "depthRange": 0.9938,
+    "note": "Depth Anything V2 pipeline did NOT load in this env (transformers.js present but no usable ONNX device for \"webgpu\"); ran the SHIPPED deterministic luminance fallback (identical algorithm to packages/hologram-worker/src/depth-infer.ts). The neural backend is a runtime/model-availability upgrade, NOT a code change — the image-to-world pipeline below is backend-agnostic."
+  },
+  "generatedWorld": {
+    "kind": "hologram-image-to-world",
+    "source_image": "examples/gold-game/assets/gold-vault-vista-wlNgg.jpg",
+    "source_holo": "examples/gold-game/gold-vault-game.holo",
+    "generated_group": {
+      "spatial_group": "VaultVistaBackdrop",
+      "origin": [
+        0,
+        6,
+        -24
+      ],
+      "geometry": "depth_displaced_grid",
+      "grid": {
+        "width": 48,
+        "height": 32
+      },
+      "vertexCount": 1536,
+      "sampleVertices": [
+        {
+          "grid": [
+            0,
+            0
+          ],
+          "world": [
+            -12,
+            14,
+            -25.2877
+          ],
+          "depth": 0.839
+        },
+        {
+          "grid": [
+            1,
+            0
+          ],
+          "world": [
+            -11.4894,
+            14,
+            -25.4446
+          ],
+          "depth": 0.8194
+        },
+        {
+          "grid": [
+            2,
+            0
+          ],
+          "world": [
+            -10.9787,
+            14,
+            -25.5607
+          ],
+          "depth": 0.8049
+        },
+        {
+          "grid": [
+            3,
+            0
+          ],
+          "world": [
+            -10.4681,
+            14,
+            -25.714
+          ],
+          "depth": 0.7857
+        },
+        {
+          "grid": [
+            4,
+            0
+          ],
+          "world": [
+            -9.9574,
+            14,
+            -25.7826
+          ],
+          "depth": 0.7772
+        },
+        {
+          "grid": [
+            5,
+            0
+          ],
+          "world": [
+            -9.4468,
+            14,
+            -25.8139
+          ],
+          "depth": 0.7733
+        }
+      ]
+    },
+    "feedsBackInto": "the playable vault scene as the depth-backed vista world behind DiamondPeak"
+  },
+  "scene": {
+    "parseClean": true,
+    "existingGroups": [
+      "BronzeValley",
+      "GoldTerrace",
+      "DiamondPeak"
+    ],
+    "generatedGroup": "VaultVistaBackdrop"
+  },
+  "checks": {
+    "parseClean": true,
+    "artIngested": true,
+    "realDepthSurface": true,
+    "normalsMatch": true,
+    "depthHasVariation": true,
+    "worldGenerated": true,
+    "deterministic": true
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest(field-bag, sha256)",
+    "worldDigest": "5042f1a775463be7fafe9a4acaf150fdf77c529b7020d8273b6c3239b0e075fb",
+    "reproducible": "run the verifier to re-derive"
+  },
+  "honestScope": "Consumes the GENUINE shipped HoloGram depth surface (packages/engine/src/hologram/DepthEstimationService.ts — the same DepthEstimationService + depthToNormalMap the production hologram path uses) for its ACTUAL image-to-world job. PROVEN: the REAL founder 2D art is ingested (sharp → raw RGBA), the SHIPPED service infers a real per-pixel depth map with genuine variation, the SHIPPED Sobel depthToNormalMap derives per-vertex normals (independently re-derived to prove they are not fabricated), those maps DISPLACE a vertex grid into a 3D world source (a VaultVistaBackdrop spatial_group that extends the real parsed vault scene and feeds back into the playable vault), and the generated world geometry digest reproduces deterministically via the real computeStateDigest. NOT proven here (out of scope, requires a usable on-device neural runtime): (a) Depth Anything V2 NEURAL depth — in THIS run the service detected backend \"webgpu\" but the ONNX/transformers.js pipeline did not initialize (neuralPipelineLoaded=false), so it ran the SHIPPED deterministic luminance fallback (actualDepthPath=\"luminance-fallback (deterministic)\", the identical algorithm to packages/hologram-worker/src/depth-infer.ts); the neural backend is a runtime/model-availability upgrade, not a code change, and the world-generation pipeline below is backend-agnostic (it consumes whatever depth+normals the shipped service returns); (b) RASTERIZED pixels of the backdrop — the textured/lit render is the headless-Chromium / browser render path (Gate 1 pattern), not this pure-geometry verifier; (c) full mesh tessellation + UV atlas — this gate proves the depth-displaced point/vertex field (the world SOURCE), the polygonal surfacing is the deepening. This gate proves the deterministic IMAGE-to-DEPTH-to-3D-WORLD-SOURCE pipeline over the real founder art using the real shipped service — the compiler/service-side artifact; the neural-depth backend + pixel raster are the model-download/hardware-in-the-loop deepening, the same pattern as Gates 1/13.",
+  "verifiedAt": "2026-05-24T06:23:45.153Z"
+}

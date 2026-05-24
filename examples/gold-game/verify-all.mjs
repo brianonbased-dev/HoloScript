@@ -12,10 +12,10 @@
 import { execFileSync, execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const repoRoot = join(here, '..', '..');
+const repoRoot = resolve(process.env.HOLOSCRIPT_REPO || process.env.HOLOSCRIPT_ROOT || join(here, '..', '..'));
 const tsx = join(repoRoot, 'node_modules', '.bin', process.platform === 'win32' ? 'tsx.cmd' : 'tsx');
 
 // ── The ledger rows (must match GATES.md) ─────────────────────────────────────
@@ -56,7 +56,7 @@ const GATES = [
   { track: 'flagship', gate: 29, name: 'agent party AI — visible companions choose entries, explain choices, spend budget, and remember the player across sessions', kind: 'script', runner: 'tsx', file: 'gate-29-party-verify.mjs' },
   { track: 'flagship', gate: 30, name: 'ship packaging — one command regenerates 3D/2D/server/docs, copies the exact build, deployed bytes provably == source (reproducible packageDigest)', kind: 'script', runner: 'node', file: 'gate-30-package-verify.mjs' },
   { track: 'flagship', gate: 31, name: 'playable HoloGraph — knowledge lineage constellation becomes navigation, not only a verifier', kind: 'script', runner: 'node', file: 'gate-31-playable-holograph-verify.mjs' },
-  { track: 'flagship', gate: 32, name: 'HoloGram image-to-world — founder art becomes a depth-backed 3D GOLD world source', kind: 'open' },
+  { track: 'flagship', gate: 32, name: 'HoloGram image-to-world — founder art becomes a depth-backed 3D GOLD world source (real DepthEstimationService + Sobel normals)', kind: 'script', runner: 'tsx', file: 'gate-32-hologram-image-to-world-verify.mjs' },
   { track: 'flagship', gate: 33, name: 'HoloMap scanned-space import — video/device capture becomes anchored GOLD space', kind: 'open' },
   { track: 'flagship', gate: 34, name: 'HoloGram holographic outputs — generated GOLD world renders to quilt, MV-HEVC, and parallax artifacts', kind: 'open' },
   { track: 'flagship', gate: 35, name: 'HoloScript kitchen-sink pass — HoloGraph + HoloGram + HoloMap join the same playable loop', kind: 'open' },
