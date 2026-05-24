@@ -13,7 +13,7 @@ promoted out of projected status.
 
 | SKU | GPU class | N values | Required capture notes |
 | --- | --- | --- | --- |
-| Quest 3 / Adreno 740 | mobile XR | 2, 3, 4 | Record browser/WebXR shell, OS version, battery state, and thermal state after each 60 s sample. |
+| Quest 3 / Adreno 740 | mobile XR | 2, 3, 4 | Record browser/WebXR shell, OS version, battery state, and thermal state after each 60 s sample; use [the Quest 3 headset capture workflow](p043-quest3-headset-capture-workflow.md). |
 | RTX 4090 | desktop discrete | 2, 4, 8 | Primary high-end desktop cell. |
 | RTX 3090 | desktop discrete | 2, 4, 8 | Ampere comparison point. |
 | Apple M3 GPU | desktop integrated | 2, 4, 8 | Capture macOS and browser version because the WebGPU path is Metal-backed. |
