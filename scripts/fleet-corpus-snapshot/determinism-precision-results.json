@@ -2,9 +2,10 @@
   "machines": [
     "local-win-x64",
     "vast-linux-x64",
-    "vast-broadwell-xeon-e5-2680v4"
+    "vast-broadwell-xeon-e5-2680v4",
+    "vast-coffeelake-i7-9700"
   ],
-  "machineCount": 3,
+  "machineCount": 4,
   "modelId": "Xenova/all-MiniLM-L6-v2",
   "dim": 384,
   "probes": 5,
