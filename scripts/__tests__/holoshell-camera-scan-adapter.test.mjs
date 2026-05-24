@@ -51,12 +51,31 @@ const pass = {
   status: 'pass',
   blockedReason: undefined,
   permissionGate: undefined,
+  capture: {
+    requestedFrameCount: 2,
+    capturedFrameCount: 2,
+    acceptedFrameCount: 2,
+    intervalMs: 250,
+    videoHash: 'holoshell-native-camera:' + 'b'.repeat(64),
+  },
   frame: {
     rgbHash: 'sha256:' + 'a'.repeat(64),
   },
+  frames: [
+    { index: 0, rgbHash: 'sha256:' + 'a'.repeat(64) },
+    { index: 1, rgbHash: 'sha256:' + 'b'.repeat(64) },
+  ],
   holomap: {
     replayFingerprint: 'replay',
-    pointCount: 16,
+    pointCount: 32,
+    assets: {
+      ply: '.bench-logs/holoshell-camera-scan/test/scan.ply',
+      hologramBridge: '.bench-logs/holoshell-camera-scan/test/scan.hologram-bridge.json',
+    },
+  },
+  hologramBridge: {
+    status: 'geometry-ready',
+    artifactPath: '.bench-logs/holoshell-camera-scan/test/scan.hologram-bridge.json',
   },
 };
 assertEq(validateReceipt(pass).length, 0, 'minimal pass receipt validates');

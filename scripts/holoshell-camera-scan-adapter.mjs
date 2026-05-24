@@ -28,11 +28,13 @@ import {
   createHoloMapRuntime,
 } from '../packages/core/dist/reconstruction/index.js';
 
-export const VERSION = '0.1.0';
-export const RECEIPT_VERSION = 'holoshell-camera-scan-receipt/v1';
+export const VERSION = '0.2.0';
+export const RECEIPT_VERSION = 'holoshell-camera-scan-receipt/v2';
 const DEFAULT_DATE = new Date().toISOString().slice(0, 10);
 const DEFAULT_WIDTH = 96;
 const DEFAULT_HEIGHT = 72;
+const DEFAULT_FRAMES = 1;
+const DEFAULT_INTERVAL_MS = 250;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
@@ -46,6 +48,8 @@ function parseArgs(argv) {
     deviceIndex: 0,
     width: DEFAULT_WIDTH,
     height: DEFAULT_HEIGHT,
+    frames: DEFAULT_FRAMES,
+    intervalMs: DEFAULT_INTERVAL_MS,
     keepFrame: false,
     requireCapture: false,
     selfTest: false,
@@ -62,6 +66,8 @@ function parseArgs(argv) {
     else if (arg === '--device-index') args.deviceIndex = Number.parseInt(argv[++i], 10);
     else if (arg === '--width') args.width = Number.parseInt(argv[++i], 10);
     else if (arg === '--height') args.height = Number.parseInt(argv[++i], 10);
+    else if (arg === '--frames') args.frames = Number.parseInt(argv[++i], 10);
+    else if (arg === '--interval-ms') args.intervalMs = Number.parseInt(argv[++i], 10);
     else if (arg === '--keep-frame') args.keepFrame = true;
     else if (arg === '--require-capture') args.requireCapture = true;
     else if (arg === '--help' || arg === '-h' || arg === 'help') args.command = 'help';
@@ -77,6 +83,12 @@ function parseArgs(argv) {
   if (!Number.isInteger(args.height) || args.height < 2 || args.height > 480) {
     throw new Error('--height must be an integer from 2 to 480');
   }
+  if (!Number.isInteger(args.frames) || args.frames < 1 || args.frames > 120) {
+    throw new Error('--frames must be an integer from 1 to 120');
+  }
+  if (!Number.isInteger(args.intervalMs) || args.intervalMs < 0 || args.intervalMs > 10000) {
+    throw new Error('--interval-ms must be an integer from 0 to 10000');
+  }
   return args;
 }
 
@@ -85,12 +97,13 @@ function printHelp() {
 
 Usage:
   node scripts/holoshell-camera-scan-adapter.mjs list
-  node scripts/holoshell-camera-scan-adapter.mjs capture [--require-capture] [--out receipt.json]
+  node scripts/holoshell-camera-scan-adapter.mjs capture [--frames 5] [--interval-ms 250] [--require-capture] [--out receipt.json]
   node scripts/holoshell-camera-scan-adapter.mjs --self-test
 
 Notes:
   - Uses Windows WinRT MediaCapture directly when running on Windows.
   - Does not use browser getUserMedia or fake-camera browser flags.
+  - Emits HoloMap point-cloud assets and a HoloGram bridge artifact on pass.
   - Emits a blocked receipt when OS camera permission denies the shell host.
 `);
 }
@@ -194,8 +207,9 @@ function psSingleQuoted(value) {
   return `'${String(value).replaceAll("'", "''")}'`;
 }
 
-function winrtScript({ mode, outputPath, deviceIndex }) {
-  const outputPathLiteral = psSingleQuoted(resolve(outputPath));
+function winrtScript({ mode, outputDir, framePrefix, frameCount, intervalMs, deviceIndex }) {
+  const outputDirLiteral = psSingleQuoted(resolve(outputDir));
+  const framePrefixLiteral = psSingleQuoted(framePrefix);
   const modeLiteral = psSingleQuoted(mode);
   return `
 $ErrorActionPreference = 'Stop'
@@ -253,11 +267,9 @@ try {
   }
 
   $device = $devices[${deviceIndex}]
-  $outPath = ${outputPathLiteral}
-  $outDir = Split-Path -Parent $outPath
+  $outDir = ${outputDirLiteral}
   New-Item -ItemType Directory -Force -Path $outDir | Out-Null
   $folder = AwaitGeneric ([Windows.Storage.StorageFolder]::GetFolderFromPathAsync($outDir)) ([Windows.Storage.StorageFolder])
-  $file = AwaitGeneric ($folder.CreateFileAsync((Split-Path -Leaf $outPath), [Windows.Storage.CreationCollisionOption]::ReplaceExisting)) ([Windows.Storage.StorageFile])
 
   $settings = New-Object Windows.Media.Capture.MediaCaptureInitializationSettings
   $settings.VideoDeviceId = $device.id
@@ -266,14 +278,30 @@ try {
   try {
     AwaitAction ($capture.InitializeAsync($settings))
     $props = [Windows.Media.MediaProperties.ImageEncodingProperties]::CreateJpeg()
-    AwaitAction ($capture.CapturePhotoToStorageFileAsync($props, $file))
-    $length = (Get-Item -LiteralPath $outPath).Length
+    $frames = @()
+    for ($i = 0; $i -lt ${frameCount}; $i++) {
+      $leaf = ('{0}-{1:d3}.jpg' -f ${framePrefixLiteral}, $i)
+      $outPath = Join-Path $outDir $leaf
+      $file = AwaitGeneric ($folder.CreateFileAsync($leaf, [Windows.Storage.CreationCollisionOption]::ReplaceExisting)) ([Windows.Storage.StorageFile])
+      $capturedAtIso = [DateTimeOffset]::UtcNow.ToString('o')
+      AwaitAction ($capture.CapturePhotoToStorageFileAsync($props, $file))
+      $length = (Get-Item -LiteralPath $outPath).Length
+      $frames += [pscustomobject]@{
+        index = $i
+        path = $outPath
+        bytes = $length
+        capturedAtIso = $capturedAtIso
+      }
+      if ($i -lt (${frameCount} - 1) -and ${intervalMs} -gt 0) {
+        Start-Sleep -Milliseconds ${intervalMs}
+      }
+    }
     [pscustomobject]@{
       status = 'pass'
       provider = 'windows-winrt-mediacapture'
       device = $device
-      framePath = $outPath
-      frameBytes = $length
+      frameCount = $frames.Count
+      frames = $frames
     } | ConvertTo-Json -Depth 8
   } catch {
     [pscustomobject]@{
@@ -299,7 +327,7 @@ try {
 `;
 }
 
-function captureViaWindowsWinRt(args, framePath) {
+function captureViaWindowsWinRt(args, frameDir) {
   if (process.platform !== 'win32') {
     return {
       status: 'blocked',
@@ -310,7 +338,10 @@ function captureViaWindowsWinRt(args, framePath) {
   }
   return powershellJson(winrtScript({
     mode: args.command === 'list' ? 'list' : 'capture',
-    outputPath: framePath,
+    outputDir: frameDir,
+    framePrefix: `frame-${process.pid}`,
+    frameCount: args.frames,
+    intervalMs: args.intervalMs,
     deviceIndex: args.deviceIndex,
   }));
 }
@@ -332,13 +363,21 @@ async function decodeImageToRgb(imagePath, width, height) {
   };
 }
 
-async function runHoloMap(frame, videoHash) {
+async function runHoloMap(frames, videoHash, intervalMs) {
   const runtime = createHoloMapRuntime();
+  const firstFrame = frames[0];
+  if (!firstFrame) throw new Error('runHoloMap requires at least one frame');
+  const steps = [];
+  const pointCloud = {
+    positions: [],
+    colors: [],
+    confidence: [],
+  };
   try {
     await runtime.init({
-      inputResolution: { width: frame.width, height: frame.height },
+      inputResolution: { width: firstFrame.width, height: firstFrame.height },
       targetFPS: 5,
-      maxSequenceLength: 30,
+      maxSequenceLength: Math.max(30, frames.length),
       seed: 0,
       modelHash: 'holoshell-native-camera-scan-v1',
       videoHash,
@@ -347,28 +386,172 @@ async function runHoloMap(frame, videoHash) {
       verticalProfile: 'indoor',
       allowCpuFallback: true,
     });
-    const step = await runtime.step({
-      index: 0,
-      timestampMs: 0,
-      rgb: frame.rgb,
-      width: frame.width,
-      height: frame.height,
-      stride: frame.stride,
-    });
+    for (const frame of frames) {
+      const timestampMs = frame.index * intervalMs;
+      const step = await runtime.step({
+        index: frame.index,
+        timestampMs,
+        rgb: frame.rgb,
+        width: frame.width,
+        height: frame.height,
+        stride: frame.stride,
+      });
+      if (!step) {
+        steps.push({
+          frameIndex: frame.index,
+          timestampMs,
+          accepted: false,
+          reason: 'target-fps-throttle',
+        });
+        continue;
+      }
+
+      for (const value of step.points.positions) pointCloud.positions.push(value);
+      for (const value of step.points.colors) pointCloud.colors.push(value);
+      for (const value of step.points.confidence) pointCloud.confidence.push(value);
+      steps.push({
+        frameIndex: frame.index,
+        timestampMs,
+        accepted: true,
+        pointCount: step.points.positions.length / 3,
+        anchorRevision: step.anchor.revision,
+        poseConfidence: step.pose.confidence,
+        posePosition: step.pose.position,
+      });
+    }
     const manifest = await runtime.finalize();
     return {
       manifest,
-      step: step
-        ? {
-            pointCount: step.points.positions.length / 3,
-            anchorRevision: step.anchor.revision,
-            poseConfidence: step.pose.confidence,
-          }
-        : undefined,
+      steps,
+      pointCloud,
     };
   } finally {
     await runtime.dispose().catch(() => undefined);
   }
+}
+
+function writePly(path, pointCloud) {
+  const pointCount = Math.floor(pointCloud.positions.length / 3);
+  const lines = [
+    'ply',
+    'format ascii 1.0',
+    'comment generated by holoshell-camera-scan-adapter',
+    `element vertex ${pointCount}`,
+    'property float x',
+    'property float y',
+    'property float z',
+    'property uchar red',
+    'property uchar green',
+    'property uchar blue',
+    'property float confidence',
+    'end_header',
+  ];
+  for (let i = 0; i < pointCount; i += 1) {
+    const p = i * 3;
+    const x = Number(pointCloud.positions[p] ?? 0).toFixed(7);
+    const y = Number(pointCloud.positions[p + 1] ?? 0).toFixed(7);
+    const z = Number(pointCloud.positions[p + 2] ?? 0).toFixed(7);
+    const r = Math.max(0, Math.min(255, Math.round(pointCloud.colors[p] ?? 0)));
+    const g = Math.max(0, Math.min(255, Math.round(pointCloud.colors[p + 1] ?? 0)));
+    const b = Math.max(0, Math.min(255, Math.round(pointCloud.colors[p + 2] ?? 0)));
+    const c = Number(pointCloud.confidence[i] ?? 0).toFixed(6);
+    lines.push(`${x} ${y} ${z} ${r} ${g} ${b} ${c}`);
+  }
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${lines.join('\n')}\n`, 'utf8');
+}
+
+function buildHoloSource({ manifest, assets }) {
+  return `composition "HoloShell Native Camera HoloMap Scan" {
+  object "ScanData" {
+    @point_cloud {
+      count: ${manifest.pointCount}
+      size: 0.02
+      color_mode: "rgb"
+      source: "${assets.ply}"
+    }
+
+    @hologram {
+      source_type: "point_cloud"
+      targets: ["quilt", "parallax", "mvhevc"]
+      bridge: "${assets.hologramBridge}"
+      replay_fingerprint: "${manifest.simulationContract.replayFingerprint}"
+    }
+
+    position: [0, 0, 0]
+  }
+}
+`;
+}
+
+function buildHologramBridge({ manifest, assets, pointCloudHash }) {
+  return {
+    schemaVersion: 'hologram-bridge/holomap-pointcloud/v1',
+    status: 'geometry-ready',
+    source: {
+      kind: 'holomap-pointcloud',
+      replayFingerprint: manifest.simulationContract.replayFingerprint,
+      pointCloudHash,
+      pointCount: manifest.pointCount,
+      frameCount: manifest.frameCount,
+      bounds: manifest.bounds,
+      assets,
+    },
+    targets: {
+      quilt: {
+        status: 'ready-for-render',
+        views: 48,
+        columns: 8,
+        rows: 6,
+        sourceAsset: 'ply',
+      },
+      parallax: {
+        status: 'ready-for-encoder',
+        sourceAsset: 'ply',
+        sourceFrames: manifest.frameCount,
+      },
+      mvhevc: {
+        status: 'metadata-ready',
+        stereoPairs: 24,
+        sourceAsset: 'ply',
+      },
+    },
+    honestScope:
+      'Native camera frames were reconstructed and exported as HoloMap geometry. Quilt, parallax WebM, and MV-HEVC pixel encoding are the next render step.',
+  };
+}
+
+function writeScanArtifacts({ outPath, holoMap }) {
+  const outDir = dirname(outPath);
+  const replay = holoMap.manifest.simulationContract.replayFingerprint.slice(0, 12);
+  const base = `holoshell-scan-${replay}`;
+  const plyPath = resolve(outDir, `${base}.ply`);
+  const manifestPath = resolve(outDir, `${base}.manifest.json`);
+  const holoPath = resolve(outDir, `${base}.holo`);
+  const bridgePath = resolve(outDir, `${base}.hologram-bridge.json`);
+
+  writePly(plyPath, holoMap.pointCloud);
+  const pointCloudHash = `sha256:${sha256Bytes(readFileSync(plyPath))}`;
+
+  const assets = {
+    ply: rel(plyPath),
+    manifest: rel(manifestPath),
+    holo: rel(holoPath),
+    hologramBridge: rel(bridgePath),
+  };
+  holoMap.manifest.assets = {
+    ...holoMap.manifest.assets,
+    points: assets.ply,
+    holoshellManifest: assets.manifest,
+    holo: assets.holo,
+    hologramBridge: assets.hologramBridge,
+  };
+  writeJson(manifestPath, holoMap.manifest);
+  const bridge = buildHologramBridge({ manifest: holoMap.manifest, assets, pointCloudHash });
+  writeJson(bridgePath, bridge);
+  writeFileSync(holoPath, buildHoloSource({ manifest: holoMap.manifest, assets }), 'utf8');
+
+  return { assets, bridge, pointCloudHash };
 }
 
 function blockedReceipt(args, at, capture, outputPath) {
@@ -406,9 +589,9 @@ function blockedReceipt(args, at, capture, outputPath) {
 async function buildCaptureReceipt(args) {
   const at = nowIso(args);
   const outPath = resolve(REPO_ROOT, args.out ?? defaultOutput(args.date));
-  const framePath = join(tmpdir(), `holoshell-camera-frame-${process.pid}-${Date.now()}.jpg`);
+  const frameDir = join(tmpdir(), `holoshell-camera-scan-${process.pid}-${Date.now()}`);
 
-  const capture = captureViaWindowsWinRt(args, framePath);
+  const capture = captureViaWindowsWinRt(args, frameDir);
   if (args.command === 'list') {
     return withHash({
       id: `holoshell-camera-inventory-${sha256Text(at).slice(0, 12)}`,
@@ -425,10 +608,17 @@ async function buildCaptureReceipt(args) {
   }
 
   if (capture.status !== 'pass') {
+    rmSync(frameDir, { recursive: true, force: true });
     return blockedReceipt(args, at, capture, outPath);
   }
 
-  if (!existsSync(framePath) || statSync(framePath).size <= 0) {
+  const capturedFrames = Array.isArray(capture.frames)
+    ? capture.frames
+    : capture.framePath
+      ? [{ index: 0, path: capture.framePath, bytes: capture.frameBytes }]
+      : [];
+  if (capturedFrames.length < 1) {
+    rmSync(frameDir, { recursive: true, force: true });
     return blockedReceipt(
       args,
       at,
@@ -436,18 +626,66 @@ async function buildCaptureReceipt(args) {
         ...capture,
         status: 'blocked',
         blockedReason: 'camera-frame-empty',
-        error: 'WinRT capture returned no image bytes.',
+        error: 'WinRT capture returned no image frames.',
       },
       outPath
     );
   }
 
-  const jpeg = readFileSync(framePath);
-  const jpegHash = sha256Bytes(jpeg);
-  const frame = await decodeImageToRgb(framePath, args.width, args.height);
-  const frameHash = sha256Bytes(frame.rgb);
-  const videoHash = `holoshell-native-camera:${sha256Text(`${jpegHash}:${frameHash}`)}`;
-  const holoMap = await runHoloMap(frame, videoHash);
+  const frames = [];
+  const receiptFrames = [];
+  for (let i = 0; i < capturedFrames.length; i += 1) {
+    const captured = capturedFrames[i];
+    const sourcePath = resolve(captured.path);
+    if (!existsSync(sourcePath) || statSync(sourcePath).size <= 0) {
+      rmSync(frameDir, { recursive: true, force: true });
+      return blockedReceipt(
+        args,
+        at,
+        {
+          ...capture,
+          status: 'blocked',
+          blockedReason: 'camera-frame-empty',
+          error: `WinRT capture returned no image bytes for frame ${i}.`,
+        },
+        outPath
+      );
+    }
+    const jpeg = readFileSync(sourcePath);
+    const jpegHash = sha256Bytes(jpeg);
+    const decoded = await decodeImageToRgb(sourcePath, args.width, args.height);
+    const frameHash = sha256Bytes(decoded.rgb);
+    const keptFramePath = args.keepFrame
+      ? rel(resolve(dirname(outPath), `camera-frame-${i.toString().padStart(3, '0')}-${jpegHash.slice(0, 12)}.jpg`))
+      : undefined;
+    const frameIndex = Number.isInteger(captured.index) ? captured.index : i;
+    frames.push({
+      index: frameIndex,
+      timestampMs: frameIndex * args.intervalMs,
+      rgb: decoded.rgb,
+      width: decoded.width,
+      height: decoded.height,
+      stride: decoded.stride,
+    });
+    receiptFrames.push({
+      index: frameIndex,
+      source: 'windows-winrt-mediacapture',
+      capturedAt: captured.capturedAtIso,
+      jpegBytes: jpeg.byteLength,
+      jpegHash: `sha256:${jpegHash}`,
+      rgbWidth: decoded.width,
+      rgbHeight: decoded.height,
+      rgbStride: decoded.stride,
+      rgbHash: `sha256:${frameHash}`,
+      keptFramePath,
+    });
+  }
+
+  const videoHash = `holoshell-native-camera:${sha256Text(
+    receiptFrames.map((frame) => `${frame.index}:${frame.jpegHash}:${frame.rgbHash}`).join('|')
+  )}`;
+  const holoMap = await runHoloMap(frames, videoHash, args.intervalMs);
+  const artifacts = writeScanArtifacts({ outPath, holoMap });
 
   const receipt = withHash({
     id: `holoshell-camera-scan-${holoMap.manifest.simulationContract.replayFingerprint.slice(0, 12)}`,
@@ -459,32 +697,44 @@ async function buildCaptureReceipt(args) {
     selectedDeviceIndex: args.deviceIndex,
     device: redactDevice(capture.device ?? {}),
     action: 'direct-native-camera-holomap-scan',
-    frame: {
-      source: 'windows-winrt-mediacapture',
-      jpegBytes: jpeg.byteLength,
-      jpegHash: `sha256:${jpegHash}`,
-      rgbWidth: frame.width,
-      rgbHeight: frame.height,
-      rgbStride: frame.stride,
-      rgbHash: `sha256:${frameHash}`,
-      keptFramePath: args.keepFrame ? rel(resolve(dirname(outPath), `camera-frame-${jpegHash.slice(0, 12)}.jpg`)) : undefined,
+    capture: {
+      requestedFrameCount: args.frames,
+      capturedFrameCount: receiptFrames.length,
+      acceptedFrameCount: holoMap.manifest.frameCount,
+      intervalMs: args.intervalMs,
+      videoHash,
     },
+    frame: receiptFrames[0],
+    frames: receiptFrames,
     holomap: {
       displayName: holoMap.manifest.displayName,
       frameCount: holoMap.manifest.frameCount,
       pointCount: holoMap.manifest.pointCount,
       replayFingerprint: holoMap.manifest.simulationContract.replayFingerprint,
-      step: holoMap.step,
+      steps: holoMap.steps,
+      assets: artifacts.assets,
+      pointCloudHash: artifacts.pointCloudHash,
       manifest: holoMap.manifest,
+    },
+    hologramBridge: {
+      status: artifacts.bridge.status,
+      artifactPath: artifacts.assets.hologramBridge,
+      sourceKind: artifacts.bridge.source.kind,
+      targets: artifacts.bridge.targets,
+      honestScope: artifacts.bridge.honestScope,
     },
     outputPath: rel(outPath),
   });
 
   if (args.keepFrame) {
     mkdirSync(dirname(outPath), { recursive: true });
-    copyFileSync(framePath, resolve(dirname(outPath), `camera-frame-${jpegHash.slice(0, 12)}.jpg`));
+    for (const frame of receiptFrames) {
+      if (!frame.keptFramePath) continue;
+      const captured = capturedFrames.find((candidate) => candidate.index === frame.index) ?? capturedFrames[frame.index];
+      if (captured?.path) copyFileSync(resolve(captured.path), resolve(REPO_ROOT, frame.keptFramePath));
+    }
   }
-  rmSync(framePath, { force: true });
+  rmSync(frameDir, { recursive: true, force: true });
   return receipt;
 }
 
@@ -495,9 +745,15 @@ export function validateReceipt(receipt) {
   if (!['pass', 'blocked'].includes(receipt.status)) errors.push('status must be pass or blocked');
   if (!receipt.hash?.startsWith('sha256:')) errors.push('hash missing');
   if (receipt.status === 'pass' && receipt.action !== 'direct-native-camera-inventory') {
-    if (!receipt.frame?.rgbHash?.startsWith('sha256:')) errors.push('pass receipt missing frame rgb hash');
+    if (!receipt.frame?.rgbHash?.startsWith('sha256:')) errors.push('pass receipt missing first frame rgb hash');
+    if (!Array.isArray(receipt.frames) || receipt.frames.length < 1) errors.push('pass receipt missing frames');
+    if (Array.isArray(receipt.frames) && receipt.frames.some((frame) => !frame.rgbHash?.startsWith('sha256:'))) {
+      errors.push('pass receipt has frame without rgb hash');
+    }
     if (!receipt.holomap?.replayFingerprint) errors.push('pass receipt missing HoloMap replay fingerprint');
     if (!(receipt.holomap?.pointCount > 0)) errors.push('pass receipt missing point count');
+    if (!receipt.holomap?.assets?.ply) errors.push('pass receipt missing HoloMap PLY asset');
+    if (receipt.hologramBridge?.status !== 'geometry-ready') errors.push('pass receipt missing HoloGram bridge');
   }
   if (receipt.status === 'blocked') {
     if (!receipt.blockedReason) errors.push('blocked receipt missing blockedReason');
