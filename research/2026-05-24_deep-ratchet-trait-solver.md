@@ -155,7 +155,36 @@ local checkout either. Net: HoloGraph/HoloEmbed are currently unusable as a fres
 handle. Worth its own fix so future ratchets get the exact graph handle (F.068) instead of
 grep fallback.
 
+## Tier-3 compilers — 12 of 61 ratcheted (2026-05-24, batches 1-2)
+
+Verdict: **11 REAL, 1 THIN, 0 OVERCLAIMED.** The compiler tier genuinely traverses the
+scene-graph AST and emits input-varying output (verifiers assert structural faithfulness,
+not just non-empty). The recurring weakness is a **silent-degradation anti-pattern** —
+unhandled cases drop to a comment / a default primitive / a hardcoded constant with no
+warning — masked by verifiers that only assert token-presence.
+
+| Compiler | Verdict | Note |
+|---|---|---|
+| R3FCompiler | REAL | 93 trait branches, faithful; unknown traits flagged not dropped |
+| UnityCompiler | REAL | ~50 traits; AR/XR/AI/FX/timeline-bodies emit config-preserving comments (no runtime behavior) |
+| UnrealCompiler | REAL | geometry/state/physics/domain real; ~7 interaction traits + timeline/action bodies stubbed; object children NOT recursed (flat actor list) |
+| GaussianSplattingCompiler | REAL | real Jacobi-PCA splats + GLB; claim wording wrong (glTF `KHR_gaussian_splatting`, not .ply/.splat); constant demo-grid fallback when no splat trait; weak verifier |
+| URDFCompiler | REAL | 6 joint types, real inertia tensors, strong verifier |
+| WebGPUCompiler | REAL | ~85% input-driven; emitted code calls `generateSphereVertices` etc. never defined/imported → won't run standalone (bounded) |
+| NIRCompiler | REAL | genuine neuromorphic NIR lowering + composite sub-nodes; weights are honest deterministic placeholders (untrained) |
+| NIRToWGSLCompiler | REAL | 14 op generators, Euler/RK4 divergence; Conv2d/pooling hardcode 28×28 dims; no double-buffering |
+| SDFRayMarchCompiler | REAL | real per-primitive SDF + CSG + raymarch; 6 primitives silently degrade to unit sphere (no warning) |
+| QuantumCircuitCompiler | REAL | qubit/gate count scale with molecule, real OpenQASM 3.0; VQE/QAOA variational params hardcoded (`ry(0.1)`, γ/β=0.5), not bindable |
+| USDPhysicsCompiler | REAL | node tree→prim hierarchy + UsdPhysics; joint body0/body1 paths may dangle in Isaac; geometry size/radius never emitted; flat prim list |
+| WASMCompiler | **THIN** | real input-driven WAT *text* (state→memory, objects→fns) but per-object update bodies are empty stubs and it never produces WASM bytes (no wabt/binaryen, format option unread); verifier never instantiates. "working WebAssembly module" overclaims. |
+
+Cross-cutting: most compiler verifiers assert token presence, not faithful structure/behavior
+— they would not catch the silent-degradation cases above. Filed to the board:
+C-WASM (P3), C-FIDELITY (P4), breadth-2 (P5).
+
 ## Next breadth pass
 
-Tier 3 (61 compilers) and the ~88 remaining POTENTIAL traits are un-ratcheted. The compiler
-tier is the next-highest leverage surface (each `compile_to_*` claims a working emit target).
+Un-ratcheted: **~49 remaining compilers** (cross-engine Three/Babylon/Godot/PlayCanvas;
+platform AR/iOS/Android/VisionOS/OpenXR; format USD/USDZ/TSL/DTDL/A2A/MCP; niche incl. the
+known-failing VRChatCompiler) and the **~88 POTENTIAL trait stubs + Tier-4 integration
+traits**. All filed to the board (deep-ratchet straggler tasks, 2026-05-24).
