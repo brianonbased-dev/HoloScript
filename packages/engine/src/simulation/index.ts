@@ -367,6 +367,21 @@ export {
   assessNoveltyAgainstKnownResults,
 } from './ConjecturePriorArtCorpus';
 
+// Semantic novelty ADVISORY layer (scope 2026-05-23) — a learned local model
+// (Xenova/all-MiniLM-L6-v2 via the already-present @huggingface/transformers, offline)
+// that catches PARAPHRASES of known results the lexical trigram guard misses (W.520).
+// ADVISORY only — never receipt-binding until cross-fleet determinism is proven.
+export {
+  SEMANTIC_NOVELTY_MODEL,
+  SEMANTIC_NOVELTY_THRESHOLD,
+  embedSemantic,
+  cosineSimilarity as semanticCosineSimilarity,
+  assessSemanticNovelty,
+  type SemanticNoveltyStatus,
+  type SemanticNoveltyMatch,
+  type SemanticNoveltyAssessment,
+} from './SemanticNoveltyEncoder';
+
 // Verdict ledger (`conjecture.verdict-ledger.v1`) — temporal, assumption-bound
 // conjecture verdicts ("knowledge is fluid", D.060). A verdict holds "as of T under
 // assumptions A"; overturning a depended-on assumption RE-OPENS it (falsified →
