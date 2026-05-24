@@ -262,11 +262,43 @@ flagship/sovereign/format/XR tiers are genuinely real codegen. Recurring cluster
 (1) silent-degradation, (2) thin/absent fidelity verifiers, (3) claim/terminology drift,
 (4) product-edge overclaims, (5) spec-shape bugs the tests entrench.
 
-## Next breadth pass
+### Batch 8 — 6 more (48 of 61 total): 4 REAL, 1 THIN, 1 OVERCLAIMED
 
-Un-ratcheted: **~19 remaining compilers** — pure infra/niche: FlatSemantic/Context/Incremental;
-Pipeline/Graph/TraitComposition; Holob/SCM/NextJS/NextJSAPI/NodeService/Matterpak/
-LLMProviderCapabilities/CodebaseScene/PlatformConditional/useCompiler/nodeGraphCompiler(studio).
-Plus the **~88 POTENTIAL trait stubs + Tier-4 integration traits**. All on the board.
-Signal has saturated (overclaims are at the product-edge, now mapped); remaining tier is
-low-leverage infra.
+| Compiler | Verdict | Note |
+|---|---|---|
+| TraitCompositionCompiler | REAL | delegates to ProvenanceSemiring (real commutative-semiring conflict resolver: per-property strategies, authority-weighting, deterministic tie-break); strong fidelity verifier. Minor: authority≥100 conflict-bypass, dropped diamond warnings |
+| PipelineCompiler | REAL | per-element generators (source/transform/filter/validate/branch/sink), real cross-stage data-flow wiring, fidelity verifier (~1.0) |
+| IncrementalCompiler | REAL | genuine SHA-256 change-detection + dependency invalidation + cache-skip; verifier asserts skips/hits ADVERSARIALLY (counts compiler invocations) — strongest verifier in the tier |
+| NextJSCompiler | REAL | wraps Native2DCompiler's real React codegen, input-driven, fidelity verifier; single-page (bounded, matches claim) |
+| NodeServiceCompiler | **THIN** | real route/method/path/middleware/deps scaffold varying with input, but **handler bodies are 100% `501 not_implemented` stubs** — no logic/state synthesis (honestly labeled "skeleton"). BOUNDED (`@handler` seam exists) |
+| GraphCompiler (scripting) | **OVERCLAIMED** | faithful graph→ordered-wired-IR sequencer (USES topo-sort, WIRES edges — better than NodeGraphCompiler) but emits NO executable logic (wire value hardcoded `null`, no operation semantics). An IR compiler mislabeled "real executable script/logic". BOUNDED |
+
+Filed to board: C-GRAPHLOGIC (GraphCompiler + NodeService + relates to NodeGraph, P4).
+
+## FINAL TALLY (48 of 61 compilers + 15 solvers/traits = 63 claims ratcheted)
+
+**Compilers: 39 REAL, 4 THIN (WASM, Quilt, NodeGraph, NodeService), 5 OVERCLAIMED (MCPConfig-vs-claim,
+AR, MVHEVC, Procedural, GraphCompiler-scripting).**
+**Solvers/traits (prior): 13 REAL solvers, ConstraintSolver OVERCLAIMED, 5 algorithm-traits OVERCLAIMED
+(2 fixed: TensorOp, Navmesh).**
+
+Headline: HoloScript core is **overwhelmingly real codegen and real numerics**. Overclaims are
+not fabrications across the board — they concentrate in three recognizable shapes:
+1. **Product-edge scaffold-only** (AR runtime, MV-HEVC codec, procedural-gen) — emit a near-fixed
+   skeleton or scaffold strings instead of compiling the input.
+2. **Graph→logic compilers that stop at structure** (NodeGraph, GraphCompiler) — wire/sequence
+   but emit no executable behavior.
+3. **Echo-stub traits** (TensorOp/Navmesh/Astar/Optimization/ObjectTracking) — the original
+   trait-tier finding; real seams sit next to them (F.068).
+The common enabler is **verifiers that assert token-presence, not faithful behavior** — a real
+fidelity verifier (counts/values/adversarial skip-counts) is the single highest-leverage
+preventive (Incremental/A2A/NFTMarketplace/StructuralSolver show what good looks like).
+
+## Stopped here (breadth saturated)
+
+Remaining **~13 compilers** are pure infra/niche (FlatSemantic/Context/Holob/SCM/NextJSAPI/
+Matterpak/LLMProviderCapabilities/CodebaseScene/PlatformConditional/studio useCompiler+
+nodeGraphCompiler) — low leverage, on the board as breadth-2. The **~88 POTENTIAL trait stubs +
+Tier-4 integration traits** also remain on the board. All deep-ratchet findings (19 board tasks)
+are filed and reference this doc. Next highest-value move is BUILDING the bounded fixes, not
+more breadth.
