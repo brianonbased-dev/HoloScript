@@ -3,8 +3,15 @@
  * @module @holoscript/core/compiler
  *
  * PURPOSE:
- * Compile HoloScript compositions to Augmented Reality (AR) layers, focusing
- * on pass-through overlays, bounding box anchors, and QR/image tracking.
+ * Compile HoloScript compositions to an Augmented Reality (AR) scaffold: a
+ * WebXR/Three.js scene plus an input-driven registry of @ar_beacon nodes (real
+ * id/type/position, bound per-beacon via ARRuntime.onBeaconDetected) and
+ * @overlay nodes (real text/layout). Each beacon/overlay in the source produces
+ * a distinct emitted entry.
+ *
+ * NOT YET EMITTED (deep-ratchet 2026-05-24, see C-AR): @geo_anchor, @qr_scan,
+ * @ar_portal, @camera_overlay, @x402_paywall traits are not yet translated to
+ * runtime constructs.
  */
 
 import type { HoloComposition } from '../parser/HoloCompositionTypes.js';
@@ -133,14 +140,89 @@ export class ARCompiler extends CompilerBase {
       this.generatedCode.push(`    image_tracking: ${this.options.features.image_tracking}`);
       this.generatedCode.push(`  }`);
       this.generatedCode.push(`});`);
+    }
 
-      if (arNodes.length > 0) {
-        this.generatedCode.push(`\n// Bind @ar_beacon detections`);
-        this.generatedCode.push(`arRuntime.onBeaconDetected('global', (pose) => {`);
-        this.generatedCode.push(`  console.log('Beacon detected at', pose);`);
+    // @ar_beacon → input-driven registry (real id/type/position per node),
+    // then per-beacon binding via ARRuntime (webxr only).
+    if (arNodes.length > 0) {
+      this.generatedCode.push(`\n// @ar_beacon registry (one entry per source node)`);
+      this.generatedCode.push(`const arBeacons = [`);
+      arNodes.forEach((node, i) => {
+        const cfg = this.getTraitConfig(node, 'ar_beacon');
+        const entry = {
+          id: this.scalar(cfg.id) ?? this.nodeName(node, `beacon_${i}`),
+          type: this.scalar(cfg.type) ?? 'image',
+          position: this.nodePosition(node),
+        };
+        this.generatedCode.push(`  ${JSON.stringify(entry)},`);
+      });
+      this.generatedCode.push(`];`);
+
+      if (this.options.target === 'webxr') {
+        this.generatedCode.push(`arBeacons.forEach((beacon) => {`);
+        this.generatedCode.push(`  arRuntime.onBeaconDetected(beacon.id, (pose) => {`);
+        this.generatedCode.push(
+          `    console.log('AR beacon', beacon.id, beacon.type, 'anchored at', beacon.position, pose);`
+        );
+        this.generatedCode.push(`  });`);
         this.generatedCode.push(`});`);
       }
     }
+
+    // @overlay → input-driven registry (real text/layout per node).
+    if (overlayNodes.length > 0) {
+      this.generatedCode.push(`\n// @overlay registry (one entry per source node)`);
+      this.generatedCode.push(`const arOverlays = [`);
+      overlayNodes.forEach((node, i) => {
+        const cfg = this.getTraitConfig(node, 'overlay');
+        const entry = {
+          id: this.nodeName(node, `overlay_${i}`),
+          text: this.scalar(this.getProp(node, 'text')) ?? this.scalar(cfg.text) ?? '',
+          layout: this.scalar(this.getProp(node, 'layout')) ?? this.scalar(cfg.layout) ?? 'default',
+        };
+        this.generatedCode.push(`  ${JSON.stringify(entry)},`);
+      });
+      this.generatedCode.push(`];`);
+    }
+  }
+
+  /** Merged config+params of the named trait on a node ({} if absent). */
+  private getTraitConfig(node: Record<string, unknown>, traitName: string): Record<string, unknown> {
+    const traits = node.traits;
+    if (!Array.isArray(traits)) return {};
+    const trait = traits.find(
+      (t) => (t as Record<string, unknown> | null)?.name === traitName
+    ) as Record<string, unknown> | undefined;
+    if (!trait) return {};
+    return {
+      ...((trait.config as Record<string, unknown>) ?? {}),
+      ...((trait.params as Record<string, unknown>) ?? {}),
+    };
+  }
+
+  /** Value of an ObjectProperty by key (undefined if absent). */
+  private getProp(node: Record<string, unknown>, key: string): unknown {
+    const props = node.properties;
+    if (!Array.isArray(props)) return undefined;
+    const prop = props.find((p) => (p as Record<string, unknown> | null)?.key === key) as
+      | Record<string, unknown>
+      | undefined;
+    return prop?.value;
+  }
+
+  private nodeName(node: Record<string, unknown>, fallback: string): string {
+    return (this.scalar(node.name) ?? this.scalar(node.id) ?? fallback) as string;
+  }
+
+  private nodePosition(node: Record<string, unknown>): { x: number; y: number; z: number } | null {
+    const p = node.position as { x?: number; y?: number; z?: number } | undefined;
+    if (!p || typeof p !== 'object') return null;
+    return { x: p.x ?? 0, y: p.y ?? 0, z: p.z ?? 0 };
+  }
+
+  /** Narrow a HoloValue to a JSON-embeddable scalar, else undefined. */
+  private scalar(v: unknown): string | number | boolean | undefined {
+    return typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' ? v : undefined;
   }
 
   private buildResult(): ARCompilationResult {
