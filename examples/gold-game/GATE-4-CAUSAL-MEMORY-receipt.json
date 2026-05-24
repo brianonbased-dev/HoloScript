@@ -68,7 +68,7 @@
     }
   },
   "crossSessionMemory": {
-    "persistedTo": "examples/gold-game/vault-sandbox-g4/npc-memory.json (real file across process boundary)",
+    "persistedTo": "examples/gold-game/vault-sandbox-g4/npc-memory.json (real disk file; survives a process restart — reloaded by a fresh in-process session here, not a second node invocation)",
     "session1MemoryEmpty": true,
     "session2LoadedNonEmptyMemory": true,
     "session2GraduatedTargets": [
@@ -105,5 +105,5 @@
   },
   "honestScope": "The causal edges and the graded-influence value are hand-authored (a faithful model of the real auto_link \"graduating a hub strengthens its constellation\" consequence), and the NPC memory/value policy is a hand-authored payoff-preferring heuristic — NOT a learned model or a live operator. Graduations write to a SANDBOX vault; promotion to the governed D:/GOLD stays founder-gated. What is PROVEN: the vault world evolves via a REAL Pearl do-calculus intervention (a sub-threshold entry is unlocked as a downstream causal effect, not a lookup), and an NPC curator carries memory ACROSS process-separated sessions (persisted to disk) that causally changes its plan. What is NOT yet proven: a trained causal/curation policy and a live human operator (Gate 5 scope).",
   "core": "6.1.0",
-  "verifiedAt": "2026-05-22T08:30:01.706Z"
+  "verifiedAt": "2026-05-24T19:57:47.110Z"
 }

@@ -193,7 +193,7 @@ function runSession(label, rounds) {
     mem.payoffs[target] = causal.newlyUnlocked.length; // LEARN the causal payoff of this intervention
     events.push({ round: r, action: 'graduate', target, causal });
   }
-  saveMemory(mem); // persist for the NEXT session (across process boundary)
+  saveMemory(mem); // persist to disk for the NEXT session (survives a process restart; this test reloads it in a fresh in-process session)
   return { label, events, memoryAfter: mem };
 }
 
@@ -270,7 +270,7 @@ const receipt = {
     },
   },
   crossSessionMemory: {
-    persistedTo: 'examples/gold-game/vault-sandbox-g4/npc-memory.json (real file across process boundary)',
+    persistedTo: 'examples/gold-game/vault-sandbox-g4/npc-memory.json (real disk file; survives a process restart — reloaded by a fresh in-process session here, not a second node invocation)',
     session1MemoryEmpty: true,
     session2LoadedNonEmptyMemory: !s2ColdWouldRepeat,
     session2GraduatedTargets: s2Targets,
