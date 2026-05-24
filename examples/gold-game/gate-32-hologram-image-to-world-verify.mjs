@@ -154,7 +154,8 @@ const vertexCount = posField.length / 3;
 const worldGenerated = vertexCount === dW * dH && vertexCount >= GRID_W * GRID_H;
 
 // The generated WORLD SOURCE — a spatial_group that EXTENDS the vault scene.
-// Fed back into the playable vault (drive-build can mount it as the depth backdrop).
+// This gate proves SOURCE generation only; rendering this world source to a visible
+// backdrop is Gate 34 (holographic outputs) + the Gate-1-pattern textured render.
 const generatedWorld = {
   kind: 'hologram-image-to-world',
   source_image: 'examples/gold-game/assets/gold-vault-vista-wlNgg.jpg',
@@ -167,7 +168,7 @@ const generatedWorld = {
     vertexCount,
     sampleVertices: worldVertices,
   },
-  feedsBackInto: 'the playable vault scene as the depth-backed vista world behind DiamondPeak',
+  feedsBackInto: 'a world source for the playable vault scene behind DiamondPeak; the visible render is Gate 34 (holographic outputs) — NOT yet mounted in drive-build',
 };
 
 // ── 5. Digest over the generated world geometry (REAL computeStateDigest) ──────
@@ -233,7 +234,7 @@ const receipt = {
   checks: { parseClean, artIngested, realDepthSurface, normalsMatch, depthHasVariation, worldGenerated, deterministic },
   contract: { spine: 'REAL computeStateDigest(field-bag, sha256)', worldDigest, reproducible: 'run the verifier to re-derive' },
   honestScope:
-    'Consumes the GENUINE shipped HoloGram depth surface (packages/engine/src/hologram/DepthEstimationService.ts — the same DepthEstimationService + depthToNormalMap the production hologram path uses) for its ACTUAL image-to-world job. PROVEN: the REAL founder 2D art is ingested (sharp → raw RGBA), the SHIPPED service infers a real per-pixel depth map with genuine variation, the SHIPPED Sobel depthToNormalMap derives per-vertex normals (independently re-derived to prove they are not fabricated), those maps DISPLACE a vertex grid into a 3D world source (a VaultVistaBackdrop spatial_group that extends the real parsed vault scene and feeds back into the playable vault), and the generated world geometry digest reproduces deterministically via the real computeStateDigest. ' +
+    'Consumes the GENUINE shipped HoloGram depth surface (packages/engine/src/hologram/DepthEstimationService.ts — the same DepthEstimationService + depthToNormalMap the production hologram path uses) for its ACTUAL image-to-world job. PROVEN: the REAL founder 2D art is ingested (sharp → raw RGBA), the SHIPPED service infers a real per-pixel depth map with genuine variation, the SHIPPED Sobel depthToNormalMap derives per-vertex normals (independently re-derived to prove they are not fabricated), those maps DISPLACE a vertex grid into a 3D world source (a VaultVistaBackdrop spatial_group that extends the real parsed vault scene; it is emitted as a world SOURCE — rendering it visibly in the playable build is Gate 34 holographic outputs + the Gate-1-pattern textured render, NOT yet mounted in drive-build), and the generated world geometry digest reproduces deterministically via the real computeStateDigest. ' +
     'NOT proven here (out of scope, requires a usable on-device neural runtime): (a) Depth Anything V2 NEURAL depth — in THIS run the service detected backend "' + backend + '" but the ONNX/transformers.js pipeline did not initialize (neuralPipelineLoaded=' + neuralPipelineLoaded + '), so it ran the SHIPPED deterministic luminance fallback (actualDepthPath="' + depthPath + '", the identical algorithm to packages/hologram-worker/src/depth-infer.ts); the neural backend is a runtime/model-availability upgrade, not a code change, and the world-generation pipeline below is backend-agnostic (it consumes whatever depth+normals the shipped service returns); (b) RASTERIZED pixels of the backdrop — the textured/lit render is the headless-Chromium / browser render path (Gate 1 pattern), not this pure-geometry verifier; (c) full mesh tessellation + UV atlas — this gate proves the depth-displaced point/vertex field (the world SOURCE), the polygonal surfacing is the deepening. This gate proves the deterministic IMAGE-to-DEPTH-to-3D-WORLD-SOURCE pipeline over the real founder art using the real shipped service — the compiler/service-side artifact; the neural-depth backend + pixel raster are the model-download/hardware-in-the-loop deepening, the same pattern as Gates 1/13.',
   verifiedAt: new Date().toISOString(),
 };
