@@ -1382,7 +1382,8 @@ export const compilerTools: Tool[] = [
   {
     name: 'compile_to_mcp_config',
     description:
-      'Compile .holo MCP server definitions to IDE-specific config JSON. ' +
+      'Compile .holo MCP server connection definitions to IDE-specific client config JSON. ' +
+      'This emits mcpServers connection entries, not an MCP server manifest with tools or resources. ' +
       'One source, multiple outputs: claude (${VAR}), vscode (${env:VAR}), ' +
       'cursor (${VAR}), antigravity (literal key injection), generic.',
     inputSchema: {
@@ -1391,7 +1392,7 @@ export const compilerTools: Tool[] = [
         code: {
           type: 'string',
           description:
-            'HoloScript with server objects using @connector and @env traits. ' +
+            'HoloScript with MCP client connection server objects using @connector and @env traits. ' +
             'Example: server my_server { @connector(holoscript, transport: "http") url: "https://mcp.holoscript.net/mcp" @env(HOLOSCRIPT_API_KEY, header: "Authorization: Bearer") }',
         },
         target: {

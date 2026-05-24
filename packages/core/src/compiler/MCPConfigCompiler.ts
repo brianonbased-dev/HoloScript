@@ -1,7 +1,9 @@
 /**
  * HoloScript -> MCP Config Compiler
  *
- * Generates IDE-specific MCP server configuration files from .holo compositions.
+ * Generates IDE-specific MCP client connection configuration files from .holo
+ * server connection definitions. This compiler does not emit an MCP server
+ * manifest, tool input schemas, or resources.
  * One .holo source of truth, multiple IDE outputs with correct credential handling.
  *
  * Targets:
@@ -189,6 +191,11 @@ export class MCPConfigCompiler extends CompilerBase {
 
     const config: Record<string, unknown> = {
       _generated: 'HoloScript MCPConfigCompiler',
+      _configKind: 'mcp-client-connection-config',
+      _limitations: [
+        'emits IDE client mcpServers connection entries only',
+        'does not emit MCP server manifests, tools, input schemas, or resources',
+      ],
       _target: this.options.target,
       _updated: new Date().toISOString().split('T')[0],
       mcpServers,
@@ -337,7 +344,8 @@ export class MCPConfigCompiler extends CompilerBase {
 DialectRegistry.register({
   name: 'mcp-config',
   domain: 'configuration',
-  description: 'Compiles .holo server definitions to IDE-specific MCP config JSON',
+  description:
+    'Compiles .holo MCP server connection definitions to IDE-specific client config JSON',
   supportedTraits: ['connector', 'env'],
   riskTier: 'standard',
   factory: (options) => new MCPConfigCompiler(options as MCPConfigCompilerOptions),

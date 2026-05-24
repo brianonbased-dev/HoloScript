@@ -391,9 +391,11 @@ Simulation tools are developer-facing. Supply explicit meshes, materials, loads,
 
 ---
 
-## MCP config generation
+## MCP client config generation
 
-Write your MCP server config once in `.holo`, compile to any IDE format.
+Write MCP client connection config once in `.holo`, then compile the same
+`mcpServers` connection entries to any IDE format. This target does not emit an
+MCP server manifest with tools, input schemas, or resources.
 
 ### Compile to Claude config
 
