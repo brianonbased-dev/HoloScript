@@ -275,6 +275,24 @@ export interface IRigidBodyState {
   velocity?: IVector3;
   isSleeping: boolean;
   isActive: boolean;
+  /**
+   * Mass (kg). Optional for backward compatibility — bodies without mass
+   * are treated as unit-mass (invMass = 1) by the ConstraintSolver. A mass
+   * of 0 marks the body as static/infinite (invMass = 0, never moves).
+   */
+  mass?: number;
+  /**
+   * Inverse mass (1/kg), the quantity the impulse solver actually consumes.
+   * If omitted it is derived from `mass` (1/mass, or 0 when mass === 0).
+   * If both are omitted the body is treated as unit-mass (invMass = 1).
+   */
+  invMass?: number;
+  /**
+   * Diagonal inverse inertia tensor in body space (1/(kg·m²) per axis).
+   * Optional. If omitted, derived from `invMass` (sphere-like default) so
+   * angular impulses still resolve; a [0,0,0] tensor pins all rotation.
+   */
+  invInertia?: IVector3;
 }
 
 // ============================================================================
@@ -292,7 +310,8 @@ export type ConstraintType =
   | 'cone'
   | 'distance'
   | 'spring'
-  | 'generic6dof';
+  | 'generic6dof'
+  | 'contact';
 
 /**
  * Base constraint interface
@@ -388,6 +407,29 @@ export interface ISpringConstraint extends IConstraintBase {
 }
 
 /**
+ * Contact constraint (non-penetration + friction).
+ *
+ * Produced by collision detection — one per contact point. The solver
+ * resolves it as a unilateral normal impulse (clamped >= 0, so contacts
+ * can push apart but never pull together) plus a Coulomb-clamped friction
+ * impulse along the tangent. Restitution adds a bounce term to the target
+ * normal velocity; penetration adds a Baumgarte positional bias.
+ */
+export interface IContactConstraint extends IConstraintBase {
+  type: 'contact';
+  /** Contact point in world space. */
+  point: IVector3;
+  /** Contact normal (unit), pointing from bodyB toward bodyA. */
+  normal: IVector3;
+  /** Penetration depth (>= 0 means overlapping). */
+  penetration: number;
+  /** Coefficient of restitution (0 = inelastic, 1 = perfectly elastic). */
+  restitution?: number;
+  /** Coulomb friction coefficient. */
+  friction?: number;
+}
+
+/**
  * Generic 6-DOF constraint
  */
 export interface IGeneric6DOFConstraint extends IConstraintBase {
@@ -411,7 +453,8 @@ export type Constraint =
   | IConeConstraint
   | IDistanceConstraint
   | ISpringConstraint
-  | IGeneric6DOFConstraint;
+  | IGeneric6DOFConstraint
+  | IContactConstraint;
 
 // ============================================================================
 // Collision Detection
