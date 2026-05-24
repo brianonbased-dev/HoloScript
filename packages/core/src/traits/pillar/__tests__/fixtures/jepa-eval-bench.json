@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-05-24T00:44:11.399Z",
+  "latentDim": 16,
+  "sampleCount": 64,
+  "note": "BASELINE (untrained deterministic-init predictor). Trained convergence curve is the follow-on.",
+  "tableA_nonCollapse": {
+    "effectiveRank": 5.777425408763003,
+    "rankRatio": 0.3610890880476877,
+    "dim": 16,
+    "count": 64,
+    "totalVariance": 0.875580104736145
+  },
+  "tableB_conservationAdherence": {
+    "measures": "predicted-embedding conservation projection (not conditioning-alignment)",
+    "demand": 0.3,
+    "margin": 0.05,
+    "penaltyCount": 64,
+    "meanPenalty": 0.060245480838467876,
+    "maxPenalty": 0.5340077680636398,
+    "sweep": [
+      {
+        "epsilon": 0,
+        "adherence": 0.21875
+      },
+      {
+        "epsilon": 0.001,
+        "adherence": 0.296875
+      },
+      {
+        "epsilon": 0.01,
+        "adherence": 0.5
+      },
+      {
+        "epsilon": 0.05,
+        "adherence": 0.703125
+      },
+      {
+        "epsilon": 0.1,
+        "adherence": 0.828125
+      },
+      {
+        "epsilon": 0.25,
+        "adherence": 0.921875
+      },
+      {
+        "epsilon": 0.5,
+        "adherence": 0.984375
+      },
+      {
+        "epsilon": 1,
+        "adherence": 1
+      }
+    ],
+    "designFinding": "PillarJEPA.computeConservationLoss scores slice-derived conditioning (aligned by construction → ~0). Eval scores model OUTPUT instead. Recommend PillarJEPA score predictions."
+  }
+}
