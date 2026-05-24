@@ -3,9 +3,10 @@
  * HoloShell Low-Camera Workflow
  *
  * One native-camera command for the low-quality camera ratchet:
- *   1. capture once and fair-sweep all preprocess modes
- *   2. render the winning HoloGram bridge as a quilt preview
- *   3. emit a top-level chain receipt linking both receipts
+ *   1. generate a known geometric camera control target
+ *   2. capture once and fair-sweep all preprocess modes
+ *   3. render the winning HoloGram bridge as a quilt preview
+ *   4. emit a top-level chain receipt linking all receipts
  */
 
 import { spawnSync } from 'node:child_process';
@@ -33,6 +34,8 @@ function parseArgs(argv) {
   const args = {
     date: DEFAULT_DATE,
     out: undefined,
+    targetOut: undefined,
+    targetPng: undefined,
     sweepOut: undefined,
     renderOut: undefined,
     deviceIndex: 0,
@@ -46,6 +49,7 @@ function parseArgs(argv) {
     tileWidth: 160,
     tileHeight: 120,
     requireCapture: false,
+    geometricTarget: true,
     selfTest: false,
     help: false,
   };
@@ -55,6 +59,8 @@ function parseArgs(argv) {
     if (arg === '--') continue;
     if (arg === '--date') args.date = argv[++i];
     else if (arg === '--out') args.out = argv[++i];
+    else if (arg === '--target-out') args.targetOut = argv[++i];
+    else if (arg === '--target-png') args.targetPng = argv[++i];
     else if (arg === '--sweep-out') args.sweepOut = argv[++i];
     else if (arg === '--render-out') args.renderOut = argv[++i];
     else if (arg === '--device-index') args.deviceIndex = Number.parseInt(argv[++i], 10);
@@ -68,6 +74,8 @@ function parseArgs(argv) {
     else if (arg === '--tile-width') args.tileWidth = Number.parseInt(argv[++i], 10);
     else if (arg === '--tile-height') args.tileHeight = Number.parseInt(argv[++i], 10);
     else if (arg === '--require-capture') args.requireCapture = true;
+    else if (arg === '--geometric-target') args.geometricTarget = true;
+    else if (arg === '--no-geometric-target') args.geometricTarget = false;
     else if (arg === '--self-test' || arg === 'self-test') args.selfTest = true;
     else if (arg === '--help' || arg === '-h' || arg === 'help') args.help = true;
     else throw new Error(`Unknown argument: ${arg}`);
@@ -108,6 +116,7 @@ Usage:
 
 Notes:
   - Uses the native WinRT camera sweep, not browser getUserMedia.
+  - Generates a known geometric target receipt before capture for calibration/control.
   - Keeps a plain camera JPEG control frame before preprocessing, HoloMap, or HoloGram rendering.
   - Replays one raw capture through every preprocess mode, renders the winning bridge, and links both receipts.
   - Writes .scratch/holoshell-low-camera-fixture/<date>/low-camera-workflow-receipt.json by default.
@@ -151,6 +160,28 @@ function summarizeControl(sweepReceipt) {
     frame: controlFrames[0],
     frames: controlFrames,
     frameCount: controlFrames.length,
+  };
+}
+
+function summarizeTarget(targetReceipt, targetReceiptPath) {
+  if (!targetReceipt) return undefined;
+  return {
+    path: rel(targetReceiptPath),
+    receiptHash: targetReceipt.hash,
+    fileHash: fileHash(targetReceiptPath),
+    pngPath: targetReceipt.target?.pngPath,
+    pngHash: targetReceipt.target?.pngHash,
+    pngFileHash: targetReceipt.target?.pngPath ? fileHash(targetReceipt.target.pngPath) : undefined,
+    width: targetReceipt.target?.width,
+    height: targetReceipt.target?.height,
+    checkerboard: targetReceipt.target?.checkerboard,
+    primitiveCount: Array.isArray(targetReceipt.target?.primitives) ? targetReceipt.target.primitives.length : undefined,
+    fiducialCount: Array.isArray(targetReceipt.target?.fiducials) ? targetReceipt.target.fiducials.length : undefined,
+    primitives: targetReceipt.target?.primitives,
+    fiducials: targetReceipt.target?.fiducials,
+    chainHash: targetReceipt.chain?.receipt?.hash,
+    honestScope:
+      'Known generated geometric reference target. It does not prove the camera saw the target; the camera control frame remains the captured baseline.',
   };
 }
 
@@ -214,9 +245,45 @@ function summarizeRender(renderReceipt, renderReceiptPath) {
   };
 }
 
-export function buildWorkflowReceipt({ args, sweepReceipt, sweepReceiptPath, renderReceipt, renderReceiptPath, commands }) {
+export function buildWorkflowReceipt({
+  args,
+  targetReceipt,
+  targetReceiptPath,
+  sweepReceipt,
+  sweepReceiptPath,
+  renderReceipt,
+  renderReceiptPath,
+  commands,
+}) {
+  const target = summarizeTarget(targetReceipt, targetReceiptPath);
   const sweep = summarizeSweep(sweepReceipt, sweepReceiptPath);
   const render = renderReceipt ? summarizeRender(renderReceipt, renderReceiptPath) : undefined;
+  const targetStage = target
+    ? stageReceipt({
+        name: 'workflow.geometric-control-target',
+        input: {
+          command: commands.target?.command,
+          targetReceiptPath: target.path,
+        },
+        output: {
+          pngPath: target.pngPath,
+          pngHash: target.pngHash,
+          width: target.width,
+          height: target.height,
+          primitiveCount: target.primitiveCount,
+          fiducialCount: target.fiducialCount,
+          receiptHash: target.receiptHash,
+          fileHash: target.fileHash,
+        },
+        metrics: {
+          exitCode: commands.target?.exitCode,
+          checkerboardColumns: target.checkerboard?.columns,
+          checkerboardRows: target.checkerboard?.rows,
+        },
+        honestScope:
+          'Generates the known geometric target before camera capture. This is a calibration control asset, not a captured image.',
+      })
+    : undefined;
   const sweepStage = stageReceipt({
     name: 'workflow.preprocess-sweep',
     input: {
@@ -241,7 +308,7 @@ export function buildWorkflowReceipt({ args, sweepReceipt, sweepReceiptPath, ren
     honestScope:
       'Runs the native-camera fair preprocess sweep and records the winning HoloMap bridge. The sweep receipt carries per-mode evidence.',
   });
-  const stages = [sweepStage];
+  const stages = targetStage ? [targetStage, sweepStage] : [sweepStage];
   if (render) {
     stages.push(stageReceipt({
       name: 'workflow.render-winning-quilt',
@@ -277,6 +344,7 @@ export function buildWorkflowReceipt({ args, sweepReceipt, sweepReceiptPath, ren
       stages,
       metrics: {
         status: sweep.status === 'pass' && render?.status === 'pass' ? 'pass' : sweep.status,
+        geometricTarget: Boolean(target),
         winningPreprocess: sweep.winner?.mode,
         pointCount: render?.pointCount ?? sweep.pointCount,
         rendered: Boolean(render),
@@ -284,7 +352,7 @@ export function buildWorkflowReceipt({ args, sweepReceipt, sweepReceiptPath, ren
         quiltQualityGrade: render?.quality?.grade,
       },
       honestScope:
-        'Top-level workflow chain linking native camera sweep and winning HoloGram quilt render receipts.',
+        'Top-level workflow chain linking known geometric target, native camera sweep, and winning HoloGram quilt render receipts.',
     }),
     stages,
   };
@@ -305,21 +373,24 @@ export function buildWorkflowReceipt({ args, sweepReceipt, sweepReceiptPath, ren
       durationSec: args.durationSec,
       fps: args.fps,
       tileGrid: args.tileGrid,
+      geometricTarget: args.geometricTarget,
     },
     renderPlan: {
       tileWidth: args.tileWidth,
       tileHeight: args.tileHeight,
     },
+    target,
     sweep,
     control: sweep.control,
     render,
     quality: render?.quality,
     commands: {
+      target: commands.target?.command,
       sweep: commands.sweep.command,
       render: commands.render?.command,
     },
     honestScope:
-      'Hardware-native workflow evidence for inferior cameras. It compares preprocessing fairly from one capture, then renders the winning HoloMap bridge.',
+      'Hardware-native workflow evidence for inferior cameras. It records a known geometric target, keeps the untouched camera control frame, compares preprocessing fairly from one capture, then renders the winning HoloMap bridge.',
     chain,
     outputPath: rel(args.out ?? defaultOutput(args.date)),
   });
@@ -334,6 +405,11 @@ export function validateReceipt(receipt) {
   if (!receipt.sweep?.receiptHash?.startsWith('sha256:')) errors.push('sweep receipt hash missing');
   if (!receipt.sweep?.fileHash?.startsWith('sha256:')) errors.push('sweep file hash missing');
   if (receipt.status === 'pass') {
+    const targetExpected = receipt.capturePlan?.geometricTarget !== false;
+    if (targetExpected && !receipt.target?.receiptHash?.startsWith('sha256:')) errors.push('geometric target receipt hash missing');
+    if (targetExpected && !receipt.target?.pngHash?.startsWith('sha256:')) errors.push('geometric target PNG hash missing');
+    if (targetExpected && !receipt.target?.pngPath) errors.push('geometric target PNG path missing');
+    if (targetExpected && !receipt.target?.pngFileHash?.startsWith('sha256:')) errors.push('geometric target PNG file hash missing');
     if (!receipt.sweep?.winner?.mode) errors.push('winner missing');
     if (!receipt.sweep?.bridgePath) errors.push('winning bridge path missing');
     if (!receipt.control?.frame?.path) errors.push('camera control frame missing');
@@ -351,9 +427,23 @@ export function validateReceipt(receipt) {
 export async function runWorkflow(args) {
   const outPath = resolve(REPO_ROOT, args.out ?? defaultOutput(args.date));
   const baseDir = dirname(outPath);
+  const targetOut = resolve(REPO_ROOT, args.targetOut ?? join(baseDir, 'geometric-control-target-receipt.json'));
+  const targetPng = resolve(REPO_ROOT, args.targetPng ?? join(baseDir, 'geometric-control-target.png'));
   const sweepOut = resolve(REPO_ROOT, args.sweepOut ?? join(baseDir, 'preprocess-sweep-workflow.json'));
   const renderOut = resolve(REPO_ROOT, args.renderOut ?? join(baseDir, 'workflow-winner-quilt.json'));
   mkdirSync(baseDir, { recursive: true });
+
+  let targetCommand;
+  let targetReceipt;
+  if (args.geometricTarget) {
+    targetCommand = runNodeScript(resolve(REPO_ROOT, 'scripts/holoshell-geometric-control-target.mjs'), [
+      '--out',
+      rel(targetOut),
+      '--png',
+      rel(targetPng),
+    ]);
+    targetReceipt = readJson(targetOut);
+  }
 
   const sweepArgs = [
     'sweep',
@@ -383,11 +473,13 @@ export async function runWorkflow(args) {
   if (sweepReceipt.status !== 'pass') {
     const receipt = buildWorkflowReceipt({
       args: { ...args, out: outPath },
+      targetReceipt,
+      targetReceiptPath: args.geometricTarget ? targetOut : undefined,
       sweepReceipt,
       sweepReceiptPath: sweepOut,
       renderReceipt: undefined,
       renderReceiptPath: undefined,
-      commands: { sweep: sweepCommand, render: undefined },
+      commands: { target: targetCommand, sweep: sweepCommand, render: undefined },
     });
     writeJson(outPath, receipt);
     return receipt;
@@ -409,11 +501,13 @@ export async function runWorkflow(args) {
   const renderReceipt = readJson(renderOut);
   const receipt = buildWorkflowReceipt({
     args: { ...args, out: outPath },
+    targetReceipt,
+    targetReceiptPath: args.geometricTarget ? targetOut : undefined,
     sweepReceipt,
     sweepReceiptPath: sweepOut,
     renderReceipt,
     renderReceiptPath: renderOut,
-    commands: { sweep: sweepCommand, render: renderCommand },
+    commands: { target: targetCommand, sweep: sweepCommand, render: renderCommand },
   });
   const errors = validateReceipt(receipt);
   if (errors.length > 0) throw new Error(`Invalid workflow receipt: ${errors.join('; ')}`);
@@ -424,10 +518,39 @@ export async function runWorkflow(args) {
 export async function selfTest() {
   const dir = resolve(REPO_ROOT, '.scratch', 'holoshell-low-camera-workflow-self-test');
   mkdirSync(dir, { recursive: true });
+  const targetPath = join(dir, 'target.json');
+  const targetPngPath = join(dir, 'target.png');
   const sweepPath = join(dir, 'sweep.json');
   const quiltPath = join(dir, 'quilt.png');
   const renderPath = join(dir, 'render.json');
   writeFileSync(quiltPath, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  writeFileSync(targetPngPath, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  const targetReceipt = withHash({
+    schemaVersion: 'holoshell-geometric-control-target/v1',
+    status: 'pass',
+    target: {
+      pngPath: rel(targetPngPath),
+      pngHash: fileHash(targetPngPath),
+      width: 320,
+      height: 240,
+      checkerboard: { columns: 12, rows: 8 },
+      primitives: [
+        { id: 'red-square', kind: 'square' },
+        { id: 'green-circle', kind: 'circle' },
+        { id: 'blue-triangle', kind: 'triangle' },
+        { id: 'magenta-diamond', kind: 'diamond' },
+        { id: 'cyan-cross', kind: 'cross' },
+      ],
+      fiducials: [
+        { id: 'top-left' },
+        { id: 'top-right' },
+        { id: 'bottom-left' },
+        { id: 'bottom-right' },
+      ],
+    },
+    chain: { receipt: { hash: 'sha256:' + 'd'.repeat(64) } },
+  });
+  writeJson(targetPath, targetReceipt);
   const sweepReceipt = withHash({
     schemaVersion: 'holoshell-camera-scan-receipt/v5',
     status: 'pass',
@@ -483,7 +606,10 @@ export async function selfTest() {
     sweepReceiptPath: sweepPath,
     renderReceipt,
     renderReceiptPath: renderPath,
+    targetReceipt,
+    targetReceiptPath: targetPath,
     commands: {
+      target: { command: ['target', 'generate'], exitCode: 0 },
       sweep: { command: ['camera', 'sweep'], exitCode: 0 },
       render: { command: ['bridge', 'render'], exitCode: 0 },
     },
@@ -510,6 +636,16 @@ async function main() {
     receiptPath: rel(outPath),
     status: receipt.status,
     winner: receipt.sweep?.winner,
+    target: receipt.target
+      ? {
+          path: receipt.target.pngPath,
+          pngHash: receipt.target.pngHash,
+          width: receipt.target.width,
+          height: receipt.target.height,
+          primitiveCount: receipt.target.primitiveCount,
+          fiducialCount: receipt.target.fiducialCount,
+        }
+      : undefined,
     control: receipt.control?.frame
       ? {
           path: receipt.control.frame.path,

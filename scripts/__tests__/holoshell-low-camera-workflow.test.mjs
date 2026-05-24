@@ -42,6 +42,11 @@ const receipt = await selfTest();
 assertEq(receipt.schemaVersion, RECEIPT_VERSION, 'schema version');
 assertEq(receipt.status, 'pass', 'pass status');
 assertEq(validateReceipt(receipt).length, 0, 'receipt validates');
+assertOk(receipt.target.receiptHash.startsWith('sha256:'), 'target receipt hash recorded');
+assertOk(receipt.target.pngHash.startsWith('sha256:'), 'target PNG hash recorded');
+assertOk(receipt.target.pngFileHash.startsWith('sha256:'), 'target PNG file hash recorded');
+assertEq(receipt.target.primitiveCount, 5, 'target primitive count recorded');
+assertEq(receipt.target.fiducialCount, 4, 'target fiducial count recorded');
 assertOk(receipt.sweep.receiptHash.startsWith('sha256:'), 'sweep receipt hash recorded');
 assertOk(receipt.sweep.fileHash.startsWith('sha256:'), 'sweep file hash recorded');
 assertEq(receipt.sweep.winner.mode, 'raw', 'winner mode recorded');
@@ -51,7 +56,7 @@ assertOk(receipt.render.receiptHash.startsWith('sha256:'), 'render receipt hash 
 assertOk(receipt.render.pngHash.startsWith('sha256:'), 'quilt png hash recorded');
 assertEq(receipt.render.quality.grade, 'weak', 'workflow carries render quality grade');
 assertOk(receipt.quality.score >= 0, 'workflow exposes top-level quality');
-assertEq(receipt.chain?.receipt?.stageCount, 2, 'workflow has sweep and render stages');
+assertEq(receipt.chain?.receipt?.stageCount, 3, 'workflow has target, sweep, and render stages');
 
 console.log('Test 2: invalid workflow receipts fail closed');
 const missingWinner = {
@@ -85,6 +90,7 @@ const help = spawnSync(process.execPath, [SCRIPT, '--help'], {
 assertEq(help.status, 0, 'CLI help exits 0');
 assertOk(help.stdout.includes('Low-Camera Workflow'), 'help names workflow');
 assertOk(help.stdout.includes('--require-capture'), 'help names hardware gate');
+assertOk(help.stdout.includes('geometric target'), 'help names geometric target');
 
 if (testsFailed > 0) {
   console.error(`\n${testsFailed}/${testsRun} tests failed`);

@@ -40,6 +40,8 @@
     "holoshell:camera-scan": "node scripts/holoshell-camera-scan-adapter.mjs capture",
     "holoshell:camera-scan-test": "node scripts/__tests__/holoshell-camera-scan-adapter.test.mjs",
     "holoshell:image-preprocess-test": "node scripts/__tests__/holoshell-image-preprocess.test.mjs",
+    "holoshell:geometric-control-target": "node scripts/holoshell-geometric-control-target.mjs",
+    "holoshell:geometric-control-target-test": "node scripts/__tests__/holoshell-geometric-control-target.test.mjs",
     "holoshell:low-camera-fixture": "node scripts/holoshell-camera-scan-adapter.mjs fixture --require-capture",
     "holoshell:preprocess-sweep": "node scripts/holoshell-camera-scan-adapter.mjs sweep --require-capture",
     "holoshell:low-camera-workflow": "node scripts/holoshell-low-camera-workflow.mjs --require-capture",
