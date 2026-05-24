@@ -22,6 +22,7 @@ import type {
   ArtifactProvenanceLink,
   ArtifactVerificationCommand,
 } from './board-types';
+import { sha256ReceiptHash } from './receipt-hashing';
 
 // ── Version ────────────────────────────────────────────────────────────────
 
@@ -124,6 +125,12 @@ export function validateHoloShellBuildCustodyReceipt(
   }
 
   if (!receipt.hash) errors.push('HoloShellBuildCustodyReceipt.hash is required.');
+  if (receipt.hash === 'placeholder-until-signed') {
+    errors.push('HoloShellBuildCustodyReceipt.hash must be a computed sha256 receipt hash.');
+  }
+  if (receipt.hashAlgorithm !== 'sha256') {
+    errors.push('HoloShellBuildCustodyReceipt.hashAlgorithm must be sha256.');
+  }
   if (!receipt.createdAt) errors.push('createdAt is required.');
   if (!receipt.createdBy) errors.push('createdBy is required.');
 
@@ -197,11 +204,14 @@ export function createHoloShellBuildCustodyReceipt(
     ...(source === 'hololand_overlay' ? {
       overlayWarning: 'Legacy hololand_overlay custody. Prefer native HoloScript custody for WorldBuildReadyToken and cockpit gates.'
     } : {}),
-    hash: 'placeholder-until-signed',
+    hash: '',
     hashAlgorithm: 'sha256',
     createdAt: new Date().toISOString(),
     createdBy: input.createdBy,
   };
 
-  return receipt;
+  return {
+    ...receipt,
+    hash: sha256ReceiptHash(receipt as unknown as Record<string, unknown>),
+  };
 }

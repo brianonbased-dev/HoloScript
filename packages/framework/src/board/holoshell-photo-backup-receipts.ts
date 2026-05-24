@@ -22,7 +22,7 @@ export interface PhotoBackupDeleteBlockerReceipt {
   sourceCustodyReceipt: string;
   sourceVerificationReceipt: string;
   deleteBlocker: {
-    blocked: true;
+    blocked: boolean;
     reason: 'restore_proof_not_passed' | 'human_approval_not_given' | 'never_approved';
   };
   deletionApproval: {

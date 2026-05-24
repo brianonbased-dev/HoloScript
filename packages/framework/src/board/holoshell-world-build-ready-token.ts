@@ -29,6 +29,7 @@ import type {
   ArtifactProvenanceLink,
   ArtifactVerificationCommand,
 } from './board-types';
+import { sha256ReceiptHash } from './receipt-hashing';
 
 // ── Version ────────────────────────────────────────────────────────────────
 
@@ -166,7 +167,12 @@ export function validateHoloShellWorldBuildReadyToken(
   }
 
   if (!token.hash) errors.push('HoloShellWorldBuildReadyToken.hash is required.');
-  if (!token.hashAlgorithm) errors.push('HoloShellWorldBuildReadyToken.hashAlgorithm is required.');
+  if (token.hash === 'placeholder-until-signed') {
+    errors.push('HoloShellWorldBuildReadyToken.hash must be a computed sha256 receipt hash.');
+  }
+  if (token.hashAlgorithm !== 'sha256') {
+    errors.push('HoloShellWorldBuildReadyToken.hashAlgorithm must be sha256.');
+  }
   if (!token.createdAt) errors.push('HoloShellWorldBuildReadyToken.createdAt is required.');
   if (!token.createdBy) errors.push('HoloShellWorldBuildReadyToken.createdBy is required.');
 
@@ -214,13 +220,16 @@ export function createHoloShellWorldBuildReadyToken(
     requiredGates,
     authorityMarkers: input.authorityMarkers,
     notes: input.notes,
-    hash: 'placeholder-until-signed',
+    hash: '',
     hashAlgorithm: 'sha256',
     createdAt: new Date().toISOString(),
     createdBy: input.createdBy,
   };
 
-  return token;
+  return {
+    ...token,
+    hash: sha256ReceiptHash(token as unknown as Record<string, unknown>),
+  };
 }
 
 function computeOverallStatus(
@@ -247,4 +256,3 @@ function computeOverallStatus(
   if (hasWarn) return 'warn';
   return 'ready';
 }
-
