@@ -1,0 +1,23 @@
+{
+  "corpusSize": 993,
+  "dim": 384,
+  "buildMs": 26142,
+  "results": [
+    {
+      "query": "Every convex polyhedron satisfies vertices minus edges plus faces equals two.",
+      "status": "near-duplicate",
+      "queryMs": 13,
+      "nearestId": "prior.arxiv.2605.16224",
+      "nearestSim": 0.586,
+      "nearestTitle": "The Facial Common Neighbourhood Graph"
+    },
+    {
+      "query": "Agent worldlines form a braid whose word determines hash-equal shared world state.",
+      "status": "novel",
+      "queryMs": 7,
+      "nearestId": "prior.arxiv.2605.01026",
+      "nearestSim": 0.443,
+      "nearestTitle": "A HOMFLYPT-type invariant for pseudo links via a resolution in Hecke algebras"
+    }
+  ]
+}

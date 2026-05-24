@@ -408,6 +408,22 @@ export {
   type DeterminismGateAssessment,
 } from './SemanticDeterminismGate';
 
+// Scalable pre-embedded corpus index (scope 2026-05-23, P3) — embeds a large prior-art
+// corpus (10^3+ real arXiv abstracts) ONCE, then serves O(N)-cosine novelty queries that
+// embed the query only. The path that makes the semantic advisory layer non-theater (D.060).
+// ADVISORY only (one-machine cache is fleet-valid for cosine; see module note + P1 finding).
+export {
+  SEMANTIC_CORPUS_INDEX_VERSION,
+  buildSemanticCorpusIndex,
+  nearestByCosine,
+  assessSemanticNoveltyIndexed,
+  serializeIndex,
+  deserializeIndex,
+  type EmbeddedCorpusEntry,
+  type SemanticCorpusIndex,
+  type BuildIndexOptions,
+} from './SemanticCorpusIndex';
+
 // Verdict ledger (`conjecture.verdict-ledger.v1`) — temporal, assumption-bound
 // conjecture verdicts ("knowledge is fluid", D.060). A verdict holds "as of T under
 // assumptions A"; overturning a depended-on assumption RE-OPENS it (falsified →
