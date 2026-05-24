@@ -6,17 +6,27 @@
 %   Paper26Table2NLRecall.test.ts  -- Table 2 (NL→code recall)
 %   RealCorpusBenchmark.test.ts    -- Table 3 (real corpus generalization)
 %   run-paper26-section7-harness   -- Table 4 (HoloMesh coordination)
+%   tropical-gamma-experiment.ts   -- Table 5 (tropical γ sweep, C1)
+%   jepa-training-experiment.ts    -- Table 6 (JEPA convergence, C2)
+%   grpo-diversity-experiment.ts   -- C3 diversity discrimination
+%   paper26-c1-token-reduction.mjs -- C4 token routing efficiency
 %
-% To regenerate:
+% Artifact directory: research/paper-26-artifacts/
+% To regenerate HoloGraph/HoloEmbed/HoloMesh:
 %   pnpm run bench:paper26:section7
 
 \section{Evaluation}
 \label{sec:evaluation}
 
-We evaluate two sovereign primitives introduced in this paper:
-\textbf{HoloGraph} for structured event-chain retrieval (Section~\ref{sec:eval-holograph}),
-and \textbf{HoloEmbed} for natural-language-to-code recall without an external API
-(Section~\ref{sec:eval-holoembed}).
+We evaluate the four measured contributions of this paper.
+\S\,\ref{sec:eval-holograph}--\ref{sec:eval-real-corpus} benchmark
+\textbf{HoloGraph} (O(1) event-chain lookup) and \textbf{HoloEmbed}
+(NL$\to$code recall without an external API), which provide the sovereign
+code-intelligence substrate.
+\S\,\ref{sec:eval-psf-contributions} validates the three primary paper claims:
+tropical-geometry coordination agreement, \textsc{PillarJEPA} convergence, and
+GRPO slice-diversity discrimination.
+\S\,\ref{sec:eval-token-routing} reports token routing efficiency.
 All measurements run on the same machine with no GPU acceleration for embedding
 paths and no network calls; HoloGraph uses only in-process hash-map lookup.
 
@@ -50,27 +60,28 @@ Recall@$K$ is the fraction of ground-truth files appearing in the top-$K$ result
 \caption{Event-chain lookup: HoloGraph O(1) vs Embedding O($N \cdot D$).
   Embedding baseline: \textsc{StructuralEmbeddingProvider} (384-dim, FNV-1a
   hash features, no semantic training, no API key, no network).
-  HoloGraph recall is exact by construction (hash-map lookup).}
+  HoloGraph recall is exact by construction (hash-map lookup).
+  Artifact: \texttt{research/paper-26-artifacts/section7-harness-2026-05-21.json}.}
 \label{tab:holograph-lookup}
 \begin{tabular}{rrrrrrr}
 \toprule
 Files & Syms & Events & HG $\mu$s & Emb $\mu$s & HG recall & Emb recall@10 \\
 \midrule
-   50 &  200 &     10 &  2.060 &   567.1 & 1.000 & 0.125 \\
-  500 & 2000 &     50 &  6.770 &  4360.2 & 1.000 & 0.025 \\
- 2000 & 8000 &    100 &  8.975 & 19486.4 & 1.000 & 0.025 \\
+   50 &  200 &     10 &  0.950 &   302.3 & 1.000 & 0.125 \\
+  500 & 2000 &     50 &  4.145 &  2365.1 & 1.000 & 0.025 \\
+ 2000 & 8000 &    100 &  7.960 & 12416.8 & 1.000 & 0.025 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-HoloGraph achieves 100\% recall at single-digit-microsecond latency across all graph
-sizes. Embedding scan recall degrades from 12.5\% to 2.5\% as graph size grows
-(from 50 to 500 files), because the query \texttt{"handler for event X"} has no
-semantic link to the generic symbol names (\texttt{fn0}, \texttt{fn1}, \ldots)
-in the synthetic corpus -- exposing the fundamental limitation of embedding search
-for structured code relationships.
-The speedup ratio grows from 275$\times$ (50 files) to 644$\times$ (500 files)
-to 2171$\times$ (2000 files), consistent with O($N \cdot D$) scaling of the
+HoloGraph achieves 100\% recall at sub-microsecond to single-digit-microsecond
+latency across all graph sizes. Embedding scan recall degrades from 12.5\% to
+2.5\% as graph size grows (from 50 to 500 files), because the query
+\texttt{"handler for event X"} has no semantic link to the generic symbol names
+(\texttt{fn0}, \texttt{fn1}, \ldots) in the synthetic corpus -- exposing the
+fundamental limitation of embedding search for structured code relationships.
+The speedup ratio grows from 318$\times$ (50 files) to 571$\times$ (500 files)
+to 1560$\times$ (2000 files), consistent with O($N \cdot D$) scaling of the
 embedding path.
 
 \paragraph{Ablation: semantic model vs structural baseline.}
@@ -92,8 +103,8 @@ because it uses no semantic training. We address this with a Xenova
 \toprule
 Provider & HG $\mu$s & Emb $\mu$s & Speedup & HG recall & Emb recall@10 \\
 \midrule
-StructuralEmbeddingProvider &  2.060 &   567.1 &   275$\times$ & 1.000 & 0.125 \\
-Xenova/all-MiniLM-L6-v2    &  1.250 &  9968.0 &  7974$\times$ & 1.000 & 0.125 \\
+StructuralEmbeddingProvider &  0.950 &   302.3 &   318$\times$ & 1.000 & 0.125 \\
+Xenova/all-MiniLM-L6-v2    &  1.650 &  3880.8 &  2352$\times$ & 1.000 & 0.125 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -103,8 +114,9 @@ is expected: the synthetic symbols are named \texttt{fn0}--\texttt{fn3} with no
 lexical connection to event names such as \texttt{snn:spike}. Neither a structural
 hash nor a semantic language model can recover that connection. The ablation
 establishes one claim and one claim only: \emph{the O(1) latency advantage holds
-regardless of embedding quality}. Xenova's inference time makes it $18\times$
-slower than the structural baseline and 7974$\times$ slower than HoloGraph.
+regardless of embedding quality}. Xenova's inference time makes it $13\times$
+slower than the structural embedding baseline and $2352\times$ slower than
+HoloGraph on the same 50-file corpus.
 
 For NL$\to$code recall comparisons on semantically meaningful symbol names, see
 Section~\ref{sec:eval-holoembed} and Table~\ref{tab:holoembed-recall}.
@@ -217,7 +229,8 @@ agents use for claim, review, and completion context.
 \centering
 \caption{HoloMesh team-protocol coordination latency and throughput. The
 sequential path performs 8 authenticated board reads; the burst path performs
-6 concurrent board reads. Both paths succeeded on the live Railway deployment.}
+6 concurrent board reads. Both paths succeeded on the live Railway deployment.
+Artifact: \texttt{research/paper-26-artifacts/section7-harness-2026-05-21.json}.}
 \label{tab:holomesh-coordination}
 \begin{tabular}{lrrrrr}
 \toprule
@@ -228,46 +241,129 @@ live-holomesh & 53.159 & 222.387 & 12.039 & 19.740 & 100.0\% \\
 \end{tabular}
 \end{table}
 
-The full evidence artifact is
-\texttt{research/paper-26-artifacts/section7-harness-2026-05-21.json}; the
-human-readable table extract is
-\texttt{research/paper-26-artifacts/section7-harness-2026-05-21.md}.
-The board-read protocol reduces inter-agent token exchange by 70.5\% relative
-to a na\"ive full-transcript broadcast baseline, measured on PillarSlice
-coordination tasks where each coordination event is coupled to a live TET10
-FEM solver output and anchored by a cryptographic \texttt{SimulationContract}
-receipt.
+Token routing efficiency for the Pillar-Slice delta protocol is reported
+separately in \S\,\ref{sec:eval-token-routing}.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Pillar-Slice Core Contributions}
+\label{sec:eval-psf-contributions}
+% ─────────────────────────────────────────────────────────────────────────────
+
+We validate each of the three primary paper contributions with dedicated
+experiments on the real production implementation.  All experiments use unmodified
+production code imported directly from the packages under test.
+
+\paragraph{Contribution 1: Tropical Geometry as Coordination-Agreement Metric.}
+We run two real \texttt{physics}-domain hemisphere Pillars (via
+\texttt{makeParallelPillar()} from \texttt{ParallelPillar.ts}) over a 13,200-sample
+sweep of 11 divergence levels $d \in [0,\,1.0]$ with 1,200 samples per level
+(deterministic, seed 262026).  $\gamma = 1 - \mathrm{box\_area}$ is
+cross-checked against the standalone \texttt{computeParallelBounds} export.
+Table~\ref{tab:tropical-gamma} shows key divergence--$\gamma$ pairs.
+
+\begin{table}[h]
+\centering
+\caption{Tropical bilateral $\gamma$ vs measurement divergence ($N = 13{,}200$).
+  $\gamma = 1.000$ at zero divergence (degenerate bounding box); Pearson
+  $r(\gamma, d) = -0.348$ across all samples confirms the monotone coordination-agreement
+  property.  Artifact: \texttt{research/paper-26-artifacts/tropical-gamma-experiment-2026-05-24.json}.}
+\label{tab:tropical-gamma}
+\begin{tabular}{rrl}
+\toprule
+Divergence $d$ & Mean $\gamma$ & Check \\
+\midrule
+0.00 & 1.000 & \checkmark\ point box \\
+0.20 & 0.981 & \\
+0.50 & 0.936 & \\
+1.00 & 0.915 & monotone $\downarrow$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+$\gamma$ is monotonically decreasing across all 11 divergence levels; $\gamma = 1.000$
+at $d = 0$ and $\gamma = 0.915$ at $d = 1.0$ (all-steps monotone check: pass).
+
+\paragraph{Contribution 2: PillarJEPA Trains Stably.}
+A standalone gradient-descent training loop drives the real \texttt{JEPAPredictor}
+MLP (from \texttt{JEPAPredictor.ts}) with exact analytic backprop (gradcheck
+rel-err $= 0.000$, $< 10^{-3}$ threshold) and Adam.  Held-out eval loss (256-sample
+fixed batch, evaluated every 25 steps over 500 training steps with minibatch
+size 16) decreases from $0.341$ to $0.175$ ($1.94\times$ reduction, $48.6\%$).
+Tail plateau coefficient of variation $= 4\%$ (threshold: $< 25\%$); no NaN or
+Inf; smoothed eval curve non-increasing; temporal gating reduces effective
+conservation weight $\lambda_c^{\mathrm{eff}}$ from $0.100$ to $0.000$ as
+$\kappa \to 1$, consistent with Eq.~\ref{eq:lambda-eff}.  All 5 stability checks
+pass.  Artifact: \texttt{research/paper-26-artifacts/jepa-training-experiment-2026-05-24.json}.
+
+\paragraph{Contribution 3: GRPO Slice Diversity Discrimination.}
+The real \texttt{sliceEmitterHandler} (from \texttt{SliceEmitter.ts}) is driven
+over two streams of $W = 1{,}000$ slices: a healthy diverse stream and a
+mode-collapsed stream (all slices identical, $\rho = 0.001$).
+The diversity discrimination ratio at $N = 1{,}000$ is $371\times$ (371 unique
+fingerprints vs 1).  The within-group advantage-variance ratio is
+$2.29 \times 10^{5}$ (healthy $4.15 \times 10^{-2}$ vs collapsed
+$1.81 \times 10^{-7}$), confirming that diverse groups carry a non-trivial
+policy-gradient signal while collapsed groups carry $\approx 0$.
+
+\emph{Honest finding:} the static alert threshold $\rho > 0.8$ is miscalibrated
+for \textsc{SliceEmitter}'s lifetime-cumulative fingerprint ratio; over long
+streams the healthy agent's $\rho$ also falls below $0.8$ (lifetime $\rho = 0.371$
+at $N = 1{,}000$), so the absolute threshold over-alerts on healthy long-running
+agents.  The robust collapse signal is the discrimination ratio and the unique-count
+growth rate; the recommended fix---a rolling-window $\rho$ over the last $W$
+slices---is noted in Appendix~\ref{app:grpo}.
+Artifact: \texttt{research/paper-26-artifacts/grpo-diversity-experiment-2026-05-24.json}.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Token Routing Efficiency}
+\label{sec:eval-token-routing}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\paragraph{Setup.}
+We measure total coordination-token counts for the Pillar-Slice board-delta
+protocol vs a na\"{i}ve full-transcript rebroadcast baseline, using real BPE
+tokenisation (\texttt{cl100k\_base}, local, no external API).  The na\"{i}ve
+baseline rebroadcasts the full accumulated transcript to all $N - 1$ peers
+each round ($O(N^2 H)$ tokens total); the Pillar-Slice baseline emits one
+\texttt{SemanticCollaborationMessage} delta per agent per round to a shared
+board read once ($O(NH)$ tokens total).  The NL utterance and the Pillar-Slice
+delta convey the same decision; the baseline is not an inflated strawman.
+Artifact: \texttt{research/paper-26-artifacts/c1-token-reduction-2026-05-24.json}.
+
+\paragraph{Results.}
+At the canonical operating point ($N = 100$ agents, $H = 50$ rounds):
+slice-protocol total $678{,}642$ tokens; broadcast total $810{,}836{,}334$
+tokens; reduction $99.9\%$.  The reduction is a \emph{routing} effect
+(fan-out avoidance and no history resend), not per-message encoding compression.
+At the per-message level, the compact latent tuple (21 tokens) is $67.2\%$
+smaller than a natural-language utterance (64 tokens) conveying the same
+decision; the full JSON envelope (136 tokens) is $112\%$ \emph{larger} than NL.
+The asymptotic advantage is $O(NH)$ vs $O(N^2H)$; the compact-tuple encoding
+reduction is a secondary benefit.
 
 \paragraph{Comparison with prior work on multi-agent token efficiency.}
 \label{sec:eval-latentmas-comparison}
 \PillarSlice{} targets a fundamentally different task regime from general
 multi-agent token-efficiency systems: every coordination event is gated on a
-live TET10 FEM solver output and anchored by a cryptographic
-\texttt{SimulationContract} receipt.
-Figures across these regimes are not directly comparable --- they represent
-distinct operating points on different trade-off frontiers (verifiability and
-physics grounding vs.\ raw token compression on natural-language tasks).
+live physics-solver output and anchored by a cryptographic
+\texttt{SimulationContract} receipt.  Figures across these regimes are not
+directly comparable -- they represent distinct operating points on different
+trade-off frontiers.
 LatentMAS~\cite{latentmas2025} (Hu et al., ICML 2026 Spotlight) achieves
-83.7\% token reduction on general natural-language multi-agent tasks;
-our 70.5\% on physics-solver-coupled tasks reflects the overhead of
-coupling each delta to a verified FEM result --- a precision cost absent from
-NLP-domain baselines.
-\PillarSlice{} does not offer a competing result on LatentMAS's task class;
-it offers a complementary capability: every coordination event is post-hoc
-verifiable from solver state to decision via cryptographic receipt replay ---
-a guarantee LatentMAS does not provide and that is necessary for
-safety-critical simulation pipelines.
+83.7\% token reduction on general natural-language multi-agent tasks via latent
+communication; RecursiveMAS~\cite{recursivemas2026} independently validates
+latent inter-agent coordination on similar tasks.  \PillarSlice{} does not
+offer a competing result on those task classes; it offers a complementary
+capability: every coordination event is post-hoc verifiable from solver state
+to decision via cryptographic receipt replay -- a guarantee neither system
+provides and that is necessary for safety-critical simulation pipelines.
 HoloScript is also fully open-source under a permissive license, whereas
-LatentMAS does not release a production runtime.
+neither system releases a production runtime.
 
-RecursiveMAS~\cite{recursivemas2026} (UIUC/Stanford/NVIDIA/MIT, arXiv:2604.25917)
-independently validates latent inter-agent communication via a recursive hidden-state
-routing approach.  Like LatentMAS, RecursiveMAS focuses on general natural-language tasks
-and does not couple coordination events to physics-solver outputs or attach cryptographic
-receipts to individual coordination steps.  Our architecture predates the RecursiveMAS
-submission---the open-source uaa2-service repository's public history precedes the
-2026-04-28 arXiv submission---
-providing independent confirmation that latent inter-agent coordination is a convergent
+Our architecture predates the RecursiveMAS submission: the open-source
+\texttt{uaa2-service} repository's public history (first commit 2025-10-30)
+precedes the 2026-04-28 arXiv submission by six months, providing
+independent confirmation that latent inter-agent coordination is a convergent
 design across contemporaneous research efforts.
 
 % ─────────────────────────────────────────────────────────────────────────────
@@ -276,13 +372,16 @@ design across contemporaneous research efforts.
 % ─────────────────────────────────────────────────────────────────────────────
 
 \paragraph{Internal validity.}
-All four evaluation subsections measure on codebases we maintain
+All evaluation subsections above measure on codebases and services we maintain
 (HoloScript core, absorb-service, and the live HoloMesh deployment).
 Synthetic corpora use controlled topologies with known ground truth,
 which may not reflect the event-chain distributions of unfamiliar
 codebases.  Real-corpus generalization (\S\ref{sec:eval-real-corpus})
 partially addresses this by testing on production TypeScript, but
 broader cross-project evaluation remains future work.
+The contribution-validation experiments (\S\ref{sec:eval-psf-contributions})
+use deterministic seeds and fixed held-out batches; variability across
+random seeds and larger corpora is future work.
 
 \paragraph{External validation of the filesystem-as-ground-truth design.}
 The core design choice underlying \HoloGraph\ (\S\ref{sec:eval-holograph})
