@@ -201,10 +201,31 @@ C-WASM (P3), C-FIDELITY (P4), breadth-2 (P5).
 
 New cross-cutting findings (filed to board): (a) **native-platform compilers lack fidelity verifiers** — iOS/VisionOS have none, Android only a SHA hash-lock; iOS has no wired dispatch path. (b) **AndroidCompiler functional defect** — emitted per-object code is dead (placeObject ignores it). (c) **claim-wording drift** — MCPConfig (client vs server), PlayCanvas (animation), Godot (.tscn). (d) USDZ rotation unit bug.
 
+### Batch 5 — 6 more (30 of 61 total): 6 REAL, 0 THIN/OVERCLAIMED-in-code
+
+| Compiler | Verdict | Note |
+|---|---|---|
+| TSLCompiler | REAL | input-faithful shader compiler, strong 903-line verifier; **claim-wording: emits WGSL modules + TS pipeline, not Three.js TSL node-graph JS** |
+| SDFCompiler | REAL | **NAME COLLISION: this is Gazebo *Simulation Description Format* (XML), NOT signed-distance-field** (that's SDFRayMarchCompiler). Faithful Gazebo exporter w/ real inertia tensors + 52-assertion fidelity verifier. `compile_to_sdf` framing misleads. |
+| Native2DCompiler | REAL | HTML/Tailwind or React .tsx, input-driven (~85%); **no fidelity verifier** (only a latency bench) |
+| MultiLayerCompiler | REAL | genuinely fans out to AR/VRR/Babylon sub-compilers on one composition; verifier asserts per-target output |
+| NFTMarketplaceCompiler | REAL | full conditional ERC-1155 Solidity emission (royalties/lazy-mint/access-control/maxSupply/marketplace), dedicated 498-line fidelity verifier; honest stubs (abi:[], cost-est) |
+| HoloGramMLSCompiler | REAL | **MLS = Multiple Listing Service (real-estate photos→3D gallery), NOT multi-layer-stereo/MV-HEVC**. Real input-driven layout; `compile()` intentionally throws (use `compileBundle()` — verified, not a bug); depth deferred to real @depth_estimation runtime trait |
+
+Batch-5 findings are claim-wording/terminology + verifier-coverage only — no code stubs.
+Filed to board: claim/terminology disambiguation + Native2D verifier (C-DISAMBIG).
+
+## Tally so far (30 of 61 compilers + 15 solvers/traits)
+
+Compilers: **28 REAL, 1 THIN (WASM), 1 OVERCLAIMED-vs-claim (MCPConfig)**. The compiler tier
+is genuinely real codegen; findings cluster in (1) silent-degradation of unhandled cases,
+(2) thin/absent fidelity verifiers, (3) claim/terminology drift (SDF, MLS, TSL, MCPConfig,
+Godot, PlayCanvas). No fabricated/template-only compiler found in 30.
+
 ## Next breadth pass
 
-Un-ratcheted: **~37 remaining compilers** (AR/AndroidXR/AIGlasses/PhoneSleeveVR; TSL/SDF/
-MultiLayer/Native2D/State/FlatSemantic/Context/Incremental; NodeGraph/Pipeline/Graph/
-TraitComposition; niche NFT/HoloGramMLS/Holob/SCM/NextJS/NodeService/MVHEVC/Quilt/Procedural/
-ShaderGraph; known-failing VRChatCompiler) and the **~88 POTENTIAL trait stubs + Tier-4
-integration traits**. All on the board (deep-ratchet straggler + breadth-2 tasks, 2026-05-24).
+Un-ratcheted: **~31 remaining compilers** (AR/AndroidXR/AIGlasses/PhoneSleeveVR; State/
+FlatSemantic/Context/Incremental; NodeGraph/Pipeline/Graph/TraitComposition; niche Holob/SCM/
+NextJS/NodeService/MVHEVC/Quilt/Procedural/ShaderGraph/Matterpak/LLMProviderCapabilities;
+known-failing VRChatCompiler) and the **~88 POTENTIAL trait stubs + Tier-4 integration
+traits**. All on the board (deep-ratchet straggler + breadth-2 tasks, 2026-05-24).
