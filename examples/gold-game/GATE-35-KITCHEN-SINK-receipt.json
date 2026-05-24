@@ -10,8 +10,8 @@
   },
   "build": {
     "artifact": "examples/gold-game/drive-build/index.html",
-    "htmlBytes": 1522009,
-    "sceneDigest": "456e533256ddd7ead7ac04b947b2ca9202baf83f2a520c67a29c596b74ed19b1"
+    "htmlBytes": 1522011,
+    "sceneDigest": "a4f7989524f66dc623345b3cfe2d1ebf334fe6968312b65a674c7850c198f363"
   },
   "trace": [
     {
@@ -21,7 +21,7 @@
         24,
         25
       ],
-      "evidence": "456e533256ddd7ead7ac04b947b2ca9202baf83f2a520c67a29c596b74ed19b1"
+      "evidence": "a4f7989524f66dc623345b3cfe2d1ebf334fe6968312b65a674c7850c198f363"
     },
     {
       "step": "holograph-lineage-navigation",
@@ -44,7 +44,7 @@
       "gates": [
         33
       ],
-      "evidence": "fd8f40a8e9114b5c05d7a1c7538f10986c339165856e4a70906a4dafa16073d5"
+      "evidence": "a46d086f3de719dc599ee7084de58ed31f503c38be4c4671b8e275313ba6ad02"
     },
     {
       "step": "holographic-export-targets",
@@ -113,8 +113,8 @@
   },
   "contract": {
     "spine": "computeStateDigest(field-bag, sha256)",
-    "kitchenDigest": "fa83f3a70493fc196de895ef7e5cc0f3325f1109b174f9c1d5cd08c1328966b3",
-    "negativeControlDigest": "bbebe1d9d9101761845edcc15fa2a65f8c5f8d34fc243fd8b8aa7e0a8d69e26a"
+    "kitchenDigest": "16ed6213ed17c2a3d1ddb5141839d3f200fc3db5c6e5ed483da860faa6484fc7",
+    "negativeControlDigest": "4b92c8bce4d73242e3cceb4a37049bb4b408c66fee81a9fc4ced4da4e1d76728"
   },
   "proves": {
     "coherentLoop": "The same emitted playable build embeds and exposes HoloGraph, HoloGram vista, HoloMap room, holographic exports, HoloGate play, party/toolset, and offline self-proof.",

@@ -100,7 +100,7 @@
     "artifact": "gold-vault-holomap-room.json",
     "portalMounted": "HoloMapRoomPortal",
     "points": 96,
-    "spaceDigest": "fd8f40a8e9114b5c05d7a1c7538f10986c339165856e4a70906a4dafa16073d5"
+    "spaceDigest": "a46d086f3de719dc599ee7084de58ed31f503c38be4c4671b8e275313ba6ad02"
   },
   "holographicExport": {
     "enabled": true,
@@ -262,11 +262,11 @@
     ],
     "missing": []
   },
-  "sceneDigest": "456e533256ddd7ead7ac04b947b2ca9202baf83f2a520c67a29c596b74ed19b1",
-  "htmlBytes": 1522009,
+  "sceneDigest": "a4f7989524f66dc623345b3cfe2d1ebf334fe6968312b65a674c7850c198f363",
+  "htmlBytes": 1522011,
   "selfContained": true,
   "offline": true,
   "three": "0.182.0 (bundled IIFE)",
   "core": "6.1.0",
-  "verifiedAt": "2026-05-24T10:31:07.836Z"
+  "verifiedAt": "2026-05-24T19:13:19.736Z"
 }

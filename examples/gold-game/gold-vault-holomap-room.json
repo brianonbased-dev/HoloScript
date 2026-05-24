@@ -20,21 +20,21 @@
       "pointCount": 96,
       "bounds": {
         "min": [
-          -0.041077,
-          -0.070281,
-          -0.112761
+          -1.122529,
+          -0.75174,
+          -0.0704
         ],
         "max": [
-          0.134636,
-          0.025706,
-          0.126336
+          1.131005,
+          0.751403,
+          0.076153
         ]
       },
       "replayHash": "737ea9d80f539658",
       "simulationContract": {
         "kind": "holomap.reconstruction.v1",
         "replayFingerprint": "737ea9d80f539658",
-        "holoScriptBuild": "6.1.0+402a1e1c3"
+        "holoScriptBuild": "6.1.0+33f08e05e"
       },
       "assets": {
         "points": "reconstruction.points.bin",
@@ -72,12 +72,12 @@
       "compileStatus": "COMPILED",
       "usedCompilerFallback": false,
       "exportPointCount": 96,
-      "compiledOutputHash": "994f79762c19f13bc72b84cbdd42d6f2e7a23c8f082344edf0cc0c11632d406a",
-      "pointCloudPlyHash": "b1cb58e8844f1b730e689e516617540b8a8da0aad2155783ab0567c2c70e724f",
-      "trajectoryJsonHash": "1ba1d9c82be160c2a629efc16ffc505a2d55bdca5ec56bce7dc7856ee6f90601",
+      "compiledOutputHash": "d19aae346ebeff112293e2d80654d0f30b39f2526204a587fad2d3603fd636b2",
+      "pointCloudPlyHash": "ea9629e1cc40f42160ab0358ba690c57c089e5ec52d7ee9aecb28f895e6c4067",
+      "trajectoryJsonHash": "e85086ea0bacd3b7de4f091739ceb6b22079ea4d2af055ed5340b89b692cb5dd",
       "compiledOutputBytes": 2874,
-      "pointCloudPlyBytes": 7098,
-      "trajectoryJsonBytes": 1544
+      "pointCloudPlyBytes": 6931,
+      "trajectoryJsonBytes": 1552
     },
     "trajectory": {
       "version": 1,
@@ -85,9 +85,9 @@
         {
           "frameIndex": 0,
           "position": [
-            0.056031,
-            -0.005916,
-            0.016469
+            0.004482,
+            -0.000473,
+            -0.025623
           ],
           "rotation": [
             0,
@@ -100,9 +100,9 @@
         {
           "frameIndex": 1,
           "position": [
-            0.06178,
-            -0.008753,
-            -0.006098
+            0.004942,
+            -0.0007,
+            -0.026715
           ],
           "rotation": [
             0,
@@ -115,9 +115,9 @@
         {
           "frameIndex": 2,
           "position": [
-            0.05382,
-            -0.01074,
-            -0.002971
+            0.004306,
+            -0.000859,
+            -0.023655
           ],
           "rotation": [
             0,
@@ -130,9 +130,9 @@
         {
           "frameIndex": 3,
           "position": [
-            0.056526,
-            -0.014454,
-            -0.005549
+            0.004522,
+            -0.001156,
+            -0.025046
           ],
           "rotation": [
             0,
@@ -145,9 +145,9 @@
         {
           "frameIndex": 4,
           "position": [
-            0.054849,
-            -0.014842,
-            0.004985
+            0.004388,
+            -0.001187,
+            -0.026538
           ],
           "rotation": [
             0,
@@ -160,9 +160,9 @@
         {
           "frameIndex": 5,
           "position": [
-            0.0597,
-            -0.016878,
-            0.008959
+            0.004776,
+            -0.00135,
+            -0.024216
           ],
           "rotation": [
             0,
@@ -200,7 +200,7 @@
   "honestScope": "Offline data-integrity proof for the HoloMap import/export path using a deterministic room-shaped capture fixture. A live physical-room scan video was not present locally, so this gate does not claim new physical capture; it proves that captured frames become an anchored GOLD space/portal artifact through the real HoloMap session/runtime/export code.",
   "contract": {
     "spine": "computeStateDigest(field-bag, sha256)",
-    "spaceDigest": "fd8f40a8e9114b5c05d7a1c7538f10986c339165856e4a70906a4dafa16073d5",
-    "payloadHash": "12053cc2450e8c64dc870ba4edaa43fb9efc9d240679bedad6018f8c70758e7e"
+    "spaceDigest": "a46d086f3de719dc599ee7084de58ed31f503c38be4c4671b8e275313ba6ad02",
+    "payloadHash": "7d2a7dc9026997b16f3647bd6f22b7e8fb725d2183fba10cc98dfdc6c4c6a8ec"
   }
 }
