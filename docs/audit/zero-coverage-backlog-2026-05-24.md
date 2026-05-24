@@ -1,6 +1,6 @@
 # Zero-Coverage Trait Backlog
 **Generated:** 2026-05-24
-**Total zero-coverage traits:** 991
+**Total zero-coverage traits:** 989
 
 This backlog lists every trait with no detected handler, test, example, or documentation.
 Use it to spawn targeted board tasks for backfill.
@@ -1377,11 +1377,3 @@ Use it to spawn targeted board tasks for backfill.
 |-------|------------------|
 | `print_twin` | Add handler + test + example |
 | `scan_to_sculpt` | Add handler + test + example |
-
-## payment
-**Count:** 2  **Total in category:** 7
-
-| Trait | Suggested Action |
-|-------|------------------|
-| `micro_payment` | Add handler + test + example |
-| `x402_settlement` | Add handler + test + example |

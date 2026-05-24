@@ -1,0 +1,47 @@
+// Trait coverage sample for payment/micro_payment and payment/x402_settlement.
+
+composition "x402 Settlement Micro Payment" {
+  object "MeteredApiGate" {
+    @credit {
+      price_usd: 0.05
+      currency: "USDC"
+      purpose: "agent_tool_call"
+    }
+    @micro_payment {
+      ledger: "session-meter"
+      max_amount_usd: 0.10
+      batch_window_ms: 30000
+    }
+
+    geometry: "box"
+    position: [0, 1, 0]
+    scale: [1.2, 1.2, 1.2]
+    material: {
+      baseColor: "#2d9cdb"
+      roughness: 0.35
+      metallic: 0.25
+    }
+  }
+
+  object "SettlementRail" {
+    @wallet {
+      role: "creator_treasury"
+      chain: "base"
+    }
+    @x402_settlement {
+      facilitator: "coinbase"
+      chain: "base"
+      asset: "USDC"
+      payee: "creator_treasury"
+    }
+
+    geometry: "plane"
+    position: [0, 0, -1.5]
+    scale: [4, 1, 2]
+    material: {
+      baseColor: "#1f2937"
+      roughness: 0.7
+      metallic: 0.1
+    }
+  }
+}

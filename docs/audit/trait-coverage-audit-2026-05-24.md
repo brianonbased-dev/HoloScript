@@ -7,8 +7,8 @@
 | Metric | Value |
 |--------|-------|
 | Total Traits | 2,322 |
-| Covered Traits | 1,331 (57.32%) |
-| Zero-Coverage Traits | 991 |
+| Covered Traits | 1,333 (57.41%) |
+| Zero-Coverage Traits | 989 |
 
 > **Coverage definition:** a trait is "covered" if it has at least one of: a handler implementation (`*Trait.ts`), a test file (`*.test.ts`), an example usage (`.holo`/`.hsplus`), or documentation (`.md`).
 
@@ -80,7 +80,6 @@
 | interop-copresence | 15 | 13 | 2 | 13 | 13 | 11 | 13 |
 | weather-particles | 12 | 10 | 2 | 0 | 0 | 0 | 10 |
 | volumetric-webgpu | 13 | 11 | 2 | 9 | 9 | 10 | 11 |
-| payment | 7 | 5 | 2 | 4 | 4 | 4 | 4 |
 | accessibility | 10 | 10 | 0 | 10 | 10 | 10 | 10 |
 | concurrency | 4 | 4 | 0 | 4 | 4 | 3 | 3 |
 | accessibility-extended | 27 | 27 | 0 | 0 | 0 | 3 | 26 |
@@ -120,6 +119,7 @@
 | gpu-compute | 4 | 4 | 0 | 4 | 4 | 4 | 4 |
 | connector-integration | 4 | 4 | 0 | 1 | 1 | 4 | 3 |
 | compliance-governance | 3 | 3 | 0 | 3 | 3 | 0 | 1 |
+| payment | 7 | 7 | 0 | 4 | 4 | 6 | 4 |
 | communication | 7 | 7 | 0 | 7 | 7 | 2 | 1 |
 | ml-inference | 6 | 6 | 0 | 6 | 6 | 2 | 3 |
 | ffi-os | 4 | 4 | 0 | 4 | 4 | 0 | 1 |
@@ -1318,8 +1318,3 @@
 
 - `print_twin`
 - `scan_to_sculpt`
-
-### payment (2 uncovered)
-
-- `micro_payment`
-- `x402_settlement`
