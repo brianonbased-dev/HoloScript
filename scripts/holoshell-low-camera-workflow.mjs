@@ -180,6 +180,7 @@ function summarizeRender(renderReceipt, renderReceiptPath) {
     quiltPath: renderReceipt.quilt?.path,
     pngHash: renderReceipt.quilt?.pngHash,
     pngFileHash: renderReceipt.quilt?.path ? fileHash(renderReceipt.quilt.path) : undefined,
+    quality: renderReceipt.quilt?.quality,
     views: renderReceipt.quilt?.views,
     width: renderReceipt.quilt?.width,
     height: renderReceipt.quilt?.height,
@@ -226,6 +227,7 @@ export function buildWorkflowReceipt({ args, sweepReceipt, sweepReceiptPath, ren
         status: render.status,
         quiltPath: render.quiltPath,
         pngHash: render.pngHash,
+        quality: render.quality,
         receiptHash: render.receiptHash,
         fileHash: render.fileHash,
       },
@@ -235,6 +237,8 @@ export function buildWorkflowReceipt({ args, sweepReceipt, sweepReceiptPath, ren
         views: render.views,
         width: render.width,
         height: render.height,
+        qualityScore: render.quality?.score,
+        warningCount: render.quality?.warnings?.length,
       },
       honestScope:
         'Renders the winning HoloGram bridge into a deterministic quilt preview. This is not MV-HEVC export.',
@@ -249,6 +253,8 @@ export function buildWorkflowReceipt({ args, sweepReceipt, sweepReceiptPath, ren
         winningPreprocess: sweep.winner?.mode,
         pointCount: render?.pointCount ?? sweep.pointCount,
         rendered: Boolean(render),
+        quiltQualityScore: render?.quality?.score,
+        quiltQualityGrade: render?.quality?.grade,
       },
       honestScope:
         'Top-level workflow chain linking native camera sweep and winning HoloGram quilt render receipts.',
@@ -279,6 +285,7 @@ export function buildWorkflowReceipt({ args, sweepReceipt, sweepReceiptPath, ren
     },
     sweep,
     render,
+    quality: render?.quality,
     commands: {
       sweep: commands.sweep.command,
       render: commands.render?.command,
@@ -304,6 +311,7 @@ export function validateReceipt(receipt) {
     if (!receipt.render?.receiptHash?.startsWith('sha256:')) errors.push('render receipt hash missing');
     if (!receipt.render?.pngHash?.startsWith('sha256:')) errors.push('quilt png hash missing');
     if (!receipt.render?.quiltPath) errors.push('quilt path missing');
+    if (!(receipt.render?.quality?.score >= 0)) errors.push('quilt quality score missing');
   }
   if (!receipt.chain?.receipt?.hash?.startsWith('sha256:')) errors.push('chain receipt hash missing');
   if (!Array.isArray(receipt.chain?.stages) || receipt.chain.stages.length < 1) errors.push('chain stages missing');
@@ -406,7 +414,14 @@ export async function selfTest() {
     schemaVersion: 'holoshell-hologram-bridge-renderer/v5',
     status: 'pass',
     source: { pointCount: 4, temporalMode: 'tracked' },
-    quilt: { path: rel(quiltPath), pngHash: fileHash(quiltPath), views: 4, width: 64, height: 48 },
+    quilt: {
+      path: rel(quiltPath),
+      pngHash: fileHash(quiltPath),
+      views: 4,
+      width: 64,
+      height: 48,
+      quality: { score: 0.4, grade: 'weak', warnings: ['low-foreground-coverage'] },
+    },
     chain: { receipt: { hash: 'sha256:' + 'b'.repeat(64) } },
   });
   writeJson(renderPath, renderReceipt);
@@ -461,6 +476,7 @@ async function main() {
           width: receipt.render.width,
           height: receipt.render.height,
           views: receipt.render.views,
+          quality: receipt.render.quality,
         }
       : undefined,
   }, null, 2)}\n`);

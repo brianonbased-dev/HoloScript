@@ -50,6 +50,8 @@ assertEq(receipt.quilt.views, 4, 'self-test view count');
 assertOk(receipt.quilt.path.includes(receipt.quilt.variant), 'quilt path includes render variant');
 assertOk(receipt.quilt.style.exposure >= 1, 'receipt records exposure');
 assertOk(receipt.quilt.style.pointRadius >= 1, 'receipt records point radius');
+assertOk(receipt.quilt.quality.score >= 0, 'receipt records quilt quality score');
+assertOk(['excellent', 'good', 'usable', 'weak', 'poor'].includes(receipt.quilt.quality.grade), 'receipt records quilt quality grade');
 assertOk(receipt.chain?.receipt?.hash?.startsWith('sha256:'), 'receipt carries chain hash');
 assertEq(receipt.chain?.receipt?.stageCount, 3, 'receipt has ingest, temporal, and render stages');
 
@@ -183,6 +185,7 @@ try {
   assertEq(temporalReceipt.source.temporalSelection.trackedFrameCount, 2, 'tracked frame count recorded');
   assertEq(temporalReceipt.chain?.stages?.[1]?.name, 'temporal.selection', 'temporal stage recorded');
   assertEq(temporalReceipt.chain?.stages?.[2]?.name, 'render.quilt-preview', 'render stage recorded');
+  assertOk(temporalReceipt.quilt.quality.viewDeltaMean >= 0, 'temporal quilt records view delta quality');
   const png = readFileSync(resolve(REPO_ROOT, temporalReceipt.quilt.path));
   assertOk(png[0] === 0x89 && png[1] === 0x50, 'temporal quilt is PNG');
 } finally {

@@ -47,6 +47,8 @@ assertOk(receipt.sweep.fileHash.startsWith('sha256:'), 'sweep file hash recorded
 assertEq(receipt.sweep.winner.mode, 'raw', 'winner mode recorded');
 assertOk(receipt.render.receiptHash.startsWith('sha256:'), 'render receipt hash recorded');
 assertOk(receipt.render.pngHash.startsWith('sha256:'), 'quilt png hash recorded');
+assertEq(receipt.render.quality.grade, 'weak', 'workflow carries render quality grade');
+assertOk(receipt.quality.score >= 0, 'workflow exposes top-level quality');
 assertEq(receipt.chain?.receipt?.stageCount, 2, 'workflow has sweep and render stages');
 
 console.log('Test 2: invalid workflow receipts fail closed');

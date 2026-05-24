@@ -21,6 +21,7 @@ import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { canonical, chainReceipt, sha256Bytes, sha256Text, stageReceipt, withHash } from './holoshell/chain/receipts.mjs';
 import { parseAsciiPly } from './holoshell/render/parse-ply.mjs';
+import { analyzeQuiltQuality } from './holoshell/render/quilt-quality.mjs';
 import { boundsFor, selectTemporalPoints } from './holoshell/render/temporal-fusion.mjs';
 
 export const VERSION = '0.5.0';
@@ -412,6 +413,7 @@ async function renderQuiltPreview({ points, bounds, tileWidth, tileHeight, views
 
   return {
     png: await encodePng(rgba, quiltWidth, quiltHeight),
+    quality: analyzeQuiltQuality({ rgba, width: quiltWidth, height: quiltHeight, tileWidth, tileHeight, columns, rows, views }),
     width: quiltWidth,
     height: quiltHeight,
   };
@@ -526,10 +528,13 @@ export async function renderBridge(args) {
       path: rel(pngPath),
       width: quilt.width,
       height: quilt.height,
+      quality: quilt.quality,
     },
     metrics: {
       renderedPointCount: renderPoints.length,
       outputBytes: quilt.png.byteLength,
+      qualityScore: quilt.quality.score,
+      warningCount: quilt.quality.warnings.length,
     },
     honestScope:
       'Deterministic quilt preview rasterization. This is not MV-HEVC or parallax video encoding.',
@@ -596,6 +601,7 @@ export async function renderBridge(args) {
       columns,
       rows,
       style,
+      quality: quilt.quality,
       variant,
     },
     honestScope:
@@ -614,6 +620,7 @@ export function validateReceipt(receipt) {
   if (receipt.status !== 'pass') errors.push('status must be pass');
   if (!receipt.hash?.startsWith('sha256:')) errors.push('hash missing');
   if (!receipt.quilt?.pngHash?.startsWith('sha256:')) errors.push('quilt PNG hash missing');
+  if (!(receipt.quilt?.quality?.score >= 0)) errors.push('quilt quality score missing');
   if (!(receipt.source?.pointCount > 0)) errors.push('point count missing');
   if (!receipt.chain?.receipt?.hash?.startsWith('sha256:')) errors.push('chain receipt hash missing');
   if (!Array.isArray(receipt.chain?.stages) || receipt.chain.stages.length < 1) errors.push('chain stages missing');
