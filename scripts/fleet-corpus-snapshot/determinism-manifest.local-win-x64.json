@@ -1,0 +1,36 @@
+{
+  "manifestVersion": 1,
+  "modelId": "Xenova/all-MiniLM-L6-v2",
+  "machineLabel": "Work|win32-x64|nodev24.15.0|kernel10.0.26200",
+  "precision": 6,
+  "dim": 384,
+  "repeats": 3,
+  "sameMachineStable": true,
+  "entries": [
+    {
+      "text": "For every convex polyhedron, vertices minus edges plus faces equals two.",
+      "fingerprint": "sha-830b69ca45eca423409836200eac1271638b8cb3162f1c6fdf066b8ec1b618b7",
+      "sameMachineStable": true
+    },
+    {
+      "text": "In a right triangle the hypotenuse squared equals the sum of the squares of the other two sides.",
+      "fingerprint": "sha-c1bac3eedd4bd5ac7c3deb561cb146cf5bfb4eafa80ee888d4a25b8a1b25eb49",
+      "sameMachineStable": true
+    },
+    {
+      "text": "For every integer n>=2, 4/n equals 1/x + 1/y + 1/z.",
+      "fingerprint": "sha-dd23f725366aa2750633b3c86533143375ac3c41acae2a76f1b38bb6c33421f0",
+      "sameMachineStable": true
+    },
+    {
+      "text": "Two generic plane curves of degrees d1 and d2 intersect in d1*d2 points.",
+      "fingerprint": "sha-7e4e9830e218269007a0f4cf97d6e0119bea466d2da6a2023a3459faf64d2afd",
+      "sameMachineStable": true
+    },
+    {
+      "text": "The cat sat on the warm windowsill in the afternoon sun.",
+      "fingerprint": "sha-efcd761d6701ae73a5b91ba8ea13400a0f9b2da62dfba156219a06d0d04510c5",
+      "sameMachineStable": true
+    }
+  ]
+}

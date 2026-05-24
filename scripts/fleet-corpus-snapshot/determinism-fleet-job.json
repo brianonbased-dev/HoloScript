@@ -1,0 +1,23 @@
+{
+  "_comment": "P1 cross-fleet determinism job (scope 2026-05-23). Copy into gpu-jobs.local.json (or merge its 'jobs' array) and run `node scripts/gpu-job-queue.mjs` on each vast.ai fleet node. Each node writes its determinism manifest to DETERMINISM_OUT; collect the manifests from >=2 distinct machines into scripts/fleet-corpus-snapshot/ and feed them to assessDeterminismGate (see SemanticDeterminismGate.ts) for the promotion verdict. A determinism check needs CPU/BLAS reproducibility, not GPU — any node is a valid second machine.",
+  "version": 1,
+  "defaults": { "timeBoxSec": 900 },
+  "jobs": [
+    {
+      "id": "semantic-determinism-manifest",
+      "label": "P1 cross-fleet determinism — semantic novelty advisory (scope 2026-05-23)",
+      "cwd": "packages/engine",
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "src/simulation/__tests__/determinism-manifest.emit.test.ts"
+      ],
+      "timeBoxSec": 900,
+      "env": {
+        "EMIT_DETERMINISM_MANIFEST": "1",
+        "DETERMINISM_OUT": "/tmp/determinism-manifest.fleet-node.json"
+      }
+    }
+  ]
+}
