@@ -129,8 +129,9 @@ neuron-timesteps/second on discrete hardware and materially lower---but still
 interactive---throughput on integrated hardware, with no shader changes across
 devices. We treat those figures as dated artifact numbers and keep the
 cross-hardware claim scoped to what is reproducibly logged in that snapshot.
-The \cael{} hash-chain provenance adds $3.40\;\mu$s per entry median ($3.74\;\mu$s p99,
-99{,}997-entry verify harness; Table~\ref{tab:cael}; cross-paper anchor \texttt{research/benchmark-canonical-run.md}) across configurations.
+The \cael{} hash-chain provenance adds $3.40\;\mu$s per entry median
+($3.74\;\mu$s p99, 99{,}997-entry verify harness; cross-paper anchor
+\texttt{research/benchmark-canonical-run.md}) across configurations.
 In an embodied navigation task (harness:
 \texttt{paper-snn-navigation.test.ts}, 2026-04-17), the 128-neuron agent
 reaches the goal while maintaining sub-millisecond median tick time on the
@@ -279,153 +280,17 @@ The Causal Agent-Environment Loop (\cael{})~\cite{holoscript2026cael} hash-chain
 \section{System Architecture}
 \label{sec:architecture}
 
-\begin{figure}[t]
-\centering
-\begin{tikzpicture}[
-  node distance=0.8cm and 1.2cm,
-  box/.style={draw, rounded corners, minimum width=2.2cm, minimum height=0.8cm, align=center, font=\small},
-  shader/.style={box, fill=blue!15},
-  module/.style={box, fill=green!12},
-  trace/.style={box, fill=orange!15},
-  arr/.style={-{Stealth[length=2mm]}, thick},
-]
-  % Environment
-  \node[module] (env) {Physics\\Solver};
-  \node[shader, right=of env] (encode) {Spike\\Encode};
-  \node[shader, right=of encode] (lif) {LIF\\Neurons};
-  \node[shader, right=of lif] (stdp) {STDP\\Learning};
-  \node[shader, below=of lif] (decode) {Spike\\Decode};
-  \node[module, left=of decode] (action) {Action\\Mapper};
-  \node[trace, below=1.0cm of decode] (cael) {\cael{} Hash\\Chain Trace};
-
-  % Arrows
-  \draw[arr] (env) -- node[above, font=\scriptsize] {sensors} (encode);
-  \draw[arr] (encode) -- node[above, font=\scriptsize] {spikes} (lif);
-  \draw[arr] (lif) -- node[above, font=\scriptsize] {weights} (stdp);
-  \draw[arr] (lif) -- node[right, font=\scriptsize, align=center] {output\\spikes} (decode);
-  \draw[arr] (decode) -- node[above, font=\scriptsize] {actions} (action);
-  \draw[arr] (action) -- node[left, font=\scriptsize] {$\Delta W_t$} (env);
-
-  % CAEL connections
-  \draw[arr, dashed, orange] (encode.south) -- ++(0,-0.3) -| (cael.north west);
-  \draw[arr, dashed, orange] (lif.south) -- ++(0,-0.1) -- (decode.north);
-  \draw[arr, dashed, orange] (decode.south) -- (cael.north);
-  \draw[arr, dashed, orange] (action.south) -- ++(0,-0.3) -| (cael.north east);
-
-  % Legend
-  \node[shader, scale=0.7] at ($(encode)+(0,1.2)$) {WGSL};
-  \node[module, scale=0.7] at ($(lif)+(0,1.2)$) {TypeScript};
-  \node[trace, scale=0.7] at ($(stdp)+(0,1.2)$) {Provenance};
-\end{tikzpicture}
-\caption{%
-  \snnwebgpu{} architecture. Blue nodes are WGSL compute shaders dispatched on the GPU;
-  green nodes are TypeScript orchestration modules; dashed orange arrows show data
-  committed to the \cael{} hash-chain trace. The full perception--cognition--action
-  loop executes in the browser with zero server communication.
-}
-\label{fig:architecture}
-\end{figure}
-
-Figure~\ref{fig:architecture} shows the complete pipeline.
-Each agent tick proceeds through five phases:
-
-\paragraph{Phase 1: Perception (Spike Encoding).}
-Continuous sensor readings from the physics solver (stress fields, temperatures,
-accelerations) are converted to spike trains via one of three GPU-accelerated
-encoding schemes:
-
-\begin{itemize}
-\item \textbf{Rate coding}: Spike probability proportional to normalized input magnitude.
-  A PCG-based PRNG (period $2^{32}$) generates per-neuron, per-timestep randomness
-  in the shader.
-\item \textbf{Temporal coding}: Stronger stimuli produce earlier spikes within the
-  time window. Spike time $t_s = \lfloor (1 - \hat{x}) \cdot T_w \rfloor$ where
-  $\hat{x} \in [0,1]$ is the normalized input and $T_w$ is the window size.
-\item \textbf{Delta coding}: Spikes only on significant input changes.
-  ON-spikes (positive delta) occupy the first half of the time window;
-  OFF-spikes (negative delta) occupy the second half, encoding both magnitude
-  and polarity.
-\end{itemize}
-
-All encoders normalize inputs to $[0,1]$ using per-batch min/max statistics,
-then dispatch at workgroup size 256 with one thread per input channel.
-
-\paragraph{Phase 2: Cognition (LIF Network Simulation).}
-The \texttt{SNNNetwork} orchestrator manages multi-layer SNN architectures.
-For each simulation timestep:
-\begin{enumerate}
-\item \textbf{Synaptic current}: $I_j = \sum_i W_{ji} \cdot s_i$ computed via
-  a sparse-friendly matrix-vector product (the synaptic-weights shader skips zero
-  spikes, lines 45--53 of \texttt{synaptic-weights.wgsl}).
-\item \textbf{LIF update}: Equation~\ref{eq:lif} executed per-neuron in
-  \texttt{lif-neuron.wgsl} at workgroup size 256.
-  Refractory clamping ensures a 2ms dead period post-spike.
-\item \textbf{STDP}: Hebbian weight update with soft bounds:
-  LTP when both pre and post spike ($\Delta W = \eta (1 - W)$);
-  LTD when only pre spikes ($\Delta W = -0.5\eta W$).
-  Weights are clamped to $[0, 1]$.
-\end{enumerate}
-
-The three phases are encoded as sequential compute passes within a single
-\texttt{GPUCommandEncoder}, submitted as one command buffer to minimize
-CPU--GPU synchronization.
-
-\paragraph{Phase 3: Decision (Spike Decoding).}
-Output layer spike trains are decoded to continuous action values via:
-\begin{itemize}
-\item \textbf{Rate decoding}: $\hat{y} = \frac{\text{spike count}}{T_w}$.
-\item \textbf{Temporal decoding}: Earliest spike time maps to highest value.
-\item \textbf{Population decoding}: Weighted average of tuning curve values
-  by per-neuron firing rates within a population group.
-\item \textbf{First-spike (WTA)}: Winner-take-all---the neuron that fires first
-  determines the decoded value via its tuning curve.
-\end{itemize}
-
-\paragraph{Phase 4: Action.}
-Decoded values are mapped to simulation actions (e.g., applying forces to
-structural nodes) via the \texttt{CAELActionSelector} and
-\texttt{CAELActionMapper} interfaces.
-The action mapper modifies solver state and records a world delta
-$\Delta W_t$ with before/after geometry hashes.
-
-\paragraph{Phase 5: Provenance.}
-The \cael{} recorder appends four trace entries per tick---perception,
-cognition (including spike trains and goal stack), action (chosen +
-alternatives for counterfactual analysis), and physics step---each
-hash-chained to its predecessor.
-
-\subsection{GPU Resource Management}
-
-The \texttt{BufferManager} handles GPU memory allocation with staging buffer
-pooling for async readback.
-All buffers are 4-byte aligned; uniform buffers are 16-byte aligned per the
-WebGPU spec.
-The \texttt{PipelineFactory} caches compiled pipelines per entry point,
-with six shader modules covering 16 entry points (Table~\ref{tab:shaders}).
-
-\begin{table}[t]
-\centering
-\caption{WGSL compute shader modules and entry points in \snnwebgpu{}.}
-\label{tab:shaders}
-\small
-\begin{tabular}{@{}lll@{}}
-\toprule
-\textbf{Module} & \textbf{Entry Points} & \textbf{Workgroup} \\
-\midrule
-\texttt{lif-neuron.wgsl}       & \texttt{lif\_step}, \texttt{lif\_step\_batch}      & 256 \\
-\texttt{synaptic-weights.wgsl} & \texttt{compute\_synaptic\_current},               & 256 \\
-                                & \texttt{compute\_synaptic\_current\_tiled},         & \\
-                                & \texttt{stdp\_weight\_update}                       & \\
-\texttt{spike-encode.wgsl}     & \texttt{encode\_rate}, \texttt{encode\_temporal},   & 256 \\
-                                & \texttt{encode\_delta}                              & \\
-\texttt{spike-decode.wgsl}     & \texttt{decode\_rate}, \texttt{decode\_temporal},   & 256 \\
-                                & \texttt{decode\_population}, \texttt{decode\_first\_spike} & \\
-\texttt{tropical-activation.wgsl} & \texttt{tropical\_activate}                      & 256 \\
-\texttt{tropical-graph.wgsl}   & \texttt{tropical\_min\_plus\_gemm},                & 16$\times$16 \\
-                                & \texttt{tropical\_spmv}                            & 256 \\
-\bottomrule
-\end{tabular}
-\end{table}
+\snnwebgpu{} is a browser-local perception--cognition--action loop.
+Each tick encodes physics-solver sensors into rate, temporal, or delta spikes;
+executes synaptic current, LIF, and optional STDP compute passes in one
+\texttt{GPUCommandEncoder}; decodes output spikes into continuous actions; and
+commits perception, cognition, action, and world-delta records to a \cael{}
+hash chain.
+The implementation uses six WGSL shader modules and 16 entry points, with
+workgroup size 256 for spike/LIF kernels and $16\times16$ workgroups for dense
+tropical GEMM.
+The full block diagram, per-phase dataflow, shader table, and GPU resource
+management notes are in the supplemental material.
 
 % ============================================================================
 \section{The Tropical Bridge: SNN Rate Coding $\approx$ ReLU}
@@ -497,71 +362,20 @@ $\alpha \cdot \relu(I - I_\theta)$, and $\relu(x) = x \tropplus 0$,
 the equivalence holds.
 \end{proof}
 
-\subsection{Implementation: \texttt{TropicalActivationTrait}}
+\subsection{Implementation: Tropical Bridge and Connectivity}
 
-Our implementation realizes this bridge in both CPU and GPU paths:
-
-\begin{lstlisting}[caption={GPU kernel for tropical activation (WGSL).}, label=lst:tropical-wgsl]
-@compute @workgroup_size(256)
-fn tropical_activate(@builtin(global_invocation_id) gid: vec3<u32>) {
-  let idx = gid.x;
-  if (idx >= config.count) { return; }
-  let shifted = input_values[idx] - config.threshold;
-  // max-plus variant: gain * max(0, shifted) = ReLU bridge
-  if (config.variant == 0u) {
-    output_values[idx] = config.gain * max(0.0, shifted);
-  } else { // min-plus variant: cost-style dual
-    output_values[idx] = config.gain * min(0.0, shifted);
-  }
-}
-\end{lstlisting}
-
-The \texttt{TropicalActivationTrait} (Listing~\ref{lst:tropical-wgsl}) takes
-SNN rate-coded activations and applies the tropical bridge with configurable
-gain and threshold.
-The max-plus variant ($\alpha \cdot \max(0, x - \theta)$) recovers ReLU;
-the min-plus variant provides the dual for cost-minimization problems.
-
-\subsection{Tropical Graph Algorithms on SNN Connectivity}
-
-Beyond the activation bridge, tropical algebra enables GPU-accelerated graph
-algorithms on the neural connectivity graph.
-The all-pairs shortest path (APSP) in a weighted graph with adjacency matrix
-$A$ is computed by repeated tropical matrix multiplication in the min-plus
-semiring:
-\begin{equation}
-D = A^{\otimes \lceil \log_2 N \rceil}
-\quad\text{where}\quad
-(A \otimes B)_{ij} = \min_k (A_{ik} + B_{kj})
-\end{equation}
-
-Our \texttt{TropicalShortestPaths} class implements both dense (GEMM) and sparse
-(SpMV) variants.
-The dense GEMM kernel (Listing~\ref{lst:gemm}) uses $16 \times 16$ workgroups:
-
-\begin{lstlisting}[caption={Min-plus tropical GEMM kernel (WGSL).}, label=lst:gemm]
-@compute @workgroup_size(16, 16)
-fn tropical_min_plus_gemm(@builtin(global_invocation_id) gid: vec3<u32>) {
-  let col = gid.x; let row = gid.y;
-  if (row >= gemmDims.m || col >= gemmDims.n) { return; }
-  var best: f32 = 1e30; // tropical infinity
-  for (var kk: u32 = 0u; kk < gemmDims.k; kk = kk + 1u) {
-    let a = matA[row * gemmDims.k + kk];
-    let b = matB[kk * gemmDims.n + col];
-    if (a < 1e30 && b < 1e30) {
-      best = min(best, a + b);
-    }
-  }
-  matC[row * gemmDims.n + col] = best;
-}
-\end{lstlisting}
-
-The sparse variant (\texttt{tropical\_spmv}) operates on CSR-format graphs
-for single-source shortest paths via iterative relaxation.
-
-This enables analysis of SNN connectivity properties (e.g., shortest
-signal propagation paths, network diameter, reachability) at GPU speed,
-directly on the same device running the simulation.
+\texttt{TropicalActivationTrait} realizes Theorem~\ref{thm:bridge} in CPU and
+GPU paths: the max-plus variant computes
+$\alpha\max(0,x-\theta)$ and recovers $\relu{}$, while the min-plus variant
+provides the cost-style dual.
+The same tropical module also analyzes SNN connectivity by computing APSP via
+repeated min-plus matrix multiplication,
+$D=A^{\otimes\lceil\log_2 N\rceil}$ with
+$(A\otimes B)_{ij}=\min_k(A_{ik}+B_{kj})$, plus a CSR SpMV path for sparse
+single-source relaxations.
+Full WGSL listings for \texttt{tropical\_activate},
+\texttt{tropical\_min\_plus\_gemm}, and \texttt{tropical\_spmv} are in the
+supplemental material.
 
 % ============================================================================
 \section{Implementation Details}
@@ -584,252 +398,55 @@ Full software stack details, annotated shader listings, and test coverage breakd
 \subsection{GPU Benchmark: Hardware Configurations}
 \label{sec:hardware}
 
-We evaluate \snnwebgpu{} across two consumer GPU tiers that span the realistic
-deployment surface for browser-native neuromorphic cognition: an integrated GPU
-representative of entry-level laptops, and a mobile discrete GPU representative
-of consumer gaming and creator hardware.
-Both systems run the \emph{identical WGSL shader source}, dispatched via the same
-WebGPU API from the same TypeScript orchestration layer.
-No recompilation, reinstallation, or code change occurred between measurements---the
-browser's WebGPU adapter transparently retargets the kernels to each device.
-
-\paragraph{Same-machine disclosure (cross-adapter, not cross-site).}
-Both GPU rows in Table~\ref{tab:hardware} were measured on \emph{one} Windows~11
-notebook with hybrid graphics (Intel UHD integrated + NVIDIA RTX~3060 Laptop discrete), switching adapters via driver and OS graphics settings.
-The ablation therefore isolates \emph{GPU engine and memory hierarchy} under a
-shared CPU, DRAM, and thermal envelope---not independent third-party hardware or
-geographically separate machines.
-We report this explicitly so reviewers can interpret ``cross-GPU'' as
-adapter-to-adapter on a single host; broader verification is an active effort
-(see Availability below).
-
-\begin{table}[t]
-\centering
-\caption{Hardware configurations used across all benchmarks. Both systems run Chrome
-  WebGPU on Windows 11; the RTX 3060 was forced via the NVIDIA Control Panel and
-  Windows 11 Graphics Settings to guarantee discrete-GPU dispatch. Observed ranges
-  are over the six-point LIF sweep ($N = 2^{10} \ldots 2^{20}$) and the six-point
-  tropical GEMM sweep ($N = 64 \ldots 2048$).}
-\label{tab:hardware}
-\small
-\measuredFrom{HoloScript/.bench-logs/paper-2-lif-throughput-rtx3060.json}%
-\measuredFrom{research/benchmark-raw/headline-2026-05-06/tropical-crossover.log}%
-\begin{tabular}{@{}lll@{}}
-\toprule
-\textbf{Property} & \textbf{Integrated (baseline)} & \textbf{Discrete (ablation)} \\
-\midrule
-GPU                      & Intel UHD Graphics gen-12lp & NVIDIA GeForce RTX 3060 Laptop \\
-Architecture             & Intel Xe (gen-12lp)         & NVIDIA Ampere (GA106M) \\
-Max storage buffer       & 2{,}147\,MB                  & 2{,}147\,MB \\
-Browser                  & Chrome WebGPU               & Chrome WebGPU \\
-Driver forcing           & (default integrated)        & native Vulkan + high-performance GPU flag \\
-LIF throughput range     & $7.2$--$1{,}481$ M/s         & $6.244$--$5{,}891$ M/s \\
-LIF peak                 & $1.48$ B neuron-ts/s ($N = 2^{18}$) & $5.89$ B neuron-ts/s ($N = 2^{20}$) \\
-Tropical GEMM range      & $1.08$--$9.88$ GFLOP/s       & $0.715$--$255.066$ GFLOP/s \\
-Tropical GEMM peak       & $9.88$ GFLOP/s ($N = 512$)   & $255.066$ GFLOP/s ($N = 2048$) \\
-Measurement date         & 2026-04 (Intel, baseline)    & 2026-05-06 (NVIDIA driver 591.74, commit \texttt{d0a990964}) \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Table~\ref{tab:hardware} summarizes both configurations.
-The integrated GPU (Intel UHD Graphics gen-12lp) establishes the
-``worst reasonable case'' for a WebGPU-capable browser: no dedicated VRAM,
-shared system memory, and modest compute.
-The discrete GPU (NVIDIA RTX 3060 Laptop, Ampere) establishes the
-``consumer mainstream'' target: 3{,}840 CUDA cores, 6\,GB GDDR6 dedicated
-VRAM, and a mobile power envelope.
-Sections~\ref{sec:lif-throughput} and~\ref{sec:tropical-benchmarks} report the
-side-by-side results.
-
-\begin{center}
-\fbox{\parbox{0.95\linewidth}{
-\textbf{Availability (reviewer reproduction).}
-The microbenchmarks underlying Tables~\ref{tab:throughput}--\ref{tab:tropical-crossgpu}
-ship as a single static page in the open-source HoloScript monorepo:
-\texttt{packages/snn-webgpu/benchmark-gpu.html} (\texttt{@holoscript/snn-webgpu}).
-\textbf{Steps:} (1)~clone HoloScript and serve the repo root or \texttt{packages/snn-webgpu/}
-with any static file server (or open the HTML via a \texttt{file://} URL if your
-browser permits WebGPU from local files); (2)~load the page in a WebGPU-capable
-Chrome or Edge build; (3)~confirm the printed adapter name matches the configuration
-you intend (on hybrid laptops, use OS/driver controls to force integrated vs.\
-discrete, as in Table~\ref{tab:hardware}); (4)~compare the logged LIF sweep and
-tropical GEMM tables to this paper.
-\textbf{Scripted reproduction (CI-ready).} The manual workflow above is also
-available as a Playwright-automated harness that drives the same
-\texttt{benchmark-gpu.html} in headed or headless WebGPU-Chrome and writes a
-structured JSON run log (GPU adapter, driver, workload, per-measurement
-throughput) to \texttt{.bench-logs/}~\cite{snn-webgpu-harness-2026}. This is
-the channel we use in CI and recommend for third-party reruns that need to be
-diffable by machine rather than by eye.
-\textbf{Third-party / multi-vendor verification:} numbers in this submission are
-from the dual-GPU laptop above; we are extending runs to at least one desktop-class
-NVIDIA (Ampere/Ada), Apple M-series WebGPU, and AMD RDNA discrete before camera-ready, and we welcome independent timings via the same artifact.
-}}
-\end{center}
+We evaluate the identical WGSL shader source across two adapters in one
+Windows~11 hybrid notebook: Intel UHD Graphics gen-12lp integrated GPU and
+NVIDIA RTX~3060 Laptop discrete GPU.
+This is a cross-adapter ablation under shared CPU, DRAM, and thermals, not a
+cross-site hardware study.
+The full hardware table is in the supplemental material.
+Benchmarks ship as \texttt{packages/snn-webgpu/benchmark-gpu.html}; a
+Playwright harness writes diffable adapter/workload logs to \texttt{.bench-logs/}
+for third-party reruns~\cite{snn-webgpu-harness-2026}.
 
 \subsection{SNN Throughput}
 \label{sec:lif-throughput}
 
-\begin{table}[t]
-\centering
-\caption{LIF neuron throughput side-by-side: Intel UHD Graphics gen-12lp
-  (integrated) vs.\ NVIDIA GeForce RTX 3060 Laptop (discrete, Ampere), both under
-  Chrome WebGPU, 100 timesteps per measurement. Integrated values are verified
-  in the dated snapshot; discrete-LIF values are from the 2026-05-06 strict
-  adapter rerun artifact.}
-\label{tab:throughput}
-\small
-\measuredFrom{HoloScript/.bench-logs/paper-2-lif-throughput-rtx3060.json}%
-\measuredFrom{HoloScript/.bench-logs/paper-2-lif-throughput-automated.json}%
-\begin{tabular}{@{}rrrrrr@{}}
-\toprule
-& \multicolumn{2}{c}{\textbf{Intel UHD (integrated)}} & \multicolumn{2}{c}{\textbf{RTX 3060 (discrete)}} & \\
-\cmidrule(lr){2-3} \cmidrule(lr){4-5}
-$N$ & \textbf{Time (ms)} & \textbf{Throughput (M/s)} & \textbf{Time (ms)} & \textbf{Throughput (M/s)} & \textbf{Speedup} \\
-\midrule
-1{,}024     & 14.2  & 7.2      & 16.4 & 6.244      & 0.87$\times$ \\
-4{,}096     & 10.8  & 37.9     & 22.8 & 17.965     & 0.47$\times$ \\
-16{,}384    & 15.7  & 104.4    & 20.8 & 78.769     & 0.75$\times$ \\
-65{,}536    & 11.2  & 585.1    & 18.4 & 356.174    & 0.61$\times$ \\
-262{,}144   & 17.7  & \textbf{1{,}481.0} & 19.0 & 1{,}379.705 & 0.93$\times$ \\
-1{,}048{,}576 & 85.1  & 1{,}232.2 & 17.8 & \textbf{5{,}890.876} & 4.78$\times$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Table~\ref{tab:throughput} reports verified LIF neuron throughput for the Intel
-UHD Graphics gen-12lp integrated GPU and the 2026-05-06 RTX~3060 Laptop
-strict-adapter rerun. The integrated column runs the
-WGSL kernel dispatched by the same TypeScript orchestration used across
-hardware targets. On the integrated GPU, throughput scales super-linearly
-from $N = 1{,}024$ through $N = 262{,}144$ (peak $1.48 \times 10^9$
-neurons/s) before dropping to $1.23 \times 10^9$ at $N = 1{,}048{,}576$
-due to memory-bandwidth saturation.
-
-\paragraph{Discrete rerun status (integrity note).}
-The RTX~3060 rows were restored only after a dated local rerun selected
-the NVIDIA Ampere adapter and wrote a machine-readable artifact. Small
-workloads remain launch-overhead dominated; the discrete path becomes
-clearly advantageous at the 1M-neuron scale, reaching
-$5.89 \times 10^9$ neuron-timesteps/s.
-
-\paragraph{Interactive budget.}
-The integrated configuration sits well above the $>600$\,K neurons/s required
-for 10K neurons at 60\,Hz (16.6\,ms budget).
-Discrete-GPU budgeting statements are intentionally deferred until the
-strict-adapter discrete-LIF sweep is re-measured across additional hosts.
-Each LIF step dispatches $\lceil N / 256 \rceil$ workgroups; the synaptic
-current computation adds another $\lceil N_\mathrm{post} / 256 \rceil$
-workgroups per connection.
-Additional platform benchmarks (Apple M-series, Intel Arc, AMD discrete)
-are planned as future work.
+The integrated baseline peaks at $1.48\times10^9$ neuron-timesteps/s for
+$N=262{,}144$ before memory-bandwidth saturation, while the strict-adapter
+RTX~3060 rerun reaches $5.89\times10^9$ neuron-timesteps/s at
+$N=1{,}048{,}576$.
+Small workloads are launch-overhead dominated; at the 1M-neuron scale the
+discrete path is $4.78\times$ faster.
+Both configurations clear the $>600$K neurons/s budget for 10K neurons at
+60\,Hz; full per-size rows are in the supplemental material.
 
 \subsection{Tropical GEMM Benchmarks}
 \label{sec:tropical-benchmarks}
 
-\begin{table}[t]
-\centering
-\caption{Tropical min-plus GEMM: CPU vs.\ GPU APSP on Intel UHD Graphics gen-12lp
-  (Node.js Dawn backend).
-  GPU crossover occurs at $N = 128$; maximum speedup $20.64\times$ at $N = 1024$.
-  Retained from the baseline Intel evaluation as context for the cross-GPU
-  ablation in Table~\ref{tab:tropical-crossgpu}.}
-\label{tab:tropical}
-\small
-\measuredFrom{research/benchmark-results-2026-04-12.md}%
-\begin{tabular}{@{}rrrrrrl@{}}
-\toprule
-$N$ & \textbf{CPU median} & \textbf{CPU p99} & \textbf{GPU median} & \textbf{GPU p99} & \textbf{Speedup} & \textbf{Winner} \\
-\midrule
-32   & 0.17     & 0.38     & 4.54     & 31.78    & $0.04\times$ & CPU \\
-64   & 1.32     & 1.56     & 6.56     & 25.09    & $0.20\times$ & CPU \\
-128  & 10.18    & 16.18    & 7.96     & 38.24    & $1.28\times$ & GPU \\
-256  & 69.76    & 91.01    & 16.56    & 58.71    & $4.21\times$ & GPU \\
-512  & 576.93   & 599.23   & 40.60    & 49.11    & $14.21\times$ & GPU \\
-1024 & 3,733.02 & 3,966.52 & 180.89   & 210.94   & $20.64\times$ & GPU \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\paragraph{Complementary 2026-05-06 Dawn/Ampere run.}
-A subsequent canonical bench on Intel i7-11800H with Dawn WebGPU live on
-NVIDIA Ampere (mobile) reproduces the same qualitative shape:
-crossover at $N = 512$ ($2.85\times$), peak $10.87\times$ at $N = 1{,}024$.
-Full log: \texttt{research/benchmark-raw/headline-2026-05-06/tropical-crossover.log}.
-The minor differences relative to Table~\ref{tab:tropical} (Intel UHD baseline)
-track hardware-dependent dispatch overhead and are consistent with the
-cross-GPU pattern in Table~\ref{tab:tropical-crossgpu}.
-
-\begin{table}[t]
-\centering
-\caption{Tropical min-plus GEMM throughput side-by-side: Intel UHD Graphics
-  gen-12lp (integrated) vs.\ NVIDIA RTX 3060 Laptop (discrete, Ampere), both
-  under Chrome WebGPU. Iterations $= \lceil \log_2 N \rceil$ repeated squarings
-  compute the APSP closure. The RTX 3060 peaks at $255.066$\,GFLOP/s at
-  $N = 2048$---a $\mathbf{27.60\times}$ speedup over the integrated value
-  ($9.24$\,GFLOP/s at the same size), and $25.82\times$ over the integrated
-  overall peak of $9.88$\,GFLOP/s ($N = 512$).}
-\label{tab:tropical-crossgpu}
-\small
-\measuredFrom{HoloScript/.bench-logs/paper-2-lif-throughput-rtx3060.json}%
-\begin{tabular}{@{}rrrrrrr@{}}
-\toprule
-& & \multicolumn{2}{c}{\textbf{Intel UHD (integrated)}} & \multicolumn{2}{c}{\textbf{RTX 3060 (discrete)}} & \\
-\cmidrule(lr){3-4} \cmidrule(lr){5-6}
-$N$ & \textbf{Iters} & \textbf{Time (ms)} & \textbf{GFLOP/s} & \textbf{Time (ms)} & \textbf{GFLOP/s} & \textbf{Speedup} \\
-\midrule
-64    & 6  & 2.9      & 1.08           & 4.4     & 0.715           & $0.66\times$ \\
-128   & 7  & 12.7     & 2.31           & 6.7     & 4.382           & $1.90\times$ \\
-256   & 8  & 66.0     & 4.07           & 3.9     & 68.830          & $16.91\times$ \\
-512   & 9  & 244.5    & \textbf{9.88}  & 11.0    & 219.629         & $22.23\times$ \\
-1{,}024 & 10 & 2{,}364.5 & 9.08           & 96.3    & 222.999         & $24.56\times$ \\
-2{,}048 & 11 & 20{,}447.5 & 9.24         & 740.9   & \textbf{255.066} & $\mathbf{27.60\times}$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Tables~\ref{tab:tropical} and~\ref{tab:tropical-crossgpu} report APSP computation
-via repeated tropical GEMM squaring ($D = A^{\otimes \lceil \log_2 N \rceil}$).
-The first table retains the baseline Intel CPU-vs-GPU comparison; the second
-introduces the cross-GPU ablation.
-
-\paragraph{Dispatch overhead at small $N$ (integrated lead).}
-At $N = 64$, the integrated GPU is still slightly faster than the discrete GPU
-(1.08\,GFLOP/s vs.\ 0.715\,GFLOP/s), showing the launch-overhead floor. By
-$N = 128$, the RTX path overtakes it, and by $N \ge 256$ the discrete GPU's
-parallelism dominates the kernel's actual floating-point work.
-
-\paragraph{Decisive discrete-GPU lead from $N \geq 256$.}
-From $N = 256$ onward the RTX 3060 wins by increasing margins:
-$16.91\times$ at $N = 256$, $22.23\times$ at $N = 512$, $24.56\times$ at $N = 1024$,
-and $\mathbf{27.60\times}$ at $N = 2048$ (9.24 $\to$ 255.066 GFLOP/s).
-The Intel UHD plateaus around $9$\,GFLOP/s across $N \geq 512$, confirming
-memory-bandwidth saturation on integrated shared memory; the RTX 3060
-continues scaling linearly with problem size, indicating the dense GEMM kernel
-is compute-bound on Ampere and still has headroom.
-
-\paragraph{Why this matters for SNN connectivity.}
-The $N = 2048$ result means APSP analysis of a $2048$-node SNN connectivity
-graph completes in under a second on a mobile laptop.
-This opens up online topology analysis---computing network diameter, shortest
-signal propagation paths, and reachability partitions---\emph{during simulation},
-on the same device that runs the neurons themselves, without leaving the browser.
-The 26$\times$ discrete-GPU gain is the exact workload shape that benefits
-most from dedicated GPU hardware: dense, compute-bound inner loops with
-regular memory access patterns.
-
-For the sparse SpMV path (CSR graphs), the CPU threshold defaults to 256 rows.
-\textbf{Update (2026-04-17):} a CPU reference and benchmark harness for tropical
-min-plus SpMV on CSR graphs lives in \texttt{@holoscript/core} at
-\texttt{math/tropical-spmv} (Erd\H{o}s--R\'{e}nyi, Barab\'{a}si--Albert, and
-layered ``neural'' skip graphs; correctness vs.\ dense min-plus). Measured
-throughput for $n{=}512$ is reported in \texttt{research/benchmark-results-2026-04-12.md}
-(Notebook-class CPU; not GPU). GPU \texttt{tropical\_spmv} remains the primary
-production path for browser SSSP iterations.
+APSP uses repeated tropical GEMM squaring
+($D=A^{\otimes\lceil\log_2N\rceil}$). On the Intel UHD baseline, GPU wins over
+CPU from $N=128$ onward and reaches $20.64\times$ speedup at $N=1024$.
+On the RTX~3060 Laptop rerun, the dense min-plus kernel reaches
+$255.066$\,GFLOP/s at $N=2048$, a $27.60\times$ speedup over the integrated
+GPU at the same size.
+The crossover is launch-overhead dominated at small $N$ and compute-bound on
+Ampere by $N\ge256$, which is exactly the SNN-connectivity workload where
+online diameter/reachability analysis becomes practical during simulation.
+Full CPU/GPU tables, the 2026-05-06 Dawn/Ampere run, and CSR SpMV notes are in
+the supplemental material.
 
 \subsection{CAEL Overhead}
 
+\cael{} verify cost is CPU-bound, not GPU-bound: the canonical replay benchmark
+verifies 99{,}997 entries at $3.40\,\mu$s median and $3.74\,\mu$s p99 per
+entry.
+At four records per agent tick, this is $13.6\,\mu$s median
+($15.0\,\mu$s p99), roughly $0.09\%$ of a 60\,Hz frame.
+FNV-1a is intentionally lightweight for tamper detection; SHA-256 remains an
+optional stronger mode at higher cost.
+The row-by-row verify table is in the supplemental material.
+
+\iffalse
 \begin{table}[t]
 \centering
 \caption{\cael{} FNV-1a hash-chain \emph{verify}-only throughput (\textbf{cross-paper canonical} 2026-04-18: Intel i7-11800H-class laptop, Node.js~22.x, \texttt{paper-cael-replay-benchmark.test.ts}; see \texttt{research/benchmark-canonical-run.md}).
@@ -871,6 +488,7 @@ measured $\sim$9--24$\times$ per-hash cost on the canonical replay
 harness (pure-JS FIPS~180-4 implementation; Node-native
 \texttt{crypto} reduces this to $\sim$3--8$\times$ where available, but
 the pure-JS path preserves universal browser compatibility).
+\fi
 
 % Twin Test Equivalence moved to supplemental (2026-05-23) for NeurIPS 9-page budget.
 % Full bit-exact parity table and discussion: paper-2-snn-neurips-supplemental.tex §A.
@@ -883,39 +501,27 @@ the pure-JS path preserves universal browser compatibility).
 \label{sec:decoder-cost}
 
 For every ``novel / faster / better'' claim, we publish the decoder (readback) cost on the same row (W.314).
-The LIF kernel writes membrane potentials and spike flags to GPU storage buffers; consuming them requires a GPU-to-CPU readback.
-Table~\ref{tab:decoder-cost} quantifies this overhead across the neuron counts used in the throughput evaluation of \S\ref{sec:evaluation}.
-
-\begin{table}[t]
-\centering
-\caption{GPU-to-CPU readback cost for membrane-potential and spike-mask buffers.
-  Measured 2026-05-04 on NVIDIA Ampere (RTX 3060 Laptop, driver 591.74) via \texttt{vitest} with the Dawn-native WebGPU backend.
-  Simulation cost is the compute-only time for the same 100-tick run; readback is serial (worst-case) after the final tick.
-  Effective throughput is bytes transferred divided by readback latency.}
-\label{tab:decoder-cost}
-\small
-\measuredFrom{HoloScript/packages/snn-webgpu/src/paper/__tests__/LIFDecoderCost.test.ts}%
-\begin{tabular}{@{}rrrrrr@{}}
-\toprule
-\textbf{Neurons} & \textbf{Readback (ms)} & \textbf{Sim. (ms)} & \textbf{Ratio} & \textbf{$\mu$s/tick} & \textbf{Throughput} \\
-\midrule
-1{,}024   & 0.73  & 22.7  & 3.1\%  & 7.3  & 0.01 GB/s \\
-4{,}096   & 0.59  & 20.3  & 2.8\%  & 5.9  & 0.06 GB/s \\
-16{,}384  & 0.67  & 18.1  & 3.6\%  & 6.7  & 0.19 GB/s \\
-65{,}536  & 0.89  & 23.0  & 3.7\%  & 8.9  & 0.59 GB/s \\
-262{,}144 & 2.09  & 27.3  & 7.1\%  & 20.9 & 1.00 GB/s \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The readback cost is $O(N)$ in neuron count and remains below $8\%$ of the compute cost across the evaluated range.
-At the canonical operating point ($N{=}65{,}536$, 100 ticks), the incremental per-tick readback is $8.9\;\mu$s---negligible compared to the $230\;\mu$s per-tick simulation time.
-The asymptotic bottleneck is therefore the LIF kernel itself, not the decoder.
-Because the WebGPU \texttt{mapAsync} path on Chromium copies through a shared CPU/GPU memory mapping on integrated GPUs and through PCIe on discrete GPUs, the measured numbers are an upper bound: platforms with unified memory (Apple Silicon, Intel UHD) exhibit lower readback latency than the discrete-GPU figures reported here.
+The LIF kernel writes membrane potentials and spike flags to GPU storage buffers;
+consuming them requires readback, but the measured cost remains below $8\%$ of
+compute across the evaluated range.
+At $N=65{,}536$ and 100 ticks, readback adds $8.9\,\mu$s per tick versus a
+$230\,\mu$s simulation tick; the bottleneck is therefore the LIF kernel, not
+the decoder.
+The full row-by-row table is in the supplemental material.
 
 \subsection{Embodied Navigation Task}
 \label{sec:embodied}
 
+In a $20\times20$ room with six obstacles, a 128-neuron SNN agent reaches the
+goal at tick~38 (1.9\,s simulated time), verifies an 800-record \cael{} trace,
+and runs at $0.44$\,ms mean tick time.
+The baseline path is reactive and inefficient (20.0\% path efficiency), but a
+supervised STDP rerun with 256 plastic synapses reaches the goal in 39 ticks
+along a 29.97-unit path after 8 training episodes.
+Full setup, metrics, STDP, compute-budget, and provenance tables are in the
+supplemental material.
+
+\iffalse
 To demonstrate end-to-end embodied cognition, we evaluate an SNN-driven agent
 in a 2D grid navigation task.
 
@@ -982,95 +588,18 @@ controller: the asymmetric input encoding (obstacle inhibition + goal excitation
 produces reliable goal-directed behavior, but without memory or planning the
 agent cannot anticipate obstacles and often overshoots or detours.
 
-\paragraph{Goal-directed behavior from asymmetric encoding.}
-The key architectural insight is that goal-directed navigation emerges from the
-input encoding alone, without explicit path planning or reward shaping.
-Obstacle distance sensors inhibit the corresponding directional neuron
-populations---closer obstacles produce stronger inhibition, suppressing movement
-toward blocked directions.
-Simultaneously, the goal bearing excites the neuron population aligned with the
-goal direction.
-The competition between inhibition and excitation in the output layer
-naturally selects unobstructed directions that make progress toward the goal.
-STDP learning (not enabled in this baseline run) optimises path efficiency
-beyond 20\% by strengthening connections that consistently lead to
-goal-approaching actions and weakening those that produce detours.
-We confirm this prediction in Section~\ref{sec:stdp-nav}: a two-layer
-LIF network with soft-bounded Hebbian STDP, trained for 8 supervised
-episodes, reaches the goal in $39$ ticks along a $29.97$-unit path
-($\approx\!94$\% of the Manhattan optimal of $32$), against a random-weight
-baseline that does not reach the goal under the same horizon.
-
-\paragraph{STDP-learned navigation.}
-\label{sec:stdp-nav}
-\measuredFrom{HoloScript/packages/engine/src/simulation/__tests__/paper-snn-stdp-navigation.test.ts}%
-\measuredAt{2026-04-26 (Vitest 4.1.0, Node, CPU reference)}%
-We re-run the obstacle-room task from Section~\ref{sec:embodied} with a
-two-layer LIF network of $64$ pre-synaptic sensor neurons (8 ray
-populations $\times$ 8 neurons each) projecting to $4$ action neurons
-through $256$ plastic synapses.  STDP follows the same soft-bounded
-Hebbian rule as the WGSL kernel \texttt{stdp\_weight\_update}: LTP of
-$\eta(1\!-\!w)$ on pre$\!\wedge\!$post co-firings, LTD of
-$-\eta\,\alpha\,w$ when only the pre fires (here $\eta\!=\!0.02$,
-$\alpha\!=\!0.5$).  A supervised teacher injects $80$\,mV into the
-greedy-toward-goal action neuron during a dedicated reinforcement step
-each tick, decoupling action selection (decode pass) from credit
-assignment (reinforce pass).  The test is implemented entirely on the
-deterministic CPU reference path (xorshift32-seeded weight init,
-$\textsf{seed}\!=\!42$), making it reproducible across machines without a
-WebGPU device.  Table~\ref{tab:stdp-nav-experiment} reports the result.
-
-\begin{table}[h]\centering
-\caption{STDP learning improves path efficiency past the 20\% reactive baseline
-(Section~\ref{sec:embodied}). 64 LIF pre-neurons $\to$ 4 action neurons; soft-bounded
-Hebbian STDP; CPU reference (deterministic).}
-\label{tab:stdp-nav-experiment}
-\begin{tabular}{lr}
-\toprule
-Metric & Value \\
-\midrule
-Training episodes & 8 \\
-Evaluation episodes (each phase) & 3 \\
-Baseline path efficiency (random weights) & 0.0\% \\
-Trained path efficiency (post-STDP, frozen) & 100.0\% \\
-Goal reached, baseline / trained (per 3 eval) & 0 / 3 \\
-Trained tick to goal & 39 \\
-Trained path length / Manhattan optimal & 29.97 / 32 \\
-Plastic synapses updated & 256 / 256 \\
-Max $|\Delta w|$ across training & 0.9068 \\
-Wall time (train + eval) & 60 ms \\
-\bottomrule
-\end{tabular}\end{table}
-
-The headline result---$0\% \!\to\! 100\%$ path efficiency in 8 training
-episodes---is a strict upper bound on what unsupervised STDP can deliver
-for this task: the supervised teacher provides perfect goal-relative
-direction labels at every step.  The point of the experiment is not the
-absolute number but the \emph{architectural} claim: the same WebGPU
-shader, ported to a CPU reference, learns goal-directed navigation from
-random weights using only local Hebbian updates---no value function, no
-backprop, no replay buffer.  This closes Future-Work item (1) in
-Section~\ref{sec:future} and makes the STDP path a measured contribution
-of the paper rather than a forward-looking claim.
-
-\paragraph{Compute budget.}
-The mean tick time of 0.44\,ms corresponds to a $\sim$2{,}270\,Hz agent loop rate;
-the median tick (0.34\,ms) is $\approx 2.1\%$ of the 16.6\,ms budget for 60\,Hz rendering,
-and the mean $\approx 2.7\%$.
-This confirms that the full perception--cognition--action--provenance pipeline
-at the 128-neuron scale leaves ample headroom for concurrent physics simulation
-and rendering.
-The total wall time of 88\,ms for 200 ticks (including \cael{} hash-chain
-computation for all 800 trace entries) demonstrates that embodied SNN cognition
-is not merely feasible in the browser but is computationally negligible relative
-to rendering costs.
-
-\paragraph{Provenance.}
-The \cael{} trace records 4 entries per tick (perception, cognition, action,
-world\_delta), totaling 800 entries at 1{,}496 bytes each ($\sim$1{,}169\,KB total).
-The hash chain passes full integrity verification, confirming that every
-neural decision in the navigation task is tamper-evident and auditable.
-Hardware: Windows workstation, CPU SNN reference path (as in the Vitest harness).
+\paragraph{Navigation interpretation.}
+Obstacle sensors inhibit blocked directions while goal bearing excites aligned
+motor populations, so the baseline reaches the goal without explicit planning
+but detours heavily.
+A supervised STDP rerun closes that gap: a two-layer network with 256 plastic
+synapses reaches the goal in $39$ ticks along a $29.97$-unit path after
+8 training episodes, while the random-weight baseline fails under the same
+horizon.
+The same 200-tick episode emits 800 \cael{} records whose hash chain verifies.
+Full STDP, compute-budget, and provenance details are in the supplemental
+material.
+\fi
 
 % ============================================================================
 
@@ -1081,122 +610,37 @@ We have prepared a pre-data protocol bundle for a within-subjects developer-diag
 Three diagnostic scenarios (obstacle overshoot, goal miss, sensor-noise drift) are drawn from the navigation task (\S\ref{sec:embodied}); order is counterbalanced with a Latin square.
 Primary DV is diagnosis confidence (7-point Likert); analysis uses Wilcoxon signed-rank at $\alpha=0.05$.
 This submission contributes the committed pre-data bundle only (D.011 evidence surface); it upgrades to rung~2 after IRB-approved pilot execution.
-Full protocol, measures, procedure, analysis plan, and preregistration materials are in Supplemental~\S\ref{supp:user-study}.
+Full protocol, measures, procedure, analysis plan, and preregistration materials are in the supplemental material.
 \measuredFrom{research/user-study-data/paper-2/preregistration.md}%
 
 % ────────────────────────────────────────────────────────────────────────────
 \subsection{Ablation Study}
 \label{sec:ablation}
 
-To isolate the contribution of each pipeline component to both throughput
-and the formal/empirical guarantees stated in
-\S\ref{sec:tropical}--\S\ref{sec:stdp-nav}, we ablate four configurations
-against the same WebGPU LIF kernel and Vitest~4.1 / Node~22 microbenchmark
-harness used in \S\ref{sec:evaluation} (artifacts
-\texttt{packages/snn-webgpu/.bench-logs/paper-2-lif-throughput-rtx3060.json},
-\texttt{paper-2-lif-throughput-automated.json}, and the 100-suite /
-205-test \texttt{snn-vitest} regression run captured in
-\texttt{snn-vitest-suite-counts.json}; primary RTX artifact refreshed
-2026-05-06). Each variant
-disables exactly one component while keeping the others active.
-Table~\ref{tab:ablation-snn} reports per-variant throughput at the
-canonical $N = 262{,}144$ neurons / 100 timesteps configuration alongside
-the algebraic and learning guarantees each variant preserves.
-
-\begin{table}[t]
-\centering
-\caption{Ablation of \snnwebgpu{} pipeline components at $N = 262{,}144$
-neurons, 100 timesteps, RTX 3060 Laptop (Ampere, driver 591.74). Throughput
-in M~neuron-timesteps/s (median of 5 runs after 1 warm-up; harness
-\texttt{paper-2-lif-throughput-rtx3060.json}, refreshed 2026-05-06, commit
-\texttt{d0a990964}). ``Tropical bridge'' = Theorem~\ref{thm:bridge} (rate
-coding $\approx$ ReLU) is recoverable from the variant's per-timestep
-output; verified by \texttt{tropical-activation.test.ts} +
-\texttt{tropical-core-consistency.test.ts}. ``STDP nav'' = the variant
-reaches the $39$-tick optimal path on the embodied navigation task in
-$\leq 8$ episodes (Table~\ref{tab:stdp-nav-experiment}). ``CAEL chain'' =
-emits a tamper-evident FNV-1a chain over the 200-tick / 800-record
-navigation loop that an independent auditor can verify with
-\texttt{research/paper-2-demo/reproduce.mjs} (cf.\ \S\ref{sec:demo}).
-$(\dagger)$
-structural baseline; the variant defeats the corresponding contribution
-and is not benchmarked because its throughput either equals a removed
-component (CAEL-write is amortised below the per-timestep granularity
-of the harness, $<\!0.5\%$) or makes the contribution itself
-unmeasurable (no spike-rate output to compare).}
-\label{tab:ablation-snn}
-\small
-\begin{tabular}{lcccc}
-\toprule
-\textbf{Variant} & \textbf{Throughput} & \textbf{Tropical} & \textbf{STDP} & \textbf{CAEL} \\
-                 & (M neuron-ts/s)     & \textbf{bridge}   & \textbf{nav}  & \textbf{chain} \\
-\midrule
-Full pipeline (LIF + tropical + STDP + CAEL)
-  & $1394.4$ & Yes & Yes & Yes \\
-$-$Tropical activation (plain rate readout)
-  & $1402.1$ & No  & Yes & Yes \\
-$-$STDP plasticity (frozen weights)
-  & $1481.0$ & Yes & No  & Yes \\
-$-$CAEL provenance (no hash chain)$^\dagger$
-  & $\sim\!1394$ & Yes & Yes & No \\
-LIF kernel only (no encoding/decoding)$^\dagger$
-  & $1481.0$    & ---  & --- & ---  \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The full configuration is the only variant that jointly satisfies all three contributions: tropical bridge (Theorem~\ref{thm:bridge}), STDP navigation ($39$-tick optimal in $\leq 8$ episodes), and auditable provenance.
-Removing tropical activation recovers $\sim\!0.6\%$ throughput but breaks \texttt{tropical-core-consistency.test.ts}.
-Disabling STDP reverts the agent to $\approx\!20\%$ random-walk baseline; throughput rises to $1481.0$ M neuron-ts/s (the LIF-only floor) since the Hebbian kernel has uniform dispatch cost regardless of weight updates.
-Removing CAEL has $<\!0.5\%$ throughput impact (host-side digest after GPU readback) but destroys reproducibility: tampering with any $\mathbf{s}_t$ is then undetectable on replay.
-Each contribution maps to exactly one component; the full pipeline runs at $1.06\times$ the LIF-only floor while preserving all three guarantees.
-Full per-variant analysis is in Supplemental~\S{D}.
+We ablate tropical activation, STDP plasticity, and \cael{} provenance against
+the same WebGPU LIF benchmark harness.
+The full pipeline is the only variant that jointly preserves all three
+contributions: Theorem~\ref{thm:bridge}, the $39$-tick STDP navigation result,
+and tamper-evident replay.
+Removing tropical activation recovers only $\sim0.6\%$ throughput but breaks the
+tropical consistency tests; disabling STDP returns the controller to the
+reactive baseline; removing \cael{} has $<0.5\%$ throughput impact but destroys
+replay integrity.
+Full per-variant throughput and guarantee rows are in the supplemental material.
 
 % ────────────────────────────────────────────────────────────────────────────
 \subsection{Full-Loop Demo}
 \label{sec:demo}
 
-We walk through an end-to-end instance of the full pipeline on the embodied
-navigation task from Section~\ref{sec:embodied}, demonstrating all three
-contributions in sequence through the shipped HoloScript navigation
-harness.  The supplementary verifier re-runs the same full loop and
-asserts the goal, trace, and hash-chain facts used here.
-
-\begin{enumerate}[leftmargin=*,topsep=2pt]
-  \item \textbf{Scene instantiation.}  A 10-object navigation scene is
-    defined in \texttt{.holo} composition format and instantiated by the
-    \holoscript{} runtime.  The SNN agent brain is loaded as an
-    \texttt{@npc} \texttt{@llm\_agent} object with 262{,}144 LIF neurons
-    distributed across three cortical layers.
-  \item \textbf{LIF forward pass.}  The WGSL compute kernel dispatches
-    $\lceil 262{,}144 / 256 \rceil = 1{,}024$ workgroups per timestep.
-    On the Intel UHD gen-12lp integrated GPU, peak throughput reaches
-    $\mathbf{1{,}481.0}$\,M\,neurons/s (Table~\ref{tab:throughput}),
-    comfortably above the 60\,Hz interactive budget.
-    Chrome WebGPU is the dispatch target; no plugins, no server required.
-  \item \textbf{Tropical APSP for connectivity analysis.}  Between episodes
-    the agent queries the SNN topology graph ($N = 2{,}048$ nodes) via
-    tropical min-plus GEMM squaring.  On the NVIDIA RTX 3060 Laptop
-    (discrete Ampere), the full APSP closure completes in
-    $\mathbf{740.9}$\,ms at $255.066$\,GFLOP/s---a
-    $\mathbf{27.60\times}$ speedup over the integrated baseline
-    (Table~\ref{tab:tropical-crossgpu}).
-  \item \textbf{CAEL provenance.}  Every perception--cognition--action
-    cycle emits a \cael{} trace entry: the spike-rate vector, the
-    tropical activation output, and the action label are FNV-1a
-    hash-chained together.  The checked demo covers the complete
-    200-tick navigation episode with four CAEL records per tick,
-    producing an 800-entry tamper-evident audit log.
-  \item \textbf{Reproducibility anchor.}  The supplementary verifier
-    runs the HoloScript harness and fails unless the goal is reached at
-    tick~38, the CAEL trace has 800 entries, and the hash chain verifies.
-    Benchmark snapshots and RTX runs remain separately OTS-anchored in
-    the evidence memos cited in \S\ref{sec:evaluation}.
-\end{enumerate}
-
-\paragraph{Provenance chain.}
-$h_t = \text{FNV-1a}(h_{t-1} \Vert \mathbf{s}_t \Vert \mathbf{a}_t \Vert \ell_t)$, where $h_{-1}$ is seeded from SHA-256 of the compiled scene; tampering with any spike-rate vector, tropical-activation output, or action label in the 800-entry log invalidates $h_T$ and is detected on replay.
-An independent auditor reproduces the run via \texttt{node reproduce.mjs~-{}-check} in \texttt{research/paper-2-demo/} (D.011 full-loop evidence): goal at tick~38, 800 CAEL entries, hash-chain validity.
+The shipped verifier re-runs the full navigation loop and fails unless the goal
+is reached at tick~38, the trace contains 800 \cael{} records, and the hash
+chain verifies.
+Each provenance step commits
+$h_t=\text{FNV-1a}(h_{t-1}\Vert\mathbf{s}_t\Vert\mathbf{a}_t\Vert\ell_t)$, so
+tampering with a spike-rate vector, tropical activation output, or action label
+invalidates replay.
+The full scene instantiation, LIF dispatch, APSP, and verifier walk-through are
+in the supplemental material.
 \measuredFrom{research/paper-2-demo/reproduce.mjs}%
 \measuredFrom{research/paper-2-demo/FULL_LOOP_VERIFICATION_2026-05-10.md}%
 
@@ -1208,7 +652,7 @@ Browser-side neural inference via TensorFlow.js~\cite{smilkov2019tensorflow} and
 Neuromorphic hardware (Loihi~\cite{davies2018loihi}, TrueNorth~\cite{merolla2014truenorth}, SpiNNaker~\cite{furber2014spinnaker}) achieves superior energy efficiency but requires specialized procurement and toolchains.
 The connection between tropical geometry and ReLU networks has been explored theoretically~\cite{zhang2018tropical, alfarra2022decision, maragos2021tropical}; our contribution is the first GPU-accelerated implementation that connects SNN rate codes to ReLU activations in a working system with empirical benchmarks.
 Simulation provenance in scientific workflows~\cite{simmhan2005survey} and digital twins~\cite{tao2019digital} operates at the simulation level; \cael{} provides per-spike-train, per-action hash-chain provenance---a finer granularity not previously achieved.
-An expanded treatment of each prior-work family is in Supplemental~\S\ref{supp:related}.
+An expanded treatment of each prior-work family is in the supplemental material.
 
 % ============================================================================
 \section{Discussion}
@@ -1220,9 +664,9 @@ WebGPU availability remains incomplete on older mobile browsers, and the tropica
 
 \paragraph{Future Work.}
 \label{sec:future}
-STDP-learned navigation (item 1) is now closed---see Section~\ref{sec:stdp-nav}.
+STDP-learned navigation (item 1) is now closed by the measured navigation rerun in Section~\ref{sec:embodied}.
 Remaining: (2) biologically accurate STDP with exponential timing windows; (3) multi-agent \cael{} traces with causal ordering; (4) Loihi~2 integration for power efficiency comparisons; (5) scaling to $10^6$ neurons via hierarchical workgroup decomposition; (6) tropical graph algorithms for SNN topology search.
-Broader impact is discussed in Appendix~\ref{app:broader-impact}.
+Broader impact is discussed in the supplemental material.
 
 % ============================================================================
 \section{Conclusion}
@@ -1300,7 +744,10 @@ that made this work possible.
 % Appendix content (LIF parameters, WGSL shader listing, tropical semiring axioms,
 % broader impact) is provided in the supplementary material (paper-2-snn-neurips-supplemental.tex).
 
+{\footnotesize
+\setlength{\bibsep}{0pt}
 \bibliographystyle{plainnat}
 \bibliography{holoscript}
+}
 
 \end{document}
