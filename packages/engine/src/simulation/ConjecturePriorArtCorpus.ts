@@ -10,11 +10,18 @@
  *
  * This module supplies a curated set of genuinely-known results across the engine's
  * live domains (geometry / topology / number theory / tropical-string-math), each a
- * `ConjecturePriorArtEntry` the novelty check compares against. It is deliberately
- * BOUNDED and honest: it is a credible seed, NOT a claim of corpus completeness. Full
- * arXiv/literature ingestion via HoloEmbed over a real index is the documented
- * follow-up; an unfound match here means "not in this seed corpus," never "novel"
- * with certainty (same survival-is-evidence-not-proof asymmetry as W.511).
+ * `ConjecturePriorArtEntry` the novelty check compares against.
+ *
+ * HONEST SCOPE — do not overclaim (F.016/F.029): the shipped matcher is LEXICAL, not
+ * semantic. `assessConjectureNovelty` compares HoloEmbed char-trigram histograms (see
+ * `@holoscript/holoembed` camelSplit + trigramHistogram) at cosine >= 0.995, so it only
+ * flags NEAR-VERBATIM restatements. A re-worded known result (different wording, same
+ * meaning) will return `novel` — a false negative. This is therefore an EXACT-RESTATEMENT
+ * GUARD, not a semantic novelty detector, and a 12-entry corpus is a seed, not a literature
+ * index. Real credibility needs (a) a far larger corpus (10^3+ abstracts) and (b) a
+ * stronger-than-trigram (truly semantic) encoder — both are documented follow-ups. Until
+ * then, a non-match means "not a near-verbatim match in this seed," never "novel" with any
+ * certainty (W.511 / W.520).
  *
  * Zero edits to ConjectureEngine.ts — consumes the existing corpus parameter.
  */
@@ -28,9 +35,9 @@ import {
 
 /**
  * Curated known results a novice might plausibly "rediscover." Statements are phrased
- * as a discoverer would state the claim, so the semantic novelty check can match a
- * naive re-statement. Sources are real references; this is a credible seed, not a
- * complete literature index.
+ * as a discoverer would state the claim, so the lexical char-trigram near-duplicate
+ * check can match a NEAR-VERBATIM re-statement (not a paraphrase). Sources are real
+ * references; this is a seed, not a complete literature index.
  */
 export const KNOWN_RESULTS_CORPUS: ReadonlyArray<ConjecturePriorArtEntry> = [
   {
