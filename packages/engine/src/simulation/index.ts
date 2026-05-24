@@ -367,6 +367,25 @@ export {
   assessNoveltyAgainstKnownResults,
 } from './ConjecturePriorArtCorpus';
 
+// Verdict ledger (`conjecture.verdict-ledger.v1`) — temporal, assumption-bound
+// conjecture verdicts ("knowledge is fluid", D.060). A verdict holds "as of T under
+// assumptions A"; overturning a depended-on assumption RE-OPENS it (falsified →
+// undecided, never auto-survived — the Wegener mechanism). Append-only history.
+export {
+  VERDICT_LEDGER_V1,
+  recordVerdict,
+  reopenVerdict,
+  currentVerdict,
+  hasBeenReopened,
+  verdictHistory,
+  type VerdictStatus,
+  type VerdictEntry,
+  type VerdictLedger,
+  type VerdictLedgerSolverType,
+  type RecordVerdictInput,
+  type ReopenVerdictInput,
+} from './VerdictLedger';
+
 // Number-theory conjecture sub-class (`conjecture.numbertheory.erdos-straus.v1`)
 // — the first NON-geometry Conjecture Engine target. Reuses the generic receipt
 // key primitive; survivor-by-construction with honest `undecided` on the open case.
