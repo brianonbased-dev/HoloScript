@@ -14,6 +14,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chainReceipt, sha256Bytes, sha256Text, stageReceipt, withHash } from './holoshell/chain/receipts.mjs';
+import { buildTechnologyPlan } from './holoshell-reconstruction-tech-plan.mjs';
 
 export const VERSION = '0.1.0';
 export const RECEIPT_VERSION = 'holoshell-low-camera-workflow/v1';
@@ -258,6 +259,33 @@ export function buildWorkflowReceipt({
   const target = summarizeTarget(targetReceipt, targetReceiptPath);
   const sweep = summarizeSweep(sweepReceipt, sweepReceiptPath);
   const render = renderReceipt ? summarizeRender(renderReceipt, renderReceiptPath) : undefined;
+  const capturePlan = {
+    deviceIndex: args.deviceIndex,
+    width: args.width,
+    height: args.height,
+    frames: args.frames,
+    intervalMs: args.intervalMs,
+    durationSec: args.durationSec,
+    fps: args.fps,
+    tileGrid: args.tileGrid,
+    geometricTarget: args.geometricTarget,
+  };
+  const renderPlan = {
+    tileWidth: args.tileWidth,
+    tileHeight: args.tileHeight,
+  };
+  const technologyPlan = buildTechnologyPlan({
+    workflowReceipt: {
+      status: sweep.status === 'pass' && render?.status === 'pass' ? 'pass' : sweep.status,
+      capturePlan,
+      renderPlan,
+      target,
+      sweep,
+      control: sweep.control,
+      render,
+      quality: render?.quality,
+    },
+  });
   const targetStage = target
     ? stageReceipt({
         name: 'workflow.geometric-control-target',
@@ -365,25 +393,15 @@ export function buildWorkflowReceipt({
     action: 'direct-native-camera-holomap-hologram-low-camera-workflow',
     generatedAt: new Date().toISOString(),
     capturePlan: {
-      deviceIndex: args.deviceIndex,
-      width: args.width,
-      height: args.height,
-      frames: args.frames,
-      intervalMs: args.intervalMs,
-      durationSec: args.durationSec,
-      fps: args.fps,
-      tileGrid: args.tileGrid,
-      geometricTarget: args.geometricTarget,
+      ...capturePlan,
     },
-    renderPlan: {
-      tileWidth: args.tileWidth,
-      tileHeight: args.tileHeight,
-    },
+    renderPlan,
     target,
     sweep,
     control: sweep.control,
     render,
     quality: render?.quality,
+    technologyPlan,
     commands: {
       target: commands.target?.command,
       sweep: commands.sweep.command,
@@ -418,6 +436,12 @@ export function validateReceipt(receipt) {
     if (!receipt.render?.pngHash?.startsWith('sha256:')) errors.push('quilt png hash missing');
     if (!receipt.render?.quiltPath) errors.push('quilt path missing');
     if (!(receipt.render?.quality?.score >= 0)) errors.push('quilt quality score missing');
+    if (!Array.isArray(receipt.technologyPlan?.recommendations) || receipt.technologyPlan.recommendations.length < 6) {
+      errors.push('technology recommendations missing');
+    }
+    if (!receipt.technologyPlan?.recommendedNow?.includes('fiducial-calibration')) {
+      errors.push('fiducial calibration technology recommendation missing');
+    }
   }
   if (!receipt.chain?.receipt?.hash?.startsWith('sha256:')) errors.push('chain receipt hash missing');
   if (!Array.isArray(receipt.chain?.stages) || receipt.chain.stages.length < 1) errors.push('chain stages missing');
@@ -636,6 +660,13 @@ async function main() {
     receiptPath: rel(outPath),
     status: receipt.status,
     winner: receipt.sweep?.winner,
+    technologyPlan: receipt.technologyPlan
+      ? {
+          recommendedNow: receipt.technologyPlan.recommendedNow,
+          topRecommendation: receipt.technologyPlan.recommendations?.[0]?.id,
+          nextActions: receipt.technologyPlan.nextActions?.map((action) => action.id),
+        }
+      : undefined,
     target: receipt.target
       ? {
           path: receipt.target.pngPath,

@@ -56,6 +56,8 @@ assertOk(receipt.render.receiptHash.startsWith('sha256:'), 'render receipt hash 
 assertOk(receipt.render.pngHash.startsWith('sha256:'), 'quilt png hash recorded');
 assertEq(receipt.render.quality.grade, 'weak', 'workflow carries render quality grade');
 assertOk(receipt.quality.score >= 0, 'workflow exposes top-level quality');
+assertOk(receipt.technologyPlan.recommendedNow.includes('fiducial-calibration'), 'workflow recommends fiducial calibration');
+assertOk(receipt.technologyPlan.recommendations.some((recommendation) => recommendation.id === 'mobile-native-depth'), 'workflow carries mobile depth alternative');
 assertEq(receipt.chain?.receipt?.stageCount, 3, 'workflow has target, sweep, and render stages');
 
 console.log('Test 2: invalid workflow receipts fail closed');
