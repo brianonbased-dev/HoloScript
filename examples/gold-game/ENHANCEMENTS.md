@@ -35,7 +35,13 @@
 - **PATH.** (1) Make the baseline use all 3 features with sensible hand-weights (fair strawman); (2) source real operator curation traces (or a non-linear synthetic generator) so the linear model can't trivially recover ground truth; (3) report the honest margin — even if it shrinks, that's the true result. Keep the held-out split.
 - **RISK / OWNER.** Bounded to the gate; may lower the headline number (acceptable — honesty over flattery). Board task.
 
-## E-G4 — Cross-process memory + learned value policy
+## E-G4 — Cross-process memory (+ learned-policy sub-item RETIRED) — ✅ SHIPPED 2026-05-24
+> Built plan-first + module-first. Cross-process DONE: sessions now run in separate OS processes
+> (`gold-game-causal-session.mjs` CLI spawned twice; distinct PIDs asserted; disk file the only
+> channel), closing the "process-separated" overclaim; digests reproduce cross-process. gate-4 14/14.
+> The "learned value policy" sub-item is RETIRED, not built: with 5 entries / 2 sessions, training a
+> model would be ML theater — the honest mechanism is the experiential payoff memory (the plan-gate
+> caught this before manufacturing thin work; F.076).
 - **CONTEXT.** CausalWorldModel is a genuine Pearl SCM (`hololand-platform/src/world/causal.ts:113-209`, 30 tests) — REAL. NPC memory is real disk persistence that re-plans session 2, BUT both sessions run in one node process (no second invocation), and the value policy is a hand-authored payoff heuristic (self-disclosed honestScope).
 - **INTENT.** "NPC memory across sessions" should survive a *real* process boundary, and the re-plan should come from a *learned* value model, not a hand-coded heuristic.
 - **PATH.** (1) Split the verifier into two `node` invocations sharing the memory file (true cross-process proof); (2) replace the payoff heuristic with the Gate-5a-style learned policy reading persisted features. 

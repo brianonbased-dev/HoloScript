@@ -1,11 +1,18 @@
 {
   "gate": 4,
   "track": "flagship (gold-vault-game) — causal world evolution + cross-session NPC memory",
-  "name": "content/world evolution — CausalWorldModel-driven graduatability + NPC memory across sessions",
+  "name": "content/world evolution — CausalWorldModel-driven graduatability + NPC memory across PROCESS-SEPARATED sessions",
   "artifact": "examples/gold-game/gold-vault-game.holo",
-  "verb": "examples/gold-game/vault-ops.cjs graduate() (real bronze->gold move + sealed receipt) under CausalWorldModel do-calculus (SANDBOX vault)",
   "verifier": "examples/gold-game/gate-4-causal-memory-verify.mjs",
+  "sessionModule": "examples/gold-game/gold-game-causal-session.mjs (run as a separate process per session)",
   "target": "r3f",
+  "processSeparation": {
+    "session1Pid": 16568,
+    "session2Pid": 10288,
+    "verifierPid": 9132,
+    "genuinelySeparateProcesses": true,
+    "sharedStateChannel": "disk file only: vault-sandbox-g4/npc-memory.json"
+  },
   "causalModel": {
     "impl": "REAL CausalWorldModel from packages/hololand-platform/src/world/causal.ts (Pearl do-calculus SCM)",
     "variables": [
@@ -63,13 +70,14 @@
         "B.GRADUATE.001",
         "E.LINK.004"
       ],
-      "lockedEntryUnlockedByCausalEffect": true,
-      "proof": "E.LOCKED.003 (lineage 0) is NOT graduatable at seed; graduating E.HUB.001 runs a real do-calculus intervention that boosts its lineage past the threshold — the graduatable set GREW because of a causal intervention, not a flat tier move."
+      "lockedEntryUnlockedByCausalEffect": true
     }
   },
   "crossSessionMemory": {
-    "persistedTo": "examples/gold-game/vault-sandbox-g4/npc-memory.json (real disk file; survives a process restart — reloaded by a fresh in-process session here, not a second node invocation)",
-    "session1MemoryEmpty": true,
+    "persistedTo": "examples/gold-game/vault-sandbox-g4/npc-memory.json (real disk file; the ONLY channel between two separate OS processes — session 2 reads it cold from disk)",
+    "session1Pid": 16568,
+    "session2Pid": 10288,
+    "processSeparated": true,
     "session2LoadedNonEmptyMemory": true,
     "session2GraduatedTargets": [
       "E.LINK.002",
@@ -79,10 +87,10 @@
     ],
     "session2RepeatedASession1Graduation": false,
     "learnedPayoffRecorded": true,
-    "proof": "Session 2 loads session 1's persisted memory from disk: it does NOT re-graduate the entry session 1 already moved (remembered prior action) and prioritises the intervention memory recorded as highest causal payoff. A cold NPC (no memory) would re-evaluate from scratch and could repeat. Memory causally changes the plan."
+    "proof": "Session 2 runs in a SEPARATE process and loads session 1's memory from disk: it does NOT re-graduate what session 1 moved and prioritises the highest-payoff remembered intervention. Memory is experiential (records observed causal payoffs), not a fitted model — the honest mechanism for this 5-entry/2-session regime."
   },
   "contract": {
-    "spine": "REAL computeStateDigest from packages/engine/src/simulation/hashes.ts (imported via tsx) — same fn SimulationContract pushes on solve()",
+    "spine": "REAL computeStateDigest from packages/engine/src/simulation/hashes.ts",
     "algorithm": "sha256",
     "seedDigest": "097b27bb3cea12751c1f5337d94552550ab42cac78ac1c02fd6cb666a0fe8503",
     "causalEffectDigest": "44482e11da92e0ee2a9fdeeeb790497c2855fdf8dcdda62ad60b84471bf28e5b",
@@ -103,7 +111,7 @@
     },
     "reproducible": "run `node_modules/.bin/tsx examples/gold-game/gate-4-causal-memory-verify.mjs` to re-derive"
   },
-  "honestScope": "The causal edges and the graded-influence value are hand-authored (a faithful model of the real auto_link \"graduating a hub strengthens its constellation\" consequence), and the NPC memory/value policy is a hand-authored payoff-preferring heuristic — NOT a learned model or a live operator. Graduations write to a SANDBOX vault; promotion to the governed D:/GOLD stays founder-gated. What is PROVEN: the vault world evolves via a REAL Pearl do-calculus intervention (a sub-threshold entry is unlocked as a downstream causal effect, not a lookup), and an NPC curator carries memory ACROSS process-separated sessions (persisted to disk) that causally changes its plan. What is NOT yet proven: a trained causal/curation policy and a live human operator (Gate 5 scope).",
+  "honestScope": "The causal edges + graded-influence value are hand-authored (a faithful model of the real auto_link \"graduating a hub strengthens its constellation\" consequence). The NPC memory is an EXPERIENTIAL payoff-preferring policy (record observed unlocks; prefer high-payoff next) — deliberately NOT a fitted model, because with 5 entries and 2 sessions \"training\" would be theater. Graduations write to a SANDBOX vault; promotion to governed D:/GOLD stays founder-gated. PROVEN: the vault world evolves via a REAL Pearl do-calculus intervention (a sub-threshold entry is unlocked as a downstream causal effect), and an NPC carries memory across TWO GENUINELY SEPARATE OS PROCESSES (distinct PIDs; only the disk file crosses) that causally changes its plan. NOT yet proven: a trained causal policy on real operator traces (Gate 5+ scope).",
   "core": "6.1.0",
-  "verifiedAt": "2026-05-24T19:57:47.110Z"
+  "verifiedAt": "2026-05-24T21:11:49.488Z"
 }
