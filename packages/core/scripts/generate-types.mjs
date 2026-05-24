@@ -4917,6 +4917,27 @@ export function normalizePlatformName(name: string): string;
 export class USDZPipeline { [key: string]: any; }
 export interface USDZPipelineOptions { [key: string]: any; }
 
+export interface QuantumAtom {
+  symbol: string;
+  x: number;
+  y: number;
+  z: number;
+}
+export interface QASMOutput {
+  qasm: string;
+  numQubits: number;
+  numClbits: number;
+  estimatedDepth: number;
+  circuitType: 'vqe' | 'qaoa' | 'grover' | 'custom';
+  molecule?: { atoms: QuantumAtom[] };
+  weightMatrix?: number[][];
+  recommendedBackend: 'aer' | 'ibm-quantum';
+  warnings: string[];
+}
+export class QuantumCircuitCompiler extends CompilerBase {
+  compile(composition: any, agentToken?: string, outputPath?: string, sceneGraph?: any): QASMOutput;
+}
+
 export class CompilerBridge { [key: string]: any; }
 
 // Social Causal Model (SCM) — Cycle 9/10/12
