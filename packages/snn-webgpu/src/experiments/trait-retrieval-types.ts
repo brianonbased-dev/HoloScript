@@ -120,8 +120,8 @@ export interface RetrievalResult {
   predictedVector: number[];
   /** Inference time in milliseconds */
   inferenceTimeMs: number;
-  /** Model-specific metrics (e.g., spike count for SNN) */
-  modelSpecific: Record<string, number>;
+  /** Model-specific metrics (e.g., spike count for SNN; shouldAbstain is boolean) */
+  modelSpecific: Record<string, number | boolean>;
 }
 
 // =============================================================================

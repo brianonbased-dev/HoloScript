@@ -162,7 +162,7 @@ function runTrial(
     totalInferenceTimeMs += result.inferenceTimeMs;
 
     if (result.modelSpecific.totalSpikes !== undefined) {
-      totalSpikeCount += result.modelSpecific.totalSpikes;
+      totalSpikeCount += Number(result.modelSpecific.totalSpikes);
     }
 
     // Per-property accuracy
