@@ -55,16 +55,25 @@ const pass = {
     requestedFrameCount: 2,
     capturedFrameCount: 2,
     acceptedFrameCount: 2,
+    droppedFrameCount: 0,
     intervalMs: 250,
+    effectiveFps: 4,
+    expectedDurationMs: 250,
     videoHash: 'holoshell-native-camera:' + 'b'.repeat(64),
   },
   frame: {
     rgbHash: 'sha256:' + 'a'.repeat(64),
+    quality: { status: 'pass', score: 0.8, warnings: [] },
   },
   frames: [
-    { index: 0, rgbHash: 'sha256:' + 'a'.repeat(64) },
-    { index: 1, rgbHash: 'sha256:' + 'b'.repeat(64) },
+    { index: 0, rgbHash: 'sha256:' + 'a'.repeat(64), quality: { status: 'pass', score: 0.8, warnings: [] } },
+    { index: 1, rgbHash: 'sha256:' + 'b'.repeat(64), quality: { status: 'pass', score: 0.9, warnings: [] } },
   ],
+  scanQuality: {
+    status: 'pass',
+    averageScore: 0.85,
+    warnings: [],
+  },
   holomap: {
     replayFingerprint: 'replay',
     pointCount: 32,

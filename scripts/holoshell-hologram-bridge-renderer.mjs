@@ -1,0 +1,437 @@
+#!/usr/bin/env node
+/**
+ * HoloShell HoloGram Bridge Renderer
+ *
+ * Deterministic local renderer for HoloMap point-cloud bridge artifacts. This
+ * is the first native HoloMap -> HoloGram consumer: it reads the bridge JSON,
+ * loads the exported PLY point cloud, and emits a Looking Glass-style quilt
+ * preview PNG plus a receipt.
+ */
+
+import { createHash } from 'node:crypto';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { basename, dirname, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+export const VERSION = '0.1.0';
+export const RECEIPT_VERSION = 'holoshell-hologram-bridge-renderer/v1';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = resolve(__dirname, '..');
+
+function parseArgs(argv) {
+  const args = {
+    bridge: undefined,
+    out: undefined,
+    tileWidth: 160,
+    tileHeight: 120,
+    views: undefined,
+    columns: undefined,
+    rows: undefined,
+    selfTest: false,
+  };
+
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === '--') continue;
+    if (arg === '--bridge') args.bridge = argv[++i];
+    else if (arg === '--out') args.out = argv[++i];
+    else if (arg === '--tile-width') args.tileWidth = Number.parseInt(argv[++i], 10);
+    else if (arg === '--tile-height') args.tileHeight = Number.parseInt(argv[++i], 10);
+    else if (arg === '--views') args.views = Number.parseInt(argv[++i], 10);
+    else if (arg === '--columns') args.columns = Number.parseInt(argv[++i], 10);
+    else if (arg === '--rows') args.rows = Number.parseInt(argv[++i], 10);
+    else if (arg === '--self-test' || arg === 'self-test') args.selfTest = true;
+    else if (arg === '--help' || arg === '-h' || arg === 'help') args.help = true;
+    else throw new Error(`Unknown argument: ${arg}`);
+  }
+
+  if (args.help || args.selfTest) return args;
+  if (!args.bridge) throw new Error('--bridge is required');
+  if (!Number.isInteger(args.tileWidth) || args.tileWidth < 16 || args.tileWidth > 1024) {
+    throw new Error('--tile-width must be an integer from 16 to 1024');
+  }
+  if (!Number.isInteger(args.tileHeight) || args.tileHeight < 16 || args.tileHeight > 1024) {
+    throw new Error('--tile-height must be an integer from 16 to 1024');
+  }
+  if (args.views !== undefined && (!Number.isInteger(args.views) || args.views < 1 || args.views > 128)) {
+    throw new Error('--views must be an integer from 1 to 128');
+  }
+  if (args.columns !== undefined && (!Number.isInteger(args.columns) || args.columns < 1 || args.columns > 16)) {
+    throw new Error('--columns must be an integer from 1 to 16');
+  }
+  if (args.rows !== undefined && (!Number.isInteger(args.rows) || args.rows < 1 || args.rows > 16)) {
+    throw new Error('--rows must be an integer from 1 to 16');
+  }
+  return args;
+}
+
+function printHelp() {
+  process.stdout.write(`HoloShell HoloGram Bridge Renderer ${VERSION}
+
+Usage:
+  node scripts/holoshell-hologram-bridge-renderer.mjs --bridge scan.hologram-bridge.json [--out receipt.json]
+  node scripts/holoshell-hologram-bridge-renderer.mjs --self-test
+
+Notes:
+  - Reads HoloMap point-cloud bridge JSON emitted by holoshell:camera-scan.
+  - Emits a deterministic quilt preview PNG and receipt.
+  - Does not claim MV-HEVC or parallax video encoding.
+`);
+}
+
+function canonical(value) {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([, v]) => v !== undefined)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, v]) => [k, canonical(v)])
+    );
+  }
+  return value;
+}
+
+function sha256Bytes(bytes) {
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
+function sha256Text(text) {
+  return createHash('sha256').update(text, 'utf8').digest('hex');
+}
+
+function hashValue(value) {
+  return `sha256:${sha256Text(typeof value === 'string' ? value : JSON.stringify(canonical(value)))}`;
+}
+
+function withHash(receipt) {
+  const base = { ...receipt, hashAlgorithm: 'sha256' };
+  return { ...base, hash: hashValue(base) };
+}
+
+function rel(path) {
+  return relative(REPO_ROOT, resolve(path)).replaceAll('\\', '/');
+}
+
+function writeJson(path, value) {
+  mkdirSync(dirname(resolve(path)), { recursive: true });
+  writeFileSync(resolve(path), `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+}
+
+function resolveInputPath(path, baseDir = REPO_ROOT) {
+  if (!path) return undefined;
+  const absolute = resolve(path);
+  if (existsSync(absolute)) return absolute;
+  const repoRelative = resolve(REPO_ROOT, path);
+  if (existsSync(repoRelative)) return repoRelative;
+  const baseRelative = resolve(baseDir, path);
+  if (existsSync(baseRelative)) return baseRelative;
+  return repoRelative;
+}
+
+function defaultOutputForBridge(bridgePath) {
+  const base = basename(bridgePath).replace(/\.hologram-bridge\.json$/i, '');
+  return join(dirname(bridgePath), `${base}.quilt-preview-receipt.json`);
+}
+
+function parseAsciiPly(path) {
+  const text = readFileSync(path, 'utf8');
+  const lines = text.split(/\r?\n/);
+  const end = lines.findIndex((line) => line.trim() === 'end_header');
+  if (end < 0) throw new Error(`PLY missing end_header: ${path}`);
+  const vertexLine = lines.slice(0, end).find((line) => line.startsWith('element vertex '));
+  const expectedCount = vertexLine ? Number.parseInt(vertexLine.split(/\s+/)[2], 10) : undefined;
+  const points = [];
+  for (const line of lines.slice(end + 1)) {
+    if (!line.trim()) continue;
+    const parts = line.trim().split(/\s+/).map(Number);
+    if (parts.length < 6 || parts.some((value) => Number.isNaN(value))) continue;
+    points.push({
+      x: parts[0],
+      y: parts[1],
+      z: parts[2],
+      r: Math.max(0, Math.min(255, Math.round(parts[3]))),
+      g: Math.max(0, Math.min(255, Math.round(parts[4]))),
+      b: Math.max(0, Math.min(255, Math.round(parts[5]))),
+      confidence: Number.isFinite(parts[6]) ? parts[6] : 1,
+    });
+  }
+  if (Number.isInteger(expectedCount) && points.length !== expectedCount) {
+    throw new Error(`PLY vertex count mismatch: expected ${expectedCount}, decoded ${points.length}`);
+  }
+  if (points.length < 1) throw new Error(`PLY has no vertices: ${path}`);
+  return points;
+}
+
+function boundsFor(points) {
+  const bounds = {
+    min: [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY],
+    max: [Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY],
+  };
+  for (const point of points) {
+    bounds.min[0] = Math.min(bounds.min[0], point.x);
+    bounds.min[1] = Math.min(bounds.min[1], point.y);
+    bounds.min[2] = Math.min(bounds.min[2], point.z);
+    bounds.max[0] = Math.max(bounds.max[0], point.x);
+    bounds.max[1] = Math.max(bounds.max[1], point.y);
+    bounds.max[2] = Math.max(bounds.max[2], point.z);
+  }
+  return bounds;
+}
+
+function normalize(value, min, max) {
+  const span = max - min;
+  if (!Number.isFinite(span) || Math.abs(span) < 1e-9) return 0.5;
+  return (value - min) / span;
+}
+
+function blendPixel(rgba, width, x, y, r, g, b, alpha) {
+  if (x < 0 || y < 0 || x >= width) return;
+  const offset = (y * width + x) * 4;
+  if (offset < 0 || offset + 3 >= rgba.length) return;
+  const inv = 1 - alpha;
+  rgba[offset] = Math.round((rgba[offset] ?? 0) * inv + r * alpha);
+  rgba[offset + 1] = Math.round((rgba[offset + 1] ?? 0) * inv + g * alpha);
+  rgba[offset + 2] = Math.round((rgba[offset + 2] ?? 0) * inv + b * alpha);
+  rgba[offset + 3] = 255;
+}
+
+function plotPoint(rgba, quiltWidth, quiltHeight, x, y, radius, color, alpha) {
+  const cx = Math.round(x);
+  const cy = Math.round(y);
+  for (let py = cy - radius; py <= cy + radius; py += 1) {
+    if (py < 0 || py >= quiltHeight) continue;
+    for (let px = cx - radius; px <= cx + radius; px += 1) {
+      const dx = px - cx;
+      const dy = py - cy;
+      if (dx * dx + dy * dy > radius * radius) continue;
+      blendPixel(rgba, quiltWidth, px, py, color[0], color[1], color[2], alpha);
+    }
+  }
+}
+
+async function encodePng(rgba, width, height) {
+  const sharp = (await import('sharp')).default;
+  return sharp(Buffer.from(rgba), {
+    raw: { width, height, channels: 4 },
+  })
+    .png({ compressionLevel: 9, adaptiveFiltering: false })
+    .toBuffer();
+}
+
+async function renderQuiltPreview({ points, bounds, tileWidth, tileHeight, views, columns, rows }) {
+  const quiltWidth = tileWidth * columns;
+  const quiltHeight = tileHeight * rows;
+  const rgba = new Uint8Array(quiltWidth * quiltHeight * 4);
+  for (let i = 0; i < rgba.length; i += 4) {
+    rgba[i] = 4;
+    rgba[i + 1] = 7;
+    rgba[i + 2] = 11;
+    rgba[i + 3] = 255;
+  }
+
+  const sorted = [...points].sort((a, b) => a.z - b.z);
+  const zRange = Math.max(1e-9, bounds.max[2] - bounds.min[2]);
+  for (let view = 0; view < views; view += 1) {
+    const col = view % columns;
+    const row = Math.floor(view / columns);
+    if (row >= rows) break;
+    const tileX = col * tileWidth;
+    const tileY = row * tileHeight;
+    const denom = Math.max(1, views - 1);
+    const cameraOffset = (view / denom - 0.5) * 2;
+
+    for (const point of sorted) {
+      const nx = normalize(point.x, bounds.min[0], bounds.max[0]);
+      const ny = normalize(point.y, bounds.min[1], bounds.max[1]);
+      const nz = (point.z - bounds.min[2]) / zRange;
+      const parallax = cameraOffset * (0.05 + nz * 0.18);
+      const px = tileX + (0.1 + (nx + parallax) * 0.8) * tileWidth;
+      const py = tileY + (0.9 - ny * 0.8) * tileHeight;
+      const confidence = Math.max(0.2, Math.min(1, point.confidence));
+      const radius = tileWidth >= 96 ? 2 : 1;
+      plotPoint(rgba, quiltWidth, quiltHeight, px, py, radius, [point.r, point.g, point.b], 0.5 + confidence * 0.35);
+    }
+  }
+
+  return {
+    png: await encodePng(rgba, quiltWidth, quiltHeight),
+    width: quiltWidth,
+    height: quiltHeight,
+  };
+}
+
+export async function renderBridge(args) {
+  const bridgePath = resolveInputPath(args.bridge);
+  if (!bridgePath || !existsSync(bridgePath)) throw new Error(`Bridge JSON not found: ${args.bridge}`);
+  const bridge = JSON.parse(readFileSync(bridgePath, 'utf8'));
+  if (bridge.schemaVersion !== 'hologram-bridge/holomap-pointcloud/v1') {
+    throw new Error(`Unsupported bridge schema: ${bridge.schemaVersion ?? 'missing'}`);
+  }
+
+  const sourceAssets = bridge.source?.assets ?? {};
+  const plyPath = resolveInputPath(sourceAssets.ply, dirname(bridgePath));
+  if (!plyPath || !existsSync(plyPath)) throw new Error(`PLY asset not found: ${sourceAssets.ply ?? 'missing'}`);
+  const points = parseAsciiPly(plyPath);
+  const bounds = bridge.source?.bounds ?? boundsFor(points);
+  const columns = args.columns ?? bridge.targets?.quilt?.columns ?? 8;
+  const rows = args.rows ?? bridge.targets?.quilt?.rows ?? 6;
+  const views = args.views ?? bridge.targets?.quilt?.views ?? columns * rows;
+  if (views > columns * rows) throw new Error(`views (${views}) cannot exceed columns*rows (${columns * rows})`);
+
+  const outPath = resolve(args.out ?? defaultOutputForBridge(bridgePath));
+  const replay = bridge.source?.replayFingerprint ?? sha256Text(readFileSync(bridgePath, 'utf8')).slice(0, 16);
+  const pngPath = resolve(dirname(outPath), `holoshell-quilt-${String(replay).slice(0, 12)}.png`);
+  mkdirSync(dirname(outPath), { recursive: true });
+
+  const quilt = await renderQuiltPreview({
+    points,
+    bounds,
+    tileWidth: args.tileWidth,
+    tileHeight: args.tileHeight,
+    views,
+    columns,
+    rows,
+  });
+  writeFileSync(pngPath, quilt.png);
+  const pngHash = `sha256:${sha256Bytes(quilt.png)}`;
+
+  const receipt = withHash({
+    id: `holoshell-hologram-quilt-${String(replay).slice(0, 12)}`,
+    schemaVersion: RECEIPT_VERSION,
+    rendererVersion: VERSION,
+    status: 'pass',
+    action: 'render-holomap-pointcloud-quilt-preview',
+    bridgePath: rel(bridgePath),
+    source: {
+      kind: bridge.source.kind,
+      replayFingerprint: bridge.source.replayFingerprint,
+      pointCloudHash: bridge.source.pointCloudHash,
+      pointCount: points.length,
+      plyPath: rel(plyPath),
+    },
+    quilt: {
+      path: rel(pngPath),
+      pngHash,
+      width: quilt.width,
+      height: quilt.height,
+      tileWidth: args.tileWidth,
+      tileHeight: args.tileHeight,
+      views,
+      columns,
+      rows,
+    },
+    honestScope:
+      'Rendered a deterministic quilt preview from HoloMap point-cloud geometry. This is not MV-HEVC or parallax video encoding.',
+    outputPath: rel(outPath),
+  });
+  writeJson(outPath, receipt);
+  return receipt;
+}
+
+export function validateReceipt(receipt) {
+  const errors = [];
+  if (!receipt || typeof receipt !== 'object') errors.push('receipt must be an object');
+  if (receipt.schemaVersion !== RECEIPT_VERSION) errors.push('schemaVersion mismatch');
+  if (receipt.status !== 'pass') errors.push('status must be pass');
+  if (!receipt.hash?.startsWith('sha256:')) errors.push('hash missing');
+  if (!receipt.quilt?.pngHash?.startsWith('sha256:')) errors.push('quilt PNG hash missing');
+  if (!(receipt.source?.pointCount > 0)) errors.push('point count missing');
+  return errors;
+}
+
+export async function selfTest() {
+  const dir = mkdtempSync(join(tmpdir(), 'holoshell-hologram-bridge-renderer-'));
+  try {
+    const plyPath = join(dir, 'scan.ply');
+    const bridgePath = join(dir, 'scan.hologram-bridge.json');
+    const outPath = join(dir, 'receipt.json');
+    writeFileSync(
+      plyPath,
+      [
+        'ply',
+        'format ascii 1.0',
+        'element vertex 4',
+        'property float x',
+        'property float y',
+        'property float z',
+        'property uchar red',
+        'property uchar green',
+        'property uchar blue',
+        'property float confidence',
+        'end_header',
+        '-0.4 -0.4 0.1 255 64 64 0.9',
+        '0.4 -0.4 0.2 64 255 64 0.8',
+        '-0.4 0.4 0.3 64 64 255 0.7',
+        '0.4 0.4 0.4 255 255 64 0.6',
+      ].join('\n') + '\n',
+      'utf8'
+    );
+    const pointCloudHash = `sha256:${sha256Bytes(readFileSync(plyPath))}`;
+    writeJson(bridgePath, {
+      schemaVersion: 'hologram-bridge/holomap-pointcloud/v1',
+      status: 'geometry-ready',
+      source: {
+        kind: 'holomap-pointcloud',
+        replayFingerprint: 'selftest-replay',
+        pointCloudHash,
+        pointCount: 4,
+        frameCount: 1,
+        bounds: { min: [-0.4, -0.4, 0.1], max: [0.4, 0.4, 0.4] },
+        assets: { ply: plyPath },
+      },
+      targets: {
+        quilt: { status: 'ready-for-render', views: 4, columns: 2, rows: 2, sourceAsset: 'ply' },
+      },
+    });
+    const receipt = await renderBridge({
+      bridge: bridgePath,
+      out: outPath,
+      tileWidth: 32,
+      tileHeight: 24,
+    });
+    const errors = validateReceipt(receipt);
+    if (errors.length > 0) throw new Error(errors.join('; '));
+    const png = readFileSync(resolve(REPO_ROOT, receipt.quilt.path));
+    if (png[0] !== 0x89 || png[1] !== 0x50 || png[2] !== 0x4e || png[3] !== 0x47) {
+      throw new Error('self-test quilt is not a PNG');
+    }
+    return receipt;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+async function main() {
+  const args = parseArgs(process.argv.slice(2));
+  if (args.help) {
+    printHelp();
+    return;
+  }
+  if (args.selfTest) {
+    const receipt = await selfTest();
+    process.stdout.write(`holoshell-hologram-bridge-renderer self-test PASS ${receipt.hash}\n`);
+    return;
+  }
+
+  const receipt = await renderBridge(args);
+  const errors = validateReceipt(receipt);
+  if (errors.length > 0) throw new Error(`Invalid receipt: ${errors.join('; ')}`);
+  process.stdout.write(`${JSON.stringify({ status: receipt.status, receiptPath: receipt.outputPath, quilt: receipt.quilt }, null, 2)}\n`);
+}
+
+if (import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` || process.argv[1]?.endsWith('holoshell-hologram-bridge-renderer.mjs')) {
+  main().catch((error) => {
+    process.stderr.write(`holoshell-hologram-bridge-renderer FAIL: ${error.stack ?? error.message}\n`);
+    process.exitCode = 1;
+  });
+}

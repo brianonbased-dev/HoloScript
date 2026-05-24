@@ -28,13 +28,15 @@ import {
   createHoloMapRuntime,
 } from '../packages/core/dist/reconstruction/index.js';
 
-export const VERSION = '0.2.0';
-export const RECEIPT_VERSION = 'holoshell-camera-scan-receipt/v2';
+export const VERSION = '0.3.0';
+export const RECEIPT_VERSION = 'holoshell-camera-scan-receipt/v3';
 const DEFAULT_DATE = new Date().toISOString().slice(0, 10);
 const DEFAULT_WIDTH = 96;
 const DEFAULT_HEIGHT = 72;
 const DEFAULT_FRAMES = 1;
 const DEFAULT_INTERVAL_MS = 250;
+const DEFAULT_SESSION_FPS = 5;
+const MAX_FRAMES = 120;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
@@ -50,10 +52,14 @@ function parseArgs(argv) {
     height: DEFAULT_HEIGHT,
     frames: DEFAULT_FRAMES,
     intervalMs: DEFAULT_INTERVAL_MS,
+    durationSec: undefined,
+    fps: undefined,
     keepFrame: false,
     requireCapture: false,
     selfTest: false,
   };
+  let framesProvided = false;
+  let intervalProvided = false;
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -66,8 +72,16 @@ function parseArgs(argv) {
     else if (arg === '--device-index') args.deviceIndex = Number.parseInt(argv[++i], 10);
     else if (arg === '--width') args.width = Number.parseInt(argv[++i], 10);
     else if (arg === '--height') args.height = Number.parseInt(argv[++i], 10);
-    else if (arg === '--frames') args.frames = Number.parseInt(argv[++i], 10);
-    else if (arg === '--interval-ms') args.intervalMs = Number.parseInt(argv[++i], 10);
+    else if (arg === '--frames') {
+      args.frames = Number.parseInt(argv[++i], 10);
+      framesProvided = true;
+    }
+    else if (arg === '--interval-ms') {
+      args.intervalMs = Number.parseInt(argv[++i], 10);
+      intervalProvided = true;
+    }
+    else if (arg === '--duration-sec') args.durationSec = Number.parseFloat(argv[++i]);
+    else if (arg === '--fps') args.fps = Number.parseFloat(argv[++i]);
     else if (arg === '--keep-frame') args.keepFrame = true;
     else if (arg === '--require-capture') args.requireCapture = true;
     else if (arg === '--help' || arg === '-h' || arg === 'help') args.command = 'help';
@@ -83,11 +97,27 @@ function parseArgs(argv) {
   if (!Number.isInteger(args.height) || args.height < 2 || args.height > 480) {
     throw new Error('--height must be an integer from 2 to 480');
   }
-  if (!Number.isInteger(args.frames) || args.frames < 1 || args.frames > 120) {
-    throw new Error('--frames must be an integer from 1 to 120');
+  if (args.fps !== undefined && (!Number.isFinite(args.fps) || args.fps < 0.2 || args.fps > DEFAULT_SESSION_FPS)) {
+    throw new Error(`--fps must be a number from 0.2 to ${DEFAULT_SESSION_FPS}`);
+  }
+  if (args.durationSec !== undefined && (!Number.isFinite(args.durationSec) || args.durationSec <= 0 || args.durationSec > 60)) {
+    throw new Error('--duration-sec must be a number greater than 0 and at most 60');
+  }
+  if (args.durationSec !== undefined) {
+    const fps = args.fps ?? DEFAULT_SESSION_FPS;
+    if (!intervalProvided) args.intervalMs = Math.round(1000 / fps);
+    if (!framesProvided) args.frames = Math.max(1, Math.ceil(args.durationSec * fps));
+  } else if (args.fps !== undefined && !intervalProvided) {
+    args.intervalMs = Math.round(1000 / args.fps);
+  }
+  if (!Number.isInteger(args.frames) || args.frames < 1 || args.frames > MAX_FRAMES) {
+    throw new Error(`--frames must be an integer from 1 to ${MAX_FRAMES}`);
   }
   if (!Number.isInteger(args.intervalMs) || args.intervalMs < 0 || args.intervalMs > 10000) {
     throw new Error('--interval-ms must be an integer from 0 to 10000');
+  }
+  if (args.frames > 1 && args.intervalMs === 0) {
+    throw new Error('--interval-ms must be greater than 0 when capturing multiple frames');
   }
   return args;
 }
@@ -98,6 +128,7 @@ function printHelp() {
 Usage:
   node scripts/holoshell-camera-scan-adapter.mjs list
   node scripts/holoshell-camera-scan-adapter.mjs capture [--frames 5] [--interval-ms 250] [--require-capture] [--out receipt.json]
+  node scripts/holoshell-camera-scan-adapter.mjs capture --duration-sec 3 --fps 5 [--require-capture]
   node scripts/holoshell-camera-scan-adapter.mjs --self-test
 
 Notes:
@@ -157,6 +188,23 @@ function writeJson(path, value) {
 
 function rel(path) {
   return relative(REPO_ROOT, resolve(path)).replaceAll('\\', '/');
+}
+
+function round(value, decimals = 4) {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
+function capturePlan(args) {
+  const fps = args.intervalMs > 0 ? 1000 / args.intervalMs : undefined;
+  return {
+    requestedFrameCount: args.frames,
+    intervalMs: args.intervalMs,
+    requestedDurationSec: args.durationSec,
+    requestedFps: args.fps,
+    effectiveFps: fps ? round(fps, 3) : undefined,
+    expectedDurationMs: args.frames > 1 ? (args.frames - 1) * args.intervalMs : 0,
+  };
 }
 
 function redactDevice(device) {
@@ -363,6 +411,92 @@ async function decodeImageToRgb(imagePath, width, height) {
   };
 }
 
+function analyzeFrameQuality(frame) {
+  const pixels = frame.width * frame.height;
+  if (pixels <= 0) {
+    return {
+      status: 'warn',
+      score: 0,
+      warnings: ['empty-frame'],
+    };
+  }
+
+  const lum = new Float32Array(pixels);
+  let sum = 0;
+  let sumSq = 0;
+  let dark = 0;
+  let bright = 0;
+  for (let i = 0; i < pixels; i += 1) {
+    const p = i * frame.stride;
+    const y = 0.2126 * (frame.rgb[p] ?? 0) + 0.7152 * (frame.rgb[p + 1] ?? 0) + 0.0722 * (frame.rgb[p + 2] ?? 0);
+    lum[i] = y;
+    sum += y;
+    sumSq += y * y;
+    if (y < 20) dark += 1;
+    if (y > 235) bright += 1;
+  }
+
+  let edgeSum = 0;
+  let edgeCount = 0;
+  for (let y = 0; y < frame.height; y += 1) {
+    for (let x = 0; x < frame.width; x += 1) {
+      const idx = y * frame.width + x;
+      if (x + 1 < frame.width) {
+        edgeSum += Math.abs((lum[idx] ?? 0) - (lum[idx + 1] ?? 0));
+        edgeCount += 1;
+      }
+      if (y + 1 < frame.height) {
+        edgeSum += Math.abs((lum[idx] ?? 0) - (lum[idx + frame.width] ?? 0));
+        edgeCount += 1;
+      }
+    }
+  }
+
+  const mean = sum / pixels;
+  const variance = Math.max(0, sumSq / pixels - mean * mean);
+  const brightness = mean / 255;
+  const contrast = Math.sqrt(variance) / 255;
+  const edgeEnergy = edgeCount > 0 ? edgeSum / edgeCount / 255 : 0;
+  const brightnessScore = Math.max(0, 1 - Math.abs(brightness - 0.45) / 0.45);
+  const contrastScore = Math.min(1, contrast / 0.18);
+  const edgeScore = Math.min(1, edgeEnergy / 0.08);
+  const score = 0.4 * brightnessScore + 0.35 * contrastScore + 0.25 * edgeScore;
+  const warnings = [];
+  if (brightness < 0.08) warnings.push('underexposed');
+  if (brightness > 0.92) warnings.push('overexposed');
+  if (contrast < 0.025) warnings.push('low-contrast');
+  if (edgeEnergy < 0.008) warnings.push('low-detail-or-blur');
+
+  return {
+    status: warnings.length > 0 ? 'warn' : 'pass',
+    score: round(score, 4),
+    brightness: round(brightness, 4),
+    contrast: round(contrast, 4),
+    edgeEnergy: round(edgeEnergy, 4),
+    darkPixelRatio: round(dark / pixels, 4),
+    brightPixelRatio: round(bright / pixels, 4),
+    warnings,
+  };
+}
+
+function average(values) {
+  if (values.length < 1) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function summarizeQuality(frames) {
+  const qualities = frames.map((frame) => frame.quality).filter(Boolean);
+  const warnings = [...new Set(qualities.flatMap((quality) => quality.warnings ?? []))];
+  return {
+    status: warnings.length > 0 ? 'warn' : 'pass',
+    averageScore: round(average(qualities.map((quality) => quality.score ?? 0)), 4),
+    averageBrightness: round(average(qualities.map((quality) => quality.brightness ?? 0)), 4),
+    averageContrast: round(average(qualities.map((quality) => quality.contrast ?? 0)), 4),
+    averageEdgeEnergy: round(average(qualities.map((quality) => quality.edgeEnergy ?? 0)), 4),
+    warnings,
+  };
+}
+
 async function runHoloMap(frames, videoHash, intervalMs) {
   const runtime = createHoloMapRuntime();
   const firstFrame = frames[0];
@@ -518,6 +652,7 @@ function buildHologramBridge({ manifest, assets, pointCloudHash }) {
     },
     honestScope:
       'Native camera frames were reconstructed and exported as HoloMap geometry. Quilt, parallax WebM, and MV-HEVC pixel encoding are the next render step.',
+    nextCommand: `pnpm holoshell:hologram-bridge-render -- --bridge ${assets.hologramBridge}`,
   };
 }
 
@@ -590,6 +725,7 @@ async function buildCaptureReceipt(args) {
   const at = nowIso(args);
   const outPath = resolve(REPO_ROOT, args.out ?? defaultOutput(args.date));
   const frameDir = join(tmpdir(), `holoshell-camera-scan-${process.pid}-${Date.now()}`);
+  const plan = capturePlan(args);
 
   const capture = captureViaWindowsWinRt(args, frameDir);
   if (args.command === 'list') {
@@ -655,6 +791,7 @@ async function buildCaptureReceipt(args) {
     const jpegHash = sha256Bytes(jpeg);
     const decoded = await decodeImageToRgb(sourcePath, args.width, args.height);
     const frameHash = sha256Bytes(decoded.rgb);
+    const quality = analyzeFrameQuality(decoded);
     const keptFramePath = args.keepFrame
       ? rel(resolve(dirname(outPath), `camera-frame-${i.toString().padStart(3, '0')}-${jpegHash.slice(0, 12)}.jpg`))
       : undefined;
@@ -677,6 +814,7 @@ async function buildCaptureReceipt(args) {
       rgbHeight: decoded.height,
       rgbStride: decoded.stride,
       rgbHash: `sha256:${frameHash}`,
+      quality,
       keptFramePath,
     });
   }
@@ -686,6 +824,12 @@ async function buildCaptureReceipt(args) {
   )}`;
   const holoMap = await runHoloMap(frames, videoHash, args.intervalMs);
   const artifacts = writeScanArtifacts({ outPath, holoMap });
+  const firstCapturedMs = Date.parse(receiptFrames[0]?.capturedAt ?? '');
+  const lastCapturedMs = Date.parse(receiptFrames[receiptFrames.length - 1]?.capturedAt ?? '');
+  const actualCapturedDurationMs =
+    Number.isFinite(firstCapturedMs) && Number.isFinite(lastCapturedMs)
+      ? Math.max(0, lastCapturedMs - firstCapturedMs)
+      : undefined;
 
   const receipt = withHash({
     id: `holoshell-camera-scan-${holoMap.manifest.simulationContract.replayFingerprint.slice(0, 12)}`,
@@ -698,14 +842,16 @@ async function buildCaptureReceipt(args) {
     device: redactDevice(capture.device ?? {}),
     action: 'direct-native-camera-holomap-scan',
     capture: {
-      requestedFrameCount: args.frames,
+      ...plan,
       capturedFrameCount: receiptFrames.length,
       acceptedFrameCount: holoMap.manifest.frameCount,
-      intervalMs: args.intervalMs,
+      droppedFrameCount: Math.max(0, plan.requestedFrameCount - receiptFrames.length),
+      actualCapturedDurationMs,
       videoHash,
     },
     frame: receiptFrames[0],
     frames: receiptFrames,
+    scanQuality: summarizeQuality(receiptFrames),
     holomap: {
       displayName: holoMap.manifest.displayName,
       frameCount: holoMap.manifest.frameCount,
@@ -722,6 +868,7 @@ async function buildCaptureReceipt(args) {
       sourceKind: artifacts.bridge.source.kind,
       targets: artifacts.bridge.targets,
       honestScope: artifacts.bridge.honestScope,
+      nextCommand: artifacts.bridge.nextCommand,
     },
     outputPath: rel(outPath),
   });
@@ -750,6 +897,7 @@ export function validateReceipt(receipt) {
     if (Array.isArray(receipt.frames) && receipt.frames.some((frame) => !frame.rgbHash?.startsWith('sha256:'))) {
       errors.push('pass receipt has frame without rgb hash');
     }
+    if (!receipt.scanQuality?.status) errors.push('pass receipt missing scan quality summary');
     if (!receipt.holomap?.replayFingerprint) errors.push('pass receipt missing HoloMap replay fingerprint');
     if (!(receipt.holomap?.pointCount > 0)) errors.push('pass receipt missing point count');
     if (!receipt.holomap?.assets?.ply) errors.push('pass receipt missing HoloMap PLY asset');

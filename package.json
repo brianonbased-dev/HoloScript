@@ -39,6 +39,8 @@
     "holoshell:format-gauntlet-test": "node scripts/__tests__/holoshell-format-gauntlet.test.mjs",
     "holoshell:camera-scan": "node scripts/holoshell-camera-scan-adapter.mjs capture",
     "holoshell:camera-scan-test": "node scripts/__tests__/holoshell-camera-scan-adapter.test.mjs",
+    "holoshell:hologram-bridge-render": "node scripts/holoshell-hologram-bridge-renderer.mjs",
+    "holoshell:hologram-bridge-render-test": "node scripts/__tests__/holoshell-hologram-bridge-renderer.test.mjs",
     "bench:p043:sku-matrix": "node scripts/p043-sku-matrix.mjs",
     "bench:p043:sku-matrix-test": "node scripts/__tests__/p043-sku-matrix.test.mjs",
     "eval:brain-intent": "node scripts/evaluate-brain-intent-loop.mjs",
