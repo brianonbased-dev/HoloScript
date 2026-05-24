@@ -65,9 +65,12 @@ describe('BrainCoordMapper', () => {
       expect(entry.mni_z).toBe(4);
     });
 
-    it('all 17 standard domains have entries with valid coords', () => {
+    it('all standard domains (≥17) have entries with valid coords', () => {
       const entries = getAllEntries();
-      expect(entries).toHaveLength(17);
+      // ≥17: resilient to legitimate domain additions (e.g. d040 added in
+      // 395b6fc79). Matches the sibling assertion below. The real check is that
+      // EVERY entry has valid coords + a source note.
+      expect(entries.length).toBeGreaterThanOrEqual(17);
       for (const { entry } of entries) {
         expect(validateCoord(entry)).toBe(true);
         expect(entry.source_note.length).toBeGreaterThan(5);
