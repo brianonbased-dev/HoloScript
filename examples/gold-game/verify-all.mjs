@@ -61,6 +61,7 @@ const GATES = [
   { track: 'flagship', gate: 34, name: 'playable depth-real vista + proof-as-play seal — the Gate-32 world renders as a depth-displaced surface IN the build (byte-equal to source) + graduation seals visibly; holographic-target export (quilt/MV-HEVC) deferred to G13-compiler reuse', kind: 'script', runner: 'tsx', file: 'gate-34-playable-vista-verify.mjs' },
   { track: 'flagship', gate: 35, name: 'HoloScript kitchen-sink pass — HoloGraph + HoloGram + HoloMap join the same playable loop', kind: 'open' },
   { track: 'flagship', gate: 36, name: 'HoloScript package toolset — packages become visible GOLD game systems', kind: 'script', runner: 'node', file: 'gate-36-holoscript-toolset-verify.mjs' },
+  { track: 'flagship', gate: 37, name: 'self-proving boot — air-gapped build re-derives its embedded data hashes OFFLINE in-browser (pure-JS SHA-256, file://) vs a sealed manifest; embedded fn cross-checked as genuine SHA-256; negative control holds', kind: 'script', runner: 'node', file: 'gate-37-self-proof-verify.mjs' },
   { track: 'oasis (fixture)', gate: 3, name: 'connection-mechanics proof (compass co-session)', kind: 'script', runner: 'tsx', file: 'connection-mechanics-proof/gate-3-verify.mjs' },
   { track: 'modalities', gate: '2D+3D', name: 'one .holo -> retro 2D + 3D (shared source scene)', kind: 'script', runner: 'tsx', file: 'modality-verify.mjs' },
 ];

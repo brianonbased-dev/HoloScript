@@ -884,7 +884,7 @@ const vaultBrowserScript = `<script>
 // the verified gold-game-party.mjs engine uses, so the on-screen companions render the
 // same persona-attributable picks the engine proves (cold-session). REWARD/ceiling are
 // the engine's real economy constants (REWARD=25, $0.50/day agenda ceiling).
-const partyBoot = '<script>window.__GOLD_GAME_PARTY__=' + JSON.stringify({
+const partyData = {
   reward: 25,
   dailyCeilingUsd: 0.5,
   roster: [
@@ -900,7 +900,8 @@ const partyBoot = '<script>window.__GOLD_GAME_PARTY__=' + JSON.stringify({
     { id: 'P.PARTY.005', title: 'apply-four-refusals-to-own-analysis', lineage_links: 2 },
     { id: 'P.PARTY.006', title: 'scavenging-is-the-default', lineage_links: 1 },
   ],
-}) + ';</script>';
+};
+const partyBoot = '<script>window.__GOLD_GAME_PARTY__=' + JSON.stringify(partyData) + ';</script>';
 // Gate 29: render the named party — each companion CHOOSES (persona policy), EXPLAINS
 // (grounded voice + live lineage/budget), and SPENDS under the metered ceiling.
 const partyPanelScript = `<script>
@@ -972,6 +973,90 @@ let vistaWorld = null;
 try { vistaWorld = JSON.parse(readFileSync(join(here, 'gold-vault-vista-world.json'), 'utf8')); } catch { /* no vista yet */ }
 const vistaGrid = vistaWorld?.generated_group?.depthGrid || null;
 const vistaBoot = '<script>window.__GOLD_GAME_VISTA__=' + JSON.stringify(vistaGrid) + ';</script>';
+
+// ── Gate 37: SELF-PROVING BOOT ────────────────────────────────────────────────
+// On load the air-gapped build RE-DERIVES the SHA-256 of its own embedded data blobs
+// and compares to a build-time manifest — proving the bytes you're running are the
+// bytes that were sealed, re-checked OFFLINE on the player's own machine, no network.
+// HONEST: this proves DATA INTEGRITY offline; it does NOT re-run the TS gate verifiers
+// (those need the dev repo). The receipts ride on the drive for full re-derivation.
+// Pure-JS SHA-256 (NOT crypto.subtle) so it works on file:// (no secure context). The
+// gate-37 verifier cross-checks this exact function against Node's createHash, so a
+// buggy impl FAILS the gate (anti-F.069).
+const SHA256_JS = `function(str){
+  function rr(v,a){return (v>>>a)|(v<<(32-a));}
+  var u8=unescape(encodeURIComponent(str)); // string -> UTF-8 byte string (charCode<256)
+  var mp=Math.pow,mw=mp(2,32),words=[],bitLen=u8.length*8,i,j;
+  var h=[],k=[],pc=0,comp={};
+  for(var c=2;pc<64;c++){if(!comp[c]){for(i=0;i<313;i+=c)comp[i]=c;h[pc]=(mp(c,.5)*mw)|0;k[pc++]=(mp(c,1/3)*mw)|0;}}
+  u8+='\\x80';while(u8.length%64-56)u8+='\\x00';
+  for(i=0;i<u8.length;i++){j=u8.charCodeAt(i);words[i>>2]|=j<<((3-i)%4)*8;}
+  words[words.length]=((bitLen/mw)|0);words[words.length]=(bitLen);
+  for(j=0;j<words.length;){
+    var w=words.slice(j,j+=16),oh=h;h=h.slice(0,8);
+    for(i=0;i<64;i++){
+      var w15=w[i-15],w2=w[i-2],a=h[0],e=h[4];
+      var t1=(h[7]+(rr(e,6)^rr(e,11)^rr(e,25))+((e&h[5])^((~e)&h[6]))+k[i]+(w[i]=(i<16)?(w[i]|0):((w[i-16]+(rr(w15,7)^rr(w15,18)^(w15>>>3))+w[i-7]+(rr(w2,17)^rr(w2,19)^(w2>>>10)))|0)))|0;
+      var t2=((rr(a,2)^rr(a,13)^rr(a,22))+((a&h[1])^(a&h[2])^(h[1]&h[2])))|0;
+      h=[(t1+t2)|0].concat(h);h[4]=(h[4]+t1)|0;
+    }
+    for(i=0;i<8;i++)h[i]=(h[i]+oh[i])|0;
+  }
+  var r='';for(i=0;i<8;i++)for(j=3;j+1;j--){var b=(h[i]>>(j*8))&255;r+=((b<16)?'0':'')+b.toString(16);}
+  return r;
+}`;
+// Cross-check the embedded function against Node's real SHA-256 at build time (and seal
+// the manifest with the EMBEDDED function so build == browser byte-for-byte).
+const browserSha = new Function('return (' + SHA256_JS + ')')();
+for (const tv of ['', 'abc', 'GOLD📜']) {
+  if (browserSha(tv) !== sha256(Buffer.from(tv, 'utf8'))) {
+    throw new Error('embedded SHA-256 disagrees with node:crypto for "' + tv + '" — self-proof would be invalid');
+  }
+}
+const selfProofManifest = [
+  vistaGrid ? { name: 'vista (depth world)', key: '__GOLD_GAME_VISTA__', sha256: browserSha(JSON.stringify(vistaGrid)) } : null,
+  { name: 'toolset (HoloScript packages)', key: '__GOLD_GAME_TOOLSET__', sha256: browserSha(JSON.stringify(holoscriptToolset)) },
+  { name: 'party (AI companions)', key: '__GOLD_GAME_PARTY__', sha256: browserSha(JSON.stringify(partyData)) },
+].filter(Boolean);
+// NOTE: no wall-clock timestamp here — the build must stay byte-deterministic (Gate 30
+// asserts two packagings are identical), so the self-proof seal is content-only.
+const selfProofBoot = '<script>window.__GOLD_GAME_SELFPROOF__=' + JSON.stringify({
+  manifest: selfProofManifest, algo: 'sha256(utf8)',
+}) + ';window.__GOLD_GAME_SHA256__=(' + SHA256_JS + ');</script>';
+const selfProofScript = `<script>
+(function(){
+  var SP = window.__GOLD_GAME_SELFPROOF__, sha = window.__GOLD_GAME_SHA256__;
+  if (!SP || !SP.manifest || typeof sha !== 'function') return;
+  var panel = document.getElementById('selfProof');
+  var toggle = document.getElementById('selfProofToggle');
+  var close = document.getElementById('selfProofClose');
+  var listEl = document.getElementById('selfProofList');
+  var sumEl = document.getElementById('selfProofSummary');
+  if (!panel || !listEl) return;
+  function run(){
+    listEl.innerHTML = ''; var pass = 0;
+    for (var i = 0; i < SP.manifest.length; i++){
+      var m = SP.manifest[i], val = window[m.key], ok = false;
+      if (val !== undefined) ok = (sha(JSON.stringify(val)) === m.sha256);
+      if (ok) pass++;
+      var row = document.createElement('div');
+      row.className = 'spRow'; row.setAttribute('data-gate37', 'check'); row.dataset.ok = ok ? 'true' : 'false';
+      row.innerHTML = '<span class="spName"></span><span class="spState"></span>';
+      row.querySelector('.spName').textContent = m.name;
+      row.querySelector('.spState').textContent = ok ? 're-derived \\u2713' : 'MISMATCH';
+      listEl.appendChild(row);
+    }
+    var allOk = pass === SP.manifest.length;
+    panel.dataset.proof = allOk ? 'pass' : 'fail';
+    if (sumEl) sumEl.textContent = pass + '/' + SP.manifest.length + ' systems re-verified OFFLINE on THIS machine \\u2014 no network, no trust required.';
+  }
+  function setOpen(v){ panel.dataset.open = v ? 'true' : 'false'; }
+  toggle && toggle.addEventListener('click', function(){ setOpen(panel.dataset.open !== 'true'); });
+  close && close.addEventListener('click', function(){ setOpen(false); });
+  window.addEventListener('keydown', function(e){ if ((e.key === 's' || e.key === 'S') && !/input|textarea/i.test((e.target||{}).tagName||'')) setOpen(panel.dataset.open !== 'true'); });
+  run(); // compute the proof on load so it's ready before the panel opens
+})();
+</script>`;
 const startOnboardingScript = `<script>
 (function(){
   var start = document.getElementById('startScreen');
@@ -1265,6 +1350,8 @@ vistaBoot +
 '<div id="vaultCount">entries</div><div id="vaultResults"></div></aside>' +
 '<button id="partyToggle" type="button" data-gate29="agent-party">Party</button>' +
 '<aside id="agentParty" data-open="false" data-gate29="agent-party-panel"><button id="partyClose" type="button">Close</button><h2>Your Party</h2><p>Named AI companions climb alongside you — each chooses a GOLD entry by its own persona, explains why, and spends under a metered ceiling.</p><div id="partyList"></div></aside>' +
+'<button id="selfProofToggle" type="button" data-gate37="self-proof">Self-Proof</button>' +
+'<aside id="selfProof" data-open="false" data-proof="pending" data-gate37="self-proof-panel"><button id="selfProofClose" type="button">Close</button><h2>This drive proves itself</h2><p>No network. On load, each system below is re-hashed (SHA-256) right here in your browser and checked against the seal baked in at build time — so the bytes you are playing are provably the bytes that were verified.</p><div id="selfProofList"></div><p id="selfProofSummary" data-gate37="summary"></p></aside>' +
 '<script>' + bundle + '</script>' +
 '<script>if(location.protocol!=="file:"){fetch("./api/vault").then(function(r){return r.json()}).then(function(v){var el=document.getElementById("live");if(!el)return;' +
  'el.textContent=v.connected?("LIVE vault: "+(v.total||"?")+" entries · as of "+(v.asOf||"?")):"vault not detected — embedded snapshot"}).catch(function(){});}</script>' +
@@ -1275,6 +1362,8 @@ goldDataScript +
 vaultBrowserScript +
 partyBoot +
 partyPanelScript +
+selfProofBoot +
+selfProofScript +
 campaignScript +
 '</body></html>';
 writeFileSync(join(OUT, 'index.html'), html);

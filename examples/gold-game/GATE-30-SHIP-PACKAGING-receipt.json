@@ -22,15 +22,15 @@
     {
       "rel": "3d/index.html",
       "kind": "build",
-      "bytes": 1483499,
-      "sha256": "d34295838ca5c1fb7bbc3424381e8fc33449a6c04535bae421368350f33cb663",
+      "bytes": 1505410,
+      "sha256": "e22a6ab20535981bf47a48996be487a4a600a7772792bbbe66df4c1ceb6aa2d7",
       "deployedMatches": true
     },
     {
       "rel": "3d/START-HERE.txt",
       "kind": "build",
-      "bytes": 493,
-      "sha256": "0a3f267709d981c2a152b49d2d3757eaafe52685d8d8adb61396f7b9910e68a2",
+      "bytes": 582,
+      "sha256": "cbb86754f13d8a6c0e51ddae3e13c933828004244b835e9cad29bbe482aa8342",
       "deployedMatches": true
     },
     {
@@ -135,9 +135,9 @@
   "mismatched": [],
   "deployedMatchesSource": true,
   "exeNote": "GOLD-GAME-Server.exe present (pre-built Node-SEA binary; digested, not regenerated).",
-  "packageDigest": "fef904929e93a4e780e623479965dc401a9915ede78d04b9a321d64dc6591780",
+  "packageDigest": "c78ad0f3cdcbff07aecdbc48e6cc3743f70a3054e0cb443b336a9ba676393e6e",
   "readOnly": "Regenerates the deployed COPY at the dest; D:/GOLD vault is never written. Source of truth stays examples/gold-game/.",
   "result": "VERIFIED",
-  "timestamp": "2026-05-24T05:01:53.764Z",
-  "payloadHash": "912523ea3a82b0c9a57f7fe7f9bdf1ea03ec0b7e23b6d48cf67f8575c97366ba"
+  "timestamp": "2026-05-24T09:42:20.742Z",
+  "payloadHash": "43a18c9e4d9dcb326248d5c509e90009a618dd807e715147f3066069db62c25a"
 }

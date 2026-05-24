@@ -1,0 +1,37 @@
+{
+  "schema": "cael-gate-v1",
+  "gate": 37,
+  "track": "flagship",
+  "name": "self-proving boot (offline data re-derivation)",
+  "timestamp": "2026-05-24T09:41:09.891Z",
+  "checks": {
+    "passed": 9,
+    "total": 9
+  },
+  "manifest": [
+    {
+      "name": "vista (depth world)",
+      "key": "__GOLD_GAME_VISTA__",
+      "sha256": "79edf6cbc88eb3ca5edad183a7a8d3603eb6f0adcf45782e7a28aab8c251bff2"
+    },
+    {
+      "name": "toolset (HoloScript packages)",
+      "key": "__GOLD_GAME_TOOLSET__",
+      "sha256": "2a82f3194cf61008aa329d9ddceb5c3308ffb8048644796e2cd134fe8f6c90e5"
+    },
+    {
+      "name": "party (AI companions)",
+      "key": "__GOLD_GAME_PARTY__",
+      "sha256": "b748a7763b94101dec614463e3d8d894fab5e3f66cba0fb33a5160804deb3189"
+    }
+  ],
+  "proves": {
+    "offline": "the build re-hashes its embedded data blobs in the player's own browser with a pure-JS SHA-256 (no crypto.subtle, works on file://) — no network",
+    "genuine": "the embedded SHA-256 fn matches node:crypto on 4 known vectors incl. UTF-8 — a fake echo fn fails",
+    "reproduces": "the embedded fn over the embedded blobs reproduces the sealed manifest (browser self-check passes on a clean machine)",
+    "loadBearing": "negative control: a one-byte tamper diverges from the manifest"
+  },
+  "honestScope": "PROVEN: offline DATA-INTEGRITY self-derivation (the bytes you run are the bytes sealed at build time, re-checked on the player's machine). NOT claimed: re-running the TS gate verifiers on the drive (no repo/toolchain there) — the gate receipts ride on the drive for that.",
+  "aiHumanConnection": "common receipt spine made portable: the proof travels WITH the artifact and re-derives offline — the human sees it re-check on their own machine, the skeptic can re-run it with no trust in us",
+  "status": "PASS"
+}
