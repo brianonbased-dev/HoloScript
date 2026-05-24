@@ -287,6 +287,31 @@ if (window.__GOLD_GAME_CONCEPT_ART__) {
     scene.background = tex;
   });
 }
+// Gate 34: the founder art as a REAL depth-displaced 3D world (parallax behind
+// DiamondPeak), reconstructed from the SAME Gate-32 gold-vault-vista-world.json depth
+// grid the verifier proved. The 2D vista becomes geometry you can see depth in.
+const vista = window.__GOLD_GAME_VISTA__;
+if (vista && vista.depths && vista.depths.length === vista.width * vista.height) {
+  const bd = vista.backdrop;
+  const vgeo = new THREE.PlaneGeometry(bd.spanX, bd.spanY, vista.width - 1, vista.height - 1);
+  const vpos = vgeo.attributes.position;
+  for (let iy = 0; iy < vista.height; iy++) {
+    for (let ix = 0; ix < vista.width; ix++) {
+      const vi = iy * vista.width + ix;
+      vpos.setZ(vi, -(1 - vista.depths[vi]) * bd.depthScale); // far (low depth) pushed back
+    }
+  }
+  vgeo.computeVertexNormals();
+  const vmat = new THREE.MeshStandardMaterial({ color: 0x9fb4d6, roughness: 0.92, metalness: 0.0, side: THREE.DoubleSide });
+  if (window.__GOLD_GAME_CONCEPT_ART__) {
+    new THREE.TextureLoader().load(window.__GOLD_GAME_CONCEPT_ART__, (tex) => { tex.colorSpace = THREE.SRGBColorSpace; vmat.map = tex; vmat.needsUpdate = true; });
+  }
+  const vistaBackdrop = new THREE.Mesh(vgeo, vmat);
+  vistaBackdrop.name = 'VaultVistaBackdrop';
+  vistaBackdrop.position.set(bd.originX, bd.originY, bd.originZ);
+  scene.add(vistaBackdrop);
+  window.__GOLD_GAME_VISTA_MOUNTED__ = 'VaultVistaBackdrop';
+}
 
 // environment for crystal refraction/reflection
 const pmrem = new THREE.PMREMGenerator(renderer);
@@ -521,8 +546,29 @@ function graduateGem(g, label) {
   const sy = g.position.y, ey = sy + 4, t0 = performance.now();
   (function rise() { const kf = Math.min(1, (performance.now() - t0) / 900); g.position.y = sy + (ey - sy) * kf; if (kf < 1) requestAnimationFrame(rise); })();
   setPanel([label || 'GRADUATED via HoloGate', g.userData.name.replace(/_/g, '.'), 'Graduated: ' + graduatedCount], '#d4af37');
+  spawnGraduateSeal(g.position, g.userData.entryId || g.userData.name);
   dispatchEntry(g);
   return true;
+}
+// Gate 34 proof-as-play: graduation SEALS visibly — a golden ring blooms at the gem
+// and a short content hash flashes, so the receipt is FELT in the world, not read in a
+// side panel. The visible beat IS the proof for the human half of the audience (F.074).
+function spawnGraduateSeal(pos, id) {
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(0.4, 0.06, 12, 48),
+    new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, opacity: 0.95 }));
+  ring.name = 'GraduateSeal';
+  ring.position.copy(pos); ring.lookAt(camera.position);
+  scene.add(ring);
+  const t0 = performance.now();
+  (function bloom() {
+    const k = Math.min(1, (performance.now() - t0) / 800);
+    const s = 0.3 + k * 3.5; ring.scale.set(s, s, s);
+    ring.material.opacity = 0.95 * (1 - k);
+    if (k < 1) requestAnimationFrame(bloom); else scene.remove(ring);
+  })();
+  let h = 0; const str = String(id); for (let i = 0; i < str.length; i++) h = (h * 131 + str.charCodeAt(i)) >>> 0;
+  setPanel(['SEALED', str.replace(/_/g, '.'), 'receipt ' + ('00000000' + h.toString(16)).slice(-8), 'Graduated: ' + graduatedCount], '#ffd76a');
 }
 function cameraPickEntry() {
   camera.updateMatrixWorld();
@@ -919,6 +965,13 @@ const conceptArtBoot = '<script>window.__GOLD_GAME_CONCEPT_ART__=' + JSON.string
     role: conceptArt.role,
   } : null) + ';</script>';
 const toolsetBoot = '<script>window.__GOLD_GAME_TOOLSET__=' + JSON.stringify(holoscriptToolset) + ';</script>';
+// Gate 34: embed the Gate-32 depth-displaced world source so the scene renders the
+// founder art as a REAL 3D depth surface (parallax) behind DiamondPeak — not a flat
+// skybox. Reads the SAME gold-vault-vista-world.json the Gate-32 verifier emitted.
+let vistaWorld = null;
+try { vistaWorld = JSON.parse(readFileSync(join(here, 'gold-vault-vista-world.json'), 'utf8')); } catch { /* no vista yet */ }
+const vistaGrid = vistaWorld?.generated_group?.depthGrid || null;
+const vistaBoot = '<script>window.__GOLD_GAME_VISTA__=' + JSON.stringify(vistaGrid) + ';</script>';
 const startOnboardingScript = `<script>
 (function(){
   var start = document.getElementById('startScreen');
@@ -1121,6 +1174,7 @@ const html = '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
 '<meta name="viewport" content="width=device-width,initial-scale=1">' +
 conceptArtBoot +
 toolsetBoot +
+vistaBoot +
 '<title>THE GOLD GAME — The Vault</title><style>' +
 'html,body{margin:0;height:100%;overflow:hidden;background:#06070a;font-family:system-ui,sans-serif}' +
 '#startScreen{position:fixed;inset:0;z-index:30;background:#06070a center/cover no-repeat;display:grid;align-items:end;justify-items:start;padding:clamp(28px,7vw,96px);box-sizing:border-box;color:#fff;transition:opacity .28s ease}' +

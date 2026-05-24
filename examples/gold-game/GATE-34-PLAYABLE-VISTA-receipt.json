@@ -1,0 +1,33 @@
+{
+  "schema": "cael-gate-v1",
+  "gate": 34,
+  "track": "flagship",
+  "name": "playable depth-real vista + proof-as-play seal",
+  "timestamp": "2026-05-24T07:04:55.233Z",
+  "checks": {
+    "passed": 11,
+    "total": 11
+  },
+  "rendersWorldSource": "gold-vault-vista-world.json (Gate 32)",
+  "depthGrid": {
+    "width": 48,
+    "height": 32,
+    "depthRange": 0.9938,
+    "cells": 1536
+  },
+  "buildEmbedsProvenWorld": true,
+  "worldDigest": "7688614b6cb954e1c834281136ed84a2963780d3a10b3ca3b6df535a6dfcbbc8",
+  "proves": {
+    "visible": "the founder 2D art is rendered as a REAL depth-displaced 3D surface (VaultVistaBackdrop) in the playable build — parallax, not a flat skybox",
+    "felt": "graduation SEALS visibly (GraduateSeal ring bloom + SEALED content-hash flash) — the receipt is experienced in-world (F.074)",
+    "honest": "the build renders the EXACT depth field Gate 32 proved (byte-equal), asserted against the source — not a mock"
+  },
+  "honestScope": "PROVEN: the playable depth-real render + the proof-as-play seal that ride in the build. NOT yet proven (the deepening): holographic-TARGET export of this vista (Looking Glass quilt / Vision Pro MV-HEVC / parallax WebM + share receipt) — reuses the SHIPPED QuiltCompiler Gate 13 proves; wiring the G32 vista through it is the export leg, deferred like Gate 1 manual render.",
+  "aiHumanConnection": "shared world (the founder art becomes the 3D world both human and agents act in) + common receipt spine (computeStateDigest); the human SEES and FEELS the proof, the skeptic can still pull the hash",
+  "realSeams": [
+    "gold-game depth world source (Gate 32 / DepthEstimationService)",
+    "three.js depth-displaced PlaneGeometry in the playable build",
+    "computeStateDigest"
+  ],
+  "status": "PASS"
+}

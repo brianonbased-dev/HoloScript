@@ -58,7 +58,7 @@ const GATES = [
   { track: 'flagship', gate: 31, name: 'playable HoloGraph — knowledge lineage constellation becomes navigation, not only a verifier', kind: 'script', runner: 'node', file: 'gate-31-playable-holograph-verify.mjs' },
   { track: 'flagship', gate: 32, name: 'HoloGram image-to-world — founder art becomes a depth-backed 3D GOLD world source (real DepthEstimationService + Sobel normals)', kind: 'script', runner: 'tsx', file: 'gate-32-hologram-image-to-world-verify.mjs' },
   { track: 'flagship', gate: 33, name: 'HoloMap scanned-space import — video/device capture becomes anchored GOLD space', kind: 'open' },
-  { track: 'flagship', gate: 34, name: 'HoloGram holographic outputs — generated GOLD world renders to quilt, MV-HEVC, and parallax artifacts', kind: 'open' },
+  { track: 'flagship', gate: 34, name: 'playable depth-real vista + proof-as-play seal — the Gate-32 world renders as a depth-displaced surface IN the build (byte-equal to source) + graduation seals visibly; holographic-target export (quilt/MV-HEVC) deferred to G13-compiler reuse', kind: 'script', runner: 'tsx', file: 'gate-34-playable-vista-verify.mjs' },
   { track: 'flagship', gate: 35, name: 'HoloScript kitchen-sink pass — HoloGraph + HoloGram + HoloMap join the same playable loop', kind: 'open' },
   { track: 'flagship', gate: 36, name: 'HoloScript package toolset — packages become visible GOLD game systems', kind: 'script', runner: 'node', file: 'gate-36-holoscript-toolset-verify.mjs' },
   { track: 'oasis (fixture)', gate: 3, name: 'connection-mechanics proof (compass co-session)', kind: 'script', runner: 'tsx', file: 'connection-mechanics-proof/gate-3-verify.mjs' },

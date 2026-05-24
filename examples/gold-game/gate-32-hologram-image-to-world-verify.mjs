@@ -167,6 +167,14 @@ const generatedWorld = {
     grid: { width: dW, height: dH },
     vertexCount,
     sampleVertices: worldVertices,
+    // Full per-cell depth field + placement params so a consumer (Gate 34 / the
+    // playable build) can reconstruct the EXACT displaced surface this gate proved.
+    // Digest is over posField (above), so persisting this does not change worldDigest.
+    depthGrid: {
+      width: dW, height: dH,
+      depths: Array.from(depthMap, (d) => +d.toFixed(4)),
+      backdrop: { ...BACKDROP },
+    },
   },
   feedsBackInto: 'a world source for the playable vault scene behind DiamondPeak; the visible render is Gate 34 (holographic outputs) — NOT yet mounted in drive-build',
 };
