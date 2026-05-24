@@ -396,6 +396,89 @@ describe('Team Routes — Mobile Handoff', () => {
     expect(claim._body.code).toBe('mobile_claim_denied');
     expect(teamStore.get('team_test_mobile')?.taskBoard?.[0].status).toBe('open');
   });
+
+  it('mobile bearer cannot mark board tasks done', async () => {
+    const mobile = await callTeam('POST', '/api/holomesh/team/team_test_mobile/mobile-handoff');
+    expect(mobile._status).toBe(201);
+    const mobileKey = mobile._body.api_key;
+
+    const team = teamStore.get('team_test_mobile')!;
+    team.taskBoard = [{
+      id: 'task_mobile_done',
+      title: 'mobile done target',
+      description: 'mobile must not close',
+      status: 'claimed',
+      priority: 1,
+      claimedBy: PARENT_ID,
+      claimedByName: 'ParentAgent',
+      createdAt: new Date().toISOString(),
+    } as any];
+    persistTeamStore();
+
+    const done = await callBoard(
+      'PATCH',
+      '/api/holomesh/team/team_test_mobile/board/task_mobile_done',
+      {
+        action: 'done',
+        summary: 'mobile attempted close',
+        verification_evidence: 'should not be accepted from mobile',
+      },
+      mobileKey
+    );
+
+    expect(done._status).toBe(403);
+    expect(done._body.code).toBe('mobile_done_denied');
+    expect(teamStore.get('team_test_mobile')?.taskBoard?.[0].status).toBe('claimed');
+    expect(teamStore.get('team_test_mobile')?.doneLog).toHaveLength(0);
+  });
+
+  it('read-message bearer cannot mark board tasks done', async () => {
+    const limitedKey = 'limited-desktop-key';
+    keyRegistry.set(limitedKey, {
+      key: limitedKey,
+      walletAddress: PARENT_WALLET,
+      agentId: PARENT_ID,
+      agentName: 'LimitedDesktop',
+      scopes: ['holomesh'],
+      createdAt: new Date().toISOString(),
+      rotationCount: 0,
+      lastRotatedAt: null,
+      isFounder: false,
+      surface: 'desktop',
+      surfaceTag: 'desktop',
+      capabilities: ['read', 'message'],
+    });
+
+    const team = teamStore.get('team_test_mobile')!;
+    team.taskBoard = [{
+      id: 'task_limited_done',
+      title: 'limited done target',
+      description: 'read-message bearer must not close',
+      status: 'claimed',
+      priority: 1,
+      claimedBy: PARENT_ID,
+      claimedByName: 'ParentAgent',
+      createdAt: new Date().toISOString(),
+    } as any];
+    persistTeamStore();
+
+    const done = await callBoard(
+      'PATCH',
+      '/api/holomesh/team/team_test_mobile/board/task_limited_done',
+      {
+        action: 'done',
+        summary: 'limited bearer attempted close',
+        verification_evidence: 'should require claim capability',
+      },
+      limitedKey
+    );
+
+    expect(done._status).toBe(403);
+    expect(done._body.code).toBe('capability_denied');
+    expect(done._body.required_capability).toBe('claim');
+    expect(teamStore.get('team_test_mobile')?.taskBoard?.[0].status).toBe('claimed');
+    expect(teamStore.get('team_test_mobile')?.doneLog).toHaveLength(0);
+  });
 });
 
 describe('Board Routes — Mobile Brief (capability-token auth)', () => {

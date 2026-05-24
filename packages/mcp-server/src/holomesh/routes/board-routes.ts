@@ -840,6 +840,44 @@ export async function handleBoardRoutes(
     // (reopen vs delete vs defer) are ambiguous and picking wrong silently
     // loses work. An explicit client choice is safer.
     const action = (rawAction === 'remove' || rawAction === 'archive') ? 'delete' : rawAction;
+    const boardMutationActions = new Set([
+      'claim',
+      'done',
+      'append_commit',
+      'block',
+      'reopen',
+      'delegate',
+      'delete',
+      'update',
+    ]);
+
+    if (boardMutationActions.has(action)) {
+      if (caller.surface === 'mobile') {
+        json(res, 403, {
+          error: action === 'claim'
+            ? 'Mobile bearers are assistant surfaces and cannot claim board tasks'
+            : 'Mobile bearers are assistant surfaces and cannot mutate board tasks',
+          code: action === 'claim'
+            ? 'mobile_claim_denied'
+            : action === 'done'
+              ? 'mobile_done_denied'
+              : 'mobile_board_mutation_denied',
+          surface: caller.surface,
+          required_capability: 'claim',
+        });
+        return true;
+      }
+
+      if (!hasBearerCapability(caller, 'claim')) {
+        json(res, 403, {
+          error: 'Bearer lacks required capability: claim',
+          code: 'capability_denied',
+          required_capability: 'claim',
+          capabilities: caller.capabilities || [],
+        });
+        return true;
+      }
+    }
 
     let result: any;
     let eventType: string = '';
