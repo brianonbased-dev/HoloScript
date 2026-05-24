@@ -28,6 +28,8 @@ const HOLO = join(here, 'gold-vault-game.holo');
 const OUT = join(here, 'drive-build');
 const CONCEPT_ART = join(here, 'assets', 'gold-vault-vista-wlNgg.jpg');
 const HOLOGRAPH_RECEIPT = join(here, 'GATE-10-HOLOGRAPH-receipt.json');
+const HOLOMAP_ROOM = join(here, 'gold-vault-holomap-room.json');
+const HOLOGRAPHIC_EXPORT = join(here, 'gold-vault-holographic-export.json');
 const VAULT_ROOT = process.env.GOLD_ROOT || 'D:/GOLD';
 const sha256 = (s) => createHash('sha256').update(s).digest('hex');
 const conceptArtBytes = existsSync(CONCEPT_ART) ? readFileSync(CONCEPT_ART) : null;
@@ -185,8 +187,19 @@ const readPlayableHoloGraph = () => {
     embedDigest: receipt.contract?.embedDigest || '',
   };
 };
+const readJsonArtifact = (file, gate, label) => {
+  if (!existsSync(file)) return { gate, found: false, label, source: file.replace(here, 'examples/gold-game').replace(/\\/g, '/') };
+  try {
+    const data = JSON.parse(readFileSync(file, 'utf8'));
+    return { ...data, gate, found: true, label, source: file.replace(here, 'examples/gold-game').replace(/\\/g, '/') };
+  } catch (e) {
+    return { gate, found: false, label, error: String(e && e.message || e), source: file.replace(here, 'examples/gold-game').replace(/\\/g, '/') };
+  }
+};
 const playableHoloGraph = readPlayableHoloGraph();
 const vaultCatalog = readVaultCatalog(); // Gate 28: every real GOLD entry (summaries)
+const holomapRoom = readJsonArtifact(HOLOMAP_ROOM, 33, 'HoloMap scanned room');
+const holographicExport = readJsonArtifact(HOLOGRAPHIC_EXPORT, 38, 'holographic export leg');
 
 // ── 1. Parse the real .holo (Gate 0 artifact) ───────────────────────────────
 const src = readFileSync(HOLO, 'utf8');
@@ -229,6 +242,23 @@ const scene = { title: ast.name, ambient, fog, meshes, lights, regions,
     role: conceptArt.role,
   } : null,
   holoGraph: playableHoloGraph,
+  holomapRoom: holomapRoom.found ? {
+    gate: 33,
+    found: true,
+    name: holomapRoom.name,
+    replayFingerprint: holomapRoom.holomap?.replayFingerprint,
+    points: holomapRoom.holomap?.export?.exportPointCount,
+    portal: holomapRoom.portal,
+    spaceDigest: holomapRoom.contract?.spaceDigest,
+  } : holomapRoom,
+  holographicExport: holographicExport.found ? {
+    gate: 38,
+    found: true,
+    targets: holographicExport.shareReceipt?.targets || [],
+    exportDigest: holographicExport.shareReceipt?.exportDigest,
+    quilt: holographicExport.quilt ? { views: holographicExport.quilt.views, grid: holographicExport.quilt.grid, device: holographicExport.quilt.device } : null,
+    mvhevc: holographicExport.mvhevc ? { stereoMode: holographicExport.mvhevc.stereoMode, fps: holographicExport.mvhevc.fps, resolution: holographicExport.mvhevc.resolution } : null,
+  } : holographicExport,
   toolset: { gate: holoscriptToolset.gate, systems: holoscriptToolset.systems.map((s) => ({
     dir: s.dir, name: s.name || s.dir, role: s.role, consumes: s.consumes, found: s.found,
   })) },
@@ -311,6 +341,26 @@ if (vista && vista.depths && vista.depths.length === vista.width * vista.height)
   vistaBackdrop.position.set(bd.originX, bd.originY, bd.originZ);
   scene.add(vistaBackdrop);
   window.__GOLD_GAME_VISTA_MOUNTED__ = 'VaultVistaBackdrop';
+}
+
+// Gate 33: anchored HoloMap room portal. The verifier emits the room artifact
+// from the real HoloMap session/export path; the build mounts that artifact as a
+// visible portal inside the playable vault.
+const holomapRoom = window.__GOLD_GAME_HOLOMAP_ROOM__;
+if (holomapRoom && holomapRoom.portal) {
+  const p = holomapRoom.portal;
+  const portal = new THREE.Group();
+  portal.name = p.id || 'HoloMapRoomPortal';
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.055, 12, 42),
+    new THREE.MeshBasicMaterial({ color: 0x42b7d9, transparent: true, opacity: 0.9 }));
+  const pane = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 1.62),
+    new THREE.MeshBasicMaterial({ color: 0x163849, transparent: true, opacity: 0.38, side: THREE.DoubleSide }));
+  portal.add(pane); portal.add(ring);
+  portal.position.set(p.position[0], p.position[1], p.position[2]);
+  portal.scale.set(p.scale[0], p.scale[1], p.scale[2]);
+  portal.userData = { kind: 'holomap-room-portal', gate: 33, digest: holomapRoom.contract && holomapRoom.contract.spaceDigest };
+  scene.add(portal);
+  window.__GOLD_GAME_HOLOMAP_PORTAL_MOUNTED__ = portal.name;
 }
 
 // environment for crystal refraction/reflection
@@ -966,6 +1016,8 @@ const conceptArtBoot = '<script>window.__GOLD_GAME_CONCEPT_ART__=' + JSON.string
     role: conceptArt.role,
   } : null) + ';</script>';
 const toolsetBoot = '<script>window.__GOLD_GAME_TOOLSET__=' + JSON.stringify(holoscriptToolset) + ';</script>';
+const holomapBoot = '<script>window.__GOLD_GAME_HOLOMAP_ROOM__=' + JSON.stringify(holomapRoom.found ? holomapRoom : null) + ';</script>';
+const holographicExportBoot = '<script>window.__GOLD_GAME_HOLOGRAPHIC_EXPORT__=' + JSON.stringify(holographicExport.found ? holographicExport : null) + ';</script>';
 // Gate 34: embed the Gate-32 depth-displaced world source so the scene renders the
 // founder art as a REAL 3D depth surface (parallax) behind DiamondPeak — not a flat
 // skybox. Reads the SAME gold-vault-vista-world.json the Gate-32 verifier emitted.
@@ -1015,6 +1067,8 @@ for (const tv of ['', 'abc', 'GOLD📜']) {
 }
 const selfProofManifest = [
   vistaGrid ? { name: 'vista (depth world)', key: '__GOLD_GAME_VISTA__', sha256: browserSha(JSON.stringify(vistaGrid)) } : null,
+  holomapRoom.found ? { name: 'holomap (scanned room)', key: '__GOLD_GAME_HOLOMAP_ROOM__', sha256: browserSha(JSON.stringify(holomapRoom)) } : null,
+  holographicExport.found ? { name: 'hologram export (quilt/MVHEVC)', key: '__GOLD_GAME_HOLOGRAPHIC_EXPORT__', sha256: browserSha(JSON.stringify(holographicExport)) } : null,
   { name: 'toolset (HoloScript packages)', key: '__GOLD_GAME_TOOLSET__', sha256: browserSha(JSON.stringify(holoscriptToolset)) },
   { name: 'party (AI companions)', key: '__GOLD_GAME_PARTY__', sha256: browserSha(JSON.stringify(partyData)) },
 ].filter(Boolean);
@@ -1118,6 +1172,66 @@ const toolsetScript = `<script>
     row.querySelector('small').textContent = system.dir + (system.version ? ' @ ' + system.version : '') + (system.found ? '' : ' · missing');
     list.appendChild(row);
   });
+  function setOpen(value){ panel.dataset.open = value ? 'true' : 'false'; }
+  toggle && toggle.addEventListener('click', function(){ setOpen(panel.dataset.open !== 'true'); });
+  close && close.addEventListener('click', function(){ setOpen(false); });
+})();
+</script>`;
+const holomapRoomScript = `<script>
+(function(){
+  var room = window.__GOLD_GAME_HOLOMAP_ROOM__;
+  var panel = document.getElementById('holomapPanel');
+  var toggle = document.getElementById('holomapToggle');
+  var close = document.getElementById('holomapClose');
+  var list = document.getElementById('holomapFacts');
+  if (!panel || !list) return;
+  function add(label, value){
+    var row = document.createElement('div');
+    row.className = 'proofRow';
+    row.innerHTML = '<strong></strong><span></span>';
+    row.querySelector('strong').textContent = label;
+    row.querySelector('span').textContent = value || 'n/a';
+    list.appendChild(row);
+  }
+  if (room) {
+    add('portal', (room.portal && room.portal.label) || 'HoloMap Room');
+    add('capture', room.source ? (room.source.frames + ' frames @ ' + room.source.width + 'x' + room.source.height) : '');
+    add('points', room.holomap && room.holomap.export ? String(room.holomap.export.exportPointCount) : '');
+    add('anchor revision', room.holomap && room.holomap.anchor ? String(room.holomap.anchor.revision) : '');
+    add('space digest', room.contract ? String(room.contract.spaceDigest).slice(0, 24) : '');
+  } else {
+    add('status', 'missing Gate 33 artifact');
+  }
+  function setOpen(value){ panel.dataset.open = value ? 'true' : 'false'; }
+  toggle && toggle.addEventListener('click', function(){ setOpen(panel.dataset.open !== 'true'); });
+  close && close.addEventListener('click', function(){ setOpen(false); });
+})();
+</script>`;
+const holographicExportScript = `<script>
+(function(){
+  var exp = window.__GOLD_GAME_HOLOGRAPHIC_EXPORT__;
+  var panel = document.getElementById('hologramExportPanel');
+  var toggle = document.getElementById('hologramExportToggle');
+  var close = document.getElementById('hologramExportClose');
+  var list = document.getElementById('hologramExportFacts');
+  if (!panel || !list) return;
+  function add(label, value){
+    var row = document.createElement('div');
+    row.className = 'proofRow';
+    row.innerHTML = '<strong></strong><span></span>';
+    row.querySelector('strong').textContent = label;
+    row.querySelector('span').textContent = value || 'n/a';
+    list.appendChild(row);
+  }
+  if (exp) {
+    add('quilt', exp.quilt ? (exp.quilt.device + ' ' + exp.quilt.views + ' views ' + exp.quilt.grid) : '');
+    add('mv-hevc', exp.mvhevc ? (exp.mvhevc.stereoMode + ' ' + exp.mvhevc.fps + 'fps') : '');
+    add('parallax', exp.parallax ? (exp.parallax.frames + ' frames') : '');
+    add('targets', exp.shareReceipt ? (exp.shareReceipt.targets || []).join(', ') : '');
+    add('export digest', exp.shareReceipt ? String(exp.shareReceipt.exportDigest).slice(0, 24) : '');
+  } else {
+    add('status', 'missing Gate 38 artifact');
+  }
   function setOpen(value){ panel.dataset.open = value ? 'true' : 'false'; }
   toggle && toggle.addEventListener('click', function(){ setOpen(panel.dataset.open !== 'true'); });
   close && close.addEventListener('click', function(){ setOpen(false); });
@@ -1260,6 +1374,8 @@ const html = '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
 conceptArtBoot +
 toolsetBoot +
 vistaBoot +
+holomapBoot +
+holographicExportBoot +
 '<title>THE GOLD GAME — The Vault</title><style>' +
 'html,body{margin:0;height:100%;overflow:hidden;background:#06070a;font-family:system-ui,sans-serif}' +
 '#startScreen{position:fixed;inset:0;z-index:30;background:#06070a center/cover no-repeat;display:grid;align-items:end;justify-items:start;padding:clamp(28px,7vw,96px);box-sizing:border-box;color:#fff;transition:opacity .28s ease}' +
@@ -1311,6 +1427,19 @@ vistaBoot +
 '.graphNode text{font:10px ui-monospace,Consolas,monospace;fill:#d8c590;pointer-events:none}' +
 '#graphNodes{overflow:auto;display:flex;flex-direction:column;gap:6px}' +
 '#graphClose,.graphEntry{background:#15140f;color:#f0d79a;border:1px solid #8f7730;padding:6px 8px;cursor:pointer;text-align:left;font-size:10px;line-height:1.35}' +
+'#holomapToggle{position:fixed;left:272px;bottom:58px;z-index:13;background:#0b1620;color:#bdefff;border:1px solid #42b7d9;padding:8px 10px;cursor:pointer;font-size:12px}' +
+'#hologramExportToggle{position:fixed;left:362px;bottom:58px;z-index:13;background:#18130a;color:#ffe9a0;border:1px solid #d4af37;padding:8px 10px;cursor:pointer;font-size:12px}' +
+'#holomapPanel,#hologramExportPanel{position:fixed;top:104px;bottom:104px;width:min(360px,30vw);z-index:13;background:rgba(6,7,10,.94);padding:12px;box-sizing:border-box;display:none;flex-direction:column;gap:10px;box-shadow:0 12px 48px #0008}' +
+'#holomapPanel{left:14px;border:1px solid #42b7d9;color:#d8f7ff}' +
+'#hologramExportPanel{left:min(390px,32vw);border:1px solid #d4af37;color:#f5df9d}' +
+'#holomapPanel[data-open="true"],#hologramExportPanel[data-open="true"]{display:flex}' +
+'#holomapPanel h2,#hologramExportPanel h2{font-size:15px;line-height:1.25;margin:0}' +
+'#holomapPanel p,#hologramExportPanel p{font-size:11px;line-height:1.35;margin:0;color:#adc7df}' +
+'#holomapClose,#hologramExportClose{align-self:flex-start;background:#10131b;color:inherit;border:1px solid currentColor;padding:6px 8px;cursor:pointer}' +
+'#holomapFacts,#hologramExportFacts{display:flex;flex-direction:column;gap:7px;overflow:auto}' +
+'.proofRow{border-left:3px solid currentColor;padding-left:8px;display:grid;gap:2px}' +
+'.proofRow strong{font-size:10px;color:#fff}' +
+'.proofRow span{font:10px/1.35 ui-monospace,Consolas,monospace;color:inherit;overflow-wrap:anywhere}' +
 '#hud{position:fixed;top:14px;left:16px;color:#f0d79a;z-index:10;text-shadow:0 1px 6px #000;max-width:360px}' +
 '#hud h1{font-size:18px;margin:0 0 4px;letter-spacing:2px}' +
 '#hud p{font-size:12px;margin:2px 0;color:#d8c590;line-height:1.45}' +
@@ -1336,6 +1465,10 @@ vistaBoot +
 '<aside id="toolsetPanel" data-open="false" data-gate36="holoscript-toolset"><button id="toolsetClose" type="button">Close</button><h2>HoloScript Systems</h2><p id="toolsetCount">package systems</p><div id="toolsetList"></div></aside>' +
 '<button id="graphToggle" type="button">HoloGraph</button>' +
 '<aside id="graphPanel" data-open="false" data-gate31="playable-holograph"><button id="graphClose" type="button">Close</button><h2>HoloGraph Lineage</h2><div id="graphMeta"></div><svg id="graphCanvas" viewBox="0 0 360 236" role="img" aria-label="GOLD lineage constellation"></svg><div id="graphNodes"></div></aside>' +
+'<button id="holomapToggle" type="button" data-gate33="holomap-room">HoloMap</button>' +
+'<aside id="holomapPanel" data-open="false" data-gate33="holomap-room-panel"><button id="holomapClose" type="button">Close</button><h2>HoloMap Room</h2><p>Captured frames become an anchored GOLD room portal through the HoloMap session/export path.</p><div id="holomapFacts"></div></aside>' +
+'<button id="hologramExportToggle" type="button" data-gate38="holographic-export">Exports</button>' +
+'<aside id="hologramExportPanel" data-open="false" data-gate38="holographic-export-panel"><button id="hologramExportClose" type="button">Close</button><h2>HoloGram Exports</h2><p>The depth-real vista is sealed for quilt, MV-HEVC, and parallax targets.</p><div id="hologramExportFacts"></div></aside>' +
 '<div id="hud"><h1>THE GOLD GAME · The Vault</h1>' +
 '<p>The real GOLD curation system as a world. Bronze valley rises to the Diamond peak; glass gems with glowing cores are real vault entries you graduate.</p>' +
 '<p>Photoreal from minimal geometric shapes. Backend stays real AI work; the human plays.</p>' +
@@ -1357,6 +1490,8 @@ vistaBoot +
  'el.textContent=v.connected?("LIVE vault: "+(v.total||"?")+" entries · as of "+(v.asOf||"?")):"vault not detected — embedded snapshot"}).catch(function(){});}</script>' +
 startOnboardingScript +
 toolsetScript +
+holomapRoomScript +
+holographicExportScript +
 holoGraphScript +
 goldDataScript +
 vaultBrowserScript +
@@ -1373,6 +1508,7 @@ writeFileSync(join(OUT, 'START-HERE.txt'),
   'Click Begin One Climb, then use WASD/mouse, E to graduate, F to inspect full GOLD data.\\n' +
   'Open HoloGraph (or press G) to navigate the GOLD lineage constellation.\\n' +
   'Open HoloScript Systems in-game to see package systems being consumed by the GOLD loop.\\n' +
+  'Open HoloMap for the anchored scanned-room portal, and Exports for quilt/MV-HEVC/parallax targets.\\n' +
   'Canonical GOLD product home: D:/GOLD/assets/game/gold-game (HoloScript is the toolset).\\n' +
   'For live full-data reads, use the Node launcher on the deployed Drive copy.\\n');
 
@@ -1419,6 +1555,15 @@ const receipt = {
     nextRatchet: 'Gate 26 — prove the shared-world shape before claiming MMO',
     resume: 'Continue Campaign button appears only when a save exists; gold-game-resume restores progress',
     note: 'campaign mirrors REAL graduate ops only — no fabricated progress; corrupt/blocked storage degrades to in-memory' },
+  holomapRoom: { enabled: holomapRoom.found === true, gate: 33,
+    artifact: 'gold-vault-holomap-room.json',
+    portalMounted: holomapRoom.found ? 'HoloMapRoomPortal' : null,
+    points: holomapRoom.holomap?.export?.exportPointCount || 0,
+    spaceDigest: holomapRoom.contract?.spaceDigest || null },
+  holographicExport: { enabled: holographicExport.found === true, gate: 38,
+    artifact: 'gold-vault-holographic-export.json',
+    targets: holographicExport.shareReceipt?.targets || [],
+    exportDigest: holographicExport.shareReceipt?.exportDigest || null },
   holoscriptToolset: { enabled: true, gate: 36,
     packageCount: holoscriptToolset.systems.length,
     foundPackageCount: holoscriptToolset.systems.filter((s) => s.found).length,

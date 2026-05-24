@@ -1,0 +1,76 @@
+{
+  "schema": "cael-gate-v1",
+  "gate": 33,
+  "track": "flagship",
+  "name": "HoloMap scanned-space import",
+  "verifier": "examples/gold-game/gate-33-holomap-scan-verify.mjs",
+  "checks": {
+    "passed": 10,
+    "total": 10
+  },
+  "artifact": "examples/gold-game/gold-vault-holomap-room.json",
+  "sourceCapture": {
+    "kind": "deterministic-device-capture-fixture",
+    "width": 24,
+    "height": 16,
+    "frames": 6,
+    "captureDigest": "8b414930824c092910e1cc180c856f1f42ca8a304c9008349734f1c0e574a3bb",
+    "note": "No physical room scan video was present locally; this fixture is a deterministic room-shaped RGB capture used to exercise the shipped HoloMap path."
+  },
+  "implementation": {
+    "sessionApi": "packages/mcp-server/src/holo-reconstruct-sessions.ts",
+    "runtime": "packages/core/src/reconstruction/HoloMapRuntime.ts",
+    "exportPath": "packages/mcp-server/src/holo-reconstruct-export.ts",
+    "contractSpine": "packages/engine/src/simulation/hashes.ts computeStateDigest"
+  },
+  "holomap": {
+    "replayFingerprint": "737ea9d80f539658",
+    "framesStepped": 6,
+    "pointsExported": 96,
+    "compileStatus": "COMPILED",
+    "anchorRevision": 6,
+    "manifest": {
+      "version": "1.0.0",
+      "worldId": "holomap-737ea9d80f539658",
+      "displayName": "HoloMap Reconstruction",
+      "frameCount": 6,
+      "pointCount": 96,
+      "bounds": {
+        "min": [
+          -0.041077,
+          -0.070281,
+          -0.112761
+        ],
+        "max": [
+          0.134636,
+          0.025706,
+          0.126336
+        ]
+      },
+      "replayHash": "737ea9d80f539658",
+      "simulationContract": {
+        "kind": "holomap.reconstruction.v1",
+        "replayFingerprint": "737ea9d80f539658",
+        "holoScriptBuild": "6.1.0+402a1e1c3"
+      },
+      "assets": {
+        "points": "reconstruction.points.bin",
+        "trajectory": "reconstruction.trajectory.json",
+        "anchors": "reconstruction.anchors.json"
+      },
+      "weightStrategy": "distill"
+    }
+  },
+  "negativeControl": {
+    "oneByteCaptureTamperChangesCaptureDigest": true,
+    "oneByteCaptureTamperChangesReplayFingerprint": true,
+    "oneByteCaptureTamperChangesRoomDigest": true
+  },
+  "contract": {
+    "spine": "computeStateDigest(field-bag, sha256)",
+    "spaceDigest": "fd8f40a8e9114b5c05d7a1c7538f10986c339165856e4a70906a4dafa16073d5",
+    "payloadHash": "12053cc2450e8c64dc870ba4edaa43fb9efc9d240679bedad6018f8c70758e7e"
+  },
+  "honestScope": "Offline data-integrity proof for the HoloMap import/export path using a deterministic room-shaped capture fixture. A live physical-room scan video was not present locally, so this gate does not claim new physical capture; it proves that captured frames become an anchored GOLD space/portal artifact through the real HoloMap session/runtime/export code.",
+  "status": "PASS"
+}

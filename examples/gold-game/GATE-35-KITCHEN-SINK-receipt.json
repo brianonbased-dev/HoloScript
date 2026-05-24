@@ -1,0 +1,126 @@
+{
+  "schema": "cael-gate-v1",
+  "gate": 35,
+  "track": "flagship",
+  "name": "HoloScript kitchen-sink coherent pass",
+  "verifier": "examples/gold-game/gate-35-kitchen-sink-verify.mjs",
+  "checks": {
+    "passed": 12,
+    "total": 12
+  },
+  "build": {
+    "artifact": "examples/gold-game/drive-build/index.html",
+    "htmlBytes": 1522009,
+    "sceneDigest": "456e533256ddd7ead7ac04b947b2ca9202baf83f2a520c67a29c596b74ed19b1"
+  },
+  "trace": [
+    {
+      "step": "start-playable-build",
+      "gates": [
+        1,
+        24,
+        25
+      ],
+      "evidence": "456e533256ddd7ead7ac04b947b2ca9202baf83f2a520c67a29c596b74ed19b1"
+    },
+    {
+      "step": "holograph-lineage-navigation",
+      "gates": [
+        10,
+        31
+      ],
+      "evidence": "4d1ee95e7770bc55821d4dac4dd43a1d0dd148998dee7c513989ad72b944e033"
+    },
+    {
+      "step": "hologram-depth-world-visible",
+      "gates": [
+        32,
+        34
+      ],
+      "evidence": "7688614b6cb954e1c834281136ed84a2963780d3a10b3ca3b6df535a6dfcbbc8"
+    },
+    {
+      "step": "holomap-room-portal",
+      "gates": [
+        33
+      ],
+      "evidence": "fd8f40a8e9114b5c05d7a1c7538f10986c339165856e4a70906a4dafa16073d5"
+    },
+    {
+      "step": "holographic-export-targets",
+      "gates": [
+        38
+      ],
+      "evidence": "56a2b108f9a6403814ec4eb10ac96ed8f103ee1518539bed0700839cfd9dccfe"
+    },
+    {
+      "step": "hologate-graduation",
+      "gates": [
+        6,
+        14
+      ],
+      "evidence": "graduation"
+    },
+    {
+      "step": "shared-state-and-crdt",
+      "gates": [
+        17,
+        18
+      ],
+      "evidence": "bc3a53372f48ce64f73fee74"
+    },
+    {
+      "step": "solver-and-economy-bounds",
+      "gates": [
+        12,
+        20,
+        21
+      ],
+      "evidence": "86d4997875b88a2e494f760d"
+    },
+    {
+      "step": "agent-party-and-toolset-visible",
+      "gates": [
+        29,
+        36
+      ],
+      "evidence": "3:20"
+    },
+    {
+      "step": "offline-self-proof",
+      "gates": [
+        37
+      ],
+      "evidence": "__GOLD_GAME_VISTA__,__GOLD_GAME_HOLOMAP_ROOM__,__GOLD_GAME_HOLOGRAPHIC_EXPORT__,__GOLD_GAME_TOOLSET__,__GOLD_GAME_PARTY__"
+    }
+  ],
+  "prerequisiteReceipts": {
+    "gate1": "GOLD-VAULT-gate1-receipt.json",
+    "gate6": "GATE-6-HOLOGATE-receipt.json",
+    "gate10": "GATE-10-HOLOGRAPH-receipt.json",
+    "gate12": "GATE-12-SOLVERS-receipt.json",
+    "gate14": "GATE-14-ARCHIVIST-receipt.json",
+    "gate17": "GATE-17-NETCODE-receipt.json",
+    "gate18": "GATE-18-LORO-CRDT-receipt.json",
+    "gate20": "GATE-20-ECONOMY-BALANCE-receipt.json",
+    "gate21": "GATE-21-ECONOMY-SWEEP-receipt.json",
+    "gate29": "GATE-29-AGENT-PARTY-receipt.json",
+    "gate32": "GATE-32-HOLOGRAM-IMAGE-TO-WORLD-receipt.json",
+    "gate33": "GATE-33-HOLOMAP-SCAN-receipt.json",
+    "gate34": "GATE-34-PLAYABLE-VISTA-receipt.json",
+    "gate37": "GATE-37-SELF-PROOF-receipt.json",
+    "gate38": "GATE-38-HOLOGRAPHIC-EXPORT-receipt.json"
+  },
+  "contract": {
+    "spine": "computeStateDigest(field-bag, sha256)",
+    "kitchenDigest": "fa83f3a70493fc196de895ef7e5cc0f3325f1109b174f9c1d5cd08c1328966b3",
+    "negativeControlDigest": "bbebe1d9d9101761845edcc15fa2a65f8c5f8d34fc243fd8b8aa7e0a8d69e26a"
+  },
+  "proves": {
+    "coherentLoop": "The same emitted playable build embeds and exposes HoloGraph, HoloGram vista, HoloMap room, holographic exports, HoloGate play, party/toolset, and offline self-proof.",
+    "receiptLevel": "Individual subsystem behavior remains owned by each gate verifier; Gate 35 proves composition/coherence across their artifacts.",
+    "loadBearing": "Negative control drops the HoloMap portal from the trace and changes the kitchen digest."
+  },
+  "honestScope": "Receipt/artifact-level coherent pass over the emitted playable build. It rechecks that the surfaces are present, joined, and digest-bound; it does not rerun every subsystem verifier internally. Run verify-all for full per-gate re-derivation.",
+  "status": "PASS"
+}

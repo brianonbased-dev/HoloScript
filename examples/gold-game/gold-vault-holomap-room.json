@@ -1,0 +1,206 @@
+{
+  "schema": "gold-game-holomap-room-v1",
+  "gate": 33,
+  "name": "GOLD Scanned Room Exhibit",
+  "source": {
+    "kind": "deterministic-device-capture-fixture",
+    "width": 24,
+    "height": 16,
+    "frames": 6,
+    "captureDigest": "8b414930824c092910e1cc180c856f1f42ca8a304c9008349734f1c0e574a3bb",
+    "note": "No physical room scan video was present locally; this fixture is a deterministic room-shaped RGB capture used to exercise the shipped HoloMap path."
+  },
+  "holomap": {
+    "replayFingerprint": "737ea9d80f539658",
+    "manifest": {
+      "version": "1.0.0",
+      "worldId": "holomap-737ea9d80f539658",
+      "displayName": "HoloMap Reconstruction",
+      "frameCount": 6,
+      "pointCount": 96,
+      "bounds": {
+        "min": [
+          -0.041077,
+          -0.070281,
+          -0.112761
+        ],
+        "max": [
+          0.134636,
+          0.025706,
+          0.126336
+        ]
+      },
+      "replayHash": "737ea9d80f539658",
+      "simulationContract": {
+        "kind": "holomap.reconstruction.v1",
+        "replayFingerprint": "737ea9d80f539658",
+        "holoScriptBuild": "6.1.0+402a1e1c3"
+      },
+      "assets": {
+        "points": "reconstruction.points.bin",
+        "trajectory": "reconstruction.trajectory.json",
+        "anchors": "reconstruction.anchors.json"
+      },
+      "weightStrategy": "distill"
+    },
+    "anchor": {
+      "anchorFrameIndex": 0,
+      "anchorPose": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "confidence": 1
+      },
+      "anchorDescriptor": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "revision": 6
+    },
+    "export": {
+      "target": "r3f",
+      "compileStatus": "COMPILED",
+      "usedCompilerFallback": false,
+      "exportPointCount": 96,
+      "compiledOutputHash": "994f79762c19f13bc72b84cbdd42d6f2e7a23c8f082344edf0cc0c11632d406a",
+      "pointCloudPlyHash": "b1cb58e8844f1b730e689e516617540b8a8da0aad2155783ab0567c2c70e724f",
+      "trajectoryJsonHash": "1ba1d9c82be160c2a629efc16ffc505a2d55bdca5ec56bce7dc7856ee6f90601",
+      "compiledOutputBytes": 2874,
+      "pointCloudPlyBytes": 7098,
+      "trajectoryJsonBytes": 1544
+    },
+    "trajectory": {
+      "version": 1,
+      "poses": [
+        {
+          "frameIndex": 0,
+          "position": [
+            0.056031,
+            -0.005916,
+            0.016469
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "confidence": 0.8
+        },
+        {
+          "frameIndex": 1,
+          "position": [
+            0.06178,
+            -0.008753,
+            -0.006098
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "confidence": 0.8
+        },
+        {
+          "frameIndex": 2,
+          "position": [
+            0.05382,
+            -0.01074,
+            -0.002971
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "confidence": 0.8
+        },
+        {
+          "frameIndex": 3,
+          "position": [
+            0.056526,
+            -0.014454,
+            -0.005549
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "confidence": 0.8
+        },
+        {
+          "frameIndex": 4,
+          "position": [
+            0.054849,
+            -0.014842,
+            0.004985
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "confidence": 0.8
+        },
+        {
+          "frameIndex": 5,
+          "position": [
+            0.0597,
+            -0.016878,
+            0.008959
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "confidence": 0.8
+        }
+      ]
+    }
+  },
+  "portal": {
+    "id": "HoloMapRoomPortal",
+    "label": "HoloMap Room",
+    "position": [
+      -4.8,
+      4.2,
+      -17.5
+    ],
+    "scale": [
+      0.9,
+      1.7,
+      0.16
+    ],
+    "color": "#42b7d9",
+    "target": "GOLD Scanned Room Exhibit"
+  },
+  "proves": {
+    "importPath": "RGB device-capture frames feed the shipped HoloMap session API, not a mocked room JSON.",
+    "anchor": "mcpReconstructAnchor returns a pose/revision that the GOLD room uses as its placement anchor.",
+    "export": "mcpReconstructExport compiles the reconstruction manifest to an r3f target and emits sidecars.",
+    "loadBearing": "negative control flips one byte of capture data and changes capture, replay, and room digests."
+  },
+  "honestScope": "Offline data-integrity proof for the HoloMap import/export path using a deterministic room-shaped capture fixture. A live physical-room scan video was not present locally, so this gate does not claim new physical capture; it proves that captured frames become an anchored GOLD space/portal artifact through the real HoloMap session/runtime/export code.",
+  "contract": {
+    "spine": "computeStateDigest(field-bag, sha256)",
+    "spaceDigest": "fd8f40a8e9114b5c05d7a1c7538f10986c339165856e4a70906a4dafa16073d5",
+    "payloadHash": "12053cc2450e8c64dc870ba4edaa43fb9efc9d240679bedad6018f8c70758e7e"
+  }
+}

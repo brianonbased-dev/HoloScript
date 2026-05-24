@@ -1,0 +1,768 @@
+{
+  "schema": "gold-game-holographic-export-v1",
+  "gate": 38,
+  "name": "holographic export leg for Gate-32/Gate-34 vista",
+  "source": {
+    "vistaWorld": "examples/gold-game/gold-vault-vista-world.json",
+    "sourceImage": "examples/gold-game/assets/gold-vault-vista-wlNgg.jpg",
+    "depthGrid": {
+      "width": 48,
+      "height": 32,
+      "sampledPoints": 48,
+      "backdrop": {
+        "originX": 0,
+        "originY": 6,
+        "originZ": -24,
+        "spanX": 24,
+        "spanY": 16,
+        "depthScale": 8
+      }
+    }
+  },
+  "samples": [
+    {
+      "id": "vista_0_0",
+      "grid": [
+        0,
+        0
+      ],
+      "depth": 0.839,
+      "world": [
+        -12,
+        14,
+        -25.288
+      ],
+      "color": "#cdb7d9"
+    },
+    {
+      "id": "vista_1_0",
+      "grid": [
+        7,
+        0
+      ],
+      "depth": 0.7624,
+      "world": [
+        -8.425532,
+        14,
+        -25.9008
+      ],
+      "color": "#c3b7d9"
+    },
+    {
+      "id": "vista_2_0",
+      "grid": [
+        13,
+        0
+      ],
+      "depth": 0.6933,
+      "world": [
+        -5.361702,
+        14,
+        -26.4536
+      ],
+      "color": "#bab7d9"
+    },
+    {
+      "id": "vista_3_0",
+      "grid": [
+        20,
+        0
+      ],
+      "depth": 0.6,
+      "world": [
+        -1.787234,
+        14,
+        -27.2
+      ],
+      "color": "#aeb7d9"
+    },
+    {
+      "id": "vista_4_0",
+      "grid": [
+        27,
+        0
+      ],
+      "depth": 0.1068,
+      "world": [
+        1.787234,
+        14,
+        -31.1456
+      ],
+      "color": "#6eb7d9"
+    },
+    {
+      "id": "vista_5_0",
+      "grid": [
+        34,
+        0
+      ],
+      "depth": 0.0794,
+      "world": [
+        5.361702,
+        14,
+        -31.3648
+      ],
+      "color": "#6ab7d9"
+    },
+    {
+      "id": "vista_6_0",
+      "grid": [
+        40,
+        0
+      ],
+      "depth": 0.4761,
+      "world": [
+        8.425532,
+        14,
+        -28.1912
+      ],
+      "color": "#9eb7d9"
+    },
+    {
+      "id": "vista_7_0",
+      "grid": [
+        47,
+        0
+      ],
+      "depth": 0.7028,
+      "world": [
+        12,
+        14,
+        -26.3776
+      ],
+      "color": "#bbb7d9"
+    },
+    {
+      "id": "vista_0_1",
+      "grid": [
+        0,
+        6
+      ],
+      "depth": 0.7678,
+      "world": [
+        -12,
+        10.903226,
+        -25.8576
+      ],
+      "color": "#c4b7d9"
+    },
+    {
+      "id": "vista_1_1",
+      "grid": [
+        7,
+        6
+      ],
+      "depth": 0.6853,
+      "world": [
+        -8.425532,
+        10.903226,
+        -26.5176
+      ],
+      "color": "#b9b7d9"
+    },
+    {
+      "id": "vista_2_1",
+      "grid": [
+        13,
+        6
+      ],
+      "depth": 0.6157,
+      "world": [
+        -5.361702,
+        10.903226,
+        -27.0744
+      ],
+      "color": "#b0b7d9"
+    },
+    {
+      "id": "vista_3_1",
+      "grid": [
+        20,
+        6
+      ],
+      "depth": 0.3972,
+      "world": [
+        -1.787234,
+        10.903226,
+        -28.8224
+      ],
+      "color": "#94b7d9"
+    },
+    {
+      "id": "vista_4_1",
+      "grid": [
+        27,
+        6
+      ],
+      "depth": 0.2446,
+      "world": [
+        1.787234,
+        10.903226,
+        -30.0432
+      ],
+      "color": "#80b7d9"
+    },
+    {
+      "id": "vista_5_1",
+      "grid": [
+        34,
+        6
+      ],
+      "depth": 0.1296,
+      "world": [
+        5.361702,
+        10.903226,
+        -30.9632
+      ],
+      "color": "#71b7d9"
+    },
+    {
+      "id": "vista_6_1",
+      "grid": [
+        40,
+        6
+      ],
+      "depth": 0.4417,
+      "world": [
+        8.425532,
+        10.903226,
+        -28.4664
+      ],
+      "color": "#99b7d9"
+    },
+    {
+      "id": "vista_7_1",
+      "grid": [
+        47,
+        6
+      ],
+      "depth": 0.7047,
+      "world": [
+        12,
+        10.903226,
+        -26.3624
+      ],
+      "color": "#bcb7d9"
+    },
+    {
+      "id": "vista_0_2",
+      "grid": [
+        0,
+        12
+      ],
+      "depth": 0.812,
+      "world": [
+        -12,
+        7.806452,
+        -25.504
+      ],
+      "color": "#cab7d9"
+    },
+    {
+      "id": "vista_1_2",
+      "grid": [
+        7,
+        12
+      ],
+      "depth": 0.6735,
+      "world": [
+        -8.425532,
+        7.806452,
+        -26.612
+      ],
+      "color": "#b8b7d9"
+    },
+    {
+      "id": "vista_2_2",
+      "grid": [
+        13,
+        12
+      ],
+      "depth": 0.2493,
+      "world": [
+        -5.361702,
+        7.806452,
+        -30.0056
+      ],
+      "color": "#80b7d9"
+    },
+    {
+      "id": "vista_3_2",
+      "grid": [
+        20,
+        12
+      ],
+      "depth": 0.5316,
+      "world": [
+        -1.787234,
+        7.806452,
+        -27.7472
+      ],
+      "color": "#a5b7d9"
+    },
+    {
+      "id": "vista_4_2",
+      "grid": [
+        27,
+        12
+      ],
+      "depth": 0.0819,
+      "world": [
+        1.787234,
+        7.806452,
+        -31.3448
+      ],
+      "color": "#6bb7d9"
+    },
+    {
+      "id": "vista_5_2",
+      "grid": [
+        34,
+        12
+      ],
+      "depth": 0.6351,
+      "world": [
+        5.361702,
+        7.806452,
+        -26.9192
+      ],
+      "color": "#b3b7d9"
+    },
+    {
+      "id": "vista_6_2",
+      "grid": [
+        40,
+        12
+      ],
+      "depth": 0.6303,
+      "world": [
+        8.425532,
+        7.806452,
+        -26.9576
+      ],
+      "color": "#b2b7d9"
+    },
+    {
+      "id": "vista_7_2",
+      "grid": [
+        47,
+        12
+      ],
+      "depth": 0.6181,
+      "world": [
+        12,
+        7.806452,
+        -27.0552
+      ],
+      "color": "#b0b7d9"
+    },
+    {
+      "id": "vista_0_3",
+      "grid": [
+        0,
+        19
+      ],
+      "depth": 0.7708,
+      "world": [
+        -12,
+        4.193548,
+        -25.8336
+      ],
+      "color": "#c4b7d9"
+    },
+    {
+      "id": "vista_1_3",
+      "grid": [
+        7,
+        19
+      ],
+      "depth": 0.6283,
+      "world": [
+        -8.425532,
+        4.193548,
+        -26.9736
+      ],
+      "color": "#b2b7d9"
+    },
+    {
+      "id": "vista_2_3",
+      "grid": [
+        13,
+        19
+      ],
+      "depth": 0.5231,
+      "world": [
+        -5.361702,
+        4.193548,
+        -27.8152
+      ],
+      "color": "#a4b7d9"
+    },
+    {
+      "id": "vista_3_3",
+      "grid": [
+        20,
+        19
+      ],
+      "depth": 0.7051,
+      "world": [
+        -1.787234,
+        4.193548,
+        -26.3592
+      ],
+      "color": "#bcb7d9"
+    },
+    {
+      "id": "vista_4_3",
+      "grid": [
+        27,
+        19
+      ],
+      "depth": 0.6134,
+      "world": [
+        1.787234,
+        4.193548,
+        -27.0928
+      ],
+      "color": "#b0b7d9"
+    },
+    {
+      "id": "vista_5_3",
+      "grid": [
+        34,
+        19
+      ],
+      "depth": 0.7233,
+      "world": [
+        5.361702,
+        4.193548,
+        -26.2136
+      ],
+      "color": "#beb7d9"
+    },
+    {
+      "id": "vista_6_3",
+      "grid": [
+        40,
+        19
+      ],
+      "depth": 0.2735,
+      "world": [
+        8.425532,
+        4.193548,
+        -29.812
+      ],
+      "color": "#84b7d9"
+    },
+    {
+      "id": "vista_7_3",
+      "grid": [
+        47,
+        19
+      ],
+      "depth": 0.8663,
+      "world": [
+        12,
+        4.193548,
+        -25.0696
+      ],
+      "color": "#d1b7d9"
+    },
+    {
+      "id": "vista_0_4",
+      "grid": [
+        0,
+        25
+      ],
+      "depth": 0.935,
+      "world": [
+        -12,
+        1.096774,
+        -24.52
+      ],
+      "color": "#dab7d9"
+    },
+    {
+      "id": "vista_1_4",
+      "grid": [
+        7,
+        25
+      ],
+      "depth": 0.7534,
+      "world": [
+        -8.425532,
+        1.096774,
+        -25.9728
+      ],
+      "color": "#c2b7d9"
+    },
+    {
+      "id": "vista_2_4",
+      "grid": [
+        13,
+        25
+      ],
+      "depth": 0.3358,
+      "world": [
+        -5.361702,
+        1.096774,
+        -29.3136
+      ],
+      "color": "#8cb7d9"
+    },
+    {
+      "id": "vista_3_4",
+      "grid": [
+        20,
+        25
+      ],
+      "depth": 0.5662,
+      "world": [
+        -1.787234,
+        1.096774,
+        -27.4704
+      ],
+      "color": "#aab7d9"
+    },
+    {
+      "id": "vista_4_4",
+      "grid": [
+        27,
+        25
+      ],
+      "depth": 0.5615,
+      "world": [
+        1.787234,
+        1.096774,
+        -27.508
+      ],
+      "color": "#a9b7d9"
+    },
+    {
+      "id": "vista_5_4",
+      "grid": [
+        34,
+        25
+      ],
+      "depth": 0.89,
+      "world": [
+        5.361702,
+        1.096774,
+        -24.88
+      ],
+      "color": "#d4b7d9"
+    },
+    {
+      "id": "vista_6_4",
+      "grid": [
+        40,
+        25
+      ],
+      "depth": 0.8219,
+      "world": [
+        8.425532,
+        1.096774,
+        -25.4248
+      ],
+      "color": "#cbb7d9"
+    },
+    {
+      "id": "vista_7_4",
+      "grid": [
+        47,
+        25
+      ],
+      "depth": 0.8799,
+      "world": [
+        12,
+        1.096774,
+        -24.9608
+      ],
+      "color": "#d2b7d9"
+    },
+    {
+      "id": "vista_0_5",
+      "grid": [
+        0,
+        31
+      ],
+      "depth": 0.9843,
+      "world": [
+        -12,
+        -2,
+        -24.1256
+      ],
+      "color": "#e0b7d9"
+    },
+    {
+      "id": "vista_1_5",
+      "grid": [
+        7,
+        31
+      ],
+      "depth": 0.9848,
+      "world": [
+        -8.425532,
+        -2,
+        -24.1216
+      ],
+      "color": "#e0b7d9"
+    },
+    {
+      "id": "vista_2_5",
+      "grid": [
+        13,
+        31
+      ],
+      "depth": 0.2269,
+      "world": [
+        -5.361702,
+        -2,
+        -30.1848
+      ],
+      "color": "#7db7d9"
+    },
+    {
+      "id": "vista_3_5",
+      "grid": [
+        20,
+        31
+      ],
+      "depth": 0.9013,
+      "world": [
+        -1.787234,
+        -2,
+        -24.7896
+      ],
+      "color": "#d5b7d9"
+    },
+    {
+      "id": "vista_4_5",
+      "grid": [
+        27,
+        31
+      ],
+      "depth": 0.9107,
+      "world": [
+        1.787234,
+        -2,
+        -24.7144
+      ],
+      "color": "#d6b7d9"
+    },
+    {
+      "id": "vista_5_5",
+      "grid": [
+        34,
+        31
+      ],
+      "depth": 0.872,
+      "world": [
+        5.361702,
+        -2,
+        -25.024
+      ],
+      "color": "#d1b7d9"
+    },
+    {
+      "id": "vista_6_5",
+      "grid": [
+        40,
+        31
+      ],
+      "depth": 0.9826,
+      "world": [
+        8.425532,
+        -2,
+        -24.1392
+      ],
+      "color": "#e0b7d9"
+    },
+    {
+      "id": "vista_7_5",
+      "grid": [
+        47,
+        31
+      ],
+      "depth": 0.9931,
+      "world": [
+        12,
+        -2,
+        -24.0552
+      ],
+      "color": "#e1b7d9"
+    }
+  ],
+  "quilt": {
+    "compiler": "packages/engine/src/hologram/QuiltCompiler.ts",
+    "device": "16inch",
+    "views": 48,
+    "grid": "8x6",
+    "resolution": [
+      3360,
+      3360
+    ],
+    "baseline": 0.06,
+    "focusDistance": 2,
+    "tileWidth": 420,
+    "tileHeight": 560,
+    "projectedPoints": 2304,
+    "rendererCodeHash": "4946ca2b0002b4271fa72fb5e7b2b73335c95449b144e6b54d7882567f3030c5"
+  },
+  "mvhevc": {
+    "compiler": "packages/engine/src/hologram/MVHEVCCompiler.ts",
+    "container": "mov",
+    "resolution": [
+      1920,
+      1080
+    ],
+    "fps": 30,
+    "ipd": 0.065,
+    "convergenceDistance": 2.25,
+    "fovDegrees": 70,
+    "stereoMode": "multiview-hevc",
+    "views": [
+      {
+        "eye": "left",
+        "cameraOffset": -0.0325,
+        "viewShear": 0.014444,
+        "layerIndex": 0
+      },
+      {
+        "eye": "right",
+        "cameraOffset": 0.0325,
+        "viewShear": -0.014444,
+        "layerIndex": 1
+      }
+    ],
+    "muxCommandHash": "c9e84a9f0554ff73c5719fd9d05527cf121712cfa31d5ff77b8c0f5630fd2a84",
+    "swiftCodeHash": "5657156263c7944fea5a95ae74059e8f91c41ee356aa5b60df382487bab366f4",
+    "centerDisparity": 0.031782
+  },
+  "parallax": {
+    "format": "deterministic-parallax-preview",
+    "frames": 9,
+    "cameraOffsets": [
+      -0.04,
+      -0.03,
+      -0.02,
+      -0.01,
+      0,
+      0.01,
+      0.02,
+      0.03,
+      0.04
+    ],
+    "digest": "333b0d2527ccb32517d4f56e363e3b02b9aafd3e52fb3dff71f0087d39d44fe2"
+  },
+  "shareReceipt": {
+    "targets": [
+      "looking-glass-quilt",
+      "vision-pro-mvhevc",
+      "parallax-preview"
+    ],
+    "exportDigest": "56a2b108f9a6403814ec4eb10ac96ed8f103ee1518539bed0700839cfd9dccfe",
+    "payloadHash": "2ba64bc0a4eefa854d4160d56f04cd07f46d04d52f323b6fbbc416afb17ec798"
+  },
+  "honestScope": "Compiler-side export proof for the Gate-32 depth world: real QuiltCompiler tile rig/projection, real MVHEVCCompiler stereo metadata/mux instructions, and deterministic parallax preview digest. It does not rasterize quilt pixels, encode MV-HEVC media bytes, or validate on physical Looking Glass/Vision Pro hardware."
+}

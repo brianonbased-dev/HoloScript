@@ -3,7 +3,7 @@
   "gate": 37,
   "track": "flagship",
   "name": "self-proving boot (offline data re-derivation)",
-  "timestamp": "2026-05-24T09:41:09.891Z",
+  "timestamp": "2026-05-24T10:25:00.652Z",
   "checks": {
     "passed": 9,
     "total": 9
@@ -13,6 +13,16 @@
       "name": "vista (depth world)",
       "key": "__GOLD_GAME_VISTA__",
       "sha256": "79edf6cbc88eb3ca5edad183a7a8d3603eb6f0adcf45782e7a28aab8c251bff2"
+    },
+    {
+      "name": "holomap (scanned room)",
+      "key": "__GOLD_GAME_HOLOMAP_ROOM__",
+      "sha256": "9fb0c619fe4a94e05dacc8cca2908bf4462f5235272954d476ffb852766e427b"
+    },
+    {
+      "name": "hologram export (quilt/MVHEVC)",
+      "key": "__GOLD_GAME_HOLOGRAPHIC_EXPORT__",
+      "sha256": "2ac8d2c24386eb32284dfd3582bb8f17063d1a9a6e01bfa67a8464eca43bbe68"
     },
     {
       "name": "toolset (HoloScript packages)",

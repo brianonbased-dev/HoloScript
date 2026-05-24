@@ -94,6 +94,25 @@
     "resume": "Continue Campaign button appears only when a save exists; gold-game-resume restores progress",
     "note": "campaign mirrors REAL graduate ops only — no fabricated progress; corrupt/blocked storage degrades to in-memory"
   },
+  "holomapRoom": {
+    "enabled": true,
+    "gate": 33,
+    "artifact": "gold-vault-holomap-room.json",
+    "portalMounted": "HoloMapRoomPortal",
+    "points": 96,
+    "spaceDigest": "fd8f40a8e9114b5c05d7a1c7538f10986c339165856e4a70906a4dafa16073d5"
+  },
+  "holographicExport": {
+    "enabled": true,
+    "gate": 38,
+    "artifact": "gold-vault-holographic-export.json",
+    "targets": [
+      "looking-glass-quilt",
+      "vision-pro-mvhevc",
+      "parallax-preview"
+    ],
+    "exportDigest": "56a2b108f9a6403814ec4eb10ac96ed8f103ee1518539bed0700839cfd9dccfe"
+  },
   "holoscriptToolset": {
     "enabled": true,
     "gate": 36,
@@ -243,11 +262,11 @@
     ],
     "missing": []
   },
-  "sceneDigest": "6b02b2161c4e0596d0ed25e40567edfd80fa6cfcacc99e91eef331024c50b092",
-  "htmlBytes": 1505333,
+  "sceneDigest": "456e533256ddd7ead7ac04b947b2ca9202baf83f2a520c67a29c596b74ed19b1",
+  "htmlBytes": 1522009,
   "selfContained": true,
   "offline": true,
   "three": "0.182.0 (bundled IIFE)",
   "core": "6.1.0",
-  "verifiedAt": "2026-05-24T09:42:12.385Z"
+  "verifiedAt": "2026-05-24T10:31:07.836Z"
 }
