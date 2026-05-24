@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildConjectureV1Receipt,
+  createSquareSheetCandidate,
+  eulerCharacteristicProbe,
+  nonDegenerateGeometryProbe,
+} from '../ConjectureEngine';
+import {
   VERDICT_LEDGER_V1,
+  conjectureStatusToVerdict,
   currentVerdict,
   hasBeenReopened,
   recordVerdict,
   reopenVerdict,
+  verdictFromConjectureReceipt,
   verdictHistory,
 } from '../VerdictLedger';
 
@@ -90,5 +98,47 @@ describe('VerdictLedger — temporal, assumption-bound verdicts (knowledge is fl
   it('rejects empty claimId / timestamp', () => {
     expect(() => recordVerdict({ claimId: '', status: 'undecided', timestamp: '2026-01-01T00:00:00Z' })).toThrow();
     expect(() => recordVerdict({ claimId: 'C', status: 'undecided', timestamp: '' })).toThrow();
+  });
+});
+
+describe('VerdictLedger — wired to a real Conjecture Engine receipt', () => {
+  it('maps conjecture statuses onto the verdict ladder (currently 1:1)', () => {
+    expect(conjectureStatusToVerdict('undecided')).toBe('undecided');
+    expect(conjectureStatusToVerdict('survived')).toBe('survived');
+    expect(conjectureStatusToVerdict('falsified')).toBe('falsified');
+    expect(conjectureStatusToVerdict('out-of-scope')).toBe('out-of-scope');
+    expect(conjectureStatusToVerdict('rediscovered')).toBe('rediscovered');
+  });
+
+  it('opens a ledger from a real ConjectureReceipt, inheriting claim assumptions + receipt link', () => {
+    const receipt = buildConjectureV1Receipt({
+      claim: {
+        kind: 'geometry.invariant',
+        id: 'C.LEDGER.SQUARE_SHEET',
+        statement: 'a square sheet is non-degenerate with Euler characteristic 1',
+        assumptions: ['element arity is explicit', 'receipt is evidence, not a Lean proof'],
+        evidenceRefs: ['packages/engine/src/simulation/ConjectureEngine.ts'],
+        proposedBy: 'verdict-ledger-test',
+      },
+      candidates: [createSquareSheetCandidate('ledger-square-sheet')],
+      probes: [nonDegenerateGeometryProbe(), eulerCharacteristicProbe(1)],
+      hashMode: 'sha256',
+    });
+
+    const ledger = verdictFromConjectureReceipt(receipt, '2026-05-23T00:00:00Z');
+    const v = currentVerdict(ledger);
+    expect(v.claimId).toBe('C.LEDGER.SQUARE_SHEET');
+    expect(v.status).toBe(conjectureStatusToVerdict(receipt.status));
+    expect(v.status).toBe('survived');
+    expect(v.receiptKey).toBe(receipt.receiptKey);
+    expect(v.assumptions).toEqual(receipt.claim.assumptions);
+
+    // and it can be re-opened when one of those inherited assumptions is overturned
+    const reopened = reopenVerdict(ledger, {
+      overturnedAssumption: 'receipt is evidence, not a Lean proof',
+      reason: 'a Lean-tier proof was later attempted and failed',
+      timestamp: '2027-01-01T00:00:00Z',
+    });
+    expect(currentVerdict(reopened).status).toBe('undecided');
   });
 });

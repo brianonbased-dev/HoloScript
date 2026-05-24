@@ -378,6 +378,8 @@ export {
   currentVerdict,
   hasBeenReopened,
   verdictHistory,
+  conjectureStatusToVerdict,
+  verdictFromConjectureReceipt,
   type VerdictStatus,
   type VerdictEntry,
   type VerdictLedger,

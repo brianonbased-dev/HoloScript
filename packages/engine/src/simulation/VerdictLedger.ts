@@ -23,7 +23,11 @@
  * to ConjectureEngine.ts — this is a higher-level meta-layer over conjecture receipts.
  */
 
-import { buildConjectureStableKey } from './ConjectureEngine';
+import {
+  buildConjectureStableKey,
+  type ConjectureReceipt,
+  type ConjectureStatus,
+} from './ConjectureEngine';
 
 export const VERDICT_LEDGER_V1 = 'conjecture.verdict-ledger.v1' as const;
 export type VerdictLedgerSolverType = typeof VERDICT_LEDGER_V1;
@@ -173,6 +177,46 @@ export function reopenVerdict(ledger: VerdictLedger, input: ReopenVerdictInput):
     entries,
     current: entry,
   };
+}
+
+/**
+ * Map a Conjecture Engine receipt status onto the verdict ladder. The unions currently
+ * coincide (out-of-scope | undecided | survived | falsified | rediscovered), so this is
+ * a 1:1 pass-through — but the exhaustive switch makes any future ConjectureStatus
+ * divergence a compile error rather than a silent miscategorization.
+ */
+export function conjectureStatusToVerdict(status: ConjectureStatus): VerdictStatus {
+  switch (status) {
+    case 'out-of-scope':
+    case 'undecided':
+    case 'survived':
+    case 'falsified':
+    case 'rediscovered':
+      return status;
+    default: {
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
+  }
+}
+
+/**
+ * The real consumer: open a verdict ledger directly from a Conjecture Engine receipt.
+ * The verdict inherits the claim's assumptions (so overturning one re-opens it) and
+ * links the receipt that produced it. `timestamp` is when the verdict is recorded
+ * (receipts are deterministic/timeless; the verdict is the time-bound interpretation).
+ */
+export function verdictFromConjectureReceipt(
+  receipt: ConjectureReceipt,
+  timestamp: string,
+): VerdictLedger {
+  return recordVerdict({
+    claimId: receipt.claim.id,
+    status: conjectureStatusToVerdict(receipt.status),
+    assumptions: receipt.claim.assumptions,
+    timestamp,
+    receiptKey: receipt.receiptKey,
+  });
 }
 
 /** The authoritative-for-now verdict. Never treat as eternal. */
