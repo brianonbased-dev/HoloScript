@@ -44,6 +44,9 @@ assertEq(receipt.status, 'pass', 'pass status');
 assertEq(validateReceipt(receipt).length, 0, 'receipt validates');
 assertOk(receipt.quilt.pngHash.startsWith('sha256:'), 'receipt names PNG hash');
 assertEq(receipt.quilt.views, 4, 'self-test view count');
+assertOk(receipt.quilt.path.includes(receipt.quilt.variant), 'quilt path includes render variant');
+assertOk(receipt.quilt.style.exposure >= 1, 'receipt records exposure');
+assertOk(receipt.quilt.style.pointRadius >= 1, 'receipt records point radius');
 
 console.log('Test 2: CLI self-test runs without touching hardware');
 const cli = spawnSync(process.execPath, [SCRIPT, '--self-test'], {

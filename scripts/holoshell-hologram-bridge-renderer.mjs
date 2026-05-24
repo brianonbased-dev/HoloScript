@@ -21,8 +21,8 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const VERSION = '0.1.0';
-export const RECEIPT_VERSION = 'holoshell-hologram-bridge-renderer/v1';
+export const VERSION = '0.2.0';
+export const RECEIPT_VERSION = 'holoshell-hologram-bridge-renderer/v2';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
@@ -36,6 +36,10 @@ function parseArgs(argv) {
     views: undefined,
     columns: undefined,
     rows: undefined,
+    exposure: undefined,
+    autoExposure: true,
+    pointRadius: undefined,
+    glowRadius: undefined,
     selfTest: false,
   };
 
@@ -49,6 +53,11 @@ function parseArgs(argv) {
     else if (arg === '--views') args.views = Number.parseInt(argv[++i], 10);
     else if (arg === '--columns') args.columns = Number.parseInt(argv[++i], 10);
     else if (arg === '--rows') args.rows = Number.parseInt(argv[++i], 10);
+    else if (arg === '--exposure') args.exposure = Number.parseFloat(argv[++i]);
+    else if (arg === '--no-auto-exposure') args.autoExposure = false;
+    else if (arg === '--auto-exposure') args.autoExposure = true;
+    else if (arg === '--point-radius') args.pointRadius = Number.parseInt(argv[++i], 10);
+    else if (arg === '--glow-radius') args.glowRadius = Number.parseInt(argv[++i], 10);
     else if (arg === '--self-test' || arg === 'self-test') args.selfTest = true;
     else if (arg === '--help' || arg === '-h' || arg === 'help') args.help = true;
     else throw new Error(`Unknown argument: ${arg}`);
@@ -71,6 +80,15 @@ function parseArgs(argv) {
   if (args.rows !== undefined && (!Number.isInteger(args.rows) || args.rows < 1 || args.rows > 16)) {
     throw new Error('--rows must be an integer from 1 to 16');
   }
+  if (args.exposure !== undefined && (!Number.isFinite(args.exposure) || args.exposure <= 0 || args.exposure > 16)) {
+    throw new Error('--exposure must be a number greater than 0 and at most 16');
+  }
+  if (args.pointRadius !== undefined && (!Number.isInteger(args.pointRadius) || args.pointRadius < 1 || args.pointRadius > 32)) {
+    throw new Error('--point-radius must be an integer from 1 to 32');
+  }
+  if (args.glowRadius !== undefined && (!Number.isInteger(args.glowRadius) || args.glowRadius < 0 || args.glowRadius > 64)) {
+    throw new Error('--glow-radius must be an integer from 0 to 64');
+  }
   return args;
 }
 
@@ -79,11 +97,13 @@ function printHelp() {
 
 Usage:
   node scripts/holoshell-hologram-bridge-renderer.mjs --bridge scan.hologram-bridge.json [--out receipt.json]
+  node scripts/holoshell-hologram-bridge-renderer.mjs --bridge scan.hologram-bridge.json --exposure 2.5 --point-radius 5
   node scripts/holoshell-hologram-bridge-renderer.mjs --self-test
 
 Notes:
   - Reads HoloMap point-cloud bridge JSON emitted by holoshell:camera-scan.
   - Emits a deterministic quilt preview PNG and receipt.
+  - Auto-exposes dim point clouds by default; pass --no-auto-exposure to disable.
   - Does not claim MV-HEVC or parallax video encoding.
 `);
 }
@@ -120,6 +140,44 @@ function withHash(receipt) {
 
 function rel(path) {
   return relative(REPO_ROOT, resolve(path)).replaceAll('\\', '/');
+}
+
+function clampByte(value) {
+  return Math.max(0, Math.min(255, Math.round(value)));
+}
+
+function luminance(point) {
+  return (0.2126 * point.r + 0.7152 * point.g + 0.0722 * point.b) / 255;
+}
+
+function mean(values) {
+  if (values.length < 1) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function computeRenderStyle({ points, tileWidth, tileHeight, args }) {
+  const avgLum = mean(points.map(luminance));
+  const autoGain = args.autoExposure ? Math.max(1, Math.min(6, 0.42 / Math.max(0.05, avgLum))) : 1;
+  const exposure = args.exposure ?? autoGain;
+  const baseRadius = args.pointRadius ?? Math.max(2, Math.round(Math.min(tileWidth, tileHeight) / 36));
+  const glowRadius = args.glowRadius ?? Math.max(baseRadius + 2, Math.round(baseRadius * 2.6));
+  return {
+    exposure,
+    autoExposure: args.autoExposure,
+    autoExposureGain: autoGain,
+    pointRadius: baseRadius,
+    glowRadius,
+    averageSourceLuminance: Number(avgLum.toFixed(4)),
+  };
+}
+
+function applyExposure(point, style) {
+  const lift = 10;
+  return [
+    clampByte(point.r * style.exposure + lift),
+    clampByte(point.g * style.exposure + lift),
+    clampByte(point.b * style.exposure + lift),
+  ];
 }
 
 function writeJson(path, value) {
@@ -199,13 +257,13 @@ function blendPixel(rgba, width, x, y, r, g, b, alpha) {
   const offset = (y * width + x) * 4;
   if (offset < 0 || offset + 3 >= rgba.length) return;
   const inv = 1 - alpha;
-  rgba[offset] = Math.round((rgba[offset] ?? 0) * inv + r * alpha);
-  rgba[offset + 1] = Math.round((rgba[offset + 1] ?? 0) * inv + g * alpha);
-  rgba[offset + 2] = Math.round((rgba[offset + 2] ?? 0) * inv + b * alpha);
+  rgba[offset] = clampByte((rgba[offset] ?? 0) * inv + r * alpha);
+  rgba[offset + 1] = clampByte((rgba[offset + 1] ?? 0) * inv + g * alpha);
+  rgba[offset + 2] = clampByte((rgba[offset + 2] ?? 0) * inv + b * alpha);
   rgba[offset + 3] = 255;
 }
 
-function plotPoint(rgba, quiltWidth, quiltHeight, x, y, radius, color, alpha) {
+function plotPoint(rgba, quiltWidth, quiltHeight, x, y, radius, color, alpha, softness = 0) {
   const cx = Math.round(x);
   const cy = Math.round(y);
   for (let py = cy - radius; py <= cy + radius; py += 1) {
@@ -213,8 +271,11 @@ function plotPoint(rgba, quiltWidth, quiltHeight, x, y, radius, color, alpha) {
     for (let px = cx - radius; px <= cx + radius; px += 1) {
       const dx = px - cx;
       const dy = py - cy;
-      if (dx * dx + dy * dy > radius * radius) continue;
-      blendPixel(rgba, quiltWidth, px, py, color[0], color[1], color[2], alpha);
+      const distSq = dx * dx + dy * dy;
+      const radiusSq = radius * radius;
+      if (distSq > radiusSq) continue;
+      const falloff = softness > 0 ? Math.max(0, 1 - Math.sqrt(distSq) / Math.max(1, radius)) : 1;
+      blendPixel(rgba, quiltWidth, px, py, color[0], color[1], color[2], alpha * (softness > 0 ? falloff : 1));
     }
   }
 }
@@ -228,7 +289,7 @@ async function encodePng(rgba, width, height) {
     .toBuffer();
 }
 
-async function renderQuiltPreview({ points, bounds, tileWidth, tileHeight, views, columns, rows }) {
+async function renderQuiltPreview({ points, bounds, tileWidth, tileHeight, views, columns, rows, style }) {
   const quiltWidth = tileWidth * columns;
   const quiltHeight = tileHeight * rows;
   const rgba = new Uint8Array(quiltWidth * quiltHeight * 4);
@@ -258,8 +319,11 @@ async function renderQuiltPreview({ points, bounds, tileWidth, tileHeight, views
       const px = tileX + (0.1 + (nx + parallax) * 0.8) * tileWidth;
       const py = tileY + (0.9 - ny * 0.8) * tileHeight;
       const confidence = Math.max(0.2, Math.min(1, point.confidence));
-      const radius = tileWidth >= 96 ? 2 : 1;
-      plotPoint(rgba, quiltWidth, quiltHeight, px, py, radius, [point.r, point.g, point.b], 0.5 + confidence * 0.35);
+      const color = applyExposure(point, style);
+      if (style.glowRadius > style.pointRadius) {
+        plotPoint(rgba, quiltWidth, quiltHeight, px, py, style.glowRadius, color, 0.12 + confidence * 0.1, 1);
+      }
+      plotPoint(rgba, quiltWidth, quiltHeight, px, py, style.pointRadius, color, 0.58 + confidence * 0.36, 0.35);
     }
   }
 
@@ -287,10 +351,19 @@ export async function renderBridge(args) {
   const rows = args.rows ?? bridge.targets?.quilt?.rows ?? 6;
   const views = args.views ?? bridge.targets?.quilt?.views ?? columns * rows;
   if (views > columns * rows) throw new Error(`views (${views}) cannot exceed columns*rows (${columns * rows})`);
+  const style = computeRenderStyle({ points, tileWidth: args.tileWidth, tileHeight: args.tileHeight, args });
 
   const outPath = resolve(args.out ?? defaultOutputForBridge(bridgePath));
   const replay = bridge.source?.replayFingerprint ?? sha256Text(readFileSync(bridgePath, 'utf8')).slice(0, 16);
-  const pngPath = resolve(dirname(outPath), `holoshell-quilt-${String(replay).slice(0, 12)}.png`);
+  const variant = sha256Text(JSON.stringify(canonical({
+    tileWidth: args.tileWidth,
+    tileHeight: args.tileHeight,
+    views,
+    columns,
+    rows,
+    style,
+  }))).slice(0, 8);
+  const pngPath = resolve(dirname(outPath), `holoshell-quilt-${String(replay).slice(0, 12)}-${variant}.png`);
   mkdirSync(dirname(outPath), { recursive: true });
 
   const quilt = await renderQuiltPreview({
@@ -301,6 +374,7 @@ export async function renderBridge(args) {
     views,
     columns,
     rows,
+    style,
   });
   writeFileSync(pngPath, quilt.png);
   const pngHash = `sha256:${sha256Bytes(quilt.png)}`;
@@ -329,6 +403,8 @@ export async function renderBridge(args) {
       views,
       columns,
       rows,
+      style,
+      variant,
     },
     honestScope:
       'Rendered a deterministic quilt preview from HoloMap point-cloud geometry. This is not MV-HEVC or parallax video encoding.',
