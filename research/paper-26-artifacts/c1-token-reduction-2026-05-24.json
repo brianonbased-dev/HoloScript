@@ -1,0 +1,149 @@
+{
+  "schema": "paper26-c1-token-reduction-v2",
+  "generated_at": "2026-05-24T01:45:41.529Z",
+  "tokenizer": "gpt-tokenizer cl100k_base (local BPE, no external API)",
+  "headline_claim": {
+    "type": "asymptotic_scaling",
+    "pillar_slice_complexity": "O(N*H)  — one delta to a shared board per agent per round, read once",
+    "naive_broadcast_complexity": "O(N^2*H) — full accumulated transcript rebroadcast to all N-1 peers each round",
+    "statement": "Pillar-slice delta-routing achieves O(N*H) coordination-token complexity vs O(N^2*H) for naive full-transcript broadcast."
+  },
+  "canonical_operating_point": {
+    "N": 100,
+    "H": 50,
+    "slice_tokens": 678642,
+    "broadcast_tokens": 810836334,
+    "reduction": 0.9991630345465007,
+    "note": "reduction under the full-transcript-rebroadcast baseline explicitly named below; this is the naive baseline the abstract describes"
+  },
+  "honest_decomposition": {
+    "note": "The reduction is a PROTOCOL/ROUTING effect (fan-out avoidance + no history resend), NOT encoding compression.",
+    "per_message_encoding_tokens": {
+      "slice_json_envelope": 136,
+      "natural_language": 64,
+      "compact_latent_tuple": 21
+    },
+    "encoding_reduction_json_vs_nl": -1.125,
+    "encoding_reduction_compact_vs_nl": 0.672,
+    "interpretation": "As verbose JSON the slice is LARGER than NL (negative). As the compact latent tuple the paper intends, it is smaller. The episode-level reduction is dominated by routing (board-delta vs broadcast), not encoding."
+  },
+  "baselines_definition": {
+    "naive_broadcast": "each round every agent appends an NL utterance to the shared transcript; the full accumulated transcript is rebroadcast to all N-1 peers (O(N^2 H))",
+    "pillar_slice": "each round every agent emits ONE SemanticCollaborationMessage (real 6-field PillarSlice + BrainCoord + provenance) as a delta to a shared board read once (O(N H))",
+    "fairness": "NL utterance conveys the SAME decision info as the slice — not an inflated strawman; reduction reported with the baseline named so it is reproducible"
+  },
+  "sweep": [
+    {
+      "N": 10,
+      "H": 5,
+      "slice_tokens": 6781,
+      "broadcast_tokens": 86697,
+      "reduction": 0.9217850675340554
+    },
+    {
+      "N": 10,
+      "H": 10,
+      "slice_tokens": 13568,
+      "broadcast_tokens": 318141,
+      "reduction": 0.9573522431877689
+    },
+    {
+      "N": 10,
+      "H": 25,
+      "slice_tokens": 33923,
+      "broadcast_tokens": 1880667,
+      "reduction": 0.9819622506270381
+    },
+    {
+      "N": 10,
+      "H": 50,
+      "slice_tokens": 67838,
+      "broadcast_tokens": 7374465,
+      "reduction": 0.9908009597984396
+    },
+    {
+      "N": 25,
+      "H": 5,
+      "slice_tokens": 16959,
+      "broadcast_tokens": 577992,
+      "reduction": 0.9706587634430927
+    },
+    {
+      "N": 25,
+      "H": 10,
+      "slice_tokens": 33924,
+      "broadcast_tokens": 2120472,
+      "reduction": 0.9840016750987516
+    },
+    {
+      "N": 25,
+      "H": 25,
+      "slice_tokens": 84809,
+      "broadcast_tokens": 12529656,
+      "reduction": 0.9932313385140022
+    },
+    {
+      "N": 25,
+      "H": 50,
+      "slice_tokens": 169632,
+      "broadcast_tokens": 49157592,
+      "reduction": 0.9965492207185414
+    },
+    {
+      "N": 50,
+      "H": 5,
+      "slice_tokens": 33929,
+      "broadcast_tokens": 2360869,
+      "reduction": 0.9856285969276567
+    },
+    {
+      "N": 50,
+      "H": 10,
+      "slice_tokens": 67860,
+      "broadcast_tokens": 8656095,
+      "reduction": 0.9921604372410423
+    },
+    {
+      "N": 50,
+      "H": 25,
+      "slice_tokens": 169647,
+      "broadcast_tokens": 51152129,
+      "reduction": 0.9966834811509019
+    },
+    {
+      "N": 50,
+      "H": 50,
+      "slice_tokens": 339300,
+      "broadcast_tokens": 200669553,
+      "reduction": 0.9983091605331876
+    },
+    {
+      "N": 100,
+      "H": 5,
+      "slice_tokens": 67859,
+      "broadcast_tokens": 9537858,
+      "reduction": 0.9928852998230839
+    },
+    {
+      "N": 100,
+      "H": 10,
+      "slice_tokens": 135738,
+      "broadcast_tokens": 34983828,
+      "reduction": 0.9961199786369862
+    },
+    {
+      "N": 100,
+      "H": 25,
+      "slice_tokens": 339315,
+      "broadcast_tokens": 206665272,
+      "reduction": 0.9983581421459141
+    },
+    {
+      "N": 100,
+      "H": 50,
+      "slice_tokens": 678646,
+      "broadcast_tokens": 810872766,
+      "reduction": 0.9991630672178723
+    }
+  ]
+}
