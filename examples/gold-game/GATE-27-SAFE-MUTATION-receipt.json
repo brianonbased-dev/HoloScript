@@ -1,0 +1,19 @@
+{
+  "schema": "cael-gate-v1",
+  "gate": 27,
+  "name": "live-vault safe mutation flow",
+  "track": "flagship",
+  "proven": "AI proposes -> vault untouched -> founder token applies -> reversible rollback to exact pre-state",
+  "checks": "25/25",
+  "contract": {
+    "spine": "REAL computeStateDigest (packages/engine/src/simulation/hashes.ts) + cael-vault-mutation-v1",
+    "proposeDelta": 0,
+    "refusedApplyDelta": 0,
+    "approvedApplyDelta": "nonzero",
+    "rollbackRestoresExact": true,
+    "neverWritesRealVault": "D:/GOLD untouched — sandbox only; promotion is a separate founder gate",
+    "reproducible": "run the verifier to re-derive"
+  },
+  "aiHumanConnection": "AI curator proposes the mutation; the human founder ratifies via the approval token; the vault is the shared world state both act on; every step (propose/apply/rollback) leaves a hash-sealed receipt",
+  "timestamp": "2026-05-24T02:59:49.334Z"
+}
