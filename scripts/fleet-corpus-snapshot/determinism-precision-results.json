@@ -1,0 +1,88 @@
+{
+  "machineA": "local-win-x64",
+  "machineB": "vast-linux-x64",
+  "modelId": "Xenova/all-MiniLM-L6-v2",
+  "dim": 384,
+  "probes": 5,
+  "globalMaxAbsDelta": 1.043081283569336e-7,
+  "globalMaxAbsDeltaExp": "1.0431e-7",
+  "perProbe": [
+    {
+      "textPrefix": "For every convex polyhedron, vertices minus edge",
+      "maxDelta": 0,
+      "argMaxDim": -1
+    },
+    {
+      "textPrefix": "In a right triangle the hypotenuse squared equal",
+      "maxDelta": 6.612390279769897e-8,
+      "argMaxDim": 26
+    },
+    {
+      "textPrefix": "For every integer n>=2, 4/n equals 1/x + 1/y + 1",
+      "maxDelta": 1.043081283569336e-7,
+      "argMaxDim": 67
+    },
+    {
+      "textPrefix": "Two generic plane curves of degrees d1 and d2 in",
+      "maxDelta": 5.960464477539063e-8,
+      "argMaxDim": 70
+    },
+    {
+      "textPrefix": "The cat sat on the warm windowsill in the aftern",
+      "maxDelta": 0,
+      "argMaxDim": -1
+    }
+  ],
+  "precisionTable": [
+    {
+      "precision": 8,
+      "agree": 2,
+      "total": 5,
+      "allUnify": false
+    },
+    {
+      "precision": 7,
+      "agree": 2,
+      "total": 5,
+      "allUnify": false
+    },
+    {
+      "precision": 6,
+      "agree": 2,
+      "total": 5,
+      "allUnify": false
+    },
+    {
+      "precision": 5,
+      "agree": 3,
+      "total": 5,
+      "allUnify": false
+    },
+    {
+      "precision": 4,
+      "agree": 5,
+      "total": 5,
+      "allUnify": true
+    },
+    {
+      "precision": 3,
+      "agree": 5,
+      "total": 5,
+      "allUnify": true
+    },
+    {
+      "precision": 2,
+      "agree": 5,
+      "total": 5,
+      "allUnify": true
+    },
+    {
+      "precision": 1,
+      "agree": 5,
+      "total": 5,
+      "allUnify": true
+    }
+  ],
+  "candidatePrecision": 4,
+  "note": "Divergence is float32 ULP-level noise, not semantic. minUnifyingPrecision is the candidate receipt-binding precision for THIS 2-machine x86_64 pair; validate on ARM + other ONNX backends and analyze boundary-straddle margin before promoting the advisory layer."
+}
