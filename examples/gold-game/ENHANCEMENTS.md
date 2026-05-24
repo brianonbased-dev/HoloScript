@@ -62,7 +62,18 @@
 - **PATH.** Point the gate at the real vault catalog (reuse Gate-28's `vault-ops.readVaultCatalog`), build the lineage graph from real entries, hold out a query set, and measure recall@k against ground-truth lineage — report the honest (sub-1.0) number.
 - **RISK / OWNER.** Bounded to the gate; depends on Gate-28 catalog (already REAL). Board task.
 
-## E-G33 — Real anchor pose + trajectory (not canned constants)
+## E-G33 — Real anchor pose + trajectory — RE-SCOPED 2026-05-24: NON-BOUNDED production change (NOT a gate patch)
+> Plan-gate blast-radius check: the per-step `pose` is ALREADY real (centroid of accumulated points,
+> `HoloMapRuntime.ts:612-623`). The canned parts (`trajectory` empty/drift=0 + `anchor.anchorPose`
+> [0,0,0]) live in PRODUCTION `HoloMapRuntime` with 5+ consumers (`AnchorContext`,
+> `holoMapAnchoredManifest`, `holoMapMicroEncoder`, `holoMapReplayVerification`, `DispatchPolicy`) and
+> dedicated test suites (`HoloMapAnchorContextTrait.test.ts`, `HoloMapDriftCorrectionTrait.test.ts`)
+> that assert anchor/trajectory shape. Making the anchor/trajectory real is therefore a COORDINATED
+> multi-consumer production change, NOT a gate-33-local patch — and gate-33 does NOT overclaim (it
+> asserts an anchor is *emitted*, not that the pose is geometrically meaningful; honestScope is honest).
+> So this is a real enhancement with broad blast radius, properly a /room board task (update
+> HoloMapRuntime trajectory/anchor accumulation + all consumers + their tests), NOT session-tail work.
+> Deliberately NOT crammed (F.076/F.077 — bounded-improve vs production-blast-radius is the line).
 - **CONTEXT.** The HoloMap reconstruct pipeline is real end-to-end — frame decode, tiling, 8-kernel transformer encode, point/bounds accumulation, real export compile (`HoloMapRuntime.ts:505-666`, `holo-reconstruct-export.ts:119-165`) — REAL. THIN only at: anchor pose is a constant `[0,0,0]`/identity and trajectory keyframes are empty with `estimatedDriftMeters=0` (`HoloMapRuntime.ts:629-644`); the micro-encoder uses random-seeded weights, not a trained checkpoint.
 - **INTENT.** The anchor should carry a real estimated pose and the trajectory real keyframes derived from the per-frame encoder latents/centroids, so "anchored space" reflects actual reconstruction, not a placeholder transform.
 - **PATH.** Derive pose from the accumulated point centroid + principal axes per frame; populate trajectory keyframes; estimate drift from inter-frame pose deltas. Longer term: load a trained micro-encoder checkpoint.
