@@ -51,6 +51,9 @@ jobs:
       - name: Check architecture coupling guard
         run: pnpm architecture:check
 
+      - name: Check boundary drift ratchet (shrink-OK, grow-FAIL)
+        run: pnpm check:boundary
+
       - name: Verify Claude plugin.json matches .claude/skills
         run: pnpm verify:claude-plugin-skills
 
