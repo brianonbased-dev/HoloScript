@@ -358,6 +358,15 @@ export {
   type SdfCounterexample,
 } from './SdfConjecture';
 
+// Conjecture prior-art corpus — a real, bounded seed of known results for the
+// `rediscovered` novelty check (the honest-NO that stops a novice from claiming
+// an already-known result, D.060 / W.520). Consumes the shipped assessConjectureNovelty
+// corpus parameter; full literature ingestion is the documented follow-up.
+export {
+  KNOWN_RESULTS_CORPUS,
+  assessNoveltyAgainstKnownResults,
+} from './ConjecturePriorArtCorpus';
+
 // Number-theory conjecture sub-class (`conjecture.numbertheory.erdos-straus.v1`)
 // — the first NON-geometry Conjecture Engine target. Reuses the generic receipt
 // key primitive; survivor-by-construction with honest `undecided` on the open case.
