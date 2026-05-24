@@ -1185,7 +1185,7 @@ export const compilerTools: Tool[] = [
   {
     name: 'compile_to_sdf',
     description:
-      'Compile HoloScript to SDF (Simulation Description Format) for Gazebo environments',
+      'Compile HoloScript to Gazebo SDF (Simulation Description Format) XML; not signed-distance-field ray marching',
     inputSchema: {
       type: 'object',
       properties: {

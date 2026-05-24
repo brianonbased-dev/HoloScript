@@ -123,7 +123,7 @@ All 26 HoloScript compilers now require agent tokens:
 
 ### Data Formats
 
-- **SDFCompiler** - Signed Distance Fields
+- **SDFCompiler** - Gazebo Simulation Description Format XML
 - **URDFCompiler** - Unified Robot Description Format
 - **DTDLCompiler** - Digital Twins Definition Language
 - **USDPhysicsCompiler** - USD Physics schema

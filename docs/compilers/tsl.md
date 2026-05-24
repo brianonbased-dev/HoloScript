@@ -4,7 +4,7 @@ Compiles HoloScript visual traits directly to [WGSL](https://www.w3.org/TR/WGSL/
 
 ## Overview
 
-The TSL compiler (`--target tsl`) implements **Trait Shader Language**: HoloScript's visual trait declarations become compiled WGSL vertex and fragment shaders. You never write a shader; you write traits.
+The TSL compiler (`--target tsl`) implements **Trait Shader Language**: HoloScript's visual trait declarations become compiled WGSL vertex and fragment shaders. It emits WGSL string modules plus a TypeScript pipeline file, not Three.js TSL `Fn`/node-graph JavaScript. You never write a shader; you write traits.
 
 ```bash
 holoscript compile material.holo --target tsl --output ./shaders/

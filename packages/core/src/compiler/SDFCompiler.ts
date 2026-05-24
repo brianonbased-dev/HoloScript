@@ -3,6 +3,8 @@
  *
  * Exports HoloScript compositions to SDF XML format for Gazebo simulation.
  * SDF is more feature-rich than URDF, supporting environments, lights, and sensors.
+ * This compiler emits Gazebo Simulation Description Format, not signed-distance
+ * functions; use SDFRayMarchCompiler for ray-marched SDF geometry.
  *
  * Maps:
  *   - Composition → World

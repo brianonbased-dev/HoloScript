@@ -8,9 +8,21 @@ import { describe, it, expect } from 'vitest';
 import { HoloGramMLSCompiler, createHoloGramMLSCompiler } from '../HoloGramMLSCompiler';
 
 const SAMPLE_PHOTOS = [
-  { url: 'https://example.com/living1.jpg', room: 'Living Room', width: 1024, height: 768, caption: 'Living Room View' },
+  {
+    url: 'https://example.com/living1.jpg',
+    room: 'Living Room',
+    width: 1024,
+    height: 768,
+    caption: 'Living Room View',
+  },
   { url: 'https://example.com/living2.jpg', room: 'Living Room', width: 800, height: 600 },
-  { url: 'https://example.com/kitchen1.jpg', room: 'Kitchen', width: 1200, height: 900, caption: 'Kitchen Island' },
+  {
+    url: 'https://example.com/kitchen1.jpg',
+    room: 'Kitchen',
+    width: 1200,
+    height: 900,
+    caption: 'Kitchen Island',
+  },
   { url: 'https://example.com/bedroom1.jpg', room: 'Master Bedroom', width: 1024, height: 768 },
 ];
 
@@ -28,9 +40,14 @@ describe('HoloGramMLSCompiler', () => {
     expect(compiler.options.walkable).toBe(false);
   });
 
+  it('keeps compile() unsupported because MLS ingestion uses compileBundle()', () => {
+    const compiler = new HoloGramMLSCompiler();
+    expect(() => compiler.compile({ photos: [] })).toThrow('Use compileBundle');
+  });
+
   it('should compile a simple single-photo bundle', () => {
     const compiler = new HoloGramMLSCompiler();
-    const result = compiler.compile({
+    const result = compiler.compileBundle({
       photos: [{ url: 'https://example.com/photo.jpg', room: 'Entry' }],
     });
 
@@ -46,7 +63,7 @@ describe('HoloGramMLSCompiler', () => {
 
   it('should group photos by room', () => {
     const compiler = new HoloGramMLSCompiler();
-    const result = compiler.compile({ photos: SAMPLE_PHOTOS });
+    const result = compiler.compileBundle({ photos: SAMPLE_PHOTOS });
 
     expect(result.success).toBe(true);
     expect(result.stats.photos).toBe(4);
@@ -56,7 +73,7 @@ describe('HoloGramMLSCompiler', () => {
 
   it('should create depth-estimation traits on photo objects', () => {
     const compiler = new HoloGramMLSCompiler();
-    const result = compiler.compile({ photos: SAMPLE_PHOTOS });
+    const result = compiler.compileBundle({ photos: SAMPLE_PHOTOS });
 
     const photoObjects = result.composition!.objects.filter((o: any) =>
       o.traits?.some((t: any) => t.name === 'image')
@@ -79,7 +96,7 @@ describe('HoloGramMLSCompiler', () => {
       displacementScale: 0.5,
       displacementSegments: 256,
     });
-    const result = compiler.compile({ photos: SAMPLE_PHOTOS });
+    const result = compiler.compileBundle({ photos: SAMPLE_PHOTOS });
 
     const photoObj = result.composition!.objects.find((o: any) =>
       o.traits?.some((t: any) => t.name === 'depth_estimation')
@@ -95,28 +112,24 @@ describe('HoloGramMLSCompiler', () => {
 
   it('should create a floor object per room', () => {
     const compiler = new HoloGramMLSCompiler();
-    const result = compiler.compile({ photos: SAMPLE_PHOTOS });
+    const result = compiler.compileBundle({ photos: SAMPLE_PHOTOS });
 
-    const floors = result.composition!.objects.filter((o: any) =>
-      o.id?.startsWith('floor_')
-    );
+    const floors = result.composition!.objects.filter((o: any) => o.id?.startsWith('floor_'));
     expect(floors.length).toBe(3);
   });
 
   it('should create room labels as billboard objects', () => {
     const compiler = new HoloGramMLSCompiler();
-    const result = compiler.compile({ photos: SAMPLE_PHOTOS });
+    const result = compiler.compileBundle({ photos: SAMPLE_PHOTOS });
 
-    const labels = result.composition!.objects.filter((o: any) =>
-      o.id?.startsWith('label_')
-    );
+    const labels = result.composition!.objects.filter((o: any) => o.id?.startsWith('label_'));
     expect(labels.length).toBe(3);
     expect(labels[0].traits.some((t: any) => t.name === 'billboard')).toBe(true);
   });
 
   it('should include spot lights when enabled', () => {
     const compiler = createHoloGramMLSCompiler({ spotLighting: true });
-    const result = compiler.compile({ photos: SAMPLE_PHOTOS });
+    const result = compiler.compileBundle({ photos: SAMPLE_PHOTOS });
 
     const spots = result.composition!.lights.filter((l: any) => l.lightType === 'spot');
     expect(spots.length).toBe(3);
@@ -124,7 +137,7 @@ describe('HoloGramMLSCompiler', () => {
 
   it('should omit spot lights when disabled', () => {
     const compiler = createHoloGramMLSCompiler({ spotLighting: false });
-    const result = compiler.compile({ photos: SAMPLE_PHOTOS });
+    const result = compiler.compileBundle({ photos: SAMPLE_PHOTOS });
 
     const spots = result.composition!.lights.filter((l: any) => l.lightType === 'spot');
     expect(spots.length).toBe(0);
@@ -133,7 +146,7 @@ describe('HoloGramMLSCompiler', () => {
 
   it('should create walkable waypoints for multi-room', () => {
     const compiler = createHoloGramMLSCompiler({ walkable: true });
-    const result = compiler.compile({ photos: SAMPLE_PHOTOS });
+    const result = compiler.compileBundle({ photos: SAMPLE_PHOTOS });
 
     expect(result.stats.waypoints).toBe(3);
     expect(result.composition!.waypointSets.length).toBe(1);
@@ -142,7 +155,7 @@ describe('HoloGramMLSCompiler', () => {
 
   it('should omit waypoints when walkable is false', () => {
     const compiler = createHoloGramMLSCompiler({ walkable: false });
-    const result = compiler.compile({ photos: SAMPLE_PHOTOS });
+    const result = compiler.compileBundle({ photos: SAMPLE_PHOTOS });
 
     expect(result.stats.waypoints).toBe(0);
     expect(result.composition!.waypointSets.length).toBe(0);
@@ -150,11 +163,8 @@ describe('HoloGramMLSCompiler', () => {
 
   it('should handle photos without room labels', () => {
     const compiler = new HoloGramMLSCompiler();
-    const result = compiler.compile({
-      photos: [
-        { url: 'https://example.com/a.jpg' },
-        { url: 'https://example.com/b.jpg' },
-      ],
+    const result = compiler.compileBundle({
+      photos: [{ url: 'https://example.com/a.jpg' }, { url: 'https://example.com/b.jpg' }],
     });
 
     expect(result.success).toBe(true);
@@ -164,7 +174,7 @@ describe('HoloGramMLSCompiler', () => {
 
   it('should handle empty bundle gracefully', () => {
     const compiler = new HoloGramMLSCompiler();
-    const result = compiler.compile({ photos: [] });
+    const result = compiler.compileBundle({ photos: [] });
 
     expect(result.success).toBe(true);
     expect(result.composition!.objects.length).toBe(0);
@@ -173,7 +183,7 @@ describe('HoloGramMLSCompiler', () => {
 
   it('should include a world block with bounds', () => {
     const compiler = new HoloGramMLSCompiler();
-    const result = compiler.compile({ photos: SAMPLE_PHOTOS });
+    const result = compiler.compileBundle({ photos: SAMPLE_PHOTOS });
 
     expect(result.composition!.worlds).toBeDefined();
     expect(result.composition!.worlds!.length).toBe(1);
@@ -182,7 +192,7 @@ describe('HoloGramMLSCompiler', () => {
 
   it('should position camera at first room entrance', () => {
     const compiler = new HoloGramMLSCompiler({ roomSpacing: 10 });
-    const result = compiler.compile({ photos: SAMPLE_PHOTOS });
+    const result = compiler.compileBundle({ photos: SAMPLE_PHOTOS });
 
     expect(result.composition!.camera).toBeDefined();
     expect(result.composition!.camera!.position.y).toBe(1.6);
@@ -190,7 +200,7 @@ describe('HoloGramMLSCompiler', () => {
 
   it('should include property metadata in composition', () => {
     const compiler = new HoloGramMLSCompiler();
-    const result = compiler.compile({
+    const result = compiler.compileBundle({
       photos: [{ url: 'https://example.com/p.jpg', room: 'Test' }],
       propertyMetadata: { listingId: '12345', agent: 'Alice' },
     });

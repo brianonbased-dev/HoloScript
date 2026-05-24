@@ -4,6 +4,8 @@
  * Takes a set of real-estate listing photos (typically from an MLS feed) and
  * compiles a walkable, depth-displaced 3D gallery where each photo becomes a
  * spatial panel with estimated depth geometry.
+ * MLS means Multiple Listing Service here; this compiler is unrelated to
+ * multi-layer stereo or MV-HEVC hologram encoding.
  *
  * Pipeline per photo:
  *   @image → @depth_estimation → @displacement → @depth_to_normal
