@@ -4,7 +4,18 @@ Findings from deep-ratchet 2026-05-24 on the Quest Proof Dashboard
 (`/t/<id>/quest-proof`). Bounded fixes already landed in the same commit; the
 items below are unbounded / touch shared tunnel behavior and need a decision.
 
-## E1 — Proof must not be captured through a capability-spoofing relay (FOUNDER-GATE)
+## E1 — Proof must not be captured through a capability-spoofing relay (LANDED 2026-05-24)
+
+> RESOLVED per founder decision 2026-05-24: suppress the relay shim when a runId is
+> present (proof mode); keep it for runId-less preview. Local origin is an optional
+> control run, NOT the acceptance gate — Quest proof must work through
+> HoloGate/HoloTunnel/Cloudflare (the real headset operator lane). Implemented in
+> mcp-orchestrator `tunnelRoutes.ts` (proofMode threaded from runId → patchScript omits
+> the isSessionSupported override, sets `window.__holotunnelProofMode`; preview sets
+> `window.__holotunnelXrShim`). QuestProbe reads the authoritative `__holotunnelXrShim`
+> flag (`QuestProbe.tsx`). Tests: tunnelRoutes proof/preview shim cases (17/17).
+> DEPLOY REQUIRED: orchestrator change is live only after Railway deploy.
+
 
 **CONTEXT.** The HoloTunnel relay injects a shim
 (`mcp-orchestrator/src/routes/tunnelRoutes.ts:279-283`) that forces

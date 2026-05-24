@@ -93,18 +93,17 @@ function proofApiPath(path: string): string {
   return path;
 }
 
-// The HoloTunnel relay injects a shim that forces
-// navigator.xr.isSessionSupported('immersive-vr') => true for any /Quest/i UA
-// (mcp-orchestrator tunnelRoutes.ts). Through the tunnel the immersive-vr
-// capability flag is therefore meaningless — a created session (requestSession,
-// which the relay does NOT spoof) is the only genuine proof. Detect the tunneled
-// preview so the capability receipt discloses the shim instead of overclaiming.
-function isTunneledPreview(): boolean {
+// The HoloTunnel relay forces navigator.xr.isSessionSupported('immersive-vr')
+// => true for Quest UAs ONLY in preview mode (no runId). In that case it sets an
+// authoritative window.__holotunnelXrShim flag so this page can disclose that the
+// immersive-vr capability is shimmed rather than overclaim a hollow OK. In PROOF
+// mode (runId present) the relay suppresses the shim entirely (E1, founder
+// decision 2026-05-24), so isSessionSupported reads the real device — and this
+// returns false, yielding a genuine OK/FAIL. A created session (requestSession,
+// never shimmed) remains the strongest proof regardless of mode.
+function xrCapabilityShimmed(): boolean {
   if (typeof window === 'undefined') return false;
-  return (
-    /^\/t\/[^/]+/.test(window.location.pathname) ||
-    window.location.pathname.startsWith('/live/')
-  );
+  return (window as unknown as { __holotunnelXrShim?: boolean }).__holotunnelXrShim === true;
 }
 
 async function postProofReceipt(label: string, status: Status, detail: string) {
@@ -220,12 +219,12 @@ export function QuestProbe() {
         .catch(() => false);
       const ar = await withTimeout(xr.isSessionSupported('immersive-ar'), 'immersive-ar support')
         .catch(() => false);
-      const vrShimmed = isTunneledPreview() && /Quest/i.test(navigator.userAgent);
+      const vrShimmed = xrCapabilityShimmed();
       push(
         'WebXR immersive-vr',
         vrShimmed ? 'WARN' : vr ? 'OK' : 'FAIL',
         vrShimmed
-          ? 'capability flag forced true by tunnel preview shim — not a device proof; see "VR session start" for genuine session evidence'
+          ? 'preview mode: capability forced true by tunnel shim — not a device proof; open with a runId for proof mode, or see "VR session start" for genuine session evidence'
           : vr
             ? 'supported'
             : 'not supported'
