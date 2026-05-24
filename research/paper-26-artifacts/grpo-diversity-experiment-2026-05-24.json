@@ -1,0 +1,81 @@
+{
+  "experiment": "grpo-diversity-experiment",
+  "paper": "Paper 26",
+  "contribution": "Contribution 3 — GRPO diversity guarantee (tractable subset)",
+  "date": "2026-05-24",
+  "config": {
+    "window": 1000,
+    "diversity_target": 0.8,
+    "group_size": 8
+  },
+  "real_components_used": [
+    "packages/core/src/traits/pillar/SliceEmitter.ts :: sliceEmitterHandler (diversity tracking, unmodified)",
+    "packages/core/src/traits/pillar/PillarRegistry.ts :: seed Pillars (real slice generation)"
+  ],
+  "measured": {
+    "diversity_guarantee": {
+      "healthy": {
+        "total": 1000,
+        "unique": 371,
+        "diversity_ratio": 0.371,
+        "alert_fired": true,
+        "first_alert_step": 3,
+        "checkpoints": [
+          {
+            "n": 10,
+            "unique": 8,
+            "diversity_ratio": 0.8
+          },
+          {
+            "n": 100,
+            "unique": 53,
+            "diversity_ratio": 0.53
+          },
+          {
+            "n": 1000,
+            "unique": 371,
+            "diversity_ratio": 0.371
+          }
+        ]
+      },
+      "collapsed": {
+        "total": 1000,
+        "unique": 1,
+        "diversity_ratio": 0.001,
+        "alert_fired": true,
+        "first_alert_step": 1,
+        "checkpoints": [
+          {
+            "n": 10,
+            "unique": 1,
+            "diversity_ratio": 0.1
+          },
+          {
+            "n": 100,
+            "unique": 1,
+            "diversity_ratio": 0.01
+          },
+          {
+            "n": 1000,
+            "unique": 1,
+            "diversity_ratio": 0.001
+          }
+        ]
+      },
+      "discrimination_ratio_unique_healthy_over_collapsed": 371,
+      "collapse_detected": true,
+      "finding_threshold_is_miscalibrated_for_cumulative_ratio": true
+    },
+    "advantage_variance_link": {
+      "note": "Synthetic reward r = -L_total proxy; real GRPORewardFunctions shell out per-completion and cannot be driven in-process at this scale.",
+      "healthy_mean_reward_variance": 0.04151222893250001,
+      "collapsed_mean_reward_variance": 1.8129912749062014e-7,
+      "healthy_mean_abs_advantage": 0.8901633827524967,
+      "collapsed_mean_abs_advantage": 0.8499906758235889,
+      "variance_ratio_healthy_over_collapsed": 228970.92505118498
+    }
+  },
+  "deferred": {
+    "poverty_of_stimulus_M_over_N": "NOT measured. The full generalization claim — a policy TRAINED on N slices generalizing to M>N held-out scenarios — requires a real long-running GRPO training loop with the live reward pipeline (GRPORewardFunctions / GRPORewardOrchestrator). Out of scope for this artifact; remains future work."
+  }
+}
