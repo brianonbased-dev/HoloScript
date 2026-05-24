@@ -93,6 +93,20 @@ function proofApiPath(path: string): string {
   return path;
 }
 
+// The HoloTunnel relay injects a shim that forces
+// navigator.xr.isSessionSupported('immersive-vr') => true for any /Quest/i UA
+// (mcp-orchestrator tunnelRoutes.ts). Through the tunnel the immersive-vr
+// capability flag is therefore meaningless — a created session (requestSession,
+// which the relay does NOT spoof) is the only genuine proof. Detect the tunneled
+// preview so the capability receipt discloses the shim instead of overclaiming.
+function isTunneledPreview(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    /^\/t\/[^/]+/.test(window.location.pathname) ||
+    window.location.pathname.startsWith('/live/')
+  );
+}
+
 async function postProofReceipt(label: string, status: Status, detail: string) {
   if (typeof window === 'undefined') return;
   const context = proofContext();
@@ -206,7 +220,16 @@ export function QuestProbe() {
         .catch(() => false);
       const ar = await withTimeout(xr.isSessionSupported('immersive-ar'), 'immersive-ar support')
         .catch(() => false);
-      push('WebXR immersive-vr', vr ? 'OK' : 'FAIL', vr ? 'supported' : 'not supported');
+      const vrShimmed = isTunneledPreview() && /Quest/i.test(navigator.userAgent);
+      push(
+        'WebXR immersive-vr',
+        vrShimmed ? 'WARN' : vr ? 'OK' : 'FAIL',
+        vrShimmed
+          ? 'capability flag forced true by tunnel preview shim — not a device proof; see "VR session start" for genuine session evidence'
+          : vr
+            ? 'supported'
+            : 'not supported'
+      );
       push(
         'WebXR immersive-ar',
         ar ? 'OK' : 'FAIL',
