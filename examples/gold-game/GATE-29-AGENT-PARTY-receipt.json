@@ -3,11 +3,11 @@
   "gate": 29,
   "track": "flagship",
   "name": "agent party AI (visible companions)",
-  "timestamp": "2026-05-24T04:42:55.951Z",
+  "timestamp": "2026-05-24T05:08:59.557Z",
   "coreVersion": "6.1.0",
   "checks": {
-    "passed": 20,
-    "total": 20
+    "passed": 25,
+    "total": 25
   },
   "party": [
     {

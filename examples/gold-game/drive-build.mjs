@@ -820,6 +820,79 @@ const vaultBrowserScript = `<script>
   applyFilter();
 })();
 </script>`;
+// Gate 29: VISIBLE agent party. Embeds the SAME persona roster + deterministic POOL
+// the verified gold-game-party.mjs engine uses, so the on-screen companions render the
+// same persona-attributable picks the engine proves (cold-session). REWARD/ceiling are
+// the engine's real economy constants (REWARD=25, $0.50/day agenda ceiling).
+const partyBoot = '<script>window.__GOLD_GAME_PARTY__=' + JSON.stringify({
+  reward: 25,
+  dailyCeilingUsd: 0.5,
+  roster: [
+    { id: 'companion-archivist', name: 'Maren the Archivist', glyph: '📜', persona: 'lineage-depth' },
+    { id: 'companion-scout', name: 'Edda the Scout', glyph: '🧭', persona: 'breadth/novelty' },
+    { id: 'companion-quartermaster', name: 'Bran the Quartermaster', glyph: '⚖️', persona: 'ROI' },
+  ],
+  pool: [
+    { id: 'P.PARTY.001', title: 'cross-domain-synthesis-of-causal-and-quantum', lineage_links: 6 },
+    { id: 'P.PARTY.002', title: 'receipt-with-solver', lineage_links: 5 },
+    { id: 'P.PARTY.003', title: 'survey-before-gap-analysis', lineage_links: 4 },
+    { id: 'P.PARTY.004', title: 'import-array-regex-gate', lineage_links: 3 },
+    { id: 'P.PARTY.005', title: 'apply-four-refusals-to-own-analysis', lineage_links: 2 },
+    { id: 'P.PARTY.006', title: 'scavenging-is-the-default', lineage_links: 1 },
+  ],
+}) + ';</script>';
+// Gate 29: render the named party — each companion CHOOSES (persona policy), EXPLAINS
+// (grounded voice + live lineage/budget), and SPENDS under the metered ceiling.
+const partyPanelScript = `<script>
+(function(){
+  var P = window.__GOLD_GAME_PARTY__; if (!P) return;
+  var panel = document.getElementById('agentParty');
+  var toggle = document.getElementById('partyToggle');
+  var close = document.getElementById('partyClose');
+  var listEl = document.getElementById('partyList');
+  if (!panel || !listEl) return;
+  // The persona score/voice — byte-faithful to gold-game-party.mjs PARTY[].
+  var score = {
+    'companion-archivist': function(e){ return (e.lineage_links||0)*10; },
+    'companion-scout': function(e){ return (e.title||'').length*1.5 + (e.lineage_links||0); },
+    'companion-quartermaster': function(e){ return 100 - (e.lineage_links||0)*5; }
+  };
+  var voice = {
+    'companion-archivist': function(e){ return e.lineage_links + ' threads run through "' + e.title + '" — that depth is what the ledger should remember.'; },
+    'companion-scout': function(e){ return '"' + e.title + '" opens ground we havent mapped — Ill plant the flag there.'; },
+    'companion-quartermaster': function(e){ return '"' + e.title + '" earns its keep for the least outlay — ' + e.lineage_links + ' links is plenty. Good stewardship.'; }
+  };
+  function planAndRender(){
+    listEl.innerHTML = '';
+    var taken = {};
+    P.roster.forEach(function(c){
+      var pool = P.pool.filter(function(e){ return (e.lineage_links||0) >= 1 && !taken[e.id]; });
+      var card = document.createElement('div');
+      card.className = 'partyCard'; card.dataset.companion = c.id; card.setAttribute('data-gate29', 'companion');
+      if (!pool.length){
+        card.innerHTML = '<div class="pcHead"></div><div class="pcPick">nothing left that respects the players taste</div>';
+        card.querySelector('.pcHead').textContent = c.glyph + ' ' + c.name;
+        listEl.appendChild(card); return;
+      }
+      pool.sort(function(a,b){ return (score[c.id](b) - score[c.id](a)) || (a.id < b.id ? -1 : 1); });
+      var pick = pool[0]; taken[pick.id] = true;
+      var reason = voice[c.id](pick) + ' (lineage=' + pick.lineage_links + ', earned +' + P.reward + ', under $' + P.dailyCeilingUsd.toFixed(2) + '/day ceiling)';
+      card.innerHTML = '<div class="pcHead"></div><div class="pcPick" data-gate29="choice"></div>'
+        + '<div class="pcWhy" data-gate29="explanation"></div><div class="pcBudget" data-gate29="budget"></div>';
+      card.querySelector('.pcHead').textContent = c.glyph + ' ' + c.name;
+      card.querySelector('.pcPick').textContent = 'graduates ' + pick.id + ' — ' + pick.title;
+      card.querySelector('.pcWhy').textContent = reason;
+      card.querySelector('.pcBudget').textContent = 'reward +' + P.reward + ' · ceiling $' + P.dailyCeilingUsd.toFixed(2) + '/day (not breached)';
+      listEl.appendChild(card);
+    });
+  }
+  function setOpen(v){ panel.dataset.open = v ? 'true' : 'false'; if (v) planAndRender(); }
+  toggle && toggle.addEventListener('click', function(){ setOpen(panel.dataset.open !== 'true'); });
+  close && close.addEventListener('click', function(){ setOpen(false); });
+  window.addEventListener('keydown', function(e){ if ((e.key === 'p' || e.key === 'P') && !/input|textarea/i.test((e.target||{}).tagName||'')) setOpen(panel.dataset.open !== 'true'); });
+  planAndRender();
+})();
+</script>`;
 const conceptArtBoot = '<script>window.__GOLD_GAME_CONCEPT_ART__=' + JSON.stringify(conceptArt ? conceptArt.dataUrl : '') +
   ';window.__GOLD_GAME_CONCEPT_ART_META__=' + JSON.stringify(conceptArt ? {
     file: conceptArt.file,
@@ -1122,6 +1195,8 @@ toolsetBoot +
 '<aside id="vaultBrowser" data-open="false" data-gate28="full-vault-browser"><button id="vaultClose" type="button">Close</button><h2>Browse the GOLD Vault</h2>' +
 '<div id="vaultControls"><input id="vaultSearch" type="search" placeholder="search id / title / domain…" autocomplete="off"><select id="vaultTier"></select><select id="vaultType"></select></div>' +
 '<div id="vaultCount">entries</div><div id="vaultResults"></div></aside>' +
+'<button id="partyToggle" type="button" data-gate29="agent-party">Party</button>' +
+'<aside id="agentParty" data-open="false" data-gate29="agent-party-panel"><button id="partyClose" type="button">Close</button><h2>Your Party</h2><p>Named AI companions climb alongside you — each chooses a GOLD entry by its own persona, explains why, and spends under a metered ceiling.</p><div id="partyList"></div></aside>' +
 '<script>' + bundle + '</script>' +
 '<script>if(location.protocol!=="file:"){fetch("./api/vault").then(function(r){return r.json()}).then(function(v){var el=document.getElementById("live");if(!el)return;' +
  'el.textContent=v.connected?("LIVE vault: "+(v.total||"?")+" entries · as of "+(v.asOf||"?")):"vault not detected — embedded snapshot"}).catch(function(){});}</script>' +
@@ -1130,6 +1205,8 @@ toolsetScript +
 holoGraphScript +
 goldDataScript +
 vaultBrowserScript +
+partyBoot +
+partyPanelScript +
 campaignScript +
 '</body></html>';
 writeFileSync(join(OUT, 'index.html'), html);

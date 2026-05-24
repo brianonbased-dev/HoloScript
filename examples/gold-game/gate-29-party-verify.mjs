@@ -93,6 +93,17 @@ const s1b = await runPartySession({ sandboxDir, memoryPath, sessionLabel: 'climb
 check('party digest REPRODUCES (deterministic)', s1.partyDigest === s1b.partyDigest, `${s1.partyDigest?.slice(0, 12)} == ${s1b.partyDigest?.slice(0, 12)}`);
 check('economy digest REPRODUCES (deterministic)', s1.economyDigest === s1b.economyDigest, `${s1.economyDigest?.slice(0, 12)} == ${s1b.economyDigest?.slice(0, 12)}`);
 
+// ── VISIBLE in the generated build (anti-stale-build; the "visible companions" half) ──
+// The engine deltas above prove the party THINKS; these prove the party is SEEN. Reads the
+// committed/generated drive-build so a future stale build (Gate 28's trap) fails here.
+const buildPath = join(here, 'drive-build', 'index.html');
+const build = existsSync(buildPath) ? readFileSync(buildPath, 'utf8') : '';
+check('generated build exists', build.length > 0, buildPath);
+check('build exposes a VISIBLE party panel (data-gate29 marker)', /data-gate29="agent-party-panel"/.test(build) && /data-gate29="agent-party"/.test(build), 'panel + toggle markers');
+check('build renders all 3 NAMED companions', PARTY.every((c) => build.includes(c.name)), PARTY.map((c) => c.name).join(' / '));
+check('build wires per-companion CHOICE + EXPLANATION + BUDGET elements', /data-gate29="choice"/.test(build) && /data-gate29="explanation"/.test(build) && /data-gate29="budget"/.test(build), 'choice/explanation/budget');
+check('build embeds the SAME persona roster + pool the engine uses (not a mock)', /__GOLD_GAME_PARTY__/.test(build) && PARTY.every((c) => build.includes(c.id)) && build.includes('P.PARTY.001'), 'roster ids + pool embedded');
+
 // ── Report ──
 const passed = checks.filter((c) => c.pass).length;
 const total = checks.length;
