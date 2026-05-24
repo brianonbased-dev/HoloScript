@@ -8,6 +8,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   RECEIPT_VERSION,
+  buildNativeTileCorrespondence,
   selfTest,
   validateReceipt,
 } from '../holoshell-camera-scan-adapter.mjs';
@@ -89,7 +90,56 @@ const pass = {
 };
 assertEq(validateReceipt(pass).length, 0, 'minimal pass receipt validates');
 
-console.log('Test 3: CLI self-test runs without touching hardware');
+console.log('Test 3: native tile-flow correspondence detects shifted low-res tiles');
+function makeFrame(index, tiles) {
+  const width = 4;
+  const height = 4;
+  const stride = 3;
+  const rgb = new Uint8Array(width * height * stride);
+  for (let ty = 0; ty < 2; ty += 1) {
+    for (let tx = 0; tx < 2; tx += 1) {
+      const color = tiles[ty * 2 + tx];
+      for (let y = ty * 2; y < ty * 2 + 2; y += 1) {
+        for (let x = tx * 2; x < tx * 2 + 2; x += 1) {
+          const p = (y * width + x) * stride;
+          rgb[p] = color[0];
+          rgb[p + 1] = color[1];
+          rgb[p + 2] = color[2];
+        }
+      }
+    }
+  }
+  return { index, width, height, stride, rgb };
+}
+
+const correspondence = buildNativeTileCorrespondence({
+  frames: [
+    makeFrame(0, [
+      [0, 0, 0],
+      [255, 0, 0],
+      [0, 0, 0],
+      [0, 0, 255],
+    ]),
+    makeFrame(1, [
+      [255, 0, 0],
+      [0, 255, 0],
+      [0, 0, 255],
+      [255, 255, 255],
+    ]),
+  ],
+  bridgeFrames: [
+    { frameIndex: 0, pointOffset: 0, pointCount: 4 },
+    { frameIndex: 1, pointOffset: 4, pointCount: 4 },
+  ],
+  pointsPerFrame: 4,
+});
+assertEq(correspondence?.method, 'native-tile-flow-v1', 'correspondence method');
+assertEq(correspondence?.referenceFrameIndex, 1, 'latest frame is reference');
+assertEq(correspondence?.frameMatches?.[0]?.shiftTiles?.[0], 1, 'horizontal tile shift detected');
+assertEq(correspondence?.frameMatches?.[0]?.shiftTiles?.[1], 0, 'vertical tile shift stable');
+assertOk((correspondence?.meanMatchScore ?? 0) > 0.5, 'shift score is load-bearing');
+
+console.log('Test 4: CLI self-test runs without touching hardware');
 const cli = spawnSync(process.execPath, [SCRIPT, '--self-test'], {
   cwd: REPO_ROOT,
   encoding: 'utf8',

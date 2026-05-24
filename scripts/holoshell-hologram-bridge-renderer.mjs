@@ -21,9 +21,9 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const VERSION = '0.4.0';
-export const RECEIPT_VERSION = 'holoshell-hologram-bridge-renderer/v4';
-const TEMPORAL_MODES = new Set(['all', 'latest', 'fuse', 'aligned']);
+export const VERSION = '0.5.0';
+export const RECEIPT_VERSION = 'holoshell-hologram-bridge-renderer/v5';
+const TEMPORAL_MODES = new Set(['all', 'latest', 'fuse', 'aligned', 'tracked']);
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
@@ -93,7 +93,7 @@ function parseArgs(argv) {
     throw new Error('--glow-radius must be an integer from 0 to 64');
   }
   if (args.temporalMode !== undefined && !TEMPORAL_MODES.has(args.temporalMode)) {
-    throw new Error('--temporal-mode must be one of: all, latest, fuse, aligned');
+    throw new Error('--temporal-mode must be one of: all, latest, fuse, aligned, tracked');
   }
   return args;
 }
@@ -104,15 +104,15 @@ function printHelp() {
 Usage:
   node scripts/holoshell-hologram-bridge-renderer.mjs --bridge scan.hologram-bridge.json [--out receipt.json]
   node scripts/holoshell-hologram-bridge-renderer.mjs --bridge scan.hologram-bridge.json --exposure 2.5 --point-radius 5
-  node scripts/holoshell-hologram-bridge-renderer.mjs --bridge scan.hologram-bridge.json --temporal-mode aligned
+  node scripts/holoshell-hologram-bridge-renderer.mjs --bridge scan.hologram-bridge.json --temporal-mode tracked
   node scripts/holoshell-hologram-bridge-renderer.mjs --self-test
 
 Notes:
   - Reads HoloMap point-cloud bridge JSON emitted by holoshell:camera-scan.
   - Emits a deterministic quilt preview PNG and receipt.
-  - Multi-frame point clouds with pose metadata default to --temporal-mode aligned.
+  - Multi-frame point clouds with native tile-flow metadata default to --temporal-mode tracked.
   - Auto-exposes dim point clouds by default; pass --no-auto-exposure to disable.
-  - Does not claim MV-HEVC or parallax video encoding.
+  - Does not claim optical flow, MV-HEVC, or parallax video encoding.
 `);
 }
 
@@ -200,6 +200,9 @@ function computeRenderStyle({ points, tileWidth, tileHeight, args, tileGrid, tem
     surfaceFill: useSurfaceFill,
     surfaceCellWidth,
     surfaceCellHeight,
+    surfaceMesh: useSurfaceFill,
+    surfaceMeshGrid: useSurfaceFill ? tileGrid : undefined,
+    surfaceMeshAlpha: useSurfaceFill ? 0.82 : undefined,
     averageSourceLuminance: Number(avgLum.toFixed(4)),
     averagePointSpacingPx: Number(spacing.toFixed(3)),
     temporalCoverageGain: Number(temporalCoverageGain.toFixed(3)),
@@ -343,6 +346,86 @@ function hasUsableFramePoses(frames) {
   return frames.length > 1 && frames.every((frame) => posePosition(frame));
 }
 
+function frameByIndex(frames) {
+  return new Map(frames.map((frame) => [frame.frameIndex, frame]));
+}
+
+function usableTileCorrespondence(source, layout, frames) {
+  const correspondence = source?.correspondence;
+  if (!correspondence || !Array.isArray(correspondence.frameMatches)) return undefined;
+  const gridSize = Number.isInteger(correspondence.gridSize)
+    ? correspondence.gridSize
+    : Math.round(Math.sqrt(layout.pointsPerFrame));
+  if (gridSize < 2 || gridSize * gridSize !== layout.pointsPerFrame) return undefined;
+  const framesByIndex = frameByIndex(frames);
+  const referenceFrameIndex = Number.isInteger(correspondence.referenceFrameIndex)
+    ? correspondence.referenceFrameIndex
+    : frames[frames.length - 1]?.frameIndex;
+  const referenceFrame = framesByIndex.get(referenceFrameIndex);
+  if (!referenceFrame) return undefined;
+
+  const matches = correspondence.frameMatches
+    .map((match) => {
+      const frameIndex = Number.isInteger(match.frameIndex) ? match.frameIndex : undefined;
+      const frame = frameIndex !== undefined ? framesByIndex.get(frameIndex) : undefined;
+      const shiftTiles = Array.isArray(match.shiftTiles) ? match.shiftTiles.map((value) => Math.trunc(Number(value))) : [];
+      const pointOffset = Number.isInteger(match.pointOffset) ? match.pointOffset : frame?.pointOffset;
+      const score = Number(match.score);
+      if (!frame || shiftTiles.length < 2 || !Number.isInteger(pointOffset)) return undefined;
+      return {
+        frame,
+        frameIndex: frame.frameIndex,
+        pointOffset,
+        shiftTiles: [shiftTiles[0], shiftTiles[1]],
+        score: Number.isFinite(score) ? Math.max(0, Math.min(1, score)) : 1,
+        matchedPointCount: Number.isInteger(match.matchedPointCount) ? match.matchedPointCount : undefined,
+        overlapRatio: Number.isFinite(Number(match.overlapRatio)) ? Number(match.overlapRatio) : undefined,
+      };
+    })
+    .filter(Boolean);
+
+  if (!matches.some((match) => match.frameIndex === referenceFrame.frameIndex)) {
+    matches.push({
+      frame: referenceFrame,
+      frameIndex: referenceFrame.frameIndex,
+      pointOffset: referenceFrame.pointOffset,
+      shiftTiles: [0, 0],
+      score: 1,
+      matchedPointCount: layout.pointsPerFrame,
+      overlapRatio: 1,
+    });
+  }
+  if (matches.length < 2) return undefined;
+
+  return {
+    method: correspondence.method ?? 'native-tile-flow-v1',
+    gridSize,
+    referenceFrame,
+    referenceFrameIndex: referenceFrame.frameIndex,
+    searchRadiusTiles: Number.isInteger(correspondence.searchRadiusTiles) ? correspondence.searchRadiusTiles : undefined,
+    trackCount: Number.isInteger(correspondence.trackCount) ? correspondence.trackCount : layout.pointsPerFrame,
+    meanMatchScore: Number.isFinite(Number(correspondence.meanMatchScore))
+      ? Number(correspondence.meanMatchScore)
+      : mean(matches.filter((match) => match.frameIndex !== referenceFrame.frameIndex).map((match) => match.score)),
+    meanOverlapRatio: Number.isFinite(Number(correspondence.meanOverlapRatio))
+      ? Number(correspondence.meanOverlapRatio)
+      : mean(matches.map((match) => match.overlapRatio ?? 0)),
+    matches: matches.sort((a, b) => a.frameIndex - b.frameIndex),
+  };
+}
+
+function referenceCellSize(points, layout, referenceFrame, gridSize) {
+  const start = referenceFrame.pointOffset;
+  const end = start + layout.pointsPerFrame;
+  const framePoints = points.slice(start, end);
+  if (framePoints.length < 1) return { x: 0, y: 0 };
+  const bounds = boundsFor(framePoints);
+  return {
+    x: Math.abs(bounds.max[0] - bounds.min[0]) / Math.max(1, gridSize - 1),
+    y: Math.abs(bounds.max[1] - bounds.min[1]) / Math.max(1, gridSize - 1),
+  };
+}
+
 function fuseTemporalFrames(points, layout, frames, options = {}) {
   const align = options.align === true;
   const referenceFrame = align ? frames[frames.length - 1] : undefined;
@@ -388,11 +471,84 @@ function fuseTemporalFrames(points, layout, frames, options = {}) {
   return fused;
 }
 
+function fuseTrackedFrames(points, layout, correspondence) {
+  const referencePose = posePosition(correspondence.referenceFrame);
+  const cell = referenceCellSize(points, layout, correspondence.referenceFrame, correspondence.gridSize);
+  const fused = [];
+  const observationCounts = [];
+  for (let i = 0; i < layout.pointsPerFrame; i += 1) {
+    const refX = i % correspondence.gridSize;
+    const refY = Math.floor(i / correspondence.gridSize);
+    let weightSum = 0;
+    let x = 0;
+    let y = 0;
+    let z = 0;
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    let confidence = 0;
+    let observations = 0;
+    for (const match of correspondence.matches) {
+      const sourceX = refX + match.shiftTiles[0];
+      const sourceY = refY + match.shiftTiles[1];
+      if (sourceX < 0 || sourceY < 0 || sourceX >= correspondence.gridSize || sourceY >= correspondence.gridSize) {
+        continue;
+      }
+      const localIndex = sourceY * correspondence.gridSize + sourceX;
+      const point = points[match.pointOffset + localIndex];
+      if (!point) continue;
+      const currentPose = posePosition(match.frame);
+      const dx = currentPose && referencePose ? referencePose[0] - currentPose[0] : 0;
+      const dy = currentPose && referencePose ? referencePose[1] - currentPose[1] : 0;
+      const dz = currentPose && referencePose ? referencePose[2] - currentPose[2] : 0;
+      const confidenceWeight = Math.max(0.05, Number.isFinite(point.confidence) ? point.confidence : 1);
+      const matchWeight = Math.max(0.08, match.score);
+      const weight = confidenceWeight * matchWeight;
+      weightSum += weight;
+      x += (point.x - match.shiftTiles[0] * cell.x + dx) * weight;
+      y += (point.y + match.shiftTiles[1] * cell.y + dy) * weight;
+      z += (point.z + dz) * weight;
+      r += point.r * weight;
+      g += point.g * weight;
+      b += point.b * weight;
+      confidence += Math.max(0, Math.min(1, point.confidence)) * weight;
+      observations += 1;
+    }
+    if (weightSum <= 0) continue;
+    observationCounts.push(observations);
+    fused.push({
+      x: x / weightSum,
+      y: y / weightSum,
+      z: z / weightSum,
+      r: clampByte(r / weightSum),
+      g: clampByte(g / weightSum),
+      b: clampByte(b / weightSum),
+      confidence: confidence / weightSum,
+    });
+  }
+  return {
+    points: fused,
+    stats: {
+      renderedPointCount: fused.length,
+      meanObservationCount: Number(mean(observationCounts).toFixed(3)),
+      trackedFrameCount: correspondence.matches.length,
+      correspondenceMethod: correspondence.method,
+      correspondenceTrackCount: correspondence.trackCount,
+      correspondenceMeanMatchScore: Number(correspondence.meanMatchScore.toFixed(6)),
+      correspondenceMeanOverlapRatio: Number(correspondence.meanOverlapRatio.toFixed(6)),
+      correspondenceSearchRadiusTiles: correspondence.searchRadiusTiles,
+      referenceFrameIndex: correspondence.referenceFrameIndex,
+    },
+  };
+}
+
 function selectTemporalPoints(points, source, requestedMode) {
   const layout = inferFrameLayout(points, source);
   const frames = layout ? frameEntriesForLayout(source, layout) : [];
   const canAlign = hasUsableFramePoses(frames);
-  const defaultMode = layout ? (canAlign ? 'aligned' : 'latest') : 'all';
+  const correspondence = layout ? usableTileCorrespondence(source, layout, frames) : undefined;
+  const canTrack = Boolean(correspondence);
+  const defaultMode = layout ? (canTrack ? 'tracked' : canAlign ? 'aligned' : 'latest') : 'all';
   const mode = requestedMode ?? defaultMode;
   const base = {
     requestedMode: requestedMode ?? 'auto',
@@ -402,6 +558,7 @@ function selectTemporalPoints(points, source, requestedMode) {
     originalPointCount: points.length,
     layoutMatchesTileGrid: layout?.layoutMatchesTileGrid,
     framePoseCount: frames.filter((frame) => posePosition(frame)).length || undefined,
+    correspondenceFrameCount: correspondence?.matches.length,
   };
 
   if (!layout || mode === 'all') {
@@ -412,6 +569,28 @@ function selectTemporalPoints(points, source, requestedMode) {
         temporalMode: !layout && mode !== 'all' ? 'all' : mode,
         renderedPointCount: points.length,
         fallbackReason: !layout && mode !== 'all' ? 'frame layout could not be inferred from bridge metadata' : undefined,
+      },
+    };
+  }
+
+  if (mode === 'tracked' && correspondence) {
+    const tracked = fuseTrackedFrames(points, layout, correspondence);
+    return {
+      points: tracked.points,
+      info: {
+        ...base,
+        renderedPointCount: tracked.stats.renderedPointCount,
+        fusedFrameCount: tracked.stats.trackedFrameCount,
+        trackedFrameCount: tracked.stats.trackedFrameCount,
+        meanObservationCount: tracked.stats.meanObservationCount,
+        alignmentMethod: 'tile-flow-correspondence+pose-centroid-translation',
+        correspondenceMethod: tracked.stats.correspondenceMethod,
+        correspondenceTrackCount: tracked.stats.correspondenceTrackCount,
+        correspondenceMeanMatchScore: tracked.stats.correspondenceMeanMatchScore,
+        correspondenceMeanOverlapRatio: tracked.stats.correspondenceMeanOverlapRatio,
+        correspondenceSearchRadiusTiles: tracked.stats.correspondenceSearchRadiusTiles,
+        referenceFrameIndex: tracked.stats.referenceFrameIndex,
+        referencePosePosition: posePosition(correspondence.referenceFrame),
       },
     };
   }
@@ -431,20 +610,25 @@ function selectTemporalPoints(points, source, requestedMode) {
     };
   }
 
-  const align = mode === 'aligned' && canAlign;
+  const align = (mode === 'aligned' || (mode === 'tracked' && !correspondence)) && canAlign;
   const fused = fuseTemporalFrames(points, layout, frames, { align });
   const referenceFrame = align ? frames[frames.length - 1] : undefined;
   return {
     points: fused,
     info: {
       ...base,
-      temporalMode: mode === 'aligned' && !canAlign ? 'fuse' : mode,
+      temporalMode: mode === 'tracked' && !correspondence ? (canAlign ? 'aligned' : 'fuse') : mode === 'aligned' && !canAlign ? 'fuse' : mode,
       renderedPointCount: fused.length,
       fusedFrameCount: frames.length,
       alignmentMethod: align ? 'pose-centroid-translation' : undefined,
       referenceFrameIndex: referenceFrame?.frameIndex,
       referencePosePosition: posePosition(referenceFrame),
-      fallbackReason: mode === 'aligned' && !canAlign ? 'bridge did not include usable per-frame poses' : undefined,
+      fallbackReason:
+        mode === 'tracked' && !correspondence
+          ? 'bridge did not include usable native tile-flow correspondence'
+          : mode === 'aligned' && !canAlign
+            ? 'bridge did not include usable per-frame poses'
+            : undefined,
     },
   };
 }
@@ -497,6 +681,80 @@ function plotRect(rgba, quiltWidth, quiltHeight, x, y, width, height, color, alp
   }
 }
 
+function projectPoint(point, bounds, zRange, tileX, tileY, tileWidth, tileHeight, cameraOffset) {
+  const nx = normalize(point.x, bounds.min[0], bounds.max[0]);
+  const ny = normalize(point.y, bounds.min[1], bounds.max[1]);
+  const nz = (point.z - bounds.min[2]) / zRange;
+  const parallax = cameraOffset * (0.05 + nz * 0.18);
+  return {
+    x: tileX + (0.1 + (nx + parallax) * 0.8) * tileWidth,
+    y: tileY + (0.9 - ny * 0.8) * tileHeight,
+    z: point.z,
+    confidence: Math.max(0.2, Math.min(1, point.confidence)),
+  };
+}
+
+function rasterizeTriangle(rgba, quiltWidth, quiltHeight, vertices, alpha) {
+  const [a, b, c] = vertices;
+  const minX = Math.max(0, Math.floor(Math.min(a.x, b.x, c.x)));
+  const maxX = Math.min(quiltWidth - 1, Math.ceil(Math.max(a.x, b.x, c.x)));
+  const minY = Math.max(0, Math.floor(Math.min(a.y, b.y, c.y)));
+  const maxY = Math.min(quiltHeight - 1, Math.ceil(Math.max(a.y, b.y, c.y)));
+  const area = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+  if (Math.abs(area) < 1e-6) return;
+
+  for (let py = minY; py <= maxY; py += 1) {
+    for (let px = minX; px <= maxX; px += 1) {
+      const x = px + 0.5;
+      const y = py + 0.5;
+      const w0 = ((b.x - x) * (c.y - y) - (b.y - y) * (c.x - x)) / area;
+      const w1 = ((c.x - x) * (a.y - y) - (c.y - y) * (a.x - x)) / area;
+      const w2 = 1 - w0 - w1;
+      if (w0 < -0.001 || w1 < -0.001 || w2 < -0.001) continue;
+      const confidence = w0 * a.confidence + w1 * b.confidence + w2 * c.confidence;
+      blendPixel(
+        rgba,
+        quiltWidth,
+        px,
+        py,
+        clampByte(w0 * a.color[0] + w1 * b.color[0] + w2 * c.color[0]),
+        clampByte(w0 * a.color[1] + w1 * b.color[1] + w2 * c.color[1]),
+        clampByte(w0 * a.color[2] + w1 * b.color[2] + w2 * c.color[2]),
+        alpha * (0.5 + confidence * 0.35)
+      );
+    }
+  }
+}
+
+function renderSurfaceMesh(rgba, quiltWidth, quiltHeight, points, bounds, tile, cameraOffset, style) {
+  const gridSize = style.surfaceMeshGrid;
+  if (!Number.isInteger(gridSize) || gridSize < 2 || points.length !== gridSize * gridSize) return;
+  const zRange = Math.max(1e-9, bounds.max[2] - bounds.min[2]);
+  const projected = points.map((point) => ({
+    ...projectPoint(point, bounds, zRange, tile.x, tile.y, tile.width, tile.height, cameraOffset),
+    color: applyExposure(point, style),
+  }));
+  const triangles = [];
+  for (let y = 0; y < gridSize - 1; y += 1) {
+    for (let x = 0; x < gridSize - 1; x += 1) {
+      const i0 = y * gridSize + x;
+      const i1 = i0 + 1;
+      const i2 = i0 + gridSize;
+      const i3 = i2 + 1;
+      const a = projected[i0];
+      const b = projected[i1];
+      const c = projected[i2];
+      const d = projected[i3];
+      triangles.push({ z: (a.z + b.z + c.z) / 3, vertices: [a, b, c] });
+      triangles.push({ z: (c.z + b.z + d.z) / 3, vertices: [c, b, d] });
+    }
+  }
+  triangles.sort((a, b) => a.z - b.z);
+  for (const triangle of triangles) {
+    rasterizeTriangle(rgba, quiltWidth, quiltHeight, triangle.vertices, style.surfaceMeshAlpha ?? 0.6);
+  }
+}
+
 async function encodePng(rgba, width, height) {
   const sharp = (await import('sharp')).default;
   return sharp(Buffer.from(rgba), {
@@ -527,17 +785,20 @@ async function renderQuiltPreview({ points, bounds, tileWidth, tileHeight, views
     const tileY = row * tileHeight;
     const denom = Math.max(1, views - 1);
     const cameraOffset = (view / denom - 0.5) * 2;
+    const tile = { x: tileX, y: tileY, width: tileWidth, height: tileHeight };
+
+    if (style.surfaceMesh) {
+      renderSurfaceMesh(rgba, quiltWidth, quiltHeight, points, bounds, tile, cameraOffset, style);
+    }
 
     for (const point of sorted) {
-      const nx = normalize(point.x, bounds.min[0], bounds.max[0]);
-      const ny = normalize(point.y, bounds.min[1], bounds.max[1]);
-      const nz = (point.z - bounds.min[2]) / zRange;
-      const parallax = cameraOffset * (0.05 + nz * 0.18);
-      const px = tileX + (0.1 + (nx + parallax) * 0.8) * tileWidth;
-      const py = tileY + (0.9 - ny * 0.8) * tileHeight;
-      const confidence = Math.max(0.2, Math.min(1, point.confidence));
+      const projected = projectPoint(point, bounds, zRange, tileX, tileY, tileWidth, tileHeight, cameraOffset);
+      const px = projected.x;
+      const py = projected.y;
+      const confidence = projected.confidence;
       const color = applyExposure(point, style);
-      if (style.surfaceFill && style.surfaceCellWidth > 0 && style.surfaceCellHeight > 0) {
+      if (style.surfaceMesh) continue;
+      if (style.surfaceFill && !style.surfaceMesh && style.surfaceCellWidth > 0 && style.surfaceCellHeight > 0) {
         plotRect(
           rgba,
           quiltWidth,
@@ -550,7 +811,7 @@ async function renderQuiltPreview({ points, bounds, tileWidth, tileHeight, views
           0.34 + confidence * 0.2
         );
       }
-      if (style.glowRadius > style.pointRadius) {
+      if (!style.surfaceMesh && style.glowRadius > style.pointRadius) {
         plotPoint(rgba, quiltWidth, quiltHeight, px, py, style.glowRadius, color, 0.12 + confidence * 0.1, 1);
       }
       plotPoint(rgba, quiltWidth, quiltHeight, px, py, style.pointRadius, color, 0.58 + confidence * 0.36, 0.35);
@@ -595,6 +856,7 @@ export async function renderBridge(args) {
   const outPath = resolve(args.out ?? defaultOutputForBridge(bridgePath));
   const replay = bridge.source?.replayFingerprint ?? sha256Text(readFileSync(bridgePath, 'utf8')).slice(0, 16);
   const variant = sha256Text(JSON.stringify(canonical({
+    rendererVersion: VERSION,
     tileWidth: args.tileWidth,
     tileHeight: args.tileHeight,
     views,
@@ -643,7 +905,15 @@ export async function renderBridge(args) {
         layoutMatchesTileGrid: temporal.info.layoutMatchesTileGrid,
         framePoseCount: temporal.info.framePoseCount,
         fusedFrameCount: temporal.info.fusedFrameCount,
+        trackedFrameCount: temporal.info.trackedFrameCount,
+        meanObservationCount: temporal.info.meanObservationCount,
         alignmentMethod: temporal.info.alignmentMethod,
+        correspondenceMethod: temporal.info.correspondenceMethod,
+        correspondenceFrameCount: temporal.info.correspondenceFrameCount,
+        correspondenceTrackCount: temporal.info.correspondenceTrackCount,
+        correspondenceMeanMatchScore: temporal.info.correspondenceMeanMatchScore,
+        correspondenceMeanOverlapRatio: temporal.info.correspondenceMeanOverlapRatio,
+        correspondenceSearchRadiusTiles: temporal.info.correspondenceSearchRadiusTiles,
         referenceFrameIndex: temporal.info.referenceFrameIndex,
         referencePosePosition: temporal.info.referencePosePosition,
         fallbackReason: temporal.info.fallbackReason,
@@ -664,7 +934,7 @@ export async function renderBridge(args) {
       variant,
     },
     honestScope:
-      'Rendered a deterministic quilt preview from HoloMap point-cloud geometry. Multi-frame previews use pose-centroid translation alignment when bridge frame poses are present; this is not optical flow, MV-HEVC, or parallax video encoding.',
+      'Rendered a deterministic quilt preview from HoloMap point-cloud geometry. Multi-frame previews use native tile-flow correspondence plus pose-centroid translation when bridge metadata is present; this is not optical flow, MV-HEVC, or parallax video encoding.',
     outputPath: rel(outPath),
   });
   writeJson(outPath, receipt);

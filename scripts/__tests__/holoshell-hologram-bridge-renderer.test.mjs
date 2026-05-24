@@ -51,7 +51,7 @@ assertOk(receipt.quilt.path.includes(receipt.quilt.variant), 'quilt path include
 assertOk(receipt.quilt.style.exposure >= 1, 'receipt records exposure');
 assertOk(receipt.quilt.style.pointRadius >= 1, 'receipt records point radius');
 
-console.log('Test 2: multi-frame bridges default to pose-aligned fusion');
+console.log('Test 2: multi-frame bridges default to native tracked fusion');
 const dir = mkdtempSync(join(tmpdir(), 'holoshell-hologram-bridge-renderer-test-'));
 try {
   const plyPath = join(dir, 'scan.ply');
@@ -115,6 +115,36 @@ try {
               pose: { position: [0.4, 0, 0], rotation: [0, 0, 0, 1], confidence: 0.8 },
             },
           ],
+          correspondence: {
+            method: 'native-tile-flow-v1',
+            pointOrder: 'reference-grid-with-shift-observations',
+            gridSize: 2,
+            referenceFrameIndex: 1,
+            referencePointOffset: 4,
+            searchRadiusTiles: 1,
+            trackCount: 4,
+            frameMatchCount: 2,
+            meanMatchScore: 0.9,
+            meanOverlapRatio: 1,
+            frameMatches: [
+              {
+                frameIndex: 0,
+                pointOffset: 0,
+                shiftTiles: [0, 0],
+                score: 0.9,
+                overlapRatio: 1,
+                matchedPointCount: 4,
+              },
+              {
+                frameIndex: 1,
+                pointOffset: 4,
+                shiftTiles: [0, 0],
+                score: 1,
+                overlapRatio: 1,
+                matchedPointCount: 4,
+              },
+            ],
+          },
           bounds: { min: [-0.4, -0.4, 0.1], max: [0.4, 0.4, 0.2] },
           assets: { ply: plyPath },
         },
@@ -133,16 +163,22 @@ try {
     tileWidth: 32,
     tileHeight: 24,
   });
-  assertEq(temporalReceipt.source.temporalMode, 'aligned', 'default temporal mode');
-  assertEq(temporalReceipt.source.pointCount, 4, 'aligned fused point count');
+  assertEq(temporalReceipt.source.temporalMode, 'tracked', 'default temporal mode');
+  assertEq(temporalReceipt.source.pointCount, 4, 'tracked fused point count');
   assertEq(temporalReceipt.source.originalPointCount, 8, 'original point count retained');
   assertEq(temporalReceipt.source.temporalSelection.fusedFrameCount, 2, 'both frames fused');
   assertEq(temporalReceipt.source.temporalSelection.referenceFrameIndex, 1, 'latest frame is alignment reference');
   assertEq(
     temporalReceipt.source.temporalSelection.alignmentMethod,
-    'pose-centroid-translation',
+    'tile-flow-correspondence+pose-centroid-translation',
     'alignment method recorded'
   );
+  assertEq(
+    temporalReceipt.source.temporalSelection.correspondenceMethod,
+    'native-tile-flow-v1',
+    'correspondence method recorded'
+  );
+  assertEq(temporalReceipt.source.temporalSelection.trackedFrameCount, 2, 'tracked frame count recorded');
   const png = readFileSync(resolve(REPO_ROOT, temporalReceipt.quilt.path));
   assertOk(png[0] === 0x89 && png[1] === 0x50, 'temporal quilt is PNG');
 } finally {
