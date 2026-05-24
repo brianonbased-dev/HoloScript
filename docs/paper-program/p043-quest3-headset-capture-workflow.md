@@ -12,7 +12,8 @@ The P043 matrix harness already defines the Quest 3 cells:
 pnpm bench:p043:sku-matrix -- --list-cells --sku quest3-adreno740
 ```
 
-The shared-sort capture runner already writes the required artifact schema:
+The shared-sort capture runner already writes the required artifact schema for
+host browser captures:
 
 ```bash
 P043_BENCH_COMMAND="node packages/engine/run-p043-shared-sort-capture.mjs --browser-webgpu" \
@@ -20,11 +21,25 @@ P043_BENCH_COMMAND="node packages/engine/run-p043-shared-sort-capture.mjs --brow
   --out .bench-logs/p043-sku-matrix/quest3-adreno740/indoor-500k/n2.json
 ```
 
-That command is valid for a browser-WebGPU artifact, but the current runner
-launches Chromium on the host through Playwright. It does not by itself prove
-that the code executed inside Quest Browser on Adreno 740. A paper-grade Quest
-cell needs a Quest-executed runner or a Quest-opened WebXR page that writes the
-same JSON contract.
+That command is valid for a browser-WebGPU artifact, but it launches Chromium
+on the host through Playwright. It does not by itself prove that the code
+executed inside Quest Browser on Adreno 740.
+
+For headset capture, Studio now exposes a Quest-opened writer:
+
+```text
+http://<host-or-tunnel>/p043-quest-capture?runId=YYYY-MM-DD_p043-quest3-sku-matrix&cellId=quest3-adreno740__indoor-500k__n2
+```
+
+The page executes `splat-shared-sort.wgsl` through Quest Browser WebGPU and
+POSTs the same JSON contract to:
+
+```text
+/api/p043-sku-matrix
+```
+
+The API route writes only sanitized Quest 3 matrix cells under
+`.bench-logs/p043-sku-matrix/quest3-adreno740/...`.
 
 ## Evidence Levels
 
@@ -85,7 +100,8 @@ P043_ADAPTER_DESCRIPTION="Meta Quest 3 Snapdragon XR2 Gen 2 Adreno 740"
    The operator must open a LAN or tunnel URL from Quest Browser; `127.0.0.1`
    only counts when the browser runs on the same host.
 
-3. Open the Quest proof surface with a P043 run id before capture:
+3. Open the Quest proof surface with a P043 run id before capture if the
+   approval packet needs a separate proof receipt:
 
    ```text
    http://<host-or-tunnel>/quest-proof?runId=YYYY-MM-DD_p043-quest3-sku-matrix
@@ -94,8 +110,13 @@ P043_ADAPTER_DESCRIPTION="Meta Quest 3 Snapdragon XR2 Gen 2 Adreno 740"
    Use `/quest-probe` first if the session needs to prove WebXR/WebGPU/device
    access before the benchmark page runs.
 
-4. Execute each Quest cell from a Quest-executed benchmark surface. The nine
-   required cells are:
+4. Execute each Quest cell from the Quest capture surface:
+
+   ```text
+   http://<host-or-tunnel>/p043-quest-capture?runId=YYYY-MM-DD_p043-quest3-sku-matrix&cellId=<cell-id>
+   ```
+
+   The nine required cells are:
 
    ```text
    quest3-adreno740__indoor-500k__n2
@@ -109,7 +130,7 @@ P043_ADAPTER_DESCRIPTION="Meta Quest 3 Snapdragon XR2 Gen 2 Adreno 740"
    quest3-adreno740__dense-2m__n4
    ```
 
-5. Write artifacts under:
+5. Confirm the API wrote artifacts under:
 
    ```text
    .bench-logs/p043-sku-matrix/quest3-adreno740/<scene>/n<N>.json
@@ -162,15 +183,9 @@ or screen recording if available, and any blocked-device notes.
   `pnpm bench:p043:sku-matrix -- --check-results` and the approval packet names
   the headset evidence.
 
-## Remaining Implementation Gap
+## Remaining Hardware Gate
 
-The missing workflow component is the Quest-executed capture writer. Build one
-of these before claiming Quest 3 numbers:
-
-- A WebXR/Quest Browser benchmark page that runs the shared-sort workload and
-  POSTs the P043 artifact contract to a repo-local API route.
-- A remote-control path that executes the existing runner inside Quest Browser
-  and writes the same artifact contract back to `.bench-logs/p043-sku-matrix`.
-
-Until one of those exists, the Quest 3 task is ready for process work but still
-blocked for measured Adreno 740 paper data.
+The workflow and writer now exist. The remaining gate is physical capture from
+Quest Browser on the target headset. Until the Quest opens the LAN/tunnel URL,
+runs all nine cells, and `--check-results` accepts the artifacts, the row is
+still not measured Adreno 740 paper data.
