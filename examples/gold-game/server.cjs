@@ -15,7 +15,8 @@ const { exec } = require('node:child_process');
 let isSea = false;
 try { isSea = require('node:sea').isSea(); } catch (_) { isSea = false; }
 const here = isSea ? path.dirname(process.execPath) : __dirname; // <drive>/GOLD-GAME
-const VAULT = path.join(here, '..', 'GOLD');                     // <drive>/GOLD (sibling, read-only)
+const siblingVault = path.join(here, '..', 'GOLD');              // <drive>/GOLD (sibling, read-only)
+const VAULT = process.env.GOLD_ROOT || (fs.existsSync(siblingVault) ? siblingVault : 'D:/GOLD');
 // Gate-2 graduate verb operates on a WRITABLE SANDBOX vault (never the governed D:/GOLD).
 let vaultOps = null;
 try { vaultOps = require('./vault-ops.cjs'); } catch (_) { /* optional; absent in some bundles */ }
@@ -39,11 +40,91 @@ function vaultState() {
 }
 
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.txt': 'text/plain' };
+
+function normalizeEntryId(raw) {
+  return String(raw || '').trim().replace(/_/g, '.').replace(/-/g, '.').toUpperCase();
+}
+
+function entryStem(id) {
+  return normalizeEntryId(id).toLowerCase().replace(/\./g, '_') + '.md';
+}
+
+function findEntryFile(id) {
+  const wanted = entryStem(id);
+  const roots = [
+    'wisdom', 'patterns', 'gotchas', 'architectures', 'protocols',
+    'bronze', 'silver', 'gold', 'platinum', 'diamond',
+    'graduated',
+  ];
+  const seen = new Set();
+  const walk = (dir) => {
+    const resolved = path.resolve(dir);
+    if (seen.has(resolved) || !resolved.startsWith(path.resolve(VAULT))) return null;
+    seen.add(resolved);
+    let items = [];
+    try { items = fs.readdirSync(resolved, { withFileTypes: true }); } catch (_) { return null; }
+    for (const item of items) {
+      if (item.name === '.git') continue;
+      const p = path.join(resolved, item.name);
+      if (item.isFile() && item.name.toLowerCase() === wanted) return p;
+      if (item.isDirectory()) {
+        const found = walk(p);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  for (const root of roots) {
+    const found = walk(path.join(VAULT, root));
+    if (found) return found;
+  }
+  return null;
+}
+
+function parseFrontmatter(markdown) {
+  const lines = String(markdown || '').split(/\r?\n/);
+  if (lines[0] !== '---') return {};
+  const out = {};
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i] === '---') break;
+    const idx = lines[i].indexOf(':');
+    if (idx > 0) out[lines[i].slice(0, idx).trim()] = lines[i].slice(idx + 1).trim();
+  }
+  return out;
+}
+
+function vaultEntry(id) {
+  const normalized = normalizeEntryId(id);
+  if (!/^[A-Z0-9]+(\.[A-Z0-9]+)+$/.test(normalized)) {
+    return { connected: fs.existsSync(VAULT), id: normalized, found: false, error: 'invalid id' };
+  }
+  const file = findEntryFile(normalized);
+  if (!file) return { connected: fs.existsSync(VAULT), id: normalized, found: false };
+  const content = fs.readFileSync(file, 'utf8');
+  const rel = path.relative(VAULT, file).replace(/\\/g, '/');
+  return {
+    connected: true,
+    found: true,
+    id: normalized,
+    vaultPath: VAULT,
+    relativePath: rel,
+    metadata: parseFrontmatter(content),
+    bytes: Buffer.byteLength(content),
+    content,
+  };
+}
+
 const server = http.createServer((req, res) => {
   const url = (req.url || '/').split('?')[0];
+  const reqUrl = new URL(req.url || '/', 'http://127.0.0.1');
   if (url === '/api/vault') {
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify(vaultState())); return;
+  }
+  if (url === '/api/vault-entry') {
+    const data = vaultEntry(reqUrl.searchParams.get('id'));
+    res.writeHead(data.found ? 200 : 404, { 'content-type': 'application/json' });
+    res.end(JSON.stringify(data)); return;
   }
   if (url === '/api/vault-game') { // the playable sandbox vault state
     if (!vaultOps) { res.writeHead(503); res.end('{"error":"vault-ops unavailable"}'); return; }
@@ -85,4 +166,10 @@ function listen(port, tries) {
     exec(cmd, () => {});
   });
 }
-listen(8787, 12);
+
+if (require.main === module && process.argv.includes('--help')) {
+  console.log('Usage: node server.cjs  # serves THE GOLD GAME on 127.0.0.1:8787');
+  console.log('APIs: /api/vault, /api/vault-entry?id=W.GOLD.535, /api/vault-game, POST /api/graduate');
+} else if (require.main === module) listen(8787, 12);
+
+module.exports = { vaultState, vaultEntry, findEntryFile, normalizeEntryId };

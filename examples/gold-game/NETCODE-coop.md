@@ -4,6 +4,14 @@ Authored by the /netcode discipline (marathon round 1). This is the technical un
 /gamedev Gate-3 dual-population proof: a human Curator and an AI AgentCurator in the *same* session,
 affecting each other's curation. Built on the real foundation; honest about the gaps.
 
+## MMO classification — not until Gate 26 proves it
+
+The honest current shape is **shared-world co-op with agents**: one human plus real agent companions
+can affect the same vault state, and Gate 17 proves two-participant agreement. That is not enough to
+call it an MMO. The game earns "MMO" only after a dedicated gate proves a shard lobby, multiple named
+human entrants, durable presence, authority handoff for disconnects, and persistent shared-world state
+across sessions. Until then, call it a **shared-world AI co-op curation game**.
+
 ## Authority model — per-inhabitant, not per-type
 HumanCurator (`@controllable`) and AgentCurator (`@ai_agent`) are the *same entity kind* (D.040), so
 authority is decided by *who inhabits it*, not the class. Use `@holoscript/mesh` **EntityAuthority**

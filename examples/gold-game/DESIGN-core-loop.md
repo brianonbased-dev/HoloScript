@@ -67,3 +67,22 @@ strategy — the honest-mapping payoff.
 - to **/look-dev**: the moments to make *feel* big — an entry ascending a tier, a Diamond ratification.
 - **Status:** design + playtest *plan*; the agent-playtest run itself is the build target (needs the
   loop wired first). Not claiming a playtest signal yet — claiming the design and how to get the signal.
+
+## PLAYER-FACING CONTINUITY GAPS — next ratchets
+
+Gate 19 proves the coherent **One Climb** loop, but the player-facing build still needs the beginning
+and continuation made visible inside the game. The next design ratchets are:
+
+| Gate | Need | Acceptance |
+|---|---|---|
+| 24 | start-of-game onboarding | the founder art opens the game as a vista; the player can begin One Climb, inspect the first entry, and retry from the overlook |
+| 25 | continuous campaign | save/resume + quest log + post-win continuation after the first Archivist ratification |
+| 28 | full-vault browser | every GOLD entry can be searched, opened, read as full markdown, and followed through lineage from inside the game |
+| 31 | playable HoloGraph | the proven HoloGraph/HoloEmbed lineage graph is an in-game constellation for routing, selection, and entry opening |
+| 32 | HoloGram image-to-world | the founder 2D art becomes a depth-backed 3D GOLD world source, not only a menu image |
+| 33 | HoloMap scanned-space import | video/device scans of real spaces become anchored GOLD rooms, exhibits, or portals |
+| 34 | HoloGram holographic outputs | the generated GOLD world/art can be compiled to quilt, MV-HEVC, parallax, hash, and share receipt |
+| 35 | HoloScript kitchen-sink pass | HoloGraph, HoloGram, HoloMap, HoloGate, HoloMesh/netcode, solvers, economy, reputation, and dialogue all participate in one coherent playable loop |
+| 36 | HoloScript package toolset | selected HoloScript packages are read from package metadata and shown in-game as concrete GOLD systems to consume next |
+
+These are not "more metadata." They are the game loop becoming legible to a human player.

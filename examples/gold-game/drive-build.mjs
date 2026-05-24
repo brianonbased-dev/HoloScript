@@ -10,7 +10,7 @@
 // Outputs: examples/gold-game/drive-build/{index.html, START-HERE.txt}
 //          examples/gold-game/GOLD-VAULT-gate1-receipt.json
 
-import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -22,11 +22,152 @@ const parseHolo = core.parseHolo;
 
 const HOLO = join(here, 'gold-vault-game.holo');
 const OUT = join(here, 'drive-build');
+const CONCEPT_ART = join(here, 'assets', 'gold-vault-vista-wlNgg.jpg');
+const HOLOGRAPH_RECEIPT = join(here, 'GATE-10-HOLOGRAPH-receipt.json');
+const VAULT_ROOT = process.env.GOLD_ROOT || 'D:/GOLD';
 const sha256 = (s) => createHash('sha256').update(s).digest('hex');
+const conceptArtBytes = existsSync(CONCEPT_ART) ? readFileSync(CONCEPT_ART) : null;
+const conceptArt = conceptArtBytes ? {
+  file: 'examples/gold-game/assets/gold-vault-vista-wlNgg.jpg',
+  source: 'C:/Users/josep/Downloads/wlNgg.jpg',
+  mime: 'image/jpeg',
+  bytes: conceptArtBytes.length,
+  width: 1168,
+  height: 784,
+  sha256: sha256(conceptArtBytes),
+  dataUrl: 'data:image/jpeg;base64,' + conceptArtBytes.toString('base64'),
+  role: 'Gate 24 opening vista and visual target for the GOLD vault world',
+} : null;
+const packageSystemSpecs = [
+  ['core', 'World source', 'parse the .holo scene, traits, compiler outputs, and SimulationContract identities'],
+  ['engine', 'Runtime loop', 'rendering, physics, animation, hologram orchestration, and game subsystems'],
+  ['mcp-server', 'HoloGate', 'validate player intent before any GOLD mutation happens'],
+  ['mesh', 'Shared state', 'authority, replication, co-presence, and agent/player convergence'],
+  ['crdt', 'Safe edits', 'signed CRDT state for concurrent knowledge changes'],
+  ['crdt-spatial', 'Spatial sync', 'Loro-backed transform convergence for shared objects and rooms'],
+  ['holoembed', 'HoloGraph recall', 'native embeddings for lineage search and knowledge routing'],
+  ['absorb-service', 'Graph intelligence', 'code/knowledge graph ingestion, GraphRAG, and recursive improvement hooks'],
+  ['holomap', 'Scanned spaces', 'video/device capture reconstruction into anchored GOLD rooms and portals'],
+  ['hologram-worker', 'HoloGram render', 'depth, quilt, stereo, parallax, and Studio upload worker path'],
+  ['r3f-renderer', '3D renderer', 'shared React Three Fiber renderer surface for GOLD visual clients'],
+  ['spatial-index', 'Vault navigation', 'spatial lookup for entries, anchors, routes, and scanned spaces'],
+  ['snn-webgpu', 'Agent cognition', 'GPU spiking-neural simulation for future companion perception/choice loops'],
+  ['security-sandbox', 'Mutation sandbox', 'execute generated HoloScript safely before live-vault application'],
+  ['secrets-broker', 'Capabilities', 'short-lived scoped capability tokens for live GOLD actions'],
+  ['studio', 'Creator surface', 'author and inspect GOLD scenes as HoloScript Studio artifacts'],
+  ['compiler-wasm', 'Browser compiler', 'ship parser/compiler pieces into offline browser contexts'],
+  ['holo-vm', 'Bytecode runtime', 'future native execution path for heavier in-game HoloScript behaviors'],
+  ['runtime', 'Browser runtime', 'browser device APIs, events, physics, and R3F integration'],
+  ['agent-protocol', 'Agent party', 'uAA2++ protocol types for companion agents and team actions'],
+];
+const readPackageSystem = ([dir, role, consumes]) => {
+  const packageJson = join(repo, 'packages', dir, 'package.json');
+  if (!existsSync(packageJson)) return { dir, role, consumes, found: false };
+  const pkg = JSON.parse(readFileSync(packageJson, 'utf8'));
+  return {
+    dir,
+    role,
+    consumes,
+    found: true,
+    name: pkg.name || dir,
+    version: pkg.version || null,
+    description: pkg.description || '',
+  };
+};
+const holoscriptToolset = {
+  gate: 36,
+  source: 'packages/*/package.json',
+  purpose: 'Expose HoloScript packages as concrete GOLD game systems instead of passive repo inventory.',
+  systems: packageSystemSpecs.map(readPackageSystem),
+};
 const prop = (node, key, dflt) => {
   const p = (node.properties || []).find((x) => x.key === key);
   return p ? p.value : dflt;
 };
+const entryIdForName = (name) => {
+  const raw = String(name || '');
+  if (!/^[A-Z]+_[A-Z]+_[0-9]+$/.test(raw)) return null;
+  return raw.replace(/_/g, '.');
+};
+const parseFrontmatter = (markdown) => {
+  const lines = String(markdown || '').split(/\r?\n/);
+  if (lines[0] !== '---') return {};
+  const out = {};
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i] === '---') break;
+    const idx = lines[i].indexOf(':');
+    if (idx > 0) out[lines[i].slice(0, idx).trim()] = lines[i].slice(idx + 1).trim();
+  }
+  return out;
+};
+const findVaultEntryFile = (id) => {
+  const wanted = String(id || '').toLowerCase().replace(/\./g, '_') + '.md';
+  const roots = ['wisdom', 'patterns', 'gotchas', 'architectures', 'protocols', 'bronze', 'silver', 'gold', 'platinum', 'diamond', 'graduated'];
+  const walk = (dir) => {
+    let items = [];
+    try { items = readdirSync(dir, { withFileTypes: true }); } catch { return null; }
+    for (const item of items) {
+      if (item.name === '.git') continue;
+      const p = join(dir, item.name);
+      if (item.isFile() && item.name.toLowerCase() === wanted) return p;
+      if (item.isDirectory()) {
+        const found = walk(p);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  if (!existsSync(VAULT_ROOT)) return null;
+  for (const root of roots) {
+    const found = walk(join(VAULT_ROOT, root));
+    if (found) return found;
+  }
+  return null;
+};
+const readVaultEntry = (id) => {
+  const file = findVaultEntryFile(id);
+  if (!file) return { id, found: false, content: '', metadata: {} };
+  const content = readFileSync(file, 'utf8');
+  return { id, found: true, relativePath: file.replace(VAULT_ROOT, '').replace(/^[/\\]/, '').replace(/\\/g, '/'), metadata: parseFrontmatter(content), content };
+};
+const readPlayableHoloGraph = () => {
+  if (!existsSync(HOLOGRAPH_RECEIPT)) {
+    return { gate: 31, found: false, nodes: [], edges: [], source: 'missing GATE-10-HOLOGRAPH-receipt.json' };
+  }
+  const receipt = JSON.parse(readFileSync(HOLOGRAPH_RECEIPT, 'utf8'));
+  const entries = receipt.corpus?.entries || [];
+  const outEdges = receipt.holoGraph?.outEdges || {};
+  const top3 = receipt.holoEmbed?.top3 || [];
+  const nodes = entries.map((entry, index) => {
+    const id = entry.id;
+    const entryData = readVaultEntry(id);
+    const top = top3.find((x) => x.id === id);
+    return {
+      id,
+      index,
+      title: entryData.metadata?.title || id,
+      refs: outEdges[id] || [],
+      reachableFrom534: (receipt.holoGraph?.reachableFrom534 || []).includes(id),
+      semanticScore: top ? top.score : null,
+      entryData,
+    };
+  });
+  const edges = nodes.flatMap((node) => (node.refs || []).map((target) => ({ source: node.id, target })));
+  return {
+    gate: 31,
+    found: true,
+    source: 'GATE-10-HOLOGRAPH-receipt.json',
+    implementation: receipt.implementation || {},
+    semanticQuery: receipt.holoEmbed?.semanticQuery || '',
+    nodes,
+    edges,
+    exactByConstruction: receipt.holoGraph?.exactByConstruction === true,
+    navigable: receipt.holoGraph?.navigable === true,
+    graphDigest: receipt.contract?.graphDigest || '',
+    embedDigest: receipt.contract?.embedDigest || '',
+  };
+};
+const playableHoloGraph = readPlayableHoloGraph();
 
 // ── 1. Parse the real .holo (Gate 0 artifact) ───────────────────────────────
 const src = readFileSync(HOLO, 'utf8');
@@ -49,8 +190,10 @@ for (const g of ast.spatialGroups || []) {
     const color = prop(o, 'color', '#cccccc');
     const pos = add(origin, prop(o, 'position', [0, 0, 0]));
     const st = o.state || {};
+    const entryId = entryIdForName(o.name);
     meshes.push({ name: o.name, region: g.name, geometry, position: pos, scale, color,
-      tier: st.tier || null, title: st.title || null, inhabited_by: st.inhabited_by || null });
+      tier: st.tier || null, title: st.title || null, inhabited_by: st.inhabited_by || null,
+      entryId, entryData: entryId ? readVaultEntry(entryId) : null });
   }
 }
 const lights = (ast.lights || []).map((l) => ({ name: l.name, type: prop(l, 'type', 'directional'),
@@ -58,7 +201,18 @@ const lights = (ast.lights || []).map((l) => ({ name: l.name, type: prop(l, 'typ
 const regions = (ast.spatialGroups || []).map((g) => ({ name: g.name, origin: prop(g, 'origin', [0, 0, 0]) }));
 const ambient = prop(ast.environment || {}, 'ambient_light', 0.4);
 const fog = prop(ast.environment || {}, 'fog_color', '#caa472');
-const scene = { title: ast.name, ambient, fog, meshes, lights, regions };
+const scene = { title: ast.name, ambient, fog, meshes, lights, regions,
+  conceptArt: conceptArt ? {
+    file: conceptArt.file,
+    sha256: conceptArt.sha256,
+    width: conceptArt.width,
+    height: conceptArt.height,
+    role: conceptArt.role,
+  } : null,
+  holoGraph: playableHoloGraph,
+  toolset: { gate: holoscriptToolset.gate, systems: holoscriptToolset.systems.map((s) => ({
+    dir: s.dir, name: s.name || s.dir, role: s.role, consumes: s.consumes, found: s.found,
+  })) } };
 const sceneJson = JSON.stringify(scene);
 
 // ── 3. App entry — photoreal renderer from minimal primitives ────────────────
@@ -73,6 +227,7 @@ import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 // Gate 6: the REAL HoloGate intent validator (pure module, bundled by esbuild).
 import { validatePortalIntent } from '../../../packages/mcp-server/src/holo-portal-intent.ts';
 const SCENE = ${sceneJson};
+window.__GOLD_GAME_SCENE__ = SCENE;
 const C = (h) => new THREE.Color(h);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -94,6 +249,12 @@ gr.addColorStop(0, '#5e7496'); gr.addColorStop(0.45, '#b08a4e'); gr.addColorStop
 cx.fillStyle = gr; cx.fillRect(0, 0, 2, 256);
 const sky = new THREE.CanvasTexture(cv); sky.colorSpace = THREE.SRGBColorSpace; scene.background = sky;
 scene.fog = new THREE.FogExp2(C(SCENE.fog).getHex(), 0.018);
+if (window.__GOLD_GAME_CONCEPT_ART__) {
+  new THREE.TextureLoader().load(window.__GOLD_GAME_CONCEPT_ART__, (tex) => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    scene.background = tex;
+  });
+}
 
 // environment for crystal refraction/reflection
 const pmrem = new THREE.PMREMGenerator(renderer);
@@ -157,7 +318,7 @@ for (const m of SCENE.meshes) {
     const big = m.tier === 'diamond';
     const g = big ? new THREE.DodecahedronGeometry(4.2, 0) : new THREE.OctahedronGeometry(1.9 * s[0], 0);
     obj = gem(g, m.color);
-    obj.userData = { kind: 'entry', name: m.name, tier: m.tier, graduated: false };
+    obj.userData = { kind: 'entry', name: m.name, tier: m.tier, entryId: m.entryId, entryData: m.entryData, graduated: false };
     grabbables.push(obj);
     if (big) focus.set(m.position[0], m.position[1] + 0.5, m.position[2]);
   } else if (m.geometry === 'tetrahedron') {  // vault collision — dark red crystal
@@ -242,57 +403,123 @@ function onTrigger(ctrl) {
   setPanel(['GRADUATED via HoloGate', g.userData.name.replace(/_/g, '.'), 'grab intent -> validated (' + SCOPE + ')', 'Graduated: ' + graduatedCount], '#d4af37');
 }
 
-let t = 0.6;
+let orbitT = 0.6;
+let lastFrame = performance.now();
+let desktopMode = 'orbit';
+const keys = new Set();
+const player = {
+  position: new THREE.Vector3(0, 1.65, 5.5),
+  yaw: Math.PI,
+  pitch: -0.06,
+  speed: 6,
+};
+const startPosition = player.position.clone();
+camera.rotation.order = 'YXZ';
+
+function dispatchEntry(g) {
+  if (!g) return;
+  window.dispatchEvent(new CustomEvent('gold-entry-selected', { detail: { id: g.userData.entryId || g.userData.name, entry: g.userData.entryData || null } }));
+}
+function resetToOverlook() {
+  player.position.copy(startPosition);
+  player.yaw = Math.PI;
+  player.pitch = -0.06;
+  enterFirstPerson();
+  setPanel(['FIRST OBJECTIVE', 'Graduate one glowing entry', 'Then read its full GOLD record', 'Return to Overlook can retry'], '#d4af37');
+}
+function graduateGem(g, label) {
+  if (!g || g.userData.graduated) return false;
+  const verdict = validatePortalIntent({ kind: 'grab', entityId: 'curator-avatar', targetId: g.userData.name }, HOLODOOR_POLICY, SCOPE);
+  if (!verdict.allowed) { setPanel(['DENIED by HoloGate', verdict.reason || 'scope', 'Graduated: ' + graduatedCount], '#8a2a2a'); return false; }
+  g.userData.graduated = true; graduatedCount++;
+  const sy = g.position.y, ey = sy + 4, t0 = performance.now();
+  (function rise() { const kf = Math.min(1, (performance.now() - t0) / 900); g.position.y = sy + (ey - sy) * kf; if (kf < 1) requestAnimationFrame(rise); })();
+  setPanel([label || 'GRADUATED via HoloGate', g.userData.name.replace(/_/g, '.'), 'Graduated: ' + graduatedCount], '#d4af37');
+  dispatchEntry(g);
+  return true;
+}
+function cameraPickEntry() {
+  camera.updateMatrixWorld();
+  raycaster.ray.origin.setFromMatrixPosition(camera.matrixWorld);
+  camera.getWorldDirection(raycaster.ray.direction);
+  const hits = raycaster.intersectObjects(grabbables, true);
+  if (!hits.length) return null;
+  let g = hits[0].object; while (g && !(g.userData && g.userData.kind === 'entry')) g = g.parent;
+  return g || null;
+}
+function enterFirstPerson() {
+  if (renderer.xr.isPresenting) return;
+  desktopMode = 'first-person';
+  document.body.dataset.mode = 'first-person';
+}
+renderer.domElement.addEventListener('click', () => {
+  enterFirstPerson();
+  if (document.pointerLockElement !== renderer.domElement) renderer.domElement.requestPointerLock?.();
+});
+document.addEventListener('pointerlockchange', () => {
+  if (document.pointerLockElement === renderer.domElement) enterFirstPerson();
+});
+window.addEventListener('gold-game-start', () => {
+  started = true;
+  resetToOverlook();
+});
+window.addEventListener('gold-game-inspect-first', () => {
+  dispatchEntry(cameraPickEntry() || grabbables.find((o) => !o.userData.graduated));
+});
+window.addEventListener('gold-game-reset-to-overlook', () => resetToOverlook());
+document.addEventListener('mousemove', (e) => {
+  if (document.pointerLockElement !== renderer.domElement) return;
+  player.yaw -= e.movementX * 0.0023;
+  player.pitch = Math.max(-1.25, Math.min(1.1, player.pitch - e.movementY * 0.002));
+});
+addEventListener('keydown', (e) => {
+  keys.add(e.code);
+  const k = e.key;
+  if (['w','W','a','A','s','S','d','D','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(k)) enterFirstPerson();
+  if (k === 'e' || k === 'E' || k === ' ' || k === 'Enter') {
+    enterFirstPerson();
+    const picked = cameraPickEntry() || grabbables.find((o) => !o.userData.graduated);
+    graduateGem(picked, 'GRADUATED via HoloGate (first-person)');
+  }
+  if (k === 'f' || k === 'F') {
+    enterFirstPerson();
+    dispatchEntry(cameraPickEntry() || grabbables.find((o) => !o.userData.graduated));
+  }
+});
+addEventListener('keyup', (e) => keys.delete(e.code));
+function updateFirstPerson(dt) {
+  const forward = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
+  const right = new THREE.Vector3(Math.cos(player.yaw), 0, -Math.sin(player.yaw));
+  const speed = player.speed * (keys.has('ShiftLeft') || keys.has('ShiftRight') ? 1.8 : 1) * dt;
+  if (keys.has('KeyW') || keys.has('ArrowUp')) player.position.addScaledVector(forward, speed);
+  if (keys.has('KeyS') || keys.has('ArrowDown')) player.position.addScaledVector(forward, -speed);
+  if (keys.has('KeyA') || keys.has('ArrowLeft')) player.position.addScaledVector(right, -speed);
+  if (keys.has('KeyD') || keys.has('ArrowRight')) player.position.addScaledVector(right, speed);
+  player.position.y = 1.65;
+  camera.position.copy(player.position).sub(rig.position);
+  camera.rotation.set(player.pitch, player.yaw, 0);
+}
 function frame() {
+  const now = performance.now();
+  const dt = Math.min(0.05, (now - lastFrame) / 1000);
+  lastFrame = now;
   const inVR = renderer.xr.isPresenting;
   for (const g of glow) g.rotation.y += 0.012;
   if (inVR) {
     // Headset drives the camera pose; render per-eye directly (EffectComposer is
     // not XR-aware, so bloom is dropped inside the session — correctness over polish).
     renderer.render(scene, camera);
-  } else if (!kbActive) {
-    // auto-orbit ONLY until the player takes control with the keyboard (Gate 19 fix)
-    t += 0.0025;
-    const rad = 17;
-    camera.position.set(Math.cos(t) * rad, 6 + Math.sin(t * 0.5) * 3, Math.sin(t) * rad - 4);
-    camera.lookAt(focus);
+  } else if (desktopMode === 'first-person') {
+    updateFirstPerson(dt);
     composer.render();
   } else {
-    // keyboard-driven flat view: camera sits at the chosen tier looking at it.
-    // camera is a child of the rig, so set its position in WORLD by subtracting the rig offset.
-    const o = (SCENE.regions[kbTier] && SCENE.regions[kbTier].origin) || [0, 0, 0];
-    const wx = (o[0] || 0), wy = (o[1] || 0) + 3.5, wz = (o[2] || 0) + 13;
-    camera.position.set(wx - rig.position.x, wy - rig.position.y, wz - rig.position.z);
-    camera.lookAt((o[0] || 0), (o[1] || 0) + 1, (o[2] || 0));
+    orbitT += 0.0025;
+    const rad = 17;
+    camera.position.set(Math.cos(orbitT) * rad, 6 + Math.sin(orbitT * 0.5) * 3, Math.sin(orbitT) * rad - 4);
+    camera.lookAt(focus);
     composer.render();
   }
 }
-// ── Gate 15: keyboard controls — playable OUTSIDE VR (shared scheme: W/S tier, E/Space graduate) ──
-let kbTier = 0, kbActive = false;
-addEventListener('keydown', (e) => {
-  const k = e.key;
-  const verb = (k==='w'||k==='W'||k==='ArrowUp') ? 'ascend'
-    : (k==='s'||k==='S'||k==='ArrowDown') ? 'descend'
-    : (k==='e'||k==='E'||k===' '||k==='Enter') ? 'graduate' : null;
-  if (!verb) return;
-  kbActive = true; // player has taken control — frame() stops the auto-orbit and follows the keyboard
-  if (verb === 'ascend') kbTier = Math.min(SCENE.regions.length - 1, kbTier + 1);
-  else if (verb === 'descend') kbTier = Math.max(0, kbTier - 1);
-  else if (verb === 'graduate') {
-    // keyboard graduate: the nearest un-graduated gem, through the SAME HoloGate intent path (Gate 6)
-    const g = grabbables.find((o) => !o.userData.graduated);
-    if (g) {
-      const verdict = validatePortalIntent({ kind: 'grab', entityId: 'curator-avatar', targetId: g.userData.name }, HOLODOOR_POLICY, SCOPE);
-      if (verdict.allowed) {
-        g.userData.graduated = true; graduatedCount++;
-        const sy = g.position.y, ey = sy + 4, t0 = performance.now();
-        (function rise() { const kf = Math.min(1, (performance.now() - t0) / 900); g.position.y = sy + (ey - sy) * kf; if (kf < 1) requestAnimationFrame(rise); })();
-        setPanel(['GRADUATED via HoloGate (keyboard)', g.userData.name.replace(/_/g, '.'), 'Graduated: ' + graduatedCount], '#d4af37');
-      }
-    }
-  }
-  // (camera tier-follow is handled in frame() when kbActive — no rig override here, which the auto-orbit used to discard)
-});
 
 renderer.setAnimationLoop(frame);   // XR-compatible loop (replaces requestAnimationFrame)
 addEventListener('resize', () => {
@@ -319,28 +546,295 @@ rmSync(entryPath, { force: true });
 
 // ── 5. Self-contained index.html ────────────────────────────────────────────
 const tierList = regions.map((rg) => '<li>' + rg.name + ' — y=' + rg.origin[1] + '</li>').join('');
+const goldDataScript = `<script>
+(function(){
+  var scene = window.__GOLD_GAME_SCENE__ || { meshes: [] };
+  var entries = (scene.meshes || []).filter(function(m){ return m.entryId; });
+  var panel = document.getElementById('entryPanel');
+  var list = document.getElementById('entryList');
+  var title = document.getElementById('entryTitle');
+  var meta = document.getElementById('entryMeta');
+  var body = document.getElementById('entryBody');
+  var close = document.getElementById('entryClose');
+  function safeText(value){ return value == null ? '' : String(value); }
+  function entryLabel(entry){
+    var md = (entry && entry.entryData && entry.entryData.metadata) || {};
+    return md.id || entry.entryId || entry.name;
+  }
+  function renderButtons(){
+    list.innerHTML = '';
+    entries.forEach(function(entry){
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = entryLabel(entry);
+      button.addEventListener('click', function(){ showEntry(entry.entryId, entry.entryData); });
+      list.appendChild(button);
+    });
+  }
+  function renderEntry(data, fallbackId){
+    var md = (data && data.metadata) || {};
+    title.textContent = md.title || fallbackId || 'GOLD entry';
+    meta.textContent = [
+      md.id || fallbackId || '',
+      md.type ? 'type: ' + md.type : '',
+      md.domain ? 'domain: ' + md.domain : '',
+      data && data.relativePath ? data.relativePath : ''
+    ].filter(Boolean).join('  |  ');
+    body.textContent = (data && data.content) || 'No full entry body is available in this build. Launch GOLD-GAME-Server.exe for live vault reads.';
+    panel.dataset.open = 'true';
+  }
+  async function showEntry(id, embedded){
+    var data = embedded || null;
+    try {
+      if (location.protocol !== 'file:') {
+        var response = await fetch('./api/vault-entry?id=' + encodeURIComponent(id));
+        if (response.ok) data = await response.json();
+      }
+    } catch (_) {}
+    renderEntry(data, id);
+  }
+  close.addEventListener('click', function(){ panel.dataset.open = 'false'; });
+  window.addEventListener('gold-entry-selected', function(e){ showEntry(e.detail.id, e.detail.entry); });
+  renderButtons();
+  var initial = entries.find(function(entry){ return entry.entryData && entry.entryData.content; }) || entries[0];
+  if (initial) renderEntry(initial.entryData, initial.entryId);
+})();
+</script>`;
+const conceptArtBoot = '<script>window.__GOLD_GAME_CONCEPT_ART__=' + JSON.stringify(conceptArt ? conceptArt.dataUrl : '') +
+  ';window.__GOLD_GAME_CONCEPT_ART_META__=' + JSON.stringify(conceptArt ? {
+    file: conceptArt.file,
+    source: conceptArt.source,
+    mime: conceptArt.mime,
+    bytes: conceptArt.bytes,
+    width: conceptArt.width,
+    height: conceptArt.height,
+    sha256: conceptArt.sha256,
+    role: conceptArt.role,
+  } : null) + ';</script>';
+const toolsetBoot = '<script>window.__GOLD_GAME_TOOLSET__=' + JSON.stringify(holoscriptToolset) + ';</script>';
+const startOnboardingScript = `<script>
+(function(){
+  var start = document.getElementById('startScreen');
+  var begin = document.getElementById('beginRun');
+  var inspect = document.getElementById('inspectFirst');
+  var retry = document.getElementById('retryStart');
+  var art = window.__GOLD_GAME_CONCEPT_ART__;
+  if (start && art) {
+    start.style.backgroundImage = 'linear-gradient(90deg, rgba(3,4,8,.82), rgba(3,4,8,.42) 46%, rgba(3,4,8,.18)), url("' + art + '")';
+  }
+  function openGate(){
+    if (start) start.dataset.open = 'false';
+    document.body.dataset.started = 'true';
+    window.dispatchEvent(new CustomEvent('gold-game-start'));
+  }
+  begin && begin.addEventListener('click', openGate);
+  inspect && inspect.addEventListener('click', function(){
+    if (start) start.dataset.open = 'false';
+    window.dispatchEvent(new CustomEvent('gold-game-inspect-first'));
+  });
+  retry && retry.addEventListener('click', function(){
+    document.body.dataset.started = 'true';
+    window.dispatchEvent(new CustomEvent('gold-game-reset-to-overlook'));
+  });
+})();
+</script>`;
+const toolsetScript = `<script>
+(function(){
+  var toolset = window.__GOLD_GAME_TOOLSET__ || { systems: [] };
+  var list = document.getElementById('toolsetList');
+  var count = document.getElementById('toolsetCount');
+  var toggle = document.getElementById('toolsetToggle');
+  var panel = document.getElementById('toolsetPanel');
+  var close = document.getElementById('toolsetClose');
+  if (!list || !panel) return;
+  var systems = toolset.systems || [];
+  if (count) count.textContent = systems.filter(function(s){ return s.found; }).length + ' package systems';
+  systems.forEach(function(system){
+    var row = document.createElement('div');
+    row.className = 'toolsetRow';
+    row.dataset.found = system.found ? 'true' : 'false';
+    row.innerHTML = '<strong></strong><span></span><small></small>';
+    row.querySelector('strong').textContent = system.role + ' · ' + (system.name || system.dir);
+    row.querySelector('span').textContent = system.consumes || '';
+    row.querySelector('small').textContent = system.dir + (system.version ? ' @ ' + system.version : '') + (system.found ? '' : ' · missing');
+    list.appendChild(row);
+  });
+  function setOpen(value){ panel.dataset.open = value ? 'true' : 'false'; }
+  toggle && toggle.addEventListener('click', function(){ setOpen(panel.dataset.open !== 'true'); });
+  close && close.addEventListener('click', function(){ setOpen(false); });
+})();
+</script>`;
+const holoGraphScript = `<script>
+(function(){
+  var scene = window.__GOLD_GAME_SCENE__ || {};
+  var graph = scene.holoGraph || { nodes: [], edges: [] };
+  var panel = document.getElementById('graphPanel');
+  var toggle = document.getElementById('graphToggle');
+  var close = document.getElementById('graphClose');
+  var canvas = document.getElementById('graphCanvas');
+  var nodeList = document.getElementById('graphNodes');
+  var meta = document.getElementById('graphMeta');
+  if (!panel || !canvas || !nodeList) return;
+  var nodes = graph.nodes || [];
+  var edges = graph.edges || [];
+  function setOpen(value){ panel.dataset.open = value ? 'true' : 'false'; }
+  function dispatchNode(node){
+    if (!node) return;
+    window.dispatchEvent(new CustomEvent('gold-entry-selected', { detail: { id: node.id, entry: node.entryData || null } }));
+  }
+  function pointFor(index, count){
+    var cx = 180, cy = 118, r = count > 4 ? 84 : 68;
+    var a = -Math.PI / 2 + (index / Math.max(1, count)) * Math.PI * 2;
+    return { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r };
+  }
+  function draw(){
+    canvas.innerHTML = '';
+    var ns = 'http://www.w3.org/2000/svg';
+    var byId = {};
+    nodes.forEach(function(node, i){ byId[node.id] = pointFor(i, nodes.length); });
+    edges.forEach(function(edge){
+      var a = byId[edge.source], b = byId[edge.target];
+      if (!a || !b) return;
+      var line = document.createElementNS(ns, 'line');
+      line.setAttribute('x1', a.x); line.setAttribute('y1', a.y);
+      line.setAttribute('x2', b.x); line.setAttribute('y2', b.y);
+      line.setAttribute('stroke', '#8db9ff'); line.setAttribute('stroke-opacity', '.56');
+      line.setAttribute('stroke-width', '2');
+      canvas.appendChild(line);
+    });
+    nodes.forEach(function(node, i){
+      var p = byId[node.id];
+      var group = document.createElementNS(ns, 'g');
+      group.setAttribute('class', 'graphNode');
+      group.setAttribute('data-id', node.id);
+      var circle = document.createElementNS(ns, 'circle');
+      circle.setAttribute('cx', p.x); circle.setAttribute('cy', p.y);
+      circle.setAttribute('r', node.reachableFrom534 ? '14' : '11');
+      circle.setAttribute('fill', node.semanticScore ? '#ffe9a0' : '#dbe8ff');
+      circle.setAttribute('stroke', node.reachableFrom534 ? '#d4af37' : '#6f92b8');
+      circle.setAttribute('stroke-width', '3');
+      var text = document.createElementNS(ns, 'text');
+      text.setAttribute('x', p.x); text.setAttribute('y', p.y + 28);
+      text.setAttribute('text-anchor', 'middle');
+      text.textContent = node.id.replace('W.GOLD.', 'G.');
+      group.appendChild(circle); group.appendChild(text);
+      group.addEventListener('click', function(){ dispatchNode(node); });
+      canvas.appendChild(group);
+    });
+  }
+  function renderList(){
+    nodeList.innerHTML = '';
+    nodes.forEach(function(node){
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'graphEntry';
+      button.dataset.id = node.id;
+      button.textContent = node.id + ' — ' + (node.title || 'GOLD entry');
+      button.addEventListener('click', function(){ dispatchNode(node); });
+      nodeList.appendChild(button);
+    });
+  }
+  if (meta) {
+    meta.textContent = [
+      nodes.length + ' nodes',
+      edges.length + ' edges',
+      graph.exactByConstruction ? 'recall 1.0' : '',
+      graph.navigable ? 'navigable' : '',
+      graph.semanticQuery ? 'query: ' + graph.semanticQuery : ''
+    ].filter(Boolean).join('  |  ');
+  }
+  draw();
+  renderList();
+  toggle && toggle.addEventListener('click', function(){ setOpen(panel.dataset.open !== 'true'); });
+  close && close.addEventListener('click', function(){ setOpen(false); });
+  window.addEventListener('keydown', function(e){
+    if (e.key === 'g' || e.key === 'G') setOpen(panel.dataset.open !== 'true');
+  });
+})();
+</script>`;
 const html = '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
 '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+conceptArtBoot +
+toolsetBoot +
 '<title>THE GOLD GAME — The Vault</title><style>' +
 'html,body{margin:0;height:100%;overflow:hidden;background:#06070a;font-family:system-ui,sans-serif}' +
+'#startScreen{position:fixed;inset:0;z-index:30;background:#06070a center/cover no-repeat;display:grid;align-items:end;justify-items:start;padding:clamp(28px,7vw,96px);box-sizing:border-box;color:#fff;transition:opacity .28s ease}' +
+'#startScreen[data-open="false"]{opacity:0;pointer-events:none}' +
+'#startCopy{max-width:min(620px,88vw);text-shadow:0 2px 16px #000,0 0 42px #000}' +
+'#startCopy h1{font-size:clamp(40px,8vw,86px);line-height:.9;margin:0 0 14px;letter-spacing:0;font-weight:800}' +
+'#startCopy p{font-size:clamp(15px,2.1vw,20px);line-height:1.45;margin:8px 0;color:#f3e4b0}' +
+'#startActions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}' +
+'#startActions button,#questHud button{background:#f0d79a;color:#090a0d;border:1px solid #ffe9a0;padding:9px 12px;font-weight:700;cursor:pointer}' +
+'#startActions button+button{background:rgba(9,10,13,.72);color:#f0d79a;border-color:#8f7730}' +
+'#questHud{position:fixed;left:16px;bottom:14px;z-index:11;color:#f0d79a;text-shadow:0 1px 8px #000;display:flex;gap:10px;align-items:center;max-width:min(620px,calc(100vw - 32px));font-size:12px}' +
+'#questHud strong{color:#ffe9a0}' +
+'#toolsetToggle{position:fixed;left:16px;bottom:58px;z-index:13;background:#10131b;color:#f0d79a;border:1px solid #8f7730;padding:8px 10px;cursor:pointer;font-size:12px}' +
+'#toolsetPanel{position:fixed;left:14px;top:220px;bottom:104px;width:min(430px,34vw);z-index:13;background:rgba(6,7,10,.94);border:1px solid #6f92b8;color:#dbe8ff;padding:12px;box-sizing:border-box;display:none;flex-direction:column;gap:10px;box-shadow:0 12px 48px #0008}' +
+'#toolsetPanel[data-open="true"]{display:flex}' +
+'#toolsetPanel h2{font-size:15px;line-height:1.25;margin:0;color:#dff0ff}' +
+'#toolsetPanel p{margin:0;color:#adc7df;font-size:11px;line-height:1.35}' +
+'#toolsetClose{align-self:flex-start;background:#10131b;color:#dbe8ff;border:1px solid #6f92b8;padding:6px 8px;cursor:pointer}' +
+'#toolsetList{overflow:auto;display:flex;flex-direction:column;gap:7px;padding-right:4px}' +
+'.toolsetRow{border-left:3px solid #6f92b8;padding:0 0 0 8px;display:grid;gap:2px}' +
+'.toolsetRow[data-found="false"]{opacity:.55;border-left-color:#8a2a2a}' +
+'.toolsetRow strong{font-size:11px;color:#f2f7ff}' +
+'.toolsetRow span,.toolsetRow small{font-size:10px;line-height:1.35;color:#adc7df}' +
+'#graphToggle{position:fixed;left:162px;bottom:58px;z-index:13;background:#14100a;color:#f0d79a;border:1px solid #8f7730;padding:8px 10px;cursor:pointer;font-size:12px}' +
+'#graphPanel{position:fixed;left:min(462px,36vw);top:220px;bottom:104px;width:min(430px,31vw);z-index:13;background:rgba(6,7,10,.94);border:1px solid #d4af37;color:#e9d99d;padding:12px;box-sizing:border-box;display:none;flex-direction:column;gap:10px;box-shadow:0 12px 48px #0008}' +
+'#graphPanel[data-open="true"]{display:flex}' +
+'#graphPanel h2{font-size:15px;line-height:1.25;margin:0;color:#ffe9a0}' +
+'#graphMeta{font-size:10px;line-height:1.35;color:#bfa75b}' +
+'#graphCanvas{width:100%;height:230px;min-height:170px;background:#07090f;border:1px solid #403719}' +
+'.graphNode{cursor:pointer}' +
+'.graphNode text{font:10px ui-monospace,Consolas,monospace;fill:#d8c590;pointer-events:none}' +
+'#graphNodes{overflow:auto;display:flex;flex-direction:column;gap:6px}' +
+'#graphClose,.graphEntry{background:#15140f;color:#f0d79a;border:1px solid #8f7730;padding:6px 8px;cursor:pointer;text-align:left;font-size:10px;line-height:1.35}' +
 '#hud{position:fixed;top:14px;left:16px;color:#f0d79a;z-index:10;text-shadow:0 1px 6px #000;max-width:360px}' +
 '#hud h1{font-size:18px;margin:0 0 4px;letter-spacing:2px}' +
 '#hud p{font-size:12px;margin:2px 0;color:#d8c590;line-height:1.45}' +
-'#hud ul{font-size:11px;margin:6px 0 0;padding-left:16px;color:#b09a5a}canvas{display:block}' +
-'</style></head><body><div id="hud"><h1>THE GOLD GAME · The Vault</h1>' +
+'#hud ul{font-size:11px;margin:6px 0 0;padding-left:16px;color:#b09a5a}' +
+'#crosshair{position:fixed;left:50%;top:50%;z-index:9;color:#ffe9a0;font:20px monospace;text-shadow:0 1px 8px #000;transform:translate(-50%,-50%);opacity:.78}' +
+'#entryPanel{position:fixed;right:14px;top:14px;bottom:14px;width:min(460px,38vw);z-index:12;background:rgba(6,7,10,.92);border:1px solid #d4af37;color:#e9d99d;padding:14px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;box-shadow:0 12px 48px #0008}' +
+'#entryPanel[data-open="false"]{display:none}' +
+'#entryPanel h2{font-size:16px;line-height:1.25;margin:0;color:#ffe9a0}' +
+'#entryMeta{font-size:11px;line-height:1.35;color:#bfa75b}' +
+'#entryList{display:flex;gap:6px;flex-wrap:wrap}' +
+'#entryPanel button{background:#15140f;color:#f0d79a;border:1px solid #8f7730;padding:6px 8px;cursor:pointer}' +
+'#entryBody{margin:0;white-space:pre-wrap;overflow:auto;font:11px/1.45 ui-monospace,Consolas,monospace;color:#d8c590;background:#090a0d;padding:10px;flex:1}' +
+'canvas{display:block;position:fixed;inset:0;z-index:0}' +
+'</style></head><body><section id="startScreen" data-open="true" data-gate24="start-onboarding"><div id="startCopy"><h1>THE GOLD GAME</h1>' +
+'<p>Bronze Valley opens beneath the Diamond peak. The vault is alive now: art, entries, HoloGate, and the first climb all meet here.</p>' +
+'<p><b>First objective:</b> reach a glowing entry, open its full GOLD record, then graduate it.</p>' +
+'<div id="startActions"><button id="beginRun" type="button">Begin One Climb</button><button id="inspectFirst" type="button">Read First Entry</button></div></div></section>' +
+'<div id="questHud" data-gate24="objective"><strong>Objective</strong><span>Graduate one glowing entry, then follow its record upward.</span><button id="retryStart" type="button">Return to Overlook</button></div>' +
+'<button id="toolsetToggle" type="button">HoloScript Systems</button>' +
+'<aside id="toolsetPanel" data-open="false" data-gate36="holoscript-toolset"><button id="toolsetClose" type="button">Close</button><h2>HoloScript Systems</h2><p id="toolsetCount">package systems</p><div id="toolsetList"></div></aside>' +
+'<button id="graphToggle" type="button">HoloGraph</button>' +
+'<aside id="graphPanel" data-open="false" data-gate31="playable-holograph"><button id="graphClose" type="button">Close</button><h2>HoloGraph Lineage</h2><div id="graphMeta"></div><svg id="graphCanvas" viewBox="0 0 360 236" role="img" aria-label="GOLD lineage constellation"></svg><div id="graphNodes"></div></aside>' +
+'<div id="hud"><h1>THE GOLD GAME · The Vault</h1>' +
 '<p>The real GOLD curation system as a world. Bronze valley rises to the Diamond peak; glass gems with glowing cores are real vault entries you graduate.</p>' +
 '<p>Photoreal from minimal geometric shapes. Backend stays real AI work; the human plays.</p>' +
+'<p><b>Desktop:</b> click the scene for first-person control. WASD moves, mouse looks, E graduates, F opens the full GOLD entry.</p>' +
 '<p><b>In VR:</b> pull the trigger to ENTER, then point a controller at a glowing gem and pull the trigger to graduate it — each grab is a HoloGate intent validated against your HoloDoor scope.</p>' +
 '<p id="live">vault: open via the launcher for the live count (embedded snapshot on file://)</p>' +
-'<ul>' + tierList + '</ul></div>' +
+'<ul>' + tierList + '</ul></div><div id="crosshair">+</div>' +
+'<aside id="entryPanel" data-open="true"><button id="entryClose" type="button">Close</button><div id="entryList"></div><h2 id="entryTitle">GOLD entry</h2><div id="entryMeta"></div><pre id="entryBody"></pre></aside>' +
 '<script>' + bundle + '</script>' +
-'<script>fetch("./api/vault").then(function(r){return r.json()}).then(function(v){var el=document.getElementById("live");if(!el)return;' +
-'el.textContent=v.connected?("LIVE vault: "+(v.total||"?")+" entries · as of "+(v.asOf||"?")):"vault not detected — embedded snapshot"}).catch(function(){});</script>' +
+'<script>if(location.protocol!=="file:"){fetch("./api/vault").then(function(r){return r.json()}).then(function(v){var el=document.getElementById("live");if(!el)return;' +
+ 'el.textContent=v.connected?("LIVE vault: "+(v.total||"?")+" entries · as of "+(v.asOf||"?")):"vault not detected — embedded snapshot"}).catch(function(){});}</script>' +
+startOnboardingScript +
+toolsetScript +
+holoGraphScript +
+goldDataScript +
 '</body></html>';
 writeFileSync(join(OUT, 'index.html'), html);
 writeFileSync(join(OUT, 'START-HERE.txt'),
   'THE GOLD GAME — The Vault\\n\\nDouble-click index.html to open the game in any browser.\\n' +
-  'Works offline; nothing to install. (For the live vault count, use the launcher exe.)\\n');
+  'Works offline; nothing to install. Gate 24 opens on the founder art vista.\\n' +
+  'Click Begin One Climb, then use WASD/mouse, E to graduate, F to inspect full GOLD data.\\n' +
+  'Open HoloGraph (or press G) to navigate the GOLD lineage constellation.\\n' +
+  'Open HoloScript Systems in-game to see package systems being consumed by the GOLD loop.\\n' +
+  'For live full-data reads, use the Node launcher on the deployed Drive copy.\\n');
 
 // ── 6. Reproducible Gate-1 receipt ───────────────────────────────────────────
 const receipt = {
@@ -358,6 +852,32 @@ const receipt = {
     entry_portal_menu: 'world-space panel; pull trigger to ENTER then to graduate',
     interaction: 'controller raycast -> PortalIntent{kind:grab} -> validatePortalIntent(intent, HoloDoorPolicy, "drive-avatar") -> graduate gem rises a tier',
     scope: 'drive-avatar', note: 'a grab MUTATES only after HoloGate validates it against the spatial scope; read-only/mutate-zone-without-glob are rejected' },
+  desktopFirstPerson: { enabled: true, controls: 'click-to-lock pointer; WASD/arrow movement; mouse look; Shift speed; E graduate; F inspect full entry', camera: 'player-position + yaw/pitch, no auto-orbit after entry' },
+  goldFullData: { enabled: true, staticEmbeddedEntries: meshes.filter((m) => m.entryData && m.entryData.found).length,
+    liveEndpoint: './api/vault-entry?id=<GOLD-ID>', note: 'the right-side panel shows the full markdown body, not only metadata; live mode re-reads D:/GOLD through server.cjs' },
+  startOnboarding: { enabled: true, gate: 24, openingVista: conceptArt ? {
+      file: conceptArt.file, source: conceptArt.source, width: conceptArt.width,
+      height: conceptArt.height, bytes: conceptArt.bytes, sha256: conceptArt.sha256,
+    } : null,
+    firstObjective: 'reach a glowing entry, open its full GOLD record, then graduate it',
+    retryPath: 'Return to Overlook dispatches gold-game-reset-to-overlook',
+    nextObjective: 'follow the record upward after the first graduation' },
+  playableHoloGraph: { enabled: true, gate: 31,
+    nodes: playableHoloGraph.nodes.length,
+    edges: playableHoloGraph.edges.length,
+    exactByConstruction: playableHoloGraph.exactByConstruction,
+    navigable: playableHoloGraph.navigable,
+    source: playableHoloGraph.source,
+    graphDigest: playableHoloGraph.graphDigest,
+    embedDigest: playableHoloGraph.embedDigest,
+    interaction: 'HoloGraph button / G key opens lineage constellation; selecting a node dispatches gold-entry-selected and opens full GOLD data' },
+  holoscriptToolset: { enabled: true, gate: 36,
+    packageCount: holoscriptToolset.systems.length,
+    foundPackageCount: holoscriptToolset.systems.filter((s) => s.found).length,
+    systems: holoscriptToolset.systems.map((s) => ({
+      dir: s.dir, name: s.name || s.dir, role: s.role, found: s.found, consumes: s.consumes,
+    })),
+    missing: holoscriptToolset.systems.filter((s) => !s.found).map((s) => s.dir) },
   sceneDigest: sha256(sceneJson), htmlBytes: html.length,
   selfContained: true, offline: true, three: '0.182.0 (bundled IIFE)', core: '6.1.0',
   verifiedAt: new Date().toISOString(),

@@ -26,8 +26,70 @@
       "inputSources": 1,
       "frames": 180,
       "startPerf": 6621.89999999851
+    },
+    {
+      "event": "immersive-session-end",
+      "mode": "immersive-vr",
+      "code": "JIEH-IVBH",
+      "ts": "2026-05-22T09:21:41.488Z",
+      "ua": "Mozilla/5.0 (X11; Linux x86_64; Quest 3) AppleWebKit/537.36 (KHTML, like Gecko) OculusBrowser/146.1.0.27.53.958285939 Chrome/146.0.7680.188 VR Safari/537.36",
+      "blendMode": "opaque",
+      "refSpace": "local-floor",
+      "inputSources": 1,
+      "frames": 180,
+      "startPerf": 6621.89999999851,
+      "endTs": "2026-05-23T22:34:28.312Z",
+      "durationMs": 2704586
+    },
+    {
+      "event": "immersive-session-start",
+      "mode": "immersive-vr",
+      "code": "JIEH-IVBH",
+      "ts": "2026-05-23T22:35:01.021Z",
+      "ua": "Mozilla/5.0 (X11; Linux x86_64; Quest 3) AppleWebKit/537.36 (KHTML, like Gecko) OculusBrowser/146.1.0.27.53.958285939 Chrome/146.0.7680.188 VR Safari/537.36",
+      "blendMode": "opaque",
+      "refSpace": null,
+      "inputSources": 0,
+      "frames": 0,
+      "startPerf": 6180
+    },
+    {
+      "event": "immersive-session-progress",
+      "mode": "immersive-vr",
+      "code": "JIEH-IVBH",
+      "ts": "2026-05-23T22:35:01.021Z",
+      "ua": "Mozilla/5.0 (X11; Linux x86_64; Quest 3) AppleWebKit/537.36 (KHTML, like Gecko) OculusBrowser/146.1.0.27.53.958285939 Chrome/146.0.7680.188 VR Safari/537.36",
+      "blendMode": "opaque",
+      "refSpace": "local-floor",
+      "inputSources": 2,
+      "frames": 180,
+      "startPerf": 6180
+    },
+    {
+      "event": "immersive-session-start",
+      "mode": "immersive-vr",
+      "code": "JIEH-IVBH",
+      "ts": "2026-05-23T23:58:53.419Z",
+      "ua": "Mozilla/5.0 (X11; Linux x86_64; Quest 3) AppleWebKit/537.36 (KHTML, like Gecko) OculusBrowser/146.1.0.27.53.958285939 Chrome/146.0.7680.188 VR Safari/537.36",
+      "blendMode": "opaque",
+      "refSpace": null,
+      "inputSources": 0,
+      "frames": 0,
+      "startPerf": 5133
+    },
+    {
+      "event": "immersive-session-progress",
+      "mode": "immersive-vr",
+      "code": "JIEH-IVBH",
+      "ts": "2026-05-23T23:58:53.419Z",
+      "ua": "Mozilla/5.0 (X11; Linux x86_64; Quest 3) AppleWebKit/537.36 (KHTML, like Gecko) OculusBrowser/146.1.0.27.53.958285939 Chrome/146.0.7680.188 VR Safari/537.36",
+      "blendMode": "opaque",
+      "refSpace": "local-floor",
+      "inputSources": 2,
+      "frames": 180,
+      "startPerf": 5133
     }
   ],
-  "capturedAt": "2026-05-22T09:21:43.611Z",
+  "capturedAt": "2026-05-23T23:58:57.181Z",
   "honest": "Written ONLY from real navigator.xr immersive-vr session events POSTed by the Quest Browser. No stubbed telemetry."
 }

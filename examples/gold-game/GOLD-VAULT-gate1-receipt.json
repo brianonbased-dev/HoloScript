@@ -39,11 +39,198 @@
     "scope": "drive-avatar",
     "note": "a grab MUTATES only after HoloGate validates it against the spatial scope; read-only/mutate-zone-without-glob are rejected"
   },
-  "sceneDigest": "208645323846a6dfc8596b3f3e9e1749f09ac1b3aa3d4d1bdffd32e19774c568",
-  "htmlBytes": 556679,
+  "desktopFirstPerson": {
+    "enabled": true,
+    "controls": "click-to-lock pointer; WASD/arrow movement; mouse look; Shift speed; E graduate; F inspect full entry",
+    "camera": "player-position + yaw/pitch, no auto-orbit after entry"
+  },
+  "goldFullData": {
+    "enabled": true,
+    "staticEmbeddedEntries": 3,
+    "liveEndpoint": "./api/vault-entry?id=<GOLD-ID>",
+    "note": "the right-side panel shows the full markdown body, not only metadata; live mode re-reads D:/GOLD through server.cjs"
+  },
+  "startOnboarding": {
+    "enabled": true,
+    "gate": 24,
+    "openingVista": {
+      "file": "examples/gold-game/assets/gold-vault-vista-wlNgg.jpg",
+      "source": "C:/Users/josep/Downloads/wlNgg.jpg",
+      "width": 1168,
+      "height": 784,
+      "bytes": 308112,
+      "sha256": "0ce1ace4810ba9476809dd9f1ff627eb1a05696dec1dc202bdd05ab7a130e067"
+    },
+    "firstObjective": "reach a glowing entry, open its full GOLD record, then graduate it",
+    "retryPath": "Return to Overlook dispatches gold-game-reset-to-overlook",
+    "nextObjective": "follow the record upward after the first graduation"
+  },
+  "playableHoloGraph": {
+    "enabled": true,
+    "gate": 31,
+    "nodes": 6,
+    "edges": 4,
+    "exactByConstruction": true,
+    "navigable": true,
+    "source": "GATE-10-HOLOGRAPH-receipt.json",
+    "graphDigest": "4d1ee95e7770bc55821d4dac4dd43a1d0dd148998dee7c513989ad72b944e033",
+    "embedDigest": "ef4846d064619aa85937e3bfe0343226758f3c52be45b75fa2ac9759384dead2",
+    "interaction": "HoloGraph button / G key opens lineage constellation; selecting a node dispatches gold-entry-selected and opens full GOLD data"
+  },
+  "holoscriptToolset": {
+    "enabled": true,
+    "gate": 36,
+    "packageCount": 20,
+    "foundPackageCount": 20,
+    "systems": [
+      {
+        "dir": "core",
+        "name": "@holoscript/core",
+        "role": "World source",
+        "found": true,
+        "consumes": "parse the .holo scene, traits, compiler outputs, and SimulationContract identities"
+      },
+      {
+        "dir": "engine",
+        "name": "@holoscript/engine",
+        "role": "Runtime loop",
+        "found": true,
+        "consumes": "rendering, physics, animation, hologram orchestration, and game subsystems"
+      },
+      {
+        "dir": "mcp-server",
+        "name": "@holoscript/mcp-server",
+        "role": "HoloGate",
+        "found": true,
+        "consumes": "validate player intent before any GOLD mutation happens"
+      },
+      {
+        "dir": "mesh",
+        "name": "@holoscript/mesh",
+        "role": "Shared state",
+        "found": true,
+        "consumes": "authority, replication, co-presence, and agent/player convergence"
+      },
+      {
+        "dir": "crdt",
+        "name": "@holoscript/crdt",
+        "role": "Safe edits",
+        "found": true,
+        "consumes": "signed CRDT state for concurrent knowledge changes"
+      },
+      {
+        "dir": "crdt-spatial",
+        "name": "@holoscript/crdt-spatial",
+        "role": "Spatial sync",
+        "found": true,
+        "consumes": "Loro-backed transform convergence for shared objects and rooms"
+      },
+      {
+        "dir": "holoembed",
+        "name": "@holoscript/holoembed",
+        "role": "HoloGraph recall",
+        "found": true,
+        "consumes": "native embeddings for lineage search and knowledge routing"
+      },
+      {
+        "dir": "absorb-service",
+        "name": "@holoscript/absorb-service",
+        "role": "Graph intelligence",
+        "found": true,
+        "consumes": "code/knowledge graph ingestion, GraphRAG, and recursive improvement hooks"
+      },
+      {
+        "dir": "holomap",
+        "name": "@holoscript/holomap",
+        "role": "Scanned spaces",
+        "found": true,
+        "consumes": "video/device capture reconstruction into anchored GOLD rooms and portals"
+      },
+      {
+        "dir": "hologram-worker",
+        "name": "@holoscript/hologram-worker",
+        "role": "HoloGram render",
+        "found": true,
+        "consumes": "depth, quilt, stereo, parallax, and Studio upload worker path"
+      },
+      {
+        "dir": "r3f-renderer",
+        "name": "@holoscript/r3f-renderer",
+        "role": "3D renderer",
+        "found": true,
+        "consumes": "shared React Three Fiber renderer surface for GOLD visual clients"
+      },
+      {
+        "dir": "spatial-index",
+        "name": "@holoscript/spatial-index",
+        "role": "Vault navigation",
+        "found": true,
+        "consumes": "spatial lookup for entries, anchors, routes, and scanned spaces"
+      },
+      {
+        "dir": "snn-webgpu",
+        "name": "@holoscript/snn-webgpu",
+        "role": "Agent cognition",
+        "found": true,
+        "consumes": "GPU spiking-neural simulation for future companion perception/choice loops"
+      },
+      {
+        "dir": "security-sandbox",
+        "name": "@holoscript/security-sandbox",
+        "role": "Mutation sandbox",
+        "found": true,
+        "consumes": "execute generated HoloScript safely before live-vault application"
+      },
+      {
+        "dir": "secrets-broker",
+        "name": "@holoscript/secrets-broker",
+        "role": "Capabilities",
+        "found": true,
+        "consumes": "short-lived scoped capability tokens for live GOLD actions"
+      },
+      {
+        "dir": "studio",
+        "name": "@holoscript/studio",
+        "role": "Creator surface",
+        "found": true,
+        "consumes": "author and inspect GOLD scenes as HoloScript Studio artifacts"
+      },
+      {
+        "dir": "compiler-wasm",
+        "name": "@holoscript/wasm",
+        "role": "Browser compiler",
+        "found": true,
+        "consumes": "ship parser/compiler pieces into offline browser contexts"
+      },
+      {
+        "dir": "holo-vm",
+        "name": "@holoscript/holo-vm",
+        "role": "Bytecode runtime",
+        "found": true,
+        "consumes": "future native execution path for heavier in-game HoloScript behaviors"
+      },
+      {
+        "dir": "runtime",
+        "name": "@holoscript/runtime",
+        "role": "Browser runtime",
+        "found": true,
+        "consumes": "browser device APIs, events, physics, and R3F integration"
+      },
+      {
+        "dir": "agent-protocol",
+        "name": "@holoscript/agent-protocol",
+        "role": "Agent party",
+        "found": true,
+        "consumes": "uAA2++ protocol types for companion agents and team actions"
+      }
+    ],
+    "missing": []
+  },
+  "sceneDigest": "80a0fbed4901b71b1c080124a77889b8641c0ad239aedfa0b1c7ba3f2202927d",
+  "htmlBytes": 1065099,
   "selfContained": true,
   "offline": true,
   "three": "0.182.0 (bundled IIFE)",
   "core": "6.1.0",
-  "verifiedAt": "2026-05-23T05:45:07.496Z"
+  "verifiedAt": "2026-05-24T01:16:26.220Z"
 }
