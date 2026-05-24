@@ -215,17 +215,34 @@ New cross-cutting findings (filed to board): (a) **native-platform compilers lac
 Batch-5 findings are claim-wording/terminology + verifier-coverage only — no code stubs.
 Filed to board: claim/terminology disambiguation + Native2D verifier (C-DISAMBIG).
 
-## Tally so far (30 of 61 compilers + 15 solvers/traits)
+### Batch 6 — 6 more (36 of 61 total): 2 REAL, 1 THIN, 3 OVERCLAIMED
 
-Compilers: **28 REAL, 1 THIN (WASM), 1 OVERCLAIMED-vs-claim (MCPConfig)**. The compiler tier
-is genuinely real codegen; findings cluster in (1) silent-degradation of unhandled cases,
-(2) thin/absent fidelity verifiers, (3) claim/terminology drift (SDF, MLS, TSL, MCPConfig,
-Godot, PlayCanvas). No fabricated/template-only compiler found in 30.
+The first batch with substantive OVERCLAIMED findings (the niche/product-edge surface).
+
+| Compiler | Verdict | Note |
+|---|---|---|
+| ShaderGraphCompiler | REAL | 97 node-type generateCode closures, real topo-sort + edge→variable wiring; bounded: fixed Cook-Torrance PBR tail, fidelity-blind verifier |
+| StateCompiler | REAL | fully data-driven state extraction + fidelity verifier; bounded: MCP passes HoloComposition but class reads HSPlusAST (shape mismatch, end-to-end untested) |
+| QuiltCompiler | **THIN** | computes real per-tile camera params, but its emitted R3F renderer string is a non-functional stub; the REAL multi-view rendering lives in `BrowserQuiltRenderer.ts` (separate) — the named compiler should delegate to it |
+| ARCompiler | **OVERCLAIMED** | `compile_to_ar` emits a near-fixed Three.js skeleton; reads only `@ar_beacon` as a 1-bit toggle (one global handler regardless of count), `@overlay` extracted-but-unused; `@geo_anchor`/`@qr_scan`/`@ar_portal`/`@camera_overlay`/`@x402_paywall` silently dropped (~95% of scene semantics). Verifier passes against the fixed template. BOUNDED (traverser exists; gap is per-node codegen + plumbing) |
+| MVHEVCCompiler | **OVERCLAIMED** | produces Swift/ffmpeg scaffold *strings* + metadata, NO actual MV-HEVC encoding/bytes; emitted ffmpeg cmd yields single-view HEVC mislabeled. UNBOUNDED (real encoder, platform-gated). Truthfully a planner; mislabeled as "compiles to MV-HEVC artifact" |
+| ProceduralCompiler | **OVERCLAIMED** | a string formatter — echoes `skill.code`, wraps `move/attack/craft` lines in `ensure_safety()`; zero procedural generation; the `ProceduralSkill` interface has no rules/grammar/params. Self-described MVP; tautological test. BOUNDED (additive) |
+
+Filed to board: C-AR (P3), C-HOLOGRAM (MVHEVC+Quilt, P3), C-PROCEDURAL (P4).
+
+## Tally so far (36 of 61 compilers + 15 solvers/traits)
+
+Compilers: **30 REAL, 2 THIN (WASM, Quilt), 4 OVERCLAIMED (MCPConfig-vs-claim, AR, MVHEVC,
+Procedural)**. The flagship/sovereign/format tiers are genuinely real codegen; the OVERCLAIMED
+cases concentrate at the **niche/product-edge** (AR runtime, MV-HEVC codec, procedural-gen) —
+exactly where a verifier asserting only token-presence lets a near-fixed-template or
+scaffold-string compiler pass. Findings cluster in: (1) silent-degradation of unhandled cases,
+(2) thin/absent fidelity verifiers, (3) claim/terminology drift, (4) product-edge overclaims.
 
 ## Next breadth pass
 
-Un-ratcheted: **~31 remaining compilers** (AR/AndroidXR/AIGlasses/PhoneSleeveVR; State/
-FlatSemantic/Context/Incremental; NodeGraph/Pipeline/Graph/TraitComposition; niche Holob/SCM/
-NextJS/NodeService/MVHEVC/Quilt/Procedural/ShaderGraph/Matterpak/LLMProviderCapabilities;
+Un-ratcheted: **~25 remaining compilers** (AndroidXR/AIGlasses/PhoneSleeveVR; FlatSemantic/
+Context/Incremental; NodeGraph/Pipeline/Graph/TraitComposition; niche Holob/SCM/NextJS/
+NodeService/Matterpak/LLMProviderCapabilities/OpenXRSpatialEntities/GraphCompiler;
 known-failing VRChatCompiler) and the **~88 POTENTIAL trait stubs + Tier-4 integration
 traits**. All on the board (deep-ratchet straggler + breadth-2 tasks, 2026-05-24).
