@@ -21,9 +21,9 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const VERSION = '0.3.0';
-export const RECEIPT_VERSION = 'holoshell-hologram-bridge-renderer/v3';
-const TEMPORAL_MODES = new Set(['all', 'latest', 'fuse']);
+export const VERSION = '0.4.0';
+export const RECEIPT_VERSION = 'holoshell-hologram-bridge-renderer/v4';
+const TEMPORAL_MODES = new Set(['all', 'latest', 'fuse', 'aligned']);
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
@@ -93,7 +93,7 @@ function parseArgs(argv) {
     throw new Error('--glow-radius must be an integer from 0 to 64');
   }
   if (args.temporalMode !== undefined && !TEMPORAL_MODES.has(args.temporalMode)) {
-    throw new Error('--temporal-mode must be one of: all, latest, fuse');
+    throw new Error('--temporal-mode must be one of: all, latest, fuse, aligned');
   }
   return args;
 }
@@ -104,13 +104,13 @@ function printHelp() {
 Usage:
   node scripts/holoshell-hologram-bridge-renderer.mjs --bridge scan.hologram-bridge.json [--out receipt.json]
   node scripts/holoshell-hologram-bridge-renderer.mjs --bridge scan.hologram-bridge.json --exposure 2.5 --point-radius 5
-  node scripts/holoshell-hologram-bridge-renderer.mjs --bridge scan.hologram-bridge.json --temporal-mode all
+  node scripts/holoshell-hologram-bridge-renderer.mjs --bridge scan.hologram-bridge.json --temporal-mode aligned
   node scripts/holoshell-hologram-bridge-renderer.mjs --self-test
 
 Notes:
   - Reads HoloMap point-cloud bridge JSON emitted by holoshell:camera-scan.
   - Emits a deterministic quilt preview PNG and receipt.
-  - Multi-frame point clouds default to --temporal-mode latest until pose-aligned fusion lands.
+  - Multi-frame point clouds with pose metadata default to --temporal-mode aligned.
   - Auto-exposes dim point clouds by default; pass --no-auto-exposure to disable.
   - Does not claim MV-HEVC or parallax video encoding.
 `);
@@ -283,10 +283,18 @@ function boundsFor(points) {
 }
 
 function inferFrameLayout(points, source) {
-  const frameCount = Number.isInteger(source?.frameCount) ? source.frameCount : undefined;
+  const sourceFrameCount = Number.isInteger(source?.frameCount) ? source.frameCount : undefined;
+  const layoutFrameCount = Number.isInteger(source?.frameLayout?.frameCount)
+    ? source.frameLayout.frameCount
+    : undefined;
+  const frameCount = sourceFrameCount ?? layoutFrameCount;
   if (!frameCount || frameCount < 2 || points.length % frameCount !== 0) return undefined;
-  const pointsPerFrame = points.length / frameCount;
+  const layoutPointsPerFrame = Number.isInteger(source?.frameLayout?.pointsPerFrame)
+    ? source.frameLayout.pointsPerFrame
+    : undefined;
+  const pointsPerFrame = layoutPointsPerFrame ?? points.length / frameCount;
   if (!Number.isInteger(pointsPerFrame) || pointsPerFrame < 1) return undefined;
+  if (pointsPerFrame * frameCount !== points.length) return undefined;
   const expectedGridPoints =
     Number.isInteger(source?.tileGrid) && source.tileGrid > 0 ? source.tileGrid * source.tileGrid : undefined;
   return {
@@ -296,7 +304,49 @@ function inferFrameLayout(points, source) {
   };
 }
 
-function fuseTemporalFrames(points, layout) {
+function posePosition(frame) {
+  const position = frame?.pose?.position;
+  if (!Array.isArray(position) || position.length < 3) return undefined;
+  const x = Number(position[0]);
+  const y = Number(position[1]);
+  const z = Number(position[2]);
+  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return undefined;
+  return [x, y, z];
+}
+
+function frameEntriesForLayout(source, layout) {
+  const explicitFrames = Array.isArray(source?.frames) ? source.frames : [];
+  const frames = explicitFrames
+    .map((frame, index) => {
+      const pointOffset = Number.isInteger(frame.pointOffset) ? frame.pointOffset : index * layout.pointsPerFrame;
+      const pointCount = Number.isInteger(frame.pointCount) ? frame.pointCount : layout.pointsPerFrame;
+      return {
+        frameIndex: Number.isInteger(frame.frameIndex) ? frame.frameIndex : index,
+        timestampMs: Number.isFinite(Number(frame.timestampMs)) ? Number(frame.timestampMs) : undefined,
+        pointOffset,
+        pointCount,
+        pose: frame.pose,
+      };
+    })
+    .filter((frame) => frame.pointOffset >= 0 && frame.pointCount === layout.pointsPerFrame);
+
+  if (frames.length === layout.frameCount) return frames;
+  return Array.from({ length: layout.frameCount }, (_, index) => ({
+    frameIndex: index,
+    pointOffset: index * layout.pointsPerFrame,
+    pointCount: layout.pointsPerFrame,
+    pose: undefined,
+  }));
+}
+
+function hasUsableFramePoses(frames) {
+  return frames.length > 1 && frames.every((frame) => posePosition(frame));
+}
+
+function fuseTemporalFrames(points, layout, frames, options = {}) {
+  const align = options.align === true;
+  const referenceFrame = align ? frames[frames.length - 1] : undefined;
+  const referencePose = align ? posePosition(referenceFrame) : undefined;
   const fused = [];
   for (let i = 0; i < layout.pointsPerFrame; i += 1) {
     let weightSum = 0;
@@ -307,14 +357,18 @@ function fuseTemporalFrames(points, layout) {
     let g = 0;
     let b = 0;
     let confidence = 0;
-    for (let frame = 0; frame < layout.frameCount; frame += 1) {
-      const point = points[frame * layout.pointsPerFrame + i];
+    for (const frame of frames) {
+      const point = points[frame.pointOffset + i];
       if (!point) continue;
       const weight = Math.max(0.05, Number.isFinite(point.confidence) ? point.confidence : 1);
+      const currentPose = align ? posePosition(frame) : undefined;
+      const dx = align && currentPose && referencePose ? referencePose[0] - currentPose[0] : 0;
+      const dy = align && currentPose && referencePose ? referencePose[1] - currentPose[1] : 0;
+      const dz = align && currentPose && referencePose ? referencePose[2] - currentPose[2] : 0;
       weightSum += weight;
-      x += point.x * weight;
-      y += point.y * weight;
-      z += point.z * weight;
+      x += (point.x + dx) * weight;
+      y += (point.y + dy) * weight;
+      z += (point.z + dz) * weight;
       r += point.r * weight;
       g += point.g * weight;
       b += point.b * weight;
@@ -336,7 +390,9 @@ function fuseTemporalFrames(points, layout) {
 
 function selectTemporalPoints(points, source, requestedMode) {
   const layout = inferFrameLayout(points, source);
-  const defaultMode = layout ? 'latest' : 'all';
+  const frames = layout ? frameEntriesForLayout(source, layout) : [];
+  const canAlign = hasUsableFramePoses(frames);
+  const defaultMode = layout ? (canAlign ? 'aligned' : 'latest') : 'all';
   const mode = requestedMode ?? defaultMode;
   const base = {
     requestedMode: requestedMode ?? 'auto',
@@ -345,6 +401,7 @@ function selectTemporalPoints(points, source, requestedMode) {
     pointsPerFrame: layout?.pointsPerFrame,
     originalPointCount: points.length,
     layoutMatchesTileGrid: layout?.layoutMatchesTileGrid,
+    framePoseCount: frames.filter((frame) => posePosition(frame)).length || undefined,
   };
 
   if (!layout || mode === 'all') {
@@ -360,8 +417,9 @@ function selectTemporalPoints(points, source, requestedMode) {
   }
 
   if (mode === 'latest') {
-    const selectedFrameIndex = layout.frameCount - 1;
-    const start = selectedFrameIndex * layout.pointsPerFrame;
+    const selectedFrame = frames[frames.length - 1];
+    const selectedFrameIndex = selectedFrame?.frameIndex ?? layout.frameCount - 1;
+    const start = selectedFrame?.pointOffset ?? selectedFrameIndex * layout.pointsPerFrame;
     const selected = points.slice(start, start + layout.pointsPerFrame);
     return {
       points: selected,
@@ -373,12 +431,20 @@ function selectTemporalPoints(points, source, requestedMode) {
     };
   }
 
-  const fused = fuseTemporalFrames(points, layout);
+  const align = mode === 'aligned' && canAlign;
+  const fused = fuseTemporalFrames(points, layout, frames, { align });
+  const referenceFrame = align ? frames[frames.length - 1] : undefined;
   return {
     points: fused,
     info: {
       ...base,
+      temporalMode: mode === 'aligned' && !canAlign ? 'fuse' : mode,
       renderedPointCount: fused.length,
+      fusedFrameCount: frames.length,
+      alignmentMethod: align ? 'pose-centroid-translation' : undefined,
+      referenceFrameIndex: referenceFrame?.frameIndex,
+      referencePosePosition: posePosition(referenceFrame),
+      fallbackReason: mode === 'aligned' && !canAlign ? 'bridge did not include usable per-frame poses' : undefined,
     },
   };
 }
@@ -575,6 +641,11 @@ export async function renderBridge(args) {
         renderedPointCount: temporal.info.renderedPointCount,
         originalPointCount: temporal.info.originalPointCount,
         layoutMatchesTileGrid: temporal.info.layoutMatchesTileGrid,
+        framePoseCount: temporal.info.framePoseCount,
+        fusedFrameCount: temporal.info.fusedFrameCount,
+        alignmentMethod: temporal.info.alignmentMethod,
+        referenceFrameIndex: temporal.info.referenceFrameIndex,
+        referencePosePosition: temporal.info.referencePosePosition,
         fallbackReason: temporal.info.fallbackReason,
       },
       plyPath: rel(plyPath),
@@ -593,7 +664,7 @@ export async function renderBridge(args) {
       variant,
     },
     honestScope:
-      'Rendered a deterministic quilt preview from HoloMap point-cloud geometry. Multi-frame previews use temporal selection without pose-aligned fusion unless --temporal-mode all/fuse is requested. This is not MV-HEVC or parallax video encoding.',
+      'Rendered a deterministic quilt preview from HoloMap point-cloud geometry. Multi-frame previews use pose-centroid translation alignment when bridge frame poses are present; this is not optical flow, MV-HEVC, or parallax video encoding.',
     outputPath: rel(outPath),
   });
   writeJson(outPath, receipt);

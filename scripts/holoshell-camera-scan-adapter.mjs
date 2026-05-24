@@ -628,7 +628,36 @@ function buildHoloSource({ manifest, assets }) {
 `;
 }
 
-function buildHologramBridge({ manifest, assets, pointCloudHash, tileGrid }) {
+function buildBridgeFrames(steps) {
+  const frames = [];
+  let pointOffset = 0;
+  for (const step of steps ?? []) {
+    const pointCount = Math.max(0, Math.floor(step.pointCount ?? 0));
+    if (!step.accepted || pointCount < 1) continue;
+    const position = Array.isArray(step.posePosition)
+      ? step.posePosition.map((value) => (Number.isFinite(Number(value)) ? round(Number(value), 7) : 0))
+      : undefined;
+    const poseConfidence = Number(step.poseConfidence ?? 0);
+    frames.push({
+      frameIndex: step.frameIndex,
+      timestampMs: step.timestampMs,
+      pointOffset,
+      pointCount,
+      pose: {
+        position,
+        rotation: [0, 0, 0, 1],
+        confidence: Number.isFinite(poseConfidence) ? round(poseConfidence, 4) : 0,
+      },
+      anchorRevision: step.anchorRevision,
+    });
+    pointOffset += pointCount;
+  }
+  return frames;
+}
+
+function buildHologramBridge({ manifest, assets, pointCloudHash, tileGrid, steps }) {
+  const frames = buildBridgeFrames(steps);
+  const pointsPerFrame = frames[0]?.pointCount ?? tileGrid * tileGrid;
   return {
     schemaVersion: 'hologram-bridge/holomap-pointcloud/v1',
     status: 'geometry-ready',
@@ -639,6 +668,11 @@ function buildHologramBridge({ manifest, assets, pointCloudHash, tileGrid }) {
       pointCount: manifest.pointCount,
       frameCount: manifest.frameCount,
       tileGrid,
+      frameLayout: {
+        pointOrder: 'frame-major-tile-row-major',
+        pointsPerFrame,
+      },
+      frames,
       bounds: manifest.bounds,
       assets,
     },
@@ -693,7 +727,13 @@ function writeScanArtifacts({ outPath, holoMap }) {
     hologramBridge: assets.hologramBridge,
   };
   writeJson(manifestPath, holoMap.manifest);
-  const bridge = buildHologramBridge({ manifest: holoMap.manifest, assets, pointCloudHash, tileGrid: holoMap.tileGrid });
+  const bridge = buildHologramBridge({
+    manifest: holoMap.manifest,
+    assets,
+    pointCloudHash,
+    tileGrid: holoMap.tileGrid,
+    steps: holoMap.steps,
+  });
   writeJson(bridgePath, bridge);
   writeFileSync(holoPath, buildHoloSource({ manifest: holoMap.manifest, assets }), 'utf8');
 

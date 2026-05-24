@@ -51,7 +51,7 @@ assertOk(receipt.quilt.path.includes(receipt.quilt.variant), 'quilt path include
 assertOk(receipt.quilt.style.exposure >= 1, 'receipt records exposure');
 assertOk(receipt.quilt.style.pointRadius >= 1, 'receipt records point radius');
 
-console.log('Test 2: multi-frame bridges default to the latest frame');
+console.log('Test 2: multi-frame bridges default to pose-aligned fusion');
 const dir = mkdtempSync(join(tmpdir(), 'holoshell-hologram-bridge-renderer-test-'));
 try {
   const plyPath = join(dir, 'scan.ply');
@@ -95,6 +95,26 @@ try {
           pointCount: 8,
           frameCount: 2,
           tileGrid: 2,
+          frameLayout: {
+            pointOrder: 'frame-major-tile-row-major',
+            pointsPerFrame: 4,
+          },
+          frames: [
+            {
+              frameIndex: 0,
+              timestampMs: 0,
+              pointOffset: 0,
+              pointCount: 4,
+              pose: { position: [0.1, 0, 0], rotation: [0, 0, 0, 1], confidence: 0.8 },
+            },
+            {
+              frameIndex: 1,
+              timestampMs: 200,
+              pointOffset: 4,
+              pointCount: 4,
+              pose: { position: [0.4, 0, 0], rotation: [0, 0, 0, 1], confidence: 0.8 },
+            },
+          ],
           bounds: { min: [-0.4, -0.4, 0.1], max: [0.4, 0.4, 0.2] },
           assets: { ply: plyPath },
         },
@@ -113,10 +133,16 @@ try {
     tileWidth: 32,
     tileHeight: 24,
   });
-  assertEq(temporalReceipt.source.temporalMode, 'latest', 'default temporal mode');
-  assertEq(temporalReceipt.source.pointCount, 4, 'latest frame point count');
+  assertEq(temporalReceipt.source.temporalMode, 'aligned', 'default temporal mode');
+  assertEq(temporalReceipt.source.pointCount, 4, 'aligned fused point count');
   assertEq(temporalReceipt.source.originalPointCount, 8, 'original point count retained');
-  assertEq(temporalReceipt.source.temporalSelection.selectedFrameIndex, 1, 'latest frame selected');
+  assertEq(temporalReceipt.source.temporalSelection.fusedFrameCount, 2, 'both frames fused');
+  assertEq(temporalReceipt.source.temporalSelection.referenceFrameIndex, 1, 'latest frame is alignment reference');
+  assertEq(
+    temporalReceipt.source.temporalSelection.alignmentMethod,
+    'pose-centroid-translation',
+    'alignment method recorded'
+  );
   const png = readFileSync(resolve(REPO_ROOT, temporalReceipt.quilt.path));
   assertOk(png[0] === 0x89 && png[1] === 0x50, 'temporal quilt is PNG');
 } finally {
