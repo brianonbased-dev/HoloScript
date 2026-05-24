@@ -16,3 +16,4 @@ export * from './onnx-adapter';
 export * from './motion-data-schema';
 export * from './cloth-verlet';
 export * from './noise';
+export * from './tensor-ops';
