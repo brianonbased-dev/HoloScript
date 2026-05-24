@@ -9,7 +9,17 @@
 
 ---
 
-## E-G11 — Quantum-inspired curation that actually sharpens decisions
+## E-G11 — Quantum-inspired curation that actually sharpens decisions — ✅ SHIPPED 2026-05-24
+> Built plan-first + module-first via the founder-cleared NON-shared path (2): a gold-game-LOCAL
+> sharpening layer — `gold-game-curation-sharpen.mjs` (9/9 unit tests). It is a mean-field-annealing
+> analogue (Ising Hamiltonian, deterministic anneal) that FUSES a second noisy view and ferromagnetically
+> COUPLES similar entries, moving near-boundary items off the fence. The SHARED `QuantumInspiredTrait`
+> CPU fallback was deliberately NOT touched. gate-11 now asserts (19/19): ≥1 real flip vs the raw 0.5
+> threshold (anti-tautology), mean curation accuracy 0.8625→0.9173 (+0.0548) over 200 synthetic cohorts,
+> 73.1% of flips move TOWARD ground truth, 92.3% are near-boundary (confident items locked), and a
+> NEGATIVE CONTROL (no evidence/coupling) collapses EXACTLY to raw (0 flips, equal accuracy) — proving the
+> gain is the mechanism's, not annealing luck. GATES.md G11 tightened PASS\* → PASS. The GPU `SnnAccelerator`
+> path (option 1) and real operator traces remain future deepenings, not blocking. Real-QPU stays /quantum-lab.
 - **CONTEXT.** Gate 11 runs `CpuFallbackAccelerator.encode` → `cpuSigmoidActivation` (`packages/core/src/traits/QuantumInspiredTrait.ts:115-122`): a 0.5-centered logistic (k=10). It is monotonic and 0.5-centered, so it is **decision-neutral** against a 0.5 graduate/defer threshold — it cannot change which entries graduate. The `available=false` fallback (`:128-142`) is what runs CPU-side; the genuine annealing-analogue `SnnAccelerator` (GPU) is not exercised. Real `__qiState`/event wiring + receipt are genuine.
 - **INTENT.** "Quantum-inspired curation **sharpens** graduate/defer decisions" should be TRUE: the transform should measurably move near-boundary (ambiguous) items off the fence using cohort context — i.e. change decisions a plain 0.5 threshold would not, in a way that improves curation quality.
 - **PATH (founder-ruled 2026-05-24).** Do NOT change the shared `cpuSigmoidActivation` to satisfy this gate — coupling one gate's needs into shared curation infra is the wrong move (vision pillar 2 + Four Refusals). Two agent-decidable paths that DON'T touch shared behavior: (1) wire + verify the EXISTING real `SnnAccelerator` GPU path (the genuine annealing-analogue already in the trait) so the gate exercises real sharpening; or (2) build a gold-game-LOCAL sharpening layer. Either way add a verifier assertion that ≥1 decision FLIPS vs the raw 0.5 threshold (anti-tautology) and that flips improve a labelled quality metric.

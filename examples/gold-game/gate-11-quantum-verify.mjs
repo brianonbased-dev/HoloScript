@@ -24,6 +24,9 @@ const repo = join(here, '..', '..');
 const imp = (p) => import(pathToFileURL(p).href);
 const { computeStateDigest } = await imp(join(repo, 'packages', 'engine', 'src', 'simulation', 'hashes.ts'));
 const { quantumInspiredHandler } = await imp(join(repo, 'packages', 'core', 'src', 'traits', 'QuantumInspiredTrait.ts'));
+// E-G11: the gold-game-LOCAL annealing-inspired sharpening layer (does NOT touch the
+// shared trait). This is the part that genuinely sharpens graduate/defer decisions.
+const { runAggregate, runSharpeningExperiment } = await imp(join(here, 'gold-game-curation-sharpen.mjs'));
 const receiptPath = join(here, 'GATE-11-QUANTUM-receipt.json');
 const HASH = 'sha256';
 const flush = () => new Promise((r) => setTimeout(r, 0)); // let the async qi:result resolve
@@ -81,20 +84,53 @@ const deterministic = JSON.stringify(out1.map(r4)) === JSON.stringify(out2.map(r
 
 const activationDigest = computeStateDigest({ fieldNames: ['q'], getField: () => Float32Array.from(out1.map((v) => Math.round(v * 1e6))) }, HASH);
 
+// ── E-G11: the gold-game-LOCAL sharpening layer (mean-field annealing analogue) ──
+// The CPU-fallback sigmoid above is decision-NEUTRAL (monotonic, 0.5-centred) — it
+// cannot change which entries cross a 0.5 graduate/defer threshold. This layer DOES
+// sharpen: it fuses a second noisy view + couples similar entries (cohort context),
+// moving near-boundary items off the fence. Claim is statistical (cf. Gate 5a): the
+// mechanism improves curation quality ON AVERAGE over 200 cohorts, with a negative
+// control proving the gain is the mechanism's, not annealing luck.
+const sharpAgg = runAggregate();
+const example = runSharpeningExperiment(1, 24); // first cohort — NOT chosen for its result
+const sharpFlips = sharpAgg.totalFlips >= 1;
+const sharpBeatsRaw = sharpAgg.meanAccSharp > sharpAgg.meanAccRaw;
+const sharpMargin = sharpAgg.meanGain >= 0.03;
+const controlIsNoop = sharpAgg.controlFlips === 0 && sharpAgg.meanAccControl === sharpAgg.meanAccRaw;
+const flipsAreCorrections = sharpAgg.fracFlipTowardTruth >= 0.6;
+const confidentLocked = sharpAgg.fracFlipNearBoundary >= 0.80;
+const sharpDeterministic = JSON.stringify(runAggregate()) === JSON.stringify(sharpAgg);
+const sr = (x) => Number(x.toFixed(6));
+const sharpenDigest = computeStateDigest({ fieldNames: ['s'], getField: () => Float32Array.from([
+  Math.round(sharpAgg.meanAccRaw * 1e6), Math.round(sharpAgg.meanAccSharp * 1e6),
+  Math.round(sharpAgg.meanAccControl * 1e6), sharpAgg.totalFlips, sharpAgg.controlFlips,
+  Math.round(sharpAgg.fracFlipTowardTruth * 1e6), Math.round(sharpAgg.fracFlipNearBoundary * 1e6),
+]) }, HASH);
+
 const receipt = {
   gate: 11,
   track: 'flagship',
-  name: 'quantum-inspired curation — real QuantumInspiredTrait sharpens graduate/defer decisions',
+  name: 'quantum-inspired curation — gold-game-local annealing layer sharpens graduate/defer decisions (real trait wired + decision-neutral CPU path honestly disclosed)',
   verifier: 'examples/gold-game/gate-11-quantum-verify.mjs',
-  implementation: 'packages/core/src/traits/QuantumInspiredTrait.ts (quantumInspiredHandler — REAL; CpuFallbackAccelerator on a CPU-only host)',
+  implementation: 'packages/core/src/traits/QuantumInspiredTrait.ts (quantumInspiredHandler — REAL wiring; CpuFallbackAccelerator is decision-NEUTRAL on a CPU-only host) + examples/gold-game/gold-game-curation-sharpen.mjs (E-G11 gold-game-LOCAL mean-field annealing sharpening layer)',
   problem: { candidates: CANDIDATES, rawPriority: PRIORITY, numNeurons: NUM, event: 'qi:optimize' },
   result: {
     attached, emittedResult, optimizeCount: run1.result?.payload?.optimizeCount,
     acceleratorAvailable: run1.status?.payload?.acceleratorAvailable,
     activation: out1.map(r4), decisions, graduateCount, expectedGraduate, deterministic,
   },
-  contract: { spine: 'REAL computeStateDigest', activationDigest, reproducible: 'run the verifier to re-derive' },
-  honestScope: 'The optimization is run by the GENUINE QuantumInspiredTrait handler from @holoscript/core via the qi:optimize event — not a mock. On this CPU-only host it uses the trait\'s CpuFallbackAccelerator (acceleratorAvailable === false): a sigmoid activation surrogate for LIF/quantum-annealing population coding (the trait transparently uses the GPU/SNN path when an acceleratorProvider + GPU are present). PROVEN: the real quantum-INSPIRED trait deterministically transforms candidate priorities into coherent, threshold-preserving graduate/defer decisions. NOT proven here: real quantum HARDWARE — that is the separate /quantum-lab VQE track (S.VQE, IBM QPU), not this gate.',
+  sharpening: {
+    note: 'E-G11: gold-game-local mean-field-annealing layer that moves near-boundary items off the fence using cohort context. Statistical claim over 200 synthetic cohorts (24 entries each); the SHARED QuantumInspiredTrait CPU fallback is deliberately untouched.',
+    cohorts: sharpAgg.cohorts, entriesPerCohort: sharpAgg.n,
+    meanAccRaw: sr(sharpAgg.meanAccRaw), meanAccSharp: sr(sharpAgg.meanAccSharp), meanAccControl: sr(sharpAgg.meanAccControl),
+    meanGain: sr(sharpAgg.meanGain),
+    totalFlips: sharpAgg.totalFlips, controlFlips: sharpAgg.controlFlips,
+    fracFlipTowardTruth: sr(sharpAgg.fracFlipTowardTruth), fracFlipNearBoundary: sr(sharpAgg.fracFlipNearBoundary),
+    exampleCohortSeed1: { flips: example.flipCount, flipTowardTruth: example.flipTowardTruth, accRaw: sr(example.accRaw), accSharp: sr(example.accSharp) },
+    sharpenDigest,
+  },
+  contract: { spine: 'REAL computeStateDigest', activationDigest, sharpenDigest, reproducible: 'run the verifier to re-derive' },
+  honestScope: 'TWO honest claims. (1) WIRING: the optimization is run by the GENUINE QuantumInspiredTrait handler from @holoscript/core via qi:optimize — not a mock. On this CPU-only host it uses the trait\'s CpuFallbackAccelerator (acceleratorAvailable === false), a 0.5-centred monotonic sigmoid that is DECISION-NEUTRAL — it cannot change which entries cross a 0.5 threshold (deep-ratchet 2026-05-24). The genuine annealing-analogue SnnAccelerator is GPU-only and not exercised here; real-QPU is the separate /quantum-lab VQE track (S.VQE). (2) SHARPENING (E-G11 fix): a gold-game-LOCAL mean-field-annealing layer (gold-game-curation-sharpen.mjs) — an Ising Hamiltonian relaxed by deterministic annealing — fuses a second noisy view and ferromagnetically couples similar entries, moving NEAR-BOUNDARY items off the fence. PROVEN over 200 synthetic cohorts: it flips real decisions vs the raw 0.5 threshold (' + sharpAgg.totalFlips + ' flips), raises mean curation accuracy ' + sr(sharpAgg.meanAccRaw) + ' -> ' + sr(sharpAgg.meanAccSharp) + ' (+' + sr(sharpAgg.meanGain) + '), ' + (sharpAgg.fracFlipTowardTruth * 100).toFixed(1) + '% of flips move TOWARD ground truth, and ' + (sharpAgg.fracFlipNearBoundary * 100).toFixed(1) + '% are near-boundary (confident items stay locked). A negative control (no evidence fusion, no coupling) collapses EXACTLY to the raw threshold (0 flips, identical accuracy) — proving the gain is the mechanism\'s, not annealing luck. NOT claimed: real quantum hardware; the shared trait CPU fallback behaviour (left untouched on purpose); real operator traces (synthetic scenario, like Gate 5a).',
   verifiedAt: new Date().toISOString(),
 };
 
@@ -105,6 +141,8 @@ if (emit) {
   console.log('  attached=' + attached, 'emittedResult=' + emittedResult, 'optimizeCount=' + run1.result?.payload?.optimizeCount, 'cpuFallback=' + cpuFallback);
   console.log('  graduate=' + graduateCount + '/' + NUM + ' (expected ' + expectedGraduate + ')', 'monotonic=' + monotonic, 'deterministic=' + deterministic);
   console.log('  activationDigest=' + activationDigest);
+  console.log('  [E-G11 sharpen] flips=' + sharpAgg.totalFlips, 'acc ' + sr(sharpAgg.meanAccRaw) + '->' + sr(sharpAgg.meanAccSharp) + ' (+' + sr(sharpAgg.meanGain) + ')', 'ctrlFlips=' + sharpAgg.controlFlips, 'towardTruth=' + (sharpAgg.fracFlipTowardTruth * 100).toFixed(1) + '%');
+  console.log('  sharpenDigest=' + sharpenDigest);
 } else {
   let existing; try { existing = JSON.parse(readFileSync(receiptPath, 'utf8')); } catch { console.error('No Gate-11 receipt. Run --emit first.'); process.exit(2); }
   const checks = [
@@ -119,6 +157,15 @@ if (emit) {
     ['curation decisions coherent (graduate count == high-priority count)', decisionsCoherent === true],
     ['deterministic across independent runs', deterministic === true],
     ['activation digest reproduces (real computeStateDigest)', activationDigest === existing.contract.activationDigest],
+    // ── E-G11: the gold-game-local sharpening layer actually sharpens decisions ──
+    ['ANTI-TAUTOLOGY: sharpening flips >=1 decision vs the raw 0.5 threshold', sharpFlips === true],
+    ['QUALITY: sharpened curation beats raw 0.5 threshold on average', sharpBeatsRaw === true],
+    ['QUALITY: mean accuracy gain is a real margin (>=0.03)', sharpMargin === true],
+    ['NEGATIVE CONTROL: no evidence/coupling collapses EXACTLY to raw (0 flips, equal acc)', controlIsNoop === true],
+    ['flips are CORRECTIONS: majority move toward ground truth (>=60%)', flipsAreCorrections === true],
+    ['confident items stay LOCKED: >=80% of flips are near-boundary', confidentLocked === true],
+    ['sharpening is deterministic (aggregate reproduces)', sharpDeterministic === true],
+    ['sharpen digest reproduces (real computeStateDigest)', sharpenDigest === existing.contract.sharpenDigest],
   ];
   let ok = true;
   console.log('GATE-11 (QUANTUM-INSPIRED CURATION) VERIFICATION:');

@@ -1,9 +1,9 @@
 {
   "gate": 11,
   "track": "flagship",
-  "name": "quantum-inspired curation — real QuantumInspiredTrait sharpens graduate/defer decisions",
+  "name": "quantum-inspired curation — gold-game-local annealing layer sharpens graduate/defer decisions (real trait wired + decision-neutral CPU path honestly disclosed)",
   "verifier": "examples/gold-game/gate-11-quantum-verify.mjs",
-  "implementation": "packages/core/src/traits/QuantumInspiredTrait.ts (quantumInspiredHandler — REAL; CpuFallbackAccelerator on a CPU-only host)",
+  "implementation": "packages/core/src/traits/QuantumInspiredTrait.ts (quantumInspiredHandler — REAL wiring; CpuFallbackAccelerator is decision-NEUTRAL on a CPU-only host) + examples/gold-game/gold-game-curation-sharpen.mjs (E-G11 gold-game-LOCAL mean-field annealing sharpening layer)",
   "problem": {
     "candidates": [
       "C.001",
@@ -97,11 +97,32 @@
     "expectedGraduate": 4,
     "deterministic": true
   },
+  "sharpening": {
+    "note": "E-G11: gold-game-local mean-field-annealing layer that moves near-boundary items off the fence using cohort context. Statistical claim over 200 synthetic cohorts (24 entries each); the SHARED QuantumInspiredTrait CPU fallback is deliberately untouched.",
+    "cohorts": 200,
+    "entriesPerCohort": 24,
+    "meanAccRaw": 0.8625,
+    "meanAccSharp": 0.917292,
+    "meanAccControl": 0.8625,
+    "meanGain": 0.054792,
+    "totalFlips": 569,
+    "controlFlips": 0,
+    "fracFlipTowardTruth": 0.731107,
+    "fracFlipNearBoundary": 0.922671,
+    "exampleCohortSeed1": {
+      "flips": 5,
+      "flipTowardTruth": 5,
+      "accRaw": 0.791667,
+      "accSharp": 1
+    },
+    "sharpenDigest": "4fb2fb70770d56293558a3311c01d90b387d15ba12fb7402f3d34f58d8372146"
+  },
   "contract": {
     "spine": "REAL computeStateDigest",
     "activationDigest": "f0d55009d4e2099c3f0967abbc178301f6fa67c2c3419f9b6d506de12b29768a",
+    "sharpenDigest": "4fb2fb70770d56293558a3311c01d90b387d15ba12fb7402f3d34f58d8372146",
     "reproducible": "run the verifier to re-derive"
   },
-  "honestScope": "The optimization is run by the GENUINE QuantumInspiredTrait handler from @holoscript/core via the qi:optimize event — not a mock. On this CPU-only host it uses the trait's CpuFallbackAccelerator (acceleratorAvailable === false): a sigmoid activation surrogate for LIF/quantum-annealing population coding (the trait transparently uses the GPU/SNN path when an acceleratorProvider + GPU are present). PROVEN: the real quantum-INSPIRED trait deterministically transforms candidate priorities into coherent, threshold-preserving graduate/defer decisions. NOT proven here: real quantum HARDWARE — that is the separate /quantum-lab VQE track (S.VQE, IBM QPU), not this gate.",
-  "verifiedAt": "2026-05-23T01:56:46.332Z"
+  "honestScope": "TWO honest claims. (1) WIRING: the optimization is run by the GENUINE QuantumInspiredTrait handler from @holoscript/core via qi:optimize — not a mock. On this CPU-only host it uses the trait's CpuFallbackAccelerator (acceleratorAvailable === false), a 0.5-centred monotonic sigmoid that is DECISION-NEUTRAL — it cannot change which entries cross a 0.5 threshold (deep-ratchet 2026-05-24). The genuine annealing-analogue SnnAccelerator is GPU-only and not exercised here; real-QPU is the separate /quantum-lab VQE track (S.VQE). (2) SHARPENING (E-G11 fix): a gold-game-LOCAL mean-field-annealing layer (gold-game-curation-sharpen.mjs) — an Ising Hamiltonian relaxed by deterministic annealing — fuses a second noisy view and ferromagnetically couples similar entries, moving NEAR-BOUNDARY items off the fence. PROVEN over 200 synthetic cohorts: it flips real decisions vs the raw 0.5 threshold (569 flips), raises mean curation accuracy 0.8625 -> 0.917292 (+0.054792), 73.1% of flips move TOWARD ground truth, and 92.3% are near-boundary (confident items stay locked). A negative control (no evidence fusion, no coupling) collapses EXACTLY to the raw threshold (0 flips, identical accuracy) — proving the gain is the mechanism's, not annealing luck. NOT claimed: real quantum hardware; the shared trait CPU fallback behaviour (left untouched on purpose); real operator traces (synthetic scenario, like Gate 5a).",
+  "verifiedAt": "2026-05-24T23:54:10.459Z"
 }
