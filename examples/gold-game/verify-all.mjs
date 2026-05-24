@@ -54,7 +54,7 @@ const GATES = [
   { track: 'flagship', gate: 27, name: 'live-vault safe mutation flow — AI proposes, founder-gated apply, reversible rollback to exact pre-state (real computeStateDigest); D:/GOLD never written silently', kind: 'script', runner: 'tsx', file: 'gate-27-safe-mutation-verify.mjs' },
   { track: 'flagship', gate: 28, name: 'full-vault browser — search/filter/open every GOLD entry, lineage links, raw markdown, and receipt history', kind: 'script', runner: 'node', file: 'gate-28-fullvault-verify.mjs' },
   { track: 'flagship', gate: 29, name: 'agent party AI — visible companions choose entries, explain choices, spend budget, and remember the player across sessions', kind: 'script', runner: 'tsx', file: 'gate-29-party-verify.mjs' },
-  { track: 'flagship', gate: 30, name: 'ship packaging — portable launcher updates source build, live server, docs, and Drive copy in one verified command', kind: 'open' },
+  { track: 'flagship', gate: 30, name: 'ship packaging — one command regenerates 3D/2D/server/docs, copies the exact build, deployed bytes provably == source (reproducible packageDigest)', kind: 'script', runner: 'node', file: 'gate-30-package-verify.mjs' },
   { track: 'flagship', gate: 31, name: 'playable HoloGraph — knowledge lineage constellation becomes navigation, not only a verifier', kind: 'script', runner: 'node', file: 'gate-31-playable-holograph-verify.mjs' },
   { track: 'flagship', gate: 32, name: 'HoloGram image-to-world — founder art becomes a depth-backed 3D GOLD world source', kind: 'open' },
   { track: 'flagship', gate: 33, name: 'HoloMap scanned-space import — video/device capture becomes anchored GOLD space', kind: 'open' },
