@@ -244,10 +244,10 @@
     "missing": []
   },
   "sceneDigest": "6b02b2161c4e0596d0ed25e40567edfd80fa6cfcacc99e91eef331024c50b092",
-  "htmlBytes": 1483445,
+  "htmlBytes": 1488058,
   "selfContained": true,
   "offline": true,
   "three": "0.182.0 (bundled IIFE)",
   "core": "6.1.0",
-  "verifiedAt": "2026-05-24T04:30:03.930Z"
+  "verifiedAt": "2026-05-24T06:26:56.312Z"
 }

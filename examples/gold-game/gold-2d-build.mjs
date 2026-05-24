@@ -16,10 +16,10 @@
 
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const repo = join(here, '..', '..');
+const repo = resolve(process.env.HOLOSCRIPT_REPO || process.env.HOLOSCRIPT_ROOT || join(here, '..', '..'));
 const imp = (p) => import(pathToFileURL(p).href);
 const { computeStateDigest } = await imp(join(repo, 'packages', 'engine', 'src', 'simulation', 'hashes.ts'));
 const core = await imp(join(repo, 'packages', 'core', 'dist', 'index.js'));

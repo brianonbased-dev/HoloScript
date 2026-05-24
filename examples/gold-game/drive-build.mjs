@@ -7,19 +7,20 @@
 // cores, golden terraces, PMREM environment, bloom, ACES tone-mapping, fog.
 //
 //   node examples/gold-game/drive-build.mjs
+//   HOLOSCRIPT_REPO=C:/Users/josep/Documents/GitHub/HoloScript node drive-build.mjs
 // Outputs: examples/gold-game/drive-build/{index.html, START-HERE.txt}
 //          examples/gold-game/GOLD-VAULT-gate1-receipt.json
 
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const vaultOps = require('./vault-ops.cjs'); // Gate 28: shared catalog/lineage reader
-const repo = join(here, '..', '..');
+const repo = resolve(process.env.HOLOSCRIPT_REPO || process.env.HOLOSCRIPT_ROOT || join(here, '..', '..'));
 const core = await import(pathToFileURL(join(repo, 'packages/core/dist/index.js')).href);
 const parseHolo = core.parseHolo;
 
@@ -241,6 +242,7 @@ const scene = { title: ast.name, ambient, fog, meshes, lights, regions,
       relativePath: e.relativePath, lineage: e.lineage, provenance: e.provenance,
     })) } };
 const sceneJson = JSON.stringify(scene);
+const portalIntentPath = join(repo, 'packages/mcp-server/src/holo-portal-intent.ts');
 
 // ── 3. App entry — photoreal renderer from minimal primitives ────────────────
 const entry = `
@@ -252,7 +254,7 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 // Gate 6: the REAL HoloGate intent validator (pure module, bundled by esbuild).
-import { validatePortalIntent } from '../../../packages/mcp-server/src/holo-portal-intent.ts';
+import { validatePortalIntent } from 'gold-game:holo-portal-intent';
 // Gate 25: the SAME pure campaign state machine the verifier exercises (bundled by
 // esbuild). Path is relative to the emitted drive-build/_entry.mjs, like the HoloGate import.
 import * as Campaign from '../gold-game-campaign.mjs';
@@ -491,6 +493,12 @@ const player = {
 };
 const startPosition = player.position.clone();
 camera.rotation.order = 'YXZ';
+window.__GOLD_GAME_CONTROL_STATE__ = () => ({
+  mode: desktopMode,
+  position: [player.position.x, player.position.y, player.position.z],
+  yaw: player.yaw,
+  pitch: player.pitch,
+});
 
 function dispatchEntry(g) {
   if (!g) return;
@@ -646,7 +654,13 @@ const entryPath = join(OUT, '_entry.mjs');
 writeFileSync(entryPath, entry);
 const esbuild = await import(pathToFileURL(join(repo, 'node_modules/esbuild/lib/main.js')).href);
 const result = await esbuild.build({ entryPoints: [entryPath], bundle: true, format: 'iife', minify: true,
-  platform: 'browser', write: false, logLevel: 'silent' });
+  platform: 'browser', write: false, logLevel: 'silent', nodePaths: [join(repo, 'node_modules')],
+  plugins: [{
+    name: 'gold-game-holoscript-imports',
+    setup(build) {
+      build.onResolve({ filter: /^gold-game:holo-portal-intent$/ }, () => ({ path: portalIntentPath }));
+    },
+  }] });
 const bundle = result.outputFiles[0].text;
 rmSync(entryPath, { force: true });
 
@@ -1216,6 +1230,7 @@ writeFileSync(join(OUT, 'START-HERE.txt'),
   'Click Begin One Climb, then use WASD/mouse, E to graduate, F to inspect full GOLD data.\\n' +
   'Open HoloGraph (or press G) to navigate the GOLD lineage constellation.\\n' +
   'Open HoloScript Systems in-game to see package systems being consumed by the GOLD loop.\\n' +
+  'Canonical GOLD product home: D:/GOLD/assets/game/gold-game (HoloScript is the toolset).\\n' +
   'For live full-data reads, use the Node launcher on the deployed Drive copy.\\n');
 
 // ── 6. Reproducible Gate-1 receipt ───────────────────────────────────────────

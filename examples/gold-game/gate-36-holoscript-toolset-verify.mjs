@@ -5,11 +5,11 @@
 // sourced from package.json metadata and visible in the offline HTML.
 
 import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const repo = join(here, '..', '..');
+const repo = resolve(process.env.HOLOSCRIPT_REPO || process.env.HOLOSCRIPT_ROOT || join(here, '..', '..'));
 const build = join(here, 'drive-build', 'index.html');
 const receiptPath = join(here, 'GOLD-VAULT-gate1-receipt.json');
 const sourcePath = join(here, 'drive-build.mjs');
