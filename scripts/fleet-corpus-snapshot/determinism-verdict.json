@@ -1,0 +1,17 @@
+{
+  "verdict": "divergent",
+  "receiptBindingEligible": false,
+  "machineCount": 2,
+  "machineLabels": [
+    "Work|win32-x64|nodev24.15.0|kernel10.0.26200",
+    "72e8a6bb7708|linux-x64|nodev20.20.2|kernel6.8.0-106-generic"
+  ],
+  "modelId": "Xenova/all-MiniLM-L6-v2",
+  "precision": 6,
+  "divergentTexts": [
+    "In a right triangle the hypotenuse squared equals the sum of the squares of the other two sides.",
+    "For every integer n>=2, 4/n equals 1/x + 1/y + 1/z.",
+    "Two generic plane curves of degrees d1 and d2 intersect in d1*d2 points."
+  ],
+  "notes": "3 probe(s) diverge across the fleet at precision 6. Semantic layer STAYS advisory; trigram guard remains the receipt binding (graceful degrade)."
+}
