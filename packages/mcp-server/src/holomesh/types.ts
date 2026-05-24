@@ -10,6 +10,7 @@
 export type {
   KnowledgeDomain,
   DomainConsolidationConfig,
+  ExcitabilityMetadata,
   HotBufferEntry,
   ConsolidationResult,
   ReconsolidationEvent,

@@ -25,7 +25,6 @@
  *     reputation (LoroMap)             — agentDid → JSON reputation data
  *     peers (LoroMap)                  — peerDid → JSON { url, name, lastSeen }
  */
-type ExcitabilityMetadata = any;
 import { LoroDoc, VersionVector } from 'loro-crdt';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -39,8 +38,10 @@ import {
   type HotBufferEntry,
   type ConsolidationResult,
   type ReconsolidationEvent,
+  type ExcitabilityMetadata,
   type DomainConsolidationConfig,
   type MemoryReceipt,
+  computeExcitability,
   hashString,
 } from './types';
 
@@ -58,17 +59,6 @@ function defaultExcitability(): ExcitabilityMetadata {
     lastReconsolidatedAt: 0,
     consolidationSurvivals: 0,
   };
-}
-
-/** Compute composite excitability score from individual metrics */
-function computeExcitability(meta: ExcitabilityMetadata): number {
-  // Weighted combination: queries matter most, then citations, then corroborations
-  return (
-    meta.queryCount * 2 +
-    meta.citationCount * 3 +
-    meta.corroborationCount * 1.5 +
-    meta.consolidationSurvivals * 0.5
-  );
 }
 
 /**
