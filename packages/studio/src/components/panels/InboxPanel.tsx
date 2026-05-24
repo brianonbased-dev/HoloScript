@@ -36,6 +36,9 @@ export function InboxPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [teamId] = useState('team_1777834718247_unr35n');
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,7 +57,7 @@ export function InboxPanel() {
           from: m.fromAgentName || m.from || 'unknown',
           content: m.content || m.preview || '',
           timestamp: m.createdAt || m.timestamp || new Date().toISOString(),
-          read: m.read || false,
+          read: !!m.read || (Array.isArray(m.readBy) && m.readBy.length > 0),
           taskId: m.taskId || m.payload?.taskId,
           taskTitle: m.payload?.title || m.taskTitle,
         }));
@@ -90,10 +93,52 @@ export function InboxPanel() {
     } catch {}
   };
 
-  const claimTask = (taskId?: string) => {
-    if (taskId) {
-      // In real Studio this would trigger /room claim flow
-      alert(`Claiming task ${taskId} (integrate with room claim helper)`);
+  const claimTask = async (taskId?: string) => {
+    if (!taskId) return;
+    try {
+      const res = await fetch(`/api/holomesh/team/${teamId}/board/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'claim' }),
+      });
+      setNotice(res.ok ? `Claimed ${taskId}` : `Claim failed: ${res.status}`);
+    } catch (e: any) {
+      setNotice(`Claim error: ${e.message}`);
+    }
+  };
+
+  const sendReply = async (item: InboxItem) => {
+    const text = replyText.trim();
+    if (!text) return;
+    try {
+      const res = await fetch(`/api/holomesh/team/${teamId}/message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'dm',
+          content: `@${item.from}: ${text}`,
+          inReplyTo: item.id,
+          to: item.from,
+        }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      setReplyText('');
+      setReplyingTo(null);
+      setNotice(`Reply sent to ${item.from}`);
+      await markRead(item.id);
+    } catch (e: any) {
+      setNotice(`Reply failed: ${e.message}`);
+    }
+  };
+
+  const archiveItem = async (item: InboxItem) => {
+    await markRead(item.id);
+    if (data) {
+      setData({
+        ...data,
+        items: data.items.filter((candidate) => candidate.id !== item.id),
+        unreadCount: item.read ? data.unreadCount : Math.max(0, data.unreadCount - 1),
+      });
     }
   };
 
@@ -107,6 +152,7 @@ export function InboxPanel() {
         <span>INBOX</span>
         <span className="bg-studio-accent/20 text-studio-accent px-1 rounded">{data.unreadCount} unread</span>
       </div>
+      {notice && <div className="rounded border border-studio-border/40 px-1.5 py-1 text-[9px] text-studio-muted">{notice}</div>}
 
       {data.items.length === 0 && <div className="text-studio-muted italic">Inbox empty</div>}
 
@@ -131,16 +177,29 @@ export function InboxPanel() {
             </button>
           )}
 
+          {replyingTo === item.id && (
+            <div className="mt-1 flex gap-1">
+              <input
+                className="min-w-0 flex-1 rounded border border-studio-border/40 bg-black/30 px-1 text-[9px]"
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+              />
+              <button onClick={() => sendReply(item)} className="text-[8px] underline hover:text-studio-accent">
+                Send
+              </button>
+            </div>
+          )}
+
           <div className="flex gap-2 mt-1 text-[8px]">
             {!item.read && (
               <button onClick={() => markRead(item.id)} className="underline hover:text-studio-accent">
                 Mark read
               </button>
             )}
-            <button onClick={() => alert(`Reply to ${item.from} (message composer stub)`)} className="underline hover:text-studio-accent">
+            <button onClick={() => setReplyingTo(replyingTo === item.id ? null : item.id)} className="underline hover:text-studio-accent">
               Reply
             </button>
-            <button onClick={() => alert('Archive (stub)')} className="underline hover:text-studio-accent">
+            <button onClick={() => archiveItem(item)} className="underline hover:text-studio-accent">
               Archive
             </button>
           </div>

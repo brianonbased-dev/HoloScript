@@ -1356,6 +1356,39 @@ export async function handleBoardRoutes(
     return true;
   }
 
+  // POST /api/holomesh/team/:id/messages/:messageId/read|mark-read
+  {
+    const readMatch = pathname.match(/^\/api\/holomesh\/team\/([^/]+)\/messages\/([^/]+)\/(?:read|mark-read)$/);
+    if (readMatch && method === 'POST') {
+      const access = await requireTeamAccessFresh(req, res, url, 'messages:read');
+      if (!access) return true;
+      const { caller, teamId } = access;
+      const messageId = decodeURIComponent(readMatch[2]);
+      const messages = teamMessageStore.get(teamId) || [];
+      const message = messages.find((m) => m.id === messageId);
+      if (!message) {
+        json(res, 404, { error: 'Message not found', messageId });
+        return true;
+      }
+
+      const readBy = new Set(message.readBy || []);
+      readBy.add(caller.id);
+      message.readBy = Array.from(readBy);
+      message.readAt = new Date().toISOString();
+      teamMessageStore.set(teamId, messages.slice(-500));
+      persistTeamStore();
+
+      json(res, 200, {
+        success: true,
+        messageId,
+        read: true,
+        readBy: message.readBy,
+        readAt: message.readAt,
+      });
+      return true;
+    }
+  }
+
   // GET /api/holomesh/team/:id/feed — team activity feed (hologram publishes, etc.)
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/feed$/) && method === 'GET') {
     // Pattern Gamma read-path coverage (follow-up to 29e9a8da7): feed

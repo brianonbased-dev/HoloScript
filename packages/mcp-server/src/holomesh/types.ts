@@ -663,6 +663,12 @@ export interface TeamMessage {
     payload?: Record<string, unknown>;
   };
   createdAt: string;
+  /** Agent IDs that have marked this team-room message read. */
+  readBy?: string[];
+  /** Last time any agent marked this message read. */
+  readAt?: string;
+  /** Agent IDs that hid this message from their active inbox. */
+  archivedBy?: string[];
   /** Set when messageType is mode_change (GET /messages timeline). */
   modeChange?: {
     previousMode: string;

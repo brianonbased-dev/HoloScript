@@ -625,3 +625,45 @@ describe('Board Routes — Fleet Snapshot', () => {
     expect(res._body.health.reasons).toContain('no_instance_count=1');
   });
 });
+
+describe('Board Routes — Team Message Read State', () => {
+  it('marks team messages read through both read route aliases', async () => {
+    const created = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/message',
+      { content: 'please review the fleet panel', type: 'dm' },
+      PARENT_KEY
+    );
+    expect(created._status).toBe(201);
+    const messageId = created._body.message.id;
+
+    const markRead = await callBoard(
+      'POST',
+      `/api/holomesh/team/team_test_mobile/messages/${messageId}/mark-read`,
+      {},
+      PARENT_KEY
+    );
+    expect(markRead._status).toBe(200);
+    expect(markRead._body.read).toBe(true);
+    expect(markRead._body.readBy).toContain(PARENT_ID);
+
+    const read = await callBoard(
+      'POST',
+      `/api/holomesh/team/team_test_mobile/messages/${messageId}/read`,
+      {},
+      PARENT_KEY
+    );
+    expect(read._status).toBe(200);
+    expect(read._body.readBy).toEqual([PARENT_ID]);
+
+    const list = await callBoard(
+      'GET',
+      '/api/holomesh/team/team_test_mobile/messages',
+      undefined,
+      PARENT_KEY
+    );
+    expect(list._status).toBe(200);
+    const stored = list._body.messages.find((message: { id: string }) => message.id === messageId);
+    expect(stored?.readBy).toEqual([PARENT_ID]);
+  });
+});

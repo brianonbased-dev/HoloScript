@@ -15,6 +15,22 @@ interface BoardTask {
 const TEAM_ID = 'team_1777834718247_unr35n';
 const BOARD_URL = `/api/holomesh/team/${TEAM_ID}/board`;
 
+type BoardAction = 'claim' | 'done' | 'block' | 'reopen';
+
+function extractBoardTasks(json: any): any[] {
+  if (Array.isArray(json.tasks)) return json.tasks;
+  if (Array.isArray(json.data)) return json.data;
+  if (json.board && typeof json.board === 'object') {
+    return [
+      ...(Array.isArray(json.board.claimed) ? json.board.claimed : []),
+      ...(Array.isArray(json.board.open) ? json.board.open : []),
+      ...(Array.isArray(json.board.blocked) ? json.board.blocked : []),
+      ...(Array.isArray(json.done?.recent) ? json.done.recent : []),
+    ];
+  }
+  return [];
+}
+
 /**
  * BoardPanel — Studio sidebar: live HoloMesh team task board.
  *
@@ -37,7 +53,7 @@ export function BoardPanel() {
       const res = await fetch(BOARD_URL);
       if (res.ok) {
         const json = await res.json();
-        const list: BoardTask[] = (json.tasks || json.data || []).map((t: any) => ({
+        const list: BoardTask[] = extractBoardTasks(json).map((t: any) => ({
           id: t.id,
           title: t.title || t.name,
           priority: t.priority ?? t.prioritySortKey ?? 3,
@@ -65,37 +81,28 @@ export function BoardPanel() {
 
   useEffect(() => { load(); }, []);
 
-  const claim = async (id: string) => {
-    try {
-      await fetch(`${BOARD_URL}/${id}/claim`, { method: 'POST' });
-    } catch {
-      // demo: local toggle
-    }
+  const patchTask = async (id: string, action: BoardAction, extra: Record<string, unknown> = {}) => {
+    await fetch(`${BOARD_URL}/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action, ...extra }),
+    });
     load();
   };
 
-  const markDone = async (id: string) => {
-    try {
-      await fetch(`${BOARD_URL}/${id}/done`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ evidence: 'studio-board-panel action' }) });
-    } catch {}
-    load();
-  };
+  const claim = (id: string) => patchTask(id, 'claim');
 
-  const markBlocked = async (id: string) => {
-    try {
-      await fetch(`${BOARD_URL}/${id}/blocked`, { method: 'POST' });
-    } catch {}
-    load();
-  };
+  const markDone = (id: string) => patchTask(id, 'done', {
+    verification_evidence: 'Studio BoardPanel action',
+  });
 
-  const unclaim = async (id: string) => {
-    try {
-      await fetch(`${BOARD_URL}/${id}/unclaim`, { method: 'POST' });
-    } catch {
-      // demo: local reload will reflect
-    }
-    load();
-  };
+  const markBlocked = (id: string) => patchTask(id, 'block', {
+    reason: 'Blocked from Studio BoardPanel',
+  });
+
+  const unclaim = (id: string) => patchTask(id, 'reopen', {
+    reason: 'Unclaimed from Studio BoardPanel',
+  });
 
   const filtered = filterRole
     ? tasks.filter(t => (t.role || '').toLowerCase().includes(filterRole.toLowerCase()))

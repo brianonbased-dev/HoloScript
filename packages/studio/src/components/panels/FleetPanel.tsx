@@ -44,7 +44,25 @@ interface FleetData {
   online_count: number;
   agents: AgentEntry[];
   hardware: HardwareEntry[];
+  fleet_health?: string;
+  fleet_reasons?: string[];
   by_handle?: Record<string, any>;
+}
+
+function toHardwareEntry(entry: any, index: number, orphan = false): HardwareEntry {
+  const handle = entry.handle || (orphan ? 'orphan' : 'unassigned');
+  const instanceId = entry.instance_id ?? entry.id ?? `${handle}-${index}`;
+  const state = entry.actual_status || entry.cur_state || entry.status;
+  const jobs = [state, entry.warning].filter(Boolean).map(String);
+  return {
+    device_id: String(instanceId),
+    type: 'gpu',
+    name: entry.gpu_name ? `${entry.gpu_name} (${handle})` : String(handle),
+    vram_or_memory: typeof entry.vram_gb === 'number' ? `${entry.vram_gb}GB` : undefined,
+    utilization: undefined,
+    used_by_agent: orphan ? undefined : entry.handle || undefined,
+    jobs,
+  };
 }
 
 export function FleetPanel() {
@@ -63,52 +81,50 @@ export function FleetPanel() {
       setLoading(true);
       setError(null);
       try {
-        // Primary: fleet-status (agents + activity)
-        const res = await fetch(`/api/holomesh/team/${teamId}/fleet-status`);
-        if (!res.ok) throw new Error(`fleet-status ${res.status}`);
+        const [membersRes, fleetRes] = await Promise.all([
+          fetch(`/api/holomesh/team/${teamId}/members`),
+          fetch(`/api/holomesh/team/${teamId}/fleet`),
+        ]);
+        if (!membersRes.ok) throw new Error(`members ${membersRes.status}`);
+        if (!fleetRes.ok) throw new Error(`fleet ${fleetRes.status}`);
 
-        const json = await res.json();
+        const membersJson = await membersRes.json();
+        const fleetJson = await fleetRes.json();
+        const members = Array.isArray(membersJson.members) ? membersJson.members : [];
+        const snapshot = fleetJson.snapshot || fleetJson.fleet || null;
+        const matched = Array.isArray(snapshot?.matched) ? snapshot.matched : [];
+        const orphans = Array.isArray(snapshot?.orphans) ? snapshot.orphans : [];
 
-        // Map to our shape (agents from presence + by_handle)
-        const agents: AgentEntry[] = Object.entries(json.by_handle || {}).map(([handle, info]: [string, any]) => ({
-          handle,
-          online: !!info.online,
-          last_heartbeat: info.last_heartbeat || null,
-          status: info.status || null,
-          current_task: info.current_task || null,
-          surface_tag: info.surface_tag || handle.split('-')[0],
+        const agents: AgentEntry[] = members.map((member: any) => ({
+          handle: member.agentName || member.agentId,
+          online: !!member.online,
+          last_heartbeat: member.lastHeartbeat || null,
+          status: member.online ? 'active' : 'offline',
+          current_task: null,
+          surface_tag: member.surfaceTag || member.role,
         }));
 
-        // Hardware stub / future: in full impl call sync_hardware_loop MCP or holo_get_dev_dashboard_state
-        // For now, surface the known Grok hardware seats + example GPUs from history.
         const hardware: HardwareEntry[] = [
-          {
-            device_id: 'grok-hardware-rtx4090',
-            type: 'gpu',
-            name: 'RTX 4090 (grok-hardware)',
-            vram_or_memory: '24GB',
-            utilization: 78,
-            used_by_agent: 'grok3-x402',
-            jobs: ['RecursiveMAS latent solver', 'Pillar slice gen'],
-          },
-          {
-            device_id: 'wasm-worker-01',
-            type: 'wasm',
-            name: 'WASM worker 01',
-            utilization: 42,
-            used_by_agent: 'claudecode-claude',
-            jobs: ['trait compile'],
-          },
+          ...matched.map((entry: any, index: number) => toHardwareEntry(entry, index)),
+          ...orphans.map((entry: any, index: number) => toHardwareEntry(entry, index, true)),
         ];
+        const health = fleetJson.health || {};
+        const snapshotIso =
+          fleetJson.publishedAt ||
+          snapshot?.captured_at ||
+          snapshot?.summary?.captured_at ||
+          new Date().toISOString();
 
         if (!cancelled) {
           setData({
-            team_id: json.team_id || teamId,
-            snapshot_iso: json.snapshot_iso || new Date().toISOString(),
-            online_count: json.online_count || agents.filter(a => a.online).length,
+            team_id: fleetJson.teamId || membersJson.teamId || teamId,
+            snapshot_iso: snapshotIso,
+            online_count: membersJson.online_count || agents.filter(a => a.online).length,
             agents,
             hardware,
-            by_handle: json.by_handle,
+            fleet_health: health.status,
+            fleet_reasons: Array.isArray(health.reasons) ? health.reasons : [],
+            by_handle: Object.fromEntries(agents.map((agent) => [agent.handle, agent])),
           });
         }
       } catch (e: any) {
@@ -133,6 +149,12 @@ export function FleetPanel() {
         <span>FLEET • {data.online_count} online</span>
         <span className="text-[8px]">{new Date(data.snapshot_iso).toLocaleTimeString()}</span>
       </div>
+      {data.fleet_health && data.fleet_health !== 'ok' && (
+        <div className="rounded border border-amber-400/30 bg-amber-400/10 px-1.5 py-1 text-[9px] text-amber-200">
+          Fleet health: {data.fleet_health}
+          {data.fleet_reasons?.length ? ` (${data.fleet_reasons.join(', ')})` : ''}
+        </div>
+      )}
 
       {/* AGENTS SECTION */}
       <div>
@@ -206,7 +228,7 @@ export function FleetPanel() {
             </div>
           ))}
         </div>
-        <div className="text-[8px] text-studio-muted mt-1">Source: sync_hardware_loop + GpuBackedSolver + snn-webgpu + compiler-wasm</div>
+        <div className="text-[8px] text-studio-muted mt-1">Source: latest team fleet snapshot</div>
       </div>
 
       <div className="text-[8px] text-studio-muted border-t border-studio-border/30 pt-1">
