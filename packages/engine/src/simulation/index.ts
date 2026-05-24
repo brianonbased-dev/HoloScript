@@ -400,12 +400,18 @@ export {
   buildDeterminismManifest,
   compareDeterminismManifests,
   assessDeterminismGate,
+  DEFAULT_DETERMINISM_TOLERANCE,
+  compareRawWithinTolerance,
+  assessRawToleranceGate,
   type DeterminismProbeEntry,
   type DeterminismManifest,
   type BuildDeterminismManifestOptions,
   type ManifestComparison,
   type DeterminismVerdict,
   type DeterminismGateAssessment,
+  type RawVectorManifest,
+  type RawToleranceComparison,
+  type RawToleranceGateAssessment,
 } from './SemanticDeterminismGate';
 
 // Scalable pre-embedded corpus index (scope 2026-05-23, P3) — embeds a large prior-art
@@ -423,6 +429,15 @@ export {
   type SemanticCorpusIndex,
   type BuildIndexOptions,
 } from './SemanticCorpusIndex';
+
+// Conjecture-engine semantic advisory (scope 2026-05-23, P3) — attaches the learned-semantic
+// novelty second-opinion to a finished receipt WITHOUT touching the receipt or its hash. The
+// trigram leg stays receipt-binding; this is a sibling annotation (advisory, async). D.060.
+export {
+  attachSemanticAdvisory,
+  type ConjectureReceiptWithAdvisory,
+  type AttachSemanticAdvisoryOptions,
+} from './ConjectureSemanticAdvisory';
 
 // Verdict ledger (`conjecture.verdict-ledger.v1`) — temporal, assumption-bound
 // conjecture verdicts ("knowledge is fluid", D.060). A verdict holds "as of T under

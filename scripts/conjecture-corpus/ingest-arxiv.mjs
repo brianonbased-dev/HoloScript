@@ -18,9 +18,10 @@
 import { writeFileSync } from 'node:fs';
 
 const ARXIV = 'https://export.arxiv.org/api/query';
-// Categories chosen to mirror the engine's live claim domains:
+// Default categories mirror the engine's live MATH claim domains:
 //   geometry/topology (AG, GT, DG, MG), number theory (NT), combinatorics/enumerative (CO).
-const CATEGORIES = ['math.AG', 'math.NT', 'math.GT', 'math.CO', 'math.DG', 'math.MG'];
+// Override with --categories to broaden into the hub's other branches (cs.*, physics, q-bio).
+const DEFAULT_CATEGORIES = ['math.AG', 'math.NT', 'math.GT', 'math.CO', 'math.DG', 'math.MG'];
 const PAGE = 100; // arXiv max per request is large, but 100 is polite and reliable.
 
 function arg(name, dflt) {
@@ -29,6 +30,9 @@ function arg(name, dflt) {
 }
 const PER_CAT = parseInt(arg('--per-cat', '180'), 10);
 const OUT = arg('--out', 'scripts/conjecture-corpus/corpus.arxiv.json');
+const CATEGORIES = arg('--categories', '')
+  ? arg('--categories', '').split(',').map((c) => c.trim()).filter(Boolean)
+  : DEFAULT_CATEGORIES;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const clean = (s) => s.replace(/\s+/g, ' ').trim();

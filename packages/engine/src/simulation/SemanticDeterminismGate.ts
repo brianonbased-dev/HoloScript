@@ -323,3 +323,140 @@ export function assessDeterminismGate(
     notes: `All ${distinct.length} machines produce byte-identical fingerprints at precision ${reference.precision}. ELIGIBLE for receipt-binding promotion (record model content-hash + precision in the receipt).`,
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tolerance-based determinism (the ROBUST receipt primitive — P1 follow-up).
+//
+// The fixed-precision fingerprint gate above has boundary-straddle fragility: a vector
+// component within (fleet jitter) of a rounding boundary flips the fingerprint at ANY fixed
+// precision, so `divergent` can be reported even when the true divergence is sub-epsilon
+// (exactly what the empirical P1 run found — 1.04e-7 jitter, but 3/5 fingerprints split at p6).
+// Comparing RAW vectors with an absolute tolerance has no such fragility: it asks the honest
+// question directly — "do the fleet's embeddings agree to within ε?" — which is the right
+// gate for advisory→receipt-binding promotion. Pure; no model required.
+
+/** Raw (un-quantized) embedding manifest — the shape emitted by scripts/.../determinism-raw.mjs. */
+export interface RawVectorManifest {
+  machineLabel: string;
+  modelId: typeof SEMANTIC_NOVELTY_MODEL;
+  dim: number;
+  /** probe text → its L2-normalized embedding on this machine. */
+  vectors: Readonly<Record<string, ReadonlyArray<number>>>;
+}
+
+/**
+ * Default tolerance: 1e-5. Well above the measured cross-fleet float32 jitter (~1e-7) and far
+ * below any semantically meaningful embedding delta — so it absorbs ULP noise without masking a
+ * real model/version change. Tune per measured fleet jitter before promotion.
+ */
+export const DEFAULT_DETERMINISM_TOLERANCE = 1e-5;
+
+export interface RawToleranceComparison {
+  comparable: boolean;
+  reason?: string;
+  withinTolerance: boolean;
+  maxAbsDelta: number;
+  machineA: string;
+  machineB: string;
+  /** Probes whose max component delta exceeded ε. */
+  exceedingTexts: ReadonlyArray<string>;
+}
+
+/** Pure: compare two raw manifests component-wise; agree iff every |Δ| ≤ ε. */
+export function compareRawWithinTolerance(
+  a: RawVectorManifest,
+  b: RawVectorManifest,
+  epsilon: number = DEFAULT_DETERMINISM_TOLERANCE,
+): RawToleranceComparison {
+  const base = { machineA: a.machineLabel, machineB: b.machineLabel, exceedingTexts: [] as string[] };
+  if (a.modelId !== b.modelId) {
+    return { ...base, comparable: false, reason: 'model id mismatch', withinTolerance: false, maxAbsDelta: Infinity };
+  }
+  if (a.dim !== b.dim) {
+    return { ...base, comparable: false, reason: 'embedding dim mismatch', withinTolerance: false, maxAbsDelta: Infinity };
+  }
+  const aTexts = Object.keys(a.vectors).sort();
+  const bTexts = Object.keys(b.vectors).sort();
+  if (aTexts.length !== bTexts.length || !aTexts.every((t, i) => t === bTexts[i])) {
+    return { ...base, comparable: false, reason: 'probe text set mismatch', withinTolerance: false, maxAbsDelta: Infinity };
+  }
+  let maxAbsDelta = 0;
+  const exceedingTexts: string[] = [];
+  for (const t of aTexts) {
+    const va = a.vectors[t];
+    const vb = b.vectors[t];
+    let probeMax = 0;
+    for (let i = 0; i < va.length; i++) {
+      const d = Math.abs(va[i] - vb[i]);
+      if (d > probeMax) probeMax = d;
+    }
+    if (probeMax > maxAbsDelta) maxAbsDelta = probeMax;
+    if (probeMax > epsilon) exceedingTexts.push(t);
+  }
+  return { ...base, comparable: true, withinTolerance: exceedingTexts.length === 0, maxAbsDelta, exceedingTexts };
+}
+
+export interface RawToleranceGateAssessment {
+  verdict: 'insufficient-evidence' | 'incomparable' | 'divergent' | 'within-tolerance';
+  receiptBindingEligible: boolean;
+  epsilon: number;
+  maxAbsDelta: number;
+  machineCount: number;
+  machineLabels: ReadonlyArray<string>;
+  modelId: typeof SEMANTIC_NOVELTY_MODEL;
+  exceedingTexts: ReadonlyArray<string>;
+  notes: string;
+}
+
+/**
+ * PURE tolerance verdict over raw-vector manifests from the fleet. Same honest fallback as the
+ * fingerprint gate — a single machine is `insufficient-evidence`, never eligible. Eligible only
+ * when ≥2 DISTINCT machines all agree to within ε. This is the robust promotion gate the scope
+ * recommends over fixed-precision hashing (no boundary-straddle).
+ */
+export function assessRawToleranceGate(
+  manifests: ReadonlyArray<RawVectorManifest>,
+  epsilon: number = DEFAULT_DETERMINISM_TOLERANCE,
+): RawToleranceGateAssessment {
+  const distinct: RawVectorManifest[] = [];
+  const seen = new Set<string>();
+  for (const m of manifests) {
+    if (!seen.has(m.machineLabel)) { seen.add(m.machineLabel); distinct.push(m); }
+  }
+  const machineLabels = distinct.map((m) => m.machineLabel);
+  const modelId = SEMANTIC_NOVELTY_MODEL;
+  if (distinct.length < 2) {
+    return {
+      verdict: 'insufficient-evidence', receiptBindingEligible: false, epsilon, maxAbsDelta: 0,
+      machineCount: distinct.length, machineLabels, modelId, exceedingTexts: [],
+      notes: 'Need ≥2 distinct machines to prove cross-fleet reproducibility. Stays advisory.',
+    };
+  }
+  const reference = distinct[0];
+  let maxAbsDelta = 0;
+  const exceeding = new Set<string>();
+  for (let i = 1; i < distinct.length; i++) {
+    const cmp = compareRawWithinTolerance(reference, distinct[i], epsilon);
+    if (!cmp.comparable) {
+      return {
+        verdict: 'incomparable', receiptBindingEligible: false, epsilon, maxAbsDelta: Infinity,
+        machineCount: distinct.length, machineLabels, modelId, exceedingTexts: [],
+        notes: `Manifests not comparable (${cmp.reason}); align model/probe-set across the fleet.`,
+      };
+    }
+    if (cmp.maxAbsDelta > maxAbsDelta) maxAbsDelta = cmp.maxAbsDelta;
+    for (const t of cmp.exceedingTexts) exceeding.add(t);
+  }
+  if (exceeding.size > 0) {
+    return {
+      verdict: 'divergent', receiptBindingEligible: false, epsilon, maxAbsDelta,
+      machineCount: distinct.length, machineLabels, modelId, exceedingTexts: [...exceeding],
+      notes: `${exceeding.size} probe(s) exceed ε=${epsilon} (maxΔ=${maxAbsDelta.toExponential(3)}). Stays advisory.`,
+    };
+  }
+  return {
+    verdict: 'within-tolerance', receiptBindingEligible: true, epsilon, maxAbsDelta,
+    machineCount: distinct.length, machineLabels, modelId, exceedingTexts: [],
+    notes: `All ${distinct.length} machines agree to within ε=${epsilon} (maxΔ=${maxAbsDelta.toExponential(3)}). ELIGIBLE for receipt-binding promotion via a tolerance comparator.`,
+  };
+}

@@ -7,7 +7,10 @@ import {
   compareDeterminismManifests,
   quantizeToken,
   vectorFingerprint,
+  compareRawWithinTolerance,
+  assessRawToleranceGate,
   type DeterminismManifest,
+  type RawVectorManifest,
 } from '../SemanticDeterminismGate';
 import { SEMANTIC_NOVELTY_MODEL, embedSemantic } from '../SemanticNoveltyEncoder';
 
@@ -124,6 +127,49 @@ describe('SemanticDeterminismGate — pure helpers (always run)', () => {
     ]);
     expect(a.verdict).toBe('incomparable');
     expect(a.receiptBindingEligible).toBe(false);
+  });
+});
+
+describe('SemanticDeterminismGate — tolerance comparator (robust receipt primitive, pure)', () => {
+  function raw(label: string, vectors: Record<string, number[]>): RawVectorManifest {
+    return { machineLabel: label, modelId: SEMANTIC_NOVELTY_MODEL, dim: 2, vectors };
+  }
+
+  it('agrees within tolerance despite sub-epsilon (ULP-scale) jitter', () => {
+    const a = raw('m1', { t1: [0.5, 0.5], t2: [0.1, 0.2] });
+    const b = raw('m2', { t1: [0.5 + 1e-7, 0.5 - 9e-8], t2: [0.1, 0.2 + 4e-8] });
+    const cmp = compareRawWithinTolerance(a, b, 1e-5);
+    expect(cmp.comparable).toBe(true);
+    expect(cmp.withinTolerance).toBe(true);
+    expect(cmp.maxAbsDelta).toBeLessThan(1e-5);
+  });
+
+  it('flags a real divergence above tolerance', () => {
+    const a = raw('m1', { t1: [0.5, 0.5] });
+    const b = raw('m2', { t1: [0.5, 0.51] }); // 1e-2 delta
+    const cmp = compareRawWithinTolerance(a, b, 1e-5);
+    expect(cmp.withinTolerance).toBe(false);
+    expect(cmp.exceedingTexts).toEqual(['t1']);
+  });
+
+  it('a single machine is insufficient evidence; ≥2 agreeing → within-tolerance → eligible', () => {
+    const single = assessRawToleranceGate([raw('only', { t1: [0.5, 0.5] })]);
+    expect(single.verdict).toBe('insufficient-evidence');
+    expect(single.receiptBindingEligible).toBe(false);
+
+    const ok = assessRawToleranceGate([
+      raw('linux-x64', { t1: [0.5, 0.5], t2: [0.1, 0.2] }),
+      raw('win-arm64', { t1: [0.5 + 2e-7, 0.5], t2: [0.1, 0.2 - 1e-7] }),
+    ], 1e-5);
+    expect(ok.verdict).toBe('within-tolerance');
+    expect(ok.receiptBindingEligible).toBe(true);
+
+    const bad = assessRawToleranceGate([
+      raw('m1', { t1: [0.5, 0.5] }),
+      raw('m2', { t1: [0.6, 0.5] }),
+    ], 1e-5);
+    expect(bad.verdict).toBe('divergent');
+    expect(bad.receiptBindingEligible).toBe(false);
   });
 });
 
