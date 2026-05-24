@@ -99,7 +99,10 @@ const agendaItem = (agent, entryId, i) => {
 const trustOf = (curator) => {
   reputationLedgerHandler.onEvent(repNode, REP_CFG, rep.ctx, { type: 'reputation_query', observerId: curator });
   const snap = lastEvent(rep.events, 'reputation_ledger_snapshot');
-  const obs = snap?.payload?.observers?.find?.((o) => o.id === curator) || snap?.payload?.observers?.[0];
+  // deep-ratchet 2026-05-24: snapshot observers are keyed by `observerId` (not `id`); the
+  // old `o.id` lookup always missed and fell back to observers[0], so reputation-ordered
+  // picking did not actually key on real trust. Match observerId so trustOf reads the right row.
+  const obs = snap?.payload?.observers?.find?.((o) => o.observerId === curator || o.id === curator) || snap?.payload?.observers?.[0];
   return obs?.trust ?? REP_CFG.initial_trust ?? 50;
 };
 const HUMAN_TRACE = ['C.CURATE.002', 'C.CURATE.005']; // idiosyncratic human picks (not value-sorted)
