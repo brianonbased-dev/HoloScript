@@ -39,6 +39,7 @@
     "holoshell:format-gauntlet-test": "node scripts/__tests__/holoshell-format-gauntlet.test.mjs",
     "holoshell:camera-scan": "node scripts/holoshell-camera-scan-adapter.mjs capture",
     "holoshell:camera-scan-test": "node scripts/__tests__/holoshell-camera-scan-adapter.test.mjs",
+    "holoshell:image-preprocess-test": "node scripts/__tests__/holoshell-image-preprocess.test.mjs",
     "holoshell:low-camera-fixture": "node scripts/holoshell-camera-scan-adapter.mjs fixture --require-capture",
     "holoshell:hologram-bridge-render": "node scripts/holoshell-hologram-bridge-renderer.mjs",
     "holoshell:hologram-bridge-render-test": "node scripts/__tests__/holoshell-hologram-bridge-renderer.test.mjs",

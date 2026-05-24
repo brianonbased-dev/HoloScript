@@ -27,6 +27,7 @@ import {
   createHoloMapRuntime,
 } from '../packages/core/dist/reconstruction/index.js';
 import { chainReceipt, sha256Bytes, sha256Text, stageReceipt, withHash } from './holoshell/chain/receipts.mjs';
+import { PREPROCESS_MODES, preprocessFrame } from './holoshell/image/preprocess.mjs';
 import { analyzeFrameQuality, round, summarizeQuality } from './holoshell/image/quality-metrics.mjs';
 import { buildNativeTileCorrespondence } from './holoshell/tracking/tile-correspondence.mjs';
 
@@ -61,6 +62,7 @@ function parseArgs(argv) {
     durationSec: undefined,
     fps: undefined,
     tileGrid: DEFAULT_TILE_GRID,
+    preprocess: 'raw',
     keepFrame: false,
     requireCapture: false,
     selfTest: false,
@@ -90,6 +92,7 @@ function parseArgs(argv) {
     else if (arg === '--duration-sec') args.durationSec = Number.parseFloat(argv[++i]);
     else if (arg === '--fps') args.fps = Number.parseFloat(argv[++i]);
     else if (arg === '--tile-grid') args.tileGrid = Number.parseInt(argv[++i], 10);
+    else if (arg === '--preprocess') args.preprocess = argv[++i];
     else if (arg === '--keep-frame') args.keepFrame = true;
     else if (arg === '--require-capture') args.requireCapture = true;
     else if (arg === '--help' || arg === '-h' || arg === 'help') args.command = 'help';
@@ -113,6 +116,9 @@ function parseArgs(argv) {
   }
   if (!Number.isInteger(args.tileGrid) || args.tileGrid < 1 || args.tileGrid > MAX_TILE_GRID) {
     throw new Error(`--tile-grid must be an integer from 1 to ${MAX_TILE_GRID}`);
+  }
+  if (!PREPROCESS_MODES.has(args.preprocess)) {
+    throw new Error(`--preprocess must be one of: ${[...PREPROCESS_MODES].join(', ')}`);
   }
   if (args.durationSec !== undefined) {
     const fps = args.fps ?? DEFAULT_SESSION_FPS;
@@ -142,8 +148,8 @@ function printHelp() {
 
 Usage:
   node scripts/holoshell-camera-scan-adapter.mjs list
-  node scripts/holoshell-camera-scan-adapter.mjs capture [--frames 5] [--interval-ms 250] [--tile-grid 32] [--require-capture] [--out receipt.json]
-  node scripts/holoshell-camera-scan-adapter.mjs fixture [--frames 15] [--interval-ms 200] [--require-capture]
+  node scripts/holoshell-camera-scan-adapter.mjs capture [--frames 5] [--interval-ms 250] [--tile-grid 32] [--preprocess raw] [--require-capture] [--out receipt.json]
+  node scripts/holoshell-camera-scan-adapter.mjs fixture [--frames 15] [--interval-ms 200] [--preprocess raw] [--require-capture]
   node scripts/holoshell-camera-scan-adapter.mjs capture --duration-sec 3 --fps 5 [--tile-grid 32] [--require-capture]
   node scripts/holoshell-camera-scan-adapter.mjs --self-test
 
@@ -151,6 +157,7 @@ Notes:
   - Uses Windows WinRT MediaCapture directly when running on Windows.
   - Does not use browser getUserMedia or fake-camera browser flags.
   - Emits HoloMap point-cloud assets and a HoloGram bridge artifact on pass.
+  - Preprocess modes: raw, luma-clahe, nlm-light, bilateral-light.
   - The fixture command defaults output to .scratch/holoshell-low-camera-fixture.
   - Emits a blocked receipt when OS camera permission denies the shell host.
 `);
@@ -188,6 +195,7 @@ function capturePlan(args) {
     requestedDurationSec: args.durationSec,
     requestedFps: args.fps,
     tileGrid: args.tileGrid,
+    preprocess: args.preprocess,
     effectiveFps: fps ? round(fps, 3) : undefined,
     expectedDurationMs: args.frames > 1 ? (args.frames - 1) * args.intervalMs : 0,
   };
@@ -246,12 +254,38 @@ function buildQualityStage(receiptFrames, scanQuality) {
   });
 }
 
+function buildPreprocessStage(args, receiptFrames) {
+  return stageReceipt({
+    name: 'image.preprocess',
+    input: {
+      mode: args.preprocess,
+      rawFrameHashes: receiptFrames.map((frame) => frame.rawRgbHash),
+    },
+    output: {
+      mode: args.preprocess,
+      processedFrameHashes: receiptFrames.map((frame) => frame.rgbHash),
+      summaries: receiptFrames.map((frame) => frame.preprocess),
+    },
+    metrics: {
+      frameCount: receiptFrames.length,
+      changedPixelRatioAverage: round(
+        receiptFrames.reduce((sum, frame) => sum + (frame.preprocess?.changedPixelRatio ?? 0), 0) /
+          Math.max(1, receiptFrames.length),
+        6
+      ),
+    },
+    honestScope:
+      'Deterministic RGB preprocessing before quality scoring and HoloMap ingest. Raw hashes remain in the receipt.',
+  });
+}
+
 function buildHoloMapStage({ args, holoMap, artifacts, videoHash }) {
   return stageReceipt({
     name: 'holomap.runtime',
     input: {
       videoHash,
       tileGrid: args.tileGrid,
+      preprocess: args.preprocess,
     },
     output: {
       replayFingerprint: holoMap.manifest.simulationContract.replayFingerprint,
@@ -875,8 +909,12 @@ async function buildCaptureReceipt(args) {
     const jpeg = readFileSync(sourcePath);
     const jpegHash = sha256Bytes(jpeg);
     const decoded = await decodeImageToRgb(sourcePath, args.width, args.height);
-    const frameHash = sha256Bytes(decoded.rgb);
-    const quality = analyzeFrameQuality(decoded);
+    const rawFrameHash = sha256Bytes(decoded.rgb);
+    const rawQuality = analyzeFrameQuality(decoded);
+    const preprocessed = preprocessFrame(decoded, args.preprocess);
+    const processed = preprocessed.frame;
+    const frameHash = sha256Bytes(processed.rgb);
+    const quality = analyzeFrameQuality(processed);
     const keptFramePath = args.keepFrame
       ? rel(resolve(dirname(outPath), `camera-frame-${i.toString().padStart(3, '0')}-${jpegHash.slice(0, 12)}.jpg`))
       : undefined;
@@ -884,10 +922,10 @@ async function buildCaptureReceipt(args) {
     frames.push({
       index: frameIndex,
       timestampMs: frameIndex * args.intervalMs,
-      rgb: decoded.rgb,
-      width: decoded.width,
-      height: decoded.height,
-      stride: decoded.stride,
+      rgb: processed.rgb,
+      width: processed.width,
+      height: processed.height,
+      stride: processed.stride,
     });
     receiptFrames.push({
       index: frameIndex,
@@ -895,11 +933,14 @@ async function buildCaptureReceipt(args) {
       capturedAt: captured.capturedAtIso,
       jpegBytes: jpeg.byteLength,
       jpegHash: `sha256:${jpegHash}`,
-      rgbWidth: decoded.width,
-      rgbHeight: decoded.height,
-      rgbStride: decoded.stride,
+      rgbWidth: processed.width,
+      rgbHeight: processed.height,
+      rgbStride: processed.stride,
+      rawRgbHash: `sha256:${rawFrameHash}`,
       rgbHash: `sha256:${frameHash}`,
+      rawQuality,
       quality,
+      preprocess: preprocessed.summary,
       keptFramePath,
     });
   }
@@ -925,17 +966,19 @@ async function buildCaptureReceipt(args) {
     videoHash,
     actualCapturedDurationMs,
   });
+  const preprocessStage = buildPreprocessStage(args, receiptFrames);
   const qualityStage = buildQualityStage(receiptFrames, scanQuality);
   const holoMapStage = buildHoloMapStage({ args, holoMap, artifacts, videoHash });
   const bridgeStage = buildBridgeStage({ artifacts });
   const chain = buildStageChain({
     name: 'holoshell-camera-scan',
-    stages: [captureStage, qualityStage, holoMapStage, bridgeStage],
+    stages: [captureStage, preprocessStage, qualityStage, holoMapStage, bridgeStage],
     metrics: {
       status: 'pass',
       capturedFrameCount: receiptFrames.length,
       acceptedFrameCount: holoMap.manifest.frameCount,
       pointCount: holoMap.manifest.pointCount,
+      preprocess: args.preprocess,
     },
     honestScope:
       'Native capture, local quality scoring, HoloMap runtime reconstruction, and HoloGram bridge creation were executed as an ordered local chain.',
@@ -958,6 +1001,7 @@ async function buildCaptureReceipt(args) {
       droppedFrameCount: Math.max(0, plan.requestedFrameCount - receiptFrames.length),
       actualCapturedDurationMs,
       videoHash,
+      preprocess: args.preprocess,
     },
     frame: receiptFrames[0],
     frames: receiptFrames,
@@ -1010,6 +1054,12 @@ export function validateReceipt(receipt) {
     if (!Array.isArray(receipt.frames) || receipt.frames.length < 1) errors.push('pass receipt missing frames');
     if (Array.isArray(receipt.frames) && receipt.frames.some((frame) => !frame.rgbHash?.startsWith('sha256:'))) {
       errors.push('pass receipt has frame without rgb hash');
+    }
+    if (Array.isArray(receipt.frames) && receipt.frames.some((frame) => !frame.rawRgbHash?.startsWith('sha256:'))) {
+      errors.push('pass receipt has frame without raw rgb hash');
+    }
+    if (Array.isArray(receipt.frames) && receipt.frames.some((frame) => !frame.preprocess?.mode)) {
+      errors.push('pass receipt has frame without preprocess summary');
     }
     if (!receipt.scanQuality?.status) errors.push('pass receipt missing scan quality summary');
     if (!receipt.holomap?.replayFingerprint) errors.push('pass receipt missing HoloMap replay fingerprint');

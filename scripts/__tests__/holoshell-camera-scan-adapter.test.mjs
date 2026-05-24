@@ -71,12 +71,26 @@ const pass = {
     videoHash: 'holoshell-native-camera:' + 'b'.repeat(64),
   },
   frame: {
+    rawRgbHash: 'sha256:' + 'a'.repeat(64),
     rgbHash: 'sha256:' + 'a'.repeat(64),
     quality: { status: 'pass', score: 0.8, warnings: [] },
+    preprocess: { mode: 'raw', applied: false, changedPixelRatio: 0 },
   },
   frames: [
-    { index: 0, rgbHash: 'sha256:' + 'a'.repeat(64), quality: { status: 'pass', score: 0.8, warnings: [] } },
-    { index: 1, rgbHash: 'sha256:' + 'b'.repeat(64), quality: { status: 'pass', score: 0.9, warnings: [] } },
+    {
+      index: 0,
+      rawRgbHash: 'sha256:' + 'a'.repeat(64),
+      rgbHash: 'sha256:' + 'a'.repeat(64),
+      quality: { status: 'pass', score: 0.8, warnings: [] },
+      preprocess: { mode: 'raw', applied: false, changedPixelRatio: 0 },
+    },
+    {
+      index: 1,
+      rawRgbHash: 'sha256:' + 'b'.repeat(64),
+      rgbHash: 'sha256:' + 'b'.repeat(64),
+      quality: { status: 'pass', score: 0.9, warnings: [] },
+      preprocess: { mode: 'raw', applied: false, changedPixelRatio: 0 },
+    },
   ],
   scanQuality: {
     status: 'pass',
@@ -186,6 +200,7 @@ const help = spawnSync(process.execPath, [SCRIPT, '--help'], {
 assertEq(help.status, 0, 'CLI help exits 0');
 assertOk(help.stdout.includes('fixture'), 'CLI help names fixture command');
 assertOk(help.stdout.includes('.scratch/holoshell-low-camera-fixture'), 'fixture default is scratch-scoped');
+assertOk(help.stdout.includes('luma-clahe'), 'CLI help names preprocess modes');
 
 if (testsFailed > 0) {
   console.error(`\n${testsFailed}/${testsRun} tests failed`);
