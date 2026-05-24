@@ -60,6 +60,36 @@ function Convert-ToGitBashPath([string] $Path) {
   return "/$drive$rest"
 }
 
+function Test-IsPathWithinRoot([string] $Root, [string] $Path) {
+  $separators = [char[]]@([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+  $rootFull = [System.IO.Path]::GetFullPath($Root).TrimEnd($separators)
+  $pathFull = [System.IO.Path]::GetFullPath($Path)
+
+  if ($pathFull.Equals($rootFull, [System.StringComparison]::OrdinalIgnoreCase)) {
+    return $true
+  }
+
+  $rootPrefix = $rootFull + [System.IO.Path]::DirectorySeparatorChar
+  return $pathFull.StartsWith($rootPrefix, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+function Get-RepoRelativePath([string] $Root, [string] $Path) {
+  $separators = [char[]]@([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+  $rootFull = [System.IO.Path]::GetFullPath($Root).TrimEnd($separators)
+  $pathFull = [System.IO.Path]::GetFullPath($Path)
+
+  if ($pathFull.Equals($rootFull, [System.StringComparison]::OrdinalIgnoreCase)) {
+    return '.'
+  }
+
+  $rootPrefix = $rootFull + [System.IO.Path]::DirectorySeparatorChar
+  if ($pathFull.StartsWith($rootPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+    return $pathFull.Substring($rootPrefix.Length)
+  }
+
+  return $pathFull
+}
+
 function Normalize-CommitPath([string] $Arg, [string] $RepoRoot) {
   $candidate = $Arg
   if (-not [System.IO.Path]::IsPathRooted($candidate)) {
@@ -68,8 +98,8 @@ function Normalize-CommitPath([string] $Arg, [string] $RepoRoot) {
 
   if (Test-Path -LiteralPath $candidate) {
     $resolved = (Resolve-Path -LiteralPath $candidate).Path
-    if ($resolved.StartsWith($RepoRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
-      $relative = [System.IO.Path]::GetRelativePath($RepoRoot, $resolved)
+    if (Test-IsPathWithinRoot $RepoRoot $resolved) {
+      $relative = Get-RepoRelativePath $RepoRoot $resolved
       return ($relative -replace '\\', '/')
     }
   }
