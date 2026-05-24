@@ -3,9 +3,12 @@ import {
   CONJECTURE_RUNNER_V1,
   GENERATED_GEOMETRY_FAMILY_SUITE,
   PROOF_CARRYING_GEOMETRY_SMOKE_SUITE,
+  attachSemanticAdvisoriesToRunnerResult,
   runConjectureRunner,
   type ConjectureRunnerInput,
 } from '../ConjectureRunner';
+import type { SemanticCorpusIndex } from '../SemanticCorpusIndex';
+import { SEMANTIC_NOVELTY_MODEL } from '../SemanticNoveltyEncoder';
 
 describe('ConjectureRunner (conjecture.runner.v1)', () => {
   it('satisfies the MVP gate with a survivor and replayable falsifier', () => {
@@ -114,6 +117,40 @@ describe('ConjectureRunner (conjecture.runner.v1)', () => {
           classification.scenarioId === 'generated-geometry.regular-polygon-sheet-family' &&
           classification.status === 'rediscovered',
       ),
+    ).toBe(true);
+  });
+
+  it('wraps runner receipts with semantic advisory slots without changing receipt keys', async () => {
+    const result = runConjectureRunner({
+      suite: GENERATED_GEOMETRY_FAMILY_SUITE,
+      proposedBy: 'codex-test',
+    });
+    const receiptKeyBefore = result.receiptKey;
+    const emptyIndex: SemanticCorpusIndex = {
+      indexVersion: 1,
+      modelId: SEMANTIC_NOVELTY_MODEL,
+      dim: 384,
+      entries: [],
+    };
+
+    const wrapped = await attachSemanticAdvisoriesToRunnerResult(result, emptyIndex);
+
+    expect(wrapped.result).toBe(result);
+    expect(wrapped.result.receiptKey).toBe(receiptKeyBefore);
+    expect(wrapped.semanticAdvisories).toHaveLength(result.receipts.length);
+    expect(wrapped.semanticAdvisorySummary).toMatchObject({
+      provider: 'semantic-corpus-index',
+      binding: 'advisory',
+      corpusSize: 0,
+      receiptKeysPreserved: true,
+    });
+    expect(
+      wrapped.semanticAdvisories.every((advisory) => advisory.receiptKeyPreserved)
+    ).toBe(true);
+    expect(
+      wrapped.semanticAdvisories.some(
+        (advisory) => advisory.advisorySkippedReason === 'empty-index'
+      )
     ).toBe(true);
   });
 

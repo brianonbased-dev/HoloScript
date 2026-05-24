@@ -24,12 +24,18 @@ import {
   type GeometryConjectureCandidate,
 } from './ConjectureEngine';
 import {
+  attachSemanticAdvisory,
+  type AttachSemanticAdvisoryOptions,
+} from './ConjectureSemanticAdvisory';
+import {
   generateCollisionEquivalenceFamily,
   generateCollapsingTriangleFamily,
   generateCurvatureConeFamily,
   generateSharedEdgeFanFamily,
   generateTraitSumGeometryFamily,
 } from './ConjectureGenerator';
+import type { SemanticCorpusIndex } from './SemanticCorpusIndex';
+import type { SemanticNoveltyAssessment } from './SemanticNoveltyEncoder';
 import { stableStringify } from './equivalenceRecord';
 import type { HashMode } from './hashes';
 
@@ -99,6 +105,32 @@ export interface ConjectureRunnerResult {
   replay: ReadonlyArray<ConjectureRunnerReplay>;
   gate: ConjectureRunnerGate;
   graduation: ReadonlyArray<ConjectureGraduationTarget>;
+}
+
+export interface ConjectureRunnerSemanticAdvisory {
+  scenarioId: string;
+  claimId: string;
+  receiptKey: string;
+  receiptStatus: ConjectureStatus;
+  receiptKeyPreserved: boolean;
+  semanticAdvisory: SemanticNoveltyAssessment | null;
+  advisorySkippedReason?: 'status-not-advisable' | 'empty-index';
+}
+
+export interface ConjectureRunnerSemanticAdvisorySummary {
+  provider: 'semantic-corpus-index';
+  binding: 'advisory';
+  corpusSize: number;
+  modelId: string;
+  receiptKeysPreserved: boolean;
+  nearDuplicateCount: number;
+  skippedCount: number;
+}
+
+export interface ConjectureRunnerResultWithSemanticAdvisory {
+  result: ConjectureRunnerResult;
+  semanticAdvisorySummary: ConjectureRunnerSemanticAdvisorySummary;
+  semanticAdvisories: ReadonlyArray<ConjectureRunnerSemanticAdvisory>;
 }
 
 interface ConjectureScenario {
@@ -534,4 +566,60 @@ export class ConjectureRunner {
 
 export function runConjectureRunner(input: ConjectureRunnerInput = {}): ConjectureRunnerResult {
   return new ConjectureRunner().run(input);
+}
+
+/**
+ * Attach the learned-semantic novelty layer to an already-minted runner result.
+ * This is intentionally a sibling wrapper: receipt-binding trigram novelty and
+ * receipt keys stay unchanged until the semantic determinism gate graduates.
+ */
+export async function attachSemanticAdvisoriesToRunnerResult(
+  result: ConjectureRunnerResult,
+  index: SemanticCorpusIndex,
+  options: AttachSemanticAdvisoryOptions = {}
+): Promise<ConjectureRunnerResultWithSemanticAdvisory> {
+  const semanticAdvisories: ConjectureRunnerSemanticAdvisory[] = [];
+
+  for (let i = 0; i < result.receipts.length; i += 1) {
+    const receipt = result.receipts[i];
+    const receiptKeyBefore = receipt.receiptKey;
+    const wrapped = await attachSemanticAdvisory(receipt, index, options);
+    const classification = result.classifications[i];
+
+    semanticAdvisories.push({
+      scenarioId: classification?.scenarioId ?? `receipt-${i}`,
+      claimId: receipt.claim.id,
+      receiptKey: receipt.receiptKey,
+      receiptStatus: receipt.status,
+      receiptKeyPreserved: wrapped.receipt === receipt && wrapped.receipt.receiptKey === receiptKeyBefore,
+      semanticAdvisory: wrapped.semanticAdvisory,
+      ...(wrapped.advisorySkippedReason
+        ? { advisorySkippedReason: wrapped.advisorySkippedReason }
+        : {}),
+    });
+  }
+
+  return {
+    result,
+    semanticAdvisorySummary: {
+      provider: 'semantic-corpus-index',
+      binding: 'advisory',
+      corpusSize: index.entries.length,
+      modelId: index.modelId,
+      receiptKeysPreserved: semanticAdvisories.every((advisory) => advisory.receiptKeyPreserved),
+      nearDuplicateCount: semanticAdvisories.filter(
+        (advisory) => advisory.semanticAdvisory?.status === 'near-duplicate'
+      ).length,
+      skippedCount: semanticAdvisories.filter((advisory) => advisory.semanticAdvisory === null).length,
+    },
+    semanticAdvisories,
+  };
+}
+
+export async function runConjectureRunnerWithSemanticAdvisory(
+  input: ConjectureRunnerInput,
+  index: SemanticCorpusIndex,
+  options: AttachSemanticAdvisoryOptions = {}
+): Promise<ConjectureRunnerResultWithSemanticAdvisory> {
+  return attachSemanticAdvisoriesToRunnerResult(runConjectureRunner(input), index, options);
 }
