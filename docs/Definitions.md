@@ -1,8 +1,8 @@
 # Definitions (research, fleet & room)
 
-**Purpose:** Align HoloScript contributors on **room**, **board**, and **fleet** so paper work, mesh jobs, and agent sessions do not use the same words to mean different things.
+**Purpose:** Align HoloScript contributors on **room**, **board**, and **fleet** so paper work, mesh jobs, agent sessions, and native-agent product work do not use the same words to mean different things.
 
-**Full glossary:** the founder `ai-ecosystem` clone holds the complete **`DEFINITIONS.md`** (all products, acronyms, protocols). This file is the **research / fleet / utilization slice** for the monorepo.
+**Full glossary:** the founder `ai-ecosystem` clone holds the complete **`DEFINITIONS.md`** (all products, acronyms, protocols). This file is the **research / fleet / utilization slice** for the monorepo and stays coupled to that source.
 
 ---
 
@@ -16,10 +16,11 @@
 
 ---
 
-## Fleet: two senses (research vs operations)
+## Fleet: three senses (product vs research vs operations)
 
 | Term | Meaning here |
 |------|----------------|
+| **Fleet (product - native agents + worlds)** | The product-level meaning from `ai-ecosystem/DEFINITIONS.md` and `INTENT.md`: a population of native HoloScript agents embodied in worlds, identity-bearing, sharing the trait library, operating in HoloLand as the embodied testbed, and carrying receipts. Mesh/Vast workers are substrate underneath this population, not the definition of the product. |
 | **Fleet (research — what we *mean* for papers)** | **Experimental instances** configured to **replicate production** (same deploy path, security posture, and observability expectations as live systems) so **gated papers** can report on **real** stack behavior. Prefer this meaning in paper specs and memos unless a document explicitly says "smoke / stub only." |
 | **Fleet (operations)** | The **running mesh** (workers, Vast-style instances, harness scripts under `scripts/fleet-*`, corpus collectors) plus **aggregates** like `GET /api/holomesh/fleet/status?team=...` — *where* work runs and *how* health is observed. This does **not** replace the board: it does not list "what to build next" by itself. |
 | **Production replica (paper cell)** | A **documented** mapping for a paper or phase: which **code paths** (e.g. engine, `packages/snn-webgpu`, `packages/llm-provider`), which **GPU/LLM** profile, and which **agent** templates (`agents-template.json`–class configs) are in scope for **evidence** — belongs in preregistration / memos, not only in a script comment. |
@@ -44,13 +45,23 @@
 
 ## How this ties together
 
-1. **Work selection** → **HoloMesh board** (and skills that drive claim/done).
-2. **Execution** → **fleet** cells and scripts, configured as **prod replica** when the paper requires it.
-3. **Gap-finding** → periodic review of **underutilized** code and **shared** GPU / agent **configs** against active paper cells.
+1. **Product meaning** -> **native agents in worlds** (the fleet as population).
+2. **Work selection** -> **HoloMesh board** (and skills that drive claim/done).
+3. **Execution** -> **fleet** cells and scripts, configured as **prod replica** when the paper requires it.
+4. **Gap-finding** -> periodic review of **underutilized** code and **shared** GPU / agent **configs** against active paper cells.
 
 **Paper → production-replica mapping (v1):** [prod-replica-paper-matrix.md](research-ops/prod-replica-paper-matrix.md).
 
 When you add a new overloaded term, update **`ai-ecosystem/DEFINITIONS.md`** first, then keep this file in sync for the **fleet / room** columns.
+
+---
+
+## 2026-05-23 Under-Claim Sweep Sync
+
+| Bucket | Safe to merge here | Founder approval required |
+|--------|--------------------|---------------------------|
+| Fleet disambiguation | Product/research/operations split, board-vs-fleet wording, and source-of-truth links. | External product wording that turns "fleet" into a public brand promise. |
+| Glossary coupling | Pointing to `ai-ecosystem/DEFINITIONS.md` and mirroring internal terms needed by HoloScript contributors. | Public-claim phrasing for Universal Platform / Universal Semantic Platform, Trust by Construction, Native VM, roadmap claims, or simulation-fidelity claims. |
 
 ---
 
