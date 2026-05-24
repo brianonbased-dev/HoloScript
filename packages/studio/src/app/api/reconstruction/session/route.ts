@@ -5,6 +5,12 @@ import crypto from 'crypto';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { buildHoloMapScanRenderAsset } from '@/lib/holomap-scan-render';
+import {
+  disposeNativeCameraLiveScan,
+  finalizeNativeCameraLiveScan,
+  stepNativeCameraLiveScan,
+  type NativeCameraFramePayload,
+} from '@/lib/native-camera-live-scan';
 import { resolveReachableStudioOrigin } from '@/lib/reachable-origin';
 import { buildScanCompletionManifest } from '@/lib/scan-session-manifest';
 import {
@@ -19,7 +25,7 @@ const POST_MAX_PER_IP = 20;
 const GET_WINDOW_MS = 60_000;
 const GET_MAX_PER_IP = 200;
 const PUT_WINDOW_MS = 60_000;
-const PUT_MAX_PER_TOKEN = 90;
+const PUT_MAX_PER_TOKEN = 180;
 const statusRank: Record<ScanSession['status'], number> = {
   'pending-phone': 0,
   'phone-connected': 1,
@@ -194,11 +200,29 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     videoBytes?: number;
     videoHash?: string;
     error?: string;
+    nativeFrame?: NativeCameraFramePayload;
   };
   try {
     body = (await request.json()) as typeof body;
   } catch {
     return withCors(request, NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }));
+  }
+
+  if (body.nativeFrame && session.status !== 'done') {
+    try {
+      await stepNativeCameraLiveScan(session, body.nativeFrame);
+      if (shouldApplyStatus(session.status, 'capturing')) {
+        session.status = 'capturing';
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      session.lastError = message;
+      await store.set(token, session);
+      return withCors(
+        request,
+        NextResponse.json({ error: message, session }, { status: 400 })
+      );
+    }
   }
 
   if (body.status && shouldApplyStatus(session.status, body.status)) {
@@ -212,6 +236,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
   if (typeof body.error === 'string' && session.status !== 'done') {
     session.lastError = body.error;
     session.status = 'error';
+    await disposeNativeCameraLiveScan(token);
   }
 
   if (session.status === 'done') {
@@ -219,21 +244,23 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     const videoHash =
       session.videoHash ??
       (session.videoBytes !== undefined ? `size-only:${session.videoBytes}` : 'no-video-payload');
-    const manifest = buildScanCompletionManifest({
-      token: session.token,
-      scanKind,
-      weightStrategy: session.weightStrategy,
-      videoHash,
-      frameCount: session.frameCount ?? 0,
-      videoBytes: session.videoBytes ?? 0,
-      capturedAtIso: new Date().toISOString(),
-    });
+    const manifest =
+      (await finalizeNativeCameraLiveScan(session)) ??
+      buildScanCompletionManifest({
+        token: session.token,
+        scanKind,
+        weightStrategy: session.weightStrategy,
+        videoHash,
+        frameCount: session.frameCount ?? 0,
+        videoBytes: session.videoBytes ?? 0,
+        capturedAtIso: new Date().toISOString(),
+      });
     session.manifest = manifest;
     session.replayFingerprint = manifest.simulationContract.replayFingerprint;
     session.renderAsset = buildHoloMapScanRenderAsset({
       manifest,
       token: session.token,
-      videoHash,
+      videoHash: session.videoHash ?? videoHash,
       scanKind,
     });
   }
@@ -246,6 +273,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   const store = getScanSessionStore();
   const token = new URL(request.url).searchParams.get('t') ?? '';
+  await disposeNativeCameraLiveScan(token);
   await store.delete(token);
   return withCors(request, NextResponse.json({ ok: true }));
 }

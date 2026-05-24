@@ -37,6 +37,15 @@ interface MobileScanFeedback {
   lastError?: string;
   replayFingerprint?: string;
   renderAsset?: { pointCount?: number };
+  nativeCamera?: {
+    frameCount?: number;
+    holomap?: {
+      runtime?: 'active' | 'finalized' | 'failed';
+      framesStepped?: number;
+      pointCount?: number;
+      lastError?: string;
+    };
+  };
 }
 
 type CameraCapability =
@@ -52,6 +61,22 @@ const scanSteps: Array<{ status: ScanStatus; label: string }> = [
   { status: 'processing', label: 'Mesh' },
   { status: 'done', label: 'Done' },
 ];
+
+const LIVE_FRAME_WIDTH = 96;
+const LIVE_FRAME_HEIGHT = 128;
+const FACE_FRAME_WIDTH = 72;
+const FACE_FRAME_HEIGHT = 96;
+const LIVE_FRAME_INTERVAL_MS = 650;
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
 
 function isScanStatus(value: unknown): value is ScanStatus {
   return (
@@ -86,6 +111,11 @@ export default function MobileScanPage({ params }: MobileScanProps) {
   const nativeHeadingSeenRef = useRef(false);
   const syntheticHeadingRef = useRef<number | null>(null);
   const lastMotionAtRef = useRef<number | null>(null);
+  const liveFrameCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const liveFrameIndexRef = useRef(0);
+  const liveFrameStartedAtRef = useRef<number | null>(null);
+  const liveFrameInFlightRef = useRef(false);
+  const liveFrameFailureCountRef = useRef(0);
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -226,6 +256,76 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     videoRef.current.srcObject = cameraStream;
     void videoRef.current.play().catch(() => undefined);
   }, [cameraStream, cameraState]);
+
+  useEffect(() => {
+    if (!cameraStream || cameraState !== 'recording') return;
+
+    let isCurrent = true;
+    const canvas = liveFrameCanvasRef.current ?? document.createElement('canvas');
+    liveFrameCanvasRef.current = canvas;
+    canvas.width = isFaceScan ? FACE_FRAME_WIDTH : LIVE_FRAME_WIDTH;
+    canvas.height = isFaceScan ? FACE_FRAME_HEIGHT : LIVE_FRAME_HEIGHT;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    const sendFrame = async () => {
+      if (!isCurrent || liveFrameInFlightRef.current) return;
+      const video = videoRef.current;
+      if (!ctx || !video || video.readyState < 2 || video.videoWidth === 0) return;
+
+      let rgbBase64: string;
+      try {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const image = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        const rgb = new Uint8Array(canvas.width * canvas.height * 3);
+        for (let src = 0, dst = 0; src < image.length; src += 4, dst += 3) {
+          rgb[dst] = image[src] ?? 0;
+          rgb[dst + 1] = image[src + 1] ?? 0;
+          rgb[dst + 2] = image[src + 2] ?? 0;
+        }
+        rgbBase64 = bytesToBase64(rgb);
+      } catch {
+        return;
+      }
+
+      const startedAt = liveFrameStartedAtRef.current ?? performance.now();
+      liveFrameStartedAtRef.current = startedAt;
+      const index = liveFrameIndexRef.current;
+      liveFrameIndexRef.current += 1;
+      liveFrameInFlightRef.current = true;
+      try {
+        await pushState({
+          status: 'capturing',
+          nativeFrame: {
+            index,
+            timestampMs: Math.max(0, Math.round(performance.now() - startedAt)),
+            width: canvas.width,
+            height: canvas.height,
+            stride: 3,
+            rgbBase64,
+          },
+        });
+        liveFrameFailureCountRef.current = 0;
+      } catch (pushError) {
+        liveFrameFailureCountRef.current += 1;
+        if (liveFrameFailureCountRef.current <= 3) {
+          setFeedbackError(
+            pushError instanceof Error
+              ? pushError.message
+              : 'Studio did not receive a live camera frame.'
+          );
+        }
+      } finally {
+        liveFrameInFlightRef.current = false;
+      }
+    };
+
+    void sendFrame();
+    const interval = window.setInterval(() => void sendFrame(), LIVE_FRAME_INTERVAL_MS);
+    return () => {
+      isCurrent = false;
+      window.clearInterval(interval);
+    };
+  }, [cameraState, cameraStream, isFaceScan, token]);
 
   useEffect(() => {
     if (!cameraStream) return;
@@ -554,6 +654,9 @@ export default function MobileScanPage({ params }: MobileScanProps) {
     nativeHeadingSeenRef.current = false;
     syntheticHeadingRef.current = null;
     lastMotionAtRef.current = null;
+    liveFrameIndexRef.current = 0;
+    liveFrameStartedAtRef.current = performance.now();
+    liveFrameFailureCountRef.current = 0;
     setCaptureNotice(`Recording ${isFaceScan ? 'face' : 'room'} scan...`);
     setError(null);
     const mimeType = bestRecorderMime();
@@ -673,8 +776,11 @@ export default function MobileScanPage({ params }: MobileScanProps) {
         : cameraState === 'processing'
           ? 100
           : 0;
+  const feedbackFrameCount = sessionFeedback?.nativeCamera?.frameCount ?? sessionFeedback?.frameCount;
+  const feedbackPointCount =
+    sessionFeedback?.renderAsset?.pointCount ?? sessionFeedback?.nativeCamera?.holomap?.pointCount;
   const overlayPointCount = Math.max(
-    sessionFeedback?.renderAsset?.pointCount ?? 0,
+    feedbackPointCount ?? 0,
     cameraState === 'recording' ? 128 + recordingSeconds * 36 : 0
   );
 
@@ -813,18 +919,18 @@ export default function MobileScanPage({ params }: MobileScanProps) {
           ))}
         </div>
 
-        {(sessionFeedback?.frameCount !== undefined ||
+        {(feedbackFrameCount !== undefined ||
           sessionFeedback?.videoBytes !== undefined ||
-          sessionFeedback?.renderAsset?.pointCount !== undefined) && (
+          feedbackPointCount !== undefined) && (
           <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[11px]">
             <div className="rounded-lg bg-black/20 px-2 py-2">
               <p className="text-white/40">Frames</p>
-              <p className="mt-1 font-mono text-white/80">{sessionFeedback.frameCount ?? '-'}</p>
+              <p className="mt-1 font-mono text-white/80">{feedbackFrameCount ?? '-'}</p>
             </div>
             <div className="rounded-lg bg-black/20 px-2 py-2">
               <p className="text-white/40">Video</p>
               <p className="mt-1 font-mono text-white/80">
-                {sessionFeedback.videoBytes !== undefined
+                {sessionFeedback?.videoBytes !== undefined
                   ? formatBytes(sessionFeedback.videoBytes)
                   : '-'}
               </p>
@@ -832,7 +938,7 @@ export default function MobileScanPage({ params }: MobileScanProps) {
             <div className="rounded-lg bg-black/20 px-2 py-2">
               <p className="text-white/40">Points</p>
               <p className="mt-1 font-mono text-white/80">
-                {sessionFeedback.renderAsset?.pointCount?.toLocaleString() ?? '-'}
+                {feedbackPointCount?.toLocaleString() ?? '-'}
               </p>
             </div>
           </div>

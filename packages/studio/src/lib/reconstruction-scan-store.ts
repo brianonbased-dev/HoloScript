@@ -18,6 +18,30 @@ import { clientIpFromRequest, takeRateLimitToken } from './reconstruction-sessio
 
 export type ScanKind = 'room' | 'face';
 
+export interface NativeCameraScanEvidence {
+  source: 'mediaDevices.getUserMedia';
+  startedAtIso: string;
+  updatedAtIso: string;
+  frameCount: number;
+  frameBytes: number;
+  frameDigest: string;
+  width: number;
+  height: number;
+  stride: 3 | 4;
+  lastFrameIndex: number;
+  firstFrameHash?: string;
+  lastFrameHash?: string;
+  holomap?: {
+    runtime: 'active' | 'finalized' | 'failed';
+    replayFingerprint?: string;
+    framesStepped: number;
+    pointCount: number;
+    anchorRevision?: number;
+    lastPoseConfidence?: number;
+    lastError?: string;
+  };
+}
+
 export interface ScanSession {
   token: string;
   createdAt: string;
@@ -38,6 +62,7 @@ export interface ScanSession {
   videoHash?: string;
   lastError?: string;
   replayFingerprint?: string;
+  nativeCamera?: NativeCameraScanEvidence;
   manifest?: ReconstructionManifest;
   renderAsset?: HoloMapScanRenderAsset;
 }
