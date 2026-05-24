@@ -239,10 +239,34 @@ exactly where a verifier asserting only token-presence lets a near-fixed-templat
 scaffold-string compiler pass. Findings cluster in: (1) silent-degradation of unhandled cases,
 (2) thin/absent fidelity verifiers, (3) claim/terminology drift, (4) product-edge overclaims.
 
+### Batch 7 — 6 more (42 of 61 total): 5 REAL, 1 THIN/OVERCLAIMED
+
+The AR-family overclaim did NOT generalize — the XR/glasses/sleeve siblings are REAL.
+
+| Compiler | Verdict | Note |
+|---|---|---|
+| AndroidXRCompiler | REAL | faithful Jetpack-XR codegen, ~12 trait handlers, 533-line fidelity verifier; honest comment-degradation (~5-10%) |
+| AIGlassesCompiler | REAL | data-driven HUD, ~60 trait mappings, fidelity verifier; emits a UI skeleton w/ handler stubs (matches "runtime structure" claim) |
+| PhoneSleeveVRCompiler | REAL | genuine Cardboard stereo (StereoEffect, IPD, barrel-distortion K1/K2, 3-DOF head tracking), fidelity verifier; AI/SNN/Brittney modules opt-in stubbed (default false) |
+| OpenXRSpatialEntitiesCompiler | REAL | faithful entity mapping + fidelity verifier; **spec-shape bug**: `eulerToQuaternion` returns `{0,1,2,w}` not `{x,y,z,w}`, pose position a bare array vs `XrVector3f` — values correct, JSON off-spec, tests entrench it. BOUNDED |
+| VRChatCompiler | REAL | genuine Udon/C# emission (state→UdonSynced, timelines→coroutine delays, traits→per-trait scripts); transform/geometry props + timeline `animate` not emitted (bounded). **CLAUDE.md "known-failing" caveat is STALE — fixed by commit 381b7ea05, all 155 VRChat tests green** |
+| NodeGraphCompiler | **THIN/OVERCLAIMED** | extracts state/event/timer scaffolding but MathAdd/Multiply/Branch emit comments only, edge port-wiring dropped (no value flow), and it does NOT use the real topo-sort+evaluator that exists in `NodeGraph.ts`. "real executable logic, topo-sorts" overclaims. BOUNDED (route through existing evaluator) |
+
+Filed to board: C-NODEGRAPH (P4), C-OPENXR-POSE + VRChat-stale-doc (P4/P5).
+
+## Tally so far (42 of 61 compilers + 15 solvers/traits)
+
+Compilers: **35 REAL, 3 THIN (WASM, Quilt, NodeGraph), 4 OVERCLAIMED (MCPConfig-vs-claim, AR,
+MVHEVC, Procedural)**. Overclaims concentrate at the product-edge/scaffold-only surface; the
+flagship/sovereign/format/XR tiers are genuinely real codegen. Recurring clusters:
+(1) silent-degradation, (2) thin/absent fidelity verifiers, (3) claim/terminology drift,
+(4) product-edge overclaims, (5) spec-shape bugs the tests entrench.
+
 ## Next breadth pass
 
-Un-ratcheted: **~25 remaining compilers** (AndroidXR/AIGlasses/PhoneSleeveVR; FlatSemantic/
-Context/Incremental; NodeGraph/Pipeline/Graph/TraitComposition; niche Holob/SCM/NextJS/
-NodeService/Matterpak/LLMProviderCapabilities/OpenXRSpatialEntities/GraphCompiler;
-known-failing VRChatCompiler) and the **~88 POTENTIAL trait stubs + Tier-4 integration
-traits**. All on the board (deep-ratchet straggler + breadth-2 tasks, 2026-05-24).
+Un-ratcheted: **~19 remaining compilers** — pure infra/niche: FlatSemantic/Context/Incremental;
+Pipeline/Graph/TraitComposition; Holob/SCM/NextJS/NextJSAPI/NodeService/Matterpak/
+LLMProviderCapabilities/CodebaseScene/PlatformConditional/useCompiler/nodeGraphCompiler(studio).
+Plus the **~88 POTENTIAL trait stubs + Tier-4 integration traits**. All on the board.
+Signal has saturated (overclaims are at the product-edge, now mapped); remaining tier is
+low-leverage infra.
