@@ -27,6 +27,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { JEPAPredictor } from '../../JEPAPredictor';
+import { computeConservationLoss } from '../PillarJEPA';
 import { effectiveRank, conservationAdherence } from '../embedding-metrics';
 
 // ── seeded generator for reproducible distinct "physics state" context vectors ──
@@ -79,58 +80,22 @@ describe('JEPAEvalBench — §4-6 measurement axes', () => {
     expect(rank.totalVariance).toBeGreaterThan(0);
   });
 
-  it('Table B — conservation-adherence@ε of PREDICTED embeddings (not conditioning)', () => {
-    // DESIGN NOTE (research/2026-05-23_...-jepa-snn-eval.md): PillarJEPA's
-    // computeConservationLoss scores the slice-derived CONDITIONING vector against
-    // its own axis direction. Well-formed physics slices build conditioning FROM
-    // those axes, so it is aligned-by-construction → penalty ≈ 0 (and with
-    // pos_1==pos_2 the demand cancels under normalisation). That regulariser
-    // therefore measures input-slice alignment, not whether the model's OUTPUT
-    // conserves. The paper claim is about predicted-state plausibility, so the
-    // eval scores the PREDICTED embedding's projection onto a conservation
-    // direction — the physics-domain IntPhys analog (W.521). Flagged for a
-    // PillarJEPA design decision: score predictions, not conditioning.
+  it('Table B — conservation-adherence@ε of PREDICTED embeddings (production L_c)', () => {
+    // Scores the PREDICTOR OUTPUT through the SAME computeConservationLoss the
+    // runtime uses (exported from PillarJEPA) — no re-implemented copy, so the
+    // eval and the regulariser cannot drift. This is the physics-domain IntPhys
+    // analog (W.521): does the model's predicted state adhere to conservation?
     const predictor = new JEPAPredictor({ latentDim: LATENT_DIM, condDim: 0 });
     const contexts = distinctContexts(SAMPLE_COUNT, LATENT_DIM, 0x7a26e7);
     const predictions = contexts.map((c) => predictor.forward(c, null).predicted);
 
-    // Deterministic conservation direction (unit vector) — mirrors PillarJEPA's
-    // axisIdToDirection('energy') technique (DJB2 scatter) so the eval is aligned
-    // with the runtime regulariser's geometry.
-    const conservationDir = (() => {
-      const dim = LATENT_DIM;
-      const dir = new Float32Array(dim);
-      let h = 5381;
-      for (const ch of 'energy') h = (Math.imul(h, 33) ^ ch.charCodeAt(0)) >>> 0;
-      let norm = 0;
-      for (let d = 0; d < dim; d++) {
-        h = (Math.imul(h, 1664525) + 1013904223) >>> 0;
-        dir[d] = (h / 0x100000000) * 2 - 1;
-        norm += dir[d] * dir[d];
-      }
-      norm = Math.sqrt(norm) || 1;
-      for (let d = 0; d < dim; d++) dir[d] /= norm;
-      return dir;
-    })();
-
     const margin = 0.05;
     const demand = 0.3; // conservation demand pos_1 ∈ [0,1]; moderate operating point
-    const threshold = demand - margin;
 
-    // Per-prediction conservation penalty: L_c = max(0, threshold − score)²,
-    // score = cos-sim(prediction, conservationDir) ∈ [−1, 1].
-    const penalties = predictions.map((p) => {
-      let dot = 0;
-      let norm = 0;
-      for (let i = 0; i < p.length; i++) {
-        dot += p[i] * conservationDir[i];
-        norm += p[i] * p[i];
-      }
-      norm = Math.sqrt(norm) || 1;
-      const score = dot / norm;
-      const violation = Math.max(0, threshold - score);
-      return violation * violation;
-    });
+    // Per-prediction penalty via the production regulariser.
+    const penalties = predictions.map((p) =>
+      computeConservationLoss(p, demand, margin, 'energy'),
+    );
 
     expect(penalties.length).toBe(SAMPLE_COUNT);
 
@@ -138,15 +103,15 @@ describe('JEPAEvalBench — §4-6 measurement axes', () => {
     const adherence = conservationAdherence(penalties, epsilons);
 
     report.tableB_conservationAdherence = {
-      measures: 'predicted-embedding conservation projection (not conditioning-alignment)',
+      measures: 'predicted-embedding conservation via production computeConservationLoss',
       demand,
       margin,
       penaltyCount: penalties.length,
       meanPenalty: penalties.reduce((a, b) => a + b, 0) / penalties.length,
       maxPenalty: Math.max(...penalties),
       sweep: adherence,
-      designFinding:
-        'PillarJEPA.computeConservationLoss scores slice-derived conditioning (aligned by construction → ~0). Eval scores model OUTPUT instead. Recommend PillarJEPA score predictions.',
+      note:
+        'Eval and runtime call the SAME exported computeConservationLoss (scores predictor output ẑ_t). Resolved the conditioning-vs-prediction defect (see PillarJEPA fix + /founder ruling).',
     };
 
     // adherence is monotonic non-decreasing in ε and bounded in [0, 1].

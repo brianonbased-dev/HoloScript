@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { pillarJepaHandler, type PillarJEPAConfig, type PillarJEPALoss } from '../PillarJEPA';
+import { pillarJepaHandler, computeConservationLoss, axisIdToDirection, type PillarJEPAConfig, type PillarJEPALoss } from '../PillarJEPA';
 import { makeParallelPillar, LEFT_PHYSICS_PILLAR, RIGHT_PHYSICS_PILLAR, TRUTH_PHYSICS_PARALLEL } from '../ParallelPillar';
 import type { HSPlusNode, TraitContext } from '../../TraitTypes';
 
@@ -119,9 +119,13 @@ describe('PillarJEPA', () => {
     expect(loss.axis_1_id).toBe('energy');
   });
 
-  it('conservation loss is zero when conservation is fully satisfied', () => {
-    // Provide a slice with pos_1 = 0 → conservation threshold = 0 − margin < 0
-    // Any score will satisfy threshold, so penalty = 0.
+  it('conservation loss is non-negative at low demand (pos_1 = 0)', () => {
+    // L_c now scores the PREDICTOR OUTPUT (not conditioning). At pos_1 = 0 the
+    // threshold is −margin, so a prediction with score ≥ −margin yields 0, while
+    // an anti-aligned prediction can still incur a small penalty — this is the
+    // paper-equation-correct behaviour (max(0, p_1 − ε_c − ẑ·u_c)). The exact
+    // value depends on the deterministic predictor, so strict 0/>0 semantics are
+    // covered by the direct computeConservationLoss unit tests below.
     step(node, DEFAULT_CONFIG, ctx, {
       pillar_slice: {
         axis_1_id: 'energy',
@@ -134,27 +138,25 @@ describe('PillarJEPA', () => {
     });
 
     const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as { conservationLoss: number } | undefined;
-    expect(loss?.conservationLoss).toBe(0);
+    expect(loss?.conservationLoss).toBeGreaterThanOrEqual(0);
+    expect(Number.isFinite(loss?.conservationLoss)).toBe(true);
   });
 
-  it('conservation loss is positive when conservation is violated', () => {
-    // pos_1 = 1.0 (must be conserved) but conditioning will score low for a
-    // cold predictor with random direction — violation almost certain.
+  it('conservation loss is non-negative at high demand (pos_1 = 1)', () => {
     step(node, DEFAULT_CONFIG, ctx, {
       pillar_slice: {
         axis_1_id: 'energy',
         axis_2_id: 'momentum',
         pos_1: 1.0,
-        pos_2: 1.0,  // high violation pressure
+        pos_2: 1.0,
         pillar_id: 'physics_conservation',
         pillar_domain: 'physics',
       },
     });
 
     const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as { conservationLoss: number } | undefined;
-    // Not guaranteed strictly > 0 (depends on random conditioning alignment),
-    // but we assert it's non-negative.
     expect(loss?.conservationLoss).toBeGreaterThanOrEqual(0);
+    expect(Number.isFinite(loss?.conservationLoss)).toBe(true);
   });
 
   it('symmetry loss is >= 0', () => {
@@ -478,5 +480,62 @@ describe('PillarJEPA', () => {
 
     // Steady-state total loss ≤ transient total loss (conservation gate reduces penalty)
     expect(steadyLoss.totalLoss).toBeLessThanOrEqual(transientLoss.totalLoss + 1e-9);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// computeConservationLoss — direct, controlled inputs (strict 0 / >0 semantics)
+//
+// The handler-level tests above can only assert ≥ 0 because the scored vector is
+// the deterministic predictor output, which the test does not control. These
+// tests call the exported regulariser directly with aligned / anti-aligned
+// vectors so the genuine violation penalty is asserted STRICTLY > 0 — the thing
+// the old "Not guaranteed strictly > 0" comment could never assert.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('computeConservationLoss (direct)', () => {
+  const DIM = 16;
+  const dir = axisIdToDirection('energy', DIM); // unit conservation direction
+
+  it('is 0 when the prediction is perfectly aligned, even at max demand', () => {
+    // score = ẑ·u = 1 ≥ (1 − margin) ⇒ violation 0.
+    const aligned = Float32Array.from(dir); // score = 1
+    expect(computeConservationLoss(aligned, 1.0, 0.05, 'energy')).toBe(0);
+  });
+
+  it('is STRICTLY > 0 when the prediction is anti-aligned at high demand', () => {
+    // score = ẑ·u = −1 < (1 − margin) ⇒ violation = (0.95 + 1)² ≈ 3.80.
+    const antiAligned = Float32Array.from(dir, (v) => -v); // score = −1
+    const loss = computeConservationLoss(antiAligned, 1.0, 0.05, 'energy');
+    expect(loss).toBeGreaterThan(0);
+    expect(loss).toBeCloseTo((1 - 0.05 + 1) ** 2, 5);
+  });
+
+  it('penalises anti-aligned predictions even at zero demand (paper-eq behaviour)', () => {
+    // pos_1 = 0 ⇒ threshold = −margin = −0.05; score = −1 < −0.05 ⇒ violation > 0.
+    // This is correct per max(0, p_1 − ε_c − ẑ·u); the old conditioning-scoring
+    // version masked it because conditioning was aligned by construction.
+    const antiAligned = Float32Array.from(dir, (v) => -v);
+    expect(computeConservationLoss(antiAligned, 0.0, 0.05, 'energy')).toBeGreaterThan(0);
+  });
+
+  it('monotonic in demand: higher pos_1 ⇒ ≥ penalty for a fixed prediction', () => {
+    const v = Float32Array.from(dir, (x, i) => x * 0.3 + (i % 2 === 0 ? 0.1 : -0.1));
+    const lo = computeConservationLoss(v, 0.2, 0.05, 'energy');
+    const hi = computeConservationLoss(v, 0.9, 0.05, 'energy');
+    expect(hi).toBeGreaterThanOrEqual(lo);
+  });
+
+  it('returns 0 for an empty vector', () => {
+    expect(computeConservationLoss(new Float32Array(0), 1.0, 0.05, 'energy')).toBe(0);
+  });
+
+  it('depends on the prediction (has gradient signal) — distinct inputs give distinct losses', () => {
+    // The whole point of the fix: L_c is a function of the prediction, not a
+    // constant. Two different predictions must be able to produce different losses.
+    const a = Float32Array.from(dir, (v) => -v);          // score = −1, high loss
+    const b = Float32Array.from(dir);                      // score = +1, zero loss
+    expect(computeConservationLoss(a, 1.0, 0.05, 'energy'))
+      .not.toBe(computeConservationLoss(b, 1.0, 0.05, 'energy'));
   });
 });

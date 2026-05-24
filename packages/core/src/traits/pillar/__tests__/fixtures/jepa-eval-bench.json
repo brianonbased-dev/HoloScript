@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T00:44:11.399Z",
+  "generatedAt": "2026-05-24T01:06:58.636Z",
   "latentDim": 16,
   "sampleCount": 64,
   "note": "BASELINE (untrained deterministic-init predictor). Trained convergence curve is the follow-on.",
@@ -11,7 +11,7 @@
     "totalVariance": 0.875580104736145
   },
   "tableB_conservationAdherence": {
-    "measures": "predicted-embedding conservation projection (not conditioning-alignment)",
+    "measures": "predicted-embedding conservation via production computeConservationLoss",
     "demand": 0.3,
     "margin": 0.05,
     "penaltyCount": 64,
@@ -51,6 +51,6 @@
         "adherence": 1
       }
     ],
-    "designFinding": "PillarJEPA.computeConservationLoss scores slice-derived conditioning (aligned by construction → ~0). Eval scores model OUTPUT instead. Recommend PillarJEPA score predictions."
+    "note": "Eval and runtime call the SAME exported computeConservationLoss (scores predictor output ẑ_t). Resolved the conditioning-vs-prediction defect (see PillarJEPA fix + /founder ruling)."
   }
 }

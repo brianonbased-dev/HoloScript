@@ -89,6 +89,14 @@ export interface JEPALossPayload {
   totalLoss: number;
   /** Monotonically increasing step counter. */
   step: number;
+  /**
+   * Predictor output ẑ_t (the next-state embedding). Exposed so downstream
+   * regularisers (e.g. PillarJEPA's conservation loss) can penalise the MODEL
+   * OUTPUT — a loss term that is a function of the predictor weights θ and
+   * therefore actually trains the model. Scoring the input conditioning instead
+   * yields ∂L/∂θ = 0 (a constant offset, not a regulariser).
+   */
+  predicted: Float32Array;
 }
 
 export type JEPAErrorCode =
@@ -224,6 +232,7 @@ export const jepObjectiveHandler: TraitHandler<JEPAObjectiveConfig> = {
       sigregLoss,
       totalLoss,
       step,
+      predicted,
     } satisfies JEPALossPayload);
   },
 };

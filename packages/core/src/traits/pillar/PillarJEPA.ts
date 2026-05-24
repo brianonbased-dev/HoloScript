@@ -449,10 +449,15 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
       effectiveConservationWeight = config.conservationWeight * (1 - temporalConvergence);
     }
 
-    // 6. Physics conservation regulariser (using effective weight)
+    // 6. Physics conservation regulariser (using effective weight).
+    //    Scores the PREDICTOR OUTPUT ẑ_t (jepaLoss.predicted), not the input
+    //    conditioning. Scoring conditioning gave ∂L_c/∂θ = 0 (conditioning is
+    //    computed deterministically from the slice, independent of the model) —
+    //    a constant offset, not a regulariser. Scoring the prediction makes the
+    //    loss a function of θ and matches Paper 26 Eq.(eq:lc): max(0, p_1−ε_c−ẑ_t·u_c).
     const conservationLoss = effectiveConservationWeight > 0
       ? computeConservationLoss(
-          conditioning,
+          jepaLoss.predicted,
           physicsSlice.pos_1,
           config.conservationMargin,
           physicsSlice.axis_1_id
@@ -648,30 +653,34 @@ function generateTemporalSlice(state: PillarJEPAState): PillarSlice {
  *
  *   L_c = max(0, pos_1 − ε_c − score)²
  *
- * where score = (u · c) and c is the deterministic conservation direction
- * derived from the axis name, u is the normalised conditioning vector.
+ * where score = (ẑ · c), c is the deterministic conservation direction derived
+ * from the axis name (a fixed domain prior — NOT learned; a Griffiths inductive
+ * bias is fixed by definition), and ẑ is the normalised PREDICTOR OUTPUT. Scoring
+ * the prediction (not the input conditioning) is what makes L_c depend on the
+ * model parameters θ and actually regularise. Exported so the eval bench scores
+ * predictions through the SAME function the runtime uses (no drift).
  */
-function computeConservationLoss(
-  conditioning: Float32Array,
+export function computeConservationLoss(
+  predicted: Float32Array,
   energyConservation: number,   // pos_1: 1 = fully conserved, 0 = depleted
   margin: number,
   axisId: string
 ): number {
-  if (conditioning.length === 0) return 0;
+  if (predicted.length === 0) return 0;
 
-  // Deterministic conservation direction from axis_id string hash
-  const conservationDir = axisIdToDirection(axisId, conditioning.length);
+  // Deterministic conservation direction from axis_id string hash (fixed prior).
+  const conservationDir = axisIdToDirection(axisId, predicted.length);
 
-  // Project conditioning onto conservation direction
+  // Project the predicted embedding onto the conservation direction.
   let dot = 0;
-  for (let i = 0; i < conditioning.length; i++) {
-    dot += conditioning[i] * conservationDir[i];
+  for (let i = 0; i < predicted.length; i++) {
+    dot += predicted[i] * conservationDir[i];
   }
 
-  // Normalise conditioning magnitude
+  // Normalise predicted-embedding magnitude.
   let condNorm = 0;
-  for (let i = 0; i < conditioning.length; i++) {
-    condNorm += conditioning[i] * conditioning[i];
+  for (let i = 0; i < predicted.length; i++) {
+    condNorm += predicted[i] * predicted[i];
   }
   condNorm = Math.sqrt(condNorm) || 1;
 
@@ -687,7 +696,7 @@ function computeConservationLoss(
  * Derive a deterministic unit vector in latentDim from an axis name string.
  * Uses DJB2 hash scatter — same technique as JEPAPredictor.textToEmbedding.
  */
-function axisIdToDirection(axisId: string, dim: number): Float32Array {
+export function axisIdToDirection(axisId: string, dim: number): Float32Array {
   const dir = new Float32Array(dim);
   let h = 5381;
   for (let i = 0; i < axisId.length; i++) {
