@@ -100,7 +100,7 @@ const receipt = {
   holoGraph: { exactByConstruction, inCorpusEdges: inCorpusEdgeCount, outEdges, reachableFrom534: [...reach534], navigable: reach534.size >= 3 },
   holoEmbed: { encoder: 'HoloEmbedEncoder', dim, expectedDim: HOLOEMBED_DIM, semanticQuery: 'audit calibration self-application of conclusions', top3: auditQuery, topRelevant: auditRelevant, deterministic: retrievalDeterministic },
   contract: { spine: 'REAL computeStateDigest', graphDigest, embedDigest, reproducible: 'run the verifier to re-derive' },
-  honestScope: 'HoloEmbed embeddings are produced by the GENUINE @holoscript/holoembed HoloEmbedEncoder (768-dim, deterministic) — not a mock. The graph is exact-by-construction (S.HGRAPH model): edges are the entries’ real cross-references, so traversal recall is 1.0 by definition. The corpus is a PINNED snapshot of the real D:/GOLD constellation (real ids/titles/refs, transcribed for portability since D:/GOLD is not in the repo) — the same pattern gold-vault-game.holo uses to embed real vault entries. PROVEN: the real vault’s lineage constellation is a navigable graph + semantically searchable via real HoloEmbed. A live full-vault scan (all ~300 entries via the absorb-service CodebaseGraph) deepens later.',
+  honestScope: 'HoloEmbed embeddings are produced by the GENUINE @holoscript/holoembed HoloEmbedEncoder (768-dim, deterministic) — not a mock. The graph is LOSSLESS BY CONSTRUCTION (S.HGRAPH model): edges ARE the entries’ real cross-references, so traversal returning them is a correctness PROPERTY, not a measured recall — calling it "recall 1.0" would be a tautology (deep-ratchet 2026-05-24), so this gate asserts losslessness, not a recall metric. A genuine semantic recall@k would need a LABELED retrieval benchmark the vault does not have (domain labels are sparse; lineage refs ≠ semantic similarity) — that benchmark is a separate build, not a gate-10 patch. The corpus is a PINNED snapshot of the real D:/GOLD constellation (real ids/titles/refs, transcribed for portability since D:/GOLD is not in the repo) — the same pattern gold-vault-game.holo uses to embed real vault entries. PROVEN: the real vault’s lineage constellation is a navigable graph + semantically searchable via real HoloEmbed. A live full-vault scan (all ~300 entries via the absorb-service CodebaseGraph) deepens later.',
   verifiedAt: new Date().toISOString(),
 };
 
@@ -115,7 +115,7 @@ if (emit) {
   let existing; try { existing = JSON.parse(readFileSync(receiptPath, 'utf8')); } catch { console.error('No Gate-10 receipt. Run --emit first.'); process.exit(2); }
   const checks = [
     ['GENUINE HoloEmbedEncoder produces 768-dim vectors', dim === HOLOEMBED_DIM && dim > 0],
-    ['HoloGraph exact-by-construction: traversal == real references (recall 1.0)', exactByConstruction === true],
+    ['HoloGraph traversal is LOSSLESS by construction (a correctness property — not a measured recall)', exactByConstruction === true],
     ['real reference edges exist within the corpus', inCorpusEdgeCount >= 3],
     ['constellation is navigable (BFS from W.GOLD.534 reaches >= 3 entries)', reach534.size >= 3],
     ['HoloEmbed semantic retrieval surfaces a relevant entry top-1', auditRelevant === true],

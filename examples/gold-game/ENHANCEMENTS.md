@@ -47,7 +47,16 @@
 - **PATH.** (1) Split the verifier into two `node` invocations sharing the memory file (true cross-process proof); (2) replace the payoff heuristic with the Gate-5a-style learned policy reading persisted features. 
 - **RISK / OWNER.** Bounded to the gate + a small policy module. Board task.
 
-## E-G10 — Live-vault graph recall (not a 6-entry pinned snapshot)
+## E-G10 — Reframed "recall 1.0" → lossless property; measured-recall RETIRED as a gate patch — ✅ RESOLVED 2026-05-24
+> The plan-gate hit THREE walls on the proposed "measured recall" fix: (1) "point at live D:/GOLD"
+> breaks the gate's portability (vault not in repo — the corpus is pinned ON PURPOSE); (2) lineage-recall
+> is subjective (citations ≠ semantic similarity); (3) same-domain precision is dead on arrival — only
+> ~5 vault entries carry a `domain` label. Forcing any of these = a contrived/meaningless metric (thin
+> work). Done instead (bounded + honest): reframed the misleading word — "graph recall 1.0" → "LOSSLESS
+> BY CONSTRUCTION (a correctness property, NOT a measured recall)" in the verifier check + receipt. The
+> encoder is already proven REAL (genuine 768-dim, deterministic). The genuine enhancement — a semantic
+> recall@k metric — needs a LABELED retrieval benchmark the vault doesn't have; that's a separate build,
+> not a gate-10 patch. (Second time this session plan-first prevented a manufactured metric; cf. E-G4.)
 - **CONTEXT.** HoloEmbedEncoder is a real 768-dim deterministic embedding + cosine retrieval (`HoloEmbedEncoder.ts:88-242`) — REAL. But "graph recall 1.0" is tautological: edges ARE the entries' stored `refs` and `traverse()` returns those same edges (self-disclosed `honestScope`), over a 6-entry pinned snapshot — the production `CodebaseGraph` over the live ~vault is not exercised.
 - **INTENT.** Recall should be measured over the live GOLD vault graph (hundreds of entries) where retrieval is non-trivial, so "recall" reflects real retrieval quality, not stored-adjacency echo.
 - **PATH.** Point the gate at the real vault catalog (reuse Gate-28's `vault-ops.readVaultCatalog`), build the lineage graph from real entries, hold out a query set, and measure recall@k against ground-truth lineage — report the honest (sub-1.0) number.
