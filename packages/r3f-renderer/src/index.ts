@@ -60,6 +60,25 @@ export type { QuiltViewerProps } from './components/QuiltViewer';
 export { GaussianSplatViewer } from './components/GaussianSplatViewer';
 export type { GaussianSplatViewerProps } from './components/GaussianSplatViewer';
 export {
+  CROSS_SCALE_PROJECTION_RECEIPT_SCHEMA,
+  CROSS_SCALE_PROJECTION_SCALES,
+  CrossScaleProjectionRenderer,
+  buildCrossScaleProjection,
+} from './components/CrossScaleProjectionRenderer';
+export type {
+  CrossScaleAnchorLike,
+  CrossScalePartitionLike,
+  CrossScaleProjectionColorMode,
+  CrossScaleProjectionEdge,
+  CrossScaleProjectionMaterial,
+  CrossScaleProjectionNode,
+  CrossScaleProjectionOptions,
+  CrossScaleProjectionReceipt,
+  CrossScaleProjectionRendererProps,
+  CrossScaleProjectionResult,
+  CrossScaleProjectionScale,
+} from './components/CrossScaleProjectionRenderer';
+export {
   HolomapPointCloudViewer,
   decodeHolomapPointCloudPayload,
 } from './components/HolomapPointCloudViewer';
