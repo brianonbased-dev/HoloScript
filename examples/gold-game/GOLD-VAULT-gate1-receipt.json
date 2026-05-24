@@ -77,6 +77,23 @@
     "embedDigest": "ef4846d064619aa85937e3bfe0343226758f3c52be45b75fa2ac9759384dead2",
     "interaction": "HoloGraph button / G key opens lineage constellation; selecting a node dispatches gold-entry-selected and opens full GOLD data"
   },
+  "continuousCampaign": {
+    "enabled": true,
+    "gate": 25,
+    "saveKey": "goldGame.campaign.v1",
+    "persistence": "localStorage (survives reload); replays graduated gems on resume",
+    "questLog": [
+      "one-climb",
+      "read-record",
+      "three-summits",
+      "lineage-walk"
+    ],
+    "winCondition": "One Climb = first real graduation (recordGraduation); campaign completes when all quests done",
+    "postWin": "win banner + persistent next-ratchet pointer; play continues after win, not a dead-end",
+    "nextRatchet": "Gate 26 — prove the shared-world shape before claiming MMO",
+    "resume": "Continue Campaign button appears only when a save exists; gold-game-resume restores progress",
+    "note": "campaign mirrors REAL graduate ops only — no fabricated progress; corrupt/blocked storage degrades to in-memory"
+  },
   "holoscriptToolset": {
     "enabled": true,
     "gate": 36,
@@ -227,10 +244,10 @@
     "missing": []
   },
   "sceneDigest": "80a0fbed4901b71b1c080124a77889b8641c0ad239aedfa0b1c7ba3f2202927d",
-  "htmlBytes": 1065099,
+  "htmlBytes": 1073387,
   "selfContained": true,
   "offline": true,
   "three": "0.182.0 (bundled IIFE)",
   "core": "6.1.0",
-  "verifiedAt": "2026-05-24T01:16:26.220Z"
+  "verifiedAt": "2026-05-24T02:50:13.871Z"
 }

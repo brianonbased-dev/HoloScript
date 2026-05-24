@@ -226,6 +226,9 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 // Gate 6: the REAL HoloGate intent validator (pure module, bundled by esbuild).
 import { validatePortalIntent } from '../../../packages/mcp-server/src/holo-portal-intent.ts';
+// Gate 25: the SAME pure campaign state machine the verifier exercises (bundled by
+// esbuild). Path is relative to the emitted drive-build/_entry.mjs, like the HoloGate import.
+import * as Campaign from '../gold-game-campaign.mjs';
 const SCENE = ${sceneJson};
 window.__GOLD_GAME_SCENE__ = SCENE;
 const C = (h) => new THREE.Color(h);
@@ -355,6 +358,51 @@ const SCOPE = 'drive-avatar';
 let graduatedCount = 0;
 let started = false;
 
+// ── Gate 25: continuous campaign ──────────────────────────────────────────────
+// The game does not stop at one graduation. A persistent campaign tracks a quest
+// log, a win condition (One Climb = first real graduation), and a post-win
+// continuation that surfaces the NEXT ratchet. State persists across reload via
+// localStorage so a player can resume. This is the same backend op (graduate)
+// projected as ongoing progression — no fake state behind it. The state machine
+// is the imported pure Campaign module (also exercised by gate-25); this is the
+// thin browser glue: localStorage I/O + DOM event emission.
+const CAMPAIGN_KEY = Campaign.CAMPAIGN_KEY;
+let campaign = Campaign.initCampaign();
+function loadCampaign() {
+  try {
+    const raw = (typeof localStorage !== 'undefined') && localStorage.getItem(CAMPAIGN_KEY);
+    if (!raw) return;
+    campaign = Campaign.deserialize(raw);
+    graduatedCount = campaign.graduatedIds.length;
+  } catch (e) { /* corrupt save — start fresh, never throw into the loop */ }
+}
+function saveCampaign() {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    campaign.lastPlayedAt = new Date().toISOString();
+    localStorage.setItem(CAMPAIGN_KEY, Campaign.serialize(campaign));
+  } catch (e) { /* storage blocked (private mode) — campaign still runs in-memory */ }
+}
+function setQuestDone(id) { return Campaign.setQuestDone(campaign, id); }
+function emitCampaign() {
+  window.dispatchEvent(new CustomEvent('gold-game-state', { detail: {
+    questLog: campaign.questLog.map((q) => ({ id: q.id, title: q.title, desc: q.desc, done: q.done })),
+    graduated: graduatedCount,
+    graduatedIds: campaign.graduatedIds.slice(),
+    oneClimbComplete: campaign.oneClimbComplete,
+    campaignComplete: campaign.campaignComplete,
+    nextRatchet: campaign.nextRatchet,
+    resumed: Boolean(campaign.lastPlayedAt),
+  } }));
+}
+// Called whenever a REAL graduation lands (any path: VR / first-person / keyboard).
+function recordGraduation(entryId) {
+  Campaign.recordGraduation(campaign, entryId);
+  saveCampaign();
+  emitCampaign();
+}
+loadCampaign();
+
 // world-space panel = the in-VR start menu / instruction HUD (fixes "no menu")
 const panelMat = new THREE.MeshBasicMaterial({ transparent: true });
 function panelTexture(lines, accent) {
@@ -398,6 +446,7 @@ function onTrigger(ctrl) {
   const verdict = validatePortalIntent(intent, HOLODOOR_POLICY, SCOPE);
   if (!verdict.allowed) { setPanel(['DENIED by HoloGate', verdict.reason || 'scope', 'Graduated: ' + graduatedCount], '#8a2a2a'); return; }
   g.userData.graduated = true; graduatedCount++;
+  recordGraduation(g.userData.entryId || g.userData.name);
   const startY = g.position.y, endY = g.position.y + 4, t0 = performance.now();
   (function rise() { const k = Math.min(1, (performance.now() - t0) / 900); g.position.y = startY + (endY - startY) * k; if (k < 1) requestAnimationFrame(rise); })();
   setPanel(['GRADUATED via HoloGate', g.userData.name.replace(/_/g, '.'), 'grab intent -> validated (' + SCOPE + ')', 'Graduated: ' + graduatedCount], '#d4af37');
@@ -418,6 +467,7 @@ camera.rotation.order = 'YXZ';
 
 function dispatchEntry(g) {
   if (!g) return;
+  if (setQuestDone('read-record')) { saveCampaign(); emitCampaign(); }
   window.dispatchEvent(new CustomEvent('gold-entry-selected', { detail: { id: g.userData.entryId || g.userData.name, entry: g.userData.entryData || null } }));
 }
 function resetToOverlook() {
@@ -432,6 +482,7 @@ function graduateGem(g, label) {
   const verdict = validatePortalIntent({ kind: 'grab', entityId: 'curator-avatar', targetId: g.userData.name }, HOLODOOR_POLICY, SCOPE);
   if (!verdict.allowed) { setPanel(['DENIED by HoloGate', verdict.reason || 'scope', 'Graduated: ' + graduatedCount], '#8a2a2a'); return false; }
   g.userData.graduated = true; graduatedCount++;
+  recordGraduation(g.userData.entryId || g.userData.name);
   const sy = g.position.y, ey = sy + 4, t0 = performance.now();
   (function rise() { const kf = Math.min(1, (performance.now() - t0) / 900); g.position.y = sy + (ey - sy) * kf; if (kf < 1) requestAnimationFrame(rise); })();
   setPanel([label || 'GRADUATED via HoloGate', g.userData.name.replace(/_/g, '.'), 'Graduated: ' + graduatedCount], '#d4af37');
@@ -459,14 +510,42 @@ renderer.domElement.addEventListener('click', () => {
 document.addEventListener('pointerlockchange', () => {
   if (document.pointerLockElement === renderer.domElement) enterFirstPerson();
 });
+// Gate 25: replay saved graduations onto the gems so a resumed campaign shows
+// real prior progress (the entries you already graduated stay graduated).
+function restoreGraduatedGems() {
+  if (!campaign.graduatedIds.length) return;
+  for (const g of grabbables) {
+    const id = g.userData.entryId || g.userData.name;
+    if (campaign.graduatedIds.indexOf(id) !== -1 && !g.userData.graduated) {
+      g.userData.graduated = true;
+      g.position.y += 4;
+    }
+  }
+}
 window.addEventListener('gold-game-start', () => {
   started = true;
+  restoreGraduatedGems();
   resetToOverlook();
+  emitCampaign();
+});
+// Gate 25: resume picks up exactly where the saved campaign left off.
+window.addEventListener('gold-game-resume', () => {
+  started = true;
+  restoreGraduatedGems();
+  enterFirstPerson();
+  setPanel(['RESUMED', 'Graduated: ' + graduatedCount, campaign.campaignComplete ? campaign.nextRatchet : 'Continue the climb'], '#d4af37');
+  emitCampaign();
 });
 window.addEventListener('gold-game-inspect-first', () => {
   dispatchEntry(cameraPickEntry() || grabbables.find((o) => !o.userData.graduated));
 });
+// Gate 25: opening the lineage constellation completes the Lineage Walk quest.
+window.addEventListener('gold-game-lineage-walk', () => {
+  if (setQuestDone('lineage-walk')) { saveCampaign(); emitCampaign(); }
+});
 window.addEventListener('gold-game-reset-to-overlook', () => resetToOverlook());
+// Surface the loaded campaign immediately so the HUD reflects saved progress on boot.
+emitCampaign();
 document.addEventListener('mousemove', (e) => {
   if (document.pointerLockElement !== renderer.domElement) return;
   player.yaw -= e.movementX * 0.0023;
@@ -636,6 +715,20 @@ const startOnboardingScript = `<script>
     document.body.dataset.started = 'true';
     window.dispatchEvent(new CustomEvent('gold-game-reset-to-overlook'));
   });
+  // Gate 25: show Continue only when a saved campaign exists; resume from it.
+  var cont = document.getElementById('continueRun');
+  try {
+    var raw = window.localStorage && window.localStorage.getItem('goldGame.campaign.v1');
+    var saved = raw ? JSON.parse(raw) : null;
+    if (cont && saved && saved.version === 1 && (saved.oneClimbComplete || (saved.graduatedIds && saved.graduatedIds.length))) {
+      cont.dataset.visible = 'true';
+      cont.addEventListener('click', function(){
+        if (start) start.dataset.open = 'false';
+        document.body.dataset.started = 'true';
+        window.dispatchEvent(new CustomEvent('gold-game-resume'));
+      });
+    }
+  } catch (_) {}
 })();
 </script>`;
 const toolsetScript = `<script>
@@ -745,10 +838,54 @@ const holoGraphScript = `<script>
   }
   draw();
   renderList();
-  toggle && toggle.addEventListener('click', function(){ setOpen(panel.dataset.open !== 'true'); });
+  function openGraph(open){ setOpen(open); if (open) window.dispatchEvent(new CustomEvent('gold-game-lineage-walk')); }
+  toggle && toggle.addEventListener('click', function(){ openGraph(panel.dataset.open !== 'true'); });
   close && close.addEventListener('click', function(){ setOpen(false); });
   window.addEventListener('keydown', function(e){
-    if (e.key === 'g' || e.key === 'G') setOpen(panel.dataset.open !== 'true');
+    if (e.key === 'g' || e.key === 'G') openGraph(panel.dataset.open !== 'true');
+  });
+})();
+</script>`;
+// Gate 25: continuous campaign UI — quest log, live objective, post-win banner +
+// next-ratchet, driven entirely by the in-scene `gold-game-state` events. No state
+// is invented here; it mirrors what the real graduation ops produced.
+const campaignScript = `<script>
+(function(){
+  var toggle = document.getElementById('questToggle');
+  var panel = document.getElementById('questPanel');
+  var items = document.getElementById('questItems');
+  var objective = document.getElementById('objectiveText');
+  var banner = document.getElementById('winBanner');
+  var winSummary = document.getElementById('winSummary');
+  var winNext = document.getElementById('winNext');
+  var winContinue = document.getElementById('winContinue');
+  if (!panel || !items) return;
+  toggle && toggle.addEventListener('click', function(){ panel.dataset.open = panel.dataset.open !== 'true' ? 'true' : 'false'; });
+  winContinue && winContinue.addEventListener('click', function(){ if (banner) banner.dataset.open = 'false'; });
+  function renderQuests(log){
+    items.innerHTML = '';
+    (log || []).forEach(function(q){
+      var li = document.createElement('li');
+      li.className = 'questItem';
+      li.dataset.done = q.done ? 'true' : 'false';
+      li.innerHTML = '<strong></strong><small></small>';
+      li.querySelector('strong').textContent = q.title;
+      li.querySelector('small').textContent = q.desc;
+      items.appendChild(li);
+    });
+  }
+  function nextOpen(log){ var n = (log || []).find(function(q){ return !q.done; }); return n ? (n.title + ' — ' + n.desc) : null; }
+  window.addEventListener('gold-game-state', function(e){
+    var s = e.detail || {};
+    renderQuests(s.questLog);
+    var next = nextOpen(s.questLog);
+    if (objective) objective.textContent = s.campaignComplete ? ('Campaign complete · next ratchet: ' + (s.nextRatchet || '')) : (next || 'Keep climbing.');
+    if (s.oneClimbComplete && banner) {
+      if (winSummary) winSummary.textContent = 'You graduated ' + (s.graduated || 0) + ' GOLD ' + ((s.graduated === 1) ? 'entry' : 'entries') + '. The campaign continues — the vault keeps rising.';
+      if (winNext) winNext.textContent = s.nextRatchet || '';
+      // Only auto-pop the banner on the transition, not on every resume.
+      if (!banner.dataset.shown) { banner.dataset.open = 'true'; banner.dataset.shown = 'true'; }
+    }
   });
 })();
 </script>`;
@@ -768,6 +905,24 @@ toolsetBoot +
 '#startActions button+button{background:rgba(9,10,13,.72);color:#f0d79a;border-color:#8f7730}' +
 '#questHud{position:fixed;left:16px;bottom:14px;z-index:11;color:#f0d79a;text-shadow:0 1px 8px #000;display:flex;gap:10px;align-items:center;max-width:min(620px,calc(100vw - 32px));font-size:12px}' +
 '#questHud strong{color:#ffe9a0}' +
+'#questToggle{position:fixed;right:16px;bottom:14px;z-index:13;background:#10131b;color:#f0d79a;border:1px solid #8f7730;padding:8px 10px;cursor:pointer;font-size:12px}' +
+'#questPanel{position:fixed;right:14px;bottom:54px;width:min(340px,80vw);z-index:14;background:rgba(6,7,10,.95);border:1px solid #d4af37;color:#e9d99d;padding:12px;box-sizing:border-box;display:none;flex-direction:column;gap:8px;box-shadow:0 12px 48px #0008}' +
+'#questPanel[data-open="true"]{display:flex}' +
+'#questPanel h2{font-size:14px;margin:0;color:#ffe9a0}' +
+'#questItems{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}' +
+'.questItem{font-size:11px;line-height:1.35;border-left:3px solid #6f6233;padding-left:8px;color:#cbb778}' +
+'.questItem[data-done="true"]{border-left-color:#d4af37;color:#ffe9a0}' +
+'.questItem[data-done="true"] strong::before{content:"\\2713 ";color:#7ddc7d}' +
+'.questItem[data-done="false"] strong::before{content:"\\25cb ";color:#8f7730}' +
+'.questItem small{display:block;color:#9c8a52}' +
+'#winBanner{position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:20;background:rgba(6,7,10,.95);border:2px solid #d4af37;color:#ffe9a0;padding:18px 22px;max-width:min(520px,86vw);text-align:center;display:none;box-shadow:0 16px 64px #000c}' +
+'#winBanner[data-open="true"]{display:block}' +
+'#winBanner h2{margin:0 0 6px;font-size:22px}' +
+'#winBanner p{margin:6px 0;font-size:13px;color:#f3e4b0;line-height:1.45}' +
+'#winBanner b{color:#ffe9a0}' +
+'#winContinue{margin-top:10px;background:#f0d79a;color:#090a0d;border:1px solid #ffe9a0;padding:9px 14px;font-weight:700;cursor:pointer}' +
+'#continueRun{display:none}' +
+'#continueRun[data-visible="true"]{display:inline-block}' +
 '#toolsetToggle{position:fixed;left:16px;bottom:58px;z-index:13;background:#10131b;color:#f0d79a;border:1px solid #8f7730;padding:8px 10px;cursor:pointer;font-size:12px}' +
 '#toolsetPanel{position:fixed;left:14px;top:220px;bottom:104px;width:min(430px,34vw);z-index:13;background:rgba(6,7,10,.94);border:1px solid #6f92b8;color:#dbe8ff;padding:12px;box-sizing:border-box;display:none;flex-direction:column;gap:10px;box-shadow:0 12px 48px #0008}' +
 '#toolsetPanel[data-open="true"]{display:flex}' +
@@ -805,8 +960,11 @@ toolsetBoot +
 '</style></head><body><section id="startScreen" data-open="true" data-gate24="start-onboarding"><div id="startCopy"><h1>THE GOLD GAME</h1>' +
 '<p>Bronze Valley opens beneath the Diamond peak. The vault is alive now: art, entries, HoloGate, and the first climb all meet here.</p>' +
 '<p><b>First objective:</b> reach a glowing entry, open its full GOLD record, then graduate it.</p>' +
-'<div id="startActions"><button id="beginRun" type="button">Begin One Climb</button><button id="inspectFirst" type="button">Read First Entry</button></div></div></section>' +
-'<div id="questHud" data-gate24="objective"><strong>Objective</strong><span>Graduate one glowing entry, then follow its record upward.</span><button id="retryStart" type="button">Return to Overlook</button></div>' +
+'<div id="startActions"><button id="beginRun" type="button">Begin One Climb</button><button id="continueRun" type="button" data-gate25="resume">Continue Campaign</button><button id="inspectFirst" type="button">Read First Entry</button></div></div></section>' +
+'<div id="questHud" data-gate24="objective"><strong>Objective</strong><span id="objectiveText">Graduate one glowing entry, then follow its record upward.</span><button id="retryStart" type="button">Return to Overlook</button></div>' +
+'<button id="questToggle" type="button" data-gate25="quest-log">Quest Log</button>' +
+'<aside id="questPanel" data-open="false" data-gate25="quest-log"><h2>Quest Log</h2><ul id="questItems"></ul></aside>' +
+'<div id="winBanner" data-gate25="post-win"><h2>One Climb complete</h2><p id="winSummary"></p><p>Next ratchet: <b id="winNext"></b></p><button id="winContinue" type="button">Continue the campaign</button></div>' +
 '<button id="toolsetToggle" type="button">HoloScript Systems</button>' +
 '<aside id="toolsetPanel" data-open="false" data-gate36="holoscript-toolset"><button id="toolsetClose" type="button">Close</button><h2>HoloScript Systems</h2><p id="toolsetCount">package systems</p><div id="toolsetList"></div></aside>' +
 '<button id="graphToggle" type="button">HoloGraph</button>' +
@@ -826,6 +984,7 @@ startOnboardingScript +
 toolsetScript +
 holoGraphScript +
 goldDataScript +
+campaignScript +
 '</body></html>';
 writeFileSync(join(OUT, 'index.html'), html);
 writeFileSync(join(OUT, 'START-HERE.txt'),
@@ -871,6 +1030,14 @@ const receipt = {
     graphDigest: playableHoloGraph.graphDigest,
     embedDigest: playableHoloGraph.embedDigest,
     interaction: 'HoloGraph button / G key opens lineage constellation; selecting a node dispatches gold-entry-selected and opens full GOLD data' },
+  continuousCampaign: { enabled: true, gate: 25,
+    saveKey: 'goldGame.campaign.v1', persistence: 'localStorage (survives reload); replays graduated gems on resume',
+    questLog: ['one-climb', 'read-record', 'three-summits', 'lineage-walk'],
+    winCondition: 'One Climb = first real graduation (recordGraduation); campaign completes when all quests done',
+    postWin: 'win banner + persistent next-ratchet pointer; play continues after win, not a dead-end',
+    nextRatchet: 'Gate 26 — prove the shared-world shape before claiming MMO',
+    resume: 'Continue Campaign button appears only when a save exists; gold-game-resume restores progress',
+    note: 'campaign mirrors REAL graduate ops only — no fabricated progress; corrupt/blocked storage degrades to in-memory' },
   holoscriptToolset: { enabled: true, gate: 36,
     packageCount: holoscriptToolset.systems.length,
     foundPackageCount: holoscriptToolset.systems.filter((s) => s.found).length,

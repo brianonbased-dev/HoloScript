@@ -49,7 +49,7 @@ const GATES = [
   { track: 'flagship', gate: 22, name: 'desktop first-person control — pointer-lock movement + mouse look + HoloGate graduate', kind: 'script', runner: 'tsx', file: 'gate-22-first-person-verify.mjs' },
   { track: 'flagship', gate: 23, name: 'full GOLD data inspection — live /api/vault-entry + embedded offline markdown body', kind: 'script', runner: 'tsx', file: 'gate-23-full-data-verify.mjs' },
   { track: 'flagship', gate: 24, name: 'start-of-game onboarding — art vista, first objective, retry path, and first-person entry', kind: 'script', runner: 'tsx', file: 'gate-24-start-onboarding-verify.mjs' },
-  { track: 'flagship', gate: 25, name: 'continuous campaign — save/resume, quest log, and post-win continuation beyond One Climb', kind: 'open' },
+  { track: 'flagship', gate: 25, name: 'continuous campaign — save/resume, quest log, and post-win continuation beyond One Climb', kind: 'script', runner: 'node', file: 'gate-25-campaign-verify.mjs' },
   { track: 'flagship', gate: 26, name: 'MMO answer gate — classify as shared-world co-op now, then prove shard lobby + named players before calling MMO', kind: 'open' },
   { track: 'flagship', gate: 27, name: 'live-vault safe mutation flow — proposal queue, diff preview, founder-gated apply, rollback receipt', kind: 'open' },
   { track: 'flagship', gate: 28, name: 'full-vault browser — search/filter/open every GOLD entry, lineage links, raw markdown, and receipt history', kind: 'open' },
