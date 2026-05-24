@@ -92,6 +92,32 @@ describe('HoloMapRuntime — 8-kernel integration on 32×32 fixture', () => {
     await runtime.dispose();
   });
 
+  it('anchors point positions to the source image tile lattice', async () => {
+    const runtime = createHoloMapRuntime();
+    await runtime.init({
+      ...HOLOMAP_DEFAULTS,
+      seed: 7,
+      modelHash: 'integration-image-lattice',
+      videoHash: 'fixture-gradient',
+      targetFPS: 10000,
+    });
+
+    const step = await runtime.step(buildGradientFrame(0));
+    const pos = step.points.positions;
+    const firstX = pos[0]!;
+    const firstY = pos[1]!;
+    const last = pos.length - 3;
+    const lastX = pos[last]!;
+    const lastY = pos[last + 1]!;
+
+    expect(firstX).toBeLessThan(-0.65);
+    expect(firstY).toBeGreaterThan(0.65);
+    expect(lastX).toBeGreaterThan(0.65);
+    expect(lastY).toBeLessThan(-0.65);
+
+    await runtime.dispose();
+  });
+
   it('point cloud has non-trivial spatial spread (transformer is firing)', async () => {
     const runtime = createHoloMapRuntime();
     await runtime.init({

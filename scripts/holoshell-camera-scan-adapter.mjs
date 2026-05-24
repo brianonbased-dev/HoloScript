@@ -28,16 +28,16 @@ import {
   createHoloMapRuntime,
 } from '../packages/core/dist/reconstruction/index.js';
 
-export const VERSION = '0.4.0';
-export const RECEIPT_VERSION = 'holoshell-camera-scan-receipt/v4';
+export const VERSION = '0.5.0';
+export const RECEIPT_VERSION = 'holoshell-camera-scan-receipt/v5';
 const DEFAULT_DATE = new Date().toISOString().slice(0, 10);
 const DEFAULT_WIDTH = 96;
 const DEFAULT_HEIGHT = 72;
 const DEFAULT_FRAMES = 1;
 const DEFAULT_INTERVAL_MS = 250;
 const DEFAULT_SESSION_FPS = 5;
-const DEFAULT_TILE_GRID = 8;
-const MAX_TILE_GRID = 16;
+const DEFAULT_TILE_GRID = 32;
+const MAX_TILE_GRID = 32;
 const MAX_FRAMES = 120;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -134,8 +134,8 @@ function printHelp() {
 
 Usage:
   node scripts/holoshell-camera-scan-adapter.mjs list
-  node scripts/holoshell-camera-scan-adapter.mjs capture [--frames 5] [--interval-ms 250] [--tile-grid 8] [--require-capture] [--out receipt.json]
-  node scripts/holoshell-camera-scan-adapter.mjs capture --duration-sec 3 --fps 5 [--tile-grid 8] [--require-capture]
+  node scripts/holoshell-camera-scan-adapter.mjs capture [--frames 5] [--interval-ms 250] [--tile-grid 32] [--require-capture] [--out receipt.json]
+  node scripts/holoshell-camera-scan-adapter.mjs capture --duration-sec 3 --fps 5 [--tile-grid 32] [--require-capture]
   node scripts/holoshell-camera-scan-adapter.mjs --self-test
 
 Notes:

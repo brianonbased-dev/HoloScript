@@ -198,6 +198,14 @@ export interface ReconstructionManifest {
 // FACTORY
 // =============================================================================
 
+interface HoloMapTileSample {
+  tile: HoloMapMicroFrame;
+  meanColor: [number, number, number];
+  centerUv: [number, number];
+  luminance: number;
+  texture: number;
+}
+
 class HoloMapRuntimeImpl implements HoloMapRuntime {
   private config: HoloMapConfig = { ...HOLOMAP_DEFAULTS };
   private initialized = false;
@@ -370,7 +378,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
    * for future streaming kLen>1 paths.
    */
   private static readonly GRID_N = 4;
-  private static readonly MAX_GRID_N = 16;
+  private static readonly MAX_GRID_N = 32;
 
   private static normalizeTileGrid(value: number | undefined): number {
     const raw = value ?? HoloMapRuntimeImpl.GRID_N;
@@ -397,8 +405,8 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   private static tileFrame(
     frame: ReconstructionFrame,
     gridN: number,
-  ): Array<{ tile: HoloMapMicroFrame; meanColor: [number, number, number] }> {
-    const out: Array<{ tile: HoloMapMicroFrame; meanColor: [number, number, number] }> = [];
+  ): HoloMapTileSample[] {
+    const out: HoloMapTileSample[] = [];
     const tileW = Math.max(1, Math.floor(frame.width / gridN));
     const tileH = Math.max(1, Math.floor(frame.height / gridN));
     const stride = frame.stride;
@@ -417,6 +425,8 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
         let rSum = 0;
         let gSum = 0;
         let bSum = 0;
+        let lumaSum = 0;
+        let lumaSqSum = 0;
         let count = 0;
         for (let y = 0; y < h; y += 1) {
           const srcRow = (y0 + y) * frame.width * stride;
@@ -434,10 +444,15 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
             rSum += r;
             gSum += g;
             bSum += b;
+            const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            lumaSum += luma;
+            lumaSqSum += luma * luma;
             count += 1;
           }
         }
         const denom = Math.max(1, count);
+        const meanLuma = lumaSum / denom;
+        const lumaVariance = Math.max(0, lumaSqSum / denom - meanLuma * meanLuma);
         const tileId = ty * gridN + tx;
         out.push({
           tile: {
@@ -449,6 +464,12 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
             height: h,
             stride,
           },
+          centerUv: [
+            ((x0 + x1) * 0.5) / Math.max(1, frame.width),
+            ((y0 + y1) * 0.5) / Math.max(1, frame.height),
+          ],
+          luminance: meanLuma / 255,
+          texture: Math.sqrt(lumaVariance) / 255,
           meanColor: [
             Math.round(rSum / denom),
             Math.round(gSum / denom),
@@ -554,18 +575,25 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     const positions = new Float32Array(numPoints * 3);
     const colors = new Uint8Array(numPoints * 3);
     const confidence = new Float32Array(numPoints);
+    const aspect = frame.width / Math.max(1, frame.height);
 
     let centroidX = 0;
     let centroidY = 0;
     let centroidZ = 0;
 
     for (let t = 0; t < numPoints; t += 1) {
-      const { tile, meanColor } = tiles[t]!;
+      const { tile, meanColor, centerUv, luminance, texture } = tiles[t]!;
       const xyz = await this.encodeTile(tile, microCfg);
 
-      const px = xyz[0] ?? 0;
-      const py = xyz[1] ?? 0;
-      const pz = xyz[2] ?? 0;
+      const latentX = xyz[0] ?? 0;
+      const latentY = xyz[1] ?? 0;
+      const latentZ = xyz[2] ?? 0;
+      const planeX = (centerUv[0] - 0.5) * 2 * aspect;
+      const planeY = (0.5 - centerUv[1]) * 2;
+      const depthHint = (luminance - 0.5) * 0.34 + texture * 0.24;
+      const px = planeX + latentX * 0.08;
+      const py = planeY + latentY * 0.08;
+      const pz = depthHint + latentZ * 0.12;
 
       positions[t * 3] = px;
       positions[t * 3 + 1] = py;
@@ -573,11 +601,8 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       colors[t * 3] = meanColor[0];
       colors[t * 3 + 1] = meanColor[1];
       colors[t * 3 + 2] = meanColor[2];
-      // Per-tile confidence: bounded function of magnitude. The xyz vector
-      // is the output of a normalised transformer pass with small init scale,
-      // so |xyz| stays small. Map to (0.5, 1.0).
-      const mag = Math.sqrt(px * px + py * py + pz * pz);
-      confidence[t] = 0.5 + 0.5 / (1 + mag);
+      const latentMag = Math.sqrt(latentX * latentX + latentY * latentY + latentZ * latentZ);
+      confidence[t] = Math.min(1, 0.45 + 0.35 / (1 + latentMag) + Math.min(0.2, texture * 1.5));
 
       centroidX += px;
       centroidY += py;

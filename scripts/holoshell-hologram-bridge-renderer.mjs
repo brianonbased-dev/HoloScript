@@ -155,15 +155,19 @@ function mean(values) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function computeRenderStyle({ points, tileWidth, tileHeight, args }) {
+function computeRenderStyle({ points, tileWidth, tileHeight, args, tileGrid }) {
   const avgLum = mean(points.map(luminance));
   const autoGain = args.autoExposure ? Math.max(1, Math.min(6, 0.42 / Math.max(0.05, avgLum))) : 1;
   const exposure = args.exposure ?? autoGain;
   const spacing = Math.sqrt((tileWidth * tileHeight) / Math.max(1, points.length));
   const resolutionRadius = Math.max(2, Math.round(Math.min(tileWidth, tileHeight) / 36));
   const densityRadius = Math.max(1, Math.round(spacing * 0.35));
-  const baseRadius = args.pointRadius ?? Math.max(1, Math.min(resolutionRadius, densityRadius));
-  const glowRadius = args.glowRadius ?? Math.max(baseRadius + 1, Math.round(baseRadius * 2.2));
+  const gridRadius =
+    Number.isInteger(tileGrid) && tileGrid > 0
+      ? Math.max(2, Math.min(10, Math.round(Math.min(tileWidth, tileHeight) / (tileGrid * 1.4))))
+      : Math.max(1, Math.min(resolutionRadius, densityRadius));
+  const baseRadius = args.pointRadius ?? gridRadius;
+  const glowRadius = args.glowRadius ?? Math.max(baseRadius + 2, Math.round(baseRadius * 1.25));
   return {
     exposure,
     autoExposure: args.autoExposure,
@@ -172,6 +176,7 @@ function computeRenderStyle({ points, tileWidth, tileHeight, args }) {
     glowRadius,
     averageSourceLuminance: Number(avgLum.toFixed(4)),
     averagePointSpacingPx: Number(spacing.toFixed(3)),
+    sourceTileGrid: Number.isInteger(tileGrid) && tileGrid > 0 ? tileGrid : undefined,
   };
 }
 
@@ -355,7 +360,13 @@ export async function renderBridge(args) {
   const rows = args.rows ?? bridge.targets?.quilt?.rows ?? 6;
   const views = args.views ?? bridge.targets?.quilt?.views ?? columns * rows;
   if (views > columns * rows) throw new Error(`views (${views}) cannot exceed columns*rows (${columns * rows})`);
-  const style = computeRenderStyle({ points, tileWidth: args.tileWidth, tileHeight: args.tileHeight, args });
+  const style = computeRenderStyle({
+    points,
+    tileWidth: args.tileWidth,
+    tileHeight: args.tileHeight,
+    args,
+    tileGrid: bridge.source?.tileGrid,
+  });
 
   const outPath = resolve(args.out ?? defaultOutputForBridge(bridgePath));
   const replay = bridge.source?.replayFingerprint ?? sha256Text(readFileSync(bridgePath, 'utf8')).slice(0, 16);
