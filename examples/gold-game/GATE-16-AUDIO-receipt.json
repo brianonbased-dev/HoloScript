@@ -33,8 +33,11 @@
     "perSpatialSourceHasNodePositionMaxDistance": true,
     "graduationCueIsSpatial3D": true,
     "acoustics": {
-      "materialMetal": true,
-      "materialGlass": true,
+      "hasAcousticBus": true,
+      "materialReverb": true,
+      "materialPresetDiffers": true,
+      "metalRoom": true,
+      "glassRoom": true,
       "occlusionAttached": true,
       "portalAttached": true
     }
@@ -44,6 +47,6 @@
     "audioGraphDigest": "75ae59b91618f38e7ba084b241405ac9597bb278efc9084678d2b771e2b97b20",
     "reproducible": "run the verifier to re-derive"
   },
-  "honestScope": "Compiles the vault soundscape through the GENUINE shipped GodotCompiler (REAL in Gate 7). PROVEN: each spatial source emits a real AudioStreamPlayer3D node with stream/volume(dB)/position/max_distance; each 2D source emits a real AudioStreamPlayer; the @audio_material (metal terraces / glass gems), @audio_occlusion, and @audio_portal acoustic traits attach with config preserved; the audio-graph digest reproduces via the real computeStateDigest. WHAT IS REAL: the Godot audio nodes. BUILD TARGETS (flagged, NOT claimed present): (1) the web/R3F Drive build is SILENT — no audio compiler path exists for Unity/Babylon/R3F, so a small WebAudio layer is the build target; (2) no TTS / voiced lines — the Archivist source is a spatial PRESENCE bed, his lines are /narrative text + LLM, not synthesized speech; (3) no adaptive/layered @MusicLayer — the per-tier music is STATIC sources cross-faded by zone, not state-driven stems. NOT auto-verifiable: the MIX FEEL (relative loudness, whether the graduation cue punches through) is a human listen on a real Godot build — the audio analogue of Gate 1’s manual render.",
-  "verifiedAt": "2026-05-23T04:47:26.620Z"
+  "honestScope": "Compiles the vault soundscape through the GENUINE shipped GodotCompiler (REAL in Gate 7). PROVEN: each spatial source emits a real AudioStreamPlayer3D node with stream/volume(dB)/position/max_distance; each 2D source emits a real AudioStreamPlayer; the @audio_material (metal terraces / glass gems), @audio_occlusion, and @audio_portal acoustic traits now emit REAL Godot AudioEffect nodes on a dedicated AudioBus (E-G16) — AudioEffectReverb (metal room_size 0.85 vs glass 0.35 — a negative control proves the preset changes the bus graph), AudioEffectLowPassFilter (occlusion cutoff), AudioEffectReverb send (portal) — NOT comments; the audio-graph digest reproduces via the real computeStateDigest. WHAT IS REAL: the Godot audio nodes + the acoustic AudioEffect bus chain. BUILD TARGETS (flagged, NOT claimed present): (1) the web/R3F Drive build is SILENT — no audio compiler path exists for Unity/Babylon/R3F, so a small WebAudio layer is the build target; (2) no TTS / voiced lines — the Archivist source is a spatial PRESENCE bed, his lines are /narrative text + LLM, not synthesized speech; (3) no adaptive/layered @MusicLayer — the per-tier music is STATIC sources cross-faded by zone, not state-driven stems. NOT auto-verifiable: the MIX FEEL (relative loudness, whether the graduation cue punches through) is a human listen on a real Godot build — the audio analogue of Gate 1’s manual render.",
+  "verifiedAt": "2026-05-24T20:23:32.789Z"
 }

@@ -15,7 +15,10 @@
 - **PATH.** (1) Replace the decision-neutral CPU surrogate with a real cohort-aware sharpening — e.g. amplitude/interference reweighting or contrastive temperature<1 over the priority cohort, so near-0.5 items are pushed by their relation to confident peers; OR (2) wire + verify the real `SnnAccelerator` GPU path so the gate exercises it; add a verifier assertion that ≥1 decision FLIPS vs the raw 0.5 threshold (anti-tautology), and that flips improve a labelled quality metric.
 - **RISK / OWNER.** **FOUNDER-GATE** — `QuantumInspiredTrait` is shared; changing the fallback changes curation behavior ecosystem-wide. Co-owns with `/quantum-lab`.
 
-## E-G16 — Acoustic traits as real Godot DSP, not comments
+## E-G16 — Acoustic traits as real Godot DSP, not comments — ✅ SHIPPED 2026-05-24
+> Built plan-first + module-first: `packages/core/src/compiler/godot-acoustic-bus.ts` (pure module,
+> 7/7 unit tests incl. metal≠glass negative control) composed into GodotCompiler; gate-16 evidence
+> rewritten from comment-regex to structural + negative control; GodotCompiler 65/65 tests still pass.
 - **CONTEXT.** `GodotCompiler.compileAudio` emits real `AudioStreamPlayer3D`/`AudioStreamPlayer` nodes from parsed data (`packages/.../GodotCompiler.ts:649-680`) — REAL. But `@audio_material` / `@audio_occlusion` / `@audio_portal` are emitted only as GDScript **comments** (`:536-545`, `# @audio_material — spatial audio: {config}`), not functional audio buses / `AudioEffect` nodes.
 - **INTENT.** The acoustic annotations should drive real Godot acoustics: material → reverb/absorption bus, occlusion → low-pass on obstruction, portal → send between zones — so the soundscape actually changes with geometry, not just carries config.
 - **PATH.** Map each acoustic trait to a Godot `AudioBus` + `AudioEffect*` (Reverb/LowPassFilter/Send) in `compileObject`; route `AudioStreamPlayer3D.bus` to the material bus; emit the bus layout. Add a verifier assertion that a material/occlusion change alters the emitted bus graph (not just a comment string).

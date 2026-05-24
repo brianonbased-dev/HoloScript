@@ -65,12 +65,18 @@ const twoDEmitted = TWOD.every((n) => has2dNode(n) && !has3dNode(n) && hasStream
 // The signature SFX specifically — the graduation cue is spatial 3D
 const graduationCueSpatial = has3dNode('GraduationCue') && hasPosition('GraduationCue');
 
-// Acoustic traits attach (config preserved in the emitted GDScript)
-const materialMetal = /@audio_material — spatial audio: \{[^}]*"preset":"metal"/.test(gd);
-const materialGlass = /@audio_material — spatial audio: \{[^}]*"preset":"glass"/.test(gd);
-const occlusionAttached = /@audio_occlusion — spatial audio: \{/.test(gd);
-const portalAttached = /@audio_portal — spatial audio: \{/.test(gd);
-const acousticsModeled = materialMetal && materialGlass && occlusionAttached && portalAttached;
+// E-G16: acoustic traits emit REAL Godot AudioEffect nodes on a dedicated AudioBus,
+// NOT comments. Asserted structurally + a negative control (anti-tautology, F.076).
+const hasAcousticBus = /AudioServer\.add_bus\(\)/.test(gd) && /set_bus_name\([^,]+, "[^"]*_acoustic_bus"\)/.test(gd);
+const materialReverb = /AudioEffectReverb\.new\(\)/.test(gd);
+// NEGATIVE CONTROL: metal and glass presets MUST produce different reverb params —
+// the material choice genuinely changes the emitted bus graph (not a constant/relabel).
+const metalRoom = /room_size = 0\.85/.test(gd);
+const glassRoom = /room_size = 0\.35/.test(gd);
+const materialPresetDiffers = metalRoom && glassRoom;
+const occlusionAttached = /AudioEffectLowPassFilter\.new\(\)/.test(gd) && /cutoff_hz = \d+/.test(gd);
+const portalAttached = /\.wet = /.test(gd);
+const acousticsModeled = hasAcousticBus && materialReverb && materialPresetDiffers && occlusionAttached && portalAttached;
 
 // Node counts match the design (4 spatial + 4 2D)
 const player3dCount = (gd.match(/AudioStreamPlayer3D\.new\(\)/g) || []).length;
@@ -155,10 +161,10 @@ const receipt = {
     audioStreamPlayer3dCount: player3dCount, audioStreamPlayerCount: player2dCount,
     perSpatialSourceHasNodePositionMaxDistance: spatialEmitted,
     graduationCueIsSpatial3D: graduationCueSpatial,
-    acoustics: { materialMetal, materialGlass, occlusionAttached, portalAttached },
+    acoustics: { hasAcousticBus, materialReverb, materialPresetDiffers, metalRoom, glassRoom, occlusionAttached, portalAttached },
   },
   contract: { spine: 'REAL computeStateDigest(solverShape, hashMode) — same fn the SimulationContract pushes', audioGraphDigest, reproducible: 'run the verifier to re-derive' },
-  honestScope: 'Compiles the vault soundscape through the GENUINE shipped GodotCompiler (REAL in Gate 7). PROVEN: each spatial source emits a real AudioStreamPlayer3D node with stream/volume(dB)/position/max_distance; each 2D source emits a real AudioStreamPlayer; the @audio_material (metal terraces / glass gems), @audio_occlusion, and @audio_portal acoustic traits attach with config preserved; the audio-graph digest reproduces via the real computeStateDigest. WHAT IS REAL: the Godot audio nodes. BUILD TARGETS (flagged, NOT claimed present): (1) the web/R3F Drive build is SILENT — no audio compiler path exists for Unity/Babylon/R3F, so a small WebAudio layer is the build target; (2) no TTS / voiced lines — the Archivist source is a spatial PRESENCE bed, his lines are /narrative text + LLM, not synthesized speech; (3) no adaptive/layered @MusicLayer — the per-tier music is STATIC sources cross-faded by zone, not state-driven stems. NOT auto-verifiable: the MIX FEEL (relative loudness, whether the graduation cue punches through) is a human listen on a real Godot build — the audio analogue of Gate 1’s manual render.',
+  honestScope: 'Compiles the vault soundscape through the GENUINE shipped GodotCompiler (REAL in Gate 7). PROVEN: each spatial source emits a real AudioStreamPlayer3D node with stream/volume(dB)/position/max_distance; each 2D source emits a real AudioStreamPlayer; the @audio_material (metal terraces / glass gems), @audio_occlusion, and @audio_portal acoustic traits now emit REAL Godot AudioEffect nodes on a dedicated AudioBus (E-G16) — AudioEffectReverb (metal room_size 0.85 vs glass 0.35 — a negative control proves the preset changes the bus graph), AudioEffectLowPassFilter (occlusion cutoff), AudioEffectReverb send (portal) — NOT comments; the audio-graph digest reproduces via the real computeStateDigest. WHAT IS REAL: the Godot audio nodes + the acoustic AudioEffect bus chain. BUILD TARGETS (flagged, NOT claimed present): (1) the web/R3F Drive build is SILENT — no audio compiler path exists for Unity/Babylon/R3F, so a small WebAudio layer is the build target; (2) no TTS / voiced lines — the Archivist source is a spatial PRESENCE bed, his lines are /narrative text + LLM, not synthesized speech; (3) no adaptive/layered @MusicLayer — the per-tier music is STATIC sources cross-faded by zone, not state-driven stems. NOT auto-verifiable: the MIX FEEL (relative loudness, whether the graduation cue punches through) is a human listen on a real Godot build — the audio analogue of Gate 1’s manual render.',
   verifiedAt: new Date().toISOString(),
 };
 
@@ -178,7 +184,7 @@ if (emit) {
     ['every spatial source has node + stream + volume(dB) + position + max_distance', spatialEmitted === true],
     ['the signature graduation cue is a spatial 3D source (positioned)', graduationCueSpatial === true],
     ['every 2D source is AudioStreamPlayer (not 3D) with stream + volume', twoDEmitted === true],
-    ['acoustics modeled: @audio_material metal+glass, @audio_occlusion, @audio_portal attach with config', acousticsModeled === true],
+    ['acoustics modeled: real AudioEffect bus chain — material reverb (metal≠glass, neg. control), occlusion low-pass, portal send', acousticsModeled === true],
     ['audio-graph digest reproduces (real computeStateDigest, twice)', deterministic === true],
     ['audio-graph digest matches receipt (real computeStateDigest)', audioGraphDigest === existing.contract.audioGraphDigest],
   ];

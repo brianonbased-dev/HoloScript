@@ -31,6 +31,7 @@ import type {
   HoloValue,
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
+import { compileAcousticTrait } from './godot-acoustic-bus';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import {
   compileDomainBlocks,
@@ -534,13 +535,21 @@ export class GodotCompiler extends CompilerBase {
           this.emit(`var ${varName}_reverb = AudioEffectReverb.new()`);
           this.emit(`# @reverb_zone — add to AudioBus`);
         } else if (
+          tn === 'audio_material' ||
+          tn === 'audio_occlusion' ||
+          tn === 'audio_portal'
+        ) {
+          // E-G16: real Godot acoustic bus + AudioEffect chain (module-first), not a comment.
+          const acoustic = compileAcousticTrait(tn, (trait.config || {}) as Record<string, unknown>, varName);
+          if (acoustic) {
+            for (const line of acoustic.lines) this.emit(line);
+          }
+        } else if (
           tn === 'ambisonics' ||
           tn === 'hrtf' ||
-          tn === 'audio_occlusion' ||
-          tn === 'audio_portal' ||
-          tn === 'audio_material' ||
           tn === 'head_tracked_audio'
         ) {
+          // Not yet modeled as DSP — kept as an honest config-preserving comment.
           this.emit(`# @${tn} — spatial audio: ${JSON.stringify(trait.config || {})}`);
         }
         // Volumetric Content
