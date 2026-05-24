@@ -45,6 +45,8 @@ assertEq(validateReceipt(receipt).length, 0, 'receipt validates');
 assertOk(receipt.sweep.receiptHash.startsWith('sha256:'), 'sweep receipt hash recorded');
 assertOk(receipt.sweep.fileHash.startsWith('sha256:'), 'sweep file hash recorded');
 assertEq(receipt.sweep.winner.mode, 'raw', 'winner mode recorded');
+assertOk(receipt.control.frame.path, 'camera control frame recorded');
+assertOk(receipt.control.frame.fileHash.startsWith('sha256:'), 'camera control frame hash recorded');
 assertOk(receipt.render.receiptHash.startsWith('sha256:'), 'render receipt hash recorded');
 assertOk(receipt.render.pngHash.startsWith('sha256:'), 'quilt png hash recorded');
 assertEq(receipt.render.quality.grade, 'weak', 'workflow carries render quality grade');

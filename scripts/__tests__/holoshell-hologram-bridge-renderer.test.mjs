@@ -186,6 +186,7 @@ try {
   assertEq(temporalReceipt.chain?.stages?.[1]?.name, 'temporal.selection', 'temporal stage recorded');
   assertEq(temporalReceipt.chain?.stages?.[2]?.name, 'render.quilt-preview', 'render stage recorded');
   assertOk(temporalReceipt.quilt.quality.viewDeltaMean >= 0, 'temporal quilt records view delta quality');
+  assertOk(temporalReceipt.quilt.style.parallaxScale > 1, 'tracked quilt applies adaptive parallax scale');
   const png = readFileSync(resolve(REPO_ROOT, temporalReceipt.quilt.path));
   assertOk(png[0] === 0x89 && png[1] === 0x50, 'temporal quilt is PNG');
 } finally {

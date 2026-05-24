@@ -42,6 +42,8 @@ function parseArgs(argv) {
     rows: undefined,
     exposure: undefined,
     autoExposure: true,
+    parallaxScale: undefined,
+    surfacePointOverlay: false,
     pointRadius: undefined,
     glowRadius: undefined,
     temporalMode: undefined,
@@ -61,6 +63,9 @@ function parseArgs(argv) {
     else if (arg === '--exposure') args.exposure = Number.parseFloat(argv[++i]);
     else if (arg === '--no-auto-exposure') args.autoExposure = false;
     else if (arg === '--auto-exposure') args.autoExposure = true;
+    else if (arg === '--parallax-scale') args.parallaxScale = Number.parseFloat(argv[++i]);
+    else if (arg === '--surface-point-overlay') args.surfacePointOverlay = true;
+    else if (arg === '--no-surface-point-overlay') args.surfacePointOverlay = false;
     else if (arg === '--point-radius') args.pointRadius = Number.parseInt(argv[++i], 10);
     else if (arg === '--glow-radius') args.glowRadius = Number.parseInt(argv[++i], 10);
     else if (arg === '--temporal-mode') args.temporalMode = argv[++i];
@@ -89,6 +94,9 @@ function parseArgs(argv) {
   if (args.exposure !== undefined && (!Number.isFinite(args.exposure) || args.exposure <= 0 || args.exposure > 16)) {
     throw new Error('--exposure must be a number greater than 0 and at most 16');
   }
+  if (args.parallaxScale !== undefined && (!Number.isFinite(args.parallaxScale) || args.parallaxScale <= 0 || args.parallaxScale > 8)) {
+    throw new Error('--parallax-scale must be a number greater than 0 and at most 8');
+  }
   if (args.pointRadius !== undefined && (!Number.isInteger(args.pointRadius) || args.pointRadius < 1 || args.pointRadius > 32)) {
     throw new Error('--point-radius must be an integer from 1 to 32');
   }
@@ -107,6 +115,7 @@ function printHelp() {
 Usage:
   node scripts/holoshell-hologram-bridge-renderer.mjs --bridge scan.hologram-bridge.json [--out receipt.json]
   node scripts/holoshell-hologram-bridge-renderer.mjs --bridge scan.hologram-bridge.json --exposure 2.5 --point-radius 5
+  node scripts/holoshell-hologram-bridge-renderer.mjs --bridge scan.hologram-bridge.json --parallax-scale 3
   node scripts/holoshell-hologram-bridge-renderer.mjs --bridge scan.hologram-bridge.json --temporal-mode tracked
   node scripts/holoshell-hologram-bridge-renderer.mjs --self-test
 
@@ -164,10 +173,13 @@ function computeRenderStyle({ points, tileWidth, tileHeight, args, tileGrid, tem
   const glowRadius = args.glowRadius ?? Math.max(baseRadius + 2, Math.round(baseRadius * 1.25));
   const surfaceCellWidth = useSurfaceFill ? Math.ceil((tileWidth * 0.8 * 1.35) / tileGrid) : undefined;
   const surfaceCellHeight = useSurfaceFill ? Math.ceil((tileHeight * 0.8 * 1.35) / tileGrid) : undefined;
+  const parallaxScale = args.parallaxScale ?? (temporalCollapsed ? 2 : 1.25);
+  const surfacePointOverlay = useSurfaceFill && args.surfacePointOverlay;
   return {
     exposure,
     autoExposure: args.autoExposure,
     autoExposureGain: autoGain,
+    parallaxScale,
     pointRadius: baseRadius,
     glowRadius,
     surfaceFill: useSurfaceFill,
@@ -176,6 +188,9 @@ function computeRenderStyle({ points, tileWidth, tileHeight, args, tileGrid, tem
     surfaceMesh: useSurfaceFill,
     surfaceMeshGrid: useSurfaceFill ? tileGrid : undefined,
     surfaceMeshAlpha: useSurfaceFill ? 0.82 : undefined,
+    surfacePointOverlay,
+    surfacePointRadius: surfacePointOverlay ? Math.max(1, Math.round(baseRadius * 0.65)) : undefined,
+    surfacePointAlpha: surfacePointOverlay ? 0.34 : undefined,
     averageSourceLuminance: Number(avgLum.toFixed(4)),
     averagePointSpacingPx: Number(spacing.toFixed(3)),
     temporalCoverageGain: Number(temporalCoverageGain.toFixed(3)),
@@ -274,11 +289,11 @@ function plotRect(rgba, quiltWidth, quiltHeight, x, y, width, height, color, alp
   }
 }
 
-function projectPoint(point, bounds, zRange, tileX, tileY, tileWidth, tileHeight, cameraOffset) {
+function projectPoint(point, bounds, zRange, tileX, tileY, tileWidth, tileHeight, cameraOffset, style = {}) {
   const nx = normalize(point.x, bounds.min[0], bounds.max[0]);
   const ny = normalize(point.y, bounds.min[1], bounds.max[1]);
   const nz = (point.z - bounds.min[2]) / zRange;
-  const parallax = cameraOffset * (0.05 + nz * 0.18);
+  const parallax = cameraOffset * (0.05 + nz * 0.18) * (style.parallaxScale ?? 1);
   return {
     x: tileX + (0.1 + (nx + parallax) * 0.8) * tileWidth,
     y: tileY + (0.9 - ny * 0.8) * tileHeight,
@@ -324,7 +339,7 @@ function renderSurfaceMesh(rgba, quiltWidth, quiltHeight, points, bounds, tile, 
   if (!Number.isInteger(gridSize) || gridSize < 2 || points.length !== gridSize * gridSize) return;
   const zRange = Math.max(1e-9, bounds.max[2] - bounds.min[2]);
   const projected = points.map((point) => ({
-    ...projectPoint(point, bounds, zRange, tile.x, tile.y, tile.width, tile.height, cameraOffset),
+    ...projectPoint(point, bounds, zRange, tile.x, tile.y, tile.width, tile.height, cameraOffset, style),
     color: applyExposure(point, style),
   }));
   const triangles = [];
@@ -385,12 +400,26 @@ async function renderQuiltPreview({ points, bounds, tileWidth, tileHeight, views
     }
 
     for (const point of sorted) {
-      const projected = projectPoint(point, bounds, zRange, tileX, tileY, tileWidth, tileHeight, cameraOffset);
+      const projected = projectPoint(point, bounds, zRange, tileX, tileY, tileWidth, tileHeight, cameraOffset, style);
       const px = projected.x;
       const py = projected.y;
       const confidence = projected.confidence;
       const color = applyExposure(point, style);
-      if (style.surfaceMesh) continue;
+      if (style.surfaceMesh && !style.surfacePointOverlay) continue;
+      if (style.surfaceMesh && style.surfacePointOverlay) {
+        plotPoint(
+          rgba,
+          quiltWidth,
+          quiltHeight,
+          px,
+          py,
+          style.surfacePointRadius,
+          color,
+          style.surfacePointAlpha + confidence * 0.16,
+          0.15
+        );
+        continue;
+      }
       if (style.surfaceFill && !style.surfaceMesh && style.surfaceCellWidth > 0 && style.surfaceCellHeight > 0) {
         plotRect(
           rgba,

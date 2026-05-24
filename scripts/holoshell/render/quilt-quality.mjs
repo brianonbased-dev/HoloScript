@@ -144,8 +144,10 @@ export function analyzeQuiltQuality({ rgba, width, height, tileWidth, tileHeight
   const consistencyScore = clamp01(1 - coverageStdDev / 0.18);
   const viewDeltaScore = clamp01(viewDeltaMean < 0.06 ? viewDeltaMean / 0.06 : 1 - Math.max(0, viewDeltaMean - 0.18) / 0.32);
   const brightnessScore = clamp01(1 - Math.abs(average(lumaValues) - 0.32) / 0.32);
+  const fragmentationPenalty = edgeEnergy > 0.07 && contrast > 0.26 ? clamp01((edgeEnergy - 0.07) / 0.05) * 0.28 : 0;
   const score = clamp01(
     coverageScore * 0.18 + detailScore * 0.34 + consistencyScore * 0.1 + viewDeltaScore * 0.28 + brightnessScore * 0.1
+    - fragmentationPenalty
   );
   const warnings = [];
   if (foregroundCoverage < 0.16) warnings.push('low-foreground-coverage');
@@ -153,6 +155,7 @@ export function analyzeQuiltQuality({ rgba, width, height, tileWidth, tileHeight
   if (coverageStdDev > 0.14) warnings.push('uneven-view-coverage');
   if (viewDeltaMean < 0.02) warnings.push('low-view-parallax');
   if (viewDeltaMean > 0.28) warnings.push('high-view-flicker');
+  if (fragmentationPenalty > 0) warnings.push('high-fragmentation-edge-noise');
 
   return {
     score: round(score),
@@ -170,6 +173,7 @@ export function analyzeQuiltQuality({ rgba, width, height, tileWidth, tileHeight
       consistencyScore: round(consistencyScore),
       viewDeltaScore: round(viewDeltaScore),
       brightnessScore: round(brightnessScore),
+      fragmentationPenalty: round(fragmentationPenalty),
     },
     warnings,
     honestScope:

@@ -108,6 +108,7 @@ Usage:
 
 Notes:
   - Uses the native WinRT camera sweep, not browser getUserMedia.
+  - Keeps a plain camera JPEG control frame before preprocessing, HoloMap, or HoloGram rendering.
   - Replays one raw capture through every preprocess mode, renders the winning bridge, and links both receipts.
   - Writes .scratch/holoshell-low-camera-fixture/<date>/low-camera-workflow-receipt.json by default.
 `);
@@ -128,6 +129,29 @@ function fileHash(path) {
   const absolute = resolve(REPO_ROOT, path);
   if (!existsSync(absolute)) return undefined;
   return `sha256:${sha256Bytes(readFileSync(absolute))}`;
+}
+
+function summarizeControl(sweepReceipt) {
+  const frames = Array.isArray(sweepReceipt.frames) ? sweepReceipt.frames : [];
+  const controlFrames = frames
+    .filter((frame) => frame.keptFramePath)
+    .map((frame) => ({
+      index: frame.index,
+      source: 'windows-winrt-mediacapture-jpeg',
+      path: frame.keptFramePath,
+      jpegHash: frame.jpegHash,
+      fileHash: fileHash(frame.keptFramePath),
+      rawRgbHash: frame.rawRgbHash,
+      rawQuality: frame.rawQuality,
+      capturedAt: frame.capturedAt,
+      honestScope:
+        'Plain native camera JPEG copied before preprocessing, HoloMap reconstruction, geometry generation, or quilt rendering.',
+    }));
+  return {
+    frame: controlFrames[0],
+    frames: controlFrames,
+    frameCount: controlFrames.length,
+  };
 }
 
 function runNodeScript(scriptPath, scriptArgs, { allowExitCodes = [0] } = {}) {
@@ -154,6 +178,7 @@ function runNodeScript(scriptPath, scriptArgs, { allowExitCodes = [0] } = {}) {
 
 function summarizeSweep(sweepReceipt, sweepReceiptPath) {
   const winner = sweepReceipt.sweep?.winner;
+  const control = summarizeControl(sweepReceipt);
   return {
     path: rel(sweepReceiptPath),
     receiptHash: sweepReceipt.hash,
@@ -164,6 +189,7 @@ function summarizeSweep(sweepReceipt, sweepReceiptPath) {
     pointCount: sweepReceipt.holomap?.pointCount,
     replayFingerprint: sweepReceipt.holomap?.replayFingerprint,
     bridgePath: sweepReceipt.hologramBridge?.artifactPath ?? winner?.hologramBridgeArtifactPath,
+    control,
     chainHash: sweepReceipt.chain?.receipt?.hash,
     ranking: sweepReceipt.sweep?.ranking,
   };
@@ -203,6 +229,7 @@ export function buildWorkflowReceipt({ args, sweepReceipt, sweepReceiptPath, ren
       rawVideoHash: sweep.rawVideoHash,
       pointCount: sweep.pointCount,
       bridgePath: sweep.bridgePath,
+      control: sweep.control,
       receiptHash: sweep.receiptHash,
       fileHash: sweep.fileHash,
     },
@@ -284,6 +311,7 @@ export function buildWorkflowReceipt({ args, sweepReceipt, sweepReceiptPath, ren
       tileHeight: args.tileHeight,
     },
     sweep,
+    control: sweep.control,
     render,
     quality: render?.quality,
     commands: {
@@ -308,6 +336,8 @@ export function validateReceipt(receipt) {
   if (receipt.status === 'pass') {
     if (!receipt.sweep?.winner?.mode) errors.push('winner missing');
     if (!receipt.sweep?.bridgePath) errors.push('winning bridge path missing');
+    if (!receipt.control?.frame?.path) errors.push('camera control frame missing');
+    if (!receipt.control?.frame?.fileHash?.startsWith('sha256:')) errors.push('camera control frame hash missing');
     if (!receipt.render?.receiptHash?.startsWith('sha256:')) errors.push('render receipt hash missing');
     if (!receipt.render?.pngHash?.startsWith('sha256:')) errors.push('quilt png hash missing');
     if (!receipt.render?.quiltPath) errors.push('quilt path missing');
@@ -341,6 +371,7 @@ export async function runWorkflow(args) {
     String(args.intervalMs),
     '--tile-grid',
     String(args.tileGrid),
+    '--keep-frame',
   ];
   if (args.durationSec !== undefined) sweepArgs.push('--duration-sec', String(args.durationSec));
   if (args.fps !== undefined) sweepArgs.push('--fps', String(args.fps));
@@ -407,6 +438,16 @@ export async function selfTest() {
     },
     holomap: { pointCount: 4, replayFingerprint: 'selftest' },
     hologramBridge: { artifactPath: 'scan.hologram-bridge.json' },
+    frames: [
+      {
+        index: 0,
+        keptFramePath: rel(quiltPath),
+        jpegHash: fileHash(quiltPath),
+        rawRgbHash: 'sha256:' + 'c'.repeat(64),
+        rawQuality: { status: 'pass', score: 0.5 },
+        capturedAt: '2026-05-24T00:00:00.000Z',
+      },
+    ],
     chain: { receipt: { hash: 'sha256:' + 'a'.repeat(64) } },
   });
   writeJson(sweepPath, sweepReceipt);
@@ -469,6 +510,13 @@ async function main() {
     receiptPath: rel(outPath),
     status: receipt.status,
     winner: receipt.sweep?.winner,
+    control: receipt.control?.frame
+      ? {
+          path: receipt.control.frame.path,
+          jpegHash: receipt.control.frame.jpegHash,
+          rawQuality: receipt.control.frame.rawQuality,
+        }
+      : undefined,
     quilt: receipt.render
       ? {
           path: receipt.render.quiltPath,
