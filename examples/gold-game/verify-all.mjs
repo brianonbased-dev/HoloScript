@@ -50,7 +50,7 @@ const GATES = [
   { track: 'flagship', gate: 23, name: 'full GOLD data inspection — live /api/vault-entry + embedded offline markdown body', kind: 'script', runner: 'tsx', file: 'gate-23-full-data-verify.mjs' },
   { track: 'flagship', gate: 24, name: 'start-of-game onboarding — art vista, first objective, retry path, and first-person entry', kind: 'script', runner: 'tsx', file: 'gate-24-start-onboarding-verify.mjs' },
   { track: 'flagship', gate: 25, name: 'continuous campaign — save/resume, quest log, and post-win continuation beyond One Climb', kind: 'script', runner: 'node', file: 'gate-25-campaign-verify.mjs' },
-  { track: 'flagship', gate: 26, name: 'MMO answer gate — classify as shared-world co-op now, then prove shard lobby + named players before calling MMO', kind: 'open' },
+  { track: 'flagship', gate: 26, name: 'MMO answer gate — shard lobby + named entrants + durable presence + host migration + authority handoff + persistent world (classified: shared-world co-op, NOT MMO)', kind: 'script', runner: 'tsx', file: 'gate-26-mmo-answer-verify.mjs' },
   { track: 'flagship', gate: 27, name: 'live-vault safe mutation flow — proposal queue, diff preview, founder-gated apply, rollback receipt', kind: 'open' },
   { track: 'flagship', gate: 28, name: 'full-vault browser — search/filter/open every GOLD entry, lineage links, raw markdown, and receipt history', kind: 'open' },
   { track: 'flagship', gate: 29, name: 'agent party AI — visible companions choose entries, explain choices, and remember the player across sessions', kind: 'open' },

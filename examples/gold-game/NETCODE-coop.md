@@ -4,13 +4,18 @@ Authored by the /netcode discipline (marathon round 1). This is the technical un
 /gamedev Gate-3 dual-population proof: a human Curator and an AI AgentCurator in the *same* session,
 affecting each other's curation. Built on the real foundation; honest about the gaps.
 
-## MMO classification — not until Gate 26 proves it
+## MMO classification — answered by Gate 26 (PASS): shared-world co-op, NOT MMO
 
-The honest current shape is **shared-world co-op with agents**: one human plus real agent companions
-can affect the same vault state, and Gate 17 proves two-participant agreement. That is not enough to
-call it an MMO. The game earns "MMO" only after a dedicated gate proves a shard lobby, multiple named
-human entrants, durable presence, authority handoff for disconnects, and persistent shared-world state
-across sessions. Until then, call it a **shared-world AI co-op curation game**.
+The honest shape is **shared-world co-op with agents**: humans plus real agent companions affect the
+same vault state. Gate 17 proved two-participant agreement; **Gate 26 (`gate-26-mmo-answer-verify.mjs`,
+15/15 PASS) closes the rest** — a real `LobbyManager` shard lobby with multiple named human entrants +
+an AI curator on one persistent vault, durable presence, host migration on disconnect (`leaveRoom` →
+new host) with `EntityAuthority.forceTransfer` of the orphaned in-flight vault lock, and persistent
+shared-world state that survives a session boundary (rehydrated; a late entrant sees the full history).
+That is a genuine co-op multiplayer shape. It is **still NOT an MMO**: no massive concurrency, no real
+socket transport (in-process replication views share the authoritative order), no shard-fleet fanout,
+no DB-backed persistence. The word "MMO" is earned only by a later shard-fleet + DB + load gate. Until
+then, call it a **shared-world AI co-op curation game**.
 
 ## Authority model — per-inhabitant, not per-type
 HumanCurator (`@controllable`) and AgentCurator (`@ai_agent`) are the *same entity kind* (D.040), so
