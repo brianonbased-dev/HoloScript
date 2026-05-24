@@ -1,0 +1,38 @@
+// Trait coverage sample for safety-boundaries/tutorial_zone and
+// connector-integration/on_connector_event.
+
+composition "Tutorial Zone Connector Event" {
+  object "TutorialZone" {
+    @tutorial_zone
+    @safe_zone
+
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [6, 1, 6]
+    material: {
+      baseColor: "#4ecdc4"
+      roughness: 0.8
+      metallic: 0.05
+    }
+  }
+
+  object "ConnectorEventRelay" {
+    @connector {
+      name: "moltbook"
+    }
+    @on_connector_event {
+      connector: "moltbook"
+      event: "notification.received"
+      target: "TutorialZone"
+    }
+
+    geometry: "box"
+    position: [0, 1.2, -1.5]
+    scale: [0.7, 0.7, 0.7]
+    material: {
+      baseColor: "#ff6b6b"
+      roughness: 0.45
+      metallic: 0.2
+    }
+  }
+}
