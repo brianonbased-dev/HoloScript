@@ -479,6 +479,47 @@ describe('Team Routes — Mobile Handoff', () => {
     expect(teamStore.get('team_test_mobile')?.taskBoard?.[0].status).toBe('claimed');
     expect(teamStore.get('team_test_mobile')?.doneLog).toHaveLength(0);
   });
+
+  it('desktop relay records mobile-origin provenance on board done', async () => {
+    const team = teamStore.get('team_test_mobile')!;
+    team.taskBoard = [{
+      id: 'task_mobile_relay_done',
+      title: 'mobile relay done target',
+      description: 'desktop signs a mobile-originated draft',
+      status: 'claimed',
+      priority: 1,
+      claimedBy: PARENT_ID,
+      claimedByName: 'ParentAgent',
+      createdAt: new Date().toISOString(),
+    } as any];
+    persistTeamStore();
+
+    const done = await callBoard(
+      'PATCH',
+      '/api/holomesh/team/team_test_mobile/board/task_mobile_relay_done',
+      {
+        action: 'done',
+        summary: 'desktop relayed a mobile draft',
+        verification_evidence: 'desktop relay provenance test passed',
+        provenance: { surface_origin: 'mobile' },
+      },
+      PARENT_KEY
+    );
+
+    expect(done._status).toBe(200);
+    expect(done._body.task.provenance).toEqual({
+      surface_origin: 'mobile',
+      relay_signer: 'ParentAgent',
+      attribution_chain: ['mobile-drafted', 'desktop-relayed', 'desktop-signed'],
+    });
+
+    const entry = teamStore.get('team_test_mobile')?.doneLog?.[0];
+    expect(entry?.provenance).toEqual({
+      surface_origin: 'mobile',
+      relay_signer: 'ParentAgent',
+      attribution_chain: ['mobile-drafted', 'desktop-relayed', 'desktop-signed'],
+    });
+  });
 });
 
 describe('Board Routes — Mobile Brief (capability-token auth)', () => {

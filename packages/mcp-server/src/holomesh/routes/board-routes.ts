@@ -44,6 +44,7 @@ import {
   type TeamTask,
   type DoneLogEntry,
   type TeamSuggestion,
+  type BoardMutationProvenance,
   type SkippedTaskEntry,
   type SlotRole,
   type SuggestionCategory,
@@ -68,6 +69,81 @@ import { mergeTeamKnowledgeWithOrchestrator } from '../entry-lookup';
 import { getBoardModeFields } from '../mode-provenance';
 
 const MAX_FEED_QUERY = 100;
+
+type BoardProvenanceParseResult =
+  | { provenance?: BoardMutationProvenance; error?: undefined }
+  | { provenance?: undefined; error: string };
+
+function firstString(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return undefined;
+}
+
+function stringList(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const out = value
+    .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    .map((item) => item.trim());
+  return out.length > 0 ? out : undefined;
+}
+
+function cloneBoardProvenance(provenance: BoardMutationProvenance): BoardMutationProvenance {
+  return {
+    ...provenance,
+    attribution_chain: provenance.attribution_chain
+      ? [...provenance.attribution_chain]
+      : undefined,
+  };
+}
+
+function parseBoardMutationProvenance(
+  body: Record<string, unknown>,
+  caller: RegisteredAgent
+): BoardProvenanceParseResult {
+  const raw = isRecord(body.provenance) ? body.provenance : body;
+  const originRaw = firstString(raw.surface_origin, raw.surfaceOrigin, raw.via);
+  if (!originRaw) return {};
+
+  const surfaceOrigin = originRaw.toLowerCase();
+  const callerRelaySigner = caller.surfaceTag || caller.name || caller.id;
+  const requestedRelaySigner = firstString(
+    raw.relay_signer,
+    raw.relaySigner,
+    raw.signed_by,
+    raw.signedBy
+  );
+
+  if (surfaceOrigin === 'mobile') {
+    if (caller.surface === 'mobile') {
+      return { error: 'mobile-origin board mutations must be relayed by a non-mobile signer' };
+    }
+
+    const allowedSignerNames = new Set([callerRelaySigner, caller.name, caller.id].filter(Boolean));
+    if (requestedRelaySigner && !allowedSignerNames.has(requestedRelaySigner)) {
+      return { error: 'relay_signer must match the authenticated caller' };
+    }
+
+    return {
+      provenance: {
+        surface_origin: 'mobile',
+        relay_signer: callerRelaySigner,
+        attribution_chain: ['mobile-drafted', 'desktop-relayed', 'desktop-signed'],
+      },
+    };
+  }
+
+  return {
+    provenance: {
+      surface_origin: surfaceOrigin,
+      relay_signer: requestedRelaySigner ?? null,
+      attribution_chain: stringList(raw.attribution_chain ?? raw.attributionChain),
+    },
+  };
+}
 const CLAIM_HEARTBEAT_GRACE_MS = Number(process.env.HOLOMESH_CLAIM_HEARTBEAT_GRACE_MS || 2 * 60 * 1000);
 const DEFAULT_FLEET_SNAPSHOT_STALE_AFTER_MS = 2 * 60 * 60 * 1000;
 
@@ -903,6 +979,15 @@ export async function handleBoardRoutes(
     const deleterTag = caller.surfaceTag
       ?? (typeof body.deleterTag === 'string' ? body.deleterTag : undefined);
     const deleteReason = typeof body.reason === 'string' ? body.reason.slice(0, 500) : undefined;
+    const provenanceResult = parseBoardMutationProvenance(body, caller);
+    if (provenanceResult.error) {
+      json(res, 400, {
+        error: provenanceResult.error,
+        code: 'invalid_board_provenance',
+      });
+      return true;
+    }
+    const mutationProvenance = provenanceResult.provenance;
     let reviewRequest: TeamMessage | undefined;
 
     switch (action) {
@@ -959,6 +1044,9 @@ export async function handleBoardRoutes(
         }
 
         result = claimTask(team.taskBoard, taskId, caller.id, caller.name, claimedByTag);
+        if (result.success && result.task && mutationProvenance) {
+          result.task.provenance = cloneBoardProvenance(mutationProvenance);
+        }
         eventType = 'board:claimed';
         break;
       case 'done': {
@@ -977,6 +1065,7 @@ export async function handleBoardRoutes(
           commit: body.commit as string | undefined,
           verificationEvidence,
           completedByTag,
+          provenance: mutationProvenance,
         });
         result = wrap.result;
         team.taskBoard = wrap.updatedBoard;

@@ -221,6 +221,7 @@ export function completeTask(
     summary?: string;
     verificationEvidence?: string;
     completedByTag?: string;
+    provenance?: DoneLogEntry['provenance'];
     artifacts?: ArtifactReceipt[];
     environmentReceipt?: TaskEnvironmentReceipt;
   } = {}
@@ -281,6 +282,14 @@ export function completeTask(
   task.status = 'done';
   task.completedBy = completedBy;
   if (opts.completedByTag) task.completedByTag = opts.completedByTag;
+  if (opts.provenance) {
+    task.provenance = {
+      ...opts.provenance,
+      attribution_chain: opts.provenance.attribution_chain
+        ? [...opts.provenance.attribution_chain]
+        : undefined,
+    };
+  }
   task.commitHash = opts.commit;
   if (opts.verificationEvidence) task.verificationEvidence = opts.verificationEvidence;
   task.completedAt = new Date().toISOString();
@@ -292,6 +301,16 @@ export function completeTask(
     title: task.title,
     completedBy,
     ...(opts.completedByTag ? { completedByTag: opts.completedByTag } : {}),
+    ...(opts.provenance
+      ? {
+          provenance: {
+            ...opts.provenance,
+            attribution_chain: opts.provenance.attribution_chain
+              ? [...opts.provenance.attribution_chain]
+              : undefined,
+          },
+        }
+      : {}),
     commitHash: task.commitHash,
     ...(opts.verificationEvidence ? { verificationEvidence: opts.verificationEvidence } : {}),
     timestamp: task.completedAt,

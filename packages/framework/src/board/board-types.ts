@@ -437,6 +437,8 @@ export interface TeamTask {
   completedBy?: string;
   /** Surface-attribution tag for the done action — see `claimedByTag`. */
   completedByTag?: string;
+  /** Dual-origin provenance for desktop-relayed mobile drafts. */
+  provenance?: BoardMutationProvenance;
   commitHash?: string;
   /** Required done-claim evidence recorded by the board done route. */
   verificationEvidence?: string;
@@ -480,12 +482,23 @@ export interface TeamTask {
   metadata?: Record<string, unknown>;
 }
 
+export interface BoardMutationProvenance {
+  /** Original user surface for the request, e.g. `mobile`. */
+  surface_origin: string;
+  /** Authenticated desktop/headless/hardware relay that actually signed. */
+  relay_signer?: string | null;
+  /** Human-readable audit chain, e.g. mobile-drafted -> desktop-signed. */
+  attribution_chain?: string[];
+}
+
 export interface DoneLogEntry {
   taskId: string;
   title: string;
   completedBy: string;
   /** Surface-attribution tag for the done action — see `TeamTask.claimedByTag`. */
   completedByTag?: string;
+  /** Dual-origin provenance for desktop-relayed mobile drafts. */
+  provenance?: BoardMutationProvenance;
   commitHash?: string;
   /** Concrete test/build/audit/receipt/peer-review evidence supplied before closure. */
   verificationEvidence?: string;
