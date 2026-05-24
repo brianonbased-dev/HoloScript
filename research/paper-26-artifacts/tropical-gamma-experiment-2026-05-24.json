@@ -1,0 +1,155 @@
+{
+  "experiment": "paper-26-contribution-1-tropical-gamma",
+  "claim": "γ = 1 − box_area from the tropical-geometry bilateral coordination bounding box is a coordination-agreement metric: high when hemispheres agree, monotonically decreasing as measurement divergence increases.",
+  "primitive": {
+    "source": "packages/core/src/traits/pillar/ParallelPillar.ts",
+    "functions": [
+      "computeParallelBounds",
+      "makeParallelPillar"
+    ],
+    "definition": "box_area = (pos_1_max − pos_1_min) · (pos_2_max − pos_2_min); γ = 1 − box_area"
+  },
+  "method": {
+    "rng": "mulberry32",
+    "seed": 262026,
+    "hemisphere_error_correlation_rho": 0.5,
+    "true_state_axes": [
+      "conservation (pos_1)",
+      "symmetry (pos_2)"
+    ],
+    "pillar_domain": "physics",
+    "states_per_level": 100,
+    "reps_per_state": 12,
+    "divergence_levels": [
+      0,
+      0.02,
+      0.05,
+      0.1,
+      0.15,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.7,
+      1
+    ],
+    "total_samples": 13200,
+    "error_model": "each hemisphere measures true state (s1,s2) ∈ [0,1]² with zero-mean Gaussian noise std = divergence d, split into a shared common-mode (rho) and independent component; positions clamped to [0,1]."
+  },
+  "global_stats": {
+    "n": 13200,
+    "mean_gamma": 0.9685714485452839,
+    "std_gamma": 0.0860273676264799,
+    "min_gamma": 0,
+    "max_gamma": 1
+  },
+  "divergence_sweep": [
+    {
+      "divergence": 0,
+      "n": 1200,
+      "mean_gamma": 1,
+      "std_gamma": 0,
+      "min_gamma": 1,
+      "max_gamma": 1,
+      "mean_box_area": 0
+    },
+    {
+      "divergence": 0.02,
+      "n": 1200,
+      "mean_gamma": 0.9997622770459326,
+      "std_gamma": 0.00028388670347559246,
+      "min_gamma": 0.997589142410609,
+      "max_gamma": 1,
+      "mean_box_area": 0.000237722954066271
+    },
+    {
+      "divergence": 0.05,
+      "n": 1200,
+      "mean_gamma": 0.9985355018373445,
+      "std_gamma": 0.001956780048934274,
+      "min_gamma": 0.9803087987985378,
+      "max_gamma": 1,
+      "mean_box_area": 0.0014644981626562006
+    },
+    {
+      "divergence": 0.1,
+      "n": 1200,
+      "mean_gamma": 0.9945983259520074,
+      "std_gamma": 0.007358122813745667,
+      "min_gamma": 0.9265942291117659,
+      "max_gamma": 1,
+      "mean_box_area": 0.005401674047991639
+    },
+    {
+      "divergence": 0.15,
+      "n": 1200,
+      "mean_gamma": 0.9894436424501565,
+      "std_gamma": 0.013703671269757458,
+      "min_gamma": 0.8762047224292102,
+      "max_gamma": 1,
+      "mean_box_area": 0.01055635754984181
+    },
+    {
+      "divergence": 0.2,
+      "n": 1200,
+      "mean_gamma": 0.9813940221235504,
+      "std_gamma": 0.025448601940004867,
+      "min_gamma": 0.8197099721414007,
+      "max_gamma": 1,
+      "mean_box_area": 0.018605977876448417
+    },
+    {
+      "divergence": 0.3,
+      "n": 1200,
+      "mean_gamma": 0.9671427913871898,
+      "std_gamma": 0.046787025348354994,
+      "min_gamma": 0.5248694748123106,
+      "max_gamma": 1,
+      "mean_box_area": 0.03285720861281055
+    },
+    {
+      "divergence": 0.4,
+      "n": 1200,
+      "mean_gamma": 0.9495673173815553,
+      "std_gamma": 0.07824830119273972,
+      "min_gamma": 0.1634615781142451,
+      "max_gamma": 1,
+      "mean_box_area": 0.05043268261844389
+    },
+    {
+      "divergence": 0.5,
+      "n": 1200,
+      "mean_gamma": 0.936293045452108,
+      "std_gamma": 0.10376463546394774,
+      "min_gamma": 0.20798735493974574,
+      "max_gamma": 1,
+      "mean_box_area": 0.0637069545478916
+    },
+    {
+      "divergence": 0.7,
+      "n": 1200,
+      "mean_gamma": 0.9223599128992805,
+      "std_gamma": 0.14119075806349782,
+      "min_gamma": 0,
+      "max_gamma": 1,
+      "mean_box_area": 0.07764008710071904
+    },
+    {
+      "divergence": 1,
+      "n": 1200,
+      "mean_gamma": 0.915189097468983,
+      "std_gamma": 0.17599532958037023,
+      "min_gamma": 0,
+      "max_gamma": 1,
+      "mean_box_area": 0.08481090253101632
+    }
+  ],
+  "validation": {
+    "gamma_in_unit_range": true,
+    "mean_gamma_monotonic_decreasing_in_divergence": true,
+    "gamma_divergence_pearson_corr": -0.3482959953561006,
+    "gamma_at_zero_divergence": 1,
+    "perfect_agreement_at_zero_divergence": true,
+    "claim_validated": true
+  }
+}
