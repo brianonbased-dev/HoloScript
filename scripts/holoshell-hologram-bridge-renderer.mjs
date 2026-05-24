@@ -19,7 +19,7 @@ import {
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { canonical, sha256Bytes, sha256Text, withHash } from './holoshell/chain/receipts.mjs';
+import { canonical, chainReceipt, sha256Bytes, sha256Text, stageReceipt, withHash } from './holoshell/chain/receipts.mjs';
 import { parseAsciiPly } from './holoshell/render/parse-ply.mjs';
 import { boundsFor, selectTemporalPoints } from './holoshell/render/temporal-fusion.mjs';
 
@@ -210,6 +210,19 @@ function resolveInputPath(path, baseDir = REPO_ROOT) {
 function defaultOutputForBridge(bridgePath) {
   const base = basename(bridgePath).replace(/\.hologram-bridge\.json$/i, '');
   return join(dirname(bridgePath), `${base}.quilt-preview-receipt.json`);
+}
+
+function buildStageChain({ stages, metrics, honestScope }) {
+  const receipt = chainReceipt({
+    name: 'holoshell-hologram-bridge-render',
+    stages,
+    metrics,
+    honestScope,
+  });
+  return {
+    receipt,
+    stages,
+  };
 }
 
 function normalize(value, min, max) {
@@ -407,7 +420,9 @@ async function renderQuiltPreview({ points, bounds, tileWidth, tileHeight, views
 export async function renderBridge(args) {
   const bridgePath = resolveInputPath(args.bridge);
   if (!bridgePath || !existsSync(bridgePath)) throw new Error(`Bridge JSON not found: ${args.bridge}`);
-  const bridge = JSON.parse(readFileSync(bridgePath, 'utf8'));
+  const bridgeText = readFileSync(bridgePath, 'utf8');
+  const bridgeHash = `sha256:${sha256Bytes(Buffer.from(bridgeText, 'utf8'))}`;
+  const bridge = JSON.parse(bridgeText);
   if (bridge.schemaVersion !== 'hologram-bridge/holomap-pointcloud/v1') {
     throw new Error(`Unsupported bridge schema: ${bridge.schemaVersion ?? 'missing'}`);
   }
@@ -415,6 +430,7 @@ export async function renderBridge(args) {
   const sourceAssets = bridge.source?.assets ?? {};
   const plyPath = resolveInputPath(sourceAssets.ply, dirname(bridgePath));
   if (!plyPath || !existsSync(plyPath)) throw new Error(`PLY asset not found: ${sourceAssets.ply ?? 'missing'}`);
+  const plyHash = `sha256:${sha256Bytes(readFileSync(plyPath))}`;
   const points = parseAsciiPly(plyPath);
   const temporal = selectTemporalPoints(points, bridge.source, args.temporalMode);
   const renderPoints = temporal.points;
@@ -459,6 +475,76 @@ export async function renderBridge(args) {
   });
   writeFileSync(pngPath, quilt.png);
   const pngHash = `sha256:${sha256Bytes(quilt.png)}`;
+  const ingestStage = stageReceipt({
+    name: 'ingest.bridge-and-ply',
+    input: {
+      bridgePath: rel(bridgePath),
+      plyPath: rel(plyPath),
+    },
+    output: {
+      bridgeHash,
+      plyHash,
+      sourceKind: bridge.source.kind,
+      originalPointCount: points.length,
+      targetViews: views,
+    },
+    metrics: {
+      frameCount: bridge.source.frameCount,
+      pointsPerFrame: bridge.source.frameLayout?.pointsPerFrame,
+    },
+    honestScope:
+      'Loads the HoloMap bridge and ASCII PLY point cloud. This stage does not modify geometry.',
+  });
+  const temporalStage = stageReceipt({
+    name: 'temporal.selection',
+    input: {
+      requestedMode: args.temporalMode ?? 'auto',
+      originalPointCount: points.length,
+      frameCount: bridge.source.frameCount,
+    },
+    output: temporal.info,
+    metrics: {
+      renderedPointCount: renderPoints.length,
+      fallbackReason: temporal.info.fallbackReason,
+    },
+    honestScope:
+      'Selects or fuses frame-major point clouds using bridge metadata; native tile-flow is not optical flow.',
+  });
+  const renderStage = stageReceipt({
+    name: 'render.quilt-preview',
+    input: {
+      tileWidth: args.tileWidth,
+      tileHeight: args.tileHeight,
+      views,
+      columns,
+      rows,
+      style,
+      variant,
+    },
+    output: {
+      pngHash,
+      path: rel(pngPath),
+      width: quilt.width,
+      height: quilt.height,
+    },
+    metrics: {
+      renderedPointCount: renderPoints.length,
+      outputBytes: quilt.png.byteLength,
+    },
+    honestScope:
+      'Deterministic quilt preview rasterization. This is not MV-HEVC or parallax video encoding.',
+  });
+  const chain = buildStageChain({
+    stages: [ingestStage, temporalStage, renderStage],
+    metrics: {
+      status: 'pass',
+      pointCount: renderPoints.length,
+      views,
+      outputBytes: quilt.png.byteLength,
+    },
+    honestScope:
+      'Bridge ingest, temporal point selection, and quilt preview rendering were executed as an ordered local chain.',
+  });
 
   const receipt = withHash({
     id: `holoshell-hologram-quilt-${String(replay).slice(0, 12)}`,
@@ -514,6 +600,7 @@ export async function renderBridge(args) {
     },
     honestScope:
       'Rendered a deterministic quilt preview from HoloMap point-cloud geometry. Multi-frame previews use native tile-flow correspondence plus pose-centroid translation when bridge metadata is present; this is not optical flow, MV-HEVC, or parallax video encoding.',
+    chain,
     outputPath: rel(outPath),
   });
   writeJson(outPath, receipt);
@@ -528,6 +615,8 @@ export function validateReceipt(receipt) {
   if (!receipt.hash?.startsWith('sha256:')) errors.push('hash missing');
   if (!receipt.quilt?.pngHash?.startsWith('sha256:')) errors.push('quilt PNG hash missing');
   if (!(receipt.source?.pointCount > 0)) errors.push('point count missing');
+  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:')) errors.push('chain receipt hash missing');
+  if (!Array.isArray(receipt.chain?.stages) || receipt.chain.stages.length < 1) errors.push('chain stages missing');
   return errors;
 }
 

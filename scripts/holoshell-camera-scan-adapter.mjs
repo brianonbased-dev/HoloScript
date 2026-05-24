@@ -26,7 +26,7 @@ import { fileURLToPath } from 'node:url';
 import {
   createHoloMapRuntime,
 } from '../packages/core/dist/reconstruction/index.js';
-import { sha256Bytes, sha256Text, withHash } from './holoshell/chain/receipts.mjs';
+import { chainReceipt, sha256Bytes, sha256Text, stageReceipt, withHash } from './holoshell/chain/receipts.mjs';
 import { analyzeFrameQuality, round, summarizeQuality } from './holoshell/image/quality-metrics.mjs';
 import { buildNativeTileCorrespondence } from './holoshell/tracking/tile-correspondence.mjs';
 
@@ -71,7 +71,7 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--') continue;
-    if (arg === 'capture' || arg === 'probe' || arg === 'list' || arg === 'self-test') args.command = arg;
+    if (arg === 'capture' || arg === 'fixture' || arg === 'probe' || arg === 'list' || arg === 'self-test') args.command = arg;
     else if (arg === '--self-test') args.command = 'self-test';
     else if (arg === '--out') args.out = argv[++i];
     else if (arg === '--date') args.date = argv[++i];
@@ -121,6 +121,10 @@ function parseArgs(argv) {
   } else if (args.fps !== undefined && !intervalProvided) {
     args.intervalMs = Math.round(1000 / args.fps);
   }
+  if (args.command === 'fixture') {
+    if (!framesProvided && args.durationSec === undefined) args.frames = 15;
+    if (!intervalProvided && args.fps === undefined) args.intervalMs = 200;
+  }
   if (!Number.isInteger(args.frames) || args.frames < 1 || args.frames > MAX_FRAMES) {
     throw new Error(`--frames must be an integer from 1 to ${MAX_FRAMES}`);
   }
@@ -139,6 +143,7 @@ function printHelp() {
 Usage:
   node scripts/holoshell-camera-scan-adapter.mjs list
   node scripts/holoshell-camera-scan-adapter.mjs capture [--frames 5] [--interval-ms 250] [--tile-grid 32] [--require-capture] [--out receipt.json]
+  node scripts/holoshell-camera-scan-adapter.mjs fixture [--frames 15] [--interval-ms 200] [--require-capture]
   node scripts/holoshell-camera-scan-adapter.mjs capture --duration-sec 3 --fps 5 [--tile-grid 32] [--require-capture]
   node scripts/holoshell-camera-scan-adapter.mjs --self-test
 
@@ -146,6 +151,7 @@ Notes:
   - Uses Windows WinRT MediaCapture directly when running on Windows.
   - Does not use browser getUserMedia or fake-camera browser flags.
   - Emits HoloMap point-cloud assets and a HoloGram bridge artifact on pass.
+  - The fixture command defaults output to .scratch/holoshell-low-camera-fixture.
   - Emits a blocked receipt when OS camera permission denies the shell host.
 `);
 }
@@ -156,7 +162,10 @@ function nowIso(args) {
   return value;
 }
 
-function defaultOutput(date) {
+function defaultOutput(date, command = 'capture') {
+  if (command === 'fixture') {
+    return join('.scratch', 'holoshell-low-camera-fixture', date, 'camera-scan-receipt.json');
+  }
   return join('.bench-logs', 'holoshell-camera-scan', date, 'camera-scan-receipt.json');
 }
 
@@ -182,6 +191,105 @@ function capturePlan(args) {
     effectiveFps: fps ? round(fps, 3) : undefined,
     expectedDurationMs: args.frames > 1 ? (args.frames - 1) * args.intervalMs : 0,
   };
+}
+
+function buildStageChain({ name, stages, metrics, honestScope }) {
+  const receipt = chainReceipt({ name, stages, metrics, honestScope });
+  return {
+    receipt,
+    stages,
+  };
+}
+
+function buildCaptureStage({ args, plan, capture, outputPath, receiptFrames = [], videoHash, actualCapturedDurationMs }) {
+  return stageReceipt({
+    name: 'capture.windows-winrt',
+    input: {
+      deviceIndex: args.deviceIndex,
+      width: args.width,
+      height: args.height,
+      plan,
+      outputPath: rel(outputPath),
+    },
+    output: {
+      status: capture.status,
+      provider: capture.provider,
+      blockedReason: capture.blockedReason,
+      capturedFrameCount: receiptFrames.length || undefined,
+      jpegHashes: receiptFrames.map((frame) => frame.jpegHash),
+      rgbHashes: receiptFrames.map((frame) => frame.rgbHash),
+      videoHash,
+    },
+    metrics: {
+      actualCapturedDurationMs,
+      deviceCount: Array.isArray(capture.devices) ? capture.devices.length : undefined,
+      hresult: capture.hresult,
+    },
+    honestScope:
+      'Native WinRT camera capture stage. Device identifiers are redacted; this does not use browser getUserMedia.',
+  });
+}
+
+function buildQualityStage(receiptFrames, scanQuality) {
+  return stageReceipt({
+    name: 'quality.frame-metrics',
+    input: {
+      frameHashes: receiptFrames.map((frame) => frame.rgbHash),
+    },
+    output: scanQuality,
+    metrics: {
+      frameCount: receiptFrames.length,
+      warningCount: scanQuality.warnings?.length ?? 0,
+    },
+    honestScope:
+      'Luma, contrast, and edge-energy scoring for capture usability. This is not semantic scene understanding.',
+  });
+}
+
+function buildHoloMapStage({ args, holoMap, artifacts, videoHash }) {
+  return stageReceipt({
+    name: 'holomap.runtime',
+    input: {
+      videoHash,
+      tileGrid: args.tileGrid,
+    },
+    output: {
+      replayFingerprint: holoMap.manifest.simulationContract.replayFingerprint,
+      frameCount: holoMap.manifest.frameCount,
+      pointCount: holoMap.manifest.pointCount,
+      pointCloudHash: artifacts.pointCloudHash,
+      assets: artifacts.assets,
+    },
+    metrics: {
+      acceptedStepCount: holoMap.steps.filter((step) => step.accepted).length,
+      rejectedStepCount: holoMap.steps.filter((step) => !step.accepted).length,
+    },
+    honestScope:
+      'Local HoloMapRuntime reconstruction from decoded RGB frames. It does not claim calibrated optical flow.',
+  });
+}
+
+function buildBridgeStage({ artifacts }) {
+  const correspondence = artifacts.bridge.source.correspondence;
+  return stageReceipt({
+    name: 'hologram.bridge',
+    input: {
+      pointCloudHash: artifacts.pointCloudHash,
+      replayFingerprint: artifacts.bridge.source.replayFingerprint,
+    },
+    output: {
+      status: artifacts.bridge.status,
+      artifactPath: artifacts.assets.hologramBridge,
+      targets: artifacts.bridge.targets,
+      correspondenceMethod: correspondence?.method,
+      correspondenceFrameMatchCount: correspondence?.frameMatchCount,
+    },
+    metrics: {
+      targetCount: Object.keys(artifacts.bridge.targets ?? {}).length,
+    },
+    honestScope:
+      'HoloGram bridge metadata stage. Pixel quilt, parallax, and MV-HEVC rendering are downstream steps.',
+  });
 }
 
 function redactDevice(device) {
@@ -636,6 +744,18 @@ function blockedReceipt(args, at, capture, outputPath) {
     : capture.device
       ? [capture.device]
       : [];
+  const plan = capturePlan(args);
+  const captureStage = buildCaptureStage({ args, plan, capture, outputPath });
+  const chain = buildStageChain({
+    name: 'holoshell-camera-scan',
+    stages: [captureStage],
+    metrics: {
+      status: 'blocked',
+      blockedReason: capture.blockedReason ?? 'camera-capture-blocked',
+    },
+    honestScope:
+      'The chain stopped at native capture. A blocked receipt is evidence of the local OS/device permission boundary.',
+  });
   return withHash({
     id: `holoshell-camera-scan-${sha256Text(`${at}:${capture.blockedReason ?? capture.error ?? 'blocked'}`).slice(0, 12)}`,
     schemaVersion: RECEIPT_VERSION,
@@ -658,18 +778,36 @@ function blockedReceipt(args, at, capture, outputPath) {
           ? 'Grant camera access to the shell host in Windows Settings > Privacy & security > Camera, then rerun pnpm holoshell:camera-scan -- --require-capture.'
           : 'Attach or enable a local hardware camera, then rerun the HoloShell camera scan adapter.',
     },
+    chain,
     outputPath: rel(outputPath),
   });
 }
 
 async function buildCaptureReceipt(args) {
   const at = nowIso(args);
-  const outPath = resolve(REPO_ROOT, args.out ?? defaultOutput(args.date));
+  const outPath = resolve(REPO_ROOT, args.out ?? defaultOutput(args.date, args.command));
   const frameDir = join(tmpdir(), `holoshell-camera-scan-${process.pid}-${Date.now()}`);
   const plan = capturePlan(args);
 
   const capture = captureViaWindowsWinRt(args, frameDir);
   if (args.command === 'list') {
+    const inventoryStage = stageReceipt({
+      name: 'capture.device-inventory',
+      input: {
+        deviceIndex: args.deviceIndex,
+        outputPath: rel(outPath),
+      },
+      output: {
+        status: capture.status,
+        provider: capture.provider,
+        deviceCount: Array.isArray(capture.devices) ? capture.devices.length : 0,
+      },
+      metrics: {
+        blockedReason: capture.blockedReason,
+      },
+      honestScope:
+        'Native camera inventory stage. Device IDs are redacted before writing the receipt.',
+    });
     return withHash({
       id: `holoshell-camera-inventory-${sha256Text(at).slice(0, 12)}`,
       schemaVersion: RECEIPT_VERSION,
@@ -680,6 +818,12 @@ async function buildCaptureReceipt(args) {
       devices: (capture.devices ?? []).map(redactDevice),
       deviceCount: Array.isArray(capture.devices) ? capture.devices.length : 0,
       action: 'direct-native-camera-inventory',
+      chain: buildStageChain({
+        name: 'holoshell-camera-inventory',
+        stages: [inventoryStage],
+        metrics: { status: capture.status },
+        honestScope: 'Camera inventory only; no frame capture or HoloMap reconstruction is attempted.',
+      }),
       outputPath: rel(outPath),
     });
   }
@@ -771,6 +915,31 @@ async function buildCaptureReceipt(args) {
     Number.isFinite(firstCapturedMs) && Number.isFinite(lastCapturedMs)
       ? Math.max(0, lastCapturedMs - firstCapturedMs)
       : undefined;
+  const scanQuality = summarizeQuality(receiptFrames);
+  const captureStage = buildCaptureStage({
+    args,
+    plan,
+    capture,
+    outputPath: outPath,
+    receiptFrames,
+    videoHash,
+    actualCapturedDurationMs,
+  });
+  const qualityStage = buildQualityStage(receiptFrames, scanQuality);
+  const holoMapStage = buildHoloMapStage({ args, holoMap, artifacts, videoHash });
+  const bridgeStage = buildBridgeStage({ artifacts });
+  const chain = buildStageChain({
+    name: 'holoshell-camera-scan',
+    stages: [captureStage, qualityStage, holoMapStage, bridgeStage],
+    metrics: {
+      status: 'pass',
+      capturedFrameCount: receiptFrames.length,
+      acceptedFrameCount: holoMap.manifest.frameCount,
+      pointCount: holoMap.manifest.pointCount,
+    },
+    honestScope:
+      'Native capture, local quality scoring, HoloMap runtime reconstruction, and HoloGram bridge creation were executed as an ordered local chain.',
+  });
 
   const receipt = withHash({
     id: `holoshell-camera-scan-${holoMap.manifest.simulationContract.replayFingerprint.slice(0, 12)}`,
@@ -792,7 +961,7 @@ async function buildCaptureReceipt(args) {
     },
     frame: receiptFrames[0],
     frames: receiptFrames,
-    scanQuality: summarizeQuality(receiptFrames),
+    scanQuality,
     holomap: {
       displayName: holoMap.manifest.displayName,
       tileGrid: args.tileGrid,
@@ -812,6 +981,7 @@ async function buildCaptureReceipt(args) {
       honestScope: artifacts.bridge.honestScope,
       nextCommand: artifacts.bridge.nextCommand,
     },
+    chain,
     outputPath: rel(outPath),
   });
 
@@ -833,6 +1003,8 @@ export function validateReceipt(receipt) {
   if (receipt.schemaVersion !== RECEIPT_VERSION) errors.push('schemaVersion mismatch');
   if (!['pass', 'blocked'].includes(receipt.status)) errors.push('status must be pass or blocked');
   if (!receipt.hash?.startsWith('sha256:')) errors.push('hash missing');
+  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:')) errors.push('chain receipt hash missing');
+  if (!Array.isArray(receipt.chain?.stages) || receipt.chain.stages.length < 1) errors.push('chain stages missing');
   if (receipt.status === 'pass' && receipt.action !== 'direct-native-camera-inventory') {
     if (!receipt.frame?.rgbHash?.startsWith('sha256:')) errors.push('pass receipt missing first frame rgb hash');
     if (!Array.isArray(receipt.frames) || receipt.frames.length < 1) errors.push('pass receipt missing frames');
@@ -884,7 +1056,7 @@ async function main() {
   const receipt = await buildCaptureReceipt(args);
   const errors = validateReceipt(receipt);
   if (errors.length > 0) throw new Error(`Invalid receipt: ${errors.join('; ')}`);
-  const out = writeJson(args.out ?? defaultOutput(args.date), receipt);
+  const out = writeJson(args.out ?? defaultOutput(args.date, args.command), receipt);
   process.stdout.write(`${JSON.stringify({ receiptPath: rel(out), status: receipt.status, blockedReason: receipt.blockedReason, holomap: receipt.holomap }, null, 2)}\n`);
   if (args.requireCapture && receipt.status !== 'pass') {
     process.exitCode = 2;

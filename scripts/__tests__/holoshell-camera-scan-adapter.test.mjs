@@ -46,8 +46,15 @@ assertEq(blocked.status, 'blocked', 'blocked status');
 assertEq(validateReceipt(blocked).length, 0, 'blocked receipt validates');
 assertOk(blocked.permissionGate.nextAction.includes('Windows Settings'), 'blocked receipt names OS permission gate');
 assertOk(!JSON.stringify(blocked).includes('device-id'), 'raw device id is absent');
+assertOk(blocked.chain?.receipt?.hash?.startsWith('sha256:'), 'blocked receipt carries chain hash');
+assertEq(blocked.chain?.receipt?.stageCount, 1, 'blocked receipt has capture stage');
 
 console.log('Test 2: pass receipts require HoloMap replay identity');
+const passStage = stageReceipt({
+  name: 'capture',
+  input: { deviceIndex: 0 },
+  output: { frames: 2 },
+});
 const pass = {
   ...blocked,
   status: 'pass',
@@ -87,6 +94,10 @@ const pass = {
   hologramBridge: {
     status: 'geometry-ready',
     artifactPath: '.bench-logs/holoshell-camera-scan/test/scan.hologram-bridge.json',
+  },
+  chain: {
+    receipt: chainReceipt({ name: 'camera-scan', stages: [passStage] }),
+    stages: [passStage],
   },
 };
 assertEq(validateReceipt(pass).length, 0, 'minimal pass receipt validates');
@@ -166,6 +177,15 @@ const cli = spawnSync(process.execPath, [SCRIPT, '--self-test'], {
 });
 assertEq(cli.status, 0, 'CLI self-test exits 0');
 assertOk(cli.stdout.includes('self-test PASS'), 'CLI self-test names pass');
+
+console.log('Test 6: CLI help exposes low-camera fixture workflow');
+const help = spawnSync(process.execPath, [SCRIPT, '--help'], {
+  cwd: REPO_ROOT,
+  encoding: 'utf8',
+});
+assertEq(help.status, 0, 'CLI help exits 0');
+assertOk(help.stdout.includes('fixture'), 'CLI help names fixture command');
+assertOk(help.stdout.includes('.scratch/holoshell-low-camera-fixture'), 'fixture default is scratch-scoped');
 
 if (testsFailed > 0) {
   console.error(`\n${testsFailed}/${testsRun} tests failed`);

@@ -50,6 +50,8 @@ assertEq(receipt.quilt.views, 4, 'self-test view count');
 assertOk(receipt.quilt.path.includes(receipt.quilt.variant), 'quilt path includes render variant');
 assertOk(receipt.quilt.style.exposure >= 1, 'receipt records exposure');
 assertOk(receipt.quilt.style.pointRadius >= 1, 'receipt records point radius');
+assertOk(receipt.chain?.receipt?.hash?.startsWith('sha256:'), 'receipt carries chain hash');
+assertEq(receipt.chain?.receipt?.stageCount, 3, 'receipt has ingest, temporal, and render stages');
 
 console.log('Test 2: multi-frame bridges default to native tracked fusion');
 const dir = mkdtempSync(join(tmpdir(), 'holoshell-hologram-bridge-renderer-test-'));
@@ -179,6 +181,8 @@ try {
     'correspondence method recorded'
   );
   assertEq(temporalReceipt.source.temporalSelection.trackedFrameCount, 2, 'tracked frame count recorded');
+  assertEq(temporalReceipt.chain?.stages?.[1]?.name, 'temporal.selection', 'temporal stage recorded');
+  assertEq(temporalReceipt.chain?.stages?.[2]?.name, 'render.quilt-preview', 'render stage recorded');
   const png = readFileSync(resolve(REPO_ROOT, temporalReceipt.quilt.path));
   assertOk(png[0] === 0x89 && png[1] === 0x50, 'temporal quilt is PNG');
 } finally {
