@@ -24,7 +24,12 @@
 - **PATH.** Map each acoustic trait to a Godot `AudioBus` + `AudioEffect*` (Reverb/LowPassFilter/Send) in `compileObject`; route `AudioStreamPlayer3D.bus` to the material bus; emit the bus layout. Add a verifier assertion that a material/occlusion change alters the emitted bus graph (not just a comment string).
 - **RISK / OWNER.** Bounded to GodotCompiler audio path; no shared-doctrine impact. Good first board task.
 
-## E-G5a — Fair baseline + real operator traces for the trained policy
+## E-G5a — Fair baseline + non-trivial task for the trained policy — ✅ SHIPPED 2026-05-24
+> Built plan-first + module-first: ML logic extracted to `gold-game-curation-policy.mjs` (6/6 unit
+> tests); truth made NON-LINEAR (L·D keystone interaction); baseline replaced with a FAIR all-feature
+> linear rule. Result: trained 1.00 vs fair 0.867 (margin 0.133) — wins by capturing the interaction
+> a linear hand-rule can't; fair is non-trivial (<0.95) and beats the old crippled 0.60. gate-5a 10/10.
+> Note: still synthetic data — real operator traces remain a future deepening (not blocking).
 - **CONTEXT.** Gate 5a does genuine gradient descent and recovers the hidden linear generator on a held-out split (`gate-5a-trained-policy-verify.mjs:69-110`) — REAL learning. But the headline "1.00 vs 0.65" compares a correctly-specified linear model against a **deliberately crippled** baseline (`argmax lineage only`, `:108`) on **synthetic** data the verifier authored — a linear-fits-linear task vs a strawman.
 - **INTENT.** The "trained beats heuristic" claim should hold against a *fair* baseline on *real* data, so the win reflects learning value, not a rigged contest.
 - **PATH.** (1) Make the baseline use all 3 features with sensible hand-weights (fair strawman); (2) source real operator curation traces (or a non-linear synthetic generator) so the linear model can't trivially recover ground truth; (3) report the honest margin — even if it shrinks, that's the true result. Keep the held-out split.
