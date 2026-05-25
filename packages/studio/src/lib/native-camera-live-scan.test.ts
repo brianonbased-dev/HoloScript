@@ -69,6 +69,51 @@ describe('native camera live scan', () => {
     expect(aThenB).not.toBe(bThenA);
   });
 
+  function depthBase64(value: number, w = 4, h = 4): string {
+    return Buffer.from(new Float32Array(w * h).fill(value).buffer).toString('base64');
+  }
+
+  it('carries MEASURED depth + device pose through to the ReconstructionFrame', () => {
+    const decoded = decodeNativeCameraFramePayload({
+      ...framePayload(0, 5),
+      depthBase64: depthBase64(0.25),
+      devicePose: { position: [1, 2, 3], rotation: [0, 0, 0, 1], confidence: 0.9 },
+    });
+    expect(decoded.frame.depth).toBeInstanceOf(Float32Array);
+    expect(decoded.frame.depth?.length).toBe(16);
+    expect(decoded.frame.depth?.[0]).toBeCloseTo(0.25, 6);
+    expect(decoded.frame.devicePose?.position).toEqual([1, 2, 3]);
+    expect(decoded.frame.devicePose?.confidence).toBeCloseTo(0.9, 6);
+  });
+
+  it('folds measured depth into the provenance hash (tamper changes identity)', () => {
+    const base = framePayload(0, 5);
+    const a = decodeNativeCameraFramePayload({ ...base, depthBase64: depthBase64(0.25) });
+    const b = decodeNativeCameraFramePayload({ ...base, depthBase64: depthBase64(0.75) });
+    const none = decodeNativeCameraFramePayload(base);
+    expect(a.frameHash).not.toBe(b.frameHash); // depth tamper → new identity
+    expect(a.frameHash).not.toBe(none.frameHash); // depth presence → new identity
+  });
+
+  it('rejects a measured-depth payload with the wrong byte length', () => {
+    expect(() =>
+      decodeNativeCameraFramePayload({ ...framePayload(0, 5), depthBase64: depthBase64(0.5, 2, 2) })
+    ).toThrow(/byte length mismatch/);
+  });
+
+  it('device pose flows through the runtime step (measured pose is used)', async () => {
+    const session = testSession();
+    await stepNativeCameraLiveScan(session, {
+      ...framePayload(0, 11),
+      depthBase64: depthBase64(0.3),
+      devicePose: { position: [4, 5, 6], rotation: [0, 0, 0, 1], confidence: 0.42 },
+    });
+    // The runtime used the device pose: its confidence (0.42) surfaces on the session,
+    // not a derived centroid-pose confidence.
+    expect(session.nativeCamera?.holomap?.lastPoseConfidence).toBeCloseTo(0.42, 6);
+    expect(session.nativeCamera?.holomap?.runtime).toBe('active');
+  });
+
   it('steps native camera frames through HoloMapRuntime and finalizes a manifest', async () => {
     const session = testSession();
 

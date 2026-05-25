@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import {
   computeHoloMapReplayFingerprint,
   createHoloMapRuntime,
+  type CameraPose,
   type HoloMapRuntime,
   type ReconstructionFrame,
   type ReconstructionManifest,
@@ -16,6 +17,18 @@ export interface NativeCameraFramePayload {
   height?: unknown;
   stride?: unknown;
   rgbBase64?: unknown;
+  /**
+   * Optional MEASURED per-pixel depth from a real device sensor (iOS LiDAR
+   * `sceneDepth.depthMap`, ARCore depth). Little-endian Float32, row-major,
+   * length width*height (so byte length = width*height*4), values 0=near..1=far.
+   * When present the reconstructor uses it for point Z over the monocular estimate.
+   */
+  depthBase64?: unknown;
+  /**
+   * Optional MEASURED device pose (ARKit/ARCore tracking): 6-DoF camera pose.
+   * When present it drives the trajectory instead of the scan-derived pose.
+   */
+  devicePose?: unknown;
 }
 
 export interface DecodedNativeCameraFrame {
@@ -80,6 +93,52 @@ export function nativeCameraVideoHash(token: string, frameDigest: string, frameC
   ])}`;
 }
 
+function decodeMeasuredDepth(
+  raw: unknown,
+  width: number,
+  height: number
+): { depth: Float32Array; bytes: Buffer } | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw !== 'string' || raw.length === 0) {
+    throw new Error('nativeFrame.depthBase64 must be a non-empty base64 string when provided');
+  }
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(raw)) {
+    throw new Error('nativeFrame.depthBase64 must be standard base64');
+  }
+  const bytes = Buffer.from(raw, 'base64');
+  const expected = width * height * 4; // Float32 per pixel
+  if (bytes.byteLength !== expected) {
+    throw new Error(
+      `nativeFrame.depthBase64 byte length mismatch: got ${bytes.byteLength}, expected ${expected} (width*height*4)`
+    );
+  }
+  // Copy into an aligned ArrayBuffer so the Float32Array view is valid regardless
+  // of Buffer pool offset alignment.
+  const aligned = new ArrayBuffer(expected);
+  new Uint8Array(aligned).set(bytes);
+  return { depth: new Float32Array(aligned), bytes };
+}
+
+function decodeDevicePose(raw: unknown): CameraPose | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw !== 'object') throw new Error('nativeFrame.devicePose must be an object');
+  const o = raw as Record<string, unknown>;
+  const vec = (v: unknown, n: number, name: string): number[] => {
+    if (!Array.isArray(v) || v.length !== n) throw new Error(`devicePose.${name} must be a ${n}-number array`);
+    return v.map((x, i) => {
+      if (typeof x !== 'number' || !Number.isFinite(x)) throw new Error(`devicePose.${name}[${i}] must be finite`);
+      return x;
+    });
+  };
+  const position = vec(o.position, 3, 'position') as [number, number, number];
+  const rotation = vec(o.rotation, 4, 'rotation') as [number, number, number, number];
+  const confidence =
+    typeof o.confidence === 'number' && Number.isFinite(o.confidence)
+      ? Math.min(1, Math.max(0, o.confidence))
+      : 1;
+  return { position, rotation, confidence };
+}
+
 export function decodeNativeCameraFramePayload(payload: NativeCameraFramePayload): DecodedNativeCameraFrame {
   if (!payload || typeof payload !== 'object') {
     throw new Error('nativeFrame must be an object');
@@ -110,6 +169,9 @@ export function decodeNativeCameraFramePayload(payload: NativeCameraFramePayload
     );
   }
 
+  const measuredDepth = decodeMeasuredDepth(payload.depthBase64, width, height);
+  const devicePose = decodeDevicePose(payload.devicePose);
+
   const frame: ReconstructionFrame = {
     index,
     timestampMs,
@@ -117,11 +179,20 @@ export function decodeNativeCameraFramePayload(payload: NativeCameraFramePayload
     width,
     height,
     stride,
+    ...(measuredDepth ? { depth: measuredDepth.depth } : {}),
+    ...(devicePose ? { devicePose } : {}),
   };
+  // Provenance: fold measured depth + pose into the frame hash so a tampered
+  // sensor reading changes the sequence digest / replay identity (same guarantee
+  // gate-33's negative control relies on for RGB).
   const frameHash = sha256Hex([
     'holoscript-native-camera-frame-v1',
     `${frame.index}:${frame.timestampMs}:${frame.width}x${frame.height}x${frame.stride}`,
     frame.rgb,
+    ...(measuredDepth ? ['depth', measuredDepth.bytes] : []),
+    ...(devicePose
+      ? ['pose', `${devicePose.position.join(',')};${devicePose.rotation.join(',')};${devicePose.confidence}`]
+      : []),
   ]);
 
   return { frame, byteLength: rgb.byteLength, frameHash };
