@@ -410,8 +410,41 @@ describe('NodeServiceCompiler', () => {
       ]);
       const result = compiler.compile(comp, 'test-token');
       expect(result['routes/API.ts']).toContain('replace with getItem logic');
-      expect(result['routes/API.ts']).toContain("res.status(501)");
+      expect(result['routes/API.ts']).toContain('res.status(501)');
       expect(result['routes/API.ts']).toContain("'getItem'");
+    });
+
+    it('emits @handler body instead of placeholder when provided', () => {
+      const comp = makeServiceComposition('API', {}, [
+        {
+          name: 'GetItem',
+          properties: [
+            { key: 'method', value: 'GET' },
+            { key: 'path', value: '/items/:id' },
+          ],
+          state: {
+            type: 'State',
+            properties: [{ type: 'StateProperty', key: 'message', value: 'ok' }],
+          },
+          traits: [
+            { name: 'http' },
+            {
+              name: 'handler',
+              config: {
+                name: 'getItem',
+                body: 'res.json({ item: req.params.id, message: state.message });',
+              },
+            },
+          ],
+        },
+      ]);
+      const result = compiler.compile(comp, 'test-token');
+      expect(result['routes/API.ts']).toContain('// Handler: getItem');
+      expect(result['routes/API.ts']).toContain('const state = {');
+      expect(result['routes/API.ts']).toContain(
+        'res.json({ item: req.params.id, message: state.message });'
+      );
+      expect(result['routes/API.ts']).not.toContain('res.status(501)');
     });
   });
 

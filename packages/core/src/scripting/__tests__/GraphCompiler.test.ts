@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { GraphCompiler } from '../GraphCompiler';
 import { NodeGraph, type GraphNode } from '../NodeGraph';
+import { NodeLibrary } from '../NodeLibrary';
 
 function makeNode(id: string, ports: GraphNode['ports'] = []): GraphNode {
   return { id, type: 'generic', label: id, ports, position: { x: 0, y: 0 }, data: {} };
@@ -119,5 +120,33 @@ describe('GraphCompiler', () => {
     compiler.setOptimizationPasses([]);
     const result2 = compiler.compile(buildLinearGraph());
     expect(result2.optimized).toBe(false);
+  });
+
+  it('evaluates wired math outputs in topological order', () => {
+    const lib = new NodeLibrary();
+    const g = new NodeGraph();
+    const add = lib.createNode('math.add', 'add')!;
+    const multiply = lib.createNode('math.multiply', 'multiply')!;
+
+    add.ports.find((port) => port.id === 'a')!.defaultValue = 2;
+    add.ports.find((port) => port.id === 'b')!.defaultValue = 3;
+    multiply.ports.find((port) => port.id === 'b')!.defaultValue = 4;
+
+    g.addNode(add);
+    g.addNode(multiply);
+    expect(g.connect('add', 'result', 'multiply', 'a')).not.toBeNull();
+
+    const result = compiler.compile(g);
+    const addStep = result.steps.find((step) => step.nodeId === 'add')!;
+    const multiplyStep = result.steps.find((step) => step.nodeId === 'multiply')!;
+
+    expect(addStep.outputs.result).toBe(5);
+    expect(multiplyStep.inputs.a).toMatchObject({
+      source: 'wire',
+      value: 5,
+      wireFrom: 'add',
+      wireFromPort: 'result',
+    });
+    expect(multiplyStep.outputs.result).toBe(20);
   });
 });

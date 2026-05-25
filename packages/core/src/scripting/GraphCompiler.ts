@@ -5,11 +5,16 @@
  */
 
 import { NodeGraph, type GraphNode } from './NodeGraph';
+import { NodeLibrary } from './NodeLibrary';
 
 export interface CompiledStep {
   nodeId: string;
   nodeType: string;
-  inputs: Record<string, { source: 'wire' | 'default'; value: unknown; wireFrom?: string }>;
+  inputs: Record<
+    string,
+    { source: 'wire' | 'default'; value: unknown; wireFrom?: string; wireFromPort?: string }
+  >;
+  outputs: Record<string, unknown>;
   order: number;
 }
 
@@ -22,6 +27,7 @@ export interface CompilationResult {
 
 export class GraphCompiler {
   private optimizationPasses: string[] = ['dead-node', 'constant-fold'];
+  private readonly nodeLibrary = new NodeLibrary();
 
   /**
    * Compile a graph to an ordered sequence of steps
@@ -41,25 +47,40 @@ export class GraphCompiler {
       return { steps: [], warnings, errors, optimized: false };
     }
 
+    const nodeOutputs = new Map<string, Record<string, unknown>>();
     const steps: CompiledStep[] = order.map((nodeId, idx) => {
       const node = graph.getNode(nodeId)!;
       const inputs: Record<
         string,
-        { source: 'wire' | 'default'; value: unknown; wireFrom?: string }
+        { source: 'wire' | 'default'; value: unknown; wireFrom?: string; wireFromPort?: string }
       > = {};
 
       for (const port of node.ports) {
         if (port.direction === 'input') {
-          const wires = graph.getWiresForNode(nodeId).filter((w) => w.toPortId === port.id);
+          const wires = graph
+            .getWiresForNode(nodeId)
+            .filter((w) => w.toNodeId === nodeId && w.toPortId === port.id);
           if (wires.length > 0) {
-            inputs[port.id] = { source: 'wire', value: null, wireFrom: wires[0].fromNodeId };
+            const wire = wires[0];
+            const sourceOutputs = nodeOutputs.get(wire.fromNodeId) ?? {};
+            inputs[port.id] = {
+              source: 'wire',
+              value: Object.prototype.hasOwnProperty.call(sourceOutputs, wire.fromPortId)
+                ? sourceOutputs[wire.fromPortId]
+                : null,
+              wireFrom: wire.fromNodeId,
+              wireFromPort: wire.fromPortId,
+            };
           } else {
             inputs[port.id] = { source: 'default', value: port.defaultValue };
           }
         }
       }
 
-      return { nodeId, nodeType: node.type, inputs, order: idx };
+      const outputs = this.evaluateNode(node, inputs, warnings);
+      nodeOutputs.set(nodeId, outputs);
+
+      return { nodeId, nodeType: node.type, inputs, outputs, order: idx };
     });
 
     // Simple optimization: warn about unconnected outputs
@@ -91,5 +112,29 @@ export class GraphCompiler {
   }
   setOptimizationPasses(passes: string[]): void {
     this.optimizationPasses = passes;
+  }
+
+  private evaluateNode(
+    node: GraphNode,
+    inputs: CompiledStep['inputs'],
+    warnings: string[]
+  ): Record<string, unknown> {
+    const definition = this.nodeLibrary.get(node.type);
+    if (!definition?.evaluate) {
+      return {};
+    }
+
+    const inputValues = Object.fromEntries(
+      Object.entries(inputs).map(([portId, input]) => [portId, input.value])
+    );
+
+    try {
+      return definition.evaluate(inputValues);
+    } catch (error) {
+      warnings.push(
+        `Node "${node.label}" evaluator failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+      return {};
+    }
   }
 }
