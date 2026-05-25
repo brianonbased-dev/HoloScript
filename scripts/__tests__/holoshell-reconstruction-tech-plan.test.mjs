@@ -57,6 +57,7 @@ const plan = buildTechnologyPlan({
     status: 'pass',
     capturePlan: { frames: 2, geometricTarget: true },
     target: { pngHash: 'sha256:' + 'a'.repeat(64) },
+    targetDetection: { detection: { status: 'not-detected' } },
     control: { frame: { rawQuality: { score: 0.52, edgeEnergy: 0.02, contrast: 0.12 } } },
     render: { quality: { score: 0.44, grade: 'weak' } },
   },
@@ -64,6 +65,7 @@ const plan = buildTechnologyPlan({
 assertEq(plan.recommendations[0].id, 'fiducial-calibration', 'low-quality workflow starts with fiducials');
 assertOk(plan.recommendations.every((recommendation) => !recommendation.backend.toLowerCase().includes('browser')), 'no browser backend recommended');
 assertOk(plan.recommendations.some((recommendation) => recommendation.id === 'mobile-native-depth'), 'mobile native depth remains on ladder');
+assertOk(plan.nextActions.some((action) => action.id === 'place-target-in-camera-view'), 'missing target visibility becomes operator action');
 
 console.log('Test 3: invalid receipts fail closed');
 const missingSources = {

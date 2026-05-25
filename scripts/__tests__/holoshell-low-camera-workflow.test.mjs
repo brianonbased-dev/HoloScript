@@ -52,13 +52,15 @@ assertOk(receipt.sweep.fileHash.startsWith('sha256:'), 'sweep file hash recorded
 assertEq(receipt.sweep.winner.mode, 'raw', 'winner mode recorded');
 assertOk(receipt.control.frame.path, 'camera control frame recorded');
 assertOk(receipt.control.frame.fileHash.startsWith('sha256:'), 'camera control frame hash recorded');
+assertEq(receipt.targetDetection.detection.status, 'not-detected', 'target detection status recorded');
+assertEq(receipt.targetDetection.detection.calibrationReady, false, 'target detection does not claim calibration readiness');
 assertOk(receipt.render.receiptHash.startsWith('sha256:'), 'render receipt hash recorded');
 assertOk(receipt.render.pngHash.startsWith('sha256:'), 'quilt png hash recorded');
 assertEq(receipt.render.quality.grade, 'weak', 'workflow carries render quality grade');
 assertOk(receipt.quality.score >= 0, 'workflow exposes top-level quality');
 assertOk(receipt.technologyPlan.recommendedNow.includes('fiducial-calibration'), 'workflow recommends fiducial calibration');
 assertOk(receipt.technologyPlan.recommendations.some((recommendation) => recommendation.id === 'mobile-native-depth'), 'workflow carries mobile depth alternative');
-assertEq(receipt.chain?.receipt?.stageCount, 3, 'workflow has target, sweep, and render stages');
+assertEq(receipt.chain?.receipt?.stageCount, 4, 'workflow has target, sweep, target detection, and render stages');
 
 console.log('Test 2: invalid workflow receipts fail closed');
 const missingWinner = {

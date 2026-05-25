@@ -15,6 +15,7 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chainReceipt, sha256Bytes, sha256Text, stageReceipt, withHash } from './holoshell/chain/receipts.mjs';
 import { buildTechnologyPlan } from './holoshell-reconstruction-tech-plan.mjs';
+import { analyzeTargetInFrame } from './holoshell-target-in-frame-analyzer.mjs';
 
 export const VERSION = '0.1.0';
 export const RECEIPT_VERSION = 'holoshell-low-camera-workflow/v1';
@@ -37,6 +38,7 @@ function parseArgs(argv) {
     out: undefined,
     targetOut: undefined,
     targetPng: undefined,
+    targetDetectionOut: undefined,
     sweepOut: undefined,
     renderOut: undefined,
     deviceIndex: 0,
@@ -62,6 +64,7 @@ function parseArgs(argv) {
     else if (arg === '--out') args.out = argv[++i];
     else if (arg === '--target-out') args.targetOut = argv[++i];
     else if (arg === '--target-png') args.targetPng = argv[++i];
+    else if (arg === '--target-detection-out') args.targetDetectionOut = argv[++i];
     else if (arg === '--sweep-out') args.sweepOut = argv[++i];
     else if (arg === '--render-out') args.renderOut = argv[++i];
     else if (arg === '--device-index') args.deviceIndex = Number.parseInt(argv[++i], 10);
@@ -186,6 +189,28 @@ function summarizeTarget(targetReceipt, targetReceiptPath) {
   };
 }
 
+function summarizeTargetDetection(targetDetectionReceipt, targetDetectionReceiptPath) {
+  if (!targetDetectionReceipt) return undefined;
+  return {
+    path: rel(targetDetectionReceiptPath),
+    receiptHash: targetDetectionReceipt.hash,
+    fileHash: fileHash(targetDetectionReceiptPath),
+    status: targetDetectionReceipt.status,
+    frame: targetDetectionReceipt.frame,
+    target: {
+      path: targetDetectionReceipt.target?.path,
+      receiptHash: targetDetectionReceipt.target?.receiptHash,
+      pngPath: targetDetectionReceipt.target?.pngPath,
+      pngHash: targetDetectionReceipt.target?.pngHash,
+      paletteCount: Array.isArray(targetDetectionReceipt.target?.palette) ? targetDetectionReceipt.target.palette.length : undefined,
+    },
+    detection: targetDetectionReceipt.detection,
+    chainHash: targetDetectionReceipt.chain?.receipt?.hash,
+    honestScope:
+      'Target visibility evidence from the untouched camera control frame. A pass receipt means the analyzer ran; detection.status says whether the target was found.',
+  };
+}
+
 function runNodeScript(scriptPath, scriptArgs, { allowExitCodes = [0] } = {}) {
   const command = [rel(scriptPath), ...scriptArgs];
   const result = spawnSync(process.execPath, [scriptPath, ...scriptArgs], {
@@ -254,11 +279,14 @@ export function buildWorkflowReceipt({
   sweepReceiptPath,
   renderReceipt,
   renderReceiptPath,
+  targetDetectionReceipt,
+  targetDetectionReceiptPath,
   commands,
 }) {
   const target = summarizeTarget(targetReceipt, targetReceiptPath);
   const sweep = summarizeSweep(sweepReceipt, sweepReceiptPath);
   const render = renderReceipt ? summarizeRender(renderReceipt, renderReceiptPath) : undefined;
+  const targetDetection = summarizeTargetDetection(targetDetectionReceipt, targetDetectionReceiptPath);
   const capturePlan = {
     deviceIndex: args.deviceIndex,
     width: args.width,
@@ -280,6 +308,7 @@ export function buildWorkflowReceipt({
       capturePlan,
       renderPlan,
       target,
+      targetDetection,
       sweep,
       control: sweep.control,
       render,
@@ -337,6 +366,34 @@ export function buildWorkflowReceipt({
       'Runs the native-camera fair preprocess sweep and records the winning HoloMap bridge. The sweep receipt carries per-mode evidence.',
   });
   const stages = targetStage ? [targetStage, sweepStage] : [sweepStage];
+  if (targetDetection) {
+    stages.push(stageReceipt({
+      name: 'workflow.target-in-frame-analysis',
+      input: {
+        command: commands.targetDetection?.command,
+        targetDetectionReceiptPath: targetDetection.path,
+        controlFramePath: sweep.control?.frame?.path,
+        targetReceiptPath: target?.path,
+      },
+      output: {
+        status: targetDetection.status,
+        detectionStatus: targetDetection.detection?.status,
+        score: targetDetection.detection?.score,
+        paletteHitCount: targetDetection.detection?.paletteHitCount,
+        cornerCandidateCount: targetDetection.detection?.cornerCandidates?.length,
+        receiptHash: targetDetection.receiptHash,
+        fileHash: targetDetection.fileHash,
+      },
+      metrics: {
+        exitCode: commands.targetDetection?.exitCode,
+        score: targetDetection.detection?.score,
+        paletteCoverage: targetDetection.detection?.paletteCoverage,
+        calibrationReady: targetDetection.detection?.calibrationReady,
+      },
+      honestScope:
+        'Checks whether the generated target is visible in the untouched control frame. This is not camera pose calibration.',
+    }));
+  }
   if (render) {
     stages.push(stageReceipt({
       name: 'workflow.render-winning-quilt',
@@ -373,6 +430,7 @@ export function buildWorkflowReceipt({
       metrics: {
         status: sweep.status === 'pass' && render?.status === 'pass' ? 'pass' : sweep.status,
         geometricTarget: Boolean(target),
+        targetDetectionStatus: targetDetection?.detection?.status,
         winningPreprocess: sweep.winner?.mode,
         pointCount: render?.pointCount ?? sweep.pointCount,
         rendered: Boolean(render),
@@ -397,6 +455,7 @@ export function buildWorkflowReceipt({
     },
     renderPlan,
     target,
+    targetDetection,
     sweep,
     control: sweep.control,
     render,
@@ -404,6 +463,7 @@ export function buildWorkflowReceipt({
     technologyPlan,
     commands: {
       target: commands.target?.command,
+      targetDetection: commands.targetDetection?.command,
       sweep: commands.sweep.command,
       render: commands.render?.command,
     },
@@ -428,6 +488,15 @@ export function validateReceipt(receipt) {
     if (targetExpected && !receipt.target?.pngHash?.startsWith('sha256:')) errors.push('geometric target PNG hash missing');
     if (targetExpected && !receipt.target?.pngPath) errors.push('geometric target PNG path missing');
     if (targetExpected && !receipt.target?.pngFileHash?.startsWith('sha256:')) errors.push('geometric target PNG file hash missing');
+    if (targetExpected && !receipt.targetDetection?.receiptHash?.startsWith('sha256:')) {
+      errors.push('target detection receipt hash missing');
+    }
+    if (targetExpected && !['detected', 'not-detected'].includes(receipt.targetDetection?.detection?.status)) {
+      errors.push('target detection status missing');
+    }
+    if (targetExpected && receipt.targetDetection?.detection?.calibrationReady !== false) {
+      errors.push('target detection must not claim calibration readiness');
+    }
     if (!receipt.sweep?.winner?.mode) errors.push('winner missing');
     if (!receipt.sweep?.bridgePath) errors.push('winning bridge path missing');
     if (!receipt.control?.frame?.path) errors.push('camera control frame missing');
@@ -453,6 +522,7 @@ export async function runWorkflow(args) {
   const baseDir = dirname(outPath);
   const targetOut = resolve(REPO_ROOT, args.targetOut ?? join(baseDir, 'geometric-control-target-receipt.json'));
   const targetPng = resolve(REPO_ROOT, args.targetPng ?? join(baseDir, 'geometric-control-target.png'));
+  const targetDetectionOut = resolve(REPO_ROOT, args.targetDetectionOut ?? join(baseDir, 'target-in-frame-receipt.json'));
   const sweepOut = resolve(REPO_ROOT, args.sweepOut ?? join(baseDir, 'preprocess-sweep-workflow.json'));
   const renderOut = resolve(REPO_ROOT, args.renderOut ?? join(baseDir, 'workflow-winner-quilt.json'));
   mkdirSync(baseDir, { recursive: true });
@@ -503,7 +573,9 @@ export async function runWorkflow(args) {
       sweepReceiptPath: sweepOut,
       renderReceipt: undefined,
       renderReceiptPath: undefined,
-      commands: { target: targetCommand, sweep: sweepCommand, render: undefined },
+      targetDetectionReceipt: undefined,
+      targetDetectionReceiptPath: undefined,
+      commands: { target: targetCommand, targetDetection: undefined, sweep: sweepCommand, render: undefined },
     });
     writeJson(outPath, receipt);
     return receipt;
@@ -511,6 +583,29 @@ export async function runWorkflow(args) {
 
   const bridgePath = sweepReceipt.hologramBridge?.artifactPath ?? sweepReceipt.sweep?.winner?.hologramBridgeArtifactPath;
   if (!bridgePath) throw new Error('Sweep receipt did not name a winning HoloGram bridge');
+  const controlFrame = summarizeControl(sweepReceipt).frame;
+  let targetDetectionCommand;
+  let targetDetectionReceipt;
+  if (args.geometricTarget && targetReceipt && controlFrame?.path) {
+    await analyzeTargetInFrame({
+      framePath: controlFrame.path,
+      targetPath: targetOut,
+      out: targetDetectionOut,
+    });
+    targetDetectionCommand = {
+      command: [
+        'internal:analyzeTargetInFrame',
+        '--frame',
+        controlFrame.path,
+        '--target',
+        rel(targetOut),
+        '--out',
+        rel(targetDetectionOut),
+      ],
+      exitCode: 0,
+    };
+    targetDetectionReceipt = readJson(targetDetectionOut);
+  }
   const renderArgs = [
     '--bridge',
     bridgePath,
@@ -531,7 +626,9 @@ export async function runWorkflow(args) {
     sweepReceiptPath: sweepOut,
     renderReceipt,
     renderReceiptPath: renderOut,
-    commands: { target: targetCommand, sweep: sweepCommand, render: renderCommand },
+    targetDetectionReceipt,
+    targetDetectionReceiptPath: targetDetectionReceipt ? targetDetectionOut : undefined,
+    commands: { target: targetCommand, targetDetection: targetDetectionCommand, sweep: sweepCommand, render: renderCommand },
   });
   const errors = validateReceipt(receipt);
   if (errors.length > 0) throw new Error(`Invalid workflow receipt: ${errors.join('; ')}`);
@@ -544,6 +641,7 @@ export async function selfTest() {
   mkdirSync(dir, { recursive: true });
   const targetPath = join(dir, 'target.json');
   const targetPngPath = join(dir, 'target.png');
+  const targetDetectionPath = join(dir, 'target-detection.json');
   const sweepPath = join(dir, 'sweep.json');
   const quiltPath = join(dir, 'quilt.png');
   const renderPath = join(dir, 'render.json');
@@ -575,6 +673,41 @@ export async function selfTest() {
     chain: { receipt: { hash: 'sha256:' + 'd'.repeat(64) } },
   });
   writeJson(targetPath, targetReceipt);
+  const targetDetectionReceipt = withHash({
+    schemaVersion: 'holoshell-target-in-frame/v1',
+    status: 'pass',
+    frame: {
+      path: rel(quiltPath),
+      fileHash: fileHash(quiltPath),
+      width: 64,
+      height: 48,
+      channels: 3,
+    },
+    target: {
+      path: rel(targetPath),
+      receiptHash: targetReceipt.hash,
+      pngPath: rel(targetPngPath),
+      pngHash: fileHash(targetPngPath),
+      palette: [
+        { id: 'red-square', kind: 'square', rgb: [225, 32, 42] },
+        { id: 'green-circle', kind: 'circle', rgb: [18, 170, 74] },
+        { id: 'blue-triangle', kind: 'triangle', rgb: [38, 86, 225] },
+        { id: 'magenta-diamond', kind: 'diamond', rgb: [210, 42, 214] },
+      ],
+    },
+    detection: {
+      status: 'not-detected',
+      detected: false,
+      score: 0.12,
+      threshold: 0.64,
+      paletteHitCount: 0,
+      paletteCoverage: 0,
+      cornerCandidates: [],
+      calibrationReady: false,
+    },
+    chain: { receipt: { hash: 'sha256:' + 'e'.repeat(64) } },
+  });
+  writeJson(targetDetectionPath, targetDetectionReceipt);
   const sweepReceipt = withHash({
     schemaVersion: 'holoshell-camera-scan-receipt/v5',
     status: 'pass',
@@ -632,8 +765,11 @@ export async function selfTest() {
     renderReceiptPath: renderPath,
     targetReceipt,
     targetReceiptPath: targetPath,
+    targetDetectionReceipt,
+    targetDetectionReceiptPath: targetDetectionPath,
     commands: {
       target: { command: ['target', 'generate'], exitCode: 0 },
+      targetDetection: { command: ['target', 'detect'], exitCode: 0 },
       sweep: { command: ['camera', 'sweep'], exitCode: 0 },
       render: { command: ['bridge', 'render'], exitCode: 0 },
     },
@@ -675,6 +811,14 @@ async function main() {
           height: receipt.target.height,
           primitiveCount: receipt.target.primitiveCount,
           fiducialCount: receipt.target.fiducialCount,
+        }
+      : undefined,
+    targetDetection: receipt.targetDetection
+      ? {
+          status: receipt.targetDetection.detection?.status,
+          score: receipt.targetDetection.detection?.score,
+          paletteHitCount: receipt.targetDetection.detection?.paletteHitCount,
+          calibrationReady: receipt.targetDetection.detection?.calibrationReady,
         }
       : undefined,
     control: receipt.control?.frame

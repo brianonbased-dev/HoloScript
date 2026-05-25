@@ -318,7 +318,9 @@ function signalsFromWorkflow(workflow) {
   return {
     workflowStatus: workflow?.status,
     hasGeneratedTarget: Boolean(workflow?.target?.pngHash),
-    targetDetectedInFrame: workflow?.targetDetection?.status === 'pass',
+    targetDetectionStatus: workflow?.targetDetection?.detection?.status ?? workflow?.targetDetection?.status,
+    targetDetectedInFrame:
+      workflow?.targetDetection?.detection?.status === 'detected' || workflow?.targetDetection?.status === 'detected',
     hasCalibratedPose: Boolean(workflow?.calibration?.pose?.status === 'pass'),
     frameCount: workflow?.capturePlan?.frames ?? workflow?.sweep?.capturedFrameCount ?? 0,
     pointCount: workflow?.render?.pointCount ?? workflow?.sweep?.pointCount ?? 0,
@@ -346,8 +348,9 @@ function buildRecommendations(signals) {
 
 function buildNextActions(recommendations, signals) {
   const top = recommendations[0];
-  const actions = [
-    {
+  const actions = [];
+  if (!signals.targetDetectionStatus) {
+    actions.push({
       id: 'detect-generated-target-in-control-frame',
       owner: 'holoshell',
       priority: 'now',
@@ -355,8 +358,18 @@ function buildNextActions(recommendations, signals) {
         'Add a target-in-frame analyzer that decodes the untouched camera JPEG and scores checkerboard/fiducial visibility before reconstruction.',
       doneWhen:
         'Workflow receipt contains targetDetection with detected corner count, reprojection-ready corner coordinates, and honest fail-closed status.',
-    },
-  ];
+    });
+  } else if (!signals.targetDetectedInFrame) {
+    actions.push({
+      id: 'place-target-in-camera-view',
+      owner: 'operator',
+      priority: 'now',
+      action:
+        'Put the generated target in the native camera view and rerun the low-camera workflow so calibration evidence comes from the untouched control frame.',
+      doneWhen:
+        'targetDetection.detection.status is detected and the receipt contains non-empty bounds corner candidates.',
+    });
+  }
   if (top?.id === 'fiducial-calibration' || signals.rawQualityScore < 0.8) {
     actions.push({
       id: 'replace-chart-with-fiducial-board',
