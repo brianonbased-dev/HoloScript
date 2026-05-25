@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   HOLOMAP_MOBILE_SENSOR_BUNDLE_VERSION,
   cameraPoseFromColumnMajorTransform,
+  createArCoreDepthMobileSensorBundle,
+  arCoreDepthFrameToMobileSensorFrame,
   mobileSensorBundleToFrames,
   replayMobileSensorBundle,
   validateMobileSensorBundle,
@@ -191,5 +193,155 @@ describe('HoloMap mobile sensor bundle adapter', () => {
     const zb = zValues(b.steps[0]!.points.positions);
 
     expect(za.some((z, index) => Math.abs(z - zb[index]!) > 1e-4)).toBe(true);
+  });
+});
+
+describe('HoloMap Android ARCore Depth adapter', () => {
+  const arRgb = new Array(W * H * STRIDE).fill(0).map((_, i) => (i * 11) % 256);
+  const arTransform = transform(0.5, 1.5, -2);
+
+  it('normalizes ARCore 16-bit millimeter depth into the canonical Android bundle', () => {
+    const bundle = createArCoreDepthMobileSensorBundle({
+      bundleId: 's23-ultra-arcore-fixture',
+      deviceModel: 'Samsung Galaxy S23 Ultra',
+      intrinsics: {
+        width: W,
+        height: H,
+        fx: 610,
+        fy: 608,
+        cx: 2,
+        cy: 2,
+        source: 'arcore-camera-intrinsics',
+      },
+      depthRangeMillimeters: { near: 500, far: 5000 },
+      frames: [
+        {
+          index: 0,
+          timestampMs: 0,
+          width: W,
+          height: H,
+          stride: STRIDE,
+          rgb: arRgb,
+          depthImage16Bits: {
+            width: 2,
+            height: 2,
+            millimeters: [500, 2750, 0, 5000],
+          },
+          rawDepthConfidenceImage: {
+            width: 2,
+            height: 2,
+            values: [255, 128, 255, 64],
+          },
+          cameraTransformColumnMajor4x4: arTransform,
+        },
+      ],
+    });
+
+    expect(bundle.capture.platform).toBe('android-arcore-depth');
+    expect(bundle.capture.coordinateSystem).toBe('arcore-right-handed-y-up');
+    expect(validateMobileSensorBundle(bundle)).toEqual([]);
+    const frame = bundle.frames[0]!;
+    expect(frame.sceneDepth?.values[0]).toBeCloseTo(0, 6);
+    expect(frame.sceneDepth?.values[2]).toBeCloseTo(0.5, 6);
+    expect(frame.sceneDepth?.values[8]).toBeCloseTo(1, 6);
+    expect(frame.sceneDepth?.values[10]).toBeCloseTo(1, 6);
+    expect(frame.sceneDepthConfidence?.values[0]).toBeCloseTo(1, 6);
+    expect(frame.sceneDepthConfidence?.values[2]).toBeCloseTo(128 / 255, 6);
+    expect(frame.sceneDepthConfidence?.values[8]).toBe(0);
+    expect(frame.sceneDepthConfidence?.values[10]).toBeCloseTo(64 / 255, 6);
+  });
+
+  it('replays an Android ARCore depth bundle through HoloMap with measured pose', async () => {
+    const bundle = createArCoreDepthMobileSensorBundle({
+      bundleId: 'android-arcore-replay-fixture',
+      deviceModel: 'Samsung Galaxy S23 Ultra',
+      intrinsics: {
+        width: W,
+        height: H,
+        fx: 610,
+        fy: 608,
+        cx: 2,
+        cy: 2,
+        source: 'arcore-camera-intrinsics',
+      },
+      frames: [
+        {
+          index: 0,
+          timestampMs: 0,
+          width: W,
+          height: H,
+          stride: STRIDE,
+          rgb: arRgb,
+          depthImage16Bits: {
+            width: W,
+            height: H,
+            millimeters: new Array(W * H).fill(500),
+          },
+          cameraTransformColumnMajor4x4: transform(2, 0, 0),
+        },
+        {
+          index: 1,
+          timestampMs: 200,
+          width: W,
+          height: H,
+          stride: STRIDE,
+          rgb: arRgb.map((v) => (v + 7) % 256),
+          depthImage16Bits: {
+            width: W,
+            height: H,
+            millimeters: new Array(W * H).fill(5000),
+          },
+          cameraTransformColumnMajor4x4: transform(2.25, 0, 0),
+        },
+      ],
+    });
+
+    const replay = await replayMobileSensorBundle(bundle, { tileGrid: 2, seed: 21 });
+
+    expect(replay.source.platform).toBe('android-arcore-depth');
+    expect(replay.steps).toHaveLength(2);
+    expect(replay.steps[0]!.pose.position).toEqual([2, 0, 0]);
+    expect(replay.steps[1]!.pose.position).toEqual([2.25, 0, 0]);
+    for (const z of zValues(replay.steps[0]!.points.positions)) expect(z).toBeCloseTo(0.17, 5);
+    for (const z of zValues(replay.steps[1]!.points.positions)) expect(z).toBeCloseTo(-0.17, 5);
+  });
+
+  it('fails closed for malformed ARCore planes and invalidates zero-depth cells', () => {
+    const frame = arCoreDepthFrameToMobileSensorFrame({
+      index: 0,
+      timestampMs: 0,
+      width: W,
+      height: H,
+      stride: STRIDE,
+      rgb: arRgb,
+      depthImage16Bits: {
+        width: W,
+        height: H,
+        millimeters: [0, ...new Array(W * H - 1).fill(1000)],
+      },
+    });
+
+    expect(frame.sceneDepthConfidence?.values[0]).toBe(0);
+    expect(frame.sceneDepthConfidence?.values[1]).toBe(1);
+    expect(() =>
+      arCoreDepthFrameToMobileSensorFrame({
+        index: 0,
+        timestampMs: 0,
+        width: W,
+        height: H,
+        stride: STRIDE,
+        rgb: arRgb,
+        depthImage16Bits: {
+          width: 2,
+          height: 2,
+          millimeters: [500, 500, 500, 500],
+        },
+        rawDepthConfidenceImage: {
+          width: 4,
+          height: 4,
+          values: new Array(W * H).fill(255),
+        },
+      })
+    ).toThrow(/dimensions must match depthImage16Bits/);
   });
 });

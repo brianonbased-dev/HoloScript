@@ -493,6 +493,14 @@ export function emitDepthScanSetup(compiler: AndroidCompiler, composition: HoloC
   compiler.indentLevel++;
   compiler.emit('val session = arFragment.arSceneView.session ?: return');
   compiler.emit('val config = session.config');
+  compiler.emit('if (!session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {');
+  compiler.indentLevel++;
+  compiler.emit(
+    'android.util.Log.w("HoloScript", "Depth scanner unavailable: ARCore DepthMode.AUTOMATIC is not supported on this device")'
+  );
+  compiler.emit('return');
+  compiler.indentLevel--;
+  compiler.emit('}');
   compiler.emit('config.depthMode = Config.DepthMode.AUTOMATIC');
   compiler.emit('session.configure(config)');
   compiler.emit('android.util.Log.d("HoloScript", "Depth scanner: DepthMode.AUTOMATIC enabled")');

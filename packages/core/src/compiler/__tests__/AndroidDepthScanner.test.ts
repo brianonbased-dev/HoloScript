@@ -102,6 +102,9 @@ describe('AndroidCompiler — Depth Scanner (M.010.02b)', () => {
         objects: [createObject('Scanner', ['depth_scan'])],
       });
       const result = compiler.compile(composition);
+      expect(result.activityFile).toContain(
+        'session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)'
+      );
       expect(result.activityFile).toContain('config.depthMode = Config.DepthMode.AUTOMATIC');
       expect(result.activityFile).toContain('session.configure(config)');
     });
