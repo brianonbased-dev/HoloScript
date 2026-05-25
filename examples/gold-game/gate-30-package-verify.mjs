@@ -33,7 +33,9 @@ const ok = (cond, label) => { if (cond) passed++; else fails.push(label); };
 
 // Package twice into two separate temp dirs to prove determinism + reproducibility.
 function packageInto(dest) {
-  execFileSync(process.execPath, [join(here, 'gate-30-package.mjs'), '--dest', dest],
+  // --no-fleet-boot: never touch the real D:/GOLD/fleet-boot during verification;
+  // the dedicated Gate-40-sync block below tests fleet-boot into a TEMP home.
+  execFileSync(process.execPath, [join(here, 'gate-30-package.mjs'), '--dest', dest, '--no-fleet-boot'],
     { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'] });
   return JSON.parse(readFileSync(join(here, 'GATE-30-SHIP-PACKAGING-receipt.json'), 'utf8'));
 }
@@ -102,7 +104,7 @@ try {
   const tmpHomeRoot = mkdtempSync(join(tmpdir(), 'goldgame-home-'));
   const tmpHome = join(tmpHomeRoot, 'gold-game'); // its parent (tmpHomeRoot) exists → packager will sync
   try {
-    execFileSync(process.execPath, [join(here, 'gate-30-package.mjs'), '--dest', tmpDrive],
+    execFileSync(process.execPath, [join(here, 'gate-30-package.mjs'), '--dest', tmpDrive, '--no-fleet-boot'],
       { cwd: repo, env: { ...process.env, GOLD_PRODUCT_HOME: tmpHome }, stdio: ['ignore', 'pipe', 'pipe'] });
     const rh = JSON.parse(readFileSync(join(here, 'GATE-30-SHIP-PACKAGING-receipt.json'), 'utf8'));
     ok(rh.result === 'VERIFIED', 'packager VERIFIED with product-home sync enabled');
@@ -121,6 +123,39 @@ try {
     rmSync(tmpHomeRoot, { recursive: true, force: true });
   }
 
+  // 11. GATE 40 SYNC — the drive plug-in fleet-boot is kept in sync from the gated
+  //     source. Point GOLD_FLEET_BOOT_HOME at a TEMP root (never the real D:/GOLD/
+  //     fleet-boot); assert code is byte-proven, manifest is SEEDED when absent, and
+  //     PRESERVED (not clobbered) when the user has customized it (their budget cap).
+  const tmpDrive2 = mkdtempSync(join(tmpdir(), 'goldgame-fbdrive-'));
+  const tmpFbRoot = mkdtempSync(join(tmpdir(), 'goldgame-fb-'));
+  const tmpFb = join(tmpFbRoot, 'fleet-boot'); // parent exists → packager will sync
+  try {
+    const runFb = () => {
+      execFileSync(process.execPath, [join(here, 'gate-30-package.mjs'), '--dest', tmpDrive2, '--no-product-home'],
+        { cwd: repo, env: { ...process.env, GOLD_FLEET_BOOT_HOME: tmpFb }, stdio: ['ignore', 'pipe', 'pipe'] });
+      return JSON.parse(readFileSync(join(here, 'GATE-30-SHIP-PACKAGING-receipt.json'), 'utf8'));
+    };
+    const fb1 = runFb();
+    ok(fb1.result === 'VERIFIED', 'packager VERIFIED with fleet-boot sync enabled');
+    ok(fb1.fleetBoot && fb1.fleetBoot.synced === true, 'fleet-boot reported synced');
+    ok((fb1.fleetBoot?.codeFiles || []).length >= 2 && fb1.fleetBoot.codeFiles.every((f) => f.deployedMatches === true),
+      'fleet-boot code files deployed byte-equal to source');
+    ok(/seeded/.test(fb1.fleetBoot?.manifest || ''), `fleet-manifest seeded when absent (${fb1.fleetBoot?.manifest})`);
+    ok(existsSync(join(tmpFb, 'gold-fleet-boot.mjs')) && existsSync(join(tmpFb, 'PLUG-IN-START.bat')) && existsSync(join(tmpFb, 'fleet-manifest.json')),
+      'fleet-boot files materialized on disk');
+    // user customizes the manifest (e.g. sets a cloud budget cap) → must be PRESERVED
+    const { writeFileSync } = await import('node:fs');
+    writeFileSync(join(tmpFb, 'fleet-manifest.json'), '{"USER":"my-budget-cap"}');
+    const fb2 = runFb();
+    ok(/preserved/.test(fb2.fleetBoot?.manifest || ''), `fleet-manifest preserved when user-customized (${fb2.fleetBoot?.manifest})`);
+    ok(readFileSync(join(tmpFb, 'fleet-manifest.json'), 'utf8').includes('my-budget-cap'),
+      'user budget-cap config survived the re-sync (not clobbered)');
+  } finally {
+    rmSync(tmpDrive2, { recursive: true, force: true });
+    rmSync(tmpFbRoot, { recursive: true, force: true });
+  }
+
 } finally {
   rmSync(tmpA, { recursive: true, force: true });
   rmSync(tmpB, { recursive: true, force: true });
@@ -128,7 +163,7 @@ try {
   // reflects D:/GOLD-GAME (the verifier's temp packagings overwrite it as a side effect).
   // --dry-run regenerates the receipt with the real default dest without re-copying.
   try {
-    execFileSync(process.execPath, [join(here, 'gate-30-package.mjs')],
+    execFileSync(process.execPath, [join(here, 'gate-30-package.mjs'), '--no-fleet-boot'],
       { cwd: repo, stdio: ['ignore', 'ignore', 'ignore'] });
   } catch { /* if the real deploy target is unavailable, leave the temp receipt */ }
 }
