@@ -35,6 +35,32 @@ cat > "$HOOK_PATH" <<'HOOK_EOF'
 # Lints STAGED FILES ONLY. Auto-fixes what it can.
 # Skip: git commit --no-verify  |  SKIP_HOOKS=1 git commit
 
+# --- Frozen primary-checkout commit guard (GitHub-bottleneck fix 2026-05-25) ---
+# This checkout is frozen for PUSH (see .git/hooks/pre-push), but nothing blocked
+# COMMITS — so push-intended work committed directly here STRANDED (53+ commits on
+# main AND codex/* branches on 2026-05-24/25; the primary has diverged+been archived
+# 3x: see archive/primary-main-divergent-*). Block commits to push-intended branches
+# (main, codex/*) from the primary root and redirect to a worktree (which CAN push).
+# Local-scratch patterns (wip/*, archive/*, backup-*) are allowed. Worktrees have a
+# different root so their commits are unaffected. Runs BEFORE the agent-env bypass so
+# automated agents (Codex — the actor that stranded the work) are caught too.
+__fm_root="$(git rev-parse --show-toplevel 2>/dev/null | tr '\\' '/' | tr '[:upper:]' '[:lower:]')"
+__fm_branch="$(git symbolic-ref --quiet --short HEAD 2>/dev/null || echo detached)"
+case "$__fm_branch" in
+    main|codex/*) __fm_blocked=1 ;;
+    *) __fm_blocked=0 ;;
+esac
+if [ "$__fm_root" = "c:/users/josep/documents/github/holoscript" ] && [ "$__fm_blocked" = "1" ] && [ "${FROZEN_MAIN_ALLOW:-}" != "1" ]; then
+    echo "[frozen-primary] BLOCKED: commit to '$__fm_branch' in the frozen primary checkout." >&2
+    echo "  Push is frozen here, so commits to main/codex/* STRAND and need manual rescue." >&2
+    echo "  Do pushable work in a clean worktree instead (worktrees are NOT frozen):" >&2
+    echo "    git worktree add .scratch/<task>-\$(date +%Y%m%d-%H%M) -b codex/<task> origin/main" >&2
+    echo "    # ...work, commit, then: git push origin codex/<task>" >&2
+    echo "  Local-scratch branches (wip/*, archive/*, backup-*) are allowed here." >&2
+    echo "  Override (discouraged, only after rescue/reset): FROZEN_MAIN_ALLOW=1 git commit ..." >&2
+    exit 1
+fi
+
 if [ "$SKIP_HOOKS" = "1" ] || [ "$HOLODAEMON_SKIP_HOOKS" = "1" ] || [ "$HOLODAEMON_ACTIVE" = "1" ] || [ "$COPILOT_AGENT" = "1" ] || [ "$GITHUB_COPILOT_AGENT" = "1" ] || [ "$IDE_AGENT" = "1" ]; then
     echo "[pre-commit] Quality gates BYPASSED (SKIP_HOOKS or agent env detected). Lint, secrets, and deps NOT checked."
     exit 0
