@@ -110,6 +110,15 @@ ok('negative control: tampering one coordinate flips the terrain digest', tamper
 const droppedDigest = terrainDigest(coords, edges.slice(1));
 ok('negative control: dropping one lineage cable flips the terrain digest', droppedDigest !== digest);
 
+// (6) playable in-repo viewer artifact — openable proof bound to the gate (F.074)
+const viewerPath = join(here, 'knowledge-mountain.html');
+const viewer = existsSync(viewerPath) ? readFileSync(viewerPath, 'utf8') : '';
+ok('playable viewer artifact present (knowledge-mountain.html)', viewer.length > 0, `${viewer.length} bytes`);
+ok('viewer inlines terrain data (self-contained — no external coords fetch)',
+   viewer.includes('const D =') && !viewer.includes('fetch('));
+const viewerIdRefs = (viewer.match(/[WPG]\.GOLD\./g) || []).length;
+ok('viewer embeds the real vault entries', viewerIdRefs >= 100, `${viewerIdRefs} id refs`);
+
 // ── emit receipt ──
 const passed = checks.every((c) => c.pass);
 const receipt = {
@@ -126,6 +135,7 @@ const receipt = {
   tierElevation: tierY,
   terrainDigest: digest,
   source: 'D:/GOLD/tools/knowledge-mountain (build_mountain.py + gen_holo.py)',
+  playableViewer: 'knowledge-mountain.html (self-contained data; three.js via CDN — not air-gapped, unlike the drive-build self-proving boot)',
   negativeControl: { coordinateTamperFlips: tamperDigest !== digest, edgeDropFlips: droppedDigest !== digest },
   checks: checks.map((c) => ({ name: c.name, pass: c.pass, detail: c.detail })),
 };

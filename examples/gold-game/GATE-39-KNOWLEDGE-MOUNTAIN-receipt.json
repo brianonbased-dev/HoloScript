@@ -23,6 +23,7 @@
   },
   "terrainDigest": "b265c0993adbd8cf4ae60a362e598fb43aabd9b7989c717beb89615a06e75cdf",
   "source": "D:/GOLD/tools/knowledge-mountain (build_mountain.py + gen_holo.py)",
+  "playableViewer": "knowledge-mountain.html (self-contained data; three.js via CDN — not air-gapped, unlike the drive-build self-proving boot)",
   "negativeControl": {
     "coordinateTamperFlips": true,
     "edgeDropFlips": true
@@ -97,6 +98,21 @@
       "name": "negative control: dropping one lineage cable flips the terrain digest",
       "pass": true,
       "detail": ""
+    },
+    {
+      "name": "playable viewer artifact present (knowledge-mountain.html)",
+      "pass": true,
+      "detail": "48471 bytes"
+    },
+    {
+      "name": "viewer inlines terrain data (self-contained — no external coords fetch)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "viewer embeds the real vault entries",
+      "pass": true,
+      "detail": "422 id refs"
     }
   ]
 }
