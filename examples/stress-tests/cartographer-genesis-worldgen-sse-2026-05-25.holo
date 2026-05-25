@@ -1,0 +1,284 @@
+/**
+ * The Cartographer's Table (A-009 stress-test 2026-05-25)
+ *
+ * Exercises two zero-coverage trait combinations:
+ *   @world_generator    — generates 3D island geometry from text prompts via the
+ *                         sovereign-3d engine; outputs Gaussian splat + mesh pair.
+ *   @screen_space_effects — full SSR + SSAO + film grain + depth-of-field stack
+ *                           applied to the obsidian chamber.
+ *
+ * Combined with well-exercised traits:
+ *   @glowing            — cartographic interface panels and island frames
+ *   @animated           — table surface pulses as generation runs
+ *   @particle           — data-dust scatters as each island crystallizes
+ *   @physics            — generated island chunks obey gravity, can shatter
+ *   @bloom_reactive     — bloom spikes at generation completion event
+ *
+ * Scene story: a circular obsidian chamber, forty meters across. In the center
+ * stands a low hexagonal table — the Cartographer's Table — ringed by six hovering
+ * input panels. An operator presses a rune on panel three and speaks a biome:
+ * "volcanic archipelago, low tide, active vents." The table surface blooms white.
+ * Data-dust rises in a slow vortex — particles of shredded 3D Gaussian data,
+ * recycled from the last generation run. Then the first island emerges: a basalt
+ * stack four meters tall, steaming at the waterline, surrounded by smaller islets.
+ * Each island floats at eye level. The operator can reach in and shatter one against
+ * the table edge — physics fragments scatter, then the table absorbs them back into
+ * the next prompt.
+ *
+ * The chamber floor is polished black obsidian. SSR reflects the floating islands
+ * perfectly. SSAO deepens the cracks between basalt columns. Depth of field pulls
+ * the distant chamber wall soft, focusing the eye on the islands. Film grain recalls
+ * the linen texture of early cartography.
+ */
+
+composition "CartographersTable" {
+
+  environment {
+    skybox: "none"
+    background_color: "#040408"
+    ambient_light: 0.06
+    ambient_color: "#1a1030"
+    shadows: true
+    shadow_quality: "high"
+    hdr: true
+    tone_mapping: "aces"
+    exposure: 1.1
+  }
+
+  object "CeilingRing" {
+    type: "ring_light"
+    position: [0, 18, 0]
+    inner_radius: 12.0
+    outer_radius: 14.0
+    color: "#6040c8"
+    intensity: 0.6
+  }
+
+  object "TableGlow" {
+    type: "point_light"
+    position: [0, 0.8, 0]
+    color: "#c0d8ff"
+    intensity: 1.4
+    distance: 12
+    decay: 2
+  }
+
+  scene_trait @screen_space_effects {
+    ssao: {
+      radius: 0.6
+      bias: 0.012
+      samples: 32
+      intensity: 0.85
+      blur_radius: 3
+    }
+    ssr: {
+      max_roughness: 0.08
+      step_count: 48
+      thickness: 0.12
+      binary_search_iterations: 6
+      fade_start: 0.88
+      fade_end: 1.0
+    }
+    taa: {
+      jitter_spread: 0.5
+      feedback: 0.92
+      sharpness: 0.25
+      motion_rejection: true
+    }
+    depth_of_field: {
+      focus_distance: 4.5
+      aperture: 2.8
+      focal_length: 85
+      bokeh_shape: "hexagon"
+      samples: 16
+    }
+    film_grain: {
+      intensity: 0.04
+      size: 1.2
+      colored: false
+    }
+    output_format: "hdr"
+    tonemap: "aces"
+  }
+
+  object "ObsidianFloor" {
+    geometry: "cylinder"
+    position: [0, -0.05, 0]
+    scale: [40, 0.1, 40]
+    material: {
+      baseColor: "#080808"
+      metallic: 0.98
+      roughness: 0.03
+      normalMap: "textures/obsidian_micro_normal.png"
+    }
+    @collidable { friction: 0.05 }
+    castShadow: false
+    receiveShadow: true
+  }
+
+  object "ChamberWall" {
+    geometry: "cylinder"
+    position: [0, 10, 0]
+    scale: [40, 20, 40]
+    material: {
+      baseColor: "#0c0c14"
+      metallic: 0.4
+      roughness: 0.88
+    }
+    face: "interior"
+  }
+
+  object "TableBase" {
+    geometry: "cylinder"
+    position: [0, 0, 0]
+    scale: [2.0, 0.85, 2.0]
+    material: {
+      baseColor: "#1a1a2c"
+      metallic: 0.85
+      roughness: 0.22
+    }
+    @collidable { friction: 0.9 }
+    castShadow: true
+    receiveShadow: true
+  }
+
+  object "TableSurface" {
+    geometry: "cylinder"
+    position: [0, 0.86, 0]
+    scale: [2.1, 0.04, 2.1]
+    material: {
+      baseColor: "#101020"
+      metallic: 0.92
+      roughness: 0.05
+    }
+    emissive: "#2040a8"
+    emissiveIntensity: 0.4
+    @glowing { color: "#4060c8", radius: 1.8, falloff: "exponential" }
+    @animated {
+      type: "pulse"
+      speed: 1.2
+      amplitude: 0.18
+      driven_by_event: "world:generation_progress"
+    }
+    @bloom_reactive {
+      base_intensity: 0.4
+      peak_intensity: 3.8
+      pulse_period_s: 0.5
+      trigger_event: "world:generation_complete"
+      pulse_shape: "sharp_decay"
+      color_shift: "#a0c0ff"
+    }
+    castShadow: false
+    receiveShadow: true
+  }
+
+  template "InputPanel" {
+    geometry: "plane"
+    scale: [0.6, 0.4, 0.01]
+    material: {
+      baseColor: "#0a0a1a"
+      metallic: 0.6
+      roughness: 0.35
+    }
+    emissive: "#2030a0"
+    emissiveIntensity: 0.6
+    @glowing { color: "#4060c8", radius: 0.4 }
+    @clickable
+    @hoverable
+  }
+
+  object "Panel1" using "InputPanel" { position: [ 0.0,  1.5,  2.8], rotation: [15, 0, 0] }
+  object "Panel2" using "InputPanel" { position: [ 2.4,  1.5,  1.4], rotation: [15, 0, -60] }
+  object "Panel3" using "InputPanel" { position: [ 2.4,  1.5, -1.4], rotation: [15, 0, -120] }
+  object "Panel4" using "InputPanel" { position: [ 0.0,  1.5, -2.8], rotation: [15, 0, 180] }
+  object "Panel5" using "InputPanel" { position: [-2.4,  1.5, -1.4], rotation: [15, 0, 120] }
+  object "Panel6" using "InputPanel" { position: [-2.4,  1.5,  1.4], rotation: [15, 0, 60] }
+
+  object "IslandGenerator" {
+    position: [0, 1.2, 0]
+    @world_generator {
+      prompt: "volcanic basalt archipelago at low tide, active steam vents, dramatic erosion, tidepools at base, overcast sky"
+      engine: "sovereign-3d"
+      format: "both"
+      quality: "high"
+      auto_render: true
+      seed: 20260525
+      navEnabled: false
+      interactiveMode: true
+    }
+    @glowing { color: "#80a0ff", radius: 2.0, falloff: "exponential" }
+    @animated {
+      type: "float"
+      speed: 0.25
+      amplitude: 0.12
+      axis: [0, 1, 0]
+    }
+    @physics { mass: 120.0, gravity_scale: 0.3 }
+    @collidable { layer: "island", restitution: 0.1, friction: 0.8 }
+    @grabbable
+  }
+
+  object "IslandGenerator2" {
+    position: [1.4, 1.4, 1.2]
+    @world_generator {
+      prompt: "small basalt sea stack, wave-carved arch, tidal pools, sparse lichen"
+      engine: "sovereign-3d"
+      format: "3dgs"
+      quality: "medium"
+      auto_render: true
+      seed: 20260524
+    }
+    @glowing { color: "#60c0a0", radius: 0.8 }
+    @animated { type: "float", speed: 0.18, amplitude: 0.08 }
+    @physics { mass: 40.0, gravity_scale: 0.3 }
+  }
+
+  object "DataDust" {
+    position: [0, 1.5, 0]
+    @particle {
+      count: 3600
+      shape: "vortex"
+      radius: 2.2
+      height: 3.0
+      vortex_speed: 0.6
+      velocity: { min: 0.02, max: 0.18 }
+      lifetime: { min: 2.5, max: 8.0 }
+      size: { start: 0.018, end: 0.0 }
+      color: {
+        start: "#8090ff"
+        mid: "#40c0a0"
+        end: "#ff800000"
+      }
+      color_over_lifetime: true
+      blend: "additive"
+      emit_rate: 280
+      emit_burst_on_event: "world:generation_started"
+      burst_count: 800
+    }
+  }
+
+  object "ShatterEffect" {
+    position: [0, 0.1, 0]
+    @particle {
+      count: 200
+      shape: "point"
+      velocity: { min: 0.8, max: 3.2 }
+      velocity_direction: "hemisphere_up"
+      lifetime: { min: 0.3, max: 1.2 }
+      size: { start: 0.04, end: 0.0 }
+      color: { start: "#a0c0ff", end: "#202040" }
+      emit_on_event: "island:shatter"
+      burst: true
+      gravity_scale: 2.4
+      blend: "additive"
+    }
+  }
+
+  post_processing {
+    bloom: { intensity: 0.9, threshold: 0.5, radius: 0.7 }
+    tone_mapping: "aces"
+    exposure: 1.1
+    chromatic_aberration: { intensity: 0.008 }
+    vignette: { intensity: 0.22, radius: 0.68 }
+  }
+}
