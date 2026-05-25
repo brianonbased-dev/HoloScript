@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "comment": "GOLD drive fleet-boot manifest. When the GOLD drive is plugged in, gold-fleet-boot.mjs reads this and starts the enabled tiers in order. Cloud tier is DISABLED by default and HARD-GATED on a budget cap.",
+  "tiers": {
+    "offline": {
+      "enabled": true,
+      "desc": "open the GOLD game launcher (no deps, no spend)",
+      "launcher": "auto"
+    },
+    "local": {
+      "enabled": true,
+      "desc": "live vault server + local fleet supervisor + orchestrator health (no spend)",
+      "server": "auto",
+      "serverPort": 8787,
+      "healthMonitor": true,
+      "orchestratorHealth": "https://mcp-orchestrator-production-45f9.up.railway.app/health"
+    },
+    "cloud": {
+      "enabled": false,
+      "desc": "wake the vast.ai GPU fleet (SPENDS MONEY). Disabled by default; refuses to run without a positive budget cap.",
+      "budgetCapUsd": 0,
+      "vastBootstrap": "auto",
+      "requireKeys": ["VAST_API_KEY"]
+    }
+  },
+  "paths": {
+    "goldGameBuild": "auto",
+    "aiEcosystemScripts": "auto"
+  },
+  "runtime": {
+    "pidDir": ".fleet-run"
+  }
+}
