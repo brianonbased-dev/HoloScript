@@ -1151,12 +1151,32 @@ export interface AccessibilityContext {
   setHighContrast(enabled: boolean): void;
 }
 
+export type ARTrackingState = 'not_available' | 'limited' | 'normal' | 'lost';
+
+export interface ARSessionPose {
+  anchorId?: string;
+  target?: string;
+  position: Vector3;
+  rotation?: Vector3;
+  confidence?: number;
+  timestampMs?: number;
+  trackingState?: ARTrackingState;
+  source?: string;
+}
+
+export interface ARSessionContext {
+  readonly available: boolean;
+  getPose(nodeId?: string): ARSessionPose | null;
+  getAnchor?(anchorId: string): ARSessionPose | null;
+}
+
 export interface TraitContext {
   vr: VRContext;
   physics: PhysicsContext;
   audio: AudioContext;
   haptics: HapticsContext;
   accessibility?: AccessibilityContext;
+  arSession?: ARSessionContext;
   emit(event: string, payload?: unknown): void;
   getState(): Record<string, unknown>;
   setState(updates: Record<string, unknown>): void;
@@ -6405,7 +6425,7 @@ export declare function verifySubgridAttestation(attestation: SubgridAttestation
 export declare function verifySubgridAttestationAsync(attestation: SubgridAttestation, params: SubgridParams): Promise<VerifyResult>;
 `;
 
-const coordinatorsDTS = `/** @holoscript/core/coordinators — Pattern E consumer-bus infrastructure (5 buses) */
+const coordinatorsDTS = `/** @holoscript/core/coordinators — Pattern E consumer-bus infrastructure */
 
 // --- Shared duck-typed event source ---
 export interface CoordinatorEventSource {
@@ -6623,6 +6643,45 @@ export declare class NeuralForgeCoordinator {
   getAllStates(): NeuralNodeState[];
   isConnected(nodeId: string): boolean;
   getStats(): NeuralForgeStats;
+  reset(): void;
+  readonly subscribedEventCount: number;
+}
+
+// --- ObjectTrackingCoordinator ---
+export type ObjectTrackingVector3 = [number, number, number];
+export type ObjectTrackingStatus =
+  | 'initialized'
+  | 'tracking'
+  | 'lost'
+  | 'recovering'
+  | 'removed';
+export interface ObjectTrackingState {
+  nodeId: string;
+  target?: string;
+  anchorId: string | null;
+  status: ObjectTrackingStatus;
+  position: ObjectTrackingVector3 | null;
+  rotation: ObjectTrackingVector3 | null;
+  confidence: number;
+  recoveryAttempts: number;
+  source?: string;
+  timestampMs: number | null;
+  updatedAt: number;
+}
+export interface ObjectTrackingStats {
+  total: number;
+  tracking: number;
+  lost: number;
+  recovering: number;
+  removed: number;
+}
+export type ObjectTrackingListener = (state: ObjectTrackingState) => void;
+export declare class ObjectTrackingCoordinator {
+  constructor(source: CoordinatorEventSource);
+  subscribe(listener: ObjectTrackingListener): () => void;
+  getTrackingState(nodeId: string): ObjectTrackingState | undefined;
+  getAllStates(): ObjectTrackingState[];
+  getStats(): ObjectTrackingStats;
   reset(): void;
   readonly subscribedEventCount: number;
 }

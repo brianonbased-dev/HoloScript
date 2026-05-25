@@ -14,7 +14,7 @@
  *   - SessionPresenceCoordinator — SharePlay + SpatialVoice + WorldHeartbeat + Messaging (26 events) ✅ shipped
  *   - NeuralForgeCoordinator     — NeuralForgeTrait synthesis lifecycle (5 events) ✅ shipped (task_1777423899630_nsna)
  *
- * **Pattern E status (2026-05-01)**: All 5 consumer-buses shipped.
+ * **Pattern E status (2026-05-01)**: Core consumer-buses are shipped and still growing.
  * Closes the systemic emit-without-listener gap surfaced by /stub-audit
  * Phase 3.5 — every void-event vocabulary now has a unified consumer
  * surface and downstream packages can subscribe to state instead of
@@ -44,3 +44,4 @@ export * from './SecurityEventBus';
 export * from './GenerativeJobMonitor';
 export * from './SessionPresenceCoordinator';
 export * from './NeuralForgeCoordinator';
+export * from './ObjectTrackingCoordinator';

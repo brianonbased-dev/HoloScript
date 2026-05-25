@@ -176,12 +176,33 @@ export interface HostCapabilities {
   deviceProbe?: HostDeviceProbeCapabilities;
 }
 
+export type ARTrackingState = 'not_available' | 'limited' | 'normal' | 'lost';
+
+export interface ARSessionPose {
+  anchorId?: string;
+  target?: string;
+  position: Vector3;
+  rotation?: Vector3;
+  confidence?: number;
+  timestampMs?: number;
+  trackingState?: ARTrackingState;
+  source?: string;
+}
+
+export interface ARSessionContext {
+  readonly available: boolean;
+  getPose: (nodeId?: string) => ARSessionPose | null;
+  getAnchor?: (anchorId: string) => ARSessionPose | null;
+}
+
 export interface TraitContext {
   vr: VRContext;
   physics: PhysicsContext;
   audio: AudioContext;
   haptics: HapticsContext;
   accessibility?: AccessibilityContext;
+  /** External AR/WebXR session pose provider. Traits consume poses; they do not compute anchors. */
+  arSession?: ARSessionContext;
   camera?: {
     position: Vector3;
     rotation?: Vector3;
