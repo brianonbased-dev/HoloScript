@@ -149,9 +149,9 @@ const KNOWN_DEFAULTS: DefaultEntry[] = [
   {
     keywords: ['test failing', 'failing test', 'skip test', '.skip', '.only'],
     layer: 'founder-default',
-    ruling: 'Fix if yours, investigate if pre-existing (VRChatCompiler = known).',
+    ruling: 'Fix if yours, investigate if pre-existing.',
     citation: 'founder-defaults table — "Test failing and not mine?"',
-    action: 'Investigate the failure. Do not skip or .only unless it is the known VRChatCompiler exception.',
+    action: 'Investigate the failure. Do not skip or .only; file complex pre-existing failures as tasks with evidence.',
   },
   {
     keywords: ['local service', 'production', 'localhost', 'dev service'],

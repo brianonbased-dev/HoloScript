@@ -12,8 +12,8 @@
  */
 
 export interface HoloObjectDecl {
-  traits?: Array<{ name: string; config?: Record<string, any> }>;
-  properties: Array<{ key: string; value: any }>;
+  traits?: Array<{ name: string; config?: Record<string, unknown> }>;
+  properties: Array<{ key: string; value: unknown }>;
 }
 
 export interface HoloComposition {
@@ -58,8 +58,10 @@ export interface QuiltCompilationResult {
   config: QuiltConfig;
   /** Per-tile camera parameters for rendering */
   tiles: QuiltTile[];
-  /** R3F/Three.js code for rendering the quilt */
+  /** Browser delegate code for rendering the quilt through BrowserQuiltRenderer */
   rendererCode: string;
+  /** Runtime that owns the actual per-tile render loop. */
+  rendererRuntime: 'BrowserQuiltRenderer';
   /** Metadata for Looking Glass Bridge SDK */
   metadata: {
     quiltAspect: number;
@@ -141,6 +143,7 @@ export class QuiltCompiler {
       config,
       tiles,
       rendererCode,
+      rendererRuntime: 'BrowserQuiltRenderer',
       metadata: {
         quiltAspect: config.resolution[0] / config.resolution[1],
         tileWidth,
@@ -168,7 +171,8 @@ export class QuiltCompiler {
         if (typeof p['views'] === 'number') explicit.views = p['views'];
         if (typeof p['columns'] === 'number') explicit.columns = p['columns'];
         if (typeof p['rows'] === 'number') explicit.rows = p['rows'];
-        if (Array.isArray(p['resolution'])) explicit.resolution = p['resolution'] as [number, number];
+        if (Array.isArray(p['resolution']))
+          explicit.resolution = p['resolution'] as [number, number];
         if (typeof p['baseline'] === 'number') explicit.baseline = p['baseline'];
         if (typeof p['device'] === 'string' && p['device'] in DEVICE_PRESETS) {
           config = {
@@ -232,7 +236,7 @@ export class QuiltCompiler {
   }
 
   /**
-   * Generate R3F/Three.js renderer code for the quilt camera rig.
+   * Generate browser delegate code for the real quilt renderer.
    */
   private generateRendererCode(
     composition: HoloComposition,
@@ -242,19 +246,20 @@ export class QuiltCompiler {
     const tileW = Math.floor(config.resolution[0] / config.columns);
     const tileH = Math.floor(config.resolution[1] / config.rows);
 
-    const sceneObjects = composition.objects.map((obj) => this.objectToJSX(obj)).join('\n      ');
-
     return `// QuiltCompiler output — ${config.views} views for ${config.device} Looking Glass
+// Renderer delegate: BrowserQuiltRenderer owns the real per-tile camera/render loop.
 // Tile grid: ${config.columns}x${config.rows} @ ${tileW}x${tileH}px each
 // Total resolution: ${config.resolution[0]}x${config.resolution[1]}
 
-import { useRef, useMemo } from 'react';
-import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
+import {
+  BrowserQuiltRenderer,
+  type HologramSourceKind,
+  type QuiltConfig,
+} from '@holoscript/engine/hologram';
 
-const QUILT_CONFIG = ${JSON.stringify(config, null, 2)};
+export const QUILT_CONFIG = ${JSON.stringify(config, null, 2)} satisfies QuiltConfig;
 
-const TILES = ${JSON.stringify(
+export const TILES = ${JSON.stringify(
       tiles.map((t) => ({
         index: t.index,
         col: t.column,
@@ -266,81 +271,28 @@ const TILES = ${JSON.stringify(
       2
     )};
 
-function QuiltCamera({ tileIndex, children }) {
-  const { gl, size } = useThree();
-  const cameraRef = useRef();
-  const tile = TILES[tileIndex];
+export const HOLOGRAM_COMPOSITION = ${JSON.stringify(composition, null, 2)};
 
-  useFrame(() => {
-    if (!cameraRef.current) return;
-    const cam = cameraRef.current;
-    cam.position[0] = tile.offset;
-    cam.projectionMatrix.elements[8] = tile.shear;
-    cam.updateProjectionMatrix();
+export async function renderQuiltBytes(input: {
+  depthMap: Float32Array;
+  normalMap: Float32Array;
+  width: number;
+  height: number;
+  media: Uint8Array;
+  sourceKind: HologramSourceKind;
+  frames?: number;
+}): Promise<Uint8Array> {
+  const renderer = new BrowserQuiltRenderer({
+    composition: HOLOGRAM_COMPOSITION,
+    overrides: QUILT_CONFIG,
+    path: 'auto',
   });
 
-  return (
-    <perspectiveCamera ref={cameraRef} fov={14} near={0.1} far={100}>
-      {children}
-    </perspectiveCamera>
-  );
-}
-
-function QuiltScene() {
-  return (
-    <group>
-      ${sceneObjects}
-    </group>
-  );
-}
-
-export function QuiltRenderer() {
-  const tileW = ${tileW};
-  const tileH = ${tileH};
-  const renderTarget = useMemo(() =>
-    new THREE.WebGLRenderTarget(${config.resolution[0]}, ${config.resolution[1]}),
-    []
-  );
-
-  return (
-    <Canvas gl={{ preserveDrawingBuffer: true }}>
-      <QuiltScene />
-    </Canvas>
-  );
+  return renderer.render({
+    ...input,
+    frames: input.frames ?? 1,
+  });
 }
 `;
-  }
-
-  /**
-   * Convert a HoloScript object to JSX for the quilt scene.
-   */
-  private objectToJSX(obj: HoloObjectDecl): string {
-    const getProp = (key: string) => obj.properties.find((p) => p.key === key)?.value;
-    const pos = getProp('position');
-    const rot = getProp('rotation');
-    const scale = getProp('scale');
-    const color = getProp('color') ?? '#888888';
-    const geo = getProp('geometry') ?? 'box';
-
-    const posStr = Array.isArray(pos) ? `[${pos.join(', ')}]` : '[0, 0, 0]';
-    const rotStr = Array.isArray(rot)
-      ? `[${rot.map((r: any) => (Number(r) * Math.PI) / 180).join(', ')}]`
-      : undefined;
-    const scaleStr = Array.isArray(scale) ? `[${scale.join(', ')}]` : undefined;
-
-    const geoMap: Record<string, string> = {
-      box: 'boxGeometry',
-      sphere: 'sphereGeometry',
-      cylinder: 'cylinderGeometry',
-      torus: 'torusGeometry',
-      plane: 'planeGeometry',
-    };
-
-    const geoTag = geoMap[geo as string] ?? 'boxGeometry';
-
-    return `<mesh position={${posStr}}${rotStr ? ` rotation={${rotStr}}` : ''}${scaleStr ? ` scale={${scaleStr}}` : ''}>
-        <${geoTag} />
-        <meshStandardMaterial color="${color}" />
-      </mesh>`;
   }
 }

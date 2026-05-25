@@ -48,6 +48,8 @@ import type {
   HoloObjectTrait,
   HoloObjectProperty,
   HoloValue,
+  HoloStatement,
+  HoloExpression,
 } from '../parser/HoloCompositionTypes';
 import { DialectRegistry } from './DialectRegistry';
 import {
@@ -56,7 +58,6 @@ import {
   CONNECTOR_PACKAGES,
   type KnownConnector,
 } from '../traits/constants';
-
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -82,6 +83,8 @@ interface RouteInfo {
   method: HttpMethod;
   path: string;
   handlerName: string;
+  handlerBody?: string;
+  handlerState?: Record<string, HoloValue>;
   middleware: string[];
   serviceName: string;
 }
@@ -114,7 +117,6 @@ interface ServiceInfo {
   deploy?: DeployConfig;
 }
 
-
 // ── Compiler ───────────────────────────────────────────────────────────────
 
 export class NodeServiceCompiler extends CompilerBase {
@@ -144,10 +146,7 @@ export class NodeServiceCompiler extends CompilerBase {
     agentToken: string,
     outputPath?: string
   ): Record<string, string> {
-    console.log('DEBUG: Composition:', JSON.stringify(composition, null, 2));
-
     this.validateCompilerAccess(agentToken, outputPath);
-
 
     // Reset state
     this.services = [];
@@ -190,7 +189,6 @@ export class NodeServiceCompiler extends CompilerBase {
       output['railway.json'] = this.emitRailwayConfig(railwayService.deploy);
     }
 
-
     // Generate package.json
     output['package.json'] = this.emitPackageJson(composition.name);
 
@@ -209,7 +207,6 @@ export class NodeServiceCompiler extends CompilerBase {
 
     return output;
   }
-
 
   // ── Extraction ─────────────────────────────────────────────────────────
 
@@ -231,7 +228,6 @@ export class NodeServiceCompiler extends CompilerBase {
         }
       }
     }
-
 
     // If no services found, create a default from composition name
     if (this.services.length === 0) {
@@ -257,10 +253,18 @@ export class NodeServiceCompiler extends CompilerBase {
 
   private hasServiceTraits(obj: HoloObjectDecl): boolean {
     if (!obj.traits) return false;
-    const serviceTraits = ['service', 'endpoint', 'http', 'handler', 'route', 'connector', 'env', 'deploy'];
+    const serviceTraits = [
+      'service',
+      'endpoint',
+      'http',
+      'handler',
+      'route',
+      'connector',
+      'env',
+      'deploy',
+    ];
     return obj.traits.some((t) => serviceTraits.includes(t.name));
   }
-
 
   private parseServiceBlock(block: HoloDomainBlock): ServiceInfo {
     const service: ServiceInfo = {
@@ -279,7 +283,6 @@ export class NodeServiceCompiler extends CompilerBase {
       service.envVars = this.extractEnvVars(block.traits, block.properties);
       service.deploy = this.extractDeploy(block.traits, block.properties);
     }
-
 
     // Extract routes from nested children
     if (block.children) {
@@ -309,11 +312,13 @@ export class NodeServiceCompiler extends CompilerBase {
     if (obj.traits) {
       const traitNames = obj.traits.map((t) => t.name);
       service.middleware = this.extractMiddlewareFromTraits(traitNames);
-      service.connectors = this.extractConnectors(traitNames, this.objectPropsToMap(obj.properties));
+      service.connectors = this.extractConnectors(
+        traitNames,
+        this.objectPropsToMap(obj.properties)
+      );
       service.envVars = this.extractEnvVars(traitNames, this.objectPropsToMap(obj.properties));
       service.deploy = this.extractDeploy(traitNames, this.objectPropsToMap(obj.properties));
     }
-
 
     // Extract route from object itself
     const route = this.extractRoute(obj, obj.name);
@@ -324,13 +329,19 @@ export class NodeServiceCompiler extends CompilerBase {
 
   private extractRoute(obj: HoloObjectDecl, serviceName: string): RouteInfo | null {
     const propMap = this.objectPropsToMap(obj.properties);
-    const traits = (obj.traits || []).map((t: HoloObjectTrait) => t.name);
+    const traitObjects = obj.traits || [];
+    const traits = traitObjects.map((t: HoloObjectTrait) => t.name);
+    const handlerTrait = this.findTrait(traitObjects, 'handler');
 
     // Look for @http or route properties
     const method =
       (this.resolveString(propMap.get('method'))?.toUpperCase() as HttpMethod) || 'GET';
     const path = this.resolveString(propMap.get('path')) || `/${this.toKebab(obj.name)}`;
-    const handlerName = this.resolveString(propMap.get('handler')) || this.toCamelCase(obj.name);
+    const handlerName =
+      this.resolveString(propMap.get('handler')) ||
+      this.resolveString(this.readTraitConfig(handlerTrait, 'name', 'handler')) ||
+      this.resolveString(this.readTraitConfig(handlerTrait, '_arg0')) ||
+      this.toCamelCase(obj.name);
 
     // Only generate route if there are http-related properties or traits
     const hasHttpInfo =
@@ -344,6 +355,8 @@ export class NodeServiceCompiler extends CompilerBase {
       method,
       path,
       handlerName,
+      handlerBody: this.extractRouteHandlerBody(obj, propMap, handlerName),
+      handlerState: this.extractRouteState(obj),
       middleware: this.extractMiddlewareFromTraits(traits),
       serviceName,
     };
@@ -352,14 +365,137 @@ export class NodeServiceCompiler extends CompilerBase {
   private extractInlineRoute(block: HoloDomainBlock): RouteInfo | null {
     const props = block.properties;
     if (!props['method'] && !props['path']) return null;
+    const handlerName = this.resolveString(props['handler']) || this.toCamelCase(block.name);
 
     return {
       method: (this.resolveString(props['method'])?.toUpperCase() as HttpMethod) || 'GET',
       path: this.resolveString(props['path']) || `/${this.toKebab(block.name)}`,
-      handlerName: this.resolveString(props['handler']) || this.toCamelCase(block.name),
+      handlerName,
+      handlerBody: this.extractBlockHandlerBody(block, handlerName),
       middleware: [],
       serviceName: block.name,
     };
+  }
+
+  private extractRouteHandlerBody(
+    obj: HoloObjectDecl,
+    propMap: Map<string, HoloValue>,
+    handlerName: string
+  ): string | undefined {
+    const directBody = this.handlerBodyFromValue(
+      this.readMapValue(propMap, 'handlerBody', 'handler_body', 'body')
+    );
+    if (directBody) return directBody;
+
+    const handlerTrait = this.findTrait(obj.traits || [], 'handler');
+    const traitBody = this.handlerBodyFromValue(
+      this.readTraitConfig(handlerTrait, 'body', 'code', 'implementation')
+    );
+    if (traitBody) return traitBody;
+
+    for (const directive of obj.directives ?? []) {
+      const body = this.handlerBodyFromDirective(directive, handlerName);
+      if (body) return body;
+    }
+
+    return this.handlerBodyFromEventHandlers(
+      (obj as { eventHandlers?: Array<{ event?: string; name?: string; body?: unknown }> })
+        .eventHandlers,
+      handlerName
+    );
+  }
+
+  private extractBlockHandlerBody(block: HoloDomainBlock, handlerName: string): string | undefined {
+    const directBody = this.handlerBodyFromValue(
+      this.readRecordValue(block.properties, 'handlerBody', 'handler_body', 'body')
+    );
+    if (directBody) return directBody;
+
+    return this.handlerBodyFromEventHandlers(block.eventHandlers, handlerName);
+  }
+
+  private handlerBodyFromDirective(directive: unknown, handlerName: string): string | undefined {
+    if (!directive || typeof directive !== 'object') return undefined;
+    const record = directive as Record<string, unknown>;
+    const name = String(record['name'] ?? record['handlerName'] ?? '');
+    const type = String(record['type'] ?? '');
+
+    if (type === 'method' && name === handlerName) {
+      return this.handlerBodyFromValue(record['body']);
+    }
+    if (type === 'trait' && name === 'handler') {
+      return this.handlerBodyFromValue(
+        this.readRecordValue((record['config'] as Record<string, unknown>) ?? {}, 'body', 'code')
+      );
+    }
+    return undefined;
+  }
+
+  private handlerBodyFromEventHandlers(
+    handlers: Array<{ event?: string; name?: string; body?: unknown }> | undefined,
+    handlerName: string
+  ): string | undefined {
+    for (const handler of handlers ?? []) {
+      if (handler.event === handlerName || handler.name === handlerName) {
+        const body = this.handlerBodyFromValue(handler.body);
+        if (body) return body;
+      }
+    }
+    return undefined;
+  }
+
+  private handlerBodyFromValue(value: unknown): string | undefined {
+    if (value === undefined || value === null) return undefined;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : undefined;
+    }
+    if (Array.isArray(value)) {
+      const lines = value
+        .map((statement) => this.emitHoloStatement(statement as HoloStatement))
+        .filter((line): line is string => Boolean(line));
+      return lines.length > 0 ? lines.join('\n') : undefined;
+    }
+    if (typeof value === 'object') {
+      const record = value as Record<string, unknown>;
+      return this.handlerBodyFromValue(
+        record['body'] ?? record['code'] ?? record['implementation'] ?? record['value']
+      );
+    }
+    return undefined;
+  }
+
+  private extractRouteState(obj: HoloObjectDecl): Record<string, HoloValue> | undefined {
+    if (!obj.state?.properties?.length) return undefined;
+
+    const state: Record<string, HoloValue> = {};
+    for (const prop of obj.state.properties) {
+      state[prop.key] = prop.value;
+    }
+    return state;
+  }
+
+  private findTrait(traits: HoloObjectTrait[], name: string): HoloObjectTrait | undefined {
+    return traits.find((trait) => trait.name.replace(/^@/, '') === name);
+  }
+
+  private readTraitConfig(trait: HoloObjectTrait | undefined, ...keys: string[]): unknown {
+    if (!trait?.config) return undefined;
+    return this.readRecordValue(trait.config as Record<string, unknown>, ...keys);
+  }
+
+  private readMapValue(map: Map<string, unknown>, ...keys: string[]): unknown {
+    for (const key of keys) {
+      if (map.has(key)) return map.get(key);
+    }
+    return undefined;
+  }
+
+  private readRecordValue(record: Record<string, unknown>, ...keys: string[]): unknown {
+    for (const key of keys) {
+      if (Object.prototype.hasOwnProperty.call(record, key)) return record[key];
+    }
+    return undefined;
   }
 
   private extractMiddlewareFromTraits(traits: string[]): string[] {
@@ -388,8 +524,6 @@ export class NodeServiceCompiler extends CompilerBase {
     }
     return [...set];
   }
-
-
 
   // ── Connector Extraction ──────────────────────────────────────────────
 
@@ -422,7 +556,6 @@ export class NodeServiceCompiler extends CompilerBase {
 
     for (const t of traits) {
       if (t === 'env' || t === '@env') {
-
         const name = this.resolveString(propMap.get('env_name')) || 'UNKNOWN_VAR';
         envVars.push({
           name,
@@ -438,8 +571,7 @@ export class NodeServiceCompiler extends CompilerBase {
     traits: string[],
     props: Record<string, HoloValue> | Map<string, HoloValue>
   ): DeployConfig | undefined {
-    if (!traits.some(t => t === 'deploy' || t === '@deploy')) return undefined;
-
+    if (!traits.some((t) => t === 'deploy' || t === '@deploy')) return undefined;
 
     const propMap = props instanceof Map ? props : this.objectPropsToMapFromRecord(props);
     return {
@@ -464,7 +596,6 @@ export class NodeServiceCompiler extends CompilerBase {
     if (typeof val === 'string') return val === 'true';
     return undefined;
   }
-
 
   // ── Code Emission ──────────────────────────────────────────────────────
 
@@ -502,7 +633,7 @@ export class NodeServiceCompiler extends CompilerBase {
       }
       lines.push('');
       lines.push(`const PORT = process.env['PORT'] || ${this.options.port};`);
-      
+
       if (hasConnectors) {
         lines.push(`initConnectors().then(() => {`);
         lines.push(`  app.listen(PORT, () => {`);
@@ -581,10 +712,7 @@ export class NodeServiceCompiler extends CompilerBase {
             `router.${methodLower}('${this.escapeStringValue(route.path, 'TypeScript')}', ${mwArgs}(req, res) => {`
           );
         }
-        lines.push(`  // Placeholder — replace with ${route.handlerName} logic`);
-        lines.push(
-          `  res.status(501).json({ error: 'not_implemented', handler: '${this.escapeStringValue(route.handlerName, 'TypeScript')}' });`
-        );
+        lines.push(...this.emitExpressRouteBody(route));
         lines.push(`});`);
         lines.push('');
       }
@@ -617,8 +745,7 @@ export class NodeServiceCompiler extends CompilerBase {
         lines.push(
           `  app.${methodLower}('${this.escapeStringValue(route.path, 'TypeScript')}', async (request, reply) => {`
         );
-        lines.push(`    // Placeholder — replace with ${route.handlerName} logic`);
-        lines.push(`    return reply.code(501).send({ error: 'not_implemented', handler: '${this.escapeStringValue(route.handlerName, 'TypeScript')}' });`);
+        lines.push(...this.emitFastifyRouteBody(route));
         lines.push(`  });`);
         lines.push('');
       }
@@ -637,6 +764,105 @@ export class NodeServiceCompiler extends CompilerBase {
     }
 
     return lines.join('\n');
+  }
+
+  private emitExpressRouteBody(route: RouteInfo): string[] {
+    if (route.handlerBody) {
+      return [
+        `  // Handler: ${route.handlerName}`,
+        ...this.emitHandlerState(route, '  '),
+        ...this.indentHandlerBody(route.handlerBody, '  '),
+      ];
+    }
+
+    return [
+      `  // Placeholder — replace with ${route.handlerName} logic`,
+      `  res.status(501).json({ error: 'not_implemented', handler: '${this.escapeStringValue(route.handlerName, 'TypeScript')}' });`,
+    ];
+  }
+
+  private emitFastifyRouteBody(route: RouteInfo): string[] {
+    if (route.handlerBody) {
+      return [
+        `    // Handler: ${route.handlerName}`,
+        ...this.emitHandlerState(route, '    '),
+        ...this.indentHandlerBody(route.handlerBody, '    '),
+      ];
+    }
+
+    return [
+      `    // Placeholder — replace with ${route.handlerName} logic`,
+      `    return reply.code(501).send({ error: 'not_implemented', handler: '${this.escapeStringValue(route.handlerName, 'TypeScript')}' });`,
+    ];
+  }
+
+  private indentHandlerBody(body: string, indent: string): string[] {
+    return body
+      .split(/\r?\n/)
+      .map((line) => line.trimEnd())
+      .filter((line) => line.length > 0)
+      .map((line) => `${indent}${line}`);
+  }
+
+  private emitHandlerState(route: RouteInfo, indent: string): string[] {
+    if (!route.handlerState || Object.keys(route.handlerState).length === 0) return [];
+    return [
+      `${indent}const state = ${JSON.stringify(route.handlerState, null, 2).replace(/\n/g, `\n${indent}`)};`,
+    ];
+  }
+
+  private emitHoloStatement(statement: HoloStatement): string | undefined {
+    switch (statement.type) {
+      case 'Assignment':
+        return `${statement.target} ${statement.operator} ${this.emitHoloExpression(statement.value)};`;
+      case 'VariableDeclaration':
+        return `${statement.kind} ${statement.name}${statement.value ? ` = ${this.emitHoloExpression(statement.value)}` : ''};`;
+      case 'ReturnStatement':
+        return `return ${statement.value ? this.emitHoloExpression(statement.value) : ''};`;
+      case 'EmitStatement':
+        return `emit(${JSON.stringify(statement.event)}, ${statement.data ? this.emitHoloExpression(statement.data) : 'undefined'});`;
+      case 'ExpressionStatement':
+        return `${this.emitHoloExpression(statement.expression)};`;
+      case 'MethodCall': {
+        const target = statement.object ? `${statement.object}.` : '';
+        return `${target}${statement.method}(${statement.arguments.map((arg) => this.emitHoloExpression(arg)).join(', ')});`;
+      }
+      default:
+        return `// Unsupported handler statement: ${statement.type}`;
+    }
+  }
+
+  private emitHoloExpression(expression: HoloExpression): string {
+    switch (expression.type) {
+      case 'Literal':
+        return JSON.stringify(expression.value);
+      case 'Identifier':
+        return expression.name;
+      case 'BinaryExpression':
+        return `(${this.emitHoloExpression(expression.left)} ${expression.operator} ${this.emitHoloExpression(expression.right)})`;
+      case 'UnaryExpression':
+        return `(${expression.operator}${this.emitHoloExpression(expression.argument)})`;
+      case 'MemberExpression':
+        return expression.computed
+          ? `${this.emitHoloExpression(expression.object)}[${JSON.stringify(expression.property)}]`
+          : `${this.emitHoloExpression(expression.object)}.${expression.property}`;
+      case 'CallExpression':
+        return `${this.emitHoloExpression(expression.callee)}(${expression.arguments.map((arg) => this.emitHoloExpression(arg)).join(', ')})`;
+      case 'ArrayExpression':
+        return `[${expression.elements.map((element) => this.emitHoloExpression(element)).join(', ')}]`;
+      case 'ObjectExpression':
+        return `{ ${expression.properties.map((prop) => `${JSON.stringify(prop.key)}: ${this.emitHoloExpression(prop.value)}`).join(', ')} }`;
+      case 'ConditionalExpression':
+        return `(${this.emitHoloExpression(expression.test)} ? ${this.emitHoloExpression(expression.consequent)} : ${this.emitHoloExpression(expression.alternate)})`;
+      case 'UpdateExpression':
+        return expression.prefix
+          ? `${expression.operator}${this.emitHoloExpression(expression.argument)}`
+          : `${this.emitHoloExpression(expression.argument)}${expression.operator}`;
+      case 'BindExpression':
+        return expression.source;
+      default:
+        return 'undefined';
+    }
   }
 
   private emitMiddlewareIndex(middleware: string[]): string {
@@ -683,8 +909,8 @@ export class NodeServiceCompiler extends CompilerBase {
     const name = this.toKebab(projectName || 'holoscript-service');
     const isExpress = this.options.framework === 'express';
 
-    const dependencies: Record<string, string> = isExpress 
-      ? { express: '^4.21.0', dotenv: '^16.4.0' } 
+    const dependencies: Record<string, string> = isExpress
+      ? { express: '^4.21.0', dotenv: '^16.4.0' }
       : { fastify: '^5.0.0', dotenv: '^16.4.0' };
 
     // Add connector dependencies
@@ -724,7 +950,6 @@ export class NodeServiceCompiler extends CompilerBase {
         },
       }),
     };
-
 
     return JSON.stringify(pkg, null, 2);
   }
@@ -966,12 +1191,11 @@ export class NodeServiceCompiler extends CompilerBase {
     const envMap = new Map(envVars.map((ev) => [ev.name, ev]));
 
     for (const conn of connectors) {
-
-
-
       // 1. Check if connector is known
       if (!KNOWN_CONNECTORS.includes(conn.name as KnownConnector)) {
-        console.warn(`[NodeServiceCompiler] Warning: Unknown connector '${conn.name}'. Package dependency will not be added.`);
+        console.warn(
+          `[NodeServiceCompiler] Warning: Unknown connector '${conn.name}'. Package dependency will not be added.`
+        );
       } else {
         // 2. Check for missing environment variables
         const requirements = CONNECTOR_ENV_REQUIREMENTS[conn.name as KnownConnector] || [];
@@ -980,7 +1204,6 @@ export class NodeServiceCompiler extends CompilerBase {
             // This is a validation error — the user must declare the env var
             throw new Error(`Connector '${conn.name}' requires environment variable '${req}'`);
           }
-
         }
       }
     }
@@ -996,7 +1219,6 @@ export class NodeServiceCompiler extends CompilerBase {
     }
   }
 }
-
 
 // ── Dialect Registration ───────────────────────────────────────────────────
 

@@ -16,7 +16,7 @@ grep -n "export enum ExportTarget" -A 200 packages/core/src/compiler/CircuitBrea
 | `--target unity`           | [unity.md](/compilers/unity)                     | C# MonoBehaviour   | Unity Engine                |
 | `--target unreal`          | [unreal.md](/compilers/unreal)                   | C++ / Blueprint    | Unreal Engine 5             |
 | `--target godot`           | [godot.md](/compilers/godot)                     | GDScript           | Godot Engine 4.x            |
-| `--target vrchat`          | [vrchat.md](/compilers/vrchat)                   | UdonSharp C#       | VRChat SDK3                 |
+| `--target vrchat`          | [vrchat.md](/compilers/vrchat)                   | Legacy UdonSharp C#; Byte gated | VRChat SDK3                 |
 | `--target babylon`         | babylon.md                                       | JavaScript         | Babylon.js                  |
 | `--target webgpu`          | [webgpu.md](/compilers/webgpu)                   | TypeScript         | Modern Browsers             |
 | `--target ios`             | [ios.md](/compilers/ios)                         | Swift + ARKit      | iOS 15+                     |

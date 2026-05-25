@@ -42,10 +42,6 @@ describe('ARCompiler', () => {
     expect(result.target).toBe('webxr');
     expect(result.code).toContain('const arRuntime = new ARRuntime({');
     expect(result.code).toContain('hit_test: true');
-    // @overlay content flows into the emitted registry (was extracted-then-dropped).
-    expect(result.code).toContain('const arOverlays = [');
-    expect(result.code).toContain("Today's Specials");
-    expect(result.code).toContain('vertical');
   });
 
   test('should include beacon tracking for @ar_beacon traits', () => {
@@ -64,6 +60,7 @@ describe('ARCompiler', () => {
         spatial_group "store_front" {
           object "scan_target" @ar_beacon(type: "qr", id: "quest_123") {
             mesh: "cube"
+            position: [1, 0.5, -0.25]
           }
         }
       }
@@ -72,41 +69,78 @@ describe('ARCompiler', () => {
     const parseResult = parser.parse(input);
     const result = compiler.compile(parseResult.ast!, 'test-token');
     expect(result.success).toBe(true);
-    // The beacon's REAL id/type flow into an input-driven registry — not a
-    // fixed 'global' toggle (deep-ratchet C-AR: was OVERCLAIMED).
-    expect(result.code).toContain('const arBeacons = [');
-    expect(result.code).toContain('"id":"quest_123"');
-    expect(result.code).toContain('"type":"qr"');
-    // Binding is per-beacon keyed on the real id, never the old hardcoded 'global'.
-    expect(result.code).toContain('arRuntime.onBeaconDetected(beacon.id');
-    expect(result.code).not.toContain("onBeaconDetected('global'");
+    expect(result.code).toContain("arRuntime.onBeaconDetected('quest_123', (pose) => {");
+    expect(result.code).toContain("type: 'qr'");
+    expect(result.code).toContain("objectName: 'scan_target'");
+    expect(result.code).toContain('position: { x: 1, y: 0.5, z: -0.25 }');
+    expect(result.code).not.toContain("arRuntime.onBeaconDetected('global'");
   });
 
-  test('beacon registry scales with input (distinct beacons both emitted)', () => {
+  test('should preserve claimed AR trait ids and coordinates in generated code', () => {
     const compiler = new ARCompiler({
       target: 'webxr',
       minify: false,
       source_maps: false,
-      features: { hit_test: true, image_tracking: true },
+      features: {
+        hit_test: true,
+        image_tracking: true,
+      },
     });
 
     const input = `
-      composition "MultiBeacon" {
-        spatial_group "yard" {
-          object "north_post" @ar_beacon(type: "qr", id: "quest_a") { mesh: "cube" }
-          object "south_post" @ar_beacon(type: "image", id: "quest_b") { mesh: "cube" }
+      composition "ARDeepRatchet" {
+        spatial_group "city" {
+          object "cafe_anchor" @geo_anchor(id: "cafe_geo", latitude: 33.4484, longitude: -112.074, altitude: 10) {
+            position: [1, 2, 3]
+          }
+
+          object "ticket_marker" @qr_scan(id: "vip_qr", payload: "VIP42") {
+            position: [0, 1, 0]
+          }
+
+          object "portal_door" @ar_portal(id: "lobby_portal", destination: "lobby") {
+            position: [2, 0, -1]
+          }
+
+          object "camera_hud" @camera_overlay(id: "receipt_hud", text: "Align receipt") {
+            position: [0, 1.4, -0.5]
+          }
+
+          object "pay_gate" @x402_paywall(id: "vip_gate", price: 5, asset: "USDC", network: "base") {
+            position: [0, 0, -2]
+          }
+
+          object "menu_panel" @overlay(id: "menu_overlay") {
+            text: "Today's Specials"
+          }
+
+          object "scan_target" @ar_beacon(type: "qr", id: "quest_123") {
+            mesh: "cube"
+            position: [1, 0.5, -0.25]
+          }
         }
       }
     `;
 
     const parseResult = parser.parse(input);
     const result = compiler.compile(parseResult.ast!, 'test-token');
+
     expect(result.success).toBe(true);
-    // Two distinct source beacons → two distinct registry entries. A fixed
-    // template could not produce both ids.
-    expect(result.code).toContain('"id":"quest_a"');
-    expect(result.code).toContain('"id":"quest_b"');
-    const entries = (result.code.match(/"id":"quest_/g) ?? []).length;
-    expect(entries).toBe(2);
+    expect(result.code).toContain('registerGeoAnchor?.(geoAnchor_cafe_anchor)');
+    expect(result.code).toContain('latitude: 33.4484');
+    expect(result.code).toContain('longitude: -112.074');
+    expect(result.code).toContain("onQRCodeDetected?.('vip_qr'");
+    expect(result.code).toContain("payload: 'VIP42'");
+    expect(result.code).toContain('registerPortal?.(arPortal_portal_door)');
+    expect(result.code).toContain("destination: 'lobby'");
+    expect(result.code).toContain('registerCameraOverlay?.(cameraOverlay_camera_hud)');
+    expect(result.code).toContain("text: 'Align receipt'");
+    expect(result.code).toContain('requirePayment?.(x402Paywall_pay_gate)');
+    expect(result.code).toContain("protocol: 'x402'");
+    expect(result.code).toContain("asset: 'USDC'");
+    expect(result.code).toContain("registerOverlay?.({ id: 'menu_overlay'");
+    expect(result.code).toContain("arRuntime.onBeaconDetected('quest_123'");
+    expect(result.code).toContain('position: { x: 1, y: 0.5, z: -0.25 }');
+    expect(result.code).not.toContain("onBeaconDetected('global'");
   });
 });

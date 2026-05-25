@@ -71,7 +71,7 @@ const output = compiler.compile(ast);
 | `WASMCompiler`           | WebAssembly               | .wasm + .js       |
 | `WebGPUCompiler`         | WebGPU Compute            | WGSL + TypeScript |
 | `URDFCompiler`           | Robotics (URDF)           | .urdf XML         |
-| `SDFCompiler`            | SDF / Gazebo              | .sdf XML          |
+| `SDFCompiler`            | Gazebo SDF simulation XML | .sdf XML          |
 | `DTDLCompiler`           | Digital Twins             | JSON-LD           |
 | `StateCompiler`          | Reactive State            | JSON              |
 | `A2AAgentCardCompiler`   | A2A Agent Cards           | JSON              |
@@ -83,7 +83,7 @@ const output = compiler.compile(ast);
 | `GLTFPipeline`           | glTF                      | .glb / .gltf      |
 | `NFTMarketplaceCompiler` | NFT Marketplace           | Solidity          |
 | `USDPhysicsCompiler`     | USD Physics               | .usda             |
-| `TSLCompiler`            | Three.js Shading Language | GLSL / WGSL       |
+| `TSLCompiler`            | Trait Shader Language     | WGSL + TS pipeline |
 | `SCMCompiler`            | Structural Causal Model   | JSON DAG          |
 | `QuiltCompiler`          | Looking Glass Hologram    | Multi-view PNG    |
 | `MVHEVCCompiler`         | MV-HEVC Hologram          | Swift + .mov      |

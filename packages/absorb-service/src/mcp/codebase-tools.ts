@@ -1224,22 +1224,27 @@ async function runFullScan(
   if (jobId) trackAbsorbProgress(jobId, 'Discovering files', 5);
 
   const scanner = new CodebaseScanner();
+  let scanResult: any;
 
   if (jobId) trackAbsorbProgress(jobId, 'Scanning codebase', 10);
 
-  const scanResult = await scanner.scan({
-    rootDir: primaryRootDir, // for backward compat mapping
-    rootDirs,
-    languages,
-    maxFiles,
-    includeBuildArtifacts,
-    onProgress: (processed: number, total: number, file: string) => {
-      if (jobId) {
-        const scanPercent = 10 + (processed / Math.max(total, 1)) * 50; // 10-60%
-        trackAbsorbProgress(jobId, `Parsing ${file}`, scanPercent, processed, total);
-      }
-    },
-  });
+  try {
+    scanResult = await scanner.scan({
+      rootDir: primaryRootDir, // for backward compat mapping
+      rootDirs,
+      languages,
+      maxFiles,
+      includeBuildArtifacts,
+      onProgress: (processed: number, total: number, file: string) => {
+        if (jobId) {
+          const scanPercent = 10 + (processed / Math.max(total, 1)) * 50; // 10-60%
+          trackAbsorbProgress(jobId, `Parsing ${file}`, scanPercent, processed, total);
+        }
+      },
+    });
+  } finally {
+    await scanner.dispose?.();
+  }
 
   if (jobId) trackAbsorbProgress(jobId, 'Building graph', 65);
 
@@ -1471,19 +1476,24 @@ async function runIncrementalPatch(
 
   // Rescan changed files
   const scanner = new CodebaseScanner();
-  const rescanResult = await scanner.scanFiles(
-    rootDir,
-    filesToRescan.map((f) => path.join(rootDir, f)),
-    {
-      includeBuildArtifacts,
-      onProgress: (processed: number, total: number, file: string) => {
-        if (jobId) {
-          const scanPercent = 30 + (processed / total) * 30; // 30-60%
-          trackAbsorbProgress(jobId, `Parsing ${file}`, scanPercent, processed, total);
-        }
-      },
-    }
-  );
+  let rescanResult: any;
+  try {
+    rescanResult = await scanner.scanFiles(
+      rootDir,
+      filesToRescan.map((f) => path.join(rootDir, f)),
+      {
+        includeBuildArtifacts,
+        onProgress: (processed: number, total: number, file: string) => {
+          if (jobId) {
+            const scanPercent = 30 + (processed / total) * 30; // 30-60%
+            trackAbsorbProgress(jobId, `Parsing ${file}`, scanPercent, processed, total);
+          }
+        },
+      }
+    );
+  } finally {
+    await scanner.dispose?.();
+  }
 
   if (jobId) trackAbsorbProgress(jobId, 'Patching graph', 65);
 
@@ -2103,7 +2113,12 @@ async function handleDetectChanges(args: Record<string, unknown>): Promise<unkno
 
   // Fresh scan
   const scanner = new CodebaseScanner();
-  const scanResult = await scanner.scan({ rootDir });
+  let scanResult: any;
+  try {
+    scanResult = await scanner.scan({ rootDir });
+  } finally {
+    await scanner.dispose?.();
+  }
   const currentGraph = new CodebaseGraph();
   currentGraph.buildFromScanResult(scanResult);
   // HoloGraph Phase 2: populate brain-coord positions on the diff graph too

@@ -1,10 +1,10 @@
 # VRChat Compiler
 
-**Target**: `--target vrchat` | **Output**: UdonSharp C# | **Platform**: VRChat SDK3
+**Target**: `--target vrchat` | **Current Output**: legacy UdonSharp C# | **Platform**: VRChat SDK3
 
 ## VRChat Compiler
 
-Compiles HoloScript to VRChat SDK3 worlds with UdonSharp scripts.
+Compiles HoloScript to VRChat SDK3 worlds. The current implementation emits legacy UdonSharp scripts; the founder-directed Byte/Udon target is gated until the artifact contract is confirmed.
 
 ### Features
 
@@ -26,6 +26,8 @@ holoscript compile my-world.holo --target vrchat --output ./vrchat-output/
 - `*_Udon.cs` - Individual Udon scripts for interactive objects
 - `PrefabHierarchy.txt` - Unity prefab structure
 - `WorldDescriptor.json` - VRChat world configuration
+
+See [VRChat Byte Target](/compilers/vrchat-byte-target) for the non-C# target decision record.
 
 ### Example
 

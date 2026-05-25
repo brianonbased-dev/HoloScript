@@ -1,0 +1,423 @@
+// Liminal Archive — Stress-Test
+// A-009 Phase-3 | 2026-05-23
+//
+// Scene: the Civic Archive of a small postwar city — closed in 1983, locked,
+// never demolished. Marble corridors lined with amber Manila folders. Tall
+// fluorescent tubes hum and flicker. Dust motes drift through cold shafts of
+// light. In XR, visitors can actually walk the navmesh floor (@walkable_navmesh_builder),
+// hover document drawers (@hoverable) and speak to Theodora — the last archivist,
+// now an apparition — who uses @speech_aware_encounter to identify visitors by
+// voice print and answer queries from forty years of institutional memory.
+// Multiple visitors explore simultaneously (@networked).
+//
+// Never-exercised traits under test:
+//   @walkable_navmesh_builder — deterministic navmesh from point cloud; floor + wall planes
+//   @speech_aware_encounter   — voice-attributed NPC encounters with ReID speaker mapping
+
+composition "LiminalArchive" {
+
+  metadata {
+    name: 'Liminal Archive'
+    version: '1.0.0'
+    author: 'A-009 stress-test 2026-05-23'
+    category: 'narrative-xr'
+    tags: ['walkable', 'navmesh', 'speech', 'encounter', 'archive', 'ghost', 'networked', 'stress-test']
+    platforms: ['openxr', 'r3f', 'vision-os']
+    minPlayers: 1
+    maxPlayers: 8
+  }
+
+  environment {
+    skybox: { type: "solid", color: "#090a0c" }
+    ambient: 0.12
+    shadows: true
+    fog: { enabled: true, color: "#10121a", density: 0.025 }
+    post_processing: {
+      bloom:        { intensity: 0.4,  threshold: 0.7 }
+      vignette:     { intensity: 0.6 }
+      tone_mapping: { type: "linear", exposure: 0.85 }
+      grain:        { intensity: 0.06 }
+    }
+  }
+
+  // ============================================================
+  // NETWORK STATE — visitor presence synced across all clients
+  // ============================================================
+
+  object "ArchiveNetwork" @networked {
+    @networked {
+      channel: "archive-visitors"
+      sync_rate: 15
+      interpolation: true
+      ownership_model: "server_authoritative"
+    }
+  }
+
+  // ============================================================
+  // WALKABLE FLOOR — navmesh derived from a 1983 laser survey
+  // @walkable_navmesh_builder: never-exercised path 1 of 2
+  // ============================================================
+
+  object "CorridorFloor" @walkable_navmesh_builder @collidable {
+    geometry: "plane"
+    width: 6
+    height: 28
+    position: [0, 0, 0]
+    material: {
+      baseColor: "#cac4b5"
+      roughness: 0.75
+      metallic: 0.0
+      normalMap: "builtin://marble_tile_normal"
+    }
+    @walkable_navmesh_builder {
+      point_cloud: {
+        format: "points"
+        units: "m"
+        // Sparse survey points: corridor floor + alcove bays
+        points: [
+          [-2.8, 0, -13], [-2.8, 0, -10], [-2.8, 0, -7], [-2.8, 0, -4], [-2.8, 0, -1],
+          [-2.8, 0,  2],  [-2.8, 0,  5],  [-2.8, 0,  8],  [-2.8, 0, 11], [-2.8, 0, 14],
+          [ 0,   0, -13], [ 0,   0, -10], [ 0,   0, -7],  [ 0,   0, -4], [ 0,   0, -1],
+          [ 0,   0,  2],  [ 0,   0,  5],  [ 0,   0,  8],  [ 0,   0, 11], [ 0,   0, 14],
+          [ 2.8, 0, -13], [ 2.8, 0, -10], [ 2.8, 0, -7],  [ 2.8, 0, -4], [ 2.8, 0, -1],
+          [ 2.8, 0,  2],  [ 2.8, 0,  5],  [ 2.8, 0,  8],  [ 2.8, 0, 11], [ 2.8, 0, 14]
+        ]
+      }
+      up_axis: "y"
+      cell_size_m: 0.5
+      plane_tolerance_m: 0.08
+      min_plane_points: 3
+    }
+  }
+
+  // Alcove bays East — cabinet recesses
+  object "AlcoveFloor_E1" @walkable_navmesh_builder @collidable {
+    geometry: "plane"
+    width: 2.5
+    height: 2.5
+    position: [4.5, 0, -8]
+    material: { baseColor: "#cac4b5", roughness: 0.75, metallic: 0.0 }
+    @walkable_navmesh_builder {
+      point_cloud: {
+        format: "points"
+        units: "m"
+        points: [
+          [3.5, 0, -9], [3.5, 0, -8], [3.5, 0, -7],
+          [5.5, 0, -9], [5.5, 0, -8], [5.5, 0, -7]
+        ]
+      }
+      up_axis: "y"
+      cell_size_m: 0.5
+      plane_tolerance_m: 0.08
+    }
+  }
+
+  object "AlcoveFloor_E2" @walkable_navmesh_builder @collidable {
+    geometry: "plane"
+    width: 2.5
+    height: 2.5
+    position: [4.5, 0, 4]
+    material: { baseColor: "#cac4b5", roughness: 0.75, metallic: 0.0 }
+    @walkable_navmesh_builder {
+      point_cloud: {
+        format: "points"
+        units: "m"
+        points: [
+          [3.5, 0, 3], [3.5, 0, 4], [3.5, 0, 5],
+          [5.5, 0, 3], [5.5, 0, 4], [5.5, 0, 5]
+        ]
+      }
+      up_axis: "y"
+      cell_size_m: 0.5
+      plane_tolerance_m: 0.08
+    }
+  }
+
+  // ============================================================
+  // ARCHITECTURE — walls, ceiling, marble wainscoting
+  // ============================================================
+
+  object "CeilingPanel" {
+    geometry: "plane"
+    width: 6
+    height: 28
+    position: [0, 3.2, 0]
+    rotation: [180, 0, 0]
+    material: { baseColor: "#e8e4dc", roughness: 0.95, metallic: 0.0 }
+  }
+
+  object "WallEast" {
+    geometry: "plane"
+    width: 28
+    height: 3.2
+    position: [3, 1.6, 0]
+    rotation: [90, 0, 90]
+    material: { baseColor: "#d8d2c4", roughness: 0.88, metallic: 0.0 }
+  }
+
+  object "WallWest" {
+    geometry: "plane"
+    width: 28
+    height: 3.2
+    position: [-3, 1.6, 0]
+    rotation: [90, 0, -90]
+    material: { baseColor: "#d8d2c4", roughness: 0.88, metallic: 0.0 }
+  }
+
+  // ============================================================
+  // FLUORESCENT TUBES — flickering cold institutional light
+  // ============================================================
+
+  object "Tube_N1" @emissive @animated @glowing {
+    geometry: "cylinder"
+    radius: 0.018
+    height: 1.2
+    position: [0, 3.15, -10]
+    rotation: [0, 0, 90]
+    material: { baseColor: "#ddeaff", roughness: 0.9, metallic: 0.0 }
+    @emissive { intensity: 2.8, color: "#ddeaff" }
+    @glowing  { intensity: 1.2, color: "#ddeaff", pulse: false }
+    // Fluorescent flicker: mostly stable with occasional dropout
+    @animated {
+      property: "material.emissive_intensity"
+      keyframes: [
+        { time: 0.0,   value: 2.8 },
+        { time: 3.1,   value: 2.8 },
+        { time: 3.12,  value: 0.3 },
+        { time: 3.18,  value: 2.8 },
+        { time: 9.4,   value: 2.8 },
+        { time: 9.41,  value: 0.0 },
+        { time: 9.44,  value: 2.8 },
+        { time: 12.0,  value: 2.8 }
+      ]
+      loop: true
+    }
+  }
+
+  object "Tube_N2" @emissive @glowing {
+    geometry: "cylinder"
+    radius: 0.018
+    height: 1.2
+    position: [0, 3.15, -4]
+    rotation: [0, 0, 90]
+    material: { baseColor: "#ddeaff", roughness: 0.9, metallic: 0.0 }
+    @emissive { intensity: 2.8, color: "#ddeaff" }
+    @glowing  { intensity: 1.2, color: "#ddeaff", pulse: false }
+  }
+
+  object "Tube_S1" @emissive @animated @glowing {
+    geometry: "cylinder"
+    radius: 0.018
+    height: 1.2
+    position: [0, 3.15, 4]
+    rotation: [0, 0, 90]
+    material: { baseColor: "#ddeaff", roughness: 0.9, metallic: 0.0 }
+    @emissive { intensity: 2.8, color: "#ddeaff" }
+    @glowing  { intensity: 1.2, color: "#ddeaff", pulse: false }
+    // This tube is dying — extended flicker, partial shutdown
+    @animated {
+      property: "material.emissive_intensity"
+      keyframes: [
+        { time: 0.0,   value: 2.8 },
+        { time: 1.2,   value: 2.8 },
+        { time: 1.22,  value: 0.0 },
+        { time: 1.34,  value: 2.8 },
+        { time: 1.36,  value: 0.0 },
+        { time: 1.52,  value: 2.8 },
+        { time: 5.0,   value: 2.8 },
+        { time: 5.01,  value: 1.1 },
+        { time: 5.08,  value: 2.8 },
+        { time: 8.0,   value: 2.8 }
+      ]
+      loop: true
+    }
+  }
+
+  object "Tube_S2" @emissive @glowing {
+    geometry: "cylinder"
+    radius: 0.018
+    height: 1.2
+    position: [0, 3.15, 10]
+    rotation: [0, 0, 90]
+    material: { baseColor: "#ddeaff", roughness: 0.9, metallic: 0.0 }
+    @emissive { intensity: 2.8, color: "#ddeaff" }
+    @glowing  { intensity: 1.2, color: "#ddeaff", pulse: false }
+  }
+
+  // ============================================================
+  // FILING CABINETS — hoverable drawers, each a folder
+  // ============================================================
+
+  object "Cabinet_E1_A" @collidable @hoverable {
+    geometry: "box"
+    width: 0.46
+    height: 1.32
+    depth: 0.58
+    position: [3.2, 0.66, -10]
+    material: { baseColor: "#4a5260", roughness: 0.65, metallic: 0.55 }
+    @hoverable {
+      highlight_color: "#88aaff"
+      highlight_intensity: 0.4
+      on_hover: { emit: "cabinet:focus", payload: { id: "E1A", era: "1948-1952" } }
+    }
+  }
+
+  object "Cabinet_E1_B" @collidable @hoverable {
+    geometry: "box"
+    width: 0.46
+    height: 1.32
+    depth: 0.58
+    position: [3.2, 0.66, -8]
+    material: { baseColor: "#4a5260", roughness: 0.65, metallic: 0.55 }
+    @hoverable {
+      highlight_color: "#88aaff"
+      highlight_intensity: 0.4
+      on_hover: { emit: "cabinet:focus", payload: { id: "E1B", era: "1952-1961" } }
+    }
+  }
+
+  object "Cabinet_W1_A" @collidable @hoverable {
+    geometry: "box"
+    width: 0.46
+    height: 1.32
+    depth: 0.58
+    position: [-3.2, 0.66, -6]
+    material: { baseColor: "#4a5260", roughness: 0.65, metallic: 0.55 }
+    @hoverable {
+      highlight_color: "#88aaff"
+      highlight_intensity: 0.4
+      on_hover: { emit: "cabinet:focus", payload: { id: "W1A", era: "1961-1970" } }
+    }
+  }
+
+  object "Cabinet_W1_B" @collidable @hoverable {
+    geometry: "box"
+    width: 0.46
+    height: 1.32
+    depth: 0.58
+    position: [-3.2, 0.66, 2]
+    material: { baseColor: "#4a5260", roughness: 0.65, metallic: 0.55 }
+    @hoverable {
+      highlight_color: "#88aaff"
+      highlight_intensity: 0.4
+      on_hover: { emit: "cabinet:focus", payload: { id: "W1B", era: "1970-1983" } }
+    }
+  }
+
+  // ============================================================
+  // THEODORA — the last archivist, an apparition
+  // @speech_aware_encounter: never-exercised path 2 of 2
+  // ============================================================
+
+  object "Theodora" @speech_aware_encounter @animated @glowing {
+    geometry: "mesh"
+    mesh_uri: "builtin://humanoid_ghost_female"
+    position: [0, 0, -6]
+    scale: [0.95, 0.95, 0.95]
+    material: {
+      baseColor: "#b8c8d8"
+      roughness: 0.4
+      metallic: 0.0
+      opacity: 0.55
+      transparent: true
+    }
+    @speech_aware_encounter {
+      voice_enabled: true
+      reid_confidence_threshold: 0.72
+      fallback_to_text: true
+      max_turns: 120
+      reid_backend: "reid_local"
+    }
+    @glowing {
+      intensity: 0.45
+      color: "#9ab8d8"
+      pulse: true
+      pulse_bpm: 8
+    }
+    // Slow drift — Theodora shifts weight between feet, a forty-year habit
+    @animated {
+      property: "position"
+      keyframes: [
+        { time: 0.0,  value: [0, 0,    -6] },
+        { time: 3.0,  value: [0, 0.04, -6] },
+        { time: 6.0,  value: [0, 0,    -6] },
+        { time: 9.0,  value: [0, 0.04, -6] },
+        { time: 12.0, value: [0, 0,    -6] }
+      ]
+      loop: true
+      easing: "sine_in_out"
+    }
+  }
+
+  // ============================================================
+  // DUST — the archive's constant suspended particulate
+  // ============================================================
+
+  object "DustMotes_Corridor" @particle_system {
+    position: [0, 1.8, 0]
+    @particle_system {
+      preset: "dust"
+      count: 180
+      size: 0.008
+      color: "#d8d0c0"
+      speed: 0.03
+      spread: 6.0
+      direction: [0.06, 0.01, 0]
+      lifetime: 14.0
+      opacity: 0.28
+      blend_mode: "additive"
+    }
+  }
+
+  object "DustBeam_L" @particle_system {
+    position: [-1.5, 1.5, -4]
+    @particle_system {
+      preset: "dust"
+      count: 60
+      size: 0.006
+      color: "#e8e0d4"
+      speed: 0.015
+      spread: 1.2
+      lifetime: 10.0
+      opacity: 0.45
+      blend_mode: "additive"
+    }
+  }
+
+  // ============================================================
+  // SPATIAL AUDIO — fluorescent hum, distant footstep echo
+  // ============================================================
+
+  object "FluorescentHum" @spatial_audio {
+    position: [0, 3.0, 0]
+    @spatial_audio {
+      src: "builtin://fluorescent_hum_60hz"
+      volume: 0.22
+      loop: true
+      rolloff: 0.0
+      max_distance: 999
+    }
+  }
+
+  object "FootstepEcho" @spatial_audio {
+    position: [0, 0, -14]
+    @spatial_audio {
+      src: "builtin://footstep_marble_echo_loop"
+      volume: 0.14
+      loop: true
+      rolloff: 0.12
+      max_distance: 30
+    }
+  }
+
+  object "PaperRustle" @spatial_audio {
+    position: [-3.2, 1.0, -8]
+    @spatial_audio {
+      src: "builtin://paper_rustle_ambient"
+      volume: 0.08
+      loop: true
+      rolloff: 0.8
+      max_distance: 5
+    }
+  }
+}

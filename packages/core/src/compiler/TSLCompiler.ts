@@ -3,6 +3,8 @@
  *
  * Translates HoloComposition AST traits into WGSL shader code, bridging
  * HoloScript's trait composition system with GPU shader generation.
+ * This is HoloScript Trait Shader Language: WGSL string modules plus a
+ * TypeScript pipeline file, not Three.js TSL Fn/node-graph JavaScript.
  *
  * Each trait on a HoloScript object maps to:
  *   - Uniform bindings (trait config properties -> shader uniforms)

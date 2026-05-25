@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { NodeGraph } from '../NodeGraph';
 import { NodeGraphCompiler } from '../NodeGraphCompiler';
 
 // Mock NodeGraph
@@ -97,5 +98,58 @@ describe('NodeGraphCompiler', () => {
     const result = compiler.compile(mockGraph(nodes, conns));
     expect(result.nodeCount).toBe(2);
     expect(result.connectionCount).toBe(1);
+  });
+
+  it('emits executable value flow across connected ports', () => {
+    const graph = new NodeGraph();
+    const event = graph.addNode('OnEvent', { x: 0, y: 0 }, { eventName: 'score' });
+    const add = graph.addNode('MathAdd');
+    const multiply = graph.addNode('MathMultiply');
+    const setState = graph.addNode('SetState', { x: 0, y: 0 }, { key: 'score', initialValue: 0 });
+
+    add.inputs.find((port) => port.name === 'b')!.defaultValue = 3;
+    multiply.inputs.find((port) => port.name === 'b')!.defaultValue = 4;
+
+    expect(graph.connect(event.id, 'payload', add.id, 'a')).not.toBeNull();
+    expect(graph.connect(add.id, 'result', multiply.id, 'a')).not.toBeNull();
+    expect(graph.connect(multiply.id, 'result', setState.id, 'value')).not.toBeNull();
+
+    const result = compiler.compile(graph);
+    const handler = result.eventHandlers[0].handler;
+    const state: Record<string, unknown> = {};
+    const emit = vi.fn();
+    const runHandler = new Function('state', 'emit', `return (${handler});`)(state, emit) as (
+      payload?: unknown
+    ) => void;
+
+    expect(handler).not.toContain('MathAdd: a + b');
+    runHandler(2);
+    expect(state.score).toBe(20);
+  });
+
+  it('emits executable branch selection across connected ports', () => {
+    const graph = new NodeGraph();
+    const event = graph.addNode('OnEvent', { x: 0, y: 0 }, { eventName: 'choice' });
+    const branch = graph.addNode('Branch');
+    const setState = graph.addNode('SetState', { x: 0, y: 0 }, { key: 'choice' });
+
+    branch.inputs.find((port) => port.name === 'ifTrue')!.defaultValue = 'left';
+    branch.inputs.find((port) => port.name === 'ifFalse')!.defaultValue = 'right';
+
+    expect(graph.connect(event.id, 'payload', branch.id, 'condition')).not.toBeNull();
+    expect(graph.connect(branch.id, 'result', setState.id, 'value')).not.toBeNull();
+
+    const result = compiler.compile(graph);
+    const state: Record<string, unknown> = {};
+    const runHandler = new Function(
+      'state',
+      'emit',
+      `return (${result.eventHandlers[0].handler});`
+    )(state, vi.fn()) as (payload?: unknown) => void;
+
+    runHandler(true);
+    expect(state.choice).toBe('left');
+    runHandler(false);
+    expect(state.choice).toBe('right');
   });
 });

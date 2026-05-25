@@ -45,7 +45,7 @@ const TREES: Record<string, string> = {
     'Add to the closest relevant existing package. Only create a new package if standalone service or shared by 3+ packages.',
   commit:
     'Commit after coherent unit. 10+ files: MUST split into sectioned commits by topic. NEVER git add -A.',
-  test: 'Fix if yours, skip if pre-existing (VRChatCompiler = known). Can fix in <15 min? Fix. Complex? Note and continue.',
+  test: 'Fix if yours, investigate if pre-existing. Can fix in <15 min? Fix. Complex? File a task with evidence and continue.',
   mcp: 'Use MCP if reachable (richer). CLI as fallback.',
   cache:
     '<12h fresh. 12-24h OK. 24-48h stale. >48h force refresh. NEVER force:true unless corrupt.',

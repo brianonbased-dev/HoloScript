@@ -92,7 +92,7 @@ HoloScript compiles `.hs`, `.hsplus`, and `.holo` compositions to multiple backe
 | ----------------------- | ------------------------------------------------- | --- | --------------------------------- |
 | `NodeGraphCompiler`     | `logic/NodeGraphCompiler.ts`                      | 197 | Node graphs → HSPlus directives   |
 | `GraphCompiler`         | `scripting/GraphCompiler.ts`                      | 95  | Graph topological compilation     |
-| `ProceduralCompiler`    | `learning/ProceduralCompiler.ts`                  | 45  | AI skill generation (MVP)         |
+| `ProceduralCompiler`    | `learning/ProceduralCompiler.ts`                  | 45  | LLM-code safety wrapper (MVP)     |
 | `CodebaseSceneCompiler` | `codebase/visualization/CodebaseSceneCompiler.ts` | 404 | Codebase → 3D scene visualization |
 
 ## Maturity Assessment

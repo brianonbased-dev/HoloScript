@@ -59,10 +59,31 @@ describe('VRChatCompiler — Production', () => {
   describe('compile() — result shape', () => {
     it('returns all four VRChatCompileResult fields', () => {
       const result = compiler.compile(makeComp(), 'test-token');
+      expect(result).toHaveProperty('outputFormat');
       expect(result).toHaveProperty('mainScript');
       expect(result).toHaveProperty('udonScripts');
       expect(result).toHaveProperty('prefabHierarchy');
       expect(result).toHaveProperty('worldDescriptor');
+    });
+
+    it('labels default output as legacy UdonSharp C#', () => {
+      const result = compiler.compile(makeComp(), 'test-token');
+      expect(result.outputFormat).toBe('udonsharp-csharp');
+    });
+
+    it.each(['udon-assembly', 'udon-bytecode'] as const)(
+      'rejects %s until the Byte artifact contract is confirmed',
+      (outputFormat) => {
+        const c = new VRChatCompiler({ outputFormat });
+        expect(() => c.compile(makeComp(), 'test-token')).toThrow(
+          /artifact contract must be confirmed/
+        );
+      }
+    );
+
+    it('does not silently treat useUdonSharp false as a working raw Udon target', () => {
+      const c = new VRChatCompiler({ useUdonSharp: false });
+      expect(() => c.compile(makeComp(), 'test-token')).toThrow(/udon-assembly output is gated/);
     });
 
     it('mainScript is a string', () => {

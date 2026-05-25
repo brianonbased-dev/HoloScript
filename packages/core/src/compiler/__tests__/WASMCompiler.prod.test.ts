@@ -28,6 +28,20 @@ function makeObj(name: string, geometry = 'box') {
   return { name, properties: [{ key: 'geometry', value: geometry }], traits: [] } as any;
 }
 
+function makeRuntimeImports(events: Array<{ eventId: number; payload: number }> = []) {
+  return {
+    env: {
+      log_i32: () => undefined,
+      log_f32: () => undefined,
+      log_str: () => undefined,
+      emit_event: (eventId: number, payload: number) => {
+        events.push({ eventId, payload });
+      },
+      get_time: () => 0,
+    },
+  };
+}
+
 function makeAST(overrides: Record<string, any> = {}) {
   return {
     root: { type: 'scene', children: [], id: 'root' },
@@ -74,6 +88,8 @@ describe('WASMCompiler — Production', () => {
   describe('compile() — result shape', () => {
     it('returns WASMCompileResult with wat string', () => {
       const result = compiler.compile(makeComp(), 'test-token');
+      expect(result.artifactKind).toBe('wat-scaffold');
+      expect(result.format).toBe('wat');
       expect(typeof result.wat).toBe('string');
     });
 
@@ -95,6 +111,12 @@ describe('WASMCompiler — Production', () => {
     it('returns imports array', () => {
       const result = compiler.compile(makeComp(), 'test-token');
       expect(Array.isArray(result.imports)).toBe(true);
+    });
+
+    it('names WAT-only limitations by default', () => {
+      const result = compiler.compile(makeComp(), 'test-token');
+      expect(result.limitations.join('\n')).toContain('Text Format scaffolding');
+      expect(result.wasm).toBeUndefined();
     });
   });
 
@@ -238,6 +260,63 @@ describe('WASMCompiler — Production', () => {
         'test-token'
       );
       expect(result.wat.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('compile() — wasm binary format', () => {
+    it('returns bytes that WebAssembly.instantiate accepts', async () => {
+      const c = new WASMCompiler({ format: 'wasm' });
+      const result = c.compile(
+        makeComp({
+          state: {
+            properties: [{ key: 'score', value: 7 }],
+          } as any,
+        }),
+        'test-token'
+      );
+
+      expect(result.artifactKind).toBe('wasm-binary');
+      expect(result.format).toBe('wasm');
+      expect(result.wasm).toBeInstanceOf(Uint8Array);
+      expect(result.limitations.join('\n')).toContain('instantiable WebAssembly binary');
+
+      const { instance } = await WebAssembly.instantiate(result.wasm!, makeRuntimeImports());
+      const wasmExports = instance.exports as Record<string, CallableFunction>;
+      wasmExports.init();
+      expect(wasmExports.get_score()).toBe(7);
+      wasmExports.set_score(11);
+      expect(wasmExports.get_score()).toBe(11);
+      expect(wasmExports.get_frame_count()).toBe(0);
+      wasmExports.update(0.016);
+      expect(wasmExports.get_frame_count()).toBe(1);
+    });
+
+    it('lowers object traits into runtime event calls', async () => {
+      const c = new WASMCompiler({ format: 'wasm' });
+      const events: Array<{ eventId: number; payload: number }> = [];
+      const result = c.compile(
+        makeComp({
+          objects: [
+            {
+              name: 'spinner',
+              properties: [],
+              traits: [{ type: 'ObjectTrait', name: 'spin', config: { speed: 1 } }],
+            } as any,
+          ],
+        }),
+        'test-token'
+      );
+
+      expect(result.wat).toContain('trait:spin');
+      expect(result.wat).not.toContain('custom logic would be generated');
+
+      const { instance } = await WebAssembly.instantiate(result.wasm!, makeRuntimeImports(events));
+      const wasmExports = instance.exports as Record<string, CallableFunction>;
+      wasmExports.init();
+      wasmExports.update(0.016);
+
+      expect(events).toHaveLength(1);
+      expect(events[0].payload).toBe(0);
     });
   });
 

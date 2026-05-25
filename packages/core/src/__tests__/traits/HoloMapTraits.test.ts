@@ -108,7 +108,23 @@ describe('HoloMap trait integration wiring', () => {
       node as never,
       { maxDriftMeters: 1, loopClosureThreshold: 0.92, rewriteHistory: true } as never,
       ctx as never,
-      { type: 'holomap:drift_update', payload: { estimatedDriftMeters: 1.5 } },
+      { type: 'holomap:step_result', payload: { trajectory: { estimatedDriftMeters: 1.5 } } },
+    );
+
+    const anchorPose = {
+      position: [0.1, 0.2, 0.3],
+      rotation: [0, 0, 0, 1],
+      confidence: 0.9,
+    };
+    const anchorDescriptor = new Float32Array([0.1, 0.2, 0.3, 0.9]);
+    holomapAnchorContextHandler.onEvent?.(
+      node as never,
+      { autoReanchor: true } as never,
+      ctx as never,
+      {
+        type: 'holomap:anchor_update',
+        payload: { anchorFrameIndex: 4, anchorPose, anchorDescriptor },
+      },
     );
 
     holomapAnchorContextHandler.onEvent?.(
@@ -122,6 +138,10 @@ describe('HoloMap trait integration wiring', () => {
     );
 
     expect(ctx.emitted.some((e) => e.event === 'holomap:drift_correction_requested')).toBe(true);
+    expect(ctx.emitted).toContainEqual({
+      event: 'holomap:anchor_state_changed',
+      payload: expect.objectContaining({ anchorPose, anchorDescriptor }),
+    });
     expect(ctx.emitted.some((e) => e.event === 'holomap:reanchor_requested')).toBe(true);
   });
 

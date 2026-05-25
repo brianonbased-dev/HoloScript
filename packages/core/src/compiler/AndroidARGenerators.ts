@@ -15,6 +15,24 @@ import {
   emitAuthoringInlineSetup,
 } from './AndroidFeatureGenerators';
 
+function toKotlinFloatLiteral(value: unknown, fallback: number): string {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  const resolved = Number.isFinite(numeric) ? numeric : fallback;
+  return `${resolved}f`;
+}
+
+function toKotlinVector3(value: HoloValue | undefined, fallback: [number, number, number]): string {
+  const components =
+    Array.isArray(value) && value.length >= 3
+      ? [value[0], value[1], value[2]]
+      : typeof value === 'number'
+        ? [value, value, value]
+        : fallback;
+  return `Vector3(${components
+    .map((component, index) => toKotlinFloatLiteral(component, fallback[index]))
+    .join(', ')})`;
+}
+
 export function generateActivityFile(compiler: AndroidCompiler, composition: HoloComposition): string {
   compiler.lines = [];
   compiler.indentLevel = 0;
@@ -142,15 +160,54 @@ export function generateActivityFile(compiler: AndroidCompiler, composition: Hol
   compiler.emit('val anchorNode = AnchorNode(anchor)');
   compiler.emit('anchorNode.setParent(arFragment.arSceneView.scene)');
   compiler.emit('');
-  compiler.emit('// Create node from factory');
-  compiler.emit('NodeFactory.createDefaultNode(this) { renderable ->');
+
+  if (composition.objects?.length) {
+    compiler.emit('// Create one renderable node per HoloScript object');
+    for (const obj of composition.objects) {
+      const methodName = `create${compiler.sanitizeName(obj.name)}`;
+      const objectName = compiler.escapeStringValue(obj.name as string, 'Kotlin');
+      const position = toKotlinVector3(compiler.findObjProp(obj, 'position'), [0, 0, 0]);
+      const scale = toKotlinVector3(compiler.findObjProp(obj, 'scale'), [1, 1, 1]);
+      compiler.emit(`NodeFactory.${methodName}(this) { renderable ->`);
+      compiler.indentLevel++;
+      compiler.emit(
+        `attachRenderableToAnchor(anchorNode, "${objectName}", renderable, ${position}, ${scale})`
+      );
+      compiler.indentLevel--;
+      compiler.emit('}');
+    }
+  } else {
+    compiler.emit('// Create fallback node for empty scenes');
+    compiler.emit('NodeFactory.createDefaultNode(this) { renderable ->');
+    compiler.indentLevel++;
+    compiler.emit(
+      'attachRenderableToAnchor(anchorNode, "default", renderable, Vector3(0f, 0f, 0f), Vector3(1f, 1f, 1f))'
+    );
+    compiler.indentLevel--;
+    compiler.emit('}');
+  }
+  compiler.indentLevel--;
+  compiler.emit('}');
+  compiler.emit('');
+
+  compiler.emit('private fun attachRenderableToAnchor(');
+  compiler.indentLevel++;
+  compiler.emit('anchorNode: AnchorNode,');
+  compiler.emit('objectName: String,');
+  compiler.emit('renderable: Renderable,');
+  compiler.emit('localPosition: Vector3,');
+  compiler.emit('localScale: Vector3');
+  compiler.indentLevel--;
+  compiler.emit(') {');
   compiler.indentLevel++;
   compiler.emit('val transformableNode = TransformableNode(arFragment.transformationSystem)');
   compiler.emit('transformableNode.setParent(anchorNode)');
   compiler.emit('transformableNode.renderable = renderable');
+  compiler.emit('transformableNode.localPosition = localPosition');
+  compiler.emit('transformableNode.localScale = localScale');
   compiler.emit('transformableNode.select()');
   compiler.emit('');
-  compiler.emit('val id = java.util.UUID.randomUUID().toString()');
+  compiler.emit('val id = "$objectName-${java.util.UUID.randomUUID()}"');
   compiler.emit('placedNodes[id] = transformableNode');
   compiler.emit('');
   compiler.emit('// Setup interaction');
@@ -161,9 +218,7 @@ export function generateActivityFile(compiler: AndroidCompiler, composition: Hol
   compiler.indentLevel--;
   compiler.emit('}');
   compiler.emit('');
-  compiler.emit('android.util.Log.d("HoloScript", "Placed object: $id")');
-  compiler.indentLevel--;
-  compiler.emit('}');
+  compiler.emit('android.util.Log.d("HoloScript", "Placed object: $objectName as $id")');
   compiler.indentLevel--;
   compiler.emit('}');
   compiler.emit('');

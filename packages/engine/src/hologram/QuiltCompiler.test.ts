@@ -48,8 +48,12 @@ describe('QuiltCompiler', () => {
     expect(result.metadata.numViews).toBe(12);
     expect(result.metadata.tileWidth).toBe(Math.floor(result.config.resolution[0] / 4));
     expect(result.metadata.tileHeight).toBe(Math.floor(result.config.resolution[1] / 3));
+    expect(result.rendererRuntime).toBe('BrowserQuiltRenderer');
     expect(result.rendererCode).toContain('QuiltCompiler output');
+    expect(result.rendererCode).toContain('BrowserQuiltRenderer');
+    expect(result.rendererCode).toContain('renderQuiltBytes');
     expect(result.rendererCode).toContain('TILES');
+    expect(result.rendererCode).not.toContain('<Canvas');
   });
 
   it('compile() returns renderer code string', () => {
@@ -57,5 +61,6 @@ describe('QuiltCompiler', () => {
     const code = compiler.compile({ name: 'Q', objects: [] }, 'tok');
     expect(code.length).toBeGreaterThan(200);
     expect(code).toContain('QUILT_CONFIG');
+    expect(code).toContain('BrowserQuiltRenderer');
   });
 });

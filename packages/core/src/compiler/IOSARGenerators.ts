@@ -370,13 +370,21 @@ export function generateStateFile(compiler: IOSCompiler, composition: HoloCompos
     compiler.emit('guard let arView = arView else { return }');
     compiler.emit('');
     compiler.emit(`let nodes = ${compiler.options.className}Objects.createSceneNodes()`);
-    compiler.emit('guard let node = nodes.values.first else { return }');
+    compiler.emit('guard !nodes.isEmpty else { return }');
     compiler.emit('');
-    compiler.emit('node.simdWorldTransform = transform');
-    compiler.emit('arView.scene.rootNode.addChildNode(node)');
+    compiler.emit('let rootNode = SCNNode()');
+    compiler.emit('rootNode.name = "HoloScriptPlacedScene"');
+    compiler.emit('rootNode.simdWorldTransform = transform');
+    compiler.emit('for name in nodes.keys.sorted() {');
+    compiler.indentLevel++;
+    compiler.emit('guard let node = nodes[name] else { continue }');
+    compiler.emit('rootNode.addChildNode(node)');
+    compiler.indentLevel--;
+    compiler.emit('}');
+    compiler.emit('arView.scene.rootNode.addChildNode(rootNode)');
     compiler.emit('');
     compiler.emit('let id = UUID().uuidString');
-    compiler.emit('placedNodes[id] = node');
+    compiler.emit('placedNodes[id] = rootNode');
     compiler.emit('print("[HoloScript] Placed object: \\(id)")');
     compiler.indentLevel--;
     compiler.emit('}');
@@ -922,4 +930,3 @@ export function emitGeoAnchorMethods(compiler: IOSCompiler, composition: HoloCom
       compiler.emit('');
     }
   }
-

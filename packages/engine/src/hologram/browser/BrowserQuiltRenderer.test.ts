@@ -76,16 +76,104 @@ function sha256Hex(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
+function readU32BE(bytes: Uint8Array, offset: number): number {
+  return (
+    ((bytes[offset] << 24) |
+      (bytes[offset + 1] << 16) |
+      (bytes[offset + 2] << 8) |
+      bytes[offset + 3]) >>>
+    0
+  );
+}
+
+function concatBytes(parts: Uint8Array[]): Uint8Array {
+  const total = parts.reduce((sum, part) => sum + part.byteLength, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const part of parts) {
+    out.set(part, offset);
+    offset += part.byteLength;
+  }
+  return out;
+}
+
+function decodeStoredPngRgba(png: Uint8Array, width: number, height: number): Uint8Array {
+  const idatParts: Uint8Array[] = [];
+  let offset = 8;
+  while (offset < png.byteLength) {
+    const length = readU32BE(png, offset);
+    const type = String.fromCharCode(...png.subarray(offset + 4, offset + 8));
+    const dataStart = offset + 8;
+    if (type === 'IDAT') {
+      idatParts.push(png.subarray(dataStart, dataStart + length));
+    }
+    offset = dataStart + length + 4;
+  }
+
+  const zlib = concatBytes(idatParts);
+  const rawParts: Uint8Array[] = [];
+  let pos = 2;
+  while (pos < zlib.byteLength - 4) {
+    const header = zlib[pos++];
+    const isFinal = (header & 1) === 1;
+    const blockType = (header >> 1) & 0x03;
+    if (blockType !== 0) throw new Error(`expected stored PNG block, got ${blockType}`);
+    const length = zlib[pos] | (zlib[pos + 1] << 8);
+    const inverseLength = zlib[pos + 2] | (zlib[pos + 3] << 8);
+    if (((length ^ inverseLength) & 0xffff) !== 0xffff) {
+      throw new Error('invalid stored PNG block length');
+    }
+    pos += 4;
+    rawParts.push(zlib.subarray(pos, pos + length));
+    pos += length;
+    if (isFinal) break;
+  }
+
+  const filtered = concatBytes(rawParts);
+  const stride = width * 4;
+  const expected = height * (1 + stride);
+  if (filtered.byteLength !== expected) {
+    throw new Error(`decoded PNG payload is ${filtered.byteLength}, expected ${expected}`);
+  }
+
+  const rgba = new Uint8Array(width * height * 4);
+  for (let y = 0; y < height; y++) {
+    const src = y * (1 + stride);
+    if (filtered[src] !== 0) throw new Error(`unsupported PNG filter ${filtered[src]}`);
+    rgba.set(filtered.subarray(src + 1, src + 1 + stride), y * stride);
+  }
+  return rgba;
+}
+
+function hashTile(
+  rgba: Uint8Array,
+  quiltWidth: number,
+  x: number,
+  y: number,
+  width: number,
+  height: number
+): string {
+  const tile = new Uint8Array(width * height * 4);
+  const rowBytes = width * 4;
+  for (let row = 0; row < height; row++) {
+    const src = ((y + row) * quiltWidth + x) * 4;
+    tile.set(rgba.subarray(src, src + rowBytes), row * rowBytes);
+  }
+  return sha256Hex(tile);
+}
+
 /**
  * Helper: run the quilt renderer directly with the 32×32 fixture + small
  * tile grid (3×2 = 6 views) so the test is fast (~100ms even on the
  * CPU path) but still exercises the per-tile loop, parallax shift, and
  * grid composition.
  */
-async function renderFixtureQuilt(opts: {
-  depth?: Float32Array;
-  source?: { data: Uint8ClampedArray; width: number; height: number };
-} = {}): Promise<Uint8Array> {
+async function renderFixtureQuilt(
+  opts: {
+    depth?: Float32Array;
+    source?: { data: Uint8ClampedArray; width: number; height: number };
+  } = {}
+): Promise<Uint8Array> {
   const renderer = new BrowserQuiltRenderer({
     path: 'cpu',
     overrides: {
@@ -136,6 +224,16 @@ describe('BrowserQuiltRenderer — determinism (CPU path)', () => {
     const a = await renderFixtureQuilt({ source: makeFixtureImage(0) });
     const b = await renderFixtureQuilt({ source: makeFixtureImage(7) });
     expect(sha256Hex(a)).not.toBe(sha256Hex(b));
+  });
+
+  it('renders distinct pixels across quilt tiles', async () => {
+    const out = await renderFixtureQuilt();
+    const rgba = decodeStoredPngRgba(out, 192, 128);
+    const bottomRowTop = 64;
+    const leftView = hashTile(rgba, 192, 0, bottomRowTop, 64, 64);
+    const rightView = hashTile(rgba, 192, 128, bottomRowTop, 64, 64);
+
+    expect(leftView).not.toBe(rightView);
   });
 
   it('output begins with the PNG signature', async () => {
@@ -203,10 +301,8 @@ describe('BrowserQuiltRenderer — composition + tile selection', () => {
       sourceKind: 'image',
     });
     // PNG with width=128, height=128: bytes 16..23 in the IHDR encode w,h
-    const w =
-      (out[16] << 24) | (out[17] << 16) | (out[18] << 8) | out[19];
-    const h =
-      (out[20] << 24) | (out[21] << 16) | (out[22] << 8) | out[23];
+    const w = (out[16] << 24) | (out[17] << 16) | (out[18] << 8) | out[19];
+    const h = (out[20] << 24) | (out[21] << 16) | (out[22] << 8) | out[23];
     expect(w).toBe(128);
     expect(h).toBe(128);
   });
@@ -279,15 +375,10 @@ describe('createBrowserProviders — end-to-end via createHologram', () => {
       },
     });
 
-    const bundle = await createHologram(
-      FIXTURE_MEDIA,
-      'image',
-      providers,
-      {
-        targets: ['quilt'],
-        now: () => new Date('2026-04-25T00:00:00.000Z'),
-      }
-    );
+    const bundle = await createHologram(FIXTURE_MEDIA, 'image', providers, {
+      targets: ['quilt'],
+      now: () => new Date('2026-04-25T00:00:00.000Z'),
+    });
 
     expect(bundle.hash).toMatch(/^[0-9a-f]{64}$/);
     expect(bundle.meta.width).toBe(FIXTURE_W);

@@ -119,6 +119,43 @@ function generateJobId(): string {
   return `compile_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeTargetOptions(
+  target: ExportTarget,
+  options: Partial<ExportOptions>
+): Partial<ExportOptions> {
+  if (target !== 'vrchat') {
+    return options;
+  }
+
+  const rawOptions = options as Partial<ExportOptions> & Record<string, unknown>;
+  const hasOutputFormat = Object.prototype.hasOwnProperty.call(rawOptions, 'outputFormat');
+  const hasUseUdonSharp = Object.prototype.hasOwnProperty.call(rawOptions, 'useUdonSharp');
+  if (!hasOutputFormat && !hasUseUdonSharp) {
+    return options;
+  }
+
+  const { outputFormat, useUdonSharp, ...rest } = rawOptions;
+  const compilerOptions = isRecord(rawOptions.compilerOptions)
+    ? { ...rawOptions.compilerOptions }
+    : {};
+
+  if (hasOutputFormat) {
+    compilerOptions.outputFormat = outputFormat;
+  }
+  if (hasUseUdonSharp) {
+    compilerOptions.useUdonSharp = useUdonSharp;
+  }
+
+  return {
+    ...rest,
+    compilerOptions,
+  };
+}
+
 function trackJob(
   jobId: string,
   status: CompilationJob['status'],
@@ -156,7 +193,11 @@ async function compileToTarget(
 ): Promise<{ output: string; usedFallback: boolean }> {
   const exportManager = getExportManager();
   // ExportManager.export(target, composition, options) — target is first arg
-  const result = await exportManager.export(target, composition, options);
+  const result = await exportManager.export(
+    target,
+    composition,
+    normalizeTargetOptions(target, options)
+  );
 
   if (!result.success) {
     throw new Error(result.error?.message || 'Compilation failed');
@@ -1088,12 +1129,29 @@ export const compilerTools: Tool[] = [
   },
   {
     name: 'compile_to_vrchat',
-    description: 'Compile HoloScript to VRChat UdonSharp scripts',
+    description:
+      'Compile HoloScript to VRChat SDK3. Current implementation emits legacy UdonSharp C#; Byte/Udon output is gated on the artifact contract.',
     inputSchema: {
       type: 'object',
       properties: {
         code: { type: 'string', description: 'HoloScript composition code' },
-        options: { type: 'object' },
+        options: {
+          type: 'object',
+          properties: {
+            outputFormat: {
+              type: 'string',
+              enum: ['udonsharp-csharp', 'udon-assembly', 'udon-bytecode'],
+              description:
+                'VRChat artifact family. Only udonsharp-csharp is currently implemented; Byte/Udon formats fail fast until the artifact contract is confirmed.',
+            },
+            useUdonSharp: {
+              type: 'boolean',
+              description:
+                'Legacy alias for UdonSharp C# output. false maps to the gated Byte/Udon target family.',
+            },
+          },
+          additionalProperties: true,
+        },
       },
       required: ['code'],
     },
@@ -1185,7 +1243,7 @@ export const compilerTools: Tool[] = [
   {
     name: 'compile_to_sdf',
     description:
-      'Compile HoloScript to SDF (Simulation Description Format) for Gazebo environments',
+      'Compile HoloScript to Gazebo SDF (Simulation Description Format) XML; not signed-distance-field ray marching',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1382,7 +1440,8 @@ export const compilerTools: Tool[] = [
   {
     name: 'compile_to_mcp_config',
     description:
-      'Compile .holo MCP server definitions to IDE-specific config JSON. ' +
+      'Compile .holo MCP server connection definitions to IDE-specific client config JSON. ' +
+      'This emits mcpServers connection entries, not an MCP server manifest with tools or resources. ' +
       'One source, multiple outputs: claude (${VAR}), vscode (${env:VAR}), ' +
       'cursor (${VAR}), antigravity (literal key injection), generic.',
     inputSchema: {
@@ -1391,7 +1450,7 @@ export const compilerTools: Tool[] = [
         code: {
           type: 'string',
           description:
-            'HoloScript with server objects using @connector and @env traits. ' +
+            'HoloScript with MCP client connection server objects using @connector and @env traits. ' +
             'Example: server my_server { @connector(holoscript, transport: "http") url: "https://mcp.holoscript.net/mcp" @env(HOLOSCRIPT_API_KEY, header: "Authorization: Bearer") }',
         },
         target: {

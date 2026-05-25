@@ -1,9 +1,9 @@
 /**
- * MVHEVCCompiler — Generates stereoscopic MV-HEVC spatial video for Apple Vision Pro.
+ * MVHEVCCompiler — Generates an MV-HEVC spatial-video export plan for Apple Vision Pro.
  *
- * Compiles HoloScript scenes to MV-HEVC metadata and Swift/RealityKit code for
- * spatial video playback. MV-HEVC encodes left/right eye views as separate HEVC
- * layers within a single ISOBMFF container (.mov).
+ * This compiler does not encode video bytes. It produces stereo rig metadata,
+ * Swift/RealityKit scaffold source, and an advisory mux command that a real
+ * encoder pipeline can consume.
  *
  * Output includes:
  * - Camera rig parameters for stereo pair rendering
@@ -18,7 +18,7 @@
 export interface HoloComposition {
   name?: string;
   objects: Array<{
-    traits?: Array<{ name: string; config?: Record<string, any> }>;
+    traits?: Array<{ name: string; config?: Record<string, unknown> }>;
   }>;
 }
 
@@ -55,14 +55,18 @@ export interface MVHEVCStereoView {
 }
 
 export interface MVHEVCCompilationResult {
+  /** Truthful artifact class: this is an export plan/scaffold, not encoded video bytes. */
+  artifactKind: 'mvhevc-plan';
   /** Stereo rig configuration */
   config: MVHEVCConfig;
   /** Left and right eye view parameters */
   views: MVHEVCStereoView[];
   /** Swift code for spatial video playback on Vision Pro */
   swiftCode: string;
-  /** FFmpeg-compatible muxing command for MV-HEVC container */
+  /** Advisory mux command string. It is not executed by this compiler. */
   muxCommand: string;
+  /** Concrete limitations that keep the compiler honest at call sites. */
+  limitations: string[];
   /** ISOBMFF metadata for spatial video signaling */
   metadata: {
     stereoMode: 'side-by-side' | 'multiview-hevc';
@@ -91,6 +95,12 @@ const QUALITY_BITRATE: Record<string, number> = {
   high: 50_000_000, // 50 Mbps per eye
 };
 
+const MVHEVC_PLAN_LIMITATIONS = [
+  'Generates Swift source and mux metadata only.',
+  'Does not invoke VideoToolbox, AVAssetWriter, ffmpeg, or libx265.',
+  'Does not return encoded MV-HEVC bytes or validate multiview NAL/SEI layers.',
+];
+
 // ── Compiler ─────────────────────────────────────────────────────────────────
 
 export class MVHEVCCompiler {
@@ -103,7 +113,7 @@ export class MVHEVCCompiler {
   }
 
   /**
-   * Full MV-HEVC compilation with stereo rig, Swift code, and mux command.
+   * MV-HEVC planning result with stereo rig metadata, Swift scaffold, and mux command.
    */
   compileMVHEVC(
     composition: HoloComposition,
@@ -115,10 +125,12 @@ export class MVHEVCCompiler {
     const muxCommand = this.generateMuxCommand(config);
 
     return {
+      artifactKind: 'mvhevc-plan',
       config,
       views,
       swiftCode,
       muxCommand,
+      limitations: [...MVHEVC_PLAN_LIMITATIONS],
       metadata: {
         stereoMode: 'multiview-hevc',
         baseline: config.ipd,
@@ -180,13 +192,14 @@ export class MVHEVCCompiler {
   }
 
   /**
-   * Generate Swift code for spatial video playback on Apple Vision Pro.
+   * Generate Swift scaffold code for spatial video playback on Apple Vision Pro.
    */
   private generateSwiftCode(composition: HoloComposition, config: MVHEVCConfig): string {
     const sceneName = composition.name || 'SpatialVideoScene';
     const bitrate = QUALITY_BITRATE[config.quality] ?? QUALITY_BITRATE.high;
 
-    return `// MVHEVCCompiler output — Spatial Video for Apple Vision Pro
+    return `// MVHEVCCompiler output — MV-HEVC planner/scaffold for Apple Vision Pro
+// Not an encoded .${config.container} artifact. Feed rendered eye frames into a platform encoder.
 // Stereo baseline: ${config.ipd * 1000}mm IPD, ${config.resolution[0]}x${config.resolution[1]} per eye
 // Convergence: ${config.convergenceDistance}m, FOV: ${config.fovDegrees}°, ${config.fps}fps
 
@@ -322,7 +335,7 @@ extension StereoRenderPipeline {
   }
 
   /**
-   * Generate FFmpeg command for muxing separate L/R HEVC streams into MV-HEVC.
+   * Generate an advisory FFmpeg command string for muxing separate L/R HEVC streams.
    */
   private generateMuxCommand(config: MVHEVCConfig): string {
     const bitrate = Math.round(

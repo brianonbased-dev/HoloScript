@@ -207,7 +207,8 @@ export function registerBuiltinDialects(): void {
     {
       name: 'vrchat',
       domain: 'social-vr',
-      description: 'Compiles to VRChat UdonSharp scripts',
+      description:
+        'Compiles to VRChat SDK3. Current implementation emits legacy UdonSharp C#; Byte/Udon output is gated on the artifact contract.',
       supportedTraits: [
         'physics',
         'collidable',

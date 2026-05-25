@@ -317,7 +317,8 @@ world PhysicsGallery {
 interface VRChatCompilerOptions {
   worldName?: string;         // VRC world display name
   sdkVersion?: '3.0' | '3.1' | '3.2' | '3.3' | '3.4' | '3.5';  // default: '3.5'
-  useUdonSharp?: boolean;     // default: true (false = raw Udon graph JSON)
+  outputFormat?: 'udonsharp-csharp' | 'udon-assembly' | 'udon-bytecode';
+  useUdonSharp?: boolean;     // legacy alias; false is gated until Byte/Udon output lands
   namespace?: string;         // C# namespace — default: 'HoloWorld'
   className?: string;         // World controller class — default: 'GeneratedWorld'
   provenanceHash?: string;    // For SimulationContract receipt linkage

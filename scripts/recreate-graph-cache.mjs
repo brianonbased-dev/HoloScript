@@ -36,12 +36,20 @@ loadEnv();
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, '..');
-const SCAN_TARGET = process.env.HOLOSCRIPT_SCAN_TARGET || REPO_ROOT;
+const SCAN_TARGET = resolve(process.env.HOLOSCRIPT_SCAN_TARGET || REPO_ROOT);
 const LIVE_CACHE_DIR = process.env.HOLOSCRIPT_CACHE_DIR || join(homedir(), '.holoscript');
 const CACHE_FILE = join(LIVE_CACHE_DIR, 'graph-cache.json');
 const EMBEDDINGS_FILE = join(LIVE_CACHE_DIR, 'embeddings-cache.bin');
-const ABSORB_ENTRY = join(REPO_ROOT, 'packages', 'absorb-service', 'dist', 'mcp', 'index.js');
+const ABSORB_ENTRY = join(
+  REPO_ROOT,
+  'packages',
+  'absorb-service',
+  'dist',
+  'mcp',
+  'codebase-tools.js'
+);
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const NATIVE_GRAPH_RAG_PROVIDER = 'holoembed';
 const REBUILD_ID = `${Date.now()}-${process.pid}`;
 const STAGING_CACHE_DIR =
   process.env.HOLOSCRIPT_REBUILD_CACHE_DIR || join(LIVE_CACHE_DIR, `.rebuild-${REBUILD_ID}`);
@@ -126,6 +134,30 @@ function readJsonFile(filePath, fallback) {
 function writeJsonFile(filePath, data) {
   mkdirSync(dirname(filePath), { recursive: true });
   writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+}
+
+function resolveNativeEmbeddingProvider(providerName = process.env.EMBEDDING_PROVIDER) {
+  const normalized = String(providerName || NATIVE_GRAPH_RAG_PROVIDER)
+    .trim()
+    .toLowerCase();
+
+  if (!normalized || normalized === 'structural') return NATIVE_GRAPH_RAG_PROVIDER;
+  if (normalized !== NATIVE_GRAPH_RAG_PROVIDER) {
+    throw new Error(
+      `Graph cache rebuild requires ${NATIVE_GRAPH_RAG_PROVIDER}; EMBEDDING_PROVIDER requested ${normalized}. Fix HoloEmbed instead of falling back.`
+    );
+  }
+  return NATIVE_GRAPH_RAG_PROVIDER;
+}
+
+function buildAbsorbArgs(rootDir) {
+  return {
+    rootDir,
+    force: true,
+    outputFormat: 'stats',
+    includeBuildArtifacts: false,
+    embeddingProvider: resolveNativeEmbeddingProvider(),
+  };
 }
 
 function sanitizeShardName(relativePath) {
@@ -294,7 +326,7 @@ function assertHealthyStatus(postStatus) {
     throw new Error('Disk cache does not exist after staged absorb');
   }
 
-  if (postCache.stale) {
+  if (postCache.staleByAge ?? postCache.stale) {
     throw new Error('Disk cache reported as stale after staged absorb');
   }
 
@@ -483,13 +515,7 @@ async function main() {
   console.log('      (This may take 3-10 minutes)');
 
   const absorbStart = Date.now();
-  const result = await handleCodebaseTool('holo_absorb_repo', {
-    rootDir: SCAN_TARGET,
-    force: true,
-    outputFormat: 'stats',
-    includeBuildArtifacts: false,
-    embeddingProvider: 'openai',
-  });
+  const result = await handleCodebaseTool('holo_absorb_repo', buildAbsorbArgs(SCAN_TARGET));
   const absorbDuration = Date.now() - absorbStart;
 
   if (result.error) {
@@ -519,7 +545,56 @@ async function main() {
   console.log('\nGraph cache recreated, verified, and installed successfully.');
 }
 
-main().catch((err) => {
+function runSelfTest() {
+  const originalProvider = process.env.EMBEDDING_PROVIDER;
+  const cases = [
+    [undefined, NATIVE_GRAPH_RAG_PROVIDER],
+    ['', NATIVE_GRAPH_RAG_PROVIDER],
+    ['HoloEmbed', NATIVE_GRAPH_RAG_PROVIDER],
+    [' structural ', NATIVE_GRAPH_RAG_PROVIDER],
+  ];
+
+  try {
+    for (const [input, expected] of cases) {
+      if (input === undefined) {
+        delete process.env.EMBEDDING_PROVIDER;
+      } else {
+        process.env.EMBEDDING_PROVIDER = input;
+      }
+      const args = buildAbsorbArgs('fixture-root');
+      if (args.embeddingProvider !== expected) {
+        throw new Error(
+          `expected ${JSON.stringify(input)} to resolve to ${expected}, got ${args.embeddingProvider}`
+        );
+      }
+      if (String(args.embeddingProvider).toLowerCase() === 'openai') {
+        throw new Error('self-test resolved GraphRAG provider to openai');
+      }
+    }
+
+    process.env.EMBEDDING_PROVIDER = 'openai';
+    try {
+      buildAbsorbArgs('fixture-root');
+      throw new Error('expected openai provider override to be rejected');
+    } catch (err) {
+      if (!String(err?.message ?? err).includes('requires holoembed')) {
+        throw err;
+      }
+    }
+  } finally {
+    if (originalProvider === undefined) {
+      delete process.env.EMBEDDING_PROVIDER;
+    } else {
+      process.env.EMBEDDING_PROVIDER = originalProvider;
+    }
+  }
+
+  console.log('PASS recreate-graph-cache native-provider self-test');
+}
+
+const command = process.argv.includes('--self-test') ? runSelfTest : main;
+
+Promise.resolve(command()).catch((err) => {
   console.error(`FAIL: ${(err && err.stack) || String(err)}`);
   if (existsSync(STAGING_CACHE_DIR)) {
     console.error(`Staging cache retained for inspection: ${STAGING_CACHE_DIR}`);
