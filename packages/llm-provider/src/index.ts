@@ -139,8 +139,13 @@ export {
 } from './adapters/openrouter';
 export type { OpenRouterModel } from './adapters/openrouter';
 
-export { XAIAdapter, XAI_MODELS, XAI_CAPABILITIES } from './adapters/xai';
-export type { XAIModel } from './adapters/xai';
+export {
+  XAIAdapter,
+  XAI_MODELS,
+  XAI_MODEL_CAPABILITIES,
+  XAI_CAPABILITIES,
+} from './adapters/xai';
+export type { XAIModel, XAIModelCapability } from './adapters/xai';
 
 export {
   BrittneyCloudAdapter,
