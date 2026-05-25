@@ -51,3 +51,24 @@ pnpm --filter @holoscript/hologram-worker build
 npx playwright install chromium
 HOLOGRAM_WORKER_DEPTH_BACKEND=luminance node packages/hologram-worker/dist/server.js
 ```
+
+## Neural depth (Depth-Anything-V2)
+
+`src/depth-infer.ts` runs **real Depth-Anything-V2 ONNX** (`runOnnxDepth`,
+`onnxruntime-node`) when a model is available, and falls back to a luminance
+heuristic otherwise. Provision the model once so the neural path engages
+automatically (no env needed — `resolveDepthModelPath()` finds the default cache):
+
+```bash
+node packages/hologram-worker/scripts/provision-depth-model.mjs        # ~99MB → .models/ (gitignored)
+node packages/hologram-worker/scripts/verify-neural-depth.mjs          # falsifiable proof: neural ≠ luminance
+```
+
+- Override the path with `HOLOGRAM_ONNX_MODEL_PATH=/abs/model.onnx` or the cache
+  dir with `HOLOGRAM_MODELS_DIR`.
+- Force the luminance fallback (deterministic, no model) with
+  `HOLOGRAM_WORKER_DEPTH_BACKEND=luminance`.
+- The verifier asserts the neural depth materially diverges from luminance
+  (MAE + correlation) — a relabeled-luminance "neural" map would fail it.
+  Measured 2026-05-24: MAE 0.357, Pearson −0.47 (real monocular depth is
+  anti-correlated with the naive brightness proxy).

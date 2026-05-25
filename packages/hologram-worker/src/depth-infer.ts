@@ -1,4 +1,6 @@
-import { promises as fs } from 'node:fs';
+import { promises as fs, existsSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import sharp from 'sharp';
 
@@ -6,6 +8,42 @@ import type { DepthInferenceResult } from '@holoscript/engine/hologram';
 import type { HologramSourceKind } from '@holoscript/engine/hologram';
 
 const MODEL_ID = 'depth-anything/Depth-Anything-V2-Small-hf';
+
+/**
+ * Resolve the Depth-Anything-V2 ONNX model path for real neural depth.
+ * Precedence: explicit HOLOGRAM_ONNX_MODEL_PATH → HOLOGRAM_MODELS_DIR →
+ * the default provisioned cache (<repo>/.models/depth-anything-v2-small,
+ * written by scripts/provision-depth-model.mjs). Returns undefined when no
+ * model is present, so callers fall back to luminance. This is what makes the
+ * neural path engage automatically once the model is provisioned, instead of
+ * silently staying on luminance because nobody set the env var.
+ */
+export function resolveDepthModelPath(): string | undefined {
+  const explicit = process.env.HOLOGRAM_ONNX_MODEL_PATH?.trim();
+  if (explicit) return existsSync(explicit) ? explicit : undefined;
+
+  const candidates: string[] = [];
+  const modelsDir = process.env.HOLOGRAM_MODELS_DIR?.trim();
+  if (modelsDir) {
+    candidates.push(join(resolve(modelsDir), 'model.onnx'));
+    candidates.push(join(resolve(modelsDir), 'model_quantized.onnx'));
+  }
+  // Walk up from this module to the repo root (pnpm-workspace.yaml) and check
+  // the default provisioned cache.
+  let dir = dirname(fileURLToPath(import.meta.url));
+  for (let i = 0; i < 8; i += 1) {
+    if (existsSync(join(dir, 'pnpm-workspace.yaml'))) {
+      const base = join(dir, '.models', 'depth-anything-v2-small');
+      candidates.push(join(base, 'model.onnx'));
+      candidates.push(join(base, 'model_quantized.onnx'));
+      break;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return candidates.find((p) => existsSync(p));
+}
 
 async function luminanceDepthFromPng(
   pngPath: string,
@@ -142,8 +180,9 @@ export async function inferDepthForRaster(
   _sourceKind: HologramSourceKind,
 ): Promise<DepthInferenceResult> {
   void _sourceKind;
-  const onnxPath = process.env.HOLOGRAM_ONNX_MODEL_PATH?.trim();
-  if (onnxPath && process.env.HOLOGRAM_WORKER_DEPTH_BACKEND !== 'luminance') {
+  const onnxPath =
+    process.env.HOLOGRAM_WORKER_DEPTH_BACKEND === 'luminance' ? undefined : resolveDepthModelPath();
+  if (onnxPath) {
     try {
       return await runOnnxDepth(onnxPath, pngPath, width, height);
     } catch {

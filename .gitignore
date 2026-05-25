@@ -290,3 +290,6 @@ pids
 !.bench-logs/paper-7-ik-latency*
 !.bench-logs/*paper-10*
 !.bench-logs/tet10-gpu-crossover-*
+
+# HoloGram depth model cache (provisioned, never committed — ~99MB)
+/.models/
