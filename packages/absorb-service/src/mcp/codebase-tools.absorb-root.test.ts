@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { handleCodebaseTool, resetCodebaseToolStateForTests } from './codebase-tools';
+import { setGraphRAGState } from './graph-rag-tools';
 
 const originalCacheDir = process.env.HOLOSCRIPT_CACHE_DIR;
 
@@ -154,6 +155,65 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.diskCache?.authoritative).toBe(true);
     expect(status.diskCache?.freshForCurrentRepo).toBe(true);
     expect(status.graphUnavailableReceipt).toBeUndefined();
+  });
+
+  it('does not emit a graph unavailable receipt when local GraphRAG is live without disk cache', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-empty-graph-cache-'));
+    const requestedRoot = process.cwd();
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+
+    setGraphRAGState({} as any, {} as any, { rootDir: requestedRoot, timestamp: Date.now() });
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphRAGReady?: boolean;
+      graphAuthoritative?: boolean;
+      freshForCurrentRepo?: boolean;
+      graphUnavailableReceipt?: GraphUnavailableReceipt;
+      localGraph?: {
+        ready?: boolean;
+        rootDir?: string | null;
+        authoritative?: boolean;
+        freshForCurrentRepo?: boolean;
+      };
+      diskCache?: { exists?: boolean };
+    };
+
+    expect(status.diskCache?.exists).toBe(false);
+    expect(status.graphRAGReady).toBe(true);
+    expect(status.localGraph).toMatchObject({
+      ready: true,
+      rootDir: requestedRoot,
+      authoritative: true,
+      freshForCurrentRepo: true,
+    });
+    expect(status.graphAuthoritative).toBe(true);
+    expect(status.freshForCurrentRepo).toBe(true);
+    expect(status.graphUnavailableReceipt).toBeUndefined();
+  });
+
+  it('emits a graph unavailable receipt when neither disk cache nor local GraphRAG exists', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-missing-graph-cache-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      graphRAGReady?: boolean;
+      graphAuthoritative?: boolean;
+      graphUnavailableReceipt?: GraphUnavailableReceipt;
+      localGraph?: { ready?: boolean; authoritative?: boolean };
+      diskCache?: { exists?: boolean };
+    };
+
+    expect(status.diskCache?.exists).toBe(false);
+    expect(status.graphRAGReady).toBe(false);
+    expect(status.localGraph).toMatchObject({ ready: false, authoritative: false });
+    expect(status.graphAuthoritative).toBe(false);
+    expect(status.graphUnavailableReceipt).toMatchObject({
+      kind: 'GraphUnavailableReceipt',
+      reason: 'cache_missing',
+      authoritative: false,
+    });
   });
 
   it('reports freshForCurrentRepo=false when cache rootDir differs from cwd', async () => {
