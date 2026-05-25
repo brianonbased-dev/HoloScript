@@ -38,13 +38,23 @@
  * @see packages/core/src/compiler/TraitRegistryBridge.ts (trait dispatch)
  */
 
-import type { CompileResult, Diagnostic } from '@holoscript/core/compiler';
 import type { PlatformTarget } from './PlatformConditional';
 import type { TraitInfo, TraitQueryOptions } from '../TraitRegistryBridge';
 
 // =============================================================================
 // PLUGIN INTERFACE
 // =============================================================================
+
+export interface Diagnostic {
+  severity: 'error' | 'warning' | 'info';
+  message: string;
+  code?: string;
+}
+
+export type CompileResult =
+  | { type: 'text'; data: string }
+  | { type: 'binary'; data: Uint8Array | ArrayBuffer }
+  | { type: 'error'; diagnostics: Diagnostic[] };
 
 /**
  * Plugin metadata — static declaration that doesn't require instantiation.

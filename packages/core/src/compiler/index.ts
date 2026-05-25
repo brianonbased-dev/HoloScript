@@ -215,15 +215,8 @@ export type { Native2DCompilerOptions } from './Native2DCompiler';
 export { SCMCompiler } from './SCMCompiler';
 export type { SCMCompilerOptions, AffectiveState, SCMDAG } from './SCMCompiler';
 export { mergeSocialCausalModels } from './social-causality';
-export type {
-  SocialMergeOptions,
-  SocialMergeReport,
-  SocialMergeResult,
-} from './social-causality';
-export {
-  AgentTrustLedger,
-  byzantineResilientMerge,
-} from './social-causality-byzantine';
+export type { SocialMergeOptions, SocialMergeReport, SocialMergeResult } from './social-causality';
+export { AgentTrustLedger, byzantineResilientMerge } from './social-causality-byzantine';
 export type {
   AgentTrustEntry,
   ByzantineMergeOptions,
@@ -372,6 +365,8 @@ export type { TraitQueryOptions, TraitInfo } from './TraitRegistryBridge';
 export {
   type PlatformCompilerPlugin,
   type PlatformPluginMetadata,
+  type CompileResult,
+  type Diagnostic,
   type TraitCompileContext,
   type TraitCompileOutput,
   type PluginManifest,

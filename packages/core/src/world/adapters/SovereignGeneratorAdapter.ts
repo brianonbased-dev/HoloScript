@@ -36,6 +36,8 @@ export interface TraitSuggestionResult {
   metadata: { source: GeneratorSource };
 }
 
+type TraitSuggestionPayload = Omit<TraitSuggestionResult, 'metadata'>;
+
 /** Result from generateObject — mirrors generators.ts ObjectGenerationResult */
 export interface ObjectGenerationResult {
   code: string;
@@ -44,7 +46,7 @@ export interface ObjectGenerationResult {
     traits: string[];
     geometry: string;
     generationMs?: number;
-    source: 'sovereign-local' | 'sovereign-cloud' | 'keyword-fallback';
+    source: GeneratorSource;
   };
 }
 
@@ -56,7 +58,7 @@ export interface SceneGenerationResult {
     objectCount: number;
     traits: string[];
     generationMs?: number;
-    source: 'sovereign-local' | 'sovereign-cloud' | 'keyword-fallback';
+    source: GeneratorSource;
   };
 }
 
@@ -94,8 +96,7 @@ const DEFAULT_LOCAL_ENDPOINT =
   'http://localhost:11434';
 
 const DEFAULT_LOCAL_MODEL =
-  (typeof process !== 'undefined' && process.env.BRITTNEY_MODEL) ||
-  'brittney-qwen-v23:latest';
+  (typeof process !== 'undefined' && process.env.BRITTNEY_MODEL) || 'brittney-qwen-v23:latest';
 
 const DEFAULT_CLOUD_ENDPOINT =
   (typeof process !== 'undefined' && process.env.BRITTNEY_SERVICE_URL) || '';
@@ -261,10 +262,7 @@ export class SovereignGeneratorAdapter {
    *   2. Cloud Brittney — if online and not offlineOnly
    *   3. Keyword fallback — deterministic, no LLM needed
    */
-  async suggestTraits(
-    description: string,
-    context?: string,
-  ): Promise<TraitSuggestionResult> {
+  async suggestTraits(description: string, context?: string): Promise<TraitSuggestionResult> {
     if (this.mockMode) {
       await this.sleep(this.mockLatencyMs);
       return this.keywordSuggestTraits(description, context, 'mock');
@@ -417,8 +415,8 @@ export class SovereignGeneratorAdapter {
 
   private async localSuggestTraits(
     description: string,
-    context?: string,
-  ): Promise<TraitSuggestionResult | null> {
+    context?: string
+  ): Promise<TraitSuggestionPayload | null> {
     const prompt = context
       ? `Description: "${description}"\nContext: "${context}"`
       : `Description: "${description}"`;
@@ -446,7 +444,7 @@ export class SovereignGeneratorAdapter {
 
       if (!response.ok) return null;
 
-      const data = await response.json() as {
+      const data = (await response.json()) as {
         choices?: Array<{ message?: { content?: string } }>;
       };
 
@@ -461,11 +459,12 @@ export class SovereignGeneratorAdapter {
 
   private async localGenerate(
     description: string,
-    kind: 'object' | 'scene',
+    kind: 'object' | 'scene'
   ): Promise<string | null> {
-    const prompt = kind === 'scene'
-      ? `Generate a HoloScript composition for: ${description}`
-      : `Generate a HoloScript object for: ${description}`;
+    const prompt =
+      kind === 'scene'
+        ? `Generate a HoloScript composition for: ${description}`
+        : `Generate a HoloScript object for: ${description}`;
 
     const body = {
       model: this.localModel,
@@ -490,7 +489,7 @@ export class SovereignGeneratorAdapter {
 
       if (!response.ok) return null;
 
-      const data = await response.json() as {
+      const data = (await response.json()) as {
         choices?: Array<{ message?: { content?: string } }>;
       };
 
@@ -510,8 +509,8 @@ export class SovereignGeneratorAdapter {
 
   private async cloudSuggestTraits(
     description: string,
-    context?: string,
-  ): Promise<TraitSuggestionResult | null> {
+    context?: string
+  ): Promise<TraitSuggestionPayload | null> {
     const prompt = context
       ? `Description: "${description}"\nContext: "${context}"`
       : `Description: "${description}"`;
@@ -544,7 +543,7 @@ export class SovereignGeneratorAdapter {
 
       if (!response.ok) return null;
 
-      const data = await response.json() as {
+      const data = (await response.json()) as {
         choices?: Array<{ message?: { content?: string } }>;
       };
 
@@ -559,11 +558,12 @@ export class SovereignGeneratorAdapter {
 
   private async cloudGenerate(
     description: string,
-    kind: 'object' | 'scene',
+    kind: 'object' | 'scene'
   ): Promise<string | null> {
-    const prompt = kind === 'scene'
-      ? `Generate a HoloScript composition for: ${description}`
-      : `Generate a HoloScript object for: ${description}`;
+    const prompt =
+      kind === 'scene'
+        ? `Generate a HoloScript composition for: ${description}`
+        : `Generate a HoloScript object for: ${description}`;
 
     const body = {
       model: this.cloudModel,
@@ -593,7 +593,7 @@ export class SovereignGeneratorAdapter {
 
       if (!response.ok) return null;
 
-      const data = await response.json() as {
+      const data = (await response.json()) as {
         choices?: Array<{ message?: { content?: string } }>;
       };
 
@@ -612,8 +612,8 @@ export class SovereignGeneratorAdapter {
 
   private keywordSuggestTraits(
     description: string,
-    context?: string,
-    source: 'mock' | 'keyword-fallback',
+    context: string | undefined,
+    source: 'mock' | 'keyword-fallback'
   ): TraitSuggestionResult {
     const lowerDesc = (description + ' ' + (context || '')).toLowerCase();
     const suggestedTraits = new Set<string>();
@@ -655,9 +655,13 @@ export class SovereignGeneratorAdapter {
 
   private templateGenerateObject(
     description: string,
-    source: 'mock' | 'keyword-fallback',
+    source: 'mock' | 'keyword-fallback'
   ): ObjectGenerationResult {
-    const { traits } = this.keywordSuggestTraits(description, undefined, source === 'mock' ? 'mock' : 'keyword-fallback');
+    const { traits } = this.keywordSuggestTraits(
+      description,
+      undefined,
+      source === 'mock' ? 'mock' : 'keyword-fallback'
+    );
     const code = `object "Generated" {
   // Generated from: ${description}
   geometry: "cube"
@@ -678,9 +682,13 @@ ${traits.length > 0 ? '  ' + traits.join('\n  ') : ''}
 
   private templateGenerateScene(
     description: string,
-    source: 'mock' | 'keyword-fallback',
+    source: 'mock' | 'keyword-fallback'
   ): SceneGenerationResult {
-    const { traits } = this.keywordSuggestTraits(description, undefined, source === 'mock' ? 'mock' : 'keyword-fallback');
+    const { traits } = this.keywordSuggestTraits(
+      description,
+      undefined,
+      source === 'mock' ? 'mock' : 'keyword-fallback'
+    );
     const code = `composition "Generated Scene" {
   // Generated from: ${description}
   environment {
@@ -710,7 +718,7 @@ ${traits.length > 0 ? '    ' + traits.join('\n    ') : ''}
   // PARSING UTILITIES
   // ---------------------------------------------------------------------------
 
-  private parseTraitSuggestion(content: string): TraitSuggestionResult | null {
+  private parseTraitSuggestion(content: string): TraitSuggestionPayload | null {
     try {
       // Strip markdown code fences
       const stripped = this.stripCodeFences(content).trim();

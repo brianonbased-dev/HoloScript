@@ -26,6 +26,7 @@ import {
   type PlatformPluginMetadata,
   type TraitCompileContext,
   type TraitCompileOutput,
+  type CompileResult,
   platformPluginRegistry,
 } from '../PlatformCompilerPlugin';
 
@@ -39,7 +40,6 @@ import {
 } from '../../TraitRegistryBridge';
 
 import { WebGPUCompiler, type WebGPUCompilerOptions } from '../../WebGPUCompiler';
-import type { CompileResult, Diagnostic } from '../../CompilerBase';
 import type { PlatformTarget } from '../PlatformConditional';
 
 // =============================================================================
@@ -79,9 +79,7 @@ export class WebGPUWGSLPlugin implements PlatformCompilerPlugin {
     } catch {
       return {
         type: 'error',
-        diagnostics: [
-          { severity: 'error', message: 'WebGPU plugin: invalid AST JSON input' },
-        ],
+        diagnostics: [{ severity: 'error', message: 'WebGPU plugin: invalid AST JSON input' }],
       };
     }
 

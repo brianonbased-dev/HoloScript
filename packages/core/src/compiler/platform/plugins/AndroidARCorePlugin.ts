@@ -26,6 +26,7 @@ import {
   type PlatformPluginMetadata,
   type TraitCompileContext,
   type TraitCompileOutput,
+  type CompileResult,
   platformPluginRegistry,
 } from '../PlatformCompilerPlugin';
 
@@ -39,7 +40,6 @@ import {
 } from '../../TraitRegistryBridge';
 
 import { AndroidXRCompiler } from '../../AndroidXRCompiler';
-import type { CompileResult, Diagnostic } from '../../CompilerBase';
 import type { PlatformTarget } from '../PlatformConditional';
 
 // =============================================================================
@@ -94,10 +94,7 @@ export class AndroidARCorePlugin implements PlatformCompilerPlugin {
           });
           const result = compiler.compile(ast as never, 'apl-plugin-token');
           // AndroidXRCompiler returns AndroidXRCompileResult, extract text
-          const output =
-            typeof result === 'string'
-              ? result
-              : JSON.stringify(result, null, 2);
+          const output = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
           return { type: 'text', data: output };
         } catch (err) {
           return {
