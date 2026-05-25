@@ -317,7 +317,9 @@ function signalsFromWorkflow(workflow) {
   const rawQuality = workflow?.control?.frame?.rawQuality ?? workflow?.sweep?.control?.frame?.rawQuality ?? {};
   const renderQuality = workflow?.render?.quality ?? workflow?.quality ?? {};
   const boardPose = workflow?.targetDetection?.detection?.boardPose ?? workflow?.targetDetection?.boardPose;
+  const fiducialPoseSeed = workflow?.fiducialPoseSeed ?? workflow?.poseSeed;
   const boardReprojectionRms = Number(boardPose?.reprojection?.rmsPixels);
+  const poseSeedRms = Number(fiducialPoseSeed?.poseSeed?.reprojection?.rmsPixels);
   const recoveredMarkerCount = Number(
     workflow?.targetDetection?.detection?.recoveredMarkerCount ??
       workflow?.targetDetection?.detection?.fiducialMarkers?.length ??
@@ -342,7 +344,14 @@ function signalsFromWorkflow(workflow) {
       boardPose?.status === 'homography-estimated',
     boardHomographyStatus: boardPose?.status,
     boardReprojectionRms: Number.isFinite(boardReprojectionRms) ? boardReprojectionRms : undefined,
-    hasCalibratedPose: Boolean(workflow?.calibration?.pose?.status === 'pass'),
+    hasFiducialPoseSeed:
+      fiducialPoseSeed?.status === 'pass' ||
+      fiducialPoseSeed?.poseSeed?.poseSeedReady === true,
+    fiducialPoseSeedStatus: fiducialPoseSeed?.status,
+    poseSeedReprojectionRms: Number.isFinite(poseSeedRms) ? poseSeedRms : undefined,
+    hasCalibratedPose:
+      Boolean(workflow?.calibration?.pose?.status === 'pass') ||
+      fiducialPoseSeed?.poseSeed?.calibrationReady === true,
     frameCount: workflow?.capturePlan?.frames ?? workflow?.sweep?.capturedFrameCount ?? 0,
     pointCount: workflow?.render?.pointCount ?? workflow?.sweep?.pointCount ?? 0,
     rawQualityScore: Number(rawQuality.score ?? 0),
@@ -395,15 +404,27 @@ function buildNextActions(recommendations, signals) {
     if (signals.hasFiducialBoard) {
       if (signals.hasFiducialMarkerCorners) {
         if (signals.hasBoardHomography) {
-          actions.push({
-            id: 'solve-camera-intrinsics-pnp',
-            owner: 'holomap',
-            priority: 'now',
-            action:
-              'Use the board homography and recovered marker correspondences with explicit camera intrinsics/distortion assumptions to run calibrated solvePnP or reject until intrinsics exist.',
-            doneWhen:
-              'A calibration receipt records intrinsics source, distortion assumptions, solvePnP pose, reprojection RMS/max pixels, and calibrationReady only when the calibrated solve passes.',
-          });
+          if (signals.hasFiducialPoseSeed) {
+            actions.push({
+              id: 'calibrate-camera-intrinsics-distortion',
+              owner: 'holomap',
+              priority: 'now',
+              action:
+                'Capture or import calibrated camera intrinsics and distortion coefficients so the planar pose seed can advance to a calibrated camera pose.',
+              doneWhen:
+                'A calibration receipt records intrinsics provenance, distortion coefficients or explicit none, solve method, reprojection RMS/max pixels, and calibrationReady only when that calibrated solve passes.',
+            });
+          } else {
+            actions.push({
+              id: 'seed-fiducial-board-camera-pose',
+              owner: 'holomap',
+              priority: 'now',
+              action:
+                'Decompose the board homography with an explicit pinhole intrinsics model to seed a planar camera-from-board pose while keeping calibrationReady false.',
+              doneWhen:
+                'A fiducialPoseSeed receipt records intrinsics source, target-pixel coordinate system, planar pose seed, reprojection RMS/max pixels, and no calibration overclaim.',
+            });
+          }
         } else {
           actions.push({
             id: 'solve-fiducial-board-pose',

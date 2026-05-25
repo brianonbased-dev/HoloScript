@@ -58,6 +58,10 @@ assertEq(fiducialDetected.detection.calibrationReady, false, 'fiducial marker re
 assertEq(fiducialDetected.detection.boardPose.status, 'homography-estimated', 'board homography estimated');
 assertEq(fiducialDetected.detection.boardHomographyReady, true, 'board homography readiness recorded');
 assertOk(fiducialDetected.detection.boardPose.reprojection.rmsPixels <= 1.5, 'board homography RMS is low');
+assertOk(
+  fiducialDetected.detection.boardPose.reprojection.residuals.every((residual) => residual.source && residual.observed),
+  'board homography residuals carry source and observed corners'
+);
 assertEq(fiducialDetected.detection.boardPose.calibrationReady, false, 'board homography is not camera calibration');
 assertEq(fiducialDetected.detection.boardPose.solvePnPReady, false, 'homography does not claim solvePnP');
 assertOk(

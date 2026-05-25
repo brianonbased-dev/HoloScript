@@ -15,6 +15,7 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chainReceipt, sha256Bytes, sha256Text, stageReceipt, withHash } from './holoshell/chain/receipts.mjs';
 import { buildTechnologyPlan } from './holoshell-reconstruction-tech-plan.mjs';
+import { estimateFiducialPoseSeed } from './holoshell-fiducial-pose-seed.mjs';
 import { analyzeTargetInFrame } from './holoshell-target-in-frame-analyzer.mjs';
 
 export const VERSION = '0.1.0';
@@ -39,6 +40,7 @@ function parseArgs(argv) {
     targetOut: undefined,
     targetPng: undefined,
     targetDetectionOut: undefined,
+    poseSeedOut: undefined,
     sweepOut: undefined,
     renderOut: undefined,
     deviceIndex: 0,
@@ -51,6 +53,7 @@ function parseArgs(argv) {
     tileGrid: 32,
     tileWidth: 160,
     tileHeight: 120,
+    poseSeedFovDeg: 60,
     requireCapture: false,
     geometricTarget: true,
     targetProfile: 'fiducial-board',
@@ -66,6 +69,7 @@ function parseArgs(argv) {
     else if (arg === '--target-out') args.targetOut = argv[++i];
     else if (arg === '--target-png') args.targetPng = argv[++i];
     else if (arg === '--target-detection-out') args.targetDetectionOut = argv[++i];
+    else if (arg === '--pose-seed-out') args.poseSeedOut = argv[++i];
     else if (arg === '--sweep-out') args.sweepOut = argv[++i];
     else if (arg === '--render-out') args.renderOut = argv[++i];
     else if (arg === '--device-index') args.deviceIndex = Number.parseInt(argv[++i], 10);
@@ -78,6 +82,7 @@ function parseArgs(argv) {
     else if (arg === '--tile-grid') args.tileGrid = Number.parseInt(argv[++i], 10);
     else if (arg === '--tile-width') args.tileWidth = Number.parseInt(argv[++i], 10);
     else if (arg === '--tile-height') args.tileHeight = Number.parseInt(argv[++i], 10);
+    else if (arg === '--pose-seed-fov-deg') args.poseSeedFovDeg = Number.parseFloat(argv[++i]);
     else if (arg === '--require-capture') args.requireCapture = true;
     else if (arg === '--geometric-target') args.geometricTarget = true;
     else if (arg === '--no-geometric-target') args.geometricTarget = false;
@@ -110,6 +115,9 @@ function parseArgs(argv) {
   if (!Number.isInteger(args.tileHeight) || args.tileHeight < 16 || args.tileHeight > 1024) {
     throw new Error('--tile-height must be 16..1024');
   }
+  if (!Number.isFinite(args.poseSeedFovDeg) || args.poseSeedFovDeg <= 5 || args.poseSeedFovDeg >= 175) {
+    throw new Error('--pose-seed-fov-deg must be between 5 and 175');
+  }
   if (args.frames > 1 && args.intervalMs === 0) throw new Error('--interval-ms must be > 0 with multiple frames');
   if (!['fiducial-board', 'geometric-control-target'].includes(args.targetProfile)) {
     throw new Error('--target-profile must be fiducial-board or geometric-control-target');
@@ -124,12 +132,14 @@ Usage:
   node scripts/holoshell-low-camera-workflow.mjs [--frames 15] [--interval-ms 200] [--require-capture]
   node scripts/holoshell-low-camera-workflow.mjs --target-profile fiducial-board
   node scripts/holoshell-low-camera-workflow.mjs --frames 2 --width 64 --height 48 --tile-width 80 --tile-height 60
+  node scripts/holoshell-low-camera-workflow.mjs --pose-seed-fov-deg 60
   node scripts/holoshell-low-camera-workflow.mjs --self-test
 
 Notes:
   - Uses the native WinRT camera sweep, not browser getUserMedia.
   - Generates a known fiducial/control target receipt before capture for calibration/control.
   - Keeps a plain camera JPEG control frame before preprocessing, HoloMap, or HoloGram rendering.
+  - Seeds planar fiducial pose only when the target-in-frame homography is available.
   - Replays one raw capture through every preprocess mode, renders the winning bridge, and links both receipts.
   - Writes .scratch/holoshell-low-camera-fixture/<date>/low-camera-workflow-receipt.json by default.
 `);
@@ -230,6 +240,22 @@ function summarizeTargetDetection(targetDetectionReceipt, targetDetectionReceipt
   };
 }
 
+function summarizePoseSeed(poseSeedReceipt, poseSeedReceiptPath) {
+  if (!poseSeedReceipt) return undefined;
+  return {
+    path: rel(poseSeedReceiptPath),
+    receiptHash: poseSeedReceipt.hash,
+    fileHash: fileHash(poseSeedReceiptPath),
+    status: poseSeedReceipt.status,
+    targetInFrameHash: poseSeedReceipt.targetInFrame?.receiptHash,
+    intrinsics: poseSeedReceipt.intrinsics,
+    poseSeed: poseSeedReceipt.poseSeed,
+    chainHash: poseSeedReceipt.chain?.receipt?.hash,
+    honestScope:
+      'Planar fiducial pose seed from target homography and pinhole intrinsics. It is not calibrated camera pose or metric scale.',
+  };
+}
+
 function runNodeScript(scriptPath, scriptArgs, { allowExitCodes = [0] } = {}) {
   const command = [rel(scriptPath), ...scriptArgs];
   const result = spawnSync(process.execPath, [scriptPath, ...scriptArgs], {
@@ -300,12 +326,15 @@ export function buildWorkflowReceipt({
   renderReceiptPath,
   targetDetectionReceipt,
   targetDetectionReceiptPath,
+  poseSeedReceipt,
+  poseSeedReceiptPath,
   commands,
 }) {
   const target = summarizeTarget(targetReceipt, targetReceiptPath);
   const sweep = summarizeSweep(sweepReceipt, sweepReceiptPath);
   const render = renderReceipt ? summarizeRender(renderReceipt, renderReceiptPath) : undefined;
   const targetDetection = summarizeTargetDetection(targetDetectionReceipt, targetDetectionReceiptPath);
+  const fiducialPoseSeed = summarizePoseSeed(poseSeedReceipt, poseSeedReceiptPath);
   const capturePlan = {
     deviceIndex: args.deviceIndex,
     width: args.width,
@@ -329,6 +358,7 @@ export function buildWorkflowReceipt({
       renderPlan,
       target,
       targetDetection,
+      fiducialPoseSeed,
       sweep,
       control: sweep.control,
       render,
@@ -429,6 +459,33 @@ export function buildWorkflowReceipt({
         'Checks whether the generated target is visible in the untouched control frame. This is not camera pose calibration.',
     }));
   }
+  if (fiducialPoseSeed) {
+    stages.push(stageReceipt({
+      name: 'workflow.fiducial-pose-seed',
+      input: {
+        command: commands.poseSeed?.command,
+        poseSeedReceiptPath: fiducialPoseSeed.path,
+        targetDetectionReceiptPath: targetDetection?.path,
+      },
+      output: {
+        status: fiducialPoseSeed.status,
+        poseSeedReady: fiducialPoseSeed.poseSeed?.poseSeedReady,
+        calibrationReady: fiducialPoseSeed.poseSeed?.calibrationReady,
+        reprojectionRms: fiducialPoseSeed.poseSeed?.reprojection?.rmsPixels,
+        blockers: fiducialPoseSeed.poseSeed?.blockers,
+        receiptHash: fiducialPoseSeed.receiptHash,
+        fileHash: fiducialPoseSeed.fileHash,
+      },
+      metrics: {
+        exitCode: commands.poseSeed?.exitCode,
+        poseSeedReady: fiducialPoseSeed.poseSeed?.poseSeedReady,
+        reprojectionRms: fiducialPoseSeed.poseSeed?.reprojection?.rmsPixels,
+        calibrationReady: fiducialPoseSeed.poseSeed?.calibrationReady,
+      },
+      honestScope:
+        'Seeds planar fiducial pose only after target homography exists. This stage does not claim camera calibration or metric scale.',
+    }));
+  }
   if (render) {
     stages.push(stageReceipt({
       name: 'workflow.render-winning-quilt',
@@ -467,6 +524,8 @@ export function buildWorkflowReceipt({
         geometricTarget: Boolean(target),
         targetProfile: target?.profile,
         targetDetectionStatus: targetDetection?.detection?.status,
+        poseSeedStatus: fiducialPoseSeed?.status,
+        poseSeedReady: fiducialPoseSeed?.poseSeed?.poseSeedReady,
         winningPreprocess: sweep.winner?.mode,
         pointCount: render?.pointCount ?? sweep.pointCount,
         rendered: Boolean(render),
@@ -492,6 +551,7 @@ export function buildWorkflowReceipt({
     renderPlan,
     target,
     targetDetection,
+    fiducialPoseSeed,
     sweep,
     control: sweep.control,
     render,
@@ -500,6 +560,7 @@ export function buildWorkflowReceipt({
     commands: {
       target: commands.target?.command,
       targetDetection: commands.targetDetection?.command,
+      poseSeed: commands.poseSeed?.command,
       sweep: commands.sweep.command,
       render: commands.render?.command,
     },
@@ -548,6 +609,15 @@ export function validateReceipt(receipt) {
         errors.push('target detection board homography must not claim camera calibration');
       }
     }
+    if (targetExpected && !receipt.fiducialPoseSeed?.receiptHash?.startsWith('sha256:')) {
+      errors.push('fiducial pose seed receipt hash missing');
+    }
+    if (targetExpected && !['pass', 'blocked'].includes(receipt.fiducialPoseSeed?.status)) {
+      errors.push('fiducial pose seed status missing');
+    }
+    if (targetExpected && receipt.fiducialPoseSeed?.poseSeed?.calibrationReady !== false) {
+      errors.push('fiducial pose seed must not claim camera calibration');
+    }
     if (!receipt.sweep?.winner?.mode) errors.push('winner missing');
     if (!receipt.sweep?.bridgePath) errors.push('winning bridge path missing');
     if (!receipt.control?.frame?.path) errors.push('camera control frame missing');
@@ -575,6 +645,7 @@ export async function runWorkflow(args) {
   const targetOut = resolve(REPO_ROOT, args.targetOut ?? join(baseDir, `${targetSlug}-receipt.json`));
   const targetPng = resolve(REPO_ROOT, args.targetPng ?? join(baseDir, `${targetSlug}.png`));
   const targetDetectionOut = resolve(REPO_ROOT, args.targetDetectionOut ?? join(baseDir, 'target-in-frame-receipt.json'));
+  const poseSeedOut = resolve(REPO_ROOT, args.poseSeedOut ?? join(baseDir, 'fiducial-pose-seed-receipt.json'));
   const sweepOut = resolve(REPO_ROOT, args.sweepOut ?? join(baseDir, 'preprocess-sweep-workflow.json'));
   const renderOut = resolve(REPO_ROOT, args.renderOut ?? join(baseDir, 'workflow-winner-quilt.json'));
   mkdirSync(baseDir, { recursive: true });
@@ -631,7 +702,9 @@ export async function runWorkflow(args) {
       renderReceiptPath: undefined,
       targetDetectionReceipt: undefined,
       targetDetectionReceiptPath: undefined,
-      commands: { target: targetCommand, targetDetection: undefined, sweep: sweepCommand, render: undefined },
+      poseSeedReceipt: undefined,
+      poseSeedReceiptPath: undefined,
+      commands: { target: targetCommand, targetDetection: undefined, poseSeed: undefined, sweep: sweepCommand, render: undefined },
     });
     writeJson(outPath, receipt);
     return receipt;
@@ -642,6 +715,8 @@ export async function runWorkflow(args) {
   const controlFrame = summarizeControl(sweepReceipt).frame;
   let targetDetectionCommand;
   let targetDetectionReceipt;
+  let poseSeedCommand;
+  let poseSeedReceipt;
   if (args.geometricTarget && targetReceipt && controlFrame?.path) {
     await analyzeTargetInFrame({
       framePath: controlFrame.path,
@@ -661,6 +736,24 @@ export async function runWorkflow(args) {
       exitCode: 0,
     };
     targetDetectionReceipt = readJson(targetDetectionOut);
+    poseSeedReceipt = estimateFiducialPoseSeed({
+      targetInFrameReceipt: targetDetectionReceipt,
+      targetInFramePath: targetDetectionOut,
+      out: poseSeedOut,
+      fovDeg: args.poseSeedFovDeg,
+    });
+    poseSeedCommand = {
+      command: [
+        'internal:estimateFiducialPoseSeed',
+        '--target-in-frame',
+        rel(targetDetectionOut),
+        '--out',
+        rel(poseSeedOut),
+        '--fov-deg',
+        String(args.poseSeedFovDeg),
+      ],
+      exitCode: 0,
+    };
   }
   const renderArgs = [
     '--bridge',
@@ -684,7 +777,9 @@ export async function runWorkflow(args) {
     renderReceiptPath: renderOut,
     targetDetectionReceipt,
     targetDetectionReceiptPath: targetDetectionReceipt ? targetDetectionOut : undefined,
-    commands: { target: targetCommand, targetDetection: targetDetectionCommand, sweep: sweepCommand, render: renderCommand },
+    poseSeedReceipt,
+    poseSeedReceiptPath: poseSeedReceipt ? poseSeedOut : undefined,
+    commands: { target: targetCommand, targetDetection: targetDetectionCommand, poseSeed: poseSeedCommand, sweep: sweepCommand, render: renderCommand },
   });
   const errors = validateReceipt(receipt);
   if (errors.length > 0) throw new Error(`Invalid workflow receipt: ${errors.join('; ')}`);
@@ -698,6 +793,7 @@ export async function selfTest() {
   const targetPath = join(dir, 'target.json');
   const targetPngPath = join(dir, 'target.png');
   const targetDetectionPath = join(dir, 'target-detection.json');
+  const poseSeedPath = join(dir, 'pose-seed.json');
   const sweepPath = join(dir, 'sweep.json');
   const quiltPath = join(dir, 'quilt.png');
   const renderPath = join(dir, 'render.json');
@@ -790,6 +886,12 @@ export async function selfTest() {
     chain: { receipt: { hash: 'sha256:' + 'e'.repeat(64) } },
   });
   writeJson(targetDetectionPath, targetDetectionReceipt);
+  const poseSeedReceipt = estimateFiducialPoseSeed({
+    targetInFrameReceipt: targetDetectionReceipt,
+    targetInFramePath: targetDetectionPath,
+    out: poseSeedPath,
+    fovDeg: 60,
+  });
   const sweepReceipt = withHash({
     schemaVersion: 'holoshell-camera-scan-receipt/v5',
     status: 'pass',
@@ -840,6 +942,7 @@ export async function selfTest() {
       tileGrid: 32,
       geometricTarget: true,
       targetProfile: 'fiducial-board',
+      poseSeedFovDeg: 60,
       tileWidth: 80,
       tileHeight: 60,
     },
@@ -851,9 +954,12 @@ export async function selfTest() {
     targetReceiptPath: targetPath,
     targetDetectionReceipt,
     targetDetectionReceiptPath: targetDetectionPath,
+    poseSeedReceipt,
+    poseSeedReceiptPath: poseSeedPath,
     commands: {
       target: { command: ['target', 'generate'], exitCode: 0 },
       targetDetection: { command: ['target', 'detect'], exitCode: 0 },
+      poseSeed: { command: ['pose', 'seed'], exitCode: 0 },
       sweep: { command: ['camera', 'sweep'], exitCode: 0 },
       render: { command: ['bridge', 'render'], exitCode: 0 },
     },
@@ -913,6 +1019,16 @@ async function main() {
           boardHomographyReady: receipt.targetDetection.detection?.boardHomographyReady,
           boardReprojectionRms: receipt.targetDetection.detection?.boardPose?.reprojection?.rmsPixels,
           calibrationReady: receipt.targetDetection.detection?.calibrationReady,
+        }
+      : undefined,
+    fiducialPoseSeed: receipt.fiducialPoseSeed
+      ? {
+          status: receipt.fiducialPoseSeed.status,
+          poseSeedReady: receipt.fiducialPoseSeed.poseSeed?.poseSeedReady,
+          calibrationReady: receipt.fiducialPoseSeed.poseSeed?.calibrationReady,
+          reprojectionRms: receipt.fiducialPoseSeed.poseSeed?.reprojection?.rmsPixels,
+          blockers: receipt.fiducialPoseSeed.poseSeed?.blockers,
+          intrinsicsSource: receipt.fiducialPoseSeed.intrinsics?.source,
         }
       : undefined,
     control: receipt.control?.frame

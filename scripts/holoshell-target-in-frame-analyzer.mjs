@@ -455,6 +455,7 @@ function estimateBoardHomography(markers, target) {
     return {
       markerId: point.markerId,
       cornerIndex: point.cornerIndex,
+      source: point.source,
       projected: projected ? { x: round(projected.x, 3), y: round(projected.y, 3) } : undefined,
       observed: point.image,
       error: round(error, 6),
