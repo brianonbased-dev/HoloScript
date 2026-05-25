@@ -23,6 +23,8 @@
     "holomap:status": "node scripts/check-ingest-path-status.mjs",
     "holomap:android-arcore-device-probe": "node scripts/android-arcore-depth-device-probe.mjs",
     "holomap:android-arcore-device-probe-test": "node scripts/__tests__/android-arcore-depth-device-probe.test.mjs",
+    "holomap:android-arcore-depth-apk": "node scripts/android-arcore-depth-apk-runner.mjs",
+    "holomap:android-arcore-depth-apk-test": "node scripts/__tests__/android-arcore-depth-apk-runner.test.mjs",
     "preflight": "node scripts/preflight.mjs",
     "preflight:full": "node scripts/preflight.mjs --full",
     "preflight:fix": "node scripts/preflight.mjs --fix",
