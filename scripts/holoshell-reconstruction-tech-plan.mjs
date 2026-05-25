@@ -316,6 +316,8 @@ function classifyPriority(score) {
 function signalsFromWorkflow(workflow) {
   const rawQuality = workflow?.control?.frame?.rawQuality ?? workflow?.sweep?.control?.frame?.rawQuality ?? {};
   const renderQuality = workflow?.render?.quality ?? workflow?.quality ?? {};
+  const boardPose = workflow?.targetDetection?.detection?.boardPose ?? workflow?.targetDetection?.boardPose;
+  const boardReprojectionRms = Number(boardPose?.reprojection?.rmsPixels);
   const recoveredMarkerCount = Number(
     workflow?.targetDetection?.detection?.recoveredMarkerCount ??
       workflow?.targetDetection?.detection?.fiducialMarkers?.length ??
@@ -335,6 +337,11 @@ function signalsFromWorkflow(workflow) {
     recoveredMarkerCount,
     hasFiducialMarkerCorners:
       recoveredMarkerCount >= 4 || workflow?.targetDetection?.detection?.poseSolveInputReady === true,
+    hasBoardHomography:
+      workflow?.targetDetection?.detection?.boardHomographyReady === true ||
+      boardPose?.status === 'homography-estimated',
+    boardHomographyStatus: boardPose?.status,
+    boardReprojectionRms: Number.isFinite(boardReprojectionRms) ? boardReprojectionRms : undefined,
     hasCalibratedPose: Boolean(workflow?.calibration?.pose?.status === 'pass'),
     frameCount: workflow?.capturePlan?.frames ?? workflow?.sweep?.capturedFrameCount ?? 0,
     pointCount: workflow?.render?.pointCount ?? workflow?.sweep?.pointCount ?? 0,
@@ -387,15 +394,27 @@ function buildNextActions(recommendations, signals) {
   if (top?.id === 'fiducial-calibration' || signals.rawQualityScore < 0.8) {
     if (signals.hasFiducialBoard) {
       if (signals.hasFiducialMarkerCorners) {
-        actions.push({
-          id: 'solve-fiducial-board-pose',
-          owner: 'holomap',
-          priority: 'now',
-          action:
-            'Use recovered HoloShell marker ids/corners plus generated board coordinates to estimate camera pose and record reprojection error.',
-          doneWhen:
-            'A calibration receipt records camera intrinsics assumptions, pose, reprojection error, and still fails closed when marker coverage is insufficient.',
-        });
+        if (signals.hasBoardHomography) {
+          actions.push({
+            id: 'solve-camera-intrinsics-pnp',
+            owner: 'holomap',
+            priority: 'now',
+            action:
+              'Use the board homography and recovered marker correspondences with explicit camera intrinsics/distortion assumptions to run calibrated solvePnP or reject until intrinsics exist.',
+            doneWhen:
+              'A calibration receipt records intrinsics source, distortion assumptions, solvePnP pose, reprojection RMS/max pixels, and calibrationReady only when the calibrated solve passes.',
+          });
+        } else {
+          actions.push({
+            id: 'solve-fiducial-board-pose',
+            owner: 'holomap',
+            priority: 'now',
+            action:
+              'Use recovered HoloShell marker ids/corners plus generated board coordinates to estimate a planar board homography and record reprojection error.',
+            doneWhen:
+              'A targetDetection receipt records boardPose.status=homography-estimated with reprojection error while calibrationReady remains false.',
+          });
+        }
       } else {
         actions.push({
           id: 'recover-fiducial-marker-corners',

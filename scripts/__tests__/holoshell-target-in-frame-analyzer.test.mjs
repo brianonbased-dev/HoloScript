@@ -55,6 +55,11 @@ assertEq(fiducialDetected.detection.recoveredMarkerCount, 9, 'all fiducial marke
 assertEq(fiducialDetected.detection.markerCornerCount, 36, 'all fiducial marker corners recovered');
 assertEq(fiducialDetected.detection.poseSolveInputReady, true, 'fiducial corners are pose-solve inputs');
 assertEq(fiducialDetected.detection.calibrationReady, false, 'fiducial marker recovery is not calibration');
+assertEq(fiducialDetected.detection.boardPose.status, 'homography-estimated', 'board homography estimated');
+assertEq(fiducialDetected.detection.boardHomographyReady, true, 'board homography readiness recorded');
+assertOk(fiducialDetected.detection.boardPose.reprojection.rmsPixels <= 1.5, 'board homography RMS is low');
+assertEq(fiducialDetected.detection.boardPose.calibrationReady, false, 'board homography is not camera calibration');
+assertEq(fiducialDetected.detection.boardPose.solvePnPReady, false, 'homography does not claim solvePnP');
 assertOk(
   fiducialDetected.detection.fiducialMarkers.every((marker) => marker.corners.length === 4 && marker.confidence >= 0.76),
   'each recovered marker carries four high-confidence corners'

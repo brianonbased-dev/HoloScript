@@ -65,7 +65,7 @@ Usage:
 Notes:
   - Reads the untouched camera control frame, not preprocessed HoloMap pixels.
   - Detects target visibility with palette, contrast, and checker/fiducial signal heuristics.
-  - Does not claim ArUco/AprilTag ids, camera intrinsics, solvePnP pose, or reprojection readiness.
+  - Does not claim ArUco/AprilTag ids, camera intrinsics, or solvePnP pose; board homography reprojection is planar-only.
 `);
 }
 
@@ -344,6 +344,145 @@ function bestMarkerMatch(decodedPayload, targetMarkers) {
   return best;
 }
 
+function solveLinearSystem(matrix, vector) {
+  const n = vector.length;
+  const a = matrix.map((row, index) => [...row, vector[index]]);
+  for (let col = 0; col < n; col += 1) {
+    let pivot = col;
+    for (let row = col + 1; row < n; row += 1) {
+      if (Math.abs(a[row][col]) > Math.abs(a[pivot][col])) pivot = row;
+    }
+    if (Math.abs(a[pivot][col]) < 1e-10) return undefined;
+    if (pivot !== col) [a[pivot], a[col]] = [a[col], a[pivot]];
+    const div = a[col][col];
+    for (let k = col; k <= n; k += 1) a[col][k] /= div;
+    for (let row = 0; row < n; row += 1) {
+      if (row === col) continue;
+      const factor = a[row][col];
+      if (Math.abs(factor) < 1e-14) continue;
+      for (let k = col; k <= n; k += 1) a[row][k] -= factor * a[col][k];
+    }
+  }
+  return a.map((row) => row[n]);
+}
+
+function estimateHomography(correspondences) {
+  if (!Array.isArray(correspondences) || correspondences.length < 4) return undefined;
+  const normal = Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 0));
+  const rhs = Array.from({ length: 8 }, () => 0);
+  for (const point of correspondences) {
+    const x = point.source.x;
+    const y = point.source.y;
+    const u = point.image.x;
+    const v = point.image.y;
+    const rows = [
+      { a: [x, y, 1, 0, 0, 0, -u * x, -u * y], b: u },
+      { a: [0, 0, 0, x, y, 1, -v * x, -v * y], b: v },
+    ];
+    for (const row of rows) {
+      for (let i = 0; i < 8; i += 1) {
+        rhs[i] += row.a[i] * row.b;
+        for (let j = 0; j < 8; j += 1) normal[i][j] += row.a[i] * row.a[j];
+      }
+    }
+  }
+  const h = solveLinearSystem(normal, rhs);
+  if (!h) return undefined;
+  return [
+    [h[0], h[1], h[2]],
+    [h[3], h[4], h[5]],
+    [h[6], h[7], 1],
+  ];
+}
+
+function applyHomography(matrix, point) {
+  const x = point.x;
+  const y = point.y;
+  const denom = matrix[2][0] * x + matrix[2][1] * y + matrix[2][2];
+  if (Math.abs(denom) < 1e-10) return undefined;
+  return {
+    x: (matrix[0][0] * x + matrix[0][1] * y + matrix[0][2]) / denom,
+    y: (matrix[1][0] * x + matrix[1][1] * y + matrix[1][2]) / denom,
+  };
+}
+
+function buildBoardCorrespondences(recoveredMarkers, targetMarkers) {
+  const targetById = new Map(targetMarkers.map((marker) => [marker.id, marker]));
+  const correspondences = [];
+  for (const marker of recoveredMarkers) {
+    const targetMarker = targetById.get(marker.id);
+    if (!targetMarker || !Array.isArray(targetMarker.corners) || targetMarker.corners.length < 4) continue;
+    for (let i = 0; i < 4; i += 1) {
+      const source = targetMarker.corners[i];
+      const image = marker.corners[i];
+      if (!source || !image) continue;
+      correspondences.push({
+        markerId: marker.id,
+        cornerIndex: i,
+        source: { x: source.x, y: source.y },
+        image: { x: image.x, y: image.y },
+      });
+    }
+  }
+  return correspondences;
+}
+
+function estimateBoardHomography(markers, target) {
+  const targetMarkers = Array.isArray(target?.markers) ? target.markers : [];
+  const correspondences = buildBoardCorrespondences(markers, targetMarkers);
+  if (correspondences.length < 8) {
+    return {
+      status: 'insufficient-correspondences',
+      correspondenceCount: correspondences.length,
+      homographyReady: false,
+      calibrationReady: false,
+    };
+  }
+  const matrix = estimateHomography(correspondences);
+  if (!matrix) {
+    return {
+      status: 'solve-failed',
+      correspondenceCount: correspondences.length,
+      homographyReady: false,
+      calibrationReady: false,
+    };
+  }
+  const residuals = correspondences.map((point) => {
+    const projected = applyHomography(matrix, point.source);
+    const dx = projected ? projected.x - point.image.x : Infinity;
+    const dy = projected ? projected.y - point.image.y : Infinity;
+    const error = Math.sqrt(dx * dx + dy * dy);
+    return {
+      markerId: point.markerId,
+      cornerIndex: point.cornerIndex,
+      projected: projected ? { x: round(projected.x, 3), y: round(projected.y, 3) } : undefined,
+      observed: point.image,
+      error: round(error, 6),
+    };
+  });
+  const finiteErrors = residuals.map((residual) => residual.error).filter((error) => Number.isFinite(error));
+  const rmsError = Math.sqrt(finiteErrors.reduce((sum, error) => sum + error * error, 0) / Math.max(1, finiteErrors.length));
+  const maxError = finiteErrors.length > 0 ? Math.max(...finiteErrors) : Infinity;
+  return {
+    status: Number.isFinite(rmsError) ? 'homography-estimated' : 'solve-failed',
+    model: 'planar-board-to-image-homography',
+    homographyReady: Number.isFinite(rmsError),
+    calibrationReady: false,
+    solvePnPReady: false,
+    cameraIntrinsicsRequired: true,
+    correspondenceCount: correspondences.length,
+    markerCount: markers.length,
+    matrix: matrix.map((row) => row.map((value) => round(value, 8))),
+    reprojection: {
+      rmsPixels: round(rmsError),
+      maxPixels: round(maxError),
+      residuals,
+    },
+    honestScope:
+      'Planar board-to-image homography from recovered marker corners. This is useful for 2D anchoring and reprojection error, not a 3D camera pose or camera calibration.',
+  };
+}
+
 function recoverFiducialMarkers(decoded, target) {
   const targetMarkers = Array.isArray(target?.markers) ? target.markers : [];
   const markerGrid = Number(target?.markerGrid?.cells ?? 7);
@@ -400,6 +539,7 @@ function recoverFiducialMarkers(decoded, target) {
   }
   const markers = Array.from(byId.values()).sort((a, b) => (a.row ?? 0) - (b.row ?? 0) || (a.col ?? 0) - (b.col ?? 0));
   const poseSolveInputReady = markers.length >= 4 && markers.every((marker) => marker.corners.length === 4);
+  const homography = estimateBoardHomography(markers, target);
   return {
     status: poseSolveInputReady ? 'markers-detected' : 'markers-not-detected',
     markers,
@@ -409,6 +549,7 @@ function recoverFiducialMarkers(decoded, target) {
     componentCount: components.length,
     dictionary: target.dictionary,
     bounds: mergeBounds(markers.map((marker) => marker.bounds)),
+    homography,
     honestScope:
       'Native HoloShell marker recovery from dark square components and 5x5 payload sampling. Corners are axis-aligned image-space candidates, not solvePnP pose.',
   };
@@ -597,6 +738,8 @@ export async function analyzeTargetInFrame({ workflowReceipt, workflowPath, fram
   detection.markerCornerCount = markerRecovery.markerCornerCount;
   detection.markerRecoveryStatus = markerRecovery.status;
   detection.poseSolveInputReady = markerRecovery.poseSolveInputReady;
+  detection.boardPose = markerRecovery.homography;
+  detection.boardHomographyReady = markerRecovery.homography?.homographyReady === true;
   detection.markerRecovery = {
     status: markerRecovery.status,
     recoveredMarkerCount: markerRecovery.recoveredMarkerCount,
@@ -605,6 +748,7 @@ export async function analyzeTargetInFrame({ workflowReceipt, workflowPath, fram
     componentCount: markerRecovery.componentCount,
     dictionary: markerRecovery.dictionary,
     bounds: markerRecovery.bounds,
+    homographyStatus: markerRecovery.homography?.status,
     honestScope: markerRecovery.honestScope,
   };
   const frameAbsolute = resolveInputPath(resolvedFramePath);
@@ -628,6 +772,8 @@ export async function analyzeTargetInFrame({ workflowReceipt, workflowPath, fram
       recoveredMarkerCount: detection.recoveredMarkerCount,
       markerCornerCount: detection.markerCornerCount,
       poseSolveInputReady: detection.poseSolveInputReady,
+      boardHomographyStatus: detection.boardPose?.status,
+      boardHomographyReady: detection.boardHomographyReady,
     },
     metrics: detection.metrics,
     honestScope:
@@ -643,6 +789,8 @@ export async function analyzeTargetInFrame({ workflowReceipt, workflowPath, fram
         score: detection.score,
         recoveredMarkerCount: detection.recoveredMarkerCount,
         markerCornerCount: detection.markerCornerCount,
+        boardHomographyStatus: detection.boardPose?.status,
+        boardHomographyReady: detection.boardHomographyReady,
       },
       honestScope:
         'Single-stage target visibility analyzer. Detection can fail without failing the analyzer itself.',
@@ -708,6 +856,11 @@ export function validateReceipt(receipt) {
       errors.push('poseSolveInputReady requires four corners per marker');
     }
   }
+  if (receipt.detection?.boardHomographyReady === true) {
+    if (receipt.detection?.boardPose?.status !== 'homography-estimated') errors.push('board homography status mismatch');
+    if (!(receipt.detection?.boardPose?.reprojection?.rmsPixels >= 0)) errors.push('board homography reprojection RMS missing');
+    if (receipt.detection?.boardPose?.calibrationReady !== false) errors.push('board homography must not claim camera calibration');
+  }
   if (receipt.detection?.calibrationReady !== false) errors.push('calibrationReady must be false for heuristic detector');
   if (!receipt.chain?.receipt?.hash?.startsWith('sha256:')) errors.push('chain receipt hash missing');
   return errors;
@@ -752,6 +905,9 @@ export async function selfTest() {
   });
   if (fiducialDetected.detection.status !== 'detected') throw new Error('self-test fiducial board PNG should be detected');
   if (fiducialDetected.detection.recoveredMarkerCount !== 9) throw new Error('self-test fiducial board should recover nine markers');
+  if (fiducialDetected.detection.boardPose?.status !== 'homography-estimated') {
+    throw new Error('self-test fiducial board should estimate a board homography');
+  }
   await writeSolidPng(join(dir, 'blank.png'), 320, 240, [128, 128, 128]);
   const missing = await analyzeTargetInFrame({
     framePath: join(dir, 'blank.png'),
@@ -793,6 +949,8 @@ async function main() {
       recoveredMarkerCount: receipt.detection.recoveredMarkerCount,
       markerCornerCount: receipt.detection.markerCornerCount,
       poseSolveInputReady: receipt.detection.poseSolveInputReady,
+      boardHomographyStatus: receipt.detection.boardPose?.status,
+      boardHomographyReady: receipt.detection.boardHomographyReady,
       bounds: receipt.detection.bounds,
       calibrationReady: receipt.detection.calibrationReady,
     },

@@ -58,7 +58,15 @@ assertOk(receipt.control.frame.fileHash.startsWith('sha256:'), 'camera control f
 assertEq(receipt.targetDetection.detection.status, 'not-detected', 'target detection status recorded');
 assertEq(receipt.targetDetection.target.profile, 'fiducial-board', 'target detection carries target profile');
 assertEq(receipt.targetDetection.detection.recoveredMarkerCount, 0, 'missing target recovers zero markers');
+assertEq(receipt.targetDetection.detection.boardHomographyReady, false, 'missing target has no board homography');
+assertEq(
+  receipt.targetDetection.detection.boardPose.status,
+  'insufficient-correspondences',
+  'missing target homography fails closed'
+);
 assertEq(receipt.targetDetection.detection.calibrationReady, false, 'target detection does not claim calibration readiness');
+const targetDetectionStage = receipt.chain.stages.find((stage) => stage.name === 'workflow.target-in-frame-analysis');
+assertEq(targetDetectionStage.metrics.boardHomographyReady, false, 'chain stage records board homography readiness');
 assertOk(receipt.render.receiptHash.startsWith('sha256:'), 'render receipt hash recorded');
 assertOk(receipt.render.pngHash.startsWith('sha256:'), 'quilt png hash recorded');
 assertEq(receipt.render.quality.grade, 'weak', 'workflow carries render quality grade');

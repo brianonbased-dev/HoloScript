@@ -408,6 +408,9 @@ export function buildWorkflowReceipt({
         recoveredMarkerCount: targetDetection.detection?.recoveredMarkerCount,
         markerCornerCount: targetDetection.detection?.markerCornerCount,
         poseSolveInputReady: targetDetection.detection?.poseSolveInputReady,
+        boardHomographyStatus: targetDetection.detection?.boardPose?.status,
+        boardHomographyReady: targetDetection.detection?.boardHomographyReady,
+        boardReprojectionRms: targetDetection.detection?.boardPose?.reprojection?.rmsPixels,
         receiptHash: targetDetection.receiptHash,
         fileHash: targetDetection.fileHash,
       },
@@ -418,6 +421,8 @@ export function buildWorkflowReceipt({
         recoveredMarkerCount: targetDetection.detection?.recoveredMarkerCount,
         markerCornerCount: targetDetection.detection?.markerCornerCount,
         poseSolveInputReady: targetDetection.detection?.poseSolveInputReady,
+        boardHomographyReady: targetDetection.detection?.boardHomographyReady,
+        boardReprojectionRms: targetDetection.detection?.boardPose?.reprojection?.rmsPixels,
         calibrationReady: targetDetection.detection?.calibrationReady,
       },
       honestScope:
@@ -531,6 +536,17 @@ export function validateReceipt(receipt) {
     }
     if (targetExpected && receipt.targetDetection?.detection?.calibrationReady !== false) {
       errors.push('target detection must not claim calibration readiness');
+    }
+    if (targetExpected && receipt.targetDetection?.detection?.boardHomographyReady === true) {
+      if (receipt.targetDetection?.detection?.boardPose?.status !== 'homography-estimated') {
+        errors.push('target detection board homography status mismatch');
+      }
+      if (!(receipt.targetDetection?.detection?.boardPose?.reprojection?.rmsPixels >= 0)) {
+        errors.push('target detection board homography RMS missing');
+      }
+      if (receipt.targetDetection?.detection?.boardPose?.calibrationReady !== false) {
+        errors.push('target detection board homography must not claim camera calibration');
+      }
     }
     if (!receipt.sweep?.winner?.mode) errors.push('winner missing');
     if (!receipt.sweep?.bridgePath) errors.push('winning bridge path missing');
@@ -762,6 +778,13 @@ export async function selfTest() {
       markerCornerCount: 0,
       markerRecoveryStatus: 'markers-not-detected',
       poseSolveInputReady: false,
+      boardHomographyReady: false,
+      boardPose: {
+        status: 'insufficient-correspondences',
+        homographyReady: false,
+        calibrationReady: false,
+        solvePnPReady: false,
+      },
       calibrationReady: false,
     },
     chain: { receipt: { hash: 'sha256:' + 'e'.repeat(64) } },
@@ -886,6 +909,9 @@ async function main() {
           recoveredMarkerCount: receipt.targetDetection.detection?.recoveredMarkerCount,
           markerCornerCount: receipt.targetDetection.detection?.markerCornerCount,
           poseSolveInputReady: receipt.targetDetection.detection?.poseSolveInputReady,
+          boardHomographyStatus: receipt.targetDetection.detection?.boardPose?.status,
+          boardHomographyReady: receipt.targetDetection.detection?.boardHomographyReady,
+          boardReprojectionRms: receipt.targetDetection.detection?.boardPose?.reprojection?.rmsPixels,
           calibrationReady: receipt.targetDetection.detection?.calibrationReady,
         }
       : undefined,

@@ -82,6 +82,7 @@ const cornerPlan = buildTechnologyPlan({
         recoveredMarkerCount: 9,
         markerCornerCount: 36,
         poseSolveInputReady: true,
+        boardHomographyReady: false,
         calibrationReady: false,
       },
     },
@@ -93,7 +94,44 @@ assertOk(cornerPlan.signals.hasFiducialMarkerCorners, 'marker corner signal reco
 assertOk(cornerPlan.nextActions.some((action) => action.id === 'solve-fiducial-board-pose'), 'pose solve is next after marker recovery');
 assertOk(!cornerPlan.nextActions.some((action) => action.id === 'recover-fiducial-marker-corners'), 'marker recovery is not re-requested');
 
-console.log('Test 4: invalid receipts fail closed');
+console.log('Test 4: planner advances to calibrated PnP once homography exists');
+const homographyPlan = buildTechnologyPlan({
+  workflowReceipt: {
+    status: 'pass',
+    capturePlan: { frames: 2, geometricTarget: true, targetProfile: 'fiducial-board' },
+    target: { profile: 'fiducial-board', markerCount: 9, pngHash: 'sha256:' + 'c'.repeat(64) },
+    targetDetection: {
+      detection: {
+        status: 'detected',
+        recoveredMarkerCount: 9,
+        markerCornerCount: 36,
+        poseSolveInputReady: true,
+        boardHomographyReady: true,
+        boardPose: {
+          status: 'homography-estimated',
+          calibrationReady: false,
+          solvePnPReady: false,
+          reprojection: { rmsPixels: 0.42, maxPixels: 0.9 },
+        },
+        calibrationReady: false,
+      },
+    },
+    control: { frame: { rawQuality: { score: 0.74, edgeEnergy: 0.05, contrast: 0.2 } } },
+    render: { quality: { score: 0.67, grade: 'usable' } },
+  },
+});
+assertOk(homographyPlan.signals.hasBoardHomography, 'board homography signal recorded');
+assertEq(homographyPlan.signals.boardReprojectionRms, 0.42, 'board homography RMS signal recorded');
+assertOk(
+  homographyPlan.nextActions.some((action) => action.id === 'solve-camera-intrinsics-pnp'),
+  'calibrated PnP is next after board homography'
+);
+assertOk(
+  !homographyPlan.nextActions.some((action) => action.id === 'solve-fiducial-board-pose'),
+  'homography solve is not re-requested'
+);
+
+console.log('Test 5: invalid receipts fail closed');
 const missingSources = {
   ...receipt,
   plan: {
@@ -103,7 +141,7 @@ const missingSources = {
 };
 assertOk(validateReceipt(missingSources).includes('sources missing'), 'sources are required');
 
-console.log('Test 5: CLI self-test runs without hardware');
+console.log('Test 6: CLI self-test runs without hardware');
 const cli = spawnSync(process.execPath, [SCRIPT, '--self-test'], {
   cwd: REPO_ROOT,
   encoding: 'utf8',
@@ -111,7 +149,7 @@ const cli = spawnSync(process.execPath, [SCRIPT, '--self-test'], {
 assertEq(cli.status, 0, 'CLI self-test exits 0');
 assertOk(cli.stdout.includes('self-test PASS'), 'CLI self-test names pass');
 
-console.log('Test 6: CLI help explains advisory scope');
+console.log('Test 7: CLI help explains advisory scope');
 const help = spawnSync(process.execPath, [SCRIPT, '--help'], {
   cwd: REPO_ROOT,
   encoding: 'utf8',
