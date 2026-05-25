@@ -43,6 +43,20 @@ const dryRun = args.includes('--dry-run');
 const destIdx = args.indexOf('--dest');
 const DEST = destIdx >= 0 ? resolve(args[destIdx + 1]) : (process.env.GOLD_GAME_DEST || 'D:/GOLD-GAME');
 
+// Gate 30b — the GOLD product home (D.063: GOLD owns the product, HoloScript is the
+// engine the game consumes). The portable Drive release at DEST is one consumer; the
+// canonical product home is D:/GOLD/assets/game/gold-game/. GATES.md (line ~113) named
+// "sync the GOLD product home first, then emit the portable release" as the open
+// packaging correction — this closes it: the SAME canonical manifest materializes into
+// the product home and is proven byte-equal there too. It is a GOLD *project* dir
+// (F.078: full agent r/w), NOT a governed wisdom-vault tier — syncing the build copy is
+// authorized; the vault content under D:/GOLD/wisdom/etc is never touched.
+// Set GOLD_PRODUCT_HOME='' (or --no-product-home) to skip on machines without the D: vault.
+const noProductHome = args.includes('--no-product-home');
+const PRODUCT_HOME = noProductHome
+  ? null
+  : (process.env.GOLD_PRODUCT_HOME ?? 'D:/GOLD/assets/game/gold-game');
+
 // tsx for the TypeScript-importing 2D builder; node for the 3D builder.
 // Invoke tsx through node + its CLI entry (avoids the Windows .CMD spawnSync EINVAL).
 const tsxCli = join(repo, 'node_modules', 'tsx', 'dist', 'cli.mjs');
@@ -61,70 +75,102 @@ console.log('  dest:', DEST, dryRun ? '(dry-run, no copy)' : '');
 run('3D / WebXR  (drive-build.mjs)', 'drive-build.mjs', false);
 run('retro 2D    (gold-2d-build.mjs)', 'gold-2d-build.mjs', true);
 
-// ── 3 + 4. Materialize the manifest into the dest, building a digest table ────
-if (!dryRun) {
-  // Preserve the pre-built .exe + any sibling vault if present; clean the rest.
-  const exeSrcInDest = join(DEST, 'GOLD-GAME-Server.exe');
-  let savedExe = null;
-  if (existsSync(exeSrcInDest)) savedExe = readFileSync(exeSrcInDest);
-  // Clean the regenerable subtrees only (never the sibling D:/GOLD vault, which is elsewhere).
-  for (const sub of ['3d', '2d', 'setup']) rmSync(join(DEST, sub), { recursive: true, force: true });
-  mkdirSync(DEST, { recursive: true });
-  if (savedExe) { /* exe stays in place; nothing to restore */ }
-}
+// ── 3 + 4. Materialize the manifest into a target, building a digest table ────
+// Reusable so the SAME canonical manifest materializes (and proves byte-parity) into
+// every target: the portable Drive release (DEST) and the GOLD product home (D.063).
+function materializeTo(targetDir, label) {
+  if (!dryRun) {
+    // Clean the regenerable subtrees only (never a sibling D:/GOLD vault dir).
+    for (const sub of ['3d', '2d', 'setup']) rmSync(join(targetDir, sub), { recursive: true, force: true });
+    mkdirSync(targetDir, { recursive: true });
+  }
+  const m = [];
+  const miss = [];
+  const mism = [];
 
-const manifest = [];
-const missing = [];
-const mismatched = [];
+  for (const item of PACKAGE_MANIFEST) {
+    const destPath = join(targetDir, item.rel);
+    let sourceBytes = null;
 
-for (const item of PACKAGE_MANIFEST) {
-  const destPath = join(DEST, item.rel);
-  let sourceBytes = null;
-
-  if (item.kind === 'build') {
-    const srcPath = join(here, item.from);
-    if (!existsSync(srcPath)) { missing.push(`${item.rel} (builder ${item.builder} did not emit ${item.from})`); continue; }
-    sourceBytes = readFileSync(srcPath);
-  } else if (item.kind === 'copy') {
-    const srcPath = join(here, item.from);
-    if (!existsSync(srcPath)) { missing.push(`${item.rel} (source ${item.from} absent)`); continue; }
-    sourceBytes = readFileSync(srcPath);
-  } else if (item.kind === 'static') {
-    const content = STATIC_CONTENT[item.content];
-    if (content == null) { missing.push(`${item.rel} (static content ${item.content} undefined)`); continue; }
-    sourceBytes = Buffer.from(content, 'utf8');
-  } else if (item.kind === 'prebuilt') {
-    // Verified present + digested, never regenerated.
-    if (!existsSync(destPath)) {
-      manifest.push({ rel: item.rel, kind: item.kind, present: false, note: item.note });
-      missing.push(`${item.rel} (pre-built binary not present in dest — run the SEA build once)`);
+    if (item.kind === 'build') {
+      const srcPath = join(here, item.from);
+      if (!existsSync(srcPath)) { miss.push(`${item.rel} (builder ${item.builder} did not emit ${item.from})`); continue; }
+      sourceBytes = readFileSync(srcPath);
+    } else if (item.kind === 'copy') {
+      const srcPath = join(here, item.from);
+      if (!existsSync(srcPath)) { miss.push(`${item.rel} (source ${item.from} absent)`); continue; }
+      sourceBytes = readFileSync(srcPath);
+    } else if (item.kind === 'static') {
+      const content = STATIC_CONTENT[item.content];
+      if (content == null) { miss.push(`${item.rel} (static content ${item.content} undefined)`); continue; }
+      sourceBytes = Buffer.from(content, 'utf8');
+    } else if (item.kind === 'prebuilt') {
+      // Verified present + digested, never regenerated.
+      if (!existsSync(destPath)) {
+        m.push({ rel: item.rel, kind: item.kind, present: false, note: item.note });
+        miss.push(`${item.rel} (pre-built binary not present in ${label} — run the SEA build once)`);
+        continue;
+      }
+      const bytes = readFileSync(destPath);
+      m.push({ rel: item.rel, kind: item.kind, present: true, bytes: bytes.length, sha256: sha256(bytes), note: item.note });
       continue;
     }
-    const bytes = readFileSync(destPath);
-    manifest.push({ rel: item.rel, kind: item.kind, present: true, bytes: bytes.length, sha256: sha256(bytes), note: item.note });
-    continue;
-  }
 
-  const srcDigest = sha256(sourceBytes);
-  if (!dryRun) {
-    mkdirSync(dirname(destPath), { recursive: true });
-    writeFileSync(destPath, sourceBytes);
-    // Read back the deployed file and prove byte-for-byte parity (deployed == source).
-    const deployedBytes = readFileSync(destPath);
-    const deployedDigest = sha256(deployedBytes);
-    if (deployedDigest !== srcDigest) mismatched.push(`${item.rel} (deployed digest != source digest)`);
-    manifest.push({ rel: item.rel, kind: item.kind, bytes: sourceBytes.length, sha256: srcDigest, deployedMatches: deployedDigest === srcDigest });
-  } else {
-    manifest.push({ rel: item.rel, kind: item.kind, bytes: sourceBytes.length, sha256: srcDigest, deployedMatches: null });
+    const srcDigest = sha256(sourceBytes);
+    if (!dryRun) {
+      mkdirSync(dirname(destPath), { recursive: true });
+      writeFileSync(destPath, sourceBytes);
+      // Read back the deployed file and prove byte-for-byte parity (deployed == source).
+      const deployedBytes = readFileSync(destPath);
+      const deployedDigest = sha256(deployedBytes);
+      if (deployedDigest !== srcDigest) mism.push(`${item.rel} (deployed digest != source digest)`);
+      m.push({ rel: item.rel, kind: item.kind, bytes: sourceBytes.length, sha256: srcDigest, deployedMatches: deployedDigest === srcDigest });
+    } else {
+      m.push({ rel: item.rel, kind: item.kind, bytes: sourceBytes.length, sha256: srcDigest, deployedMatches: null });
+    }
   }
+  const digest = sha256hex(m.map((x) => `${x.rel}:${x.sha256 || 'absent'}`).sort().join('|'));
+  return { manifest: m, missing: miss, mismatched: mism, packageDigest: digest, dir: targetDir, label };
 }
 
-// ── 5. Overall package digest + receipt ──────────────────────────────────────
-const packageDigest = sha256hex(manifest.map((m) => `${m.rel}:${m.sha256 || 'absent'}`).sort().join('|'));
+// Primary target: the portable Drive release.
+const primary = materializeTo(DEST, 'Drive release');
+const manifest = primary.manifest;
+const missing = primary.missing;
+const mismatched = primary.mismatched;
+const packageDigest = primary.packageDigest;
+
+// Gate 30b: sync the GOLD product home FIRST-class — same manifest, byte-proven.
+// Skipped (not failed) when the D: product-home root is absent (e.g. CI / no D: drive),
+// so the gate stays runnable everywhere; reported in the receipt either way.
+let productHome = null;
+if (PRODUCT_HOME && existsSync(dirname(PRODUCT_HOME))) {
+  productHome = materializeTo(PRODUCT_HOME, 'GOLD product home');
+  // Parity across targets: the product home must reproduce the SAME packageDigest as
+  // the Drive release (identical canonical bytes, modulo the optional prebuilt .exe
+  // which lives only on the Drive). Compare the non-prebuilt digest.
+  const nonExeDigest = (mf) => sha256hex(
+    mf.manifest.filter((x) => x.kind !== 'prebuilt').map((x) => `${x.rel}:${x.sha256 || 'absent'}`).sort().join('|'),
+  );
+  productHome.contentDigest = nonExeDigest(productHome);
+  productHome.matchesDriveContent = nonExeDigest(primary) === productHome.contentDigest;
+} else if (PRODUCT_HOME) {
+  productHome = { skipped: true, dir: PRODUCT_HOME, reason: `product-home root ${dirname(PRODUCT_HOME)} absent (no D: vault on this machine)` };
+}
+
+// ── 5. Overall result + receipt ───────────────────────────────────────────────
+const phMismatch = productHome && !productHome.skipped
+  ? [...productHome.mismatched, ...(productHome.matchesDriveContent ? [] : ['product-home content digest != Drive release content digest'])]
+  : [];
+const phMissing = productHome && !productHome.skipped
+  ? productHome.missing.filter((m) => !m.includes('pre-built binary'))
+  : [];
 
 const requiredOk = missing.filter((m) => !m.includes('pre-built binary')); // exe is optional for VERIFIED-on-this-machine
 const exeMissing = missing.some((m) => m.includes('pre-built binary'));
-const result = (requiredOk.length === 0 && mismatched.length === 0) ? 'VERIFIED' : 'FAILED';
+const result = (requiredOk.length === 0 && mismatched.length === 0 && phMissing.length === 0 && phMismatch.length === 0)
+  ? 'VERIFIED'
+  : 'FAILED';
 
 const receipt = {
   schema: 'cael-ship-packaging-v1',
@@ -146,7 +192,22 @@ const receipt = {
   prebuiltPresent: manifest.some((m) => m.kind === 'prebuilt' && m.present),
   missing,
   mismatched,
-  deployedMatchesSource: !dryRun && mismatched.length === 0 && requiredOk.length === 0,
+  productHome: productHome
+    ? (productHome.skipped
+        ? { synced: false, dir: productHome.dir, skipped: true, reason: productHome.reason }
+        : {
+            synced: !dryRun,
+            dir: productHome.dir,
+            note: 'D.063 GOLD product home — GOLD owns the product, HoloScript is the engine. Synced from the same canonical manifest; a GOLD project dir (F.078), not a governed wisdom tier.',
+            artifactCount: productHome.manifest.length,
+            contentDigest: productHome.contentDigest,
+            matchesDriveContent: productHome.matchesDriveContent,
+            missing: phMissing,
+            mismatched: phMismatch,
+          })
+    : { synced: false, dir: null, skipped: true, reason: '--no-product-home / GOLD_PRODUCT_HOME empty' },
+  deployedMatchesSource: !dryRun && mismatched.length === 0 && requiredOk.length === 0
+    && phMissing.length === 0 && phMismatch.length === 0,
   exeNote: exeMissing
     ? 'GOLD-GAME-Server.exe absent on this machine — the offline launcher (index.html + .bat) is fully functional without it; the .exe only adds the optional live-vault-count server. Run the Node-SEA build once to add it.'
     : 'GOLD-GAME-Server.exe present (pre-built Node-SEA binary; digested, not regenerated).',
@@ -164,6 +225,12 @@ console.log(`\n  artifacts: ${manifest.length} (${receipt.builtArtifacts} built,
 console.log(`  packageDigest: ${packageDigest.slice(0, 16)}...`);
 if (missing.length) console.log('  missing:', missing.join('; '));
 if (mismatched.length) console.log('  MISMATCH:', mismatched.join('; '));
+if (productHome) {
+  if (productHome.skipped) console.log(`  product home: SKIPPED (${productHome.reason})`);
+  else console.log(`  product home: ${dryRun ? 'WOULD SYNC' : 'SYNCED'} ${productHome.dir} (content ${productHome.matchesDriveContent ? 'MATCHES' : 'DIFFERS FROM'} Drive release)`);
+  if (phMissing.length) console.log('  product-home missing:', phMissing.join('; '));
+  if (phMismatch.length) console.log('  product-home MISMATCH:', phMismatch.join('; '));
+}
 console.log(`  result: ${result}`);
 console.log(`  receipt: ${receiptPath}`);
 

@@ -94,6 +94,33 @@ try {
   const b3d = readFileSync(join(tmpB, '3d/index.html'));
   ok(a3d.equals(b3d), '3d/index.html byte-identical across two independent packagings (deterministic build)');
 
+  // 10. GATE 30b — the GOLD product home (D.063) syncs from the SAME canonical manifest.
+  //     Run the packager with BOTH dest and product-home pointed at TEMP roots so the
+  //     real D:/GOLD vault is never touched; assert the product home is synced, its
+  //     content matches the Drive release, and the files materialize on disk.
+  const tmpDrive = mkdtempSync(join(tmpdir(), 'goldgame-drive-'));
+  const tmpHomeRoot = mkdtempSync(join(tmpdir(), 'goldgame-home-'));
+  const tmpHome = join(tmpHomeRoot, 'gold-game'); // its parent (tmpHomeRoot) exists → packager will sync
+  try {
+    execFileSync(process.execPath, [join(here, 'gate-30-package.mjs'), '--dest', tmpDrive],
+      { cwd: repo, env: { ...process.env, GOLD_PRODUCT_HOME: tmpHome }, stdio: ['ignore', 'pipe', 'pipe'] });
+    const rh = JSON.parse(readFileSync(join(here, 'GATE-30-SHIP-PACKAGING-receipt.json'), 'utf8'));
+    ok(rh.result === 'VERIFIED', 'packager VERIFIED with product-home sync enabled');
+    ok(rh.productHome && rh.productHome.synced === true, 'product home reported synced');
+    ok(rh.productHome && rh.productHome.matchesDriveContent === true, 'product-home content digest == Drive release content digest');
+    ok((rh.productHome?.missing || []).length === 0 && (rh.productHome?.mismatched || []).length === 0,
+      `product-home no missing/mismatch (${[...(rh.productHome?.missing || []), ...(rh.productHome?.mismatched || [])].join('; ') || 'none'})`);
+    // disk-level proof: the synced product home actually carries the launcher + a built artifact
+    ok(existsSync(join(tmpHome, 'index.html')), 'product home materialized index.html on disk');
+    ok(existsSync(join(tmpHome, '3d/index.html')), 'product home materialized 3d/index.html on disk');
+    // byte-equality: product-home launcher == Drive-release launcher (same canonical bytes)
+    ok(readFileSync(join(tmpHome, 'index.html')).equals(readFileSync(join(tmpDrive, 'index.html'))),
+      'product-home launcher byte-identical to Drive-release launcher');
+  } finally {
+    rmSync(tmpDrive, { recursive: true, force: true });
+    rmSync(tmpHomeRoot, { recursive: true, force: true });
+  }
+
 } finally {
   rmSync(tmpA, { recursive: true, force: true });
   rmSync(tmpB, { recursive: true, force: true });

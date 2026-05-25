@@ -53,7 +53,12 @@ composition "Oasis Shard Zero" {
     @health_system
     geometry: "humanoid"
     scale: [0.5, 1.8, 0.5]
-    state { hp: 100, breath: 100, reputation: 0, inhabited_by: "human" }
+    state {
+      hp: 100
+      breath: 100
+      reputation: 0
+      inhabited_by: "human"
+    }
   }
 
   // Agent-inhabited steward: real-agent NPC (JEPA + sovereign traits).
@@ -66,11 +71,11 @@ composition "Oasis Shard Zero" {
     geometry: "humanoid"
     scale: [0.5, 1.8, 0.5]
     state {
-      hp: 100,
-      breath: 100,
-      reputation: 0,
-      inhabited_by: "agent",
-      daily_budget_usd: 0.5,
+      hp: 100
+      breath: 100
+      reputation: 0
+      inhabited_by: "agent"
+      daily_budget_usd: 0.5
       memory_bearing: true
     }
   }
@@ -99,7 +104,10 @@ composition "Oasis Shard Zero" {
       position: [0, 0.5, 3]
       scale: [0.2, 0.2, 0.2]
       color: "#b08d57"
-      state { picked_up: false, quest_reward: true }
+      state {
+        picked_up: false
+        quest_reward: true
+      }
     }
   }
 
@@ -111,7 +119,11 @@ composition "Oasis Shard Zero" {
     @dialogue
     @collidable
     geometry: "humanoid"
-    state { reputation_tracking: true, quest: "first_breath", inhabited_by: "agent" }
+    state {
+      reputation_tracking: true
+      quest: "first_breath"
+      inhabited_by: "agent"
+    }
   }
 
   object "OasisSteward" using "StewardNPC" {
