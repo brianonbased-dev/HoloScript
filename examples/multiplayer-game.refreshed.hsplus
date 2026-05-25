@@ -1,0 +1,230 @@
+/**
+ * Multiplayer Arena Game — Refreshed (A-009 refresh 2026-05-25)
+ *
+ * Original intent: a networked 2-player arena where each player grabs a ball
+ * and tries to throw it through the opponent's goal.
+ *
+ * Refresh adds:
+ *   @lobby          — pre-game lobby with skill-based matchmaking and a 10-second
+ *                     countdown before play begins. Exercises zero-coverage trait.
+ *   @networked_avatar — each spawn point hosts a synchronized avatar with full
+ *                       skeletal IK — hands follow tracked controllers. Zero-coverage.
+ *   @haptic         — GameBall triggers controller rumble on grab and on goal impact.
+ *   @state_machine  — Arena transitions: Lobby → Countdown → Playing → Scored → End.
+ *   @particle       — goal rings emit a burst of team-colored sparks on score.
+ *
+ * Scene story: a compact hexagonal arena suspended in void. Two players materialize
+ * at their glowing spawn discs — blue and orange. Before the timer hits zero, avatars
+ * can wave their hands; IK bones follow tracked controllers in real time. Kick-off:
+ * the ball drops center. On impact with the net the goal ring detonates in sparks and
+ * the arena state machine advances to Scored, pausing physics for two seconds before
+ * the next serve. Controller haptics confirm every catch and every score.
+ */
+
+composition "MultiplayerArena_v2" {
+
+  environment {
+    backgroundColor: "#07070f"
+    ambient: 0.32
+    ambient_color: "#2a2a50"
+    shadows: true
+    shadow_quality: "hard"
+  }
+
+  // ── Matchmaking lobby ────────────────────────────────────────────────
+
+  object "GameLobby" {
+    @lobby {
+      maxPlayers: 2
+      minPlayers: 2
+      visibility: "public"
+      matchmaking: {
+        mode: "skill"
+        skillRange: 200
+      }
+      autoStart: true
+      autoStartDelay: 10000
+    }
+  }
+
+  // ── Arena state machine ────────────────────────────────────────────────
+
+  object "ArenaController" {
+    @state_machine {
+      initial: "lobby"
+      states: {
+        lobby: {
+          on_enter: "show_lobby_ui"
+          transitions: [
+            { event: "players_ready", target: "countdown" }
+          ]
+        }
+        countdown: {
+          on_enter: "start_countdown"
+          transitions: [
+            { event: "countdown_done", target: "playing" }
+          ]
+        }
+        playing: {
+          on_enter: "spawn_ball"
+          transitions: [
+            { event: "goal_scored", target: "scored" }
+          ]
+        }
+        scored: {
+          on_enter: "pause_physics"
+          transitions: [
+            { event: "resume_ready", target: "playing" }
+          ]
+          timeout_ms: 2000
+          timeout_target: "playing"
+        }
+        end: {
+          on_enter: "show_results"
+        }
+      }
+    }
+  }
+
+  // ── Templates ────────────────────────────────────────────────────────────
+
+  template "SpawnDisc" {
+    @glowing { falloff: "linear" }
+    @animated { type: "pulse", speed: 0.8, amplitude: 0.15 }
+    geometry: "cylinder"
+  }
+
+  template "GoalRing" {
+    @collidable { layer: "trigger", is_trigger: true }
+    @glowing { falloff: "exponential" }
+    geometry: "torus"
+  }
+
+  // ── Arena geometry ──────────────────────────────────────────────────────
+
+  object "Arena" {
+    @collidable { friction: 0.3 }
+    geometry: "cylinder"
+    color: "#1a1a2e"
+    position: [0, 0, 0]
+    scale: [8, 0.2, 8]
+  }
+
+  object "Spawn1" using "SpawnDisc" {
+    position: [-4, 0.1, 0]
+    scale: [0.8, 0.1, 0.8]
+    color: "#0055cc"
+    @networked_avatar {
+      isLocal: false
+      ownerId: "player_1"
+      updateRate: 30
+    }
+  }
+
+  object "Spawn2" using "SpawnDisc" {
+    position: [4, 0.1, 0]
+    scale: [0.8, 0.1, 0.8]
+    color: "#cc5500"
+    @networked_avatar {
+      isLocal: false
+      ownerId: "player_2"
+      updateRate: 30
+    }
+  }
+
+  // ── Game ball ──────────────────────────────────────────────────────────────
+
+  object "GameBall" {
+    position: [0, 1, 0]
+    scale: [0.3, 0.3, 0.3]
+    geometry: "sphere"
+    color: "#ffffff"
+    metallic: 0.6
+    roughness: 0.2
+    emissive: "#aaaaff"
+    emissiveIntensity: 0.4
+    @grabbable
+    @throwable { max_velocity: 18.0 }
+    @collidable { restitution: 0.7, friction: 0.4 }
+    @physics { mass: 0.45, gravity_scale: 1.0 }
+    @haptic {
+      on_grab: { intensity: 0.6, duration_ms: 80, waveform: "click" }
+      on_collision: { intensity: 0.3, duration_ms: 40, waveform: "soft" }
+      on_goal: { intensity: 1.0, duration_ms: 300, waveform: "buzz" }
+    }
+    @networked { sync_transform: true, sync_physics: true, owner_authoritative: true }
+  }
+
+  // ── Goals ──────────────────────────────────────────────────────────────────
+
+  object "Goal1" using "GoalRing" {
+    position: [-6, 1.2, 0]
+    scale: [1.8, 0.2, 1.8]
+    color: "#0055cc"
+    emissive: "#0033aa"
+    emissiveIntensity: 1.2
+    @particle {
+      count: 120
+      shape: "ring"
+      velocity: { min: 1.5, max: 4.0 }
+      lifetime: { min: 0.5, max: 1.8 }
+      size: { start: 0.07, end: 0.0 }
+      color: { start: "#4488ff", end: "#004499" }
+      emit_on_event: "goal_scored"
+      burst: true
+      blend: "additive"
+    }
+  }
+
+  object "Goal2" using "GoalRing" {
+    position: [6, 1.2, 0]
+    scale: [1.8, 0.2, 1.8]
+    color: "#cc5500"
+    emissive: "#993300"
+    emissiveIntensity: 1.2
+    @particle {
+      count: 120
+      shape: "ring"
+      velocity: { min: 1.5, max: 4.0 }
+      lifetime: { min: 0.5, max: 1.8 }
+      size: { start: 0.07, end: 0.0 }
+      color: { start: "#ffaa44", end: "#884400" }
+      emit_on_event: "goal_scored"
+      burst: true
+      blend: "additive"
+    }
+  }
+
+  object "Barrier" {
+    geometry: "box"
+    position: [0, 0.5, 0]
+    scale: [0.2, 1, 4]
+    color: "#4a4a6a"
+    @collidable
+    @glowing { color: "#7070aa", radius: 0.3 }
+  }
+
+  object "Scoreboard" {
+    geometry: "box"
+    position: [0, 4, -5]
+    scale: [3, 1, 0.1]
+    color: "#222233"
+    @glowing { color: "#4488ff", radius: 0.5 }
+  }
+
+  object "AmbientBlue" {
+    type: "point_light"
+    position: [-5, 2, 0]
+    color: "#4488ff"
+    intensity: 0.4
+    distance: 5
+  }
+
+  object "AmbientOrange" {
+    type: "point_light"
+    position: [5, 2, 0]
+    color: "#ff8844"
+    intensity: 0.4
+    distance: 5
+  }
+}
