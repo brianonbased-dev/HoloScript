@@ -56,6 +56,8 @@ assertEq(receipt.sweep.winner.mode, 'raw', 'winner mode recorded');
 assertOk(receipt.control.frame.path, 'camera control frame recorded');
 assertOk(receipt.control.frame.fileHash.startsWith('sha256:'), 'camera control frame hash recorded');
 assertEq(receipt.targetDetection.detection.status, 'not-detected', 'target detection status recorded');
+assertEq(receipt.targetDetection.target.profile, 'fiducial-board', 'target detection carries target profile');
+assertEq(receipt.targetDetection.detection.recoveredMarkerCount, 0, 'missing target recovers zero markers');
 assertEq(receipt.targetDetection.detection.calibrationReady, false, 'target detection does not claim calibration readiness');
 assertOk(receipt.render.receiptHash.startsWith('sha256:'), 'render receipt hash recorded');
 assertOk(receipt.render.pngHash.startsWith('sha256:'), 'quilt png hash recorded');

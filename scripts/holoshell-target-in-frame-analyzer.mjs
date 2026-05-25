@@ -185,6 +185,235 @@ function materializeBounds(bounds) {
     : undefined;
 }
 
+function pointFromBounds(id, x, y) {
+  return { id, x: Math.round(x), y: Math.round(y) };
+}
+
+function cornersFromBounds(id, bounds) {
+  return [
+    pointFromBounds(`${id}-top-left`, bounds.minX, bounds.minY),
+    pointFromBounds(`${id}-top-right`, bounds.maxX, bounds.minY),
+    pointFromBounds(`${id}-bottom-right`, bounds.maxX, bounds.maxY),
+    pointFromBounds(`${id}-bottom-left`, bounds.minX, bounds.maxY),
+  ];
+}
+
+function mergeBounds(boundsList) {
+  const merged = { minX: Infinity, minY: Infinity, maxX: -1, maxY: -1 };
+  for (const bounds of boundsList) {
+    if (!bounds) continue;
+    updateBounds(merged, bounds.minX, bounds.minY);
+    updateBounds(merged, bounds.maxX, bounds.maxY);
+  }
+  return materializeBounds(merged);
+}
+
+function pixelLuminance(decoded, x, y) {
+  const px = Math.max(0, Math.min(decoded.width - 1, Math.round(x)));
+  const py = Math.max(0, Math.min(decoded.height - 1, Math.round(y)));
+  const offset = (py * decoded.width + px) * decoded.channels;
+  return luminance(decoded.rgb[offset], decoded.rgb[offset + 1], decoded.rgb[offset + 2]);
+}
+
+function averageLuminance(decoded, x, y, radius) {
+  let sum = 0;
+  let count = 0;
+  const left = Math.max(0, Math.round(x - radius));
+  const right = Math.min(decoded.width - 1, Math.round(x + radius));
+  const top = Math.max(0, Math.round(y - radius));
+  const bottom = Math.min(decoded.height - 1, Math.round(y + radius));
+  for (let py = top; py <= bottom; py += 1) {
+    for (let px = left; px <= right; px += 1) {
+      sum += pixelLuminance(decoded, px, py);
+      count += 1;
+    }
+  }
+  return count > 0 ? sum / count : 1;
+}
+
+function darkMask(decoded, threshold = 0.24) {
+  const total = decoded.width * decoded.height;
+  const mask = new Uint8Array(total);
+  for (let index = 0; index < total; index += 1) {
+    const offset = index * decoded.channels;
+    const y = luminance(decoded.rgb[offset], decoded.rgb[offset + 1], decoded.rgb[offset + 2]);
+    if (y <= threshold) mask[index] = 1;
+  }
+  return mask;
+}
+
+function connectedDarkComponents(decoded) {
+  const { width, height } = decoded;
+  const mask = darkMask(decoded);
+  const visited = new Uint8Array(mask.length);
+  const components = [];
+  for (let start = 0; start < mask.length; start += 1) {
+    if (!mask[start] || visited[start]) continue;
+    const stack = [start];
+    visited[start] = 1;
+    const bounds = { minX: width, minY: height, maxX: -1, maxY: -1 };
+    let pixels = 0;
+    while (stack.length > 0) {
+      const index = stack.pop();
+      pixels += 1;
+      const x = index % width;
+      const y = Math.floor(index / width);
+      updateBounds(bounds, x, y);
+      const neighbors = [
+        index - 1,
+        index + 1,
+        index - width,
+        index + width,
+      ];
+      for (const next of neighbors) {
+        if (next < 0 || next >= mask.length || visited[next] || !mask[next]) continue;
+        const nx = next % width;
+        if (Math.abs(nx - x) > 1) continue;
+        visited[next] = 1;
+        stack.push(next);
+      }
+    }
+    const box = materializeBounds(bounds);
+    if (box) components.push({ ...box, pixels });
+  }
+  return components;
+}
+
+function markerLikeComponents(decoded) {
+  const minSide = Math.max(8, Math.min(decoded.width, decoded.height) * 0.075);
+  const maxSide = Math.min(decoded.width, decoded.height) * 0.48;
+  return connectedDarkComponents(decoded)
+    .map((component) => {
+      const side = Math.max(component.width, component.height);
+      const aspect = component.width / Math.max(1, component.height);
+      const fillRatio = component.pixels / Math.max(1, component.width * component.height);
+      const squareScore = 1 - Math.min(1, Math.abs(1 - aspect));
+      const sizeScore = clamp01((side - minSide) / Math.max(1, maxSide - minSide));
+      const fillScore = fillRatio >= 0.08 && fillRatio <= 0.88 ? 1 : 0;
+      return {
+        ...component,
+        aspect: round(aspect),
+        fillRatio: round(fillRatio),
+        markerScore: round(squareScore * 0.58 + sizeScore * 0.22 + fillScore * 0.2),
+      };
+    })
+    .filter((component) => {
+      const side = Math.max(component.width, component.height);
+      return (
+        side >= minSide &&
+        side <= maxSide &&
+        component.aspect >= 0.62 &&
+        component.aspect <= 1.62 &&
+        component.fillRatio >= 0.08 &&
+        component.fillRatio <= 0.88 &&
+        component.markerScore >= 0.58
+      );
+    })
+    .sort((a, b) => b.markerScore - a.markerScore || b.pixels - a.pixels);
+}
+
+function sampleMarkerPayload(decoded, bounds, markerGrid = 7, innerGrid = 5) {
+  const payload = [];
+  const cellWidth = bounds.width / markerGrid;
+  const cellHeight = bounds.height / markerGrid;
+  const radius = Math.max(0.5, Math.min(cellWidth, cellHeight) * 0.16);
+  for (let row = 1; row <= innerGrid; row += 1) {
+    for (let col = 1; col <= innerGrid; col += 1) {
+      const x = bounds.minX + (col + 0.5) * cellWidth;
+      const y = bounds.minY + (row + 0.5) * cellHeight;
+      payload.push(averageLuminance(decoded, x, y, radius) <= 0.5 ? 1 : 0);
+    }
+  }
+  return payload;
+}
+
+function hammingDistance(a, b) {
+  const length = Math.min(a?.length ?? 0, b?.length ?? 0);
+  if (length === 0 || a.length !== b.length) return Infinity;
+  let distance = 0;
+  for (let i = 0; i < length; i += 1) if (a[i] !== b[i]) distance += 1;
+  return distance;
+}
+
+function bestMarkerMatch(decodedPayload, targetMarkers) {
+  let best;
+  for (const marker of targetMarkers) {
+    const distance = hammingDistance(decodedPayload, marker.payload);
+    if (!best || distance < best.distance) best = { marker, distance };
+  }
+  return best;
+}
+
+function recoverFiducialMarkers(decoded, target) {
+  const targetMarkers = Array.isArray(target?.markers) ? target.markers : [];
+  const markerGrid = Number(target?.markerGrid?.cells ?? 7);
+  const innerGrid = Number(target?.markerGrid?.innerCells ?? 5);
+  if (target?.profile !== 'fiducial-board' || targetMarkers.length === 0) {
+    return {
+      status: 'not-applicable',
+      markers: [],
+      recoveredMarkerCount: 0,
+      markerCornerCount: 0,
+      poseSolveInputReady: false,
+    };
+  }
+  const components = markerLikeComponents(decoded);
+  const byId = new Map();
+  const maxDistance = Math.max(3, Math.ceil(innerGrid * innerGrid * 0.24));
+  for (const component of components) {
+    const decodedPayload = sampleMarkerPayload(decoded, component, markerGrid, innerGrid);
+    const match = bestMarkerMatch(decodedPayload, targetMarkers);
+    if (!match || match.distance > maxDistance) continue;
+    const confidence = round(1 - match.distance / Math.max(1, innerGrid * innerGrid));
+    const markerId = match.marker.id;
+    const candidate = {
+      id: markerId,
+      numericId: match.marker.numericId,
+      label: match.marker.label,
+      row: match.marker.row,
+      col: match.marker.col,
+      dictionary: match.marker.dictionary ?? target.dictionary,
+      corners: cornersFromBounds(markerId, component),
+      center: {
+        x: Math.round(component.minX + component.width / 2),
+        y: Math.round(component.minY + component.height / 2),
+      },
+      bounds: {
+        minX: component.minX,
+        minY: component.minY,
+        maxX: component.maxX,
+        maxY: component.maxY,
+        width: component.width,
+        height: component.height,
+      },
+      decodedPayload,
+      hammingDistance: match.distance,
+      confidence,
+      componentPixels: component.pixels,
+      fillRatio: component.fillRatio,
+      source: 'native-dark-component-payload-match',
+    };
+    const previous = byId.get(markerId);
+    if (!previous || candidate.hammingDistance < previous.hammingDistance || candidate.confidence > previous.confidence) {
+      byId.set(markerId, candidate);
+    }
+  }
+  const markers = Array.from(byId.values()).sort((a, b) => (a.row ?? 0) - (b.row ?? 0) || (a.col ?? 0) - (b.col ?? 0));
+  const poseSolveInputReady = markers.length >= 4 && markers.every((marker) => marker.corners.length === 4);
+  return {
+    status: poseSolveInputReady ? 'markers-detected' : 'markers-not-detected',
+    markers,
+    recoveredMarkerCount: markers.length,
+    markerCornerCount: markers.length * 4,
+    poseSolveInputReady,
+    componentCount: components.length,
+    dictionary: target.dictionary,
+    bounds: mergeBounds(markers.map((marker) => marker.bounds)),
+    honestScope:
+      'Native HoloShell marker recovery from dark square components and 5x5 payload sampling. Corners are axis-aligned image-space candidates, not solvePnP pose.',
+  };
+}
+
 function analyzePixels(decoded, palette, options = {}) {
   const { rgb, width, height, channels } = decoded;
   const total = width * height;
@@ -355,6 +584,29 @@ export async function analyzeTargetInFrame({ workflowReceipt, workflowPath, fram
     targetProfile: target?.profile,
     markerCount: Array.isArray(target?.markers) ? target.markers.length : undefined,
   });
+  const markerRecovery = recoverFiducialMarkers(decoded, target);
+  if (markerRecovery.status === 'markers-detected') {
+    detection.status = 'detected';
+    detection.detected = true;
+    detection.detectionMode = 'fiducial-marker-corners';
+    detection.bounds = markerRecovery.bounds ?? detection.bounds;
+    detection.cornerCandidates = detection.bounds ? cornersFromBounds('target-bounds', detection.bounds) : detection.cornerCandidates;
+  }
+  detection.fiducialMarkers = markerRecovery.markers;
+  detection.recoveredMarkerCount = markerRecovery.recoveredMarkerCount;
+  detection.markerCornerCount = markerRecovery.markerCornerCount;
+  detection.markerRecoveryStatus = markerRecovery.status;
+  detection.poseSolveInputReady = markerRecovery.poseSolveInputReady;
+  detection.markerRecovery = {
+    status: markerRecovery.status,
+    recoveredMarkerCount: markerRecovery.recoveredMarkerCount,
+    markerCornerCount: markerRecovery.markerCornerCount,
+    poseSolveInputReady: markerRecovery.poseSolveInputReady,
+    componentCount: markerRecovery.componentCount,
+    dictionary: markerRecovery.dictionary,
+    bounds: markerRecovery.bounds,
+    honestScope: markerRecovery.honestScope,
+  };
   const frameAbsolute = resolveInputPath(resolvedFramePath);
   const targetAbsolute = resolvedTargetPath ? resolveInputPath(resolvedTargetPath) : undefined;
   const stage = stageReceipt({
@@ -373,6 +625,9 @@ export async function analyzeTargetInFrame({ workflowReceipt, workflowPath, fram
       paletteCoverage: detection.paletteCoverage,
       bounds: detection.bounds,
       cornerCandidateCount: detection.cornerCandidates.length,
+      recoveredMarkerCount: detection.recoveredMarkerCount,
+      markerCornerCount: detection.markerCornerCount,
+      poseSolveInputReady: detection.poseSolveInputReady,
     },
     metrics: detection.metrics,
     honestScope:
@@ -386,6 +641,8 @@ export async function analyzeTargetInFrame({ workflowReceipt, workflowPath, fram
         analyzerStatus: 'pass',
         detectionStatus: detection.status,
         score: detection.score,
+        recoveredMarkerCount: detection.recoveredMarkerCount,
+        markerCornerCount: detection.markerCornerCount,
       },
       honestScope:
         'Single-stage target visibility analyzer. Detection can fail without failing the analyzer itself.',
@@ -444,6 +701,13 @@ export function validateReceipt(receipt) {
   if (receipt.detection?.status === 'detected' && receipt.detection.cornerCandidates.length < 4) {
     errors.push('detected target must provide bounds corner candidates');
   }
+  if (receipt.detection?.poseSolveInputReady === true) {
+    if (!(receipt.detection?.recoveredMarkerCount >= 4)) errors.push('poseSolveInputReady requires recovered markers');
+    if (!(receipt.detection?.markerCornerCount >= 16)) errors.push('poseSolveInputReady requires marker corners');
+    if (!receipt.detection?.fiducialMarkers?.every((marker) => Array.isArray(marker.corners) && marker.corners.length === 4)) {
+      errors.push('poseSolveInputReady requires four corners per marker');
+    }
+  }
   if (receipt.detection?.calibrationReady !== false) errors.push('calibrationReady must be false for heuristic detector');
   if (!receipt.chain?.receipt?.hash?.startsWith('sha256:')) errors.push('chain receipt hash missing');
   return errors;
@@ -487,6 +751,7 @@ export async function selfTest() {
     out: join(dir, 'fiducial-detected-receipt.json'),
   });
   if (fiducialDetected.detection.status !== 'detected') throw new Error('self-test fiducial board PNG should be detected');
+  if (fiducialDetected.detection.recoveredMarkerCount !== 9) throw new Error('self-test fiducial board should recover nine markers');
   await writeSolidPng(join(dir, 'blank.png'), 320, 240, [128, 128, 128]);
   const missing = await analyzeTargetInFrame({
     framePath: join(dir, 'blank.png'),
@@ -524,6 +789,10 @@ async function main() {
       score: receipt.detection.score,
       paletteHitCount: receipt.detection.paletteHitCount,
       paletteCoverage: receipt.detection.paletteCoverage,
+      detectionMode: receipt.detection.detectionMode,
+      recoveredMarkerCount: receipt.detection.recoveredMarkerCount,
+      markerCornerCount: receipt.detection.markerCornerCount,
+      poseSolveInputReady: receipt.detection.poseSolveInputReady,
       bounds: receipt.detection.bounds,
       calibrationReady: receipt.detection.calibrationReady,
     },

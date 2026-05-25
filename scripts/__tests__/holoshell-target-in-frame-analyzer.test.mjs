@@ -50,6 +50,19 @@ assertEq(validateReceipt(fiducialDetected).length, 0, 'fiducial board receipt va
 assertEq(fiducialDetected.target.profile, 'fiducial-board', 'fiducial board profile recorded');
 assertEq(fiducialDetected.target.markerCount, 9, 'fiducial marker count recorded');
 assertEq(fiducialDetected.detection.status, 'detected', 'fiducial board PNG detected');
+assertEq(fiducialDetected.detection.detectionMode, 'fiducial-marker-corners', 'fiducial marker corner mode recorded');
+assertEq(fiducialDetected.detection.recoveredMarkerCount, 9, 'all fiducial markers recovered');
+assertEq(fiducialDetected.detection.markerCornerCount, 36, 'all fiducial marker corners recovered');
+assertEq(fiducialDetected.detection.poseSolveInputReady, true, 'fiducial corners are pose-solve inputs');
+assertEq(fiducialDetected.detection.calibrationReady, false, 'fiducial marker recovery is not calibration');
+assertOk(
+  fiducialDetected.detection.fiducialMarkers.every((marker) => marker.corners.length === 4 && marker.confidence >= 0.76),
+  'each recovered marker carries four high-confidence corners'
+);
+assertOk(
+  fiducialDetected.detection.fiducialMarkers.some((marker) => marker.id === 'hs-11'),
+  'marker ids are recovered from payloads'
+);
 assertEq(validateReceipt(missing).length, 0, 'missing receipt validates');
 assertEq(missing.detection.status, 'not-detected', 'blank image rejected');
 assertEq(missing.detection.cornerCandidates.length, 0, 'missing image has no corner candidates');

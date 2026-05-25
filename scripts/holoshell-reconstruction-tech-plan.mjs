@@ -316,6 +316,11 @@ function classifyPriority(score) {
 function signalsFromWorkflow(workflow) {
   const rawQuality = workflow?.control?.frame?.rawQuality ?? workflow?.sweep?.control?.frame?.rawQuality ?? {};
   const renderQuality = workflow?.render?.quality ?? workflow?.quality ?? {};
+  const recoveredMarkerCount = Number(
+    workflow?.targetDetection?.detection?.recoveredMarkerCount ??
+      workflow?.targetDetection?.detection?.fiducialMarkers?.length ??
+      0
+  );
   return {
     workflowStatus: workflow?.status,
     hasGeneratedTarget: Boolean(workflow?.target?.pngHash),
@@ -327,6 +332,9 @@ function signalsFromWorkflow(workflow) {
     targetDetectionStatus: workflow?.targetDetection?.detection?.status ?? workflow?.targetDetection?.status,
     targetDetectedInFrame:
       workflow?.targetDetection?.detection?.status === 'detected' || workflow?.targetDetection?.status === 'detected',
+    recoveredMarkerCount,
+    hasFiducialMarkerCorners:
+      recoveredMarkerCount >= 4 || workflow?.targetDetection?.detection?.poseSolveInputReady === true,
     hasCalibratedPose: Boolean(workflow?.calibration?.pose?.status === 'pass'),
     frameCount: workflow?.capturePlan?.frames ?? workflow?.sweep?.capturedFrameCount ?? 0,
     pointCount: workflow?.render?.pointCount ?? workflow?.sweep?.pointCount ?? 0,
@@ -378,15 +386,27 @@ function buildNextActions(recommendations, signals) {
   }
   if (top?.id === 'fiducial-calibration' || signals.rawQualityScore < 0.8) {
     if (signals.hasFiducialBoard) {
-      actions.push({
-        id: 'recover-fiducial-marker-corners',
-        owner: 'holoshell',
-        priority: 'now',
-        action:
-          'Implement the native marker-corner detector for the HoloShell fiducial-board dictionary and run it against the untouched control frame.',
-        doneWhen:
-          'A targetDetection receipt carries marker ids, four corners per marker, and reprojection-ready inputs while calibrationReady remains false until pose solve lands.',
-      });
+      if (signals.hasFiducialMarkerCorners) {
+        actions.push({
+          id: 'solve-fiducial-board-pose',
+          owner: 'holomap',
+          priority: 'now',
+          action:
+            'Use recovered HoloShell marker ids/corners plus generated board coordinates to estimate camera pose and record reprojection error.',
+          doneWhen:
+            'A calibration receipt records camera intrinsics assumptions, pose, reprojection error, and still fails closed when marker coverage is insufficient.',
+        });
+      } else {
+        actions.push({
+          id: 'recover-fiducial-marker-corners',
+          owner: 'holoshell',
+          priority: 'now',
+          action:
+            'Implement the native marker-corner detector for the HoloShell fiducial-board dictionary and run it against the untouched control frame.',
+          doneWhen:
+            'A targetDetection receipt carries marker ids and four image-space corners per marker while calibrationReady remains false until pose solve lands.',
+        });
+      }
     } else {
       actions.push({
         id: 'replace-chart-with-fiducial-board',

@@ -70,7 +70,30 @@ assertOk(plan.nextActions.some((action) => action.id === 'place-target-in-camera
 assertOk(plan.nextActions.some((action) => action.id === 'recover-fiducial-marker-corners'), 'fiducial board advances to marker detector action');
 assertOk(!plan.nextActions.some((action) => action.id === 'replace-chart-with-fiducial-board'), 'fiducial board is not re-requested');
 
-console.log('Test 3: invalid receipts fail closed');
+console.log('Test 3: planner advances to pose solve once marker corners exist');
+const cornerPlan = buildTechnologyPlan({
+  workflowReceipt: {
+    status: 'pass',
+    capturePlan: { frames: 2, geometricTarget: true, targetProfile: 'fiducial-board' },
+    target: { profile: 'fiducial-board', markerCount: 9, pngHash: 'sha256:' + 'b'.repeat(64) },
+    targetDetection: {
+      detection: {
+        status: 'detected',
+        recoveredMarkerCount: 9,
+        markerCornerCount: 36,
+        poseSolveInputReady: true,
+        calibrationReady: false,
+      },
+    },
+    control: { frame: { rawQuality: { score: 0.74, edgeEnergy: 0.05, contrast: 0.2 } } },
+    render: { quality: { score: 0.67, grade: 'usable' } },
+  },
+});
+assertOk(cornerPlan.signals.hasFiducialMarkerCorners, 'marker corner signal recorded');
+assertOk(cornerPlan.nextActions.some((action) => action.id === 'solve-fiducial-board-pose'), 'pose solve is next after marker recovery');
+assertOk(!cornerPlan.nextActions.some((action) => action.id === 'recover-fiducial-marker-corners'), 'marker recovery is not re-requested');
+
+console.log('Test 4: invalid receipts fail closed');
 const missingSources = {
   ...receipt,
   plan: {
@@ -80,7 +103,7 @@ const missingSources = {
 };
 assertOk(validateReceipt(missingSources).includes('sources missing'), 'sources are required');
 
-console.log('Test 4: CLI self-test runs without hardware');
+console.log('Test 5: CLI self-test runs without hardware');
 const cli = spawnSync(process.execPath, [SCRIPT, '--self-test'], {
   cwd: REPO_ROOT,
   encoding: 'utf8',
@@ -88,7 +111,7 @@ const cli = spawnSync(process.execPath, [SCRIPT, '--self-test'], {
 assertEq(cli.status, 0, 'CLI self-test exits 0');
 assertOk(cli.stdout.includes('self-test PASS'), 'CLI self-test names pass');
 
-console.log('Test 5: CLI help explains advisory scope');
+console.log('Test 6: CLI help explains advisory scope');
 const help = spawnSync(process.execPath, [SCRIPT, '--help'], {
   cwd: REPO_ROOT,
   encoding: 'utf8',
