@@ -142,7 +142,7 @@ function buildParallaxPreview(samples) {
   };
 }
 
-function buildExport(tamper = false) {
+function buildExport(tamper = false, codeEdit = false) {
   const { world, grid } = loadVista(tamper);
   const samples = sampleVista(grid);
   const composition = makeComposition(samples);
@@ -158,6 +158,13 @@ function buildExport(tamper = false) {
   });
   const parallax = buildParallaxPreview(samples);
 
+  // Simulate an honest compiler comment/clarity edit (codeEdit): the emitted source
+  // strings gain a doc comment but the geometry is byte-identical. This must change
+  // the informational code hashes and must NOT change exportDigest.
+  const swiftSource = codeEdit ? mvhevc.swiftCode + '\n// honest clarity edit\n' : mvhevc.swiftCode;
+  const muxSource = codeEdit ? mvhevc.muxCommand + ' # honest clarity edit' : mvhevc.muxCommand;
+  const rendererSource = codeEdit ? quilt.rendererCode + '\n// honest clarity edit\n' : quilt.rendererCode;
+
   const quiltRig = quilt.tiles.flatMap((t) => [t.index, q(t.cameraOffset), q(t.viewShear)]);
   const quiltField = [];
   for (const tile of quilt.tiles) {
@@ -167,15 +174,27 @@ function buildExport(tamper = false) {
     }
   }
   const mvhevcField = mvhevc.views.flatMap((v) => [v.layerIndex, q(v.cameraOffset), q(v.viewShear)]);
+  // Per-sample stereo disparity: project each sample through the left/right MV-HEVC
+  // views and record both projected positions plus the horizontal disparity. This is
+  // the semantic stereo geometry the export must reproduce.
+  const stereoField = samples.flatMap((s) => {
+    const l = project(s.world, mvhevc.views[0].cameraOffset, mvhevc.views[0].viewShear, mvhevc.config.convergenceDistance, mvhevc.config.fovDegrees);
+    const r = project(s.world, mvhevc.views[1].cameraOffset, mvhevc.views[1].viewShear, mvhevc.config.convergenceDistance, mvhevc.config.fovDegrees);
+    return [q(l.x), q(l.y), q(r.x), q(r.y), q(r.x - l.x)];
+  });
   const depthField = samples.flatMap((s) => [s.grid[0], s.grid[1], q(s.depth), ...s.world.map(q)]);
-  const codeHash = sha256(mvhevc.swiftCode + '\n' + mvhevc.muxCommand);
+  // exportDigest hashes ONLY the semantic geometric/projection outputs — tile camera
+  // offsets, view shears, stereo disparities, parallax field, depth samples. It does
+  // NOT hash compiler source-text strings (swiftCode / muxCommand / rendererCode); those
+  // ride the receipt as informational hashes (see informationalCodeHashes below) so an
+  // honest comment/clarity edit to a compiler no longer flips this load-bearing digest.
   const fields = {
     quiltRig: Float32Array.from(quiltRig),
     quiltField: Float32Array.from(quiltField),
     mvhevcRig: Float32Array.from(mvhevcField),
+    stereoDisparity: Float32Array.from(stereoField),
     parallax: Float32Array.from(hexFloats(parallax.digest)),
     depthSamples: Float32Array.from(depthField),
-    codeHash: Float32Array.from(hexFloats(codeHash)),
   };
   const exportDigest = computeStateDigest({ fieldNames: Object.keys(fields), getField: (name) => fields[name] }, HASH);
   const center = samples[Math.floor(samples.length / 2)].world;
@@ -209,7 +228,7 @@ function buildExport(tamper = false) {
         tileWidth: quilt.metadata.tileWidth,
         tileHeight: quilt.metadata.tileHeight,
         projectedPoints: quilt.tiles.length * samples.length,
-        rendererCodeHash: sha256(quilt.rendererCode),
+        rendererCodeHash: sha256(rendererSource),
       },
       mvhevc: {
         compiler: 'packages/engine/src/hologram/MVHEVCCompiler.ts',
@@ -221,17 +240,23 @@ function buildExport(tamper = false) {
         fovDegrees: mvhevc.config.fovDegrees,
         stereoMode: mvhevc.metadata.stereoMode,
         views: mvhevc.views.map((v) => ({ eye: v.eye, cameraOffset: round(v.cameraOffset), viewShear: round(v.viewShear), layerIndex: v.layerIndex })),
-        muxCommandHash: sha256(mvhevc.muxCommand),
-        swiftCodeHash: sha256(mvhevc.swiftCode),
+        muxCommandHash: sha256(muxSource),
+        swiftCodeHash: sha256(swiftSource),
         centerDisparity: round(Math.abs(right.x - left.x)),
       },
       parallax,
+      informationalCodeHashes: {
+        note: 'Source-text hashes of compiler output. INFORMATIONAL ONLY — deliberately NOT part of exportDigest, so honest comment/clarity edits to the compilers do not flip the load-bearing reproducibility digest. exportDigest hashes the semantic geometry (camera offsets, view shears, stereo disparities, parallax field, depth samples), not these strings.',
+        swiftCodeHash: sha256(swiftSource),
+        muxCommandHash: sha256(muxSource),
+        rendererCodeHash: sha256(rendererSource),
+      },
       shareReceipt: {
         targets: ['looking-glass-quilt', 'vision-pro-mvhevc', 'parallax-preview'],
         exportDigest,
         payloadHash: sha256(JSON.stringify({ quilt: quilt.config, mvhevc: mvhevc.config, parallax, samples })),
       },
-      honestScope: 'Compiler-side export proof for the Gate-32 depth world: real QuiltCompiler tile rig/projection, real MVHEVCCompiler stereo metadata/mux instructions, and deterministic parallax preview digest. It does not rasterize quilt pixels, encode MV-HEVC media bytes, or validate on physical Looking Glass/Vision Pro hardware.',
+      honestScope: 'Compiler-side export proof for the Gate-32 depth world: real QuiltCompiler tile rig/projection, real MVHEVCCompiler stereo metadata/mux instructions, and deterministic parallax preview digest. The exportDigest is computed from the semantic geometric/projection outputs (tile camera offsets, view shears, stereo disparities, parallax field, depth samples) and excludes compiler source-text strings (kept as informational hashes only). It does not rasterize quilt pixels, encode MV-HEVC media bytes, or validate on physical Looking Glass/Vision Pro hardware.',
     },
     exportDigest,
   };
@@ -239,6 +264,7 @@ function buildExport(tamper = false) {
 
 const clean = buildExport(false);
 const tampered = buildExport(true);
+const codeEdited = buildExport(false, true);
 const a = clean.artifact;
 
 const checks = [];
@@ -253,6 +279,8 @@ check('stereo/parallax geometry has measurable disparity', a.mvhevc.centerDispar
 check('parallax preview digest is deterministic', /^[a-f0-9]{64}$/.test(a.parallax.digest) && a.parallax.frames === 9, a.parallax.digest.slice(0, 16));
 check('combined export digest is sha256-shaped', /^[a-f0-9]{64}$/.test(a.shareReceipt.exportDigest), a.shareReceipt.exportDigest.slice(0, 16));
 check('negative control: one depth-cell tamper changes export digest', clean.exportDigest !== tampered.exportDigest, 'tamper detected');
+check('robustness: an honest compiler source-text edit does NOT change export digest', clean.exportDigest === codeEdited.exportDigest, 'geometry-only digest');
+check('robustness: that same source edit DOES change the informational code hashes', a.informationalCodeHashes.swiftCodeHash !== codeEdited.artifact.informationalCodeHashes.swiftCodeHash && a.quilt.rendererCodeHash !== codeEdited.artifact.quilt.rendererCodeHash, 'informational hashes track source');
 
 if (!process.argv.includes('--emit')) {
   if (!existsSync(receiptPath) || !existsSync(artifactPath)) {
@@ -286,9 +314,12 @@ if (process.argv.includes('--emit') && allPass) {
     quilt: a.quilt,
     mvhevc: a.mvhevc,
     parallax: a.parallax,
+    informationalCodeHashes: a.informationalCodeHashes,
     negativeControl: { oneDepthCellTamperChangesExportDigest: clean.exportDigest !== tampered.exportDigest },
     contract: {
       spine: 'computeStateDigest(field-bag, sha256)',
+      digestFields: ['quiltRig', 'quiltField', 'mvhevcRig', 'stereoDisparity', 'parallax', 'depthSamples'],
+      digestExcludes: 'compiler source-text strings (swiftCode/muxCommand/rendererCode) — informational only',
       exportDigest: clean.exportDigest,
       payloadHash: a.shareReceipt.payloadHash,
     },

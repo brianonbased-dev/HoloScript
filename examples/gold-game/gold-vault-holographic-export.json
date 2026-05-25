@@ -755,14 +755,20 @@
     ],
     "digest": "333b0d2527ccb32517d4f56e363e3b02b9aafd3e52fb3dff71f0087d39d44fe2"
   },
+  "informationalCodeHashes": {
+    "note": "Source-text hashes of compiler output. INFORMATIONAL ONLY — deliberately NOT part of exportDigest, so honest comment/clarity edits to the compilers do not flip the load-bearing reproducibility digest. exportDigest hashes the semantic geometry (camera offsets, view shears, stereo disparities, parallax field, depth samples), not these strings.",
+    "swiftCodeHash": "2d4f2a021576cccad11e997d87c72048214b49af3cf512e9a96c617ad94f8822",
+    "muxCommandHash": "c9e84a9f0554ff73c5719fd9d05527cf121712cfa31d5ff77b8c0f5630fd2a84",
+    "rendererCodeHash": "b04a6a6526050f2054e2c6433e81d067569a6a69f056b27ae6b380b02cca20c0"
+  },
   "shareReceipt": {
     "targets": [
       "looking-glass-quilt",
       "vision-pro-mvhevc",
       "parallax-preview"
     ],
-    "exportDigest": "9c06e8ddf381d183c3867088e716bba196bd746efb91c271c9d3bfa2369f49bb",
+    "exportDigest": "83b73cb51029c82838ca2b1f37bba201bd83789c1a2f68d7f2f651bc4b0abb66",
     "payloadHash": "2ba64bc0a4eefa854d4160d56f04cd07f46d04d52f323b6fbbc416afb17ec798"
   },
-  "honestScope": "Compiler-side export proof for the Gate-32 depth world: real QuiltCompiler tile rig/projection, real MVHEVCCompiler stereo metadata/mux instructions, and deterministic parallax preview digest. It does not rasterize quilt pixels, encode MV-HEVC media bytes, or validate on physical Looking Glass/Vision Pro hardware."
+  "honestScope": "Compiler-side export proof for the Gate-32 depth world: real QuiltCompiler tile rig/projection, real MVHEVCCompiler stereo metadata/mux instructions, and deterministic parallax preview digest. The exportDigest is computed from the semantic geometric/projection outputs (tile camera offsets, view shears, stereo disparities, parallax field, depth samples) and excludes compiler source-text strings (kept as informational hashes only). It does not rasterize quilt pixels, encode MV-HEVC media bytes, or validate on physical Looking Glass/Vision Pro hardware."
 }
