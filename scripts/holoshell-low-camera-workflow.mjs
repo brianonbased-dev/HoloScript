@@ -3,7 +3,7 @@
  * HoloShell Low-Camera Workflow
  *
  * One native-camera command for the low-quality camera ratchet:
- *   1. generate a known geometric camera control target
+ *   1. generate a known camera control target
  *   2. capture once and fair-sweep all preprocess modes
  *   3. render the winning HoloGram bridge as a quilt preview
  *   4. emit a top-level chain receipt linking all receipts
@@ -53,6 +53,7 @@ function parseArgs(argv) {
     tileHeight: 120,
     requireCapture: false,
     geometricTarget: true,
+    targetProfile: 'fiducial-board',
     selfTest: false,
     help: false,
   };
@@ -80,6 +81,9 @@ function parseArgs(argv) {
     else if (arg === '--require-capture') args.requireCapture = true;
     else if (arg === '--geometric-target') args.geometricTarget = true;
     else if (arg === '--no-geometric-target') args.geometricTarget = false;
+    else if (arg === '--control-target') args.geometricTarget = true;
+    else if (arg === '--no-control-target') args.geometricTarget = false;
+    else if (arg === '--target-profile') args.targetProfile = argv[++i];
     else if (arg === '--self-test' || arg === 'self-test') args.selfTest = true;
     else if (arg === '--help' || arg === '-h' || arg === 'help') args.help = true;
     else throw new Error(`Unknown argument: ${arg}`);
@@ -107,6 +111,9 @@ function parseArgs(argv) {
     throw new Error('--tile-height must be 16..1024');
   }
   if (args.frames > 1 && args.intervalMs === 0) throw new Error('--interval-ms must be > 0 with multiple frames');
+  if (!['fiducial-board', 'geometric-control-target'].includes(args.targetProfile)) {
+    throw new Error('--target-profile must be fiducial-board or geometric-control-target');
+  }
   return args;
 }
 
@@ -115,12 +122,13 @@ function printHelp() {
 
 Usage:
   node scripts/holoshell-low-camera-workflow.mjs [--frames 15] [--interval-ms 200] [--require-capture]
+  node scripts/holoshell-low-camera-workflow.mjs --target-profile fiducial-board
   node scripts/holoshell-low-camera-workflow.mjs --frames 2 --width 64 --height 48 --tile-width 80 --tile-height 60
   node scripts/holoshell-low-camera-workflow.mjs --self-test
 
 Notes:
   - Uses the native WinRT camera sweep, not browser getUserMedia.
-  - Generates a known geometric target receipt before capture for calibration/control.
+  - Generates a known fiducial/control target receipt before capture for calibration/control.
   - Keeps a plain camera JPEG control frame before preprocessing, HoloMap, or HoloGram rendering.
   - Replays one raw capture through every preprocess mode, renders the winning bridge, and links both receipts.
   - Writes .scratch/holoshell-low-camera-fixture/<date>/low-camera-workflow-receipt.json by default.
@@ -169,23 +177,31 @@ function summarizeControl(sweepReceipt) {
 
 function summarizeTarget(targetReceipt, targetReceiptPath) {
   if (!targetReceipt) return undefined;
+  const markerCount = Array.isArray(targetReceipt.target?.markers) ? targetReceipt.target.markers.length : undefined;
   return {
     path: rel(targetReceiptPath),
     receiptHash: targetReceipt.hash,
     fileHash: fileHash(targetReceiptPath),
+    profile: targetReceipt.target?.profile ?? targetReceipt.schemaVersion?.replace(/^holoshell-|\/v\d+$/g, ''),
+    dictionary: targetReceipt.target?.dictionary,
+    compatibility: targetReceipt.target?.compatibility,
     pngPath: targetReceipt.target?.pngPath,
     pngHash: targetReceipt.target?.pngHash,
     pngFileHash: targetReceipt.target?.pngPath ? fileHash(targetReceipt.target.pngPath) : undefined,
     width: targetReceipt.target?.width,
     height: targetReceipt.target?.height,
     checkerboard: targetReceipt.target?.checkerboard,
+    markerGrid: targetReceipt.target?.markerGrid,
+    markerCount,
+    markerIds: targetReceipt.target?.markers?.map((marker) => marker.id),
+    markers: targetReceipt.target?.markers,
     primitiveCount: Array.isArray(targetReceipt.target?.primitives) ? targetReceipt.target.primitives.length : undefined,
     fiducialCount: Array.isArray(targetReceipt.target?.fiducials) ? targetReceipt.target.fiducials.length : undefined,
     primitives: targetReceipt.target?.primitives,
     fiducials: targetReceipt.target?.fiducials,
     chainHash: targetReceipt.chain?.receipt?.hash,
     honestScope:
-      'Known generated geometric reference target. It does not prove the camera saw the target; the camera control frame remains the captured baseline.',
+      'Known generated camera reference target. It does not prove the camera saw the target; the camera control frame remains the captured baseline.',
   };
 }
 
@@ -297,6 +313,7 @@ export function buildWorkflowReceipt({
     fps: args.fps,
     tileGrid: args.tileGrid,
     geometricTarget: args.geometricTarget,
+    targetProfile: args.targetProfile,
   };
   const renderPlan = {
     tileWidth: args.tileWidth,
@@ -317,16 +334,20 @@ export function buildWorkflowReceipt({
   });
   const targetStage = target
     ? stageReceipt({
-        name: 'workflow.geometric-control-target',
+        name: 'workflow.control-target',
         input: {
           command: commands.target?.command,
           targetReceiptPath: target.path,
+          targetProfile: target.profile,
         },
         output: {
+          profile: target.profile,
+          dictionary: target.dictionary,
           pngPath: target.pngPath,
           pngHash: target.pngHash,
           width: target.width,
           height: target.height,
+          markerCount: target.markerCount,
           primitiveCount: target.primitiveCount,
           fiducialCount: target.fiducialCount,
           receiptHash: target.receiptHash,
@@ -338,7 +359,7 @@ export function buildWorkflowReceipt({
           checkerboardRows: target.checkerboard?.rows,
         },
         honestScope:
-          'Generates the known geometric target before camera capture. This is a calibration control asset, not a captured image.',
+          'Generates the known control target before camera capture. This is a calibration asset, not a captured image.',
       })
     : undefined;
   const sweepStage = stageReceipt({
@@ -430,6 +451,7 @@ export function buildWorkflowReceipt({
       metrics: {
         status: sweep.status === 'pass' && render?.status === 'pass' ? 'pass' : sweep.status,
         geometricTarget: Boolean(target),
+        targetProfile: target?.profile,
         targetDetectionStatus: targetDetection?.detection?.status,
         winningPreprocess: sweep.winner?.mode,
         pointCount: render?.pointCount ?? sweep.pointCount,
@@ -438,7 +460,7 @@ export function buildWorkflowReceipt({
         quiltQualityGrade: render?.quality?.grade,
       },
       honestScope:
-        'Top-level workflow chain linking known geometric target, native camera sweep, and winning HoloGram quilt render receipts.',
+        'Top-level workflow chain linking known control target, native camera sweep, and winning HoloGram quilt render receipts.',
     }),
     stages,
   };
@@ -468,7 +490,7 @@ export function buildWorkflowReceipt({
       render: commands.render?.command,
     },
     honestScope:
-      'Hardware-native workflow evidence for inferior cameras. It records a known geometric target, keeps the untouched camera control frame, compares preprocessing fairly from one capture, then renders the winning HoloMap bridge.',
+      'Hardware-native workflow evidence for inferior cameras. It records a known control target, keeps the untouched camera control frame, compares preprocessing fairly from one capture, then renders the winning HoloMap bridge.',
     chain,
     outputPath: rel(args.out ?? defaultOutput(args.date)),
   });
@@ -484,10 +506,14 @@ export function validateReceipt(receipt) {
   if (!receipt.sweep?.fileHash?.startsWith('sha256:')) errors.push('sweep file hash missing');
   if (receipt.status === 'pass') {
     const targetExpected = receipt.capturePlan?.geometricTarget !== false;
-    if (targetExpected && !receipt.target?.receiptHash?.startsWith('sha256:')) errors.push('geometric target receipt hash missing');
-    if (targetExpected && !receipt.target?.pngHash?.startsWith('sha256:')) errors.push('geometric target PNG hash missing');
-    if (targetExpected && !receipt.target?.pngPath) errors.push('geometric target PNG path missing');
-    if (targetExpected && !receipt.target?.pngFileHash?.startsWith('sha256:')) errors.push('geometric target PNG file hash missing');
+    if (targetExpected && !receipt.target?.receiptHash?.startsWith('sha256:')) errors.push('control target receipt hash missing');
+    if (targetExpected && !receipt.target?.pngHash?.startsWith('sha256:')) errors.push('control target PNG hash missing');
+    if (targetExpected && !receipt.target?.pngPath) errors.push('control target PNG path missing');
+    if (targetExpected && !receipt.target?.pngFileHash?.startsWith('sha256:')) errors.push('control target PNG file hash missing');
+    if (targetExpected && !receipt.target?.profile) errors.push('control target profile missing');
+    if (receipt.capturePlan?.targetProfile === 'fiducial-board' && !(receipt.target?.markerCount >= 9)) {
+      errors.push('fiducial board marker metadata missing');
+    }
     if (targetExpected && !receipt.targetDetection?.receiptHash?.startsWith('sha256:')) {
       errors.push('target detection receipt hash missing');
     }
@@ -520,8 +546,9 @@ export function validateReceipt(receipt) {
 export async function runWorkflow(args) {
   const outPath = resolve(REPO_ROOT, args.out ?? defaultOutput(args.date));
   const baseDir = dirname(outPath);
-  const targetOut = resolve(REPO_ROOT, args.targetOut ?? join(baseDir, 'geometric-control-target-receipt.json'));
-  const targetPng = resolve(REPO_ROOT, args.targetPng ?? join(baseDir, 'geometric-control-target.png'));
+  const targetSlug = args.targetProfile === 'geometric-control-target' ? 'geometric-control-target' : 'fiducial-board';
+  const targetOut = resolve(REPO_ROOT, args.targetOut ?? join(baseDir, `${targetSlug}-receipt.json`));
+  const targetPng = resolve(REPO_ROOT, args.targetPng ?? join(baseDir, `${targetSlug}.png`));
   const targetDetectionOut = resolve(REPO_ROOT, args.targetDetectionOut ?? join(baseDir, 'target-in-frame-receipt.json'));
   const sweepOut = resolve(REPO_ROOT, args.sweepOut ?? join(baseDir, 'preprocess-sweep-workflow.json'));
   const renderOut = resolve(REPO_ROOT, args.renderOut ?? join(baseDir, 'workflow-winner-quilt.json'));
@@ -530,7 +557,11 @@ export async function runWorkflow(args) {
   let targetCommand;
   let targetReceipt;
   if (args.geometricTarget) {
-    targetCommand = runNodeScript(resolve(REPO_ROOT, 'scripts/holoshell-geometric-control-target.mjs'), [
+    const targetScript =
+      args.targetProfile === 'geometric-control-target'
+        ? 'scripts/holoshell-geometric-control-target.mjs'
+        : 'scripts/holoshell-fiducial-board.mjs';
+    targetCommand = runNodeScript(resolve(REPO_ROOT, targetScript), [
       '--out',
       rel(targetOut),
       '--png',
@@ -648,26 +679,36 @@ export async function selfTest() {
   writeFileSync(quiltPath, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
   writeFileSync(targetPngPath, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
   const targetReceipt = withHash({
-    schemaVersion: 'holoshell-geometric-control-target/v1',
+    schemaVersion: 'holoshell-fiducial-board/v1',
     status: 'pass',
     target: {
+      profile: 'fiducial-board',
+      dictionary: 'holoshell-native-binary-7x7-v1',
+      compatibility: { opencvAruco: false, aprilTag: false },
       pngPath: rel(targetPngPath),
       pngHash: fileHash(targetPngPath),
       width: 320,
       height: 240,
-      checkerboard: { columns: 12, rows: 8 },
+      markerGrid: { rows: 3, columns: 3, cells: 7, innerCells: 5 },
+      markers: Array.from({ length: 9 }, (_, index) => ({
+        id: `hs-${index + 1}`,
+        numericId: index + 1,
+        payload: Array.from({ length: 25 }, (__, bit) => (bit + index) % 2),
+      })),
       primitives: [
-        { id: 'red-square', kind: 'square' },
-        { id: 'green-circle', kind: 'circle' },
-        { id: 'blue-triangle', kind: 'triangle' },
-        { id: 'magenta-diamond', kind: 'diamond' },
-        { id: 'cyan-cross', kind: 'cross' },
+        { id: 'cyan-center-axis', kind: 'axis', rgb: [0, 174, 204] },
+        { id: 'magenta-center-axis', kind: 'axis', rgb: [210, 42, 214] },
       ],
       fiducials: [
-        { id: 'top-left' },
-        { id: 'top-right' },
-        { id: 'bottom-left' },
-        { id: 'bottom-right' },
+        { id: 'top-left', accentRgb: [225, 32, 42] },
+        { id: 'top-center', accentRgb: [0, 174, 204] },
+        { id: 'top-right', accentRgb: [18, 170, 74] },
+        { id: 'center-left', accentRgb: [255, 190, 42] },
+        { id: 'center', accentRgb: [210, 42, 214] },
+        { id: 'center-right', accentRgb: [38, 86, 225] },
+        { id: 'bottom-left', accentRgb: [255, 120, 28] },
+        { id: 'bottom-center', accentRgb: [0, 150, 120] },
+        { id: 'bottom-right', accentRgb: [120, 70, 255] },
       ],
     },
     chain: { receipt: { hash: 'sha256:' + 'd'.repeat(64) } },
@@ -756,6 +797,8 @@ export async function selfTest() {
       frames: 2,
       intervalMs: 250,
       tileGrid: 32,
+      geometricTarget: true,
+      targetProfile: 'fiducial-board',
       tileWidth: 80,
       tileHeight: 60,
     },
@@ -809,6 +852,9 @@ async function main() {
           pngHash: receipt.target.pngHash,
           width: receipt.target.width,
           height: receipt.target.height,
+          profile: receipt.target.profile,
+          dictionary: receipt.target.dictionary,
+          markerCount: receipt.target.markerCount,
           primitiveCount: receipt.target.primitiveCount,
           fiducialCount: receipt.target.fiducialCount,
         }

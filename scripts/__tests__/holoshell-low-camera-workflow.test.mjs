@@ -45,8 +45,11 @@ assertEq(validateReceipt(receipt).length, 0, 'receipt validates');
 assertOk(receipt.target.receiptHash.startsWith('sha256:'), 'target receipt hash recorded');
 assertOk(receipt.target.pngHash.startsWith('sha256:'), 'target PNG hash recorded');
 assertOk(receipt.target.pngFileHash.startsWith('sha256:'), 'target PNG file hash recorded');
-assertEq(receipt.target.primitiveCount, 5, 'target primitive count recorded');
-assertEq(receipt.target.fiducialCount, 4, 'target fiducial count recorded');
+assertEq(receipt.target.profile, 'fiducial-board', 'fiducial board profile recorded');
+assertEq(receipt.target.dictionary, 'holoshell-native-binary-7x7-v1', 'fiducial dictionary recorded');
+assertEq(receipt.target.markerCount, 9, 'fiducial marker count recorded');
+assertEq(receipt.target.primitiveCount, 2, 'target primitive count recorded');
+assertEq(receipt.target.fiducialCount, 9, 'target fiducial count recorded');
 assertOk(receipt.sweep.receiptHash.startsWith('sha256:'), 'sweep receipt hash recorded');
 assertOk(receipt.sweep.fileHash.startsWith('sha256:'), 'sweep file hash recorded');
 assertEq(receipt.sweep.winner.mode, 'raw', 'winner mode recorded');
@@ -94,7 +97,7 @@ const help = spawnSync(process.execPath, [SCRIPT, '--help'], {
 assertEq(help.status, 0, 'CLI help exits 0');
 assertOk(help.stdout.includes('Low-Camera Workflow'), 'help names workflow');
 assertOk(help.stdout.includes('--require-capture'), 'help names hardware gate');
-assertOk(help.stdout.includes('geometric target'), 'help names geometric target');
+assertOk(help.stdout.includes('--target-profile'), 'help names target profile');
 
 if (testsFailed > 0) {
   console.error(`\n${testsFailed}/${testsRun} tests failed`);

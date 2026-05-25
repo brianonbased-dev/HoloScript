@@ -116,7 +116,7 @@ const STACK = [
     mobileFit: 'excellent',
     licenseRisk: 'low-to-medium',
     implementation:
-      'Upgrade the generated chart into printable fiducial boards, detect ids/corners in the untouched control frame, then solve camera pose before HoloMap.',
+      'Use the generated printable fiducial board, detect ids/corners in the untouched control frame, then solve camera pose before HoloMap.',
     why:
       'Inferior cameras need known geometry first. Fiducials convert a fuzzy live image into measurable corners, ids, pose, and reprojection error.',
   },
@@ -269,6 +269,7 @@ function scoreFromSignals(stack, signals) {
   let score = 0.3;
   if (stack.id === 'fiducial-calibration') {
     score += 0.34;
+    if (signals.hasFiducialBoard) score += 0.04;
     if (signals.hasGeneratedTarget && !signals.targetDetectedInFrame) score += 0.12;
     if (signals.rawEdgeEnergy < 0.06) score += 0.08;
     if (signals.rawQualityScore < 0.8) score += 0.05;
@@ -318,6 +319,11 @@ function signalsFromWorkflow(workflow) {
   return {
     workflowStatus: workflow?.status,
     hasGeneratedTarget: Boolean(workflow?.target?.pngHash),
+    targetProfile: workflow?.target?.profile ?? workflow?.capturePlan?.targetProfile,
+    hasFiducialBoard:
+      workflow?.target?.profile === 'fiducial-board' ||
+      workflow?.capturePlan?.targetProfile === 'fiducial-board' ||
+      Number(workflow?.target?.markerCount ?? 0) >= 4,
     targetDetectionStatus: workflow?.targetDetection?.detection?.status ?? workflow?.targetDetection?.status,
     targetDetectedInFrame:
       workflow?.targetDetection?.detection?.status === 'detected' || workflow?.targetDetection?.status === 'detected',
@@ -371,15 +377,27 @@ function buildNextActions(recommendations, signals) {
     });
   }
   if (top?.id === 'fiducial-calibration' || signals.rawQualityScore < 0.8) {
-    actions.push({
-      id: 'replace-chart-with-fiducial-board',
-      owner: 'holoshell',
-      priority: 'now',
-      action:
-        'Generate an ArUco/AprilTag/ChArUco printable board variant and attach board metrics to the control target receipt.',
-      doneWhen:
-        'A native detector can recover marker ids/corners from a control frame without preprocessing.',
-    });
+    if (signals.hasFiducialBoard) {
+      actions.push({
+        id: 'recover-fiducial-marker-corners',
+        owner: 'holoshell',
+        priority: 'now',
+        action:
+          'Implement the native marker-corner detector for the HoloShell fiducial-board dictionary and run it against the untouched control frame.',
+        doneWhen:
+          'A targetDetection receipt carries marker ids, four corners per marker, and reprojection-ready inputs while calibrationReady remains false until pose solve lands.',
+      });
+    } else {
+      actions.push({
+        id: 'replace-chart-with-fiducial-board',
+        owner: 'holoshell',
+        priority: 'now',
+        action:
+          'Generate an ArUco/AprilTag/ChArUco printable board variant and attach board metrics to the control target receipt.',
+        doneWhen:
+          'A native detector can recover marker ids/corners from a control frame without preprocessing.',
+      });
+    }
   }
   actions.push({
     id: 'define-external-backend-contract',
@@ -498,8 +516,8 @@ export async function selfTest() {
   const workflowReceipt = withHash({
     schemaVersion: 'holoshell-low-camera-workflow/v1',
     status: 'pass',
-    capturePlan: { frames: 2, width: 64, height: 48, geometricTarget: true },
-    target: { pngHash: 'sha256:' + '1'.repeat(64) },
+    capturePlan: { frames: 2, width: 64, height: 48, geometricTarget: true, targetProfile: 'fiducial-board' },
+    target: { profile: 'fiducial-board', pngHash: 'sha256:' + '1'.repeat(64), markerCount: 9 },
     control: {
       frame: {
         rawQuality: { score: 0.71, contrast: 0.22, edgeEnergy: 0.048 },

@@ -49,14 +49,15 @@ assertOk(receipt.plan.sources.some((source) => source.id === 'opencv-aruco'), 'O
 assertOk(receipt.plan.sources.some((source) => source.id === 'colmap'), 'COLMAP source carried');
 assertOk(receipt.plan.sources.some((source) => source.id === 'apple-mvhevc'), 'MV-HEVC source carried');
 assertOk(receipt.plan.nextActions.some((action) => action.id === 'detect-generated-target-in-control-frame'), 'target detection next action carried');
+assertOk(receipt.plan.nextActions.some((action) => action.id === 'recover-fiducial-marker-corners'), 'fiducial corner recovery next action carried');
 assertOk(receipt.chain?.receipt?.hash?.startsWith('sha256:'), 'chain hash recorded');
 
 console.log('Test 2: planner keeps direct Holoshell path ahead of browser workarounds');
 const plan = buildTechnologyPlan({
   workflowReceipt: {
     status: 'pass',
-    capturePlan: { frames: 2, geometricTarget: true },
-    target: { pngHash: 'sha256:' + 'a'.repeat(64) },
+    capturePlan: { frames: 2, geometricTarget: true, targetProfile: 'fiducial-board' },
+    target: { profile: 'fiducial-board', markerCount: 9, pngHash: 'sha256:' + 'a'.repeat(64) },
     targetDetection: { detection: { status: 'not-detected' } },
     control: { frame: { rawQuality: { score: 0.52, edgeEnergy: 0.02, contrast: 0.12 } } },
     render: { quality: { score: 0.44, grade: 'weak' } },
@@ -66,6 +67,8 @@ assertEq(plan.recommendations[0].id, 'fiducial-calibration', 'low-quality workfl
 assertOk(plan.recommendations.every((recommendation) => !recommendation.backend.toLowerCase().includes('browser')), 'no browser backend recommended');
 assertOk(plan.recommendations.some((recommendation) => recommendation.id === 'mobile-native-depth'), 'mobile native depth remains on ladder');
 assertOk(plan.nextActions.some((action) => action.id === 'place-target-in-camera-view'), 'missing target visibility becomes operator action');
+assertOk(plan.nextActions.some((action) => action.id === 'recover-fiducial-marker-corners'), 'fiducial board advances to marker detector action');
+assertOk(!plan.nextActions.some((action) => action.id === 'replace-chart-with-fiducial-board'), 'fiducial board is not re-requested');
 
 console.log('Test 3: invalid receipts fail closed');
 const missingSources = {

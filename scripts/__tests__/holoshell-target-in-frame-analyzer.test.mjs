@@ -37,8 +37,8 @@ function assertEq(actual, expected, name) {
   }
 }
 
-console.log('Test 1: self-test detects target image and rejects blank control image');
-const { detected, missing } = await selfTest();
+console.log('Test 1: self-test detects target images and rejects blank control image');
+const { detected, fiducialDetected, missing } = await selfTest();
 assertEq(detected.schemaVersion, RECEIPT_VERSION, 'schema version');
 assertEq(detected.status, 'pass', 'analyzer status pass');
 assertEq(validateReceipt(detected).length, 0, 'detected receipt validates');
@@ -46,6 +46,10 @@ assertEq(detected.detection.status, 'detected', 'target PNG detected');
 assertOk(detected.detection.score >= detected.detection.threshold, 'detected score clears threshold');
 assertOk(detected.detection.cornerCandidates.length >= 4, 'detected receipt provides bounds corners');
 assertEq(detected.detection.calibrationReady, false, 'detected receipt does not claim calibration readiness');
+assertEq(validateReceipt(fiducialDetected).length, 0, 'fiducial board receipt validates');
+assertEq(fiducialDetected.target.profile, 'fiducial-board', 'fiducial board profile recorded');
+assertEq(fiducialDetected.target.markerCount, 9, 'fiducial marker count recorded');
+assertEq(fiducialDetected.detection.status, 'detected', 'fiducial board PNG detected');
 assertEq(validateReceipt(missing).length, 0, 'missing receipt validates');
 assertEq(missing.detection.status, 'not-detected', 'blank image rejected');
 assertEq(missing.detection.cornerCandidates.length, 0, 'missing image has no corner candidates');

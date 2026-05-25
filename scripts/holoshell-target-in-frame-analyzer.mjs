@@ -3,7 +3,7 @@
  * HoloShell Target-In-Frame Analyzer
  *
  * Decodes the untouched camera control frame and checks whether the generated
- * geometric control target appears in those pixels. This is a visibility gate,
+ * control target appears in those pixels. This is a visibility gate,
  * not a camera-pose or fiducial-id solver.
  */
 
@@ -11,6 +11,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chainReceipt, sha256Bytes, sha256Text, stageReceipt, withHash } from './holoshell/chain/receipts.mjs';
+import { generateFiducialBoard } from './holoshell-fiducial-board.mjs';
 import { generateTarget } from './holoshell-geometric-control-target.mjs';
 
 export const VERSION = '0.1.0';
@@ -58,7 +59,7 @@ function printHelp() {
 
 Usage:
   node scripts/holoshell-target-in-frame-analyzer.mjs --workflow low-camera-workflow.json [--out receipt.json]
-  node scripts/holoshell-target-in-frame-analyzer.mjs --frame camera-frame.jpg --target geometric-control-target-receipt.json
+  node scripts/holoshell-target-in-frame-analyzer.mjs --frame camera-frame.jpg --target control-target-receipt.json
   node scripts/holoshell-target-in-frame-analyzer.mjs --self-test
 
 Notes:
@@ -164,12 +165,33 @@ function round(value, digits = 6) {
   return Number(value.toFixed(digits));
 }
 
-function analyzePixels(decoded, palette) {
+function updateBounds(bounds, x, y) {
+  bounds.minX = Math.min(bounds.minX, x);
+  bounds.minY = Math.min(bounds.minY, y);
+  bounds.maxX = Math.max(bounds.maxX, x);
+  bounds.maxY = Math.max(bounds.maxY, y);
+}
+
+function materializeBounds(bounds) {
+  return bounds.maxX >= bounds.minX
+    ? {
+        minX: bounds.minX,
+        minY: bounds.minY,
+        maxX: bounds.maxX,
+        maxY: bounds.maxY,
+        width: bounds.maxX - bounds.minX + 1,
+        height: bounds.maxY - bounds.minY + 1,
+      }
+    : undefined;
+}
+
+function analyzePixels(decoded, palette, options = {}) {
   const { rgb, width, height, channels } = decoded;
   const total = width * height;
   const lum = new Float32Array(total);
   const paletteCounts = new Map(palette.map((entry) => [entry.key, 0]));
-  const bbox = { minX: width, minY: height, maxX: -1, maxY: -1 };
+  const colorBbox = { minX: width, minY: height, maxX: -1, maxY: -1 };
+  const darkBbox = { minX: width, minY: height, maxX: -1, maxY: -1 };
   let colorMatches = 0;
   let dark = 0;
   let light = 0;
@@ -185,7 +207,12 @@ function analyzePixels(decoded, palette) {
     lum[index] = y;
     sumLum += y;
     sumLumSq += y * y;
-    if (y < 0.18) dark += 1;
+    if (y < 0.18) {
+      dark += 1;
+      const x = index % width;
+      const yPos = Math.floor(index / width);
+      updateBounds(darkBbox, x, yPos);
+    }
     if (y > 0.82) light += 1;
 
     const saturationSpread = Math.max(r, g, b) - Math.min(r, g, b);
@@ -204,10 +231,7 @@ function analyzePixels(decoded, palette) {
       paletteCounts.set(best.key, (paletteCounts.get(best.key) ?? 0) + 1);
       const x = index % width;
       const yPos = Math.floor(index / width);
-      bbox.minX = Math.min(bbox.minX, x);
-      bbox.minY = Math.min(bbox.minY, yPos);
-      bbox.maxX = Math.max(bbox.maxX, x);
-      bbox.maxY = Math.max(bbox.maxY, yPos);
+      updateBounds(colorBbox, x, yPos);
     }
   }
 
@@ -243,6 +267,8 @@ function analyzePixels(decoded, palette) {
   const blackWhiteScore = clamp01(Math.min(dark / total, light / total) / 0.11);
   const edgeEnergy = edgeCount > 0 ? edgeSum / edgeCount : 0;
   const edgeScore = clamp01(edgeEnergy / 0.085);
+  const darkRatio = dark / total;
+  const lightRatio = light / total;
   const score = clamp01(
     diversityScore * 0.34 +
       colorCoverageScore * 0.24 +
@@ -250,26 +276,26 @@ function analyzePixels(decoded, palette) {
       edgeScore * 0.14 +
       contrastScore * 0.08
   );
-  const detected =
+  const isFiducialBoard = options.targetProfile === 'fiducial-board' || Number(options.markerCount ?? 0) >= 4;
+  const chartDetected =
     score >= 0.64 &&
     paletteHits.length >= 4 &&
     colorCoverage >= 0.012 &&
-    Math.min(dark / total, light / total) >= 0.045;
-  const bounds =
-    bbox.maxX >= bbox.minX
-      ? {
-          minX: bbox.minX,
-          minY: bbox.minY,
-          maxX: bbox.maxX,
-          maxY: bbox.maxY,
-          width: bbox.maxX - bbox.minX + 1,
-          height: bbox.maxY - bbox.minY + 1,
-        }
-      : undefined;
+    Math.min(darkRatio, lightRatio) >= 0.045;
+  const fiducialBoardDetected =
+    isFiducialBoard &&
+    score >= 0.62 &&
+    paletteHits.length >= 4 &&
+    colorCoverage >= 0.0015 &&
+    Math.min(darkRatio, lightRatio) >= 0.08 &&
+    Math.sqrt(variance) >= 0.22;
+  const detected = chartDetected || fiducialBoardDetected;
+  const bounds = materializeBounds(fiducialBoardDetected ? darkBbox : colorBbox) ?? materializeBounds(colorBbox);
 
   return {
     status: detected ? 'detected' : 'not-detected',
     detected,
+    detectionMode: fiducialBoardDetected ? 'fiducial-board-structure' : chartDetected ? 'palette-chart' : 'none',
     score: round(score),
     threshold: 0.64,
     paletteHitCount: paletteHits.length,
@@ -289,17 +315,18 @@ function analyzePixels(decoded, palette) {
     metrics: {
       meanLuminance: round(meanLum),
       contrast: round(Math.sqrt(variance)),
-      darkPixelRatio: round(dark / total),
-      lightPixelRatio: round(light / total),
+      darkPixelRatio: round(darkRatio),
+      lightPixelRatio: round(lightRatio),
       edgeEnergy: round(edgeEnergy),
       diversityScore: round(diversityScore),
       colorCoverageScore: round(colorCoverageScore),
       blackWhiteScore: round(blackWhiteScore),
       edgeScore: round(edgeScore),
       contrastScore: round(contrastScore),
+      fiducialBoardMode: isFiducialBoard,
     },
     honestScope:
-      'Heuristic visibility detection for the generated geometric chart. Bounds are coarse target-presence candidates, not ArUco/AprilTag ids or solvePnP-ready corners.',
+      'Heuristic visibility detection for the generated control target. Bounds are coarse target-presence candidates, not ArUco/AprilTag ids or solvePnP-ready corners.',
   };
 }
 
@@ -323,7 +350,11 @@ export async function analyzeTargetInFrame({ workflowReceipt, workflowPath, fram
   const decoded = await decodeImage(resolvedFramePath);
   const palette = paletteFromTarget(resolvedTargetReceipt);
   if (palette.length < 4) throw new Error('Target receipt does not provide enough colored palette entries');
-  const detection = analyzePixels(decoded, palette);
+  const target = resolvedTargetReceipt?.target ?? resolvedTargetReceipt;
+  const detection = analyzePixels(decoded, palette, {
+    targetProfile: target?.profile,
+    markerCount: Array.isArray(target?.markers) ? target.markers.length : undefined,
+  });
   const frameAbsolute = resolveInputPath(resolvedFramePath);
   const targetAbsolute = resolvedTargetPath ? resolveInputPath(resolvedTargetPath) : undefined;
   const stage = stageReceipt({
@@ -379,8 +410,11 @@ export async function analyzeTargetInFrame({ workflowReceipt, workflowPath, fram
     target: {
       path: targetAbsolute ? rel(targetAbsolute) : undefined,
       receiptHash: resolvedTargetReceipt.hash,
+      profile: resolvedTargetReceipt.target?.profile,
+      dictionary: resolvedTargetReceipt.target?.dictionary,
       pngPath: resolvedTargetReceipt.target?.pngPath,
       pngHash: resolvedTargetReceipt.target?.pngHash,
+      markerCount: Array.isArray(resolvedTargetReceipt.target?.markers) ? resolvedTargetReceipt.target.markers.length : undefined,
       palette,
     },
     detection,
@@ -441,6 +475,18 @@ export async function selfTest() {
     out: join(dir, 'detected-receipt.json'),
   });
   if (detected.detection.status !== 'detected') throw new Error('self-test target PNG should be detected');
+  const fiducialReceipt = await generateFiducialBoard({
+    out: join(dir, 'fiducial-board-receipt.json'),
+    png: join(dir, 'fiducial-board.png'),
+    width: 640,
+    height: 360,
+  });
+  const fiducialDetected = await analyzeTargetInFrame({
+    framePath: fiducialReceipt.target.pngPath,
+    targetPath: fiducialReceipt.outputPath,
+    out: join(dir, 'fiducial-detected-receipt.json'),
+  });
+  if (fiducialDetected.detection.status !== 'detected') throw new Error('self-test fiducial board PNG should be detected');
   await writeSolidPng(join(dir, 'blank.png'), 320, 240, [128, 128, 128]);
   const missing = await analyzeTargetInFrame({
     framePath: join(dir, 'blank.png'),
@@ -448,7 +494,7 @@ export async function selfTest() {
     out: join(dir, 'missing-receipt.json'),
   });
   if (missing.detection.status !== 'not-detected') throw new Error('self-test blank image should not detect target');
-  return { detected, missing };
+  return { detected, fiducialDetected, missing };
 }
 
 async function main() {
@@ -458,8 +504,8 @@ async function main() {
     return;
   }
   if (args.selfTest) {
-    const { detected, missing } = await selfTest();
-    process.stdout.write(`holoshell-target-in-frame self-test PASS ${detected.hash} ${missing.hash}\n`);
+    const { detected, fiducialDetected, missing } = await selfTest();
+    process.stdout.write(`holoshell-target-in-frame self-test PASS ${detected.hash} ${fiducialDetected.hash} ${missing.hash}\n`);
     return;
   }
   const workflowPath = args.workflow ? resolve(REPO_ROOT, args.workflow) : undefined;
