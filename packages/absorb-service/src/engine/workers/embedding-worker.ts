@@ -1,7 +1,8 @@
 /**
  * Embedding Worker
  *
- * Parallel worker for generating embeddings via OpenAI/Ollama/Xenova.
+ * Parallel worker for generating embeddings via native HoloEmbed/Structural
+ * providers or external OpenAI/Ollama/Xenova providers.
  * Processes batches of symbol texts and returns embedding vectors.
  *
  * Phase 9 Extension: Speeds up embedding generation 4-8x by parallelizing
@@ -50,6 +51,15 @@ async function createProvider(providerConfig: EmbeddingJob['provider']): Promise
       case 'xenova': {
         const { XenovaEmbeddingProvider } = await import('../providers/XenovaEmbeddingProvider');
         return new XenovaEmbeddingProvider(config.xenovaModel);
+      }
+      case 'structural': {
+        const { StructuralEmbeddingProvider } =
+          await import('../providers/StructuralEmbeddingProvider');
+        return new StructuralEmbeddingProvider();
+      }
+      case 'holoembed': {
+        const { HoloEmbedProvider } = await import('../providers/HoloEmbedProvider');
+        return new HoloEmbedProvider();
       }
       default:
         throw new Error(`Unknown provider: ${name}`);
