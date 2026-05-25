@@ -196,9 +196,13 @@ export const robotAiMcpTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        role: { type: 'string', description: 'Filter by role' },
+        role: {
+          type: 'string',
+          enum: ['founder', 'steward', 'operator', 'robot', 'ai', 'brittney', 'visitor'],
+          description: 'Filter by role.',
+        },
         kind: { type: 'string', enum: ['robot', 'ai'], description: 'Filter by kind' },
-        mode: { type: 'string', description: 'Filter by mode' },
+        mode: { type: 'string', enum: ['local', 'BYOK', 'managed'], description: 'Filter by mode.' },
         limit: { type: 'number', description: 'Max results. Default: 50' },
         offset: { type: 'number', description: 'Pagination offset. Default: 0' },
       },
