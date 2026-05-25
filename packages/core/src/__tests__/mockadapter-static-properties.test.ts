@@ -400,8 +400,16 @@ describe('Feature 5: LLM provider model constant arrays', () => {
     expect(Array.isArray(GEMINI_MODELS)).toBe(true);
   });
 
-  it('GEMINI_MODELS has 5 entries', () => {
-    expect(GEMINI_MODELS.length).toBe(5);
+  it('GEMINI_MODELS keeps the legacy baseline and includes current Gemini 3 models', () => {
+    expect(GEMINI_MODELS.length).toBe(7);
+  });
+
+  it('GEMINI_MODELS includes gemini-3.5-flash', () => {
+    expect(GEMINI_MODELS).toContain('gemini-3.5-flash');
+  });
+
+  it('GEMINI_MODELS includes gemini-3-flash-preview', () => {
+    expect(GEMINI_MODELS).toContain('gemini-3-flash-preview');
   });
 
   it('GEMINI_MODELS includes gemini-2.0-flash', () => {

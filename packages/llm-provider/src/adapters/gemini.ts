@@ -3,7 +3,7 @@
  *
  * Implements the unified ILLMProvider interface for Google Gemini's API.
  * Uses fetch-based HTTP requests (no SDK dependency) for maximum compatibility.
- * Supports Gemini 2.0, 1.5 Pro, and 1.5 Flash models.
+ * Supports Gemini 3.5 Flash, Gemini 3 Flash Preview, and legacy Gemini models.
  *
  * @version 1.0.0
  */
@@ -25,6 +25,8 @@ import {
 
 // Available Google Gemini models
 export const GEMINI_MODELS = [
+  'gemini-3.5-flash',
+  'gemini-3-flash-preview',
   'gemini-2.0-flash',
   'gemini-2.0-flash-lite',
   'gemini-1.5-pro',
@@ -75,22 +77,21 @@ interface GeminiResponse {
  */
 /**
  * Capability manifest sourced from `ai-ecosystem/docs/LLM_CAPABILITIES.md`
- * § Google (Gemini). Native multimodal is Gemini's strongest differentiator —
+ * Google (Gemini). Native multimodal is Gemini's strongest differentiator:
  * text + image + video + audio in one model. Search Grounding (first-party
  * Google Search citations) and cached_content (long-context reuse) are the
  * other major routing signals.
  *
- * `contextWindow` / `maxOutput` set to 0 (unknown) until /research
- * task_1778109552044_pc79 populates the per-model spec table — F.014
- * forbids pasting training-era stats. `costPerMillion` omitted (varies
- * per model + Vertex vs Studio pricing delta).
+ * `contextWindow` / `maxOutput` reflect the current Gemini 3.5 Flash model
+ * card as verified against Google AI docs on 2026-05-25. `costPerMillion`
+ * omitted (varies per model + Vertex vs Studio pricing delta).
  *
  * Exported as a constant so the capability-aware router can read it
- * without instantiating the adapter — single source of truth per W.GOLD.006.
+ * without instantiating the adapter: single source of truth per W.GOLD.006.
  */
 export const GEMINI_CAPABILITIES: Capabilities = {
-  contextWindow: 0,              // [VERIFY task_1778109552044_pc79] — 1M-2M depending on tier
-  maxOutput: 0,                  // [VERIFY task_1778109552044_pc79]
+  contextWindow: 1_048_576,
+  maxOutput: 65_536,
 
   streaming: true,
   tools: true,                   // function calling
@@ -121,11 +122,11 @@ export class GeminiAdapter extends BaseLLMAdapter {
 
   constructor(config: GeminiProviderConfig) {
     super(config);
-    this.defaultHoloScriptModel = config.defaultModel ?? 'gemini-1.5-flash';
+    this.defaultHoloScriptModel = config.defaultModel ?? 'gemini-3.5-flash';
   }
 
   protected getDefaultModel(): string {
-    return 'gemini-1.5-flash';
+    return 'gemini-3.5-flash';
   }
 
   async complete(
