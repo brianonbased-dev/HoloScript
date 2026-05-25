@@ -23,9 +23,9 @@ composition "Multiplayer Meeting Room" {
   }
 
   post_processing {
-    bloom { intensity: 0.1, threshold: 0.95 }
-    tone_mapping { mode: "aces" }
-    ambient_occlusion { intensity: 0.2, radius: 0.4 }
+    bloom: { intensity: 0.1, threshold: 0.95 }
+    tone_mapping: { mode: "aces" }
+    ambient_occlusion: { intensity: 0.2, radius: 0.4 }
   }
 
   // ----------------------------------------------------------
@@ -507,22 +507,146 @@ composition "Multiplayer Meeting Room" {
   // DECORATIVE ELEMENTS
   // ----------------------------------------------------------
 
-  // Potted plant in the corner for ambiance
-  object "PlantPot" @collidable {
+  // Reference-backed biophilic corner accent:
+  // - Fenestrated Monstera massing:
+  //   https://commons.wikimedia.org/wiki/File:Monstera_deliciosa_%2823516285899%29.jpg
+  // - Terracotta container color and rim profile:
+  //   https://commons.wikimedia.org/wiki/File:Red_terracotta_flowerpots.jpg
+  object "PlanterSaucer" @collidable {
     geometry: "cylinder"
-    position: [-4.2, 0.25, -3.2]
-    scale: [0.2, 0.5, 0.2]
-    color: "#5d4037"
-    material: "ceramic"
+    position: [-4.2, 0.035, -3.2]
+    scale: [0.32, 0.05, 0.32]
+    color: "#8f4a2e"
+    material: { baseColor: "#8f4a2e", roughness: 0.88, clayGrain: 0.22 }
   }
 
-  object "PlantLeaves" @animated {
-    geometry: "sphere"
-    position: [-4.2, 0.7, -3.2]
-    scale: [0.35, 0.4, 0.35]
-    color: "#27ae60"
+  object "PlanterBasin" @collidable {
+    geometry: "cylinder"
+    position: [-4.2, 0.25, -3.2]
+    scale: [0.22, 0.46, 0.22]
+    color: "#a95431"
+    material: { baseColor: "#a95431", roughness: 0.9, clayGrain: 0.28 }
+  }
+
+  object "PlanterRim" @collidable {
+    geometry: "cylinder"
+    position: [-4.2, 0.49, -3.2]
+    scale: [0.28, 0.06, 0.28]
+    color: "#c0673c"
+    material: { baseColor: "#c0673c", roughness: 0.86, clayGrain: 0.24 }
+  }
+
+  object "PlanterSoilDisk" {
+    geometry: "cylinder"
+    position: [-4.2, 0.535, -3.2]
+    scale: [0.22, 0.025, 0.22]
+    color: "#2e2119"
+    material: { baseColor: "#2e2119", roughness: 0.98, granular: 0.34 }
+  }
+
+  object "MonsteraStemCenter" @animated {
+    geometry: "cylinder"
+    position: [-4.2, 0.78, -3.2]
+    scale: [0.025, 0.44, 0.025]
+    rotation: [0, 0, -8]
+    color: "#2c6a3a"
+    material: { baseColor: "#2c6a3a", roughness: 0.76 }
     animate: "sway"
-    animSpeed: 0.3
+    animSpeed: 0.22
+  }
+
+  object "MonsteraStemLeft" @animated {
+    geometry: "cylinder"
+    position: [-4.34, 0.72, -3.18]
+    scale: [0.018, 0.36, 0.018]
+    rotation: [0, 0, 24]
+    color: "#2b6335"
+    material: { baseColor: "#2b6335", roughness: 0.78 }
+    animate: "sway"
+    animSpeed: 0.24
+  }
+
+  object "MonsteraStemRight" @animated {
+    geometry: "cylinder"
+    position: [-4.03, 0.76, -3.2]
+    scale: [0.018, 0.38, 0.018]
+    rotation: [0, 0, -24]
+    color: "#30723d"
+    material: { baseColor: "#30723d", roughness: 0.76 }
+    animate: "sway"
+    animSpeed: 0.2
+  }
+
+  object "MonsteraLaminaLeft" @animated {
+    geometry: "sphere"
+    position: [-4.5, 0.98, -3.18]
+    scale: [0.18, 0.3, 0.035]
+    rotation: [0, -20, -18]
+    color: "#1f7a45"
+    material: { baseColor: "#1f7a45", roughness: 0.62, waxySheen: 0.24 }
+    cutout_pattern: "fenestrated"
+    animate: "sway"
+    animSpeed: 0.26
+  }
+
+  object "MonsteraLaminaCenter" @animated {
+    geometry: "sphere"
+    position: [-4.2, 1.12, -3.2]
+    scale: [0.22, 0.36, 0.04]
+    rotation: [0, 0, 4]
+    color: "#249154"
+    material: { baseColor: "#249154", roughness: 0.58, waxySheen: 0.3 }
+    cutout_pattern: "fenestrated"
+    animate: "sway"
+    animSpeed: 0.22
+  }
+
+  object "MonsteraLaminaRight" @animated {
+    geometry: "sphere"
+    position: [-3.92, 1.0, -3.16]
+    scale: [0.19, 0.31, 0.035]
+    rotation: [0, 18, 20]
+    color: "#2aa760"
+    material: { baseColor: "#2aa760", roughness: 0.6, waxySheen: 0.26 }
+    cutout_pattern: "fenestrated"
+    animate: "sway"
+    animSpeed: 0.18
+  }
+
+  object "MonsteraLaminaRear" @animated {
+    geometry: "sphere"
+    position: [-4.22, 0.92, -3.42]
+    scale: [0.16, 0.25, 0.035]
+    rotation: [12, 0, -6]
+    color: "#1b6c3e"
+    material: { baseColor: "#1b6c3e", roughness: 0.66, waxySheen: 0.2 }
+    cutout_pattern: "fenestrated"
+    animate: "sway"
+    animSpeed: 0.17
+  }
+
+  object "MonsteraCutoutA" {
+    geometry: "sphere"
+    position: [-4.24, 1.14, -3.155]
+    scale: [0.032, 0.06, 0.012]
+    color: "#0f2a1a"
+    material: { baseColor: "#0f2a1a", roughness: 0.82 }
+  }
+
+  object "MonsteraCutoutB" {
+    geometry: "sphere"
+    position: [-4.14, 1.08, -3.152]
+    scale: [0.025, 0.05, 0.012]
+    color: "#0f2a1a"
+    material: { baseColor: "#0f2a1a", roughness: 0.82 }
+  }
+
+  object "MonsteraCutoutC" {
+    geometry: "sphere"
+    position: [-4.47, 1.0, -3.135]
+    scale: [0.024, 0.052, 0.012]
+    color: "#0f2a1a"
+    material: { baseColor: "#0f2a1a", roughness: 0.82 }
   }
 
   // Clock on the west wall
