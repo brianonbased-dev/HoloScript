@@ -40,6 +40,21 @@ export interface ReconstructionFrame {
   height: number;
   /** Byte stride per row (4 implies RGBA, 3 implies RGB) */
   stride: 3 | 4;
+  /**
+   * Optional MEASURED per-pixel depth (row-major, length width*height, 0=near
+   * .. 1=far) from a real device sensor — iOS LiDAR `sceneDepth.depthMap`,
+   * ARCore depth, ToF, etc. When present the reconstructor uses it for point Z
+   * instead of the monocular luminance/latent estimate. Absent → estimate
+   * (sensorless devices / laptop webcam). See depth-infer.ts for the estimate.
+   */
+  depth?: Float32Array;
+  /**
+   * Optional MEASURED device pose (6-DoF) from platform tracking — ARKit
+   * `frame.camera.transform`, ARCore pose, etc. When present it is used as the
+   * camera pose (driving trajectory, drift, loop closure, keyframes) instead of
+   * the scan-derived centroid pose. Absent → derived pose (E4).
+   */
+  devicePose?: CameraPose;
 }
 
 export interface CameraPose {
@@ -255,6 +270,27 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   private static readonly LOOP_CLOSURE_RADIUS = 0.05;
   private static readonly POSE_HISTORY_CAP = 512;
   private static readonly TRAJECTORY_KEYFRAME_CAP = 512;
+  /** Maps normalized measured depth [0=near,1=far] to a point Z range matching
+   *  the monocular estimate's spread (±~0.17), so sensor and estimate paths
+   *  produce geometry in the same coordinate scale. */
+  private static readonly DEPTH_Z_SCALE = 0.34;
+
+  /**
+   * Nearest-neighbour sample of a row-major depth map at a normalized UV.
+   * Used to read MEASURED sensor depth at a tile centre (frame.depth). Nearest
+   * (not bilinear) keeps it deterministic and cheap; tiles are small.
+   */
+  private static sampleDepthNearestUv(
+    depth: Float32Array,
+    width: number,
+    height: number,
+    uv: [number, number]
+  ): number {
+    const px = Math.min(width - 1, Math.max(0, Math.round(uv[0] * (width - 1))));
+    const py = Math.min(height - 1, Math.max(0, Math.round(uv[1] * (height - 1))));
+    const v = depth[py * width + px];
+    return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5;
+  }
   /** Last accepted capture timestamp (ms) for deterministic FPS throttling. */
   private lastAcceptedFrameTimestampMs: number | null = null;
   /** Deterministic session start timestamp. */
@@ -651,6 +687,11 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
         `HoloMapRuntime.step invalid frame byte length: got ${frame.rgb.byteLength}, expected ${expectedBytes} (w=${frame.width}, h=${frame.height}, stride=${frame.stride})`
       );
     }
+    if (frame.depth && frame.depth.length !== frame.width * frame.height) {
+      throw new Error(
+        `HoloMapRuntime.step invalid measured depth length: got ${frame.depth.length}, expected ${frame.width * frame.height} (w=${frame.width}, h=${frame.height})`
+      );
+    }
 
     // Sprint-3: deterministic frame-rate throttling. Use capture timestamps,
     // not wall-clock runtime speed, so replay keeps the same accepted frames.
@@ -735,10 +776,24 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       const latentZ = xyz[2] ?? 0;
       const planeX = (centerUv[0] - 0.5) * 2 * aspect;
       const planeY = (0.5 - centerUv[1]) * 2;
-      const depthHint = (luminance - 0.5) * 0.34 + texture * 0.24;
       const px = planeX + latentX * 0.08;
       const py = planeY + latentY * 0.08;
-      const pz = depthHint + latentZ * 0.12;
+      // MEASURED depth (sensor) takes precedence over the monocular estimate.
+      // Device depth is authoritative — map normalized [0=near,1=far] to the same
+      // Z range as the estimate (±~0.17) so downstream geometry is consistent.
+      let pz: number;
+      if (frame.depth) {
+        const measured = HoloMapRuntimeImpl.sampleDepthNearestUv(
+          frame.depth,
+          frame.width,
+          frame.height,
+          centerUv
+        );
+        pz = (0.5 - measured) * HoloMapRuntimeImpl.DEPTH_Z_SCALE;
+      } else {
+        const depthHint = (luminance - 0.5) * 0.34 + texture * 0.24;
+        pz = depthHint + latentZ * 0.12;
+      }
 
       positions[t * 3] = px;
       positions[t * 3 + 1] = py;
@@ -765,14 +820,28 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     // Pose = point centroid + horizontal principal-axis rotation. Drift is the
     // uncertainty-weighted inter-frame pose delta, plus a residual term when the
     // trajectory deviates from constant-velocity motion.
-    const curPose: [number, number, number] = [poseX, poseY, poseZ];
-    const poseRotation = HoloMapRuntimeImpl.estimatePrincipalAxisRotation([positions], curPose);
+    // MEASURED device pose (ARKit/ARCore) takes precedence over the scan-derived
+    // centroid pose: when present it drives the whole trajectory (drift, loop
+    // closure, keyframes) from real tracking instead of an estimate. Absent →
+    // derived pose (E4 + peer principal-axis rotation).
+    const derivedPosition: [number, number, number] = [poseX, poseY, poseZ];
     const poseConfidence = Math.max(0, Math.min(1, meanConfidence));
-    const cameraPose: CameraPose = {
-      position: curPose,
-      rotation: poseRotation,
-      confidence: poseConfidence,
-    };
+    const cameraPose: CameraPose = frame.devicePose
+      ? {
+          position: [...frame.devicePose.position],
+          rotation: [...frame.devicePose.rotation],
+          confidence: frame.devicePose.confidence,
+        }
+      : {
+          position: derivedPosition,
+          rotation: HoloMapRuntimeImpl.estimatePrincipalAxisRotation([positions], derivedPosition),
+          confidence: poseConfidence,
+        };
+    const curPose: [number, number, number] = [
+      cameraPose.position[0],
+      cameraPose.position[1],
+      cameraPose.position[2],
+    ];
 
     let interFrameDeltaMeters = 0;
     let interFrameRotationRadians = 0;
