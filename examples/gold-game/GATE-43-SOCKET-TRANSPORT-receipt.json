@@ -1,0 +1,102 @@
+{
+  "gate": 43,
+  "track": "flagship",
+  "name": "real socket transport — genuine ReplicationManager deltas over actual loopback TCP (wire codec + framing), N socket-connected clients converge; late joiner syncs over the wire; authority lock denies a conflict over the socket",
+  "verifier": "examples/gold-game/gate-43-socket-transport-verify.mjs",
+  "builtOn": "Gate 17 (in-process co-presence) + Gate 26 (MMO-answer) — closes the ONE axis both explicitly scoped out: REAL network transport over a socket",
+  "classification": {
+    "answer": "REAL OS SOCKET TRANSPORT over the genuine replication primitive — deltas cross the kernel network stack, not an in-process function call.",
+    "advance": "Gate 17/26 agreement was over the real replication API but in ONE process (shared authoritative order, no socket). Gate 43 puts an actual node:net TCP server on an OS-assigned ephemeral port; five (then six) clients connect over real 127.0.0.1 sockets; every replicated delta is JSON-serialized, framed with a 4-byte length prefix, written to the socket, read back off the byte stream, reassembled, and applied via the GENUINE applyRemoteUpdate. A coalesced TCP segment carrying the 5-entry join snapshot is correctly split into 5 frames (framing is load-bearing). A late joiner (Dave) receives the persistent world state (W.001/W.002 already Silver) OVER THE WIRE. A conflicting graduation is DENIED by the server EntityAuthority lock across the socket. Two negative controls prove the wire is the only channel: a CORRUPTED frame fails to apply (client diverges) and an EXCLUDED client stays at baseline (no shared-memory backchannel).",
+    "notYet": "NOT claimed: cross-host networking (this is loopback 127.0.0.1, same machine), massive concurrency / load (6 clients, not a fleet under load), horizontal shard fanout or interest management, a durable persistence backend (the authoritative state is in-process server memory, not a DB), TLS/auth/anti-cheat, or NAT traversal. This is the transport leg — real sockets + a real wire codec + framing + genuine replication over them. \"MMO\" is still earned by a later shard-fleet + DB + cross-host load gate; Gate 43 advances exactly the transport axis Gate 17/26 named."
+  },
+  "meshClasses": {
+    "ReplicationManager": "REAL — packages/mesh/dist/index.js; generateUpdates delta + applyRemoteUpdate convergence driven over the socket",
+    "EntityAuthority": "REAL — server-authoritative lock; conflicting graduation denied over the wire",
+    "computeStateDigest": "REAL — packages/engine/src/simulation/hashes.ts",
+    "transport": "REAL node:net TCP on 127.0.0.1:56811 (OS-assigned ephemeral port); 4-byte big-endian length-prefixed JSON wire codec; stream decoder reassembles coalesced/partial frames"
+  },
+  "session": {
+    "port": 56811,
+    "roster": [
+      "Alice",
+      "Bob",
+      "Cara",
+      "Dave(late)",
+      "Mute(NEG-B)",
+      "Corrupt(NEG-A)"
+    ],
+    "lateJoiner": {
+      "name": "Dave",
+      "snapshotView": {
+        "W.001": "Silver",
+        "W.002": "Silver",
+        "W.003": "Silver",
+        "W.004": "Silver",
+        "W.005": "Silver"
+      }
+    },
+    "conflict": {
+      "entry": "W.003",
+      "holder": "Alice",
+      "contender": "Bob",
+      "result": "denied"
+    },
+    "finalVault": {
+      "W.001": "Silver",
+      "W.002": "Silver",
+      "W.003": "Silver",
+      "W.004": "Silver",
+      "W.005": "Silver"
+    },
+    "negControls": {
+      "muteView": {
+        "W.001": "Bronze",
+        "W.002": "Bronze",
+        "W.003": "Bronze",
+        "W.004": "Bronze",
+        "W.005": "Bronze"
+      },
+      "corruptView": {
+        "W.001": "Silver",
+        "W.002": "Silver",
+        "W.003": "Silver",
+        "W.004": "Silver",
+        "W.005": "Bronze"
+      },
+      "corruptApplyFailures": 1
+    },
+    "eventLog": [
+      "JOIN Alice",
+      "JOIN Bob",
+      "JOIN Cara",
+      "JOIN Mute",
+      "JOIN Corrupt",
+      "GRAD Alice W.001 Bronze->Silver",
+      "GRAD Bob W.002 Bronze->Silver",
+      "JOIN Dave",
+      "HOLD Alice W.003 (lock taken)",
+      "DENY Bob W.003 (locked)",
+      "GRAD Alice W.003 Bronze->Silver",
+      "GRAD Cara W.004 Bronze->Silver",
+      "GRAD Alice W.005 Bronze->Silver"
+    ]
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest",
+    "serverDigest": "e88a1e5fd5083d6a53f6e5fda12c2bddba5213a33ee9e94517094a3fd23f0c6b",
+    "clientDigests": {
+      "alice": "e88a1e5fd5083d6a53f6e5fda12c2bddba5213a33ee9e94517094a3fd23f0c6b",
+      "bob": "e88a1e5fd5083d6a53f6e5fda12c2bddba5213a33ee9e94517094a3fd23f0c6b",
+      "cara": "e88a1e5fd5083d6a53f6e5fda12c2bddba5213a33ee9e94517094a3fd23f0c6b",
+      "dave": "e88a1e5fd5083d6a53f6e5fda12c2bddba5213a33ee9e94517094a3fd23f0c6b"
+    },
+    "digestsAgree": true,
+    "negDigests": {
+      "mute": "72e27d9faae51c31ec0845eab2dc9aa549b59b5573cc9a4f28332cd9a5437d0f",
+      "corrupt": "2fdbbcf8d934818ee519b70387715287f19077ead519d912aef273f70c1d6499"
+    },
+    "reproducible": "run the verifier to re-derive"
+  },
+  "honestScope": "PROVEN on a REAL OS socket with the GENUINE @holoscript/mesh primitives (not a mock): an actual node:net TCP server on an OS-assigned ephemeral port; five clients connect over real loopback (127.0.0.1) sockets and converge to the all-Bronze baseline from a snapshot delivered OVER THE WIRE; a 4-byte length-prefixed wire codec frames every delta and the stream decoder correctly reassembles a coalesced TCP segment carrying the 5-entry snapshot into 5 discrete frames (TCP framing is load-bearing); each graduation request crosses the socket, the server applies it on the authoritative ReplicationManager and broadcasts the delta, and every live client converges via the genuine applyRemoteUpdate; a late joiner (Dave) receives the already-advanced persistent world over the wire; a conflicting graduation on a held entry is DENIED by the server EntityAuthority lock across the socket (no double-graduate); the converged-world digest is identical across the server and all live clients via the REAL computeStateDigest and reproduces deterministically. TWO NEGATIVE CONTROLS prove the wire is the only channel: (A) a deliberately corrupted frame delivered to one client fails JSON decode and is dropped — that client diverges and its applyFailures>0; (B) a client excluded from every broadcast stays at the baseline — there is no in-process shared-memory backchannel. NOT claimed: cross-host networking (loopback, one machine), load/massive concurrency, shard-fleet fanout, interest management, a durable DB persistence backend, or TLS/auth. The honest scope is the transport leg — real sockets + real wire codec + framing + genuine replication over them; the word \"MMO\" is still earned by a later shard-fleet + DB + cross-host load gate.",
+  "verifiedAt": "2026-05-25T22:18:02.775Z"
+}
