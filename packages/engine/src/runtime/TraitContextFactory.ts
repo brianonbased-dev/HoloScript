@@ -22,6 +22,8 @@ import type {
   AudioContext as TraitAudioContext,
   HapticsContext,
   AccessibilityContext,
+  ARSessionContext,
+  ARSessionPose,
   RaycastHit,
 } from '@holoscript/core';
 import type { VRHand, Vector3, HSPlusNode } from '@holoscript/core';
@@ -94,6 +96,13 @@ export interface RendererProvider {
   destroyRenderable(nodeId: string): void;
 }
 
+/** Implemented by WebXR, ARCore, ARKit, or RealityKit session adapters */
+export interface ARSessionProvider {
+  readonly available: boolean;
+  getPose(nodeId?: string): ARSessionPose | null;
+  getAnchor?(anchorId: string): ARSessionPose | null;
+}
+
 // =============================================================================
 // Factory Configuration
 // =============================================================================
@@ -106,6 +115,7 @@ export interface TraitContextFactoryConfig {
   vr?: VRProvider;
   network?: NetworkProvider;
   renderer?: RendererProvider;
+  arSession?: ARSessionProvider;
 }
 
 // =============================================================================
@@ -167,6 +177,16 @@ const NOOP_VR: VRProvider = {
   },
 };
 
+const NOOP_AR_SESSION: ARSessionProvider = {
+  available: false,
+  getPose() {
+    return null;
+  },
+  getAnchor() {
+    return null;
+  },
+};
+
 // =============================================================================
 // TraitContextFactory
 // =============================================================================
@@ -179,6 +199,7 @@ export class TraitContextFactory {
   private vrProvider: VRProvider;
   private networkProvider: NetworkProvider | undefined;
   private rendererProvider: RendererProvider | undefined;
+  private arSessionProvider: ARSessionProvider;
   private scaleMagnitude: string = 'normal';
   private globalState: Record<string, unknown> = {};
   private eventListeners: Map<string, Array<(payload: unknown) => void>> = new Map();
@@ -191,6 +212,7 @@ export class TraitContextFactory {
     this.vrProvider = config.vr ?? NOOP_VR;
     this.networkProvider = config.network;
     this.rendererProvider = config.renderer;
+    this.arSessionProvider = config.arSession ?? NOOP_AR_SESSION;
   }
 
   // ---- Provider hot-swap (packages load asynchronously) -------------------
@@ -215,6 +237,9 @@ export class TraitContextFactory {
   }
   setRendererProvider(provider: RendererProvider): void {
     this.rendererProvider = provider;
+  }
+  setARSessionProvider(provider: ARSessionProvider): void {
+    this.arSessionProvider = provider;
   }
 
   // ---- Event bus ---------------------------------------------------------
@@ -348,12 +373,25 @@ export class TraitContextFactory {
         }
       : undefined;
 
+    const arSessionContext: ARSessionContext = {
+      get available() {
+        return self.arSessionProvider.available;
+      },
+      getPose(nodeId?: string) {
+        return self.arSessionProvider.getPose(nodeId);
+      },
+      getAnchor(anchorId: string) {
+        return self.arSessionProvider.getAnchor?.(anchorId) ?? null;
+      },
+    };
+
     return {
       vr: vrContext,
       physics: physicsContext,
       audio: audioContext,
       haptics: hapticsContext,
       accessibility: accessibilityContext,
+      arSession: arSessionContext,
       emit: (event: string, payload?: unknown) => self.emit(event, payload),
       getState: () => ({ ...self.globalState }),
       setState: (updates: Record<string, unknown>) => {

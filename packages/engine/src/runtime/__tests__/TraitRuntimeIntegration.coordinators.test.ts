@@ -1,5 +1,5 @@
 /**
- * End-to-end integration test for the 4 consumer-buses wired into
+ * End-to-end integration test for the consumer-buses wired into
  * TraitRuntimeIntegration. Constructs a real TraitContextFactory + real
  * TraitRuntimeIntegration, then fires events through `context.emit`
  * (the same path traits use in production) and asserts each bus
@@ -15,7 +15,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { TraitContextFactory } from '../TraitContextFactory';
 import { TraitRuntimeIntegration } from '../TraitRuntimeIntegration';
 
-describe('TraitRuntimeIntegration — Pattern E consumer-bus wire (4/4)', () => {
+describe('TraitRuntimeIntegration - Pattern E consumer-bus wire', () => {
   let factory: TraitContextFactory;
   let runtime: TraitRuntimeIntegration;
 
@@ -26,11 +26,30 @@ describe('TraitRuntimeIntegration — Pattern E consumer-bus wire (4/4)', () => 
     runtime = new TraitRuntimeIntegration(factory);
   });
 
-  it('wires all 4 coordinators to TraitContextFactory at construction', () => {
+  it('wires coordinators to TraitContextFactory at construction', () => {
     expect(runtime.assetLoadCoordinator).toBeDefined();
     expect(runtime.securityEventBus).toBeDefined();
     expect(runtime.generativeJobMonitor).toBeDefined();
     expect(runtime.sessionPresenceCoordinator).toBeDefined();
+    expect(runtime.objectTrackingCoordinator).toBeDefined();
+  });
+
+  it('exposes AR session pose providers through TraitContextFactory', () => {
+    factory.setARSessionProvider({
+      available: true,
+      getPose: () => ({
+        anchorId: 'ar-anchor-1',
+        position: [1, 2, 3],
+        rotation: [0.1, 0.2, 0.3],
+        confidence: 0.84,
+        timestampMs: 1000,
+        source: 'webxr',
+      }),
+    });
+
+    const ctx = factory.createContext();
+    expect(ctx.arSession?.available).toBe(true);
+    expect(ctx.arSession?.getPose('node-1')?.position).toEqual([1, 2, 3]);
   });
 
   it('AssetLoadCoordinator receives events through factory.emit', () => {
@@ -87,7 +106,9 @@ describe('TraitRuntimeIntegration — Pattern E consumer-bus wire (4/4)', () => 
     ctx.emit('diffusion_rt:started', { sessionId: 'rt1' });
     ctx.emit('diffusion_rt:frame_ready', { sessionId: 'rt1', frameNumber: 0 });
     ctx.emit('diffusion_rt:frame_ready', { sessionId: 'rt1', frameNumber: 1 });
-    expect(runtime.generativeJobMonitor.getJobsByKind('diffusion_rt').length).toBeGreaterThanOrEqual(2);
+    expect(
+      runtime.generativeJobMonitor.getJobsByKind('diffusion_rt').length
+    ).toBeGreaterThanOrEqual(2);
   });
 
   it('SessionPresenceCoordinator tracks SharePlay sessions through factory.emit', () => {
@@ -117,20 +138,42 @@ describe('TraitRuntimeIntegration — Pattern E consumer-bus wire (4/4)', () => 
     expect(runtime.sessionPresenceCoordinator.getMessagingConnection('discord')?.status).toBe(
       'connected'
     );
-    expect(runtime.sessionPresenceCoordinator.getMessagingConnection('discord')?.messagesReceived).toBe(
-      1
-    );
+    expect(
+      runtime.sessionPresenceCoordinator.getMessagingConnection('discord')?.messagesReceived
+    ).toBe(1);
+  });
+
+  it('ObjectTrackingCoordinator tracks tracking lifecycle through factory.emit', () => {
+    const ctx = factory.createContext();
+    ctx.emit('tracking:init', { nodeId: 'tracked-1', target: 'objects' });
+    ctx.emit('tracking:updated', {
+      nodeId: 'tracked-1',
+      target: 'objects',
+      anchorId: 'anchor-1',
+      position: [1, 2, 3],
+      rotation: [0, 0.5, 0],
+      confidence: 0.8,
+      source: 'webxr',
+      timestampMs: 2000,
+    });
+
+    const state = runtime.objectTrackingCoordinator.getTrackingState('tracked-1');
+    expect(state?.status).toBe('tracking');
+    expect(state?.anchorId).toBe('anchor-1');
+    expect(state?.position).toEqual([1, 2, 3]);
+    expect(state?.confidence).toBe(0.8);
   });
 
   it('A single emit is received by ALL relevant buses (cross-cluster fan-out)', () => {
     // The audit_log channel should reach SecurityEventBus only — none of
-    // the other 3 buses subscribe to it. This pins the cross-cluster
+    // the other buses subscribe to it. This pins the cross-cluster
     // routing in case anyone widens a bus's vocabulary by accident.
     const ctx = factory.createContext();
     const beforeAudit = runtime.securityEventBus.getAuditLog().length;
     const beforeAsset = runtime.assetLoadCoordinator.getAllStates().length;
     const beforeJobs = runtime.generativeJobMonitor.getAllJobs().length;
     const beforePresence = runtime.sessionPresenceCoordinator.getAllSessions().length;
+    const beforeTracking = runtime.objectTrackingCoordinator.getAllStates().length;
 
     ctx.emit('audit_log', { action: 'x', actor: 'sys' });
 
@@ -138,27 +181,32 @@ describe('TraitRuntimeIntegration — Pattern E consumer-bus wire (4/4)', () => 
     expect(runtime.assetLoadCoordinator.getAllStates().length).toBe(beforeAsset);
     expect(runtime.generativeJobMonitor.getAllJobs().length).toBe(beforeJobs);
     expect(runtime.sessionPresenceCoordinator.getAllSessions().length).toBe(beforePresence);
+    expect(runtime.objectTrackingCoordinator.getAllStates().length).toBe(beforeTracking);
   });
 
-  it('Subscribers across all 4 buses receive their domain events', () => {
+  it('Subscribers across all buses receive their domain events', () => {
     const ctx = factory.createContext();
     let assetSeen = 0;
     let securitySeen = 0;
     let jobSeen = 0;
     let presenceSeen = 0;
+    let trackingSeen = 0;
     runtime.assetLoadCoordinator.subscribe(() => assetSeen++);
     runtime.securityEventBus.subscribe(() => securitySeen++);
     runtime.generativeJobMonitor.subscribe(() => jobSeen++);
     runtime.sessionPresenceCoordinator.subscribe(() => presenceSeen++);
+    runtime.objectTrackingCoordinator.subscribe(() => trackingSeen++);
 
     ctx.emit('gltf:loaded', { url: 'a.glb' });
     ctx.emit('rbac_role_assigned', { agentId: 'a', role: 'r' });
     ctx.emit('inpainting:started', { requestId: 'i1' });
     ctx.emit('shareplay:started', { sessionId: 'sp1' });
+    ctx.emit('tracking:init', { nodeId: 'tracked-sub', target: 'objects' });
 
     expect(assetSeen).toBe(1);
     expect(securitySeen).toBe(1);
     expect(jobSeen).toBe(1);
     expect(presenceSeen).toBe(1);
+    expect(trackingSeen).toBe(1);
   });
 });

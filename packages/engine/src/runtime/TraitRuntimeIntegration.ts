@@ -27,6 +27,7 @@ import {
   GenerativeJobMonitor,
   SessionPresenceCoordinator,
   NeuralForgeCoordinator,
+  ObjectTrackingCoordinator,
 } from '@holoscript/core/coordinators';
 
 import type { TraitContextFactory } from './TraitContextFactory';
@@ -121,6 +122,13 @@ export class TraitRuntimeIntegration {
    */
   readonly neuralForgeCoordinator: NeuralForgeCoordinator;
 
+  /**
+   * Object-tracking consumer-bus. Subscribes to ObjectTrackingTrait's
+   * tracking lifecycle events and exposes current tracked anchor state
+   * to Studio, Quest overlays, and runtime diagnostics.
+   */
+  readonly objectTrackingCoordinator: ObjectTrackingCoordinator;
+
   constructor(contextFactory: TraitContextFactory) {
     this.registry = new VRTraitRegistry();
     this.contextFactory = contextFactory;
@@ -144,6 +152,9 @@ export class TraitRuntimeIntegration {
     // state (shards, weights, pending synthesis, timeout fallback).
     // Closes Pattern E for neural_forge (task_1777423899630_nsna).
     this.neuralForgeCoordinator = new NeuralForgeCoordinator(contextFactory);
+    // Wire object-tracking lifecycle state so tracking:* events are
+    // consumable by runtime surfaces instead of disappearing after emit.
+    this.objectTrackingCoordinator = new ObjectTrackingCoordinator(contextFactory);
   }
 
   // ---- Node management ---------------------------------------------------
