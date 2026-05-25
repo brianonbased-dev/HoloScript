@@ -46,6 +46,18 @@ GPU_SEAT=$CI_SEAT
 WORKSPACE_ROOT=$HS_DIR
 EOF
 
+# Phase 3: Register the CI seat with the orchestrator before starting the runner.
+# The seat must exist in gpu_seats before the runner can claim jobs. Self-registration
+# via agent key returns 403 (admin-only), so we use the admin key if available.
+SEAT_ADMIN_KEY="${HOLOSCRIPT_ADMIN_KEY:-$HOLOSCRIPT_API_KEY}"
+echo "[ci-bootstrap] Registering CI seat: $CI_SEAT (lane=ci, has_gpu=false)"
+curl -sf -X POST "$ORCHESTRATOR_URL/gpu/seats" \
+  -H "Content-Type: application/json" \
+  -H "x-mcp-api-key: $SEAT_ADMIN_KEY" \
+  -d "{\"id\":\"$CI_SEAT\",\"authorized_lanes\":[\"ci\"],\"has_gpu\":false,\"status\":\"active\",\"metadata\":\"ci-runner-bootstrap\"}" \
+  && echo "[ci-bootstrap] Seat registered successfully" \
+  || echo "[ci-bootstrap] WARNING: Seat registration failed (may need admin key or pre-registration)"
+
 RUNNER="$AE_DIR/scripts/gpu-runner.mjs"
 echo "[ci-bootstrap] runner: $RUNNER  seat: $CI_SEAT  lane: ci"
 
