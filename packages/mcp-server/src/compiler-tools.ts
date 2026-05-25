@@ -229,10 +229,10 @@ export async function handleCompileToTarget(
   };
 
   if (!code) {
-    throw new Error('code is required');
+    throw new Error('code is required: pass the HoloScript source (.hs/.hsplus/.holo) to compile as the "code" field.');
   }
   if (!target) {
-    throw new Error('target is required');
+    throw new Error('target is required: call the list_export_targets tool to see valid compile targets (e.g. unity, unreal, webgpu, gltf, …), then pass one as "target".');
   }
 
   const jobId = providedJobId || generateJobId();

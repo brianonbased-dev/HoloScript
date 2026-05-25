@@ -35,7 +35,7 @@ import { normalizePresenceSurface, getPresenceTtlMs, pruneStalePresence } from '
 
 function getTeam(teamId: string) {
   const team = teamStore.get(teamId);
-  if (!team) throw new Error(`Team not found: ${teamId}`);
+  if (!team) throw new Error(`Team not found: ${teamId} — verify HOLOMESH_TEAM_ID matches a registered team (the team store is in-memory; a restarted server has no teams until they re-register).`);
   if (!team.taskBoard) team.taskBoard = [];
   if (!team.doneLog) team.doneLog = [];
   return team;
