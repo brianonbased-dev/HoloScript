@@ -21,6 +21,8 @@
     "test:core": "pnpm --filter @holoscript/core test",
     "test:holomap": "pnpm --filter @holoscript/holomap test && pnpm --filter @holoscript/core exec vitest run src/reconstruction/__tests__",
     "holomap:status": "node scripts/check-ingest-path-status.mjs",
+    "holomap:android-arcore-device-probe": "node scripts/android-arcore-depth-device-probe.mjs",
+    "holomap:android-arcore-device-probe-test": "node scripts/__tests__/android-arcore-depth-device-probe.test.mjs",
     "preflight": "node scripts/preflight.mjs",
     "preflight:full": "node scripts/preflight.mjs --full",
     "preflight:fix": "node scripts/preflight.mjs --fix",
