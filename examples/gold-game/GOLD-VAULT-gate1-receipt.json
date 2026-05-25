@@ -111,7 +111,7 @@
       "vision-pro-mvhevc",
       "parallax-preview"
     ],
-    "exportDigest": "56a2b108f9a6403814ec4eb10ac96ed8f103ee1518539bed0700839cfd9dccfe"
+    "exportDigest": "9c06e8ddf381d183c3867088e716bba196bd746efb91c271c9d3bfa2369f49bb"
   },
   "holoscriptToolset": {
     "enabled": true,
@@ -262,11 +262,11 @@
     ],
     "missing": []
   },
-  "sceneDigest": "c20aba76fd8e39e1a113cdb23a31db38f7ab12f3d8601805ca9900a9ca15da01",
+  "sceneDigest": "d45c0905b9ceea164fd3763de51d19f5ccf374a159e7788b6bc601ab395f1dc2",
   "htmlBytes": 1523222,
   "selfContained": true,
   "offline": true,
   "three": "0.182.0 (bundled IIFE)",
   "core": "6.1.0",
-  "verifiedAt": "2026-05-25T02:53:39.890Z"
+  "verifiedAt": "2026-05-25T13:29:36.762Z"
 }

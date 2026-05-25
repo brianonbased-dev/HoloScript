@@ -707,7 +707,7 @@
     "tileWidth": 420,
     "tileHeight": 560,
     "projectedPoints": 2304,
-    "rendererCodeHash": "4946ca2b0002b4271fa72fb5e7b2b73335c95449b144e6b54d7882567f3030c5"
+    "rendererCodeHash": "b04a6a6526050f2054e2c6433e81d067569a6a69f056b27ae6b380b02cca20c0"
   },
   "mvhevc": {
     "compiler": "packages/engine/src/hologram/MVHEVCCompiler.ts",
@@ -736,7 +736,7 @@
       }
     ],
     "muxCommandHash": "c9e84a9f0554ff73c5719fd9d05527cf121712cfa31d5ff77b8c0f5630fd2a84",
-    "swiftCodeHash": "5657156263c7944fea5a95ae74059e8f91c41ee356aa5b60df382487bab366f4",
+    "swiftCodeHash": "2d4f2a021576cccad11e997d87c72048214b49af3cf512e9a96c617ad94f8822",
     "centerDisparity": 0.031782
   },
   "parallax": {
@@ -761,7 +761,7 @@
       "vision-pro-mvhevc",
       "parallax-preview"
     ],
-    "exportDigest": "56a2b108f9a6403814ec4eb10ac96ed8f103ee1518539bed0700839cfd9dccfe",
+    "exportDigest": "9c06e8ddf381d183c3867088e716bba196bd746efb91c271c9d3bfa2369f49bb",
     "payloadHash": "2ba64bc0a4eefa854d4160d56f04cd07f46d04d52f323b6fbbc416afb17ec798"
   },
   "honestScope": "Compiler-side export proof for the Gate-32 depth world: real QuiltCompiler tile rig/projection, real MVHEVCCompiler stereo metadata/mux instructions, and deterministic parallax preview digest. It does not rasterize quilt pixels, encode MV-HEVC media bytes, or validate on physical Looking Glass/Vision Pro hardware."
