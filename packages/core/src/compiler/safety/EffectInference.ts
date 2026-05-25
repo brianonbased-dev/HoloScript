@@ -511,7 +511,10 @@ export function inferFromTraits(traitNames: string[]): InferredEffects {
         sources.set(e, existing);
       }
     } else {
-      warnings.push(`Unknown trait '${normalized}': cannot infer effects. Assuming pure.`);
+      warnings.push(
+        `Unknown trait '${normalized}': cannot infer effects, so the safety checker assumes pure. ` +
+          'Register the trait in TRAIT_EFFECTS or add an explicit @effect declaration before relying on this inference.'
+      );
     }
   }
 
