@@ -14,6 +14,7 @@ import type { SearchResult } from '../engine/EmbeddingIndex';
 import type { EmbeddingIndex } from '../engine/EmbeddingIndex';
 import { GraphRAGEngine, type EnrichedResult, type LLMProvider } from '../engine/GraphRAGEngine';
 import { LLMCreditExhaustedError } from '@holoscript/llm-provider';
+import { validateCitations, type Citation } from '../engine/ProvenanceIntegrityGuard';
 import {
   ABSORB_EMBEDDING_INDEX_ERROR,
   ABSORB_GRAPH_RAG_ENGINE_ERROR,
@@ -294,10 +295,30 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
       type,
     });
 
+    // Provenance integrity guard: validate every cited file:line resolves
+    // to a real span in the absorbed graph. Drop unresolvable citations;
+    // reject the answer if zero citations survive (F.069, task cykp).
+    const guard = validateCitations(
+      answer.citations as Citation[],
+      (engine as GraphRAGEngine).graph,
+    );
+
+    const filteredCitations = guard.passed
+      ? guard.resolved.map(({ name, file, line }) => ({ name, file, line }))
+      : [];
+
     return {
       question,
-      answer: answer.answer,
-      citations: answer.citations,
+      answer: guard.passed ? answer.answer : `[Provenance guard rejected: ${guard.rejectionReason}]`,
+      citations: filteredCitations,
+      provenanceGuard: {
+        resolvedCount: guard.resolvedCount,
+        unresolvedCount: guard.unresolvedCount,
+        passed: guard.passed,
+        ...(guard.unresolvedCount > 0
+          ? { unresolvedCitations: guard.unresolved.map(({ name, file, line }) => ({ name, file, line })) }
+          : {}),
+      },
       context: answer.context.slice(0, 5).map((r: EnrichedResult) => ({
         name: r.symbol.owner ? `${r.symbol.owner}.${r.symbol.name}` : r.symbol.name,
         type: r.symbol.type,
@@ -358,10 +379,28 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
             language,
             type,
           });
+
+          // Provenance integrity guard (same as primary path)
+          const fbGuard = validateCitations(
+            fbAnswer.citations as Citation[],
+            cachedGraphRAGEngine.graph,
+          );
+          const fbFilteredCitations = fbGuard.passed
+            ? fbGuard.resolved.map(({ name, file, line }) => ({ name, file, line }))
+            : [];
+
           return {
             question,
-            answer: fbAnswer.answer,
-            citations: fbAnswer.citations,
+            answer: fbGuard.passed ? fbAnswer.answer : `[Provenance guard rejected: ${fbGuard.rejectionReason}]`,
+            citations: fbFilteredCitations,
+            provenanceGuard: {
+              resolvedCount: fbGuard.resolvedCount,
+              unresolvedCount: fbGuard.unresolvedCount,
+              passed: fbGuard.passed,
+              ...(fbGuard.unresolvedCount > 0
+                ? { unresolvedCitations: fbGuard.unresolved.map(({ name, file, line }) => ({ name, file, line })) }
+                : {}),
+            },
             context: fbAnswer.context.slice(0, 5).map((r: EnrichedResult) => ({
               name: r.symbol.owner ? `${r.symbol.owner}.${r.symbol.name}` : r.symbol.name,
               type: r.symbol.type,

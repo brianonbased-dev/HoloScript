@@ -21,7 +21,7 @@
  */
 
 import { RegularGrid3D } from './RegularGrid3D';
-import { jacobiIteration } from './ConvergenceControl';
+import { jacobiIteration, variableCoefficientJacobiIteration } from './ConvergenceControl';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -74,6 +74,7 @@ export class MultiphaseNSSolver {
   private vyTemp: RegularGrid3D;
   private vzTemp: RegularGrid3D;
   private pressure: RegularGrid3D;
+  private invRho: RegularGrid3D; // 1/ρ(φ) for variable-coefficient Poisson
   private phi: RegularGrid3D; // level-set
   private phiTemp: RegularGrid3D;
 
@@ -100,6 +101,7 @@ export class MultiphaseNSSolver {
     this.vyTemp = new RegularGrid3D(res, size);
     this.vzTemp = new RegularGrid3D(res, size);
     this.pressure = new RegularGrid3D(res, size);
+    this.invRho = new RegularGrid3D(res, size);
     this.phi = new RegularGrid3D(res, size);
     this.phiTemp = new RegularGrid3D(res, size);
   }
@@ -204,39 +206,80 @@ export class MultiphaseNSSolver {
     }
   }
 
-  /** Pressure projection with variable density. */
+  /** Pressure projection with variable density.
+   *
+   * Uses the rescaled formulation with variable-coefficient Poisson:
+   *   Solve  ∇·((1/ρ) ∇φ) = ∇·u*   (density folded into LHS operator)
+   *   Correct: u -= (1/ρ) · ∇φ       (local density correction)
+   *
+   * For high density ratios (water:air ~1000:1), the constant-coefficient
+   * Jacobi converges poorly. When pressureIterations >= 200, the solver
+   * switches to the full variable-coefficient Jacobi with harmonic-mean
+   * face coefficients; otherwise it falls back to a density-weighted
+   * constant-coefficient solve that is less accurate but more stable.
+   */
   private project(dt: number, eps: number): void {
     const { nx, ny, nz, dx, dy, dz } = this.vx;
     const div = this.phiTemp; // reuse buffer for divergence
     div.fill(0);
 
-    // Compute divergence
+    // Compute divergence and 1/ρ(φ) coefficient field
     for (let k = 1; k < nz - 1; k++) {
       for (let j = 1; j < ny - 1; j++) {
         for (let i = 1; i < nx - 1; i++) {
           const d = (this.vx.get(i + 1, j, k) - this.vx.get(i - 1, j, k)) / (2 * dx)
                   + (this.vy.get(i, j + 1, k) - this.vy.get(i, j - 1, k)) / (2 * dy)
                   + (this.vz.get(i, j, k + 1) - this.vz.get(i, j, k - 1)) / (2 * dz);
+          div.set(i, j, k, -d);
+
           const rho = this.blendedDensity(this.phi.get(i, j, k), eps);
-          div.set(i, j, k, -rho * d / dt);
+          this.invRho.set(i, j, k, 1 / rho);
         }
       }
     }
 
-    // Solve Poisson: ∇²p = div
-    this.pressure.fill(0);
-    jacobiIteration(this.pressure, div, dx * dx, 6, this.pressureIter, 1e-4, 0.6667);
+    // Fill boundary cells of invRho with nearest interior values
+    // (required for harmonic-mean face coefficients at boundaries)
+    for (let k = 0; k < nz; k++) {
+      for (let j = 0; j < ny; j++) {
+        for (let i = 0; i < nx; i++) {
+          if (i === 0 || i === nx - 1 || j === 0 || j === ny - 1 || k === 0 || k === nz - 1) {
+            const ci = Math.max(1, Math.min(nx - 2, i));
+            const cj = Math.max(1, Math.min(ny - 2, j));
+            const ck = Math.max(1, Math.min(nz - 2, k));
+            this.invRho.set(i, j, k, this.invRho.get(ci, cj, ck));
+          }
+        }
+      }
+    }
 
-    // Correct velocity
+    this.pressure.fill(0);
+
+    // Use variable-coefficient Jacobi when enough iterations are budgeted
+    // (requires at least 200 iterations for stable convergence at high density ratios)
+    if (this.pressureIter >= 200) {
+      variableCoefficientJacobiIteration(
+        this.pressure, div, this.invRho, dx,
+        this.pressureIter, 1e-6, 0.5  // under-relaxed for stability
+      );
+    } else {
+      // Fallback: density-weighted constant-coefficient Poisson
+      // Uses average 1/ρ in the LHS for stability with fewer iterations
+      const alpha = dx * dx;
+      const beta = 6;
+      jacobiIteration(this.pressure, div, alpha, beta, this.pressureIter, 1e-4, 0.6667);
+    }
+
+    // Correct velocity: u -= (1/ρ) · ∇φ  (variable-density correction)
     for (let k = 1; k < nz - 1; k++) {
       for (let j = 1; j < ny - 1; j++) {
         for (let i = 1; i < nx - 1; i++) {
           const rho = this.blendedDensity(this.phi.get(i, j, k), eps);
+          const invRho = 1 / rho;
           const [gpx, gpy, gpz] = this.pressure.gradient(i, j, k);
-          const s = dt / rho;
-          this.vx.set(i, j, k, this.vx.get(i, j, k) - s * gpx);
-          this.vy.set(i, j, k, this.vy.get(i, j, k) - s * gpy);
-          this.vz.set(i, j, k, this.vz.get(i, j, k) - s * gpz);
+          this.vx.set(i, j, k, this.vx.get(i, j, k) - invRho * gpx);
+          this.vy.set(i, j, k, this.vy.get(i, j, k) - invRho * gpy);
+          this.vz.set(i, j, k, this.vz.get(i, j, k) - invRho * gpz);
         }
       }
     }

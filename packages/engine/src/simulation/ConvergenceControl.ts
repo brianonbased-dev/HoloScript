@@ -184,6 +184,95 @@ export function jacobiIteration(
   return { converged: false, iterations: iter, residual: maxChange, maxChange };
 }
 
+/**
+ * Variable-coefficient Jacobi iteration for grid-based Poisson-like equations.
+ * Solves  ∇·(a(x) ∇u) = rhs  on a RegularGrid3D using weighted Jacobi.
+ *
+ * The coefficient field `aCoeff` stores a(i,j,k) at each interior cell.
+ * The discrete stencil uses harmonic-mean face coefficients for variable density:
+ *   a_{face} = 2·a_center·a_neighbor / (a_center + a_neighbor)
+ *
+ * For isotropic h = dx = dy = dz:
+ *   u_center = (Σ a_face · u_neighbor + h² · rhs_center) / (Σ a_face)
+ *
+ * @param grid     Solution field (modified in place)
+ * @param rhs      Right-hand side field
+ * @param aCoeff   Variable coefficient field (e.g. 1/ρ for multiphase Poisson)
+ * @param dx       Grid spacing (assumed uniform in all directions)
+ * @param maxIter  Maximum iterations
+ * @param tol      Convergence tolerance on max absolute change
+ * @param omega    Relaxation factor (0.67 for damped Jacobi)
+ */
+export function variableCoefficientJacobiIteration(
+  grid: RegularGrid3D,
+  rhs: RegularGrid3D,
+  aCoeff: RegularGrid3D,
+  dx: number,
+  maxIter: number,
+  tol: number,
+  omega = 0.6667
+): ConvergenceResult {
+  const { nx, ny, nz } = grid;
+  const h2 = dx * dx;
+  const temp = grid.clone();
+  let maxChange = 0;
+  let iter = 0;
+
+  for (iter = 0; iter < maxIter; iter++) {
+    maxChange = 0;
+
+    for (let k = 1; k < nz - 1; k++) {
+      for (let j = 1; j < ny - 1; j++) {
+        for (let i = 1; i < nx - 1; i++) {
+          // Face-averaged coefficient: harmonic mean of center and neighbor
+          const ac = aCoeff.get(i, j, k);
+          const aIP = aCoeff.get(i + 1, j, k);
+          const aIM = aCoeff.get(i - 1, j, k);
+          const aJP = aCoeff.get(i, j + 1, k);
+          const aJM = aCoeff.get(i, j - 1, k);
+          const aKP = aCoeff.get(i, j, k + 1);
+          const aKM = aCoeff.get(i, j, k - 1);
+
+          const aFaceIP = 2 * ac * aIP / (ac + aIP + 1e-30);
+          const aFaceIM = 2 * ac * aIM / (ac + aIM + 1e-30);
+          const aFaceJP = 2 * ac * aJP / (ac + aJP + 1e-30);
+          const aFaceJM = 2 * ac * aJM / (ac + aJM + 1e-30);
+          const aFaceKP = 2 * ac * aKP / (ac + aKP + 1e-30);
+          const aFaceKM = 2 * ac * aKM / (ac + aKM + 1e-30);
+
+          const denom = aFaceIP + aFaceIM + aFaceJP + aFaceJM + aFaceKP + aFaceKM;
+
+          const numer =
+            aFaceIP * temp.get(i + 1, j, k) +
+            aFaceIM * temp.get(i - 1, j, k) +
+            aFaceJP * temp.get(i, j + 1, k) +
+            aFaceJM * temp.get(i, j - 1, k) +
+            aFaceKP * temp.get(i, j, k + 1) +
+            aFaceKM * temp.get(i, j, k - 1) +
+            h2 * rhs.get(i, j, k);
+
+          const newVal = numer / denom;
+          const oldVal = temp.get(i, j, k);
+          const relaxed = oldVal + omega * (newVal - oldVal);
+
+          grid.set(i, j, k, relaxed);
+
+          const change = Math.abs(relaxed - oldVal);
+          if (change > maxChange) maxChange = change;
+        }
+      }
+    }
+
+    if (maxChange < tol) {
+      return { converged: true, iterations: iter + 1, residual: maxChange, maxChange };
+    }
+
+    temp.copy(grid);
+  }
+
+  return { converged: false, iterations: iter, residual: maxChange, maxChange };
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function dot(a: Float32Array, b: Float32Array): number {

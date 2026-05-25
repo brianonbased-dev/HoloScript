@@ -100,6 +100,14 @@ export type {
   LLMProvider,
 } from './GraphRAGEngine';
 
+// Provenance Integrity Guard
+export { validateCitations, filterAnswerCitations } from './ProvenanceIntegrityGuard';
+export type {
+  Citation,
+  ValidatedCitation,
+  ProvenanceGuardResult,
+} from './ProvenanceIntegrityGuard';
+
 // Embedding Providers
 export type {
   EmbeddingProvider,

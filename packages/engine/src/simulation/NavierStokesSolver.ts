@@ -229,15 +229,23 @@ export class NavierStokesSolver {
 
   /**
    * Pressure projection: enforce ∇·u = 0.
-   * 1. Compute divergence of velocity
-   * 2. Solve Poisson equation: ∇²p = (ρ/dt)·∇·u
-   * 3. Correct velocity: u -= (dt/ρ)·∇p
+   *
+   * Rescaled Chorin formulation (avoids the ρ/dt ill-conditioning that
+   * required a ~20 000× tolerance window in the Poiseuille verifier):
+   *
+   *   1. Compute divergence ∇·u*
+   *   2. Solve ∇²φ = ∇·u*   (φ = p·dt/ρ, no density/time-scale in RHS)
+   *   3. Correct velocity: u -= ∇φ
+   *
+   * The Jacobi iteration α = dx², β = 6 is now dimensionally consistent
+   * with the RHS, which is O(divergence) rather than O(ρ/dt · divergence).
    */
   private project(dt: number): void {
-    const { vx, vy, vz, pressure, divergence, rho } = this;
+    const { vx, vy, vz, pressure, divergence } = this;
     const { nx, ny, nz, dx, dy, dz } = vx;
 
-    // 1. Compute divergence ∇·u
+    // 1. Compute divergence ∇·u* and negate (Jacobi sign convention:
+    //    newVal = (α·rhs + Σneighbors) / β  solves  ∇²φ = f  when rhs = −f)
     for (let k = 1; k < nz - 1; k++) {
       for (let j = 1; j < ny - 1; j++) {
         for (let i = 1; i < nx - 1; i++) {
@@ -245,23 +253,12 @@ export class NavierStokesSolver {
             (vx.get(i + 1, j, k) - vx.get(i - 1, j, k)) / (2 * dx) +
             (vy.get(i, j + 1, k) - vy.get(i, j - 1, k)) / (2 * dy) +
             (vz.get(i, j, k + 1) - vz.get(i, j, k - 1)) / (2 * dz);
-          divergence.set(i, j, k, divU);
+          divergence.set(i, j, k, -divU); // negate for Jacobi sign convention
         }
       }
     }
 
-    // Scale RHS: rhs = (rho/dt) * div(u) but Jacobi solves ∇²p = rhs
-    // For the standard formulation, rhs = -div(u) / dt (sign convention varies)
-    const rhsScale = -rho / dt;
-    for (let k = 1; k < nz - 1; k++) {
-      for (let j = 1; j < ny - 1; j++) {
-        for (let i = 1; i < nx - 1; i++) {
-          divergence.set(i, j, k, divergence.get(i, j, k) * rhsScale);
-        }
-      }
-    }
-
-    // 2. Solve Poisson: ∇²p = rhs via Jacobi iteration
+    // 2. Solve Poisson: ∇²φ = ∇·u*  (rescaled, no ρ/dt factor)
     pressure.fill(0);
     const alpha = dx * dx; // assuming dx ≈ dy ≈ dz
     const beta = 6; // 3D Laplacian denominator
@@ -271,15 +268,14 @@ export class NavierStokesSolver {
     const result = jacobiIteration(pressure, divergence, alpha, beta, maxIter, tol, 0.6667);
     this.lastPressureIter = result.iterations;
 
-    // 3. Correct velocity: u -= (dt/ρ)·∇p
-    const scale = dt / rho;
+    // 3. Correct velocity: u -= ∇φ  (rescaled: φ = p·dt/ρ, so ∇φ = (dt/ρ)·∇p)
     for (let k = 1; k < nz - 1; k++) {
       for (let j = 1; j < ny - 1; j++) {
         for (let i = 1; i < nx - 1; i++) {
           const [gpx, gpy, gpz] = pressure.gradient(i, j, k);
-          vx.set(i, j, k, vx.get(i, j, k) - scale * gpx);
-          vy.set(i, j, k, vy.get(i, j, k) - scale * gpy);
-          vz.set(i, j, k, vz.get(i, j, k) - scale * gpz);
+          vx.set(i, j, k, vx.get(i, j, k) - gpx);
+          vy.set(i, j, k, vy.get(i, j, k) - gpy);
+          vz.set(i, j, k, vz.get(i, j, k) - gpz);
         }
       }
     }

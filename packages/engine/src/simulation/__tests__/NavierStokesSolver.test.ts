@@ -51,10 +51,12 @@ describe('NavierStokesSolver', () => {
 
   describe('Benchmark 2: Poiseuille flow (parabolic profile)', () => {
     it('develops parabolic profile under body force', () => {
-      // Channel flow driven by body force (simulating pressure gradient)
+      // Channel flow driven by body force (simulating pressure gradient).
+      // Use high viscosity (nu=0.1) for fast diffusion to steady state;
+      // at t=5s with tau=H²/nu=10s, we reach ~50% of steady state.
       const ny = 20;
       const H = 1.0;
-      const nu = 0.01;
+      const nu = 0.1;
       const bodyAccel = 1.0; // m/s² in x
 
       const config: NavierStokesConfig = {
@@ -62,6 +64,8 @@ describe('NavierStokesSolver', () => {
         domainSize: [0.15, H, 0.15],
         viscosity: nu,
         density: 1,
+        pressureIterations: 200,
+        pressureTolerance: 1e-6,
         boundaryConditions: [
           { face: 'y-', type: 'no_slip' },
           { face: 'y+', type: 'no_slip' },
@@ -74,22 +78,32 @@ describe('NavierStokesSolver', () => {
       };
 
       const solver = new NavierStokesSolver(config);
-      const dt = 0.0005;
+      const dt = 0.001;
 
-      // Run to steady state
-      for (let i = 0; i < 3000; i++) solver.step(dt);
+      // Run toward steady state (5s ≈ 0.5 * tau_viscous)
+      for (let i = 0; i < 5000; i++) solver.step(dt);
 
-      // Analytical: u(y) = (a/2ν)·y·(H-y), max at center = a·H²/(8ν)
+      // Analytical steady-state: u(y) = (a/2ν)·y·(H-y), uMax = a·H²/(8ν)
       const uMax = bodyAccel * H * H / (8 * nu);
 
       const midI = 1, midK = 1;
       const centerJ = Math.floor(ny / 2);
       const centerU = solver.getVelocityAt(midI, centerJ, midK)[0];
 
-      // Center velocity should be positive and in the right ballpark
-      expect(centerU).toBeGreaterThan(0);
-      expect(centerU).toBeGreaterThan(uMax * 0.005);
-      expect(centerU).toBeLessThan(uMax * 100);
+      // With rescaled Poisson, the solver should produce a meaningful velocity
+      // profile. We don't require exact steady state (that needs tau_viscous),
+      // but the velocity should be in the right order of magnitude and direction.
+      expect(centerU).toBeGreaterThan(0); // flow in the driving direction
+      expect(centerU).toBeGreaterThan(uMax * 0.01); // not just numerical noise
+      expect(centerU).toBeLessThan(uMax * 5); // bounded, not diverging
+
+      // Parabolic profile shape: velocity at center should exceed velocity near wall
+      const wallVel = solver.getVelocityAt(midI, 1, midK)[0]; // near bottom wall
+      expect(centerU).toBeGreaterThan(wallVel); // center > wall
+
+      // Verify no-slip at walls: velocity at wall should be small relative to center
+      const topWallVel = Math.abs(solver.getVelocityAt(midI, ny - 1, midK)[0]);
+      expect(topWallVel).toBeLessThan(Math.abs(centerU) * 0.3);
     });
   });
 
@@ -170,9 +184,9 @@ describe('NavierStokesSolver', () => {
       const solver = new NavierStokesSolver(config);
       for (let i = 0; i < 300; i++) solver.step(0.001);
 
-      // Internal velocities should not exceed lid velocity by much
-      // (overshoots are possible transiently but shouldn't be massive)
-      expect(solver.getStats().maxVelocity).toBeLessThan(U * 5);
+      // Internal velocities should not exceed lid velocity significantly
+      // (transient overshoots are possible but bounded with rescaled Poisson)
+      expect(solver.getStats().maxVelocity).toBeLessThan(U * 3);
     });
   });
 });
