@@ -51,7 +51,7 @@
       "simulationContract": {
         "kind": "holomap.reconstruction.v1",
         "replayFingerprint": "737ea9d80f539658",
-        "holoScriptBuild": "6.1.0+c2d0c8848"
+        "holoScriptBuild": "6.1.0+dd4c5034d"
       },
       "assets": {
         "points": "reconstruction.points.bin",
@@ -68,8 +68,8 @@
   },
   "contract": {
     "spine": "computeStateDigest(field-bag, sha256)",
-    "spaceDigest": "015f6d26422337995f58477a1dd56f84fcd1d8c5fbe09a650a7fae39273a58db",
-    "payloadHash": "22d3d456eed35520410bf693dc6881cca3231b47552a2c8f97a1489f75c934cd"
+    "spaceDigest": "a299c3b585b83ca7f3ed2a7f6964d4a19a93bbd583ba87bd45ad95b3caf554e9",
+    "payloadHash": "d26effa516d9bb068949389c9ac5dd599300e308d091b2a97d66c7173a2eccfb"
   },
   "honestScope": "Offline data-integrity proof for the HoloMap import/export path using a deterministic room-shaped capture fixture. A live physical-room scan video was not present locally, so this gate does not claim new physical capture; it proves that captured frames become an anchored GOLD space/portal artifact through the real HoloMap session/runtime/export code.",
   "status": "PASS"
