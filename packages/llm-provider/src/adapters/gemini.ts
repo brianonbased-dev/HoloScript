@@ -105,8 +105,12 @@ export const GEMINI_CAPABILITIES: Capabilities = {
   visibleReasoning: true,        // thinking
   liveWebSearch: true,           // Search Grounding (first-party)
   promptCaching: true,           // cached_content
+  computerUse: true,             // Gemini computer-use surface
   structuredOutputs: true,       // JSON mode + response schema
   embeddings: true,              // first-class endpoint
+  batchApi: true,                // Batch API surface
+  realtimeVoice: true,           // Live API / TTS
+  realtimeWebSocket: true,       // Live API WebSocket transport
 
   vertexAvailable: true,         // native Vertex hosting
   bearerTokenAccess: true,

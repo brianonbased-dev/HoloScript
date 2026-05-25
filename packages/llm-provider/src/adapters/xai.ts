@@ -74,6 +74,14 @@ export const XAI_CAPABILITIES: Capabilities = {
   vision: false,                 // [VERIFY] — model-dependent (some Grok have vision)
 
   liveWebSearch: true,           // Live Search — Grok's unique differentiator
+  responsesNative: true,         // xAI docs expose Responses via OpenAI-compatible SDKs
+  asyncCompletion: true,         // Async Completions
+  deferredCompletion: true,      // Deferred Completions
+  remoteMcpTools: true,          // Remote MCP Tools
+  promptCaching: true,           // automatic exact-prefix prompt caching
+  batchApi: true,                // Batch API surface
+  realtimeWebSocket: true,       // Voice Agent / realtime WebSocket
+  toolPrices: true,              // tool/surface-specific price rows are documented
   bearerTokenAccess: true,
 
   // structuredOutputs, visibleReasoning: [VERIFY] — model-dependent,

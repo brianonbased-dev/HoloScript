@@ -378,17 +378,25 @@ export const OPENAI_CAPABILITIES: Capabilities = {
   visibleReasoning: true,        // reasoning summaries/items; raw CoT is not exposed
   adjustableEffort: true,        // reasoning effort: none/minimal/low/medium/high/xhigh
 
+  responsesNative: true,         // Responses API is the primary surface
+  backgroundMode: true,          // Responses background mode for long-running tasks
   liveWebSearch: true,           // Responses web_search tool (first-party)
   hostedShell: true,             // Responses shell — DEFAULT-DENY in policy layer (W.GOLD don't)
   codeExecutionSandbox: true,    // Responses code interpreter
+  remoteMcpTools: true,          // Responses remote MCP connectors
+  computerUse: true,             // Responses computer_use tool
   fileSearchBuiltIn: true,       // Vector stores — NOT source-of-truth (W.GOLD don't)
   promptCaching: true,           // automatic prompt caching + retention controls
+  promptCacheKey: true,          // Responses prompt_cache_key
+  safetyIdentifier: true,        // Responses safety_identifier
   hostedAgenticLoop: true,       // Agents SDK — interop only, never replaces HoloMesh (W.GOLD don't)
   persistentMemoryStore: true,   // Vector stores
   structuredOutputs: true,       // strict JSON schema
   embeddings: true,              // first-class endpoint
   batchApi: true,                // 50% off, 24h SLA
   realtimeVoice: true,           // Realtime API (WebRTC/SIP/WebSocket)
+  realtimeWebSocket: true,       // Realtime API WebSocket transport
+  toolPrices: true,              // tools/transports publish their own pricing rows
   embeddedChatUI: true,          // ChatKit
   appsIframeSurface: true,       // Apps SDK (MCP-Apps iframe)
   evalsFirstParty: true,         // Evals + Prompt Optimizer

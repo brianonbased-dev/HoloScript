@@ -995,18 +995,33 @@ export interface Capabilities {
   visibleReasoning?: boolean;
   /** Adjustable effort level (low/medium/high/xhigh/max). */
   adjustableEffort?: boolean;
-
   // ─── Agentic / routing-relevant ─────────────────────────────────
+  /** Native Responses-style API surface rather than legacy chat-only calls. */
+  responsesNative?: boolean;
+  /** Long-running/background completion jobs with poll/resume semantics. */
+  backgroundMode?: boolean;
+  /** Async completion job surface distinct from batch discount APIs. */
+  asyncCompletion?: boolean;
+  /** Deferred completion surface that queues work for later retrieval. */
+  deferredCompletion?: boolean;
   /** Real-time web search (xAI Live Search, Gemini Grounding, OpenAI web tool). */
   liveWebSearch?: boolean;
   /** Shell tool support; may be hosted or caller-executed depending on provider/runtime. */
   hostedShell?: boolean;
   /** Server-side code execution sandbox. */
   codeExecutionSandbox?: boolean;
+  /** Provider-hosted remote MCP connectors/tools. */
+  remoteMcpTools?: boolean;
+  /** GUI/browser/desktop computer-use automation tool surface. */
+  computerUse?: boolean;
   /** First-party file search / vector store — never source-of-truth (W.GOLD don't). */
   fileSearchBuiltIn?: boolean;
   /** Server-side prompt caching (Anthropic cache_control, Gemini cached_content). */
   promptCaching?: boolean;
+  /** Explicit cache-affinity key accepted by the provider request API. */
+  promptCacheKey?: boolean;
+  /** Explicit abuse/safety user identifier accepted by the provider request API. */
+  safetyIdentifier?: boolean;
   /** Per-loop token budget the model is aware of (Anthropic Task Budgets). */
   perLoopBudget?: boolean;
   /** Server-side conversation compaction (Anthropic compact-2026-01-12). */
@@ -1023,6 +1038,10 @@ export interface Capabilities {
   batchApi?: boolean;
   /** WebRTC/SIP/WebSocket realtime voice (OpenAI Realtime API). */
   realtimeVoice?: boolean;
+  /** Realtime WebSocket transport, including text/tool/voice surfaces. */
+  realtimeWebSocket?: boolean;
+  /** Provider publishes tool/transport-specific pricing rows separately from base model rates. */
+  toolPrices?: boolean;
   /** Embedded chat UI components (OpenAI ChatKit). */
   embeddedChatUI?: boolean;
   /** MCP-Apps iframe surface inside vendor's chat UI (OpenAI Apps SDK). */
@@ -1111,6 +1130,18 @@ export interface OpenAIProviderExtensions {
   parallelToolCalls?: boolean;
   /** Responses API background mode — long-running task returns a token; poll for completion. */
   background?: boolean;
+  /** Responses API context management, currently used for server-side compaction. */
+  contextManagement?: Array<{ type: 'compaction'; compactThreshold?: number }>;
+  /** Responses API `prompt_cache_key` for cache-affinity routing. */
+  promptCacheKey?: string;
+  /** Responses API `safety_identifier` for abuse detection without leaking user PII. */
+  safetyIdentifier?: string;
+  /** Responses API maximum tool-call loop bound. */
+  maxToolCalls?: number;
+  /** Responses API service tier / latency lane when supported by the account. */
+  serviceTier?: string;
+  /** Responses API truncation policy. */
+  truncation?: 'auto' | 'disabled';
 }
 
 /**
@@ -1121,8 +1152,26 @@ export interface OpenAIProviderExtensions {
 export interface CodexProviderExtensions {}
 
 export interface GrokProviderExtensions {
+  search?: {
+    web?: boolean;
+    x?: boolean;
+    codeExecution?: boolean;
+    collections?: string[];
+  };
   /** xAI Live Search — real-time web + X-platform results. */
   liveSearch?: boolean;
+  /** xAI Remote MCP Tools surface. */
+  remoteMcpTools?: boolean;
+  /** xAI Async Completions surface. */
+  asyncCompletion?: boolean;
+  /** xAI Deferred Completions surface. */
+  deferredCompletion?: boolean;
+  /** xAI realtime WebSocket surface for voice/tool sessions. */
+  realtimeWebSocket?: boolean;
+  /** xAI reasoning_effort request knob. */
+  reasoningEffort?: OpenAIReasoningEffort;
+  /** xAI include[] response-expansion fields. */
+  include?: string[];
 }
 
 export interface GeminiProviderExtensions {
@@ -1132,6 +1181,18 @@ export interface GeminiProviderExtensions {
   cachedContent?: string;
   /** systemInstruction (split from top-level `system` if upstream call needs it). */
   systemInstruction?: string;
+  /** Native Gemini safety_settings passthrough. */
+  safetySettings?: unknown[];
+  /** Gemini Live API session surface. */
+  live?: boolean;
+  /** Gemini text-to-speech request surface. */
+  tts?: boolean;
+  /** Gemini/Vertex image generation request surface. */
+  imageGeneration?: boolean;
+  /** Gemini/Vertex video generation request surface. */
+  videoGeneration?: boolean;
+  /** Gemini computer-use request surface. */
+  computerUse?: boolean;
 }
 
 export interface OllamaProviderExtensions {
