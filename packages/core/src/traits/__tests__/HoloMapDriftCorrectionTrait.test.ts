@@ -39,6 +39,20 @@ describe('HoloMapDriftCorrectionTrait', () => {
     }));
   });
 
+  it('holomap:step_result requests correction from nested trajectory drift', () => {
+    const node = makeNode();
+    holomapDriftCorrectionHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
+    node.emit.mockClear();
+    holomapDriftCorrectionHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
+      type: 'holomap:step_result',
+      payload: { trajectory: { estimatedDriftMeters: 1.4 } },
+    } as never);
+    expect(node.emit).toHaveBeenCalledWith('holomap:drift_correction_requested', expect.objectContaining({
+      estimatedDriftMeters: 1.4,
+      loopClosureThreshold: 0.92,
+    }));
+  });
+
   it('holomap:drift_update does NOT request correction when drift < maxDriftMeters', () => {
     const node = makeNode();
     holomapDriftCorrectionHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);

@@ -714,9 +714,17 @@ async function runTier1BrowserSnn(
     return {
       accepted: false,
       source: 'snn-webgpu',
-      reason: error instanceof Error ? error.message : String(error),
+      reason: normalizeTier1BrowserReason(error),
     };
   }
+}
+
+function normalizeTier1BrowserReason(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes('@holoscript/snn-webgpu') && message.includes('Cannot find package')) {
+    return `WebGPU SNN runtime unavailable: ${message}`;
+  }
+  return message;
 }
 
 export function detectWasmRuntime(): Tier1WasmRuntimeProbeResult {

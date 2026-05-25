@@ -23,6 +23,14 @@ const defaultConfig = { source: 'webcam' as const, autoFinalize: true };
 /** Flush microtask queue so fire-and-forget trait async callbacks execute. */
 const tick = () => new Promise<void>((r) => setTimeout(r, 10));
 
+async function settleHoloMapOperations(node: ReturnType<typeof makeNode>): Promise<void> {
+  const state = (node as unknown as Record<string, unknown>).__holomapState as
+    | { operationChain?: Promise<unknown> }
+    | undefined;
+  await state?.operationChain;
+  await tick();
+}
+
 function makeFrame(index = 0): ReconstructionFrame {
   return {
     index,
@@ -71,7 +79,7 @@ describe('HoloMapReconstructionTrait', () => {
       payload: { sessionId: 'sess-abc', seed: 42, modelHash: 'test-model' },
     } as never);
 
-    await tick();
+    await settleHoloMapOperations(node);
 
     const state = (node as unknown as Record<string, unknown>).__holomapState as {
       isActive: boolean; sessionId: string; replayHash: string;
@@ -95,7 +103,7 @@ describe('HoloMapReconstructionTrait', () => {
       type: 'holomap:start_session',
       payload: { sessionId: 'sess-frame', seed: 7, modelHash: 'frame-test', targetFPS: 10000 },
     } as never);
-    await tick();
+    await settleHoloMapOperations(node);
     node.emit.mockClear();
 
     // Push frame
@@ -103,15 +111,36 @@ describe('HoloMapReconstructionTrait', () => {
       type: 'holomap:frame',
       payload: { frame: makeFrame(0) },
     } as never);
-    await tick();
+    await settleHoloMapOperations(node);
 
     expect(node.emit).toHaveBeenCalledWith(
       'holomap:step_result',
-      expect.objectContaining({ frameIndex: 0, pose: expect.anything() })
+      expect.objectContaining({
+        anchor: expect.objectContaining({
+          anchorPose: expect.objectContaining({ position: expect.any(Array) }),
+        }),
+        frameIndex: 0,
+        pose: expect.anything(),
+        trajectory: expect.objectContaining({
+          estimatedDriftMeters: expect.any(Number),
+          keyframes: expect.any(Array),
+        }),
+      })
     );
     expect(node.emit).toHaveBeenCalledWith(
       'reconstruction:progress',
       expect.objectContaining({ framesProcessed: expect.any(Number) })
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'holomap:drift_update',
+      expect.objectContaining({ estimatedDriftMeters: expect.any(Number) })
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'holomap:anchor_update',
+      expect.objectContaining({
+        anchorDescriptor: expect.any(Float32Array),
+        anchorPose: expect.objectContaining({ position: expect.any(Array) }),
+      })
     );
 
     const state = (node as unknown as Record<string, unknown>).__holomapState as {
@@ -129,20 +158,20 @@ describe('HoloMapReconstructionTrait', () => {
       type: 'holomap:start_session',
       payload: { sessionId: 'sess-fin', seed: 1, modelHash: 'fin-test', targetFPS: 10000 },
     } as never);
-    await tick();
+    await settleHoloMapOperations(node);
 
     holomapReconstructionHandler.onEvent!(node as never, defaultConfig, ctx as never, {
       type: 'holomap:frame',
       payload: { frame: makeFrame(0) },
     } as never);
-    await tick();
+    await settleHoloMapOperations(node);
     node.emit.mockClear();
 
     holomapReconstructionHandler.onEvent!(node as never, defaultConfig, ctx as never, {
       type: 'holomap:finalize',
       payload: {},
     } as never);
-    await tick();
+    await settleHoloMapOperations(node);
 
     expect(node.emit).toHaveBeenCalledWith(
       'holomap:finalized',
@@ -170,7 +199,7 @@ describe('HoloMapReconstructionTrait', () => {
       type: 'holomap:frame',
       payload: { frame: makeFrame(0) },
     } as never);
-    await tick();
+    await settleHoloMapOperations(node);
 
     expect(node.emit).toHaveBeenCalledWith(
       'holomap:error',
@@ -187,14 +216,14 @@ describe('HoloMapReconstructionTrait', () => {
       type: 'holomap:start_session',
       payload: { sessionId: 'sess-bad', seed: 0, modelHash: 'bad', targetFPS: 10000 },
     } as never);
-    await tick();
+    await settleHoloMapOperations(node);
     node.emit.mockClear();
 
     holomapReconstructionHandler.onEvent!(node as never, defaultConfig, ctx as never, {
       type: 'holomap:frame',
       payload: { frame: { notAFrame: true } },
     } as never);
-    await tick();
+    await settleHoloMapOperations(node);
 
     expect(node.emit).toHaveBeenCalledWith(
       'holomap:error',

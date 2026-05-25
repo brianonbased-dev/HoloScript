@@ -9,7 +9,7 @@
  */
 
 import type { AnchorContextState } from './AnchorContext';
-import type { TrajectoryMemoryState } from './TrajectoryMemory';
+import type { TrajectoryKeyframe, TrajectoryMemoryState } from './TrajectoryMemory';
 import {
   createHoloMapMicroEncoder,
   runHoloMapMicroEncoderCpu,
@@ -61,6 +61,8 @@ export interface PointCloudChunk {
   /** Per-point confidence [0, 1] */
   confidence: Float32Array;
 }
+
+type Vec3 = [number, number, number];
 
 export interface ReconstructionStep {
   frame: ReconstructionFrame;
@@ -224,6 +226,9 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   private boundsValid = false;
   /** Running total point count (avoids O(n) re-scan in finalize). */
   private totalPointCount = 0;
+  /** Session-lifetime translation drift, independent of retained step eviction. */
+  private accumulatedDriftMeters = 0;
+  private previousDriftPose: CameraPose | null = null;
   /** Last accepted capture timestamp (ms) for deterministic FPS throttling. */
   private lastAcceptedFrameTimestampMs: number | null = null;
   /** Deterministic session start timestamp. */
@@ -283,6 +288,224 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     };
   }
 
+  private static estimatePoseFromPositionSets(
+    positionSets: readonly Float32Array[],
+    confidence: number
+  ): CameraPose {
+    let count = 0;
+    let sumX = 0;
+    let sumY = 0;
+    let sumZ = 0;
+
+    for (const positions of positionSets) {
+      for (let i = 0; i < positions.length; i += 3) {
+        sumX += positions[i] ?? 0;
+        sumY += positions[i + 1] ?? 0;
+        sumZ += positions[i + 2] ?? 0;
+        count += 1;
+      }
+    }
+
+    if (count === 0) {
+      return {
+        position: [0, 0, 0],
+        rotation: [0, 0, 0, 1],
+        confidence: 0,
+      };
+    }
+
+    const inv = 1 / count;
+    const centroid: Vec3 = [sumX * inv, sumY * inv, sumZ * inv];
+    let cxx = 0;
+    let cxy = 0;
+    let cxz = 0;
+    let cyy = 0;
+    let cyz = 0;
+    let czz = 0;
+
+    for (const positions of positionSets) {
+      for (let i = 0; i < positions.length; i += 3) {
+        const dx = (positions[i] ?? 0) - centroid[0];
+        const dy = (positions[i + 1] ?? 0) - centroid[1];
+        const dz = (positions[i + 2] ?? 0) - centroid[2];
+        cxx += dx * dx;
+        cxy += dx * dy;
+        cxz += dx * dz;
+        cyy += dy * dy;
+        cyz += dy * dz;
+        czz += dz * dz;
+      }
+    }
+
+    const primary = HoloMapRuntimeImpl.dominantAxisFromCovariance([
+      cxx * inv,
+      cxy * inv,
+      cxz * inv,
+      cyy * inv,
+      cyz * inv,
+      czz * inv,
+    ]);
+    const referenceUp: Vec3 =
+      Math.abs(HoloMapRuntimeImpl.dot(primary, [0, 1, 0])) > 0.92
+        ? [0, 0, 1]
+        : [0, 1, 0];
+    const tertiary = HoloMapRuntimeImpl.normalize(
+      HoloMapRuntimeImpl.cross(primary, referenceUp),
+      [0, 0, 1]
+    );
+    const secondary = HoloMapRuntimeImpl.normalize(
+      HoloMapRuntimeImpl.cross(tertiary, primary),
+      [0, 1, 0]
+    );
+
+    return {
+      position: centroid,
+      rotation: HoloMapRuntimeImpl.quaternionFromBasis(primary, secondary, tertiary),
+      confidence: Math.max(0, Math.min(1, confidence)),
+    };
+  }
+
+  private static dominantAxisFromCovariance(cov: [number, number, number, number, number, number]): Vec3 {
+    const [cxx, cxy, cxz, cyy, cyz, czz] = cov;
+    let v: Vec3 = HoloMapRuntimeImpl.normalize([1, 0.37, 0.19], [1, 0, 0]);
+
+    for (let i = 0; i < 10; i += 1) {
+      v = HoloMapRuntimeImpl.normalize(
+        [
+          cxx * v[0] + cxy * v[1] + cxz * v[2],
+          cxy * v[0] + cyy * v[1] + cyz * v[2],
+          cxz * v[0] + cyz * v[1] + czz * v[2],
+        ],
+        [1, 0, 0]
+      );
+    }
+
+    const dominantIndex =
+      Math.abs(v[0]) >= Math.abs(v[1]) && Math.abs(v[0]) >= Math.abs(v[2])
+        ? 0
+        : Math.abs(v[1]) >= Math.abs(v[2])
+          ? 1
+          : 2;
+    return v[dominantIndex] < 0 ? [-v[0], -v[1], -v[2]] : v;
+  }
+
+  private static dot(a: Vec3, b: Vec3): number {
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  }
+
+  private static cross(a: Vec3, b: Vec3): Vec3 {
+    return [
+      a[1] * b[2] - a[2] * b[1],
+      a[2] * b[0] - a[0] * b[2],
+      a[0] * b[1] - a[1] * b[0],
+    ];
+  }
+
+  private static normalize(v: Vec3, fallback: Vec3): Vec3 {
+    const len = Math.hypot(v[0], v[1], v[2]);
+    if (!Number.isFinite(len) || len < 1e-9) return fallback;
+    return [v[0] / len, v[1] / len, v[2] / len];
+  }
+
+  private static quaternionFromBasis(xAxis: Vec3, yAxis: Vec3, zAxis: Vec3): [number, number, number, number] {
+    const m00 = xAxis[0];
+    const m01 = yAxis[0];
+    const m02 = zAxis[0];
+    const m10 = xAxis[1];
+    const m11 = yAxis[1];
+    const m12 = zAxis[1];
+    const m20 = xAxis[2];
+    const m21 = yAxis[2];
+    const m22 = zAxis[2];
+    const trace = m00 + m11 + m22;
+    let q: [number, number, number, number];
+
+    if (trace > 0) {
+      const s = Math.sqrt(trace + 1) * 2;
+      q = [(m21 - m12) / s, (m02 - m20) / s, (m10 - m01) / s, 0.25 * s];
+    } else if (m00 > m11 && m00 > m22) {
+      const s = Math.sqrt(1 + m00 - m11 - m22) * 2;
+      q = [0.25 * s, (m01 + m10) / s, (m02 + m20) / s, (m21 - m12) / s];
+    } else if (m11 > m22) {
+      const s = Math.sqrt(1 + m11 - m00 - m22) * 2;
+      q = [(m01 + m10) / s, 0.25 * s, (m12 + m21) / s, (m02 - m20) / s];
+    } else {
+      const s = Math.sqrt(1 + m22 - m00 - m11) * 2;
+      q = [(m02 + m20) / s, (m12 + m21) / s, 0.25 * s, (m10 - m01) / s];
+    }
+
+    const normalized = HoloMapRuntimeImpl.normalizeQuaternion(q);
+    return normalized[3] < 0
+      ? [-normalized[0], -normalized[1], -normalized[2], -normalized[3]]
+      : normalized;
+  }
+
+  private static normalizeQuaternion(q: [number, number, number, number]): [number, number, number, number] {
+    const len = Math.hypot(q[0], q[1], q[2], q[3]);
+    if (!Number.isFinite(len) || len < 1e-9) return [0, 0, 0, 1];
+    return [q[0] / len, q[1] / len, q[2] / len, q[3] / len];
+  }
+
+  private static copyPose(pose: CameraPose): CameraPose {
+    return {
+      position: [pose.position[0], pose.position[1], pose.position[2]],
+      rotation: [pose.rotation[0], pose.rotation[1], pose.rotation[2], pose.rotation[3]],
+      confidence: pose.confidence,
+    };
+  }
+
+  private static computeBoundsFromPositionSets(positionSets: readonly Float32Array[]): {
+    min: [number, number, number];
+    max: [number, number, number];
+  } {
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let minZ = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+    let maxZ = Number.NEGATIVE_INFINITY;
+
+    for (const positions of positionSets) {
+      for (let i = 0; i < positions.length; i += 3) {
+        const x = positions[i] ?? 0;
+        const y = positions[i + 1] ?? 0;
+        const z = positions[i + 2] ?? 0;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (z < minZ) minZ = z;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+        if (z > maxZ) maxZ = z;
+      }
+    }
+
+    if (!Number.isFinite(minX)) {
+      return { min: [0, 0, 0], max: [0, 0, 0] };
+    }
+    return { min: [minX, minY, minZ], max: [maxX, maxY, maxZ] };
+  }
+
+  private static buildTrajectoryEmbedding(pose: CameraPose, positions: Float32Array): Float32Array {
+    const bounds = HoloMapRuntimeImpl.computeBoundsFromPositionSets([positions]);
+    return new Float32Array([
+      ...pose.position,
+      ...pose.rotation,
+      pose.confidence,
+      bounds.max[0] - bounds.min[0],
+      bounds.max[1] - bounds.min[1],
+      bounds.max[2] - bounds.min[2],
+    ]);
+  }
+
+  private static poseDeltaMeters(previous: CameraPose | null, next: CameraPose): number {
+    if (!previous) return 0;
+    return Math.hypot(
+      next.position[0] - previous.position[0],
+      next.position[1] - previous.position[1],
+      next.position[2] - previous.position[2]
+    );
+  }
+
   /** Update running bounds with new point positions. */
   private updateBounds(positions: Float32Array): void {
     if (positions.length === 0) return;
@@ -327,6 +550,8 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     // Sprint-3: reset all state deterministically
     this.steps.length = 0;
     this.totalPointCount = 0;
+    this.accumulatedDriftMeters = 0;
+    this.previousDriftPose = null;
     this.boundsValid = false;
     this.boundsMin = [0, 0, 0];
     this.boundsMax = [0, 0, 0];
@@ -577,10 +802,6 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     const confidence = new Float32Array(numPoints);
     const aspect = frame.width / Math.max(1, frame.height);
 
-    let centroidX = 0;
-    let centroidY = 0;
-    let centroidZ = 0;
-
     for (let t = 0; t < numPoints; t += 1) {
       const { tile, meanColor, centerUv, luminance, texture } = tiles[t]!;
       const xyz = await this.encodeTile(tile, microCfg);
@@ -603,43 +824,53 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       colors[t * 3 + 2] = meanColor[2];
       const latentMag = Math.sqrt(latentX * latentX + latentY * latentY + latentZ * latentZ);
       confidence[t] = Math.min(1, 0.45 + 0.35 / (1 + latentMag) + Math.min(0.2, texture * 1.5));
-
-      centroidX += px;
-      centroidY += py;
-      centroidZ += pz;
     }
 
-    const inv = 1 / Math.max(1, numPoints);
-    const poseX = centroidX * inv;
-    const poseY = centroidY * inv;
-    const poseZ = centroidZ * inv;
+    const pose = HoloMapRuntimeImpl.estimatePoseFromPositionSets([positions], 0.8);
+    this.accumulatedDriftMeters += HoloMapRuntimeImpl.poseDeltaMeters(this.previousDriftPose, pose);
+    this.previousDriftPose = HoloMapRuntimeImpl.copyPose(pose);
+    const keyframes: TrajectoryKeyframe[] = this.steps.map((s) => ({
+      frameIndex: s.frame.index,
+      timestampMs: s.frame.timestampMs,
+      pose: HoloMapRuntimeImpl.copyPose(s.pose),
+      embedding: HoloMapRuntimeImpl.buildTrajectoryEmbedding(s.pose, s.points.positions),
+    }));
+    keyframes.push({
+      frameIndex: frame.index,
+      timestampMs: frame.timestampMs,
+      pose: HoloMapRuntimeImpl.copyPose(pose),
+      embedding: HoloMapRuntimeImpl.buildTrajectoryEmbedding(pose, positions),
+    });
+    const estimatedDriftMeters = this.accumulatedDriftMeters;
+    const anchorPose = HoloMapRuntimeImpl.estimatePoseFromPositionSets(
+      [...this.steps.map((s) => s.points.positions), positions],
+      Math.min(1, 0.75 + keyframes.length * 0.02)
+    );
 
     const step: ReconstructionStep = {
       frame,
-      pose: {
-        position: [poseX, poseY, poseZ],
-        rotation: [0, 0, 0, 1],
-        confidence: 0.8,
-      },
+      pose,
       points: {
         positions,
         colors,
         confidence,
       },
       trajectory: {
-        keyframes: [],
-        estimatedDriftMeters: 0,
+        keyframes,
+        estimatedDriftMeters,
         lastLoopClosureFrame: -1,
         revision: frame.index + 1,
       },
       anchor: {
-        anchorFrameIndex: 0,
-        anchorPose: {
-          position: [0, 0, 0],
-          rotation: [0, 0, 0, 1],
-          confidence: 1,
-        },
-        anchorDescriptor: new Float32Array([1, 0, 0, 1]),
+        anchorFrameIndex: this.steps[0]?.frame.index ?? frame.index,
+        anchorPose,
+        anchorDescriptor: new Float32Array([
+          ...anchorPose.position,
+          ...anchorPose.rotation,
+          anchorPose.confidence,
+          this.totalPointCount + numPoints,
+          estimatedDriftMeters,
+        ]),
         revision: frame.index + 1,
       },
     };

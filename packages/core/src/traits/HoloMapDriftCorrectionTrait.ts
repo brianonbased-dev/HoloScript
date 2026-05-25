@@ -21,6 +21,22 @@ export interface HoloMapDriftCorrectionConfig {
   rewriteHistory: boolean;
 }
 
+function readEstimatedDriftMeters(payload: Record<string, unknown>): number {
+  if (typeof payload.estimatedDriftMeters === 'number' && Number.isFinite(payload.estimatedDriftMeters)) {
+    return payload.estimatedDriftMeters;
+  }
+
+  const trajectory = payload.trajectory;
+  if (trajectory && typeof trajectory === 'object') {
+    const drift = (trajectory as Record<string, unknown>).estimatedDriftMeters;
+    if (typeof drift === 'number' && Number.isFinite(drift)) {
+      return drift;
+    }
+  }
+
+  return 0;
+}
+
 export const holomapDriftCorrectionHandler: TraitHandler<HoloMapDriftCorrectionConfig> = {
   name: 'holomap_drift_correction',
 
@@ -37,10 +53,7 @@ export const holomapDriftCorrectionHandler: TraitHandler<HoloMapDriftCorrectionC
   onEvent(_node, config, context, event) {
     if (event.type !== 'holomap:step_result' && event.type !== 'holomap:drift_update') return;
     const payload = event.payload ?? {};
-    const drift =
-      typeof payload.estimatedDriftMeters === 'number' && Number.isFinite(payload.estimatedDriftMeters)
-        ? payload.estimatedDriftMeters
-        : 0;
+    const drift = readEstimatedDriftMeters(payload);
 
     if (drift >= config.maxDriftMeters) {
       context.emit?.('holomap:drift_correction_requested', {

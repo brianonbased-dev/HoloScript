@@ -46,6 +46,21 @@ function buildGradientFrame(index: number): ReconstructionFrame {
   return { index, timestampMs: index * 33, rgb, width: W, height: H, stride };
 }
 
+/** Build a 32x32 RGBA fixture with a single deterministic color. */
+function buildSolidFrame(index: number, color: [number, number, number]): ReconstructionFrame {
+  const W = 32;
+  const H = 32;
+  const stride = 4;
+  const rgb = new Uint8Array(W * H * stride);
+  for (let i = 0; i < W * H; i += 1) {
+    rgb[i * stride] = color[0];
+    rgb[i * stride + 1] = color[1];
+    rgb[i * stride + 2] = color[2];
+    rgb[i * stride + 3] = 255;
+  }
+  return { index, timestampMs: index * 33, rgb, width: W, height: H, stride };
+}
+
 describe('HoloMapRuntime — 8-kernel integration on 32×32 fixture', () => {
   it('step() emits a multi-point cloud (NOT the legacy 2-point placeholder)', async () => {
     const runtime = createHoloMapRuntime();
@@ -264,6 +279,43 @@ describe('HoloMapRuntime — 8-kernel integration on 32×32 fixture', () => {
     expect(px).toBeCloseTo(mx, 5);
     expect(py).toBeCloseTo(my, 5);
     expect(pz).toBeCloseTo(mz, 5);
+
+    await runtime.dispose();
+  });
+
+  it('emits geometry-derived anchor poses, trajectory keyframes, and drift', async () => {
+    const runtime = createHoloMapRuntime();
+    await runtime.init({
+      ...HOLOMAP_DEFAULTS,
+      seed: 5,
+      modelHash: 'integration-geometry-trajectory',
+      videoHash: 'fixture-geometry-change',
+      targetFPS: 10000,
+    });
+
+    const darkStep = await runtime.step(buildSolidFrame(0, [0, 0, 0]));
+    const brightStep = await runtime.step(buildSolidFrame(1, [255, 255, 255]));
+
+    expect(darkStep.trajectory.keyframes).toHaveLength(1);
+    expect(brightStep.trajectory.keyframes).toHaveLength(2);
+
+    const firstPose = brightStep.trajectory.keyframes[0]!.pose;
+    const secondPose = brightStep.trajectory.keyframes[1]!.pose;
+    const trajectoryDelta = Math.hypot(
+      secondPose.position[0] - firstPose.position[0],
+      secondPose.position[1] - firstPose.position[1],
+      secondPose.position[2] - firstPose.position[2]
+    );
+    expect(trajectoryDelta).toBeGreaterThan(0.01);
+    expect(brightStep.trajectory.estimatedDriftMeters).toBeGreaterThan(0.01);
+
+    const anchorDelta = Math.hypot(
+      brightStep.anchor.anchorPose.position[0] - darkStep.anchor.anchorPose.position[0],
+      brightStep.anchor.anchorPose.position[1] - darkStep.anchor.anchorPose.position[1],
+      brightStep.anchor.anchorPose.position[2] - darkStep.anchor.anchorPose.position[2]
+    );
+    expect(anchorDelta).toBeGreaterThan(0.01);
+    expect(brightStep.anchor.anchorDescriptor.length).toBeGreaterThan(4);
 
     await runtime.dispose();
   });

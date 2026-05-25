@@ -34,9 +34,13 @@ export const holomapAnchorContextHandler: TraitHandler<HoloMapAnchorContextTrait
   onEvent(_node, config, context, event) {
     const payload = event.payload ?? {};
     if (event.type === 'holomap:anchor_update') {
+      const anchorPose = payload.anchorPose;
+      const anchorDescriptor = payload.anchorDescriptor;
       context.emit?.('holomap:anchor_state_changed', {
         anchorFrameIndex:
           typeof payload.anchorFrameIndex === 'number' ? payload.anchorFrameIndex : 0,
+        anchorPose,
+        anchorDescriptor,
         autoReanchor: config.autoReanchor,
       });
       return;
