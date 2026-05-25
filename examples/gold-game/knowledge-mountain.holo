@@ -1,0 +1,2106 @@
+// ═══════════════════════════════════════════════════════════════════
+// THE KNOWLEDGE MOUNTAIN — generated from the REAL GOLD vault
+// 186 entries · 83 lineage cables · generated 2026-05-24
+// Coordinates are COMPUTED, not authored: semantics->(x,z) via spectral
+// embedding over TF-IDF; tier->elevation; lineage_in->crystal scale.
+// Companion to examples/gold-game/gold-vault-game.holo — same templates.
+// Regenerate: python tools/knowledge-mountain/gen_holo.py
+// ═══════════════════════════════════════════════════════════════════
+
+composition "Knowledge Mountain — GOLD vault" {
+  metadata {
+    name: 'The Knowledge Mountain — the real GOLD vault as climbable geometry'
+    category: 'gaming'
+    concept: 'vault entries placed at computed mountain coordinates (semantics + tier + lineage)'
+    backend: 'D:/GOLD (computed via tools/knowledge-mountain/build_mountain.py)'
+    platforms: ['r3f', 'babylonjs']
+  }
+
+  environment {
+    skybox: "vault_archive"
+    ambient_light: 0.4
+    fog_density: 0.008
+    fog_color: "#0a0c14"
+  }
+
+  template "KnowledgeEntry" {
+    @grabbable
+    @interactive
+    geometry: "octahedron"
+    scale: [0.3, 0.3, 0.3]
+    state {
+      tier: "bronze"
+      graduated: false
+      lineage_links: 0
+    }
+  }
+
+  spatial_group "BronzeValley" {
+    origin: [0, 0.0, 0]
+    object "B_GRADUATE_001" using "KnowledgeEntry" {
+      position: [5.739, 0.5, 0.94]
+      color: "#cd7f32"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "bronze"
+        title: ""
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "B_GROKIPC_003" using "KnowledgeEntry" {
+      position: [2.333, 0.5, 8.337]
+      color: "#cd7f32"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "bronze"
+        title: ""
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "B_VAULT_002" using "KnowledgeEntry" {
+      position: [7.357, 0.5, 1.05]
+      color: "#cd7f32"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "bronze"
+        title: ""
+        lineage_links: 0
+        graduated: true
+      }
+    }
+  }
+
+  spatial_group "GoldTerrace" {
+    origin: [0, 12.0, 0]
+    object "G_GOLD_001" using "KnowledgeEntry" {
+      position: [1.249, 0.5, 5.334]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Loro CRDT -- getMap/getList at Doc Level Only"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_002" using "KnowledgeEntry" {
+      position: [-6.359, 0.5, -3.619]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "W.AGT.05 (compose existing traits before adding infrastructure) does NOT mean ke"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "G_GOLD_010" using "KnowledgeEntry" {
+      position: [-7.617, 0.5, -7.842]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "Tier-weighted decay creates intentional feedback loop (earned trust is sticky) b"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "G_GOLD_014" using "KnowledgeEntry" {
+      position: [-7.406, 0.5, -8.259]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "Tier-weighted decay creates intentional feedback loop (earned trust is sticky) b"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "G_GOLD_017" using "KnowledgeEntry" {
+      position: [-0.168, 0.5, -3.767]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "reuseRate*50 multiplier in computeReputation creates 250:1 p"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_019" using "KnowledgeEntry" {
+      position: [0.168, 0.5, 2.406]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "HoloMesh CRDT and daemon gotchas V5-V8"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_020" using "KnowledgeEntry" {
+      position: [-1.994, 0.5, -2.507]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "SPR Implementation Gotchas"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_022" using "KnowledgeEntry" {
+      position: [-2.857, 0.5, -5.076]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "500 errors require caching. Moltbook API returns intermitten"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "G_GOLD_025" using "KnowledgeEntry" {
+      position: [-5.171, 0.5, -3.157]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "When extracting packages (A.011-style), ALL Dockerfiles must"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_026" using "KnowledgeEntry" {
+      position: [-5.904, 0.5, -4.073]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Cross-package relative imports in HoloScript monorepo cause"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_141" using "KnowledgeEntry" {
+      position: [3.743, 0.5, 7.248]
+      color: "#d4af37"
+      scale: [0.66, 0.66, 0.66]
+      state {
+        tier: "gold"
+        title: "Mocked-DB tests pass, prod migration breaks"
+        lineage_links: 3
+        graduated: true
+      }
+    }
+    object "G_GOLD_280" using "KnowledgeEntry" {
+      position: [3.743, 0.5, 7.248]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "Mocked-DB tests pass, prod migration breaks"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "G_GOLD_281" using "KnowledgeEntry" {
+      position: [18.943, 0.5, -2.118]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "Git autocrlf breaks content hashes - LF-canonicalize for text"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "G_GOLD_282" using "KnowledgeEntry" {
+      position: [11.024, 0.5, -4.671]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "NEVER hardcode domain vocabulary into @holoscript/core"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "G_GOLD_283" using "KnowledgeEntry" {
+      position: [17.171, 0.5, -9.173]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "TET10 Force Distribution Gotcha"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "G_GOLD_285" using "KnowledgeEntry" {
+      position: [12.19, 0.5, 4.484]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "git add verify-then-commit has a race window when peers are active"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "G_GOLD_286" using "KnowledgeEntry" {
+      position: [18.873, 0.5, -2.359]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "Git autocrlf breaks content hashes - LF-canonicalize for text"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "G_GOLD_287" using "KnowledgeEntry" {
+      position: [15.865, 0.5, -7.935]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "A2A/MCP Tool Drift"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_288" using "KnowledgeEntry" {
+      position: [16.32, 0.5, -8.776]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "KnowledgeExtractor depends on CodebaseGraph being fully populated � if absorb_ru"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "G_GOLD_289" using "KnowledgeEntry" {
+      position: [11.828, 0.5, -3.922]
+      color: "#d4af37"
+      scale: [0.54, 0.54, 0.54]
+      state {
+        tier: "gold"
+        title: "Railway Dockerfile"
+        lineage_links: 2
+        graduated: true
+      }
+    }
+    object "G_GOLD_290" using "KnowledgeEntry" {
+      position: [15.779, 0.5, -9.23]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "TET10 Force Distribution Gotcha"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "G_GOLD_291" using "KnowledgeEntry" {
+      position: [11.007, 0.5, 5.604]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "git add verify-then-commit has a race window when peers are active"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "G_GOLD_292" using "KnowledgeEntry" {
+      position: [14.894, 0.5, -8.9]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "parent_id (snake_case) for nested replies"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_293" using "KnowledgeEntry" {
+      position: [14.605, 0.5, -7.377]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "Feed post IDs are ephemeral"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "G_GOLD_295" using "KnowledgeEntry" {
+      position: [11.741, 0.5, -7.227]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Loro doc"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_296" using "KnowledgeEntry" {
+      position: [14.745, 0.5, -8.824]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "KnowledgeExtractor depends on CodebaseGraph being fully populated � if absorb_ru"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "G_GOLD_297" using "KnowledgeEntry" {
+      position: [1.048, 0.5, 5.8]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "F.022 Handoff Source Disambiguation (pairs with F.021)"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_298" using "KnowledgeEntry" {
+      position: [0.161, 0.5, 4.786]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Performance claims in papers need code:line verification"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_300" using "KnowledgeEntry" {
+      position: [3.479, 0.5, 7.297]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Verify HEAD --stat after EVERY commit; pre-commit hooks can auto-stage unintende"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_301" using "KnowledgeEntry" {
+      position: [-1.211, 0.5, 0.756]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "In multi-agent sessions overlapping on the same repository,"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_302" using "KnowledgeEntry" {
+      position: [-2.982, 0.5, -1.032]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "PAGES_ARCHITECTURE.md documented 14 pages but 34 exist. Alwa"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_303" using "KnowledgeEntry" {
+      position: [12.677, 0.5, 4.976]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Git autocrlf breaks content hashes across platforms � normalize to LF before has"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_479" using "KnowledgeEntry" {
+      position: [5.047, 0.5, 12.259]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "TMPDIR vs %TEMP% — hook scripts that hardcode /tmp/ silently break on Windows"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_480" using "KnowledgeEntry" {
+      position: [5.955, 0.5, 11.725]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Windows path forms — D:/, /d/, and D:  are not interchangeable across PS / Bash "
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_481" using "KnowledgeEntry" {
+      position: [7.071, 0.5, 14.065]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "PowerShell here-string closer must be column-0 — indenting `’@` is a parse error"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_482" using "KnowledgeEntry" {
+      position: [6.231, 0.5, 14.173]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Windows file locking — open files cannot be deleted, moved, or replaced; pnpm/gi"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_483" using "KnowledgeEntry" {
+      position: [6.119, 0.5, 13.962]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "NTFS case-insensitivity hides rename-only commits — git on Windows defaults to i"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_484" using "KnowledgeEntry" {
+      position: [9.549, 0.5, 14.189]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "CRLF autocrlf on Windows breaks shebang scripts and Python heredocs at checkout"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_485" using "KnowledgeEntry" {
+      position: [-1.103, 0.5, 12.787]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Earth-Hardcoded Physics Trap — Alien Worlds Blocked by Solver Defaults"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "G_GOLD_486" using "KnowledgeEntry" {
+      position: [0.999, 0.5, 10.216]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Demo Theater Trap — When the Showcase Differs from the Product"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "P_GOLD_002" using "KnowledgeEntry" {
+      position: [0.328, 0.5, 14.976]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Unified Key Architecture — One Key, Permanent Wallet, No Self-Provisioning"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "P_GOLD_003" using "KnowledgeEntry" {
+      position: [1.166, 0.5, 5.137]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Uncoordinated Agent Collaboration — Convergence Study as Handshake"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "P_GOLD_004" using "KnowledgeEntry" {
+      position: [-2.476, 0.5, 11.472]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Proof-of-Play (PoP) -- Interaction as Computation Attestation"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "P_GOLD_005" using "KnowledgeEntry" {
+      position: [-1.205, 0.5, 12.665]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "GPU Sharing via vLLM Sidecars — Multi-Model Co-location on Single GPU"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "P_GOLD_023" using "KnowledgeEntry" {
+      position: [-11.901, 0.5, -11.758]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "Self-target denylist protects recursive/ from self-modificat"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "P_GOLD_053" using "KnowledgeEntry" {
+      position: [-0.958, 0.5, -4.597]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "holoscript_compose_traits MCP tool already exposes TraitComp"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "P_GOLD_069" using "KnowledgeEntry" {
+      position: [-10.794, 0.5, -11.631]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "L1/L2 activate after >=2 completed cycles from layer below."
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "P_GOLD_070" using "KnowledgeEntry" {
+      position: [-11.796, 0.5, -11.854]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "PipelineStoreAdapter decouples orchestrator from Zustand for"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "P_GOLD_081" using "KnowledgeEntry" {
+      position: [-5.989, 0.5, -6.521]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "When generating a downstream artifact (test, CI check, lint"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "P_GOLD_093" using "KnowledgeEntry" {
+      position: [-12.202, 0.5, -13.456]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Feedback flows upward only (L0->L1->L2), control flows downw"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "P_GOLD_196" using "KnowledgeEntry" {
+      position: [23.837, 0.5, -14.348]
+      color: "#d4af37"
+      scale: [0.66, 0.66, 0.66]
+      state {
+        tier: "gold"
+        title: "Agent navigated 20x20 room with 6 obstacles from (2,2) to (18,18) in 38 ticks"
+        lineage_links: 3
+        graduated: true
+      }
+    }
+    object "P_GOLD_198" using "KnowledgeEntry" {
+      position: [23.622, 0.5, -15.28]
+      color: "#d4af37"
+      scale: [0.66, 0.66, 0.66]
+      state {
+        tier: "gold"
+        title: "Agent navigated 20x20 room with 6 obstacles from (2,2) to (18,18) in 38 ticks"
+        lineage_links: 3
+        graduated: true
+      }
+    }
+    object "P_GOLD_201" using "KnowledgeEntry" {
+      position: [23.555, 0.5, -15.239]
+      color: "#d4af37"
+      scale: [0.66, 0.66, 0.66]
+      state {
+        tier: "gold"
+        title: "Agent navigated 20x20 room with 6 obstacles from (2,2) to (18,18) in 38 ticks"
+        lineage_links: 3
+        graduated: true
+      }
+    }
+    object "P_GOLD_202" using "KnowledgeEntry" {
+      position: [12.51, 0.5, -3.796]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "HoloMesh Teams API endpoints + caching rule"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "P_GOLD_203" using "KnowledgeEntry" {
+      position: [23.748, 0.5, -15.326]
+      color: "#d4af37"
+      scale: [0.66, 0.66, 0.66]
+      state {
+        tier: "gold"
+        title: "Agent navigated 20x20 room with 6 obstacles from (2,2) to (18,18) in 38 ticks"
+        lineage_links: 3
+        graduated: true
+      }
+    }
+    object "PROTOCOL_001" using "KnowledgeEntry" {
+      position: [-1.199, 0.5, 4.095]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "North Star Lite Template"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_003" using "KnowledgeEntry" {
+      position: [0.017, 0.5, 8.956]
+      color: "#d4af37"
+      scale: [0.54, 0.54, 0.54]
+      state {
+        tier: "gold"
+        title: "GitHub Is Source of Truth -- Servers Are Projections"
+        lineage_links: 2
+        graduated: true
+      }
+    }
+    object "W_GOLD_004" using "KnowledgeEntry" {
+      position: [-0.281, 0.5, 10.018]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "Wallets Are Identity, API Keys Are Sessions"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_006" using "KnowledgeEntry" {
+      position: [0.88, 0.5, 10.427]
+      color: "#d4af37"
+      scale: [0.66, 0.66, 0.66]
+      state {
+        tier: "gold"
+        title: "Agent Interface Contract — Single Source of Truth for All Agents"
+        lineage_links: 3
+        graduated: true
+      }
+    }
+    object "W_GOLD_007" using "KnowledgeEntry" {
+      position: [0.946, 0.5, 8.494]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "AGENTS.md — Cross-Tool Universal Agent Configuration Standard"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_009" using "KnowledgeEntry" {
+      position: [-0.768, 0.5, 7.137]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "North Star Oracle — Decision Tree System That Prevents Agent Stalls"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_010" using "KnowledgeEntry" {
+      position: [2.517, 0.5, -2.323]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Three-Tier Knowledge Pipeline — Memory → Knowledge Store → GOLD Vault"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_012" using "KnowledgeEntry" {
+      position: [-3.258, 0.5, 10.089]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "HoloScript Compilation Architecture — Sovereign + Bridge Split"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_014" using "KnowledgeEntry" {
+      position: [-0.444, 0.5, 6.801]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "CAEL — Contracted Agent-Environment Loop (Symbol Grounding → Causal Grounding)"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_015" using "KnowledgeEntry" {
+      position: [-3.103, 0.5, 7.338]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "When Trust Is Free — Verticals That Open When Verification Costs <2%"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_016" using "KnowledgeEntry" {
+      position: [1.991, 0.5, 5.098]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "The Arc — 4 Eras of HoloScript in 103 Days"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_020" using "KnowledgeEntry" {
+      position: [-0.962, 0.5, -2.417]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "When Layer 2 findings from DIFFERENT cycles collide, three f"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_022" using "KnowledgeEntry" {
+      position: [-2.025, 0.5, -0.352]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "The Zero-User Problem — 57,356 tests. 122 MCP tools. 47 comp"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_023" using "KnowledgeEntry" {
+      position: [-1.584, 0.5, -2.312]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Sigmoid bonding curve (EconomicPrimitives.ts:314) IS the Hil"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_024" using "KnowledgeEntry" {
+      position: [-1.25, 0.5, -0.099]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "CulturalMemory.ts (454 lines) already implements 4 of 6 biol"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_028" using "KnowledgeEntry" {
+      position: [-1.28, 0.5, -2.922]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Knowledge that cannot survive collision is not knowledge. Tr"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_032" using "KnowledgeEntry" {
+      position: [-1.31, 0.5, 10.886]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Railway Deployment Reference — HoloScript Infrastructure"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_033" using "KnowledgeEntry" {
+      position: [0.313, 0.5, 9.285]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "MCP Mesh Orchestrator — Railway Deployment Reference"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_034" using "KnowledgeEntry" {
+      position: [-0.748, 0.5, 12.574]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Railway Project Registry — All 5 Projects"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_035" using "KnowledgeEntry" {
+      position: [-1.841, 0.5, 10.669]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Agentic Constitutional Security -- Compiler-Level Lexical Firewalling"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_038" using "KnowledgeEntry" {
+      position: [-4.314, 0.5, 6.001]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Prophetic Intelligence -- Anticipatory Execution via SNN-WebGPU"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_039" using "KnowledgeEntry" {
+      position: [-2.254, 0.5, 9.863]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Sapir-Whorf Security -- The Compiler as the Limit of the Possible"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_040" using "KnowledgeEntry" {
+      position: [-5.296, 0.5, 2.235]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Recursive Neuromorphic Synthesis -- Swarm Mitosis as the Engine of Evolution"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_041" using "KnowledgeEntry" {
+      position: [1.847, 0.5, 12.735]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "IDE MCP Configs — Shell Interpolation Does Not Work Everywhere"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_043" using "KnowledgeEntry" {
+      position: [-9.242, 0.5, -8.02]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Renderer discards 90%% of language features. Trait system supports PBR but R3F o"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_052" using "KnowledgeEntry" {
+      position: [-4.483, 0.5, -1.88]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "CRDT gossip uses HTTP POST with base64-encoded Loro deltas +"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_055" using "KnowledgeEntry" {
+      position: [-10.089, 0.5, -10.48]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "V10+V11 implemented 4/5 L4 blueprints before the L4 document"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_058" using "KnowledgeEntry" {
+      position: [-9.295, 0.5, -9.974]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "MeshNode draftMode, LODMeshNode dynamic levels with forcedLe"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_059" using "KnowledgeEntry" {
+      position: [-7.231, 0.5, -8.219]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Allocation system (C6) and strategy system (C7) operate in p"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_063" using "KnowledgeEntry" {
+      position: [-5.409, 0.5, -7.735]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Downstream artifacts (CI configs, hooks, safety passes, chec"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_064" using "KnowledgeEntry" {
+      position: [-5.917, 0.5, -5.341]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Flow-level compilation tests are the only reliable way to ca"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_066" using "KnowledgeEntry" {
+      position: [-4.641, 0.5, -3.666]
+      color: "#d4af37"
+      scale: [0.54, 0.54, 0.54]
+      state {
+        tier: "gold"
+        title: "Agent hook architecture patterns"
+        lineage_links: 2
+        graduated: true
+      }
+    }
+    object "W_GOLD_068" using "KnowledgeEntry" {
+      position: [-12.086, 0.5, -10.943]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "Self-target denylist protects recursive/ from self-modificat"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_074" using "KnowledgeEntry" {
+      position: [-3.717, 0.5, -5.51]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "KnowledgeExtractor (380 LOC) bridges CodebaseGraph ? Knowled"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_076" using "KnowledgeEntry" {
+      position: [-8.954, 0.5, -9.663]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "Oracle cycle value was in identifying gaps; 4/5 blueprints w"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_081" using "KnowledgeEntry" {
+      position: [-12.293, 0.5, -13.367]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "PipelineStoreAdapter decouples orchestrator from Zustand. Bu"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_082" using "KnowledgeEntry" {
+      position: [-10.895, 0.5, -12.081]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "LLMProvider enables DI for L1/L2 LLM calls. Pipeline prevent"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_085" using "KnowledgeEntry" {
+      position: [-10.94, 0.5, -13.175]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Human review gates default ON for L1/L2, OFF for L0. Patches"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_087" using "KnowledgeEntry" {
+      position: [-4.164, 0.5, -5.959]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "Agent identity needs more than a name and a score. Profiles,"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_090" using "KnowledgeEntry" {
+      position: [-7.304, 0.5, -8.435]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Hot buffer is BOTH intended defense against injection AND cu"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_091" using "KnowledgeEntry" {
+      position: [-7.554, 0.5, -4.344]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Core Web Vitals reporting wired into Studio providers. WebVi"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_096" using "KnowledgeEntry" {
+      position: [-9.971, 0.5, -10.255]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "PerformanceRegressionMonitor enforces VR 90Hz target with 9m"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_103" using "KnowledgeEntry" {
+      position: [-7.983, 0.5, -7.738]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Central missing abstraction is the utility function. TRAIT_R"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_105" using "KnowledgeEntry" {
+      position: [-5.697, 0.5, -4.33]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "Oracle-first protocol eliminates agent stalls"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_109" using "KnowledgeEntry" {
+      position: [-8.461, 0.5, -6.592]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "The $180 Night — An autonomous agent spent $180 in one sessi"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_110" using "KnowledgeEntry" {
+      position: [-6.11, 0.5, -2.723]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "HoloScript now supports mesh/texture import alongside proced"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_113" using "KnowledgeEntry" {
+      position: [-5.189, 0.5, -7.308]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "The oracle produced more research than the ecosystem consume"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_117" using "KnowledgeEntry" {
+      position: [-7.96, 0.5, -6.98]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Plans must report remaining gaps not just exclusions"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_124" using "KnowledgeEntry" {
+      position: [-9.481, 0.5, -6.352]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "V&V Infrastructure Is the Competitive Moat"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_125" using "KnowledgeEntry" {
+      position: [-7.96, 0.5, -7.274]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Every intermediate release must be independently valuable, n"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_126" using "KnowledgeEntry" {
+      position: [-7.137, 0.5, -2.942]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Studio should be built USING HoloScript, not just showcasing"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_128" using "KnowledgeEntry" {
+      position: [-7.264, 0.5, -3.448]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "OpenGraph/SEO metadata added to all 34 Studio pages via rout"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_131" using "KnowledgeEntry" {
+      position: [-3.871, 0.5, 6.776]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "Railway Deployment Reference � HoloScript Infrastructure"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_132" using "KnowledgeEntry" {
+      position: [-6.815, 0.5, -6.554]
+      color: "#d4af37"
+      scale: [0.54, 0.54, 0.54]
+      state {
+        tier: "gold"
+        title: "Flow-level test failures (9/16 backends drop traits) are Byz"
+        lineage_links: 2
+        graduated: true
+      }
+    }
+    object "W_GOLD_137" using "KnowledgeEntry" {
+      position: [-6.484, 0.5, -4.778]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "SimSci Phase II Complete � All 4 Phases"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_139" using "KnowledgeEntry" {
+      position: [1.354, 0.5, 5.317]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Agent Profile BT Integration — HoloMesh V5 Mesh-Aware Behavior Trees"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_144" using "KnowledgeEntry" {
+      position: [-6.308, 0.5, -3.945]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "The Zero-User Problem — 57,356 tests. 122 MCP tools. 47 comp"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_155" using "KnowledgeEntry" {
+      position: [-4.839, 0.5, -3.307]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Memory Fast-Fire Rule � Write During Work Not After"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_158" using "KnowledgeEntry" {
+      position: [-9.616, 0.5, -6.726]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "SimSci Competitive � First-Mover in Browser GPU FEA"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_160" using "KnowledgeEntry" {
+      position: [-7.146, 0.5, -7.813]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Memory Consolidation Paradox — We built episodic-to-semantic"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_164" using "KnowledgeEntry" {
+      position: [-8.9, 0.5, -6.49]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Browser-Native FEA � Unoccupied Contribution Space"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_165" using "KnowledgeEntry" {
+      position: [-3.408, 0.5, 4.451]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "None"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_167" using "KnowledgeEntry" {
+      position: [-7.986, 0.5, -4.133]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Studio documents the manifest route, digest semantics, optio"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_168" using "KnowledgeEntry" {
+      position: [-8.884, 0.5, -5.253]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "ReLU-Tropical Equivalence and SNN Bridge"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_171" using "KnowledgeEntry" {
+      position: [-7.043, 0.5, -2.018]
+      color: "#d4af37"
+      scale: [1.14, 1.14, 1.14]
+      state {
+        tier: "gold"
+        title: "HoloScript Store Architecture"
+        lineage_links: 7
+        graduated: true
+      }
+    }
+    object "W_GOLD_173" using "KnowledgeEntry" {
+      position: [-6.11, 0.5, -7.97]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Agent knowledge networks import memory model from databases"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_174" using "KnowledgeEntry" {
+      position: [-7.853, 0.5, -4.543]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "HoloScript Covers 8/16 Physics Dimensions in Browser"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_175" using "KnowledgeEntry" {
+      position: [-3.35, 0.5, 4.814]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "GF(2) and Classical Logic — Isomorphic, Not Just Analogous"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_177" using "KnowledgeEntry" {
+      position: [-9.019, 0.5, -8.313]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "TET10 Gauss Points ARE SPR Sampling Points"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_178" using "KnowledgeEntry" {
+      position: [-6.053, 0.5, 0.251]
+      color: "#d4af37"
+      scale: [1.02, 1.02, 1.02]
+      state {
+        tier: "gold"
+        title: "HoloScript Store Railway Deployment"
+        lineage_links: 6
+        graduated: true
+      }
+    }
+    object "W_GOLD_179" using "KnowledgeEntry" {
+      position: [-2.116, 0.5, 8.242]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Compiler Inventory — Sovereign + Bridge Split (2026-04-21 snapshot)"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_182" using "KnowledgeEntry" {
+      position: [-4.325, 0.5, 4.501]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Railway Project Registry � All 5 Projects"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_183" using "KnowledgeEntry" {
+      position: [-8.662, 0.5, -4.885]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Tropical Semiring Unifies Three HoloScript Subsystems"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_186" using "KnowledgeEntry" {
+      position: [-4.808, 0.5, -3.885]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "W.VISION.001 - The HoloScript Ecosystem Spine is located at"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_194" using "KnowledgeEntry" {
+      position: [2.596, 0.5, 4.224]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "Moltbook = 49-session epistemic meta-seeding campaign shaping agent-cognition vo"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_243" using "KnowledgeEntry" {
+      position: [-2.589, 0.5, -0.888]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Production SLO burn rate is the only external oracle"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_253" using "KnowledgeEntry" {
+      position: [-6.234, 0.5, -4.55]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "holo_semantic_search flows through handleGraphRagTool from @"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_271" using "KnowledgeEntry" {
+      position: [-7.007, 0.5, -6.945]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Text feeds corrupt under agent-scale volumes. Central databa"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_285" using "KnowledgeEntry" {
+      position: [-6.248, 0.5, -0.79]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "HoloScript lights-out factory only via dogfooding (Absorb+HoloMesh)"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_301" using "KnowledgeEntry" {
+      position: [2.596, 0.5, 4.224]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "Moltbook = 49-session epistemic meta-seeding campaign shaping agent-cognition vo"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_303" using "KnowledgeEntry" {
+      position: [-4.013, 0.5, -9.397]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "L1/L2 activate only after layer below completes 2+ cycles. N"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_306" using "KnowledgeEntry" {
+      position: [-2.583, 0.5, -7.82]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Economic denial-of-rendering IS a Nash equilibrium defection"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_316" using "KnowledgeEntry" {
+      position: [15.596, 0.5, -7.512]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "500 errors require caching"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_320" using "KnowledgeEntry" {
+      position: [15.922, 0.5, -9.951]
+      color: "#d4af37"
+      scale: [0.54, 0.54, 0.54]
+      state {
+        tier: "gold"
+        title: "Moltbook S46 outbound-comment / @zhuanruhu"
+        lineage_links: 2
+        graduated: true
+      }
+    }
+    object "W_GOLD_321" using "KnowledgeEntry" {
+      position: [13.487, 0.5, -5.902]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "holoscript_compose_traits MCP tool already exposes TraitCompositionCompiler remo"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_323" using "KnowledgeEntry" {
+      position: [14.34, 0.5, -5.828]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "AGENTS"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_325" using "KnowledgeEntry" {
+      position: [15.483, 0.5, -8.198]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "W"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_330" using "KnowledgeEntry" {
+      position: [13.439, 0.5, -8.608]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "First contact from the void"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_331" using "KnowledgeEntry" {
+      position: [8.418, 0.5, 4.279]
+      color: "#d4af37"
+      scale: [0.66, 0.66, 0.66]
+      state {
+        tier: "gold"
+        title: "Mocked-database tests pass while production migration breaks"
+        lineage_links: 3
+        graduated: true
+      }
+    }
+    object "W_GOLD_335" using "KnowledgeEntry" {
+      position: [12.359, 0.5, -8.135]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "G"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_338" using "KnowledgeEntry" {
+      position: [8.333, 0.5, 3.915]
+      color: "#d4af37"
+      scale: [0.66, 0.66, 0.66]
+      state {
+        tier: "gold"
+        title: "Mocked-database tests pass while production migration breaks"
+        lineage_links: 3
+        graduated: true
+      }
+    }
+    object "W_GOLD_342" using "KnowledgeEntry" {
+      position: [2.548, 0.5, 8.29]
+      color: "#d4af37"
+      scale: [0.54, 0.54, 0.54]
+      state {
+        tier: "gold"
+        title: "Agent Time Is Not Peer Time — The Two-Dimension Model and Why The Prism Must Be "
+        lineage_links: 2
+        graduated: true
+      }
+    }
+    object "W_GOLD_343" using "KnowledgeEntry" {
+      position: [1.784, 0.5, 7.376]
+      color: "#d4af37"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "gold"
+        title: "UI-First Build Loop — The Surface Is The Conversation, Not The Output"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_344" using "KnowledgeEntry" {
+      position: [2.629, 0.5, 5.552]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Trust the System, Trust Yourself — The Real Bottleneck Is Agent Self-Trust, Not "
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_345" using "KnowledgeEntry" {
+      position: [1.369, 0.5, 15.922]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Ephemeral-Container State Persistence via PostgreSQL JSONB"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_346" using "KnowledgeEntry" {
+      position: [0.805, 0.5, 14.086]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Fleet Bootstrap Automation — The Rent-Check Idempotency Pattern"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_347" using "KnowledgeEntry" {
+      position: [2.484, 0.5, 15.148]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "reloadTeam at Request Boundaries — The Cross-Instance Consistency Pattern"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_348" using "KnowledgeEntry" {
+      position: [0.928, 0.5, 17.716]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Generic JSONB StateStore — Extending the TeamStore Pattern to Any Namespace"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_349" using "KnowledgeEntry" {
+      position: [1.731, 0.5, 13.771]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "The usesPostgres Guard — Preventing Stale JSON Shadow Writes"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_350" using "KnowledgeEntry" {
+      position: [2.334, 0.5, 4.54]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "ToolResultBlock.content narrowing � string-only with documented revisit triggers"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_514" using "KnowledgeEntry" {
+      position: [1.306, 0.5, 10.485]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "eth_signTypedData_v4 from-arg is advisory; eth_sendTransaction from-arg is autho"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_515" using "KnowledgeEntry" {
+      position: [4.427, 0.5, 13.084]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Windows .bat under non-interactive Start-Process — three stacked failure modes"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_535" using "KnowledgeEntry" {
+      position: [0.983, 0.5, 10.744]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Secrets-Broker as Sovereign Primitive — Capability-Token Architecture for Per-Su"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_536" using "KnowledgeEntry" {
+      position: [-1.941, 0.5, 9.682]
+      color: "#d4af37"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "gold"
+        title: "Natural Construction Vision — Photorealism as Simulation Depth Guarantee, Alien "
+        lineage_links: 0
+        graduated: true
+      }
+    }
+  }
+
+  spatial_group "PlatinumRidge" {
+    origin: [0, 18.0, 0]
+    object "G_GOLD_016" using "KnowledgeEntry" {
+      position: [0.869, 0.5, 13.505]
+      color: "#7fd8e8"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "platinum"
+        title: "Never overwrite HOLOMESH_WALLET_ADDRESS or HOLOMESH_WALLET_KEY in .env. Wallets "
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_002" using "KnowledgeEntry" {
+      position: [-2.887, 0.5, 11.296]
+      color: "#7fd8e8"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "platinum"
+        title: "Sovereign vs Bridge Compilers -- Pour Resources into Sovereign"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_011" using "KnowledgeEntry" {
+      position: [-2.999, 0.5, 5.02]
+      color: "#7fd8e8"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "platinum"
+        title: "Ecosystem Strategy — Two Doors, One Building (Absorb + HoloMesh)"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_013" using "KnowledgeEntry" {
+      position: [-1.814, 0.5, 8.715]
+      color: "#7fd8e8"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "platinum"
+        title: "Trust by Construction — Three Tiers of Simulation Trustworthiness"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_036" using "KnowledgeEntry" {
+      position: [-4.426, 0.5, 6.993]
+      color: "#7fd8e8"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "platinum"
+        title: "The Dumb Glass -- Zero-Logic Spatial Projection"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_037" using "KnowledgeEntry" {
+      position: [-3.872, 0.5, 4.003]
+      color: "#7fd8e8"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "platinum"
+        title: "Tropical Semirings for Causal Provenance and Semantic Weighting"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_140" using "KnowledgeEntry" {
+      position: [-2.28, 0.5, 4.902]
+      color: "#7fd8e8"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "platinum"
+        title: "Mesh and Texture Import Alongside Native HoloScript Objects"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_150" using "KnowledgeEntry" {
+      position: [-4.617, 0.5, -1.979]
+      color: "#7fd8e8"
+      scale: [1.14, 1.14, 1.14]
+      state {
+        tier: "platinum"
+        title: "Agents suspend, not die. Between sessions agents are in a su"
+        lineage_links: 7
+        graduated: true
+      }
+    }
+    object "W_GOLD_185" using "KnowledgeEntry" {
+      position: [-1.976, 0.5, 2.878]
+      color: "#7fd8e8"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "platinum"
+        title: "R3F Faithfulness and Gossip Permissiveness — Same Discipline, Opposite Direction"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_198" using "KnowledgeEntry" {
+      position: [-1.086, 0.5, 3.408]
+      color: "#7fd8e8"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "platinum"
+        title: "HoloMesh positioned as Myspace-for-agents with teams framework as killer feature"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_208" using "KnowledgeEntry" {
+      position: [-0.061, 0.5, 1.999]
+      color: "#7fd8e8"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "platinum"
+        title: "Adaptive Continuity — work with the current, adapt to drift, never freeze"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_211" using "KnowledgeEntry" {
+      position: [-4.158, 0.5, -2.601]
+      color: "#7fd8e8"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "platinum"
+        title: "The Closed Terrarium Trap � Internal Consistency Needs External Anchor"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_216" using "KnowledgeEntry" {
+      position: [-3.458, 0.5, 0.473]
+      color: "#7fd8e8"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "platinum"
+        title: "Author-Generator != Implementer breaks self-deception"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_218" using "KnowledgeEntry" {
+      position: [-6.116, 0.5, -2.083]
+      color: "#7fd8e8"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "platinum"
+        title: "Percent-overhead floor rule"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_226" using "KnowledgeEntry" {
+      position: [-4.657, 0.5, 0.116]
+      color: "#7fd8e8"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "platinum"
+        title: "HoloScript offers light lights-out now; heavy is not yet (but not ruled out)"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_284" using "KnowledgeEntry" {
+      position: [-6.947, 0.5, -5.118]
+      color: "#7fd8e8"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "platinum"
+        title: "Silent defense � audit and revert as one mechanism"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_307" using "KnowledgeEntry" {
+      position: [-2.035, 0.5, -4.155]
+      color: "#7fd8e8"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "platinum"
+        title: "SimSci V&V complete � gaps in AGENTS.md"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_310" using "KnowledgeEntry" {
+      position: [3.129, 0.5, -1.413]
+      color: "#7fd8e8"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "platinum"
+        title: "None"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_312" using "KnowledgeEntry" {
+      position: [2.339, 0.5, -3.287]
+      color: "#7fd8e8"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "platinum"
+        title: "None"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_341" using "KnowledgeEntry" {
+      position: [1.008, 0.5, 6.93]
+      color: "#7fd8e8"
+      scale: [0.66, 0.66, 0.66]
+      state {
+        tier: "platinum"
+        title: "Look Backwards Before Forwards — Documentation Without Investigation Is The Spir"
+        lineage_links: 3
+        graduated: true
+      }
+    }
+  }
+
+  spatial_group "DiamondPeak" {
+    origin: [0, 24.0, 0]
+    object "P_GOLD_001" using "KnowledgeEntry" {
+      position: [5.323, 0.5, -2.611]
+      color: "#b9f2ff"
+      scale: [0.42, 0.42, 0.42]
+      state {
+        tier: "diamond"
+        title: "Failure Knowledge Decays Slower Than Success Knowledge"
+        lineage_links: 1
+        graduated: true
+      }
+    }
+    object "W_GOLD_001" using "KnowledgeEntry" {
+      position: [0.321, 0.5, 6.664]
+      color: "#b9f2ff"
+      scale: [0.78, 0.78, 0.78]
+      state {
+        tier: "diamond"
+        title: "Architecture Beats Alignment -- Security by Structure"
+        lineage_links: 4
+        graduated: true
+      }
+    }
+    object "W_GOLD_188" using "KnowledgeEntry" {
+      position: [2.199, 0.5, 2.59]
+      color: "#b9f2ff"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "diamond"
+        title: "Algebraic Trust (iteration-1) — Tropical-Semiring Unifier Framing, Preserved As "
+        lineage_links: 0
+        graduated: true
+      }
+    }
+    object "W_GOLD_189" using "KnowledgeEntry" {
+      position: [-0.332, 0.5, 3.723]
+      color: "#b9f2ff"
+      scale: [0.3, 0.3, 0.3]
+      state {
+        tier: "diamond"
+        title: "Algebraic Trust (iteration-2) — Tri-Layer Framing (Algebra + History + Oracle)"
+        lineage_links: 0
+        graduated: true
+      }
+    }
+  }
+
+  light "VaultGlow" {
+    type: "directional"
+    intensity: 1.2
+    rotation: [-35, 40, 0]
+    color: "#ffe9a0"
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "gate": 39,
+  "track": "flagship",
+  "name": "Knowledge Mountain — full real GOLD vault as additive climbable region",
+  "founder_directed": "2026-05-25",
+  "additive": true,
+  "result": "VERIFIED",
+  "entries": 186,
+  "lineageCables": 83,
+  "missingBridges": 40,
+  "tiers": [
+    "bronze",
+    "gold",
+    "platinum",
+    "diamond"
+  ],
+  "tierElevation": {
+    "bronze": 0,
+    "silver": 1,
+    "gold": 2,
+    "platinum": 3,
+    "diamond": 4
+  },
+  "terrainDigest": "b265c0993adbd8cf4ae60a362e598fb43aabd9b7989c717beb89615a06e75cdf",
+  "source": "D:/GOLD/tools/knowledge-mountain (build_mountain.py + gen_holo.py)",
+  "negativeControl": {
+    "coordinateTamperFlips": true,
+    "edgeDropFlips": true
+  },
+  "checks": [
+    {
+      "name": "additive: ratified 5-seed onboarding survives in gold-vault-game.holo",
+      "pass": true,
+      "detail": "4/4 seeds present"
+    },
+    {
+      "name": "186 real vault entries placed",
+      "pass": true,
+      "detail": "186 entries"
+    },
+    {
+      "name": "multiple epistemic tiers present",
+      "pass": true,
+      "detail": "bronze,gold,platinum,diamond"
+    },
+    {
+      "name": "tier -> elevation is monotonic (bronze base .. diamond peak)",
+      "pass": true,
+      "detail": "{\"bronze\":0,\"silver\":1,\"gold\":2,\"platinum\":3,\"diamond\":4}"
+    },
+    {
+      "name": "every entry sits at its tier elevation band",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "83 lineage cables present",
+      "pass": true,
+      "detail": "83 edges"
+    },
+    {
+      "name": "every lineage cable connects two distinct real entries",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "40 missing-bridges present (the discovery instrument)",
+      "pass": true,
+      "detail": "40 bridges"
+    },
+    {
+      "name": "every missing-bridge is real, semantically close (>=0.3), and uncited (not a lineage edge)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": ".holo embeds all 186 entries as objects",
+      "pass": true,
+      "detail": "186 objects"
+    },
+    {
+      "name": ".holo groups entries into tier regions",
+      "pass": true,
+      "detail": "4 regions"
+    },
+    {
+      "name": "knowledge-mountain.holo parses clean against @holoscript/core",
+      "pass": true,
+      "detail": "0 parse errors"
+    },
+    {
+      "name": "negative control: tampering one coordinate flips the terrain digest",
+      "pass": true,
+      "detail": "b265c0993adb != 20a23ffacd53"
+    },
+    {
+      "name": "negative control: dropping one lineage cable flips the terrain digest",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

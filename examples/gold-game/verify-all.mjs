@@ -63,6 +63,7 @@ const GATES = [
   { track: 'flagship', gate: 36, name: 'HoloScript package toolset — packages become visible GOLD game systems', kind: 'script', runner: 'node', file: 'gate-36-holoscript-toolset-verify.mjs' },
   { track: 'flagship', gate: 37, name: 'self-proving boot — air-gapped build re-derives its embedded data hashes OFFLINE in-browser (pure-JS SHA-256, file://) vs a sealed manifest; embedded fn cross-checked as genuine SHA-256; negative control holds', kind: 'script', runner: 'node', file: 'gate-37-self-proof-verify.mjs' },
   { track: 'flagship', gate: 38, name: 'holographic export leg — Gate-32/Gate-34 vista exports to quilt/MV-HEVC/parallax target manifests', kind: 'script', runner: 'tsx', file: 'gate-38-holographic-export-verify.mjs' },
+  { track: 'flagship', gate: 39, name: 'Knowledge Mountain — full real GOLD vault as an additive climbable region (186 entries placed by semantics->x/z + tier->elevation, 83 lineage cables, 40 discovery-instrument missing-bridges; ratified 5-seed onboarding preserved)', kind: 'script', runner: 'node', file: 'gate-39-knowledge-mountain-verify.mjs' },
   { track: 'oasis (fixture)', gate: 3, name: 'connection-mechanics proof (compass co-session)', kind: 'script', runner: 'tsx', file: 'connection-mechanics-proof/gate-3-verify.mjs' },
   { track: 'modalities', gate: '2D+3D', name: 'one .holo -> retro 2D + 3D (shared source scene)', kind: 'script', runner: 'tsx', file: 'modality-verify.mjs' },
 ];
