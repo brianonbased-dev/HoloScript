@@ -48,6 +48,8 @@
     "holoshell:target-in-frame-test": "node scripts/__tests__/holoshell-target-in-frame-analyzer.test.mjs",
     "holoshell:fiducial-pose-seed": "node scripts/holoshell-fiducial-pose-seed.mjs",
     "holoshell:fiducial-pose-seed-test": "node scripts/__tests__/holoshell-fiducial-pose-seed.test.mjs",
+    "holoshell:fiducial-calibration": "node scripts/holoshell-fiducial-calibration.mjs",
+    "holoshell:fiducial-calibration-test": "node scripts/__tests__/holoshell-fiducial-calibration.test.mjs",
     "holoshell:low-camera-fixture": "node scripts/holoshell-camera-scan-adapter.mjs fixture --require-capture",
     "holoshell:preprocess-sweep": "node scripts/holoshell-camera-scan-adapter.mjs sweep --require-capture",
     "holoshell:low-camera-workflow": "node scripts/holoshell-low-camera-workflow.mjs --require-capture",

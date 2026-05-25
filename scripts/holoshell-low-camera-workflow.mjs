@@ -15,6 +15,7 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chainReceipt, sha256Bytes, sha256Text, stageReceipt, withHash } from './holoshell/chain/receipts.mjs';
 import { buildTechnologyPlan } from './holoshell-reconstruction-tech-plan.mjs';
+import { calibrateFiducialAnchor } from './holoshell-fiducial-calibration.mjs';
 import { estimateFiducialPoseSeed } from './holoshell-fiducial-pose-seed.mjs';
 import { analyzeTargetInFrame } from './holoshell-target-in-frame-analyzer.mjs';
 
@@ -41,6 +42,7 @@ function parseArgs(argv) {
     targetPng: undefined,
     targetDetectionOut: undefined,
     poseSeedOut: undefined,
+    calibrationOut: undefined,
     sweepOut: undefined,
     renderOut: undefined,
     deviceIndex: 0,
@@ -54,6 +56,13 @@ function parseArgs(argv) {
     tileWidth: 160,
     tileHeight: 120,
     poseSeedFovDeg: 60,
+    poseSeedFx: undefined,
+    poseSeedFy: undefined,
+    poseSeedCx: undefined,
+    poseSeedCy: undefined,
+    calibrationSource: undefined,
+    calibrationDistortion: undefined,
+    assumeZeroDistortion: false,
     requireCapture: false,
     geometricTarget: true,
     targetProfile: 'fiducial-board',
@@ -70,6 +79,7 @@ function parseArgs(argv) {
     else if (arg === '--target-png') args.targetPng = argv[++i];
     else if (arg === '--target-detection-out') args.targetDetectionOut = argv[++i];
     else if (arg === '--pose-seed-out') args.poseSeedOut = argv[++i];
+    else if (arg === '--calibration-out') args.calibrationOut = argv[++i];
     else if (arg === '--sweep-out') args.sweepOut = argv[++i];
     else if (arg === '--render-out') args.renderOut = argv[++i];
     else if (arg === '--device-index') args.deviceIndex = Number.parseInt(argv[++i], 10);
@@ -83,6 +93,17 @@ function parseArgs(argv) {
     else if (arg === '--tile-width') args.tileWidth = Number.parseInt(argv[++i], 10);
     else if (arg === '--tile-height') args.tileHeight = Number.parseInt(argv[++i], 10);
     else if (arg === '--pose-seed-fov-deg') args.poseSeedFovDeg = Number.parseFloat(argv[++i]);
+    else if (arg === '--pose-seed-fx') args.poseSeedFx = Number.parseFloat(argv[++i]);
+    else if (arg === '--pose-seed-fy') args.poseSeedFy = Number.parseFloat(argv[++i]);
+    else if (arg === '--pose-seed-cx') args.poseSeedCx = Number.parseFloat(argv[++i]);
+    else if (arg === '--pose-seed-cy') args.poseSeedCy = Number.parseFloat(argv[++i]);
+    else if (arg === '--calibration-source') args.calibrationSource = argv[++i];
+    else if (arg === '--calibration-distortion') {
+      args.calibrationDistortion = String(argv[++i])
+        .split(',')
+        .map((part) => Number.parseFloat(part.trim()));
+    }
+    else if (arg === '--assume-zero-distortion') args.assumeZeroDistortion = true;
     else if (arg === '--require-capture') args.requireCapture = true;
     else if (arg === '--geometric-target') args.geometricTarget = true;
     else if (arg === '--no-geometric-target') args.geometricTarget = false;
@@ -118,6 +139,16 @@ function parseArgs(argv) {
   if (!Number.isFinite(args.poseSeedFovDeg) || args.poseSeedFovDeg <= 5 || args.poseSeedFovDeg >= 175) {
     throw new Error('--pose-seed-fov-deg must be between 5 and 175');
   }
+  const explicitPoseNumbers = [args.poseSeedFx, args.poseSeedFy, args.poseSeedCx, args.poseSeedCy].filter((value) => value !== undefined);
+  if (![0, 4].includes(explicitPoseNumbers.length) || explicitPoseNumbers.some((value) => !Number.isFinite(value))) {
+    throw new Error('--pose-seed-fx/fy/cx/cy must be provided together as finite numbers');
+  }
+  if (
+    args.calibrationDistortion !== undefined &&
+    (![5, 8].includes(args.calibrationDistortion.length) || args.calibrationDistortion.some((value) => !Number.isFinite(value)))
+  ) {
+    throw new Error('--calibration-distortion must be 5 or 8 comma-separated finite numbers');
+  }
   if (args.frames > 1 && args.intervalMs === 0) throw new Error('--interval-ms must be > 0 with multiple frames');
   if (!['fiducial-board', 'geometric-control-target'].includes(args.targetProfile)) {
     throw new Error('--target-profile must be fiducial-board or geometric-control-target');
@@ -133,6 +164,7 @@ Usage:
   node scripts/holoshell-low-camera-workflow.mjs --target-profile fiducial-board
   node scripts/holoshell-low-camera-workflow.mjs --frames 2 --width 64 --height 48 --tile-width 80 --tile-height 60
   node scripts/holoshell-low-camera-workflow.mjs --pose-seed-fov-deg 60
+  node scripts/holoshell-low-camera-workflow.mjs --pose-seed-fx 500 --pose-seed-fy 500 --pose-seed-cx 320 --pose-seed-cy 180 --calibration-source "device profile" --assume-zero-distortion
   node scripts/holoshell-low-camera-workflow.mjs --self-test
 
 Notes:
@@ -140,6 +172,7 @@ Notes:
   - Generates a known fiducial/control target receipt before capture for calibration/control.
   - Keeps a plain camera JPEG control frame before preprocessing, HoloMap, or HoloGram rendering.
   - Seeds planar fiducial pose only when the target-in-frame homography is available.
+  - Promotes calibration only with explicit intrinsics plus distortion provenance.
   - Replays one raw capture through every preprocess mode, renders the winning bridge, and links both receipts.
   - Writes .scratch/holoshell-low-camera-fixture/<date>/low-camera-workflow-receipt.json by default.
 `);
@@ -256,6 +289,22 @@ function summarizePoseSeed(poseSeedReceipt, poseSeedReceiptPath) {
   };
 }
 
+function summarizeCalibration(calibrationReceipt, calibrationReceiptPath) {
+  if (!calibrationReceipt) return undefined;
+  return {
+    path: rel(calibrationReceiptPath),
+    receiptHash: calibrationReceipt.hash,
+    fileHash: fileHash(calibrationReceiptPath),
+    status: calibrationReceipt.status,
+    poseSeedHash: calibrationReceipt.poseSeed?.receiptHash,
+    cameraModel: calibrationReceipt.cameraModel,
+    calibration: calibrationReceipt.calibration,
+    chainHash: calibrationReceipt.chain?.receipt?.hash,
+    honestScope:
+      'Explicit camera-model promotion for a fiducial pose seed. Pass means calibrated anchor provenance exists; blocked means the exact missing evidence is recorded.',
+  };
+}
+
 function runNodeScript(scriptPath, scriptArgs, { allowExitCodes = [0] } = {}) {
   const command = [rel(scriptPath), ...scriptArgs];
   const result = spawnSync(process.execPath, [scriptPath, ...scriptArgs], {
@@ -328,6 +377,8 @@ export function buildWorkflowReceipt({
   targetDetectionReceiptPath,
   poseSeedReceipt,
   poseSeedReceiptPath,
+  calibrationReceipt,
+  calibrationReceiptPath,
   commands,
 }) {
   const target = summarizeTarget(targetReceipt, targetReceiptPath);
@@ -335,6 +386,7 @@ export function buildWorkflowReceipt({
   const render = renderReceipt ? summarizeRender(renderReceipt, renderReceiptPath) : undefined;
   const targetDetection = summarizeTargetDetection(targetDetectionReceipt, targetDetectionReceiptPath);
   const fiducialPoseSeed = summarizePoseSeed(poseSeedReceipt, poseSeedReceiptPath);
+  const fiducialCalibration = summarizeCalibration(calibrationReceipt, calibrationReceiptPath);
   const capturePlan = {
     deviceIndex: args.deviceIndex,
     width: args.width,
@@ -359,6 +411,7 @@ export function buildWorkflowReceipt({
       target,
       targetDetection,
       fiducialPoseSeed,
+      fiducialCalibration,
       sweep,
       control: sweep.control,
       render,
@@ -486,6 +539,35 @@ export function buildWorkflowReceipt({
         'Seeds planar fiducial pose only after target homography exists. This stage does not claim camera calibration or metric scale.',
     }));
   }
+  if (fiducialCalibration) {
+    stages.push(stageReceipt({
+      name: 'workflow.fiducial-calibration',
+      input: {
+        command: commands.calibration?.command,
+        calibrationReceiptPath: fiducialCalibration.path,
+        poseSeedReceiptPath: fiducialPoseSeed?.path,
+      },
+      output: {
+        status: fiducialCalibration.status,
+        calibrationReady: fiducialCalibration.calibration?.calibrationReady,
+        cameraModelReady: fiducialCalibration.calibration?.cameraModelReady,
+        calibratedAnchorReady: fiducialCalibration.calibration?.calibratedAnchorReady,
+        reprojectionRms: fiducialCalibration.calibration?.reprojection?.rmsPixels,
+        blockers: fiducialCalibration.calibration?.blockers,
+        receiptHash: fiducialCalibration.receiptHash,
+        fileHash: fiducialCalibration.fileHash,
+      },
+      metrics: {
+        exitCode: commands.calibration?.exitCode,
+        calibrationReady: fiducialCalibration.calibration?.calibrationReady,
+        cameraModelReady: fiducialCalibration.calibration?.cameraModelReady,
+        calibratedAnchorReady: fiducialCalibration.calibration?.calibratedAnchorReady,
+        reprojectionRms: fiducialCalibration.calibration?.reprojection?.rmsPixels,
+      },
+      honestScope:
+        'Promotes the pose seed only with explicit camera-model provenance. This stage does not run solvePnP or estimate distortion.',
+    }));
+  }
   if (render) {
     stages.push(stageReceipt({
       name: 'workflow.render-winning-quilt',
@@ -526,6 +608,8 @@ export function buildWorkflowReceipt({
         targetDetectionStatus: targetDetection?.detection?.status,
         poseSeedStatus: fiducialPoseSeed?.status,
         poseSeedReady: fiducialPoseSeed?.poseSeed?.poseSeedReady,
+        calibrationStatus: fiducialCalibration?.status,
+        calibrationReady: fiducialCalibration?.calibration?.calibrationReady,
         winningPreprocess: sweep.winner?.mode,
         pointCount: render?.pointCount ?? sweep.pointCount,
         rendered: Boolean(render),
@@ -552,6 +636,7 @@ export function buildWorkflowReceipt({
     target,
     targetDetection,
     fiducialPoseSeed,
+    fiducialCalibration,
     sweep,
     control: sweep.control,
     render,
@@ -561,6 +646,7 @@ export function buildWorkflowReceipt({
       target: commands.target?.command,
       targetDetection: commands.targetDetection?.command,
       poseSeed: commands.poseSeed?.command,
+      calibration: commands.calibration?.command,
       sweep: commands.sweep.command,
       render: commands.render?.command,
     },
@@ -618,6 +704,18 @@ export function validateReceipt(receipt) {
     if (targetExpected && receipt.fiducialPoseSeed?.poseSeed?.calibrationReady !== false) {
       errors.push('fiducial pose seed must not claim camera calibration');
     }
+    if (targetExpected && !receipt.fiducialCalibration?.receiptHash?.startsWith('sha256:')) {
+      errors.push('fiducial calibration receipt hash missing');
+    }
+    if (targetExpected && !['pass', 'blocked'].includes(receipt.fiducialCalibration?.status)) {
+      errors.push('fiducial calibration status missing');
+    }
+    if (targetExpected && receipt.fiducialCalibration?.status === 'blocked' && receipt.fiducialCalibration?.calibration?.calibrationReady !== false) {
+      errors.push('blocked fiducial calibration must not claim calibration readiness');
+    }
+    if (targetExpected && receipt.fiducialCalibration?.status === 'pass' && receipt.fiducialCalibration?.calibration?.calibrationReady !== true) {
+      errors.push('passing fiducial calibration must claim calibration readiness');
+    }
     if (!receipt.sweep?.winner?.mode) errors.push('winner missing');
     if (!receipt.sweep?.bridgePath) errors.push('winning bridge path missing');
     if (!receipt.control?.frame?.path) errors.push('camera control frame missing');
@@ -646,6 +744,7 @@ export async function runWorkflow(args) {
   const targetPng = resolve(REPO_ROOT, args.targetPng ?? join(baseDir, `${targetSlug}.png`));
   const targetDetectionOut = resolve(REPO_ROOT, args.targetDetectionOut ?? join(baseDir, 'target-in-frame-receipt.json'));
   const poseSeedOut = resolve(REPO_ROOT, args.poseSeedOut ?? join(baseDir, 'fiducial-pose-seed-receipt.json'));
+  const calibrationOut = resolve(REPO_ROOT, args.calibrationOut ?? join(baseDir, 'fiducial-calibration-receipt.json'));
   const sweepOut = resolve(REPO_ROOT, args.sweepOut ?? join(baseDir, 'preprocess-sweep-workflow.json'));
   const renderOut = resolve(REPO_ROOT, args.renderOut ?? join(baseDir, 'workflow-winner-quilt.json'));
   mkdirSync(baseDir, { recursive: true });
@@ -704,7 +803,9 @@ export async function runWorkflow(args) {
       targetDetectionReceiptPath: undefined,
       poseSeedReceipt: undefined,
       poseSeedReceiptPath: undefined,
-      commands: { target: targetCommand, targetDetection: undefined, poseSeed: undefined, sweep: sweepCommand, render: undefined },
+      calibrationReceipt: undefined,
+      calibrationReceiptPath: undefined,
+      commands: { target: targetCommand, targetDetection: undefined, poseSeed: undefined, calibration: undefined, sweep: sweepCommand, render: undefined },
     });
     writeJson(outPath, receipt);
     return receipt;
@@ -717,6 +818,8 @@ export async function runWorkflow(args) {
   let targetDetectionReceipt;
   let poseSeedCommand;
   let poseSeedReceipt;
+  let calibrationCommand;
+  let calibrationReceipt;
   if (args.geometricTarget && targetReceipt && controlFrame?.path) {
     await analyzeTargetInFrame({
       framePath: controlFrame.path,
@@ -741,6 +844,10 @@ export async function runWorkflow(args) {
       targetInFramePath: targetDetectionOut,
       out: poseSeedOut,
       fovDeg: args.poseSeedFovDeg,
+      fx: args.poseSeedFx,
+      fy: args.poseSeedFy,
+      cx: args.poseSeedCx,
+      cy: args.poseSeedCy,
     });
     poseSeedCommand = {
       command: [
@@ -751,6 +858,30 @@ export async function runWorkflow(args) {
         rel(poseSeedOut),
         '--fov-deg',
         String(args.poseSeedFovDeg),
+        ...(args.poseSeedFx !== undefined
+          ? ['--fx', String(args.poseSeedFx), '--fy', String(args.poseSeedFy), '--cx', String(args.poseSeedCx), '--cy', String(args.poseSeedCy)]
+          : []),
+      ],
+      exitCode: 0,
+    };
+    calibrationReceipt = calibrateFiducialAnchor({
+      poseSeedReceipt,
+      poseSeedPath: poseSeedOut,
+      out: calibrationOut,
+      calibrationSource: args.calibrationSource,
+      distortionCoefficients: args.calibrationDistortion,
+      assumeZeroDistortion: args.assumeZeroDistortion,
+    });
+    calibrationCommand = {
+      command: [
+        'internal:calibrateFiducialAnchor',
+        '--pose-seed',
+        rel(poseSeedOut),
+        '--out',
+        rel(calibrationOut),
+        ...(args.calibrationSource ? ['--calibration-source', args.calibrationSource] : []),
+        ...(args.calibrationDistortion ? ['--distortion', args.calibrationDistortion.join(',')] : []),
+        ...(args.assumeZeroDistortion ? ['--assume-zero-distortion'] : []),
       ],
       exitCode: 0,
     };
@@ -779,7 +910,9 @@ export async function runWorkflow(args) {
     targetDetectionReceiptPath: targetDetectionReceipt ? targetDetectionOut : undefined,
     poseSeedReceipt,
     poseSeedReceiptPath: poseSeedReceipt ? poseSeedOut : undefined,
-    commands: { target: targetCommand, targetDetection: targetDetectionCommand, poseSeed: poseSeedCommand, sweep: sweepCommand, render: renderCommand },
+    calibrationReceipt,
+    calibrationReceiptPath: calibrationReceipt ? calibrationOut : undefined,
+    commands: { target: targetCommand, targetDetection: targetDetectionCommand, poseSeed: poseSeedCommand, calibration: calibrationCommand, sweep: sweepCommand, render: renderCommand },
   });
   const errors = validateReceipt(receipt);
   if (errors.length > 0) throw new Error(`Invalid workflow receipt: ${errors.join('; ')}`);
@@ -794,6 +927,7 @@ export async function selfTest() {
   const targetPngPath = join(dir, 'target.png');
   const targetDetectionPath = join(dir, 'target-detection.json');
   const poseSeedPath = join(dir, 'pose-seed.json');
+  const calibrationPath = join(dir, 'calibration.json');
   const sweepPath = join(dir, 'sweep.json');
   const quiltPath = join(dir, 'quilt.png');
   const renderPath = join(dir, 'render.json');
@@ -892,6 +1026,11 @@ export async function selfTest() {
     out: poseSeedPath,
     fovDeg: 60,
   });
+  const calibrationReceipt = calibrateFiducialAnchor({
+    poseSeedReceipt,
+    poseSeedPath,
+    out: calibrationPath,
+  });
   const sweepReceipt = withHash({
     schemaVersion: 'holoshell-camera-scan-receipt/v5',
     status: 'pass',
@@ -956,10 +1095,13 @@ export async function selfTest() {
     targetDetectionReceiptPath: targetDetectionPath,
     poseSeedReceipt,
     poseSeedReceiptPath: poseSeedPath,
+    calibrationReceipt,
+    calibrationReceiptPath: calibrationPath,
     commands: {
       target: { command: ['target', 'generate'], exitCode: 0 },
       targetDetection: { command: ['target', 'detect'], exitCode: 0 },
       poseSeed: { command: ['pose', 'seed'], exitCode: 0 },
+      calibration: { command: ['pose', 'calibrate'], exitCode: 0 },
       sweep: { command: ['camera', 'sweep'], exitCode: 0 },
       render: { command: ['bridge', 'render'], exitCode: 0 },
     },
@@ -1029,6 +1171,16 @@ async function main() {
           reprojectionRms: receipt.fiducialPoseSeed.poseSeed?.reprojection?.rmsPixels,
           blockers: receipt.fiducialPoseSeed.poseSeed?.blockers,
           intrinsicsSource: receipt.fiducialPoseSeed.intrinsics?.source,
+        }
+      : undefined,
+    fiducialCalibration: receipt.fiducialCalibration
+      ? {
+          status: receipt.fiducialCalibration.status,
+          calibrationReady: receipt.fiducialCalibration.calibration?.calibrationReady,
+          cameraModelReady: receipt.fiducialCalibration.calibration?.cameraModelReady,
+          calibratedAnchorReady: receipt.fiducialCalibration.calibration?.calibratedAnchorReady,
+          reprojectionRms: receipt.fiducialCalibration.calibration?.reprojection?.rmsPixels,
+          blockers: receipt.fiducialCalibration.calibration?.blockers,
         }
       : undefined,
     control: receipt.control?.frame

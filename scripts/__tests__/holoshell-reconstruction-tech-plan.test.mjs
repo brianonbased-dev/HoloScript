@@ -176,7 +176,57 @@ assertOk(
   'pose seed is not re-requested'
 );
 
-console.log('Test 6: invalid receipts fail closed');
+console.log('Test 6: planner stops asking for calibration once calibrated anchor exists');
+const calibrationPlan = buildTechnologyPlan({
+  workflowReceipt: {
+    status: 'pass',
+    capturePlan: { frames: 2, geometricTarget: true, targetProfile: 'fiducial-board' },
+    target: { profile: 'fiducial-board', markerCount: 9, pngHash: 'sha256:' + 'e'.repeat(64) },
+    targetDetection: {
+      detection: {
+        status: 'detected',
+        recoveredMarkerCount: 9,
+        markerCornerCount: 36,
+        poseSolveInputReady: true,
+        boardHomographyReady: true,
+        boardPose: {
+          status: 'homography-estimated',
+          calibrationReady: false,
+          solvePnPReady: false,
+          reprojection: { rmsPixels: 0.42, maxPixels: 0.9 },
+        },
+        calibrationReady: false,
+      },
+    },
+    fiducialPoseSeed: {
+      status: 'pass',
+      poseSeed: {
+        poseSeedReady: true,
+        calibrationReady: false,
+        reprojection: { rmsPixels: 0.51 },
+      },
+    },
+    fiducialCalibration: {
+      status: 'pass',
+      calibration: {
+        calibrationReady: true,
+        cameraModelReady: true,
+        calibratedAnchorReady: true,
+        reprojection: { rmsPixels: 0.61 },
+      },
+    },
+    control: { frame: { rawQuality: { score: 0.74, edgeEnergy: 0.05, contrast: 0.2 } } },
+    render: { quality: { score: 0.67, grade: 'usable' } },
+  },
+});
+assertOk(calibrationPlan.signals.hasFiducialCalibration, 'fiducial calibration signal recorded');
+assertEq(calibrationPlan.signals.fiducialCalibrationRms, 0.61, 'fiducial calibration RMS signal recorded');
+assertOk(
+  !calibrationPlan.nextActions.some((action) => action.id === 'calibrate-camera-intrinsics-distortion'),
+  'camera calibration is not re-requested after calibrated anchor'
+);
+
+console.log('Test 7: invalid receipts fail closed');
 const missingSources = {
   ...receipt,
   plan: {
@@ -186,7 +236,7 @@ const missingSources = {
 };
 assertOk(validateReceipt(missingSources).includes('sources missing'), 'sources are required');
 
-console.log('Test 7: CLI self-test runs without hardware');
+console.log('Test 8: CLI self-test runs without hardware');
 const cli = spawnSync(process.execPath, [SCRIPT, '--self-test'], {
   cwd: REPO_ROOT,
   encoding: 'utf8',
@@ -194,7 +244,7 @@ const cli = spawnSync(process.execPath, [SCRIPT, '--self-test'], {
 assertEq(cli.status, 0, 'CLI self-test exits 0');
 assertOk(cli.stdout.includes('self-test PASS'), 'CLI self-test names pass');
 
-console.log('Test 8: CLI help explains advisory scope');
+console.log('Test 9: CLI help explains advisory scope');
 const help = spawnSync(process.execPath, [SCRIPT, '--help'], {
   cwd: REPO_ROOT,
   encoding: 'utf8',

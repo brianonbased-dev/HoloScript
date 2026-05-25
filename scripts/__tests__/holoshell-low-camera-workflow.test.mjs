@@ -76,13 +76,25 @@ assertOk(
 );
 const poseSeedStage = receipt.chain.stages.find((stage) => stage.name === 'workflow.fiducial-pose-seed');
 assertEq(poseSeedStage.metrics.poseSeedReady, false, 'chain stage records pose seed readiness');
+assertEq(receipt.fiducialCalibration.status, 'blocked', 'missing evidence blocks fiducial calibration');
+assertEq(receipt.fiducialCalibration.calibration.calibrationReady, false, 'blocked calibration is not ready');
+assertOk(
+  receipt.fiducialCalibration.calibration.blockers.includes('pose-seed-unavailable'),
+  'calibration blocker recorded'
+);
+const calibrationStage = receipt.chain.stages.find((stage) => stage.name === 'workflow.fiducial-calibration');
+assertEq(calibrationStage.metrics.calibrationReady, false, 'chain stage records calibration readiness');
 assertOk(receipt.render.receiptHash.startsWith('sha256:'), 'render receipt hash recorded');
 assertOk(receipt.render.pngHash.startsWith('sha256:'), 'quilt png hash recorded');
 assertEq(receipt.render.quality.grade, 'weak', 'workflow carries render quality grade');
 assertOk(receipt.quality.score >= 0, 'workflow exposes top-level quality');
 assertOk(receipt.technologyPlan.recommendedNow.includes('fiducial-calibration'), 'workflow recommends fiducial calibration');
 assertOk(receipt.technologyPlan.recommendations.some((recommendation) => recommendation.id === 'mobile-native-depth'), 'workflow carries mobile depth alternative');
-assertEq(receipt.chain?.receipt?.stageCount, 5, 'workflow has target, sweep, target detection, pose seed, and render stages');
+assertEq(
+  receipt.chain?.receipt?.stageCount,
+  6,
+  'workflow has target, sweep, target detection, pose seed, calibration, and render stages'
+);
 
 console.log('Test 2: invalid workflow receipts fail closed');
 const missingWinner = {
