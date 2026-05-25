@@ -34,7 +34,7 @@
       "simulationContract": {
         "kind": "holomap.reconstruction.v1",
         "replayFingerprint": "737ea9d80f539658",
-        "holoScriptBuild": "6.1.0+10ef0ad8d"
+        "holoScriptBuild": "6.1.0+c2d0c8848"
       },
       "assets": {
         "points": "reconstruction.points.bin",
@@ -47,23 +47,23 @@
       "anchorFrameIndex": 0,
       "anchorPose": {
         "position": [
-          0,
-          0,
-          0
+          0.004569,
+          -0.000954,
+          -0.025299
         ],
         "rotation": [
           0,
+          0.082716,
           0,
-          0,
-          1
+          0.996573
         ],
-        "confidence": 1
+        "confidence": 0.851412
       },
       "anchorDescriptor": [
-        1,
-        0,
-        0,
-        1
+        2.253534,
+        1.503143,
+        0.146553,
+        0.851412
       ],
       "revision": 6
     },
@@ -193,15 +193,16 @@
   },
   "proves": {
     "importPath": "RGB device-capture frames feed the shipped HoloMap session API, not a mocked room JSON.",
-    "anchor": "mcpReconstructAnchor returns a frame-driven revision at a FIXED origin pose (position [0,0,0]); the revision is scan-derived but the pose and drift are not yet computed from the scan (placement stub — see anchorScope).",
+    "anchor": "mcpReconstructAnchor returns a SCAN-DERIVED anchor: the pose is the center of the observed point volume, the descriptor carries its extent + mean confidence, and the GOLD room uses it as its placement anchor.",
+    "drift": "trajectory.estimatedDriftMeters is the registration residual (camera-pose deviation from a constant-velocity prediction) accumulated over the capture; loop closure fires on a keyframe revisit.",
     "export": "mcpReconstructExport compiles the reconstruction manifest to an r3f target and emits sidecars.",
-    "loadBearing": "negative control flips one byte of capture data and changes capture, replay, and room digests."
+    "loadBearing": "negative control flips one byte of capture data and changes capture, replay, room digest, AND the scan-derived anchor pose and estimated drift. The descriptor (coarse volume extent + confidence) equals the observed bounds extent but is below 6-decimal sensitivity to a single-point nudge."
   },
-  "honestScope": "Offline data-integrity proof for the HoloMap import/export path using a deterministic room-shaped capture fixture. A live physical-room scan video was not present locally, so this gate does not claim new physical capture; it proves that captured frames become an exported GOLD space/portal artifact through the real HoloMap session/runtime/export code.",
-  "anchorScope": "The reconstructed POINTS are genuinely per-pixel scan-derived (HoloMapRuntime micro-encoder), but the ANCHOR pose and drift-correction are NOT: HoloMapRuntime sets anchorPose.position=[0,0,0], descriptor=[1,0,0,1], estimatedDriftMeters=0, lastLoopClosureFrame=-1 as constants. The named holomap_anchor_context / holomap_drift_correction traits are not runtime-active here. Scan-derived anchor/drift is a buildable enhancement (see QUEST_PROOF_ENHANCEMENTS.md E4), not proven by this gate.",
+  "honestScope": "Offline data-integrity proof for the HoloMap import/export path using a deterministic room-shaped capture fixture. A live physical-room scan video was not present locally, so this gate does not claim new physical capture; it proves that captured frames become an anchored GOLD space/portal artifact through the real HoloMap session/runtime/export code.",
+  "anchorScope": "The reconstructed POINTS, the ANCHOR pose/descriptor, and the DRIFT estimate are all scan-derived (E4, 2026-05-24): anchor pose = observed-volume center, descriptor = [extentX, extentY, extentZ, meanConfidence], drift = accumulated constant-velocity registration residual. A one-byte capture tamper changes all of them (negative controls below). NOT yet derived: a true physical-room video scan (this uses a deterministic fixture) and full bundle-adjustment loop-closure correction (revisit detection only).",
   "contract": {
     "spine": "computeStateDigest(field-bag, sha256)",
-    "spaceDigest": "a46d086f3de719dc599ee7084de58ed31f503c38be4c4671b8e275313ba6ad02",
-    "payloadHash": "030412df99bafc47a0918e2f3e70e4d842ccb15997ff856658fbfeaf303ebb4c"
+    "spaceDigest": "015f6d26422337995f58477a1dd56f84fcd1d8c5fbe09a650a7fae39273a58db",
+    "payloadHash": "22d3d456eed35520410bf693dc6881cca3231b47552a2c8f97a1489f75c934cd"
   }
 }

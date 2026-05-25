@@ -399,6 +399,11 @@ export async function mcpReconstructStep(
   pointCount: number;
   trajectoryRevision: number;
   anchorRevision: number;
+  // Scan-derived drift state exposed so callers/receipts can verify the
+  // derivation (E4): drift accumulates the registration residual over the
+  // capture, so it changes when the capture changes.
+  estimatedDriftMeters: number;
+  lastLoopClosureFrame: number;
 }> {
   const state = requireOpenSession(sessionId);
   const frame = decodeFrame(frameBase64, frameIndex, width, height);
@@ -412,6 +417,8 @@ export async function mcpReconstructStep(
     pointCount: step.points.positions.length / 3,
     trajectoryRevision: step.trajectory.revision,
     anchorRevision: step.anchor.revision,
+    estimatedDriftMeters: step.trajectory.estimatedDriftMeters,
+    lastLoopClosureFrame: step.trajectory.lastLoopClosureFrame,
   };
 }
 

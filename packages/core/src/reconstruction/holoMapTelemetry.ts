@@ -9,6 +9,7 @@ type HoloMapEvent =
   | 'step'
   | 'step_throttled'
   | 'step_evict'
+  | 'micro_encoder_fallback'
   | 'finalize'
   | 'dispose'
   | 'error';

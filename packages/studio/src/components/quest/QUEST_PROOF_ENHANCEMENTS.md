@@ -96,7 +96,30 @@ be called a "fallback."
 fallback for X" → "Open X anyway (guarded)"; update the matching test assertion.
 Bounded, no founder gate. Deferred per the peer-work note above.
 
-## E4 — HoloMap (D.018): anchor + drift are constants, not scan-derived (OVERCLAIM, claim tightened)
+## E4 — HoloMap (D.018): scan-derived anchor + drift (LANDED 2026-05-24)
+
+> RESOLVED per founder decision 2026-05-24. Implemented in
+> `packages/core/src/reconstruction/HoloMapRuntime.ts`:
+> - **Anchor pose** = centroid of EVERY observed point (eviction-adjusted global
+>   accumulator), so a single tampered point moves the anchor (a bounds *center*
+>   would not). Anchor rotation = yaw aligned to the camera trajectory heading.
+> - **Anchor descriptor** = observed-volume extent + global mean confidence
+>   (a coarse re-localization feature equal to the manifest bounds extent).
+> - **Drift** (`estimatedDriftMeters`) = registration residual: per-frame camera
+>   pose deviation from a constant-velocity prediction, accumulated over the
+>   capture. **Loop closure** fires on a keyframe-position revisit.
+> Drift exposed via `mcpReconstructStep` return (holo-reconstruct-sessions.ts).
+> gate-33 now asserts (falsifiable negative controls): a one-byte capture tamper
+> changes the anchor pose AND the drift; drift accumulates > 0; descriptor equals
+> the observed bounds extent (not the old [1,0,0,1] stub). 16/16 gate checks pass,
+> digest reproduces. Determinism preserved (61/61 HoloMap core tests).
+> NOT yet derived (honest scope): a real physical-room video scan (gate-33 still
+> uses a deterministic fixture) and full bundle-adjustment loop-closure correction
+> (revisit detection only). Acceptance bar (anchor from scan, drift from residual,
+> tamper-sensitive receipts) — MET.
+
+### Original finding (for history)
+## E4 (orig) — HoloMap anchor + drift were constants, not scan-derived (OVERCLAIM)
 
 **CONTEXT.** Deep-ratchet 2026-05-24 of the HoloMap product line (gold-game gate-33
 `gate-33-holomap-scan-verify.mjs`). The reconstruction is REAL and falsifiable: the

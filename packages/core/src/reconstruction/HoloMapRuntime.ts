@@ -224,6 +224,33 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   private boundsValid = false;
   /** Running total point count (avoids O(n) re-scan in finalize). */
   private totalPointCount = 0;
+  // ── Scan-derived trajectory / drift state (E4, 2026-05-24) ──
+  // Anchor pose and drift are derived from the accumulated scan rather than
+  // emitted as constants. Drift is the registration residual: the camera-pose
+  // deviation from a constant-velocity prediction, accumulated over the capture.
+  // Loop closure fires when the camera revisits a prior keyframe position.
+  /** Accumulated registration residual (meters) over the capture. */
+  private cumulativeDriftMeters = 0;
+  /**
+   * Running sum of every observed point position + confidence (eviction-adjusted).
+   * The anchor pose is the centroid (sum/count) of all observed points and the
+   * descriptor carries the global mean confidence, so a single tampered point
+   * moves the anchor — bounds center/extent alone are insensitive to a one-point
+   * nudge that does not touch an extremum. (E4 acceptance bar.)
+   */
+  private globalPosSum: [number, number, number] = [0, 0, 0];
+  private globalConfSum = 0;
+  /** Previous frame camera pose (centroid of that frame's points). */
+  private prevPose: [number, number, number] | null = null;
+  /** Previous inter-frame velocity, for constant-velocity drift prediction. */
+  private prevVelocity: [number, number, number] | null = null;
+  /** Frame index of the last detected loop closure (−1 if none). */
+  private lastLoopClosureFrameIdx = -1;
+  /** Compact camera-pose history for loop-closure (revisit) detection. */
+  private readonly poseHistory: Array<{ frameIndex: number; position: [number, number, number] }> = [];
+  private static readonly LOOP_CLOSURE_MIN_GAP = 3;
+  private static readonly LOOP_CLOSURE_RADIUS = 0.05;
+  private static readonly POSE_HISTORY_CAP = 512;
   /** Last accepted capture timestamp (ms) for deterministic FPS throttling. */
   private lastAcceptedFrameTimestampMs: number | null = null;
   /** Deterministic session start timestamp. */
@@ -330,6 +357,13 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     this.boundsValid = false;
     this.boundsMin = [0, 0, 0];
     this.boundsMax = [0, 0, 0];
+    this.cumulativeDriftMeters = 0;
+    this.prevPose = null;
+    this.prevVelocity = null;
+    this.lastLoopClosureFrameIdx = -1;
+    this.poseHistory.length = 0;
+    this.globalPosSum = [0, 0, 0];
+    this.globalConfSum = 0;
     this.lastAcceptedFrameTimestampMs = null;
     this.sessionStartMs = performance.now();
     this.perfMetrics = { stepCount: 0, throttledCount: 0, totalStepMs: 0, maxStepMs: 0, minStepMs: Infinity };
@@ -542,6 +576,16 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       const evicted = this.steps.shift()!;
       const evictedPoints = evicted.points.positions.length / 3;
       this.totalPointCount -= evictedPoints;
+      // Keep the global centroid/confidence accumulators consistent with the
+      // retained window by subtracting the evicted step's contribution.
+      const ep = evicted.points.positions;
+      for (let i = 0; i < ep.length; i += 3) {
+        this.globalPosSum[0] -= ep[i]!;
+        this.globalPosSum[1] -= ep[i + 1]!;
+        this.globalPosSum[2] -= ep[i + 2]!;
+      }
+      const ec = evicted.points.confidence;
+      for (let i = 0; i < ec.length; i += 1) this.globalConfSum -= ec[i]!;
       // Recompute bounds from all remaining retained steps so the subsequent
       // updateBounds(positions) call starts from the correct baseline rather
       // than reinitializing to ±Infinity from just the incoming frame.
@@ -580,6 +624,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     let centroidX = 0;
     let centroidY = 0;
     let centroidZ = 0;
+    let confidenceSum = 0;
 
     for (let t = 0; t < numPoints; t += 1) {
       const { tile, meanColor, centerUv, luminance, texture } = tiles[t]!;
@@ -603,6 +648,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       colors[t * 3 + 2] = meanColor[2];
       const latentMag = Math.sqrt(latentX * latentX + latentY * latentY + latentZ * latentZ);
       confidence[t] = Math.min(1, 0.45 + 0.35 / (1 + latentMag) + Math.min(0.2, texture * 1.5));
+      confidenceSum += confidence[t]!;
 
       centroidX += px;
       centroidY += py;
@@ -613,11 +659,86 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     const poseX = centroidX * inv;
     const poseY = centroidY * inv;
     const poseZ = centroidZ * inv;
+    const meanConfidence = confidenceSum * inv;
+
+    // ── Scan-derived drift (registration residual) ──────────────────────────
+    // Drift = camera-pose deviation from a constant-velocity prediction,
+    // accumulated over the capture. The per-frame pose is the point centroid
+    // (scan-derived above), so one tampered byte/frame moves the pose, the
+    // residual, and therefore the accumulated drift. (E4 acceptance bar.)
+    const curPose: [number, number, number] = [poseX, poseY, poseZ];
+    if (this.prevPose) {
+      const velocity: [number, number, number] = [
+        curPose[0] - this.prevPose[0],
+        curPose[1] - this.prevPose[1],
+        curPose[2] - this.prevPose[2],
+      ];
+      if (this.prevVelocity) {
+        const predX = this.prevPose[0] + this.prevVelocity[0];
+        const predY = this.prevPose[1] + this.prevVelocity[1];
+        const predZ = this.prevPose[2] + this.prevVelocity[2];
+        const rx = curPose[0] - predX;
+        const ry = curPose[1] - predY;
+        const rz = curPose[2] - predZ;
+        this.cumulativeDriftMeters += Math.sqrt(rx * rx + ry * ry + rz * rz);
+      }
+      this.prevVelocity = velocity;
+    }
+    this.prevPose = curPose;
+
+    // ── Loop closure: revisit of a prior keyframe position ──────────────────
+    for (const kf of this.poseHistory) {
+      if (frame.index - kf.frameIndex < HoloMapRuntimeImpl.LOOP_CLOSURE_MIN_GAP) continue;
+      const dx = curPose[0] - kf.position[0];
+      const dy = curPose[1] - kf.position[1];
+      const dz = curPose[2] - kf.position[2];
+      if (Math.sqrt(dx * dx + dy * dy + dz * dz) < HoloMapRuntimeImpl.LOOP_CLOSURE_RADIUS) {
+        this.lastLoopClosureFrameIdx = frame.index;
+        break;
+      }
+    }
+    this.poseHistory.push({ frameIndex: frame.index, position: curPose });
+    if (this.poseHistory.length > HoloMapRuntimeImpl.POSE_HISTORY_CAP) this.poseHistory.shift();
+
+    // ── Scan-derived anchor ─────────────────────────────────────────────────
+    // Anchor pose = centroid of EVERY observed point (sum/count). The centroid
+    // moves whenever any point moves, so a single tampered point shifts the
+    // anchor — unlike a bounds center, which only moves when an extremum moves.
+    // Descriptor = observed-volume extent + GLOBAL mean confidence (also moves
+    // with any point's confidence). Update bounds first so extent is current.
+    this.updateBounds(positions);
+    this.globalPosSum[0] += centroidX;
+    this.globalPosSum[1] += centroidY;
+    this.globalPosSum[2] += centroidZ;
+    this.globalConfSum += confidenceSum;
+    const totalPoints = this.totalPointCount + numPoints;
+    const ginv = 1 / Math.max(1, totalPoints);
+    const anchorCenter: [number, number, number] = [
+      this.globalPosSum[0] * ginv,
+      this.globalPosSum[1] * ginv,
+      this.globalPosSum[2] * ginv,
+    ];
+    const globalMeanConfidence = this.globalConfSum * ginv;
+    const b = this.getBounds();
+    const extentX = b.max[0] - b.min[0];
+    const extentY = b.max[1] - b.min[1];
+    const extentZ = b.max[2] - b.min[2];
+    // Anchor heading: yaw aligned to the camera trajectory direction (XZ plane).
+    const heading = this.prevVelocity
+      ? Math.atan2(this.prevVelocity[0], this.prevVelocity[2] || 1e-6)
+      : 0;
+    const halfYaw = heading / 2;
+    const anchorRotation: [number, number, number, number] = [
+      0,
+      Math.sin(halfYaw),
+      0,
+      Math.cos(halfYaw),
+    ];
 
     const step: ReconstructionStep = {
       frame,
       pose: {
-        position: [poseX, poseY, poseZ],
+        position: curPose,
         rotation: [0, 0, 0, 1],
         confidence: 0.8,
       },
@@ -628,25 +749,24 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       },
       trajectory: {
         keyframes: [],
-        estimatedDriftMeters: 0,
-        lastLoopClosureFrame: -1,
+        estimatedDriftMeters: this.cumulativeDriftMeters,
+        lastLoopClosureFrame: this.lastLoopClosureFrameIdx,
         revision: frame.index + 1,
       },
       anchor: {
         anchorFrameIndex: 0,
         anchorPose: {
-          position: [0, 0, 0],
-          rotation: [0, 0, 0, 1],
-          confidence: 1,
+          position: anchorCenter,
+          rotation: anchorRotation,
+          confidence: Math.max(0, Math.min(1, globalMeanConfidence)),
         },
-        anchorDescriptor: new Float32Array([1, 0, 0, 1]),
+        anchorDescriptor: new Float32Array([extentX, extentY, extentZ, globalMeanConfidence]),
         revision: frame.index + 1,
       },
     };
 
     this.steps.push(step);
     this.totalPointCount += numPoints;
-    this.updateBounds(positions);
 
     // Sprint-3: performance metrics
     const stepMs = performance.now() - stepStartMs;
@@ -731,6 +851,13 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     this.encoderDevice = null;
     this.weightBytes = null;
     this.totalPointCount = 0;
+    this.cumulativeDriftMeters = 0;
+    this.prevPose = null;
+    this.prevVelocity = null;
+    this.lastLoopClosureFrameIdx = -1;
+    this.poseHistory.length = 0;
+    this.globalPosSum = [0, 0, 0];
+    this.globalConfSum = 0;
     this.boundsValid = false;
     this.lastAcceptedFrameTimestampMs = null;
     this.perfMetrics = { stepCount: 0, throttledCount: 0, totalStepMs: 0, maxStepMs: 0, minStepMs: Infinity };

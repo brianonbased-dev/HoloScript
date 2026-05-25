@@ -5,8 +5,8 @@
   "name": "HoloMap scanned-space import",
   "verifier": "examples/gold-game/gate-33-holomap-scan-verify.mjs",
   "checks": {
-    "passed": 10,
-    "total": 10
+    "passed": 14,
+    "total": 14
   },
   "artifact": "examples/gold-game/gold-vault-holomap-room.json",
   "sourceCapture": {
@@ -51,7 +51,7 @@
       "simulationContract": {
         "kind": "holomap.reconstruction.v1",
         "replayFingerprint": "737ea9d80f539658",
-        "holoScriptBuild": "6.1.0+10ef0ad8d"
+        "holoScriptBuild": "6.1.0+c2d0c8848"
       },
       "assets": {
         "points": "reconstruction.points.bin",
@@ -68,9 +68,9 @@
   },
   "contract": {
     "spine": "computeStateDigest(field-bag, sha256)",
-    "spaceDigest": "a46d086f3de719dc599ee7084de58ed31f503c38be4c4671b8e275313ba6ad02",
-    "payloadHash": "030412df99bafc47a0918e2f3e70e4d842ccb15997ff856658fbfeaf303ebb4c"
+    "spaceDigest": "015f6d26422337995f58477a1dd56f84fcd1d8c5fbe09a650a7fae39273a58db",
+    "payloadHash": "22d3d456eed35520410bf693dc6881cca3231b47552a2c8f97a1489f75c934cd"
   },
-  "honestScope": "Offline data-integrity proof for the HoloMap import/export path using a deterministic room-shaped capture fixture. A live physical-room scan video was not present locally, so this gate does not claim new physical capture; it proves that captured frames become an exported GOLD space/portal artifact through the real HoloMap session/runtime/export code.",
+  "honestScope": "Offline data-integrity proof for the HoloMap import/export path using a deterministic room-shaped capture fixture. A live physical-room scan video was not present locally, so this gate does not claim new physical capture; it proves that captured frames become an anchored GOLD space/portal artifact through the real HoloMap session/runtime/export code.",
   "status": "PASS"
 }
