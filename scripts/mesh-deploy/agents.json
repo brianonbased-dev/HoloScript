@@ -17,7 +17,14 @@
     {
       "_role": "H200 FLAGSHIP — local-llm Qwen 72B-AWQ running lean-theorist-brain. Founder directive 2026-04-25 (commit 97efb061c) flipped this from anthropic claude-opus-4-7 → local-llm because Anthropic API spend ran $21+ in <2h with 0 CAEL records produced (mw01 wedged in over-budget loop). 2026-04-25 commit landed on agents-template.json but NOT agents.json (drift caught 2026-04-26 readiness audit); this edit closes that drift. Use the H200's 141GB VRAM for hot-tier brain context. instanceMatch=H200 pins this to the H200 instance. Sidecar: Goedel-V2-7B Lean-specialist co-located on the same H200 (88GB total fits in 140GB per AMBER memo §7.1).",
       "handle": "mesh-worker-01",
-      "instanceMatch": "H200",
+      "instanceMatch": {
+        "preferred": [
+          "H200"
+        ],
+        "fallback": [
+          "H100_NVL"
+        ]
+      },
       "brainPath": "compositions/lean-theorist-brain.hsplus",
       "provider": "local-llm",
       "model": "Qwen/Qwen2.5-72B-Instruct-AWQ",
