@@ -143,11 +143,17 @@
     "missing": [],
     "mismatched": []
   },
+  "fleetBoot": {
+    "synced": false,
+    "dir": null,
+    "skipped": true,
+    "reason": "--no-fleet-boot / GOLD_FLEET_BOOT_HOME empty"
+  },
   "deployedMatchesSource": true,
   "exeNote": "GOLD-GAME-Server.exe present (pre-built Node-SEA binary; digested, not regenerated).",
   "packageDigest": "2c27555d811184198bba23ef833217d0dfe995773957f23d7a865b8f87b6c692",
   "readOnly": "Regenerates the deployed COPY at the dest; D:/GOLD vault is never written. Source of truth stays examples/gold-game/.",
   "result": "VERIFIED",
-  "timestamp": "2026-05-25T08:16:04.117Z",
-  "payloadHash": "33f854e441e610e8fb1b8f6b2c762f94a71b0af8b063bf66f0cffa484ae1d3a9"
+  "timestamp": "2026-05-25T09:08:37.142Z",
+  "payloadHash": "db9003563314ebe1fcd010737ab2fb4d39fce6ed0e3638235aeffff0fac9f7be"
 }
