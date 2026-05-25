@@ -69,17 +69,22 @@ import {
   inputToVRChat,
 } from './DomainBlockCompilerMixin';
 
+export type VRChatOutputFormat = 'udonsharp-csharp' | 'udon-assembly' | 'udon-bytecode';
+
 export interface VRChatCompilerOptions {
   namespace?: string;
   className?: string;
   worldName?: string;
   indent?: string;
   sdkVersion?: '3.0' | '3.1' | '3.2' | '3.3' | '3.4' | '3.5';
+  outputFormat?: VRChatOutputFormat;
+  /** Legacy alias. Set outputFormat for the Byte/Udon target family. */
   useUdonSharp?: boolean;
   provenanceHash?: string;
 }
 
 export interface VRChatCompileResult {
+  outputFormat: VRChatOutputFormat;
   mainScript: string;
   udonScripts: Map<string, string>;
   prefabHierarchy: string;
@@ -102,13 +107,17 @@ export class VRChatCompiler extends CompilerBase {
 
   constructor(options: VRChatCompilerOptions = {}) {
     super();
+    const outputFormat =
+      options.outputFormat ??
+      (options.useUdonSharp === false ? 'udon-assembly' : 'udonsharp-csharp');
     this.options = {
       namespace: options.namespace || 'HoloWorld',
       className: options.className || 'GeneratedWorld',
       worldName: options.worldName || 'HoloScript World',
       indent: options.indent || '    ',
       sdkVersion: options.sdkVersion || '3.5',
-      useUdonSharp: options.useUdonSharp ?? true,
+      outputFormat,
+      useUdonSharp: options.useUdonSharp ?? (outputFormat === 'udonsharp-csharp'),
       provenanceHash: options.provenanceHash ?? '',
     };
   }
@@ -119,6 +128,7 @@ export class VRChatCompiler extends CompilerBase {
     outputPath?: string
   ): VRChatCompileResult {
     this.validateCompilerAccess(agentToken, outputPath);
+    this.assertSupportedOutputFormat();
     this.lines = [];
     this.udonScripts.clear();
     this.interactableObjects = [];
@@ -137,11 +147,31 @@ export class VRChatCompiler extends CompilerBase {
     const worldDescriptor = this.generateWorldDescriptor(composition);
 
     return {
+      outputFormat: this.options.outputFormat,
       mainScript,
       udonScripts: this.udonScripts,
       prefabHierarchy,
       worldDescriptor,
     };
+  }
+
+  private assertSupportedOutputFormat(): void {
+    if (this.options.outputFormat === 'udonsharp-csharp' && this.options.useUdonSharp) {
+      return;
+    }
+
+    const requested =
+      this.options.outputFormat === 'udonsharp-csharp'
+        ? 'non-UdonSharp Udon output'
+        : this.options.outputFormat;
+
+    throw new Error(
+      `VRChat ${requested} output is gated: founder direction is Byte/Udon output, ` +
+        'but the artifact contract must be confirmed before implementation ' +
+        '(Udon Assembly text vs serialized Udon bytecode asset). The current compiler ' +
+        "only emits legacy UdonSharp C# with outputFormat: 'udonsharp-csharp' and " +
+        'useUdonSharp: true.'
+    );
   }
 
   private generateMainScript(composition: HoloComposition): string {
