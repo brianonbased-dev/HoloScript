@@ -29,8 +29,14 @@ composition "VoiceInputSpatialVoice" {
   // LISTENER — User head position for binaural spatial voice
   // ----------------------------------------------------------
   audio_listener "UserHead" {
-    @hrtf(profile: "kemar_diffuse", interpolation: "bilinear")
-    @head_tracked_audio(tracking_mode: "6dof", latency_compensation: true)
+    hrtf: {
+      profile: "kemar_diffuse"
+      interpolation: "bilinear"
+    }
+    head_tracked_audio: {
+      tracking_mode: "6dof"
+      latency_compensation: true
+    }
     position: [0, 1.6, 0]
     global_volume: 1.0
     speed_of_sound: 343
@@ -44,10 +50,9 @@ composition "VoiceInputSpatialVoice" {
   // voice is positioned according to their avatar transform.
   // ----------------------------------------------------------
   object "MeetingRoomVoiceZone" {
-    geometry: "box"
+    voice_bounds: { shape: "rectangular_room", size: [10, 5, 10] }
     visible: false
     position: [0, 2.5, 0]
-    scale: [10, 5, 10]
 
     @spatial_voice {
       range: 20
@@ -91,7 +96,7 @@ composition "VoiceInputSpatialVoice" {
       ]
     }
 
-    // Screen content placeholder
+    // Screen content texture
     texture: "textures/presentation_slide_01.png"
   }
 
@@ -126,17 +131,60 @@ composition "VoiceInputSpatialVoice" {
     }
   }
 
+  object "MainCamera" {
+    type: "perspective_camera"
+    position: [4, 2.6, 5]
+    look_at: [1.2, 1.2, 0.2]
+    fov: 58
+  }
+
   // ----------------------------------------------------------
-  // SPATIAL VOICE AVATAR — Remote peer placeholder
+  // SPATIAL VOICE AVATAR - Remote peer fox avatar
   //
   // Represents another user in the room. Their voice stream is
   // spatialized via the @spatial_voice zone above.
+  //
+  // Visual reference evidence:
+  // - Red fox side/standing proportions, muzzle, ears, and tail:
+  //   https://commons.wikimedia.org/wiki/File:Vulpes_vulpes_standing.jpg
+  // - Digitigrade stance and raised hock/ankle relationship:
+  //   https://commons.wikimedia.org/wiki/File:Comparison_legs.jpg
   // ----------------------------------------------------------
   object "RemotePeerAvatar" {
-    geometry: "capsule"
-    position: [2.0, 0.9, 1.5]
-    scale: [0.4, 0.9, 0.4]
-    material: { baseColor: "#4488ff", roughness: 0.5, metallic: 0.0 }
+    geometry: "procedural_character_mesh"
+    position: [2.0, 0.95, 1.5]
+    scale: [1.0, 1.0, 1.0]
+    reference_profile: "digitigrade_red_fox_remote_peer"
+    silhouette: {
+      torso: { shape: "tapered_capsule", height: 1.05, shoulder_width: 0.48, hip_width: 0.34 },
+      head: { shape: "fox_head", muzzle_length: 0.28, cheek_width: 0.34, brow_slope: 0.18 },
+      ears: { shape: "tall_triangular", height: 0.26, outward_splay_degrees: 16 },
+      tail: { shape: "arched_counterbalance", length: 0.95, thickness_base: 0.16, white_tip: 0.22 },
+      legs: { stance: "digitigrade_biped", raised_hock: true, toe_contact: true, paw_length: 0.22 }
+    }
+    material: {
+      baseColor: "#c85f2b",
+      secondaryColor: "#fff1d7",
+      darkPoints: "#2d1a14",
+      roughness: 0.78,
+      metallic: 0.0,
+      furDirectionNoise: 0.22,
+      guardHairContrast: 0.18
+    }
+    anatomy_markers: [
+      { part: "muzzle", position: [0, 0.72, -0.28], color: "#fff1d7" },
+      { part: "chest_bib", position: [0, 0.34, -0.18], color: "#fff1d7" },
+      { part: "tail_tip", position: [0, 0.02, 0.82], color: "#fff1d7" },
+      { part: "left_ear", position: [-0.14, 0.92, -0.02], color: "#2d1a14" },
+      { part: "right_ear", position: [0.14, 0.92, -0.02], color: "#2d1a14" }
+    ]
+    pose: {
+      shoulders: "relaxed_forward",
+      hands: "low_open",
+      hocks: "back_and_high",
+      paws: "toe_contact",
+      gaze_target: "PresentationScreen"
+    }
 
     // Visual indicator when peer is speaking
     @spatial_voice {
@@ -154,7 +202,11 @@ composition "VoiceInputSpatialVoice" {
   // ACOUSTIC SURFACES
   // ----------------------------------------------------------
   object "RoomFloor" {
-    @audio_material(absorption_low: 0.25, absorption_mid: 0.35, absorption_high: 0.45)
+    @audio_material {
+      absorption_low: 0.25
+      absorption_mid: 0.35
+      absorption_high: 0.45
+    }
     @collidable
     geometry: "plane"
     position: [0, 0, 0]
@@ -163,7 +215,11 @@ composition "VoiceInputSpatialVoice" {
   }
 
   object "RoomCeiling" {
-    @audio_material(absorption_low: 0.15, absorption_mid: 0.20, absorption_high: 0.25)
+    @audio_material {
+      absorption_low: 0.15
+      absorption_mid: 0.20
+      absorption_high: 0.25
+    }
     geometry: "plane"
     position: [0, 5, 0]
     scale: [12, 1, 12]
@@ -171,8 +227,15 @@ composition "VoiceInputSpatialVoice" {
   }
 
   object "WallFront" {
-    @audio_material(absorption_low: 0.10, absorption_mid: 0.12, absorption_high: 0.15)
-    @audio_occlusion(transmission_loss: 30, frequency_dependent: true)
+    @audio_material {
+      absorption_low: 0.10
+      absorption_mid: 0.12
+      absorption_high: 0.15
+    }
+    @audio_occlusion {
+      transmission_loss: 30
+      frequency_dependent: true
+    }
     @collidable
     geometry: "plane"
     position: [0, 2.5, -6]
@@ -181,8 +244,15 @@ composition "VoiceInputSpatialVoice" {
   }
 
   object "WallBack" {
-    @audio_material(absorption_low: 0.10, absorption_mid: 0.12, absorption_high: 0.15)
-    @audio_occlusion(transmission_loss: 30, frequency_dependent: true)
+    @audio_material {
+      absorption_low: 0.10
+      absorption_mid: 0.12
+      absorption_high: 0.15
+    }
+    @audio_occlusion {
+      transmission_loss: 30
+      frequency_dependent: true
+    }
     @collidable
     geometry: "plane"
     position: [0, 2.5, 6]
@@ -191,8 +261,15 @@ composition "VoiceInputSpatialVoice" {
   }
 
   object "WallLeft" {
-    @audio_material(absorption_low: 0.10, absorption_mid: 0.12, absorption_high: 0.15)
-    @audio_occlusion(transmission_loss: 30, frequency_dependent: true)
+    @audio_material {
+      absorption_low: 0.10
+      absorption_mid: 0.12
+      absorption_high: 0.15
+    }
+    @audio_occlusion {
+      transmission_loss: 30
+      frequency_dependent: true
+    }
     @collidable
     geometry: "plane"
     position: [-6, 2.5, 0]
@@ -201,8 +278,15 @@ composition "VoiceInputSpatialVoice" {
   }
 
   object "WallRight" {
-    @audio_material(absorption_low: 0.10, absorption_mid: 0.12, absorption_high: 0.15)
-    @audio_occlusion(transmission_loss: 30, frequency_dependent: true)
+    @audio_material {
+      absorption_low: 0.10
+      absorption_mid: 0.12
+      absorption_high: 0.15
+    }
+    @audio_occlusion {
+      transmission_loss: 30
+      frequency_dependent: true
+    }
     @collidable
     geometry: "plane"
     position: [6, 2.5, 0]
@@ -214,14 +298,110 @@ composition "VoiceInputSpatialVoice" {
   // REVERB — Small meeting room acoustics
   // ----------------------------------------------------------
   reverb_zone "MeetingRoomReverb" {
-    @reverb_zone(type: "algorithmic", preset: "medium_room")
-    @reverb_zone(rt60_low: 0.7, rt60_mid: 0.5, rt60_high: 0.3)
-    @reverb_zone(early_reflections: 8, late_diffusion: 0.75)
+    reverb_algorithm: {
+      type: "algorithmic"
+      preset: "medium_room"
+    }
+    decay_profile: {
+      rt60_low: 0.7
+      rt60_mid: 0.5
+      rt60_high: 0.3
+    }
+    reflection_profile: {
+      early_reflections: 8
+      late_diffusion: 0.75
+    }
     position: [0, 2.5, 0]
     min_distance: 1
     max_distance: 8
     decay_time: 0.5
     diffusion: 70
     density: 80
+  }
+
+  // Render-visible facets for the fox profile above. These simple facets are
+  // only the renderer-facing silhouette; the anatomical intent lives in
+  // RemotePeerAvatar.reference_profile and its cited visual references.
+  object "PeerFoxTorsoFacet" {
+    geometry: "box"
+    position: [2.0, 1.0, 1.5]
+    scale: [0.42, 0.92, 0.30]
+    material: { baseColor: "#c85f2b", roughness: 0.78, metallic: 0.0 }
+  }
+
+  object "PeerFoxChestFacet" {
+    geometry: "box"
+    position: [2.0, 1.12, 1.26]
+    scale: [0.26, 0.42, 0.05]
+    material: { baseColor: "#fff1d7", roughness: 0.82, metallic: 0.0 }
+  }
+
+  object "PeerFoxHeadFacet" {
+    geometry: "box"
+    position: [2.0, 1.68, 1.5]
+    scale: [0.36, 0.30, 0.30]
+    material: { baseColor: "#c85f2b", roughness: 0.76, metallic: 0.0 }
+  }
+
+  object "PeerFoxMuzzleFacet" {
+    geometry: "box"
+    position: [2.0, 1.64, 1.18]
+    scale: [0.22, 0.14, 0.26]
+    material: { baseColor: "#fff1d7", roughness: 0.84, metallic: 0.0 }
+  }
+
+  object "PeerFoxLeftEarFacet" {
+    geometry: "box"
+    position: [1.84, 1.94, 1.48]
+    scale: [0.10, 0.28, 0.08]
+    rotation: [0, 0, -0.26]
+    material: { baseColor: "#2d1a14", roughness: 0.8, metallic: 0.0 }
+  }
+
+  object "PeerFoxRightEarFacet" {
+    geometry: "box"
+    position: [2.16, 1.94, 1.48]
+    scale: [0.10, 0.28, 0.08]
+    rotation: [0, 0, 0.26]
+    material: { baseColor: "#2d1a14", roughness: 0.8, metallic: 0.0 }
+  }
+
+  object "PeerFoxTailFacet" {
+    geometry: "box"
+    position: [2.0, 0.92, 2.08]
+    scale: [0.18, 0.82, 0.18]
+    rotation: [0.72, 0, 0]
+    material: { baseColor: "#c85f2b", roughness: 0.82, metallic: 0.0 }
+  }
+
+  object "PeerFoxTailTipFacet" {
+    geometry: "box"
+    position: [2.0, 1.22, 2.38]
+    scale: [0.20, 0.24, 0.20]
+    rotation: [0.72, 0, 0]
+    material: { baseColor: "#fff1d7", roughness: 0.86, metallic: 0.0 }
+  }
+
+  object "PeerFoxLeftHockFacet" {
+    geometry: "box"
+    position: [1.84, 0.36, 1.62]
+    scale: [0.11, 0.46, 0.12]
+    rotation: [-0.32, 0, 0.08]
+    material: { baseColor: "#8a3a22", roughness: 0.86, metallic: 0.0 }
+  }
+
+  object "PeerFoxRightHockFacet" {
+    geometry: "box"
+    position: [2.16, 0.36, 1.62]
+    scale: [0.11, 0.46, 0.12]
+    rotation: [-0.32, 0, -0.08]
+    material: { baseColor: "#8a3a22", roughness: 0.86, metallic: 0.0 }
+  }
+
+  object "PeerFoxToeLineFacet" {
+    geometry: "box"
+    position: [2.0, 0.08, 1.30]
+    scale: [0.54, 0.08, 0.28]
+    material: { baseColor: "#2d1a14", roughness: 0.9, metallic: 0.0 }
   }
 }
