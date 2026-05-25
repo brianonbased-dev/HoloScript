@@ -31,10 +31,24 @@ describe('HoloMapAnchorContextTrait', () => {
     node.emit.mockClear();
     holomapAnchorContextHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
       type: 'holomap:anchor_update',
-      payload: { anchorFrameIndex: 42 },
+      payload: {
+        anchorFrameIndex: 42,
+        anchorPose: {
+          position: [1, 2, 3],
+          rotation: [0, 0.25, 0, 0.9682458],
+          confidence: 0.8,
+        },
+        anchorDescriptor: new Float32Array([1, 2, 3, 0.8]),
+        revision: 9,
+      },
     } as never);
     expect(node.emit).toHaveBeenCalledWith('holomap:anchor_state_changed', expect.objectContaining({
       anchorFrameIndex: 42,
+      anchorPose: expect.objectContaining({
+        position: [1, 2, 3],
+      }),
+      anchorDescriptorLength: 4,
+      revision: 9,
       autoReanchor: true,
     }));
   });

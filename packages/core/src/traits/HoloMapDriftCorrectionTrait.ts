@@ -37,16 +37,35 @@ export const holomapDriftCorrectionHandler: TraitHandler<HoloMapDriftCorrectionC
   onEvent(_node, config, context, event) {
     if (event.type !== 'holomap:step_result' && event.type !== 'holomap:drift_update') return;
     const payload = event.payload ?? {};
+    const trajectory =
+      payload.trajectory && typeof payload.trajectory === 'object'
+        ? payload.trajectory as Record<string, unknown>
+        : undefined;
+    const driftValue = payload.estimatedDriftMeters ?? trajectory?.estimatedDriftMeters;
     const drift =
-      typeof payload.estimatedDriftMeters === 'number' && Number.isFinite(payload.estimatedDriftMeters)
-        ? payload.estimatedDriftMeters
+      typeof driftValue === 'number' && Number.isFinite(driftValue)
+        ? driftValue
         : 0;
+    const nestedKeyframes = Array.isArray(trajectory?.keyframes) ? trajectory.keyframes : undefined;
+    const keyframeCount =
+      typeof payload.keyframeCount === 'number' && Number.isFinite(payload.keyframeCount)
+        ? payload.keyframeCount
+        : nestedKeyframes?.length;
+    const nestedLastLoopClosureFrame = trajectory?.lastLoopClosureFrame;
+    const lastLoopClosureFrame =
+      typeof payload.lastLoopClosureFrame === 'number' && Number.isFinite(payload.lastLoopClosureFrame)
+        ? payload.lastLoopClosureFrame
+        : typeof nestedLastLoopClosureFrame === 'number' && Number.isFinite(nestedLastLoopClosureFrame)
+          ? nestedLastLoopClosureFrame
+          : undefined;
 
     if (drift >= config.maxDriftMeters) {
       context.emit?.('holomap:drift_correction_requested', {
         estimatedDriftMeters: drift,
         loopClosureThreshold: config.loopClosureThreshold,
         rewriteHistory: config.rewriteHistory,
+        keyframeCount,
+        lastLoopClosureFrame,
       });
     }
   },

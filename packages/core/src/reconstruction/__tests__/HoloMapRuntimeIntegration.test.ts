@@ -46,6 +46,39 @@ function buildGradientFrame(index: number): ReconstructionFrame {
   return { index, timestampMs: index * 33, rgb, width: W, height: H, stride };
 }
 
+function buildAxisDepthFrame(index: number, axis: 'x' | 'y'): ReconstructionFrame {
+  const W = 32;
+  const H = 32;
+  const stride = 4;
+  const rgb = new Uint8Array(W * H * stride);
+  for (let y = 0; y < H; y += 1) {
+    for (let x = 0; x < W; x += 1) {
+      const o = (y * W + x) * stride;
+      const ramp = axis === 'x' ? x : y;
+      const v = Math.min(255, ramp * 8);
+      rgb[o] = v;
+      rgb[o + 1] = v;
+      rgb[o + 2] = v;
+      rgb[o + 3] = 255;
+    }
+  }
+  return { index, timestampMs: index * 33, rgb, width: W, height: H, stride };
+}
+
+function buildSolidFrame(index: number, value: number): ReconstructionFrame {
+  const W = 32;
+  const H = 32;
+  const stride = 4;
+  const rgb = new Uint8Array(W * H * stride);
+  for (let i = 0; i < W * H; i += 1) {
+    rgb[i * stride] = value;
+    rgb[i * stride + 1] = value;
+    rgb[i * stride + 2] = value;
+    rgb[i * stride + 3] = 255;
+  }
+  return { index, timestampMs: index * 33, rgb, width: W, height: H, stride };
+}
+
 describe('HoloMapRuntime — 8-kernel integration on 32×32 fixture', () => {
   it('step() emits a multi-point cloud (NOT the legacy 2-point placeholder)', async () => {
     const runtime = createHoloMapRuntime();
@@ -264,6 +297,61 @@ describe('HoloMapRuntime — 8-kernel integration on 32×32 fixture', () => {
     expect(px).toBeCloseTo(mx, 5);
     expect(py).toBeCloseTo(my, 5);
     expect(pz).toBeCloseTo(mz, 5);
+
+    await runtime.dispose();
+  });
+
+  it('derives pose rotation from the reconstructed point-cloud principal axis', async () => {
+    const runOnce = async (axis: 'x' | 'y') => {
+      const runtime = createHoloMapRuntime();
+      await runtime.init({
+        ...HOLOMAP_DEFAULTS,
+        seed: 17,
+        modelHash: `integration-principal-axis-${axis}`,
+        targetFPS: 10000,
+      });
+      const step = await runtime.step(buildAxisDepthFrame(0, axis));
+      await runtime.dispose();
+      return step;
+    };
+
+    const xAxis = await runOnce('x');
+    const yAxis = await runOnce('y');
+    const xRotation = xAxis.pose.rotation;
+    const yRotation = yAxis.pose.rotation;
+    const xNorm = Math.hypot(...xRotation);
+    const yNorm = Math.hypot(...yRotation);
+    const rotationDiff = xRotation.reduce(
+      (sum, value, i) => sum + Math.abs(value - yRotation[i]!),
+      0,
+    );
+
+    expect(xNorm).toBeCloseTo(1, 5);
+    expect(yNorm).toBeCloseTo(1, 5);
+    expect(rotationDiff).toBeGreaterThan(1e-4);
+    expect(xAxis.trajectory.keyframes[0]!.pose.rotation).toEqual(xRotation);
+  });
+
+  it('records trajectory keyframes and estimates drift from inter-frame pose deltas', async () => {
+    const runtime = createHoloMapRuntime();
+    await runtime.init({
+      ...HOLOMAP_DEFAULTS,
+      seed: 19,
+      modelHash: 'integration-trajectory-keyframes',
+      targetFPS: 10000,
+    });
+
+    const first = await runtime.step(buildSolidFrame(0, 24));
+    const second = await runtime.step(buildSolidFrame(1, 224));
+
+    expect(first.trajectory.keyframes).toHaveLength(1);
+    expect(second.trajectory.keyframes).toHaveLength(2);
+    expect(second.trajectory.keyframes.map((keyframe) => keyframe.frameIndex)).toEqual([0, 1]);
+    expect(second.trajectory.estimatedDriftMeters).toBeGreaterThan(0);
+    expect(Array.from(second.trajectory.keyframes[0]!.embedding)).not.toEqual(
+      Array.from(second.trajectory.keyframes[1]!.embedding),
+    );
+    expect(second.trajectory.keyframes[1]!.pose.position[2]).toBeCloseTo(second.pose.position[2], 5);
 
     await runtime.dispose();
   });

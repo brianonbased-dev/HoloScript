@@ -34,9 +34,21 @@ export const holomapAnchorContextHandler: TraitHandler<HoloMapAnchorContextTrait
   onEvent(_node, config, context, event) {
     const payload = event.payload ?? {};
     if (event.type === 'holomap:anchor_update') {
+      const anchorDescriptor =
+        payload.anchorDescriptor instanceof Float32Array
+          ? Array.from(payload.anchorDescriptor)
+          : Array.isArray(payload.anchorDescriptor)
+            ? payload.anchorDescriptor
+            : undefined;
       context.emit?.('holomap:anchor_state_changed', {
         anchorFrameIndex:
           typeof payload.anchorFrameIndex === 'number' ? payload.anchorFrameIndex : 0,
+        anchorPose:
+          payload.anchorPose && typeof payload.anchorPose === 'object'
+            ? payload.anchorPose
+            : undefined,
+        anchorDescriptorLength: anchorDescriptor?.length,
+        revision: typeof payload.revision === 'number' ? payload.revision : undefined,
         autoReanchor: config.autoReanchor,
       });
       return;

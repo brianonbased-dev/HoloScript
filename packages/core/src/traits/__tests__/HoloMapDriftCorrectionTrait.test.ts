@@ -31,11 +31,34 @@ describe('HoloMapDriftCorrectionTrait', () => {
     node.emit.mockClear();
     holomapDriftCorrectionHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
       type: 'holomap:drift_update',
-      payload: { estimatedDriftMeters: 1.2 },
+      payload: { estimatedDriftMeters: 1.2, keyframeCount: 3, lastLoopClosureFrame: 8 },
     } as never);
     expect(node.emit).toHaveBeenCalledWith('holomap:drift_correction_requested', expect.objectContaining({
       estimatedDriftMeters: 1.2,
       loopClosureThreshold: 0.92,
+      keyframeCount: 3,
+      lastLoopClosureFrame: 8,
+    }));
+  });
+
+  it('holomap:step_result reads nested trajectory drift and keyframes', () => {
+    const node = makeNode();
+    holomapDriftCorrectionHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
+    node.emit.mockClear();
+    holomapDriftCorrectionHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
+      type: 'holomap:step_result',
+      payload: {
+        trajectory: {
+          estimatedDriftMeters: 1.4,
+          lastLoopClosureFrame: 12,
+          keyframes: [{ frameIndex: 0 }, { frameIndex: 1 }],
+        },
+      },
+    } as never);
+    expect(node.emit).toHaveBeenCalledWith('holomap:drift_correction_requested', expect.objectContaining({
+      estimatedDriftMeters: 1.4,
+      keyframeCount: 2,
+      lastLoopClosureFrame: 12,
     }));
   });
 

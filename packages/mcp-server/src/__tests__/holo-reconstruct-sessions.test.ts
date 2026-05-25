@@ -27,6 +27,7 @@ describe('holo reconstruct MCP sessions', () => {
     const step = await mcpReconstructStep(started.sessionId, rgb.toString('base64'), 0, w, h);
     expect(step.ok).toBe(true);
     expect(step.pointCount).toBeGreaterThan(0);
+    expect(step.trajectoryKeyframeCount).toBeGreaterThan(0);
 
     const anchor = mcpReconstructAnchor(started.sessionId);
     expect(anchor.ok).toBe(true);

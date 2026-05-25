@@ -179,11 +179,14 @@ export const holomapReconstructionHandler: TraitHandler<HoloMapReconstructionCon
         });
         context.emit?.('holomap:drift_update', {
           estimatedDriftMeters: step.trajectory.estimatedDriftMeters,
+          keyframeCount: step.trajectory.keyframes.length,
+          lastLoopClosureFrame: step.trajectory.lastLoopClosureFrame,
         });
         context.emit?.('holomap:anchor_update', {
           anchorFrameIndex: step.anchor.anchorFrameIndex,
           anchorPose: step.anchor.anchorPose,
           anchorDescriptor: step.anchor.anchorDescriptor,
+          revision: step.anchor.revision,
         });
       }, (err: unknown) => {
         state.lastError = err instanceof Error ? err.message : String(err);
@@ -318,4 +321,3 @@ function isReconstructionFrame(v: unknown): v is ReconstructionFrame {
 }
 
 export default holomapReconstructionHandler;
-

@@ -12,6 +12,7 @@
 
 import type { TraitHandler } from './TraitTypes';
 import type { CameraPose } from '../reconstruction/HoloMapRuntime';
+import type { TrajectoryKeyframe } from '../reconstruction/TrajectoryMemory';
 
 export interface HoloMapCameraTrajectoryConfig {
   /** Maximum poses retained in the in-memory ring buffer */
@@ -22,7 +23,9 @@ export interface HoloMapCameraTrajectoryConfig {
 
 export interface HoloMapCameraTrajectoryState {
   poses: CameraPose[];
+  keyframes: TrajectoryKeyframe[];
   currentFrameIndex: number;
+  estimatedDriftMeters: number;
 }
 
 export const holomapCameraTrajectoryHandler: TraitHandler<HoloMapCameraTrajectoryConfig> = {
@@ -36,7 +39,9 @@ export const holomapCameraTrajectoryHandler: TraitHandler<HoloMapCameraTrajector
   onAttach(node, config) {
     const state: HoloMapCameraTrajectoryState = {
       poses: [],
+      keyframes: [],
       currentFrameIndex: 0,
+      estimatedDriftMeters: 0,
     };
     (node as unknown as Record<string, unknown>).__holomapTrajectoryState = state;
     void config;
@@ -51,6 +56,10 @@ export const holomapCameraTrajectoryHandler: TraitHandler<HoloMapCameraTrajector
 
     const payload = event.payload ?? {};
     const pose = payload.pose as CameraPose | undefined;
+    const trajectory =
+      payload.trajectory && typeof payload.trajectory === 'object'
+        ? payload.trajectory as { keyframes?: TrajectoryKeyframe[]; estimatedDriftMeters?: number }
+        : undefined;
     const frameIndex =
       typeof payload.frameIndex === 'number' && Number.isFinite(payload.frameIndex)
         ? payload.frameIndex
@@ -59,6 +68,15 @@ export const holomapCameraTrajectoryHandler: TraitHandler<HoloMapCameraTrajector
     if (!pose) return;
     state.currentFrameIndex = frameIndex;
     state.poses.push(pose);
+    if (Array.isArray(trajectory?.keyframes)) {
+      state.keyframes = trajectory.keyframes.slice(-config.historyLength);
+    }
+    if (
+      typeof trajectory?.estimatedDriftMeters === 'number' &&
+      Number.isFinite(trajectory.estimatedDriftMeters)
+    ) {
+      state.estimatedDriftMeters = trajectory.estimatedDriftMeters;
+    }
     if (state.poses.length > config.historyLength) {
       state.poses.splice(0, state.poses.length - config.historyLength);
     }
@@ -68,6 +86,8 @@ export const holomapCameraTrajectoryHandler: TraitHandler<HoloMapCameraTrajector
         frameIndex,
         pose,
         retained: state.poses.length,
+        keyframes: state.keyframes.length,
+        estimatedDriftMeters: state.estimatedDriftMeters,
       });
     }
   },

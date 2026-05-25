@@ -9,7 +9,7 @@
  */
 
 import type { AnchorContextState } from './AnchorContext';
-import type { TrajectoryMemoryState } from './TrajectoryMemory';
+import type { TrajectoryKeyframe, TrajectoryMemoryState } from './TrajectoryMemory';
 import {
   createHoloMapMicroEncoder,
   runHoloMapMicroEncoderCpu,
@@ -224,12 +224,11 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   private boundsValid = false;
   /** Running total point count (avoids O(n) re-scan in finalize). */
   private totalPointCount = 0;
-  // ── Scan-derived trajectory / drift state (E4, 2026-05-24) ──
-  // Anchor pose and drift are derived from the accumulated scan rather than
-  // emitted as constants. Drift is the registration residual: the camera-pose
-  // deviation from a constant-velocity prediction, accumulated over the capture.
-  // Loop closure fires when the camera revisits a prior keyframe position.
-  /** Accumulated registration residual (meters) over the capture. */
+  // ── Scan-derived trajectory / drift state ──
+  // Anchor pose, trajectory keyframes, and drift are derived from the scan
+  // geometry rather than emitted as constants. Drift is an uncertainty-weighted
+  // inter-frame pose delta accumulated over the capture.
+  /** Accumulated drift estimate (meters) over the capture. */
   private cumulativeDriftMeters = 0;
   /**
    * Running sum of every observed point position + confidence (eviction-adjusted).
@@ -242,15 +241,20 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   private globalConfSum = 0;
   /** Previous frame camera pose (centroid of that frame's points). */
   private prevPose: [number, number, number] | null = null;
+  /** Previous full camera pose, including scan-derived principal-axis rotation. */
+  private prevCameraPose: CameraPose | null = null;
   /** Previous inter-frame velocity, for constant-velocity drift prediction. */
   private prevVelocity: [number, number, number] | null = null;
   /** Frame index of the last detected loop closure (−1 if none). */
   private lastLoopClosureFrameIdx = -1;
   /** Compact camera-pose history for loop-closure (revisit) detection. */
   private readonly poseHistory: Array<{ frameIndex: number; position: [number, number, number] }> = [];
+  /** Compact trajectory snapshot emitted with every accepted step. */
+  private readonly trajectoryKeyframes: TrajectoryKeyframe[] = [];
   private static readonly LOOP_CLOSURE_MIN_GAP = 3;
   private static readonly LOOP_CLOSURE_RADIUS = 0.05;
   private static readonly POSE_HISTORY_CAP = 512;
+  private static readonly TRAJECTORY_KEYFRAME_CAP = 512;
   /** Last accepted capture timestamp (ms) for deterministic FPS throttling. */
   private lastAcceptedFrameTimestampMs: number | null = null;
   /** Deterministic session start timestamp. */
@@ -339,6 +343,100 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     return HoloMapRuntimeImpl.computeBounds(this.steps);
   }
 
+  private static estimatePrincipalAxisRotation(
+    chunks: readonly Float32Array[],
+    centroid: [number, number, number]
+  ): [number, number, number, number] {
+    let xx = 0;
+    let zz = 0;
+    let xz = 0;
+    let n = 0;
+
+    for (const positions of chunks) {
+      for (let i = 0; i < positions.length; i += 3) {
+        const dx = (positions[i] ?? 0) - centroid[0];
+        const dz = (positions[i + 2] ?? 0) - centroid[2];
+        xx += dx * dx;
+        zz += dz * dz;
+        xz += dx * dz;
+        n += 1;
+      }
+    }
+
+    if (n < 2 || xx + zz < 1e-12) return [0, 0, 0, 1];
+    const yaw = 0.5 * Math.atan2(2 * xz, xx - zz);
+    return HoloMapRuntimeImpl.yawToQuaternion(yaw);
+  }
+
+  private static yawToQuaternion(yaw: number): [number, number, number, number] {
+    const half = yaw / 2;
+    return [0, Math.sin(half), 0, Math.cos(half)];
+  }
+
+  private static poseDistanceMeters(a: CameraPose, b: CameraPose): number {
+    const dx = a.position[0] - b.position[0];
+    const dy = a.position[1] - b.position[1];
+    const dz = a.position[2] - b.position[2];
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  }
+
+  private static poseRotationDeltaRadians(a: CameraPose, b: CameraPose): number {
+    const dot = Math.abs(
+      a.rotation[0] * b.rotation[0] +
+      a.rotation[1] * b.rotation[1] +
+      a.rotation[2] * b.rotation[2] +
+      a.rotation[3] * b.rotation[3]
+    );
+    const clamped = Math.max(-1, Math.min(1, dot));
+    return 2 * Math.acos(clamped);
+  }
+
+  private static buildTrajectoryEmbedding(
+    pose: CameraPose,
+    anchorDescriptor: Float32Array,
+    interFrameDeltaMeters: number,
+    interFrameRotationRadians: number
+  ): Float32Array {
+    return new Float32Array([
+      pose.position[0],
+      pose.position[1],
+      pose.position[2],
+      pose.rotation[0],
+      pose.rotation[1],
+      pose.rotation[2],
+      pose.rotation[3],
+      pose.confidence,
+      interFrameDeltaMeters,
+      interFrameRotationRadians,
+      anchorDescriptor[0] ?? 0,
+      anchorDescriptor[1] ?? 0,
+      anchorDescriptor[2] ?? 0,
+      anchorDescriptor[3] ?? 0,
+    ]);
+  }
+
+  private static cloneTrajectoryKeyframes(
+    keyframes: readonly TrajectoryKeyframe[]
+  ): TrajectoryKeyframe[] {
+    return keyframes.map((keyframe) => ({
+      frameIndex: keyframe.frameIndex,
+      timestampMs: keyframe.timestampMs,
+      pose: {
+        position: [...keyframe.pose.position] as [number, number, number],
+        rotation: [...keyframe.pose.rotation] as [number, number, number, number],
+        confidence: keyframe.pose.confidence,
+      },
+      embedding: new Float32Array(keyframe.embedding),
+    }));
+  }
+
+  private pushTrajectoryKeyframe(keyframe: TrajectoryKeyframe): void {
+    this.trajectoryKeyframes.push(keyframe);
+    if (this.trajectoryKeyframes.length > HoloMapRuntimeImpl.TRAJECTORY_KEYFRAME_CAP) {
+      this.trajectoryKeyframes.shift();
+    }
+  }
+
   async init(config: HoloMapConfig): Promise<void> {
     this.config = { ...config };
     this.config.tileGrid = HoloMapRuntimeImpl.normalizeTileGrid(this.config.tileGrid);
@@ -359,9 +457,11 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     this.boundsMax = [0, 0, 0];
     this.cumulativeDriftMeters = 0;
     this.prevPose = null;
+    this.prevCameraPose = null;
     this.prevVelocity = null;
     this.lastLoopClosureFrameIdx = -1;
     this.poseHistory.length = 0;
+    this.trajectoryKeyframes.length = 0;
     this.globalPosSum = [0, 0, 0];
     this.globalConfSum = 0;
     this.lastAcceptedFrameTimestampMs = null;
@@ -661,12 +761,35 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     const poseZ = centroidZ * inv;
     const meanConfidence = confidenceSum * inv;
 
-    // ── Scan-derived drift (registration residual) ──────────────────────────
-    // Drift = camera-pose deviation from a constant-velocity prediction,
-    // accumulated over the capture. The per-frame pose is the point centroid
-    // (scan-derived above), so one tampered byte/frame moves the pose, the
-    // residual, and therefore the accumulated drift. (E4 acceptance bar.)
+    // ── Scan-derived pose + drift ───────────────────────────────────────────
+    // Pose = point centroid + horizontal principal-axis rotation. Drift is the
+    // uncertainty-weighted inter-frame pose delta, plus a residual term when the
+    // trajectory deviates from constant-velocity motion.
     const curPose: [number, number, number] = [poseX, poseY, poseZ];
+    const poseRotation = HoloMapRuntimeImpl.estimatePrincipalAxisRotation([positions], curPose);
+    const poseConfidence = Math.max(0, Math.min(1, meanConfidence));
+    const cameraPose: CameraPose = {
+      position: curPose,
+      rotation: poseRotation,
+      confidence: poseConfidence,
+    };
+
+    let interFrameDeltaMeters = 0;
+    let interFrameRotationRadians = 0;
+    if (this.prevCameraPose) {
+      interFrameDeltaMeters = HoloMapRuntimeImpl.poseDistanceMeters(cameraPose, this.prevCameraPose);
+      interFrameRotationRadians = HoloMapRuntimeImpl.poseRotationDeltaRadians(
+        cameraPose,
+        this.prevCameraPose
+      );
+      const uncertaintyWeight = Math.max(
+        0.05,
+        1 - Math.min(cameraPose.confidence, this.prevCameraPose.confidence)
+      );
+      this.cumulativeDriftMeters +=
+        interFrameDeltaMeters * uncertaintyWeight + interFrameRotationRadians * 0.05;
+    }
+
     if (this.prevPose) {
       const velocity: [number, number, number] = [
         curPose[0] - this.prevPose[0],
@@ -685,6 +808,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       this.prevVelocity = velocity;
     }
     this.prevPose = curPose;
+    this.prevCameraPose = cameraPose;
 
     // ── Loop closure: revisit of a prior keyframe position ──────────────────
     for (const kf of this.poseHistory) {
@@ -723,44 +847,46 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     const extentX = b.max[0] - b.min[0];
     const extentY = b.max[1] - b.min[1];
     const extentZ = b.max[2] - b.min[2];
-    // Anchor heading: yaw aligned to the camera trajectory direction (XZ plane).
-    const heading = this.prevVelocity
-      ? Math.atan2(this.prevVelocity[0], this.prevVelocity[2] || 1e-6)
-      : 0;
-    const halfYaw = heading / 2;
-    const anchorRotation: [number, number, number, number] = [
-      0,
-      Math.sin(halfYaw),
-      0,
-      Math.cos(halfYaw),
-    ];
+    const anchorRotation = HoloMapRuntimeImpl.estimatePrincipalAxisRotation(
+      [...this.steps.map((s) => s.points.positions), positions],
+      anchorCenter
+    );
+    const anchorDescriptor = new Float32Array([extentX, extentY, extentZ, globalMeanConfidence]);
+    this.pushTrajectoryKeyframe({
+      frameIndex: frame.index,
+      timestampMs: frame.timestampMs,
+      pose: cameraPose,
+      embedding: HoloMapRuntimeImpl.buildTrajectoryEmbedding(
+        cameraPose,
+        anchorDescriptor,
+        interFrameDeltaMeters,
+        interFrameRotationRadians
+      ),
+    });
+    const trajectoryKeyframes = HoloMapRuntimeImpl.cloneTrajectoryKeyframes(this.trajectoryKeyframes);
 
     const step: ReconstructionStep = {
       frame,
-      pose: {
-        position: curPose,
-        rotation: [0, 0, 0, 1],
-        confidence: 0.8,
-      },
+      pose: cameraPose,
       points: {
         positions,
         colors,
         confidence,
       },
       trajectory: {
-        keyframes: [],
+        keyframes: trajectoryKeyframes,
         estimatedDriftMeters: this.cumulativeDriftMeters,
         lastLoopClosureFrame: this.lastLoopClosureFrameIdx,
         revision: frame.index + 1,
       },
       anchor: {
-        anchorFrameIndex: 0,
+        anchorFrameIndex: trajectoryKeyframes[0]?.frameIndex ?? frame.index,
         anchorPose: {
           position: anchorCenter,
           rotation: anchorRotation,
           confidence: Math.max(0, Math.min(1, globalMeanConfidence)),
         },
-        anchorDescriptor: new Float32Array([extentX, extentY, extentZ, globalMeanConfidence]),
+        anchorDescriptor,
         revision: frame.index + 1,
       },
     };
@@ -853,9 +979,11 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     this.totalPointCount = 0;
     this.cumulativeDriftMeters = 0;
     this.prevPose = null;
+    this.prevCameraPose = null;
     this.prevVelocity = null;
     this.lastLoopClosureFrameIdx = -1;
     this.poseHistory.length = 0;
+    this.trajectoryKeyframes.length = 0;
     this.globalPosSum = [0, 0, 0];
     this.globalConfSum = 0;
     this.boundsValid = false;
