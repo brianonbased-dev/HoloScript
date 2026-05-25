@@ -22,8 +22,8 @@
     {
       "rel": "3d/index.html",
       "kind": "build",
-      "bytes": 1522088,
-      "sha256": "d02d0faeb80f57393ca81f369efa36dadf4416a15438319f3de1d5849c215b4b",
+      "bytes": 1523299,
+      "sha256": "8896b785d7e72a933fbb515a11d8f3d1e944c9f4cfab2a8e1460c9bea48ed4e2",
       "deployedMatches": true
     },
     {
@@ -135,9 +135,9 @@
   "mismatched": [],
   "deployedMatchesSource": true,
   "exeNote": "GOLD-GAME-Server.exe present (pre-built Node-SEA binary; digested, not regenerated).",
-  "packageDigest": "7555696d776d5fc24f30f3b16d1efa4d24380f3c686060dbecfaab894b948318",
+  "packageDigest": "2c27555d811184198bba23ef833217d0dfe995773957f23d7a865b8f87b6c692",
   "readOnly": "Regenerates the deployed COPY at the dest; D:/GOLD vault is never written. Source of truth stays examples/gold-game/.",
   "result": "VERIFIED",
-  "timestamp": "2026-05-24T19:11:53.773Z",
-  "payloadHash": "764348d856c565e65b137a1f386e1915e8130e6dd326a9e4958ea9b8b384d119"
+  "timestamp": "2026-05-25T02:54:57.136Z",
+  "payloadHash": "ef2868618aac1f7d771843c5fe5ad8197e58a5d8b16c821349348b06c69a9661"
 }
