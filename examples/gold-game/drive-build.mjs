@@ -16,6 +16,9 @@ import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
+// Gate 41: pure mount module (F.077) — turns the Gate-39 coords artifact into the
+// deterministic render payload embedded below.
+import { buildMountainMount } from './gold-game-knowledge-mountain.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -30,6 +33,7 @@ const CONCEPT_ART = join(here, 'assets', 'gold-vault-vista-wlNgg.jpg');
 const HOLOGRAPH_RECEIPT = join(here, 'GATE-10-HOLOGRAPH-receipt.json');
 const HOLOMAP_ROOM = join(here, 'gold-vault-holomap-room.json');
 const HOLOGRAPHIC_EXPORT = join(here, 'gold-vault-holographic-export.json');
+const MOUNTAIN_COORDS = join(here, 'knowledge-mountain-coords.json');
 const VAULT_ROOT = process.env.GOLD_ROOT || 'D:/GOLD';
 const sha256 = (s) => createHash('sha256').update(s).digest('hex');
 const conceptArtBytes = existsSync(CONCEPT_ART) ? readFileSync(CONCEPT_ART) : null;
@@ -200,6 +204,19 @@ const playableHoloGraph = readPlayableHoloGraph();
 const vaultCatalog = readVaultCatalog(); // Gate 28: every real GOLD entry (summaries)
 const holomapRoom = readJsonArtifact(HOLOMAP_ROOM, 33, 'HoloMap scanned room');
 const holographicExport = readJsonArtifact(HOLOGRAPHIC_EXPORT, 38, 'holographic export leg');
+// Gate 41: mount the Gate-39 Knowledge Mountain (full real GOLD vault as a climbable
+// region) INTO this playable build. Reads the SAME committed coords artifact the Gate-39
+// verifier proved; buildMountainMount is a pure deterministic transform.
+let knowledgeMountain = null;
+try {
+  const mc = JSON.parse(readFileSync(MOUNTAIN_COORDS, 'utf8'));
+  knowledgeMountain = buildMountainMount(mc);
+  // link back to the Gate-39 proof: carry its sealed terrain digest into the mount.
+  try {
+    const g39 = JSON.parse(readFileSync(join(here, 'GATE-39-KNOWLEDGE-MOUNTAIN-receipt.json'), 'utf8'));
+    if (g39?.terrainDigest) knowledgeMountain.terrainDigest = g39.terrainDigest;
+  } catch { /* receipt optional */ }
+} catch { /* no mountain coords yet — additive, build still works */ }
 
 // ── 1. Parse the real .holo (Gate 0 artifact) ───────────────────────────────
 const src = readFileSync(HOLO, 'utf8');
@@ -361,6 +378,47 @@ if (holomapRoom && holomapRoom.portal) {
   portal.userData = { kind: 'holomap-room-portal', gate: 33, digest: holomapRoom.contract && holomapRoom.contract.spaceDigest };
   scene.add(portal);
   window.__GOLD_GAME_HOLOMAP_PORTAL_MOUNTED__ = portal.name;
+}
+
+// Gate 41: the Knowledge Mountain — the FULL real GOLD vault (186 entries, 83 lineage
+// cables) placed by Gate 39 as a climbable region, mounted IN the playable build (not
+// only the standalone viewer). An additive landmass behind the onboarding vault: each
+// entry is a tier-colored crystal at its semantic (x,z) + tier elevation, sized by
+// citations; lineage cables are drawn between cited entries. Reads the SAME deterministic
+// payload Gate 41's verifier asserts byte-equal.
+const km = window.__GOLD_GAME_KNOWLEDGE_MOUNTAIN__;
+if (km && Array.isArray(km.nodes) && km.nodes.length) {
+  const mountain = new THREE.Group();
+  mountain.name = 'KnowledgeMountain';
+  const crystalGeo = new THREE.OctahedronGeometry(1, 0);
+  for (const n of km.nodes) {
+    const mat = new THREE.MeshStandardMaterial({
+      color: C(n.color), roughness: 0.18, metalness: 0.0,
+      emissive: C(n.color), emissiveIntensity: 0.35,
+      transparent: true, opacity: 0.92,
+    });
+    const m = new THREE.Mesh(crystalGeo, mat);
+    m.position.set(n.pos[0], n.pos[1] + n.size, n.pos[2]);
+    m.scale.setScalar(n.size);
+    m.userData = { kind: 'knowledge-mountain-entry', gate: 41, entryId: n.id, tier: n.tier, lineageIn: n.lineageIn };
+    mountain.add(m);
+  }
+  // lineage cables — thin lines between cited entries
+  if (Array.isArray(km.cables) && km.cables.length) {
+    const cablePts = [];
+    for (const c of km.cables) {
+      cablePts.push(c.a[0], c.a[1] + 0.4, c.a[2]);
+      cablePts.push(c.b[0], c.b[1] + 0.4, c.b[2]);
+    }
+    const cableGeo = new THREE.BufferGeometry();
+    cableGeo.setAttribute('position', new THREE.Float32BufferAttribute(cablePts, 3));
+    const cableMat = new THREE.LineBasicMaterial({ color: 0x6fd2ff, transparent: true, opacity: 0.34 });
+    const cables = new THREE.LineSegments(cableGeo, cableMat);
+    cables.name = 'KnowledgeMountainLineage';
+    mountain.add(cables);
+  }
+  scene.add(mountain);
+  window.__GOLD_GAME_MOUNTAIN_MOUNTED__ = { name: mountain.name, entries: km.nodes.length, cables: (km.cables || []).length };
 }
 
 // environment for crystal refraction/reflection
@@ -1018,6 +1076,9 @@ const conceptArtBoot = '<script>window.__GOLD_GAME_CONCEPT_ART__=' + JSON.string
 const toolsetBoot = '<script>window.__GOLD_GAME_TOOLSET__=' + JSON.stringify(holoscriptToolset) + ';</script>';
 const holomapBoot = '<script>window.__GOLD_GAME_HOLOMAP_ROOM__=' + JSON.stringify(holomapRoom.found ? holomapRoom : null) + ';</script>';
 const holographicExportBoot = '<script>window.__GOLD_GAME_HOLOGRAPHIC_EXPORT__=' + JSON.stringify(holographicExport.found ? holographicExport : null) + ';</script>';
+// Gate 41: embed the deterministic Knowledge Mountain mount payload (the full real vault
+// region) so the playable build renders it, not only the standalone viewer.
+const mountainBoot = '<script>window.__GOLD_GAME_KNOWLEDGE_MOUNTAIN__=' + JSON.stringify(knowledgeMountain) + ';</script>';
 // Gate 34: embed the Gate-32 depth-displaced world source so the scene renders the
 // founder art as a REAL 3D depth surface (parallax) behind DiamondPeak — not a flat
 // skybox. Reads the SAME gold-vault-vista-world.json the Gate-32 verifier emitted.
@@ -1069,6 +1130,7 @@ const selfProofManifest = [
   vistaGrid ? { name: 'vista (depth world)', key: '__GOLD_GAME_VISTA__', sha256: browserSha(JSON.stringify(vistaGrid)) } : null,
   holomapRoom.found ? { name: 'holomap (scanned room)', key: '__GOLD_GAME_HOLOMAP_ROOM__', sha256: browserSha(JSON.stringify(holomapRoom)) } : null,
   holographicExport.found ? { name: 'hologram export (quilt/MVHEVC)', key: '__GOLD_GAME_HOLOGRAPHIC_EXPORT__', sha256: browserSha(JSON.stringify(holographicExport)) } : null,
+  knowledgeMountain ? { name: 'knowledge mountain (full vault region)', key: '__GOLD_GAME_KNOWLEDGE_MOUNTAIN__', sha256: browserSha(JSON.stringify(knowledgeMountain)) } : null,
   { name: 'toolset (HoloScript packages)', key: '__GOLD_GAME_TOOLSET__', sha256: browserSha(JSON.stringify(holoscriptToolset)) },
   { name: 'party (AI companions)', key: '__GOLD_GAME_PARTY__', sha256: browserSha(JSON.stringify(partyData)) },
 ].filter(Boolean);
@@ -1376,6 +1438,7 @@ toolsetBoot +
 vistaBoot +
 holomapBoot +
 holographicExportBoot +
+mountainBoot +
 '<title>THE GOLD GAME — The Vault</title><style>' +
 'html,body{margin:0;height:100%;overflow:hidden;background:#06070a;font-family:system-ui,sans-serif}' +
 '#startScreen{position:fixed;inset:0;z-index:30;background:#06070a center/cover no-repeat;display:grid;align-items:end;justify-items:start;padding:clamp(28px,7vw,96px);box-sizing:border-box;color:#fff;transition:opacity .28s ease}' +
@@ -1564,6 +1627,18 @@ const receipt = {
     artifact: 'gold-vault-holographic-export.json',
     targets: holographicExport.shareReceipt?.targets || [],
     exportDigest: holographicExport.shareReceipt?.exportDigest || null },
+  knowledgeMountain: { enabled: knowledgeMountain !== null, gate: 41,
+    artifact: 'knowledge-mountain-coords.json',
+    mounted: knowledgeMountain ? 'KnowledgeMountain' : null,
+    entries: knowledgeMountain?.entryCount || 0,
+    cables: knowledgeMountain?.cableCount || 0,
+    missingBridges: knowledgeMountain?.missingBridgeCount || 0,
+    terrainDigest: knowledgeMountain?.terrainDigest || null,
+    mountDigest: knowledgeMountain?.mountDigest || null,
+    additive: true,
+    note: 'Gate 39 placed the full real vault as a climbable region + standalone viewer; '
+      + 'Gate 41 mounts that region IN the playable drive-build (tier-colored crystals by '
+      + 'semantics->x/z + tier elevation, lineage cables) — additive behind the onboarding vault' },
   holoscriptToolset: { enabled: true, gate: 36,
     packageCount: holoscriptToolset.systems.length,
     foundPackageCount: holoscriptToolset.systems.filter((s) => s.found).length,

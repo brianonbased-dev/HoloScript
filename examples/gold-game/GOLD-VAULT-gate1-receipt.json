@@ -113,6 +113,19 @@
     ],
     "exportDigest": "9c06e8ddf381d183c3867088e716bba196bd746efb91c271c9d3bfa2369f49bb"
   },
+  "knowledgeMountain": {
+    "enabled": true,
+    "gate": 41,
+    "artifact": "knowledge-mountain-coords.json",
+    "mounted": "KnowledgeMountain",
+    "entries": 186,
+    "cables": 83,
+    "missingBridges": 40,
+    "terrainDigest": "b265c0993adbd8cf4ae60a362e598fb43aabd9b7989c717beb89615a06e75cdf",
+    "mountDigest": "2b5647329ed924d0397114dd6151a785412afefd8d29f288c4c9224847dfb3a8",
+    "additive": true,
+    "note": "Gate 39 placed the full real vault as a climbable region + standalone viewer; Gate 41 mounts that region IN the playable drive-build (tier-colored crystals by semantics->x/z + tier elevation, lineage cables) — additive behind the onboarding vault"
+  },
   "holoscriptToolset": {
     "enabled": true,
     "gate": 36,
@@ -263,10 +276,10 @@
     "missing": []
   },
   "sceneDigest": "d45c0905b9ceea164fd3763de51d19f5ccf374a159e7788b6bc601ab395f1dc2",
-  "htmlBytes": 1523222,
+  "htmlBytes": 1560229,
   "selfContained": true,
   "offline": true,
   "three": "0.182.0 (bundled IIFE)",
   "core": "6.1.0",
-  "verifiedAt": "2026-05-25T13:29:36.762Z"
+  "verifiedAt": "2026-05-25T13:57:44.370Z"
 }
