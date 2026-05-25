@@ -3,7 +3,7 @@
  *
  * Implements the unified ILLMProvider interface for Google Gemini's API.
  * Uses fetch-based HTTP requests (no SDK dependency) for maximum compatibility.
- * Supports Gemini 2.0, 1.5 Pro, and 1.5 Flash models.
+ * Supports current Gemini 3.x / 2.5 API models.
  *
  * @version 1.0.0
  */
@@ -25,11 +25,18 @@ import {
 
 // Available Google Gemini models
 export const GEMINI_MODELS = [
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-lite',
-  'gemini-1.5-pro',
-  'gemini-1.5-flash',
-  'gemini-1.5-flash-8b',
+  'gemini-3.5-flash',
+  'gemini-3-flash-preview',
+  'gemini-3.1-pro-preview',
+  'gemini-3.1-pro-preview-customtools',
+  'gemini-3.1-flash-lite',
+  'gemini-2.5-pro',
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-2.5-flash-image',
+  'gemini-2.5-flash-native-audio-preview-12-2025',
+  'gemini-2.5-flash-preview-tts',
+  'gemini-2.5-pro-preview-tts',
 ] as const;
 
 export type GeminiModel = (typeof GEMINI_MODELS)[number];
@@ -89,8 +96,8 @@ interface GeminiResponse {
  * without instantiating the adapter — single source of truth per W.GOLD.006.
  */
 export const GEMINI_CAPABILITIES: Capabilities = {
-  contextWindow: 0,              // [VERIFY task_1778109552044_pc79] — 1M-2M depending on tier
-  maxOutput: 0,                  // [VERIFY task_1778109552044_pc79]
+  contextWindow: 1_048_576,
+  maxOutput: 65_536,
 
   streaming: true,
   tools: true,                   // function calling
@@ -104,8 +111,10 @@ export const GEMINI_CAPABILITIES: Capabilities = {
 
   visibleReasoning: true,        // thinking
   liveWebSearch: true,           // Search Grounding (first-party)
+  codeExecutionSandbox: true,    // Gemini code execution tool
+  fileSearchBuiltIn: true,       // Gemini File Search
   promptCaching: true,           // cached_content
-  computerUse: true,             // Gemini computer-use surface
+  computerUse: true,             // specialized Computer Use model/tool surface
   structuredOutputs: true,       // JSON mode + response schema
   embeddings: true,              // first-class endpoint
   batchApi: true,                // Batch API surface
@@ -125,11 +134,11 @@ export class GeminiAdapter extends BaseLLMAdapter {
 
   constructor(config: GeminiProviderConfig) {
     super(config);
-    this.defaultHoloScriptModel = config.defaultModel ?? 'gemini-1.5-flash';
+    this.defaultHoloScriptModel = config.defaultModel ?? 'gemini-3.5-flash';
   }
 
   protected getDefaultModel(): string {
-    return 'gemini-1.5-flash';
+    return 'gemini-3.5-flash';
   }
 
   async complete(

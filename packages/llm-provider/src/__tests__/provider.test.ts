@@ -356,26 +356,27 @@ describe('GeminiAdapter (metadata)', () => {
 
   it('has expected available models', () => {
     const adapter = new GeminiAdapter({ apiKey: 'test-key' });
-    expect(adapter.models).toContain('gemini-2.0-flash');
-    expect(adapter.models).toContain('gemini-1.5-pro');
+    expect(adapter.models).toContain('gemini-3.5-flash');
+    expect(adapter.models).toContain('gemini-3-flash-preview');
+    expect(adapter.models).toContain('gemini-2.5-flash');
   });
 
   it('GEMINI_MODELS constant is populated', () => {
     expect(GEMINI_MODELS.length).toBeGreaterThan(0);
-    expect(GEMINI_MODELS).toContain('gemini-2.0-flash');
+    expect(GEMINI_MODELS).toContain('gemini-3.5-flash');
   });
 
-  it('uses gemini-1.5-flash as default HoloScript model', () => {
+  it('uses gemini-3.5-flash as default HoloScript model', () => {
     const adapter = new GeminiAdapter({ apiKey: 'test-key' });
-    expect(adapter.defaultHoloScriptModel).toBe('gemini-1.5-flash');
+    expect(adapter.defaultHoloScriptModel).toBe('gemini-3.5-flash');
   });
 
   it('declares multimodal and Vertex capabilities', () => {
     const adapter = new GeminiAdapter({ apiKey: 'test-key' });
     expect(adapter.capabilities).toBe(GEMINI_CAPABILITIES);
     expect(adapter.capabilities).toMatchObject({
-      contextWindow: 0,
-      maxOutput: 0,
+      contextWindow: 1_048_576,
+      maxOutput: 65_536,
       streaming: true,
       tools: true,
       vision: true,
@@ -386,6 +387,8 @@ describe('GeminiAdapter (metadata)', () => {
       videoGeneration: true,
       visibleReasoning: true,
       liveWebSearch: true,
+      codeExecutionSandbox: true,
+      fileSearchBuiltIn: true,
       promptCaching: true,
       computerUse: true,
       structuredOutputs: true,
