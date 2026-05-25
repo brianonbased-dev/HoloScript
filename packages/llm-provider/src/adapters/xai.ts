@@ -5,8 +5,8 @@
  * xAI provides an OpenAI-compatible chat completions API at
  * https://api.x.ai/v1.
  *
- * Models: grok-3, grok-3-mini, grok-2, grok-2-mini, etc.
- * Default model for HoloScript generation: grok-3-mini (cost-effective).
+ * Models: Grok 4.3, Grok Build, and current media/voice API families.
+ * Default model for HoloScript generation: grok-4.3.
  *
  * @version 1.0.0
  */
@@ -28,10 +28,14 @@ import {
 
 // Available xAI models for HoloScript generation
 export const XAI_MODELS = [
-  'grok-3',
-  'grok-3-mini',
-  'grok-2',
-  'grok-2-mini',
+  'grok-4.3',
+  'grok-4.3-latest',
+  'grok-latest',
+  'grok-build-0.1',
+  'grok-imagine-image-quality',
+  'grok-imagine-image',
+  'grok-imagine-video',
+  'grok-voice-latest',
 ] as const;
 
 export type XAIModel = (typeof XAI_MODELS)[number];
@@ -66,12 +70,19 @@ export type XAIModel = (typeof XAI_MODELS)[number];
  * without instantiating the adapter — single source of truth per W.GOLD.006.
  */
 export const XAI_CAPABILITIES: Capabilities = {
-  contextWindow: 0,              // [VERIFY task_1778109552044_qed8]
-  maxOutput: 0,                  // [VERIFY task_1778109552044_qed8]
+  contextWindow: 1_000_000,
+  maxOutput: 0,                  // xAI publishes context; output caps stay model/API-specific
 
   streaming: true,
   tools: true,                   // OpenAI-compatible function calling
-  vision: false,                 // [VERIFY] — model-dependent (some Grok have vision)
+  vision: true,                  // Grok 4.3 and Grok Build accept image input
+  audioInput: true,              // Voice Agent / STT surfaces
+  audioOutput: true,             // Voice Agent / TTS surfaces
+  imageGeneration: true,         // Imagine image API
+  videoGeneration: true,         // Imagine video API
+
+  visibleReasoning: true,        // reasoning tokens/surface are reported
+  adjustableEffort: true,        // none / low / medium / high
 
   liveWebSearch: true,           // Live Search — Grok's unique differentiator
   responsesNative: true,         // xAI docs expose Responses via OpenAI-compatible SDKs
@@ -79,13 +90,15 @@ export const XAI_CAPABILITIES: Capabilities = {
   deferredCompletion: true,      // Deferred Completions
   remoteMcpTools: true,          // Remote MCP Tools
   promptCaching: true,           // automatic exact-prefix prompt caching
+  structuredOutputs: true,       // structured outputs
   batchApi: true,                // Batch API surface
+  realtimeVoice: true,           // Voice Agent API
   realtimeWebSocket: true,       // Voice Agent / realtime WebSocket
   toolPrices: true,              // tool/surface-specific price rows are documented
   bearerTokenAccess: true,
 
-  // structuredOutputs, visibleReasoning: [VERIFY] — model-dependent,
-  // not yet confirmed across the lineup. Conservative-default false.
+  // maxOutput remains model-specific; do not route on it until credentialed
+  // canaries confirm concrete output ceilings per endpoint.
 };
 
 export class XAIAdapter extends BaseLLMAdapter {
@@ -97,11 +110,11 @@ export class XAIAdapter extends BaseLLMAdapter {
 
   constructor(config: XAIProviderConfig) {
     super(config);
-    this.defaultHoloScriptModel = config.defaultModel ?? 'grok-3-mini';
+    this.defaultHoloScriptModel = config.defaultModel ?? 'grok-4.3';
   }
 
   protected getDefaultModel(): string {
-    return 'grok-3-mini';
+    return 'grok-4.3';
   }
 
   async complete(

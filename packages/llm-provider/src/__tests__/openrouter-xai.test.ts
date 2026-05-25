@@ -116,27 +116,27 @@ describe('XAIAdapter', () => {
 
   it('has expected available models', () => {
     const adapter = new XAIAdapter({ apiKey: 'test-key' });
-    expect(adapter.models).toContain('grok-3');
-    expect(adapter.models).toContain('grok-3-mini');
+    expect(adapter.models).toContain('grok-4.3');
+    expect(adapter.models).toContain('grok-build-0.1');
   });
 
   it('XAI_MODELS constant is populated', () => {
     expect(XAI_MODELS.length).toBeGreaterThan(0);
-    expect(XAI_MODELS).toContain('grok-3');
-    expect(XAI_MODELS).toContain('grok-3-mini');
+    expect(XAI_MODELS).toContain('grok-4.3');
+    expect(XAI_MODELS).toContain('grok-build-0.1');
   });
 
-  it('uses grok-3-mini as default HoloScript model', () => {
+  it('uses grok-4.3 as default HoloScript model', () => {
     const adapter = new XAIAdapter({ apiKey: 'test-key' });
-    expect(adapter.defaultHoloScriptModel).toBe('grok-3-mini');
+    expect(adapter.defaultHoloScriptModel).toBe('grok-4.3');
   });
 
   it('respects custom defaultModel in config', () => {
     const adapter = new XAIAdapter({
       apiKey: 'test-key',
-      defaultModel: 'grok-3',
+      defaultModel: 'grok-build-0.1',
     });
-    expect(adapter.defaultHoloScriptModel).toBe('grok-3');
+    expect(adapter.defaultHoloScriptModel).toBe('grok-build-0.1');
   });
 
   it('accepts custom baseURL override', () => {
@@ -219,7 +219,7 @@ describe('createXAIProvider', () => {
     try {
       const adapter = createXAIProvider();
       expect(adapter.name).toBe('xai');
-      expect(adapter.defaultHoloScriptModel).toBe('grok-3-mini');
+      expect(adapter.defaultHoloScriptModel).toBe('grok-4.3');
     } finally {
       process.env.XAI_API_KEY = originalEnv;
     }
@@ -228,9 +228,9 @@ describe('createXAIProvider', () => {
   it('creates adapter with custom config', () => {
     const adapter = createXAIProvider({
       apiKey: 'direct-key',
-      defaultModel: 'grok-3',
+      defaultModel: 'grok-build-0.1',
     });
     expect(adapter.name).toBe('xai');
-    expect(adapter.defaultHoloScriptModel).toBe('grok-3');
+    expect(adapter.defaultHoloScriptModel).toBe('grok-build-0.1');
   });
 });
