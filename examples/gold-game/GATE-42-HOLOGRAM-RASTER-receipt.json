@@ -1,0 +1,37 @@
+{
+  "gate": 42,
+  "track": "flagship",
+  "name": "physical hologram output — real multiview light-field quilt raster from the Gate-32/34 depth vista",
+  "result": "VERIFIED",
+  "device": "16inch",
+  "grid": "8x6",
+  "views": 48,
+  "quiltResolution": [
+    672,
+    672
+  ],
+  "deviceTargetResolution": [
+    3360,
+    3360
+  ],
+  "tile": [
+    84,
+    112
+  ],
+  "baseline": 0.06,
+  "sampleCount": 48,
+  "parallaxSpan": 0.12,
+  "pngBytes": 4572,
+  "pngSha256": "b724510d1cbbc832c2f5ecd0bb361ea1b151bac406d95090659da457ec60573c",
+  "rasterDigest": "f974d2c4ca3ebd4553d4ff1b97e49a37b87c4382ea702afae0d6e11bd630967c",
+  "source": "examples/gold-game/gold-vault-holographic-export.json",
+  "artifact": "examples/gold-game/gold-vault-vista-quilt.png",
+  "producer": "examples/gold-game/gate-42-hologram-raster.mjs",
+  "negativeControls": [
+    "no-parallax flips raster digest",
+    "tampered source sample flips raster digest"
+  ],
+  "honestScope": "proof-resolution 672x672 quilt — same multiview pinhole projection scalable to the device 3360x3360 target; sparse 48-sample splat with real horizontal parallax; real PNG via node:zlib (hand-rolled CRC32/IHDR/IDAT/IEND). Full WebGL/device display is hardware-in-the-loop.",
+  "checks": "9/9",
+  "verifiedAt": "2026-05-25T21:23:02.770Z"
+}
