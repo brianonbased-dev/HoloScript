@@ -293,3 +293,14 @@ pids
 
 # HoloGram depth model cache (provisioned, never committed — ~99MB)
 /.models/
+
+# In-progress paper .tex are CANONICAL in the sibling ai-ecosystem repo (founder
+# ruling 2026-05-25). scripts/mirror-papers-from-ai-ecosystem.sh copies them here as a
+# LOCAL CACHE for structural verification (wc -l, grep) — they are NOT tracked, so
+# mirror runs don't dirty the tree. CI reads paper .tex from cloned ai-ecosystem
+# (refresh-manifests.yml), not these. Finished+submitted (HoloScript-canonical) and
+# HoloScript-only paper files are negated below to stay tracked.
+research/*.tex
+!research/trust-by-construction-paper.tex
+!research/paper-0c-cael-aamas-supplemental.tex
+!research/paper-35-hologate-copresence.tex
