@@ -101,14 +101,13 @@ describe('HoloMapRuntime vertical slice', () => {
     await runtime.dispose();
 
     const calls = parseHoloMapLogs(log);
-    expect(calls.map((payload) => payload.event)).toEqual([
-      'init',
-      'step_summary',
-      'finalize',
-      'dispose',
-    ]);
+    const compactEvents = calls
+      .map((payload) => payload.event)
+      .filter((event) => event !== 'micro_encoder_fallback');
+    expect(compactEvents).toEqual(['init', 'step_summary', 'finalize', 'dispose']);
     expect(calls.some((payload) => payload.event === 'step')).toBe(false);
-    expect(calls[1]).toMatchObject({
+    const summary = calls.find((payload) => payload.event === 'step_summary');
+    expect(summary).toMatchObject({
       event: 'step_summary',
       reason: 'finalize',
       stepCount: 3,

@@ -49,6 +49,13 @@ export interface ReconstructionFrame {
    */
   depth?: Float32Array;
   /**
+   * Optional MEASURED per-pixel depth confidence (row-major, length width*height,
+   * normalized 0..1) from a real device sensor. When present, sampled depth
+   * confidence gates the emitted point confidence so bad sensor cells remain
+   * visible in replay instead of being silently trusted.
+   */
+  depthConfidence?: Float32Array;
+  /**
    * Optional MEASURED device pose (6-DoF) from platform tracking — ARKit
    * `frame.camera.transform`, ARCore pose, etc. When present it is used as the
    * camera pose (driving trajectory, drift, loop closure, keyframes) instead of
@@ -692,6 +699,11 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
         `HoloMapRuntime.step invalid measured depth length: got ${frame.depth.length}, expected ${frame.width * frame.height} (w=${frame.width}, h=${frame.height})`
       );
     }
+    if (frame.depthConfidence && frame.depthConfidence.length !== frame.width * frame.height) {
+      throw new Error(
+        `HoloMapRuntime.step invalid measured depth confidence length: got ${frame.depthConfidence.length}, expected ${frame.width * frame.height} (w=${frame.width}, h=${frame.height})`
+      );
+    }
 
     // Sprint-3: deterministic frame-rate throttling. Use capture timestamps,
     // not wall-clock runtime speed, so replay keeps the same accepted frames.
@@ -802,7 +814,21 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       colors[t * 3 + 1] = meanColor[1];
       colors[t * 3 + 2] = meanColor[2];
       const latentMag = Math.sqrt(latentX * latentX + latentY * latentY + latentZ * latentZ);
-      confidence[t] = Math.min(1, 0.45 + 0.35 / (1 + latentMag) + Math.min(0.2, texture * 1.5));
+      const baseConfidence = Math.min(
+        1,
+        0.45 + 0.35 / (1 + latentMag) + Math.min(0.2, texture * 1.5)
+      );
+      if (frame.depthConfidence) {
+        const sensorConfidence = HoloMapRuntimeImpl.sampleDepthNearestUv(
+          frame.depthConfidence,
+          frame.width,
+          frame.height,
+          centerUv
+        );
+        confidence[t] = baseConfidence * sensorConfidence;
+      } else {
+        confidence[t] = baseConfidence;
+      }
       confidenceSum += confidence[t]!;
 
       centroidX += px;
