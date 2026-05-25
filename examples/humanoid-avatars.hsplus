@@ -1,91 +1,184 @@
-// Humanoid Avatars
-// VR avatar configuration
+// Reference-backed VR body rig configuration
+//
+// Proportion and silhouette references:
+// - Front/side body landmarks:
+//   https://commons.wikimedia.org/wiki/File:Human_body_front_and_side.svg
+// - Anatomical proportion plate:
+//   https://commons.wikimedia.org/wiki/File:Male_anatomical_figure%2C_showing_proportions._Wellcome_M0000426.jpg
 
-composition "HumanoidAvatars" {
+composition "BodyRigPreview" {
   environment {
     backgroundColor: "#0d1117"
     ambient: 0.6
     shadows: true
   }
 
+  rig_profile: {
+    height_m: 1.72
+    head_to_height_ratio: 0.132
+    shoulder_to_height_ratio: 0.265
+    hip_to_height_ratio: 0.18
+    elbow_height_ratio: 0.61
+    knee_height_ratio: 0.285
+    stance: "relaxed_vr_fit"
+    source_basis: "front_side_landmarks_and_anatomical_proportion_plate"
+  }
+
   // === TEMPLATES ===
 
-  template "SpawnPoint" {
+  template "SpawnDisc" {
     @glowing
     geometry: "cylinder"
     color: "#00ff00"
   }
 
-  template "AvatarBody" {
+  template "TorsoShell" {
     @animated
     geometry: "capsule"
     color: "#4a4a6a"
+    material: { baseColor: "#4a4a6a", roughness: 0.68, fabricWeave: 0.22 }
   }
 
-  template "AvatarHead" {
+  template "CranialMass" {
     geometry: "sphere"
-    color: "#f5deb3"
+    color: "#f0caa2"
+    material: { baseColor: "#f0caa2", roughness: 0.74, skinToneVariation: 0.1 }
   }
 
-  template "HandController" {
+  template "LimbSegment" {
+    @animated
+    geometry: "capsule"
+    color: "#3f496d"
+    material: { baseColor: "#3f496d", roughness: 0.72, seamContrast: 0.12 }
+  }
+
+  template "PalmPad" {
     @grabbable
-    geometry: "box"
+    geometry: "capsule"
     color: "#0088ff"
+    material: { baseColor: "#0088ff", roughness: 0.55, gripTexture: 0.24 }
   }
 
-  template "Mirror" {
+  template "MirrorPanel" {
     @glowing
     geometry: "box"
     color: "#aaddff"
-  }
-
-  template "Floor" {
-    geometry: "plane"
-    color: "#2a2a3a"
+    material: { baseColor: "#aaddff", opacity: 0.24, metallic: 0.2 }
   }
 
   // === OBJECTS ===
 
-  // Avatar spawn point
-  object "SpawnPoint" using "SpawnPoint" {
-    position: [0, 0.05, 0]
-    scale: [1, 0.1, 1]
+  object "OriginDisc" using "SpawnDisc" {
+    position: [-1.1, 0.035, 0.65]
+    scale: [0.22, 0.04, 0.22]
   }
 
-  // Avatar placeholder body
-  object "AvatarBody" using "AvatarBody" {
-    position: [0, 1, 0]
-    scale: [0.4, 1, 0.4]
+  object "PelvisMass" using "TorsoShell" {
+    position: [0, 0.86, 0]
+    scale: [0.36, 0.25, 0.28]
+    rotation: [0, 0, 90]
   }
 
-  // Avatar head
-  object "AvatarHead" using "AvatarHead" {
-    position: [0, 1.8, 0]
-    scale: [0.25, 0.25, 0.25]
+  object "RibcageMass" using "TorsoShell" {
+    position: [0, 1.22, 0]
+    scale: [0.42, 0.55, 0.26]
   }
 
-  // Left hand controller
-  object "LeftHand" using "HandController" {
-    position: [-0.5, 1.2, 0.3]
-    scale: [0.08, 0.08, 0.15]
+  object "NeckPost" using "LimbSegment" {
+    position: [0, 1.58, 0]
+    scale: [0.09, 0.18, 0.09]
   }
 
-  // Right hand controller
-  object "RightHand" using "HandController" {
-    position: [0.5, 1.2, 0.3]
-    scale: [0.08, 0.08, 0.15]
+  object "LeftShoulderCap" using "CranialMass" {
+    position: [-0.33, 1.46, 0.02]
+    scale: [0.1, 0.09, 0.1]
+    color: "#5a648f"
   }
 
-  // Mirror for avatar preview
-  object "Mirror" using "Mirror" {
-    position: [0, 1.5, -2]
+  object "RightShoulderCap" using "CranialMass" {
+    position: [0.33, 1.46, 0.02]
+    scale: [0.1, 0.09, 0.1]
+    color: "#5a648f"
+  }
+
+  object "HeadMass" using "CranialMass" {
+    position: [0, 1.78, 0]
+    scale: [0.18, 0.23, 0.18]
+  }
+
+  object "LeftUpperArm" using "LimbSegment" {
+    position: [-0.43, 1.31, 0.02]
+    rotation: [0, 0, 17]
+    scale: [0.08, 0.36, 0.08]
+  }
+
+  object "LeftLowerArm" using "LimbSegment" {
+    position: [-0.55, 0.98, 0.04]
+    rotation: [0, 0, -10]
+    scale: [0.07, 0.34, 0.07]
+  }
+
+  object "RightUpperArm" using "LimbSegment" {
+    position: [0.43, 1.31, 0.02]
+    rotation: [0, 0, -17]
+    scale: [0.08, 0.36, 0.08]
+  }
+
+  object "RightLowerArm" using "LimbSegment" {
+    position: [0.55, 0.98, 0.04]
+    rotation: [0, 0, 10]
+    scale: [0.07, 0.34, 0.07]
+  }
+
+  object "LeftPalm" using "PalmPad" {
+    position: [-0.62, 0.74, 0.08]
+    scale: [0.08, 0.12, 0.08]
+  }
+
+  object "RightPalm" using "PalmPad" {
+    position: [0.62, 0.74, 0.08]
+    scale: [0.08, 0.12, 0.08]
+  }
+
+  object "LeftThigh" using "LimbSegment" {
+    position: [-0.16, 0.52, 0]
+    rotation: [0, 0, -3]
+    scale: [0.1, 0.42, 0.1]
+  }
+
+  object "LeftShin" using "LimbSegment" {
+    position: [-0.18, 0.18, 0]
+    rotation: [0, 0, 2]
+    scale: [0.085, 0.35, 0.085]
+  }
+
+  object "RightThigh" using "LimbSegment" {
+    position: [0.16, 0.52, 0]
+    rotation: [0, 0, 3]
+    scale: [0.1, 0.42, 0.1]
+  }
+
+  object "RightShin" using "LimbSegment" {
+    position: [0.18, 0.18, 0]
+    rotation: [0, 0, -2]
+    scale: [0.085, 0.35, 0.085]
+  }
+
+  object "LeftFoot" using "PalmPad" {
+    position: [-0.18, 0.03, 0.12]
+    rotation: [90, 0, 0]
+    scale: [0.1, 0.2, 0.055]
+  }
+
+  object "RightFoot" using "PalmPad" {
+    position: [0.18, 0.03, 0.12]
+    rotation: [90, 0, 0]
+    scale: [0.1, 0.2, 0.055]
+  }
+
+  object "FittingMirror" using "MirrorPanel" {
+    position: [0, 1.05, -2]
     scale: [1.5, 2, 0.05]
   }
 
-  // Floor
-  object "Floor" using "Floor" {
-    position: [0, 0, 0]
-    rotation: [-90, 0, 0]
-    scale: [8, 8, 1]
-  }
 }
