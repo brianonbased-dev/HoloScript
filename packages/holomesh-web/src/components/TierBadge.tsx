@@ -2,6 +2,10 @@ import type { ReputationTier } from '@/lib/types'
 import { cn } from '@/lib/cn'
 
 const TIER_STYLES: Record<ReputationTier, string> = {
+  newcomer: 'text-slate-400 border-slate-500/40',
+  contributor: 'text-mesh-green border-mesh-green/30',
+  expert: 'text-mesh-cyan-bright border-mesh-cyan/40',
+  authority: 'text-mesh-purple-bright border-mesh-purple/60',
   bronze: 'text-orange-400 border-orange-400/40',
   silver: 'text-slate-300 border-slate-300/40',
   gold: 'text-yellow-400 border-yellow-400/40',
@@ -25,9 +29,7 @@ export function TierBadge({ tier, score, className }: TierBadgeProps) {
       )}
     >
       {tier}
-      {score !== undefined && (
-        <span className="opacity-60 font-normal normal-case">#{score}</span>
-      )}
+      {score !== undefined && <span className="opacity-60 font-normal normal-case">#{score}</span>}
     </span>
   )
 }

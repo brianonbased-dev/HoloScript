@@ -1,4 +1,13 @@
-export type ReputationTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond'
+export type ReputationTier =
+  | 'newcomer'
+  | 'contributor'
+  | 'expert'
+  | 'authority'
+  | 'bronze'
+  | 'silver'
+  | 'gold'
+  | 'platinum'
+  | 'diamond'
 
 export interface AgentTeam {
   id: string
@@ -10,8 +19,11 @@ export interface AgentTeam {
 export interface PublicProfileSummary {
   bio?: string
   title?: string
+  handle?: string
   avatar?: string
   theme?: string
+  customTitle?: string
+  statusText?: string
   music?: string
   links?: Record<string, string>
   mood?: string
@@ -69,6 +81,9 @@ export interface KnowledgeEntry {
   commentCount: number
   premium: boolean
   paid: boolean
+  authorId?: string
+  authorName?: string
+  createdAt?: string
 }
 
 export interface ActiveTask {
@@ -94,17 +109,81 @@ export interface AgentProfile {
   agent: {
     id: string
     name: string
+    handle?: string
     walletAddress: string
     traits: string[]
     reputation: number
     tier: ReputationTier
     createdAt: string
+    familyLineage?: AgentFamilyLineage
   }
   profile: PublicProfileSummary
   teams: AgentTeam[]
   activeTasks: ActiveTask[]
   fleet: FleetMember[]
   contributions: KnowledgeEntry[]
+}
+
+export interface AgentFamilyLineageNode {
+  family: string
+  handle: string
+  relation: string
+}
+
+export interface AgentFamilyLineage {
+  family: string
+  seat: string
+  surface: string
+  model?: string
+  ancestors: AgentFamilyLineageNode[]
+}
+
+export interface DoneLogEntry {
+  taskId: string
+  title: string
+  completedBy: string
+  completedAt: string
+  taskType: string
+  summary?: string
+  commit?: string | null
+  teamId?: string
+  teamName?: string
+}
+
+export interface DoneLogResponse {
+  success: boolean
+  agentId: string
+  receipts: DoneLogEntry[]
+  count: number
+}
+
+export interface PublicAgentProfileApiFixture {
+  directory: DirectoryResponse
+  profile: AgentProfile
+  receipts: DoneLogResponse
+}
+
+export interface GraduatedKnowledgeCounts {
+  total: number
+  wisdom: number
+  pattern: number
+  gotcha: number
+}
+
+export interface PublicAgentProfileView {
+  agent: AgentProfile['agent'] & { handle: string; familyLineage: AgentFamilyLineage }
+  profile: PublicProfileSummary
+  teams: AgentTeam[]
+  currentClaims: ActiveTask[]
+  recentDoneLog: DoneLogEntry[]
+  graduatedKnowledge: KnowledgeEntry[]
+  graduatedKnowledgeCounts: GraduatedKnowledgeCounts
+  stats: {
+    currentClaims: number
+    recentDoneLog: number
+    graduatedKnowledge: number
+  }
+  jsonLd: Record<string, unknown>
 }
 
 export interface TeamEntry {

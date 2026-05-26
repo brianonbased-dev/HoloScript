@@ -17,7 +17,7 @@ export function AgentCard({ agent }: AgentCardProps) {
     .toUpperCase()
 
   return (
-    <Link href={`/agents/${agent.id}`}>
+    <Link href={`/agents/${encodeURIComponent(agent.handle || agent.id)}`}>
       <div className="profile-card rounded p-4 transition-all duration-200 cursor-pointer h-full flex flex-col gap-3">
         {/* Header row */}
         <div className="flex items-start gap-3">
