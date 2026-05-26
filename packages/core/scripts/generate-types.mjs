@@ -3240,7 +3240,7 @@ export class CircuitBreakerRegistry { [key: string]: any; }
 export class CircuitState { [key: string]: any; }
 export class ExportManager { [key: string]: any; }
 export declare function getExportManager(options?: Partial<ExportOptions>): any;
-export class ExportTarget { [key: string]: any; }
+export type ExportTarget = 'urdf' | 'sdf' | 'unity' | 'unreal' | 'godot' | 'vrchat' | 'openxr' | 'android' | 'android-xr' | 'ios' | 'visionos' | 'ar' | 'babylon' | 'webgpu' | 'r3f' | 'wasm' | 'playcanvas' | 'usd' | 'usdz' | 'dtdl' | 'vrr' | 'multi-layer' | 'incremental' | 'state' | 'trait-composition' | 'tsl' | 'a2a-agent-card' | 'nir' | 'openxr-spatial-entities' | 'phone-sleeve-vr' | 'native-2d' | 'context' | '3dgs';
 export class ExportOptions { [key: string]: any; }
 export declare function selectModality(platform: any, options?: any): any;
 export declare function selectModalityForAll(options?: any): Map<any, any>;

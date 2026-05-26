@@ -80,7 +80,7 @@ export const twinActuatorHandler: TraitHandler<TwinActuatorConfig> = {
       // Structural civilian-harm impossibility check (D.044):
       // every actuation must pass a validated safety envelope before reaching
       // the actuation path. Missing envelope = illegal state = blocked.
-      const envelopeCheck = validateSafetyEnvelope(config.safety_envelope, action, node.id);
+      const envelopeCheck = validateSafetyEnvelope(config.safety_envelope, action, node.id ?? '<unknown>');
       if (!envelopeCheck.ok) {
         context.emit('twin_actuator_error', {
           node,

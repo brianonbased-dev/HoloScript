@@ -486,7 +486,7 @@ export class StructuralSolver {
 
       for (let row = 0; row < this.dofCount; row++) {
         if (this.constrainedDofs.has(row)) continue;
-        const rowMap = this.dofToCSR.get(row);
+        const rowMap: Map<number, number> | undefined = this.dofToCSR.get(row);
         const idx = rowMap?.get(dof);
         if (idx !== undefined) this.csrVal[idx] = 0.0;
       }

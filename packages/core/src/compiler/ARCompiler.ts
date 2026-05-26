@@ -165,7 +165,7 @@ export class ARCompiler extends CompilerBase {
     return traitName.startsWith('@') ? traitName.slice(1) : traitName;
   }
 
-  private isObjectDecl(record: Record<string, unknown>): record is HoloObjectDecl {
+  private isObjectDecl(record: Record<string, unknown>): record is Record<string, unknown> & HoloObjectDecl {
     return (
       (record.type === 'Object' || record.type === 'ObjectDecl') &&
       typeof record.name === 'string' &&
