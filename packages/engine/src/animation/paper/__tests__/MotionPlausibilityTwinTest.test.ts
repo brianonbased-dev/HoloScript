@@ -1,36 +1,71 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CONTRACT_CONSTANTS,
+  batchCheckPlausibility,
   checkPlausibility,
   type MotionBonePose,
   type MotionCategory,
   type MotionClip,
+  type PlausibilityBatchResult,
   type PlausibilityResult,
 } from '../PhysicsPlausibilityContract';
 
-type Vec3 = readonly [number, number, number];
-type Quat = readonly [number, number, number, number];
+const FOOT_FLOOR_THRESHOLD = -0.05;
+const ZMP_HALF_SUPPORT = 0.35;
+const JOINT_ANGLE_LIMIT_RAD = 2.094;
+const COLLISION_RADIUS = 0.1;
+const MAX_IMPULSE_MPS = 5.0;
+const MICRO_MAX_METRES = 0.05;
+const MICRO_MIN_METRES = 1e-4;
 
-const IDENTITY: Quat = [0, 0, 0, 1];
+const IDENTITY_ROT: readonly [number, number, number, number] = [0, 0, 0, 1];
 
-function bone(boneId: string, position: Vec3, rotation: Quat = IDENTITY): MotionBonePose {
+function pose(
+  boneId: string,
+  position: readonly [number, number, number],
+  rotation: readonly [number, number, number, number] = IDENTITY_ROT,
+): MotionBonePose {
   return { boneId, position, rotation };
 }
 
-function clip(category: MotionCategory, frames: MotionBonePose[][]): MotionClip {
-  return { id: `${category}-fixture`, category, frames, dt: 0.05 };
+function baseFrame(): MotionBonePose[] {
+  return [
+    pose('root', [0, 1.0, 0]),
+    pose('spine', [0, 1.5, 0]),
+    pose('l_foot', [-0.2, 0, 0]),
+    pose('r_foot', [0.2, 0, 0]),
+    pose('l_hand', [-0.4, 1.2, 0]),
+    pose('r_hand', [0.4, 1.2, 0]),
+  ];
 }
 
-function distance(a: Vec3, b: Vec3): number {
+function clip(
+  id: string,
+  category: MotionCategory,
+  frames: MotionBonePose[][],
+): MotionClip {
+  return { id, category, frames, dt: 0.05 };
+}
+
+function quatAngle(rotation: readonly [number, number, number, number]): number {
+  const w = Math.max(-1, Math.min(1, rotation[3]));
+  return 2 * Math.acos(Math.abs(w));
+}
+
+function dist2(
+  a: readonly [number, number, number],
+  b: readonly [number, number, number],
+): number {
   const dx = a[0] - b[0];
   const dy = a[1] - b[1];
   const dz = a[2] - b[2];
-  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  return dx * dx + dy * dy + dz * dz;
 }
 
-function quatAngle(q: Quat): number {
-  const w = Math.max(-1, Math.min(1, q[3]));
-  return 2 * Math.acos(Math.abs(w));
+function dist(
+  a: readonly [number, number, number],
+  b: readonly [number, number, number],
+): number {
+  return Math.sqrt(dist2(a, b));
 }
 
 function pass(category: MotionCategory, clipId: string): PlausibilityResult {
@@ -38,146 +73,236 @@ function pass(category: MotionCategory, clipId: string): PlausibilityResult {
 }
 
 function fail(
-  category: MotionCategory,
-  clipId: string,
+  clipToCheck: MotionClip,
   violatedConstraint: string,
   frameIndex: number,
   boneId: string,
 ): PlausibilityResult {
-  return { pass: false, category, clipId, violatedConstraint, frameIndex, boneId };
+  return {
+    pass: false,
+    category: clipToCheck.category,
+    clipId: clipToCheck.id,
+    violatedConstraint,
+    frameIndex,
+    boneId,
+  };
 }
 
-function independentPlausibilityTwin(input: MotionClip): PlausibilityResult {
-  if (input.category === 'locomotion') {
-    for (let fi = 0; fi < input.frames.length; fi++) {
-      for (const pose of input.frames[fi]!) {
-        if (/foot|toe|ankle/i.test(pose.boneId) && pose.position[1] < CONTRACT_CONSTANTS.FOOT_FLOOR_THRESHOLD) {
-          return fail(input.category, input.id, 'foot_below_floor', fi, pose.boneId);
-        }
-        if (/root|pelvis|hips/i.test(pose.boneId) && Math.abs(pose.position[0]) > CONTRACT_CONSTANTS.ZMP_HALF_SUPPORT) {
-          return fail(input.category, input.id, 'zmp_outside_support', fi, pose.boneId);
+function referenceCheckPlausibility(clipToCheck: MotionClip): PlausibilityResult {
+  switch (clipToCheck.category) {
+    case 'locomotion':
+      return referenceLocomotion(clipToCheck, true);
+    case 'gesture':
+      return referenceGesture(clipToCheck);
+    case 'interaction':
+      return referenceInteraction(clipToCheck);
+    case 'acrobatics':
+      return referenceAcrobatics(clipToCheck);
+    case 'micro-gesture':
+      return referenceMicroGesture(clipToCheck);
+  }
+}
+
+function divergentReferenceWithoutZmp(clipToCheck: MotionClip): PlausibilityResult {
+  if (clipToCheck.category !== 'locomotion') {
+    return referenceCheckPlausibility(clipToCheck);
+  }
+  return referenceLocomotion(clipToCheck, false);
+}
+
+function referenceLocomotion(
+  clipToCheck: MotionClip,
+  includeZmpClause: boolean,
+): PlausibilityResult {
+  for (let fi = 0; fi < clipToCheck.frames.length; fi++) {
+    const frame = clipToCheck.frames[fi]!;
+    for (const bone of frame) {
+      if (/foot|toe|ankle/i.test(bone.boneId) && bone.position[1] < FOOT_FLOOR_THRESHOLD) {
+        return fail(clipToCheck, 'foot_below_floor', fi, bone.boneId);
+      }
+      if (
+        includeZmpClause &&
+        /root|pelvis|hips/i.test(bone.boneId) &&
+        Math.abs(bone.position[0]) > ZMP_HALF_SUPPORT
+      ) {
+        return fail(clipToCheck, 'zmp_outside_support', fi, bone.boneId);
+      }
+    }
+  }
+  return pass('locomotion', clipToCheck.id);
+}
+
+function referenceGesture(clipToCheck: MotionClip): PlausibilityResult {
+  for (let fi = 0; fi < clipToCheck.frames.length; fi++) {
+    const frame = clipToCheck.frames[fi]!;
+    for (const bone of frame) {
+      if (quatAngle(bone.rotation) > JOINT_ANGLE_LIMIT_RAD) {
+        return fail(clipToCheck, 'joint_limit_burst', fi, bone.boneId);
+      }
+    }
+  }
+  return pass('gesture', clipToCheck.id);
+}
+
+function referenceInteraction(clipToCheck: MotionClip): PlausibilityResult {
+  const collisionRadius2 = COLLISION_RADIUS * COLLISION_RADIUS;
+  for (let fi = 0; fi < clipToCheck.frames.length; fi++) {
+    const frame = clipToCheck.frames[fi]!;
+    for (let i = 0; i < frame.length; i++) {
+      for (let j = i + 1; j < frame.length; j++) {
+        if (dist2(frame[i]!.position, frame[j]!.position) < collisionRadius2) {
+          return fail(clipToCheck, 'bone_penetration', fi, frame[i]!.boneId);
         }
       }
     }
-    return pass(input.category, input.id);
   }
+  return pass('interaction', clipToCheck.id);
+}
 
-  if (input.category === 'gesture') {
-    for (let fi = 0; fi < input.frames.length; fi++) {
-      for (const pose of input.frames[fi]!) {
-        if (quatAngle(pose.rotation) > CONTRACT_CONSTANTS.JOINT_ANGLE_LIMIT_RAD) {
-          return fail(input.category, input.id, 'joint_limit_burst', fi, pose.boneId);
-        }
-      }
-    }
-    return pass(input.category, input.id);
-  }
-
-  if (input.category === 'interaction') {
-    for (let fi = 0; fi < input.frames.length; fi++) {
-      const frame = input.frames[fi]!;
-      for (let i = 0; i < frame.length; i++) {
-        for (let j = i + 1; j < frame.length; j++) {
-          if (distance(frame[i]!.position, frame[j]!.position) < CONTRACT_CONSTANTS.COLLISION_RADIUS) {
-            return fail(input.category, input.id, 'bone_penetration', fi, frame[i]!.boneId);
-          }
-        }
-      }
-    }
-    return pass(input.category, input.id);
-  }
-
-  if (input.category === 'acrobatics') {
-    const maxStep = CONTRACT_CONSTANTS.MAX_IMPULSE_MPS * input.dt;
-    for (let fi = 1; fi < input.frames.length; fi++) {
-      const prev = input.frames[fi - 1]!;
-      const curr = input.frames[fi]!;
-      for (let bi = 0; bi < curr.length; bi++) {
-        if (distance(prev[bi]!.position, curr[bi]!.position) > maxStep) {
-          return fail(input.category, input.id, 'impulse_exceeded', fi, curr[bi]!.boneId);
-        }
-      }
-    }
-    return pass(input.category, input.id);
-  }
-
-  for (let fi = 1; fi < input.frames.length; fi++) {
-    const prev = input.frames[fi - 1]!;
-    const curr = input.frames[fi]!;
+function referenceAcrobatics(clipToCheck: MotionClip): PlausibilityResult {
+  const maxDist = MAX_IMPULSE_MPS * clipToCheck.dt;
+  for (let fi = 1; fi < clipToCheck.frames.length; fi++) {
+    const prev = clipToCheck.frames[fi - 1]!;
+    const curr = clipToCheck.frames[fi]!;
     for (let bi = 0; bi < curr.length; bi++) {
-      const step = distance(prev[bi]!.position, curr[bi]!.position);
-      if (step > 0 && step < CONTRACT_CONSTANTS.MICRO_MIN_METRES) {
-        return fail(input.category, input.id, 'frozen_jitter', fi, curr[bi]!.boneId);
-      }
-      if (step > CONTRACT_CONSTANTS.MICRO_MAX_METRES) {
-        return fail(input.category, input.id, 'micro_limit_exceeded', fi, curr[bi]!.boneId);
+      if (dist(curr[bi]!.position, prev[bi]!.position) > maxDist) {
+        return fail(clipToCheck, 'impulse_exceeded', fi, curr[bi]!.boneId);
       }
     }
   }
-  return pass(input.category, input.id);
+  return pass('acrobatics', clipToCheck.id);
 }
 
-function divergentLocomotionTwin(input: MotionClip): PlausibilityResult {
-  if (input.category !== 'locomotion') return independentPlausibilityTwin(input);
-  for (let fi = 0; fi < input.frames.length; fi++) {
-    for (const pose of input.frames[fi]!) {
-      if (/root|pelvis|hips/i.test(pose.boneId) && Math.abs(pose.position[0]) > 999) {
-        return fail(input.category, input.id, 'zmp_outside_support', fi, pose.boneId);
+function referenceMicroGesture(clipToCheck: MotionClip): PlausibilityResult {
+  for (let fi = 1; fi < clipToCheck.frames.length; fi++) {
+    const prev = clipToCheck.frames[fi - 1]!;
+    const curr = clipToCheck.frames[fi]!;
+    for (let bi = 0; bi < curr.length; bi++) {
+      const movement = dist(curr[bi]!.position, prev[bi]!.position);
+      if (movement > 0 && movement < MICRO_MIN_METRES) {
+        return fail(clipToCheck, 'frozen_jitter', fi, curr[bi]!.boneId);
+      }
+      if (movement > MICRO_MAX_METRES) {
+        return fail(clipToCheck, 'micro_limit_exceeded', fi, curr[bi]!.boneId);
       }
     }
   }
-  return pass(input.category, input.id);
+  return pass('micro-gesture', clipToCheck.id);
 }
 
-const fixtures: MotionClip[] = [
-  clip('locomotion', [
-    [bone('root', [0, 1, 0]), bone('l_foot', [0, 0, 0])],
-    [bone('root', [0.6, 1, 0]), bone('l_foot', [0, 0, 0])],
-  ]),
-  clip('gesture', [
-    [bone('spine', [0, 1, 0], [Math.sin(1.3), 0, 0, Math.cos(1.3)])],
-  ]),
-  clip('interaction', [
-    [bone('l_hand', [0, 1, 0]), bone('r_hand', [0.02, 1, 0])],
-  ]),
-  clip('acrobatics', [
-    [bone('root', [0, 1, 0])],
-    [bone('root', [1.0, 1, 0])],
-  ]),
-  clip('micro-gesture', [
-    [bone('l_hand', [0, 1, 0])],
-    [bone('l_hand', [0.1, 1, 0])],
-  ]),
-  clip('micro-gesture', [
-    [bone('l_hand', [0, 1, 0])],
-    [bone('l_hand', [0.00001, 1, 0])],
-  ]),
-  clip('locomotion', [
-    [bone('root', [0, 1, 0]), bone('l_foot', [0, 0, 0])],
-    [bone('root', [0.1, 1, 0]), bone('l_foot', [0, 0.01, 0])],
-  ]),
+function referenceBatchCheck(clips: MotionClip[]): Omit<PlausibilityBatchResult, 'checkTimeMs'> {
+  const violations: Record<string, number> = {};
+  let passed = 0;
+
+  for (const clipToCheck of clips) {
+    const result = referenceCheckPlausibility(clipToCheck);
+    if (result.pass) {
+      passed++;
+    } else {
+      const key = result.violatedConstraint ?? 'unknown';
+      violations[key] = (violations[key] ?? 0) + 1;
+    }
+  }
+
+  return {
+    total: clips.length,
+    passed,
+    failed: clips.length - passed,
+    passRate: passed / clips.length,
+    violations,
+  };
+}
+
+function withBone(
+  frame: MotionBonePose[],
+  boneId: string,
+  patch: Partial<Pick<MotionBonePose, 'position' | 'rotation'>>,
+): MotionBonePose[] {
+  return frame.map((bone) => (bone.boneId === boneId ? { ...bone, ...patch } : bone));
+}
+
+const highAngle = 2.4;
+const highRotation: readonly [number, number, number, number] = [
+  Math.sin(highAngle / 2),
+  0,
+  0,
+  Math.cos(highAngle / 2),
 ];
 
-describe('Paper-9 MotionPlausibility twin-test', () => {
-  it('matches production plausibility decisions with an independent reference evaluator', () => {
-    for (const sample of fixtures) {
-      const production = checkPlausibility(sample);
-      const twin = independentPlausibilityTwin(sample);
+function twinFixtures(): MotionClip[] {
+  const valid = baseFrame();
 
-      expect(twin.pass, sample.category).toBe(production.pass);
-      expect(twin.violatedConstraint, sample.category).toBe(production.violatedConstraint);
-      expect(twin.frameIndex, sample.category).toBe(production.frameIndex);
-      expect(twin.boneId, sample.category).toBe(production.boneId);
+  return [
+    clip('locomotion-valid', 'locomotion', [valid, valid]),
+    clip('locomotion-foot-fail', 'locomotion', [
+      valid,
+      withBone(valid, 'l_foot', { position: [-0.2, -0.08, 0] }),
+    ]),
+    clip('locomotion-zmp-fail', 'locomotion', [
+      valid,
+      withBone(valid, 'root', { position: [0.6, 1.0, 0] }),
+    ]),
+    clip('gesture-valid', 'gesture', [valid, valid]),
+    clip('gesture-joint-fail', 'gesture', [
+      valid,
+      withBone(valid, 'spine', { rotation: highRotation }),
+    ]),
+    clip('interaction-valid', 'interaction', [valid, valid]),
+    clip('interaction-penetration-fail', 'interaction', [
+      valid,
+      withBone(valid, 'l_hand', { position: [0.4, 1.2, 0] }),
+    ]),
+    clip('acrobatics-valid', 'acrobatics', [valid, valid]),
+    clip('acrobatics-impulse-fail', 'acrobatics', [
+      valid,
+      withBone(valid, 'root', { position: [2.0, 1.0, 0] }),
+    ]),
+    clip('micro-valid', 'micro-gesture', [
+      valid,
+      withBone(valid, 'l_hand', { position: [-0.395, 1.2, 0] }),
+    ]),
+    clip('micro-frozen-fail', 'micro-gesture', [
+      valid,
+      withBone(valid, 'l_hand', { position: [-0.39995, 1.2, 0] }),
+    ]),
+    clip('micro-limit-fail', 'micro-gesture', [
+      valid,
+      withBone(valid, 'l_hand', { position: [-0.3, 1.2, 0] }),
+    ]),
+  ];
+}
+
+describe('Paper-9 MotionPlausibility twin-test equivalence', () => {
+  it('matches an independent TypeScript reference for every constraint clause', () => {
+    for (const fixture of twinFixtures()) {
+      expect(checkPlausibility(fixture)).toEqual(referenceCheckPlausibility(fixture));
     }
   });
 
-  it('would fail if the twin drops the locomotion ZMP clause', () => {
-    const zmpFixture = fixtures[0]!;
+  it('matches the independent reference batch aggregate except wall-clock timing', () => {
+    const fixtures = twinFixtures();
+    const production = batchCheckPlausibility(fixtures);
+    const reference = referenceBatchCheck(fixtures);
+
+    expect({
+      total: production.total,
+      passed: production.passed,
+      failed: production.failed,
+      passRate: production.passRate,
+      violations: production.violations,
+    }).toEqual(reference);
+  });
+
+  it('failure guard rejects a deliberately divergent twin that drops the ZMP clause', () => {
+    const zmpFixture = twinFixtures().find((fixture) => fixture.id === 'locomotion-zmp-fail');
+    if (!zmpFixture) throw new Error('locomotion-zmp-fail fixture missing');
+
     const production = checkPlausibility(zmpFixture);
-    const divergent = divergentLocomotionTwin(zmpFixture);
+    const divergent = divergentReferenceWithoutZmp(zmpFixture);
 
     expect(production.pass).toBe(false);
     expect(production.violatedConstraint).toBe('zmp_outside_support');
-    expect(divergent.pass).not.toBe(production.pass);
+    expect(divergent.pass).toBe(true);
+    expect(production).not.toEqual(divergent);
   });
 });
