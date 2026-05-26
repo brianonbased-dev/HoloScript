@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FounderInboxItem } from '../../app/api/quest-proof/inbox/parse';
+import type { ProposedAction } from '../../app/api/quest-proof/next-actions/nextActions';
 
 import { questProofGuardReason } from '../../lib/questProofGuards';
 
@@ -242,6 +243,8 @@ export function QuestProofPanel() {
   const taskApiPath = useMemo(() => `${pathPrefix()}/api/quest-proof/task`, []);
   const inboxApiPath = useMemo(() => `${pathPrefix()}/api/quest-proof/inbox`, []);
   const [inbox, setInbox] = useState<FounderInboxItem[]>([]);
+  const nextActionsApiPath = useMemo(() => `${pathPrefix()}/api/quest-proof/next-actions`, []);
+  const [nextActions, setNextActions] = useState<ProposedAction[]>([]);
 
   useEffect(() => {
     setRunId(currentRunId());
@@ -286,6 +289,23 @@ export function QuestProofPanel() {
     const interval = window.setInterval(() => void loadInbox(), 6000);
     return () => window.clearInterval(interval);
   }, [clientReady, loadInbox]);
+
+  // NextActions (D.066): the anticipated next 3-4 moves as tap chips, so the
+  // founder taps instead of types. Sourced from the team board (server route).
+  const loadNextActions = useCallback(async () => {
+    if (!clientReady) return;
+    const res = await fetchWithTimeout(`${nextActionsApiPath}?limit=4`, {}, 2500);
+    if (!res?.ok) return;
+    const data = (await res.json()) as { ok?: boolean; actions?: ProposedAction[] };
+    setNextActions(Array.isArray(data.actions) ? data.actions : []);
+  }, [nextActionsApiPath, clientReady]);
+
+  useEffect(() => {
+    if (!clientReady) return undefined;
+    void loadNextActions();
+    const interval = window.setInterval(() => void loadNextActions(), 6000);
+    return () => window.clearInterval(interval);
+  }, [clientReady, loadNextActions]);
 
   const counts = useMemo(() => countReceipts(receipts), [receipts]);
   const latestByPage = useMemo(() => latestReceiptsByPage(receipts), [receipts]);
@@ -529,6 +549,60 @@ export function QuestProofPanel() {
                     }}
                   >
                     Open
+                  </span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {nextActions.length > 0 && (
+          <div
+            data-testid="next-actions"
+            style={{
+              marginTop: 16,
+              border: '1px solid #16a34a',
+              borderRadius: 10,
+              background: '#0c1f14',
+              padding: 14,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <span style={{ color: '#4ade80', fontWeight: 900, fontSize: 16 }}>Next</span>
+              <span style={{ color: '#94a3b8', fontSize: 12 }}>anticipated moves — tap to act</span>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              {nextActions.map((a) => (
+                <a
+                  key={a.id}
+                  href={a.href ?? '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setLastOpened(a.taskId)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    minHeight: 64,
+                    padding: '12px 18px',
+                    borderRadius: 8,
+                    border: `1px solid ${a.reversible ? '#16a34a' : '#b45309'}`,
+                    background: a.reversible ? '#111827' : '#1c1207',
+                    color: '#e5e7eb',
+                    textDecoration: 'none',
+                    fontWeight: 800,
+                    fontSize: 15,
+                  }}
+                >
+                  <span>{a.label}</span>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: a.reversible ? '#4ade80' : '#f59e0b',
+                    }}
+                  >
+                    {a.reversible ? 'tap to do' : 'review'}
                   </span>
                 </a>
               ))}
