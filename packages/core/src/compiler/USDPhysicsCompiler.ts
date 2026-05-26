@@ -143,6 +143,14 @@ export interface USDRigidBodyAPI {
 export interface USDCollisionAPI {
   type: 'PhysicsCollisionAPI';
   collisionEnabled: boolean;
+  /** Collision geometry shape type (e.g. 'Cube', 'Sphere', 'Cylinder') */
+  collisionShape?: string;
+  /** Extents for box/cube collision [x, y, z] */
+  collisionSize?: [number, number, number];
+  /** Radius for sphere/cylinder/capsule/cone collision */
+  collisionRadius?: number;
+  /** Height for cylinder/capsule/cone collision */
+  collisionHeight?: number;
 }
 
 export interface USDMassAPI {
@@ -218,6 +226,8 @@ export class USDPhysicsCompiler extends CompilerBase {
 
   private options: Required<USDPhysicsCompilerOptions>;
   private lines: string[] = [];
+  /** Root composition name, set during compile() for USD path resolution. */
+  private compositionName: string = 'World';
   private indentLevel: number = 0;
   private prims: USDPhysicsPrim[] = [];
   private joints: USDJointAPI[] = [];
@@ -451,6 +461,7 @@ export class USDPhysicsCompiler extends CompilerBase {
    */
   compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
     this.validateCompilerAccess(agentToken, outputPath);
+    this.compositionName = this.sanitizeName(composition.name);
     this.lines = [];
     this.prims = [];
     this.joints = [];
@@ -839,6 +850,21 @@ export class USDPhysicsCompiler extends CompilerBase {
         this.emitBlank();
         this.emit(`# PhysicsCollisionAPI`);
         this.emit(`bool physics:collisionEnabled = ${api.collisionEnabled}`);
+        // Emit collision geometry extents so Isaac Sim / Omniverse can resolve collision shapes
+        if (api.collisionShape) {
+          this.emit(`token physics:collisionShape = "${api.collisionShape}"`);
+        }
+        if (api.collisionSize) {
+          this.emit(
+            `float3 physics:collisionSize = (${api.collisionSize[0]}, ${api.collisionSize[1]}, ${api.collisionSize[2]})`
+          );
+        }
+        if (api.collisionRadius !== undefined) {
+          this.emit(`float physics:collisionRadius = ${api.collisionRadius}`);
+        }
+        if (api.collisionHeight !== undefined) {
+          this.emit(`float physics:collisionHeight = ${api.collisionHeight}`);
+        }
         break;
 
       case 'PhysicsMassAPI':
@@ -1047,10 +1073,25 @@ export class USDPhysicsCompiler extends CompilerBase {
     }
 
     if (hasCollider || hasPhysics) {
-      apis.push({
+      const collisionApi: USDCollisionAPI = {
         type: 'PhysicsCollisionAPI',
         collisionEnabled: true,
-      });
+      };
+      // Populate collision geometry extents from extracted geometry
+      if (geometry && geometry.type !== 'Reference') {
+        collisionApi.collisionShape = geometry.type;
+        if (geometry.size) {
+          collisionApi.collisionSize = geometry.size;
+        }
+        if (geometry.radius !== undefined) {
+          collisionApi.collisionRadius = geometry.radius;
+        }
+        // For cylinder/capsule/cone, extract height from scale Y axis
+        if (geometry.type === 'Cylinder' || geometry.type === 'Capsule' || geometry.type === 'Cone') {
+          collisionApi.collisionHeight = scale[1]; // Y-axis height
+        }
+      }
+      apis.push(collisionApi);
     }
 
     if (hasPhysics) {
@@ -1071,14 +1112,25 @@ export class USDPhysicsCompiler extends CompilerBase {
     // Process joint
     if (jointConfig) {
       const jointType = this.mapJointType(String(jointConfig.type || 'fixed'));
-      const parentBody = String(jointConfig.connectedBody || 'base_link');
+      // Build USD prim paths for joint body references.
+      // body0: if connectedBody is specified, resolve it as a path under the
+      //   articulation root; if not, use the root Xform path as the fixed base.
+      // body1: always the object's own prim path.
+      const rawParentBody = String(jointConfig.connectedBody || '');
+      const articulationRoot = `/${this.compositionName}`;
+      const body0Path = rawParentBody
+        ? (rawParentBody.startsWith('/')
+          ? rawParentBody
+          : `${articulationRoot}/${this.sanitizeName(rawParentBody)}`)
+        : articulationRoot;
+      const body1Path = `/${this.compositionName}/${this.sanitizeName(name)}`;
       const axis = this.mapAxis(jointConfig.axis);
 
       const joint: USDJointAPI = {
         type: 'PhysicsJoint',
         jointType,
-        body0: parentBody,
-        body1: `RobotArticulation/${name}`,
+        body0: body0Path,
+        body1: body1Path,
         axis,
       };
 

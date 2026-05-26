@@ -142,4 +142,62 @@ describe('UnrealCompiler', () => {
     const mod = await import('../UnrealCompiler');
     expect(mod.compileToUnreal).toBeTypeOf('function');
   });
+
+  // =========== Child recursion ===========
+
+  it('recurses into object children', () => {
+    const comp = makeComposition({
+      objects: [
+        {
+          name: 'parent',
+          properties: [{ key: 'geometry', value: 'box' }],
+          traits: [],
+          children: [
+            { name: 'child_a', properties: [{ key: 'geometry', value: 'sphere' }], traits: [] },
+            {
+              name: 'child_b',
+              properties: [{ key: 'geometry', value: 'cylinder' }],
+              traits: [],
+              children: [
+                { name: 'grandchild', properties: [{ key: 'geometry', value: 'cone' }], traits: [] },
+              ],
+            },
+          ],
+        } as any,
+      ],
+    });
+    const result = compiler.compile(comp, 'test-token');
+    // All nested objects should appear in both header declarations and source
+    expect(result.headerFile).toContain('parent');
+    expect(result.headerFile).toContain('child_a');
+    expect(result.headerFile).toContain('child_b');
+    expect(result.headerFile).toContain('grandchild');
+    expect(result.sourceFile).toContain('child_a');
+    expect(result.sourceFile).toContain('child_b');
+    expect(result.sourceFile).toContain('grandchild');
+  });
+
+  // =========== Degradation warnings ===========
+
+  it('emits degradation warnings for stubbed interaction traits', () => {
+    const comp = makeComposition({
+      objects: [
+        {
+          name: 'interactive_obj',
+          properties: [{ key: 'geometry', value: 'box' }],
+          traits: [
+            { name: 'grabbable' },
+            { name: 'pointable' },
+            { name: 'hoverable' },
+          ],
+        } as any,
+      ],
+    });
+    const result = compiler.compile(comp, 'test-token');
+    // Each stubbed interaction trait should emit a UE_LOG Warning
+    expect(result.sourceFile).toContain('@grabbable');
+    expect(result.sourceFile).toContain('UE_LOG(LogTemp, Warning');
+    expect(result.sourceFile).toContain('@pointable');
+    expect(result.sourceFile).toContain('@hoverable');
+  });
 });
