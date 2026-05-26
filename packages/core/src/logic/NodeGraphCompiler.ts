@@ -125,20 +125,21 @@ export class NodeGraphCompiler {
    * Trace all nodes reachable downstream from startId (exclusive).
    */
   private traceDownstream(startId: string, graph: NodeGraph): string[] {
-    const visited = new Set<string>();
+    // Seed visited with startId so cycles through the trigger node cannot
+    // include it in the result (which would cause generateHandler to emit
+    // duplicate evaluation for the OnEvent node itself).
+    const visited = new Set<string>([startId]);
     const queue = [startId];
     while (queue.length > 0) {
       const id = queue.shift()!;
-      const connections = graph.getConnections
-        ? graph.getConnections().filter((c) => c.fromNode === id)
-        : (graph as any).getConnectionsFrom?.(id) ?? [];
-      for (const conn of connections) {
+      for (const conn of graph.getConnectionsFrom(id)) {
         if (!visited.has(conn.toNode)) {
           visited.add(conn.toNode);
           queue.push(conn.toNode);
         }
       }
     }
+    visited.delete(startId);
     return Array.from(visited);
   }
 
