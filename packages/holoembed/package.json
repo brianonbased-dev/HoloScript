@@ -31,7 +31,7 @@
     "@holoscript/snn-webgpu": "workspace:*"
   },
   "peerDependencies": {
-    "webgpu": "^0.3.8"
+    "webgpu": "^0.4.0"
   },
   "peerDependenciesMeta": {
     "webgpu": {
@@ -44,7 +44,7 @@
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",
     "vitest": "^4.1.5",
-    "webgpu": "^0.3.8"
+    "webgpu": "^0.4.0"
   },
   "keywords": [
     "embedding",
