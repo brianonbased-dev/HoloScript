@@ -1,0 +1,14 @@
+⚠ [2/5] Replayed HSCore.Basic
+warning: .\.\.\.\HSCore\Basic.lean:151:5: unused variable `tid`
+note: this linter can be disabled with `set_option linter.unusedVariables false`
+warning: .\.\.\.\HSCore\Basic.lean:151:21: unused variable `v`
+note: this linter can be disabled with `set_option linter.unusedVariables false`
+warning: .\.\.\.\HSCore\Basic.lean:151:33: unused variable `e'`
+note: this linter can be disabled with `set_option linter.unusedVariables false`
+warning: .\.\.\.\HSCore\Basic.lean:171:5: unused variable `tid`
+note: this linter can be disabled with `set_option linter.unusedVariables false`
+warning: .\.\.\.\HSCore\Basic.lean:171:21: unused variable `τ_arg`
+note: this linter can be disabled with `set_option linter.unusedVariables false`
+warning: .\.\.\.\HSCore\Basic.lean:171:27: unused variable `τ_res`
+note: this linter can be disabled with `set_option linter.unusedVariables false`
+Build completed successfully.

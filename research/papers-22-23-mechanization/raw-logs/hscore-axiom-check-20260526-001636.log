@@ -1,0 +1,7 @@
+'HSCore.progress_preservation' depends on axioms: [propext,
+ HSCore.dispatch_resolve,
+ HSCore.dispatch_resolve_preserves,
+ HSCore.dispatch_resolve_total,
+ HSCore.substitution_preserves_typing,
+ HSCore.trait_accepts]
+unknown declaration 'main'
