@@ -126,3 +126,23 @@ export type {
 export { TransformGraph } from './TransformGraph';
 export type { Transform3D, Vec3 } from './TransformGraph';
 export { FrustumCuller } from './FrustumCuller';
+
+// Provenance-preserving spatial consolidation (D.059 Stage 2/3)
+export {
+  consolidate,
+  verifyConsolidationReceipt,
+  computeMerkleRoot,
+  computeSelfHash,
+  computeConsolidatedBounds,
+  CAEL_STRUCTURE_V1,
+} from './SpatialConsolidation';
+export type {
+  CaelStructureV1,
+  ConsolidationSemiringStrategy,
+  DeduplicationStats,
+  ComposedMerkleReceipt,
+  ConsolidatedAnchor,
+  ConsolidatedBounds,
+  ConsolidationResult,
+  ConsolidationOptions,
+} from './SpatialConsolidation';
