@@ -3,7 +3,7 @@
  * Covers: parseHoloToGraph, visualizeFlow, getNodeConnections,
  *         designGraphFromDescription, PluginManager, handleIDETool
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   parseHoloToGraph,
   visualizeFlow,
@@ -335,10 +335,14 @@ describe('designGraphFromDescription', () => {
 // PluginManager
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 describe('PluginManager', () => {
-  // Reset static state between tests
+  // Reset static state between tests to prevent test tool names
+  // from leaking into the production tool list.
   beforeEach(() => {
-    // Clear via registration overwrite - can't reset static directly,
-    // but tests are additive so we just ensure registration works
+    PluginManager.reset();
+  });
+
+  afterEach(() => {
+    PluginManager.reset();
   });
 
   it('is importable as a class', () => {
@@ -351,18 +355,17 @@ describe('PluginManager', () => {
   });
 
   it('registerPlugin adds tools', async () => {
-    const before = PluginManager.getTools().length;
     await PluginManager.registerPlugin(
       [
         {
-          name: 'test_sprint59_tool',
+          name: '_unit_sprint59_tool',
           description: 'Test tool',
           inputSchema: { type: 'object' as const, properties: {} },
         },
       ],
       async () => ({ result: 'ok' })
     );
-    const after = PluginManager.getTools().length;
+    expect(PluginManager.getTools().length).toBe(1);
     expect(after).toBe(before + 1);
   });
 
@@ -370,14 +373,14 @@ describe('PluginManager', () => {
     await PluginManager.registerPlugin(
       [
         {
-          name: 'test_sprint59_echo',
+          name: '_unit_sprint59_echo',
           description: 'Echo tool',
           inputSchema: { type: 'object' as const, properties: {} },
         },
       ],
       async (_name, args) => ({ echoed: args.value })
     );
-    const result = await PluginManager.handleTool('test_sprint59_echo', { value: 'hello' });
+    const result = await PluginManager.handleTool('_unit_sprint59_echo', { value: 'hello' });
     expect(result).toEqual({ echoed: 'hello' });
   });
 
@@ -391,12 +394,12 @@ describe('PluginManager', () => {
     await PluginManager.registerPlugin(
       [
         {
-          name: 'test_multi_a',
+          name: '_unit_multi_a',
           description: 'a',
           inputSchema: { type: 'object' as const, properties: {} },
         },
         {
-          name: 'test_multi_b',
+          name: '_unit_multi_b',
           description: 'b',
           inputSchema: { type: 'object' as const, properties: {} },
         },
@@ -406,8 +409,8 @@ describe('PluginManager', () => {
         return {};
       }
     );
-    await PluginManager.handleTool('test_multi_a', {});
-    await PluginManager.handleTool('test_multi_b', {});
+    await PluginManager.handleTool('_unit_multi_a', {});
+    await PluginManager.handleTool('_unit_multi_b', {});
     expect(calls).toBe(2);
   });
 });

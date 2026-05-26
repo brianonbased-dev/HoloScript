@@ -14,7 +14,7 @@
  * was bypassed, disabled, or not wired."
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { handleTool } from '../handlers';
 import { PluginManager } from '../PluginManager';
 import { globalReceiptStore } from '../security/sandbox-policy';
@@ -288,6 +288,10 @@ describe('canary: fork sandbox gate is wired at every sensitive entry point', ()
       policyId: expect.any(String),
       checks: expect.any(Array),
     });
+  });
+
+  afterEach(() => {
+    PluginManager.reset();
   });
 
   it('CANARY-W002: PluginManager.registerPlugin blocks hostile manifest', async () => {

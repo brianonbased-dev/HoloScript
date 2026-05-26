@@ -8,7 +8,7 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 function makeTool(overrides: Partial<Tool> = {}): Tool {
   return {
-    name: overrides.name || 'test_tool',
+    name: overrides.name || '_unit_docs_tool',
     description: overrides.description || 'A test tool',
     inputSchema: overrides.inputSchema || {
       type: 'object' as const,
@@ -62,7 +62,7 @@ describe('APIDocsGenerator', () => {
   describe('tool documentation', () => {
     it('documents parameters', () => {
       const tool = makeTool({
-        name: 'test_tool',
+        name: '_unit_docs_params',
         inputSchema: {
           type: 'object' as const,
           properties: {
@@ -160,7 +160,7 @@ describe('APIDocsGenerator', () => {
 
   describe('JSON output', () => {
     it('generates valid JSON', () => {
-      const tools = [makeTool({ name: 'test_tool' })];
+      const tools = [makeTool({ name: '_unit_docs_json' })];
       const ref = generator.generate(tools);
       const json = generator.toJSON(ref);
 
