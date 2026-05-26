@@ -3,7 +3,8 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit } from '@/lib/rate-limiter';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
-import { validateHoloOutput, stripMarkdownFences } from '@/lib/brittney/holoValidator';
+import { stripMarkdownFences } from '@/lib/brittney/holoValidator';
+import { validateGeneratedHoloOutput } from '@/lib/brittney/generatedOutputGate';
 import { requireAuth } from '@/lib/api-auth';
 import { corsHeaders } from '../_lib/cors';
 import { readJsonBody } from '../_lib/body-size';
@@ -182,8 +183,21 @@ export async function POST(request: NextRequest) {
     // Strip markdown fences if the LLM wrapped the output
     const code = stripMarkdownFences(rawCode);
 
-    // Validate the generated HoloScript before returning to the user
-    const validation = validateHoloOutput(code);
+    // Validate through the real core parser before returning generated output.
+    const validation = validateGeneratedHoloOutput(code);
+    if (!validation.valid) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: '',
+          source: 'cloud',
+          error: 'Generated HoloScript failed core validation',
+          validationErrors: validation.errors,
+          ...(validation.warnings.length > 0 && { validationWarnings: validation.warnings }),
+        },
+        { status: 422, headers }
+      );
+    }
 
     // Deduct credits after successful generation (fire-and-forget)
     deductCredits(gate.userId, 'studio_generate').catch(() => {});
@@ -193,7 +207,10 @@ export async function POST(request: NextRequest) {
         success: true,
         code,
         source: 'cloud',
-        ...(validation.errors.length > 0 && { validationErrors: validation.errors }),
+        generatedOutputValidation: {
+          valid: true,
+          corePrimitives: validation.corePrimitives,
+        },
         ...(validation.warnings.length > 0 && { validationWarnings: validation.warnings }),
       },
       { headers }

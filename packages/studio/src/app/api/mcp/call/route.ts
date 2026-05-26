@@ -2,12 +2,14 @@ export const maxDuration = 300;
 
 import { NextResponse } from 'next/server';
 import { forwardAuthHeaders } from '@/lib/api-auth';
+import { validateGeneratedHoloOutput } from '@/lib/brittney/generatedOutputGate';
 
 // ─── /api/mcp/call — HoloScript MCP Tool Proxy (Decoupled) ───────────────────
 //
 // This route acts purely as an API Gateway to forward requests from the React
 // Studio frontend to the standalone external MCP Orchestrator and Absorb Service.
-// It DOES NOT natively bundle the heavy `@holoscript/core` or `tree-sitter` AST parsers.
+// Generated scene/world output is gated through `@holoscript/core` before Studio
+// accepts it, so proxy success cannot admit surface-only scene text.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { ENDPOINTS } from '@holoscript/config/endpoints';
@@ -57,6 +59,9 @@ export async function POST(request: Request) {
     }
 
     const data = await res.json();
+    const validationError = validateGeneratedToolPayload(String(body.tool), data);
+    if (validationError) return validationError;
+
     return NextResponse.json(data);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -71,6 +76,64 @@ export async function POST(request: Request) {
       { status: isOffline ? 503 : isTimeout ? 504 : 500 }
     );
   }
+}
+
+function validateGeneratedToolPayload(tool: string, data: unknown): NextResponse | null {
+  const codeField = generatedCodeFieldForTool(tool);
+  if (!codeField) return null;
+
+  const resultContainer = asRecord(data)?.['result'];
+  const payload = asRecord(resultContainer) ?? asRecord(data);
+  if (!payload) {
+    return NextResponse.json(
+      {
+        error: `${tool} returned a non-object response for Studio validation`,
+        generatedOutputValid: false,
+      },
+      { status: 422 }
+    );
+  }
+
+  const code = payload?.[codeField] ?? payload?.['code'] ?? payload?.['holoCode'];
+
+  if (typeof code !== 'string' || code.trim().length === 0) {
+    return NextResponse.json(
+      {
+        error: `${tool} returned no generated HoloScript code for Studio validation`,
+        generatedOutputValid: false,
+      },
+      { status: 422 }
+    );
+  }
+
+  const validation = validateGeneratedHoloOutput(code);
+  if (!validation.valid) {
+    return NextResponse.json(
+      {
+        error: `${tool} generated output failed core validation`,
+        generatedOutputValid: false,
+        validationErrors: validation.errors,
+        ...(validation.warnings.length > 0 && { validationWarnings: validation.warnings }),
+      },
+      { status: 422 }
+    );
+  }
+
+  payload['generatedOutputValidation'] = {
+    valid: true,
+    corePrimitives: validation.corePrimitives,
+  };
+  return null;
+}
+
+function generatedCodeFieldForTool(tool: string): 'code' | 'holoCode' | null {
+  if (tool === 'generate_scene' || tool === 'holo_generate_scene') return 'code';
+  if (tool === 'generate_world' || tool === 'holo_generate_world') return 'holoCode';
+  return null;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
 }
 
 export async function GET() {
