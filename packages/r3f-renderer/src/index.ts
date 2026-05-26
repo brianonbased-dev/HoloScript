@@ -119,6 +119,19 @@ export type {
   PointCloudOctreeNode,
   PointCloudTraitEvent,
 } from './point-cloud/PointCloudEventConsumer';
+export {
+  RoomMeshProvider,
+  createRoomMeshProvider,
+  createWindowRoomMeshProvider,
+} from './room-mesh/RoomMeshProvider';
+export type {
+  MeshBlock,
+  MeshProviderCallback,
+  MeshProviderResult,
+  RoomBounds,
+  RoomMeshEventBus,
+  RoomMeshProviderOptions,
+} from './room-mesh/RoomMeshProvider';
 
 // GAPS Physics Components (Phase 3)
 export { FluidRenderer } from './components/FluidRenderer';
