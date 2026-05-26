@@ -62,9 +62,35 @@ export interface SDFEvaluation {
   operation?: SDFCSGOperation | SDFDomainOperation;
 }
 
+export type SDFSampleResolution = readonly [number, number, number];
+
+export interface SDFSampleBounds {
+  min: SDFPoint;
+  max: SDFPoint;
+  resolution: SDFSampleResolution;
+}
+
+export interface SDFDistanceField {
+  bounds: {
+    min: SDFPoint;
+    max: SDFPoint;
+  };
+  resolution: SDFSampleResolution;
+  spacing: SDFPoint;
+  distances: ReadonlyArray<number>;
+  samples: ReadonlyArray<SDFEvaluation>;
+}
+
 function finite(value: number, name: string): number {
   if (!Number.isFinite(value)) {
     throw new Error(`sdf.evaluator: ${name} must be finite`);
+  }
+  return value;
+}
+
+function finiteDistance(value: number, samplePoint: SDFPoint): number {
+  if (!Number.isFinite(value)) {
+    throw new Error(`sdf.evaluator: non-finite distance at [${samplePoint.join(', ')}]`);
   }
   return value;
 }
@@ -81,6 +107,30 @@ function point(point: SDFPoint): [number, number, number] {
     finite(point[0], 'point.x'),
     finite(point[1], 'point.y'),
     finite(point[2], 'point.z'),
+  ];
+}
+
+function resolution(input: SDFSampleResolution): [number, number, number] {
+  if (input.length !== 3) {
+    throw new Error('sdf.evaluator: resolution must contain exactly three axes');
+  }
+  return input.map((axis, index) => {
+    const value = finite(axis, `resolution.${index}`);
+    if (!Number.isInteger(value) || value < 1) {
+      throw new Error('sdf.evaluator: resolution entries must be positive integers');
+    }
+    return value;
+  }) as [number, number, number];
+}
+
+function sampleSpacing(min: SDFPoint, max: SDFPoint, sampleResolution: SDFSampleResolution): SDFPoint {
+  const lo = point(min);
+  const hi = point(max);
+  const res = resolution(sampleResolution);
+  return [
+    res[0] === 1 ? 0 : (hi[0] - lo[0]) / (res[0] - 1),
+    res[1] === 1 ? 0 : (hi[1] - lo[1]) / (res[1] - 1),
+    res[2] === 1 ? 0 : (hi[2] - lo[2]) / (res[2] - 1),
   ];
 }
 
@@ -540,13 +590,48 @@ export function evaluateSDFNode(root: SDFNode, samplePoint: SDFPoint): number {
   throw new Error(`sdf.evaluator: unsupported node type ${(root as SDFNode).type}`);
 }
 
+export function sampleSDFDistanceField(root: SDFNode, bounds: SDFSampleBounds): SDFDistanceField {
+  const min = point(bounds.min);
+  const max = point(bounds.max);
+  const gridResolution = resolution(bounds.resolution);
+  const spacing = sampleSpacing(min, max, gridResolution);
+  const samples: SDFEvaluation[] = [];
+  const distances: number[] = [];
+  const evaluator = new SDFPointEvaluator(root);
+
+  for (let z = 0; z < gridResolution[2]; z++) {
+    for (let y = 0; y < gridResolution[1]; y++) {
+      for (let x = 0; x < gridResolution[0]; x++) {
+        const samplePoint: SDFPoint = [
+          min[0] + spacing[0] * x,
+          min[1] + spacing[1] * y,
+          min[2] + spacing[2] * z,
+        ];
+        const sample = evaluator.evaluate(samplePoint);
+        samples.push(sample);
+        distances.push(sample.distance);
+      }
+    }
+  }
+
+  return {
+    bounds: { min, max },
+    resolution: gridResolution,
+    spacing,
+    distances,
+    samples,
+  };
+}
+
 export class SDFPointEvaluator {
   constructor(readonly root: SDFNode) {}
 
   evaluate(samplePoint: SDFPoint): SDFEvaluation {
+    const normalizedPoint = point(samplePoint);
+    const distance = finiteDistance(evaluateSDFNode(this.root, normalizedPoint), normalizedPoint);
     return {
-      distance: evaluateSDFNode(this.root, samplePoint),
-      point: point(samplePoint),
+      distance,
+      point: normalizedPoint,
       rootType: this.root.type,
       ...(this.root.primitive ? { primitive: this.root.primitive } : {}),
       ...(this.root.operation ? { operation: this.root.operation } : {}),
@@ -555,5 +640,9 @@ export class SDFPointEvaluator {
 
   sample(points: ReadonlyArray<SDFPoint>): ReadonlyArray<SDFEvaluation> {
     return points.map((samplePoint) => this.evaluate(samplePoint));
+  }
+
+  sampleField(bounds: SDFSampleBounds): SDFDistanceField {
+    return sampleSDFDistanceField(this.root, bounds);
   }
 }

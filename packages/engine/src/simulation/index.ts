@@ -331,12 +331,16 @@ export {
 export {
   SDFPointEvaluator,
   evaluateSDFNode,
+  sampleSDFDistanceField,
   type SDFCSGOperation,
+  type SDFDistanceField,
   type SDFDomainOperation,
   type SDFEvaluation,
   type SDFNode,
   type SDFPoint,
   type SDFPrimitive,
+  type SDFSampleBounds,
+  type SDFSampleResolution,
 } from './SDFPointEvaluator';
 
 // Proof-carrying SDF conjecture sub-class (`conjecture.geometry.proof-carrying-sdf.v1`)

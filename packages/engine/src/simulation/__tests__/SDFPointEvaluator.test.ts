@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   SDFPointEvaluator,
   evaluateSDFNode,
+  sampleSDFDistanceField,
   type SDFNode,
 } from '../SDFPointEvaluator';
 
@@ -16,6 +17,34 @@ describe('SDFPointEvaluator', () => {
     expect(evaluateSDFNode(sphere, [0, 0, 0])).toBeCloseTo(-1);
     expect(evaluateSDFNode(sphere, [1, 0, 0])).toBeCloseTo(0);
     expect(evaluateSDFNode(sphere, [2, 0, 0])).toBeCloseTo(1);
+  });
+
+  it('samples a bounded distance field for proof-carrying render probes', () => {
+    const sphere: SDFNode = {
+      type: 'primitive',
+      primitive: 'sphere',
+      params: { radius: 1 },
+    };
+
+    const field = sampleSDFDistanceField(sphere, {
+      min: [0, 0, 0],
+      max: [2, 0, 0],
+      resolution: [3, 1, 1],
+    });
+
+    expect(field.resolution).toEqual([3, 1, 1]);
+    expect(field.spacing).toEqual([1, 0, 0]);
+    expect(field.samples.map((sample) => sample.point)).toEqual([
+      [0, 0, 0],
+      [1, 0, 0],
+      [2, 0, 0],
+    ]);
+    expect(field.distances).toHaveLength(3);
+    expect(field.distances.every(Number.isFinite)).toBe(true);
+    expect(field.distances.some((distance) => distance !== 0)).toBe(true);
+    expect(field.distances[0]).toBeCloseTo(-1);
+    expect(field.distances[1]).toBeCloseTo(0);
+    expect(field.distances[2]).toBeCloseTo(1);
   });
 
   it('honors compiler-shaped translate and scale transforms', () => {
