@@ -200,7 +200,7 @@ Sorted by (deadline proximity x leverage x effort):
 ## Cross-Paper References
 
 - **Provenance anchoring**: `docs/provenance-anchoring.md` + `scripts/anchor_ots.py` / `scripts/anchor_base.py` / `scripts/verify_provenance.py`
-- **Bibliography**: `research/holoscript.bib` (225 entries, 64 UNVERIFIED per audit matrix)
+- **Bibliography**: `research/holoscript.bib` (entry count via `rg -n '^@' research/holoscript.bib`; stale audit-matrix unresolved markers cleared on 2026-05-26 by direct source lookups)
 - **Benchmark canon**: `research/benchmark-canon.md`
 - **Program thesis**: `docs/paper-program/readme.md`
 - **D.011 gate**: Memory D.011 + `docs/paper-program/D011_FOUR_GATE_CHECKLIST.md`
