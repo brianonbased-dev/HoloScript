@@ -13,6 +13,8 @@ import { useRef, useMemo, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGpuSplatSort } from '../hooks/useGpuSplatSort';
+import { useVolumetricRenderUpdate } from '../hooks/useVolumetricRenderUpdate';
+import { reorderByIndices, type VolumetricEventBus } from '../volumetric/VolumetricRenderUpdateConsumer';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,6 +39,10 @@ export interface GaussianSplatViewerProps {
   onLoad?: (splatCount: number) => void;
   /** Error callback */
   onError?: (error: Error) => void;
+  /** Volumetric event bus for trait-driven draw-order + opacity updates */
+  volumetricEventBus?: VolumetricEventBus;
+  /** Node id used to filter volumetric events to this viewer */
+  nodeId?: string;
 }
 
 interface SplatData {
@@ -60,11 +66,17 @@ export function GaussianSplatViewer({
   onProgress,
   onLoad,
   onError,
+  volumetricEventBus,
+  nodeId,
 }: GaussianSplatViewerProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const [splatData, setSplatData] = useState<SplatData | null>(null);
   const [loading, setLoading] = useState(true);
   const gpuSort = useGpuSplatSort({ maxSplats });
+  const volumetricUpdate = useVolumetricRenderUpdate({
+    bus: volumetricEventBus ?? { on: () => () => {}, emit: () => {} },
+    nodeId,
+  });
 
   // Load splat data
   useEffect(() => {
@@ -139,30 +151,40 @@ export function GaussianSplatViewer({
     return { matrices, colors, count: splatData.count };
   }, [splatData, splatScale]);
 
+  // Reorder by trait-driven indices when available
+  const orderedInstanceData = useMemo(() => {
+    if (!instanceData || !volumetricUpdate.indices) return instanceData;
+    return {
+      matrices: reorderByIndices(instanceData.matrices, volumetricUpdate.indices, 16),
+      colors: reorderByIndices(instanceData.colors, volumetricUpdate.indices, 4),
+      count: instanceData.count,
+    };
+  }, [instanceData, volumetricUpdate.indices]);
+
   // Update instanced mesh
   useEffect(() => {
-    if (!meshRef.current || !instanceData) return;
+    if (!meshRef.current || !orderedInstanceData) return;
 
     const mesh = meshRef.current;
     const dummy = new THREE.Matrix4();
 
-    for (let i = 0; i < instanceData.count; i++) {
-      dummy.fromArray(instanceData.matrices, i * 16);
+    for (let i = 0; i < orderedInstanceData.count; i++) {
+      dummy.fromArray(orderedInstanceData.matrices, i * 16);
       mesh.setMatrixAt(i, dummy);
 
       mesh.setColorAt(
         i,
         new THREE.Color(
-          instanceData.colors[i * 4],
-          instanceData.colors[i * 4 + 1],
-          instanceData.colors[i * 4 + 2]
+          orderedInstanceData.colors[i * 4],
+          orderedInstanceData.colors[i * 4 + 1],
+          orderedInstanceData.colors[i * 4 + 2]
         )
       );
     }
 
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  }, [instanceData]);
+  }, [orderedInstanceData]);
 
   // Upload full WGSL-aligned splat payload to GPU sorter when data is available
   useEffect(() => {
@@ -213,7 +235,7 @@ export function GaussianSplatViewer({
       frustumCulled={false}
     >
       <sphereGeometry args={[0.005, 4, 4]} />
-      <meshBasicMaterial transparent opacity={0.85} vertexColors />
+      <meshBasicMaterial transparent opacity={volumetricUpdate.hasUpdate ? volumetricUpdate.opacity : 0.85} vertexColors />
     </instancedMesh>
   );
 }

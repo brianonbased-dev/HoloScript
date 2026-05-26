@@ -60,6 +60,18 @@ export type { QuiltViewerProps } from './components/QuiltViewer';
 export { GaussianSplatViewer } from './components/GaussianSplatViewer';
 export type { GaussianSplatViewerProps } from './components/GaussianSplatViewer';
 export {
+  VolumetricRenderUpdateConsumer,
+  createVolumetricRenderUpdateConsumer,
+  createWindowVolumetricRenderUpdateConsumer,
+  reorderByIndices,
+} from './volumetric/VolumetricRenderUpdateConsumer';
+export type {
+  VolumetricConsumerOptions,
+  VolumetricEventBus,
+  VolumetricRenderState,
+  VolumetricRenderUpdatePayload,
+} from './volumetric/VolumetricRenderUpdateConsumer';
+export {
   CROSS_SCALE_PROJECTION_RECEIPT_SCHEMA,
   CROSS_SCALE_PROJECTION_SCALES,
   CrossScaleProjectionRenderer,
@@ -256,6 +268,11 @@ export type {
 } from './hooks/usePerformanceRegression';
 export { useGpuSplatSort } from './hooks/useGpuSplatSort';
 export type { GpuSplatSortOptions, GpuSplatSortResult, SplatUploadPayload } from './hooks/useGpuSplatSort';
+export { useVolumetricRenderUpdate } from './hooks/useVolumetricRenderUpdate';
+export type {
+  UseVolumetricRenderUpdateOptions,
+  UseVolumetricRenderUpdateResult,
+} from './hooks/useVolumetricRenderUpdate';
 export { useWebcamGaze } from './hooks/useWebcamGaze';
 export type { UseWebcamGazeOptions, UseWebcamGazeResult } from './hooks/useWebcamGaze';
 
