@@ -119,21 +119,56 @@ function StreamingCursor() {
   );
 }
 
-function ToolBadge({ result }: { result: ToolResult }) {
+function ToolBadge({
+  result,
+  onConfirm,
+  onDecline,
+}: {
+  result: ToolResult;
+  onConfirm?: () => void;
+  onDecline?: () => void;
+}) {
+  const stateClass = result.requiresConfirmation
+    ? 'bg-yellow-500/10 text-yellow-300 border border-yellow-500/10'
+    : result.success
+      ? 'bg-green-500/10 text-green-400 border border-green-500/10'
+      : 'bg-red-500/10 text-red-400 border border-red-500/10';
+  const canConfirm = Boolean(result.requiresConfirmation && result.pendingAction && onConfirm);
   return (
     <div
-      className={`flex items-start gap-2 rounded-lg px-3 py-1.5 text-[11px] ${
-        result.success
-          ? 'bg-green-500/10 text-green-400 border border-green-500/10'
-          : 'bg-red-500/10 text-red-400 border border-red-500/10'
-      }`}
+      className={`flex items-start gap-2 rounded-lg px-3 py-1.5 text-[11px] ${stateClass}`}
     >
       {result.success ? (
         <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0" />
       ) : (
         <XCircle className="mt-0.5 h-3 w-3 shrink-0" />
       )}
-      <span>{result.message}</span>
+      <span className="min-w-0 flex-1">
+        {result.message}
+        {result.diff?.changes?.length ? ` (${result.diff.changes.join('; ')})` : ''}
+      </span>
+      {canConfirm && (
+        <span className="ml-auto flex shrink-0 gap-1">
+          <button
+            type="button"
+            onClick={onConfirm}
+            aria-label="Apply preview"
+            title="Apply preview"
+            className="rounded p-0.5 text-yellow-200 transition hover:bg-yellow-400/20 hover:text-white"
+          >
+            <CheckCircle2 className="h-3 w-3" />
+          </button>
+          <button
+            type="button"
+            onClick={onDecline}
+            aria-label="Decline preview"
+            title="Decline preview"
+            className="rounded p-0.5 text-yellow-200/70 transition hover:bg-yellow-400/20 hover:text-white"
+          >
+            <XCircle className="h-3 w-3" />
+          </button>
+        </span>
+      )}
     </div>
   );
 }
@@ -285,6 +320,21 @@ export function BrittneyBuildSurface() {
   const removeTrait = useSceneGraphStore((s) => s.removeTrait);
   const setTraitProperty = useSceneGraphStore((s) => s.setTraitProperty);
 
+  const getStoreActions = useCallback(
+    () => ({
+      nodes: useSceneGraphStore.getState().nodes,
+      addTrait,
+      removeTrait,
+      setTraitProperty,
+      addNode,
+      removeNode,
+      updateNode,
+      getCode: () => useSceneStore.getState().code ?? '',
+      setCode: useSceneStore.getState().setCode,
+    }),
+    [addTrait, removeTrait, setTraitProperty, addNode, removeNode, updateNode],
+  );
+
   const {
     isListening,
     interimTranscript,
@@ -350,17 +400,7 @@ export function BrittneyBuildSurface() {
       let acc = '';
       const toolResults: ToolResult[] = [];
 
-      const storeActions = {
-        nodes,
-        addTrait,
-        removeTrait,
-        setTraitProperty,
-        addNode,
-        removeNode,
-        updateNode,
-        getCode: () => useSceneStore.getState().code ?? '',
-        setCode,
-      };
+      const storeActions = getStoreActions();
 
       try {
         for await (const event of streamAssistant(updated, sceneContext)) {
@@ -416,8 +456,63 @@ export function BrittneyBuildSurface() {
       removeTrait,
       setTraitProperty,
       setCode,
+      getStoreActions,
     ],
   );
+
+  const handleConfirmToolResult = useCallback(
+    (messageId: string, resultIndex: number) => {
+      const target = messages.find((msg) => msg.id === messageId)?.toolResults?.[resultIndex];
+      if (!target?.requiresConfirmation || !target.pendingAction) return;
+
+      const applied = executeTool(
+        target.pendingAction.tool,
+        target.pendingAction.args,
+        getStoreActions(),
+        { confirmed: true },
+      );
+      const nextResult: ToolResult = applied.success
+        ? { ...applied, message: `Applied: ${applied.message}` }
+        : applied;
+
+      setMessages((current) =>
+        current.map((msg) =>
+          msg.id === messageId
+            ? {
+                ...msg,
+                toolResults: msg.toolResults?.map((result, index) =>
+                  index === resultIndex ? nextResult : result,
+                ),
+              }
+            : msg,
+        ),
+      );
+    },
+    [messages, getStoreActions],
+  );
+
+  const handleDeclineToolResult = useCallback((messageId: string, resultIndex: number) => {
+    setMessages((current) =>
+      current.map((msg) =>
+        msg.id === messageId
+          ? {
+              ...msg,
+              toolResults: msg.toolResults?.map((result, index) =>
+                index === resultIndex && result.requiresConfirmation
+                  ? {
+                      ...result,
+                      message: `Declined: ${result.diff?.summary ?? result.message}`,
+                      requiresConfirmation: false,
+                      pendingAction: undefined,
+                      diff: undefined,
+                    }
+                  : result,
+              ),
+            }
+          : msg,
+      ),
+    );
+  }, []);
 
   const handleSend = useCallback(() => runSend(input.trim()), [input, runSend]);
   const handleCardSelect = useCallback(
@@ -527,7 +622,20 @@ export function BrittneyBuildSurface() {
                         {msg.toolResults && msg.toolResults.length > 0 && (
                           <div className="space-y-1 pl-1">
                             {msg.toolResults.map((r, i) => (
-                              <ToolBadge key={i} result={r} />
+                              <ToolBadge
+                                key={i}
+                                result={r}
+                                onConfirm={
+                                  msg.isStreaming
+                                    ? undefined
+                                    : () => handleConfirmToolResult(msg.id, i)
+                                }
+                                onDecline={
+                                  msg.isStreaming
+                                    ? undefined
+                                    : () => handleDeclineToolResult(msg.id, i)
+                                }
+                              />
                             ))}
                           </div>
                         )}

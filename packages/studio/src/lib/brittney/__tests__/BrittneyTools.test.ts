@@ -50,6 +50,14 @@ function makeStore(nodes: SceneNode[] = [], code = '') {
   };
 }
 
+function executeConfirmedTool(
+  toolName: string,
+  args: Record<string, unknown>,
+  store: ReturnType<typeof makeStore>
+): ToolResult {
+  return executeTool(toolName, args, store, { confirmed: true });
+}
+
 // ─── Tool schema definitions ────────────────────────────────────────────────
 
 describe('BRITTNEY_TOOLS schema', () => {
@@ -95,13 +103,67 @@ describe('BRITTNEY_TOOLS schema', () => {
   });
 });
 
+describe('executeTool: refusable mutation previews', () => {
+  it('returns a diff preview and does not apply a mutating tool by default', () => {
+    const node = makeNode();
+    const store = makeStore([node], 'object "TestCube" {\n}');
+
+    const result = executeTool(
+      'add_trait',
+      { object_name: 'TestCube', trait_name: 'physics', properties: { mass: 1 } },
+      store
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.requiresConfirmation).toBe(true);
+    expect(result.pendingAction).toEqual({
+      tool: 'add_trait',
+      args: { object_name: 'TestCube', trait_name: 'physics', properties: { mass: 1 } },
+    });
+    expect(result.diff?.beforeCode).toBe('object "TestCube" {\n}');
+    expect(result.diff?.afterCode).toContain('@physics');
+    expect(result.diff?.changes).toContain('Add @physics to "TestCube"');
+    expect(store.addTrait).not.toHaveBeenCalled();
+    expect(node.traits).toEqual([]);
+    expect(store.getCode()).toBe('object "TestCube" {\n}');
+  });
+
+  it('applies a mutating tool only when explicitly confirmed by the caller', () => {
+    const node = makeNode();
+    const store = makeStore([node], 'object "TestCube" {\n}');
+
+    const result = executeConfirmedTool(
+      'add_trait',
+      { object_name: 'TestCube', trait_name: 'physics', properties: { mass: 1 } },
+      store
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.requiresConfirmation).toBeUndefined();
+    expect(store.addTrait).toHaveBeenCalledWith('node-1', {
+      name: 'physics',
+      properties: { mass: 1 },
+    });
+    expect(store.getCode()).toContain('@physics');
+  });
+
+  it('executes read-only tools without a confirmation preview', () => {
+    const store = makeStore([makeNode()], '');
+    const result = executeTool('list_objects', {}, store);
+
+    expect(result.success).toBe(true);
+    expect(result.requiresConfirmation).toBeUndefined();
+    expect(JSON.parse(result.message)).toHaveLength(1);
+  });
+});
+
 // ─── delete_object ──────────────────────────────────────────────────────────
 
 describe('executeTool: delete_object', () => {
   it('removes an existing object', () => {
     const node = makeNode();
     const store = makeStore([node], 'object "TestCube" {\n  position: [0, 0, 0]\n}');
-    const result = executeTool('delete_object', { object_name: 'TestCube' }, store);
+    const result = executeConfirmedTool('delete_object', { object_name: 'TestCube' }, store);
     expect(result.success).toBe(true);
     expect(store.removeNode).toHaveBeenCalledWith('node-1');
     expect(store.getCode()).not.toContain('TestCube');
@@ -109,7 +171,7 @@ describe('executeTool: delete_object', () => {
 
   it('returns error for missing object', () => {
     const store = makeStore([], '');
-    const result = executeTool('delete_object', { object_name: 'NonExistent' }, store);
+    const result = executeConfirmedTool('delete_object', { object_name: 'NonExistent' }, store);
     expect(result.success).toBe(false);
     expect(result.message).toContain('not found');
   });
@@ -117,7 +179,7 @@ describe('executeTool: delete_object', () => {
   it('matches object name case-insensitively', () => {
     const node = makeNode({ name: 'MyCube' });
     const store = makeStore([node], 'object "MyCube" {\n}');
-    const result = executeTool('delete_object', { object_name: 'mycube' }, store);
+    const result = executeConfirmedTool('delete_object', { object_name: 'mycube' }, store);
     expect(result.success).toBe(true);
   });
 });
@@ -128,7 +190,7 @@ describe('executeTool: move_object', () => {
   it('updates position in store and code', () => {
     const node = makeNode();
     const store = makeStore([node], 'object "TestCube" {\n  position: [0, 0, 0]\n}');
-    const result = executeTool('move_object', { object_name: 'TestCube', position: [1, 2, 3] }, store);
+    const result = executeConfirmedTool('move_object', { object_name: 'TestCube', position: [1, 2, 3] }, store);
     expect(result.success).toBe(true);
     expect(store.updateNode).toHaveBeenCalledWith('node-1', { position: [1, 2, 3] });
     expect(store.getCode()).toContain('position: [1, 2, 3]');
@@ -137,14 +199,14 @@ describe('executeTool: move_object', () => {
   it('inserts position line if missing', () => {
     const node = makeNode();
     const store = makeStore([node], 'object "TestCube" {\n}');
-    const result = executeTool('move_object', { object_name: 'TestCube', position: [5, 0, 5] }, store);
+    const result = executeConfirmedTool('move_object', { object_name: 'TestCube', position: [5, 0, 5] }, store);
     expect(result.success).toBe(true);
     expect(store.getCode()).toContain('position: [5, 0, 5]');
   });
 
   it('returns error for missing object', () => {
     const store = makeStore([], '');
-    const result = executeTool('move_object', { object_name: 'Ghost', position: [0, 0, 0] }, store);
+    const result = executeConfirmedTool('move_object', { object_name: 'Ghost', position: [0, 0, 0] }, store);
     expect(result.success).toBe(false);
   });
 });
@@ -155,7 +217,7 @@ describe('executeTool: rotate_object', () => {
   it('updates rotation in store and code', () => {
     const node = makeNode();
     const store = makeStore([node], 'object "TestCube" {\n  rotation: [0, 0, 0]\n}');
-    const result = executeTool('rotate_object', { object_name: 'TestCube', rotation: [1.57, 0, 0] }, store);
+    const result = executeConfirmedTool('rotate_object', { object_name: 'TestCube', rotation: [1.57, 0, 0] }, store);
     expect(result.success).toBe(true);
     expect(store.updateNode).toHaveBeenCalledWith('node-1', { rotation: [1.57, 0, 0] });
     expect(store.getCode()).toContain('rotation: [1.57, 0, 0]');
@@ -163,7 +225,7 @@ describe('executeTool: rotate_object', () => {
 
   it('returns error for missing object', () => {
     const store = makeStore([], '');
-    const result = executeTool('rotate_object', { object_name: 'Ghost', rotation: [0, 0, 0] }, store);
+    const result = executeConfirmedTool('rotate_object', { object_name: 'Ghost', rotation: [0, 0, 0] }, store);
     expect(result.success).toBe(false);
   });
 });
@@ -174,7 +236,7 @@ describe('executeTool: scale_object', () => {
   it('updates scale in store and code', () => {
     const node = makeNode();
     const store = makeStore([node], 'object "TestCube" {\n  scale: [1, 1, 1]\n}');
-    const result = executeTool('scale_object', { object_name: 'TestCube', scale: [2, 2, 2] }, store);
+    const result = executeConfirmedTool('scale_object', { object_name: 'TestCube', scale: [2, 2, 2] }, store);
     expect(result.success).toBe(true);
     expect(store.updateNode).toHaveBeenCalledWith('node-1', { scale: [2, 2, 2] });
     expect(store.getCode()).toContain('scale: [2, 2, 2]');
@@ -182,7 +244,7 @@ describe('executeTool: scale_object', () => {
 
   it('returns error for missing object', () => {
     const store = makeStore([], '');
-    const result = executeTool('scale_object', { object_name: 'Ghost', scale: [1, 1, 1] }, store);
+    const result = executeConfirmedTool('scale_object', { object_name: 'Ghost', scale: [1, 1, 1] }, store);
     expect(result.success).toBe(false);
   });
 });
@@ -193,7 +255,7 @@ describe('executeTool: rename_object', () => {
   it('renames in store and code', () => {
     const node = makeNode({ name: 'OldName' });
     const store = makeStore([node], 'object "OldName" {\n}');
-    const result = executeTool('rename_object', { object_name: 'OldName', new_name: 'NewName' }, store);
+    const result = executeConfirmedTool('rename_object', { object_name: 'OldName', new_name: 'NewName' }, store);
     expect(result.success).toBe(true);
     expect(store.updateNode).toHaveBeenCalledWith('node-1', { name: 'NewName' });
     expect(store.getCode()).toContain('"NewName"');
@@ -202,7 +264,7 @@ describe('executeTool: rename_object', () => {
 
   it('returns error for missing object', () => {
     const store = makeStore([], '');
-    const result = executeTool('rename_object', { object_name: 'Ghost', new_name: 'Friendly' }, store);
+    const result = executeConfirmedTool('rename_object', { object_name: 'Ghost', new_name: 'Friendly' }, store);
     expect(result.success).toBe(false);
   });
 });
@@ -217,7 +279,7 @@ describe('executeTool: duplicate_object', () => {
       position: [1, 2, 3],
     });
     const store = makeStore([node], 'object "Original" {\n  position: [1, 2, 3]\n  @physics {\n    mass: 10\n  }\n}');
-    const result = executeTool('duplicate_object', { object_name: 'Original', new_name: 'Clone' }, store);
+    const result = executeConfirmedTool('duplicate_object', { object_name: 'Original', new_name: 'Clone' }, store);
     expect(result.success).toBe(true);
     expect(store.addNode).toHaveBeenCalledTimes(1);
     const addedNode = (store.addNode as ReturnType<typeof vi.fn>).mock.calls[0][0] as SceneNode;
@@ -231,7 +293,7 @@ describe('executeTool: duplicate_object', () => {
 
   it('returns error for missing object', () => {
     const store = makeStore([], '');
-    const result = executeTool('duplicate_object', { object_name: 'Ghost', new_name: 'Clone' }, store);
+    const result = executeConfirmedTool('duplicate_object', { object_name: 'Ghost', new_name: 'Clone' }, store);
     expect(result.success).toBe(false);
   });
 
@@ -240,7 +302,7 @@ describe('executeTool: duplicate_object', () => {
       traits: [{ name: 'glow', properties: { intensity: 5 } }],
     });
     const store = makeStore([node], 'object "TestCube" {\n  @glow {\n    intensity: 5\n  }\n}');
-    executeTool('duplicate_object', { object_name: 'TestCube', new_name: 'Clone' }, store);
+    executeConfirmedTool('duplicate_object', { object_name: 'TestCube', new_name: 'Clone' }, store);
     const addedNode = (store.addNode as ReturnType<typeof vi.fn>).mock.calls[0][0] as SceneNode;
     // Mutate clone trait — original should be unchanged
     addedNode.traits[0].properties.intensity = 99;
@@ -327,7 +389,7 @@ describe('executeTool: get_object', () => {
 describe('executeTool: existing tools regression', () => {
   it('create_object still works', () => {
     const store = makeStore([], '');
-    const result = executeTool('create_object', { name: 'Sphere', type: 'mesh', position: [0, 1, 0] }, store);
+    const result = executeConfirmedTool('create_object', { name: 'Sphere', type: 'mesh', position: [0, 1, 0] }, store);
     expect(result.success).toBe(true);
     expect(store.addNode).toHaveBeenCalledTimes(1);
     expect(store.getCode()).toContain('"Sphere"');
@@ -336,7 +398,7 @@ describe('executeTool: existing tools regression', () => {
   it('add_trait still works', () => {
     const node = makeNode();
     const store = makeStore([node], 'object "TestCube" {\n}');
-    const result = executeTool('add_trait', { object_name: 'TestCube', trait_name: 'physics', properties: { mass: 1 } }, store);
+    const result = executeConfirmedTool('add_trait', { object_name: 'TestCube', trait_name: 'physics', properties: { mass: 1 } }, store);
     expect(result.success).toBe(true);
     expect(store.addTrait).toHaveBeenCalled();
   });

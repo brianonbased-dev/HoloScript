@@ -81,19 +81,56 @@ async function fetchAssistantJson<T>(input: RequestInfo | URL): Promise<T> {
 
 // ─── Tool result badge ────────────────────────────────────────────────────────
 
-function ToolBadge({ result }: { result: ToolResult }) {
+function ToolBadge({
+  result,
+  onConfirm,
+  onDecline,
+}: {
+  result: ToolResult;
+  onConfirm?: () => void;
+  onDecline?: () => void;
+}) {
+  const stateClass = result.requiresConfirmation
+    ? 'bg-yellow-500/10 text-yellow-300'
+    : result.success
+      ? 'bg-green-500/10 text-green-400'
+      : 'bg-red-500/10 text-red-400';
+  const canConfirm = Boolean(result.requiresConfirmation && result.pendingAction && onConfirm);
   return (
     <div
-      className={`flex items-start gap-2 rounded-lg px-2.5 py-1.5 text-[11px] ${
-        result.success ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
-      }`}
+      className={`flex items-start gap-2 rounded-lg px-2.5 py-1.5 text-[11px] ${stateClass}`}
     >
       {result.success ? (
         <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0" />
       ) : (
         <XCircle className="mt-0.5 h-3 w-3 shrink-0" />
       )}
-      <span>{result.message}</span>
+      <span className="min-w-0 flex-1">
+        {result.message}
+        {result.diff?.changes?.length ? ` (${result.diff.changes.join('; ')})` : ''}
+      </span>
+      {canConfirm && (
+        <span className="ml-auto flex shrink-0 gap-1">
+          <button
+            type="button"
+            onClick={onConfirm}
+            aria-label="Apply preview"
+            title="Apply preview"
+            className="rounded p-0.5 text-yellow-200 transition hover:bg-yellow-400/20 hover:text-white"
+          >
+            <CheckCircle2 className="h-3 w-3" />
+          </button>
+          <button
+            type="button"
+            onClick={onDecline}
+            aria-label="Decline preview"
+            title="Decline preview"
+            className="rounded p-0.5 text-yellow-200/70 transition hover:bg-yellow-400/20 hover:text-white"
+          >
+            <XCircle className="h-3 w-3" />
+          </button>
+        </span>
+      )}
     </div>
   );
 }
@@ -156,6 +193,21 @@ export function BrittneyChatPanel() {
   if (!executorRef.current) {
     executorRef.current = new SimulationToolExecutor();
   }
+
+  const getStoreActions = useCallback(
+    () => ({
+      nodes: useSceneGraphStore.getState().nodes,
+      addTrait,
+      removeTrait,
+      setTraitProperty,
+      addNode,
+      removeNode,
+      updateNode,
+      getCode: () => useSceneStore.getState().code ?? '',
+      setCode: useSceneStore.getState().setCode,
+    }),
+    [addTrait, removeTrait, setTraitProperty, addNode, removeNode, updateNode]
+  );
 
   /** Speak text aloud via Web Speech Synthesis */
   const speak = useCallback(
@@ -360,19 +412,7 @@ export function BrittneyChatPanel() {
     const toolResults: ToolResult[] = [];
 
     try {
-      const setCodeFn = useSceneStore.getState().setCode;
-      const getCodeFn = () => useSceneStore.getState().code ?? '';
-      const storeActions = {
-        nodes,
-        addTrait,
-        removeTrait,
-        setTraitProperty,
-        addNode,
-        removeNode,
-        updateNode,
-        getCode: getCodeFn,
-        setCode: setCodeFn,
-      };
+      const storeActions = getStoreActions();
 
       for await (const event of streamAssistant(updatedHistory, assistantContext)) {
         if (event.type === 'text') {
@@ -440,7 +480,7 @@ export function BrittneyChatPanel() {
       }
       
       // ─── Semantic Undo Commit ────────────────────────────────────────────────
-      if (toolResults.some((r) => r.success)) {
+      if (toolResults.some((r) => r.success && !r.requiresConfirmation)) {
         setNextHistoryLabel(`AI Action: ${text.length > 25 ? text.substring(0, 25) + '…' : text}`);
         useHistoryStore.getState().syncState(
           useSceneGraphStore.getState().nodes,
@@ -501,9 +541,71 @@ export function BrittneyChatPanel() {
     addNode,
     removeNode,
     updateNode,
+    getStoreActions,
     persistMessage,
     speak,
   ]);
+
+  const handleConfirmToolResult = useCallback(
+    (messageId: string, resultIndex: number) => {
+      const target = chatMessages.find((msg) => msg.id === messageId)?.toolResults?.[resultIndex];
+      if (!target?.requiresConfirmation || !target.pendingAction) return;
+
+      const applied = executeTool(
+        target.pendingAction.tool,
+        target.pendingAction.args,
+        getStoreActions(),
+        { confirmed: true }
+      );
+      const nextResult: ToolResult = applied.success
+        ? { ...applied, message: `Applied: ${applied.message}` }
+        : applied;
+
+      setChatMessages((current) =>
+        current.map((msg) =>
+          msg.id === messageId
+            ? {
+                ...msg,
+                toolResults: msg.toolResults?.map((result, index) =>
+                  index === resultIndex ? nextResult : result
+                ),
+              }
+            : msg
+        )
+      );
+
+      if (applied.success) {
+        useHistoryStore.getState().syncState(
+          useSceneGraphStore.getState().nodes,
+          useSceneStore.getState().code ?? ''
+        );
+      }
+    },
+    [chatMessages, getStoreActions]
+  );
+
+  const handleDeclineToolResult = useCallback((messageId: string, resultIndex: number) => {
+    setChatMessages((current) =>
+      current.map((msg) =>
+        msg.id === messageId
+          ? {
+              ...msg,
+              toolResults: msg.toolResults?.map((result, index) =>
+                index === resultIndex && result.requiresConfirmation
+                  ? {
+                      ...result,
+                      message: `Declined: ${result.diff?.summary ?? result.message}`,
+                      requiresConfirmation: false,
+                      pendingAction: undefined,
+                      diff: undefined,
+                    }
+                  : result
+              ),
+            }
+          : msg
+      )
+    );
+  }, []);
 
   const handleClearHistory = useCallback(() => {
     clearPersistedHistory();
@@ -591,7 +693,19 @@ export function BrittneyChatPanel() {
               <div className="mt-1.5 w-full max-w-[88%] space-y-1">
                 {msg.toolResults.map((r, i) => (
                   <div key={i} className="space-y-1">
-                    <ToolBadge result={r} />
+                    <ToolBadge
+                      result={r}
+                      onConfirm={
+                        msg.isStreaming
+                          ? undefined
+                          : () => handleConfirmToolResult(msg.id, i)
+                      }
+                      onDecline={
+                        msg.isStreaming
+                          ? undefined
+                          : () => handleDeclineToolResult(msg.id, i)
+                      }
+                    />
                     {/* Hologram MCP content_type detection - task_1778114362909_zp7u.
                         Renders nothing if the envelope isn't a hologram response. */}
                     {r.envelope !== undefined && (

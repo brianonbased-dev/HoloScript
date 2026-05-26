@@ -318,6 +318,25 @@ export interface ToolResult {
    * `<HologramMcpContentRenderer>` from @holoscript/r3f-renderer.
    */
   envelope?: unknown;
+  requiresConfirmation?: boolean;
+  diff?: ToolDiffPreview;
+  pendingAction?: PendingToolAction;
+}
+
+export interface PendingToolAction {
+  tool: string;
+  args: Record<string, unknown>;
+}
+
+export interface ToolDiffPreview {
+  beforeCode: string;
+  afterCode: string;
+  changes: string[];
+  summary: string;
+}
+
+export interface ExecuteToolOptions {
+  confirmed?: boolean;
 }
 
 // ─── Tool executor ────────────────────────────────────────────────────────────
@@ -334,6 +353,24 @@ type StoreActions = {
   setCode: (code: string) => void;
   mountScenario?: (scenarioId: string) => void;
 };
+
+const MUTATING_TOOL_NAMES: ReadonlySet<string> = new Set([
+  'add_trait',
+  'remove_trait',
+  'set_trait_property',
+  'create_object',
+  'compose_traits',
+  'delete_object',
+  'move_object',
+  'rotate_object',
+  'scale_object',
+  'rename_object',
+  'duplicate_object',
+]);
+
+export function isBrittneyMutationTool(toolName: string): boolean {
+  return MUTATING_TOOL_NAMES.has(toolName);
+}
 
 // ─── Code patch helpers ───────────────────────────────────────────────────────
 
@@ -507,10 +544,173 @@ function escapeHoloString(s: string): string {
   return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
 }
 
-export function executeTool(
+function previewTool(
   toolName: string,
   args: Record<string, unknown>,
   store: StoreActions
+): ToolResult {
+  const beforeCode = store.getCode();
+  const { draftStore, draftNodes } = createDraftStore(store);
+  const preview = applyTool(toolName, args, draftStore, false);
+  if (!preview.success) return preview;
+
+  const afterCode = draftStore.getCode();
+  return {
+    tool: toolName,
+    success: true,
+    message: `Preview ready for ${preview.message}. Confirm to apply.`,
+    requiresConfirmation: true,
+    pendingAction: { tool: toolName, args },
+    diff: {
+      beforeCode,
+      afterCode,
+      changes: summarizeDraftChanges(store.nodes, draftNodes, beforeCode, afterCode),
+      summary: preview.message,
+    },
+  };
+}
+
+function createDraftStore(store: StoreActions): { draftStore: StoreActions; draftNodes: SceneNode[] } {
+  const draftNodes = store.nodes.map(cloneSceneNode);
+  let draftCode = store.getCode();
+  const draftStore: StoreActions = {
+    nodes: draftNodes,
+    addTrait: (nodeId, trait) => {
+      const node = draftNodes.find((n) => n.id === nodeId);
+      if (node) node.traits.push(cloneTraitConfig(trait));
+    },
+    removeTrait: (nodeId, traitName) => {
+      const node = draftNodes.find((n) => n.id === nodeId);
+      if (node) node.traits = node.traits.filter((trait) => trait.name !== traitName);
+    },
+    setTraitProperty: (nodeId, traitName, key, value) => {
+      const node = draftNodes.find((n) => n.id === nodeId);
+      const trait = node?.traits.find((candidate) => candidate.name === traitName);
+      if (trait) trait.properties[key] = cloneUnknown(value);
+    },
+    addNode: (node) => {
+      draftNodes.push(cloneSceneNode(node));
+    },
+    removeNode: (id) => {
+      const index = draftNodes.findIndex((node) => node.id === id);
+      if (index >= 0) draftNodes.splice(index, 1);
+    },
+    updateNode: (id, patch) => {
+      const node = draftNodes.find((candidate) => candidate.id === id);
+      if (node) Object.assign(node, cloneSceneNodePatch(patch));
+    },
+    getCode: () => draftCode,
+    setCode: (code) => {
+      draftCode = code;
+    },
+    mountScenario: store.mountScenario ? () => {} : undefined,
+  };
+  return { draftStore, draftNodes };
+}
+
+function summarizeDraftChanges(
+  beforeNodes: SceneNode[],
+  afterNodes: SceneNode[],
+  beforeCode: string,
+  afterCode: string
+): string[] {
+  const changes: string[] = [];
+  if (beforeCode !== afterCode) changes.push('HoloScript source changes');
+  if (beforeNodes.length !== afterNodes.length) {
+    changes.push(`Scene node count ${beforeNodes.length} -> ${afterNodes.length}`);
+  }
+  for (const before of beforeNodes) {
+    const after = afterNodes.find((node) => node.id === before.id);
+    if (!after) {
+      changes.push(`Remove object "${before.name}"`);
+      continue;
+    }
+    if (before.name !== after.name) changes.push(`Rename "${before.name}" -> "${after.name}"`);
+    if (JSON.stringify(before.position) !== JSON.stringify(after.position)) {
+      changes.push(`Move "${after.name}" to [${after.position.join(', ')}]`);
+    }
+    if (JSON.stringify(before.rotation) !== JSON.stringify(after.rotation)) {
+      changes.push(`Rotate "${after.name}" to [${after.rotation.join(', ')}]`);
+    }
+    if (JSON.stringify(before.scale) !== JSON.stringify(after.scale)) {
+      changes.push(`Scale "${after.name}" to [${after.scale.join(', ')}]`);
+    }
+    const beforeTraits = new Set(before.traits.map((trait) => trait.name));
+    const afterTraits = new Set(after.traits.map((trait) => trait.name));
+    for (const trait of afterTraits) {
+      if (!beforeTraits.has(trait)) changes.push(`Add @${trait} to "${after.name}"`);
+    }
+    for (const trait of beforeTraits) {
+      if (!afterTraits.has(trait)) changes.push(`Remove @${trait} from "${after.name}"`);
+    }
+  }
+  for (const after of afterNodes) {
+    if (!beforeNodes.some((node) => node.id === after.id)) changes.push(`Add object "${after.name}"`);
+  }
+  return changes.length > 0 ? changes : ['No visible scene change'];
+}
+
+function cloneSceneNode(node: SceneNode): SceneNode {
+  return {
+    ...node,
+    traits: node.traits.map(cloneTraitConfig),
+    position: [...node.position] as [number, number, number],
+    rotation: [...node.rotation] as [number, number, number],
+    scale: [...node.scale] as [number, number, number],
+  };
+}
+
+function cloneSceneNodePatch(patch: Partial<SceneNode>): Partial<SceneNode> {
+  const cloned: Partial<SceneNode> = { ...patch };
+  if (patch.traits) cloned.traits = patch.traits.map(cloneTraitConfig);
+  if (patch.position) cloned.position = [...patch.position] as [number, number, number];
+  if (patch.rotation) cloned.rotation = [...patch.rotation] as [number, number, number];
+  if (patch.scale) cloned.scale = [...patch.scale] as [number, number, number];
+  return cloned;
+}
+
+function cloneTraitConfig(trait: TraitConfig): TraitConfig {
+  return {
+    ...trait,
+    properties: cloneRecord(trait.properties),
+  };
+}
+
+function cloneRecord(record: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(record).map(([key, value]) => [key, cloneUnknown(value)])
+  );
+}
+
+function cloneUnknown(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(cloneUnknown);
+  if (value && typeof value === 'object') {
+    return cloneRecord(value as Record<string, unknown>);
+  }
+  return value;
+}
+
+function setToolHistoryLabel(label: string, enabled: boolean): void {
+  if (enabled) setNextHistoryLabel(label);
+}
+
+export function executeTool(
+  toolName: string,
+  args: Record<string, unknown>,
+  store: StoreActions,
+  options: ExecuteToolOptions = {}
+): ToolResult {
+  if (isBrittneyMutationTool(toolName) && !options.confirmed) {
+    return previewTool(toolName, args, store);
+  }
+  return applyTool(toolName, args, store);
+}
+
+function applyTool(
+  toolName: string,
+  args: Record<string, unknown>,
+  store: StoreActions,
+  recordHistory = true
 ): ToolResult {
   try {
     switch (toolName) {
@@ -526,7 +726,7 @@ export function executeTool(
             message: `Object "${objName}" not found in scene`,
           };
           
-        setNextHistoryLabel(`Add @${traitName} to "${node.name}"`);
+        setToolHistoryLabel(`Add @${traitName} to "${node.name}"`, recordHistory);
         store.addTrait(node.id, { name: traitName, properties });
         // Patch source code
         store.setCode(codeAddTrait(store.getCode(), node.name, traitName, properties));
@@ -540,7 +740,7 @@ export function executeTool(
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
           
-        setNextHistoryLabel(`Remove @${traitName} from "${node.name}"`);
+        setToolHistoryLabel(`Remove @${traitName} from "${node.name}"`, recordHistory);
         store.removeTrait(node.id, traitName);
         store.setCode(codeRemoveTrait(store.getCode(), node.name, traitName));
         return {
@@ -559,7 +759,7 @@ export function executeTool(
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
           
-        setNextHistoryLabel(`Update ${traitName}.${key} on "${node.name}"`);
+        setToolHistoryLabel(`Update ${traitName}.${key} on "${node.name}"`, recordHistory);
         store.setTraitProperty(node.id, traitName, key, value);
         store.setCode(codeSetTraitProperty(store.getCode(), node.name, traitName, key, value));
         return {
@@ -606,7 +806,7 @@ export function executeTool(
         if (lightType) traits.push({ name: 'light_type', properties: { type: lightType } });
         if (projectionType) traits.push({ name: 'projection', properties: { type: projectionType } });
 
-        setNextHistoryLabel(`Create "${name}"`);
+        setToolHistoryLabel(`Create "${name}"`, recordHistory);
         store.addNode({
           id,
           name,
@@ -642,7 +842,7 @@ export function executeTool(
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
           
-        setNextHistoryLabel(`Compose [${traitNames.map(t => `@${t}`).join(', ')}] on "${node.name}"`);
+        setToolHistoryLabel(`Compose [${traitNames.map(t => `@${t}`).join(', ')}] on "${node.name}"`, recordHistory);
         let patchedCode = store.getCode();
         for (const name of traitNames) {
           store.addTrait(node.id, { name, properties: {} });
@@ -672,7 +872,7 @@ export function executeTool(
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
           
-        setNextHistoryLabel(`Delete "${node.name}"`);
+        setToolHistoryLabel(`Delete "${node.name}"`, recordHistory);
         store.removeNode(node.id);
         store.setCode(codeDeleteObject(store.getCode(), node.name));
         return { tool: toolName, success: true, message: `Deleted "${node.name}" from the scene` };
@@ -685,7 +885,7 @@ export function executeTool(
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
           
-        setNextHistoryLabel(`Move "${node.name}"`);
+        setToolHistoryLabel(`Move "${node.name}"`, recordHistory);
         store.updateNode(node.id, { position });
         store.setCode(codeSetTransform(store.getCode(), node.name, 'position', position));
         return {
@@ -702,7 +902,7 @@ export function executeTool(
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
           
-        setNextHistoryLabel(`Rotate "${node.name}"`);
+        setToolHistoryLabel(`Rotate "${node.name}"`, recordHistory);
         store.updateNode(node.id, { rotation });
         store.setCode(codeSetTransform(store.getCode(), node.name, 'rotation', rotation));
         return {
@@ -719,7 +919,7 @@ export function executeTool(
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
           
-        setNextHistoryLabel(`Scale "${node.name}"`);
+        setToolHistoryLabel(`Scale "${node.name}"`, recordHistory);
         store.updateNode(node.id, { scale });
         store.setCode(codeSetTransform(store.getCode(), node.name, 'scale', scale));
         return {
@@ -737,7 +937,7 @@ export function executeTool(
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
           
         const previousName = node.name;
-        setNextHistoryLabel(`Rename "${previousName}" to "${newName}"`);
+        setToolHistoryLabel(`Rename "${previousName}" to "${newName}"`, recordHistory);
         store.setCode(codeRenameObject(store.getCode(), previousName, newName));
         store.updateNode(node.id, { name: newName });
         return {
@@ -755,7 +955,7 @@ export function executeTool(
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
           
         const cloneId = `obj-${Date.now()}`;
-        setNextHistoryLabel(`Duplicate "${node.name}"`);
+        setToolHistoryLabel(`Duplicate "${node.name}"`, recordHistory);
         const clonedNode: SceneNode = {
           ...node,
           id: cloneId,
