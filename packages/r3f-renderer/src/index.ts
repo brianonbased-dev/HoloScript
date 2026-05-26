@@ -145,6 +145,19 @@ export type {
   ReconstructionState,
   SceneReconstructionConsumerOptions,
 } from './reconstruction/SceneReconstructionConsumer';
+export {
+  RealityKitMeshConsumer,
+  createRealityKitMeshConsumer,
+  createWindowRealityKitMeshConsumer,
+} from './realitykit/RealityKitMeshConsumer';
+export type {
+  RealityKitMeshConsumerOptions,
+  RealityKitMeshEventBus,
+  RealityKitMeshState,
+  RkMeshAnchorPayload,
+  RkMeshInitPayload,
+  RkMeshTickPayload,
+} from './realitykit/RealityKitMeshConsumer';
 
 // GAPS Physics Components (Phase 3)
 export { FluidRenderer } from './components/FluidRenderer';
