@@ -14,8 +14,19 @@ This directory is the HoloScript-side Paper 17 SESL pair counter.
 ```bash
 pnpm exec tsx scripts/build-paper17-sesl-phase1-pair.ts --limit=10
 node scripts/measure-sesl-simcontract.mjs --input=research/paper-17-sesl-pairs/phase-1-corpus.jsonl --target-pairs=5000 --target-pass-rate=0.6 --json
-node scripts/measure-sesl-simcontract.mjs --input=research/paper-17-sesl-pairs/INDEX.json --target-pairs=5000 --target-pass-rate=0.6 --json
+node scripts/measure-sesl-information-gain.mjs --seed=research/paper-17-sesl-pairs/fixtures/phase1-seed.jsonl --generated=research/paper-17-sesl-pairs/phase-1-corpus.jsonl --json
 node scripts/paper-17-19-gate-delta.mjs --markdown --out research/2026-05-14_paper-17-19-production-ml-corpus-gates.md
 ```
 
 The committed tranche clears 10 CAEL-verified Phase 1 rows, not the full Paper 17 publication gate. `INDEX.json.gate.gate_gap_cael_verified` remains the production counter for the remaining path to 5,000 CAEL-verified pairs. `scripts/paper-17-19-gate-delta.mjs` also reports the adjacent Paper 19 production ML corpus deltas so reviewer-facing evidence separates structural dataset gates from source-integration and constrained-decoder training gates.
+
+## Information-gain metric
+
+`scripts/measure-sesl-information-gain.mjs` computes composition-shape entropy over trait-family sets across iterations and flags collapse when entropy drops. This directly closes SESL open-Q 8.2 (arXiv 2603.02218) by proving self-play adds learnable information beyond the seed corpus.
+
+Run:
+```bash
+node scripts/measure-sesl-information-gain.mjs --seed=SEED.jsonl --generated=PHASE-N.jsonl --json
+```
+
+Verdicts: `GAIN` | `FLAT` | `LOSS` | `COLLAPSE`. Use `--fail-gate` to exit non-zero on collapse.
