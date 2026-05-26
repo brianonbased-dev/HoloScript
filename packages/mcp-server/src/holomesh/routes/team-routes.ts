@@ -1436,13 +1436,36 @@ export async function handleTeamRoutes(
     if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
     if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
     const workspaceId = `team:${teamId}`;
+    // Honor query params `q` (search filter), `limit`, `type`. Previously these
+    // were ignored: the handler hardcoded queryKnowledge('', { limit: 200 }) and
+    // returned the merged result unsorted, so `q` was a no-op and recent writes
+    // were buried behind a 200-entry oldest-first window — which silently broke
+    // knowledge search AND the GOLD graduation staging pipeline (2026-05-26).
+    const params = new URL(req.url ?? '/', 'http://localhost').searchParams;
+    const q = (params.get('q') || '').trim();
+    const typeFilter = params.get('type') || undefined;
+    const limit = Math.min(Math.max(parseInt(params.get('limit') || '200', 10) || 200, 1), 1000);
     let fromOrch: MeshKnowledgeEntry[] = [];
     try {
-      fromOrch = await getClient().queryKnowledge('', { workspaceId, limit: 200 });
+      fromOrch = await getClient().queryKnowledge(q, {
+        workspaceId,
+        type: typeFilter,
+        limit: Math.max(limit, 200),
+      });
     } catch {
       fromOrch = [];
     }
-    const entries = mergeTeamKnowledgeWithOrchestrator(fromOrch, team.knowledge);
+    let entries = mergeTeamKnowledgeWithOrchestrator(fromOrch, team.knowledge);
+    if (typeFilter) entries = entries.filter((e) => e.type === typeFilter);
+    if (q) {
+      const needle = q.toLowerCase();
+      entries = entries.filter((e) =>
+        `${e.id ?? ''} ${e.content ?? ''}`.toLowerCase().includes(needle)
+      );
+    }
+    entries = entries
+      .sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')))
+      .slice(0, limit);
     json(res, 200, { success: true, workspace_id: workspaceId, entries, count: entries.length });
     return true;
   }
