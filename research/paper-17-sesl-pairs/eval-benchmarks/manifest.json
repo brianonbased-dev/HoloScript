@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "paper17.sesl.eval.v1",
+  "generatedAt": "2026-05-26T20:55:29.702Z",
+  "benchmarks": {
+    "trait-correctness": {
+      "count": 10,
+      "path": "trait-correctness.jsonl"
+    },
+    "composition-shape": {
+      "count": 10,
+      "path": "composition-shape.jsonl"
+    },
+    "information-gain": {
+      "count": 10,
+      "path": "information-gain.jsonl"
+    }
+  },
+  "gate": {
+    "minBenchmarks": 2,
+    "minDelta": 0.05
+  }
+}
