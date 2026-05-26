@@ -405,10 +405,33 @@ export async function mcpReconstructStep(
   estimatedDriftMeters: number;
   lastLoopClosureFrame: number;
   trajectoryKeyframeCount: number;
+  // True when the runtime's deterministic frame-rate gate throttled this frame
+  // (capture fps > targetFPS): the frame was accepted by the API but produced no
+  // reconstruction step, so there is nothing to aggregate. Callers feeding frames
+  // denser than targetFPS will see throttled frames here rather than a crash.
+  throttled?: boolean;
 }> {
   const state = requireOpenSession(sessionId);
   const frame = decodeFrame(frameBase64, frameIndex, width, height);
   const step = await state.runtime.step(frame);
+  if (step === null) {
+    // Throttled by the runtime's frame-rate gate (frame.timestamp too close to the
+    // last accepted frame for this session's targetFPS). Nothing to aggregate; return
+    // the last known trajectory/anchor state so callers can advance without crashing.
+    const prev = state.lastStep;
+    return {
+      ok: true,
+      throttled: true,
+      frameIndex,
+      pose: prev ? prev.pose : { position: [0, 0, 0], rotation: [0, 0, 0, 1], confidence: 0 },
+      pointCount: 0,
+      trajectoryRevision: prev ? prev.trajectory.revision : 0,
+      anchorRevision: prev ? prev.anchor.revision : 0,
+      estimatedDriftMeters: prev ? prev.trajectory.estimatedDriftMeters : 0,
+      lastLoopClosureFrame: prev ? prev.trajectory.lastLoopClosureFrame : -1,
+      trajectoryKeyframeCount: prev ? prev.trajectory.keyframes.length : 0,
+    };
+  }
   state.lastStep = step;
   appendStepToAggregate(state.aggregate, step, maxExportPointsCap());
   return {

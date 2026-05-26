@@ -1,0 +1,70 @@
+{
+  "schema": "cael-gate-v1",
+  "gate": 45,
+  "track": "flagship-research",
+  "name": "HoloMap verifiable reconstruction — REAL device capture + negative-control table",
+  "verifier": "examples/gold-game/holomap-experiment.mjs",
+  "protocol": "ai-ecosystem/research/2026-05-25_holomap-verifiable-reconstruction-experiment-protocol.md",
+  "capture": {
+    "source": "real phone video (20260525_171459.mp4, 4K/60→3fps)",
+    "frames": 35,
+    "frameResolution": [
+      192,
+      108
+    ],
+    "framesDir": "examples/gold-game/assets/holomap-frames"
+  },
+  "implementation": {
+    "sessionApi": "packages/mcp-server/src/holo-reconstruct-sessions.ts (shipped mcpReconstruct* path — same as Gate 33)",
+    "runtime": "packages/core/src/reconstruction/HoloMapRuntime.ts",
+    "contractSpine": "packages/engine/src/simulation/hashes.ts computeStateDigest"
+  },
+  "reconstruction": {
+    "framesStepped": 35,
+    "pointsExported": 560,
+    "compileStatus": "COMPILED",
+    "anchorPose": {
+      "position": [
+        -0.000966,
+        -0.017759,
+        0.010291
+      ],
+      "confidence": 0.852313
+    },
+    "anchorRevision": 35,
+    "driftMeters": 0.129309,
+    "bounds": {
+      "min": [
+        -1.342544,
+        -0.775433,
+        -0.036072
+      ],
+      "max": [
+        1.341694,
+        0.736933,
+        0.060801
+      ]
+    },
+    "trajectoryPoses": 35
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest",
+    "spaceDigest": "221c8322e19db947df2d9d20f710ae475851e03c6cef5ac4dd6cdcda034476be",
+    "captureDigest": "4d07574befe8234842f402102e81497a78f84c4377d2d544d51acaaed16f6039"
+  },
+  "negativeControlTable": {
+    "onByteTamper_captureDigestChanged": true,
+    "oneByteTamper_spaceDigestChanged": true,
+    "identicalRerun_spaceDigestUnchanged": true,
+    "tamperDetectionRate": 1,
+    "falsePositiveRate": 0
+  },
+  "pendingBaseline": "COLMAP accuracy-parity leg (pose ATE + metric scale error) — COLMAP not yet installed; this receipt is the verifiability leg (the novelty).",
+  "honestScope": "REAL device-capture reconstruction through the SHIPPED HoloMap path (not the Gate-33 synthetic fixture): 35 frames from a 4K phone video are decoded and stepped through HoloMapRuntime, producing a scan-derived anchor + drift + exported point cloud, sealed by the REAL computeStateDigest. The negative-control table is the contribution COLMAP cannot produce: a single-byte capture perturbation changes both the capture digest AND the reconstruction space digest (tamper-detection rate 1.0), while a bit-identical re-run reproduces the same digest (false-positive rate 0.0). NOT yet done: the COLMAP accuracy-parity leg (pose ATE + metric scale error) — that is the next step once COLMAP is installed; this gate proves the VERIFIABILITY half of the paper claim on real capture.",
+  "checks": {
+    "passed": 8,
+    "total": 8
+  },
+  "status": "PASS",
+  "verifiedAt": "2026-05-26T01:27:05.235Z"
+}
