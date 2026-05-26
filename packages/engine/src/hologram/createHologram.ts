@@ -30,6 +30,7 @@ import { depthToNormalMap } from './DepthEstimationService';
 import {
   computeBundleHash,
   type HologramBundle,
+  type HologramManifest,
   type HologramMeta,
   type HologramSourceKind,
   type HologramTarget,
@@ -404,8 +405,15 @@ export async function createHologram(
     );
   }
 
-  // ── 7. Assemble bundle ──
-  const bundle: HologramBundle = { hash, meta, depthBin, normalBin };
+  // ── 7. Build manifest (receipt-to-pixels binding per D.058) ──
+  const manifest: HologramManifest = {
+    sourceHash: hash,
+    receiptType: 'bundle-hash',
+    createdAt: now().toISOString(),
+  };
+
+  // ── 8. Assemble bundle ──
+  const bundle: HologramBundle = { hash, meta, manifest, depthBin, normalBin };
   for (const [target, bytes] of rendered) {
     if (target === 'quilt') bundle.quiltPng = bytes;
     else if (target === 'mvhevc') bundle.mvhevcMp4 = bytes;
