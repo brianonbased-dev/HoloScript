@@ -1,0 +1,513 @@
+/**
+ * Obsidian Caldera Cathedral (A-009 stress-test 2026-05-26)
+ *
+ * Exercises nine zero-coverage trait combinations in a single scene:
+ *   @crystalline      — mineral formations grown over millennia by geothermal pressure;
+ *                       controls internal refraction index, fracture planes, and edge-
+ *                       scattering IOR
+ *   @volcanic         — biome classification driving ash precipitation, ground-heat
+ *                       shimmer, and basalt geometry procedural detailing
+ *   @plasma           — ancient energy veins threading through obsidian spires; drive
+ *                       arc color, pulse rate, and interaction with nearby @crystalline
+ *                       objects (charge-bleed effect)
+ *   @thermal_radiation — heat-gradient simulation from the caldera mouth; scalar field
+ *                        deforms particles and bends light via heat-haze post process
+ *   @fractal_shape    — recursive branching geometry on the main spire cluster;
+ *                       iteration depth 5, branching angle 28°
+ *   @glitch_effect    — electromagnetic interference from plasma arcs; scanline tears
+ *                       ripple outward from each plasma burst
+ *   @nebula           — the caldera throat opens to the sky; 80m above, stars resolve
+ *                       into a protostellar nebula visible through the smoke column
+ *   @ethereal         — mineral-steam vapors rising from crystal tips; ghostly
+ *                       translucency that refracts the nebula light
+ *   @neon_glow        — bioluminescent mineral veins, millennia-old, emit a cold blue-
+ *                       green that counterpoints the plasma amber
+ *
+ * Combined with well-exercised traits:
+ *   @glowing          — baseline emissive on crystal clusters
+ *   @collidable       — floor and wall collision geometry
+ *   @animated         — crystal slow-pulse + plasma arc frequency modulation
+ *   @particle         — caldera ash-fall + ember drift
+ *   @physics          — occasional crystal shard calves off, falls with proper mass
+ *
+ * Scene story: You stand on a basalt shelf sixty meters below the caldera rim. The
+ * walls are obsidian — black as coal, polished by centuries of hydrothermal flow.
+ * From every fissure, crystal formations angle toward the center: selenite pillars,
+ * amethyst fans, hexagonal quartz stacks in fractal repeats. Amber plasma arcs jump
+ * between the tallest spires, leaving ionized trails that briefly glow green before
+ * the crystal absorbs the charge. The air smells of sulfur and rain. Eighty meters
+ * up, through the smoke column, the caldera mouth frames a protostellar nursery —
+ * a nebula so dense with gas that it glows even through the ash haze. Ghostly vapors
+ * from the crystal tips drift upward, refracting nebula light into spectral fans.
+ * Occasionally, thermal expansion pops a shard loose from a high column; you watch
+ * it fall, tumbling, before it splashes into the magma pool below with a sound like
+ * a rung bell.
+ */
+
+composition "ObsidianCalderaCathedral" {
+
+  environment {
+    skybox: "none"
+    background_color: "#040204"
+    ambient_light: 0.05
+    ambient_color: "#200a30"
+    shadows: true
+    shadow_quality: "ultra"
+    hdr: true
+    tone_mapping: "aces"
+    exposure: 1.0
+  }
+
+  scene_trait @volcanic {
+    biome: "active_caldera"
+    ground_heat: 0.72
+    ash_density: 0.18
+    steam_vents: true
+    magma_glow_intensity: 0.6
+  }
+
+  scene_trait @thermal_radiation {
+    source_position: [0, -8, 0]
+    source_radius: 14.0
+    peak_temperature: 1200
+    scalar_field_resolution: 64
+    heat_haze_strength: 0.04
+    refraction_sample_count: 8
+    affects_particles: true
+    gradient_direction: [0, 1, 0]
+  }
+
+  // ─── Lighting ────────────────────────────────────────────────────────────
+
+  object "MagmaGlow" {
+    type: "point_light"
+    position: [0, -8, 0]
+    color: "#ff4400"
+    intensity: 2.8
+    distance: 28
+    decay: 2
+  }
+
+  object "PlasmaAmbient1" {
+    type: "point_light"
+    position: [-6, 4, -3]
+    color: "#ff9900"
+    intensity: 1.1
+    distance: 12
+    decay: 2
+  }
+
+  object "PlasmaAmbient2" {
+    type: "point_light"
+    position: [7, 6, 4]
+    color: "#ffaa20"
+    intensity: 0.9
+    distance: 10
+    decay: 2
+  }
+
+  object "NebulaCone" {
+    type: "spot_light"
+    position: [0, 60, 0]
+    target: [0, 0, 0]
+    color: "#a060ff"
+    intensity: 0.4
+    angle: 18
+    penumbra: 0.6
+    distance: 70
+  }
+
+  object "CrystalFill" {
+    type: "point_light"
+    position: [0, 10, 0]
+    color: "#20ffcc"
+    intensity: 0.35
+    distance: 18
+    decay: 2
+  }
+
+  // ─── Caldera Geometry ─────────────────────────────────────────────────────
+
+  object "BasaltFloor" {
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [36, 1, 36]
+    material: {
+      baseColor: "#0d0805"
+      metallic: 0.1
+      roughness: 0.92
+      normalMap: "textures/basalt_cracked_normal.png"
+      normalScale: 2.2
+    }
+    @collidable { friction: 0.85 }
+    castShadow: false
+    receiveShadow: true
+  }
+
+  object "MagmaPool" {
+    geometry: "circle"
+    position: [0, -0.02, 0]
+    scale: [5.5, 1, 5.5]
+    material: {
+      baseColor: "#ff2200"
+      emissive: "#ff5500"
+      emissiveIntensity: 3.2
+      roughness: 0.08
+      metallic: 0.0
+    }
+    @animated {
+      type: "ripple"
+      speed: 0.35
+      amplitude: 0.06
+      wavelength: 0.8
+      origin: [0, 0, 0]
+    }
+    castShadow: false
+  }
+
+  object "CalderaWall" {
+    geometry: "cylinder"
+    position: [0, 30, 0]
+    scale: [35, 60, 35]
+    face: "interior"
+    material: {
+      baseColor: "#0a0808"
+      metallic: 0.7
+      roughness: 0.15
+      normalMap: "textures/obsidian_wall_normal.png"
+      normalScale: 3.0
+    }
+    @collidable { layer: "wall" }
+  }
+
+  // ─── Fractal Crystal Spire Cluster (center mass) ──────────────────────────
+
+  object "MainSpireBase" {
+    geometry: "crystal_prism"
+    position: [0, 0, 0]
+    scale: [1.8, 14, 1.8]
+    material: {
+      baseColor: "#1a0a2a"
+      metallic: 0.05
+      roughness: 0.0
+      transmission: 0.82
+      ior: 1.58
+      thickness: 2.4
+    }
+    @crystalline {
+      system: "hexagonal"
+      clarity: 0.88
+      internal_scattering: 0.12
+      fracture_pattern: "conchoidal"
+      iridescence: 0.25
+      charge_bleed_receptive: true
+    }
+    @fractal_shape {
+      algorithm: "l_system"
+      iterations: 5
+      branching_angle_deg: 28
+      scale_factor: 0.62
+      axiom: "F"
+      rules: { "F": "F[+F][-F][^F][vF]F" }
+      jitter: 0.08
+      seed: 20260526
+    }
+    @glowing { color: "#8040ff", radius: 3.2, falloff: "exponential" }
+    @neon_glow {
+      vein_color: "#00ffcc"
+      vein_width: 0.003
+      vein_density: 0.6
+      pulse_rate: 0.7
+      pulse_phase_variance: 0.4
+      respond_to_plasma: true
+      charge_amplify: 2.4
+    }
+    castShadow: true
+    receiveShadow: true
+  }
+
+  // Fractal sub-spires
+  template "SubSpire" {
+    geometry: "crystal_prism"
+    material: {
+      baseColor: "#0f0818"
+      metallic: 0.05
+      roughness: 0.0
+      transmission: 0.76
+      ior: 1.54
+    }
+    @crystalline {
+      system: "hexagonal"
+      clarity: 0.82
+      charge_bleed_receptive: true
+    }
+    @glowing { color: "#6030c8", radius: 1.6, falloff: "smooth" }
+    @neon_glow {
+      vein_color: "#20eebb"
+      vein_width: 0.004
+      vein_density: 0.5
+      pulse_rate: 0.9
+    }
+    castShadow: true
+    receiveShadow: true
+  }
+
+  object "Spire_NE" using "SubSpire" { position: [3.2, 0, -3.2], scale: [1.1, 9, 1.1], rotation: [6, 0, 5] }
+  object "Spire_NW" using "SubSpire" { position: [-3.4, 0, -2.8], scale: [0.9, 7.5, 0.9], rotation: [-4, 0, -6] }
+  object "Spire_SE" using "SubSpire" { position: [2.8, 0, 3.6], scale: [1.0, 8.2, 1.0], rotation: [5, 0, -4] }
+  object "Spire_SW" using "SubSpire" { position: [-2.6, 0, 3.0], scale: [0.85, 6.8, 0.85], rotation: [-3, 0, 5] }
+  object "Spire_Far_E" using "SubSpire" { position: [7.5, 0, -1.2], scale: [1.3, 11, 1.3], rotation: [8, 0, 3] }
+  object "Spire_Far_W" using "SubSpire" { position: [-8.0, 0, 0.8], scale: [1.2, 10, 1.2], rotation: [-7, 0, -3] }
+
+  // ─── Plasma Veins ─────────────────────────────────────────────────────────
+
+  object "PlasmaVein_Primary" {
+    position: [0, 8, 0]
+    @plasma {
+      arc_origin: [-6, 6, -3]
+      arc_target: [7, 7, 4]
+      arc_segments: 24
+      arc_color: "#ff9900"
+      core_color: "#ffffff"
+      glow_radius: 0.18
+      pulse_hz: 2.4
+      jitter_strength: 0.22
+      discharge_duration_ms: 80
+      recharge_duration_ms: 340
+      energy_transfer: true
+      transfer_targets: ["MainSpireBase", "Spire_Far_E", "Spire_Far_W"]
+    }
+  }
+
+  object "PlasmaVein_Secondary" {
+    position: [0, 5, 0]
+    @plasma {
+      arc_origin: [3, 4, 3.5]
+      arc_target: [-2.8, 5, -3.4]
+      arc_segments: 16
+      arc_color: "#ff6600"
+      core_color: "#ffee88"
+      glow_radius: 0.12
+      pulse_hz: 3.1
+      jitter_strength: 0.18
+      discharge_duration_ms: 60
+      recharge_duration_ms: 280
+    }
+  }
+
+  object "PlasmaVein_Wall" {
+    position: [0, 12, 0]
+    @plasma {
+      arc_origin: [-14, 10, -5]
+      arc_target: [-14, 14, -5]
+      arc_segments: 10
+      arc_color: "#cc8800"
+      glow_radius: 0.08
+      pulse_hz: 1.8
+      jitter_strength: 0.3
+      ambient_crackle: true
+    }
+  }
+
+  // ─── Electromagnetic Glitch Field ─────────────────────────────────────────
+
+  scene_trait @glitch_effect {
+    trigger: "event"
+    trigger_event: "plasma:discharge"
+    scanline_intensity: 0.22
+    scanline_speed: 8.0
+    rgb_split: 0.012
+    block_artifact_chance: 0.08
+    block_size: 0.04
+    noise_intensity: 0.06
+    duration_ms: 120
+    falloff: "exponential"
+    epicenter_follows_event: true
+    max_radius: 18.0
+  }
+
+  // ─── Nebula Window ────────────────────────────────────────────────────────
+
+  object "CalderoSkyOpening" {
+    geometry: "circle"
+    position: [0, 60, 0]
+    scale: [12, 1, 12]
+    @nebula {
+      catalog_id: "NGC-3603"
+      emission_color: "#c060ff"
+      dust_color: "#402080"
+      star_density: 0.85
+      ionized_hydrogen: true
+      pillar_count: 3
+      pillar_height: 8.0
+      brightness: 1.4
+      angular_diameter_deg: 2.8
+      rotation_speed: 0.0012
+      volumetric_depth: true
+      depth_samples: 32
+    }
+    castShadow: false
+  }
+
+  // ─── Ethereal Crystal Vapors ──────────────────────────────────────────────
+
+  object "CrystalVapor_Main" {
+    position: [0, 12, 0]
+    @ethereal {
+      density: 0.18
+      translucency: 0.72
+      refraction_ior: 1.08
+      drift_speed: 0.04
+      drift_direction: [0.05, 1, 0.02]
+      color_tint: "#c0a0ff"
+      light_scatter_coefficient: 0.35
+      responds_to_light_sources: ["NebulaCone", "CrystalFill"]
+      nebula_diffraction: true
+    }
+    @particle {
+      count: 1800
+      shape: "wisp"
+      emit_from: "volume"
+      volume_radius: 8.0
+      volume_height: 22.0
+      velocity: { min: 0.01, max: 0.06 }
+      velocity_direction: "hemisphere_up"
+      lifetime: { min: 6.0, max: 18.0 }
+      size: { start: 0.12, end: 0.0 }
+      color: {
+        start: "#a080ff88"
+        mid: "#80c0ff44"
+        end: "#c0e0ff00"
+      }
+      color_over_lifetime: true
+      blend: "additive"
+      emit_rate: 12
+    }
+  }
+
+  object "CrystalVapor_Far" {
+    position: [7, 8, -2]
+    @ethereal {
+      density: 0.1
+      translucency: 0.85
+      drift_speed: 0.03
+      color_tint: "#80ffcc"
+    }
+    @particle {
+      count: 600
+      shape: "wisp"
+      velocity: { min: 0.008, max: 0.04 }
+      velocity_direction: [0.1, 1, 0.05]
+      lifetime: { min: 5.0, max: 14.0 }
+      size: { start: 0.08, end: 0.0 }
+      color: { start: "#60ffcc44", end: "#20ffcc00" }
+      blend: "additive"
+      emit_rate: 6
+    }
+  }
+
+  // ─── Volcanic Ash Fall ────────────────────────────────────────────────────
+
+  object "AshColumn" {
+    position: [0, 30, 0]
+    @particle {
+      count: 4200
+      shape: "sphere"
+      emit_from: "disc"
+      disc_radius: 9.0
+      velocity: { min: 0.0, max: 0.04 }
+      velocity_direction: "hemisphere_down"
+      lifetime: { min: 8.0, max: 25.0 }
+      size: { start: 0.008, end: 0.006 }
+      color: {
+        start: "#808080a0"
+        end: "#40404000"
+      }
+      color_over_lifetime: true
+      gravity_scale: 0.08
+      emit_rate: 28
+      blend: "normal"
+    }
+  }
+
+  object "EmberDrift" {
+    position: [0, 4, 0]
+    @particle {
+      count: 380
+      shape: "point"
+      emit_from: "plane"
+      plane_scale: 16.0
+      velocity: { min: 0.02, max: 0.3 }
+      velocity_direction: [0.1, 1, 0.05]
+      lifetime: { min: 2.0, max: 7.0 }
+      size: { start: 0.02, end: 0.0 }
+      color: {
+        start: "#ff6600"
+        mid: "#ff2200"
+        end: "#ff000000"
+      }
+      color_over_lifetime: true
+      blend: "additive"
+      emit_rate: 8
+    }
+  }
+
+  // ─── Physics Shard Calving ────────────────────────────────────────────────
+
+  object "CrystalShard_A" {
+    geometry: "crystal_shard"
+    position: [-5.8, 8.4, -2.1]
+    scale: [0.18, 0.42, 0.15]
+    rotation: [22, 45, 18]
+    material: {
+      baseColor: "#0f0820"
+      transmission: 0.80
+      ior: 1.55
+      roughness: 0.0
+    }
+    @physics { mass: 0.32, drag: 0.02, gravity_scale: 1.0 }
+    @collidable { layer: "debris", restitution: 0.25, friction: 0.4 }
+    @crystalline { system: "hexagonal", clarity: 0.78, fracture_pattern: "conchoidal" }
+    @animated {
+      type: "detach"
+      trigger: "thermal_stress"
+      trigger_condition: "thermal_radiation:intensity > 0.8"
+      delay_range: [4, 20]
+      sequence: "fall_to_magma"
+    }
+  }
+
+  object "CrystalShard_B" {
+    geometry: "crystal_shard"
+    position: [8.1, 10.2, 2.8]
+    scale: [0.14, 0.36, 0.12]
+    rotation: [-15, 20, -30]
+    material: {
+      baseColor: "#120a18"
+      transmission: 0.75
+      ior: 1.52
+    }
+    @physics { mass: 0.22, gravity_scale: 1.0 }
+    @collidable { layer: "debris", restitution: 0.28 }
+    @crystalline { clarity: 0.72 }
+    @animated {
+      type: "detach"
+      trigger: "plasma:discharge"
+      trigger_condition: "plasma_vein:PlasmaVein_Wall energy > 0.9"
+      delay_range: [1, 6]
+      sequence: "fall_to_magma"
+    }
+  }
+
+  // ─── Post-Processing ──────────────────────────────────────────────────────
+
+  post_processing {
+    bloom: { intensity: 1.8, threshold: 0.3, radius: 0.9 }
+    tone_mapping: "aces"
+    exposure: 1.0
+    chromatic_aberration: { intensity: 0.014 }
+    vignette: { intensity: 0.32, radius: 0.62 }
+    film_grain: { intensity: 0.025, size: 1.0, colored: false }
+    heat_haze: { strength: 0.04, source: "thermal_radiation" }
+  }
+}
