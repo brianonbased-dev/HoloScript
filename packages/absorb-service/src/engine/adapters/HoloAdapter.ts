@@ -70,6 +70,9 @@ interface HoloNodeLite {
 interface HoloObjectTraitLite extends HoloNodeLite {
   type: 'ObjectTrait';
   name: string;
+  /** Trait arguments, e.g. `@label(text: "...")` → { text: "..." }. Carries the
+   *  human-meaningful prose that semantic search needs to match on. */
+  config?: Record<string, unknown>;
 }
 
 interface HoloObjectDeclLite extends HoloNodeLite {
@@ -251,6 +254,7 @@ export class HoloAdapter implements LanguageAdapter {
           signature: `template "${tpl.name}"`,
           owner: ast.name,
           isExported: true,
+          docComment: this.traitText(tpl.traits),
         })
       );
     }
@@ -398,6 +402,7 @@ export class HoloAdapter implements LanguageAdapter {
           ? `object "${obj.name}" using "${obj.template}"`
           : `object "${obj.name}"`,
         owner,
+        docComment: this.traitText(obj.traits),
       })
     );
     for (const child of obj.children ?? []) {
@@ -437,6 +442,7 @@ export class HoloAdapter implements LanguageAdapter {
     signature?: string;
     owner?: string;
     isExported?: boolean;
+    docComment?: string;
   }): ExternalSymbolDefinition {
     const line = opts.loc?.start.line ?? 1;
     const column = opts.loc?.start.column ?? 0;
@@ -456,8 +462,31 @@ export class HoloAdapter implements LanguageAdapter {
       signature: opts.signature,
       owner: opts.owner,
       isExported: opts.isExported ?? false,
+      docComment: opts.docComment,
       lineCount,
     };
+  }
+
+  /**
+   * Collect human-meaningful string values from a node's trait configs
+   * (e.g. `@label(text: "...")`, `@note(body: "...")`, `@description(...)`)
+   * into a single text blob. This is the prose semantic search matches on —
+   * without it, `.holo` symbols carry only structural names and become
+   * indistinguishable to NL queries (the body text never reaches the embedder).
+   */
+  private traitText(traits: HoloObjectTraitLite[] | undefined): string | undefined {
+    if (!traits || traits.length === 0) return undefined;
+    const parts: string[] = [];
+    for (const trait of traits) {
+      const cfg = trait.config;
+      if (!cfg) continue;
+      for (const value of Object.values(cfg)) {
+        if (typeof value === 'string' && value.trim().length > 0) {
+          parts.push(value.trim());
+        }
+      }
+    }
+    return parts.length > 0 ? parts.join(' ') : undefined;
   }
 
   private async loadCore(): Promise<HoloCoreSurface | null> {
