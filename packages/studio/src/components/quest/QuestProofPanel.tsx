@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FounderInboxItem } from '../../app/api/quest-proof/inbox/parse';
 import type { ProposedAction } from '../../app/api/quest-proof/next-actions/nextActions';
+import { ActionChip } from '../console';
 
 import { questProofGuardReason } from '../../lib/questProofGuards';
 
@@ -614,64 +615,21 @@ export function QuestProofPanel() {
               <span style={{ color: '#94a3b8', fontSize: 12 }}>anticipated moves — tap to act</span>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-              {nextActions.map((a) => {
-                const approved = approvedIds[a.id] === true;
-                const busy = approvingId === a.id;
-                const chipStyle: CSSProperties = {
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  minHeight: 64,
-                  padding: '12px 18px',
-                  borderRadius: 8,
-                  border: `1px solid ${a.reversible ? '#16a34a' : '#b45309'}`,
-                  background: approved ? '#0f2a1a' : a.reversible ? '#111827' : '#1c1207',
-                  color: '#e5e7eb',
-                  textDecoration: 'none',
-                  fontWeight: 800,
-                  fontSize: 15,
-                  cursor: 'pointer',
-                  font: 'inherit',
-                  textAlign: 'left',
-                  opacity: busy ? 0.6 : 1,
-                };
-                const badge = (text: string, color: string) => (
-                  <span style={{ fontSize: 11, fontWeight: 700, color }}>{text}</span>
-                );
-                // Reversible → one-tap approve button (records intent, no navigation,
-                // no signing key in the browser). Irreversible → navigate to review.
-                if (a.reversible) {
-                  return (
-                    <button
-                      key={a.id}
-                      type="button"
-                      disabled={busy || approved}
-                      onClick={() => void approveAction(a)}
-                      style={chipStyle}
-                    >
-                      <span>{a.label}</span>
-                      {approved
-                        ? badge('approved ✓', '#4ade80')
-                        : busy
-                          ? badge('approving…', '#94a3b8')
-                          : badge('tap to do', '#4ade80')}
-                    </button>
-                  );
-                }
-                return (
-                  <a
-                    key={a.id}
-                    href={a.href ?? '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setLastOpened(a.taskId)}
-                    style={chipStyle}
-                  >
-                    <span>{a.label}</span>
-                    {badge('review', '#f59e0b')}
-                  </a>
-                );
-              })}
+              {/* Rendered from the console design system (D.066) — the Console
+                  consumes <ActionChip>, it does not hand-style chips. */}
+              {nextActions.map((a) => (
+                <ActionChip
+                  key={a.id}
+                  label={a.label}
+                  reversible={a.reversible}
+                  href={a.href}
+                  busy={approvingId === a.id}
+                  approved={approvedIds[a.id] === true}
+                  onApprove={() => void approveAction(a)}
+                  onReview={() => setLastOpened(a.taskId)}
+                  testId={`next-action-${a.taskId}`}
+                />
+              ))}
             </div>
           </div>
         )}
