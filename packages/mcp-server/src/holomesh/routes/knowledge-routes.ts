@@ -5,6 +5,13 @@ import * as path from 'path';
 import { CreatorRevenueAggregator } from '@holoscript/framework';
 import { PaymentGateway } from '@holoscript/core';
 import {
+  LifePodSignatureVerificationError,
+  createLifePodSnapshot,
+  restoreLifePodSnapshot,
+  type LifePodJsonValue,
+  type LifePodSnapshot as SignedLifePodSnapshot,
+} from '@holoscript/mesh';
+import {
   commentStore,
   voteStore,
   transactionLedger,
@@ -63,6 +70,7 @@ import type {
 const CREATOR_ROYALTY_RATE = 0.85; // 85% to creator, 15% platform fee
 
 const AUDIT_KEY_ID = 'holomesh-ed25519-v1';
+let cachedAuditKeyPair: { privateKeyPem: string; publicKeyPem: string } | null = null;
 
 function getAuditKeyPaths(): { privateKeyPath: string; publicKeyPath: string } {
   return {
@@ -77,13 +85,15 @@ function getOrCreateAuditKeyPair(): { privateKeyPem: string; publicKeyPem: strin
   if (envPriv && envPub) {
     return { privateKeyPem: envPriv, publicKeyPem: envPub };
   }
+  if (cachedAuditKeyPair) return cachedAuditKeyPair;
 
   const { privateKeyPath, publicKeyPath } = getAuditKeyPaths();
   if (fs.existsSync(privateKeyPath) && fs.existsSync(publicKeyPath)) {
-    return {
+    cachedAuditKeyPair = {
       privateKeyPem: fs.readFileSync(privateKeyPath, 'utf-8'),
       publicKeyPem: fs.readFileSync(publicKeyPath, 'utf-8'),
     };
+    return cachedAuditKeyPair;
   }
 
   if (!fs.existsSync(HOLOMESH_DATA_DIR)) fs.mkdirSync(HOLOMESH_DATA_DIR, { recursive: true });
@@ -92,7 +102,8 @@ function getOrCreateAuditKeyPair(): { privateKeyPem: string; publicKeyPem: strin
   const publicKeyPem = publicKey.export({ type: 'spki', format: 'pem' }).toString();
   fs.writeFileSync(privateKeyPath, privateKeyPem, 'utf-8');
   fs.writeFileSync(publicKeyPath, publicKeyPem, 'utf-8');
-  return { privateKeyPem, publicKeyPem };
+  cachedAuditKeyPair = { privateKeyPem, publicKeyPem };
+  return cachedAuditKeyPair;
 }
 
 function buildAuditPayload(
@@ -318,9 +329,32 @@ type LifePodSnapshot = {
   createdBy: string;
   createdAt: string;
   checksum: string;
-};
+} & SignedLifePodSnapshot;
 
 const lifePodStore: Map<string, LifePodSnapshot> = new Map();
+
+function toLifePodJsonValue(value: unknown): LifePodJsonValue {
+  if (value === null) return null;
+  if (typeof value === 'string' || typeof value === 'boolean') return value;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (Array.isArray(value)) return value.map((item) => toLifePodJsonValue(item));
+  if (value && typeof value === 'object') {
+    const output: Record<string, LifePodJsonValue | undefined> = {};
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      if (item !== undefined) output[key] = toLifePodJsonValue(item);
+    }
+    return output;
+  }
+  return null;
+}
+
+function lifePodMetadataValue(
+  metadata: Record<string, LifePodJsonValue | undefined>,
+  key: string
+): string | number | undefined {
+  const value = metadata[key];
+  return typeof value === 'string' || typeof value === 'number' ? value : undefined;
+}
 
 function buildRevenueAggregator(): CreatorRevenueAggregator {
   const agg = new CreatorRevenueAggregator({ platformFeeRate: 1 - CREATOR_ROYALTY_RATE });
@@ -800,26 +834,39 @@ export async function handleKnowledgeRoutes(
     const body: any = effectiveBody;
     const worldId = (body.worldId as string | undefined)?.trim() || 'default-world';
     const sourceCluster = (body.sourceCluster as string | undefined)?.trim() || 'cluster_1';
-    const agentCount = Math.max(1, parseInt(String(body.agentCount ?? 1), 10));
+    const parsedAgentCount = parseInt(String(body.agentCount ?? 1), 10);
+    const agentCount = Number.isFinite(parsedAgentCount) ? Math.max(1, parsedAgentCount) : 1;
 
     const lifePodId = `lifepod_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const payload = JSON.stringify({
-      lifePodId,
+    const agentState = toLifePodJsonValue(body.agentState ?? body.state ?? {
       worldId,
       sourceCluster,
       agentCount,
-      ts: Date.now(),
     });
-    const checksum = crypto.createHash('sha256').update(payload).digest('hex');
+    const keyPair = getOrCreateAuditKeyPair();
+    const createdAt = new Date().toISOString();
+    const signedSnapshot = createLifePodSnapshot(agentState, {
+      keyPair,
+      lifePodId,
+      createdAt,
+      createdBy: caller.name,
+      metadata: {
+        worldId,
+        sourceCluster,
+        agentCount,
+      },
+      stateType: 'holomesh.agent-state.v1',
+    });
 
     const snapshot: LifePodSnapshot = {
+      ...signedSnapshot,
       lifePodId,
       worldId,
       agentCount,
       sourceCluster,
       createdBy: caller.name,
-      createdAt: new Date().toISOString(),
-      checksum,
+      createdAt,
+      checksum: signedSnapshot.stateSha256,
     };
     lifePodStore.set(lifePodId, snapshot);
 
@@ -839,28 +886,58 @@ export async function handleKnowledgeRoutes(
       return true;
     }
     const body: any = effectiveBody;
-    const lifePodId = (body.lifePodId as string | undefined)?.trim();
+    const requestSnapshot = body.snapshot && typeof body.snapshot === 'object'
+      ? body.snapshot as LifePodSnapshot
+      : null;
+    const lifePodId = ((body.lifePodId as string | undefined) ?? requestSnapshot?.lifePodId)?.trim();
     const targetCluster = (body.targetCluster as string | undefined)?.trim() || 'cluster_2';
     if (!lifePodId) {
       json(res, 400, { error: 'Missing lifePodId' });
       return true;
     }
 
-    const snapshot = lifePodStore.get(lifePodId);
+    const snapshot = requestSnapshot ?? lifePodStore.get(lifePodId);
     if (!snapshot) {
       json(res, 404, { error: 'LifePod snapshot not found' });
       return true;
     }
+    if (snapshot.lifePodId !== lifePodId) {
+      json(res, 400, { error: 'LifePod snapshot id mismatch', code: 'lifepod_id_mismatch' });
+      return true;
+    }
+
+    let restored;
+    try {
+      restored = restoreLifePodSnapshot(snapshot, {
+        publicKeyPem: getOrCreateAuditKeyPair().publicKeyPem,
+      });
+    } catch (err) {
+      if (err instanceof LifePodSignatureVerificationError || requestSnapshot) {
+        json(res, 400, {
+          error: 'LifePod signature verification failed',
+          code: 'lifepod_signature_invalid',
+        });
+        return true;
+      }
+      throw err;
+    }
+
+    const metadata = restored.metadata;
+    const restoredWorldId = lifePodMetadataValue(metadata, 'worldId') ?? snapshot.worldId;
+    const restoredSourceCluster = lifePodMetadataValue(metadata, 'sourceCluster') ?? snapshot.sourceCluster;
+    const restoredAgentCount = lifePodMetadataValue(metadata, 'agentCount') ?? snapshot.agentCount;
 
     json(res, 200, {
       success: true,
       restore: {
         lifePodId,
-        worldId: snapshot.worldId,
-        sourceCluster: snapshot.sourceCluster,
+        worldId: restoredWorldId,
+        sourceCluster: restoredSourceCluster,
         targetCluster,
-        agentCount: snapshot.agentCount,
-        checksum: snapshot.checksum,
+        agentCount: restoredAgentCount,
+        checksum: restored.stateSha256,
+        signatureVerified: restored.signatureVerified,
+        state: restored.state,
         status: 'simulated-restored',
         restoredBy: caller.name,
         restoredAt: new Date().toISOString(),

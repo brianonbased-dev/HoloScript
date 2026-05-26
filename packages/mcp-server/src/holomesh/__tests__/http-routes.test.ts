@@ -5700,7 +5700,100 @@ describe('HoloMesh HTTP Routes', () => {
     });
   });
 
-  // ── Sovereign Migrate (founder-override gate) ──
+  // --- Sovereign LifePod snapshot/restore integrity ---
+  //
+  // task_1779744793932_1dow: LifePod restore must verify signed state bytes
+  // before claiming an agent's identity/state survived migration.
+  describe('POST /api/holomesh/sovereign/lifepod/*', () => {
+    function flipSignedStateByte(snapshot: any): any {
+      const bytes = Buffer.from(snapshot.stateBytesBase64, 'base64');
+      bytes[0] ^= 0xff;
+      return {
+        ...snapshot,
+        stateBytesBase64: bytes.toString('base64'),
+      };
+    }
+
+    it('restores signed agent state byte-for-byte and rejects tampered state bytes', async () => {
+      const agentState = {
+        agentId: 'agent_lifepod_route_001',
+        identity: {
+          handle: 'route-lifepod-agent',
+          family: 'openai',
+        },
+        memory: {
+          activeGoal: 'prove restore integrity',
+          receipts: ['rcpt_route_001'],
+        },
+        world: {
+          worldId: 'world_route_lifepod_lab',
+          cluster: 'cluster_a',
+          tick: 7,
+        },
+      };
+
+      const snapshotReq = mockReq(
+        'POST',
+        '/api/holomesh/sovereign/lifepod/snapshot',
+        {
+          worldId: agentState.world.worldId,
+          sourceCluster: agentState.world.cluster,
+          agentCount: 1,
+          agentState,
+        },
+        { authorization: `Bearer test-api-key` }
+      );
+      const snapshotRes = mockRes();
+      await handleHoloMeshRoute(snapshotReq, snapshotRes, '/api/holomesh/sovereign/lifepod/snapshot');
+
+      expect(snapshotRes._status).toBe(201);
+      expect(snapshotRes._body.success).toBe(true);
+      const snapshot = snapshotRes._body.snapshot;
+      expect(snapshot.signatureAlgorithm).toBe('ed25519');
+      expect(snapshot.stateSha256).toMatch(/^[a-f0-9]{64}$/);
+
+      const mutatedState = {
+        ...agentState,
+        world: {
+          ...agentState.world,
+          tick: 999,
+        },
+      };
+      expect(mutatedState).not.toEqual(agentState);
+
+      const restoreReq = mockReq(
+        'POST',
+        '/api/holomesh/sovereign/lifepod/restore',
+        { lifePodId: snapshot.lifePodId, targetCluster: 'cluster_b' },
+        { authorization: `Bearer test-api-key` }
+      );
+      const restoreRes = mockRes();
+      await handleHoloMeshRoute(restoreReq, restoreRes, '/api/holomesh/sovereign/lifepod/restore');
+
+      expect(restoreRes._status).toBe(200);
+      expect(restoreRes._body.success).toBe(true);
+      expect(restoreRes._body.restore.signatureVerified).toBe(true);
+      expect(restoreRes._body.restore.state).toEqual(agentState);
+
+      const tamperedReq = mockReq(
+        'POST',
+        '/api/holomesh/sovereign/lifepod/restore',
+        {
+          lifePodId: snapshot.lifePodId,
+          targetCluster: 'cluster_b',
+          snapshot: flipSignedStateByte(snapshot),
+        },
+        { authorization: `Bearer test-api-key` }
+      );
+      const tamperedRes = mockRes();
+      await handleHoloMeshRoute(tamperedReq, tamperedRes, '/api/holomesh/sovereign/lifepod/restore');
+
+      expect(tamperedRes._status).toBe(400);
+      expect(tamperedRes._body.code).toBe('lifepod_signature_invalid');
+    });
+  });
+
+  // --- Sovereign Migrate (founder-override gate) ---
   //
   // task_1777050402454_28wq (2026-04-24): POST /api/holomesh/sovereign/migrate
   // must not let non-founder callers fabricate migration records for other

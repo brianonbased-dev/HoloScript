@@ -63,6 +63,9 @@ export * from './consensus';
 // Social
 export * from './social';
 
+// Sovereign identity/state survivability
+export * from './sovereign';
+
 // Multiplayer
 export * from './multiplayer';
 

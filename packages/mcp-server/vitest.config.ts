@@ -21,12 +21,24 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../core/src/index.ts'),
       },
       {
+        find: /^@holoscript\/framework$/,
+        replacement: path.resolve(__dirname, '../framework/src/index.ts'),
+      },
+      {
         find: '@holoscript/agent-protocol',
         replacement: path.resolve(__dirname, '../agent-protocol/src/index.ts'),
       },
       {
+        find: /^@holoscript\/mesh$/,
+        replacement: path.resolve(__dirname, '../mesh/src/index.ts'),
+      },
+      {
         find: '@holoscript/hololand-platform',
         replacement: path.resolve(__dirname, '../hololand-platform/src/index.ts'),
+      },
+      {
+        find: /^@holoscript\/secrets-broker$/,
+        replacement: path.resolve(__dirname, '../secrets-broker/src/index.ts'),
       },
     ],
   },

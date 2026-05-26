@@ -37,6 +37,10 @@ export const sovereignTools: Tool[] = [
           type: 'number',
           description: 'Number of agents included in this LifePod snapshot.',
         },
+        agentState: {
+          type: 'object',
+          description: 'Optional JSON agent state to sign and restore byte-for-byte.',
+        },
       },
     },
   },
@@ -53,6 +57,10 @@ export const sovereignTools: Tool[] = [
         targetCluster: {
           type: 'string',
           description: 'The target cluster to which the snapshot is restored.',
+        },
+        snapshot: {
+          type: 'object',
+          description: 'Optional signed LifePod snapshot object to verify instead of looking up by lifePodId.',
         },
       },
       required: ['lifePodId'],
