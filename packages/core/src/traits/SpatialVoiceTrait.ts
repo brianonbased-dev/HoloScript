@@ -88,10 +88,16 @@ export const spatialVoiceHandler: TraitHandler<SpatialVoiceConfig> = {
     const state = traitState.get(node);
     if (!state?.active) return;
 
-    // Emit position update for spatialization
+    // Emit position update for spatialization. Carries the source world
+    // position + rolloff model so a consumer can compute distance attenuation
+    // without re-resolving config per node.
+    const pos = node.position ?? [0, 0, 0];
     context.emit('spatial_voice_position', {
       nodeId: node.id,
       range: config.range,
+      rolloff: config.rolloff,
+      rolloffFactor: config.rolloff_factor,
+      position: [pos[0], pos[1], pos[2]],
     });
   },
 

@@ -189,6 +189,25 @@ export {
   type Matrix as AmbisonicMatrix,
 } from './ambisonicRotation.js';
 
+// Spatial voice - consumes SpatialVoiceTrait position emit (Pattern E)
+export {
+  SpatialVoiceCoordinator,
+  createSpatialVoiceCoordinator,
+  type SpatialVoiceCoordinatorOptions,
+  type SpatialVoicePositionEvent,
+  type SpatialVoiceDestroyEvent,
+  type VoiceSpatialization,
+  type SpatializationHandler,
+} from './SpatialVoiceCoordinator.js';
+
+export {
+  attenuationGain,
+  stereoPan,
+  distance as voiceDistance,
+  type RolloffModel,
+  type Vec3 as VoiceVec3,
+} from './spatialVoiceAttenuation.js';
+
 // DOM 2D Renderer - for rendering HoloScript to HTML
 export {
   DOM2DRenderer,
