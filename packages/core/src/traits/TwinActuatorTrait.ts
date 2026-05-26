@@ -1,11 +1,60 @@
 import type { Vector3 } from '../types';
 import type { TraitHandler } from './TraitTypes';
 
+export interface SafetyEnvelope {
+  id: string;
+  agent_id: string;
+  allowed_actions: string[];
+  blocked_actions: string[];
+  substrate_enforced: boolean;
+}
+
 export interface TwinActuatorConfig {
   actuator_id: string;
   command_topic: string;
   allowed_actions: string[];
   safe_limits: Record<string, [number, number]>;
+  safety_envelope?: SafetyEnvelope;
+}
+
+function validateSafetyEnvelope(
+  envelope: SafetyEnvelope | undefined,
+  action: string,
+  nodeId: string,
+): { ok: boolean; reason?: string; blockingRule?: string } {
+  if (!envelope) {
+    return {
+      ok: false,
+      reason: `Action ${action} on ${nodeId} rejected: no safety envelope configured. Illegal state — unvalidated actions cannot reach actuation.`,
+      blockingRule: 'missing_envelope',
+    };
+  }
+
+  if (!envelope.substrate_enforced) {
+    return {
+      ok: false,
+      reason: `Action ${action} on ${nodeId} rejected: safety envelope ${envelope.id} is not substrate-enforced.`,
+      blockingRule: 'not_substrate_enforced',
+    };
+  }
+
+  if (envelope.allowed_actions.length > 0 && !envelope.allowed_actions.includes(action)) {
+    return {
+      ok: false,
+      reason: `Action ${action} on ${nodeId} rejected: not in safety envelope ${envelope.id} allowed_actions whitelist.`,
+      blockingRule: 'not_allowed',
+    };
+  }
+
+  if (envelope.blocked_actions.includes(action)) {
+    return {
+      ok: false,
+      reason: `Action ${action} on ${nodeId} rejected: explicitly blocked by safety envelope ${envelope.id}.`,
+      blockingRule: 'blocked_actions',
+    };
+  }
+
+  return { ok: true };
 }
 
 export const twinActuatorHandler: TraitHandler<TwinActuatorConfig> = {
@@ -27,6 +76,21 @@ export const twinActuatorHandler: TraitHandler<TwinActuatorConfig> = {
   onEvent(node, config, context, event) {
     if (event.type === 'twin_command') {
       const action = event.action as string;
+
+      // Structural civilian-harm impossibility check (D.044):
+      // every actuation must pass a validated safety envelope before reaching
+      // the actuation path. Missing envelope = illegal state = blocked.
+      const envelopeCheck = validateSafetyEnvelope(config.safety_envelope, action, node.id);
+      if (!envelopeCheck.ok) {
+        context.emit('twin_actuator_error', {
+          node,
+          action,
+          error: envelopeCheck.reason,
+          blockingRule: envelopeCheck.blockingRule,
+        });
+        return;
+      }
+
       if (!config.allowed_actions.includes(action)) {
         context.emit('twin_actuator_error', { node, error: `Action ${action} not allowed.` });
         return;
@@ -53,6 +117,7 @@ export const twinActuatorHandler: TraitHandler<TwinActuatorConfig> = {
         action,
         payload: event.payload,
         value: event.value,
+        envelopeId: config.safety_envelope!.id,
       });
 
       // Optionally simulate standard physical translation in VR instantly
