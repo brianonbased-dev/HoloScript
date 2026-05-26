@@ -3,6 +3,18 @@
  *
  * MQTT publish to topic with QoS level.
  *
+ * WIRING SPEC (2026-05-25 deep-ratchet):
+ * Current implementation echoes mqtt:published with a fake messageId.
+ * Real wiring requires:
+ *   1. MQTT client library (`mqtt` npm package or `aedes` for embedded broker)
+ *   2. Persistent broker connection managed in onAttach / onDetach lifecycle
+ *   3. Configurable broker_url, client_id, username, password, tls options
+ *   4. QoS 1/2 handshake for delivery assurance
+ *   5. Emit mqtt:published with real broker-assigned messageId on PUBACK
+ *   6. Emit mqtt:error on connection/publish failure
+ * RISK: Broker credential exposure + connection lifecycle management must be
+ * design-reviewed before production wiring.
+ *
  * Events:
  *  mqtt:publish   { topic, payload, qos }
  *  mqtt:published { topic, messageId }

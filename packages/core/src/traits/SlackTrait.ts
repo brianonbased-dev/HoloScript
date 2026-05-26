@@ -31,11 +31,34 @@ export const slackHandler: TraitHandler<SlackConfig> = {
     const state = node.__slackState as { sent: number } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'slack:send') {
-      state.sent++;
-      context.emit?.('slack:sent', {
-        channel: (event.channel as string) ?? config.default_channel,
-        ts: `${Date.now()}`,
-      });
+      const channel = (event.channel as string) ?? config.default_channel;
+      const text = (event.text as string) ?? '';
+      const payload = { channel, text, blocks: (event.blocks as unknown[]) ?? [] };
+
+      if (!config.webhook_url) {
+        context.emit?.('slack:error', { error: 'No webhook_url configured' });
+        return;
+      }
+
+      fetch(config.webhook_url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+        .then((res) => {
+          state.sent++;
+          if (res.ok) {
+            context.emit?.('slack:sent', { channel, ts: `${Date.now()}`, status: res.status });
+          } else {
+            context.emit?.('slack:error', { channel, status: res.status, error: 'HTTP error' });
+          }
+        })
+        .catch((err: unknown) => {
+          context.emit?.('slack:error', {
+            channel,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        });
     }
   },
 };

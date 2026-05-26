@@ -1,6 +1,17 @@
 /**
  * S3UploadTrait — v5.1
  * S3-compatible object storage upload.
+ *
+ * WIRING SPEC (2026-05-25 deep-ratchet):
+ * Current implementation echoes s3:uploaded with no actual upload.
+ * Real wiring requires:
+ *   1. AWS SDK (`@aws-sdk/client-s3`) or a generic S3-compatible client (MinIO, R2)
+ *   2. Configurable credentials (access_key_id, secret_access_key, endpoint, region)
+ *   3. Presigned-URL generation OR direct PutObject for smaller files
+ *   4. Multipart upload for files > max_size_mb
+ *   5. Emit s3:uploaded with ETag and location on success
+ *   6. Emit s3:error on credential/network/failure
+ * RISK: Credential rotation + endpoint configurability must be design-reviewed.
  */
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 export interface S3UploadConfig {

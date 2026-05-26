@@ -2,6 +2,17 @@
  * StripeTrait — v5.1
  *
  * Stripe charge / payment intent.
+ *
+ * WIRING SPEC (2026-05-25 deep-ratchet):
+ * Current implementation echoes stripe:charged with a fake chargeId.
+ * Real wiring requires:
+ *   1. Stripe SDK (`stripe` npm package) or REST API call to `https://api.stripe.com/v1/charges`
+ *   2. Configurable secret_key (NOT committed — use env var or vault)
+ *   3. Idempotency key per charge to prevent duplicates
+ *   4. Emit stripe:charged with real Stripe charge object on success
+ *   5. Emit stripe:error on network/auth/validation failure
+ * RISK: Payment processing is founder-gate adjacent (F.066/F.071). Do NOT wire
+ * without a concrete payment-flow design review.
  */
 
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';

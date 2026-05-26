@@ -43,36 +43,42 @@ describe('DiscordTrait — lifecycle', () => {
 });
 
 describe('DiscordTrait — onEvent', () => {
-  it('discord:send emits discord:sent with channel and bot', () => {
+  it('discord:send calls fetch and emits discord:sent on success', async () => {
     const node = makeNode();
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: true, status: 204 } as Response);
     discordHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     discordHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
       type: 'discord:send', channel: '#general', content: 'Hello!',
     } as never);
-    expect(node.emit).toHaveBeenCalledWith('discord:sent', expect.objectContaining({
-      channel: '#general', bot: 'TestBot',
-    }));
+
+    await vi.waitFor(() => expect(node.emit).toHaveBeenCalledWith('discord:sent', expect.objectContaining({
+      channel: '#general', bot: 'TestBot', status: 204,
+    })));
+    expect(fetchSpy).toHaveBeenCalledWith(
+      defaultConfig.webhook_url,
+      expect.objectContaining({ method: 'POST', body: expect.stringContaining('Hello!') }),
+    );
+    fetchSpy.mockRestore();
   });
 
-  it('discord:send increments sent counter', () => {
+  it('discord:send increments sent counter', async () => {
     const node = makeNode();
-    discordHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    for (let i = 0; i < 3; i++) {
-      discordHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-        type: 'discord:send', channel: '#test', content: `msg-${i}`,
-      } as never);
-    }
-    const state = node.__discordState as { sent: number };
-    expect(state.sent).toBe(3);
-  });
-
-  it('discord:sent includes a messageId', () => {
-    const node = makeNode();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: true, status: 204 } as Response);
     discordHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     discordHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
+      type: 'discord:send', channel: '#test', content: 'msg',
+    } as never);
+    await vi.waitFor(() => expect(node.emit).toHaveBeenCalledWith('discord:sent', expect.anything()));
+    const state = node.__discordState as { sent: number };
+    expect(state.sent).toBe(1);
+  });
+
+  it('discord:send emits discord:error when webhook_url is empty', () => {
+    const node = makeNode();
+    discordHandler.onAttach!(node as never, { webhook_url: '', bot_name: 'TestBot' }, makeCtx(node) as never);
+    discordHandler.onEvent!(node as never, { webhook_url: '', bot_name: 'TestBot' }, makeCtx(node) as never, {
       type: 'discord:send', channel: '#alerts', content: 'Alert!',
     } as never);
-    const call = node.emit.mock.calls.find(([t]) => t === 'discord:sent');
-    expect(call?.[1]).toHaveProperty('messageId');
+    expect(node.emit).toHaveBeenCalledWith('discord:error', expect.objectContaining({ error: 'No webhook_url configured' }));
   });
 });
