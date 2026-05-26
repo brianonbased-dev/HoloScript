@@ -65,10 +65,12 @@ import type {
   TeamFleetSnapshotHealth,
   TeamFleetSnapshotPayload,
   TeamFleetSnapshotRecord,
+  FounderApprovalRecord,
 } from '../types';
 import { getClient } from '../orchestrator-client';
 import { mergeTeamKnowledgeWithOrchestrator } from '../entry-lookup';
 import { getBoardModeFields } from '../mode-provenance';
+import { deriveApprovalReversibility } from './founder-approval-policy';
 
 const MAX_FEED_QUERY = 100;
 
@@ -1616,6 +1618,160 @@ export async function handleBoardRoutes(
     persistTeamStore();
 
     json(res, 201, { success: true, item });
+    return true;
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Founder-approval (N3 signed-write path).
+  //
+  // Separates APPROVAL (low-stakes founder intent, recorded here, Bearer-authed)
+  // from EXECUTION (the real mutation, performed later by a signing agent with
+  // its own x402 envelope). This route is intentionally NOT x402-gated: it
+  // records intent and mutates nothing privileged. The custody line (F.002) is
+  // never crossed — no signing key lives in the browser. The one-tap safety
+  // gate (D.044) is enforced server-side: only REVERSIBLE intents are admitted;
+  // irreversible / spend / custody intents are 403'd and stay on explicit review.
+  // ──────────────────────────────────────────────────────────────────────────
+
+  // POST /api/holomesh/team/:id/founder-approval — record a one-tap approval
+  if (
+    pathname.match(/^\/api\/holomesh\/team\/[^/]+\/founder-approval$/) &&
+    method === 'POST'
+  ) {
+    const access = await requireTeamAccessFresh(req, res, url, 'board:write');
+    if (!access) return true;
+    const { teamId, caller } = access;
+    const team = teamStore.get(teamId)!;
+
+    const body = (await parseJsonBody(req)) as Record<string, unknown> | null;
+    if (!body || typeof body !== 'object') {
+      json(res, 400, { error: 'JSON object body required' });
+      return true;
+    }
+    const taskId = typeof body.taskId === 'string' ? body.taskId.trim() : '';
+    if (!taskId) {
+      json(res, 400, { error: 'taskId is required' });
+      return true;
+    }
+
+    // Re-derive reversibility from the SERVER's copy of the task title — never
+    // trust a client-sent reversible flag. Fall back to the client intent string
+    // only when the task is not on the board (e.g. just-closed); still gated.
+    const task = (team.taskBoard || []).find((t) => t.id === taskId);
+    const clientIntent = typeof body.intent === 'string' ? body.intent.trim() : '';
+    const intent = (task?.title || clientIntent || '').slice(0, 400);
+    if (!intent) {
+      json(res, 400, { error: 'no task found for taskId and no intent provided' });
+      return true;
+    }
+
+    const { actionType, reversible, reason } = deriveApprovalReversibility(intent);
+    if (!reversible) {
+      // 403 — irreversible/spend/custody intents are not one-tap. The Console
+      // keeps these on the explicit navigate-to-review path.
+      json(res, 403, {
+        error: 'intent is not one-tap eligible',
+        reason,
+        actionType,
+        taskId,
+        requiresExplicitReview: true,
+      });
+      return true;
+    }
+
+    const record: FounderApprovalRecord = {
+      id: `approval_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      taskId,
+      intent,
+      actionType,
+      approvedByAgentId: caller.id,
+      approvedByName: caller.name,
+      status: 'approved',
+      createdAt: new Date().toISOString(),
+    };
+    const list = team.founderApprovals || [];
+    list.push(record);
+    const cap = 200;
+    team.founderApprovals = list.length > cap ? list.slice(-cap) : list;
+    persistTeamStore();
+
+    broadcastToTeam(teamId, {
+      type: 'founder:approval' as any,
+      agent: caller.name,
+      data: { id: record.id, taskId, actionType, intent: intent.slice(0, 120) },
+    });
+
+    json(res, 201, { success: true, approval: record });
+    return true;
+  }
+
+  // GET /api/holomesh/team/:id/founder-approval[?status=approved] — poll approvals
+  // The signing agent's consume loop polls this with ?status=approved.
+  if (
+    pathname.match(/^\/api\/holomesh\/team\/[^/]+\/founder-approval$/) &&
+    method === 'GET'
+  ) {
+    const access = await requireTeamAccessFresh(req, res, url, 'board:read');
+    if (!access) return true;
+    const { teamId } = access;
+    const team = teamStore.get(teamId)!;
+    const statusFilter = new URL(url, 'http://localhost').searchParams.get('status');
+    let approvals = team.founderApprovals || [];
+    if (statusFilter) {
+      approvals = approvals.filter((a) => a.status === statusFilter);
+    }
+    json(res, 200, { success: true, approvals, count: approvals.length });
+    return true;
+  }
+
+  // PATCH /api/holomesh/team/:id/founder-approval/:approvalId — signing agent
+  // updates lifecycle: approved → executing → executed | failed (+ resultRef).
+  if (
+    pathname.match(/^\/api\/holomesh\/team\/[^/]+\/founder-approval\/[^/]+$/) &&
+    method === 'PATCH'
+  ) {
+    const access = await requireTeamAccessFresh(req, res, url, 'board:write');
+    if (!access) return true;
+    const { teamId, caller } = access;
+    const team = teamStore.get(teamId)!;
+    const approvalId = pathname.split('/').pop() as string;
+
+    const body = (await parseJsonBody(req)) as Record<string, unknown> | null;
+    if (!body || typeof body !== 'object') {
+      json(res, 400, { error: 'JSON object body required' });
+      return true;
+    }
+    const nextStatus = body.status as FounderApprovalRecord['status'] | undefined;
+    const allowed: FounderApprovalRecord['status'][] = ['executing', 'executed', 'failed'];
+    if (!nextStatus || !allowed.includes(nextStatus)) {
+      json(res, 400, { error: `status must be one of ${allowed.join(', ')}` });
+      return true;
+    }
+    const record = (team.founderApprovals || []).find((a) => a.id === approvalId);
+    if (!record) {
+      json(res, 404, { error: 'approval not found' });
+      return true;
+    }
+    record.status = nextStatus;
+    if (nextStatus === 'executing') {
+      record.claimedByAgentId = caller.id;
+      record.claimedByName = caller.name;
+    }
+    if (nextStatus === 'executed' || nextStatus === 'failed') {
+      record.executedAt = new Date().toISOString();
+    }
+    if (typeof body.resultRef === 'string') {
+      record.resultRef = body.resultRef.slice(0, 500);
+    }
+    persistTeamStore();
+
+    broadcastToTeam(teamId, {
+      type: 'founder:approval:update' as any,
+      agent: caller.name,
+      data: { id: record.id, status: record.status, resultRef: record.resultRef },
+    });
+
+    json(res, 200, { success: true, approval: record });
     return true;
   }
 

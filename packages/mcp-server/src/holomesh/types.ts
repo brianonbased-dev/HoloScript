@@ -505,6 +505,16 @@ export interface Team {
   /** Latest locally-published GPU/Vast fleet snapshot for deployed Studio and agents. */
   fleetSnapshot?: TeamFleetSnapshotRecord;
 
+  /**
+   * Founder one-tap approvals (N3 signed-write path). Records the low-stakes
+   * INTENT a founder tapped on the Console; a signing agent consumes
+   * status:'approved', materializes the full agi-action-manifest, executes with
+   * ITS own x402 envelope, and PATCHes the record to 'executed'. Stored directly
+   * on the team object so it persists/reloads through the same path as taskBoard
+   * (no side map needed — see state.ts persistTeamStore).
+   */
+  founderApprovals?: FounderApprovalRecord[];
+
   // Bounty data (V7 Expansion)
   bounties?: BountyManager;
   submissions?: StoredBountySubmission[];
@@ -554,6 +564,40 @@ export interface Team {
   };
   treasuryWallet?: string;
   treasuryBalance?: number;
+}
+
+/**
+ * A founder one-tap approval (N3 signed-write path). The Console records this
+ * when a founder taps a REVERSIBLE next-action chip. It mutates nothing
+ * privileged — it is an intent ticket a signing agent consumes. The signing
+ * agent re-validates, materializes the agi-action-manifest, executes with its
+ * own x402 signature, and PATCHes status → 'executed' + a resultRef.
+ */
+export interface FounderApprovalRecord {
+  id: string;
+  /** Source board task this intent acts on. */
+  taskId: string;
+  /** Human-readable intent (the task title / what tapping does). */
+  intent: string;
+  /** Re-derived server-side; only reversible intents are ever recorded. */
+  actionType: 'code' | 'spatial' | 'service_rental' | 'mobility_coordination';
+  /** Identity that tapped approve (from Bearer auth, never client-supplied). */
+  approvedByAgentId: string;
+  approvedByName: string;
+  /**
+   * approved   → recorded, awaiting a signing agent
+   * executing  → a signing agent claimed it and is materializing/signing
+   * executed   → the signed mutation landed; resultRef points to the receipt
+   * failed     → execution failed; resultRef carries the reason
+   */
+  status: 'approved' | 'executing' | 'executed' | 'failed';
+  createdAt: string;
+  /** Set by the signing agent when it claims the record. */
+  claimedByAgentId?: string;
+  claimedByName?: string;
+  executedAt?: string;
+  /** Receipt hash / inbox feed id / failure reason, depending on status. */
+  resultRef?: string;
 }
 
 export type TeamFleetSnapshotHealthStatus = 'missing' | 'ok' | 'degraded' | 'stale' | 'down';
