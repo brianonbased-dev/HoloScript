@@ -33,7 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <span className="text-mesh-green-bright text-[8px] leading-none">●</span>
                 <span>Sim</span>
               </Link>
-              <
+              <a
                 href="https://holoscript.net"
                 target="_blank"
                 rel="noopener noreferrer"
