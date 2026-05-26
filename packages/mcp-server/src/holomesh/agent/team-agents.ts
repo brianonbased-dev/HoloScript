@@ -26,5 +26,8 @@ export {
   getProfilesByDomain,
 } from '@holoscript/framework';
 
+// Canonical HoloMesh agent traits shared with HoloLand and uAA2.
+export { HOLOMESH_AGENT_MEMORY_TRAIT } from './shared-traits';
+
 // Scout profile stays here — it's infrastructure, not a team member
 export { SCOUT_AGENT } from './scout-profile';

@@ -88,6 +88,9 @@ export {
 // Orchestrator Agent (v5.5 First Concrete BaseAgent)
 export { OrchestratorAgent, type OrchestratorConfig } from './OrchestratorAgent';
 
+// Canonical uAA2 agent traits shared with HoloMesh and HoloLand.
+export { UAA2_AGENT_MEMORY_TRAIT } from './shared-traits';
+
 // Agent Wallet Registry (Autonomous wallet management)
 export { AgentWalletRegistry, type AgentWallet } from './AgentWalletRegistry';
 

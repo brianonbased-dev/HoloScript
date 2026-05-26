@@ -4288,6 +4288,16 @@ export type TraitEvent = {
   [key: string]: any;
 };
 
+export interface TraitHandler<T = any> {
+  name: string;
+  defaultConfig?: T;
+  onAttach?: (node: any, config: T, context: TraitContext) => void | Promise<void>;
+  onDetach?: (node: any, config: T, context: TraitContext) => void | Promise<void>;
+  onUpdate?: (node: any, config: T, context: TraitContext, delta: number) => void | Promise<void>;
+  onEvent?: (node: any, config: T, context: TraitContext, event: TraitEvent) => void | Promise<void>;
+  [key: string]: any;
+}
+
 export interface AccessibilityContext {
   screenReader?: boolean;
   highContrast?: boolean;
@@ -4330,6 +4340,78 @@ export interface TraitSupportMatrixData {
 export function generateTraitSupportMatrix(traitDir: string): Promise<TraitSupportMatrixData>;
 export function matrixToJSON(matrix: TraitSupportMatrixData): string;
 export function matrixToYAML(matrix: TraitSupportMatrixData): string;
+
+export interface Memory {
+  id: string;
+  key: string;
+  content: string;
+  tags: string[];
+  embedding: number[] | null;
+  createdAt: number;
+  accessedAt: number;
+  accessCount: number;
+  ttl: number | null;
+  source: string;
+}
+
+export interface MemoryRecallResult {
+  memory: Memory;
+  score: number;
+}
+
+export interface AgentMemoryConfig {
+  max_memories: number;
+  default_ttl: number | null;
+  embedding_model: 'local' | 'openai' | 'none';
+  embedding_dim: number;
+  auto_compress: boolean;
+  compress_prompt: string;
+  sync_to_postgres: boolean;
+  postgres_url: string;
+  db_name: string;
+}
+
+export interface AgentMemoryState {
+  memories: Map<string, Memory>;
+  db: IDBDatabase | null;
+  isReady: boolean;
+  totalStored: number;
+  totalRecalled: number;
+  totalCompressed: number;
+}
+
+export const agentMemoryHandler: TraitHandler<AgentMemoryConfig>;
+
+export interface JEPAPredictorConfig {
+  latentDim: number;
+  condDim: number;
+}
+
+export interface JEPAPredictorWeights {
+  W1: Float32Array;
+  b1: Float32Array;
+  W2: Float32Array;
+  b2: Float32Array;
+}
+
+export interface JEPAPredictorForwardResult {
+  predicted: Float32Array;
+  hidden: Float32Array;
+}
+
+export class JEPAPredictor {
+  readonly latentDim: number;
+  readonly condDim: number;
+  constructor(config: JEPAPredictorConfig, weights?: JEPAPredictorWeights);
+  forward(contextEmb: Float32Array, conditioning?: Float32Array | null): JEPAPredictorForwardResult;
+  setWeights(weights: JEPAPredictorWeights): void;
+  getWeights(): Readonly<JEPAPredictorWeights>;
+  plan(currentState: string, candidateActions: string[]): {
+    action: string;
+    predicted: Float32Array;
+    confidence: number;
+  };
+}
 
 export class TraitCompositor {
   [key: string]: any;

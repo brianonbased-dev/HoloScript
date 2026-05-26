@@ -29,6 +29,7 @@
     "test:coverage": "vitest run --config vitest.config.ts --coverage --passWithNoTests"
   },
   "dependencies": {
+    "@holoscript/core": "workspace:*",
     "@holoscript/crdt-spatial": "workspace:*",
     "@holoscript/framework": "workspace:*",
     "@holoscript/runtime": "workspace:*",

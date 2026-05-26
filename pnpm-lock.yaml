@@ -1295,6 +1295,9 @@ importers:
 
   packages/hololand-platform:
     dependencies:
+      '@holoscript/core':
+        specifier: workspace:*
+        version: link:../core
       '@holoscript/crdt-spatial':
         specifier: workspace:*
         version: link:../crdt-spatial

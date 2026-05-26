@@ -16,7 +16,8 @@
  * - D.007 bridges (the world may come from ROS 2 / other bridged data)
  */
 
-import type { WorldModelReceipt, SimulationContractReference } from '@holoscript/core/world-model';
+import type { SimulationContractReference } from '@holoscript/core/world-model';
+import type { WorldModelReceipt } from '../npc/jepa-predictor-adapter';
 
 export interface CodebaseTrustGateProps {
   worldId: string;
