@@ -1,0 +1,50 @@
+{
+  "schema": "cael-gate-v1",
+  "gate": 46,
+  "track": "flagship-research",
+  "name": "HoloMap ↔ COLMAP accuracy-parity (pose ATE on real capture)",
+  "verifier": "examples/gold-game/holomap-colmap-parity.mjs",
+  "pairsWith": "GATE-45 (verifiability leg); together = the HoloMap paper result",
+  "baseline": {
+    "tool": "COLMAP 4.1.0 (no-CUDA, CPU SIFT)",
+    "model": "C:/Users/josep/tools/colmap/work/sparse/0",
+    "registeredFrames": 35,
+    "sparsePoints3D": 10379
+  },
+  "holomap": {
+    "registeredFrames": 35,
+    "runtime": "packages/core/src/reconstruction/HoloMapRuntime.ts (shipped)"
+  },
+  "alignment": {
+    "method": "Umeyama similarity (scale+rotation+translation), self-contained Jacobi SVD",
+    "sharedFrames": 35,
+    "scale": 119.19
+  },
+  "metrics": {
+    "poseATE": 3.417747,
+    "relativeATE": 0.3956,
+    "colmapPathExtent": 8.6384,
+    "holomapTrajRange": [
+      0.0042,
+      0.0033,
+      0.024
+    ],
+    "holomapMotionExtent": 0.024,
+    "colmapTrajRange": [
+      11.0062,
+      7.1408,
+      3.6171
+    ],
+    "colmapMotionExtent": 11.0062,
+    "holomapTrajectoryNonDegenerate": false,
+    "parityBand": 0.1
+  },
+  "verdict": "HONEST-NEGATIVE: HoloMap pose track degenerate",
+  "honestScope": "Accuracy-parity leg: HoloMap's shipped reconstruction trajectory vs a COLMAP 4.1 incremental-SfM baseline on the SAME 35-frame real capture (COLMAP on 960x540, HoloMap on 192x108 — same temporal frames). Camera centers aligned by a self-contained Umeyama similarity transform; pose ATE = RMSE after alignment. RESULT — HONEST-NEGATIVE: COLMAP recovered a real 35/35 camera path (extent ~11.0 units, 10379 sparse points), but HoloMap's shipped pose tracker produced a NEAR-STATIC trajectory (extent ~0.024 units) at this input resolution — i.e. it did NOT recover real ego-motion on this handheld capture, so there is NO pose-accuracy parity with classical SfM here. The ATE/relativeATE are reported but are not meaningful as a parity number while the HoloMap trajectory is degenerate (a near-point aligns to anything). INTERPRETATION: HoloMap's demonstrated, defensible contribution is the VERIFIABILITY receipt (GATE-45: tamper-detection 1.0 / false-positive 0.0) that COLMAP cannot produce — NOT pose accuracy. The paper must report this honestly: do not claim reconstruction-quality parity. RESOLUTION CONTROL (open question closed): re-running HoloMap at 480x270 gives motion extent 0.0219 — essentially identical to the 192x108 result (0.0240), so the near-static trajectory is RESOLUTION-INVARIANT and is NOT a starvation artifact; it is a genuine limit of the shipped CPU pose path (the WebGPU/neural path is untested here and is the next build lever). BUILD PRIORITY implied: HoloMap ego-motion estimation needs work before any pose-accuracy claim — its current value is verifiability, not pose. HONEST LIMIT: single near-planar grass capture, not a multi-scene benchmark.",
+  "checks": {
+    "passed": 2,
+    "total": 4
+  },
+  "status": "HONEST-NEGATIVE",
+  "verifiedAt": "2026-05-26T01:44:02.603Z"
+}
