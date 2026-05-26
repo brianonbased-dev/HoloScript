@@ -1,0 +1,43 @@
+=== Paper 23 HSCore Soundness — authoritative build + axiom verification ===
+Date: 2026-05-26T06:26:47Z
+Toolchain: leanprover/lean4:v4.15.0
+Lean (version 4.15.0, x86_64-w64-windows-gnu, commit 11651562caae, Release)
+
+=== Clean HSCore artifacts and rebuild from source ===
+⚠ [2/5] Built HSCore.Basic
+warning: .\.\.\.\HSCore\Basic.lean:151:5: unused variable `tid`
+note: this linter can be disabled with `set_option linter.unusedVariables false`
+warning: .\.\.\.\HSCore\Basic.lean:151:21: unused variable `v`
+note: this linter can be disabled with `set_option linter.unusedVariables false`
+warning: .\.\.\.\HSCore\Basic.lean:151:33: unused variable `e'`
+note: this linter can be disabled with `set_option linter.unusedVariables false`
+warning: .\.\.\.\HSCore\Basic.lean:171:5: unused variable `tid`
+note: this linter can be disabled with `set_option linter.unusedVariables false`
+warning: .\.\.\.\HSCore\Basic.lean:171:21: unused variable `τ_arg`
+note: this linter can be disabled with `set_option linter.unusedVariables false`
+warning: .\.\.\.\HSCore\Basic.lean:171:27: unused variable `τ_res`
+note: this linter can be disabled with `set_option linter.unusedVariables false`
+✔ [3/5] Built HSCore.Soundness
+✔ [4/5] Built HSCore
+Build completed successfully.
+EXIT_HSCORE_BUILD=0
+
+=== Axiom dependency check (proves 0 sorry: no sorryAx) ===
+'HSCore.progress_preservation' depends on axioms: [propext,
+ HSCore.dispatch_resolve,
+ HSCore.dispatch_resolve_preserves,
+ HSCore.dispatch_resolve_total,
+ HSCore.substitution_preserves_typing,
+ HSCore.trait_accepts]
+'HSCore.progress' depends on axioms: [propext,
+ HSCore.dispatch_resolve,
+ HSCore.dispatch_resolve_total,
+ HSCore.trait_accepts]
+'HSCore.preservation' depends on axioms: [HSCore.dispatch_resolve,
+ HSCore.dispatch_resolve_preserves,
+ HSCore.substitution_preserves_typing,
+ HSCore.trait_accepts]
+EXIT_AXIOM_CHECK=0
+
+=== sorry occurrences in proof bodies (comments excluded) ===
+NONE (0 sorry in proof bodies)
