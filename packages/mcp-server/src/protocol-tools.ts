@@ -17,7 +17,8 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 export const protocolTools: Tool[] = [
   {
     name: 'holo_protocol_publish',
-    description: 'Publish a HoloScript composition to the HoloScript Protocol. ' +
+    description:
+      'Publish a HoloScript composition to the HoloScript Protocol. ' +
       'Registers the composition on-chain (content hash, author, imports, license) ' +
       'and deploys to CDN. Returns protocol ID, collect URL, and revenue preview.',
     inputSchema: {
@@ -50,7 +51,8 @@ export const protocolTools: Tool[] = [
   },
   {
     name: 'holo_protocol_collect',
-    description: 'Collect (mint an edition of) a published HoloScript composition. ' +
+    description:
+      'Collect (mint an edition of) a published HoloScript composition. ' +
       'Revenue is automatically distributed to creator, platform, and upstream import authors.',
     inputSchema: {
       type: 'object',
@@ -67,13 +69,18 @@ export const protocolTools: Tool[] = [
           type: 'number',
           description: 'Number of editions to collect (default: 1)',
         },
+        collectorId: {
+          type: 'string',
+          description: 'Collector identity paying for the edition',
+        },
       },
       required: ['contentHash'],
     },
   },
   {
     name: 'holo_protocol_revenue',
-    description: 'Preview the revenue distribution for a composition. ' +
+    description:
+      'Preview the revenue distribution for a composition. ' +
       'Shows how collect revenue would flow to creator, platform (2.5%), ' +
       'import authors (5% per level, max 3 levels), and referrer (2%).',
     inputSchema: {
@@ -109,7 +116,8 @@ export const protocolTools: Tool[] = [
   },
   {
     name: 'holo_protocol_lookup',
-    description: 'Look up a published composition by content hash or author. ' +
+    description:
+      'Look up a published composition by content hash or author. ' +
       'Returns the protocol record with on-chain metadata, collect URL, and edition count.',
     inputSchema: {
       type: 'object',
@@ -155,7 +163,14 @@ export async function handleProtocolTool(
 
 const CONTENT_HASH_RE = /^[a-f0-9]{64}$/;
 const AUTHOR_RE = /^[\w.-]+$/;
-const VALID_LICENSES = new Set(['free', 'cc_by', 'cc_by_sa', 'cc_by_nc', 'commercial', 'exclusive']);
+const VALID_LICENSES = new Set([
+  'free',
+  'cc_by',
+  'cc_by_sa',
+  'cc_by_nc',
+  'commercial',
+  'exclusive',
+]);
 
 function validateContentHash(value: unknown): string {
   if (typeof value !== 'string' || !CONTENT_HASH_RE.test(value)) {
@@ -176,9 +191,16 @@ function validateAuthor(value: unknown): string {
  * Returns the string if valid, or a structured error response if not.
  * Prevents TypeErrors from `as string` casts when MCP callers send null/number/object.
  */
-function requireString(value: unknown, fieldName: string): string | { status: 'error'; error: string; message: string } {
+function requireString(
+  value: unknown,
+  fieldName: string
+): string | { status: 'error'; error: string; message: string } {
   if (typeof value !== 'string') {
-    return { status: 'error', error: 'INVALID_PARAMS', message: `${fieldName} must be a string, got ${value === null ? 'null' : value === undefined ? 'undefined' : typeof value}` };
+    return {
+      status: 'error',
+      error: 'INVALID_PARAMS',
+      message: `${fieldName} must be a string, got ${value === null ? 'null' : value === undefined ? 'undefined' : typeof value}`,
+    };
   }
   return value;
 }
@@ -191,14 +213,39 @@ function optionalString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
 
+function optionalStringOrError(
+  value: unknown,
+  fieldName: string
+): string | undefined | { status: 'error'; error: string; message: string } {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'string') {
+    return {
+      status: 'error',
+      error: 'INVALID_PARAMS',
+      message: `${fieldName} must be a string, got ${typeof value}`,
+    };
+  }
+  return value;
+}
+
 /**
  * Runtime type guard for number parameters with optional clamping.
  * Returns the number if valid (or default), or a structured error response if non-numeric.
  */
-function requireNumberInRange(value: unknown, fieldName: string, defaultValue: number, min: number, max: number): number | { status: 'error'; error: string; message: string } {
+function requireNumberInRange(
+  value: unknown,
+  fieldName: string,
+  defaultValue: number,
+  min: number,
+  max: number
+): number | { status: 'error'; error: string; message: string } {
   if (value === undefined || value === null) return defaultValue;
   if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return { status: 'error', error: 'INVALID_PARAMS', message: `${fieldName} must be a finite number, got ${typeof value}` };
+    return {
+      status: 'error',
+      error: 'INVALID_PARAMS',
+      message: `${fieldName} must be a finite number, got ${typeof value}`,
+    };
   }
   return Math.max(min, Math.min(max, value));
 }
@@ -214,33 +261,60 @@ interface ImportError {
  * Validates that each element has the expected shape, returning a structured
  * error response if any element is malformed.
  */
-function validateImportsArray(value: unknown): { imports: Array<{ contentHash: string; author: string; depth: number }>; errors: ImportError[] } | { status: 'error'; error: string; message: string } {
+function validateImportsArray(value: unknown):
+  | {
+      imports: Array<{ contentHash: string; author: string; depth: number }>;
+      errors: ImportError[];
+    }
+  | { status: 'error'; error: string; message: string } {
   if (value === undefined || value === null) return { imports: [], errors: [] };
   if (!Array.isArray(value)) {
-    return { status: 'error', error: 'INVALID_PARAMS', message: `imports must be an array, got ${typeof value}` };
+    return {
+      status: 'error',
+      error: 'INVALID_PARAMS',
+      message: `imports must be an array, got ${typeof value}`,
+    };
   }
   const imports: Array<{ contentHash: string; author: string; depth: number }> = [];
   const errors: ImportError[] = [];
   for (let i = 0; i < value.length; i++) {
     const item = value[i];
     if (typeof item !== 'object' || item === null) {
-      errors.push({ index: i, field: '', message: `imports[${i}] must be an object, got ${item === null ? 'null' : typeof item}` });
+      errors.push({
+        index: i,
+        field: '',
+        message: `imports[${i}] must be an object, got ${item === null ? 'null' : typeof item}`,
+      });
       continue;
     }
     const obj = item as Record<string, unknown>;
     // Validate contentHash with regex guard (ATK-A2: path traversal via imports array)
     if (typeof obj.contentHash !== 'string' || !CONTENT_HASH_RE.test(obj.contentHash)) {
-      errors.push({ index: i, field: 'contentHash', message: typeof obj.contentHash !== 'string' ? `imports[${i}].contentHash must be a string` : `imports[${i}].contentHash must be a 64-character lowercase hex string` });
+      errors.push({
+        index: i,
+        field: 'contentHash',
+        message:
+          typeof obj.contentHash !== 'string'
+            ? `imports[${i}].contentHash must be a string`
+            : `imports[${i}].contentHash must be a 64-character lowercase hex string`,
+      });
     }
     // Validate author with regex guard (ATK-C1: type confusion via imports array)
     if (typeof obj.author !== 'string' || !AUTHOR_RE.test(obj.author)) {
-      errors.push({ index: i, field: 'author', message: typeof obj.author !== 'string' ? `imports[${i}].author must be a string` : `imports[${i}].author must contain only word characters, dots, and hyphens` });
+      errors.push({
+        index: i,
+        field: 'author',
+        message:
+          typeof obj.author !== 'string'
+            ? `imports[${i}].author must be a string`
+            : `imports[${i}].author must contain only word characters, dots, and hyphens`,
+      });
     }
     if (obj.depth !== undefined && typeof obj.depth !== 'number') {
       errors.push({ index: i, field: 'depth', message: `imports[${i}].depth must be a number` });
     }
     // Skip only this item if it has errors (previous `errors.length > 0` skipped ALL items after first error)
-    const itemHasErrors = errors.some(e => e.index === i);
+    const itemHasErrors = errors.some((e) => e.index === i);
     if (itemHasErrors) continue;
     imports.push({
       contentHash: obj.contentHash as string,
@@ -249,9 +323,88 @@ function validateImportsArray(value: unknown): { imports: Array<{ contentHash: s
     });
   }
   if (errors.length > 0) {
-    return { status: 'error', error: 'INVALID_PARAMS', message: errors.map(e => e.message).join('; ') };
+    return {
+      status: 'error',
+      error: 'INVALID_PARAMS',
+      message: errors.map((e) => e.message).join('; '),
+    };
   }
   return { imports, errors: [] };
+}
+
+interface ProtocolRecord {
+  contentHash?: unknown;
+  author?: unknown;
+  price?: unknown;
+  importHashes?: unknown;
+}
+
+interface ProtocolRevenueRecordResult {
+  creatorId: string;
+  grossAmount: number;
+  eventId: string;
+}
+
+function bigintToSafeRevenueAmount(amount: bigint): number {
+  if (amount <= 0n) return 0;
+  const max = BigInt(Number.MAX_SAFE_INTEGER);
+  return amount > max ? Number.MAX_SAFE_INTEGER : Number(amount);
+}
+
+async function fetchProtocolRecord(
+  serverUrl: string,
+  contentHash: string
+): Promise<ProtocolRecord | null> {
+  const res = await fetch(`${serverUrl}/api/protocol/${contentHash}`);
+  if (!res.ok) return null;
+  const body = (await res.json()) as unknown;
+  return body && typeof body === 'object' ? (body as ProtocolRecord) : null;
+}
+
+async function recordProtocolCollectRevenue({
+  record,
+  contentHash,
+  quantity,
+  collectorId,
+  referrer,
+  ledgerEntryId,
+}: {
+  record: ProtocolRecord | null;
+  contentHash: string;
+  quantity: number;
+  collectorId: string;
+  referrer?: string;
+  ledgerEntryId?: string;
+}): Promise<ProtocolRevenueRecordResult | null> {
+  if (!record || typeof record.author !== 'string') return null;
+
+  const price = typeof record.price === 'string' ? record.price : '0';
+  const { calculateRevenueDistribution, ethToWei } = await import('@holoscript/core');
+  const totalPrice = ethToWei(price) * BigInt(quantity);
+  const dist = calculateRevenueDistribution(totalPrice, record.author, [], { referrer });
+  const creatorFlow = dist.flows.find(
+    (flow: { recipient: string; reason: string; amount: bigint }) =>
+      flow.reason === 'creator' && flow.recipient === record.author
+  );
+  if (!creatorFlow) return null;
+
+  const grossAmount = bigintToSafeRevenueAmount(creatorFlow.amount);
+  if (grossAmount <= 0) return null;
+
+  const { recordProtocolCreatorRevenue } = await import('./economy-tools');
+  const event = recordProtocolCreatorRevenue({
+    creatorId: record.author,
+    contentHash,
+    grossAmount,
+    collectorId,
+    ledgerEntryId,
+  });
+
+  return {
+    creatorId: event.creatorId,
+    grossAmount: event.grossAmount,
+    eventId: event.id,
+  };
 }
 
 // =============================================================================
@@ -401,6 +554,9 @@ async function handleCollect(args: Record<string, unknown>) {
   const quantityResult = requireNumberInRange(args.quantity, 'quantity', 1, 1, 10000);
   if (typeof quantityResult !== 'number') return quantityResult;
   const quantity = quantityResult;
+  const collectorResult = optionalStringOrError(args.collectorId ?? args.collector, 'collectorId');
+  if (collectorResult && typeof collectorResult !== 'string') return collectorResult;
+  const collectorId = collectorResult ?? 'anonymous-collector';
 
   const serverUrl = process.env.HOLOSCRIPT_SERVER_URL || 'https://mcp.holoscript.net';
 
@@ -413,10 +569,11 @@ async function handleCollect(args: Record<string, unknown>) {
   if (apiKey) authHeaders['x-mcp-api-key'] = apiKey;
 
   try {
+    const record = await fetchProtocolRecord(serverUrl, contentHash);
     const res = await fetch(`${serverUrl}/api/collect/${contentHash}`, {
       method: 'POST',
       headers: authHeaders,
-      body: JSON.stringify({ referrer, quantity }),
+      body: JSON.stringify({ referrer, quantity, collectorId }),
     });
 
     if (!res.ok) {
@@ -424,7 +581,17 @@ async function handleCollect(args: Record<string, unknown>) {
       return { status: 'error', error: 'COLLECT_FAILED', message: text };
     }
 
-    return { status: 'success', ...(await res.json()) };
+    const collectResult = (await res.json()) as Record<string, unknown>;
+    const revenueRecorded = await recordProtocolCollectRevenue({
+      record,
+      contentHash,
+      quantity,
+      collectorId,
+      referrer,
+      ledgerEntryId: typeof collectResult.txHash === 'string' ? collectResult.txHash : undefined,
+    });
+
+    return { status: 'success', ...collectResult, collectorId, revenueRecorded };
   } catch (err) {
     return {
       status: 'error',
