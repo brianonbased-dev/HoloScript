@@ -57,6 +57,7 @@ export const softBodyProHandler: TraitHandler<SoftBodyProConfig> = {
     node.__softBodyProState = state;
 
     context.emit('soft_body_pro_create', {
+      nodeId: node.id,
       tearThreshold: config.tear_threshold,
       tearColor: config.tear_color,
       solverIterations: config.solver_iterations,
@@ -79,6 +80,7 @@ export const softBodyProHandler: TraitHandler<SoftBodyProConfig> = {
     if (!state?.active) return;
 
     context.emit('soft_body_pro_step', {
+      nodeId: node.id,
       deltaTime: delta,
       tearThreshold: config.tear_threshold,
     });
@@ -101,6 +103,7 @@ export const softBodyProHandler: TraitHandler<SoftBodyProConfig> = {
       }
       case 'soft_body_pro_apply_force':
         context.emit('soft_body_pro_impulse', {
+          nodeId: node.id,
           position: event.position,
           force: event.force,
           radius: (event.radius as number) ?? 1.0,
@@ -109,7 +112,7 @@ export const softBodyProHandler: TraitHandler<SoftBodyProConfig> = {
       case 'soft_body_pro_reset':
         state.tornConstraints = 0;
         state.deformation = 0;
-        context.emit('soft_body_pro_reset', {});
+        context.emit('soft_body_pro_reset', { nodeId: node.id });
         break;
     }
   },

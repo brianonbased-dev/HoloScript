@@ -240,6 +240,17 @@ export {
   type CrowdSimStepEvent,
 } from './CrowdSimulator.js';
 
+// Soft-body solver - consumes SoftBodyProTrait step (Pattern E, PBD + tearing)
+export {
+  SoftBodySolver,
+  createSoftBodySolver,
+  type SoftBodyParticle,
+  type DistanceConstraint,
+  type SoftBodyCreateEvent,
+  type SoftBodyStepEvent,
+  type SoftBodyImpulseEvent,
+} from './SoftBodySolver.js';
+
 // DOM 2D Renderer - for rendering HoloScript to HTML
 export {
   DOM2DRenderer,
