@@ -92,7 +92,7 @@ export function phq9Score(responses: LikertResponse[]): PHQ9Result {
     if (![0, 1, 2, 3].includes(r)) throw new Error('Each response must be 0-3');
   }
 
-  const totalScore = responses.reduce((s, r) => s + r, 0);
+  const totalScore = responses.reduce<number>((s, r) => s + r, 0);
   const item9Score = responses[8];
 
   let severity: DepressionSeverity;
@@ -118,7 +118,7 @@ export function gad7Score(responses: LikertResponse[]): GAD7Result {
     if (![0, 1, 2, 3].includes(r)) throw new Error('Each response must be 0-3');
   }
 
-  const totalScore = responses.reduce((s, r) => s + r, 0);
+  const totalScore = responses.reduce<number>((s, r) => s + r, 0);
 
   let severity: AnxietySeverity;
   if (totalScore <= 4)       severity = 'minimal';
@@ -260,10 +260,10 @@ export function buildTherapyReceipt(
     runId: options?.runId ?? `ther-${Date.now().toString(36)}`,
     solverConfig: { solverType: 'therapy.clinical-analysis', scale: 'session' },
     resultSummary: {
-      phq9Score: result.phq9?.totalScore,
-      phq9Severity: result.phq9?.severity,
-      gad7Score: result.gad7?.totalScore,
-      riskLevel: result.risk?.riskLevel,
+      phq9Score: result.phq9?.totalScore ?? null,
+      phq9Severity: result.phq9?.severity ?? null,
+      gad7Score: result.gad7?.totalScore ?? null,
+      riskLevel: result.risk?.riskLevel ?? null,
     },
     cael: { version: 'cael.v1', event: 'therapy.clinical_analysis', solverType: 'therapy.phq9-gad7' },
     acceptance: { accepted: violations.length === 0, violations },
