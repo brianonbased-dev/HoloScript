@@ -219,6 +219,16 @@ export {
   type CameraHandler,
 } from './SpectatorCameraCoordinator.js';
 
+// Holographic compositor - consumes HolographicSpriteTrait frame-update (Pattern E)
+export {
+  HolographicCompositor,
+  createHolographicCompositor,
+  type HolographicCompositorOptions,
+  type HolographicFrameUpdateEvent,
+  type CompositeFrame,
+  type CompositeHandler,
+} from './HolographicCompositor.js';
+
 // DOM 2D Renderer - for rendering HoloScript to HTML
 export {
   DOM2DRenderer,

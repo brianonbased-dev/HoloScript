@@ -336,14 +336,24 @@ export const holographicSpriteTraitHandler: TraitHandler<HolographicSpriteConfig
     });
   },
 
-  onUpdate(node: HSPlusNode, config: HolographicSpriteConfig, _context: unknown, delta: number) {
+  onUpdate(
+    node: HSPlusNode,
+    config: HolographicSpriteConfig,
+    context: { emit?: (event: string, payload?: unknown) => void } | undefined,
+    delta: number
+  ) {
     const state = (node as any).__holographicSpriteState as HolographicSpriteState | undefined;
     if (!state?.compositeReady) return;
 
-    // In continuous mode, trigger composition on each frame
+    // In continuous mode, trigger composition on each frame. Emit through the
+    // TraitContext bus (not the untyped node) so a compositor consumer receives it.
     if ((config.depthMode ?? DEFAULT_DEPTH_MODE) === 'continuous') {
       state.lastFrameTime += delta * 1000; // Convert to ms
-      (node as any).emit?.('holographic:frame-update', { delta, time: state.lastFrameTime });
+      context?.emit?.('holographic:frame-update', {
+        nodeId: (node as any).id,
+        delta,
+        time: state.lastFrameTime,
+      });
     }
   },
 

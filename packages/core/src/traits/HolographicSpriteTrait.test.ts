@@ -97,38 +97,44 @@ describe('HolographicSpriteTrait', () => {
       };
     });
 
-    it('should emit frame-update in continuous mode', () => {
+    it('should emit frame-update through TraitContext in continuous mode', () => {
+      const context = { emit: vi.fn() };
       holographicSpriteTraitHandler.onUpdate(
         node,
         { depthMode: 'continuous' },
-        undefined,
+        context,
         0.016
       );
-      expect(node.emit).toHaveBeenCalledWith(
+      expect(context.emit).toHaveBeenCalledWith(
         'holographic:frame-update',
-        expect.objectContaining({ delta: 0.016 })
+        expect.objectContaining({ delta: 0.016, nodeId: 'hologram-node' })
       );
     });
 
     it('should skip update if not compositeReady', () => {
+      const context = { emit: vi.fn() };
       (node as any).__holographicSpriteState.compositeReady = false;
       holographicSpriteTraitHandler.onUpdate(
         node,
         { depthMode: 'continuous' },
-        undefined,
+        context,
         0.016
       );
-      // No frame-update should be emitted
+      expect(context.emit).not.toHaveBeenCalled();
     });
 
     it('should skip on-demand mode updates', () => {
+      const context = { emit: vi.fn() };
       holographicSpriteTraitHandler.onUpdate(
         node,
         { depthMode: 'on-demand' },
-        undefined,
+        context,
         0.016
       );
-      // Only frame-update emitted in continuous mode
+      expect(context.emit).not.toHaveBeenCalledWith(
+        'holographic:frame-update',
+        expect.anything()
+      );
     });
   });
 
