@@ -5,6 +5,7 @@ import { streamChatFromOllama } from './ollama-stream.js';
 import { runAgentTurn, type AgentEvent } from './agent.js';
 import { McpClient, defaultMcpConfig } from './mcp-client.js';
 import { TOOL_USE_SYSTEM_GUIDANCE } from './tools.js';
+import type { RefusableMutationController } from './mutations.js';
 
 const DIM = '\x1b[2m';
 const RESET = '\x1b[0m';
@@ -151,10 +152,11 @@ async function streamReply(session: Session): Promise<void> {
 
 export interface RunReplOptions extends Partial<SessionConfig> {
   toolsEnabled?: boolean;
+  mutationController?: RefusableMutationController;
 }
 
 export async function runRepl(initial: RunReplOptions = {}): Promise<number> {
-  const { toolsEnabled, ...sessionInit } = initial;
+  const { toolsEnabled, mutationController, ...sessionInit } = initial;
   const state: ReplState = { toolsOn: toolsEnabled === true };
   const baseSystem = sessionInit.systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
   const session = new Session({
@@ -187,7 +189,7 @@ export async function runRepl(initial: RunReplOptions = {}): Promise<number> {
     }
     session.push('user', trimmed);
     if (state.toolsOn && mcp) {
-      await agentReply(session, mcp);
+      await agentReply(session, mcp, mutationController);
     } else {
       await streamReply(session);
     }
@@ -197,7 +199,11 @@ export async function runRepl(initial: RunReplOptions = {}): Promise<number> {
   return 0;
 }
 
-async function agentReply(session: Session, mcp: McpClient): Promise<void> {
+async function agentReply(
+  session: Session,
+  mcp: McpClient,
+  mutationController?: RefusableMutationController,
+): Promise<void> {
   const ac = new AbortController();
   const onSigint = () => ac.abort();
   process.once('SIGINT', onSigint);
@@ -208,6 +214,9 @@ async function agentReply(session: Session, mcp: McpClient): Promise<void> {
         break;
       case 'tool-result':
         stdout.write(`${DIM}  ${e.message}${RESET}\n`);
+        break;
+      case 'mutation-preview':
+        stdout.write(`${YELLOW}  ${e.message}${RESET}\n`);
         break;
       case 'final':
         if (e.message.trim()) {
@@ -223,7 +232,7 @@ async function agentReply(session: Session, mcp: McpClient): Promise<void> {
     }
   };
   try {
-    await runAgentTurn({ session, mcp, signal: ac.signal, onEvent });
+    await runAgentTurn({ session, mcp, mutationController, signal: ac.signal, onEvent });
   } finally {
     process.removeListener('SIGINT', onSigint);
   }

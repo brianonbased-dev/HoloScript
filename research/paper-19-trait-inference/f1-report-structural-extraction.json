@@ -1,0 +1,428 @@
+{
+  "dataset_version": "phase-3-trait-inference-2000row-v2",
+  "dataset_sha256": "85aa5983a228029d478bfc6c6722681bc7de6b4e792b267b95865257f0dffc10",
+  "family_map_sha256": "dfaadbcce24789bc8a9ec64988da80c2c73a5938a76859c975c0eb5d19a7f8df",
+  "generator_commit": "e7b195ff8644a2365ce62ae6fa7280087a851952",
+  "classifier_name": "structural-extraction",
+  "classifier_description": "Layer 1: Extract all @name tokens from .hsplus snippet via regex. Layer 2 (optional): Co-occurrence expansion from training data. Layer 3 (optional): Structural property heuristics for @state_machine, @glowing, @skill_tree.",
+  "eval_split_role": "novel-combination-test",
+  "novel_combination_test_rows": 300,
+  "in_distribution_test_rows": 1096,
+  "full_test_rows": 1396,
+  "headline": {
+    "eval_rows": 300,
+    "macro_f1_row": 0.850828,
+    "precision_macro": 0.804149,
+    "recall_macro": 0.997944,
+    "macro_f1_label": 0.609633,
+    "precision_macro_label": 0.601404,
+    "recall_macro_label": 0.628419,
+    "micro_f1": 0.763812,
+    "micro_precision": 0.619955,
+    "micro_recall": 0.994604,
+    "micro_tp": 553,
+    "micro_fp": 339,
+    "micro_fn": 3
+  },
+  "configs_on_novel_test": {
+    "structural-extraction": {
+      "eval_rows": 300,
+      "macro_f1_row": 0.850828,
+      "precision_macro": 0.804149,
+      "recall_macro": 0.997944,
+      "macro_f1_label": 0.609633,
+      "precision_macro_label": 0.601404,
+      "recall_macro_label": 0.628419,
+      "micro_f1": 0.763812,
+      "micro_precision": 0.619955,
+      "micro_recall": 0.994604,
+      "micro_tp": 553,
+      "micro_fp": 339,
+      "micro_fn": 3
+    },
+    "structural-extraction+heuristics": {
+      "eval_rows": 300,
+      "macro_f1_row": 0.799304,
+      "precision_macro": 0.729414,
+      "recall_macro": 0.998611,
+      "macro_f1_label": 0.608738,
+      "precision_macro_label": 0.600713,
+      "recall_macro_label": 0.629179,
+      "micro_f1": 0.72371,
+      "micro_precision": 0.568205,
+      "micro_recall": 0.996403,
+      "micro_tp": 554,
+      "micro_fp": 421,
+      "micro_fn": 2
+    },
+    "structural+cooccurrence-0.5": {
+      "eval_rows": 300,
+      "macro_f1_row": 0.676143,
+      "precision_macro": 0.568502,
+      "recall_macro": 0.998611,
+      "macro_f1_label": 0.501362,
+      "precision_macro_label": 0.471352,
+      "recall_macro_label": 0.591429,
+      "micro_f1": 0.598595,
+      "micro_precision": 0.427799,
+      "micro_recall": 0.996403,
+      "micro_tp": 554,
+      "micro_fp": 741,
+      "micro_fn": 2
+    },
+    "structural+cooccurrence-0.7": {
+      "eval_rows": 300,
+      "macro_f1_row": 0.726231,
+      "precision_macro": 0.633757,
+      "recall_macro": 0.998611,
+      "macro_f1_label": 0.531931,
+      "precision_macro_label": 0.507641,
+      "recall_macro_label": 0.601744,
+      "micro_f1": 0.646441,
+      "micro_precision": 0.478411,
+      "micro_recall": 0.996403,
+      "micro_tp": 554,
+      "micro_fp": 604,
+      "micro_fn": 2
+    }
+  },
+  "configs_on_in_dist_test": {
+    "structural-extraction": {
+      "eval_rows": 1096,
+      "macro_f1_row": 0.896722,
+      "precision_macro": 0.882314,
+      "recall_macro": 0.933394,
+      "macro_f1_label": 0.697318,
+      "precision_macro_label": 0.684476,
+      "recall_macro_label": 0.725753,
+      "micro_f1": 0.906545,
+      "micro_precision": 0.829064,
+      "micro_recall": 1,
+      "micro_tp": 1586,
+      "micro_fp": 327,
+      "micro_fn": 0
+    },
+    "structural-extraction+heuristics": {
+      "eval_rows": 1096,
+      "macro_f1_row": 0.827326,
+      "precision_macro": 0.798023,
+      "recall_macro": 0.892336,
+      "macro_f1_label": 0.69551,
+      "precision_macro_label": 0.682967,
+      "recall_macro_label": 0.725753,
+      "micro_f1": 0.853836,
+      "micro_precision": 0.744951,
+      "micro_recall": 1,
+      "micro_tp": 1586,
+      "micro_fp": 543,
+      "micro_fn": 0
+    },
+    "structural+cooccurrence-0.5": {
+      "eval_rows": 1096,
+      "macro_f1_row": 0.786704,
+      "precision_macro": 0.740436,
+      "recall_macro": 0.892336,
+      "macro_f1_label": 0.643934,
+      "precision_macro_label": 0.61647,
+      "recall_macro_label": 0.704545,
+      "micro_f1": 0.777832,
+      "micro_precision": 0.636437,
+      "micro_recall": 1,
+      "micro_tp": 1586,
+      "micro_fp": 906,
+      "micro_fn": 0
+    },
+    "structural+cooccurrence-0.7": {
+      "eval_rows": 1096,
+      "macro_f1_row": 0.818433,
+      "precision_macro": 0.785725,
+      "recall_macro": 0.892336,
+      "macro_f1_label": 0.687615,
+      "precision_macro_label": 0.670136,
+      "recall_macro_label": 0.725753,
+      "micro_f1": 0.831019,
+      "micro_precision": 0.710892,
+      "micro_recall": 1,
+      "micro_tp": 1586,
+      "micro_fp": 645,
+      "micro_fn": 0
+    }
+  },
+  "configs_on_full_test": {
+    "structural-extraction": {
+      "eval_rows": 1396,
+      "macro_f1_row": 0.886859,
+      "precision_macro": 0.865517,
+      "recall_macro": 0.947266,
+      "macro_f1_label": 0.611347,
+      "precision_macro_label": 0.598477,
+      "recall_macro_label": 0.638634,
+      "micro_f1": 0.864767,
+      "micro_precision": 0.762567,
+      "micro_recall": 0.998599,
+      "micro_tp": 2139,
+      "micro_fp": 666,
+      "micro_fn": 3
+    },
+    "structural-extraction+heuristics": {
+      "eval_rows": 1396,
+      "macro_f1_row": 0.821304,
+      "precision_macro": 0.783279,
+      "recall_macro": 0.915174,
+      "macro_f1_label": 0.610455,
+      "precision_macro_label": 0.597693,
+      "recall_macro_label": 0.63865,
+      "micro_f1": 0.81586,
+      "micro_precision": 0.689433,
+      "micro_recall": 0.999066,
+      "micro_tp": 2140,
+      "micro_fp": 964,
+      "micro_fn": 2
+    },
+    "structural+cooccurrence-0.5": {
+      "eval_rows": 1396,
+      "macro_f1_row": 0.762944,
+      "precision_macro": 0.703487,
+      "recall_macro": 0.915174,
+      "macro_f1_label": 0.550418,
+      "precision_macro_label": 0.517079,
+      "recall_macro_label": 0.627108,
+      "micro_f1": 0.721876,
+      "micro_precision": 0.565091,
+      "micro_recall": 0.999066,
+      "micro_tp": 2140,
+      "micro_fp": 1647,
+      "micro_fn": 2
+    },
+    "structural+cooccurrence-0.7": {
+      "eval_rows": 1396,
+      "macro_f1_row": 0.798619,
+      "precision_macro": 0.753067,
+      "recall_macro": 0.915174,
+      "macro_f1_label": 0.574476,
+      "precision_macro_label": 0.548724,
+      "recall_macro_label": 0.62837,
+      "micro_f1": 0.77382,
+      "micro_precision": 0.631455,
+      "micro_recall": 0.999066,
+      "micro_tp": 2140,
+      "micro_fp": 1249,
+      "micro_fn": 2
+    }
+  },
+  "keyword_baseline_comparison": {
+    "keyword_macro_f1_row": 0.554082,
+    "classifier_macro_f1_row": 0.850828,
+    "delta_pp": 29.6746,
+    "gate_floor": 0.8,
+    "gate_margin_pp": 15,
+    "gate_floor_passed": true,
+    "gate_margin_passed": true,
+    "effective_floor": 0.8,
+    "effective_floor_passed": true
+  },
+  "adversarial_mislabel": [
+    {
+      "id": "mis-u-001",
+      "kind": "underlabeled-by-1",
+      "gold": [
+        "@grabbable",
+        "@physics"
+      ],
+      "predicted": [
+        "@collidable",
+        "@grabbable",
+        "@physics"
+      ],
+      "precision": 0.666667,
+      "recall": 1,
+      "f1": 0.8
+    },
+    {
+      "id": "mis-u-002",
+      "kind": "underlabeled-by-1",
+      "gold": [
+        "@locomotion",
+        "@networked",
+        "@skeleton"
+      ],
+      "predicted": [
+        "@locomotion",
+        "@networked",
+        "@skeleton",
+        "@spatial_audio"
+      ],
+      "precision": 0.75,
+      "recall": 1,
+      "f1": 0.857143
+    },
+    {
+      "id": "mis-u-003",
+      "kind": "underlabeled-by-2",
+      "gold": [
+        "@ai_agent"
+      ],
+      "predicted": [
+        "@ai_agent",
+        "@collidable",
+        "@destructible",
+        "@state_machine"
+      ],
+      "precision": 0.25,
+      "recall": 1,
+      "f1": 0.4
+    },
+    {
+      "id": "mis-u-004",
+      "kind": "underlabeled-by-2",
+      "gold": [
+        "@anchor",
+        "@hand_tracked"
+      ],
+      "predicted": [
+        "@anchor",
+        "@hand_tracked",
+        "@rotatable",
+        "@scalable"
+      ],
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.666667
+    },
+    {
+      "id": "mis-u-005",
+      "kind": "underlabeled-by-1",
+      "gold": [
+        "@drift_corrected",
+        "@reconstruction_source"
+      ],
+      "predicted": [
+        "@acceptance_video",
+        "@drift_corrected",
+        "@reconstruction_source"
+      ],
+      "precision": 0.666667,
+      "recall": 1,
+      "f1": 0.8
+    },
+    {
+      "id": "mis-u-006",
+      "kind": "underlabeled-by-1",
+      "gold": [
+        "@clickable",
+        "@interactive"
+      ],
+      "predicted": [
+        "@clickable",
+        "@interactive",
+        "@networked"
+      ],
+      "precision": 0.666667,
+      "recall": 1,
+      "f1": 0.8
+    },
+    {
+      "id": "mis-p-001",
+      "kind": "phantom-collidable",
+      "gold": [
+        "@collidable",
+        "@grabbable",
+        "@physics"
+      ],
+      "predicted": [
+        "@grabbable",
+        "@physics"
+      ],
+      "precision": 1,
+      "recall": 0.666667,
+      "f1": 0.8
+    },
+    {
+      "id": "mis-p-002",
+      "kind": "phantom-grabbable",
+      "gold": [
+        "@collidable",
+        "@grabbable",
+        "@physics"
+      ],
+      "predicted": [
+        "@collidable",
+        "@physics"
+      ],
+      "precision": 1,
+      "recall": 0.666667,
+      "f1": 0.8
+    },
+    {
+      "id": "mis-p-003",
+      "kind": "phantom-clickable",
+      "gold": [
+        "@billboard",
+        "@clickable"
+      ],
+      "predicted": [
+        "@billboard"
+      ],
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.666667
+    },
+    {
+      "id": "mis-p-004",
+      "kind": "phantom-emissive",
+      "gold": [
+        "@emissive",
+        "@glowing"
+      ],
+      "predicted": [
+        "@glowing"
+      ],
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.666667
+    },
+    {
+      "id": "mis-p-005",
+      "kind": "phantom-decorator-trio",
+      "gold": [
+        "@acceptance_video",
+        "@drift_corrected",
+        "@reconstruction_source"
+      ],
+      "predicted": [
+        "@drift_corrected"
+      ],
+      "precision": 1,
+      "recall": 0.333333,
+      "f1": 0.5
+    },
+    {
+      "id": "mis-p-006",
+      "kind": "phantom-by-2",
+      "gold": [
+        "@clickable",
+        "@hoverable",
+        "@interactive",
+        "@metadata_display"
+      ],
+      "predicted": [
+        "@clickable",
+        "@hoverable",
+        "@state_machine"
+      ],
+      "precision": 0.666667,
+      "recall": 0.5,
+      "f1": 0.571429
+    }
+  ],
+  "pre_registration": {
+    "requirement": "F1 (macro) >= 0.80 on novel-combination test split, >= 15pp margin over keyword baseline",
+    "novel_combination_f1": 0.850828,
+    "keyword_baseline_f1": 0.554082,
+    "gate_passed": true,
+    "margin_pp": 29.6746,
+    "margin_gate_passed": true
+  },
+  "locked_at": "2026-05-26T01:59:13.229Z",
+  "generator_script": "scripts/paper-19/run-trait-inference-classifier.mjs"
+}

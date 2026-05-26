@@ -111,6 +111,16 @@ Catalog:
 | `holo_ask_codebase` | `holoscript-tools` | "how does X work" — synthesis across files |
 | `knowledge_query` | orchestrator knowledge store | recall prior wisdom/patterns/gotchas across the mesh |
 | `holo_parse_to_graph` | `holoscript-tools` | validate or analyze pasted `.hs` / `.hsplus` / `.holo` source |
+| `edit_holo` | local mutation gate | preview a full-document edit as a refusable diff; never applies before operator confirm |
+| `trait_swap` | local mutation gate | preview a trait replacement as a refusable diff; never applies before operator confirm |
+
+### Refusable mutations
+
+Mutating tools do not apply inside the model/tool loop. `edit_holo` and
+`trait_swap` return a `mutation-preview` payload with a `previewId`, unified
+diff, and `requiresConfirmation: true`. The operator path must call the
+confirmation API for that `previewId` before the stored HoloScript source is
+changed. Rejected or unconfirmed previews leave the source untouched.
 
 Requirements:
 

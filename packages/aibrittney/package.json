@@ -21,6 +21,10 @@
     "./session": {
       "types": "./dist/session.d.ts",
       "import": "./dist/session.js"
+    },
+    "./mutations": {
+      "types": "./dist/mutations.d.ts",
+      "import": "./dist/mutations.js"
     }
   },
   "files": [

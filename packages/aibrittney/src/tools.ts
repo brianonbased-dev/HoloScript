@@ -113,6 +113,64 @@ export const TOOL_CATALOG: ToolDef[] = [
     },
     route: { server: 'holoscript-tools', tool: 'holo_parse_to_graph' },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'edit_holo',
+      description:
+        'Preview a full-document HoloScript edit. This is a mutating operation: it must return a diff preview and MUST NOT apply until the operator confirms the previewId.',
+      parameters: {
+        type: 'object',
+        properties: {
+          documentId: {
+            type: 'string',
+            description: 'Stable id for the HoloScript document being edited.',
+          },
+          nextSource: {
+            type: 'string',
+            description: 'Complete proposed replacement HoloScript source.',
+          },
+          reason: {
+            type: 'string',
+            description: 'Short reason for the proposed edit.',
+          },
+        },
+        required: ['documentId', 'nextSource'],
+      },
+    },
+    route: { server: 'local', tool: 'edit_holo' },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'trait_swap',
+      description:
+        'Preview swapping one HoloScript trait annotation for another. This is a mutating operation: it must return a diff preview and MUST NOT apply until the operator confirms the previewId.',
+      parameters: {
+        type: 'object',
+        properties: {
+          documentId: {
+            type: 'string',
+            description: 'Stable id for the HoloScript document being edited.',
+          },
+          fromTrait: {
+            type: 'string',
+            description: 'Existing trait name, with or without @.',
+          },
+          toTrait: {
+            type: 'string',
+            description: 'Replacement trait name, with or without @.',
+          },
+          reason: {
+            type: 'string',
+            description: 'Short reason for the proposed trait swap.',
+          },
+        },
+        required: ['documentId', 'fromTrait', 'toTrait'],
+      },
+    },
+    route: { server: 'local', tool: 'trait_swap' },
+  },
 ];
 
 /**
@@ -137,8 +195,11 @@ You have tools available. Use them when they would answer the question better th
   - knowledge_query — prior lessons across the mesh (wisdoms, patterns, gotchas)
   - holo_parse_to_graph — validate or analyze pasted scene source
 
+  - edit_holo / trait_swap - local mutating operations that return a refusable diff preview
+
 Rules:
   - Don't invent tool names. Only call tools listed above.
   - Don't narrate "I will call the tool". Just call it.
+  - Mutating tools never apply directly. They return a diff preview with a previewId; do not claim the edit landed until the operator confirms it.
   - After a tool returns, integrate the result into a direct answer. Don't restate the raw JSON.
   - If a tool fails, say so plainly and answer from what you know.`;

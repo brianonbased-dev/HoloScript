@@ -18,9 +18,10 @@ import type { Session, ChatMessage } from './session.js';
 import { chatOnceFromOllama, type ToolCall } from './ollama-chat.js';
 import { findTool, ollamaToolsPayload } from './tools.js';
 import type { McpClient } from './mcp-client.js';
+import { isMutationToolName, type RefusableMutationController } from './mutations.js';
 
 export interface AgentEvent {
-  kind: 'thinking' | 'tool-call' | 'tool-result' | 'final' | 'error';
+  kind: 'thinking' | 'tool-call' | 'tool-result' | 'mutation-preview' | 'final' | 'error';
   message: string;
   data?: unknown;
 }
@@ -32,6 +33,8 @@ export interface RunAgentOptions {
   maxIterations?: number;
   /** Hook for the REPL to print per-step status. */
   onEvent?: (e: AgentEvent) => void;
+  /** Local operator gate for mutating tools such as edit_holo and trait_swap. */
+  mutationController?: RefusableMutationController;
   signal?: AbortSignal;
   fetchImpl?: typeof fetch;
 }
@@ -108,6 +111,22 @@ export async function runAgentTurn(opts: RunAgentOptions): Promise<AgentRunResul
         message: `${def.function.name} ${shortenArgs(args)}`,
         data: args,
       });
+
+      if (isMutationToolName(def.function.name)) {
+        const content = JSON.stringify(await previewMutationToolCall(def.function.name, args, opts.mutationController));
+        session.pushRaw({
+          role: 'tool',
+          name: call.function.name,
+          tool_call_id: call.id,
+          content,
+        });
+        opts.onEvent?.({
+          kind: 'mutation-preview',
+          message: `${def.function.name} -> diff preview (${content.length} bytes)`,
+        });
+        continue;
+      }
+
       const callRes = await mcp.callTool({
         server: def.route.server,
         tool: def.route.tool,
@@ -161,4 +180,25 @@ function normalizeArgs(call: ToolCall): Record<string, unknown> {
 function shortenArgs(args: Record<string, unknown>): string {
   const s = JSON.stringify(args);
   return s.length > 80 ? s.slice(0, 77) + '...' : s;
+}
+
+async function previewMutationToolCall(
+  toolName: string,
+  args: Record<string, unknown>,
+  mutationController?: RefusableMutationController,
+): Promise<unknown> {
+  if (!mutationController) {
+    return {
+      error: `${toolName} requires an operator mutation controller; no changes were applied`,
+      requiresConfirmation: true,
+    };
+  }
+  try {
+    return await mutationController.previewToolCall(toolName, args);
+  } catch (err) {
+    return {
+      error: (err as Error).message,
+      requiresConfirmation: true,
+    };
+  }
 }

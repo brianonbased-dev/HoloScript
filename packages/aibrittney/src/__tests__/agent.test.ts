@@ -2,6 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { Session } from '../session.js';
 import { runAgentTurn, type AgentEvent } from '../agent.js';
 import { McpClient, type CallToolResult } from '../mcp-client.js';
+import {
+  InMemoryHoloDocumentStore,
+  RefusableMutationController,
+  type MutationPreview,
+} from '../mutations.js';
 
 /**
  * Fake Ollama: scripted responses, returns one queued response per call.
@@ -138,6 +143,69 @@ describe('runAgentTurn', () => {
     expect(result.toolCallsExecuted).toBe(1);
     const toolMsg = session.messages().find((m) => m.role === 'tool');
     expect(toolMsg?.content).toContain('unknown tool');
+  });
+
+  it('routes edit_holo through a refusable diff preview before applying', async () => {
+    const session = new Session({ ollamaHost: 'http://fake', model: 'fake-model' });
+    session.push('user', 'turn the cube blue');
+    const store = new InMemoryHoloDocumentStore({
+      active: 'cube { @color(red) }\n',
+    });
+    const mutations = new RefusableMutationController(store, {
+      idFactory: () => 'preview_agent_1',
+      now: () => new Date('2026-05-25T00:00:00.000Z'),
+    });
+    const stub = new StubMcpClient({ ok: true, status: 200, data: {} });
+    const events: AgentEvent[] = [];
+
+    const result = await runAgentTurn({
+      session,
+      mcp: stub,
+      mutationController: mutations,
+      onEvent: (event) => events.push(event),
+      fetchImpl: fakeOllamaFetch([
+        {
+          message: {
+            role: 'assistant',
+            content: '',
+            tool_calls: [
+              {
+                id: 'edit_1',
+                function: {
+                  name: 'edit_holo',
+                  arguments: {
+                    documentId: 'active',
+                    nextSource: 'cube { @color(blue) }\n',
+                  },
+                },
+              },
+            ],
+          },
+        },
+        { message: { role: 'assistant', content: 'I have a diff preview ready for confirmation.' } },
+      ]),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(stub.calls).toEqual([]);
+    expect(store.read('active')).toBe('cube { @color(red) }\n');
+    expect(events.some((event) => event.kind === 'mutation-preview')).toBe(true);
+
+    const toolMsg = session.messages().find((message) => message.role === 'tool' && message.name === 'edit_holo');
+    const preview = JSON.parse(toolMsg?.content ?? '{}') as MutationPreview;
+    expect(preview).toMatchObject({
+      type: 'mutation-preview',
+      previewId: 'preview_agent_1',
+      requiresConfirmation: true,
+      status: 'pending',
+    });
+    expect(preview.diff).toContain('-cube { @color(red) }');
+    expect(preview.diff).toContain('+cube { @color(blue) }');
+    expect(store.read('active')).toBe('cube { @color(red) }\n');
+
+    await mutations.confirm(preview.previewId);
+
+    expect(store.read('active')).toBe('cube { @color(blue) }\n');
   });
 
   it('caps iterations on a confused model', async () => {

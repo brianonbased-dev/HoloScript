@@ -9,6 +9,7 @@ export default defineConfig({
     'src/ollama-chat.ts',
     'src/agent.ts',
     'src/mcp-client.ts',
+    'src/mutations.ts',
     'src/tools.ts',
   ],
   format: ['esm'],

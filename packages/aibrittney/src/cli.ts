@@ -116,7 +116,8 @@ Ollama Cloud usage:
 tool calling (v0.2, opt-in):
   - requires HOLOSCRIPT_API_KEY (or MCP_API_KEY) in env
   - exposes a curated set of MCP tools to the local model:
-    holo_query_codebase, holo_ask_codebase, knowledge_query, holo_parse_to_graph
+    holo_query_codebase, holo_ask_codebase, knowledge_query, holo_parse_to_graph,
+    edit_holo, trait_swap (local refusable diff previews)
   - tool calls are dispatched via the orchestrator at MCP_ORCHESTRATOR_URL
     (default https://mcp-orchestrator-production-45f9.up.railway.app)
   - the model must natively support function/tool calls (qwen2.5-coder,
