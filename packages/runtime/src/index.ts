@@ -264,6 +264,20 @@ export {
   type ExpiryHandler,
 } from './PersistentExpiryCoordinator.js';
 
+// Accessory tracking - consumes SpatialAccessoryTrait pose request (Pattern E)
+export {
+  AccessoryTrackingProvider,
+  createAccessoryTrackingProvider,
+  projectPoseForMode,
+  type AccessoryTrackingProviderOptions,
+  type AccessoryRequestPoseEvent,
+  type ResolvedPoseRecord,
+  type RawPoseSource,
+  type TrackingMode,
+  type Pose as AccessoryPose,
+  type PoseHandler,
+} from './AccessoryTrackingProvider.js';
+
 // DOM 2D Renderer - for rendering HoloScript to HTML
 export {
   DOM2DRenderer,
