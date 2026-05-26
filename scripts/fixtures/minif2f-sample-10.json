@@ -1,0 +1,72 @@
+[
+  {
+    "id": "mathd_algebra_182",
+    "expected_difficulty": "easy",
+    "source": "miniF2F-test",
+    "statement": "theorem mathd_algebra_182 (y : ℝ) (h0 : y + 6 + (y - 3) = 2) : y = -1/2 := by sorry",
+    "notes": "Linear equation; omega or linarith after ring_nf"
+  },
+  {
+    "id": "mathd_numbertheory_344",
+    "expected_difficulty": "easy",
+    "source": "miniF2F-test",
+    "statement": "theorem mathd_numbertheory_344 : (2 : ℕ) ^ 10 % 10 = 4 := by sorry",
+    "notes": "Numeric decidable; decide or norm_num"
+  },
+  {
+    "id": "mathd_algebra_13",
+    "expected_difficulty": "easy",
+    "source": "miniF2F-test",
+    "statement": "theorem mathd_algebra_13 (a b : ℤ) (h0 : a - b = 3) (h1 : a + b = 5) : a = 4 ∧ b = 1 := by sorry",
+    "notes": "System of two linear equations; omega"
+  },
+  {
+    "id": "mathd_algebra_440",
+    "expected_difficulty": "easy",
+    "source": "miniF2F-test",
+    "statement": "theorem mathd_algebra_440 (x : ℝ) (h0 : 2 * x + 4 = 10) : x = 3 := by sorry",
+    "notes": "Single linear equation; linarith"
+  },
+  {
+    "id": "mathd_numbertheory_229",
+    "expected_difficulty": "easy",
+    "source": "miniF2F-test",
+    "statement": "theorem mathd_numbertheory_229 : (7 : ℕ) ^ 2 % 5 = 4 := by sorry",
+    "notes": "Modular arithmetic; decide or norm_num"
+  },
+  {
+    "id": "mathd_algebra_24",
+    "expected_difficulty": "medium",
+    "source": "miniF2F-test",
+    "statement": "theorem mathd_algebra_24 (x : ℝ) (h : x ≠ 0) : x + 1 / x ≥ 2 ∨ x + 1 / x ≤ -2 := by sorry",
+    "notes": "AM-GM; nlinarith after field_simp"
+  },
+  {
+    "id": "mathd_numbertheory_48",
+    "expected_difficulty": "easy",
+    "source": "miniF2F-test",
+    "statement": "theorem mathd_numbertheory_48 : Nat.gcd 36 48 = 12 := by sorry",
+    "notes": "GCD computation; decide or norm_num"
+  },
+  {
+    "id": "mathd_algebra_89",
+    "expected_difficulty": "easy",
+    "source": "miniF2F-test",
+    "statement": "theorem mathd_algebra_89 (n : ℕ) (h : n = 5) : n * (n + 1) / 2 = 15 := by sorry",
+    "notes": "Arithmetic substitution; omega after subst"
+  },
+  {
+    "id": "mathd_numbertheory_100",
+    "expected_difficulty": "easy",
+    "source": "miniF2F-test",
+    "statement": "theorem mathd_numbertheory_100 : (3 : ℕ) ^ 4 = 81 := by sorry",
+    "notes": "Numeric; norm_num or decide"
+  },
+  {
+    "id": "mathd_algebra_263",
+    "expected_difficulty": "easy",
+    "source": "miniF2F-test",
+    "statement": "theorem mathd_algebra_263 (x y : ℝ) (h0 : x = 2) (h1 : y = 3) : x ^ 2 + y ^ 2 = 13 := by sorry",
+    "notes": "Numeric substitution; norm_num or linarith after subst"
+  }
+]
