@@ -166,6 +166,29 @@ export {
   type SessionPresenceCoordinatorOptions,
 } from './SessionPresenceCoordinator.js';
 
+// Ambisonic decoder - consumes AmbisonicsTrait head-tracked rotation (Pattern E)
+export {
+  AmbisonicDecoderCoordinator,
+  createAmbisonicDecoderCoordinator,
+  type AmbisonicDecoderRecord,
+  type AmbisonicDecoderCoordinatorOptions,
+  type AmbisonicsInitEvent,
+  type AmbisonicsRotationEvent,
+  type AmbisonicsPlaybackEvent,
+  type DecoderHandler,
+  type NodeRef,
+} from './AmbisonicDecoderCoordinator.js';
+
+export {
+  ambisonicRotationMatrix,
+  realSHRotationBlocks,
+  blocksToChannelMatrix,
+  quaternionToMatrix3,
+  channelCount as ambisonicChannelCount,
+  type Quaternion as AmbisonicQuaternion,
+  type Matrix as AmbisonicMatrix,
+} from './ambisonicRotation.js';
+
 // DOM 2D Renderer - for rendering HoloScript to HTML
 export {
   DOM2DRenderer,
