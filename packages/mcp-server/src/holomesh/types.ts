@@ -703,8 +703,19 @@ export interface TeamModeChangeFeedItem {
   createdAt: string;
 }
 
-/** Team activity feed (GET /team/:id/feed) — hologram publishes and mode transitions. */
-export type TeamFeedItem = TeamHologramFeedItem | TeamModeChangeFeedItem;
+export interface TeamIntelligenceFeedItem {
+  id: string;
+  teamId: string;
+  kind: 'intelligence';
+  posterAgentId: string;
+  posterAgentName: string;
+  content: string;
+  scope?: 'team' | 'public';
+  createdAt: string;
+}
+
+/** Team activity feed (GET /team/:id/feed) — hologram publishes, mode transitions, and intelligence reports. */
+export type TeamFeedItem = TeamHologramFeedItem | TeamModeChangeFeedItem | TeamIntelligenceFeedItem;
 
 export const TEAM_ROLE_PERMISSIONS: Record<TeamRole, string[]> = {
   owner: [

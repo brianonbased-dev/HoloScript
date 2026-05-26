@@ -58,6 +58,8 @@ import type {
   TeamPresenceEntry,
   TeamMessage,
   TeamHologramFeedItem,
+  TeamIntelligenceFeedItem,
+  TeamFeedItem,
   RegisteredAgent,
   MeshKnowledgeEntry,
   TeamFleetSnapshotHealth,
@@ -1549,44 +1551,69 @@ export async function handleBoardRoutes(
     }
     const body: any = effectiveBody;
     const kind = body.kind as string;
-    if (kind !== 'hologram') {
-      json(res, 400, { error: 'Only kind "hologram" is supported' });
-      return true;
-    }
     const posterIdBody = typeof body.posterAgentId === 'string' ? body.posterAgentId.trim() : '';
     if (posterIdBody && posterIdBody !== caller.id) {
       json(res, 403, { error: 'posterAgentId must match authenticated agent' });
       return true;
     }
-    const hash = typeof body.hash === 'string' ? body.hash.trim() : '';
-    const shareUrl = typeof body.shareUrl === 'string' ? body.shareUrl.trim() : '';
-    const err = validateHologramFeedInput(hash, shareUrl);
-    if (err) {
-      json(res, 400, { error: err });
+
+    let item: TeamFeedItem;
+    if (kind === 'hologram') {
+      const hash = typeof body.hash === 'string' ? body.hash.trim() : '';
+      const shareUrl = typeof body.shareUrl === 'string' ? body.shareUrl.trim() : '';
+      const err = validateHologramFeedInput(hash, shareUrl);
+      if (err) {
+        json(res, 400, { error: err });
+        return true;
+      }
+      item = {
+        id: `feed_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        teamId,
+        kind: 'hologram',
+        posterAgentId: caller.id,
+        posterAgentName: caller.name,
+        hash,
+        shareUrl,
+        createdAt: new Date().toISOString(),
+      };
+      broadcastToTeam(teamId, {
+        type: 'feed:hologram' as any,
+        agent: caller.name,
+        data: { id: item.id, hash, shareUrl, posterAgentId: caller.id },
+      });
+    } else if (kind === 'intelligence') {
+      const content = typeof body.content === 'string' ? body.content.trim() : '';
+      if (!content) {
+        json(res, 400, { error: 'Missing content for intelligence feed item' });
+        return true;
+      }
+      const scope = body.scope === 'public' ? 'public' : 'team';
+      item = {
+        id: `feed_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        teamId,
+        kind: 'intelligence',
+        posterAgentId: caller.id,
+        posterAgentName: caller.name,
+        content,
+        scope,
+        createdAt: new Date().toISOString(),
+      };
+      broadcastToTeam(teamId, {
+        type: 'feed:intelligence' as any,
+        agent: caller.name,
+        data: { id: item.id, content: content.slice(0, 200), scope, posterAgentId: caller.id },
+      });
+    } else {
+      json(res, 400, { error: 'Only kind "hologram" or "intelligence" is supported' });
       return true;
     }
-    const item: TeamHologramFeedItem = {
-      id: `feed_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-      teamId,
-      kind: 'hologram',
-      posterAgentId: caller.id,
-      posterAgentName: caller.name,
-      hash,
-      shareUrl,
-      createdAt: new Date().toISOString(),
-    };
+
     const list = teamFeedStore.get(teamId) || [];
     list.push(item);
     const cap = 200;
     const trimmed = list.length > cap ? list.slice(-cap) : list;
     teamFeedStore.set(teamId, trimmed);
     persistTeamStore();
-
-    broadcastToTeam(teamId, {
-      type: 'feed:hologram' as any,
-      agent: caller.name,
-      data: { id: item.id, hash, shareUrl, posterAgentId: caller.id },
-    });
 
     json(res, 201, { success: true, item });
     return true;
