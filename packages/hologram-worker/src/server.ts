@@ -11,6 +11,7 @@ import { encodeParallaxWebm, encodeStereoMp4 } from './ffmpeg-encode.js';
 import { closeWorkerBrowser, runQuiltBrowserRender } from './playwright-pipeline.js';
 import { WorkerHologramCoordinator } from './providers.js';
 import { prepareRasterPng } from './rasterize.js';
+import { selectTargets } from './target-selector.js';
 import { uploadHologramToStudio } from './upload-studio.js';
 
 const MAX_BODY = 20 * 1024 * 1024;
@@ -34,6 +35,7 @@ interface RenderBody {
   sourceBase64?: string;
   mediaType?: string;
   targets?: string[];
+  deviceHint?: string;
   /** If true, skip Studio upload (local testing). */
   skipUpload?: boolean;
   depthMapBase64?: string;
@@ -220,7 +222,11 @@ const server = createServer(async (req, res) => {
 
     const media = await loadMediaBytes(body);
     const sourceKind = parseSourceKind(body.mediaType);
-    const targets = (body.targets ?? ['quilt', 'mvhevc', 'parallax']) as HologramTarget[];
+    const targets = selectTargets({
+      mediaType: sourceKind,
+      deviceHint: body.deviceHint as import('./target-selector.js').DeviceHint | undefined,
+      explicitTargets: body.targets as HologramTarget[] | undefined,
+    });
     for (const t of targets) {
       if (t !== 'quilt' && t !== 'mvhevc' && t !== 'parallax') {
         throw new Error(`unknown target: ${t}`);
