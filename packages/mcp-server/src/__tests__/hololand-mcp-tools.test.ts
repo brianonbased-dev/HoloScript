@@ -789,4 +789,73 @@ describe('hololand-mcp-tools', () => {
     expect(result.modelProvider).toBe('local');
     expect(result.note).toContain('local Ollama');
   });
+
+  // ---------------------------------------------------------------------------
+  // create → read round-trip for all four spatial entity types
+  // Verifies: create_world, create_shard, create_zone, create_place each return
+  // an id that can be read back via their matching getter.
+  // ---------------------------------------------------------------------------
+
+  it('create_world → get_world round-trip returns id', async () => {
+    const created = (await handleHololandMcpTool('create_world', {
+      id: 'rt-world',
+      name: 'Round-Trip World',
+    })) as Record<string, unknown>;
+    expect(created.success).toBe(true);
+    expect(created.worldId).toBe('rt-world');
+
+    const fetched = (await handleHololandMcpTool('get_world', {
+      worldId: 'rt-world',
+    })) as Record<string, unknown>;
+    expect(fetched.success).toBe(true);
+    expect(fetched.worldId).toBe('rt-world');
+  });
+
+  it('create_shard → get_shard round-trip returns id', async () => {
+    const created = (await handleHololandMcpTool('create_shard', {
+      id: 'rt-shard',
+      name: 'Round-Trip Shard',
+    })) as Record<string, unknown>;
+    expect(created.success).toBe(true);
+    expect(created.shardId).toBe('rt-shard');
+
+    const fetched = (await handleHololandMcpTool('get_shard', {
+      shardId: 'rt-shard',
+    })) as Record<string, unknown>;
+    expect(fetched.success).toBe(true);
+    expect(fetched.shardId).toBe('rt-shard');
+  });
+
+  it('create_zone → get_zone round-trip returns id', async () => {
+    const created = (await handleHololandMcpTool('create_zone', {
+      id: 'rt-zone',
+      name: 'Round-Trip Zone',
+      biome: 'urban',
+    })) as Record<string, unknown>;
+    expect(created.success).toBe(true);
+    expect(created.zoneId).toBe('rt-zone');
+
+    const fetched = (await handleHololandMcpTool('get_zone', {
+      zoneId: 'rt-zone',
+    })) as Record<string, unknown>;
+    expect(fetched.success).toBe(true);
+    expect(fetched.zoneId).toBe('rt-zone');
+  });
+
+  it('create_place → get_place round-trip returns id', async () => {
+    const created = (await handleHololandMcpTool('create_place', {
+      id: 'rt-place',
+      name: 'Round-Trip Place',
+      lat: 35.6762,
+      lng: 139.6503,
+    })) as Record<string, unknown>;
+    expect(created.success).toBe(true);
+    expect(created.placeId).toBe('rt-place');
+
+    const fetched = (await handleHololandMcpTool('get_place', {
+      placeId: 'rt-place',
+    })) as Record<string, unknown>;
+    expect(fetched.success).toBe(true);
+    expect(fetched.placeId).toBe('rt-place');
+  });
 });
