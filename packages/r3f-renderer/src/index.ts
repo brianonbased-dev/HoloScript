@@ -132,6 +132,19 @@ export type {
   RoomMeshEventBus,
   RoomMeshProviderOptions,
 } from './room-mesh/RoomMeshProvider';
+export {
+  SceneReconstructionConsumer,
+  createSceneReconstructionConsumer,
+  createWindowSceneReconstructionConsumer,
+} from './reconstruction/SceneReconstructionConsumer';
+export type {
+  ReconstructionCompletePayload,
+  ReconstructionEventBus,
+  ReconstructionInitPayload,
+  ReconstructionMeshUpdatePayload,
+  ReconstructionState,
+  SceneReconstructionConsumerOptions,
+} from './reconstruction/SceneReconstructionConsumer';
 
 // GAPS Physics Components (Phase 3)
 export { FluidRenderer } from './components/FluidRenderer';
