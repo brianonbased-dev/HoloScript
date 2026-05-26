@@ -251,6 +251,19 @@ export {
   type SoftBodyImpulseEvent,
 } from './SoftBodySolver.js';
 
+// Persistent expiry - consumes PersistentTrait TTL expiry (Pattern E)
+export {
+  PersistentExpiryCoordinator,
+  createPersistentExpiryCoordinator,
+  type PersistentExpiryCoordinatorOptions,
+  type PersistentExpiredEvent,
+  type PersistentAttachedEvent,
+  type PersistentUpdatedEvent,
+  type InvalidationRecord,
+  type RecoveryProvider,
+  type ExpiryHandler,
+} from './PersistentExpiryCoordinator.js';
+
 // DOM 2D Renderer - for rendering HoloScript to HTML
 export {
   DOM2DRenderer,
